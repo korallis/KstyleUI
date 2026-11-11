@@ -107,9 +107,7 @@ function Handle:Blocked(x, y, w, h)
 	return false
 end
 
-function Handle:Place(name, left, top, flipX, flipY, width)
-	local spec = ASSETS[name]
-	if not spec then return end
+local function Slot(self)
 	local level = (self.kind == "bar" or self.kind == "plate") and self.target:GetFrameLevel()
 	if level ~= false and (W.IsSecret(level) or type(level) ~= "number") then return end
 	self.used = self.used + 1
@@ -128,6 +126,14 @@ function Handle:Place(name, left, top, flipX, flipY, width)
 		end
 		self.textures[self.used] = t
 	end
+	return t
+end
+
+function Handle:Place(name, left, top, flipX, flipY, width)
+	local spec = ASSETS[name]
+	if not spec then return end
+	local t = Slot(self)
+	if not t then return end
 	t.ink, t.inkFlip = (INK.spans[name] or INK.circles[name]) and name or nil, flipX
 	local path = PATHS[name]
 	if not path then
@@ -136,6 +142,7 @@ function Handle:Place(name, left, top, flipX, flipY, width)
 	end
 	local loaded = t:SetTexture(path)
 	if not W.IsSecret(loaded) and loaded == false then
+		t.placed = false
 		t:Hide()
 		return t
 	end
@@ -144,6 +151,22 @@ function Handle:Place(name, left, top, flipX, flipY, width)
 	t:ClearAllPoints()
 	t:SetPoint("TOPLEFT", self.target, "TOPLEFT", left * self.pixel, -top * self.pixel)
 	t:SetSize((width or spec[1]) * self.pixel, spec[2] * self.pixel)
+	t.placed = true
+	t:Show()
+	return t
+end
+
+function Handle:Fill(left, top, width, height, color)
+	local t = Slot(self)
+	if not t then return end
+	t.ink, t.inkFlip = nil, nil
+	local r, g, b, a = W.Rgba(color)
+	t:SetColorTexture(r * a, g * a, b * a, 1)
+	t:SetTexCoord(0, 1, 0, 1)
+	t:ClearAllPoints()
+	t:SetPoint("TOPLEFT", self.target, "TOPLEFT", left * self.pixel, -top * self.pixel)
+	t:SetSize(width * self.pixel, height * self.pixel)
+	t.placed = true
 	t:Show()
 	return t
 end
@@ -364,6 +387,35 @@ local function Fits(S, west, k, spec, near)
 	end
 end
 
+local function Clip(list, l, r, b, t)
+	for _, o in ipairs(list) do
+		local c = o.clear
+		if o.icon and l < o.r + c and o.l - c < r and b < o.t + c and o.b - c < t then
+			local top, low, right, left = floor(o.b - c), math.ceil(o.t + c), floor(o.l - c), math.ceil(o.r + c)
+			local w, h = r - l, t - b
+			local least = min((t - top) * w, (low - b) * w, (r - right) * h, (left - l) * h)
+			if least == (t - top) * w then t = top
+			elseif least == (low - b) * w then b = low
+			elseif least == (r - right) * h then r = right
+			else l = left end
+			if r <= l or t <= b then return end
+		end
+	end
+	return l, r, b, t
+end
+
+local function Reachable(n, reach)
+	for k = reach, -INSET, -1 do
+		if ASSETS[Named(ENDS.Pointed, n + 2 * k)] then return k end
+	end
+	return -INSET - 1
+end
+
+local function Grown(n, rim)
+	local most = min(6, 12 - rim)
+	return Reachable(n + 1, most) > Reachable(n, most) and n + 1 or n
+end
+
 local function Search(S, families, strict, loose)
 	local single
 	for _, name in ipairs(families) do
@@ -385,7 +437,7 @@ local function Search(S, families, strict, loose)
 					return piece
 				end
 				local blocked = S.blocked
-				if not single and (west and (blocked[2] or S.portraitWest == false) or east and (blocked[1] or S.portraitWest == true)) then single = piece end
+				if not single and not S.plate and (west and (blocked[2] or S.portraitWest == false) or east and (blocked[1] or S.portraitWest == true)) then single = piece end
 			end
 		end
 	end
@@ -404,12 +456,13 @@ function Handle:Frame(full)
 		if W.IsSecret(shown) then return end
 		if shown then
 			local low = span:GetBottom()
+			if self.swaps and not Plain(low) then return end
 			if Plain(low) and low < bottom and (top - low) / self.pixel <= base * 4 + 0.5 then
 				upper, bottom, joined = bottom, low - (span.rimOutset or W.Border(span)), span
 			end
 		end
 	end
-	if base < 4 or self.width < 24 or self.target.vertical then return end
+	if base < 4 or self.width < 24 or self.target.vertical then return true end
 	local list = self:Obstacles()
 	if not list then return end
 	local S = self.scratch
@@ -420,6 +473,7 @@ function Handle:Frame(full)
 	local x0, y0 = floor(left * f + 0.5) - rim, floor(top * f + 0.5) + rim
 	local boxW = floor(right * f + 0.5) + rim - x0
 	local boxH = y0 - (floor(bottom * f + 0.5) - rim) + (joined and 1 or 0)
+	if joined and self.kind == "plate" then boxH = Grown(boxH, rim) end
 	local h = boxH - 2 * rim
 	self.height = h
 	local forged = full and self.forged
@@ -478,6 +532,15 @@ function Handle:Frame(full)
 		for i, o in ipairs(list) do
 			pieces[i] = o.ink and Copy(S, o, max(o.clear, floor(3 / pixel + 0.5))) or o
 			hooked[i] = o.row and Copy(S, o, max(o.clear, floor(boxH / 2))) or pieces[i]
+		end
+	end
+	if self.swaps and not joined then
+		local span = self.span
+		local low = span:GetBottom()
+		if not Plain(low) and self.spanDrop then low = bottom - self.spanDrop end
+		if Plain(low) and low < bottom and (top - low) / self.pixel <= base * 4 + 0.5 then
+			local k = Reachable(Grown(y0 - (floor((low - (span.rimOutset or W.Border(span))) * f + 0.5) - rim) + 1, rim), reach)
+			if k >= 0 then reach = min(reach, k) end
 		end
 	end
 	S.plain, S.pieces, S.hooked, S.reach = plain, pieces, hooked, reach
@@ -663,9 +726,35 @@ function Handle:Frame(full)
 	end
 	if ends then
 		local tip = oy - y0 - ends.reach - ends.rise
-		if ends.west and not (ring and ring.left) and (reached1 or wrap[1] == 0) then self:Place(ends.name, dx - wrap[1] - ends.width, tip) end
-		if ends.east and not (ring and not ring.left) and (reached2 or wrap[2] == 0) then self:Place(ends.name, dx + boxW + wrap[2], tip, true) end
+		local west = ends.west and not (ring and ring.left) and (reached1 or wrap[1] == 0)
+		local east = ends.east and not (ring and not ring.left) and (reached2 or wrap[2] == 0)
+		if S.plate and not (west and east) then west, east = false, false end
+		if west then self:Place(ends.name, dx - wrap[1] - ends.width, tip) end
+		if east then self:Place(ends.name, dx + boxW + wrap[2], tip, true) end
 	end
+	if joined and S.plate and (wrap[1] > 0 or wrap[2] > 0) then
+		local outset = joined.rimOutset or W.Border(joined)
+		local sl, st, sr, sb = joined:GetLeft(), joined:GetTop(), joined:GetRight(), joined:GetBottom()
+		if Plain(sl) and Plain(st) and Plain(sr) and Plain(sb) then
+			local l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
+			local track = joined.backgroundName or "track"
+			if wrap[1] > 0 and l > x0 - wrap[1] then
+				local fl, fr, fb, ft = Clip(list, x0 - wrap[1], l, b, t)
+				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+			end
+			if wrap[2] > 0 and x0 + boxW + wrap[2] > r then
+				local fl, fr, fb, ft = Clip(list, r, x0 + boxW + wrap[2], b, t)
+				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+			end
+		end
+	end
+	if self.swaps then
+		self.textures.reach = reach
+		local idle = joined and self.sets and self.sets[false]
+		if joined then self.spanDrop = upper - joined:GetBottom() end
+		if idle and idle.reach ~= reach then idle.epoch = nil end
+	end
+	return true
 end
 
 local HOLES = { 14, 17, 20, 24, 28, 32, 38, 44, 52, 60, 70, 80 }
@@ -862,7 +951,31 @@ function Handle:Row(full)
 	end
 end
 
-function Handle:Restyle()
+local function Spanned(self)
+	local shown = self.span:IsVisible()
+	if W.IsSecret(shown) then return nil end
+	return shown and true or false
+end
+
+local function Select(self, key)
+	if key == self.key then return false end
+	local textures = self.textures
+	if self.key == nil then
+		self.key, textures.epoch = key, nil
+		return true
+	end
+	local sets = self.sets or {}
+	self.sets = sets
+	textures.used = self.used
+	sets[self.key] = textures
+	for i = 1, self.used do textures[i]:Hide() end
+	textures = sets[key] or { used = 0 }
+	self.key, self.textures, self.used = key, textures, textures.used
+	return true
+end
+
+local function Draw(self)
+	self.textures.epoch = nil
 	if self.hold then return end
 	local visible = self.owner:IsVisible()
 	if not W.IsSecret(visible) and not visible then
@@ -891,12 +1004,14 @@ function Handle:Restyle()
 	end
 	local width, height = self.target:GetWidth(), self.target:GetHeight()
 	local factor = W.ScaleFactor(self.owner)
+	local done = false
 	if Plain(width) and Plain(height) and Plain(factor) then
 		self.pixel, self.factor = Scale.Pixel(1) / factor, factor
 		if Plain(self.pixel) then
 			self.width, self.height = floor(width / self.pixel + 0.5), floor(height / self.pixel + 0.5)
 			local full = level == "Full"
-			if self.kind == "bar" or self.kind == "plate" then self:Frame(full)
+			done = true
+			if self.kind == "bar" or self.kind == "plate" then done = self:Frame(full)
 			elseif self.kind == "ring" then self:Ring(full)
 			elseif self.kind == "map" then self:Map(full)
 			elseif self.kind == "crest" then self:Crest(full)
@@ -911,9 +1026,44 @@ function Handle:Restyle()
 		end
 	end
 	for i = self.used + 1, #self.textures do self.textures[i]:Hide() end
+	self.textures.epoch = done and self.epoch or nil
+	if self.swaps then
+		if done then
+			self.tries = nil
+		elseif (self.tries or 0) < 3 then
+			self.tries = (self.tries or 0) + 1
+			if not self.retry then
+				self.retry = function()
+					if self.textures.epoch ~= self.epoch and Spanned(self) == self.key then Draw(self) end
+				end
+			end
+			C_Timer.After(0, self.retry)
+		end
+	end
 	for _, dependent in ipairs(self.dependents or EMPTY) do dependent:Restyle() end
 	if self.kind == "row" then
 		for bar in pairs(BARS) do bar:Restyle() end
+	end
+end
+
+function Handle:Restyle()
+	self.epoch, self.tries = (self.epoch or 0) + 1, nil
+	if self.swaps then
+		local key = Spanned(self)
+		if key ~= nil then Select(self, key) end
+	end
+	Draw(self)
+end
+
+function Handle:Swap()
+	local key = Spanned(self)
+	if key == nil then return self:Restyle() end
+	if not Select(self, key) then return end
+	self.tries = nil
+	local textures = self.textures
+	if textures.epoch ~= self.epoch then return Draw(self) end
+	for i = 1, self.used do
+		if textures[i].placed then textures[i]:Show() end
 	end
 end
 
