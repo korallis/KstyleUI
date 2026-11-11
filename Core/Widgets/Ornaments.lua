@@ -297,7 +297,7 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 			inkb = b + max(0, metrics.descent - deep) * min(size, (t - b) / (metrics.ascent + metrics.descent))
 			local _, drop
 			if type(region.GetShadowOffset) == "function" then _, drop = region:GetShadowOffset() end
-			if Known(drop) and drop < 0 then inkb = max(b, inkb + drop) end
+			if Known(drop) and drop < 0 then inkb = inkb + drop end
 		end
 	end
 	outset = outset or 0

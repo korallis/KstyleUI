@@ -8,6 +8,7 @@ local UNITS = {
 	{ name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true, raid = 8 },
 	{ name = "Onyxia", level = -1, classification = "worldboss", reaction = 2, canAttack = true },
 	{ name = "Zo\195\171 Thornbrook", level = 39, reaction = 2, canAttack = true },
+	{ name = "Jaina Proudmoore", level = 60, reaction = 2, canAttack = true },
 }
 local rails, plates, omitted = 0, 0, 0
 
@@ -81,7 +82,7 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local height = (nt - nb) * px / nf
 			local inkBottom = nb + math.max(0, metrics.descent - deep) * math.min(fontSize, height / (metrics.ascent + metrics.descent)) * nf / px
 			local _, drop = plate.name:GetShadowOffset()
-			if type(drop) == "number" and drop < 0 then inkBottom = math.max(nb, inkBottom + drop * nf / px) end
+			if type(drop) == "number" and drop < 0 then inkBottom = inkBottom + drop * nf / px end
 			local inkWidth = plate.name:GetStringWidth() * nf / px
 			if inkWidth < nr - nl then
 				local justify = plate.name:GetJustifyH()
@@ -102,16 +103,16 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local fillTop, fillBottom = snap(ty), snap(ty + th)
 			local others = {}
 			for _, region in ipairs({ plate.healthText, plate.levelText, plate.level, plate.marker, plate.raid }) do
-				if region:IsVisible() and region:GetLeft() and not (region:GetObjectType() == "FontString" and (region:GetText() or "") == "") then
+				if region:IsVisible() and region:GetLeft() then
 					local l, r, t, b = box(region)
-					if region:GetObjectType() == "FontString" then
+					if region:GetObjectType() == "FontString" and (region:GetText() or "") ~= "" then
 						local ink = region:GetStringWidth() * K.Widgets.ScaleFactor(region) / px
 						if ink < r - l then
 							local justify = region:GetJustifyH()
 							if justify == "LEFT" then r = l + ink elseif justify == "RIGHT" then l = r - ink else l, r = (l + r - ink) / 2, (l + r + ink) / 2 end
 						end
 					end
-					others[#others + 1] = { l, r, t, b, region == plate.level and "level badge" or region == plate.marker and "target marker" or region == plate.raid and "raid icon" or tostring(region:GetText()) }
+					others[#others + 1] = { l, r, t, b, region == plate.level and "level badge" or region == plate.marker and "target marker" or region == plate.raid and "raid icon" or region == plate.healthText and "health text" or "level text" }
 				end
 			end
 			local above, below = 0, 0
