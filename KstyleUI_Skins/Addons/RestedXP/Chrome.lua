@@ -62,7 +62,7 @@ local done = setmetatable({}, WEAK)
 local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
-local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
+local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK), dropped = setmetatable({}, WEAK) }
 local state = { rxp = nil, tracked = false, guide = nil }
 
 local function Active()
@@ -2127,12 +2127,15 @@ local function DressDialog(global)
 		if holder and holder.label then
 			crest.inside[1] = holder.label
 		end
-		Hook(frame, "StopMovingOrSizing", "dialog drop " .. tostring(frame), function()
-			local shown = dress.panels[frame]
-			if shown and shown:IsShown() then
-				shown.chrome:RestyleOrnament()
-			end
-		end)
+		if not dress.dropped[frame] then
+			dress.dropped[frame] = true
+			Hook(frame, "StopMovingOrSizing", "dialog drop " .. tostring(frame), function()
+				local shown = dress.panels[frame]
+				if shown and shown:IsShown() then
+					shown.chrome:RestyleOrnament()
+				end
+			end)
+		end
 		panel.chrome:RestyleOrnament()
 	end
 	UndressOnHide(frame)
