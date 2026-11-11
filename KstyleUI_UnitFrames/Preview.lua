@@ -385,7 +385,9 @@ local function Fit(frame, holder, kind, width, height)
 		end
 	end
 	local scale = MAX_SCALE
-	local roomW, roomH = Room(frame:GetWidth()), Room(frame:GetHeight())
+	local reserve = frame.reserve
+	local rl, rr, rt, rb = reserve and reserve[1] or 0, reserve and reserve[2] or 0, reserve and reserve[3] or 0, reserve and reserve[4] or 0
+	local roomW, roomH = Room(frame:GetWidth() - rl - rr), Room(frame:GetHeight() - rt - rb)
 	if roomW then
 		scale = math.min(scale, roomW / (r - l))
 	end
@@ -394,7 +396,7 @@ local function Fit(frame, holder, kind, width, height)
 	end
 	holder:SetScale(scale)
 	holder:ClearAllPoints()
-	holder:SetPoint("CENTER", frame, "CENTER", (width - l - r) / 2, (t + b - height) / 2)
+	holder:SetPoint("CENTER", frame, "CENTER", (width - l - r) / 2 + (rl - rr) / 2 / scale, (t + b - height) / 2 + (rb - rt) / 2 / scale)
 end
 
 local function Refresh(frame)
@@ -431,6 +433,14 @@ function Preview.Build(parent)
 	frame:SetAllPoints(parent)
 	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts, frame.auraChips = {}, {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
+	function frame.Reserve(self, left, right, top, bottom)
+		local reserve = self.reserve or { 0, 0, 0, 0 }
+		reserve[1], reserve[2], reserve[3], reserve[4] = reserve[1] + left, reserve[2] + right, reserve[3] + top, reserve[4] + bottom
+		self.reserve = reserve
+		if self.kind then
+			Refresh(self)
+		end
+	end
 	frame:SetScript("OnSizeChanged", function(self)
 		if self.kind then
 			Refresh(self)

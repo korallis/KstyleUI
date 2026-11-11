@@ -30,6 +30,19 @@ Preview.SAMPLES = {
 }
 
 local function Stack(frame)
+	local only = frame.only
+	if only then
+		local plate = frame.plates[only]
+		local up, down = ns.Auras.Extent(plate)
+		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
+		for i, other in ipairs(frame.plates) do
+			local holder = other:GetParent()
+			holder:ClearAllPoints()
+			holder:SetPoint("CENTER", frame, "CENTER", 0, (math.max(down, overhang) - math.max(up, overhang)) / 2)
+			holder:SetShown(i == only)
+		end
+		return
+	end
 	local above, below = 0, 0
 	for _, plate in ipairs(frame.plates) do
 		local up, down = ns.Auras.Extent(plate)
@@ -63,6 +76,26 @@ function Preview.Build(parent)
 	end
 	Stack(frame)
 	frame:SetScript("OnSizeChanged", Stack)
+	frame.choices = #frame.plates
+	function frame.Choose(self, i)
+		self.only = i
+		Stack(self)
+	end
+	function frame.Name(self, i)
+		return self.plates[i].name
+	end
+	function frame.Whole(self, i)
+		local handle = self.plates[i].ornament
+		local ends = 0
+		for j = 1, handle.used do
+			local texture = handle.textures[j]
+			local file = texture:IsVisible() and texture:GetTexture()
+			if type(file) == "string" and file:find("ForgedOrnaments\\End") then
+				ends = ends + 1
+			end
+		end
+		return ends == 2
+	end
 	function frame.Refresh()
 		Settings.Invalidate()
 		if not Plates.running then
