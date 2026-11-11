@@ -117,7 +117,7 @@ local function Extent(frame, holder)
 	return (right - left) / eff, (top - bottom) / eff
 end
 
-local Fit
+local Fit, Reserve
 
 local function Rescale(frame, scale)
 	frame:SetScale(scale)
@@ -148,6 +148,7 @@ function Fit(pane, frame)
 			C_Timer.After(0, function()
 				if pane.current == frame and frame:IsShown() then
 					Fit(pane, frame)
+					Reserve(pane, frame)
 				end
 			end)
 		end
@@ -206,30 +207,61 @@ local function Build(pane, id, builder)
 	return nil
 end
 
-local function Reserve(pane, frame)
+local function Overflow(holder, frame)
+	local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
+	local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
+	if not (l and hl and hr and ht and hb and Known(f)) then
+		return nil
+	end
+	local margin = 2 * K.Scale.Pixel(1)
+	hl, hr, ht, hb = hl * f + margin, hr * f - margin, ht * f - margin, hb * f + margin
+	local left, right, top, bottom = math.max(0, hl - l), math.max(0, r - hr), math.max(0, t - ht), math.max(0, hb - b)
+	local fit = math.min((hr - hl) / (math.max(r, hr) - math.min(l, hl)), (ht - hb) / (math.max(t, ht) - math.min(b, hb)))
+	return left, right, top, bottom, left + right + top + bottom < 0.5, fit
+end
+
+function Reserve(pane, frame)
 	local holder = pane.holder
-	for _ = 1, 6 do
-		local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
-		local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
-		if not (l and hl and hr and ht and hb and Known(f)) then
-			return
-		end
-		local margin = 2 * K.Scale.Pixel(1)
-		hl, hr, ht, hb = hl * f + margin, hr * f - margin, ht * f - margin, hb * f + margin
-		local left, right, top, bottom = math.max(0, hl - l), math.max(0, r - hr), math.max(0, t - ht), math.max(0, hb - b)
-		if left + right + top + bottom < 0.5 then
-			return
-		end
-		if frame.Reserve then
+	local left, right, top, bottom, fits, fit = Overflow(holder, frame)
+	if not left or fits then
+		return
+	end
+	if frame.Reserve then
+		for _ = 1, 6 do
 			local own = Widgets.ScaleFactor(frame)
 			if not Known(own) then
 				return
 			end
 			frame:Reserve(left / own, right / own, top / own, bottom / own)
-		else
-			local fit = math.min((hr - hl) / (math.max(r, hr) - math.min(l, hl)), (ht - hb) / (math.max(t, ht) - math.min(b, hb)))
-			Rescale(frame, frame:GetScale() * fit * 0.98)
+			left, right, top, bottom, fits = Overflow(holder, frame)
+			if not left or fits then
+				return
+			end
 		end
+	else
+		local hi = frame:GetScale()
+		local lo = hi * fit * 0.98
+		for _ = 1, 4 do
+			Rescale(frame, lo)
+			left, _, _, _, fits, fit = Overflow(holder, frame)
+			if not left then
+				return
+			end
+			if fits then
+				break
+			end
+			hi, lo = lo, lo * fit * 0.98
+		end
+		for _ = 1, 5 do
+			local mid = (lo + hi) / 2
+			Rescale(frame, mid)
+			left, _, _, _, fits = Overflow(holder, frame)
+			if not left then
+				return
+			end
+			if fits then lo = mid else hi = mid end
+		end
+		Rescale(frame, lo)
 	end
 	Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 end

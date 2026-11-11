@@ -1,8 +1,8 @@
--- test-ornament-preview.lua: ornamental outsets do not resize the original content in the Options preview.
+-- test-ornament-preview.lua: in the Options preview, ornaments that fit inside the preview's clip do not refit its content, and ornaments that would cross the clip shrink the content just enough to draw whole inside it.
 local O = dofile("Tools/regression/options_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-local function Scale(shown)
+local function Scale(shown, inside)
 	local handle
 	local env, K, ns = O.New({ before = function(e, core)
 		core.Layout = nil
@@ -17,7 +17,11 @@ local function Scale(shown)
 			content:SetTexture(core.Tokens.Texture("barFlat"))
 			local portrait = e.CreateFrame("Frame", nil, frame)
 			local pixel = core.Scale.Pixel(1) / core.Widgets.ScaleFactor(portrait)
-			portrait:SetPoint("RIGHT", content, "LEFT", 20 * pixel, 0)
+			if inside then
+				portrait:SetPoint("CENTER", content, "CENTER")
+			else
+				portrait:SetPoint("RIGHT", content, "LEFT", 20 * pixel, 0)
+			end
 			portrait:SetSize(39 * pixel, 39 * pixel)
 			handle = core.Widgets.Ornament(portrait, "ring")
 			handle.elite = true
@@ -35,16 +39,24 @@ local function Scale(shown)
 	handle.target:SetSize(39 * pixel, 39 * pixel)
 	handle:Restyle()
 	local scene = Scene.Build(env)
+	local solver = Scene.RectSolver(env)
+	local hx, hy, hw, hh = Scene.RectIn(solver, ns.Window.Parts().preview.holder)
 	local painted = 0
 	for _, item in ipairs(scene.items) do
 		for i = 1, handle.used do
-			if item.object == handle.textures[i] then painted = painted + 1 end
+			if item.object == handle.textures[i] then
+				painted = painted + 1
+				local x, y, w, h = Scene.RectIn(solver, item.object)
+				assert(x >= hx - 0.01 and y >= hy - 0.01 and x + w <= hx + hw + 0.01 and y + h <= hy + hh + 0.01, "an ornament piece lies wholly inside the preview's clip")
+			end
 		end
 	end
 	assert(painted == (shown and 2 or 0), "the preview collects the actual Full ring and elite pendant, got " .. painted .. " used " .. handle.used)
 	return ns.Window.Parts().preview.current:GetScale()
 end
 
-local off, full = Scale(false), Scale(true)
-assert(off == full, "ornaments must not change the preview content scale: " .. tostring(off) .. " versus " .. tostring(full))
-print("ok ornamental outsets do not refit the preview")
+local off, full = Scale(false, true), Scale(true, true)
+assert(off == full, "ornaments that fit inside the clip must not change the preview content scale: " .. tostring(off) .. " versus " .. tostring(full))
+local edgeOff, edgeFull = Scale(false), Scale(true)
+assert(edgeFull < edgeOff, "ornaments that would cross the clip shrink the preview: " .. tostring(edgeOff) .. " versus " .. tostring(edgeFull))
+print(string.format("ok ornaments that fit leave the preview at %.2f; a ring that would cross the clip shrinks it from %.2f to %.2f and draws whole inside", off, edgeOff, edgeFull))
