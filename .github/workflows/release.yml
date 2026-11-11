@@ -32,11 +32,6 @@ jobs:
             echo "The tag $GITHUB_REF_NAME is not on main. Release only from main, after the in-game pass on staging."
             exit 1
           fi
-      - name: Cache Lua 5.1.5
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.local/bin/lua5.1
-          key: lua-5.1.5-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Tools/dev/install-lua51.sh') }}
       - name: Install Lua 5.1.5
         run: |
           bash Tools/dev/install-lua51.sh

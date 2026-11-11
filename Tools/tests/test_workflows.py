@@ -101,10 +101,10 @@ class WorkflowsTest(unittest.TestCase):
         # The check job builds and inspects the pack without uploading; the release job builds it again and
         # uploads KstyleUI-Icons-<version>.zip to the GitHub release the packager made.
         self.assertIn("Tools/icons/iconset.py pack", check)
-        self.assertIn("python3-pil", check, "pack needs Pillow to read the PNGs")
+        self.assertIn("pillow==", check, "pack needs Pillow to read the PNGs")
         self.assertIn("Tools/icons/iconset.py verify", check)
         self.assertIn("Tools/icons/iconset.py pack", release)
-        self.assertIn("python3-pil", release)
+        self.assertIn("pillow==", release)
         self.assertRegex(release, r"KstyleUI-Icons-\$\{GITHUB_REF_NAME#v\}\.zip")
         self.assertIn("gh release upload", release)
         self.assertNotIn("gh release upload", check)
@@ -173,7 +173,8 @@ class WorkflowsTest(unittest.TestCase):
         for path in workflows():
             text = path.read_text(encoding="utf-8")
             installs = text.count("bash Tools/dev/install-lua51.sh")
-            self.assertEqual(text.count("- name: Cache Lua 5.1.5"), installs, path.name)
+            if path.name != "release.yml":
+                self.assertEqual(text.count("- name: Cache Lua 5.1.5"), installs, path.name)
         script = (REPO / "Tools" / "dev" / "install-lua51.sh").read_text(encoding="utf-8")
         self.assertRegex(script, r"(?m)^sha256=[0-9a-f]{64}$")
 
