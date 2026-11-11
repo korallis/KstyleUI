@@ -297,7 +297,7 @@ end
 
 local function ChipName(view)
 	ChipText(view)
-	view.chip.chrome.ornament:Restyle()
+	view.chip.chrome:RestyleOrnament()
 end
 
 function Frames.ChipName(view)
@@ -381,7 +381,7 @@ local function PlaceChip(view, width)
 	chip.name:SetTextColor(K.Tokens.Color("textEmphasis"))
 	local label = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
 	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
-	chip.chrome.ornament:Restyle()
+	chip.chrome:RestyleOrnament()
 end
 
 local function Reach(view, g, width)

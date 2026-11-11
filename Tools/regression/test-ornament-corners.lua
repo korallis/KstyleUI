@@ -56,8 +56,10 @@ end
 
 local chrome = ns.Frames.Get("boss").views[2].chrome
 chrome:SetShown(false)
+env.RunTimers()
 assert(#drawn(handles.boss2) == 0, "a hidden card chrome hides its corners")
 chrome:SetShown(true)
+env.RunTimers()
 assert(#drawn(handles.boss2) == 4, "the corners return with the chrome")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors: " .. tostring(env._errors[1]))
 print("ok ornament corners follow the game's events and the level")

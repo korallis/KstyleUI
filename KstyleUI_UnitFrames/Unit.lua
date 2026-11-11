@@ -533,6 +533,7 @@ local function Rank(view, unit)
 	ring.elite = known and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
 	ring:Restyle()
 	ns.Style.RestyleBlocks()
+	view.chrome:RestyleOrnament()
 end
 
 function Unit.Level(view, unit)
