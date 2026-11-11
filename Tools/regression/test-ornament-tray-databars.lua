@@ -1,4 +1,4 @@
--- test-ornament-tray-databars.lua: with a faction watched, the action bars and the data bars loaded together, the tray's finials and keystone keep 1 physical pixel from every data bar's drawn regions, stepping down a tier or dropping rather than covering the reputation bar, at Subtle and Full on five screens in DPS and on two in Tank and Healer.
+-- test-ornament-tray-databars.lua: with a faction watched, the action bars and the data bars loaded together, the tray's finials and keystone keep 1 physical pixel from every data bar's drawn regions, stepping down a tier or dropping rather than covering the reputation bar, and draws the expected pieces, at Subtle and Full on five screens in DPS and on two in Tank and Healer.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
@@ -22,9 +22,11 @@ local function gap(a, b)
 end
 
 local CASES = {
-	{ "DPS", "Full", 1280, 720 }, { "DPS", "Full", 1366, 768 }, { "DPS", "Full", 1920, 1080 }, { "DPS", "Full", 2560, 1440 },
-	{ "DPS", "Full", 3456, 2234 }, { "DPS", "Subtle", 1920, 1080 }, { "Tank", "Full", 1280, 720 }, { "Tank", "Full", 1920, 1080 },
-	{ "Healer", "Full", 1280, 720 }, { "Healer", "Full", 1920, 1080 },
+	{ "DPS", "Full", 1280, 720, "Tray32 Tray32" }, { "DPS", "Full", 1366, 768, "Tray32 Tray32" },
+	{ "DPS", "Full", 1920, 1080, "Tray40 Tray40" }, { "DPS", "Full", 2560, 1440, "Tray64 Tray64 Keystone6" },
+	{ "DPS", "Full", 3456, 2234, "Tray96 Tray96 Keystone12" }, { "DPS", "Subtle", 1920, 1080, "Arrow24 Arrow24" },
+	{ "Tank", "Full", 1280, 720, "Tray32 Tray32" }, { "Tank", "Full", 1920, 1080, "Tray40 Tray40" },
+	{ "Healer", "Full", 1280, 720, "Tray32 Tray32" }, { "Healer", "Full", 1920, 1080, "Tray40 Tray40" },
 }
 local pieces, nearest, finials = 0, math.huge, {}
 local oldScreen = rawget(_G, "RENDER_SCREEN")
@@ -84,6 +86,7 @@ for _, case in ipairs(CASES) do
 		end
 	end
 	finials[#finials + 1] = label .. ": " .. table.concat(names, " ")
+	assert(table.concat(names, " ") == case[5], label .. ": the tray draws " .. table.concat(names, " ") .. ", expected " .. case[5])
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 	collectgarbage("collect")
 end

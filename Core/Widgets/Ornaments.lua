@@ -1133,13 +1133,12 @@ function Handle:Row(full)
 			end
 			if not clear then break end
 		end
-		if clear then
-			for side = 1, 2 do
-				local x = side == 1 and floor(originX - 2 - spec[1] + 0.5) or floor(originX + self.width + 2 + 0.5)
-				if not Free(bars, x, finialTop, spec[1], spec[2]) then
-					clear = false
-					break
-				end
+		if not clear then break end
+		for side = 1, 2 do
+			local x = side == 1 and floor(originX - 2 - spec[1] + 0.5) or floor(originX + self.width + 2 + 0.5)
+			if not Free(bars, x, finialTop, spec[1], spec[2]) then
+				clear = false
+				break
 			end
 		end
 		if clear then
@@ -1364,7 +1363,10 @@ function W.Ornament(owner, kind, target, passive)
 	local function wake()
 		if handle.stale then handle:Restyle() end
 		if kind == "bar" then
-			for row in pairs(ROWS) do row:Restyle() end
+			for row in pairs(ROWS) do
+				if not W.MayMove(row.owner) then row:Yield(handle.target) end
+				row:Restyle()
+			end
 		end
 	end
 	local function hidden()
