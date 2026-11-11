@@ -69,15 +69,36 @@ local function Shade(texture)
 	texture:SetGradient("VERTICAL", CreateColor(r, g, b, SHADE_ALPHA), CreateColor(r, g, b, 0))
 end
 
-local function FitGlow(self)
+local FitGlow
+
+local function WatchGlow(watch)
+	FitGlow(watch:GetParent())
+end
+
+local function Easing(self)
+	local easing = type(self.IsInterpolating) == "function" and self:IsInterpolating()
+	return not Widgets.IsSecret(easing) and easing == true
+end
+
+FitGlow = function(self)
 	local glow = self.glow
 	if not glow then
 		return
 	end
 	local shown = self.pillOn and self.glowWanted
+	local easing = shown and Easing(self)
+	local watch = self.glowWatch
+	if easing and not watch then
+		watch = CreateFrame("Frame", nil, self)
+		self.glowWatch = watch
+	end
+	if watch and watch.easing ~= easing then
+		watch.easing = easing
+		watch:SetScript("OnUpdate", easing and WatchGlow or nil)
+	end
 	if shown then
 		local low, high = self:GetMinMaxValues()
-		local value, width = self:GetValue(), self:GetWidth()
+		local value, width = easing and self:GetInterpolatedValue() or self:GetValue(), self:GetWidth()
 		local plain = not (Widgets.IsSecret(low) or Widgets.IsSecret(high) or Widgets.IsSecret(value) or Widgets.IsSecret(width))
 		if plain and type(low) == "number" and type(high) == "number" and type(value) == "number" and type(width) == "number" then
 			local span = high - low
