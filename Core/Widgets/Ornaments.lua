@@ -378,6 +378,7 @@ function Handle:Obstacles()
 end
 
 local INSET = 2
+local CAP_SHARE = 0.4
 
 local CREST_SIZES = { 32, 20 }
 local ENDS = { Crested = "EndCrested", Winged = "EndWinged", Clawed = "EndClawed", Pointed = "EndPointed" }
@@ -645,6 +646,7 @@ function Handle:Frame(full)
 				local fits, capTop, west, east = CapFits(pieces, x0, boxW, y0, height, spec, ring, portraitWest)
 				local smaller = forged and (ends and spec[2] < ASSETS[ends.name][2] or capTop <= floor(upper * f + 0.5))
 					or least and (spec[2] < least[2] or spec[2] == least[2] and spec[1] < least[1])
+					or not forged and spec[2] < CAP_SHARE * height
 				if not smaller and fits then
 					caps = S.caps
 					caps.name, caps.top, caps.width, caps.west, caps.east = name, capTop, spec[1], west, east

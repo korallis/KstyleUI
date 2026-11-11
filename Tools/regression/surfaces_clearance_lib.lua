@@ -268,6 +268,25 @@ function M.RailSides(scene, handle)
 	return above, below
 end
 
+-- CapShare(scene, handle, label, px) fails when a cap (`Wing` or `Arrow`) is shorter than 40% of the room between
+-- the handle's top and bottom rails: an end that small reads as a speck and is dropped, never drawn (Captain,
+-- 2026-11-11; `CAP_SHARE` in Core/Widgets/Ornaments.lua).
+function M.CapShare(scene, handle, label, px)
+	local above, below = M.RailSides(scene, handle)
+	if #above == 0 or #below == 0 then return end
+	local top, bottom = -math.huge, math.huge
+	for _, r in ipairs(above) do top = math.max(top, r[2] + r[4]) end
+	for _, r in ipairs(below) do bottom = math.min(bottom, r[2]) end
+	local mine = {}
+	for i = 1, handle.used do mine[handle.textures[i]] = true end
+	for _, item in ipairs(scene.items) do
+		local name = mine[item.object] and file(item)
+		if name and (name:find("^Wing") or name:find("^Arrow")) and item.rect[4] < 0.4 * (bottom - top) - 1 / px then
+			error(string.format("%s: %s is %.2f units tall, under 40%% of the %.2f units between the rails", label, name, item.rect[4], bottom - top), 0)
+		end
+	end
+end
+
 -- NotSmaller(sizes, key, level, h, w, label) records Subtle's end size under key and fails when Full's, at the same
 -- key, is shorter, or as tall and narrower, or drops a rail Subtle draws: Full never draws less than Subtle.
 function M.NotSmaller(sizes, key, level, h, w, label, above, below, rects, blocked)
@@ -329,6 +348,7 @@ function M.Run(cases, title)
 		for name, entry in pairs(handles) do
 			local h, w, rects = M.EndSize(scene, entry.handle)
 			local above, below = M.RailSides(scene, entry.handle)
+			if name:find("^databars%.") then M.CapShare(scene, entry.handle, label, case.screen[2] / 1080) end
 			M.NotSmaller(sizes, string.format("%s %s%s %dx%d", name, case.layout, case.faction and " watching a faction" or "", case.screen[1], case.screen[2]), case.level, h, w, label, above, below, rects, function(old, rails)
 				return (rails and RailBlocker or Blocker)(scene, entry.handle, old, case.screen[2] / 1080)
 			end)
@@ -398,8 +418,10 @@ function M.States(screens, title)
 				end
 				total = total + M.Check(scene, M.Handles({ databars = { ns = ns } }), screen[2] / 1080, label, K.Widgets.OrnamentInk)
 				for id, view in pairs(ns.Bars.views) do
-					local h, w = M.EndSize(scene, view.ornament)
-					M.NotSmaller(sizes, string.format("databars.%s %s %dx%d", id, state, screen[1], screen[2]), level, h, w, label)
+					local h, w, rects = M.EndSize(scene, view.ornament)
+					local above, below = M.RailSides(scene, view.ornament)
+					M.CapShare(scene, view.ornament, label, screen[2] / 1080)
+					M.NotSmaller(sizes, string.format("databars.%s %s %dx%d", id, state, screen[1], screen[2]), level, h, w, label, above, below, rects)
 				end
 				if state == "rep" then
 					local view, px = ns.Bars.views.rep, screen[2] / 1080
