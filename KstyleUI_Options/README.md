@@ -69,6 +69,7 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 | `toggle` | `Widgets.Toggle` |
 | `slider` | `Widgets.Slider` with the row's `min`, `max` and `step`; a row with `shown` paints `shown(stored)` instead of the stored value |
 | `dropdown` | `Widgets.Dropdown`. A stored value that no option holds is listed under its raw value, so it still shows. |
+| `segmented` | `Widgets.Tabs` at the control width: one tab per option, the stored value's tab underlined. For a short list of choices that should all show at once, such as the Widgets **Ornaments** level (Off, Subtle, Full). A disabled row disables every tab. |
 | `color` | `Widgets.ColorSwatch` and the colour as `#RRGGBB`. Rows with `hasAlpha` keep the alpha. |
 | `font`, `texture` | `Widgets.FontPicker`, `Widgets.TexturePicker`: KstyleUI's media, then LibSharedMedia's |
 | `text` | `Widgets.EditBox`. Enter saves; `maxLetters` limits the length. |

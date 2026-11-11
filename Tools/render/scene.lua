@@ -978,8 +978,39 @@ local function paintMaterials(env, solver)
 	end
 end
 
+-- An ornament sizes its pieces to its target, and the stubs do not fire OnSizeChanged when anchors resize a frame.
+-- So a scene that draws ornaments is built once, each ornament is restyled at the size the renderer solved for its
+-- target, as the game restyles it on OnSizeChanged, and the scene is built again. Off draws none and skips the pass.
+local function restyleOrnaments(env, opts)
+	local handles = env._ornamentHandles
+	local K = env._addons and env._addons.KstyleUI
+	if opts._ornamentPass or not handles or #handles == 0 or not K or K.Widgets.Setting("ornaments") == "Off" then
+		return
+	end
+	opts._ornamentPass = true
+	Scene.Build(env, opts)
+	opts._ornamentPass = nil
+	env._rectSolver = nil
+	local solver = Scene.RectSolver(env)
+	for _, handle in ipairs(handles) do
+		local target = handle.target
+		local _, _, w, h = Scene.RectIn(solver, target)
+		if w and h then
+			local factor = target:GetEffectiveScale() * SCREEN_UNITS / UI_HEIGHT
+			target.GetWidth = function()
+				return w / factor
+			end
+			target.GetHeight = function()
+				return h / factor
+			end
+			handle:Restyle()
+		end
+	end
+end
+
 function Scene.Build(env, opts)
 	opts = opts or {}
+	restyleOrnaments(env, opts)
 	local log = {}
 	local counts = {}
 	local function logLine(line)

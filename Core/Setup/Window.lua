@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, four steps built from the widget kit: welcome, layout, modules and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
+-- Window.lua: the first-run setup window, five steps built from the widget kit: welcome, layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -8,12 +8,13 @@ local L = ns.L
 local max, min = math.max, math.min
 
 local WIDTH, HEIGHT = 760, 540
-local STEPS = 4
+local STEPS = 5
 local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local LOGO_SIZE = 128
 local TEXT_WIDTH = 520
 local CARD_HEIGHT = 120
+local ORNAMENT_CARD_HEIGHT = 64
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -30,7 +31,7 @@ local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
 local STORY = { label = L["Story rail"], short = L["Quests"] }
-local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Summary"] }
+local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
 
 local panel
 local step, reached, applied, open = 0, 1, false, false
@@ -118,6 +119,18 @@ local function RefreshEditMode()
 	end
 end
 
+local function Select(cards, value)
+	for key, card in pairs(cards) do
+		card.selected = key == value
+		card:Paint()
+		if card.selected then
+			card.glow:Start()
+		else
+			card.glow:Stop()
+		end
+	end
+end
+
 local function Refresh()
 	local choice = Setup.Choice()
 	panel.back:SetShown(step > 1)
@@ -126,15 +139,8 @@ local function Refresh()
 	panel.apply:SetShown(step == STEPS and not applied)
 	panel.reload:SetShown(step == STEPS and applied)
 	panel.later:SetShown(step == STEPS and applied)
-	for name, card in pairs(panel.cards) do
-		card.selected = choice.layout == name
-		card:Paint()
-		if card.selected then
-			card.glow:Start()
-		else
-			card.glow:Stop()
-		end
-	end
+	Select(panel.cards, choice.layout)
+	Select(panel.ornamentCards, choice.ornaments)
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
 	end
@@ -146,7 +152,9 @@ local function Refresh()
 				list[#list + 1] = entry.label
 			end
 		end
+		local ornaments = Setup.Ornament(choice.ornaments)
 		local text = string.format(L["Layout: %s. %s"], Layouts.Label(choice.layout), Layouts.Note(choice.layout))
+			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note)
 			.. "\n\n" .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"])
 		if #off > 0 then
 			text = text .. "\n" .. L["Off: "] .. table.concat(off, ", ")
@@ -224,13 +232,13 @@ local function BuildWelcome(page)
 	body:SetText(L["This short setup picks a layout and the parts of the interface KstyleUI replaces. You can change everything later in the settings window, and move or resize any element in Layout Mode."])
 	local caption = Widgets.Text(page, "caption", "text")
 	caption:SetPoint("TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
-	Widgets.SetText(caption, L["Three steps"])
+	Widgets.SetText(caption, L["Four steps"])
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
 	list:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."] .. "\n" .. L["3. Apply, then reload."])
+	list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."] .. "\n" .. L["3. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["4. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
 	note:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
-	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on. Keep my UI leaves the game's own interface as it is."])
+	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
 	panel.welcomeTitle, panel.welcomeNote = title, note
 end
 
@@ -442,33 +450,24 @@ local function NewPreview(page)
 	return preview
 end
 
-local function NewCard(page, name, width)
+local function NewCard(page, width, height, title, note, pick)
 	local card = CreateFrame("Button", nil, page)
 	for k, fn in pairs(Card) do
 		card[k] = fn
 	end
-	card.layout = name
-	Widgets.Size(card, width, CARD_HEIGHT)
+	Widgets.Size(card, width, height)
 	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
 	card.glow = Widgets.Glow(card, { kind = "selection" })
 	card.title = Widgets.Text(card, "caps", "capsGold")
 	Widgets.CapsSize(card.title)
-	card.title:SetText(Layouts.Label(name))
+	card.title:SetText(title)
 	card.note = Paragraph(card, "body", "text", width)
-	card.note:SetText(Layouts.Note(name))
+	card.note:SetText(note)
 	card.onClick = function()
-		Setup.Choice().layout = name
+		pick()
 		Changed()
 	end
 	Widgets.HookPointer(card)
-	card:HookScript("OnEnter", function()
-		panel.preview.hovered = true
-		panel.preview:Draw(name)
-	end)
-	card:HookScript("OnLeave", function()
-		panel.preview.hovered = false
-		panel.preview:Draw(Setup.Choice().layout)
-	end)
 	card:Restyle()
 	return Widgets.Track(card)
 end
@@ -500,7 +499,18 @@ local function BuildLayouts(page, width)
 	local cardWidth = math.floor((width - spacing * (#names - 1)) / #names)
 	panel.cards = {}
 	for i, name in ipairs(names) do
-		local card = NewCard(page, name, cardWidth)
+		local card = NewCard(page, cardWidth, CARD_HEIGHT, Layouts.Label(name), Layouts.Note(name), function()
+			Setup.Choice().layout = name
+		end)
+		card.layout = name
+		card:HookScript("OnEnter", function()
+			panel.preview.hovered = true
+			panel.preview:Draw(name)
+		end)
+		card:HookScript("OnLeave", function()
+			panel.preview.hovered = false
+			panel.preview:Draw(Setup.Choice().layout)
+		end)
 		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
 		panel.cards[name] = card
 	end
@@ -564,6 +574,26 @@ local function BuildModules(page, width)
 		toggle.note = note
 		panel.toggles[name] = toggle
 	end
+end
+
+local function BuildOrnaments(page, width)
+	local spacing = gap("gapLarge")
+	local height = Widgets.Snap(page, ORNAMENT_CARD_HEIGHT)
+	panel.ornamentCards = {}
+	for i, entry in ipairs(Setup.ORNAMENTS) do
+		local value = entry.value
+		local card = NewCard(page, width, ORNAMENT_CARD_HEIGHT, entry.label, entry.note, function()
+			Setup.Choice().ornaments = value
+		end)
+		card.ornaments = value
+		card:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(i - 1) * (height + spacing))
+		panel.ornamentCards[value] = card
+	end
+	local hint = Paragraph(page, "body", "text", width)
+	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -#Setup.ORNAMENTS * (height + spacing))
+	hint:SetText(L["Ornaments add forged trim around the HUD without moving anything. They show on every card material but Glass."]
+		.. "\n\n" .. L["Change them at any time in the settings window, on the General page."])
+	panel.ornamentHint = hint
 end
 
 local function BuildSummary(page, width)
@@ -663,7 +693,8 @@ local function Build()
 	BuildWelcome(panel.pages[1])
 	BuildLayouts(panel.pages[2], width)
 	BuildModules(panel.pages[3], width)
-	BuildSummary(panel.pages[4], width)
+	BuildOrnaments(panel.pages[4], width)
+	BuildSummary(panel.pages[5], width)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	panel.back:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {

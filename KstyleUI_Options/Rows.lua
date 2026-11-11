@@ -126,6 +126,16 @@ function MAKERS.dropdown(row)
 	return Dropdown(row, Widgets.Dropdown)
 end
 
+function MAKERS.segmented(row)
+	return Widgets.Tabs(row, {
+		width = Rows.CONTROL_WIDTH,
+		height = Tokens.Size("rowHeight"),
+		onSelect = function(value, control)
+			Apply(row, value, control)
+		end,
+	})
+end
+
 function MAKERS.font(row)
 	return Dropdown(row, Widgets.FontPicker)
 end
@@ -279,6 +289,22 @@ local function FillDropdown(control, item, value)
 	SetEnabled(control, not Model.IsDisabled(item))
 end
 FILL.dropdown, FILL.font, FILL.texture = FillDropdown, FillDropdown, FillDropdown
+
+function FILL.segmented(control, item, value)
+	if control.options ~= item.options then
+		control.options = item.options
+		control:SetTabs(item.options, value)
+	end
+	for _, option in ipairs(item.options) do
+		control:SetTabEnabled(option.value, true)
+	end
+	control:Select(value, true)
+	local enabled = not Model.IsDisabled(item)
+	for _, option in ipairs(item.options) do
+		control:SetTabEnabled(option.value, enabled)
+	end
+	control:Paint()
+end
 
 function FILL.color(control, item, value)
 	local c = type(value) == "table" and value or {}

@@ -78,6 +78,7 @@ local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 Widgets.defaults = {
 	cardMaterial = DEFAULT_CARD_MATERIAL,
+	ornaments = "Full",
 	panelOpacity = SURFACE_ALPHA,
 	shadows = false,
 	sounds = true,
@@ -85,6 +86,9 @@ Widgets.defaults = {
 }
 
 local VALID = {
+	ornaments = function(v)
+		return not IsSecret(v) and (v == "Off" or v == "Subtle" or v == "Full")
+	end,
 	cardMaterial = function(v)
 		return not IsSecret(v) and type(v) == "string" and Tokens.Material(v) ~= nil
 	end,
@@ -114,6 +118,8 @@ function Widgets.Setting(key)
 end
 
 Widgets.schema = {
+	{ type = "header", label = L["Ornaments"] },
+	{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
 	{ type = "header", label = L["Card material"] },
 	{
 		type = "dropdown", key = "cardMaterial", label = L["Material"],

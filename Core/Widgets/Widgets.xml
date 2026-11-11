@@ -1,5 +1,8 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Base.lua"/>
+	<Script file="OrnamentData.lua"/>
+	<Script file="OrnamentInk.lua"/>
+	<Script file="Ornaments.lua"/>
 	<Script file="Glow.lua"/>
 	<Script file="Rail.lua"/>
 	<Script file="Tooltip.lua"/>

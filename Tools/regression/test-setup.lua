@@ -1,4 +1,4 @@
--- test-setup.lua: the first-run setup opens once per account, walks four steps, and Apply switches modules on, writes the layout and offers a reload.
+-- test-setup.lua: the first-run setup opens once per account, walks five steps (welcome, layout, modules, ornaments, summary), and Apply switches modules on, writes the layout and offers a reload.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -80,6 +80,7 @@ do
 	local env, K, panel = Login()
 	assert(panel and panel:IsShown(), "the first-run setup opens")
 	assert(panel.welcomeNote and panel.welcomeNote:IsShown() and panel.welcomeNote:GetText():find("DPS", 1, true), "the welcome step says closing uses the DPS layout")
+	assert(panel.welcomeNote:GetText():find("Full ornaments", 1, true), "and Full ornaments")
 	assert(panel.skip.label:GetText() == "Keep my UI", "the welcome step's left button is the opt-out")
 	panel:Close()
 	W.Settle(env)
@@ -87,6 +88,7 @@ do
 		assert(K.Modules.IsEnabled(name), "closing the first-run setup switches " .. name .. " on")
 	end
 	assert(K.Layout.Setting("preset") == "DPS", "and applies the DPS layout")
+	assert(K.Widgets.Setting("ornaments") == "Full", "and Full ornaments, the level the ornaments step starts on")
 	assert(K.Store.Layout()["chat.main"] and K.Store.Layout()["chat.main"].x == K.Setup.Layouts.Get("DPS")["chat.main"].x, "with its positions")
 	assert(Seen(K), "and marks the setup seen")
 	assert(CoreEnv.Printed(env, "DPS") and CoreEnv.Printed(env, "/kstyle setup"), "the player is told what was applied and how to change it")
@@ -95,9 +97,15 @@ end
 
 do
 	local env, K, panel = Login()
+	local written = {}
+	K.Callbacks.Register("SettingChanged", "test", function(_, module, key)
+		written[#written + 1] = module .. "." .. key
+	end)
 	W.Click(panel.skip)
 	W.Settle(env)
 	assert(not panel:IsShown() and Seen(K), "Keep my UI closes the setup and marks it seen")
+	assert(#written == 0, "Keep my UI writes no setting: " .. table.concat(written, ", "))
+	assert(K.Widgets.Setting("ornaments") == "Full", "and leaves the ornaments at the default, Full")
 	for _, name in ipairs(MODULES) do
 		assert(not K.Modules.IsEnabled(name), "Keep my UI leaves " .. name .. " off")
 	end
@@ -112,13 +120,16 @@ do
 	W.Key(panel, "ESCAPE")
 	W.Settle(env)
 	assert(K.Layout.Setting("preset") == "Healer", "Escape on the first run applies the layout the player had picked")
+	assert(K.Widgets.Setting("ornaments") == "Full", "with the ornament level as it stood")
 	env.SlashCmdList.KSTYLE("setup")
 	W.Settle(env)
 	K.Setup.Go(2)
 	W.Click(panel.cards.Tank)
+	K.Setup.Go(4)
+	W.Click(panel.ornamentCards.Off)
 	panel:Close()
 	W.Settle(env)
-	assert(K.Layout.Setting("preset") == "Healer", "closing a later setup changes nothing")
+	assert(K.Layout.Setting("preset") == "Healer" and K.Widgets.Setting("ornaments") == "Full", "closing a later setup changes nothing")
 	assert(not panel.welcomeNote:IsShown(), "and a later setup does not promise a layout on close")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
@@ -128,6 +139,50 @@ do
 	env.RunTimers()
 	W.Settle(env)
 	assert(K.Setup.window == nil or not K.Setup.window:IsShown(), "a later login does not open it")
+end
+
+-- Ornaments step (KSTY-23): one card per level, Full picked first; picking writes nothing until Apply, the summary
+-- names the level and Apply writes it through Options.Write, so the HUD's ornaments restyle at once.
+
+do
+	local env, K = Boot()
+	assert(K.Setup.NewChoice().ornaments == "Full", "a fresh choice picks Full ornaments")
+	assert(K.Widgets.Setting("ornaments") == "Full", "the default is Full as well, so a profile that never applies gets the level a fresh choice picks")
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	assert(K.Setup.Step() == 4 and panel.pages[4]:IsShown() and not panel.pages[3]:IsShown(), "step 4 is the ornaments step")
+	assert(panel.steps.buttons[4].label:GetText() == "ORNAMENTS", "and its tab says so")
+	local cards = panel.ornamentCards
+	for _, entry in ipairs(K.Setup.ORNAMENTS) do
+		local card = cards[entry.value]
+		assert(card and card:IsShown() and card.note:GetText() == entry.note, "a card with its note for " .. entry.value)
+	end
+	assert(#K.Setup.ORNAMENTS == 3 and K.Setup.ORNAMENTS[1].value == "Off" and K.Setup.ORNAMENTS[3].value == "Full", "Off, Subtle and Full in that order")
+	assert(cards.Full.selected and not cards.Off.selected and not cards.Subtle.selected, "Full is picked first")
+	W.Click(cards.Subtle)
+	assert(K.Setup.Choice().ornaments == "Subtle" and cards.Subtle.selected and not cards.Full.selected, "a click picks the level")
+	assert(K.Widgets.Setting("ornaments") == "Full", "picking writes nothing before Apply")
+	K.Setup.Go(5)
+	W.Settle(env)
+	assert(panel.summary:GetText():find("Ornaments: Subtle. " .. K.Setup.Ornament("Subtle").note, 1, true), "the summary names the level and its note")
+	local changed
+	K.Callbacks.Register("SettingChanged", "test", function(_, module, key, value)
+		if module == "Widgets" and key == "ornaments" then
+			changed = value
+		end
+	end)
+	W.Click(panel.apply)
+	W.Settle(env)
+	assert(changed == "Subtle" and K.Widgets.Setting("ornaments") == "Subtle", "Apply writes the level through Options.Write")
+	local logged
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		logged = logged or (entry.module == "Setup" and entry.message:find("ornaments: Subtle", 1, true))
+	end
+	assert(logged, "Apply logs the level")
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }) and K.Widgets.Setting("ornaments") == "Subtle", "a choice without a level leaves the setting")
+	assert(K.Setup.Ornament("Huge") == nil, "only the three levels are known")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- The delayed first-login open never resets a setup the player already opened; reopening beats a closing fade
@@ -168,7 +223,7 @@ do
 	assert(registered and registered.frame == panel and registered.opts.scalable, "the window registers with Layout as a scalable element")
 	assert(panel.titleText and panel.closeButton, "a titled panel with a close button")
 	local tabs = panel.steps
-	assert(#tabs.buttons == 4, "a strip of four steps")
+	assert(#tabs.buttons == 5, "a strip of five steps")
 	assert(tabs:GetValue() == 1)
 	assert(tabs:Select(3) == false, "steps not reached yet are disabled")
 	assert(panel.pages[1]:IsShown() and not panel.pages[2]:IsShown(), "one page at a time")
@@ -370,7 +425,7 @@ do
 	W.Click(panel.cards.Tank)
 	K.Setup.Go(3)
 	panel.toggles.Chat:SetValue(false)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(panel.summary:GetText():find("Tank", 1, true), "the summary names the layout")
 	assert(panel.apply:IsShown() and not panel.reload:IsShown(), "Apply shows on the summary, the reload button after it")
@@ -610,7 +665,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	env.SetCombat(true)
 	W.Click(panel.apply)
 	W.Settle(env)
@@ -626,11 +681,11 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Click(panel.apply)
 	K.Setup.Go(3)
 	panel.toggles.Chat:SetValue(false)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(panel.apply:IsShown() and not panel.reload:IsShown(), "a changed choice can be applied again")
 	W.Key(panel, "ESCAPE")
@@ -669,7 +724,7 @@ do
 	local env, K = Boot()
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	local preview = panel.summaryPreview
 	local root = K.Scale.Root()
@@ -693,7 +748,7 @@ do
 	local env, K = Boot({ locale = "deDE" })
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	local root = K.Scale.Root()
 	local named
@@ -716,7 +771,7 @@ do
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(not panel.editMode:IsShown() and not panel.retry:IsShown(), "before Apply the summary says nothing about Edit Mode")
 	assert(panel.summaryPreview:IsShown() and panel.summaryPreview.layout == "DPS", "the summary previews the layout Apply builds")
@@ -759,12 +814,12 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(not panel.summary:GetText():find("Off:", 1, true), "with every module on there is no Off line: " .. panel.summary:GetText())
 	K.Setup.Choice().modules.Chat = false
 	K.Setup.Go(3)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(panel.summary:GetText():find("Off: Chat", 1, true), "a module switched off is listed: " .. panel.summary:GetText())
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -781,7 +836,7 @@ do
 		end
 		EditModeFake.Install(env, { saved = {}, active = 1 })
 		local panel = Open(env, K)
-		K.Setup.Go(4)
+		K.Setup.Go(5)
 		W.Settle(env)
 		W.Click(panel.apply)
 		W.Settle(env)
@@ -814,7 +869,7 @@ do
 		end
 		EditModeFake.Install(env, { saved = {}, active = 1 })
 		local panel = Open(env, K)
-		K.Setup.Go(4)
+		K.Setup.Go(5)
 		W.Settle(env)
 		W.Click(panel.apply)
 		W.Settle(env)
@@ -834,7 +889,7 @@ do
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(CoreEnv.Printed(env, "Try again"), "the chat line points at Try again")
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	assert(panel.editMode:IsShown() and panel.editMode:GetText():find("KstyleUI Tank", 1, true), "the reopened summary keeps the refusal")
 	assert(panel.retry:IsShown(), "with Try again")
@@ -878,7 +933,7 @@ do
 	local state = { saved = {}, active = 1 }
 	EditModeFake.Install(env, state)
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	env.SetCombat(true)
 	W.Click(panel.apply)
 	W.Settle(env)

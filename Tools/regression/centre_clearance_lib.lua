@@ -10,6 +10,19 @@ local EXCEPTIONS = {
 	["player.level/player.portrait"] = true,
 	["target.level/target.portrait"] = true,
 }
+M.ORNAMENT_PAIRS = {
+	["player.body/player.cast"] = "the bottom rail: ornament art that closes the player's health and power block may run into the gap above the player's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
+	["player.body/player.portrait"] = "the yoke: ornament art that joins the player's bar block to its own portrait band may meet that band, which is ornament too, keeping 1 physical pixel clear of the portrait picture and the gilt ring",
+	["target.body/target.cast"] = "the bottom rail: ornament art that closes the target's health and power block may run into the gap above the target's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
+	["target.body/target.portrait"] = "the yoke: ornament art that joins the target's bar block to its own portrait band and pendants may meet them, which are ornament too, keeping 1 physical pixel clear of the portrait picture and the gilt ring",
+}
+local ORNAMENT_FILE = "Media/Textures/ForgedOrnaments/"
+local INK = (function()
+	local ns = { Widgets = {} }
+	assert(loadfile("Core/Widgets/OrnamentInk.lua"))(nil, ns)
+	return ns.Widgets.OrnamentInk
+end)()
+M.INK = INK
 
 local function Options(layout, class, form)
 	local opts = {
@@ -43,9 +56,16 @@ local function Collect(scene, roots, groups, painted, scale, label)
 			end
 			assert(group, label .. ": unclaimed drawn asset: " .. (item.text or item.file or item.kind))
 			groups[group] = groups[group] or {}
+			local file = item.file and item.file:gsub("\\", "/")
+			local ornament = file ~= nil and file:find(ORNAMENT_FILE, 1, true) ~= nil
+			local coords = item.texCoord
 			groups[group][#groups[group] + 1] = {
 				x = r[1] / scale, y = r[2] / scale, w = r[3] / scale, h = r[4] / scale,
-				asset = item.text or item.file or item.kind,
+				asset = item.text or item.file or item.kind, ornament = ornament, file = file, texCoord = coords,
+				shape = (group:find("%.level$") or group:find("%.portrait$"))
+					and (item.text and group:find("%.level$") and "Dot" or file and file:match("([^/]+)%.png$")) or nil,
+				flip = coords ~= nil and coords[1] > coords[2],
+				visible = (ornament or not coords) and 1 or math.abs(coords[2] - coords[1]),
 			}
 		end
 	end
@@ -130,6 +150,55 @@ local function Case(layout, class, form, screen)
 	return groups, scale * screen[2] / 1080, label, screen
 end
 
+local function Prims(r, pixels)
+	local runs = r.shape and INK.spans[r.shape]
+	if runs then
+		local sx, sy, list = r.w / runs[1], r.h / runs[2], {}
+		for i = 3, #runs, 4 do
+			local x0, x1 = runs[i + 2] * sx, runs[i + 3] * sx
+			list[#list + 1] = { x = r.flip and r.x + r.w - x1 or r.x + x0, y = r.y + runs[i] * sy, w = x1 - x0, h = (runs[i + 1] - runs[i]) * sy }
+		end
+		return list
+	end
+	local fraction = r.shape and INK.circles[r.shape]
+	if fraction then
+		return { { x = r.x, y = r.y, w = r.w, h = r.h, radius = fraction * r.w / 2 / r.visible + 1 / pixels } }
+	end
+	return { r }
+end
+M.Prims = Prims
+
+local function BoxGap(a, b)
+	local dx = math.max(a.x - b.x - b.w, b.x - a.x - a.w)
+	local dy = math.max(a.y - b.y - b.h, b.y - a.y - a.h)
+	return math.sqrt(math.max(0, dx) ^ 2 + math.max(0, dy) ^ 2), dx, dy
+end
+
+local function Round(c, b)
+	local cx, cy = c.x + c.w / 2, c.y + c.h / 2
+	if b.radius then
+		return math.sqrt((cx - b.x - b.w / 2) ^ 2 + (cy - b.y - b.h / 2) ^ 2) - c.radius - b.radius
+	end
+	local dx, dy = math.max(b.x - cx, cx - b.x - b.w, 0), math.max(b.y - cy, cy - b.y - b.h, 0)
+	return math.sqrt(dx * dx + dy * dy) - c.radius
+end
+
+function M.Gap(r, s, pixels)
+	local gap, dx, dy = BoxGap(r, s)
+	if not (r.ornament or s.ornament) then return gap, dx, dy end
+	local a, b = Prims(r, pixels), Prims(s, pixels)
+	if #a == 1 and #b == 1 and a[1] == r and b[1] == s then return gap, dx, dy end
+	local least = math.huge
+	for _, p in ipairs(a) do
+		for _, q in ipairs(b) do
+			local d = BoxGap(p, q)
+			if p.radius then d = math.max(d, Round(p, q)) elseif q.radius then d = math.max(d, Round(q, p)) end
+			least = math.min(least, math.max(d, 0))
+		end
+	end
+	return least, least, least
+end
+
 function M.Check(groups, pixels, label, screen)
 	local keys = {}
 	for key, parts in pairs(groups) do
@@ -144,15 +213,21 @@ function M.Check(groups, pixels, label, screen)
 	for i, a in ipairs(keys) do
 		for j = i + 1, #keys do
 			local b = keys[j]
+			local pair = M.ORNAMENT_PAIRS[a .. "/" .. b]
 			if not EXCEPTIONS[a .. "/" .. b] then
 				for _, r in ipairs(groups[a]) do
 					for _, s in ipairs(groups[b]) do
-						local dx = math.max(r.x - s.x - s.w, s.x - r.x - r.w)
-						local dy = math.max(r.y - s.y - s.h, s.y - r.y - r.h)
-						local gap = math.sqrt(math.max(0, dx) ^ 2 + math.max(0, dy) ^ 2)
-						assert(not (dx < -0.001 and dy < -0.001), label .. ": " .. a .. " overlaps " .. b .. ": " .. r.asset .. " / " .. s.asset)
-						assert(gap >= 4 - 0.001 and gap * pixels >= 3 - 0.001,
-							string.format("%s: %s / %s gap %.4f root, %.4f px: %s / %s", label, a, b, gap, gap * pixels, r.asset, s.asset))
+						local gap, dx, dy = M.Gap(r, s, pixels)
+						local art = pair and (r.ornament and 1 or 0) + (s.ornament and 1 or 0) or 0
+						if art == 1 then
+							assert(not (dx < -0.001 and dy < -0.001), label .. ": " .. a .. " ornament overlaps " .. b .. ": " .. r.asset .. " / " .. s.asset)
+							assert(gap * pixels >= 1 - 0.001,
+								string.format("%s: %s / %s ornament gap %.4f px, needs 1 px: %s / %s", label, a, b, gap * pixels, r.asset, s.asset))
+						elseif art == 0 then
+							assert(not (dx < -0.001 and dy < -0.001), label .. ": " .. a .. " overlaps " .. b .. ": " .. r.asset .. " / " .. s.asset)
+							assert(gap >= 4 - 0.001 and gap * pixels >= 3 - 0.001,
+								string.format("%s: %s / %s gap %.4f root, %.4f px: %s / %s", label, a, b, gap, gap * pixels, r.asset, s.asset))
+						end
 					end
 				end
 			end
@@ -161,12 +236,14 @@ function M.Check(groups, pixels, label, screen)
 end
 
 function M.Run(layout, class, form)
-	local previous = rawget(_G, "RENDER_SCREEN")
+	local previous, level = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_ORNAMENTS")
+	rawset(_G, "RENDER_ORNAMENTS", "Full")
 	for _, screen in ipairs(SCREENS) do
 		M.Check(Case(layout, class, form, screen))
 		collectgarbage("collect")
 	end
 	rawset(_G, "RENDER_SCREEN", previous)
+	rawset(_G, "RENDER_ORNAMENTS", level)
 	print("ok centre clearance " .. layout .. " " .. class .. " " .. (form or "") .. ": nine screens")
 end
 

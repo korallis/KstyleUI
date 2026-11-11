@@ -67,7 +67,7 @@ local function Edge(value)
 	return value
 end
 
-local DECOR = { "Glow", "Shadow", "Gilt", "Noise" }
+local DECOR = { "Glow", "Shadow", "Gilt", "Noise", "ForgedOrnaments" }
 
 local function IsDecor(region)
 	if region.GetObjectType and region:GetObjectType() ~= "Texture" or not region.GetTexture then
