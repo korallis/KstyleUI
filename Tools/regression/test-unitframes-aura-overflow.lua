@@ -2,6 +2,7 @@
 -- then priority, then time left), the rows stay inside the footprint the layouts keep for them, and past rows by
 -- columns a "+N" chip covers the last socket. The chip is counted by a hidden AuraContainer's own flow layout through
 -- anchors alone, so the module never reads a count, a size or an aura; here the stub plays the engine's layout pass.
+collectgarbage("setpause", 150)
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 local W = U.W
@@ -122,6 +123,7 @@ noErrors("bounds")
 -- screen the layout supports, down to 720p at the smallest interface size.
 local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3456, 2234 }, { 3840, 2160 }, { 5120, 1440 } }
 for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
+	collectgarbage("collect")
 	local cenv, cK, cns = U.New({ fit = true, size = "default", uiScale = uiScale })
 	local croot = cK.Scale.Root()
 	U.SetUnit(cenv, "target", { name = "Shadowgale Poacher", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
