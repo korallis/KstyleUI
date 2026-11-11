@@ -387,6 +387,14 @@ function Bar:RefreshOrnament(force)
 		changed = true
 	end
 	if changed then
+		if not Widgets.MayMove(tray.owner) then
+			if not enabled then
+				tray:Yield()
+			end
+			for k = 1, count do
+				tray:Yield(avoid[k])
+			end
+		end
 		tray:Restyle()
 	end
 end

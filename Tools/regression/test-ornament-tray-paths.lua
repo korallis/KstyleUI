@@ -1,4 +1,4 @@
--- test-ornament-tray-paths.lua: the action-bar tray restyles only when its pair, gap or avoided bars change, a layout rule or the leave-vehicle button included, and an error in a settings pass never stops it; per-event button updates touch no ornament, a hidden tray waits for its owner to show, and in lockdown the protected header's tray waits for PLAYER_REGEN_ENABLED.
+-- test-ornament-tray-paths.lua: the action-bar tray restyles only when its pair, gap or avoided bars change, a layout rule or the leave-vehicle button included, and an error in a settings pass never stops it; per-event button updates touch no ornament, a hidden tray waits for its owner to show, and in lockdown the protected header's tray only hides the finials an obstacle now covers, calling no protected method, and re-places at PLAYER_REGEN_ENABLED.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local ae, AK, ns = AB.New()
 AB.Enable(ae, AK)
@@ -177,6 +177,45 @@ assert(not tray.pairEnabled and not drawn():find("Tray64"), "a mouseover rule on
 assert(AK.Layout.Set("actionbars.bar2", "shown", "always"), "bar 2 is always shown again")
 ae.RunTimers()
 assert(tray.pairEnabled and drawn():find("Tray64"), "an always-shown bar 2 pairs again")
+local FRAME_ONLY = { "Show", "Hide", "SetShown", "SetFrameLevel", "SetFrameStrata", "SetParent", "Raise", "Lower", "SetScale" }
+local RESIZING = { "SetPoint", "ClearAllPoints", "SetAllPoints", "SetSize", "SetWidth", "SetHeight" }
+local function Guard(object, methods, label)
+	for _, method in ipairs(methods) do
+		local original = object[method]
+		if original then
+			object[method] = function(self, ...)
+				if ae.InCombatLockdown() and not ae._secure then error("ADDON_ACTION_BLOCKED: " .. label .. ":" .. method .. "() in combat", 2) end
+				return original(self, ...)
+			end
+		end
+	end
+end
+Guard(main.header, FRAME_ONLY, "header")
+Guard(main.header, RESIZING, "header")
+for _, texture in ipairs(tray.textures) do Guard(texture, RESIZING, "tray texture") end
+assert(finials(), "out of combat the pair draws both finials")
+local right
+for i = 1, tray.used do
+	local texture = tray.textures[i]
+	if texture:IsShown() and texture:GetTexture():find("Tray64") and texture:GetLeft() > main.header:GetRight() then right = texture end
+end
+assert(right, "the right finial sits beside bar 1's right edge")
+local errorsBefore = #ae._errors + AK.ErrorCount()
+ae.SetCombat(true)
+ae.RunTimers()
+ae.CanExitVehicle = function() return true end
+ae.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
+assert(#ae._errors + AK.ErrorCount() == errorsBefore, "the yield in lockdown calls no protected method: " .. tostring(ae._errors[1]))
+assert(ns.leaveButton:IsShown() and tray.queued, "a vehicle in combat shows the leave button and queues the tray's re-place")
+assert(not right:IsShown(), "the right finial under the leave button hides at once in lockdown")
+local left = drawn():find("Tray64")
+assert(left, "a finial clear of the leave button keeps drawing until the re-place")
+ae.SetCombat(false)
+ae.RunTimers()
+assert(not tray.queued and not drawn():find("Tray64") and #ae._errors + AK.ErrorCount() == errorsBefore, "after combat the re-place drops both finials for the leave button: " .. drawn())
+ae.CanExitVehicle = function() return false end
+ae.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
+assert(drawn():find("Tray64"), "leaving the vehicle out of combat brings the finials back")
 local errors = AK.ErrorCount()
 local apply = third.Apply
 third.Apply = function() error("boom") end
