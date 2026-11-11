@@ -19,7 +19,7 @@ The setting is `Widgets.ornaments`, with three values:
 
 ## Pieces
 
-Every piece is a PNG in `Media/Textures/ForgedOrnaments/`, painted at its native size and drawn 1:1 in physical pixels. A piece is never scaled; only a rail stretches, along its own length. The registry (`Core/Widgets/Ornaments.lua`) attaches a handle to a frame with `Widgets.Ornament(owner, kind, target, passive)`, and the handle restyles when the target's size, the level, the material or the theme changes. During combat lockdown a restyle on a protected frame is queued until combat ends; until then pieces may only be hidden (see [Combat lockdown](#combat-lockdown)).
+Every piece is a PNG in `Media/Textures/ForgedOrnaments/`, painted at its native size and drawn 1:1 in physical pixels. A piece is never scaled; only a rail stretches, along its own length. The frame a piece sits on may move by a pixel to meet a shipped tier (a casting plate's block grows by at most one physical pixel, see [Tier resolution](#tier-resolution)); the piece itself is still drawn 1:1. The registry (`Core/Widgets/Ornaments.lua`) attaches a handle to a frame with `Widgets.Ornament(owner, kind, target, passive)`, and the handle restyles when the target's size, the level, the material or the theme changes. During combat lockdown a restyle on a protected frame is queued until combat ends; until then pieces may only be hidden (see [Combat lockdown](#combat-lockdown)).
 
 | Kind | Subtle | Full |
 | --- | --- | --- |
@@ -82,6 +82,7 @@ A request for a piece the reach table did not ship resolves to the nearest small
 
 - **Tiered families** walk down to the largest shipped tier at or below the request: `Ring`, `ElitePendantR`, `BossPendantR` and `Rail` by their own loops; `Arrow`, `Tray`, `Keystone`, `Plaque`, `Map`, `Point`, `Crest` and `Wing` through `Tier()`; `Corner` and the frame crest down their size lists. A ring's request is the authored odd ring when its portrait is exactly 39, 59 or 79 pixels, otherwise the portrait's side rounded up to even, so the band centres on the portrait.
 - **End pieces** are drawn only at the exact height the 1:1 rule asks for; when that height is not shipped, the family does not fit and the next family or no end is drawn.
+- **A casting plate's block** may grow by one physical pixel, its bottom rail moving one pixel lower, when that lets its ends reach further: above 48 px the end tiers are 52, 56, 60 and 64, so a block of odd height there would match no end, or a shorter one than the idle frame. No piece is resampled, so this is a placement rule, not a breach of the 1:1 rule, and the clearance guard still holds (Captain, 2026-11-11). The idle frame caps its rail reach at what the joined block can match, so both frames draw the same rail weight.
 - **Every other piece** is looked up in `OrnamentAssets` before `SetTexture`, and an unknown name creates no texture.
 
 `Tools/regression/test-ornament-tiers.lua` removes each drawn ring and pendant tier at every portrait side from 24 to 160 and checks the step down, removes whole families and checks the drop, then thins the table at random 40 times and checks that bars, maps and rings draw only shipped files.
@@ -116,7 +117,7 @@ Each surface's pull request adds its section here.
 | Setup step and Options control | foundation | shipped |
 | Unit frames and their cast bars | 2 | shipped |
 | Action-bar tray | 3 | shipped |
-| Nameplates | 4 | to come |
+| Nameplates | 4 | shipped |
 | Minimap and data bars | 5 | to come |
 | Window and card crests | 6 | to come |
 
@@ -173,6 +174,51 @@ Only bar 1 owns a handle, and only a bar 1 at least 240 px wide draws a tray. Th
 
 **Combat and secure frames.** Bar 1's header is created from `SecureHandlerStateTemplate`, which inherits `SecureFrameTemplate` and so is protected (`Blizzard_RestrictedAddOnEnvironment/SecureHandlerTemplates.xml:13`, `Blizzard_FrameXML/SecureTemplatesBase.xml:4`). The tray's textures are created on that header (`BACKGROUND` layer); no host frame is created. Every restyle asks `Widgets.MayMove(header)`, and in lockdown the header answers protected, so the restyle is queued through `Combat.Queue` until `PLAYER_REGEN_ENABLED`: in combat nothing creates, sets, shows or anchors a tray texture. When a pet is summoned, a Layout rule shows a bar, or a vehicle shows the leave-vehicle button in combat, the tray hides at once every piece the new obstacle covers (`Handle:Yield`), and hides all its pieces if the pair breaks. Only hiding is allowed in lockdown (see [Combat lockdown](#combat-lockdown)). The tray re-places when combat ends. `test-ornament-tray-paths.lua` proves it.
 
-**Cost.** The tray restyles only when something it reads changes: bar 2's header, bar 1's spacing, whether the pair is enabled, or the list of shown obstacles. A bar's shown state is its setting plus its holder's and header's own `OnShow` and `OnHide`, so a Layout shown rule or a state driver reaches the tray without reading a secret `IsShown`. `Bar:RefreshOrnament` compares them on every pet update, every shown change and every leave-button change, and restyles only on a change; a settings pass (`ApplyAll`, the visual refresh) holds the tray and restyles it once at the end, and releases it even when the pass raises an error; bar 1's size change restyles it through `OnSizeChanged`. Per-event updates (cooldowns, charges, usable, range, procs, state, pet bar updates, `UNIT_FLAGS` on the pet, a target change and the bars' `OnUpdate` scripts) never restyle (`test-ornament-tray-paths.lua`). While bar 1 is hidden the tray is stale and draws on the header's or an ancestor's `OnShow`. Under Lua 5.1 on the Mac a tray restyle costs 0.045 ms at Full and 0.026 ms at Subtle and allocates nothing on addon lines; a pet appearing and leaving costs 0.22 ms at Full against 0.12 ms at Off. `test-perf.lua` holds the pet bar's cooldown update and a pet change in combat to 160 us and 170 us with no allocation on addon lines.
+**Cost.** The tray restyles only when something it reads changes: bar 2's header, bar 1's spacing, whether the pair is enabled, or the list of shown obstacles. A bar's shown state is its setting plus its holder's and header's own `OnShow` and `OnHide`, so a Layout shown rule or a state driver reaches the tray without reading a secret `IsShown`. `Bar:RefreshOrnament` compares them on every pet update, every shown change and every leave-button change, and restyles only on a change; a settings pass (`ApplyAll`, the visual refresh) holds the tray and restyles it once at the end, and releases it even when the pass raises an error; bar 1's size change restyles it through `OnSizeChanged`. Per-event updates (cooldowns, charges, usable, range, procs, state, pet bar updates, `UNIT_FLAGS` on the pet, a target change and the bars' `OnUpdate` scripts) never restyle (`test-ornament-tray-paths.lua`). While bar 1 is hidden the tray is stale and draws on the header's or an ancestor's `OnShow`. Under Lua 5.1 on the Mac a tray restyle that draws both finials and the keystone costs 0.046 ms at Full, 0.030 ms at Subtle and 0.001 ms at Off, and allocates nothing on addon lines (the first figures, 0.045 and 0.026 ms, were taken with a pet out, when only the keystone drew; the cost fixture now fails if the tray draws fewer than three pieces); a pet appearing and leaving costs 0.22 ms at Full against 0.12 ms at Off. `test-perf.lua` holds the pet bar's cooldown update and a pet change in combat to 160 us and 170 us with no allocation on addon lines.
 
 **Recorded limits.** While Layout Mode drags or resizes a bar, the tray follows bar 1 and does not see bar 2 or the obstacles move; it restyles when the move is dropped.
+
+### Nameplates
+
+| Piece | Handle | Subtle | Full |
+| --- | --- | --- | --- |
+| Health frame | `plate` on the health bar; while the plate casts it spans the cast bar too | `Rail1` hairlines above and below, `EndPointed` ends | rails of 1 to 4 px at the shipped Interface size, by screen; `EndCrested` ends on the target and on a world boss, `EndWinged` on an elite, `EndClawed` otherwise, falling back in that order to `EndPointed` |
+| Backing under the level dot | the same handle, while casting | one colour texture in the cast bar's track colour | the same |
+
+**The cast block.** While the cast bar shows, the health bar and the cast bar form one block, as an inline cast does on the unit frames: the ends span both bars, the top rail runs above the health bar and the bottom rail below the cast bar. A casting plate keeps the family it has idle; only the end's size changes (Captain, 2026-11-11). Where the block wraps round a level dot that sits beside the health bar, the cast bar does not reach under the dot, so a backing in the cast bar's track colour (`Handle:Fill`, `SetColorTexture`, `SimpleTextureBaseAPIDocumentation.lua:403`) fills the gap between the block's edge and the cast bar's rim, at the cast bar's height. It draws only while the block is joined and the dot is there, at Subtle and Full, and never covers the dot, a fill or the cast bar. The plate's own rectangles are the picture's and are judged with ornaments Off, so the cast bar is not moved to close the gap. The selection box stays round the health bar only, as the picture has it.
+
+**Both ends or none.** A plate never draws one end without the other. Where one side is blocked, both sides take the largest piece that fits both, and where none fits both, both drop and the rails stand alone (Captain, 2026-11-11). `test-ornament-nameplates.lua` fails on a plate with one end.
+
+**Rails agree.** The idle and casting frames draw rails of the same weight at Full. Above 48 px the end tiers are only 52, 56, 60 and 64, so a joined block can reach fewer heights than the health bar alone; the idle frame therefore caps its rail at the largest reach the joined block can match (see [Tier resolution](#tier-resolution)). `test-ornament-plate-swap.lua` fails when the weights differ.
+
+**Two kept sets (ruling D).** A plate keeps an idle set and a casting set of placed pieces. The casting set is placed the first time the plate casts. A cast showing or ending hides one set and shows the other with region `Hide` and `Show` only, so it touches no anchor and works in lockdown. Any restyle (a change in the plate's signature, its size or the level) drops the set not shown, which is placed again on the next switch. A recycled plate whose signature is unchanged keeps both sets. The signature is the plate's target state, rank (boss, elite or plain, and the classification marker), raid mark, name, level badge and name-only mode; each change restyles once, and a secret value restyles. `test-ornament-plate-swap.lua` compares every shown set with a forced restyle on nine screens, the smallest, default and largest plate scale (0.5, 1.0, 1.6), four kinds, Subtle and Full, before and after a size, level, target or lockdown change.
+
+**Regions.** At Off a plate creates no texture. A plate allocates at most 4 regions for its idle set and 6 for its casting set (two ends, two rails, the backing, and a spare for a split rail), and draws at most 6 at once. Forty plates that have each cast once, with every fourth still casting (`test-ornament-plate-regions.lua`, 1920x1080): 321 regions allocated and 149 drawn at Full and at Subtle, at most 5 drawn on one plate. The test fails above 4 idle, 6 casting or 10 allocated on one plate, or above 6 drawn at once.
+
+**Combat and secure frames.** The plate is a plain `Frame` that KstyleUI creates as a child of the base the game hands out for a unit (`C_NamePlate.GetNamePlateForUnit`, `NamePlateDocumentation.lua:11`; `NAME_PLATE_UNIT_ADDED`, `NamePlateManagerDocumentation.lua:120`). The ornament's textures sit on a host frame created on the first placement as a child of the plate, anchored to the health bar and levelled one above it. Forbidden plates (`ForbiddenNamePlateUnitFrameTemplate`, `Blizzard_NamePlates.xml:368`) are never handed to an addon and carry no ornament. Every restyle asks `Widgets.MayMove(plate)`; if the game reports the plate protected or secret in lockdown, the restyle waits in `Combat.Queue`. A swap to a kept set only shows and hides regions, which the [lockdown rule](#combat-lockdown) allows; a swap to a dropped set hides the old pieces and queues the placement. `test-ornament-plate-swap.lua` makes the plate protected in lockdown and makes anchoring, sizing and texture setters raise on its pieces while casts start and stop.
+
+**Cost.** Per-event updates (health, auras, threat, names, cast progress, `OnUpdate`) touch no ornament across forty plates (`test-ornament-nameplates-paths.lua`). A hidden plate is stale and places on show. Under Lua 5.1 on the Mac, forty positioned plates with eight debuffs each and every fourth casting, allocating nothing on addon lines:
+
+| Path | Off | Subtle | Full |
+| --- | --- | --- | --- |
+| Cast start, stop and fade end on one plate, later casts | 7.6 us | 10.2 us | 10.6 us |
+| First cast after a change (the casting set placed once) | 7.3 us | 52.5 us | 53.8 us |
+| Target change among forty | 100 us | 216 us | 211 us |
+| Plate recycled, same kind | 31 us | 31 us | 32 us |
+| Plate recycled, rank changes | 31 us | 87 us | 88 us |
+| Forty-plate pull (sixteen rank changes) | 1,245 us | 2,246 us | 2,541 us |
+| Raid mark moves onto the plate, then a cast | 36 us | 146 us | 144 us |
+| `RAID_TARGET_UPDATE` | 28 us | 62 us | 64 us |
+| `UNIT_HEALTH` | 1.0 us | 1.2 us | 1.0 us |
+
+At Off a plate builds no signature. The Off pull costs about 6% more than before ornaments (1,245 us against 1,176 us, best of seven; the Off pull figure in the table is that best of seven): the foundation's stale-wake check on each plate's hidden cast bar, under 2 us per plate. `test-perf-frames.lua` holds a later cast to 110 us, a raid mark followed by the first cast to 1,300 us and the forty-plate pull at Full to 23,000 us, and its fixture fails when any of the forty plates places no piece at Full.
+
+**Recorded limits** (Captain, 2026-11-11), the same idle and casting, measured in the render scenes at the shipped Interface size:
+
+| Screen | Kind | Full | Subtle |
+| --- | --- | --- | --- |
+| 1280x720, 1366x768 | elite | no ends, one rail | no ends, one rail |
+| 1280x720 | target | `EndPointed` instead of the crest, one rail | as Full |
+| 1366x768 | target | `EndPointed` instead of the crest | as Full |
+
+From 1920x1080 up every kind keeps its family. The level dot pulls an elite's and a boss's frame about 5 root units left of the plate's centre, the elite's wings widen the frame by about a fifth when a cast starts, and the target's crest sits about 3 root units off the selection box at 3456x2234; all three are accepted.

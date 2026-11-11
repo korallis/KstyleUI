@@ -196,6 +196,8 @@ function ns.NewPlate(parent, sample)
 	plate.healthOpts = { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, smooth = true, color = "plateHostile" }
 	local health = ns.FlatBar(plate, plate.healthOpts)
 	plate.health = health
+	plate.ornament = Widgets.Ornament(plate, "plate", health)
+	plate.ornamentSeen = {}
 	plate.healthText = NewText(health, "RIGHT")
 
 	plate.name = NewText(plate, "CENTER")
@@ -216,6 +218,8 @@ function ns.NewPlate(parent, sample)
 	raid:SetTexture(RAID_ICONS)
 	raid:Hide()
 	plate.raid = raid
+	plate.ornament.avoid = { marker, raid, badge }
+	plate.ornament.texts = { plate.name, plate.healthText }
 
 	plate.colorKey = {}
 	Each("Build", plate)
@@ -310,6 +314,7 @@ function Plate:Restyle()
 
 	self.nameOnly = nil
 	Each("Restyle", self)
+	self.ornamentDirty = true
 	self:Refresh(true)
 end
 
@@ -345,6 +350,8 @@ function Plate:Refresh(immediate)
 	if not self.unit and not self.sample then
 		return
 	end
+	self.ornamentHeld = true
+	self.ornamentOff = Widgets.Setting("ornaments") == "Off"
 	self:UpdateType()
 	self:UpdateStyle()
 	self:UpdateHealth(immediate)
@@ -354,7 +361,46 @@ function Plate:Refresh(immediate)
 	self:UpdateRaid()
 	self:UpdateThreat()
 	self:UpdateHighlight()
+	self.ornamentHeld = nil
+	self:OrnamentState("nameOnly", self.nameOnly or false)
+	self.ornamentOff = nil
 	Each("Refresh", self, immediate)
+end
+
+function Plate:OrnamentState(key, value)
+	local off = self.ornamentOff
+	if off == nil then
+		off = Widgets.Setting("ornaments") == "Off"
+	end
+	local seen = self.ornamentSeen
+	if off then
+		if not self.ornamentBlank then
+			self.ornamentBlank = true
+			for k in pairs(seen) do
+				seen[k] = nil
+			end
+		end
+		return
+	end
+	if self.ornamentBlank then
+		self.ornamentBlank = nil
+		self.ornamentDirty = true
+	end
+	if IsSecret(value) then
+		seen[key] = nil
+		self.ornamentDirty = true
+	elseif seen[key] ~= value then
+		seen[key] = value
+		if key == "cast" and not self.ornamentDirty and not self.ornamentHeld then
+			self.ornament:Swap()
+			return
+		end
+		self.ornamentDirty = true
+	end
+	if self.ornamentDirty and not self.ornamentHeld then
+		self.ornamentDirty = nil
+		self.ornament:Restyle()
+	end
 end
 
 function Plate:RefreshFlags()
@@ -538,6 +584,7 @@ function Plate:UpdateName()
 	local show = Settings.Get("name.show")
 	name:SetShown(show)
 	if not show then
+		self:OrnamentState("name", false)
 		return
 	end
 	local value = self:Is("name", UnitName, self.unit)
@@ -549,6 +596,11 @@ function Plate:UpdateName()
 		name:SetText("")
 	end
 	self:UpdateNameColor(nil, true)
+	if IsSecret(value) then
+		self:OrnamentState("name", value)
+	else
+		self:OrnamentState("name", type(value) == "string" and value or "")
+	end
 end
 
 function Plate:UpdateNameColor(isTarget, force)
@@ -586,9 +638,11 @@ function Plate:UpdateLevel()
 	local show = Settings.Get("level.show") and not self.nameOnly and text ~= nil
 	badge:SetShown(show and true or false)
 	if not show then
+		self:OrnamentState("level", false)
 		return
 	end
 	self.levelText:SetText(text)
+	self:OrnamentState("level", text)
 	if level == SKULL_LEVEL then
 		self.levelText:SetTextColor(Tokens.Color("hostile"))
 	else
@@ -597,30 +651,39 @@ function Plate:UpdateLevel()
 end
 
 function Plate:UpdateMarker()
+	local classification = self:Is("classification", UnitClassification, self.unit)
+	self.ornament.elite = not IsSecret(classification) and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
+	self.ornament.boss = not IsSecret(classification) and classification == "worldboss"
 	local marker = self.marker
 	local name = Settings.Get("markers.classification") and not self.nameOnly
 		and Logic.MarkerColor(self:Is("classification", UnitClassification, self.unit))
-	if not name then
+	if name then
+		marker:SetVertexColor(Tokens.Color(name))
+		marker:Show()
+	else
 		marker:Hide()
-		return
 	end
-	marker:SetVertexColor(Tokens.Color(name))
-	marker:Show()
+	local rank = self.ornament.boss and "boss" or self.ornament.elite and "elite" or "plain"
+	self:OrnamentState("rank", name and rank .. "+marker" or rank)
 end
 
 function Plate:UpdateRaid()
 	local raid = self.raid
-	if not Settings.Get("markers.raid") then
-		raid:Hide()
-		return
+	local index
+	if Settings.Get("markers.raid") then
+		index = self:Is("raid", GetRaidTargetIndex, self.unit)
 	end
-	local index = self:Is("raid", GetRaidTargetIndex, self.unit)
 	if type(index) == "nil" then
 		raid:Hide()
-		return
+	else
+		raid:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
+		raid:Show()
 	end
-	raid:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
-	raid:Show()
+	if IsSecret(index) then
+		self:OrnamentState("raid", index)
+	else
+		self:OrnamentState("raid", index ~= nil)
+	end
 end
 
 function Plate:UpdateThreat()
@@ -678,6 +741,8 @@ function Plate:UpdateHighlight()
 		end
 	end
 	self:UpdateNameColor(isTarget)
+	self.ornament.selected = isTarget
+	self:OrnamentState("selected", isTarget and true or false)
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget then
 		alpha = Settings.Get("target.dimOthers")

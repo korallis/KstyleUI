@@ -354,6 +354,8 @@ function Component.Build(plate)
 	local bar = ns.FlatBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar
+	cast:HookScript("OnShow", function() plate:OrnamentState("cast", true) end)
+	cast:HookScript("OnHide", function() plate:OrnamentState("cast", false) end)
 	local icon = cast:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = cast:CreateMaskTexture()
@@ -375,6 +377,12 @@ function Component.Build(plate)
 	time:SetJustifyH("RIGHT")
 	time:SetWordWrap(false)
 	plate.castTime = time
+	local block = plate.ornament
+	block.span, block.swaps = bar, true
+	block.avoid[#block.avoid + 1] = icon
+	block.texts[#block.texts + 1] = name
+	block.texts[#block.texts + 1] = time
+	block.reserve = { [name] = true, [time] = true }
 end
 
 function Component.Room(plate)

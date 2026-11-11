@@ -39,10 +39,15 @@ return {
 		budget = 750,
 		calls = 50,
 		setup = function()
-			local env, K = AB.New()
+			local env, K, ns = AB.New()
 			AB.Enable(env, K)
 			K.Options.Write("Widgets", "ornaments", "Full")
 			env.RunTimers()
+			local tray, shown = ns.bars.bar1.ornament, 0
+			for i = 1, tray.used do
+				if tray.textures[i]:IsShown() then shown = shown + 1 end
+			end
+			assert(shown == 3, "the tray fixture draws both finials and the keystone before the pet arrives, not " .. shown .. " pieces")
 			local pet = Perf.Event(env, "UNIT_PET", "player")
 			return env, function()
 				env._game.petExists = not env._game.petExists

@@ -8,6 +8,68 @@ local function Plate()
 	return env
 end
 
+local CAST = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+local ELITE = { name = "Bloodtalon Matriarch", level = 40, classification = "elite", reaction = 2, canAttack = true }
+local NORMAL = { name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true }
+
+-- Forty() is forty positioned plates at Full that fire OnShow and OnHide as the game does, every fourth casting;
+-- it fails when a plate places no ornament piece or shows the wrong set, so an empty fixture cannot time an empty path.
+local function Forty()
+	local env = N.New()
+	env.WorldFrame:SetPoint("TOPLEFT")
+	env.WorldFrame:SetPoint("BOTTOMRIGHT")
+	local scale = 768 / 1080
+	for i = 1, 40 do
+		local base = N.Base(env)
+		base:ClearAllPoints()
+		base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", (120 + ((i - 1) % 8) * 230) * scale, (1080 - (120 + math.floor((i - 1) / 8) * 180)) * scale)
+		N.Add(env, "nameplate" .. i, i % 5 == 0 and ELITE or NORMAL, { base = base })
+		N.Debuffs(env, "nameplate" .. i, 8)
+	end
+	N.Target(env, "nameplate40")
+	env.RunTimers()
+	for _, frame in ipairs(env._frames) do
+		for _, method in ipairs({ "Show", "Hide", "SetShown" }) do
+			local original = frame[method]
+			frame[method] = function(self, ...)
+				local was = self:IsVisible()
+				original(self, ...)
+				local now = self:IsVisible()
+				local script = self._scripts and self._scripts[now and "OnShow" or "OnHide"]
+				if was ~= now and script then script(self) end
+			end
+		end
+	end
+	for i = 4, 40, 4 do
+		env._units["nameplate" .. i].cast = CAST
+		env.FireEvent("UNIT_SPELLCAST_START", "nameplate" .. i)
+	end
+	env.RunTimers()
+	local ns = env._addons.KstyleUI_Nameplates
+	for i = 1, 40 do
+		local handle = ns.Plates.Get("nameplate" .. i).ornament
+		local shown = 0
+		for j = 1, handle.used do
+			if handle.textures[j]:IsShown() then shown = shown + 1 end
+		end
+		assert(shown > 0, "plate " .. i .. " of the cost fixture places no ornament piece at Full")
+		assert(handle.key == (i % 4 == 0), "plate " .. i .. " of the cost fixture shows its " .. (i % 4 == 0 and "casting" or "idle") .. " set")
+	end
+	return env, ns
+end
+
+local function CastCycle(env, ns, token)
+	local start, stop = Perf.Event(env, "UNIT_SPELLCAST_START", token), Perf.Event(env, "UNIT_SPELLCAST_STOP", token)
+	local unit, cast = env._units[token], ns.Plates.Get(token).cast
+	return function()
+		unit.cast = CAST
+		start()
+		unit.cast = nil
+		stop()
+		cast:Hide()
+	end
+end
+
 return {
 	{
 		name = "Nameplates UNIT_HEALTH",
@@ -124,6 +186,65 @@ return {
 			return env, function()
 				remove()
 				add()
+			end
+		end,
+	},
+	{
+		-- A later cast on a plate at Full: the cast bar shows and hides, and the plate swaps between its kept idle and
+		-- casting ornament sets with region Show and Hide. Lua 5.1 takes 11 us here; re-placing the set on every cast
+		-- took 140 us, so this budget fails if the swap is lost.
+		name = "Nameplates cast start and stop on one plate at Full, later casts",
+		budget = 110,
+		calls = 200,
+		setup = function()
+			local env, ns = Forty()
+			local cycle = CastCycle(env, ns, "nameplate2")
+			cycle()
+			return env, cycle
+		end,
+	},
+	{
+		-- The first cast after a change: a raid mark moves onto the plate, which re-places its idle set and drops the
+		-- casting set, then the cast places the casting set once. Lua 5.1 takes 133 us here.
+		name = "Nameplates raid mark onto a plate at Full, then its first cast",
+		budget = 1300,
+		calls = 50,
+		setup = function()
+			local env, ns = Forty()
+			local cycle = CastCycle(env, ns, "nameplate2")
+			local mark = Perf.Event(env, "RAID_TARGET_UPDATE")
+			local unit, flip = env._units.nameplate2, false
+			return env, function()
+				flip = not flip
+				unit.raid = flip and 8 or nil
+				mark()
+				cycle()
+			end
+		end,
+	},
+	{
+		-- A pull at Full: forty plates leave and forty arrive, sixteen of them changing rank. Lua 5.1 takes 2350 us
+		-- here (1310 at Off).
+		name = "Nameplates forty-plate pull at Full",
+		budget = 23000,
+		calls = 4,
+		setup = function()
+			local env = Forty()
+			local adds, removes, units, tokens, flip = {}, {}, {}, {}, false
+			for i = 1, 40 do
+				tokens[i] = "nameplate" .. i
+				adds[i], removes[i] = Perf.Event(env, "NAME_PLATE_UNIT_ADDED", tokens[i]), Perf.Event(env, "NAME_PLATE_UNIT_REMOVED", tokens[i])
+				units[i] = { env._units[tokens[i]], {} }
+				for k, v in pairs(units[i][1]) do units[i][2][k] = v end
+				units[i][2].classification = (i + 1) % 5 == 0 and "elite" or nil
+			end
+			return env, function()
+				flip = not flip
+				for i = 1, 40 do removes[i]() end
+				for i = 1, 40 do
+					env._units[tokens[i]] = units[i][flip and 2 or 1]
+					adds[i]()
+				end
 			end
 		end,
 	},
