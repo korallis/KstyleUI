@@ -86,6 +86,8 @@ local function XPHidden(level)
 	return nil
 end
 
+local xpReading = {}
+
 function Sources.XP()
 	if type(UnitXP) ~= "function" or type(UnitXPMax) ~= "function" then
 		ns.LogOnce("xp-missing", "UnitXP or UnitXPMax is missing; the experience bar stays hidden")
@@ -113,13 +115,14 @@ function Sources.XP()
 		rested = 0
 	end
 	local _, restName = Call(GetRestState)
-	return {
-		current = current, max = max, rested = rested,
-		level = IsNumber(level) and level or nil,
-		label = IsNumber(level) and format(L["Level %d"], level) or L["Experience"],
-		short = L["XP"],
-		restName = type(restName) == "string" and restName ~= "" and restName or nil,
-	}
+	local info = xpReading
+	level = IsNumber(level) and level or nil
+	if info.label == nil or level ~= info.level then
+		info.label = level and format(L["Level %d"], level) or L["Experience"]
+	end
+	info.current, info.max, info.rested, info.level, info.short = current, max, rested, level, L["XP"]
+	info.restName = type(restName) == "string" and restName ~= "" and restName or nil
+	return info
 end
 
 local function StandingName(reaction)

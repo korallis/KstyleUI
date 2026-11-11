@@ -69,6 +69,53 @@ local function Shade(texture)
 	texture:SetGradient("VERTICAL", CreateColor(r, g, b, SHADE_ALPHA), CreateColor(r, g, b, 0))
 end
 
+local FitGlow
+
+local function WatchGlow(watch)
+	FitGlow(watch:GetParent())
+end
+
+local function Easing(self)
+	local easing = type(self.IsInterpolating) == "function" and self:IsInterpolating()
+	return not Widgets.IsSecret(easing) and easing == true
+end
+
+FitGlow = function(self)
+	local glow = self.glow
+	if not glow then
+		return
+	end
+	local shown = self.pillOn and self.glowWanted
+	local easing = shown and Easing(self)
+	local watch = self.glowWatch
+	if easing and not watch then
+		watch = CreateFrame("Frame", nil, self)
+		self.glowWatch = watch
+	end
+	if watch and watch.easing ~= easing then
+		watch.easing = easing
+		watch:SetScript("OnUpdate", easing and WatchGlow or nil)
+	end
+	if shown then
+		local low, high = self:GetMinMaxValues()
+		local value, width = easing and self:GetInterpolatedValue() or self:GetValue(), self:GetWidth()
+		local plain = not (Widgets.IsSecret(low) or Widgets.IsSecret(high) or Widgets.IsSecret(value) or Widgets.IsSecret(width))
+		if plain and type(low) == "number" and type(high) == "number" and type(value) == "number" and type(width) == "number" then
+			local span = high - low
+			shown = span > 0 and width * (value - low) / span >= 4 * GLOW_REACH
+		end
+	end
+	if shown ~= self.glowShown then
+		self.glowShown = shown
+		Widgets.ShowSlice(glow, shown)
+	end
+end
+
+function Bar:SetGlowShown(on)
+	self.glowWanted = on ~= false
+	FitGlow(self)
+end
+
 function Bar:SetBarValue(value)
 	local interpolation = self.smooth and Interpolation()
 	if interpolation then
@@ -612,13 +659,14 @@ function Bar:ShowPill(on)
 		Masks(self.background, caps[3], caps[4], on)
 	end
 	self.sheenTop:SetShown(on)
-	Widgets.ShowSlice(self.glow, on)
+	FitGlow(self)
 	if self.innerEdge then
 		self:PlaceInnerEdge()
 	end
 end
 
 local function PillFill(bar)
+	bar.glowWanted = true
 	local fill = bar:GetStatusBarTexture()
 	bar.caps = {
 		CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"), CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"),
@@ -655,7 +703,10 @@ local function PillFill(bar)
 		if self.innerEdge then
 			self:PlaceInnerEdge()
 		end
+		FitGlow(self)
 	end)
+	bar:HookScript("OnValueChanged", FitGlow)
+	bar:HookScript("OnMinMaxChanged", FitGlow)
 end
 
 function Widgets.StatusBar(parent, opts)

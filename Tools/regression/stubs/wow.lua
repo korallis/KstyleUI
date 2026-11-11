@@ -573,6 +573,22 @@ function Object:SetStatusBarTexture(asset)
 	self._barTexture:SetTexture(asset)
 end
 function Object:GetStatusBarTexture() return self._barTexture end
+-- A status bar runs OnValueChanged when SetValue changes its value, and OnMinMaxChanged when SetMinMaxValues changes
+-- its range, as the game does. Other frames only store what they are given.
+function Object:SetValue(value, ...)
+	local stored = self._state.Value
+	local changed = not (stored and rawequal(stored[1], value))
+	self._state.Value = pack(value, ...)
+	local script = self._type == "StatusBar" and changed and self._scripts.OnValueChanged
+	if script then script(self, value) end
+end
+function Object:SetMinMaxValues(low, high)
+	local stored = self._state.MinMaxValues
+	local changed = not (stored and rawequal(stored[1], low) and rawequal(stored[2], high))
+	self._state.MinMaxValues = pack(low, high)
+	local script = self._type == "StatusBar" and changed and self._scripts.OnMinMaxChanged
+	if script then script(self, low, high) end
+end
 
 -- A Cooldown frame draws its countdown numbers with a font string that GetCountdownFontString returns,
 -- centred on the frame until the addon anchors it, as the engine does. Other frames have none.
