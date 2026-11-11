@@ -281,6 +281,7 @@ do
 	rxp.fake.close(list)
 	rxp.fake.close(rxp.menuLists[2])
 	assert(menuArt:GetAlpha() == 1 and not ns.RestedXP.Chrome.MenuPanel(list):IsShown(), "closing it gives the shared menu its own look back")
+	assert(ns.RestedXP.Chrome.MenuPanel(list).chrome.ornament == nil, "a dropdown menu's glass carries no crest")
 	rxp.fake.open(list)
 	assert(menuArt:GetAlpha() == 1, "another addon's menu in the same list keeps its own look")
 	rxp.fake.close(list)
@@ -951,7 +952,31 @@ do
 		NewCheck(select(2, edit.editBox:GetFont()) == select(2, ns.Style.Font("body")), key .. " edit text follows a text size change while leased, got " .. tostring(select(2, edit.editBox:GetFont())) .. " for " .. tostring(select(2, ns.Style.Font("body"))))
 		K.Options.Write("Skins", "text.size", 1)
 		env.RunTimers()
+		local crest = panel.chrome.ornament
+		assert(crest and crest.kind == "crest" and crest.inside and crest.inside[1] == replacement, key .. " dialog carries a crest that keeps clear of its caption")
+		rxp.fake.trust(function()
+			frame:ClearAllPoints()
+			frame:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
+			frame:SetSize(900, 400)
+		end)()
+		crest:Restyle()
+		local pieces = {}
+		for i = 1, crest.used do
+			if crest.textures[i]:IsShown() then pieces[#pieces + 1] = crest.textures[i] end
+		end
+		assert(#pieces == 1 and pieces[1]:GetTexture():find("ForgedOrnaments\\Crest%d+%.png$") and pieces[1]:IsVisible(), key .. " dialog wide enough for a crest draws one, got " .. #pieces)
+		local restyles, restyle = 0, panel.chrome.RestyleOrnament
+		panel.chrome.RestyleOrnament = function(self, ...)
+			restyles = restyles + 1
+			return restyle(self, ...)
+		end
+		rxp.fake.trust(function() frame:StopMovingOrSizing() end)()
+		assert(restyles == 1, key .. " dropping the dialog after a drag re-checks its crest once, got " .. restyles)
 		rxp.fake.close(frame)
+		rxp.fake.trust(function() frame:StopMovingOrSizing() end)()
+		assert(restyles == 1, key .. " a drop while the frame is not RestedXP's dialog leaves the crest alone, got " .. restyles)
+		panel.chrome.RestyleOrnament = nil
+		assert(not pieces[1]:IsVisible(), key .. " crest goes with the glass when RestedXP closes the dialog and AceGUI takes the frame back")
 		assert(not panel:IsShown() and Alpha(frame._pieces[1]) == 1 and Alpha(frame.obj.titlebg) == 1, "closing it gives the shared frame its own look back")
 		local r, g, b = title:GetTextColor()
 		assert(W.Near(r, 1) and W.Near(g, 0.82) and W.Near(b, 0), "and its title keeps its own colour")
@@ -972,12 +997,19 @@ do
 	assert(not K.Skin.IsSkinned(frame, "Backdrop"), "the shared frame is never skinned for good")
 	rxp.fake.open(frame)
 	assert(Alpha(frame._pieces[1]) == 1, "another addon showing the frame sees its own look")
+	do
+		local crest = ns.RestedXP.Chrome.DressPanel(frame).chrome.ornament
+		local seen = false
+		for i = 1, crest.used do seen = seen or crest.textures[i]:IsVisible() end
+		assert(not ns.RestedXP.Chrome.DressPanel(frame):IsShown() and not seen, "and no glass or crest of RestedXP's")
+	end
 	frame._pieces[1]:SetAlpha(0.5)
 	rxp.fake.close(frame)
 	assert(Alpha(frame._pieces[1]) == 0.5, "and KstyleUI leaves it alone when that addon hides it")
 	local export = frame
 	rxp.comms.OpenBrandedExport("Again", "Still editable", "Content", nil, nil, function() end)
 	assert(env.RESTEDXP_BRANDED_EXPORT == export, "AceGUI reuses the frame released by the export box")
+	NewCheck(ns.RestedXP.Chrome.DressPanel(export):IsShown() and ns.RestedXP.Chrome.DressPanel(export).chrome.ornament.inside[1] == Replacement(export.obj.titletext), "the crest comes back with the glass on RestedXP's reuse, listing the caption it has now")
 	local edit = export.obj.children[1]
 	NewCheck(Proxy(K, edit.editBox, "EditBox") and Proxy(K, edit.editBox, "EditBox"):IsShown(), "a pooled edit widget is redressed on RestedXP reuse")
 	rxp.fake.close(export)

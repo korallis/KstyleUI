@@ -62,7 +62,7 @@ local done = setmetatable({}, WEAK)
 local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
-local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
+local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK), dropped = setmetatable({}, WEAK) }
 local state = { rxp = nil, tracked = false, guide = nil }
 
 local function Active()
@@ -1094,13 +1094,13 @@ local function RestyleDressPanel(panel)
 	panel:SetFrameLevel(math.max(0, panel:GetParent():GetFrameLevel() - 1))
 end
 
-local function DressPanel(frame, rise)
+local function DressPanel(frame, rise, crest)
 	local panel = dress.panels[frame]
 	if not panel then
 		panel = CreateFrame("Frame", nil, frame)
 		panel:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, rise and Widgets.Snap(panel, Tokens.Size(rise)) or 0)
 		panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface", popup = true })
+		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface", popup = true, ornament = crest and "crest" or nil, inside = crest and {} or nil })
 		panel.Restyle = RestyleDressPanel
 		RestyleDressPanel(panel)
 		dress.panels[frame] = panel
@@ -2116,7 +2116,28 @@ local function DressDialog(global)
 			end
 		end
 	end
-	DressPanel(frame, TITLE_RISE)
+	local panel = DressPanel(frame, TITLE_RISE, true)
+	local crest = panel.chrome.ornament
+	if crest and crest.inside then
+		local entry = temporary[frame]
+		local holder = entry and IsTable(frame.obj) and entry.controls[frame.obj.titletext]
+		for i = #crest.inside, 1, -1 do
+			crest.inside[i] = nil
+		end
+		if holder and holder.label then
+			crest.inside[1] = holder.label
+		end
+		if not dress.dropped[frame] then
+			dress.dropped[frame] = true
+			Hook(frame, "StopMovingOrSizing", "dialog drop " .. tostring(frame), function()
+				local shown = dress.panels[frame]
+				if shown and shown:IsShown() then
+					shown.chrome:RestyleOrnament()
+				end
+			end)
+		end
+		panel.chrome:RestyleOrnament()
+	end
 	UndressOnHide(frame)
 end
 
