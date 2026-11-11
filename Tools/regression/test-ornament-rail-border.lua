@@ -1,11 +1,11 @@
--- test-ornament-rail-border.lua: at Subtle and Full a nameplate's rails lie flush outside the bar's border and cover no row of it, for plain, elite, selected and boss plates at two plate scales on nine screens in both typesets; the bottom hairline always draws, the top one is split around the name's ink with 1 px clear, and it is omitted only where the name's ink comes within 1 px of its row.
+-- test-ornament-rail-border.lua: at Subtle a nameplate's rails lie flush outside the bar's border and cover no row of it; at Full a plate's rail may replace its own bar's border (the named exemption) but covers no fill row and stays inside the ends' frame line; at both levels every rail keeps 1 px from the name's ink, the health and level text, the level badge and the markers, for plain, elite, selected and boss plates at two plate scales on nine screens in both typesets; the bottom rail always draws, the top one is split around the name's ink with 1 px clear, and it is omitted only where the name's ink comes within 1 px of its row.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
 local UNITS = {
 	{ name = "Shadowgale Poacher", level = 38, reaction = 2, canAttack = true },
 	{ name = "Bloodtalon Matriarch", level = 40, classification = "elite", reaction = 2, canAttack = true },
-	{ name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true },
+	{ name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true, raid = 8 },
 	{ name = "Onyxia", level = -1, classification = "worldboss", reaction = 2, canAttack = true },
 	{ name = "Zo\195\171 Thornbrook", level = 39, reaction = 2, canAttack = true },
 }
@@ -28,6 +28,8 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 		if typeset ~= "Folio" then
 			K.Options.Write("Appearance", "typeSet", typeset)
 			assert(K.Appearance.Get("typeSet") == typeset, "the typeset is " .. typeset)
+			K.Options.Write("Nameplates", "level.show", true)
+			K.Options.Write("Nameplates", "healthText.show", true)
 		end
 		env.WorldFrame:SetPoint("TOPLEFT")
 		env.WorldFrame:SetPoint("BOTTOMRIGHT")
@@ -85,10 +87,32 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 				local justify = plate.name:GetJustifyH()
 				if justify == "LEFT" then nr = nl + inkWidth elseif justify == "RIGHT" then nl = nr - inkWidth else nl, nr = (nl + nr - inkWidth) / 2, (nl + nr + inkWidth) / 2 end
 			end
-			local width = 0
+			local width, frame = 0, nil
 			for j = 1, handle.used do
 				local texture = handle.textures[j]
-				if texture:IsShown() and (texture:GetTexture() or ""):match("End%a+%d+%.png$") then local l, r = box(texture) width = math.max(width, r - l) end
+				local size = texture:IsShown() and tonumber((texture:GetTexture() or ""):match("End%a+(%d+)%.png$"))
+				if size then
+					local l, r = box(texture)
+					width = math.max(width, r - l)
+					frame = math.min(frame or math.huge, (size - math.floor((bottom - top) / pixel + 0.5)) / 2)
+				end
+			end
+			local lift = math.max(frame or 0, 0)
+			local outerTop, outerBottom = top - lift * pixel, bottom + lift * pixel
+			local fillTop, fillBottom = snap(ty), snap(ty + th)
+			local others = {}
+			for _, region in ipairs({ plate.healthText, plate.levelText, plate.level, plate.marker, plate.raid }) do
+				if region:IsVisible() and region:GetLeft() and not (region:GetObjectType() == "FontString" and (region:GetText() or "") == "") then
+					local l, r, t, b = box(region)
+					if region:GetObjectType() == "FontString" then
+						local ink = region:GetStringWidth() * K.Widgets.ScaleFactor(region) / px
+						if ink < r - l then
+							local justify = region:GetJustifyH()
+							if justify == "LEFT" then r = l + ink elseif justify == "RIGHT" then l = r - ink else l, r = (l + r - ink) / 2, (l + r + ink) / 2 end
+						end
+					end
+					others[#others + 1] = { l, r, t, b, region == plate.level and "level badge" or region == plate.marker and "target marker" or region == plate.raid and "raid icon" or tostring(region:GetText()) }
+				end
 			end
 			local above, below = 0, 0
 			for j = 1, handle.used do
@@ -96,11 +120,19 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 				local name = texture:IsShown() and (texture:GetTexture() or ""):match("(Rail%d+)%.png$")
 				if name then
 					local _, y, _, h = Scene.RectIn(solver, texture)
-					assert(y + h <= top + 1e-3 or y >= bottom - 1e-3, string.format("%s: %s at %.2f..%.2f covers the bar's border %.2f..%.2f", label, name, y, y + h, top, bottom))
-					assert(math.abs(y + h - top) < 1e-3 or math.abs(y - bottom) < 1e-3, string.format("%s: %s at %.2f..%.2f does not lie flush on the border %.2f..%.2f", label, name, y, y + h, top, bottom))
-					if y < top then
+					if level == "Full" then
+						assert(y + h <= fillTop + 1e-3 or y >= fillBottom - 1e-3, string.format("%s: %s at %.2f..%.2f covers the bar's fill %.2f..%.2f", label, name, y, y + h, fillTop, fillBottom))
+						assert(y >= outerTop - 1e-3 and y + h <= outerBottom + 1e-3, string.format("%s: %s at %.2f..%.2f steps past the ends' frame line %.2f..%.2f", label, name, y, y + h, outerTop, outerBottom))
+					else
+						assert(y + h <= top + 1e-3 or y >= bottom - 1e-3, string.format("%s: %s at %.2f..%.2f covers the bar's border %.2f..%.2f", label, name, y, y + h, top, bottom))
+						assert(math.abs(y + h - top) < 1e-3 or math.abs(y - bottom) < 1e-3, string.format("%s: %s at %.2f..%.2f does not lie flush on the border %.2f..%.2f", label, name, y, y + h, top, bottom))
+					end
+					local rl, rr, rt, rb = box(texture)
+					for _, other in ipairs(others) do
+						assert(math.max(other[1] - rr, rl - other[2], other[4] - rt, rb - other[3]) >= 1 - 1e-3, string.format("%s: %s [%.2f..%.2f, %.2f..%.2f] comes within 1 px of %s", label, name, rl, rr, rb, rt, other[5]))
+					end
+					if y + h / 2 < (top + bottom) / 2 then
 						above = above + 1
-						local rl, rr, rt = box(texture)
 						local gapX = math.max(nl - rr, rl - nr)
 						assert(inkBottom - rt >= 1 - 1e-3 or gapX >= 1 - 1e-3, string.format("%s: the top %s [%.2f..%.2f] comes within 1 px of the name's ink [%.2f..%.2f], %.2f px above", label, name, rl, rr, nl, nr, inkBottom - rt))
 						assert(rr - rl >= width - 1e-3 or inkBottom - rt >= 1 - 1e-3, string.format("%s: a top %s piece %.2f px wide is shorter than an end (%.2f)", label, name, rr - rl, width))
@@ -114,7 +146,8 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			if above == 0 then
 				local _, _, ht = box(handle.target)
 				local rimPx = math.floor((handle.target.rimOutset or 0) * K.Widgets.ScaleFactor(handle.target) / px + 0.5)
-				assert(inkBottom - (math.floor(ht + 0.5) + rimPx + 1) < 1 - 1e-3, string.format("%s: the top hairline is omitted though the name's ink (bottom %.2f px) keeps 1 px from its row (top %.2f px)", label, inkBottom, math.floor(ht + 0.5) + rimPx + 1))
+				local row = math.floor(ht + 0.5) + rimPx + (level == "Full" and lift or 1)
+				assert(inkBottom - row < 1 - 1e-3, string.format("%s: the top rail is omitted though the name's ink (bottom %.2f px) keeps 1 px from its row (top %.2f px)", label, inkBottom, row))
 				omitted = omitted + 1
 			end
 			plates = plates + 1
@@ -125,4 +158,4 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 end
 end
 assert(rails > 0, "no rail was drawn")
-print(string.format("ok at Subtle and Full %d rails on %d plates lie flush outside the bar's border on nine screens, two plate scales and both typesets; the top hairline keeps 1 px from the name's ink and is omitted on %d plates, only where that ink comes within 1 px of its row", rails, plates, omitted))
+print(string.format("ok %d rails on %d plates on nine screens, two plate scales and both typesets: at Subtle flush outside the bar's border, at Full off the fill and inside the ends' frame line, and 1 px from the name's ink, the text, the level badge and the markers; the top rail is omitted on %d plates, only where that ink comes within 1 px of its row", rails, plates, omitted))

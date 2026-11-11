@@ -689,7 +689,6 @@ function Handle:Frame(full)
 		end
 	end
 	local thickness = full and max(1, rim + reach - 1) or 1
-	if self.kind == "plate" then thickness = min(thickness, max(reach, 1)) end
 	while thickness > 1 and not ASSETS[Named("Rail", thickness)] do thickness = thickness - 1 end
 	local dx = x0 - ox
 	local touching, loose = List(S, "touching"), List(S, "loose")
@@ -707,7 +706,7 @@ function Handle:Frame(full)
 	end
 	local railName = Named("Rail", thickness)
 	local lanes = S.lanes
-	local out = self.kind == "plate" and max(reach, thickness) or full and reach or max(reach, 1)
+	local out = full and reach or max(reach, 1)
 	lanes[1][1], lanes[1][2], lanes[1][3] = railName, thickness, y0 + out
 	lanes[2][1], lanes[2][2], lanes[2][3] = railName, thickness, y0 - boxH - out + thickness
 	if forged then
