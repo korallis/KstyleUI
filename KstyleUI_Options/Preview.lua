@@ -117,7 +117,7 @@ local function Extent(frame, holder)
 	return (right - left) / eff, (top - bottom) / eff
 end
 
-local Fit, Reserve
+local Fit, Reserve, RefreshCurrent
 
 local function Rescale(frame, scale)
 	frame:SetScale(scale)
@@ -147,8 +147,7 @@ function Fit(pane, frame)
 			pane.refit = true
 			C_Timer.After(0, function()
 				if pane.current == frame and frame:IsShown() then
-					Fit(pane, frame)
-					Reserve(pane, frame)
+					RefreshCurrent(pane)
 				end
 			end)
 		end
@@ -317,7 +316,7 @@ local function Choose(pane, frame)
 	end
 end
 
-local function RefreshCurrent(pane)
+function RefreshCurrent(pane)
 	local frame = pane.current
 	if not frame or frame == pane.placeholder then
 		return

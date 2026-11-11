@@ -29,7 +29,7 @@ end
 
 local M = {}
 
-local function check(env, K, label, limit)
+local function check(env, K, label, limit, sample)
 	local solver = Scene.RectSolver(env)
 	local seen = 0
 	for _, frame in ipairs(env._frames) do
@@ -82,6 +82,8 @@ local function check(env, K, label, limit)
 				local drawn = size * K.Widgets.ScaleFactor(plate.name)
 				assert(drawn >= floor - 0.01, string.format("%s: the plate name %s draws at %.2f, below the window's body text at %.2f", label, tostring(plate.name:GetText()), drawn, floor))
 				shown = shown + 1
+				assert(not sample or plate.name:GetText() == sample, string.format("%s: the preview shows %s, not %s", label, tostring(plate.name:GetText()), tostring(sample)))
+				if os.getenv("PREVIEW_SAMPLES") then print("SAMPLE", label, plate.name:GetText()) end
 			end
 		end
 		assert(shown >= 1, label .. ": the nameplates preview shows a plate")
@@ -129,7 +131,7 @@ function M.Run(module, cases)
 		rawset(_G, "RENDER_ORNAMENTS", case[3])
 		local label = string.format("%s %dx%d %s preview%s", case[3], case[1], case[2], case.unit or module, case.small and " in the smallest window" or "")
 		local env, K = open(LOADERS[module], module, case.small, case.unit and function(k) k.Options.Write("UnitFrames", "edit", case.unit) end)
-		check(env, K, label, case.limit)
+		check(env, K, label, case.limit, case.sample)
 	end
 	rawset(_G, "RENDER_SCREEN", old)
 	rawset(_G, "RENDER_ORNAMENTS", oldLevel)
