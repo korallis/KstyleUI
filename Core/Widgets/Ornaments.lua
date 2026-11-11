@@ -285,9 +285,9 @@ local function AddSet(self, S, list, pixel, set, avoid)
 	return true
 end
 
-local function Far(S, list, l, r, t, b)
+local function Far(S, list, l, r, t, b, card)
 	local o = Rec(S)
-	o.l, o.r, o.t, o.b, o.clear, o.card = l, r, t, b, 1, true
+	o.l, o.r, o.t, o.b, o.clear, o.card = l, r, t, b, 1, card
 	list[#list + 1] = o
 end
 
@@ -325,17 +325,19 @@ function Handle:Obstacles()
 		local inset = card:InsetUnits() - ns.Tokens.Size("gapSmall")
 		l, r, t, b = (l + inset) * f / pixel, (r - inset) * f / pixel, (t - inset) * f / pixel, (b + inset) * f / pixel
 		local far = 1e6
-		Far(S, list, l - far, l, far, -far)
-		Far(S, list, r, r + far, far, -far)
-		Far(S, list, -far, far, t + far, t)
-		Far(S, list, -far, far, b, b - far)
+		Far(S, list, l - far, l, far, -far, true)
+		Far(S, list, r, r + far, far, -far, true)
+		Far(S, list, -far, far, t + far, t, true)
+		Far(S, list, -far, far, b, b - far, true)
 	end
 	local clip = self.owner
 	while clip do
 		local clips = type(clip.DoesClipChildren) == "function" and clip:DoesClipChildren()
 		if W.IsSecret(clips) then return end
 		if clips then break end
-		clip = type(clip.GetParent) == "function" and clip:GetParent() or nil
+		local parent = type(clip.GetParent) == "function" and clip:GetParent()
+		if W.IsSecret(parent) then parent = nil end
+		clip = parent or nil
 	end
 	if clip then
 		local l, r, t, b = clip:GetLeft(), clip:GetRight(), clip:GetTop(), clip:GetBottom()
@@ -1175,6 +1177,10 @@ function Handle:Follow()
 		self.lastX, self.lastY = x, y
 		self:Restyle()
 	end
+end
+
+function W.IsOrnament(widget)
+	return getmetatable(widget) == Handle
 end
 
 function W.Ornament(owner, kind, target, passive)

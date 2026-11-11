@@ -198,14 +198,14 @@ local function Under(node, roots)
 	return false
 end
 
-function Widgets.RestyleUnder(roots)
+function Widgets.RestyleUnder(roots, only)
 	if next(roots) == nil then
 		return
 	end
 	for i = 1, #tracked do
 		local widget = tracked[i]
 		local region = Region(widget)
-		if region == nil or Under(region, roots) then
+		if (region == nil or Under(region, roots)) and (only == nil or only(widget)) then
 			ns.Call(widget.Restyle, widget)
 		end
 	end
