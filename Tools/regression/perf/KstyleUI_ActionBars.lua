@@ -35,8 +35,8 @@ return {
 		end,
 	},
 	{
-		name = "ActionBars pet appears and leaves in combat at Full, tray restyle queued",
-		budget = 170,
+		name = "ActionBars pet appears and leaves in combat at Full, covered finials hide, re-place queued",
+		budget = 750,
 		calls = 50,
 		setup = function()
 			local env, K = AB.New()
