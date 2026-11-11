@@ -31,7 +31,7 @@ function T.Files()
 end
 
 -- Methods a hook may add: hooksecurefunc replaces the hooked method on the object it hooks.
-T.HOOKED = { SetAlpha = true, SetValue = true, SetVertexColor = true, SetPadding = true, ClearPadding = true }
+T.HOOKED = { SetAlpha = true, SetValue = true, SetVertexColor = true, SetPadding = true, ClearPadding = true, StopMovingOrSizing = true }
 
 local function fields(object)
 	local out = {}

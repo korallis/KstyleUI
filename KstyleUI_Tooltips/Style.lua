@@ -20,6 +20,8 @@ Style.NAMES = {
 }
 
 local NO_ICON = { EmbeddedItemTooltip = true }
+local NO_CREST = { EmbeddedItemTooltip = true }
+local CREST_SPAN = 5
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
@@ -179,6 +181,13 @@ local function SkinParts(tooltip)
 	end
 end
 
+local function FirstLine(tooltip)
+	local inside = {}
+	inside[#inside + 1] = Style.Line(tooltip, "left", 1)
+	inside[#inside + 1] = Style.Line(tooltip, "right", 1)
+	return inside
+end
+
 function Style.Skin(tooltip, name)
 	local side = Safe.Side(tooltip)
 	if side.tooltips then
@@ -192,7 +201,17 @@ function Style.Skin(tooltip, name)
 	local glass = CreateFrame("Frame", nil, tooltip)
 	UseParentLevel(glass, tooltip)
 	glass:SetAllPoints(tooltip)
-	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface", shadow = type(tooltip.CompareHeader) ~= "table", popup = true })
+	local header = type(tooltip.CompareHeader) == "table" and tooltip.CompareHeader or nil
+	glass.chrome = Widgets.Chrome(glass, {
+		shape = "window",
+		fill = "surface",
+		shadow = header == nil,
+		popup = true,
+		ornament = not NO_CREST[name] and "crest" or nil,
+		inside = FirstLine(tooltip),
+		avoid = header and { header } or nil,
+		span = CREST_SPAN,
+	})
 	local divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
@@ -207,6 +226,31 @@ function Style.Skin(tooltip, name)
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
+	if glass.chrome.ornament then
+		local function restyle()
+			glass.chrome:RestyleOrnament()
+		end
+		if header then
+			for _, script in ipairs({ "OnShow", "OnHide", "OnSizeChanged" }) do
+				header:HookScript(script, restyle)
+			end
+		end
+		if type(tooltip.GetAnchorType) == "function" then
+			local crest = glass.chrome.ornament
+			tooltip:HookScript("OnShow", function()
+				local anchor = tooltip:GetAnchorType()
+				local still = not Widgets.IsSecret(anchor) and (type(anchor) ~= "string" or not anchor:find("^ANCHOR_CURSOR"))
+				if crest.enabled ~= still then
+					crest.enabled = still
+					restyle()
+				end
+			end)
+		end
+		local movable = type(tooltip.IsMovable) == "function" and tooltip:IsMovable()
+		if not Widgets.IsSecret(movable) and movable == true then
+			hooksecurefunc(tooltip, "StopMovingOrSizing", restyle)
+		end
+	end
 	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
 		if glass.iconOwner and type(tooltip[method]) == "function" then
 			hooksecurefunc(tooltip, method, Repad)

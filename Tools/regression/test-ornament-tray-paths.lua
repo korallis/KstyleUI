@@ -30,15 +30,17 @@ end
 
 local Handle = getmetatable(tray)
 local counts = { Restyle = 0, Place = 0, Piece = 0, Follow = 0 }
+local own = { Restyle = 0, Place = 0, Piece = 0, Follow = 0 }
 for name in pairs(counts) do
 	local original = Handle[name]
-	Handle[name] = function(...)
+	Handle[name] = function(self, ...)
 		counts[name] = counts[name] + 1
-		return original(...)
+		if self == tray then own[name] = own[name] + 1 end
+		return original(self, ...)
 	end
 end
 local function reset()
-	for name in pairs(counts) do counts[name] = 0 end
+	for name in pairs(counts) do counts[name], own[name] = 0, 0 end
 end
 local function total()
 	return counts.Restyle + counts.Place + counts.Piece + counts.Follow
@@ -120,7 +122,7 @@ before = calls()
 AK.Options.Write("Widgets", "ornaments", "Full")
 ae.RunTimers()
 assert(counts.Restyle > 0 and tray.stale, "a level change while bar 1 is hidden leaves the tray stale")
-assert(counts.Place == 0 and counts.Piece == 0 and calls() == before, "a hidden tray places nothing")
+assert(own.Place == 0 and own.Piece == 0 and calls() == before, "a hidden tray places nothing")
 main.holder:Show()
 assert(main.header:IsVisible() and not tray.stale, "showing bar 1's holder restyles the stale tray from an ancestor's OnShow")
 local first = drawn()

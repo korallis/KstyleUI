@@ -270,6 +270,7 @@ local function Build()
 	local root = K.Scale.Root()
 	win = Widgets.Panel(root, {
 		shape = "window",
+		ornament = "crest",
 		strata = "HIGH",
 		escape = true,
 		hidden = true,
@@ -317,6 +318,9 @@ local function Build()
 		SetQuery("")
 	end)
 	clear:Hide()
+	if win.chrome.ornament then
+		win.chrome.ornament.inside = { win.logo, win.title, win.closeButton, search }
+	end
 
 	rail = Rail.Create(win, Select, JumpTo)
 	win.split = win:CreateTexture(nil, "ARTWORK")

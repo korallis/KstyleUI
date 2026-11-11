@@ -159,6 +159,7 @@ ns.Store.RegisterDefaults(SECTION, Widgets.defaults)
 ns.Options.Register(SECTION, Widgets.schema)
 
 local tracked = {}
+Widgets.Cards = setmetatable({}, { __mode = "k" })
 
 function Widgets.Track(widget)
 	tracked[#tracked + 1] = widget
@@ -655,6 +656,8 @@ function Widgets.InsetUnits(radius, gap)
 	return radius / 2 + BORDER_UNITS + Tokens.Size(gap or INSET_GAP)
 end
 
+local BRACKET_CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
+
 local SHAPES = {
 	panel = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
 	card = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
@@ -788,13 +791,18 @@ local function NewSlice(owner, name, layer, sublevel)
 	return p
 end
 
+local function SizeCorner(corner, size)
+	corner:ClearAllPoints()
+	corner:SetSize(size, size)
+end
+
 local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop, outsetX)
 	drop = drop or 0
 	outsetX = outsetX or outset
-	for _, corner in ipairs({ tl, tr, bl, br }) do
-		corner:ClearAllPoints()
-		corner:SetSize(size, size)
-	end
+	SizeCorner(tl, size)
+	SizeCorner(tr, size)
+	SizeCorner(bl, size)
+	SizeCorner(br, size)
 	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outsetX, outset - drop)
 	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outsetX, outset - drop)
 	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outsetX, -outset - drop)
@@ -904,6 +912,21 @@ function Widgets.Chrome(owner, opts)
 			c.gilt = NewTicks(owner)
 			Widgets.ColorSlice(c.gilt, Tokens.Color("gilt"))
 		end
+		if shape.card then
+			Widgets.Cards[c] = true
+		end
+	end
+	if opts.ornament == "crest" and Widgets.Ornament and type(owner.AttachTexture) ~= "function" then
+		c.ornament = Widgets.Ornament(owner, "crest", nil, true)
+		c.ornament.chrome, c.ornament.inside, c.ornament.avoid, c.ornament.span = c, opts.inside, opts.avoid, opts.span
+		owner:HookScript("OnHide", function()
+			c.ornament.stale = true
+		end)
+		if type(owner.StopMovingOrSizing) == "function" then
+			hooksecurefunc(owner, "StopMovingOrSizing", function()
+				c:RestyleOrnament()
+			end)
+		end
 	end
 	c:Restyle()
 	if type(owner.HookScript) == "function" then
@@ -983,6 +1006,9 @@ end
 function Chrome:OnSizeChanged()
 	if self.released then
 		return
+	end
+	if self.ornament and not Widgets.MayMove(self.owner) then
+		self.ornament:Yield()
 	end
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
@@ -1211,8 +1237,7 @@ function Chrome:PaintMaterial()
 					self.materialBrackets[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_GILT))
 				end
 			end
-			local corners = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
-			for i, corner in ipairs(corners) do
+			for i, corner in ipairs(BRACKET_CORNERS) do
 				local bracket = self.materialBrackets[i]
 				bracket:SetTexture(Tokens.Texture("forgedBracket" .. pixels))
 				bracket:SetVertexColor(Widgets.Rgba("white", min(1, self:MaterialOpacity())))
@@ -1328,8 +1353,10 @@ function Chrome:RestyleOrnament()
 	if not self.ornament or self.ornamentQueued then
 		return
 	end
-	if not (C_Timer and C_Timer.After) then
-		self.ornament:Restyle()
+	if self.ornament.kind == "crest" or not (C_Timer and C_Timer.After) then
+		if not self.released then
+			self.ornament:Restyle()
+		end
 		return
 	end
 	self.ornamentQueued = true

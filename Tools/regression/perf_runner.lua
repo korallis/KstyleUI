@@ -18,7 +18,7 @@ local Measure = dofile("Tools/regression/measure.lua")
 
 local ATTEMPTS = 3
 local GROUPS = {
-	core = { "Core.lua", "KstyleUI_ActionBars.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua" },
+	core = { "Core.lua", "KstyleUI_ActionBars.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua", "KstyleUI_Tooltips.lua" },
 	frames = { "KstyleUI_Nameplates.lua", "KstyleUI_UnitFrames.lua" },
 	skins = { "KstyleUI_Skins.lua" },
 }

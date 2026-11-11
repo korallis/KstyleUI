@@ -52,7 +52,8 @@ A piece is dropped, never forced, when:
 - Between two groups of the centre column, the guard (`Tools/regression/centre_clearance_lib.lua`) keeps the gap #260 set: **4 root units or 3 physical pixels**, whichever is larger.
 - The exempt pairs, where an ornament may enter that gap and keeps only the 1 px rule:
   - **bottom rail**: the art closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor;
-  - **yoke**: the art joining a bar block to its own portrait band may meet the band (and on the target, the pendants), which are ornament too, 1 px clear of the portrait picture and the gilt ring.
+  - **yoke**: the art joining a bar block to its own portrait band may meet the band (and on the target, the pendants), which are ornament too, 1 px clear of the portrait picture and the gilt ring;
+  - **crest seat**: a window's or tooltip's crest frames its own surface and may cover that window's top edge line and the bare surface directly under it, 1 px clear of its title, close button, tabs, search box, icons and a tooltip's first line (Captain, 2026-11-11, as for the minimap's plaque). Above the edge it stands over whatever is behind the window: the window is on top, and the crest belongs to it (see the Window and card crests limits).
 - A bottom rail that does not fit is dropped, never thinned.
 - Where both sides of an exempt pair are ornament (a yoke meeting the band or a pendant), the two may meet: that join is the yoke.
 - The clearance matrices run the HUD at Full on nine screens for 12 class and form presets, for normal, elite and world boss targets.
@@ -120,7 +121,7 @@ Each surface's pull request adds its section here.
 | Action-bar tray | 3 | shipped |
 | Nameplates | 4 | shipped |
 | Minimap and data bars | 5 | to come |
-| Window and card crests | 6 | to come |
+| Window and card crests | 6 | shipped |
 
 ### Unit frames and their cast bars
 
@@ -229,3 +230,47 @@ At Off a plate builds no signature. The Off pull costs about 6% more than before
 | 1366x768 | target | `EndPointed` instead of the crest | as Full |
 
 From 1920x1080 up every kind keeps its family. The level dot pulls an elite's and a boss's frame about 5 root units left of the plate's centre, the elite's wings widen the frame by about a fifth when a cast starts, and the target's crest sits about 3 root units off the selection box at 3456x2234; all three are accepted.
+
+### Window and card crests
+
+| Piece | Handle | Subtle | Full |
+| --- | --- | --- | --- |
+| Crest on a kit window: the settings window, the first-run setup, the bags, Copy chat, the KstyleUI dialog and the Layout Mode toolbar | `crest` on the window's chrome (`Widgets.Panel` gives every titled window one; the settings window asks for it) | nothing | one `Crest` centred on the top edge |
+| Crest on a tooltip: GameTooltip, ItemRefTooltip and the four shopping tooltips | `crest` on the tooltip's glass (`KstyleUI_Tooltips/Style.lua`) | nothing | the same, smaller because a tooltip is narrower |
+| Crest on a RestedXP window: the v2 guide window, the leveling report, the guide configurator, the guide importer and its popups, and the active-items and active-targets windows when they are wide enough | `crest` on the window glass (`KstyleUI_Skins/Addons/RestedXP/Chrome.lua`); the v2 window measures its height to the bottom of its steps frame | nothing | the same |
+
+Subtle draws no crest, so on these surfaces Subtle and Off are the same picture.
+
+**The crest.** A window takes the largest of `Crest64`, `Crest48`, `Crest32` and `Crest20` whose size is at or below 6% of its width in physical pixels, and a window narrower than 180 root units or shorter than 64 draws none. A tooltip takes the largest of them that fits five times across its width, so a 152 px tooltip at 1920x1080 takes `Crest20` and a 313 px one at 3456x2234 takes `Crest48` where its first line leaves room. No surface draws `Crest12` or `Crest8`: at native size they read as specks (Captain, 2026-11-11), so a surface too narrow for `Crest20` draws none. The crest is seated on the top edge with its point sunk into the window's own top band by a quarter of its height, under the crest seat exemption (see [Clearance](#clearance-ruling-c)): it may cover its own window's top edge line and the bare surface directly under it, and it keeps 1 physical pixel from everything the window lists as its top-band content: the title, the close button and the content frame of a kit window; the logo, title, close button and search box of the settings window; the first line of a tooltip; the caption, close button and logo of a RestedXP window. Where a tier's seat would come within 1 pixel of one of them, the crest takes the next smaller tier, and where `Crest20` would, it draws none. A tier that would leave the screen gives way to the next smaller one in the same way. A window that lists nothing draws no crest, and a listed region that is not placed draws nothing, so it does not block. The crest drops, and never cuts:
+
+- when the window's top edge is closer to the screen's top than even `Crest20` stands above it, or every tier would cross the screen's left or right edge;
+- when the window's size or position, or a listed region's, is unknown, secret or not finite (a bottom edge of 0 at the screen's bottom is known);
+- while a tooltip follows the cursor (`GetAnchorType` starts with `ANCHOR_CURSOR`), because it moves every frame and is checked only when it shows;
+- when it would come within 4 root units or 3 physical pixels of a shopping tooltip's compare header, which hangs above the tooltip's top-left corner.
+
+The item tooltip embedded in another tooltip (`EmbeddedItemTooltip`) carries no crest: its top edge is inside its host's lines. Blizzard's windows that `Skin.Backdrop` dresses draw nothing; they can ask for a crest through `opts.ornament`, which this pull request does not do.
+
+**No corners on the story card.** The story card (RestedXP's guide card and the quest card that takes its slot) keeps its forged brackets and draws no `corners`. Every `Corner` tier inside the card's rect lands on the brackets' own corner marks, so it would change pixels the Off render drew and double the brackets; outside the rect it would meet the right rail's neighbours. The brackets are the card's material and stay as they are; `corners` stays on the focus and boss cards and the Targeted chip only.
+
+**What restyles in play.**
+
+| Trigger | What restyles | Source that proves the trigger |
+| --- | --- | --- |
+| A window or tooltip changes size (`OnSizeChanged` on the chrome's owner) | that crest, at once rather than on the next frame, so a tooltip that changes size between two units never draws the old crest | `OnSizeChanged`: `Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerContainer.xml:84` |
+| A hidden window or tooltip shows (`OnShow` after `OnHide`) | that crest, once | `HookScript`, `Hide`: `SimpleScriptRegionAPIDocumentation.lua:365`, `:357` |
+| A window is dropped after a drag (`StopMovingOrSizing` on a kit window, `ItemRefTooltip`, a RestedXP window, or the v2 guide window's outer frame, which RestedXP drags) | that crest, once. A drag moves the anchored crest with the window and restyles nothing | `SimpleFrameAPIDocumentation.lua:1571`; `Blizzard_UIPanels_Game/Mainline/ItemRef.lua:374`; RestedXP `UI/V2/Core.lua:1038` |
+| A shopping tooltip's compare header shows, hides or changes width | that tooltip's crest | `Blizzard_SharedXMLGame/Tooltip/TooltipComparisonManager.lua:245` to `:247` |
+| A tooltip shows with a different anchor type (cursor or not) | that crest | `GetAnchorType`: `Blizzard_SharedXMLGame/Tooltip/TooltipComparisonManager.lua:77` |
+| The ornament level or the card material changes | every crest whose owner is shown | the settings window |
+
+The tooltip's health bar, its lines and its money never restyle a crest (`test-ornament-crest-tooltips.lua`).
+
+**Combat and secure frames.** No crest belongs to a frame the game protects. The kit windows are plain `Frame`s that `Widgets.Panel` creates; a tooltip's crest sits on KstyleUI's glass frame, a child of the tooltip; a RestedXP window's sits on the backdrop `Skin.Backdrop` creates. `GameTooltip` itself is not protected, but a tooltip anchored to a secure frame answers its geometry with secret values (`GetTop` and `GetWidth` are `SecretWhenAnchoringSecret`: `SimpleScriptRegionAPIDocumentation.lua:308`, `:323`), and a secret size or edge drops the crest. Every restyle still asks `Widgets.MayMove(owner)`: under `InCombatLockdown()` an owner that answers `IsProtected` true or secret (`SimpleScriptRegionAPIDocumentation.lua:540`) queues its restyle for `PLAYER_REGEN_ENABLED`, and a size change in lockdown first hides its crest with `Handle:Yield`, because the crest is anchored to the old centre. Only `Hide` is called in lockdown (see [Combat lockdown](#combat-lockdown)). A kit window opened in combat is not protected, so its crest draws as it opens.
+
+**Cost.** Under Lua 5.1 on the Mac, a GameTooltip shown for two units of different size at Full costs 71 us per show with its crest re-placed (load average 12 while it ran), and allocates nothing on addon lines; an earlier measurement at load 58 put the show at 61 us at Off, 66 us at Subtle and 83 us at Full, and a 1040 by 680 window resized at 38, 46 and 73 us. Two chrome lines that allocated a table on every resize (`PlaceCorners` and the forged brackets) now reuse one. `Tools/regression/perf/KstyleUI_Tooltips.lua` holds the tooltip show at Full to 1,000 us with no allocation, and fails when its fixture places no crest.
+
+**Recorded limits.**
+
+- A tooltip under 64 root units tall (a one-line spell tooltip) or under 125 physical pixels wide (five `Crest20` widths), and any window under 180 by 64 root units or under 334 physical pixels wide (where 6% is under 20), draws no crest. So at 1920x1080 the RestedXP guide importer is the only RestedXP window wide enough, and at 1280x720 no RestedXP window and no gallery tooltip draws one. The first line can lower the tier further: the spell tooltip at 1920x1080 takes `Crest20` because `Crest32` would end 0.6 px short of its first line's box.
+- A cursor-anchored tooltip draws no crest.
+- A kit window sits above the HUD and its neighbours, so its crest, like the window, may cover a HUD element or another window moved against its top edge or within a crest's height above it (accepted on #282, 2026-11-11).
