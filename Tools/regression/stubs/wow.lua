@@ -295,6 +295,10 @@ function Object:GetStringHeight()
 	return lines and lines * size * 1.2 + (lines - 1) * spacing
 end
 function Object:SetScale(scale) self._scale = scale end
+function Object:DoesClipChildren()
+	local stored = self._state.ClipsChildren
+	return stored ~= nil and stored[1] == true
+end
 function Object:GetScale() return self._scale end
 -- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.
 function Object:SetIgnoreParentScale(ignore) self._ignoreParentScale = not not ignore end

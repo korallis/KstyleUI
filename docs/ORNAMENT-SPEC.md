@@ -41,6 +41,7 @@ A piece is dropped, never forced, when:
 - the target's size is unknown, zero or a secret value, or the edges of the target or of anything it must avoid are unknown or a secret value (no art is guessed); an edge at 0, on the screen's left or bottom side, is known like any other, and so is a negative edge off the screen (LEE-159, `test-ornament-zero-edge.lua`);
 - a bar is under 4 physical pixels tall;
 - the piece would come within the clearance below of anything it must avoid;
+- the piece would cross the edge of a frame that clips its children (`DoesClipChildren`, `SimpleFrameAPIDocumentation.lua:188`) above the handle's owner, such as the settings window's live preview, which would cut it with a straight edge; the bar and plate frames take that frame's bounds as they take a card's, so an end is drawn whole or falls back to a smaller tier or none, and the preview restyles its ornaments after every refresh so they meet its final bounds (LEE-160, `test-ornament-preview-clip.lua`);
 - the reach table did not ship the piece (see [Tier resolution](#tier-resolution));
 - `SetTexture` refuses the file, which hides that texture and leaves the frame as it was.
 

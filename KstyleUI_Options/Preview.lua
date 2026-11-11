@@ -215,6 +215,7 @@ local function RefreshCurrent(pane)
 		K.Call(frame.Refresh, frame)
 	end
 	Fit(pane, frame)
+	Widgets.RestyleUnder({ [frame] = true })
 end
 
 function Preview.Show(pane, page)

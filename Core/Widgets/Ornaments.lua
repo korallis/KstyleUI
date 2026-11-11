@@ -330,6 +330,24 @@ function Handle:Obstacles()
 		Far(S, list, -far, far, t + far, t)
 		Far(S, list, -far, far, b, b - far)
 	end
+	local clip = self.owner
+	while clip do
+		local clips = type(clip.DoesClipChildren) == "function" and clip:DoesClipChildren()
+		if W.IsSecret(clips) then return end
+		if clips then break end
+		clip = type(clip.GetParent) == "function" and clip:GetParent() or nil
+	end
+	if clip then
+		local l, r, t, b = clip:GetLeft(), clip:GetRight(), clip:GetTop(), clip:GetBottom()
+		local f = W.ScaleFactor(clip)
+		if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then return end
+		l, r, t, b = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel
+		local far = 1e6
+		Far(S, list, l - far, l, far, -far)
+		Far(S, list, r, r + far, far, -far)
+		Far(S, list, -far, far, t + far, t)
+		Far(S, list, -far, far, b, b - far)
+	end
 	return list
 end
 
