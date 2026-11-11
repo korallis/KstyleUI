@@ -104,6 +104,11 @@ function CastBars.SetName(cb, text)
 	else
 		cb.text:SetText(ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast"))))
 	end
+	local secret = issecretvalue(text)
+	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
+		cb.ornamentText = not secret and text or nil
+		cb.ornament:Restyle()
+	end
 end
 
 local function Caption(cb)

@@ -950,10 +950,13 @@ function W.Ornament(owner, kind, target, passive)
 			end)
 		end
 	end
-	if type(owner.HookScript) == "function" then
-		owner:HookScript("OnShow", function()
-			if handle.stale then handle:Restyle() end
-		end)
+	local function wake()
+		if handle.stale then handle:Restyle() end
+	end
+	local frame = owner
+	while frame and frame ~= UIParent do
+		if type(frame.HookScript) == "function" then frame:HookScript("OnShow", wake) end
+		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
 	end
 	handle:Restyle()
 	if passive then return handle end
