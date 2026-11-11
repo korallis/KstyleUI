@@ -250,26 +250,6 @@
         "tray-keystone"
       ]
     },
-    "Crest8": {
-      "width": 10,
-      "height": 8,
-      "sheet_width": 16,
-      "sheet_height": 8,
-      "bytes": 366,
-      "sources": [
-        "window-crest-open"
-      ]
-    },
-    "Crest12": {
-      "width": 15,
-      "height": 12,
-      "sheet_width": 16,
-      "sheet_height": 16,
-      "bytes": 644,
-      "sources": [
-        "window-crest-open"
-      ]
-    },
     "Crest20": {
       "width": 25,
       "height": 20,
@@ -4285,5 +4265,5 @@
       "sha256": "0fbc4b8d24d2f74243a0545a1a80a96e73c584871fb63569e9cf7d681eec99d0"
     }
   },
-  "total_bytes": 1570282
+  "total_bytes": 1569272
 }

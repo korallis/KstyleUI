@@ -188,12 +188,10 @@ The source SHA-256 hashes, crop sizes and PNG byte counts are recorded in `Media
 | `Media/Textures/ForgedOrnaments/Corner16.png` | 18x16 | corner-plain | 743 |
 | `Media/Textures/ForgedOrnaments/Corner20.png` | 23x20 | corner-plain | 1100 |
 | `Media/Textures/ForgedOrnaments/Corner24.png` | 27x24 | corner-plain | 1432 |
-| `Media/Textures/ForgedOrnaments/Crest12.png` | 15x12 | window-crest-open | 644 |
 | `Media/Textures/ForgedOrnaments/Crest20.png` | 25x20 | window-crest-open | 1464 |
 | `Media/Textures/ForgedOrnaments/Crest32.png` | 39x32 | window-crest-open | 3015 |
 | `Media/Textures/ForgedOrnaments/Crest48.png` | 59x48 | window-crest-open | 5965 |
 | `Media/Textures/ForgedOrnaments/Crest64.png` | 79x64 | window-crest-open | 9818 |
-| `Media/Textures/ForgedOrnaments/Crest8.png` | 10x8 | window-crest-open | 366 |
 | `Media/Textures/ForgedOrnaments/ElitePendantR17.png` | 13x22 | portrait-elite-pendant | 934 |
 | `Media/Textures/ForgedOrnaments/ElitePendantR20.png` | 15x26 | portrait-elite-pendant | 1171 |
 | `Media/Textures/ForgedOrnaments/ElitePendantR24.png` | 18x32 | portrait-elite-pendant | 1573 |

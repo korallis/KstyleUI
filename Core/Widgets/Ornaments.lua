@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local W, Scale = ns.Widgets, ns.Scale
-local floor, min, max = math.floor, math.min, math.max
+local floor, min, max, huge = math.floor, math.min, math.max, math.huge
 local PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\ForgedOrnaments\\"
 local ASSETS, INK = W.OrnamentAssets, W.OrnamentInk
 local POINTS = { TOPLEFT = { 0, 0 }, TOP = { 0.5, 0 }, TOPRIGHT = { 1, 0 }, LEFT = { 0, 0.5 },
@@ -14,6 +14,10 @@ W.OrnamentRows, W.OrnamentBars = ROWS, BARS
 
 local function Plain(v)
 	return not W.IsSecret(v) and type(v) == "number" and v > 0
+end
+
+local function Known(v)
+	return not W.IsSecret(v) and type(v) == "number" and v == v and v > -huge and v < huge
 end
 
 local EMPTY = {}
@@ -874,8 +878,18 @@ function Handle:Corners(full)
 	end
 end
 
+local CREST_SHARE, CREST_SINK, CREST_WIDTH, CREST_HEIGHT = 0.06, 0.25, 180, 64
+local WINDOW_CRESTS = { 64, 48, 32, 20 }
+
 function Handle:Crest(full)
-	if not full or self.width < 180 or self.height < 64 then return end
+	local pixel = Scale.Pixel(1)
+	local height = self.height
+	if self.body then
+		local top, bottom, f = self.target:GetTop(), self.body:GetBottom(), W.ScaleFactor(self.body)
+		if not (Plain(top) and Known(bottom) and Plain(f)) then return end
+		height = (top * self.factor - bottom * f) / pixel
+	end
+	if not full or not self.span and self.width * pixel < CREST_WIDTH or height * pixel < CREST_HEIGHT then return end
 	if self.bottom then
 		local bottom = type(self.target.GetBottom) == "function" and self.target:GetBottom()
 		local name = Tier("Keystone", self.pixel > 0.8 and 8 or 12)
@@ -884,15 +898,50 @@ function Handle:Crest(full)
 		end
 		return
 	end
-	local size = self.pixel > 1.25 and 12 or self.pixel > 0.8 and 20 or 32
-	if self.width >= 900 then size = 64 elseif self.width >= 600 then size = 48 end
-	local top = type(self.target.GetTop) == "function" and self.target:GetTop()
-	local rootTop = Scale.Root():GetTop()
-	if not Plain(top) or not Plain(rootTop) then return end
-	local room = (rootTop - top * self.factor) / Scale.Pixel(1)
-	local name = Tier("Crest", min(size, room))
-	if name and room >= ASSETS[name][2] then
-		self:Piece(name, "BOTTOM", "TOP", 0, 0)
+	if not self.inside or not next(self.inside) then return end
+	local root = Scale.Root()
+	local top, left, right = self.target:GetTop(), self.target:GetLeft(), self.target:GetRight()
+	local rootTop, rootRight = root:GetTop(), root:GetRight()
+	if not (Plain(top) and Plain(right) and Plain(rootTop) and Plain(rootRight) and Known(left)) then return end
+	local S = Scratch(self)
+	S.nrec = 0
+	local list = List(S, "crest")
+	for _, region in ipairs(self.inside) do
+		local shown = type(region.IsVisible) ~= "function" or region:IsVisible()
+		local l, r, t, b, f = region:GetLeft(), region:GetRight(), region:GetTop(), region:GetBottom(), W.ScaleFactor(region)
+		if W.IsSecret(shown) or W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return end
+		if shown and (l ~= nil or r ~= nil or t ~= nil or b ~= nil) then
+			if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then return end
+			local o = Rec(S)
+			o.l, o.r, o.t, o.b, o.clear = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel, 1
+			list[#list + 1] = o
+		end
+	end
+	local edge, origin = top * self.factor / pixel, left / self.pixel
+	local above = List(S, "above")
+	for card in pairs(W.Cards) do
+		local owner = card.owner
+		if card ~= self.chrome and card.visible then
+			local shown = owner:IsVisible()
+			local l, r, t, b, f = owner:GetLeft(), owner:GetRight(), owner:GetTop(), owner:GetBottom(), W.ScaleFactor(owner)
+			if not W.IsSecret(shown) and shown and Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) and b * f / pixel - edge > 0.5 then
+				local reach = card.shadowState and ns.Tokens.Size("shadow") * f / pixel or 0
+				local o = Rec(S)
+				o.l, o.r, o.t, o.b, o.clear = l * f / pixel - reach, r * f / pixel + reach, t * f / pixel + reach, b * f / pixel - reach, 1
+				above[#above + 1] = o
+			end
+		end
+	end
+	for _, n in ipairs(WINDOW_CRESTS) do
+		local name = Named("Crest", n)
+		local spec = ASSETS[name]
+		if spec and (self.span and spec[1] * self.span <= self.width or not self.span and n <= self.width * CREST_SHARE) then
+			local x, sink = floor(origin + floor(self.width / 2 - spec[1] / 2 + 0.5) + 0.5), floor(spec[2] * CREST_SINK)
+			if rootTop / pixel - edge >= spec[2] - sink and x >= 0 and x + spec[1] <= rootRight / pixel and Free(list, x, floor(edge + 0.5), spec[1], sink) and Free(above, x, floor(edge + 0.5) - sink + spec[2], spec[1], spec[2]) then
+				self:Piece(name, "BOTTOM", "TOP", 0, -sink)
+				return
+			end
+		end
 	end
 end
 

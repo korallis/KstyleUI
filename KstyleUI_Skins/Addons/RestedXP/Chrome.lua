@@ -152,7 +152,26 @@ local function Glass(frame, opts)
 		inset = inset or {}
 		inset.top = -Tokens.Size(opts.rise)
 	end
-	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt, popup = opts.popup })
+	local ornament = opts.ornament
+	if ornament == nil then
+		ornament = "crest"
+	end
+	local inside
+	if opts.inside then
+		inside = {}
+		for _, region in pairs(opts.inside) do
+			if IsTable(region) and type(region.GetLeft) == "function" then
+				inside[#inside + 1] = region
+			end
+		end
+	end
+	local panel = Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt, popup = opts.popup, ornament = ornament or nil, inside = inside })
+	if ornament == "crest" and panel and panel.chrome then
+		Hook(frame, "StopMovingOrSizing", "crest drop " .. tostring(frame), function()
+			panel.chrome:RestyleOrnament()
+		end)
+	end
+	return panel
 end
 
 
@@ -986,7 +1005,7 @@ local function GuideWindow(rxp)
 	if name then
 		Skin.Strip(name, { children = RXP_ART })
 	end
-	local glass = path and Glass(f, { reach = true, target = path.card })
+	local glass = path and Glass(f, { reach = true, target = path.card, ornament = false })
 	if path then
 		path.OnHead = function()
 			if state.guide then
@@ -1048,8 +1067,16 @@ local function GuideWindowV2(rxp)
 	if not window then
 		return
 	end
-	Glass(window.upperFrame)
-	Glass(window.guideStepsFrame)
+	local upper = Glass(window.upperFrame, { inside = { window.title, window.subtitle, window.closebutton, window.iconLogo } })
+	Glass(window.guideStepsFrame, { ornament = false })
+	local crest = upper and upper.chrome and upper.chrome.ornament
+	if crest and IsTable(window.guideStepsFrame) then
+		crest.body = window.guideStepsFrame
+		upper.chrome:RestyleOrnament()
+		Hook(window.frame, "StopMovingOrSizing", "guideWindow.frame.StopMovingOrSizing", function()
+			upper.chrome:RestyleOrnament()
+		end)
+	end
 	Parts.Hush(window.banner)
 	CloseButton(window.closebutton)
 	local scroll = IsTable(window.guideSteps) and window.guideSteps.scroll
@@ -1314,7 +1341,7 @@ local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
 	local title = f.title
 	if not skinned then
-		Glass(f)
+		Glass(f, { inside = { title } })
 	elseif not InCombatLockdown() then
 		Skin.Strip(f, { children = RXP_ART })
 	end
@@ -1408,7 +1435,7 @@ local function Report(tracker, labels)
 	for _, ui in pairs(reports) do
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
-			Glass(frame, { rise = TITLE_RISE })
+			Glass(frame, { rise = TITLE_RISE, inside = { ui.titletext } })
 			CaptionFor(ui.titletext)
 			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
 			for _, child in ipairs({ frame:GetChildren() }) do
@@ -1901,7 +1928,7 @@ local function Configurator(configurator)
 		return
 	end
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
-		Glass(ui.frame, { rise = TITLE_RISE })
+		Glass(ui.frame, { rise = TITLE_RISE, inside = { ui.titletext, ui.closebutton } })
 	end
 	CaptionFor(ui.titletext)
 	Label(Find(ui, "description"), "body", "text")
@@ -1951,7 +1978,7 @@ local function Importer(importer)
 		return
 	end
 	if not Skin.IsSkinned(window.frame, "Backdrop") then
-		Glass(window.frame, { rise = TITLE_RISE })
+		Glass(window.frame, { rise = TITLE_RISE, inside = { window.title, window.closebutton } })
 	end
 	CloseButton(window.closebutton)
 	CaptionFor(window.title)
@@ -1989,7 +2016,7 @@ local function Importer(importer)
 		local popup = widgets[key]
 		if IsTable(popup) and IsTable(popup.frame) then
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
-				Glass(popup.frame, { popup = true })
+				Glass(popup.frame, { popup = true, inside = { popup.title } })
 			end
 			CaptionFor(popup.title)
 			Label(Find(popup, "message"), "body", "text")

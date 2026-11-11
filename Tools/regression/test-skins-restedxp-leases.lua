@@ -10,7 +10,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true, StopMovingOrSizing = true }
 local LONG = "Copy this text and paste it where the guide's author asked for it, then close this window"
 
 local failures, checks, where = {}, 0, ""
@@ -426,7 +426,15 @@ SURFACES[#SURFACES + 1] = {
 		end
 	end,
 	close = function(w) w.fake.close(w.importer.import.frame) end,
-	texts = function(w) return { { name = "value", text = w.importer.currentGuides.text } } end,
+	texts = function(w)
+		if w.skinned then
+			local crest = w.K.Skin.Parts(w.importer.import.frame).backdrop.chrome.ornament
+			local listed = {}
+			for _, region in ipairs(crest and crest.inside or {}) do listed[region] = true end
+			assert(listed[w.importer.import.title] and listed[w.importer.import.closebutton], "the guide importer's crest keeps clear of its caption and close button")
+		end
+		return { { name = "value", text = w.importer.currentGuides.text } }
+	end,
 	controls = function(w)
 		return {
 			{ name = "list chrome", source = w.importer.currentGuides.frame, kind = "EditBox" },

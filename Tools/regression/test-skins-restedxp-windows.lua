@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true, StopMovingOrSizing = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -567,6 +567,19 @@ do
 	assert(Alpha(window.banner) == 0, "and the header banner art")
 	assert(K.Skin.IsSkinned(window.closebutton, "CloseButton"), "its close button is KstyleUI's")
 	assert(K.Skin.IsSkinned(window.guideSteps.scroll.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
+	do
+		local crest = K.Skin.Parts(window.upperFrame).backdrop.chrome.ornament
+		assert(crest and crest.kind == "crest" and crest.body == window.guideStepsFrame, "the v2 guide window's crest sits on its header glass and measures the window down to its steps")
+		assert(K.Skin.Parts(window.guideStepsFrame).backdrop.chrome.ornament == nil, "the steps glass under the header carries no crest of its own")
+		local restyles, restyle = 0, crest.Restyle
+		crest.Restyle = function(self, ...)
+			restyles = restyles + 1
+			return restyle(self, ...)
+		end
+		window.frame:StopMovingOrSizing()
+		assert(restyles >= 1, "dropping RestedXP's outer frame after a drag restyles the crest (UI/V2/Core.lua 1038 stops the outer frame)")
+		crest.Restyle = nil
+	end
 	-- The title is the guide's name heading a card, the same thing the story card's caption is, so it wears the same
 	-- treatment (the Captain's ruling of 2026-11-10; it was RestedXP's text in the accent before): a caps caption in
 	-- the picture's muted gold over RestedXP's hushed title, left aligned across the title's own span, the logo
