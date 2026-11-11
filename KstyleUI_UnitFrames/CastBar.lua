@@ -799,11 +799,14 @@ local function Enabled(cb)
 	return Settings.Value(kind, "enabled")
 end
 
+local NONE = {}
+
 local function Each(kind, fn)
-	for _, list in ipairs({ bars[kind] or {}, inline[kind] or {} }) do
-		for _, cb in ipairs(list) do
-			fn(cb)
-		end
+	for _, cb in ipairs(bars[kind] or NONE) do
+		fn(cb)
+	end
+	for _, cb in ipairs(inline[kind] or NONE) do
+		fn(cb)
 	end
 end
 

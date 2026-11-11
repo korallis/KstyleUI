@@ -191,6 +191,11 @@ function Bar:EdgeThickness()
 	return edge
 end
 
+local function Ends(visibleTop, visibleBot, tHi, tLo, span)
+	return Clamp01((visibleTop * tLo - visibleBot * tHi) / span),
+		Clamp01(((1 - tHi) * visibleBot - (1 - tLo) * visibleTop) / span)
+end
+
 local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
 	if not self.innerEdgeOn then
 		return topR, topG, topB, botR, botG, botB
@@ -208,13 +213,9 @@ local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
 	local tHi = (edge + 0.5) / pixels
 	local tLo = (pixels - edge - 0.5) / pixels
 	local span = tLo - tHi
-	local function ends(visibleTop, visibleBot)
-		return Clamp01((visibleTop * tLo - visibleBot * tHi) / span),
-			Clamp01(((1 - tHi) * visibleBot - (1 - tLo) * visibleTop) / span)
-	end
-	local hiR, loR = ends(topR, botR)
-	local hiG, loG = ends(topG, botG)
-	local hiB, loB = ends(topB, botB)
+	local hiR, loR = Ends(topR, botR, tHi, tLo, span)
+	local hiG, loG = Ends(topG, botG, tHi, tLo, span)
+	local hiB, loB = Ends(topB, botB, tHi, tLo, span)
 	return hiR, hiG, hiB, loR, loG, loB
 end
 

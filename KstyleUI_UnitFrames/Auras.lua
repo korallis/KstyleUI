@@ -530,7 +530,15 @@ end
 
 function Auras.Parts(view)
 	local a = view.auras
-	local parts = { a.container }
+	local parts = a.parts
+	if not parts then
+		parts = {}
+		a.parts = parts
+	end
+	for i = #parts, 1, -1 do
+		parts[i] = nil
+	end
+	parts[1] = a.container
 	for _, key in ipairs(GROUPS) do
 		local chip = a.overflow and a.overflow[key]
 		if chip then

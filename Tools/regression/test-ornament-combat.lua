@@ -3,6 +3,8 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
 U.SetUnit(env, "target", { name = "Shadowgale Poacher", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true, classification = "elite" })
 env.FireEvent("PLAYER_TARGET_CHANGED")
+env._units.target.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
+env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-2", 116)
 env.RunTimers()
 assert(K.Widgets.Setting("ornaments") == "Full", "a profile without a stored level is Full")
 local view = ns.Frames.Get("target").views[1]
@@ -10,6 +12,9 @@ local cb = view.castbar
 assert(cb and cb.ornament and cb.panel, "the target has a cast bar with its own ornament handle")
 local handles = { view.health.ornament, view.portraitOrnament, view.chrome.ornament, cb.ornament }
 local owners = { view.panel, view.portraitFrame, cb.panel }
+for _, owner in ipairs(owners) do
+	assert(owner:IsVisible(), "every ornament owner shows, the cast bar's with its cast")
+end
 for _, owner in ipairs(owners) do
 	assert(owner:IsProtected() ~= true, "the ornament owners are plain frames, not the secure unit button")
 end

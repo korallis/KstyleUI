@@ -303,9 +303,9 @@ local function TrackShift(text, state)
 end
 
 local function Anchor(text, state, p, shift)
-	if p.rel == nil then
+	if not p.rel then
 		state.native.SetPoint(text, p.point, p.x + shift, p.y)
-	elseif p.relPoint == nil then
+	elseif not p.relPoint then
 		state.native.SetPoint(text, p.point, p.rel, p.x + shift, p.y)
 	else
 		state.native.SetPoint(text, p.point, p.rel, p.relPoint, p.x + shift, p.y)
@@ -338,28 +338,39 @@ local function Tracker(text)
 		SetWidth = text.SetWidth,
 		SetSize = text.SetSize,
 	}
-	state = { pad = 0, shift = 0, justify = "CENTER", points = {}, native = native }
+	state = { pad = 0, shift = 0, justify = "CENTER", points = {}, spare = {}, native = native }
 	trackers[text] = state
 	for i = 1, text:GetNumPoints() do
 		local point, rel, relPoint, x, y = native.GetPoint(text, i)
-		state.points[i] = { point = point, rel = rel, relPoint = relPoint, x = x, y = y }
+		state.points[i] = { point = point, rel = rel or false, relPoint = relPoint or false, x = x, y = y }
 	end
 	function text.SetPoint(self, point, a, b, c, d)
-		local p = { point = point, x = 0, y = 0 }
+		local points = state.points
+		local at = #points + 1
+		for i, existing in ipairs(points) do
+			if existing.point == point then
+				at = i
+			end
+		end
+		local p = points[at]
+		if not p then
+			local spare = state.spare
+			p = spare[#spare]
+			if p then
+				spare[#spare] = nil
+			else
+				p = { point = false, rel = false, relPoint = false, x = 0, y = 0 }
+			end
+			points[at] = p
+		end
+		p.point, p.rel, p.relPoint, p.x, p.y = point, false, false, 0, 0
 		if type(a) == "number" then
 			p.x, p.y = a, b or 0
 		elseif type(b) == "number" then
 			p.rel, p.x, p.y = a, b, c or 0
 		else
-			p.rel, p.relPoint, p.x, p.y = a, b, c or 0, d or 0
+			p.rel, p.relPoint, p.x, p.y = a or false, b or false, c or 0, d or 0
 		end
-		local at = #state.points + 1
-		for i, existing in ipairs(state.points) do
-			if existing.point == point then
-				at = i
-			end
-		end
-		state.points[at] = p
 		if not Refresh(self, state) then
 			Anchor(self, state, p, state.shift)
 		end
@@ -373,7 +384,11 @@ local function Tracker(text)
 		return p.point, rel, relPoint, p.x, p.y
 	end
 	function text.ClearAllPoints(self)
-		state.points = {}
+		local points, spare = state.points, state.spare
+		for i = #points, 1, -1 do
+			spare[#spare + 1] = points[i]
+			points[i] = nil
+		end
 		state.shift = 0
 		native.ClearAllPoints(self)
 	end
@@ -1318,12 +1333,15 @@ function Chrome:RestyleOrnament()
 		return
 	end
 	self.ornamentQueued = true
-	C_Timer.After(0, function()
-		self.ornamentQueued = false
-		if not self.released then
-			self.ornament:Restyle()
+	if not self.ornamentRun then
+		self.ornamentRun = function()
+			self.ornamentQueued = false
+			if not self.released then
+				self.ornament:Restyle()
+			end
 		end
-	end)
+	end
+	C_Timer.After(0, self.ornamentRun)
 end
 
 function Chrome:Release()
