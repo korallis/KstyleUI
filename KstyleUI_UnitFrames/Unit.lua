@@ -487,14 +487,6 @@ local function LevelLine(text, unit, short)
 end
 
 function Unit.Caption(view, unit)
-	if view.portraitOrnament then
-		local classification = type(UnitClassification) == "function" and UnitClassification(unit)
-		view.portraitOrnament.player = unit == "player"
-		view.portraitOrnament.boss = not IsSecret(classification) and classification == "worldboss" or view.kind == "boss"
-		view.portraitOrnament.elite = not IsSecret(classification) and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
-		view.portraitOrnament:Restyle()
-		ns.Style.RestyleBlocks()
-	end
 	local form, text = view.form, view.caption
 	if form == "vitals" then
 		local name
@@ -529,8 +521,23 @@ function Unit.Caption(view, unit)
 	end
 end
 
+local function Rank(view, unit)
+	local ring = view.portraitOrnament
+	if not ring then
+		return
+	end
+	local classification = type(UnitClassification) == "function" and UnitClassification(unit)
+	local known = not IsSecret(classification)
+	ring.player = unit == "player"
+	ring.boss = known and (classification == "worldboss" or view.kind == "boss")
+	ring.elite = known and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
+	ring:Restyle()
+	ns.Style.RestyleBlocks()
+end
+
 function Unit.Level(view, unit)
 	local text = view.levelText
+	Rank(view, unit)
 	if view.form and view.form ~= "plate" then
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column") and view.s.level then

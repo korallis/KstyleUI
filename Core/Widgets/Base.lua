@@ -973,6 +973,7 @@ function Chrome:OnSizeChanged()
 		self:Restyle()
 	else
 		self:PaintMaterial()
+		if self.ornament then self.ornament:Restyle() end
 	end
 end
 
@@ -1305,6 +1306,7 @@ function Chrome:Restyle()
 		end)
 	end
 	self:Paint()
+	if self.ornament then self.ornament:Restyle() end
 end
 
 function Chrome:Release()
@@ -1370,6 +1372,10 @@ end
 
 function Chrome:SetShown(shown)
 	self.visible = shown and true or false
+	if self.ornament then
+		self.ornament.enabled = self.visible
+		self.ornament:Restyle()
+	end
 	if self.grain then
 		self:PaintMaterial()
 	end

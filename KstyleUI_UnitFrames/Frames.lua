@@ -272,7 +272,7 @@ local function ChipFont(text, path, size, flags)
 	end
 end
 
-local function ChipName(view)
+local function ChipText(view)
 	local chip = view.chip
 	local text, font = chip.name, chip.nameFont
 	local name = UnitName and UnitName(view.unit)
@@ -293,6 +293,11 @@ local function ChipName(view)
 		ChipFont(text, (K.Tokens.Font("body")), font[2], font[3])
 		text:SetText(name)
 	end
+end
+
+local function ChipName(view)
+	ChipText(view)
+	view.chip.chrome.ornament:Restyle()
 end
 
 function Frames.ChipName(view)
@@ -376,6 +381,7 @@ local function PlaceChip(view, width)
 	chip.name:SetTextColor(K.Tokens.Color("textEmphasis"))
 	local label = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
 	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
+	chip.chrome.ornament:Restyle()
 end
 
 local function Reach(view, g, width)

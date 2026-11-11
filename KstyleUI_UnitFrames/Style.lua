@@ -138,13 +138,14 @@ function Style.New(parent, kind)
 	local disc = CreateFrame("Frame", nil, parent)
 	disc:SetFrameLevel(base + LEVEL_BADGE)
 	view.disc = disc
-	view.health.ornament.avoid = { disc, view.portraitOrnament }
+	view.health.ornament.avoid = { disc, badge, view.portraitOrnament }
 	view.health.ornament.yoke = view.portraitOrnament
 	view.health.ornament.card = view.chrome
 	view.health.ornament.forged = true
 	view.chrome.ornament = Widgets.Ornament(panel, "corners", nil, true)
 	view.chrome.ornament.block, view.chrome.ornament.chrome = view.health.ornament, view.chrome
 	view.chrome.ornament.bars = { view.health, view.power }
+	view.health.ornament.dependents = { view.chrome.ornament }
 	view.health.ornament.others = PORTRAITS
 	view.portraitFrame.blockOf, view.portraitOrnament.blockOf = view.health.ornament, view.health.ornament
 	PORTRAITS[#PORTRAITS + 1] = view.portraitFrame
