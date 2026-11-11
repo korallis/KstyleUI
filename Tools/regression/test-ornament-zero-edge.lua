@@ -1,4 +1,4 @@
--- test-ornament-zero-edge.lua: a frame or an obstacle whose edge lies exactly at 0 is a known edge, so bars at Subtle and Full, and rings and the pieces that avoid a frame at Full, place the same set at the screen's left or bottom edge as one step inside it.
+-- test-ornament-zero-edge.lua: a frame or an obstacle whose edge lies exactly at 0 is a known edge, so bars at Subtle and Full, and rings and the pieces that avoid a frame at Full, place the same set at the screen's left or bottom edge, and off it, as one step inside it, while a frame with no anchors still draws nothing.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New()
 local widgets = K.Widgets
@@ -44,6 +44,10 @@ local function same(label, place, handle, levels)
 		handle:Restyle()
 		local edge = set(handle)
 		assert(edge == inside, level .. " " .. label .. ": an edge at 0 is known and draws the same set\n  inside " .. inside .. "\n  at 0   " .. edge)
+		place(-STEP / 2)
+		handle:Restyle()
+		local beyond = set(handle)
+		assert(beyond == inside, level .. " " .. label .. ": a negative edge off the screen is known and draws the same set\n  inside " .. inside .. "\n  beyond " .. beyond)
 		checked = checked + 1
 	end
 end
@@ -83,5 +87,14 @@ same("a portrait ring that avoids a frame whose left and bottom edges are at 0",
 end, ring, { "Full" })
 ring.avoid, ring.avoidShown = nil, nil
 
+local loose = env.CreateFrame("Frame", nil, root)
+loose:SetSize(120 * pixel, 10 * pixel)
+local unplaced = widgets.Ornament(loose, "bar")
+for _, level in ipairs({ "Subtle", "Full" }) do
+	profile.ornaments = level
+	unplaced:Restyle()
+	assert(set(unplaced) == "", level .. ": a bar with no anchors has unknown edges and draws nothing")
+end
+
 assert(#env._errors == 0, tostring(env._errors[1]))
-print(string.format("ok an edge at 0 is known: %d bar, ring and avoided-frame cases draw the same set at the screen edge as one step inside it (bars at Subtle and Full, rings at Full)", checked))
+print(string.format("ok an edge at 0 is known: %d bar, ring and avoided-frame cases draw the same set at 0 and off the screen as one step inside it (bars at Subtle and Full, rings at Full), and an unanchored bar draws nothing", checked))
