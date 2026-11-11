@@ -71,13 +71,16 @@ local function RefreshTray()
 	end
 end
 
-local function ApplyAll()
-	applyQueued = false
-	if InCombatLockdown() and not ns.enabling then
-		ns.QueueApply()
-		return
-	end
+local function HoldTray(fn)
 	ns.trayHeld = true
+	local ok, err = pcall(fn)
+	RefreshTray()
+	if not ok then
+		error(err, 0)
+	end
+end
+
+local function ApplyBars()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
@@ -86,7 +89,15 @@ local function ApplyAll()
 			Build(def)
 		end
 	end
-	RefreshTray()
+end
+
+local function ApplyAll()
+	applyQueued = false
+	if InCombatLockdown() and not ns.enabling then
+		ns.QueueApply()
+		return
+	end
+	HoldTray(ApplyBars)
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
 		frame:SetAttribute("gap", K.Widgets.Snap(frame, K.Tokens.Size("actionGap")))
@@ -103,15 +114,17 @@ function ns.QueueApply()
 	K.Combat.Queue(ApplyAll)
 end
 
-local function RefreshVisuals()
-	ns.trayHeld = true
+local function RefreshBars()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
 			bar:Refresh()
 		end
 	end
-	RefreshTray()
+end
+
+local function RefreshVisuals()
+	HoldTray(RefreshBars)
 	ApplyAccent()
 end
 

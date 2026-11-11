@@ -1,4 +1,4 @@
--- test-ornament-tray-paths.lua: the action-bar tray restyles only when its pair, gap or avoided bars change; per-event button updates touch no ornament, a hidden tray waits for its owner to show, and in lockdown the protected header's tray waits for PLAYER_REGEN_ENABLED.
+-- test-ornament-tray-paths.lua: the action-bar tray restyles only when its pair, gap or avoided bars change, a layout rule or the leave-vehicle button included, and an error in a settings pass never stops it; per-event button updates touch no ornament, a hidden tray waits for its owner to show, and in lockdown the protected header's tray waits for PLAYER_REGEN_ENABLED.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local ae, AK, ns = AB.New()
 AB.Enable(ae, AK)
@@ -127,4 +127,65 @@ local first = drawn()
 tray:Restyle()
 assert(first:find("Tray64") and first:find("Keystone6") and drawn() == first, "without the pet bar the tray's first shown frame draws both finials and the keystone, as a fresh Full restyle does: " .. first .. " | " .. drawn())
 assert(#ae._errors == 0 and AK.ErrorCount() == 0, "no errors: " .. tostring(ae._errors[1]))
+local function Hidden(frame)
+	local script = frame._scripts and frame._scripts.OnHide
+	frame:Hide()
+	if script then script(frame) end
+end
+local function finials()
+	tray:Restyle()
+	return drawn():find("Tray64") ~= nil
+end
+assert(finials(), "bars 1 and 2 pair with no obstacle")
+assert(ns.leaveButton and not ns.leaveShown, "the leave-vehicle button is built and hidden")
+reset()
+ae.CanExitVehicle = function() return true end
+ae.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
+assert(ns.leaveShown and ns.leaveButton:IsShown(), "a vehicle shows the leave button beside bar 1")
+assert(counts.Restyle == 1 and not drawn():find("Tray64"), "the leave button beside bar 1 drops the finials in one restyle: " .. drawn())
+reset()
+ae.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
+assert(counts.Restyle == 0, "a vehicle update that changes nothing does not restyle the tray")
+ae.CanExitVehicle = function() return false end
+ae.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
+assert(not ns.leaveShown and counts.Restyle == 1 and drawn():find("Tray64"), "leaving the vehicle brings the finials back")
+local second = ns.bars.bar2
+reset()
+Hidden(second.holder)
+assert(second.holderHidden and counts.Restyle == 1 and not drawn():find("Tray64"), "a layout rule hiding bar 2 drops the finials")
+second.holder:Show()
+assert(not second.holderHidden and counts.Restyle == 2 and drawn():find("Tray64"), "showing bar 2 again restores them")
+local third = ns.bars.bar3
+if not third then
+	AK.Options.Write("ActionBars", "bar3.enabled", true)
+	ae.RunTimers()
+	third = ns.bars.bar3
+end
+local listed = function()
+	for _, holder in ipairs(tray.avoidBars) do if holder == third.holder then return true end end
+	return false
+end
+assert(listed(), "a shown bar 3 is an obstacle")
+Hidden(third.holder)
+assert(not listed(), "a layout rule hiding bar 3 drops it from the obstacles")
+third.holder:Show()
+if third.holderHidden then Fire(third.holder) end
+assert(listed(), "showing bar 3 lists it again")
+assert(AK.Layout.Set("actionbars.bar2", "shown", "mouseover"), "bar 2 takes a mouseover rule")
+ae.RunTimers()
+assert(not tray.pairEnabled and not drawn():find("Tray64"), "a mouseover rule on bar 2 drops the finials: " .. drawn())
+assert(AK.Layout.Set("actionbars.bar2", "shown", "always"), "bar 2 is always shown again")
+ae.RunTimers()
+assert(tray.pairEnabled and drawn():find("Tray64"), "an always-shown bar 2 pairs again")
+local errors = AK.ErrorCount()
+local apply = third.Apply
+third.Apply = function() error("boom") end
+AK.Options.Write("ActionBars", "bar1.spacing", AK.Store.Module("ActionBars").bar1.spacing + 1)
+ae.RunTimers()
+third.Apply = apply
+assert(AK.ErrorCount() > errors and ns.trayHeld == false, "an error during a settings pass still releases the tray")
+reset()
+ae._game.petExists = true
+ae.FireEvent("UNIT_PET", "player")
+assert(counts.Restyle == 1, "after an error the tray still follows a pet change")
 print("ok tray restyles only on real changes, waits while hidden and in lockdown")

@@ -49,8 +49,24 @@ function ns.NewBar(def)
 	bar.holder, bar.header = holder, header
 	if def.key == "bar1" then
 		bar.ornament = Widgets.Ornament(header, "row")
-		bar.ornament.keystone = def.key == "bar1"
+		bar.ornament.keystone = true
 	end
+	holder:HookScript("OnShow", function()
+		bar.holderHidden = nil
+		bar:RefreshOrnament()
+	end)
+	holder:HookScript("OnHide", function()
+		bar.holderHidden = true
+		bar:RefreshOrnament()
+	end)
+	header:HookScript("OnShow", function()
+		bar.headerHidden = nil
+		bar:RefreshOrnament()
+	end)
+	header:HookScript("OnHide", function()
+		bar.headerHidden = true
+		bar:RefreshOrnament()
+	end)
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
 	backing.chrome = Widgets.Chrome(backing, { shape = "tile", fill = "buttonFill", shadow = false })
@@ -302,6 +318,20 @@ function Bar:Update()
 	end
 end
 
+local function Steady(bar)
+	local Layout = K.Layout
+	local el = bar.registered and Layout and type(Layout.Element) == "function" and Layout.Element(bar.def.element)
+	local s = el and el.settings
+	if not s then
+		return true, 1, 1
+	end
+	return s.shown ~= "mouseover", s.alphaCombat, s.alphaIdle
+end
+
+local function Seen(bar)
+	return bar:Shown() and not bar.holderHidden and not bar.headerHidden
+end
+
 function Bar:RefreshOrnament(force)
 	local bars = ns.bars
 	if not bars or ns.trayHeld then
@@ -314,7 +344,10 @@ function Bar:RefreshOrnament(force)
 		return
 	end
 	local pair, gap = second.header, main:Config().spacing
-	local enabled = second:Shown() and main:Config().fade ~= true and second:Config().fade ~= true
+	local mainSteady, mainCombat, mainIdle = Steady(main)
+	local secondSteady, secondCombat, secondIdle = Steady(second)
+	local enabled = Seen(second) and main:Config().fade ~= true and second:Config().fade ~= true
+		and mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle
 	local changed = force or tray.pair ~= pair or tray.pairGap ~= gap or tray.pairEnabled ~= enabled
 	tray.pair, tray.pairGap, tray.pairEnabled = pair, gap, enabled
 	local avoid = tray.avoidBars
@@ -326,7 +359,7 @@ function Bar:RefreshOrnament(force)
 	local count = 0
 	for _, def in ipairs(ns.BARS) do
 		local bar = def.key == self.def.key and self or bars[def.key]
-		if def.key ~= "bar1" and def.key ~= "bar2" and bar and bar:Shown() and bar:Visibility() ~= "hide" then
+		if def.key ~= "bar1" and def.key ~= "bar2" and bar and Seen(bar) and bar:Visibility() ~= "hide" then
 			local visible = true
 			if def.kind == "pet" and type(UnitExists) == "function" then
 				local exists = UnitExists("pet")
@@ -339,6 +372,14 @@ function Bar:RefreshOrnament(force)
 					changed = true
 				end
 			end
+		end
+	end
+	local leave = ns.leaveShown and ns.leaveButton
+	if leave then
+		count = count + 1
+		if avoid[count] ~= leave then
+			avoid[count] = leave
+			changed = true
 		end
 	end
 	for k = #avoid, count + 1, -1 do
