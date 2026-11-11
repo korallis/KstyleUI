@@ -331,7 +331,7 @@ end
 
 local INSET = 2
 
-local CREST_SIZES = { 32, 20, 16, 12, 8 }
+local CREST_SIZES = { 32, 20 }
 local ENDS = { Crested = "EndCrested", Winged = "EndWinged", Clawed = "EndClawed", Pointed = "EndPointed" }
 
 local function CutOrder(a, b)
