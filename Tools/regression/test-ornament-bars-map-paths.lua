@@ -59,6 +59,8 @@ assert(K.Widgets.Setting("ornaments") == "Full", "a profile without a stored lev
 local xp, rep = ns.Bars.views.xp, ns.Bars.views.rep
 assert(xp.ornament.used > 0 and Shown(xp.ornament) == xp.ornament.used, "the experience bar places its pieces at Full")
 Count(xp.ornament)
+D.W.Settle(env)
+env.RunTimers()
 
 local function Step(what, fn, restyles)
 	Reset()
