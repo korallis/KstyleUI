@@ -79,18 +79,29 @@ def hole(rows, width, height):
     return near ** 0.5 / (width / 2)
 
 
-def spans(rows, width, height):
-    """Runs of rows as (top, bottom, left, right) texels, bottom and right exclusive, widened by one texel."""
-    runs = []
+def spans(rows, width, height, split=False):
+    """Runs of rows as (top, bottom, left, right) texels, bottom and right exclusive, widened by one texel. With
+    split, a row with ink in separate places (the plaque's two brackets) has a run for each place, and runs that
+    touch once widened are one run; without it a row is one run from its first ink to its last."""
+    runs, last = [], []
     for y in range(height):
-        ink = [x for x, value in enumerate(rows[y][:width]) if value]
-        if not ink:
-            continue
-        left, right = ink[0] - 1, ink[-1] + 2
-        if runs and runs[-1][1] == y and runs[-1][2:] == [left, right]:
-            runs[-1][1] = y + 1
-        else:
-            runs.append([y, y + 1, left, right])
+        pieces = []
+        for x, value in enumerate(rows[y][:width]):
+            if value:
+                if pieces and (not split or x - 1 <= pieces[-1][1]):
+                    pieces[-1][1] = x + 2
+                else:
+                    pieces.append([x - 1, x + 2])
+        current = []
+        for left, right in pieces:
+            match = next((run for run in last if run[1] == y and run[2:] == [left, right]), None)
+            if match:
+                match[1] = y + 1
+            else:
+                match = [y, y + 1, left, right]
+                runs.append(match)
+            current.append(match)
+        last = current
     return runs
 
 
@@ -106,6 +117,8 @@ def render():
             circles[name], holes[name] = circle(rows, width, height), hole(rows, width, height)
         elif re.fullmatch(r"(Boss|Elite)PendantR\d+", name):
             tapers[name] = (width, height, spans(alpha(FORGED / (name + ".png"))[2], width, height))
+        elif re.fullmatch(r"(Map|Point|Plaque)\d+", name):
+            tapers[name] = (width, height, spans(alpha(FORGED / (name + ".png"))[2], width, height, True))
     lines = ["-- OrnamentInk.lua: ink shapes of round and tapered art, generated from the PNG alpha by Tools/media/ornament_ink.py.",
              "local _, ns = ...", "ns.Widgets.OrnamentInk = {", "\tcircles = {"]
     for name in sorted(circles):

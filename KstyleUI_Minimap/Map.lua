@@ -353,6 +353,21 @@ local function CollectButtons()
 	end
 end
 
+local near = {}
+
+local function Neighbours()
+	for i = #near, 1, -1 do
+		near[i] = nil
+	end
+	for _, element in ipairs(K.Setup.Layouts.ELEMENTS) do
+		local el = element.key ~= KEY and K.Layout.Element(element.key)
+		if el and el.frame and K.Layout.Live(element.key) then
+			near[#near + 1] = el.frame
+		end
+	end
+	return near
+end
+
 local Fit
 
 function Map.Refresh()
@@ -394,6 +409,7 @@ local function Build()
 	Map.holder = holder
 	local face = Face.New(holder, { wheel = true, onZoom = OnSliderZoom })
 	Map.face = face
+	face.ornament.neighbours = Neighbours
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
 	Widgets.AttachTooltip(face.clockHit, ClockTooltip)
@@ -652,6 +668,11 @@ local function RegisterCallbacks()
 	Callbacks.Register("ThemeChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ScaleChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ProfileChanged", MODULE, Map.Refresh)
+	Callbacks.Register("LayoutChanged", MODULE, function()
+		if running and Map.face then
+			Map.face.ornament:Restyle()
+		end
+	end)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module)
 		if module == MODULE then
 			Map.Refresh()

@@ -23,9 +23,9 @@ Every piece is a PNG in `Media/Textures/ForgedOrnaments/`, painted at its native
 
 | Kind | Subtle | Full |
 | --- | --- | --- |
-| `bar`, `plate` | `Rail1` hairlines and `EndPointed` ends at the bar's height | `Rail` and `Forge` rails with `Tip` rivets, `EndClawed` ends; plates use `EndWinged` (elite) and `EndCrested` (boss or selected); a neighbouring lane swaps the claws for `Wing` caps |
+| `bar`, `plate` | `Rail1` hairlines and `EndPointed` ends at the bar's height | `Rail` and `Forge` rails with `Tip` rivets, `EndClawed` ends; plates use `EndWinged` (elite) and `EndCrested` (boss or selected); where a neighbouring lane blocks the claws, a bar takes the end Subtle draws there first and `Wing` caps only when they are no smaller, so Full is never smaller than Subtle at the same end |
 | `ring` | nothing | `Ring` portrait band, with `ElitePendantR` or `BossPendantR` on an elite or boss target |
-| `map` | `Map12`, `Map20` or `Map32` top corners | `Map16`, `Map24` or `Map40` corners, and `Point12` below the face where there is room |
+| `map` | `Map12`, `Map20` or `Map32` top corners, and the bottom pair on a face of 280 px or more | `Map12` to `Map40` top corners; on a face of 280 px or more the bottom pair, and `Point12` below the face where there is room |
 | `plaque` | nothing | `Plaque` behind the minimap's north marker |
 | `row` | `Arrow` caps beside an action bar | `Tray` and `Keystone` pieces beside and below the bars |
 | `corners` | nothing | `Corner` tiers on a card's corners |
@@ -55,6 +55,7 @@ A piece is dropped, never forced, when:
   - **bottom rail**: the art closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor;
   - **yoke**: the art joining a bar block to its own portrait band may meet the band (and on the target, the pendants), which are ornament too, 1 px clear of the portrait picture and the gilt ring;
   - **crest seat**: a window's or tooltip's crest frames its own surface and may cover that window's top edge line and the bare surface directly under it, 1 px clear of its title, close button, tabs, search box, icons and a tooltip's first line (Captain, 2026-11-11, as for the minimap's plaque). Above the edge it may stand over a window or panel flush against that edge, because the window is on top and the crest belongs to it. It keeps 1 px from any other visible KstyleUI window or card standing above with a gap, including that window's shadow when shadows are on, and steps down a tier or drops where it cannot (Captain, 2026-11-11, on #282).
+- **The minimap's plaque** may sit on the face's gilt top rim and on the map's top rows, as many rows as its north plate is tall, because it frames its own north marker and sits on the face's top edge by design (Captain, 2026-11-11, from sheet 11). It lies behind the plate's crystal disc, which is drawn after it, and keeps 1 px from the N glyph, the zone, the clock, the coordinates and every minimap button. `Tools/regression/surfaces_clearance_lib.lua` names the exemption and fails on ink below those rows.
 - A bottom rail that does not fit is dropped, never thinned.
 - Where both sides of an exempt pair are ornament (a yoke meeting the band or a pendant), the two may meet: that join is the yoke.
 - The clearance matrices run the HUD at Full on nine screens for 12 class and form presets, for normal, elite and world boss targets.
@@ -65,6 +66,7 @@ Clearance is measured on the drawn ink only for round and tapered art, and only 
 
 - **Circles**: the level badge (`Dot`, and `Ring` with its gutter, which also holds the level number), the portrait's gilt ring (`RingBevel`) and every portrait band `RingN`.
 - **Row spans**: the rank pendants (`BossPendantR`, `ElitePendantR`), one ink run per texel row.
+- **Split row spans**: the minimap's corners, point and plaques (`MapN`, `PointN`, `PlaqueN`), one ink run for each separate stretch of ink in a texel row, so the hollow where a plaque frames its marker, and any gap inside a corner's row, are not ink.
 - **One generated file.** `Tools/media/ornament_ink.py` reads the PNG alpha (any non-zero alpha is ink) and writes `Core/Widgets/OrnamentInk.lua`: each circle's radius, and each pendant's row runs widened by 1 texel. The registry and the guard both read that file. `python3 Tools/media/ornament_ink.py --check` and `Tools/tests/test_ornament_ink.py` fail when it is stale against the PNGs.
 - **Widening.** Each circle is widened by 1 physical pixel in both the registry and the guard. A texture resampled to a 15 px badge antialiases past its geometric circle; the drawn-pixel proof measured 2.0 px where the model passed 3.
 - **Proof.** `test-centre-clearance-shapes.lua` mutates each shape (the badge, a band ring and a pendant, plain and mirrored): a piece beside the empty corner passes on ink where a box would fail, and fails once moved closer to the ink than the rule allows. The drawn-pixel proof rasterized every texture's alpha at its placed rect for every clearance-matrix case: 6,669 pairs per target class, 0 failures, the tightest at exactly 3.00 px and 1.00 px.
@@ -121,7 +123,7 @@ Each surface's pull request adds its section here.
 | Unit frames and their cast bars | 2 | shipped |
 | Action-bar tray | 3 | shipped |
 | Nameplates | 4 | shipped |
-| Minimap and data bars | 5 | to come |
+| Minimap and data bars | 5 | shipped |
 | Window and card crests | 6 | shipped |
 
 ### Unit frames and their cast bars
@@ -233,6 +235,62 @@ At Off a plate builds no signature. The Off pull costs about 6% more than before
 From 1920x1080 up every kind keeps its family. The level dot pulls an elite's and a boss's frame about 5 root units left of the plate's centre, the elite's wings widen the frame by about a fifth when a cast starts, and the target's crest sits about 3 root units off the selection box at 3456x2234; all three are accepted.
 
 **The settings preview** (Captain, 2026-11-11, LEE-160). With ornaments on, the Nameplates live preview spans the full width of the preview pane and shows one plate: the first of the elite, enemy player and friendly samples that draws both ends whole inside the preview while its name is no smaller than the settings window's body text. At Full that is the friendly sample at 1366x768 and the enemy player sample from 1920x1080 up; in the smallest settings window, the friendly sample up to 2560x1440 and the enemy player sample at 3456x2234. At Subtle the elite sample's pointed ends are narrow enough for it to show at 1920x1080. At Full the elite sample does not appear in the nameplates preview at any supported size: with its level dot, raid mark and cast icon it needs 313 physical px or more at a legible size, against a 236 px pane at 1920x1080 and 488 px at 3456x2234. In the smallest settings window (880 by 520 at 0.65), at 1366x768 and 1920x1080, the plate keeps both ends at a smaller tier (`EndClawed14` for `EndClawed22`, `EndClawed22` for `EndClawed24`). At Off the preview shows the three stacked samples as before. `test-ornament-preview-clip-plates.lua` fails when a previewed plate's name draws below the body text.
+
+### Minimap and data bars
+
+| Piece | Handle | Subtle | Full |
+| --- | --- | --- | --- |
+| Experience, reputation and honour bars | `bar` on each bar's rim frame (`view.rim`: the track, or with the border shown the border less its innermost physical pixel), owned by the bar's overlay (`Bars.NewView`) | `Rail1` hairlines above and below, `EndPointed` ends at the bar's height; `Arrow6` caps where no end fits | `EndClawed` ends and `Rail1`; `Wing6` caps where no claw fits |
+| Minimap corners and point | `map` on the face's overlay | `Map12`, `Map20` or `Map32` top corners; the bottom pair on a face of 280 px or more | `Map12` to `Map40` top corners; on a face of 280 px or more the bottom pair, and `Point12` where the caption leaves room |
+| North plaque | `plaque` on the face's north plate | nothing | `Plaque12` to `Plaque32` behind the plate's crystal disc |
+
+Each bar avoids its own label and the other data bars' frames, and both ends take the same piece or both drop: every case of the clearance guard draws both ends or neither, and the guards fail when Full draws a smaller end than Subtle in the same state on any of the nine screens. When a data bar shows, hides or moves, every data bar restyles, so a bar that appears beside another moves the other's ends off it. A bar's border is part of the bar it frames: the rim frame puts the rails flush outside the border at both levels and on every screen, so no rail covers a border pixel (the experience bar has no border, so its rim frame is its track). A bar whose label sits on its line (the `CENTER` position, the reputation and honour bars' default, shown on hover) draws no ornament while the label shows: the label's glass plate is taller than the bar and crosses both rails, and a rail cut round it would land on the border. It places again when the label hides. The bars yield to the action-bar tray through the shared registry, so on the HUD at Full the experience bar draws one rail, below the bar, and smaller claws than it draws alone (`EndClawed9` at 1920x1080 against `EndClawed13` and two `Rail2` without the tray). The map avoids its zone, clock and coordinates and every other live Layout element (the buff and debuff rows beside it): `Handle:Map` steps a corner pair down the `Map` tiers until both corners keep 1 px clear, and drops the pair when none does. The plaque frames the north marker and is the exemption named under [Clearance](#clearance-ruling-c).
+
+**Foundation.** Three placement rules changed with this surface (Captain, 2026-11-11). A rail is split round an action-bar tray piece instead of dropped: each part keeps 1 physical pixel of ink from it, and a part shorter than one end piece is dropped. On a bar that is not forged, Full keeps the end or cap Subtle draws at the same place when the neighbouring-lane rule offers only a smaller `Wing` cap (`test-ornament-settings.lua` pinned `Wing6` beside a lane before; it now pins the pointed end Subtle draws there). No unit-frame, nameplate or action-bar placement changes on the HUD or in their galleries. A Layout element whose edge is at 0, flush to the screen's edge, is a rect, not an unknown, so it no longer stops the minimap's corners. `Handle:Map` is rewritten for the pairs (`Handle:Spot`, split out of `Handle:Piece`, `Handle:Clear` and `Handle:MapPair`), and `Tools/media/ornament_ink.py` writes split row spans for the `Map`, `Point` and `Plaque` pieces. The pendant rows are unchanged. `Tools/regression/surfaces_clearance_lib.lua` checks every piece against every drawn region of the reference HUD on nine screens (the minimap in DPS, Tank and Healer; the data bars in DPS on nine screens and Tank and Healer at 1920x1080), at Subtle and Full, and `test-ornament-surfaces-bars-states-a.lua` to `-c.lua` do the same on the nine screens for the experience and reputation bars empty, rested, full, alone at the level cap and hovered: 1 physical pixel of ink from all other content, flush only against the bar's own track, border and fill and the map's own picture. A bar's own drop shadow is exempt: its outer row is within one colour level of the backdrop (30,42,56 against 31,42,56 at 1920x1080), and a rail flush on the border lies on it.
+
+**What restyles, and why.**
+
+| Change | The ornament | Trigger and source |
+| --- | --- | --- |
+| A bar's label shows or hides, or changes width (rested experience ends, a new level's label, the pointer over a hover-text bar) | restyles once: the label is an obstacle the rails and ends keep clear of; a label on the bar's line hides the ornament until it hides again | `Bars.PaintValues` on `PLAYER_XP_UPDATE`, `UPDATE_EXHAUSTION`, `PLAYER_LEVEL_UP` (`UnitDocumentation.lua:3998`, `:4913`, `:3832`), `UPDATE_FACTION` (`PaperDollInfoDocumentation.lua:432`); the holder's `OnEnter` and `OnLeave` scripts (as `Blizzard_Minimap/Mainline/Minimap.xml:78` sets them); it compares the label's snapped `GetStringWidth` (`SimpleFontStringAPIDocumentation.lua:339`) and calls nothing when it is unchanged |
+| A bar fills, gains rested experience with the same label, or a reputation bar gains with its text hidden | nothing: the pieces read the track, never the fill | per event, `test-ornament-bars-map-paths.lua` |
+| A bar's settings or its Layout rect change | restyles in `Bars.Paint` | `Bars.Setting`, the `LayoutChanged` callback |
+| The experience bar hides at the level cap; the reputation bar, its own Layout element, shows or hides | a hidden bar's handle goes stale and places nothing, and places when its bar shows; a shown bar keeps its own placed set | `content:SetShown`; the foundation's `OnShow` wake (`test-ornament-stale.lua`) |
+| A new zone name | restyles the map once: a longer name can reach the bottom-right corner | `ZONE_CHANGED_NEW_AREA`, `ZONE_CHANGED`, `ZONE_CHANGED_INDOORS` (`MapDocumentation.lua:665`, `:653`, `:659`) through `Face:SetZone` |
+| The clock ticks, the coordinates move, the zoom changes, the button drawer opens or closes | nothing: the clock and coordinates sit on the caption's second row, under no piece, and the drawer flies out beside the map | `C_Timer.NewTicker` (`UITimerDocumentation.lua:22`), the coordinates' `OnUpdate`, `MINIMAP_UPDATE_ZOOM` |
+| The face's layout, the theme or the scale changes | restyles the map and the plaque | `Face:Layout`, from `Map.Refresh` on `ThemeChanged`, `ScaleChanged` and `ProfileChanged` |
+| Another Layout element moves | restyles the map, whose corners avoid it | the `LayoutChanged` callback |
+
+**Combat and secure frames.** Every owner is a plain `Frame` that KstyleUI creates: the bar's overlay under its content frame, and the face's overlay and north plate under the minimap holder. None inherits a secure template, and Blizzard's `Minimap` frame is not protected either (`Blizzard_Minimap/Mainline/Minimap.xml:56` declares it without `protected`, and no file in `Blizzard_Minimap` sets it). The minimap's one secure button, `SecureActionButtonTemplate` (`Blizzard_FrameXML/SecureTemplates.xml:4`), is a child of `UIParent`, not of the holder, and detaches at `PLAYER_REGEN_DISABLED`. So in lockdown the owners answer `IsProtected` false (`SimpleScriptRegionAPIDocumentation.lua:540`) and a restyle in combat (a level-up, a zone change, a hover) places at once. If the game ever reports an owner protected or secret, `Widgets.MayMove` queues the restyle in `Combat.Queue` until `PLAYER_REGEN_ENABLED` (`UnitDocumentation.lua:3893`), and the pieces stay where they are until then.
+
+**Cost.** Per-event updates (experience with an unchanged label, rested experience, resting, reputation with its text hidden, the clock, the coordinates, the zoom and the button drawer) make no ornament call (`test-ornament-bars-map-paths.lua`). A hidden bar is stale and places on show. Under Lua 5.1 on the Mac, best of seven, in combat with the stubs quiet, at a load of 13:
+
+| Path | Off | Subtle | Full |
+| --- | --- | --- | --- |
+| Experience painted, label unchanged | 16.1 us | 16.5 us | 15.9 us |
+| Experience painted, label width changes (one restyle) | 17.3 us | 89.9 us | 96.1 us |
+| A bar's restyle alone (4 pieces at Subtle and Full) | 1.4 us | 44.6 us | 48.4 us |
+| The pointer enters or leaves the reputation bar (tooltip included) | 54.6 us | 76.8 us | 82.1 us |
+| The face's layout (corners and plaque placed) | 28.2 us | 62.8 us | 72.1 us |
+| A zone change with a new name | 11.7 us | 44.4 us | 43.5 us |
+| A clock tick | 3.7 us | 3.8 us | 3.7 us |
+
+`test-perf-hud.lua` holds the experience paint to 150 us unchanged and 1,400 us when the label changes, the clock tick to 50 us, a zone change to 400 us and the face's layout to 1,000 us (about ten times the Lua 5.1 time, as `perf_runner.lua` asks for CI), with no allocation on addon lines; each fixture fails at Full when the bar draws fewer than three pieces, or the map fewer than two corners or no plaque, and the layout path checks that after every call. `PLAYER_XP_UPDATE` itself allocates 384 B on staging, in the reading table `Sources.XP` builds (`KstyleUI_DataBars/Sources.lua:116`), before any ornament code runs; the perf paths paint a kept reading so that line is not counted.
+
+**Recorded limits**, measured in the render scenes at the shipped Interface size:
+
+| Screen | Minimap at Full | Minimap at Subtle | Experience bar |
+| --- | --- | --- | --- |
+| 1280x720 | `Map12` top corners, `Plaque12`; no bottom corners: the face is under 280 px, and `Map16` would come within 1 px of the buff row | `Map12` top corners | `Wing6` caps and one rail at Full, `Arrow6` caps and one rail at Subtle: no end piece fits |
+| 1366x768 | as 1280x720 | as 1280x720 | `EndClawed9` and two rails at Full, `EndPointed9` at Subtle |
+| 1920x1080 to 5120x1440, 2383x1540 | `Map24` top corners, `Plaque16` or `Plaque20`; no bottom corners: the face is under 280 px | `Map20` top corners | claws or points of 9 to 14 px |
+| 3840x2160, 3456x2234 | `Map40` top and `Map32` bottom corners, `Plaque28` or `Plaque32` | `Map32` at all four corners | claws or points of 17 to 20 px |
+
+`Point12` draws on no HUD screen: the reference zone name, WINDFIELD ORCHARD, runs under the face's middle. It draws in `gallery_minimap` at 3456x2234, where the name is Riverglades.
+
+- **The experience bar's top rail at Full** is split round the action-bar tray's keystone above it: two `Rail1` parts, each 1 px of ink clear of the keystone. Subtle draws no keystone, so its top hairline is whole.
+- **Caps at 1280x720.** No end piece fits there, so both levels draw `Arrow6` caps: Full's `Wing6` would be 1 px narrower.
+- **Beside a watched reputation bar** the experience bar's claws would come within 1 px of it, so Full draws the pointed end Subtle draws there, one tier taller (`EndPointed13` against `EndPointed11` at 1920x1080).
 
 ### Window and card crests
 

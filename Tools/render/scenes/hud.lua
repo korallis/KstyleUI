@@ -25,8 +25,32 @@ Hud.Classes = Classes
 Hud.envs = setmetatable({}, { __mode = "k" })
 -- Hud.ornamentRows, while a HUD composes (scenes/_lumen.lua), holds the ornament rows the modules built so far placed
 -- (Widgets.OrnamentRows). The game keeps one registry for every module, so a bar ornament keeps clear of the action
--- bars' tray; build() gives each environment the rows the others placed, and nothing else crosses environments.
+-- bars' tray; build() gives each environment the rows the others placed.
 Hud.ornamentRows = nil
+-- Hud.layoutElements, while a HUD composes, holds every module's Layout elements ({ [key] = { el, live } }). The game
+-- keeps one Layout registry, where the minimap's corners find the elements beside it (KstyleUI_Minimap/Map.lua);
+-- build() lets each environment's Layout.Element and Layout.Live fall back to them. Nothing else crosses environments.
+Hud.layoutElements = nil
+
+function Hud.ShareLayout(env)
+	local Layout = env.KstyleUI and env.KstyleUI.Layout
+	if not (Hud.layoutElements and Layout) or Layout._shared then
+		return
+	end
+	local element, live = Layout.Element, Layout.Live
+	Layout._shared = true
+	Layout.Element = function(key)
+		local shared = Hud.layoutElements and Hud.layoutElements[key]
+		return element(key) or shared and shared.el
+	end
+	Layout.Live = function(key)
+		if element(key) then
+			return live(key)
+		end
+		local shared = Hud.layoutElements and Hud.layoutElements[key]
+		return shared ~= nil and shared.live
+	end
+end
 
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
 -- opts.spec overlays the class's entry field by field (a fixture's own name, bars and buffs).
@@ -194,6 +218,7 @@ local function build(env, opts, extra)
 		sceneOpts[k] = v
 	end
 	local W = K and K.Widgets
+	Hud.ShareLayout(env)
 	local registry = Hud.ornamentRows and W and W.OrnamentRows
 	if registry then
 		local placed = false

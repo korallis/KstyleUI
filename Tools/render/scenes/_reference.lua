@@ -63,7 +63,12 @@ Reference.STATE = {
 	position = { 0.462, 0.618 },
 	clock = { hour = 21, minute = 20, realmHour = 21, realmMinute = 20 },
 	cvars = { timeMgrUseMilitaryTime = false },
-	game = { level = 11, xp = 0, xpMax = 8800, rested = 440, fps = 162, latencyHome = 15, latencyWorld = 15, money = 2616 },
+	-- RENDER_XP fills the experience bar and RENDER_FACTION=1 watches Stormwind, for the ornament strips; the picture
+	-- has 0 experience and no watched faction.
+	game = {
+		level = 11, xp = tonumber(os.getenv("RENDER_XP") or "") or 0, xpMax = 8800, rested = 440, fps = 162, latencyHome = 15, latencyWorld = 15, money = 2616,
+		faction = os.getenv("RENDER_FACTION") == "1" and { factionID = 72, name = "Stormwind", reaction = 5, currentReactionThreshold = 3000, nextReactionThreshold = 9000, currentStanding = 4500 } or nil,
+	},
 	quests = {
 		{ title = "Unnerving Silence", level = 11, objectives = { "Find and speak with Elegael Thornpaw in the northeastern part of Shadowgale Forest." }, questID = 301, superTracked = true },
 		{ title = "Crab Season", level = 9, objectives = { "Windsong Crawler Meat 0/6" }, questID = 302 },
@@ -144,7 +149,8 @@ function Reference.SeatPlates(plates, width)
 	return seated
 end
 
--- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer.
+-- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer, and
+-- opts.modules, when given, names the only modules drawn.
 function Reference.Build(opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
@@ -179,7 +185,7 @@ function Reference.Build(opts)
 			applyPreset = true,
 			state = state,
 			elements = true,
-			modules = modules,
+			modules = opts.modules or modules,
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)

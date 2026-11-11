@@ -127,6 +127,7 @@ function Face.New(holder, opts)
 
 	face.shade = NewLines(overlay, 0)
 	face.rim = NewLines(overlay, 1)
+	face.ornament = Widgets.Ornament(overlay, "map")
 
 	local plate = CreateFrame("Frame", nil, holder)
 	Level(plate, holder, LEVEL_PLATE)
@@ -135,6 +136,7 @@ function Face.New(holder, opts)
 	face.north:SetText(L["N"])
 	face.north:SetPoint("CENTER", plate, "CENTER", 0, 0)
 	face.plate = plate
+	face.plaqueOrnament = Widgets.Ornament(plate, "plaque")
 
 	local caption = CreateFrame("Frame", nil, overlay)
 	caption:SetAllPoints(mapArea)
@@ -153,6 +155,7 @@ function Face.New(holder, opts)
 	face.coordsFrame = coordsFrame
 	face.coords = NewText(caption)
 	face.coords:SetJustifyH("LEFT")
+	face.ornament.texts = { face.zone, face.clock, face.coords }
 
 	local reveal = CreateFrame("Frame", nil, holder)
 	Level(reveal, holder, LEVEL_REVEAL)
@@ -192,6 +195,12 @@ function Face:SetZone(text, pvpType)
 		self.zone:SetText("")
 	end
 	self.zone:SetTextColor(Style.Color(Format.ZoneToken(pvpType, Settings.Get("zone.color"))))
+	local width = self.zone:GetStringWidth()
+	local secret = issecretvalue and issecretvalue(width)
+	if secret or width ~= self.zoneWidth then
+		self.zoneWidth = not secret and width or nil
+		self.ornament:Restyle()
+	end
 end
 
 function Face:SetClock(text)
@@ -306,6 +315,8 @@ function Face:Layout()
 	clock:SetPoint("RIGHT", area, "BOTTOMRIGHT", -x, -rowY)
 
 	self:PlaceSlider()
+	self.ornament:Restyle()
+	self.plaqueOrnament:Restyle()
 end
 
 function Face:Refresh()
