@@ -72,8 +72,8 @@ function M.Check(items, handles, semantics, label, screen, assets, pixels)
 					and math.abs(rect[4] * pixels - spec[2]) < 0.001,
 					label .. ": stretched native art " .. name .. " " .. assetName(item))
 				local uv = assert(item.texCoord, label .. ": missing native crop " .. name)
-				assert(#uv == 4 and math.abs(math.abs(uv[2] - uv[1]) - (forge and rect[3] * pixels or spec[1]) / spec[3]) < 0.0001
-					and math.abs(math.abs(uv[4] - uv[3]) - spec[2] / spec[4]) < 0.0001,
+				assert(#uv == 4 and math.abs(math.abs(uv[2] - uv[1]) - (forge and math.floor(rect[3] * pixels + 0.5) or spec[1]) / spec[3]) < 1e-7
+					and math.abs(math.abs(uv[4] - uv[3]) - spec[2] / spec[4]) < 1e-7,
 					label .. ": stretched native crop " .. name)
 				if rail or forge then
 					assert(math.abs(rect[3] * pixels - math.floor(rect[3] * pixels + 0.5)) < 0.001, label .. ": fractional rail length " .. name)

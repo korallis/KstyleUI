@@ -2,7 +2,8 @@
 
 The ornament registry and the centre-clearance guard measure the level badge, the portrait ring and band, and the
 rank pendants by their drawn ink instead of their texture boxes. Any non-zero alpha counts as ink. A circle is the
-smallest circle about the visible box's centre that covers every ink pixel, as a fraction of half the visible width.
+smallest circle about the visible box's centre that covers every ink pixel, as a fraction of half the visible width;
+a band's hole is the distance from that centre to its nearest ink pixel's centre, as the same fraction.
 A pendant is a list of row runs, each widened by one texel on both sides.
 """
 
@@ -66,6 +67,18 @@ def circle(rows, width, height):
     return far ** 0.5 / (width / 2)
 
 
+def hole(rows, width, height):
+    """Fraction of half the width from the box centre to the nearest ink pixel's centre: the band's open middle."""
+    cx, cy, near = width / 2, height / 2, None
+    for y in range(height):
+        for x, value in enumerate(rows[y][:width]):
+            if value:
+                dx, dy = x + 0.5 - cx, y + 0.5 - cy
+                distance = dx * dx + dy * dy
+                near = distance if near is None else min(near, distance)
+    return near ** 0.5 / (width / 2)
+
+
 def spans(rows, width, height):
     """Runs of rows as (top, bottom, left, right) texels, bottom and right exclusive, widened by one texel."""
     runs = []
@@ -83,19 +96,23 @@ def spans(rows, width, height):
 
 def render():
     sizes = {name: (int(w), int(h)) for name, w, h in re.findall(r"\t(\w+) = \{ (\d+), (\d+),", DATA.read_text())}
-    circles, tapers = {}, {}
+    circles, holes, tapers = {}, {}, {}
     for name in DISCS:
         width, height, rows = alpha(ROOT / "Media" / "Textures" / (name + ".png"))
         circles[name] = circle(rows, width, height)
     for name, (width, height) in sorted(sizes.items()):
         if re.fullmatch(r"Ring\d+", name):
-            circles[name] = circle(alpha(FORGED / (name + ".png"))[2], width, height)
+            rows = alpha(FORGED / (name + ".png"))[2]
+            circles[name], holes[name] = circle(rows, width, height), hole(rows, width, height)
         elif re.fullmatch(r"(Boss|Elite)PendantR\d+", name):
             tapers[name] = (width, height, spans(alpha(FORGED / (name + ".png"))[2], width, height))
     lines = ["-- OrnamentInk.lua: ink shapes of round and tapered art, generated from the PNG alpha by Tools/media/ornament_ink.py.",
              "local _, ns = ...", "ns.Widgets.OrnamentInk = {", "\tcircles = {"]
     for name in sorted(circles):
         lines.append("\t\t%s = %.4f," % (name, (int(circles[name] * 10000 - 1e-9) + 1) / 10000))
+    lines += ["\t},", "\tholes = {"]
+    for name in sorted(holes):
+        lines.append("\t\t%s = %.4f," % (name, int(holes[name] * 10000) / 10000))
     lines += ["\t},", "\tspans = {"]
     for name in sorted(tapers):
         width, height, runs = tapers[name]
