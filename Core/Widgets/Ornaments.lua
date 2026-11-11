@@ -46,6 +46,8 @@ end
 function Handle:Place(name, left, top, flipX, flipY, width)
 	local spec = ASSETS[name]
 	if not spec then return end
+	local level = (self.kind == "bar" or self.kind == "plate") and self.target:GetFrameLevel()
+	if level ~= false and (W.IsSecret(level) or type(level) ~= "number") then return end
 	self.used = self.used + 1
 	local t = self.textures[self.used]
 	if not t then
@@ -54,7 +56,7 @@ function Handle:Place(name, left, top, flipX, flipY, width)
 				self.host = CreateFrame("Frame", nil, self.owner)
 				self.host:SetAllPoints(self.target)
 			end
-			self.host:SetFrameLevel(self.target:GetFrameLevel() + 1)
+			self.host:SetFrameLevel(level + 1)
 			t = W.Crisp(self.host:CreateTexture(nil, "BORDER"))
 		else
 			t = W.Crisp(self.kind == "corners" and self.owner:CreateTexture(nil, "OVERLAY")

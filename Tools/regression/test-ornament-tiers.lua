@@ -81,7 +81,7 @@ for side = 24, 160 do
 		local pendant = find(names, family)
 		bands, pendants = bands + (ringTier and 1 or 0), pendants + (pendant and 1 or 0)
 		local expected = largest(family, ideal, HOLES[1])
-		assert(pendant == nil or pendant == expected, rank .. " " .. side .. ": the pendant is the nearest shipped tier at or below " .. ideal .. ", got " .. tostring(pendant))
+		assert(pendant == expected, rank .. " " .. side .. ": the pendant is the nearest shipped tier at or below " .. ideal .. ", got " .. tostring(pendant))
 		if ringTier then
 			assets["Ring" .. ringTier] = nil
 			ring:Restyle()
@@ -93,7 +93,7 @@ for side = 24, 160 do
 			assets[family .. pendant] = nil
 			ring:Restyle()
 			local again = find(drawn(ring, rank .. " " .. side .. " without " .. family .. pendant), family)
-			assert(again == nil or again == largest(family, ideal, HOLES[1]), rank .. " " .. side .. ": without " .. family .. pendant .. " the pendant steps down, got " .. tostring(again))
+			assert(again == largest(family, ideal, HOLES[1]), rank .. " " .. side .. ": without " .. family .. pendant .. " the pendant steps down, got " .. tostring(again))
 			restore()
 		end
 		for name in pairs(shipped) do

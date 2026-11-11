@@ -15,7 +15,7 @@ The setting is `Widgets.ornaments`, with three values:
 - **Default.** Full, for a new profile and for a profile saved before the setting existed: `Widgets.Setting` returns the default for a missing or invalid stored value, so no Store migration is needed. An invalid or secret stored value also reads as Full. The owner asked for ornaments and changes the level in the settings window.
 - **Where it is chosen.** The first-run setup's ornaments step (step 4 of 5, Full picked) and the General page of the settings window (a three-way control, `segmented` row type).
 - **Glass.** The Glass card material draws no ornaments at any level, because the painted pieces are forged metal.
-- **Full is never less than Subtle.** On the same block, Full never draws a smaller end piece than Subtle. Where Full's own piece does not fit, Full falls back to Subtle's piece plus Full's rail. A smaller end at Full is a defect, not a note.
+- **Full is never less than Subtle.** On the same block, Full never draws a smaller end piece than Subtle. On forged unit frames the end is chosen by weight: when Subtle's pointed pair outweighs the claws that fit (a claw fits on one end only, say), Full draws Subtle's pointed ends with Full's rail, so the two ends match. A smaller end at Full than at Subtle is a defect, not a note.
 
 ## Pieces
 
@@ -28,8 +28,8 @@ Every piece is a PNG in `Media/Textures/ForgedOrnaments/`, painted at its native
 | `map` | `Map12`, `Map20` or `Map32` top corners | `Map16`, `Map24` or `Map40` corners, and `Point12` below the face where there is room |
 | `plaque` | nothing | `Plaque` behind the minimap's north marker |
 | `row` | `Arrow` caps beside an action bar | `Tray` and `Keystone` pieces beside and below the bars |
-| `corners` | smaller `Corner` tiers | larger `Corner` tiers |
-| `crest` | smaller `Crest` tiers | larger `Crest` tiers |
+| `corners` | nothing | `Corner` tiers on a card's corners |
+| `crest` | nothing | `Crest` tiers on a window's edge |
 
 Which surface uses which kind is listed under [Surfaces](#surfaces).
 
@@ -44,7 +44,6 @@ A piece is dropped, never forced, when:
 - the reach table did not ship the piece (see [Tier resolution](#tier-resolution));
 - `SetTexture` refuses the file, which hides that texture and leaves the frame as it was.
 
-An owner that the native menu compositor draws (it has `AttachTexture`) never gets an ornament.
 
 ## Clearance (ruling C)
 
@@ -54,6 +53,7 @@ An owner that the native menu compositor draws (it has `AttachTexture`) never ge
   - **bottom rail**: the art closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor;
   - **yoke**: the art joining a bar block to its own portrait band may meet the band (and on the target, the pendants), which are ornament too, 1 px clear of the portrait picture and the gilt ring.
 - A bottom rail that does not fit is dropped, never thinned.
+- Where both sides of an exempt pair are ornament (a yoke meeting the band or a pendant), the two may meet: that join is the yoke.
 - The clearance matrices run the HUD at Full on nine screens for 12 class and form presets, for normal, elite and world boss targets.
 
 ## Ink shapes (ruling A)
@@ -64,7 +64,7 @@ Clearance is measured on the drawn ink only for round and tapered art, and only 
 - **Row spans**: the rank pendants (`BossPendantR`, `ElitePendantR`), one ink run per texel row.
 - **One generated file.** `Tools/media/ornament_ink.py` reads the PNG alpha (any non-zero alpha is ink) and writes `Core/Widgets/OrnamentInk.lua`: each circle's radius, and each pendant's row runs widened by 1 texel. The registry and the guard both read that file. `python3 Tools/media/ornament_ink.py --check` and `Tools/tests/test_ornament_ink.py` fail when it is stale against the PNGs.
 - **Widening.** Each circle is widened by 1 physical pixel in both the registry and the guard. A texture resampled to a 15 px badge antialiases past its geometric circle; the drawn-pixel proof measured 2.0 px where the model passed 3.
-- **Proof.** `test-centre-clearance-shapes.lua` mutates each shape (the badge, a band ring and a pendant, plain and mirrored): a piece beside the empty corner passes on ink where a box would fail, and fails once moved into the ink. The drawn-pixel proof rasterized every texture's alpha at its placed rect for every clearance-matrix case: 6,669 pairs per target class, 0 failures, the tightest at exactly 3.00 px and 1.00 px.
+- **Proof.** `test-centre-clearance-shapes.lua` mutates each shape (the badge, a band ring and a pendant, plain and mirrored): a piece beside the empty corner passes on ink where a box would fail, and fails once moved closer to the ink than the rule allows. The drawn-pixel proof rasterized every texture's alpha at its placed rect for every clearance-matrix case: 6,669 pairs per target class, 0 failures, the tightest at exactly 3.00 px and 1.00 px.
 
 ## Shared registry
 
@@ -74,7 +74,7 @@ Modules avoid each other's ornaments through one registry of placed rows (`Widge
 
 - **Only reachable pieces ship.** `Tools/media/ornament_reach.json` maps each shipped piece to the first case that draws it. The walk behind it covers 13 scenes (the DPS, Tank and Healer HUD; elite and world boss targets; the unit-frame, nameplate, data-bar, minimap, skin, tooltip, setup and Options scenes) on nine screens, at every Interface size from 0.60 to 1.50 in steps of 0.05 (`Core/Scale.lua`, `Core/Appearance.lua`), at Subtle and Full: 4,446 runs, plus nameplate scales 0.50 to 1.60 on all nine screens. It found 332 of 390 painted pieces reachable.
 - **The walk stays out of CI.** It takes 54 minutes, so it runs with the generator (`Tools/media/ornaments.py --reach`) when the art or the placement changes. CI runs `Tools/tests/test_ornament_reach.py`: the files, `OrnamentAssets`, the manifest and the reach table agree, and nothing unreachable ships.
-- **Size cap: 1.7 MB.** The Captain raised the cap from 600 KB on 2026-11-11: the 400 KB target was an estimate from before whole frames existed. The pieces ship as lossless RGBA: no quantization (it changes approved pixels), no thinned height set (it breaks the 1:1 rule), no indexed PNG (an in-game risk for 200 KB). The folder holds 332 PNGs, 1,570,282 B, and 1,647,628 B with its manifest. `test_ornament_reach.py` fails when the folder passes 1,700,000 B.
+- **Size cap: 1.7 MB.** The Captain raised the cap from 600 KB on 2026-11-11: the 400 KB target was an estimate from before whole frames existed. The pieces ship as the approved pixels, in lossless RGBA PNG: no quantization to save bytes (it changes approved pixels), no thinned height set (it breaks the 1:1 rule), no indexed PNG (an in-game risk for 200 KB). The portrait bands' 32-colour reduction in `Tools/media/ornaments.py` is part of the art the Captain approved, recorded in `Media/PROVENANCE.md`, not a size measure. The folder holds 332 PNGs, 1,570,282 B, and 1,647,628 B with its manifest. `test_ornament_reach.py` fails when the folder passes 1,700,000 B.
 
 ## Tier resolution
 
