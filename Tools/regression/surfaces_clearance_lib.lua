@@ -281,7 +281,7 @@ function M.CapShare(scene, handle, label, px)
 	for i = 1, handle.used do mine[handle.textures[i]] = true end
 	for _, item in ipairs(scene.items) do
 		local name = mine[item.object] and file(item)
-		if name and (name:find("^Wing") or name:find("^Arrow")) and item.rect[4] < 0.4 * (bottom - top) - 1 / px then
+		if name and (name:find("^Wing") or name:find("^Arrow")) and item.rect[4] < 0.4 * (bottom - top) - 1e-3 then
 			error(string.format("%s: %s is %.2f units tall, under 40%% of the %.2f units between the rails", label, name, item.rect[4], bottom - top), 0)
 		end
 	end
