@@ -1,4 +1,4 @@
--- test-ornament-nameplates.lua: plate frames keep one pixel clear of a plate's icons and of its text outside the bar's own snapped rim, never cover a drawn fill pixel; every enemy plate shows its level, and Off draws nothing.
+-- test-ornament-nameplates.lua: plate frames keep one pixel clear of a plate's icons and of its text outside the bar's own snapped rim (a name by its ink: its string width, and its baseline less its deepest descender, from OrnamentInk's font metrics), never cover a drawn fill pixel; every enemy plate shows its level, and Off draws nothing.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local EPS = 0.001
@@ -107,6 +107,20 @@ local function run(width, height, scale, level, extras)
 								local inkW = ink * factor
 								x = justify == "LEFT" and x or justify == "RIGHT" and x + w - inkW or x + (w - inkW) / 2
 								w = inkW
+							end
+							if x and w > 0 and h > 0 and name == "name" and type(object.GetFont) == "function" then
+								local fontFile, fontSize = object:GetFont()
+								local metrics = type(fontFile) == "string" and K.Widgets.OrnamentInk.fonts[fontFile:match("([^/\\]+)%.[tT][tT][fF]$") or ""]
+								local text = object:GetText()
+								if metrics and type(text) == "string" then
+									local deep = 0
+									for k = 1, #text do
+										local code = text:byte(k)
+										deep = math.max(deep, code < 0x80 and (metrics.deep[code] or 0) or metrics.descent)
+									end
+									local factor = K.Widgets.ScaleFactor(object)
+									h = h - math.max(0, metrics.descent - deep) * math.min(fontSize * factor, h / (metrics.ascent + metrics.descent))
+								end
 							end
 							if x and w > 0 and h > 0 and FILLS[name] then
 								local fx, fy = snap(x), snap(y)

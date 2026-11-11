@@ -58,7 +58,7 @@ local function Scratch(self)
 	return S
 end
 
-local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "row", "cut", "card", "cx", "cy", "radius", "spans" }
+local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "row", "cut", "card", "cx", "cy", "radius", "spans", "inkb" }
 
 local function Rec(S)
 	local n = S.nrec + 1
@@ -270,9 +270,40 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 			else l, r = (l + r - width) / 2, (l + r + width) / 2 end
 		end
 	end
+	local inkb
+	if ink and not reserved and self.kind == "plate" and type(region.GetFont) == "function" then
+		local file, size = region:GetFont()
+		local text = region:GetText()
+		if type(file) == "string" and not W.IsSecret(file) and region.inkFile ~= file then
+			region.inkFile, region.inkFont = file, file:match("([^/\\]+)%.[tT][tT][fF]$") or false
+		end
+		local metrics = region.inkFile == file and region.inkFont and INK.fonts[region.inkFont]
+		if metrics and Plain(size) and type(text) == "string" and not W.IsSecret(text) then
+			local deep, i, n = 0, 1, #text
+			while i <= n do
+				local c = text:byte(i)
+				local code, step = c, 1
+				if c >= 0xF0 then
+					code, step = nil, 4
+				elseif c >= 0xE0 then
+					code, step = nil, 3
+				elseif c >= 0xC0 then
+					code, step = (c % 32) * 64 + (text:byte(i + 1) or 0) % 64, 2
+				end
+				local reach = code and (code < 0x250 and (metrics.deep[code] or 0) or metrics.descent) or metrics.descent
+				if reach > deep then deep = reach end
+				i = i + step
+			end
+			inkb = b + max(0, metrics.descent - deep) * min(size, (t - b) / (metrics.ascent + metrics.descent))
+			local _, drop
+			if type(region.GetShadowOffset) == "function" then _, drop = region:GetShadowOffset() end
+			if Known(drop) and drop < 0 then inkb = inkb + drop end
+		end
+	end
 	outset = outset or 0
 	local o = Rec(S)
 	o.l, o.r, o.t, o.b, o.clear = (l - outset) * f / pixel, (r + outset) * f / pixel, (t + outset) * f / pixel, (b - outset) * f / pixel, clear
+	o.inkb = inkb and inkb * f / pixel or false
 	list[#list + 1] = o
 	return true
 end
@@ -664,6 +695,7 @@ function Handle:Frame(full)
 	for _, o in ipairs(plain) do
 		if not (o.row or o.cut or bar and o.other) then
 			touching[#touching + 1] = Copy(S, o, o.ink and self.kind == "plate" and 0 or o.clear)
+			if o.inkb then touching[#touching].b = o.inkb end
 			if not o.card then loose[#loose + 1] = touching[#touching] end
 		end
 	end
@@ -739,9 +771,9 @@ function Handle:Frame(full)
 			S.cutPool = pool
 		end
 		for _, o in ipairs(list) do
-			local split = o.row or o.cut or bar and o.other
+			local split = o.row or o.cut or bar and o.other or self.kind == "plate" and o.ink
 			local clear = (forged or split) and 1 or o.clear
-			if (o.icon or split) and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and o.b - clear < edge then
+			if (o.icon or split) and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and (o.inkb or o.b) - clear < edge then
 				S.ncut = S.ncut + 1
 				local cut = pool[S.ncut]
 				if not cut then
