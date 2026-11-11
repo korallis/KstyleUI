@@ -1,4 +1,4 @@
--- test-ornament-rail-border.lua: at Subtle a nameplate's rails lie flush outside the bar's border and cover no row of it, for plain, elite, selected and boss plates at two plate scales on nine screens in both typesets; the bottom hairline always draws, the top one is split around the name's ink with 1 px clear, and it is omitted only where the name's ink comes within 1 px of its row.
+-- test-ornament-rail-border.lua: at Subtle and Full a nameplate's rails lie flush outside the bar's border and cover no row of it, for plain, elite, selected and boss plates at two plate scales on nine screens in both typesets; the bottom hairline always draws, the top one is split around the name's ink with 1 px clear, and it is omitted only where the name's ink comes within 1 px of its row.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
@@ -9,12 +9,13 @@ local UNITS = {
 	{ name = "Onyxia", level = -1, classification = "worldboss", reaction = 2, canAttack = true },
 }
 local rails, plates, omitted = 0, 0, 0
+for _, level in ipairs({ "Subtle", "Full" }) do
 for _, typeset in ipairs({ "Folio", "Lumen" }) do
 	for _, screen in ipairs(SCREENS) do
 		local env, K, ns = N.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080, size = "default" })
 		env._textWidth = function(text, fontPath, size) return Scene.TextWidth(Scene.PlainText(text), size, fontPath) end
 		K.Store.Module("Widgets").cardMaterial = "ForgedBrackets"
-		K.Store.Module("Widgets").ornaments = "Subtle"
+		K.Store.Module("Widgets").ornaments = level
 		if typeset ~= "Folio" then
 			K.Options.Write("Appearance", "typeSet", typeset)
 			assert(K.Appearance.Get("typeSet") == typeset, "the typeset is " .. typeset)
@@ -40,7 +41,7 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 		for i = 1, 2 * #UNITS do
 			local plate = ns.Plates.Get("nameplate" .. i)
 			local handle = plate.ornament
-			local label = string.format("Subtle %s %dx%d %s", typeset, screen[1], screen[2], tostring(plate.name:GetText()))
+			local label = string.format("%s %s %dx%d %s", level, typeset, screen[1], screen[2], tostring(plate.name:GetText()))
 			local _, ty, tw, th = Scene.RectIn(solver, handle.target)
 			local rim = (handle.target.rimOutset or 0) * tw / handle.target:GetWidth()
 			local top, bottom = snap(ty - rim), snap(ty + th + rim)
@@ -103,5 +104,6 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 		collectgarbage("collect")
 	end
 end
+end
 assert(rails > 0, "no rail was drawn")
-print(string.format("ok at Subtle %d rails on %d plates lie flush outside the bar's border on nine screens, two plate scales and both typesets; the top hairline keeps 1 px from the name's ink and is omitted on %d plates, only where that ink comes within 1 px of its row", rails, plates, omitted))
+print(string.format("ok at Subtle and Full %d rails on %d plates lie flush outside the bar's border on nine screens, two plate scales and both typesets; the top hairline keeps 1 px from the name's ink and is omitted on %d plates, only where that ink comes within 1 px of its row", rails, plates, omitted))
