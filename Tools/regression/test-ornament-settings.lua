@@ -129,12 +129,22 @@ local lane = env.CreateFrame("Frame", nil, K.Scale.Root())
 lane:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -4 * pixel)
 lane:SetSize(100 * pixel, 6 * pixel)
 caps.near = { lane }
-caps:Restyle()
-local wing
-for _, n in ipairs({ 6, 8, 10, 12, 14, 16 }) do
-	if assets["Wing" .. n] then wing = "Wing" .. n end
+local function ends(handle)
+	local scene, drawn, out = Scene.Build(env), {}, {}
+	for _, item in ipairs(scene.items) do drawn[item.object] = item end
+	for i = 1, handle.used do
+		local name = tostring(drawn[handle.textures[i]] and drawn[handle.textures[i]].file):match("(%w+)%.png$")
+		if name and not name:find("^Rail") then out[#out + 1] = name end
+	end
+	return out
 end
-check(caps, { "Rail1", "Rail1", wing, wing }, "a neighbouring lane four pixels away keeps the frame one pixel clear and swaps the claws for Full wing caps, the largest shipped tier up to 16")
+profile.ornaments = "Subtle"
+caps:Restyle()
+local subtle = ends(caps)
+assert(#subtle == 2 and subtle[1] == subtle[2] and subtle[1]:find("^EndPointed"), "beside the lane Subtle draws pointed ends, not " .. table.concat(subtle, ", "))
+profile.ornaments = "Full"
+caps:Restyle()
+check(caps, { "Rail1", "Rail1", subtle[1], subtle[2] }, "a neighbouring lane four pixels away keeps the frame one pixel clear; where it blocks the claws, Full takes the end Subtle draws there (Wing caps only when they are no smaller)")
 caps.near = nil
 caps:Restyle()
 profile.ornaments = "Off"

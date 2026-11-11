@@ -58,7 +58,7 @@ local function Scratch(self)
 	return S
 end
 
-local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "row", "card", "cx", "cy", "radius", "spans" }
+local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "row", "cut", "card", "cx", "cy", "radius", "spans" }
 
 local function Rec(S)
 	local n = S.nrec + 1
@@ -175,7 +175,7 @@ function Handle:Fill(left, top, width, height, color)
 	return t
 end
 
-function Handle:Piece(name, point, relative, x, y, flipX, flipY)
+function Handle:Spot(name, point, relative, x, y)
 	local spec = name and ASSETS[name]
 	if not spec then return end
 	local originX, originY = self.target:GetLeft(), self.target:GetTop()
@@ -186,6 +186,12 @@ function Handle:Piece(name, point, relative, x, y, flipX, flipY)
 	originX, originY = originX / self.pixel, originY / self.pixel
 	left = floor(originX + left + 0.5) - originX
 	top = originY - floor(originY - top + 0.5)
+	return left, top, originX, originY, spec
+end
+
+function Handle:Piece(name, point, relative, x, y, flipX, flipY)
+	local left, top, originX, originY, spec = self:Spot(name, point, relative, x, y)
+	if not left then return end
 	if self.avoid and self:Blocked((originX + left) * Scale.Pixel(1), (originY - top) * Scale.Pixel(1), spec[1], spec[2]) then
 		self.blocked = true
 		return
@@ -271,13 +277,13 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 	return true
 end
 
-local function AddSet(self, S, list, pixel, set, avoid)
+local function AddSet(self, S, list, pixel, set, avoid, clear)
 	for _, frame in ipairs(set) do
 		if frame ~= self.yoke and (frame.blockOf ~= self or not (self.yoke and self.yoke.used > 0)) then
 			local textures = frame.textures
 			for i = 1, textures and frame.used or 1 do
 				local count = #list
-				if not Add(self, S, list, pixel, textures and textures[i] or frame, max(4 / pixel, 3)) then return false end
+				if not Add(self, S, list, pixel, textures and textures[i] or frame, clear or max(4 / pixel, 3)) then return false end
 				if #list > count then list[#list].icon, list[#list].other = avoid, not avoid and textures ~= nil end
 			end
 		end
@@ -291,6 +297,22 @@ local function Far(S, list, l, r, t, b, card)
 	list[#list + 1] = o
 end
 
+local function AddNeighbours(self, S, list, pixel)
+	local near = self.neighbours
+	if type(near) == "function" then near = near() end
+	for _, frame in ipairs(near or EMPTY) do
+		local l, r, t, b = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
+		local f = W.ScaleFactor(frame)
+		local known = not (W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) or W.IsSecret(f))
+			and type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number" and Plain(f)
+		if known then
+			local o = Rec(S)
+			o.l, o.r, o.t, o.b, o.clear, o.cut = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel, 1, self.kind == "bar"
+			list[#list + 1] = o
+		end
+	end
+end
+
 function Handle:Obstacles()
 	local pixel = Scale.Pixel(1)
 	local S = Scratch(self)
@@ -298,6 +320,7 @@ function Handle:Obstacles()
 	local list = List(S, "list")
 	if not AddSet(self, S, list, pixel, self.avoid or EMPTY, true) then return end
 	if not AddSet(self, S, list, pixel, self.others or EMPTY, false) then return end
+	if not AddSet(self, S, list, pixel, self.peers or EMPTY, false, 1) then return end
 	for _, text in ipairs(self.texts or EMPTY) do
 		local count = #list
 		if not Add(self, S, list, pixel, text, 1, true) then return end
@@ -306,6 +329,7 @@ function Handle:Obstacles()
 	for _, bar in ipairs(self.near or EMPTY) do
 		if not Add(self, S, list, pixel, bar, 1, false, bar.rimOutset or W.Border(bar)) then return end
 	end
+	AddNeighbours(self, S, list, pixel)
 	if self.kind == "bar" then
 		for row in pairs(ROWS) do
 			for i = 1, row.used do
@@ -354,6 +378,7 @@ function Handle:Obstacles()
 end
 
 local INSET = 2
+local CAP_SHARE = 0.4
 
 local CREST_SIZES = { 32, 20 }
 local ENDS = { Crested = "EndCrested", Winged = "EndWinged", Clawed = "EndClawed", Pointed = "EndPointed" }
@@ -395,6 +420,14 @@ function Handle:Family(full)
 		return self.elite and "Winged" or "Clawed"
 	end
 	return full and "Clawed" or "Pointed"
+end
+
+local function CapFits(pieces, x0, boxW, y0, height, spec, ring, portraitWest)
+	local capTop = y0 - floor((height - spec[2]) / 2)
+	local west = not (ring and ring.left) and Free(pieces, x0 - spec[1], capTop, spec[1], spec[2])
+	local east = not (ring and not ring.left) and Free(pieces, x0 + boxW, capTop, spec[1], spec[2])
+	local fits = spec[2] <= height and (west or ring and ring.left or portraitWest == true) and (east or ring and not ring.left or portraitWest == false) and (west or east)
+	return fits, capTop, west, east
 end
 
 local function Fits(S, west, k, spec, near)
@@ -522,9 +555,16 @@ function Handle:Frame(full)
 		end
 	end
 	local reach = 0
-	if not full and Free(list, x0, y0 + 1, boxW, 1) and Free(list, x0, y0 - boxH, boxW, 1) then reach = 1 end
+	local open, bar = list, self.kind == "bar" and not forged
+	if not forged then
+		open = List(S, "open")
+		for _, o in ipairs(list) do
+			if not (o.row or bar and o.other) then open[#open + 1] = o end
+		end
+	end
+	if not full and Free(open, x0, y0 + 1, boxW, 1) and Free(open, x0, y0 - boxH, boxW, 1) then reach = 1 end
 	if full then
-		while rim + reach < 12 and reach < 6 and Free(list, x0, y0 + reach + 1, boxW, 1) and Free(list, x0, y0 - boxH - reach, boxW, 1) do
+		while rim + reach < 12 and reach < 6 and Free(open, x0, y0 + reach + 1, boxW, 1) and Free(open, x0, y0 - boxH - reach, boxW, 1) do
 			reach = reach + 1
 		end
 	end
@@ -573,7 +613,9 @@ function Handle:Frame(full)
 		local least = Search(S, FAMILIES.Pointed, false, list)
 		if least and (not ends or ends.weight < least.weight) then ends = least end
 	end
-	reach = ends and max(ends.reach, 0) or (not full and reach or 0)
+	local solid = self.target.solidRim
+	if solid and ends and ends.reach < 1 then ends = nil end
+	reach = ends and max(ends.reach, 0) or ((not full or solid) and reach or 0)
 	wrap[1], wrap[2] = ends and ends.west or 0, ends and ends.east or 0
 	local caps
 	if self.kind == "bar" and not self.light and (not ends or full and ends.name:find("Pointed", 1, true)) then
@@ -585,15 +627,27 @@ function Handle:Frame(full)
 			if name and name ~= tiers[#tiers] then tiers[#tiers + 1] = name end
 		end
 		local second = forged and joined and y0 - (floor(upper * f + 0.5) - rim) or nil
+		local least
+		if full and not forged then
+			if ends then
+				least = ASSETS[ends.name]
+			else
+				local arrow = Tier("Arrow", boxH)
+				local spec = arrow and ASSETS[arrow]
+				if spec and CapFits(pieces, x0, boxW, y0, boxH, spec, ring, portraitWest) then
+					least, tiers[#tiers + 1] = spec, arrow
+				end
+			end
+		end
 		for _, name in ipairs(tiers) do
 			local spec = ASSETS[name]
 			for pass = 1, second and 2 or 1 do
 				local height = pass == 1 and boxH or second
-				local capTop = y0 - floor((height - spec[2]) / 2)
-				local west = not (ring and ring.left) and Free(pieces, x0 - spec[1], capTop, spec[1], spec[2])
-				local east = not (ring and not ring.left) and Free(pieces, x0 + boxW, capTop, spec[1], spec[2])
+				local fits, capTop, west, east = CapFits(pieces, x0, boxW, y0, height, spec, ring, portraitWest)
 				local smaller = forged and (ends and spec[2] < ASSETS[ends.name][2] or capTop <= floor(upper * f + 0.5))
-				if not smaller and spec[2] <= height and (west or ring and ring.left or portraitWest == true) and (east or ring and not ring.left or portraitWest == false) and (west or east) then
+					or least and (spec[2] < least[2] or spec[2] == least[2] and spec[1] < least[1])
+					or not forged and spec[2] < CAP_SHARE * height
+				if not smaller and fits then
 					caps = S.caps
 					caps.name, caps.top, caps.width, caps.west, caps.east = name, capTop, spec[1], west, east
 					ends, wrap[1], wrap[2] = nil, 0, 0
@@ -608,8 +662,10 @@ function Handle:Frame(full)
 	local dx = x0 - ox
 	local touching, loose = List(S, "touching"), List(S, "loose")
 	for _, o in ipairs(plain) do
-		touching[#touching + 1] = Copy(S, o, o.ink and self.kind == "plate" and 0 or o.clear)
-		if not o.card then loose[#loose + 1] = touching[#touching] end
+		if not (o.row or o.cut or bar and o.other) then
+			touching[#touching + 1] = Copy(S, o, o.ink and self.kind == "plate" and 0 or o.clear)
+			if not o.card then loose[#loose + 1] = touching[#touching] end
+		end
 	end
 	local fenced = List(S, "fenced")
 	for i, o in ipairs(loose) do fenced[i] = o end
@@ -682,15 +738,16 @@ function Handle:Frame(full)
 			S.cutPool = pool
 		end
 		for _, o in ipairs(list) do
-			local clear = forged and 1 or o.clear
-			if o.icon and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and o.b - clear < edge then
+			local split = o.row or o.cut or bar and o.other
+			local clear = (forged or split) and 1 or o.clear
+			if (o.icon or split) and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and o.b - clear < edge then
 				S.ncut = S.ncut + 1
 				local cut = pool[S.ncut]
 				if not cut then
 					cut = {}
 					pool[S.ncut] = cut
 				end
-				cut[1], cut[2] = floor(o.l - clear), math.ceil(o.r + clear)
+				cut[1], cut[2], cut[3] = floor(o.l - clear), math.ceil(o.r + clear), split
 				cuts[#cuts + 1] = cut
 			end
 		end
@@ -700,7 +757,9 @@ function Handle:Frame(full)
 		local start = from
 		for i = 1, #cuts + 1 do
 			local stop = cuts[i] and min(cuts[i][1], to) or to
-			if railed and stop - start >= 1 and Free(yoke and loose or touching, start, edge, stop - start, weight) then
+			local beside = cuts[i] and cuts[i][3] or i > 1 and cuts[i - 1][3]
+			local shortest = beside and max(1, ends and ends.width or caps and caps.width or 1) or 1
+			if railed and stop - start >= shortest and Free(yoke and loose or touching, start, edge, stop - start, weight) then
 				local x, length, piece = start, stop - start, ASSETS[rail][1]
 				local tipName = isForge and Named("Tip", weight)
 				local tip = tipName and ASSETS[tipName]
@@ -821,20 +880,61 @@ function Handle:Ring(full)
 	end
 end
 
+local function MapObstacles(self, pixel)
+	local S = Scratch(self)
+	S.nrec = 0
+	local list = List(S, "list")
+	for _, text in ipairs(self.texts or EMPTY) do
+		if not Add(self, S, list, pixel, text, 1, true) then return end
+	end
+	AddNeighbours(self, S, list, pixel)
+	return list
+end
+
+function Handle:Clear(list, name, point, relative, x, y, flipX, flipY)
+	local left, top, originX, originY, spec = self:Spot(name, point, relative, x, y)
+	if not left then return false end
+	if #list == 0 then return true end
+	local pl, pt, runs = originX + left, originY - top, INK.spans[name]
+	if not runs then return Free(list, pl, pt, spec[1], spec[2]) end
+	for i = 3, #runs, 4 do
+		local r0, r1, x0, x1 = runs[i], runs[i + 1], runs[i + 2], runs[i + 3]
+		if flipX then x0, x1 = spec[1] - x1, spec[1] - x0 end
+		if flipY then r0, r1 = spec[2] - r1, spec[2] - r0 end
+		if not Free(list, pl + x0, pt - r0, x1 - x0, r1 - r0) then return false end
+	end
+	return true
+end
+
+function Handle:MapPair(list, n, bottom)
+	local wanted = n
+	while true do
+		local name = Tier("Map", wanted)
+		if not name then return end
+		local size = ASSETS[name][2]
+		local outset = floor(size * 0.4)
+		local y = bottom and -outset or outset
+		local west, east = bottom and "BOTTOMLEFT" or "TOPLEFT", bottom and "BOTTOMRIGHT" or "TOPRIGHT"
+		if self:Clear(list, name, west, west, -outset, y, false, bottom) and self:Clear(list, name, east, east, outset, y, true, bottom) then
+			self:Piece(name, west, west, -outset, y, false, bottom)
+			self:Piece(name, east, east, outset, y, true, bottom)
+			return name
+		end
+		wanted = size - 1
+	end
+end
+
 function Handle:Map(full)
 	local side = min(self.width, self.height)
 	local n = side >= 280 and 40 or side >= 150 and 24 or 16
 	if not full then n = n == 40 and 32 or n == 24 and 20 or 12 end
-	local name = Tier("Map", n)
-	if not name then return end
-	n = ASSETS[name][2]
-	local outset = floor(n * 0.4)
-	self:Piece(name, "TOPLEFT", "TOPLEFT", -outset, outset)
-	self:Piece(name, "TOPRIGHT", "TOPRIGHT", outset, outset, true)
+	local list = MapObstacles(self, Scale.Pixel(1))
+	if not list then return end
+	self:MapPair(list, n, false)
 	if side >= 280 then
-		self:Piece(name, "BOTTOMLEFT", "BOTTOMLEFT", -outset, -outset, false, true)
-		self:Piece(name, "BOTTOMRIGHT", "BOTTOMRIGHT", outset, -outset, true, true)
-		if full then self:Piece(Tier("Point", 12), "TOP", "BOTTOM", 0, -1) end
+		self:MapPair(list, n, true)
+		local point = Tier("Point", 12)
+		if full and point and self:Clear(list, point, "TOP", "BOTTOM", 0, -1) then self:Piece(point, "TOP", "BOTTOM", 0, -1) end
 	end
 end
 

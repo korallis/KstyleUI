@@ -224,6 +224,50 @@ function Lumen.Build(state, opts)
 			end
 		end
 	end
+	-- The minimap's corners and the data bars keep clear of the Layout elements beside them, which the game finds in
+	-- its one Layout registry; each module builds in its own environment here, so a module is drawn again with every
+	-- module's elements (and every module's rows) in reach when they change its pieces.
+	Hud.layoutElements = {}
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local Layout = env and env.KstyleUI and env.KstyleUI.Layout
+		if Layout then
+			for _, element in ipairs(env.KstyleUI.Setup.Layouts.ELEMENTS) do
+				local el = Layout.Element(element.key)
+				if el and el.frame and not Hud.layoutElements[element.key] then
+					Hud.layoutElements[element.key] = { el = el, live = Layout.Live(element.key) }
+				end
+			end
+		end
+	end
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local handles = env and env._ornamentHandles or {}
+		local function placed()
+			local out = {}
+			for _, handle in ipairs(handles) do
+				if handle.neighbours then
+					handle:Restyle()
+					for i = 1, handle.used do
+						local t = handle.textures[i]
+						out[#out + 1] = table.concat({ tostring(t:GetTexture()), tostring(t:GetLeft()), tostring(t:GetTop()), tostring(t:GetWidth()) }, " ")
+					end
+				end
+			end
+			return table.concat(out, "\n")
+		end
+		local before = placed()
+		if before ~= "" then
+			Hud.ShareLayout(env)
+			if placed() ~= before then
+				local scene, ns, extra = Hud.Module(name, base)
+				scenes[at[name]] = scene
+				built[name] = { scene = scene, ns = ns, extra = extra }
+				log[#log + 1] = "ornaments: " .. name .. " is drawn again with every module's Layout elements in reach, as the game's one Layout registry holds them"
+			end
+		end
+	end
+	Hud.layoutElements = nil
 	Hud.ornamentRows = nil
 	local function Dock()
 		local tracker = built.tracker
@@ -235,7 +279,7 @@ function Lumen.Build(state, opts)
 		base.dockBottom = top and (HEIGHT - (top + height)) or nil
 		base.dockTop = top and (HEIGHT - top) or nil
 	end
-	if base.trackerDocked then
+	if base.trackerDocked and built.tracker then
 		Dock()
 	end
 	local guide, R = Hud.Module("restedxp", base)
@@ -255,7 +299,9 @@ function Lumen.Build(state, opts)
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))
 	end
 	local merged = Scene.Merge(scenes)
-	merged.rail = Lumen.Rail(built, R)
+	if built.chat and built.tracker then
+		merged.rail = Lumen.Rail(built, R)
+	end
 	if opts.elements then
 		merged.elements = Lumen.Elements(built)
 	end

@@ -18,6 +18,7 @@ local TEXT_GAP, XP_TEXT_GAP = 2, 6
 local XP_CAPTION_RAISE = 1.15
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
+local BORDER_LINES = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 local FALLBACK_WIDTH, FALLBACK_HEIGHT = 441, 5
 local FALLBACK_POSITION = { anchor = "BOTTOM", x = 0, y = 0 }
@@ -195,8 +196,16 @@ local function UpdateText(view, s, info)
 	if value then
 		view.text:SetText(value)
 	end
-	view.text:SetShown(value ~= nil and (not s.textHover or view.hovered == true))
+	local shown = value ~= nil and (not s.textHover or view.hovered == true)
+	view.text:SetShown(shown)
 	PlacePlate(view, s)
+	local width = shown and view.text:GetStringWidth()
+	local key = shown and (ns.IsNumber(width) and Widgets.Snap(view.holder, width) or true)
+	view.ornament.enabled = not view.plate:IsShown()
+	if key ~= view.textKey then
+		view.textKey = key
+		return true
+	end
 end
 
 local function Values(view, s, info, instant)
@@ -229,11 +238,20 @@ local function Style(view, s)
 	local orientation = s.orientation == "VERTICAL" and "VERTICAL" or "HORIZONTAL"
 	fill:SetOrientation(orientation)
 	track:SetOrientation(orientation)
+	view.rim.vertical = orientation == "VERTICAL"
 	fill:SetReverseFill(s.reverse == true)
 	track:SetReverseFill(s.reverse == true)
 	if track.borderFrame then
 		track.borderFrame:SetShown(s.border ~= false)
 	end
+	local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(track)
+	local outset = track.borderFrame and s.border ~= false and Widgets.Border(track) * BORDER_LINES - pixel or 0
+	local rim = view.rim
+	rim.rimOutset = outset > 0 and pixel or nil
+	rim.solidRim = outset > 0 or nil
+	rim:ClearAllPoints()
+	rim:SetPoint("TOPLEFT", track, "TOPLEFT", -outset, outset)
+	rim:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", outset, -outset)
 	if view.def.id == "xp" then
 		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
 		fill.borderFrame:Hide()
@@ -258,13 +276,18 @@ function Bars.PaintValues(view, s, info, instant)
 	if info then
 		Values(view, s, info, instant)
 	end
-	UpdateText(view, s, info)
+	if UpdateText(view, s, info) then
+		view.ornament:Restyle()
+		return true
+	end
 end
 
 function Bars.Paint(view, s, info, instant)
 	Style(view, s)
 	view.styled = true
-	Bars.PaintValues(view, s, info, instant)
+	if not Bars.PaintValues(view, s, info, instant) then
+		view.ornament:Restyle()
+	end
 end
 
 local function AddTooltip(view, tip)
@@ -301,7 +324,9 @@ local function OnEnter(holder)
 	local view = holder.kView
 	view.hovered = true
 	if running then
-		UpdateText(view, ns.Settings()[view.def.id], view.info)
+		if UpdateText(view, ns.Settings()[view.def.id], view.info) then
+			view.ornament:Restyle()
+		end
 	end
 	local tip = Widgets.Tooltip()
 	tip:SetOwner(holder, "ANCHOR_TOP")
@@ -313,7 +338,9 @@ local function OnLeave(holder)
 	local view = holder.kView
 	view.hovered = false
 	if running then
-		UpdateText(view, ns.Settings()[view.def.id], view.info)
+		if UpdateText(view, ns.Settings()[view.def.id], view.info) then
+			view.ornament:Restyle()
+		end
 	end
 	local tip = Widgets.Tooltip()
 	if tip:IsOwned(holder) then
@@ -338,6 +365,8 @@ function Bars.NewView(parent, def)
 	overlay:SetAllPoints(content)
 	overlay:SetFrameLevel(fill:GetFrameLevel() + 1)
 	view.track, view.fill, view.overlay = track, fill, overlay
+	view.rim = CreateFrame("Frame", nil, track)
+	view.ornament = Widgets.Ornament(overlay, "bar", view.rim)
 	for i = 1, MAX_SEGMENTS - 1 do
 		local tick = overlay:CreateTexture(nil, "OVERLAY")
 		tick:SetColorTexture(Tokens.Color("white"))
@@ -355,6 +384,7 @@ function Bars.NewView(parent, def)
 	view.text = Widgets.FontString(label, "OVERLAY")
 	Widgets.TextColor(view.text, "textEmphasis")
 	view.text:Hide()
+	view.ornament.texts, view.ornament.near, view.ornament.peers = { view.text }, {}, {}
 	return view
 end
 
@@ -368,8 +398,25 @@ local function Footprint(key)
 	return FALLBACK_WIDTH, FALLBACK_HEIGHT, key, { anchor = FALLBACK_POSITION.anchor, x = FALLBACK_POSITION.x, y = FALLBACK_POSITION.y }
 end
 
+local neighbours = {}
+
+local function Neighbours()
+	for i = #neighbours, 1, -1 do
+		neighbours[i] = nil
+	end
+	local layouts = K.Setup and K.Setup.Layouts
+	for _, element in ipairs(layouts and layouts.ELEMENTS or {}) do
+		local el = not byKey[element.key] and K.Layout.Element(element.key)
+		if el and el.frame and K.Layout.Live(element.key) then
+			neighbours[#neighbours + 1] = el.frame
+		end
+	end
+	return neighbours
+end
+
 local function Build(def)
 	local view = Bars.NewView(K.Scale.Root(), def)
+	view.ornament.neighbours = Neighbours
 	local holder = view.holder
 	local width, height, label, position = Footprint(def.key)
 	holder:SetSize(width, height)
@@ -380,8 +427,23 @@ local function Build(def)
 		label = label, module = ns.MODULE, resizable = true,
 		minWidth = MIN_SIZE, minHeight = MIN_SIZE, maxWidth = MAX_WIDTH, maxHeight = MAX_HEIGHT,
 	})
+	for _, other in pairs(Bars.views) do
+		local near, peers = other.ornament.near, other.ornament.peers
+		near[#near + 1], peers[#peers + 1] = view.rim, view.ornament
+		view.ornament.near[#view.ornament.near + 1] = other.rim
+		view.ornament.peers[#view.ornament.peers + 1] = other.ornament
+	end
 	Bars.views[def.id] = view
 	return view
+end
+
+local function RestyleOthers(view)
+	for _, def in ipairs(DEFS) do
+		local other = Bars.views[def.id]
+		if other and other ~= view then
+			other.ornament:Restyle()
+		end
+	end
 end
 
 function Bars.Update(id, instant)
@@ -398,11 +460,17 @@ function Bars.Update(id, instant)
 		ns.Log(id .. " bar hidden: " .. tostring(why))
 	end
 	view.info, view.why = info, why
-	view.content:SetShown(info ~= nil)
+	local shown = info ~= nil
+	local changed = shown ~= view.shown
+	view.shown = shown
+	view.content:SetShown(shown)
 	if instant or not view.styled then
 		Bars.Paint(view, s, info, instant)
 	else
 		Bars.PaintValues(view, s, info, instant)
+	end
+	if changed then
+		RestyleOthers(view)
 	end
 end
 
@@ -485,8 +553,14 @@ end
 
 ns.Subscribe("LayoutChanged", function(key)
 	local def = byKey[key]
-	if def and running then
+	if not running then
+		return
+	end
+	if def then
 		Bars.Update(def.id, true)
+		RestyleOthers(Bars.views[def.id])
+	else
+		RestyleOthers(nil)
 	end
 end)
 
