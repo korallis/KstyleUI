@@ -22,7 +22,7 @@ To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install
 | `Core/` | The core addon's services, the widget kit, Layout Mode and the first-run setup |
 | `KstyleUI_<Module>/` | One addon per module, each with a README on how it works |
 | `Media/` | Fonts, procedural textures and the logo, with their provenance |
-| `docs/` | The design spec, the plans, the mockups, the test guide, the release notes and the README's images (`docs/media/readme/`, made by `make.py` in that folder from the render handoff) |
+| `docs/` | The design spec, the plans, the mockups, the test guide, the release notes and the README's images (`docs/media/readme/`, retaken from the render scenes by `python3 Tools/render/readme.py`) |
 | `Tools/` | Checks, tests, the spike addon, the icon pipeline with the repainted icon art (`Tools/icons/setB/`) and developer scripts. They never ship in the addon; the icons ship as their own pack. |
 | `research_notes/`, `reports/` | Research on Forever's API, its addon restrictions and existing UI suites |
 

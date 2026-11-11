@@ -27,8 +27,15 @@ class DecideTest(unittest.TestCase):
     def test_docs_and_markdown_skip_every_area(self):
         for area in ci_scope.AREAS:
             with self.subTest(area=area):
-                self.assertFalse(self.run_for(area, "docs/design/notes.md", "docs/media/readme/a.png", "reports/r.md",
-                                              "research_notes/x.md", "README.md", "AGENTS.md", "Tools/regression/README.md"))
+                self.assertFalse(self.run_for(area, "docs/design/notes.md", "reports/r.md",
+                                              "research_notes/x.md", "AGENTS.md", "Tools/regression/README.md"))
+
+    def test_the_readme_and_its_pictures_run_the_python_job_only(self):
+        for path in ("README.md", "docs/media/readme/a.png"):
+            with self.subTest(path=path):
+                self.assertTrue(self.run_for("python", path))
+                self.assertFalse(self.run_for("lua", path))
+                self.assertFalse(self.run_for("package", path))
 
     def test_addon_code_runs_lua_python_and_package(self):
         for area in ci_scope.AREAS:
