@@ -28,7 +28,7 @@ class OrnamentReachTest(unittest.TestCase):
             self.assertTrue(case, name + " names the first matrix case that draws it")
 
     def test_the_ornament_media_stays_under_the_cap(self):
-        """The Captain capped the ornament media at 1.7 MB on 2026-11-11 (docs/ORNAMENT-SPEC.md): the pieces ship as
+        """The Captain capped the ornament media at 1.7 MB on 2026-11-11 (the ornament spec, Media and the reach table): the pieces ship as
         lossless RGBA at their native sizes, so growth past the cap needs a new ruling, not a quieter encoding."""
         total = sum(path.stat().st_size for path in FOLDER.iterdir() if path.is_file())
         self.assertLessEqual(total, CAP_BYTES, "the ornament media is %d B, over the %d B cap" % (total, CAP_BYTES))
