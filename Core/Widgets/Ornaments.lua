@@ -689,6 +689,7 @@ function Handle:Frame(full)
 		end
 	end
 	local thickness = full and max(1, rim + reach - 1) or 1
+	if self.kind == "plate" then thickness = min(thickness, max(reach, 1)) end
 	while thickness > 1 and not ASSETS[Named("Rail", thickness)] do thickness = thickness - 1 end
 	local dx = x0 - ox
 	local touching, loose = List(S, "touching"), List(S, "loose")
