@@ -207,6 +207,35 @@ local function Blocker(scene, handle, rects, px)
 end
 M.Blocker = Blocker
 
+-- RailBlocker(scene, handle, rects, px) -> a piece of another handle that takes so much of each rail in rects (the
+-- rails Subtle drew on one side) that no stretch longer than 8 root units is left free, or nil: a rail that is only
+-- partly blocked must be split, not dropped.
+local function RailBlocker(scene, handle, rects, px)
+	local mine, gap, by = {}, 1 / px, nil
+	for i = 1, handle.used do mine[handle.textures[i]] = true end
+	for _, q in ipairs(rects) do
+		local spans = {}
+		for _, item in ipairs(scene.items) do
+			local r = item.rect
+			if file(item) and not mine[item.object] and r[2] < q[2] + q[4] + gap and q[2] < r[2] + r[4] + gap then
+				spans[#spans + 1] = { r[1] - gap, r[1] + r[3] + gap }
+				by = by or file(item)
+			end
+		end
+		table.sort(spans, function(a, b) return a[1] < b[1] end)
+		local x, longest = q[1], 0
+		for _, span in ipairs(spans) do
+			if span[2] > x then
+				longest = math.max(longest, span[1] - x)
+				x = math.max(x, span[2])
+			end
+		end
+		longest = math.max(longest, q[1] + q[3] - x)
+		if longest > 8 then return nil end
+	end
+	return by
+end
+
 -- RailSides(scene, handle) -> the rects of the rails the handle draws above and below the middle of its end pieces, or of
 -- the bar its target sits on when it draws no end.
 function M.RailSides(scene, handle)
@@ -259,7 +288,7 @@ function M.NotSmaller(sizes, key, level, h, w, label, above, below, rects, block
 	for side, rails in pairs({ above = above, below = below }) do
 		local before = subtle and subtle[side == "above" and 3 or 4]
 		if before and #before > 0 and #rails == 0 then
-			local railBy = blocked and blocked(before)
+			local railBy = blocked and blocked(before, true)
 			if not railBy then
 				error(string.format("%s: %s draws a rail %s the bar at Subtle and none at Full", label, key, side), 0)
 			end
@@ -300,8 +329,8 @@ function M.Run(cases, title)
 		for name, entry in pairs(handles) do
 			local h, w, rects = M.EndSize(scene, entry.handle)
 			local above, below = M.RailSides(scene, entry.handle)
-			M.NotSmaller(sizes, string.format("%s %s%s %dx%d", name, case.layout, case.faction and " watching a faction" or "", case.screen[1], case.screen[2]), case.level, h, w, label, above, below, rects, function(old)
-				return Blocker(scene, entry.handle, old, case.screen[2] / 1080)
+			M.NotSmaller(sizes, string.format("%s %s%s %dx%d", name, case.layout, case.faction and " watching a faction" or "", case.screen[1], case.screen[2]), case.level, h, w, label, above, below, rects, function(old, rails)
+				return (rails and RailBlocker or Blocker)(scene, entry.handle, old, case.screen[2] / 1080)
 			end)
 		end
 		collectgarbage("collect")
