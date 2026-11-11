@@ -330,7 +330,7 @@ function Handle:Obstacles()
 		Far(S, list, -far, far, t + far, t, true)
 		Far(S, list, -far, far, b, b - far, true)
 	end
-	local clip = self.owner
+	local clip = not self.unbounded and self.owner
 	while clip do
 		local clips = type(clip.DoesClipChildren) == "function" and clip:DoesClipChildren()
 		if W.IsSecret(clips) then return end
@@ -1181,6 +1181,32 @@ end
 
 function W.IsOrnament(widget)
 	return getmetatable(widget) == Handle
+end
+
+function W.OrnamentExtent(roots)
+	local found = {}
+	W.RestyleUnder(roots, function(widget)
+		if getmetatable(widget) ~= Handle then return false end
+		widget.unbounded = true
+		found[#found + 1] = widget
+		return true
+	end)
+	local l, r, t, b
+	for _, handle in ipairs(found) do
+		handle.unbounded = nil
+		for i = 1, handle.used do
+			local texture = handle.textures[i]
+			if texture:IsShown() then
+				local x0, x1, y1, y0, f = texture:GetLeft(), texture:GetRight(), texture:GetTop(), texture:GetBottom(), W.ScaleFactor(texture)
+				if Known(x0) and Known(x1) and Known(y0) and Known(y1) and Plain(f) then
+					x0, x1, y0, y1 = x0 * f, x1 * f, y0 * f, y1 * f
+					l, r, t, b = min(l or x0, x0), max(r or x1, x1), max(t or y1, y1), min(b or y0, y0)
+				end
+			end
+		end
+	end
+	if #found > 0 then W.RestyleUnder(roots, W.IsOrnament) end
+	return l, r, t, b
 end
 
 function W.Ornament(owner, kind, target, passive)

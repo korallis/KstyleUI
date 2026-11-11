@@ -206,16 +206,45 @@ local function Build(pane, id, builder)
 	return nil
 end
 
+local function Reserve(pane, frame)
+	local holder = pane.holder
+	for _ = 1, 6 do
+		local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
+		local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
+		if not (l and hl and hr and ht and hb and Known(f)) then
+			return
+		end
+		local margin = 2 * K.Scale.Pixel(1)
+		hl, hr, ht, hb = hl * f + margin, hr * f - margin, ht * f - margin, hb * f + margin
+		local left, right, top, bottom = math.max(0, hl - l), math.max(0, r - hr), math.max(0, t - ht), math.max(0, hb - b)
+		if left + right + top + bottom < 0.5 then
+			return
+		end
+		if frame.Reserve then
+			local own = Widgets.ScaleFactor(frame)
+			if not Known(own) then
+				return
+			end
+			frame:Reserve(left / own, right / own, top / own, bottom / own)
+		else
+			local fit = math.min((hr - hl) / (math.max(r, hr) - math.min(l, hl)), (ht - hb) / (math.max(t, ht) - math.min(b, hb)))
+			Rescale(frame, frame:GetScale() * fit * 0.98)
+		end
+	end
+	Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
+end
+
 local function RefreshCurrent(pane)
 	local frame = pane.current
 	if not frame or frame == pane.placeholder then
 		return
 	end
+	frame.reserve = nil
 	if frame.Refresh then
 		K.Call(frame.Refresh, frame)
 	end
 	Fit(pane, frame)
-	Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
+	Reserve(pane, frame)
 end
 
 function Preview.Show(pane, page)
