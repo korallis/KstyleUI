@@ -50,6 +50,7 @@ A piece is dropped, never forced, when:
 
 - Every ornament keeps at least **1 physical pixel** from text, fills, tracks, icons, discs and the white cast cursor.
 - A rail lies flush against the bar or block it frames, and the portrait band lies flush against the gilt ring it frames: neither covers a single drawn pixel of what it frames, and the 1 px rule above is for everything else (Captain, 2026-11-11).
+- At Subtle a bar's or plate's `Rail1` hairlines lie flush outside its border, never on it (Captain, 2026-11-11, LEE-167). Before, where text close above the bar kept the ends at the bar's own height, the hairlines fell on the border's outer row and replaced it (132 gold pixels on Folio Subtle 1920x1080). A hairline segment that would overlap a plate's text is omitted by the rail's own check, so where a plate's name reaches into the row above the border (Folio at the shipped plate scale on 1280x720, 1366x768 and 1920x1080, among others) the top hairline is omitted and the bottom one stays (`test-ornament-rail-border.lua`).
 - Between two groups of the centre column, the guard (`Tools/regression/centre_clearance_lib.lua`) keeps the gap #260 set: **4 root units or 3 physical pixels**, whichever is larger.
 - The exempt pairs, where an ornament may enter that gap and keeps only the 1 px rule:
   - **bottom rail**: the art closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor;

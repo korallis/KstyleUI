@@ -674,8 +674,9 @@ function Handle:Frame(full)
 	end
 	local railName = Named("Rail", thickness)
 	local lanes = S.lanes
-	lanes[1][1], lanes[1][2], lanes[1][3] = railName, thickness, y0 + reach
-	lanes[2][1], lanes[2][2], lanes[2][3] = railName, thickness, y0 - boxH - reach + thickness
+	local out = full and reach or max(reach, 1)
+	lanes[1][1], lanes[1][2], lanes[1][3] = railName, thickness, y0 + out
+	lanes[2][1], lanes[2][2], lanes[2][3] = railName, thickness, y0 - boxH - out + thickness
 	if forged then
 		local least = pixel <= 2 / 3 and 3 or 2
 		local want = max(least, min(8, floor(3 / pixel + 0.5), floor(boxH / 5)))
