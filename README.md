@@ -18,7 +18,7 @@
 
 <p align="center"><sub>Test render of the character sheet, skinned.</sub></p>
 
-Every panel, card and window is dark forged iron with a textured frame and corner brackets, and your class colour on every accent. Open **Options, General, Card material** to pick another surface: Forged iron with brackets (the default), Forged iron with gilt ticks, Slate, Flat or the original smoked Glass. The change repaints the open screen at once, with no reload, and **Panel opacity** sits beside it.
+Every panel, card and window is dark forged iron with a textured frame and corner brackets, and your class colour on every accent. Open **Options, General, Card material** to pick another surface: Forged iron with brackets (the default), Forged iron with gilt ticks, Slate, Flat or the original smoked Glass. The change repaints the open screen at once, with no reload. **Panel opacity** is the next section.
 
 <p align="center"><img src="docs/media/readme/card_materials.png" width="800" alt="One chat card drawn at each of the five card materials"></p>
 
@@ -44,7 +44,7 @@ Ornaments are painted trim on the unit frames, their cast bars and the action ba
 
 <p align="center"><sub>Test render of the settings window's General page.</sub></p>
 
-Folio is the default type set: IM Fell and EB Garamond for titles and captions, Cinzel for names, and PT Serif for reading and figures. The Lumen set of Cinzel and Alegreya Sans is one dropdown away. Under **Fonts by role** each of 13 roles (display, heading, title, capitals, names, unit name, body, prose, caption, number, time, timer and world text) takes its own font, from KstyleUI's bundled faces or from LibSharedMedia. A font you pick stays when you change the type set.
+Folio is the default type set: IM Fell for display titles and headings, EB Garamond for small titles and capitals, Cinzel for names, and PT Serif for reading, captions and figures. The Lumen set of Cinzel and Alegreya Sans is one dropdown away. Under **Fonts by role** each of 13 roles (display, heading, title, capitals, names, unit name, body, prose, caption, number, time, timer and world text) takes its own font, from KstyleUI's bundled faces or from LibSharedMedia. A font you pick stays when you change the type set.
 
 ### Three layouts: DPS, Tank and Healer
 
@@ -54,7 +54,7 @@ Folio is the default type set: IM Fell and EB Garamond for titles and captions, 
 
 <p align="center"><img src="docs/media/readme/hud_healer.png" width="100%" alt="The KstyleUI Healer layout: larger party frames beside the combat cluster"></p>
 
-<p align="center"><sub>Test render of the Healer layout: larger party and raid frames beside the combat cluster, dispellable debuffs first.</sub></p>
+<p align="center"><sub>Test render of the Healer layout: the party card beside the combat cluster; raid frames are larger and show dispellable debuffs first.</sub></p>
 
 The first-run setup puts every element in the place its layout draws. The three layouts share the left and right rails and the centre column, and differ where the role needs them to: Tank adds the threat card, Healer gives the group frames more room and heads the left rail with the boss cards.
 
@@ -84,7 +84,7 @@ Six indicator slots each show a category of auras in the nearest free spot. The 
 
 <p align="center"><sub>Test render of the layout step: three layouts over one preview of the one you point at.</sub></p>
 
-A five-step window opens on your first login: pick the DPS, Tank or Healer layout from a real-size preview, choose your modules, choose the ornament level, apply. KstyleUI then writes a layout into Blizzard's Edit Mode so the quest tracker, the damage meter and your tracked buffs take their places too.
+A five-step window opens on your first login: pick the DPS, Tank or Healer layout over a preview of it, choose your modules, choose the ornament level, apply. KstyleUI then writes a layout into Blizzard's Edit Mode so the quest tracker, the damage meter and your tracked buffs take their places too.
 
 <p align="center"><img src="docs/media/readme/setup_ornaments.png" width="520" alt="The setup's ornaments step with Off, Subtle and Full as three cards, Full picked"></p>
 

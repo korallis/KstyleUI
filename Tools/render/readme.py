@@ -36,6 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(ROOT, "docs", "media", "readme")
 DEFAULT_WORK = os.path.expanduser("~/.capy/work/readme-renders")
 
+GALLERY_MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
 SCREEN = (3456, 2234)
 HUD_PPU = SCREEN[1] / 1080
 GALLERY_PPU = 2.0
@@ -293,6 +294,8 @@ def main(argv=None):
     unknown = [name for name in args.only if name not in picture_names()]
     if unknown:
         sys.exit("unknown picture(s): " + ", ".join(unknown))
+    if not os.path.exists(GALLERY_MOCKUP):
+        sys.exit("readme.py needs the handoff mockup for the gallery cut: " + GALLERY_MOCKUP)
     if not pillow():
         sys.exit("readme.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
     wanted = set(args.only or picture_names())
