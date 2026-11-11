@@ -387,6 +387,23 @@ local function Fits(S, west, k, spec, near)
 	end
 end
 
+local function Clip(list, l, r, b, t)
+	for _, o in ipairs(list) do
+		local c = o.clear
+		if o.icon and l < o.r + c and o.l - c < r and b < o.t + c and o.b - c < t then
+			local top, low, right, left = floor(o.b - c), math.ceil(o.t + c), floor(o.l - c), math.ceil(o.r + c)
+			local w, h = r - l, t - b
+			local least = min((t - top) * w, (low - b) * w, (r - right) * h, (left - l) * h)
+			if least == (t - top) * w then t = top
+			elseif least == (low - b) * w then b = low
+			elseif least == (r - right) * h then r = right
+			else l = left end
+			if r <= l or t <= b then return end
+		end
+	end
+	return l, r, b, t
+end
+
 local function Reachable(n, reach)
 	for k = reach, -INSET, -1 do
 		if ASSETS[Named(ENDS.Pointed, n + 2 * k)] then return k end
@@ -721,8 +738,14 @@ function Handle:Frame(full)
 		if Plain(sl) and Plain(st) and Plain(sr) and Plain(sb) then
 			local l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
 			local track = joined.backgroundName or "track"
-			if wrap[1] > 0 and l > x0 - wrap[1] then self:Fill(x0 - wrap[1] - ox, oy - t, l - x0 + wrap[1], t - b, track) end
-			if wrap[2] > 0 and x0 + boxW + wrap[2] > r then self:Fill(r - ox, oy - t, x0 + boxW + wrap[2] - r, t - b, track) end
+			if wrap[1] > 0 and l > x0 - wrap[1] then
+				local fl, fr, fb, ft = Clip(list, x0 - wrap[1], l, b, t)
+				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+			end
+			if wrap[2] > 0 and x0 + boxW + wrap[2] > r then
+				local fl, fr, fb, ft = Clip(list, r, x0 + boxW + wrap[2], b, t)
+				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+			end
 		end
 	end
 	if self.swaps then
@@ -1004,6 +1027,19 @@ local function Draw(self)
 	end
 	for i = self.used + 1, #self.textures do self.textures[i]:Hide() end
 	self.textures.epoch = done and self.epoch or nil
+	if self.swaps then
+		if done then
+			self.tries = nil
+		elseif (self.tries or 0) < 3 then
+			self.tries = (self.tries or 0) + 1
+			if not self.retry then
+				self.retry = function()
+					if self.textures.epoch ~= self.epoch and Spanned(self) == self.key then Draw(self) end
+				end
+			end
+			C_Timer.After(0, self.retry)
+		end
+	end
 	for _, dependent in ipairs(self.dependents or EMPTY) do dependent:Restyle() end
 	if self.kind == "row" then
 		for bar in pairs(BARS) do bar:Restyle() end
@@ -1011,7 +1047,7 @@ local function Draw(self)
 end
 
 function Handle:Restyle()
-	self.epoch = (self.epoch or 0) + 1
+	self.epoch, self.tries = (self.epoch or 0) + 1, nil
 	if self.swaps then
 		local key = Spanned(self)
 		if key ~= nil then Select(self, key) end
@@ -1023,6 +1059,7 @@ function Handle:Swap()
 	local key = Spanned(self)
 	if key == nil then return self:Restyle() end
 	if not Select(self, key) then return end
+	self.tries = nil
 	local textures = self.textures
 	if textures.epoch ~= self.epoch then return Draw(self) end
 	for i = 1, self.used do

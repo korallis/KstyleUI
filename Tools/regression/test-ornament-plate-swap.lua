@@ -209,6 +209,32 @@ local function run(screen, level)
 		same(handle, label .. " idle")
 		bar.GetBottom = bottom
 	end
+	for _, entry in ipairs(tokens) do
+		local token = entry[1]
+		local label = string.format("%s %dx%d scale %.2f %s with no rect when the cast bar shows", level, screen[1], screen[2], entry[3], entry[2])
+		local plate = ns.Plates.Get(token)
+		local handle, bar = plate.ornament, plate.castBar
+		local bottom = bar.GetBottom
+		env._units[token].cast = nil
+		cast(token, false)
+		plate:Restyle()
+		plate:Refresh()
+		env.RunTimers()
+		bar.GetBottom = function() return nil end
+		cast(token, true)
+		assert(drawn(handle) == "", label .. ": a cast with no rect yet shows nothing")
+		env.RunTimers()
+		assert(drawn(handle) == "", label .. ": a rect that never comes stops the retries")
+		cast(token, false)
+		cast(token, true)
+		bar.GetBottom = bottom
+		env.RunTimers()
+		local casting = drawn(handle)
+		assert(casting ~= "", label .. ": the cast draws once its rect comes")
+		same(handle, label)
+		env._units[token].cast = nil
+		cast(token, false)
+	end
 	K.Options.Write("Widgets", "ornaments", level == "Full" and "Subtle" or "Full")
 	env.RunTimers()
 	for _, entry in ipairs(tokens) do

@@ -47,8 +47,8 @@ local function content(plate)
 	return list
 end
 
-local function run(width, height, scale, level)
-	local env, K, ns = N.New({ width = width, height = height })
+local function run(width, height, scale, level, extras)
+	local env, K, ns = N.New({ width = width, height = height, uiScale = extras and 768 / 1080 or nil })
 	env._textWidth = function(text, fontPath, size)
 		return Scene.TextWidth(Scene.PlainText(text), size, fontPath)
 	end
@@ -63,6 +63,10 @@ local function run(width, height, scale, level)
 		base:ClearAllPoints()
 		base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", spec.x * k, (1080 - spec.y) * k)
 	end
+	if extras then
+		K.Options.Write("Nameplates", "level.show", true)
+		K.Options.Write("Nameplates", "cast.showIcon", true)
+	end
 	N.Target(env, "nameplate1")
 	N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
 	N.Cast(env, "nameplate3", { name = "Terrifying Screech", text = "Terrifying Screech", texture = 136124, notInterruptible = true })
@@ -73,7 +77,7 @@ local function run(width, height, scale, level)
 	for _ = 1, 10 do N.Tick(env, 0.05) end
 	Scene.Build(env)
 	K.Callbacks.Fire("SettingChanged", "Widgets", "ornaments")
-	local label = string.format("%s %dx%d scale %.2f", level, width, height, scale)
+	local label = string.format("%s %dx%d scale %.2f%s", level, width, height, scale, extras and " at the shipped Interface size with level discs and spell icons" or "")
 	local pixel = 1080 / height
 	local scene = Scene.Build(env)
 	local solver = Scene.RectSolver(env)
@@ -98,7 +102,7 @@ local function run(width, height, scale, level)
 						if object.IsVisible and object:IsVisible() then
 							local x, y, w, h = Scene.RectIn(solver, object)
 							local ink = object.GetStringWidth and object:GetStringWidth()
-							if x and type(ink) == "number" and ink > 0 and object:GetWidth() > 0 and ink < object:GetWidth() then
+							if x and type(ink) == "number" and ink > 0 and (tonumber(object:GetWidth()) or 0) > 0 and ink < object:GetWidth() then
 								local factor, justify = w / object:GetWidth(), object:GetJustifyH()
 								local inkW = ink * factor
 								x = justify == "LEFT" and x or justify == "RIGHT" and x + w - inkW or x + (w - inkW) / 2
@@ -139,7 +143,8 @@ for _, screen in ipairs({ { 1280, 720 }, { 1920, 1080 }, { 3456, 2234 }, { 3840,
 	for _, scale in ipairs({ 1, 0.58 }) do
 		for _, level in ipairs({ "Off", "Subtle", "Full" }) do
 			run(screen[1], screen[2], scale, level)
+			if level ~= "Off" then run(screen[1], screen[2], scale, level, true) end
 		end
 	end
 end
-print("ok plate frames keep one pixel clear of plate content on four screens and two plate scales")
+print("ok plate frames keep one pixel clear of plate content on four screens and two plate scales, with and without level discs and spell icons")
