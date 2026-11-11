@@ -1081,11 +1081,31 @@ function Handle:Row(full)
 	if gap < 0 or math.abs(gap - floor(self.pairGap / self.pixel + 0.5)) > 1 then return end
 	local height = floor((top * factor - bottom * self.factor) / pixel + 0.5)
 	if height < self.height or height > self.height * 3 then return end
-	local name = Tier(full and "Tray" or "Arrow", min(full and 96 or 32, full and height or floor(height * 0.4)))
 	local up = (height - self.height) / 2
-	local spec = name and ASSETS[name]
-	local clear = spec ~= nil
-	if clear then
+	local S = Scratch(self)
+	S.nrec = 0
+	local bars = List(S, "rowBars")
+	for bar in pairs(BARS) do
+		local target = bar.target
+		local shown = target and type(target.IsVisible) == "function" and target:IsVisible()
+		if W.IsSecret(shown) then return end
+		if shown then
+			local l, r, t, b, f = target:GetLeft(), target:GetRight(), target:GetTop(), target:GetBottom(), W.ScaleFactor(target)
+			if Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) then
+				local rim = target.rimOutset or W.Border(target)
+				local o = Rec(S)
+				o.l, o.r, o.t, o.b, o.clear = (l - rim) * f / pixel, (r + rim) * f / pixel, (t + rim) * f / pixel, (b - rim) * f / pixel, 1
+				bars[#bars + 1] = o
+			end
+		end
+	end
+	local wanted = min(full and 96 or 32, full and height or floor(height * 0.4))
+	local name, spec
+	while true do
+		name = Tier(full and "Tray" or "Arrow", wanted)
+		spec = name and ASSETS[name]
+		if not spec then break end
+		local clear = true
 		local originX, originY = left * self.factor / pixel, ownTop * self.factor / pixel
 		local finialTop = floor(originY - floor(self.height / 2 - up - spec[2] / 2 + 0.5) + 0.5)
 		local finialBottom = finialTop - spec[2]
@@ -1113,17 +1133,31 @@ function Handle:Row(full)
 			end
 			if not clear then break end
 		end
-	end
-	if clear then
-		self:Piece(name, "RIGHT", "LEFT", -2, up)
-		self:Piece(name, "LEFT", "RIGHT", 2, up, true)
+		if not clear then break end
+		for side = 1, 2 do
+			local x = side == 1 and floor(originX - 2 - spec[1] + 0.5) or floor(originX + self.width + 2 + 0.5)
+			if not Free(bars, x, finialTop, spec[1], spec[2]) then
+				clear = false
+				break
+			end
+		end
+		if clear then
+			self:Piece(name, "RIGHT", "LEFT", -2, up)
+			self:Piece(name, "LEFT", "RIGHT", 2, up, true)
+			break
+		end
+		wanted = spec[2] - 1
 	end
 	if full and self.height >= 30 then
 		local avoid = List(Scratch(self), "avoid")
 		avoid[1] = other
 		for i, bar in ipairs(self.avoidBars or EMPTY) do avoid[i + 1] = bar end
 		self.avoid, self.avoidShown = avoid, true
-		self:Piece(Tier("Keystone", self.height >= 50 and 12 or 6), "TOP", "BOTTOM", 0, -1)
+		local keystone = Tier("Keystone", self.height >= 50 and 12 or 6)
+		local kx, ky, kox, koy, kspec = self:Spot(keystone, "TOP", "BOTTOM", 0, -1)
+		if kx and Free(bars, kox + kx, koy - ky, kspec[1], kspec[2]) then
+			self:Piece(keystone, "TOP", "BOTTOM", 0, -1)
+		end
 		self.avoid, self.avoidShown = nil, nil
 	end
 end
@@ -1328,10 +1362,22 @@ function W.Ornament(owner, kind, target, passive)
 	end
 	local function wake()
 		if handle.stale then handle:Restyle() end
+		if kind == "bar" then
+			for row in pairs(ROWS) do
+				if not W.MayMove(row.owner) then row:Yield(handle.target) end
+				row:Restyle()
+			end
+		end
+	end
+	local function hidden()
+		for row in pairs(ROWS) do row:Restyle() end
 	end
 	local frame = owner
 	while frame and frame ~= UIParent do
-		if type(frame.HookScript) == "function" then frame:HookScript("OnShow", wake) end
+		if type(frame.HookScript) == "function" then
+			frame:HookScript("OnShow", wake)
+			if kind == "bar" then frame:HookScript("OnHide", hidden) end
+		end
 		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
 	end
 	handle:Restyle()
