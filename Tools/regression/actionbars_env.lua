@@ -540,8 +540,6 @@ local function InstallGame(env, opts)
 end
 
 -- New(opts) -> env, KstyleUI, ns. opts: class, maxSlot, saved, setup(env), and the widget_env options.
-AB.InstallGame = InstallGame
-
 function AB.New(opts)
 	opts = opts or {}
 	local setup = opts.setup
