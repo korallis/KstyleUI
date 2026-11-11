@@ -189,10 +189,10 @@ function M.EndSize(scene, handle)
 	return h, w, rects
 end
 
--- Blocker(scene, handle, rects, px) -> a piece of another handle that comes within the centre column's gap (4 root
--- units or 3 physical pixels, ruling C) of one of rects, or nil.
+-- Blocker(scene, handle, rects, px) -> a piece of another handle, drawn only at this level, that comes within 1
+-- physical pixel of one of rects (where Subtle drew its end or rail), or nil.
 local function Blocker(scene, handle, rects, px)
-	local mine, gap = {}, math.max(4, 3 / px)
+	local mine, gap = {}, 1 / px
 	for i = 1, handle.used do mine[handle.textures[i]] = true end
 	for _, item in ipairs(scene.items) do
 		if file(item) and not mine[item.object] then

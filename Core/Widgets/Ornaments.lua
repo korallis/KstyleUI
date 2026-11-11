@@ -303,15 +303,14 @@ local function AddNeighbours(self, S, list, pixel)
 	for _, frame in ipairs(near or EMPTY) do
 		local l, r, t, b = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
 		local f = W.ScaleFactor(frame)
-		if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) or W.IsSecret(f) then return false end
-		if l ~= nil or r ~= nil or t ~= nil or b ~= nil then
-			if not (type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number" and Plain(f)) then return false end
+		local known = not (W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) or W.IsSecret(f))
+			and type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number" and Plain(f)
+		if known then
 			local o = Rec(S)
 			o.l, o.r, o.t, o.b, o.clear, o.cut = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel, 1, self.kind == "bar"
 			list[#list + 1] = o
 		end
 	end
-	return true
 end
 
 function Handle:Obstacles()
@@ -330,7 +329,7 @@ function Handle:Obstacles()
 	for _, bar in ipairs(self.near or EMPTY) do
 		if not Add(self, S, list, pixel, bar, 1, false, bar.rimOutset or W.Border(bar)) then return end
 	end
-	if not AddNeighbours(self, S, list, pixel) then return end
+	AddNeighbours(self, S, list, pixel)
 	if self.kind == "bar" then
 		for row in pairs(ROWS) do
 			for i = 1, row.used do
@@ -559,7 +558,7 @@ function Handle:Frame(full)
 	if not forged then
 		open = List(S, "open")
 		for _, o in ipairs(list) do
-			if not (o.row or o.cut or bar and o.other) then open[#open + 1] = o end
+			if not (o.row or bar and o.other) then open[#open + 1] = o end
 		end
 	end
 	if not full and Free(open, x0, y0 + 1, boxW, 1) and Free(open, x0, y0 - boxH, boxW, 1) then reach = 1 end
@@ -886,7 +885,7 @@ local function MapObstacles(self, pixel)
 	for _, text in ipairs(self.texts or EMPTY) do
 		if not Add(self, S, list, pixel, text, 1, true) then return end
 	end
-	if not AddNeighbours(self, S, list, pixel) then return end
+	AddNeighbours(self, S, list, pixel)
 	return list
 end
 

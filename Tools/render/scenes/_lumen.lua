@@ -249,7 +249,8 @@ function Lumen.Build(state, opts)
 				if handle.neighbours then
 					handle:Restyle()
 					for i = 1, handle.used do
-						out[#out + 1] = tostring(handle.textures[i]:GetTexture())
+						local t = handle.textures[i]
+						out[#out + 1] = table.concat({ tostring(t:GetTexture()), tostring(t:GetLeft()), tostring(t:GetTop()), tostring(t:GetWidth()) }, " ")
 					end
 				end
 			end
