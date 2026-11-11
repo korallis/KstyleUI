@@ -156,4 +156,6 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 			assert(#senv._errors == 0 and SK.ErrorCount() == 0, where .. ": " .. tostring(senv._errors[1]))
 		end
 	end
+	senv, SK, sns = nil, nil, nil
+	collectgarbage("collect")
 end
