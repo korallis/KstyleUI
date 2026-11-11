@@ -1514,6 +1514,16 @@ local function Splits(tracker)
 			cog:SetPoint("TOPRIGHT", splits, "TOPRIGHT", -SPLITS_SIDE, TitleRise(splits, title) - (height - own) / 2)
 		end
 	end
+	local panel = Panel(splits)
+	local crest = panel and panel.chrome and panel.chrome.ornament
+	if crest and crest.inside and #crest.inside == 0 and IsTable(title) then
+		for _, region in ipairs({ title.text or false, cog or false }) do
+			if IsTable(region) and type(region.GetLeft) == "function" then
+				crest.inside[#crest.inside + 1] = region
+			end
+		end
+		panel.chrome:RestyleOrnament()
+	end
 end
 
 local function Tracker(rxp)

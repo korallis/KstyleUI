@@ -530,6 +530,26 @@ do
 	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
 	local cogPoint, cogOn, cogOnPoint, cogX, cogY = splits.title.cog:GetPoint(1)
 	assert(cogPoint == "TOPRIGHT" and cogOn == splits and cogOnPoint == "TOPRIGHT" and cogX == -8 and W.Near(cogY, 5.5), "the cog stands at the right end of the title's row, inside the glass and clear of the gilt tick: RestedXP hangs it off the top left corner (LevelingTracker.lua 1057), got " .. tostring(cogPoint) .. " " .. tostring(cogX) .. " " .. tostring(cogY))
+	local crest = K.Skin.Parts(splits).backdrop.chrome.ornament
+	local listed = {}
+	for _, region in ipairs(crest and crest.inside or {}) do listed[region] = true end
+	assert(listed[splits.title.text] and listed[splits.title.cog], "the level splits' crest keeps clear of its caption and its cog: RestedXP makes the title after the skin dresses the window (LevelingTracker.lua 1017-1067)")
+	splits.title.text:SetSize(80, 12)
+	splits:SetSize(600, 300)
+	crest:Restyle()
+	local shown = {}
+	for i = 1, crest.used do
+		if crest.textures[i]:IsShown() then shown[#shown + 1] = crest.textures[i] end
+	end
+	assert(#shown == 1 and shown[1]:GetTexture():find("ForgedOrnaments\\Crest%d+%.png$"), "a level splits window wide enough for a crest draws one, got " .. #shown)
+	local pixel = K.Scale.Pixel(1)
+	local function edges(region)
+		local f = K.Widgets.ScaleFactor(region)
+		return region:GetLeft() * f / pixel, region:GetRight() * f / pixel, region:GetTop() * f / pixel, region:GetBottom() * f / pixel
+	end
+	local cl, cr, ct, cb = edges(shown[1])
+	local tl, tr, tt, tb = edges(splits.title.text)
+	assert(math.max(tl - cr, cl - tr, cb - tt, tb - ct) >= 1, "the splits crest keeps 1 physical pixel from its caption")
 	rxp.settings.profile.hideSplitsBackground = true
 	rxp.tracker:RenderSplitsBackground()
 	assert(not Glass(K, splits), "the splits' hide-background setting hides the glass")

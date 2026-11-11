@@ -1559,6 +1559,7 @@ local function Tracker(m, rxp, env)
 		splits.title.cog:SetPoint("LEFT", splits.title, "LEFT", -9, 0)
 		Normal(m, splits.title.cog, "rxp_cog-32")
 		m.text(splits.title, "text"):SetText("Level splits")
+		splits.title.text:SetPoint("CENTER", splits.title, "CENTER", 0, 1)
 		local previous
 		for _, key in ipairs({ "history", "current", "total" }) do
 			local label = AceLabel(m, splits)
