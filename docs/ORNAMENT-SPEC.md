@@ -99,8 +99,48 @@ Each surface's pull request adds its section here.
 | Surface | Pull request | State |
 | --- | --- | --- |
 | Setup step and Options control | foundation | shipped |
-| Unit frames and their cast bars | 2 | to come |
+| Unit frames and their cast bars | 2 | shipped |
 | Action-bar tray | 3 | to come |
 | Nameplates | 4 | to come |
 | Minimap and data bars | 5 | to come |
 | Window and card crests | 6 | to come |
+
+### Unit frames and their cast bars
+
+| Piece | Handle | Subtle | Full |
+| --- | --- | --- | --- |
+| Health and power block (player, target, focus, boss, party) | `bar` on the health bar, spanning the power bar and an attached inline cast | `Rail1` hairlines above and below, `EndPointed` ends at the block's height | `Forge` rails with `Tip` rivets, 2 to 7 px by screen and Interface size; `EndClawed` ends where they fit, otherwise Subtle's pointed ends; the yoke: the rail on the portrait side runs into the portrait band |
+| Portrait | `ring` on the portrait frame | nothing | the `Ring` band at the portrait's size; `ElitePendantR` on an elite or rare target, `BossPendantR` on a world boss, from `UnitClassification` (a secret value draws no pendant) |
+| Separate cast bar | `bar` on the cast bar, pointed family only | as the block | as the block, clear of the spell icon |
+| Inline cast bar | joins the block's handle; its own handle stands down | | |
+| Focus and boss cards, the Targeted chip | `corners` | nothing | `Corner` tiers |
+
+The level badge and its number are measured as one circle (ruling A). The block avoids the badge, the portrait band, the caption gems and every text on the frame.
+
+**Combat and secure frames.** No ornament texture or frame belongs to the `SecureUnitButtonTemplate` button. The block's and cast bar's textures sit on a host frame created on the first placement as a child of the card panel (`view.panel`, `cb.panel`), anchored with `SetAllPoints` to its bar and levelled one above it. The band and pendants sit on the portrait frame, and the corners on the card panel or the chip. All of these are plain `Frame`s. Every restyle first asks `Widgets.MayMove(owner)`: out of combat it runs; in lockdown it runs only when `owner:IsProtected()` is false. A true or secret answer queues it through `Combat.Queue` until `PLAYER_REGEN_ENABLED`. So in combat a target change can create, level, anchor and show these plain frames and textures, which the game allows. `test-ornament-combat.lua` proves a protected owner is not touched in lockdown and is restyled after it.
+
+**Recorded limits.** Measured on this pull request's code at Full across the three presets, nine screens and the Interface size slider (0.84 is the shipped size, 16/19):
+
+- **The yoke drops** where it cannot meet the band and keep 3 px from the level badge. The same in DPS, Tank and Healer:
+
+  | Frame | Screen | Interface sizes without a yoke |
+  | --- | --- | --- |
+  | player | 1280x720 | 0.60, 0.65, 0.84 |
+  | player | 1366x768 | 0.60, 0.65 |
+  | target | 1280x720 | 0.60, 0.65, 0.90 |
+  | target | 1366x768 | 0.60, 0.65 |
+  | target | 1920x1080 | 0.60 |
+
+  At 1280x720 and the shipped size, the player's rail would have to reach x <= 494 to enter the band's ink. There its drawn gap to the level badge is 2.83 px, under the 3 px rule. The Captain accepted the player yoke as absent there on 2026-11-11; the target's yoke joins.
+- **The target's bottom rail** closes the block only where the gap above the inline cast bar holds it, and then as a 1 px hairline; everywhere else it is dropped, never thinned (ruling C). It is drawn at:
+
+  | Screen | DPS and Tank | Healer |
+  | --- | --- | --- |
+  | 1280x720, 1366x768, 1920x1080 | never | never |
+  | 2560x1440, 3440x1440, 5120x1440 | 0.70, 0.95 | 0.70, 0.95, 1.05, 1.10 |
+  | 3840x2160 | 0.65, 0.95 | 0.65, 0.95, 1.00 to 1.50 |
+  | 2383x1540 | 0.65 | 0.65, 1.00 |
+  | 3456x2234 | 0.70, 0.95 to 1.50 | 0.70, 0.95 to 1.50 |
+
+  The player's bottom rail is forged at every screen and size.
+- **Levels told apart by rail weight only.** In `gallery_unitframes` the party frames keep the same `EndPointed` ends at both levels and differ only in the rail: `Rail1` at Subtle, `Forge3`/`Forge4` with rivets at Full. On the HUD, the 1920x1080 target keeps Subtle's ends at Full for the same reason: the claws do not fit.
