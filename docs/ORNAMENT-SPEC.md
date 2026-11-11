@@ -38,7 +38,7 @@ Which surface uses which kind is listed under [Surfaces](#surfaces).
 A piece is dropped, never forced, when:
 
 - the level is Off, the material is Glass, or the handle's target is hidden;
-- the target's size or position is unknown, zero or a secret value (no art is guessed);
+- the target's size is unknown, zero or a secret value, or the edges of the target or of anything it must avoid are unknown or a secret value (no art is guessed); an edge at 0, on the screen's left or bottom side, is known like any other, and so is a negative edge off the screen (LEE-159, `test-ornament-zero-edge.lua`);
 - a bar is under 4 physical pixels tall;
 - the piece would come within the clearance below of anything it must avoid;
 - the reach table did not ship the piece (see [Tier resolution](#tier-resolution));
