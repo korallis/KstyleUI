@@ -11,6 +11,8 @@ WORKFLOWS = REPO / ".github" / "workflows"
 
 USES = re.compile(r"^\s*(?:- )?uses: (\S+)(.*)$", re.M)
 STEP_OR_JOB = re.compile(r"^(\s+- |  \S)")
+RUNNERS = "runs-on: [self-hosted, mac-ci, KstyleUI]"
+FORK_GUARD = "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
 
 
 def workflows():
@@ -26,6 +28,12 @@ def steps_after(text, start):
             break
         block.append(line)
     return "\n".join(block)
+
+
+def jobs_of(text):
+    """Return {job id: job text} for a workflow's jobs."""
+    parts = re.split(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
+    return dict(zip(parts[1::2], parts[2::2]))
 
 
 def title_pattern():
@@ -101,10 +109,10 @@ class WorkflowsTest(unittest.TestCase):
         # The check job builds and inspects the pack without uploading; the release job builds it again and
         # uploads KstyleUI-Icons-<version>.zip to the GitHub release the packager made.
         self.assertIn("Tools/icons/iconset.py pack", check)
-        self.assertIn("pillow==", check, "pack needs Pillow to read the PNGs")
+        self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', check, "pack needs Pillow to read the PNGs")
         self.assertIn("Tools/icons/iconset.py verify", check)
         self.assertIn("Tools/icons/iconset.py pack", release)
-        self.assertIn("pillow==", release)
+        self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', release)
         self.assertRegex(release, r"KstyleUI-Icons-\$\{GITHUB_REF_NAME#v\}\.zip")
         self.assertIn("gh release upload", release)
         self.assertNotIn("gh release upload", check)
@@ -116,7 +124,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(jobs, ["pre-commit", "lua", "python", "package", "verdict"])
         verdict = text.split("\n  verdict:\n", 1)[1]
         self.assertIn("needs: [pre-commit, lua, python, package]", verdict)
-        self.assertIn("if: ${{ !cancelled() }}", verdict, "the verdict must report even when a job failed")
+        self.assertIn("if: ${{ !cancelled() && (" + FORK_GUARD + ") }}", verdict, "the verdict must report even when a job failed")
 
     def test_checks_runs_on_pull_request_opening_and_pushes_never_on_edits_or_labels(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
@@ -138,7 +146,7 @@ class WorkflowsTest(unittest.TestCase):
         for name in ("pr-title.yml", "pr-rules.yml"):
             text = (WORKFLOWS / name).read_text(encoding="utf-8")
             self.assertNotIn("steps.scope", text, name)
-            self.assertNotRegex(text, r"(?m)^\s+if:", name)
+            self.assertNotRegex(text.replace("    if: " + FORK_GUARD + "\n", ""), r"(?m)^\s+if:", name)
         self.assertIn("types: [opened, edited, synchronize, reopened]", (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8"))
 
     def test_every_step_after_the_scope_decision_waits_for_it(self):
@@ -160,30 +168,39 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn('--shard "$SHARD/{0}"'.format(len(shards)), job)
         self.assertIn("lua ${{ matrix.shard }}/" + str(len(shards)), job)
 
-    def test_the_downloaded_luacheck_is_pinned_by_hash(self):
-        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
-        self.assertRegex(text, r"luacheck/releases/download/v1\.2\.0/luacheck")
-        self.assertRegex(text, r"[0-9a-f]{64}  luacheck\" \| sha256sum -c -")
+    def test_every_job_runs_on_the_mac_ci_runners_and_never_for_a_fork(self):
+        for path in workflows():
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("ubuntu-", text, path.name)
+            self.assertNotRegex(text, r"\bsudo\b", path.name)
+            jobs = jobs_of(text)
+            self.assertTrue(jobs, path.name)
+            for job, body in jobs.items():
+                self.assertIn("\n    " + RUNNERS + "\n", body, f"{path.name}: {job}")
+                guard = re.search(r"(?m)^    if: (.*)$", body)
+                self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
+                self.assertIn(FORK_GUARD, guard.group(1), f"{path.name}: {job}")
+
+    def test_the_runner_tools_are_checked_by_version(self):
+        checks = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        self.assertIn("luacheck --version | grep '^Luacheck: 1\\.2\\.0$'", checks["pre-commit"])
+        self.assertIn("pre-commit --version | grep '^pre-commit 4\\.7\\.0$'", checks["pre-commit"])
+        for job in ("lua", "python", "package"):
+            self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", checks[job], job)
+        self.assertIn("python3 --version | grep '^Python 3\\.12\\.'", checks["python"])
+        release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
+        self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", release["check"])
 
     def test_no_workflow_fetches_packages_with_apt(self):
         for path in workflows():
             self.assertNotRegex(path.read_text(encoding="utf-8"), r"apt(-get)?\s+(update|install)", path.name)
-
-    def test_every_lua_install_builds_the_pinned_source_and_is_cached(self):
-        for path in workflows():
-            text = path.read_text(encoding="utf-8")
-            installs = text.count("bash Tools/dev/install-lua51.sh")
-            if path.name != "release.yml":
-                self.assertEqual(text.count("- name: Cache Lua 5.1.5"), installs, path.name)
-        script = (REPO / "Tools" / "dev" / "install-lua51.sh").read_text(encoding="utf-8")
-        self.assertRegex(script, r"(?m)^sha256=[0-9a-f]{64}$")
 
     def test_pr_text_reaches_scripts_only_through_env(self):
         text_fields = re.compile(r"github\.(event\.pull_request\.(body|title|labels|head)|head_ref|base_ref)")
         for path in workflows():
             for line in path.read_text(encoding="utf-8").splitlines():
                 if "${{" in line and text_fields.search(line):
-                    self.assertRegex(line, r"^\s*([A-Z_]+|run-name): \"?\$\{\{", f"{path.name}: {line.strip()}")
+                    self.assertRegex(line, r"^\s*([A-Z_]+|run-name|if): \"?\$\{\{", f"{path.name}: {line.strip()}")
 
     def test_title_pattern_accepts_type_scope_summary(self):
         for title in ("ci(repo): add CI workflows", "feat: add the minimap", "fix(unit-frames): keep the bar", "revert(core): undo"):

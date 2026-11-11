@@ -191,7 +191,7 @@ class Slots:
 
 def make_slots(lease):
     """Return the Slots for this run, or (None, why) when the limit is off or its folder cannot be made."""
-    if os.environ.get("CI") == "true":
+    if os.environ.get("CI") == "true" and os.environ.get("RUNNER_ENVIRONMENT") != "self-hosted":
         return None, "worker slots: off in CI"
     cpus = os.cpu_count() or 2
     count = int(os.environ.get("KSTYLEUI_SLOTS") or max(2, cpus // 3))

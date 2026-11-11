@@ -33,7 +33,7 @@ class RunAllTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def run_all(self, *args, lua="sh", **changes):
-        env = {key: value for key, value in os.environ.items() if key not in ("CI", "LUA", "TEST_TIME_BUDGET", "TEST_MEMORY_BUDGET")}
+        env = {key: value for key, value in os.environ.items() if key not in ("CI", "RUNNER_ENVIRONMENT", "LUA", "TEST_TIME_BUDGET", "TEST_MEMORY_BUDGET")}
         env.update(KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64")
         if lua is not None:
             env["LUA"] = lua
@@ -47,6 +47,7 @@ class RunAllTest(unittest.TestCase):
     def start_all(self, **changes):
         env = dict(os.environ, LUA="sh", KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64", JOBS="4")
         env.pop("CI", None)
+        env.pop("RUNNER_ENVIRONMENT", None)
         env.update(changes)
         return subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=env, stdout=subprocess.PIPE, text=True)
 
@@ -329,6 +330,13 @@ class RunAllTest(unittest.TestCase):
         self.assertIn("worker slots: off in CI", self.run_all(CI="true").stdout)
         self.assertIn("worker slots: off (KSTYLEUI_SLOTS=0)", self.run_all(KSTYLEUI_SLOTS="0").stdout)
         self.assertFalse((self.tmp / "slots" / "worker-slots.json").exists())
+
+    def test_the_limit_stays_on_for_ci_on_a_self_hosted_runner(self):
+        self.timed_tests(1)
+        result = self.run_all(CI="true", RUNNER_ENVIRONMENT="self-hosted", KSTYLEUI_SLOTS="3")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("worker slots: 3 for every run on this machine", result.stdout)
+        self.assertIn("worker slots: off in CI", self.run_all(CI="true", RUNNER_ENVIRONMENT="github-hosted").stdout)
 
     def test_runs_unlimited_when_the_slot_folder_cannot_be_made(self):
         self.timed_tests(1)
