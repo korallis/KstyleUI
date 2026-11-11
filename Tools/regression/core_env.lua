@@ -75,7 +75,7 @@ function CoreEnv.LoadSaved(env)
 	if env._renderOrnaments then
 		local level = env._renderOrnaments
 		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))
-		env.KstyleUI.Options.Write("Widgets", "ornaments", level)
+		env.KstyleUI.Store.Module("Widgets").ornaments = level
 	end
 end
 
