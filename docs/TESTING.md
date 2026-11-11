@@ -82,12 +82,13 @@ Type these in chat once you are in the world. Each setting is saved, so it stays
 
 ### Run the first-run setup
 
-About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with four steps across the top.
+About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with five steps across the top.
 
 1. **Welcome.** Click **Next**.
 2. **Layout.** Pick **DPS**, **Tank** or **Healer**. The picked card lights in your class colour. Click **Next**.
 3. **Modules.** Every module whose addon loaded is switched on, each with a one-line note. Leave them all on for this test. Click **Next**.
-4. **Summary.** Click **Apply**, then **Reload**.
+4. **Ornaments.** **Full** is picked. Click **Subtle**, then **Full** again: the picked card lights. Click **Next**.
+5. **Summary.** It names the layout and **Ornaments: Full**. Click **Apply**, then **Reload**.
 
 After the reload, KstyleUI's frames replace Blizzard's and sit where the layout puts them. The setup does not open again. `/kstyle setup` reopens it.
 
@@ -95,6 +96,7 @@ Check:
 
 - [ ] **Back**, **Next** and the step strip move between steps, and steps you have not reached cannot be clicked.
 - [ ] **Reload** reloads with no "Interface action blocked" message.
+- [ ] After the reload, General > Ornaments in the settings window shows **Full** picked in its three-way control. Click **Subtle** and **Off** there: the pick moves, and nothing else on the page changes.
 - [ ] If you are in combat when you press **Apply**, **Reload** stays disabled until combat ends.
 
 ### Open the settings window

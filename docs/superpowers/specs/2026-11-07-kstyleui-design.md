@@ -257,6 +257,10 @@ The root is 1920 units wide at 16:9 and about 1671 units wide on the Mac. Every 
 
 Every generated asset gets an entry in `Media/PROVENANCE.md` with its model, prompt, settings and date. No asset may be copied from Narcissus, Plumber, DialogueUI, WaypointUI or any other addon.
 
+### Ornaments
+
+Forged ornaments are painted trim (end pieces, rails, rivets, corners, crests, portrait bands and pendants) in three levels: Off, Subtle and Full. Full is the default, and the first-run setup preselects it. Off creates no ornament textures, so an Off screen is pixel-identical to a build without ornaments, and the picture tests are judged at Off. The pieces ship at their native sizes as lossless RGBA, only the tiers a player can reach, under a 1.7 MB cap (raised from 600 KB by the Captain on 2026-11-11). [`docs/ORNAMENT-SPEC.md`](../../ORNAMENT-SPEC.md) holds the levels, the pieces per surface, the omissions, the clearance and ink-shape rulings, the reach table rule and the recorded limits.
+
 ## Modules
 
 Each module either replaces Blizzard's frames with its own, mirrors a Blizzard data source into its own display, or reskins Blizzard's frame in place.

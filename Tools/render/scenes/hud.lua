@@ -23,6 +23,10 @@ local Hud = {}
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
+-- Hud.ornamentRows, while a HUD composes (scenes/_lumen.lua), holds the ornament rows the modules built so far placed
+-- (Widgets.OrnamentRows). The game keeps one registry for every module, so a bar ornament keeps clear of the action
+-- bars' tray; build() gives each environment the rows the others placed, and nothing else crosses environments.
+Hud.ornamentRows = nil
 
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
 -- opts.spec overlays the class's entry field by field (a fixture's own name, bars and buffs).
@@ -189,7 +193,26 @@ local function build(env, opts, extra)
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
+	local W = K and K.Widgets
+	local registry = Hud.ornamentRows and W and W.OrnamentRows
+	if registry then
+		local placed = false
+		for row in pairs(Hud.ornamentRows) do
+			registry[row] = true
+			placed = placed or row.used > 0
+		end
+		if placed then
+			for bar in pairs(W.OrnamentBars) do
+				bar:Restyle()
+			end
+		end
+	end
 	local scene = Scene.Build(env, sceneOpts)
+	if registry then
+		for row in pairs(registry) do
+			Hud.ornamentRows[row] = true
+		end
+	end
 	for _, line in ipairs(previewed) do
 		scene.log[#scene.log + 1] = "sizes " .. line .. ", as Layout > Apply writes it for the layout"
 	end

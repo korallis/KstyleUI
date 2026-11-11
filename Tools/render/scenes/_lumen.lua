@@ -187,12 +187,44 @@ function Lumen.Build(state, opts)
 	end
 	names = opts.modules or names
 	local built, at = {}, {}
+	Hud.ornamentRows = setmetatable({}, { __mode = "k" })
 	for _, name in ipairs(names) do
 		local scene, ns, extra = Hud.Module(name, base)
 		scenes[#scenes + 1] = scene
 		built[name] = { scene = scene, ns = ns, extra = extra }
 		at[name] = #scenes
 	end
+	-- The game restyles every bar ornament when a row places its pieces (Core/Widgets/Ornaments.lua), so a module built
+	-- before the action bars is drawn again when the rows the later modules placed move its bar ornaments.
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local W = env and env.KstyleUI and env.KstyleUI.Widgets
+		if W and W.OrnamentRows then
+			local function placed()
+				local out = {}
+				for bar in pairs(W.OrnamentBars) do
+					bar:Restyle()
+					for i = 1, bar.used do
+						local t = bar.textures[i]
+						out[#out + 1] = table.concat({ tostring(t:GetTexture()), tostring(t:GetLeft()), tostring(t:GetTop()), tostring(t:GetWidth()) }, " ")
+					end
+				end
+				table.sort(out)
+				return table.concat(out, "\n")
+			end
+			local before = placed()
+			for row in pairs(Hud.ornamentRows) do
+				W.OrnamentRows[row] = true
+			end
+			if placed() ~= before then
+				local scene, ns, extra = Hud.Module(name, base)
+				scenes[at[name]] = scene
+				built[name] = { scene = scene, ns = ns, extra = extra }
+				log[#log + 1] = "ornaments: " .. name .. " is drawn again after every module placed its rows, as the game restyles its bar ornaments then"
+			end
+		end
+	end
+	Hud.ornamentRows = nil
 	local function Dock()
 		local tracker = built.tracker
 		local env = Hud.envs[tracker.scene]

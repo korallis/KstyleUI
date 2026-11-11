@@ -118,6 +118,13 @@ function Common.ForceScreen(env)
 	env._materialChromes = env._materialChromes or {}
 	local material = os.getenv("RENDER_CARD_MATERIAL")
 	env._renderCardMaterial = material and material ~= "" and material or nil
+	-- RENDER_ORNAMENTS (Off, Subtle or Full) is the ornament level a scene draws at. A scene draws Off unless it
+	-- names a level, so hud_reference, the measurements and the galleries keep their meaning; a test that builds
+	-- several levels in one process sets the global RENDER_ORNAMENTS instead. env._ornamentHandles collects every
+	-- ornament the addon attaches, for Scene.Build to restyle at the rects it solves.
+	local ornaments = rawget(_G, "RENDER_ORNAMENTS") or os.getenv("RENDER_ORNAMENTS")
+	env._renderOrnaments = ornaments and ornaments ~= "" and ornaments or "Off"
+	env._ornamentHandles = env._ornamentHandles or {}
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
 	env._size = Common.SCREEN.size or false

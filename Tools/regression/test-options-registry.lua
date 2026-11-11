@@ -120,6 +120,15 @@ rejects(function(s) s[4].max = 200 end, "range", "a slider whose default is outs
 rejects(function(s) s[6].options = nil end, "options", "a dropdown without options")
 rejects(function(s) s[6].options = { { value = "class" } } end, "label", "a dropdown option without a label")
 rejects(function(s) table.remove(s[6].options, 1) end, "default", "a dropdown whose default is not an option")
+rejects(function(s) s[6].type = "segmented"; s[6].options = function() return {} end end, "segmented row needs options", "a segmented row with an option function")
+rejects(function(s) s[6].type = "segmented"; table.remove(s[6].options, 1) end, "default", "a segmented row whose default is not an option")
+do
+	local _, K = fresh()
+	local schema = rows()
+	schema[6].type = "segmented"
+	K.Options.Register("UnitFrames", schema)
+	assert(K.Options.Row("UnitFrames", "mode").type == "segmented", "a segmented row registers like a dropdown")
+end
 rejects(function(s) s[7].key = "texture" end, "colour", "a colour row on a string")
 rejects(function(s) s[8].key = "width" end, "string", "a texture row on a number")
 rejects(function(s) s[10].maxLetters = 0 end, "maxLetters", "a text row with a bad maxLetters")

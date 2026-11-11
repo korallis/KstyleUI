@@ -13,6 +13,7 @@ local VALUE_TYPES = {
 	toggle = "boolean",
 	slider = "number",
 	dropdown = "choice",
+	segmented = "choice",
 	color = "colour",
 	font = "string",
 	texture = "string",
@@ -24,6 +25,7 @@ local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
 	slider = { min = true, max = true, step = true, shown = true },
 	dropdown = { options = true },
+	segmented = { options = true },
 	font = { options = true },
 	color = { hasAlpha = true },
 	text = { maxLetters = true },
@@ -197,6 +199,11 @@ local function checkRow(module, row, defaults)
 			return (row.shown and "the painted default " or "the default ") .. painted .. " is outside the slider's range"
 		end
 	elseif rowType == "dropdown" then
+		return checkDropdown(row, default)
+	elseif rowType == "segmented" then
+		if type(row.options) ~= "table" then
+			return "a segmented row needs options: a list of { value, label }"
+		end
 		return checkDropdown(row, default)
 	elseif rowType == "color" then
 		if row.hasAlpha ~= nil and type(row.hasAlpha) ~= "boolean" then
