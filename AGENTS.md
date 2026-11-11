@@ -42,7 +42,7 @@ CI runs everything, once: every Lua test file, the Python suite (`python3 -m uni
 
 `luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives addons. `Tools/build/gen_globals.py --source <matching wow-ui-source> --global-strings <GlobalStrings.csv> --client-build <build>` writes `Tools/data/forever_globals.lua` from the UI source and the matching client's FrameXML GlobalStrings names. Export the CSV read-only with `Tools/icons/casc_export.py`'s `export_tables(..., tables=["GlobalStrings"])`; only names with the FrameXML flag are included, never localized values or GlueXML-only strings. Regenerate when the build changes; mismatched client and UI builds are rejected. A global your module creates, such as a named frame, a `BINDING_HEADER_*` or `BINDING_NAME_*` string, or a `SLASH_*` command, goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the evidence does not prove it or `.luacheckrc` denies it: consult the matching source and never add a Blizzard name to your module's line.
 
-After the checks pass, get one cross-family review with `codex review --base origin/staging` and fix what it finds.
+After the checks pass, get one cross-family review of the diff against `origin/staging` and fix what it finds.
 
 ## Line endings and encoding
 

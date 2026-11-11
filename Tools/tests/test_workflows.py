@@ -193,7 +193,7 @@ class WorkflowsTest(unittest.TestCase):
             "## Summary", "## Changelog", "## In-game checks", "addonCombatRestrictionsForced",
             "addonEncounterRestrictionsForced", "addonMapRestrictionsForced", "addonChatRestrictionsForced",
             "taintLog", "python3 Tools/dev/crlf.py", "pre-commit run --all-files", "bash Tools/regression/run-all.sh",
-            "run-all.sh --affected origin/staging", "/codex:review", "no changelog",
+            "run-all.sh --affected origin/staging", "cross-family review", "no changelog",
         ):
             self.assertIn(needle, text)
 

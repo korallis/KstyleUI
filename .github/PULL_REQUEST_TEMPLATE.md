@@ -25,4 +25,4 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 - [ ] `pre-commit run --all-files`
 - [ ] `luacheck .` and `python3 Tools/hooks/check_toc.py`
 - [ ] `bash Tools/regression/run-all.sh --affected origin/staging` (CI runs every test file and the Python suite)
-- [ ] `/codex:review`: one cross-family review
+- [ ] One cross-family review of the diff against `origin/staging`
