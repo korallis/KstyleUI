@@ -81,7 +81,7 @@ Modules avoid each other's ornaments through one registry of placed rows (`Widge
 
 A request for a piece the reach table did not ship resolves to the nearest smaller shipped tier, or the piece is dropped. It never sets a missing texture:
 
-- **Tiered families** walk down to the largest shipped tier at or below the request: `Ring`, `ElitePendantR`, `BossPendantR` and `Rail` by their own loops; `Arrow`, `Tray`, `Keystone`, `Plaque`, `Map`, `Point`, `Crest` and `Wing` through `Tier()`; `Corner` and the frame crest down their size lists. A ring's request is the authored odd ring when its portrait is exactly 39, 59 or 79 pixels, otherwise the portrait's side rounded up to even, so the band centres on the portrait.
+- **Tiered families** walk down to the largest shipped tier at or below the request: `Ring`, `ElitePendantR`, `BossPendantR` and `Rail` by their own loops; `Arrow`, `Tray`, `Keystone`, `Plaque`, `Map`, `Point`, `Crest` and `Wing` through `Tier()`; `Corner` and the frame crest down their size lists (the frame crest takes only `Crest32` and `Crest20`). A ring's request is the authored odd ring when its portrait is exactly 39, 59 or 79 pixels, otherwise the portrait's side rounded up to even, so the band centres on the portrait.
 - **End pieces** are drawn only at the exact height the 1:1 rule asks for; when that height is not shipped, the family does not fit and the next family or no end is drawn.
 - **A casting plate's block** may grow by one physical pixel, its bottom rail moving one pixel lower, when that lets its ends reach further: above 48 px the end tiers are 52, 56, 60 and 64, so a block of odd height there would match no end, or a shorter one than the idle frame. No piece is resampled, so this is a placement rule, not a breach of the 1:1 rule, and the clearance guard still holds (Captain, 2026-11-11). The idle frame caps its rail reach at what the joined block can match, so both frames draw the same rail weight.
 - **Every other piece** is looked up in `OrnamentAssets` before `SetTexture`, and an unknown name creates no texture.
@@ -165,6 +165,7 @@ The level badge and its number are measured as one circle (ruling A). The block 
 
   The player's bottom rail is forged at every screen and size.
 - **Levels told apart by rail weight only.** In `gallery_unitframes` the party frames keep the same `EndPointed` ends at both levels and differ only in the rail: `Rail1` at Subtle, `Forge3`/`Forge4` with rivets at Full. On the HUD, the 1920x1080 target keeps Subtle's ends at Full for the same reason: the claws do not fit.
+- **The rail crest has a Crest20 floor** (Captain, 2026-11-11, LEE-153). The crest centred on a block's forged top rail takes `Crest32` or `Crest20`, the largest that keeps its clearance, and is dropped where neither fits; it never takes `Crest16`, `Crest12` or `Crest8`. On the HUD at the shipped Interface size the crest is `Crest20` at 1920x1080, 2560x1440, 3440x1440, 5120x1440 and 2383x1540, `Crest32` at 3840x2160 and 3456x2234, and absent at 1280x720 (where it was `Crest12`) and 1366x768, in all three presets. `test-ornament-crest-floor.lua` fails on a smaller crest.
 
 ### Action-bar tray
 
