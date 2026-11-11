@@ -38,10 +38,6 @@ Turn on the Skins module and the game's own windows take the same surface, one s
 
 Ornaments are painted trim on the unit frames, their cast bars and the action bars: end pieces, rails, rivets, the portrait band and the rank pendants. **Off** draws nothing, so the screen is exactly the plain layout. **Subtle** draws thin gilt rails and plain pointed ends. **Full**, the default, draws forged rails, clawed ends and the action-bar tray. Ornaments never move anything. The setup's ornaments step and **Options, General, Ornaments** choose the level, and the Glass material draws none. [`docs/ORNAMENT-SPEC.md`](docs/ORNAMENT-SPEC.md) lists the pieces and where each shows.
 
-<p align="center"><img src="docs/media/readme/setup_ornaments.png" width="520" alt="The setup's ornaments step with Off, Subtle and Full as three cards, Full picked"></p>
-
-<p align="center"><sub>Test render of the setup's ornaments step, with Full picked.</sub></p>
-
 ### Folio or Lumen type, and a font for every role
 
 <p align="center"><img src="docs/media/readme/settings_type.png" width="520" alt="The settings window's General page with the Type set set to Folio"></p>
@@ -89,6 +85,10 @@ Six indicator slots each show a category of auras in the nearest free spot. The 
 <p align="center"><sub>Test render of the layout step: three layouts over one preview of the one you point at.</sub></p>
 
 A five-step window opens on your first login: pick the DPS, Tank or Healer layout from a real-size preview, choose your modules, choose the ornament level, apply. KstyleUI then writes a layout into Blizzard's Edit Mode so the quest tracker, the damage meter and your tracked buffs take their places too.
+
+<p align="center"><img src="docs/media/readme/setup_ornaments.png" width="520" alt="The setup's ornaments step with Off, Subtle and Full as three cards, Full picked"></p>
+
+<p align="center"><sub>Test render of the setup's ornaments step, with Full picked.</sub></p>
 
 Closing it early still gives you the DPS layout with Full ornaments. <b>Keep my UI</b> leaves the game's interface exactly as it was. Run it again any time with <code>/kstyle setup</code>.
 

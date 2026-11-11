@@ -17,8 +17,9 @@ The pictures:
   settings_*, setup_ornaments     the settings window's General page and the setup's ornament step
   merit_*, tile_*, class_*        every other picture the README shows, cut from the gallery and class scenes
 
-The gallery, class and Lumen scenes draw over a flat colour, not over the mockup's scenery, so the PNGs stay small and
-none reads as a game frame. The gallery and class cuts still read the handoff mockup for their reference crops (see
+The HUD pictures (the three presets, the strip, the combat cluster, the right rail) draw over the scenery plate so they read
+the way the game looks; the gallery, class, window and material pictures draw over a flat colour. A README section uses one
+of the two. The gallery and class cuts still read the handoff mockup for their reference crops (see
 gallery.py). --no-render reuses the renders a previous run left in Tools/render/out and DIR. --only redoes the named
 pictures. Pillow is needed; the script runs itself again with the wow-dev virtual environment's Python when this one
 has none.
@@ -43,7 +44,8 @@ LEVELS = ("Off", "Subtle", "Full")
 MATERIALS = ("ForgedBrackets", "ForgedTicks", "Slate", "Flat", "Glass")
 CLASSES = ("druid", "hunter", "mage", "paladin", "priest", "rogue", "shaman", "warlock", "warrior")
 
-HUD_WIDTH = 1800
+HUD_WIDTH = 840
+STRIP_WIDTH = 1150
 BUDGET_BYTES = 6 * 1024 * 1024
 
 # The HUD region the strip crops, in physical pixels of the 3456x2234 render (x, y, width, height): the cast bar, the
@@ -62,28 +64,28 @@ GALLERIES = (
 # crop is "WxH+X+Y" in the source's pixels, "cover" (a centred 16:10 window hung from the top edge, the shape every
 # tile in the README's grid shares) or None. A picture narrower than its width stays as it is.
 IMAGES = [
-    ("merit_skins", "frame:skins_character", None, 560),
-    ("merit_combat", "lumen_combat", "1860x740+620+1420", 720),
+    ("merit_skins", "frame:skins_character", None, 480),
+    ("merit_combat", "lumen_combat", "1860x740+620+1420", 560),
     ("merit_raid", "frame:groupframes_raid", None, 720),
-    ("merit_setup", "frame:setup_layouts", None, 720),
-    ("merit_plates", "frame:nameplates_pull", None, 720),
-    ("merit_rail", "hud:DPS", "916x990+2540+20", 560),
-    ("settings_type", "frame:options_appearance", None, 720),
-    ("settings_ornaments", "frame:options_ornaments", None, 720),
-    ("setup_ornaments", "frame:setup_ornaments", None, 720),
-    ("tile_unitframes", "frame:unitframes_preview", "cover", 440),
-    ("tile_groupframes", "frame:groupframes_party", "cover", 440),
-    ("tile_actionbars", "lumen_combat", "1066x477+1164+1683", 440),
-    ("tile_cooldowns", "frame:cooldowns_preview", "cover", 440),
-    ("tile_auras", "frame:auras_preview", "cover", 440),
-    ("tile_nameplates", "frame:nameplates_pull", "850x531+0+0", 440),
-    ("tile_minimap", "frame:minimap_preview", "cover", 440),
-    ("tile_chat", "frame:chat_preview", "cover", 440),
-    ("tile_bags", "frame:bags_window", "cover", 440),
-    ("tile_meters", "frame:meters_damage", "cover", 440),
-    ("tile_skins", "frame:skins_spellbook", "cover", 440),
-    ("tile_layout", "frame:layout_plates", "cover", 440),
-] + [("class_" + name, "class:" + name, "2060x701+40+154", 440) for name in CLASSES]
+    ("merit_setup", "frame:setup_layouts", None, 640),
+    ("merit_plates", "frame:nameplates_pull", None, 640),
+    ("merit_rail", "hud:DPS", "916x990+2540+20", 400),
+    ("settings_type", "frame:options_appearance", None, 600),
+    ("settings_ornaments", "frame:options_ornaments", None, 600),
+    ("setup_ornaments", "frame:setup_ornaments", None, 600),
+    ("tile_unitframes", "frame:unitframes_preview", "cover", 400),
+    ("tile_groupframes", "frame:groupframes_party", "cover", 400),
+    ("tile_actionbars", "lumen_combat_flat", "1066x477+1164+1683", 400),
+    ("tile_cooldowns", "frame:cooldowns_preview", "cover", 400),
+    ("tile_auras", "frame:auras_preview", "cover", 400),
+    ("tile_nameplates", "frame:nameplates_pull", "850x531+0+0", 400),
+    ("tile_minimap", "frame:minimap_preview", "cover", 400),
+    ("tile_chat", "frame:chat_preview", "cover", 400),
+    ("tile_bags", "frame:bags_window", "cover", 400),
+    ("tile_meters", "frame:meters_damage", "cover", 400),
+    ("tile_skins", "frame:skins_spellbook", "cover", 400),
+    ("tile_layout", "frame:layout_plates", "cover", 400),
+] + [("class_" + name, "class:" + name, "1880x701+120+154", 400) for name in CLASSES]
 
 COMPOSED = ("hud_dps", "hud_tank", "hud_healer", "ornaments_strip", "card_materials")
 
@@ -154,7 +156,8 @@ def render_all(work, wanted):
     os.makedirs(work, exist_ok=True)
     full = {"RENDER_ORNAMENTS": "Full"}
     hud = dict(full, RENDER_SCREEN="%dx%d" % SCREEN)
-    ppu = ("--strict", "--ppu", repr(HUD_PPU))
+    ppu = ("--strict", "--backdrop", "--ppu", repr(HUD_PPU))
+    flat = ("--strict", "--ppu", repr(HUD_PPU))
     sources = {source.split(":")[0] if source.startswith(("frame:", "class:")) else source
                for name, source, _, _ in IMAGES if name in wanted}
     layouts = set()
@@ -173,9 +176,11 @@ def render_all(work, wanted):
     if "card_materials" in wanted:
         for material in MATERIALS:
             shoot("hud_reference", dict(hud, RENDER_LAYOUT="DPS", RENDER_CARD_MATERIAL=material),
-                  os.path.join(work, "material_%s.png" % material), *ppu)
+                  os.path.join(work, "material_%s.png" % material), *flat)
     if "lumen_combat" in sources:
-        shoot("hud_lumen_combat", full, os.path.join(work, "lumen_combat.png"))
+        shoot("hud_lumen_combat", full, os.path.join(work, "lumen_combat.png"), "--backdrop")
+    if "lumen_combat_flat" in sources:
+        shoot("hud_lumen_combat", full, os.path.join(work, "lumen_combat_flat.png"))
     if any(source.startswith("frame:") and not source.endswith("_ornaments") for name, source, _, _ in IMAGES if name in wanted):
         for scene in GALLERIES:
             shoot(scene, full)
@@ -257,12 +262,12 @@ def finish(work, wanted):
         levels = {"Off": Image.open(os.path.join(work, "level_Off.png")),
                   "Subtle": Image.open(os.path.join(work, "level_Subtle.png")), "Full": hud["DPS"]}
         crops = [levels[level].crop(box(*STRIP_BOX)) for level in LEVELS]
-        save(scaled(compose_row(crops, 24, crops[0].getpixel((0, 0))), HUD_WIDTH), "ornaments_strip")
+        save(scaled(compose_row(crops, 24, crops[0].getpixel((0, 0))), STRIP_WIDTH), "ornaments_strip")
     if "card_materials" in wanted:
         cards = [Image.open(os.path.join(work, "material_%s.png" % m)).crop(box(*CARD_BOX)) for m in MATERIALS]
         background = cards[0].getpixel((0, 0))
         cards.append(Image.new("RGB", cards[0].size, background))
-        save(scaled(compose_grid(cards, 3, 24, background), 1400), "card_materials")
+        save(scaled(compose_grid(cards, 3, 24, background), 1000), "card_materials")
     for name, source, crop, width in IMAGES:
         if name not in wanted:
             continue

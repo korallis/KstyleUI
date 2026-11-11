@@ -66,7 +66,7 @@ class Helpers(unittest.TestCase):
         names = R.picture_names()
         self.assertEqual(len(names), len(set(names)))
         for name, source, crop, width in R.IMAGES:
-            self.assertRegex(source, r"^(hud:(DPS|Tank|Healer)|frame:[a-z_]+|class:[a-z]+|lumen_combat)$", name)
+            self.assertRegex(source, r"^(hud:(DPS|Tank|Healer)|frame:[a-z_]+|class:[a-z]+|lumen_combat|lumen_combat_flat)$", name)
             self.assertTrue(crop in (None, "cover") or R.parse_crop(crop), name)
             self.assertGreater(width, 0)
         self.assertEqual({s.split(":")[1] for _, s, _, _ in R.IMAGES if s.startswith("class:")}, set(R.CLASSES))

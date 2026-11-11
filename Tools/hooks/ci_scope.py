@@ -40,6 +40,10 @@ READ_BY_TESTS = (
     ".github/PULL_REQUEST_TEMPLATE.md",
 )
 
+READ_BY_AREA = {
+    "python": ("README.md", "docs/media/readme/*"),
+}
+
 DOCS_FOLDERS = ("docs/", "research_notes/", "reports/")
 ROOT_NOTES = ("README.md", "AGENTS.md")
 ADDON_FOLDERS = ("Core/", "Media/", "KstyleUI_")
@@ -58,6 +62,8 @@ def is_inert(area, path):
     if path in PIPELINE:
         return False
     if any(fnmatch.fnmatchcase(path, pattern) for pattern in READ_BY_TESTS):
+        return False
+    if any(fnmatch.fnmatchcase(path, pattern) for pattern in READ_BY_AREA.get(area, ())):
         return False
     if any(fnmatch.fnmatchcase(path, pattern) for pattern in EXTRA_INERT[area]):
         return True
