@@ -66,4 +66,24 @@ return {
 			return env, Perf.Event(env, "UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 		end,
 	},
+	{
+		name = "UnitFrames target change at Full, rank changes",
+		budget = 7000,
+		calls = 50,
+		setup = function()
+			local env = Target()
+			local elite = env._units.target
+			elite.classification = "elite"
+			local normal = { name = "Kobold Laborer", level = 11, health = 80, healthMax = 160, reaction = 2, canAttack = true, classification = "normal" }
+			env.FireEvent("PLAYER_TARGET_CHANGED")
+			env.RunTimers()
+			local changed, flip = Perf.Event(env, "PLAYER_TARGET_CHANGED"), false
+			return env, function()
+				flip = not flip
+				env._units.target = flip and normal or elite
+				changed()
+				env.RunTimers()
+			end
+		end,
+	},
 }
