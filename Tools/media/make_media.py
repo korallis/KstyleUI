@@ -71,6 +71,8 @@ ORB_GLINTS = (
     (0.68, 0.82, 0.22, 0.22, ((0.0, 0.14), (1.0, 0.0))),
 )
 ORB_LIQUID_EDGE = 0.55
+# The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
+ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -701,7 +703,8 @@ def draw_orb_glass(size):
         return [c * ramp(stops, math.hypot((u - cx) / rx, (v - cy) / ry)) for c, (u, v) in zip(disc, (
             ((px + 0.5) / size, (py + 0.5) / size) for py in range(size) for px in range(size)))]
 
-    layers = [((0, 0, 0, 1), spot(0.5, 0.5, 0.5, 0.5, ORB_RIM_STOPS))]
+    foot = [c * ramp(ORB_FOOT_STOPS, (py + 0.5) / size) for c, py in zip(disc, (py for py in range(size) for _ in range(size)))]
+    layers = [((0, 0, 0, 1), foot), ((0, 0, 0, 1), spot(0.5, 0.5, 0.5, 0.5, ORB_RIM_STOPS))]
     for cx, cy, rx, ry, stops in ORB_GLINTS:
         layers.append(((255, 255, 255, 1), spot(cx, cy, rx, ry, stops)))
     return composite(size, size, layers)
@@ -719,7 +722,7 @@ def draw_orb_surface(width, height):
     def fn(u, v):
         t = (u - 0.5) * 2
         across = math.sqrt(max(0.0, 1 - t * t))
-        return across * math.exp(-(((v - 0.5) / 0.2) ** 2))
+        return across * math.exp(-(((v - 0.5) / 0.3) ** 2))
 
     return white(at_centres(width, height, fn))
 
