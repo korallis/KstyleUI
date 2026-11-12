@@ -1,4 +1,4 @@
--- Damage.lua: the damage meter: KstyleUI's own window over C_DamageMeter, with fight segments and a per-source spell list, in place of Blizzard's, or Blizzard's window restyled when the data cannot be read in combat.
+-- Damage.lua: the damage meter: KstyleUI's own window over C_DamageMeter, with fight segments and a per-source spell list, in place of Blizzard's, or Blizzard's window restyled when C_DamageMeter is missing or the player picks it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -25,7 +25,6 @@ local drill = { active = false }
 local TOOLTIP_SPELLS = 3
 local SWITCH_GAP = "  "
 local slots = {}
-local autoMode
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
 
@@ -55,28 +54,12 @@ local function SourceApi()
 	return meter ~= nil and type(meter.GetCombatSessionSourceFromType) == "function" and type(meter.GetCombatSessionSourceFromID) == "function"
 end
 
-function Damage.Restricted()
-	local secrets = C_Secrets
-	if type(secrets) ~= "table" or type(secrets.HasSecretRestrictions) ~= "function" then
-		return false
-	end
-	local ok, restricted = pcall(secrets.HasSecretRestrictions)
-	return ok and not IsSecret(restricted) and restricted == true
-end
-
-function Damage.AutoMode()
-	if autoMode == nil then
-		autoMode = Damage.Restricted() and "skin" or "window"
-	end
-	return autoMode
-end
-
 function ns.ResolveMode(mode)
 	if not Api() then
 		return "skin"
 	end
 	if mode == "auto" or mode == nil then
-		return Damage.AutoMode()
+		return "window"
 	end
 	return mode
 end
@@ -688,8 +671,7 @@ function Damage:Apply()
 		return
 	end
 	if ns.Get("damage.mode") ~= "skin" then
-		ns.LogOnce("damageSkinPath", Api() and "C_DamageMeter is secret in combat on this client; the damage meter restyles Blizzard's window, which reads in combat"
-			or "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
+		ns.LogOnce("damageSkinPath", "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
 	ns.UnwatchAll(self)
 	self.currentID = nil

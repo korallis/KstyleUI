@@ -294,6 +294,7 @@ do
 	envS.RunTimers()
 	assert(#envS._errors == 0, "secret values raise no error: " .. tostring(envS._errors[1]))
 	assert(envS.issecretvalue(Text(card.column)), "a secret rate reaches the cap through AbbreviateNumbers whole")
+	assert(envS.Reveal(Text(card.column)) == "~38.4 dps", "and keeps its unit, joined to the secret as the game allows: " .. tostring(envS.Reveal(Text(card.column))))
 	assert(card.column:IsShown() and card.hasRest, "the aside shows and the list tracks it itself")
 	envS.SetCombat(false)
 	envS._session.combatSources[1].amountPerSecond = 38.4
