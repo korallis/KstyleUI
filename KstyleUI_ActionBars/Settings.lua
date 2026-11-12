@@ -42,7 +42,7 @@ local function BarDefaults(def)
 		backing = false,
 	}
 	if def.kind ~= "stance" then
-		out.showEmpty = true
+		out.showEmpty = def.key ~= "bar4" and def.key ~= "bar5"
 	end
 	if action then
 		out.count = true

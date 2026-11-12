@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 18
+Store.DB_VERSION = 19
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -26,6 +26,20 @@ Store.migrations[18] = function(data)
 				chat.lineSpacing = 4.5
 			elseif chat.lineSpacing ~= nil and chat.fontSize == nil then
 				chat.fontSize = 14
+			end
+		end
+	end
+end
+
+Store.migrations[19] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local bars = type(profile) == "table" and profile.ActionBars
+		local layout = type(profile) == "table" and profile.Layout
+		if type(bars) == "table" and type(layout) == "table" and type(layout.preset) == "string" then
+			for _, bar in ipairs({ "bar4", "bar5" }) do
+				if type(bars[bar]) == "table" and bars[bar].showEmpty == true then
+					bars[bar].showEmpty = nil
+				end
 			end
 		end
 	end
