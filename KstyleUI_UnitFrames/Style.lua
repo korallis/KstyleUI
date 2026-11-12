@@ -57,6 +57,7 @@ local TEXTS = {
 	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption", lumenColor = "muted" },
 	capLabel = { element = "level", justify = "LEFT", color = "textEmphasis", lumen = "cap", lumenColor = "goldLit" },
 }
+local TEXT_KEYS = { "name", "healthText", "healthSub", "powerText", "levelText", "caption", "capLabel" }
 TEXTS.healthSub.lumen, TEXTS.healthSub.lumenColor, TEXTS.healthSub.lumenShare = "caption", "muted", 1
 
 local function NewText(owner, key)
@@ -163,7 +164,7 @@ function Style.New(parent, kind)
 	top:SetFrameLevel(base + LEVEL_TEXT)
 	top:SetAllPoints(parent)
 	view.top = top
-	for key in pairs(TEXTS) do
+	for _, key in ipairs(TEXT_KEYS) do
 		view[key] = NewText(top, key)
 	end
 	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
