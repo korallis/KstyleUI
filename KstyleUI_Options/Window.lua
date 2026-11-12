@@ -18,6 +18,7 @@ local RAIL_WIDTH = 196
 local PREVIEW_WIDTH = 280
 local SEARCH_WIDTH = 340
 local LOGO_SIZE = 28
+local RULE_ALPHA = 0.5
 local TITLE = "K S T Y L E U I"
 local DEFAULT_POSITION = { anchor = "CENTER", x = 0, y = 20 }
 
@@ -228,6 +229,11 @@ local function Relayout()
 	Widgets.Size(win.logo, LOGO_SIZE, LOGO_SIZE)
 	win.title:ClearAllPoints()
 	win.title:SetPoint("LEFT", win.logo, "RIGHT", Snap(gap), 0)
+	win.rule:ClearAllPoints()
+	win.rule:SetPoint("LEFT", win.title, "RIGHT", Snap(Tokens.Size("gapLarge")), 0)
+	win.rule:SetPoint("RIGHT", search, "LEFT", -Snap(Tokens.Size("gapLarge")), 0)
+	win.rule:SetHeight(Widgets.Border(win))
+	Widgets.PaintCapRule(win.rule, RULE_ALPHA)
 	win.closeButton:ClearAllPoints()
 	win.closeButton:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(pad))
 	search:ClearAllPoints()
@@ -270,7 +276,6 @@ local function Build()
 	local root = K.Scale.Root()
 	win = Widgets.Panel(root, {
 		shape = "window",
-		ornament = "crest",
 		strata = "HIGH",
 		escape = true,
 		hidden = true,
@@ -301,6 +306,7 @@ local function Build()
 	win.title = Widgets.Text(win.header, "caps", "capsGold")
 	Widgets.CapsSize(win.title)
 	Widgets.SetText(win.title, TITLE)
+	win.rule = win.header:CreateTexture(nil, "ARTWORK")
 	win.closeButton = Widgets.CloseButton(win.header, function()
 		win:Close()
 	end)
@@ -318,9 +324,6 @@ local function Build()
 		SetQuery("")
 	end)
 	clear:Hide()
-	if win.chrome.ornament then
-		win.chrome.ornament.inside = { win.logo, win.title, win.closeButton, search }
-	end
 
 	rail = Rail.Create(win, Select, JumpTo)
 	win.split = win:CreateTexture(nil, "ARTWORK")

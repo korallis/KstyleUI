@@ -30,6 +30,7 @@ local function Window(frame)
 	local title = type(frame.TitleContainer) == "table" and frame.TitleContainer.TitleText
 	if title then
 		Style.Title(title)
+		Parts.TitleCap(frame, title)
 	end
 	local maxMin = frame.MaximizeMinimizeButton or frame.MaxMinButtonFrame
 	if type(maxMin) == "table" then

@@ -678,7 +678,9 @@ function Kit.Title(frame, role)
 		title = frame:GetTitleText()
 	end
 	if type(title) == "table" and type(title.SetFont) == "function" then
-		return ns.Style.Title(title, nil, role)
+		ns.Style.Title(title, nil, role)
+		ns.Parts.TitleCap(frame, title)
+		return title
 	end
 	return nil
 end

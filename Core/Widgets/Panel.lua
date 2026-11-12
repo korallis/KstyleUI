@@ -1,40 +1,76 @@
--- Panel.lua: the card panel, the picture's dark fill with an inset rim and gilt L-ticks, with an optional title bar and close button.
+-- Panel.lua: the card panel, the quest card's material with an optional title cap (a gilt diamond, the title in caps, a rule that fades right to the one close glyph), and its open and close motion, which the client plays and which never runs in combat.
 local _, ns = ...
 
 local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 
-local RISE_UP_SHARE = 0.75
-
 local Panel = {}
 
 local PAD_GAP = "gapMedium"
+local GEM_SIZE, GEM_CENTRE, TEXT_FROM_GEM, RULE_GAP, RULE_ALPHA = 8, 7.4, 11.1, 10, 0.5
+
+local function IsSecret(value)
+	return Widgets.IsSecret(value)
+end
 
 local function TitleBarHeight(panel)
 	return panel.chrome:Inset(PAD_GAP) + Tokens.Size("heading") + Tokens.Size("gapMedium")
 end
 
-local function BuildRise(panel)
+local function MayToggle(frame)
+	if not InCombatLockdown() then
+		return true
+	end
+	local protected = frame:IsProtected()
+	if IsSecret(protected) then
+		return false
+	end
+	return not protected
+end
+
+local function Animated()
+	return not InCombatLockdown() and not Motion.ReducedMotion()
+end
+
+local function Hidden(panel)
+	if MayToggle(panel) then
+		panel:Hide()
+	end
+	panel:SetAlpha(1)
+end
+
+local function AlphaGroup(panel, from, to, duration, smoothing)
+	local group = panel:CreateAnimationGroup()
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetFromAlpha(from)
+	alpha:SetToAlpha(to)
+	alpha:SetDuration(duration)
+	alpha:SetSmoothing(smoothing)
+	return group
+end
+
+local function BuildMotion(panel)
 	local rise = Tokens.Size("panelRise")
-	local overshoot = Tokens.Size("panelOvershoot")
-	local duration = Tokens.Duration("panelRise")
+	local duration = Tokens.Duration("panelOpen")
 	local group = panel:CreateAnimationGroup()
 	local drop = group:CreateAnimation("Translation")
 	drop:SetOffset(0, -rise)
 	drop:SetDuration(0)
 	drop:SetOrder(1)
 	local up = group:CreateAnimation("Translation")
-	up:SetOffset(0, rise + overshoot)
-	up:SetDuration(duration * RISE_UP_SHARE)
+	up:SetOffset(0, rise)
+	up:SetDuration(duration)
 	up:SetSmoothing("OUT")
 	up:SetOrder(2)
-	local settle = group:CreateAnimation("Translation")
-	settle:SetOffset(0, -overshoot)
-	settle:SetDuration(duration * (1 - RISE_UP_SHARE))
-	settle:SetSmoothing("IN_OUT")
-	settle:SetOrder(3)
 	panel.rise = group
-	panel.riseParts = { drop, up, settle }
+	panel.riseParts = { drop, up }
+	panel.fadeIn = AlphaGroup(panel, 0, 1, duration, "OUT")
+	local fadeOut = AlphaGroup(panel, 1, 0, Tokens.Duration("panelClose"), "IN")
+	fadeOut:SetToFinalAlpha(true)
+	fadeOut:SetScript("OnFinished", function()
+		Hidden(panel)
+	end)
+	panel.fadeOut = fadeOut
 end
 
 function Panel:SetTitle(text)
@@ -49,19 +85,33 @@ function Panel:SetTitle(text)
 end
 
 function Panel:Open()
-	if self.rise and not Motion.ReducedMotion() then
+	self.fadeOut:Stop()
+	self:SetAlpha(1)
+	local shown = self:IsShown()
+	if not IsSecret(shown) and not shown and MayToggle(self) then
+		self:Show()
+	end
+	if Animated() then
 		self.rise:Stop()
 		self.rise:Play()
+		self.fadeIn:Stop()
+		self.fadeIn:Play()
 	end
-	Motion.FadeIn(self, Tokens.Duration("panelOpen"))
 	Widgets.Sound("IG_MAINMENU_OPEN")
 end
 
 function Panel:Close()
-	if self.rise then
-		self.rise:Stop()
+	self.rise:Stop()
+	self.fadeIn:Stop()
+	local shown = self:IsShown()
+	if not IsSecret(shown) and shown then
+		if Animated() then
+			self.fadeOut:Stop()
+			self.fadeOut:Play()
+		else
+			Hidden(self)
+		end
 	end
-	Motion.FadeOut(self, Tokens.Duration("panelClose"))
 	Widgets.Sound("IG_MAINMENU_CLOSE")
 	local onClose = self.opts.onClose
 	if onClose then
@@ -70,7 +120,7 @@ function Panel:Close()
 end
 
 function Panel:Toggle()
-	if self:IsShown() then
+	if self:IsShown() and not self.fadeOut:IsPlaying() then
 		self:Close()
 	else
 		self:Open()
@@ -84,24 +134,45 @@ function Panel:Restyle()
 	end
 	local pad = self.chrome:Inset(PAD_GAP)
 	local top = pad
-	if self.titleText then
+	if self.cap then
 		local bar = Widgets.Snap(self, TitleBarHeight(self))
 		self.titleBar:SetHeight(bar)
-		self.titleText:ClearAllPoints()
-		self.titleText:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
-		self.titleText:SetHeight(Widgets.Snap(self, Tokens.Size("heading")))
-		Widgets.CapsSize(self.titleText)
+		local heading = Widgets.Snap(self, Tokens.Size("heading"))
+		local cap = self.cap
+		local gem = Widgets.Snap(self, GEM_SIZE)
+		cap.gem:SetSize(gem, gem)
+		cap.gem:ClearAllPoints()
+		cap.gem:SetPoint("CENTER", cap, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
+		Widgets.CapsSize(cap.label)
+		cap.label:ClearAllPoints()
+		cap.label:SetPoint("LEFT", cap.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
+		cap.label:SetSize(0, heading)
+		cap.rule:ClearAllPoints()
+		cap.rule:SetPoint("LEFT", cap.label, "RIGHT", Widgets.Snap(self, RULE_GAP - Widgets.TrackPad(cap.label)), 0)
+		cap.rule:SetPoint("RIGHT", cap, "RIGHT")
+		cap.rule:SetHeight(Widgets.Border(self))
+		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
+		Widgets.PaintCapMaterial(cap.gem, cap.rule, RULE_ALPHA)
+		Widgets.TextColor(cap.label, "capsGold")
+		cap:SetHeight(heading)
+		self.cap:ClearAllPoints()
+		self.cap:SetPoint("LEFT", self, "TOPLEFT", pad, -(pad + heading / 2))
 		if self.closeButton then
-			self.titleText:SetPoint("RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
+			self.cap:SetPoint("RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
 		else
-			self.titleText:SetPoint("RIGHT", self, "RIGHT", -pad, 0)
+			self.cap:SetPoint("RIGHT", self, "TOPRIGHT", -pad, -(pad + heading / 2))
 		end
 		top = bar + Widgets.Snap(self, Tokens.Size("gapMedium"))
 	end
 	if self.closeButton then
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		self.closeButton:ClearAllPoints()
-		self.closeButton:SetPoint("TOPRIGHT", self, "TOPRIGHT", -gap, -gap)
+		if self.cap then
+			local heading = Widgets.Snap(self, Tokens.Size("heading"))
+			self.closeButton:SetPoint("RIGHT", self, "TOPRIGHT", -gap, -(pad + heading / 2))
+		else
+			self.closeButton:SetPoint("TOPRIGHT", self, "TOPRIGHT", -gap, -gap)
+		end
 	end
 	self.content:ClearAllPoints()
 	self.content:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -top)
@@ -133,19 +204,20 @@ function Widgets.Panel(parent, opts)
 	end
 	local titled = opts.title or opts.close or opts.movable
 	local shape = opts.shape or (titled and "window" or "panel")
-	local ornament = opts.ornament
-	if ornament == nil and titled then
-		ornament = "crest"
-	end
-	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow, popup = opts.popup, ornament = ornament, inside = opts.inside })
+	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow, popup = opts.popup, ornament = opts.ornament, inside = opts.inside })
 	panel.content = CreateFrame("Frame", nil, panel)
 	if titled then
 		local bar = CreateFrame("Frame", nil, panel)
 		bar:SetPoint("TOPLEFT", panel, "TOPLEFT")
 		bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT")
 		panel.titleBar = bar
-		panel.titleText = Widgets.Text(panel, "caps", "capsGold")
-		Widgets.CapsSize(panel.titleText)
+		local cap = CreateFrame("Frame", nil, panel)
+		cap.gem = cap:CreateTexture(nil, "ARTWORK")
+		cap.rule = cap:CreateTexture(nil, "ARTWORK")
+		cap.label = Widgets.Text(panel, "caps", "capsGold")
+		Widgets.CapsSize(cap.label)
+		panel.cap = cap
+		panel.titleText = cap.label
 		panel.titleText:SetJustifyH("LEFT")
 		panel.titleText:SetJustifyV("MIDDLE")
 		panel.titleText:SetWordWrap(false)
@@ -175,7 +247,7 @@ function Widgets.Panel(parent, opts)
 			panel:Close()
 		end)
 	end
-	BuildRise(panel)
+	BuildMotion(panel)
 	panel:Restyle()
 	Widgets.Track(panel)
 	if opts.layout then

@@ -1,4 +1,4 @@
--- test-skins-dock.lua: one docked-tab treatment for every skinned window: the window's glass grows to wrap the tabs Blizzard hangs past its edge (bottom tabs, side columns, the world map's quest log), a hairline marks a side column's seam unless the tabs straddle the edge, a bottom tab strip is inset with no seam, the title re-centres over the glass, and a window title never wraps.
+-- test-skins-dock.lua: one docked-tab treatment for every skinned window: the window's glass grows to wrap the tabs Blizzard hangs past its edge (bottom tabs, side columns, the world map's quest log), a hairline marks a side column's seam unless the tabs straddle the edge, a bottom tab strip is inset with no seam, the title is the quest card's cap at the glass's left, and a window title never wraps.
 local S = dofile("Tools/regression/skins_env.lua")
 local Windows = dofile("Tools/regression/skins_windows.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -50,19 +50,18 @@ local function Same(a, b, what)
 	assert(math.abs(a - b) <= EPS, what .. ": " .. a .. " vs " .. b)
 end
 
--- Shifted(title, container, window, glass, root): the title's centre sits half the grown reach over from the
--- container's centre, where Blizzard put it, so it keeps its place over the glass.
-local function Shifted(title, container, window, glass, root)
+-- Capped(title, glass, root): the title is the quest card's cap (KSTY-44 plan row 15): left-justified, its text one
+-- padding, the diamond and its gap (16 + 8 + 7 units) in from the glass's left edge, wherever the dock grew the glass.
+local CAP_LEAD = 16 + 8 + 7
+local function Capped(title, glass, root, ns)
+	assert(ns.Parts.IsCapped(title), "the window title carries the quest card's cap")
+	assert(title._state.JustifyH and title._state.JustifyH[1] == "LEFT", "the title is left-justified")
 	if title:GetHeight() == nil then
 		local _, size = title:GetFont()
 		title:SetHeight(size)
 	end
-	if title:GetWidth() == nil then
-		title:SetWidth(title:GetUnboundedStringWidth() or 100)
-	end
-	local t, c = Rect(title, root), Rect(container, root)
-	local shift = ((glass.right - window.right) - (window.left - glass.left)) / 2
-	Same((t.left + t.right) / 2 - (c.left + c.right) / 2, shift, "the title moves over by half the gutter")
+	local t = Rect(title, root)
+	assert(math.abs(t.left - glass.left - CAP_LEAD) <= 1, "the title starts the cap's lead in from the glass: " .. (t.left - glass.left))
 end
 
 local function Glass(K, window)
@@ -173,7 +172,7 @@ do
 	assert(seam.top <= modeTop + gap + EPS, "the seam starts at the tab column, below the header band: " .. seam.top .. " vs " .. modeTop)
 	assert(seam.top < Rect(f.TitleContainer, root).bottom, "and under the title band: " .. seam.top)
 	-- The title moves over by half the gutter, so it keeps its place over the grown glass.
-	Shifted(f.TitleContainer.TitleText, f.TitleContainer, window, glass, root)
+	Capped(f.TitleContainer.TitleText, glass, root, ns)
 	-- With every tab hidden the glass returns to the window.
 	for _, tab in ipairs(f.ModeTabs.Tabs) do
 		tab:Hide()
@@ -181,7 +180,7 @@ do
 	f.UpdateTabLayout()
 	Same(Rect(Glass(K, f), root).right, window.right, "no shown tab, no gutter")
 	assert(not dock.seams.RIGHT:IsShown(), "and no seam")
-	Shifted(f.TitleContainer.TitleText, f.TitleContainer, window, Rect(Glass(K, f), root), root)
+	Capped(f.TitleContainer.TitleText, Rect(Glass(K, f), root), root, ns)
 	for _, tab in ipairs(f.ModeTabs.Tabs) do
 		tab:Show()
 	end
@@ -207,7 +206,7 @@ do
 	for _, key in ipairs({ "ListingTab", "BrowsingTab", "WhoListingTab" }) do
 		Inside(Rect(parent[key], root), glass, key .. " stands inside the glass")
 	end
-	Shifted(browse.TitleContainer.TitleText, browse.TitleContainer, page, glass, root)
+	Capped(browse.TitleContainer.TitleText, glass, root, ns)
 	assert(ns.Parts.DockOf(browse) and ns.Parts.DockOf(env.LFGListingFrame), "every page docks the parent's tabs")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

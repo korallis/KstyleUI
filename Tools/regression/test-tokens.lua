@@ -148,7 +148,7 @@ for name, want in pairs({
 	actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, time = 12, timer = 11, world = 13, textShadowOffset = 1,
-	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
+	pressOffset = 1, panelRise = 6, panelOvershoot = 2,
 }) do
 	assert(Tokens.Size(name) == want, "Tokens.Size(" .. name .. ") is " .. tostring(Tokens.Size(name)) .. ", spec says " .. want)
 end

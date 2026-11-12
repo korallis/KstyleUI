@@ -1,4 +1,4 @@
--- Skin.lua: shared helpers that restyle Blizzard frames in place without tainting them.
+-- Skin.lua: shared helpers that restyle Blizzard frames in place without tainting them, and a window's open fade, which the client plays and which never runs in combat.
 local _, ns = ...
 
 local Skin = {}
@@ -664,6 +664,37 @@ local function Text(text, role, colorName)
 	return text
 end
 
+local function PlayFade(group)
+	if InCombatLockdown() or ns.Motion.ReducedMotion() then
+		return
+	end
+	group:Stop()
+	group:Play()
+end
+
+local function OpenMotion(frame)
+	local parts = Parts(frame)
+	if parts.fade ~= nil then
+		return parts.fade or nil
+	end
+	if type(frame.CreateAnimationGroup) ~= "function" or type(frame.HookScript) ~= "function" then
+		parts.fade = false
+		Log("a window has no CreateAnimationGroup; it opens without the fade")
+		return nil
+	end
+	local group = frame:CreateAnimationGroup()
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetFromAlpha(0)
+	alpha:SetToAlpha(1)
+	alpha:SetDuration(Tokens.Duration("panelOpen"))
+	alpha:SetSmoothing("OUT")
+	parts.fade = group
+	frame:HookScript("OnShow", function()
+		PlayFade(group)
+	end)
+	return group
+end
+
 local function Window(frame, opts)
 	opts = opts or {}
 	local parts = Parts(frame)
@@ -686,6 +717,7 @@ local function Window(frame, opts)
 	if opts.tabs ~= false and (type(frame.Tabs) == "table" or type(frame.numTabs) == "number") then
 		Tabs(frame)
 	end
+	OpenMotion(frame)
 	parts.kinds.Window = true
 	return panel
 end
@@ -700,6 +732,7 @@ Skin.EditBox = Guard("EditBox", EditBox)
 Skin.CheckBox = Guard("CheckBox", CheckBox)
 Skin.Button = Guard("Button", Button)
 Skin.Window = Guard("Window", Window)
+Skin.OpenMotion = Guard("OpenMotion", OpenMotion)
 Skin.Text = Guard("Text", Text)
 
 function Skin.IsSkinned(frame, kind)

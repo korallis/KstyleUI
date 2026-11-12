@@ -22,6 +22,7 @@ local function ApplyMap()
 	local map = _G[FRAME]
 	local border = map.BorderFrame
 	Skin.Backdrop(map, { shape = "window", fill = "surface", shadow = true })
+	Skin.OpenMotion(map)
 	local title
 	if type(border) == "table" then
 		Skin.Strip(border, { children = BORDER_ART })
@@ -29,6 +30,7 @@ local function ApplyMap()
 		title = type(border.TitleContainer) == "table" and border.TitleContainer.TitleText or nil
 		if title then
 			Style.Title(title)
+			Parts.TitleCap(map, title, border.CloseButton)
 		end
 		local maxMin = border.MaximizeMinimizeFrame
 		if type(maxMin) == "table" then
