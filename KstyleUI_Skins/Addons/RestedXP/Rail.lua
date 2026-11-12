@@ -198,13 +198,14 @@ end
 
 local function Mute(region)
 	if IsTable(region) and type(region.EnableMouse) == "function" and not state.cut[region] then
-		state.cut[region] = true
+		state.cut[region] = "mouse"
 		region:EnableMouse(false)
 	end
 end
 
 local function Cut(region)
 	Mute(region)
+	state.cut[region] = "alpha"
 	region:SetAlpha(0)
 	for _, line in ipairs(IsTable(region.elements) and region.elements or {}) do
 		Mute(line)
@@ -214,11 +215,11 @@ end
 
 local function Uncut()
 	local any = false
-	for region in pairs(state.cut) do
+	for region, how in pairs(state.cut) do
 		state.cut[region] = nil
 		any = true
 		if Height(region) > 1 then
-			if Alpha(region) <= 0 then
+			if how == "alpha" then
 				region:SetAlpha(1)
 			end
 			region:EnableMouse(true)
