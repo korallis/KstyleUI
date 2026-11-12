@@ -276,6 +276,8 @@ Each bar avoids its own label, the other data bars' frames and pieces (1 physica
 | A zone change with a new name | 11.7 us | 44.4 us | 43.5 us |
 | A clock tick | 3.7 us | 3.8 us | 3.7 us |
 
+**The data bars place no piece since KSTY-50** (bible section 3.4: nothing around a bar). The experience, reputation and honour bars own no `bar` handle, so the data-bar rows above, the experience bar column of the recorded limits below and the data-bar cost figures describe the build before it. `test-ornament-surfaces-xp-a.lua` to `-k.lua` and `test-ornament-surfaces-bars-states-a.lua` to `-c.lua` now fail on any forged piece under a data bar, and `test-ornament-bars-map-paths.lua` on any ornament made on a data bar.
+
 `test-perf-hud.lua` holds the experience paint to 150 us unchanged and 1,400 us when the label changes, the clock tick to 50 us, a zone change to 400 us and the face's layout to 1,000 us (about ten times the Lua 5.1 time, as `perf_runner.lua` asks for CI), with no allocation on addon lines; each fixture fails at Full when the bar draws fewer than three pieces, or the map fewer than two corners or no plaque, and the layout path checks that after every call. `PLAYER_XP_UPDATE` itself allocates 384 B on staging, in the reading table `Sources.XP` builds (`KstyleUI_DataBars/Sources.lua:116`), before any ornament code runs; the perf paths paint a kept reading so that line is not counted.
 
 **Recorded limits**, measured in the render scenes at the shipped Interface size:

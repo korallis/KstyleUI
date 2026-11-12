@@ -1,4 +1,4 @@
--- KstyleUI_DataBars.lua: the data bars' value paint and ornament paths at Full, with their time budgets in microseconds per call, for test-perf-hud.lua.
+-- KstyleUI_DataBars.lua: the data bars' value paint paths at Full, with their time budgets in microseconds per call, for test-perf-hud.lua.
 local Perf = ...
 local D = dofile("Tools/regression/databars_env.lua")
 
@@ -8,7 +8,7 @@ local function Bars()
 	local env, K, ns = D.New()
 	D.W.Settle(env)
 	local xp = ns.Bars.views.xp
-	assert(K.Widgets.Setting("ornaments") == "Full" and xp.ornament.used >= 3, "the experience bar places its rail and both ends at Full, not " .. xp.ornament.used .. " pieces")
+	assert(K.Widgets.Setting("ornaments") == "Full" and xp.ornament == nil, "the experience bar draws no ornament at Full")
 	local info, plain = xp.info, {}
 	for k, v in pairs(info) do plain[k] = v end
 	plain.rested = 0
@@ -44,7 +44,6 @@ return {
 			return env, function()
 				which = not which
 				ns.Bars.PaintValues(xp, s, which and plain or info, true)
-				assert(xp.ornament.used >= 3)
 			end
 		end,
 	},
