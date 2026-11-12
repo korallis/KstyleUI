@@ -7,6 +7,21 @@ local WOLF = {
 	powerType = 1, powerToken = "RAGE", reaction = 2, canAttack = true,
 }
 
+local function Orbs()
+	return U.New({
+		saved = {
+			version = 2,
+			profiles = { Default = { UnitFrames = { enabled = true }, Appearance = { hudStyle = "orbs" } } },
+			characters = {},
+		},
+		setup = function(env)
+			env.Enum = env.Enum or {}
+			env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+			env._restricted = true
+		end,
+	})
+end
+
 local function Target()
 	local env = U.New()
 	U.SetUnit(env, "target", WOLF)
@@ -84,6 +99,22 @@ return {
 				changed()
 				env.RunTimers()
 			end
+		end,
+	},
+	{
+		name = "UnitFrames Orbs UNIT_HEALTH",
+		budget = 30,
+		setup = function()
+			local env = Orbs()
+			return env, Perf.Event(env, "UNIT_HEALTH", "player")
+		end,
+	},
+	{
+		name = "UnitFrames Orbs UNIT_POWER_UPDATE",
+		budget = 20,
+		setup = function()
+			local env = Orbs()
+			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "MANA")
 		end,
 	},
 }

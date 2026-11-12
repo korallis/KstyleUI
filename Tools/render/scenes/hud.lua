@@ -134,6 +134,11 @@ local function saved(opts, module, settings, more)
 	merge(section, opts.settings and opts.settings[module])
 	merge(section, settings)
 	local profile = { [module] = section }
+	local style = os.getenv("RENDER_HUD_STYLE")
+	if style and style ~= "" then
+		assert(style == "Orbs" or style == "Frames", "RENDER_HUD_STYLE must be Orbs or Frames")
+		profile.Appearance = { hudStyle = style:lower() }
+	end
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
 	end
@@ -438,6 +443,20 @@ function modules.unitframes(opts)
 	for _ = 1, 40 do
 		U.W.Tick(env, 0.05)
 	end
+	-- RENDER_ORBS_HIT=1 (with RENDER_HUD_STYLE=Orbs): the player in combat at the KSTY-44 mock-up's 147 of 237 health and
+	-- 58% of the resource, a moment after a hit from the reference's 203. The stub has no interpolation, so the scene
+	-- holds the pale band where the engine's ease would still have it, at the health before the hit.
+	local orbs = ns.Orbs and ns.Orbs.Active() and os.getenv("RENDER_ORBS_HIT") == "1"
+	if orbs then
+		local before = player.health
+		env.SetCombat(true)
+		player.health, player.healthMax = 147, 237
+		player.power = math.floor(player.powerMax * 0.58 + 0.5)
+		env.FireEvent("UNIT_HEALTH", "player")
+		env.FireEvent("UNIT_POWER_UPDATE", "player", player.powerToken)
+		ns.Orbs.Get("health").loss:SetValue(env.Secret(before))
+		env.RunTimers()
+	end
 	-- The stub draws no portraits: the class's portrait (standins.py copies scenery/portraits/<class>.png), the
 	-- mockup's faces, or a flat tone, stand in for the unit's model.
 	local notes = {}
@@ -449,6 +468,9 @@ function modules.unitframes(opts)
 		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
 	end
 	table.sort(notes)
+	if orbs then
+		notes[#notes + 1] = "orbs: in combat a moment after a hit, the pale band held at the health before it"
+	end
 	-- opts.targetAuras ({ icon, "time", "count" } each): your debuffs on a target that is no boss, in the same sockets.
 	if (opts.boss or opts.targetAuras) and target then
 		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1], opts.targetAuras)

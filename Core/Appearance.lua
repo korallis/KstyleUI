@@ -10,6 +10,7 @@ local SECTION = "Appearance"
 local SIZE_STEP = 0.05
 local FONT_SCALE_STEP = 0.05
 local MOTION_LEVELS = { full = true, reduced = true, off = true }
+local HUD_STYLES = { frames = true, orbs = true }
 local LSM_MAJOR = "LibSharedMedia-3.0"
 local LSM_PREFIX = "KstyleUI "
 
@@ -29,6 +30,7 @@ Appearance.defaults = {
 	fontScale = 1,
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	motion = "full",
+	hudStyle = "frames",
 }
 for _, role in ipairs(ROLES) do
 	Appearance.defaults[ROLE_KEY[role]] = ""
@@ -78,6 +80,11 @@ local CLEAN = {
 			return v
 		end
 	end,
+	hudStyle = function(v)
+		if not (issecretvalue and issecretvalue(v)) and HUD_STYLES[v] then
+			return v
+		end
+	end,
 }
 
 local function CleanRoleFont(v)
@@ -97,6 +104,37 @@ local function ApplyRoleFonts()
 	Theme.SetRoleFonts(choices)
 end
 
+local appliedHud, hudQueued
+
+local function ApplyHudStyle(style)
+	if appliedHud == nil or style == appliedHud then
+		appliedHud = style
+		return
+	end
+	if InCombatLockdown() then
+		if not hudQueued then
+			hudQueued = true
+			ns.Print(L["Your HUD style changes when combat ends."])
+			ns.Combat.Queue(function()
+				hudQueued = false
+				ApplyHudStyle(Appearance.Get("hudStyle"))
+			end)
+		end
+		return
+	end
+	appliedHud = style
+	Log("HUD style " .. style)
+	local errors = ns.ErrorCount()
+	ns.Callbacks.Fire("HudStyleChanged", style)
+	if ns.ErrorCount() > errors then
+		ns.Widgets.ReloadPrompt(L["Your HUD style finishes changing when you reload."])
+	end
+end
+
+function Appearance.HudStyle()
+	return appliedHud or Appearance.Get("hudStyle")
+end
+
 local APPLY = {
 	accentColor = function(c)
 		Theme.SetCustomAccent(c.r, c.g, c.b)
@@ -107,11 +145,12 @@ local APPLY = {
 	fontScale = Theme.SetFontScale,
 	uiScale = Scale.SetUserScale,
 	motion = Motion.SetLevel,
+	hudStyle = ApplyHudStyle,
 }
 for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
-local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScale", "motion" }
+local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScale", "motion", "hudStyle" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -175,6 +214,12 @@ local function FaceOptions()
 end
 
 Appearance.schema = {
+	{ type = "header", label = L["HUD"] },
+	{
+		type = "dropdown", key = "hudStyle", label = L["HUD style"],
+		help = L["Orbs puts your health and resource in two orbs beside action bar 1. Changes out of combat."],
+		options = { { value = "frames", label = L["Frames"] }, { value = "orbs", label = L["Orbs"] } },
+	},
 	{ type = "header", label = L["Accent"] },
 	{
 		type = "dropdown", key = "accentSource", label = L["Accent colour"],

@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 20
+Store.DB_VERSION = 21
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -543,6 +543,19 @@ Store.migrations[20] = function(data)
 				if next(entry) == nil then
 					layout[key] = nil
 				end
+			end
+		end
+	end
+end
+
+Store.migrations[21] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			if type(profile.Appearance) ~= "table" then
+				profile.Appearance = {}
+			end
+			if profile.Appearance.hudStyle ~= "orbs" then
+				profile.Appearance.hudStyle = "frames"
 			end
 		end
 	end
