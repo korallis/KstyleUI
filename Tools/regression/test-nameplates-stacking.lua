@@ -236,6 +236,8 @@ do
 	local saved = CoreEnv.DeepCopy(env.KstyleUIDB)
 	local quiet = CoreEnv.DeepCopy(saved)
 	quiet.profiles.Default.Nameplates.enabled = false
+	local shrunk = CoreEnv.DeepCopy(saved)
+	shrunk.profiles.Default.Nameplates.shrinkDistant = true
 	local again, K2 = N.New({
 		saved = saved,
 		setup = function(e)
@@ -260,6 +262,17 @@ do
 	off.RunTimers()
 	min, max, selected = scales(off)
 	assert(min == "0.8" and max == "1.1" and selected == "1.2", "a login with the module off gives the values back, got " .. table.concat({ min, max, selected }, ", "))
+
+	-- Shrink distant plates turned on in combat, then a reload before combat ended: the module is still on, so
+	-- the next login gives the values back itself.
+	local late = N.New({
+		saved = shrunk,
+		setup = function(e)
+			e._cvars.nameplateMinScale, e._cvars.nameplateMaxScale, e._cvars.nameplateSelectedScale = "1", "1", "1"
+		end,
+	})
+	min, max, selected = scales(late)
+	assert(min == "0.8" and max == "1.1" and selected == "1.2", "a login that shrinks plates gives back a queued give-back, got " .. table.concat({ min, max, selected }, ", "))
 end
 
 -- The character's CVars can load after the modules start: nothing is read or written before they do.
@@ -300,6 +313,30 @@ do
 	assert(held(env), "turning management off leaves the hold")
 	K.Options.Write("Nameplates", "shrinkDistant", true)
 	assert(env._cvars.nameplateMinScale == "0.8" and env._cvars.nameplateSelectedScale == "1.2", "then the game's defaults, as management off promises")
+
+	-- A value management wrote is never kept as the player's own.
+	K.Options.Write("Nameplates", "cvars.enabled", true)
+	assert(env._cvars.nameplateMinScale == "0.6", "management applies its own value with plates shrinking")
+	K.Options.Write("Nameplates", "shrinkDistant", false)
+	local record = K.Store.Account().nameplateScaleCVars[K.Store.CharacterKey()].nameplateMinScale
+	assert(held(env) and record.original == "0.8", "the hold keeps the game's default, not management's 0.6, got " .. tostring(record.original))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- Scale CVars already at 1: nothing to hold or give back, and the managed sliders still apply on leaving the hold.
+
+do
+	local env, K = N.New({
+		setup = function(e)
+			e._cvars.nameplateMinScale, e._cvars.nameplateSelectedScale = "1", "1"
+		end,
+	})
+	assert(held(env) and wrote(env, 0) == nil, "nothing is written when the game already draws at 1")
+	K.Options.Write("Nameplates", "cvars.enabled", true)
+	K.Options.Write("Nameplates", "cvars.minScale", 0.6)
+	assert(held(env), "held while plates ignore the scale")
+	K.Options.Write("Nameplates", "shrinkDistant", true)
+	assert(env._cvars.nameplateMinScale == "0.6" and env._cvars.nameplateSelectedScale == "1.2", "the managed values apply once the hold ends, got " .. tostring(env._cvars.nameplateMinScale))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

@@ -208,7 +208,8 @@ local function Pin()
 		elseif not (type(record) == "table" and record.written == current) and tonumber(current) ~= 1 then
 			local written = K.CVars.Set(name, PIN) and K.CVars.Get(name)
 			if written and written ~= current then
-				records[name] = { original = current, written = written }
+				local kept = ns.CVars.Owns(name) and K.CVars.Default(name) or current
+				records[name] = { original = kept, written = written }
 				K.DevTest.Log(MODULE, name .. " is held at " .. written .. " (the game had " .. current .. "), so the box the game stacks by matches the plate at every distance")
 			else
 				LogOnce("scale-refused:" .. name, "the game refused CVar " .. name .. "; the game keeps scaling the stacking box by it")
@@ -218,11 +219,15 @@ local function Pin()
 end
 
 local function Release()
+	local leaving, restored = hold.pinned, false
+	hold.pinned = false
 	local records, all, key = Records(false)
-	if not hold.pinned or not records then
+	if not records or not (leaving or ns.Plates.running) then
+		if leaving then
+			ns.CVars.Schedule()
+		end
 		return
 	end
-	local restored = false
 	for name, record in pairs(records) do
 		local valid = type(record) == "table" and type(record.original) == "string" and type(record.written) == "string"
 		local current = valid and K.CVars.Get(name)
@@ -230,7 +235,7 @@ local function Release()
 			LogOnce("scale-read:" .. name, name .. " cannot be read; KstyleUI gives it back later")
 		elseif not valid or current ~= record.written then
 			records[name] = nil
-		elseif K.CVars.Set(name, record.original) then
+		elseif K.CVars.Set(name, record.original) and K.CVars.Get(name) == record.original then
 			records[name] = nil
 			restored = true
 			K.DevTest.Log(MODULE, name .. " is the game's own again: " .. record.original)
@@ -245,7 +250,7 @@ local function Release()
 			K.Store.Account()[MEMORY] = nil
 		end
 	end
-	if restored then
+	if leaving or restored then
 		ns.CVars.Schedule()
 	end
 end

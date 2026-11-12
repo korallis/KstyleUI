@@ -14,6 +14,10 @@ local queued = false
 
 CVars.Exists = K.CVars.Exists
 
+function CVars.Owns(name)
+	return applied[name] == true
+end
+
 local function Set(name, value)
 	if not K.CVars.Set(name, value) then
 		LogOnce("cvar-fail:" .. name, "the game refused CVar " .. name)
