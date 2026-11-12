@@ -57,7 +57,7 @@ assert(near(pw, g.glass.w, 1) and near(ph, g.glass.h, 1), "the glass takes Geome
 assert(g.glass.x < g.portrait.x + g.portrait.w, "the glass runs under the portrait")
 assert(player.portraitFrame:GetFrameLevel() > player.panel:GetFrameLevel(), "the portrait draws over the glass's outer end")
 assert(near(player.chrome:Chamfer(), math.min(6 * K.Widgets.Border(player.panel), g.glass.h / 2), 0.01), "the glass rounds its corners six border lines (the owner's picture, 2026-11-09), at most half its height, got " .. tostring(player.chrome:Chamfer()))
-assert(player.power.backgroundName == "buttonFill", "the power bar's track is the mockup's dark #101214 track, the button body, like the health track")
+assert(player.power.unitBar and player.power.under.track:IsShown() and not player.power.background, "the power bar is the clean unit bar: its dark track is drawn under it, like the health track")
 local _, _, _, _, iconY = player.icons.leader:GetPoint(1)
 assert(near(-iconY, g.glass.y, 1), "the status icons sit on the glass's top edge: " .. tostring(iconY))
 

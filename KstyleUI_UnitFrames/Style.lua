@@ -100,11 +100,11 @@ function Style.New(parent, kind)
 	view.scrim:Hide()
 	view.chrome = Widgets.Chrome(panel, { shape = GlassShape(kind), fill = "surface", shadow = true })
 
-	view.health = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
+	view.health = Widgets.UnitBar(panel, { lowHealth = true })
 	view.health:SetClipsChildren(true)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
-	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
+	view.power = Widgets.UnitBar(panel, { loss = false, spark = false })
 	view.health.ornament = Widgets.Ornament(panel, "bar", view.health)
 	view.health.ornament.span = view.power
 	Widgets.RecordAll(view.health, view.power)
@@ -627,28 +627,6 @@ function Style.Restyle(view, kind)
 	Style.Shape(view, form == "vitals" or Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
-	local column = form == "column"
-	view.health.rampOn = column and view.health:FlatTexture()
-	view.health.rampKind = view.health.rampKind or "health"
-	if view.health.fillRamped and not view.health.rampOn then
-		view.health:ApplyFillRamp()
-	end
-	view.power.rampOn = column and view.power:FlatTexture()
-	view.power.rampKind = "power"
-	if view.power.fillRamped and not view.power.rampOn then
-		view.power:ApplyFillRamp()
-	end
-	view.power:SetInnerEdge(view.power.rampOn, "powerEdge")
-	if view.health.keyline then
-		view.health.keyline:SetShown(not view.health.rampOn)
-	end
-	view.health:SetTrackBacking(view.health.rampOn == true)
-	if view.power.keyline then
-		view.power.keyline:SetShown(not view.power.innerEdgeOn)
-	end
-	view.power:SetTrackBacking(view.power.innerEdgeOn == true)
-	Style.Flat(view.health, column)
-	Style.Flat(view.power, column)
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.absorb:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.orientation = Settings.Value(kind, "healthOrientation")

@@ -20,6 +20,16 @@ local function noErrors(where)
 end
 noErrors("enable")
 
+-- A friendly unit's health colour comes through the low-health curve, so its channels are secrets: reveal them.
+local function barColor(bar)
+	local call = W.LastCall(bar, "SetStatusBarColor")
+	local out = {}
+	for i = 1, 3 do
+		out[i] = env.issecretvalue(call[i]) and env.Reveal(call[i]) or call[i]
+	end
+	return out
+end
+
 -- Layout: each frame is one element under its key, with the setup's label, resizable, at its footprint.
 local registered = {}
 for _, el in ipairs(K.Layout.Elements()) do
@@ -132,7 +142,7 @@ env.SetTarget(true)
 assert(U.Shown(env, target.name) == "WOLF", "the target frame shows the new target: " .. U.Shown(env, target.name))
 assert(U.Shown(env, target.healthText) == "25%", "target health text")
 local hr, hg, hb = K.Tokens.Color("healthHostile")
-local last = W.LastCall(target.health, "SetStatusBarColor")
+local last = barColor(target.health)
 assert(last[1] == hr and last[2] == hg and last[3] == hb, "a hostile NPC's health bar takes the kit sheet's red")
 local tint = W.LastCall(target.healthText, "SetTextColor")
 for i, bar in ipairs({ hr, hg, hb }) do
@@ -156,11 +166,11 @@ assert(target.power:IsShown(), "a unit with power shows the bar again")
 U.SetUnit(env, "target", { name = "Jaina", class = "MAGE", isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
 env.SetTarget(true)
 local fr, fg, fb = K.Theme.ReactionColor(5)
-last = W.LastCall(target.health, "SetStatusBarColor")
+last = barColor(target.health)
 assert(last[1] == fr and last[2] == fg and last[3] == fb, "by default a friendly player target's health bar takes the friendly colour")
 K.Options.Write("UnitFrames", "target.healthColor", "class")
 local cr, cg, cb = K.Theme.ClassColor("MAGE")
-last = W.LastCall(target.health, "SetStatusBarColor")
+last = barColor(target.health)
 assert(last[1] == cr and last[2] == cg and last[3] == cb, "with the class source a player target's health bar takes their class colour")
 K.Options.Write("UnitFrames", "target.healthColor", "reaction")
 noErrors("target")
@@ -221,7 +231,7 @@ K.Options.Write("UnitFrames", "player.healthTexture", glass)
 assert(W.LastCall(player.health, "SetStatusBarTexture")[1] == glass, "the health texture changes")
 K.Options.Write("UnitFrames", "player.healthColor", "custom")
 K.Options.Write("UnitFrames", "player.healthCustom", { r = 0.2, g = 0.4, b = 0.6 })
-last = W.LastCall(player.health, "SetStatusBarColor")
+last = barColor(player.health)
 assert(last[1] == 0.2 and last[2] == 0.4 and last[3] == 0.6, "a custom colour applies")
 K.Options.Write("UnitFrames", "player.healthOrientation", "UP")
 assert(W.LastCall(player.health, "SetOrientation")[1] == "VERTICAL", "up fills vertically")

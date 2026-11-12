@@ -54,7 +54,7 @@ local function Build()
 		pip:SetBarValue(0)
 		pips[i] = pip
 	end
-	local mana = Widgets.StatusBar(content, { smooth = true, background = TRACK })
+	local mana = Widgets.UnitBar(content, { loss = false, spark = false })
 	state.holder, state.content, state.pips, state.mana = holder, content, pips, mana
 	holder:HookScript("OnSizeChanged", function()
 		Resource.Layout()

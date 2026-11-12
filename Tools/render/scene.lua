@@ -944,11 +944,14 @@ local function sortKey(a, b)
 	return a.seq < b.seq
 end
 
-local function color4(stored, default)
+local function color4(stored, default, env)
 	if not stored then
 		return default
 	end
 	local r, g, b, a = stored[1], stored[2], stored[3], stored[4]
+	if env then
+		r, g, b, a = reveal(env, r), reveal(env, g), reveal(env, b), reveal(env, a)
+	end
 	if type(r) ~= "number" then
 		return default
 	end
@@ -1163,9 +1166,9 @@ function Scene.Build(env, opts)
 		if colour and (item.file == nil or colourWins(region)) then
 			item.color = colour
 		end
-		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 })
+		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 }, env)
 		if region._barOwner and region._barOwner._state.StatusBarColor then
-			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex)
+			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex, env)
 		end
 		local coords = region._state.TexCoord
 		if coords and coords.n >= 4 and not item.texCoord then
