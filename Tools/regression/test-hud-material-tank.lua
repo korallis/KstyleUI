@@ -1,5 +1,20 @@
 -- test-hud-material-tank.lua: the raw Tank reference HUD draws every card in ForgedBrackets.
+collectgarbage("setpause", 120)
+collectgarbage("collect")
 local Lib = dofile("Tools/regression/hud_material_lib.lua")
+
+local r, g, b
+for _, card in ipairs(Lib.Audit(Lib.Build("Tank", "Glass"), "Glass", Lib.ROLES.Tank)) do
+	if card.role == "meters.threat" then
+		r, g, b = card.chrome.owner._env.KstyleUI.Tokens.Color("neutral")
+		assert(card.drawn.rim and #card.drawn.rim > 0 and not card.drawn.materialEdge, "under Glass the threat warning edge stays the rounded rim")
+		for _, item in ipairs(card.drawn.rim) do
+			local v = item.vertex
+			assert(math.abs(v[1] - r) < 1e-4 and math.abs(v[2] - g) < 1e-4 and math.abs(v[3] - b) < 1e-4, "the Glass threat card's rim is its neutral warning edge")
+		end
+	end
+end
+collectgarbage("collect")
 
 local cards = Lib.Audit(Lib.Build("Tank", "ForgedBrackets"), "ForgedBrackets", Lib.ROLES.Tank)
 assert(#cards == #Lib.ROLES.Tank, "Tank draws " .. #Lib.ROLES.Tank .. " cards, got " .. #cards)
@@ -14,23 +29,12 @@ local threat
 for _, card in ipairs(cards) do
 	threat = card.role == "meters.threat" and card or threat
 end
-local K = threat.chrome.owner._env.KstyleUI
-local r, g, b = K.Tokens.Color("neutral")
 for _, item in ipairs(threat.drawn.materialEdge) do
 	local v = item.vertex
 	assert(math.abs(v[1] - r) < 1e-4 and math.abs(v[2] - g) < 1e-4 and math.abs(v[3] - b) < 1e-4, "the threat card's outline is its neutral warning edge")
 end
 local square = threat.drawn.materialEdge
 assert(#square == 4 and not threat.drawn.rim, "under ForgedBrackets the threat warning edge is the frame's square, not the rounded rim")
-for _, card in ipairs(Lib.Audit(Lib.Build("Tank", "Glass"), "Glass", Lib.ROLES.Tank)) do
-	if card.role == "meters.threat" then
-		assert(card.drawn.rim and #card.drawn.rim > 0 and not card.drawn.materialEdge, "under Glass the threat warning edge stays the rounded rim")
-		for _, item in ipairs(card.drawn.rim) do
-			local v = item.vertex
-			assert(math.abs(v[1] - r) < 1e-4 and math.abs(v[2] - g) < 1e-4 and math.abs(v[3] - b) < 1e-4, "the Glass threat card's rim is its neutral warning edge")
-		end
-	end
-end
 Lib.ACCENTS["meters.threat"] = nil
 assert(not pcall(Lib.AuditCard, threat, "ForgedBrackets"), "an outline over a forged frame with no recorded reason fails the audit")
 print("ok test-hud-material-tank")
