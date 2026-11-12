@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view, never taller than the card's Layout element, of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time (a quest too tall for the card shows the objectives that fit and the more line counts the rest), and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view, never taller than the card's Layout element, of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time (a quest too tall for the card shows the objectives that fit and the more line counts the rest), a more line that always says how many quests wait (the Captain's ruling on KSTY-33: a hidden overflow line hid content from the owner), and a slim scroll bar that rests unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
 local _, ns = ...
 
 local K = KstyleUI
@@ -198,7 +198,7 @@ local function PaintRest()
 	local alpha = pointed and 1 or 0
 	track:SetAlpha(alpha)
 	thumb:SetAlpha(alpha)
-	more:SetAlpha(alpha)
+	more:SetAlpha(1)
 end
 
 local function Peek()

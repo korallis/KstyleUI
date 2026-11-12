@@ -188,7 +188,8 @@ do
 	assert(title:find("[10]", 1, true) and title:find("Dark Storms", 1, true), "the title carries the quest's level as Forever shows it, got " .. title)
 	assert(parts.more:IsShown() and parts.more:GetText():find("6", 1, true), "the card says how many more there are, got " .. tostring(parts.more:GetText()))
 	assert(parts.thumb:IsShown(), "and a slim scroll bar shows")
-	assert(parts.thumb:GetAlpha() == 0 and parts.track:GetAlpha() == 0 and parts.more:GetAlpha() == 0, "at rest the scroll bar and the more line are unseen, as the picture draws the card")
+	assert(parts.thumb:GetAlpha() == 0 and parts.track:GetAlpha() == 0, "at rest the scroll bar is unseen, as the picture draws the card")
+	assert(parts.more:GetAlpha() == 1, "but the more line always shows, so the card says when quests wait (the Captain's ruling on KSTY-33)")
 	local card = ns.Quests.Card()
 	local cardBox, capBox, viewBox = RootRect(K, card), RootRect(K, parts.cap.row), RootRect(K, parts.view)
 	assert(math.abs(cardBox.top - capBox.top - 11) <= 0.6, "standing alone, the caption's row starts 11 root units under the glass's top, as the picture's guide caption does, got " .. cardBox.top - capBox.top)
@@ -218,7 +219,7 @@ do
 	assert(parts.thumb:GetAlpha() == 1, "moving from a row onto the card keeps them")
 	card._mouseOver = false
 	card:GetScript("OnLeave")(card)
-	assert(parts.thumb:GetAlpha() == 0 and parts.more:GetAlpha() == 0, "and they rest again once the pointer leaves the card")
+	assert(parts.thumb:GetAlpha() == 0 and parts.more:GetAlpha() == 1, "and the bar rests again once the pointer leaves the card, the more line still showing")
 	assert(not tracker:IsVisible(), "Blizzard's tracker does not show the quests a second time")
 	Clean(env, K)
 end
