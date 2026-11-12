@@ -100,7 +100,7 @@ for i, spell in ipairs(SPELLS) do
 	assert(W.Near(row.frame:GetWidth(), 237), i .. ": the row ends 16 units from the right edge")
 	assert(not row.icon:IsShown(), i .. ": no icon")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
-	assert(Text(row.value) == "~" .. spell[3], i .. ": the amount: " .. tostring(Text(row.value)))
+	assert(Text(row.value) == tostring(spell[3]), i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
 	assert(row.dot and row.dot:IsShown() and Text(row.dot) == "\194\183", i .. ": the middle dot is its own piece")
 	local cr, cg, cb = K.Tokens.Color(spell[4])
@@ -156,7 +156,7 @@ do
 	K.Options.Write("Appearance", "typeSet", "Folio")
 	env.RunTimers()
 	assert(ns.BarList.DOT_GAP_EM == 5 / 21, "the gap is 5 px against the 21 px the 12-unit face draws on the reference screen")
-	assert(list.rows[1].amount == "~412", "the amount is the text SetRow was handed, not a read back from the region")
+	assert(list.rows[1].amount == "412", "the amount is the text SetRow was handed, not a read back from the region")
 end
 
 -- A chosen font sizes the dot itself. Pinning every face to the number face's 0.228 em clips a wider
@@ -179,7 +179,7 @@ do
 	local path, size = real(row.value)
 	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
 	local kept = row.amount
-	row.amount = "~411"
+	row.amount = "411"
 	local spelled = path:gsub("\\", "/"):upper()
 	row.value.GetFont = function()
 		return spelled, size, ""
@@ -294,7 +294,7 @@ do
 	envS.RunTimers()
 	assert(#envS._errors == 0, "secret values raise no error: " .. tostring(envS._errors[1]))
 	assert(envS.issecretvalue(Text(card.column)), "a secret rate reaches the cap through AbbreviateNumbers whole")
-	assert(envS.Reveal(Text(card.column)) == "~38.4 dps", "and keeps its unit, joined to the secret as the game allows: " .. tostring(envS.Reveal(Text(card.column))))
+	assert(envS.Reveal(Text(card.column)) == "38 dps", "and keeps its unit, joined to the secret as the game allows: " .. tostring(envS.Reveal(Text(card.column))))
 	assert(card.column:IsShown() and card.hasRest, "the aside shows and the list tracks it itself")
 	envS.SetCombat(false)
 	envS._session.combatSources[1].amountPerSecond = 38.4
@@ -340,7 +340,7 @@ do
 	assert(L.SchoolToken(99999999) == "meterPhysical" and L.SchoolToken(nil) == "meterPhysical", "an unknown spell falls back to physical")
 	assert(L.SchoolToken(env.Secret(403)) == "meterPhysical", "a secret spell ID is never looked up")
 	assert(L.FormatRate(38.4, "dps") == "38.4 dps" and L.FormatRate(0, "dps") == "0.0 dps", "a rate shows one decimal and its unit")
-	assert(L.FormatRate(1234.5, "dps") == "~1234.5 dps", "a large rate is abbreviated by the game")
+	assert(L.FormatRate(1234.5, "dps") == "1.2K dps", "a large rate is abbreviated: one decimal to 10K")
 	assert(L.FormatRate(nil, "dps") == "" and L.FormatRate("x", "dps") == "", "no rate, no text")
 end
 

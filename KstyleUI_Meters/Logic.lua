@@ -32,6 +32,38 @@ function Logic.Plain(value)
 end
 local Plain = Logic.Plain
 
+local function Point(breakpoint, abbreviation, significand, fraction)
+	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
+end
+
+local POINTS = {
+	Point(10000000000, "B", 1000000000, 1), Point(1000000000, "B", 100000000, 10),
+	Point(10000000, "M", 1000000, 1), Point(1000000, "M", 100000, 10),
+	Point(10000, "K", 1000, 1), Point(1000, "K", 100, 10),
+	Point(1, "", 1, 1),
+}
+local PROBES = { { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
+local secretOptions
+
+local function SecretOptions()
+	if secretOptions ~= nil then
+		return secretOptions or nil
+	end
+	secretOptions = false
+	if type(AbbreviateNumbers) ~= "function" then
+		return nil
+	end
+	local options = { breakpointData = POINTS }
+	for i = 1, #PROBES do
+		local ok, text = pcall(AbbreviateNumbers, PROBES[i][1], options)
+		if not ok or text ~= PROBES[i][2] then
+			return nil
+		end
+	end
+	secretOptions = options
+	return options
+end
+
 function Logic.Percent(part, total)
 	part, total = Plain(part), Plain(total)
 	if not part or not total or total <= 0 then
@@ -56,8 +88,12 @@ end
 
 function Logic.Abbreviate(value)
 	if IsSecret(value) then
-		if type(AbbreviateNumbers) == "function" then
-			return AbbreviateNumbers(value)
+		local options = SecretOptions()
+		if options then
+			return AbbreviateNumbers(value, options)
+		end
+		if type(AbbreviateLargeNumbers) == "function" then
+			return AbbreviateLargeNumbers(value)
 		end
 		return ""
 	end
@@ -65,15 +101,21 @@ function Logic.Abbreviate(value)
 	if not value then
 		return ""
 	end
-	if type(AbbreviateNumbers) == "function" then
-		return AbbreviateNumbers(value)
+	for i = 1, #POINTS do
+		local point = POINTS[i]
+		if value >= point.breakpoint then
+			return (floor(value / point.significandDivisor) / point.fractionDivisor) .. point.abbreviation
+		end
 	end
-	return format("%d", floor(value + 0.5))
+	return "0"
 end
 
 function Logic.FormatRate(value, unit)
 	if IsSecret(value) then
-		return type(AbbreviateNumbers) == "function" and AbbreviateNumbers(value) .. " " .. unit or ""
+		if not SecretOptions() and type(AbbreviateLargeNumbers) ~= "function" then
+			return ""
+		end
+		return Logic.Abbreviate(value) .. " " .. unit
 	end
 	value = Plain(value)
 	if not value then

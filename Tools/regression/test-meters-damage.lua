@@ -92,7 +92,7 @@ end
 assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.METER.DamageDone, "the window reads the current fight's damage done")
 assert(list.count == 2, "two sources show")
 assert(Text(list.rows[1].name) == "Kragar", "the first source is named")
-assert(Text(list.rows[1].value) == "~2840", "the value is abbreviated")
+assert(Text(list.rows[1].value) == "2.8K", "the value is abbreviated")
 assert(Text(list.rows[1].percent) == "57%" and Text(list.rows[1].dot) == "\194\183", "the share is the percentage and the dot is its own piece")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
@@ -109,7 +109,7 @@ assert(list.count == 3, "a third source appears after the update")
 -- The meter type and the session come from the settings, and per-second types show rates.
 M.Write(env, K, "damage.meter", "Dps")
 assert(env._lastSession[2] == M.METER.Dps, "the window reads damage per second")
-assert(Text(list.rows[1].value) == "~30", "per-second meters show the rate")
+assert(Text(list.rows[1].value) == "30", "per-second meters show the rate")
 M.Write(env, K, "damage.session", "Overall")
 assert(env._lastSession[1] == M.SESSION.Overall, "the window reads the overall session")
 M.Write(env, K, "damage.percent", false)
@@ -144,6 +144,7 @@ assert(#env._errors == 0, "secret meter values raise no error: " .. tostring(env
 assert(M.Last(list.rows[1].bar, "SetValue")[1] == secretTotal, "the secret amount goes straight to the bar")
 assert(env.issecretvalue(Text(list.rows[1].name)), "the secret name passes through whole")
 assert(env.issecretvalue(Text(list.rows[1].value)), "the secret amount is abbreviated by the game")
+assert(env.Reveal(Text(list.rows[1].value)) == "4K", "and reads as a short number, got " .. tostring(env.Reveal(Text(list.rows[1].value))))
 assert(Text(list.rows[1].percent) == "", "no percentage from secret values")
 local locked = Source("Hidden", "ROGUE", 10, 1)
 env._locked[locked] = true
@@ -240,6 +241,7 @@ local names = {}
 for i = 1, 3 do
 	names[i] = Plain(envR, Text(cardR.rows[i].name))
 	assert(envR.issecretvalue(Text(cardR.rows[i].value)), "row " .. i .. ": the amount is abbreviated by the game")
+	assert(Plain(envR, Text(cardR.rows[i].value)) == ({ "2.8K", "2.1K", "900" })[i], "row " .. i .. ": the amount reads as a short number, got " .. tostring(Plain(envR, Text(cardR.rows[i].value))))
 	assert(Plain(envR, M.Last(cardR.rows[i].bar, "SetValue")[1]) == ({ 2840, 2160, 900 })[i], "row " .. i .. ": the bar takes the secret amount")
 end
 assert(names[1] == "Kragar" and names[2] == "Tester" and names[3] == "Lunara", "the rows keep the order the game sorted them in")
