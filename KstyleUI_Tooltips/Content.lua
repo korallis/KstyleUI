@@ -114,7 +114,7 @@ local function Decorate(tooltip, data)
 	end
 	Style.SetTitleRole(tooltip, (kind == Spell or kind == Units.Decorate) and "names" or nil)
 	if tooltip == GameTooltip then
-		Health.SetObject(kind == Object)
+		Health.SetUnit(kind == Units.Decorate or kind == nil)
 	end
 	if kind then
 		kind(tooltip, data)

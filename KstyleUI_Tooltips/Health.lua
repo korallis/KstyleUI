@@ -17,14 +17,14 @@ Health.GAP = BAR_GAP
 
 local bar, owner, source
 local docked = false
-local object = false
+local unit = false
 
 function Health.Bar()
 	return bar
 end
 
 local function Wanted()
-	return ns.active == true and Settings.Get("healthBar") and not object and source ~= nil and source:IsShown()
+	return ns.active == true and Settings.Get("healthBar") and unit and source ~= nil and source:IsShown()
 end
 
 local function Vertical()
@@ -106,8 +106,8 @@ local function Sync()
 	end
 end
 
-function Health.SetObject(on)
-	object = on == true
+function Health.SetUnit(on)
+	unit = on == true
 	Sync()
 end
 
@@ -140,7 +140,7 @@ function Health.Build(tooltip)
 	blizzard:HookScript("OnShow", Sync)
 	blizzard:HookScript("OnHide", Sync)
 	tooltip:HookScript("OnTooltipCleared", function()
-		Health.SetObject(false)
+		Health.SetUnit(false)
 	end)
 	Health.Restyle()
 	Settings.Log("GameTooltip's health bar is mirrored on a KstyleUI bar")

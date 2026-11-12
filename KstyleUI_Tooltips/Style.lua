@@ -203,6 +203,7 @@ local function BuildFade(tooltip)
 	alpha:SetToAlpha(1)
 	alpha:SetDuration(Tokens.Duration("hover"))
 	alpha:SetSmoothing("OUT")
+	group:SetToFinalAlpha(true)
 	return group
 end
 
@@ -249,6 +250,11 @@ function Style.Skin(tooltip, name)
 	SkinParts(tooltip)
 	glass.fade = BuildFade(tooltip)
 	tooltip:HookScript("OnShow", FadeIn)
+	tooltip:HookScript("OnHide", function()
+		if glass.fade then
+			glass.fade:Stop()
+		end
+	end)
 	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
 		if glass.iconOwner and type(tooltip[method]) == "function" then
 			hooksecurefunc(tooltip, method, Repad)
