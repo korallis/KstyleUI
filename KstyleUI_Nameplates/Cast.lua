@@ -230,8 +230,6 @@ function Cast.Start(plate, channel)
 	plate.casting, plate.castChannel, plate.castInterrupted = true, channel, false
 	plate.castFlag, plate.castID = flag, castID
 	local cast = plate.cast
-	cast:SetAlpha(1)
-	cast:Show()
 	plate.castIcon:SetTexture(texture)
 	plate.castName:SetText(text)
 	Run(plate, channel, startMs, endMs)
@@ -241,6 +239,8 @@ function Cast.Start(plate, channel)
 	if showTime then
 		plate.castTime:SetText("")
 	end
+	cast:SetAlpha(1)
+	cast:Show()
 	plate.castBar:SetScript("OnUpdate", (showTime or plate.castFallback) and OnUpdate or nil)
 	Paint(plate)
 	plate.castBar:PlaySheen(false)

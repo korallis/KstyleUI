@@ -63,8 +63,8 @@ assert(x1 >= 0 and x5 > x1, "the pips run left to right")
 K.Options.Write("UnitFrames", "resource.spacing", 12)
 assert(K.Layout.Set("unitframes.resource", "width", 40) and K.Layout.Set("unitframes.resource", "height", 4))
 for i, pip in ipairs(state.pips) do
-	local x = select(4, pip:GetPoint(1))
-	local w, h = pip:GetSize()
+	local x = select(4, env.Look(pip:GetPoint(1)))
+	local w, h = env.Look(pip:GetSize())
 	assert(x >= -1e-6 and x + w <= 40 + 1e-6 and h <= 4 + 1e-6, "pip " .. i .. " stays inside a 40 by 4 element")
 end
 K.Layout.Reset("unitframes.resource")

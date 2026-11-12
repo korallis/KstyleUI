@@ -470,7 +470,8 @@ end
 -- Base(env, opts) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame, its
 -- selectionHighlight and its SoftTargetFrame, which holds the soft-target icon. opts.scale is the
 -- scale the game gives the base: UIParent's effective scale times the plate's own factor (its
--- distance and target scaling), which C code changes per frame with no event.
+-- distance and target scaling), which C code changes per frame with no event. The game restricts a base's anchoring,
+-- so measuring anything anchored to it raises, as in the game; opts.free gives a base the game would not hand out.
 function N.Base(env, opts)
 	local base = env.CreateFrame("Frame", nil, env.WorldFrame)
 	base:SetSize(110, 45)
@@ -484,6 +485,9 @@ function N.Base(env, opts)
 	soft.Icon = soft:CreateTexture(nil, "ARTWORK")
 	base.UnitFrame.SoftTargetFrame = soft
 	base._calls = {}
+	if not (opts and opts.free) then
+		env.RestrictAnchoring(base)
+	end
 	return base
 end
 
@@ -518,6 +522,26 @@ function N.Add(env, token, data, opts)
 		dofile("Tools/regression/auras_env.lua").Ghosts(plate.auraChip, u.debuffCount or 0)
 	end
 	return base
+end
+
+-- Align(env, base, region) moves a base by less than a physical pixel so the region's top-left corner lands on the
+-- physical pixel grid. A restricted plate places its ornament from its own layout, on the grid of its health bar's
+-- corner, because the game will not say where the plate is on screen; a test that measures pieces against the
+-- screen's grid aligns the plate first, as the game would show it when the corner falls on a pixel.
+function N.Align(env, base, region)
+	local Scene = dofile("Tools/render/scene.lua")
+	local _, height = env.GetPhysicalScreenSize()
+	local unit = 1080 / height
+	local function at()
+		env._rectSolver = nil
+		local x, y = Scene.RectIn(Scene.RectSolver(env), region)
+		return x / unit, y / unit
+	end
+	local point, relative, relPoint, bx, by = base:GetPoint(1)
+	local x0, y0 = at()
+	base:SetPoint(point, relative, relPoint, bx + 1, by + 1)
+	local x1, y1 = at()
+	base:SetPoint(point, relative, relPoint, bx - (x0 - math.floor(x0 + 0.5)) / (x1 - x0), by - (y0 - math.floor(y0 + 0.5)) / (y1 - y0))
 end
 
 function N.Remove(env, token)

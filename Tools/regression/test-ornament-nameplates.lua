@@ -93,7 +93,7 @@ local function run(width, height, scale, level, extras)
 					local rect = assert(rects[texture], label .. ": " .. spec.token .. " ornament piece not drawn")
 					pieces = pieces + 1
 					local tx, ty, tw, th = Scene.RectIn(solver, handle.target)
-					local rim = (handle.target.rimOutset or 0) * tw / handle.target:GetWidth()
+					local rim = (handle.target.rimOutset or 0) * tw / env.Look(handle.target:GetWidth())
 					local band = grown({ tx, ty, tw, th }, rim)
 					local function snap(v) return math.floor(v / pixel + 0.5) * pixel end
 					local x1, y1 = snap(band[1]), snap(band[2])
@@ -101,9 +101,9 @@ local function run(width, height, scale, level, extras)
 					for name, object in pairs(content(plate)) do
 						if object.IsVisible and object:IsVisible() then
 							local x, y, w, h = Scene.RectIn(solver, object)
-							local ink = object.GetStringWidth and object:GetStringWidth()
-							if x and type(ink) == "number" and ink > 0 and (tonumber(object:GetWidth()) or 0) > 0 and ink < object:GetWidth() then
-								local factor, justify = w / object:GetWidth(), object:GetJustifyH()
+							local ink = object.GetStringWidth and env.Look(object:GetStringWidth())
+							if x and type(ink) == "number" and ink > 0 and (tonumber(env.Look(object:GetWidth())) or 0) > 0 and ink < env.Look(object:GetWidth()) then
+								local factor, justify = w / env.Look(object:GetWidth()), object:GetJustifyH()
 								local inkW = ink * factor
 								x = justify == "LEFT" and x or justify == "RIGHT" and x + w - inkW or x + (w - inkW) / 2
 								w = inkW

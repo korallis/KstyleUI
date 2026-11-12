@@ -169,7 +169,7 @@ do
 		K.Options.Write("GroupFrames", "raid.healthText", case[1])
 		env.RunTimers()
 		local path, size = f.healthText:GetFont()
-		assert(f.healthText:GetWidth() + 0.5 >= Scene.TextWidth(case[2], size, path), case[1] .. ": the lane holds its widest value whole, width " .. f.healthText:GetWidth())
+		assert(env.Look(f.healthText:GetWidth()) + 0.5 >= Scene.TextWidth(case[2], size, path), case[1] .. ": the lane holds its widest value whole, width " .. env.Look(f.healthText:GetWidth()))
 	end
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

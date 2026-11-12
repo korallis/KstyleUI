@@ -90,7 +90,7 @@ assert(near(reachLeft, 91.5), "the player's portrait reaches 91.5 outside its el
 local player = Frames.Get("player").views[1]
 assert(not player.chrome.fill[5]:IsShown(), "no glass behind the column")
 assert(player.disc:IsShown() and U.Shown(env, player.levelText) == "60", "the level shows in the disc")
-assert(near(select(2, player.health:GetSize()), 13.78, 0.6), "the health bar is the picture's 24 px")
+assert(near(select(2, env.Look(player.health:GetSize())), 13.78, 0.6), "the health bar is the picture's 24 px")
 assert(near(select(2, player.power:GetSize()), 8, 0.6), "the power bar is the picture's 14 px box")
 assert(player.health.lit:IsShown() == false and player.health.shade:IsShown() == false, "the health bar is flat: no lit top, no shaded foot")
 assert(player.health.innerEdgeOn ~= true, "the health fill has no inner edge")
@@ -187,10 +187,10 @@ do
 	assert(target.name:GetWidth() == 0, "a short name sizes itself, so the caption hugs it")
 	U.SetUnit(env, "target", { name = "Poacher", secretName = true, level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
 	env.SetTarget(true)
-	assert(near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "a secret name is always bounded to its room: " .. target.name:GetWidth())
+	assert(near(env.Look(target.name:GetWidth()), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "a secret name is always bounded to its room: " .. env.Look(target.name:GetWidth()))
 	Frames.Relayout(Frames.Get("target"))
 	env.RunTimers()
-	assert(near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "and stays bounded through a relayout")
+	assert(near(env.Look(target.name:GetWidth()), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "and stays bounded through a relayout")
 	noErrors("name room")
 end
 

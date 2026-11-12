@@ -247,7 +247,7 @@ local function crosses(timer, bar)
 	if not timer or not bar or not timer:GetLeft() or not bar:GetLeft() then
 		return false
 	end
-	return timer:GetLeft() < bar:GetRight() and timer:GetRight() > bar:GetLeft() and timer:GetBottom() < bar:GetTop() and timer:GetTop() > bar:GetBottom()
+	return env.Look(timer:GetLeft()) < env.Look(bar:GetRight()) and env.Look(timer:GetRight()) > env.Look(bar:GetLeft()) and env.Look(timer:GetBottom()) < env.Look(bar:GetTop()) and env.Look(timer:GetTop()) > env.Look(bar:GetBottom())
 end
 
 local positions = { "CENTER", "BELOW", "ABOVE", "RIGHT", "LEFT", "SIDE" }

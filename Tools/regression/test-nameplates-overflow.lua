@@ -44,12 +44,12 @@ do
 
 	-- The chip sits at the end of the row, after the last tile, on the row's own line, hung from the health bar
 	-- as the container is (an aura container forbids layout on anything anchored to it).
-	local point, relative, relativePoint, x, y = chip.window:GetPoint(1)
+	local point, relative, relativePoint, x, y = env.Look(chip.window:GetPoint(1))
 	local size, spacing = ns.Auras.Grid(plate)
 	assert(relative == plate.health and point == "BOTTOMLEFT" and relativePoint == "TOPLEFT", "the chip hangs from the bar as the container does")
-	local _, containerRelative, _, cx, cy = plate.auras:GetPoint(1)
+	local _, containerRelative, _, cx, cy = env.Look(plate.auras:GetPoint(1))
 	assert(containerRelative == plate.health and N.Same(x - cx, 5 * size + 5 * spacing) and N.Same(y, cy), "one tile pitch past the fifth tile, level with the row, got " .. tostring(x - cx))
-	assert(N.Same(chip.window:GetHeight(), size) and N.Same(chip.window:GetWidth(), size), "a tile's size")
+	assert(N.Same(env.Look(chip.window:GetHeight()), size) and N.Same(env.Look(chip.window:GetWidth()), size), "a tile's size")
 
 	N.Debuffs(env, "nameplate1", 17)
 	assert(chipText(chip) == "+12", "twelve more: +12")

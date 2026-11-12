@@ -76,12 +76,12 @@ local function check(env, ns, label, pixel)
 		if #ends == 2 and #rails >= 2 then
 			table.sort(ends, function(a, b) return a[1] < b[1] end)
 			local tx, ty, tw, th = Scene.RectIn(solver, handle.target)
-			local rim = (handle.target.rimOutset or 0) * tw / handle.target:GetWidth()
+			local rim = (handle.target.rimOutset or 0) * tw / env.Look(handle.target:GetWidth())
 			local function snap(v) return math.floor(v / pixel + 0.5) * pixel end
 			local barL, barR, barB = snap(tx - rim), snap(tx + tw + rim), snap(ty + th + rim)
 			if plate.castBar and plate.castBar:IsVisible() then
 				local _, cy, _, ch = Scene.RectIn(solver, plate.castBar)
-				if cy then barB = math.max(barB, snap(cy + ch + (plate.castBar.rimOutset or 0) * tw / handle.target:GetWidth())) end
+				if cy then barB = math.max(barB, snap(cy + ch + (plate.castBar.rimOutset or 0) * tw / env.Look(handle.target:GetWidth()))) end
 			end
 			local top, bottom
 			for _, rail in ipairs(rails) do
@@ -151,6 +151,7 @@ local function run(width, height, scale, level, casting)
 	end
 	for _ = 1, 20 do N.Tick(env, 0.05) end
 	env.RunTimers()
+	for token, base in pairs(env._bases) do N.Align(env, base, ns.Plates.Get(token).health) end
 	Scene.Build(env)
 	K.Callbacks.Fire("SettingChanged", "Widgets", "ornaments")
 	local label = string.format("%s %dx%d scale %.2f %s", level, width, height, scale, casting and "casting" or "idle")
