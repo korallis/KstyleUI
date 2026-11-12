@@ -29,8 +29,8 @@ Settings.defaults = {
 		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
 	},
-	name = { show = true, size = 12, outline = "NONE", upper = true, classColor = false },
-	level = { show = false, size = 16, outline = "OUTLINE" },
+	name = { show = true, size = 17, outline = "NONE", upper = true, classColor = false },
+	level = { show = true, size = 13, outline = "NONE" },
 	healthText = { show = false, size = 9, outline = "OUTLINE", format = "percent" },
 	cast = {
 		enabled = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
@@ -39,14 +39,14 @@ Settings.defaults = {
 		showIcon = false, showName = false, showTime = false, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
-		enabled = true, includePlateOnly = true, size = 26, spacing = 2, columns = 5, rows = 1, order = "important",
-		growthX = "RIGHT", growthY = "UP", showTime = true, showCount = true, textSize = 12, outline = "OUTLINE",
+		enabled = true, includePlateOnly = true, size = 30, spacing = 2, columns = 5, rows = 1, order = "important",
+		growthX = "LEFT", growthY = "UP", showTime = false, showCount = true, textSize = 13, outline = "OUTLINE",
 	},
 	threat = {
 		display = "glow", role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
-	target = { highlight = true, colorSource = "custom", color = Color("gilt"), dimOthers = 1 },
+	target = { highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
 	focus = { highlight = true, color = Color("rare") },
 	markers = { classification = true, raid = true, raidSize = 16 },
 	stacking = { footprint = "plate" },

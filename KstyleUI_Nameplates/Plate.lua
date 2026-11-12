@@ -1,8 +1,8 @@
--- Plate.lua: one KstyleUI plate built from the widget kit: health bar, texts, level disc, markers, threat glow and highlights.
+-- Plate.lua: one KstyleUI plate built from the widget kit: a clean health bar, the name, the level diamond with its rank, target brackets, markers and the threat glow.
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens, Theme, Scale = K.Widgets, K.Tokens, K.Theme, K.Scale
+local Widgets, Tokens, Theme, Scale, Motion = K.Widgets, K.Tokens, K.Theme, K.Scale, K.Motion
 local Logic, Settings = ns.Logic, ns.Settings
 local IsSecret = Logic.IsSecret
 
@@ -32,21 +32,28 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 151.56, 13.78
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 156.75, 11.875
 Plate.NAME_OVERHANG = 20
-Plate.FRAME_GAP = 1.15
+Plate.FRAME_GAP = 2.375
 
-local BORDER_PIXELS = 2
+local HALO_ALPHA = 0.45
 local GAP = Tokens.Size("gapTiny")
-local NAME_GAP = 3.5
+local NAME_GAP = 6
 Plate.NAME_GAP = NAME_GAP
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
-local BADGE_PAD = Tokens.Size("gapSmall")
-local DISC_SIZE, DISC_CHAMFER, DISC_OVERLAP = 34, 10.5, 1
-Plate.BADGE_SIZE = DISC_SIZE
-local MARKER_SIZE = 12
-local MARKER_ROTATION = math.pi / 4
+local BRACKET_HEIGHT, BRACKET_ARM, BRACKET_GAP, BRACKET_STROKE = 21.375, 5.9375, 7.125, 2.375
+Plate.BRACKET_HEIGHT = BRACKET_HEIGHT
+local BRACKET_TRAVEL, BRACKET_TIME = 4.75, 0.12
+Plate.BRACKET_REACH = BRACKET_GAP + BRACKET_ARM
+local DIAMOND_SIDE = 21.375
+local DIAMOND_TIP = DIAMOND_SIDE * math.sqrt(2) / 2
+local DIAMOND_FILL_TOP, DIAMOND_FILL_BOTTOM = { 0.172, 0.176, 0.169 }, { 0.047, 0.051, 0.051 }
+local PLAIN_RIM_ALPHA = 0.8
+local CROWN_SIZE = 8
+Plate.DIAMOND_REACH = Plate.BRACKET_REACH + DIAMOND_TIP * 2 + 2
+Plate.DIAMOND_HEIGHT = DIAMOND_SIDE * math.sqrt(2) + 2
+Plate.CROWN_HEIGHT = CROWN_SIZE + GAP
 local GLOW_CORNER, GLOW_OUTSET = 8, 6
 local THREAT_GLOW_ALPHA = 0.9
 local RAID_ICONS = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
@@ -91,8 +98,8 @@ local function NewText(parent, justify)
 	return text
 end
 
-local function PixelBorder(bar)
-	return Widgets.Snap(bar, Scale.Pixel(BORDER_PIXELS) / Widgets.ScaleFactor(bar))
+local function Pixel(frame, n)
+	return Scale.Pixel(n or 1) / Widgets.ScaleFactor(frame)
 end
 
 function ns.FlatBar(parent, opts)
@@ -100,23 +107,20 @@ function ns.FlatBar(parent, opts)
 	local bar = Widgets.StatusBar(parent, opts)
 	local restyle = bar.Restyle
 	bar.rim = { Tokens.Color("black") }
-	bar.rimGapFill = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -1))
-	bar.rimGap = 0
-	function bar:SetRimGap(gap)
-		gap = Widgets.Snap(self, gap)
-		local px = gap > 0 and gap or opts.rimWidth and Widgets.Snap(self, opts.rimWidth) or PixelBorder(self)
-		if self.rimGap == gap and self.rimPixel == px then
+	bar.halo = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -2))
+	function bar:PlaceRim()
+		local px = Pixel(self)
+		if self.rimPixel == px then
 			return
 		end
-		self.rimGap, self.rimPixel, self.rimOutset = gap, px, gap + px
-		self.rimGapFill:SetShown(gap > 0)
-		self.rimGapFill:SetColorTexture(Widgets.MixTokens("black", 1, "gilt", 1, 0.1))
-		self.rimGapFill:ClearAllPoints()
-		self.rimGapFill:SetPoint("TOPLEFT", self, "TOPLEFT", -gap, gap)
-		self.rimGapFill:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap, -gap)
+		self.rimPixel, self.rimOutset = px, px * 2
 		self.keyline:ClearAllPoints()
-		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -gap - px, gap + px)
-		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap + px, -gap - px)
+		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
+		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
+		self.halo:SetColorTexture(Widgets.Rgba("black", HALO_ALPHA))
+		self.halo:ClearAllPoints()
+		self.halo:SetPoint("TOPLEFT", self, "TOPLEFT", -px * 2, px * 2)
+		self.halo:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px * 2, -px * 2)
 	end
 	function bar:SetRimColor(r, g, b, a)
 		local c = self.rim
@@ -125,10 +129,9 @@ function ns.FlatBar(parent, opts)
 	end
 	function bar:Restyle()
 		restyle(self)
-		self.lit:Hide()
 		self.shade:Hide()
 		self.rimPixel = nil
-		self:SetRimGap(self.rimGap)
+		self:PlaceRim()
 		self:SetRimColor(unpack(self.rim))
 		self:ApplyFillRamp()
 	end
@@ -196,34 +199,72 @@ function ns.NewPlate(parent, sample)
 	plate.healthOpts = { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, smooth = true, color = "plateHostile" }
 	local health = ns.FlatBar(plate, plate.healthOpts)
 	plate.health = health
-	plate.ornament = Widgets.Ornament(plate, "plate", health)
-	plate.ornamentSeen = {}
 	plate.healthText = NewText(health, "RIGHT")
 
 	plate.name = NewText(plate, "CENTER")
 
-	local badge = CreateFrame("Frame", nil, plate)
-	badge:SetFrameLevel(health:GetFrameLevel() + 1)
-	badge.chrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", chamfer = DISC_CHAMFER, shadow = false, grain = false })
-	plate.level = badge
-	plate.levelText = NewText(badge, "CENTER")
+	local diamond = CreateFrame("Frame", nil, plate)
+	diamond:SetFrameLevel(health:GetFrameLevel() + 2)
+	diamond.layers = {}
+	for i, layer in ipairs({ "outer", "rim", "inner", "fill" }) do
+		local texture = diamond:CreateTexture(nil, "ARTWORK", nil, i)
+		texture:SetTexture((Tokens.Texture("diamond")))
+		texture:SetPoint("CENTER", diamond, "CENTER")
+		diamond.layers[i] = texture
+		diamond[layer] = texture
+	end
+	diamond.outer:SetVertexColor(Tokens.Color("black"))
+	diamond.inner:SetVertexColor(Tokens.Color("black"))
+	plate.level = diamond
+	plate.levelText = NewText(diamond, "CENTER")
 
-	local marker = plate:CreateTexture(nil, "OVERLAY")
-	marker:SetTexture((Tokens.Texture("iconMask")))
-	marker:SetRotation(MARKER_ROTATION)
-	marker:Hide()
-	plate.marker = marker
+	local crown = CreateFrame("Frame", nil, plate)
+	crown:SetFrameLevel(diamond:GetFrameLevel())
+	crown.edge = crown:CreateTexture(nil, "ARTWORK", nil, 1)
+	crown.edge:SetTexture((Tokens.Texture("diamond")))
+	crown.edge:SetVertexColor(Tokens.Color("black"))
+	crown.edge:SetAllPoints(crown)
+	crown.face = crown:CreateTexture(nil, "ARTWORK", nil, 2)
+	crown.face:SetTexture((Tokens.Texture("diamond")))
+	crown.face:SetPoint("CENTER", crown, "CENTER")
+	crown:Hide()
+	plate.marker = crown
+
+	local brackets = CreateFrame("Frame", nil, plate)
+	brackets:SetFrameLevel(diamond:GetFrameLevel() + 1)
+	brackets:Hide()
+	brackets.sides = {}
+	for i, side in ipairs({ "left", "right" }) do
+		local frame = CreateFrame("Frame", nil, brackets)
+		frame.side = side
+		frame.stroke = frame:CreateTexture(nil, "OVERLAY")
+		frame.top = frame:CreateTexture(nil, "OVERLAY")
+		frame.bottom = frame:CreateTexture(nil, "OVERLAY")
+		for _, texture in ipairs({ frame.stroke, frame.top, frame.bottom }) do
+			Widgets.Crisp(texture)
+			texture:SetColorTexture(Tokens.Color("white"))
+		end
+		local group = frame:CreateAnimationGroup()
+		frame.open = group:CreateAnimation("Translation")
+		frame.open:SetDuration(0)
+		frame.open:SetOrder(1)
+		frame.close = group:CreateAnimation("Translation")
+		frame.close:SetDuration(BRACKET_TIME)
+		frame.close:SetOrder(2)
+		frame.close:SetSmoothing("OUT")
+		frame.group = group
+		brackets.sides[i] = frame
+	end
+	plate.brackets = brackets
 
 	local raid = plate:CreateTexture(nil, "OVERLAY")
 	raid:SetTexture(RAID_ICONS)
 	raid:Hide()
 	plate.raid = raid
-	plate.ornament.avoid = { marker, raid, badge }
-	plate.ornament.texts = { plate.name, plate.healthText }
 
 	plate.colorKey = {}
 	Each("Build", plate)
-	Widgets.RecordAll(plate, health, plate.name, plate.healthText, badge, plate.levelText, marker, raid,
+	Widgets.RecordAll(plate, health, plate.name, plate.healthText, diamond, plate.levelText, crown, raid, brackets,
 		plate.cast, plate.castBar, plate.castIcon, plate.castName, plate.castTime)
 	Widgets.Track(plate)
 	plate:Restyle()
@@ -289,22 +330,8 @@ function Plate:Restyle()
 	self.healthText:ClearAllPoints()
 	self.healthText:SetPoint("RIGHT", health, "RIGHT", -Widgets.Snap(self, TEXT_INSET), 0)
 
-	local badge = self.level
-	local side = math.max(DISC_SIZE, h, Settings.Get("level.size") + BADGE_PAD)
-	Widgets.Size(badge, side, side)
-	badge:ClearAllPoints()
-	badge:SetPoint("RIGHT", health, "LEFT", Widgets.Snap(self, DISC_OVERLAP), 0)
-	badge.chrome:Restyle()
-	self.levelText:ClearAllPoints()
-	self.levelText:SetPoint("CENTER", badge, "CENTER")
-
-	Widgets.Size(self.marker, MARKER_SIZE, MARKER_SIZE)
-	self.marker:ClearAllPoints()
-	if Settings.Get("level.show") then
-		self.marker:SetPoint("BOTTOM", badge, "TOP", 0, Widgets.Snap(self, GAP))
-	else
-		self.marker:SetPoint("RIGHT", health, "LEFT", -Widgets.Snap(self, GAP), 0)
-	end
+	self:LayoutDiamond()
+	self:LayoutBrackets()
 
 	local raidSize = Settings.Get("markers.raidSize")
 	Widgets.Size(self.raid, raidSize, raidSize)
@@ -315,9 +342,120 @@ function Plate:Restyle()
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
 	self.nameOnly = nil
+	self.bracketsShown = nil
 	Each("Restyle", self)
-	self.ornamentDirty = true
 	self:Refresh(true)
+end
+
+local function Diagonal(frame, side)
+	return Widgets.Snap(frame, side * math.sqrt(2))
+end
+
+function Plate:LayoutDiamond()
+	local diamond, health = self.level, self.health
+	local px = Pixel(self)
+	local outer = Diagonal(self, DIAMOND_SIDE + px * 2)
+	Widgets.Size(diamond, outer, outer)
+	diamond:ClearAllPoints()
+	diamond:SetPoint("CENTER", health, "LEFT", -Widgets.Snap(self, Plate.BRACKET_REACH) - outer / 2, 0)
+	diamond.outer:SetSize(outer, outer)
+	diamond.rim:SetSize(Diagonal(self, DIAMOND_SIDE), Diagonal(self, DIAMOND_SIDE))
+	diamond.rimPixel = px
+	if type(diamond.fill.SetGradient) == "function" and type(CreateColor) == "function" then
+		diamond.fill:SetVertexColor(1, 1, 1, 1)
+		diamond.fill:SetGradient("VERTICAL", CreateColor(DIAMOND_FILL_BOTTOM[1], DIAMOND_FILL_BOTTOM[2], DIAMOND_FILL_BOTTOM[3], 1),
+			CreateColor(DIAMOND_FILL_TOP[1], DIAMOND_FILL_TOP[2], DIAMOND_FILL_TOP[3], 1))
+	else
+		diamond.fill:SetVertexColor(DIAMOND_FILL_TOP[1], DIAMOND_FILL_TOP[2], DIAMOND_FILL_TOP[3], 1)
+		LogOnce("diamond-gradient", "Texture:SetGradient or CreateColor is missing; the level diamond is one flat colour")
+	end
+	self.rimWeight = nil
+	self:SetRimWeight(1)
+	self.levelText:ClearAllPoints()
+	self.levelText:SetPoint("CENTER", diamond, "CENTER")
+
+	local crown = self.marker
+	local edge = Widgets.Snap(self, CROWN_SIZE)
+	Widgets.Size(crown, edge, edge)
+	crown.face:SetSize(edge - Diagonal(self, px * 2), edge - Diagonal(self, px * 2))
+	crown:ClearAllPoints()
+	if Settings.Get("level.show") then
+		crown:SetPoint("BOTTOM", diamond, "TOP", 0, Widgets.Snap(self, GAP) - px)
+	else
+		crown:SetPoint("RIGHT", health, "LEFT", -Widgets.Snap(self, Plate.BRACKET_REACH), 0)
+	end
+end
+
+function Plate:SetRimWeight(weight)
+	if self.rimWeight == weight then
+		return
+	end
+	self.rimWeight = weight
+	local diamond = self.level
+	local px = diamond.rimPixel
+	local inner = DIAMOND_SIDE - px * 2 * weight
+	diamond.inner:SetSize(Diagonal(self, inner), Diagonal(self, inner))
+	diamond.fill:SetSize(Diagonal(self, inner - px * 2), Diagonal(self, inner - px * 2))
+end
+
+function Plate:LayoutBrackets()
+	local brackets, health = self.brackets, self.health
+	local px = Pixel(self)
+	local stroke = math.max(px, Widgets.Snap(self, BRACKET_STROKE))
+	local arm = Widgets.Snap(self, BRACKET_ARM)
+	local height = Widgets.Snap(self, BRACKET_HEIGHT)
+	local reach = Widgets.Snap(self, Plate.BRACKET_REACH)
+	local travel = Widgets.Snap(self, BRACKET_TRAVEL)
+	brackets:ClearAllPoints()
+	brackets:SetAllPoints(health)
+	for _, frame in ipairs(brackets.sides) do
+		local left = frame.side == "left"
+		local edge = left and "LEFT" or "RIGHT"
+		local sign = left and -1 or 1
+		frame:SetSize(arm, height)
+		frame:ClearAllPoints()
+		frame:SetPoint(left and "RIGHT" or "LEFT", health, edge, sign * (reach - arm), 0)
+		frame.stroke:ClearAllPoints()
+		frame.stroke:SetPoint("TOP" .. edge, frame, "TOP" .. edge)
+		frame.stroke:SetPoint("BOTTOM" .. edge, frame, "BOTTOM" .. edge)
+		frame.stroke:SetWidth(stroke)
+		frame.top:ClearAllPoints()
+		frame.top:SetPoint("TOPLEFT", frame, "TOPLEFT")
+		frame.top:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+		frame.top:SetHeight(stroke)
+		frame.bottom:ClearAllPoints()
+		frame.bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+		frame.bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+		frame.bottom:SetHeight(stroke)
+		frame.open:SetOffset(sign * travel, 0)
+		frame.close:SetOffset(-sign * travel, 0)
+	end
+	self:PaintBrackets()
+end
+
+function Plate:PaintBrackets()
+	local r, g, b = TargetColor()
+	for _, frame in ipairs(self.brackets.sides) do
+		frame.stroke:SetVertexColor(r, g, b, 1)
+		frame.top:SetVertexColor(r, g, b, 1)
+		frame.bottom:SetVertexColor(r, g, b, 1)
+	end
+end
+
+function Plate:ShowBrackets(shown)
+	if self.bracketsShown == shown then
+		return
+	end
+	local first = self.bracketsShown == nil
+	self.bracketsShown = shown
+	local brackets = self.brackets
+	brackets:SetShown(shown)
+	for _, frame in ipairs(brackets.sides) do
+		frame.group:Stop()
+		if shown and not first and not self.sample and Motion.Level() == "full" then
+			frame.group:Play()
+		end
+	end
 end
 
 function Plate:LayoutName()
@@ -352,8 +490,6 @@ function Plate:Refresh(immediate)
 	if not self.unit and not self.sample then
 		return
 	end
-	self.ornamentHeld = true
-	self.ornamentOff = Widgets.Setting("ornaments") == "Off"
 	self:UpdateType()
 	self:UpdateStyle()
 	self:UpdateHealth(immediate)
@@ -363,46 +499,7 @@ function Plate:Refresh(immediate)
 	self:UpdateRaid()
 	self:UpdateThreat()
 	self:UpdateHighlight()
-	self.ornamentHeld = nil
-	self:OrnamentState("nameOnly", self.nameOnly or false)
-	self.ornamentOff = nil
 	Each("Refresh", self, immediate)
-end
-
-function Plate:OrnamentState(key, value)
-	local off = self.ornamentOff
-	if off == nil then
-		off = Widgets.Setting("ornaments") == "Off"
-	end
-	local seen = self.ornamentSeen
-	if off then
-		if not self.ornamentBlank then
-			self.ornamentBlank = true
-			for k in pairs(seen) do
-				seen[k] = nil
-			end
-		end
-		return
-	end
-	if self.ornamentBlank then
-		self.ornamentBlank = nil
-		self.ornamentDirty = true
-	end
-	if IsSecret(value) then
-		seen[key] = nil
-		self.ornamentDirty = true
-	elseif seen[key] ~= value then
-		seen[key] = value
-		if key == "cast" and not self.ornamentDirty and not self.ornamentHeld then
-			self.ornament:Swap()
-			return
-		end
-		self.ornamentDirty = true
-	end
-	if self.ornamentDirty and not self.ornamentHeld then
-		self.ornamentDirty = nil
-		self.ornament:Restyle()
-	end
 end
 
 function Plate:RefreshFlags()
@@ -531,11 +628,9 @@ function Plate:UpdateColor()
 	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
 		last.r, last.g, last.b = nil, nil, nil
 		self.health:SetFillRamp(r, g, b)
-		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
 		self.health:SetFillRamp(r, g, b)
-		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	end
 end
 
@@ -586,7 +681,6 @@ function Plate:UpdateName()
 	local show = Settings.Get("name.show")
 	name:SetShown(show)
 	if not show then
-		self:OrnamentState("name", false)
 		return
 	end
 	local value = self:Is("name", UnitName, self.unit)
@@ -597,32 +691,14 @@ function Plate:UpdateName()
 	else
 		name:SetText("")
 	end
-	self:UpdateNameColor(nil, true)
-	if IsSecret(value) then
-		self:OrnamentState("name", value)
-	else
-		self:OrnamentState("name", type(value) == "string" and value or "")
-	end
+	self:UpdateNameColor(true)
 end
 
-function Plate:UpdateNameColor(isTarget, force)
-	if isTarget == nil then
-		if self.sample then
-			isTarget = self.sample.target
-		else
-			isTarget = ns.Plates.IsUnit(self, "target")
-		end
-	end
-	isTarget = isTarget and Settings.Get("target.highlight") or false
-	if not force and self.nameTarget == isTarget then
+function Plate:UpdateNameColor(force)
+	if not force then
 		return
 	end
-	self.nameTarget = isTarget
 	local name = self.name
-	if isTarget then
-		name:SetTextColor(TargetColor())
-		return
-	end
 	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
 	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
@@ -634,39 +710,37 @@ function Plate:UpdateNameColor(isTarget, force)
 end
 
 function Plate:UpdateLevel()
-	local badge = self.level
+	local diamond = self.level
 	local level = self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)
 	local text = Logic.LevelText(level)
 	local show = Settings.Get("level.show") and not self.nameOnly and text ~= nil
-	badge:SetShown(show and true or false)
+	diamond:SetShown(show and true or false)
 	if not show then
-		self:OrnamentState("level", false)
 		return
 	end
 	self.levelText:SetText(text)
-	self:OrnamentState("level", text)
 	if level == SKULL_LEVEL then
 		self.levelText:SetTextColor(Tokens.Color("hostile"))
 	else
-		self.levelText:SetTextColor(Tokens.Color("textEmphasis"))
+		self.levelText:SetTextColor(Tokens.Color("giltLit"))
 	end
 end
 
 function Plate:UpdateMarker()
-	local classification = self:Is("classification", UnitClassification, self.unit)
-	self.ornament.elite = not IsSecret(classification) and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
-	self.ornament.boss = not IsSecret(classification) and classification == "worldboss"
-	local marker = self.marker
-	local name = Settings.Get("markers.classification") and not self.nameOnly
+	local mark = Settings.Get("markers.classification") and not self.nameOnly
 		and Logic.MarkerColor(self:Is("classification", UnitClassification, self.unit))
-	if name then
-		marker:SetVertexColor(Tokens.Color(name))
-		marker:Show()
+	local diamond, crown = self.level, self.marker
+	if mark then
+		local r, g, b = Tokens.Color(mark)
+		diamond.rim:SetVertexColor(r, g, b, 1)
+		crown.face:SetVertexColor(r, g, b, 1)
+		self:SetRimWeight(2)
+		crown:Show()
 	else
-		marker:Hide()
+		diamond.rim:SetVertexColor(Widgets.Rgba("gilt", PLAIN_RIM_ALPHA))
+		self:SetRimWeight(1)
+		crown:Hide()
 	end
-	local rank = self.ornament.boss and "boss" or self.ornament.elite and "elite" or "plain"
-	self:OrnamentState("rank", name and rank .. "+marker" or rank)
 end
 
 function Plate:UpdateRaid()
@@ -680,11 +754,6 @@ function Plate:UpdateRaid()
 	else
 		raid:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
 		raid:Show()
-	end
-	if IsSecret(index) then
-		self:OrnamentState("raid", index)
-	else
-		self:OrnamentState("raid", index ~= nil)
 	end
 end
 
@@ -723,28 +792,15 @@ function Plate:UpdateHighlight()
 		isFocus = ns.Plates.IsUnit(self, "focus")
 	end
 	ns.Cast.Gate(self, isTarget)
-	local bar = not self.nameOnly
+	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
+	self:ShowBrackets(framed)
 	local health = self.health
-	local framed = isTarget and Settings.Get("target.highlight") and bar or false
-	if self.targetFramed ~= framed then
-		self.targetFramed = framed
-		health:SetRimGap(framed and Plate.FRAME_GAP or 0)
-		ns.Cast.Place(self)
-	end
-	if framed then
-		local r, g, b = TargetColor()
+	if isFocus and Settings.Get("focus.highlight") then
+		local r, g, b = Rgb(Settings.Get("focus.color"))
 		health:SetRimColor(r, g, b, 1)
 	else
-		if isFocus and Settings.Get("focus.highlight") then
-			local r, g, b = Rgb(Settings.Get("focus.color"))
-			health:SetRimColor(r, g, b, 1)
-		else
-			health:SetRimColor(Tokens.Color("black"))
-		end
+		health:SetRimColor(Tokens.Color("black"))
 	end
-	self:UpdateNameColor(isTarget)
-	self.ornament.selected = isTarget
-	self:OrnamentState("selected", isTarget and true or false)
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget then
 		alpha = Settings.Get("target.dimOthers")

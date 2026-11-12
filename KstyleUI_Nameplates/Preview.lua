@@ -34,7 +34,7 @@ local function Stack(frame)
 	if only then
 		local plate = frame.plates[only]
 		local up, down = ns.Auras.Extent(plate)
-		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
+		local overhang = Settings.Get("level.show") and (ns.Plate.DIAMOND_HEIGHT - ns.state.height) / 2 or 0
 		for i, other in ipairs(frame.plates) do
 			local holder = other:GetParent()
 			holder:ClearAllPoints()
@@ -46,7 +46,7 @@ local function Stack(frame)
 	local above, below = 0, 0
 	for _, plate in ipairs(frame.plates) do
 		local up, down = ns.Auras.Extent(plate)
-		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
+		local overhang = Settings.Get("level.show") and (ns.Plate.DIAMOND_HEIGHT - ns.state.height) / 2 or 0
 		above = math.max(above, up, overhang)
 		below = math.max(below, down, overhang)
 	end
@@ -84,17 +84,8 @@ function Preview.Build(parent)
 	function frame.Name(self, i)
 		return self.plates[i].name
 	end
-	function frame.Whole(self, i)
-		local handle = self.plates[i].ornament
-		local ends = 0
-		for j = 1, handle.used do
-			local texture = handle.textures[j]
-			local file = texture:IsVisible() and texture:GetTexture()
-			if type(file) == "string" and file:find("ForgedOrnaments\\End") then
-				ends = ends + 1
-			end
-		end
-		return ends == 2
+	function frame.Whole()
+		return true
 	end
 	function frame.Refresh()
 		Settings.Invalidate()

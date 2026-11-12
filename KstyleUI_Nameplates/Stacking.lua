@@ -10,7 +10,7 @@ local MODULE = Settings.MODULE
 local Stacking = {}
 ns.Stacking = Stacking
 
-local MARKER_SIZE, GAP, MARKER_GAP = 12, K.Tokens.Size("gapTiny"), K.Tokens.Size("gapSmall")
+local MARKER_GAP = K.Tokens.Size("gapSmall")
 local original
 local applied = { w = nil, h = nil }
 local queued, hooked = false, false
@@ -43,18 +43,24 @@ function Stacking.Extent()
 	end
 	local above, below = ns.Auras.Extent(plate)
 	local state = ns.state
+	local Plate = ns.Plate
 	local left, right = 0, 0
 	if Settings.Get("name.show") then
-		left, right = ns.Plate.NAME_OVERHANG, ns.Plate.NAME_OVERHANG
+		left, right = Plate.NAME_OVERHANG, Plate.NAME_OVERHANG
 	end
+	if Settings.Get("target.highlight") then
+		left, right = math.max(left, Plate.BRACKET_REACH), math.max(right, Plate.BRACKET_REACH)
+		local overhang = math.max(0, (Plate.BRACKET_HEIGHT - state.height) / 2)
+		above, below = math.max(above, overhang), math.max(below, overhang)
+	end
+	local crown = Settings.Get("markers.classification") and Plate.CROWN_HEIGHT or 0
 	if Settings.Get("level.show") then
-		left = math.max(left, ns.Plate.BADGE_SIZE)
-		local overhang = math.max(0, (plate.level:GetHeight() - state.height) / 2)
-		local crown = Settings.Get("markers.classification") and MARKER_SIZE + GAP or 0
+		left = math.max(left, Plate.DIAMOND_REACH)
+		local overhang = math.max(0, (Plate.DIAMOND_HEIGHT - state.height) / 2)
 		above = math.max(above, overhang + crown)
 		below = math.max(below, overhang)
-	elseif Settings.Get("markers.classification") then
-		left = math.max(left, MARKER_SIZE + GAP)
+	elseif crown > 0 then
+		left = math.max(left, Plate.BRACKET_REACH + crown)
 	end
 	if Settings.Get("markers.raid") then
 		right = math.max(right, Settings.Get("markers.raidSize") + MARKER_GAP)
