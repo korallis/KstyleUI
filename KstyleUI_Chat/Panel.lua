@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens, Scale = K.Widgets, K.Tokens, K.Scale
 local Format, Windows = ns.Format, ns.Windows
-local max, min, floor = math.max, math.min, math.floor
+local max, min, floor, ceil = math.max, math.min, math.floor, math.ceil
 
 local Panel = {}
 ns.Panel = Panel
@@ -21,9 +21,6 @@ local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
 local TAB_ROW = 34
-local LINE_INSET = 12.57
-local LINE_LEFT = 15.97
-local MESSAGE_FOOT = 45.45
 local BACKGROUND_RISE = 3
 local EDIT_DROP = 2
 local EDIT_HEIGHT = 32
@@ -118,57 +115,45 @@ local function EditAlways()
 	return settings ~= nil and settings.editBox == "always"
 end
 
-local function PanelBottom()
-	local _, bottom = K.Layout.Rect(KEY)
-	return Number(bottom, 0)
-end
-
 function Panel.Geometry(chat)
 	local k = Ratio(chat, state.holder)
 	local snap = Scale.Snap
-	local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
-	local reach = (EDIT_DROP + EDIT_HEIGHT) * k - tile
-	local bottom
+	local pad = snap(Pad())
+	local foot = pad
 	if EditAlways() then
-		bottom = EDIT_BOTTOM + reach
-	else
-		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
+		local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
+		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
-	local inset, left = snap(LINE_INSET), snap(LINE_LEFT)
-	local top, foot = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2)), snap(bottom)
+	local top = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
 	local _, size = chat:GetFont()
-	local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
 	local height = state.holder and state.holder:GetHeight()
 	local spacing
 	if Number(size, 0) > 0 and Number(height, 0) > 0 then
-		local line, room = size * k, height - top - foot
-		local unitLine, unitGap = line, gap * k
+		local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
 		if state.settings and ns.Frames and ns.Frames.Pitch then
-			local wantSize, wantGap = ns.Frames.Pitch(state.settings)
-			unitLine, unitGap = wantSize * k, wantGap * k
+			local _, wantGap = ns.Frames.Pitch(state.settings)
 			gap = Widgets.Snap(chat, wantGap)
 		end
-		gap = gap * k
+		local line, want = size * k, gap * k
+		local room = height - top - foot
 		local pixel = Scale.Pixel(1)
-		local least = min(gap, max(pixel, floor(unitGap / pixel + 1e-6) * pixel))
-		local lines = max(floor((room + unitGap) / (unitLine + unitGap) + 1e-6), floor((room + least) / (line + least) + 1e-6))
-		if lines > 1 and lines * line + (lines - 1) * gap > room + 1e-6 then
-			gap = max(min(gap, pixel), floor((room - lines * line) / (lines - 1) / pixel + 1e-6) * pixel)
+		local least = min(want, max(pixel, floor(want / pixel + 1e-6) * pixel))
+		local fit = least
+		for n = max(1, floor((room + least) / (line + least) + 1e-6)), 2, -1 do
+			local spare = room - n * line
+			local step = max(least, ceil(spare / n / pixel - 1e-6) * pixel)
+			if (n - 1) * step <= spare + 1e-6 then
+				fit = step
+				break
+			end
 		end
-		if lines >= 1 and lines * line + (lines - 1) * gap > room + 1e-6 then
-			lines = floor((room + gap) / (line + gap) + 1e-6)
-		end
-		local pitch = line + gap
-		if lines >= 1 then
-			foot = snap(foot + room - min(room, lines * pitch - floor(gap / 2)))
-		end
-		spacing = gap / k
+		spacing = fit / k
 	end
 	return {
 		k = k,
-		left = left,
+		left = pad,
 		top = top,
-		right = inset,
+		right = pad,
 		bottom = foot,
 		divider = top,
 		spacing = spacing,
@@ -402,6 +387,20 @@ local function PlaceDivider(g)
 	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny")), Widgets.Snap(glass.copy, y))
 end
 
+local function PlaceEdit(frame, k, over)
+	local box, bar = frame.editBox, frame.ScrollBar
+	if type(box) ~= "table" or type(box.SetPoint) ~= "function" or type(bar) ~= "table" then
+		return
+	end
+	local y = -EDIT_DROP
+	if over then
+		y = EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2)
+	end
+	box:ClearAllPoints()
+	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
+	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)
+end
+
 function Panel.Place()
 	state.queued = false
 	local holder, chat = state.holder, state.chat
@@ -433,6 +432,11 @@ function Panel.Place()
 	setPoint(chat, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.right / g.k, g.bottom / g.k)
 	state.placing = false
 	state.waiting = false
+	for _, frame in ipairs(Windows.List()) do
+		if frame == chat or frame.isDocked then
+			PlaceEdit(frame, g.k, not EditAlways())
+		end
+	end
 	PlaceDivider(g)
 	TrimDock()
 	state.trimmed = true
@@ -763,6 +767,9 @@ function Panel.Stop()
 	state.alpha = nil
 	SetChatAlpha(1)
 	RestoreDock()
+	for _, frame in ipairs(Windows.List()) do
+		PlaceEdit(frame, 1, false)
+	end
 	if state.holder then
 		state.holder:Hide()
 	end
