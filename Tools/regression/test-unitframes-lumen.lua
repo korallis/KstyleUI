@@ -280,6 +280,7 @@ U.SetUnit(env, "target", { name = "Wolf", level = 9, health = 50, healthMax = 10
 env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(U.Shown(env, target.caption) == "Level 9 \194\183 Beast", "a secret creature type still shows, through the setter: " .. U.Shown(env, target.caption))
 U.SetUnit(env, "target", { name = "Bloodtalon Matriarch", level = 10, classification = "elite", creature = "Beast", health = 620, healthMax = 1000, power = 50, powerMax = 100, reaction = 2, canAttack = true })
+K.Options.Write("UnitFrames", "target.power", true)
 K.Options.Write("UnitFrames", "target.style", "plate")
 env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(target.power:IsShown(), "the plate shows a mana user's power bar")

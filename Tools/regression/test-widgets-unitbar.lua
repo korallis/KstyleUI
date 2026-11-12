@@ -46,11 +46,13 @@ assert(fill == 600 and how == EASED, "a new health eases the fill with the clien
 assert(band == 1000 and bandHow == nil, "the band holds the health before the hit, so 600 to 1000 shows pale")
 assert(playing(bar.lossAnim), "the hit flash and the hold play as one animation group")
 assert(bar.flash:GetNumPoints() > 0 and select(2, bar.flash:GetPoint(1)) == under:GetStatusBarTexture(), "the flash covers the band's fill, so only the lost part flashes")
-assert(playing(bar.sparkAnim), "the spark lights while the fill moves")
+assert(bar.flash:IsShown(), "the flash shows over the lost part")
+assert(playing(bar.sparkAnim) and bar.sparkFrame:IsShown(), "the spark lights while the fill moves")
 
 finish(bar.lossAnim)
 band, bandHow = value(under)
 assert(band == 600 and bandHow == EASED, "after the hold the band eases down to the new health")
+assert(not bar.flash:IsShown(), "and the flash is gone")
 
 bar:SetHealth(S(900))
 band = value(under)
@@ -62,7 +64,13 @@ fill = value(bar)
 assert(band == 900 and fill == 700, "a hit right after a heal still shows: the band holds the healed health")
 
 bar:SetHealth(S(400), true)
-assert(value(under) == 400 and not playing(bar.lossAnim), "a new unit snaps band and fill and stops the flash")
+assert(value(under) == 400 and not playing(bar.lossAnim) and not bar.flash:IsShown(), "a new unit snaps band and fill and stops the flash")
+assert(not bar.sparkFrame:IsShown(), "and puts the spark out")
+K.Motion.SetLevel("reduced")
+bar:SetHealth(S(350))
+assert(not bar.flash:IsShown() and playing(bar.lossAnim), "reduced motion keeps the band and its hold but shows no flash")
+assert(not bar.sparkFrame:IsShown(), "and no spark")
+K.Motion.SetLevel("full")
 
 env._units.player.health, env._units.player.healthMax = 3800, 4000
 bar:SetBarColor(K.Tokens.Color("hudPlayerHealth"))

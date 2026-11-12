@@ -151,6 +151,7 @@ end
 assert(tint[1] > tint[2] and tint[1] > tint[3], "a hostile percentage keeps the bar's red tint, as on the kit sheet")
 -- A unit with no power at all (max power 0, as a crocolisk) shows no power bar, so no empty track draws; a secret
 -- max power keeps the bar, since nothing may compare it.
+K.Options.Write("UnitFrames", "target.power", true)
 U.SetUnit(env, "target", { name = "Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2 })
 env.SetTarget(true)
 assert(not target.power:IsShown(), "a unit with no power hides its power bar")

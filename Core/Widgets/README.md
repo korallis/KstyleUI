@@ -425,6 +425,28 @@ The spark is the `glow` texture, additive, 10 units along the bar and 1.8 times 
 
 Fields: `background`, `keyline`, `lit`, `shade`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
 
+## UnitBar
+
+`UnitBar(parent, opts) -> StatusBar` is the one health and power bar: player, target, focus, boss, the small unit frames and the druid's mana bar use it, and the nameplates, party and raid frames, tooltips and orbs are to follow. It is a `StatusBar` from `StatusBar(parent, { background = false, smooth = true })`, so every `StatusBar` method works, with the clean look of the KSTY-44 design bible (section 3.4) and Lee's rule that no ornament sits on or around a bar.
+
+| Part | What it is |
+| --- | --- |
+| `bar.under` | A sibling `StatusBar` one frame level below the fill's bar, at the same rect. It draws the edge (one physical pixel of `black`, then one of `barEdgeSoft`, outside the bar), the `barTrack` track, and its own fill: the pale loss band, a vertical `barLoss` to `barLossLit` gradient. Showing or hiding the bar shows or hides it too. |
+| fill | The bar's own fill, Flat by default; `healthTexture` and the other texture settings still pick another. Over it, colour-free overlays anchored to the fill shade it whatever its colour, a secret one included: a white sheen down the top 42%, a black shade under that, and a one-pixel white highlight on the top edge. A vertical bar keeps only the highlight. |
+| `bar.flash` | A white texture over the band's fill. The fill's bar covers the band up to the health, so only the part just lost flashes. |
+| `bar.sparkFrame` | A two-pixel white line with a soft glow at the fill's end, shown while the fill moves. `opts.spark = false` leaves it out. |
+
+| Method | Behaviour |
+| --- | --- |
+| `SetBarRange(low, high)` | Sets the range on the fill and the band. |
+| `SetBarValue(value)` | Eases the fill with `Enum.StatusBarInterpolation.ExponentialEaseOut` and lights the spark. Power uses it. |
+| `SetHealth(value, instant)` | Health. The band takes the previous health with no interpolation and the fill eases to `value`, so a hit shows from the new health to the old, and a heal leaves the band below the fill, hidden. The flash and a `lossHold` hold play as one animation group; when it finishes the band eases down to the newest health. `instant` (a new unit, a first draw), `opts.loss = false` and motion Off set both at once and stop the flash. Nothing reads, compares or computes the values: they pass from `UnitHealth` to `SetValue`, which takes secrets (`SimpleStatusBarAPIDocumentation.lua`, `SetValue`: `SecretArguments = "AllowedWhenTainted"`). |
+| `SetBarColor(r, g, b, a)` | The bar's own colour. With `opts.lowHealth` and a plain colour, it also builds (once per colour) a `C_CurveUtil.CreateColorCurve` step curve: `healthLow` up to 35%, the bar's colour above. A secret colour gets no curve. |
+| `SetHealthUnit(unit)` | Colours the fill from `UnitHealthPercent(unit, true, curve)` on every `SetHealth` and restyle, through `SetStatusBarColor`, which takes secrets. `nil` stops it. The unit frames pass no unit for a hostile, disconnected or tapped unit. |
+| `SetLoss(on)` | Turns the band on or off. |
+
+Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then `sparkFade` 0.35 s. At motion Reduced the band and its hold stay and the flash and spark do not show; at Off the band is off and the fill snaps. No part has an `OnUpdate`. `Tools/regression/test-widgets-unitbar.lua` drives the band, the flash, the spark and the curve with secret values that raise on any comparison or arithmetic.
+
 ## Popup and Confirm
 
 KstyleUI's own dialogs. They never use `StaticPopupDialogs`. One dialog shows at a time in a shared glass panel, `DialogHost()`, in the `DIALOG` strata, 360 units wide. It registers with Layout as `Widgets.Dialog` (scalable, 120 units above the centre by default), so the player can move and resize it.

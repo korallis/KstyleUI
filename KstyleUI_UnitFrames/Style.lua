@@ -29,6 +29,7 @@ local GLOW_SUBLEVEL = -8
 local GLOW_SPREAD = 1.7
 local RING_GUTTER = 1 / 64
 local COLUMN_LEVEL_SCALE = 0.95
+local DIAMOND_LINE = 1.5
 local CAPTION_GAP = 10
 local COLUMN_CAPTION_GAP = 9
 local RULE_GAP = 8
@@ -153,12 +154,16 @@ function Style.New(parent, kind)
 	PORTRAITS[#PORTRAITS + 1] = view.portraitFrame
 	PORTRAITS[#PORTRAITS + 1] = view.portraitOrnament
 	BLOCKS[#BLOCKS + 1] = view.health.ornament
+	view.discEdge = disc:CreateTexture(nil, "BACKGROUND", nil, -2)
+	view.discEdge:SetTexture((Tokens.Texture("diamond")))
 	view.discBack = disc:CreateTexture(nil, "BACKGROUND")
 	view.discBack:SetTexture(dot)
 	view.discBack:SetAllPoints(disc)
 	view.discRing = disc:CreateTexture(nil, "BORDER")
 	view.discRing:SetTexture((Tokens.Texture("ring")))
 	view.discRing:SetAllPoints(disc)
+	view.discInner = disc:CreateTexture(nil, "BORDER", nil, 1)
+	view.discInner:SetTexture((Tokens.Texture("diamond")))
 	disc:Hide()
 
 	local top = CreateFrame("Frame", nil, parent)
@@ -182,12 +187,36 @@ function Style.New(parent, kind)
 	return view
 end
 
+local function Diamond(view, on)
+	local disc = view.disc
+	local diamond, dot, ring = (Tokens.Texture("diamond")), (Tokens.Texture("dot")), (Tokens.Texture("ring"))
+	view.discBack:SetTexture(on and diamond or dot)
+	view.discRing:SetTexture(on and diamond or ring)
+	view.discEdge:SetShown(on)
+	view.discInner:SetShown(on)
+	view.discBack:ClearAllPoints()
+	view.discRing:ClearAllPoints()
+	if not on then
+		view.discBack:SetAllPoints(disc)
+		view.discRing:SetAllPoints(disc)
+		return
+	end
+	local px = Widgets.Border(disc) * DIAMOND_LINE
+	for i, layer in ipairs({ view.discEdge, view.discRing, view.discInner, view.discBack }) do
+		layer:ClearAllPoints()
+		layer:SetPoint("TOPLEFT", disc, "TOPLEFT", px * (i - 1), -px * (i - 1))
+		layer:SetPoint("BOTTOMRIGHT", disc, "BOTTOMRIGHT", -px * (i - 1), px * (i - 1))
+	end
+end
+
 function Style.Shape(view, round)
 	view.round = round
-	local gutter = view.form == "column" and RING_GUTTER or 0
+	local column = view.form == "column"
+	local gutter = column and RING_GUTTER or 0
 	view.ring:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
 	view.discRing:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
-	view.disc.ink = { "Dot", 0, "Ring", gutter }
+	view.disc.ink = column and { "Dot", 0 } or { "Dot", 0, "Ring", gutter }
+	Diamond(view, column)
 	view.portraitBack:SetShown(round)
 	view.ring:SetShown(round)
 	view.portraitChrome:SetShadow(not round)
@@ -666,6 +695,11 @@ function Style.Accent(view)
 	end
 	view.discRing:SetVertexColor(Lumen.Color("gold"))
 	view.discBack:SetVertexColor(Lumen.Color("deep"))
+	Widgets.Tint(view.discEdge, "black")
+	Widgets.Tint(view.discInner, "black")
+	if view.form == "column" then
+		view.discBack:SetVertexColor(Tokens.Color("materialForged"))
+	end
 	view.portraitChrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RIM_WHITE))
 	view.icons.resting:SetTextColor(r, g, b, 1)
 	if view.round then

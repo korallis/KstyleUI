@@ -43,7 +43,7 @@ for _, view in ipairs({ player, target }) do
 	local coords = W.LastCall(view.ring, "SetTexCoord")
 	assert(coords and near(coords[1], 1 / 64) and near(coords[2], 63 / 64), "the column ring crops its transparent asset gutter")
 	color(view.power, "hudMana")
-	assert(near(view.geometry.portrait.w, 70) and near(view.geometry.badge.w, 27), "the main ring and disc use the picture's distinct diameters")
+	assert(near(view.geometry.portrait.w, 70) and near(view.geometry.badge.w, 34), "the main ring and the level diamond use the KSTY-44 mock-up's sizes")
 	assert(near(ns.Geometry.COLUMN.ring + ns.Geometry.COLUMN.ringGap, 91.5), "the ring and gap keep the old outside reserve")
 	local _, configured = ns.Settings.Font(view.kind, "level")
 	assert(near(select(2, view.levelText:GetFont()), K.Widgets.FontSize(view.levelText, configured * 0.95)), "only the disc numeral receives the optical size correction")

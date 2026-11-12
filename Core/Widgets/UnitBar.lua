@@ -16,7 +16,6 @@ local GLOW_ALPHA = 0.55
 local LOW_SHARE = 0.35
 local LOW_STEP = 0.001
 local CHANNELS = 4
-local MIN_HOLD = 0.01
 
 local SPARK_POINTS = {
 	HORIZONTAL = { normal = { "TOPRIGHT", "BOTTOMRIGHT" }, reverse = { "TOPLEFT", "BOTTOMLEFT" } },
@@ -125,6 +124,7 @@ function Bar:SetBarValue(value)
 		self:SetValue(value)
 	end
 	if self.sparkAnim and not Motion.ReducedMotion() then
+		self.sparkFrame:Show()
 		Restart(self.sparkAnim)
 	end
 end
@@ -149,8 +149,10 @@ function Bar:SetHealth(value, instant)
 		self.under:SetValue(value)
 		self.lossValue, self.lossKnown = value, true
 		self.lossAnim:Stop()
+		self.flash:Hide()
 		if self.sparkAnim then
 			self.sparkAnim:Stop()
+			self.sparkFrame:Hide()
 		end
 		self:ColorByHealth()
 		return
@@ -158,6 +160,7 @@ function Bar:SetHealth(value, instant)
 	self.under:SetValue(self.lossValue)
 	self.lossValue = value
 	self:SetBarValue(value)
+	self.flash:SetShown(not Motion.ReducedMotion())
 	Restart(self.lossAnim)
 	self:ColorByHealth()
 end
@@ -166,6 +169,7 @@ function Bar:SetLoss(on)
 	self.lossOn = on ~= false
 	if not self.lossOn then
 		self.lossAnim:Stop()
+		self.flash:Hide()
 		self.lossKnown = false
 	end
 	self.under:GetStatusBarTexture():SetShown(self.lossOn)
@@ -244,7 +248,6 @@ local function PlaceUnder(self)
 	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:GetStatusBarTexture():SetShown(self.lossOn)
 	self.flash:SetColorTexture(Widgets.Rgba("white"))
-	self.flashFade:SetFromAlpha(Motion.ReducedMotion() and 0 or FLASH_ALPHA)
 end
 
 local function Paint(self)
@@ -310,45 +313,40 @@ end
 local function Flash(bar)
 	local flash = bar.under:CreateTexture(nil, "ARTWORK", nil, 1)
 	flash:SetAllPoints(bar.under:GetStatusBarTexture())
-	flash:SetAlpha(0)
+	flash:Hide()
 	local group = flash:CreateAnimationGroup()
-	group:SetToFinalAlpha(true)
+	local hit = Tokens.Duration("hitFlash")
 	local fade = group:CreateAnimation("Alpha")
-	fade:SetOrder(1)
 	fade:SetFromAlpha(FLASH_ALPHA)
 	fade:SetToAlpha(0)
-	fade:SetDuration(Tokens.Duration("hitFlash"))
-	local hold = group:CreateAnimation("Alpha")
-	hold:SetOrder(2)
-	hold:SetFromAlpha(0)
-	hold:SetToAlpha(0)
-	hold:SetDuration(math.max(Tokens.Duration("lossHold") - Tokens.Duration("hitFlash"), MIN_HOLD))
+	fade:SetDuration(hit)
+	local hold = group:CreateAnimation("Translation")
+	hold:SetOffset(0, 0)
+	hold:SetDuration(math.max(Tokens.Duration("lossHold"), hit))
 	group:SetScript("OnFinished", function()
+		flash:Hide()
 		bar:ReleaseLoss()
 	end)
-	bar.flash, bar.flashFade, bar.lossAnim = flash, fade, group
+	bar.flash, bar.lossAnim = flash, group
 end
 
 local function Spark(bar)
 	local frame = CreateFrame("Frame", nil, bar)
 	frame:SetAllPoints(bar)
-	frame:SetAlpha(0)
+	frame:Hide()
 	local line = Widgets.Crisp(frame:CreateTexture(nil, "OVERLAY", nil, 2))
 	local glow = frame:CreateTexture(nil, "OVERLAY", nil, 1)
 	glow:SetTexture((Tokens.Texture("glow")))
 	glow:SetBlendMode("ADD")
 	local group = frame:CreateAnimationGroup()
-	group:SetToFinalAlpha(true)
-	local on = group:CreateAnimation("Alpha")
-	on:SetOrder(1)
-	on:SetFromAlpha(1)
-	on:SetToAlpha(1)
-	on:SetDuration(Tokens.Duration("sparkHold"))
 	local off = group:CreateAnimation("Alpha")
-	off:SetOrder(2)
+	off:SetStartDelay(Tokens.Duration("sparkHold"))
 	off:SetFromAlpha(1)
 	off:SetToAlpha(0)
 	off:SetDuration(Tokens.Duration("sparkFade"))
+	group:SetScript("OnFinished", function()
+		frame:Hide()
+	end)
 	bar.sparkFrame, bar.sparkLine, bar.sparkGlow, bar.sparkAnim = frame, line, glow, group
 end
 
