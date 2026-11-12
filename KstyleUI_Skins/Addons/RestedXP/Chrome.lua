@@ -19,6 +19,7 @@ local MENU_LEVELS = 8
 local MENU_ART = { "Backdrop", "MenuBackdrop" }
 local MAX_MENU_ROWS = 64
 local HIGHLIGHT_ALPHA = 0.18
+local STEP_LEAD = 4
 local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
@@ -251,6 +252,22 @@ function Chrome.Fade(list)
 	return fades[list]
 end
 
+local ruler
+
+local function LineBox(path, size, flags, text)
+	if not ruler then
+		local holder = CreateFrame("Frame")
+		holder:Hide()
+		ruler = Widgets.FontString(holder, "ARTWORK")
+		ruler:SetText("Ag")
+	end
+	ruler:SetSpacing(0)
+	if type(path) ~= "string" or Widgets.IsSecret(path) or not pcall(ruler.SetFont, ruler, path, size, flags or "") then
+		return (Widgets.LineHeight(text))
+	end
+	return Widgets.TextHeight(ruler, (Widgets.LineHeight(text)))
+end
+
 local function PaintReadable(text, entry)
 	if entry.busy then
 		return
@@ -258,15 +275,22 @@ local function PaintReadable(text, entry)
 	entry.busy = true
 	local minimum = Lumen.Size(text:GetParent(), entry.units or Tokens.Size(entry.role))
 	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum))
+	if entry.lead and type(text.SetSpacing) == "function" then
+		local path, size, flags = text:GetFont()
+		if type(size) == "number" and not Widgets.IsSecret(size) then
+			local pitch = Widgets.Snap(text, size + Lumen.Size(text:GetParent(), entry.lead))
+			text:SetSpacing(math.max(0, pitch - LineBox(path, size, flags, text)))
+		end
+	end
 	entry.busy = false
 end
 
-local function Readable(text, role, units)
+local function Readable(text, role, units, lead)
 	if not IsTable(text) or type(text.GetFont) ~= "function" or type(text.GetParent) ~= "function" or readable[text] then
 		return false
 	end
 	local _, size = text:GetFont()
-	local entry = { role = role, units = units, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
+	local entry = { role = role, units = units, lead = lead, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
 	readable[text] = entry
 	hooksecurefunc(text, "SetFont", function(_, _, requested)
 		if Active() and not entry.busy and type(requested) == "number" and not Widgets.IsSecret(requested) then
@@ -916,7 +940,7 @@ local function StepFrames(f)
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				if IsTable(element) then
 					Worded(element.text, Reword)
-					changed = Readable(element.text, "body", Lumen.TEXT_SIZE) or changed
+					changed = Readable(element.text, "body", Lumen.TEXT_SIZE, STEP_LEAD) or changed
 					if IsTable(element.icon) and type(element.icon.SetAlpha) == "function" then
 						HushText(element.icon)
 					end
@@ -1208,7 +1232,7 @@ local function Arrow(rxp)
 	arrows[arrow] = true
 	PaintArrow(arrow)
 	Worded(arrow.text, Reword)
-	Readable(arrow.text, "caption")
+	Readable(arrow.text, "number", Tokens.Size("caption"))
 	Hook(arrow, "UpdateVisuals", "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
 	end)

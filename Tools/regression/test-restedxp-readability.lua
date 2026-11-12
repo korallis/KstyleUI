@@ -135,4 +135,26 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "the scroll range raises no errors")
 end
 
+
+-- KSTY-34 found Lee's wrapped guide lines 15 px apart on 15 px text, touching. A step's lines now pitch as the quest
+-- card's do (its text size and a 4-unit lead): the spacing is the pitch less the line's own height.
+do
+	local env, K, rxp = Boot()
+	rxp.SetStep(2)
+	env.RunTimers()
+	local element = rxp.RXPFrame.CurrentStepFrame.framePool[2].elements[1]
+	local _, size = element.text:GetFont()
+	local spacing = W.LastCall(element.text, "SetSpacing")
+	local pitch = K.Widgets.Snap(element.text, size + Root(K, element.text, 4))
+	local ruler = K.Widgets.FontString(element.text:GetParent(), "ARTWORK")
+	ruler:SetFont(element.text:GetFont())
+	ruler:SetText("Ag")
+	local natural = K.Widgets.TextHeight(ruler, (K.Widgets.LineHeight(element.text)))
+	assert(spacing and math.abs(spacing[1] - (pitch - natural)) < 1e-6, "a step's wrapped lines pitch at its size plus the quest card's 4-unit lead, less the measured line box, as the quest card measures it, got " .. tostring(spacing and spacing[1]))
+	assert(spacing[1] > 0, "so they no longer touch")
+	local row = rxp.RXPFrame.ScrollChild.framePool[1]
+	assert(W.LastCall(row.text, "SetSpacing") == nil, "the guide's list rows keep their own spacing")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors")
+end
+
 print("restedxp readability: passed")
