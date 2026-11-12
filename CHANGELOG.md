@@ -6,9 +6,8 @@ A small release that fixes two things in the cooldown and buff displays.
 
 ### Fixed
 
-- When KstyleUI falls back to Blizzard's own essential and utility cooldown rows, they now sit on KstyleUI's rows instead of on top of your action bars. A row you moved yourself stays where you put it.
+- When KstyleUI falls back to Blizzard's own essential and utility cooldown rows, they now sit on KstyleUI's rows instead of on top of your action bars. A row you moved yourself, or one too wide to fit, stays where it was.
 - Tracked buff icons and bars keep the right gap between icons at every icon size and UI scale.
-- Behind the scenes: slow tests were cut down and screenshots of the HUD now come out the same every time. Nothing changes in game.
 
 ## v0.0.6 (2026-11-13)
 
