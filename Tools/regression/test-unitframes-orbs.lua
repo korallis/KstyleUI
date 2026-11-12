@@ -173,6 +173,28 @@ assert(not health:IsShown() and not power:IsShown(), "the orbs hide under Frames
 assert(player(ns).active == true and player(ns).views[1].button:IsShown(), "the player frame comes back")
 assert(K.Layout.Live("unitframes.player"), "the player frame's element is live again")
 
+-- Choosing Orbs in combat leaves the secure player frame up until combat ends.
+env.SetCombat(true)
+K.Options.Write("Appearance", "hudStyle", "orbs")
+noErrors(env, K, "Orbs chosen in combat")
+assert(K.Appearance.HudStyle() == "frames" and not health:IsShown(), "the orbs wait for combat to end")
+assert(player(ns).active == true and player(ns).views[1].button:IsShown(), "the secure player frame stays shown in combat")
+env.SetCombat(false)
+env.RunTimers()
+assert(K.Appearance.HudStyle() == "orbs" and health:IsShown() and player(ns).active == false, "Orbs lands when combat ends")
+K.Options.Write("Appearance", "hudStyle", "frames")
+
+-- A bar moved to an edge keeps both orbs on screen.
+do
+	local saved = K.Store.Layout()
+	local before = saved["actionbars.bar1"]
+	saved["actionbars.bar1"] = { anchor = "BOTTOMLEFT", x = 0, y = 0 }
+	local hx, px, y = Orbs.Centres()
+	local width, height = K.Layout.RootSize()
+	assert(hx >= 102 and px <= width - 102 and y >= 102 and y <= height - 102, "the orbs clamp inside the screen")
+	saved["actionbars.bar1"] = before
+end
+
 -- Back to Orbs and to Frames in one session leaves no orb events behind.
 K.Options.Write("Appearance", "hudStyle", "orbs")
 K.Options.Write("Appearance", "hudStyle", "frames")

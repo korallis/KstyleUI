@@ -171,9 +171,11 @@ end
 
 function Orbs.Centres()
 	local left, bottom, width, height = BarRect()
-	local y = math.max(bottom + height / 2 + LIFT, RING / 2 + FLOOR)
+	local rootWidth, rootHeight = K.Layout.RootSize()
+	local low = RING / 2 + FLOOR
+	local y = math.min(math.max(bottom + height / 2 + LIFT, low), rootHeight - low)
 	local reach = GAP + BODY / 2
-	return left - reach, left + width + reach, y
+	return math.max(left - reach, low), math.min(left + width + reach, rootWidth - low), y
 end
 
 local function Place()
