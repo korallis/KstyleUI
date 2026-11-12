@@ -202,6 +202,11 @@ do
 	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0 and filled:GetAlpha() == 1, "leaving Layout Mode hides them again")
 	K.Options.Write("ActionBars", "bar4.showEmpty", true)
 	assert(empty:GetAlpha() == 1, "the setting still brings the empty slots back")
+	K.Options.Write("ActionBars", "bar4.showEmpty", false)
+	assert(K.Layout.Enter() and empty:GetAlpha() == 1, "Layout Mode opens again")
+	assert(K.Store.CopyProfile(K.Store.ProfileName(), "Other") and K.Store.SetProfile("Other") and ns.running, "a copy of the profile keeps the module running")
+	local again = AB.Button(ns, "bar4", 2)
+	assert(not K.Layout.IsActive() and again:GetAlpha() == 0, "a profile change closes Layout Mode without Exit, and the rail's empty slots hide again")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
 

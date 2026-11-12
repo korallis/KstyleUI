@@ -343,6 +343,7 @@ local function OnSetting(_, module, key)
 end
 
 local function OnProfile()
+	OnLayoutMode()
 	ApplyAll()
 	RefreshVisuals()
 end
@@ -430,6 +431,7 @@ local function Enable()
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	K.Callbacks.Register("ScaleChanged", MODULE, ApplyAll)
 	HookLayoutMode()
+	OnLayoutMode()
 	ns.Flyout.Build()
 	ApplyAll()
 	ns.Vehicle.Build()
