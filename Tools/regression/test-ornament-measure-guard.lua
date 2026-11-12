@@ -1,4 +1,4 @@
--- test-ornament-measure-guard.lua: every edge an ornament reads goes through Widgets.Edges, which checks IsAnchoringRestricted first, so no ornament path can measure a region the game restricts.
+-- test-ornament-measure-guard.lua: every edge an ornament reads goes through Widgets.Edges, which checks IsAnchoringRestricted first, and the layout solver in Rects.lua reads no edge at all, so no ornament path can measure a region the game restricts.
 local function read(path)
 	local file = assert(io.open(path, "rb"))
 	local text = file:read("*a")
@@ -22,6 +22,9 @@ end
 
 local ornaments = raw(read("Core/Widgets/Ornaments.lua"))
 assert(#ornaments == 0, "Ornaments.lua measures a region without Widgets.Edges at line " .. tostring(ornaments[1] and ornaments[1].line) .. ": " .. tostring(ornaments[1] and ornaments[1].row))
+
+local rects = raw(read("Core/Widgets/Rects.lua"))
+assert(#rects == 0, "Rects.lua measures a region's edges at line " .. tostring(rects[1] and rects[1].line) .. ": " .. tostring(rects[1] and rects[1].row))
 
 local base = read("Core/Widgets/Base.lua")
 local edges = base:match("\nfunction Widgets%.Edges%(region%)\r?\n(.-)\nend")
