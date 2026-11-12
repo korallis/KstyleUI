@@ -189,12 +189,12 @@ do
 				local cb = mode == "above" and element or target
 				CastBars.Layout(cb, 347, height)
 				local where = mode .. " font " .. fontSize .. " height " .. height
-				local _, barH = cb.bar:GetSize()
-				local _, _, _, _, barY = cb.bar:GetPoint(1)
+				local _, barH = env.Look(cb.bar:GetSize())
+				local _, _, _, _, barY = env.Look(cb.bar:GetPoint(1))
 				local extent = barH + math.abs(barY)
 				if cb.text:IsShown() then
-					local _, _, _, _, offset = cb.text:GetPoint(1)
-					local _, rowH = cb.text:GetSize()
+					local _, _, _, _, offset = env.Look(cb.text:GetPoint(1))
+					local _, rowH = env.Look(cb.text:GetSize())
 					extent = math.abs(offset) + rowH
 				end
 				assert(extent <= height + 0.6, where .. ": the bar and its label stand inside the frame, reaching " .. extent)

@@ -246,7 +246,7 @@ do
 	local r, g, b = plate.marker:GetVertexColor()
 	assert(SameColor(nr, ng, nb, r, g, b), "the elite marker is gold")
 	-- The diamond reads in a pull: 12 units across, where 8 drew as a dot in the gallery.
-	assert(plate.marker:GetWidth() >= K.Widgets.Snap(plate, 12) and plate.marker:GetHeight() == plate.marker:GetWidth(), "the marker is a 12-unit diamond, got " .. tostring(plate.marker:GetWidth()))
+	assert(env.Look(plate.marker:GetWidth()) >= K.Widgets.Snap(plate, 12) and env.Look(plate.marker:GetHeight()) == env.Look(plate.marker:GetWidth()), "the marker is a 12-unit diamond, got " .. tostring(env.Look(plate.marker:GetWidth())))
 
 	N.Add(env, "nameplate2", { classification = "rare" })
 	local rare = ns.Plates.Get("nameplate2")
@@ -416,9 +416,9 @@ do
 	assert(ns.Plate.DEFAULT_WIDTH == 151.56 and ns.Plate.DEFAULT_HEIGHT == 13.78, "the health bar is the picture's fill, 151.56 by 13.78 root units")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(plate.health:GetWidth(), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_WIDTH)) and N.Same(plate.health:GetHeight(), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
+	assert(N.Same(env.Look(plate.health:GetWidth()), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_WIDTH)) and N.Same(env.Look(plate.health:GetHeight()), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
 	local disc = plate.level
-	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
+	assert(N.Same(env.Look(disc:GetWidth()), 34) and N.Same(env.Look(disc:GetHeight()), 34), "the level disc is 34 units across")
 	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")
 	assert(disc.chrome.shadowOn == false and disc.chrome.noise == nil, "no shadow, no grain")
 	local r, g, b = barColor(plate.health)

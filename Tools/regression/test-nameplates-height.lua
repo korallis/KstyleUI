@@ -23,7 +23,7 @@ do
 	local env, K, ns = N.New(REFERENCE)
 	N.Add(env, "nameplate1", { name = "Shadowgale Poacher", reaction = 2, health = 100, maxHealth = 100 })
 	local bar = ns.Plates.Get("nameplate1").health
-	local width, height = pixels(K, bar, bar:GetWidth()), pixels(K, bar, bar:GetHeight())
+	local width, height = pixels(K, bar, env.Look(bar:GetWidth())), pixels(K, bar, env.Look(bar:GetHeight()))
 	local border = borderPixels(K, bar)
 	assert(math.abs(width - 264) < 0.01, "the fill is 264 physical pixels wide, got " .. tostring(width))
 	assert(math.abs(height - 24) < 0.01, "the fill is 24 physical pixels tall, got " .. tostring(height))

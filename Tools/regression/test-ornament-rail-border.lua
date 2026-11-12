@@ -45,6 +45,7 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 		N.Target(env, "nameplate1")
 		env.RunTimers()
 		for _ = 1, 10 do N.Tick(env, 0.05) end
+		for token, base in pairs(env._bases) do N.Align(env, base, ns.Plates.Get(token).health) end
 		Scene.Build(env)
 		K.Callbacks.Fire("SettingChanged", "Widgets", "ornaments")
 		local solver = Scene.RectSolver(env)
@@ -55,12 +56,12 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local handle = plate.ornament
 			local label = string.format("%s %s %dx%d %s", level, typeset, screen[1], screen[2], tostring(plate.name:GetText()))
 			local _, ty, tw, th = Scene.RectIn(solver, handle.target)
-			local rim = (handle.target.rimOutset or 0) * tw / handle.target:GetWidth()
+			local rim = (handle.target.rimOutset or 0) * tw / env.Look(handle.target:GetWidth())
 			local top, bottom = snap(ty - rim), snap(ty + th + rim)
 			local px = K.Scale.Pixel(1)
 			local function box(region)
-				local f = K.Widgets.ScaleFactor(region)
-				return region:GetLeft() * f / px, region:GetRight() * f / px, region:GetTop() * f / px, region:GetBottom() * f / px, f
+				local x, y, w, h = Scene.RectIn(solver, region)
+				return x / pixel, (x + w) / pixel, (1080 - y) / pixel, (1080 - y - h) / pixel, K.Widgets.ScaleFactor(region)
 			end
 			local nl, nr, nt, nb, nf = box(plate.name)
 			local fontFile, fontSize = plate.name:GetFont()
@@ -83,7 +84,7 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local inkBottom = nb + math.max(0, metrics.descent - deep) * math.min(fontSize, height / (metrics.ascent + metrics.descent)) * nf / px
 			local _, drop = plate.name:GetShadowOffset()
 			if type(drop) == "number" and drop < 0 then inkBottom = inkBottom + drop * nf / px end
-			local inkWidth = plate.name:GetStringWidth() * nf / px
+			local inkWidth = env.Look(plate.name:GetStringWidth()) * nf / px
 			if inkWidth < nr - nl then
 				local justify = plate.name:GetJustifyH()
 				if justify == "LEFT" then nr = nl + inkWidth elseif justify == "RIGHT" then nl = nr - inkWidth else nl, nr = (nl + nr - inkWidth) / 2, (nl + nr + inkWidth) / 2 end
@@ -103,10 +104,10 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local fillTop, fillBottom = snap(ty), snap(ty + th)
 			local others = {}
 			for _, region in ipairs({ plate.healthText, plate.levelText, plate.level, plate.marker, plate.raid }) do
-				if region:IsVisible() and region:GetLeft() then
+				if region:IsVisible() and Scene.RectIn(solver, region) then
 					local l, r, t, b = box(region)
 					if region:GetObjectType() == "FontString" and (region:GetText() or "") ~= "" then
-						local ink = region:GetStringWidth() * K.Widgets.ScaleFactor(region) / px
+						local ink = env.Look(region:GetStringWidth()) * K.Widgets.ScaleFactor(region) / px
 						if ink < r - l then
 							local justify = region:GetJustifyH()
 							if justify == "LEFT" then r = l + ink elseif justify == "RIGHT" then l = r - ink else l, r = (l + r - ink) / 2, (l + r + ink) / 2 end
