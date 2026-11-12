@@ -6,6 +6,7 @@ local MEMORIES = {
 	{ module = "CombatText", key = "combatTextCVars" },
 	{ module = "Chat", key = "chatTimestamps", cvar = "showTimestamps" },
 	{ module = "Meters", key = "damageMeterCVars" },
+	{ module = "Nameplates", key = "nameplateScaleCVars" },
 	{ module = "QoL", key = "qolCamera", cvar = "cameraDistanceMaxZoomFactor" },
 }
 

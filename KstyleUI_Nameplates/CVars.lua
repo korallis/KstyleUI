@@ -1,4 +1,4 @@
--- CVars.lua: applies the nameplate CVars the player chose, only out of combat, and returns them to the game's defaults when turned off.
+-- CVars.lua: applies the nameplate CVars the player chose, only out of combat, leaves the plate scale CVars to Stacking.lua while it holds them, and returns them to the game's defaults when turned off.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,6 +13,10 @@ local applied = {}
 local queued = false
 
 CVars.Exists = K.CVars.Exists
+
+function CVars.Owns(name)
+	return applied[name] == true
+end
 
 local function Set(name, value)
 	if not K.CVars.Set(name, value) then
@@ -29,7 +33,9 @@ local function Apply()
 	end
 	for _, entry in ipairs(Logic.CVarPlan(values)) do
 		local name = entry.name
-		if not K.CVars.Exists(name) then
+		if ns.Stacking.Holds(name) then
+			LogOnce("cvar-held:" .. name, name .. " stays at 1 while plates ignore the game's plate scale; turn on Shrink distant plates to use this setting")
+		elseif not K.CVars.Exists(name) then
 			if name ~= Logic.STACKING_CVAR then
 				LogOnce("cvar-missing:" .. name, "CVar " .. name .. " is missing on this client; skipped")
 			end
@@ -48,7 +54,9 @@ local function Restore()
 	for name in pairs(applied) do
 		applied[name] = nil
 		local value = K.CVars.Default(name)
-		if type(value) == "string" then
+		if type(value) == "string" and ns.Stacking.Holds(name) then
+			ns.Stacking.HandBack(name, value)
+		elseif type(value) == "string" then
 			Set(name, value)
 		else
 			LogOnce("cvar-default:" .. name, "no default for CVar " .. name .. "; left as it is")
