@@ -125,13 +125,13 @@ Reference.LIVE = {
 	guide = {
 		title = "9-12 Skyborne",
 		steps = {
-			{ title = "Step 57", elements = { "Kill |cRXP_ENEMY_Bandit Highwayman|r. Loot them for the [Blood-Stained Bandit Masks].", "Watch for stealthed enemies in the apple orchard.", "0/7 Blood-Stained Bandit Mask" } },
-			{ title = "Step 58", elements = { "Make your way up the mountain", "If you see a Tornado, use it for faster travel to the top of the hill" } },
+			{ title = "Step 57", elements = { "Kill |cRXP_ENEMY_Bandit Highwayman|r. Loot them for the |cff00bcd4[Blood-Stained Bandit Masks]|r.", "|cfffcdc00Watch for stealthed enemies in the apple orchard.|r", "0/7 Blood-Stained Bandit Mask" } },
+			{ title = "Step 58", elements = { "Make your way up the mountain", "|cfffcdc00If you see a Tornado, use it for faster travel|r" } },
 			{ title = "Step 59", elements = { "Click on the |cRXP_PICK_Construct Parts|r", "Obtain Air Construct Core from the Bandit Camp 0/1" } },
 		},
 	},
 	quests = {
-		{ title = "The Broken Construct", level = 9, objectives = { "Listen to what Riaani has to say 1/1", "Obtain Crystallized Lightning from the Sparkling Cave 1/1", "Obtain Enchanted Gyrozephyr from Windsong Lake 0/1", "Obtain Air Construct Core from the Bandit Camp 0/1" }, questID = 311, superTracked = true },
+		{ title = "The Broken Construct", level = 9, objectives = { "Listen to what Riaani Nightwind has to say 1/1", "Obtain Crystallized Lightning from the Sparkling Cave 1/1", "Obtain Enchanted Gyrozephyr from Windsong Lake 0/1", "Obtain Air Construct Core from the Bandit Camp 0/1" }, questID = 311, superTracked = true },
 		{ title = "Bandit Highwaymen", level = 10, objectives = { "Blood-Stained Bandit Mask 0/7" }, questID = 312 },
 		{ title = "Crab Season", level = 9, objectives = { "Windsong Crawler Meat 0/6" }, questID = 302 },
 		{ title = "Aid For The Refugees", level = 11, objectives = { "Abandoned Belongings 0/8" }, questID = 303 },
