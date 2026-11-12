@@ -48,8 +48,8 @@ for _, screen in ipairs(screens) do
 	N.Add(ne, "nameplate1", { name = "Shadowgale Poacher" })
 	local plate = nn.Plates.Get("nameplate1")
 	local _, _, _, _, lift = plate.name:GetPoint(1)
-	assert(math.abs(lift - NK.Widgets.Snap(plate, 3.5)) < 1e-6, label .. ": the plate name keeps its core-matched lift, snapped")
-	assert(nn.Settings.Get("name.size") == 12, label .. ": the core-matched name size stays unchanged")
+	assert(math.abs(lift - NK.Widgets.Snap(plate, nn.Plate.NAME_GAP)) < 1e-6, label .. ": the plate name keeps the bible's lift, snapped")
+	assert(nn.Settings.Get("name.size") == 16, label .. ": the bible's name size")
 	snapped(NK, plate.name, label .. " plate name")
 	assert(#ne._errors == 0, tostring(ne._errors[1]))
 
