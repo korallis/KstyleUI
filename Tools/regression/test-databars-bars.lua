@@ -87,16 +87,23 @@ do
 			shownTicks = shownTicks + 1
 		end
 	end
-	eq(shownTicks, 0, "no ticks by default: the mockup's experience line is unbroken")
-	K.Options.Write("DataBars", "xp.segments", 10)
+	eq(shownTicks, 9, "the overhaul's mock-up ticks the strip into ten segments by default: nine ticks")
+	K.Options.Write("DataBars", "xp.segments", 0)
 	shownTicks = 0
 	for _, tick in ipairs(xp.ticks) do
 		if tick:IsShown() then
 			shownTicks = shownTicks + 1
 		end
 	end
-	eq(shownTicks, 9, "ten segments draw nine ticks")
-	K.Options.Write("DataBars", "xp.segments", 0)
+	eq(shownTicks, 0, "no segments, no ticks")
+	K.Options.Write("DataBars", "xp.segments", 10)
+	-- The overhaul's strip (KSTY-44 bible 3.4, Lee's 5 px experience strip): 5 units tall at 1080, square ends with
+	-- no pill caps, and no ornament around it.
+	eq(K.Setup.Layouts.Element("databars.xp").height, 5, "the experience strip is 5 units tall")
+	eq(xp.fill.pillOn, false, "the fill has square ends")
+	eq(xp.track.pillOn, false, "and so does the track")
+	eq(xp.ornament, nil, "no ornament frames the strip")
+	eq(xp.rim, nil, "and no rim frame waits for one")
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
 	eq(xp.text:GetText(), "Level 38 \194\183 24% \194\183 rested 16%", "the reference caption restores the level under LEE-20")
@@ -106,16 +113,23 @@ do
 	local mr, mg, mb = K.Tokens.Color("text")
 	local tr, tg, tb = xp.text:GetTextColor()
 	assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the XP caption uses the reference's grey-white body text")
-	-- The fill is a gilt filament: a gradient from dim gilt to lit gilt over the fill; the rested reach is cool.
+	local _, _, captionFlags = xp.text:GetFont()
+	local captionShadow = W.LastCall(xp.text, "SetShadowOffset")
+	assert(captionFlags == "OUTLINE" and captionShadow and captionShadow[1] > 0, "the caption stands on the world: an outline and the kit's shadow")
+	-- The fill is the mock-up's experience purple, the epic token; the rested reach is the cool token at 55%.
+	local er0, eg0, eb0 = K.Tokens.Color("epic")
+	assert(sameColor(xp.fill, er0, eg0, eb0), "the fill is the experience purple")
+	local rested = K.Options.Read("DataBars", "xp.restedColor")
+	local cr, cg, cb = K.Tokens.Color(ns.Bars.TOKENS.cool)
+	assert(near(rested.r, cr) and near(rested.g, cg) and near(rested.b, cb) and near(rested.a, 0.55), "the rested shade is the cool token at 55%")
+	K.Options.Write("DataBars", "xp.colorSource", "gilt")
 	local gradient = xp.fill:GetStatusBarTexture()._state.Gradient
-	assert(gradient and gradient[1] == "HORIZONTAL", "the fill carries a horizontal gradient")
+	assert(gradient and gradient[1] == "HORIZONTAL", "the gilt filament stays a choice: a horizontal gradient")
 	local dim, lit = gradient[2], gradient[3]
 	local dr, dg, db = ns.Bars.GiltStops()
 	assert(near(dim.r, dr) and near(dim.g, dg) and near(dim.b, db), "it starts in dim gilt")
 	assert(lit.r > dim.r and lit.g > dim.g and lit.b > dim.b, "and ends in lit gilt")
-	local rested = K.Options.Read("DataBars", "xp.restedColor")
-	local cr, cg, cb = K.Tokens.Color(ns.Bars.TOKENS.cool)
-	assert(near(rested.r, cr) and near(rested.g, cg) and near(rested.b, cb), "the rested segment is the cool token")
+	K.Options.Write("DataBars", "xp.colorSource", "custom")
 	-- A player who chose a label on the line keeps #151's plate.
 	K.Options.Write("DataBars", "xp.textPosition", "CENTER")
 	K.Options.Write("DataBars", "xp.text", "shortPercent")
@@ -253,7 +267,8 @@ do
 	local xp = view(ns, "xp")
 	local Options = K.Options
 
-	eq(Options.Read("DataBars", "xp.colorSource"), "gilt", "the experience bar is a gilt filament by default")
+	eq(Options.Read("DataBars", "xp.colorSource"), "custom", "the experience bar is the mock-up's purple by default, a custom colour")
+	Options.Write("DataBars", "xp.colorSource", "gilt")
 	Options.Write("DataBars", "xp.colorSource", "class")
 	assert(sameColor(xp.fill, K.Theme.Accent()), "the class colour is still a choice")
 	local white = xp.fill:GetStatusBarTexture()._state.Gradient
@@ -456,8 +471,7 @@ do
 	K.Store.SetProfile("Second")
 	K.Modules.Enable("DataBars")
 	local fill = view(ns, "xp").fill
-	local dr = ns.Bars.GiltStops()
-	assert(sameColor(fill, K.Tokens.Color("white")) and near(fill:GetStatusBarTexture()._state.Gradient[2].r, dr), "a fresh profile repaints with its own settings: the default gilt filament")
+	assert(sameColor(fill, K.Tokens.Color("epic")), "a fresh profile repaints with its own settings: the default experience purple")
 	noErrors(env, K)
 end
 

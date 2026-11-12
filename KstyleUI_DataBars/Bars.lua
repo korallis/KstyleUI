@@ -235,11 +235,15 @@ local function Style(view, s)
 	if track.borderFrame then
 		track.borderFrame:SetShown(s.border ~= false)
 	end
+	for _, bar in ipairs({ fill, track }) do
+		if bar.caps then
+			bar:ShowPill(false)
+		end
+	end
 	if view.def.id == "xp" then
 		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
 		fill.borderFrame:Hide()
 		for _, bar in ipairs({ fill, track }) do
-			bar:SizeCaps(bar:GetHeight())
 			bar.sheenTop:Hide()
 			bar:SetGlowShown(false)
 		end

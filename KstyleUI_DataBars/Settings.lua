@@ -10,8 +10,9 @@ local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = Tokens.Size("caption")
 local XP_FONT_SIZE = 12
 local SEGMENTS = 0
+local XP_SEGMENTS = 10
+local XP_RESTED_ALPHA = 0.55
 local MAX_SEGMENTS = 20
-local RESTED_ALPHA = 1
 local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
@@ -62,22 +63,23 @@ local defaults = ns.defaults
 defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
-defaults.xp = BarDefaults("gilt", "accentDefault", "levelRested")
+defaults.xp = BarDefaults("custom", "epic", "levelRested")
 defaults.xp.texture = Texture("Flat")
 defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"
-defaults.xp.outline = "NONE"
+defaults.xp.outline = Font.WORLD
+defaults.xp.segments = XP_SEGMENTS
 defaults.xp.fontSize = XP_FONT_SIZE
 defaults.xp.rested = true
-defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, RESTED_ALPHA)
+defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
 	line = true, labels = "inline", menus = false, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
-	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
+	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
 }
 for i, id in ipairs(Strip.DEFAULT_SLOTS) do

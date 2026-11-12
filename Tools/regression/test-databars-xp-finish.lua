@@ -1,4 +1,4 @@
--- test-databars-xp-finish.lua: the reference XP line uses flat default paint and a raised caption without changing other bars or player choices.
+-- test-databars-xp-finish.lua: the overhaul's experience strip uses flat default paint, square ends, ten segments and a raised caption without changing other bars or player choices.
 local D = dofile("Tools/regression/databars_env.lua")
 local env, K, ns = D.New({ game = { level = 11, xp = 0, xpMax = 10000, rested = 500 } })
 local xp, rep, honor = ns.Bars.views.xp, ns.Bars.views.rep, ns.Bars.views.honor
@@ -20,11 +20,13 @@ end
 local _, _, _, _, y = xp.text:GetPoint(1)
 eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "XP caption raise")
 eq(xp.text:GetText(), "Level 11 \194\183 0% \194\183 rested 5%", "level caption")
-eq(xp.fill.pillOn, true, "round fill")
-eq(xp.track.pillOn, true, "round track")
+eq(xp.fill.pillOn, false, "square fill: the bible's bars have no end caps")
+eq(xp.track.pillOn, false, "square track")
+local ticks = 0
 for _, tick in ipairs(xp.ticks) do
-	eq(tick:IsShown(), false, "no default ticks")
+	ticks = ticks + (tick:IsShown() and 1 or 0)
 end
+eq(ticks, 9, "the mock-up's ten segments")
 K.Options.Write("DataBars", "xp.texture", paths.Flat)
 eq(xp.track.texturePath, paths.Flat, "selected flat texture")
 for _, choice in ipairs({ "Glass", paths.Glass }) do

@@ -209,11 +209,56 @@ do
 	end
 	env.MicroButtonPulse(target)
 	eq(Alpha(env, ns, "micro"), 1, "a pulsing micro button shows the micro menu")
+	-- The overhaul (KSTY-34's audit, KSTY-44's mock-up): at rest only the button that needs the player shows, at its
+	-- place in the row; the others and the tray wait until the pointer comes.
+	local spotlit, others = 0, 0
+	for _, button in ipairs(ns.Menus.All("micro")) do
+		if button:GetAttribute("clickbutton") == target then
+			spotlit = button:GetAlpha()
+		else
+			others = others + button:GetAlpha()
+		end
+	end
+	eq(spotlit, 1, "the pulsing button shows")
+	eq(others, 0, "and only it")
+	eq(ns.Menus.Glass("micro"):GetAlpha(), 0, "with no tray behind it")
+	local content = ns.Menus.Content("micro")
+	content._mouseOver = true
+	W.Enter(content)
+	others = 0
+	for _, button in ipairs(ns.Menus.All("micro")) do
+		others = others + button:GetAlpha()
+	end
+	eq(others, #ns.Menus.All("micro"), "the pointer brings the whole row")
+	eq(ns.Menus.Glass("micro"):GetAlpha(), 1, "and its tray")
+	content._mouseOver = false
+	W.Leave(content)
+	env.RunTimers()
+	W.Settle(env)
 	target.IsPulsing = function()
 		return false
 	end
 	env.MicroButtonPulseStop(target)
 	eq(Alpha(env, ns, "micro"), 0, "the pulse over, the menu goes")
+	local lit = 0
+	for _, button in ipairs(ns.Menus.All("micro")) do
+		if button:GetAttribute("clickbutton") ~= target then
+			lit = lit + button:GetAlpha()
+		end
+	end
+	eq(lit, 0, "and the other buttons stay out of sight while the lone button fades with the row")
+	local row = ns.Menus.Content("micro")
+	row._mouseOver = true
+	W.Enter(row)
+	lit = 0
+	for _, button in ipairs(ns.Menus.All("micro")) do
+		lit = lit + button:GetAlpha()
+	end
+	eq(lit, #ns.Menus.All("micro"), "the next time the row shows, every button is back")
+	row._mouseOver = false
+	W.Leave(row)
+	env.RunTimers()
+	W.Settle(env)
 	Untouched(env, marks, "bags and alerts")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

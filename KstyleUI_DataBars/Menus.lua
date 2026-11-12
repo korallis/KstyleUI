@@ -590,9 +590,13 @@ local function Pointed(bar)
 	return ok and Flag(showing, false)
 end
 
-local function Lit(bar)
+local function Whole(bar)
 	local menus = ns.Settings().menus
-	if (type(menus) == "table" and menus.always == true) or bar.hover or Editing() then
+	return (type(menus) == "table" and menus.always == true) or bar.hover or Editing()
+end
+
+local function Lit(bar)
+	if Whole(bar) then
 		return true
 	end
 	if bar.id == "bags" then
@@ -601,11 +605,32 @@ local function Lit(bar)
 	return Pointed(bar)
 end
 
+local function Spotlight(bar, want)
+	if bar.id ~= "micro" then
+		return
+	end
+	local only = false
+	if not Whole(bar) then
+		for _, entry in ipairs(bar.entries) do
+			only = only or Pulsing(entry.target)
+		end
+	end
+	if not only and (not bar.spotlight or want == 0) then
+		return
+	end
+	bar.spotlight = only
+	for _, entry in ipairs(bar.entries) do
+		entry.button:SetAlpha((not only or Pulsing(entry.target)) and 1 or 0)
+	end
+	bar.glass:SetAlpha(only and 0 or 1)
+end
+
 function Reveal(bar)
 	if not bar or not running then
 		return
 	end
 	local want = Lit(bar) and 1 or 0
+	Spotlight(bar, want)
 	if bar.fadeTarget == want then
 		return
 	end
@@ -652,6 +677,13 @@ local function Unfade(bar)
 	end
 	bar.fadeTarget, bar.hover, bar.checking = nil, false, false
 	bar.content:SetAlpha(1)
+	if bar.spotlight then
+		bar.spotlight = nil
+		for _, entry in ipairs(bar.entries) do
+			entry.button:SetAlpha(1)
+		end
+		bar.glass:SetAlpha(1)
+	end
 end
 
 local function Recheck(bar)

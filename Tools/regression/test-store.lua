@@ -865,4 +865,35 @@ do
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 
+-- Migration 24 (KSTY-50): the experience bar is the overhaul's clean strip, purple, ticked into ten, with its caption
+-- and the readout on the world (an outline and the kit's shadow) and a 55% rested shade, and 5 units tall. A profile
+-- that kept the old defaults takes the new ones; a choice the player made stays.
+do
+	local saved = {
+		version = 23,
+		profiles = {
+			Default = { DataBars = { xp = { colorSource = "gilt", segments = 0, outline = "NONE", restedColor = { r = 0x5a / 255, g = 0x9c / 255, b = 0xca / 255, a = 1 } }, strip = { outline = "NONE" } } },
+			Chosen = { DataBars = { xp = { colorSource = "class", segments = 4, outline = "THICKOUTLINE", restedColor = { r = 1, g = 0, b = 0, a = 1 } }, strip = { outline = "OUTLINE" } } },
+		},
+		layouts = {
+			Default = { ["databars.xp"] = { width = 491, height = 8 } },
+			Chosen = { ["databars.xp"] = { width = 300, height = 12 } },
+		},
+		characters = {}, account = {}, devlog = {},
+	}
+	local menv = boot({ saved = saved })
+	local db = menv.KstyleUIDB
+	check(db.version == 26, "version 23 data migrates through 24 to 26")
+	local xp = db.profiles.Default.DataBars.xp
+	check(xp.colorSource == "custom" and math.abs(xp.color.r - 0xb6 / 255) < 1e-6, "the old gilt default becomes the experience purple")
+	check(xp.segments == 10 and xp.outline == "WORLD" and math.abs(xp.restedColor.a - 0.55) < 1e-6, "ten segments, the world caption and the 55% rested shade")
+	check(db.profiles.Default.DataBars.strip.outline == "WORLD", "the readout stands on the world")
+	check(db.layouts.Default["databars.xp"] == nil, "a strip at the old 8-unit default takes the 5-unit strip")
+	local chosen = db.profiles.Chosen.DataBars.xp
+	check(chosen.colorSource == "class" and chosen.segments == 4 and chosen.outline == "THICKOUTLINE" and chosen.restedColor.a == 1, "choices the player made stay")
+	check(db.profiles.Chosen.DataBars.strip.outline == "OUTLINE", "in the readout too")
+	check(db.layouts.Chosen["databars.xp"].height == 12, "and a strip the player sized stays")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
 print("store ok")
