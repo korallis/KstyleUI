@@ -379,6 +379,7 @@ function FILL.button(control, item)
 end
 
 function FILL.pictures(control, item, value)
+	local disabled = Model.IsDisabled(item)
 	for i, card in ipairs(control.cards) do
 		local option = item.options[i]
 		card:SetShown(option ~= nil)
@@ -386,12 +387,13 @@ function FILL.pictures(control, item, value)
 			local selected = option.value == value
 			card.value = option.value
 			card.picture:SetTexture(option.picture)
+			card.picture:SetDesaturated(disabled)
 			Widgets.SetText(card.label, option.label)
-			Widgets.TextColor(card.label, selected and "textEmphasis" or "text")
-			card.chrome:SetEdge(selected and "accent" or "edgeInner", 1)
+			Widgets.TextColor(card.label, disabled and "textDisabled" or selected and "textEmphasis" or "text")
+			card.chrome:SetEdge(selected and not disabled and "accent" or "edgeInner", 1)
 		end
 	end
-	SetEnabled(control, not Model.IsDisabled(item))
+	SetEnabled(control, not disabled)
 end
 
 local function Value(item)

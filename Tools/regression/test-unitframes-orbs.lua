@@ -214,6 +214,16 @@ env.RunTimers()
 assert(K.HudStyle.Current() == "orbs" and health:IsShown() and player(ns).active == false, "switching to an Orbs profile shows the orbs")
 noErrors(env, K, "profile switches")
 
+-- An imported profile string carrying a style no build knows is refused, like any other choice row's unknown value.
+do
+	local ok = K.Store.Import(CoreEnv.CraftLua({ kind = "KstyleUI profile", version = K.Store.DB_VERSION, name = "Odd", settings = { HudStyle = { style = "bars" } }, layout = {} }))
+	assert(not ok, "an unknown HUD style in a profile string is refused")
+	local good = K.Store.Import(CoreEnv.CraftLua({ kind = "KstyleUI profile", version = K.Store.DB_VERSION, name = "Good", settings = { HudStyle = { style = "orbs" } }, layout = {} }))
+	assert(good, "a known HUD style imports")
+	K.Store.SetProfile("Orbs")
+	env.RunTimers()
+end
+
 -- A switch that raises offers a reload instead of leaving half a HUD.
 local prompts = 0
 local prompt = K.Widgets.ReloadPrompt

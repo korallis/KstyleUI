@@ -1651,7 +1651,7 @@ ns.Locale.Add({
 	["Style"] = "Stil",
 	["Style KstyleUI's tracking, addon and quest menus outside combat. Glass keeps Blizzard's look."] = "KstyleUI-Men\195\188s au\195\159erhalb des Kampfes. Glas beh\195\164lt Blizzards Darstellung.",
 	["Subtle"] = "Dezent",
-	["Summary"] = "Zusammenfassung",
+	["Summary"] = "\195\156bersicht",
 	["Swaps the bar when you change stance or form."] = "Wechselt die Leiste, wenn Ihr Haltung oder Gestalt \195\164ndert.",
 	["Swaps the bar while you are stealthed or prowling."] = "Wechselt die Leiste, solange Ihr verstohlen seid oder schleicht.",
 	["Sweep every icon during the global cooldown."] = "L\195\164sst w\195\164hrend der globalen Abklingzeit eine Ablaufanimation \195\188ber jedes Symbol laufen.",

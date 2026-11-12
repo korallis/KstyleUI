@@ -221,7 +221,7 @@ The core has no icon service. KstyleUI's repainted icons ship as a loose-file te
 
 ## Setup
 
-`Core/Setup/` holds the first-run setup: it opens once per account, picks a DPS, Tank or Healer layout and the modules, then applies both and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.
+`Core/Setup/` holds the first-run setup: it opens once per account, picks the HUD style (Frames or Orbs), a DPS, Tank or Healer layout and the modules, then applies them and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.
 
 ## DevTest
 

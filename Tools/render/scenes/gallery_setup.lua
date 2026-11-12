@@ -1,5 +1,5 @@
--- gallery_setup.lua: the first-run setup window on four of its five steps (setup_ornaments.lua draws the ornaments
--- step), each in its own environment so the one window shows four times: the welcome step, the layout step with the DPS card picked and the Tank card under the
+-- gallery_setup.lua: the first-run setup window on four of its six steps (setup_ornaments.lua draws the ornaments
+-- step; test-setup.lua covers the HUD style step), each in its own environment so the one window shows four times: the welcome step, the layout step with the DPS card picked and the Tank card under the
 -- mouse, the module step with every module on but one, and the summary after Apply with the ornaments Off, as the
 -- gallery drew it before the ornaments step. Every module in the picker
 -- is registered (Icons is a core module and needs no stand-in) so the toggles are live. The windows are scaled to 0.9 so four fit the screen apart.
@@ -73,7 +73,7 @@ return Common.Run(function()
 	local env, K, panel, hover = Step(W, 1, 60, 30)
 	add(env, K, panel, hover, {
 		name = "setup_welcome", title = "Setup: welcome", grade = "window", reference = "chat",
-		caption = "The first-run setup on its welcome step: a titled glass window with the five-step tab strip on the button body, the logo, the welcome text, the note that closing applies the DPS layout, the Keep my UI opt-out and the primary Next button.",
+		caption = "The first-run setup on its welcome step: a titled glass window with the six-step tab strip on the button body, the logo, the welcome text, the note that closing applies the DPS layout, the Keep my UI opt-out and the primary Next button.",
 		match = "Window grade as the mockup's chat panel: the surface fill, the dark outer and light inner lines, the 12-unit chamfer and the drop shadow; the tab strip inside is the button body.",
 	})
 

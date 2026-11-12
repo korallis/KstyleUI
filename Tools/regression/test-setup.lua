@@ -1,4 +1,4 @@
--- test-setup.lua: the first-run setup opens once per account, walks five steps (welcome, layout, modules, ornaments, summary), and Apply switches modules on, writes the layout and offers a reload.
+-- test-setup.lua: the first-run setup opens once per account, walks six steps (welcome, HUD style, layout, modules, ornaments, summary), and Apply switches modules on, writes the layout and offers a reload.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -151,7 +151,7 @@ do
 	local panel = Open(env, K)
 	K.Setup.Go(5)
 	W.Settle(env)
-	assert(K.Setup.Step() == 5 and panel.pages[5]:IsShown() and not panel.pages[4]:IsShown(), "step 4 is the ornaments step")
+	assert(K.Setup.Step() == 5 and panel.pages[5]:IsShown() and not panel.pages[4]:IsShown(), "step 5 is the ornaments step")
 	assert(panel.steps.buttons[5].label:GetText() == "ORNAMENTS", "and its tab says so")
 	local cards = panel.ornamentCards
 	for _, entry in ipairs(K.Setup.ORNAMENTS) do

@@ -16,7 +16,6 @@ local TEXT_WIDTH = 520
 local CARD_HEIGHT = 120
 local ORNAMENT_CARD_HEIGHT = 64
 local STYLE_PICTURE_SHARE = 0.5
-local STYLE_TEXT_HEIGHT = 64
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -137,6 +136,8 @@ local function Select(cards, value)
 	end
 end
 
+local FitStyles
+
 local function Refresh()
 	local choice = Setup.Choice()
 	panel.back:SetShown(step > 1)
@@ -148,6 +149,7 @@ local function Refresh()
 	Select(panel.cards, choice.layout)
 	Select(panel.ornamentCards, choice.ornaments)
 	Select(panel.styleCards, choice.hudStyle)
+	FitStyles()
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
 	end
@@ -590,25 +592,39 @@ local function BuildStyles(page, width)
 	local pad = gap("gapLarge")
 	local pictureWidth = cardWidth - 2 * pad
 	local pictureHeight = Widgets.Snap(page, pictureWidth * STYLE_PICTURE_SHARE)
-	local height = STYLE_TEXT_HEIGHT + pictureHeight + pad
 	panel.styleCards = {}
 	for i, entry in ipairs(STYLES) do
 		local value = entry.value
-		local card = NewCard(page, cardWidth, height, entry.label, entry.note, function()
+		local card = NewCard(page, cardWidth, pictureHeight + 2 * pad, entry.label, entry.note, function()
 			Setup.Choice().hudStyle = value
 		end)
 		card.hudStyle = value
 		card.picture = card:CreateTexture(nil, "ARTWORK")
 		card.picture:SetTexture((Tokens.Texture(entry.picture)))
 		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
-		card.picture:SetPoint("BOTTOM", card, "BOTTOM", 0, pad)
+		card.picture:SetPoint("TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
+		card.picture:SetPoint("LEFT", card, "LEFT", pad, 0)
 		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
 		panel.styleCards[value] = card
 	end
 	local hint = Paragraph(page, "body", "text", width)
-	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + spacing))
 	hint:SetText(L["Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
 	panel.styleHint = hint
+	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
+end
+
+FitStyles = function()
+	local fit, page = panel.styleFit, panel.pages[2]
+	local height = 0
+	for _, card in pairs(panel.styleCards) do
+		local text = Widgets.LineHeight(card.title) + gap("gapSmall") + Widgets.WrappedHeight(card.note, fit.width - 2 * fit.pad)
+		height = max(height, fit.pad + text + gap("gapMedium") + fit.picture + fit.pad)
+	end
+	for _, card in pairs(panel.styleCards) do
+		Widgets.Size(card, fit.width, height)
+	end
+	panel.styleHint:ClearAllPoints()
+	panel.styleHint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
 end
 
 local function BuildOrnaments(page, width)
