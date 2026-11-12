@@ -177,7 +177,10 @@ end
 
 do
 	local env, K, ns = N.New()
-	assert(#env._cvarWrites == 0, "the module leaves CVars alone by default")
+	for _, write in ipairs(env._cvarWrites) do
+		assert(write.name == "nameplateMinScale" or write.name == "nameplateMaxScale" or write.name == "nameplateSelectedScale",
+			"by default the module writes only the plate scale CVars it holds at 1, got " .. tostring(write.name))
+	end
 	K.Options.Write("Nameplates", "cvars.enabled", true)
 	assert(env._cvars.nameplateMaxDistance == tostring(ns.Settings.Get("cvars.maxDistance")), "turning CVars on applies the distance")
 	assert(env._stacking[1] == true and env._stacking[2] == false, "stacking applies to enemies by default")
@@ -205,10 +208,11 @@ end
 do
 	local env, K = N.New({ saved = nil })
 	env._cvars.nameplateSelectedScale = nil
+	local from = #env._cvarWrites
 	K.Options.Write("Nameplates", "cvars.enabled", true)
 	local wrote = false
-	for _, write in ipairs(env._cvarWrites) do
-		wrote = wrote or write.name == "nameplateSelectedScale"
+	for i = from + 1, #env._cvarWrites do
+		wrote = wrote or env._cvarWrites[i].name == "nameplateSelectedScale"
 	end
 	assert(not wrote, "a CVar the client lacks is skipped")
 	local logged = false

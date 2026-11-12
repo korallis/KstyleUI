@@ -53,7 +53,7 @@ Cast GUIDs/event payloads can be secret: the handlers do not inspect spell IDs o
 
 ## CVars (unchanged; KSTY-5 owns writes)
 
-`nameplateMinScale` and `nameplateSelectedScale` are referenced by `Blizzard_Commentator/Mainline/Blizzard_Commentator.lua:232-234`; `nameplateSize` by `Blizzard_NamePlates/Blizzard_NamePlateConstants.lua:12` and `Blizzard_SettingsDefinitions_Frame/Nameplates.lua:562`; `nameplateStackingTypes` by `Blizzard_SettingsDefinitions_Frame/Nameplates.lua:529-546`. Generic CVar reads/writes are in `CVarDocumentation.lua`.
+`nameplateMinScale`, `nameplateMaxScale` and `nameplateSelectedScale` are referenced by `Blizzard_Commentator/Mainline/Blizzard_Commentator.lua:232-234`, which sets all three to 1 as Stacking.lua's scale hold does; `nameplateSize` by `Blizzard_NamePlates/Blizzard_NamePlateConstants.lua:12` and `Blizzard_SettingsDefinitions_Frame/Nameplates.lua:562`; `nameplateStackingTypes` by `Blizzard_SettingsDefinitions_Frame/Nameplates.lua:529-546`. Generic CVar reads/writes are in `CVarDocumentation.lua`.
 
 The UI source has **no literal proof** for native `nameplateMaxDistance` or `nameplateMaxVerticalDistance`. Both were independently verified as exact NUL-delimited strings in the installed 70862 executable at byte offsets 57442479 and 57442816, respectively (SHA256 `033eb1605af1b627a571374108d76236732c26209ad90821674f55bda36103dd`). This proves native names, not runtime writability; `C_CVar.GetCVarInfo` (`CVarDocumentation.lua:90-108`) is the separate runtime probe. The executable was read, never run or changed.
 

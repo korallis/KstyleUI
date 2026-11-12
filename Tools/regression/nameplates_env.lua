@@ -52,6 +52,7 @@ N.CVAR_DEFAULTS = {
 	nameplateMaxVerticalDistance = "0",
 	nameplateSelectedScale = "1.2",
 	nameplateMinScale = "0.8",
+	nameplateMaxScale = "1",
 	nameplateSize = "2",
 }
 
@@ -437,7 +438,8 @@ end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts: saved, setup(env), noBitfield, motion,
 -- login (false: stop before PLAYER_LOGIN), enable (false: leave the module off), width and height
--- (the physical screen, default 1920x1080).
+-- (the physical screen, default 1920x1080). VARIABLES_LOADED fires before PLAYER_LOGIN, as on a reload;
+-- opts.lateVariables holds it back for the test to fire, as a first login can send it after the modules start.
 function N.New(opts)
 	opts = opts or {}
 	local env, K = CoreEnv.New({
@@ -456,6 +458,9 @@ function N.New(opts)
 	CoreEnv.LoadSaved(env)
 	Load(N.Files(), env)
 	env.FireEvent("ADDON_LOADED", "KstyleUI_Nameplates", false)
+	if not opts.lateVariables then
+		env.FireEvent("VARIABLES_LOADED")
+	end
 	if opts.login ~= false then
 		CoreEnv.Login(env)
 		env.RunTimers()
