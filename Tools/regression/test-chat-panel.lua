@@ -8,11 +8,6 @@ local function near(a, b)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-6
 end
 
--- The foot is the picture's 45.45 units, or what the edit box needs, plus the part of a line pitch that makes no further line.
-local function held(got, base)
-	return got >= base - 1e-6 and got < base + 18 * 1.01 + 1
-end
-
 local function lastCall(object, method)
 	for i = #object._calls, 1, -1 do
 		local call = object._calls[i]
@@ -108,7 +103,7 @@ do
 end
 
 -- Blizzard's chat font lives in UIParent's units. The windows' text, tab names and line spacing follow the size, as
--- every KstyleUI text does. The picture's 186-unit card holds six lines at the 14 + 4 pitch, at either size.
+-- every KstyleUI text does. The window fills the card (KSTY-33), so the 186-unit card holds seven lines at the 14 + 4 pitch, at either size.
 do
 	for _, size in ipairs({ 1, 16 / 19 }) do
 		local env, K, ns = C.New({ width = 2383, height = 1540, uiScale = 768 / 1080 })
@@ -125,8 +120,8 @@ do
 		local area = (el.height - g.top - g.bottom) / g.k
 		local lines = (area + spacing) / (font + spacing)
 		local em = (el.width - g.left - g.right) / g.k / font
-		assert(math.floor(lines + 1e-6) == 6, "six lines at size " .. size .. ", got " .. lines)
-		assert(area >= 5 * (font + spacing) + font - 1e-6 and area <= 6 * (font + spacing) + 1e-6, "the sixth line is whole and a seventh has no pixel in the window at size " .. size .. ", area " .. area)
+		assert(math.floor(lines + 1e-6) == 7, "seven lines at size " .. size .. ", got " .. lines)
+		assert(area >= 6 * (font + spacing) + font - 1e-6 and area <= 7 * (font + spacing) + 1e-6, "the seventh line is whole and an eighth has no pixel in the window at size " .. size .. ", area " .. area)
 		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
@@ -169,7 +164,7 @@ do
 end
 
 -- The picture's chat is a 32 px pitch with the tab names 7.85 units under the dock's top (LEE-86): the default spacing is 4.5 and
--- the slider moves in halves, which the window keeps, so 4.5 is not rounded to 5 or 4.
+-- the slider moves in halves, which the window keeps as the least spacing, so 4.5 is not rounded to 5 or 4.
 do
 	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
 	C.Enable(env, K)
@@ -180,8 +175,17 @@ do
 		env.RunTimers()
 		return lastCall(chat, "SetSpacing")[1]
 	end
-	local four, half, five = spacingAt(4), spacingAt(4.5), spacingAt(5)
+	local function wanted(value)
+		K.Options.Write("Chat", "lineSpacing", value)
+		env.RunTimers()
+		return select(2, ns.Frames.Pitch(K.Store.Module("Chat")))
+	end
+	local four, half, five = wanted(4), wanted(4.5), wanted(5)
 	assert(four < half and half < five, "a half unit of spacing is its own step, got " .. four .. ", " .. half .. ", " .. five)
+	for _, value in ipairs({ 4, 4.5, 5 }) do
+		local want = wanted(value)
+		assert(spacingAt(value) >= want - 1e-6, "the slider is the least spacing between lines: the window's whole lines take up the rest, " .. value)
+	end
 	local _, _, _, _, y = env.ChatFrame1Tab.Text:GetPoint(1)
 	assert(near(y, -7.85), "the tab names sit 7.85 units under the dock's top, got " .. tostring(y))
 end
@@ -229,9 +233,9 @@ do
 	assert(near(left, g.left), "the inset in root units matches the geometry")
 end
 
--- The geometry follows the picture: a 34-unit tab row, the first line just under the tabs, and a 45.45-unit foot so
--- six lines at the 14 + 4 pitch fill the 186-unit card with no empty glass above them. No room for the edit box
--- unless the player wants it always shown. The picture has no divider under the tabs.
+-- The window fills the card's inner area (KSTY-33): the card's padding on the left, right and bottom, under a 34-unit tab row.
+-- The edit box takes the bottom of the window while it is open, unless the player wants it always shown: then it keeps its own
+-- strip under the messages, inside the same padding. The picture has no divider under the tabs.
 do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
@@ -242,12 +246,7 @@ do
 	assert(near(g.top, snap(34)), "the window starts at the tab row, where the dock rides it, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
-	assert(near(g.left, snap(15.97)), "messages start 15.97 units inside the card, where the picture's first ink falls, got " .. g.left)
-	assert(near(g.right, snap(12.57)), "the right inset is 12.57 units, the room the picture leaves its longest line, got " .. g.right)
-	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
-	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
-	assert(g.bottom >= snap(math.max(45.45, clear)) and g.bottom < snap(math.max(45.45, clear)) + (14 + 4) * g.k, "45.45 units of card below the last line, or what keeps the edit box on screen, plus at most the part of a line pitch that does not make another line, got " .. g.bottom)
-	assert(near(g.right, snap(12.57)), "the right inset stays when the copy glyph is on")
+	assert(near(g.left, snap(pad)) and near(g.right, snap(pad)) and near(g.bottom, snap(pad)), "the window is inset by the card's padding on the left, right and bottom, got " .. g.left .. ", " .. g.right .. ", " .. g.bottom)
 	K.Options.Write("Chat", "copyButton", false)
 	env.RunTimers()
 	assert(near(ns.Panel.Geometry(chat).right, g.right), "the message column does not move when the copy glyph is off")
@@ -258,11 +257,11 @@ do
 	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
-	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
-	assert(near(g.left, snap(15.97)) and near(g.right, snap(12.57)), "the side insets stay 15.97 and 12.57 units")
+	assert(g.bottom > snap(pad) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
+	assert(near(g.left, snap(pad)) and near(g.right, snap(pad)), "the side insets stay the padding")
 end
 
--- The picture's last line fits on one line at the default size, on the owner's screen, because the insets are equal.
+-- The longest line of the picture still fits the narrower window on the owner's screen.
 do
 	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
 	C.Enable(env, K)
@@ -274,10 +273,7 @@ do
 	local Scene = dofile("Tools/render/scene.lua")
 	local line = "[Worn Leather Vest] has been added to your appearance collection."
 	local width = Scene.TextWidth(line, size, path)
-	assert(math.abs(g.right * 2234 / 1080 - 26) < 0.6, "the right inset is 26 px on the owner's screen")
 	assert(column >= width, "the appearance line fits on one line, " .. tostring(column) .. " for " .. tostring(width))
-	local px = g.left * 2234 / 1080
-	assert(math.abs(px - 33) < 0.6, "33 px inside the card, got " .. px)
 	local point, _, _, x = env.ChatFrame1Tab.Text:GetPoint(1)
 	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
 	assert(point == "LEFT" and math.abs(x + bgx) < 0.5, "the tab name starts on the lines' column, got " .. tostring(point) .. " " .. tostring(x))
@@ -301,34 +297,35 @@ do
 	assert(ns.Frames, "frames stay exposed")
 end
 
--- While the edit box shows only when typing it hangs under the panel, so where the chat window's units are larger
--- than the root's (Blizzard UI scale 1) the bottom inset grows until the box's tile clears the screen's edge, and
--- grows again when Layout moves the panel down.
+-- While the edit box shows only when typing, it opens over the window's last lines instead of hanging under the card, so it
+-- stays inside the card and on screen wherever the chat window's units are larger than the root's (Blizzard UI scale 1)
+-- and wherever Layout puts the card. The tile the box draws sits on the window's foot, flush with the padding.
 do
+	local Geometry = dofile("Tools/regression/geometry.lua")
 	local env, K, ns = C.New({ width = 1920, height = 1080, uiScale = 1 })
 	C.Enable(env, K)
 	local chat = env.ChatFrame1
-	local snap = K.Scale.Snap
 	local g = ns.Panel.Geometry(chat)
 	assert(g.k > 1.3, "the chat window's units are larger than the root's: " .. g.k)
-	local tile = math.max(0, (32 * g.k - 22) / 2)
-	local reach = (2 + 32) * g.k - tile
-	assert(near(select(2, K.Layout.Rect("chat.main")), K.Tokens.Size("screenMargin")), "the panel sits on the screen margin")
-	K.Layout.Set("chat.main", "y", 16)
+	local root = K.Scale.Root()
+	local function rect(frame)
+		return Geometry.ScaledRect(frame, env.UIParent, root)
+	end
+	for _, y in ipairs({ 16, 0, 200 }) do
+		K.Layout.Set("chat.main", "y", y)
+		env.RunTimers()
+		local card, box = rect(ns.Panel.Holder()), rect(chat.editBox)
+		local tile = math.max(0, (32 * g.k - 22) / 2)
+		assert(box.bottom + tile >= card.bottom + g.bottom - 1e-6 and box.bottom + tile <= card.bottom + g.bottom + K.Scale.Pixel(1), "the box's tile rests on the window's foot with the card at " .. y .. ", got " .. (box.bottom + tile - card.bottom))
+		assert(box.bottom >= 0 and box.top <= card.top, "the open box stays on screen and inside the card with the card at " .. y)
+		local win = rect(chat)
+		local inset = ns.Panel.EditInsets(chat)
+		assert(near(box.left + inset.left * g.k, win.left) and near(box.right - inset.right * g.k, win.right), "the box's tile shares the window's side edges, with the card at " .. y)
+	end
+	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()
-	g = ns.Panel.Geometry(chat)
-	local bottom = select(2, K.Layout.Rect("chat.main"))
-	assert(near(bottom, 16), "moved 16 above the screen's edge, got " .. tostring(bottom))
-	assert(g.bottom > snap(16), "the inset grows past 16")
-	assert(held(g.bottom, snap(math.max(45.45, reach - bottom + K.Tokens.Size("gapTiny")))), "the box's tile ends a tiny gap above the screen's edge, or the picture's 45.45-unit foot, got " .. g.bottom)
-	K.Layout.Set("chat.main", "y", 0)
-	env.RunTimers()
-	local moved = ns.Panel.Geometry(chat)
-	assert(held(moved.bottom, snap(math.max(45.45, reach + K.Tokens.Size("gapTiny")))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
-	assert(near(select(5, chat:GetPoint(2)) * g.k, moved.bottom), "the window's anchor follows")
-	K.Layout.Set("chat.main", "y", 200)
-	env.RunTimers()
-	assert(held(ns.Panel.Geometry(chat).bottom, snap(45.45)), "high on the screen the inset is the picture's 45.45-unit foot, got " .. ns.Panel.Geometry(chat).bottom)
+	local box, win = rect(chat.editBox), rect(chat)
+	assert(box.top <= win.bottom + 1e-6, "an always-shown box sits under the window, in the card's padding strip")
 end
 
 -- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that
@@ -609,7 +606,7 @@ do
 	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
 	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 6.5)), "6.5 units between lines preserve the reference pitch with Folio at 12, on whole pixels")
 	K.Options.Write("Chat", "lineSpacing", 0)
-	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")
+	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == lastCall(env.ChatFrame1, "SetSpacing")[1], "line spacing reaches every window: the docked one shares the window's whole lines, so the same fitted spacing")
 	K.Options.Write("Chat", "fade", false)
 	assert(lastCall(env.ChatFrame1, "SetFading")[1] == false, "fading off")
 	K.Options.Write("Chat", "fade", true)
@@ -715,10 +712,9 @@ do
 	assert(select(2, env.ChatFrame1:GetPoint(1)) == ns.Panel.Holder(), "placed after combat")
 end
 
--- LEE-128: the card holds as many whole lines as its size in units gives, on every screen and in both type sets.
--- Staging counted lines from the pixel-snapped font and spacing, so at 1280x720 the 186-unit card held five lines,
--- hid the oldest messages and left the sixth line's room empty under the last one. The spacing now gives up whole
--- pixels, never below one, so the sixth line fits.
+-- LEE-128 and KSTY-33: the card holds as many whole lines as its inner area gives, on every screen and in both type sets.
+-- The window now fills the card (staging left 45 to 58 units of it empty under the last line, so it held six lines at best),
+-- the lines are spaced out by whole pixels so the oldest one is never cut at the top, and the spacing never drops under a pixel.
 do
 	local screens = {
 		{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
@@ -737,13 +733,14 @@ do
 			local _, font = chat:GetFont()
 			local gap = chat:GetSpacing()
 			local g = ns.Panel.Geometry(chat)
-			local area = (K.Layout.Get("chat.main").height - g.top - g.bottom) / g.k
+			local area = (ns.Panel.Holder():GetHeight() - g.top - g.bottom) / g.k
 			local pitch = font + gap
 			local lines = math.floor((area + gap) / pitch + 1e-6)
 			local pixel = K.Scale.Pixel(1) / g.k
-			assert(lines == 6, label .. ": the 186-unit card shows six whole lines, got " .. lines .. " at " .. font .. " + " .. gap)
-			assert(area >= 5 * pitch + font - 0.5 * pixel and area <= 6 * pitch + 0.5 * pixel, label .. ": the window ends between two lines, area " .. area)
-			assert(gap >= pixel - 1e-6 and gap <= K.Widgets.Snap(chat, ns.LineSpacing(K.Store.Module("Chat")) * K.Scale.UserScale()) + 1e-6, label .. ": the spacing keeps at least a pixel and never grows, got " .. gap)
+			local want = K.Widgets.Snap(chat, ns.LineSpacing(K.Store.Module("Chat")) * K.Scale.UserScale())
+			assert(lines >= 7, label .. ": the card shows seven whole lines, got " .. lines .. " at " .. font .. " + " .. gap)
+			assert(area >= (lines - 1) * pitch + font - 0.5 * pixel and area <= lines * pitch + 0.5 * pixel, label .. ": the window ends between two lines, area " .. area)
+			assert(gap >= pixel - 1e-6 and gap >= want - pixel - 1e-6, label .. ": the spacing keeps the player's spacing, give or take a pixel, got " .. gap .. " for " .. want)
 			ns.Frames.Refresh(K.Store.Module("Chat"))
 			assert(chat:GetSpacing() == gap, label .. ": restyling the window keeps the fitted spacing, got " .. chat:GetSpacing() .. " for " .. gap)
 			assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))

@@ -112,8 +112,20 @@ local function newChatFrame(env, id, parent)
 	frame.editBox = edit
 	frame.ScrollBar = blizzard(env, env.CreateFrame("Frame", nil, frame))
 	frame.ScrollBar:SetSize(8, 100)
+	-- FloatingChatFrame.xml: the edit box's left edge sits 5 units left of the window and 2 below it; its right edge, 8 right of the scroll bar's.
+	edit:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -5, -2)
+	edit:SetPoint("RIGHT", frame.ScrollBar, "RIGHT", 8, 0)
 	frame.ScrollToBottomButton = blizzard(env, env.CreateFrame("Button", nil, frame))
 	frame.ScrollToBottomButton.Flash = blizzard(env, frame.ScrollToBottomButton:CreateTexture(nil, "OVERLAY"))
+	-- FloatingChatFrame_OnLoad (FloatingChatFrame.lua:111-112): the scroll bar hangs on the window's right edge, outside it, down to the
+	-- scroll-to-bottom button (17 by 15, FloatingChatFrame.xml:523-526, at the window's bottom right), and ChatFrameMixin:OnLoad sets its
+	-- alpha to 0 (ChatFrameOverrides.lua:45) until the cursor test fades it in; the button is alpha 0 in the XML too until the window is scrolled up.
+	frame.ScrollToBottomButton:SetSize(17, 15)
+	frame.ScrollToBottomButton:SetAlpha(0)
+	frame.ScrollToBottomButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+	frame.ScrollBar:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, 0)
+	frame.ScrollBar:SetPoint("BOTTOMLEFT", frame.ScrollToBottomButton, "TOPLEFT", 0, 2)
+	frame.ScrollBar:SetAlpha(0)
 	frame.buttonFrame = blizzard(env, env.CreateFrame("Frame", name .. "ButtonFrame", frame))
 	local tab = blizzard(env, env.CreateFrame("Button", name .. "Tab", env.UIParent))
 	tab:SetID(id)
@@ -430,6 +442,51 @@ function C.Install(env, opts)
 	function env.EditModeAnchor()
 		primary:ClearAllPoints()
 		primary:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 32, 95)
+	end
+	-- EditModeUpdateSystem(env) runs EditModeSystemMixin:UpdateSystem on ChatFrame1 as 70862 has it (EditModeSystemTemplates.lua
+	-- 350-395, 2242-2275): ApplySystemAnchor clears the points and sets the saved anchor, then the width and height settings
+	-- call SetSize with the layout's saved 430 by 120.
+	function env.EditModeUpdateSystem()
+		env.EditModeAnchor()
+		primary:SetSize(430, 120)
+	end
+	-- FCF_RestorePositionAndDimensions as FloatingChatFrame.lua:1380-1401 has it. ChatFrame1 is the default frame, which Edit Mode
+	-- controls, so it returns before touching the window; every other window takes its saved size and position.
+	env._chatSaved = {}
+	function env.GetChatWindowSavedDimensions(id)
+		local saved = env._chatSaved[id]
+		if saved then
+			return saved.width, saved.height
+		end
+	end
+	function env.GetChatWindowSavedPosition(id)
+		local saved = env._chatSaved[id]
+		if saved then
+			return saved.point, saved.x, saved.y
+		end
+	end
+	function env.GetScreenWidth()
+		return env.UIParent:GetWidth()
+	end
+	function env.GetScreenHeight()
+		return env.UIParent:GetHeight()
+	end
+	function env.FCF_RestorePositionAndDimensions(chatFrame)
+		if chatFrame == env.DEFAULT_CHAT_FRAME then
+			return
+		end
+		local width, height = env.GetChatWindowSavedDimensions(chatFrame:GetID())
+		if width and height then
+			chatFrame:SetSize(width, height)
+		end
+		local point, xOffset, yOffset = env.GetChatWindowSavedPosition(chatFrame:GetID())
+		if point then
+			chatFrame:ClearAllPoints()
+			chatFrame:SetPoint(point, xOffset * env.GetScreenWidth(), yOffset * env.GetScreenHeight())
+			chatFrame:SetUserPlaced(true)
+		else
+			chatFrame:SetUserPlaced(false)
+		end
 	end
 	function env.IsCombatLog(frame)
 		return frame == env.ChatFrame2 and env._combatLog == true
