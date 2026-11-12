@@ -10,10 +10,7 @@ local EXCEPTIONS = {
 	["player.level/player.portrait"] = true,
 	["target.level/target.portrait"] = true,
 }
-M.ORNAMENT_PAIRS = {
-	["player.body/player.cast"] = "the block end: the end or cap that closes the player's health and power block may run into the gap above the player's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
-	["target.body/target.cast"] = "the block end: the end or cap that closes the target's health and power block may run into the gap above the target's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
-}
+M.ORNAMENT_PAIRS = {}
 local ORNAMENT_FILE = "Media/Textures/ForgedOrnaments/"
 local INK = (function()
 	local ns = { Widgets = {} }

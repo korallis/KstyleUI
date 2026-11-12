@@ -1,4 +1,4 @@
--- test-ornament-secret-unitframes.lua: the player and target blocks' health bars hold secret values, so the game answers their geometry as secrets; their ends still draw, placed from the blocks' recorded layout, exactly where plain geometry would put them, at 1920x1080 and 5120x1440.
+-- test-ornament-secret-unitframes.lua: the player and target blocks' health bars hold secret values, so the game answers their geometry as secrets; they draw no ornament around their bars (Lee, 2026-11-12) and raise no error, the same as with plain geometry, at 1920x1080 and 5120x1440.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
 local function pieces(handle)
@@ -31,8 +31,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		assert(K.Widgets.IsSecret(view.health:GetLeft()) and K.Widgets.IsSecret(view.health:GetWidth()), label .. ": the " .. kind .. " health bar answers its geometry as secrets")
 		view.health.ornament:Restyle()
 		secret[kind] = pieces(view.health.ornament)
-		assert(not (secret[kind]:find("Rail", 1, true) or secret[kind]:find("Forge", 1, true)), label .. ": the " .. kind .. " block draws no rails: " .. secret[kind])
-		assert(secret[kind]:find("End", 1, true), label .. ": the " .. kind .. " block draws its end: " .. secret[kind])
+		assert(secret[kind] == "", label .. ": the " .. kind .. " block draws no ornament around its bars: " .. secret[kind])
 	end
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 	env.SecretAnchoring(false)
@@ -45,4 +44,4 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	end
 	env.SecretAnchoring(true)
 end
-print("ok the player and target blocks draw their ends from their recorded layout on " .. checked .. " blocks, identical to plain geometry")
+print("ok the player and target blocks draw no bar ornament with secret geometry on " .. checked .. " blocks, identical to plain geometry")

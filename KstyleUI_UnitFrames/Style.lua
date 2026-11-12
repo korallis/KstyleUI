@@ -144,7 +144,7 @@ function Style.New(parent, kind)
 	view.health.ornament.yoke = view.portraitOrnament
 	view.health.ornament.card = view.chrome
 	view.health.ornament.forged = true
-	view.health.ornament.bare = kind == "player" or kind == "target"
+	view.health.ornament.bare = true
 	view.chrome.ornament = Widgets.Ornament(panel, "corners", nil, true)
 	view.chrome.ornament.block, view.chrome.ornament.chrome = view.health.ornament, view.chrome
 	view.chrome.ornament.bars = { view.health, view.power }

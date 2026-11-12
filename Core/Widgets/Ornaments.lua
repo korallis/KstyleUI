@@ -780,7 +780,7 @@ function Handle:Frame(full)
 	end
 	weights[1], weights[2] = nil, nil
 	local reached1, reached2 = false, false
-	for side = 1, self.bare and 0 or 2 do
+	for side = 1, 2 do
 		local lane = lanes[side]
 		local rail, weight, edge = lane[1], lane[2], lane[3]
 		local railed = ASSETS[rail] ~= nil
@@ -1307,7 +1307,7 @@ local function Draw(self)
 	end
 	self.used = 0
 	local level = W.Setting("ornaments")
-	if level == "Off" or W.Setting("cardMaterial") == "Glass" or self.enabled == false or self.joined then
+	if level == "Off" or W.Setting("cardMaterial") == "Glass" or self.enabled == false or self.joined or self.bare then
 		for _, texture in ipairs(self.textures) do texture:Hide() end
 		return
 	end

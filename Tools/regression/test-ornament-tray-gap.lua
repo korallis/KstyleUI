@@ -1,4 +1,4 @@
--- test-ornament-tray-gap.lua: with unit frames and action bars in one environment, the player block's Full end pieces keep clear of the tray, hooked pieces by half the block.
+-- test-ornament-tray-gap.lua: with unit frames and action bars in one environment at Full, the tray draws and the player block beside it draws no end piece or rail, as the unit frames carry no bar ornament (Lee, 2026-11-12); the tray's clearance from other bars is test-ornament-tray-databars.lua's.
 rawset(_G, "RENDER_SCREEN", { width = 3456, height = 2234, uiScale = 768 / 1080 })
 local Common = dofile("Tools/render/scenes/_common.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -56,41 +56,7 @@ for row in pairs(W.OrnamentRows) do
 	end
 end
 assert(#trays > 0, "bar 1 and bar 2 place their tray")
-local function nearest()
-	block:Restyle()
-	local worst
-	for i = 1, block.used do
-		local name = file(block.textures[i])
-		if name:find("^End") or name:find("^Arrow") or name:find("^Wing") then
-			local a = rect(block.textures[i])
-			for _, b in ipairs(trays) do
-				local d = math.max(a.l - b.r, b.l - a.r, a.b - b.t, b.b - a.t, 0)
-				if not worst or d < worst.gap then worst = { gap = d, name = name } end
-			end
-		end
-	end
-	assert(worst, "the player block places its end pieces")
-	worst.hooked = not worst.name:find("Pointed", 1, true) and not worst.name:find("^Arrow") and not worst.name:find("^Wing")
-	return worst
-end
-local half = math.floor((env.Look(view.health:GetTop()) - env.Look(view.power:GetBottom())) * W.ScaleFactor(view.health) / pixel / 2)
-local need = math.max(4 / pixel, 3)
-local function fails(w)
-	return w.gap < need or w.hooked and w.gap < half
-end
-local held = nearest()
-assert(not fails(held), string.format("%s sits %.1f px from the tray; it needs %.1f, and %d when hooked", held.name, held.gap, need, half))
-local rows = {}
-for row in pairs(W.OrnamentRows) do
-	rows[row] = true
-end
-for row in pairs(rows) do
-	W.OrnamentRows[row] = nil
-end
-local blind = nearest()
-for row in pairs(rows) do
-	W.OrnamentRows[row] = true
-end
 block:Restyle()
-assert(fails(blind), string.format("without the tray in the registry the end piece is %s at %.1f px, so this layout cannot show the avoidance", blind.name, blind.gap))
-print(string.format("ok player end %s %.1f physical px from the tray (needs %.1f, hooked %d); without the registry %s at %.1f px fails", held.name, held.gap, need, half, blind.name, blind.gap))
+assert(block.used == 0, "the player block beside the tray draws no ornament, not " .. block.used .. " pieces")
+assert(#env._errors == 0, tostring(env._errors[1]))
+print("ok the tray draws " .. #trays .. " finials beside a player block that draws no ornament")

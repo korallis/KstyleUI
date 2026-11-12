@@ -1,4 +1,4 @@
--- test-ornament-crest-floor.lua: a forged rail's crest on the unit frames is Crest20 or larger at Full on nine screens, at Interface size 0.6 on the two smallest screens and 1.5 on the smallest, and in the Tank and Healer presets at 1280x720, and drops rather than taking a smaller tier; the player and target blocks carry no rail, so they draw no crest at all (Lee, 2026-11-13).
+-- test-ornament-crest-floor.lua: a forged rail's crest on the unit frames is Crest20 or larger at Full on nine screens, at Interface size 0.6 on the two smallest screens and 1.5 on the smallest, and in the Tank and Healer presets at 1280x720, and drops rather than taking a smaller tier; the player and target blocks carry no rail, so they draw no crest at all (Lee, 2026-11-12).
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },

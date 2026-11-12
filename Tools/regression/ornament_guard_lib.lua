@@ -47,7 +47,7 @@ function M.Check(items, handles, semantics, label, screen, assets, pixels)
 		assert(handle, label .. ": missing ornament handle " .. name)
 		if handle.expected then
 			assert(handle.used == #handle.expected, label .. ": " .. name .. " expected " .. #handle.expected .. " pieces, got " .. handle.used)
-		elseif not handle.joined and not handle.bare then
+		elseif not handle.joined then
 			assert(handle.used > 0, label .. ": missing Full ornament " .. name)
 		end
 		for i = 1, handle.used do
@@ -55,9 +55,6 @@ function M.Check(items, handles, semantics, label, screen, assets, pixels)
 			local item = items[index]
 			local rect = item.rect
 			assert(item.file and item.file:find("Media/Textures/ForgedOrnaments/", 1, true), label .. ": wrong ornament texture " .. name)
-			for _, rail in ipairs(handle.bare and { "^Rail", "^Forge", "^Tip", "^Crest" } or {}) do
-				assert(not assetName(item):find(rail), label .. ": " .. name .. " draws " .. assetName(item) .. " on a block that carries no rails")
-			end
 			assert(not item.missing and item.object._shown ~= false and (item.alpha or 1) > 0, label .. ": hidden or missing ornament " .. name)
 			if handle.expected then
 				assert(assetName(item) == handle.expected[i], label .. ": " .. name .. " #" .. i .. " expected " .. tostring(handle.expected[i]) .. ", got " .. tostring(assetName(item)))
@@ -173,7 +170,8 @@ function M.Run(layout, class, form, classification)
 			assert(K.Widgets.Setting("ornaments") == level and K.Widgets.Setting("cardMaterial") == "ForgedBrackets", label .. ": forged setting active")
 			local solver = Scene.RectSolver(env)
 			for name, handle in pairs(handles) do
-				if handle.joined then handles[name] = nil end
+				if handle.bare then assert(handle.used == 0, label .. ": " .. name .. " draws around the unit frame's bars, which carry no ornament (Lee, 2026-11-12)") end
+				if handle.joined or handle.bare then handles[name] = nil end
 			end
 			for name, handle in pairs(handles) do
 				local _, _, w, h = Scene.RectIn(solver, handle.target)
