@@ -756,7 +756,6 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	end
 	preset = layouts[preset] and preset or "DPS"
 	enabled = enabled or Layouts.Enabled(preset)
-	local positions = Layouts.Get(preset)
 	local flags = {}
 	for i, element in ipairs(ELEMENTS) do
 		flags[i] = enabled[element.key] ~= false and "1" or "0"
@@ -766,6 +765,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale
 	end
+	local positions = Layouts.Get(preset)
 	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
 		return high
