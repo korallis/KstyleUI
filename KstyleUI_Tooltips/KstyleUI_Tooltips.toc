@@ -1,9 +1,12 @@
 ## Interface: 16001
 ## AllowLoadGameType: camelot
 ## Title: KstyleUI Tooltips
-## Notes: Glass tooltips.
+## Notes: Tooltips in the KstyleUI card material.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 

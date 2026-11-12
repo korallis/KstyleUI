@@ -4,6 +4,10 @@
 ## Notes: Square minimap with zone, clock and button drawer.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
+## OptionalDeps: LibDBIcon-1.0
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 

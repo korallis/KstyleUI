@@ -24,6 +24,7 @@ GOOD = [
     "KstyleUI/",
     "KstyleUI/KstyleUI.toc",
     "KstyleUI/CHANGELOG.md",
+    "KstyleUI/LICENSE.md",
     "KstyleUI/Core/",
     "KstyleUI/Core/Core.xml",
     "KstyleUI/Core/Init.lua",
@@ -114,6 +115,12 @@ class CheckPackageTest(unittest.TestCase):
     def test_top_level_file_fails(self):
         self.make_zip(GOOD + ["README.md"])
         self.assertFails(self.run_check(), "README.md")
+
+    def test_missing_changelog_or_licence_fails(self):
+        for name in ("CHANGELOG.md", "LICENSE.md"):
+            with self.subTest(name=name):
+                self.make_zip([e for e in GOOD if e != f"KstyleUI/{name}"])
+                self.assertFails(self.run_check(), f"missing: KstyleUI/{name}")
 
     def test_foreign_top_level_folder_fails(self):
         self.make_zip(GOOD + ["Other/x.lua"])

@@ -2,6 +2,9 @@
 # move-folders has one line per module folder. A new module adds "KstyleUI/KstyleUI_<Module>: KstyleUI_<Module>".
 package-as: KstyleUI
 enable-nolib-creation: no
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
 
 ignore:
   - Tools
