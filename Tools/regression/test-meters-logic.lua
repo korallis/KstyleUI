@@ -25,15 +25,47 @@ assert(Logic.Percent(5, S(100)) == nil, "a secret total gives no percentage")
 assert(Logic.FormatPercent(42) == "42%", "a percentage reads 42%")
 assert(Logic.FormatPercent(nil) == "", "no percentage reads as empty text")
 
--- Abbreviate: the game's AbbreviateNumbers for plain and secret numbers alike.
-assert(Logic.Abbreviate(2840) == "~2840", "a plain number goes through AbbreviateNumbers")
-assert(env.issecretvalue(Logic.Abbreviate(S(2840))), "a secret goes through AbbreviateNumbers whole")
+-- Abbreviate: a whole number under 1000, one decimal to 10K, whole above, and K, M, B, for plain floats and secrets alike.
+-- Out of combat the game's AbbreviateNumbers answers a bare float with every digit ("7.7643575668335"), so a plain
+-- number never goes through it; a secret does, with KstyleUI's breakpoints.
+local SHORT = {
+	{ 7.7643575668335, "7" }, { 38.4, "38" }, { 412.7, "412" }, { 999.9, "999" }, { 1000, "1K" }, { 1240, "1.2K" },
+	{ 2840, "2.8K" }, { 12400, "12K" }, { 1240000, "1.2M" }, { 12400000, "12M" }, { 1240000000, "1.2B" },
+}
+for _, case in ipairs(SHORT) do
+	assert(Logic.Abbreviate(case[1]) == case[2], "plain " .. case[1] .. " reads " .. case[2] .. ", got " .. tostring(Logic.Abbreviate(case[1])))
+	local secret = Logic.Abbreviate(S(case[1]))
+	assert(env.issecretvalue(secret), "a secret " .. case[1] .. " goes through the game whole")
+	assert(env.Reveal(secret) == case[2], "a secret " .. case[1] .. " reads " .. case[2] .. ", got " .. tostring(env.Reveal(secret)))
+end
+assert(Logic.Abbreviate(0) == "0" and Logic.Abbreviate(0.7396) == "0", "under one reads 0")
 assert(Logic.Abbreviate(nil) == "", "nothing reads as empty text")
-local abbreviate = env.AbbreviateNumbers
-env.AbbreviateNumbers = nil
-assert(Logic.Abbreviate(2840.4) == "2840", "without AbbreviateNumbers a plain number is rounded")
-assert(Logic.Abbreviate(S(2840)) == "", "without AbbreviateNumbers a secret shows nothing")
-env.AbbreviateNumbers = abbreviate
+assert(Logic.Abbreviate(0 / 0) == "", "NaN reads as empty text")
+assert(Logic.FormatRate(S(38.4), "dps") ~= "" and env.Reveal(Logic.FormatRate(S(38.4), "dps")) == "38 dps", "a secret rate is whole and keeps its unit")
+assert(env.Reveal(Logic.FormatRate(S(12400), "dps")) == "12K dps", "a large secret rate is abbreviated")
+assert(Logic.FormatRate(12400, "dps") == "12K dps" and Logic.FormatRate(38.4, "dps") == "38.4 dps", "a plain rate keeps one decimal under 1000")
+
+-- A client that refuses the breakpoints keeps the game's own abbreviation for a secret, and a client without
+-- AbbreviateLargeNumbers shows nothing for it. A plain number never needs the game.
+do
+	local refusing, _, refusingNs = M.New({
+		game = function(e)
+			local game = e.AbbreviateNumbers
+			e.AbbreviateNumbers = function(value, options)
+				if options then
+					error("unknown option")
+				end
+				return game(value)
+			end
+		end,
+	})
+	local RL = refusingNs.Logic
+	assert(refusing.Reveal(RL.Abbreviate(refusing.Secret(2840))) == "2.84K", "a refusing client falls back to AbbreviateLargeNumbers")
+	assert(RL.Abbreviate(2840) == "2.8K", "and a plain number is still ours")
+	refusing.AbbreviateLargeNumbers = nil
+	assert(RL.Abbreviate(refusing.Secret(2840)) == "", "without AbbreviateLargeNumbers a secret shows nothing")
+	assert(#refusing._errors == 0, "no Lua error: " .. tostring(refusing._errors[1]))
+end
 
 -- SwingProgress(start, duration, now) -> fraction, remaining, done.
 local f, left, done = Logic.SwingProgress(10, 2, 11)

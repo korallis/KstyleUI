@@ -182,11 +182,34 @@ function M.Game(env, opts)
 	env.canaccesstable = function(t)
 		return not env._locked[t]
 	end
-	env.AbbreviateNumbers = function(n)
-		if env.issecretvalue(n) then
-			return env.Secret("~" .. tostring(env.Reveal(n)))
+	-- AbbreviateNumbers(value, options) as the game does it (LocalizationSharedDocumentation.lua): the first
+	-- breakpoint, largest first, that the value reaches gives floor(value / significandDivisor) / fractionDivisor and
+	-- its abbreviation; with none, the value is written out whole. Without options the game's own list reads
+	-- thousands and millions only, so a number under 1000 keeps every decimal. A secret goes in and comes out secret.
+	local defaultPoints = {
+		{ breakpoint = 1000000, abbreviation = "M", significandDivisor = 10000, fractionDivisor = 100 },
+		{ breakpoint = 1000, abbreviation = "K", significandDivisor = 10, fractionDivisor = 100 },
+	}
+	local function abbreviate(value, options)
+		local points = options and options.breakpointData or defaultPoints
+		for _, point in ipairs(points) do
+			if value >= point.breakpoint then
+				return (math.floor(value / point.significandDivisor) / point.fractionDivisor) .. point.abbreviation
+			end
 		end
-		return "~" .. tostring(n)
+		return tostring(value)
+	end
+	env.AbbreviateNumbers = function(value, options)
+		if env.issecretvalue(value) then
+			return env.Secret(abbreviate(env.Reveal(value), options))
+		end
+		return abbreviate(value, options)
+	end
+	env.AbbreviateLargeNumbers = function(value)
+		if env.issecretvalue(value) then
+			return env.Secret(abbreviate(env.Reveal(value)))
+		end
+		return abbreviate(value)
 	end
 	env.C_Spell = env.C_Spell or {}
 	env.C_Spell.GetSpellName = function(id)

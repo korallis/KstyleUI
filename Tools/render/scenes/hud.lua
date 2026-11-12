@@ -1304,20 +1304,6 @@ function modules.meters(opts)
 				end
 				return Hud.Class(opts)
 			end
-			local function abbreviate(n)
-				if type(n) ~= "number" then
-					return tostring(n)
-				elseif n >= 1e3 then
-					return string.format("%.1fK", n / 1e3)
-				end
-				return tostring(math.floor(n + 0.5))
-			end
-			env.AbbreviateNumbers = function(n)
-				if env.issecretvalue(n) then
-					return env.Secret(abbreviate(env.Reveal(n)))
-				end
-				return abbreviate(n)
-			end
 			hide = function(value)
 				return opts.meterSecret and env.Secret(value) or value
 			end

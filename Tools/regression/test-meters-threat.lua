@@ -38,7 +38,7 @@ assert(Text(list.rows[3].name) == "Sylaen", "the healer is last")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 100, "bars run from 0 to 100% of aggro")
 assert(M.Last(list.rows[1].bar, "SetValue")[1] == 100, "the tank's bar is full")
-assert(Text(list.rows[1].value) == "~10000", "threat reads in threat points: " .. tostring(Text(list.rows[1].value)))
+assert(Text(list.rows[1].value) == "10K", "threat reads in threat points: " .. tostring(Text(list.rows[1].value)))
 assert(Text(list.rows[1].percent) == "100%", "the tank holds 100%")
 assert(list.warning == 0, "60% does not warn")
 
