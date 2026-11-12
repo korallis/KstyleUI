@@ -126,7 +126,8 @@ rawset(_G, "RENDER_SCREEN", nil)
 assert(nested.SCREEN.width == 2383 and nested.SCREEN.height == 1540 and nested.SCREEN.size == nil, "a scene loaded during an override does not retain it")
 -- The chat lines stand the picture's 32 physical pixels apart (LEE-86): a line of the game's ScrollingMessageFrame is as tall
 -- as its font (ScrollingMessageFrame.lua 730-735) and stands on the one below plus GetSpacing (595-602), so the scene gives its
--- lines one em, not 1.2, and the default 4.5-unit spacing makes the picture's pitch on the owner's screen.
+-- lines one em, not 1.2, and the default 4.5-unit spacing makes the picture's pitch on the owner's screen. The chat window fills its card (KSTY-33), so the
+-- spacing is the least the lines stand apart and the room left over spreads evenly between them.
 do
 	local ppu = physical.height / scene.screen.height
 	local rows = {}
@@ -137,9 +138,12 @@ do
 	end
 	table.sort(rows, function(a, b) return a.rect[2] < b.rect[2] end)
 	assert(#rows >= 6, "the chat draws at least six lines, got " .. #rows)
+	local first
 	for i = 2, #rows do
 		local pitch = (rows[i].rect[2] - rows[i - 1].rect[2]) * ppu
-		assert(math.abs(pitch - 32) < 1, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32")
+		first = first or pitch
+		assert(pitch >= 32 - 1 and pitch <= 32 * 1.12, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32, spread by at most the room the card's whole lines leave (KSTY-33)")
+		assert(math.abs(pitch - first) < 1, "the chat lines are evenly spaced, got " .. pitch .. " and " .. first)
 	end
 end
 print("ok test-render-scenes-reference")
