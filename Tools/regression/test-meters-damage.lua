@@ -1,4 +1,4 @@
--- test-meters-damage.lua: the damage meter mirrors C_DamageMeter in KstyleUI's window, hides Blizzard's meter only while it shows, and restyles Blizzard's window when the data cannot be read.
+-- test-meters-damage.lua: the damage meter mirrors C_DamageMeter in KstyleUI's window, hides Blizzard's meter only while it shows, and restyles Blizzard's window only without C_DamageMeter or by choice.
 local M = dofile("Tools/regression/meters_env.lua")
 local CoreEnv = M.CoreEnv
 
@@ -176,11 +176,10 @@ M.Write(env, K, "damage.shown", true)
 assert(K.Safe.IsHidden(blizzard), "showing the window hides Blizzard's meter again")
 assert(K.Layout.Live("meters.damage"), "and its element comes back")
 
--- The style setting defaults to auto: KstyleUI's window where the client lets addons read the data in combat,
--- Blizzard's window restyled where it does not (C_Secrets.HasSecretRestrictions), decided once at the start.
--- No mode flips mid-session and nothing is printed: a player who picks the window keeps it, with a note in combat.
+-- The style setting defaults to auto: KstyleUI's window whenever C_DamageMeter exists, Blizzard's window restyled
+-- only without it. Nothing is printed: if a client hides the table in combat the window keeps its rows under "Paused".
 assert(ns.Get("damage.mode") == "auto", "the style defaults to auto")
-assert(Damage.Mode() == "window", "without secret restrictions auto is KstyleUI's window")
+assert(Damage.Mode() == "window", "auto is KstyleUI's window")
 M.Write(env, K, "damage.mode", "window")
 env.SetCombat(true)
 env.RunTimers()
@@ -208,16 +207,55 @@ assert(CoreEnv.Printed(env, "/reload"), "a restyled Blizzard window needs a relo
 assert(blizzard:GetParent() == env.UIParent, "Blizzard's meter stays on UIParent")
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
 
--- On a client with secret restrictions auto restyles Blizzard's window from the start, so the meter reads in
--- combat, and says so once in the log.
-local envR, KR, nsR = M.New({ restricted = true })
+-- On a client with secret restrictions auto is still KstyleUI's window: the documented calls return a table whose
+-- fields are secret in combat (DamageMeterCombatSource marks classFilename and isLocalPlayer NeverSecret, so the
+-- table and its array stay indexable), and every secret goes to a setter that takes it. Blizzard's meter stays
+-- hidden, nothing is restyled, and the rows keep the order the game sorted them in.
+local envR, KR, nsR = M.New({ restricted = true, game = function(e) e._group = { raid = false, size = 3 } end })
+local SR = envR.Secret
+local function Plain(e, text)
+	return e.issecretvalue(text) and e.Reveal(text) or text
+end
+envR._session = Session({
+	Source("Kragar", "WARRIOR", 2840, 28.4), Source("Tester", "HUNTER", 2160, 21.6), Source("Lunara", "MAGE", 900, 9),
+}, 2840, 5900)
 M.Enable(envR, KR)
-assert(nsR.Damage.Mode() == "skin", "secret restrictions: auto is Blizzard's window restyled")
-assert(nsR.DamageSkin.active and not nsR.Damage.holder:IsShown(), "restyled from the start, KstyleUI's window never shows")
-assert(M.Logged(envR, "secret in combat"), "the choice is logged")
-assert(not CoreEnv.Printed(envR, "Damage Meter"), "and not printed")
+assert(nsR.Damage.Mode() == "window", "secret restrictions: auto is KstyleUI's window")
+assert(not nsR.DamageSkin.active and nsR.Damage.holder:IsShown(), "nothing is restyled and the window shows")
+assert(KR.Safe.IsHidden(envR.DamageMeter), "Blizzard's meter is hidden behind it")
+assert(not M.Logged(envR, "secret in combat"), "no restyle is logged")
+local cardR = nsR.Damage.list
+envR.SetCombat(true)
+envR.FireEvent("PLAYER_REGEN_DISABLED")
+envR._session = Session({
+	Source(SR("Kragar"), "WARRIOR", SR(2840), SR(28.4)), Source(SR("Tester"), "HUNTER", SR(2160), SR(21.6)),
+	Source(SR("Lunara"), "MAGE", SR(900), SR(9)),
+}, SR(2840), SR(5900))
+envR._session.combatSources[1].isLocalPlayer = true
+envR.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 4)
+envR.RunTimers()
+assert(#envR._errors == 0, "secret fields in combat raise no error: " .. tostring(envR._errors[1]))
+assert(cardR.count == 3 and not cardR.note:IsShown(), "every source the game lists gets a row in combat")
+local names = {}
+for i = 1, 3 do
+	names[i] = Plain(envR, Text(cardR.rows[i].name))
+	assert(envR.issecretvalue(Text(cardR.rows[i].value)), "row " .. i .. ": the amount is abbreviated by the game")
+	assert(Plain(envR, M.Last(cardR.rows[i].bar, "SetValue")[1]) == ({ 2840, 2160, 900 })[i], "row " .. i .. ": the bar takes the secret amount")
+end
+assert(names[1] == "Kragar" and names[2] == "Tester" and names[3] == "Lunara", "the rows keep the order the game sorted them in")
+assert(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2] ~= nil and envR.issecretvalue(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2]), "the bar's range is the game's secret top amount")
+assert(Text(cardR.rows[1].percent) == "", "no share is worked out from secret amounts")
+envR._locked[envR._session] = true
+envR.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 5)
+envR.RunTimers()
+assert(cardR.count == 3 and Text(cardR.column) == "Paused", "a client that hides the table keeps the rows read last under Paused")
+assert(KR.Safe.IsHidden(envR.DamageMeter) and #envR._errors == 0, "and raises no error with Blizzard's meter still hidden: " .. tostring(envR._errors[1]))
+assert(M.Logged(envR, "hidden from addons"), "and the devlog says the data is hidden")
+envR._locked[envR._session] = nil
+M.Write(envR, KR, "damage.mode", "skin")
+assert(nsR.Damage.Mode() == "skin" and nsR.DamageSkin.active, "the player may still choose Blizzard's window restyled")
 M.Write(envR, KR, "damage.mode", "window")
-assert(nsR.Damage.Mode() == "window" and nsR.Damage.holder:IsShown(), "the player may still choose the window")
+assert(nsR.Damage.Mode() == "window" and nsR.Damage.holder:IsShown(), "and the window back")
 assert(#envR._errors == 0, "no Lua error: " .. tostring(envR._errors[1]))
 
 -- Without C_DamageMeter the module restyles Blizzard's window from the start.

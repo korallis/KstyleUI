@@ -68,12 +68,12 @@ do
 	assert(not ns.Damage.list.panel:IsShown(), "so that player's meter still waits for a group")
 end
 
--- Blizzard's window restyled (a restricted client, as the owner's): the game draws it only with
+-- Blizzard's window restyled (a client without C_DamageMeter, or by choice): the game draws it only with
 -- damageMeterEnabled on, which is off on a fresh account.
 do
-	local env, K, ns = M.New({ restricted = true, game = WithCVar("0") })
+	local env, K, ns = M.New({ noMeter = true, game = WithCVar("0") })
 	M.Enable(env, K)
-	assert(ns.Damage.Mode() == "skin", "restricted: Blizzard's window restyled")
+	assert(ns.Damage.Mode() == "skin", "no C_DamageMeter: Blizzard's window restyled")
 	assert(not K.Safe.IsHidden(env.DamageMeter), "alone, Blizzard's restyled window is not held hidden")
 	assert(env._cvars[CVAR] == "1", "the game's damage meter is switched on so the window draws")
 

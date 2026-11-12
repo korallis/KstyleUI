@@ -317,17 +317,15 @@ env.RunTimers()
 assert(not list.panel:IsShown(), "alone, the window hides")
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
 
--- The style is picked once: a later answer from C_Secrets changes nothing this session.
+-- C_Secrets decides nothing: a client with secret restrictions still gets KstyleUI's window.
 env._secretRestrictions = true
-assert(Damage.Mode() == "window", "auto stays KstyleUI's window after the first answer")
+assert(Damage.Mode() == "window", "auto stays KstyleUI's window under secret restrictions")
 
--- A restricted client: auto is Blizzard's window, restyled, decided at login and named in the settings.
-local envR, KR, nsR = M.New({ restricted = true })
+-- A client without C_DamageMeter: auto is Blizzard's window, restyled, named in the settings.
+local envR, KR, nsR = M.New({ noMeter = true })
 M.Enable(envR, KR)
 local blizzard = envR.DamageMeter
-assert(nsR.Damage.Mode() == "skin", "restricted: Blizzard's window restyled")
-envR._secretRestrictions = false
-assert(nsR.Damage.Mode() == "skin", "the style does not change under the player")
+assert(nsR.Damage.Mode() == "skin", "no C_DamageMeter: Blizzard's window restyled")
 local style = Row(nsR.schema, "damage.mode")
 assert(type(style.options) == "function", "the style's options name what auto picked on this client")
 local auto
@@ -346,7 +344,7 @@ for _, option in ipairs(Row(ns.schema, "damage.mode").options()) do
 		autoHere = option.label
 	end
 end
-assert(autoHere and autoHere:find("KstyleUI", 1, true), "auto names KstyleUI's window where it reads in combat: " .. tostring(autoHere))
+assert(autoHere and autoHere:find("KstyleUI", 1, true), "auto names KstyleUI's window: " .. tostring(autoHere))
 assert(Row(ns.schema, "damage.meter").showWhen(settings), "window-only settings show when auto picked the window")
 
 -- Group only holds Blizzard's restyled window too: hidden alone, back in a group, back when switched off.
