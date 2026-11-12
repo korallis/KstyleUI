@@ -73,7 +73,7 @@ end
 
 function Logic.FormatRate(value, unit)
 	if IsSecret(value) then
-		return type(AbbreviateNumbers) == "function" and AbbreviateNumbers(value) or ""
+		return type(AbbreviateNumbers) == "function" and AbbreviateNumbers(value) .. " " .. unit or ""
 	end
 	value = Plain(value)
 	if not value then

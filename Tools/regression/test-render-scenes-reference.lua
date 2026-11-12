@@ -128,7 +128,8 @@ rawset(_G, "RENDER_SCREEN", nil)
 assert(nested.SCREEN.width == 2383 and nested.SCREEN.height == 1540 and nested.SCREEN.size == nil, "a scene loaded during an override does not retain it")
 -- The chat lines stand the picture's 32 physical pixels apart (LEE-86): a line of the game's ScrollingMessageFrame is as tall
 -- as its font (ScrollingMessageFrame.lua 730-735) and stands on the one below plus GetSpacing (595-602), so the scene gives its
--- lines one em, not 1.2, and the default 4.5-unit spacing makes the picture's pitch on the owner's screen.
+-- lines one em, not 1.2, and the default 4.5-unit spacing makes the picture's pitch on the owner's screen. The chat window fills its card (KSTY-33), so the
+-- spacing is the least the lines stand apart and the room left over spreads evenly between them.
 do
 	local ppu = physical.height / scene.screen.height
 	local rows = {}
@@ -139,9 +140,28 @@ do
 	end
 	table.sort(rows, function(a, b) return a.rect[2] < b.rect[2] end)
 	assert(#rows >= 6, "the chat draws at least six lines, got " .. #rows)
+	local first
 	for i = 2, #rows do
 		local pitch = (rows[i].rect[2] - rows[i - 1].rect[2]) * ppu
-		assert(math.abs(pitch - 32) < 1, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32")
+		first = first or pitch
+		assert(pitch >= 32 - 1 and pitch <= 32 * 1.12, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32, spread by at most the room the card's whole lines leave (KSTY-33)")
+		assert(math.abs(pitch - first) < 1, "the chat lines are evenly spaced, got " .. pitch .. " and " .. first)
+	end
+end
+-- The chat card has no thin dark line down its right side and no scroll-to-bottom chevron at rest (KSTY-33): the scroll bar is Blizzard's
+-- bar at alpha 0 (ChatFrameOverrides.lua:45) until the cursor is over the window and the button is alpha 0 (FloatingChatFrame.xml:523),
+-- so the scene draws neither. The card sits at 16 / 19 screen
+-- units per root unit, KstyleUI's shipped size.
+do
+	local card = scene.elements["chat.main"]
+	local right = (card.left + card.width) * 16 / 19
+	for _, item in ipairs(scene.items) do
+		if item.kind == "texture" and (item.alpha or 1) > 0 then
+			local x, y, w, h = item.rect[1], item.rect[2], item.rect[3], item.rect[4]
+			local inside = x >= right - 60 and x + w <= right + 1 and y >= scene.screen.height - (card.bottom + card.height) * 16 / 19 and y + h <= scene.screen.height - card.bottom * 16 / 19 + 1
+			assert(not (inside and w <= 4 and h >= 60), "a thin vertical line stands inside the chat card's right edge at x " .. x .. ", " .. w .. " by " .. h)
+			assert(not (inside and tostring(item.file):find("GlyphChevron", 1, true)), "the scroll-to-bottom chevron draws at rest inside the chat card at x " .. x)
+		end
 	end
 end
 print("ok test-render-scenes-reference")

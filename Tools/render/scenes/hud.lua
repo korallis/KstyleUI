@@ -1259,12 +1259,15 @@ function modules.groupframes(opts)
 end
 
 -- Meters: the damage meter over the fight in opts.damage ({ name, class, amount }, highest first), and the threat
--- meter when the layout shows it.
+-- meter when the layout shows it. The client has secret restrictions, as Forever does, so auto picks KstyleUI's own
+-- card. With opts.meterSecret the player is in combat and the game hands every amount over as a secret.
 
 function modules.meters(opts)
 	local M = dofile("Tools/regression/meters_env.lua")
 	local rows = opts.damage or {}
+	local hide
 	local env, K, ns = M.New(Common.ScreenOpts({
+		restricted = true,
 		saved = saved(opts, "Meters"),
 		setup = function(env)
 			shared(env, opts)
@@ -1276,7 +1279,7 @@ function modules.meters(opts)
 				end
 				return Hud.Class(opts)
 			end
-			env.AbbreviateNumbers = function(n)
+			local function abbreviate(n)
 				if type(n) ~= "number" then
 					return tostring(n)
 				elseif n >= 1e3 then
@@ -1284,15 +1287,24 @@ function modules.meters(opts)
 				end
 				return tostring(math.floor(n + 0.5))
 			end
+			env.AbbreviateNumbers = function(n)
+				if env.issecretvalue(n) then
+					return env.Secret(abbreviate(env.Reveal(n)))
+				end
+				return abbreviate(n)
+			end
+			hide = function(value)
+				return opts.meterSecret and env.Secret(value) or value
+			end
 			local sources, total = {}, 0
 			for i, row in ipairs(rows) do
 				total = total + row[3]
 				sources[i] = {
-					name = row[1], classFilename = row[2], totalAmount = row[3], amountPerSecond = row[3] / 60, sourceGUID = "Player-" .. tostring(row[1]),
+					name = row[1], classFilename = row[2], totalAmount = hide(row[3]), amountPerSecond = hide(row[3] / 60), sourceGUID = "Player-" .. tostring(row[1]),
 					sourceDisplayType = 1, isLocalPlayer = i == 1, deathRecapID = 0, deathTimeSeconds = 0,
 				}
 			end
-			env._session = { combatSources = sources, maxAmount = rows[1] and rows[1][3] or 0, totalAmount = total, durationSeconds = 60 }
+			env._session = { combatSources = sources, maxAmount = hide(rows[1] and rows[1][3] or 0), totalAmount = hide(total), durationSeconds = 60 }
 			env._group = { raid = false, size = opts.meterSolo and 0 or #rows }
 			env._units.player = { name = rows[1] and rows[1][1] or "Valerin", class = rows[1] and rows[1][2] or "WARRIOR" }
 			env._units.target = { name = opts.target and opts.target.name or TARGET.name, hostile = true }
@@ -1307,6 +1319,10 @@ function modules.meters(opts)
 		K.Modules.Enable("Meters")
 	end
 	env.RunTimers()
+	if opts.meterSecret then
+		env.SetCombat(true)
+		env.FireEvent("PLAYER_REGEN_DISABLED")
+	end
 	env.FireEvent("GROUP_ROSTER_UPDATE")
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.FireEvent("PLAYER_TARGET_CHANGED")
@@ -1325,10 +1341,10 @@ function modules.meters(opts)
 		local spells, total = {}, 0
 		for i, s in ipairs(opts.meterHover) do
 			env._spells[s[1]] = { name = s[2], icon = s[3] }
-			spells[i] = { spellID = s[1], totalAmount = s[4], amountPerSecond = s[4] / 60, creatureName = "" }
+			spells[i] = { spellID = s[1], totalAmount = hide(s[4]), amountPerSecond = hide(s[4] / 60), creatureName = "" }
 			total = total + s[4]
 		end
-		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = total }
+		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = hide(total) }
 		local row = ns.Damage.list.rows[1].frame
 		row._scripts.OnEnter(row)
 		env.RunTimers()
@@ -1340,10 +1356,10 @@ function modules.meters(opts)
 		local spells, total = {}, 0
 		for i, s in ipairs(opts.meterSpells) do
 			env._spells[s[1]] = { name = s[2], icon = s[3] }
-			spells[i] = { spellID = s[1], totalAmount = s[4], amountPerSecond = s[4] / 60, creatureName = "" }
+			spells[i] = { spellID = s[1], totalAmount = hide(s[4]), amountPerSecond = hide(s[4] / 60), creatureName = "" }
 			total = total + s[4]
 		end
-		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = total }
+		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = hide(total) }
 		if opts.meterSolo then
 			env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 		else

@@ -187,6 +187,7 @@ function Reference.Build(opts)
 		for k, v in pairs(Reference.STATE) do
 			state[k] = v
 		end
+		state.meterSecret = opts.meterSecret == true
 		state.plates = {}
 		for i, plate in ipairs(Reference.STATE.plates) do
 			state.plates[i] = plate
