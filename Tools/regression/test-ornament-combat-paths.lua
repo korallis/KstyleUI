@@ -14,7 +14,7 @@ env.RunTimers()
 
 local view = ns.Frames.Get("target").views[1]
 local Handle = getmetatable(view.health.ornament)
-assert(view.health.ornament.used > 0 and view.portraitOrnament.used > 0, "the target draws its ornaments before the burst")
+assert(view.portraitOrnament.used > 0, "the target draws its portrait band before the burst")
 local counts = { Restyle = 0, Place = 0, Piece = 0, Follow = 0 }
 for name in pairs(counts) do
 	local original = Handle[name]

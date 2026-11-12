@@ -49,9 +49,8 @@ for handle in pairs(restyled) do
 end
 assert(shown >= 2 and hidden >= 1, "a rank change reaches shown and hidden blocks: " .. shown .. " shown, " .. hidden .. " hidden")
 
-local focus = ns.Frames.Get("focus").views[1]
-local block = focus.health.ornament
-assert(not focus.panel:IsVisible() and block.stale, "the hidden focus card's block is stale")
+local target = ns.Frames.Get("target").views[1]
+local block = target.portraitOrnament
 local function drawn(handle)
 	local names = {}
 	for i = 1, handle.used do
@@ -63,12 +62,17 @@ local function drawn(handle)
 	end
 	return table.concat(names, " ")
 end
-U.SetUnit(env, "focus", { name = "Elunara Frostweaver", level = 39, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "rare" })
-env.FireEvent("PLAYER_FOCUS_CHANGED")
-assert(focus.panel:IsVisible(), "the focus card shows")
+local holder = target.portraitFrame:GetParent()
+holder:Hide()
+K.Options.Write("Widgets", "ornaments", "Subtle")
+K.Options.Write("Widgets", "ornaments", "Full")
+env.RunTimers()
+assert(not target.portraitFrame:IsVisible() and block.stale, "the hidden target's portrait band is stale")
+holder:Show()
+assert(target.portraitFrame:IsVisible(), "the target shows again")
 assert(not block.stale, "showing the owner restyles its stale handle")
 local first = drawn(block)
-assert(first ~= "", "the focus card's block draws on its first shown frame")
+assert(first ~= "", "the target's portrait band draws on its first shown frame")
 env.RunTimers()
 block:Restyle()
 assert(drawn(block) == first, "the first shown frame matches a fresh restyle: " .. first .. " | " .. drawn(block))
@@ -80,7 +84,7 @@ env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, f
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 assert(cast.panel:IsVisible() and not bar.stale, "a cast shows the bar and restyles its stale ornament")
 local casting = drawn(bar)
-assert(casting ~= "", "the cast bar draws its ornament on its first shown frame")
+assert(casting == "", "the cast bar draws no ornament (Lee, 2026-11-12): " .. casting)
 bar:Restyle()
 assert(drawn(bar) == casting, "the cast bar's first shown frame matches a fresh restyle: " .. casting .. " | " .. drawn(bar))
 
@@ -98,6 +102,6 @@ env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 assert(cast.panel:IsVisible() and not bar.stale, "the same spell again shows the bar, and only its OnShow restyles the stale ornament")
 local subtle = drawn(bar)
 bar:Restyle()
-assert(subtle ~= casting and drawn(bar) == subtle, "the cast bar draws Subtle on its first shown frame: " .. subtle .. " | " .. drawn(bar))
+assert(subtle == "" and drawn(bar) == subtle, "the cast bar draws no ornament at Subtle either: " .. subtle .. " | " .. drawn(bar))
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors: " .. tostring(env._errors[1]))
 print("ok hidden ornaments wait until their owner shows")

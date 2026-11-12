@@ -10,12 +10,7 @@ local EXCEPTIONS = {
 	["player.level/player.portrait"] = true,
 	["target.level/target.portrait"] = true,
 }
-M.ORNAMENT_PAIRS = {
-	["player.body/player.cast"] = "the bottom rail: ornament art that closes the player's health and power block may run into the gap above the player's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
-	["player.body/player.portrait"] = "the yoke: ornament art that joins the player's bar block to its own portrait band may meet that band, which is ornament too, keeping 1 physical pixel clear of the portrait picture and the gilt ring",
-	["target.body/target.cast"] = "the bottom rail: ornament art that closes the target's health and power block may run into the gap above the target's own cast bar, keeping 1 physical pixel clear of its fill, track, text, icon and white cursor",
-	["target.body/target.portrait"] = "the yoke: ornament art that joins the target's bar block to its own portrait band and pendants may meet them, which are ornament too, keeping 1 physical pixel clear of the portrait picture and the gilt ring",
-}
+M.ORNAMENT_PAIRS = {}
 local ORNAMENT_FILE = "Media/Textures/ForgedOrnaments/"
 local INK = (function()
 	local ns = { Widgets = {} }

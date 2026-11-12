@@ -1307,7 +1307,7 @@ local function Draw(self)
 	end
 	self.used = 0
 	local level = W.Setting("ornaments")
-	if level == "Off" or W.Setting("cardMaterial") == "Glass" or self.enabled == false or self.joined then
+	if level == "Off" or W.Setting("cardMaterial") == "Glass" or self.enabled == false or self.joined or self.bare then
 		for _, texture in ipairs(self.textures) do texture:Hide() end
 		return
 	end

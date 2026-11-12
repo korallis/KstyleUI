@@ -170,7 +170,8 @@ function M.Run(layout, class, form, classification)
 			assert(K.Widgets.Setting("ornaments") == level and K.Widgets.Setting("cardMaterial") == "ForgedBrackets", label .. ": forged setting active")
 			local solver = Scene.RectSolver(env)
 			for name, handle in pairs(handles) do
-				if handle.joined then handles[name] = nil end
+				if handle.bare then assert(handle.used == 0, label .. ": " .. name .. " draws around the unit frame's bars, which carry no ornament (Lee, 2026-11-12)") end
+				if handle.joined or handle.bare then handles[name] = nil end
 			end
 			for name, handle in pairs(handles) do
 				local _, _, w, h = Scene.RectIn(solver, handle.target)

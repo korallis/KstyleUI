@@ -206,6 +206,7 @@ local function New(parent, kind, unit)
 	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
 	cb.ornament = Widgets.Ornament(cb.panel, "bar", cb.bar)
 	cb.ornament.light = true
+	cb.ornament.bare = true
 	cb.ornament.avoid = { cb.iconFrame }
 	local over = CreateFrame("Frame", nil, cb.bar)
 	over:SetAllPoints(cb.bar)
