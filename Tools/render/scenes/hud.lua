@@ -1112,7 +1112,7 @@ function modules.nameplates(opts)
 		local target = type(opts.target) == "table" and opts.target or TARGET
 		local cast = target.cast or { name = "Snap", texture = 132200 }
 		plates = {
-			{ unit = { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true }, x = PLATE_X, y = PLATE_Y, target = true, cast = { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false, share = 0.55 } },
+			{ unit = { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true }, x = target.plateX or PLATE_X, y = PLATE_Y, target = true, cast = { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false, share = 0.55 } },
 			{ unit = ADD.unit, x = ADD.x, y = ADD.y, cast = { name = ADD.cast.name, text = ADD.cast.text, texture = ADD.cast.texture, notInterruptible = ADD.cast.notInterruptible, share = 0.4 } },
 		}
 	end

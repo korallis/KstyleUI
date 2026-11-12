@@ -232,10 +232,11 @@ end
 -- and the other viewer, at no less than Edit Mode's 50%. A viewer that cannot hold them all keeps the place it had,
 -- byte for byte, and the summary names the counts with the Cooldown Manager and Edit Mode as the way out.
 
+-- Story(K, name) -> the story slot and the quest card's column beside the RestedXP guide's card (KSTY-33), as rects.
 local function Story(K, name)
 	local rw, rh = K.Layout.RootSize()
-	local slot = K.Setup.Layouts.Slot(name, rh)
-	return { K.Setup.Layouts.Rect(slot, slot, rw, rh) }
+	local story = K.Setup.Layouts.Story(name, rh, true)
+	return { K.Setup.Layouts.Rect(story.guide, story.guide, rw, rh) }, { K.Setup.Layouts.Rect(story.quests, story.quests, rw, rh) }
 end
 
 local function Same(a, b)
@@ -299,7 +300,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 					else
 						local box = boxes[group]
 						local hits = Everything(K, name, box)
-						if Overlaps(box, Story(K, name)) then
+						local slot, column = Story(K, name)
+						if Overlaps(box, slot) or Overlaps(box, column) then
 							hits[#hits + 1] = "the story rail"
 						end
 						assert(#hits == 0, string.format("%s: the whole %s viewer (%.1f,%.1f-%.1f,%.1f) touches %s", where, group, box[1], box[2], box[3], box[4], table.concat(hits, ", ")))
@@ -413,7 +415,8 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- With RestedXP loaded, the tracker sits under the guide's half of the slot
+-- With RestedXP loaded, the guide's card holds the slot and the tracker stands in the quest card's column, a rail gap
+-- to its left at the same top (KSTY-33)
 
 do
 	local state = { saved = {}, active = 1 }
@@ -424,10 +427,9 @@ do
 	end
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
 	local story = K.Setup.Story("DPS", true)
-	local slot = K.Setup.Story("DPS", false)
-	assert(story.guide and near(story.guide.top, slot.story.top) and story.guide.left == slot.story.left, "the guide takes the top of the slot")
-	assert(story.tracker.top < story.guide.bottom and near(story.guide.bottom - story.tracker.top, 16), "the tracker starts one rail gap under it")
-	assert(near(story.tracker.bottom, slot.story.bottom), "and runs to the slot's bottom")
+	local slot = K.Setup.Story("DPS", false).tracker
+	assert(story.guide and near(story.guide.top, slot.top) and near(story.guide.left, slot.left) and near(story.guide.bottom, slot.bottom), "the guide takes the whole slot")
+	assert(near(story.tracker.top, slot.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local a = Find(Named(state, "KstyleUI DPS"), TRACKER).anchorInfo
 	assert(near(a.offsetY, K.Setup.EditMode.TrackerPlace(story.tracker).y * k), "Apply places the tracker under the guide when RestedXP is loaded")

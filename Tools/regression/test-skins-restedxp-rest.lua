@@ -66,13 +66,6 @@ local function Rect(K, object)
 	return { left = r.left * s, right = r.right * s, bottom = r.bottom * s, top = r.top * s }
 end
 
--- CardRect(card) -> the quest card's top and bottom in root units: it hangs from the root's bottom left.
-local function CardRect(card)
-	local point, _, relativePoint, _, top = card:GetPoint(1)
-	assert(point == "TOPLEFT" and relativePoint == "BOTTOMLEFT", "the quest card hangs from the root's bottom left")
-	return { top = top, bottom = top - card:GetHeight() }
-end
-
 local function near(a, b, tolerance)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (tolerance or 0.6)
 end
@@ -294,7 +287,8 @@ do
 	Clean(env, K, rxp)
 end
 
--- One card with the quests: no footer band between the last step and the quests ----------------------------------
+-- Two cards (KSTY-33): the guide's card holds the story slot and ends at its own foot, and the quest card stands in its
+-- own column beside it with its own glass; a RestedXP timer bar brings the footer back inside the guide's card -----
 
 do
 	local env, K, ns, rxp = Boot({ quests = 4 })
@@ -304,48 +298,29 @@ do
 	rxp.SetStep()
 	env.RunTimers()
 	W.Settle(env)
-	assert(ns.Quests.Active() and ns.RestedXP.Rail.Placed() and ns.RestedXP.Rail.Docked(), "the quest card docks into the guide's card")
+	assert(ns.Quests.Active() and ns.RestedXP.Rail.Placed(), "the quest card shows and the guide is placed")
 	local story = K.Setup.Story("DPS", true)
 	local path = ns.RestedXP.Chrome.Path(f)
 	assert(not path.meta:IsShown(), "the guide's group line is hushed, so the steps are the guide's last row")
 	local glass = Rect(K, K.Skin.Parts(f).backdrop)
-	local steps = Rect(K, f.CurrentStepFrame)
-	local quests = CardRect(ns.Quests.Card())
-	assert(near(glass.top, story.story.top, 0.01), "the card starts on the slot's top, to the pixel, got " .. glass.top .. " for " .. story.story.top)
-	assert(near(quests.top, steps.bottom, 1), "the quests start right under the last step: RestedXP's footer band is gone from the resting card, got " .. quests.top .. " under " .. steps.bottom)
-	assert(near(f:GetHeight(), 28, 0.01), "RestedXP's window is folded to its floor behind the quests' cap")
-	local foot = path.card._points[3]
-	assert(foot[1] == "BOTTOM" and foot[2] == ns.Quests.Card() and not ns.Quests.Parts().glass:IsShown(), "one glass from the guide's cap to the quests' foot; the quest card's own glass yields")
-	assert(quests.bottom >= story.story.bottom - 0.5, "the quests end inside the slot, got " .. quests.bottom .. " for " .. story.story.bottom)
-	local shown = 0
-	for _, row in ipairs(ns.Quests.Rows()) do
-		if row:IsShown() then
-			shown = shown + 1
-		end
-	end
-	assert(shown == 4, "the picture's four quests fit under the guide's two lines, got " .. shown)
-	local capPoint, capOn, _, _, capY = ns.Quests.Parts().cap.row:GetPoint(1)
-	assert(capPoint == "TOPLEFT" and capOn == ns.Quests.Card() and capY == 0, "docked, the QUESTS caption starts at the card's top: the guide's glass holds it, so the card's own head is not added, got " .. tostring(capY))
+	local quests = Geometry.ScaledRect(ns.Quests.Card(), env.UIParent, K.Scale.Root())
+	assert(near(glass.top, story.guide.top, 0.01), "the guide's card starts on the slot's top, to the pixel, got " .. glass.top .. " for " .. story.guide.top)
+	assert(glass.bottom >= story.guide.bottom - 0.5, "and ends inside it")
+	assert(near(f:GetHeight(), 28, 0.01), "RestedXP's window is folded to its floor")
+	assert(path.card._points[3][2] == f and ns.Quests.Parts().glass:IsShown(), "the guide's card ends at RestedXP's window; the quest card wears its own glass")
+	assert(quests.right <= glass.left - 16 + 1, "the quests stand a rail gap left of the guide's card, got " .. quests.right .. " for " .. glass.left)
+	assert(near(quests.top, story.tracker.top, 1), "at the same top, got " .. quests.top .. " for " .. story.tracker.top)
 
-	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, under the steps.
+	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, inside the card.
 	rxp.StartTimer(30, "Hearthstone")
 	env.RunTimers()
 	W.Settle(env)
-	local footer = Rect(K, f.Footer)
-	quests = CardRect(ns.Quests.Card())
-	assert(f:GetHeight() > 28 and quests.top <= footer.bottom + 0.5, "a running timer bar has the footer's row to itself: the quests start under it, got " .. quests.top .. " for " .. footer.bottom)
+	glass = Rect(K, K.Skin.Parts(f).backdrop)
+	assert(f:GetHeight() > 28 and glass.bottom >= story.guide.bottom - 0.5, "a running timer bar has the footer's row, inside the guide's card")
 	rxp.fake.expire("Hearthstone")
 	env.RunTimers()
 	W.Settle(env)
-	assert(near(CardRect(ns.Quests.Card()).top, Rect(K, f.CurrentStepFrame).bottom, 1) and near(f:GetHeight(), 28, 0.01), "and when it runs out the band closes again")
-
-	-- A guide whose own name runs to two lines keeps its route row: the quests start under that row.
-	rxp.currentGuide = { name = "Elwynn Forest\\n1-10 Human" }
-	f.GuideName.text:SetText("Elwynn Forest\n1-10 Human")
-	env.RunTimers()
-	W.Settle(env)
-	assert(path.meta:IsShown(), "the route row shows")
-	assert(near(CardRect(ns.Quests.Card()).top, Rect(K, f.GuideName).bottom, 1), "the quests start right under the route row, got " .. CardRect(ns.Quests.Card()).top .. " under " .. Rect(K, f.GuideName).bottom)
+	assert(near(f:GetHeight(), 28, 0.01), "and when it runs out the band closes again")
 	Clean(env, K, rxp)
 end
 

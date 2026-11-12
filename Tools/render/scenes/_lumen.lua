@@ -61,9 +61,12 @@ Lumen.BOSS = {
 	name = "Bloodtalon Matriarch", level = 38, classification = "elite", health = 3720, healthMax = 6000,
 	power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, threatOn = 3,
 	cast = { name = "Terrifying Screech", texture = 136184, start = 9000, finish = 12500, spellID = 4321 },
+	-- The boss's plate stands left of the boss column, which moved 75 units in beside the quest card (KSTY-33).
+	plateX = 900,
 }
 
--- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }) and its story slot
+-- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }), its story slot and the
+-- quest card's column beside the guide's card
 -- in screen units ({ left, top, width, height }, y down from the top), from the addon's own Setup.Layouts. The scenes
 -- render at the Interface size KstyleUI ships, where the root is Layouts.HEIGHT units tall on the screen's 1080.
 function Lumen.Preset(layout)
@@ -74,8 +77,13 @@ function Lumen.Preset(layout)
 	local rootHeight = Layouts.HEIGHT
 	local slot = Layouts.Slot(layout, rootHeight)
 	local k = HEIGHT / rootHeight
-	local l, _, r, t = Layouts.Rect(slot, slot, rootHeight * Common.SCREEN.width / Common.SCREEN.height, rootHeight)
-	return settings, { left = l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = slot.height * k }, slot, Layouts.Sizes(layout)
+	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
+	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
+	local function Screen(spec)
+		local l, _, r, t = Layouts.Rect(spec, spec, rootHeight * width / Common.SCREEN.height, rootHeight)
+		return { left = origin + l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = spec.height * k }
+	end
+	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(Layouts.Story(layout, rootHeight, true).quests)
 end
 
 -- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,
@@ -137,7 +145,7 @@ end
 function Lumen.Build(state, opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
-	local settings, slot, _, sizes = Lumen.Preset(layout)
+	local settings, slot, _, sizes, column = Lumen.Preset(layout)
 	local _, spec = Hud.Class(opts)
 	local damage = {}
 	for i, row in ipairs(Lumen.DAMAGE[state]) do
@@ -280,6 +288,7 @@ function Lumen.Build(state, opts)
 		merged.elements = Lumen.Elements(built)
 	end
 	merged.slot = slot
+	merged.column = column
 	merged.state = state
 	merged.layout = layout
 	merged.log[#merged.log + 1] = "lumen: the " .. layout .. " layout " .. (state == "combat" and "in combat, the combat calm on" or "out of combat")
