@@ -146,8 +146,9 @@ do
 		assert(math.abs(pitch - first) < 1, "the chat lines are evenly spaced, got " .. pitch .. " and " .. first)
 	end
 end
--- The chat card has no thin dark line down its right side at rest (KSTY-33): the scroll bar's track is Blizzard's bar at alpha 0
--- (ChatFrameOverrides.lua:45) until the cursor is over the window, so the scene draws nothing there. The card sits at 16 / 19 screen
+-- The chat card has no thin dark line down its right side and no scroll-to-bottom chevron at rest (KSTY-33): the scroll bar is Blizzard's
+-- bar at alpha 0 (ChatFrameOverrides.lua:45) until the cursor is over the window and the button is alpha 0 (FloatingChatFrame.xml:523),
+-- so the scene draws neither. The card sits at 16 / 19 screen
 -- units per root unit, KstyleUI's shipped size.
 do
 	local card = scene.elements["chat.main"]
@@ -157,6 +158,7 @@ do
 			local x, y, w, h = item.rect[1], item.rect[2], item.rect[3], item.rect[4]
 			local inside = x >= right - 60 and x + w <= right + 1 and y >= scene.screen.height - (card.bottom + card.height) * 16 / 19 and y + h <= scene.screen.height - card.bottom * 16 / 19 + 1
 			assert(not (inside and w <= 4 and h >= 60), "a thin vertical line stands inside the chat card's right edge at x " .. x .. ", " .. w .. " by " .. h)
+			assert(not (inside and tostring(item.file):find("GlyphChevron", 1, true)), "the scroll-to-bottom chevron draws at rest inside the chat card at x " .. x)
 		end
 	end
 end

@@ -33,7 +33,7 @@ local function Check(env, K, ns, label)
 	for edge, value in pairs(want) do
 		assert(math.abs(got[edge] - value) <= pixel + 1e-6, string.format("%s: ChatFrame1's %s edge is %.2f units from the card's inner %s edge (one pixel is %.2f)", label, edge, got[edge] - value, edge, pixel))
 	end
-	assert(chat.ScrollBar:GetAlpha() == 0, label .. ": the scroll bar stays at Blizzard's resting alpha 0, so its track draws only while the cursor is over the window")
+	assert(chat.ScrollBar:GetAlpha() == 0 and chat.ScrollToBottomButton:GetAlpha() == 0, label .. ": the scroll bar and the scroll-to-bottom button stay at Blizzard's resting alpha 0, so neither draws at rest")
 	local box = rect(env, K, chat.editBox)
 	local inset = ns.Panel.EditInsets(chat)
 	assert(math.abs(box.left + inset.left * k - want.left) <= pixel + 1e-6 and math.abs(box.right - inset.right * k - want.right) <= pixel + 1e-6, label .. ": the edit box's tile shares the window's side edges")
