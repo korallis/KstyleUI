@@ -10,7 +10,6 @@ local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
 local DEFAULT_ORNAMENTS = "Full"
 local GUIDE_ADDON = "RXPGuides"
-local STORY_GAP = 16
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },
@@ -123,6 +122,13 @@ local function writeLayout(name)
 			saved = saved + 1
 		end
 	end
+	for _, key in pairs(Layouts.STORY_KEYS) do
+		if live and Layout.Get(key) ~= nil and type(Layout.Reset) == "function" then
+			Layout.Reset(key)
+		else
+			stored[key] = nil
+		end
+	end
 	return moved, saved
 end
 
@@ -174,25 +180,27 @@ function Setup.RootSize()
 	return root:GetWidth(), root:GetHeight()
 end
 
-function Setup.Story(name, guide, alone)
+local function Band(spec, rw, rh)
+	local Layout = ns.Layout
+	local left, bottom, width, height
+	if Layout and type(Layout.Rect) == "function" then
+		left, bottom, width, height = Layout.Rect(spec.key)
+	end
+	if not left then
+		local right, top
+		left, bottom, right, top = Layouts.Rect(spec, spec, rw, rh)
+		width, height = right - left, top - bottom
+	end
+	return { left = left, bottom = bottom, right = left + width, top = bottom + height }
+end
+
+function Setup.Story(name, guide)
 	local rw, rh = Setup.RootSize()
-	local slot = Layouts.Slot(name, rh)
-	if not slot then
+	local story = Layouts.Story(name, rh, guide)
+	if not story then
 		return nil
 	end
-	local left, bottom, right, top = Layouts.Rect(slot, slot, rw, rh)
-	local story = { left = left, bottom = bottom, right = right, top = top }
-	local out = { story = story }
-	if guide and alone then
-		out.guide = { left = left, right = right, top = top, bottom = bottom }
-	elseif guide then
-		local share = math.floor((top - bottom - STORY_GAP) / 2)
-		out.guide = { left = left, right = right, top = top, bottom = top - share }
-		out.tracker = { left = left, right = right, top = top - share - STORY_GAP, bottom = bottom }
-	else
-		out.tracker = { left = left, right = right, top = top, bottom = bottom }
-	end
-	return out
+	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh) }
 end
 
 local function EditModeChanged()

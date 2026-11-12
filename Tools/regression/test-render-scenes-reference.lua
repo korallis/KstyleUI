@@ -104,7 +104,9 @@ do
 	assert(lead > 1.5 and lead < 2.5, "the disc texture starts two pixels in from the caption mark, drawing the picture's core a pixel farther in, got " .. lead)
 	assert(math.abs(dot.rect[3] * ppu - 28) < 0.01, "the disc draws the picture's 28-pixel core, as the acceptance mask measures, got " .. dot.rect[3] * ppu)
 	local tall = (glass[2] - glass[1]) * ppu
-	assert(math.abs(tall - 553) <= 1.5, "the card's glass is the picture's 553 pixels tall, 557 with the rim's shadow, within a pixel, got " .. tall)
+	-- KSTY-33 split the picture's story card (553 pixels, the guide's head and step over the quests) into two cards: the
+	-- quest card's own glass holds the caption and the four quests at the picture's rhythm, 429 pixels.
+	assert(math.abs(tall - 429) <= 1.5, "the quest card's own glass is 429 pixels tall, within a pixel, got " .. tall)
 end
 
 -- The picture's bars are on: bar 2 over bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for

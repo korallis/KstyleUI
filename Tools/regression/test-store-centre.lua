@@ -80,7 +80,7 @@ local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)
 local db = env.KstyleUIDB
-assert(db.version == 19 and #env._errors == 0, "version 9 migrates through the chat, centre, rail and type-set updates without errors")
+assert(db.version == 20 and #env._errors == 0, "version 9 migrates through the chat, centre, rail and type-set updates without errors")
 local now = K.Setup.Layouts.Get("DPS")
 local env10, K10 = CoreEnv.New({ saved = {
 	version = 10,
@@ -91,7 +91,7 @@ local env10, K10 = CoreEnv.New({ saved = {
 	} },
 } })
 CoreEnv.Boot(env10)
-assert(env10.KstyleUIDB.version == 19 and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
+assert(env10.KstyleUIDB.version == 20 and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
 assert(K10.Store.Layout()["unitframes.player"].y == 138, "version 10 receives the new player position")
 assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 186, "the centre migration preserves the migrated chat dimensions, and version 16 takes the picture's 186 height")
 assert(db.layouts.Old["unitframes.resource"].y == 420, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")

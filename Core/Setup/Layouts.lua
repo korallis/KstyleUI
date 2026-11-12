@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -122,7 +122,7 @@ local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TEXT_TOP = CLUSTER_TOP + GAP + 180
-local BOSS_X = -(EDGE + MAP + AURA_MAP_GAP + AURA_W + 2 * TIGHT)
+local BOSS_X = -(EDGE + 2 * STORY_W + 2 * GAP)
 local function ElementSize(key)
 	for _, element in ipairs(ELEMENTS) do
 		if element.key == key then
@@ -139,6 +139,8 @@ local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
 local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
+local QUESTS_BOTTOM, STORY_FLOOR = TEXT_TOP + GAP, 72
+local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
 local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
 local _, MICRO_H = ElementSize("databars.micro")
 local _, BAGS_H = ElementSize("databars.bags")
@@ -355,6 +357,8 @@ Layouts.FEED_PAD = FEED_PAD
 Layouts.SIGIL_CLEAR = SIGIL_CLEAR
 Layouts.BUTTON = BUTTON
 Layouts.HEIGHT = HEIGHT
+Layouts.STORY_KEYS = STORY_KEYS
+Layouts.STORY_FLOOR = STORY_FLOOR
 
 function Layouts.Names()
 	local out = {}
@@ -474,6 +478,21 @@ function Layouts.Slot(name, rootHeight)
 	end
 	out.height = slot.height - Lift(rootHeight)
 	return out
+end
+
+function Layouts.Story(name, rootHeight, guide)
+	local slot = Layouts.Slot(name, rootHeight)
+	if not slot then
+		return nil
+	end
+	local function Card(key, x, height)
+		return { key = key, anchor = slot.anchor, x = x, y = slot.y, width = slot.width, height = height }
+	end
+	if not guide then
+		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
+	end
+	local column = slot.height - (QUESTS_BOTTOM - STORY_BOTTOM)
+	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column) }
 end
 
 function Layouts.Default(key)
@@ -687,18 +706,20 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled)
 	local pixelScale = physicalHeight / rootHeight
 	enabled = enabled or Layouts.Enabled(name)
 	local rects = {}
-	for i = 1, #ELEMENTS + 1 do
+	local story = Layouts.Story(name, rootHeight, true)
+	local cards = { story.guide, story.quests }
+	for i = 1, #ELEMENTS + #cards do
 		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
 			width, height, offsetX = Layouts.Footprint(name, key)
 			position = layout[key]
 		else
-			position = Layouts.Slot(name, rootHeight)
-			key, width, height = "story", position.width, position.height
+			position = cards[i - #ELEMENTS]
+			key, width, height = position.key, position.width, position.height
 		end
 		if enabled[key] ~= false then
-			if width <= 0 or height <= 0 then
+			if width <= 0 or height < STORY_FLOOR and position.key or height <= 0 then
 				return false
 			end
 			local w = math.max(1, math.floor(width * pixelScale + 0.5))

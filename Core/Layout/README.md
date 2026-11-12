@@ -172,6 +172,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `snap` | `true` | toggle |
 | `snapDistance` | 8 | slider, 2 to 24 |
 | `calm` | `true` | toggle, **Calm the rails in combat**, under a **Combat** header |
+| `canvas` | `"21:9"` | `"21:9"`, `"16:9"` or `"full"` (Options, **HUD width**). On a screen wider than that aspect (21:9 is 12:5, so 2560x1080, 3440x1440 and 3840x1600 are untouched) `Scale` narrows `KstyleUI_Root` to a centred band that wide, an even number of pixels in from each edge, so every element, Layout Mode and the fit cap work on the band; the world, nameplates and Blizzard's frames keep the whole screen. `Scale.Origin()` is the band's left edge in root units, for the frames KstyleUI places from `UIParent` (the RestedXP guide, Apply's Edit Mode positions). |
 | `preset` | `"DPS"` | none. The layout the first-run setup last applied, which Layout Mode outlines the story slot for |
 
 ## Why

@@ -1,4 +1,4 @@
--- Quests.lua: the quest card switch: in the layout's story slot (under the RestedXP guide when the rail holds it) the card shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
+-- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,7 +18,7 @@ local EVENTS = {
 	"QUEST_TURNED_IN", "QUEST_AUTOCOMPLETE",
 }
 
-local state = { on = false, active = false, dirty = false, built = false, queued = false }
+local state = { on = false, active = false, dirty = false, built = false, queued = false, holder = nil, guide = nil }
 local others = false
 
 local function Log(message)
@@ -83,25 +83,40 @@ local function Guide()
 	return type(Setup.GuideLoaded) == "function" and Setup.GuideLoaded() and Skins.IsOn("restedXP") and Skins.Setting("restedXP", "rail") == true
 end
 
-local function Band()
-	local Setup, Layout = K.Setup, K.Layout
-	if type(Setup) ~= "table" or type(Setup.Story) ~= "function" then
+local function Preset()
+	local Layout = K.Layout
+	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
+end
+
+local function Spec(guide)
+	local Setup = K.Setup
+	local Layouts = Setup and Setup.Layouts
+	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
-	local preset = Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
-	local guide = Guide()
-	local story = Setup.Story(preset, guide) or Setup.Story(DEFAULT_PRESET, guide)
-	return story and story.tracker
+	local _, rh = Setup.RootSize()
+	local story = Layouts.Story(Preset(), rh, guide) or Layouts.Story(DEFAULT_PRESET, rh, guide)
+	return story and story.quests
+end
+
+local function Register(spec)
+	K.Widgets.Place(state.holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = L["Quest card"], module = "Skins" })
 end
 
 local function Place()
-	local band = Band()
-	if not band then
+	local holder = state.holder
+	local guide = Guide()
+	local spec = Spec(guide)
+	if not holder or not spec then
 		Log("the layout has no story slot; the card keeps its last place")
 		return
 	end
-	local top = state.under and math.max(band.top, state.under) or band.top
-	Card.Place(K.Scale.Root(), band.left, top, band.right - band.left, top - band.bottom)
+	holder:SetSize(spec.width, spec.height)
+	if state.guide ~= guide then
+		state.guide = guide
+		Register(spec)
+	end
+	Card.Place(holder, 0, spec.height, spec.width, spec.height)
 end
 
 local function Flush()
@@ -161,7 +176,6 @@ function Evaluate()
 	else
 		Card.Frame():Hide()
 		Card.HideButtons()
-		Card.SetDocked(false)
 		if tracker then
 			K.Safe.RestoreBlizzard(tracker)
 		end
@@ -215,7 +229,11 @@ end
 
 local function Build()
 	local tracker = Tracker()
-	local card = Card.Build(K.Scale.Root())
+	local holder = CreateFrame("Frame", "KstyleUI_QuestSlot", K.Scale.Root())
+	holder:EnableMouse(false)
+	state.holder = holder
+	local card = Card.Build(holder)
+	Place()
 	card:HookScript("OnShow", Rail)
 	card:HookScript("OnHide", Rail)
 	if type(tracker.UpdateHeaderPosition) == "function" then
@@ -277,54 +295,16 @@ function Quests.Card()
 	return Card.Frame()
 end
 
+function Quests.Holder()
+	return state.holder
+end
+
 function Quests.Fit()
 	local card = Card.Frame()
 	if state.active and card and card:IsShown() then
 		return card
 	end
 	return nil
-end
-
-local Reflow
-
-function Quests.Dock(on)
-	on = on == true and state.active
-	if state.built and Card.Docked() ~= on then
-		Card.SetDocked(on)
-		Reflow()
-	end
-end
-
-local function ReflowLater()
-	state.reflowing = false
-	Reflow()
-end
-
-function Reflow()
-	if not state.active then
-		return
-	end
-	if Card.Locked() then
-		if not state.reflowing then
-			state.reflowing = true
-			K.Combat.Queue(ReflowLater)
-		end
-		return
-	end
-	Place()
-	Card.Render()
-end
-
-function Quests.Under(top)
-	if state.under == top then
-		return
-	end
-	state.under = top
-	Reflow()
-end
-
-function Quests.Docked()
-	return Card.Docked()
 end
 
 Quests.Rows = Card.Rows

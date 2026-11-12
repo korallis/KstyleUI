@@ -317,7 +317,7 @@ do
 	local right, _, rightX = Edge(panel, "RIGHT", snap)
 	assert(right == tracker, "the panel's right edge still hangs from the tracker")
 	local scale = K.Widgets.ScaleFactor(tracker)
-	local story = K.Setup.Story("DPS", false).story
+	local story = K.Setup.Story("DPS", false).tracker
 	local glass = (tracker:GetWidth() - leftX + rightX) * scale
 	assert(Near(glass, story.right - story.left, 0.6), "the glass is the story rail's width, got " .. tostring(glass))
 	assert(Near(leftX, -K.Widgets.Snap(panel, PANEL_LEFT), K.Scale.Pixel()), "and still starts 16 left of the tracker, where Apply's Edit Mode anchor puts the rail's edge")

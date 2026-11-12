@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 19
+Store.DB_VERSION = 20
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -511,6 +511,38 @@ Store.migrations[17] = function(data)
 			railEntry(entry, "minimap.main", { "TOPRIGHT", -16, -16 }, { ["minimap.main"] = { "TOPRIGHT", -17, -17 } })
 			if next(entry) == nil then
 				layout["minimap.main"] = nil
+			end
+		end
+	end
+end
+
+local STORY_V18 = {
+	["unitframes.boss"] = { "BOTTOMRIGHT", -530.4, 752 },
+}
+
+Store.migrations[20] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local preset = section.preset or "DPS"
+		local current = layouts and type(layouts.Get) == "function" and layouts.Get(preset) or {}
+		local dps = layouts and type(layouts.Get) == "function" and layouts.Get("DPS") or {}
+		for key, old in pairs(type(layout) == "table" and STORY_V18 or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				local now = current[key]
+				if preset == "Healer" then
+					local moved = dps[key]
+					if moved and atPlace(entry, old) then
+						entry.anchor, entry.x, entry.y = moved.anchor, moved.x, moved.y
+					end
+				else
+					railEntry(entry, key, now and { now.anchor, now.x, now.y }, STORY_V18)
+				end
+				if next(entry) == nil then
+					layout[key] = nil
+				end
 			end
 		end
 	end

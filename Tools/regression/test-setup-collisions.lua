@@ -1,4 +1,4 @@
--- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects and the right rail's story slot at 16:9, 16:10, 21:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live aura rows at 0 to 40 buffs beside 12 debuffs fit the footprint their preset plans and overlap nothing.
+-- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects, the right rail's story slot and the quest card's column beside it at 16:9, 16:10, 21:9, 32:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live aura rows at 0 to 40 buffs beside 12 debuffs fit the footprint their preset plans and overlap nothing.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({ fit = true })
@@ -6,7 +6,7 @@ CoreEnv.Boot(env)
 local Layouts = K.Setup.Layouts
 
 local HEIGHT = Layouts.HEIGHT
-local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, { "the owner's 2383 x 1540", 2383 / 1540 } }
+local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, { "the owner's 2383 x 1540", 2383 / 1540 }, { "32:9", 32 / 9 } }
 
 -- Pairs that never show together or sit inside each other on purpose; everything else must stay apart.
 local function apart(a, c)
@@ -31,6 +31,13 @@ local function Story(name, width)
 	return { Layouts.Rect(slot, slot, width, HEIGHT) }
 end
 
+-- The quest card's column beside the RestedXP guide's card (KSTY-33): with RestedXP loaded the guide's card holds the
+-- slot and the quests stand a rail gap to its left, so their column must keep clear of everything too.
+local function Quests(name, width)
+	local column = Layouts.Story(name, HEIGHT, true).quests
+	return { Layouts.Rect(column, column, width, HEIGHT) }
+end
+
 -- Match live Layout.Place: snap each size first, then align its anchored bottom-left to the pixel grid.
 local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
@@ -53,8 +60,13 @@ local function PhysicalRects(name, width, height, user, enabled)
 			add(element.key, w, h, positions[element.key], offsetX)
 		end
 	end
-	local slot = Layouts.Slot(name, rh)
-	add("story", slot.width, slot.height, slot)
+	local story = Layouts.Story(name, rh, true)
+	for _, card in ipairs({ story.guide, story.quests }) do
+		add(card.key, card.width, card.height, card)
+		if card.height < Layouts.STORY_FLOOR then
+			rects[card.key][4] = rects[card.key][2]
+		end
+	end
 	return rects, keys
 end
 
@@ -82,7 +94,7 @@ end
 
 local SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
-	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+	{ 5120, 1440 }, { 3840, 1080 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 }
 local REQUESTS = { 0.6, 16 / 19, 1.5 }
 local function Profile(name, requested, bar3, threat)
@@ -373,6 +385,8 @@ for _, name in ipairs(Layouts.Names()) do
 		end
 		rects.story = Story(name, width)
 		keys[#keys + 1] = "story"
+		rects["story.quests"] = Quests(name, width)
+		keys[#keys + 1] = "story.quests"
 		local story = rects.story
 		assert(story[1] >= -1e-6 and story[2] >= -1e-6 and story[3] <= width + 1e-6 and story[4] <= HEIGHT + 1e-6, label .. ": the story slot is on screen")
 		for _, key in ipairs({ "meters.damage", "databars.strip" }) do
@@ -488,9 +502,10 @@ do
 				for _, aspect in ipairs(aspects) do
 					local width = HEIGHT * aspect[2]
 					local own = { Layouts.Rect({ width = cw, height = ch }, layout[key], width, HEIGHT) }
-					local story = Story(name, width)
-					assert(not overlap(own, story), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps the story slot (%.0f,%.0f-%.0f,%.0f)",
-						state, aspect[1], key, own[1], own[2], own[3], own[4], story[1], story[2], story[3], story[4]))
+					for _, story in ipairs({ Story(name, width), Quests(name, width) }) do
+						assert(not overlap(own, story), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps a story card (%.0f,%.0f-%.0f,%.0f)",
+							state, aspect[1], key, own[1], own[2], own[3], own[4], story[1], story[2], story[3], story[4]))
+					end
 					for _, element in ipairs(Layouts.ELEMENTS) do
 						local other = element.key
 						if other ~= key and apart(key, other) then

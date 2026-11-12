@@ -31,47 +31,49 @@ local combat = L.guard("hud_lumen_combat", check("hud_lumen_combat", Lumen.Build
 L.globs()
 local slot = questing.slot
 
--- The story slot holds the guide and the tracker, as the player places them, on the right rail under the map and the
--- aura rows and over the damage meter (owner, 2026-11-09: "The quest tracker can go back to the right side").
+-- The story slot holds the RestedXP guide's card and the quests stand in their own column a rail gap to its left, at
+-- the same top (KSTY-33), on the right rail under the map and the aura rows and over the damage meter (owner,
+-- 2026-11-09: "The quest tracker can go back to the right side").
+local column = questing.column
+local function within(item, box, what)
+	local r = item.rect
+	assert(r[1] >= box.left - 0.5 and r[1] + r[3] <= box.left + box.width + 0.5 and r[2] >= box.top - 0.5 and r[2] + r[4] <= box.top + box.height + 0.5,
+		what .. " sits in its card's place, got " .. table.concat(r, ", "))
+end
 do
-	local function inside(item, what)
-		local r = item.rect
-		assert(r[1] >= slot.left and r[1] + r[3] <= slot.left + slot.width and r[2] >= slot.top and r[2] + r[4] <= slot.top + slot.height,
-			what .. " sits in the story slot, got " .. table.concat(r, ", "))
-	end
-	inside(assert(find(questing, "QUESTS"), "the tracker's caption draws"), "the tracker's caption")
-	inside(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level: the picture's slot holds the guide and two quests"), "the second quest")
+	within(assert(find(questing, "QUESTS"), "the quests' caption draws"), column, "the quests' caption")
+	within(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level"), column, "the second quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
-	inside(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), "the guide's active step")
+	within(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), slot, "the guide's active step")
 	assert(find(questing, "DAMAGE").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
+	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
 end
 
--- Two rails. The left holds the party card and chat on one left edge, the party card 318 wide, chat 372 (owner pass 1,
--- "the chat box is too thin"), the party over chat. The right rail's story slot holds the guide's card: one glass from
--- the guide's cap to the quests' foot (Apply put the quests under the guide, so they dock into it), the tracker's own
--- glass hidden, and both caps (the guide's name, QUESTS) inside it, on the right rail's edge and width.
+-- Two rails. The left holds the party card and chat on one left edge, the party card 318 wide, chat 393, the party over
+-- chat. On the right the guide's card holds the story slot on the rail's edge and width, and the quest card wears its
+-- own glass in its column; neither card's words leave it.
 for _, scene in ipairs({ questing, combat }) do
 	local seen = {}
 	for _, card in ipairs(scene.rail) do
 		seen[card.name] = card
 	end
-	local party, chat, guide = seen.party, seen.chat, seen.guide
-	assert(party and chat and guide, scene.state .. ": the rails show the party, chat and the guide")
+	local party, chat, guide, quests = seen.party, seen.chat, seen.guide, seen.quests
+	assert(party and chat and guide and quests, scene.state .. ": the rails show the party, chat, the guide and the quests")
 	assert(math.abs(party.left - chat.left) <= 0.5, scene.state .. ": the party card and chat share the left edge, got " .. party.left .. " and " .. chat.left)
 	assert(party.left < slot.left / 2, scene.state .. ": on the left rail")
 	assert(math.abs(chat.width - party.width * 393 / 318) <= 1, scene.state .. ": chat is 393 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party card")
-	assert(not seen.quests, scene.state .. ": the tracker's own glass yields to the guide's card")
 	assert(math.abs(guide.left - slot.left) <= 0.5 and math.abs(guide.width - slot.width) <= 1, scene.state .. ": the guide's card is on the right rail's edge and width, got " .. guide.left .. " by " .. guide.width)
-	assert(guide.top >= slot.top - 0.5, scene.state .. ": the guide's card starts inside the story slot, got " .. guide.top .. " for " .. slot.top)
-	local quests = assert(find(scene, "QUESTS"), scene.state .. ": the QUESTS cap draws")
-	local last = assert(find(scene, "Bloodtalon Scythemaw"), scene.state .. ": the last quest line draws")
-	for _, item in ipairs({ quests, last, find(scene, "6-10 DUROTAR"), find(scene, "Step 34") }) do
-		assert(item, scene.state .. ": a rail text draws")
-		local r = item.rect
-		assert(r[2] >= guide.top and r[2] + r[4] <= guide.top + guide.height + 0.5, scene.state .. ": '" .. plain(item.text) .. "' lies inside the guide's card, got " .. r[2] .. " to " .. (r[2] + r[4]) .. " for " .. guide.top .. " to " .. (guide.top + guide.height))
+	assert(guide.top >= slot.top - 0.5 and guide.top + guide.height <= slot.top + slot.height + 0.5, scene.state .. ": the guide's card stays inside the story slot")
+	assert(math.abs(quests.left - column.left) <= 0.75 and quests.top >= column.top - 0.75 and quests.top + quests.height <= column.top + column.height + 0.75, scene.state .. ": the quest card stays in its column, got " .. quests.left .. ", " .. quests.top .. ", " .. quests.height .. " for " .. column.left .. ", " .. column.top .. ", " .. column.height)
+	for _, text in ipairs({ "QUESTS", "Bloodtalon Scythemaw" }) do
+		local item = assert(find(scene, text), scene.state .. ": " .. text .. " draws")
+		within(item, quests, scene.state .. ": '" .. text .. "'")
 	end
-	assert(guide.top + guide.height <= slot.top + slot.height + 0.5, scene.state .. ": the card ends inside the story slot, got " .. (guide.top + guide.height) .. " for " .. (slot.top + slot.height))
+	for _, text in ipairs({ "6-10 DUROTAR", "Step 34" }) do
+		local item = assert(find(scene, text), scene.state .. ": " .. text .. " draws")
+		within(item, guide, scene.state .. ": '" .. text .. "'")
+	end
 end
 
 -- The rails keep the screen margin (Tokens screenMargin): nothing on either rail draws past the screen's bottom margin (the readout

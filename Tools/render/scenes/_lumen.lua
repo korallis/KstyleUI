@@ -1,9 +1,9 @@
 -- _lumen.lua: the Lumen Rails HUD in the two states the mockup boards draw (handoff/arena2/parent: hud-questing.png
 -- and hud-combat.png), on top of hud.lua. Every module renders where the Lumen layout puts it, with the module
 -- settings Layout > Apply writes for the layout (Setup.Layouts.Settings): bar 1 alone, the pet and stance sockets in
--- two rows, the threat card in Tank only. The story slot (Setup.Layouts.Slot) holds what Apply places there: the
--- RestedXP guide where the skin's story rail puts it, and the quest tracker at the anchor Apply writes into the
--- "KstyleUI <layout>" Edit Mode layout (Hud.StoryTracker), with RestedXP loaded, so the tracker takes the lower half.
+-- two rows, the threat card in Tank only. The story slot (Setup.Layouts.Slot) holds the RestedXP guide's card where
+-- the skin's story rail puts it, and the quests stand in their own column beside it, the tracker at the anchor Apply
+-- writes into the "KstyleUI <layout>" Edit Mode layout (Hud.StoryTracker), with RestedXP loaded.
 --
 --   local Lumen = dofile("Tools/render/scenes/_lumen.lua")
 --   local scene = Lumen.Build("questing")     -- or "combat"; Lumen.Build(state, { layout = "Tank" })
@@ -61,9 +61,12 @@ Lumen.BOSS = {
 	name = "Bloodtalon Matriarch", level = 38, classification = "elite", health = 3720, healthMax = 6000,
 	power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, threatOn = 3,
 	cast = { name = "Terrifying Screech", texture = 136184, start = 9000, finish = 12500, spellID = 4321 },
+	-- The boss's plate stands left of the boss column, which moved 75 units in beside the quest card (KSTY-33).
+	plateX = 900,
 }
 
--- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }) and its story slot
+-- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }), its story slot and the
+-- quest card's column beside the guide's card
 -- in screen units ({ left, top, width, height }, y down from the top), from the addon's own Setup.Layouts. The scenes
 -- render at the Interface size KstyleUI ships, where the root is Layouts.HEIGHT units tall on the screen's 1080.
 function Lumen.Preset(layout)
@@ -74,8 +77,13 @@ function Lumen.Preset(layout)
 	local rootHeight = Layouts.HEIGHT
 	local slot = Layouts.Slot(layout, rootHeight)
 	local k = HEIGHT / rootHeight
-	local l, _, r, t = Layouts.Rect(slot, slot, rootHeight * Common.SCREEN.width / Common.SCREEN.height, rootHeight)
-	return settings, { left = l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = slot.height * k }, slot, Layouts.Sizes(layout)
+	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
+	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
+	local function Screen(spec)
+		local l, _, r, t = Layouts.Rect(spec, spec, rootHeight * width / Common.SCREEN.height, rootHeight)
+		return { left = origin + l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = spec.height * k }
+	end
+	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(Layouts.Story(layout, rootHeight, true).quests)
 end
 
 -- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,
@@ -137,7 +145,7 @@ end
 function Lumen.Build(state, opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
-	local settings, slot, _, sizes = Lumen.Preset(layout)
+	local settings, slot, _, sizes, column = Lumen.Preset(layout)
 	local _, spec = Hud.Class(opts)
 	local damage = {}
 	for i, row in ipairs(Lumen.DAMAGE[state]) do
@@ -174,11 +182,9 @@ function Lumen.Build(state, opts)
 	end
 	local scenes, log = {}, {}
 	base.trackerAnchor = Hud.StoryTracker(layout, true)
-	-- Apply placed the tracker under the guide, so the skin docks the quests into the guide's card: the guide's
-	-- glass runs down to the quests' foot, its footer hugs the quests' cap and the tracker's own glass yields
-	-- (Rail.Place does this in the game from the tracker's Edit Mode anchor; the two modules render in separate
-	-- environments, so the restedxp module docks to a stand-in for the tracker skin's fit frame).
-	base.trackerDocked = base.trackerAnchor ~= nil
+	-- RestedXP is loaded, so the guide's card holds the story slot and the quests stand in their own column beside
+	-- it (KSTY-33): the two cards render in separate environments and need nothing from each other.
+	base.withGuide = true
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
@@ -269,31 +275,7 @@ function Lumen.Build(state, opts)
 	end
 	Hud.layoutElements = nil
 	Hud.ornamentRows = nil
-	local function Dock()
-		local tracker = built.tracker
-		local env = Hud.envs[tracker.scene]
-		local card = tracker.ns.Quests.Fit()
-		base.dockCard = card ~= nil
-		local fit = card or tracker.ns.Tracker.Fit()
-		local _, top, _, height = Scene.Rect(env, fit)
-		base.dockBottom = top and (HEIGHT - (top + height)) or nil
-		base.dockTop = top and (HEIGHT - top) or nil
-	end
-	if base.trackerDocked and built.tracker then
-		Dock()
-	end
 	local guide, R = Hud.Module("restedxp", base)
-	-- With the quest card docked, the rail starts the guide at the slot's top and the card follows the guide's foot
-	-- (Rail.Place -> Quests.Under); the two render in separate environments, so the card is drawn again at the foot
-	-- the rail reported, and the guide docks to it.
-	if base.dockCard and R.under then
-		base.cardUnder = R.under
-		local scene, ns, extra = Hud.Module("tracker", base)
-		scenes[at.tracker] = scene
-		built.tracker = { scene = scene, ns = ns, extra = extra }
-		Dock()
-		guide, R = Hud.Module("restedxp", base)
-	end
 	table.insert(scenes, 1, guide)
 	if state == "combat" then
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))
@@ -306,11 +288,12 @@ function Lumen.Build(state, opts)
 		merged.elements = Lumen.Elements(built)
 	end
 	merged.slot = slot
+	merged.column = column
 	merged.state = state
 	merged.layout = layout
 	merged.log[#merged.log + 1] = "lumen: the " .. layout .. " layout " .. (state == "combat" and "in combat, the combat calm on" or "out of combat")
 		.. "; the story slot (" .. math.floor(slot.left) .. ", " .. math.floor(slot.top) .. ", " .. math.floor(slot.width) .. " by "
-		.. math.floor(slot.height) .. ") holds the guide where the skin's rail puts it and the tracker at Apply's Edit Mode anchor"
+		.. math.floor(slot.height) .. ") holds the guide's card where the skin's rail puts it, and the quests stand in their own column beside it"
 	for _, line in ipairs(log) do
 		merged.log[#merged.log + 1] = line
 	end

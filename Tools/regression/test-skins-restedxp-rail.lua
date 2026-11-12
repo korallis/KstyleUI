@@ -1,4 +1,4 @@
--- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the story slot's top on the rail's edge and width as one card (cap, steps, route row), the whole slot its own while it is alone and the upper half while Blizzard's tracker holds the lower, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, docks the quests into its card when Apply placed them under it, and keeps the rail's placement out of RestedXP's saved settings.
+-- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the top of its own Layout element, the story slot, on the rail's edge and width as one card (cap, steps, route row), with the quests in a column of their own beside it, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, never reaches into the quests, and keeps the rail's placement out of RestedXP's saved settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -71,22 +71,25 @@ local function Clean(env, K, rxp)
 	end
 end
 
--- A guide on its own has the whole story slot (the Captain's ruling, 2026-11-10: the halves apply only while the
--- quests share the slot): one card on the rail's left edge and width, hanging from the slot's top, the cap over
--- the steps and the route row under them, RestedXP's window folded to its 28-unit floor behind them, the list folded.
+-- The guide's card is its own Layout element, the whole story slot (KSTY-33, the Captain's ruling on the Fable audit:
+-- two cards, two Layout elements); the quests stand in a column of their own a rail gap to its left, at the same top.
+-- One card on the rail's left edge and width, hanging from the slot's top, the cap over the steps and the route row
+-- under them, RestedXP's window folded to its 28-unit floor behind them, the list folded.
 
 do
 	local env, K, ns, rxp = Boot()
 	local f = rxp.RXPFrame
 	rxp.SetStep(2)
 	env.RunTimers()
-	local story = K.Setup.Story("DPS", true, true)
-	local halves = K.Setup.Story("DPS", true)
+	local story = K.Setup.Story("DPS", true)
+	local rw, rh = K.Layout.RootSize()
+	local slot = K.Setup.Layouts.Slot("DPS", rh)
+	local sl, sb, sr, st = K.Setup.Layouts.Rect(slot, slot, rw, rh)
 	local band = story.guide
-	assert(band.top == story.story.top and band.bottom == story.story.bottom and story.tracker == nil, "alone, Setup.Story gives the guide the whole slot and the tracker no band")
-	assert(halves.guide.top == story.story.top and near(halves.guide.bottom - halves.tracker.top, 16) and halves.tracker.bottom == story.story.bottom, "with the quests it gives the guide the upper half, one rail gap over the tracker's")
-	local railStory = ns.RestedXP.Rail.Story()
-	assert(railStory.tracker == nil and railStory.guide.bottom == band.bottom, "the rail asks for the whole slot while nothing shares it")
+	local px = K.Scale.Pixel(1) + 0.01
+	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st, px) and near(band.bottom, sb, px), "the guide's element is the whole story slot")
+	assert(K.Layout.Get("skins.guide") ~= nil, "a Layout element of its own, with its own mover")
+	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, band.top, px), "the quests' column stands a rail gap to its left, at the same top")
 	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")
@@ -130,7 +133,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 	rxp.SetStep(2, 2)
 	env.RunTimers()
 	assert(K.Layout.Setting("preset") == preset and ns.RestedXP.Rail.Placed(), preset .. ": the rail places the guide for the layout")
-	local slot = K.Setup.Story(preset, true, true).story
+	local slot = K.Setup.Story(preset, true).guide
 	local card = Rect(K, Glass(K, f))
 	assert(near(card.top, slot.top, 0.01) and near(card.left, slot.left, 0.01) and near(card.right, slot.right, 0.01), preset .. ": the card is on the slot's top and edges, got " .. card.left .. " to " .. card.right .. " at " .. card.top)
 	assert(card.bottom >= slot.bottom - 0.5, preset .. ": and ends inside the slot, got " .. card.bottom .. " for " .. slot.bottom)
@@ -281,125 +284,6 @@ do
 	local bottom = select(5, f.ScrollFrame:GetPoint(2))
 	local clear = K.Widgets.Snap(f.ScrollFrame, 6 + K.Tokens.Size("gapSmall"))
 	assert(math.abs(bottom - clear) < 0.01, "and ends a gap above the footer, which covers the list's last 6 units, so no row overprints it, got " .. tostring(bottom))
-	Clean(env, K, rxp)
-end
-
--- Docking the quests (round 3, Grok and Muse: one story rail): when Apply's Edit Mode layout holds the tracker
--- under the guide, the guide's card runs down to the tracker glass's foot and the tracker's own glass yields, so
--- the rail reads as one card with two caps; a tracker the player moved keeps its own glass; the setting turns
--- it off; an Edit Mode change re-checks.
-
-local function TrackerStandIn(env, B)
-	local StandIn = dofile("Tools/render/scenes/_tracker.lua")
-	return StandIn.StandIn(env, B, StandIn.QUESTS)
-end
-
-local function BootWithTracker(place)
-	local rxp, tracker
-	local env, K, ns = S.New({
-		saved = Sized(16 / 19),
-		setup = function(env)
-			rxp = Fake.Install(env, {})
-		end,
-		before = function(env, K)
-			tracker = TrackerStandIn(env, S.Blizzard(env))
-			if place then
-				local story = K.Setup.Story("DPS", true)
-				local at = K.Setup.EditMode.TrackerPlace(story.tracker)
-				local scale = K.Widgets.ScaleFactor(tracker)
-				tracker:ClearAllPoints()
-				tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", at.x / scale + (place.dx or 0), at.y / scale + (place.dy or 0))
-			end
-		end,
-	})
-	K.Modules.Enable("Skins")
-	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
-	env.RunTimers()
-	booted.ns = ns
-	return env, K, ns, rxp, tracker
-end
-
-do
-	local env, K, ns, rxp, tracker = BootWithTracker({})
-	local f = rxp.RXPFrame
-	assert(ns.Skins.IsApplied("tracker") and ns.RestedXP.Rail.Placed(), "both skins are on and the guide is placed")
-	assert(ns.RestedXP.Rail.Docked() and ns.Tracker.Docked(), "with the tracker at Apply's anchor the quests dock into the guide's card")
-	local trackerGlass = K.Skin.Parts(tracker).backdrop
-	assert(trackerGlass and not trackerGlass:IsShown(), "the tracker's own glass yields")
-	local card = ns.RestedXP.Chrome.Card(f)
-	local bottom = card._points[3]
-	assert(bottom[1] == "BOTTOM" and bottom[2] == ns.Tracker.Fit(), "the card's foot follows the tracker skin's fit frame")
-	assert(near(bottom[5], -K.Widgets.Snap(card, 8), 0.01), "down to where the tracker's glass ended, 8 under the fit, got " .. tostring(bottom[5]))
-	local glass = Rect(K, Glass(K, f))
-	local quests = Rect(K, ns.Tracker.Fit())
-	assert(glass.bottom <= quests.bottom + 0.5, "one glass from the cap to the quests' foot")
-	-- Docked, the guide hugs the quests (round 4, Muse #3): its footer sits one small gap above the tracker band's
-	-- top, where the QUESTS cap starts (Apply anchors the tracker frame 34 units higher, for Blizzard's hidden
-	-- container header), instead of on the guide band's foot a story gap higher, so the card has no hollow band
-	-- between the guide's footer and the quests' cap.
-	local story = K.Setup.Story("DPS", true)
-	assert(ns.RestedXP.Rail.Story().tracker ~= nil, "with Blizzard's tracker in the slot the rail asks for the halves")
-	local guideFoot = Rect(K, f.GuideName).bottom
-	local capTop = story.tracker.top
-	assert(near(guideFoot, capTop + K.Tokens.Size("gapSmall"), 1), "docked, the guide's last row, the route row, sits one small gap above the quests' cap, got " .. guideFoot .. " for a cap at " .. capTop)
-	assert(guideFoot < story.guide.bottom - 4, "lower than the guide band's foot, got " .. guideFoot .. " for " .. story.guide.bottom)
-	assert(Rect(K, Glass(K, f)).top <= story.story.top + 0.5, "and its card starts inside the slot")
-	-- The setting turns it off: two cards again, and the guide back on its band's foot.
-	K.Options.Write("Skins", "restedXP.dock", false)
-	env.RunTimers()
-	assert(not ns.RestedXP.Rail.Docked() and not ns.Tracker.Docked() and trackerGlass:IsShown(), "with the setting off the tracker keeps its own glass")
-	assert(card._points[3][2] == f, "and the card ends at RestedXP's window")
-	assert(near(Rect(K, Glass(K, f)).top, story.guide.top), "undocked, the guide hangs from the slot's top again")
-	K.Options.Write("Skins", "restedXP.dock", true)
-	env.RunTimers()
-	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "on again, docked again")
-	-- The tracker's glass setting off means nothing to dock to.
-	K.Options.Write("Skins", "tracker.panel", false)
-	env.RunTimers()
-	ns.RestedXP.Rail.Place()
-	assert(not ns.RestedXP.Rail.Docked(), "with the tracker's glass off there is no dock")
-	K.Options.Write("Skins", "tracker.panel", true)
-	env.RunTimers()
-	ns.RestedXP.Rail.Place()
-	assert(ns.RestedXP.Rail.Docked())
-	-- The player moves the tracker in Edit Mode: the layouts update, and the guide lets it keep its own glass.
-	tracker:ClearAllPoints()
-	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", 600, 500)
-	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
-	env.RunTimers()
-	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a tracker moved out of the slot undocks")
-	tracker:ClearAllPoints()
-	story = K.Setup.Story("DPS", true)
-	local at = K.Setup.EditMode.TrackerPlace(story.tracker)
-	local scale = K.Widgets.ScaleFactor(tracker)
-	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", at.x / scale, at.y / scale)
-	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
-	env.RunTimers()
-	assert(ns.RestedXP.Rail.Docked(), "back in the slot, docked")
-	-- RestedXP hides its guide (the player's hide key, a hidewindow step): the card goes with it, so the tracker
-	-- gets its own glass back at once, and docks again when the guide shows (round 3, Codex review).
-	rxp.fake.close(f)
-	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a hidden guide undocks the quests")
-	rxp.fake.open(f)
-	env.RunTimers()
-	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "and a shown guide docks them again")
-	-- The rail off undocks too.
-	K.Options.Write("Skins", "restedXP.rail", false)
-	env.RunTimers()
-	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "the rail off gives the tracker its glass back")
-	Clean(env, K, rxp)
-end
-
-do
-	local env, K, ns, rxp, tracker = BootWithTracker({ dx = 40 })
-	assert(ns.RestedXP.Rail.Placed() and not ns.RestedXP.Rail.Docked(), "a tracker 40 units off Apply's anchor is the player's: no dock")
-	assert(K.Skin.Parts(tracker).backdrop:IsShown(), "it keeps its own glass")
-	Clean(env, K, rxp)
-end
-
-do
-	local env, K, ns, rxp = BootWithTracker(nil)
-	assert(ns.RestedXP.Rail.Placed() and not ns.RestedXP.Rail.Docked(), "a tracker at Forever's preset, top right, does not dock")
 	Clean(env, K, rxp)
 end
 

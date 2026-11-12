@@ -128,13 +128,13 @@ local function Clean(env, K)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
--- The card off: the tracker skin and the RestedXP dock, the owner's second in-game test. The selection keeps its rect
--- before, through and after the drag, and the guide's card still docks once the layout saves.
+-- The card off: the tracker skin beside the RestedXP guide, the owner's second in-game test. The selection keeps its
+-- rect before, through and after the drag, and the tracker keeps its own glass beside the guide's card.
 
 do
 	local env, K, ns, tracker = Boot({ saved = { version = 2, profiles = { Default = { Skins = { enabled = true, quests = { enabled = false } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
 	assert(not ns.Quests.Active() and tracker:IsVisible(), "the card is off; Blizzard's tracker shows")
-	assert(ns.Skins.IsApplied("tracker") and ns.RestedXP.Rail.Docked(), "the tracker skin is on and the guide docks over it")
+	assert(ns.Skins.IsApplied("tracker") and ns.RestedXP.Rail.Placed() and K.Skin.Parts(tracker).backdrop:IsShown(), "the tracker skin is on beside the guide's card, with its own glass")
 	assert(pcall(Sides, tracker), "at rest the selection has a rect")
 	Enter(env)
 	Drag(env, K, tracker, 24)
@@ -143,7 +143,7 @@ do
 	Place(env, K, tracker, true)
 	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
 	env.RunTimers()
-	assert(ns.RestedXP.Rail.Docked(), "back in the slot, the guide docks again")
+	assert(ns.RestedXP.Rail.Placed() and K.Skin.Parts(tracker).backdrop:IsShown(), "back in its column, the tracker keeps its own glass and the guide its card")
 	Clean(env, K)
 end
 
