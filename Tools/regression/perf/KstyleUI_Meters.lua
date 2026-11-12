@@ -25,4 +25,28 @@ return {
 			end
 		end,
 	},
+	{
+		name = "Meters damage refresh, raid of twenty",
+		budget = 2000,
+		setup = function()
+			local env, K = M.New()
+			env._group = { raid = true, size = 20 }
+			env._units.player.guid = "Player-14"
+			local sources = {}
+			for i = 1, 20 do
+				sources[i] = {
+					name = "Raider" .. i, classFilename = "WARRIOR", totalAmount = 4000 - i * 100, amountPerSecond = 400 - i * 10,
+					sourceGUID = "Player-" .. i, sourceDisplayType = 1, isLocalPlayer = i == 14, deathRecapID = 0, deathTimeSeconds = 0,
+				}
+			end
+			env._session = { combatSources = sources, maxAmount = 3900, totalAmount = 50000, durationSeconds = 30 }
+			M.Enable(env, K)
+			env.RunTimers()
+			local fire = Perf.Event(env, "DAMAGE_METER_COMBAT_SESSION_UPDATED", 0, 4)
+			return env, function()
+				fire()
+				env.RunTimers()
+			end
+		end,
+	},
 }

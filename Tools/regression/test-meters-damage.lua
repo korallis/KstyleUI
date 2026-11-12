@@ -65,7 +65,8 @@ do
 	local name = { row.name:GetPoint(2) }
 	assert(name[1] == "RIGHT" and name[2] == row.value and name[3] == "LEFT", "the name stops before the value, so a long name never runs under it")
 	assert(M.W.Near(row.bar:GetHeight(), row.frame:GetHeight()), "the bar is as tall as the row")
-	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth()), "the bar spans the row")
+	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth() - row.frame:GetHeight() - 2), "the bar spans the row after the icon square and its 2-unit gap")
+	assert(select(2, row.name:GetPoint(1)) == row.bar, "the name starts inside the fill, after the icon")
 	assert(row.edge == nil and row.glow == nil, "no separate edge line and no glow ride on the bar")
 	for _, region in ipairs(row.frame._regions or {}) do
 		local blend = M.Last(region, "SetBlendMode")
@@ -97,7 +98,7 @@ assert(Text(list.rows[1].percent) == "57%" and Text(list.rows[1].dot) == "\194\1
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
 assert(M.Last(list.rows[2].bar, "SetValue")[1] == 2160, "each bar shows its source's amount")
-assert(Text(list.title) == "DAMAGE", "the cap names the meter, not the source")
+assert(tostring(Text(list.title)):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") == "DAMAGE  HEALING", "the cap is the damage and healing switch, not the source")
 
 -- Session updates refresh the rows once per burst.
 env._session = Session({ Source("Kragar", "WARRIOR", 3000, 30), Source("Tester", "HUNTER", 3000, 30), Source("Sylaen", "PRIEST", 900, 9) }, 3000, 6900)

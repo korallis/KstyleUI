@@ -6,7 +6,7 @@ local L = K.L
 local Logic = ns.Logic
 
 local KEY = "meters.damage"
-local UPDATE_DELAY = 0.3
+local UPDATE_DELAY = 0.5
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
@@ -21,12 +21,18 @@ local Damage = { section = "damage", key = KEY, combat = false, view = 1, filled
 ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
+local max, min = math.max, math.min
 local drill = { active = false }
 local TOOLTIP_SPELLS = 3
 local SWITCH_GAP = "  "
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
+local FAMILY = { DamageDone = "HealingDone", Dps = "Hps", HealingDone = "DamageDone", Hps = "Dps" }
+local HEALING = { HealingDone = true, Hps = true }
+local CLASS_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
+local order = {}
+local classIcons = {}
 
 local function HideBlizzard()
 	local meter = _G.DamageMeter
@@ -173,11 +179,14 @@ local function Fight()
 	return types and types[session], nil, nil
 end
 
+local switchWords, switchShort = {}, {}
+
 local function Switch(list, name)
 	local session = ns.Get("damage.session")
-	local words, short, selected = {}, {}, 1
+	local words, short, selected = switchWords, switchShort, 1
 	for i, key in ipairs(SESSION_ORDER) do
 		words[i] = SESSION_WORDS[key]
+		short[i] = nil
 		if key == session then
 			selected = i
 		end
@@ -209,12 +218,17 @@ local function Slot(i)
 	return slot
 end
 
+local function Own(call)
+	local ok, value = pcall(call, PLAYER)
+	return ok and PlainString(value) or nil
+end
+
 local function Remember(i, source, reaction, deaths)
 	local slot = Slot(i)
-	local guid = source.sourceGUID
-	slot.guid = PlainString(guid)
+	local own = source.isLocalPlayer == true
+	slot.guid = PlainString(source.sourceGUID) or (own and Own(UnitGUID) or nil)
 	slot.creature = Logic.Plain(source.sourceCreatureID)
-	slot.name = PlainString(source.name)
+	slot.name = PlainString(source.name) or (own and Own(UnitName) or nil)
 	slot.class = source.classFilename
 	slot.reaction = reaction
 	slot.ok = not deaths and slot.name ~= nil and (slot.guid ~= nil or slot.creature ~= nil)
@@ -236,6 +250,126 @@ local function RateOf(sources, info, guid)
 	return nil
 end
 
+local function Entries(entries)
+	local n = 0
+	while Readable(entries[n + 1]) do
+		n = n + 1
+	end
+	return n
+end
+
+local function Amount(entry, info)
+	if info.perSecond then
+		return entry.amountPerSecond
+	end
+	return entry.totalAmount
+end
+
+local function Order(entries, n, info)
+	for i = 1, n do
+		order[i] = i
+	end
+	for i = #order, n + 1, -1 do
+		order[i] = nil
+	end
+	if info.deaths then
+		return
+	end
+	for i = 1, n do
+		if not Logic.Plain(Amount(entries[i], info)) then
+			return
+		end
+	end
+	for i = 2, n do
+		local k = order[i]
+		local amount = Amount(entries[k], info)
+		local j = i - 1
+		while j >= 1 and Amount(entries[order[j]], info) < amount do
+			order[j + 1] = order[j]
+			j = j - 1
+		end
+		order[j + 1] = k
+	end
+end
+
+local function Window(list, n, pinned)
+	local capacity = list.capacity or 0
+	if Damage.offsetView ~= Damage.view then
+		Damage.offsetView = Damage.view
+		Damage.offset = 0
+	end
+	local room = capacity
+	local first = max(0, min(Damage.offset or 0, n - room))
+	local pin = pinned ~= nil and capacity >= 2 and (pinned <= first or pinned > first + room)
+	if pin then
+		room = capacity - 1
+		first = max(0, min(Damage.offset or 0, n - room))
+		pin = pinned <= first or pinned > first + room
+		if not pin then
+			room = capacity
+		end
+	end
+	Damage.offset, Damage.top = first, max(0, n - room)
+	return first, max(0, min(room, n - first)), pin
+end
+
+local function ClassIcon(class)
+	if IsSecret(class) or type(class) ~= "string" or class == "" then
+		return nil
+	end
+	local icon = classIcons[class]
+	if icon == nil then
+		icon = false
+		local atlas = type(GetClassAtlas) == "function" and GetClassAtlas(class) or ("classicon-" .. class)
+		local atlases = C_Texture
+		local ok, found = false, nil
+		if atlases and type(atlases.GetAtlasInfo) == "function" then
+			ok, found = pcall(atlases.GetAtlasInfo, atlas)
+		end
+		if ok and found then
+			icon = { atlas = atlas }
+		elseif type(CLASS_ICON_TCOORDS) == "table" and type(CLASS_ICON_TCOORDS[class]) == "table" then
+			icon = { coords = CLASS_ICON_TCOORDS[class] }
+			ns.LogOnce("classAtlas", "the class icon atlas is missing; the meter uses the class icon texture")
+		end
+		classIcons[class] = icon
+	end
+	return icon or nil
+end
+
+local function SetClassIcon(list, i, class)
+	local icon = ClassIcon(class)
+	if not icon then
+		list:SetRowIcon(i)
+	elseif icon.atlas then
+		list:SetRowIcon(i, nil, icon.atlas)
+	else
+		local c = icon.coords
+		list:SetRowIcon(i, CLASS_TEXTURE, nil, c[1], c[2], c[3], c[4])
+	end
+end
+
+local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, rank)
+	local display = source.sourceDisplayType
+	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
+	Remember(i, source, reaction, info.deaths)
+	local name = source.name
+	if rank then
+		name = rank .. ". " .. name
+	end
+	if info.deaths then
+		list:SetRow(i, name, source.classFilename, reaction, 1, 1, DeathText(source), "")
+	else
+		local amount = source.totalAmount
+		if not Present(amount) then
+			amount = 0
+		end
+		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
+		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, Logic.Abbreviate(Amount(source, info)), percentText)
+	end
+	SetClassIcon(list, i, source.classFilename)
+end
+
 local function FillSources(list, info, session)
 	local sources = session.combatSources
 	if not Readable(sources) then
@@ -249,32 +383,24 @@ local function FillSources(list, info, session)
 	local percent = ns.Get("damage.percent") and not info.deaths
 	local displays = Enum and Enum.DamageMeterSourceDisplayType
 	local enemy = displays and displays.Enemy
-	local count = 0
 	list:SetRest(RateOf(sources, info))
-	for i = 1, list.capacity or 0 do
-		local source = sources[i]
-		if not Readable(source) then
+	local n = Entries(sources)
+	Order(sources, n, info)
+	local mine
+	for p = 1, n do
+		if sources[order[p]].isLocalPlayer == true then
+			mine = p
 			break
 		end
-		count = i
-		local display = source.sourceDisplayType
-		local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
-		Remember(i, source, reaction, info.deaths)
-		local amount = source.totalAmount
-		if not Present(amount) then
-			amount = 0
-		end
-		if info.deaths then
-			list:SetRow(i, source.name, source.classFilename, reaction, 1, 1, DeathText(source), "")
-		else
-			local shown = source.totalAmount
-			if info.perSecond then
-				shown = source.amountPerSecond
-			end
-			local valueText = Logic.Abbreviate(shown)
-			local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
-			list:SetRow(i, source.name, source.classFilename, reaction, amount, maxAmount, valueText, percentText)
-		end
+	end
+	local first, shown, pin = Window(list, n, mine)
+	for i = 1, shown do
+		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy)
+	end
+	local count = shown
+	if pin then
+		count = shown + 1
+		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, mine)
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -327,14 +453,6 @@ local function Context()
 	return info, meterType, sessionType, sessionID, name
 end
 
-local function SpellShown(spell, info)
-	local shown = spell.totalAmount
-	if info.perSecond then
-		shown = spell.amountPerSecond
-	end
-	return shown
-end
-
 local function RowTooltip(tip, list, i)
 	if drill.active and i <= (list.count or 0) then
 		tip:AddLine(L["Click to go back to every source."])
@@ -368,7 +486,7 @@ local function RowSplit(split, list, i)
 			break
 		end
 		listed = n
-		local right = Logic.Abbreviate(SpellShown(spell, info))
+		local right = Logic.Abbreviate(Amount(spell, info))
 		if percent then
 			right = right .. SWITCH_GAP .. Logic.FormatPercent(Logic.Percent(spell.totalAmount, total))
 		end
@@ -421,20 +539,18 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 		list:SetRest(RateOf(session.combatSources, info, not who.own and who.guid or nil))
 	end
 	local percent = ns.Get("damage.percent")
-	local count = 0
-	for i = 1, list.capacity or 0 do
-		local spell = spells[i]
-		if not Readable(spell) then
-			break
-		end
-		count = i
+	local n = Entries(spells)
+	Order(spells, n, info)
+	local first, count = Window(list, n)
+	for i = 1, count do
+		local spell = spells[order[first + i]]
 		local amount = spell.totalAmount
 		if not Present(amount) then
 			amount = 0
 		end
-		local shown = SpellShown(spell, info)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, nil, Logic.SchoolToken(spell.spellID))
+		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText, nil, Logic.SchoolToken(spell.spellID))
+		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -473,7 +589,13 @@ local function Refresh()
 	end
 	local own = not drill.active and IsInGroup() ~= true and OwnSource(info) or nil
 	Damage.resting = own ~= nil
-	list:SetTitle(drill.active and drill.name or info.cap or info.label)
+	if drill.active then
+		list:SetTitle(drill.name)
+	elseif FAMILY[info.value] then
+		list:SetTitleSwitch(L["Damage"], L["Healing"], HEALING[info.value] and 2 or 1)
+	else
+		list:SetTitle(info.cap or info.label)
+	end
 	Switch(list, name)
 	if sessionType == nil and sessionID == nil then
 		list:Finish(0, L["No earlier fight yet"])
@@ -581,7 +703,8 @@ local function Tooltip(tip)
 		tip:AddLine(L["Click to go back to every source."])
 		return
 	end
-	tip:AddLine(L["Click a name for its spells. Click the title for the next meter."])
+	tip:AddLine(L["Click a name for its spells. Click the card for the next meter."])
+	tip:AddLine(L["Scroll for more names."])
 	tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
 end
 
@@ -595,6 +718,40 @@ local function SwitchTooltip(tip)
 			tip:AddLine(L["No earlier fight yet"])
 		end
 	end
+end
+
+local function OnTitle(_, button)
+	if drill.active then
+		Back()
+		Refresh()
+		return
+	end
+	if button == "RightButton" then
+		K.Options.Write(ns.MODULE, "damage.session", NextSession())
+		return
+	end
+	K.Options.Write(ns.MODULE, "damage.meter", FAMILY[Info().value] or "DamageDone")
+end
+
+local function TitleTooltip(tip)
+	if drill.active then
+		tip:AddLine(L["Click to go back to every source."])
+		return
+	end
+	tip:AddLine(L["Click to show damage or healing."])
+end
+
+local function OnWheel(_, delta)
+	local top = Damage.top or 0
+	local offset = max(0, min(top, (Damage.offset or 0) + (delta > 0 and -1 or 1)))
+	if offset ~= Damage.offset then
+		Damage.offset = offset
+		Refresh()
+	end
+end
+
+local function Icons()
+	return ns.Get("damage.icons") == true
 end
 
 local function OnSwitch()
@@ -611,6 +768,7 @@ local function Build()
 		key = KEY, width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
 		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
+		onTitle = OnTitle, titleTooltip = TitleTooltip, onWheel = OnWheel, icons = Icons,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)
