@@ -96,6 +96,7 @@ function M.Handles(captured)
 	local out = {}
 	local bars = captured.databars and captured.databars.ns.Bars
 	for id, view in pairs(bars and bars.views or {}) do
+		if not view.ornament then break end
 		out["databars." .. id] = { handle = view.ornament, own = function(region, item)
 			local own = under(region, view.track) or under(region, view.fill)
 			if own and tostring(item.file or ""):find("Shadow%.png$") then return "exempt" end
@@ -399,7 +400,7 @@ function M.States(screens, title)
 		end
 		return value
 	end)
-	local total, cases, sizes = 0, 0, {}
+	local cases = 0
 	for _, screen in ipairs(screens) do
 		for _, level in ipairs({ "Subtle", "Full" }) do
 			for _, state in ipairs({ "empty", "rested", "full", "rep", "hover" }) do
@@ -412,35 +413,17 @@ function M.States(screens, title)
 				local K, ns = captured.K, captured.ns
 				assert(K.Widgets.Setting("ornaments") == level, label .. ": the level is " .. level)
 				local shown = state == "rep" and "rep" or "xp"
-				assert(ns.Bars.views[shown].ornament.used >= 2, label .. ": the " .. shown .. " bar places pieces")
+				assert(ns.Bars.views[shown].content:IsShown(), label .. ": the " .. shown .. " bar shows")
 				if state == "hover" then
-					assert(ns.Bars.views.rep.plate:IsShown() and ns.Bars.views.rep.ornament.used == 0, label .. ": the hovered reputation bar shows its label's plate on its line and draws no ornament")
+					assert(ns.Bars.views.rep.plate:IsShown(), label .. ": the hovered reputation bar shows its label's plate on its line")
 				end
-				total = total + M.Check(scene, M.Handles({ databars = { ns = ns } }), screen[2] / 1080, label, K.Widgets.OrnamentInk)
 				for id, view in pairs(ns.Bars.views) do
-					local h, w, rects = M.EndSize(scene, view.ornament)
-					local above, below = M.RailSides(scene, view.ornament)
-					M.CapShare(scene, view.ornament, label, screen[2] / 1080)
-					M.NotSmaller(sizes, string.format("databars.%s %s %dx%d", id, state, screen[1], screen[2]), level, h, w, label, above, below, rects)
-				end
-				if state == "rep" then
-					local view, px = ns.Bars.views.rep, screen[2] / 1080
-					local top, bottom, mine = math.huge, -math.huge, {}
-					for i = 1, view.ornament.used do mine[view.ornament.textures[i]] = true end
+					assert(view.ornament == nil, label .. ": the " .. id .. " bar owns no ornament")
 					for _, item in ipairs(scene.items) do
-						if under(item.object, view.track.borderFrame) then
-							top, bottom = math.min(top, item.rect[2] * px), math.max(bottom, (item.rect[2] + item.rect[4]) * px)
+						if under(item.object, view.holder) then
+							assert(not file(item), label .. ": no forged ornament piece, not " .. tostring(file(item)))
 						end
 					end
-					local rails = 0
-					for _, item in ipairs(scene.items) do
-						if mine[item.object] and tostring(item.file):find("/Rail%d+%.png$") then
-							local t, b = item.rect[2] * px, (item.rect[2] + item.rect[4]) * px
-							assert(math.abs(b - top) < 1e-3 or math.abs(t - bottom) < 1e-3, string.format("%s: the reputation bar's rail [%.1f %.1f] lies flush on its border [%.1f %.1f]", label, t, b, top, bottom))
-							rails = rails + 1
-						end
-					end
-					assert(rails == 2, label .. ": the reputation bar draws a rail above and below, not " .. rails)
 				end
 				cases = cases + 1
 				collectgarbage("collect")
@@ -448,7 +431,39 @@ function M.States(screens, title)
 		end
 	end
 	rawset(_G, "dofile", originalDo)
-	print("ok data bar states " .. title .. ": " .. cases .. " cases, " .. total .. " pieces keep 1 px of ink from all other content")
+	print("ok data bar states " .. title .. ": " .. cases .. " cases, no ornament piece on the data bars")
+end
+
+-- NoBarPieces(cases, title) builds the reference HUD for each case and checks that nothing under a data bar draws a
+-- forged ornament piece: since the overhaul (KSTY-44 bible 3.4) the data bars are clean bars.
+function M.NoBarPieces(cases, title)
+	local captured, release = M.Capture()
+	local Reference = dofile("Tools/render/scenes/_reference.lua")
+	local saved, oldLevel, savedFaction = Reference.SCREEN, rawget(_G, "RENDER_ORNAMENTS"), Reference.STATE.game.faction
+	for _, case in ipairs(cases) do
+		rawset(_G, "RENDER_ORNAMENTS", case.level)
+		Reference.SCREEN = { width = case.screen[1], height = case.screen[2], uiScale = saved.uiScale }
+		Reference.STATE.game.faction = case.faction and M.FACTION or savedFaction
+		for name in pairs(captured) do captured[name] = nil end
+		local scene = Reference.Build({ layout = case.layout, modules = case.modules })
+		local label = string.format("%s %s %dx%d", case.level, case.layout, case.screen[1], case.screen[2])
+		local bars = captured.databars and captured.databars.ns.Bars
+		assert(bars and captured.databars.env.KstyleUI.Widgets.Setting("ornaments") == case.level, label .. ": the level is " .. case.level)
+		for id, view in pairs(bars.views) do
+			assert(view.ornament == nil, label .. ": the " .. id .. " bar owns no ornament")
+			for _, item in ipairs(scene.items) do
+				if under(item.object, view.holder) then
+					assert(not file(item), label .. ": the " .. id .. " bar draws no forged ornament piece, not " .. tostring(file(item)))
+				end
+			end
+		end
+		collectgarbage("collect")
+	end
+	Reference.SCREEN = saved
+	Reference.STATE.game.faction = savedFaction
+	rawset(_G, "RENDER_ORNAMENTS", oldLevel)
+	release()
+	print("ok " .. title .. ": " .. #cases .. " cases, no ornament piece on the data bars")
 end
 
 return M
