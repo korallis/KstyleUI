@@ -8,7 +8,7 @@ local MODULE = "ActionBars"
 
 ns.bars = {}
 ns.actionButtons, ns.petButtons, ns.stanceButtons = {}, {}, {}
-ns.running, ns.enabling, ns.gamepad, ns.grid = false, false, false, 0
+ns.running, ns.enabling, ns.gamepad, ns.grid, ns.layout = false, false, false, 0, false
 
 function ns.Config(key)
 	return K.Store.Module(MODULE)[key]
@@ -234,9 +234,7 @@ end
 local grids = { ACTIONBAR_SHOWGRID = "action", ACTIONBAR_HIDEGRID = "action", PET_BAR_SHOWGRID = "pet", PET_BAR_HIDEGRID = "pet" }
 local gridShown = { action = false, pet = false }
 
-local function OnGrid(event)
-	gridShown[grids[event]] = event == "ACTIONBAR_SHOWGRID" or event == "PET_BAR_SHOWGRID"
-	ns.grid = (gridShown.action or gridShown.pet) and 1 or 0
+local function RefreshShown()
 	EachButton(ns.Button.UpdateAlpha)
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
@@ -244,6 +242,32 @@ local function OnGrid(event)
 			bar:RefreshFade()
 		end
 	end
+end
+
+local function OnGrid(event)
+	gridShown[grids[event]] = event == "ACTIONBAR_SHOWGRID" or event == "PET_BAR_SHOWGRID"
+	ns.grid = (gridShown.action or gridShown.pet) and 1 or 0
+	RefreshShown()
+end
+
+local layoutHooked = false
+
+local function OnLayoutMode()
+	local on = ns.running and K.Layout.IsActive() == true
+	if on ~= ns.layout then
+		ns.layout = on
+		RefreshShown()
+	end
+end
+
+local function HookLayoutMode()
+	local Layout = K.Layout
+	if layoutHooked or type(hooksecurefunc) ~= "function" or type(Layout.Enter) ~= "function" or type(Layout.Exit) ~= "function" then
+		return
+	end
+	layoutHooked = true
+	hooksecurefunc(Layout, "Enter", OnLayoutMode)
+	hooksecurefunc(Layout, "Exit", OnLayoutMode)
 end
 
 local function OnCooldown()
@@ -405,6 +429,7 @@ local function Enable()
 	K.Callbacks.Register("ClassChanged", MODULE, ApplyAccent)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	K.Callbacks.Register("ScaleChanged", MODULE, ApplyAll)
+	HookLayoutMode()
 	ns.Flyout.Build()
 	ApplyAll()
 	ns.Vehicle.Build()
@@ -429,7 +454,7 @@ local function Disable()
 	ns.Flyout.Close()
 	ns.Ranks.Stop()
 	ns.RestoreBlizzard()
-	gridShown.action, gridShown.pet, ns.grid = false, false, 0
+	gridShown.action, gridShown.pet, ns.grid, ns.layout = false, false, 0, false
 end
 
 ns.Enable, ns.Disable = Enable, Disable

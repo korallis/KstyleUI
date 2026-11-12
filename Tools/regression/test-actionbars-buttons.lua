@@ -177,6 +177,34 @@ do
 	assert(b:GetAlpha() == 0, "a hidden empty slot stays hidden under the pointer")
 end
 
+-- Bars 4 and 5 (the right rail, KSTY-34): an empty slot draws nothing at rest, a filled one always draws, and an
+-- empty one shows while an action is dragged and in Layout Mode. The centre bars keep their empty tiles. Only alpha
+-- changes, which works in combat.
+do
+	local env, K, ns = new()
+	AB.Slot(env, ns.Slot(1, 1), nil)
+	local empty, other = AB.Button(ns, "bar4", 2), AB.Button(ns, "bar5", 2)
+	local filled = AB.Button(ns, "bar4", 1)
+	AB.Slot(env, filled.slot, { texture = 136048, type = "spell", id = 5 })
+	env.FireEvent("ACTIONBAR_SLOT_CHANGED", filled.slot)
+	local centre = AB.Button(ns, "bar1", 2)
+	assert(ns.Config("bar4").showEmpty == false and ns.Config("bar5").showEmpty == false, "the rail bars start with their empty slots hidden")
+	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0, "an empty slot in the rail draws nothing at rest")
+	assert(filled:GetAlpha() == 1, "a filled slot in the rail always draws")
+	assert(centre:GetAlpha() == 1, "bar 1 keeps its empty tile")
+	env.FireEvent("ACTIONBAR_SHOWGRID")
+	assert(empty:GetAlpha() == 1 and other:GetAlpha() == 1, "dragging an action onto the bars shows the rail's empty slots")
+	env.FireEvent("ACTIONBAR_HIDEGRID")
+	assert(empty:GetAlpha() == 0 and filled:GetAlpha() == 1, "dropping hides them again")
+	assert(K.Layout.Enter() == true and K.Layout.IsActive(), "Layout Mode opens")
+	assert(empty:GetAlpha() == 1 and other:GetAlpha() == 1, "Layout Mode shows the rail's empty slots")
+	K.Layout.Exit(true)
+	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0 and filled:GetAlpha() == 1, "leaving Layout Mode hides them again")
+	K.Options.Write("ActionBars", "bar4.showEmpty", true)
+	assert(empty:GetAlpha() == 1, "the setting still brings the empty slots back")
+	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
+end
+
 -- Drag and drop: out of combat only, and the lock needs the pick-up modifier.
 do
 	local env, _, ns = new()
