@@ -52,14 +52,11 @@ function Stacking.Extent()
 		local overhang = math.max(0, (Plate.BRACKET_HEIGHT - state.height) / 2)
 		above, below = math.max(above, overhang), math.max(below, overhang)
 	end
-	local crown = Settings.Get("markers.classification") and Plate.CROWN_HEIGHT or 0
-	if Settings.Get("level.show") then
+	if Settings.Get("level.show") or Settings.Get("markers.classification") then
 		left = math.max(left, Plate.DiamondReach(plate))
 		local overhang = math.max(0, (Plate.DiamondSize(plate) - state.height) / 2)
-		above = math.max(above, overhang + crown)
+		above = math.max(above, overhang)
 		below = math.max(below, overhang)
-	elseif crown > 0 then
-		left = math.max(left, Plate.BRACKET_REACH + crown)
 	end
 	if Settings.Get("markers.raid") then
 		right = math.max(right, Plate.MarkerReach() + Settings.Get("markers.raidSize"))

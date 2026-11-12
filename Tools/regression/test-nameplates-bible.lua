@@ -166,4 +166,39 @@ for _, screen in ipairs(SCREENS) do
 	errors(env, K, where)
 end
 
+-- The target's bar keeps its black edge even when the target is also the focus; the brackets mark it ------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1", UNIT)
+	local plate = ns.Plates.Get("nameplate1")
+	N.Focus(env, "nameplate1")
+	local fr, fg, fb = K.Tokens.Color("rare")
+	assert(N.SameColor(fr, fg, fb, plate.health.keyline:GetVertexColor()), "the focus alone takes the focus edge")
+	N.Target(env, "nameplate1")
+	assert(N.SameColor(0, 0, 0, plate.health.keyline:GetVertexColor()) and plate.brackets:IsShown(), "the focus as the target keeps the black edge and shows the brackets")
+	N.Target(env, nil)
+	assert(N.SameColor(fr, fg, fb, plate.health.keyline:GetVertexColor()), "and the focus edge comes back when it is no longer the target")
+	errors(env, K, "focus and target")
+end
+
+-- With the level off, a marked unit's empty diamond still counts in the footprint ----------------------------------
+
+do
+	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "level.show", false)
+	K.Options.Write("Nameplates", "name.show", false)
+	K.Options.Write("Nameplates", "cast.enabled", false)
+	K.Options.Write("Nameplates", "debuffs.enabled", false)
+	local sample = ns.Preview.samplePlate
+	local width, above, height, below = ns.Stacking.Extent()
+	assert(N.Same(width, ns.state.width + ns.Plate.DiamondReach(sample) + ns.Plate.BRACKET_REACH + 16), "the diamond's reach counts while classification marks are on, got " .. tostring(width))
+	local overhang = (ns.Plate.DiamondSize(sample) - height) / 2
+	assert(N.Same(above, overhang) and N.Same(below, overhang), "and its height above and below the bar")
+	K.Options.Write("Nameplates", "markers.classification", false)
+	local bare = ns.Stacking.Extent()
+	assert(N.Same(bare, ns.state.width + ns.Plate.BRACKET_REACH * 2 + 16), "with both off only the brackets and the raid marker count, got " .. tostring(bare))
+	errors(env, K, "the footprint")
+end
+
 print("nameplates bible ok")

@@ -696,7 +696,7 @@ function Plate:UpdateLevel()
 		return
 	end
 	self.levelText:SetText(text or "")
-	if level == SKULL_LEVEL then
+	if not IsSecret(level) and level == SKULL_LEVEL then
 		self.levelText:SetTextColor(Tokens.Color("hostile"))
 	else
 		self.levelText:SetTextColor(Tokens.Color("giltLit"))
@@ -764,7 +764,7 @@ function Plate:UpdateHighlight()
 	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
 	self:ShowBrackets(framed)
 	local health = self.health
-	if isFocus and Settings.Get("focus.highlight") then
+	if isFocus and Settings.Get("focus.highlight") and not framed then
 		local r, g, b = Rgb(Settings.Get("focus.color"))
 		health:SetRimColor(r, g, b, 1)
 	else

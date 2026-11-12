@@ -101,9 +101,9 @@ return Common.Run(function()
 	end
 	crop("nameplate1", "plate_target", "Nameplate: the target", "The mock-up's plate: a clean bar, gilt brackets at both ends, the level diamond at the left and the player's effect over the bar's right end with its stack count.")
 	crop("nameplate2", "plate_other", "Nameplate: the same mob, not the target", "No brackets; the level diamond stays, so nothing moves when the target changes.")
-	crop("nameplate3", "plate_elite", "Nameplate: an elite casting", "The elite's diamond takes a heavier gold rim and a gold crown; the cast bar runs under the plate.")
-	crop("nameplate4", "plate_rare", "Nameplate: a rare", "The rare's diamond takes the rare colour's rim and crown.")
-	crop("nameplate5", "plate_boss", "Nameplate: a world boss", "The boss's diamond reads ?? in red, under a red crown.")
+	crop("nameplate3", "plate_elite", "Nameplate: an elite casting", "The elite's diamond takes a two-pixel gold rim; the cast bar runs under the plate.")
+	crop("nameplate4", "plate_rare", "Nameplate: a rare", "The rare's diamond takes a two-pixel rim in the rare colour.")
+	crop("nameplate5", "plate_boss", "Nameplate: a world boss", "The boss's diamond reads ?? in red, inside a two-pixel red rim.")
 	crop("nameplate6", "plate_friendly", "Nameplate: a friendly player", "A friendly player's plate in the class colour.")
 	local scene = frames:Finish(Gallery.Build(env, { time = env._time }), env, K, "nameplate bible")
 	if problem then

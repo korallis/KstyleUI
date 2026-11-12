@@ -180,7 +180,7 @@ do
 	local _, raidRelative, raidPoint, x = plate.raid:GetPoint(1)
 	assert(raidRelative == plate.health and raidPoint == "RIGHT", "the raid marker keeps the bar's right end to itself")
 	assert(x >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "beyond the right bracket, so it never moves when the plate becomes the target")
-	assert(N.Same(env.Look(plate.name:GetWidth()), K.Widgets.Snap(plate.name, ns.state.width + ns.Plate.NAME_OVERHANG * 2)), "the centred cap can overhang the bar without ellipsising a long creature name")
+	assert(N.Last(plate.name, "SetWidth")[1] == 0, "the centred cap is sized by its text, so a long creature name is never cut short")
 end
 
 print("nameplates types ok")

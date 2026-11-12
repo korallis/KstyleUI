@@ -35,6 +35,9 @@ local function Stack(frame)
 		local up, down = ns.Auras.Extent(plate)
 		local marked = Settings.Get("level.show") or Settings.Get("markers.classification")
 		local overhang = marked and (ns.Plate.DiamondSize(plate) - ns.state.height) / 2 or 0
+		if Settings.Get("target.highlight") then
+			overhang = math.max(overhang, (ns.Plate.BRACKET_HEIGHT - ns.state.height) / 2)
+		end
 		above = math.max(above, up, overhang)
 		below = math.max(below, down, overhang)
 	end
