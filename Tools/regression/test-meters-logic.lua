@@ -64,6 +64,7 @@ do
 	assert(RL.Abbreviate(2840) == "2.8K", "and a plain number is still ours")
 	refusing.AbbreviateLargeNumbers = nil
 	assert(RL.Abbreviate(refusing.Secret(2840)) == "", "without AbbreviateLargeNumbers a secret shows nothing")
+	assert(RL.FormatRate(refusing.Secret(38.4), "dps") == "", "and a secret rate shows nothing, not a bare unit")
 	assert(#refusing._errors == 0, "no Lua error: " .. tostring(refusing._errors[1]))
 end
 

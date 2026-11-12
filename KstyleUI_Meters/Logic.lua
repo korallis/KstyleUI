@@ -92,7 +92,10 @@ function Logic.Abbreviate(value)
 		if options then
 			return AbbreviateNumbers(value, options)
 		end
-		return type(AbbreviateLargeNumbers) == "function" and AbbreviateLargeNumbers(value) or ""
+		if type(AbbreviateLargeNumbers) == "function" then
+			return AbbreviateLargeNumbers(value)
+		end
+		return ""
 	end
 	value = Plain(value)
 	if not value then
@@ -109,6 +112,9 @@ end
 
 function Logic.FormatRate(value, unit)
 	if IsSecret(value) then
+		if not SecretOptions() and type(AbbreviateLargeNumbers) ~= "function" then
+			return ""
+		end
 		return Logic.Abbreviate(value) .. " " .. unit
 	end
 	value = Plain(value)
