@@ -158,7 +158,7 @@ function Flyout.Build()
 	frame:Hide()
 	Flyout.frame, Flyout.buttons = frame, {}
 	for i = 1, MAX_SPELLS do
-		local b = Widgets.IconButton(frame, {
+		local b = Widgets.Slot(frame, {
 			name = "KstyleUI_ActionBarsFlyoutButton" .. i,
 			template = "SecureActionButtonTemplate",
 			silent = true,

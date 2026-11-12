@@ -31,8 +31,8 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Init.lua` | The addon table the files share |
 | `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `ShortKey`, `FontFlags` |
 | `Settings.lua` | The defaults and the settings schema |
-| `Socket.lua` | The Lumen socket states on top of the kit's `IconButton` (see [Lumen sockets](#lumen-sockets)) and the one table of Lumen tokens it reads |
-| `Button.lua` | One button: the kit's `IconButton` on `SecureActionButtonTemplate`, and every visual update |
+| `Socket.lua` | The action bars' state on the kit's shared `Slot` (see [Lumen sockets](#lumen-sockets)) and the one table of tokens it reads |
+| `Button.lua` | One button: the kit's `Slot` on `SecureActionButtonTemplate`, and every visual update |
 | `Flyout.lua` | KstyleUI's own secure spell flyout |
 | `Bar.lua` | One bar: a Layout holder, a secure state header, the button grid, paging and the mouseover fade |
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
@@ -92,19 +92,20 @@ Hover keybinds go through Blizzard's own Quick Keybind mode (`Blizzard_QuickKeyb
 
 ## Lumen sockets
 
-`Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons. The socket's body, rim and icon corners come from the shared kit (`Widgets.Chrome`, `iconMask`); the module adds only ability state, not another chrome implementation.
+Every action, pet, stance and flyout button is the kit's shared [`Slot`](../Core/Widgets/README.md#slot), the slot KSTY-46's Orbs tray places too. `Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons, to add only ability state; the body, rim, bevel, well, key, cooldown edge and number, and the hover, press, proc and ready motion are the slot's.
 
 | State | Socket |
 | --- | --- |
-| Rest | With **Accent** on **Quiet rim** (the default), the rim is the `quietRim` token, lifting halfway to `textHover` with the hover motion. Gold is kept for the proc. The other accents keep the kit's accent rim. |
+| Rest | With **Accent** on **Quiet rim** (the default), the rim is the `quietRim` token, the slot's lit `slotRim`. Hover lays the slot's lighter ring over it by an animation group. Gold is kept for the proc. The other accents keep the kit's accent rim. |
 | Keybind and count | The keybind sits 3 units in from the top left, left-justified; the count stays at the bottom right. |
-| Cooldown | The kit's radial swipe, with the countdown centred on the icon. |
-| Proc | A rim in the `gilt` token and an additive glow texture laid over the icon and masked to it, so nothing reaches past the socket. Its alpha breathes between 1 and 0.45 at 0.7 seconds a breath (a `BOUNCE` animation); with reduced motion it holds still. The kit's proc glow, whose halo reaches past the button, is not used. |
+| Cooldown | The kit's radial swipe with the slot's lit edge, and the countdown centred on the icon. |
+| Press | The slot's press flash, once per key or mouse press, on its way down. |
+| Proc | A rim in the `gilt` token, the slot's gilt glow inside the icon and its gilt halo past the slot, breathing between 1 and 0.45 at 0.7 seconds a breath (a `BOUNCE` animation); with reduced motion it holds still. The KSTY-44 mock-ups draw the halo past the slot, and Lee approved them on 2026-11-12, so the earlier rule that nothing reaches past the socket is replaced. |
 | Out of range | The range colour on the icon and on the keybind text. |
 | No resource | Desaturated, the power colour (the `cool` token), dimmed to 70%. |
 | Empty | 35% at rest, 12% in combat, full under the pointer and while an action is dragged. Only alpha changes. |
 
-`Socket.TOKENS` names the three Lumen tokens the sockets read: `gilt` (`neutral` until S1's gilt token lands), `quietRim` (`edgeInner`) and `cool` (`rare`). They change in that one table.
+`Socket.TOKENS` names the three tokens the sockets read: `gilt` (`giltLit`), `quietRim` (`slotRim`) and `cool` (`rare`). They change in that one table.
 
 ## Paging
 

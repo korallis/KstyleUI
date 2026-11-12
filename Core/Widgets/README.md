@@ -198,7 +198,7 @@ The body is the socket's `buttonFill`, its near-black edge line on corners three
 | Hover | `accent` mixed 25% toward `textHover`, a selection glow 10 units out at 30% of the `shadow` falloff (the design's +25 luminance beside the rim), and the glow's inner wash over the icon at 20% of the accent | `buttonFill` | |
 | Pressed | Mixes toward `text` at 77% | Lifts three quarters of the way to `raised` | Desaturated, dims to 55% and moves down `pressOffset` |
 | Cooldown running | `text` at 62% | Lifts three quarters of the way to `raised` | Dims to 40%; swipe in `black` at 65%; the countdown, the cooldown's own font string in the `number` font and `textEmphasis`, is centred a quarter of the height above the bottom |
-| Ready (a real cooldown's `OnCooldownDone`) | as at rest | as at rest | `button.ready`, a `textHover` wash in `ADD` masked to the icon, lights to 35% and settles to nothing over `castSheen` with the `fade` easing: the theme's cooldown flash, since the swipe's own bling is off. It reads the frame's event, so no time is compared; the GCD alone, a frame a module drives directly and a hidden button never flash, and with motion off it does not show |
+| Ready (a real cooldown's `OnCooldownDone`) | as at rest | as at rest | `button.ready`, a `textHover` wash in `ADD` masked to the icon, lights to 35% and settles to nothing over `castSheen`, played by the animation group `button.readyFlash` (its fade is `button.readyFade`) so no Lua runs each frame: the theme's cooldown flash, since the swipe's own bling is off. It reads the frame's event, so no time is compared; the GCD alone, a frame a module drives directly and a hidden button never flash, and with motion off it does not show |
 | Proc (`SetProc(true)`) | the edge line in `giltLit` | `buttonFill` | The gold proc glow breathes inside the rim: its inner glow and star, with the outer halo at 10%, because Lumen's proc glows inside the socket, never past it |
 | Selected (`SetSelected(true)`) | `accent` | `buttonFill` | |
 | Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Lifts three quarters of the way to `raised` | Desaturated at 45% brightness |
@@ -220,6 +220,24 @@ The icon's brightness and desaturation go through `Widgets.ShadeIcon(texture, r,
 | `SetChargeCooldownFromDuration(durationObject) -> ok`, `ClearChargeCooldown()` | A second Cooldown, `chargeCooldown`, made on first use, that draws only its edge and no numbers: the recharge of a spell with charges left. Returns `false` and logs once when the method is missing. |
 
 Fields: `icon`, `mask`, `cooldown`, `countdown` (the cooldown's countdown font string, when the client gives one), `chargeCooldown` (made on first use), `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`). `Restyle()` restyles both glows, so a button that changes size (a `size` option a module rewrites) keeps its glow geometry.
+
+## Slot
+
+`Slot(parent, opts) -> Button`: the action slot every tray shares, the Frames tray, the Orbs forged tray and the cooldown rows alike. It is an [`IconButton`](#iconbutton) with the KSTY-44 bible's slot (section 3.9 and the mock-ups' `.slot`), and takes the same options plus `rim` (the token of the resting rim, `slotRim` by default; a module with its own accent sets `button.rimToken` to `nil` and paints the rim itself).
+
+| Part | What it is |
+| --- | --- |
+| Body | `slotFill` at full alpha, so an empty slot is opaque wherever it shows, and a dark well (`slotWell` on the `glow` texture, masked to the icon) under the icon, so an empty slot still reads as a socket |
+| Rim | The near-black `socketEdge` line outside, the lit `slotRim` band inside it, and a black hairline at 80% round the icon (`button.innerLine`) |
+| Bevel | Two masked gradients over the icon: white from 24% to nothing over the top 16% (`bevelTop`), black from 60% to nothing over the bottom 20% (`bevelBottom`). Without `Texture:SetGradient` or `CreateColor` they hide and log once |
+| Key | `hotkey` 3 units in from the top left, left-justified |
+| Cooldown | The kit's masked swipe with its edge drawn (`SetDrawEdge(true)`) in `slotEdge` through `SetEdgeColor`, and the countdown centred on the icon in `slotNumber` |
+| Hover | `hoverLayer`: a `textHover` ring at 70% over the rim band and a 12% white wash over the icon, faded in and out over `hover` by `hoverIn` and `hoverOut` |
+| Press | `pressLayer`: a 30% white wash over the icon, a `slotPress` ring one line outside the slot and a soft halo 6 units out, played by `button.press`: in over `pressIn` (0.06 s), out over `pressOut` (0.18 s). A press flashes once on its way down: a key's down click or a mouse down; the release and a held key do not flash again |
+| Proc | `SetProc(on)`: the edge line in `giltLit`, a gilt glow inside the icon and a gilt halo 10 units out (`lumenGlow`, with `lumenGlow.texture` and `procHalo`), breathing between 1 and 0.45 over `procPulse` (`lumenGlow.breath`, `BOUNCE`). With reduced motion it holds still |
+| Ready | The kit's ready flash in `giltLit`, from 60% to nothing over `readyFlash` (0.3 s) |
+
+Every state is set on an event and every motion is an animation group the client runs: `Widgets.Hover` and `Widgets.Press` call the slot's `AnimateHover` and `AnimatePress` instead of tweening `hoverT` and `pressT`, so no hover, press, proc or ready motion repaints the slot or runs Lua each frame. With motion off a press and a ready flash do not show and hover shows at once. `Tools/regression/test-widgets-slot.lua` covers it and `Tools/render/scenes/slots.lua` renders every state.
 
 ### Icon chrome
 

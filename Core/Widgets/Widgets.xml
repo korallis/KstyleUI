@@ -9,6 +9,7 @@
 	<Script file="Tooltip.lua"/>
 	<Script file="Button.lua"/>
 	<Script file="IconButton.lua"/>
+	<Script file="Slot.lua"/>
 	<Script file="Panel.lua"/>
 	<Script file="Tabs.lua"/>
 	<Script file="Toggle.lua"/>

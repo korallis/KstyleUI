@@ -151,7 +151,7 @@ function IconButton:Paint()
 		lift = DIM_FILL_LIFT * press
 	end
 	chrome:SetRim(r, g, b, a)
-	local fr, fg, fb, fa = Tokens.Color("buttonFill")
+	local fr, fg, fb, fa = Tokens.Color(self.opts.fill or "buttonFill")
 	if lift > 0 then
 		local xr, xg, xb, xa = Tokens.Color("raised")
 		fr, fg, fb, fa = Widgets.Mix(fr, fg, fb, fa, xr, xg, xb, xa, lift)
@@ -351,8 +351,11 @@ local function WatchCooldown(button, cooldown)
 	end
 	local function done()
 		ended()
-		if button.realCooldown and button:IsVisible() then
-			Motion.Tween(button.ready, "SetAlpha", READY_ALPHA, 0, Tokens.Duration("castSheen"), Tokens.Easing("fade"))
+		if button.realCooldown and button:IsVisible() and Motion.Level() ~= "off" then
+			button.ready:SetAlpha(0)
+			button.ready:Show()
+			button.readyFlash:Stop()
+			button.readyFlash:Play()
 		end
 	end
 	cooldown:HookScript("OnShow", started)
@@ -388,8 +391,17 @@ function Widgets.IconButton(parent, opts)
 	ready:SetBlendMode("ADD")
 	ready:SetAllPoints(icon)
 	ready:AddMaskTexture(mask)
-	ready:SetAlpha(0)
-	button.ready = ready
+	ready:Hide()
+	local flash = ready:CreateAnimationGroup()
+	local fade = flash:CreateAnimation("Alpha")
+	fade:SetFromAlpha(READY_ALPHA)
+	fade:SetToAlpha(0)
+	fade:SetDuration(Tokens.Duration("castSheen"))
+	fade:SetSmoothing("OUT")
+	flash:SetScript("OnFinished", function()
+		ready:Hide()
+	end)
+	button.ready, button.readyFlash, button.readyFade = ready, flash, fade
 	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA, core = HOVER_WASH })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(icon)

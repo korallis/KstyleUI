@@ -33,7 +33,9 @@ do
 	end
 end
 
--- At rest a socket wears a quiet rim, not the accent; gold is kept for the proc. Hover lifts the rim toward white.
+-- At rest a socket wears a quiet rim, not the accent; gold is kept for the proc. Hover lifts the rim toward white:
+-- a lighter ring and a faint wash fade in over it by an animation group, so no Lua runs every frame (KSTY-44's
+-- bible, 3.9) and the rim's own colour does not change.
 do
 	local env, K, ns = new()
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1 })
@@ -42,11 +44,16 @@ do
 	local qr, qg, qb, qa = color(K, ns.Socket.TOKENS.quietRim)
 	assert(W.SameColor(rim(b), qr, qg, qb, qa), "the resting rim is the quiet rim")
 	K.Widgets.Hover(b, true)
-	W.Settle(env)
-	local hr, hg, hb, ha = color(K, "textHover")
-	assert(W.SameColor(rim(b), K.Widgets.Mix(qr, qg, qb, qa, hr, hg, hb, ha, 0.5)), "hover lifts the quiet rim halfway toward white")
+	assert(b.hoverLayer:IsShown() and b.hoverIn:IsPlaying(), "hover fades the lift in")
+	local hr, hg, hb = color(K, "textHover")
+	assert(W.SameColor(b.hoverRim[1], hr, hg, hb, 0.7), "a ring lifted toward white")
+	assert(W.SameColor(rim(b), qr, qg, qb, qa), "over the unchanged quiet rim")
+	assert(b.hoverT == nil, "with no tween stepping the paint")
+	b.hoverIn:Stop()
 	K.Widgets.Hover(b, false)
-	W.Settle(env)
+	assert(b.hoverOut:IsPlaying(), "leaving fades it out")
+	b.hoverOut:GetScript("OnFinished")(b.hoverOut)
+	assert(not b.hoverLayer:IsShown(), "and hides it")
 	K.Options.Write("ActionBars", "accent", "class")
 	local cr, cg, cb = K.Widgets.IconRim(K.Theme.ClassColor(K.Theme.Class()))
 	assert(W.SameRGB(rim(b), cr, cg, cb), "the class accent is still a choice")

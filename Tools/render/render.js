@@ -685,6 +685,24 @@
 		ctx.globalAlpha = Math.min(1, item.alpha);
 		ctx.drawImage(layer, dest.x, dest.y);
 		ctx.restore();
+		if (item.edge && remaining > 0 && remaining < 1) {
+			// The client draws the sweep's edge as a lit line from the centre out along the moving hand.
+			const hand = item.reverse ? to : from;
+			ctx.save();
+			ctx.beginPath();
+			ctx.rect(dest.x, dest.y, dest.w, dest.h);
+			ctx.clip();
+			ctx.globalAlpha = Math.min(1, item.alpha);
+			ctx.strokeStyle = rgba(item.edge);
+			ctx.lineWidth = Math.max(1, Math.round(1.5 * ppu));
+			ctx.shadowColor = rgba([item.edge[0], item.edge[1], item.edge[2], 0.8]);
+			ctx.shadowBlur = 4 * ppu;
+			ctx.beginPath();
+			ctx.moveTo(dest.x + cx, dest.y + cy);
+			ctx.lineTo(dest.x + cx + Math.cos(hand) * radius, dest.y + cy + Math.sin(hand) * radius);
+			ctx.stroke();
+			ctx.restore();
+		}
 		if (item.countdown) {
 			await drawText(ctx, {
 				kind: "text", alpha: item.alpha, text: item.countdown, rect: item.rect,

@@ -551,6 +551,9 @@ function AB.New(opts)
 		width = opts.width,
 		height = opts.height,
 		setup = function(e)
+			function e.CreateColor(r, g, b, a)
+				return { r = r, g = g, b = b, a = a }
+			end
 			InstallGame(e, opts)
 			if setup then
 				setup(e)

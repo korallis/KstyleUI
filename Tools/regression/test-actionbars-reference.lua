@@ -83,7 +83,7 @@ do
 			if not button.hasAction then
 				empty = empty + 1
 				assert(button:GetAlpha() == 1, key .. " keeps empty sockets at full opacity")
-				assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("buttonFill")), key .. " uses the kit's dark empty fill without further dimming")
+				assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("slotFill")), key .. " uses the slot's opaque empty fill without further dimming (KSTY-44: empty slots opaque where shown)")
 				assert(W.SameColor(button.chrome.line[1], K.Tokens.Color("socketEdge")), key .. " keeps the visible black socket edge")
 				check(env, K, button)
 			end
