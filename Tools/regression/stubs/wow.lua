@@ -109,6 +109,7 @@ end
 local DEFAULTS = { Alpha = 1 }
 
 local Object = {}
+local placed
 
 function Object:GetName() return self._name end
 function Object:GetObjectType() return self._type end
@@ -234,7 +235,13 @@ local function anchoredWidth(self)
 		local point, rel, relPoint, x = p[1], p[2] or self._parent, p[3] or p[1], p[4] or 0
 		local side = point:find("LEFT", 1, true) and "low" or point:find("RIGHT", 1, true) and "high"
 		if side and type(rel) == "table" and type(rel.GetLeft) == "function" then
-			local left, right = rel:GetLeft(), rel:GetRight()
+			local left, right
+			if rel._points then
+				local r = placed(rel)
+				left, right = r and r.left, r and r.right
+			else
+				left, right = rel:GetLeft(), rel:GetRight()
+			end
 			local scale = rel:GetEffectiveScale()
 			if left and right and type(scale) == "number" and type(own) == "number" and own > 0 then
 				local edge = relPoint:find("LEFT", 1, true) and left or relPoint:find("RIGHT", 1, true) and right or (left + right) / 2
@@ -403,6 +410,50 @@ function Object:GetPoint(i)
 		return unpack(p, 1, p.n)
 	end
 end
+-- env.RestrictAnchoring(frame) restricts a frame's anchoring, as the game restricts a nameplate's base frame, and
+-- env.RestrictAnchoring(frame, false) lifts it. An object whose anchors lead to a restricted frame is restricted too.
+-- A restricted object's IsAnchoringRestricted reads true, and GetLeft, GetRight, GetTop, GetBottom, GetCenter and
+-- GetRect raise the game's FrameMeasurement error, as the owner's first live session caught on 2026-11-12. GetWidth,
+-- GetHeight and GetSize still answer, as the game's GetWidth did for the same restricted health bar.
+local MEASURE = "Action[FrameMeasurement] failed because[Can't measure restricted regions]"
+
+local function restrictedBy(object, seen)
+	if type(object) ~= "table" then
+		return false
+	end
+	if object._restricted then
+		return true
+	end
+	if seen[object] then
+		return false
+	end
+	seen[object] = true
+	for _, p in ipairs(object._points or {}) do
+		if restrictedBy(anchorTarget(object, p[2]), seen) then
+			return true
+		end
+	end
+	return false
+end
+
+local function isRestricted(object)
+	local env = object._env
+	return env ~= nil and env._restricting == true and restrictedBy(object, {})
+end
+
+function Object:IsAnchoringRestricted() return isRestricted(self) end
+
+local function refuse(self, method)
+	if isRestricted(self) then
+		error(self._type .. ":" .. method .. "(): " .. MEASURE .. ": attempted from: " .. self._type .. ":" .. method .. "().", 0)
+	end
+end
+
+local function measure(self, method)
+	refuse(self, method)
+	return placed(self)
+end
+
 -- GetLeft, GetRight, GetTop, GetBottom and GetCenter resolve the object's anchors and scales down to its
 -- environment's UIParent with the renderer's solver (Tools/render/scene.lua, Scene.Rect) and answer in the
 -- object's own scaled units, as the game does (an edge times the object's effective scale is its screen
@@ -412,7 +463,7 @@ end
 -- between layout changes resolves each ancestor once.
 local Scene
 local SCREEN_UNITS, UI_HEIGHT = 1080, 768
-local function placed(self)
+function placed(self)
 	local env = self._env
 	if not (env and env.UIParent and env.GetPhysicalScreenSize) then
 		return nil
@@ -437,6 +488,7 @@ end
 -- with no rect, one point and no size), as the game does: Edit Mode's GetScaledSelectionSides then does arithmetic
 -- on nil. The solver is slow, so only the tests that hold a frame's rect turn it on.
 function Object:GetRect()
+	refuse(self, "GetRect")
 	if self._rect then
 		return unpack(self._rect, 1, 4)
 	end
@@ -451,12 +503,12 @@ function Object:GetRect()
 		return 0, 0, self._width, self._height
 	end
 end
-function Object:GetLeft() local r = placed(self) return r and r.left end
-function Object:GetRight() local r = placed(self) return r and r.right end
-function Object:GetTop() local r = placed(self) return r and r.top end
-function Object:GetBottom() local r = placed(self) return r and r.bottom end
+function Object:GetLeft() local r = measure(self, "GetLeft") return r and r.left end
+function Object:GetRight() local r = measure(self, "GetRight") return r and r.right end
+function Object:GetTop() local r = measure(self, "GetTop") return r and r.top end
+function Object:GetBottom() local r = measure(self, "GetBottom") return r and r.bottom end
 function Object:GetCenter()
-	local r = placed(self)
+	local r = measure(self, "GetCenter")
 	if r then
 		return (r.left + r.right) / 2, (r.bottom + r.top) / 2
 	end
@@ -960,6 +1012,14 @@ function Stubs.NewEnv(opts)
 
 	function env.InCombatLockdown()
 		return env._combat == true
+	end
+
+	-- RestrictAnchoring(frame[, false]) restricts or frees a frame's anchoring; see the stub's measurement methods.
+	function env.RestrictAnchoring(frame, restricted)
+		frame._restricted = restricted ~= false
+		if frame._restricted then
+			env._restricting = true
+		end
 	end
 
 	-- SetQuiet(true) makes the stubs quiet for the performance check: frames stop recording their calls

@@ -50,6 +50,21 @@ local function IsSecret(v)
 end
 Widgets.IsSecret = IsSecret
 
+function Widgets.Restricted(region)
+	if type(region.IsAnchoringRestricted) ~= "function" then
+		return false
+	end
+	local restricted = region:IsAnchoringRestricted()
+	return IsSecret(restricted) or restricted == true
+end
+
+function Widgets.Edges(region)
+	if Widgets.Restricted(region) then
+		return false, false, false, false
+	end
+	return region:GetLeft(), region:GetRight(), region:GetTop(), region:GetBottom()
+end
+
 local function Log(message)
 	local devtest = ns.DevTest
 	if devtest and devtest.Log then
@@ -469,6 +484,9 @@ local covers = setmetatable({}, { __mode = "k" })
 
 local function Place(overlay, entry)
 	local visual = entry.visual
+	if Widgets.Restricted(visual) then
+		return false
+	end
 	local left, bottom, width, height = visual:GetRect()
 	if IsSecret(left) or IsSecret(bottom) or IsSecret(width) or IsSecret(height) then
 		return false
