@@ -29,9 +29,10 @@ local PICTURE_GAPS = {
 	["unitframes.player/unitframes.target"] = 2,
 	["unitframes.castbar.player/meters.swing"] = 1,
 }
--- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10 and 21:9: at the Interface size KstyleUI ships
--- (16 / 19) the root is Layouts.HEIGHT (1282.5) units tall on each.
-local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2383, 1540 }, { 2560, 1600 }, { 3440, 1440 } }
+-- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10, 21:9 and the two 32:9 panels (5120 x 1440, the
+-- owner's, and 3840 x 1080): at the Interface size KstyleUI ships (16 / 19) the root is Layouts.HEIGHT (1282.5) units
+-- tall on each.
+local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2383, 1540 }, { 2560, 1600 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 1080 } }
 local HEIGHT = Layouts.HEIGHT
 
 local function same(a, b)
@@ -239,7 +240,9 @@ local EXTRAS = set({ "unitframes.castbar.player", "unitframes.castbar.target" })
 -- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster (the plate
 -- target cast bar's retained top, 664) to the top.
 local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
--- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
+-- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer three quarters, never
+-- past them. KSTY-33 moved it 75 units in to clear the quest card's column beside the RestedXP guide (the Captain's
+-- ruling on the Fable audit), so on 16:10 it stands 69 units right of the centre line, where it stood 144.
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
 	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
@@ -378,7 +381,7 @@ for _, name in ipairs(names) do
 				-- left of them, the same 152 off the centre line.
 				assert(math.abs(r.left - (mid + HEALER.right)) < 1e-6, label .. ": your combat text mirrors the group frames right of the cast bars")
 			elseif EDGE_RIGHT[key] and not onRail then
-				assert(r.left >= mid + CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
+				assert(r.left >= mid + CLEAR.half / 4, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
 			end
@@ -459,12 +462,15 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The boss column stands on the centre's right edge in DPS and Tank, a rail gap left of the side bars' slots, its
-		-- foot a rail gap over your combat text, which rises right of the cluster. It grows up from that foot, so a single boss sits
-		-- by the cluster rather than alone at the top of the screen (round 6, Grok #4); five fill the column upward.
+		-- The boss column stands on the centre's right edge in DPS and Tank, a rail gap left of the quest card's column
+		-- beside the RestedXP guide (KSTY-33, the Captain's ruling on the Fable audit), its foot a rail gap over your combat
+		-- text, which rises right of the cluster. It grows up from that foot, so a single boss sits by the cluster rather than
+		-- alone at the top of the screen (round 6, Grok #4); five fill the column upward.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
 		if not healer then
-			assert(math.abs(boss.right - (rect(AURA_ROWS[1]).left - 8)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, 8 left of the picture's wider aura rows, so a larger UI size never brings them together")
+			local column = Layouts.Story(name, HEIGHT, true).quests
+			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
+			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
 			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false

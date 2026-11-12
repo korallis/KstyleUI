@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 18
+Store.DB_VERSION = 19
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -497,6 +497,30 @@ Store.migrations[17] = function(data)
 			railEntry(entry, "minimap.main", { "TOPRIGHT", -16, -16 }, { ["minimap.main"] = { "TOPRIGHT", -17, -17 } })
 			if next(entry) == nil then
 				layout["minimap.main"] = nil
+			end
+		end
+	end
+end
+
+local STORY_V18 = {
+	["unitframes.boss"] = { "BOTTOMRIGHT", -530.4, 752 },
+}
+
+Store.migrations[19] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local preset = section.preset or "DPS"
+		local current = layouts and type(layouts.Get) == "function" and layouts.Get(preset) or {}
+		for key in pairs(type(layout) == "table" and preset ~= "Healer" and STORY_V18 or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				local now = current[key]
+				railEntry(entry, key, now and { now.anchor, now.x, now.y }, STORY_V18)
+				if next(entry) == nil then
+					layout[key] = nil
+				end
 			end
 		end
 	end

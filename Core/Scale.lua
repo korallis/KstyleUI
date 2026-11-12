@@ -1,4 +1,4 @@
--- Scale.lua: the KstyleUI_Root canvas and the whole-physical-pixel maths.
+-- Scale.lua: the KstyleUI_Root canvas (the whole screen, or a centred band on a screen wider than the HUD width setting allows) and the whole-physical-pixel maths.
 local _, ns = ...
 
 local Scale = {}
@@ -11,14 +11,19 @@ local UI_HEIGHT = 768
 local REFERENCE_SCALE = UI_HEIGHT / REFERENCE_HEIGHT
 local MIN_USER_SCALE, MAX_USER_SCALE = 0.6, 1.5
 local DEFAULT_USER_SCALE = 16 / 19
+local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
+local DEFAULT_CANVAS = "21:9"
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
 Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
+Scale.CANVAS, Scale.DEFAULT_CANVAS = CANVAS, DEFAULT_CANVAS
 
 local state = {
 	user = DEFAULT_USER_SCALE,
 	maximum = MAX_USER_SCALE,
 	effectiveUser = DEFAULT_USER_SCALE,
 	pixel = 1,
+	canvas = 0,
+	origin = 0,
 	borderPixels = 1,
 	applied = {},
 	waiting = false,
@@ -68,6 +73,31 @@ local function ParentScale()
 	return 1
 end
 
+local function CanvasSetting()
+	local store = ns.Store
+	local value = store and store.IsLoaded() and store.Module("Layout").canvas
+	if CANVAS[value] ~= nil then
+		return value
+	end
+	return DEFAULT_CANVAS
+end
+
+-- CanvasWidth(width, height) -> the physical width the HUD spreads over: the screen's, or on a screen wider than the
+-- HUD width setting allows a centred band that wide, an even number of pixels narrower so it starts on a whole pixel.
+local function CanvasWidth(width, height)
+	local aspect = CANVAS[CanvasSetting()]
+	if not aspect or not IsPositive(width) or width <= height * aspect then
+		return width
+	end
+	local canvas = floor(height * aspect + 0.5)
+	if (width - canvas) % 2 == 1 then
+		canvas = canvas + 1
+	end
+	return canvas
+end
+
+Scale.CanvasWidth = CanvasWidth
+
 local function Limit(width, height)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	if not (layouts and layouts.ScaleLimit) then
@@ -80,7 +110,8 @@ local function Limit(width, height)
 end
 
 local function Apply()
-	local width, height = PhysicalSize()
+	local screen, height = PhysicalSize()
+	local width = CanvasWidth(screen, height)
 	local parent, user = ParentScale(), state.user
 	local maximum, enabled = Limit(width, height)
 	local effectiveUser = min(user, maximum)
@@ -95,19 +126,29 @@ local function Apply()
 	end
 	state.enabled = enabled
 	local last = state.applied
-	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum then
+	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen then
 		return
 	end
 	local previous = state.effectiveUser
 	root:SetScale(REFERENCE_SCALE / parent * effectiveUser)
 	state.maximum, state.effectiveUser = maximum, effectiveUser
-	last[1], last[2], last[3], last[4], last[5] = height, parent, user, width, maximum
+	last[1], last[2], last[3], last[4], last[5], last[6] = height, parent, user, width, maximum, screen
 	local effective = root:GetEffectiveScale()
 	if not IsPositive(effective) then
 		effective = REFERENCE_SCALE * effectiveUser
 	end
 	state.pixel = UI_HEIGHT / (height * effective)
 	state.borderPixels = max(1, floor(1 / state.pixel + 0.5))
+	state.canvas = width
+	state.origin = (screen - width) / 2 * state.pixel
+	root:ClearAllPoints()
+	if width < screen then
+		root:SetPoint("TOPLEFT", UIParent, "TOPLEFT", state.origin, 0)
+		root:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -state.origin, 0)
+		Log(string.format("the HUD spreads over a centred %d px of the %d px screen (HUD width %s)", width, screen, CanvasSetting()))
+	else
+		root:SetAllPoints(UIParent)
+	end
 	Fire("ScaleChanged")
 	if added and user > maximum and effectiveUser < previous - 1e-9 then
 		ns.Print(string.format(ns.L["HUD resized to %.1f%% to keep enabled elements on screen and apart."], effectiveUser * 100))
@@ -162,6 +203,10 @@ function Scale.Root()
 	return root
 end
 
+function Scale.Origin()
+	return state.origin
+end
+
 function Scale.Pixel(n)
 	return (n or 1) * state.pixel
 end
@@ -201,6 +246,8 @@ end
 ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 	if module == "Layout" and key == "preset" then
 		Request("the layout preset")
+	elseif module == "Layout" and key == "canvas" then
+		Request("the HUD width")
 	elseif ns.Features.modules[module] ~= nil then
 		Request("an element setting")
 	end

@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -111,12 +111,13 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh)
-	local slot = Layouts.Slot(name, rh)
-	if not slot then
+	local story = Layouts.Story(name, rh, true)
+	if not story then
 		return nil
 	end
-	local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
-	return { l = l, b = b, r = r, t = t }
+	local l, b, r, t = Layouts.Rect(story.guide, story.guide, rw, rh)
+	local ql, qb, qr, qt = Layouts.Rect(story.quests, story.quests, rw, rh)
+	return { l = min(l, ql), b = min(b, qb), r = max(r, qr), t = max(t, qt) }
 end
 
 local function Others(name, rw, rh)
@@ -453,7 +454,7 @@ local function Place(layout, place)
 		log("Edit Mode: the layout has no " .. place.label .. " system; it stays where Edit Mode puts it")
 		return false
 	end
-	entry.anchorInfo = { point = place.point or "TOPLEFT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = place.x, offsetY = place.y }
+	entry.anchorInfo = { point = place.point or "TOPLEFT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = place.x + ns.Scale.Origin() * Factor(), offsetY = place.y }
 	entry.anchorInfo2 = nil
 	entry.isInDefaultPosition = false
 	for setting, value in pairs(place.settings) do

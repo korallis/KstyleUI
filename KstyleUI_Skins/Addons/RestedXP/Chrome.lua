@@ -556,11 +556,9 @@ end
 local function PlaceCard(path)
 	local f, card = path.frame, path.card
 	local below = StepsBelow(f)
-	local bottom = path.dock or below or f
+	local bottom = below or f
 	local offset = 0
-	if path.dock then
-		offset = -Widgets.Snap(card, path.dockBottom or 0)
-	elseif path.rest and not below then
+	if path.rest and not below then
 		offset = Widgets.Snap(card, REST_FOOT)
 	end
 	card:ClearAllPoints()
@@ -680,17 +678,6 @@ end
 function Chrome.Card(f)
 	local path = Chrome.Path(f)
 	return path and path.card or nil
-end
-
-function Chrome.Dock(f, target, bottom)
-	local path = Chrome.Path(f)
-	if not path then
-		return false
-	end
-	path.dock = IsTable(target) and target or nil
-	path.dockBottom = bottom
-	PlaceCard(path)
-	return path.dock ~= nil
 end
 
 function Chrome.Refit(f)

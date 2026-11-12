@@ -255,7 +255,7 @@ function Widgets.DropdownMenu()
 	end
 	local root = Scale.Root()
 	local catcher = CreateFrame("Button", nil, root)
-	catcher:SetAllPoints(root)
+	catcher:SetAllPoints(UIParent)
 	catcher:SetFrameStrata("FULLSCREEN_DIALOG")
 	catcher:RegisterForClicks("AnyUp")
 	catcher:Hide()

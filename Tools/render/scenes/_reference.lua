@@ -118,6 +118,31 @@ Reference.STATE = {
 local PARTY_FROM_CENTRE, PARTY_GLASS_W = 395, 266
 local PLATE_NAME_HALF, PLATE_GAP = 90, 16
 
+-- LIVE is the story rail of the owner's first live session (2026-11-12, 5120x1440): RestedXP's step 57 with three
+-- active steps of wrapped lines, and nine tracked quests, the first with four objectives. Reference.Build({ live =
+-- true }), or RENDER_STORY=live, draws it in place of the picture's short guide and seven quests.
+Reference.LIVE = {
+	guide = {
+		title = "9-12 Skyborne",
+		steps = {
+			{ title = "Step 57", elements = { "Kill |cRXP_ENEMY_Bandit Highwayman|r. Loot them for the [Blood-Stained Bandit Masks].", "Watch for stealthed enemies in the apple orchard.", "0/7 Blood-Stained Bandit Mask" } },
+			{ title = "Step 58", elements = { "Make your way up the mountain", "If you see a Tornado, use it for faster travel to the top of the hill" } },
+			{ title = "Step 59", elements = { "Click on the |cRXP_PICK_Construct Parts|r", "Obtain Air Construct Core from the Bandit Camp 0/1" } },
+		},
+	},
+	quests = {
+		{ title = "The Broken Construct", level = 9, objectives = { "Listen to what Riaani has to say 1/1", "Obtain Crystallized Lightning from the Sparkling Cave 1/1", "Obtain Enchanted Gyrozephyr from Windsong Lake 0/1", "Obtain Air Construct Core from the Bandit Camp 0/1" }, questID = 311, superTracked = true },
+		{ title = "Bandit Highwaymen", level = 10, objectives = { "Blood-Stained Bandit Mask 0/7" }, questID = 312 },
+		{ title = "Crab Season", level = 9, objectives = { "Windsong Crawler Meat 0/6" }, questID = 302 },
+		{ title = "Aid For The Refugees", level = 11, objectives = { "Abandoned Belongings 0/8" }, questID = 303 },
+		{ title = "A Grand Adventure", level = 12, objectives = { "Listen to Ayessa 0/1" }, questID = 304 },
+		{ title = "Shadowgale Scouting", level = 10, objectives = { "Scout the poacher camp 0/1" }, questID = 305 },
+		{ title = "Windsong Hides", level = 10, objectives = { "Windsong Hide 0/5" }, questID = 306 },
+		{ title = "Orchard Pests", level = 9, objectives = { "Orchard Pest slain 0/10" }, questID = 307 },
+		{ title = "Unnerving Silence", level = 11, objectives = { "Find and speak with Elegael Thornpaw in the northeastern part of Shadowgale Forest." }, questID = 301 },
+	},
+}
+
 local function sceneWidth()
 	local screen = Reference.SCREEN
 	return screen.width * 1080 / screen.height
@@ -149,8 +174,8 @@ function Reference.SeatPlates(plates, width)
 	return seated
 end
 
--- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer, and
--- opts.modules, when given, names the only modules drawn.
+-- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer,
+-- opts.modules, when given, names the only modules drawn, and opts.live draws the live session's story rail (LIVE).
 function Reference.Build(opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
@@ -168,6 +193,9 @@ function Reference.Build(opts)
 		end
 		if layout == "Healer" then
 			state.plates = Reference.SeatPlates(state.plates, sceneWidth())
+		end
+		if opts.live or os.getenv("RENDER_STORY") == "live" then
+			state.guide, state.quests = Reference.LIVE.guide, Reference.LIVE.quests
 		end
 		local modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" }
 		if layout ~= "DPS" then

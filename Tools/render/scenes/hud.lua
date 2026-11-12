@@ -1023,7 +1023,7 @@ function modules.tracker(opts)
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
 		saved = saved(opts, "Skins"),
-		loaded = opts.trackerDocked and { RXPGuides = true } or nil,
+		loaded = opts.withGuide and { RXPGuides = true } or nil,
 		setup = function(env)
 			shared(env, opts)
 			local quests, super = CardQuests(opts.quests or Tracker.QUESTS)
@@ -1044,27 +1044,15 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
-	-- The quest card stands in for Blizzard's tracker in the story slot, four quests at a time. With the RestedXP
-	-- guide docked over it (the skin's one story card), the card's own glass yields to the guide's, which the
-	-- restedxp module draws down to the card's foot.
+	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
+	-- slot, or the column beside the RestedXP guide's card while the guide holds the slot (opts.withGuide).
 	local card = ns.Quests.Active()
-	if opts.trackerDocked then
-		if card then
-			ns.Quests.Dock(true)
-			if opts.cardUnder then
-				-- The guide's foot, as the rail reports it in the game (Rail.Place -> Quests.Under).
-				ns.Quests.Under(opts.cardUnder)
-				S.W.Settle(env)
-			end
-		else
-			ns.Tracker.Dock(true)
-		end
-	end
 	local scene = build(env, opts)
+	local place = opts.withGuide and "in its own column beside the RestedXP guide's card" or "in the layout's story slot"
 	if card then
-		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, in the layout's story slot; Blizzard's tracker is hidden while it holds only quests" .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
+		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else
-		scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset") .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
+		scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout, " .. place or ", at Forever's preset")
 	end
 	return finish(env, K, scene, "tracker"), ns, card and ns.Quests.Card() or tracker
 end
@@ -1399,34 +1387,11 @@ function modules.restedxp(opts)
 			frame:Hide()
 		end
 	end
-	if opts.dockBottom then
-		-- A stand-in for the tracker skin's fit frame: its foot the fit's foot (screen units up from the bottom),
-		-- its top the quests' cap. The rail docks the guide's card to it as it docks to the real fit in
-		-- the game: the glass runs to the quests' foot and the guide's footer hugs the quests' cap.
-		local env = R.env
-		local fit = env.CreateFrame("Frame", nil, env.UIParent)
-		local unit = env.UIParent:GetHeight() / 1080
-		fit:SetSize(1, math.max(1, (opts.dockTop or opts.dockBottom + 1) - opts.dockBottom) * unit)
-		fit:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom * unit)
-		local quests = R.ns.Quests
-		local under = quests and quests.Under
-		if quests then
-			quests.Under = function(top)
-				R.under = top
-				if under then
-					under(top)
-				end
-			end
-		end
-		R.ns.RestedXP.Rail.DockTo(fit, opts.dockCard)
-		R.env.RunTimers()
-		R.log[#R.log + 1] = "restedxp: the quests dock into the guide's card; its glass runs to the tracker glass's foot and its footer hugs the quests' cap"
-	end
 	local scene = build(R.env, opts)
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line
 	end
-	scene.log[#scene.log + 1] = "restedxp: the guide is where the skin's story rail puts it for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule"
+	scene.log[#scene.log + 1] = "restedxp: the guide is in its own card where the skin's story rail puts it for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule" .. (R.ns.RestedXP.Rail.Hidden() > 0 and ("; " .. R.ns.RestedXP.Rail.Hidden() .. " steps rest under its more line") or "")
 	return finish(R.env, R.K, scene, "restedxp"), R
 end
 

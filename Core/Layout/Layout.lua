@@ -68,6 +68,7 @@ Layout.defaults = {
 	snapDistance = 8,
 	calm = true,
 	preset = "DPS",
+	canvas = Scale.DEFAULT_CANVAS,
 }
 
 Layout.schema = {
@@ -89,6 +90,16 @@ Layout.schema = {
 		type = "slider", key = "snapDistance", label = L["Snap distance"],
 		help = L["How close an edge comes, in interface units, before it snaps."],
 		min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
+	},
+	{ type = "header", label = L["Screen"] },
+	{
+		type = "dropdown", key = "canvas", label = L["HUD width"],
+		help = L["On wider screens the HUD stays in a centred band this wide; the world still fills the screen."],
+		options = {
+			{ value = "21:9", label = L["21:9 (default)"] },
+			{ value = "16:9", label = L["16:9"] },
+			{ value = "full", label = L["Full width"] },
+		},
 	},
 	{ type = "header", label = L["Combat"] },
 	{
@@ -114,6 +125,7 @@ local SETTING_VALID = {
 	gridSize = function(v) return IsFinite(v) and v >= GRID_MIN and v <= GRID_MAX end,
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
 	calm = function(v) return type(v) == "boolean" end,
+	canvas = function(v) return Scale.CANVAS[v] ~= nil end,
 	preset = function(v)
 		local setup = ns.Setup
 		return type(v) == "string" and setup ~= nil and setup.Layouts ~= nil and setup.Layouts.Get(v) ~= nil

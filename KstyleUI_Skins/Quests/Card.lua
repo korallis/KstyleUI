@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time, and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view, never taller than the card's Layout element, of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time (a quest too tall for the card shows the objectives that fit and the more line counts the rest), and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,7 +21,7 @@ local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
 local pitch, lead, rowWidth = 0, 0, 0
 local offset, wanted, maxHeight = 1, 4, 0
-local docked, pending, waiting, active = false, false, false, false
+local pending, waiting, active = false, false, false
 local pointed = false
 
 local function Snap(units)
@@ -301,11 +301,11 @@ local function Line(row, i, y, right, text, count, colorName, room, lines)
 	line.count:SetShown(count ~= nil)
 end
 
-local function Words(row, entry)
+local function Words(row, entry, limit)
 	local titleH = TitleHeight()
 	local right = Right(entry)
 	row.title:SetText(entry.title)
-	local used = 0
+	local used, cut = 0, 0
 	if entry.complete then
 		used = 1
 		Line(row, 1, titleH, right, Ready(), nil, "friend", Room(right), 1)
@@ -318,6 +318,10 @@ local function Words(row, entry)
 			local objective = entry.objectives[i]
 			local room = Room(right, objective)
 			local lines = Lines(objective, room)
+			if limit and Snap(y + Span(lines)) > limit then
+				cut = entry.count - used
+				break
+			end
 			used = i
 			Line(row, i, y, right, objective.text, objective.count, objective.done and "textDisabled" or "text", room, lines)
 			y = y + Span(lines)
@@ -327,15 +331,17 @@ local function Words(row, entry)
 		row.lines[i].text:Hide()
 		row.lines[i].count:Hide()
 	end
+	return cut
 end
 
-local function Bind(row, entry, position, y, height, right)
+local function Bind(row, entry, position, y, height, right, limit)
 	row:ClearAllPoints()
 	row:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -y)
 	row:SetPoint("TOPRIGHT", view, "TOPRIGHT", -right, -y)
 	row:SetHeight(height)
 	row.span = height
 	row.rail = right
+	row.limit = limit
 	row.questID = entry.id
 	row.item, row.logIndex = entry.item, entry.logIndex
 	local titleH = TitleHeight()
@@ -355,10 +361,11 @@ local function Bind(row, entry, position, y, height, right)
 		row.socket:Hide()
 		row.title:SetPoint("RIGHT", row, "RIGHT", 0, 0)
 	end
-	Words(row, entry)
+	local cut = Words(row, entry, limit)
 	PaintTitle(row)
 	PaintDisc(row)
 	row:Show()
+	return cut
 end
 
 local function Height(entry)
@@ -439,7 +446,7 @@ local function Repaint()
 				local entry = Data.Get(n)
 				if entry.id == row.questID then
 					if Height(entry) == row.span then
-						Words(row, entry)
+						Words(row, entry, row.limit)
 					end
 					break
 				end
@@ -490,9 +497,9 @@ function Card.Render()
 	for i = 1, total do
 		heights[i] = Height(Data.Get(i))
 	end
-	local top = docked and 0 or Snap(HEAD)
+	local top = Snap(HEAD)
 	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot()
-	local room = math.max(heights[1], maxHeight - chrome)
+	local room = math.max(0, maxHeight - chrome)
 	if not over and not Fits(Window(total, n, gap), room) then
 		over = true
 		right = Snap(BAR_WIDTH + BAR_GAP)
@@ -500,12 +507,12 @@ function Card.Render()
 		for i = 1, total do
 			heights[i] = Height(Data.Get(i))
 		end
-		room = math.max(heights[1], maxHeight - chrome)
+		room = math.max(0, maxHeight - chrome)
 	end
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
 	offset = math.max(1, math.min(offset, total - fit + 1))
-	local y, k = 0, 0
+	local y, k, cut = 0, 0, 0
 	while k < n and offset + k <= total do
 		local h = heights[offset + k]
 		if k > 0 and not Fits(y + h, viewHeight) then
@@ -513,7 +520,8 @@ function Card.Render()
 		end
 		k = k + 1
 		local row = rows[k]
-		Bind(row, Data.Get(offset + k - 1), offset + k - 1, y, h, right)
+		local limit = not Fits(h, viewHeight) and viewHeight or nil
+		cut = Bind(row, Data.Get(offset + k - 1), offset + k - 1, y, h, right, limit)
 		y = y + h + gap
 	end
 	for i = k + 1, #rows do
@@ -532,6 +540,9 @@ function Card.Render()
 	local above, below = offset - 1, total - (offset + k - 1)
 	if over and above + below > 0 then
 		more:SetText(MoreText(above, below))
+		more:Show()
+	elseif cut > 0 then
+		more:SetText(string.format(L["%d more"], cut))
 		more:Show()
 	else
 		more:SetText("")
@@ -641,15 +652,6 @@ function Card.Place(root, left, top, width, height)
 	card:SetPoint("TOPLEFT", root, "BOTTOMLEFT", Widgets.Snap(card, left), Widgets.Snap(card, top))
 	card:SetWidth(Widgets.Snap(card, width))
 	maxHeight = height
-end
-
-function Card.SetDocked(on)
-	docked = on == true
-	glass:SetShown(not docked)
-end
-
-function Card.Docked()
-	return docked
 end
 
 local function Restyle()
