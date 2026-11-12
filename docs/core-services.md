@@ -184,7 +184,7 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 
 | Field | Rows | Rule |
 | --- | --- | --- |
-| `type` | all | `header`, `toggle`, `slider`, `dropdown`, `segmented`, `color`, `font`, `texture` or `text` |
+| `type` | all | `header`, `toggle`, `slider`, `dropdown`, `segmented`, `pictures`, `color`, `font`, `texture` or `text` |
 | `label` | all | Required text |
 | `key` | all but `header` | A setting name, with dots for nested settings such as `player.healthText.size`. It must have a default, and it appears once per schema. |
 | `help` | all but `header` | One sentence under 100 characters |
@@ -192,11 +192,11 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 | `scope` | all | Optional `{ key = setting, value = value }` for a row that a picker dropdown shows, such as `{ key = "edit", value = "target" }`. `key` is a top-level setting with a default, and `value` has the default's type and is not a table. Search runs the row's `showWhen` as if `key` held `value`, so it finds the row whatever the picker holds. The page ignores `scope`. |
 | `min`, `max`, `step` | `slider` | Numbers with `min < max`, `step > 0`, and the default in range |
 | `shown` | `slider` | Optional `function(stored) -> number`. The window paints `shown(value)`; `shown(default)` must be a finite number inside `min` and `max`, and the default itself is then the one stored value outside the range that `Store.Import` accepts. Use it with a sentinel default for a setting that follows the type set (`Tokens.TypeDefault`). |
-| `options` | `dropdown`, `segmented`, optional on `font` | `{ { value, label }, ... }` holding the default, or a function that returns such a list (a `segmented` row takes the list itself, shown as one tab per option). A font row without it keeps the normal media list; a caller can prepend a follow-kit sentinel without resolving it to a saved path. |
+| `options` | `dropdown`, `segmented`, `pictures`, optional on `font` | `{ { value, label }, ... }` holding the default, or a function that returns such a list (a `segmented` row takes the list itself, shown as one tab per option; a `pictures` row takes the list itself, each option with a `picture` texture path, shown as one card per option). A font row without it keeps the normal media list; a caller can prepend a follow-kit sentinel without resolving it to a saved path. |
 | `hasAlpha` | `color` | Optional boolean |
 | `maxLetters` | `text` | Optional whole number above 0 |
 
-The default's type must match the row: `toggle` takes a boolean, `slider` a number, `dropdown` and `segmented` a string or a number, `color` a table with `r`, `g` and `b`, and `font`, `texture` and `text` a string. Any other field raises an error. To add a field, add it to the field tables in `Core/Options.lua`.
+The default's type must match the row: `toggle` takes a boolean, `slider` a number, `dropdown`, `segmented` and `pictures` a string or a number, `color` a table with `r`, `g` and `b`, and `font`, `texture` and `text` a string. Any other field raises an error. To add a field, add it to the field tables in `Core/Options.lua`.
 
 | Function | Behaviour |
 | --- | --- |

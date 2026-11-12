@@ -115,7 +115,7 @@ end
 
 do
 	local env, K, panel = Login()
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Click(panel.cards.Healer)
 	W.Key(panel, "ESCAPE")
 	W.Settle(env)
@@ -123,9 +123,9 @@ do
 	assert(K.Widgets.Setting("ornaments") == "Full", "with the ornament level as it stood")
 	env.SlashCmdList.KSTYLE("setup")
 	W.Settle(env)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Click(panel.cards.Tank)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Click(panel.ornamentCards.Off)
 	panel:Close()
 	W.Settle(env)
@@ -149,10 +149,10 @@ do
 	assert(K.Setup.NewChoice().ornaments == "Full", "a fresh choice picks Full ornaments")
 	assert(K.Widgets.Setting("ornaments") == "Full", "the default is Full as well, so a profile that never applies gets the level a fresh choice picks")
 	local panel = Open(env, K)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
-	assert(K.Setup.Step() == 4 and panel.pages[4]:IsShown() and not panel.pages[3]:IsShown(), "step 4 is the ornaments step")
-	assert(panel.steps.buttons[4].label:GetText() == "ORNAMENTS", "and its tab says so")
+	assert(K.Setup.Step() == 5 and panel.pages[5]:IsShown() and not panel.pages[4]:IsShown(), "step 4 is the ornaments step")
+	assert(panel.steps.buttons[5].label:GetText() == "ORNAMENTS", "and its tab says so")
 	local cards = panel.ornamentCards
 	for _, entry in ipairs(K.Setup.ORNAMENTS) do
 		local card = cards[entry.value]
@@ -163,7 +163,7 @@ do
 	W.Click(cards.Subtle)
 	assert(K.Setup.Choice().ornaments == "Subtle" and cards.Subtle.selected and not cards.Full.selected, "a click picks the level")
 	assert(K.Widgets.Setting("ornaments") == "Full", "picking writes nothing before Apply")
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(panel.summary:GetText():find("Ornaments: Subtle. " .. K.Setup.Ornament("Subtle").note, 1, true), "the summary names the level and its note")
 	local changed
@@ -191,11 +191,11 @@ do
 	local env, K = Boot()
 	env.SlashCmdList.KSTYLE("setup")
 	W.Settle(env)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Click(K.Setup.window.cards.Tank)
 	env.RunTimers()
 	W.Settle(env)
-	assert(K.Setup.Step() == 2 and K.Setup.Choice().layout == "Tank", "the login timer leaves an open setup alone")
+	assert(K.Setup.Step() == 3 and K.Setup.Choice().layout == "Tank", "the login timer leaves an open setup alone")
 	assert(K.Setup.IsShown())
 	K.Setup.window:Close()
 	assert(not K.Setup.IsShown(), "closing counts at once, before the fade ends")
@@ -223,14 +223,14 @@ do
 	assert(registered and registered.frame == panel and registered.opts.scalable, "the window registers with Layout as a scalable element")
 	assert(panel.titleText and panel.closeButton, "a titled panel with a close button")
 	local tabs = panel.steps
-	assert(#tabs.buttons == 5, "a strip of five steps")
+	assert(#tabs.buttons == 6, "a strip of six steps")
 	assert(tabs:GetValue() == 1)
-	assert(tabs:Select(3) == false, "steps not reached yet are disabled")
-	assert(panel.pages[1]:IsShown() and not panel.pages[2]:IsShown(), "one page at a time")
+	assert(tabs:Select(4) == false, "steps not reached yet are disabled")
+	assert(panel.pages[1]:IsShown() and not panel.pages[3]:IsShown(), "one page at a time")
 	assert(not panel.back:IsShown(), "no Back on the welcome step")
 	W.Click(panel.next)
 	W.Settle(env)
-	assert(K.Setup.Step() == 2 and panel.pages[2]:IsShown() and not panel.pages[1]:IsShown(), "Next moves to the layout step")
+	assert(K.Setup.Step() == 2 and panel.pages[2]:IsShown() and not panel.pages[1]:IsShown(), "Next moves to the HUD style step")
 	assert(tabs:GetValue() == 2 and panel.back:IsShown())
 	W.Click(panel.back)
 	W.Settle(env)
@@ -251,7 +251,7 @@ do
 	local env, K = Boot()
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local cards, preview = panel.cards, panel.preview
 	assert(cards.DPS and cards.Tank and cards.Healer, "a card per layout")
@@ -283,7 +283,7 @@ do
 	local env, K = Boot()
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local preview = panel.preview
 	local root = K.Scale.Root()
@@ -324,7 +324,7 @@ do
 		return #text * size * 0.8
 	end
 	K.Setup.Go(1)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local wide = labels()
 	-- The buff block is the picture's one 42-unit row (LEE-20), too short in the preview for even the floor size, so it
@@ -344,7 +344,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	assert(panel.previewName and panel.previewName:IsShown(), "the layout step names the previewed layout")
 	assert(panel.previewName:GetText():lower():find("dps", 1, true), "the picked one: " .. tostring(panel.previewName:GetText()))
@@ -361,10 +361,10 @@ do
 	local env, K = Boot()
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local root = K.Scale.Root()
-	local page = assert(Geometry.Rect(panel.pages[2], root))
+	local page = assert(Geometry.Rect(panel.pages[3], root))
 	local lowest = math.huge
 	for _, object in ipairs({ panel.preview, panel.cards.DPS, panel.cards.Tank, panel.cards.Healer }) do
 		local box = assert(Geometry.Rect(object, root))
@@ -386,7 +386,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(3)
+	K.Setup.Go(4)
 	W.Settle(env)
 	local toggles = panel.toggles
 	for _, name in ipairs(MODULES) do
@@ -421,11 +421,11 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
-	W.Click(panel.cards.Tank)
 	K.Setup.Go(3)
+	W.Click(panel.cards.Tank)
+	K.Setup.Go(4)
 	panel.toggles.Chat:SetValue(false)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(panel.summary:GetText():find("Tank", 1, true), "the summary names the layout")
 	assert(panel.apply:IsShown() and not panel.reload:IsShown(), "Apply shows on the summary, the reload button after it")
@@ -549,7 +549,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local preview = panel.preview
 	for _, name in ipairs(K.Setup.Layouts.Names()) do
@@ -574,7 +574,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local Layouts = K.Setup.Layouts
 	local function alpha(rect)
@@ -665,7 +665,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	env.SetCombat(true)
 	W.Click(panel.apply)
 	W.Settle(env)
@@ -681,11 +681,11 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Click(panel.apply)
-	K.Setup.Go(3)
+	K.Setup.Go(4)
 	panel.toggles.Chat:SetValue(false)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(panel.apply:IsShown() and not panel.reload:IsShown(), "a changed choice can be applied again")
 	W.Key(panel, "ESCAPE")
@@ -699,7 +699,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local card = panel.cards.DPS
 	local br, bg, bb = K.Tokens.Color("buttonFill")
@@ -724,7 +724,7 @@ do
 	local env, K = Boot()
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	local preview = panel.summaryPreview
 	local root = K.Scale.Root()
@@ -748,7 +748,7 @@ do
 	local env, K = Boot({ locale = "deDE" })
 	Measured(env)
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	local root = K.Scale.Root()
 	local named
@@ -771,7 +771,7 @@ do
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(not panel.editMode:IsShown() and not panel.retry:IsShown(), "before Apply the summary says nothing about Edit Mode")
 	assert(panel.summaryPreview:IsShown() and panel.summaryPreview.layout == "DPS", "the summary previews the layout Apply builds")
@@ -814,12 +814,12 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(not panel.summary:GetText():find("Off:", 1, true), "with every module on there is no Off line: " .. panel.summary:GetText())
 	K.Setup.Choice().modules.Chat = false
-	K.Setup.Go(3)
-	K.Setup.Go(5)
+	K.Setup.Go(4)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(panel.summary:GetText():find("Off: Chat", 1, true), "a module switched off is listed: " .. panel.summary:GetText())
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -836,7 +836,7 @@ do
 		end
 		EditModeFake.Install(env, { saved = {}, active = 1 })
 		local panel = Open(env, K)
-		K.Setup.Go(5)
+		K.Setup.Go(6)
 		W.Settle(env)
 		W.Click(panel.apply)
 		W.Settle(env)
@@ -869,7 +869,7 @@ do
 		end
 		EditModeFake.Install(env, { saved = {}, active = 1 })
 		local panel = Open(env, K)
-		K.Setup.Go(5)
+		K.Setup.Go(6)
 		W.Settle(env)
 		W.Click(panel.apply)
 		W.Settle(env)
@@ -889,7 +889,7 @@ do
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(CoreEnv.Printed(env, "Try again"), "the chat line points at Try again")
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	W.Settle(env)
 	assert(panel.editMode:IsShown() and panel.editMode:GetText():find("KstyleUI Tank", 1, true), "the reopened summary keeps the refusal")
 	assert(panel.retry:IsShown(), "with Try again")
@@ -909,7 +909,7 @@ end
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Settle(env)
 	local role
 	for _, rect in ipairs(panel.preview.rects) do
@@ -933,7 +933,7 @@ do
 	local state = { saved = {}, active = 1 }
 	EditModeFake.Install(env, state)
 	local panel = Open(env, K)
-	K.Setup.Go(5)
+	K.Setup.Go(6)
 	env.SetCombat(true)
 	W.Click(panel.apply)
 	W.Settle(env)
@@ -945,3 +945,25 @@ do
 end
 
 print("setup ok")
+
+-- The HUD style step: two picture cards, Frames picked first for a profile on Frames; Apply saves the pick.
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	assert(panel.steps.buttons[2].label:GetText() == "HUD STYLE", "step 2 is the HUD style step")
+	local cards = panel.styleCards
+	assert(cards.frames and cards.orbs and cards.frames:IsShown() and cards.orbs:IsShown(), "a card for each style")
+	assert(cards.frames.picture:GetTexture() == (K.Tokens.Texture("hudStyleFrames")) and cards.orbs.picture:GetTexture() == (K.Tokens.Texture("hudStyleOrbs")), "each card shows its style's picture")
+	assert(K.Setup.Choice().hudStyle == "frames" and cards.frames.selected and not cards.orbs.selected, "Frames is picked first")
+	W.Click(cards.orbs)
+	W.Settle(env)
+	assert(K.Setup.Choice().hudStyle == "orbs" and cards.orbs.selected, "a click picks Orbs")
+	K.Setup.Go(6)
+	W.Settle(env)
+	assert(panel.summary:GetText():find(K.L["Orbs"], 1, true), "the summary names the style")
+	assert(K.Setup.Apply(K.Setup.Choice()), "Apply runs")
+	assert(K.HudStyle.Saved() == "orbs", "Apply saves the HUD style")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end

@@ -78,7 +78,7 @@ return Common.Run(function()
 	})
 
 	-- Step 2: the three layout cards, DPS picked, Tank under the mouse.
-	env, K, panel, hover = Step(W, 2, 880, 30, function(stepEnv, _, stepPanel, stepHover)
+	env, K, panel, hover = Step(W, 3, 880, 30, function(stepEnv, _, stepPanel, stepHover)
 		W.Enter(stepPanel.cards.Tank)
 		stepHover[stepPanel.cards.Tank] = true
 		W.Settle(stepEnv)
@@ -90,7 +90,7 @@ return Common.Run(function()
 	})
 
 	-- Step 3: the module toggles, every module on but the window skins.
-	env, K, panel, hover = Step(W, 3, 60, 560, function(_, _, modules)
+	env, K, panel, hover = Step(W, 4, 60, 560, function(_, _, modules)
 		modules.toggles.Skins:SetValue(false)
 	end)
 	add(env, K, panel, hover, {
@@ -100,7 +100,7 @@ return Common.Run(function()
 	})
 
 	-- Step 5: the summary after Apply, when Edit Mode refused the layout because every account slot was taken.
-	env, K, panel, hover = Step(W, 5, 880, 560, function(stepEnv, stepK, stepPanel)
+	env, K, panel, hover = Step(W, 6, 880, 560, function(stepEnv, stepK, stepPanel)
 		local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 		local full = {}
 		for i = 1, 5 do

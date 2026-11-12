@@ -18,6 +18,7 @@ local VALUE_TYPES = {
 	font = "string",
 	texture = "string",
 	text = "string",
+	pictures = "choice",
 }
 local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen = true, scope = true }
 local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
@@ -29,6 +30,7 @@ local EXTRA_FIELDS = {
 	font = { options = true },
 	color = { hasAlpha = true },
 	text = { maxLetters = true },
+	pictures = { options = true },
 }
 
 local schemas, index, order = {}, {}, {}
@@ -203,6 +205,16 @@ local function checkRow(module, row, defaults)
 	elseif rowType == "segmented" then
 		if type(row.options) ~= "table" then
 			return "a segmented row needs options: a list of { value, label }"
+		end
+		return checkDropdown(row, default)
+	elseif rowType == "pictures" then
+		if type(row.options) ~= "table" then
+			return "a pictures row needs options: a list of { value, label, picture }"
+		end
+		for i, option in ipairs(row.options) do
+			if type(option) == "table" and (type(option.picture) ~= "string" or option.picture == "") then
+				return "option " .. i .. " needs a picture: a texture path"
+			end
 		end
 		return checkDropdown(row, default)
 	elseif rowType == "color" then

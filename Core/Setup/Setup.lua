@@ -70,7 +70,7 @@ function Setup.NewChoice()
 	for _, entry in ipairs(PICKER) do
 		modules[entry.name] = Setup.Available(entry.name)
 	end
-	return { layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS }
+	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS }
 end
 
 function Setup.Choice()
@@ -254,10 +254,14 @@ function Setup.Apply(picked)
 	if ornaments then
 		ns.Options.Write("Widgets", "ornaments", ornaments)
 	end
+	local hudStyle = (picked.hudStyle == "frames" or picked.hudStyle == "orbs") and picked.hudStyle
+	if hudStyle then
+		ns.Options.Write("HudStyle", "style", hudStyle)
+	end
 	WriteEditMode(picked.layout)
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
-		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; on: "
+		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; HUD style: " .. (hudStyle or "unchanged") .. "; on: "
 		.. (#on > 0 and table.concat(on, ", ") or "none") .. "; off: " .. (#off > 0 and table.concat(off, ", ") or "none"))
 	return true
 end

@@ -42,7 +42,7 @@ local function setup(frames)
 	CoreEnv.Boot(env)
 	assert(K.Setup.Open(true), "the setup opens as on the first login")
 	W.Settle(env)
-	assert(K.Setup.Go(4), "the setup moves to the ornaments step")
+	assert(K.Setup.Go(5), "the setup moves to the ornaments step")
 	W.Settle(env)
 	local panel = K.Setup.window
 	assert(panel.ornamentCards.Full.selected, "Full is picked as the step opens")

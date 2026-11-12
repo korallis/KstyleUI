@@ -71,6 +71,12 @@ ORB_GLINTS = (
     (0.68, 0.82, 0.22, 0.22, ((0.0, 0.14), (1.0, 0.0))),
 )
 ORB_LIQUID_EDGE = 0.55
+# The HUD style pictures (KSTY-46): the KSTY-44 mock-ups' colours, drawn as flat shapes so they read at any size.
+HUD_PICTURE = {
+    "back": (14, 18, 23, 1), "slot": (88, 94, 102, 1), "portrait": (60, 66, 74, 1), "glass": (8, 9, 10, 1),
+    "health": (44, 105, 204, 1), "mana": (61, 61, 236, 1), "hostile": (197, 68, 62, 1),
+    "orbHealth": (192, 48, 43, 1), "orbMana": (42, 100, 200, 1), "gilt": (211, 181, 116, 1),
+}
 # The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
 ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
@@ -727,6 +733,78 @@ def draw_orb_surface(width, height):
     return white(at_centres(width, height, fn))
 
 
+def circle_spans(cx, cy, radius):
+    def spans(y):
+        dy = y - cy
+        if abs(dy) > radius:
+            return []
+        half = math.sqrt(radius * radius - dy * dy)
+        return [(cx - half, cx + half)]
+
+    return spans
+
+
+def rect_spans(x0, y0, x1, y1):
+    def spans(y):
+        return [(x0, x1)] if y0 <= y <= y1 else []
+
+    return spans
+
+
+def ring_band_spans(cx, cy, outer, inner):
+    def spans(y):
+        dy = y - cy
+        if abs(dy) > outer:
+            return []
+        o = math.sqrt(outer * outer - dy * dy)
+        if abs(dy) >= inner:
+            return [(cx - o, cx + o)]
+        i = math.sqrt(inner * inner - dy * dy)
+        return [(cx - o, cx - i), (cx + i, cx + o)]
+
+    return spans
+
+
+def liquid_spans(cx, cy, radius, share):
+    disc = circle_spans(cx, cy, radius)
+    level = cy + radius - 2 * radius * share
+
+    def spans(y):
+        return disc(y) if y >= level else []
+
+    return spans
+
+
+def draw_hud_style(kind):
+    """The settings window's and the setup's picture of a HUD style: the action bars, and the player as frames or orbs."""
+    width, height = 256, 128
+    cover = lambda spans: sample_spans(width, height, spans)
+    layers = [(HUD_PICTURE["back"], sample_spans(width, height, rounded_spans(0, 0, width, height, 10)))]
+    size, pitch = 9, 11
+    left = (width - (12 * pitch - 2)) / 2
+    for top in (92, 104):
+        for i in range(12):
+            x = left + i * pitch
+            layers.append((HUD_PICTURE["slot"], cover(rect_spans(x, top, x + size, top + size))))
+    if kind == "frames":
+        layers += [
+            (HUD_PICTURE["hostile"], cover(rect_spans(70, 42, 168, 48))),
+            (HUD_PICTURE["portrait"], cover(circle_spans(181, 45, 9))),
+            (HUD_PICTURE["portrait"], cover(circle_spans(75, 74, 9))),
+            (HUD_PICTURE["health"], cover(rect_spans(88, 70, 186, 76))),
+            (HUD_PICTURE["mana"], cover(rect_spans(88, 79, 186, 82))),
+        ]
+    else:
+        layers.append((HUD_PICTURE["hostile"], cover(rect_spans(78, 12, 178, 18))))
+        for cx, colour, share in ((38, "orbHealth", 0.62), (218, "orbMana", 0.55)):
+            layers += [
+                (HUD_PICTURE["glass"], cover(circle_spans(cx, 96, 21))),
+                (HUD_PICTURE[colour], cover(liquid_spans(cx, 96, 21, share))),
+                (HUD_PICTURE["gilt"], cover(ring_band_spans(cx, 96, 25, 21))),
+            ]
+    return composite(width, height, layers)
+
+
 def draw_bar(width, height, kind):
     def flat(v):
         return 1.0
@@ -919,6 +997,8 @@ for orb_name, width, height, draw, about in (
     ("OrbGlass", 128, 128, lambda: draw_orb_glass(128), "The orb's glass over the liquid: a rim that darkens towards the ring and four glints."),
     ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
     ("OrbSurface", 128, 16, lambda: draw_orb_surface(128, 16), "The lit line on the liquid's surface, anchored to the fill's top edge."),
+    ("HudStyleFrames", 256, 128, lambda: draw_hud_style("frames"), "The Frames HUD style's picture for the settings window and the setup: the bars and the player and target frames."),
+    ("HudStyleOrbs", 256, 128, lambda: draw_hud_style("orbs"), "The Orbs HUD style's picture for the settings window and the setup: the bars between the two orbs and the target bar on top."),
 ):
     ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_DRAWN))
 

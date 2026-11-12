@@ -145,7 +145,7 @@ function M.Run(first)
 		local cenv, CK = CoreEnv.New({ size = "default", setup = Common.ForceScreen })
 		CoreEnv.Boot(cenv)
 		CK.Setup.ShowWindow()
-		CK.Setup.Go(2)
+		CK.Setup.Go(3)
 		checkEnvironment(cenv, "setup preview")
 	end
 	rawset(_G, "STUB_ENVS", nil)

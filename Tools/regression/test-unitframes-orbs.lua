@@ -45,7 +45,7 @@ do
 	assert(player(ns).active == true, "the player frame runs under Frames")
 	assert(K.Layout.Live("unitframes.player"), "the player frame's element is live under Frames")
 	local row = K.Options.Row("HudStyle", "style")
-	assert(row and row.type == "dropdown", "Options shows a HUD style dropdown")
+	assert(row and row.type == "pictures", "Options shows the HUD styles as pictures")
 	local values = {}
 	for _, option in ipairs(row.options) do
 		values[#values + 1] = option.value
