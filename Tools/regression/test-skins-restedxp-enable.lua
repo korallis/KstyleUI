@@ -1,4 +1,4 @@
--- test-skins-restedxp-enable.lua: RestedXP enables under the skin whichever addon starts first, and its waypoint arrow keeps working: RestedXP's OnEnable anchors the active steps and reads where that frame sits (GuideWindow.lua 387), so the rail never leaves the steps frame without a height before RestedXP's first guide loads (the owner's v0.0.7 session raised "arithmetic on a nil value" there and RestedXP stopped enabling), RestedXP's saved window places load as they do without the skin, and its arrow shows at its own place in its own shape.
+-- test-skins-restedxp-enable.lua: RestedXP enables under the skin whichever addon starts first, and its waypoint arrow keeps working: RestedXP's OnEnable anchors the active steps and reads where that frame sits (GuideWindow.lua 387), so the rail never leaves the steps frame without a height before RestedXP's first guide loads (the owner's v0.0.7 session raised "arithmetic on a nil value" there and RestedXP stopped enabling), and its arrow shows at its own saved place in its own shape.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 
