@@ -1,4 +1,4 @@
-"""Tests that .pkgmeta hands CHANGELOG.md to the packager, that the zip keeps it, and that CHANGELOG.md has a section for the version being released."""
+"""Tests that .pkgmeta hands CHANGELOG.md to the packager, that the zip keeps it, and that CHANGELOG.md has a section for the version being released, with at least one of Added, Changed or Fixed and an entry under each heading it has."""
 
 import os
 import re
@@ -36,8 +36,11 @@ class ReleaseChangelogTests(unittest.TestCase):
         section = text[match.end():]
         end = re.search(r"^## ", section, re.M)
         section = section[:end.start()] if end else section
-        for group in ("### Added", "### Changed", "### Fixed"):
-            self.assertIn(group, section)
+        groups = re.split(r"^### (\w+)$", section, flags=re.M)
+        found = dict(zip(groups[1::2], groups[2::2]))
+        self.assertTrue(set(found) & {"Added", "Changed", "Fixed"}, "the v%s section has none of ### Added, ### Changed or ### Fixed" % version)
+        for group, body in found.items():
+            self.assertTrue(re.search(r"^- \S", body, re.M), "### %s in v%s has no entry" % (group, version))
 
     def test_changelog_ends_with_how_to_install(self):
         text = CHANGELOG.read_text(encoding="utf-8")

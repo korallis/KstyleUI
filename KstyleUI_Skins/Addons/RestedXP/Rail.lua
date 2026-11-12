@@ -16,7 +16,7 @@ local FIELD = "rail"
 local OWNER = "Skins.RestedXP.Rail"
 local DEFAULT_PRESET = "DPS"
 local SIDE, FOOTER, HEAD_HEIGHT, HEADER_OVERLAP, STEP_GAP = 3, 20, 35, 9, 2
-local MIN_HEIGHT, LIST_SHOWN = 28, 30
+local MIN_HEIGHT, LIST_SHOWN, EMPTY_STEPS = 28, 30, 0.01
 local SAVE = "savePosition"
 local FOOT_GAP = "gapSmall"
 local MOVED = 1
@@ -264,7 +264,7 @@ local function Fit(f, path, band)
 	end
 	if not band or not current:IsShown() then
 		if restored then
-			current:SetHeight(natural)
+			current:SetHeight(math.max(EMPTY_STEPS, natural))
 		end
 		if more then
 			more:Hide()
@@ -307,7 +307,7 @@ local function Fit(f, path, band)
 	end
 	local hidden = #steps - keep + partial
 	if hidden > 0 or Plain(current:GetHeight()) and math.abs(current:GetHeight() - height) > 0.01 then
-		current:SetHeight(math.max(0, height))
+		current:SetHeight(math.max(EMPTY_STEPS, height))
 	end
 	if more then
 		if hidden > 0 then
