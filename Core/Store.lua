@@ -552,9 +552,9 @@ local HUD_STYLES = { frames = true, orbs = true }
 
 Store.migrations[21] = function(data)
 	for _, profile in pairs(data.profiles) do
-		local appearance = type(profile) == "table" and profile.Appearance
-		if type(appearance) == "table" and appearance.hudStyle ~= nil and not HUD_STYLES[appearance.hudStyle] then
-			appearance.hudStyle = nil
+		local section = type(profile) == "table" and profile.HudStyle
+		if type(section) == "table" and section.style ~= nil and not HUD_STYLES[section.style] then
+			section.style = nil
 		end
 	end
 end

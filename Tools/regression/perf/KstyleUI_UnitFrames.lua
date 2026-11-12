@@ -11,7 +11,7 @@ local function Orbs()
 	return U.New({
 		saved = {
 			version = 2,
-			profiles = { Default = { UnitFrames = { enabled = true }, Appearance = { hudStyle = "orbs" } } },
+			profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "orbs" } } },
 			characters = {},
 		},
 		setup = function(env)

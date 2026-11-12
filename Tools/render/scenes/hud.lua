@@ -137,7 +137,7 @@ local function saved(opts, module, settings, more)
 	local style = os.getenv("RENDER_HUD_STYLE")
 	if style and style ~= "" then
 		assert(style == "Orbs" or style == "Frames", "RENDER_HUD_STYLE must be Orbs or Frames")
-		profile.Appearance = { hudStyle = style:lower() }
+		profile.HudStyle = { style = style:lower() }
 	end
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }

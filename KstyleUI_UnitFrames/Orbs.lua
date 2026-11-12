@@ -293,8 +293,7 @@ local function Quiet()
 end
 
 function Orbs.Wanted()
-	local Appearance = K.Appearance
-	return running and Appearance ~= nil and Appearance.HudStyle() == "orbs" and available ~= false
+	return running and K.HudStyle.Current() == "orbs" and available ~= false
 end
 
 function Orbs.Apply()

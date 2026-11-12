@@ -39,12 +39,12 @@ end
 do
 	local env, K, ns = new()
 	noErrors(env, K, "boot")
-	assert(K.Appearance.Get("hudStyle") == "frames", "a new profile's HUD style is Frames")
-	assert(K.Appearance.HudStyle() == "frames", "the applied HUD style is Frames")
+	assert(K.HudStyle.Saved() == "frames", "a new profile's HUD style is Frames")
+	assert(K.HudStyle.Current() == "frames", "the applied HUD style is Frames")
 	assert(ns.Orbs.Get("health") == nil and ns.Orbs.Get("power") == nil, "Frames builds no orb")
 	assert(player(ns).active == true, "the player frame runs under Frames")
 	assert(K.Layout.Live("unitframes.player"), "the player frame's element is live under Frames")
-	local row = K.Options.Row("Appearance", "hudStyle")
+	local row = K.Options.Row("HudStyle", "style")
 	assert(row and row.type == "dropdown", "Options shows a HUD style dropdown")
 	local values = {}
 	for _, option in ipairs(row.options) do
@@ -60,23 +60,23 @@ do
 		version = 20,
 		profiles = {
 			Default = { UnitFrames = { enabled = true } },
-			Raid = { UnitFrames = { enabled = true }, Appearance = { hudStyle = "orbs" } },
-			Odd = { Appearance = { hudStyle = "bars" } },
+			Raid = { UnitFrames = { enabled = true }, HudStyle = { style = "orbs" } },
+			Odd = { HudStyle = { style = "bars" } },
 		},
 		characters = {},
 	})
 	noErrors(env, K, "migrated boot")
 	assert(env.KstyleUIDB.version == 21 and K.Store.DB_VERSION == 21, "the saved data is upgraded to version 21")
-	assert(env.KstyleUIDB.profiles.Raid.Appearance.hudStyle == "orbs", "a profile that chose Orbs keeps it")
+	assert(env.KstyleUIDB.profiles.Raid.HudStyle.style == "orbs", "a profile that chose Orbs keeps it")
 	K.Store.SetProfile("Odd")
-	assert(K.Appearance.Get("hudStyle") == "frames", "an unknown style reads Frames")
+	assert(K.HudStyle.Saved() == "frames", "an unknown style reads Frames")
 	K.Store.SetProfile("Raid")
-	assert(K.Appearance.HudStyle() == "orbs", "a profile that chose Orbs opens on Orbs")
+	assert(K.HudStyle.Current() == "orbs", "a profile that chose Orbs opens on Orbs")
 	K.Store.SetProfile("Default")
-	env.KstyleUIDB.profiles.Default.Appearance = nil
+	env.KstyleUIDB.profiles.Default.HudStyle = nil
 	CoreEnv.Logout(env)
-	assert(env.KstyleUIDB.profiles.Default.Appearance == nil or env.KstyleUIDB.profiles.Default.Appearance.hudStyle == nil, "Frames is not written into a profile")
-	assert(K.Appearance.Get("hudStyle") == "frames", "the active profile reads Frames")
+	assert(env.KstyleUIDB.profiles.Default.HudStyle == nil or env.KstyleUIDB.profiles.Default.HudStyle.style == nil, "Frames is not written into a profile")
+	assert(K.HudStyle.Saved() == "frames", "the active profile reads Frames")
 end
 
 -- The live switch out of combat: the orbs show beside action bar 1, the player frame and its element step out, and the
@@ -84,10 +84,10 @@ end
 local env, K, ns = new()
 local Orbs = ns.Orbs
 local printed = #env._printed
-K.Options.Write("Appearance", "hudStyle", "orbs")
+K.Options.Write("HudStyle", "style", "orbs")
 env.RunTimers()
 noErrors(env, K, "switch to Orbs")
-assert(K.Appearance.HudStyle() == "orbs", "the switch applies at once out of combat")
+assert(K.HudStyle.Current() == "orbs", "the switch applies at once out of combat")
 assert(#env._printed == printed, "an out-of-combat switch prints nothing")
 local health, power = Orbs.Get("health"), Orbs.Get("power")
 assert(health and power and health:IsShown() and power:IsShown(), "both orbs show under Orbs")
@@ -157,32 +157,32 @@ K.Options.Write("Appearance", "motion", "full")
 
 -- In combat the choice is saved at once but the switch waits for combat to end, with one line to say so.
 env.SetCombat(true)
-K.Options.Write("Appearance", "hudStyle", "frames")
-K.Options.Write("Appearance", "hudStyle", "orbs")
-K.Options.Write("Appearance", "hudStyle", "frames")
+K.Options.Write("HudStyle", "style", "frames")
+K.Options.Write("HudStyle", "style", "orbs")
+K.Options.Write("HudStyle", "style", "frames")
 noErrors(env, K, "a choice in combat")
-assert(K.Appearance.Get("hudStyle") == "frames", "the choice is saved in combat")
-assert(K.Appearance.HudStyle() == "orbs" and health:IsShown(), "the orbs stay until combat ends")
+assert(K.HudStyle.Saved() == "frames", "the choice is saved in combat")
+assert(K.HudStyle.Current() == "orbs" and health:IsShown(), "the orbs stay until combat ends")
 assert(player(ns).active == false, "the player frame waits for combat to end")
 assert(CoreEnv.Count(env._printed, "KstyleUI: " .. K.L["Your HUD style changes when combat ends."]) == 1, "one line says the switch waits")
 env.SetCombat(false)
 env.RunTimers()
 noErrors(env, K, "combat ends")
-assert(K.Appearance.HudStyle() == "frames", "the switch lands when combat ends")
+assert(K.HudStyle.Current() == "frames", "the switch lands when combat ends")
 assert(not health:IsShown() and not power:IsShown(), "the orbs hide under Frames")
 assert(player(ns).active == true and player(ns).views[1].button:IsShown(), "the player frame comes back")
 assert(K.Layout.Live("unitframes.player"), "the player frame's element is live again")
 
 -- Choosing Orbs in combat leaves the secure player frame up until combat ends.
 env.SetCombat(true)
-K.Options.Write("Appearance", "hudStyle", "orbs")
+K.Options.Write("HudStyle", "style", "orbs")
 noErrors(env, K, "Orbs chosen in combat")
-assert(K.Appearance.HudStyle() == "frames" and not health:IsShown(), "the orbs wait for combat to end")
+assert(K.HudStyle.Current() == "frames" and not health:IsShown(), "the orbs wait for combat to end")
 assert(player(ns).active == true and player(ns).views[1].button:IsShown(), "the secure player frame stays shown in combat")
 env.SetCombat(false)
 env.RunTimers()
-assert(K.Appearance.HudStyle() == "orbs" and health:IsShown() and player(ns).active == false, "Orbs lands when combat ends")
-K.Options.Write("Appearance", "hudStyle", "frames")
+assert(K.HudStyle.Current() == "orbs" and health:IsShown() and player(ns).active == false, "Orbs lands when combat ends")
+K.Options.Write("HudStyle", "style", "frames")
 
 -- A bar moved to an edge keeps both orbs on screen.
 do
@@ -196,8 +196,8 @@ do
 end
 
 -- Back to Orbs and to Frames in one session leaves no orb events behind.
-K.Options.Write("Appearance", "hudStyle", "orbs")
-K.Options.Write("Appearance", "hudStyle", "frames")
+K.Options.Write("HudStyle", "style", "orbs")
+K.Options.Write("HudStyle", "style", "frames")
 env.FireEvent("UNIT_HEALTH", "player")
 noErrors(env, K, "events after switching back")
 assert(not health:IsShown(), "a health event under Frames does not show the orbs")
@@ -205,13 +205,13 @@ assert(not health:IsShown(), "a health event under Frames does not show the orbs
 -- A profile switch carries its own style.
 K.Store.CopyProfile("Default", "Orbs")
 K.Store.SetProfile("Orbs")
-K.Options.Write("Appearance", "hudStyle", "orbs")
+K.Options.Write("HudStyle", "style", "orbs")
 K.Store.SetProfile("Default")
 env.RunTimers()
-assert(K.Appearance.HudStyle() == "frames" and not health:IsShown(), "switching to a Frames profile restores Frames")
+assert(K.HudStyle.Current() == "frames" and not health:IsShown(), "switching to a Frames profile restores Frames")
 K.Store.SetProfile("Orbs")
 env.RunTimers()
-assert(K.Appearance.HudStyle() == "orbs" and health:IsShown() and player(ns).active == false, "switching to an Orbs profile shows the orbs")
+assert(K.HudStyle.Current() == "orbs" and health:IsShown() and player(ns).active == false, "switching to an Orbs profile shows the orbs")
 noErrors(env, K, "profile switches")
 
 -- A switch that raises offers a reload instead of leaving half a HUD.
@@ -224,7 +224,7 @@ end
 K.Callbacks.Register("HudStyleChanged", "test", function()
 	error("a module could not switch")
 end)
-K.Options.Write("Appearance", "hudStyle", "frames")
+K.Options.Write("HudStyle", "style", "frames")
 assert(prompts == 1, "a failed switch offers a reload")
 K.Callbacks.Unregister("HudStyleChanged", "test")
 K.Widgets.ReloadPrompt = prompt
