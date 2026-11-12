@@ -122,6 +122,14 @@ local function Check(K, ns, rxp, what)
 		end
 	end
 	assert(ns.RestedXP.Rail.Hidden() > 0, what .. ": the steps that do not fit rest unseen")
+	for _, step in ipairs(rxp.RXPFrame.CurrentStepFrame.framePool) do
+		if step:IsShown() and step:GetAlpha() <= 0 and step:GetHeight() > 1 then
+			assert(not step:IsMouseEnabled(), what .. ": a step resting unseen takes no clicks")
+			for _, line in ipairs(step.elements or {}) do
+				assert(not line:IsMouseEnabled() and not (line.button and line.button:IsMouseEnabled()), what .. ": nor do its lines and their check buttons, which hang over the rail's bars")
+			end
+		end
+	end
 end
 
 local cases = 0

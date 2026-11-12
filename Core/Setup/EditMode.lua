@@ -110,14 +110,14 @@ local function Box(name, key, rw, rh)
 	return { l = l, b = b, r = r, t = t }
 end
 
-local function StoryBox(name, rw, rh)
+local function StoryBox(name, rw, rh, part)
 	local story = Layouts.Story(name, rh, true)
-	if not story then
+	local card = story and story[part or "guide"]
+	if not card then
 		return nil
 	end
-	local l, b, r, t = Layouts.Rect(story.guide, story.guide, rw, rh)
-	local ql, qb, qr, qt = Layouts.Rect(story.quests, story.quests, rw, rh)
-	return { l = min(l, ql), b = min(b, qb), r = max(r, qr), t = max(t, qt) }
+	local l, b, r, t = Layouts.Rect(card, card, rw, rh)
+	return { l = l, b = b, r = r, t = t }
 end
 
 local function Others(name, rw, rh)
@@ -128,6 +128,11 @@ local function Others(name, rw, rh)
 		end
 	end
 	out[#out + 1] = StoryBox(name, rw, rh)
+	local quests = StoryBox(name, rw, rh, "quests")
+	if quests then
+		quests.quests = true
+		out[#out + 1] = quests
+	end
 	return out
 end
 
@@ -325,7 +330,9 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
 	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	for _, rect in ipairs(others) do
-		rects[#rects + 1] = rect
+		if not rect.quests then
+			rects[#rects + 1] = rect
+		end
 	end
 	for _, pick in pairs(chosen) do
 		rects[#rects + 1] = pick.rect

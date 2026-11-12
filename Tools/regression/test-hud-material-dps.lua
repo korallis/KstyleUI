@@ -3,7 +3,7 @@ local Lib = dofile("Tools/regression/hud_material_lib.lua")
 
 local scene = Lib.Build("DPS", "ForgedBrackets")
 local cards = Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS)
-assert(#cards == 4, "DPS draws its story, chat, loot and damage cards, got " .. #cards)
+assert(#cards == 5, "DPS draws its guide, quest, chat, loot and damage cards, got " .. #cards)
 
 local function fails(mutate, reason, role)
 	local card
@@ -17,7 +17,7 @@ local function fails(mutate, reason, role)
 	assert(Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS), "restoring the card restores the pass")
 end
 
-for _, role in ipairs({ "story", "meters.damage", "chat.main", "qol.lootfeed" }) do
+for _, role in ipairs({ "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" }) do
 	fails(function(chrome)
 		local old = chrome.radius
 		chrome.radius = 10.5

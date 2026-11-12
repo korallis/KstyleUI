@@ -98,8 +98,9 @@ end
 
 local function Live()
 	local Layout = K.Layout
-	if state.holder and Layout and type(Layout.SetLive) == "function" then
-		Layout.SetLive(Spec().key, On())
+	local spec = Spec()
+	if state.holder and spec and Layout and type(Layout.SetLive) == "function" then
+		Layout.SetLive(spec.key, On())
 	end
 end
 
@@ -154,8 +155,6 @@ local function Height(region)
 	return Plain(height) and height or 0
 end
 
--- Shape(f, path, steps) -> the parts of the card's height, in the window's units, with steps units of active steps
--- (nil while RestedXP hides its step frame).
 local function Shape(f, path, steps)
 	local head = path and Widgets.Snap(f.GuideName, path.height) or HEAD_HEIGHT
 	local below = f.CurrentStepFrame.anchor == "BOTTOM"
@@ -173,8 +172,6 @@ local function Shape(f, path, steps)
 	return { headTop = headTop, above = above, foot = foot, height = height, folded = folded, cap = cap, span = headTop + above + cap + math.max(foot, rest) }
 end
 
--- Around(f, path) -> how far the guide's card reaches above and below its active steps, in the window's units, as
--- placed now; nil before the card has a place. The steps hang from the route row, so neither changes with them.
 local function Around(f, path)
 	local card, current = path and path.card, f.CurrentStepFrame
 	if not card or not current:IsShown() then
@@ -199,29 +196,37 @@ local function More(path)
 	return state.more
 end
 
-local function Cut(region)
-	state.cut[region] = true
-	region:SetAlpha(0)
-	region:EnableMouse(false)
+local function Mute(region)
+	if IsTable(region) and type(region.EnableMouse) == "function" and not state.cut[region] then
+		state.cut[region] = true
+		region:EnableMouse(false)
+	end
 end
 
--- Uncut() gives back every step and line the last fit rested; one RestedXP hid itself since (1 unit tall at alpha 0,
--- GuideWindow.lua 1307-1310 and 1376-1378) stays as RestedXP left it.
+local function Cut(region)
+	Mute(region)
+	region:SetAlpha(0)
+	for _, line in ipairs(IsTable(region.elements) and region.elements or {}) do
+		Mute(line)
+		Mute(IsTable(line) and line.button)
+	end
+end
+
 local function Uncut()
 	local any = false
 	for region in pairs(state.cut) do
 		state.cut[region] = nil
 		any = true
 		if Height(region) > 1 then
-			region:SetAlpha(1)
+			if Alpha(region) <= 0 then
+				region:SetAlpha(1)
+			end
 			region:EnableMouse(true)
 		end
 	end
 	return any
 end
 
--- Lines(step, room) -> the step's own lines that end within room units of its top, and how far down the last one ends;
--- the rest rest unseen.
 local function Lines(step, room)
 	local top = step:GetTop()
 	local reach = 0
@@ -231,6 +236,7 @@ local function Lines(step, room)
 			local ends = Plain(top) and Plain(bottom) and top - bottom or nil
 			if not ends or ends > room then
 				Cut(line)
+				Mute(line.button)
 			else
 				reach = math.max(reach, ends)
 			end
@@ -239,10 +245,6 @@ local function Lines(step, room)
 	return reach
 end
 
--- Fit(f, path, band) keeps the active steps inside the band: the first steps that fit stay, the rest rest unseen
--- (alpha and mouse off, as RestedXP hides a step) and a muted "N more" line takes the strip under the last one.
--- A step RestedXP hides itself is 1 unit tall at alpha 0 (GuideWindow.lua 1376-1378), so a step of ours is told
--- apart by its height. Returns how many steps rest unseen.
 local function Fit(f, path, band)
 	local current = f.CurrentStepFrame
 	local pool = IsTable(current.framePool) and current.framePool or {}

@@ -771,4 +771,28 @@ do
 	check(DeepEqual(layouts.Sized["minimap.main"], { width = 220 }), "a custom minimap size keeps following the default position")
 end
 
+-- Migration 19 (KSTY-33): the boss column moved 74.6 units in beside the quest card's column. A saved column at the
+-- old default goes to the new place, in DPS and Tank by taking the default and in Healer, where it can only be a DPS
+-- place kept across a preset switch, by moving it there; a column the player moved stays where it is.
+do
+	local saved = {
+		version = 18,
+		profiles = { DPS = { Layout = { preset = "DPS" } }, Moved = { Layout = { preset = "Tank" } }, Healer = { Layout = { preset = "Healer" } } },
+		layouts = {
+			DPS = { ["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = -530.4, y = 752 } },
+			Moved = { ["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = -700, y = 760 } },
+			Healer = { ["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = -530.4, y = 752 } },
+		},
+		characters = {}, account = {}, devlog = {},
+	}
+	local menv = boot({ saved = saved })
+	local db = menv.KstyleUIDB
+	check(db.version == 19, "version 18 data migrates to 19")
+	check(db.layouts.DPS["unitframes.boss"] == nil, "a DPS boss column at the old default takes the new default")
+	local moved = db.layouts.Moved["unitframes.boss"]
+	check(moved and moved.x == -700 and moved.y == 760, "a boss column the player moved stays where it is")
+	local healer = db.layouts.Healer["unitframes.boss"]
+	check(healer and healer.anchor == "BOTTOMRIGHT" and math.abs(healer.x + 605) < 1e-6 and healer.y == 752, "a Healer profile's DPS-placed column moves with the DPS default")
+end
+
 print("store ok")

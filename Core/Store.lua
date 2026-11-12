@@ -513,11 +513,19 @@ Store.migrations[19] = function(data)
 		local section = type(profile.Layout) == "table" and profile.Layout or {}
 		local preset = section.preset or "DPS"
 		local current = layouts and type(layouts.Get) == "function" and layouts.Get(preset) or {}
-		for key in pairs(type(layout) == "table" and preset ~= "Healer" and STORY_V18 or {}) do
+		local dps = layouts and type(layouts.Get) == "function" and layouts.Get("DPS") or {}
+		for key, old in pairs(type(layout) == "table" and STORY_V18 or {}) do
 			local entry = layout[key]
 			if type(entry) == "table" then
 				local now = current[key]
-				railEntry(entry, key, now and { now.anchor, now.x, now.y }, STORY_V18)
+				if preset == "Healer" then
+					local moved = dps[key]
+					if moved and atPlace(entry, old) then
+						entry.anchor, entry.x, entry.y = moved.anchor, moved.x, moved.y
+					end
+				else
+					railEntry(entry, key, now and { now.anchor, now.x, now.y }, STORY_V18)
+				end
 				if next(entry) == nil then
 					layout[key] = nil
 				end

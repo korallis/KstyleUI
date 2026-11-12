@@ -82,8 +82,6 @@ local function CanvasSetting()
 	return DEFAULT_CANVAS
 end
 
--- CanvasWidth(width, height) -> the physical width the HUD spreads over: the screen's, or on a screen wider than the
--- HUD width setting allows a centred band that wide, an even number of pixels narrower so it starts on a whole pixel.
 local function CanvasWidth(width, height)
 	local aspect = CANVAS[CanvasSetting()]
 	if not aspect or not IsPositive(width) or width <= height * aspect then

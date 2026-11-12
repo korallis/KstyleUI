@@ -22,9 +22,9 @@ Lib.ACCENTS = {
 }
 
 Lib.ROLES = {
-	DPS = { "story", "meters.damage", "chat.main", "qol.lootfeed" },
-	Tank = { "story", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed", "groupframes.party" },
-	Healer = { "story", "meters.damage", "chat.main", "qol.lootfeed", "groupframes.party" },
+	DPS = { "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
+	Tank = { "story", "skins.quests", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed", "groupframes.party" },
+	Healer = { "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed", "groupframes.party" },
 }
 
 local CARD_FILE = "CardShape.png"
