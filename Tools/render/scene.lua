@@ -294,12 +294,13 @@ local function eased(p, smoothing)
 	return p
 end
 
--- animationState(frame, now) -> dx, dy (in the frame's own units), alpha scale: what the frame's playing
+-- animationState(frame, now) -> dx, dy (in the frame's own units), alpha, absolute: what the frame's playing
 -- animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an Alpha
--- animation scales the alpha between its from and to values once its start delay has passed, and a finished
--- group leaves each animation at its end, as the game does until OnFinished hides the frame.
+-- animation sets the alpha between its from and to values once its start delay has passed, in place of the
+-- frame's own alpha as the game does (absolute is true then), and a finished group leaves each animation at its
+-- end, as the game does until OnFinished hides the frame.
 local function animationState(frame, now)
-	local dx, dy, alpha = 0, 0, 1
+	local dx, dy, alpha, absolute = 0, 0, 1, false
 	if type(now) ~= "number" then
 		return dx, dy, alpha
 	end
@@ -330,11 +331,12 @@ local function animationState(frame, now)
 					from = type(from) == "number" and from or 1
 					to = type(to) == "number" and to or 1
 					alpha = alpha * (from + (to - from) * p)
+					absolute = true
 				end
 			end
 		end
 	end
-	return dx, dy, alpha
+	return dx, dy, alpha, absolute
 end
 
 -- findOwnAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
@@ -387,11 +389,12 @@ local function effectiveAlpha(object)
 	local alpha = 1
 	local node = object
 	while node do
-		alpha = alpha * ownAlpha(node)
+		local own = ownAlpha(node)
 		if node._groups then
-			local _, _, scale = animationState(node, animationClock)
-			alpha = alpha * scale
+			local _, _, scale, absolute = animationState(node, animationClock)
+			own = absolute and scale or own * scale
 		end
+		alpha = alpha * own
 		if node._ignoreParentAlpha then
 			break
 		end
@@ -1286,6 +1289,9 @@ function Scene.Build(env, opts)
 		local item = { kind = "swipe", alpha = round4(alpha), fraction = round4(fraction), remaining = round4(left) }
 		item.reverse = state(frame, "Reverse") == true
 		item.color = color4(frame._state.SwipeColor, { 0, 0, 0, 0.8 })
+		if state(frame, "DrawEdge") == true then
+			item.edge = color4(frame._state.EdgeColor, { 1, 1, 1, 1 })
+		end
 		local swipe = state(frame, "SwipeTexture")
 		if swipe then
 			item.file = resolve(swipe)

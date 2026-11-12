@@ -55,4 +55,37 @@ return {
 			end
 		end,
 	},
+	{
+		name = "ActionBars key press flashes a slot",
+		budget = 20,
+		setup = function()
+			local env, K, ns = AB.New()
+			AB.Enable(env, K)
+			AB.Slot(env, 1, { texture = 135001, type = "spell", id = 101 })
+			local b = AB.Button(ns, "bar1", 1)
+			local click = b:GetScript("OnClick")
+			click(b, "LeftButton", true)
+			assert(b.press:IsPlaying(), "the fixture's press plays the slot's flash")
+			click(b, "LeftButton", false)
+			return env, function()
+				click(b, "LeftButton", true)
+				click(b, "LeftButton", false)
+			end
+		end,
+	},
+	{
+		name = "ActionBars SPELL_ACTIVATION_OVERLAY_GLOW_SHOW and HIDE on a slot",
+		budget = 400,
+		setup = function()
+			local env, K = AB.New()
+			AB.Enable(env, K)
+			AB.Slot(env, 1, { texture = 135001, type = "spell", id = 101 })
+			local show = Perf.Event(env, "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 101)
+			local hide = Perf.Event(env, "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 101)
+			return env, function()
+				show()
+				hide()
+			end
+		end,
+	},
 }

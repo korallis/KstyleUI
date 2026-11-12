@@ -236,34 +236,40 @@ end
 -- Ready: when a real cooldown runs out, the icon brightens for a moment and settles, the theme's answer to the
 -- game's cooldown flash (which the kit turns off with SetDrawBling). It reads the cooldown frame's own
 -- OnCooldownDone, so no time is compared and secret durations are fine. The GCD alone, a directly driven frame
--- and a hidden button never flash, so the bar does not sparkle after every press.
+-- and a hidden button never flash, so the bar does not sparkle after every press. The flash is an animation group
+-- the client runs (KSTY-44's bible, 3.9: nothing moves by Lua running every frame), so no OnUpdate runs for it.
 do
 	local env, K, button = iconButton({})
 	local cd = button.cooldown
 	local flash = assert(button.ready, "the button has a ready flash")
-	assert(flash:GetAlpha() == 0, "it rests invisible")
+	local group = assert(button.readyFlash, "played by an animation group")
+	assert(not flash:IsShown() and not group:IsPlaying(), "it rests hidden")
 	assert(W.LastCall(flash, "SetBlendMode")[1] == "ADD", "it adds light")
+	local fade = group._anims[1]
+	local peak = W.LastCall(fade, "SetFromAlpha")[1]
+	assert(peak > 0.2 and peak <= 0.5 and W.LastCall(fade, "SetToAlpha")[1] == 0, "it lights the icon briefly, then fades out: " .. peak)
+	assert(W.Near(W.LastCall(fade, "SetDuration")[1], K.Tokens.Duration("castSheen")), "over the sheen's time")
 	button:SetCooldownFromDuration({})
 	cd:GetScript("OnShow")(cd)
 	cd:GetScript("OnCooldownDone")(cd)
-	local peak = 0
+	assert(flash:IsShown() and group:IsPlaying(), "a real cooldown's end plays the flash")
 	for _, call in ipairs(W.Calls(flash, "SetAlpha")) do
-		peak = math.max(peak, call[1])
+		assert(call[1] == 0, "Lua only hides the flash's first frame; the group sets every other alpha")
 	end
-	assert(peak > 0.2 and peak <= 0.5, "a real cooldown's end lights the icon briefly: " .. peak)
-	W.Tick(env, K.Tokens.Duration("castSheen") + 0.1)
-	assert(flash:GetAlpha() == 0, "and settles")
-	local calls = #W.Calls(flash, "SetAlpha")
+	group:GetScript("OnFinished")(group)
+	group:Stop()
+	assert(not flash:IsShown(), "and settles hidden")
 	button:SetCooldownFromDuration({}, true)
 	cd:GetScript("OnCooldownDone")(cd)
-	assert(#W.Calls(flash, "SetAlpha") == calls, "the GCD alone never flashes")
+	assert(not group:IsPlaying(), "the GCD alone never flashes")
 	button:ClearCooldown()
 	cd:GetScript("OnCooldownDone")(cd)
-	assert(#W.Calls(flash, "SetAlpha") == calls, "nor a frame driven directly")
+	assert(not group:IsPlaying(), "nor a frame driven directly")
 	button:SetCooldownFromDuration({})
 	button:Hide()
 	cd:GetScript("OnCooldownDone")(cd)
-	assert(#W.Calls(flash, "SetAlpha") == calls, "nor a hidden button")
+	assert(not group:IsPlaying(), "nor a hidden button")
+	local _ = env
 end
 
 -- A cooldown frame a module drives directly (the Cooldowns mirror's buff timers) never dims or greys the button:

@@ -591,14 +591,10 @@ local function OnReceiveDrag(b)
 	Button.Update(b)
 end
 
-local function OnClick(b, mouse, down)
-	Widgets.Press(b, down == true)
-end
-
 function Button.New(bar, index)
 	local def = bar.def
 	local cfg = ns.Config(def.key)
-	local b = Widgets.IconButton(bar.header, {
+	local b = Widgets.Slot(bar.header, {
 		name = "KstyleUI_" .. def.name .. "Button" .. index,
 		template = "SecureActionButtonTemplate",
 		size = cfg.size,
@@ -665,6 +661,5 @@ function Button.New(bar, index)
 	end
 	b:HookScript("OnEnter", OnEnter)
 	b:HookScript("OnLeave", OnLeave)
-	b:HookScript("OnClick", OnClick)
-		return ns.Socket.Decorate(b)
+	return ns.Socket.Decorate(b)
 end
