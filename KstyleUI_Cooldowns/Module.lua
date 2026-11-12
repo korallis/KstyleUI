@@ -1,4 +1,4 @@
--- Module.lua: registers the Cooldowns module, its settings page, its smoke check and the tracked counts Apply's Edit Mode write sizes Blizzard's viewers by (the restyled buff row's grid and chip when that row is capped); nothing runs until Enable.
+-- Module.lua: registers the Cooldowns module, its settings page, its smoke check, the tracked counts Apply's Edit Mode write sizes Blizzard's viewers by (the restyled buff row's grid and chip when that row is capped) and which cooldown rows show Blizzard's own viewer, which that write places on KstyleUI's rows; nothing runs until Enable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -35,8 +35,22 @@ local function Tracked(group)
 	return count
 end
 
+local function Native(group)
+	if not (Settings.COOLDOWN_GROUPS[group] and K.Modules.IsEnabled(ns.MODULE)) then
+		return false
+	end
+	local path = Path.Get(group)
+	if path then
+		return path == "reskin"
+	end
+	return Path.Restyles(group, Settings.current.path)
+end
+
 if K.Setup and K.Setup.EditMode and K.Setup.EditMode.CountTracked then
 	K.Setup.EditMode.CountTracked(Tracked)
+end
+if K.Setup and K.Setup.EditMode and K.Setup.EditMode.NativeRows then
+	K.Setup.EditMode.NativeRows(Native)
 end
 Settings.schema.preview = ns.Preview.Build
 K.Options.Register(ns.MODULE, Settings.schema)
