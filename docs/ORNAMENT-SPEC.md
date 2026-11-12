@@ -54,13 +54,11 @@ A piece is dropped, never forced, when:
 - At Subtle a bar's or plate's `Rail1` hairlines lie flush outside its border, never on it, and cover no pixel of it (Captain, 2026-11-11, LEE-167). At Full a plate's rail keeps its weight and its place, from the ends' frame line inward over its own bar's border, under the **Full plate rail** exemption below (Captain, 2026-11-11, reversing the Full half of LEE-167 after acceptance pass 7c: a Full plate thinned to `Rail1` reads like Subtle). The forged rails of the unit frames keep their own rule. A plate's top hairline is split around its name's ink, 1 px clear, the way the experience bar's rail splits at the keystone, and a piece shorter than an end is dropped (LEE-168). This holds at Subtle and Full. The name's ink is its string width across and, down, the line's baseline less the deepest descender among its letters and less its drop shadow, with the line's em taken as the smaller of the font size and the box height over the font's ascender plus descender: `Tools/media/ornament_ink.py` writes each shipped font's ascender, descender and per-letter descent to `OrnamentInk.lua`, and the ends and the rail reach still read the name's box. The top rail is left off only where the ink comes within 1 px of its row along the whole bar. That is a recorded limit (Captain, 2026-11-11): of the 432 plates `test-ornament-rail-border.lua` draws, 27 of 216 at Subtle (on Folio and Lumen at 1280x720 and 1366x768, and "JAINA PROUDMOORE" on Folio at 1920x1080, whose J reaches below the line) and 10 of 216 at Full (at 1280x720 and 1366x768).
 - Between two groups of the centre column, the guard (`Tools/regression/centre_clearance_lib.lua`) keeps the gap #260 set: **4 root units or 3 physical pixels**, whichever is larger.
 - The exempt pairs, where an ornament may enter that gap and keeps only the 1 px rule:
-  - **bottom rail**: the art closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor;
-  - **yoke**: the art joining a bar block to its own portrait band may meet the band (and on the target, the pendants), which are ornament too, 1 px clear of the portrait picture and the gilt ring;
+  - **block end**: the end or cap closing a player or target bar block may run into the gap above that unit's own cast bar, 1 px clear of its fill, track, text, icon and white cursor (this was the bottom rail's exemption; the rail is gone, Lee, 2026-11-13);
   - **Full plate rail**: at Full a plate's rail replaces its own bar's border. It keeps its weight (`Rail4` at 3456x2234, 1 to 4 px by screen) and may cover the border's rows, but it covers no row of the bar's fill, keeps 1 px from the name's ink, the health and level text, the level badge, the target marker and the raid icon, and stays inside the ends' frame line: its outer edge goes no further out than the ends' frame, or than the bar's own border where the ends are inset into the bar (at 1280x720 and 1366x768) or drop (Captain, 2026-11-11, LEE-167). `test-ornament-rail-border.lua` names the exemption and fails on a rail over a fill row, within 1 px of that text or those icons, or past that line;
   - **crest seat**: a window's or tooltip's crest frames its own surface and may cover that window's top edge line and the bare surface directly under it, 1 px clear of its title, close button, tabs, search box, icons and a tooltip's first line (Captain, 2026-11-11, as for the minimap's plaque). Above the edge it may stand over a window or panel flush against that edge, because the window is on top and the crest belongs to it. It keeps 1 px from any other visible KstyleUI window or card standing above with a gap, including that window's shadow when shadows are on, and steps down a tier or drops where it cannot (Captain, 2026-11-11, on #282).
 - **The minimap's plaque** may sit on the face's gilt top rim and on the map's top rows, as many rows as its north plate is tall, because it frames its own north marker and sits on the face's top edge by design (Captain, 2026-11-11, from sheet 11). It lies behind the plate's crystal disc, which is drawn after it, and keeps 1 px from the N glyph, the zone, the clock, the coordinates and every minimap button. `Tools/regression/surfaces_clearance_lib.lua` names the exemption and fails on ink below those rows.
 - A bottom rail that does not fit is dropped, never thinned.
-- Where both sides of an exempt pair are ornament (a yoke meeting the band or a pendant), the two may meet: that join is the yoke.
 - The clearance matrices run the HUD at Full on nine screens for 12 class and form presets, for normal, elite and world boss targets.
 
 ## Ink shapes (ruling A)
@@ -133,7 +131,7 @@ Only the plate and the unit-frame health and power bars, with the regions their 
 
 **Limits.** A restricted plate's pieces are snapped to its own corner, not the screen's grid. The game moves plates every frame and never says where one is, so a plate whose corner falls between pixels draws its pieces between pixels with it. The stubs place bases on whole pixels for the tests that measure against the screen grid (`N.Align` in `Tools/regression/nameplates_env.lua`). At 1280x720 and 1366x768 an elite plate at the smallest and largest plate scale now drops both ends where its name comes within the clearance of the winged end, as the Omissions above allow. Before, the stubs gave a name no rect until a render pass measured it, so the name went unseen.
 
-**Tests.** The stubs answer as the game does: `env.RestrictAnchoring` restricts a frame, and every nameplate base from `N.Base` is restricted unless `opts.free`. A secret `SetValue`, `SetMinMaxValues`, `SetText` or `SetFormattedText` veils the region's geometry, and `env.SecretAnchoring(false)` turns that off for a comparison. A test reads geometry for its own checks through `env.Look`. `test-ornament-restricted-plate.lua` shows a restricted plate drawing the same Full pieces as a free one, idle, casting and through a target change. `test-ornament-secret-unitframes.lua` shows the player and target blocks drawing their rails, ends and crests with secret geometry, identical to plain geometry at 1920x1080 and 5120x1440. `test-ornament-restricted-tooltip.lua` covers the world-cursor tooltip beside a restricted card. `test-ornament-measure-guard.lua` fails on any edge read outside `Widgets.Edges`.
+**Tests.** The stubs answer as the game does: `env.RestrictAnchoring` restricts a frame, and every nameplate base from `N.Base` is restricted unless `opts.free`. A secret `SetValue`, `SetMinMaxValues`, `SetText` or `SetFormattedText` veils the region's geometry, and `env.SecretAnchoring(false)` turns that off for a comparison. A test reads geometry for its own checks through `env.Look`. `test-ornament-restricted-plate.lua` shows a restricted plate drawing the same Full pieces as a free one, idle, casting and through a target change. `test-ornament-secret-unitframes.lua` shows the player and target blocks drawing their ends with secret geometry, identical to plain geometry at 1920x1080 and 5120x1440. `test-ornament-restricted-tooltip.lua` covers the world-cursor tooltip beside a restricted card. `test-ornament-measure-guard.lua` fails on any edge read outside `Widgets.Edges`.
 
 ## Surfaces
 
@@ -152,11 +150,14 @@ Each surface's pull request adds its section here.
 
 | Piece | Handle | Subtle | Full |
 | --- | --- | --- | --- |
-| Health and power block (player, target, focus, boss, party) | `bar` on the health bar, spanning the power bar and an attached inline cast | `Rail1` hairlines above and below, `EndPointed` ends at the block's height | `Forge` rails with `Tip` rivets, 2 to 7 px by screen and Interface size; `EndClawed` ends where they fit, otherwise Subtle's pointed ends; the yoke: the rail on the portrait side runs into the portrait band |
+| Health and power block (player, target) | `bar` on the health bar, spanning the power bar and an attached inline cast | `EndPointed` ends at the block's height, or `Arrow` caps; no rail | `EndClawed` ends where they fit, otherwise Subtle's pointed ends or caps; no rail, no rivets, no crest |
+| Health and power block (focus, boss, party) | `bar` on the health bar, spanning the power bar and an attached inline cast | `Rail1` hairlines above and below, `EndPointed` ends at the block's height | `Forge` rails with `Tip` rivets, 2 to 7 px by screen and Interface size; `EndClawed` ends where they fit, otherwise Subtle's pointed ends |
 | Portrait | `ring` on the portrait frame | nothing | the `Ring` band at the portrait's size; `ElitePendantR` on an elite or rare target, `BossPendantR` on a world boss or a boss card, from `UnitClassification` on every frame style (a secret value draws no pendant, on a boss card too) |
 | Separate cast bar | `bar` on the cast bar, pointed family only | as the block | as the block, clear of the spell icon |
 | Inline cast bar | joins the block's handle; its own handle stands down | | |
 | Focus and boss cards, the Targeted chip | `corners` on the card's chrome; it restyles with the chrome, after the block, and after the chip's name is set | nothing | `Corner` tiers |
+
+**No rails on the player and target blocks** (Lee, 2026-11-13, on v0.0.7: "the little textures above the hp bar and below the mana bar on the player / target frames look bad and not clean at all we should remove these"). The player and target blocks draw no rail above the health bar, none below the power bar and no crest on the top rail, at Subtle and Full. Their ends, the portrait band and its pendants stay where they were: the handle (`bare`) still works out the reach its rails would have had and sizes the ends to it, and skips only the rails, their rivets and the crest seated on them. With no rail on the portrait side there is no yoke. At Subtle on 1280x720 the target's pointed end does not fit beside its auras, so that block now draws nothing there. The focus card, the boss cards, the party frames and the separate cast bar keep their rails. `test-ornament-block-rails.lua` fails on any rail, rivet or crest on the two blocks at 1920x1080 and 5120x1440, and `ornament_guard_lib.lua` on the nine screens of every preset.
 
 The level badge and its number are measured as one circle (ruling A). The block avoids the badge (the lumen disc on the column, the octagon badge on the classic plate), the portrait band, the caption gems and every text on the frame.
 
@@ -168,30 +169,9 @@ The level badge and its number are measured as one circle (ruling A). The block 
 
 **Recorded limits.** Measured on this pull request's code at Full across the three presets, nine screens and the Interface size slider (0.84 is the shipped size, 16/19):
 
-- **The yoke drops** where it cannot meet the band and keep 3 px from the level badge. The same in DPS, Tank and Healer:
-
-  | Frame | Screen | Interface sizes without a yoke |
-  | --- | --- | --- |
-  | player | 1280x720 | 0.60, 0.65, 0.84 |
-  | player | 1366x768 | 0.60, 0.65 |
-  | target | 1280x720 | 0.60, 0.65, 0.90 |
-  | target | 1366x768 | 0.60, 0.65 |
-  | target | 1920x1080 | 0.60 |
-
-  At 1280x720 and the shipped size, the player's rail would have to reach x <= 494 to enter the band's ink. There its drawn gap to the level badge is 2.83 px, under the 3 px rule. The Captain accepted the player yoke as absent there on 2026-11-11; the target's yoke joins.
-- **The target's bottom rail** closes the block only where the gap above the inline cast bar holds it, and then as a 1 px hairline; everywhere else it is dropped, never thinned (ruling C). It is drawn at:
-
-  | Screen | DPS and Tank | Healer |
-  | --- | --- | --- |
-  | 1280x720, 1366x768, 1920x1080 | never | never |
-  | 2560x1440, 3440x1440, 5120x1440 | 0.70, 0.95 | 0.70, 0.95, 1.05, 1.10 |
-  | 3840x2160 | 0.65, 0.95 | 0.65, 0.95, 1.00 to 1.50 |
-  | 2383x1540 | 0.65 | 0.65, 1.00 |
-  | 3456x2234 | 0.70, 0.95 to 1.50 | 0.70, 0.95 to 1.50 |
-
-  The player's bottom rail is forged at every screen and size.
-- **Levels told apart by rail weight only.** In `gallery_unitframes` the party frames keep the same `EndPointed` ends at both levels and differ only in the rail: `Rail1` at Subtle, `Forge3`/`Forge4` with rivets at Full. On the HUD, the 1920x1080 target keeps Subtle's ends at Full for the same reason: the claws do not fit.
-- **The rail crest has a Crest20 floor** (Captain, 2026-11-11, LEE-153). The crest centred on a block's forged top rail takes `Crest32` or `Crest20`, the largest that keeps its clearance, and is dropped where neither fits; it never takes `Crest16`, `Crest12` or `Crest8`. On the HUD at the shipped Interface size the crest is `Crest20` at 1920x1080, 2560x1440, 3440x1440, 5120x1440 and 2383x1540, `Crest32` at 3840x2160 and 3456x2234, and absent at 1280x720 (where it was `Crest12`) and 1366x768, in all three presets. `test-ornament-crest-floor.lua` fails on a smaller crest.
+- **The yoke and the bottom rail** went with the player and target rails (Lee, 2026-11-13), and with them their recorded limits: the yoke dropping beside the level badge at small sizes, and the target's bottom rail fitting only at some sizes.
+- **Levels told apart by rail weight only.** In `gallery_unitframes` the party frames keep the same `EndPointed` ends at both levels and differ only in the rail: `Rail1` at Subtle, `Forge3`/`Forge4` with rivets at Full. On the HUD, the 1920x1080 target keeps Subtle's ends at Full because the claws do not fit; with no rail on that block, Subtle and Full there differ only in the portrait band.
+- **The rail crest has a Crest20 floor** (Captain, 2026-11-11, LEE-153). The crest centred on a block's forged top rail takes `Crest32` or `Crest20`, the largest that keeps its clearance, and is dropped where neither fits; it never takes `Crest16`, `Crest12` or `Crest8`. Only the player and target rails were heavy enough to seat one (`Crest20` needs a `Forge3` rail or heavier), and those blocks carry no rail now (Lee, 2026-11-13), so no unit frame draws a crest on the HUD. `test-ornament-crest-floor.lua` still fails on a smaller crest, and on any crest on the player or target block.
 
 ### Action-bar tray
 

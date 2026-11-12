@@ -780,7 +780,7 @@ function Handle:Frame(full)
 	end
 	weights[1], weights[2] = nil, nil
 	local reached1, reached2 = false, false
-	for side = 1, 2 do
+	for side = 1, self.bare and 0 or 2 do
 		local lane = lanes[side]
 		local rail, weight, edge = lane[1], lane[2], lane[3]
 		local railed = ASSETS[rail] ~= nil
