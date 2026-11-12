@@ -178,16 +178,17 @@ end
 -- RowRect(entry, count, k, size) -> left, bottom, right, top in root units: the box Blizzard's essential (size 50) or
 -- utility (size 30) viewer fills with count items under this entry, as RefreshLayout lays a cooldown row out at 1.60.1
 -- (Blizzard_CooldownViewer/CooldownViewer.lua:2033, CooldownViewer.xml:20 and :89): at least two items, IconLimit per
--- line (GetStride), lines stacking down from the top, each item size by size scaled by IconSize%, pitched by
--- IconPadding less 4 (GetAdditionalPaddingOffset); the viewer hangs from the entry's point on UIParent's bottom left,
--- a BOTTOM or TOP point at the box's middle.
+-- line (GetStride), lines stacking down from the top, each item size by size and pitched by IconPadding less 4
+-- (GetAdditionalPaddingOffset), both scaled by IconSize%: the grid sets each item's offsets in the item's own scaled
+-- units (Blizzard_SharedXML/GridLayoutUtil.lua:285, no respectChildScale); the viewer hangs from the entry's point on
+-- UIParent's bottom left, a BOTTOM or TOP point at the box's middle.
 function F.RowRect(entry, count, k, size)
 	local scale = (F.Setting(entry, F.ICON_SIZE) * 10 + 50) / 100
 	local pad = F.Setting(entry, F.ICON_PADDING) - 4
 	local n = math.max(2, count)
 	local stride = F.Setting(entry, F.ICON_LIMIT)
 	local across, lines = math.min(n, stride), math.ceil(n / stride)
-	local w, h = across * size * scale + (across - 1) * pad, lines * size * scale + (lines - 1) * pad
+	local w, h = (across * size + (across - 1) * pad) * scale, (lines * size + (lines - 1) * pad) * scale
 	local a = entry.anchorInfo
 	assert(a.relativeTo == "UIParent" and a.relativePoint == "BOTTOMLEFT", "row anchors are measured from the screen's bottom left")
 	local left = a.point:find("RIGHT") and a.offsetX - w or a.point:find("LEFT") and a.offsetX or a.offsetX - w / 2

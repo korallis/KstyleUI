@@ -5,7 +5,7 @@ local CoreEnv = W.CoreEnv
 local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 local VIEWER, BUFF_ICON, BUFF_BAR = EditModeFake.VIEWER, EditModeFake.BUFF_ICON, EditModeFake.BUFF_BAR
 local ESSENTIAL, UTILITY = EditModeFake.ESSENTIAL, EditModeFake.UTILITY
-local ICON_SIZE, ICON_PADDING, ORIENTATION, ICON_DIRECTION, ICON_LIMIT = EditModeFake.ICON_SIZE, EditModeFake.ICON_PADDING, EditModeFake.ORIENTATION, EditModeFake.ICON_DIRECTION, EditModeFake.ICON_LIMIT
+local ICON_SIZE, ORIENTATION, ICON_DIRECTION, ICON_LIMIT = EditModeFake.ICON_SIZE, EditModeFake.ORIENTATION, EditModeFake.ICON_DIRECTION, EditModeFake.ICON_LIMIT
 local ACCOUNT = EditModeFake.ACCOUNT
 local Find, Setting, Named, Copy = EditModeFake.Find, EditModeFake.Setting, EditModeFake.Named, EditModeFake.Copy
 
@@ -148,10 +148,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			else
 				assert(math.abs(box[1] - slot[1]) < 0.6, where .. ": the utility row starts at KstyleUI's left edge")
 			end
-			local lines = math.ceil(row.count / Setting(entry, ICON_LIMIT))
-			local item = (box[4] - box[2] - (lines - 1) * (Setting(entry, ICON_PADDING) - 4) / k) / lines
+			local item = row.size * (Setting(entry, ICON_SIZE) * 10 + 50) / 100 / k
 			assert(item <= slot[4] - slot[2] + 0.01 or Setting(entry, ICON_SIZE) == 0, string.format("%s: a native %s icon (%.2f) is no larger than KstyleUI's (%.2f) above Edit Mode's 50%%", where, row.group, item, slot[4] - slot[2]))
-			assert(Setting(entry, ICON_PADDING) >= 4, where .. ": the " .. row.group .. " icons never overlap")
+			assert(Setting(entry, ICON_SIZE) == 0 or row.size * (Setting(entry, ICON_SIZE) * 10 + 60) / 100 / k > slot[4] - slot[2], where .. ": the " .. row.group .. " icons take the largest step that keeps them no larger than KstyleUI's")
 		end
 		local icons = { EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_ICON), 5, k) }
 		local bars = { EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_BAR), 2, k, true) }
@@ -277,6 +276,15 @@ do
 	counts.essential = 6
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
 	assert(Same(Find(Named(state, "KstyleUI DPS"), VIEWER, ESSENTIAL), dragged), "a row the player dragged since stays where they put it")
+	local useful = Find(Named(state, "KstyleUI DPS"), VIEWER, UTILITY)
+	for _, info in ipairs(useful.settings) do
+		if info.setting == ICON_LIMIT then
+			info.value = 2
+		end
+	end
+	local resized = Copy(useful)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	assert(Same(Find(Named(state, "KstyleUI DPS"), VIEWER, UTILITY), resized), "a row whose settings the player changed in Edit Mode, without a drag, stays as they set it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

@@ -334,14 +334,14 @@ end
 local function RowFit(row, slot, n, k, others, rw, rh)
 	local height = slot.t - slot.b
 	local gap = (slot.r - slot.l - row.fallback * height) / (row.fallback - 1)
-	local wanted = Clamp(floor(gap * k + 0.5) + PADDING_OFFSET, PADDING_OFFSET, PADDING_MAX)
 	for lines = 1, ROW_LINES do
 		for _, point in ipairs(row.spots) do
 			for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
 				local item = row.size * step / 100 / k
 				if item <= height + 0.01 or step == VIEWER_SIZE_MIN then
+					local wanted = Clamp(floor(gap * k * 100 / step + 0.5) + PADDING_OFFSET, PADDING_OFFSET, PADDING_MAX)
 					for _, padding in ipairs({ wanted, PADDING_OFFSET }) do
-						local rect, across = RowRect(point, slot, n, lines, item, (padding - PADDING_OFFSET) / k)
+						local rect, across = RowRect(point, slot, n, lines, item, (padding - PADDING_OFFSET) * step / 100 / k)
 						if across <= ICON_LIMIT_MAX and Clear(rect, others, rw, rh) then
 							return rect, step, padding, across, point
 						end
@@ -619,10 +619,24 @@ local function Owned(layout, place)
 	local stamps = Stamps()
 	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.index]
 	local a = entry.anchorInfo
-	if not (IsTable(stamp) and IsTable(a) and type(a.offsetX) == "number" and type(a.offsetY) == "number") then
+	if not (IsTable(stamp) and IsTable(stamp.settings) and IsTable(a) and type(a.offsetX) == "number" and type(a.offsetY) == "number") then
 		return false
 	end
-	return a.point == stamp.point and a.relativeTo == "UIParent" and a.relativePoint == "BOTTOMLEFT" and abs(a.offsetX - stamp.x) < 0.01 and abs(a.offsetY - stamp.y) < 0.01
+	if not (a.point == stamp.point and a.relativeTo == "UIParent" and a.relativePoint == "BOTTOMLEFT" and abs(a.offsetX - stamp.x) < 0.01 and abs(a.offsetY - stamp.y) < 0.01) then
+		return false
+	end
+	local values = {}
+	for _, info in ipairs(IsTable(entry.settings) and entry.settings or {}) do
+		if IsTable(info) then
+			values[info.setting] = info.value
+		end
+	end
+	for setting, value in pairs(stamp.settings) do
+		if values[setting] ~= value then
+			return false
+		end
+	end
+	return true
 end
 
 local function PlaceRow(layout, place)
@@ -642,7 +656,11 @@ local function Remember(layout, places)
 	stamps[layout.layoutName] = mine
 	for _, place in ipairs(places) do
 		local a = FindSystem(layout, place.system, place.index).anchorInfo
-		mine[place.index] = { point = a.point, x = a.offsetX, y = a.offsetY }
+		local settings = {}
+		for setting, value in pairs(place.settings) do
+			settings[setting] = value
+		end
+		mine[place.index] = { point = a.point, x = a.offsetX, y = a.offsetY, settings = settings }
 	end
 end
 

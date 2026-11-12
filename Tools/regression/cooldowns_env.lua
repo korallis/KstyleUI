@@ -484,7 +484,7 @@ end
 -- for bars, or icons with a Vertical Orientation, one column (GetStride is the item count), a vertical icon column
 -- growing up when its IconDirection is Right; the essential and utility rows wrap after IconLimit items, each line
 -- under the last (GetStride, CooldownViewer.lua:2002), their items 50 by 50 and 30 by 30 (CooldownViewer.xml:20 and
--- :89); each other item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
+-- :89), their IconPadding scaled with them as the grid sets offsets in the item's own units; each other item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
 -- left and a 19-unit bar after a 2-unit gap, the width times BarWidthScale%, stored as percent - 50) scaled by
 -- IconSize%, stored as (percent - 50) / 10; items pitch by
 -- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
@@ -508,6 +508,9 @@ function C.Native(env, name, entry, items, format)
 	end
 	local scale = (setting(3) * 10 + 50) / 100
 	local pad = setting(4) - (bars and 2 or 4)
+	if ROW_SIZES[name] then
+		pad = pad * scale
+	end
 	local n = math.max(2, #items)
 	while #viewer._items < n do
 		C.Item(env, viewer, #viewer._items + 1)
