@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -23,14 +23,21 @@ local VIEWERS = {
 	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, fallback = 2, cap = 24, floor = 18 },
 }
 local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
+local ROWS = {
+	essential = { key = "cooldowns.essential", index = "Essential", size = 50, fallback = 6, spots = { "BOTTOM", "BOTTOMRIGHT" }, label = "Blizzard's essential cooldowns" },
+	utility = { key = "cooldowns.utility", index = "Utility", size = 30, fallback = 4, spots = { "BOTTOMLEFT" }, label = "Blizzard's utility cooldowns" },
+}
+local ROW_ORDER = { "essential", "utility" }
+local ROW_LINES, ICON_LIMIT_MAX, PADDING_OFFSET, PADDING_MAX = 2, 20, 4, 14
+local STAMPS = "editModeRows"
 local SPARE = { "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5" }
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
 EditMode.WARNING_LANE = 580
 
-local abs, floor, max, min = math.abs, math.floor, math.max, math.min
-local counter
+local abs, ceil, floor, max, min = math.abs, math.ceil, math.floor, math.max, math.min
+local counter, native, queued
 
 local function log(message)
 	ns.DevTest.Log(OWNER, message)
@@ -97,7 +104,19 @@ function EditMode.Tracked(group)
 			return floor(n)
 		end
 	end
-	return VIEWERS[group].fallback
+	return (VIEWERS[group] or ROWS[group]).fallback
+end
+
+function EditMode.NativeRows(fn)
+	native = type(fn) == "function" and fn or nil
+end
+
+local function Native(group)
+	if not native then
+		return false
+	end
+	local ok, shown = pcall(native, group)
+	return ok and shown == true
 end
 
 local function Box(name, key, rw, rh)
@@ -120,10 +139,11 @@ local function StoryBox(name, rw, rh, part)
 	return { l = l, b = b, r = r, t = t }
 end
 
-local function Others(name, rw, rh)
+local function Others(name, rw, rh, skip)
 	local out = {}
+	skip = skip or TRACKED
 	for key in pairs(Layouts.Get(name)) do
-		if not TRACKED[key] and Layouts.Shown(name, key) ~= false then
+		if not skip[key] and Layouts.Shown(name, key) ~= false then
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
 	end
@@ -304,6 +324,88 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = spot.y * k, settings = settings }
 end
 
+local function RowRect(point, slot, n, lines, item, pad)
+	local across = ceil(n / lines)
+	local w, h = across * item + (across - 1) * pad, lines * item + (lines - 1) * pad
+	local l = point == "BOTTOM" and (slot.l + slot.r - w) / 2 or point == "BOTTOMRIGHT" and slot.r - w or slot.l
+	return { l = l, b = slot.b, r = l + w, t = slot.b + h }, across
+end
+
+local function RowFit(row, slot, n, k, others, rw, rh)
+	local height = slot.t - slot.b
+	local gap = (slot.r - slot.l - row.fallback * height) / (row.fallback - 1)
+	local wanted = Clamp(floor(gap * k + 0.5) + PADDING_OFFSET, PADDING_OFFSET, PADDING_MAX)
+	for lines = 1, ROW_LINES do
+		for _, point in ipairs(row.spots) do
+			for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
+				local item = row.size * step / 100 / k
+				if item <= height + 0.01 or step == VIEWER_SIZE_MIN then
+					for _, padding in ipairs({ wanted, PADDING_OFFSET }) do
+						local rect, across = RowRect(point, slot, n, lines, item, (padding - PADDING_OFFSET) / k)
+						if across <= ICON_LIMIT_MAX and Clear(rect, others, rw, rh) then
+							return rect, step, padding, across, point
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local function Rows(name, k, rw, rh, notes)
+	local enum = Enum
+	local indices, setting = enum.EditModeCooldownViewerSystemIndices, enum.EditModeCooldownViewerSetting
+	local orientation, direction = enum.CooldownViewerOrientation, enum.CooldownViewerIconDirection
+	local places, placed = {}, {}
+	if enum.EditModeSystem.CooldownViewer == nil or not (IsTable(indices) and IsTable(setting)) then
+		return places
+	end
+	for _, group in ipairs(ROW_ORDER) do
+		local row = ROWS[group]
+		local slot = Native(group) and indices[row.index] ~= nil and Box(name, row.key, rw, rh)
+		if slot then
+			local others = Others(name, rw, rh, { [row.key] = true })
+			for _, rect in ipairs(placed) do
+				others[#others + 1] = rect
+			end
+			local n = max(VIEWER_MIN_ITEMS, EditMode.Tracked(group))
+			local rect, percent, padding, across, point = RowFit(row, slot, n, k, others, rw, rh)
+			if rect then
+				placed[#placed + 1] = rect
+				local settings = {}
+				if setting.Orientation ~= nil and IsTable(orientation) then
+					settings[setting.Orientation] = orientation.Horizontal
+				end
+				if setting.IconDirection ~= nil and IsTable(direction) then
+					settings[setting.IconDirection] = direction.Right
+				end
+				if setting.IconLimit ~= nil then
+					settings[setting.IconLimit] = across
+				end
+				if setting.IconSize ~= nil then
+					settings[setting.IconSize] = (percent - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP
+				end
+				if setting.IconPadding ~= nil then
+					settings[setting.IconPadding] = padding
+				end
+				local x = point == "BOTTOM" and (rect.l + rect.r) / 2 or point == "BOTTOMRIGHT" and rect.r or rect.l
+				places[#places + 1] = { label = row.label, system = enum.EditModeSystem.CooldownViewer, index = indices[row.index], row = group, rect = rect, point = point, x = x * k, y = rect.b * k, settings = settings }
+			else
+				local most = 0
+				for m = n - 1, VIEWER_MIN_ITEMS, -1 do
+					if RowFit(row, slot, m, k, others, rw, rh) then
+						most = m
+						break
+					end
+				end
+				log("Edit Mode: " .. n .. " " .. group .. " cooldowns fit nowhere clear; Blizzard's viewer keeps the place it had")
+				notes[#notes + 1] = { group = group, count = n, fits = most }
+			end
+		end
+	end
+	return places
+end
+
 local function Sink(lane, rects, clear, height)
 	local moved = true
 	while moved do
@@ -383,9 +485,16 @@ local function Places(name, story, notes)
 		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, x = l * k, y = t * k, settings = settings }
 	end
 	local rw, rh = Setup.RootSize()
+	local rows = Rows(name, k, rw, rh, notes)
+	for _, place in ipairs(rows) do
+		places[#places + 1] = place
+	end
 	local chosen = {}
 	if enum.EditModeSystem.CooldownViewer ~= nil then
 		local others, boxes = Others(name, rw, rh), {}
+		for _, place in ipairs(rows) do
+			others[#others + 1] = place.rect
+		end
 		for key in pairs(Layouts.Get(name)) do
 			boxes[key] = Box(name, key, rw, rh)
 		end
@@ -425,6 +534,9 @@ local function Places(name, story, notes)
 			log("Edit Mode: " .. note.count .. " tracked " .. note.group .. " fit nowhere clear; Blizzard's viewer keeps the place it had")
 			notes[#notes + 1] = note
 		end
+	end
+	for _, place in ipairs(rows) do
+		chosen[place.row] = { rect = place.rect }
 	end
 	places[#places + 1] = Warning(name, k, rw, rh, Others(name, rw, rh), chosen)
 	return places
@@ -470,6 +582,70 @@ local function Place(layout, place)
 	return true
 end
 
+local function Same(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return a == b
+	end
+	for key, value in pairs(a) do
+		if not Same(value, b[key]) then
+			return false
+		end
+	end
+	for key in pairs(b) do
+		if a[key] == nil then
+			return false
+		end
+	end
+	return true
+end
+
+local function Stamps(create)
+	local store = ns.Store
+	local account = store and store.IsLoaded() and store.Account()
+	if not IsTable(account) then
+		return nil
+	end
+	if create and not IsTable(account[STAMPS]) then
+		account[STAMPS] = {}
+	end
+	return IsTable(account[STAMPS]) and account[STAMPS] or nil
+end
+
+local function Owned(layout, place)
+	local entry = FindSystem(layout, place.system, place.index)
+	if not entry or entry.isInDefaultPosition == true then
+		return true
+	end
+	local stamps = Stamps()
+	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.index]
+	local a = entry.anchorInfo
+	if not (IsTable(stamp) and IsTable(a) and type(a.offsetX) == "number" and type(a.offsetY) == "number") then
+		return false
+	end
+	return a.point == stamp.point and a.relativeTo == "UIParent" and a.relativePoint == "BOTTOMLEFT" and abs(a.offsetX - stamp.x) < 0.01 and abs(a.offsetY - stamp.y) < 0.01
+end
+
+local function PlaceRow(layout, place)
+	if not Owned(layout, place) then
+		log("Edit Mode: " .. place.label .. " stay where you put them in " .. tostring(layout.layoutName))
+		return false
+	end
+	return Place(layout, place)
+end
+
+local function Remember(layout, places)
+	local stamps = Stamps(true)
+	if not stamps then
+		return
+	end
+	local mine = IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName] or {}
+	stamps[layout.layoutName] = mine
+	for _, place in ipairs(places) do
+		local a = FindSystem(layout, place.system, place.index).anchorInfo
+		mine[place.index] = { point = a.point, x = a.offsetX, y = a.offsetY }
+	end
+end
+
 local function MaxLayouts()
 	local consts = IsTable(Constants) and Constants.EditModeConsts
 	local value = IsTable(consts) and consts.EditModeMaxLayoutsPerType
@@ -512,6 +688,8 @@ end
 local NOTE = {
 	buffs = L["%d tracked buffs don't fit beside your frames (%d would), so they stay where they were."],
 	bars = L["%d tracked bars don't fit beside your frames (%d would), so they stay where they were."],
+	essential = L["%d essential cooldowns don't fit beside your frames (%d would), so they stay where they were."],
+	utility = L["%d utility cooldowns don't fit beside your frames (%d would), so they stay where they were."],
 }
 local STEP = L["Untrack some in the Cooldown Manager and press Try again, or move them in Edit Mode."]
 
@@ -548,34 +726,46 @@ local function Fail(name, reason, why)
 	return false
 end
 
-function EditMode.Write(name, story)
+local function Read()
 	if not EditMode.Available() then
-		return Fail(name, "C_EditMode is missing on this client", L["This client has no Edit Mode layouts."])
+		return nil, "C_EditMode is missing on this client", L["This client has no Edit Mode layouts."]
 	end
 	local ok, info = pcall(C_EditMode.GetLayouts)
 	if not ok or not IsTable(info) or not IsTable(info.layouts) then
-		return Fail(name, "C_EditMode.GetLayouts gave nothing usable", L["Edit Mode's layouts could not be read."])
+		return nil, "C_EditMode.GetLayouts gave nothing usable", L["Edit Mode's layouts could not be read."]
 	end
 	local copied, presetList = pcall(EditModePresetLayoutManager.GetCopyOfPresetLayouts, EditModePresetLayoutManager)
 	if not copied or not IsTable(presetList) then
-		return Fail(name, "the preset layouts could not be read", L["Edit Mode's layouts could not be read."])
+		return nil, "the preset layouts could not be read", L["Edit Mode's layouts could not be read."]
 	end
-	local all, presets = {}, #presetList
+	local all = {}
 	for i, layout in ipairs(presetList) do
 		all[i] = layout
 	end
 	for _, layout in ipairs(info.layouts) do
 		all[#all + 1] = layout
 	end
-	local active = type(info.activeLayout) == "number" and info.activeLayout or 1
+	return all, #presetList, type(info.activeLayout) == "number" and info.activeLayout or 1
+end
+
+function EditMode.Write(name, story)
+	local all, presets, active = Read()
+	if not all then
+		return Fail(name, presets, active)
+	end
 	local layoutName = PREFIX .. name
 	local index, reason, why = Target(all, presets, layoutName, active)
 	if not index then
 		return Fail(name, reason, why)
 	end
-	local placed, notes = {}, {}
+	local placed, notes, rows = {}, {}, {}
 	for _, place in ipairs(Places(name, story, notes)) do
-		if Place(all[index], place) then
+		if place.row then
+			if PlaceRow(all[index], place) then
+				placed[#placed + 1] = place.label
+				rows[#rows + 1] = place
+			end
+		elseif Place(all[index], place) then
 			placed[#placed + 1] = place.label
 		end
 	end
@@ -583,6 +773,7 @@ function EditMode.Write(name, story)
 	if not saved then
 		return Fail(name, "C_EditMode.SaveLayouts failed (" .. tostring(err) .. ")")
 	end
+	Remember(all[index], rows)
 	local activated, refusal = pcall(C_EditMode.SetActiveLayout, index)
 	if not activated then
 		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); pick " .. layoutName .. " in Edit Mode")
@@ -596,4 +787,63 @@ function EditMode.Write(name, story)
 	last = { state = "written", name = name, layout = layoutName, notes = notes }
 	Tell(notes)
 	return true
+end
+
+local function WriteRows()
+	queued = false
+	local all, reason, active = Read()
+	if not all then
+		log("Edit Mode: Blizzard's essential and utility cooldowns stay where Edit Mode puts them (" .. tostring(reason) .. ")")
+		return false
+	end
+	local layout = all[active]
+	local layoutName = IsTable(layout) and layout.layoutType ~= Enum.EditModeLayoutType.Preset and layout.layoutName
+	local name = type(layoutName) == "string" and layoutName:sub(1, #PREFIX) == PREFIX and layoutName:sub(#PREFIX + 1)
+	if not (name and Layouts.Get(name) and IsTable(layout.systems)) then
+		log("Edit Mode: the active layout is not one KstyleUI wrote, so Blizzard's essential and utility cooldowns stay where it puts them")
+		return false
+	end
+	local rw, rh = Setup.RootSize()
+	local rows, changed = {}, false
+	for _, place in ipairs(Rows(name, Factor(), rw, rh, {})) do
+		local before = Copy(FindSystem(layout, place.system, place.index))
+		if PlaceRow(layout, place) then
+			rows[#rows + 1] = place
+			changed = changed or not Same(before, FindSystem(layout, place.system, place.index))
+		end
+	end
+	if not changed then
+		return false
+	end
+	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = active })
+	if not saved then
+		log("Edit Mode: C_EditMode.SaveLayouts failed (" .. tostring(err) .. "); Blizzard's essential and utility cooldowns stay where they were")
+		return false
+	end
+	Remember(layout, rows)
+	local activated, refusal = pcall(C_EditMode.SetActiveLayout, active)
+	if not activated then
+		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); the rows move at the next reload")
+	end
+	local labels = {}
+	for i, place in ipairs(rows) do
+		labels[i] = place.label
+	end
+	log("Edit Mode: placed " .. table.concat(labels, ", ") .. " on KstyleUI's own rows in " .. layoutName)
+	return true
+end
+
+function EditMode.PlaceRows()
+	if queued then
+		return
+	end
+	queued = true
+	local function Write()
+		ns.Combat.Queue(WriteRows)
+	end
+	if C_Timer and type(C_Timer.After) == "function" then
+		C_Timer.After(0, Write)
+	else
+		Write()
+	end
 end

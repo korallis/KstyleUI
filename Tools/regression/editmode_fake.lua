@@ -9,12 +9,15 @@
 --   EditModeFake.Find(EditModeFake.Named(state, "KstyleUI DPS"), EditModeFake.TRACKER).anchorInfo
 --
 -- state: saved (the saved layouts), active (the active index), max (account layouts allowed, default 5), noEditMode
--- (no C_EditMode at all), noViewers (no CooldownViewer Edit Mode system). The fake records saves (a count), sent (what SaveLayouts got) and activated (the index).
+-- (no C_EditMode at all), noViewers (no CooldownViewer Edit Mode system). The Modern preset carries the essential
+-- and utility viewers in their default positions with the preset's IconLimit (12 and 7) and IconPadding (2), as
+-- Mainline/EditModePresetLayouts.lua:781 and :804 store them. The fake records saves (a count), sent (what SaveLayouts got) and activated (the index).
 local EditModeFake = {}
 
 EditModeFake.TRACKER, EditModeFake.METER, EditModeFake.CHAT, EditModeFake.VIEWER = 12, 23, 8, 20
 EditModeFake.RAID_WARNING = 24
 EditModeFake.BUFF_ICON, EditModeFake.BUFF_BAR = 3, 4
+EditModeFake.ESSENTIAL, EditModeFake.UTILITY, EditModeFake.ICON_LIMIT = 1, 2, 1
 EditModeFake.ORIENTATION, EditModeFake.ICON_DIRECTION, EditModeFake.ICON_SIZE, EditModeFake.ICON_PADDING = 0, 2, 3, 4
 EditModeFake.BAR_WIDTH = 11
 EditModeFake.HORIZONTAL, EditModeFake.VERTICAL, EditModeFake.LEFT, EditModeFake.RIGHT = 0, 1, 0, 1
@@ -48,13 +51,13 @@ end
 -- Viewer(index, orientation, direction) -> a Cooldown Manager viewer as the Modern preset stores it: 100% icons
 -- (IconSize 5), padding 5, at the bottom of the screen; the bars keep the preset's BarWidthScale of 100, which Edit
 -- Mode reads as 150% (ConvertValueDefault: the stored value plus the slider's 50 minimum).
-local function Viewer(index, orientation, direction, y)
+local function Viewer(index, orientation, direction, y, limit, padding)
 	local entry = System(F.VIEWER, 0, y, {
 		{ setting = F.ORIENTATION, value = orientation },
-		{ setting = 1, value = 1 },
+		{ setting = F.ICON_LIMIT, value = limit or 1 },
 		{ setting = F.ICON_DIRECTION, value = direction },
 		{ setting = F.ICON_SIZE, value = 5 },
-		{ setting = F.ICON_PADDING, value = 5 },
+		{ setting = F.ICON_PADDING, value = padding or 5 },
 	}, index)
 	if index == F.BUFF_BAR then
 		entry.settings[#entry.settings + 1] = { setting = F.BAR_WIDTH, value = 100 }
@@ -79,7 +82,8 @@ function F.Modern()
 			System(F.TRACKER, -110, -275, { { setting = F.HEIGHT, value = 40 }, { setting = 1, value = 0 } }),
 			System(F.METER, 0, 0, { { setting = 0, value = 0 }, { setting = F.FRAME_WIDTH, value = 200 }, { setting = F.FRAME_HEIGHT, value = 20 } }),
 			System(F.CHAT, 35, 85),
-			Viewer(1, F.HORIZONTAL, F.RIGHT, 230),
+			Viewer(F.ESSENTIAL, F.HORIZONTAL, F.RIGHT, 230, 12, 2),
+			Viewer(F.UTILITY, F.HORIZONTAL, F.RIGHT, 240, 7, 2),
 			Viewer(F.BUFF_ICON, F.HORIZONTAL, F.RIGHT, 370),
 			Viewer(F.BUFF_BAR, F.VERTICAL, F.LEFT, 400),
 			Warning(),
@@ -168,6 +172,26 @@ function F.ViewerRect(entry, count, k, bars)
 	local x, y = a.offsetX, a.offsetY
 	local left = a.point:find("RIGHT") and x - w or x
 	local bottom = a.point:find("TOP") and y - h or y
+	return left / k, bottom / k, (left + w) / k, (bottom + h) / k
+end
+
+-- RowRect(entry, count, k, size) -> left, bottom, right, top in root units: the box Blizzard's essential (size 50) or
+-- utility (size 30) viewer fills with count items under this entry, as RefreshLayout lays a cooldown row out at 1.60.1
+-- (Blizzard_CooldownViewer/CooldownViewer.lua:2033, CooldownViewer.xml:20 and :89): at least two items, IconLimit per
+-- line (GetStride), lines stacking down from the top, each item size by size scaled by IconSize%, pitched by
+-- IconPadding less 4 (GetAdditionalPaddingOffset); the viewer hangs from the entry's point on UIParent's bottom left,
+-- a BOTTOM or TOP point at the box's middle.
+function F.RowRect(entry, count, k, size)
+	local scale = (F.Setting(entry, F.ICON_SIZE) * 10 + 50) / 100
+	local pad = F.Setting(entry, F.ICON_PADDING) - 4
+	local n = math.max(2, count)
+	local stride = F.Setting(entry, F.ICON_LIMIT)
+	local across, lines = math.min(n, stride), math.ceil(n / stride)
+	local w, h = across * size * scale + (across - 1) * pad, lines * size * scale + (lines - 1) * pad
+	local a = entry.anchorInfo
+	assert(a.relativeTo == "UIParent" and a.relativePoint == "BOTTOMLEFT", "row anchors are measured from the screen's bottom left")
+	local left = a.point:find("RIGHT") and a.offsetX - w or a.point:find("LEFT") and a.offsetX or a.offsetX - w / 2
+	local bottom = a.point:find("TOP") and a.offsetY - h or a.offsetY
 	return left / k, bottom / k, (left + w) / k, (bottom + h) / k
 end
 

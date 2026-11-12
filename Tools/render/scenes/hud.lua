@@ -597,10 +597,27 @@ local function Tracked(spec, counts)
 	return out
 end
 
+-- The utility cooldowns a fallback scene shows when the class tracks none, so Blizzard's utility row has items.
+local FALLBACK_UTILITY = {
+	{ "Purge", 136075, { 8, 3 } }, { "Ghost Wolf", 136095 }, { "Earthbind Totem", 136102, { 15, 9 } }, { "Healing Stream Totem", 135127 },
+}
+
+-- opts.cooldownFallback (or RENDER_COOLDOWN_FALLBACK=1) draws the fallback: every group restyles Blizzard's own viewer,
+-- as when the mirror cannot run, and the essential and utility viewers stand where Edit Mode puts them, Apply's
+-- anchors when Apply placed them, else the managed bottom stack (NativeViewers).
 function modules.cooldowns(opts)
 	local C = dofile("Tools/regression/cooldowns_env.lua")
 	local _, spec = Hud.Class(opts)
 	spec = Tracked(spec, opts.tracked)
+	local fallback = opts.cooldownFallback == true or os.getenv("RENDER_COOLDOWN_FALLBACK") == "1"
+	if fallback and #spec.utility == 0 then
+		local copy = {}
+		for key, value in pairs(spec) do
+			copy[key] = value
+		end
+		copy.utility = FALLBACK_UTILITY
+		spec = copy
+	end
 	local entries = Hud.Cooldowns(spec)
 	local CAT = { essential = C.CATEGORY.Essential, utility = C.CATEGORY.Utility, buffs = C.CATEGORY.TrackedBuff, bars = C.CATEGORY.TrackedBar }
 	local cooldowns, names, textures, procs = {}, {}, {}, {}
@@ -647,13 +664,18 @@ function modules.cooldowns(opts)
 	-- The automatic path, as on Forever: the cooldown rows mirror, while aura data that can turn secret in combat
 	-- sends the tracked buffs to Blizzard's own viewers, restyled, where Apply's Edit Mode write placed them.
 	local items = { buffs = {}, bars = {} }
+	if fallback then
+		items.essential, items.utility = {}, {}
+		K.Options.Write("Cooldowns", "path", "reskin")
+	end
 	for _, entry in ipairs(entries) do
 		local list = items[entry.group]
+		local state = type(entry.state) == "table" and entry.state or {}
 		if list then
-			list[#list + 1] = { id = entry.id, icon = entry.icon, name = entry.name, left = entry.state[2], total = entry.state[1] }
+			list[#list + 1] = { id = entry.id, icon = entry.icon, name = entry.name, left = state[2], total = state[1] }
 		end
 	end
-	local _, told = Hud.NativeViewers(env, C, opts.layout or "DPS", items)
+	local _, told, rows = Hud.NativeViewers(env, C, opts.layout or "DPS", items, nil, fallback)
 	C.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	for _, spell in ipairs(procs) do
@@ -663,6 +685,9 @@ function modules.cooldowns(opts)
 	C.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
 	scene.log[#scene.log + 1] = "cooldowns: " .. ns.Mirror.Report() .. "; Blizzard's tracked buff viewers at Apply's Edit Mode anchors" .. (#told > 0 and (", and Apply said: " .. table.concat(told, " ")) or "")
+	if fallback then
+		scene.log[#scene.log + 1] = "cooldowns: the fallback; Blizzard's essential and utility viewers " .. rows
+	end
 	return finish(env, K, scene, "cooldowns"), ns
 end
 
@@ -1431,7 +1456,7 @@ end
 -- screen, where a UIParent unit is a root unit. guide says RestedXP is loaded, so the tracker takes the slot's lower
 -- half; counts ({ buffs, bars }) are the tracked cooldowns the Cooldowns module would report, which size Blizzard's
 -- tracked buff viewers.
-function Hud.EditModeLayout(layout, guide, counts)
+function Hud.EditModeLayout(layout, guide, counts, natives)
 	local CoreEnv = dofile("Tools/regression/core_env.lua")
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local state = { saved = {}, active = 1 }
@@ -1461,6 +1486,11 @@ function Hud.EditModeLayout(layout, guide, counts)
 			return n
 		end)
 	end
+	if natives and K.Setup.EditMode.NativeRows then
+		K.Setup.EditMode.NativeRows(function(group)
+			return group == "essential" or group == "utility"
+		end)
+	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil
 	end
@@ -1476,30 +1506,67 @@ function Hud.StoryTracker(layout, guide)
 	return entry and entry.anchorInfo
 end
 
--- NativeViewers(env, C, layout, items, shift) lays Blizzard's tracked buff icon and bar viewers out where Apply's
+-- The managed bottom stack Blizzard's essential and utility viewers stand in while Edit Mode keeps them in their
+-- default places (EditModeSystemTemplates.lua:347, ManagedFrameSystem.lua:47): BottomManagedFrameContainer, a vertical
+-- layout of spacing 10, hangs from UIParent's bottom at MAIN_ACTION_BAR_OFFSET_Y (-4 on Camelot,
+-- Camelot/EditModePresetLayoutConstants.lua:10) when no Blizzard bottom bar shows (UIParentPanelManager.lua:806), as
+-- KstyleUI's action bars and data bars hide them, and centres utility (layoutIndex 14) under essential (13).
+local MANAGED_BOTTOM, MANAGED_SPACING = -4, 10
+local ROW_VIEWS = { essential = 50, utility = 30 }
+
+local function RowHeight(EditModeFake, entry, count, size)
+	local scale = (EditModeFake.Setting(entry, EditModeFake.ICON_SIZE) * 10 + 50) / 100
+	local pad = EditModeFake.Setting(entry, EditModeFake.ICON_PADDING) - 4
+	local lines = math.ceil(math.max(2, count) / EditModeFake.Setting(entry, EditModeFake.ICON_LIMIT))
+	return lines * size * scale + (lines - 1) * pad
+end
+
+-- NativeViewers(env, C, layout, items, shift, natives) lays Blizzard's tracked buff icon and bar viewers out where Apply's
 -- Edit Mode write puts them for this many tracked buffs and bars (C.Native); shift(entry, group, placed) -> dx, dy
--- moves each viewer for a gallery column, the icons first, placed holding the entries already moved. Returns the two Edit Mode entries and what Apply told the player.
-function Hud.NativeViewers(env, C, layout, items, shift)
+-- moves each viewer for a gallery column, the icons first, placed holding the entries already moved. natives adds the
+-- essential and utility viewers (items.essential, items.utility) of the fallback: at Apply's anchors when it placed
+-- them, else in the managed bottom stack. Returns the Edit Mode entries, what Apply told the player and where the
+-- rows stand.
+function Hud.NativeViewers(env, C, layout, items, shift, natives)
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
-	local written, printed = Hud.EditModeLayout(layout, false, { buffs = #items.buffs, bars = #items.bars })
+	local counts = { buffs = #items.buffs, bars = #items.bars }
+	if natives then
+		counts.essential, counts.utility = #items.essential, #items.utility
+	end
+	local written, printed = Hud.EditModeLayout(layout, false, counts, natives)
 	assert(written, "Apply wrote no Edit Mode layout")
 	local formatter = env.C_StringUtil.CreateSecondsFormatter()
 	local function format(seconds)
 		return formatter:Format(seconds)
 	end
 	local out = {}
-	for _, view in ipairs({ { "buffs", EditModeFake.BUFF_ICON, "BuffIconCooldownViewer" }, { "bars", EditModeFake.BUFF_BAR, "BuffBarCooldownViewer" } }) do
+	local views = { { "buffs", EditModeFake.BUFF_ICON, "BuffIconCooldownViewer" }, { "bars", EditModeFake.BUFF_BAR, "BuffBarCooldownViewer" } }
+	if natives then
+		views[#views + 1] = { "utility", EditModeFake.UTILITY, "UtilityCooldownViewer" }
+		views[#views + 1] = { "essential", EditModeFake.ESSENTIAL, "EssentialCooldownViewer" }
+	end
+	local stack, managed = MANAGED_BOTTOM, {}
+	for _, view in ipairs(views) do
 		local entry = EditModeFake.Copy(EditModeFake.Find(written, EditModeFake.VIEWER, view[2]))
 		local dx, dy = 0, 0
 		if shift then
 			dx, dy = shift(entry, view[1], out)
+		end
+		if ROW_VIEWS[view[1]] and entry.isInDefaultPosition then
+			entry.anchorInfo = { point = "BOTTOM", relativeTo = "UIParent", relativePoint = "BOTTOM", offsetX = 0, offsetY = stack }
+			stack = stack + RowHeight(EditModeFake, entry, #items[view[1]], ROW_VIEWS[view[1]]) + MANAGED_SPACING
+			managed[#managed + 1] = view[1]
+		end
+		if ROW_VIEWS[view[1]] then
+			env._viewers[view[3]]._hideWhenInactive = false
 		end
 		entry.anchorInfo.offsetX = entry.anchorInfo.offsetX + dx
 		entry.anchorInfo.offsetY = entry.anchorInfo.offsetY + dy
 		C.Native(env, view[3], entry, items[view[1]], format)
 		out[view[1]] = entry
 	end
-	return out, printed or {}
+	local rows = #managed > 0 and ("in the managed bottom stack (" .. table.concat(managed, ", ") .. "), as Edit Mode keeps them in their default places") or "at Apply's Edit Mode anchors on KstyleUI's rows"
+	return out, printed or {}, rows
 end
 
 -- PresetSettings(layout) -> the module settings Layout > Apply writes for the layout (Setup.Layouts.Settings), as
