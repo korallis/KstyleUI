@@ -292,7 +292,7 @@ local function Order(entries, n, info)
 	end
 end
 
-local function Window(list, n, pinned)
+local function Span(list, n, pinned)
 	local capacity = list.capacity or 0
 	if Damage.offsetView ~= Damage.view then
 		Damage.offsetView = Damage.view
@@ -393,7 +393,7 @@ local function FillSources(list, info, session)
 			break
 		end
 	end
-	local first, shown, pin = Window(list, n, mine)
+	local first, shown, pin = Span(list, n, mine)
 	for i = 1, shown do
 		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy)
 	end
@@ -541,7 +541,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 	local percent = ns.Get("damage.percent")
 	local n = Entries(spells)
 	Order(spells, n, info)
-	local first, count = Window(list, n)
+	local first, count = Span(list, n)
 	for i = 1, count do
 		local spell = spells[order[first + i]]
 		local amount = spell.totalAmount

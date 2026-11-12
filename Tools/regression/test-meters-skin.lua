@@ -25,6 +25,13 @@ local function Entry(env, parent, class, display)
 	entry.UpdateStatusBarColor = function(self)
 		self.StatusBar:GetStatusBarTexture():SetVertexColor(RED[1], RED[2], RED[3])
 	end
+	-- Blizzard's own text: AbbreviateLargeNumbers and its formats (DamageMeterEntry.lua:123).
+	entry.ShowsValuePerSecondAsPrimary = function(self)
+		return self.perSecondFirst == true
+	end
+	entry.UpdateValue = function(self)
+		self.StatusBar.Value:SetText(env.AbbreviateLargeNumbers(self.value or 0) .. " (" .. env.AbbreviateLargeNumbers(self.valuePerSecond or 0) .. ")")
+	end
 	return entry
 end
 
@@ -194,6 +201,30 @@ local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")
 assert(M.Last(entry.StatusBar.Value, "SetFont"), "values take KstyleUI's font")
+
+-- The value text is written by the formatter KstyleUI's own card uses, so every meter view reads "284K · 30%"
+-- (the Captain on #311's merge renders: one view still read "284.2k"). A secret amount stays the game's
+-- abbreviation with no share; a death keeps Blizzard's time.
+do
+	local function Shown()
+		return M.Last(entry.StatusBar.Value, "SetText")[1]
+	end
+	entry.value, entry.valuePerSecond, entry.sessionTotalValue = 284200, 9473, 947300
+	entry:UpdateValue()
+	assert(Shown() == "284K \194\183 30%", "Blizzard's row reads as the card's: " .. tostring(Shown()))
+	entry.perSecondFirst = true
+	entry:UpdateValue()
+	assert(Shown() == "9.4K \194\183 30%", "a per-second meter leads with the rate: " .. tostring(Shown()))
+	entry.perSecondFirst = nil
+	entry.value, entry.sessionTotalValue = env.Secret(284200), env.Secret(947300)
+	entry:UpdateValue()
+	assert(env.issecretvalue(Shown()) and not env.Reveal(Shown()):find("%", 1, true), "a secret amount shows without a share")
+	entry.value, entry.sessionTotalValue = 284200, 947300
+	entry.deathRecapID = 7
+	entry:UpdateValue()
+	assert(Shown() == "284.2K (9.47K)", "a death row keeps Blizzard's own text: " .. tostring(Shown()))
+	entry.value, entry.valuePerSecond, entry.sessionTotalValue, entry.deathRecapID = nil, nil, nil, nil
+end
 
 -- The pill follows Blizzard's range and value, straight through the setters, so a secret value passes.
 entry.StatusBar:SetMinMaxValues(0, 500)

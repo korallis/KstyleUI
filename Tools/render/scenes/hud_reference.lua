@@ -3,5 +3,5 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 
 return Common.Run(function()
-	return Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS", meterSecret = os.getenv("RENDER_METER_SECRET") == "1" })
+	return Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS", meterSecret = os.getenv("RENDER_METER_SECRET") == "1", meterGroup = os.getenv("RENDER_METER_GROUP") })
 end)

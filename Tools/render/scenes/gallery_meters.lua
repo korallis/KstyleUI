@@ -45,16 +45,12 @@ local SPELLS = {
 local PREVIOUS = { id = 11, name = "Riverglade Crocolisk", sources = { { "Kragar", "WARRIOR", 61400 }, { "Valerin", "WARRIOR", 52800 }, { "Sylaen", "PRIEST", 40100 }, { "Thargor", "ROGUE", 33900 } } }
 local CURRENT_ID = 12
 
-local function abbreviate(n)
-	if type(n) ~= "number" then
-		return tostring(n)
-	end
-	if n >= 1e6 then
-		return string.format("%.1fM", n / 1e6)
-	elseif n >= 1e3 then
-		return string.format("%.1fk", n / 1e3)
-	end
-	return tostring(math.floor(n + 0.5))
+-- What Blizzard's entry writes itself (DamageMeterEntry.lua:123): AbbreviateLargeNumbers of the value and the rate.
+-- The restyle rewrites it with the card's formatter through its UpdateValue hook.
+local function blizzardValue(env, value, total)
+	return function(self)
+		self.StatusBar.Value:SetText(env.AbbreviateLargeNumbers(self.value) .. " (" .. env.AbbreviateLargeNumbers(self.valuePerSecond) .. ")")
+	end, value, value / 100, total
 end
 
 -- setup(env) gives the meter stand-ins the gallery's screen, the party's classes and readable numbers.
@@ -70,7 +66,6 @@ local function setup(env)
 		end
 		return "Warrior", "WARRIOR", 1
 	end
-	env.AbbreviateNumbers = abbreviate
 	env.LOCALIZED_CLASS_NAMES_MALE = {
 		WARRIOR = "Warrior", MAGE = "Mage", PRIEST = "Priest", ROGUE = "Rogue", HUNTER = "Hunter",
 		PALADIN = "Paladin", DRUID = "Druid", WARLOCK = "Warlock",
@@ -331,6 +326,11 @@ local function skin(frames)
 					entry.UpdateStatusBarColor = function(self)
 						self.StatusBar:GetStatusBarTexture():SetVertexColor(1, 0, 0)
 					end
+					local total = 0
+					for _, other in ipairs(SOURCES) do
+						total = total + other[3]
+					end
+					entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, s[3], total)
 					window.entries[i] = entry
 				end
 			end
@@ -372,6 +372,11 @@ local function skin(frames)
 				entry.UpdateStatusBarColor = function(self)
 					self.StatusBar:GetStatusBarTexture():SetVertexColor(1, 0, 0)
 				end
+				local total = 0
+				for _, other in ipairs(SPELLS) do
+					total = total + other[4]
+				end
+				entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, spell[4], total)
 				source.entries[i] = entry
 			end
 			function spellBox.ForEachFrame(_, fn)
@@ -433,7 +438,7 @@ local function skin(frames)
 		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
 		bar.Name:SetText(s[1])
 		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
-		bar.Value:SetText(abbreviate(s[3]))
+		entry:UpdateValue()
 	end
 	-- Blizzard anchors the spell window to the session window's side with more room; the scene puts it right.
 	local source = window.source
@@ -456,7 +461,7 @@ local function skin(frames)
 		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
 		bar.Name:SetText(spell[2])
 		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
-		bar.Value:SetText(abbreviate(spell[4]))
+		entry:UpdateValue()
 	end
 	source:Show()
 	window:Refresh()

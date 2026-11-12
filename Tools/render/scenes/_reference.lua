@@ -176,6 +176,25 @@ end
 
 -- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer,
 -- opts.modules, when given, names the only modules drawn, and opts.live draws the live session's story rail (LIVE).
+Reference.GROUP_DAMAGE = {
+	party = {
+		{ "Korallis", "SHAMAN", 1284 }, { "Leduc", "PALADIN", 1102 }, { "Brannoc", "ROGUE", 968 }, { "Ilyra", "MAGE", 655 },
+		{ "Trolly", "PRIEST", 109 },
+	},
+	raid = {},
+}
+do
+	local names = {
+		{ "Vexxa", "WARLOCK" }, { "Thargor", "WARRIOR" }, { "Ilyra", "MAGE" }, { "Brannoc", "ROGUE" }, { "Sylaen", "HUNTER" },
+		{ "Morwen", "DRUID" }, { "Kael", "MAGE" }, { "Dorn", "WARRIOR" }, { "Ashka", "SHAMAN" }, { "Feyl", "ROGUE" },
+		{ "Orin", "PALADIN" }, { "Raskal", "HUNTER" }, { "Nym", "WARLOCK" }, { "Korallis", "SHAMAN" }, { "Leduc", "PALADIN" },
+		{ "Brisa", "DRUID" }, { "Holt", "WARRIOR" }, { "Quill", "PRIEST" }, { "Trolly", "PRIEST" }, { "Sable", "PRIEST" },
+	}
+	for i, who in ipairs(names) do
+		Reference.GROUP_DAMAGE.raid[i] = { who[1], who[2], 48200 - i * 2150 }
+	end
+end
+
 function Reference.Build(opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
@@ -207,6 +226,14 @@ function Reference.Build(opts)
 		if layout == "Tank" then
 			state.meterSolo = false
 			state.damage = { Reference.STATE.damage[1], { "Leduc", "PALADIN", 442 }, { "Trolly", "PRIEST", 201 } }
+		end
+		-- opts.meterGroup (RENDER_METER_GROUP): the damage card in a party of five or a raid of twenty, the player
+		-- fourteenth in the raid, so the card keeps their row pinned under the top four.
+		if opts.meterGroup == "party" or opts.meterGroup == "raid" then
+			state.meterSolo = false
+			state.meterSpells = nil
+			state.damage = Reference.GROUP_DAMAGE[opts.meterGroup]
+			state.meterMe = opts.meterGroup == "raid" and 14 or 1
 		end
 		return Lumen.Build("questing", {
 			class = "SHAMAN",
