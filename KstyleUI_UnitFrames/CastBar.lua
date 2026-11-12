@@ -931,7 +931,7 @@ function CastBars.Attach(view)
 end
 
 function CastBars.Build()
-	for kind in pairs(Settings.CAST_ELEMENTS) do
+	for _, kind in ipairs({ "player", "target" }) do
 		if not bars[kind] then
 			Element(kind)
 		end
