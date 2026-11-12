@@ -170,7 +170,7 @@ eq(env.Reveal(W.LastCall(f.shield, "SetMinMaxValues")[2]), 100, "spanning the he
 assert(f.shield:IsShown(), "the line shows")
 local sp = f.shield._points[1]
 assert(sp[1] == "BOTTOMLEFT" and sp[2] == f.health, "at the bar's foot")
-assert(f.shield:GetHeight() < f.health:GetHeight() / 4, "a thin line, not a second bar")
+assert(env.Look(f.shield:GetHeight()) < env.Look(f.health:GetHeight()) / 4, "a thin line, not a second bar")
 env._member("raid1").absorb = 70
 env.FireEvent("UNIT_ABSORB_AMOUNT_CHANGED", "raid1")
 eq(env.Reveal(W.LastCall(f.shield, "SetValue")[1]), 70, "a new shield moves the line")

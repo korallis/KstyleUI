@@ -44,7 +44,7 @@ local block = view.health.ornament
 local pixel = K.Scale.Pixel(1)
 local function rect(region)
 	local f = W.ScaleFactor(region)
-	return { l = region:GetLeft() * f / pixel, r = region:GetRight() * f / pixel, t = region:GetTop() * f / pixel, b = region:GetBottom() * f / pixel }
+	return { l = env.Look(region:GetLeft()) * f / pixel, r = env.Look(region:GetRight()) * f / pixel, t = env.Look(region:GetTop()) * f / pixel, b = env.Look(region:GetBottom()) * f / pixel }
 end
 local function file(texture)
 	return tostring(texture:GetTexture()):match("([%w]+)%.png$") or ""
@@ -73,7 +73,7 @@ local function nearest()
 	worst.hooked = not worst.name:find("Pointed", 1, true) and not worst.name:find("^Arrow") and not worst.name:find("^Wing")
 	return worst
 end
-local half = math.floor((view.health:GetTop() - view.power:GetBottom()) * W.ScaleFactor(view.health) / pixel / 2)
+local half = math.floor((env.Look(view.health:GetTop()) - env.Look(view.power:GetBottom())) * W.ScaleFactor(view.health) / pixel / 2)
 local need = math.max(4 / pixel, 3)
 local function fails(w)
 	return w.gap < need or w.hooked and w.gap < half

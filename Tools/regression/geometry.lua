@@ -11,6 +11,14 @@
 -- Animations are not applied.
 local Geometry = {}
 
+local function Look(object, ...)
+	local env = object._env
+	if env and env.Look then
+		return env.Look(...)
+	end
+	return ...
+end
+
 local function Horizontal(point)
 	if point:find("LEFT") then
 		return "min"
@@ -66,7 +74,7 @@ end
 
 function Geometry.Rect(object, root, seen)
 	if object == root then
-		return { left = 0, right = root:GetWidth() or 0, bottom = 0, top = root:GetHeight() or 0 }
+		return { left = 0, right = Look(root, root:GetWidth()) or 0, bottom = 0, top = Look(root, root:GetHeight()) or 0 }
 	end
 	seen = seen or {}
 	if seen[object] then
@@ -92,8 +100,8 @@ function Geometry.Rect(object, root, seen)
 		y[Vertical(point)] = ty + dy
 	end
 	seen[object] = nil
-	local left, right = Edges(x.min, x.max, x.mid, object._width)
-	local bottom, top = Edges(y.min, y.max, y.mid, object._height)
+	local left, right = Edges(x.min, x.max, x.mid, (Look(object, object._width)))
+	local bottom, top = Edges(y.min, y.max, y.mid, (Look(object, object._height)))
 	if not left then
 		return nil, "no width and one horizontal point"
 	end
@@ -114,7 +122,7 @@ end
 local function Scaled(object, base, seen)
 	local own = EffectiveScale(object)
 	if object == base then
-		return { left = 0, right = (base:GetWidth() or 0) * own, bottom = 0, top = (base:GetHeight() or 0) * own }
+		return { left = 0, right = (Look(base, base:GetWidth()) or 0) * own, bottom = 0, top = (Look(base, base:GetHeight()) or 0) * own }
 	end
 	if seen[object] then
 		return nil, "an anchor loop"
@@ -139,8 +147,8 @@ local function Scaled(object, base, seen)
 		y[Vertical(point)] = ty + dy * own
 	end
 	seen[object] = nil
-	local left, right = Edges(x.min, x.max, x.mid, object._width and object._width * own)
-	local bottom, top = Edges(y.min, y.max, y.mid, object._height and object._height * own)
+	local left, right = Edges(x.min, x.max, x.mid, Look(object, object._width) and Look(object, object._width) * own)
+	local bottom, top = Edges(y.min, y.max, y.mid, Look(object, object._height) and Look(object, object._height) * own)
 	if not left then
 		return nil, "no width and one horizontal point"
 	end

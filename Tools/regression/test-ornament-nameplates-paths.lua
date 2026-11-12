@@ -1,6 +1,10 @@
 -- test-ornament-nameplates-paths.lua: a plate's ornament restyles only when its target state, rank, markers, name, level badge, cast or name-only mode changes; per-event updates across forty plates touch no ornament, a target change restyles exactly two plates, a recycled plate of the same kind none, a hidden plate waits for its show, and at Off the gates do nothing.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local env, K, ns = N.New()
+local Scene = dofile("Tools/render/scene.lua")
+env._textWidth = function(text, fontPath, size)
+	return Scene.TextWidth(Scene.PlainText(text), size, fontPath)
+end
 local CAST = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
 local ELITE = { name = "Bloodtalon Matriarch", level = 40, classification = "elite", reaction = 2, canAttack = true }
 local NORMAL = { name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true }

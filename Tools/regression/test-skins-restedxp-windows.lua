@@ -228,7 +228,7 @@ do
 	assert(gutter and gutter:IsShown(), "a gutter line beside the step list's scroll bar")
 	assert(gutter:GetParent() == glass, "drawn on KstyleUI's glass, not on RestedXP's frame")
 	assert(W.SameColor(gutter, K.Tokens.Color("edgeFaint")), "as faint as the kit's dividers")
-	assert(W.Near(gutter:GetWidth(), K.Widgets.Border(gutter)), "one border wide")
+	assert(W.Near(env.Look(gutter:GetWidth()), K.Widgets.Border(gutter)), "one border wide")
 	local points = {}
 	for _, p in ipairs(gutter._points) do
 		points[p[1]] = p

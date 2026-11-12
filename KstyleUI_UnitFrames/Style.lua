@@ -106,6 +106,7 @@ function Style.New(parent, kind)
 	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
 	view.health.ornament = Widgets.Ornament(panel, "bar", view.health)
 	view.health.ornament.span = view.power
+	Widgets.RecordAll(view.health, view.power)
 	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
 	view.trackLine:SetColorTexture(Tokens.Color("white"))
 
@@ -166,6 +167,7 @@ function Style.New(parent, kind)
 		view[key] = NewText(top, key)
 	end
 	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
+	Widgets.RecordAll(unpack(view.health.ornament.texts))
 	view.capGem = Lumen.Gem(top)
 	view.gemLeft = Lumen.Gem(top)
 	view.gemRight = Lumen.Gem(top)

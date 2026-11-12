@@ -104,9 +104,9 @@ assert(f.classLine and f.classLine:IsShown(), "the class and level caption shows
 eq(f.classLine:GetText(), "PALADIN 9", "it reads the class the game names and the level (the stub names the class by its file)")
 local lp = f.classLine._points[1]
 assert(lp[1] == "TOPRIGHT" and lp[2] == f, "at the row's top right")
-assert(near(f.health:GetHeight(), ns.Style.PILL_HEIGHT) and ns.Style.PILL_HEIGHT >= 6 and ns.Style.PILL_HEIGHT <= 7, "the health bar is the 6 to 7 unit class pill: " .. tostring(f.health:GetHeight()))
+assert(near(env.Look(f.health:GetHeight()), ns.Style.PILL_HEIGHT) and ns.Style.PILL_HEIGHT >= 6 and ns.Style.PILL_HEIGHT <= 7, "the health bar is the 6 to 7 unit class pill: " .. tostring(env.Look(f.health:GetHeight())))
 local hb = f.health._points[1]
-local foot = f:GetHeight() - (-hb[5] + f.health:GetHeight())
+local foot = env.Look(f:GetHeight()) - (-hb[5] + env.Look(f.health:GetHeight()))
 assert(hb[1] == "TOPLEFT" and foot >= ns.Style.PILL_RISE and foot <= ns.Style.PILL_RISE + 4, "the pill runs along the row's foot, inside the row's inner padding: " .. tostring(foot))
 assert(-hb[5] > f.parts.name.top + f.parts.name.height + 4, "with air between the name line and the pill")
 -- Grok R3 #1, R5 #1: your heals never sit on the 6-unit pill nor in its row: they ride the name line's right end,
@@ -114,7 +114,7 @@ assert(-hb[5] > f.parts.name.top + f.parts.name.height + 4, "with air between th
 local row = f.parts.healRow
 assert(row and row.width > 0 and row.side == "RIGHT", "your heals keep the name line's right end")
 assert(row.top + row.height <= f.parts.health.top - 4, "wholly above the pill")
-assert(f.health:GetWidth() > f:GetWidth() - 60, "the pill spans the row past the ring: " .. tostring(f.health:GetWidth()))
+assert(env.Look(f.health:GetWidth()) > env.Look(f:GetWidth()) - 60, "the pill spans the row past the ring: " .. tostring(env.Look(f.health:GetWidth())))
 local second = Button("party2")
 eq(second.roleText:GetText(), "D", "a damage dealer's ring reads D")
 
