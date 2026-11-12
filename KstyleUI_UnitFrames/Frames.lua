@@ -647,7 +647,7 @@ local function RegisterUnitEvents(view)
 end
 
 function Frames.Apply(uf)
-	local want = running and Settings.Value(uf.kind, "enabled")
+	local want = running and Settings.Value(uf.kind, "enabled") and not (uf.kind == "player" and ns.Orbs.Active())
 	if Protected() then
 		Queue(uf, "applyQueued", Frames.Apply)
 		return
@@ -737,7 +737,14 @@ local function RestyleAll()
 	ns.CastBars.Apply()
 end
 
+local function OnHudStyleChanged()
+	ns.Orbs.Apply()
+	Frames.Apply(frames.player)
+	ns.Blizzard.Apply(running)
+end
+
 local function OnProfileChanged()
+	ns.Orbs.Apply()
 	ForEach(Frames.Apply)
 	ns.Resource.Restyle()
 	ns.CastBars.Apply()
@@ -822,6 +829,7 @@ local function RegisterEvents()
 	Callbacks.Register("ScaleChanged", MODULE, RestyleAll)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfileChanged)
 	Callbacks.Register("LayoutChanged", MODULE, OnLayoutChanged)
+	Callbacks.Register("HudStyleChanged", MODULE, OnHudStyleChanged)
 end
 
 function Frames.Enable()
@@ -834,6 +842,7 @@ function Frames.Enable()
 	end
 	RegisterEvents()
 	ns.Auras.Enable()
+	ns.Orbs.Enable()
 	ForEach(Frames.Apply)
 	ns.Resource.Enable()
 	ns.CastBars.Enable()
@@ -842,6 +851,7 @@ end
 
 function Frames.Disable()
 	running = false
+	ns.Orbs.Disable()
 	ForEach(function(uf)
 		Frames.Apply(uf)
 		if not Protected() then

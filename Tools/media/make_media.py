@@ -58,6 +58,21 @@ PORTRAIT_RADIUS_SHARE = 8 / 44
 # the card's own 14-unit rounded shape is cut out, so translucent glass shows the world through it, not its shadow.
 LUMEN_SHADOW_REACH, LUMEN_SHADOW_DROP, LUMEN_SHADOW_RADIUS, LUMEN_SHADOW_BLUR = 14, 3, 6, 3.5
 SHEEN_REACH = 0.55  # the bar sheen fades from the top to nothing 55% of the way down, as the mockup's .bar i
+# The Orbs HUD style's orb (KSTY-46), drawn from the KSTY-44 mock-up's CSS: the empty orb's dark glass lit from 38% down,
+# a rim that darkens from 52% of the radius out, the four glints of its glass, and liquid shaded as a cylinder whose
+# edges keep 55% of the centre's light. The game tints the liquid and the surface line with SetStatusBarColor and
+# SetVertexColor.
+ORB_BACK_STOPS = ((0.0, 0.098), (0.55, 0.039), (1.0, 0.008))
+ORB_RIM_STOPS = ((0.0, 0.0), (0.52, 0.0), (0.78, 0.55), (1.0, 0.9))
+ORB_GLINTS = (
+    (0.37, 0.15, 0.30, 0.15, ((0.0, 0.5), (0.6, 0.14), (1.0, 0.0))),
+    (0.29, 0.24, 0.20, 0.20, ((0.0, 0.62), (0.35, 0.18), (1.0, 0.0))),
+    (0.56, 0.90, 0.46, 0.22, ((0.0, 0.13), (1.0, 0.0))),
+    (0.68, 0.82, 0.22, 0.22, ((0.0, 0.14), (1.0, 0.0))),
+)
+ORB_LIQUID_EDGE = 0.55
+# The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
+ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -641,6 +656,77 @@ def draw_strokes(size, segments, stroke):
     return white(sample(size, size, fn))
 
 
+def disc_spans(centre, radius):
+    def spans(y):
+        dy = y - centre
+        if abs(dy) > radius:
+            return []
+        half = math.sqrt(radius * radius - dy * dy)
+        return [(centre - half, centre + half)]
+
+    return spans
+
+
+def at_centres(width, height, fn):
+    """fn(u, v) at each pixel's centre, u and v from 0 to 1: for gradients too smooth to need supersampling."""
+    return [fn((px + 0.5) / width, (py + 0.5) / height) for py in range(height) for px in range(width)]
+
+
+def ramp(stops, t):
+    """Linear interpolation through (position, value) stops."""
+    if t <= stops[0][0]:
+        return stops[0][1]
+    for (t0, v0), (t1, v1) in zip(stops, stops[1:]):
+        if t <= t1:
+            return v0 + (v1 - v0) * (t - t0) / (t1 - t0)
+    return stops[-1][1]
+
+
+def draw_orb_mask(size):
+    return white(sample_spans(size, size, disc_spans(size / 2, size / 2 - 1)))
+
+
+def draw_orb_back(size):
+    coverage = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
+    reach = math.hypot(0.5, 0.62)
+
+    def level(u, v):
+        return ramp(ORB_BACK_STOPS, math.hypot(u - 0.5, v - 0.38) / reach)
+
+    return shaded(at_centres(size, size, level), coverage)
+
+
+def draw_orb_glass(size):
+    disc = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
+
+    def spot(cx, cy, rx, ry, stops):
+        return [c * ramp(stops, math.hypot((u - cx) / rx, (v - cy) / ry)) for c, (u, v) in zip(disc, (
+            ((px + 0.5) / size, (py + 0.5) / size) for py in range(size) for px in range(size)))]
+
+    foot = [c * ramp(ORB_FOOT_STOPS, (py + 0.5) / size) for c, py in zip(disc, (py for py in range(size) for _ in range(size)))]
+    layers = [((0, 0, 0, 1), foot), ((0, 0, 0, 1), spot(0.5, 0.5, 0.5, 0.5, ORB_RIM_STOPS))]
+    for cx, cy, rx, ry, stops in ORB_GLINTS:
+        layers.append(((255, 255, 255, 1), spot(cx, cy, rx, ry, stops)))
+    return composite(size, size, layers)
+
+
+def draw_orb_liquid(width, height):
+    def level(x):
+        t = (x / width - 0.5) * 2
+        return ORB_LIQUID_EDGE + (1 - ORB_LIQUID_EDGE) * math.sqrt(max(0.0, 1 - t * t))
+
+    return grey(sample_columns(width, height, level))
+
+
+def draw_orb_surface(width, height):
+    def fn(u, v):
+        t = (u - 0.5) * 2
+        across = math.sqrt(max(0.0, 1 - t * t))
+        return across * math.exp(-(((v - 0.5) / 0.3) ** 2))
+
+    return white(at_centres(width, height, fn))
+
+
 def draw_bar(width, height, kind):
     def flat(v):
         return 1.0
@@ -823,6 +909,28 @@ for art_name, width, height, margin in (
         "Original pixel-aligned forged-frame or header finish for the forged-material study.",
         "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
         slice=margin, drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
+    ))
+
+
+ORB_DRAWN = "2026-11-12"
+for orb_name, width, height, draw, about in (
+    ("OrbMask", 256, 256, lambda: draw_orb_mask(256), "Round mask for the Orbs HUD style's liquid: opaque white inside the orb's opening."),
+    ("OrbBack", 128, 128, lambda: draw_orb_back(128), "The empty orb: dark glass lit from 38% down, drawn under the liquid."),
+    ("OrbGlass", 128, 128, lambda: draw_orb_glass(128), "The orb's glass over the liquid: a rim that darkens towards the ring and four glints."),
+    ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
+    ("OrbSurface", 128, 16, lambda: draw_orb_surface(128, 16), "The lit line on the liquid's surface, anchored to the fill's top edge."),
+):
+    ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_DRAWN))
+
+for orb_name, width, height, about in (
+    ("OrbRing", 512, 512, "Forged ring around an orb, with its four spikes; its opening is 70.1% of the texture."),
+):
+    ASSETS.append(Asset(
+        f"Media/Textures/{orb_name}.png", width, height,
+        lambda name=orb_name, w=width, h=height: material_pixels(name, w, h),
+        about,
+        "Prepared source in Tools/media/materials by Tools/media/orbs.py (centred on its opening, premultiplied Lanczos resample, light unsharp mask); prompt below",
+        drawn=ORB_DRAWN, maker="Higgsfield (KSTY-44 job 5a7af16a, the ring); production pass by `Tools/media/orbs.py`",
     ))
 
 

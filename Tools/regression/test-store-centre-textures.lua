@@ -41,7 +41,7 @@ assert(profiles.Default.UnitFrames.focus.castbarTexture == "Glass", "non-caption
 assert(profiles.Default.DataBars.rep.texture == paths.Glass and profiles.Default.DataBars.honor.texture == "Glass", "other data bars are untouched")
 assert(profiles.Legacy.UnitFrames.player.castbarTexture == paths.Glass and profiles.Legacy.UnitFrames.target.castbarTexture == "Glass", "saved legacy cast styles retain Glass")
 assert(Core.DeepEqual(profiles.Custom, custom), "other selected textures survive")
-assert(env.KstyleUIDB.version == 20 and #env._errors == 0, "the migration reaches version 20 without errors")
+assert(env.KstyleUIDB.version == 21 and #env._errors == 0, "the migration reaches version 21 without errors")
 
 local function profile(module)
 	return { version = 14, profiles = { Default = module } }

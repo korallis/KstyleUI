@@ -10,7 +10,7 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "Appearance", "Widgets" }
+Pages.GENERAL_SECTIONS = { "Appearance", "HudStyle", "Widgets" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
 local HIDDEN_MODULES = { Options = true }

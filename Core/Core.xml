@@ -19,6 +19,7 @@
 	<Script file="CVars.lua"/>
 	<Script file="Options.lua"/>
 	<Script file="Appearance.lua"/>
+	<Script file="HudStyle.lua"/>
 	<Script file="Fonts.lua"/>
 	<Script file="Slash.lua"/>
 	<Script file="OptionsEntry.lua"/>
