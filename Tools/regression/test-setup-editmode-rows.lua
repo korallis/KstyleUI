@@ -98,9 +98,12 @@ local function Hits(K, name, box, own, extra)
 			hits[#hits + 1] = key
 		end
 	end
-	local story = K.Setup.Layouts.Slot(name, rh)
-	if story and Overlaps(box, { K.Setup.Layouts.Rect(story, story, rw, rh) }) then
-		hits[#hits + 1] = "the story slot"
+	local story = K.Setup.Layouts.Story(name, rh, true) or {}
+	for _, part in ipairs({ "guide", "quests" }) do
+		local card = story[part]
+		if card and Overlaps(box, { K.Setup.Layouts.Rect(card, card, rw, rh) }) then
+			hits[#hits + 1] = "the story " .. part .. " card"
+		end
 	end
 	if box[1] < -0.5 or box[2] < -0.5 or box[3] > rw + 0.5 or box[4] > rh + 0.5 then
 		hits[#hits + 1] = "the screen edge"
@@ -112,6 +115,13 @@ local function Hits(K, name, box, own, extra)
 	end
 	table.sort(hits)
 	return hits
+end
+
+-- Canvas(K, ...) -> a box from the fake's screen units on the HUD canvas Layout measures in: the canvas starts
+-- Scale.Origin() root units in from the screen's left on a screen wider than the HUD width (KSTY-33).
+local function Canvas(K, l, b, r, t)
+	local origin = K.Scale.Origin() or 0
+	return { l - origin, b, r - origin, t }
 end
 
 local function Factor(K, env)
@@ -139,7 +149,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			local entry = Find(layout, VIEWER, row.index)
 			assert(entry.isInDefaultPosition == false, where .. ": Blizzard's " .. row.group .. " viewer leaves the managed bottom stack for KstyleUI's row")
 			assert(Setting(entry, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(entry, ICON_DIRECTION) == EditModeFake.RIGHT, where .. ": the " .. row.group .. " row runs left to right")
-			local box = { EditModeFake.RowRect(entry, row.count, k, row.size) }
+			local box = Canvas(K, EditModeFake.RowRect(entry, row.count, k, row.size))
 			boxes[row.group] = box
 			local slot = Slot(K, name, row.key)
 			assert(math.abs(box[2] - slot[2]) < 0.6, where .. ": the " .. row.group .. " row stands on KstyleUI's baseline")
@@ -152,8 +162,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(item <= slot[4] - slot[2] + 0.01 or Setting(entry, ICON_SIZE) == 0, string.format("%s: a native %s icon (%.2f) is no larger than KstyleUI's (%.2f) above Edit Mode's 50%%", where, row.group, item, slot[4] - slot[2]))
 			assert(Setting(entry, ICON_SIZE) == 0 or row.size * (Setting(entry, ICON_SIZE) * 10 + 60) / 100 / k > slot[4] - slot[2], where .. ": the " .. row.group .. " icons take the largest step that keeps them no larger than KstyleUI's")
 		end
-		local icons = { EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_ICON), 5, k) }
-		local bars = { EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_BAR), 2, k, true) }
+		local icons = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_ICON), 5, k))
+		local bars = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_BAR), 2, k, true))
 		for _, row in ipairs(ROWS) do
 			local other = row.group == "essential" and "utility" or "essential"
 			local box = boxes[row.group]
@@ -196,8 +206,8 @@ for _, name in ipairs({ "DPS", "Healer" }) do
 				assert(CoreEnv.Printed(env, "essential cooldowns don't fit"), where .. ": and the player is told")
 				refused = refused + 1
 			else
-				local box = { EditModeFake.RowRect(entry, count, k, 50) }
-				local utility = { EditModeFake.RowRect(Find(layout, VIEWER, UTILITY), 4, k, 30) }
+				local box = Canvas(K, EditModeFake.RowRect(entry, count, k, 50))
+				local utility = Canvas(K, EditModeFake.RowRect(Find(layout, VIEWER, UTILITY), 4, k, 30))
 				local hits = Hits(K, name, box, "cooldowns.essential", { ["utility row"] = utility })
 				assert(#hits == 0, string.format("%s: the essential row (%.1f,%.1f-%.1f,%.1f) touches %s", where, box[1], box[2], box[3], box[4], table.concat(hits, ", ")))
 				assert(math.ceil(count / Setting(entry, ICON_LIMIT)) <= 2, where .. ": in one line or two")
@@ -268,8 +278,8 @@ do
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
 	local second = Find(Named(state, "KstyleUI DPS"), VIEWER, ESSENTIAL)
 	assert(second.isInDefaultPosition == false and not Same(first, second), "Apply moves its own row again to hold eight")
-	local box = { EditModeFake.RowRect(second, 8, Factor(K, env), 50) }
-	local utility = { EditModeFake.RowRect(Find(Named(state, "KstyleUI DPS"), VIEWER, UTILITY), 4, Factor(K, env), 30) }
+	local box = Canvas(K, EditModeFake.RowRect(second, 8, Factor(K, env), 50))
+	local utility = Canvas(K, EditModeFake.RowRect(Find(Named(state, "KstyleUI DPS"), VIEWER, UTILITY), 4, Factor(K, env), 30))
 	assert(#Hits(K, "DPS", box, "cooldowns.essential", { ["utility row"] = utility }) == 0, "and the eight fit clear")
 	second.anchorInfo = { point = "BOTTOM", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = 300, offsetY = 500 }
 	local dragged = Copy(second)
