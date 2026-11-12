@@ -105,21 +105,23 @@ for _, orb in ipairs({ health, power }) do
 end
 
 local unit = env._units.player
-local value, low, high = U.Bar(env, health.bar)
-assert(value == unit.health and low == 0 and high == unit.healthMax, "the health orb holds the player's health")
-value, low, high = U.Bar(env, health.loss)
-assert(value == unit.health and high == unit.healthMax, "the loss band starts at the player's health")
-value, low, high = U.Bar(env, power.bar)
-assert(value == unit.power and high == unit.powerMax, "the resource orb holds the player's power")
+do
+	local value, low, high = U.Bar(env, health.bar)
+	assert(value == unit.health and low == 0 and high == unit.healthMax, "the health orb holds the player's health")
+	value, low, high = U.Bar(env, health.loss)
+	assert(value == unit.health and low == 0 and high == unit.healthMax, "the loss band starts at the player's health")
+	value, low, high = U.Bar(env, power.bar)
+	assert(value == unit.power and low == 0 and high == unit.powerMax, "the resource orb holds the player's power")
+end
 assert(U.Shown(env, health.value):find(tostring(unit.health), 1, true), "the health orb shows current and max, got " .. U.Shown(env, health.value))
 assert(U.Shown(env, power.value):find("%", 1, true), "the resource orb shows a percentage, got " .. U.Shown(env, power.value))
 
 -- Placement: the orbs flank action bar 1 at equal distance and sit above the screen's foot.
 do
 	local root = K.Scale.Root()
-	local left, bottom, width = K.Setup.Layouts.Rect(K.Setup.Layouts.Element("actionbars.bar1") or { width = 0, height = 0 }, K.Setup.Layouts.Default("actionbars.bar1"), root:GetWidth(), root:GetHeight())
 	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
-	width = 12 * grid.size + 11 * grid.spacing
+	local width, height = 12 * grid.size + 11 * grid.spacing, grid.size
+	local left, bottom = K.Setup.Layouts.Rect({ width = width, height = height }, K.Setup.Layouts.Default("actionbars.bar1"), root:GetWidth(), root:GetHeight())
 	local hx, px, y = Orbs.Centres()
 	assert(hx < left and px > left + width, "the health orb is left of the bar and the resource orb right of it")
 	assert(near(left - hx, px - (left + width)), "the orbs stand the same distance from the bar")
