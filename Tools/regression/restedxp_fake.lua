@@ -131,6 +131,32 @@ local function NewAddon(opts)
 			end
 		end
 	end
+	-- LoadFramePositions puts every enabled frame back where its profile saved it, unless the frame's savePosition
+	-- field is false, then sets the window and arrow scales (SettingsPanel.lua 4373-4414); OnEnable calls it
+	-- (RXPGuides.lua 1714).
+	function rxp.settings.LoadFramePositions(self)
+		assert(self == rxp.settings, "LoadFramePositions is a method")
+		local profile = self.profile
+		for name, frame in pairs(rxp.enabledFrames) do
+			local positions = profile.framePositions and profile.framePositions[name]
+			if frame.savePosition ~= false then
+				if positions then
+					frame:ClearAllPoints()
+					for i = 1, #positions do
+						pcall(frame.SetPoint, frame, unpack(positions[i]))
+					end
+				end
+				local size = profile.frameSizes and profile.frameSizes[name]
+				if size and frame.saveSize ~= false then
+					frame:SetSize(unpack(size))
+				end
+			end
+		end
+		rxp.RXPFrame:SetScale(profile.windowScale or 1)
+		if rxp.arrowFrame then
+			rxp.arrowFrame:SetSize(32 * (profile.arrowScale or 1), 32 * (profile.arrowScale or 1))
+		end
+	end
 	-- The step-text colours (Themes.lua 121-131): a guide writes "|cRXP_FRIENDLY_Name|r", and ReplaceColors swaps
 	-- each token for the player's colour for it, an eight-digit hex, when the step loads (SettingsPanel.lua 4127).
 	rxp.guideTextColors = { default = Copy(TEXT_COLORS) }
@@ -966,6 +992,40 @@ local function V1Window(m, rxp)
 	end)
 	-- m.expire(label) is a bar running out: LibCandyBar hides it, and its OnHide runs.
 	m.expire = m.trust(OnHide)
+	-- m.enable() is the part of RestedXP's OnEnable that touches the guide window (RXPGuides.lua 1714-1716): it loads
+	-- the saved places, anchors the active steps (GuideWindow.lua 353-396), which reads where the steps frame sits
+	-- against the screen, and starts the update loops that draw the arrow (1747). The game answers a frame
+	-- with no height, that is anchored at one vertical edge only, with no rect: the owner's v0.0.7 session read nil
+	-- there (GuideWindow.lua 387, "attempt to perform arithmetic on a nil value") and RestedXP stopped enabling.
+	function m.enable()
+		m.trust(function()
+			rxp.settings:LoadFramePositions()
+			f.SetStepFrameAnchor()
+			if rxp.v2:IsGuideWindowEnabled() then
+				return
+			end
+			local function Edge(method)
+				if current:GetHeight() == 0 then
+					return nil
+				end
+				return current[method](current)
+			end
+			local scale = f:GetScale()
+			if Edge("GetTop") * scale > env.UIParent:GetHeight() then
+				current:ClearAllPoints()
+				current:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 3, 0)
+				current:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", -3, 0)
+				current.anchor = "BOTTOM"
+			end
+			if Edge("GetBottom") * scale < 0 then
+				current:ClearAllPoints()
+				current:SetPoint("BOTTOMLEFT", name, "TOPLEFT", 0, 2)
+				current:SetPoint("BOTTOMRIGHT", name, "TOPRIGHT", 0, 2)
+				current.anchor = "TOP"
+			end
+			rxp.enabled = true
+		end)()
+	end
 	-- m.logout() is PLAYER_LOGOUT: RestedXP saves every enabled frame's place (RXPGuides.lua 1831).
 	function m.logout()
 		rxp.settings:SaveFramePositions()
