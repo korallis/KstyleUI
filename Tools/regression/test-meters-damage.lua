@@ -245,6 +245,13 @@ end
 assert(names[1] == "Kragar" and names[2] == "Tester" and names[3] == "Lunara", "the rows keep the order the game sorted them in")
 assert(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2] ~= nil and envR.issecretvalue(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2]), "the bar's range is the game's secret top amount")
 assert(Text(cardR.rows[1].percent) == "", "no share is worked out from secret amounts")
+envR._locked[envR._session] = true
+envR.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 5)
+envR.RunTimers()
+assert(cardR.count == 3 and Text(cardR.column) == "Paused", "a client that hides the table keeps the rows read last under Paused")
+assert(KR.Safe.IsHidden(envR.DamageMeter) and #envR._errors == 0, "and raises no error with Blizzard's meter still hidden: " .. tostring(envR._errors[1]))
+assert(M.Logged(envR, "hidden from addons"), "and the devlog says the data is hidden")
+envR._locked[envR._session] = nil
 M.Write(envR, KR, "damage.mode", "skin")
 assert(nsR.Damage.Mode() == "skin" and nsR.DamageSkin.active, "the player may still choose Blizzard's window restyled")
 M.Write(envR, KR, "damage.mode", "window")
