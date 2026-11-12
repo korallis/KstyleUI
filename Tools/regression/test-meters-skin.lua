@@ -219,6 +219,10 @@ do
 	entry.value, entry.sessionTotalValue = env.Secret(284200), env.Secret(947300)
 	entry:UpdateValue()
 	assert(env.issecretvalue(Shown()) and not env.Reveal(Shown()):find("%", 1, true), "a secret amount shows without a share")
+	entry.perSecondFirst, entry.valuePerSecond = true, env.Secret(9473)
+	entry:UpdateValue()
+	assert(env.issecretvalue(Shown()), "a secret rate leads a per-second row without a boolean test on it")
+	entry.perSecondFirst, entry.valuePerSecond = nil, 9473
 	entry.value, entry.sessionTotalValue = 284200, 947300
 	entry.deathRecapID = 7
 	entry:UpdateValue()

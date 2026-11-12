@@ -114,11 +114,14 @@ local function Revalue(entry)
 		return
 	end
 	local ok, perSecond = pcall(entry.ShowsValuePerSecondAsPrimary, entry)
-	local main = entry.value
-	if ok and perSecond == true and entry.valuePerSecond ~= nil then
-		main = entry.valuePerSecond
+	local main, rate = entry.value, entry.valuePerSecond
+	if ok and perSecond == true and (Logic.IsSecret(rate) or rate ~= nil) then
+		main = rate
 	end
-	local shown = Logic.Abbreviate(main or 0)
+	if not Logic.IsSecret(main) and main == nil then
+		main = 0
+	end
+	local shown = Logic.Abbreviate(main)
 	local share = ns.Get("damage.percent") and Logic.Percent(entry.value, entry.sessionTotalValue)
 	if share then
 		shown = shown .. " \194\183 " .. Logic.FormatPercent(share)
