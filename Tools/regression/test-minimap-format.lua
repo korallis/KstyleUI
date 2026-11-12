@@ -33,7 +33,7 @@ check(Format.Time(env.Secret(3), 0, true), nil, "a secret hour gives no text")
 check(Format.Time(25, 0, true), nil, "an hour out of range gives no text")
 
 -- Zone text colours: plain, the accent, or Blizzard's PvP meaning mapped onto KstyleUI's tokens.
-check(Format.ZoneToken("hostile", "plain"), "textEmphasis", "plain ignores the zone type")
+check(Format.ZoneToken("hostile", "plain"), "giltLit", "plain ignores the zone type")
 check(Format.ZoneToken("hostile", "accent"), "accent", "accent follows the accent")
 check(Format.ZoneToken("hostile", "pvp"), "hostile", "hostile zones")
 check(Format.ZoneToken("arena", "pvp"), "hostile", "free-for-all zones read as hostile")
@@ -41,8 +41,8 @@ check(Format.ZoneToken("combat", "pvp"), "hostile", "combat zones read as hostil
 check(Format.ZoneToken("friendly", "pvp"), "friendly", "friendly zones")
 check(Format.ZoneToken("contested", "pvp"), "neutral", "contested zones")
 check(Format.ZoneToken("sanctuary", "pvp"), "rare", "sanctuaries use the cool blue")
-check(Format.ZoneToken(nil, "pvp"), "textEmphasis", "a zone with no PvP type")
-check(Format.ZoneToken(env.Secret("hostile"), "pvp"), "textEmphasis", "a secret zone type is never compared")
+check(Format.ZoneToken(nil, "pvp"), "giltLit", "a zone with no PvP type")
+check(Format.ZoneToken(env.Secret("hostile"), "pvp"), "giltLit", "a secret zone type is never compared")
 
 -- Wheel zoom moves one level and stops at either end.
 check(Format.NextZoom(2, 6, 1), 3, "wheel up zooms in")
@@ -72,16 +72,21 @@ check(Format.ZoomAt(env.Secret(0.5), 6), nil, "a secret share gives no level")
 check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
 
 -- The picture's measures (DIFF.md section 1, in root units): the map is the element, with no inset and no chamfer;
--- the north plate is 16 across; the caption under the map is 36 deep, its texts start 2 in from the map's edge, the
--- zone's caps centred 13.7 under the map and the coordinates' and the clock's digits 30 under it.
+-- The overhaul's mock-up (KSTY-44): the north diamond is 12 across; the map sits in a forged card 3 units wider on
+-- every side; the zone's caps stand 12 above the card's top edge, from its left edge, in a 22-unit heading the
+-- layout leaves above the map; the coordinates and the clock sit 9 under the card in a 14-unit row.
 local function near(a, b, what)
 	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
 end
-check(Format.NORTH, 16, "the north plate is 16 units across")
-check(Format.CAPTION, 36, "the caption under the map is 36 units deep")
-check(Format.CAPTION_X, 2, "the caption's texts start 2 units in from the map's edge")
-near(Format.ZONE_CENTER, 14.2, "the zone's centre compensates half a root unit for the map's corrected top")
-near(Format.ROW_CENTER, 30.5, "the coordinates and the clock keep their optical baseline after the map correction")
+check(Format.NORTH, 12, "the north diamond is 12 units across")
+check(Format.FRAME, 3, "the card is 3 units wider than the map on every side")
+check(Format.HEADING, 22, "the layout leaves 22 units above the map for the zone")
+check(Format.CAPTION, 14, "and a 14-unit row under it")
+check(Format.CAPTION_X, 0, "the texts start on the card's edges")
+near(Format.ZONE_CENTER, 12, "the zone's caps are centred 12 above the card")
+near(Format.ROW_CENTER, 9, "the coordinates and the clock are centred 9 under the card")
+assert(Format.ZONE_CENTER + Format.FRAME <= Format.HEADING and Format.ZONE_CENTER - Format.FRAME > Format.NORTH / 2, "the zone stays inside its heading and clear of the diamond")
+check(Format.MERIDIEM, 0.8, "the AM or PM reads at 0.8 of the clock's size")
 check(Format.TOP, 7, "the first button's top is 7 units under the map's top edge")
 check(Format.EDGE, 7.75, "a 19.5 button's centre is 17.5 in from the map's right edge")
 assert(Format.INSET == nil and Format.BAND == nil and Format.MASK_SHARE == nil and Format.Chamfer == nil, "the inset, the bands and the chamfer are gone")

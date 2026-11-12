@@ -1,4 +1,4 @@
--- test-ornament-bars-map-paths.lua: the data bars' and the minimap's ornaments restyle only when a state that moves a piece changes (a label's width or shown state, a new zone name, a layout, another Layout element moving, a data bar showing, hiding or moving beside another); per-event updates (experience, rested, reputation, clock, coordinates, zoom, the button drawer) touch no ornament, and a bar hidden at the level cap goes stale and places again when it shows.
+-- test-ornament-bars-map-paths.lua: the data bars' ornaments restyle only when a state that moves a piece changes (a label's width or shown state, a layout, another Layout element moving, a data bar showing, hiding or moving beside another); per-event updates (experience, rested, reputation) touch no ornament, and a bar hidden at the level cap goes stale and places again when it shows. The minimap, a card since the overhaul, makes no ornament on any path.
 local D = dofile("Tools/regression/databars_env.lua")
 local M = dofile("Tools/regression/minimap_env.lua")
 
@@ -114,56 +114,32 @@ assert(#env._errors == 0, tostring(env._errors[1]))
 
 -- Minimap ---------------------------------------------------------------------------------------------------
 
+-- Since the overhaul (KSTY-44) the minimap is a card whose only corner pieces are its brackets: it owns no ornament
+-- handle, and its per-event paths (the clock, the coordinates' ticker, the zoom, a new zone, a neighbour moving, the
+-- button drawer) make none.
 local menv, MK, mns = M.New({ enabled = true })
 M.Settle(menv)
 local face = mns.Map.face
 assert(MK.Widgets.Setting("ornaments") == "Full", "the minimap fixture is at Full")
-assert(face.ornament.used > 0 and face.plaqueOrnament.used > 0, "the minimap places its corners and its plaque")
-Count(face.ornament)
--- minimap_env's font strings have no metrics, so the zone measures 7 units a character, as a stand-in for the game's.
-function face.zone.GetStringWidth(self)
-	return #(self:GetText() or "") * 7
+assert(face.ornament == nil and face.plaqueOrnament == nil, "the minimap card owns no ornament handle at Full")
+local made = 0
+local Ornament = MK.Widgets.Ornament
+MK.Widgets.Ornament = function(...)
+	made = made + 1
+	return Ornament(...)
 end
-face:SetZone(face.zoneText, face.pvpType)
+M.RunTickers(menv)
+menv.FireEvent("PLAYER_STARTED_MOVING")
+M.RunTickers(menv)
+menv.FireEvent("PLAYER_STOPPED_MOVING")
+menv.FireEvent("MINIMAP_UPDATE_ZOOM")
+menv._zone.text = "Hall of Thanes"
+menv.FireEvent("ZONE_CHANGED_NEW_AREA")
+MK.Callbacks.Fire("LayoutChanged", "auras.buffs")
+mns.Map.drawer:Open()
+mns.Map.drawer:Close(true)
 M.Settle(menv)
-
-local function MStep(what, fn, restyles)
-	Reset()
-	fn()
-	M.Settle(menv)
-	if restyles == 0 then
-		assert(Total() == 0, what .. " makes no ornament call, not " .. Total())
-	else
-		assert(counts.Restyle == restyles, what .. " restyles " .. restyles .. " time(s), not " .. counts.Restyle)
-	end
-end
-
-MStep("a clock tick", function() M.RunTickers(menv) end, 0)
-MStep("a coordinate update while moving", function()
-	menv.FireEvent("PLAYER_STARTED_MOVING")
-	face.coordsFrame:GetScript("OnUpdate")(face.coordsFrame, 1)
-	menv.FireEvent("PLAYER_STOPPED_MOVING")
-end, 0)
-MStep("MINIMAP_UPDATE_ZOOM", function() menv.FireEvent("MINIMAP_UPDATE_ZOOM") end, 0)
-MStep("ZONE_CHANGED inside the same zone", function() menv.FireEvent("ZONE_CHANGED") end, 0)
-MStep("a new zone name", function()
-	menv._zone.text = "Hall of Thanes"
-	menv.FireEvent("ZONE_CHANGED_NEW_AREA")
-end, 1)
-MStep("another Layout element moving", function() MK.Callbacks.Fire("LayoutChanged", "auras.buffs") end, 1)
-local edge = menv.CreateFrame("Frame", nil, menv.UIParent)
-edge:SetPoint("BOTTOMLEFT", menv.UIParent, "BOTTOMLEFT", 0, 0)
-edge:SetSize(40, 40)
-local neighbours = face.ornament.neighbours
-face.ornament.neighbours = function() return { edge } end
-face.ornament:Restyle()
-assert(edge:GetLeft() == 0 and face.ornament.used >= 2, "a Layout element on the screen's edge (left 0) leaves the corners in place, not " .. face.ornament.used)
-face.ornament.neighbours = neighbours
-face.ornament:Restyle()
-local drawer = mns.Map.drawer
-MStep("the button drawer opening and closing", function()
-	drawer:Open()
-	drawer:Close(true)
-end, 0)
+MK.Widgets.Ornament = Ornament
+assert(made == 0, "the minimap's paths make no ornament, not " .. made)
 assert(#menv._errors == 0, tostring(menv._errors[1]))
 print("ok bars and map paths")

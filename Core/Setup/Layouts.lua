@@ -38,7 +38,7 @@ local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 
 local EDGE = ns.Tokens.Size("screenMargin")
 local RAIL_EDGE = EDGE + 1.4
-local MAP, MAP_CAPTION = 188, 36
+local MAP, MAP_HEADING, MAP_CAPTION = 188, 22, 14
 local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 10.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
@@ -133,7 +133,7 @@ end
 local _, CHAT_H = ElementSize("chat.main")
 local AURAS_X = EDGE + MAP + AURA_MAP_GAP
 local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
-local STORY_TOP = math.max(EDGE + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
+local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
@@ -151,7 +151,7 @@ local DPS = {
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE - 1), y = -(EDGE - 1) },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE - 1), y = -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },

@@ -1,4 +1,4 @@
--- surfaces_clearance_lib.lua: the minimap's and the data bars' ornaments on the reference HUD keep 1 physical pixel of drawn ink from all other content.
+-- surfaces_clearance_lib.lua: the data bars' ornaments on the reference HUD keep 1 physical pixel of drawn ink from all other content, and the minimap, a card since the overhaul, draws no ornament piece.
 local M = {}
 M.SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
@@ -85,13 +85,10 @@ function M.Capture()
 	end
 end
 
--- Handles(captured) -> { name = { handle, own = function(region) } } for every data-bar and minimap ornament. own
+-- Handles(captured) -> { name = { handle, own = function(region) } } for every data-bar ornament. own
 -- answers "flush" for what a piece frames (it may touch it and covers none of it; a bar's own drop shadow, whose
 -- outer row is within one colour level of the backdrop, is exempt, so a rail flush on the border may lie on it), "exempt" for what the spec lets it
--- sit on, and "top" for a picture it may cover only above its floor. The plaque's named exemption (spec, Exemptions):
--- it sits on the face's gilt top rim and the map's top rows, as many as the north plate it frames is tall (the plate
--- is centred on the face's top edge); it keeps 1 px from the N glyph, the caption texts and every button, lies
--- behind its crystal disc (the scene paints the disc after it, so no disc pixel changes) and covers no map row below.
+-- sit on, and "top" for a picture it may cover only above its floor.
 function M.Handles(captured)
 	local out = {}
 	local bars = captured.databars and captured.databars.ns.Bars
@@ -100,38 +97,6 @@ function M.Handles(captured)
 			local own = under(region, view.track) or under(region, view.fill)
 			if own and tostring(item.file or ""):find("Shadow%.png$") then return "exempt" end
 			return own and "flush" or nil
-		end }
-	end
-	local map = captured.minimap and captured.minimap.ns.Map
-	local face = map and map.face
-	if face then
-		local env = captured.minimap.env
-		local lines = {}
-		for _, set in ipairs({ face.rim, face.shade }) do
-			for _, line in pairs(set) do lines[line] = true end
-		end
-		local function picture(region)
-			return lines[region] or under(region, env.Minimap)
-		end
-		out["minimap.map"] = { handle = face.ornament, own = function(region)
-			return picture(region) and "flush" or nil
-		end }
-		local edge = { [face.rim.top] = true, [face.shade.top] = true }
-		out["minimap.plaque"] = { handle = face.plaqueOrnament, own = function(region)
-			if edge[region] then return "exempt" end
-			if lines[region] then return nil end
-			if under(region, env.Minimap) then return "top" end
-			return region ~= face.north and under(region, face.plate) and "behind" or nil
-		end, floor = function(scene, px)
-			local top, bottom
-			for _, item in ipairs(scene.items) do
-				if item.object ~= face.north and under(item.object, face.plate) and not file(item) then
-					local _, t, _, b = Box(item, px)
-					top, bottom = math.min(top or t, t), math.max(bottom or b, b)
-				end
-			end
-			assert(bottom, "the north plate draws")
-			return bottom + (bottom - top) / 2
 		end }
 	end
 	return out
@@ -361,6 +326,41 @@ function M.Run(cases, title)
 	release()
 	print("ok " .. title .. ": " .. #cases .. " cases, " .. total .. " pieces keep 1 px of ink from all other content")
 	return total
+end
+
+-- Bare(cases, title) builds the reference HUD for each case and checks that nothing under the minimap's holder draws
+-- a forged ornament piece, at any level: the overhaul's minimap is a card whose only corner pieces are its brackets.
+function M.Bare(cases, title)
+	local captured, release = M.Capture()
+	local Reference = dofile("Tools/render/scenes/_reference.lua")
+	local saved, oldLevel = Reference.SCREEN, rawget(_G, "RENDER_ORNAMENTS")
+	for _, case in ipairs(cases) do
+		rawset(_G, "RENDER_ORNAMENTS", case.level)
+		Reference.SCREEN = { width = case.screen[1], height = case.screen[2], uiScale = saved.uiScale }
+		for name in pairs(captured) do captured[name] = nil end
+		local scene = Reference.Build({ layout = case.layout, modules = case.modules })
+		local label = string.format("%s %s %dx%d", case.level, case.layout, case.screen[1], case.screen[2])
+		local map = captured.minimap
+		assert(map and map.env.KstyleUI.Widgets.Setting("ornaments") == case.level, label .. ": the level is " .. case.level)
+		local face = map.ns.Map.face
+		local arms = {}
+		for _, bracket in ipairs(face.brackets) do
+			arms[bracket.across], arms[bracket.down] = true, true
+		end
+		local brackets = 0
+		for _, item in ipairs(scene.items) do
+			if under(item.object, map.ns.Map.holder) then
+				assert(not file(item), label .. ": the minimap draws no forged ornament piece, not " .. tostring(file(item)))
+				if arms[item.object] then brackets = brackets + 1 end
+			end
+		end
+		assert(brackets == 8 and face.ornament == nil and face.plaqueOrnament == nil, label .. ": its corners are the card's four gilt brackets, eight arms drawn, not " .. brackets)
+		collectgarbage("collect")
+	end
+	Reference.SCREEN = saved
+	rawset(_G, "RENDER_ORNAMENTS", oldLevel)
+	release()
+	print("ok " .. title .. ": " .. #cases .. " cases, no ornament piece on the minimap card")
 end
 
 -- FACTION is the watched faction a case with faction set shows on the reputation bar, as RENDER_FACTION=1 does.

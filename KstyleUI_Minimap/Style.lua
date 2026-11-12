@@ -9,6 +9,7 @@ local Style = {}
 ns.Style = Style
 
 local FALLBACK_FONT = "GameFontHighlightSmall"
+local WORLD = "world"
 
 function Style.Accent()
 	if Settings.Get("accent.source") == "custom" then
@@ -26,15 +27,28 @@ function Style.Color(token)
 	return r, g, b
 end
 
+local function WorldShadow(text)
+	local offset = K.Scale.Border() / Widgets.ScaleFactor(text)
+	text:SetShadowColor(Tokens.Color("textShadow"))
+	text:SetShadowOffset(offset, -offset)
+end
+
 function Style.Text(text, role, prefix, size)
 	local rolePath = Tokens.Font(role)
 	local font = Settings.Get(prefix .. ".font")
 	local outline = Settings.Get(prefix .. ".outline")
+	local world = outline == WORLD
+	if world then
+		outline = "OUTLINE"
+	end
 	local scaled = (size or Settings.Get(prefix .. ".size")) * K.Theme.FontScale()
 	local path = K.Theme.FollowsKit(font) and rolePath or font
 	if not Widgets.ApplyFont(text, path, scaled, outline) and not Widgets.ApplyFont(text, rolePath, scaled, outline) then
 		text:SetFontObject(FALLBACK_FONT)
 		Widgets.TextShadow(text, outline)
+	end
+	if world then
+		WorldShadow(text)
 	end
 	return scaled
 end

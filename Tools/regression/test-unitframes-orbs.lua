@@ -66,7 +66,7 @@ do
 		characters = {},
 	})
 	noErrors(env, K, "migrated boot")
-	assert(env.KstyleUIDB.version == 21 and K.Store.DB_VERSION == 21, "the saved data is upgraded to version 21")
+	assert(env.KstyleUIDB.version == K.Store.DB_VERSION and K.Store.DB_VERSION >= 21, "the saved data is upgraded to the current version, past the HUD style migration")
 	assert(env.KstyleUIDB.profiles.Raid.HudStyle.style == "orbs", "a profile that chose Orbs keeps it")
 	K.Store.SetProfile("Odd")
 	assert(K.HudStyle.Saved() == "frames", "an unknown style reads Frames")

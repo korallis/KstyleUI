@@ -220,7 +220,7 @@ local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
 -- readout. Bar 6, off, is a third column beside them, so its slot costs the rail no height. The micro menu, the bag bar
 -- and the tooltip anchor stand left of the columns, off every card.
 local EDGE = K.Tokens.Size("screenMargin")
-local MAP, MAP_CAPTION = 188, 36
+local MAP, MAP_HEADING, MAP_CAPTION = 188, 22, 14
 local RIGHT_EDGE = { ["minimap.main"] = 188, ["meters.damage"] = 269, ["databars.strip"] = 278 }
 local RAIL_COLUMN, RAIL_PITCH, RAIL_INSET = 36.7, 4.6, 1.4
 local STORY_W, STORY_RAIL_MIN = 278, 280
@@ -287,8 +287,8 @@ for _, name in ipairs(names) do
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-		assert(map.top == HEIGHT - (EDGE - 1) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail one unit nearer the top with its 36-unit caption under it")
-		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the corrected map and 2.4 under its top")
+		assert(map.top == HEIGHT - (EDGE - 1 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
+		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the map and 2.4 under the top of the zone heading over it")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
 		assert(auraBuffs.w == 306.5 and auraBuffs.h == 41.5 and auraDebuffs.w == 306.5 and auraDebuffs.h == 41.5, label .. ": each aura row is ten 27.5-unit icons 3.5 apart, 306.5 x 41.5")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
@@ -594,7 +594,7 @@ local FOOTPRINTS = {
 	-- The owner's picture (LEE-20): a 188 square map with its zone, coordinates and clock in 36 units under it; one
 	-- row of ten 27.5-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
 	-- 0 to 40 buffs); the 269 x 158 damage card; the readout as one 12-unit line.
-	["minimap.main"] = { 188, 224 },
+	["minimap.main"] = { 188, 202 },
 	["auras.buffs"] = { 306.5, 41.5 },
 	["auras.debuffs"] = { 306.5, 41.5 },
 	["meters.damage"] = { 269, 158 },
@@ -618,7 +618,7 @@ end
 do
 	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves. The map's zone, coordinates and clock hang
 	-- in the 36 units under its 188 square.
-	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 188, 224 } }
+	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 188, 202 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -642,7 +642,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE - 1) and minimap.y == -(EDGE - 1), "the square map sits one root unit nearer the top right than the card margin")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE - 1) and minimap.y == -(EDGE - 1 + MAP_HEADING), "the square map sits one root unit nearer the right than the card margin, under its 22-unit zone heading")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

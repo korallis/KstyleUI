@@ -296,7 +296,7 @@ do
 	local explicit = K.Tokens.FontPath("InterSemiBold")
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
 		face(env, K, key)
-		font(zone, (K.Tokens.Font("names")), "the zone name inherits the names role")
+		font(zone, (K.Tokens.Font("caps")), "the zone name inherits the caps role")
 	end
 	write(K, "Minimap", "zone.font", explicit)
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
@@ -305,12 +305,12 @@ do
 	end
 	write(K, "Minimap", "zone.font", "")
 	face(env, K, "SourceSans3Regular")
-	font(zone, (K.Tokens.Font("names")), "reset zone font inherits again")
+	font(zone, (K.Tokens.Font("caps")), "reset zone font inherits again")
 	for _, word in ipairs({ "theme", "kit", "default" }) do
 		write(K, "Minimap", "zone.font", explicit)
 		write(K, "Minimap", "zone.font", word)
 		face(env, K, "Lumen")
-		font(zone, (K.Tokens.Font("names")), "the saved word " .. word .. " still follows the kit for the zone name")
+		font(zone, (K.Tokens.Font("caps")), "the saved word " .. word .. " still follows the kit for the zone name")
 	end
 end
 

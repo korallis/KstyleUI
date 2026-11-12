@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 21
+Store.DB_VERSION = 22
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -555,6 +555,32 @@ Store.migrations[21] = function(data)
 		local section = type(profile) == "table" and profile.HudStyle
 		if type(section) == "table" and section.style ~= nil and not HUD_STYLES[section.style] then
 			section.style = nil
+		end
+	end
+end
+
+Store.migrations[22] = function(data)
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["minimap.main"]
+		if type(entry) == "table" then
+			railEntry(entry, "minimap.main", { "TOPRIGHT", -16, -38 }, { ["minimap.main"] = { "TOPRIGHT", -16, -16 } })
+			if next(entry) == nil then
+				layout["minimap.main"] = nil
+			end
+		end
+	end
+	for _, profile in pairs(data.profiles) do
+		local minimap = type(profile) == "table" and profile.Minimap
+		if type(minimap) == "table" then
+			if type(minimap.column) == "table" and minimap.column.hover == false then
+				minimap.column.hover = true
+			end
+			for _, key in ipairs({ "zone", "clock", "coords" }) do
+				local text = minimap[key]
+				if type(text) == "table" and text.outline == "" then
+					text.outline = "world"
+				end
+			end
 		end
 	end
 end
