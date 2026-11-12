@@ -319,7 +319,8 @@ do
 		assert(box.bottom + tile >= card.bottom + g.bottom - 1e-6 and box.bottom + tile <= card.bottom + g.bottom + K.Scale.Pixel(1), "the box's tile rests on the window's foot with the card at " .. y .. ", got " .. (box.bottom + tile - card.bottom))
 		assert(box.bottom >= 0 and box.top <= card.top, "the open box stays on screen and inside the card with the card at " .. y)
 		local win = rect(chat)
-		assert(near(box.left + 5 * g.k, win.left) and near(box.right - 8 * g.k, win.right), "the box shares the window's side edges, with the card at " .. y)
+		local inset = ns.Panel.EditInsets(chat)
+		assert(near(box.left + inset.left * g.k, win.left) and near(box.right - inset.right * g.k, win.right), "the box's tile shares the window's side edges, with the card at " .. y)
 	end
 	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()

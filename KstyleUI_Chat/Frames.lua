@@ -268,7 +268,7 @@ local function StyleEdit(frame)
 	if type(box) ~= "table" or type(box.HookScript) ~= "function" then
 		return
 	end
-	if Skin.EditBox(box, { inset = Panel.EditInsets(frame, frame.isDocked ~= nil) }) then
+	if Skin.EditBox(box, { inset = Panel.EditInsets(frame) }) then
 		box:HookScript("OnEditFocusGained", PaintEditFocus)
 	end
 end
@@ -358,7 +358,7 @@ local function ApplyFrame(frame)
 		end
 		local parts = Skin.Parts(box)
 		if parts and parts.backdrop then
-			parts.backdrop.inset = Panel.EditInsets(frame, frame.isDocked ~= nil)
+			parts.backdrop.inset = Panel.EditInsets(frame)
 			parts.backdrop:Restyle()
 		end
 	end

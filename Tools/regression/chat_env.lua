@@ -112,14 +112,19 @@ local function newChatFrame(env, id, parent)
 	frame.editBox = edit
 	frame.ScrollBar = blizzard(env, env.CreateFrame("Frame", nil, frame))
 	frame.ScrollBar:SetSize(8, 100)
-	-- ChatFrameTemplate: the scroll bar hangs on the window's right edge, top to bottom, inside it.
-	frame.ScrollBar:SetPoint("TOPRIGHT")
-	frame.ScrollBar:SetPoint("BOTTOMRIGHT")
 	-- FloatingChatFrame.xml: the edit box's left edge sits 5 units left of the window and 2 below it; its right edge, 8 right of the scroll bar's.
 	edit:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -5, -2)
 	edit:SetPoint("RIGHT", frame.ScrollBar, "RIGHT", 8, 0)
 	frame.ScrollToBottomButton = blizzard(env, env.CreateFrame("Button", nil, frame))
 	frame.ScrollToBottomButton.Flash = blizzard(env, frame.ScrollToBottomButton:CreateTexture(nil, "OVERLAY"))
+	-- FloatingChatFrame_OnLoad (FloatingChatFrame.lua:111-112): the scroll bar hangs on the window's right edge, outside it, down to the
+	-- scroll-to-bottom button (17 by 15, FloatingChatFrame.xml:523-526, at the window's bottom right), and ChatFrameMixin:OnLoad sets its
+	-- alpha to 0 (ChatFrameOverrides.lua:45) until the cursor test fades it in.
+	frame.ScrollToBottomButton:SetSize(17, 15)
+	frame.ScrollToBottomButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+	frame.ScrollBar:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, 0)
+	frame.ScrollBar:SetPoint("BOTTOMLEFT", frame.ScrollToBottomButton, "TOPLEFT", 0, 2)
+	frame.ScrollBar:SetAlpha(0)
 	frame.buttonFrame = blizzard(env, env.CreateFrame("Frame", name .. "ButtonFrame", frame))
 	local tab = blizzard(env, env.CreateFrame("Button", name .. "Tab", env.UIParent))
 	tab:SetID(id)

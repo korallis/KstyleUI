@@ -15,7 +15,6 @@ local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
 local DIVIDER_ALPHA = 0.25
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
 local COPY_SQUARE = 5.5
-local DOCK_SIDE = 2
 local EDIT_MODE_EXIT = "EditMode.Exit"
 local LAYOUT_CHANGED = "LayoutChanged"
 
@@ -100,16 +99,6 @@ local function ScrollWidth(frame)
 	return Number(bar:GetWidth(), SCROLLBAR_WIDTH)
 end
 
-function Panel.Column(frame, k)
-	local column = ScrollWidth(frame) * k + Tokens.Size("gapSmall")
-	local centre = BUTTON_INSET
-	local settings = state.settings
-	if settings and settings.copyButton == true then
-		centre = centre + BUTTON_SIZE + Tokens.Size("gapTiny")
-	end
-	return max(column, centre + BUTTON_SIZE / 2 + DOCK_SIDE * k - Pad())
-end
-
 local function EditAlways()
 	local settings = state.settings
 	return settings ~= nil and settings.editBox == "always"
@@ -160,14 +149,10 @@ function Panel.Geometry(chat)
 	}
 end
 
-function Panel.EditInsets(frame, docked)
+function Panel.EditInsets(frame)
 	local k = Ratio(frame, state.holder)
 	local vertical = max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2)
-	local right = EDIT_PAST_SCROLLBAR
-	if docked then
-		right = ScrollWidth(frame) + EDIT_PAST_SCROLLBAR - Panel.Column(frame, k) / k
-	end
-	return { left = EDIT_LEFT, right = right, top = vertical, bottom = vertical }
+	return { left = EDIT_LEFT, right = EDIT_PAST_SCROLLBAR, top = vertical, bottom = vertical }
 end
 
 function Panel.UndockedInsets(frame)
@@ -387,7 +372,7 @@ local function PlaceDivider(g)
 	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny")), Widgets.Snap(glass.copy, y))
 end
 
-local function PlaceEdit(frame, k, over)
+local function PlaceEdit(frame, k, over, own)
 	local box, bar = frame.editBox, frame.ScrollBar
 	if type(box) ~= "table" or type(box.SetPoint) ~= "function" or type(bar) ~= "table" then
 		return
@@ -398,6 +383,10 @@ local function PlaceEdit(frame, k, over)
 	end
 	box:ClearAllPoints()
 	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
+	if own then
+		box:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", EDIT_PAST_SCROLLBAR, y)
+		return
+	end
 	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)
 end
 
@@ -433,7 +422,7 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	for _, frame in ipairs(Windows.List()) do
-		PlaceEdit(frame, g.k, frame.isDocked ~= nil and not EditAlways())
+		PlaceEdit(frame, g.k, frame.isDocked ~= nil and not EditAlways(), frame.isDocked ~= nil)
 		if frame ~= chat and frame.isDocked and g.spacing and type(frame.SetSpacing) == "function" then
 			frame:SetSpacing(g.spacing)
 		end
@@ -771,7 +760,7 @@ function Panel.Stop()
 	SetChatAlpha(1)
 	RestoreDock()
 	for _, frame in ipairs(Windows.List()) do
-		PlaceEdit(frame, 1, false)
+		PlaceEdit(frame, 1, false, false)
 	end
 	if state.holder then
 		state.holder:Hide()
