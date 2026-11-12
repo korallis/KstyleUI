@@ -1,5 +1,25 @@
 # KstyleUI changelog
 
+## v0.0.6 (2026-11-13)
+
+This release fixes what the first live session on World of Warcraft: Forever turned up, and sets the HUD up properly for ultrawide screens.
+
+### Added
+
+- A centred HUD width for ultrawide screens. The HUD sits in a 21:9 band by default, with 16:9 and full width as choices in Options, so nothing is stranded at the far edges of a 32:9 monitor.
+- Separate cards for your quests and the RestedXP guide on the right rail, in place of one shared story card.
+
+### Changed
+
+- Empty slots on action bars 4 and 5 are hidden at rest. They still show while you drag an action onto a bar and while Layout Mode is open, and filled slots are always drawn.
+- The damage meter shows KstyleUI's own card instead of Blizzard's restyled window. Blizzard's window is still there under Options > Meters > Style.
+
+### Fixed
+
+- Forged trim now draws on nameplates and on the player and target frames, placed from KstyleUI's own layout.
+- Nameplates and the unit tooltip no longer raise "Can't measure restricted regions", so nameplates are no longer left half built.
+- The chat text area fills the chat card, with no gap under the last line.
+
 ## v0.0.5 (2026-11-12)
 
 KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, Diablo IV-style forged look. Cards and windows are forged iron with corner brackets by default, and you can switch the card material in Options. You choose the type set (Folio, a classic serif, is the default; Lumen is still there) and a font for each kind of text, and forged ornaments on frames, bars, plates, the minimap and windows run at Off, Subtle or Full. This is the first public release.
@@ -40,5 +60,5 @@ KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, 
 
 ## How to install
 
-1. Download the addon zip (`KstyleUI-v0.0.5-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
-2. Optional: the icon pack `KstyleUI-Icons-0.0.5.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
+1. Download the addon zip (`KstyleUI-v0.0.6-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
+2. Optional: the icon pack `KstyleUI-Icons-0.0.6.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
