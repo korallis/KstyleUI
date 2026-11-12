@@ -31,6 +31,20 @@ Store.migrations[18] = function(data)
 	end
 end
 
+Store.migrations[19] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local bars = type(profile) == "table" and profile.ActionBars
+		local layout = type(profile) == "table" and profile.Layout
+		if type(bars) == "table" and type(layout) == "table" and type(layout.preset) == "string" then
+			for _, bar in ipairs({ "bar4", "bar5" }) do
+				if type(bars[bar]) == "table" and bars[bar].showEmpty == true then
+					bars[bar].showEmpty = nil
+				end
+			end
+		end
+	end
+end
+
 Store.migrations[2] = function(data)
 	for _, profile in pairs(data.profiles) do
 		local appearance = type(profile) == "table" and profile.Appearance

@@ -411,7 +411,7 @@ end
 
 function Bar:RestAlpha()
 	local cfg = self:Config()
-	if not cfg.fade or ns.grid > 0 or self.hovered > 0 then
+	if not cfg.fade or ns.grid > 0 or ns.layout or self.hovered > 0 then
 		return 1
 	end
 	local alpha = cfg.fadeAlpha

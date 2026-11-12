@@ -109,7 +109,7 @@ function Button.ApplyTint(b, force)
 end
 
 function Button.UpdateAlpha(b)
-	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0
+	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout
 	if not shown then
 		local cfg = Config(b)
 		shown = cfg.showEmpty == true

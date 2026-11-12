@@ -418,6 +418,28 @@ do
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 
+-- Migration 19 (KSTY-34, the owner's ruling: hide the rail's empty squares): a profile that ran Apply (it has a
+-- preset, and Apply wrote showEmpty true for bars 4 and 5) loses that value, so the new default (hidden at rest)
+-- applies. A profile with no preset, so no Apply behind the value, keeps the player's own choice, and so does a false.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 18, profiles = {
+			Applied = { Layout = { preset = "DPS" }, ActionBars = { bar4 = { showEmpty = true, size = 40 }, bar5 = { showEmpty = true }, bar1 = { showEmpty = true } } },
+			Chosen = { ActionBars = { bar4 = { showEmpty = true }, bar5 = { showEmpty = false } } },
+			Quiet = { Layout = { preset = "Tank" }, ActionBars = { bar4 = { showEmpty = false } } },
+			Empty = { Layout = { preset = "DPS" } },
+		}, layouts = {} },
+	})
+	CoreEnv.Boot(menv)
+	local profiles = menv.KstyleUIDB.profiles
+	check(menv.KstyleUIDB.version == 19, "version 18 data migrates to 19")
+	check(profiles.Applied.ActionBars.bar4.showEmpty == nil and profiles.Applied.ActionBars.bar5.showEmpty == nil, "an applied profile's showEmpty true on bars 4 and 5 goes")
+	check(profiles.Applied.ActionBars.bar4.size == 40 and profiles.Applied.ActionBars.bar1.showEmpty == true, "its other settings and bar 1's empty tiles stay")
+	check(profiles.Chosen.ActionBars.bar4.showEmpty == true and profiles.Chosen.ActionBars.bar5.showEmpty == false, "with no preset the player's own choice stays")
+	check(profiles.Quiet.ActionBars.bar4.showEmpty == false and profiles.Empty.ActionBars == nil, "a false stays and a profile with no bar settings is not given any")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
 -- The owner's own saved data (version 4, 2026-11-09): #208's older bars 2 to 6 at the top left and the damage and
 -- threat cards at the old 318 width land on the picture's rail.
 do

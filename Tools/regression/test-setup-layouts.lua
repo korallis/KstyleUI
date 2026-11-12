@@ -512,7 +512,7 @@ for _, name in ipairs(names) do
 	for _, i in ipairs({ 3, 6 }) do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
 	end
-	assert(settings["ActionBars.bar4.showEmpty"] == true and settings["ActionBars.bar5.showEmpty"] == true, name .. " draws all 24 of the rail columns' slots, as the picture does")
+	assert(settings["ActionBars.bar4.showEmpty"] == false and settings["ActionBars.bar5.showEmpty"] == false, name .. " draws only the filled slots of the rail columns at rest (KSTY-34); dragging an action or Layout Mode shows the rest")
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
 	assert(settings["DataBars.strip.menus"] == false, name .. " leaves the menu and the bags out of the readout line")
 	-- Apply sizes the meters: six damage rows, or in Tank two damage rows over two threat rows, so the rail fits.
