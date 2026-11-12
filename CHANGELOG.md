@@ -1,5 +1,14 @@
 # KstyleUI changelog
 
+## v0.0.7 (2026-11-13)
+
+A small release that fixes two things in the cooldown and buff displays.
+
+### Fixed
+
+- When KstyleUI falls back to Blizzard's own essential and utility cooldown rows, they now sit on KstyleUI's rows instead of on top of your action bars. A row you moved yourself, or one too wide to fit, stays where it was.
+- Tracked buff icons and bars keep the right gap between icons at every icon size and UI scale.
+
 ## v0.0.6 (2026-11-13)
 
 This release fixes what the first live session on World of Warcraft: Forever turned up, and sets the HUD up properly for ultrawide screens.
@@ -60,5 +69,5 @@ KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, 
 
 ## How to install
 
-1. Download the addon zip (`KstyleUI-v0.0.6-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
-2. Optional: the icon pack `KstyleUI-Icons-0.0.6.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
+1. Download the addon zip (`KstyleUI-v0.0.7-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
+2. Optional: the icon pack `KstyleUI-Icons-0.0.7.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
