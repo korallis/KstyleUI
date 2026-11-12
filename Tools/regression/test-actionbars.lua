@@ -69,7 +69,8 @@ do
 	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them in the right rail")
 	for _, key in ipairs({ "bar4", "bar5" }) do
 		local bar = ns.bars[key]
-		assert(ns.defaults[key].enabled == true and ns.defaults[key].showEmpty == true, key .. " is on with every slot drawn, as the picture shows")
+		assert(ns.defaults[key].enabled == true and ns.defaults[key].showEmpty == false, key .. " is on and draws only its filled slots at rest: the owner's ruling (KSTY-34) hides the 23 empty squares in the rail")
+	assert(ns.defaults.bar1.showEmpty == true and ns.defaults.bar2.showEmpty == true, "the centre bars keep drawing their empty slots, as the picture shows")
 		assert(near(ns.defaults[key].size, 36.7) and near(ns.defaults[key].spacing, 4.6), key .. " has the centre bars' 36.7-unit slots 4.6 apart, 72 px at the picture's scale")
 		assert(near(bar.holder:GetWidth(), K.Widgets.Snap(bar.header, 36.7)) and near(bar.holder:GetHeight(), K.Widgets.Snap(bar.header, 11 * 41.3) + K.Widgets.Snap(bar.header, 36.7)), key .. " is a column of twelve 36.7-unit slots on one cumulative 41.3-unit pitch, as bars 1 and 2 stand (72 px a step on the picture's screen)")
 	end
