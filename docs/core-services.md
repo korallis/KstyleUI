@@ -156,7 +156,7 @@ Records of other characters wait for those characters' logins. A shared (`*`) re
 | `DB_VERSION`, `migrations[v]` | `migrations[v](db)` upgrades saved data from version `v - 1` to `v`. Load runs each missing step in order, and `Import` runs the same steps on older profiles. |
 | Version 2 | `migrations[2]` replaces each profile's `Appearance.reducedMotion` switch with `Appearance.motion`: `true` becomes `"off"`, and `false` drops the key, leaving the default `"full"`. |
 | Version 4 | `migrations[4]` sets DataBars' `micro.shown` or `bags.shown` to `true` in a profile whose player had set that bar up: a bar setting changed from its version 3 default, or the bars set free of the readout card (`strip.menus` off). A bar handed back to Blizzard, or one never touched, takes the new default, hidden, so the readout card is one line. |
-| Version 21 | `migrations[21]` writes `Appearance.hudStyle = "frames"` into every existing profile unless it already says `"orbs"`, so a profile saved before the HUD style existed opens on Frames. The value equals the default, so logout strips it again; a future change of the default needs its own migration. |
+| Version 21 | `migrations[21]` marks the saved data that can hold `Appearance.hudStyle` and clears a saved value other than `"frames"` or `"orbs"`. Nothing is written into an existing profile: it reads the default, Frames. If the default ever changes, that change needs a migration that writes `"frames"` into the profiles saved before it. |
 
 Profile names are 1 to 48 characters, trimmed, with no control characters and no `|`.
 

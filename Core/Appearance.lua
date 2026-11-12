@@ -214,12 +214,6 @@ local function FaceOptions()
 end
 
 Appearance.schema = {
-	{ type = "header", label = L["HUD"] },
-	{
-		type = "dropdown", key = "hudStyle", label = L["HUD style"],
-		help = L["Orbs puts your health and resource in two orbs beside action bar 1. Changes out of combat."],
-		options = { { value = "frames", label = L["Frames"] }, { value = "orbs", label = L["Orbs"] } },
-	},
 	{ type = "header", label = L["Accent"] },
 	{
 		type = "dropdown", key = "accentSource", label = L["Accent colour"],
@@ -266,6 +260,12 @@ Appearance.schema = {
 			{ value = "reduced", label = L["Reduced"] },
 			{ value = "off", label = L["Off"] },
 		},
+	},
+	{ type = "header", label = L["HUD"] },
+	{
+		type = "dropdown", key = "hudStyle", label = L["HUD style"],
+		help = L["Orbs shows health and resource in two orbs beside the main action buttons. Changes out of combat."],
+		options = { { value = "frames", label = L["Frames"] }, { value = "orbs", label = L["Orbs"] } },
 	},
 }
 

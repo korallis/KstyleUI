@@ -51,11 +51,10 @@ do
 		values[#values + 1] = option.value
 	end
 	assert(table.concat(values, ",") == "frames,orbs", "the choices are Frames and Orbs, got " .. table.concat(values, ","))
-	assert(K.Options.Get("Appearance")[2] == row, "the HUD style is the first setting on the General page")
 end
 
--- The migration: saved data from version 20 gets version 21, every existing profile reads Frames, and a profile that
--- already chose Orbs keeps it. An unknown value falls back to Frames without an error.
+-- The migration: saved data from version 20 gets version 21 and every existing profile reads Frames, the default, with
+-- nothing written into it; a saved Orbs stays, and a value no build knows is cleared, so the profile falls back to Frames.
 do
 	local env, K = new({
 		version = 20,
@@ -68,9 +67,15 @@ do
 	})
 	noErrors(env, K, "migrated boot")
 	assert(env.KstyleUIDB.version == 21 and K.Store.DB_VERSION == 21, "the saved data is upgraded to version 21")
-	assert(env.KstyleUIDB.profiles.Default.Appearance.hudStyle == "frames", "an existing profile is pinned to Frames")
 	assert(env.KstyleUIDB.profiles.Raid.Appearance.hudStyle == "orbs", "a profile that chose Orbs keeps it")
-	assert(env.KstyleUIDB.profiles.Odd.Appearance.hudStyle == "frames", "an unknown style becomes Frames")
+	K.Store.SetProfile("Odd")
+	assert(K.Appearance.Get("hudStyle") == "frames", "an unknown style reads Frames")
+	K.Store.SetProfile("Raid")
+	assert(K.Appearance.HudStyle() == "orbs", "a profile that chose Orbs opens on Orbs")
+	K.Store.SetProfile("Default")
+	env.KstyleUIDB.profiles.Default.Appearance = nil
+	CoreEnv.Logout(env)
+	assert(env.KstyleUIDB.profiles.Default.Appearance == nil or env.KstyleUIDB.profiles.Default.Appearance.hudStyle == nil, "Frames is not written into a profile")
 	assert(K.Appearance.Get("hudStyle") == "frames", "the active profile reads Frames")
 end
 
