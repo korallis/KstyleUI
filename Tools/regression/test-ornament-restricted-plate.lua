@@ -69,6 +69,17 @@ errors("target, cast and a setting change")
 assert(shown(shut) == 0, "a cast, a target change and a setting change on a restricted plate draw no ornament")
 assert(shown(open) > 0, "the free plate keeps its ornament through the restricted plate's restyles")
 
+local ask = open.health.IsAnchoringRestricted
+open.health.IsAnchoringRestricted = function()
+	return env.Secret(false)
+end
+open.ornament:Restyle()
+errors("a secret answer")
+assert(shown(open) == 0, "a secret IsAnchoringRestricted answer counts as restricted and draws no ornament")
+open.health.IsAnchoringRestricted = ask
+open.ornament:Restyle()
+assert(shown(open) > 0, "a plain answer draws the ornament again")
+
 env.RestrictAnchoring(locked, false)
 shut:Restyle()
 settle()

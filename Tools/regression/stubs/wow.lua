@@ -236,7 +236,7 @@ local function anchoredWidth(self)
 		local side = point:find("LEFT", 1, true) and "low" or point:find("RIGHT", 1, true) and "high"
 		if side and type(rel) == "table" and type(rel.GetLeft) == "function" then
 			local left, right
-			if rel._points then
+			if rel._points and not rel._denied then
 				local r = placed(rel)
 				left, right = r and r.left, r and r.right
 			else
