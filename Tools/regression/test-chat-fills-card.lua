@@ -109,4 +109,23 @@ do
 	end
 end
 
+-- A window opened into the dock after login, and one that leaves it, get their edit box placed on the next frame, and every docked
+-- window keeps the spacing the window's whole lines were fitted with.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	local whisper = env.FCF_OpenTemporaryWindow()
+	env.FCF_DockFrame(whisper)
+	env.RunTimers()
+	local p, rel, _, _, y = whisper.editBox:GetPoint(1)
+	assert(p == "TOPLEFT" and rel == whisper and y > 0, "a window opened into the dock gets the overlay box, got " .. tostring(y))
+	env.FCF_UnDockFrame(env.ChatFrame2)
+	env.RunTimers()
+	local _, _, _, _, hung = env.ChatFrame2.editBox:GetPoint(1)
+	assert(hung == -2, "an undocked window's box is under its window again, got " .. tostring(hung))
+	for _, frame in ipairs({ env.ChatFrame1, whisper }) do
+		assert(frame:GetSpacing() == ns.Panel.Geometry(env.ChatFrame1).spacing, frame:GetName() .. " keeps the fitted spacing")
+	end
+end
+
 print("chat fills card ok")

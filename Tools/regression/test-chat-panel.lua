@@ -605,7 +605,7 @@ do
 	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
 	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 6.5)), "6.5 units between lines preserve the reference pitch with Folio at 12, on whole pixels")
 	K.Options.Write("Chat", "lineSpacing", 0)
-	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")
+	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == lastCall(env.ChatFrame1, "SetSpacing")[1], "line spacing reaches every window: the docked one shares the window's whole lines, so the same fitted spacing")
 	K.Options.Write("Chat", "fade", false)
 	assert(lastCall(env.ChatFrame1, "SetFading")[1] == false, "fading off")
 	K.Options.Write("Chat", "fade", true)

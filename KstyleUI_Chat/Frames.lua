@@ -496,6 +496,7 @@ local function OnDocking(frame)
 	if state.active and type(frame) == "table" and styled[frame] then
 		ApplyFrame(frame)
 		Panel.Sync()
+		Panel.Schedule()
 	end
 end
 

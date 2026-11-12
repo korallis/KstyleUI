@@ -361,7 +361,7 @@ local function Mirror()
 end
 
 function Panel.Spacing(frame)
-	if state.active and not state.waiting and state.holder and frame == state.chat then
+	if state.active and not state.waiting and state.holder and (frame == state.chat or frame.isDocked) then
 		return Panel.Geometry(frame).spacing
 	end
 end
@@ -433,8 +433,9 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	for _, frame in ipairs(Windows.List()) do
-		if frame == chat or frame.isDocked then
-			PlaceEdit(frame, g.k, not EditAlways())
+		PlaceEdit(frame, g.k, frame.isDocked ~= nil and not EditAlways())
+		if frame ~= chat and frame.isDocked and g.spacing and type(frame.SetSpacing) == "function" then
+			frame:SetSpacing(g.spacing)
 		end
 	end
 	PlaceDivider(g)
@@ -461,6 +462,8 @@ local function OnEditModeExit()
 		Schedule()
 	end
 end
+
+Panel.Schedule = Schedule
 
 local function OnLayoutChanged(_, key)
 	if state.active and key == KEY then
