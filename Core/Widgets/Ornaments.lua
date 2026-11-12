@@ -31,7 +31,8 @@ local function Snug(v)
 end
 
 local function Unread(l, r, t, b)
-	return l == false or W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b)
+	if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return true end
+	return l == false
 end
 
 function Handle:Begin()
@@ -307,7 +308,7 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 		return true
 	end
 	if ink and not reserved and type(region.GetStringWidth) == "function" then
-		local width = region:GetStringWidth()
+		local width = W.StringWidth(region)
 		if Plain(width) and width < r - l then
 			local justify = type(region.GetJustifyH) == "function" and region:GetJustifyH()
 			if justify == "LEFT" then r = l + width

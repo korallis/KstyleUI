@@ -219,9 +219,9 @@ function Object:GetUnboundedStringWidth() return measured(self) end
 function Object:GetStringWidth()
 	local width, own = measured(self), self:GetWidth()
 	if width and type(own) == "number" and own > 0 then
-		return math.min(width, own)
+		width = math.min(width, own)
 	end
-	return width
+	return veil(self, width)
 end
 -- A wrapping string with a line cap (SetMaxLines) is truncated when its text needs more lines than the cap,
 -- estimated from its width in whole lines, as the game ends the last line in "...".

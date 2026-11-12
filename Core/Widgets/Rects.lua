@@ -64,6 +64,33 @@ function W.RecordAll(...)
 	end
 end
 
+local scratch
+
+local function TextWidth(region)
+	local width = region:GetStringWidth()
+	if Plain(width) and width >= 0 then return width end
+	local text = region:GetText()
+	if IsSecret(text) or type(text) ~= "string" then return nil end
+	if text == "" then return 0 end
+	local file, size, flags = region:GetFont()
+	if IsSecret(file) or IsSecret(flags) or type(file) ~= "string" or not Plain(size) then return nil end
+	if not scratch then
+		local holder = CreateFrame("Frame", nil, UIParent)
+		holder:Hide()
+		scratch = W.FontString(holder, "OVERLAY")
+		scratch:SetWordWrap(false)
+	end
+	scratch:SetFont(file, size, flags)
+	scratch:SetText(text)
+	width = scratch:GetStringWidth()
+	if not Plain(width) then return nil end
+	local record = RECORDS[region]
+	local own = record and record.width
+	if own and own > 0 and width > own then width = own end
+	return width
+end
+W.StringWidth = TextWidth
+
 local function Scale(region)
 	local scale = region:GetEffectiveScale()
 	return Plain(scale) and scale > 0 and scale or nil
@@ -80,8 +107,7 @@ local function Natural(region, axis)
 	if axis == 1 then
 		local text = region:GetText()
 		if not IsSecret(text) and (text == nil or text == "") then return 0 end
-		local width = region:GetStringWidth()
-		return Plain(width) and width >= 0 and width or nil
+		return TextWidth(region)
 	end
 	local _, font = region:GetFont()
 	return Plain(font) and font > 0 and font * LINE_EM or nil
