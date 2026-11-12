@@ -196,6 +196,7 @@ end
 
 local function Try(view, spot, n, scale, gap, k, others, rw, rh)
 	local item = (spot.width and view.height or view.width) * scale / k
+	gap = floor(gap / scale + 0.5) * scale
 	local length = n * item + (n - 1) * gap / k
 	local thick, least = item, item
 	if spot.width then
@@ -286,7 +287,7 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		settings[setting.IconSize] = (percent - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP
 	end
 	if setting.IconPadding ~= nil then
-		settings[setting.IconPadding] = view.offset + gap
+		settings[setting.IconPadding] = view.offset + floor(gap / (percent / 100) + 0.5)
 	end
 	local orientation, direction = enum.CooldownViewerOrientation, enum.CooldownViewerIconDirection
 	if not bars and IsTable(orientation) and setting.Orientation ~= nil then

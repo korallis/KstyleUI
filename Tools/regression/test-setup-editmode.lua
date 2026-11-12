@@ -141,7 +141,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
 			local size = (iconBox[4] - iconBox[2])
 			assert(size <= NativeIconSize(k) + 0.01 and Setting(icon, ICON_SIZE) >= 0, where .. ": LEE-20 a native buff icon is no larger than the nearest legal step, got " .. size)
-			assert(Setting(icon, EditModeFake.ICON_PADDING) == 7 and near(iconBox[3] - iconBox[1], count * size + (count - 1) * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
+			assert(near(iconBox[3] - iconBox[1], count * size + (count - 1) * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
 			if screen == OWNER then
 				assert(math.abs(size - 28.5) < 0.01 and Setting(icon, ICON_SIZE) == 1, where .. ": LEE-20 native 60% is nearest the 27.6-unit reference at the shipped scale, got " .. size)
 				if count == 6 then
@@ -162,6 +162,23 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(Find(Named(state, "KstyleUI " .. name), VIEWER, 1).anchorInfo.offsetY == 230, where .. ": the essential viewer keeps the copied layout's place")
 			assert(#env._errors == 0, tostring(env._errors[1]))
 		end
+	end
+end
+
+-- LEE-413 (Capy): Blizzard's grid offsets each icon in the icon's own scaled space, so the gap on screen is
+-- (IconPadding - 4) times the icon scale. The writer stores the padding that gives the three-unit gap at every size.
+for _, uiScale in ipairs({ 0.45, 0.55, 0.65, 0.75, 0.85, 1 }) do
+	for _, count in ipairs({ 4, 6 }) do
+		local state = { saved = {}, active = 1 }
+		local _, K = Boot(state, { width = 2383, height = 1540, uiScale = uiScale, size = "default" })
+		K.Setup.EditMode.CountTracked(function(group)
+			return ({ buffs = count, bars = 2 })[group]
+		end)
+		assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+		local icon = Find(Named(state, "KstyleUI DPS"), VIEWER, BUFF_ICON)
+		local scale = (Setting(icon, ICON_SIZE) * 10 + 50) / 100
+		local gap = (Setting(icon, EditModeFake.ICON_PADDING) - 4) * scale
+		assert(math.abs(gap - 3) <= scale / 2 + 0.01, "LEE-413: at ui scale " .. uiScale .. " with " .. count .. " icons and icon size " .. scale * 100 .. "%, the on-screen gap is " .. gap .. ", not three")
 	end
 end
 
