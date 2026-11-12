@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 18, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 19, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 18, "version 2 data migrates through 3 to 12 to the current 18")
+	check(menv.KstyleUIDB.version == 19, "version 2 data migrates through 3 to 12 to the current 19")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
@@ -238,7 +238,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local auras = menv.KstyleUIDB.profiles.Default.Auras
-	check(menv.KstyleUIDB.version == 18, "version 7 data migrates to 18")
+	check(menv.KstyleUIDB.version == 19, "version 7 data migrates to 19")
 	check(auras.card == nil, "the card section is gone")
 	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
 	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
@@ -266,7 +266,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 18, "version 8 data migrates to 18")
+	check(db.version == 19, "version 8 data migrates to 19")
 	local damage, threat = db.layouts.Default["meters.damage"], db.layouts.Default["meters.threat"]
 	check(damage.anchor == "TOPRIGHT" and damage.x == -28 and damage.y == -300, "a damage card moved only down keeps its place from the top right")
 	check(threat.anchor == "TOPRIGHT" and threat.x == -60 and threat.y == -236 and threat.width == 300, "a threat card moved only sideways keeps its place and size")
@@ -294,7 +294,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 18, "version 9 data migrates to 18")
+	check(db.version == 19, "version 9 data migrates to 19")
 	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 186 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size (186 high since migration 16) and keeps its place")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps the rail width and takes the picture's height")
 	check(db.layouts.Custom["chat.main"].width == 400 and db.layouts.Custom["chat.main"].height == 180, "a resized card stays")
@@ -328,7 +328,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 18, "version 9 data migrates to 18")
+	check(db.version == 19, "version 9 data migrates to 19")
 	local layout = db.layouts.Default
 	check(layout["minimap.main"] == nil, "the version-9 map size goes, so the map takes the picture's 188")
 	check(layout["meters.damage"] == nil, "the old rail width alone goes, so the damage card takes the picture's 269 x 158")
@@ -384,7 +384,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 18, "version 12 data migrates to 18")
+	check(db.version == 19, "version 12 data migrates to 19")
 	check(db.layouts.TallDps["chat.main"].width == 318 and db.layouts.TallDps["chat.main"].height == 200, "a DPS card the player set to the Healer's old size keeps it")
 	check(db.layouts.TallSparse["chat.main"].width == 318 and db.layouts.TallSparse["chat.main"].height == 200, "a DPS card narrowed to 318 keeps its 200")
 	local tall = db.layouts.TallHigh["qol.lootfeed"]
@@ -392,7 +392,7 @@ do
 	local tallMoved = db.layouts.TallMoved["qol.lootfeed"]
 	check(tallMoved.anchor == "BOTTOMLEFT" and tallMoved.x == 40 and tallMoved.y == 233, "a loot feed the player moved sideways keeps its old height above the taller card")
 	check(db.layouts.Default["qol.lootfeed"] == nil, "a card that takes the new default height lets the feed follow it")
-	check(db.version == 18 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
+	check(db.version == 19 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
 	local layout = db.layouts.Default
 	check(layout["chat.main"].width == 393 and layout["chat.main"].height == 186, "a card at the old default height takes the picture's 186")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")
@@ -415,6 +415,28 @@ do
 	local bars = db.profiles.Default.ActionBars
 	check(bars.bar4.size == nil and bars.bar4.spacing == nil and bars.bar4.showEmpty == true, "the rail bars' old 37 and 4 go, so bar 4 takes the centre bars' 36.7 and 4.6")
 	check(bars.bar5.size == 40 and bars.bar5.spacing == nil, "a slot size the player chose stays")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
+-- Migration 19 (KSTY-34, the owner's ruling: hide the rail's empty squares): a profile that ran Apply (it has a
+-- preset, and Apply wrote showEmpty true for bars 4 and 5) loses that value, so the new default (hidden at rest)
+-- applies. A profile with no preset, so no Apply behind the value, keeps the player's own choice, and so does a false.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 18, profiles = {
+			Applied = { Layout = { preset = "DPS" }, ActionBars = { bar4 = { showEmpty = true, size = 40 }, bar5 = { showEmpty = true }, bar1 = { showEmpty = true } } },
+			Chosen = { ActionBars = { bar4 = { showEmpty = true }, bar5 = { showEmpty = false } } },
+			Quiet = { Layout = { preset = "Tank" }, ActionBars = { bar4 = { showEmpty = false } } },
+			Empty = { Layout = { preset = "DPS" } },
+		}, layouts = {} },
+	})
+	CoreEnv.Boot(menv)
+	local profiles = menv.KstyleUIDB.profiles
+	check(menv.KstyleUIDB.version == 19, "version 18 data migrates to 19")
+	check(profiles.Applied.ActionBars.bar4.showEmpty == nil and profiles.Applied.ActionBars.bar5.showEmpty == nil, "an applied profile's showEmpty true on bars 4 and 5 goes")
+	check(profiles.Applied.ActionBars.bar4.size == 40 and profiles.Applied.ActionBars.bar1.showEmpty == true, "its other settings and bar 1's empty tiles stay")
+	check(profiles.Chosen.ActionBars.bar4.showEmpty == true and profiles.Chosen.ActionBars.bar5.showEmpty == false, "with no preset the player's own choice stays")
+	check(profiles.Quiet.ActionBars.bar4.showEmpty == false and profiles.Empty.ActionBars == nil, "a false stays and a profile with no bar settings is not given any")
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 

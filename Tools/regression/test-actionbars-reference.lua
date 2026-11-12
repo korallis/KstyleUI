@@ -77,6 +77,7 @@ do
 	AB.Enable(env, K)
 	for _, key in ipairs({ "bar1", "bar2", "bar3", "bar4", "bar5" }) do
 		K.Options.Write("ActionBars", key .. ".enabled", true)
+		K.Options.Write("ActionBars", key .. ".showEmpty", true)
 		local empty = 0
 		for _, button in ipairs(ns.bars[key].buttons) do
 			if not button.hasAction then
