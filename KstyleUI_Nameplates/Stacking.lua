@@ -10,7 +10,6 @@ local MODULE = Settings.MODULE
 local Stacking = {}
 ns.Stacking = Stacking
 
-local MARKER_GAP = K.Tokens.Size("gapSmall")
 local original
 local applied = { w = nil, h = nil }
 local queued, hooked = false, false
@@ -55,15 +54,15 @@ function Stacking.Extent()
 	end
 	local crown = Settings.Get("markers.classification") and Plate.CROWN_HEIGHT or 0
 	if Settings.Get("level.show") then
-		left = math.max(left, Plate.DIAMOND_REACH)
-		local overhang = math.max(0, (Plate.DIAMOND_HEIGHT - state.height) / 2)
+		left = math.max(left, Plate.DiamondReach(plate))
+		local overhang = math.max(0, (Plate.DiamondSize(plate) - state.height) / 2)
 		above = math.max(above, overhang + crown)
 		below = math.max(below, overhang)
 	elseif crown > 0 then
 		left = math.max(left, Plate.BRACKET_REACH + crown)
 	end
 	if Settings.Get("markers.raid") then
-		right = math.max(right, Settings.Get("markers.raidSize") + MARKER_GAP)
+		right = math.max(right, Plate.MarkerReach() + Settings.Get("markers.raidSize"))
 	end
 	if Settings.Get("debuffs.enabled") then
 		local size, spacing, columns = ns.Auras.Grid(plate)

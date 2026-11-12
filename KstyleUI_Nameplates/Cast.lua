@@ -349,7 +349,7 @@ function Component.Build(plate)
 	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
-	plate.castBarOpts = { width = 100, height = 6, spark = true }
+	plate.castBarOpts = { width = 100, height = 6 }
 	local bar = ns.FlatBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar

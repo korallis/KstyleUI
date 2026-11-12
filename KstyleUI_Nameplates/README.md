@@ -1,6 +1,6 @@
 # KstyleUI_Nameplates
 
-A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's debuffs, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
+A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
 | Field | Value |
 | --- | --- |
@@ -9,6 +9,19 @@ A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's 
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Nameplates.toc` lists `Nameplates.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 | Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua`, `test-nameplates-cast.lua`, `test-nameplates-auras.lua`, `test-nameplates-types.lua`, `test-nameplates-interrupt.lua`, `test-nameplates-stacking.lua`, `test-nameplates-presets.lua` and `test-nameplates-overflow.lua`, through `Tools/regression/nameplates_env.lua`, which uses the fake AuraContainer engine in `auras_env.lua` |
+
+## The bible's plate (2026-11-12)
+
+The KSTY-44 design bible and its mock-up (`renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg` in the Captain's drive) decide the plate now; Lee approved the mock-ups ("Ohh those look good") and asked for the whole overhaul at once. This replaces the 2026-11-09 picture's plate below wherever the two differ, and the rest of that section stands.
+
+- **The bar** is the mock-up's 132 by 10 px at 1920x1080 and the shipped Interface size, **156.75 by 11.875** root units, with a one-physical-pixel black edge and one more pixel of 45 percent black outside it, and the kit's one-pixel top highlight. No ornament draws on or around it at any ornament level (`docs/ORNAMENT-SPEC.md`, Nameplates).
+- **The target** shows **gilt brackets** at both ends, lit gilt (`giltLit`, the `target.color` default), 21.375 units tall with 5.9375-unit arms and a 2.375-unit stroke (at least one physical pixel), 7.125 units off the bar. They close in from 4.75 units out over 0.12 s, easing out, when a plate becomes the target, at full motion only, and never on a restyle. The target's bar keeps its black edge and its name stays white; the old gold outline and gold name are gone.
+- **The level diamond** sits at the bar's left end, its right point one physical pixel clear of where the left bracket stands, so nothing moves when the target changes. It is a 21.375-unit square turned 45 degrees: a black outer pixel, a gilt rim, a black pixel and a dark face, with the level in lit gilt at 13 units (11 px at 1080p, the bible's floor). It shows by default.
+- **Elite and rare marks** are on the diamond's rim, so rank never rests on colour alone: an elite, rare or world boss rim is two pixels instead of one, in gold (`neutral`), blue (`rare`) or red (`hostile`). With the level off, a marked unit keeps its diamond, empty.
+- **The effect over the bar's end.** The player's effects grow left from the bar's right end, above the name, 29 units square with a black, red and black pixel rim; the stack count shows and the time left is off by default (a setting).
+- **The name** is Cinzel caps at 16 units, 8 units above the bar, sized by its text, so a long name is never cut short.
+- **The cast bar** runs under the plate, 2.375 units below the bar's edge, as before.
+- Saved settings still at the 2026-11-09 defaults (name 12, level hidden at 16 with an outline, effects 26 growing right with timers at 12, health text 9, cast text 10, target colour `gilt`) and a saved plate size still at 151.56 by 13.78 follow the new defaults through Store migration 21; a value the player chose is kept.
 
 ## Reference ruling (2026-11-09)
 
@@ -74,8 +87,8 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 | Health bar | `UnitHealthMax`, `UnitHealth` | Both go straight to `SetMinMaxValues` and `SetValue`; the engine eases the bar. A new unit on a reused plate snaps to its value. |
 | Health text | `UnitHealthPercent(unit, true, CurveConstants.ScaleTo100)`, `AbbreviateNumbers(UnitHealth(unit))` | `SetFormattedText` takes the secrets. Without the curve the module builds its own, and without the curve API it shows the value. |
 | Name | `UnitName` | Centred Cinzel caps at 12 units by default; the upper-case switch can preserve a readable name's original case. A secret name reaches `SetText` whole. Class-coloured names are opt-in, and take the class colour only when the bar does not already carry it (a reaction or custom bar colour, or a name-only plate); over a class-coloured bar the name reads white, so a pink name never sits on a pink fill. |
-| Level badge | `UnitEffectiveLevel`, else `UnitLevel` | Off by default. When enabled, a 34-unit badge (a 10.5-unit corner) rimmed in the bar's colour, overlapping the bar's left end by one unit and drawn over it. The level reads white; `-1` reads `??` in the hostile colour. |
-| Elite and rare marker | `UnitClassification` | A diamond (the chamfered icon mask turned 45 degrees) crowning the level badge, centred above it: gold (`neutral`) for elites, red (`hostile`) for world bosses, blue (`rare`) for rares and rare elites. It sits at the bar's left end so it never meets the raid marker at the right. |
+| Level diamond | `UnitEffectiveLevel`, else `UnitLevel` | On by default. A diamond left of the bar's left end, clear of the left bracket's place, drawn over the bar. The level reads in lit gilt; `-1` reads `??` in the hostile colour. |
+| Elite and rare marks | `UnitClassification` | The level diamond's rim: two pixels instead of one, gold (`neutral`) for elites, red (`hostile`) for world bosses, blue (`rare`) for rares and rare elites. A secret classification marks nothing. |
 | Raid marker | `GetRaidTargetIndex` | Always secret on Forever. `type(index)` tells nil from a number without reading it, and the index goes to `SetSpriteSheetCell` on Blizzard's raid icon sheet. |
 | Threat | `UnitThreatSituation("player", unit)` | Readable on Forever. A secret status counts as none. See below. |
 | Target and focus | `C_NamePlate.GetNamePlateForUnit("target")` and `("focus")` | Compared with the plate's base frame, which is never secret. When that call is refused or returns nothing while the unit exists, `UnitIsUnit` decides, and a secret answer counts as no. |

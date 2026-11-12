@@ -15,9 +15,8 @@ local function barColor(bar)
 	return bar:GetStatusBarColor()
 end
 
-local function highlighted(K, plate)
-	local r, g, b = plate.health.keyline:GetVertexColor()
-	return not SameColor(r, g, b, K.Tokens.Color("black"))
+local function highlighted(_, plate)
+	return plate.brackets:IsShown()
 end
 
 local function edgeColor(bar)
@@ -241,22 +240,22 @@ do
 	N.Add(env, "nameplate1", { classification = "elite", level = -1 })
 	local plate = ns.Plates.Get("nameplate1")
 	assert(plate.levelText:GetText() == "??", "a skull level reads ??")
-	assert(plate.marker:IsShown(), "an elite shows its marker")
 	local nr, ng, nb = token(K, "neutral")
-	local r, g, b = plate.marker:GetVertexColor()
-	assert(SameColor(nr, ng, nb, r, g, b), "the elite marker is gold")
-	-- The diamond reads in a pull: 12 units across, where 8 drew as a dot in the gallery.
-	assert(env.Look(plate.marker:GetWidth()) >= K.Widgets.Snap(plate, 12) and env.Look(plate.marker:GetHeight()) == env.Look(plate.marker:GetWidth()), "the marker is a 12-unit diamond, got " .. tostring(env.Look(plate.marker:GetWidth())))
+	local r, g, b = plate.level.rim:GetVertexColor()
+	assert(plate.level:IsShown() and SameColor(nr, ng, nb, r, g, b), "an elite's level diamond takes a gold rim")
+	assert(plate.rimWeight == 2, "an elite's rim is two pixels, so its rank does not rest on colour alone")
 
 	N.Add(env, "nameplate2", { classification = "rare" })
 	local rare = ns.Plates.Get("nameplate2")
 	local rr, rg, rb = token(K, "rare")
-	r, g, b = rare.marker:GetVertexColor()
-	assert(rare.marker:IsShown() and SameColor(rr, rg, rb, r, g, b), "a rare shows a blue marker")
+	r, g, b = rare.level.rim:GetVertexColor()
+	assert(rare.rimWeight == 2 and SameColor(rr, rg, rb, r, g, b), "a rare's diamond takes the rare colour's rim")
 
 	N.Add(env, "nameplate3")
 	local normal = ns.Plates.Get("nameplate3")
-	assert(not normal.marker:IsShown(), "a normal unit shows no marker")
+	local gr, gg, gb = token(K, "gilt")
+	r, g, b = normal.level.rim:GetVertexColor()
+	assert(normal.rimWeight == 1 and SameColor(gr, gg, gb, r, g, b), "a normal unit's diamond keeps the plain one-pixel gilt rim")
 	assert(not normal.raid:IsShown(), "no raid marker without one")
 
 	env._units.nameplate3.raid = 8
@@ -269,9 +268,10 @@ do
 	assert(not normal.raid:IsShown(), "a cleared marker hides")
 
 	K.Options.Write("Nameplates", "level.show", false)
-	assert(not plate.level:IsShown(), "the level badge can be switched off")
+	assert(not normal.level:IsShown(), "the level diamond can be switched off")
+	assert(plate.level:IsShown() and plate.levelText:GetText() == "", "with the level off, an elite's mark stays on an empty diamond")
 	K.Options.Write("Nameplates", "markers.classification", false)
-	assert(not plate.marker:IsShown(), "classification markers can be switched off")
+	assert(not plate.level:IsShown(), "classification marks can be switched off")
 	K.Options.Write("Nameplates", "name.show", false)
 	assert(not plate.name:IsShown(), "the name can be switched off")
 	K.Options.Write("Nameplates", "healthText.show", false)
@@ -330,8 +330,10 @@ do
 	assert(not highlighted(K, one), "no target, no highlight")
 	N.Target(env, "nameplate1")
 	assert(highlighted(K, one) and not highlighted(K, two), "the target's plate is highlighted")
-	local ar, ag, ab = K.Tokens.Color("gilt")
-	assert(SameColor(ar, ag, ab, one.health.keyline:GetVertexColor()), "the outline is gold")
+	local ar, ag, ab = K.Tokens.Color("giltLit")
+	assert(SameColor(ar, ag, ab, one.brackets.sides[1].stroke:GetVertexColor()), "the brackets are lit gilt")
+	local kr, kg, kb = K.Tokens.Color("black")
+	assert(SameColor(kr, kg, kb, one.health.keyline:GetVertexColor()), "the target's bar keeps its black edge")
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "other plates stay opaque by default")
 
 	K.Options.Write("Nameplates", "target.dimOthers", 0.5)
@@ -343,7 +345,7 @@ do
 	K.Options.Write("Nameplates", "target.colorSource", "custom")
 	K.Options.Write("Nameplates", "target.color", { r = 0.9, g = 0.1, b = 0.1 })
 	N.Target(env, "nameplate2")
-	assert(SameColor(0.9, 0.1, 0.1, two.health.keyline:GetVertexColor()), "the highlight can use a custom colour")
+	assert(SameColor(0.9, 0.1, 0.1, two.brackets.sides[2].stroke:GetVertexColor()), "the brackets can use a custom colour")
 
 	N.Focus(env, "nameplate1")
 	local fr, fg, fb = token(K, "rare")
@@ -405,35 +407,37 @@ do
 	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
 end
 
--- Size: the owner's 2026-11-09 picture, measured again on 2026-11-10. The fill is 151.56 by 13.78 root units
--- (264 by 24 physical pixels on the reference panel); the two-pixel border is outside that fill. The old
--- "same height as the target sigil" rule is reversed by the picture. A 34-unit octagonal level disc with a
--- 10.5-unit chamfer, rimmed in the bar's colour and overlapping the bar's left end, the name in caps at 12,
--- the level in white at 16, no health text ----
+-- Size: the KSTY-44 bible's plate (renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg, 1 px per screen unit
+-- at 1920x1080, where a root unit is 16/19 of a pixel). The bar is 132 by 10 px, so 156.75 by 11.875 root units, with a
+-- one-pixel black edge and one of 45 percent black outside it. The level diamond sits left of the bar, clear of the
+-- left bracket, and reads in lit gilt; the name is Cinzel caps at 16; no health text --------------------------------
 
 do
 	local env, K, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 151.56 and ns.Plate.DEFAULT_HEIGHT == 13.78, "the health bar is the picture's fill, 151.56 by 13.78 root units")
+	assert(ns.Plate.DEFAULT_WIDTH == 156.75 and ns.Plate.DEFAULT_HEIGHT == 11.875, "the health bar is the mock-up's 132 by 10 px, 156.75 by 11.875 root units")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(env.Look(plate.health:GetWidth()), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_WIDTH)) and N.Same(env.Look(plate.health:GetHeight()), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
-	local disc = plate.level
-	assert(N.Same(env.Look(disc:GetWidth()), 34) and N.Same(env.Look(disc:GetHeight()), 34), "the level disc is 34 units across")
-	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")
-	assert(disc.chrome.shadowOn == false and disc.chrome.noise == nil, "no shadow, no grain")
-	local r, g, b = barColor(plate.health)
-	assert(SameColor(r, g, b, disc.chrome.rim[1]:GetVertexColor()), "its rim takes the bar's colour")
-	local point, relative, relativePoint, x = disc:GetPoint(1)
-	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT", "it sits on the bar's left end")
-	assert(x >= 0.5 and x <= 1.5, "overlapping the bar's frame by one unit, got " .. tostring(x))
-	assert(disc:GetFrameLevel() > plate.health:GetFrameLevel(), "the disc draws over the bar's end, not under it")
+	local health = plate.health
+	assert(N.Same(env.Look(health:GetWidth()), K.Widgets.Snap(health, ns.Plate.DEFAULT_WIDTH)) and N.Same(env.Look(health:GetHeight()), K.Widgets.Snap(health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
+	local px = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(health)
+	local kx = select(4, health.keyline:GetPoint(1))
+	local hx = select(4, health.halo:GetPoint(1))
+	assert(N.Same(kx, -px) and N.Same(hx, -px * 2), "a one-pixel black edge, then one of 45 percent black")
+	local colour = Last(health.halo, "SetColorTexture")
+	assert(colour and N.Same(colour[4], 0.45), "the outer pixel is 45 percent black")
+	local diamond = plate.level
+	assert(diamond:IsShown(), "the level diamond shows by default")
+	local point, relative, relativePoint, x = diamond:GetPoint(1)
+	assert(point == "CENTER" and relative == health and relativePoint == "LEFT" and x < 0, "the diamond sits left of the bar")
+	local half = env.Look(diamond:GetWidth()) / 2
+	assert(-x - half >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "the diamond's right point stays clear of the left bracket")
+	assert(diamond:GetFrameLevel() > health:GetFrameLevel(), "the diamond draws over the bar")
 	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
-	assert(select(2, plate.name:GetFont()) == 12, "the name reads at 12 units")
-	K.Options.Write("Nameplates", "level.show", true)
-	assert(select(2, plate.levelText:GetFont()) == 16, "the level at 16")
+	assert(select(2, plate.name:GetFont()) == 16, "the name reads at 16 units")
+	assert(select(2, plate.levelText:GetFont()) == 13, "the level at 13, 11 px at 1080p, the bible's floor")
 	local lr, lg, lb = plate.levelText:GetTextColor()
-	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("textEmphasis")), "the level reads white, as the mockup's 38, not in the quest difficulty colour")
-	assert(not plate.healthText:IsShown(), "no health text by default: the mockup's plate shows none")
+	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("giltLit")), "the level reads in lit gilt, as the mock-up's 6")
+	assert(not plate.healthText:IsShown(), "no health text by default: the mock-up's plate shows none")
 	assert(plate.castBar.opts.height == 6, "the cast bar is 6 units tall")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

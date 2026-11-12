@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 27
+Store.DB_VERSION = 28
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -641,6 +641,50 @@ Store.migrations[27] = function(data)
 		local size = type(appearance) == "table" and appearance.uiScale
 		if type(size) == "number" and appearance.uiScaleAuto == nil and math.abs(size - OLD_DEFAULT_SIZE) >= 1e-6 then
 			appearance.uiScaleAuto = false
+		end
+	end
+end
+
+local PLATE_V20 = {
+	name = { size = 12 },
+	level = { show = false, size = 16, outline = "OUTLINE" },
+	healthText = { size = 9 },
+	cast = { textSize = 10 },
+	debuffs = { size = 26, growthX = "RIGHT", showTime = true, textSize = 12 },
+}
+
+Store.migrations[28] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local plates = type(profile) == "table" and profile.Nameplates
+		for group, old in pairs(type(plates) == "table" and PLATE_V20 or {}) do
+			local section = plates[group]
+			if type(section) == "table" then
+				for key, value in pairs(old) do
+					if section[key] == value then
+						section[key] = nil
+					end
+				end
+			end
+		end
+		local target = type(plates) == "table" and type(plates.target) == "table" and plates.target
+		local color = target and target.color
+		local r, g, b = ns.Tokens.Color("gilt")
+		if type(color) == "table" and color.r == r and color.g == g and color.b == b then
+			target.color = nil
+		end
+	end
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["nameplates.plate"]
+		if type(entry) == "table" then
+			if entry.width == 151.56 then
+				entry.width = nil
+			end
+			if entry.height == 13.78 then
+				entry.height = nil
+			end
+			if next(entry) == nil then
+				layout["nameplates.plate"] = nil
+			end
 		end
 	end
 end

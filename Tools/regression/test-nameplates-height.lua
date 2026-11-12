@@ -1,14 +1,15 @@
--- test-nameplates-height.lua: the owner's picture (acceptance 1, correction 2) sets the plate, not the target sigil.
--- A non-target fill is 264 by 24 physical pixels on the 3456 by 2234 panel, inside a two-physical-pixel border,
--- so the outer health rect is 268 by 28. The border stays two physical pixels on every screen of the nine-screen
--- matrix. The old rule that a plate match the sigil's health height is reversed by the picture.
+-- test-nameplates-height.lua: the KSTY-44 bible sets the plate. At 1920x1080 and the shipped Interface size the
+-- fill is the mock-up's 132 by 10 physical pixels, inside a one-pixel black edge and one more pixel of 45 percent
+-- black, so the outer rect is 136 by 14. The edge stays one plus one physical pixels on every screen of the
+-- nine-screen matrix. The bible's edge replaces the owner's picture's two-pixel border for plates (LEE-20's ruling
+-- still holds for layout; the bible decides the bar's look, Lee, 2026-11-12).
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 local SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
 	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 }
-local REFERENCE = { width = 3456, height = 2234, uiScale = 768 / 1080, size = "default" }
+local REFERENCE = { width = 1920, height = 1080, uiScale = 768 / 1080, size = "default" }
 
 local function pixels(K, bar, units)
 	return units / (K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar))
@@ -16,7 +17,8 @@ end
 
 local function borderPixels(K, bar)
 	local _, _, _, x = bar.keyline:GetPoint(1)
-	return pixels(K, bar, -x)
+	local _, _, _, hx = bar.halo:GetPoint(1)
+	return pixels(K, bar, -x), pixels(K, bar, -hx)
 end
 
 do
@@ -24,11 +26,11 @@ do
 	N.Add(env, "nameplate1", { name = "Shadowgale Poacher", reaction = 2, health = 100, maxHealth = 100 })
 	local bar = ns.Plates.Get("nameplate1").health
 	local width, height = pixels(K, bar, env.Look(bar:GetWidth())), pixels(K, bar, env.Look(bar:GetHeight()))
-	local border = borderPixels(K, bar)
-	assert(math.abs(width - 264) < 0.01, "the fill is 264 physical pixels wide, got " .. tostring(width))
-	assert(math.abs(height - 24) < 0.01, "the fill is 24 physical pixels tall, got " .. tostring(height))
-	assert(math.abs(border - 2) < 0.01, "the border is two physical pixels, got " .. tostring(border))
-	assert(math.abs(width + border * 2 - 268) < 0.01 and math.abs(height + border * 2 - 28) < 0.01, "the outer rect is 268 by 28")
+	local edge, halo = borderPixels(K, bar)
+	assert(math.abs(width - 132) < 0.01, "the fill is 132 physical pixels wide, got " .. tostring(width))
+	assert(math.abs(height - 10) < 0.01, "the fill is 10 physical pixels tall, got " .. tostring(height))
+	assert(math.abs(edge - 1) < 0.01 and math.abs(halo - 2) < 0.01, "a one-pixel black edge and one more of 45 percent black, got " .. tostring(edge) .. " and " .. tostring(halo))
+	assert(math.abs(width + halo * 2 - 136) < 0.01 and math.abs(height + halo * 2 - 14) < 0.01, "the outer rect is 136 by 14")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -42,10 +44,9 @@ for _, screen in ipairs(SCREENS) do
 		})
 		N.Add(env, "nameplate1", { reaction = 2 })
 		local bar = ns.Plates.Get("nameplate1").health
-		local border = borderPixels(K, bar)
+		local edge, halo = borderPixels(K, bar)
 		local where = string.format("%dx%d ui %s size %s", screen[1], screen[2], tostring(setup.uiScale), tostring(setup.size))
-		assert(math.abs(border - 2) < 0.01, "the border stays two physical pixels at " .. where .. ", got " .. tostring(border))
-		assert(math.abs(border - math.floor(border + 0.5)) < 0.01, "the border is a whole number of physical pixels at " .. where)
+		assert(math.abs(edge - 1) < 0.01 and math.abs(halo - 2) < 0.01, "the edge stays one plus one physical pixels at " .. where .. ", got " .. tostring(edge) .. " and " .. tostring(halo))
 		assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
 	end
 end

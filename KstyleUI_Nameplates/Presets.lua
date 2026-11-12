@@ -20,9 +20,8 @@ Presets.LIST = {
 Presets.VALUES = {
 	lumen = {},
 	compact = {
-		["name.size"] = 12, ["level.size"] = 14, ["healthText.show"] = false,
-		["cast.textSize"] = 9,
-		["debuffs.size"] = 22, ["debuffs.textSize"] = 11,
+		["name.size"] = 13, ["healthText.show"] = false,
+		["debuffs.size"] = 24,
 		["target.dimOthers"] = 0.7, shrinkDistant = true, ["friendly.nameOnly"] = true,
 	},
 	tank = {
