@@ -42,7 +42,7 @@ class ReleaseChangelogTests(unittest.TestCase):
     def test_changelog_ends_with_how_to_install(self):
         text = CHANGELOG.read_text(encoding="utf-8")
         self.assertIn("\n## How to install\n", text)
-        self.assertIn("docs/icons.md", text)
+        self.assertIn("https://github.com/korallis/KstyleUI/blob/main/docs/icons.md", text)
 
 
 if __name__ == "__main__":

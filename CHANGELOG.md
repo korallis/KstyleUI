@@ -23,10 +23,10 @@ KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, 
 
 ### Changed
 
-- Layouts follow one reference picture: a story and chat column on the left, your hands at the centre, the map, buffs, bars and readout on the right. DPS, Tank and Healer layouts do not overlap at 16:9, 16:10 or 21:9, and everything sits on whole screen pixels at every size.
+- Layouts follow one reference picture: chat and your party on the left, your hands at the centre, and the map, buffs, bars, readout and story card on the right. DPS, Tank and Healer layouts do not overlap at 16:9, 16:10 or 21:9, and everything sits on whole screen pixels at every size.
 - The minimap is a square map inside a thin rim, with its controls shown while the pointer is over it. Buffs and debuffs are plain icon rows beside it.
 - Unit frames, cast bars, the experience bar, nameplates and the chat card follow the picture's sizes, ramps and edges. Nameplates are flat bars with tracked capital names, and they are larger when you pull.
-- Section captions and names use letter-spaced capitals; numbers use oldstyle figures. Under Folio, tooltip titles, chat and the boss cast names follow the type set.
+- Section captions and names use letter-spaced capitals. Under Folio, tooltip titles, chat and the boss cast names follow the type set.
 - Player-facing German wording for the action bar, meter, minimap and font options was polished.
 
 ### Fixed
@@ -41,4 +41,4 @@ KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, 
 ## How to install
 
 1. Download the addon zip (`KstyleUI-v0.0.5-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
-2. Optional: the icon pack `KstyleUI-Icons-0.0.5.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [docs/icons.md](docs/icons.md).
+2. Optional: the icon pack `KstyleUI-Icons-0.0.5.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
