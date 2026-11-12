@@ -1,4 +1,4 @@
--- Calm.lua: combat calm: in combat the idle lines rest at 30%, the readout card at a legible 65%, the cards you read (chat, map) dim only to 75% and the story card (tracker, quest card, guide) to 90%, until the pointer wakes them; they return a few seconds after; alpha only, through Layout for its own elements.
+-- Calm.lua: combat calm: in combat the idle lines rest at 30%, the readout card at a legible 65%, the map dims only to 75% and the story card (tracker, quest card, guide) to 90%, until the pointer wakes them; they return a few seconds after; alpha only, through Layout for its own elements. The chat card stays solid: its lines fade by the client's own chat fading.
 local _, ns = ...
 
 local Layout = ns.Layout
@@ -12,7 +12,7 @@ Calm.FLOOR = 0.65
 Calm.STORY = 0.9
 Calm.IDLE = { "databars.xp", "databars.rep", "databars.honor" }
 Calm.READOUT = { "databars.strip", "databars.micro", "databars.bags" }
-Calm.READ = { "chat.main", "minimap.main" }
+Calm.READ = { "minimap.main" }
 Calm.CARDS = {}
 Calm.SURFACES = { "ObjectiveTrackerFrame", "RXPFrame", "KstyleUI_QuestCard" }
 

@@ -114,10 +114,10 @@ do
 	end
 	assert(find(combat, "BLOODTALON MATRIARCH"), "the boss is the target")
 	assert(find(combat, "TERRIFYING SCREECH"), "and its cast shows in capitals")
-	for _, text in ipairs({ "GENERAL", "RIVERGLADES" }) do
-		local item = assert(find(combat, text), text .. " draws in combat")
-		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))
-	end
+	local map = assert(find(combat, "RIVERGLADES"), "RIVERGLADES draws in combat")
+	assert(near(map.alpha, 0.75), "the map is read mid-pull and dims only to 75% in combat, got " .. tostring(map.alpha))
+	local tab = assert(find(combat, "GENERAL"), "GENERAL draws in combat")
+	assert(near(tab.alpha, 1), "the chat card keeps its material solid in combat (KSTY-50), got " .. tostring(tab.alpha))
 	-- Round 5 (Muse 6e): the story card, objective lines over bright scenery, rests at 90%, above the chat card.
 	for _, text in ipairs({ "QUESTS", "6-10 DUROTAR" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")

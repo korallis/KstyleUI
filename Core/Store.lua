@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 22
+Store.DB_VERSION = 23
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -581,6 +581,15 @@ Store.migrations[22] = function(data)
 					text.outline = "world"
 				end
 			end
+		end
+	end
+end
+
+Store.migrations[23] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local chat = type(profile) == "table" and profile.Chat
+		if type(chat) == "table" and chat.tabStyle == "plain" then
+			chat.tabStyle = "underline"
 		end
 	end
 end
