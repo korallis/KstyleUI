@@ -402,7 +402,7 @@ function Layouts.Get(name)
 	end
 	local out = {}
 	for key, position in pairs(layout) do
-		out[key] = copy(position)
+		out[key] = { anchor = position.anchor, x = position.x, y = position.y }
 	end
 	return out
 end
@@ -694,12 +694,13 @@ local function Apart(a, b)
 	return true
 end
 
-function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled)
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions)
 	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
 		return false
 	end
+	local floor, max, min = math.floor, math.max, math.min
 	local rootHeight = 1080 / user
-	local layout = Layouts.Get(name, rootHeight)
+	local layout = positions or Layouts.Get(name, rootHeight)
 	if not layout then
 		return false
 	end
@@ -722,19 +723,20 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled)
 			if width <= 0 or height < STORY_FLOOR and position.key or height <= 0 then
 				return false
 			end
-			local w = math.max(1, math.floor(width * pixelScale + 0.5))
-			local h = math.max(1, math.floor(height * pixelScale + 0.5))
+			local w = max(1, floor(width * pixelScale + 0.5))
+			local h = max(1, floor(height * pixelScale + 0.5))
 			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
-			local left = math.floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
-			local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
+			local left = floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
+			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
 			local right, top = left + w, bottom + h
 			if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then
 				return false
 			end
-			for _, rect in ipairs(rects) do
-				if Apart(key, rect.key) and left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top then
+			for index = 1, #rects do
+				local rect = rects[index]
+				if left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top and Apart(key, rect.key) then
 					local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
-					if not dockBoundary or math.min(top, rect[4]) - math.max(bottom, rect[2]) > 1 then
+					if not dockBoundary or min(top, rect[4]) - max(bottom, rect[2]) > 1 then
 						return false
 					end
 				end
@@ -763,7 +765,8 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale
 	end
-	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled) then
+	local positions = Layouts.Get(preset)
+	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
 		return high
 	end
@@ -779,7 +782,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 		if candidate == high then
 			break
 		end
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions) then
 			low = candidate
 			break
 		end
@@ -787,7 +790,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	end
 	for _ = 1, 32 do
 		local candidate = (low + high) / 2
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions) then
 			low = candidate
 		else
 			high = candidate

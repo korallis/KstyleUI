@@ -80,7 +80,7 @@ local function PhysicalFit(name, width, height, user, enabled)
 		for j = i + 1, #keys do
 			local other = keys[j]
 			local s = rects[other]
-			if apart(key, other) and overlap(r, s) then
+			if overlap(r, s) and apart(key, other) then
 				local pair = { [key] = true, [other] = true }
 				local sharedDockEdge = pair["databars.micro"] and pair["databars.bags"]
 				if not sharedDockEdge or math.min(r[4], s[4]) - math.max(r[2], s[2]) > 1 then

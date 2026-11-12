@@ -978,6 +978,7 @@ local READERS = setmetatable({}, { __index = function(t, key)
 end })
 
 -- Any other key reads as nil, as on a real frame.
+local WRAPPERS = {}
 ObjectMeta.__index = function(object, key)
 	if not METHODS[key] then
 		return nil
@@ -985,8 +986,12 @@ ObjectMeta.__index = function(object, key)
 	if object._env and object._env._quiet then
 		return quietMethod(key)
 	end
-	local impl = Object[key] or genericMethod(key)
-	return function(self, ...)
+	local wrapper = WRAPPERS[key]
+	if wrapper then
+		return wrapper
+	end
+	wrapper = function(self, ...)
+		local impl = Object[key] or genericMethod(key)
 		if self._denied == true and key ~= "CanBeAccessedInContext" then
 			error("Attempt to access a restricted object with " .. key, 2)
 		end
@@ -1003,6 +1008,8 @@ ObjectMeta.__index = function(object, key)
 		end
 		return impl(self, ...)
 	end
+	WRAPPERS[key] = wrapper
+	return wrapper
 end
 
 -- Environment -----------------------------------------------------------------------------------

@@ -153,11 +153,11 @@ end
 -- out at 1.60.1: one row of every tracked item (one column when its Orientation is Vertical; bars always stack in
 -- one column), hidden ones keeping their slot, at least two; each item
 -- 40 by 40 (bars 220 by 30, their width times BarWidthScale%, stored as percent - 50) scaled by IconSize% (stored as
--- (percent - 50) / 10), pitched by IconPadding less 4 (bars 2); k is root units to UIParent units, and the anchor is
+-- (percent - 50) / 10), pitched by IconPadding less 4 (bars 2), scaled by IconSize like the items (the grid offsets sit in each scaled item's space); k is root units to UIParent units, and the anchor is
 -- the entry's point on UIParent's bottom left.
 function F.ViewerRect(entry, count, k, bars)
 	local scale = (F.Setting(entry, F.ICON_SIZE) * 10 + 50) / 100
-	local pad = F.Setting(entry, F.ICON_PADDING) - (bars and 2 or 4)
+	local pad = (F.Setting(entry, F.ICON_PADDING) - (bars and 2 or 4)) * scale
 	local n = math.max(2, count)
 	local w, h
 	if bars then
