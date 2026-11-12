@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 23
+Store.DB_VERSION = 26
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -590,6 +590,45 @@ Store.migrations[23] = function(data)
 		local chat = type(profile) == "table" and profile.Chat
 		if type(chat) == "table" and chat.tabStyle == "plain" then
 			chat.tabStyle = "underline"
+		end
+	end
+end
+
+local TRAY_GRID_V20 = {
+	bar1 = { size = 36.7, spacing = 4.6 },
+	bar2 = { size = 36.7, spacing = 4.6 },
+	pet = { rows = 2 },
+	stance = { rows = 2 },
+}
+
+Store.migrations[26] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local moves = layouts and type(layouts.TrayMoves) == "function"
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles) == "table" and type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local old = moves and (layouts.TrayMoves(section.preset or "DPS") or layouts.TrayMoves("DPS")) or {}
+		for key in pairs(type(layout) == "table" and old or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				railEntry(entry, key, nil, old)
+				if next(entry) == nil then
+					layout[key] = nil
+				end
+			end
+		end
+	end
+	for _, profile in pairs(type(data.profiles) == "table" and data.profiles or {}) do
+		local bars = type(profile) == "table" and profile.ActionBars
+		for key, fields in pairs(type(bars) == "table" and TRAY_GRID_V20 or {}) do
+			local bar = bars[key]
+			if type(bar) == "table" then
+				for field, old in pairs(fields) do
+					if near(bar[field], old) then
+						bar[field] = nil
+					end
+				end
+			end
 		end
 	end
 end

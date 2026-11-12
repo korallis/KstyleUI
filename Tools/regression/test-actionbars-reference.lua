@@ -35,10 +35,11 @@ do
 	end
 	for _, key in ipairs({ "bar1", "bar2" }) do
 		local cfg = ns.Config(key)
-		assert(W.Near(cfg.size, 36.7) and W.Near(cfg.spacing, 4.6), key .. " uses the measured 36.7-unit tiles and 41.3-unit pitch")
+		local grid = K.Setup.Layouts.Grid("actionbars." .. key)
+		assert(W.Near(cfg.size, 38 * 19 / 16) and W.Near(cfg.spacing, 3 * 19 / 16) and W.Near(cfg.size, grid.size), key .. " uses the KSTY-44 tray's tiles: 38 px at a 41 px pitch at 1080p")
 		local bar = ns.bars[key]
 		local x = select(4, bar.buttons[12]:GetPoint())
-		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * 41.3)), "the twelfth tile does not accumulate individually rounded gaps")
+		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * (grid.size + grid.spacing))), "the twelfth tile does not accumulate individually rounded gaps")
 		assert(W.Near(bar.holder:GetWidth(), x + bar.buttons[12]:GetWidth()), "the holder encloses the final snapped tile")
 	end
 	for _, key in ipairs({ "bar3", "bar4", "bar5", "bar6" }) do
@@ -68,7 +69,7 @@ do
 	local preview = K.Options.Preview("ActionBars")(parent)
 	local last = preview.buttons[12]
 	assert(last:IsShown(), "the measured twelve-tile row fits in the preview's 491 units")
-	assert(W.Near(select(4, last:GetPoint()), K.Widgets.Snap(preview, 11 * 41.3)), "the preview uses the same cumulative-safe pitch as the live bar")
+	assert(W.Near(select(4, last:GetPoint()), K.Widgets.Snap(preview, 11 * (36.7 + K.Options.Read("ActionBars", "bar1").spacing))), "the preview uses the same cumulative-safe pitch as the live bar")
 	check(env, K, preview.buttons[8])
 end
 

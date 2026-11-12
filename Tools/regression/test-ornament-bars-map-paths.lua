@@ -2,28 +2,6 @@
 local D = dofile("Tools/regression/databars_env.lua")
 local M = dofile("Tools/regression/minimap_env.lua")
 
-local counts = { Restyle = 0, Place = 0, Piece = 0, Follow = 0, Swap = 0 }
-local wrapped = {}
-local function Count(handle)
-	local Handle = getmetatable(handle).__index
-	if wrapped[Handle] then return end
-	wrapped[Handle] = true
-	for name in pairs(counts) do
-		local original = Handle[name]
-		Handle[name] = function(...)
-			counts[name] = counts[name] + 1
-			return original(...)
-		end
-	end
-end
-local function Reset()
-	for name in pairs(counts) do counts[name] = 0 end
-end
-local function Total()
-	local n = 0
-	for _, v in pairs(counts) do n = n + v end
-	return n
-end
 -- The stubs fire OnShow only on the frame shown; the game fires it on every frame that becomes visible.
 local function PropagateShow(env)
 	for _, frame in ipairs(env._frames) do
@@ -108,11 +86,11 @@ M.Settle(menv)
 local face = mns.Map.face
 assert(MK.Widgets.Setting("ornaments") == "Full", "the minimap fixture is at Full")
 assert(face.ornament == nil and face.plaqueOrnament == nil, "the minimap card owns no ornament handle at Full")
-local made = 0
-local Ornament = MK.Widgets.Ornament
+local mapMade = 0
+local MapOrnament = MK.Widgets.Ornament
 MK.Widgets.Ornament = function(...)
-	made = made + 1
-	return Ornament(...)
+	mapMade = mapMade + 1
+	return MapOrnament(...)
 end
 M.RunTickers(menv)
 menv.FireEvent("PLAYER_STARTED_MOVING")
@@ -125,7 +103,7 @@ MK.Callbacks.Fire("LayoutChanged", "auras.buffs")
 mns.Map.drawer:Open()
 mns.Map.drawer:Close(true)
 M.Settle(menv)
-MK.Widgets.Ornament = Ornament
-assert(made == 0, "the minimap's paths make no ornament, not " .. made)
+MK.Widgets.Ornament = MapOrnament
+assert(mapMade == 0, "the minimap's paths make no ornament, not " .. mapMade)
 assert(#menv._errors == 0, tostring(menv._errors[1]))
 print("ok bars and map paths")

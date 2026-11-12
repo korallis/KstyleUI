@@ -25,6 +25,7 @@ local partial = layouts.Partial["meters.threat"]
 assert(partial.anchor == "BOTTOMRIGHT" and partial.x == -60 and partial.y == 17, "a partially saved custom position is completed from its old default, not the new anchor")
 local resized = layouts.Resized["meters.threat"]
 assert(resized.anchor == "BOTTOMRIGHT" and resized.x == -17 and resized.y == 17 and resized.width == 310, "a custom size retains its old position")
-assert(layouts.Tank["meters.threat"].x == 357 and layouts.Tank["meters.threat"].width == 200, "the Tank entry is unchanged")
+local tank = layouts.Tank["meters.threat"]
+assert(tank.width == 200 and tank.x == nil and tank.y == nil and tank.anchor == nil, "the Tank entry keeps its size; migration 26 lifts its untouched default position with the tray")
 assert(env.KstyleUIDB.version == K.Store.DB_VERSION and K.ErrorCount() == 0, "the migration finishes without errors")
 print("store threat migration ok")

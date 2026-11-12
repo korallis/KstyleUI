@@ -22,9 +22,9 @@ Lib.ACCENTS = {
 }
 
 Lib.ROLES = {
-	DPS = { "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
-	Tank = { "story", "skins.quests", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed", "groupframes.party" },
-	Healer = { "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed", "groupframes.party" },
+	DPS = { "story", "actionbars.tray", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
+	Tank = { "story", "actionbars.tray", "skins.quests", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed", "groupframes.party" },
+	Healer = { "story", "actionbars.tray", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed", "groupframes.party" },
 }
 
 local CARD_FILE = "CardShape.png"
@@ -102,6 +102,10 @@ local function role(scene, chrome, card)
 	local owner = chrome.owner
 	if owner._name == "RXPFrame" or (owner._parent and owner._parent._name == "RXPFrame") then
 		return "story"
+	end
+	local bars = owner._env._addons and owner._env._addons.KstyleUI_ActionBars
+	if bars and bars.Tray and bars.Tray.card == owner then
+		return "actionbars.tray"
 	end
 	if not scene.elements then
 		return "widget"

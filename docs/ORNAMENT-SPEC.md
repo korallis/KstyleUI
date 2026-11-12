@@ -100,7 +100,7 @@ The stubs do not fire `OnSizeChanged` when anchors resize a frame, so `Scene.Bui
 
 ## Combat lockdown
 
-This is the rule for every ornament whose owner the game may report protected: the action-bar tray on its secure header, and boss cards, the Targeted chip or nameplates when their owner is protected. It comes from the method flags in the 70862 API documentation (`Interface/AddOns/Blizzard_APIDocumentationGenerated/`). A method marked `IsProtectedFunction = true` is blocked in lockdown on a protected object. `ScriptRegion:IsProtected` (`SimpleScriptRegionAPIDocumentation.lua:540`) shows that a region, a texture included, can itself report protected.
+This is the rule for every ornament whose owner the game may report protected: boss cards, the Targeted chip or nameplates when their owner is protected. It comes from the method flags in the 70862 API documentation (`Interface/AddOns/Blizzard_APIDocumentationGenerated/`). A method marked `IsProtectedFunction = true` is blocked in lockdown on a protected object. `ScriptRegion:IsProtected` (`SimpleScriptRegionAPIDocumentation.lua:540`) shows that a region, a texture included, can itself report protected.
 
 | In lockdown, on a texture of a protected owner | Methods | Source |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ This is the rule for every ornament whose owner the game may report protected: t
 | Blocked: `IsProtectedFunction` | `SetScale` on a region | `SimpleRegionAPIDocumentation.lua:179` |
 | Blocked on the owner frame itself | `Show`, `Hide`, `SetShown`, `SetFrameLevel` | `SimpleFrameAPIDocumentation.lua:1539`, `:687`, `:1484`, `:1281` |
 
-So in lockdown an ornament on a protected owner **may only hide** pieces. `Handle:Yield(frame)` hides every placed piece that comes within the clearance of `frame` (4 root units or 3 physical pixels), or every piece when called without a frame. It reads edges and calls nothing but `Hide`, and an unknown or secret edge hides the piece. The ornament never anchors, sizes, creates a host frame, levels or reparents in lockdown. It does not show a piece again either, though the API allows it, because the piece's position may be stale. The full restyle waits in `Combat.Queue` for `PLAYER_REGEN_ENABLED`. A consumer calls `Yield` when an obstacle appears, or its pair breaks, while `Widgets.MayMove(owner)` is false. `test-ornament-tray-paths.lua` makes the anchoring and sizing methods on the tray's textures, and the header's own frame methods, raise the game's `ADDON_ACTION_BLOCKED` in lockdown, then enters a vehicle in combat.
+So in lockdown an ornament on a protected owner **may only hide** pieces. `Handle:Yield(frame)` hides every placed piece that comes within the clearance of `frame` (4 root units or 3 physical pixels), or every piece when called without a frame. It reads edges and calls nothing but `Hide`, and an unknown or secret edge hides the piece. The ornament never anchors, sizes, creates a host frame, levels or reparents in lockdown. It does not show a piece again either, though the API allows it, because the piece's position may be stale. The full restyle waits in `Combat.Queue` for `PLAYER_REGEN_ENABLED`. A consumer calls `Yield` when an obstacle appears, or its pair breaks, while `Widgets.MayMove(owner)` is false.
 
 ## Restricted regions
 
@@ -140,7 +140,7 @@ Each surface's pull request adds its section here.
 | --- | --- | --- |
 | Setup step and Options control | foundation | shipped |
 | Unit frames and their cast bars | 2 | shipped |
-| Action-bar tray | 3 | shipped |
+| Action-bar tray | 3 | removed (KSTY-49): the Frames tray card replaces it |
 | Nameplates | 4 | shipped |
 | Minimap and data bars | 5 | shipped |
 | Window and card crests | 6 | shipped |
@@ -170,20 +170,7 @@ The level badge and its number are measured as one circle (ruling A). The block 
 
 ### Action-bar tray
 
-| Piece | Handle | Subtle | Full |
-| --- | --- | --- | --- |
-| Tray finials beside bars 1 and 2 | `row` on bar 1's state header, paired with bar 2's header | `Arrow` caps at 0.4 of the pair's height, up to `Arrow32` | `Tray` finials at the pair's height, up to `Tray96` |
-| Keystone below bar 1 | the same handle | nothing | `Keystone6`, or `Keystone12` when bar 1 is 50 px tall or more; drawn when bar 1 is at least 30 px tall |
-
-Only bar 1 owns a handle, and only a bar 1 at least 240 px wide draws a tray. The finials draw when bars 1 and 2 form a pair: both shown, neither set to fade, neither under a mouseover Layout rule, both with the same combat and idle opacity, their left and right edges within one physical pixel, bar 2 directly above bar 1 at bar 1's spacing (one pixel either way), and the pair no taller than three bar heights. Any other arrangement draws no finials. Every other shown bar (bars 3 to 5, the stance bar while it has forms, the pet bar while a pet exists) and the leave-vehicle button while it shows are obstacles: both finials drop when either would come within 4 root units or 3 physical pixels of one, whichever is larger, and the keystone drops when it would meet one. An obstacle's unknown or secret edge drops the finials too. The tray is a row in the shared registry, so a bar's end yields to it; beside the player block, which draws no ornament now (Lee, 2026-11-12), `test-ornament-tray-gap.lua` checks that the tray still draws.
-
-**Combat and secure frames.** Bar 1's header is created from `SecureHandlerStateTemplate`, which inherits `SecureFrameTemplate` and so is protected (`Blizzard_RestrictedAddOnEnvironment/SecureHandlerTemplates.xml:13`, `Blizzard_FrameXML/SecureTemplatesBase.xml:4`). The tray's textures are created on that header (`BACKGROUND` layer); no host frame is created. Every restyle asks `Widgets.MayMove(header)`, and in lockdown the header answers protected, so the restyle is queued through `Combat.Queue` until `PLAYER_REGEN_ENABLED`: in combat nothing creates, sets, shows or anchors a tray texture. When a pet is summoned, a Layout rule shows a bar, or a vehicle shows the leave-vehicle button in combat, the tray hides at once every piece the new obstacle covers (`Handle:Yield`), and hides all its pieces if the pair breaks. Only hiding is allowed in lockdown (see [Combat lockdown](#combat-lockdown)). The tray re-places when combat ends. `test-ornament-tray-paths.lua` proves it.
-
-**Cost.** The tray restyles only when something it reads changes: bar 2's header, bar 1's spacing, whether the pair is enabled, or the list of shown obstacles. A bar's shown state is its setting plus its holder's and header's own `OnShow` and `OnHide`, so a Layout shown rule or a state driver reaches the tray without reading a secret `IsShown`. `Bar:RefreshOrnament` compares them on every pet update, every shown change and every leave-button change, and restyles only on a change; a settings pass (`ApplyAll`, the visual refresh) holds the tray and restyles it once at the end, and releases it even when the pass raises an error; bar 1's size change restyles it through `OnSizeChanged`. Per-event updates (cooldowns, charges, usable, range, procs, state, pet bar updates, `UNIT_FLAGS` on the pet, a target change and the bars' `OnUpdate` scripts) never restyle (`test-ornament-tray-paths.lua`). While bar 1 is hidden the tray is stale and draws on the header's or an ancestor's `OnShow`. Under Lua 5.1 on the Mac a tray restyle that draws both finials and the keystone costs 0.046 ms at Full, 0.030 ms at Subtle and 0.001 ms at Off, and allocates nothing on addon lines (the first figures, 0.045 and 0.026 ms, were taken with a pet out, when only the keystone drew; the cost fixture now fails if the tray draws fewer than three pieces); a pet appearing and leaving costs 0.22 ms at Full against 0.12 ms at Off. `test-perf.lua` holds the pet bar's cooldown update and a pet change in combat to 160 us and 170 us with no allocation on addon lines.
-
-**The data bars** (Captain, 2026-11-11, LEE-165). The finials and the keystone keep 1 physical pixel from every shown `bar` ornament's bar, its border included, which covers the experience, reputation and honour bars. A finial that would come closer takes the next smaller tier, and both drop when none fits; the keystone drops where it would come within 1 px. A bar that shows or hides (a faction watched or cleared) restyles the tray. With Stormwind watched on the DPS preset, the finials take `Tray32` for `Tray40` at 1280x720 and 1366x768, `Tray40` for `Tray64` at 1920x1080, where the keystone, which touched the experience bar, drops, and `Tray64` for `Tray80` at 2560x1440. `test-ornament-tray-databars.lua` loads the action bars and the data bars in one environment, as the game does; the reference scene builds each module in its own, so it cannot show this.
-
-**Recorded limits.** While Layout Mode drags or resizes a bar, the tray follows bar 1 and does not see bar 2 or the obstacles move; it restyles when the move is dropped.
+Removed (KSTY-49, 2026-11-12). The KSTY-44 design bible (section 3.3) allows ornament only at card corners, heading rules, portrait rings and the level diamond, never around a bar, so bar 1 no longer owns a `row` handle and no `Tray` finial or `Keystone` draws. The Frames tray card behind bars 1 and 2 (`KstyleUI_ActionBars/Tray.lua`, the quest card's material and its corner brackets) replaces it at every ornament level.
 
 ### Nameplates
 

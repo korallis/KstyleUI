@@ -298,9 +298,15 @@ end
 
 -- The original owner-window failure must remain a failure before the service applies the cap.
 do
-	local unsafeRaid = PhysicalRects("Healer", 1920, 1080, 1.035953979)
-	assert(unsafeRaid["groupframes.raid"][4] == 1081, "the old edge-only cap puts the live raid one pixel off screen")
-	assert(not Layouts.Fits("Healer", 1920, 1080, 1.035953979), "live placement rejects the old edge-only false positive")
+	local low, high = K.Scale.DEFAULT_USER_SCALE, K.Scale.MAX_USER_SCALE
+	for _ = 1, 60 do
+		local mid = (low + high) / 2
+		if PhysicalRects("Healer", 1920, 1080, mid)["groupframes.raid"][4] > 1080 then high = mid else low = mid end
+	end
+	local edge = high
+	local unsafeRaid = PhysicalRects("Healer", 1920, 1080, edge)
+	assert(unsafeRaid["groupframes.raid"][4] == 1081, "an edge-only cap puts the live raid one pixel off screen")
+	assert(not Layouts.Fits("Healer", 1920, 1080, edge), "live placement rejects the edge-only false positive")
 	local rects = PhysicalRects("DPS", 2383, 1540, 1.5)
 	assert(overlap(rects["chat.main"], rects["unitframes.player"]), "uncapped owner-window chat overlaps the player")
 	assert(not Layouts.Fits("DPS", 2383, 1540, 1.5), "uncapped owner-window defaults do not fit")

@@ -216,7 +216,8 @@ end
 do
 	local _, K, ns = new()
 	local cfg = K.Options.Read("ActionBars", "bar1")
-	assert(cfg.buttons == 12 and cfg.rows == 1 and cfg.size == 36.7 and cfg.spacing == 4.6, "bar 1 is one row of twelve reference tiles")
+	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
+	assert(cfg.buttons == 12 and cfg.rows == 1 and cfg.size == grid.size and cfg.spacing == grid.spacing, "bar 1 is one row of twelve tray tiles")
 	for _, def in ipairs(ns.BARS) do
 		assert(K.Options.Read("ActionBars", def.key).backing == false, def.key .. " has no backing strip by default")
 	end

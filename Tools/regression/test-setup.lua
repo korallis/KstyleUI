@@ -532,7 +532,7 @@ do
 		assert(bars["bar" .. i].enabled == false, "Apply switches bar " .. i .. " off")
 	end
 	assert(bars.bar4.enabled == true and bars.bar5.enabled == true, "Apply switches bars 4 and 5 on, the right rail's columns (LEE-20)")
-	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")
+	assert(bars.pet.rows == 3 and bars.stance.rows == 3, "Apply folds the pet and stance sockets into three rows beside the tray")
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
 	assert(K.Store.Module("DataBars").strip.menus == false, "Apply leaves the menu and the bags out of the readout line (LEE-20)")
