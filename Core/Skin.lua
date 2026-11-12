@@ -665,10 +665,10 @@ local function Text(text, role, colorName)
 end
 
 local function PlayFade(group)
+	group:Stop()
 	if InCombatLockdown() or ns.Motion.ReducedMotion() then
 		return
 	end
-	group:Stop()
 	group:Play()
 end
 
@@ -688,9 +688,13 @@ local function OpenMotion(frame)
 	alpha:SetToAlpha(1)
 	alpha:SetDuration(Tokens.Duration("panelOpen"))
 	alpha:SetSmoothing("OUT")
+	group:SetToFinalAlpha(true)
 	parts.fade = group
 	frame:HookScript("OnShow", function()
 		PlayFade(group)
+	end)
+	frame:HookScript("OnHide", function()
+		group:Stop()
 	end)
 	return group
 end

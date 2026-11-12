@@ -68,9 +68,19 @@ local function BuildMotion(panel)
 	local fadeOut = AlphaGroup(panel, 1, 0, Tokens.Duration("panelClose"), "IN")
 	fadeOut:SetToFinalAlpha(true)
 	fadeOut:SetScript("OnFinished", function()
-		Hidden(panel)
+		if panel.closing then
+			panel.closing = false
+			Hidden(panel)
+		end
 	end)
 	panel.fadeOut = fadeOut
+	panel:HookScript("OnHide", function()
+		panel.closing = false
+		panel.rise:Stop()
+		panel.fadeIn:Stop()
+		panel.fadeOut:Stop()
+		panel:SetAlpha(1)
+	end)
 end
 
 function Panel:SetTitle(text)
@@ -85,6 +95,7 @@ function Panel:SetTitle(text)
 end
 
 function Panel:Open()
+	self.closing = false
 	self.fadeOut:Stop()
 	self:SetAlpha(1)
 	local shown = self:IsShown()
@@ -106,6 +117,7 @@ function Panel:Close()
 	local shown = self:IsShown()
 	if not IsSecret(shown) and shown then
 		if Animated() then
+			self.closing = true
 			self.fadeOut:Stop()
 			self.fadeOut:Play()
 		else
@@ -120,7 +132,8 @@ function Panel:Close()
 end
 
 function Panel:Toggle()
-	if self:IsShown() and not self.fadeOut:IsPlaying() then
+	local shown = self:IsShown()
+	if not IsSecret(shown) and shown and not self.closing then
 		self:Close()
 	else
 		self:Open()

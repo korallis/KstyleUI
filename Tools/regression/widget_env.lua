@@ -61,16 +61,26 @@ function W.Tick(env, dt)
 	end
 end
 
--- FinishGroups(env) ends every animation group still playing that does not loop, and runs its OnFinished, as the
--- client does once its animations have run; it reports whether it ended any.
+-- FinishGroups(env) ends every animation group still playing on a shown frame that does not loop, leaves its end
+-- alpha on the frame when it is set to final alpha, and runs its OnFinished, as the client does once its animations
+-- have run; it reports whether it ended any.
 function W.FinishGroups(env)
 	local finished = false
 	for _, frame in ipairs(env._frames) do
 		for _, group in ipairs(frame._groups or {}) do
 			local looping = group._state.Looping
-			if group._playedAt and not (looping and looping[1] ~= "NONE") then
+			if group._playedAt and frame:IsShown() and not (looping and looping[1] ~= "NONE") then
 				group._playedAt = nil
 				finished = true
+				local final = group._state.ToFinalAlpha
+				if final and final[1] then
+					for _, animation in ipairs(group._anims or {}) do
+						local to = animation._type == "Alpha" and animation._state.ToAlpha
+						if to then
+							frame:SetAlpha(to[1])
+						end
+					end
+				end
 				local onFinished = group:GetScript("OnFinished")
 				if onFinished then
 					onFinished(group, false)

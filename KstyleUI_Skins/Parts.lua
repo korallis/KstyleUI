@@ -466,7 +466,7 @@ local function TitleLeft(title)
 end
 
 local function AlignTitle(cap)
-	if cap.aligned or Widgets.Restricted(cap.holder) then
+	if cap.aligned or Widgets.Restricted(cap.holder) or Widgets.Restricted(cap.frame) or Widgets.Restricted(cap.title) then
 		return
 	end
 	local backdrop, frame = cap.backdrop, cap.frame
@@ -542,9 +542,14 @@ function Parts.TitleCap(frame, title, close)
 	cap.Restyle = RestyleCap
 	caps[title] = cap
 	title:SetJustifyH("LEFT")
-	frame:HookScript("OnShow", function()
+	local function place()
 		PlaceCap(cap)
-	end)
+	end
+	hooksecurefunc(title, "SetText", place)
+	if type(title.SetFormattedText) == "function" then
+		hooksecurefunc(title, "SetFormattedText", place)
+	end
+	frame:HookScript("OnShow", place)
 	RestyleCap(cap)
 	Widgets.Track(cap)
 	return cap
