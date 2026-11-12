@@ -95,9 +95,7 @@ function Bar:ColorByHealth()
 		return
 	end
 	local color = UnitHealthPercent(unit, true, curve)
-	if color and not Widgets.IsSecret(color) then
-		self:SetStatusBarColor(color:GetRGBA())
-	end
+	self:SetStatusBarColor(color:GetRGBA())
 end
 
 function Bar:SetHealthUnit(unit)
@@ -157,7 +155,9 @@ function Bar:SetHealth(value, instant)
 		self:ColorByHealth()
 		return
 	end
-	self.under:SetValue(self.lossValue)
+	if not self.lossAnim:IsPlaying() then
+		self.under:SetValue(self.lossValue)
+	end
 	self.lossValue = value
 	self:SetBarValue(value)
 	self.flash:SetShown(not Motion.ReducedMotion())
@@ -287,10 +287,16 @@ local function Wrap(bar)
 	bar.Hide = function(self)
 		hide(self)
 		self.under:Hide()
+		if self.sparkFrame then
+			self.sparkFrame:Hide()
+		end
 	end
 	bar.SetShown = function(self, shown)
 		setShown(self, shown)
 		self.under:SetShown(shown)
+		if self.sparkFrame and not shown then
+			self.sparkFrame:Hide()
+		end
 	end
 end
 
@@ -331,8 +337,9 @@ local function Flash(bar)
 end
 
 local function Spark(bar)
-	local frame = CreateFrame("Frame", nil, bar)
+	local frame = CreateFrame("Frame", nil, bar:GetParent())
 	frame:SetAllPoints(bar)
+	frame:SetFrameLevel(bar:GetFrameLevel() + 2)
 	frame:Hide()
 	local line = Widgets.Crisp(frame:CreateTexture(nil, "OVERLAY", nil, 2))
 	local glow = frame:CreateTexture(nil, "OVERLAY", nil, 1)

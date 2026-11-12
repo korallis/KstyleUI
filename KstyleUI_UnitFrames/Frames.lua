@@ -171,8 +171,8 @@ local function Poll(holder, elapsed)
 	uf.elapsed = 0
 	local view = uf.views[1]
 	if Active(view) and UnitExists(view.unit) then
-		Unit.Health(view, view.unit)
-		Unit.Power(view, view.unit)
+		Unit.Health(view, view.unit, true)
+		Unit.Power(view, view.unit, true)
 	end
 end
 
