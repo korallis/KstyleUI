@@ -128,7 +128,7 @@ do
 	local r, g, b = K.Tokens.Color("gilt")
 	local _ = env
 	local probe = { profiles = { P = { Nameplates = { target = { color = { r = r, g = g, b = b } } } } }, layouts = {} }
-	K.Store.migrations[21](probe)
+	K.Store.migrations[26](probe)
 	assert(probe.profiles.P.Nameplates.target.color == nil, "a target colour still at the old gilt default follows the bible's lit gilt")
 	assert(K.Store.Data().profiles.Default.Nameplates.target.color.r == 0, "a black target colour is kept")
 end
