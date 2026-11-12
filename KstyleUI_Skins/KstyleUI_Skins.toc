@@ -4,6 +4,10 @@
 ## Notes: The KstyleUI style for Blizzard's windows.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
+## OptionalDeps: RXPGuides
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 

@@ -4,6 +4,9 @@
 ## Notes: Damage and healing numbers.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 

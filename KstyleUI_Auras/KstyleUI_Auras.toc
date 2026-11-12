@@ -4,6 +4,9 @@
 ## Notes: The player's buffs and debuffs.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 

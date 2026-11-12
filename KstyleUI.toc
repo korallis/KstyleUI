@@ -4,6 +4,10 @@
 ## Notes: A complete UI for WoW Forever.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
+## OptionalDeps: LibSharedMedia-3.0
 ## Group: KstyleUI
 ## SavedVariables: KstyleUIDB
 ## IconTexture: Interface\AddOns\KstyleUI\Media\Logo\Logo64

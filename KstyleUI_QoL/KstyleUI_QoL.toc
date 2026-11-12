@@ -4,6 +4,9 @@
 ## Notes: Faster auto loot, auto repair, quest hand-ins, max camera distance and quiet error text.
 ## Author: korallis
 ## Version: @project-version@
+## Category: Interface
+## X-Website: https://github.com/korallis/KstyleUI
+## X-License: All Rights Reserved
 ## Group: KstyleUI
 ## Dependencies: KstyleUI
 
