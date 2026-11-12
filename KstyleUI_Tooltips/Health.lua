@@ -1,4 +1,4 @@
--- Health.lua: GameTooltip's unit health on a KstyleUI status bar docked inside the tooltip's glass, fed by Blizzard's own bar so secret values pass through untouched; the tooltip grows by the bar through its padding.
+-- Health.lua: GameTooltip's unit health on a KstyleUI status bar docked inside the tooltip's card, fed by Blizzard's own bar so secret values pass through untouched, shown on units only; the tooltip grows by the bar through its padding.
 local _, ns = ...
 
 local K = KstyleUI
@@ -17,13 +17,14 @@ Health.GAP = BAR_GAP
 
 local bar, owner, source
 local docked = false
+local unit = false
 
 function Health.Bar()
 	return bar
 end
 
 local function Wanted()
-	return ns.active == true and Settings.Get("healthBar") and source ~= nil and source:IsShown()
+	return ns.active == true and Settings.Get("healthBar") and unit and source ~= nil and source:IsShown()
 end
 
 local function Vertical()
@@ -105,6 +106,11 @@ local function Sync()
 	end
 end
 
+function Health.SetUnit(on)
+	unit = on == true
+	Sync()
+end
+
 function Health.Build(tooltip)
 	if bar then
 		return bar
@@ -133,6 +139,9 @@ function Health.Build(tooltip)
 	hooksecurefunc(blizzard, "SetValue", Mirror)
 	blizzard:HookScript("OnShow", Sync)
 	blizzard:HookScript("OnHide", Sync)
+	tooltip:HookScript("OnTooltipCleared", function()
+		Health.SetUnit(false)
+	end)
 	Health.Restyle()
 	Settings.Log("GameTooltip's health bar is mirrored on a KstyleUI bar")
 	return bar

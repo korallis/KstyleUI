@@ -1,4 +1,4 @@
--- Content.lua: the tooltip data post-call: line colours, the title divider, item quality edges, unit lines, IDs and icons.
+-- Content.lua: the tooltip data post-call: line colours, the heading rule, item quality edges, unit lines, the unit-only health bar, IDs and icons.
 local _, ns = ...
 
 local K = KstyleUI
@@ -98,10 +98,7 @@ local function Spell(tooltip, data)
 	Style.Icon(tooltip, icon, nil, true)
 end
 
-local function Object(tooltip)
-	if tooltip == GameTooltip then
-		Health.SetColor(Units.BarColor(nil))
-	end
+local function Object()
 end
 
 local function Decorate(tooltip, data)
@@ -116,6 +113,9 @@ local function Decorate(tooltip, data)
 		kind = kinds[data.type]
 	end
 	Style.SetTitleRole(tooltip, (kind == Spell or kind == Units.Decorate) and "names" or nil)
+	if tooltip == GameTooltip then
+		Health.SetUnit(kind == Units.Decorate or kind == nil)
+	end
 	if kind then
 		kind(tooltip, data)
 	end

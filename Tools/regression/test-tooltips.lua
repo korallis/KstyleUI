@@ -295,21 +295,18 @@ do
 	assert(relative == tip:GetLeftLine(1), "the rule sits under the header, the title and its caption line, as the mockup draws it")
 	local rpoint2, rrelative2 = glass.divider:GetPoint(2)
 	assert(rpoint2 == "RIGHT" and rrelative2 == glass, "and runs to the panel's right edge")
-	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture("divider"), "the kit's divider texture, which fades at both ends")
-	assert(W.SameColor(glass.divider, ns.Style.Gilt()), "the rule under the header is gilt")
-	local gr, gg, gb = ns.Style.Gilt()
-	local nr, ng, nb = K.Tokens.Color("gilt")
-	assert(Near(gr, nr) and Near(gg, ng) and Near(gb, nb), "with S1's gilt token the rule is S1's gilt")
-	assert(glass.footer:IsShown(), "a durability line gets the faint divider before it")
-	local fpoint, frelative, frelativePoint, fx = glass.footer:GetPoint(1)
-	assert(fpoint == "BOTTOMLEFT" and frelative == tip:GetLeftLine(6) and frelativePoint == "TOPLEFT", "the footer divider sits above the durability line")
-	local padLeft = select(3, tip:GetPadding())
-	assert(Near(10 + padLeft + fx, K.Widgets.Snap(glass, 13)), "it starts 13 units inside the panel's left edge, whatever the icon's column")
-	local rpoint, rrelative, rrelativePoint, rx = glass.footer:GetPoint(2)
-	assert(rpoint == "RIGHT" and rrelative == glass and rrelativePoint == "RIGHT" and Near(rx, -K.Widgets.Snap(glass, 13)), "and ends 13 units short of the right edge, the design's fading divider")
-	assert(W.LastCall(glass.footer, "SetTexture")[1] == K.Tokens.Texture("divider"), "the kit's divider texture, which fades at both ends")
-	assert(W.SameColor(glass.footer, K.Tokens.Color("edgeFaint")), "in the faint edge colour")
-	assert(Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "one border thick")
+	local material = K.Tokens.Material(K.Widgets.Setting("cardMaterial"))
+	assert(material and material.rule, "the default card material carries the quest card's rule")
+	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture(material.rule), "the rule is the quest card's heading rule, which fades to the right")
+	assert(W.SameColor(glass.divider, K.Widgets.Rgba("materialGold", 0.5)), "in the quest card's gold at half strength")
+	assert(glass.footer == nil, "a tooltip has one heading rule and no footer divider (KSTY-44 bible, 4 row 13)")
+	local shown = 0
+	for _, region in ipairs({ glass:GetRegions() }) do
+		if region:IsObjectType("Texture") and region:IsShown() and region == glass.divider then
+			shown = shown + 1
+		end
+	end
+	assert(shown == 1, "one rule shows on the card")
 	local r, g, b = tip:GetLeftLine(3):GetTextColor()
 	local tr, tg, tb = K.Tokens.Color("text")
 	assert(Near(r, tr) and Near(g, tg) and Near(b, tb), "gold lines soften to KstyleUI's body grey")
@@ -329,7 +326,6 @@ do
 
 	ns.Style.ApplyScale(1.2)
 	assert(select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1) and Near(glass.divider:GetHeight(), K.Widgets.Border(glass)), "a rescale keeps the rule under the header, one border thick")
-	assert(glass.footer:IsShown() and select(2, glass.footer:GetPoint(1)) == tip:GetLeftLine(6) and Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "and redraws the footer divider one border thick")
 	ns.Style.ApplyScale(1)
 
 	tip:ClearLines()
@@ -340,12 +336,10 @@ do
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(#env._errors == 0, "secret lines never reach a comparison: " .. tostring(env._errors[1]))
 	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1), "a secret line is skipped; the rule still sits under the header")
-	assert(not glass.footer:IsShown(), "a secret durability line gets no footer divider")
 
 	tip:ClearLines()
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "clearing the tooltip returns the edge to the glass hairline")
 	assert(not glass.divider:IsShown(), "and hides the divider")
-	assert(not glass.footer:IsShown(), "and the footer divider")
 
 	env._items[2589] = { quality = 1 }
 	tip:AddLine("Linen Cloth", 1, 1, 1)
@@ -353,7 +347,6 @@ do
 	T.PostCall(env, tip, { type = Item, id = 2589 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "a common item keeps the glass edge")
 	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip.TextLeft1, "an item without stats has the rule under its title too")
-	assert(not glass.footer:IsShown(), "and shows no footer divider")
 
 	tip:ClearLines()
 	tip:AddLine("Fireball", 1, 1, 1)
@@ -401,7 +394,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Accent: the rule stays gilt whatever the accent, which colours the You target and spell icon rims ---------
+-- Accent: the rule stays gold whatever the accent, which colours the You target and spell icon rims ---------
 
 do
 	local env, K, ns = Enabled()
@@ -412,7 +405,7 @@ do
 	tip:AddLine("Title", 1, 1, 1)
 	tip:AddLine("Line", 1, 1, 1)
 	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 133 })
-	assert(W.SameColor(glass.divider, ns.Style.Gilt()), "a custom accent leaves the gilt rule alone")
+	assert(W.SameColor(glass.divider, K.Widgets.Rgba("materialGold", 0.5)), "a custom accent leaves the gold heading rule alone")
 	local ar, ag, ab = ns.Settings.Accent()
 	assert(Near(ar, 0.2) and Near(ag, 0.4) and Near(ab, 0.6), "and still reaches Settings.Accent for the parts that use it")
 	assert(#env._errors == 0, tostring(env._errors[1]))

@@ -82,9 +82,8 @@ end
 
 local function Sample(frame, spec)
 	local glass = CreateFrame("Frame", nil, frame)
-	glass.chrome = Widgets.Chrome(glass, { shape = "panel", fill = "surface", popup = true })
+	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface", popup = true })
 	glass.divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
-	glass.divider:SetTexture((Tokens.Texture("divider")))
 	glass.spec, glass.rows = spec, {}
 	for i, line in ipairs(spec) do
 		local row = { left = Widgets.FontString(glass, "OVERLAY") }
@@ -183,7 +182,7 @@ local function LayoutSample(glass)
 	divider:SetPoint("TOPLEFT", glass.rows[glass.spec.header or 1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
 	divider:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
 	divider:SetHeight(Widgets.Border(glass))
-	divider:SetVertexColor(Style.Gilt())
+	Style.PaintRule(divider)
 	divider:SetShown(Settings.Get("divider") and shown >= 2)
 	glass.chrome:Restyle()
 end

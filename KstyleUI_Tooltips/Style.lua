@@ -1,8 +1,8 @@
--- Style.lua: the Lumen window card, edge, gilt rule and footer hairline on each restyled tooltip, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
+-- Style.lua: the quest card on each restyled tooltip (its material, edge and the one heading rule), the fade in, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, Widgets, Theme, Skin, Safe = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe
+local Tokens, Widgets, Theme, Skin, Safe, Motion = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe, K.Motion
 local Logic, Settings = ns.Logic, ns.Settings
 local max, min, abs = math.max, math.min, math.abs
 
@@ -20,8 +20,6 @@ Style.NAMES = {
 }
 
 local NO_ICON = { EmbeddedItemTooltip = true }
-local NO_CREST = { EmbeddedItemTooltip = true }
-local CREST_SPAN = 5
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
@@ -34,12 +32,12 @@ end
 local GILT, GILT_FALLBACK = "gilt", "neutral"
 Style.GILT_FALLBACK = GILT_FALLBACK
 local DIVIDER_GAP = 1
+local RULE_ALPHA = 0.5
 local DIVIDER_SUBLEVEL = 7
 local ICON_INSET = 9.5
 local TEXT_MARGIN = 10
 local TEXT_GAP = 11
 local LINE_SPACING = 0.5
-local FOOTER_INSET = 13
 local ICON_LEVEL = 2
 local ICON_CROP = 0.07
 local BORDER_LINES = 2
@@ -160,7 +158,6 @@ local function Reset(tooltip)
 		glass.title, glass.titleRole = nil, nil
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
-		glass.footer:Hide()
 		glass.caption:Hide()
 		HideIcon(tooltip, glass)
 	end
@@ -181,11 +178,49 @@ local function SkinParts(tooltip)
 	end
 end
 
-local function FirstLine(tooltip)
-	local inside = {}
-	inside[#inside + 1] = Style.Line(tooltip, "left", 1)
-	inside[#inside + 1] = Style.Line(tooltip, "right", 1)
-	return inside
+function Style.Measurable(tooltip)
+	if Widgets.Restricted(tooltip) then
+		return false
+	end
+	if type(tooltip.GetAnchorType) ~= "function" then
+		return true
+	end
+	local anchor = tooltip:GetAnchorType()
+	if Widgets.IsSecret(anchor) then
+		return false
+	end
+	return type(anchor) ~= "string" or not anchor:find("^ANCHOR_CURSOR")
+end
+
+local function BuildFade(tooltip)
+	if type(tooltip.CreateAnimationGroup) ~= "function" then
+		Settings.LogOnce("fade", "Frame:CreateAnimationGroup is missing; tooltips show without the fade in")
+		return nil
+	end
+	local group = tooltip:CreateAnimationGroup()
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetFromAlpha(0)
+	alpha:SetToAlpha(1)
+	alpha:SetDuration(Tokens.Duration("hover"))
+	alpha:SetSmoothing("OUT")
+	group:SetToFinalAlpha(true)
+	return group
+end
+
+function Style.Fade(tooltip)
+	local glass = Style.Glass(tooltip)
+	return glass and glass.fade
+end
+
+local function FadeIn(tooltip)
+	local fade = Style.Fade(tooltip)
+	if not fade then
+		return
+	end
+	fade:Stop()
+	if not Motion.ReducedMotion() then
+		fade:Play()
+	end
 end
 
 function Style.Skin(tooltip, name)
@@ -202,55 +237,24 @@ function Style.Skin(tooltip, name)
 	UseParentLevel(glass, tooltip)
 	glass:SetAllPoints(tooltip)
 	local header = type(tooltip.CompareHeader) == "table" and tooltip.CompareHeader or nil
-	glass.chrome = Widgets.Chrome(glass, {
-		shape = "window",
-		fill = "surface",
-		shadow = header == nil,
-		popup = true,
-		ornament = not NO_CREST[name] and "crest" or nil,
-		inside = FirstLine(tooltip),
-		avoid = header and { header } or nil,
-		span = CREST_SPAN,
-	})
+	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface", shadow = header == nil, popup = true })
 	local divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
 	glass.divider = divider
-	local footer = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
-	footer:SetTexture((Tokens.Texture("divider")))
-	footer:Hide()
-	glass.footer = footer
 	glass.caption = Widgets.FontString(glass, "OVERLAY")
 	glass.caption:Hide()
 	glass.iconOwner = not NO_ICON[name]
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
-	if glass.chrome.ornament then
-		local function restyle()
-			glass.chrome:RestyleOrnament()
+	glass.fade = BuildFade(tooltip)
+	tooltip:HookScript("OnShow", FadeIn)
+	tooltip:HookScript("OnHide", function()
+		if glass.fade then
+			glass.fade:Stop()
 		end
-		if header then
-			for _, script in ipairs({ "OnShow", "OnHide", "OnSizeChanged" }) do
-				header:HookScript(script, restyle)
-			end
-		end
-		if type(tooltip.GetAnchorType) == "function" then
-			local crest = glass.chrome.ornament
-			tooltip:HookScript("OnShow", function()
-				local anchor = tooltip:GetAnchorType()
-				local still = not Widgets.IsSecret(anchor) and (type(anchor) ~= "string" or not anchor:find("^ANCHOR_CURSOR"))
-				if crest.enabled ~= still then
-					crest.enabled = still
-					restyle()
-				end
-			end)
-		end
-		local movable = type(tooltip.IsMovable) == "function" and tooltip:IsMovable()
-		if not Widgets.IsSecret(movable) and movable == true then
-			hooksecurefunc(tooltip, "StopMovingOrSizing", restyle)
-		end
-	end
+	end)
 	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
 		if glass.iconOwner and type(tooltip[method]) == "function" then
 			hooksecurefunc(tooltip, method, Repad)
@@ -336,6 +340,17 @@ function Style.Soften(tooltip, from, colors)
 	end
 end
 
+function Style.PaintRule(rule)
+	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
+	if material and material.rule then
+		rule:SetTexture((Tokens.Texture(material.rule)))
+		rule:SetVertexColor(Widgets.Rgba("materialGold", RULE_ALPHA))
+	else
+		rule:SetTexture((Tokens.Texture("ruleFade")))
+		rule:SetVertexColor(Style.Gilt())
+	end
+end
+
 local function PlaceRule(glass, line)
 	local divider = glass.divider
 	glass.ruleLine = line
@@ -343,21 +358,8 @@ local function PlaceRule(glass, line)
 	divider:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
 	divider:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, Tokens.Size("gapMedium")), 0)
 	divider:SetHeight(Widgets.Border(glass))
-	divider:SetTexture((Tokens.Texture("divider")))
-	divider:SetVertexColor(Style.Gilt())
+	Style.PaintRule(divider)
 	divider:Show()
-end
-
-local function PlaceFooter(glass, line)
-	local footer = glass.footer
-	glass.footerLine = line
-	local inset = Widgets.Snap(glass, FOOTER_INSET)
-	footer:ClearAllPoints()
-	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", Widgets.Snap(footer, inset - TEXT_MARGIN - (glass.padded or 0)), Widgets.Snap(footer, DIVIDER_GAP))
-	footer:SetPoint("RIGHT", glass, "RIGHT", -inset, 0)
-	footer:SetHeight(Widgets.Border(glass))
-	footer:SetVertexColor(Widgets.Rgba("edgeFaint"))
-	footer:Show()
 end
 
 local function PlaceDivider(glass, tooltip)
@@ -447,7 +449,10 @@ function Style.Icon(tooltip, fileID, quality, spell)
 	if not (glass and glass.iconOwner) then
 		return
 	end
-	local size = min(Settings.Get("iconSize"), TextHeight(tooltip) or math.huge)
+	local size = Settings.Get("iconSize")
+	if Style.Measurable(tooltip) then
+		size = min(size, TextHeight(tooltip) or math.huge)
+	end
 	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or not Pad(tooltip, glass, Widgets.Snap(glass, ICON_INSET) + size + TEXT_GAP - TEXT_MARGIN) then
 		HideIcon(tooltip, glass)
 		return
@@ -618,15 +623,11 @@ function Style.Lines(tooltip, item)
 			end
 		end
 	end
-	glass.footer:Hide()
 	if not (Settings.Get("divider") and count >= 2) then
 		glass.divider:Hide()
 		return
 	end
 	PlaceDivider(glass, tooltip)
-	if footer and footer > 1 then
-		PlaceFooter(glass, Style.Line(tooltip, "left", footer))
-	end
 end
 
 function Style.FollowsFont(role)
@@ -755,9 +756,6 @@ function Style.ApplyScale(elementScale)
 			glass.chrome:Restyle()
 			if glass.divider:IsShown() and glass.ruleLine then
 				PlaceRule(glass, glass.ruleLine)
-			end
-			if glass.footer:IsShown() and glass.footerLine then
-				PlaceFooter(glass, glass.footerLine)
 			end
 		end
 	end
