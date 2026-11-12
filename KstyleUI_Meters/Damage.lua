@@ -327,9 +327,9 @@ local function ClassIcon(class)
 			ok, found = pcall(atlases.GetAtlasInfo, atlas)
 		end
 		if ok and found then
-			icon = { atlas = atlas }
+			icon = atlas
 		elseif type(CLASS_ICON_TCOORDS) == "table" and type(CLASS_ICON_TCOORDS[class]) == "table" then
-			icon = { coords = CLASS_ICON_TCOORDS[class] }
+			icon = CLASS_ICON_TCOORDS[class]
 			ns.LogOnce("classAtlas", "the class icon atlas is missing; the meter uses the class icon texture")
 		end
 		classIcons[class] = icon
@@ -341,11 +341,10 @@ local function SetClassIcon(list, i, class)
 	local icon = ClassIcon(class)
 	if not icon then
 		list:SetRowIcon(i)
-	elseif icon.atlas then
-		list:SetRowIcon(i, nil, icon.atlas)
+	elseif type(icon) == "string" then
+		list:SetRowIcon(i, nil, icon)
 	else
-		local c = icon.coords
-		list:SetRowIcon(i, CLASS_TEXTURE, nil, c[1], c[2], c[3], c[4])
+		list:SetRowIcon(i, CLASS_TEXTURE, nil, icon[1], icon[2], icon[3], icon[4])
 	end
 end
 

@@ -1124,7 +1124,11 @@ function BarList.New(parent, section, opts)
 		if list.block then
 			switch:SetPoint("TOPRIGHT", list.cap.frame, "TOPRIGHT")
 			switch:SetPoint("BOTTOMRIGHT", list.cap.frame, "BOTTOMRIGHT")
-			switch:SetWidth(BLOCK_SWITCH_REACH)
+			if list.titleHit then
+				switch:SetPoint("LEFT", list.titleHit, "RIGHT")
+			else
+				switch:SetWidth(BLOCK_SWITCH_REACH)
+			end
 			switch:HookScript("OnEnter", function()
 				list.hot = true
 				list:ShowSwitch()

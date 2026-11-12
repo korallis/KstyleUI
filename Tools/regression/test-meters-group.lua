@@ -181,6 +181,20 @@ do
 	Refresh(env)
 end
 
+-- The title switch and the fight switch never share a pixel: the fight switch starts where the title's hit ends.
+do
+	local hit, switch = list.titleHit, list.switch
+	local left
+	for i = 1, switch:GetNumPoints() do
+		local point, to, rel = switch:GetPoint(i)
+		if point == "LEFT" then
+			left = { to, rel }
+		end
+	end
+	assert(left and left[1] == hit and left[2] == "RIGHT", "the fight switch starts at the title's right edge")
+	assert(select(2, hit:GetPoint(1)) == list.title, "the title's hit is the title itself")
+end
+
 -- A click on a member opens that member's spells, with their icons; a click goes back.
 do
 	env._sources["Player-4"] = { combatSpells = { Spell(2, 1600, 160), Spell(1, 1000, 100) }, maxAmount = 1600, totalAmount = 2600 }
@@ -277,6 +291,25 @@ do
 		wheel(raid.panel, 1)
 	end
 	assert(Names() == "Raider1,Raider2,Raider3,Raider4,14. Tester", "scrolling up returns to the top: " .. Names())
+
+	-- The raid shrinks while scrolled to its end: the window clamps to the shorter list.
+	for _ = 1, 20 do
+		wheel(raid.panel, -1)
+	end
+	local full = envR._session.combatSources
+	local short = {}
+	for i = 1, 7 do
+		short[i] = full[i]
+	end
+	short[8] = full[14]
+	envR._session.combatSources = short
+	Refresh(envR)
+	assert(Names() == "Raider4,Raider5,Raider6,Raider7,Tester", "a shorter list ends at its last row: " .. Names())
+	envR._session.combatSources = full
+	for _ = 1, 40 do
+		wheel(raid.panel, 1)
+	end
+	Refresh(envR)
 
 	-- A taller card shows more of the raid.
 	raid.holder:SetHeight(460)
