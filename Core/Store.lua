@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 19
+Store.DB_VERSION = 20
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -520,7 +520,7 @@ local STORY_V18 = {
 	["unitframes.boss"] = { "BOTTOMRIGHT", -530.4, 752 },
 }
 
-Store.migrations[19] = function(data)
+Store.migrations[20] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
