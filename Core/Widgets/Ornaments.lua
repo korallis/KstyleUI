@@ -17,6 +17,51 @@ local function Plain(v)
 	return not W.IsSecret(v) and type(v) == "number" and v > 0
 end
 
+local SCREEN = {}
+
+local function Origin(root)
+	local l, _, t = Edges(root)
+	local scale = root:GetEffectiveScale()
+	if W.IsSecret(l) or W.IsSecret(t) or type(l) ~= "number" or type(t) ~= "number" or not Plain(scale) then return end
+	return l * scale, t * scale
+end
+
+local function Snug(v)
+	return floor(v * 1e6 + 0.5) / 1e6
+end
+
+local function Unread(l, r, t, b)
+	if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return true end
+	return l == false
+end
+
+function Handle:Begin()
+	W.LocalBegin()
+	self.mode = SCREEN
+	if not Unread(Edges(self.target)) then return end
+	local root, l, _, t = W.LocalRect(self.target)
+	if root and not Origin(root) then self.mode, self.localX, self.localY = root, l, t end
+end
+
+function Handle:Edges(region)
+	local mode = self.mode
+	if mode ~= SCREEN and mode ~= nil then
+		local root, l, r, t, b = W.LocalRect(region)
+		local scale = root == mode and region:GetEffectiveScale()
+		if not Plain(scale) then return false, false, false, false end
+		local x, y = self.localX, self.localY
+		return (l - x) / scale, (r - x) / scale, (t - y) / scale, (b - y) / scale
+	end
+	local l, r, t, b = Edges(region)
+	if not Unread(l, r, t, b) then return l, r, t, b end
+	local root, ll, rr, tt, bb = W.LocalRect(region)
+	if not root then return l, r, t, b end
+	local ox, oy = Origin(root)
+	local scale = region:GetEffectiveScale()
+	if not ox or not Plain(scale) then return l, r, t, b end
+	return (ox + ll) / scale, (ox + rr) / scale, (oy + tt) / scale, (oy + bb) / scale
+end
+
 local function Known(v)
 	return not W.IsSecret(v) and type(v) == "number" and v == v and v > -huge and v < huge
 end
@@ -101,7 +146,7 @@ function Handle:Blocked(x, y, w, h)
 		local shown = self.avoidShown or type(frame.IsShown) == "function" and frame:IsShown()
 		if W.IsSecret(shown) then return true end
 		if shown then
-			local l, r, t, b = Edges(frame)
+			local l, r, t, b = self:Edges(frame)
 			local f = W.ScaleFactor(frame)
 			if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then return true end
 			l, r, t, b = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel
@@ -179,7 +224,7 @@ end
 function Handle:Spot(name, point, relative, x, y)
 	local spec = name and ASSETS[name]
 	if not spec then return end
-	local originX, _, originY = Edges(self.target)
+	local originX, _, originY = self:Edges(self.target)
 	if W.IsSecret(originX) or W.IsSecret(originY) or type(originX) ~= "number" or type(originY) ~= "number" then return end
 	local a, b = POINTS[point], POINTS[relative]
 	local left = floor(b[1] * self.width + x - a[1] * spec[1] + 0.5)
@@ -253,7 +298,7 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 		local text = region:GetText()
 		if not W.IsSecret(text) and (text == nil or text == "") then return true end
 	end
-	local l, r, t, b = Edges(region)
+	local l, r, t, b = self:Edges(region)
 	local f = W.ScaleFactor(region)
 	if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return false end
 	if l == nil and r == nil and t == nil and b == nil then return true end
@@ -263,7 +308,7 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 		return true
 	end
 	if ink and not reserved and type(region.GetStringWidth) == "function" then
-		local width = region:GetStringWidth()
+		local width = W.StringWidth(region)
 		if Plain(width) and width < r - l then
 			local justify = type(region.GetJustifyH) == "function" and region:GetJustifyH()
 			if justify == "LEFT" then r = l + width
@@ -305,6 +350,10 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 	local o = Rec(S)
 	o.l, o.r, o.t, o.b, o.clear = (l - outset) * f / pixel, (r + outset) * f / pixel, (t + outset) * f / pixel, (b - outset) * f / pixel, clear
 	o.inkb = inkb and inkb * f / pixel or false
+	if self.mode ~= SCREEN then
+		o.l, o.r, o.t, o.b = Snug(o.l), Snug(o.r), Snug(o.t), Snug(o.b)
+		o.inkb = o.inkb and Snug(o.inkb)
+	end
 	list[#list + 1] = o
 	return true
 end
@@ -333,7 +382,7 @@ local function AddNeighbours(self, S, list, pixel)
 	local near = self.neighbours
 	if type(near) == "function" then near = near() end
 	for _, frame in ipairs(near or EMPTY) do
-		local l, r, t, b = Edges(frame)
+		local l, r, t, b = self:Edges(frame)
 		local f = W.ScaleFactor(frame)
 		local known = not (W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) or W.IsSecret(f))
 			and type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number" and Plain(f)
@@ -374,7 +423,7 @@ function Handle:Obstacles()
 	local card = self.card
 	if card and card.visible then
 		local frame = card.owner
-		local l, r, t, b = Edges(frame)
+		local l, r, t, b = self:Edges(frame)
 		local f = W.ScaleFactor(frame)
 		if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return end
 		if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then return end
@@ -386,7 +435,7 @@ function Handle:Obstacles()
 		Far(S, list, -far, far, t + far, t, true)
 		Far(S, list, -far, far, b, b - far, true)
 	end
-	local clip = not self.unbounded and self.owner
+	local clip = not self.unbounded and self.mode == SCREEN and self.owner
 	while clip do
 		local clips = type(clip.DoesClipChildren) == "function" and clip:DoesClipChildren()
 		if W.IsSecret(clips) then return end
@@ -396,7 +445,7 @@ function Handle:Obstacles()
 		clip = parent or nil
 	end
 	if clip then
-		local l, r, t, b = Edges(clip)
+		local l, r, t, b = self:Edges(clip)
 		local f = W.ScaleFactor(clip)
 		if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then return end
 		l, r, t, b = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel
@@ -535,7 +584,7 @@ end
 
 function Handle:Frame(full)
 	local pixel = Scale.Pixel(1)
-	local left, right, top, bottom = Edges(self.target)
+	local left, right, top, bottom = self:Edges(self.target)
 	if not (Known(left) and Known(top) and Known(right) and Known(bottom)) then return end
 	local base, joined, upper = self.height, nil, bottom
 	local spans = self.spans
@@ -544,7 +593,7 @@ function Handle:Frame(full)
 		local shown = type(span.IsVisible) == "function" and span:IsVisible()
 		if W.IsSecret(shown) then return end
 		if shown then
-			local _, _, _, low = Edges(span)
+			local _, _, _, low = self:Edges(span)
 			if self.swaps and not Known(low) then return end
 			if Known(low) and low < bottom and (top - low) / self.pixel <= base * 4 + 0.5 then
 				upper, bottom, joined = bottom, low - (span.rimOutset or W.Border(span)), span
@@ -603,7 +652,7 @@ function Handle:Frame(full)
 	local ring
 	local tex = self.yoke and self.yoke.used > 0 and self.yoke.textures[1]
 	if tex then
-		local l, r, t, b = Edges(tex)
+		local l, r, t, b = self:Edges(tex)
 		local scale = W.ScaleFactor(tex)
 		if Known(l) and Known(r) and Known(t) and Known(b) and Plain(scale) then
 			ring = S.ring
@@ -614,7 +663,7 @@ function Handle:Frame(full)
 	S.ringOn = ring ~= nil
 	local portraitWest
 	if self.yoke and not ring then
-		local l, r = Edges(self.yoke.target)
+		local l, r = self:Edges(self.yoke.target)
 		local scale = W.ScaleFactor(self.yoke.target)
 		if Known(l) and Known(r) and Plain(scale) then portraitWest = (l + r) / 2 * scale / pixel < x0 + boxW / 2 end
 	end
@@ -632,7 +681,7 @@ function Handle:Frame(full)
 	end
 	if self.swaps and not joined then
 		local span = self.span
-		local _, _, _, low = Edges(span)
+		local _, _, _, low = self:Edges(span)
 		if not Known(low) and self.spanDrop then low = bottom - self.spanDrop end
 		if Known(low) and low < bottom and (top - low) / self.pixel <= base * 4 + 0.5 then
 			local k = Reachable(Grown(y0 - (floor((low - (span.rimOutset or W.Border(span))) * f + 0.5) - rim) + 1, rim), reach)
@@ -740,7 +789,7 @@ function Handle:Frame(full)
 		local yoke = ring and isForge and self.yoke.target
 		local gl, gr, gs
 		if yoke then
-			gl, gr = Edges(yoke)
+			gl, gr = self:Edges(yoke)
 			gs = W.ScaleFactor(yoke)
 		end
 		if yoke and Known(gl) and Known(gr) and Plain(gs) then
@@ -824,7 +873,7 @@ function Handle:Frame(full)
 		local guard = List(S, "guard")
 		for i, o in ipairs(pieces) do guard[i] = o end
 		for _, text in ipairs(self.texts or EMPTY) do
-			local l, r, t, b = Edges(text)
+			local l, r, t, b = self:Edges(text)
 			local sc = W.ScaleFactor(text)
 			if Known(l) and Known(r) and Known(t) and Known(b) and Plain(sc) then
 				local o = Rec(S)
@@ -858,7 +907,7 @@ function Handle:Frame(full)
 		local l, t, r, b
 		if joined then
 			local outset = joined.rimOutset or W.Border(joined)
-			local sl, sr, st, sb = Edges(joined)
+			local sl, sr, st, sb = self:Edges(joined)
 			if Known(sl) and Known(st) and Known(sr) and Known(sb) then
 				l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
 			end
@@ -885,7 +934,7 @@ function Handle:Frame(full)
 		self.textures.reach = reach
 		local idle = joined and self.sets and self.sets[false]
 		if joined then
-			local _, _, _, low = Edges(joined)
+			local _, _, _, low = self:Edges(joined)
 			if Known(low) then self.spanDrop = upper - low end
 		end
 		if idle and idle.reach ~= reach then idle.epoch = nil end
@@ -985,6 +1034,7 @@ local CORNER_SIZES = { 40, 32, 24, 20, 16, 12 }
 function Handle:Corners(full)
 	local block, chrome = self.block, self.chrome
 	if not full or not (chrome and chrome.visible) then return end
+	if block then block:Begin() end
 	local found = block and block:Obstacles() or not block and EMPTY
 	if not found then return end
 	local pixel = Scale.Pixel(1)
@@ -995,7 +1045,7 @@ function Handle:Corners(full)
 		if not o.card then list[#list + 1] = o end
 	end
 	for _, region in ipairs(self.inside or EMPTY) do
-		local l, r, t, b = Edges(region)
+		local l, r, t, b = self:Edges(region)
 		local f = W.ScaleFactor(region)
 		if W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return end
 		if Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) then
@@ -1007,7 +1057,7 @@ function Handle:Corners(full)
 	for _, bar in ipairs(self.bars or EMPTY) do
 		local shown = type(bar.IsVisible) == "function" and bar:IsVisible()
 		if W.IsSecret(shown) then return end
-		local l, r, t, b = Edges(bar)
+		local l, r, t, b = self:Edges(bar)
 		local f = W.ScaleFactor(bar)
 		if shown and Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) then
 			local rim = bar.rimOutset or W.Border(bar)
@@ -1016,7 +1066,7 @@ function Handle:Corners(full)
 			list[#list + 1] = o
 		end
 	end
-	local left, _, top = Edges(self.target)
+	local left, _, top = self:Edges(self.target)
 	if not (Known(left) and Known(top)) then return end
 	left, top = left * self.factor / pixel, top * self.factor / pixel
 	for _, n in ipairs(CORNER_SIZES) do
@@ -1049,15 +1099,15 @@ function Handle:Crest(full)
 	local pixel = Scale.Pixel(1)
 	local height = self.height
 	if self.body then
-		local _, _, top = Edges(self.target)
-		local _, _, _, bottom = Edges(self.body)
+		local _, _, top = self:Edges(self.target)
+		local _, _, _, bottom = self:Edges(self.body)
 		local f = W.ScaleFactor(self.body)
 		if not (Known(top) and Known(bottom) and Plain(f)) then return end
 		height = (top * self.factor - bottom * f) / pixel
 	end
 	if not full or not self.span and self.width * pixel < CREST_WIDTH or height * pixel < CREST_HEIGHT then return end
 	if self.bottom then
-		local _, _, _, bottom = Edges(self.target)
+		local _, _, _, bottom = self:Edges(self.target)
 		local name = Tier("Keystone", self.pixel > 0.8 and 8 or 12)
 		if name and Known(bottom) and bottom * self.factor / Scale.Pixel(1) > ASSETS[name][2] + 1 then
 			self:Piece(name, "TOP", "BOTTOM", 0, 0)
@@ -1066,15 +1116,15 @@ function Handle:Crest(full)
 	end
 	if not self.inside or not next(self.inside) then return end
 	local root = Scale.Root()
-	local left, right, top = Edges(self.target)
-	local _, rootRight, rootTop = Edges(root)
+	local left, right, top = self:Edges(self.target)
+	local _, rootRight, rootTop = self:Edges(root)
 	if not (Known(top) and Known(right) and Plain(rootTop) and Plain(rootRight) and Known(left)) then return end
 	local S = Scratch(self)
 	S.nrec = 0
 	local list = List(S, "crest")
 	for _, region in ipairs(self.inside) do
 		local shown = type(region.IsVisible) ~= "function" or region:IsVisible()
-		local l, r, t, b = Edges(region)
+		local l, r, t, b = self:Edges(region)
 		local f = W.ScaleFactor(region)
 		if W.IsSecret(shown) or W.IsSecret(l) or W.IsSecret(r) or W.IsSecret(t) or W.IsSecret(b) then return end
 		if shown and (l ~= nil or r ~= nil or t ~= nil or b ~= nil) then
@@ -1090,7 +1140,7 @@ function Handle:Crest(full)
 		local owner = card.owner
 		if card ~= self.chrome and card.visible then
 			local shown = owner:IsVisible()
-			local l, r, t, b = Edges(owner)
+			local l, r, t, b = self:Edges(owner)
 			local f = W.ScaleFactor(owner)
 			if not W.IsSecret(shown) and shown and Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) and b * f / pixel - edge > 0.5 then
 				local reach = card.shadowState and ns.Tokens.Size("shadow") * f / pixel or 0
@@ -1116,8 +1166,8 @@ end
 function Handle:Row(full)
 	if not self.keystone or self.width < 240 or not self.pair or self.pairEnabled == false then return end
 	local other = self.pair
-	local left, right, ownTop, bottom = Edges(self.target)
-	local otherLeft, otherRight, top, otherBottom = Edges(other)
+	local left, right, ownTop, bottom = self:Edges(self.target)
+	local otherLeft, otherRight, top, otherBottom = self:Edges(other)
 	if not (Known(left) and Known(right) and Known(bottom) and Known(otherLeft) and Known(otherRight) and Known(top)) then return end
 	local factor, pixel = W.ScaleFactor(other), Scale.Pixel(1)
 	if not Plain(factor) or not Plain(pixel) then return end
@@ -1137,7 +1187,7 @@ function Handle:Row(full)
 		local shown = target and type(target.IsVisible) == "function" and target:IsVisible()
 		if W.IsSecret(shown) then return end
 		if shown then
-			local l, r, t, b = Edges(target)
+			local l, r, t, b = self:Edges(target)
 			local f = W.ScaleFactor(target)
 			if Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) then
 				local rim = target.rimOutset or W.Border(target)
@@ -1159,7 +1209,7 @@ function Handle:Row(full)
 		local finialBottom = finialTop - spec[2]
 		local clearance = max(4 / pixel, 3)
 		for _, blocker in ipairs(self.avoidBars or EMPTY) do
-			local l, r, t, b = Edges(blocker)
+			local l, r, t, b = self:Edges(blocker)
 			local f = W.ScaleFactor(blocker)
 			if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then
 				clear = false
@@ -1261,11 +1311,13 @@ local function Draw(self)
 		for _, texture in ipairs(self.textures) do texture:Hide() end
 		return
 	end
-	if W.Restricted(self.target) then
-		for _, texture in ipairs(self.textures) do texture:Hide() end
-		return
-	end
+	self:Begin()
 	local width, height = self.target:GetWidth(), self.target:GetHeight()
+	if not (Plain(width) and Plain(height)) then
+		local root, l, r, t, b = W.LocalRect(self.target)
+		local scale = root and self.target:GetEffectiveScale()
+		if Plain(scale) then width, height = (r - l) / scale, (t - b) / scale end
+	end
 	local factor = W.ScaleFactor(self.owner)
 	local done = false
 	if Plain(width) and Plain(height) and Plain(factor) then
@@ -1333,7 +1385,7 @@ end
 function Handle:Yield(frame)
 	local l, r, t, b, f
 	if frame then
-		l, r, t, b = Edges(frame)
+		l, r, t, b = self:Edges(frame)
 		f = W.ScaleFactor(frame)
 	end
 	local known = frame and Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)
@@ -1342,7 +1394,7 @@ function Handle:Yield(frame)
 		local texture = self.textures[i]
 		local hide = not known or not Plain(own)
 		if not hide then
-			local tl, tr, tt, tb = Edges(texture)
+			local tl, tr, tt, tb = self:Edges(texture)
 			hide = not (Known(tl) and Known(tr) and Known(tt) and Known(tb))
 				or (tl * own < r * f + gap and l * f < tr * own + gap and tb * own < t * f + gap and b * f < tt * own + gap)
 		end
@@ -1353,7 +1405,7 @@ end
 function Handle:Follow()
 	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or not W.MayMove(self.owner) then return end
 	if not Plain(self.pixel) then self:Restyle() return end
-	local x, _, y = Edges(self.target)
+	local x, _, y = self:Edges(self.target)
 	if W.IsSecret(x) or W.IsSecret(y) or type(x) ~= "number" or type(y) ~= "number" then
 		self.lastX, self.lastY = nil, nil
 		if self.used > 0 then self:Restyle() end

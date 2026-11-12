@@ -109,7 +109,7 @@ end
 local DEFAULTS = { Alpha = 1 }
 
 local Object = {}
-local placed
+local placed, anchoringSecret, rawSize
 
 function Object:GetName() return self._name end
 function Object:GetObjectType() return self._type end
@@ -158,7 +158,12 @@ local function spanned(self, axis)
 	if not (a and b) or a[2] ~= b[2] or type(a[2]) ~= "table" or a[2] == self then
 		return nil
 	end
-	local size = axis == "w" and a[2]:GetWidth() or a[2]:GetHeight()
+	local size
+	if a[2]._points then
+		size = rawSize(a[2], axis)
+	else
+		size = axis == "w" and a[2]:GetWidth() or a[2]:GetHeight()
+	end
 	if type(size) ~= "number" then
 		return nil
 	end
@@ -171,8 +176,21 @@ local function spanned(self, axis)
 	end
 	return size + (a[5] or 0) - (b[5] or 0)
 end
-function Object:GetWidth() return spanned(self, "w") or self._width end
-function Object:GetHeight() return spanned(self, "h") or self._height end
+function rawSize(self, axis)
+	if axis == "w" then
+		return spanned(self, "w") or self._width
+	end
+	return spanned(self, "h") or self._height
+end
+-- A region whose anchoring is secret answers its geometry as secrets (see anchoringSecret below).
+local function veil(self, value)
+	if value ~= nil and anchoringSecret(self) then
+		return newSecret(value)
+	end
+	return value
+end
+function Object:GetWidth() return veil(self, rawSize(self, "w")) end
+function Object:GetHeight() return veil(self, rawSize(self, "h")) end
 function Object:GetSize() return self:GetWidth(), self:GetHeight() end
 
 -- A font string's text metrics. The stub has none, so GetUnboundedStringWidth answers nil and IsTruncated
@@ -201,9 +219,9 @@ function Object:GetUnboundedStringWidth() return measured(self) end
 function Object:GetStringWidth()
 	local width, own = measured(self), self:GetWidth()
 	if width and type(own) == "number" and own > 0 then
-		return math.min(width, own)
+		width = math.min(width, own)
 	end
-	return width
+	return veil(self, width)
 end
 -- A wrapping string with a line cap (SetMaxLines) is truncated when its text needs more lines than the cap,
 -- estimated from its width in whole lines, as the game ends the last line in "...".
@@ -443,6 +461,46 @@ end
 
 function Object:IsAnchoringRestricted() return isRestricted(self) end
 
+-- A region with a secret aspect anchors secretly, and so does every object whose anchors lead to one: a status bar
+-- given a secret value or range (SetValue adds the BarValue aspect, SimpleStatusBarAPIDocumentation.lua:355) and a
+-- font string given secret text (Blizzard_RaidWarning/RaidWarning.lua:39 clears the text "so anchoring stops being
+-- secret"). GetLeft, GetRight, GetTop, GetBottom, GetCenter, GetRect, GetWidth, GetHeight and GetSize then answer
+-- secrets (SecretWhenAnchoringSecret), and IsAnchoringSecret reads true. env.SecretAnchoring(false) turns it off for a
+-- test that compares against the plain answers.
+local function markSecret(self)
+	self._secretAspect = true
+	if self._env then
+		self._env._secretAnchors = true
+	end
+end
+
+local function secretBy(object, seen)
+	if type(object) ~= "table" then
+		return false
+	end
+	if object._secretAspect then
+		return true
+	end
+	if seen[object] then
+		return false
+	end
+	seen[object] = true
+	for _, p in ipairs(object._points or {}) do
+		if secretBy(anchorTarget(object, p[2]), seen) then
+			return true
+		end
+	end
+	return false
+end
+
+function anchoringSecret(object)
+	local env = object._env
+	return env ~= nil and env._secretAnchors == true and env._secretAnchoring ~= false and secretBy(object, {})
+end
+
+function Object:IsAnchoringSecret() return anchoringSecret(self) end
+function Object:HasAnySecretAspect() return self._secretAspect == true end
+
 local function refuse(self, method)
 	if isRestricted(self) then
 		error(self._type .. ":" .. method .. "(): " .. MEASURE .. ": attempted from: " .. self._type .. ":" .. method .. "().", 0)
@@ -490,6 +548,9 @@ end
 function Object:GetRect()
 	refuse(self, "GetRect")
 	if self._rect then
+		if anchoringSecret(self) then
+			return newSecret(self._rect[1]), newSecret(self._rect[2]), newSecret(self._rect[3]), newSecret(self._rect[4])
+		end
 		return unpack(self._rect, 1, 4)
 	end
 	if #self._points > 0 and self._env and self._env._resolveRects and self._env.GetPhysicalScreenSize then
@@ -497,20 +558,20 @@ function Object:GetRect()
 		if not r then
 			return nil
 		end
-		return r.left, r.bottom, r.right - r.left, r.top - r.bottom
+		return veil(self, r.left), veil(self, r.bottom), veil(self, r.right - r.left), veil(self, r.top - r.bottom)
 	end
 	if type(self._width) == "number" and type(self._height) == "number" then
-		return 0, 0, self._width, self._height
+		return veil(self, 0), veil(self, 0), veil(self, self._width), veil(self, self._height)
 	end
 end
-function Object:GetLeft() local r = measure(self, "GetLeft") return r and r.left end
-function Object:GetRight() local r = measure(self, "GetRight") return r and r.right end
-function Object:GetTop() local r = measure(self, "GetTop") return r and r.top end
-function Object:GetBottom() local r = measure(self, "GetBottom") return r and r.bottom end
+function Object:GetLeft() local r = measure(self, "GetLeft") return veil(self, r and r.left) end
+function Object:GetRight() local r = measure(self, "GetRight") return veil(self, r and r.right) end
+function Object:GetTop() local r = measure(self, "GetTop") return veil(self, r and r.top) end
+function Object:GetBottom() local r = measure(self, "GetBottom") return veil(self, r and r.bottom) end
 function Object:GetCenter()
 	local r = measure(self, "GetCenter")
 	if r then
-		return (r.left + r.right) / 2, (r.bottom + r.top) / 2
+		return veil(self, (r.left + r.right) / 2), veil(self, (r.bottom + r.top) / 2)
 	end
 end
 -- AdjustPointsOffset moves every anchor's offsets by dx, dy, as the game does.
@@ -628,6 +689,9 @@ function Object:GetStatusBarTexture() return self._barTexture end
 -- A status bar runs OnValueChanged when SetValue changes its value, and OnMinMaxChanged when SetMinMaxValues changes
 -- its range, as the game does. Other frames only store what they are given.
 function Object:SetValue(value, ...)
+	if secretValues[value] then
+		markSecret(self)
+	end
 	local stored = self._state.Value
 	local changed = not (stored and rawequal(stored[1], value))
 	self._state.Value = pack(value, ...)
@@ -635,6 +699,9 @@ function Object:SetValue(value, ...)
 	if script then script(self, value) end
 end
 function Object:SetMinMaxValues(low, high)
+	if secretValues[low] or secretValues[high] then
+		markSecret(self)
+	end
 	local stored = self._state.MinMaxValues
 	local changed = not (stored and rawequal(stored[1], low) and rawequal(stored[2], high))
 	self._state.MinMaxValues = pack(low, high)
@@ -682,6 +749,11 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 	local field = method:sub(4)
 	Object[method] = function(self, ...)
 		needFont(self, method)
+		for i = 1, select("#", ...) do
+			if secretValues[(select(i, ...))] then
+				markSecret(self)
+			end
+		end
 		self._state[field] = pack(...)
 	end
 end
@@ -872,6 +944,11 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 	local set = quietSetter(method:sub(4))
 	Quiet[method] = function(self, ...)
 		needFont(self, method)
+		for i = 1, select("#", ...) do
+			if secretValues[(select(i, ...))] then
+				markSecret(self)
+			end
+		end
 		set(self, ...)
 	end
 end
@@ -1014,6 +1091,12 @@ function Stubs.NewEnv(opts)
 		return env._combat == true
 	end
 
+	-- SecretAnchoring(false) makes secret aspects stop veiling geometry, for a test that compares with the plain answers.
+	function env.SecretAnchoring(on)
+		env._secretAnchoring = on ~= false
+		env._generation = (env._generation or 0) + 1
+	end
+
 	-- RestrictAnchoring(frame[, false]) restricts or frees a frame's anchoring; see the stub's measurement methods.
 	function env.RestrictAnchoring(frame, restricted)
 		frame._restricted = restricted ~= false
@@ -1136,6 +1219,19 @@ function Stubs.NewEnv(opts)
 	-- Reveal(secret) -> the value a test stored in it. Tests only: addon code never sees this.
 	function env.Reveal(secret)
 		return assert(secretValues[secret], "Reveal: not a secret value")[1]
+	end
+
+	-- Look(...) -> the values with every secret revealed, for a test that reads geometry the game draws but would
+	-- answer the addon as secrets: Look(bar:GetSize()).
+	function env.Look(...)
+		local values = pack(...)
+		for i = 1, values.n do
+			local box = secretValues[values[i]]
+			if box then
+				values[i] = box[1]
+			end
+		end
+		return unpack(values, 1, values.n)
 	end
 
 	-- The player and realm (opts.player, opts.realm), the clock (env._now, read by time()), the error

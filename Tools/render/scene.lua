@@ -981,6 +981,8 @@ end
 -- An ornament sizes its pieces to its target, and the stubs do not fire OnSizeChanged when anchors resize a frame.
 -- So a scene that draws ornaments is built once, each ornament is restyled at the size the renderer solved for its
 -- target, as the game restyles it on OnSizeChanged, and the scene is built again. Off draws none and skips the pass.
+-- A target whose anchoring is secret answers that size as a secret, as the game does, so the ornament gets no size the
+-- game would not give it.
 local function restyleOrnaments(env, opts)
 	local handles = env._ornamentHandles
 	local K = env._addons and env._addons.KstyleUI
@@ -997,11 +999,12 @@ local function restyleOrnaments(env, opts)
 		local _, _, w, h = Scene.RectIn(solver, target)
 		if w and h then
 			local factor = target:GetEffectiveScale() * SCREEN_UNITS / UI_HEIGHT
+			local secret = target.IsAnchoringSecret and target:IsAnchoringSecret()
 			target.GetWidth = function()
-				return w / factor
+				return secret and env.Secret(w / factor) or w / factor
 			end
 			target.GetHeight = function()
-				return h / factor
+				return secret and env.Secret(h / factor) or h / factor
 			end
 			handle:Restyle()
 		end

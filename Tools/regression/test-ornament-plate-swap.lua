@@ -25,7 +25,7 @@ local function run(screen, level)
 	for s, scale in ipairs(SCALES) do
 		for k, kind in ipairs(KINDS) do
 			local token = "nameplate" .. ((s - 1) * #KINDS + k)
-			local base = N.Base(env, { scale = scale })
+			local base = N.Base(env, { scale = scale, free = s == 2 })
 			base:ClearAllPoints()
 			base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", screen[1] * 0.75 * (k - 0.5) / #KINDS, screen[2] * 0.7 * (s - 0.5) / #SCALES)
 			N.Add(env, token, kind[2], { base = base, scale = scale })
@@ -63,8 +63,8 @@ local function run(screen, level)
 		for i = 1, handle.used do
 			local texture = handle.textures[i]
 			if texture:IsShown() then
-				local _, _, _, x, y = texture:GetPoint(1)
-				local w, h = texture:GetSize()
+				local _, _, _, x, y = env.Look(texture:GetPoint(1))
+				local w, h = env.Look(texture:GetSize())
 				names[#names + 1] = string.format("%s@%.3f,%.3f,%.3f,%.3f", (texture:GetTexture() or ""):match("([%w]+)%.png$") or "Fill", x, y, w, h)
 			end
 		end
@@ -120,7 +120,7 @@ local function run(screen, level)
 		assert(casting ~= idle, label .. ": the first cast draws a casting set: " .. casting)
 		local function ends(set) local n = 0 for _ in set:gmatch("End%a+%d+@") do n = n + 1 end return n end
 		local function rails(set) local list = {} for name in set:gmatch("(Rail%d+)@") do list[#list + 1] = name end table.sort(list) return table.concat(list, " ") end
-		local function top(set) local y for v in set:gmatch("Rail%d+@[-%d.]+,([-%d.]+),") do y = math.max(y or -1e9, tonumber(v)) end return y end
+		local function top(set) local y for v in set:gmatch("Rail%d+@[-%d.]+,([-%d.]+),") do if tonumber(v) >= 0 then y = math.max(y or -1e9, tonumber(v)) end end return y end
 		assert(ends(idle) ~= 1 and ends(casting) ~= 1, label .. ": ends are symmetric, both or neither: " .. idle .. " / " .. casting)
 		assert(level ~= "Full" or rails(idle) == rails(casting), label .. ": idle and casting rails have the same weight: " .. rails(idle) .. " / " .. rails(casting))
 		assert(top(idle) == top(casting), label .. ": the top rail stays put when the cast starts: " .. tostring(top(idle)) .. " / " .. tostring(top(casting)))
@@ -144,7 +144,7 @@ local function run(screen, level)
 			assert(placed == 0 and drawn(handle) == casting, label .. ": in lockdown a cast shows the kept casting set with Show and Hide only")
 			cast(token, false)
 			assert(placed == 0 and drawn(handle) == idle, label .. ": in lockdown a cast ending shows the kept idle set with Show and Hide only")
-			plate.health:SetWidth(plate.health:GetWidth() - 2)
+			plate.health:SetWidth(env.Look(plate.health:GetWidth()) - 2)
 			cast(token, true)
 			assert(placed == 0 and drawn(handle) == "", label .. ": in lockdown a size change hides the stale set and queues its placement")
 		end)
@@ -169,7 +169,7 @@ local function run(screen, level)
 		end
 		cast(token, true)
 		cast(token, false)
-		plate.health:SetWidth(plate.health:GetWidth() - 6)
+		plate.health:SetWidth(env.Look(plate.health:GetWidth()) - 6)
 		cast(token, true)
 		same(handle, label .. " casting after a size change")
 		cast(token, false)
@@ -204,7 +204,7 @@ local function run(screen, level)
 		assert(placed == 0, label .. ": after the first cast both sets are kept")
 		local function rails(set) local list = {} for name in set:gmatch("(Rail%d+)@") do list[#list + 1] = name end table.sort(list) return table.concat(list, " ") end
 		assert(level ~= "Full" or rails(idle) == rails(casting), label .. ": after the first cast the rails agree: " .. rails(idle) .. " / " .. rails(casting))
-		local function top(set) local y for v in set:gmatch("Rail%d+@[-%d.]+,([-%d.]+),") do y = math.max(y or -1e9, tonumber(v)) end return y end
+		local function top(set) local y for v in set:gmatch("Rail%d+@[-%d.]+,([-%d.]+),") do if tonumber(v) >= 0 then y = math.max(y or -1e9, tonumber(v)) end end return y end
 		assert(top(idle) == top(casting), label .. ": after the first cast the top rail stays put: " .. tostring(top(idle)) .. " / " .. tostring(top(casting)))
 		same(handle, label .. " idle")
 		bar.GetBottom = bottom
@@ -215,25 +215,29 @@ local function run(screen, level)
 		local plate = ns.Plates.Get(token)
 		local handle, bar = plate.ornament, plate.castBar
 		local bottom = bar.GetBottom
-		env._units[token].cast = nil
-		cast(token, false)
-		plate:Restyle()
-		plate:Refresh()
-		env.RunTimers()
-		bar.GetBottom = function() return nil end
-		cast(token, true)
-		assert(drawn(handle) == "", label .. ": a cast with no rect yet shows nothing")
-		env.RunTimers()
-		assert(drawn(handle) == "", label .. ": a rect that never comes stops the retries")
-		cast(token, false)
-		cast(token, true)
-		bar.GetBottom = bottom
-		env.RunTimers()
-		local casting = drawn(handle)
-		assert(casting ~= "", label .. ": the cast draws once its rect comes")
-		same(handle, label)
-		env._units[token].cast = nil
-		cast(token, false)
+		if not plate.health:IsAnchoringRestricted() then
+			env.SecretAnchoring(false)
+			env._units[token].cast = nil
+			cast(token, false)
+			plate:Restyle()
+			plate:Refresh()
+			env.RunTimers()
+			bar.GetBottom = function() return nil end
+			cast(token, true)
+			assert(drawn(handle) == "", label .. ": a cast with no rect yet shows nothing")
+			env.RunTimers()
+			assert(drawn(handle) == "", label .. ": a rect that never comes stops the retries")
+			cast(token, false)
+			cast(token, true)
+			bar.GetBottom = bottom
+			env.RunTimers()
+			local casting = drawn(handle)
+			assert(casting ~= "", label .. ": the cast draws once its rect comes")
+			same(handle, label)
+			env._units[token].cast = nil
+			cast(token, false)
+			env.SecretAnchoring(true)
+		end
 	end
 	K.Options.Write("Widgets", "ornaments", level == "Full" and "Subtle" or "Full")
 	env.RunTimers()

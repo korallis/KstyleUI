@@ -23,7 +23,7 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	K.Options.Write("Nameplates", "name.show", true)
 	assert(math.abs(withName - withoutName - (ns.Plate.NAME_GAP + ns.Settings.Get("name.size") + K.Tokens.Size("gapSmall") - K.Tokens.Size("gapTiny"))) < 1e-6, "the debuffs start a gap above the raised name, not above the old name position")
 	local extent = ns.Stacking.Extent()
-	assert(extent >= plate.name:GetWidth(), "the stacking footprint covers the cap's overhang")
+	assert(extent >= env.Look(plate.name:GetWidth()), "the stacking footprint covers the cap's overhang")
 	assert(not plate.level:IsShown(), "no level badge by default, in every preset")
 	local source = plate.health.fillSource
 	assert(source and N.SameColor(source[1], source[2], source[3], K.Tokens.Color("plateHostile")), "a caster's ramp is built on plateHostile")
@@ -45,7 +45,7 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	assert(plate.cast:IsVisible(), "the target's secret cast is visible")
 	assert(plate.castBar.caps == nil and plate.castBar.chrome == nil, "the cast bar is square too")
 	assert(not plate.castIcon:IsShown() and not plate.castName:IsShown() and not plate.castTime:IsShown(), "the reference cast is only a thin bar")
-	assert(plate.castBar:GetHeight() == 6, "the cast bar is six root units tall")
+	assert(env.Look(plate.castBar:GetHeight()) == 6, "the cast bar is six root units tall")
 	K.Options.Write("Nameplates", "level.show", true)
 	assert(plate.level:IsShown(), "the level badge remains a setting")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))

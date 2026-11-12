@@ -224,9 +224,10 @@ return {
 	},
 	{
 		-- A pull at Full: forty plates leave and forty arrive, sixteen of them changing rank. Lua 5.1 takes 2350 us
-		-- here (1310 at Off).
+		-- here (1310 at Off). Since plates place their ornaments from their recorded layout (the game will not measure
+		-- a plate), it takes 4140 us at a load of 9.5, about 100 us a plate, so the budget is ten times that.
 		name = "Nameplates forty-plate pull at Full",
-		budget = 23000,
+		budget = 47500,
 		calls = 4,
 		setup = function()
 			local env = Forty()

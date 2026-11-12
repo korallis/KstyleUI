@@ -223,6 +223,8 @@ function ns.NewPlate(parent, sample)
 
 	plate.colorKey = {}
 	Each("Build", plate)
+	Widgets.RecordAll(plate, health, plate.name, plate.healthText, badge, plate.levelText, marker, raid,
+		plate.cast, plate.castBar, plate.castIcon, plate.castName, plate.castTime)
 	Widgets.Track(plate)
 	plate:Restyle()
 	return plate

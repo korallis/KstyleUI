@@ -197,7 +197,7 @@ assert(near(hc[1], cr) and near(hc[2], cg) and near(hc[3], cb), "the health pill
 local mr, mg, mb = ns.Unit.PowerTypeColor("player")
 local pc = player.power.colorRGBA
 assert(near(pc[1], mr) and near(pc[2], mg) and near(pc[3], mb), "the power pill is the power type's colour")
-assert(near(select(2, player.health:GetSize()), 12, 0.6), "the health pill is 12 units tall")
+assert(near(select(2, env.Look(player.health:GetSize())), 12, 0.6), "the health pill is 12 units tall")
 
 -- The caption: the active stance's name, else the specialization's, else nothing.
 env._forms, env._form = { { 2457, "Battle Stance" }, { 71, "Defensive Stance" } }, 1
