@@ -6,7 +6,7 @@ Screen units: the screen is 1080 units tall, x grows right and y grows down from
 
 ## Run
 
-`hud_reference` honors `RENDER_SCREEN=WIDTHxHEIGHT` and `RENDER_LAYOUT=DPS|Tank|Healer`. `RENDER_METER_SECRET=1` draws the damage card in combat, where the game hands every amount over as a secret value (the render reveals them as the engine does).
+`hud_reference` honors `RENDER_SCREEN=WIDTHxHEIGHT` and `RENDER_LAYOUT=DPS|Tank|Healer`. `RENDER_METER_SECRET=1` draws the damage card in combat, where the game hands every amount over as a secret value (the render reveals them as the engine does). `RENDER_COOLDOWN_FALLBACK=1` draws the Cooldowns fallback: every group restyles Blizzard's own viewer, four utility cooldowns stand in for the picture's empty utility row, and the essential and utility viewers stand at Apply's Edit Mode anchors, or in Blizzard's managed bottom stack when Apply left them in their default places (`Hud.NativeViewers`).
 `RENDER_CARD_MATERIAL=Glass|Flat|Slate|ForgedTicks|ForgedBrackets` selects the real
 saved setting before modules build. With these variables unset, the reference
 uses its usual owner-screen state and the shipped material default.

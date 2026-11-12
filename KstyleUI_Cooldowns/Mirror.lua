@@ -1,4 +1,4 @@
--- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects, or Blizzard's viewer restyled in place when the mirror cannot work.
+-- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects, or Blizzard's viewer restyled in place when the mirror cannot work, with Setup asked to place Blizzard's essential and utility viewers on KstyleUI's rows.
 local _, ns = ...
 
 local K = KstyleUI
@@ -36,6 +36,14 @@ local function Live(group)
 	return running and Path.Get(group) == "mirror" and rows[group] ~= nil
 end
 
+local function Native(group)
+	Reskin.Start(group)
+	local editMode = K.Setup and K.Setup.EditMode
+	if COOLDOWN_GROUPS[group] and editMode and editMode.PlaceRows then
+		editMode.PlaceRows()
+	end
+end
+
 local function Fail(group, why)
 	if Path.Fail(group, why) then
 		local row = rows[group]
@@ -44,7 +52,7 @@ local function Fail(group, why)
 		end
 		Viewers.Unfade(group)
 		if Path.Get(group) == "reskin" then
-			Reskin.Start(group)
+			Native(group)
 		end
 	end
 end
@@ -948,7 +956,7 @@ function Mirror.Start()
 			row.content:Show()
 			Viewers.Fade(group)
 		elseif path == "reskin" then
-			Reskin.Start(group)
+			Native(group)
 		end
 	end
 	if mirrored then

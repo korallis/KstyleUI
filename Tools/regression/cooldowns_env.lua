@@ -482,7 +482,9 @@ end
 -- Mode entry Layout > Apply wrote (Tools/regression/editmode_fake.lua), from Blizzard_CooldownViewer at 1.60.1:
 -- RefreshLayout acquires one item per tracked cooldown (at least two) and GridLayoutFrame puts them in one row, or
 -- for bars, or icons with a Vertical Orientation, one column (GetStride is the item count), a vertical icon column
--- growing up when its IconDirection is Right; each item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
+-- growing up when its IconDirection is Right; the essential and utility rows wrap after IconLimit items, each line
+-- under the last (GetStride, CooldownViewer.lua:2002), their items 50 by 50 and 30 by 30 (CooldownViewer.xml:20 and
+-- :89), their IconPadding scaled with them as the grid sets offsets in the item's own units; each other item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
 -- left and a 19-unit bar after a 2-unit gap, the width times BarWidthScale%, stored as percent - 50) scaled by
 -- IconSize%, stored as (percent - 50) / 10; items pitch by
 -- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
@@ -492,6 +494,8 @@ end
 -- { id, icon, name, left, total } per tracked cooldown, active when left is set; format(seconds) is the countdown
 -- text the engine draws through the countdown formatter. The game's own calls are made through the stub's fields so
 -- the forbidden-call checks see only what the module does.
+local ROW_SIZES = { EssentialCooldownViewer = 50, UtilityCooldownViewer = 30 }
+
 function C.Native(env, name, entry, items, format)
 	local viewer = env._viewers[name]
 	local bars = viewer._bars
@@ -504,24 +508,31 @@ function C.Native(env, name, entry, items, format)
 	end
 	local scale = (setting(3) * 10 + 50) / 100
 	local pad = setting(4) - (bars and 2 or 4)
+	if ROW_SIZES[name] then
+		pad = pad * scale
+	end
 	local n = math.max(2, #items)
 	while #viewer._items < n do
 		C.Item(env, viewer, #viewer._items + 1)
 	end
-	local w, h = bars and 220 * (setting(11) + 50) / 100 or 40, bars and 30 or 40
+	local size = ROW_SIZES[name] or 40
+	local w, h = bars and 220 * (setting(11) + 50) / 100 or size, bars and 30 or size
 	local column = bars or setting(0) == 1
 	local leftward = not column and setting(2) == 0
 	local upward = not bars and column and setting(2) == 1
-	local across = n * (column and h or w) * scale + (n - 1) * pad
+	local stride = ROW_SIZES[name] and not column and math.min(n, setting(1) or n) or n
+	local lines = math.ceil(n / stride)
+	local across = stride * (column and h or w) * scale + (stride - 1) * pad
+	local deep = lines * h * scale + (lines - 1) * pad
 	local a = entry.anchorInfo
-	viewer._points, viewer._width, viewer._height = {}, column and w * scale or across, column and across or h * scale
+	viewer._points, viewer._width, viewer._height = {}, column and w * scale or across, column and across or deep
 	viewer._points[1] = { a.point, env.UIParent, a.relativePoint, a.offsetX, a.offsetY, n = 5 }
 	for i, item in ipairs(viewer._items) do
 		local it = items[i]
 		item._scale = scale
 		item._width, item._height = w, h
-		local step = (i - 1) * ((column and h or w) * scale + pad)
-		local x, y = 0, 0
+		local step = ((i - 1) % stride) * ((column and h or w) * scale + pad)
+		local x, y = 0, -math.floor((i - 1) / stride) * (h * scale + pad)
 		if upward then
 			y = -(across - h * scale - step)
 		elseif column then
