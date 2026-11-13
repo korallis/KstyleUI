@@ -336,8 +336,9 @@ do
 		assert(Colored(caption, K.Tokens.Color("capsGold")), "in the picture's muted gold")
 		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(caption:GetParent())), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
 		assert(rawget(f.title.text, "SetPoint") == nil, "the caps role's anchor wrapping stays off RestedXP's own font string")
+		local heading = ns.Parts.HeadingOf(caption)
 		local point, on, onPoint, x = caption:GetPoint(1)
-		assert(point == "LEFT" and on == f.title and onPoint == "LEFT" and x == 5, "the caption starts where RestedXP's plate starts its words, 5 in from the plate's left, however wide the plate was when the skin met it, got " .. tostring(point) .. " " .. tostring(x))
+		assert(heading and heading.gem:IsShown() and point == "LEFT" and on == heading.lane and onPoint == "BOTTOMLEFT" and W.Near(x, K.Widgets.Snap(heading.panel, ns.Parts.CAP_INDENT)), "the caption is the heading system's title (bible 3.2): a gilt diamond, then the title at the card's left padding, got " .. tostring(point) .. " " .. tostring(x))
 	end
 	-- RestedXP sizes the plate and the frame from its own 9-unit title (Targeting.lua 818, 1112). The caps caption is
 	-- wider, so a frame of three targets was narrower than its caption and the caption left the glass: the glass
@@ -531,26 +532,9 @@ do
 	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
 	local cogPoint, cogOn, cogOnPoint, cogX, cogY = splits.title.cog:GetPoint(1)
 	assert(cogPoint == "TOPRIGHT" and cogOn == splits and cogOnPoint == "TOPRIGHT" and cogX == -8 and W.Near(cogY, 5.5), "the cog stands at the right end of the title's row, inside the glass and clear of the gilt tick: RestedXP hangs it off the top left corner (LevelingTracker.lua 1057), got " .. tostring(cogPoint) .. " " .. tostring(cogX) .. " " .. tostring(cogY))
-	local crest = K.Skin.Parts(splits).backdrop.chrome.ornament
-	local listed = {}
-	for _, region in ipairs(crest and crest.inside or {}) do listed[region] = true end
-	assert(listed[splits.title.text] and listed[splits.title.cog], "the level splits' crest keeps clear of its caption and its cog: RestedXP makes the title after the skin dresses the window (LevelingTracker.lua 1017-1067)")
-	splits.title.text:SetSize(80, 12)
-	splits:SetSize(600, 300)
-	crest:Restyle()
-	local shown = {}
-	for i = 1, crest.used do
-		if crest.textures[i]:IsShown() then shown[#shown + 1] = crest.textures[i] end
-	end
-	assert(#shown == 1 and shown[1]:GetTexture():find("ForgedOrnaments\\Crest%d+%.png$"), "a level splits window wide enough for a crest draws one, got " .. #shown)
-	local pixel = K.Scale.Pixel(1)
-	local function edges(region)
-		local f = K.Widgets.ScaleFactor(region)
-		return region:GetLeft() * f / pixel, region:GetRight() * f / pixel, region:GetTop() * f / pixel, region:GetBottom() * f / pixel
-	end
-	local cl, cr, ct, cb = edges(shown[1])
-	local tl, tr, tt, tb = edges(splits.title.text)
-	assert(math.max(tl - cr, cl - tr, cb - tt, tb - ct) >= 1, "the splits crest keeps 1 physical pixel from its caption")
+	assert(K.Skin.Parts(splits).backdrop.chrome.ornament == nil, "the level splits' glass carries no crest: a card's ornament is its corners and its heading (bible 3.3)")
+	local splitsHeading = ns.Parts.HeadingOf(ns.RestedXP.Chrome.Caption(splits.title.text))
+	assert(splitsHeading and splitsHeading.gem:IsShown(), "the level splits' title is a heading: a gilt diamond before the caption (bible 3.2)")
 	rxp.settings.profile.hideSplitsBackground = true
 	rxp.tracker:RenderSplitsBackground()
 	assert(not Glass(K, splits), "the splits' hide-background setting hides the glass")
@@ -589,17 +573,8 @@ do
 	assert(K.Skin.IsSkinned(window.closebutton, "CloseButton"), "its close button is KstyleUI's")
 	assert(K.Skin.IsSkinned(window.guideSteps.scroll.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
 	do
-		local crest = K.Skin.Parts(window.upperFrame).backdrop.chrome.ornament
-		assert(crest and crest.kind == "crest" and crest.body == window.guideStepsFrame, "the v2 guide window's crest sits on its header glass and measures the window down to its steps")
+		assert(K.Skin.Parts(window.upperFrame).backdrop.chrome.ornament == nil, "the v2 guide window's header glass carries no crest (bible 3.3)")
 		assert(K.Skin.Parts(window.guideStepsFrame).backdrop.chrome.ornament == nil, "the steps glass under the header carries no crest of its own")
-		local restyles, restyle = 0, crest.Restyle
-		crest.Restyle = function(self, ...)
-			restyles = restyles + 1
-			return restyle(self, ...)
-		end
-		window.frame:StopMovingOrSizing()
-		assert(restyles >= 1, "dropping RestedXP's outer frame after a drag restyles the crest (UI/V2/Core.lua 1038 stops the outer frame)")
-		crest.Restyle = nil
 	end
 	-- The title is the guide's name heading a card, the same thing the story card's caption is, so it wears the same
 	-- treatment (the Captain's ruling of 2026-11-10; it was RestedXP's text in the accent before): a caps caption in
@@ -952,31 +927,11 @@ do
 		NewCheck(select(2, edit.editBox:GetFont()) == select(2, ns.Style.Font("body")), key .. " edit text follows a text size change while leased, got " .. tostring(select(2, edit.editBox:GetFont())) .. " for " .. tostring(select(2, ns.Style.Font("body"))))
 		K.Options.Write("Skins", "text.size", 1)
 		env.RunTimers()
-		local crest = panel.chrome.ornament
-		assert(crest and crest.kind == "crest" and crest.inside and crest.inside[1] == replacement, key .. " dialog carries a crest that keeps clear of its caption")
-		rxp.fake.trust(function()
-			frame:ClearAllPoints()
-			frame:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
-			frame:SetSize(900, 400)
-		end)()
-		crest:Restyle()
-		local pieces = {}
-		for i = 1, crest.used do
-			if crest.textures[i]:IsShown() then pieces[#pieces + 1] = crest.textures[i] end
-		end
-		assert(#pieces == 1 and pieces[1]:GetTexture():find("ForgedOrnaments\\Crest%d+%.png$") and pieces[1]:IsVisible(), key .. " dialog wide enough for a crest draws one, got " .. #pieces)
-		local restyles, restyle = 0, panel.chrome.RestyleOrnament
-		panel.chrome.RestyleOrnament = function(self, ...)
-			restyles = restyles + 1
-			return restyle(self, ...)
-		end
-		rxp.fake.trust(function() frame:StopMovingOrSizing() end)()
-		assert(restyles == 1, key .. " dropping the dialog after a drag re-checks its crest once, got " .. restyles)
+		assert(panel.chrome.ornament == nil, key .. " dialog's glass carries no crest (bible 3.3)")
+		local heading = ns.Parts.HeadingOf(replacement)
+		assert(heading and heading.gem:IsShown() and heading.panel == panel, key .. " dialog's title is a heading on its glass: a gilt diamond before the caption (bible 3.2)")
 		rxp.fake.close(frame)
-		rxp.fake.trust(function() frame:StopMovingOrSizing() end)()
-		assert(restyles == 1, key .. " a drop while the frame is not RestedXP's dialog leaves the crest alone, got " .. restyles)
-		panel.chrome.RestyleOrnament = nil
-		assert(not pieces[1]:IsVisible(), key .. " crest goes with the glass when RestedXP closes the dialog and AceGUI takes the frame back")
+		assert(not heading.gem:IsVisible(), key .. " heading goes with the glass when RestedXP closes the dialog and AceGUI takes the frame back")
 		assert(not panel:IsShown() and Alpha(frame._pieces[1]) == 1 and Alpha(frame.obj.titlebg) == 1, "closing it gives the shared frame its own look back")
 		local r, g, b = title:GetTextColor()
 		assert(W.Near(r, 1) and W.Near(g, 0.82) and W.Near(b, 0), "and its title keeps its own colour")
@@ -998,10 +953,7 @@ do
 	rxp.fake.open(frame)
 	assert(Alpha(frame._pieces[1]) == 1, "another addon showing the frame sees its own look")
 	do
-		local crest = ns.RestedXP.Chrome.DressPanel(frame).chrome.ornament
-		local seen = false
-		for i = 1, crest.used do seen = seen or crest.textures[i]:IsVisible() end
-		assert(not ns.RestedXP.Chrome.DressPanel(frame):IsShown() and not seen, "and no glass or crest of RestedXP's")
+		assert(not ns.RestedXP.Chrome.DressPanel(frame):IsShown(), "and no glass of RestedXP's")
 	end
 	frame._pieces[1]:SetAlpha(0.5)
 	rxp.fake.close(frame)
@@ -1009,7 +961,8 @@ do
 	local export = frame
 	rxp.comms.OpenBrandedExport("Again", "Still editable", "Content", nil, nil, function() end)
 	assert(env.RESTEDXP_BRANDED_EXPORT == export, "AceGUI reuses the frame released by the export box")
-	NewCheck(ns.RestedXP.Chrome.DressPanel(export):IsShown() and ns.RestedXP.Chrome.DressPanel(export).chrome.ornament.inside[1] == Replacement(export.obj.titletext), "the crest comes back with the glass on RestedXP's reuse, listing the caption it has now")
+	local reused = ns.Parts.HeadingOf(Replacement(export.obj.titletext))
+	NewCheck(ns.RestedXP.Chrome.DressPanel(export):IsShown() and reused and reused.panel == ns.RestedXP.Chrome.DressPanel(export) and reused.gem:IsVisible(), "the heading comes back with the glass on RestedXP's reuse, on the caption it has now")
 	local edit = export.obj.children[1]
 	NewCheck(Proxy(K, edit.editBox, "EditBox") and Proxy(K, edit.editBox, "EditBox"):IsShown(), "a pooled edit widget is redressed on RestedXP reuse")
 	rxp.fake.close(export)

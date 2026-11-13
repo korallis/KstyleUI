@@ -428,10 +428,7 @@ SURFACES[#SURFACES + 1] = {
 	close = function(w) w.fake.close(w.importer.import.frame) end,
 	texts = function(w)
 		if w.skinned then
-			local crest = w.K.Skin.Parts(w.importer.import.frame).backdrop.chrome.ornament
-			local listed = {}
-			for _, region in ipairs(crest and crest.inside or {}) do listed[region] = true end
-			assert(listed[w.importer.import.title] and listed[w.importer.import.closebutton], "the guide importer's crest keeps clear of its caption and close button")
+			assert(w.K.Skin.Parts(w.importer.import.frame).backdrop.chrome.ornament == nil, "the guide importer's glass carries no crest (bible 3.3)")
 		end
 		return { { name = "value", text = w.importer.currentGuides.text } }
 	end,
