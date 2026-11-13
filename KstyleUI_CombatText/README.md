@@ -45,7 +45,7 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 
 | Place | Element | What shows there |
 | --- | --- | --- |
-| Your field | `combattext.player`, a Layout element (160 by 180 units, above your character, resizable) | The damage and healing you take, while `playerPlacement` is `field`, or while it is `frame` and no KstyleUI player frame is running. Numbers start at the field's bottom edge and travel up through it, so the field's height sets how far they travel and its width how far apart they spread. |
+| Your field | `combattext.player`, a Layout element (160 units wide, above your character, resizable; 149 tall by default since the Frames tray lifted the centre stack) | The damage and healing you take, while `playerPlacement` is `field`, or while it is `frame` and no KstyleUI player frame is running. Numbers start at the field's bottom edge and rise at most 48 units (KSTY-44's short rise), or less when the field is too short for that; its width sets how far apart they spread. |
 | Unit frames | The secure buttons inside the `unitframes.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet` and `.boss` elements | Each unit's numbers on its own frame. Boss frames match `boss1` to `boss5` by their `unit` attribute. |
 | Group frames | The secure buttons inside the `groupframes.party` and `groupframes.raid` elements | Each member's numbers on their frame, at `groupSize` and 60% of the travel distance |
 | Nameplates | Blizzard's base plate from `C_NamePlate.GetNamePlateForUnit`, under KstyleUI's plate | Numbers for `nameplate1` to `nameplate40`, while KstyleUI's Nameplates module runs |

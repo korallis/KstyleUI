@@ -215,7 +215,7 @@ Work through the modules in any order. Every module has the same three checks at
 ### Combat Text
 
 - [ ] Log out to the character screen and back in (a `/reload` is not enough), then hit a target dummy: the game's own damage numbers use Source Sans 3.
-- [ ] Take damage: numbers rise through the field above your character, coloured by school; critical hits are larger and gold. Heals show as green `+` numbers; dodges and parries in grey.
+- [ ] Take damage: numbers make a short rise and fade in the field above your character, white for a normal hit; critical hits are gold and 1.6 times larger. Set **Damage colour** to By spell school and hits take their school's colour. Heals show as green `+` numbers; dodges and parries in grey.
 - [ ] With Unit Frames on, numbers rise from the target frame. Set **Your numbers** to the player frame: they move there, and the field's mover disappears from Layout Mode.
 - [ ] In a party with Group Frames, numbers rise from members' frames. With Nameplates, numbers rise from plates if the game sends them. The `combat text` devlog line says how many came from nameplate units.
 - [ ] Defaults: in a group or open world where other players hit your target, only your own hits show over the target (the game's numbers, in KstyleUI's font). KstyleUI draws no numbers on nameplates until **Nameplates** under Where numbers show is turned on, and then it shows every player's hits on the plate.

@@ -230,14 +230,18 @@ do
 	local env, K, ns = enabled()
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
 	local rise = Anim(Shown(ns)[1], "move")
-	assert(rise.offsetX == 0 and rise.offsetY > 0, "rise moves straight up")
+	assert(rise.offsetX == 0 and near(rise.offsetY, 48), "rise moves straight up, a short 48 units (KSTY-44), got " .. tostring(rise.offsetY))
 	assert(near(rise.duration, 1.2), "the default duration is 1.2 seconds")
 	local fade = Anim(Shown(ns)[1], "fade")
 	assert(fade.fromAlpha == 1 and fade.toAlpha == 0 and near(fade.delay + fade.duration, 1.2), "the number fades out by the end")
 
 	K.Layout.Set("combattext.player", "height", 360)
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	assert(Anim(Shown(ns)[2], "move").offsetY > rise.offsetY, "a taller field moves numbers further")
+	assert(near(Anim(Shown(ns)[2], "move").offsetY, 48), "a taller field keeps the short rise")
+	K.Layout.Set("combattext.player", "height", 60)
+	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
+	local low = Anim(Shown(ns)[3], "move").offsetY
+	assert(low > 0 and low < 48, "a field too short for the rise moves numbers only as far as it has room, got " .. tostring(low))
 
 	K.Options.Write("CombatText", "style", "arc")
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)

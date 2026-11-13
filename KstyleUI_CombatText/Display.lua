@@ -13,6 +13,7 @@ local FIELD_LANE = 0.25
 local FIELD_ARC = 0.35
 local FIELD_START = 0.6
 local FIELD_HEADROOM = 1.2
+local FIELD_RISE = 48
 local FRAME_LANE = 1.6
 local FRAME_ARC = 0.7
 local TOP_START = 0.6
@@ -134,7 +135,7 @@ local function FieldGeometry(emitter, cfg)
 	local height = Plain(frame:GetHeight(), 0)
 	local size = cfg.size
 	local x = NextLane(emitter) * width * FIELD_LANE
-	local distance = math.max(0, height - size * (FIELD_START + FIELD_HEADROOM))
+	local distance = math.min(FIELD_RISE, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
 	return "BOTTOM", x, size * FIELD_START, distance, width * FIELD_ARC, 1
 end
 
