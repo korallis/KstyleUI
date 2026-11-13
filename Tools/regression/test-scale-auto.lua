@@ -48,10 +48,9 @@ local WANT = {
 	},
 	orbs = {
 		["5120x1440"] = 18 / 16, ["3440x1440"] = 18 / 16, ["2560x1440"] = 17 / 16, ["3840x1080"] = 14 / 16, ["1920x1080"] = 13 / 16,
-		["3840x2160"] = 26 / 16, ["1280x720"] = 8 / 16, ["1366x768"] = 9 / 16,
+		["3840x2160"] = 26 / 16, ["1280x720"] = 8 / 16, ["1366x768"] = 9 / 16, ["2383x1540"] = 16 / 16, ["3456x2234"] = 24 / 16,
 	},
 }
-local FITS = { ["2383x1540"] = { orbs = false }, ["3456x2234"] = { orbs = false } }
 for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 }, { 2383, 1540 }, { 3456, 2234 }, { 1366, 768 } }) do
 	local env, K = New(screen[1], screen[2])
 	local Scale = K.Scale
@@ -69,10 +68,13 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 		assert(size <= cap + 1e-9, label .. ": the automatic size fits the screen")
 		assert(math.abs(size - Scale.MOCKUP_SIZE) <= step / 2 + 1e-9 or size + step > cap + 1e-9, label .. ": the step nearest the mock-ups' size that fits, got " .. size)
 		assert(near(Scale.Border() * ppu, 1) and near(Scale.Pixel(1) * ppu, 1), label .. ": the border is exactly one physical pixel")
-		local fits = not (FITS[name] and FITS[name][style] == false)
 		local Layouts = K.Setup.Layouts
 		local canvas = Scale.CanvasWidth(screen[1], screen[2])
-		assert(Layouts.Fits("DPS", canvas, screen[2], size, Layouts.Enabled("DPS", profile), Layouts.Positions("DPS", style, Scale.AspectClass(canvas, screen[2])), style) == fits, label .. ": the style's layout fits at its automatic size")
+		for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+			local cap = Layouts.ScaleLimit(canvas, screen[2], preset, Layouts.Enabled(preset, profile), style)
+			local auto = Scale.Auto(screen[2], cap)
+			assert(Layouts.Fits(preset, canvas, screen[2], auto, Layouts.Enabled(preset, profile), Layouts.Positions(preset, style, Scale.AspectClass(canvas, screen[2])), style), label .. " " .. preset .. ": the style's layout fits at its automatic size")
+		end
 		if WANT[style][name] then
 			assert(near(ppu, WANT[style][name]), label .. ": " .. WANT[style][name] .. " px per unit, got " .. ppu)
 		end

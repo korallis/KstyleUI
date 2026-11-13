@@ -975,9 +975,9 @@ end
 local limits = {}
 
 function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, style)
-	local low, high = ns.Scale.DEFAULT_USER_SCALE, ns.Scale.MAX_USER_SCALE
+	local low, high = ns.Scale.MIN_USER_SCALE, ns.Scale.MAX_USER_SCALE
 	if not Positive(physicalWidth) or not Positive(physicalHeight) then
-		return low
+		return ns.Scale.DEFAULT_USER_SCALE
 	end
 	preset = layouts[preset] and preset or "DPS"
 	enabled = enabled or Layouts.Enabled(preset)
