@@ -415,6 +415,7 @@ local ORBS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
 }
+local REPLACED = { orbs = { ["unitframes.player"] = true } }
 local ORBS_KEEP = {
 	Healer = { ["groupframes.party"] = true, ["groupframes.raid"] = true },
 }
@@ -914,7 +915,7 @@ local function Apart(a, b)
 	return true
 end
 
-function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions)
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, style)
 	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
 		return false
 	end
@@ -934,12 +935,16 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
 			width, height, offsetX = Layouts.Footprint(name, key)
+			local styled = style and Layouts.Style(style, name, key)
+			if styled and styled.width then
+				width, height, offsetX = styled.width, styled.height, nil
+			end
 			position = layout[key]
 		else
 			position = cards[i - #ELEMENTS]
 			key, width, height = position.key, position.width, position.height
 		end
-		if enabled[key] ~= false then
+		if enabled[key] ~= false and not (REPLACED[style] and REPLACED[style][key]) then
 			if width <= 0 or height < STORY_FLOOR and position.key or height <= 0 then
 				return false
 			end
@@ -969,10 +974,10 @@ end
 
 local limits = {}
 
-function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
-	local low, high = ns.Scale.DEFAULT_USER_SCALE, ns.Scale.MAX_USER_SCALE
+function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, style)
+	local low, high = ns.Scale.MIN_USER_SCALE, ns.Scale.MAX_USER_SCALE
 	if not Positive(physicalWidth) or not Positive(physicalHeight) then
-		return low
+		return ns.Scale.DEFAULT_USER_SCALE
 	end
 	preset = layouts[preset] and preset or "DPS"
 	enabled = enabled or Layouts.Enabled(preset)
@@ -980,13 +985,14 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	for i, element in ipairs(ELEMENTS) do
 		flags[i] = enabled[element.key] ~= false and "1" or "0"
 	end
-	local signature = table.concat(flags)
+	style = STYLES[style] and style or "frames"
+	local signature = style .. table.concat(flags)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale
 	end
-	local positions = Layouts.Positions(preset, "frames", ns.Scale.AspectClass(physicalWidth, physicalHeight))
-	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions) then
+	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
+	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions, style) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
 		return high
 	end
@@ -1002,7 +1008,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 		if candidate == high then
 			break
 		end
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions, style) then
 			low = candidate
 			break
 		end
@@ -1010,7 +1016,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	end
 	for _ = 1, 32 do
 		local candidate = (low + high) / 2
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions, style) then
 			low = candidate
 		else
 			high = candidate

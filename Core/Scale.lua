@@ -4,7 +4,7 @@ local _, ns = ...
 local Scale = {}
 ns.Scale = Scale
 
-local abs, ceil, floor, max, min = math.abs, math.ceil, math.floor, math.max, math.min
+local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
 
 local REFERENCE_HEIGHT = 1080
 local UI_HEIGHT = 768
@@ -12,7 +12,7 @@ local REFERENCE_SCALE = UI_HEIGHT / REFERENCE_HEIGHT
 local MIN_USER_SCALE, MAX_USER_SCALE = 0.6, 1.5
 local DEFAULT_USER_SCALE = 16 / 19
 local STEPS_PER_PIXEL = 16
-local WHOLE_BAND = 0.125
+local MOCKUP_SIZE = 1
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
 local ARRANGEMENT = { centred = true, spread = true }
@@ -21,7 +21,7 @@ local ASPECTS = { "16:9", "21:9", "32:9" }
 local ASPECT_FROM = { ["21:9"] = 2.05, ["32:9"] = 2.9 }
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
 Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
-Scale.STEPS_PER_PIXEL, Scale.WHOLE_BAND = STEPS_PER_PIXEL, WHOLE_BAND
+Scale.STEPS_PER_PIXEL, Scale.MOCKUP_SIZE = STEPS_PER_PIXEL, MOCKUP_SIZE
 Scale.CANVAS, Scale.DEFAULT_CANVAS = CANVAS, DEFAULT_CANVAS
 Scale.ARRANGEMENT, Scale.DEFAULT_ARRANGEMENT = ARRANGEMENT, DEFAULT_ARRANGEMENT
 Scale.ASPECTS, Scale.ASPECT_FROM = ASPECTS, ASPECT_FROM
@@ -138,7 +138,8 @@ local function Limit(width, height)
 	local store = ns.Store
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
-	return layouts.ScaleLimit(width, height, preset, enabled), enabled
+	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
+	return layouts.ScaleLimit(width, height, preset, enabled, style), enabled
 end
 
 local function Step(height)
@@ -156,13 +157,7 @@ local function Nearest(size, height, maximum)
 end
 
 local function Auto(height, maximum)
-	local today = height * DEFAULT_USER_SCALE / REFERENCE_HEIGHT
-	local whole = max(1, floor(today + 0.5))
-	local size = whole * REFERENCE_HEIGHT / height
-	if abs(whole - today) <= WHOLE_BAND * today and size >= MIN_USER_SCALE - 1e-9 and size <= maximum + 1e-9 then
-		return size
-	end
-	return Nearest(DEFAULT_USER_SCALE, height, maximum)
+	return Nearest(MOCKUP_SIZE, height, maximum)
 end
 
 Scale.Nearest, Scale.Auto = Nearest, Auto
@@ -345,6 +340,9 @@ ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 	elseif ns.Features.modules[module] ~= nil then
 		Request("an element setting")
 	end
+end)
+ns.Callbacks.Register("HudStyleChanged", "Scale", function()
+	Request("the HUD style")
 end)
 ns.Callbacks.Register("ModuleChanged", "Scale", function()
 	Request("a module switch")
