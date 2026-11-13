@@ -4,12 +4,14 @@
 --   local offenders, judged = Audit.Scene("gallery_auras", { 5120, 1440 })   -- or Audit.Reference({ 5120, 1440 })
 --
 -- A texture, a line or a cooldown swipe must have all four edges on whole pixels, except the end of a status bar's
--- fill that its value moves, which the engine draws. A font string's glyphs are the font's, so only the points it is
--- anchored by must be whole: its left, centre or right, and its top, middle or bottom. An edge anchored to a font
--- string sits where that text's glyphs end, so the font decides it too and it is not judged. Edges come from the
--- scene's solved rects (screen units, 1080 tall) before the renderer rounds them, and are measured from the corner of
--- the nearest frame KstyleUI does not place (a Blizzard window, another addon's frame, a gallery's own arrangement),
--- whose own place is the game's or the scene's. Each offender names the file that placed the outermost frame above it
+-- fill that its value moves, which the engine draws, and an edge anchored to that end (a highlight or a shade laid on
+-- the fill). A font string's glyphs are the font's, so only the points it is anchored by must be whole: its left,
+-- centre or right, and its top, middle or bottom. An edge anchored to a font string sits where that text's glyphs end
+-- (any side but its left or top, or a side its own points leave free), so the font decides it too and it is not
+-- judged. Edges come from the scene's solved rects (screen units, 1080 tall) before the renderer rounds them, a frame
+-- an animation is translating at its place rather than mid-flight, and are measured from the corner of the nearest
+-- frame KstyleUI does not place (a Blizzard window, another addon's frame, a gallery's own arrangement), whose own
+-- place is the game's or the scene's. Each offender names the file that placed the outermost frame above it
 -- that is off the grid, or the file that placed or made the region itself.
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(_G, "PIXEL_AUDIT", true)
@@ -58,15 +60,28 @@ local function Relative(object, pack)
 	return object._parent
 end
 
--- Glyphs(object) -> x, y: whether an axis has a point anchored to a font string, so the font places that axis.
+-- Pinned(text, axis, share) -> whether one of the font string's own points fixes that share of the axis, so its
+-- glyphs do not move it.
+local function Pinned(text, axis, share)
+	for _, pack in ipairs(text._points or {}) do
+		local own = SHARE[pack[1]]
+		if own and own[axis] == share then
+			return true
+		end
+	end
+	return false
+end
+
+-- Glyphs(object) -> x, y: whether an axis has a point anchored to a font string's side that its glyphs place (any
+-- side but its left or top, or a side its own points do not fix), so the font places that axis.
 local function Glyphs(object)
 	local x, y = false, false
 	for _, pack in ipairs(object._points or {}) do
 		local relative = Relative(object, pack)
 		if relative and relative._type == "FontString" then
 			local share = SHARE[type(pack[3]) == "string" and pack[3] or pack[1]]
-			x = x or share == nil or share[1] ~= 0
-			y = y or share == nil or share[2] ~= 1
+			x = x or share == nil or share[1] ~= 0 or not Pinned(relative, 1, share[1])
+			y = y or share == nil or share[2] ~= 1 or not Pinned(relative, 2, share[2])
 		end
 	end
 	return x, y
@@ -109,6 +124,35 @@ local function Moving(object, depth)
 end
 Audit.Moving = Moving
 
+-- MovingEnd(bar) -> the edge of a status bar's fill that its value moves: "right", "left", "top" or "bottom".
+local function MovingEnd(bar)
+	local reverse = stored(bar, "ReverseFill") == true
+	if stored(bar, "Orientation") == "VERTICAL" then
+		return reverse and "bottom" or "top"
+	end
+	return reverse and "left" or "right"
+end
+
+local MOVING_SHARE = { right = { 1, 1 }, left = { 1, 0 }, top = { 2, 1 }, bottom = { 2, 0 } }
+
+-- FollowsFill(object) -> the edge this region takes from a status bar fill's moving end through one of its points
+-- (a highlight or a shade laid on the fill), which the engine moves with the value as it moves the fill's own end.
+local function FollowsFill(object)
+	for _, pack in ipairs(object._points or {}) do
+		local relative = Relative(object, pack)
+		local bar = relative and relative._barOwner
+		if bar then
+			local edge = MovingEnd(bar)
+			local share = SHARE[type(pack[3]) == "string" and pack[3] or pack[1]]
+			local want = MOVING_SHARE[edge]
+			if share and share[want[1]] == want[2] then
+				return edge
+			end
+		end
+	end
+	return nil
+end
+
 -- Edges(item, px) -> the list of { what, value, axis } in physical pixels that must be whole for this item.
 local function Edges(item, px)
 	local r, object = item.rect, item.object
@@ -142,16 +186,7 @@ local function Edges(item, px)
 		end
 		return out
 	end
-	local skip
-	local bar = object._barOwner
-	if bar then
-		local reverse = stored(bar, "ReverseFill") == true
-		if stored(bar, "Orientation") == "VERTICAL" then
-			skip = reverse and "bottom" or "top"
-		else
-			skip = reverse and "left" or "right"
-		end
-	end
+	local skip = object._barOwner and MovingEnd(object._barOwner) or FollowsFill(object)
 	for _, edge in ipairs({ { "left", left, "x" }, { "right", right, "x" }, { "top", top, "y" }, { "bottom", bottom, "y" } }) do
 		if edge[1] ~= skip then
 			add(edge[1], edge[2], edge[3])
@@ -192,6 +227,25 @@ local function Culprit(object, host, solver, px, dx, dy)
 	return culprit
 end
 
+-- InFlight(object) -> whether a played animation group on the object or a frame holding it translates it: the engine
+-- moves it from its place by a share of the offset each frame, so it is judged at its place, not mid-flight.
+local function InFlight(object)
+	local node = object
+	while node do
+		for _, group in ipairs(node._groups or {}) do
+			if type(group._playedAt) == "number" then
+				for _, anim in ipairs(group._anims or {}) do
+					if anim._type == "Translation" then
+						return true
+					end
+				end
+			end
+		end
+		node = node._parent
+	end
+	return false
+end
+
 -- Check(scene, physicalHeight) -> offenders, judged. Each offender is { file, kind, name, edges = { "left 12.400", ... } }.
 function Audit.Check(scene, physicalHeight)
 	local px = physicalHeight / 1080
@@ -208,8 +262,17 @@ function Audit.Check(scene, physicalHeight)
 				local x, y = Scene.RectIn(solvers[env], host)
 				dx, dy = (x or 0) * px, (y or 0) * px
 			end
+			local judgedItem = item
+			if InFlight(object) then
+				local env = object._env
+				solvers[env] = solvers[env] or Scene.RectSolver(env)
+				local x, y, w, h = Scene.RectIn(solvers[env], object)
+				if x then
+					judgedItem = { kind = item.kind, object = object, rect = { x, y, w, h } }
+				end
+			end
 			local bad
-			for _, edge in ipairs(Edges(item, px)) do
+			for _, edge in ipairs(Edges(judgedItem, px)) do
 				local v = edge[2] - (edge[3] == "x" and dx or dy)
 				if off(v) then
 					bad = bad or {}
