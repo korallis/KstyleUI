@@ -89,6 +89,7 @@ end
 
 local function writeLayout(name)
 	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect())
+	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect())
 	for key, size in pairs(Layouts.Sizes(name)) do
 		local position = positions[key]
 		position.width, position.height = size.width, size.height
@@ -117,7 +118,12 @@ local function writeLayout(name)
 				entry = {}
 				stored[key] = entry
 			end
-			entry.anchor, entry.x, entry.y = position.anchor, position.x, position.y
+			local default = defaults[key]
+			if position.anchor ~= default.anchor or position.x ~= default.x or position.y ~= default.y then
+				entry.anchor, entry.x, entry.y = position.anchor, position.x, position.y
+			else
+				entry.anchor, entry.x, entry.y = nil, nil, nil
+			end
 			if position.width then
 				entry.width, entry.height = position.width, position.height
 			end

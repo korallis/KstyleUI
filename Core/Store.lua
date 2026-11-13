@@ -790,7 +790,7 @@ Store.migrations[30] = function(data)
 		local presets = layouts.Get(preset)
 		for key, entry in pairs(type(layout) == "table" and layout or {}) do
 			local style, element = key:match("^(%a+):(.+)$")
-			local old = type(entry) == "table" and (style and layouts.Style(style, preset, element) or presets[key])
+			local old = type(entry) == "table" and (style and (layouts.Style(style, preset, element) or presets[element]) or presets[key])
 			if old and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
 				for _, field in ipairs(PLACED) do
 					if entry[field] == nil then

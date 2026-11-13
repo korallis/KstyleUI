@@ -89,7 +89,8 @@ do
 	end
 	assert(K.Layout.Setting("preset") == "DPS", "and applies the DPS layout")
 	assert(K.Widgets.Setting("ornaments") == "Full", "and Full ornaments, the level the ornaments step starts on")
-	assert(K.Store.Layout()["chat.main"] and K.Store.Layout()["chat.main"].x == K.Setup.Layouts.Get("DPS")["chat.main"].x, "with its positions")
+	local chat = K.Store.Layout()["chat.main"]
+	assert((chat == nil or chat.x == nil) and K.Setup.Layouts.Default("chat.main").x == K.Setup.Layouts.Get("DPS")["chat.main"].x, "with its positions: chat registers at the DPS place, its default, so no place is saved")
 	assert(Seen(K), "and marks the setup seen")
 	assert(CoreEnv.Printed(env, "DPS") and CoreEnv.Printed(env, "/kstyle setup"), "the player is told what was applied and how to change it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -446,7 +447,8 @@ do
 	local tank = K.Setup.Layouts.Get("Tank", select(2, K.Layout.RootSize()))
 	for key, position in pairs(tank) do
 		local entry = stored[key]
-		assert(entry and entry.anchor == position.anchor and entry.x == position.x and entry.y == position.y, "Apply writes " .. key)
+		local at = entry and entry.anchor and entry or K.Setup.Layouts.Default(key)
+		assert(at.anchor == position.anchor and at.x == position.x and at.y == position.y, "Apply places " .. key .. ": a saved place, or none when the Tank place is the default")
 	end
 	assert(Seen(K), "Apply marks the setup seen")
 	assert(panel.reload:IsShown() and panel.reload.label:GetText() == "Reload", "Apply offers the secure reload button")
@@ -487,7 +489,7 @@ do
 	assert(ok, "Apply returns true")
 	local chat = stored["chat.main"]
 	local dps = K.Setup.Layouts.Get("DPS")["chat.main"]
-	assert(chat.anchor == dps.anchor and chat.x == dps.x and chat.width == 500 and chat.shown == "combat", "Apply moves an element and keeps its size and rules")
+	assert(chat.anchor == nil and chat.x == nil and chat.y == nil and dps.x == K.Setup.Layouts.Default("chat.main").x and chat.width == 500 and chat.shown == "combat", "Apply moves an element back to its default place and keeps its size and rules")
 	assert(updates["unitframes.player"] and updates["unitframes.player"].x == K.Setup.Layouts.Get("DPS")["unitframes.player"].x, "a registered element moves at once through Layout.Update")
 	assert(stored["unitframes.player"] == nil, "Layout stores what it applies itself")
 	assert(K.Setup.Apply({ layout = "Raid", modules = {} }) == false, "an unknown layout is refused")
@@ -500,7 +502,8 @@ do
 	end
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(updates["meters.threat"] and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 200, "a registered meter takes the layout's size through Layout.Update")
-	assert(stored["meters.damage"].height == 158 and stored["meters.damage"].y == K.Setup.Layouts.Get("Tank")["meters.damage"].y, "a meter that has not registered keeps the size for the reload")
+	assert(stored["meters.damage"].height == 158, "a meter that has not registered keeps the size for the reload")
+	assert(K.Setup.Layouts.Get("Tank")["meters.damage"].y == K.Setup.Layouts.Default("meters.damage").y and stored["meters.damage"].y == nil, "a place at its default is not saved, so it follows the layout class after the reload")
 	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
 	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 200 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")

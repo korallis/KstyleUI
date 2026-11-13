@@ -163,6 +163,34 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Apply before an element registers (its module switches on with the reload) saves no place at the class default,
+-- so after the reload the element follows its class; a place that is not the default is still saved for it.
+do
+	local _, K, Element = New(5120, 1440)
+	local Layouts = K.Setup.Layouts
+	Layouts.PLACES["32:9"].frames["chat.main"] = { anchor = "BOTTOMLEFT", x = 120, y = 40 }
+	K.Options.Write("Layout", "arrangement", "spread")
+	assert(K.Setup.Apply(K.Setup.NewChoice()), "Apply runs with nothing registered")
+	local stored = K.Store.Layout()
+	local chat = stored["chat.main"]
+	assert(chat == nil or (chat.anchor == nil and chat.x == nil and chat.y == nil), "chat, unregistered, gets no saved place")
+	Element("chat.main")
+	assert(K.Layout.Get("chat.main").x == 120, "chat registers at its 32:9 place")
+	K.Options.Write("Layout", "arrangement", "centred")
+	assert(K.Layout.Get("chat.main").x == Layouts.Default("chat.main").x, "and follows its class back")
+end
+
+-- The arrangement chosen in combat applies when combat ends.
+do
+	local env, K = New(5120, 1440)
+	env.SetCombat(true)
+	K.Options.Write("Layout", "arrangement", "spread")
+	assert(K.Scale.Aspect() == "21:9", "the arrangement waits for combat to end")
+	env.SetCombat(false)
+	assert(K.Scale.Aspect() == "32:9", "and applies when it ends")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Migration 30: a placement saved one field at a time is made whole against the default it was measured from.
 do
 	local _, K0 = New(1920, 1080)

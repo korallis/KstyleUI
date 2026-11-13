@@ -691,7 +691,7 @@ function Layouts.Aspect(class, style, name, key)
 	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
 	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
 	local position = set and set[key]
-	if position then
+	if position and position.anchor and position.x and position.y then
 		return copy(position)
 	end
 end
