@@ -449,6 +449,7 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	if not plain then
 		Widgets.SyncTracking(text)
 	end
+	Widgets.Refollow(text)
 	return ok
 end
 
@@ -571,6 +572,7 @@ function Widgets.SetText(text, value)
 		value = ns.Locale.Upper(value)
 	end
 	text:SetText(value)
+	Widgets.Refollow(text)
 end
 
 function Widgets.TextColor(text, name, alphaScale)
@@ -735,6 +737,23 @@ local function Record(region)
 end
 
 local Reown, Refollow
+local TEXT_CHANGES = { "SetText", "SetFormattedText", "SetFont", "SetFontObject", "SetWidth" }
+
+local function HookText(text)
+	if text.kstyleTextFollowed or type(text.IsObjectType) ~= "function" then
+		return
+	end
+	local isText = text:IsObjectType("FontString")
+	if IsSecret(isText) or isText ~= true then
+		return
+	end
+	text.kstyleTextFollowed = true
+	for _, method in ipairs(TEXT_CHANGES) do
+		hooksecurefunc(text, method, function(self)
+			Refollow(self)
+		end)
+	end
+end
 
 local function HookFollow(frame)
 	if dependents[frame] and not frame.kstyleFollowed and type(frame.HookScript) == "function" and IsFrame(frame) then
@@ -785,6 +804,7 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 		if helped[relative] then
 			HookFollow(relative)
 		end
+		HookText(relative)
 	end
 end
 
@@ -885,6 +905,8 @@ function Refollow(frame)
 	end
 	frame.kstyleFollowing = false
 end
+
+Widgets.Refollow = Refollow
 
 function Widgets.PlaceAgain(roots)
 	local list, depth = {}, {}
