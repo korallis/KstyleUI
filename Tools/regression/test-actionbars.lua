@@ -23,6 +23,10 @@ do
 	assert(next(env._game.overrides) == nil, "no override bindings while off")
 	assert(K.Options.Get("ActionBars"), "the settings schema is registered")
 	assert(type(K.Options.Preview("ActionBars")) == "function", "the settings window gets a live preview")
+	-- KSTY-60 item 6: bar 3 on the left rail meets the mid-left party, so its switch says it lowers the largest size.
+	local bar3 = K.Options.Row("ActionBars", "bar3.enabled")
+	assert(bar3 and bar3.help:find("largest HUD size", 1, true), "bar 3's switch says it lowers the largest HUD size")
+	assert(K.Options.Row("ActionBars", "bar4.enabled").help == K.L["Turns this bar on or off."], "the other bars keep the plain help")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

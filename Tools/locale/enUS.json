@@ -1990,6 +1990,7 @@
 	"Turn this frame off to leave its unit without a KstyleUI frame.",
 	"Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay.",
 	"Turns this bar on or off.",
+	"Turns this bar on or off. Beside the party frames it lowers the largest HUD size.",
 	"Turns this module on or off.",
 	"Turns web addresses into links. Click one to copy it.",
 	"Two-Hand",
