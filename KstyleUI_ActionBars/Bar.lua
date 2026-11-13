@@ -190,6 +190,14 @@ function Bar:FormsChanged()
 	return false
 end
 
+local function SplitGap(cfg)
+	local split = cfg.split
+	if split == "on" or split == "auto" and K.HudStyle.Current() == "orbs" then
+		return K.Setup.Layouts.SPLIT_GAP
+	end
+	return 0
+end
+
 local CUMULATIVE = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, bar6 = true }
 
 function Bar:Layout()
@@ -214,6 +222,16 @@ function Bar:Layout()
 		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), cfg.rows, 1, 0)
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
+	end
+	local split = SplitGap(cfg)
+	local half = math.huge
+	if split > 0 and def.kind == "action" then
+		local _, _, columns = ns.GridSize(count, cfg.rows, 1, 0)
+		if columns > 1 then
+			half = ceil(columns / 2)
+			split = Widgets.Snap(header, split)
+			width = width + split
+		end
 	end
 	self.holder:SetSize(width, height)
 	local margin = Widgets.Snap(header, BACKING_MARGIN)
@@ -241,7 +259,7 @@ function Bar:Layout()
 				col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
 			end
 			b:ClearAllPoints()
-			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch), -Widgets.Snap(header, row * pitch))
+			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch))
 			b:Restyle()
 			b:Show()
 		else

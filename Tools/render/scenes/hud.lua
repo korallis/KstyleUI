@@ -129,13 +129,21 @@ local function merge(into, from)
 	return into
 end
 
+-- Style() -> the HUD style a scene renders: RENDER_HUD_STYLE, set as a global by a test or in the environment.
+function Hud.Style()
+	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
+	if style and style ~= "" then
+		return style
+	end
+end
+
 local function saved(opts, module, settings, more)
 	local section = { enabled = true }
 	merge(section, opts.settings and opts.settings[module])
 	merge(section, settings)
 	local profile = { [module] = section }
-	local style = os.getenv("RENDER_HUD_STYLE")
-	if style and style ~= "" then
+	local style = Hud.Style()
+	if style then
 		assert(style == "Orbs" or style == "Frames", "RENDER_HUD_STYLE must be Orbs or Frames")
 		profile.HudStyle = { style = style:lower() }
 	end
@@ -1518,6 +1526,10 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 		K.Setup.EditMode.NativeRows(function(group)
 			return group == "essential" or group == "utility"
 		end)
+	end
+	local style = Hud.Style()
+	if style then
+		K.Options.Write("HudStyle", "style", style:lower())
 	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil

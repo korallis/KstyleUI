@@ -32,6 +32,8 @@ for _, field in ipairs(FIELDS) do
 end
 Layout.FIELDS = FIELDS
 
+local STYLED = { anchor = true, x = true, y = true, scale = true }
+
 local STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true }
 
 Layout.SHOWN_OPTIONS = {
@@ -377,22 +379,53 @@ local function SetEntry(key, entry)
 	end
 end
 
+local function Style()
+	local hud, layouts = ns.HudStyle, ns.Setup and ns.Setup.Layouts
+	local style = hud and hud.Current()
+	if style and style ~= "frames" and layouts and layouts.Style then
+		return style, layouts
+	end
+end
+
+local function StyleDefault(el)
+	local d = Copy(el.base)
+	local style, layouts = Style()
+	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
+	el.style = over and style or nil
+	if over then
+		for field in pairs(STYLED) do
+			if over[field] ~= nil and (field ~= "scale" or el.opts.scalable) then
+				d[field] = over[field]
+			end
+		end
+	end
+	el.default = d
+end
+
+local function StoreKey(el, field, frames)
+	if el.style and not frames and STYLED[field] then
+		return el.style .. ":" .. el.key
+	end
+	return el.key
+end
+
 local function Resolve(el)
+	StyleDefault(el)
 	local s, d = el.settings, el.default
 	for i = 1, #FIELDS do
 		s[FIELDS[i]] = d[FIELDS[i]]
 	end
-	local entry = Entry(el.key)
-	if entry then
-		for i = 1, #FIELDS do
+	for _, key in ipairs({ el.key, el.style and StoreKey(el, "anchor") or nil }) do
+		local entry = Entry(key)
+		for i = 1, entry and #FIELDS or 0 do
 			local field = FIELDS[i]
 			local v = entry[field]
-			if v ~= nil then
+			if v ~= nil and StoreKey(el, field) == key then
 				local clean = CHECK[field](el, v, false)
 				if clean ~= nil then
 					s[field] = clean
 				else
-					LogOnce(el.key .. "." .. field, format("ignored the saved %s of %s, which is not allowed; using the default", field, el.key))
+					LogOnce(key .. "." .. field, format("ignored the saved %s of %s, which is not allowed; using the default", field, key))
 				end
 			end
 		end
@@ -827,23 +860,45 @@ local function Record(changes, merge)
 	end
 end
 
-local function Write(el, patch, merge)
-	local key = el.key
-	local before = Copy(Entry(key))
-	local entry = Copy(Entry(key)) or {}
+local function Stage(el, patch, changes, frames)
+	local parts = {}
 	for field, value in pairs(patch) do
-		if value == RESET or Same(value, el.default[field]) then
-			entry[field] = nil
-		else
-			entry[field] = value
+		local key = StoreKey(el, field, frames)
+		parts[key] = parts[key] or {}
+		parts[key][field] = value
+	end
+	local any = false
+	for key, part in pairs(parts) do
+		local before = Copy(Entry(key))
+		local entry = Copy(Entry(key)) or {}
+		for field, value in pairs(part) do
+			local default = frames and el.base[field] or el.default[field]
+			if value == RESET or Same(value, default) then
+				entry[field] = nil
+			else
+				entry[field] = value
+			end
+		end
+		SetEntry(key, entry)
+		local after = Copy(Entry(key))
+		if not Same(before, after) then
+			changes[key] = { before = before, after = after }
+			any = true
 		end
 	end
-	SetEntry(key, entry)
-	local after = Copy(Entry(key))
-	if not Same(before, after) then
-		Record({ [key] = { before = before, after = after } }, merge)
+	return any
+end
+
+local function Write(el, patch, merge, frames)
+	local changes = {}
+	if Stage(el, patch, changes, frames) then
+		Record(changes, merge)
 	end
 	Changed(el)
+end
+
+local function Owner(key)
+	return elements[key] or elements[key:match("^%a+:(.+)$") or ""]
 end
 
 local function WriteEntries(entries)
@@ -853,11 +908,16 @@ local function WriteEntries(entries)
 	end
 	for _, key in ipairs(keys) do
 		SetEntry(key, Copy(entries[key] or nil))
-		local el = elements[key]
+		local el = Owner(key)
 		if el then
 			Changed(el)
 		end
 	end
+end
+
+local CLEAR = {}
+for _, field in ipairs(FIELDS) do
+	CLEAR[field] = RESET
 end
 
 local ELEMENT_FIELDS = {
@@ -1022,7 +1082,7 @@ function Layout.Register(frame, key, defaultPosition, opts)
 	el.label = opts.label or key
 	el.module = opts.module
 	el.opts = Copy(opts)
-	el.default = Defaults(el, frame, defaultPosition, opts)
+	el.base = Defaults(el, frame, defaultPosition, opts)
 	if el.appliedScale == nil then
 		local own = frame:GetScale()
 		el.appliedScale = IsFinite(own) and own or nil
@@ -1154,7 +1214,7 @@ function Layout.Set(key, field, value)
 	return true
 end
 
-function Layout.Update(key, values, merge)
+function Layout.Update(key, values, merge, frames)
 	local el, why = Ready(key)
 	if not el then
 		return false, why
@@ -1174,7 +1234,7 @@ function Layout.Update(key, values, merge)
 	if el.aspect and (patch.width or patch.height) then
 		patch.width, patch.height = AspectFit(el, patch.width or patch.height * el.aspect)
 	end
-	Write(el, patch, merge)
+	Write(el, patch, merge, frames == true)
 	return true
 end
 
@@ -1222,13 +1282,11 @@ function Layout.Reset(key)
 	if not el then
 		return false
 	end
-	local before = Copy(Entry(key))
-	if before == nil then
-		return true
+	local changes = {}
+	if Stage(el, CLEAR, changes) then
+		Record(changes)
+		Changed(el)
 	end
-	SetEntry(key, nil)
-	Record({ [key] = { before = before } })
-	Changed(el)
 	return true
 end
 
@@ -1236,21 +1294,18 @@ function Layout.ResetAll()
 	if not Store.IsLoaded() then
 		return false
 	end
-	local changes, any = {}, false
+	local changes, moved = {}, {}
 	for _, key in ipairs(order) do
-		local before = Copy(Entry(key))
-		if before ~= nil then
-			changes[key] = { before = before }
-			any = true
+		local el = elements[key]
+		if Stage(el, CLEAR, changes) then
+			moved[#moved + 1] = el
 		end
 	end
-	if any then
-		local entries = {}
-		for key in pairs(changes) do
-			entries[key] = false
-		end
-		WriteEntries(entries)
+	if #moved > 0 then
 		Record(changes)
+	end
+	for _, el in ipairs(moved) do
+		Changed(el)
 	end
 	return true
 end
@@ -1392,6 +1447,22 @@ ns.Callbacks.Register("ProfileChanged", SECTION, function()
 	end
 end)
 
+local function Restyle()
+	ResolveAll()
+	UpdateEvents()
+	ApplyAll(true)
+	for i = 1, #order do
+		ns.Callbacks.Fire("LayoutChanged", order[i])
+	end
+end
+
+ns.Callbacks.Register("HudStyleChanged", SECTION, function()
+	Restyle()
+	if state.active then
+		Mode("Refresh")
+	end
+end)
+
 ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 	for i = 1, #order do
 		local el = elements[order[i]]
@@ -1404,7 +1475,14 @@ ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 	end
 end)
 
-ns.Callbacks.Register("SettingChanged", SECTION, function(_, module)
+ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
+	if module == SECTION and key == "preset" and Style() then
+		if InCombatLockdown() then
+			Combat.Queue(Restyle)
+		else
+			Restyle()
+		end
+	end
 	if module == SECTION and state.active then
 		Mode("Refresh")
 	end

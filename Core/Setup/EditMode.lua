@@ -119,8 +119,12 @@ local function Native(group)
 	return ok and shown == true
 end
 
+local function Positions(name)
+	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current())
+end
+
 local function Box(name, key, rw, rh)
-	local position = Layouts.Get(name, rh)[key]
+	local position = Positions(name)[key]
 	local w, h, offsetX = Layouts.Footprint(name, key)
 	if not (position and w) then
 		return nil
@@ -142,7 +146,7 @@ end
 local function Others(name, rw, rh, skip)
 	local out = {}
 	skip = skip or TRACKED
-	for key in pairs(Layouts.Get(name)) do
+	for key in pairs(Positions(name)) do
 		if not skip[key] and Layouts.Shown(name, key) ~= false then
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
@@ -472,7 +476,7 @@ local function Places(name, story, notes)
 	end
 	places[#places + 1] = { label = "the objective tracker", system = enum.EditModeSystem.ObjectiveTracker, x = tracker.x * k, y = tracker.y * k, settings = trackerSettings }
 	local meterSystem = enum.EditModeSystem.DamageMeter
-	local position = Layouts.Get(name)["meters.damage"]
+	local position = Positions(name)["meters.damage"]
 	local w, h = Layouts.Footprint(name, "meters.damage")
 	if meterSystem ~= nil and position and w then
 		local rw, rh = Setup.RootSize()
@@ -496,7 +500,7 @@ local function Places(name, story, notes)
 		for _, place in ipairs(rows) do
 			others[#others + 1] = place.rect
 		end
-		for key in pairs(Layouts.Get(name)) do
+		for key in pairs(Positions(name)) do
 			boxes[key] = Box(name, key, rw, rh)
 		end
 		local function Arrange(spare, order)
@@ -778,6 +782,7 @@ function EditMode.Write(name, story)
 		return Fail(name, reason, why)
 	end
 	local placed, notes, rows = {}, {}, {}
+	local viewer = Enum.EditModeSystem.CooldownViewer
 	for _, place in ipairs(Places(name, story, notes)) do
 		if place.row then
 			if PlaceRow(all[index], place) then
@@ -786,6 +791,9 @@ function EditMode.Write(name, story)
 			end
 		elseif Place(all[index], place) then
 			placed[#placed + 1] = place.label
+			if place.system == viewer then
+				rows[#rows + 1] = place
+			end
 		end
 	end
 	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = index })
@@ -808,6 +816,20 @@ function EditMode.Write(name, story)
 	return true
 end
 
+local function Own(all, active)
+	local layout = all[active]
+	local layoutName = IsTable(layout) and layout.layoutType ~= Enum.EditModeLayoutType.Preset and layout.layoutName
+	local name = type(layoutName) == "string" and layoutName:sub(1, #PREFIX) == PREFIX and layoutName:sub(#PREFIX + 1)
+	if name and Layouts.Get(name) and IsTable(layout.systems) then
+		return name, layout, layoutName
+	end
+end
+
+function EditMode.ActiveName()
+	local all, _, active = Read()
+	return all and (Own(all, active)) or nil
+end
+
 local function WriteRows()
 	queued = false
 	local all, reason, active = Read()
@@ -815,10 +837,8 @@ local function WriteRows()
 		log("Edit Mode: Blizzard's essential and utility cooldowns stay where Edit Mode puts them (" .. tostring(reason) .. ")")
 		return false
 	end
-	local layout = all[active]
-	local layoutName = IsTable(layout) and layout.layoutType ~= Enum.EditModeLayoutType.Preset and layout.layoutName
-	local name = type(layoutName) == "string" and layoutName:sub(1, #PREFIX) == PREFIX and layoutName:sub(#PREFIX + 1)
-	if not (name and Layouts.Get(name) and IsTable(layout.systems)) then
+	local name, layout, layoutName = Own(all, active)
+	if not name then
 		log("Edit Mode: the active layout is not one KstyleUI wrote, so Blizzard's essential and utility cooldowns stay where it puts them")
 		return false
 	end
@@ -849,6 +869,44 @@ local function WriteRows()
 		labels[i] = place.label
 	end
 	log("Edit Mode: placed " .. table.concat(labels, ", ") .. " on KstyleUI's own rows in " .. layoutName)
+	return true
+end
+
+local function Mine(layout, place)
+	local stamps = Stamps()
+	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.index]
+	return stamp == nil or Owned(layout, place)
+end
+
+function EditMode.Restyle(name, story)
+	local all, _, active = Read()
+	if not all or Own(all, active) ~= name then
+		return false
+	end
+	local layout, viewer, moved = all[active], Enum.EditModeSystem.CooldownViewer, {}
+	for _, place in ipairs(Places(name, story, {})) do
+		if place.system == viewer and Mine(layout, place) and Place(layout, place) then
+			moved[#moved + 1] = place
+		end
+	end
+	if #moved == 0 then
+		return false
+	end
+	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = active })
+	if not saved then
+		log("Edit Mode: C_EditMode.SaveLayouts failed (" .. tostring(err) .. "); Blizzard's cooldown viewers keep their places")
+		return false
+	end
+	Remember(layout, moved)
+	local activated, refusal = pcall(C_EditMode.SetActiveLayout, active)
+	if not activated then
+		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); the viewers move at the next reload")
+	end
+	local labels = {}
+	for i, place in ipairs(moved) do
+		labels[i] = place.label
+	end
+	log("Edit Mode: placed " .. table.concat(labels, ", ") .. " for the HUD style in " .. layout.layoutName)
 	return true
 end
 

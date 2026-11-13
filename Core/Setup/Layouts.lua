@@ -361,6 +361,68 @@ for _, name in ipairs(NAMES) do
 	}
 end
 
+local ORBS_RING, ORBS_REACH, ORBS_LIFT = 200, 60 + 200 * 0.87 / 2, 30
+local ORBS_RAIL, ORBS_BAR2_SCALE, ORBS_SPLIT = 31, 0.75, 156
+local ORBS_PARTY_Y, ORBS_TARGET_Y, ORBS_AURA_ICONS = 465, 40, 5
+local ORBS_BAR1 = DPS["actionbars.bar1"]
+local ORBS_BAR1_W, ORBS_BAR1_H = GridSize("actionbars.bar1")
+local _, ORBS_BAR2_H = GridSize("actionbars.bar2")
+local ORBS_X = ORBS_BAR1_W / 2 + ORBS_REACH
+local ORBS_OUTER = ORBS_X + ORBS_RING / 2
+local ORBS_TOP = ORBS_BAR1.y + ORBS_BAR1_H / 2 + ORBS_LIFT + ORBS_RING / 2
+local ORBS_BAR2_Y = ORBS_BAR1.y + ORBS_BAR1_H + ORBS_RAIL
+local ORBS_CAST_Y = ORBS_BAR2_Y + ORBS_BAR2_H * ORBS_BAR2_SCALE + ORBS_RAIL - 6
+local ORBS_ESSENTIAL_Y = ORBS_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP
+local ORBS_UTILITY_Y = ORBS_ESSENTIAL_Y + CENTRE_BUTTON + 8
+local ORBS_RESOURCE_Y = ORBS_UTILITY_Y + BUTTON + 6
+local ORBS_SWING_Y = ORBS_RESOURCE_Y + 14 + 8
+local ORBS_AURA_Y = ORBS_TOP + NEAR
+local ORBS_AURA_SHIFT = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AURA_GAP) / 2 - AURA_W / 2
+local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + 8
+local ORBS_PET_W, ORBS_PET_H = GridSize("actionbars.pet")
+local ORBS_STANCE_W = GridSize("actionbars.stance")
+local ORBS_REP_W = ElementSize("databars.rep")
+local ORBS_PET_FRAME_W = ElementSize("unitframes.pet")
+local ORBS_GLOW = 30
+local ORBS_TARGET_W = ElementSize("unitframes.target")
+local ORBS_TOT_W = ElementSize("unitframes.targettarget")
+
+local ORBS = {
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR1.y },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR2_Y, scale = ORBS_BAR2_SCALE },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = ORBS_CAST_Y },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = ORBS_ESSENTIAL_Y },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = 0, y = ORBS_UTILITY_Y },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = ORBS_RESOURCE_Y },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = ORBS_SWING_Y },
+	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X, y = ORBS_AURA_Y },
+	["auras.debuffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT + ORBS_X, y = ORBS_AURA_Y },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -ORBS_X, y = ORBS_TRACKED_Y },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
+	["actionbars.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = BAR1_Y },
+	["actionbars.stance"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_STANCE_W / 2, y = BAR1_Y },
+	["databars.rep"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_REP_W / 2), y = 52 },
+	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_REP_W / 2, y = 52 },
+	["unitframes.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_GLOW + ORBS_PET_FRAME_W / 2), y = BAR1_Y + ORBS_PET_H + GAP },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y },
+	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
+	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
+	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
+}
+local ORBS_KEEP = {
+	Healer = { ["groupframes.party"] = true, ["groupframes.raid"] = true },
+}
+local STYLES = { orbs = {} }
+for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
+	local style = {}
+	for key, position in pairs(ORBS) do
+		if not (ORBS_KEEP[name] and ORBS_KEEP[name][key]) then
+			style[key] = position
+		end
+	end
+	STYLES.orbs[name] = style
+end
+
 Layouts.ELEMENTS = ELEMENTS
 Layouts.FEED_LINES = FEED_LINES
 Layouts.FEED_PAD = FEED_PAD
@@ -562,6 +624,40 @@ function Layouts.Default(key)
 		error("KstyleUI.Setup.Layouts.Default: unknown element key " .. tostring(key), 2)
 	end
 	return copy(position)
+end
+
+Layouts.ORBS_RING = ORBS_RING
+Layouts.ORBS_REACH = ORBS_REACH
+Layouts.ORBS_LIFT = ORBS_LIFT
+Layouts.SPLIT_GAP = ORBS_SPLIT
+Layouts.STYLES = { "orbs" }
+
+function Layouts.Style(style, name, key)
+	local set = STYLES[style] and STYLES[style][name]
+	local position = set and set[key]
+	if position then
+		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale }
+	end
+end
+
+function Layouts.Positions(name, style)
+	local out = Layouts.Get(name)
+	for key, position in pairs(out or {}) do
+		local over = Layouts.Style(style, name, key)
+		if over then
+			position.anchor, position.x, position.y = over.anchor, over.x, over.y
+		end
+	end
+	return out
+end
+
+function Layouts.StyleKeys(style, name)
+	local out = {}
+	for key in pairs(STYLES[style] and STYLES[style][name] or {}) do
+		out[#out + 1] = key
+	end
+	table.sort(out)
+	return out
 end
 
 local LEGACY = {

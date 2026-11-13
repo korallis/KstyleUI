@@ -151,6 +151,9 @@ function Model.Group(settings, name)
 		sort = choice(s.sort, SORT, base.sort),
 		reverse = s.reverse == true,
 	}
+	if K.HudStyle.Current() == "orbs" then
+		g.growth = (g.growth:gsub("_DOWN$", "_UP"))
+	end
 	if base.enchants ~= nil then
 		g.enchants = boolean(s.enchants, base.enchants)
 		g.cancel = boolean(s.cancel, base.cancel)

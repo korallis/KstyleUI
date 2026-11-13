@@ -99,9 +99,12 @@ local function writeLayout(name)
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
 	local moved, saved = 0, 0
 	for key, position in pairs(positions) do
+		for _, style in ipairs(Layouts.STYLES) do
+			stored[style .. ":" .. key] = nil
+		end
 		local done = false
 		if live and Layout.Get(key) ~= nil then
-			local ok, updated = pcall(Layout.Update, key, position, "setup")
+			local ok, updated = pcall(Layout.Update, key, position, "setup", true)
 			done = ok and updated == true
 			if not done then
 				log("Layout.Update(" .. key .. ") refused the position (" .. tostring(updated) .. "); saved it for the reload instead")
@@ -227,6 +230,19 @@ function Setup.RetryEditMode()
 	return true
 end
 
+local applying = false
+
+ns.Callbacks.Register("HudStyleChanged", "Setup", function()
+	local layout = ns.Layout
+	local name = layout and layout.Setting and layout.Setting("preset")
+	if applying or not name or Setup.EditMode.ActiveName() ~= name then
+		return
+	end
+	ns.Combat.Queue(function()
+		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
+	end)
+end)
+
 function Setup.Apply(picked)
 	local Store = ns.Store
 	if not Store.IsLoaded() then
@@ -256,7 +272,9 @@ function Setup.Apply(picked)
 	end
 	local hudStyle = (picked.hudStyle == "frames" or picked.hudStyle == "orbs") and picked.hudStyle
 	if hudStyle then
-		ns.Options.Write("HudStyle", "style", hudStyle)
+		applying = true
+		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)
+		applying = false
 	end
 	WriteEditMode(picked.layout)
 	Setup.MarkSeen()
