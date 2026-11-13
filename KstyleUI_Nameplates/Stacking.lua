@@ -10,7 +10,6 @@ local MODULE = Settings.MODULE
 local Stacking = {}
 ns.Stacking = Stacking
 
-local MARKER_SIZE, GAP, MARKER_GAP = 12, K.Tokens.Size("gapTiny"), K.Tokens.Size("gapSmall")
 local original
 local applied = { w = nil, h = nil }
 local queued, hooked = false, false
@@ -36,28 +35,35 @@ local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
 end
 
-function Stacking.Extent()
-	local plate = ns.Preview.samplePlate
+function Stacking.Size()
+	return applied.w, applied.h
+end
+
+function Stacking.Extent(plate)
+	plate = plate or ns.Preview.samplePlate
 	if not plate then
 		return nil
 	end
 	local above, below = ns.Auras.Extent(plate)
 	local state = ns.state
+	local Plate = ns.Plate
 	local left, right = 0, 0
 	if Settings.Get("name.show") then
-		left, right = ns.Plate.NAME_OVERHANG, ns.Plate.NAME_OVERHANG
+		left, right = Plate.NAME_OVERHANG, Plate.NAME_OVERHANG
 	end
-	if Settings.Get("level.show") then
-		left = math.max(left, ns.Plate.BADGE_SIZE)
-		local overhang = math.max(0, (plate.level:GetHeight() - state.height) / 2)
-		local crown = Settings.Get("markers.classification") and MARKER_SIZE + GAP or 0
-		above = math.max(above, overhang + crown)
+	if Settings.Get("target.highlight") then
+		left, right = math.max(left, Plate.BRACKET_REACH), math.max(right, Plate.BRACKET_REACH)
+		local overhang = math.max(0, (Plate.BRACKET_HEIGHT - state.height) / 2)
+		above, below = math.max(above, overhang), math.max(below, overhang)
+	end
+	if Settings.Get("level.show") or Settings.Get("markers.classification") then
+		left = math.max(left, Plate.DiamondReach(plate))
+		local overhang = math.max(0, (Plate.DiamondSize(plate) - state.height) / 2)
+		above = math.max(above, overhang)
 		below = math.max(below, overhang)
-	elseif Settings.Get("markers.classification") then
-		left = math.max(left, MARKER_SIZE + GAP)
 	end
 	if Settings.Get("markers.raid") then
-		right = math.max(right, Settings.Get("markers.raidSize") + MARKER_GAP)
+		right = math.max(right, Plate.MarkerReach() + Settings.Get("markers.raidSize"))
 	end
 	if Settings.Get("debuffs.enabled") then
 		local size, spacing, columns = ns.Auras.Grid(plate)
@@ -84,6 +90,12 @@ local function Footprint()
 	return Logic.Footprint(width, height, above, below, scale)
 end
 
+local function Settle(plate)
+	if not plate.sample then
+		plate:PlaceOnBase(ns.state.width, ns.state.height)
+	end
+end
+
 local function Write(w, h)
 	local set = Api("SetNamePlateSize")
 	if not set then
@@ -95,6 +107,7 @@ local function Write(w, h)
 		return
 	end
 	applied.w, applied.h = w, h
+	ns.Plates.Each(Settle)
 end
 
 local function Remember()

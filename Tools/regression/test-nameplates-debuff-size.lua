@@ -15,7 +15,7 @@ do
 	assert(d.size >= MIN_ICON, "debuff icons default to at least " .. MIN_ICON .. " units, not " .. d.size)
 	assert(d.textSize >= MIN_TEXT, "the time left and stacks default to at least " .. MIN_TEXT .. " units, not " .. d.textSize)
 	assert(d.outline ~= "NONE", "the debuff text has an outline so it reads over any icon")
-	assert(d.showTime and d.showCount, "the time left and stacks show by default")
+	assert(d.showCount and not d.showTime, "stacks show by default; the time left is a setting, off as the KSTY-44 mock-up's effect shows none")
 	local line = ns.Logic.AuraLineSize(d.columns, d.size, d.spacing)
 	assert(line <= ns.Plate.DEFAULT_WIDTH, "a full row of " .. d.columns .. " fits the plate's width: " .. line .. " > " .. ns.Plate.DEFAULT_WIDTH)
 	local distant = d.size * ns.Settings.defaults.cvars.minScale
@@ -110,6 +110,7 @@ do
 	end
 	local function Check(write, label, between)
 		local env, K, ns = N.New()
+		K.Options.Write("Nameplates", "debuffs.showTime", true)
 		for key, value in pairs(write) do
 			K.Options.Write("Nameplates", key, value)
 		end
@@ -154,7 +155,7 @@ do
 		assert(#env._errors == 0, tostring(env._errors[1]))
 		return env, plate, buttons
 	end
-	Check({}, "the defaults")
+	Check({}, "the time left on")
 	Check({ ["debuffs.rows"] = 2 }, "two rows")
 	Check({ ["debuffs.growthY"] = "DOWN" }, "growing down")
 	Check({ ["debuffs.rows"] = 2, ["debuffs.growthY"] = "DOWN", ["debuffs.size"] = 32 }, "two rows of 32 growing down")
@@ -235,7 +236,7 @@ end
 do
 	local problem, shown = PreviewOverlaps()
 	assert(not problem, "at the defaults, " .. tostring(problem))
-	assert(shown == 3, "the defaults show all three sample plates, not " .. shown)
+	assert(shown == 1, "the defaults show one sample plate, the richest that fits (KSTY-48), not " .. shown)
 	problem = PreviewOverlaps({ ["debuffs.rows"] = 2, ["debuffs.size"] = 32 })
 	assert(not problem, "with two rows of 32-unit icons, " .. tostring(problem))
 	problem = PreviewOverlaps({ ["debuffs.growthY"] = "DOWN" })

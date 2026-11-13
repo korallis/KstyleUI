@@ -11,7 +11,6 @@ local Cast = {}
 ns.Cast = Cast
 
 local GAP = Tokens.Size("gapTiny")
-local FRAME_GAP = 1.15
 local TEXT_INSET = Tokens.Size("gapSmall")
 local TIME_STEP = 0.1
 local INTERRUPT_FADE = 0.8
@@ -350,12 +349,10 @@ function Component.Build(plate)
 	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
-	plate.castBarOpts = { width = 100, height = 6, rimWidth = FRAME_GAP }
+	plate.castBarOpts = { width = 100, height = 6 }
 	local bar = ns.FlatBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar
-	cast:HookScript("OnShow", function() plate:OrnamentState("cast", true) end)
-	cast:HookScript("OnHide", function() plate:OrnamentState("cast", false) end)
 	local icon = cast:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = cast:CreateMaskTexture()
@@ -377,28 +374,23 @@ function Component.Build(plate)
 	time:SetJustifyH("RIGHT")
 	time:SetWordWrap(false)
 	plate.castTime = time
-	local block = plate.ornament
-	block.span, block.swaps = bar, true
-	block.avoid[#block.avoid + 1] = icon
-	block.texts[#block.texts + 1] = name
-	block.texts[#block.texts + 1] = time
-	block.reserve = { [name] = true, [time] = true }
 end
 
 function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	local px = Widgets.Snap(plate, FRAME_GAP)
-	return Settings.Get("cast.height") + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Snap(plate, FRAME_GAP) + px * 3
+	return Settings.Get("cast.height") + Cast.Gap(plate) + plate.castBar.rimOutset
+end
+
+function Cast.Gap(plate)
+	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + plate.castBar.rimPixel
 end
 
 function Cast.Place(plate)
-	local cast, health = plate.cast, plate.health
-	local px = plate.castBar.rimPixel
-	local gap = health.rimOutset + Widgets.Snap(plate, FRAME_GAP) + px
+	local cast = plate.cast
 	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", health, "BOTTOMLEFT", 0, -gap)
+	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, Cast.Gap(plate)))
 end
 
 function Component.Restyle(plate)
@@ -411,13 +403,13 @@ function Component.Restyle(plate)
 	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
 	icon:ClearAllPoints()
-	icon:SetPoint("LEFT", cast, "LEFT")
+	icon:SetPoint("TOPLEFT", cast, "TOPLEFT")
 	icon:SetShown(showIcon)
 	plate.castShield:SetShown(showIcon)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
 	bar:ClearAllPoints()
-	bar:SetPoint("RIGHT", cast, "RIGHT")
+	bar:SetPoint("TOPRIGHT", cast, "TOPRIGHT")
 	local orientation = Settings.Get("cast.orientation")
 	bar:SetOrientation(orientation)
 	bar.vertical = orientation == "VERTICAL"
@@ -428,11 +420,11 @@ function Component.Restyle(plate)
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime, "time")
 	plate.castName:ClearAllPoints()
-	plate.castName:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(plate, TEXT_INSET), 0)
+	ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
 	plate.castName:SetShown(Settings.Get("cast.showName"))
 	plate.castTime:ClearAllPoints()
-	plate.castTime:SetPoint("RIGHT", bar, "RIGHT", -Widgets.Snap(plate, TEXT_INSET), 0)
+	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 end
 
 function Component.Refresh(plate, immediate)

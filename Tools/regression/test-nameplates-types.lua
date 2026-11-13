@@ -1,4 +1,4 @@
--- test-nameplates-types.lua: enemy plates colour quest mobs, rares, elites and casters by type, a class-coloured bar keeps the name white, and the classification marker crowns the level badge.
+-- test-nameplates-types.lua: enemy plates colour quest mobs, rares, elites and casters by type, a class-coloured bar keeps the name white, and the classification marks the level diamond's rim, clear of the raid marker beyond the right bracket.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local SameColor = N.SameColor
 
@@ -71,8 +71,8 @@ do
 	N.Add(env, "nameplate1", { powerType = 0, powerMax = 2400 })
 	local caster = ns.Plates.Get("nameplate1")
 	assert(barIs(caster.health, setting(ns, "types.casterColor")), "a caster's bar takes the optional caster colour")
-	local er, eg, eb = caster.level.chrome.rim[1]:GetVertexColor()
-	assert(SameColor(er, eg, eb, setting(ns, "types.casterColor")), "and so does the level badge's rim")
+	local er, eg, eb = caster.level.rim:GetVertexColor()
+	assert(caster.rimWeight == 1 and SameColor(er, eg, eb, token(K, "gilt")), "the level diamond keeps its plain gilt rim: its rim carries rank, never the type colour")
 
 	N.Add(env, "nameplate2", { powerType = 0, powerMax = 0 })
 	assert(barIs(ns.Plates.Get("nameplate2").health, hr, hg, hb), "a melee mob with the mana type and no mana keeps the reaction colour")
@@ -106,10 +106,10 @@ do
 	local scout = ns.Plates.Get("nameplate2")
 	env._units.nameplate2.classification = "rare"
 	env.FireEvent("UNIT_CLASSIFICATION_CHANGED", "nameplate2")
-	assert(scout.marker:IsShown() and barIs(scout.health, setting(ns, "types.rareColor")), "UNIT_CLASSIFICATION_CHANGED recolours the bar with the marker")
+	assert(scout.rimWeight == 2 and barIs(scout.health, setting(ns, "types.rareColor")), "UNIT_CLASSIFICATION_CHANGED recolours the bar and marks the diamond")
 	env._units.nameplate2.classification = "normal"
 	env.FireEvent("UNIT_CLASSIFICATION_CHANGED", "nameplate2")
-	assert(barIs(scout.health, hr, hg, hb), "and back")
+	assert(barIs(scout.health, hr, hg, hb) and scout.rimWeight == 1, "and back")
 
 	-- The power type changes (a druid-like NPC shifting form): UNIT_DISPLAYPOWER rereads it.
 	env._units.nameplate2.powerMax = 900
@@ -167,20 +167,20 @@ do
 	N.CLASS.PALADIN = nil
 end
 
--- The elite diamond crowns the level badge, away from the raid marker at the bar's right end -----------
+-- The elite's mark is on the level diamond at the bar's left end, away from the raid marker at its right -------
 
 do
 	local env, K, ns = N.New()
 	K.Options.Write("Nameplates", "level.show", true)
 	N.Add(env, "nameplate1", { classification = "elite", raid = 8 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(plate.marker:IsShown() and plate.raid:IsShown(), "the elite shows its diamond and its raid marker")
-	local point, relative, relativePoint = plate.marker:GetPoint(1)
-	assert(relative == plate.level, "the diamond hangs from the level badge, not the health bar")
-	assert(point == "BOTTOM" and relativePoint == "TOP", "centred above the badge")
-	local _, raidRelative = plate.raid:GetPoint(1)
-	assert(raidRelative == plate.health, "the raid marker keeps the bar's right end to itself")
-	assert(N.Same(env.Look(plate.name:GetWidth()), K.Widgets.Snap(plate.name, ns.state.width + 40)), "the centred cap can overhang the bar without ellipsising a normal creature name")
+	assert(plate.level:IsShown() and plate.rimWeight == 2 and plate.raid:IsShown(), "the elite marks its diamond and shows its raid marker")
+	local _, relative, relativePoint = plate.level:GetPoint(1)
+	assert(relative == plate.health and relativePoint == "LEFT", "the diamond sits at the bar's left end")
+	local _, raidRelative, raidPoint, x = plate.raid:GetPoint(1)
+	assert(raidRelative == plate.health and raidPoint == "RIGHT", "the raid marker keeps the bar's right end to itself")
+	assert(x >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "beyond the right bracket, so it never moves when the plate becomes the target")
+	assert(N.Last(plate.name, "SetWidth")[1] == 0, "the centred cap is sized by its text, so a long creature name is never cut short")
 end
 
 print("nameplates types ok")

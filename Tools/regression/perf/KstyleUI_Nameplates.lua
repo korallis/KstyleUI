@@ -12,8 +12,9 @@ local CAST = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, n
 local ELITE = { name = "Bloodtalon Matriarch", level = 40, classification = "elite", reaction = 2, canAttack = true }
 local NORMAL = { name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true }
 
--- Forty() is forty positioned plates at Full that fire OnShow and OnHide as the game does, every fourth casting;
--- it fails when a plate places no ornament piece or shows the wrong set, so an empty fixture cannot time an empty path.
+-- Forty() is forty positioned plates that fire OnShow and OnHide as the game does, every fourth casting, with the
+-- target's brackets on nameplate40; it fails when a plate is missing its diamond or a cast does not show, so an empty
+-- fixture cannot time an empty path.
 local function Forty()
 	local env = N.New()
 	env.WorldFrame:SetPoint("TOPLEFT")
@@ -47,14 +48,11 @@ local function Forty()
 	env.RunTimers()
 	local ns = env._addons.KstyleUI_Nameplates
 	for i = 1, 40 do
-		local handle = ns.Plates.Get("nameplate" .. i).ornament
-		local shown = 0
-		for j = 1, handle.used do
-			if handle.textures[j]:IsShown() then shown = shown + 1 end
-		end
-		assert(shown > 0, "plate " .. i .. " of the cost fixture places no ornament piece at Full")
-		assert(handle.key == (i % 4 == 0), "plate " .. i .. " of the cost fixture shows its " .. (i % 4 == 0 and "casting" or "idle") .. " set")
+		local plate = ns.Plates.Get("nameplate" .. i)
+		assert(plate.level:IsShown(), "plate " .. i .. " of the cost fixture shows its level diamond")
+		assert(plate.cast:IsShown() == (i % 4 == 0), "plate " .. i .. " of the cost fixture is " .. (i % 4 == 0 and "casting" or "idle"))
 	end
+	assert(ns.Plates.Get("nameplate40").brackets:IsShown(), "the cost fixture's target shows its brackets")
 	return env, ns
 end
 
@@ -72,8 +70,10 @@ end
 
 return {
 	{
+		-- The health bar is Widgets.UnitBar now (KSTY-48): the band, the flash and the spark run per update. Lua 5.1
+		-- takes 3.05 us here at a load of 15, so the budget is ten times that.
 		name = "Nameplates UNIT_HEALTH",
-		budget = 15,
+		budget = 30,
 		setup = function()
 			local env = Plate()
 			return env, Perf.Event(env, "UNIT_HEALTH", "nameplate1")
@@ -190,10 +190,9 @@ return {
 		end,
 	},
 	{
-		-- A later cast on a plate at Full: the cast bar shows and hides, and the plate swaps between its kept idle and
-		-- casting ornament sets with region Show and Hide. Lua 5.1 takes 11 us here; re-placing the set on every cast
-		-- took 140 us, so this budget fails if the swap is lost.
-		name = "Nameplates cast start and stop on one plate at Full, later casts",
+		-- A later cast on a plate among forty: the cast bar shows and hides; the plate draws no ornament, so nothing
+		-- else is placed. Lua 5.1 took 11 us here while plates swapped ornament sets.
+		name = "Nameplates cast start and stop on one plate among forty, later casts",
 		budget = 110,
 		calls = 200,
 		setup = function()
@@ -204,10 +203,10 @@ return {
 		end,
 	},
 	{
-		-- The first cast after a change: a raid mark moves onto the plate, which re-places its idle set and drops the
-		-- casting set, then the cast places the casting set once. Lua 5.1 takes 133 us here.
-		name = "Nameplates raid mark onto a plate at Full, then its first cast",
-		budget = 1300,
+		-- A raid mark moves onto a plate among forty, then the plate casts. Lua 5.1 took 133 us here while the mark
+		-- re-placed the plate's ornament set, and 24 us without it, so the budget is twelve times that.
+		name = "Nameplates raid mark onto a plate among forty, then its first cast",
+		budget = 300,
 		calls = 50,
 		setup = function()
 			local env, ns = Forty()
@@ -223,11 +222,11 @@ return {
 		end,
 	},
 	{
-		-- A pull at Full: forty plates leave and forty arrive, sixteen of them changing rank. Lua 5.1 takes 2350 us
-		-- here (1310 at Off). Since plates place their ornaments from their recorded layout (the game will not measure
-		-- a plate), it takes 4140 us at a load of 9.5, about 100 us a plate, so the budget is ten times that.
-		name = "Nameplates forty-plate pull at Full",
-		budget = 47500,
+		-- A pull: forty plates leave and forty arrive, sixteen of them changing rank, which only re-rims their level
+		-- diamonds. Lua 5.1 took 4140 us here while plates placed their ornaments, and takes 1685 us without them at a
+		-- load of 7, so the budget is ten times that.
+		name = "Nameplates forty-plate pull",
+		budget = 17000,
 		calls = 4,
 		setup = function()
 			local env = Forty()
@@ -246,6 +245,24 @@ return {
 					env._units[tokens[i]] = units[i][flip and 2 or 1]
 					adds[i]()
 				end
+			end
+		end,
+	},
+	{
+		-- The bible's target change (KSTY-48): the new target's brackets show and close in, the old target's hide,
+		-- and no plate, bar, name, diamond or marker is placed again. Lua 5.1 takes 92 us here at a load of 7, so the
+		-- budget is the Captain's 1 ms for a state change, eleven times that.
+		name = "Nameplates target change between two plates among forty, brackets",
+		budget = 1000,
+		calls = 200,
+		setup = function()
+			local env = Forty()
+			local fire = Perf.Event(env, "PLAYER_TARGET_CHANGED")
+			local flip = false
+			return env, function()
+				flip = not flip
+				env._targetUnit = flip and "nameplate1" or "nameplate40"
+				fire()
 			end
 		end,
 	},

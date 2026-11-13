@@ -80,13 +80,15 @@ do
 	assert(Tiled(K, button, button._aura.icon), "the icon has a square black border and no mask")
 	assert(N.Last(button, "EnableMouse")[1] == false, "debuff buttons let clicks through to the world, as Blizzard's plate auras do")
 
-	-- The flow layout: icons grow right and up from above the name, wrapping after the columns.
+	-- The flow layout: the KSTY-44 bible puts the effect over the bar's right end, so icons grow left and up
+	-- from above the name, wrapping after the columns.
 	local flow = container._flow
-	assert(flow.anchor == "BOTTOMLEFT", "growing right and up anchors the bottom left")
-	assert(flow.horizontal == env.AnchorUtil.FlowDirection.Right and flow.vertical == env.AnchorUtil.FlowDirection.Up)
+	assert(flow.anchor == "BOTTOMRIGHT", "growing left and up anchors the bottom right")
+	assert(flow.horizontal == env.AnchorUtil.FlowDirection.Left and flow.vertical == env.AnchorUtil.FlowDirection.Up)
 	local columns, spacing = ns.Settings.Get("debuffs.columns"), ns.Settings.Get("debuffs.spacing")
 	assert(math.abs(flow.lineSize - (columns * size + (columns - 1) * spacing)) < 1, "a line holds exactly the columns")
-	assert(container:GetPoint(1) == "BOTTOMLEFT", "the container hangs from its growth corner")
+	local corner, relative, relativePoint = container:GetPoint(1)
+	assert(corner == "BOTTOMRIGHT" and relative == plate.health and relativePoint == "TOPRIGHT", "the container hangs from its growth corner over the bar's right end")
 
 	N.Remove(env, "nameplate1")
 	assert(container._unit == "none", "a detached plate's container lets go of the unit")
@@ -102,11 +104,19 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	local button = group(plate).frames[1]
 	local aura = button._aura
-	assert(Tiled(K, button, aura.icon), "a debuff is square with a one-pixel dark border")
+	assert(Tiled(K, button, aura.icon), "a debuff is square with a dark border")
 	assert(N.Last(aura.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("barFlat"), "the cooldown swipe has the icon's square shape")
 	local inset = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(button)
 	local point, _, _, x, y = aura.icon:GetPoint(1)
-	assert(point == "TOPLEFT" and x == inset and y == -inset, "the icon sits one border line inside the tile")
+	assert(point == "TOPLEFT" and N.Same(x, inset * 3) and N.Same(y, -inset * 3), "the icon sits inside the bible's harmful rim: black, red, black, one pixel each")
+	local rings = {}
+	for _, object in ipairs(A.Descendants(button)) do
+		local color = object:GetObjectType() == "Texture" and object ~= aura.icon and N.Last(object, "SetColorTexture")
+		if color and N.SameColor(color[1], color[2], color[3], K.Tokens.Color("hostile")) then
+			rings[#rings + 1] = object
+		end
+	end
+	assert(#rings == 1 and N.Same(select(4, rings[1]:GetPoint(1)), inset), "one red ring, one pixel in")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

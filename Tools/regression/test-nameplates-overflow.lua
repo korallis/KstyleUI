@@ -46,9 +46,9 @@ do
 	-- as the container is (an aura container forbids layout on anything anchored to it).
 	local point, relative, relativePoint, x, y = env.Look(chip.window:GetPoint(1))
 	local size, spacing = ns.Auras.Grid(plate)
-	assert(relative == plate.health and point == "BOTTOMLEFT" and relativePoint == "TOPLEFT", "the chip hangs from the bar as the container does")
+	assert(relative == plate.health and point == "BOTTOMRIGHT" and relativePoint == "TOPRIGHT", "the chip hangs from the bar as the container does")
 	local _, containerRelative, _, cx, cy = env.Look(plate.auras:GetPoint(1))
-	assert(containerRelative == plate.health and N.Same(x - cx, 5 * size + 5 * spacing) and N.Same(y, cy), "one tile pitch past the fifth tile, level with the row, got " .. tostring(x - cx))
+	assert(containerRelative == plate.health and N.Same(cx - x, 5 * size + 5 * spacing) and N.Same(y, cy), "one tile pitch past the fifth tile, the row growing left from the bar's right end, level with the row, got " .. tostring(cx - x))
 	assert(N.Same(env.Look(chip.window:GetHeight()), size) and N.Same(env.Look(chip.window:GetWidth()), size), "a tile's size")
 
 	N.Debuffs(env, "nameplate1", 17)

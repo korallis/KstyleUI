@@ -31,11 +31,14 @@ do
 	-- 768 / 1080, both are the same and the footprint is 209 units wide.
 	local ratio = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local w, h = size(env)
-	-- The bar, the 34-unit badge and a 16-unit raid marker with its gap. The picture's width replaced 154.
-	local width = ns.state.width
-	local WIDE = math.ceil((width + 34 + 16 + K.Tokens.Size("gapSmall")) * ratio)
-	local BARE = math.ceil((width + 34) * ratio)
-	assert(w == WIDE, "the base is as wide as the bar, the level badge and the raid marker's room, got " .. tostring(w))
+	-- The bar, the level diamond beyond the left bracket and the name's overhang at the right, which is wider than
+	-- the raid marker beyond the right bracket (the KSTY-44 bible's plate).
+	local width, Plate = ns.state.width, ns.Plate
+	local raidRoom = Plate.BRACKET_REACH + 16
+	local NAMED = math.ceil((width + Plate.DiamondReach(ns.Preview.samplePlate) + math.max(Plate.NAME_OVERHANG, raidRoom)) * ratio)
+	local WIDE = math.ceil((width + Plate.DiamondReach(ns.Preview.samplePlate) + raidRoom) * ratio)
+	local BARE = math.ceil((width + Plate.DiamondReach(ns.Preview.samplePlate) + Plate.BRACKET_REACH) * ratio)
+	assert(w == NAMED, "the base is as wide as the bar, the level diamond and the name's overhang, got " .. tostring(w))
 	local sample = ns.Preview.samplePlate
 	local _, above, _, below = ns.Stacking.Extent()
 	assert(h == math.ceil((above + ns.state.height + below) * ratio), "and as tall as the plate with one row of debuffs, got " .. tostring(h))
@@ -49,7 +52,7 @@ do
 	env.SetCombat(false)
 	assert(#env._plateSizeWrites == writes + 1, "the write runs when combat ends")
 	local auraWidth, taller = size(env)
-	assert(auraWidth > WIDE, "a wide aura row and its overflow chip grow the horizontal footprint too")
+	assert(auraWidth > NAMED, "a wide aura row and its overflow chip grow the horizontal footprint too")
 	assert(taller > h and taller <= h + math.ceil(8 * ratio), "larger debuffs make a taller footprint, got " .. tostring(taller) .. " from " .. tostring(h))
 
 	-- Every row of debuffs counts, so a second row never runs into the plate above (the owner's rule).
@@ -65,17 +68,17 @@ do
 	assert(w == auraWidth and h == taller, "after the driver's own update the whole resized footprint is back")
 
 	-- With the name, the cast bar and the debuffs off, the footprint is still never shorter than the level
-	-- badge and its diamond, and the raid marker's room counts toward the width.
+	-- diamond, and the raid marker's room beyond the right bracket counts toward the width.
 	K.Options.Write("Nameplates", "name.show", false)
 	K.Options.Write("Nameplates", "cast.enabled", false)
 	K.Options.Write("Nameplates", "debuffs.enabled", false)
 	w, h = size(env)
-	local badge = sample.level:GetHeight()
-	local crown = 12 + K.Tokens.Size("gapTiny")
-	assert(h == math.ceil((badge + crown) * ratio), "the footprint covers the badge and the diamond above it, got " .. tostring(h) .. " for a badge of " .. tostring(badge))
+	local _ = sample
+	assert(h == math.ceil(Plate.DiamondSize(sample) * ratio), "the footprint covers the level diamond, got " .. tostring(h))
+	assert(N.Same(env.Look(sample.level:GetHeight()), Plate.DiamondSize(sample)), "the drawn diamond is that height")
 	assert(w == WIDE, "and the raid marker's room, got " .. tostring(w))
 	K.Options.Write("Nameplates", "markers.raid", false)
-	assert(size(env) == BARE, "raid markers off: the bar and the badge alone, got " .. tostring(size(env)))
+	assert(size(env) == BARE, "raid markers off: the bar, the diamond and the brackets alone, got " .. tostring(size(env)))
 	K.Options.Write("Nameplates", "markers.raid", true)
 	K.Options.Write("Nameplates", "name.show", true)
 	K.Options.Write("Nameplates", "cast.enabled", true)

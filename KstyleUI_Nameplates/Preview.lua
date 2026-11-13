@@ -8,7 +8,6 @@ local Settings, Plates = ns.Settings, ns.Plates
 local Preview = {}
 ns.Preview = Preview
 
-local ROW_GAP = 12
 local SAMPLE_Y = 160
 local SIZE_LIMITS = { minWidth = 40, maxWidth = 320, minHeight = 4, maxHeight = 40 }
 
@@ -29,39 +28,53 @@ Preview.SAMPLES = {
 	},
 }
 
+local function Span(plate)
+	local w, above, h, below = ns.Stacking.Extent(plate)
+	if not w then
+		return nil
+	end
+	local side = w - ns.state.width
+	return ns.state.width + side * 2, above + h + below, side, above
+end
+
 local function Stack(frame)
-	local only = frame.only
-	if only then
-		local plate = frame.plates[only]
-		local up, down = ns.Auras.Extent(plate)
-		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
-		for i, other in ipairs(frame.plates) do
-			local holder = other:GetParent()
-			holder:ClearAllPoints()
-			holder:SetPoint("CENTER", frame, "CENTER", 0, (math.max(down, overhang) - math.max(up, overhang)) / 2)
-			holder:SetShown(i == only)
+	local width, height = frame:GetWidth(), frame:GetHeight()
+	local known = type(width) == "number" and width > 0 and type(height) == "number" and height > 0
+	local chosen, smallest
+	for i, plate in ipairs(frame.plates) do
+		local w, h = Span(plate)
+		if not known or (w and w <= width and h <= height) then
+			chosen = i
+			break
 		end
-		return
+		local share = w and math.min(width / w, height / h)
+		if share and (not smallest or share > smallest) then
+			chosen, smallest = i, share
+		end
 	end
-	local above, below = 0, 0
-	for _, plate in ipairs(frame.plates) do
-		local up, down = ns.Auras.Extent(plate)
-		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
-		above = math.max(above, up, overhang)
-		below = math.max(below, down, overhang)
-	end
-	local pitch = above + ns.state.height + below + ROW_GAP
-	local count = #frame.plates
-	local room = frame:GetHeight()
-	if type(room) == "number" and room > 0 then
-		count = math.max(1, math.min(count, math.floor((room + ROW_GAP) / pitch)))
-	end
+	chosen = chosen or 1
 	for i, plate in ipairs(frame.plates) do
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()
-		holder:SetPoint("CENTER", frame, "CENTER", 0, ((count + 1) / 2 - i) * pitch + (below - above) / 2)
-		holder:SetShown(i <= count)
+		if i == chosen then
+			local w, h, side, above = Span(plate)
+			local scale = 1
+			if known and w then
+				scale = math.min(1, width / w, height / h)
+			end
+			holder:SetScale(scale)
+			if w then
+				K.Widgets.Size(holder, w, h)
+				K.Widgets.Point(holder, "CENTER", frame, "CENTER")
+				plate:ClearAllPoints()
+				plate:SetPoint("TOPLEFT", holder, "TOPLEFT", K.Widgets.Snap(plate, side), -K.Widgets.Snap(plate, above))
+			else
+				holder:SetPoint("CENTER", frame, "CENTER")
+			end
+		end
+		holder:SetShown(i == chosen)
 	end
+	frame.chosen = chosen
 end
 
 function Preview.Build(parent)
@@ -76,26 +89,6 @@ function Preview.Build(parent)
 	end
 	Stack(frame)
 	frame:SetScript("OnSizeChanged", Stack)
-	frame.choices = #frame.plates
-	function frame.Choose(self, i)
-		self.only = i
-		Stack(self)
-	end
-	function frame.Name(self, i)
-		return self.plates[i].name
-	end
-	function frame.Whole(self, i)
-		local handle = self.plates[i].ornament
-		local ends = 0
-		for j = 1, handle.used do
-			local texture = handle.textures[j]
-			local file = texture:IsVisible() and texture:GetTexture()
-			if type(file) == "string" and file:find("ForgedOrnaments\\End") then
-				ends = ends + 1
-			end
-		end
-		return ends == 2
-	end
 	function frame.Refresh()
 		Settings.Invalidate()
 		if not Plates.running then

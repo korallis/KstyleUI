@@ -15,9 +15,9 @@ local GROUP = "debuffs"
 local OVERFLOW_MAX = 16
 local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
-local NAME_GAP = Tokens.Size("gapSmall")
+local NAME_GAP = Tokens.Size("gapMedium")
 local ICON_CROP = 0.07
-local ICON_INSET_LINES = 1
+local RINGS = { "black", "hostile", "black" }
 local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
@@ -104,20 +104,30 @@ end
 local function NewTile(owner)
 	local skin = CreateFrame("Frame", nil, owner)
 	skin:SetAllPoints(owner)
-	local border = Widgets.Crisp(skin:CreateTexture(nil, "BACKGROUND"))
-	border:SetAllPoints(skin)
-	border:SetColorTexture(Tokens.Color("black"))
+	local rings = {}
+	for i, color in ipairs(RINGS) do
+		local ring = Widgets.Crisp(skin:CreateTexture(nil, "BACKGROUND", nil, i))
+		ring:SetColorTexture(Tokens.Color(color))
+		rings[i] = ring
+	end
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	return { skin = skin, icon = icon }
+	return { skin = skin, icon = icon, rings = rings }
+end
+
+local function Inset(region, skin, inset)
+	region:ClearAllPoints()
+	region:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
+	region:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
 end
 
 local function LayoutTile(tile)
-	local skin, icon = tile.skin, tile.icon
-	local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(skin) * ICON_INSET_LINES
-	icon:ClearAllPoints()
-	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
-	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+	local skin = tile.skin
+	local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(skin)
+	for i, ring in ipairs(tile.rings) do
+		Inset(ring, skin, px * (i - 1))
+	end
+	Inset(tile.icon, skin, px * #tile.rings)
 end
 
 local function StyleButton(button)
@@ -337,7 +347,7 @@ end
 local function Anchor(plate, frame, anchor)
 	local relPoint, y = AnchorTo(plate, anchor)
 	frame:ClearAllPoints()
-	frame:SetPoint(anchor, plate.health, relPoint, 0, y)
+	frame:SetPoint(anchor, plate.health, relPoint, 0, Widgets.Snap(plate, y))
 end
 
 function Auras.Extent(plate, rowsCap)
