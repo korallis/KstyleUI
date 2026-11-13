@@ -536,10 +536,10 @@ do
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
 	assert(K.Store.Module("DataBars").strip.menus == false, "Apply leaves the menu and the bags out of the readout line (LEE-20)")
-	assert(group.party.height == 46 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
+	assert(group.party.height == 43 and group.raid.height == 36 and group.raid.groupsPerRow == 4 and group.raid.width == 72, "Healer writes taller party rows, four groups a row, and leaves the raid width the player chose")
 	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")
 	assert(K.Setup.Apply({ layout = "Tank", modules = { ActionBars = true, Meters = true, GroupFrames = true } }))
-	assert(K.Store.Module("Meters").threat.shown == true and K.Store.Module("GroupFrames").party.height == 40, "Tank shows the threat card and puts the party back to 40")
+	assert(K.Store.Module("Meters").threat.shown == true and K.Store.Module("GroupFrames").party.height == 39, "Tank shows the threat card and puts the party back to 39")
 	assert(K.Layout.Setting("preset") == "Tank")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

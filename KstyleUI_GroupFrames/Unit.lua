@@ -490,6 +490,24 @@ local function PartyCount()
 		count = nil
 	end
 	Headers.SetPartyCount(count)
+	if Headers.SetRaidCount then
+		Headers.SetRaidCount(count, Unit.HighestGroup(count))
+	end
+end
+
+function Unit.HighestGroup(count)
+	if not count or type(GetRaidRosterInfo) ~= "function" then
+		return nil
+	end
+	local highest
+	for i = 1, count do
+		local _, _, group = GetRaidRosterInfo(i)
+		if IsSecret(group) or type(group) ~= "number" then
+			return nil
+		end
+		highest = math.max(highest or 0, group)
+	end
+	return highest
 end
 Unit.PartyCount = PartyCount
 

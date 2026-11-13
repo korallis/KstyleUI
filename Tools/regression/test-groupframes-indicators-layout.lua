@@ -1,17 +1,20 @@
--- test-groupframes-indicators-layout.lua: the role icon, the leader icon, the raid marker and the health text never overlap on a group frame, resolved by the renderer's anchor solver at the default, smallest and largest party and raid frame sizes.
+-- test-groupframes-indicators-layout.lua: the role icon (KSTY-57: the role pip), the leader icon, the raid marker and the health text never overlap on a group frame, resolved by the renderer's anchor solver at the default, smallest and largest party and raid frame sizes.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
 local SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
 local SIZES = {
-	{ label = "default", party = { width = 230, height = 46 }, raid = { width = 72, height = 40 } },
+	{ label = "default", party = { width = 259, height = 39 }, raid = { width = 116, height = 36 } },
 	{ label = "smallest", party = { width = 40, height = 16 }, raid = { width = 40, height = 16 } },
 	{ label = "largest", party = { width = 400, height = 120 }, raid = { width = 400, height = 120 } },
 }
 local INDICATORS = { "role", "leader", "marker", "healthText" }
 
-local function saved(kind, size)
+local function saved(kind, size, extra)
 	local settings = { enabled = true, [kind] = { width = size.width, height = size.height, healthText = "PERCENT" } }
+	for key, value in pairs(extra or {}) do
+		settings[kind][key] = value
+	end
 	return { version = 2, profiles = { Default = { GroupFrames = settings } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 end
 
@@ -43,8 +46,8 @@ local function describe(r)
 end
 
 -- One frame of the kind at the size: the leader, a tank, marked with the skull, at 82% health.
-local function frame(kind, size)
-	local opts = { width = SCREEN.width, height = SCREEN.height, uiScale = SCREEN.uiScale, saved = saved(kind, size) }
+local function frame(kind, size, extra)
+	local opts = { width = SCREEN.width, height = SCREEN.height, uiScale = SCREEN.uiScale, saved = saved(kind, size, extra) }
 	local env, K, ns = G.New(opts)
 	local member = { name = "Thaldren", class = "WARRIOR", role = "TANK", leader = true, marker = 8, health = 82, maxHealth = 100 }
 	local unit
@@ -81,7 +84,7 @@ for _, size in ipairs(SIZES) do
 			list = { "leader", "marker", "healthText" }
 		end
 		for _, name in ipairs(list) do
-			local region = f[name]
+			local region = (name == "role" and f.pipped) and f.pipEdge or f[name]
 			assert(region:IsShown(), what .. ": the " .. name .. " shows")
 			local item = find(scene, region)
 			assert(item, what .. ": the renderer draws the " .. name)
@@ -115,9 +118,10 @@ for _, size in ipairs(SIZES) do
 end
 
 -- A frame that grows back from the smallest size to the default loses the narrowed health text width the
--- on-the-bar layout gave it, so the text draws at its natural width again above the bar.
+-- on-the-bar layout gave it, so the text draws at its natural width again above the bar (with a portrait, the layout
+-- KSTY-57's lanes left a choice).
 do
-	local env, f, ns = frame("party", SIZES[2].party)
+	local env, f, ns = frame("party", SIZES[2].party, { portrait = true })
 	local Style = ns.Style
 	local narrowed = f.healthText._width
 	assert(narrowed and narrowed > 0, "the smallest party frame narrows its health text")

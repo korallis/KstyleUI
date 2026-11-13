@@ -30,7 +30,7 @@ return function(screens)
 				ns.Unit.ForEach(function(f)
 					if f.kind == "party" and f.unit then
 						local path, size = f.name:GetFont()
-						assert(path == ns.Settings.COMPACT_NAME_FONT, context .. ": the captioned group keeps its measured compact face")
+						assert(path == (K.Tokens.Font("names")) or path == ns.Settings.COMPACT_NAME_FONT, context .. ": the names face where the twelve-letter name fits, else the measured compact face (KSTY-57's uncaptioned lanes)")
 						assert(not sharedSize or math.abs(sharedSize - size) < 0.00001, context .. ": one size across the entire group")
 						assert(f.name:GetText() == NAME, context .. ": the twelve-letter name stays whole")
 						assert(ns.Names.Width(f.name, NAME, size) <= f.nameWidth + f.nameFit.slack, context .. ": the full advance fits its snapped lane")

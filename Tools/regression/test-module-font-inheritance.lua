@@ -59,7 +59,9 @@ collectgarbage("collect")
 
 do
 	local G = dofile("Tools/regression/group_env.lua")
-	local env, K, ns = G.New()
+	local Looks = dofile("Tools/regression/group_looks.lua")
+	-- The captioned rows of KSTY-31's party card keep the compact kit face; KSTY-57's bare rows take names.
+	local env, K, ns = G.New({ saved = Looks.Saved(Looks.PARTY_CARD) })
 	G.SetRoster(env, "party", { { name = "Tester", class = "WARRIOR", health = 80, maxHealth = 100 } })
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()

@@ -19,13 +19,37 @@ eq(K.Modules.IsRunning("GroupFrames"), false, "GroupFrames does not run until it
 -- The footprints from element-keys.md are the defaults.
 local d = K.Store.Defaults("GroupFrames")
 assert(type(d) == "table", "GroupFrames registers its defaults")
-eq(d.party.width, 278, "party width default: the 318 card inside its 20 padding")
-eq(d.party.height, 40, "party height default: a name line over the class pill")
-eq(d.party.spacing, 8, "party spacing default: the Lumen row gap")
-eq(d.raid.width, 72, "raid width default")
-eq(d.raid.height, 40, "raid height default")
-eq(d.raid.spacing, 3, "raid spacing default")
+eq(d.party.width, 259, "party width default: the mock-up's 194 row and its 65-unit debuff lane")
+eq(d.party.height, 39, "party height default: the name line, a 12-unit bar and a 3-unit power line")
+eq(d.party.spacing, 13, "party spacing default: the mock-up's 52-unit pitch")
+eq(d.party.card, false, "the party stands bare on the world")
+eq(d.raid.width, 116, "raid width default: the 20-player mock-up's cell")
+eq(d.raid.height, 36, "raid height default: the name line, an 11-unit bar and a 2-unit power line")
+eq(d.raid.spacing, 9, "raid spacing default: the mock-up's 45-unit pitch")
+eq(d.raid.groupSpacing, 13, "raid group spacing default: the mock-up's gap between groups")
 eq(d.raid.groupsPerRow, 8, "raid groups per row default")
+eq(d.raid.card, true, "the raid sits in a card")
+
+-- KSTY-57: the class caption and the health text's place only reach a party frame with a portrait, so the rows
+-- offer them only there; a row keeps the percent on its name line.
+do
+	local find = {}
+	for _, row in ipairs(K.Options.Get("GroupFrames")) do
+		if row.key then
+			find[row.key] = row
+		end
+	end
+	local function shown(key, settings)
+		return find[key].showWhen(settings) == true
+	end
+	local rows = { party = { portrait = false, healthText = "PERCENT", textLayout = "ABOVE" }, raid = { portrait = false, healthText = "PERCENT", textLayout = "ABOVE" } }
+	local portrait = { party = { portrait = true, healthText = "PERCENT", textLayout = "ABOVE" }, raid = rows.raid }
+	for _, key in ipairs({ "classLine", "healthTextPlace" }) do
+		eq(shown("party." .. key, rows), false, "party." .. key .. " hides on a party row")
+		eq(shown("party." .. key, portrait), true, "party." .. key .. " shows with the portrait")
+		eq(shown("raid." .. key, portrait), false, "raid." .. key .. " never shows: a raid frame is a row")
+	end
+end
 
 -- Every default has a schema row, and every schema row's key has a default.
 local schema = K.Options.Get("GroupFrames")

@@ -1,4 +1,4 @@
--- test-groupframes-lanes.lua: every signal on a group frame keeps its own room. Your heals sit in a lane that never crosses the party name or bar, and the six indicator slots take places that overlap no other indicator, the name row, the portrait, the debuff block or your heals, at party and raid sizes; a slot with no room left turns off, in the frame and in the preview alike.
+-- test-groupframes-lanes.lua: every signal on a group frame keeps its own room. Your heals sit in a lane that never crosses the party name or bar, and the six indicator slots take places that overlap no other indicator, the name's head, the role pip, the percent, the portrait, the debuff block or your heals, at party and raid sizes; in KSTY-57's lanes the first three take the indicator lane at the name row's end, covering only the name's tail while they show; a slot with no room left turns off, in the frame and in the preview alike.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -66,7 +66,15 @@ end
 local function Reserved(e, f, ns)
 	local parts, out = f.parts, {}
 	if parts.overlay then
-		out.name = Part(e, f, parts.name)
+		-- KSTY-57: the indicator lane covers the name's tail while an indicator shows; the head stays clear, and so do
+		-- the role pip and the power line.
+		local name, lane = parts.name, parts.lane
+		local head = lane and math.min(name.width, lane.left - name.left) or name.width
+		out.name = Part(e, f, { left = name.left, top = name.top, width = head, height = name.height })
+		out.pip = Part(e, f, parts.icons.role)
+		if parts.power then
+			out.power = Part(e, f, parts.power)
+		end
 	elseif not parts.nameInside then
 		-- Round 6 (Opus): the name lane's last line of slack under the glyphs is free, so a party indicator may sit
 		-- one unit under the name text and reach a legible 12 units between the name and the pill.
@@ -222,12 +230,12 @@ do
 		settings[#settings + 1] = { "indicator" .. i .. ".size", 14 }
 	end
 	Batch(env, K, settings)
-	-- A helpful indicator never paints on the fill outside the status lane (round 6, Astra #2): the first two take the
-	-- lane, the others find no room off the bar and turn off; a harmful one, crowd control, may sit on the bar as the
-	-- debuffs do.
+	-- A helpful indicator never paints on the fill (round 6, Astra #2): KSTY-57's first three take the indicator lane
+	-- at the name row's end, the others find no room off the bar and turn off; a harmful one, crowd control, may sit
+	-- on the bar as the debuffs do.
 	local helpful = ns.Slots.Placements(sample)
-	eq(helpful[1].fits and helpful[2].fits, true, "preview: two helpful indicators take the raid tile's status lane")
-	eq(helpful[3].fits, false, "preview: a third helpful indicator turns off rather than paint on the fill")
+	eq(helpful[1].fits and helpful[2].fits and helpful[3].fits, true, "preview: three helpful indicators take the indicator lane")
+	eq(helpful[4].fits, false, "preview: a fourth helpful indicator turns off rather than paint on the fill")
 	for i = 1, 6 do
 		settings[(i - 1) * 3 + 1] = { "indicator" .. i .. ".category", "CROWD_CONTROL" }
 	end
@@ -251,12 +259,12 @@ do
 		end
 	end
 	assert(placed[1], "preview: the first slot fits a raid tile")
-	Batch(env, K, { { "raid.width", 72 }, { "raid.height", 40 } })
+	Batch(env, K, { { "raid.width", 116 }, { "raid.height", 36 } })
 end
 
--- Raid: round 6 (Astra #2) gave a 72 by 40 tile a status lane over its role icon and marker, so its three default
--- indicators are on, the two defensives in the lane and crowd control under the boss slot; a larger tile places them
--- too, a harmful one on the bar, a helpful one only in the lane.
+-- Raid: KSTY-57's lanes give the default tile an indicator lane at the name row's end, so its three default
+-- indicators are on, off the bar; a larger tile places them too, a harmful one on the bar, a helpful one only in the
+-- lane.
 do
 	local renv, RK, rns = G.New()
 	G.SetRoster(renv, "raid", G.Members(5))
@@ -266,12 +274,12 @@ do
 	local heals = { Scene.Rect(renv, f.buffClip) }
 	assert(not intersects(heals, Part(renv, f, f.parts.name)), "raid: your heals stay off the name row")
 	assert(not intersects(heals, { Scene.Rect(renv, f.auraClip) }), "raid: and off the debuffs")
-	local placed = Indicators(renv, rns, f, "raid 72 by 40")
+	local placed = Indicators(renv, rns, f, "raid default")
 	local n = 0
 	for _ in pairs(placed) do
 		n = n + 1
 	end
-	eq(n, 3, "raid 72 by 40: the three default indicators are on")
+	eq(n, 3, "raid default: the three default indicators are on")
 	Batch(renv, RK, { { "raid.width", BIG.width }, { "raid.height", BIG.height } })
 	Sweep(renv, RK, rns, f, "raid " .. BIG.width .. " by " .. BIG.height, 3, "CROWD_CONTROL")
 	eq(#renv._errors, 0, tostring(renv._errors[1]))

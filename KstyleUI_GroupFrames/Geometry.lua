@@ -104,6 +104,17 @@ function Geometry.Card(geo, cap)
 	return geo.width + 2 * CARD_PAD, geo.height + CARD_PAD + cap + CARD_GAP + CARD_PAD, CARD_PAD, CARD_PAD + cap + CARD_GAP
 end
 
+function Geometry.CardOffset(corner, left, top, lane)
+	local x, y = left + (lane or 0), -top
+	if corner:find("RIGHT", 1, true) then
+		x = -x
+	end
+	if corner:find("BOTTOM", 1, true) then
+		y = CARD_PAD
+	end
+	return x, y
+end
+
 local AURA_SIDES = { OUTSIDE_RIGHT = true, OUTSIDE_LEFT = true }
 local LANE_KEEPS = 2
 local SNAP_SLACK = 1
@@ -164,11 +175,12 @@ function Geometry.PartyCard(s, cap, shown)
 	return Geometry.Card({ width = w, height = h }, cap)
 end
 
-function Geometry.RaidGroups(s)
+function Geometry.RaidGroups(s, shown)
 	local member, group = Clean(s.growth), Clean(s.groupGrowth, "RIGHT")
 	local wrap = Geometry.Wrap(member, group)
+	shown = floor(Clamp(shown or RAID_GROUPS, 1, RAID_GROUPS))
 	local per = floor(Clamp(s.groupsPerRow, 1, RAID_GROUPS))
-	local rows = ceil(RAID_GROUPS / per)
+	local rows = ceil(shown / per)
 	local gw, gh = Block(member, GROUP_SIZE, s.width, s.height, s.spacing)
 	local gap = s.groupSpacing
 	local alongGroup = GROWTH[group].vertical and gh or gw
@@ -180,7 +192,7 @@ function Geometry.RaidGroups(s)
 		local bx, by = Geometry.Offset(wrap, row * (alongWrap + gap))
 		slots[g + 1] = { x = ax + bx, y = ay + by }
 	end
-	local extentGroup, extentWrap = Line(per, alongGroup, gap), Line(rows, alongWrap, gap)
+	local extentGroup, extentWrap = Line(min(per, shown), alongGroup, gap), Line(rows, alongWrap, gap)
 	local w, h
 	if GROWTH[group].vertical then
 		w, h = extentWrap, extentGroup
@@ -191,17 +203,18 @@ function Geometry.RaidGroups(s)
 	return { width = w, height = h, slots = slots, corner = Geometry.Corner(member, group), point = point, xOffset = x, yOffset = y }
 end
 
-function Geometry.RaidFlow(s)
+function Geometry.RaidFlow(s, members)
 	local member = Clean(s.growth)
 	local group = Geometry.Perpendicular(member, s.groupGrowth)
 	local per = floor(Clamp(s.unitsPerColumn, 1, RAID_MAX))
 	local columns = ceil(RAID_MAX / per)
+	local shownColumns = ceil(floor(Clamp(members or RAID_MAX, 1, RAID_MAX)) / per)
 	local cw, ch = Block(member, per, s.width, s.height, s.spacing)
 	local w, h
 	if GROWTH[group].vertical then
-		w, h = cw, Line(columns, ch, s.groupSpacing)
+		w, h = cw, Line(min(columns, shownColumns), ch, s.groupSpacing)
 	else
-		w, h = Line(columns, cw, s.groupSpacing), ch
+		w, h = Line(min(columns, shownColumns), cw, s.groupSpacing), ch
 	end
 	local point, x, y = Geometry.Grow(member, s.spacing)
 	return {
@@ -229,11 +242,17 @@ local INSET = Tokens.Size("gapTiny")
 local BAR_GAP = 1
 local BLOCK_SHARE = 0.45
 local LEGIBLE = 12
-local LANE_SLOTS = 2
+local LANE_SLOTS = 3
+local NAME_GAP = Tokens.Size("gapSmall")
+local POWER_GAP = 3
+local EDGE = Tokens.Size("gapTiny")
 Geometry.MIN_ICON = MIN_ICON
 Geometry.INSET = INSET
 Geometry.LEGIBLE = LEGIBLE
 Geometry.LANE_SLOTS = LANE_SLOTS
+Geometry.NAME_GAP = NAME_GAP
+Geometry.POWER_GAP = POWER_GAP
+Geometry.EDGE = EDGE
 local Overlay
 local NAME_EM = 5.6
 
@@ -264,7 +283,7 @@ local function HealsOnName(out, o, textLeft, textRight, keep, gap)
 		return textRight
 	end
 	local width = Line(count, size, spacing)
-	out.healRow = Rect(textRight - width, name.top + (name.height - size) / 2, width, size)
+	out.healRow = Rect(textRight - width, name.top + Whole((name.height - size) / 2, o.pixel), width, size)
 	out.healRow.side = "RIGHT"
 	return textRight - width - gap
 end
@@ -479,86 +498,77 @@ local function OverlayBlock(a, bar, room, px)
 end
 
 function Overlay(w, h, o)
-	local inset, gap = INSET, Tokens.Size("gapTiny")
+	local gap = Tokens.Size("gapTiny")
 	local out = { nameInside = false, overlay = true }
-	local left, width = inset, w - 2 * inset
-	local top, bottom = BAR_GAP, h - inset
+	local nameHeight = max(MIN_PART, min(o.nameHeight or 0, h - EDGE - NAME_GAP - MIN_BAR))
+	local iconSize = Whole(max(MIN_PART, min(o.iconSize or 0, nameHeight)), o.pixel)
+	local icons = { size = iconSize, badge = true, pip = true }
+	out.icons = icons
+	local pip = Whole(max(MIN_PART, min(o.pip or iconSize, nameHeight)), o.pixel)
+	icons.role = Rect(EDGE, Whole((nameHeight - pip) / 2, o.pixel), pip, pip)
+	local badge = max(MIN_PART, floor(iconSize * BADGE_SHARE))
+	icons.leader = Rect(0, 0, badge, badge)
+	local textLeft = o.role and EDGE + pip + NAME_GAP or EDGE
+	local right = w - EDGE
+	local barLeft = o.indent and textLeft or EDGE
+	local barTop = nameHeight + NAME_GAP
+	local bottom = h - EDGE
 	if o.power then
-		local ph = min(o.powerHeight or 0, max(0, bottom - top - MIN_BAR - BAR_GAP))
+		local ph = min(o.powerHeight or 0, max(0, bottom - barTop - MIN_BAR - POWER_GAP))
 		if ph > 0 then
-			out.power = Rect(left, bottom - ph, width, ph)
-			bottom = bottom - ph - BAR_GAP
+			out.power = Rect(barLeft, bottom - ph, right - barLeft, ph)
+			bottom = bottom - ph - POWER_GAP
 		end
 	end
-	local nameHeight = max(MIN_PART, min(o.nameHeight or 0, bottom - top - MIN_BAR - BAR_GAP))
-	out.name = Rect(left, top, width, nameHeight)
-	local barTop = top + nameHeight + BAR_GAP
-	local bar = Rect(left, barTop, width, bottom - barTop)
+	local bar = Rect(barLeft, barTop, right - barLeft, bottom - barTop)
 	out.health = bar
+	local reserve = max(0, min(o.reserve or 0, right - textLeft - MIN_PART))
+	local line = min(o.healthLine or nameHeight, nameHeight)
+	local nameRight = reserve > 0 and right - reserve - NAME_GAP or right
+	out.healthText = {
+		overlay = true, left = right - reserve, right = right, top = nameHeight - line, height = line, justify = "RIGHT",
+		center = bar.left + bar.width / 2, middle = bar.top + bar.height / 2,
+	}
+	out.name = Rect(textLeft, 0, nameRight - textLeft, nameHeight)
+	local nameEnd = HealsOnName(out, o, textLeft, nameRight, NAME_EM * (o.nameMin or nameHeight), gap)
+	out.name = Rect(textLeft, 0, nameEnd - textLeft, nameHeight)
+	local laneSize = Whole(min(o.laneSize or LEGIBLE, nameHeight), o.pixel)
+	local laneRight = out.healRow and out.healRow.left - gap or nameRight
+	local count = min(LANE_SLOTS, floor((laneRight - textLeft + BAR_GAP) / (laneSize + BAR_GAP)))
+	if laneSize >= MIN_ICON and count >= 1 then
+		local span = Line(count, laneSize, BAR_GAP)
+		out.lane = Rect(laneRight - span, Whole((nameHeight - laneSize) / 2, o.pixel), span, laneSize)
+		out.lane.size, out.lane.count, out.lane.step, out.lane.fromRight = laneSize, count, laneSize + BAR_GAP, true
+		out.lane.legible = laneSize > LEGIBLE - (o.pixel or 0) - 1e-6
+	end
+	local middle = bar.top + bar.height / 2
+	if barLeft >= iconSize + 2 * BAR_GAP then
+		icons.marker = Rect(Whole((barLeft - iconSize) / 2, o.pixel), Whole(middle - iconSize / 2, o.pixel), iconSize, iconSize)
+	else
+		local mark = Whole(min(iconSize, bar.height + 2 * BAR_GAP), o.pixel)
+		icons.marker = Rect(bar.left + BAR_GAP, Whole(middle - mark / 2, o.pixel), mark, mark)
+	end
 	local a = o.aura
-	local block = a and AURA_INSIDE_LANES[a.position] and OverlayBlock(a, bar, { top = barTop - BAR_GAP, bottom = h - BAR_GAP }, o.pixel)
+	local block = a and AURA_INSIDE_LANES[a.position] and OverlayBlock(a, bar, { top = barTop - NAME_GAP / 2, bottom = h }, o.pixel)
 	out.block = block or nil
-	local spanLeft, spanRight = bar.left, bar.left + bar.width
+	local spanLeft, spanRight = icons.marker.left + icons.marker.width + BAR_GAP, bar.left + bar.width
 	if block then
 		if block.right then
 			spanRight = block.left - BAR_GAP
 		else
-			spanLeft = block.left + block.width + BAR_GAP
+			spanLeft = max(spanLeft, block.left + block.width + BAR_GAP)
 		end
 	end
 	if o.boss then
-		local size = Whole(min(o.boss, bar.height - 2 * BAR_GAP), o.pixel)
-		if size >= MIN_ICON then
-			local x = bar.left + (bar.width - size) / 2
+		local roomTop = barTop - NAME_GAP / 2
+		local size = Whole(min(o.boss, max(LEGIBLE, bar.height - 2 * BAR_GAP), h - roomTop), o.pixel)
+		if size >= MIN_ICON and spanRight - spanLeft >= size then
+			local x = Whole(bar.left + (bar.width - size) / 2, o.pixel)
 			x = max(spanLeft, min(x, spanRight - size))
-			out.boss = Rect(x, bar.top + (bar.height - size) / 2, size, size)
+			out.boss = Rect(x, Whole(max(roomTop, min(middle - size / 2, h - size)), o.pixel), size, size)
 		end
 	end
-	local cornerLeft = not (block and not block.right)
-	local size = Whole(max(MIN_PART, min(o.iconSize or 0, (bar.height - BAR_GAP) / 2)), o.pixel)
-	local icons = { size = size, badge = true }
-	out.icons = icons
-	local edge = cornerLeft and bar.left + BAR_GAP or bar.left + bar.width - BAR_GAP - size
-	local step = cornerLeft and size + BAR_GAP or -(size + BAR_GAP)
-	icons.role = Rect(edge, bar.top + BAR_GAP, size, size)
-	local badge = max(MIN_PART, floor(size * BADGE_SHARE))
-	icons.leader = Rect(cornerLeft and bar.left or bar.left + bar.width - badge, bar.top, badge, badge)
-	icons.marker = Rect(o.role and edge + step or edge, bar.top + BAR_GAP, size, size)
-	local line = o.healthLine or size
-	local lane = { left = spanLeft + BAR_GAP, right = (out.boss and out.boss.left or spanRight) - INSET }
-	if not cornerLeft then
-		lane = { left = (out.boss and out.boss.left + out.boss.width or spanLeft) + INSET, right = spanRight - BAR_GAP }
-	end
-	local laneTop = bar.top + bar.height - line
-	if (o.role or o.marker) and laneTop < icons.role.top + size then
-		local beyond = icons.role.left + (o.role and o.marker and 2 or 1) * step
-		if cornerLeft then
-			lane.left = max(lane.left, beyond)
-		else
-			lane.right = min(lane.right, beyond + size)
-		end
-	end
-	out.healthText = {
-		overlay = true, left = lane.left, right = max(lane.left + MIN_PART, lane.right), top = max(bar.top, laneTop), height = line,
-		center = bar.left + bar.width / 2, middle = bar.top + bar.height / 2, justify = cornerLeft and "LEFT" or "RIGHT",
-	}
-	local near = cornerLeft and bar.left or (out.boss and out.boss.left + out.boss.width or spanLeft) + BAR_GAP
-	local far = cornerLeft and (out.boss and out.boss.left or spanRight) - BAR_GAP or bar.left + bar.width
-	local laneSize = Whole(min(o.laneSize or LEGIBLE, out.healthText.top - BAR_GAP - bar.top, (far - near - (LANE_SLOTS - 1) * BAR_GAP) / LANE_SLOTS), o.pixel)
-	if laneSize >= MIN_ICON then
-		local span = Line(LANE_SLOTS, laneSize, BAR_GAP)
-		out.lane = Rect(cornerLeft and near or far - span, bar.top, span, laneSize)
-		out.lane.size, out.lane.count, out.lane.step, out.lane.fromRight = laneSize, LANE_SLOTS, laneSize + BAR_GAP, not cornerLeft
-		out.lane.legible = laneSize > LEGIBLE - (o.pixel or 0) - 1e-6
-	end
-	local nameMin = o.nameMin or nameHeight
-	local right = HealsOnName(out, o, left, left + width, NAME_EM * nameMin, gap)
-	out.name = Rect(left, top, right - left, nameHeight)
 	return out
-end
-
-function Geometry.LaneHeight(nameHeight, healthLine, powerHeight)
-	return BAR_GAP + nameHeight + BAR_GAP + LEGIBLE + BAR_GAP + healthLine + INSET + (powerHeight and powerHeight > 0 and powerHeight + BAR_GAP or 0)
 end
 
 local AURA_INSIDE = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }

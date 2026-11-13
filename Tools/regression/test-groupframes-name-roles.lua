@@ -1,5 +1,6 @@
 -- test-groupframes-name-roles.lua: one measured face and size per party, semantic names in roomy lanes, whole compact raid names, and saved choices across restyles.
 local G = dofile("Tools/regression/group_env.lua")
+local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function eq(got, want, what)
@@ -41,8 +42,9 @@ local function fits(K, ns, f, what)
 	assert(size >= K.Widgets.FontSize(f.name, f.nameFit.min) - 0.001, what .. ": fitting respects the existing floor")
 end
 
+-- The captioned rows of KSTY-31's party card, which KSTY-57 left a choice.
 do
-	local env, K, ns = G.New()
+	local env, K, ns = G.New({ saved = Looks.Saved(Looks.PARTY_CARD) })
 	G.SetRoster(env, "party", {
 		{ name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 },
 		{ name = "Kragar", class = "SHAMAN", role = "DAMAGER", health = 60 },
@@ -162,7 +164,7 @@ do
 	assert(K.Theme.SetFontFace("Lumen"))
 	env.RunTimers()
 	eq(font(f), legacy, "returning to a kit restores the compact treatment")
-	K.Options.Write("GroupFrames", "raid.width", 120)
+	K.Options.Write("GroupFrames", "raid.width", 200)
 	env.RunTimers()
 	eq(font(f), (K.Tokens.Font("names")), "a roomy raid lane uses names")
 	eq(f.name:GetText(), "Thaldrenwick", "the roomy raid also keeps the full data")
@@ -179,17 +181,17 @@ do
 end
 
 do
-	local env, K, ns = G.New()
+	local env, K = G.New()
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(300, 420)
 	local preview = K.Options.Preview("GroupFrames")(parent)
-	local compact = ns.Settings.COMPACT_NAME_FONT
+	local names = (K.Tokens.Font("names"))
 	local function previewSize()
 		local size, count
 		count = 0
 		for _, f in ipairs(preview.partyFrames) do
 			local face, current = f.name:GetFont()
-			eq(face, compact, "the preview uses the same compact party face")
+			eq(face, names, "the preview uses the live party's names face (KSTY-57)")
 			assert(not size or W.Near(size, current), "preview members have one size")
 			eq(f.nameGroup, preview.partyFrames, "the preview has its own party membership")
 			eq(f.name:GetText(), f.sample.name, "the sample name stays whole")

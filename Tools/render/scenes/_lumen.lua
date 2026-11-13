@@ -102,7 +102,8 @@ function Lumen.Rail(built, R)
 	local group, chat, tracker = built.groupframes, built.chat, built.tracker
 	local cards = group and group.ns.Headers and group.ns.Headers.cards
 	if group then
-		add("party", Hud.envs[group.scene], cards and cards.party and cards.party.frame)
+		local party = cards and cards.party and cards.party.frame
+		add("party", Hud.envs[group.scene], party and party:IsShown() and party or group.ns.Headers.holders.party)
 	end
 	local f = R.rxp.RXPFrame
 	local parts = R.K.Skin.Parts(f)

@@ -1,4 +1,4 @@
--- AutoLayout.lua: compact raid frames in raids over 25 and healer-first debuffs while the player heals, switched out of combat on top of the saved settings.
+-- AutoLayout.lua: raid frames sized by raid size (larger up to 10, compact over 25) and healer-first debuffs while the player heals, switched out of combat on top of the saved settings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -7,19 +7,46 @@ local Settings, Unit, Frames, Geometry = ns.Settings, ns.Unit, ns.Frames, ns.Geo
 local AutoLayout = { state = { bracket = "MEDIUM", healer = false } }
 ns.AutoLayout = AutoLayout
 
+local SMALL_MOST = 10
 local LARGE_LEAST = 26
-local LARGE_SCALE = 0.85
 local HEALER_DISPELS = 2
 local HEALER_HEALS = 3
+local HEALER_WIDTH = 20
 local MIN_HEIGHT = 16
-local NAME_LINE_EXTRA = 2
+local MIN_NAME = 6
 local queued = false
 
 function AutoLayout.Bracket(members)
-	if type(members) ~= "number" or Unit.IsSecret(members) or members < LARGE_LEAST then
+	if Unit.IsSecret(members) or type(members) ~= "number" then
 		return "MEDIUM"
+	elseif members >= LARGE_LEAST then
+		return "LARGE"
+	elseif members > 0 and members <= SMALL_MOST then
+		return "SMALL"
 	end
-	return "LARGE"
+	return "MEDIUM"
+end
+
+local function Small(raid)
+	local step = 2 + (raid.power and 1 or 0)
+	raid.width = raid.width + 16
+	raid.height = raid.height + step
+	raid.spacing = raid.spacing + 4
+	raid.nameSize = raid.nameSize + 1
+	raid.healthTextSize = raid.healthTextSize + 1
+	if raid.power then
+		raid.powerHeight = raid.powerHeight + 1
+	end
+end
+
+local function Large(raid)
+	local step = 3 + (raid.power and raid.powerHeight + Geometry.POWER_GAP or 0)
+	raid.width = math.max(raid.height, raid.width - 20)
+	raid.height = math.max(MIN_HEIGHT, raid.height - step)
+	raid.spacing = math.max(0, raid.spacing - 3)
+	raid.nameSize = math.max(MIN_NAME, raid.nameSize - 1)
+	raid.power = false
+	raid.healthText = "NONE"
 end
 
 function AutoLayout.Overlay(cfg, state)
@@ -31,13 +58,12 @@ function AutoLayout.Overlay(cfg, state)
 			k.auraDispelCount = math.max(k.auraDispelCount, HEALER_DISPELS)
 			k.buffCount = math.max(k.buffCount, HEALER_HEALS)
 		end
+		cfg.raid.width = cfg.raid.width + HEALER_WIDTH
 	end
-	if auto.size and state.bracket == "LARGE" then
-		local raid = cfg.raid
-		local base = Settings.defaults.raid
-		local lanes = Geometry.LaneHeight((raid.nameSize or base.nameSize) + NAME_LINE_EXTRA, (raid.healthTextSize or base.healthTextSize) + NAME_LINE_EXTRA)
-		raid.height = math.min(raid.height, math.max(MIN_HEIGHT, lanes, math.floor(raid.height * LARGE_SCALE + 0.5)))
-		raid.power = false
+	if auto.size and state.bracket == "SMALL" then
+		Small(cfg.raid)
+	elseif auto.size and state.bracket == "LARGE" then
+		Large(cfg.raid)
 	end
 	return cfg
 end
@@ -48,7 +74,8 @@ function Settings.Refresh()
 end
 
 local function Read()
-	local members = type(GetNumGroupMembers) == "function" and GetNumGroupMembers() or nil
+	local raid = type(IsInRaid) == "function" and IsInRaid()
+	local members = not Unit.IsSecret(raid) and raid == true and type(GetNumGroupMembers) == "function" and GetNumGroupMembers() or nil
 	local role = type(UnitGroupRolesAssigned) == "function" and UnitGroupRolesAssigned("player") or nil
 	local healer = not Unit.IsSecret(role) and role == "HEALER"
 	return { bracket = AutoLayout.Bracket(members), healer = healer }
