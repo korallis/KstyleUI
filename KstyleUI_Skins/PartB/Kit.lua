@@ -571,7 +571,7 @@ local function FitBarLabel(bar)
 		label:Show()
 		return
 	end
-	local taken = type(rank) == "table" and (K.Widgets.TextWidth(rank, 0) + gap) or 0
+	local taken = type(rank) == "table" and not bar.rankOutside and (K.Widgets.TextWidth(rank, 0) + gap) or 0
 	label:SetShown(need <= width - 2 * inset - taken)
 end
 
@@ -581,13 +581,18 @@ local function PlaceBarTexts(bar)
 	local gap = K.Widgets.Snap(frame, K.Tokens.Size("gapSmall"))
 	if type(rank) == "table" then
 		rank:ClearAllPoints()
-		rank:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
-		rank:SetJustifyH("RIGHT")
+		if bar.rankOutside then
+			K.Widgets.Point(rank, "LEFT", frame, "RIGHT", K.Tokens.Size("gapMedium"), 0)
+			rank:SetJustifyH("LEFT")
+		else
+			rank:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+			rank:SetJustifyH("RIGHT")
+		end
 	end
 	if label then
 		label:ClearAllPoints()
 		label:SetPoint("LEFT", frame, "LEFT", inset, 0)
-		if type(rank) == "table" then
+		if type(rank) == "table" and not bar.rankOutside then
 			label:SetPoint("RIGHT", rank, "LEFT", -gap, 0)
 		else
 			label:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
@@ -623,7 +628,7 @@ local function Bar(frame, opts)
 		keep[fill] = true
 	end
 	K.Skin.Strip(frame, { keep = keep })
-	local bar = { frame = frame, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
+	local bar = { frame = frame, rankOutside = opts.rankOutside == true, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
 	bar.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	ns.Style.StatusBar(frame, { accent = opts.accent == true })
 	if type(frame.rankText) == "table" then

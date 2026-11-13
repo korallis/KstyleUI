@@ -95,6 +95,20 @@ end
 -- Window(B, name, parent, w, h, title, opts) -> a PortraitFrameTemplate or ButtonFrameTemplate window
 -- (SharedUIPanelTemplates.xml:566 and :711): NineSlice, Bg, portrait, title, close button and, with opts.inset,
 -- the inset from opts.inset.top to opts.inset.bottom units of the window's bottom.
+-- The title (SharedUIPanelTemplates.xml:600, PortraitFrameBaseTemplate): a 20-unit container from 58 to -24 across
+-- the top, its text hung from the container's top, spanning its width, word wrap off.
+local function TitleContainer(B, f, w, title)
+	f.TitleContainer = B.frame("Frame", f)
+	At(f.TitleContainer, f, 58, 1, w - 58 - 24, TITLE_HEIGHT - 4)
+	f.TitleContainer.TitleText = B.text(f.TitleContainer)
+	Text(f.TitleContainer.TitleText, title, "TOP", f.TitleContainer, "TOP", 0, -5)
+	f.TitleContainer.TitleText:SetPoint("LEFT", f.TitleContainer, "LEFT", 0, 0)
+	f.TitleContainer.TitleText:SetPoint("RIGHT", f.TitleContainer, "RIGHT", 0, 0)
+	f.TitleContainer.TitleText:SetWordWrap(false)
+	f.TitleContainer.TitleText:SetJustifyH("CENTER")
+	return f.TitleContainer
+end
+
 local function Window(B, name, parent, w, h, title, opts)
 	opts = opts or {}
 	local f = B.frame("Frame", parent, name)
@@ -104,16 +118,7 @@ local function Window(B, name, parent, w, h, title, opts)
 	B.texture(f.NineSlice)
 	f.Bg = B.texture(f, "BACKGROUND")
 	f.Bg:SetAllPoints(f)
-	-- The title (SharedUIPanelTemplates.xml:600): a 20-unit container from 58 to -24 across the top, its text
-	-- hung from the container's top, spanning its width, word wrap off.
-	f.TitleContainer = B.frame("Frame", f)
-	At(f.TitleContainer, f, 58, 1, w - 58 - 24, TITLE_HEIGHT - 4)
-	f.TitleContainer.TitleText = B.text(f.TitleContainer)
-	Text(f.TitleContainer.TitleText, title, "TOP", f.TitleContainer, "TOP", 0, -5)
-	f.TitleContainer.TitleText:SetPoint("LEFT", f.TitleContainer, "LEFT", 0, 0)
-	f.TitleContainer.TitleText:SetPoint("RIGHT", f.TitleContainer, "RIGHT", 0, 0)
-	f.TitleContainer.TitleText:SetWordWrap(false)
-	f.TitleContainer.TitleText:SetJustifyH("CENTER")
+	TitleContainer(B, f, w, title)
 	f.PortraitContainer = B.frame("Frame", f)
 	At(f.PortraitContainer, f, -6, -6, 60, 60)
 	f.PortraitContainer.portrait = B.texture(f.PortraitContainer)
@@ -156,10 +161,15 @@ end
 local function Dropdown(B, parent, label, w)
 	local drop = B.frame("DropdownButton", parent)
 	drop:SetSize(w or 140, BUTTON_HEIGHT)
+	-- Blizzard_Menu/Mainline/MenuTemplates.xml (WowStyle1DropdownTemplate, Forever's family): the text holder and
+	-- the arrow button are atlases, the arrow at its atlas size 1 in from the right.
 	drop.Background = B.texture(drop, "BACKGROUND")
-	drop.Arrow = Colour(B, drop, "OVERLAY", 0.67, 0.67, 0.67)
-	Anchor(drop.Arrow, drop, "RIGHT", -6, 0)
-	drop.Arrow:SetSize(8, 5)
+	drop.Background:SetAtlas("common-dropdown-textholder")
+	drop.Background:SetAllPoints(drop)
+	drop.Arrow = B.texture(drop, "OVERLAY")
+	drop.Arrow:SetAtlas("common-dropdown-a-button")
+	drop.Arrow:SetSize(27, 27)
+	Anchor(drop.Arrow, drop, "RIGHT", -1, 0)
 	drop.Text = B.text(drop)
 	Text(drop.Text, label, "LEFT", drop, "LEFT", 8, 0)
 	return drop
@@ -183,6 +193,7 @@ local function EditBox(B, parent, text, w, h, name)
 	B.texture(box)
 	local value = B.text(box)
 	Text(value, text, "LEFT", box, "LEFT", 6, 0)
+	box.Instructions = value
 	return box
 end
 
@@ -869,9 +880,8 @@ function build.worldmap(env, B)
 	B.texture(border.NineSlice)
 	border.Bg = B.texture(border, "BACKGROUND")
 	border.InsetBorderTop = B.texture(border, "BACKGROUND")
-	border.TitleContainer = B.frame("Frame", border)
-	At(border.TitleContainer, border, 0, 0, 702, TITLE_HEIGHT)
-	border.TitleContainer.TitleText = Text(B.text(border.TitleContainer), "Map & Quest Log", "CENTER", border.TitleContainer)
+	-- Blizzard_WorldMap.xml:85: the border inherits PortraitFrameTemplateMinimizable, so its title is PortraitFrameBaseTemplate's container.
+	TitleContainer(B, border, 702, "Map & Quest Log")
 	border.PortraitContainer = B.frame("Frame", border)
 	B.texture(border.PortraitContainer)
 	border.CloseButton = B.frame("Button", border)
@@ -1399,9 +1409,13 @@ function build.addonlist(env, B)
 	At(f.ForceLoad, f, 180, 32)
 	f.SearchBox = EditBox(B, f, "Search", 160)
 	Anchor(f.SearchBox, f, "TOPRIGHT", -14, -32)
-	f.SearchBox.searchIcon = Colour(B, f.SearchBox, "OVERLAY", 0.67, 0.67, 0.67)
-	Anchor(f.SearchBox.searchIcon, f.SearchBox, "RIGHT", -6, 0)
+	-- InputBoxTemplates.xml (SearchBoxTemplate): the magnifying glass atlas, 10 square, 1 in from the left.
+	f.SearchBox.searchIcon = B.texture(f.SearchBox, "OVERLAY")
+	f.SearchBox.searchIcon:SetAtlas("common-search-magnifyingglass")
+	Anchor(f.SearchBox.searchIcon, f.SearchBox, "LEFT", 1, -1)
 	f.SearchBox.searchIcon:SetSize(10, 10)
+	f.SearchBox.Instructions:ClearAllPoints()
+	f.SearchBox.Instructions:SetPoint("LEFT", f.SearchBox, "LEFT", 16, 0)
 	f.Performance = B.frame("Frame", f)
 	Anchor(f.Performance, f, "BOTTOMLEFT", 14, 36)
 	f.Performance:SetSize(260, 20)
@@ -1640,18 +1654,27 @@ function build.friends(env, B)
 		list.ScrollBox.AddRow(row, {})
 	end
 	local function Friend(name, info, online)
+		-- Camelot/FriendsFrame.xml:260 (FriendsListButtonTemplate, 298 by 34) and FriendsFrame.lua:1699-1764: the
+		-- background is FRIENDS_*_BACKGROUND_COLOR at 5% (Cata/Constants.lua:32-36), the status icon a file texture
+		-- 16 square at 4, -3, the name 226 by 12 at 20, -4 and the info line 260 by 10, 3 under the name.
 		local row = Row(B, list.ScrollBox, 34)
-		row.background = Colour(B, row, "BACKGROUND", 0, 0.3, 0.55, online and 0.25 or 0.1)
-		row.background:SetAllPoints(row)
-		row.status = Colour(B, row, "ARTWORK", online and 0.3 or 0.5, online and 0.8 or 0.5, online and 0.3 or 0.5)
-		Anchor(row.status, row, "LEFT", 6, 0)
-		row.status:SetSize(12, 12)
+		row.background = Colour(B, row, "BACKGROUND", online and 0 or 0.588, online and 0.694 or 0.588, online and 0.941 or 0.588, 0.05)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -1)
+		row.background:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 1)
+		row.status = B.texture(row, "ARTWORK")
+		row.status:SetTexture(online and "Interface\\FriendsFrame\\StatusIcon-Online" or "Interface\\FriendsFrame\\StatusIcon-Offline")
+		Anchor(row.status, row, "TOPLEFT", 4, -3)
+		row.status:SetSize(16, 16)
 		row.gameIcon = Icon(B, row, ICONS[3])
 		row.gameIcon:ClearAllPoints()
-		row.gameIcon:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+		row.gameIcon:SetPoint("TOPRIGHT", row, "TOPRIGHT", -23, -5)
 		row.gameIcon:SetSize(24, 24)
-		row.name = Text(B.text(row), name, "TOPLEFT", row, "TOPLEFT", 24, -3)
-		row.info = Text(B.text(row), info, "BOTTOMLEFT", row, "BOTTOMLEFT", 24, 4)
+		row.name = Text(B.text(row), name, "TOPLEFT", row, "TOPLEFT", 20, -4)
+		row.name:SetSize(226, 12)
+		row.name:SetJustifyH("LEFT")
+		row.info = Text(B.text(row), info, "TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
+		row.info:SetSize(260, 10)
+		row.info:SetJustifyH("LEFT")
 		row:SetHighlightTexture(B.texture(row, "HIGHLIGHT"))
 		rows[#rows + 1] = row
 		list.ScrollBox.AddRow(row, {})
@@ -1698,27 +1721,71 @@ function build.legacy(env, B)
 		tab:SetChecked(i == 1)
 		f.Tabs[i] = tab
 	end
+	-- Blizzard_LegacyRewardTrack.xml: the page fills the window 5 in at the sides; the tracker icon hangs 50 under
+	-- its top with the points centred on it and the label under it; the 850 by 12 bar background sits 55 under the
+	-- label with the bar (LegacyProgressBarTemplate, text centred on it) over it; the reward cards
+	-- (LegacyRewardCardTemplate, 216 by 241, 5 overlapped, RewardTrackTemplates.lua RenownLevelMixin) hang 2 under
+	-- the bar in an 849 by 270 track: a card background, the 64 icon 60 under the card's top in an 80 border, the
+	-- level square 18 above the card's top with its level on it, and the 120-wide name 10 under the border.
 	local track = B.frame("Frame", f)
 	f.RewardTrackPage = track
-	Fill(track, f, 0, TITLE_HEIGHT, 0, 0)
+	Fill(track, f, 5, 0, 5, 6)
 	track.Background = B.texture(track, "BACKGROUND")
-	track.Points = Text(B.text(track), "1,240", "TOPLEFT", track, "TOPLEFT", 30, -20)
-	track.PointsLabel = Text(B.text(track), "Legacy points", "TOPLEFT", track, "TOPLEFT", 30, -52)
+	track.Background:SetAllPoints(track)
+	track.Icon = Colour(B, track, "ARTWORK", 0.2, 0.18, 0.12, 1)
+	track.Icon:SetSize(64, 64)
+	Anchor(track.Icon, track, "TOP", 0, -50)
+	track.Points = Text(B.text(track), "1,240", "CENTER", track.Icon, "CENTER", 0, -10)
+	track.PointsLabel = Text(B.text(track), "Legacy points", "TOP", track.Icon, "BOTTOM", 0, 0)
 	track.ProgressBarBackground = B.texture(track)
-	local bar = StatusBar(B, track, 760, 18, 0.64)
+	track.ProgressBarBackground:SetSize(850, 12)
+	track.ProgressBarBackground:SetPoint("TOP", track.PointsLabel, "BOTTOM", 0, -55)
+	local bar = StatusBar(B, track, 850, 9, 0.64)
+	bar:ClearAllPoints()
+	bar:SetPoint("TOPLEFT", track.ProgressBarBackground, "TOPLEFT", 0, 0)
+	bar:SetPoint("BOTTOMRIGHT", track.ProgressBarBackground, "BOTTOMRIGHT", 0, 3)
+	bar:SetStatusBarColor(1, 1, 1)
 	track.LegacyRewardProgressBar = bar
-	Anchor(bar, track, "TOP", 0, -90)
 	bar.ProgressBarFrame = B.texture(bar, "OVERLAY")
-	bar.Text = Text(B.text(bar), "6,400 / 10,000 to the next reward", "CENTER", bar)
-	-- Blizzard's reward cards keep their own art; each stands in as a dark card with the reward's icon on it.
-	for i = 1, 5 do
-		local card = Colour(B, track, "ARTWORK", 0.08, 0.09, 0.1, 0.9)
-		At(card, track, 40 + (i - 1) * 172, 140, 150, 220)
-		local art = B.frame("Frame", track)
-		At(art, track, 40 + (i - 1) * 172 + 27, 140 + 40, 96, 96)
-		art.Icon = Icon(B, art, ICONS[13 + i])
-		Text(B.text(track), ({ "Tabard of the Legacy", "Riding Crocolisk", "Title: Enduring", "Bag of Relics", "Heirloom Chest" })[i], "TOP", track, "TOP", -400 + (i - 1) * 172, -370)
+	-- SetupProgressDetails (Blizzard_LegacyRewardTrack.lua:234) never writes the bar's text, so it stays empty.
+	bar.Text = Text(B.text(bar), "", "CENTER", bar)
+	local progress = B.frame("Frame", track)
+	track.LegacyRewardProgressFrame = progress
+	progress:SetSize(849, 270)
+	progress:SetPoint("TOP", bar, "BOTTOM", 0, 2)
+	progress.ClipFrame = B.frame("Frame", progress)
+	progress.ClipFrame:SetAllPoints(progress)
+	local cards = {}
+	for i, name in ipairs({ "Tabard of the Legacy", "Riding Crocolisk", "Title: Enduring", "Bag of Relics" }) do
+		local card = B.frame("Frame", progress.ClipFrame)
+		card:SetSize(216, 241)
+		card:SetPoint("TOPLEFT", progress.ClipFrame, "TOPLEFT", 4 + (i - 1) * 211, -24)
+		card.RewardCardBG = Colour(B, card, "BACKGROUND", 0.08, 0.09, 0.1, 0.9)
+		card.RewardCardBG:SetAllPoints(card)
+		card.Highlight = B.texture(card, "BACKGROUND")
+		card.Highlight:Hide()
+		card.Icon = Icon(B, card, ICONS[13 + i])
+		card.Icon:ClearAllPoints()
+		card.Icon:SetSize(64, 64)
+		card.Icon:SetPoint("TOP", card, "TOP", 0, -60)
+		card.IconBorder = Colour(B, card, "OVERLAY", 0.6, 0.5, 0.3, 0.6)
+		card.IconBorder:SetSize(80, 80)
+		card.IconBorder:SetPoint("CENTER", card.Icon, "CENTER")
+		card.LevelSquare = Colour(B, card, "OVERLAY", 0.5, 0.42, 0.25, 1)
+		card.LevelSquare:SetSize(36, 36)
+		card.LevelSquare:SetPoint("TOP", card, "TOP", 0, 18)
+		card.Level = Text(B.text(card), tostring(i + 1), "CENTER", card.LevelSquare, "CENTER", 0, 0)
+		card.EarnedCheckmark = B.texture(card, "OVERLAY")
+		card.EarnedCheckmark:SetShown(i <= 2)
+		card.RewardName = Text(B.text(card), name, "TOP", card.IconBorder, "BOTTOM", 0, -10)
+		card.RewardName:SetWidth(120)
+		card.Textures = { card.RewardCardBG, card.Highlight, card.Icon, card.LevelSquare, card.EarnedCheckmark, card.IconBorder }
+		cards[i] = card
 	end
+	function progress.GetElements()
+		return cards
+	end
+	function progress.Init() end
 	local challenges = B.frame("Frame", f)
 	f.ChallengesPage = challenges
 	challenges:Hide()
@@ -1926,9 +1993,8 @@ function build.readycheck(env, B)
 	listener.NineSlice = B.frame("Frame", listener)
 	listener.NineSlice:SetAllPoints(listener)
 	B.texture(listener.NineSlice)
-	listener.TitleContainer = B.frame("Frame", listener)
-	At(listener.TitleContainer, listener, 0, 0, 323, TITLE_HEIGHT)
-	listener.TitleContainer.TitleText = Text(B.text(listener.TitleContainer), "Ready Check", "CENTER", listener.TitleContainer)
+	-- ReadyCheck.xml:47: the listener's title is PortraitFrameBaseTemplate's container.
+	TitleContainer(B, listener, 323, "Ready Check")
 	listener.PortraitContainer = B.frame("Frame", listener)
 	listener.PortraitContainer.Portrait = B.texture(listener.PortraitContainer, "BACKGROUND")
 	listener.Text = Text(B.text(listener), "Thargor has initiated a ready check.", "TOP", listener, "TOP", 0, -40)

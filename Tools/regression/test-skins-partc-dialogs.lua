@@ -109,7 +109,7 @@ do
 		end
 		assert(K.Skin.IsSkinned(f.ExtraButton, "Button"))
 		assert(K.Skin.IsSkinned(f.EditBox, "EditBox") and Alpha(f.EditBox.NineSliceArt) == 0 and Alpha(f.EditBox.Left) == 0, "the edit box wears a raised tile")
-		assert(K.Skin.IsSkinned(f.Dropdown, "Backdrop") and Alpha(f.Dropdown.Arrow) == 1, "the dropdown wears a raised tile and keeps its arrow")
+		assert(K.Skin.IsSkinned(f.Dropdown, "Backdrop") and Alpha(f.Dropdown.Arrow) == 0 and ns.Parts.ChevronOf(f.Dropdown), "the dropdown wears a raised tile ending in the Options chevron")
 		local gold = f.MoneyInputFrame.gold
 		assert(K.Skin.IsSkinned(gold, "EditBox") and Alpha(gold.Left) == 0 and Alpha(gold.texture) == 1, "the money boxes keep their coin icons")
 		assert(Alpha(f.ItemFrame.NameFrame) == 0 and Alpha(f.ItemFrame.Item.icon) == 1 and Alpha(f.ItemFrame.Item.IconBorder) == 0, "the item frame's art goes, its icon stays")

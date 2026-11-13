@@ -649,10 +649,15 @@ function CastBars.Restyle(cb)
 	cb.mode = Caption(cb)
 	local textPath, timerPath = path, path
 	if cb.mode and Settings.ThemeFont(cb.kind, "cast") then
-		textPath, timerPath = Lumen.Font("name"), Lumen.Font("time")
+		textPath, timerPath = (Tokens.Font("caps")), Lumen.Font("time")
 	end
 	cb.textPath = textPath
 	StyleText(cb.text, textPath, size, flags)
+	if cb.mode and flags == "" then
+		local border = K.Scale.Border() / Widgets.ScaleFactor(cb.text)
+		cb.text:SetShadowColor(Tokens.Color("textShadow"))
+		cb.text:SetShadowOffset(border, -border)
+	end
 	StyleText(cb.timer, timerPath, size, flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)

@@ -300,7 +300,7 @@ local ROWS = {
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
-	DPS = L["Lumen Rails: party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
+	DPS = L["Party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
 	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
 	Healer = L["The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first."],
 }

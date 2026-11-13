@@ -133,7 +133,9 @@ K.Options.Open("UnitFrames")
 settle()
 local pane = ns.Window.Parts().preview
 local holder = pane.holder
-local holderW, holderH = holder:GetWidth(), holder:GetHeight()
+-- The pane fits its card to what the preview draws (KSTY-65), so the room a preview may fill is the holder at the
+-- pane's full height.
+local holderW, holderH = holder:GetWidth(), pane.room - (pane:GetHeight() - holder:GetHeight())
 assert(pane.current and pane.current.strip, "the UnitFrames preview is current first")
 assert(near(pane.current:GetScale(), 1.25), "the unsized preview is magnified on its first show, got " .. tostring(pane.current:GetScale()))
 

@@ -246,7 +246,7 @@ do
 	text:SetSize(text:GetUnboundedStringWidth() or 100, size)
 	local glass, title = Rect(Glass(K, menu), root), Rect(text, root)
 	assert(title.top <= glass.top - K.Widgets.Snap(menu, K.Tokens.Size("gapSmall")) + EPS, "the title sits inside the glass's header band: " .. title.top .. " vs " .. glass.top)
-	Same((title.left + title.right) / 2, (glass.left + glass.right) / 2, "centred over the glass")
+	Same(title.left, glass.left + K.Widgets.Snap(menu, 16 + 8 + 7), "left at the heading's indent, as every window title (KSTY-60 item 17)")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

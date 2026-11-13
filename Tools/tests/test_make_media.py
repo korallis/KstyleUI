@@ -53,6 +53,16 @@ class ManifestTest(unittest.TestCase):
         # resolves to a TGA or BLP file, not a PNG.
         self.assertIn("Media/Logo/Logo64.tga", paths)
 
+    def test_hud_style_pictures_are_renders(self):
+        # KSTY-60 item 27: the HUD style picker shows a picture of each style, cropped from the hud_reference render
+        # (Tools/media/hud_pictures.py), not the flat schematic drawing of a handful of colours it showed before.
+        for name in ("HudStyleFrames", "HudStyleOrbs"):
+            asset = next(a for a in self.mm.ASSETS if Path(a.path).stem == name)
+            self.assertEqual((asset.width, asset.height), (512, 256), name)
+            width, height, pixels = self.mm.decode_png((ROOT / asset.path).read_bytes())
+            colours = {bytes(pixels[i:i + 3]) for i in range(0, len(pixels), 4)}
+            self.assertGreater(len(colours), 2000, f"{name} is a picture, not a schematic of {len(colours)} colours")
+
     def test_lumen_geometry_matches_the_radius_tokens(self):
         # The fills are drawn on a 14-unit corner and the outline on 8, at TEXELS_PER_UNIT; the kit stretches them to
         # the corner it draws. A ring line's corner piece is half the texture: its four quarter rings meet in the middle.

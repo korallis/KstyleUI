@@ -186,7 +186,7 @@ local EASINGS = {
 
 local FONT_SETS = {
 	{ key = "Folio", label = ns.L["Folio: classic serif"], path = FONTS_DIR .. "PTSerif-Regular.ttf" },
-	{ key = "Lumen", label = ns.L["Lumen: original fonts"], path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
+	{ key = "Lumen", label = ns.L["Original: Cinzel and Alegreya Sans"], path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
 }
 local FONT_FACES = {
 	{ key = "CinzelSemiBold", label = "Cinzel SemiBold", path = FONTS_DIR .. "Cinzel-SemiBold.ttf" },

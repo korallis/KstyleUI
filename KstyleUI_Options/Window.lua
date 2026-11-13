@@ -25,6 +25,7 @@ local DEFAULT_POSITION = { anchor = "CENTER", x = 0, y = 20 }
 local win, rail, content, preview, search, clear, layoutButton, resetButton
 local state = { page = "General", pages = {} }
 local refreshQueued = false
+local Relayout
 
 local function Snap(units)
 	return Widgets.Snap(win, units)
@@ -134,6 +135,7 @@ local function Select(id)
 	end
 	resetButton:SetEnabled(page.reset ~= nil)
 	Preview.Show(preview, page)
+	Relayout()
 	Render(false, true)
 end
 
@@ -211,7 +213,7 @@ local function AskReset()
 	})
 end
 
-local function Relayout()
+function Relayout()
 	if not win then
 		return
 	end
@@ -223,7 +225,9 @@ local function Relayout()
 	local footer = Tokens.Size("rowHeight") + Tokens.Size("gapSmall")
 	local top = pad + HEADER
 	local bodyHeight = max(1, height - top - pad)
-	local contentWidth = max(1, width - 2 * pad - RAIL_WIDTH - PREVIEW_WIDTH - 2 * gap)
+	local shown = preview:IsShown()
+	local side = shown and PREVIEW_WIDTH + gap or 0
+	local contentWidth = max(1, width - 2 * pad - RAIL_WIDTH - gap - side)
 	win.logo:ClearAllPoints()
 	win.logo:SetPoint("TOPLEFT", win, "TOPLEFT", Snap(pad), -Snap(pad))
 	Widgets.Size(win.logo, LOGO_SIZE, LOGO_SIZE)
@@ -237,7 +241,7 @@ local function Relayout()
 	win.closeButton:ClearAllPoints()
 	win.closeButton:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(pad))
 	search:ClearAllPoints()
-	search:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad + PREVIEW_WIDTH + gap), -Snap(pad))
+	search:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad + (shown and PREVIEW_WIDTH or win.closeButton:GetWidth()) + gap), -Snap(pad))
 	clear:ClearAllPoints()
 	clear:SetPoint("RIGHT", search, "RIGHT", -Snap(Tokens.Size("gapSmall")), 0)
 	win.header:ClearAllPoints()
@@ -255,11 +259,10 @@ local function Relayout()
 	Widgets.Tint(win.split, "edgeFaint")
 	content:ClearAllPoints()
 	content:SetPoint("TOPLEFT", rail, "TOPRIGHT", Snap(gap), 0)
-	Widgets.Size(content, contentWidth, bodyHeight)
+	Widgets.Size(content, contentWidth, shown and bodyHeight or max(1, bodyHeight - footer - gap))
 	preview:ClearAllPoints()
 	preview:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(top))
-	Widgets.Size(preview, PREVIEW_WIDTH, max(1, bodyHeight - footer - gap))
-	preview:Layout()
+	preview:SetRoom(PREVIEW_WIDTH, max(1, bodyHeight - footer - gap))
 	resetButton:ClearAllPoints()
 	resetButton:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -Snap(pad), Snap(pad))
 	layoutButton:ClearAllPoints()
