@@ -197,7 +197,7 @@ local function Colors(f)
 	if f.status then
 		f.name:SetTextColor(Tokens.Color("textDisabled"))
 	elseif text.nameColorSource == "class" then
-		f.name:SetTextColor(cr, cg, cb)
+		f.name:SetTextColor(Theme.ClassTextColorForWidget(class))
 	elseif text.nameColorSource == "custom" then
 		local c = text.nameColor
 		f.name:SetTextColor(c.r, c.g, c.b)
