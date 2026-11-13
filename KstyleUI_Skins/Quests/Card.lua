@@ -49,7 +49,8 @@ local function TitleHeight()
 end
 
 local function LineHeight()
-	return Snap(TextSize() + LINE_LEAD)
+	local size = ruler and Widgets.FontSize(ruler, TextSize()) or TextSize()
+	return Snap(size + LINE_LEAD)
 end
 
 local function Inset()

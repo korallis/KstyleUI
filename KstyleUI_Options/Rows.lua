@@ -519,16 +519,25 @@ local function ShowHeader(row, item, width)
 		row.caption:Show()
 		return Snap(row, max(Rows.HEIGHT, height + 2 * gap))
 	else
-		row.mark:ClearAllPoints()
-		Widgets.Point(row.mark, "BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
 		Widgets.Size(row.mark, MARK_WIDTH, MARK_HEIGHT)
 		row.mark:Show()
-		row.label:ClearAllPoints()
-		Widgets.Point(row.label, "LEFT", row.mark, "RIGHT", gap, 0)
-		Widgets.Point(row.label, "RIGHT", row, "RIGHT", -gap, 0)
 		Widgets.SetText(row.label, item.label)
 		Widgets.TextColor(row.label, "textEmphasis")
 		row.label:Show()
+		row.mark:ClearAllPoints()
+		row.label:ClearAllPoints()
+		local room = max(1, width - 3 * gap - row.mark:GetWidth())
+		if Widgets.TextWidth(row.label, 0) > room then
+			local height = Widgets.WrappedHeight(row.label, room)
+			row.label:SetWordWrap(true)
+			Widgets.Size(row.label, room, height)
+			Widgets.Point(row.mark, "TOPLEFT", row, "TOPLEFT", gap, -gap)
+			Widgets.Point(row.label, "TOPLEFT", row.mark, "TOPRIGHT", gap, 0)
+			return Snap(row, max(Rows.HEIGHT, height + 2 * gap))
+		end
+		Widgets.Point(row.mark, "BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
+		Widgets.Point(row.label, "LEFT", row.mark, "RIGHT", gap, 0)
+		Widgets.Point(row.label, "RIGHT", row, "RIGHT", -gap, 0)
 	end
 	return Rows.HEIGHT
 end
@@ -559,6 +568,8 @@ local function Layout(row, item, width)
 	for _, region in ipairs({ row.label, row.help, row.caption, row.note, row.mark }) do
 		region:Hide()
 	end
+	row.label:SetWordWrap(false)
+	row.label:SetHeight(0)
 	if kind == "header" then
 		return ShowHeader(row, item, width), nil
 	elseif kind == "note" then

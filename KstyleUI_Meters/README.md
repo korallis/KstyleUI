@@ -37,10 +37,10 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Threat.lua` | The threat meter |
 | `DamageSkin.lua` | The restyle of Blizzard's Damage Meter windows and their spell breakdown windows |
 | `Damage.lua` | The damage meter window, its fight segments and spell lists, and the choice between it and the restyle |
-| `Preview.lua` | The settings window's live preview |
+| `Preview.lua` | The settings window's live preview; in a pane too narrow for two meters side by side (under 240 units each) the damage sample sits over the threat sample |
 | `Meters.lua` | The module's registration, `Enable` and `Disable`, and one event dispatcher the three parts share |
 
-Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test-meters-swing.lua`, `test-meters-threat.lua`, `test-meters-damage.lua`, `test-meters-skin.lua`, `test-meters-drill.lua`, `test-meters-fights.lua`, `test-meters-fit.lua`, `test-meters-hover-side.lua`, `test-meters-card.lua` (the picture's card), `test-meters-group.lua` (a party of five and a raid of twenty) and `test-meters-preview.lua`. `Tools/tests/test_spell_schools.py` checks that the school table is current. `Tools/regression/meters_env.lua` loads the core and the module with stand-ins for the swing, threat and Damage Meter APIs.
+Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test-meters-swing.lua`, `test-meters-threat.lua`, `test-meters-damage.lua`, `test-meters-skin.lua`, `test-meters-drill.lua`, `test-meters-fights.lua`, `test-meters-fit.lua`, `test-meters-hover-side.lua`, `test-meters-card.lua` (the picture's card), `test-meters-group.lua` (a party of five and a raid of twenty) `test-meters-preview.lua` and `test-meters-preview-pane.lua` (the sample in the settings window's own pane draws no text truncated, at 1080, 1440 and 2160 lines). `Tools/tests/test_spell_schools.py` checks that the school table is current. `Tools/regression/meters_env.lua` loads the core and the module with stand-ins for the swing, threat and Damage Meter APIs.
 
 ## Elements
 

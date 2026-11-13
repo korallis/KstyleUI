@@ -260,9 +260,53 @@ local function TextFactor(text)
 	return frame and Widgets.ScaleFactor(frame) or 1
 end
 
-local function SnapSize(size, f)
+local fitted = setmetatable({}, { __mode = "k" })
+local Previewed
+
+function Widgets.Fitted(text, on)
+	fitted[text] = on ~= false or nil
+	return text
+end
+
+local previews = setmetatable({}, { __mode = "k" })
+
+function Widgets.MarkPreview(frame)
+	previews[frame] = true
+	return frame
+end
+
+function Previewed(text)
+	if next(previews) == nil then
+		return false
+	end
+	local node = text:GetParent()
+	while node do
+		if previews[node] then
+			return true
+		end
+		node = node:GetParent()
+	end
+	return false
+end
+
+function Widgets.IsFitted(text)
+	return fitted[text] == true
+end
+
+local function SnapSize(size, f, text)
 	local px = Scale.Pixel(1) / f
-	return max(px, floor(size / px + 0.5) * px)
+	local snapped = floor(size / px + 0.5) * px
+	local least = Scale.TextFloor() * px
+	if snapped >= least then
+		return snapped
+	end
+	if text and fitted[text] then
+		return max(px, snapped)
+	end
+	if text and Previewed(text) then
+		return max(floor(Scale.TextFloor() * min(1, f) + 0.5) * px, snapped)
+	end
+	return least
 end
 
 local function Shadow(text, flags, f)
@@ -283,7 +327,7 @@ local function Shadow(text, flags, f)
 end
 
 function Widgets.FontSize(text, size)
-	return SnapSize(size, TextFactor(text))
+	return SnapSize(size, TextFactor(text), text)
 end
 
 function Widgets.TextShadow(text, flags)
@@ -444,7 +488,7 @@ end
 function Widgets.ApplyFont(text, path, size, flags, plain)
 	flags = flags or ""
 	local f = TextFactor(text)
-	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
+	local ok = text:SetFont(path, SnapSize(size, f, text), flags) ~= false
 	Shadow(text, flags, f)
 	if not plain then
 		Widgets.SyncTracking(text)

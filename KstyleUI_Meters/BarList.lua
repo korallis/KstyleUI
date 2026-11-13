@@ -16,7 +16,7 @@ local TEXT_AIR = 2
 local ICON_CROP = 0.08
 local MORE_GLYPH = 10
 local ESTIMATE_EM = 0.5
-local CAP_RESERVE = 44
+local CAP_RULE = 4
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
@@ -701,6 +701,10 @@ local function TextWidth(text)
 	return #plain * size * ESTIMATE_EM
 end
 
+local function CapReserve(list)
+	return Widgets.SECTION_CAP_CHROME + CAP_RULE + (list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0)
+end
+
 local function Fits(list)
 	local aside = TextWidth(list.column)
 	if not aside then
@@ -709,7 +713,7 @@ local function Fits(list)
 	local room = list.barWidth or 0
 	if ns.Get(list.section .. ".title") then
 		local title = TextWidth(list.title)
-		return not title or title + aside <= room - CAP_RESERVE
+		return not title or title + aside <= room - CapReserve(list)
 	end
 	return aside <= room
 end
@@ -718,11 +722,22 @@ local function HoldTitle(list)
 	local title = list.title
 	title:SetWidth(0)
 	title:SetShown(true)
+	if list.titleNarrow then
+		list.titleNarrow = false
+		list:PaintTitleSwitch()
+	end
 	if Fits(list) or not ns.Get(list.section .. ".title") then
 		return
 	end
+	if list.switchFirst and not list.hot then
+		list.titleNarrow = true
+		list:PaintTitleSwitch()
+		if Fits(list) then
+			return
+		end
+	end
 	local aside = TextWidth(list.column) or 0
-	local room = (list.barWidth or 0) - CAP_RESERVE - aside
+	local room = (list.barWidth or 0) - CapReserve(list) - aside
 	if room > 0 then
 		title:SetWidth(room)
 	else
@@ -735,7 +750,7 @@ function List:Restyle()
 	self.pad = self.block and Widgets.Snap(self.panel, BLOCK_PAD) or self.panel.chrome:Inset()
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
-	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	local em = Widgets.FontSize(self.title, ns.Get(section .. ".fontSize") * K.Theme.FontScale())
 	local columns = self.columns()
 	self.blockIcons = self.block and self.iconsOn ~= nil and self.iconsOn() == true
 	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * VALUE_EMS) or 0
@@ -935,11 +950,12 @@ end
 
 function List:PaintTitleSwitch()
 	local first, second, selected = self.switchFirst, self.switchSecond, self.switchPick
-	local hot = self.hot == true
-	if not first or (self.titleText and first == self.paintFirst and second == self.paintSecond and selected == self.paintPick and hot == self.paintHot) then
+	local narrow = self.titleNarrow == true
+	local hot = self.hot == true or narrow
+	if not first or (self.titleText and first == self.paintFirst and second == self.paintSecond and selected == self.paintPick and self.hot == self.paintHot and narrow == self.paintNarrow) then
 		return
 	end
-	self.paintFirst, self.paintSecond, self.paintPick, self.paintHot = first, second, selected, hot
+	self.paintFirst, self.paintSecond, self.paintPick, self.paintHot, self.paintNarrow = first, second, selected, self.hot, narrow
 	local Upper = K.Locale.Upper
 	local text
 	if hot then

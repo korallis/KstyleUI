@@ -357,6 +357,7 @@ end
 local function SetName(view, name)
 	local text = view.name
 	local path, full, flags = ns.Settings.Font(view.kind, "name")
+	K.Widgets.Fitted(text, false)
 	SetFont(text, path, full, flags)
 	if IsSecret(name) then
 		view.plainName = nil
@@ -382,6 +383,7 @@ local function SetName(view, name)
 		width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
 		local _, actual = text:GetFont()
 		if Number(width) and width > room and Number(actual) and actual > limit then
+			K.Widgets.Fitted(text)
 			local pixel = K.Widgets.FontSize(text, 0)
 			SetFont(text, bodyPath, math.max(pixel, actual - pixel), flags)
 			width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()

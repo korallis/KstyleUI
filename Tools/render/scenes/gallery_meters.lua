@@ -211,12 +211,12 @@ local function live(frames)
 
 	-- The Meters page's live preview: sample damage and threat meters and a swing bar.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
-	at(parent, 400, 80, 420, 220)
+	at(parent, 1460, 80, 248, 516)
 	local preview = K.Options.Preview("Meters")(parent)
 	preview:Refresh()
 	frames:Add(env, parent, {
 		name = "meters_preview", title = "Meters preview", grade = "panel", reference = "player",
-		caption = "The Meters page's live preview (Preview.Build): a sample damage meter with its spells' names and icons and a threat meter side by side, the threat sample's warning colouring its count (88%) neutral, and the sample swing bar across the bottom on the bar grade.",
+		caption = "The Meters page's live preview (Preview.Build): at the settings window's pane size (248 by 516 units), a sample damage meter with its spells' names and icons over a threat meter, the threat sample's warning colouring its count (88%) neutral, and the sample swing bar across the bottom on the bar grade.",
 		match = "The two sample windows are the glass panel grade as the live meters; the swing sample is the bar grade's surface tile with the edgeBar line.",
 	})
 

@@ -457,6 +457,7 @@ local function PaintCaption(text, entry)
 	local caption = entry.caption
 	local size = Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE)
 	if entry.own then
+		Widgets.Fitted(caption, entry.room ~= nil and entry.room < size)
 		size = math.max(entry.own, math.min(size, entry.room or size))
 	end
 	Style.ApplyFont(caption, "caps", size)
