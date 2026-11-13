@@ -560,7 +560,7 @@ local function PlaceBlockText(list, row)
 	local rowHeight = list.rowHeight
 	local joined = list.percentWidth > 0 and row.joined == true
 	row.percent:ClearAllPoints()
-	row.percent:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+	Widgets.Point(row.percent, "RIGHT", frame, "RIGHT", -inset, 0)
 	row.percent:SetHeight(rowHeight)
 	row.percent:SetWidth(0)
 	row.percent:SetShown(joined)
@@ -586,10 +586,10 @@ local function PlaceBlockText(list, row)
 		dot:Show()
 		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
-		row.value:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+		Widgets.Point(row.value, "RIGHT", frame, "RIGHT", -inset, 0)
 	end
 	row.name:ClearAllPoints()
-	row.name:SetPoint("LEFT", row.bar, "LEFT", inset, 0)
+	Widgets.Point(row.name, "LEFT", row.bar, "LEFT", inset, 0)
 	if list.valueWidth > 0 then
 		row.name:SetPoint("RIGHT", row.value, "LEFT", -gap, 0)
 	else

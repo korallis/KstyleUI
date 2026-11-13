@@ -232,8 +232,8 @@ gallery_meters	1920x1080	Core/Skin.lua	2
 gallery_meters	1920x1080	Core/Widgets/Base.lua	12
 gallery_meters	1920x1080	Core/Widgets/SectionCap.lua	6
 gallery_meters	1920x1080	Core/Widgets/StatusBar.lua	14
-gallery_meters	1920x1080	KstyleUI_Meters/BarList.lua	81
-gallery_meters	1920x1080	KstyleUI_Meters/Preview.lua	129
+gallery_meters	1920x1080	KstyleUI_Meters/BarList.lua	62
+gallery_meters	1920x1080	KstyleUI_Meters/Preview.lua	124
 gallery_meters	1920x1080	KstyleUI_Meters/Swing.lua	2
 gallery_meters	2560x1440	Core/Widgets/Base.lua	26
 gallery_meters	2560x1440	Core/Widgets/StatusBar.lua	8
@@ -249,8 +249,8 @@ gallery_meters	3840x1080	Core/Skin.lua	2
 gallery_meters	3840x1080	Core/Widgets/Base.lua	12
 gallery_meters	3840x1080	Core/Widgets/SectionCap.lua	6
 gallery_meters	3840x1080	Core/Widgets/StatusBar.lua	14
-gallery_meters	3840x1080	KstyleUI_Meters/BarList.lua	81
-gallery_meters	3840x1080	KstyleUI_Meters/Preview.lua	129
+gallery_meters	3840x1080	KstyleUI_Meters/BarList.lua	62
+gallery_meters	3840x1080	KstyleUI_Meters/Preview.lua	124
 gallery_meters	3840x1080	KstyleUI_Meters/Swing.lua	2
 gallery_meters	3840x2160	Core/Widgets/Base.lua	12
 gallery_meters	3840x2160	Core/Widgets/StatusBar.lua	15
@@ -898,7 +898,7 @@ hud_reference	1920x1080	Core/Widgets/Base.lua	4
 hud_reference	1920x1080	Core/Widgets/SectionCap.lua	1
 hud_reference	1920x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	1920x1080	KstyleUI_DataBars/Strip.lua	2
-hud_reference	1920x1080	KstyleUI_Meters/BarList.lua	20
+hud_reference	1920x1080	KstyleUI_Meters/BarList.lua	15
 hud_reference	1920x1080	KstyleUI_Minimap/Face.lua	5
 hud_reference	1920x1080	KstyleUI_Nameplates/Plate.lua	16
 hud_reference	1920x1080	KstyleUI_Skins/Lumen.lua	2
@@ -927,7 +927,7 @@ hud_reference	3840x1080	Core/Widgets/Base.lua	4
 hud_reference	3840x1080	Core/Widgets/SectionCap.lua	1
 hud_reference	3840x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	3840x1080	KstyleUI_DataBars/Strip.lua	2
-hud_reference	3840x1080	KstyleUI_Meters/BarList.lua	20
+hud_reference	3840x1080	KstyleUI_Meters/BarList.lua	15
 hud_reference	3840x1080	KstyleUI_Minimap/Face.lua	5
 hud_reference	3840x1080	KstyleUI_Nameplates/Plate.lua	16
 hud_reference	3840x1080	KstyleUI_Skins/Lumen.lua	2
