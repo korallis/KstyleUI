@@ -740,6 +740,7 @@ end
 local function OnHudStyleChanged()
 	ns.Orbs.Apply()
 	Frames.Apply(frames.player)
+	RestyleAll()
 	ns.Blizzard.Apply(running)
 end
 

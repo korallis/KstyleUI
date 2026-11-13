@@ -394,7 +394,7 @@ local ORBS_STANCE_W = GridSize("actionbars.stance")
 local ORBS_REP_W = ElementSize("databars.rep")
 local ORBS_PET_FRAME_W = ElementSize("unitframes.pet")
 local ORBS_GLOW = 30
-local ORBS_TARGET_W = ElementSize("unitframes.target")
+local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 
 local ORBS = {
@@ -415,7 +415,8 @@ local ORBS = {
 	["databars.rep"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_REP_W / 2), y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_REP_W / 2, y = 52 },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_GLOW + ORBS_PET_FRAME_W / 2), y = BAR1_Y + ORBS_PET_H + GAP },
-	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
+	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
@@ -666,7 +667,7 @@ function Layouts.Style(style, name, key)
 	local set = STYLES[style] and STYLES[style][name]
 	local position = set and set[key]
 	if position then
-		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale }
+		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale, width = position.width, height = position.height }
 	end
 end
 

@@ -32,7 +32,8 @@ for _, field in ipairs(FIELDS) do
 end
 Layout.FIELDS = FIELDS
 
-local STYLED = { anchor = true, x = true, y = true, scale = true }
+local STYLED = { anchor = true, x = true, y = true, scale = true, width = true, height = true }
+local STYLED_OPT = { scale = "scalable", width = "resizable", height = "resizable" }
 
 local STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true }
 
@@ -394,7 +395,8 @@ local function StyleDefault(el)
 	el.style = over and style or nil
 	if over then
 		for field in pairs(STYLED) do
-			if over[field] ~= nil and (field ~= "scale" or el.opts.scalable) then
+			local opt = STYLED_OPT[field]
+			if over[field] ~= nil and (not opt or el.opts[opt]) then
 				d[field] = over[field]
 			end
 		end
