@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 29
+Store.DB_VERSION = 30
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -770,6 +770,31 @@ Store.migrations[29] = function(data)
 				for field, flip in pairs(HEALER_BOSS_AURAS) do
 					if frames[field] == flip[1] then
 						frames[field] = flip[2]
+					end
+				end
+			end
+		end
+	end
+end
+
+local PLACED = { "anchor", "x", "y" }
+Store.migrations[30] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	if not (layouts and type(layouts.Get) == "function" and type(layouts.Style) == "function") then
+		return
+	end
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles) == "table" and data.profiles[name]
+		local section = type(profile) == "table" and type(profile.Layout) == "table" and profile.Layout or {}
+		local preset = layouts.Get(section.preset) and section.preset or "DPS"
+		local presets = layouts.Get(preset)
+		for key, entry in pairs(type(layout) == "table" and layout or {}) do
+			local style, element = key:match("^(%a+):(.+)$")
+			local old = type(entry) == "table" and (style and (layouts.Style(style, preset, element) or presets[element]) or presets[key])
+			if old and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
+				for _, field in ipairs(PLACED) do
+					if entry[field] == nil then
+						entry[field] = old[field]
 					end
 				end
 			end

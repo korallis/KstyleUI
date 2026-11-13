@@ -123,6 +123,9 @@ function Common.ForceScreen(env)
 	-- HUD style gives it, or a framing the player picked.
 	local framing = os.getenv("RENDER_CHAT_FRAMING")
 	env._renderChatFraming = framing and framing ~= "" and framing or nil
+	-- RENDER_ARRANGEMENT (centred or spread) is the saved ultrawide arrangement, as a global or in the environment.
+	local arrangement = rawget(_G, "RENDER_ARRANGEMENT") or os.getenv("RENDER_ARRANGEMENT")
+	env._renderArrangement = arrangement and arrangement ~= "" and arrangement or nil
 	-- RENDER_ORNAMENTS (Off, Subtle or Full) is the ornament level a scene draws at. A scene draws Off unless it
 	-- names a level, so hud_reference, the measurements and the galleries keep their meaning; a test that builds
 	-- several levels in one process sets the global RENDER_ORNAMENTS instead. env._ornamentHandles collects every

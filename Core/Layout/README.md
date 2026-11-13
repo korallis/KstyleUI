@@ -52,7 +52,9 @@ A module that fades or shows and hides its own frame, such as a cast bar, a unit
 
 ## Element settings
 
-Every element has these settings, saved per profile in `KstyleUIDB.layouts[profile][key]`. Only the fields that differ from the defaults are saved.
+Every element has these settings, saved per profile in `KstyleUIDB.layouts[profile][key]`. Only the fields that differ from the defaults are saved, with one exception: a place is saved whole. Once any of `anchor`, `x` and `y` differs from the default, all three are saved, so a layout class (`Scale.Aspect()`, whose places can differ) never moves an element the player placed; when all three are back at the default, none is saved and the element follows its class again. Store migration 30 made older partial places whole against the defaults they were saved against.
+
+The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Orbs, the style's place and the class's Orbs place. A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged` for every element.
 
 | Field | Values | Default |
 | --- | --- | --- |
@@ -173,6 +175,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `snapDistance` | 8 | slider, 2 to 24 |
 | `calm` | `true` | toggle, **Calm the rails in combat**, under a **Combat** header |
 | `canvas` | `"21:9"` | `"21:9"`, `"16:9"` or `"full"` (Options, **HUD width**). On a screen wider than that aspect (21:9 is 12:5, so 2560x1080, 3440x1440 and 3840x1600 are untouched) `Scale` narrows `KstyleUI_Root` to a centred band that wide, an even number of pixels in from each edge, so every element, Layout Mode and the fit cap work on the band; the world, nameplates and Blizzard's frames keep the whole screen. `Scale.Origin()` is the band's left edge in root units, for the frames KstyleUI places from `UIParent` (the RestedXP guide, Apply's Edit Mode positions). |
+| `arrangement` | `"centred"` | `"centred"` or `"spread"` (Options, **Ultrawide arrangement**, under HUD width; KSTY-59). It matters only on a screen wider than the HUD width. Centred keeps every element in the centred band. Spread gives `KstyleUI_Root` the whole screen, so every element anchored to a side (party and raid, chat and loot, the map, its aura rows and the story cards, the meters, the readout and the rail bars, the boss column) goes out to its margin from the screen edge, and the centre cluster, anchored to the centre, stays put. Apply's Edit Mode viewers follow the class. |
 | `preset` | `"DPS"` | none. The layout the first-run setup last applied, which Layout Mode outlines the story slot for |
 
 ## Why

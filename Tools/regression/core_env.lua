@@ -77,6 +77,11 @@ function CoreEnv.LoadSaved(env)
 		assert(framing == "auto" or framing == "card" or framing == "bare", "unknown RENDER_CHAT_FRAMING: " .. tostring(framing))
 		env.KstyleUI.Store.Module("Chat").framing = framing
 	end
+	if env._renderArrangement then
+		local arrangement = env._renderArrangement
+		assert(arrangement == "centred" or arrangement == "spread", "unknown RENDER_ARRANGEMENT: " .. tostring(arrangement))
+		env.KstyleUI.Store.Module("Layout").arrangement = arrangement
+	end
 	if env._renderOrnaments then
 		local level = env._renderOrnaments
 		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))

@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own, and each layout class's own places.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -680,13 +680,36 @@ function Layouts.Style(style, name, key)
 	end
 end
 
-function Layouts.Positions(name, style)
+local ASPECTS = ns.Scale.ASPECTS
+local PLACES = {}
+for _, class in ipairs(ASPECTS) do
+	PLACES[class] = { frames = {}, orbs = {} }
+end
+Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
+
+function Layouts.Aspect(class, style, name, key)
+	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
+	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
+	local position = set and set[key]
+	if position and position.anchor and position.x and position.y then
+		return copy(position)
+	end
+end
+
+function Layouts.Place(name, style, class, key)
+	local base = layouts[name] and layouts[name][key]
+	if not base then
+		return nil
+	end
+	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key) or base
+	return { anchor = place.anchor, x = place.x, y = place.y }
+end
+
+function Layouts.Positions(name, style, class)
 	local out = Layouts.Get(name)
 	for key, position in pairs(out or {}) do
-		local over = Layouts.Style(style, name, key)
-		if over then
-			position.anchor, position.x, position.y = over.anchor, over.x, over.y
-		end
+		local place = Layouts.Place(name, style, class, key)
+		position.anchor, position.x, position.y = place.anchor, place.x, place.y
 	end
 	return out
 end
@@ -962,7 +985,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale
 	end
-	local positions = Layouts.Get(preset)
+	local positions = Layouts.Positions(preset, "frames", ns.Scale.AspectClass(physicalWidth, physicalHeight))
 	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
 		return high
@@ -970,7 +993,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	local span = HEIGHT
 	for _, element in ipairs(ELEMENTS) do
 		local width, height = Layouts.Footprint(preset, element.key)
-		local position = layouts[preset][element.key]
+		local position = positions[element.key]
 		span = math.max(span, math.abs(position.x) + width, math.abs(position.y) + height)
 	end
 	local step = 1080 / (physicalHeight * 2 * span)

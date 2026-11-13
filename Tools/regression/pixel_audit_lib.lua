@@ -23,6 +23,8 @@ local Audit = {}
 Audit.SCREENS = {
 	{ 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 },
 }
+-- hud_reference also runs at these: the other ultrawide size, and the two 32:9 screens under the Spread arrangement.
+Audit.REFERENCE_SCREENS = { { 2560, 1080 }, { 5120, 1440, "spread" }, { 3840, 1080, "spread" } }
 Audit.UI_SCALE = 768 / 1080
 Audit.TOLERANCE = 0.01
 
@@ -387,7 +389,12 @@ end
 function Audit.Reference(screen, layout)
 	local Reference = dofile("Tools/render/scenes/_reference.lua")
 	Reference.SCREEN = Screen(screen)
-	return Audit.Check(Reference.Build({ layout = layout }), screen[2])
+	local previous = rawget(_G, "RENDER_ARRANGEMENT")
+	rawset(_G, "RENDER_ARRANGEMENT", screen[3])
+	local ok, scene = pcall(Reference.Build, { layout = layout })
+	rawset(_G, "RENDER_ARRANGEMENT", previous)
+	assert(ok, scene)
+	return Audit.Check(scene, screen[2])
 end
 
 -- Galleries() -> every gallery scene's name, in ls order.
@@ -416,6 +423,9 @@ function Audit.Jobs()
 		for _, screen in ipairs(Audit.SCREENS) do
 			jobs[#jobs + 1] = { scene = sceneName, screen = screen, weight = WEIGHTS[sceneName] or 3 }
 		end
+	end
+	for _, screen in ipairs(Audit.REFERENCE_SCREENS) do
+		jobs[#jobs + 1] = { scene = "hud_reference", screen = screen, weight = WEIGHTS.hud_reference }
 	end
 	return jobs
 end
@@ -452,7 +462,7 @@ function Audit.Part(index, parts)
 end
 
 local function Key(job)
-	return job.scene .. "	" .. job.screen[1] .. "x" .. job.screen[2]
+	return job.scene .. "	" .. job.screen[1] .. "x" .. job.screen[2] .. (job.screen[3] and " " .. job.screen[3] or "")
 end
 
 -- Measure(job) -> { [file] = count }, offenders, judged for one job.

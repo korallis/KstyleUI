@@ -71,6 +71,7 @@ do
 	assert(Layout.Set(CAST, "x", 40), "a Frames position saves")
 	local saved = env.KstyleUIDB.layouts.Default
 	assert(near(saved[CAST].x, 40) and saved["orbs:" .. CAST] == nil, "a Frames position is saved under the plain key")
+	local framesSaved = { anchor = saved[CAST].anchor, x = saved[CAST].x, y = saved[CAST].y }
 	local fired = {}
 	K.Callbacks.Register("LayoutChanged", "test", function(_, key)
 		fired[key] = true
@@ -82,7 +83,7 @@ do
 	At(K, CHAT, Layouts.Default(CHAT), "unmoved under Orbs")
 	assert(Layout.Set(CAST, "y", orbs.y + 30), "an Orbs position saves")
 	assert(near(saved["orbs:" .. CAST].y, orbs.y + 30), "an Orbs position is saved under orbs:")
-	assert(near(saved[CAST].x, 40) and saved[CAST].y == nil, "the Frames position is untouched")
+	assert(saved[CAST].anchor == framesSaved.anchor and saved[CAST].x == framesSaved.x and saved[CAST].y == framesSaved.y, "the Frames position is untouched")
 	assert(Layout.Set(CAST, "alphaIdle", 0.5), "a non-position field saves")
 	assert(saved[CAST].alphaIdle == 0.5 and saved["orbs:" .. CAST].alphaIdle == nil, "opacity is shared by both styles")
 	Style(K, "frames")

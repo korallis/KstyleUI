@@ -120,7 +120,7 @@ local function Native(group)
 end
 
 local function Positions(name)
-	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current())
+	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current(), ns.Scale.Aspect())
 end
 
 local function Box(name, key, rw, rh)

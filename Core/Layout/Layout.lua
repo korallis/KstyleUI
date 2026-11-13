@@ -33,6 +33,7 @@ end
 Layout.FIELDS = FIELDS
 
 local STYLED = { anchor = true, x = true, y = true, scale = true, width = false, height = false }
+local PLACED = { "anchor", "x", "y" }
 local STYLED_OPT = { scale = "scalable", width = "resizable", height = "resizable" }
 
 local STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true }
@@ -72,6 +73,7 @@ Layout.defaults = {
 	calm = true,
 	preset = "DPS",
 	canvas = Scale.DEFAULT_CANVAS,
+	arrangement = Scale.DEFAULT_ARRANGEMENT,
 }
 
 Layout.schema = {
@@ -104,6 +106,14 @@ Layout.schema = {
 			{ value = "full", label = L["Full width"] },
 		},
 	},
+	{
+		type = "dropdown", key = "arrangement", label = L["Ultrawide arrangement"],
+		help = L["Wider screens: Centred keeps all in the HUD width; Spread moves the side columns to the edges."],
+		options = {
+			{ value = "centred", label = L["Centred (default)"] },
+			{ value = "spread", label = L["Spread"] },
+		},
+	},
 	{ type = "header", label = L["Combat"] },
 	{
 		type = "toggle", key = "calm", label = L["Calm the rails in combat"],
@@ -129,6 +139,7 @@ local SETTING_VALID = {
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
 	calm = function(v) return type(v) == "boolean" end,
 	canvas = function(v) return Scale.CANVAS[v] ~= nil end,
+	arrangement = function(v) return Scale.ARRANGEMENT[v] == true end,
 	preset = function(v)
 		local setup = ns.Setup
 		return type(v) == "string" and setup ~= nil and setup.Layouts ~= nil and setup.Layouts.Get(v) ~= nil
@@ -388,8 +399,18 @@ local function Style()
 	end
 end
 
+local function Aspect(el, d, style)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local place = layouts and layouts.Aspect and layouts.Aspect(Scale.Aspect(), style or "frames", Layout.Setting("preset"), el.key)
+	if place then
+		d.anchor, d.x, d.y = place.anchor, place.x, place.y
+	end
+	return d
+end
+
 local function StyleDefault(el)
-	local d = Copy(el.base)
+	el.frames = Aspect(el, Copy(el.base))
+	local d = Copy(el.frames)
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
 	el.style = over and style or nil
@@ -403,6 +424,7 @@ local function StyleDefault(el)
 			end
 			el.styled[field] = always or applies or nil
 		end
+		Aspect(el, d, style)
 	end
 	el.default = d
 end
@@ -893,12 +915,23 @@ local function Stage(el, patch, changes, frames)
 	for key, part in pairs(parts) do
 		local before = Copy(Entry(key))
 		local entry = Copy(Entry(key)) or {}
+		local defaults = key == el.key and el.frames or el.default
 		for field, value in pairs(part) do
-			local default = frames and el.base[field] or el.default[field]
-			if value == RESET or Same(value, default) then
+			if value == RESET or Same(value, defaults[field]) then
 				entry[field] = nil
 			else
 				entry[field] = value
+			end
+		end
+		local placed = false
+		for _, field in ipairs(PLACED) do
+			placed = placed or entry[field] ~= nil and not Same(entry[field], defaults[field])
+		end
+		for _, field in ipairs(PLACED) do
+			if placed then
+				entry[field] = entry[field] == nil and defaults[field] or entry[field]
+			else
+				entry[field] = nil
 			end
 		end
 		SetEntry(key, entry)
@@ -1450,8 +1483,20 @@ ns.Events.Register(SECTION, "PLAYER_LOGIN", function()
 end)
 
 
+local aspect = Scale.Aspect()
+
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
+	local resolve = Scale.Aspect() ~= aspect
+	aspect = Scale.Aspect()
+	if resolve then
+		Log("the " .. aspect .. " layout applies to elements at their defaults")
+		ResolveAll()
+		UpdateEvents()
+	end
 	ApplyAll(true)
+	for i = 1, resolve and #order or 0 do
+		ns.Callbacks.Fire("LayoutChanged", order[i])
+	end
 	if state.active then
 		Mode("Refresh")
 	end
