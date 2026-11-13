@@ -26,40 +26,54 @@ local SAMPLES = {
 
 local function Caption(frame, anchor, text)
 	local caption = Widgets.Text(frame, "caption", "text")
-	caption:SetPoint("TOP", anchor, "BOTTOM", 0, -Tokens.Size("gapSmall"))
 	Widgets.SetText(caption, text)
+	caption.anchor = anchor
 	return caption
 end
 
 local function SampleFrame(frame)
 	local tile = Widgets.Panel(frame, { shape = "tile", fill = "buttonFill", shadow = false, width = FRAME_WIDTH, height = FRAME_HEIGHT })
-	tile:ClearAllPoints()
-	tile:SetPoint("BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM)
-	local bar = Widgets.StatusBar(tile, {
+	tile.bar = Widgets.StatusBar(tile, {
 		color = "hostile",
 		width = FRAME_WIDTH - 2 * BAR_INSET,
 		height = FRAME_HEIGHT - 2 * BAR_INSET,
 		min = 0, max = 1, value = BAR_FILL,
 	})
-	bar:SetPoint("CENTER", tile, "CENTER", 0, 0)
-	Caption(frame, tile, L["Target frame"])
+	tile.caption = Caption(frame, tile, L["Target frame"])
 	return tile
+end
+
+local function PlaceCaption(caption)
+	caption:ClearAllPoints()
+	Widgets.Point(caption, "TOP", caption.anchor, "BOTTOM", 0, -Tokens.Size("gapSmall"))
+end
+
+local function Place(frame)
+	local field, tile, footprint = frame.field, frame.unitFrame, frame.footprint
+	Widgets.Size(field, footprint.width, footprint.height)
+	field:ClearAllPoints()
+	Widgets.Point(field, "TOP", frame, "TOP")
+	frame.base:SetHeight(Widgets.Border(frame))
+	Widgets.Size(tile, FRAME_WIDTH, FRAME_HEIGHT)
+	tile:ClearAllPoints()
+	Widgets.Point(tile, "BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM)
+	tile.bar:ClearAllPoints()
+	Widgets.Point(tile.bar, "CENTER", tile, "CENTER")
+	PlaceCaption(frame.caption)
+	PlaceCaption(tile.caption)
 end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	local footprint = K.Setup.Layouts.Element(FIELD_KEY)
 	local field = CreateFrame("Frame", nil, frame)
-	field:SetSize(footprint.width, footprint.height)
-	field:SetPoint("TOP", frame, "TOP", 0, 0)
 	local base = frame:CreateTexture(nil, "ARTWORK")
 	base:SetTexture((Tokens.Texture("divider")))
 	base:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, 0)
 	base:SetPoint("TOPRIGHT", field, "BOTTOMRIGHT", 0, 0)
-	base:SetHeight(Widgets.Border(frame))
 	Widgets.Tint(base, "accent")
-	Caption(frame, field, L["Your combat text"])
+	frame.footprint, frame.base = K.Setup.Layouts.Element(FIELD_KEY), base
+	frame.caption = Caption(frame, field, L["Your combat text"])
 	local unitFrame = SampleFrame(frame)
 
 	local pool = Pool.New(frame, CAPACITY)
@@ -72,6 +86,7 @@ function Preview.Build(parent)
 	frame.pool, frame.cfg, frame.field, frame.unitFrame = pool, cfg, field, unitFrame
 
 	function frame.Refresh()
+		Place(frame)
 		Settings.Snapshot(Settings.Values(), cfg)
 		pool:ReleaseAll()
 		elapsed = INTERVAL
