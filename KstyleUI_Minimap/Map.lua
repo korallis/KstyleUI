@@ -653,6 +653,7 @@ local function RegisterEvents()
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
 		onZone()
 		CollectButtons()
+		C_Timer.After(0, CollectButtons)
 	end)
 	for _, event in ipairs(COLUMN_EVENTS) do
 		Events.Register(MODULE, event, RefreshColumn)
@@ -719,6 +720,7 @@ function Map.Enable()
 		K.DevTest.AddCheck(MODULE, Check)
 	end
 	Map.Refresh()
+	Map.drawer:Reposition()
 end
 
 function Map.Disable()
@@ -742,6 +744,9 @@ function Map.Disable()
 	Release()
 	if GetMinimapShape == SquareShape then
 		GetMinimapShape = nil
+	end
+	if Map.drawer then
+		Map.drawer:Reposition()
 	end
 end
 

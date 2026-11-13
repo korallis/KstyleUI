@@ -551,7 +551,7 @@ end
 function Plate:UpdateStyle()
 	local canAttack = self:Is("enemy", UnitCanAttack, "player", self.unit)
 	self.kind = (IsSecret(canAttack) or canAttack) and "enemy" or "friendly"
-	local nameOnly = self.kind == "friendly" and Settings.Get("friendly.nameOnly")
+	local nameOnly = IsTrue(self:Is("gameObject", UnitIsGameObject, self.unit)) or (self.kind == "friendly" and Settings.Get("friendly.nameOnly"))
 	if nameOnly ~= self.nameOnly then
 		self.nameOnly = nameOnly
 		self:LayoutName()
