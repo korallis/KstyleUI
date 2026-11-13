@@ -41,16 +41,18 @@ end
 -- Auto picks, per screen, the sixteenth-of-a-pixel step nearest the KSTY-44 mock-ups' size (one unit per mock-up pixel at
 -- 1080 lines, Scale.MOCKUP_SIZE) that fits the active HUD style (KSTY-60 item 2, the Captain's ruling of 2026-11-13).
 -- In Frames the boss column caps every screen at 0.995, so 1080 lines take 15/16 and 2160 lines 31/16.
+-- Orbs reaches at least Frames' step on the seven screens of the matrix and on 1366x768 (KSTY-60 item 2, the Captain's
+-- ruling of 2026-11-13), and on 3840x1080 one step more, the mock-ups' own size; on 3:2 screens the left aura row meets
+-- the loot feed a step earlier (three in Healer, where its raid meets the target), a recorded limit.
+local SAME = { "5120x1440", "3440x1440", "3840x1080", "2560x1440", "1920x1080", "3840x2160", "1280x720", "1366x768" }
 local WANT = {
 	frames = {
 		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 15 / 16, ["1920x1080"] = 15 / 16,
 		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 21 / 16, ["3456x2234"] = 30 / 16,
 	},
-	-- KSTY-60 item 6 (#348): the raid back in the top-left corner leaves the Orbs loot feed clear, so the wide screens
-	-- reach 20/16 and 15/16.
 	orbs = {
-		["5120x1440"] = 20 / 16, ["3440x1440"] = 20 / 16, ["2560x1440"] = 17 / 16, ["3840x1080"] = 15 / 16, ["1920x1080"] = 13 / 16,
-		["3840x2160"] = 26 / 16, ["1280x720"] = 8 / 16, ["1366x768"] = 9 / 16, ["2383x1540"] = 16 / 16, ["3456x2234"] = 24 / 16,
+		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 16 / 16, ["1920x1080"] = 15 / 16,
+		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 19 / 16, ["3456x2234"] = 28 / 16,
 	},
 }
 for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 }, { 2383, 1540 }, { 3456, 2234 }, { 1366, 768 } }) do
@@ -79,6 +81,17 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 		end
 		if WANT[style][name] then
 			assert(near(ppu, WANT[style][name]), label .. ": " .. WANT[style][name] .. " px per unit, got " .. ppu)
+		end
+	end
+	for _, same in ipairs(SAME) do
+		if same == name then
+			for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+				local Layouts = K.Setup.Layouts
+				local canvas, enabled = Scale.CanvasWidth(screen[1], screen[2]), Layouts.Enabled(preset, profile)
+				local frames = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "frames"))
+				local orbs = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "orbs"))
+				assert(orbs >= frames - 1e-9, name .. " " .. preset .. ": Orbs reaches Frames' automatic step, " .. frames .. " against " .. orbs)
+			end
 		end
 	end
 	assert(#env._errors == 0, name .. ": " .. tostring(env._errors[1]))
