@@ -341,17 +341,17 @@ function ns.Preview(parent)
 	local y = PREVIEW_TOP
 	for _, def in ipairs(Bars.DEFS) do
 		local caption = Widgets.Text(frame, "caption", "text")
-		caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
+		Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 		Widgets.SetText(caption, def.title)
 		local view = Bars.NewView(frame, def)
-		view.holder:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y)
-		view.holder:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -y)
-		view.holder:SetHeight(PREVIEW_BAR)
+		Widgets.Point(view.holder, "TOPLEFT", frame, "TOPLEFT", 0, -y)
+		Widgets.Point(view.holder, "TOPRIGHT", frame, "TOPRIGHT", 0, -y)
+		view.holder:SetHeight(Widgets.Snap(view.holder, PREVIEW_BAR))
 		frame.bars[def.id], frame.captions[def.id] = view, caption
 		y = y + PREVIEW_BAR + PREVIEW_GAP + PREVIEW_TOP
 	end
 	local caption = Widgets.Text(frame, "caption", "text")
-	caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
+	Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 	Widgets.SetText(caption, L["Data strip"])
 	local strip = Strip.NewView(frame)
 	strip.top = y

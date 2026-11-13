@@ -883,7 +883,7 @@ do
 	}
 	local menv = boot({ saved = saved })
 	local db = menv.KstyleUIDB
-	check(db.version == 26, "version 23 data migrates through 24 to 26")
+	check(db.version == 27, "version 23 data migrates through 24 to 27")
 	local xp = db.profiles.Default.DataBars.xp
 	check(xp.colorSource == "custom" and math.abs(xp.color.r - 0xb6 / 255) < 1e-6, "the old gilt default becomes the experience purple")
 	check(xp.segments == 10 and xp.outline == "WORLD" and math.abs(xp.restedColor.a - 0.55) < 1e-6, "ten segments, the world caption and the 55% rested shade")
