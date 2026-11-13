@@ -20,8 +20,6 @@ local TRAY_BAR2_Y = TRAY_BAR1_Y + TRAY_BUTTON + TRAY_GAP
 local TRAY_TOP = TRAY_BAR2_Y + TRAY_BUTTON + TRAY_PAD
 local TRAY_STRIP_GAP = 9 * MOCK_PX
 local LIFT = math.ceil(TRAY_TOP - 132)
-local COLUMN_FOOT, PLAYER_CLEAR, TARGET_STEP = 5.78, 10 * MOCK_PX, 79.5
-local PLAYER_Y = TRAY_TOP + PLAYER_CLEAR - COLUMN_FOOT
 local PLAYER_CAST_Y = 385.5 + LIFT
 local COMBAT_TEXT_H = 180
 local GRIDS = {
@@ -179,7 +177,7 @@ local DPS = {
 	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = math.max(MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP, PLAYER_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP) },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
-	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_Y },
+	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
 	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 + LIFT },
 	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 + LIFT },
@@ -187,7 +185,7 @@ local DPS = {
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 + LIFT },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 + LIFT },
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 + LIFT },
-	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = PLAYER_Y + TARGET_STEP },
+	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
@@ -534,13 +532,6 @@ local TRAY_OLD = {
 	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
 }
 
-function Layouts.UnitFrameMoves()
-	return {
-		["unitframes.player"] = { "BOTTOM", 0, 138 + LIFT },
-		["unitframes.target"] = { "BOTTOM", 0, 217.5 + LIFT },
-	}
-end
-
 function Layouts.TrayMoves(name)
 	local layout = layouts[name]
 	if not layout then
@@ -550,13 +541,7 @@ function Layouts.TrayMoves(name)
 	for key, place in pairs(TRAY_OLD) do
 		out[key] = { place[1], place[2], place[3] }
 	end
-	local moved = Layouts.UnitFrameMoves()
 	local function lift(key)
-		local before = moved[key]
-		if before then
-			out[key] = { before[1], before[2], before[3] - LIFT }
-			return
-		end
 		local now = layout[key]
 		if now then
 			out[key] = { now.anchor, now.x, now.y - LIFT }
