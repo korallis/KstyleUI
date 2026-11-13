@@ -95,6 +95,7 @@ do
 			Healer = { ["chat.main"] = { width = 318, height = 186 } },
 			Custom = {
 				["chat.main"] = { anchor = "BOTTOMLEFT", x = 40, y = 40, width = 393, height = 186 },
+				["combattext.player"] = { anchor = "BOTTOM", x = 410, y = 500 },
 			},
 		},
 	} })
@@ -112,5 +113,7 @@ do
 	local orbsChat = custom34["orbs:chat.main"]
 	assert(orbsChat and orbsChat.anchor == "BOTTOMLEFT" and orbsChat.x == 40 and orbsChat.y == 40, "and Orbs, whose chat now has a style place of its own, keeps the player's place too")
 	assert(db34.layouts.Default["orbs:chat.main"] == nil, "a chat at its old default leaves Orbs on its own default")
+	local text = custom34["combattext.player"]
+	assert(text and text.anchor == "BOTTOM" and text.x == 410 and text.y == 500 and custom34["orbs:combattext.player"] == nil, "a combat text the player placed keeps its Frames place, and Orbs, which always had its own, is left alone")
 end
 print("store placement ok")

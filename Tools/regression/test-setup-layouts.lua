@@ -535,7 +535,7 @@ do
 	local dps, healer = {}, {}
 	for _, entry in ipairs(Layouts.Settings("DPS")) do dps[entry.module .. "." .. entry.key] = entry.value end
 	for _, entry in ipairs(Layouts.Settings("Healer")) do healer[entry.module .. "." .. entry.key] = entry.value end
-	assert(healer["GroupFrames.party.height"] > dps["GroupFrames.party.height"] and healer["GroupFrames.raid.height"] == dps["GroupFrames.raid.height"], "Healer writes taller party rows; its raid rows keep the DPS height, so the 40-player card stays 505 tall")
+	assert(healer["GroupFrames.party.height"] > dps["GroupFrames.party.height"] and healer["GroupFrames.raid.height"] == dps["GroupFrames.raid.height"], "Healer writes taller party rows; its raid rows keep the DPS height, so the 40-player card stays 401 tall")
 	local spacing = 13
 	local party = 5 * healer["GroupFrames.party.height"] + 4 * spacing
 	assert(5 * dps["GroupFrames.party.height"] + 4 * spacing <= h("DPS", "groupframes.party"), "the DPS party fits its card")
@@ -597,7 +597,7 @@ local FOOTPRINTS = {
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 442, 186 },
 	["groupframes.party"] = { 259, 5 * 39 + 4 * 13 },
-	["groupframes.raid"] = { 543, 505 },
+	["groupframes.raid"] = { 543, 401 },
 	["databars.xp"] = { 491, 7 * 19 / 16 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },

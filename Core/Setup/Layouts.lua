@@ -73,7 +73,7 @@ local ELEMENTS = {
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 32 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
 	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = PARTY.width, height = PARTY.height },
-	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 505 },
+	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 401 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
 	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], grid = true },
@@ -219,7 +219,7 @@ local SIZES = {
 	},
 	Healer = {
 		["groupframes.party"] = { PARTY.width, PARTY.healer },
-		["groupframes.raid"] = { 623, 505 },
+		["groupframes.raid"] = { 623, 401 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { THREAT_W, THREAT_H },
 		["chat.main"] = { RAIL, 186 },
@@ -686,15 +686,14 @@ end
 end
 
 do
-	local OLD_AURAS_X = EDGE + MAP_FRAME + 188 + AURA_MAP_GAP
 	local RAILS_V33 = {
 		places = {
-			["meters.threat"] = { "BOTTOM", SIDE + THREAT_W / 2, CLUSTER_TOP - 22 - TIGHT - THREAT_H },
-			["cooldowns.buffs"] = { "BOTTOM", -442.8, 155.9 + LIFT },
-			["combattext.player"] = { "BOTTOM", 376, CLUSTER_TOP + GAP },
-			["cooldowns.bars"] = { "BOTTOM", -480, 340 + LIFT },
-			["auras.buffs"] = { "TOPRIGHT", -OLD_AURAS_X, -RAIL_EDGE },
-			["auras.debuffs"] = { "TOPRIGHT", -OLD_AURAS_X, -DEBUFFS_Y },
+			["meters.threat"] = { "BOTTOM", 357, 433 },
+			["cooldowns.buffs"] = { "BOTTOM", -442.8, 186.9 },
+			["combattext.player"] = { "BOTTOM", 376, 587 },
+			["cooldowns.bars"] = { "BOTTOM", -480, 371 },
+			["auras.buffs"] = { "TOPRIGHT", -219.9, -18.4 },
+			["auras.debuffs"] = { "TOPRIGHT", -219.9, -67.9 },
 		},
 		sizes = {
 			["chat.main"] = { { 393, 186 } },
@@ -702,7 +701,7 @@ do
 	}
 
 	function Layouts.RailMoves()
-		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat", ["combattext.player"] = "orbs:combattext.player" } }
+		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat" } }
 		for key, place in pairs(RAILS_V33.places) do
 			out.places[key] = { place[1], place[2], place[3] }
 		end

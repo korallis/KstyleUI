@@ -148,7 +148,11 @@ local function Others(name, rw, rh, skip)
 	skip = skip or TRACKED
 	for key in pairs(Positions(name)) do
 		if not skip[key] and Layouts.Shown(name, key) ~= false then
-			out[#out + 1] = Box(name, key, rw, rh)
+			local box = Box(name, key, rw, rh)
+			if box then
+				box.passing = key == "combattext.player" or nil
+				out[#out + 1] = box
+			end
 		end
 	end
 	out[#out + 1] = StoryBox(name, rw, rh)
@@ -442,7 +446,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
 	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	for _, rect in ipairs(others) do
-		if not rect.quests then
+		if not (rect.quests or rect.passing) then
 			rects[#rects + 1] = rect
 		end
 	end
@@ -455,7 +459,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local best
 	local top = rh * (1 - WARNING_TOP)
 	for _, x in ipairs(xs) do
-		if x - half >= left.r + clear and x + half <= right.l - clear then
+		if x - half >= left.r and x + half <= right.l then
 			local lane = Sink({ l = x - half, r = x + half, t = top, x = x }, rects, clear, height)
 			if lane.b >= sigil.t + clear and (not best or lane.t > best.t or (lane.t == best.t and abs(x - rw / 2) < abs(best.x - rw / 2))) then
 				best = lane
