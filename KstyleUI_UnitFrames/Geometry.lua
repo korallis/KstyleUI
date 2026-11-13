@@ -448,9 +448,9 @@ local function PillRow(out, s, width, height, scale)
 end
 
 local COLUMN = {
-	ring = 70, ringGap = 21.5, disc = 27 / 70, discAlong = 29 / 70,
-	health = 13.78, power = 8, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.78,
-	castBar = 7, castGap = 4.85, labelGap = 4.5, labelExtra = 3, nameMin = 2,
+	ring = 70, ringGap = 21.5, disc = 33.5 / 70, discAlong = 30 / 70, discDrop = 22 / 70,
+	health = 21.5, healthMirror = 19, power = 8, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.78,
+	castBar = 7, castGap = 11, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
 Geometry.COLUMN = COLUMN
@@ -461,6 +461,7 @@ local function Clamp(rect, height)
 end
 
 local function ColumnBars(out, s, width, height, cast, nameH, castH)
+	local healthH = s.portraitSide == "RIGHT" and COLUMN.healthMirror or COLUMN.health
 	local bottom = height - COLUMN.bottom
 	out.cast = nil
 	if cast then
@@ -469,14 +470,14 @@ local function ColumnBars(out, s, width, height, cast, nameH, castH)
 	end
 	local powerH = 0
 	if s.power then
-		powerH = max(0, min(COLUMN.power, max(0, bottom - COLUMN.health - COLUMN.gap)))
+		powerH = max(0, min(COLUMN.power, max(0, bottom - healthH - COLUMN.gap)))
 	end
 	out.power = nil
 	if powerH > 0 then
 		out.power = Rect(0, bottom - powerH, width, powerH)
 		bottom = bottom - powerH - COLUMN.gap
 	end
-	out.health = Rect(0, bottom - COLUMN.health, width, COLUMN.health)
+	out.health = Rect(0, bottom - healthH, width, healthH)
 	return out.health.y - COLUMN.nameGap - nameH
 end
 
@@ -526,9 +527,9 @@ local function ColumnPortrait(out, s, width, height, right)
 		return
 	end
 	local disc = max(BADGE_MIN, ceil(size * COLUMN.disc))
-	local along = COLUMN.discAlong * size
+	local along, drop = COLUMN.discAlong * size, COLUMN.discDrop * size
 	local cx, cy = x + size / 2, out.portrait.y + size / 2
-	out.badge = Rect((right and cx - along or cx + along) - disc / 2, cy + along - disc / 2, disc, disc)
+	out.badge = Rect((right and cx - along or cx + along) - disc / 2, cy + drop - disc / 2, disc, disc)
 end
 
 local function ColumnFrame(out, s, width, height, scale)

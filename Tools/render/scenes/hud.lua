@@ -378,6 +378,8 @@ local function sigilSockets(env, K, ns, view, list)
 	return "the sigil's debuff sockets: " .. count .. " of yours on the " .. (list == SIGIL_DEBUFFS and "boss" or "target")
 end
 
+local LOSS_AGO, LOSS_SHARE = 0.12, { player = 0.14, target = 0.08 }
+
 function modules.unitframes(opts)
 	local U = dofile("Tools/regression/unitframes_env.lua")
 	local class, spec = Hud.Class(opts)
@@ -474,6 +476,24 @@ function modules.unitframes(opts)
 	-- opts.targetAuras ({ icon, "time", "count" } each): your debuffs on a target that is no boss, in the same sockets.
 	if (opts.boss or opts.targetAuras) and target then
 		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1], opts.targetAuras)
+	end
+	-- RENDER_LOSS=1 (or opts.loss): the player and the target were hit 0.12 s before the scene's clock, so their health
+	-- bars show the pale band of health just lost, the fading hit flash and the spark, as in a fight.
+	if opts.loss or os.getenv("RENDER_LOSS") == "1" then
+		local clock = env._now
+		env._now = env._time - LOSS_AGO
+		for _, token in ipairs({ "player", "target" }) do
+			local u = env._units[token]
+			if u and u.health and u.healthMax then
+				local now = u.health
+				u.health = math.min(u.healthMax, now + math.floor(u.healthMax * LOSS_SHARE[token]))
+				env.FireEvent("UNIT_HEALTH", token)
+				u.health = now
+				env.FireEvent("UNIT_HEALTH", token)
+			end
+		end
+		env._now = clock
+		notes[#notes + 1] = "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target " .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
 	local scene = build(env, opts, { time = env._time })
 	for _, note in ipairs(notes) do

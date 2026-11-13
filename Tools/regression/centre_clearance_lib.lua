@@ -88,8 +88,11 @@ local function Case(layout, class, form, screen)
 		roots[view.parent] = kind .. ".body"
 		roots[view.portraitFrame] = kind .. ".portrait"
 		roots[view.disc], roots[view.levelText] = kind .. ".level", kind .. ".level"
+		-- The target draws no power line by default since the KSTY-44 Frames mock-up (KSTY-47).
 		for _, part in ipairs({ "health", "power", "name", "caption", "portraitFrame", "disc" }) do
-			Require(view[part], kind .. "." .. part)
+			if part ~= "power" or kind == "player" then
+				Require(view[part], kind .. "." .. part)
+			end
 		end
 		local cast = kind == "player" and U.CastBars.Get(kind)[1] or U.CastBars.Inline(kind)[1]
 		roots[cast.frame] = kind .. ".cast"

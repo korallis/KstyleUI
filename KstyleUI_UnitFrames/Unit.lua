@@ -92,7 +92,9 @@ end
 function Unit.HealthColor(view, unit)
 	local s = view.s
 	local r, g, b
-	if UnitIsConnected and not UnitIsConnected(unit) or UnitIsTapDenied and UnitIsTapDenied(unit) then
+	local grey = UnitIsConnected and not UnitIsConnected(unit) or UnitIsTapDenied and UnitIsTapDenied(unit)
+	view.health:SetHealthUnit(nil)
+	if grey then
 		r, g, b = Tokens.Color("textDisabled")
 	elseif s.healthColor == "custom" then
 		local c = s.healthCustom
@@ -100,9 +102,12 @@ function Unit.HealthColor(view, unit)
 	else
 		r, g, b = UnitColor(unit, s.healthColor)
 	end
-	local reaction = unit and UnitReaction and UnitReaction(unit, "player")
-	view.health.rampKind = (not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX) and "target" or "health"
 	SetColor(view.health, r, g, b)
+	local reaction = UnitReaction and UnitReaction(unit, "player")
+	local hostile = not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX
+	if not (grey or hostile) then
+		view.health:SetHealthUnit(unit)
+	end
 	ns.Style.HealthTint(view, r, g, b)
 end
 
@@ -258,7 +263,7 @@ end
 function Unit.Health(view, unit, instant)
 	local bar = view.health
 	bar:SetBarRange(0, UnitHealthMax(unit))
-	SetValue(bar, UnitHealth(unit), instant)
+	bar:SetHealth(UnitHealth(unit), instant)
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
 	if form ~= "plate" then

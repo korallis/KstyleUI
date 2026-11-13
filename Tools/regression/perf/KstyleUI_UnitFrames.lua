@@ -32,10 +32,18 @@ end
 return {
 	{
 		name = "UnitFrames UNIT_HEALTH",
-		budget = 30,
+		budget = 40,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_HEALTH", "target")
+		end,
+	},
+	{
+		name = "UnitFrames UNIT_HEALTH on the player: loss band, hit flash, spark and low-health curve",
+		budget = 60,
+		setup = function()
+			local env = Target()
+			return env, Perf.Event(env, "UNIT_HEALTH", "player")
 		end,
 	},
 	{

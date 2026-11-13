@@ -114,7 +114,7 @@ end
 local function Paint(view, kind)
 	local s, sample = view.s, SAMPLES[kind]
 	view.health:SetBarRange(0, sample.healthMax)
-	view.health:SetValue(sample.health)
+	view.health:SetHealth(sample.health, true)
 	view.health:SetBarColor(SampleColor(s, sample, s.healthColor, s.healthCustom))
 	Style.HealthTint(view, SampleColor(s, sample, s.healthColor, s.healthCustom))
 	local split = view.geometry and view.geometry.healthSub

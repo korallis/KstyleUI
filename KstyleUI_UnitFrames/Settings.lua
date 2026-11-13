@@ -162,7 +162,7 @@ Settings.defaults = {
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
-		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
+		healthOrientation = "LEFT", powerOrientation = "LEFT", power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),

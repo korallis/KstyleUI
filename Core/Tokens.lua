@@ -59,6 +59,11 @@ local COLORS = {
 	shadow = { "000000", 0.45 },
 	textShadow = { "000000", 0.85 },
 	track = { "05090e", 0.88 },
+	barTrack = { "090a0a", 1 },
+	barEdgeSoft = { "000000", 0.45 },
+	barLoss = { "f1b98a", 0.85 },
+	barLossLit = { "ffe9c9", 0.85 },
+	healthLow = { "c5443e", 1 },
 	barEdge = { "202327", 1 },
 	powerEdge = { "12160a", 1 },
 	castEdge = { "040502", 1 },
@@ -161,6 +166,10 @@ local DURATIONS = {
 	readyFlash = 0.3,
 	fade = 0.2,
 	lootHold = 6,
+	hitFlash = 0.18,
+	lossHold = 0.5,
+	sparkHold = 0.25,
+	sparkFade = 0.35,
 }
 
 local EASINGS = {

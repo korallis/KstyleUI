@@ -54,7 +54,7 @@ local function Build()
 		pip:SetBarValue(0)
 		pips[i] = pip
 	end
-	local mana = Widgets.StatusBar(content, { smooth = true, background = TRACK })
+	local mana = Widgets.UnitBar(content, { loss = false, spark = false })
 	state.holder, state.content, state.pips, state.mana = holder, content, pips, mana
 	holder:HookScript("OnSizeChanged", function()
 		Resource.Layout()
@@ -123,7 +123,10 @@ function Resource.Layout()
 		end
 	end
 	if state.showMana then
-		Place(state.mana, 0, state.showCombo and pipRow + GAP or (h - manaH) / 2, w, manaH)
+		local edge = 2 * Widgets.Border(state.content)
+		local top = max(edge, state.showCombo and pipRow + GAP or (h - manaH) / 2)
+		local bottom = min(h - edge, top + manaH)
+		Place(state.mana, edge, top, max(0, w - 2 * edge), max(0, bottom - top))
 		state.mana:Show()
 	else
 		state.mana:Hide()
