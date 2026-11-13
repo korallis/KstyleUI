@@ -70,8 +70,10 @@ end
 
 return {
 	{
+		-- The health bar is Widgets.UnitBar now (KSTY-48): the band, the flash and the spark run per update. Lua 5.1
+		-- takes 3.05 us here at a load of 15, so the budget is ten times that.
 		name = "Nameplates UNIT_HEALTH",
-		budget = 15,
+		budget = 30,
 		setup = function()
 			local env = Plate()
 			return env, Perf.Event(env, "UNIT_HEALTH", "nameplate1")

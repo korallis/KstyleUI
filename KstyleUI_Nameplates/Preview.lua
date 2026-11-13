@@ -34,7 +34,7 @@ local function Span(plate)
 		return nil
 	end
 	local side = w - ns.state.width
-	return ns.state.width + side * 2, above + h + below, above, below
+	return ns.state.width + side * 2, above + h + below, side, above
 end
 
 local function Stack(frame)
@@ -57,13 +57,20 @@ local function Stack(frame)
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()
 		if i == chosen then
-			local w, h, above, below = Span(plate)
+			local w, h, side, above = Span(plate)
 			local scale = 1
 			if known and w then
 				scale = math.min(1, width / w, height / h)
 			end
 			holder:SetScale(scale)
-			holder:SetPoint("CENTER", frame, "CENTER", 0, ((below or 0) - (above or 0)) / 2)
+			if w then
+				K.Widgets.Size(holder, w, h)
+				K.Widgets.Point(holder, "CENTER", frame, "CENTER")
+				plate:ClearAllPoints()
+				plate:SetPoint("TOPLEFT", holder, "TOPLEFT", K.Widgets.Snap(plate, side), -K.Widgets.Snap(plate, above))
+			else
+				holder:SetPoint("CENTER", frame, "CENTER")
+			end
 		end
 		holder:SetShown(i == chosen)
 	end
