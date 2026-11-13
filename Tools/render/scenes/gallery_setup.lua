@@ -1,7 +1,7 @@
--- gallery_setup.lua: the first-run setup window on four of its six steps (setup_ornaments.lua draws the ornaments
--- step; test-setup.lua covers the HUD style step), each in its own environment so the one window shows four times: the welcome step, the layout step with the DPS card picked and the Tank card under the
--- mouse, the module step with every module on but one, and the summary after Apply with the ornaments Off, as the
--- gallery drew it before the ornaments step. Every module in the picker
+-- gallery_setup.lua: the first-run setup window on five of its six steps (setup_ornaments.lua draws the ornaments
+-- step), each in its own environment so the one window shows five times: the welcome step, the HUD style step with its
+-- two pictures, the layout step with the DPS card picked and the Tank card under the mouse, the module step with every
+-- module on but one, and the summary after Apply with the ornaments Off. Every module in the picker
 -- is registered (Icons is a core module and needs no stand-in) so the toggles are live. The windows are scaled to 0.9 so four fit the screen apart.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
@@ -77,7 +77,15 @@ return Common.Run(function()
 		match = "Window grade as the mockup's chat panel: the surface fill, the dark outer and light inner lines, the 12-unit chamfer and the drop shadow; the tab strip inside is the button body.",
 	})
 
-	-- Step 2: the three layout cards, DPS picked, Tank under the mouse.
+	-- Step 2: the HUD style cards, each with its picture, Frames picked.
+	env, K, panel, hover = Step(W, 2, 1600, 30)
+	add(env, K, panel, hover, {
+		name = "setup_hud_style", title = "Setup: HUD style", grade = "window", reference = "chat",
+		caption = "The HUD style step: two cards, Frames and Orbs, each with its one-line note over a picture of that style's centre cropped from the hud_reference render; Frames is picked with the accent edge and glow.",
+		match = "Window grade as the mockup's chat panel; the cards are the button body with the one-border light line, as on the layout step.",
+	})
+
+	-- Step 3: the three layout cards, DPS picked, Tank under the mouse.
 	env, K, panel, hover = Step(W, 3, 880, 30, function(stepEnv, _, stepPanel, stepHover)
 		W.Enter(stepPanel.cards.Tank)
 		stepHover[stepPanel.cards.Tank] = true
@@ -113,7 +121,7 @@ return Common.Run(function()
 	end)
 	add(env, K, panel, hover, {
 		name = "setup_summary", title = "Setup: summary", grade = "window", reference = "chat",
-		caption = "The summary step after Apply: the layout and the modules on and off, a preview of the layout Apply built, what Edit Mode did (here it refused, every account layout being taken, with the reason and a one-click Try again), the reload help, Later and the primary Reload button.",
+		caption = "The summary step after Apply, three cards on the bible's grid: Your choices (HUD style, layout, ornaments, how many modules are on and which are off) beside the layout Apply built, both one height, over the status card headed with what is left to do: what Edit Mode did (here it refused, every account layout being taken, with the reason and a one-click Try again) and the reload help; Later and the primary Reload button.",
 		match = "Window grade as the mockup's chat panel: fill, two-line edge, 12-unit chamfer and drop shadow; the preview is the glass fill at the tile chamfer, as on the layout step.",
 	})
 

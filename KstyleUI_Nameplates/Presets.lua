@@ -10,7 +10,7 @@ local Presets = { applying = false }
 ns.Presets = Presets
 
 Presets.LIST = {
-	{ value = "lumen", label = L["Lumen: the defaults"] },
+	{ value = "lumen", label = L["Standard: the defaults"] },
 	{ value = "compact", label = L["Compact: a dense pull"] },
 	{ value = "tank", label = L["Tank: threat on the bar"] },
 	{ value = "healer", label = L["Healer: friendly bars with health"] },
