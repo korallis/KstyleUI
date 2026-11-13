@@ -20,8 +20,8 @@ local function highlighted(_, plate)
 end
 
 local function edgeColor(bar)
-	local r, g, b = bar.keyline:GetVertexColor()
-	return r, g, b
+	local c = N.Last(bar.under.edgeHard, "SetColorTexture")
+	return c[1], c[2], c[3]
 end
 
 -- Off by default: loading the module and logging in creates no plate and registers no event --------
@@ -333,7 +333,7 @@ do
 	local ar, ag, ab = K.Tokens.Color("giltLit")
 	assert(SameColor(ar, ag, ab, one.brackets.sides[1].stroke:GetVertexColor()), "the brackets are lit gilt")
 	local kr, kg, kb = K.Tokens.Color("black")
-	assert(SameColor(kr, kg, kb, one.health.keyline:GetVertexColor()), "the target's bar keeps its black edge")
+	assert(SameColor(kr, kg, kb, edgeColor(one.health)), "the target's bar keeps its black edge")
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "other plates stay opaque by default")
 
 	K.Options.Write("Nameplates", "target.dimOthers", 0.5)
@@ -420,11 +420,10 @@ do
 	local health = plate.health
 	assert(N.Same(env.Look(health:GetWidth()), K.Widgets.Snap(health, ns.Plate.DEFAULT_WIDTH)) and N.Same(env.Look(health:GetHeight()), K.Widgets.Snap(health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
 	local px = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(health)
-	local kx = select(4, health.keyline:GetPoint(1))
-	local hx = select(4, health.halo:GetPoint(1))
+	local kx = select(4, health.under.edgeHard:GetPoint(1))
+	local hx = select(4, health.under.edgeSoft:GetPoint(1))
 	assert(N.Same(kx, -px) and N.Same(hx, -px * 2), "a one-pixel black edge, then one of 45 percent black")
-	local colour = Last(health.halo, "SetColorTexture")
-	assert(colour and N.Same(colour[4], 0.45), "the outer pixel is 45 percent black")
+	assert(health.unitBar, "the bar is the shared unit bar, which draws the edge, the loss band and the hit flash")
 	local diamond = plate.level
 	assert(diamond:IsShown(), "the level diamond shows by default")
 	local point, relative, relativePoint, x = diamond:GetPoint(1)

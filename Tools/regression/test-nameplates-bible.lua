@@ -9,6 +9,11 @@ local CAST = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, n
 local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
 local MOVES = { "SetPoint", "ClearAllPoints", "SetAllPoints", "SetSize", "SetWidth", "SetHeight", "SetScale" }
 
+local function edge(bar)
+	local c = N.Last(bar.under.edgeHard, "SetColorTexture")
+	return c[1], c[2], c[3]
+end
+
 local function errors(env, K, label)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, label .. ": no error, got " .. tostring(env._errors[1]))
 end
@@ -174,11 +179,11 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	N.Focus(env, "nameplate1")
 	local fr, fg, fb = K.Tokens.Color("rare")
-	assert(N.SameColor(fr, fg, fb, plate.health.keyline:GetVertexColor()), "the focus alone takes the focus edge")
+	assert(N.SameColor(fr, fg, fb, edge(plate.health)), "the focus alone takes the focus edge")
 	N.Target(env, "nameplate1")
-	assert(N.SameColor(0, 0, 0, plate.health.keyline:GetVertexColor()) and plate.brackets:IsShown(), "the focus as the target keeps the black edge and shows the brackets")
+	assert(N.SameColor(0, 0, 0, edge(plate.health)) and plate.brackets:IsShown(), "the focus as the target keeps the black edge and shows the brackets")
 	N.Target(env, nil)
-	assert(N.SameColor(fr, fg, fb, plate.health.keyline:GetVertexColor()), "and the focus edge comes back when it is no longer the target")
+	assert(N.SameColor(fr, fg, fb, edge(plate.health)), "and the focus edge comes back when it is no longer the target")
 	errors(env, K, "focus and target")
 end
 

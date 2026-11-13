@@ -384,7 +384,7 @@ function Component.Room(plate)
 end
 
 function Cast.Gap(plate)
-	return plate.health.rimPixel + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + plate.castBar.rimPixel
+	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + plate.castBar.rimPixel
 end
 
 function Cast.Place(plate)

@@ -99,6 +99,8 @@ local function Pixel(frame, n)
 	return Scale.Pixel(n or 1) / Widgets.ScaleFactor(frame)
 end
 
+Plate.Pixel = Pixel
+
 function ns.FlatBar(parent, opts)
 	opts.border = false
 	local bar = Widgets.StatusBar(parent, opts)
@@ -106,7 +108,7 @@ function ns.FlatBar(parent, opts)
 	bar.rim = { Tokens.Color("black") }
 	bar.halo = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -2))
 	function bar:PlaceRim()
-		local px = Pixel(self)
+		local px = Widgets.Border(self)
 		if self.rimPixel == px then
 			return
 		end
@@ -193,8 +195,8 @@ function ns.NewPlate(parent, sample)
 	end
 	Widgets.ShowSlice(plate.threatGlow, false)
 
-	plate.healthOpts = { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, smooth = true, color = "plateHostile" }
-	local health = ns.FlatBar(plate, plate.healthOpts)
+	local health = Widgets.UnitBar(plate, { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, color = "plateHostile" })
+	plate.healthOpts = health.opts
 	plate.health = health
 	plate.healthText = NewText(health, "RIGHT")
 
@@ -603,10 +605,10 @@ function Plate:UpdateColor()
 	local last = self.colorKey
 	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
 		last.r, last.g, last.b = nil, nil, nil
-		self.health:SetFillRamp(r, g, b)
+		self.health:SetBarColor(r, g, b)
 	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
-		self.health:SetFillRamp(r, g, b)
+		self.health:SetBarColor(r, g, b)
 	end
 end
 
@@ -615,15 +617,11 @@ function Plate:UpdateHealth(immediate)
 	local sample = self.sample
 	if sample then
 		health:SetBarRange(0, 1)
-		health:SetValue(sample.health)
+		health:SetHealth(sample.health, true)
 	else
 		local unit = self.unit
 		health:SetBarRange(0, UnitHealthMax(unit))
-		if immediate then
-			health:SetValue(UnitHealth(unit))
-		else
-			health:SetBarValue(UnitHealth(unit))
-		end
+		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
 end
@@ -766,9 +764,9 @@ function Plate:UpdateHighlight()
 	local health = self.health
 	if isFocus and Settings.Get("focus.highlight") and not framed then
 		local r, g, b = Rgb(Settings.Get("focus.color"))
-		health:SetRimColor(r, g, b, 1)
+		health.under.edgeHard:SetColorTexture(r, g, b, 1)
 	else
-		health:SetRimColor(Tokens.Color("black"))
+		health.under.edgeHard:SetColorTexture(Tokens.Color("black"))
 	end
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget then

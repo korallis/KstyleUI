@@ -16,8 +16,8 @@ local function pixels(K, bar, units)
 end
 
 local function borderPixels(K, bar)
-	local _, _, _, x = bar.keyline:GetPoint(1)
-	local _, _, _, hx = bar.halo:GetPoint(1)
+	local _, _, _, x = bar.under.edgeHard:GetPoint(1)
+	local _, _, _, hx = bar.under.edgeSoft:GetPoint(1)
 	return pixels(K, bar, -x), pixels(K, bar, -hx)
 end
 
@@ -46,57 +46,32 @@ for _, screen in ipairs(SCREENS) do
 		local bar = ns.Plates.Get("nameplate1").health
 		local edge, halo = borderPixels(K, bar)
 		local where = string.format("%dx%d ui %s size %s", screen[1], screen[2], tostring(setup.uiScale), tostring(setup.size))
-		assert(math.abs(edge - 1) < 0.01 and math.abs(halo - 2) < 0.01, "the edge stays one plus one physical pixels at " .. where .. ", got " .. tostring(edge) .. " and " .. tostring(halo))
+		local border = pixels(K, bar, K.Widgets.Border(bar))
+		assert(math.abs(edge - border) < 0.01 and math.abs(halo - border * 2) < 0.01, "the edge is the kit's border, black then 45 percent black, at " .. where .. ", got " .. tostring(edge) .. " and " .. tostring(halo))
+		assert(math.abs(edge - math.floor(edge + 0.5)) < 0.01 and edge >= 1, "on whole physical pixels at " .. where)
 		assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
 	end
 end
 
-local function byte(value)
-	return math.floor(value * 255 + 0.5)
-end
-
-local function stops(bar)
-	local gradient = N.Last(bar:GetStatusBarTexture(), "SetGradient")
-	assert(gradient and gradient[1] == "VERTICAL", "the fill ramps vertically")
-	return gradient[3], gradient[2]
-end
-
-local TOP = { 208 / 195, 74 / 67, 67 / 61 }
-local BOTTOM = { 179 / 195, 59 / 67, 54 / 61 }
-
+-- The bar is Widgets.UnitBar (KSTY-47): it shades any fill colour with colour-free overlays, so a plate hands it
+-- the token itself, a secret class colour included, and never builds a ramp of its own.
 do
 	local env, K, ns = N.New()
-	local function expectRatio(bar, r, g, b, label)
-		local source = bar.fillSource
-		assert(source and N.SameColor(source[1], source[2], source[3], r, g, b), label .. " keeps its token as the ramp's reference")
-		local top, bottom = stops(bar)
-		assert(byte(top.r) == byte(r * TOP[1]) and byte(top.g) == byte(g * TOP[2]) and byte(top.b) == byte(b * TOP[3]), label .. " top follows the picture's ratio")
-		assert(byte(bottom.r) == byte(r * BOTTOM[1]) and byte(bottom.g) == byte(g * BOTTOM[2]) and byte(bottom.b) == byte(b * BOTTOM[3]), label .. " bottom follows the picture's ratio")
-	end
-	local function token(name)
+	local function expect(bar, name, label)
 		local r, g, b = K.Tokens.Color(name)
-		return r, g, b
+		assert(bar.unitBar, label .. " is the shared unit bar")
+		assert(N.SameColor(r, g, b, bar:GetStatusBarColor()), label .. " takes its token as the fill colour")
 	end
 	N.Add(env, "nameplate1", { reaction = 4, canAttack = true })
-	local nr, ng, nb = token("neutral")
-	expectRatio(ns.Plates.Get("nameplate1").health, nr, ng, nb, "a neutral plate")
+	expect(ns.Plates.Get("nameplate1").health, "neutral", "a neutral plate")
 	N.Add(env, "nameplate2", { canAttack = false, reaction = 5 })
-	local fr, fg, fb = token("friendly")
-	expectRatio(ns.Plates.Get("nameplate2").health, fr, fg, fb, "a friendly plate")
+	expect(ns.Plates.Get("nameplate2").health, "friendly", "a friendly plate")
 	N.Add(env, "nameplate3", { tapped = true })
-	local tr, tg, tb = token("textDisabled")
-	expectRatio(ns.Plates.Get("nameplate3").health, tr, tg, tb, "a tapped plate")
+	expect(ns.Plates.Get("nameplate3").health, "textDisabled", "a tapped plate")
 	N.Add(env, "nameplate4", { isPlayer = true, class = "MAGE", secretClass = true })
 	local hidden = ns.Plates.Get("nameplate4").health
-	local sr = hidden.fillSource and hidden.fillSource[1]
-	assert(env.issecretvalue(sr), "a secret class colour is stored without arithmetic")
-	local gradient = N.Last(hidden:GetStatusBarTexture(), "SetGradient")
-	if gradient then
-		assert(not env.issecretvalue(gradient[2].r) and not env.issecretvalue(gradient[3].r), "SetGradient never receives a secret colour")
-	end
-	local cr = hidden:GetStatusBarColor()
-	assert(env.issecretvalue(cr), "the secret colour still reaches the status bar sink")
-	assert(ns.Logic.Ramp(sr, hidden.fillSource[2], hidden.fillSource[3]) == nil, "the ramp rule refuses a secret colour")
+	assert(env.issecretvalue((hidden:GetStatusBarColor())), "a secret class colour reaches the status bar sink whole")
+	assert(hidden.curve == nil, "and builds no low-health curve from a secret")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
@@ -122,20 +97,10 @@ end
 do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1", { reaction = 2, health = 100, maxHealth = 100 })
-	local bar = ns.Plates.Get("nameplate1").health
-	local function equalStops(label)
-		local gradient = bar:GetStatusBarTexture()._state.Gradient
-		assert(gradient and math.abs(gradient[2].r - gradient[3].r) < 1e-4, label .. " stops stay equal")
-	end
+	local plate = ns.Plates.Get("nameplate1")
 	K.Options.Write("Nameplates", "health.texture", "Glass")
-	bar:SetBarTexture(ns.Settings.Get("health.texture"))
-	bar:Restyle()
-	equalStops("a plate off Flat")
+	assert(plate.health.unitBar and plate.health.cleanLit:IsShown(), "another bar texture keeps the unit bar's colour-free shading")
 	K.Options.Write("Nameplates", "health.texture", "Flat")
-	bar:SetBarTexture(ns.Settings.Get("health.texture"))
-	bar:Restyle()
-	local gradient = bar:GetStatusBarTexture()._state.Gradient
-	assert(gradient and math.abs(gradient[2].r - gradient[3].r) > 0.01, "Flat again restores the unequal ramp")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
