@@ -648,6 +648,11 @@ function CastBars.Restyle(cb)
 	end
 	cb.textPath = textPath
 	StyleText(cb.text, textPath, size, flags)
+	if cb.mode and flags == "" then
+		local border = K.Scale.Border() / Widgets.ScaleFactor(cb.text)
+		cb.text:SetShadowColor(Tokens.Color("textShadow"))
+		cb.text:SetShadowOffset(border, -border)
+	end
 	StyleText(cb.timer, timerPath, size, flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)

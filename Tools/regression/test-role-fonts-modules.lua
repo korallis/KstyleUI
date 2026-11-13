@@ -112,7 +112,7 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- GroupFrames: raid names in a narrow lane take the party names' face (KSTY-60 item 11), and a role font still wins.
+-- GroupFrames: raid names in a narrow compact lane.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(5, function(i, m)
@@ -123,8 +123,9 @@ do
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
 	local f = member(ns, "raid1")
-	eq((f.name:GetFont()), (K.Tokens.Font("names")), "the raid takes the party names' face by default (KSTY-60 item 11)")
-	fits(K, ns, f, "default raid")
+	local compact = ns.Settings.COMPACT_NAME_FONT
+	eq((f.name:GetFont()), compact, "the compact raid keeps the proven Alegreya face by default")
+	eq(f.name:GetText(), "Thaldrenwick", "the twelve-letter fixture stays whole")
 	K.Options.Write("Appearance", "roleFontNames", ROLE_FACE)
 	env.RunTimers()
 	local roleFace = K.Tokens.FontPath(ROLE_FACE)
@@ -133,11 +134,11 @@ do
 	assert(f.nameFit.kit == false and f.nativeName == false, "the lane is treated like an explicit face: no compact swap, distinct abbreviations")
 	K.Options.Write("Appearance", "roleFontNames", "")
 	env.RunTimers()
-	eq((f.name:GetFont()), (K.Tokens.Font("names")), "clearing returns the names face")
-	assert(f.nameFit.kit == true and f.nativeName == false, "a raid lane shortens its names with distinct abbreviations")
+	eq((f.name:GetFont()), compact, "clearing returns the compact face")
+	assert(f.nameFit.kit == true and f.nativeName == false)
 	K.Options.Write("Appearance", "roleFontBody", ROLE_FACE)
 	env.RunTimers()
-	eq((f.name:GetFont()), (K.Tokens.Font("names")), "another role does not touch the names lane")
+	eq((f.name:GetFont()), compact, "another role does not touch the names lane")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 

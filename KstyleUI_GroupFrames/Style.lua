@@ -26,6 +26,7 @@ local CLASS_LINE_COLOR = "text"
 local BOSS_SLOT = 16
 local NAME_STEPS = 2
 local NAME_FLOOR = 7
+local WIDE_NAME_EM = 9
 Style.BOSS_SLOT = BOSS_SLOT
 
 function Style.NameMin(k)
@@ -185,12 +186,16 @@ local function LayoutTexts(f, k, parts)
 	local namePath = cfg.nameFont
 	local roleFont = Theme.RoleFont("names") ~= ""
 	local follows = Theme.FollowsKit(namePath)
-	f.nativeName = follows and not roleFont and f.kind ~= "raid"
+	f.nativeName = follows and not roleFont
 	local kit = false
 	if follows then
 		namePath = (Tokens.Font("names"))
 		for _, set in ipairs(Tokens.MediaList("fontSet")) do
 			kit = kit or set.key == Theme.FontFace() and not roleFont
+		end
+		if kit and f.kind == "raid" and parts.name.width < WIDE_NAME_EM * Widgets.FontSize(name, Style.NameMin(k)) then
+			namePath = Settings.COMPACT_NAME_FONT
+			f.nativeName = false
 		end
 	end
 	SetFont(name, namePath, k.nameSize, nameOutline)

@@ -1,4 +1,4 @@
--- Names.lua: fits one face and size across a party, sets raid names in the names face, and passes secret names straight to the engine.
+-- Names.lua: fits one face and size across a party, preserves compact raid names, and passes secret names straight to the engine.
 local _, ns = ...
 
 local Unit = ns.Unit

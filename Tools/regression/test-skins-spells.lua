@@ -166,7 +166,7 @@ do
 	assert(Alpha(item.Button.Icon) == 1 and Alpha(item.Button.Arrow) == 1, "the icon and the flyout arrow stay")
 	assert(item.Button.Icon:GetNumMaskTextures() == 0, "the icon loses Blizzard's rounded mask")
 	assert(ns.Parts.RimOf(item.Button), "the icon sits on a KstyleUI rim")
-	assert(FontPath(item.Name) == Style.Font("names") and FontPath(item.SubName) == Style.Font("body"))
+	assert(FontPath(item.Name) == Style.Font("body") and FontPath(item.SubName) == Style.Font("body"), "spell names read in the body face, not Cinzel (KSTY-60 item 11)")
 	local header = p.items[2]
 	assert(Alpha(header.Border) == 0 and Alpha(header.Backplate) == 0 and FontPath(header.Text) == Style.Font("display"), "a section header becomes display text over an accent line")
 	p.shown[#p.shown + 1] = p.late

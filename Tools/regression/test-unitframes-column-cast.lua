@@ -36,7 +36,7 @@ assert(element.frame:IsShown() and not inline.frame:IsShown(), "the cast shows i
 assert(element.mode == "above" and element.geometry.caption == "above", "the label stands above the bar")
 assert(U.Shown(env, element.text) == "LIGHTNING BOLT", "the spell is in capitals: " .. U.Shown(env, element.text))
 assert(not tostring(W.LastCall(element.text, "SetText")[1]):find("\226\128\137"), "with no thin space, Cinzel has none")
-assert(element.text:GetFont() == Tokens.Font("names"), "the cast uses the tighter world-space names face")
+assert(element.text:GetFont() == Tokens.Font("caps"), "the cast label takes the caps face; Cinzel is for unit names (KSTY-60 item 11)")
 assert(element.timer:GetFont() == Tokens.Font("time"), "the cast time reads in the time role, the bold that fits the picture")
 local shadowX, shadowY = element.text:GetShadowOffset()
 assert(shadowX > 0 and shadowY == -shadowX, "world-space cast labels retain the kit's soft shadow")

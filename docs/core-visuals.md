@@ -92,7 +92,7 @@ The default is **Folio**, approved under LEE-113 on 2026-11-10: the owner asked 
 
 PT Serif's native lining figures are tabular, 533/1000 em in Regular and 565/1000 in Bold. No runtime OpenType switch is needed. IM Fell is reserved for the larger headings; the sturdier EB Garamond carries small titles. All added faces and their source pins/licences are recorded in `Media/PROVENANCE.md`. Chinese text still uses the client's `Fonts\ARKai_T.ttf` for both sets; no Chinese font is bundled and its repertoire belongs to the client.
 
-`Locale.TrackMode(path)` only permits inserted thin spaces for known bundled faces with that glyph. Generated tracked faces return `"face"`; external faces, IM Fell and PT Serif receive no synthetic tracking. A foreign face retains its own figures and natural spacing, not the kit's baked figure/spacing guarantees. Group-frame health keeps Alegreya Sans ExtraBold; names follow the kit through the theme sentinel, with the explicit Alegreya Sans Regular fallback in a captioned party lane too narrow for them; raid lanes take the names face (KSTY-60 item 11). Saved user paths remain authoritative.
+`Locale.TrackMode(path)` only permits inserted thin spaces for known bundled faces with that glyph. Generated tracked faces return `"face"`; external faces, IM Fell and PT Serif receive no synthetic tracking. A foreign face retains its own figures and natural spacing, not the kit's baked figure/spacing guarantees. Group-frame health keeps Alegreya Sans ExtraBold; names follow the kit through the theme sentinel, with the explicit Alegreya Sans Regular fallback in compact lanes. Saved user paths remain authoritative.
 
 The original set remains as follows:
 

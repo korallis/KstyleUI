@@ -186,11 +186,8 @@ for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { 
 		local nameHead = { name.rect[1], name.rect[2], math.min(name.rect[3], head - name.rect[1]), name.rect[4] }
 		assert(not intersects(aura[2], nameHead), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the name's head " .. describe(nameHead))
 	end
-	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down first. In the party's Cinzel names face
-	-- (KSTY-60 item 11) it cannot stay whole in these lanes, so it ends shortened from its start, inside its lane.
-	local shown = f.name:GetText()
-	local kept = shown:match("^(.-)%.%.%.$")
-	assert(shown == "Thaldrenwick" or (kept and #kept >= 3 and ("Thaldrenwick"):sub(1, #kept) == kept), what .. ": a twelve-letter name is whole or shortened from its start, got " .. tostring(shown))
+	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole.
+	eq(f.name:GetText(), "Thaldrenwick", what .. ": a twelve-letter name stays whole")
 	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
 	-- "Dead" takes the percent's place at the row's end, off the bar; with no percent (over 25 members) it centres on
 	-- the emptied bar. Either way it stays off the name.
