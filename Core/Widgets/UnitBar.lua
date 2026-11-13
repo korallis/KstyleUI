@@ -130,14 +130,17 @@ end
 function Bar:SetBarRange(low, high)
 	self:SetMinMaxValues(low, high)
 	self.under:SetMinMaxValues(low, high)
+	self.recent:SetMinMaxValues(low, high)
 end
 
 function Bar:ReleaseLoss()
 	local eased = Eased()
 	if eased then
 		self.under:SetValue(self.lossValue, eased)
+		self.recent:SetValue(self.lossValue, eased)
 	else
 		self.under:SetValue(self.lossValue)
+		self.recent:SetValue(self.lossValue)
 	end
 end
 
@@ -145,9 +148,12 @@ function Bar:SetHealth(value, instant)
 	if instant or not (self.lossOn and self.lossKnown) or not Eased() then
 		self:SetValue(value)
 		self.under:SetValue(value)
+		self.recent:SetValue(value)
 		self.lossValue, self.lossKnown = value, true
 		self.lossAnim:Stop()
 		self.flash:Hide()
+		self.recentAnim:Stop()
+		self.recentFlash:Hide()
 		if self.sparkAnim then
 			self.sparkAnim:Stop()
 			self.sparkFrame:Hide()
@@ -158,10 +164,14 @@ function Bar:SetHealth(value, instant)
 	if not self.lossAnim:IsPlaying() then
 		self.under:SetValue(self.lossValue)
 	end
+	self.recent:SetValue(self.lossValue)
 	self.lossValue = value
 	self:SetBarValue(value)
-	self.flash:SetShown(not Motion.ReducedMotion())
+	local flash = not Motion.ReducedMotion()
+	self.flash:SetShown(flash)
+	self.recentFlash:SetShown(flash)
 	Restart(self.lossAnim)
+	Restart(self.recentAnim)
 	self:ColorByHealth()
 end
 
@@ -170,9 +180,12 @@ function Bar:SetLoss(on)
 	if not self.lossOn then
 		self.lossAnim:Stop()
 		self.flash:Hide()
+		self.recentAnim:Stop()
+		self.recentFlash:Hide()
 		self.lossKnown = false
 	end
 	self.under:GetStatusBarTexture():SetShown(self.lossOn)
+	self.recent:GetStatusBarTexture():SetShown(self.lossOn)
 end
 
 local function Reversed(self)
@@ -247,12 +260,16 @@ local function PlaceUnder(self)
 	under.track:SetColorTexture(Widgets.Rgba("barTrack"))
 	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:GetStatusBarTexture():SetShown(self.lossOn)
+	self.recent:SetStatusBarColor(Widgets.Rgba("white"))
+	self.recent:GetStatusBarTexture():SetShown(self.lossOn)
 	self.flash:SetColorTexture(Widgets.Rgba("white"))
+	self.recentFlash:SetColorTexture(Widgets.Rgba("white"))
 end
 
 local function Paint(self)
 	local gradient = self.gradients
 	Gradient(self.under:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
+	Gradient(self.recent:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
 	Gradient(self.cleanSheen, gradient.sheenBottom, gradient.sheenTop)
 	Gradient(self.cleanShade, gradient.shadeBottom, gradient.shadeTop)
 end
@@ -271,6 +288,7 @@ local function Wrap(bar)
 	bar.SetOrientation = function(self, orientation, ...)
 		setOrientation(self, orientation, ...)
 		self.under:SetOrientation(orientation, ...)
+		self.recent:SetOrientation(orientation, ...)
 		self.vertical = orientation == "VERTICAL"
 		PlaceFill(self)
 		PlaceSpark(self)
@@ -278,6 +296,7 @@ local function Wrap(bar)
 	bar.SetReverseFill = function(self, ...)
 		setReverse(self, ...)
 		self.under:SetReverseFill(...)
+		self.recent:SetReverseFill(...)
 		PlaceSpark(self)
 	end
 	bar.Show = function(self)
@@ -312,7 +331,16 @@ local function Under(bar, parent)
 	under.track:SetAllPoints(under)
 	under:SetMinMaxValues(0, 1)
 	under:SetValue(0)
-	bar:SetFrameLevel(under:GetFrameLevel() + 1)
+	local recent = CreateFrame("StatusBar", nil, under)
+	recent:SetAllPoints(under)
+	recent:SetStatusBarTexture((Tokens.Texture("barFlat")))
+	recent:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL")
+	recent:SetReverseFill(Reversed(bar))
+	recent:SetMinMaxValues(0, 1)
+	recent:SetValue(0)
+	recent:SetFrameLevel(under:GetFrameLevel() + 1)
+	bar:SetFrameLevel(under:GetFrameLevel() + 2)
+	bar.recent = recent
 	return under
 end
 
@@ -334,6 +362,18 @@ local function Flash(bar)
 		bar:ReleaseLoss()
 	end)
 	bar.flash, bar.lossAnim = flash, group
+	local recentFlash = bar.recent:CreateTexture(nil, "ARTWORK", nil, 1)
+	recentFlash:SetAllPoints(bar.recent:GetStatusBarTexture())
+	recentFlash:Hide()
+	local recentGroup = recentFlash:CreateAnimationGroup()
+	local recentFade = recentGroup:CreateAnimation("Alpha")
+	recentFade:SetFromAlpha(FLASH_ALPHA)
+	recentFade:SetToAlpha(0)
+	recentFade:SetDuration(hit)
+	recentGroup:SetScript("OnFinished", function()
+		recentFlash:Hide()
+	end)
+	bar.recentFlash, bar.recentAnim = recentFlash, recentGroup
 end
 
 local function Spark(bar)

@@ -32,7 +32,7 @@ end
 return {
 	{
 		name = "UnitFrames UNIT_HEALTH",
-		budget = 30,
+		budget = 40,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_HEALTH", "target")

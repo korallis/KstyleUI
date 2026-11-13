@@ -65,6 +65,13 @@ bar:SetHealth(S(700))
 band = value(under)
 fill = value(bar)
 assert(band == 900 and fill == 700, "a hit after a heal's hold shows: the band holds the healed health")
+local recent = bar.recent
+finish(bar.lossAnim)
+bar:SetHealth(S(950))
+bar:SetHealth(S(800))
+assert(value(under) == 700 and value(recent) == 950 and value(bar) == 800, "a hit inside a heal's hold shows on the second band, which always holds the health just before the last update")
+assert(recent:GetFrameLevel() > under:GetFrameLevel() and recent:GetFrameLevel() < bar:GetFrameLevel(), "the second band draws between the track and the fill")
+assert(bar.recentFlash:IsShown() and playing(bar.recentAnim), "and flashes")
 
 bar:SetHealth(S(400), true)
 assert(value(under) == 400 and not playing(bar.lossAnim) and not bar.flash:IsShown(), "a new unit snaps band and fill and stops the flash")
