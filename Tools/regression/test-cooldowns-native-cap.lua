@@ -94,19 +94,16 @@ local function Folded(viewer, slots, label)
 	end
 end
 
--- InSlot(env, viewer, chip, slot): the chip fills that slot, each edge within one physical pixel of the slot's, as
--- Widgets.Size and Widgets.Point land it on whole pixels inside a slot whose size Blizzard's scale makes fractional.
+-- InSlot(env, viewer, chip, slot): the chip covers that slot: its top left corner on the slot's, and its far edges at
+-- or up to one physical pixel past the slot's, as the chip takes the slot's size rounded up to whole pixels where
+-- Blizzard's scale makes it fractional, so the native icon never shows past the chip's chrome.
 local function InSlot(env, viewer, chip, slot)
 	local c = assert(Geometry.Rect(chip, env.UIParent))
 	local s = assert(Geometry.Rect(viewer._items[slot], env.UIParent))
 	local _, height = env.GetPhysicalScreenSize()
-	local pixel = env.UIParent:GetHeight() / height + 1e-6
-	for _, key in ipairs({ "left", "right", "bottom", "top" }) do
-		if math.abs(c[key] - s[key]) > pixel then
-			return false
-		end
-	end
-	return true
+	local pixel = env.UIParent:GetHeight() / height
+	local outRight, outDown = c.right - s.right, s.bottom - c.bottom
+	return W.Near(c.left, s.left) and W.Near(c.top, s.top) and outRight > -1e-6 and outRight <= pixel + 1e-6 and outDown > -1e-6 and outDown <= pixel + 1e-6
 end
 
 -- Hover(env, ns) -> the chip tooltip's lines, after pointing at it.
