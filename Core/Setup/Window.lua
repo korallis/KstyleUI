@@ -683,13 +683,16 @@ PlaceSummary = function()
 	summary:SetWidth(inner)
 	editMode:SetWidth(full)
 	help:SetWidth(full)
-	local status = top + Widgets.WrappedHeight(help, full) + pad
+	local y = top
+	local editAt, retryAt
 	if editMode:IsShown() then
-		status = status + Widgets.WrappedHeight(editMode, full) + line
+		editAt, y = y, y + Widgets.Snap(page, Widgets.WrappedHeight(editMode, full)) + line
 	end
 	if retry:IsShown() then
-		status = status + retry:GetHeight() + line
+		retryAt, y = y, y + Widgets.Snap(page, retry:GetHeight()) + line
 	end
+	local helpAt = y
+	local status = y + Widgets.Snap(page, Widgets.WrappedHeight(help, full)) + pad
 	local free = height - spacing - status
 	local choices
 	for _, text in ipairs(panel.summaryTexts or { summary:GetText() or "" }) do
@@ -702,10 +705,10 @@ PlaceSummary = function()
 	local row = Widgets.Snap(page, max(choices, free))
 	local left, right, low = panel.summaryChoices, panel.summaryLayout, panel.summaryStatus
 	SizeCard(left, 0, 0, column, row, pad)
-	SizeCard(right, width - column, 0, column, row, pad)
+	SizeCard(right, column + spacing, 0, column, row, pad)
 	SizeCard(low, 0, row + spacing, width, max(status, height - row - spacing), pad)
 	summary:ClearAllPoints()
-	summary:SetPoint("TOPLEFT", left.cap, "BOTTOMLEFT", 0, -line)
+	summary:SetPoint("TOPLEFT", left, "TOPLEFT", pad, -top)
 	local room = row - top - pad
 	local previewWidth = Widgets.Snap(page, min(inner, room * REFERENCE_WIDTH / REFERENCE_HEIGHT))
 	local previewHeight = Widgets.Snap(page, previewWidth * REFERENCE_HEIGHT / REFERENCE_WIDTH)
@@ -714,10 +717,11 @@ PlaceSummary = function()
 	preview:ClearAllPoints()
 	preview:SetPoint("TOPLEFT", right, "TOPLEFT", Widgets.Snap(page, (column - previewWidth) / 2), -(top + Widgets.Snap(page, (room - previewHeight) / 2)))
 	editMode:ClearAllPoints()
-	editMode:SetPoint("TOPLEFT", low.cap, "BOTTOMLEFT", 0, -line)
+	editMode:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(editAt or top))
+	retry:ClearAllPoints()
+	retry:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(retryAt or top))
 	help:ClearAllPoints()
-	local above = retry:IsShown() and retry or editMode:IsShown() and editMode or low.cap
-	help:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, -line)
+	help:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -helpAt)
 end
 
 local function BuildSummary(page, width)
@@ -734,7 +738,6 @@ local function BuildSummary(page, width)
 			Setup.RetryEditMode()
 		end,
 	})
-	retry:SetPoint("TOPLEFT", editMode, "BOTTOMLEFT", 0, -gap("gapMedium"))
 	retry:Hide()
 	local manager = Widgets.Button(page, {
 		text = L["Open the Cooldown Manager"],

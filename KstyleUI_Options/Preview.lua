@@ -12,6 +12,7 @@ local SAMPLE_WIDTH = 220
 local SAMPLE_BAR = 0.7
 local SAMPLE_SLIDER = 68
 local SNUG_MARGIN = 4
+local SCALE_SAME = 0.0001
 Preview.MAX_SCALE = 1.25
 Preview.SCALE_STEP = 0.01
 Preview.MIN_GAIN = 0.05
@@ -356,22 +357,33 @@ local function Snug(pane, frame)
 		return
 	end
 	local room = pane.holder:GetHeight()
-	local want = Widgets.Snap(pane, top - bottom + 2 * SNUG_MARGIN)
-	if not Known(room) or want >= room then
+	if not Known(room) then
+		return nil
+	end
+	local pixel = 2 * Widgets.Border(pane)
+	local function even(height)
+		return room - pixel * math.floor((room - height) / pixel + 0.001)
+	end
+	local want = even(top - bottom + 2 * SNUG_MARGIN)
+	if want >= room then
 		return nil
 	end
 	local scale, slack = frame:GetScale(), K.Scale.Pixel(1)
-	for _ = 1, 2 do
+	for _ = 1, 3 do
 		pane:Place(want)
 		Settle(pane)
 		local newTop, newBottom, holderTop, holderBottom = Span(pane, frame)
-		if not newTop or math.abs(frame:GetScale() - scale) > Preview.SCALE_STEP or newTop > holderTop + slack then
+		local now = frame:GetScale()
+		if not newTop or newTop > holderTop + slack then
 			break
 		end
-		if newBottom >= holderBottom - slack then
+		if math.abs(now - scale) > SCALE_SAME then
+			want = even(want * scale / now + pixel)
+		elseif newBottom >= holderBottom - slack then
 			return want
+		else
+			want = even(want + holderBottom - newBottom + SNUG_MARGIN)
 		end
-		want = Widgets.Snap(pane, want + holderBottom - newBottom + SNUG_MARGIN)
 		if want >= room then
 			break
 		end
@@ -389,7 +401,7 @@ local function Holds(pane, frame, height)
 		return Widgets.Snap(pane, top - bottom + 2 * SNUG_MARGIN) >= pane.holder:GetHeight()
 	end
 	local slack = K.Scale.Pixel(1)
-	return top <= holderTop + slack and bottom >= holderBottom - slack and bottom - holderBottom <= SNUG_MARGIN + slack
+	return top <= holderTop + slack and bottom >= holderBottom - slack and bottom - holderBottom <= SNUG_MARGIN + 2 * Widgets.Border(pane) + slack
 end
 
 function RefreshCurrent(pane)
@@ -401,14 +413,15 @@ function RefreshCurrent(pane)
 	local again = held and held.room == pane.room and held.wide == pane.wide
 	pane:Place(again and held.height or nil)
 	Settle(pane)
-	if again and Holds(pane, frame, held.height) then
+	if again and math.abs(frame:GetScale() - held.scale) <= SCALE_SAME and Holds(pane, frame, held.height) then
 		return
 	end
 	if again and held.height then
 		pane:Place()
 		Settle(pane)
 	end
-	pane.held[frame] = { room = pane.room, wide = pane.wide, height = Snug(pane, frame) }
+	local height = Snug(pane, frame)
+	pane.held[frame] = { room = pane.room, wide = pane.wide, height = height, scale = frame:GetScale() }
 end
 
 function Preview.Show(pane, page)

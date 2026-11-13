@@ -495,7 +495,7 @@ local function PlaceText(row, item, control, width)
 	if control then
 		control:ClearAllPoints()
 		if stacked and control.Fit then
-			control:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -(top + labelHeight + tiny))
+			control:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -Snap(row, top + labelHeight + tiny))
 		elseif stacked then
 			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + labelHeight + tiny))
 		elseif banded then
