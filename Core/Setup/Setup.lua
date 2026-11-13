@@ -233,8 +233,9 @@ end
 local applying = false
 
 ns.Callbacks.Register("HudStyleChanged", "Setup", function()
-	local name = ns.Layout.Setting("preset")
-	if applying or Setup.EditMode.ActiveName() ~= name then
+	local layout = ns.Layout
+	local name = layout and layout.Setting and layout.Setting("preset")
+	if applying or not name or Setup.EditMode.ActiveName() ~= name then
 		return
 	end
 	ns.Combat.Queue(function()
