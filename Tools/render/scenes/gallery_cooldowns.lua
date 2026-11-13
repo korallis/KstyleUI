@@ -172,6 +172,7 @@ local function barViewer(env, viewer, spec)
 		icon.Overlay:SetAllPoints(icon)
 		local bar = item.Bar
 		bar:ClearAllPoints()
+		bar:SetSize(spec.width - spec.height - ICON_GAP, spec.height)
 		bar:SetPoint("TOPLEFT", icon, "TOPRIGHT", ICON_GAP, 0)
 		bar:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
 		bar.BarBG:SetAllPoints(bar)
@@ -211,6 +212,13 @@ local function Reskin(frames)
 	iconViewer(env, viewers.EssentialCooldownViewer, ESSENTIAL)
 	iconViewer(env, viewers.BuffIconCooldownViewer, RESKIN_BUFFS)
 	barViewer(env, viewers.BuffBarCooldownViewer, RESKIN_BARS)
+	-- Blizzard's RefreshLayout hands every item over again once the layout has sized it, as C.Native does.
+	for _, name in ipairs({ "EssentialCooldownViewer", "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
+		local viewer = viewers[name]
+		for _, item in ipairs(viewer._items) do
+			viewer:OnAcquireItemFrame(item)
+		end
+	end
 	viewers.UtilityCooldownViewer:Hide()
 	frames:Add(env, viewers.EssentialCooldownViewer, {
 		name = "cooldowns_reskin_icons", title = "Reskinned cooldown viewer", grade = "button", reference = "cluster",

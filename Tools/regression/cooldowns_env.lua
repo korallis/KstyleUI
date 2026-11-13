@@ -485,7 +485,7 @@ end
 -- growing up when its IconDirection is Right; the essential and utility rows wrap after IconLimit items, each line
 -- under the last (GetStride, CooldownViewer.lua:2002), their items 50 by 50 and 30 by 30 (CooldownViewer.xml:20 and
 -- :89), their IconPadding scaled with them as the grid sets offsets in the item's own units; each other item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
--- left and a 19-unit bar after a 2-unit gap, the width times BarWidthScale%, stored as percent - 50) scaled by
+-- left and a 19-unit bar after a 2-unit gap that answers GetWidth with the span of its two points, the width times BarWidthScale%, stored as percent - 50) scaled by
 -- IconSize%, stored as (percent - 50) / 10; items pitch by
 -- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
 -- keep their slot (includeAsLayoutChildWhenHidden), and with viewer._hideWhenInactive == false every item shows,
@@ -561,7 +561,7 @@ function C.Native(env, name, entry, items, format)
 			icon._points = { { "LEFT", item, "LEFT", 0, 0, n = 5 } }
 			icon.Icon._points = { { "TOPLEFT", icon, "TOPLEFT", 0, 0, n = 5 }, { "BOTTOMRIGHT", icon, "BOTTOMRIGHT", 0, 0, n = 5 } }
 			icon.Icon._state.Texture = { it and it.icon, n = 1 }
-			bar._height = 19
+			bar._width, bar._height = w - 30 - 2, 19
 			bar._points = { { "LEFT", icon, "RIGHT", 2, 0, n = 5 }, { "RIGHT", item, "RIGHT", 0, 0, n = 5 } }
 			bar.Name._points = { { "TOPLEFT", bar, "TOPLEFT", 5, 0, n = 5 }, { "BOTTOMRIGHT", bar, "BOTTOMRIGHT", -25, 0, n = 5 } }
 			bar.Name._state.Text = { it and it.name, n = 1 }

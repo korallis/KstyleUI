@@ -21,7 +21,6 @@ function Style.Chip(parent, icon)
 		chip.chrome = Widgets.Chrome(chip, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	end
 	local text = Widgets.FontString(chip, "OVERLAY")
-	text:SetPoint("CENTER", chip, "CENTER", 0, 0)
 	Widgets.TextColor(text, "textEmphasis")
 	chip.text = text
 	chip:Hide()
@@ -34,13 +33,17 @@ local BESIDE = {
 	UP = { "BOTTOMLEFT", "TOPLEFT", 0, 1 },
 }
 
+local function PlaceChipText(chip)
+	chip.text:ClearAllPoints()
+	Widgets.Point(chip.text, "CENTER", chip, "CENTER")
+end
+
 function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 	Widgets.Size(chip, width, height)
 	chip:SetFrameLevel(holder:GetFrameLevel() + Style.CHIP_LEVEL)
 	chip:ClearAllPoints()
 	local place = BESIDE[side]
-	local step = Widgets.Snap(chip, gap)
-	chip:SetPoint(place[1], holder, place[2], place[3] * step, place[4] * step)
+	Widgets.Point(chip, place[1], holder, place[2], place[3] * gap, place[4] * gap)
 	chip.chrome:Restyle()
 	local r, g, b = Tokens.Color(chip.fill)
 	chip.chrome:SetFillRGBA(r, g, b, 1)
@@ -56,6 +59,7 @@ function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 	local current = ns.Settings.current
 	Style.Font(chip.text, current.countFont, size, current.countOutline)
 	Widgets.SetText(chip.text, text)
+	PlaceChipText(chip)
 	Style.Mouse(chip, current.tooltips)
 	chip:Show()
 end
@@ -184,7 +188,7 @@ local function Centre(icon)
 			snapped = snapped + K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
 		end
 		countdown:ClearAllPoints()
-		countdown:SetPoint("CENTER", icon.icon, "CENTER", 0, snapped)
+		Widgets.Point(countdown, "CENTER", icon.icon, "CENTER", 0, snapped)
 		countdown:SetJustifyH("CENTER")
 	end
 end
@@ -193,7 +197,7 @@ Style.Centre = Centre
 
 function Style.PlaceEssential(countdown, icon, scale)
 	countdown:ClearAllPoints()
-	countdown:SetPoint("CENTER", icon, "CENTER", 0, -Widgets.Snap(icon, 1 / (scale or 1)))
+	Widgets.Point(countdown, "CENTER", icon, "CENTER", 0, -1 / (scale or 1))
 	countdown:SetJustifyH("CENTER")
 end
 
@@ -208,7 +212,7 @@ function Style.PlaceText(icon, group)
 	end
 	if group == "buffs" then
 		countdown:ClearAllPoints()
-		countdown:SetPoint("TOP", icon, "BOTTOM", 0, -Widgets.Snap(icon, 2))
+		Widgets.Point(countdown, "TOP", icon, "BOTTOM", 0, -2)
 		countdown:SetJustifyH("CENTER")
 	else
 		Style.PlaceEssential(countdown, icon)

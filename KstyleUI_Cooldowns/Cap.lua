@@ -159,7 +159,7 @@ local function Place(viewer, slot, folded)
 	h = (type(h) == "number" and not ns.IsSecret(h)) and h * scale or cfg.size
 	Style.ShowChip(c, viewer, "LEFT", 0, w, h, "+" .. #folded, cfg.countSize + Style.CHIP_TEXT)
 	c:ClearAllPoints()
-	c:SetAllPoints(slot)
+	K.Widgets.Point(c, "TOPLEFT", slot, "TOPLEFT")
 	c:SetFrameLevel(slot:GetFrameLevel() + Style.CHIP_LEVEL)
 	Style.Mouse(c, Tips(viewer))
 	c.count, c.folded = #folded, folded

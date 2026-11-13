@@ -26,9 +26,12 @@ local function Figure(text, frame, itemScale, size)
 	assert(W.Near(actual, K.Widgets.FontSize(text, size * K.Theme.FontScale() / itemScale)), "the requested timer size is snapped in the text's own scale")
 	Integer(actual * K.Widgets.ScaleFactor(text) / K.Scale.Pixel(1), "the font size")
 	local p = text._points[1]
-	assert(p[1] == "CENTER" and p[2] == frame and p[3] == "CENTER" and p[4] == 0, "only the essential text's optical vertical offset changes")
-	assert(W.Near(p[5], -K.Widgets.Snap(frame, 1 / itemScale)), "the figure sits one root unit optically lower: Alegreya's oldstyle figures stand lower in the line than lining ones, compensating native item scale")
-	Integer(p[5] * K.Widgets.ScaleFactor(frame) / K.Scale.Pixel(1), "the optical offset")
+	local perPixel = K.Widgets.ScaleFactor(frame) / K.Scale.Pixel(1)
+	local half = 0.5 / perPixel + 1e-6
+	assert(p[1] == "CENTER" and p[2] == frame and p[3] == "CENTER" and math.abs(p[4]) <= half, "only the essential text's optical vertical offset changes, beside the half pixel that centres it on the grid")
+	assert(math.abs(p[5] + K.Widgets.Snap(frame, 1 / itemScale)) <= half, "the figure sits one root unit optically lower: Alegreya's oldstyle figures stand lower in the line than lining ones, compensating native item scale")
+	Integer(((frame:GetWidth() or 0) / 2 + p[4]) * perPixel, "the figure's centre")
+	Integer(((frame:GetHeight() or 0) / 2 - p[5]) * perPixel, "the figure's middle")
 end
 
 local function NoTextReads()

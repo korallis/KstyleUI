@@ -38,7 +38,6 @@ function BarRow:StyleBar(bar)
 	Widgets.Size(bar, cfg.width, cfg.height)
 	local height = Widgets.Snap(holder, cfg.height)
 	local border = Widgets.Border(bar)
-	local inset = Widgets.Snap(holder, TEXT_INSET)
 	local tile = bar.iconTile
 	tile:SetShown(cfg.icon)
 	local left = 0
@@ -66,7 +65,7 @@ function BarRow:StyleBar(bar)
 	local nameEnd, nameEndPoint = bar, "RIGHT"
 	if countdown then
 		countdown:ClearAllPoints()
-		countdown:SetPoint("RIGHT", bar, "RIGHT", -inset, 0)
+		Widgets.Point(countdown, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0)
 		countdown:SetJustifyH("RIGHT")
 		Style.Font(countdown, current.timerFont, cfg.timerSize, current.timerOutline, "timer")
 		if cfg.timer then
@@ -75,11 +74,11 @@ function BarRow:StyleBar(bar)
 	end
 	bar.name:ClearAllPoints()
 	if cfg.icon then
-		bar.name:SetPoint("LEFT", tile, "RIGHT", inset, 0)
+		Widgets.Point(bar.name, "LEFT", tile, "RIGHT", TEXT_INSET, 0)
 	else
-		bar.name:SetPoint("LEFT", bar, "LEFT", inset, 0)
+		Widgets.Point(bar.name, "LEFT", bar, "LEFT", TEXT_INSET, 0)
 	end
-	bar.name:SetPoint("RIGHT", nameEnd, nameEndPoint, -inset, 0)
+	Widgets.Point(bar.name, "RIGHT", nameEnd, nameEndPoint, -TEXT_INSET, 0)
 	bar.name:SetShown(cfg.name)
 	Style.Font(bar.name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
 	Style.Font(bar.count, current.countFont, cfg.countSize, current.countOutline)
