@@ -43,7 +43,7 @@ Model.defaults = {
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = "", size = 11, outline = "NONE", expiring = 5 },
-	count = { font = "", size = 10, outline = "NONE" },
+	count = { font = "", size = 10, outline = "OUTLINE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
 local defaults = Model.defaults

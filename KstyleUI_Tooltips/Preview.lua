@@ -84,6 +84,7 @@ local function Sample(frame, spec)
 	local glass = CreateFrame("Frame", nil, frame)
 	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface", popup = true })
 	glass.divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
+	glass.gem = glass:CreateTexture(nil, "OVERLAY")
 	glass.spec, glass.rows = spec, {}
 	for i, line in ipairs(spec) do
 		local row = { left = Widgets.FontString(glass, "OVERLAY") }
@@ -136,14 +137,29 @@ local function FitPair(row, available, gap)
 	end
 end
 
+local function Headed(glass)
+	if not Settings.Get("divider") then
+		return false
+	end
+	local count = 0
+	for _, line in ipairs(glass.spec) do
+		count = count + (Shown(line) and 1 or 0)
+	end
+	return count >= 2
+end
+
+local function Room(glass)
+	return Headed(glass) and Widgets.Snap(glass, Style.GEM_ROOM) or 0
+end
+
 local function LayoutSample(glass)
 	local pad = Widgets.Snap(glass, Tokens.Size("gapMedium"))
 	local gap = Widgets.Snap(glass, LINE_GAP)
+	local headed = Headed(glass)
 	local x = pad + (glass.indent or 0)
 	local reserve = glass.reserve or {}
 	local width = Widgets.Snap(glass, SAMPLE_WIDTH + (glass.indent or 0) + (reserve.right or 0))
 	local y = pad
-	local shown = 0
 	for i, row in ipairs(glass.rows) do
 		local line = glass.spec[i]
 		local role = line.role or "body"
@@ -153,7 +169,6 @@ local function LayoutSample(glass)
 			row.right:SetShown(visible)
 		end
 		if visible then
-			shown = shown + 1
 			Style.StyleFont(row.left, role, nil, line.kit)
 			row.left:SetTextColor(LineColor(line.color))
 			row.left:ClearAllPoints()
@@ -183,7 +198,12 @@ local function LayoutSample(glass)
 	divider:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
 	divider:SetHeight(Widgets.Border(glass))
 	Style.PaintRule(divider)
-	divider:SetShown(Settings.Get("divider") and shown >= 2)
+	divider:SetShown(headed)
+	if headed then
+		Style.PlaceGem(glass.gem, glass.rows[1].left, glass.spec[1].role)
+	else
+		glass.gem:Hide()
+	end
 	glass.chrome:Restyle()
 end
 
@@ -250,8 +270,11 @@ local function LayoutIcon(frame)
 end
 
 local function Refresh(frame)
-	frame.item.indent = Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0
+	frame.item.indent = (Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0) + Room(frame.item)
 	LayoutSample(frame.item)
+	frame.item:ClearAllPoints()
+	Widgets.Point(frame.item, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
+	frame.unit.indent = Room(frame.unit)
 	frame.unit.reserve = BarReserve()
 	LayoutSample(frame.unit)
 	local qr, qg, qb = Theme.QualityColor(SAMPLE_QUALITY)
@@ -268,7 +291,6 @@ function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
 	frame.item = Sample(frame, ITEM)
-	frame.item:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)
 	frame.icon = Style.IconTile(frame.item)
 	frame.icon.texture:SetTexture(SAMPLE_ICON)

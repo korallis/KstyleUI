@@ -1,5 +1,6 @@
 -- gallery_auras_counts.lua: the aura rows at five buff counts beside twelve debuffs, each cropped as one frame: no
--- buffs (the debuff rows alone), two, eight, twenty-four (two rows show, "+9" on the last cell) and forty ("+25").
+-- buffs (the debuff rows alone), two, eight, twenty-four and forty, each row showing as many auras as the engine's
+-- maxFrameCount lets it beside its "+N" tile on the last cell.
 -- Each pair of rows is its own environment, as the HUD scene builds one module several ways; the five scenes merge
 -- into one render. The fake AuraContainer engine lays out no buttons and binds no icon or timer, so this scene
 -- fills the buttons and places them as the engine's flow layout would, the way scenes/hud.lua does.
@@ -81,13 +82,13 @@ local function rows(index, n)
 	local row = Hud.BuffRow(spec, math.max(n, 1))
 	local helpful = A.Container(env, "HELPFUL")
 	local harmful = A.Container(env, "HARMFUL")
-	local capacity = Model.Capacity(buffGroup, 0)
+	local capacity = helpful._groups.buffs.maxFrameCount
 	local shown = buttons(env, A, helpful, "buffs", math.min(n, capacity))
 	for i, button in ipairs(shown) do
 		fill(env, button, row[(i - 1) % #row + 1])
 	end
 	Hud.PlaceAuras(helpful, helpful._groups.buffs, shown, buffGroup.columns)
-	local harm = buttons(env, A, harmful, "debuffs", DEBUFFS)
+	local harm = buttons(env, A, harmful, "debuffs", math.min(DEBUFFS, harmful._groups.debuffs.maxFrameCount))
 	for i, button in ipairs(harm) do
 		fill(env, button, DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1])
 		dispel(env, Widgets, button, DISPEL[(i - 1) % #DISPEL + 1])
@@ -100,11 +101,11 @@ local function rows(index, n)
 	local over = math.max(0, n - capacity)
 	local caption
 	if n == 0 then
-		caption = "No buffs: the buff element stands empty and the twelve debuffs fill their own two rows of eight under it, dispel plates on each."
+		caption = "No buffs: the buff element stands empty and the twelve debuffs show as the row's tiles allow under it, dispel plates on each, the rest counted on the last cell."
 	elseif over == 0 then
-		caption = string.format("%d buffs over two rows of eight growing left, the twelve debuffs 16 under them; every aura shows, so no cell counts.", n)
+		caption = string.format("%d buffs in the row, the twelve debuffs 16 under them; every buff shows, so its row counts nothing.", n)
 	else
-		caption = string.format("%d buffs: the two rows show the first fifteen by the sort and the last cell reads +%d, the covered buff and the %d past the rows, counted by the engine's own layout.", n, over + 1, over)
+		caption = string.format("%d buffs: the row shows the first %d by the sort and the last cell, a tile like the rest, reads +%d, counted by the engine's own layout.", n, capacity, over)
 	end
 	frames:Add(env, buffElement, {
 		name = "auras_count_" .. n, title = string.format("Aura rows, %d buffs", n), grade = "button", reference = "bufficons",
