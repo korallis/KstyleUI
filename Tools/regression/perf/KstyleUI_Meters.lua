@@ -28,6 +28,7 @@ return {
 	{
 		name = "Meters damage refresh, raid of twenty",
 		budget = 2000,
+		calls = 100,
 		setup = function()
 			local env, K = M.New()
 			env._group = { raid = true, size = 20 }
