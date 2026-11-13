@@ -17,19 +17,48 @@ end
 
 -- origin() -> the addon file whose code made the object being created, or false when a test, a scene or a fake made
 -- it. Only an environment made while the global PIXEL_AUDIT is set records it (pixel_audit_lib.lua).
+-- The kit's placement helpers (Widgets.Point, Fill and Size) place for their caller, so a region they place is the
+-- caller's: the first addon file up the stack outside them. When the kit replays a placement (on a rescale or a size
+-- change), the region keeps the file that placed it first (KEEP).
+local HELPERS = { Point = true, Fill = true, Size = true }
+local REPLAYS = { PlaceAgain = true, Reown = true, Refollow = true, Refill = true }
+local KIT = "Core/Widgets/Base.lua"
+local KEEP = {}
 local function origin()
+	local helped = false
 	for level = 3, 60 do
-		local info = debug.getinfo(level, "S")
+		local info = debug.getinfo(level, "Sn")
 		if not info then
-			return false
+			return helped and KIT or false
 		end
 		local source = info.source
 		if source:sub(1, 1) == "@" and not source:find("Tools/regression/stubs/", 1, true) then
 			local path = source:sub(2):gsub("^%./", "")
-			return not path:find("^Tools/") and path
+			if path == KIT and helped and (info.name == nil or REPLAYS[info.name]) then
+				return KEEP
+			elseif path == KIT and (helped or HELPERS[info.name]) then
+				helped = true
+			else
+				return not path:find("^Tools/") and path
+			end
 		end
 	end
-	return false
+	return helped and KIT or false
+end
+local function originFile()
+	local found = origin()
+	if found == KEEP then
+		return KIT
+	end
+	return found
+end
+local function placedBy(self)
+	local found = origin()
+	if found ~= KEEP then
+		self._placedBy = found
+	elseif self._placedBy == nil then
+		self._placedBy = KIT
+	end
 end
 
 -- Secret values ---------------------------------------------------------------------------------
@@ -483,7 +512,7 @@ function Object:SetPoint(point, ...)
 	checkAnchor(self, (...))
 	spans(self, (...))
 	if self._env._trackOrigin then
-		self._placedBy = origin()
+		placedBy(self)
 	end
 	for i, existing in ipairs(self._points) do
 		if existing[1] == point then
@@ -499,7 +528,7 @@ function Object:SetAllPoints(relative)
 	checkAnchor(self, relative)
 	spans(self, relative)
 	if self._env._trackOrigin then
-		self._placedBy = origin()
+		placedBy(self)
 	end
 	local target = anchorTarget(self, relative)
 	self._points = { pack("TOPLEFT", target, "TOPLEFT", 0, 0), pack("BOTTOMRIGHT", target, "BOTTOMRIGHT", 0, 0) }
@@ -751,7 +780,7 @@ local function newObject(env, objectType, name, parent)
 	return setmetatable({
 		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
-		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and origin(),
+		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and originFile(),
 	}, ObjectMeta)
 end
 
