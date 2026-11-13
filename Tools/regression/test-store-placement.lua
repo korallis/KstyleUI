@@ -57,7 +57,7 @@ local env, K = C.New({ saved = {
 } })
 C.Boot(env)
 local db = env.KstyleUIDB
-assert(db.version == K.Store.DB_VERSION and db.version == 31 and K.ErrorCount() == 0, "the migration reaches 31 without errors")
+assert(db.version == K.Store.DB_VERSION and db.version == 32 and K.ErrorCount() == 0, "the migration reaches the current version without errors")
 for key in pairs(db.layouts.Default) do
 	error(key .. " at its old default still holds a saved place")
 end

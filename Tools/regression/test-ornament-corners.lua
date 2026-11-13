@@ -1,4 +1,4 @@
--- test-ornament-corners.lua: the focus, boss and Targeted-chip corners are placed by the game's own events and the card chrome, with no render pass restyling them, and they follow the level setting.
+-- test-ornament-corners.lua: the focus, boss and Targeted-chip cards wear no corner brackets at any level, since unit-frame bars are clean in both HUD styles (KSTY-60 item 1), and a restyle agrees with the game's own events.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
 U.SetUnit(env, "focus", { name = "Elunara Frostweaver", level = 39, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true })
@@ -33,12 +33,8 @@ for name, handle in pairs(handles) do
 	handle:Restyle()
 	assert(table.concat(drawn(handle), " ") == live[name], name .. ": the game's own events place the corners a restyle would place")
 end
-for _, name in ipairs({ "boss1", "boss2", "chip" }) do
-	local pieces = drawn(handles[name])
-	assert(#pieces == 4, name .. " draws four corners at Full, got " .. #pieces)
-	for _, path in ipairs(pieces) do
-		assert(path:find("ForgedOrnaments\\Corner%d+%.png$"), name .. ": a corner piece, got " .. path)
-	end
+for _, name in ipairs({ "focus", "boss1", "boss2", "chip" }) do
+	assert(#drawn(handles[name]) == 0, name .. " draws no corners at Full, got " .. #drawn(handles[name]))
 end
 
 for _, level in ipairs({ "Subtle", "Off" }) do

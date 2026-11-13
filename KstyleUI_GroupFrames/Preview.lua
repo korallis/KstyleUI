@@ -33,9 +33,14 @@ local SAMPLES = {
 	{ name = "Ysra", class = "PRIEST", health = 0.33, power = 0.6 },
 }
 
+local function Low(sample)
+	return not (sample.dead or sample.offline) and sample.health < K.Widgets.LOW_HEALTH_SHARE
+end
+
 local function HealthText(f, sample)
 	local text = f.healthText
 	text:SetAlpha(1)
+	text:SetTextColor(Tokens.Color(Low(sample) and "healthLow" or "textEmphasis"))
 	if sample.offline then
 		text:SetText(L["Offline"])
 		return
@@ -75,6 +80,8 @@ local function Paint(f, sample)
 	f.health:SetBarValue(sample.health)
 	if sample.dead or sample.offline then
 		f.health:SetBarColor(Tokens.Color("textDisabled"))
+	elseif Low(sample) then
+		f.health:SetBarColor(Tokens.Color("healthLow"))
 	elseif cfg.health.colorSource == "class" then
 		f.health:SetBarColor(cr, cg, cb)
 	elseif cfg.health.colorSource == "reaction" then

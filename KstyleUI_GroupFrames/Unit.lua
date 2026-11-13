@@ -141,6 +141,7 @@ local function HealthText(f)
 	local text = f.healthText
 	if f.status then
 		text:SetAlpha(1)
+		text:SetTextColor(Tokens.Color("textEmphasis"))
 		text:SetText(STATUS_TEXT[f.status])
 		text:SetShown(true)
 		return
@@ -153,6 +154,7 @@ local function HealthText(f)
 	end
 	text:SetAlpha(1)
 	local unit = f.unit
+	K.Widgets.LowHealthText(text, unit, "textEmphasis")
 	local percent, full = Curves()
 	if format == "PERCENT" and percent then
 		text:SetFormattedText(PERCENT_FORMAT, UnitHealthPercent(unit, true, percent))

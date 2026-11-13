@@ -9,6 +9,7 @@ local max, min, floor, abs = math.max, math.min, math.floor, math.abs
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
 local FILL_ALPHA = 0.5
+local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 local PILL_HEIGHT = 4
 local PILL_GAP = 3
 local TEXT_AIR = 2
@@ -155,8 +156,7 @@ local function NewRow(list, index)
 	local ink = frame
 	if list.block then
 		bar.keyline:Hide()
-		bar.lit:Hide()
-		bar.shade:Hide()
+		bar:SetLitShade(LIT_ALPHA, SHADE_ALPHA)
 		ink = CreateFrame("Frame", nil, frame)
 		ink:SetAllPoints(frame)
 		ink:SetFrameLevel(bar:GetFrameLevel() + 1)

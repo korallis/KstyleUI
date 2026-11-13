@@ -13,7 +13,7 @@ local FLASH_ALPHA = 0.85
 local SPARK_PIXELS = 2
 local GLOW_WIDTH = 10
 local GLOW_ALPHA = 0.55
-local LOW_SHARE = 0.35
+local LOW_SHARE = 0.4
 local LOW_STEP = 0.001
 local CHANNELS = 4
 
@@ -68,8 +68,44 @@ local function LowCurve()
 	lowCurve:AddPoint(LOW_SHARE, 1)
 	lowCurve:AddPoint(LOW_SHARE + LOW_STEP, 0)
 	lowCurve:AddPoint(1, 0)
-	Widgets.LogOnce("unitbar-curve-on", "unit bars: below 35% health a red fill shows, its alpha a C_CurveUtil step curve over UnitHealthPercent")
+	Widgets.LogOnce("unitbar-curve-on", "unit bars: below 40% health a red fill shows, its alpha a C_CurveUtil step curve over UnitHealthPercent")
 	return lowCurve
+end
+
+local textCurves = {}
+
+local function TextCurves(token)
+	local curves = textCurves[token]
+	if curves ~= nil or not LowCurve() then
+		return curves or nil
+	end
+	local low, high = { Tokens.Color("healthLow") }, { Tokens.Color(token) }
+	curves = {}
+	for i = 1, 3 do
+		local curve = C_CurveUtil.CreateCurve()
+		local kinds = Enum and Enum.LuaCurveType
+		if kinds and kinds.Step and curve.SetType then
+			curve:SetType(kinds.Step)
+		end
+		curve:AddPoint(0, low[i])
+		curve:AddPoint(LOW_SHARE, low[i])
+		curve:AddPoint(LOW_SHARE + LOW_STEP, high[i])
+		curve:AddPoint(1, high[i])
+		curves[i] = curve
+	end
+	textCurves[token] = curves
+	return curves
+end
+
+Widgets.LOW_HEALTH_SHARE = LOW_SHARE
+
+function Widgets.LowHealthText(text, unit, token)
+	local curves = unit and TextCurves(token)
+	if not curves then
+		text:SetTextColor(Tokens.Color(token))
+		return
+	end
+	text:SetTextColor(UnitHealthPercent(unit, true, curves[1]), UnitHealthPercent(unit, true, curves[2]), UnitHealthPercent(unit, true, curves[3]))
 end
 
 local function Restart(group)
