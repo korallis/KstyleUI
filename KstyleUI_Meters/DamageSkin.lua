@@ -264,14 +264,7 @@ end
 
 local function PlaceCap(window, cap)
 	Match(window, cap)
-	local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(cap)
-	local height = Widgets.Snap(cap, Widgets.SECTION_CAP_HEIGHT)
-	local gem = Logic.Plain(cap.gem:GetHeight()) or 0
-	if pixel > 0 and math.floor(height / pixel + 0.5) % 2 ~= math.floor(gem / pixel + 0.5) % 2 then
-		height = height + pixel
-	end
-	cap:SetHeight(height)
-	local top = CAP_MIDDLE - height / 2
+	local top = CAP_MIDDLE - Widgets.SECTION_CAP_HEIGHT / 2
 	cap:ClearAllPoints()
 	Widgets.Point(cap, "TOPLEFT", window, "TOPLEFT", CAP_LEFT, -top)
 	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window, cap), -top)
