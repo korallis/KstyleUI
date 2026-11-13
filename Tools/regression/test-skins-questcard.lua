@@ -195,23 +195,31 @@ do
 	assert(math.abs(cardBox.top - capBox.top - 11) <= 0.6, "standing alone, the caption's row starts 11 root units under the glass's top, as the picture's guide caption does, got " .. cardBox.top - capBox.top)
 	assert(math.abs(capBox.bottom - viewBox.top - 6.5) <= 0.6, "the first quest starts 6.5 under the caption's row, as the picture spaces them, got " .. capBox.bottom - viewBox.top)
 	assert(math.abs(capBox.top - capBox.bottom - 21) <= 0.6, "the caption's row is 21 root units high, got " .. capBox.top - capBox.bottom)
-	assert(math.abs(viewBox.bottom - cardBox.bottom - 12.5) <= 0.6, "the card ends 12.5 under its last quest, the picture's foot, got " .. viewBox.bottom - cardBox.bottom)
-	local morePoint, moreOn = parts.more:GetPoint(1)
-	local footPoint, footOn, _, _, footY = parts.more:GetPoint(2)
-	assert(morePoint == "TOP" and moreOn == parts.view and footPoint == "BOTTOM" and footOn == card and math.abs(footY - K.Widgets.Border(card)) < 1e-6 and select(2, parts.more:GetFont()) <= 12.5 / factor,
-		"the more line fills that foot, from the view's foot to one border over the card's, and its glyphs fit it, so it adds no row and stays on the glass at every size, got " .. tostring(morePoint) .. " " .. tostring(footPoint))
-	-- A larger text size setting grows the more line, so the foot grows by the same factor and the line stays inside
-	-- the card; at the shipped size the foot is the picture's 12.5.
+	-- The more line is a row of its own under the last quest, a quest gap below it, and the card keeps its whole
+	-- 12.5 foot clear under the line, as the mock-up's card leaves padding under "7 more, scroll down" (KSTY-60 item 16).
+	local function Foot()
+		local topPoint, topOn, _, _, topY = parts.more:GetPoint(1)
+		local footPoint, footOn, _, _, footY = parts.more:GetPoint(2)
+		assert(topPoint == "TOP" and topOn == parts.view and footPoint == "BOTTOM" and footOn == card, "the more line hangs from the view's foot to the card's, got " .. tostring(topPoint) .. " " .. tostring(footPoint))
+		local view, whole = RootRect(K, parts.view), RootRect(K, card)
+		return -topY * factor, footY * factor, view.bottom - whole.bottom + (topY - footY) * factor, select(2, parts.more:GetFont()) * factor
+	end
+	local above, under, span, size = Foot()
+	assert(math.abs(under - 12.5) <= 0.6, "the card keeps its 12.5 foot clear under the more line, got " .. under)
+	assert(math.abs(above - 7) <= 0.6, "the more line starts a quest gap under the last quest, got " .. above)
+	assert(span >= size - 0.6, "and its row holds its glyphs, got " .. span .. " for " .. size)
+	-- A larger text size setting grows the more line and the foot under it by the same factor; at the shipped size
+	-- the foot is the picture's 12.5.
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
 	do
-		local big, bigView = RootRect(K, card), RootRect(K, parts.view)
-		assert(math.abs(bigView.bottom - big.bottom - 18.75) <= 0.6, "at one and a half times the text size the foot is one and a half times as deep, got " .. bigView.bottom - big.bottom)
-		assert(parts.more:GetNumPoints() == 2 and select(2, parts.more:GetFont()) <= 18.75 / factor, "and the larger more line still fills that foot and fits it, got " .. tostring(select(2, parts.more:GetFont())))
+		local _, bigUnder, bigRow, bigSize = Foot()
+		assert(math.abs(bigUnder - 18.75) <= 0.6, "at one and a half times the text size the foot under the more line is one and a half times as deep, got " .. bigUnder)
+		assert(bigRow >= bigSize - 0.6, "and the larger more line still fits its row, got " .. bigRow .. " for " .. bigSize)
 	end
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
-	assert(math.abs(RootRect(K, parts.view).bottom - RootRect(K, card).bottom - 12.5) <= 0.6, "and 12.5 again at the shipped size")
+	assert(math.abs(select(2, Foot()) - 12.5) <= 0.6, "and 12.5 again at the shipped size")
 	card._mouseOver = true
 	card:GetScript("OnEnter")(card)
 	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1 and parts.more:GetAlpha() == 1, "under the pointer they show")

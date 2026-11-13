@@ -52,7 +52,7 @@ local REFERENCE = {
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 + LIFT },
 	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
 	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
-	["databars.xp"] = { 491, 5, 0, TRAY_BOTTOM - 9 * 19 / 16 - 5 },
+	["databars.xp"] = { 491, 7 * 19 / 16, 0, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 },
 }
 for _, name in ipairs(Layouts.Names()) do
 	for key, want in pairs(REFERENCE) do
@@ -209,9 +209,9 @@ local MARGIN, RAIL = 17, 318
 local BAND = MARGIN + RAIL + 16
 local CARD_GAP_MIN = 16
 local LEFT_RAIL = {
-	DPS = { "groupframes.party", "qol.lootfeed" },
-	Tank = { "groupframes.party", "qol.lootfeed" },
-	Healer = { "groupframes.party", "qol.lootfeed" },
+	DPS = { "qol.lootfeed" },
+	Tank = { "qol.lootfeed" },
+	Healer = { "qol.lootfeed" },
 }
 -- The picture (LEE-20, LEE-69) draws the chat card 393 by 186. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
@@ -282,7 +282,7 @@ for _, name in ipairs(names) do
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			local inset = key == "minimap.main" and EDGE - 1 or EDGE
+			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME or EDGE
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
@@ -340,11 +340,14 @@ for _, name in ipairs(names) do
 				label .. ": " .. key .. " stays off the story slot")
 		end
 
-		-- The left rail's head: the party and raid card, in every layout (KSTY-57: the raid card's real size leaves the
-		-- Healer layout no other room that keeps the raid warnings' lane and the tracked bars' spot).
+		-- The left rail's head is the raid card, in every layout (KSTY-57: the raid card's real size leaves the Healer
+		-- layout no other room that keeps the raid warnings' lane and the tracked bars' spot). The party stands at
+		-- mid-left, where both KSTY-44 mock-ups draw it (KSTY-60 item 6), 465 under the top.
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
-		assert(raid.left == MARGIN, label .. ": the raid card stands on the left margin")
-		assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
+		assert(raid.left == MARGIN and party.left == MARGIN, label .. ": the raid card and the party stand on the left margin")
+		assert(raid.top == HEIGHT - MARGIN, label .. ": the raid card heads the left rail")
+		assert(Layouts.Get(name)["groupframes.party"].anchor == "LEFT" and party.y == HEIGHT - 465 - (5 * 39 + 4 * 13) / 2, label .. ": the party stands at mid-left, centred where the DPS party's top is 465 under the top, got " .. (HEIGHT - party.top))
+		assert(party.w == 259, label .. ": the bare party reserves its 259-unit holder, the mock-up's 194-unit row and its debuff lane (KSTY-57)")
 		local head = party
 
 		-- The left rail holds only its head, the loot feed and chat, on one left edge (the story slot moved to the right rail).
@@ -384,7 +387,7 @@ for _, name in ipairs(names) do
 		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
-		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 5) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the 5-unit experience strip sits 9 px under the KSTY-44 tray card")
+		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the mock-up's 7 px experience strip sits 9 px under the KSTY-44 tray card")
 		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
 		assert(same((playerBar[1] + playerBar[3]) / 2, (bar1.left + bar1.right) / 2), label .. ": LEE-20 the player's bars, not its external portrait reserve, stand centred over the tray")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
@@ -592,9 +595,9 @@ local FOOTPRINTS = {
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 393, 186 },
-	["groupframes.party"] = { 318, 324 },
+	["groupframes.party"] = { 259, 5 * 39 + 4 * 13 },
 	["groupframes.raid"] = { 543, 401 },
-	["databars.xp"] = { 491, 5 },
+	["databars.xp"] = { 491, 7 * 19 / 16 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },
 }
@@ -632,7 +635,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE - 1) and minimap.y == -(EDGE - 1 + MAP_HEADING), "the square map sits one root unit nearer the right than the card margin, under its 22-unit zone heading")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME) and minimap.y == -(EDGE - 1 + MAP_HEADING), "the map's forged card, drawn its frame outside the square, ends on the card margin with the cards under it (KSTY-60 item 28), under its 22-unit zone heading")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

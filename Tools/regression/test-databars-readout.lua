@@ -225,10 +225,7 @@ do
 	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(frame)
 	local _, dotSize = latency.dot:GetFont()
 	local gap = K.Widgets.DotGap(dotSize, step, ns.Strip.DOT_GAP_EM)
-	local value = latency.value:GetText()
-	local stem = (type(value) == "string" and value:sub(1, 1) == "1") and step or 0
-	local rightGap = math.max(step, gap - step + stem)
-	assert(near(dot[4], -(latency.dot:GetUnboundedStringWidth() / 2 + rightGap), 0.5), "its centre is the gap left of the item: " .. tostring(dot[4]))
+	assert(near(dot[4], -(latency.dot:GetUnboundedStringWidth() / 2 + gap), 0.5), "its centre is the gap left of the item: " .. tostring(dot[4]))
 	local dr, dg, db = latency.dot:GetTextColor()
 	local wr, wg, wb = K.Tokens.Color("text")
 	assert(near(dr, wr) and near(dg, wg) and near(db, wb), "the dot reads in the text grey like the line")

@@ -365,12 +365,12 @@ gallery_setup_tracked	1920x1080	Core/Widgets/Base.lua	1
 gallery_setup_tracked	1920x1080	Core/Widgets/Button.lua	2
 gallery_setup_tracked	1920x1080	Core/Widgets/Panel.lua	1
 gallery_setup_tracked	1920x1080	Core/Widgets/Tabs.lua	6
-gallery_setup_tracked	2560x1440	Core/Setup/Window.lua	6
+gallery_setup_tracked	2560x1440	Core/Setup/Window.lua	5
 gallery_setup_tracked	2560x1440	Core/Widgets/Base.lua	1
 gallery_setup_tracked	2560x1440	Core/Widgets/Button.lua	5
 gallery_setup_tracked	2560x1440	Core/Widgets/Panel.lua	2
 gallery_setup_tracked	2560x1440	Core/Widgets/SectionCap.lua	3
-gallery_setup_tracked	3440x1440	Core/Setup/Window.lua	6
+gallery_setup_tracked	3440x1440	Core/Setup/Window.lua	5
 gallery_setup_tracked	3440x1440	Core/Widgets/Base.lua	1
 gallery_setup_tracked	3440x1440	Core/Widgets/Button.lua	5
 gallery_setup_tracked	3440x1440	Core/Widgets/Panel.lua	2
@@ -385,7 +385,7 @@ gallery_setup_tracked	3840x2160	Core/Widgets/Base.lua	1
 gallery_setup_tracked	3840x2160	Core/Widgets/Button.lua	2
 gallery_setup_tracked	3840x2160	Core/Widgets/Panel.lua	1
 gallery_setup_tracked	3840x2160	Core/Widgets/Tabs.lua	6
-gallery_setup_tracked	5120x1440	Core/Setup/Window.lua	6
+gallery_setup_tracked	5120x1440	Core/Setup/Window.lua	5
 gallery_setup_tracked	5120x1440	Core/Widgets/Base.lua	1
 gallery_setup_tracked	5120x1440	Core/Widgets/Button.lua	5
 gallery_setup_tracked	5120x1440	Core/Widgets/Panel.lua	2
@@ -683,13 +683,11 @@ hud_reference	1920x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	1920x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	1920x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	1920x1080	KstyleUI_Skins/Lumen.lua	4
-hud_reference	1920x1080	KstyleUI_Skins/Quests/Card.lua	1
 hud_reference	2560x1080	Core/Widgets/Base.lua	4
 hud_reference	2560x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	2560x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	2560x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	2560x1080	KstyleUI_Skins/Lumen.lua	4
-hud_reference	2560x1080	KstyleUI_Skins/Quests/Card.lua	1
 hud_reference	2560x1440	Core/Widgets/Base.lua	25
 hud_reference	2560x1440	Core/Widgets/SectionCap.lua	1
 hud_reference	2560x1440	KstyleUI_DataBars/Strip.lua	2
@@ -709,17 +707,14 @@ hud_reference	3840x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	3840x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	3840x1080	KstyleUI_Skins/Lumen.lua	4
-hud_reference	3840x1080	KstyleUI_Skins/Quests/Card.lua	1
 hud_reference	3840x1080 spread	Core/Widgets/Base.lua	4
 hud_reference	3840x1080 spread	KstyleUI_DataBars/Bars.lua	1
 hud_reference	3840x1080 spread	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x1080 spread	KstyleUI_Minimap/Face.lua	2
 hud_reference	3840x1080 spread	KstyleUI_Skins/Lumen.lua	4
-hud_reference	3840x1080 spread	KstyleUI_Skins/Quests/Card.lua	1
 hud_reference	3840x2160	Core/Widgets/Base.lua	2
 hud_reference	3840x2160	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x2160	KstyleUI_Minimap/Face.lua	2
-hud_reference	3840x2160	KstyleUI_Skins/Quests/Card.lua	1
 hud_reference	5120x1440	Core/Widgets/Base.lua	25
 hud_reference	5120x1440	Core/Widgets/SectionCap.lua	1
 hud_reference	5120x1440	KstyleUI_DataBars/Strip.lua	2

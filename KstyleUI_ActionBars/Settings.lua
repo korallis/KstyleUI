@@ -138,7 +138,8 @@ local function BarRows(schema, def)
 		schema[#schema + 1] = row
 	end
 	add({ type = "header", label = Label(def) })
-	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = L["Turns this bar on or off."] })
+	local help = key == "bar3" and L["Turns this bar on or off. Beside the party frames it lowers the largest HUD size."] or L["Turns this bar on or off."]
+	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = help })
 	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
 	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })

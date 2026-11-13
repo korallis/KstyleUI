@@ -1989,6 +1989,7 @@
 	"Turn this frame off to leave its unit without a KstyleUI frame.": "Désactivez ce cadre pour laisser son unité sans cadre KstyleUI.",
 	"Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay.": "Transforme les lignes dorées et blanches de Blizzard en gris KstyleUI. Les lignes colorées restent.",
 	"Turns this bar on or off.": "Active ou désactive cette barre.",
+	"Turns this bar on or off. Beside the party frames it lowers the largest HUD size.": "Active ou désactive cette barre. À côté des cadres de groupe, elle réduit la taille maximale du HUD.",
 	"Turns this module on or off.": "Active ou désactive ce module.",
 	"Turns web addresses into links. Click one to copy it.": "Transforme les adresses web en liens. Cliquez sur l'un d'eux pour le copier.",
 	"Two-Hand": "Deux mains",

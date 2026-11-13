@@ -114,6 +114,52 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Spread keeps the party, raid and boss frames on the 21:9 column's line, and only the rails go to the screen edges
+-- (the Captain's ruling on KSTY-60 item 6: on a 32:9 screen a healer's party had gone to the far corner, 2,400 px
+-- from the character). On another screen of the same class they keep to that screen's column, and nothing is saved.
+do
+	local env, K, Element = New(5120, 1440)
+	local GROUP = { "groupframes.party", "groupframes.raid", "unitframes.boss" }
+	for _, key in ipairs(GROUP) do
+		Element(key)
+	end
+	Element("chat.main")
+	local function Edges(key)
+		local left, _, width = K.Layout.Rect(key)
+		local pixel = K.Scale.Pixel(1)
+		return (K.Scale.Origin() + left) / pixel, (K.Scale.Origin() + left + width) / pixel
+	end
+	for _, screen in ipairs({ { 5120, 1440 }, { 3840, 1080 } }) do
+		local label = screen[1] .. "x" .. screen[2]
+		Screen(env, screen[1], screen[2])
+		K.Options.Write("Layout", "arrangement", "centred")
+		local centred = {}
+		for _, key in ipairs(GROUP) do
+			centred[key] = { Edges(key) }
+		end
+		K.Options.Write("Layout", "arrangement", "spread")
+		local column = (screen[1] - math.floor(screen[2] * 12 / 5 + 0.5)) / 2
+		assert(near(Edges("chat.main"), K.Tokens.Size("screenMargin") / K.Scale.Pixel(1), 0.5), label .. ": Spread takes chat out to a margin from the screen's left edge")
+		for _, key in ipairs(GROUP) do
+			local left, right = Edges(key)
+			assert(near(left, centred[key][1], 0.5) and near(right, centred[key][2], 0.5), label .. ": " .. key .. " stays on the 21:9 column's line under Spread, got " .. left .. " for " .. centred[key][1])
+			assert(K.Store.Layout()[key] == nil, label .. ": and nothing is saved for it")
+		end
+		assert(near(K.Scale.Band() / K.Scale.Pixel(1), column, 0.5), label .. ": the band is the 21:9 column's inset, " .. column .. " px")
+		K.Options.Write("Layout", "canvas", "16:9")
+		local narrow = (screen[1] - math.floor(screen[2] * 16 / 9 + 0.5)) / 2
+		assert(near(Edges("groupframes.party") - centred["groupframes.party"][1], narrow - column, 0.5), label .. ": a HUD width change under Spread moves the group frames to the new column's line")
+		K.Options.Write("Layout", "canvas", "21:9")
+		assert(near(Edges("groupframes.party"), centred["groupframes.party"][1], 0.5), label .. ": and back")
+		assert(K.Setup.Apply({ layout = "Healer", modules = {} }), label .. ": Apply runs under Spread")
+		for _, key in ipairs(GROUP) do
+			local left = Edges(key)
+			assert(near(left, centred[key][1], 0.5) and K.Store.Layout()[key] == nil, label .. ": after Apply " .. key .. " still keeps to the column's line and nothing is saved, got " .. left)
+		end
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- A class's places move an element at its defaults and never one the player placed, whose place is saved whole.
 do
 	local env, K, Element = New(5120, 1440)

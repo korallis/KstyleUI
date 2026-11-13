@@ -1996,6 +1996,7 @@ ns.Locale.Add({
 	["Turn this frame off to leave its unit without a KstyleUI frame."] = "Desactiva este marco para dejar su unidad sin marco de KstyleUI.",
 	["Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay."] = "Convierte las l\195\173neas doradas y blancas de Blizzard en los grises de KstyleUI. Las l\195\173neas de color se mantienen.",
 	["Turns this bar on or off."] = "Activa o desactiva esta barra.",
+	["Turns this bar on or off. Beside the party frames it lowers the largest HUD size."] = "Activa o desactiva esta barra. Junto a los marcos de grupo reduce el tama\195\177o m\195\161ximo del HUD.",
 	["Turns this module on or off."] = "Activa o desactiva este m\195\179dulo.",
 	["Turns web addresses into links. Click one to copy it."] = "Convierte las direcciones web en enlaces. Haz clic en uno para copiarlo.",
 	["Two-Hand"] = "Dos manos",

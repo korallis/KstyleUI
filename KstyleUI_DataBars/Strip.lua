@@ -46,7 +46,7 @@ local MENU_GAP = 6
 local LINE = 12
 local CELL_LINE = 30
 local CELLS_HEIGHT = 42
-local DOT_GAP_EM = 4 / 21
+local DOT_GAP_EM = 1 / 3
 local LINE_LIFT = 1
 local DOT = "\194\183"
 local MENU_PAD = 3
@@ -375,14 +375,6 @@ local function CompactGold(item, s)
 	end
 end
 
-local function StemPixel(text, step)
-	local value = text and text.GetText and text:GetText()
-	if (issecretvalue and issecretvalue(value)) or type(value) ~= "string" or value:sub(1, 1) ~= "1" then
-		return 0
-	end
-	return step
-end
-
 local function PlaceLine(view, s)
 	local frame = view.frame
 	local _, h = Size(frame)
@@ -427,13 +419,11 @@ local function PlaceLine(view, s)
 		item.dot:SetShown(i > 1)
 		if i > 1 then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
-			local leftGap = max(step, dotGap - step)
-			local rightGap = max(step, dotGap - step + StemPixel(item.value, step))
 			item.dot:ClearAllPoints()
-			item.dot:SetPoint("CENTER", button, "LEFT", -(dotWidth / 2 + rightGap), lift)
+			item.dot:SetPoint("CENTER", button, "LEFT", -(dotWidth / 2 + dotGap), lift)
 			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
 			item.dot:SetJustifyH("CENTER")
-			x = x + Widgets.Snap(frame, dotWidth + leftGap + rightGap)
+			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
 		end
 	end
 	view.contentWidth = Widgets.Snap(frame, x - edge)

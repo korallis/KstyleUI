@@ -105,11 +105,11 @@ do
 	check(b and d, "both elements register with Layout under the element keys")
 	check(b.opts.label == "Buffs" and d.opts.label == "Debuffs", "labels come from Setup.Layouts")
 	check(b.opts.module == "Auras" and b.opts.scalable == true and not b.opts.resizable, "the elements scale in Layout Mode")
-	-- The picture's rail: the rows stand beside the minimap's left edge, 10.9 left of it and 1.4 under the margin, the debuffs 8
+	-- The picture's rail: the rows stand beside the minimap's left edge, 11.9 left of its square and 1.4 under the margin, the debuffs 8
 	-- under the buffs (test-auras-rows.lua has the positions against the minimap element).
-	local mapW, margin = K.Setup.Layouts.Element("minimap.main").width, K.Tokens.Size("screenMargin")
-	check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + mapW + 10.9)) and near(b.position.y, -(margin + 1.4)), "buffs stand beside the minimap")
-	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 10.9)) and near(d.position.y, -(margin + 1.4 + 41.5 + 8)), "debuffs hang under the buffs")
+	local mapW, margin = K.Setup.Layouts.Element("minimap.main").width, K.Tokens.Size("screenMargin") + K.Setup.Layouts.MAP_FRAME
+	check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + mapW + 11.9)) and near(b.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4)), "buffs stand beside the minimap")
+	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 11.9)) and near(d.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4 + 41.5 + 8)), "debuffs hang under the buffs")
 	local w, h = size(b.frame)
 	check(near(w, 10 * K.Scale.Snap(27.5) + 9 * (K.Scale.Snap(31) - K.Scale.Snap(27.5))) and near(h, K.Scale.Snap(27.5) + 14), "the buff element is its row of ten, 306.5 x 41.5 in units, whole pixels at this size, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)

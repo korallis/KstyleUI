@@ -106,8 +106,9 @@ do
 	local tall = (glass[2] - glass[1]) * ppu
 	-- KSTY-33 split the picture's story card (553 pixels, the guide's head and step over the quests) into two cards: the
 	-- quest card's own glass holds the caption and the four quests at the picture's rhythm, 429 pixels; with the border
-	-- one physical pixel at every screen (KSTY-54), not two on this panel, the glass measures 431.
-	assert(math.abs(tall - 431) <= 1.5, "the quest card's own glass is 431 pixels tall, within a pixel, got " .. tall)
+	-- one physical pixel at every screen (KSTY-54), not two on this panel, the glass measured 431. The more line now has a
+	-- row of its own under the quests with the card's foot clear below it (KSTY-60 item 16), 38 pixels here: 469.
+	assert(math.abs(tall - 469) <= 1.5, "the quest card's own glass is 469 pixels tall, within a pixel, got " .. tall)
 end
 
 -- The picture's bars are on: bar 2 over bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for
