@@ -183,4 +183,23 @@ do
 	assert(N.Last(plate.name, "SetWidth")[1] == 0, "the centred cap is sized by its text, so a long creature name is never cut short")
 end
 
+-- A mailbox is a game object, so it shows its name without an empty bar -------------------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1", { name = "Mailbox", canAttack = false, gameObject = true, health = 1, maxHealth = 1 })
+	local plate = ns.Plates.Get("nameplate1")
+	assert(not plate.health:IsShown(), "a game object gets no health bar")
+	local point, relative = plate.name:GetPoint(1)
+	assert(point == "CENTER" and relative == plate, "its name sits alone on the plate")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+
+	N.Add(env, "nameplate2", { name = "Bodo", canAttack = false, health = 40, maxHealth = 100 })
+	assert(ns.Plates.Get("nameplate2").health:IsShown(), "a friendly NPC keeps its bar")
+
+	N.Add(env, "nameplate3", { name = "Crate", canAttack = false, gameObject = env.Secret(true), health = 1, maxHealth = 1 })
+	assert(ns.Plates.Get("nameplate3").health:IsShown(), "a secret answer keeps the bar")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
 print("nameplates types ok")
