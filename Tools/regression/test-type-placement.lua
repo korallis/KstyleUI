@@ -24,7 +24,7 @@ for _, screen in ipairs(screens) do
 	assert(math.abs(K.Scale.Pixel(1) - 1080 / (screen[2] * K.Scale.AppliedUserScale())) < 1e-6, label .. ": the minimap harness uses the requested physical height")
 	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local map = K.Setup.Layouts.Get(preset)["minimap.main"]
-		assert(map.x == -16 and map.y == -38, label .. ": " .. preset .. " uses the corrected map inset under the zone heading")
+		assert(map.x == -20 and map.y == -38, label .. ": " .. preset .. " uses the corrected map inset under the zone heading, its card on the card margin (KSTY-60 item 28)")
 	end
 	snapped(K, ns.Map.face.zone, label .. " zone")
 	snapped(K, ns.Map.face.coords, label .. " coordinates")

@@ -146,6 +146,11 @@ do
 			assert(K.Store.Layout()[key] == nil, label .. ": and nothing is saved for it")
 		end
 		assert(near(K.Scale.Band() / K.Scale.Pixel(1), column, 0.5), label .. ": the band is the 21:9 column's inset, " .. column .. " px")
+		K.Options.Write("Layout", "canvas", "16:9")
+		local narrow = (screen[1] - math.floor(screen[2] * 16 / 9 + 0.5)) / 2
+		assert(near(Edges("groupframes.party") - centred["groupframes.party"][1], narrow - column, 0.5), label .. ": a HUD width change under Spread moves the group frames to the new column's line")
+		K.Options.Write("Layout", "canvas", "21:9")
+		assert(near(Edges("groupframes.party"), centred["groupframes.party"][1], 0.5), label .. ": and back")
 		assert(K.Setup.Apply({ layout = "Healer", modules = {} }), label .. ": Apply runs under Spread")
 		for _, key in ipairs(GROUP) do
 			local left = Edges(key)

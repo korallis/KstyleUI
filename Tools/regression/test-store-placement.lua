@@ -1,4 +1,4 @@
--- test-store-placement.lua: migration 31 lets every saved place still at its pre-KSTY-64 default follow the new one (the party out of the top-left corner to mid-left, the map's card onto the card margin with the aura rows beside it, the taller experience strip, the Orbs party and raid), and keeps a place or a size the player chose.
+-- test-store-placement.lua: migration 31 lets every saved place still at its pre-KSTY-60 default follow the new one (the party out of the top-left corner to mid-left, the map's card onto the card margin with the aura rows beside it, the taller experience strip, the Orbs party and raid), and keeps a place or a size the player chose.
 local C = dofile("Tools/regression/core_env.lua")
 local Layouts
 do
@@ -6,9 +6,27 @@ do
 	C.Boot(probe)
 	Layouts = PK.Setup.Layouts
 end
-local old = Layouts.PlaceMoves()
+-- Staging's defaults at d3195d80, written out so a wrong old place in Layouts.PlaceMoves fails here.
+local MOCK = 19 / 16
+local TRAY_BOTTOM, STRIP_GAP = 40 * MOCK, 9 * MOCK
+local OLD = {
+	["groupframes.party"] = { "TOPLEFT", 17, -17 },
+	["orbs:groupframes.party"] = { "TOPLEFT", 17, -465 },
+	["orbs:groupframes.raid"] = { "TOPLEFT", 17, -465 },
+	["minimap.main"] = { "TOPRIGHT", -16, -38 },
+	["auras.buffs"] = { "TOPRIGHT", -(17 + 188 + 10.9), -18.4 },
+	["auras.debuffs"] = { "TOPRIGHT", -(17 + 188 + 10.9), -(18.4 + 41.5 + 8) },
+	["databars.xp"] = { "BOTTOM", 0, TRAY_BOTTOM - STRIP_GAP - 5, 491, 5 },
+}
+local moves = Layouts.PlaceMoves()
+for key, place in pairs(OLD) do
+	local got = moves[key]
+	assert(got and got[1] == place[1] and math.abs(got[2] - place[2]) < 1e-6 and math.abs(got[3] - place[3]) < 1e-6 and got[4] == place[4] and got[5] == place[5], key .. ": PlaceMoves names staging's old default")
+end
+local orbsXP = Layouts.Style("orbs", "DPS", "databars.xp")
+assert(math.abs(moves["orbs:databars.xp"][3] - (orbsXP.y + 7 * MOCK - 5)) < 1e-6, "the Orbs strip's old place keeps its top where the 5-unit strip had it")
 local function At(key, extra)
-	local place = old[key]
+	local place = OLD[key] or moves[key]
 	local entry = { anchor = place[1], x = place[2], y = place[3] }
 	for field, value in pairs(extra or {}) do
 		entry[field] = value
@@ -40,8 +58,7 @@ local env, K = C.New({ saved = {
 C.Boot(env)
 local db = env.KstyleUIDB
 assert(db.version == K.Store.DB_VERSION and db.version == 31 and K.ErrorCount() == 0, "the migration reaches 31 without errors")
-local default = db.layouts.Default
-for key in pairs(default) do
+for key in pairs(db.layouts.Default) do
 	error(key .. " at its old default still holds a saved place")
 end
 assert(db.layouts.Healer["groupframes.party"].width == 300 and db.layouts.Healer["groupframes.party"].anchor == nil, "a saved size alone stays, and the party follows its new place")

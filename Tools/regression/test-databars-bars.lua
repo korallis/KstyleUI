@@ -97,9 +97,9 @@ do
 	end
 	eq(shownTicks, 0, "no segments, no ticks")
 	K.Options.Write("DataBars", "xp.segments", 10)
-	-- The overhaul's strip (KSTY-44 bible 3.4, Lee's 5 px experience strip): 5 units tall at 1080, square ends with
+	-- The overhaul's strip: the mock-up's 7 px at 1080 (KSTY-60 item 28; 7 mock-up px, 8.3125 units), square ends with
 	-- no pill caps, and no ornament around it.
-	eq(K.Setup.Layouts.Element("databars.xp").height, 5, "the experience strip is 5 units tall")
+	eq(K.Setup.Layouts.Element("databars.xp").height, 7 * 19 / 16, "the experience strip is the mock-up's 7 px, 8.3125 units tall")
 	eq(xp.fill.pillOn, false, "the fill has square ends")
 	eq(xp.track.pillOn, false, "and so does the track")
 	eq(xp.ornament, nil, "no ornament frames the strip")

@@ -1,4 +1,4 @@
--- test-databars-xp-reference.lua: the overhaul's experience strip (KSTY-44: 5 units, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a level caption below it, without removing player choices.
+-- test-databars-xp-reference.lua: the overhaul's experience strip (KSTY-44: the mock-up's 7 px, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a level caption below it, without removing player choices.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 
@@ -9,7 +9,7 @@ end
 local env, K, ns, game = D.New({ game = { level = 11, xp = 0, xpMax = 10000, rested = 500 } })
 local xp = ns.Bars.views.xp
 eq(xp.holder:GetWidth(), 491, "the XP line spans the reference's centre column")
-eq(xp.holder:GetHeight(), 5, "the experience strip is five root units thick")
+assert(math.abs(xp.holder:GetHeight() - 7 * 19 / 16) <= K.Widgets.Border(xp.holder) / 2 + 1e-6, "the experience strip is the mock-up's 7 px, 8.3125 units snapped to the pixel, got " .. tostring(xp.holder:GetHeight()))
 eq(xp.fill.pillOn, false, "the fill has square ends: the bible's bars have no caps")
 eq(xp.track.pillOn, false, "and so does the rested reach")
 eq(xp.fill.borderFrame:IsShown(), false, "the earned fill adds no second frame")

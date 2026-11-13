@@ -325,11 +325,11 @@ gallery_setup	1920x1080	Core/Setup/Window.lua	499
 gallery_setup	1920x1080	Core/Widgets/Button.lua	8
 gallery_setup	1920x1080	Core/Widgets/Panel.lua	4
 gallery_setup	1920x1080	Core/Widgets/Tabs.lua	24
-gallery_setup	2560x1440	Core/Setup/Window.lua	428
+gallery_setup	2560x1440	Core/Setup/Window.lua	427
 gallery_setup	2560x1440	Core/Widgets/Button.lua	12
 gallery_setup	2560x1440	Core/Widgets/Panel.lua	4
 gallery_setup	2560x1440	Core/Widgets/Tabs.lua	24
-gallery_setup	3440x1440	Core/Setup/Window.lua	428
+gallery_setup	3440x1440	Core/Setup/Window.lua	427
 gallery_setup	3440x1440	Core/Widgets/Button.lua	12
 gallery_setup	3440x1440	Core/Widgets/Panel.lua	4
 gallery_setup	3440x1440	Core/Widgets/Tabs.lua	24
@@ -340,11 +340,11 @@ gallery_setup	3840x1080	Core/Widgets/Tabs.lua	24
 gallery_setup	3840x2160	Core/Setup/Window.lua	489
 gallery_setup	3840x2160	Core/Widgets/Button.lua	12
 gallery_setup	3840x2160	Core/Widgets/Tabs.lua	24
-gallery_setup	5120x1440	Core/Setup/Window.lua	428
+gallery_setup	5120x1440	Core/Setup/Window.lua	427
 gallery_setup	5120x1440	Core/Widgets/Button.lua	12
 gallery_setup	5120x1440	Core/Widgets/Panel.lua	4
 gallery_setup	5120x1440	Core/Widgets/Tabs.lua	24
-gallery_setup_tracked	1280x720	Core/Setup/Window.lua	61
+gallery_setup_tracked	1280x720	Core/Setup/Window.lua	62
 gallery_setup_tracked	1280x720	Core/Widgets/Base.lua	1
 gallery_setup_tracked	1280x720	Core/Widgets/Button.lua	4
 gallery_setup_tracked	1280x720	Core/Widgets/Panel.lua	1
@@ -352,8 +352,8 @@ gallery_setup_tracked	1920x1080	Core/Setup/Window.lua	62
 gallery_setup_tracked	1920x1080	Core/Widgets/Base.lua	1
 gallery_setup_tracked	1920x1080	Core/Widgets/Button.lua	3
 gallery_setup_tracked	1920x1080	Core/Widgets/Panel.lua	2
-gallery_setup_tracked	2560x1440	Core/Setup/Window.lua	63
-gallery_setup_tracked	3440x1440	Core/Setup/Window.lua	63
+gallery_setup_tracked	2560x1440	Core/Setup/Window.lua	62
+gallery_setup_tracked	3440x1440	Core/Setup/Window.lua	62
 gallery_setup_tracked	3840x1080	Core/Setup/Window.lua	62
 gallery_setup_tracked	3840x1080	Core/Widgets/Base.lua	1
 gallery_setup_tracked	3840x1080	Core/Widgets/Button.lua	3
@@ -363,7 +363,7 @@ gallery_setup_tracked	3840x2160	Core/Widgets/Base.lua	1
 gallery_setup_tracked	3840x2160	Core/Widgets/Button.lua	5
 gallery_setup_tracked	3840x2160	Core/Widgets/Panel.lua	2
 gallery_setup_tracked	3840x2160	Core/Widgets/Tabs.lua	6
-gallery_setup_tracked	5120x1440	Core/Setup/Window.lua	63
+gallery_setup_tracked	5120x1440	Core/Setup/Window.lua	62
 gallery_skins_addonlist	1280x720	Core/Skin.lua	198
 gallery_skins_addonlist	1280x720	KstyleUI_Skins/Parts.lua	3
 gallery_skins_addonlist	1920x1080	KstyleUI_Skins/Parts.lua	1
