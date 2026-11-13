@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own, and each layout class's own places.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own (side by side in Frames, one column with the quests on top in Orbs), and each layout class's own places.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -49,7 +49,6 @@ local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 local EDGE = ns.Tokens.Size("screenMargin")
 local RAIL_EDGE = EDGE + 1.4
 local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 188, 22, 14, 3
-local MAP_X = EDGE + MAP_FRAME
 local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 11.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
@@ -57,7 +56,7 @@ local DAMAGE_W, DAMAGE_H = 269, 158
 local THREAT_W, THREAT_H = 200, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
-local PARTY_W, PARTY_H, HEALER_PARTY_H = 259, 5 * 39 + 4 * 13, 5 * 43 + 4 * 13
+local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465 }
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
@@ -73,7 +72,7 @@ local ELEMENTS = {
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
-	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = PARTY_W, height = PARTY_H },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = PARTY.width, height = PARTY.height },
 	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 401 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
@@ -145,9 +144,7 @@ local function ElementSize(key)
 	end
 end
 local _, CHAT_H = ElementSize("chat.main")
-local AURAS_X = MAP_X + MAP + AURA_MAP_GAP
-local PARTY_TOP = 465
-local PARTY_Y = HEIGHT / 2 - PARTY_TOP - PARTY_H / 2
+local AURAS_X = EDGE + MAP_FRAME + MAP + AURA_MAP_GAP
 local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
 local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
@@ -163,11 +160,11 @@ local _, BAGS_H = ElementSize("databars.bags")
 local TIP_Y = RAIL_BARS_Y + MICRO_H + BAGS_H + GAP
 
 local DPS = {
-	["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = PARTY_Y },
+	["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = HEIGHT / 2 - PARTY.top - PARTY.height / 2 },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -MAP_X, y = -(EDGE - 1 + MAP_HEADING) },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME), y = -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
@@ -221,7 +218,7 @@ local SIZES = {
 		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Healer = {
-		["groupframes.party"] = { PARTY_W, HEALER_PARTY_H },
+		["groupframes.party"] = { PARTY.width, PARTY.healer },
 		["groupframes.raid"] = { 623, 401 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { THREAT_W, THREAT_H },
@@ -387,7 +384,9 @@ local ORBS_UTILITY_Y = ORBS_ESSENTIAL_Y + CENTRE_BUTTON + 8
 local ORBS_RESOURCE_Y = ORBS_UTILITY_Y + BUTTON + 6
 local ORBS_SWING_Y = ORBS_RESOURCE_Y + 14 + 8
 local ORBS_AURA_Y = ORBS_TOP + NEAR
-local ORBS_AURA_SHIFT = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AURA_GAP) / 2 - AURA_W / 2
+local ORBS_AURA_HALF = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AURA_GAP) / 2
+local ORBS_AURA_SHIFT = ORBS_AURA_HALF - AURA_W / 2
+local ORBS_TRACKED_W = ElementSize("cooldowns.buffs")
 local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + 8
 local ORBS_PET_W, ORBS_PET_H = GridSize("actionbars.pet")
 local ORBS_STANCE_W = GridSize("actionbars.stance")
@@ -396,6 +395,11 @@ local ORBS_PET_FRAME_W = ElementSize("unitframes.pet")
 local ORBS_GLOW = 30
 local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
+local _, ORBS_TIP_H = ElementSize("tooltips.anchor")
+local ORBS_RAIL_X = EDGE + STORY_W + GAP
+local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
+local ORBS_STORY_BOTTOM = TIP_Y + ORBS_TIP_H + GAP
+local ORBS_QUESTS_H = 268 * MOCK_PX
 
 local ORBS = {
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_CENTRE - ORBS_BAR1_H / 2 },
@@ -408,7 +412,7 @@ local ORBS = {
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = ORBS_SWING_Y },
 	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X, y = ORBS_AURA_Y },
 	["auras.debuffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT + ORBS_X, y = ORBS_AURA_Y },
-	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -ORBS_X, y = ORBS_TRACKED_Y },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_HALF - ORBS_X - ORBS_TRACKED_W / 2, y = ORBS_TRACKED_Y },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_STANCE_W / 2, y = BAR1_Y },
@@ -420,6 +424,18 @@ local ORBS = {
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
 	["groupframes.party"] = DPS["groupframes.party"],
 	["groupframes.raid"] = DPS["groupframes.raid"],
+	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -ORBS_RAIL_X, y = ORBS_STORY_BOTTOM },
+	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + RAIL_COLUMN), y = ORBS_STORY_BOTTOM },
+	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + 2 * RAIL_COLUMN), y = ORBS_STORY_BOTTOM },
+	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
+}
+local STORY_STYLES = {
+	orbs = {
+		[STORY_KEYS.quests] = { anchor = "TOPRIGHT", x = -EDGE, y = -ORBS_STORY_TOP },
+		[STORY_KEYS.guide] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = ORBS_STORY_BOTTOM },
+	},
 }
 local REPLACED = { orbs = { ["unitframes.player"] = true } }
 local ORBS_KEEP = {
@@ -449,6 +465,7 @@ Layouts.TRAY_GAP = TRAY_GAP
 Layouts.TRAY_LIFT = LIFT
 Layouts.HEIGHT = HEIGHT
 Layouts.STORY_KEYS = STORY_KEYS
+Layouts.STORY_GAP = GAP
 Layouts.STORY_FLOOR = STORY_FLOOR
 
 function Layouts.Names()
@@ -571,13 +588,23 @@ function Layouts.Slot(name, rootHeight)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide)
+function Layouts.Story(name, rootHeight, guide, style)
 	local slot = Layouts.Slot(name, rootHeight)
 	if not slot then
 		return nil
 	end
-	local function Card(key, x, height)
-		return { key = key, anchor = slot.anchor, x = x, y = slot.y, width = slot.width, height = height }
+	local function Card(key, x, height, place)
+		return { key = key, anchor = place and place.anchor or slot.anchor, x = x, y = place and place.y or slot.y, width = slot.width, height = height }
+	end
+	local stack = STORY_STYLES[style]
+	if stack then
+		local quests, below = stack[STORY_KEYS.quests], stack[STORY_KEYS.guide]
+		local column = math.max(0, HEIGHT - Lift(rootHeight) - ORBS_STORY_TOP - ORBS_STORY_BOTTOM)
+		if not guide then
+			return { quests = Card(STORY_KEYS.quests, quests.x, math.max(1, column), quests) }
+		end
+		local top = math.max(1, math.min(ORBS_QUESTS_H, (column - GAP) / 2))
+		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
 	end
 	if not guide then
 		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
@@ -614,10 +641,11 @@ local HEALER_OLD = {
 	["combattext.player"] = { "BOTTOM", CAST_HALF + GAP + 160 / 2, CLUSTER_TOP + GAP },
 }
 
+do
 local PLACES_V30 = {
 	["groupframes.party"] = { "TOPLEFT", MARGIN, -MARGIN },
-	["orbs:groupframes.party"] = { "TOPLEFT", MARGIN, -PARTY_TOP },
-	["orbs:groupframes.raid"] = { "TOPLEFT", MARGIN, -PARTY_TOP },
+	["orbs:groupframes.party"] = { "TOPLEFT", MARGIN, -PARTY.top },
+	["orbs:groupframes.raid"] = { "TOPLEFT", MARGIN, -PARTY.top },
 	["minimap.main"] = { "TOPRIGHT", -(EDGE - 1), -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { "TOPRIGHT", -(EDGE + MAP + 10.9), -RAIL_EDGE },
 	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + MAP + 10.9), -DEBUFFS_Y },
@@ -631,6 +659,7 @@ function Layouts.PlaceMoves()
 		out[key] = { place[1], place[2], place[3], place[4], place[5] }
 	end
 	return out
+end
 end
 
 function Layouts.HealerMoves()
@@ -706,7 +735,7 @@ Layouts.STYLES = { "orbs" }
 
 function Layouts.Style(style, name, key)
 	local set = STYLES[style] and STYLES[style][name]
-	local position = set and set[key]
+	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
 	if position then
 		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale, width = position.width, height = position.height }
 	end
@@ -728,6 +757,7 @@ function Layouts.Aspect(class, style, name, key)
 	end
 end
 
+do
 local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true }
 local SIDES = { TOPLEFT = 1, LEFT = 1, BOTTOMLEFT = 1, TOPRIGHT = -1, RIGHT = -1, BOTTOMRIGHT = -1 }
 
@@ -736,6 +766,7 @@ function Layouts.Band(key, anchor, x, band)
 		return x
 	end
 	return x + (SIDES[anchor] or 0) * band
+end
 end
 
 function Layouts.Place(name, style, class, key, band)
@@ -969,7 +1000,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local pixelScale = physicalHeight / rootHeight
 	enabled = enabled or Layouts.Enabled(name)
 	local rects = {}
-	local story = Layouts.Story(name, rootHeight, true)
+	local story = Layouts.Story(name, rootHeight, true, style)
 	local cards = { story.guide, story.quests }
 	for i = 1, #ELEMENTS + #cards do
 		local key, width, height, position, offsetX

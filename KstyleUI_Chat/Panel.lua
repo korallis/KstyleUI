@@ -13,7 +13,7 @@ local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
 local RULE_ALPHA = 0.35
-local SHADE_REACH, SHADE_CORNER, SHADE_ALPHA = 36, 72, 0.5
+local SHADE_LOBES, SHADE_X, SHADE_Y, SHADE_W, SHADE_H, SHADE_ALPHA = { -0.2727, 0, 0.2727 }, 0.47, 0.563, 1.09, 2.38, 0.46
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
 local COPY_SQUARE = 5.5
 local EDIT_MODE_EXIT = "EditMode.Exit"
@@ -529,6 +529,16 @@ function HookHover(frame)
 	frame:HookScript("OnLeave", Conceal)
 end
 
+local function Shade()
+	local holder = state.holder
+	local w, h = holder:GetWidth(), holder:GetHeight()
+	for i, lobe in ipairs(state.shade) do
+		lobe:ClearAllPoints()
+		Widgets.Size(lobe, SHADE_W * w, SHADE_H * h)
+		Widgets.Point(lobe, "CENTER", holder, "TOPLEFT", (SHADE_X + SHADE_LOBES[i]) * w, -SHADE_Y * h)
+	end
+end
+
 local function Paint(settings)
 	local glass = state.glass
 	local bare = Panel.Bare(settings)
@@ -539,7 +549,7 @@ local function Paint(settings)
 	glass.chrome:SetShown(not bare)
 	glass.divider:SetShown(not bare)
 	local shade = state.shade
-	Widgets.LayoutSlice(shade, state.holder, SHADE_CORNER, SHADE_REACH)
+	Shade()
 	Widgets.ColorSlice(shade, Widgets.Rgba("black", SHADE_ALPHA))
 	Widgets.ShowSlice(shade, bare)
 	glass.copy:Paint()
@@ -704,8 +714,13 @@ local function Build()
 	glass:SetFixedFrameStrata(true)
 	glass.divider = glass:CreateTexture(nil, "ARTWORK")
 	glass.divider:SetColorTexture(Tokens.Color("white"))
-	state.shade = Widgets.NineSlice(holder, "shadow", "BACKGROUND")
-	Widgets.ShowSlice(state.shade, false)
+	state.shade = {}
+	for i = 1, #SHADE_LOBES do
+		local lobe = holder:CreateTexture(nil, "BACKGROUND")
+		lobe:SetTexture((Tokens.Texture("glow")))
+		lobe:Hide()
+		state.shade[i] = lobe
+	end
 	glass.plus = PlusButton(glass)
 	glass.copy = CopyButton(glass)
 	glass.dockEnd = CreateFrame("Frame", nil, glass)
@@ -717,6 +732,7 @@ local function Build()
 		holder:EnableMouse(true)
 	end
 	HookHover(holder)
+	holder:HookScript("OnSizeChanged", Shade)
 	HookHover(glass)
 	HookHover(glass.plus)
 	HookHover(glass.copy)

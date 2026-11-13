@@ -204,11 +204,11 @@ end
 
 function Setup.Story(name, guide)
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(name, rh, guide)
+	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current())
 	if not story then
 		return nil
 	end
-	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh) }
+	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh), stacked = story.stacked }
 end
 
 local function EditModeChanged()

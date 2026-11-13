@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window.
 local _, ns = ...
 
 local K = KstyleUI
@@ -61,19 +61,19 @@ local function Preset()
 	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
 end
 
-local function Spec()
+local function Spec(style)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
 	local _, rh = Setup.RootSize()
-	local story = Layouts.Story(Preset(), rh, true) or Layouts.Story(DEFAULT_PRESET, rh, true)
+	local story = Layouts.Story(Preset(), rh, true, style) or Layouts.Story(DEFAULT_PRESET, rh, true, style)
 	return story and story.guide
 end
 
 local function Size()
-	local holder, spec = state.holder, Spec()
+	local holder, spec = state.holder, Spec(K.HudStyle.Current())
 	if holder and spec then
 		holder:SetSize(spec.width, spec.height)
 	end
@@ -110,9 +110,30 @@ function Rail.Story()
 	return Setup and type(Setup.Story) == "function" and Setup.Story(Preset(), true) or nil
 end
 
+local function CardBottom()
+	local quests = ns.QuestCard
+	local card = quests and quests.Frame()
+	if not (card and card:IsShown()) then
+		return nil
+	end
+	local bottom, rb = card:GetBottom(), K.Scale.Root():GetBottom()
+	if Plain(bottom) and Plain(rb) then
+		return bottom * Widgets.ScaleFactor(card) - rb
+	end
+end
+
 function Rail.Band()
 	local story = Rail.Story()
-	return story and story.guide or nil
+	local band = story and story.guide
+	if not (band and story.stacked) then
+		return band
+	end
+	local gap = K.Setup.Layouts.STORY_GAP
+	local bottom = CardBottom()
+	if bottom and math.abs(story.tracker.bottom - band.top - gap) < 2 * K.Scale.Pixel(1) and bottom > story.tracker.bottom then
+		band.top = math.min(story.tracker.top, bottom) - gap
+	end
+	return band
 end
 
 local function Remember(f)
