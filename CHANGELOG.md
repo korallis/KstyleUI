@@ -1,5 +1,40 @@
 # KstyleUI changelog
 
+## v0.1.0 (2026-11-13)
+
+This is the overhaul. KstyleUI now has two HUD styles, Frames and Orbs, that you pick in Options and in the first-run setup, and almost every part of the screen was redrawn to match them: cleaner bars, new nameplates, a group damage meter and an interface size that lands exactly on whole screen pixels.
+
+### Added
+
+- Two HUD styles to choose from. Frames keeps the framed player and target cards. Orbs puts health and resource in two orbs with a forged tray round your first action bar. Options > General shows a picture of each style and the first-run setup has a HUD style step, so you see what you are picking.
+- A group damage meter in the style of Details: one card with a bar per player, a switch between this fight, the last fight and the whole session, and the spell split under each row. The threat card follows the same design.
+- Nameplates redrawn: plain, flat bars with tracked capital names, a black track while you hold threat, cast and stop flashes, and a name-only plate for objects such as a mailbox that can never fill a bar.
+- A wide target bar at the top of the screen under Orbs, and a wide form of the target frame under Frames.
+- Ultrawide screens choose between Centred and Spread. Centred keeps the HUD in the 21:9 band in the middle of a 32:9 monitor. Spread uses the whole width and keeps your group frames on the 21:9 line.
+- One shared action slot for the action bars and the cooldown rows, with a pressed state, a proc glow, a lit sweep edge and a gilt flash when an ability is ready again.
+- Combat text with white hits, gold crits and a short rise.
+- Buffs sorted by how you use them.
+
+### Changed
+
+- The unit bars are clean: health and resource fill with a held loss band, a flash on a hit and a warning curve at low health. The target fills from the left, cast bars are taller, and party and raid frames use the same bars with a low-health glow.
+- Interface size Auto now picks the size that fits your screen exactly and keeps every frame, bar, slot, aura and combat text on whole screen pixels. Under Orbs it reaches the same size as under Frames.
+- The experience strip is clean, the readout sits on the world, and the micro menu shows only when you need it.
+- Party frames sit at mid-left, and the right rail leaves room for four quests with the threat card off the centre.
+- Tooltips, windows and the quest card share one card design. Tooltip headings, window headings, dropdown chevrons, bag and chat headings and in-tile aura counts were redrawn to match.
+- Class colours on names are easier to read, and spell and cast labels no longer use Cinzel.
+- Text is never drawn below 11 pixels at 1080 lines, and the Meters sample fits the settings pane.
+- Options names only Frames and Orbs as HUD styles.
+
+### Fixed
+
+- The RestedXP guide step arrow is set in the number face and the steps are pitched like the quest card, and RestedXP's steps frame is sized so it enables under the rail.
+- The damage card shows short whole numbers in and out of combat.
+- Nameplates no longer dart about: the plate scale settings are held at 1 while plates ignore that scale.
+- Baine fixed two things and we ported them: minimap buttons now move onto the square map's shape even when they were made before KstyleUI loaded, and the drawer collects the buttons Blackthornes and 0xgle Bugs draw themselves, and hands them back as they were. Baine also fixed nameplates for game objects. Thank you, Baine.
+- The unit frames' bars no longer carry an ornament around them.
+- The chat tab and its wash sit inside the chat card.
+
 ## v0.0.7 (2026-11-13)
 
 A small release that fixes two things in the cooldown and buff displays.
