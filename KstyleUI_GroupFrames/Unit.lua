@@ -179,6 +179,7 @@ local function Colors(f)
 	local _, class = UnitClass(unit)
 	local cr, cg, cb = Unit.ClassColor(class)
 	local health = Settings.current.health
+	f.health:SetHealthUnit(nil)
 	if f.status then
 		f.health:SetBarColor(Tokens.Color("textDisabled"))
 	elseif health.colorSource == "class" then
@@ -188,6 +189,9 @@ local function Colors(f)
 	else
 		local c = health.color
 		f.health:SetBarColor(c.r, c.g, c.b)
+	end
+	if not f.status then
+		f.health:SetHealthUnit(unit)
 	end
 	local text = Settings.current.text
 	if f.status then
@@ -276,11 +280,7 @@ end
 local function Health(f)
 	local unit = f.unit
 	f.health:SetBarRange(0, UnitHealthMax(unit))
-	if f.fresh then
-		f.health:SetValue(UnitHealth(unit))
-	else
-		f.health:SetBarValue(UnitHealth(unit))
-	end
+	f.health:SetHealth(UnitHealth(unit), f.fresh)
 	HealthText(f)
 end
 

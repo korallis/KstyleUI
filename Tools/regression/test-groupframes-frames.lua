@@ -116,8 +116,10 @@ local warrior = G.CLASS_COLORS.WARRIOR
 assert(near(color[1], warrior[1]) and near(color[2], warrior[2]) and near(color[3], warrior[3]), "party1's bar is warrior coloured")
 -- The tracks under the fills are the button body, the mockup's one dark tone under every bar (the bar grade's
 -- #101214 track), never the kit's translucent black.
-eq(c.health.backgroundName, "buttonFill", "the health track is the button body")
-eq(c.power.backgroundName, "buttonFill", "the power track is the button body")
+eq(c.health.unitBar and c.power.unitBar, true, "health and power are the clean unit bar")
+eq(c.health.under.track:IsShown() and c.health.under:GetStatusBarTexture():IsShown(), true, "health draws its dark track and the pale loss band under the fill")
+eq(c.power.under:GetStatusBarTexture():IsShown(), false, "power draws no loss band")
+eq(c.health.lowFill ~= nil and c.power.lowFill == nil, true, "only health turns red at low health")
 -- The Lumen row shows no health number by default; the number's engine formatting is tested with it on.
 K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
 env.RunTimers()
