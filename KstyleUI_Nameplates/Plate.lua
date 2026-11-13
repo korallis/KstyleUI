@@ -724,7 +724,7 @@ function Plate:UpdateNameColor(force)
 	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
 	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
 		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
-		name:SetTextColor(Theme.ClassColorForWidget(class))
+		name:SetTextColor(Theme.ClassTextColorForWidget(class))
 	else
 		name:SetTextColor(Tokens.Color("textEmphasis"))
 	end

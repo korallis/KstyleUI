@@ -92,7 +92,7 @@ local function SpellItem(item)
 		Parts.Rim(button, { target = icon, outset = Tokens.Size("gapTiny") }):SetRimColor(Tokens.Color("slotRim"))
 	end
 	if item.Name then
-		Style.Text(item.Name, "names", "textEmphasis", function()
+		Style.Text(item.Name, "body", "textEmphasis", function()
 			return (select(2, Style.Font("heading")))
 		end)
 	end
