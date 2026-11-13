@@ -127,8 +127,20 @@ local function Ready(row, icon)
 	Style.SetReady(icon, ready)
 end
 
-local function Cooling(row, icon, cooling)
+local function Cooling(row, icon, cooling, trusted)
+	if cooling then
+		if icon.coolingEntry ~= icon.entry or not icon.onCooldown then
+			icon.coolingEntry, icon.coolingTrusted = icon.entry, false
+		end
+		icon.coolingTrusted = icon.coolingTrusted or trusted == true
+	end
 	if icon.onCooldown ~= cooling then
+		if not cooling and icon.onCooldown and icon.coolingTrusted and icon.coolingEntry == icon.entry and icon.FlashReady then
+			icon:FlashReady()
+		end
+		if not cooling then
+			icon.coolingEntry, icon.coolingTrusted = nil, false
+		end
 		icon.onCooldown = cooling
 		icon:Paint()
 	end
@@ -140,7 +152,7 @@ local function SetCooldownState(row, icon, spell, cooldownEvent)
 	if cooling == nil then
 		cooling = icon.cooling == true
 	end
-	Cooling(row, icon, cooling)
+	Cooling(row, icon, cooling, cooldownEvent)
 end
 
 local function CategorySpell(entry)
@@ -211,7 +223,7 @@ local function ItemTimer(row, icon, start, duration, rate, enabled, active, gcd,
 	else
 		icon.cooldown:Clear()
 	end
-	Cooling(row, icon, active and not onGCD)
+	Cooling(row, icon, active and not onGCD, cooldownEvent)
 end
 
 local function EquippedCooldown(row, icon, cooldownEvent)

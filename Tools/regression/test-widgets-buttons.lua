@@ -241,7 +241,7 @@ end
 do
 	local env, K, button = iconButton({})
 	local cd = button.cooldown
-	local flash = assert(button.ready, "the button has a ready flash")
+	local flash = assert(button.readyWash, "the button has a ready flash")
 	local group = assert(button.readyFlash, "played by an animation group")
 	assert(not flash:IsShown() and not group:IsPlaying(), "it rests hidden")
 	assert(W.LastCall(flash, "SetBlendMode")[1] == "ADD", "it adds light")

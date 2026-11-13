@@ -160,7 +160,7 @@ local function AfterPaint(icon)
 		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
 	end
 	if ns.Settings.current.accent == "quiet" then
-		icon.chrome:SetRim(Widgets.Rgba("edgeInner"))
+		icon.chrome:SetRim(Widgets.Rgba("slotRim"))
 	end
 	icon.hoverGlow:SetIntensity(0)
 end
@@ -320,11 +320,7 @@ end
 
 function Style.Decorate(icon, group)
 	icon.chrome:SetShadow(false)
-	icon.SetProc = function(self, on)
-		self.proc = on and true or false
-		self.chrome:SetProc(self.proc)
-		self:Paint()
-	end
+	icon.rimToken = nil
 	local paint = icon.Paint
 	icon.Paint = function(self)
 		paint(self)
