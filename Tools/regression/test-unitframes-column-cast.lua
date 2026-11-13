@@ -22,7 +22,7 @@ local function settle()
 end
 
 local PLAYER_CAST = Layouts.Element("unitframes.castbar.player")
-assert(PLAYER_CAST.width == 347 and PLAYER_CAST.height == 30, "the player's cast element is the picture's 347 by 30")
+assert(PLAYER_CAST.width == 347 and PLAYER_CAST.height == 32, "the player's cast element is 347 by 32, room for the 14-unit bar under its label (KSTY-60 item 4)")
 
 assert(CastBars.ElementLive("player") == true, "the player's own cast bar is live beside its column frame")
 assert(CastBars.ElementLive("target") == false, "the target's cast bar is inside its column, not a second element")
@@ -48,7 +48,7 @@ W.Tick(env, 0.1)
 assert(U.Shown(env, element.timer) == "1.2 / 2.5", "elapsed over total, no unit: " .. U.Shown(env, element.timer))
 local timer = W.LastCall(element.timer, "SetFormattedText")
 assert(timer and timer[1] == "%.1f / %.1f", "the times reach the font string through SetFormattedText")
-assert(near(select(2, element.bar:GetSize()), 9, 0.6), "the bar is 9 units tall")
+assert(near(select(2, element.bar:GetSize()), 14, 0.6), "the bar is 14 units tall, two thirds of the 21.5-unit health bar (KSTY-60 item 4)")
 assert(element.bar.spark:IsShown() == false and element.bar.keyline:IsShown() == false, "with no spark or extra keyline outside the reference track")
 local cursor = element.bar.fillCursor
 assert(cursor and cursor:IsShown(), "the player's caption cast draws a cursor at the fill tip")
@@ -72,13 +72,12 @@ K.Options.Write("UnitFrames", "player.castbarOrientation", "RIGHT")
 ns.CastBars.Restyle(element)
 K.Options.Write("UnitFrames", "player.style", "lumen")
 ns.CastBars.Restyle(element)
-assert(element.bar.innerEdgeOn ~= true, "leaving the column drops the cast's inner edge")
-assert(not cursor:IsShown(), "leaving the column hides the caption cursor")
+assert(element.mode == "above" and element.bar.innerEdgeOn == true and not element.chrome.visible, "the Lumen player keeps the clean caption cast, with no card round it (KSTY-60 item 1)")
 K.Options.Write("UnitFrames", "player.style", "column")
 ns.CastBars.Restyle(element)
 assert(element.bar.innerEdgeOn == true, "the column brings the edge back")
 assert(cursor:IsShown() and element.bar.spark:IsShown() == false, "the column brings the cursor back and leaves the spark hidden")
-assert(element.bar.lit:IsShown() == false and element.bar.shade:IsShown() == false, "and flat")
+assert(element.bar.lit:IsShown() and element.bar.shade:IsShown(), "and the fill keeps its lit top edge and shade (KSTY-60 item 4)")
 local gr, gg, gb = Tokens.Color("gilt")
 local fill = W.LastCall(element.bar, "SetStatusBarColor")
 assert(fill and near(fill[1], gr) and near(fill[2], gg) and near(fill[3], gb), "the fill is the gilt token's tan")
@@ -109,7 +108,7 @@ W.Tick(env, 0.1)
 assert(U.Shown(env, target.timer) == "0.8", "the time left with no unit: " .. U.Shown(env, target.timer))
 local left = W.LastCall(target.timer, "SetFormattedText")
 assert(left and left[1] == "%.1f", "through SetFormattedText")
-assert(near(select(2, target.bar:GetSize()), 8, 0.6), "the target's painted bar is 8 units tall")
+assert(near(select(2, target.bar:GetSize()), 14, 0.6), "the target's painted bar is 14 units tall, two thirds of the player's health bar (KSTY-60 item 4)")
 local g = tframe.geometry.cast
 local cw, ch = target.frame:GetSize()
 assert(near(cw, 491) and near(ch, g.h, 0.6), "the cast frame is the full 491, as tall as the bar and its label")
@@ -175,12 +174,12 @@ end
 -- The target's cast room follows its cast font; a cast line given less height than it needs drops its label before it overflows.
 do
 	local size = Layouts.Element("unitframes.target")
-	local function room()
-		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height, 1).cast.h
+	local function room(extra)
+		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height + (extra or 0), 1).cast.h
 	end
-	assert(near(room(), 7 + 4.5 + 12 + 3, 0.01), "the 12-unit cast font takes the picture's 26.5: " .. room())
+	assert(near(room(), 14 + 4.5 + 12 + 3, 0.01), "the 12-unit cast font takes 33.5 with the 14-unit bar: " .. room())
 	K.Options.Write("UnitFrames", "target.fonts.cast.size", 16)
-	assert(near(room(), 7 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font takes 30.5: " .. room())
+	assert(near(room(4), 14 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font takes 37.5 in a frame 4 units taller: " .. room(4))
 	K.Options.Write("UnitFrames", "target.fonts.cast.size", 12)
 
 	for _, fontSize in ipairs({ 10, 12, 20 }) do
@@ -199,7 +198,7 @@ do
 					extent = math.abs(offset) + rowH
 				end
 				assert(extent <= height + 0.6, where .. ": the bar and its label stand inside the frame, reaching " .. extent)
-				assert(barH >= math.min(3, height) - 0.01 and barH <= (mode == "above" and 9 or 8) + 0.6, where .. ": the bar keeps a sane height " .. barH)
+				assert(barH >= math.min(3, height) - 0.01 and barH <= 14 + 0.6, where .. ": the bar keeps a sane height " .. barH)
 				assert(cb.text:IsShown() == cb.timer:IsShown(), where .. ": the label and its time go together")
 				local barW = env.Look(cb.bar:GetSize())
 				local _, _, _, barX = env.Look(cb.bar:GetPoint(1))

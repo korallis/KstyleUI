@@ -27,7 +27,7 @@ local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local ELAPSED_FORMAT = "%.1f / %.1f"
 local REMAINING_FORMAT = "%.1f"
-local CAPTION_BAR = { above = 9, below = 8 }
+local CAPTION_BAR = { above = 14, below = 14 }
 local CAPTION_OFFSET = { above = 0, below = 0.5 }
 local CAPTION_GAP = { above = 3, below = 3.5 }
 local CAPTION_TIMER_EM = { above = 6.2, below = 3 }
@@ -44,6 +44,7 @@ local ORIENTATION = Style.ORIENTATION
 local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
 local FLASH_LEVEL = 2
+local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -115,10 +116,14 @@ function CastBars.SetName(cb, text)
 end
 
 local function Caption(cb)
-	if Settings.Form(cb.kind) ~= "column" then
-		return nil
+	local form = Settings.Form(cb.kind)
+	if form == "column" then
+		return cb.attached and "below" or "above"
 	end
-	return cb.attached and "below" or "above"
+	if form ~= "plate" and not cb.attached then
+		return "above"
+	end
+	return nil
 end
 
 local function WriteTimer(cb, elapsed, total, remaining)
@@ -287,6 +292,8 @@ local function New(parent, kind, unit)
 	cb.panel = CreateFrame("Frame", nil, frame)
 	cb.chrome = Widgets.Chrome(cb.panel, { shape = "panel", fill = "surface", shadow = true })
 	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
+	cb.bar.edgeMax = 1
+	cb.bar:SetLitShade(LIT_ALPHA, SHADE_ALPHA)
 	cb.ornament = Widgets.Ornament(cb.panel, "bar", cb.bar)
 	cb.ornament.light = true
 	cb.ornament.bare = true
@@ -482,7 +489,6 @@ local function LayoutCaption(cb, width, height)
 	cb.panel:ClearAllPoints()
 	cb.panel:SetAllPoints(frame)
 	ShowLock(cb)
-	Style.Flat(cb.bar, true)
 	local size = Settings.FontSize(cb.kind, "cast")
 	local rowH = size + TEXT_EXTRA
 	local gap = CAPTION_GAP[mode]
@@ -531,7 +537,6 @@ function CastBars.Layout(cb, width, height)
 		return
 	end
 	cb.bar:SetFillCursor(false)
-	Style.Flat(cb.bar, false)
 	cb.bar.keyline:Show()
 	cb.bar:SetTrackBacking(false)
 	if cb.line then

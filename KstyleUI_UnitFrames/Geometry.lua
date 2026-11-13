@@ -247,7 +247,7 @@ end
 
 local V = { ring = 62, ringGap = 16 / 62, disc = 22 / 62, discOut = 4 / 62, health = 12, pillGap = 4, nameGap = 7, captionMin = 300 }
 local CAST_LINE, CAST_GAP, BOLD_LINE = 12, 6, 16
-local GEM, GEM_GAP = 7, 14
+local GEM = 7
 local SIGIL = { line = 1, bar = 8, cast = 8, castShare = 0.6 }
 local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8, compact = 84 }
 local ROW = { pill = 6, gap = 1, power = 3 }
@@ -347,11 +347,7 @@ local function Sigil(out, s, width, height, scale)
 		y = y + captionH
 	end
 	y = min(y + barGap, height - healthH)
-	local inset = GEM + GEM_GAP
-	out.health = Rect(inset, y, width - 2 * inset, healthH)
-	local gemY = y + healthH / 2 - GEM / 2
-	out.gemLeft = Rect(0, gemY, GEM, GEM)
-	out.gemRight = Rect(width - GEM, gemY, GEM, GEM)
+	out.health = Rect(0, y, width, healthH)
 	y = y + healthH + castGap
 	if castH > 0 and y + castH <= height + 1e-6 then
 		local w = floor(width * SIGIL.castShare)
@@ -451,7 +447,7 @@ end
 local COLUMN = {
 	ring = 70, ringGap = 21.5, disc = 33.5 / 70, discAlong = 30 / 70, discDrop = 22 / 70,
 	health = 21.5, healthMirror = 19, power = 8, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.78,
-	castBar = 7, castGap = 11, labelGap = 4.5, labelExtra = 3, nameMin = 2,
+	castBar = 14, castGap = 11, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
 Geometry.COLUMN = COLUMN
@@ -559,7 +555,7 @@ local function ColumnFrame(out, s, width, height, scale)
 	end
 end
 
-local BAR = { health = 18 * MOCK_PX, nameGap = 6 * MOCK_PX, subGap = 4 * MOCK_PX, auraGap = 12 * MOCK_PX, disc = 34, discOut = 26 * MOCK_PX }
+local BAR = { health = 18 * MOCK_PX, nameGap = 6 * MOCK_PX, subGap = 4 * MOCK_PX, auraGap = 12 * MOCK_PX, disc = 34, discOut = 26 * MOCK_PX, textPad = 8 }
 Geometry.BAR = BAR
 
 local function BarFrame(out, s, width, _, scale)
@@ -570,7 +566,7 @@ local function BarFrame(out, s, width, _, scale)
 		out.name = Rect(0, 0, width, nameH)
 	end
 	if (s.healthText or "none") ~= "none" then
-		out.healthText = Rect(0, top, width, BAR.health)
+		out.healthText = Rect(BAR.textPad, top, width - 2 * BAR.textPad, BAR.health)
 		out.healthSub = Rect(width / 2, top + BAR.health + BAR.subGap, width / 2, TextH(Size(s, "health", scale)))
 	end
 	out.caption = Rect(0, top + BAR.health + BAR.subGap, width / 2, TextH(Size(s, "level", scale)))
@@ -633,7 +629,7 @@ function Geometry.Frame(s, width, height, fontScale)
 	local scale = fontScale or 1
 	local lumen = LUMEN[s.form]
 	if lumen then
-		local out = { form = s.form, compact = s.form == "row", chrome = s.form == "card" }
+		local out = { form = s.form, compact = s.form == "row", chrome = false }
 		out.glass = Rect(0, 0, width, height)
 		out.panel = Rect(0, 0, width, height)
 		lumen(out, s, width, height, scale)

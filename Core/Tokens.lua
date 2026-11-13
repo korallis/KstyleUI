@@ -86,6 +86,7 @@ local COLORS = {
 	hudRested = { "5a9cca", 1 },
 	orbHealth = { "c0302b", 1 },
 	orbLoss = { "f2dcc0", 0.85 },
+	orbRage = { "d9782a", 1 },
 	meterPhysical = { "7a6a52", 1 },
 	meterNature = { "2e7d4f", 1 },
 	meterFire = { "b4501f", 1 },

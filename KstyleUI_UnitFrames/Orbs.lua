@@ -320,6 +320,11 @@ local function Restyle()
 end
 
 local function PowerColor()
+	local _, token = UnitPowerType("player")
+	if not K.Widgets.IsSecret(token) and token == "RAGE" then
+		orbs.power.bar:SetStatusBarColor(K.Tokens.Color("orbRage"))
+		return
+	end
 	orbs.power.bar:SetStatusBarColor(Unit.PowerTypeColor("player", true))
 end
 
