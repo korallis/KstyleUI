@@ -32,7 +32,7 @@ for _, field in ipairs(FIELDS) do
 end
 Layout.FIELDS = FIELDS
 
-local STYLED = { anchor = true, x = true, y = true, scale = true, width = true, height = true }
+local STYLED = { anchor = true, x = true, y = true, scale = true, width = false, height = false }
 local STYLED_OPT = { scale = "scalable", width = "resizable", height = "resizable" }
 
 local STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true }
@@ -393,19 +393,22 @@ local function StyleDefault(el)
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
 	el.style = over and style or nil
+	el.styled = {}
 	if over then
-		for field in pairs(STYLED) do
+		for field, always in pairs(STYLED) do
 			local opt = STYLED_OPT[field]
-			if over[field] ~= nil and (not opt or el.opts[opt]) then
+			local applies = over[field] ~= nil and (not opt or el.opts[opt])
+			if applies then
 				d[field] = over[field]
 			end
+			el.styled[field] = always or applies or nil
 		end
 	end
 	el.default = d
 end
 
 local function StoreKey(el, field, frames)
-	if el.style and not frames and STYLED[field] then
+	if el.style and not frames and el.styled[field] then
 		return el.style .. ":" .. el.key
 	end
 	return el.key
