@@ -244,6 +244,20 @@ function Lumen.Build(state, opts)
 		end
 	end
 	Hud.layoutElements = nil
+	-- opts.seat(built, plates, rect) -> the fixture plates seated clear of a card the HUD drew over them, or nil to keep
+	-- them; rect(name, object) is Scene.Rect in that module's environment. The plates are then drawn again.
+	if opts.seat and built.nameplates and base.plates then
+		local seated = opts.seat(built, base.plates, function(name, object)
+			return Scene.Rect(Hud.envs[built[name].scene], object)
+		end)
+		if seated then
+			base.plates = seated
+			local scene, ns, extra = Hud.Module("nameplates", base)
+			scenes[at.nameplates] = scene
+			built.nameplates = { scene = scene, ns = ns, extra = extra }
+			log[#log + 1] = "nameplates: drawn again with the fixture plates seated clear of the cards the HUD draws over them"
+		end
+	end
 	local tracked = built.tracker and built.tracker.ns and built.tracker.ns.QuestCard
 	local card = tracked and tracked.Frame()
 	if card and card:IsShown() then

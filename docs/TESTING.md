@@ -281,7 +281,7 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] The damage meter sits at the right above the data strip, with the threat meter above it. Turn on Blizzard's Damage Meter (Options, Advanced): while KstyleUI's shows, Blizzard's is gone.
 - [ ] Alone, hit a dummy: the card is headed DAMAGE with your damage per second at the right, and lists your own spells as bars coloured by school (nature green, fire orange, physical tan), each with its damage and share ("412 · 46%") and no icons. Click the title to change the meter type; the Now, Last, All switch shows only while your pointer is on the cap's right end, and a click there steps to the next fight (the picture wins over the old always-on switch, owner ruling LEE-20).
 - [ ] In a group, the card lists the group's sources in class colours; hover your own row and its top spells open under it, and click a source to see all of its spells. In a group fight, say whether the damage meter keeps updating in combat. If it shows "Hidden in combat", report what happens after combat.
-- [ ] In a party in combat, the threat meter lists the group highest first. Near aggro as damage, the edge turns yellow at 80% and red with a pulse at 95%.
+- [ ] In a party in combat, the threat meter lists the group highest first. Near aggro as damage, the count at the right of THREAT turns yellow at 80% and red at 95%; the card itself never changes.
 - [ ] With Blizzard's swing timer on (Options, Combat), melee: KstyleUI's bar fills once per swing. Dual-wield shows two bars; a hunter shows a ranged bar.
 - [ ] Switch the threat meter or swing timer off: its mover disappears from Layout Mode.
 

@@ -276,11 +276,40 @@ do
 	local sr, sg, sb = Color(group.rows[1].bar)
 	ar, ag, ab = ar * nsG.DAMAGE_CLASS_TONE, ag * nsG.DAMAGE_CLASS_TONE, ab * nsG.DAMAGE_CLASS_TONE
 	assert(sr == ar and sg == ag and sb == ab, "a source's bar is its class colour")
+	-- The player's own row opens the card the player sees alone: titled by the meter with their rate, the same cap
+	-- as the DPS card (KSTY-60 item 24, the Tank preset's card read "KORALLIS" with no total).
 	group.rows[1].frame._scripts.OnMouseUp(group.rows[1].frame, "LeftButton")
 	envG.RunTimers()
-	assert(Plain(Text(group.title)) == "Korallis" or tostring(Text(group.title)):upper() == "KORALLIS", "an opened source titles the card: " .. tostring(Text(group.title)))
+	assert(Plain(Text(group.title)):upper() == "DAMAGE", "the player's own spells keep the meter's name: " .. tostring(Text(group.title)))
 	assert(group.count == 5 and group.rows[1].icon:IsShown(), "its spells list as bars led by their icons")
-	assert(Text(group.column) == "38.4 dps", "and the cap keeps the source's rate")
+	assert(Text(group.column) == "38.4 dps", "and the cap keeps the player's rate")
+	-- In combat the source GUIDs turn secret; the player's own row still finds its rate by isLocalPlayer.
+	local S = envG.Secret
+	envG.SetCombat(true)
+	local source = envG._session.combatSources[1]
+	source.sourceGUID, source.amountPerSecond = S("Player-7"), S(38.4)
+	envG.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 8)
+	envG.RunTimers()
+	assert(group.hasRest and envG.issecretvalue(Text(group.column)), "in combat the cap keeps the player's secret rate")
+	assert(envG.Reveal(Text(group.column)) == "38 dps", "whole, with its unit: " .. tostring(envG.Reveal(Text(group.column))))
+	envG.SetCombat(false)
+	source.sourceGUID, source.amountPerSecond = "Player-7", 38.4
+	group.rows[1].frame._scripts.OnMouseUp(group.rows[1].frame, "LeftButton")
+	envG.RunTimers()
+	-- Another member's row is titled by that member.
+	envG._units.party1 = { name = "Leduc", class = "PALADIN", guid = "Player-8" }
+	envG._sources["Player-8"] = { combatSpells = { Spell(635, 300) }, maxAmount = 300, totalAmount = 300 }
+	envG._session.combatSources[2] = {
+		name = "Leduc", classFilename = "PALADIN", totalAmount = 300, amountPerSecond = 5, sourceGUID = "Player-8",
+		sourceDisplayType = 1, isLocalPlayer = false, deathRecapID = 0, deathTimeSeconds = 0,
+	}
+	envG.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 8)
+	envG.RunTimers()
+	assert(group.count == 2, "both members list: " .. tostring(group.count))
+	group.rows[2].frame._scripts.OnMouseUp(group.rows[2].frame, "LeftButton")
+	envG.RunTimers()
+	assert(tostring(Text(group.title)):upper() == "LEDUC", "another member's spells are titled by that member: " .. tostring(Text(group.title)))
+	assert(Text(group.column) == "5.0 dps", "with that member's rate: " .. tostring(Text(group.column)))
 	assert(#envG._errors == 0, "no Lua error: " .. tostring(envG._errors[1]))
 end
 

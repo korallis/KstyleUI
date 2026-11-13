@@ -1,4 +1,4 @@
--- DamageSkin.lua: restyles Blizzard's Damage Meter windows and their spell breakdown windows in place as the own meter's BarList rows: Blizzard's fill hushed, a flat class pill at each row's foot, the header in the cap's type, through the core's Skin helpers and hooks.
+-- DamageSkin.lua: restyles Blizzard's Damage Meter windows and their spell breakdown windows in place as the own meter's card: Blizzard's fill hushed under a flat full-height KstyleUI bar, and the header drawn as the card's section cap over Blizzard's hushed type name and timer, through the core's Skin helpers and hooks.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,6 +8,9 @@ local Logic = ns.Logic
 local MAX_WINDOWS = 3
 local WINDOW_NAME = "DamageMeterSessionWindow"
 local LEVEL_ABOVE = 1
+local CAP_LEFT = 12
+local CAP_MIDDLE = 14
+local CAP_RIGHT = 16
 
 local DamageSkin = { active = false, applied = false }
 ns.DamageSkin = DamageSkin
@@ -17,6 +20,9 @@ local windows = setmetatable({}, WEAK)
 local sources = setmetatable({}, WEAK)
 local entries = setmetatable({}, WEAK)
 local pills = setmetatable({}, WEAK)
+local caps = setmetatable({}, WEAK)
+local hushed = setmetatable({}, WEAK)
+local busy = false
 local generation = 1
 local ownerHooked = false
 local reloadAsked = false
@@ -36,7 +42,7 @@ local function EntryColor(entry)
 	if Logic.IsSecret(class) or type(class) ~= "string" or class == "" then
 		class = entry.unitClassFilename
 	end
-	return ns.BarColor("damage", class, reaction)
+	return ns.BarColor("damage", class, reaction, nil, true)
 end
 
 local function Present(value)
@@ -56,13 +62,15 @@ local function Recolor(entry)
 end
 
 local function PlacePill(pill)
-	local bar, source = pill.bar, pill.source
-	local height = Widgets.Snap(bar, ns.BarList.PILL_HEIGHT)
-	bar.opts.height = height
+	local bar, holder = pill.bar, pill.holder
+	bar.opts.height = math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or ns.BarList.PILL_HEIGHT))
 	bar:Restyle()
+	bar.keyline:Hide()
+	bar:SetLitShade(ns.BarList.LIT_ALPHA, ns.BarList.SHADE_ALPHA)
 	bar:ClearAllPoints()
-	bar:SetPoint("BOTTOMLEFT", source, "BOTTOMLEFT")
-	bar:SetPoint("BOTTOMRIGHT", source, "BOTTOMRIGHT")
+	bar:SetPoint("TOPLEFT", holder, "TOPLEFT")
+	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT")
+	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 
 local function StylePill(pill)
@@ -73,9 +81,9 @@ local function StylePill(pill)
 end
 
 local function NewPill(entry, source)
-	local holder = CreateFrame("Frame", nil, source)
+	local holder = CreateFrame("Frame", nil, entry)
 	holder:SetAllPoints(source)
-	holder:SetFrameLevel(source:GetFrameLevel() + LEVEL_ABOVE)
+	holder:SetFrameLevel(math.max(entry:GetFrameLevel(), source:GetFrameLevel() - LEVEL_ABOVE))
 	local bar = Widgets.StatusBar(holder, {
 		texture = ns.Get("damage.texture"),
 		background = "buttonFill",
@@ -160,18 +168,11 @@ local function StyleEntry(entry)
 			Widgets.TextColor(bar.Name, "textEmphasis")
 		end
 		if bar.Value then
-			ns.ApplyFont(bar.Value, "damage")
+			ns.ApplyFont(bar.Value, "damage", nil, "number")
 			Widgets.TextColor(bar.Value, "textEmphasis")
 		end
 	end
 	Recolor(entry)
-end
-
-local function CapTitle(text)
-	if type(text) == "table" and type(text.SetFont) == "function" then
-		Widgets.StyleText(text, "caption")
-		Widgets.TextColor(text, "giltLit")
-	end
 end
 
 local function CapAside(text)
@@ -181,12 +182,120 @@ local function CapAside(text)
 	end
 end
 
+local function Rehush(region)
+	if busy then
+		return
+	end
+	busy = true
+	pcall(region.SetAlpha, region, 0)
+	busy = false
+end
+
+local function Hush(region)
+	if type(region) ~= "table" or type(region.SetAlpha) ~= "function" or hushed[region] then
+		return
+	end
+	hushed[region] = true
+	region:SetAlpha(0)
+	hooksecurefunc(region, "SetAlpha", Rehush)
+end
+
+local function CapTitle(cap, text)
+	if Logic.IsSecret(text) then
+		cap.label:SetText(text)
+		return
+	end
+	cap:SetText(type(text) == "string" and text or "")
+end
+
+local function CapCount(cap, text)
+	if Logic.IsSecret(text) then
+		cap:SetCount(" ")
+		cap.count:SetText(text)
+	elseif type(text) == "string" and text ~= "" then
+		cap:SetCount(text)
+	else
+		cap:SetCount(nil)
+	end
+end
+
+local function Mirror(region, paint, cap)
+	if type(region) ~= "table" or type(region.SetText) ~= "function" then
+		return
+	end
+	hooksecurefunc(region, "SetText", function(_, text)
+		paint(cap, text)
+	end)
+	if type(region.GetText) == "function" then
+		paint(cap, region:GetText())
+	end
+end
+
+local function IsRegion(object)
+	return type(object) == "table" and type(object.GetObjectType) == "function"
+end
+
+local function Reserve(window, cap)
+	local session = window.SessionDropdown
+	if not IsRegion(session) then
+		return CAP_RIGHT
+	end
+	local right, left = Logic.Plain(window:GetRight()), Logic.Plain(session:GetLeft())
+	local own, other, scale = Logic.Plain(window:GetEffectiveScale()), Logic.Plain(session:GetEffectiveScale()), Logic.Plain(cap:GetEffectiveScale())
+	if not (right and left and own and other and scale) or scale <= 0 then
+		return CAP_RIGHT
+	end
+	return math.max(CAP_RIGHT, (right * own - left * other) / scale + Tokens.Size("gapMedium"))
+end
+
+local function Match(window, cap)
+	local head = cap:GetParent()
+	local root, own = Logic.Plain(K.Scale.Root():GetEffectiveScale()), Logic.Plain(window:GetEffectiveScale())
+	if not (root and own) or own <= 0 then
+		return
+	end
+	local ratio = root / own
+	if math.abs((Logic.Plain(head:GetScale()) or 1) - ratio) > 1e-6 then
+		head:SetScale(ratio)
+		cap:Restyle()
+	end
+end
+
+local function PlaceCap(window, cap)
+	Match(window, cap)
+	local top = CAP_MIDDLE - Widgets.SECTION_CAP_HEIGHT / 2
+	cap:ClearAllPoints()
+	Widgets.Point(cap, "TOPLEFT", window, "TOPLEFT", CAP_LEFT, -top)
+	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window, cap), -top)
+end
+
+local function NewCap(window)
+	local head = CreateFrame("Frame", nil, window)
+	head:SetAllPoints(window)
+	head:SetFrameLevel(window:GetFrameLevel() + LEVEL_ABOVE + 1)
+	local cap = Widgets.SectionCap(head, {})
+	caps[window] = cap
+	local typeDropdown = window.DamageMeterTypeDropdown
+	local typeName = type(typeDropdown) == "table" and typeDropdown.TypeName or nil
+	if IsRegion(typeDropdown) then
+		K.Skin.Strip(typeDropdown)
+	end
+	Hush(typeName)
+	Hush(window.SessionTimer)
+	Mirror(typeName, CapTitle, cap)
+	Mirror(window.SessionTimer, CapCount, cap)
+	PlaceCap(window, cap)
+end
+
 local function RestyleWindow(window)
 	if not DamageSkin.active or type(window) ~= "table" then
 		return
 	end
-	CapAside(window.SessionTimer)
-	CapTitle(window.DamageMeterTypeDropdown and window.DamageMeterTypeDropdown.TypeName)
+	local cap = caps[window]
+	if cap then
+		cap:Restyle()
+		PlaceCap(window, cap)
+	end
 	CapAside(window.SessionDropdown and window.SessionDropdown.SessionName)
 	local box = type(window.GetScrollBox) == "function" and window:GetScrollBox()
 	if type(box) == "table" and type(box.ForEachFrame) == "function" then
@@ -262,6 +371,7 @@ local function StyleWindow(window)
 		windows[window] = true
 		K.Skin.Strip(window, { children = { "MinimizeContainer" } })
 		K.Skin.Backdrop(window, { shape = "panel" })
+		NewCap(window)
 		local scroll = type(window.GetScrollBar) == "function" and window:GetScrollBar()
 		if scroll then
 			K.Skin.ScrollBar(scroll)

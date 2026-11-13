@@ -20,7 +20,6 @@ local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
-local SPLIT_LINE_GAP = 2
 local BLOCK_PAD = 16
 local BLOCK_CAP_LEFT = 12
 local BLOCK_CAP_TOP = 14.5
@@ -99,6 +98,7 @@ BarList.DOT_GAP_EM = DOT_GAP_EM
 ns.FILL_ALPHA = FILL_ALPHA
 BarList.PILL_HEIGHT = PILL_HEIGHT
 BarList.PILL_GAP = PILL_GAP
+BarList.LIT_ALPHA, BarList.SHADE_ALPHA = LIT_ALPHA, SHADE_ALPHA
 
 local List = {}
 
@@ -128,12 +128,12 @@ local function Text(parent, justify)
 	return text
 end
 
-local RowEnter, RowLeave
+local RowEnter, RowLeave, StyleRow, PlaceBlockRow, FillRow, SetIcon
 
-local function NewRow(list, index)
+local function NewRow(list, index, parent, passive)
 	local section = list.section
 	local width = list.barWidth or Tokens.Size("buffBarWidth")
-	local frame = CreateFrame("Frame", nil, list.panel)
+	local frame = CreateFrame("Frame", nil, parent or list.panel)
 	local bar = Widgets.StatusBar(frame, {
 		texture = ns.Get(section .. ".texture"),
 		background = "buttonFill",
@@ -171,19 +171,19 @@ local function NewRow(list, index)
 		value = Text(ink, "RIGHT"),
 		percent = Text(ink, "RIGHT"),
 	}
-	if list.onRowClick then
+	if list.onRowClick and not passive then
 		frame:EnableMouse(true)
 		frame:SetScript("OnMouseUp", function(_, button)
 			list.onRowClick(list, row.index, button)
 		end)
 	end
-	if list.rowSplits then
+	if list.rowSplits and not passive then
 		local more = frame:CreateTexture(nil, "OVERLAY")
 		more:SetTexture((Tokens.Texture("glyphChevron")))
 		more:Hide()
 		row.more = more
 	end
-	if list.rowSplit or list.rowTooltip or list.tooltip then
+	if (list.rowSplit or list.rowTooltip or list.tooltip) and not passive then
 		frame:HookScript("OnEnter", function()
 			RowEnter(list, row)
 		end)
@@ -224,20 +224,17 @@ function Split:Clear()
 	self.note:Hide()
 end
 
-function Split:AddLine(left, right)
+function Split:AddRow(name, value, maxValue, valueText, percentText, icon, schoolToken)
 	local n = self.used + 1
+	local list = self.list
 	local line = self.lines[n]
 	if not line then
-		local frame = CreateFrame("Frame", nil, self.frame)
-		line = { frame = frame, left = Text(frame, "LEFT"), right = Text(frame, "RIGHT") }
-		line.left:SetTextColor(Tokens.Color("text"))
-		line.right:SetTextColor(Tokens.Color("textEmphasis"))
+		line = NewRow(list, n, self.frame, true)
 		self.lines[n] = line
 	end
 	self.used = n
-	Widgets.SetText(line.left, left)
-	Widgets.SetText(line.right, right)
-	line.frame:Show()
+	SetIcon(list, line, icon)
+	FillRow(list, line, name, nil, "friendly", value, maxValue, valueText, percentText, schoolToken)
 end
 
 function Split:SetNote(text)
@@ -250,8 +247,7 @@ local function NewSplit(list)
 	local frame = CreateFrame("Frame", nil, list.panel)
 	frame:SetFrameLevel(list.panel:GetFrameLevel() + SPLIT_LEVEL)
 	frame:Hide()
-	local split = setmetatable({ frame = frame, lines = {}, used = 0, hidden = {} }, Split)
-	split.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface", shadow = true, popup = true })
+	local split = setmetatable({ list = list, frame = frame, lines = {}, used = 0, hidden = {} }, Split)
 	split.note = Text(frame, "LEFT")
 	split.note:SetTextColor(Tokens.Color("muted"))
 	split.note:Hide()
@@ -260,52 +256,38 @@ local function NewSplit(list)
 end
 
 local function SplitStyle(list, split)
-	local section = list.section
 	for _, line in ipairs(split.lines) do
-		ns.ApplyFont(line.left, section)
-		ns.ApplyFont(line.right, section)
+		StyleRow(list, line)
 	end
-	ns.ApplyFont(split.note, section)
+	ns.ApplyFont(split.note, list.section)
 end
 
 local function LayoutSplit(list, split, shown, note)
-	local panel = list.panel
-	local pad = split.chrome:Inset()
-	local gap = list.gap
-	local em = ns.Get(list.section .. ".fontSize") * K.Theme.FontScale()
-	local line = Widgets.Snap(panel, em + TEXT_AIR)
-	local step = Widgets.Snap(panel, SPLIT_LINE_GAP)
-	local y = pad
 	local frame = split.frame
+	local spacing = Spacing(list)
+	local pitch = list.rowHeight + spacing
+	local y = 0
 	for i = 1, split.used do
 		local entry = split.lines[i]
 		if i <= shown then
-			entry.frame:ClearAllPoints()
-			entry.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
-			entry.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
-			entry.frame:SetHeight(line)
-			entry.right:ClearAllPoints()
-			entry.right:SetPoint("TOPRIGHT", entry.frame, "TOPRIGHT", 0, 0)
-			entry.right:SetHeight(line)
-			entry.left:ClearAllPoints()
-			entry.left:SetPoint("TOPLEFT", entry.frame, "TOPLEFT", 0, 0)
-			entry.left:SetPoint("RIGHT", entry.right, "LEFT", -gap, 0)
-			entry.left:SetHeight(line)
+			PlaceBlockRow(list, entry, y, frame, 0)
 			entry.frame:Show()
-			y = y + line + step
+			y = y + pitch
 		else
 			entry.frame:Hide()
 		end
 	end
 	split.note:SetShown(note)
 	if note then
+		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, BLOCK_ICON_GAP) or 0
+		local inset = Widgets.Snap(list.panel, BLOCK_TEXT_INSET)
 		split.note:ClearAllPoints()
-		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
-		split.note:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
-		split.note:SetHeight(line)
-		y = y + line + step
+		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", slot + inset, -y)
+		split.note:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -inset, -y)
+		split.note:SetHeight(list.rowHeight)
+		y = y + pitch
 	end
-	return Widgets.Snap(panel, y - step + pad)
+	return max(list.rowHeight, y - spacing)
 end
 
 local function Pitches(space, pitch)
@@ -317,8 +299,8 @@ end
 
 local function PlaceSplit(list, split, row)
 	local panel = list.panel
-	local gap = list.gap
-	local pitch = list.rowHeight + Spacing(list)
+	local gap = Spacing(list)
+	local pitch = list.rowHeight + gap
 	local shown, note = split.used, split.noted
 	local height = LayoutSplit(list, split, shown, note)
 	local need = pitch > 0 and max(1, math.ceil((height + gap) / pitch)) or 1
@@ -367,7 +349,6 @@ local function PlaceSplit(list, split, row)
 		frame:SetPoint("BOTTOMLEFT", row.frame, "TOPLEFT", 0, gap)
 		frame:SetPoint("BOTTOMRIGHT", row.frame, "TOPRIGHT", 0, gap)
 	end
-	split.chrome:Restyle()
 	local hidden = split.hidden
 	for n = 1, need do
 		local other = list.rows[below and row.index + n or row.index - n]
@@ -514,7 +495,7 @@ local function Recolor(list, row)
 	end
 end
 
-local function StyleRow(list, row)
+function StyleRow(list, row)
 	local section = list.section
 	local figures = list.block and "number" or nil
 	ns.ApplyFont(row.name, section)
@@ -598,10 +579,10 @@ local function PlaceBlockText(list, row)
 	row.name:SetHeight(rowHeight)
 end
 
-local function PlaceBlockRow(list, row, y)
+function PlaceBlockRow(list, row, y, parent, x)
 	local panel, frame, bar = list.panel, row.frame, row.bar
 	frame:ClearAllPoints()
-	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", list.pad, -y)
+	frame:SetPoint("TOPLEFT", parent or panel, "TOPLEFT", x or list.pad, -y)
 	frame:SetSize(max(1, list.barWidth), list.rowHeight)
 	local slot = list.blockIcons and list.rowHeight or 0
 	local reach = slot > 0 and slot + Widgets.Snap(panel, BLOCK_ICON_GAP) or 0
@@ -772,7 +753,6 @@ function List:Restyle()
 	cap:Restyle()
 	if self.block then
 		Widgets.TextColor(self.title, "capsGold")
-		Widgets.TextColor(self.column, "textEmphasis")
 	end
 	if self.switchWords then
 		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
@@ -823,19 +803,14 @@ function List:Row(i)
 	return row
 end
 
-function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText, icon, schoolToken)
-	local row = self:Row(i)
-	if self.icons then
-		row.icon:SetTexture(icon)
-		row.icon:SetShown(Logic.IsSecret(icon) or icon ~= nil)
-	end
+function FillRow(list, row, name, classFile, reaction, value, maxValue, valueText, percentText, schoolToken)
 	row.frame:Show()
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
 	row.name:SetText(name)
-	PlaceMore(self, row)
+	PlaceMore(list, row)
 	row.value:SetText(valueText)
-	if self.block then
+	if list.block then
 		row.joined = percentText ~= ""
 		row.amount = valueText
 		row.share = percentText
@@ -843,14 +818,23 @@ function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, p
 		if row.dot then
 			row.dot:SetText(DOT)
 		end
-		PlaceBlockText(self, row)
+		PlaceBlockText(list, row)
 	else
 		row.percent:SetText(percentText)
-		row.value:SetShown(self.valueWidth > 0)
-		row.percent:SetShown(self.percentWidth > 0)
+		row.value:SetShown(list.valueWidth > 0)
+		row.percent:SetShown(list.percentWidth > 0)
 	end
 	row.class, row.reaction, row.school = classFile, reaction, schoolToken
-	Recolor(self, row)
+	Recolor(list, row)
+end
+
+function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText, icon, schoolToken)
+	local row = self:Row(i)
+	if self.icons then
+		row.icon:SetTexture(icon)
+		row.icon:SetShown(Logic.IsSecret(icon) or icon ~= nil)
+	end
+	FillRow(self, row, name, classFile, reaction, value, maxValue, valueText, percentText, schoolToken)
 end
 
 function List:Finish(count, note)
@@ -874,8 +858,7 @@ function List:Finish(count, note)
 	end
 end
 
-function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
-	local row = self:Row(i)
+function SetIcon(list, row, texture, atlas, left, right, top, bottom)
 	local icon = row.icon
 	local set = atlas ~= nil or Logic.IsSecret(texture) or texture ~= nil
 	if atlas then
@@ -892,7 +875,11 @@ function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
 	end
 	row.iconAtlas = atlas
 	row.iconSet = set
-	icon:SetShown(set and self.blockIcons == true)
+	icon:SetShown(set and list.blockIcons == true)
+end
+
+function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
+	SetIcon(self, self:Row(i), texture, atlas, left, right, top, bottom)
 end
 
 function List:SetIcons(shown)
@@ -1030,13 +1017,12 @@ end
 
 function List:Paint()
 	local level = self.warning or Logic.NO_WARNING
-	local chrome = self.panel.chrome
 	if level == Logic.DANGER then
-		chrome:SetEdge("hostile")
+		Widgets.TextColor(self.column, "hostile")
 	elseif level == Logic.WARNING then
-		chrome:SetEdge("neutral")
+		Widgets.TextColor(self.column, "neutral")
 	else
-		chrome:SetEdge("edgeInner")
+		Widgets.TextColor(self.column, "textEmphasis")
 	end
 	for i = 1, #self.rows do
 		Recolor(self, self.rows[i])
@@ -1049,14 +1035,6 @@ function List:SetWarning(level)
 	end
 	self.warning = level
 	self:Paint()
-	if level == Logic.DANGER then
-		if not self.glow then
-			self.glow = Widgets.Glow(self.panel, { kind = "proc", color = "hostile" })
-		end
-		self.glow:Start()
-	elseif self.glow then
-		self.glow:Stop()
-	end
 end
 
 function BarList.New(parent, section, opts)
