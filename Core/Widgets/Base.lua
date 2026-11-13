@@ -262,7 +262,7 @@ end
 
 local function SnapSize(size, f)
 	local px = Scale.Pixel(1) / f
-	return max(px, floor(size / px + 0.5) * px)
+	return max(Scale.TextFloor() * px, floor(size / px + 0.5) * px)
 end
 
 local function Shadow(text, flags, f)

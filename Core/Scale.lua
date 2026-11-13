@@ -13,6 +13,7 @@ local MIN_USER_SCALE, MAX_USER_SCALE = 0.6, 1.5
 local DEFAULT_USER_SCALE = 16 / 19
 local STEPS_PER_PIXEL = 16
 local MOCKUP_SIZE = 1
+local TEXT_FLOOR = 11
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
 local ARRANGEMENT = { centred = true, spread = true }
@@ -21,7 +22,7 @@ local ASPECTS = { "16:9", "21:9", "32:9" }
 local ASPECT_FROM = { ["21:9"] = 2.05, ["32:9"] = 2.9 }
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
 Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
-Scale.STEPS_PER_PIXEL, Scale.MOCKUP_SIZE = STEPS_PER_PIXEL, MOCKUP_SIZE
+Scale.STEPS_PER_PIXEL, Scale.MOCKUP_SIZE, Scale.TEXT_FLOOR = STEPS_PER_PIXEL, MOCKUP_SIZE, TEXT_FLOOR
 Scale.CANVAS, Scale.DEFAULT_CANVAS = CANVAS, DEFAULT_CANVAS
 Scale.ARRANGEMENT, Scale.DEFAULT_ARRANGEMENT = ARRANGEMENT, DEFAULT_ARRANGEMENT
 Scale.ASPECTS, Scale.ASPECT_FROM = ASPECTS, ASPECT_FROM
@@ -277,6 +278,10 @@ end
 
 function Scale.Pixel(n)
 	return (n or 1) * state.pixel
+end
+
+function Scale.TextFloor()
+	return floor(TEXT_FLOOR * state.height / REFERENCE_HEIGHT + 0.5)
 end
 
 function Scale.Border()
