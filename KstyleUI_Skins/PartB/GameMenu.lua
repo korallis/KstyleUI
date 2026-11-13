@@ -1,4 +1,4 @@
--- GameMenu.lua: the game menu skin: GameMenuFrame's glass panel, its title set inside the header band, and the buttons Blizzard draws from a pool.
+-- GameMenu.lua: the game menu skin: GameMenuFrame's glass panel, its title set inside the header band as every window's title cap (a gilt diamond, the title at the left, a rule to the right), and the buttons Blizzard draws from a pool.
 local _, ns = ...
 
 local K = KstyleUI
@@ -6,6 +6,7 @@ local L = K.L
 local Kit = ns.PartBKit
 
 local TITLE_TOP = 6
+local TITLE_END = 16
 
 local function Hover(button, on)
 	local parts = K.Skin.Parts(button)
@@ -59,10 +60,14 @@ local function Apply()
 		ns.Style.Title(header.Text)
 		local text = header.Text
 		local function Place()
+			local top = -K.Widgets.Snap(menu, TITLE_TOP)
 			text:ClearAllPoints()
-			text:SetPoint("TOP", menu, "TOP", 0, -K.Widgets.Snap(menu, TITLE_TOP))
+			text:SetPoint("TOPLEFT", menu, "TOPLEFT", K.Widgets.Snap(menu, ns.Parts.CAP_INDENT), top)
+			text:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -K.Widgets.Snap(menu, TITLE_END), top)
+			ns.Parts.Realign(text)
 		end
 		Place()
+		ns.Parts.TitleCap(menu, text)
 		if type(header.Setup) == "function" then
 			hooksecurefunc(header, "Setup", Place)
 		end

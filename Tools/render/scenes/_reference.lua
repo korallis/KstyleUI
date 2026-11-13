@@ -117,6 +117,8 @@ Reference.STATE = {
 -- keeps the occlusion acceptance pass 5 recorded.
 local PARTY_FROM_CENTRE, PARTY_GLASS_W = 395, 266
 local PLATE_NAME_HALF, PLATE_GAP = 90, 16
+-- A fixture plate's reach above and below its point: the name over the bar, the cast under it.
+local PLATE_ABOVE, PLATE_BELOW = 30, 40
 
 -- LIVE is the story rail of the owner's first live session (2026-11-12, 5120x1440): RestedXP's step 57 with three
 -- active steps of wrapped lines, and nine tracked quests, the first with four objectives. Reference.Build({ live =
@@ -172,6 +174,49 @@ function Reference.SeatPlates(plates, width)
 		seated[i] = copy
 	end
 	return seated
+end
+
+-- SeatAround(plates, left, right, top, bottom) -> a copy of the fixture plates with each plate whose name or bar
+-- would lie on the card from left to right and top to bottom (screen units) moved beside it, left first, then
+-- right when the left seat would crowd a plate already seated; nil when no plate moves. In the game a plate under a
+-- HUD card is normal; the fixture only keeps the render guard's text checks meaningful.
+function Reference.SeatAround(plates, left, right, top, bottom)
+	local seated, moved = {}, false
+	for i, plate in ipairs(plates) do
+		local copy = {}
+		for key, value in pairs(plate) do
+			copy[key] = value
+		end
+		local across = plate.x + PLATE_NAME_HALF > left and plate.x - PLATE_NAME_HALF < right
+		local down = plate.y + PLATE_BELOW > top and plate.y - PLATE_ABOVE < bottom
+		if across and down then
+			local x = left - PLATE_GAP - PLATE_NAME_HALF
+			for j, other in ipairs(plates) do
+				local placed = seated[j] or other
+				if j ~= i and math.abs(placed.y - plate.y) < PLATE_ABOVE + PLATE_BELOW and math.abs(x - placed.x) < 2 * PLATE_NAME_HALF + PLATE_GAP then
+					x = right + PLATE_GAP + PLATE_NAME_HALF
+				end
+			end
+			copy.x, moved = x, true
+		end
+		seated[i] = copy
+	end
+	return moved and seated or nil
+end
+
+-- SeatTank(built, plates, rect) seats the Tank preset's fixture plates clear of its threat card, which the Tank HUD
+-- raises over the picture's third plate at the mock-up size (#347).
+function Reference.SeatTank(built, plates, rect)
+	local ns = built.meters and built.meters.ns
+	local holder = ns and ns.Threat and ns.Threat.holder
+	if not holder or not holder:IsShown() then
+		return nil
+	end
+	local x, y, w, h = rect("meters", holder)
+	if not x then
+		return nil
+	end
+	return Reference.SeatAround(plates, x, x + w, y, y + h)
 end
 
 -- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer,
@@ -242,6 +287,7 @@ function Reference.Build(opts)
 			state = state,
 			elements = true,
 			modules = opts.modules or modules,
+			seat = layout == "Tank" and Reference.SeatTank or nil,
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)

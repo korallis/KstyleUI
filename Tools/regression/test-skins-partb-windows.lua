@@ -527,12 +527,18 @@ do
 	end
 	env.ClassTrainerFrame_Update()
 	assert(bar.label:GetText() == "Blacksmithing", "the update hook relabels the bar, got " .. tostring(bar.label:GetText()))
-	-- Forever's bar is 130 units wide (Blizzard_TrainerUI.xml:168). A skill line that cannot sit left of the rank
-	-- inside it hides rather than truncate; a short one shows. The kit fonts' real advances measure the texts.
+	-- Forever's bar is 130 units wide (Blizzard_TrainerUI.xml:168), and the rank reads beside it (KSTY-60 item 26),
+	-- so the skill line has the bar to itself: the longest line fits, and one too long for the bar hides rather than
+	-- truncate. The kit fonts' real advances measure the texts.
 	env._textWidth = dofile("Tools/regression/databars_env.lua").TextWidth
 	made.bar:SetWidth(130)
 	env.GetTrainerServiceSkillLine = function()
 		return "Two-Handed Swords"
+	end
+	env.ClassTrainerFrame_Update()
+	assert(bar.label:IsShown(), "the longest skill line fits the bar once the rank stands beside it")
+	env.GetTrainerServiceSkillLine = function()
+		return "Two-Handed Swords and Polearms"
 	end
 	env.ClassTrainerFrame_Update()
 	assert(not bar.label:IsShown(), "a skill line too long for the bar hides instead of truncating")

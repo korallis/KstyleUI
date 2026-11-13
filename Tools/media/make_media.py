@@ -82,12 +82,6 @@ ORB_GLINTS = (
     (0.68, 0.82, 0.22, 0.22, ((0.0, 0.14), (1.0, 0.0))),
 )
 ORB_LIQUID_EDGE = 0.55
-# The HUD style pictures (KSTY-46): the KSTY-44 mock-ups' colours, drawn as flat shapes so they read at any size.
-HUD_PICTURE = {
-    "back": (14, 18, 23, 1), "slot": (88, 94, 102, 1), "portrait": (60, 66, 74, 1), "glass": (8, 9, 10, 1),
-    "health": (44, 105, 204, 1), "mana": (61, 61, 236, 1), "hostile": (197, 68, 62, 1),
-    "orbHealth": (192, 48, 43, 1), "orbMana": (42, 100, 200, 1), "gilt": (211, 181, 116, 1),
-}
 # The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
 ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
@@ -797,60 +791,6 @@ def rect_spans(x0, y0, x1, y1):
     return spans
 
 
-def ring_band_spans(cx, cy, outer, inner):
-    def spans(y):
-        dy = y - cy
-        if abs(dy) > outer:
-            return []
-        o = math.sqrt(outer * outer - dy * dy)
-        if abs(dy) >= inner:
-            return [(cx - o, cx + o)]
-        i = math.sqrt(inner * inner - dy * dy)
-        return [(cx - o, cx - i), (cx + i, cx + o)]
-
-    return spans
-
-
-def liquid_spans(cx, cy, radius, share):
-    disc = circle_spans(cx, cy, radius)
-    level = cy + radius - 2 * radius * share
-
-    def spans(y):
-        return disc(y) if y >= level else []
-
-    return spans
-
-
-def draw_hud_style(kind):
-    """The settings window's and the setup's picture of a HUD style: the action bars, and the player as frames or orbs."""
-    width, height = 256, 128
-    cover = lambda spans: sample_spans(width, height, spans)
-    layers = [(HUD_PICTURE["back"], sample_spans(width, height, rounded_spans(0, 0, width, height, 10)))]
-    size, pitch = 9, 11
-    left = (width - (12 * pitch - 2)) / 2
-    for top in (92, 104):
-        for i in range(12):
-            x = left + i * pitch
-            layers.append((HUD_PICTURE["slot"], cover(rect_spans(x, top, x + size, top + size))))
-    if kind == "frames":
-        layers += [
-            (HUD_PICTURE["hostile"], cover(rect_spans(70, 42, 168, 48))),
-            (HUD_PICTURE["portrait"], cover(circle_spans(181, 45, 9))),
-            (HUD_PICTURE["portrait"], cover(circle_spans(75, 74, 9))),
-            (HUD_PICTURE["health"], cover(rect_spans(88, 70, 186, 76))),
-            (HUD_PICTURE["mana"], cover(rect_spans(88, 79, 186, 82))),
-        ]
-    else:
-        layers.append((HUD_PICTURE["hostile"], cover(rect_spans(78, 12, 178, 18))))
-        for cx, colour, share in ((38, "orbHealth", 0.62), (218, "orbMana", 0.55)):
-            layers += [
-                (HUD_PICTURE["glass"], cover(circle_spans(cx, 96, 21))),
-                (HUD_PICTURE[colour], cover(liquid_spans(cx, 96, 21, share))),
-                (HUD_PICTURE["gilt"], cover(ring_band_spans(cx, 96, 25, 21))),
-            ]
-    return composite(width, height, layers)
-
-
 def draw_bar(width, height, kind):
     def flat(v):
         return 1.0
@@ -1045,8 +985,6 @@ for orb_name, width, height, draw, about in (
     ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
     ("OrbSurface", *ORB_SURFACE_SIZE, lambda: draw_orb_surface(*ORB_SURFACE_SIZE), "The liquid's curved surface: an ellipse as wide as the orb and 11% as tall, lit from 35% down, centred on the fill's top edge and tinted with the liquid's colour; also the pale cap of the loss band."),
     ("OrbSurfaceLight", *ORB_SURFACE_SIZE, lambda: draw_orb_surface_light(*ORB_SURFACE_SIZE), "The light over the surface ellipse: a white line along its top edge, a white sheen at its lit point and a soft shadow under it, drawn untinted."),
-    ("HudStyleFrames", 256, 128, lambda: draw_hud_style("frames"), "The Frames HUD style's picture for the settings window and the setup: the bars and the player and target frames."),
-    ("HudStyleOrbs", 256, 128, lambda: draw_hud_style("orbs"), "The Orbs HUD style's picture for the settings window and the setup: the bars between the two orbs and the target bar on top."),
 ):
     ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_REDRAWN.get(orb_name, ORB_DRAWN)))
 
@@ -1073,6 +1011,19 @@ for orb_name, width, height, about in (
         about,
         "Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below",
         drawn="2026-11-13", maker="Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py`",
+    ))
+
+
+for picture_name, about in (
+    ("HudStyleFrames", "The Frames HUD style's picture for the settings window and the setup: the cast bar, cooldowns, target and player frames and the two-row tray, cropped from the hud_reference render."),
+    ("HudStyleOrbs", "The Orbs HUD style's picture for the settings window and the setup: the two orbs, the forged tray and the cast bar, cropped from the hud_reference render."),
+):
+    ASSETS.append(Asset(
+        f"Media/Textures/{picture_name}.png", 512, 256,
+        lambda name=picture_name: material_pixels(name, 512, 256),
+        about,
+        "Prepared source in Tools/media/materials by Tools/media/hud_pictures.py from hud_reference renders at RENDER_SIZE=auto, 1920 by 1080 at 2 px per unit, with no backdrop, no stand-ins and the KstyleUI icon pack's repaints only; Lanczos to 512x256, opaque",
+        drawn="2026-11-13", maker="KstyleUI's own render of its code (Tools/render/shoot.sh); no model",
     ))
 
 

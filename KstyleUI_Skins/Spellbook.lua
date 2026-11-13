@@ -89,10 +89,10 @@ local function SpellItem(item)
 			pcall(icon.RemoveMaskTexture, icon, button.IconMask)
 		end
 		icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-		Parts.Rim(button, { target = icon, outset = Tokens.Size("gapTiny") })
+		Parts.Rim(button, { target = icon, outset = Tokens.Size("gapTiny") }):SetRimColor(Tokens.Color("slotRim"))
 	end
 	if item.Name then
-		Style.Text(item.Name, "names", "textEmphasis", function()
+		Style.Text(item.Name, "body", "textEmphasis", function()
 			return (select(2, Style.Font("heading")))
 		end)
 	end
@@ -203,7 +203,7 @@ local function ApplyTalents()
 		end
 		local amount = type(currency.CurrentAmountContainer) == "table" and currency.CurrentAmountContainer.CurrencyAmount
 		if amount then
-			Style.Text(amount, "display", "textEmphasis")
+			Style.Text(amount, "number", "textEmphasis")
 		end
 	end
 end

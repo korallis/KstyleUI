@@ -13,6 +13,8 @@ local LEVEL_BELOW = 1
 local LINE_UNITS = 2
 local BAR_UNITS = 10
 local GLYPH_UNITS = 10
+local CHEVRON_UNITS = 8
+local STANDING_AMBER = 0.6
 local HOVER_ALPHA = 0.5
 local TAB_IDLE_ALPHA = 0.6
 local WASH_ALPHA = 0.12
@@ -30,6 +32,7 @@ local tabs = setmetatable({}, WEAK)
 local fills = setmetatable({}, WEAK)
 local docks = setmetatable({}, WEAK)
 local caps = setmetatable({}, WEAK)
+local chevrons = setmetatable({}, WEAK)
 local painting = false
 local rowOwner = {}
 
@@ -431,6 +434,9 @@ end
 
 local CAP_PAD, CAP_GEM, CAP_GEM_GAP, CAP_RULE_GAP, CAP_ALPHA = 16, 8, 7, 10, 0.5
 
+Parts.CAP_INDENT = CAP_PAD + CAP_GEM + CAP_GEM_GAP
+Parts.CAP_PAD = CAP_PAD
+
 function Parts.IsCapped(title)
 	return caps[title] ~= nil
 end
@@ -555,6 +561,94 @@ function Parts.TitleCap(frame, title, close)
 	return cap
 end
 
+local headings = setmetatable({}, WEAK)
+
+local function PlaceHeading(h)
+	local panel, caption, row, gem, rule = h.panel, h.caption, h.row, h.gem, h.rule
+	local inset = h.inset or 0
+	local indent = Widgets.Snap(panel, inset + CAP_PAD + CAP_GEM + CAP_GEM_GAP)
+	local height = Plain(row:GetHeight())
+	if (not height or height <= 0) and type(row.GetStringHeight) == "function" then
+		height = Widgets.TextHeight(row)
+	end
+	caption:ClearAllPoints()
+	caption:SetPoint("LEFT", h.lane, "BOTTOMLEFT", indent, Widgets.Snap(panel, height and height > 0 and height / 2 or 0))
+	caption:SetJustifyH("LEFT")
+	local size = Widgets.Snap(h.holder, CAP_GEM)
+	gem:SetSize(size, size)
+	gem:ClearAllPoints()
+	Widgets.Point(gem, "RIGHT", caption, "LEFT", -CAP_GEM_GAP, 0)
+	local width, room = Widgets.TextWidth(caption), Plain(panel:GetWidth())
+	local gap = Widgets.Snap(h.holder, CAP_RULE_GAP)
+	local stop = inset + CAP_PAD
+	local close = h.close
+	if type(close) == "table" and type(close.IsShown) == "function" and close:IsShown() == true then
+		stop = stop + (Plain(close:GetWidth()) or 0)
+	end
+	rule:ClearAllPoints()
+	local length = width and room and Widgets.Snap(panel, room - stop) - indent - width - 2 * gap
+	if not length or length < 2 * gap then
+		rule:Hide()
+		return
+	end
+	Widgets.Point(rule, "LEFT", caption, "LEFT", width + CAP_RULE_GAP, 0)
+	rule:SetSize(Widgets.Snap(h.holder, length), Widgets.Border(h.holder))
+	rule:Show()
+end
+
+local function RestyleHeading(h)
+	PlaceHeading(h)
+	h.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
+	Widgets.PaintCapMaterial(h.gem, h.rule, CAP_ALPHA)
+end
+
+function Parts.Heading(panel, caption, opts)
+	if type(panel) ~= "table" or type(caption) ~= "table" or type(caption.SetJustifyH) ~= "function" then
+		return nil
+	end
+	if headings[caption] then
+		return headings[caption]
+	end
+	opts = opts or {}
+	local row = opts.row or caption
+	if type(row.GetHeight) ~= "function" then
+		return nil
+	end
+	local holder = CreateFrame("Frame", nil, panel)
+	holder:SetAllPoints(panel)
+	holder:SetFrameLevel(panel:GetFrameLevel() + LEVEL_BELOW)
+	local lane = CreateFrame("Frame", nil, holder)
+	lane:SetPoint("TOPLEFT", panel, "TOPLEFT")
+	lane:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT")
+	local h = { panel = panel, caption = caption, row = row, lane = lane, close = opts.close, inset = opts.inset, holder = holder }
+	h.gem = holder:CreateTexture(nil, "OVERLAY")
+	h.rule = holder:CreateTexture(nil, "OVERLAY")
+	h.Restyle = RestyleHeading
+	h.Place = PlaceHeading
+	headings[caption] = h
+	local function place()
+		PlaceHeading(h)
+	end
+	hooksecurefunc(caption, "SetText", place)
+	panel:HookScript("OnSizeChanged", place)
+	panel:HookScript("OnShow", place)
+	RestyleHeading(h)
+	Widgets.Track(h)
+	return h
+end
+
+function Parts.HeadingOf(caption)
+	return headings[caption]
+end
+
+function Parts.Realign(title)
+	local cap = caps[title]
+	if cap then
+		cap.aligned = false
+		RestyleCap(cap)
+	end
+end
+
 local function PaintGlyph(state)
 	local button, glyph = state.button, state.glyph
 	local enabled = type(button.IsEnabled) ~= "function" or button:IsEnabled() ~= false
@@ -610,20 +704,67 @@ function Parts.Glyph(button, textureName, opts)
 	return glyph
 end
 
+local function PaintChevron(state)
+	local drop, chevron = state.drop, state.chevron
+	if type(drop.IsEnabled) == "function" and drop:IsEnabled() == false then
+		Widgets.Tint(chevron, "textDisabled")
+	else
+		Widgets.Tint(chevron, state.hover and "textHover" or "text")
+	end
+end
+
+local function LayoutChevron(state)
+	local chevron = state.chevron
+	Widgets.Size(chevron, CHEVRON_UNITS, CHEVRON_UNITS)
+	chevron:ClearAllPoints()
+	Widgets.Point(chevron, "RIGHT", state.overlay, "RIGHT", -Tokens.Size("gapMedium"), 0)
+	PaintChevron(state)
+end
+
 function Parts.Dropdown(drop)
 	if type(drop) ~= "table" or type(drop.GetRegions) ~= "function" then
 		return nil
 	end
-	local keep = {}
-	if IsTexture(drop.Arrow) then
-		keep[drop.Arrow] = true
+	if chevrons[drop] then
+		return Skin.Parts(drop) and Skin.Parts(drop).backdrop
 	end
-	Skin.Strip(drop, { keep = keep })
+	Skin.Strip(drop)
 	local panel = Skin.Backdrop(drop, { shape = "tile", fill = "buttonFill", shadow = false })
 	if drop.Text then
 		ns.Style.Text(drop.Text, "body")
 	end
+	local overlay = CreateFrame("Frame", nil, drop)
+	overlay:SetAllPoints(drop)
+	overlay:SetFrameLevel(drop:GetFrameLevel() + LEVEL_BELOW)
+	local chevron = overlay:CreateTexture(nil, "OVERLAY")
+	chevron:SetTexture((Tokens.Texture("glyphChevron")))
+	local state = { drop = drop, overlay = overlay, chevron = chevron, hover = false, Restyle = LayoutChevron }
+	drop:HookScript("OnEnter", function()
+		state.hover = true
+		PaintChevron(state)
+	end)
+	drop:HookScript("OnLeave", function()
+		state.hover = false
+		PaintChevron(state)
+	end)
+	if type(drop.IsEnabled) == "function" then
+		local function enabled()
+			if drop.Text then
+				ns.Style.Text(drop.Text, "body")
+			end
+			PaintChevron(state)
+		end
+		drop:HookScript("OnEnable", enabled)
+		drop:HookScript("OnDisable", enabled)
+	end
+	chevrons[drop] = state
+	LayoutChevron(state)
+	Widgets.Track(state)
 	return panel
+end
+
+function Parts.ChevronOf(drop)
+	return chevrons[drop] and chevrons[drop].chevron
 end
 
 function Parts.StripLeaves(frame)
@@ -684,9 +825,21 @@ function Parts.EachRow(scrollBox, fn)
 	return false
 end
 
+function Parts.StandingTone(r, g, b)
+	if IsSecret(r) or IsSecret(g) or IsSecret(b) or type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
+		return r, g, b
+	end
+	local token = (g > r and "friend") or (g >= r * STANDING_AMBER and "quest") or "hostile"
+	local tr, tg, tb = Tokens.Color(token)
+	return tr, tg, tb
+end
+
 local function SetFillColor(state)
-	local fill = state.fill
-	fill:SetVertexColor(ns.Style.BarColor(state.r, state.g, state.b, state.a))
+	local fill, r, g, b = state.fill, state.r, state.g, state.b
+	if state.tone then
+		r, g, b = state.tone(r, g, b)
+	end
+	fill:SetVertexColor(ns.Style.BarColor(r, g, b, state.a))
 end
 
 local function PaintFill(state)
@@ -719,7 +872,7 @@ local function RestyleFill(state)
 	end
 end
 
-function Parts.FillBar(bar)
+function Parts.FillBar(bar, opts)
 	if type(bar) ~= "table" or fills[bar] then
 		return fills[bar]
 	end
@@ -735,7 +888,7 @@ function Parts.FillBar(bar)
 	local track = CreateFrame("Frame", nil, bar)
 	track:SetFrameLevel(math.max(0, bar:GetFrameLevel() - LEVEL_BELOW))
 	track.edge = Widgets.BarEdge(track)
-	local state = { bar = bar, fill = fill, track = track, area = bar.FillArea or bar }
+	local state = { bar = bar, fill = fill, track = track, area = bar.FillArea or bar, tone = opts and opts.tone }
 	state.r, state.g, state.b, state.a = fill:GetVertexColor()
 	state.Restyle = RestyleFill
 	hooksecurefunc(fill, "SetVertexColor", function(_, r, g, b, a)

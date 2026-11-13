@@ -170,7 +170,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Dropdown: part A's shared dropdown, so every skinned window's dropdowns match: the box art goes, the arrow stays on a raised tile.
+-- Dropdown: part A's shared dropdown, so every skinned window's dropdowns match: the box art and Blizzard's arrow go, and the Options chevron ends a raised tile (KSTY-60 item 18).
 do
 	local env, K, ns, B, kit = Started()
 	local dropdown = B.frame("DropdownButton")
@@ -179,7 +179,8 @@ do
 	dropdown.Text = B.text(dropdown)
 	local snap = B.snapshot()
 	kit.Dropdown(dropdown)
-	assert(dropdown.Background:GetAlpha() == 0 and dropdown.Arrow:GetAlpha() == 1, "the box art goes, Blizzard's arrow stays")
+	assert(dropdown.Background:GetAlpha() == 0 and dropdown.Arrow:GetAlpha() == 0, "the box art and Blizzard's arrow go")
+	assert(ns.Parts.ChevronOf(dropdown), "the Options chevron ends the dropdown")
 	assert(K.Skin.IsSkinned(dropdown, "Backdrop"), "a raised tile behind")
 	assert(dropdown.Text:GetFont() == (ns.Style.Font("body")), "the text uses the module's font")
 	Check(B, snap)

@@ -311,6 +311,21 @@ function Theme.ClassColorForWidget(file)
 	return Theme.ClassColor(file)
 end
 
+local TEXT_LUMINANCE = 0.5
+
+function Theme.ClassTextColorForWidget(file)
+	local r, g, b = Theme.ClassColorForWidget(file)
+	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
+		return r, g, b
+	end
+	local luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+	if luminance >= TEXT_LUMINANCE then
+		return r, g, b
+	end
+	local t = (TEXT_LUMINANCE - luminance) / (1 - luminance)
+	return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
+end
+
 function Theme.ThreatColor(status)
 	if not IsPlainNumber(status) then
 		return nil

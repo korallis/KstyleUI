@@ -401,6 +401,15 @@ function Kit.EditBox(box, keepKeys)
 		end
 	end
 	Skin.Strip(box, { keep = keep, children = { "NineSlice" } })
+	local icon = box.searchIcon
+	if keep[icon] then
+		icon:ClearAllPoints()
+		icon:SetPoint("LEFT", box, "LEFT", Widgets.Snap(box, Tokens.Size("gapSmall")), 0)
+	end
+	local instructions = box.Instructions
+	if type(instructions) == "table" and type(instructions.SetFont) == "function" then
+		Style.Text(instructions, "body", "textDisabled")
+	end
 	if PartB and type(PartB.EditBox) == "function" then
 		return PartB.EditBox(box)
 	end

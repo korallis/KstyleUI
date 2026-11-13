@@ -47,6 +47,18 @@ local function SpellLabel(id)
 	return string.format("%s %d", L["Spell"], id)
 end
 
+local function SpellIcon(id)
+	local spells = C_Spell
+	if type(spells) == "table" and type(spells.GetSpellTexture) == "function" then
+		return spells.GetSpellTexture(id)
+	end
+	return nil
+end
+
+local function Icons()
+	return ns.Get("damage.icons") == true
+end
+
 local function FillDamage(list)
 	local total = 0
 	for _, spell in ipairs(SPELLS) do
@@ -58,6 +70,7 @@ local function FillDamage(list)
 		local id, amount = SPELLS[i][1], SPELLS[i][2]
 		list:SetRow(i, SpellLabel(id), Theme.Class(), "friendly", amount, SPELLS[1][2], Logic.Abbreviate(amount),
 			percent and Logic.FormatPercent(Logic.Percent(amount, total)) or "", nil, Logic.SchoolToken(id))
+		list:SetRowIcon(i, SpellIcon(id))
 	end
 	list:Finish(count)
 	local info = ns.METER_TYPES[1]
@@ -81,7 +94,8 @@ local function FillThreat(list)
 	end
 	list:Finish(count)
 	list:SetTitle(L["Threat"])
-	list:SetColumn(ns.Get("threat.value") == "threat" and "" or "%")
+	local watched = Logic.ThreatWatch(rows, count)
+	list:SetColumn(watched and Logic.FormatPercent(watched.scaled) or "")
 	local level = Logic.NO_WARNING
 	if ns.Get("threat.warnings") then
 		level = Logic.ThreatWarning(rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
@@ -138,7 +152,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true })
+	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
 	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
 	frame.swing = Widgets.StatusBar(frame, {
 		texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,

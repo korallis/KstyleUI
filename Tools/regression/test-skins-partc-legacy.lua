@@ -128,7 +128,7 @@ do
 	assert(Alpha(piece) == 1 and Alpha(bar.ProgressBarFrame) == 0, "showing the bar again keeps the track and keeps Blizzard's frame hidden")
 	assert(FontPath(bar.Text) == Style.Font("number"))
 	assert(ns.PartC.Bar(f.ChallengesPage.LegacyChallengePointSummary.PointsBar).target, "the challenge points bar too")
-	assert(FontPath(f.RewardTrackPage.Points) == Style.Font("display") and FontPath(f.RewardTrackPage.PointsLabel) == Style.Font("caption"))
+	assert(FontPath(f.RewardTrackPage.Points) == Style.Font("number") and FontPath(f.RewardTrackPage.PointsLabel) == Style.Font("caption"))
 
 	local list = f.ChallengesPage.CategoryList
 	assert(K.Skin.IsSkinned(list.FilterDropdown, "Backdrop") and K.Skin.IsSkinned(list.SearchBox, "EditBox") and Alpha(p.searchArt) == 0, "the filter and search are restyled")
