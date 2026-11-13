@@ -111,7 +111,8 @@ do
 end
 
 -- Item 14: a profile that logs in to Orbs and switches to Frames lays the player out on a shown frame, so the portrait
--- ring draws without waiting for an OnShow the switch may never fire.
+-- ring draws without waiting for an OnShow the switch may never fire: a restyle from the module's own layout, not only
+-- the ornament's OnShow wake, must find the ring visible.
 do
 	local env, K, ns = U.New({ saved = saved("orbs"), setup = withEnum })
 	local view = ns.Frames.Get("player").views[1]
@@ -119,14 +120,17 @@ do
 	local ring = view.portraitOrnament
 	local restyle, seen = ring.Restyle, {}
 	ring.Restyle = function(self, ...)
-		seen[#seen + 1] = view.portraitFrame:IsVisible() and true or false
+		local caller = debug.getinfo(2, "S").short_src
+		if not caller:find("Ornaments.lua", 1, true) then
+			seen[#seen + 1] = view.portraitFrame:IsVisible() and true or false
+		end
 		return restyle(self, ...)
 	end
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	ring.Restyle = restyle
 	assert(view.button:IsShown() and view.portraitFrame:IsVisible(), "Frames shows the player frame")
-	assert(#seen > 0 and seen[#seen] == true, "the ring's last restyle in the switch ran on a visible frame")
+	assert(#seen > 0 and seen[#seen] == true, "the module's last restyle of the ring in the switch ran on a visible frame")
 	assert(ring.stale == nil, "the ring is not left stale")
 	noErrors(env, K, "switch")
 end
