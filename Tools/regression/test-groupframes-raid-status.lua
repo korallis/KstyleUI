@@ -1,4 +1,4 @@
--- test-groupframes-raid-status.lua: a raid tile keeps every status it is configured for (rank round 6): the debuff cluster ends in an engine-counted "+N" chip (Grok #2), every boss debuff past the centred slot still reaches the row or the chip (Astra #1), the shipped raid presets show their defensive indicators at 20 and 40 players in a status lane on the bar (Astra #2), a configuration with no room says so in its settings row, the party's indicators are legible (Opus), and the missing health keeps clear of the debuffs (Muse).
+-- test-groupframes-raid-status.lua: a raid tile keeps every status it is configured for (rank round 6): the debuff cluster ends in an engine-counted "+N" chip (Grok #2), every boss debuff past the centred slot still reaches the row or the chip (Astra #1), the shipped raid presets show their defensive indicators at 20 and 40 players in the indicator lane off the bar (Astra #2, KSTY-57), a configuration with no room says so in its settings row, the party's indicators are legible (Opus), and the missing health keeps clear of the debuffs (Muse).
 local S = dofile("Tools/regression/raid_status.lua")
 local G, A, Scene = S.G, S.A, S.Scene
 local LEGIBLE = S.LEGIBLE
@@ -20,24 +20,24 @@ do
 	S.Statuses(env, ns, Content(ns, ns.Headers.raid[1], "raid1"), "the owner's screen")
 end
 
--- Grok #2: eight and twelve debuffs on the default tile read three icons and "+5", "+9" --------------------------------
+-- Grok #2: eight and twelve debuffs on the default row's three cells read two icons and "+6", "+10" (KSTY-57) --------
 do
 	local env, _, _, f = Raid({}, 20)
 	local seen = CheckRoute(env, f, { { 8, "other" } }, "eight others")
-	eq(seen.chip, "+5", "eight debuffs on four cells: three shown and +5")
+	eq(seen.chip, "+6", "eight debuffs on three cells: two shown and +6")
 	seen = CheckRoute(env, f, { { 12, "other" } }, "twelve others")
-	eq(seen.chip, "+9", "twelve debuffs: +9")
+	eq(seen.chip, "+10", "twelve debuffs: +10")
 	-- Codex review: past the labels the chip saturates instead of vanishing.
+	seen = CheckRoute(env, f, { { 15, "other" } }, "fifteen others")
+	eq(seen.chip, "+13", "fifteen debuffs: +13, the last label")
 	seen = CheckRoute(env, f, { { 16, "other" } }, "sixteen others")
-	eq(seen.chip, "+13", "sixteen debuffs: +13, the last label")
+	eq(seen.chip, "14+", "sixteen debuffs: 14+")
 	seen = CheckRoute(env, f, { { 17, "other" } }, "seventeen others")
-	eq(seen.chip, "14+", "seventeen debuffs: 14+")
-	seen = CheckRoute(env, f, { { 18, "other" } }, "eighteen others")
-	eq(seen.chip, "14+", "eighteen debuffs: 14+, at least fourteen past the cells")
+	eq(seen.chip, "14+", "seventeen debuffs: 14+, at least fourteen past the cells")
 	seen = CheckRoute(env, f, { { 12, "boss" }, { 12, "important" }, { 12, "other" } }, "thirty-six")
 	eq(seen.chip, "14+", "thirty-six debuffs: still 14+")
-	seen = CheckRoute(env, f, { { 4, "other" } }, "four others")
-	eq(seen.chip, nil, "four debuffs fill the four cells with no chip")
+	seen = CheckRoute(env, f, { { 3, "other" } }, "three others")
+	eq(seen.chip, nil, "three debuffs fill the three cells with no chip")
 	-- The chip sits on the cluster's last cell, inside the tile, over the icons.
 	local chip = f.debuffChip
 	local block = f.parts.block
@@ -60,7 +60,7 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- Codex review: an indicator in the status lane keeps the smaller size the player picks.
+-- Codex review: an indicator in the indicator lane keeps the smaller size the player picks.
 do
 	local env, K, ns, f = Raid({}, 5)
 	Batch(env, K, { { "indicator1.size", 8 } })
@@ -69,9 +69,9 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- Muse: the missing health keeps clear of the boss slot and the debuffs ----------------------------------------------
-for _, size in ipairs({ { 72, 40 }, { 77, 40 }, { 77, 46 } }) do
-	local env, _, ns, f = Raid({ raid = { width = size[1], height = size[2] } }, 5, function(_, m)
+-- Muse: the missing health keeps clear of the boss slot and the debuffs, at the default row and the Healer layout's ------
+for _, size in ipairs({ { 116, 36 }, { 116, 40 } }) do
+	local env, _, ns, f = Raid({ raid = { width = size[1], height = size[2], healthText = "DEFICIT" } }, 5, function(_, m)
 		m.maxHealth = 41800
 		m.health = 30600
 	end)
@@ -95,7 +95,7 @@ end
 
 -- A configuration with no room says so in its settings row, with a remedy -----------------------------------------
 do
-	local env, K, ns = Raid({ raid = { width = 44, height = 26 } }, 5)
+	local env, K, ns = Raid({ raid = { width = 30, height = 20 } }, 5)
 	-- Each indicator's rows end in two notes, one for party frames and one for raid frames.
 	local notes, slot = {}, 0
 	for _, row in ipairs(ns.Settings.schema) do
@@ -113,15 +113,15 @@ do
 		return row.showWhen(settings) == true, row
 	end
 	local on, row = shown(1, "raid")
-	assert(on, "a 44 by 26 raid tile has no room for the external defensives, and the note says so")
+	assert(on, "a 30 by 20 raid tile has no room for the external defensives, and the note says so")
 	assert(row.label:find("raid", 1, true), "the note names raid frames: " .. row.label)
 	assert(not shown(4, "raid"), "an indicator that is off raises no note")
-	Batch(env, K, { { "raid.width", 72 }, { "raid.height", 40 } })
-	assert(not shown(1, "raid"), "at 72 by 40 the external defensives fit and the note goes")
+	Batch(env, K, { { "raid.width", 116 }, { "raid.height", 36 } })
+	assert(not shown(1, "raid"), "at 116 by 36 the external defensives fit and the note goes")
 end
 
--- Opus: the party's indicators are legible, at 40 and 46 units tall -------------------------------------------------
-for _, height in ipairs({ 40, 46 }) do
+-- Opus: the party's indicators are legible, at the default and the Healer layout's heights ---------------------------
+for _, height in ipairs({ 39, 43 }) do
 	local env, K, ns = G.New({ saved = Saved({ party = { height = height } }) })
 	G.SetRoster(env, "party", G.Members(4))
 	assert(K.Modules.Enable("GroupFrames"))

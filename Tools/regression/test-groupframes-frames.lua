@@ -62,29 +62,31 @@ for kind, key in pairs({ party = "groupframes.party", raid = "groupframes.raid" 
 	eq(el.opts.scalable, true, key .. " is scalable")
 	eq(el.label, K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 end
--- The party holder is the Lumen card: the rows inside a 20 padding, under a section cap and a gap.
+-- KSTY-57: the party stands bare, so its holder is the rows; the raid sits in its card, so its holder is the eight
+-- groups inside the card's 20 padding, under a section cap and a gap.
 local pgeo = ns.Geometry.Party(ns.Settings.current.party)
 local pw, ph = Headers.holders.party:GetSize()
-eq(pw, pgeo.width + 40, "the party holder is one row plus the card's padding wide: 318")
-eq(ph, pgeo.height + 40 + K.Widgets.SECTION_CAP_HEIGHT + 8, "the party holder is five rows, the cap, a gap and the padding tall")
+eq(pw, pgeo.width, "the bare party holder is one row wide")
+eq(ph, pgeo.height, "and five rows tall")
+local rgeo = ns.Geometry.RaidGroups(ns.Settings.current.raid)
 local rw, rh = Headers.holders.raid:GetSize()
-eq(rw, 597, "the raid holder fills its footprint")
-eq(rh, 212, "the raid holder fills its footprint")
+eq(rw, rgeo.width + 40, "the raid holder is the eight groups plus the card's padding wide")
+eq(rh, rgeo.height + 40 + K.Widgets.SECTION_CAP_HEIGHT + 8, "and five rows, the cap, a gap and the padding tall")
 
 -- The party header: the player first, then the party, five buttons made at Enable.
 local header = Headers.party
 same(G.Shown(header), { "player", "party1", "party2", "party3", "party4" }, "party units")
 assert(#children(header) >= 5, "the party header made its five buttons at Enable")
 eq(header._attributes.point, "TOP", "party frames stack downward")
-eq(header._attributes.yOffset, -8, "with 8-unit gaps, the Lumen row gap")
+eq(header._attributes.yOffset, -13, "with 13-unit gaps, the mock-up's 52-unit pitch")
 for g = 1, 8 do
 	assert(#children(Headers.raid[g]) >= 5, "raid group " .. g .. " made its five buttons at Enable, out of combat")
 end
 local w, h = children(header)[1]:GetSize()
--- The 278-unit row inside the 318 card keeps a lane for the three outside debuff icons, so they stay on the glass.
-eq(w, 278 - ns.Geometry.AuraLane(ns.Settings.current.party), "party buttons leave the debuff lane inside the 318 card")
-assert(w < 278, "the lane is reserved")
-eq(h, 40, "party buttons are 40 tall")
+-- The 259-unit party width keeps a lane for the outside debuff icons beside the mock-up's 194-unit row.
+eq(w, 259 - ns.Geometry.AuraLane(ns.Settings.current.party), "party buttons leave the debuff lane")
+eq(w, 194, "the mock-up's 194-unit row")
+eq(h, 39, "party buttons are 39 tall")
 
 local function content(unit)
 	for _, button in ipairs(children(header)) do
@@ -111,18 +113,28 @@ eq(env.Reveal(value[1]), 92, "the bar gets party1's health")
 local range = last(c.health, "SetMinMaxValues")
 eq(range[1], 0, "the bar starts at 0")
 eq(env.Reveal(range[2]), 100, "and ends at the secret maximum")
+-- KSTY-57: every bar is the mock-ups' one friendly green and the name carries the class colour; the class colour
+-- on the bar stays a setting.
 local color = last(c.health, "SetStatusBarColor")
+local gr0, gg0, gb0 = K.Tokens.Color("friendly")
+assert(near(color[1], gr0) and near(color[2], gg0) and near(color[3], gb0), "party1's bar is the friendly green")
 local warrior = G.CLASS_COLORS.WARRIOR
-assert(near(color[1], warrior[1]) and near(color[2], warrior[2]) and near(color[3], warrior[3]), "party1's bar is warrior coloured")
+local nr, ng, nb = c.name:GetTextColor()
+assert(near(nr, warrior[1]) and near(ng, warrior[2]) and near(nb, warrior[3]), "and its name is warrior coloured")
+K.Options.Write("GroupFrames", "health.colorSource", "class")
+env.RunTimers()
+color = last(c.health, "SetStatusBarColor")
+assert(near(color[1], warrior[1]) and near(color[2], warrior[2]) and near(color[3], warrior[3]), "the class colour setting colours the bar")
+K.Options.Write("GroupFrames", "health.colorSource", "custom")
+env.RunTimers()
 -- The tracks under the fills are the button body, the mockup's one dark tone under every bar (the bar grade's
 -- #101214 track), never the kit's translucent black.
 eq(c.health.unitBar and c.power.unitBar, true, "health and power are the clean unit bar")
 eq(c.health.under.track:IsShown() and c.health.under:GetStatusBarTexture():IsShown(), true, "health draws its dark track and the pale loss band under the fill")
 eq(c.power.under:GetStatusBarTexture():IsShown(), false, "power draws no loss band")
 eq(c.health.lowFill ~= nil and c.power.lowFill == nil, true, "only health turns red at low health")
--- The Lumen row shows no health number by default; the number's engine formatting is tested with it on.
-K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
-env.RunTimers()
+-- The percent shows at the bar's end by default (KSTY-57), formatted by the engine.
+eq(ns.Settings.current.party.healthText, "PERCENT", "the party shows the percent")
 local formatted = c.healthText._state.FormattedText
 assert(formatted, "the percent text is formatted by the engine")
 eq(formatted[1], "%.0f%%", "percent format")
@@ -166,7 +178,7 @@ eq(header._shown, false, "the party header hides in a raid")
 eq(#Headers.raid, 8, "eight raid headers")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "group 1")
 same(G.Shown(Headers.raid[3]), { "raid11", "raid12" }, "group 3")
-eq(Headers.raid[2]._points[1][4], 75, "group 2 sits 75 units right of group 1")
+eq(Headers.raid[2]._points[1][4] - Headers.raid[1]._points[1][4], 129, "group 2 sits a 116-unit cell and a 13-unit gap right of group 1")
 eq(content("raid7").rawName, "Member7", "raid names")
 -- Rank R5 (Grok #2, Muse #1): the missing health left the name lane for its own lane on the bar, so a raid name keeps
 -- the lane and stays whole. (Round 4 shortened it to "Me...7" beside the deficit.)
@@ -188,14 +200,14 @@ same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, 
 env.SetCombat(true)
 K.Options.Write("GroupFrames", "raid.width", 80)
 eq(#env._blocked, 0, "no protected call in combat: " .. tostring(env._blocked[1]))
-eq((children(Headers.raid[1])[1]:GetSize()), 72, "the size waits for the end of combat")
+eq((children(Headers.raid[1])[1]:GetSize()), 116, "the size waits for the end of combat")
 local members = G.Members(6)
 members[6].name = "Latecomer"
 G.SetRoster(env, "raid", members)
 eq(#env._blocked, 0, "a roster change in combat makes no protected call: " .. tostring(env._blocked[1]))
 eq(content("raid6").rawName, "Latecomer", "a roster change in combat updates the name")
 env.SetCombat(false)
-eq((children(Headers.raid[1])[1]:GetSize()), 80, "the size applies after combat")
+eq((children(Headers.raid[1])[1]:GetSize()), 80 + 16, "the size applies after combat, 16 wider for a raid of up to ten")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- Blizzard's frames are hidden through Safe, and come back when switched off.
@@ -274,6 +286,7 @@ eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 do
 	-- With the Lumen role ring on, the portrait and its disc step aside; the portrait look is tested with it off.
 	K.Options.Write("GroupFrames", "party.roleRing", false)
+	K.Options.Write("GroupFrames", "party.portrait", true)
 	env.RunTimers()
 	local p1 = content("party1")
 	assert(p1.badge:IsShown(), "the party frame shows its level disc")

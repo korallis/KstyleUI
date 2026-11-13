@@ -340,7 +340,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 end
 assert(refusedAt.buffs and refusedAt.bars, "the sweep reaches past the screen's capacity for both viewers")
-assert(placedAt.bars >= 24 and placedAt.buffs >= 40, "and there is room for 24 bars and 40 icons somewhere")
+-- KSTY-57: the raid's real card (543 by 401 at the top left, 623 wide for a healer) takes the room where the 31st
+-- to 40th icons used to go.
+assert(placedAt.bars >= 24 and placedAt.buffs >= 30, "and there is room for 24 bars and 30 icons somewhere")
 
 -- The reported case: Healer, 16 icons and 12 bars on the owner's screen. Both viewers fit whole, nothing is printed.
 do

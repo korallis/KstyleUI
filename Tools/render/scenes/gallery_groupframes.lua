@@ -223,8 +223,8 @@ local function raid(frames, x, y)
 	end
 	frames:Add(env, ns.Headers.holders.raid, {
 		name = "groupframes_raid", title = "Raid frames", grade = "panel", reference = "nameplate",
-		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 Lumen glass tiles with a whole name lane over a class-coloured bar that spans the tile and fills 60% of its height; your Renew and Power Word: Shield on the name line's right end, never on the fill; the role icon, leader crown and missing health in the bar's left corner, with the status lane over the role icon showing the first tank's external defensive and Garrok's big defensive; Ysra's six debuffs two by two at 12 units over the bar's right end, three icons and a +3 chip on the last cell, and her boss debuff also in the centred 16-unit slot; a shield line under two bars, a Magic debuff you can dispel washing Ilyra's tile, Dead and Offline centred on the emptied bar, and the first tank's threat glow; role icons and the leader crown are Blizzard atlases from the atlas cache.",
-		match = "Glass fill, one-line edge and 3.5-unit chamfer as the party rows and the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
+		caption = "Twenty raid frames in four groups of five on the secure raid headers, seated in the raid's quest card (KSTY-57): 116 by 36 rows, each a name line (the role pip, the class-coloured name, your Renew and Power Word: Shield, the percent at the bar's end) over a full-width 11-unit bar and a 2-unit power line; the first tank's external defensive and Garrok's big defensive in the indicator lane at the name line's end, off the bar; Ysra's six debuffs in a row of three at 12 units over the bar's right end, two icons and a +4 chip on the last cell, and her boss debuff also in the centred slot; a shield line under two bars, a Magic debuff you can dispel washing Ilyra's row, Dead and Offline in the percent's place, and the first tank's threat glow; the leader crown is a Blizzard atlas from the atlas cache.",
+		match = "The KSTY-47 raid mock-up at 20 players (renders/KSTY-47/raid-mockup): the quest card's window chrome round the groups, bare rows on it with clean bars; the mock-up draws Cinzel capitals, the module keeps its compact face where a twelve-letter name would not fit.",
 		rect = Gallery.Union(env, shown),
 	})
 	local scene = Gallery.Build(env)
@@ -284,26 +284,26 @@ return Common.Run(function()
 	local tiles = { tank.auraClip, tank.auraClip }
 	frames:Add(env, tank, {
 		name = "groupframes_unit", title = "Party unit", grade = "panel", reference = "nameplate",
-		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, a 13-unit external defensive indicator between the name and the pill, five of your heals on the name line's right end, wholly above the pill, with a + for the two it cannot hold, the threat glow, and eight debuffs of which the six cells to its right show the dispellable one (washed in the Magic colour), the two boss debuffs and two others, with a +3 chip on the last cell; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
-		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow as the mockup's nameplate frame; the aura tiles are the button grade as the mockup's buff icons, with the class accent rim.",
+		caption = "One party frame close up, the tank Thaldren, bare on the world (KSTY-57): the role pip, the warrior-coloured name and the percent at the bar's end on the name line, five of your heals on its right end with a + for the two it cannot hold, a 13-unit external defensive in the indicator lane, the friendly-green bar under it with incoming heals and an absorb after the fill and a heal absorb eating back from the fill's end in red, the 3-unit power line, the threat glow, and eight debuffs of which the six cells to its right show the dispellable one (washed in the Magic colour), the two boss debuffs and two others, with a +3 chip on the last cell; the leader crown is a Blizzard atlas from the atlas cache.",
+		match = "The KSTY-44 party mock-up (detail-party-frames-clean-bars): pip, name and percent over a clean 12-unit bar and a thin power line, no tile; the aura tiles are the button grade, with the class accent rim.",
 		rect = Gallery.Union(env, { tank, tiles[1], tiles[2] }),
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (five shown in two rows and a +3 chip on the last cell, all inside the card), five heals on the tank's name line, clear of the pill that runs the row, with a + for the two that do not fit, the external defensive at 13 units between the name and the pill, a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the star marker in the name row (a skull there read as a second dead state); each member's role icon and the tank's leader crown are Blizzard atlases and the star a cell of Blizzard's marker sheet, all from the texture cache.",
-		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
+		caption = "The five-player party on the secure party header, the player first, bare on the world as the KSTY-44 mock-up draws it: each row a role pip, a class-coloured name and the percent over a friendly-green bar and a thin power line, the tank with aggro and eight debuffs outside right (five shown and a +3 chip), five heals on the tank's name line with a + for the two that do not fit, the external defensive in the indicator lane, a heal absorb, a healer, a dead shaman reading Dead in the percent's place with a dimmed name, and a mage with the star marker in the pip column beside the bar; the star is a cell of Blizzard's marker sheet from the texture cache.",
+		match = "The KSTY-44 party mock-up: 194-unit rows at a 52-unit pitch, no card and no tiles.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})
 
 	-- The options page's live preview: three sample party frames and two sample raid groups.
 	local pane = env.CreateFrame("Frame", nil, root)
-	at(pane, 460, 90, 280, 500)
+	at(pane, 660, 90, 280, 500)
 	local preview = K.Options.Preview("GroupFrames")(pane)
 	assert(#preview.partyFrames == 3 and #preview.raidFrames == 4, "the preview builds its samples")
 	frames:Add(env, preview, {
 		name = "groupframes_preview", title = "Group frames preview", grade = "panel", reference = "nameplate",
-		caption = "Preview.lua, the options page's live preview at the settings window's default size: three sample party frames (a tank with aggro carrying two debuffs, two of your heals on the name line, a shield line, a heal absorb and an external defensive indicator at once; a healer with the Magic dispel highlight and a crowd control indicator; a targeted shaman) over four raid tiles at true scale (the tank with a boss debuff in the centred slot, the Magic-washed healer, a paladin with nine debuffs, three shown and a +6 chip, a dead mage), and under them the click casting panel: the game's Click Casting bindings, a slot to drop a spell on and a button to the game's own window.",
-		match = "Party tiles on the glass with the two-line edge, 3.5-unit chamfer and shadow, raid tiles without the shadow, as the live frames; the dispel highlight washes a tile in the debuff colour.",
+		caption = "Preview.lua, the options page's live preview at the settings window's default size: three sample party rows in KSTY-57's lanes (a tank with aggro carrying two debuffs, two of your heals on the name line, a shield line, a heal absorb and an external defensive in the indicator lane at once; a healer with the Magic dispel highlight and a crowd control indicator; a targeted shaman) over four raid rows at true scale (the tank with a boss debuff in the centred slot, the Magic-washed healer, a paladin with nine debuffs, two shown and a +7 chip, a dead mage), and under them the click casting panel: the game's Click Casting bindings, a slot to drop a spell on and a button to the game's own window.",
+		match = "Bare rows as the live frames draw them: no tiles, the dispel highlight washing a row in the debuff colour.",
 	})
 
 	env.RunTimers()

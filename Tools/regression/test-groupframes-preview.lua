@@ -40,13 +40,16 @@ eq(formatted and formatted[1], "%d%%", "party samples show percent health when t
 K.Options.Write("GroupFrames", "party.healthText", "NONE")
 preview:Refresh()
 eq(formatted and formatted[2], 72, "the sample's percent (the tank sample is at 72% so its heal absorb shows inside the fill)")
-eq(preview.partyFrames[1]:GetWidth(), 278 - ns.Geometry.AuraLane(ns.Settings.current.party), "party samples use the party width less the debuff lane, as the live frames do")
-eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
+eq(preview.partyFrames[1]:GetWidth(), 259 - ns.Geometry.AuraLane(ns.Settings.current.party), "party samples use the party width less the debuff lane, as the live frames do")
+eq(preview.raidFrames[1]:GetWidth(), 116, "raid samples use the raid width")
 
 -- Samples show the status icons, the threat border and incoming heals.
 local tank = preview.partyFrames[1]
-eq(tank.roleText:GetText(), "T", "the sample tank's ring reads its role")
-eq(tank.role:IsShown(), false, "so no second role icon shows")
+eq(tank.pipFill:IsShown(), true, "the sample tank shows its role pip (KSTY-57)")
+local pr, pg, pb = tank.pipFill:GetVertexColor()
+local tr, tg, tb = K.Tokens.Color("rare")
+assert(pr == tr and pg == tg and pb == tb, "in the tank's blue")
+eq(tank.role:IsShown(), false, "so no role atlas shows")
 eq(tank.threat:IsShown(), true, "the sample tank has aggro")
 local glow = tank.threatGlow.slice[1]._state.VertexColor
 local hr, hg, hb = K.Theme.ThreatColor(3)
@@ -75,9 +78,13 @@ eq(preview.raidFrames[1]:GetWidth(), 90, "the raid width follows the setting")
 formatted = preview.partyFrames[1].healthText._state.FormattedText
 -- The samples abbreviate as the live frames do (41.8k / 41.8k), so the format takes strings.
 eq(formatted and formatted[1], "%s / %s", "the health text follows the setting")
+K.Options.Write("GroupFrames", "party.portrait", true)
+K.Options.Write("GroupFrames", "party.roleRing", false)
+preview:Refresh()
+eq(preview.partyFrames[1].portrait:IsShown(), true, "portraits follow the setting")
 K.Options.Write("GroupFrames", "party.portrait", false)
 preview:Refresh()
-eq(preview.partyFrames[1].portrait:IsShown(), false, "portraits follow the setting")
+eq(preview.partyFrames[1].portrait:IsShown(), false, "and go with it")
 
 -- With no spacing, sample frames still sit edge to edge.
 K.Options.Write("GroupFrames", "party.spacing", 0)

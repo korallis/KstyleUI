@@ -71,7 +71,7 @@ local ELEMENTS = {
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
 	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
-	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 318, height = 427 },
+	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 401 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
 	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], grid = true },
@@ -203,12 +203,7 @@ local DPS = {
 local CHANGES = {
 	DPS = {},
 	Tank = {},
-	Healer = {
-		["groupframes.party"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
-		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
-		["unitframes.boss"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
-		["combattext.player"] = { anchor = "BOTTOM", x = CAST_HALF + GAP + 160 / 2, y = CLUSTER_TOP + GAP },
-	},
+	Healer = {},
 }
 
 local SIZES = {
@@ -222,7 +217,7 @@ local SIZES = {
 	},
 	Healer = {
 		["groupframes.party"] = { RAIL, 354 },
-		["groupframes.raid"] = { RAIL, 487 },
+		["groupframes.raid"] = { 623, 401 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { THREAT_W, THREAT_H },
 		["chat.main"] = { RAIL, 186 },
@@ -265,9 +260,7 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
 	{ module = "DataBars", key = "strip.menus", value = false },
-	{ module = "GroupFrames", key = "party.spacing", value = 8 },
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
-	{ module = "GroupFrames", key = "raid.width", value = 77 },
 }
 local GRID_ORDER = { "bar1", "bar2", "bar3", "bar4", "bar5", "bar6", "pet", "stance" }
 for i = #GRID_ORDER, 1, -1 do
@@ -290,15 +283,15 @@ local EXTRA = {
 	Healer = {
 		{ module = "GroupFrames", key = "party.auraDispelCount", value = 2 },
 		{ module = "GroupFrames", key = "raid.auraDispelCount", value = 2 },
-		{ module = "UnitFrames", key = "boss.auraPosition", value = "RIGHT" },
-		{ module = "UnitFrames", key = "boss.auraGrowth", value = "RIGHT_DOWN" },
-		{ module = "UnitFrames", key = "boss.growth", value = "DOWN" },
+		{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
+		{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
+		{ module = "UnitFrames", key = "boss.growth", value = "UP" },
 	},
 }
 local ROWS = {
-	DPS = { party = 40, raid = 40 },
-	Tank = { party = 40, raid = 40 },
-	Healer = { party = 46, raid = 46 },
+	DPS = { party = 39, raid = 36 },
+	Tank = { party = 39, raid = 36 },
+	Healer = { party = 43, raid = 36 },
 }
 
 
@@ -307,7 +300,7 @@ local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
 	DPS = L["Lumen Rails: party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
 	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
-	Healer = L["Larger party and raid frames beside the combat cluster, dispellable debuffs first; the boss cards head the left rail, the quests and the damage meter stand under your buffs."],
+	Healer = L["The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first."],
 }
 
 local OFFSETS = {
@@ -606,6 +599,21 @@ local TRAY_OLD = {
 	["databars.rep"] = { "BOTTOM", -OLD_ENDS, 52 },
 	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
 }
+
+local HEALER_OLD = {
+	["groupframes.party"] = { "BOTTOM", HEALER_X, HEALER_Y },
+	["groupframes.raid"] = { "BOTTOM", HEALER_X, HEALER_Y },
+	["unitframes.boss"] = { "TOPLEFT", MARGIN, -MARGIN },
+	["combattext.player"] = { "BOTTOM", CAST_HALF + GAP + 160 / 2, CLUSTER_TOP + GAP },
+}
+
+function Layouts.HealerMoves()
+	local out = {}
+	for key, place in pairs(HEALER_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	return out
+end
 
 function Layouts.TrayMoves(name)
 	local layout = layouts[name]

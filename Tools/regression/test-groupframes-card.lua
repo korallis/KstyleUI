@@ -1,4 +1,4 @@
--- test-groupframes-card.lua: the Lumen party card: a section cap with Party and the count over the member rows, each a role ring in the class colour, a name, a class and level caption and a class pill, with the raid frames in the same language.
+-- test-groupframes-card.lua: the cards round the group frames: by default (KSTY-57) the party stands bare and the raid sits in a quest card whose cap counts the raid and that hugs the groups in use, in combat too; with the card turned on, the Lumen party card of KSTY-31 (a section cap with Party and the count over the member rows, each a role ring in the class colour, a name, a class and level caption and a class pill) is still a choice.
 local G = dofile("Tools/regression/group_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 
@@ -24,7 +24,31 @@ assert(K.Modules.Enable("GroupFrames"), "the module switches on")
 env.RunTimers()
 eq(#env._errors, 0, "Enable raised no error: " .. tostring(env._errors[1]))
 
--- Defaults: a 278 row for the 318 card, one class pill, no power bar, the class and level caption on.
+-- KSTY-57 defaults: the party stands bare on the world, as the KSTY-44 mock-up draws it: no card, no tile, its
+-- holder the rows themselves.
+do
+	local s = Settings.current.party
+	eq(s.card, false, "the party has no card by default")
+	assert(not Headers.cards.party.frame:IsShown(), "so its card is hidden")
+	local geo = ns.Geometry.Party(s)
+	local w, h = Headers.holders.party:GetSize()
+	assert(near(w, geo.width) and near(h, geo.height), "the holder is the rows: " .. tostring(w) .. " by " .. tostring(h))
+	local hp = Headers.party._points[1]
+	assert(hp[1] == geo.corner and near(hp[4], 0) and near(hp[5], 0), "the header hangs from the holder's corner")
+end
+
+-- The Lumen party card of KSTY-31 stays a choice: the card on, the portrait slot holding the role ring, the class
+-- and level caption, the class pill and no power bar or health number.
+for key, value in pairs({
+	["party.card"] = true, ["party.portrait"] = true, ["party.roleRing"] = true, ["party.classLine"] = true, ["party.power"] = false,
+	["party.width"] = 278, ["party.height"] = 40, ["party.spacing"] = 8, ["party.nameSize"] = 11, ["party.healthText"] = "NONE",
+	["text.nameColorSource"] = "text", ["health.colorSource"] = "class",
+}) do
+	K.Options.Write("GroupFrames", key, value)
+end
+env.RunTimers()
+
+-- That look: a 278 row for the 318 card, one class pill, no power bar, the class and level caption on.
 local s = Settings.current.party
 eq(s.width, 278, "a party row is 278 wide, the 318 card inside its 20 padding")
 eq(s.power, false, "no power bar under the pill")
@@ -138,10 +162,66 @@ assert(not f.classLine:IsShown(), "the caption can be turned off")
 K.Options.Write("GroupFrames", "party.roleRing", true)
 K.Options.Write("GroupFrames", "party.classLine", true)
 
--- Raid frames: compact rows in the same language, a thin pill under the name, no card of their own.
-local raid = Settings.current.raid
-assert(raid.roleRing == false and raid.classLine == false, "raid frames keep their compact face")
-assert(Headers.cards.raid == nil, "no card round the raid frames: they are the compact grid")
-
 eq(#env._errors, 0, tostring(env._errors[1]))
+
+-- KSTY-57: the raid sits in a quest card, as the KSTY-47 raid mock-ups draw it at 10, 20 and 40: the window chrome
+-- and a cap reading Raid with the raid's size aside, the groups hanging under the cap inside the 20 padding, and a
+-- card that hugs the groups in use while the holder keeps the eight-group footprint Layout places.
+do
+	local renv, RK, rns = G.New()
+	G.SetRoster(renv, "raid", G.Members(12))
+	assert(RK.Modules.Enable("GroupFrames"))
+	renv.RunTimers()
+	W.Settle(renv)
+	local rs = rns.Settings.current.raid
+	local rcard, rholder = rns.Headers.cards.raid, rns.Headers.holders.raid
+	eq(rs.card, true, "the raid has a card by default")
+	assert(rcard and rcard.frame:IsShown() and rcard.chrome and rcard.cap, "a shown card with a chrome and a section cap")
+	assert(rcard.frame:GetParent() == rns.Headers.raid[1], "the card is the first raid header's child, so the secure driver hides it with the raid")
+	assert(rcard.frame:GetFrameLevel() <= rns.Headers.raid[1]:GetFrameLevel(), "and draws under the raid's rows")
+	eq(rcard.cap.title:GetText(), "RAID", "the cap reads Raid")
+	eq(rcard.cap.aside:GetText(), "12", "the aside counts the raid")
+	local cap = RK.Widgets.SECTION_CAP_HEIGHT
+	local full = rns.Geometry.RaidGroups(rs)
+	local fw, fh = rholder:GetSize()
+	assert(near(fw, full.width + 40) and near(fh, full.height + 40 + cap + 8), "the holder keeps the eight groups' footprint")
+	local first = rns.Headers.raid[1]._points[1]
+	assert(first[1] == full.corner and near(first[4], 20) and near(-first[5], 20 + cap + 8), "group 1 hangs under the cap inside the padding")
+	local function cardFor(groups)
+		local shown = rns.Geometry.RaidGroups(rs, groups)
+		return shown.width + 40, shown.height + 40 + cap + 8
+	end
+	local w3, h3 = cardFor(3)
+	assert(near(rcard.frame:GetWidth(), w3) and near(rcard.frame:GetHeight(), h3), "twelve members in three groups make a three-group card: " .. tostring(rcard.frame:GetWidth()))
+	-- Eight join in combat: the card widens to five groups with no protected call.
+	renv._combat = true
+	G.SetRoster(renv, "raid", G.Members(20))
+	renv.RunTimers()
+	W.Settle(renv)
+	eq(#renv._blocked, 0, "resizing the raid card in combat touches nothing protected: " .. tostring(renv._blocked[1]))
+	local w4 = cardFor(4)
+	assert(near(rcard.frame:GetWidth(), w4), "twenty members make a four-group card: " .. tostring(rcard.frame:GetWidth()))
+	eq(rcard.cap.aside:GetText(), "20", "and the cap counts twenty")
+	renv._combat = false
+	renv.RunTimers()
+	-- A member alone in group 7 widens the card to the seventh group.
+	local members = G.Members(11)
+	members[11].group = 7
+	G.SetRoster(renv, "raid", members)
+	renv.RunTimers()
+	W.Settle(renv)
+	assert(near(rcard.frame:GetWidth(), (cardFor(7))), "the card reaches the highest group in use")
+	-- The card can be turned off: the raid stands bare and its holder is the groups.
+	RK.Options.Write("GroupFrames", "raid.card", false)
+	renv.RunTimers()
+	assert(not rcard.frame:IsShown(), "the card hides")
+	fw, fh = rholder:GetSize()
+	assert(near(fw, full.width) and near(fh, full.height), "and the holder is the groups")
+	first = rns.Headers.raid[1]._points[1]
+	assert(near(first[4], 0) and near(first[5], 0), "group 1 hangs from the holder's corner")
+	-- A raid row wears no tile of its own in the lanes layout.
+	local lead = rns.Button.Content(rns.Headers.raid[1]._attributes.child1)
+	assert(lead and lead.tileless and not lead.chrome.fill[5]:IsShown(), "a raid row wears no tile: the card is the glass")
+	eq(#renv._errors, 0, tostring(renv._errors[1]))
+end
 print("groupframes card ok")

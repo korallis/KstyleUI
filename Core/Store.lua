@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 28
+Store.DB_VERSION = 29
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -726,6 +726,52 @@ Store.migrations[28] = function(data)
 			end
 			if next(entry) == nil then
 				layout["nameplates.plate"] = nil
+			end
+		end
+	end
+end
+
+local HEALER_BOSS_AURAS = { auraPosition = { "RIGHT", "LEFT" }, auraGrowth = { "RIGHT_DOWN", "LEFT_DOWN" }, growth = { "DOWN", "UP" } }
+local GROUP_ROWS = {
+	party = { height = { [40] = false, [46] = 43 }, spacing = { [8] = false } },
+	raid = { width = { [77] = false }, height = { [40] = false, [46] = false } },
+}
+Store.migrations[29] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local group = type(profile) == "table" and profile.GroupFrames
+		for kind, keys in pairs(type(group) == "table" and GROUP_ROWS or {}) do
+			local saved = group[kind]
+			for key, map in pairs(type(saved) == "table" and keys or {}) do
+				local to = map[saved[key]]
+				if to ~= nil then
+					saved[key] = to or nil
+				end
+			end
+		end
+	end
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local moves = layouts and type(layouts.HealerMoves) == "function" and layouts.HealerMoves()
+	for name, layout in pairs(moves and type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles) == "table" and data.profiles[name]
+		local section = type(profile) == "table" and type(profile.Layout) == "table" and profile.Layout or {}
+		if section.preset == "Healer" and type(layout) == "table" then
+			for key in pairs(moves) do
+				local entry = layout[key]
+				if type(entry) == "table" then
+					railEntry(entry, key, nil, moves)
+					if next(entry) == nil then
+						layout[key] = nil
+					end
+				end
+			end
+			local boss = layout["unitframes.boss"]
+			local frames = type(profile.UnitFrames) == "table" and profile.UnitFrames.boss
+			if (boss == nil or boss.anchor == nil) and type(frames) == "table" then
+				for field, flip in pairs(HEALER_BOSS_AURAS) do
+					if frames[field] == flip[1] then
+						frames[field] = flip[2]
+					end
+				end
 			end
 		end
 	end
