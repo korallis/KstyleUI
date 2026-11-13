@@ -164,11 +164,11 @@ do
 	})
 	local power = ns.Orbs.Get("power")
 	assert(power, "Orbs builds the resource orb")
-	local r, g, b = power.bar:GetStatusBarColor()
-	local qr, qg, qb = K.Tokens.Color("orbRage")
-	assert(near(r, qr, 1e-6) and near(g, qg, 1e-6) and near(b, qb, 1e-6), "rage fills the orb with orbRage")
-	local _, hg = K.Tokens.Color("orbHealth")
-	assert(g - hg > 0.25, "rage reads amber beside the red health orb, green " .. tostring(g))
+	local r, g = power.bar:GetStatusBarColor()
+	local qr, qg = K.Tokens.Color("orbRage")
+	assert(near(g / r, qg / qr, 1e-6), "rage fills the orb with the orbRage hue")
+	local hr, hg = ns.Orbs.Get("health").bar:GetStatusBarColor()
+	assert(g - hg > 0.25 and g / r > 0.35, "rage reads amber beside the red health orb: " .. r .. ", " .. g .. " against " .. hr .. ", " .. hg)
 	noErrors(env, K, "rage")
 end
 

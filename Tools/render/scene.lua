@@ -1088,7 +1088,7 @@ function Scene.Build(env, opts)
 	end
 
 	local function masks(region)
-		if not region._masks or #region._masks == 0 then
+		if not region._masks or #region._masks == 0 or not solver:rect(region) then
 			return nil
 		end
 		local out = {}

@@ -1,4 +1,4 @@
--- Orbs.lua: the Orbs HUD style: health and resource orbs either side of action bar 1, each a vertical status bar under a round mask that the engine eases, a pale band for health just lost, the value in the number face.
+-- Orbs.lua: the Orbs HUD style: health and resource orbs either side of action bar 1, each a vertical status bar under a round mask that the engine eases, glass tinted by its liquid, a curved lit surface on the liquid, a pale band for health just lost that holds before it eases, the value in the number face, and the player's level in a diamond on the tray's crest.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,15 +14,22 @@ local OPENING = 0.701
 local TRAY_STRATA = "BACKGROUND"
 local HOLE_ALPHA = 0.88
 local EDGE = 2
-local SURFACE_HEIGHT = 14
-local SURFACE_ALPHA = 0.8
+local SURFACE_SHARE = 0.25
+local CAP_SHARE = 0.9
+local CAP_ALPHA = 0.7
+local SURFACE_LIFT = 0.18
+local LIQUID_GAIN = 1.15
+local BACK_FLOOR, BACK_SHARE = 0.06, 0.15
+local DIAMOND_LINE = 2
+local DIAMOND_LIGHT = 0.06
+local DIAMOND_TONES = { { "black", 1 }, { "gilt", 0.8 }, { "black", 1 }, { "materialForged", 1 } }
 local VALUE_SIZE = 17
 local VALUE_DROP = 0.22
 local VALUE_FLAGS = "OUTLINE"
 local HEALTH_FORMAT, POWER_FORMAT = "currentMax", "percent"
 local STRATA = "LOW"
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
-local LEVEL_LOSS, LEVEL_FILL, LEVEL_GLASS = 1, 2, 3
+local DEPTH_LOSS, DEPTH_RECENT, DEPTH_FILL, DEPTH_GLASS = 1, 2, 3, 4
 local KINDS = { "health", "power" }
 local NEEDED = { "SetOrientation", "SetStatusBarTexture", "GetStatusBarTexture", "SetMinMaxValues", "SetValue" }
 
@@ -64,9 +71,9 @@ local function Supports(bar)
 	return true
 end
 
-local function NewBar(orb, level)
+local function NewBar(orb, depth)
 	local bar = CreateFrame("StatusBar", nil, orb)
-	bar:SetFrameLevel(orb:GetFrameLevel() + level)
+	bar:SetFrameLevel(orb:GetFrameLevel() + depth)
 	bar:SetPoint("CENTER", orb, "CENTER", 0, 0)
 	local ok, missing = Supports(bar)
 	if not ok then
@@ -88,6 +95,32 @@ local function NewBar(orb, level)
 	return bar
 end
 
+local function Ride(bar, sublevel, name)
+	local region = bar:CreateTexture(nil, "OVERLAY", nil, sublevel)
+	region:SetTexture(Texture(name))
+	region:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
+	if bar.mask then
+		region:AddMaskTexture(bar.mask)
+	end
+	return region
+end
+
+local function ReleaseLoss(orb)
+	SetBarValue(orb.loss, orb.lossValue, true)
+	SetBarValue(orb.recent, orb.lossValue, true)
+end
+
+local function NewHold(orb)
+	local group = orb:CreateAnimationGroup()
+	local hold = group:CreateAnimation("Translation")
+	hold:SetOffset(0, 0)
+	hold:SetDuration(K.Tokens.Duration("lossHold"))
+	group:SetScript("OnFinished", function()
+		ReleaseLoss(orb)
+	end)
+	return group
+end
+
 local function NewOrb(kind)
 	local orb = CreateFrame("Frame", nil, K.Scale.Root())
 	orb:SetFrameStrata(STRATA)
@@ -96,27 +129,25 @@ local function NewOrb(kind)
 	orb.back = orb:CreateTexture(nil, "BACKGROUND")
 	orb.back:SetTexture(Texture("orbBack"))
 	orb.back:SetPoint("CENTER", orb, "CENTER", 0, 0)
-	local bar, missing = NewBar(orb, LEVEL_FILL)
+	local bar, missing = NewBar(orb, DEPTH_FILL)
 	if not bar then
 		return nil, missing
 	end
 	orb.bar = bar
 	if kind == "health" then
-		orb.loss, missing = NewBar(orb, LEVEL_LOSS)
+		orb.loss, missing = NewBar(orb, DEPTH_LOSS)
 		if not orb.loss then
 			return nil, missing
 		end
+		orb.recent = NewBar(orb, DEPTH_RECENT)
+		orb.lossCap = Ride(orb.loss, 0, "orbSurface")
+		orb.hold = NewHold(orb)
 	end
-	local surface = orb.bar:CreateTexture(nil, "OVERLAY")
-	surface:SetTexture(Texture("orbSurface"))
-	surface:SetPoint("CENTER", orb.bar:GetStatusBarTexture(), "TOP", 0, 0)
-	if orb.bar.mask then
-		surface:AddMaskTexture(orb.bar.mask)
-	end
-	orb.surface = surface
+	orb.surface = Ride(bar, 0, "orbSurface")
+	orb.surfaceLight = Ride(bar, 1, "orbSurfaceLight")
 	local top = CreateFrame("Frame", nil, orb)
 	top:SetAllPoints(orb)
-	top:SetFrameLevel(orb:GetFrameLevel() + LEVEL_GLASS)
+	top:SetFrameLevel(orb:GetFrameLevel() + DEPTH_GLASS)
 	orb.glass = top:CreateTexture(nil, "ARTWORK")
 	orb.glass:SetTexture(Texture("orbGlass"))
 	orb.glass:SetPoint("CENTER", orb, "CENTER", 0, 0)
@@ -147,6 +178,19 @@ local function NewTray()
 	frame.armRight:SetTexCoord(1, 0, 0, 1)
 	frame.crest = frame:CreateTexture(nil, "OVERLAY")
 	frame.crest:SetTexture(Texture("orbCrest"))
+	local level = CreateFrame("Frame", nil, frame)
+	level:SetFrameLevel(frame:GetFrameLevel() + 1)
+	frame.level = level
+	frame.levelLayers = {}
+	for i = 1, #DIAMOND_TONES do
+		local layer = level:CreateTexture(nil, "ARTWORK", nil, i)
+		layer:SetTexture(Texture("diamond"))
+		frame.levelLayers[i] = layer
+	end
+	frame.levelText = K.Widgets.FontString(level, "OVERLAY")
+	frame.levelText:SetJustifyH("CENTER")
+	frame.levelText:SetJustifyV("MIDDLE")
+	frame.levelText:SetWordWrap(false)
 	return frame
 end
 
@@ -268,6 +312,28 @@ local function Hang(x, y, clamped)
 	end
 end
 
+local function PlaceLevel(art)
+	local Widgets, Tokens = K.Widgets, K.Tokens
+	local level = tray.level
+	level:SetFrameLevel(tray:GetFrameLevel() + 1)
+	Piece(level, Snapped(art.level))
+	local line = Widgets.Border(level) * DIAMOND_LINE
+	for i, layer in ipairs(tray.levelLayers) do
+		local inset = line * (i - 1)
+		layer:ClearAllPoints()
+		layer:SetPoint("TOPLEFT", level, "TOPLEFT", inset, -inset)
+		layer:SetPoint("BOTTOMRIGHT", level, "BOTTOMRIGHT", -inset, inset)
+	end
+	local text = tray.levelText
+	local size = art.levelText * K.Theme.FontScale()
+	if not Widgets.ApplyFont(text, (Tokens.Font("number")), size, "") then
+		Widgets.ApplyFont(text, (Tokens.Font("body")), size, "")
+	end
+	text:SetTextColor(Tokens.Color("giltLit"))
+	text:ClearAllPoints()
+	Widgets.Point(text, "CENTER", level, "CENTER", 0, 0)
+end
+
 local function PlaceTray()
 	local x, y, art, clamped = Assembly()
 	Hang(x, y, clamped)
@@ -279,6 +345,7 @@ local function PlaceTray()
 	local arm = Snapped(art.arm)
 	Piece(tray.armLeft, arm)
 	Piece(tray.armRight, arm, true)
+	PlaceLevel(art)
 	tray:SetShown(active and TrayWanted())
 end
 
@@ -296,11 +363,25 @@ function Place()
 		K.Widgets.Size(orb.bar, hole, hole)
 		if orb.loss then
 			K.Widgets.Size(orb.loss, hole, hole)
+			K.Widgets.Size(orb.recent, hole, hole)
+			K.Widgets.Size(orb.lossCap, hole, hole * SURFACE_SHARE * CAP_SHARE)
 		end
-		K.Widgets.Size(orb.surface, hole, SURFACE_HEIGHT)
+		K.Widgets.Size(orb.surface, hole, hole * SURFACE_SHARE)
+		K.Widgets.Size(orb.surfaceLight, hole, hole * SURFACE_SHARE)
 		orb.value:ClearAllPoints()
 		K.Widgets.Point(orb.value, "CENTER", orb, "CENTER", 0, -hole * VALUE_DROP)
 	end
+end
+
+local function Back(r, g, b)
+	return BACK_FLOOR + BACK_SHARE * r, BACK_FLOOR + BACK_SHARE * g, BACK_FLOOR + BACK_SHARE * b
+end
+
+local function Tint(orb, r, g, b)
+	orb.back:SetVertexColor(Back(r, g, b))
+	r, g, b = math.min(1, r * LIQUID_GAIN), math.min(1, g * LIQUID_GAIN), math.min(1, b * LIQUID_GAIN)
+	orb.bar:SetStatusBarColor(r, g, b)
+	orb.surface:SetVertexColor(K.Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, SURFACE_LIFT))
 end
 
 local function Restyle()
@@ -312,30 +393,64 @@ local function Restyle()
 			Widgets.ApplyFont(orb.value, (Tokens.Font("body")), size, VALUE_FLAGS)
 		end
 		orb.value:SetTextColor(Tokens.Color("textEmphasis"))
-		orb.surface:SetVertexColor(Widgets.Rgba("white", SURFACE_ALPHA))
 	end
 	local health = orbs.health
-	health.bar:SetStatusBarColor(Tokens.Color("orbHealth"))
-	health.loss:SetStatusBarColor(Tokens.Color("orbLoss"))
+	local r, g, b = Tokens.Color("orbHealth")
+	Tint(health, r, g, b)
+	local br, bg, bb = Back(r, g, b)
+	local lr, lg, lb, la = Tokens.Color("orbLoss")
+	health.loss:SetStatusBarColor(Widgets.Mix(br, bg, bb, 1, lr, lg, lb, 1, la))
+	health.recent:SetStatusBarColor(Widgets.Mix(br, bg, bb, 1, lr, lg, lb, 1, la))
+	health.lossCap:SetVertexColor(lr, lg, lb, CAP_ALPHA)
+	for i, tone in ipairs(DIAMOND_TONES) do
+		Widgets.Tint(tray.levelLayers[i], tone[1], tone[2])
+	end
+	r, g, b = Tokens.Color("materialForged")
+	tray.levelLayers[#DIAMOND_TONES]:SetVertexColor(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, DIAMOND_LIGHT))
+end
+
+local function OrbPowerColor()
+	local _, token = UnitPowerType("player")
+	if not issecretvalue(token) and token == "MANA" then
+		return K.Tokens.Color("orbMana")
+	end
+	if not issecretvalue(token) and token == "RAGE" then
+		return K.Tokens.Color("orbRage")
+	end
+	return Unit.PowerTypeColor("player", true)
 end
 
 local function PowerColor()
-	local _, token = UnitPowerType("player")
-	if not K.Widgets.IsSecret(token) and token == "RAGE" then
-		orbs.power.bar:SetStatusBarColor(K.Tokens.Color("orbRage"))
-		return
-	end
-	orbs.power.bar:SetStatusBarColor(Unit.PowerTypeColor("player", true))
+	local r, g, b = OrbPowerColor()
+	Tint(orbs.power, r, g, b)
 end
 
 local function Health(eased)
 	local orb = orbs.health
 	local max, value = UnitHealthMax("player"), UnitHealth("player")
 	orb.bar:SetMinMaxValues(0, max)
-	orb.bar:SetValue(value)
 	orb.loss:SetMinMaxValues(0, max)
-	SetBarValue(orb.loss, value, eased)
+	orb.recent:SetMinMaxValues(0, max)
+	orb.bar:SetValue(value)
+	if eased and orb.lossKnown and Ease() then
+		if not orb.hold:IsPlaying() then
+			orb.loss:SetValue(orb.lossValue)
+		end
+		orb.recent:SetValue(orb.lossValue)
+		orb.lossValue = value
+		orb.hold:Stop()
+		orb.hold:Play()
+	else
+		orb.hold:Stop()
+		orb.loss:SetValue(value)
+		orb.recent:SetValue(value)
+		orb.lossValue, orb.lossKnown = value, true
+	end
 	Format.Health(orb.value, "player", HEALTH_FORMAT)
+end
+
+local function Level(level)
+	tray.levelText:SetText(level or UnitLevel("player"))
 end
 
 local function Power(eased)
@@ -349,6 +464,7 @@ local function Refresh()
 	PowerColor()
 	Health(false)
 	Power(false)
+	Level()
 end
 
 local HANDLERS = {
@@ -356,7 +472,7 @@ local HANDLERS = {
 		Health(true)
 	end,
 	UNIT_MAXHEALTH = function()
-		Health(true)
+		Health(false)
 	end,
 	UNIT_POWER_UPDATE = function()
 		Power(true)
@@ -367,6 +483,9 @@ local HANDLERS = {
 	UNIT_DISPLAYPOWER = function()
 		PowerColor()
 		Power(false)
+	end,
+	UNIT_LEVEL = function()
+		Level()
 	end,
 }
 
@@ -392,6 +511,9 @@ local function Listen()
 		Place()
 		Refresh()
 	end)
+	Events.Register(OWNER, "PLAYER_LEVEL_UP", function(_, level)
+		Level(level)
+	end)
 	Callbacks.Register("LayoutChanged", OWNER, OnLayoutChanged)
 	Callbacks.Register("ThemeChanged", OWNER, OnTheme)
 	Callbacks.Register("ScaleChanged", OWNER, OnTheme)
@@ -405,6 +527,8 @@ end
 local function Quiet()
 	K.Events.UnregisterAll(OWNER)
 	K.Callbacks.UnregisterAll(OWNER)
+	orbs.health.hold:Stop()
+	orbs.health.lossKnown = false
 end
 
 function Orbs.Wanted()
