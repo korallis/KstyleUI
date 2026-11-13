@@ -73,7 +73,7 @@ assert(env._unmasked[view.portrait] == true, "the sample asks for the square por
 assert(view.badgeChrome.rim[1]:IsShown(), "the sample's level badge is the octagon there too")
 local cast = preview.casts.player
 assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "Frostbolt", "the player sample shows a cast bar under the frame, its spell as the game writes it")
-assert(cast.geometry and cast.geometry.icon == nil and cast.geometry.panel.x == 0, "the sample player cast bar has no icon, as on the mockup")
+assert(cast.geometry and cast.geometry.icon ~= nil and cast.iconFrame:IsShown(), "the sample player cast bar has its icon tile, as the KSTY-44 mock-up draws it")
 K.Options.Write("UnitFrames", "player.portraitShape", "round")
 settle()
 assert(view.ring:IsShown() and not view.portraitChrome.rim[1]:IsShown(), "a round portrait shows in the preview")

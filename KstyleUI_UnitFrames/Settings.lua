@@ -157,7 +157,7 @@ Settings.defaults = {
 	accentColor = Color("accentDefault"),
 	edit = "player",
 	player = Kind(true, {
-		style = "column", combat = true, resting = true, castbarIcon = false, castbarCaps = true, castbarColor = "gold",
+		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold",
 		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {

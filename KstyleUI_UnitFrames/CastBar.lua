@@ -41,6 +41,9 @@ local LINE_BAR_MIN = 24
 local LINE_LABEL_EM = 4.2
 local LINE_NAME_EM = 12
 local ORIENTATION = Style.ORIENTATION
+local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
+local CAPTION_ICON_GAP = 7
+local FLASH_LEVEL = 2
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -48,6 +51,7 @@ local EVENTS = {
 	UNIT_SPELLCAST_DELAYED = "Cast",
 	UNIT_SPELLCAST_CHANNEL_UPDATE = "Channel",
 	UNIT_SPELLCAST_STOP = "Stop",
+	UNIT_SPELLCAST_SUCCEEDED = "Landed",
 	UNIT_SPELLCAST_CHANNEL_STOP = "Stop",
 	UNIT_SPELLCAST_FAILED = "Failed",
 	UNIT_SPELLCAST_INTERRUPTED = "Interrupted",
@@ -157,6 +161,46 @@ local function Tick(frame, elapsed)
 	end
 end
 
+local function Flash(cb, colorName, alpha)
+	if Motion.Level() == "off" then
+		return
+	end
+	cb.flash.wash:SetVertexColor(Widgets.Rgba(colorName, alpha))
+	cb.flash:Show()
+	cb.flash.group:Stop()
+	cb.flash.group:Play()
+end
+
+local function NewFlash(cb)
+	local flash = CreateFrame("Frame", nil, cb.bar)
+	flash:SetAllPoints(cb.bar)
+	flash:SetFrameLevel(cb.bar:GetFrameLevel() + FLASH_LEVEL)
+	flash:Hide()
+	local wash = flash:CreateTexture(nil, "OVERLAY")
+	wash:SetColorTexture(Tokens.Color("white"))
+	wash:SetBlendMode("ADD")
+	wash:SetAllPoints(flash)
+	flash.wash = wash
+	local group = flash:CreateAnimationGroup()
+	local rise = Tokens.Duration("pressIn")
+	local up = group:CreateAnimation("Alpha")
+	up:SetFromAlpha(0)
+	up:SetToAlpha(1)
+	up:SetDuration(rise)
+	up:SetSmoothing("OUT")
+	local down = group:CreateAnimation("Alpha")
+	down:SetFromAlpha(1)
+	down:SetToAlpha(0)
+	down:SetDuration(Tokens.Duration("readyFlash"))
+	down:SetStartDelay(rise)
+	down:SetSmoothing("IN")
+	group:SetScript("OnFinished", function()
+		flash:Hide()
+	end)
+	flash.group = group
+	cb.flash = flash
+end
+
 local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
@@ -219,6 +263,7 @@ local function New(parent, kind, unit)
 	cb.lock = NewText(over, "LEFT")
 	cb.lock:SetText(L["Locked"])
 	cb.lock:Hide()
+	NewFlash(cb)
 	return cb
 end
 
@@ -377,7 +422,22 @@ local function LayoutCaption(cb, width, height)
 	local mode, frame = cb.mode, cb.frame
 	local above = mode == "above"
 	cb.geometry = { caption = mode }
-	cb.iconFrame:Hide()
+	local lead = 0
+	if Settings.Value(cb.kind, "castbarIcon") then
+		local side = Snap(cb, height)
+		lead = side + Snap(cb, CAPTION_ICON_GAP)
+		cb.geometry.icon = { x = 0, y = 0, w = side, h = side }
+		Place(cb, cb.iconFrame, cb.geometry.icon)
+		cb.iconChrome:Restyle()
+		local inset = Widgets.Border(cb.frame)
+		cb.icon:ClearAllPoints()
+		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
+		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
+		cb.iconFrame:Show()
+	else
+		cb.iconFrame:Hide()
+	end
+	width = width - lead
 	cb.chrome:SetShadow(false)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
@@ -398,7 +458,7 @@ local function LayoutCaption(cb, width, height)
 	bar.opts.width, bar.opts.height = width, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, -barOffset)
+	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", lead, -barOffset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
@@ -414,7 +474,7 @@ local function LayoutCaption(cb, width, height)
 		text:SetHeight(Snap(cb, rowH))
 		text:SetJustifyV(above and "BOTTOM" or "TOP")
 	end
-	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", 0, offset)
+	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
 	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
@@ -728,8 +788,9 @@ local function Finish(cb, message)
 	ShowLock(cb)
 	CastBars.SetName(cb, message)
 	cb.bar:SetMinMaxValues(0, 1)
-	cb.bar:SetValue(1)
+	cb.bar:SetValue(0)
 	Paint(cb, Tokens.Color("hostile"))
+	Flash(cb, "hostile", STOPPED_ALPHA)
 	local token = (cb.token or 0) + 1
 	cb.token, cb.hold = token, token
 	cb.holds = cb.holds + 1
@@ -761,6 +822,11 @@ local HANDLERS = {
 	end,
 	Channel = function(cb)
 		Start(cb, true)
+	end,
+	Landed = function(cb, event, ...)
+		if cb.active and not cb.channel and Matches(cb, event, ...) then
+			Flash(cb, "giltLit", LANDED_ALPHA)
+		end
 	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
