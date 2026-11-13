@@ -68,7 +68,7 @@ local function LowCurve()
 	lowCurve:AddPoint(LOW_SHARE, 1)
 	lowCurve:AddPoint(LOW_SHARE + LOW_STEP, 0)
 	lowCurve:AddPoint(1, 0)
-	Widgets.LogOnce("unitbar-curve-on", "unit bars: below 35% health a red fill shows, its alpha a C_CurveUtil step curve over UnitHealthPercent")
+	Widgets.LogOnce("unitbar-curve-on", "unit bars: below 40% health a red fill shows, its alpha a C_CurveUtil step curve over UnitHealthPercent")
 	return lowCurve
 end
 
@@ -96,6 +96,8 @@ local function TextCurves(token)
 	textCurves[token] = curves
 	return curves
 end
+
+Widgets.LOW_HEALTH_SHARE = LOW_SHARE
 
 function Widgets.LowHealthText(text, unit, token)
 	local curves = unit and TextCurves(token)

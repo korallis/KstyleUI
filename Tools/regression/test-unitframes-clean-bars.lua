@@ -100,6 +100,9 @@ do
 		if i <= 2 then
 			assert(not view.chrome.visible and view.chrome.ornament.enabled == false, "boss " .. i .. " shows no card and no corner brackets")
 			assert(view.scrim:IsShown(), "boss " .. i .. " reads on the world over the soft scrim")
+			local _, sh = view.scrim:GetSize()
+			local _, bh = view.button:GetSize()
+			assert(sh - bh <= 2 * 3 + 0.01, "boss " .. i .. "'s scrim stays inside the 6-unit gap to the next boss, not over it: " .. sh .. " for " .. bh)
 		end
 	end
 	local chip = ns.Frames.Get("boss").views[1].chip

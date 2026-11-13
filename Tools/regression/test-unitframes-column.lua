@@ -62,7 +62,7 @@ local tg = Geometry.Frame(Settings.Snapshot("target"), TARGET.width, TARGET.heig
 assert(tg.mirror and tg.form == "column", "the target mirrors the player")
 assert(near(tg.health.w, 491) and tg.power == nil, "the target's health is 491 wide and, as the KSTY-44 mock-up draws it, it has no power line by default")
 assert(near(tg.portrait.x, 512.5) and near(tg.portrait.y, 0) and near(tg.portrait.w, 70), "a 70-unit portrait at the right, keeping the 91.5-unit reserve")
-assert(near(tg.health.y, 39) and near(tg.health.h, 19), "health is the mock-up's 17 of 439 across 491, raised 7 for the taller cast bar")
+assert(near(tg.health.y, 41) and near(tg.health.h, 19), "health is the mock-up's 17 of 439 across 491, raised 5 for the taller cast bar")
 assert(tg.cast and near(tg.cast.x, 0) and near(tg.cast.w, 491) and near(tg.cast.y, 69) and near(tg.cast.y + tg.cast.h, 102.5), "the cast bar and its label run the full 491 under the health bar")
 assert(tg.healthText and near(tg.healthText.x, 0), "the percentage is at the left")
 assert(tg.name and near(tg.name.x + tg.name.w, 491), "the name ends at the bars' right edge")

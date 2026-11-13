@@ -174,12 +174,12 @@ end
 -- The target's cast room follows its cast font; a cast line given less height than it needs drops its label before it overflows.
 do
 	local size = Layouts.Element("unitframes.target")
-	local function room(extra)
-		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height + (extra or 0), 1).cast.h
+	local function room()
+		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height, 1).cast.h
 	end
 	assert(near(room(), 14 + 4.5 + 12 + 3, 0.01), "the 12-unit cast font takes 33.5 with the 14-unit bar: " .. room())
 	K.Options.Write("UnitFrames", "target.fonts.cast.size", 16)
-	assert(near(room(4), 14 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font takes 37.5 in a frame 4 units taller: " .. room(4))
+	assert(near(room(), 14 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font still fits the default frame, taking 37.5: " .. room())
 	K.Options.Write("UnitFrames", "target.fonts.cast.size", 12)
 
 	for _, fontSize in ipairs({ 10, 12, 20 }) do

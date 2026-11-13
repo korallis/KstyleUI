@@ -36,7 +36,7 @@ local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
-local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 18, 0.75 } }
+local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 } }
 
 local issecretvalue = issecretvalue or function()
 	return false
