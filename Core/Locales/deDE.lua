@@ -1997,6 +1997,7 @@ ns.Locale.Add({
 	["Turn this frame off to leave its unit without a KstyleUI frame."] = "Schaltet diesen Rahmen aus, um seiner Einheit keinen KstyleUI-Rahmen zu geben.",
 	["Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay."] = "Macht Blizzards goldene und wei\195\159e Zeilen zu KstyleUIs Graut\195\182nen. Farbige Zeilen bleiben.",
 	["Turns this bar on or off."] = "Schaltet diese Leiste an oder aus.",
+	["Turns this bar on or off. Beside the party frames it lowers the largest HUD size."] = "Schaltet diese Leiste an oder aus. Neben den Gruppenrahmen senkt sie die gr\195\182\195\159te HUD-Gr\195\182\195\159e.",
 	["Turns this module on or off."] = "Schaltet dieses Modul an oder aus.",
 	["Turns web addresses into links. Click one to copy it."] = "Macht Webadressen zu Links. Klickt einen an, um ihn zu kopieren.",
 	["Two-Hand"] = "Zweih\195\164ndig",
