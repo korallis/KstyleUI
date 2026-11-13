@@ -232,7 +232,9 @@ do
 			shown[#shown + 1] = i
 		end
 	end
-	assert(#shown == 1, "a narrow preview still shows one sample, got " .. #shown)
+	assert(#shown == 1 and shown[1] == 1, "a narrow preview still shows the richest sample, got " .. table.concat(shown, ","))
+	local scale = preview.plates[1]:GetParent():GetScale()
+	assert(scale < 1, "scaled down to fit the pane, got " .. tostring(scale))
 	errors(env, K, "the preview")
 end
 

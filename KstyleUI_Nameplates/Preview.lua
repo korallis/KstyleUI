@@ -28,26 +28,41 @@ Preview.SAMPLES = {
 	},
 }
 
-local function Fits(plate, width, height)
+local function Span(plate)
 	local w, above, h, below = ns.Stacking.Extent(plate)
-	return w ~= nil and w <= width and above + h + below <= height
+	if not w then
+		return nil
+	end
+	local side = w - ns.state.width
+	return ns.state.width + side * 2, above + h + below, above, below
 end
 
 local function Stack(frame)
 	local width, height = frame:GetWidth(), frame:GetHeight()
 	local known = type(width) == "number" and width > 0 and type(height) == "number" and height > 0
-	local chosen = #frame.plates
+	local chosen, smallest
 	for i, plate in ipairs(frame.plates) do
-		if not known or Fits(plate, width, height) then
+		local w, h = Span(plate)
+		if not known or (w and w <= width and h <= height) then
 			chosen = i
 			break
 		end
+		local share = w and math.min(width / w, height / h)
+		if share and (not smallest or share > smallest) then
+			chosen, smallest = i, share
+		end
 	end
+	chosen = chosen or 1
 	for i, plate in ipairs(frame.plates) do
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()
 		if i == chosen then
-			local _, above, _, below = ns.Stacking.Extent(plate)
+			local w, h, above, below = Span(plate)
+			local scale = 1
+			if known and w then
+				scale = math.min(1, width / w, height / h)
+			end
+			holder:SetScale(scale)
 			holder:SetPoint("CENTER", frame, "CENTER", 0, ((below or 0) - (above or 0)) / 2)
 		end
 		holder:SetShown(i == chosen)
