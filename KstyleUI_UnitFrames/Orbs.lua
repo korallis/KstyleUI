@@ -10,11 +10,10 @@ ns.Orbs = Orbs
 local MODULE = Settings.MODULE
 local OWNER = MODULE .. ":orbs"
 local BAR_KEY = "actionbars.bar1"
-local RING = 200
+local RING = K.Setup.Layouts.ORBS_RING
 local HOLE = RING * 0.701
-local BODY = RING * 0.87
-local GAP = 60
-local LIFT = 30
+local REACH = K.Setup.Layouts.ORBS_REACH
+local LIFT = K.Setup.Layouts.ORBS_LIFT
 local FLOOR = 2
 local SURFACE_HEIGHT = 14
 local SURFACE_ALPHA = 0.8
@@ -159,8 +158,11 @@ local function BarRect()
 	local columns = math.ceil(grid.buttons / grid.rows)
 	local width = columns * grid.size + (columns - 1) * grid.spacing
 	local height = grid.rows * grid.size + (grid.rows - 1) * grid.spacing
-	local position = Layouts.Default(BAR_KEY)
-	local saved = K.Store.Layout()[BAR_KEY]
+	local style = K.HudStyle.Current()
+	local styled = Layouts.Style(style, Layout.Setting("preset"), BAR_KEY)
+	local position = styled or Layouts.Default(BAR_KEY)
+	local key = styled and style .. ":" .. BAR_KEY or BAR_KEY
+	local saved = K.Store.Layout()[key]
 	if type(saved) == "table" and type(saved.anchor) == "string" and type(saved.x) == "number" and type(saved.y) == "number" then
 		position = saved
 	end
@@ -174,8 +176,7 @@ function Orbs.Centres()
 	local rootWidth, rootHeight = K.Layout.RootSize()
 	local low = RING / 2 + FLOOR
 	local y = math.min(math.max(bottom + height / 2 + LIFT, low), rootHeight - low)
-	local reach = GAP + BODY / 2
-	return math.max(left - reach, low), math.min(left + width + reach, rootWidth - low), y
+	return math.max(left - REACH, low), math.min(left + width + REACH, rootWidth - low), y
 end
 
 local function Place()

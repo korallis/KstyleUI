@@ -48,6 +48,7 @@ local function BarDefaults(def)
 		out.count = true
 		out.macro = false
 		out.paging = ""
+		out.split = def.key == "bar2" and "auto" or "off"
 	end
 	if def.paged then
 		out.pageForms = true
@@ -103,6 +104,11 @@ local ORIENTATION_OPTIONS = {
 	{ value = "HORIZONTAL", label = L["Along rows first"] },
 	{ value = "VERTICAL", label = L["Down columns first"] },
 }
+local SPLIT_OPTIONS = {
+	{ value = "auto", label = L["With the Orbs HUD style"] },
+	{ value = "on", label = L["Always"] },
+	{ value = "off", label = L["Never"] },
+}
 local GROWTH_OPTIONS = {
 	{ value = "RIGHTDOWN", label = L["Right, then down"] },
 	{ value = "RIGHTUP", label = L["Right, then up"] },
@@ -139,6 +145,9 @@ local function BarRows(schema, def)
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
 	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
 	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = SPACING_MAX, step = 0.1 })
+	if def.kind == "action" then
+		add({ type = "dropdown", key = key .. ".split", label = L["Split in two"], help = L["Parts each row into two halves with a gap between them."], options = SPLIT_OPTIONS })
+	end
 	if def.kind ~= "stance" then
 		add({ type = "toggle", key = key .. ".showEmpty", label = L["Show empty buttons"], help = L["Shows slots with no action as empty tiles."] })
 	end

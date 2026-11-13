@@ -119,8 +119,12 @@ local function Native(group)
 	return ok and shown == true
 end
 
+local function Positions(name)
+	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current())
+end
+
 local function Box(name, key, rw, rh)
-	local position = Layouts.Get(name, rh)[key]
+	local position = Positions(name)[key]
 	local w, h, offsetX = Layouts.Footprint(name, key)
 	if not (position and w) then
 		return nil
@@ -142,7 +146,7 @@ end
 local function Others(name, rw, rh, skip)
 	local out = {}
 	skip = skip or TRACKED
-	for key in pairs(Layouts.Get(name)) do
+	for key in pairs(Positions(name)) do
 		if not skip[key] and Layouts.Shown(name, key) ~= false then
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
@@ -472,7 +476,7 @@ local function Places(name, story, notes)
 	end
 	places[#places + 1] = { label = "the objective tracker", system = enum.EditModeSystem.ObjectiveTracker, x = tracker.x * k, y = tracker.y * k, settings = trackerSettings }
 	local meterSystem = enum.EditModeSystem.DamageMeter
-	local position = Layouts.Get(name)["meters.damage"]
+	local position = Positions(name)["meters.damage"]
 	local w, h = Layouts.Footprint(name, "meters.damage")
 	if meterSystem ~= nil and position and w then
 		local rw, rh = Setup.RootSize()
@@ -496,7 +500,7 @@ local function Places(name, story, notes)
 		for _, place in ipairs(rows) do
 			others[#others + 1] = place.rect
 		end
-		for key in pairs(Layouts.Get(name)) do
+		for key in pairs(Positions(name)) do
 			boxes[key] = Box(name, key, rw, rh)
 		end
 		local function Arrange(spare, order)
@@ -808,6 +812,20 @@ function EditMode.Write(name, story)
 	return true
 end
 
+local function Own(all, active)
+	local layout = all[active]
+	local layoutName = IsTable(layout) and layout.layoutType ~= Enum.EditModeLayoutType.Preset and layout.layoutName
+	local name = type(layoutName) == "string" and layoutName:sub(1, #PREFIX) == PREFIX and layoutName:sub(#PREFIX + 1)
+	if name and Layouts.Get(name) and IsTable(layout.systems) then
+		return name, layout, layoutName
+	end
+end
+
+function EditMode.ActiveName()
+	local all, _, active = Read()
+	return all and (Own(all, active)) or nil
+end
+
 local function WriteRows()
 	queued = false
 	local all, reason, active = Read()
@@ -815,10 +833,8 @@ local function WriteRows()
 		log("Edit Mode: Blizzard's essential and utility cooldowns stay where Edit Mode puts them (" .. tostring(reason) .. ")")
 		return false
 	end
-	local layout = all[active]
-	local layoutName = IsTable(layout) and layout.layoutType ~= Enum.EditModeLayoutType.Preset and layout.layoutName
-	local name = type(layoutName) == "string" and layoutName:sub(1, #PREFIX) == PREFIX and layoutName:sub(#PREFIX + 1)
-	if not (name and Layouts.Get(name) and IsTable(layout.systems)) then
+	local name, layout, layoutName = Own(all, active)
+	if not name then
 		log("Edit Mode: the active layout is not one KstyleUI wrote, so Blizzard's essential and utility cooldowns stay where it puts them")
 		return false
 	end

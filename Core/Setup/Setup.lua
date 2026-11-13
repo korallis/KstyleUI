@@ -99,9 +99,12 @@ local function writeLayout(name)
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
 	local moved, saved = 0, 0
 	for key, position in pairs(positions) do
+		for _, style in ipairs(Layouts.STYLES) do
+			stored[style .. ":" .. key] = nil
+		end
 		local done = false
 		if live and Layout.Get(key) ~= nil then
-			local ok, updated = pcall(Layout.Update, key, position, "setup")
+			local ok, updated = pcall(Layout.Update, key, position, "setup", true)
 			done = ok and updated == true
 			if not done then
 				log("Layout.Update(" .. key .. ") refused the position (" .. tostring(updated) .. "); saved it for the reload instead")
@@ -226,6 +229,13 @@ function Setup.RetryEditMode()
 	EditModeChanged()
 	return true
 end
+
+ns.Callbacks.Register("HudStyleChanged", "Setup", function()
+	local name = Setup.EditMode.ActiveName()
+	if name then
+		WriteEditMode(name)
+	end
+end)
 
 function Setup.Apply(picked)
 	local Store = ns.Store
