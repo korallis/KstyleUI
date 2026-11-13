@@ -34,6 +34,8 @@ local queueFaded, queueHooked = false, false
 local checkAdded = false
 local ticker
 local clockElapsed, coordsElapsed = 0, 0
+local coordsTicker
+local fighting = false
 local zoomToken = 0
 local moving = false
 local hoverHooked = false
@@ -134,18 +136,46 @@ local function CoordsOnUpdate(_, elapsed)
 	end
 end
 
+local function StopCoordsTicker(frame)
+	if coordsTicker then
+		coordsTicker:Cancel()
+		coordsTicker = nil
+	end
+	frame:SetScript("OnUpdate", nil)
+end
+
 local function SyncCoords()
 	local frame = Map.face and Map.face.coordsFrame
 	if not frame then
 		return
 	end
-	if running and moving and Settings.Get("coords.shown") then
-		if not frame:GetScript("OnUpdate") then
-			coordsElapsed = 0
-			frame:SetScript("OnUpdate", CoordsOnUpdate)
-		end
+	if not (running and moving and not fighting and Settings.Get("coords.shown")) then
+		StopCoordsTicker(frame)
+		return
+	end
+	if coordsTicker or frame:GetScript("OnUpdate") then
+		return
+	end
+	if C_Timer and type(C_Timer.NewTicker) == "function" then
+		coordsTicker = C_Timer.NewTicker(COORDS_INTERVAL, UpdateCoords)
 	else
-		frame:SetScript("OnUpdate", nil)
+		coordsElapsed = 0
+		frame:SetScript("OnUpdate", CoordsOnUpdate)
+		Log("C_Timer.NewTicker is missing; the coordinates count with OnUpdate")
+	end
+end
+
+local function EnterCombat()
+	fighting = true
+	SecureClick.Detach()
+	SyncCoords()
+end
+
+local function LeaveCombat()
+	fighting = false
+	SyncCoords()
+	if running and Map.face then
+		UpdateCoords()
 	end
 end
 
@@ -353,21 +383,6 @@ local function CollectButtons()
 	end
 end
 
-local near = {}
-
-local function Neighbours()
-	for i = #near, 1, -1 do
-		near[i] = nil
-	end
-	for _, element in ipairs(K.Setup.Layouts.ELEMENTS) do
-		local el = element.key ~= KEY and K.Layout.Element(element.key)
-		if el and el.frame and K.Layout.Live(element.key) then
-			near[#near + 1] = el.frame
-		end
-	end
-	return near
-end
-
 local Fit
 
 function Map.Refresh()
@@ -409,7 +424,6 @@ local function Build()
 	Map.holder = holder
 	local face = Face.New(holder, { wheel = true, onZoom = OnSliderZoom })
 	Map.face = face
-	face.ornament.neighbours = Neighbours
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
 	Widgets.AttachTooltip(face.clockHit, ClockTooltip)
@@ -643,7 +657,8 @@ local function RegisterEvents()
 	for _, event in ipairs(COLUMN_EVENTS) do
 		Events.Register(MODULE, event, RefreshColumn)
 	end
-	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", SecureClick.Detach)
+	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", EnterCombat)
+	Events.Register(MODULE, "PLAYER_REGEN_ENABLED", LeaveCombat)
 	Events.Register(MODULE, "MINIMAP_UPDATE_ZOOM", UpdateZoom)
 	local registry = EventRegistry
 	if registry and type(registry.RegisterCallback) == "function" then
@@ -668,11 +683,6 @@ local function RegisterCallbacks()
 	Callbacks.Register("ThemeChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ScaleChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ProfileChanged", MODULE, Map.Refresh)
-	Callbacks.Register("LayoutChanged", MODULE, function()
-		if running and Map.face then
-			Map.face.ornament:Restyle()
-		end
-	end)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module)
 		if module == MODULE then
 			Map.Refresh()
@@ -693,6 +703,7 @@ end
 
 function Map.Enable()
 	running = true
+	fighting = InCombatLockdown() == true
 	Build()
 	Map.holder:Show()
 	Adopt()

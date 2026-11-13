@@ -34,7 +34,7 @@ function Preview.Build(parent)
 	local element = K.Setup.Layouts.Element(KEY)
 	local frame = CreateFrame("Frame", nil, parent)
 	Widgets.Size(frame, element.width, element.height)
-	frame:SetPoint("CENTER", parent, "CENTER", 0, Widgets.Snap(frame, Format.CAPTION / 2))
+	frame:SetPoint("CENTER", parent, "CENTER", 0, Widgets.Snap(frame, (Format.CAPTION - Format.HEADING) / 2))
 	local face = Face.New(frame)
 	frame.face = face
 

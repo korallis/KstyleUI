@@ -1188,6 +1188,7 @@ ns.Locale.Add({
 	["Out of range"] = "Fuera de alcance",
 	["Out of range opacity"] = "Opacidad fuera de alcance",
 	["Outline"] = "Contorno",
+	["Outline with a soft shadow"] = "Contorno con una sombra suave",
 	["Outlines a frame in the debuff type's colour when it can be dispelled."] = "Enmarca un marco con el color del tipo de perjuicio cuando se puede disipar.",
 	["Outside, left"] = "Fuera, a la izquierda",
 	["Outside, right"] = "Fuera, a la derecha",

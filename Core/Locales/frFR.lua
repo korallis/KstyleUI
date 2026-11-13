@@ -1188,6 +1188,7 @@ ns.Locale.Add({
 	["Out of range"] = "Hors de port\195\169e",
 	["Out of range opacity"] = "Opacit\195\169 hors de port\195\169e",
 	["Outline"] = "Contour",
+	["Outline with a soft shadow"] = "Contour avec une ombre douce",
 	["Outlines a frame in the debuff type's colour when it can be dispelled."] = "Encadre un cadre de la couleur du type d'affaiblissement quand il peut \195\170tre dissip\195\169.",
 	["Outside, left"] = "\195\128 l'ext\195\169rieur, \195\160 gauche",
 	["Outside, right"] = "\195\128 l'ext\195\169rieur, \195\160 droite",

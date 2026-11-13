@@ -45,12 +45,14 @@ end
 assert(Faded(env.QueueStatusButton), "Blizzard's queue eye is faded out and lets clicks through; the column shows the status")
 assert(not K.Safe.IsHidden(env.QueueStatusButton), "the eye stays shown, because its own menu closes when its owner hides")
 
--- Layout: round discs down the inside of the map's right edge, shown at rest (the picture, LEE-20) -------
+-- Layout: round discs down the inside of the map's right edge, on hover by default (the overhaul) ------
 
 assert(buttons.tracking:GetParent():GetFrameLevel() > face.overlay:GetFrameLevel(), "the buttons sit above the map")
 assert(column.strip == nil and column.plate == nil, "no strip and no plate: the buttons sit on the map")
-assert(buttons.tracking:GetParent() == column.host and buttons.calendar:GetParent() == column.host and buttons.drawer:GetParent() == column.host, "tracking, the calendar and the drawer sit on the always-shown host: the picture shows them at rest")
-assert(ns.Settings.Get("column.hover") == false, "buttons only on hover is a setting that is off by default")
+assert(ns.Settings.Get("column.hover") == true, "buttons only on hover is a setting that is on by default: the overhaul's mock-up shows no buttons at rest")
+assert(buttons.tracking:GetParent() == face.reveal and buttons.calendar:GetParent() == face.reveal and buttons.drawer:GetParent() == face.reveal, "so tracking, the calendar and the drawer wait in the hover group")
+K.Options.Write("Minimap", "column.hover", false)
+assert(buttons.tracking:GetParent() == column.host and buttons.calendar:GetParent() == column.host and buttons.drawer:GetParent() == column.host, "with the setting off they sit on the always-shown host")
 local Format = ns.Format
 local size, spacing = 19.5, 5.5
 assert(W.Near(buttons.tracking:GetWidth(), size, 1), "buttons are round discs 19.5 units across by default: " .. tostring(buttons.tracking:GetWidth()))

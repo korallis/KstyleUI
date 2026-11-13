@@ -1188,6 +1188,7 @@ ns.Locale.Add({
 	["Out of range"] = "Au\195\159er Reichweite",
 	["Out of range opacity"] = "Deckkraft au\195\159er Reichweite",
 	["Outline"] = "Umriss",
+	["Outline with a soft shadow"] = "Kontur mit weichem Schatten",
 	["Outlines a frame in the debuff type's colour when it can be dispelled."] = "Umrandet einen Rahmen in der Farbe der Schw\195\164chungsart, wenn er sich bannen l\195\164sst.",
 	["Outside, left"] = "Au\195\159en, links",
 	["Outside, right"] = "Au\195\159en, rechts",

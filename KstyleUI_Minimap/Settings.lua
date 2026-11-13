@@ -22,12 +22,12 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = false, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	zone = { shown = true, color = "plain", font = "", size = 12, outline = "" },
-	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "" },
-	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "" },
+	zone = { shown = true, color = "plain", font = "", size = 12, outline = "world" },
+	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world" },
+	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "world" },
 }
 
 local ACCENT_OPTIONS = {
@@ -73,6 +73,7 @@ local PRECISION_OPTIONS = {
 	{ value = 2, label = L["Hundredths (45.32, 62.18)"] },
 }
 local OUTLINE_OPTIONS = {
+	{ value = "world", label = L["Outline with a soft shadow"] },
 	{ value = "", label = L["None, with a soft shadow"] },
 	{ value = "OUTLINE", label = L["Thin outline"] },
 	{ value = "THICKOUTLINE", label = L["Thick outline"] },

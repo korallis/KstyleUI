@@ -1,4 +1,4 @@
--- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, the picture's measures for the caption under the map, the north plate and the button column, and the button column's slots.
+-- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, the mock-up's measures for the card, the zone above it, the row under it, the north diamond and the button column, and the button column's slots.
 local _, ns = ...
 
 local Format = {}
@@ -10,11 +10,14 @@ local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
 local TOP = 7
 local EDGE = 7.75
-local NORTH = 16
-local CAPTION = 36
-local CAPTION_X = 2
-local ZONE_CENTER = 14.2
-local ROW_CENTER = 30.5
+local NORTH = 12
+local CAPTION = 14
+local HEADING = 22
+local CAPTION_X = 0
+local ZONE_CENTER = 12
+local ROW_CENTER = 9
+local FRAME = 3
+local MERIDIEM = 0.8
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {
@@ -39,6 +42,9 @@ Format.TOP = TOP
 Format.EDGE = EDGE
 Format.NORTH = NORTH
 Format.CAPTION = CAPTION
+Format.HEADING = HEADING
+Format.FRAME = FRAME
+Format.MERIDIEM = MERIDIEM
 Format.CAPTION_X = CAPTION_X
 Format.ZONE_CENTER = ZONE_CENTER
 Format.ROW_CENTER = ROW_CENTER
@@ -99,9 +105,9 @@ function Format.ZoneToken(pvpType, mode)
 		return "accent"
 	end
 	if mode ~= "pvp" or IsSecret(pvpType) or type(pvpType) ~= "string" then
-		return "textEmphasis"
+		return "giltLit"
 	end
-	return PVP_TOKENS[pvpType] or "textEmphasis"
+	return PVP_TOKENS[pvpType] or "giltLit"
 end
 
 function Format.NextZoom(current, levels, delta)

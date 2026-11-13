@@ -237,6 +237,8 @@ From 1920x1080 up every kind keeps its family. The level dot pulls an elite's an
 
 ### Minimap and data bars
 
+**The minimap places no piece since KSTY-50** (the overhaul's design bible, KSTY-44 section 3.3: ornament only on card corners). It is a forged card with gilt brackets on its corners, so its `map` and `plaque` handles are gone, and the minimap rows of the tables, the recorded limits and the paragraphs about the map below describe the build before it. `test-ornament-surfaces-minimap-full.lua` and `-subtle.lua` now fail on any forged piece under the minimap, and `test-perf-hud.lua` holds its zone change and layout without one. The `Map`, `Point` and `Plaque` pieces still ship and are unreachable until a clean-up removes them.
+
 | Piece | Handle | Subtle | Full |
 | --- | --- | --- | --- |
 | Experience, reputation and honour bars | `bar` on each bar's rim frame (`view.rim`: the track, or with the border shown the border less its innermost physical pixel), owned by the bar's overlay (`Bars.NewView`) | `Rail1` hairlines above and below, `EndPointed` ends at the bar's height; `Arrow6` caps where no end fits | `EndClawed` ends and `Rail1`; `Wing6` caps where no claw fits |

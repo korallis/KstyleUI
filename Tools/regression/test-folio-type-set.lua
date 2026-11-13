@@ -71,7 +71,7 @@ local saved = {
 }
 local migratedEnv, migrated = Core.New({ saved = saved })
 Core.Boot(migratedEnv)
-assert(migrated.Store.Data().version == 21)
+assert(migrated.Store.Data().version == migrated.Store.DB_VERSION)
 local profiles = migrated.Store.Data().profiles
 assert(profiles.ChatSize.Chat.fontSize == 16 and profiles.ChatSize.Chat.lineSpacing == 4.5, "custom size preserves its old inherited spacing")
 assert(profiles.ChatSpacing.Chat.fontSize == 14 and profiles.ChatSpacing.Chat.lineSpacing == 8, "custom spacing preserves its old inherited size")
