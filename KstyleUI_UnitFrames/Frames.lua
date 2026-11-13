@@ -220,6 +220,7 @@ local function NewChip(button, shape)
 	chip.text:SetText(K.L["Targeted"])
 	chip.chrome.ornament = K.Widgets.Ornament(chip, "corners", nil, true)
 	chip.chrome.ornament.chrome, chip.chrome.ornament.inside = chip.chrome, { chip.gem, chip.name, chip.text }
+	chip.chrome:SetShown(false)
 	chip:Hide()
 	return chip
 end
@@ -657,12 +658,9 @@ function Frames.Apply(uf)
 	if Layout and Layout.SetLive and Settings.ELEMENTS[uf.kind] then
 		Layout.SetLive(Settings.ELEMENTS[uf.kind], uf.active)
 	end
-	if want then
-		if uf.hiddenByModule then
-			uf.hiddenByModule = false
-			uf.holder:Show()
-		end
-		Frames.Restyle(uf)
+	if want and uf.hiddenByModule then
+		uf.hiddenByModule = false
+		uf.holder:Show()
 	end
 	for _, view in ipairs(uf.views) do
 		local button = view.button
@@ -674,6 +672,9 @@ function Frames.Apply(uf)
 			button:Hide()
 			K.Events.UnregisterAll(Owner(view.unit))
 		end
+	end
+	if want then
+		Frames.Restyle(uf)
 	end
 	if want and Visible(uf.views[1].button) then
 		StartPolling(uf)

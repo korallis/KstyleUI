@@ -63,4 +63,38 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- A login under Orbs lays bar 2 out at its Orbs scale, as the live switch does: the same holder, the same button
+-- places, every button on whole physical pixels.
+do
+	local function Shape(K, bar)
+		local f, pixel = K.Widgets.ScaleFactor(bar.header), K.Scale.Pixel(1)
+		local out = { width = bar.holder:GetWidth(), scale = bar.holder:GetScale() }
+		for i = 1, 12 do
+			local left = x(bar.buttons[i])
+			out[i] = left
+			local steps = left * f / pixel
+			assert(math.abs(steps - math.floor(steps + 0.5)) < 1e-6, "button " .. i .. " of bar 2 starts on a whole pixel, at " .. steps)
+		end
+		local steps = out.width * f / pixel
+		assert(math.abs(steps - math.floor(steps + 0.5)) < 1e-6, "bar 2 is a whole number of pixels wide, got " .. steps)
+		return out
+	end
+	local liveEnv, liveK, liveNs = AB.New({ width = 5120, height = 1440 })
+	AB.Enable(liveEnv, liveK)
+	Style(liveK, "orbs")
+	liveEnv.RunTimers()
+	local env, K, ns = AB.New({ width = 5120, height = 1440 })
+	Style(K, "orbs")
+	AB.Enable(env, K)
+	local login = Shape(K, ns.bars.bar2)
+	local live = Shape(liveK, liveNs.bars.bar2)
+	assert(near(login.scale, live.scale, 1e-6) and login.scale < 0.85, "bar 2 takes its Orbs scale both ways")
+	assert(near(login.width, live.width, 1e-6), "a login lays bar 2 as wide as a live switch: " .. login.width .. " vs " .. live.width)
+	for i = 1, 12 do
+		assert(near(login[i], live[i], 1e-6), "button " .. i .. " stands where the live switch puts it: " .. login[i] .. " vs " .. live[i])
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	assert(#liveEnv._errors == 0 and liveK.ErrorCount() == 0, AB.Errors(liveEnv))
+end
+
 print("ok actionbars split")

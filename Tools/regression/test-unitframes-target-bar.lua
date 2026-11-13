@@ -31,7 +31,7 @@ local B = Geometry.BAR
 assert(g.form == "bar" and not g.portrait and not g.power and not g.cast and g.chrome == false, "no portrait, power, cast or glass")
 assert(near(g.health.x, 0) and near(g.health.w, W0) and near(g.health.h, B.health), "one bar the frame's width, the mock-up's 18 px tall")
 assert(g.name and near(g.name.x, 0) and near(g.name.w, W0) and g.name.y + g.name.h <= g.health.y, "the name spans the frame above the bar")
-assert(near(g.healthText.y, g.health.y) and near(g.healthText.h, g.health.h) and near(g.healthText.w, W0), "the percent sits inside the bar")
+assert(near(g.healthText.y, g.health.y) and near(g.healthText.h, g.health.h) and near(g.healthText.x, B.textPad) and near(g.healthText.w, W0 - 2 * B.textPad), "the percent sits inside the bar, from its left end, so it never straddles the loss band (KSTY-60 item 28)")
 assert(g.caption.y >= g.health.y + g.health.h and near(g.caption.x, 0), "the creature type sits under the bar's left end")
 assert(near(g.healthSub.x + g.healthSub.w, W0) and near(g.healthSub.y, g.caption.y), "the values sit under its right end, on the same line")
 local bcx, bcy = g.badge.x + g.badge.w / 2, g.badge.y + g.badge.h / 2
@@ -49,7 +49,7 @@ assert(view.health.unitBar and view.health:IsShown(), "its bar is the clean unit
 assert(not view.power:IsShown() and not view.portraitFrame:IsShown(), "no power bar and no portrait show")
 assert(view.disc:IsShown() and U.Shown(env, view.levelText) == "6", "the level shows in the diamond")
 assert(U.Shown(env, view.name) == "GALESTRIDER" and view.name:GetJustifyH() == "CENTER", "the name is centred: " .. U.Shown(env, view.name))
-assert(U.Shown(env, view.healthText):find("71", 1, true) and view.healthText:GetJustifyH() == "CENTER", "the percent reads inside the bar: " .. U.Shown(env, view.healthText))
+assert(U.Shown(env, view.healthText):find("71", 1, true) and view.healthText:GetJustifyH() == "LEFT", "the percent reads inside the bar, at its left end: " .. U.Shown(env, view.healthText))
 assert(U.Shown(env, view.caption) == "Beast" and view.caption:GetJustifyH() == "LEFT", "the creature type: " .. U.Shown(env, view.caption))
 local values = U.Shown(env, view.healthSub)
 assert(values:find("1", 1, true) and values:find("/", 1, true) and view.healthSub:GetJustifyH() == "RIGHT", "current and max under the right end: " .. values)

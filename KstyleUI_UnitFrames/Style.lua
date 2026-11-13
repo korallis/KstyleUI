@@ -36,7 +36,7 @@ local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
-local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 } }
+local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 } }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -55,11 +55,11 @@ local TEXTS = {
 	healthSub = { element = "health", justify = "RIGHT", color = "textEmphasis", share = Geometry.DETAIL_SHARE },
 	powerText = { element = "power", justify = "LEFT", color = "text" },
 	levelText = { element = "level", justify = "CENTER", color = "textEmphasis" },
-	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption", lumenColor = "muted" },
+	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption", lumenColor = "subLabel" },
 	capLabel = { element = "level", justify = "LEFT", color = "textEmphasis", lumen = "cap", lumenColor = "goldLit" },
 }
 local TEXT_KEYS = { "name", "healthText", "healthSub", "powerText", "levelText", "caption", "capLabel" }
-TEXTS.healthSub.lumen, TEXTS.healthSub.lumenColor, TEXTS.healthSub.lumenShare = "caption", "muted", 1
+TEXTS.healthSub.lumen, TEXTS.healthSub.lumenColor, TEXTS.healthSub.lumenShare = "caption", "subLabel", 1
 
 local function NewText(owner, key)
 	local text = Widgets.FontString(owner, "OVERLAY")
@@ -176,10 +176,8 @@ function Style.New(parent, kind)
 	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
 	Widgets.RecordAll(unpack(view.health.ornament.texts))
 	view.capGem = Lumen.Gem(top)
-	view.gemLeft = Lumen.Gem(top)
-	view.gemRight = Lumen.Gem(top)
 	local avoid = view.health.ornament.avoid
-	avoid[#avoid + 1], avoid[#avoid + 2], avoid[#avoid + 3] = view.capGem, view.gemLeft, view.gemRight
+	avoid[#avoid + 1] = view.capGem
 	view.capRule = top:CreateTexture(nil, "ARTWORK")
 	view.capRule:SetTexture((Tokens.Texture("divider")))
 	Indicators.New(view)
@@ -348,7 +346,7 @@ local function LumenTexts(view, g)
 	view.powerText:Hide()
 	view.capRule:Hide()
 	if form == "bar" then
-		for key, justify in pairs({ name = "CENTER", healthText = "CENTER", caption = "LEFT", healthSub = "RIGHT" }) do
+		for key, justify in pairs({ name = "CENTER", healthText = "LEFT", caption = "LEFT", healthSub = "RIGHT" }) do
 			local text = view[key]
 			PlaceText(view, text, g[key])
 			text:SetJustifyH(justify)
@@ -450,8 +448,6 @@ local function LumenTexts(view, g)
 		view.capLabel:Hide()
 	end
 	PlaceGem(view, view.capGem, g.capGem)
-	PlaceGem(view, view.gemLeft, g.gemLeft)
-	PlaceGem(view, view.gemRight, g.gemRight)
 end
 
 local function PlaceScrim(view, g)
@@ -522,8 +518,6 @@ local function HideLumen(view)
 	view.capLabel:Hide()
 	view.capRule:Hide()
 	view.capGem:Hide()
-	view.gemLeft:Hide()
-	view.gemRight:Hide()
 	for _, key in ipairs({ "name", "healthText", "healthSub", "powerText", "levelText" }) do
 		view[key]:SetJustifyV("MIDDLE")
 	end
@@ -623,14 +617,6 @@ local function Orient(bar, direction)
 	local o = ORIENTATION[direction] or ORIENTATION.RIGHT
 	bar:SetOrientation(o[1])
 	bar:SetReverseFill(o[2])
-end
-
-function Style.Flat(bar, flat)
-	for _, key in ipairs({ "lit", "shade" }) do
-		if bar[key] then
-			bar[key]:SetShown(not flat)
-		end
-	end
 end
 
 function Style.Restyle(view, kind)

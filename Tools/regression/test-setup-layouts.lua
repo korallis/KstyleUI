@@ -47,7 +47,7 @@ local REFERENCE = {
 	["unitframes.player"] = { 491, 77.5, 0, 138 + LIFT, 586.5, -47.75 },
 	["unitframes.target"] = { 491, 102.5, 0, 217.5 + LIFT, 737.4, 123.2 },
 	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 + LIFT },
-	["unitframes.resource"] = { 120, 14, 0, 420 + LIFT },
+	["unitframes.resource"] = { 120, 14, 0, 421 + LIFT },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 + LIFT },
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 + LIFT },
 	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
@@ -389,7 +389,7 @@ for _, name in ipairs(names) do
 		assert(same((playerBar[1] + playerBar[3]) / 2, (bar1.left + bar1.right) / 2), label .. ": LEE-20 the player's bars, not its external portrait reserve, stand centred over the tray")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
 		local resource = rect("unitframes.resource")
-		assert(same(resource.bottom, 420 + LIFT) and same(resource.bottom - cast.top, 4.5), label .. ": the optional class resource sits 4.5 above the player cast, clear after independent pixel snapping")
+		assert(same(resource.bottom, 421 + LIFT) and same(resource.bottom - cast.top, 5.5), label .. ": the optional class resource sits 5.5 above the player cast, clear of its label after independent pixel snapping")
 		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3 + LIFT) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
 		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9 + LIFT) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
@@ -441,7 +441,7 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
-		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 640 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its slot")
+		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 632 + LIFT) and same(targetCast.top, 664 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
@@ -577,7 +577,7 @@ local FOOTPRINTS = {
 	["unitframes.focustarget"] = { 120, 22 },
 	["unitframes.focus"] = { 200, 112 },
 	["unitframes.castbar.player"] = { 347, 30 },
-	["unitframes.castbar.target"] = { 220, 24 },
+	["unitframes.castbar.target"] = { 220, 32 },
 	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
 	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is the
 	-- picture's 393 by 186 card at the left rail's foot (LEE-20, LEE-69).

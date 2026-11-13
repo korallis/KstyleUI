@@ -96,6 +96,9 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
+		if Widgets.ScaleFactor(header) ~= bar.factor then
+			bar:Layout()
+		end
 		bar:UpdateLive()
 	else
 		ns.LogOnce("noLayout", "KstyleUI.Layout is missing; the action bars stay at their default place")
@@ -203,6 +206,7 @@ local CUMULATIVE = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, bar6 = 
 function Bar:Layout()
 	local def, cfg = self.def, self:Config()
 	local header = self.header
+	self.factor = Widgets.ScaleFactor(header)
 	local count = min(def.max, max(1, floor(cfg.buttons or def.max)))
 	if def.kind == "stance" then
 		count = min(count, NumForms())
