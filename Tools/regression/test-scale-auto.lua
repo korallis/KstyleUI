@@ -71,8 +71,8 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 		local Layouts = K.Setup.Layouts
 		local canvas = Scale.CanvasWidth(screen[1], screen[2])
 		for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
-			local cap = Layouts.ScaleLimit(canvas, screen[2], preset, Layouts.Enabled(preset, profile), style)
-			local auto = Scale.Auto(screen[2], cap)
+			local presetCap = Layouts.ScaleLimit(canvas, screen[2], preset, Layouts.Enabled(preset, profile), style)
+			local auto = Scale.Auto(screen[2], presetCap)
 			assert(Layouts.Fits(preset, canvas, screen[2], auto, Layouts.Enabled(preset, profile), Layouts.Positions(preset, style, Scale.AspectClass(canvas, screen[2])), style), label .. " " .. preset .. ": the style's layout fits at its automatic size")
 		end
 		if WANT[style][name] then
