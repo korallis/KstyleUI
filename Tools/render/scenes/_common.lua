@@ -14,7 +14,8 @@ Common.Scene = dofile("Tools/render/scene.lua")
 -- root's units.
 --
 -- RENDER_SCREEN picks another screen: "1920x1080", or "3840x2160@0.65" to name UIParent's scale too (the default
--- is WoW's, 768 / 1080). RENDER_SIZE is the Interface size (a number; the size KstyleUI ships when unset). A test
+-- is WoW's, 768 / 1080). RENDER_SIZE is the Interface size: a number, or "auto" for the automatic pixel-perfect size that ships; unset, scenes
+-- draw the size KstyleUI shipped before it (16 / 19, exactly), which the reference measurements were taken at. A test
 -- that builds several screens in one process sets the globals RENDER_SCREEN ({ width, height, uiScale, size })
 -- before it loads the scene scripts, as it sets RENDER_SCENE_LIB.
 Common.DEFAULT_SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
@@ -26,7 +27,7 @@ do
 		assert(w, "RENDER_SCREEN must be WIDTHxHEIGHT or WIDTHxHEIGHT@UISCALE, not " .. spec)
 		picked = { width = tonumber(w), height = tonumber(h), uiScale = tonumber(s) }
 	end
-	local size = tonumber(os.getenv("RENDER_SIZE") or "")
+	local size = os.getenv("RENDER_SIZE") == "auto" and "auto" or tonumber(os.getenv("RENDER_SIZE") or "")
 	if size then
 		picked = picked or {}
 		picked.size = size
@@ -131,7 +132,7 @@ function Common.ForceScreen(env)
 	env._ornamentHandles = env._ornamentHandles or {}
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
-	env._size = Common.SCREEN.size or false
+	env._size = Common.SCREEN.size or "default"
 	env._fitScale = true
 	env.GetPhysicalScreenSize = function()
 		return width, height

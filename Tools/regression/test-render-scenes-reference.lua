@@ -105,8 +105,9 @@ do
 	assert(math.abs(dot.rect[3] * ppu - 28) < 0.01, "the disc draws the picture's 28-pixel core, as the acceptance mask measures, got " .. dot.rect[3] * ppu)
 	local tall = (glass[2] - glass[1]) * ppu
 	-- KSTY-33 split the picture's story card (553 pixels, the guide's head and step over the quests) into two cards: the
-	-- quest card's own glass holds the caption and the four quests at the picture's rhythm, 429 pixels.
-	assert(math.abs(tall - 429) <= 1.5, "the quest card's own glass is 429 pixels tall, within a pixel, got " .. tall)
+	-- quest card's own glass holds the caption and the four quests at the picture's rhythm, 429 pixels; with the border
+	-- one physical pixel at every screen (KSTY-54), not two on this panel, the glass measures 431.
+	assert(math.abs(tall - 431) <= 1.5, "the quest card's own glass is 431 pixels tall, within a pixel, got " .. tall)
 end
 
 -- The picture's bars are on: bar 2 over bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for
@@ -159,7 +160,8 @@ do
 		if item.kind == "texture" and (item.alpha or 1) > 0 then
 			local x, y, w, h = item.rect[1], item.rect[2], item.rect[3], item.rect[4]
 			local inside = x >= right - 60 and x + w <= right + 1 and y >= scene.screen.height - (card.bottom + card.height) * 16 / 19 and y + h <= scene.screen.height - card.bottom * 16 / 19 + 1
-			assert(not (inside and w <= 4 and h >= 60), "a thin vertical line stands inside the chat card's right edge at x " .. x .. ", " .. w .. " by " .. h)
+			-- A line is at most 2 units wide here; the card's own side pieces, 5 pixels with one-pixel borders, are wider.
+			assert(not (inside and w <= 2 and h >= 60), "a thin vertical line stands inside the chat card's right edge at x " .. x .. ", " .. w .. " by " .. h)
 			assert(not (inside and tostring(item.file):find("GlyphChevron", 1, true)), "the scroll-to-bottom chevron draws at rest inside the chat card at x " .. x)
 		end
 	end

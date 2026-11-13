@@ -300,13 +300,16 @@ function FILL.toggle(control, item, value)
 end
 
 function FILL.slider(control, item, value)
-	local low, high = item.min or 0, item.max or 1
+	local low, high, step = item.min or 0, item.max or 1, item.step
 	if item.module == "Appearance" and item.key == "uiScale" then
 		high = K.Scale.MaxUserScale()
 		value = K.Scale.AppliedUserScale()
+		step = K.Scale.Step()
+		low = math.ceil(low / step - 1e-9) * step
+		high = math.floor(high / step + 1e-9) * step
 	end
 	if low < high then
-		control:SetRange(low, high, item.step)
+		control:SetRange(low, high, step)
 	end
 	if item.shown then
 		local ok, painted = K.Call(item.shown, value)

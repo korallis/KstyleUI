@@ -28,6 +28,7 @@ Appearance.defaults = {
 	font = "",
 	fontScale = 1,
 	uiScale = Scale.DEFAULT_USER_SCALE,
+	uiScaleAuto = true,
 	motion = "full",
 }
 for _, role in ipairs(ROLES) do
@@ -73,6 +74,11 @@ local CLEAN = {
 			return math.min(Scale.MAX_USER_SCALE, math.max(Scale.MIN_USER_SCALE, v))
 		end
 	end,
+	uiScaleAuto = function(v)
+		if type(v) == "boolean" then
+			return v
+		end
+	end,
 	motion = function(v)
 		if MOTION_LEVELS[v] then
 			return v
@@ -106,12 +112,13 @@ local APPLY = {
 	font = Theme.SetFontFace,
 	fontScale = Theme.SetFontScale,
 	uiScale = Scale.SetUserScale,
+	uiScaleAuto = Scale.SetAuto,
 	motion = Motion.SetLevel,
 }
 for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
-local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScale", "motion" }
+local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleAuto", "uiScale", "motion" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -208,9 +215,16 @@ Appearance.schema = {
 	},
 	{ type = "header", label = L["Size"] },
 	{
+		type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
+		help = L["Sizes KstyleUI for your screen so every edge lands on a whole pixel."],
+	},
+	{
 		type = "slider", key = "uiScale", label = L["Interface size"],
-		help = L["Makes every KstyleUI element larger or smaller."],
+		help = L["Makes every KstyleUI element larger or smaller, in whole-pixel steps."],
 		min = Scale.MIN_USER_SCALE, max = Scale.MAX_USER_SCALE, step = SIZE_STEP,
+		showWhen = function(settings)
+			return settings.uiScaleAuto == false
+		end,
 	},
 	{ type = "header", label = L["Motion"] },
 	{

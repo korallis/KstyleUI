@@ -29,13 +29,18 @@ local USER_SCALES = { 0.6, 0.75, 16 / 19, 1, 1.25, 1.5 }
 local UI_HEIGHT = 768 -- the screen is 768 units tall at an effective scale of 1
 
 local function NewScale(width, height, uiScale)
-	local env = Stubs.NewEnv({ width = width, height = height, uiScale = uiScale })
+	local env = Stubs.NewEnv({ width = width, height = height, uiScale = uiScale, size = "auto" })
 	env._physical = { width, height }
 	function env.GetPhysicalScreenSize()
 		return env._physical[1], env._physical[2]
 	end
 	Load(core, env)
 	local ns = env.KstyleUI
+	-- A chosen size of 1, with the automatic size off: Scale applies it as its nearest pixel-perfect step.
+	ns.Appearance.defaults.uiScale, ns.Appearance.defaults.uiScaleAuto = 1, false
+	ns.Store.Defaults("Appearance").uiScale, ns.Store.Defaults("Appearance").uiScaleAuto = 1, false
+	ns.Scale.SetAuto(false)
+	ns.Scale.SetUserScale(1)
 	local fired = {}
 	local dispatch = ns.Callbacks.Fire
 	ns.Callbacks.Fire = function(event, ...)
@@ -154,21 +159,24 @@ for _, screen in ipairs(SCREENS) do
 
 		local ppu = perUnit(env, ns)
 		local where = label(screen, uiScale)
-		assert(math.abs(UI_HEIGHT / root:GetEffectiveScale() - 1080) < 1e-6, where .. ": the root is 1080 units tall")
-		assert(math.abs(ppu - screen.perUnit) < 0.005, where .. ": " .. ppu .. " pixels per unit, the spec says " .. screen.perUnit)
+		local applied = Scale.AppliedUserScale()
+		assert(math.abs(UI_HEIGHT / root:GetEffectiveScale() - 1080 / applied) < 1e-6, where .. ": the root is 1080 / size units tall")
+		assert(math.abs(applied - math.min(1, Scale.MaxUserScale())) <= Scale.Step() + 1e-9 and whole(ppu * Scale.STEPS_PER_PIXEL), where .. ": size 1 applies as its nearest pixel-perfect step that fits")
+		assert(math.abs(ppu - screen[2] / 1080 * applied) < 1e-6, where .. ": " .. ppu .. " pixels per unit at size " .. applied)
 		assert(math.abs(Scale.Pixel(1) * ppu - 1) < 1e-6, where .. ": Pixel(1) is one physical pixel")
-		assert(math.abs(Scale.Border() * ppu - screen.border) < 1e-6, where .. ": the border is " .. Scale.Border() * ppu .. " px, the spec says " .. screen.border)
+		assert(math.abs(Scale.Border() * ppu - 1) < 1e-6, where .. ": the border is " .. Scale.Border() * ppu .. " px, exactly one")
 
 		for _, user in ipairs(USER_SCALES) do
 			assert(Scale.SetUserScale(user) == true, "a size in range is accepted")
 			where = label(screen, uiScale, user)
 			ppu = perUnit(env, ns)
-			assert(math.abs(UI_HEIGHT / root:GetEffectiveScale() - 1080 / user) < 1e-6, where .. ": the root is 1080 / size units tall")
+			applied = Scale.AppliedUserScale()
+			assert(math.abs(applied - math.min(user, Scale.MaxUserScale())) <= Scale.Step() + 1e-9 and whole(ppu * Scale.STEPS_PER_PIXEL), where .. ": the size applies as its nearest pixel-perfect step")
+			assert(math.abs(UI_HEIGHT / root:GetEffectiveScale() - 1080 / applied) < 1e-6, where .. ": the root is 1080 / size units tall")
 			assert(math.abs(Scale.Pixel(1) * ppu - 1) < 1e-6, where .. ": Pixel(1) is one physical pixel")
 			assert(whole(Scale.Pixel(3) * ppu), where .. ": Pixel(3) is whole pixels")
 			local border = Scale.Border() * ppu
-			assert(whole(border) and border > 1 - 1e-6, where .. ": the border is a whole number of pixels, got " .. border)
-			assert(math.abs(border - math.max(1, math.floor(ppu + 0.5))) < 1e-6, where .. ": the border is about one unit")
+			assert(math.abs(border - 1) < 1e-6, where .. ": the border is exactly one pixel, got " .. border)
 			for _, name in ipairs(SIZE_NAMES) do
 				local snapped = Scale.Snap(Tokens.Size(name))
 				assert(whole(snapped * ppu), where .. ": Snap(" .. name .. ") is whole pixels")
@@ -217,7 +225,7 @@ do
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	assert(count(fired, "ScaleChanged") == before + 1, "a display change fires ScaleChanged once")
 	local ppu = perUnit(env, ns)
-	assert(math.abs(ppu - 2) < 1e-6 and math.abs(Scale.Border() * ppu - 2) < 1e-6, "on 4K the border becomes two whole pixels")
+	assert(math.abs(ppu - 2) < 1e-6 and math.abs(Scale.Border() * ppu - 1) < 1e-6, "on 4K a unit is two pixels and the border stays one")
 	assert(math.abs(Scale.Pixel(1) - 0.5) < 1e-9, "on 4K one pixel is half a unit")
 	env.RunTimers()
 	assert(count(fired, "ScaleChanged") == before + 1, "the next-frame recheck fires nothing when nothing moved")
@@ -331,8 +339,8 @@ local function snapped(region)
 	return snap and snap[1] == true and bias and bias[1] == 0
 end
 
--- M3 (#208) ships an Interface size of 16 / 19; 1.0 is the old default. Pixels per unit come from the root's
--- effective scale, so both land on whole pixels.
+-- M3 (#208) shipped an Interface size of 16 / 19; 1.0 is the older default. Each applies as its nearest pixel-perfect
+-- step, and pixels per unit come from the root's effective scale, so every line lands on whole pixels.
 local OWNER_SIZES = { 0.6, 16 / 19, 1, 1.5 }
 for _, screen in ipairs(OWNER_SCREENS) do
 for _, hudSize in ipairs(OWNER_SIZES) do
@@ -342,7 +350,7 @@ for _, hudSize in ipairs(OWNER_SIZES) do
 	local ppu = perUnit(env, ns)
 	local W, Scale = ns.Widgets, ns.Scale
 	local where = label(screen, OWNER_UI_SCALE, hudSize)
-	assert(math.abs(ppu - screen[2] / 1080 * hudSize) < 0.001, where .. ": " .. ppu .. " px per unit")
+	assert(math.abs(ppu - screen[2] / 1080 * Scale.AppliedUserScale()) < 0.001 and whole(ppu * Scale.STEPS_PER_PIXEL), where .. ": " .. ppu .. " px per unit, a pixel-perfect step")
 	local border = Scale.Border() * ppu
 	for _, frameScale in ipairs(FRAME_SCALES) do
 		for _, shape in ipairs({ "panel", "window", "tile", "socket", "bar" }) do

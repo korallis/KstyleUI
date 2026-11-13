@@ -5,14 +5,27 @@
 -- addon's private table. Files under a KstyleUI_<Module>/ folder belong to that module's addon; every
 -- other file belongs to KstyleUI. Each addon's private table is kept in env._addons[name].
 -- When env._size is a number (Stubs.NewEnv's size option, 1 unless a test asks for "default"), the Interface size
--- defaults to it once Core/Appearance.lua registers its defaults, before the saved data loads.
+-- defaults to it, with the automatic size off, once Core/Appearance.lua registers its defaults, before the saved data
+-- loads. "default" pins the size KstyleUI shipped before the automatic size (Scale.DEFAULT_USER_SCALE) the same way.
+-- A pinned size applies exactly, not snapped to the screen's pixel-perfect step, as ScaleLimit is pinned below, so a
+-- module's test measures exact unit sizes. "auto" leaves the shipped automatic size and its steps on.
 local function PinSize(env, ns)
 	local size = env._size
-	if type(size) ~= "number" or not (ns.Appearance and ns.Store and ns.Scale) then
+	if not (ns.Appearance and ns.Store and ns.Scale) then
 		return
 	end
-	ns.Appearance.defaults.uiScale = size
-	ns.Store.Defaults("Appearance").uiScale = size
+	if size == "default" then
+		size = ns.Scale.DEFAULT_USER_SCALE
+	end
+	if type(size) ~= "number" then
+		return
+	end
+	ns.Appearance.defaults.uiScale, ns.Appearance.defaults.uiScaleAuto = size, false
+	ns.Store.Defaults("Appearance").uiScale, ns.Store.Defaults("Appearance").uiScaleAuto = size, false
+	ns.Scale.Nearest = function(requested, _, maximum)
+		return math.min(requested, maximum)
+	end
+	ns.Scale.SetAuto(false)
 	ns.Scale.SetUserScale(size)
 end
 

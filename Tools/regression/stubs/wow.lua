@@ -15,6 +15,23 @@ local function pack(...)
 	return { n = select("#", ...), ... }
 end
 
+-- origin() -> the addon file whose code made the object being created, or false when a test, a scene or a fake made
+-- it. Only an environment made while the global PIXEL_AUDIT is set records it (pixel_audit_lib.lua).
+local function origin()
+	for level = 3, 60 do
+		local info = debug.getinfo(level, "S")
+		if not info then
+			return false
+		end
+		local source = info.source
+		if source:sub(1, 1) == "@" and not source:find("Tools/regression/stubs/", 1, true) then
+			local path = source:sub(2):gsub("^%./", "")
+			return not path:find("^Tools/") and path
+		end
+	end
+	return false
+end
+
 -- Secret values ---------------------------------------------------------------------------------
 
 local COMPARE = "attempt to compare a secret value"
@@ -433,6 +450,9 @@ end
 
 function Object:SetPoint(point, ...)
 	checkAnchor(self, (...))
+	if self._env._trackOrigin then
+		self._placedBy = origin()
+	end
 	for i, existing in ipairs(self._points) do
 		if existing[1] == point then
 			self._points[i] = pack(point, ...)
@@ -445,6 +465,9 @@ function Object:ClearAllPoints() self._points = {} end
 -- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
 function Object:SetAllPoints(relative)
 	checkAnchor(self, relative)
+	if self._env._trackOrigin then
+		self._placedBy = origin()
+	end
 	local target = anchorTarget(self, relative)
 	self._points = { pack("TOPLEFT", target, "TOPLEFT", 0, 0), pack("BOTTOMRIGHT", target, "BOTTOMRIGHT", 0, 0) }
 	self._state.AllPoints = pack(relative)
@@ -695,7 +718,7 @@ local function newObject(env, objectType, name, parent)
 	return setmetatable({
 		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
-		_kids = {}, _regions = {}, _enabled = true,
+		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and origin(),
 	}, ObjectMeta)
 end
 
@@ -1057,6 +1080,7 @@ function Stubs.NewEnv(opts)
 	env._G = env
 	env._size = opts.size == nil and 1 or opts.size
 	env._fitScale = opts.fit == true or opts.size == "default"
+	env._trackOrigin = rawget(_G, "PIXEL_AUDIT") == true
 	local made = rawget(_G, "STUB_ENVS")
 	if type(made) == "table" then
 		made[#made + 1] = env
