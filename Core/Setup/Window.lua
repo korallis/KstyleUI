@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, five steps built from the widget kit: welcome, layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
+-- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style, layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -8,13 +8,14 @@ local L = ns.L
 local max, min = math.max, math.min
 
 local WIDTH, HEIGHT = 760, 540
-local STEPS = 5
+local STEPS = 6
 local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local LOGO_SIZE = 128
 local TEXT_WIDTH = 520
 local CARD_HEIGHT = 120
 local ORNAMENT_CARD_HEIGHT = 64
+local STYLE_PICTURE_SHARE = 0.5
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -31,7 +32,11 @@ local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
 local STORY = { label = L["Story rail"], short = L["Quests"] }
-local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
+local STEP_LABELS = { L["Welcome"], L["HUD style"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
+local STYLES = {
+	{ value = "frames", label = L["Frames"], note = L["Your health and resource on the player frame above the action bars."], picture = "hudStyleFrames" },
+	{ value = "orbs", label = L["Orbs"], note = L["Your health and resource in two orbs either side of the action bars."], picture = "hudStyleOrbs" },
+}
 
 local panel
 local step, reached, applied, open = 0, 1, false, false
@@ -131,6 +136,8 @@ local function Select(cards, value)
 	end
 end
 
+local FitStyles
+
 local function Refresh()
 	local choice = Setup.Choice()
 	panel.back:SetShown(step > 1)
@@ -141,6 +148,8 @@ local function Refresh()
 	panel.later:SetShown(step == STEPS and applied)
 	Select(panel.cards, choice.layout)
 	Select(panel.ornamentCards, choice.ornaments)
+	Select(panel.styleCards, choice.hudStyle)
+	FitStyles()
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
 	end
@@ -153,7 +162,8 @@ local function Refresh()
 			end
 		end
 		local ornaments = Setup.Ornament(choice.ornaments)
-		local text = string.format(L["Layout: %s. %s"], Layouts.Label(choice.layout), Layouts.Note(choice.layout))
+		local style = choice.hudStyle == "orbs" and L["Orbs"] or L["Frames"]
+		local text = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s. %s"], Layouts.Label(choice.layout), Layouts.Note(choice.layout))
 			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note)
 			.. "\n\n" .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"])
 		if #off > 0 then
@@ -232,10 +242,10 @@ local function BuildWelcome(page)
 	body:SetText(L["This short setup picks a layout and the parts of the interface KstyleUI replaces. You can change everything later in the settings window, and move or resize any element in Layout Mode."])
 	local caption = Widgets.Text(page, "caption", "text")
 	caption:SetPoint("TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
-	Widgets.SetText(caption, L["Four steps"])
+	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
 	list:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."] .. "\n" .. L["3. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["4. Apply, then reload."])
+	list:SetText(L["1. Pick a HUD style: Frames or Orbs."] .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
 	note:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
@@ -576,6 +586,47 @@ local function BuildModules(page, width)
 	end
 end
 
+local function BuildStyles(page, width)
+	local spacing = gap("gapLarge")
+	local cardWidth = math.floor((width - spacing * (#STYLES - 1)) / #STYLES)
+	local pad = gap("gapLarge")
+	local pictureWidth = cardWidth - 2 * pad
+	local pictureHeight = Widgets.Snap(page, pictureWidth * STYLE_PICTURE_SHARE)
+	panel.styleCards = {}
+	for i, entry in ipairs(STYLES) do
+		local value = entry.value
+		local card = NewCard(page, cardWidth, pictureHeight + 2 * pad, entry.label, entry.note, function()
+			Setup.Choice().hudStyle = value
+		end)
+		card.hudStyle = value
+		card.picture = card:CreateTexture(nil, "ARTWORK")
+		card.picture:SetTexture((Tokens.Texture(entry.picture)))
+		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
+		card.picture:SetPoint("TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
+		card.picture:SetPoint("LEFT", card, "LEFT", pad, 0)
+		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
+		panel.styleCards[value] = card
+	end
+	local hint = Paragraph(page, "body", "text", width)
+	hint:SetText(L["Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
+	panel.styleHint = hint
+	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
+end
+
+FitStyles = function()
+	local fit, page = panel.styleFit, panel.pages[2]
+	local height = 0
+	for _, card in pairs(panel.styleCards) do
+		local text = Widgets.LineHeight(card.title) + gap("gapSmall") + Widgets.WrappedHeight(card.note, fit.width - 2 * fit.pad)
+		height = max(height, fit.pad + text + gap("gapMedium") + fit.picture + fit.pad)
+	end
+	for _, card in pairs(panel.styleCards) do
+		Widgets.Size(card, fit.width, height)
+	end
+	panel.styleHint:ClearAllPoints()
+	panel.styleHint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
+end
+
 local function BuildOrnaments(page, width)
 	local spacing = gap("gapLarge")
 	local height = Widgets.Snap(page, ORNAMENT_CARD_HEIGHT)
@@ -691,10 +742,11 @@ local function Build()
 		panel.pages[i] = page
 	end
 	BuildWelcome(panel.pages[1])
-	BuildLayouts(panel.pages[2], width)
-	BuildModules(panel.pages[3], width)
-	BuildOrnaments(panel.pages[4], width)
-	BuildSummary(panel.pages[5], width)
+	BuildStyles(panel.pages[2], width)
+	BuildLayouts(panel.pages[3], width)
+	BuildModules(panel.pages[4], width)
+	BuildOrnaments(panel.pages[5], width)
+	BuildSummary(panel.pages[6], width)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	panel.back:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {

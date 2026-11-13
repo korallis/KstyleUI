@@ -4,7 +4,7 @@ local addonName, ns = ...
 local HudStyle = {}
 ns.HudStyle = HudStyle
 
-local Store, L = ns.Store, ns.L
+local Store, Tokens, L = ns.Store, ns.Tokens, ns.L
 
 local SECTION = "HudStyle"
 local STYLES = { frames = true, orbs = true }
@@ -60,9 +60,12 @@ end
 HudStyle.schema = {
 	{ type = "header", label = L["HUD"] },
 	{
-		type = "dropdown", key = "style", label = L["HUD style"],
+		type = "pictures", key = "style", label = L["HUD style"],
 		help = L["Orbs shows health and resource in two orbs beside the main action buttons. Changes out of combat."],
-		options = { { value = "frames", label = L["Frames"] }, { value = "orbs", label = L["Orbs"] } },
+		options = {
+			{ value = "frames", label = L["Frames"], picture = (Tokens.Texture("hudStyleFrames")) },
+			{ value = "orbs", label = L["Orbs"], picture = (Tokens.Texture("hudStyleOrbs")) },
+		},
 	},
 }
 

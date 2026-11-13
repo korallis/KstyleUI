@@ -49,7 +49,7 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 
 | Page | Rows |
 | --- | --- |
-| General | The schemas of the core's `Appearance` section and, when it is registered, the `Widgets` section, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
+| General | The schemas of the core's `HudStyle` section (the HUD style pictures), its `Appearance` section and, when it is registered, the `Widgets` section, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
 | Elements | The `Layout` section's schema (grid and snapping) when Layout registers one, then every element from `Layout.Elements()`, grouped under its module. |
 | One per module | Each module in `Options.List()` or `Modules.List()`, except `Options` and the General sections, in the spec's module order and then by name. A module's page starts with a header named after the module and an **Enable** switch unless its schema has an `enabled` row, then its schema rows, then **Positions and sizes** for its own elements. A schema whose first row is a level-1 header with the module's own name (`Unit frames` under `Unit Frames`) and no `showWhen` or `disableWhen` shares that header with the switch instead of repeating it; a conditional header keeps its own row, so it still hides its section. |
 | Profiles | Active profile, new, copy from, rename, delete, reset, export, import, and every known character's profile. |
@@ -70,6 +70,7 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 | `slider` | `Widgets.Slider` with the row's `min`, `max` and `step`; a row with `shown` paints `shown(stored)` instead of the stored value |
 | `dropdown` | `Widgets.Dropdown`. A stored value that no option holds is listed under its raw value, so it still shows. |
 | `segmented` | `Widgets.Tabs` at the control width: one tab per option, the stored value's tab underlined. For a short list of choices that should all show at once, such as the Widgets **Ornaments** level (Off, Subtle, Full). A disabled row disables every tab. |
+| `pictures` | Two picture cards at the control width on the button body, each its option's `picture` (a 2:1 texture) over its label; the stored value's card has the `accent` edge and its label in `textEmphasis`, a click saves that option. For a choice that reads best as a picture, such as the **HUD style** at the top of General (Frames or Orbs). A disabled row disables both cards. |
 | `color` | `Widgets.ColorSwatch` and the colour as `#RRGGBB`. Rows with `hasAlpha` keep the alpha. |
 | `font`, `texture` | `Widgets.FontPicker`, `Widgets.TexturePicker`: KstyleUI's media, then LibSharedMedia's |
 | `text` | `Widgets.EditBox`. Enter saves; `maxLetters` limits the length. |

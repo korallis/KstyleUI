@@ -45,7 +45,7 @@ do
 	assert(player(ns).active == true, "the player frame runs under Frames")
 	assert(K.Layout.Live("unitframes.player"), "the player frame's element is live under Frames")
 	local row = K.Options.Row("HudStyle", "style")
-	assert(row and row.type == "dropdown", "Options shows a HUD style dropdown")
+	assert(row and row.type == "pictures", "Options shows the HUD styles as pictures")
 	local values = {}
 	for _, option in ipairs(row.options) do
 		values[#values + 1] = option.value
@@ -213,6 +213,16 @@ K.Store.SetProfile("Orbs")
 env.RunTimers()
 assert(K.HudStyle.Current() == "orbs" and health:IsShown() and player(ns).active == false, "switching to an Orbs profile shows the orbs")
 noErrors(env, K, "profile switches")
+
+-- An imported profile string carrying a style no build knows is refused, like any other choice row's unknown value.
+do
+	local ok = K.Store.Import(CoreEnv.CraftLua({ kind = "KstyleUI profile", version = K.Store.DB_VERSION, name = "Odd", settings = { HudStyle = { style = "bars" } }, layout = {} }))
+	assert(not ok, "an unknown HUD style in a profile string is refused")
+	local good = K.Store.Import(CoreEnv.CraftLua({ kind = "KstyleUI profile", version = K.Store.DB_VERSION, name = "Good", settings = { HudStyle = { style = "orbs" } }, layout = {} }))
+	assert(good, "a known HUD style imports")
+	K.Store.SetProfile("Orbs")
+	env.RunTimers()
+end
 
 -- A switch that raises offers a reload instead of leaving half a HUD.
 local prompts = 0

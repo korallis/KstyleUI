@@ -13,7 +13,7 @@ The setting is `Widgets.ornaments`, with three values:
 | Full | Forged rails with rivets, clawed, winged and crested ends, the portrait band with its rank pendants, corners, crests and the full action-bar tray. |
 
 - **Default.** Full, for a new profile and for a profile saved before the setting existed: `Widgets.Setting` returns the default for a missing or invalid stored value, so no Store migration is needed. An invalid or secret stored value also reads as Full. The owner asked for ornaments and changes the level in the settings window.
-- **Where it is chosen.** The first-run setup's ornaments step (step 4 of 5, Full picked) and the General page of the settings window (a three-way control, `segmented` row type).
+- **Where it is chosen.** The first-run setup's ornaments step (step 5 of 6, Full picked) and the General page of the settings window (a three-way control, `segmented` row type).
 - **Glass.** The Glass card material draws no ornaments at any level, because the painted pieces are forged metal.
 - **Full is never less than Subtle.** On the same block, Full never draws a smaller end piece than Subtle. On forged unit frames the end is chosen by weight: when Subtle's pointed pair outweighs the claws that fit (a claw fits on one end only, say), Full draws Subtle's pointed ends with Full's rail, so the two ends match. A smaller end at Full than at Subtle is a defect, not a note.
 

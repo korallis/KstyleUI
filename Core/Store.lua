@@ -1400,7 +1400,7 @@ local function checkRow(row, value, path, default)
 		if value < row.min or value > row.max then
 			return format(L["%s is out of range (%s to %s)."], path, tostring(row.min), tostring(row.max))
 		end
-	elseif row.type == "dropdown" or row.type == "segmented" then
+	elseif row.type == "dropdown" or row.type == "segmented" or row.type == "pictures" then
 		local options = row.options
 		if type(options) == "function" then
 			local ok, list = pcall(options)

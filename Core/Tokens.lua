@@ -295,6 +295,8 @@ local TEXTURES = {
 	orbGlass = { file = "Textures\\OrbGlass.png" },
 	orbLiquid = { file = "Textures\\OrbLiquid.png" },
 	orbSurface = { file = "Textures\\OrbSurface.png" },
+	hudStyleFrames = { file = "Textures\\HudStyleFrames.png" },
+	hudStyleOrbs = { file = "Textures\\HudStyleOrbs.png" },
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.png" },
 }

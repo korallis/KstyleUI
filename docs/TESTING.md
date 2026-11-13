@@ -82,13 +82,14 @@ Type these in chat once you are in the world. Each setting is saved, so it stays
 
 ### Run the first-run setup
 
-About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with five steps across the top.
+About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with six steps across the top.
 
 1. **Welcome.** Click **Next**.
-2. **Layout.** Pick **DPS**, **Tank** or **Healer**. The picked card lights in your class colour. Click **Next**.
-3. **Modules.** Every module whose addon loaded is switched on, each with a one-line note. Leave them all on for this test. Click **Next**.
-4. **Ornaments.** **Full** is picked. Click **Subtle**, then **Full** again: the picked card lights. Click **Next**.
-5. **Summary.** It names the layout and **Ornaments: Full**. Click **Apply**, then **Reload**.
+2. **HUD style.** **Frames** is picked. Each card shows a picture of its style. Pick one and click **Next**.
+3. **Layout.** Pick **DPS**, **Tank** or **Healer**. The picked card lights in your class colour. Click **Next**.
+4. **Modules.** Every module whose addon loaded is switched on, each with a one-line note. Leave them all on for this test. Click **Next**.
+5. **Ornaments.** **Full** is picked. Click **Subtle**, then **Full** again: the picked card lights. Click **Next**.
+6. **Summary.** It names the HUD style, the layout and **Ornaments: Full**. Click **Apply**, then **Reload**.
 
 After the reload, KstyleUI's frames replace Blizzard's and sit where the layout puts them. The setup does not open again. `/kstyle setup` reopens it.
 

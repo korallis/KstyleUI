@@ -22,6 +22,9 @@ local DROPDOWN_CHEVRON = 8
 local DROPDOWN_GAPS = 3
 local DROPDOWN_SAFETY = 1
 local DROPDOWN_RESERVE = DROPDOWN_GAPS * Tokens.Size("gapMedium") + DROPDOWN_CHEVRON + DROPDOWN_SAFETY
+local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL = 2, 8, 3, 20
+local PICTURE_WIDTH = (Rows.CONTROL_WIDTH - (PICTURE_COUNT - 1) * PICTURE_GAP) / PICTURE_COUNT
+local PICTURE_HEIGHT = (PICTURE_WIDTH - 2 * PICTURE_INSET) / 2 + 2 * PICTURE_INSET + PICTURE_LABEL
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
@@ -208,6 +211,42 @@ function MAKERS.button(row)
 	return holder
 end
 
+local function PictureCard(row, holder, i)
+	local card = CreateFrame("Button", nil, holder)
+	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
+	card.picture = card:CreateTexture(nil, "ARTWORK")
+	card.label = Widgets.Text(card, "body", "text")
+	card.label:SetJustifyH("CENTER")
+	card.label:SetWordWrap(false)
+	Widgets.Size(card, PICTURE_WIDTH, PICTURE_HEIGHT)
+	card:SetPoint("TOPLEFT", holder, "TOPLEFT", Snap(holder, (i - 1) * (PICTURE_WIDTH + PICTURE_GAP)), 0)
+	local inset = Snap(card, PICTURE_INSET)
+	card.picture:SetPoint("TOPLEFT", card, "TOPLEFT", inset, -inset)
+	card.picture:SetPoint("TOPRIGHT", card, "TOPRIGHT", -inset, -inset)
+	card.picture:SetHeight(Snap(card, (PICTURE_WIDTH - 2 * PICTURE_INSET) / 2))
+	card.label:SetPoint("TOPLEFT", card.picture, "BOTTOMLEFT", 0, 0)
+	card.label:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -inset, 0)
+	card:SetScript("OnClick", function(self)
+		Apply(row, self.value, holder)
+	end)
+	return card
+end
+
+function MAKERS.pictures(row)
+	local holder = CreateFrame("Frame", nil, row)
+	Widgets.Size(holder, Rows.CONTROL_WIDTH, PICTURE_HEIGHT)
+	holder.cards = {}
+	for i = 1, PICTURE_COUNT do
+		holder.cards[i] = PictureCard(row, holder, i)
+	end
+	function holder:SetEnabled(enabled)
+		for _, card in ipairs(self.cards) do
+			card:SetEnabled(enabled)
+		end
+	end
+	return holder
+end
+
 local function Control(row, kind)
 	local control = row.controls[kind]
 	if not control and MAKERS[kind] then
@@ -337,6 +376,24 @@ function FILL.button(control, item)
 			button:Hide()
 		end
 	end
+end
+
+function FILL.pictures(control, item, value)
+	local disabled = Model.IsDisabled(item)
+	for i, card in ipairs(control.cards) do
+		local option = item.options[i]
+		card:SetShown(option ~= nil)
+		if option then
+			local selected = option.value == value
+			card.value = option.value
+			card.picture:SetTexture(option.picture)
+			card.picture:SetDesaturated(disabled)
+			Widgets.SetText(card.label, option.label)
+			Widgets.TextColor(card.label, disabled and "textDisabled" or selected and "textEmphasis" or "text")
+			card.chrome:SetEdge(selected and not disabled and "accent" or "edgeInner", 1)
+		end
+	end
+	SetEnabled(control, not disabled)
 end
 
 local function Value(item)
