@@ -43,7 +43,7 @@ do
 			assert(position.anchor and position.x and position.y, name .. ": " .. key .. " has a whole position")
 		end
 		for _, key in ipairs({ "actionbars.bar1", BAR2, CAST, "unitframes.target", "auras.buffs", "auras.debuffs",
-			"cooldowns.buffs", "actionbars.pet", "actionbars.stance", "databars.rep", "databars.honor" }) do
+			"cooldowns.buffs", "actionbars.pet", "actionbars.stance", "databars.rep", "databars.honor", "unitframes.boss", "combattext.player", "unitframes.pet" }) do
 			assert(Layouts.Style("orbs", name, key), name .. ": Orbs places " .. key)
 		end
 		assert(Layouts.Style("frames", name, CAST) == nil, name .. ": Frames has no style table")
