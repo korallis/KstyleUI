@@ -18,14 +18,22 @@ local function cast(id, bar)
 	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-" .. id, 116, bar)
 end
 
-local zero = { zero = true }
+local ended = {}
+function ended:SetTimeSpan(startTime, endTime)
+	self.span = { startTime, endTime }
+end
 env.C_DurationUtil = { CreateDuration = function()
-	return zero
+	return ended
 end }
+local ELAPSED, REMAINING = env.Enum.StatusBarTimerDirection.ElapsedTime, env.Enum.StatusBarTimerDirection.RemainingTime
+
+local function ended_as(direction)
+	local timer = W.LastCall(player.bar, "SetTimerDuration")
+	return timer and timer[1] == ended and timer[3] == direction and ended.span and ended.span[2] <= env._time
+end
 
 local function emptied()
-	local timer = W.LastCall(player.bar, "SetTimerDuration")
-	return timer and timer[1] == zero
+	return ended_as(REMAINING)
 end
 
 env._time = 1
@@ -36,7 +44,8 @@ assert(player.active and not flash.group:IsPlaying(), "another cast's stop does 
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116, 4)
 assert(flash:IsShown() and flash.group:IsPlaying() and color("giltLit", 0.6), "a landed cast flashes gilt")
-assert(emptied() and W.LastCall(player.bar, "SetValue")[1] == 1, "the timer stops and the bar stays full under the flash")
+assert(ended_as(ELAPSED) and W.LastCall(player.bar, "SetValue")[1] == 1, "the engine's timer is bound to a span that has ended, read as elapsed, so the bar stays full under the flash")
+assert(U.Shown(env, player.timer) == "", "the time text clears")
 assert(player.frame:IsShown(), "the bar holds while the flash plays")
 local anims = flash.group._anims
 assert(#anims == 2 and W.Near(W.LastCall(anims[1], "SetDuration")[1], K.Tokens.Duration("pressIn")) and W.Near(W.LastCall(anims[2], "SetDuration")[1], K.Tokens.Duration("readyFlash")), "in at pressIn, out at readyFlash")
@@ -67,12 +76,42 @@ flash.group:Stop()
 env.RunTimers()
 W.Settle(env)
 
+cast(6, 9)
+env._units.player.cast = nil
+env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-6", 116, 9)
+env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-7", 2139, nil)
+assert(color("giltLit", 0.6) and W.LastCall(player.bar, "SetValue")[1] == 1, "another spell's failure during the hold leaves the landed bar gilt")
+env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-6", 116, nil, nil)
+assert(color("hostile", 0.55), "the landed spell's own interrupt with no bar id still turns it red")
+flash.group:Stop()
+env.RunTimers()
+W.Settle(env)
+
+env._units.player.nilDuration = true
+cast(7, 10)
+local timers = #W.Calls(player.bar, "SetTimerDuration")
+env._units.player.cast = nil
+env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-7", 116, nil, 10)
+assert(#W.Calls(player.bar, "SetTimerDuration") == timers and W.LastCall(player.bar, "SetValue")[1] == 0, "a bar run on the cast times empties with SetValue and binds no timer")
+env._units.player.nilDuration = nil
+flash.group:Stop()
+env.RunTimers()
+W.Settle(env)
+
 env._units.player.channel = { name = "Arcane Missiles", texture = 136096, start = 1000, finish = 4000, spellID = 5143, barID = 6 }
 env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "player", "Cast-5", 5143, 6)
 env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-5", 5143, 6)
 env._units.player.channel = nil
 env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player", "Cast-5", 5143, nil, 6)
-assert(not flash.group:IsPlaying(), "a channel's end does not flash")
+assert(not flash.group:IsPlaying() and emptied(), "a channel's end does not flash, and its timer is let go")
+env.RunTimers()
+W.Settle(env)
+env._units.player.channel = { name = "Arcane Missiles", texture = 136096, start = 1000, finish = 4000, spellID = 5143, barID = 11 }
+env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "player", "Cast-8", 5143, 11)
+env._units.player.channel = nil
+env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player", "Cast-8", 5143, "Creature-0-1-2-3-4-5", 11)
+assert(flash.group:IsPlaying() and color("hostile", 0.55) and emptied(), "a channel stopped by someone turns red")
+flash.group:Stop()
 env.RunTimers()
 W.Settle(env)
 

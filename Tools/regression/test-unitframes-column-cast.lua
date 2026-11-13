@@ -212,7 +212,7 @@ do
 	CastBars.Layout(element, 20, 26.5)
 	local narrowW = env.Look(element.bar:GetSize())
 	local _, _, _, narrowX = env.Look(element.bar:GetPoint(1))
-	assert(not element.iconFrame:IsShown() and near(narrowX, 0) and narrowW <= 20.6, "a bar narrower than its icon tile drops the tile and keeps its own width")
+	assert(not element.iconFrame:IsShown() and near(narrowX, 0) and near(narrowW, 20, 0.6), "a bar narrower than its icon tile drops the tile and keeps its own width")
 	K.Options.Write("UnitFrames", "player.fonts.cast.size", 12)
 	settle()
 	noErrors("cast room")

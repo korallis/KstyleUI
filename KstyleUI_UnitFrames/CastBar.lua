@@ -212,13 +212,25 @@ end
 local function EndTimer(cb, value)
 	StopTimer(cb)
 	cb.duration = nil
-	local util, bar = C_DurationUtil, cb.bar
-	if util and type(util.CreateDuration) == "function" and type(bar.SetTimerDuration) == "function" then
-		cb.zero = cb.zero or util.CreateDuration()
-		pcall(bar.SetTimerDuration, bar, cb.zero)
-	end
+	cb.timer:SetText("")
+	local bar = cb.bar
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(value)
+	if not cb.timed then
+		return
+	end
+	cb.timed = false
+	local util = C_DurationUtil
+	if not (util and type(util.CreateDuration) == "function") then
+		return
+	end
+	if not cb.ended then
+		cb.ended = util.CreateDuration()
+		pcall(cb.ended.SetTimeSpan, cb.ended, 0, 1)
+	end
+	if not pcall(bar.SetTimerDuration, bar, cb.ended, Interpolation(), Direction(value <= 0)) then
+		LogOnce("timer-end-refused", "cast bars: SetTimerDuration refused the ended span; the bar keeps its last timer")
+	end
 end
 
 local function HoldThen(cb, seconds)
@@ -238,6 +250,9 @@ local function Hide(cb, instant)
 	cb.active, cb.landed = false, false
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
+	if cb.timed then
+		EndTimer(cb, 0)
+	end
 	StopTimer(cb)
 	cb.duration = nil
 	if instant or not cb.frame:IsShown() then
@@ -731,6 +746,7 @@ local function RunDuration(cb, channel)
 		return false
 	end
 	LogOnce("timer", "cast bars: duration objects through SetTimerDuration")
+	cb.timed = true
 	if issecretvalue(duration) then
 		cb.duration = nil
 		cb.timer:SetText("")
@@ -758,11 +774,11 @@ local function RunTimes(cb, channel, startMs, endMs)
 end
 
 local function Start(cb, channel)
-	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, castBarID
+	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, spellID, castBarID
 	if channel then
 		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, _, _, _, castBarID = UnitChannelInfo(cb.unit)
 	else
-		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, _, castBarID = UnitCastingInfo(cb.unit)
+		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, spellID, castBarID = UnitCastingInfo(cb.unit)
 	end
 	if type(isTradeSkill) ~= "boolean" or cb.noRoom then
 		Hide(cb, true)
@@ -770,9 +786,12 @@ local function Start(cb, channel)
 	end
 	cb.active, cb.landed, cb.channel = true, false, channel
 	StopFlash(cb)
-	cb.castBarID = nil
+	cb.castBarID, cb.spellID = nil, nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then
 		cb.castBarID = castBarID
+	end
+	if not issecretvalue(spellID) and type(spellID) == "number" then
+		cb.spellID = spellID
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
@@ -839,6 +858,10 @@ local function Matches(cb, event, ...)
 	if type(barID) == "number" and cb.castBarID then
 		return barID == cb.castBarID
 	end
+	local spellID = select(3, ...)
+	if cb.landed and cb.spellID and not issecretvalue(spellID) and type(spellID) == "number" then
+		return spellID == cb.spellID
+	end
 	return not Casting(cb.unit)
 end
 
@@ -851,10 +874,15 @@ local HANDLERS = {
 	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
-			if cb.channel then
-				Hide(cb)
-			else
+			if not cb.channel then
 				Land(cb)
+				return
+			end
+			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
+			if not issecretvalue(by) and type(by) == "string" and by ~= "" then
+				Finish(cb, L["Interrupted"])
+			else
+				Hide(cb)
 			end
 		end
 	end,
