@@ -117,7 +117,7 @@ local function Apply(f)
 	if fit then
 		for step = fit.size, fit.min, -1 do
 			fit.set(text, step)
-			if Width(text, name, step) <= width then
+			if Width(text, name, step) <= width + fit.slack then
 				text:SetText(name)
 				return
 			end

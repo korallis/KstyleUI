@@ -1,4 +1,4 @@
--- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip that also covers the last tile's timer lane, each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip one tile tall (over the last tile, or after it where timers sit under the tiles, so no aura's timer sits under the count), each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -457,7 +457,7 @@ function Auras.Sync(view)
 	a.host:SetShown(Wanted(view) and Visible(view.button))
 end
 
-function Auras.LastCell(kind, frame, first)
+function Auras.LastCell(kind, frame, first, after)
 	local size, spacing = Settings.Value(kind, "auraSize"), Settings.Value(kind, "auraSpacing")
 	local room = TimerRoom(kind)
 	if frame then
@@ -466,7 +466,7 @@ function Auras.LastCell(kind, frame, first)
 	local columns, rows = Settings.Value(kind, "auraColumns"), Settings.Value(kind, "auraRows")
 	local _, _, corner, _, growth = Auras.Footprint(kind, frame)
 	local right, down = growth[2] == "Right", growth[3] == "Down"
-	local x = (columns - 1) * (size + spacing)
+	local x = (after and columns or columns - 1) * (size + spacing)
 	if not right then
 		x = -(x + size)
 	end
@@ -487,9 +487,10 @@ local function ApplyOverflow(view, filter, want)
 		local chip = a.overflow[key]
 		if chip then
 			local on = want and filter[key] ~= nil
-			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs)
+			local after = TimerRoom(view.kind) > 0
+			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs, after)
 			Overflow.Apply(chip, {
-				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell, foot = Snap(view, TimerRoom(view.kind)),
+				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell, after = after,
 				rel = a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
 			})
 		end

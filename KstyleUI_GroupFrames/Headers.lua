@@ -19,6 +19,7 @@ local DRIVER_PARTY = "[group:raid] hide; [group] show; hide"
 local DRIVER_PARTY_SOLO = "[group:raid] hide; show"
 local DRIVER_RAID = "[group:raid] show; hide"
 local DRIVER_HIDE = "hide"
+local GRID = { "width", "height", "spacing", "groupSpacing" }
 
 local CONFIG = [[
 	local header = self:GetParent()
@@ -29,6 +30,23 @@ local CONFIG = [[
 ]]
 
 local kinds = setmetatable({}, { __mode = "k" })
+
+local function Px(kind, units)
+	return K.Widgets.Snap(Headers.holders[kind], units)
+end
+
+local function OnGrid(kind, s)
+	local g = {}
+	for key, value in pairs(s) do
+		g[key] = value
+	end
+	for _, key in ipairs(GRID) do
+		if s[key] then
+			g[key] = Px(kind, s[key])
+		end
+	end
+	return g
+end
 
 local function OnHeaderAttribute(header, name, value)
 	if type(name) == "string" and name:match("^child%d+$") and type(value) == "table" then
@@ -161,41 +179,44 @@ local function Columns(header, perColumn, maxColumns, anchor, spacing)
 	header:SetAttribute("columnSpacing", spacing)
 end
 
-local function Grow(header, geo)
+local function Grow(header, geo, kind)
 	header:SetAttribute("point", geo.point)
-	header:SetAttribute("xOffset", geo.xOffset)
-	header:SetAttribute("yOffset", geo.yOffset)
+	header:SetAttribute("xOffset", Px(kind, geo.xOffset))
+	header:SetAttribute("yOffset", Px(kind, geo.yOffset))
 end
 
-local function Seat(card, s, geo)
+local function Seat(card, s, geo, kind)
 	card.settings = s
 	card.anchor = geo.corner
 	card.frame:SetShown(s.card == true)
 	if not s.card then
-		return geo.width, geo.height, 0, 0
+		return Px(kind, geo.width), Px(kind, geo.height), 0, 0
 	end
 	local width, height, left, top = Geometry.Card(geo, K.Widgets.SECTION_CAP_HEIGHT)
+	width, height, left, top = Px(kind, width), Px(kind, height), Px(kind, left), Px(kind, top)
 	local cap = card.cap
 	cap.frame:ClearAllPoints()
-	cap.frame:SetPoint("TOPLEFT", card.frame, "TOPLEFT", left, -Geometry.CARD_PAD)
-	cap.frame:SetPoint("TOPRIGHT", card.frame, "TOPRIGHT", -left, -Geometry.CARD_PAD)
+	cap.frame:SetPoint("TOPLEFT", card.frame, "TOPLEFT", left, -Px(kind, Geometry.CARD_PAD))
+	cap.frame:SetPoint("TOPRIGHT", card.frame, "TOPRIGHT", -left, -Px(kind, Geometry.CARD_PAD))
 	cap:Restyle()
 	return width, height, left, top
 end
 
-local function Offset(geo, card, left, top, lane)
+local function Offset(geo, card, left, top, lane, kind)
 	if not card.settings.card then
-		local x = lane or 0
+		local x = Px(kind, lane or 0)
 		return geo.corner:find("RIGHT", 1, true) and -x or x, 0
 	end
-	return Geometry.CardOffset(geo.corner, left, top, lane)
+	local x, y = Geometry.CardOffset(geo.corner, left, top, lane)
+	return Px(kind, x), Px(kind, y)
 end
 
 function Headers.ApplyParty(s)
+	s = OnGrid("party", s)
 	local geo = Geometry.Party(s)
 	local holder, header = Headers.holders.party, Headers.party
 	local card = Headers.cards.party
-	local width, height, left, top = Seat(card, s, geo)
+	local width, height, left, top = Seat(card, s, geo, "party")
 	holder:SetSize(width, height)
 	Headers.FitParty(card.members, true)
 	geo.left, geo.top = left, top
@@ -207,12 +228,12 @@ function Headers.ApplyParty(s)
 	header:SetAttribute("groupFilter", nil)
 	Sort(header, s.sortBy)
 	Columns(header, nil, nil, nil, nil)
-	Grow(header, geo)
+	Grow(header, geo, "party")
 	header:ClearAllPoints()
 	local lane = geo.corner:find("RIGHT", 1, true) and geo.laneSide == "RIGHT" or not geo.corner:find("RIGHT", 1, true) and geo.laneSide == "LEFT"
-	local x, y = Offset(geo, card, left, top, lane and geo.lane or 0)
+	local x, y = Offset(geo, card, left, top, lane and geo.lane or 0, "party")
 	header:SetPoint(geo.corner, holder, geo.corner, x, y)
-	Resize(header, geo.memberWidth, s.height)
+	Resize(header, Px("party", geo.memberWidth), s.height)
 	Precreate(header, PARTY_BUTTONS)
 	Driver(header, s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
 	return geo
@@ -263,7 +284,7 @@ function Headers.FitParty(members, now)
 	end
 	card.members = members
 	local width, height = Geometry.PartyCard(s, K.Widgets.SECTION_CAP_HEIGHT, Geometry.PartyShown(s, members))
-	Fit(card, Headers.holders.party, width, height, now, Geometry.IsVertical(s.growth))
+	Fit(card, Headers.holders.party, Px("party", width), Px("party", height), now, Geometry.IsVertical(s.growth))
 end
 
 function Headers.SetPartyCount(count)
@@ -289,7 +310,7 @@ function Headers.FitRaid(members, groups, now)
 	end
 	card.members, card.groups = members, groups
 	local width, height = Geometry.Card(RaidShown(s, members, groups), K.Widgets.SECTION_CAP_HEIGHT)
-	Fit(card, Headers.holders.raid, width, height, now, Geometry.IsVertical(s.sortBy == "GROUP" and s.groupGrowth or Geometry.Perpendicular(s.growth, s.groupGrowth)))
+	Fit(card, Headers.holders.raid, Px("raid", width), Px("raid", height), now, Geometry.IsVertical(s.sortBy == "GROUP" and s.groupGrowth or Geometry.Perpendicular(s.growth, s.groupGrowth)))
 end
 
 function Headers.SetRaidCount(count, groups)
@@ -312,20 +333,21 @@ local function RaidHeader(header, holder, s)
 end
 
 function Headers.ApplyRaid(s)
+	s = OnGrid("raid", s)
 	local holder, card = Headers.holders.raid, Headers.cards.raid
 	local geo = s.sortBy == "GROUP" and Geometry.RaidGroups(s) or Geometry.RaidFlow(s)
-	local width, height, left, top = Seat(card, s, geo)
+	local width, height, left, top = Seat(card, s, geo, "raid")
 	holder:SetSize(width, height)
 	Headers.FitRaid(card.members, card.groups, true)
 	geo.left, geo.top = left, top
-	local x, y = Offset(geo, card, left, top)
+	local x, y = Offset(geo, card, left, top, nil, "raid")
 	if s.sortBy == "GROUP" then
 		for g, header in ipairs(Headers.raid) do
 			RaidHeader(header, holder, s)
 			header:SetAttribute("groupFilter", tostring(g))
 			Sort(header, "INDEX")
 			Columns(header, nil, nil, nil, nil)
-			Grow(header, geo)
+			Grow(header, geo, "raid")
 			local slot = geo.slots[g]
 			header:SetPoint(geo.corner, holder, geo.corner, slot.x + x, slot.y + y)
 			Precreate(header, GROUP_BUTTONS)
@@ -339,7 +361,7 @@ function Headers.ApplyRaid(s)
 			header:SetAttribute("groupFilter", ALL_GROUPS)
 			Sort(header, s.sortBy)
 			Columns(header, geo.unitsPerColumn, geo.maxColumns, geo.columnAnchorPoint, geo.columnSpacing)
-			Grow(header, geo)
+			Grow(header, geo, "raid")
 			Precreate(header, RAID_BUTTONS)
 			Driver(header, DRIVER_RAID)
 		else

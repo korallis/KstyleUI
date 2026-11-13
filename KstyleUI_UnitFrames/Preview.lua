@@ -237,11 +237,17 @@ local function Chip(frame, kind, host)
 	return chip
 end
 
-local function PaintChip(frame, kind, host, last, size, room)
+local function PaintChip(frame, kind, host, last, size, after, gap)
 	local chip = Chip(frame, kind, host)
 	chip:ClearAllPoints()
-	chip:SetPoint("TOPLEFT", last.skin, "TOPLEFT", 0, 0)
-	chip:SetSize(size, size + room)
+	if not after then
+		chip:SetPoint("TOPLEFT", last.skin, "TOPLEFT", 0, 0)
+	elseif gap < 0 then
+		chip:SetPoint("TOPRIGHT", last.skin, "TOPLEFT", gap, 0)
+	else
+		chip:SetPoint("TOPLEFT", last.skin, "TOPRIGHT", gap, 0)
+	end
+	chip:SetSize(size, size)
 	chip:SetFrameLevel(last.skin:GetFrameLevel() + CHIP_LEVEL)
 	chip.chrome:Restyle()
 	local r, g, b = Tokens.Color("buttonFill")
@@ -250,9 +256,11 @@ local function PaintChip(frame, kind, host, last, size, room)
 	Widgets.ApplyFont(chip.text, Tokens.Font("number"), math.max(CHIP_MIN, math.floor(size * CHIP_SHARE + 0.5)), "")
 	pcall(chip.text.SetTextColor, chip.text, Tokens.Color("textEmphasis"))
 	chip.text:SetText("+" .. AURA_MORE)
-	last.timer:Hide()
-	last.count:Hide()
-	last.countBadge:Hide()
+	if not after then
+		last.timer:Hide()
+		last.count:Hide()
+		last.countBadge:Hide()
+	end
 	chip:Show()
 end
 
@@ -316,7 +324,9 @@ local function PaintAuras(frame, view, kind)
 			tile.countBadge:SetShown(stack ~= nil)
 			tile.skin:Show()
 		end
-		PaintChip(frame, kind, host, tiles[count], size, timers and room or 0)
+		local after = timers and room > 0
+		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
+		PaintChip(frame, kind, host, tiles[count], size, after, (not centred and growth[2] == "Left") and -spacing or spacing)
 	else
 		host:Hide()
 		if chip then

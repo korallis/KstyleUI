@@ -48,10 +48,9 @@ gallery_databars	3840x2160	KstyleUI_DataBars/Strip.lua	4
 gallery_databars	5120x1440	KstyleUI_DataBars/Bars.lua	56
 gallery_databars	5120x1440	KstyleUI_DataBars/Settings.lua	7
 gallery_databars	5120x1440	KstyleUI_DataBars/Strip.lua	2
-gallery_groupframes	1280x720	Core/Widgets/Base.lua	4
-gallery_groupframes	2560x1440	Core/Widgets/Base.lua	40
-gallery_groupframes	3440x1440	Core/Widgets/Base.lua	40
-gallery_groupframes	5120x1440	Core/Widgets/Base.lua	40
+gallery_groupframes	2560x1440	Core/Widgets/Base.lua	36
+gallery_groupframes	3440x1440	Core/Widgets/Base.lua	36
+gallery_groupframes	5120x1440	Core/Widgets/Base.lua	36
 gallery_layout	1280x720	Core/Scale.lua	5
 gallery_layout	1920x1080	Core/Scale.lua	5
 gallery_layout	2560x1440	Core/Scale.lua	5

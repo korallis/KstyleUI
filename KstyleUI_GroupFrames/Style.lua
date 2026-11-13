@@ -120,9 +120,9 @@ function Style.Build(f, kind)
 	f.classLine = Widgets.Fitted(Widgets.FontString(f.text, "OVERLAY"))
 	f.classLine:SetWordWrap(false)
 	f.classLine:SetJustifyH("RIGHT")
-	f.name = Widgets.Fitted(Widgets.FontString(f.text, "OVERLAY"))
+	f.name = Widgets.Fitted(Widgets.FontString(f.text, "OVERLAY"), kind == "party")
 	f.name:SetWordWrap(false)
-	f.healthText = Widgets.Fitted(Widgets.FontString(f.text, "OVERLAY"))
+	f.healthText = Widgets.FontString(f.text, "OVERLAY")
 	f.healthText:SetWordWrap(false)
 	f.target = CreateFrame("Frame", nil, f.text)
 	f.target:SetAllPoints(f)
@@ -465,7 +465,8 @@ end
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
-	width, height = width or Style.MemberWidth(f.kind), height or k.height
+	width = width or f.width or Widgets.Snap(f, Style.MemberWidth(f.kind))
+	height = height or f.height or Widgets.Snap(f, k.height)
 	f.width, f.height = width, height
 	local overlay = k.textLayout == "ABOVE" and (f.kind == "raid" or not k.portrait)
 	local reserve = 0

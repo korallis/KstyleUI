@@ -13,6 +13,7 @@ local DEFICIT_FORMAT = "-%s"
 local CURRENT_MAX_FORMAT = "%s / %s"
 local CURRENT_PERCENT_FORMAT = "%s  %.0f%%"
 local UNKNOWN_LEVEL = "??"
+local NAME_LUMINANCE = 0.62
 
 local UNIT_EVENTS = {
 	"UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_NAME_UPDATE", "UNIT_CONNECTION", "UNIT_FLAGS", "UNIT_POWER_UPDATE",
@@ -176,6 +177,10 @@ function Unit.ClassColor(class)
 	return Theme.ClassColorForWidget(class)
 end
 
+function Unit.NameColor(class)
+	return Theme.ClassTextColorForWidget(class, NAME_LUMINANCE)
+end
+
 local function Colors(f)
 	local unit = f.unit
 	local _, class = UnitClass(unit)
@@ -199,7 +204,7 @@ local function Colors(f)
 	if f.status then
 		f.name:SetTextColor(Tokens.Color("textDisabled"))
 	elseif text.nameColorSource == "class" then
-		f.name:SetTextColor(Theme.ClassTextColorForWidget(class))
+		f.name:SetTextColor(Unit.NameColor(class))
 	elseif text.nameColorSource == "custom" then
 		local c = text.nameColor
 		f.name:SetTextColor(c.r, c.g, c.b)

@@ -51,10 +51,11 @@ end
 
 local function ApplySecure()
 	local cfg = Settings.Refresh()
+	Register()
+	Restore()
 	Headers.ApplyParty(cfg.party)
 	Headers.ApplyRaid(cfg.raid)
 	Unit.ForEach(Style.Apply)
-	Register()
 	Restore()
 	Unit.RefreshAll()
 end
@@ -84,6 +85,11 @@ local function Restyle()
 	Unit.RefreshAll()
 end
 
+local function Rescale()
+	Restyle()
+	Frames.Apply()
+end
+
 local function OnSetting(_, module, key)
 	if module ~= MODULE then
 		return
@@ -104,7 +110,7 @@ end
 
 local function OnLayout(_, key)
 	if key == KEYS.party or key == KEYS.raid then
-		Restyle()
+		Rescale()
 	end
 end
 
@@ -140,7 +146,7 @@ local function Listen()
 	Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	Callbacks.Register("ThemeChanged", MODULE, Restyle)
-	Callbacks.Register("ScaleChanged", MODULE, Restyle)
+	Callbacks.Register("ScaleChanged", MODULE, Rescale)
 	Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 end
 
