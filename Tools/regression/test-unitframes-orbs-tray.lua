@@ -81,6 +81,13 @@ do
 	assert(near(hx, tx - art.ringX) and near(hy, ty + art.lift), "the ring stays on its arm")
 end
 
+-- Moved out of the corner in combat: the rings follow at once, the tray hangs on bar 1 again the moment combat ends.
+env.SetCombat(true)
+assert(K.Layout.Update("actionbars.bar1", { anchor = "BOTTOM", x = 0, y = 200 }), "bar 1 moves back to the centre in combat")
+env.SetCombat(false)
+env.RunTimers()
+Check("moved in combat")
+
 K.Options.Write("HudStyle", "style", "frames")
 assert(not tray:IsShown() and not ns.Orbs.Get("health"):IsShown(), "Frames hides the tray with the orbs")
 K.Options.Write("HudStyle", "style", "orbs")

@@ -27,6 +27,7 @@ local KINDS = { "health", "power" }
 local NEEDED = { "SetOrientation", "SetStatusBarTexture", "GetStatusBarTexture", "SetMinMaxValues", "SetValue" }
 
 local orbs, tray = {}, nil
+local hangQueued, Place = false, nil
 local running, active, built, available = false, false, false, nil
 
 local function Log(message)
@@ -242,6 +243,15 @@ local function Hang(x, y, clamped)
 	local el = Layout.Element and Layout.Element(BAR_KEY)
 	local holder = el and Layout.Live(BAR_KEY) and el.frame or root
 	if InCombatLockdown() then
+		if not hangQueued then
+			hangQueued = true
+			K.Combat.Queue(function()
+				hangQueued = false
+				if active then
+					Place()
+				end
+			end)
+		end
 		return
 	end
 	if tray:GetParent() ~= holder then
@@ -272,7 +282,7 @@ local function PlaceTray()
 	tray:SetShown(active and TrayWanted())
 end
 
-local function Place()
+function Place()
 	local Snap = K.Widgets.Snap
 	local healthX, powerX, y, ring = Orbs.Centres()
 	local hole = ring * OPENING
