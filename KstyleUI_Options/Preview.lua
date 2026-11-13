@@ -111,6 +111,7 @@ end
 local Fit, Reserve, RefreshCurrent
 
 local function Rescale(frame, scale)
+	Widgets.MarkPreview(frame)
 	frame:SetScale(scale)
 	Widgets.RestyleUnder({ [frame] = true })
 end

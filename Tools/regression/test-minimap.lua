@@ -383,7 +383,7 @@ env._cvars.timeMgrUseLocalTime, env._cvars.timeMgrUseMilitaryTime = false, false
 M.RunTickers(env)
 assert(face.clock:GetText() == "9:05" and face.meridiem:GetText() == "AM", "the game's clock settings pick realm time in 12 hours, the AM smaller beside it")
 local _, meridiemSize = face.meridiem:GetFont()
-assert(W.Near(meridiemSize, 12.5 * ns.Format.MERIDIEM * K.Theme.FontScale(), 1), "at 0.8 of the clock's size: " .. tostring(meridiemSize))
+assert(W.Near(meridiemSize, math.max(12.5 * ns.Format.MERIDIEM * K.Theme.FontScale(), K.Scale.TextFloor() * K.Scale.Pixel(1)), 1), "at 0.8 of the clock's size, never under the 11 px text floor: " .. tostring(meridiemSize))
 local mp, mrel, mrelp = face.meridiem:GetPoint(1)
 assert(mp == "BOTTOMLEFT" and mrel == face.clock and mrelp == "BOTTOMRIGHT", "on the clock's line, after it")
 env._cvars.timeMgrUseLocalTime, env._cvars.timeMgrUseMilitaryTime = true, true

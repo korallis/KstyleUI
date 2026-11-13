@@ -718,8 +718,19 @@ local function HoldTitle(list)
 	local title = list.title
 	title:SetWidth(0)
 	title:SetShown(true)
+	if list.titleNarrow then
+		list.titleNarrow = false
+		list:PaintTitleSwitch()
+	end
 	if Fits(list) or not ns.Get(list.section .. ".title") then
 		return
+	end
+	if list.switchFirst and not list.hot then
+		list.titleNarrow = true
+		list:PaintTitleSwitch()
+		if Fits(list) then
+			return
+		end
 	end
 	local aside = TextWidth(list.column) or 0
 	local room = (list.barWidth or 0) - CAP_RESERVE - aside
@@ -735,7 +746,7 @@ function List:Restyle()
 	self.pad = self.block and Widgets.Snap(self.panel, BLOCK_PAD) or self.panel.chrome:Inset()
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
-	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	local em = Widgets.FontSize(self.title, ns.Get(section .. ".fontSize") * K.Theme.FontScale())
 	local columns = self.columns()
 	self.blockIcons = self.block and self.iconsOn ~= nil and self.iconsOn() == true
 	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * VALUE_EMS) or 0
@@ -935,7 +946,7 @@ end
 
 function List:PaintTitleSwitch()
 	local first, second, selected = self.switchFirst, self.switchSecond, self.switchPick
-	local hot = self.hot == true
+	local hot = self.hot == true or self.titleNarrow == true
 	if not first or (self.titleText and first == self.paintFirst and second == self.paintSecond and selected == self.paintPick and hot == self.paintHot) then
 		return
 	end

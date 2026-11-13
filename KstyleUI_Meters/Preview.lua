@@ -8,6 +8,7 @@ local Logic = ns.Logic
 
 local FALLBACK_WIDTH, FALLBACK_HEIGHT = 420, 220
 local SWING_HEIGHT = 8
+local STACK_BELOW = 240
 local SWING_FILL = 0.6
 local PERCENT_MAX = 100
 local DAMAGE_SAMPLE_RATE = 38.4
@@ -114,8 +115,12 @@ local function Arrange(frame)
 		height = FALLBACK_HEIGHT
 	end
 	local gap = Widgets.Snap(frame, Tokens.Size("gapMedium"))
-	local listWidth = math.floor((width - gap) / 2)
+	local stacked = math.floor((width - gap) / 2) < STACK_BELOW
+	local listWidth = stacked and width or math.floor((width - gap) / 2)
 	local listHeight = height - SWING_HEIGHT - gap
+	if stacked then
+		listHeight = math.floor((listHeight - gap) / 2)
+	end
 	for _, list in ipairs({ frame.damage, frame.threat }) do
 		list.width, list.height = listWidth, listHeight
 		Widgets.Size(list.holder, listWidth, listHeight)
@@ -123,7 +128,11 @@ local function Arrange(frame)
 	frame.damage.holder:ClearAllPoints()
 	Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
 	frame.threat.holder:ClearAllPoints()
-	Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
+	if stacked then
+		Widgets.Point(frame.threat.holder, "TOPLEFT", frame.damage.holder, "BOTTOMLEFT", 0, -gap)
+	else
+		Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
+	end
 	local swing = frame.swing
 	swing.opts.width, swing.opts.height = width, SWING_HEIGHT
 	swing:Restyle()

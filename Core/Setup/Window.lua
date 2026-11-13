@@ -455,7 +455,7 @@ local function NewPreview(page)
 		if not SKIP_IN_PREVIEW[element.key] then
 			local rect = preview:CreateTexture(nil, "ARTWORK")
 			rect.element, rect.isElement, rect.role = element, true, Roles()[element.key] == true
-			rect.label = Widgets.Text(preview, "caption", "textEmphasis", "OVERLAY")
+			rect.label = Widgets.Fitted(Widgets.Text(preview, "caption", "textEmphasis", "OVERLAY"))
 			preview.rects[#preview.rects + 1] = rect
 		end
 	end
@@ -574,7 +574,7 @@ local function BuildModules(page, width)
 			end,
 		})
 		Widgets.Point(toggle, "TOPLEFT", page, "TOPLEFT", col * column, -(top + row * Widgets.Snap(page, ROW_HEIGHT)))
-		local note = Widgets.FontString(page)
+		local note = Widgets.Fitted(Widgets.FontString(page))
 		note.Restyle = NoteStyle
 		Widgets.Track(note)
 		NoteStyle(note)
