@@ -1,11 +1,15 @@
--- test-skins-grades.lua: every piece the skins draw takes one of the mockup's measured grades (THEME_SPEC): windows the window shape, rows, insets and list bodies the glass surface, controls the dark button body, bars the bar edge, bottom tabs the button-body strip (test-grades.lua lints the raised tone away).
+-- test-skins-grades.lua: every piece the skins draw takes one of the mockup's measured grades (THEME_SPEC): windows the window shape, rows, insets and list bodies the glass surface, controls the dark button body, bars the square bar edge, bottom tabs the button-body strip (test-grades.lua lints the raised tone away).
 local S = dofile("Tools/regression/skins_env.lua")
 local W = S.W
 
-local function EdgeIs(K, chrome, name)
-	local r, g, b, a = K.Widgets.Rgba(name)
-	local e = chrome.edge
-	return W.Near(e[1], r) and W.Near(e[2], g) and W.Near(e[3], b) and W.Near(e[4], a)
+local function SquareBar(K, frame)
+	local before = select("#", frame:GetRegions())
+	local edge = K.Widgets.BarEdge(frame)
+	if frame.GetScript and frame:GetScript("OnShow") then
+		frame:GetScript("OnShow")(frame)
+	end
+	return select("#", frame:GetRegions()) == before and W.SameColor(edge.hard, K.Tokens.Color("black")) and W.SameColor(edge.track, K.Tokens.Color("barTrack"))
+		and edge.hard:GetAlpha() == 1 and edge.track:GetAlpha() == 1
 end
 
 local function Grade(chrome, fill, shape)
@@ -55,16 +59,21 @@ do
 	local tile = kit.Inset(inset, { tile = true })
 	assert(Grade(tile.chrome, "surface", "tile"), "an inset is the glass surface")
 
-	-- Bars: the bar grade, the glass surface under a faint edgeBar line.
-	local partB = kit.Bar(StatusBar(B))
-	assert(Grade(partB.backdrop.chrome, "surface", "tile") and EdgeIs(K, partB.backdrop.chrome, "edgeBar"), "a part B bar wears the bar grade")
-	local track = partC.Bar(StatusBar(B))
-	assert(Grade(track, "surface", "tile") and EdgeIs(K, track, "edgeBar"), "a part C bar wears the bar grade")
+	-- Bars: the bible's square bar (KSTY-60 item 10), a black pixel round a dark track, no glass tile or grey rim.
+	local partBFrame = StatusBar(B)
+	local partB = kit.Bar(partBFrame)
+	assert(partB.backdrop == nil and SquareBar(K, partBFrame), "a part B bar is the square bar")
+	local partCFrame = StatusBar(B)
+	partC.Bar(partCFrame)
+	assert(SquareBar(K, partCFrame), "a part C bar is the square bar")
 	local rep = B.frame("Frame")
 	rep.Fill = B.texture(rep, "BORDER")
 	rep.Text = B.text(rep)
 	local fill = ns.Parts.FillBar(rep)
-	assert(Grade(fill.track.chrome, "surface", "tile") and EdgeIs(K, fill.track.chrome, "edgeBar"), "a reputation bar's track wears the bar grade")
+	assert(fill.track.chrome == nil and SquareBar(K, fill.track), "a reputation bar's track is the square bar")
+	for _, p in ipairs(fill.track._points or {}) do
+		assert((p[4] or 0) == 0 and (p[5] or 0) == 0, "the reputation track is flush with the fill area, so the edge's black pixel touches the fill")
+	end
 
 	-- Windows: the window shape with its shadow, as the chat and the tracker.
 	local window = B.frame("Frame", nil, "GradeWindow")

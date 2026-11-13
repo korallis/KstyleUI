@@ -53,12 +53,14 @@ local r, g, b = K.Theme.ClassColor(K.Theme.Class())
 local color = W.LastCall(bar.Bar, "SetStatusBarColor")
 assert(color[1] == r and color[2] == g and color[3] == b, "the bar takes the class colour")
 assert(W.Near(color[4], 0.15), "the fill is subtle over the glass: alpha " .. tostring(color[4]))
-assert(K.Skin.Parts(bar.Bar).backdrop.chrome.fillName == "surface", "a restyled bar is a glass tile")
--- The restyled bar wears the bar grade's faint edgeBar line, as the mirror's bars and the mockup's buff bars do.
+-- The restyled bar is the bible's square bar (KSTY-60 item 10), as the mirror's bars are: a black pixel round a dark track.
 do
-	local barEdge = K.Skin.Parts(bar.Bar).backdrop.chrome.edge
-	local er, eg, eb, ea = K.Widgets.Rgba("edgeBar")
-	assert(W.Near(barEdge[1], er) and W.Near(barEdge[2], eg) and W.Near(barEdge[3], eb) and W.Near(barEdge[4], ea), "a restyled bar wears the mockup's faint bar edge, got alpha " .. tostring(barEdge[4]))
+	local parts = K.Skin.Parts(bar.Bar)
+	local kids = select("#", bar.Bar:GetRegions())
+	local barEdge = K.Widgets.BarEdge(bar.Bar)
+	assert(not (parts and parts.backdrop) and select("#", bar.Bar:GetRegions()) == kids, "a restyled bar has the square edge, no glass tile")
+	assert(W.SameColor(barEdge.hard, K.Tokens.Color("black")) and W.SameColor(barEdge.track, K.Tokens.Color("barTrack")), "a black pixel round the dark track")
+	assert(barEdge.track:GetAlpha() == 1 and bar.Bar:GetStatusBarTexture():GetAlpha() == 1, "the skin's strip keeps the edge and the fill")
 end
 assert(K.Skin.Parts(bar.Icon).backdrop.chrome.fillName == "buttonFill", "a restyled bar's icon sits on a dark tile")
 assert(Alpha(bar.Bar.BarBG) == 0 and Alpha(bar.Bar.Pip) == 0, "the bar's background and pip are hushed")
@@ -100,7 +102,9 @@ do
 	assert(socket.inset == 0, "the square border stays inside the engine icon's footprint")
 	local barItem = env3._viewers.BuffBarCooldownViewer._items[1]
 	FontSize(K3, barItem.Bar.Name, ns3.Settings.current.bars.nameSize / 0.7, "a 70% bar's name keeps its size on screen")
-	assert(K3.Skin.IsSkinned(env3._viewers.BuffBarCooldownViewer._items[1].Bar, "Backdrop"), "the buff bars are restyled")
+	local kids = select("#", barItem.Bar:GetRegions())
+	K3.Widgets.BarEdge(barItem.Bar)
+	assert(kids > 0 and select("#", barItem.Bar:GetRegions()) == kids, "the buff bars are restyled into the square bar")
 	assert(not K3.Skin.IsSkinned(env3._viewers.EssentialCooldownViewer._items[1], "Backdrop"), "the mirrored essential viewer is left alone")
 	C.Clean(env3, FORBIDDEN)
 end

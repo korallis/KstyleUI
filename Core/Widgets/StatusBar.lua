@@ -1,4 +1,4 @@
--- StatusBar.lua: the status bar, with a texture, a background framed by a dark keyline, an optional spark and sheen, and values that only reach the engine's setters.
+-- StatusBar.lua: the status bar, with a texture, a background framed by a dark keyline or the square bar edge (a black pixel, then one of 45 percent black, round a dark track) that bordered bars and skinned Blizzard bars share, an optional spark and sheen, and values that only reach the engine's setters.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -11,17 +11,13 @@ local SPARK_HEIGHT_SHARE = 1.8
 local SPARK_ALPHA = 0.8
 local SHEEN_WIDTH = 28
 local SHEEN_ALPHA = 0.35
-local BORDER_LINES = 2
-local SHEEN_TOP_ALPHA = 0.35
-local SHEEN_TOP_SUBLEVEL = 7
-local GLOW_REACH, GLOW_ALPHA = 4, 0.5
-local CAP_WRAP = "CLAMPTOWHITE"
 local KEYLINE = "edgeOuter"
 local KEYLINE_SUBLEVEL = -1
 local LIT_ALPHA = 0.3
 local LIT_SUBLEVEL = 6
 local SHADE_ALPHA = 0.28
 local SHADE_SUBLEVEL = 5
+local EDGE_SOFT_SUBLEVEL, EDGE_HARD_SUBLEVEL, EDGE_TRACK_SUBLEVEL = -8, -7, -6
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -69,51 +65,60 @@ local function Shade(texture, alpha)
 	texture:SetGradient("VERTICAL", CreateColor(r, g, b, alpha or SHADE_ALPHA), CreateColor(r, g, b, 0))
 end
 
-local FitGlow
+local Edge = {}
+Edge.__index = Edge
+local barEdges = setmetatable({}, { __mode = "k" })
 
-local function WatchGlow(watch)
-	FitGlow(watch:GetParent())
+local function Frame(region, target, outset, farX, farY)
+	region:ClearAllPoints()
+	region:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
+	region:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset + farX, -outset - farY)
 end
 
-local function Easing(self)
-	local easing = type(self.IsInterpolating) == "function" and self:IsInterpolating()
-	return not Widgets.IsSecret(easing) and easing == true
+function Edge:Restyle()
+	local target = self.target
+	local px = Widgets.Border(target)
+	local farX, farY = Widgets.Remainder(target)
+	farX, farY = farX * px, farY * px
+	Frame(self.soft, target, 2 * px, farX, farY)
+	Widgets.Tint(self.soft, "barEdgeSoft")
+	Frame(self.hard, target, px, farX, farY)
+	Widgets.Tint(self.hard, "black")
+	Frame(self.track, target, 0, farX, farY)
+	Widgets.Tint(self.track, "barTrack")
 end
 
-FitGlow = function(self)
-	local glow = self.glow
-	if not glow then
-		return
-	end
-	local shown = self.pillOn and self.glowWanted
-	local easing = shown and Easing(self)
-	local watch = self.glowWatch
-	if easing and not watch then
-		watch = CreateFrame("Frame", nil, self)
-		self.glowWatch = watch
-	end
-	if watch and watch.easing ~= easing then
-		watch.easing = easing
-		watch:SetScript("OnUpdate", easing and WatchGlow or nil)
-	end
-	if shown then
-		local low, high = self:GetMinMaxValues()
-		local value, width = easing and self:GetInterpolatedValue() or self:GetValue(), self:GetWidth()
-		local plain = not (Widgets.IsSecret(low) or Widgets.IsSecret(high) or Widgets.IsSecret(value) or Widgets.IsSecret(width))
-		if plain and type(low) == "number" and type(high) == "number" and type(value) == "number" and type(width) == "number" then
-			local span = high - low
-			shown = span > 0 and width * (value - low) / span >= 4 * GLOW_REACH
-		end
-	end
-	if shown ~= self.glowShown then
-		self.glowShown = shown
-		Widgets.ShowSlice(glow, shown)
-	end
+function Edge:SetShown(shown)
+	self.soft:SetShown(shown)
+	self.hard:SetShown(shown)
+	self.track:SetShown(shown)
 end
 
-function Bar:SetGlowShown(on)
-	self.glowWanted = on ~= false
-	FitGlow(self)
+local function EdgeTexture(target, sublevel)
+	local texture = Widgets.Crisp(target:CreateTexture(nil, "BACKGROUND", nil, sublevel))
+	texture:SetColorTexture(Tokens.Color("white"))
+	return texture
+end
+
+function Widgets.BarEdge(target)
+	local edge = barEdges[target]
+	if edge then
+		edge:Restyle()
+		return edge
+	end
+	edge = setmetatable({
+		target = target,
+		soft = EdgeTexture(target, EDGE_SOFT_SUBLEVEL),
+		hard = EdgeTexture(target, EDGE_HARD_SUBLEVEL),
+		track = EdgeTexture(target, EDGE_TRACK_SUBLEVEL),
+	}, Edge)
+	edge.regions = { [edge.soft] = true, [edge.hard] = true, [edge.track] = true }
+	barEdges[target] = edge
+	edge:Restyle()
+	target:HookScript("OnSizeChanged", function()
+		edge:Restyle()
+	end)
+	return Widgets.Track(edge)
 end
 
 function Bar:SetBarValue(value)
@@ -153,9 +158,6 @@ function Bar:Paint()
 	end
 	if self.sheen then
 		self.sheen:SetVertexColor(Widgets.Rgba("textHover", SHEEN_ALPHA))
-	end
-	if self.sheenTop then
-		self.sheenTop:SetVertexColor(Widgets.Rgba("white", SHEEN_TOP_ALPHA))
 	end
 	if self.lit then
 		self.lit:SetVertexColor(Widgets.Rgba("white", self.litAlpha or LIT_ALPHA))
@@ -322,27 +324,6 @@ function Bar:SetFillRamp(r, g, b, kind)
 	self:ApplyFillRamp()
 end
 
-local function ApplyEdgeMasks(self)
-	local edge, caps = self.innerEdge, self.caps
-	if not edge or not caps then
-		return
-	end
-	local want = self.pillOn == true
-	if self.edgeMasked == want then
-		return
-	end
-	for i = 1, 4 do
-		if want then
-			edge[i]:AddMaskTexture(caps[3])
-			edge[i]:AddMaskTexture(caps[4])
-		elseif self.edgeMasked then
-			edge[i]:RemoveMaskTexture(caps[3])
-			edge[i]:RemoveMaskTexture(caps[4])
-		end
-	end
-	self.edgeMasked = want
-end
-
 function Bar:PlaceInnerEdge()
 	local edge = self.innerEdge
 	if not edge then
@@ -356,7 +337,6 @@ function Bar:PlaceInnerEdge()
 		Widgets.Tint(edge[i], token)
 		edge[i]:SetShown(show)
 	end
-	ApplyEdgeMasks(self)
 	if self.lit then
 		self:PlaceLit()
 	end
@@ -604,16 +584,8 @@ function Bar:Restyle()
 	if self.lit then
 		self:PlaceLit()
 	end
-	if self.borderFrame then
-		local outset = Widgets.Border(self) * BORDER_LINES
-		self.borderFrame:ClearAllPoints()
-		self.borderFrame:SetPoint("TOPLEFT", self, "TOPLEFT", -outset, outset)
-		self.borderFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", outset, -outset)
-		self.chrome:OnSizeChanged()
-	end
-	if self.caps then
-		self:SizeCaps(height)
-		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self, 0)
+	if self.barEdge then
+		self.barEdge:Restyle()
 	end
 	self:Paint()
 	if self.rampOn or self.fillRamped then
@@ -622,108 +594,6 @@ function Bar:Restyle()
 	self:PlaceBacking()
 	self:PlaceInnerEdge()
 	self:PlaceFillCursor()
-end
-
-local function CapMask(bar, name)
-	local mask = bar:CreateMaskTexture()
-	mask:SetTexture((Tokens.Texture(name)), CAP_WRAP, CAP_WRAP)
-	return mask
-end
-
-local function Pin(mask, side, region)
-	mask:ClearAllPoints()
-	mask:SetPoint("TOP" .. side, region, "TOP" .. side)
-	mask:SetPoint("BOTTOM" .. side, region, "BOTTOM" .. side)
-end
-
-local function Masks(texture, a, b, on)
-	if on then
-		texture:AddMaskTexture(a)
-		texture:AddMaskTexture(b)
-	else
-		texture:RemoveMaskTexture(a)
-		texture:RemoveMaskTexture(b)
-	end
-end
-
-function Bar:SizeCaps(height)
-	if type(height) ~= "number" or Widgets.IsSecret(height) or height <= 0 then
-		return
-	end
-	local side = Widgets.Snap(self, height)
-	for _, mask in ipairs(self.caps) do
-		mask:SetWidth(side)
-	end
-end
-
-function Bar:PlaceCaps()
-	local reverse = self:GetReverseFill()
-	reverse = not Widgets.IsSecret(reverse) and reverse == true
-	local fill, caps = self:GetStatusBarTexture(), self.caps
-	Pin(caps[1], "LEFT", reverse and fill or self)
-	Pin(caps[2], "RIGHT", reverse and self or fill)
-end
-
-function Bar:ShowPill(on)
-	if self.pillOn == on then
-		return
-	end
-	self.pillOn = on
-	local caps = self.caps
-	Masks(self:GetStatusBarTexture(), caps[1], caps[2], on)
-	Masks(self.sheenTop, caps[1], caps[2], on)
-	if self.background then
-		Masks(self.background, caps[3], caps[4], on)
-	end
-	self.sheenTop:SetShown(on)
-	FitGlow(self)
-	if self.innerEdge then
-		self:PlaceInnerEdge()
-	end
-end
-
-local function PillFill(bar)
-	bar.glowWanted = true
-	local fill = bar:GetStatusBarTexture()
-	bar.caps = {
-		CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"), CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"),
-	}
-	Pin(bar.caps[3], "LEFT", bar)
-	Pin(bar.caps[4], "RIGHT", bar)
-	bar:PlaceCaps()
-	local sheen = bar:CreateTexture(nil, "ARTWORK", nil, SHEEN_TOP_SUBLEVEL)
-	sheen:SetTexture((Tokens.Texture("barSheen")))
-	sheen:SetAllPoints(fill)
-	bar.sheenTop = sheen
-	bar.glow = Widgets.NineSlice(bar, "shadow", "BACKGROUND", 1)
-	for _, piece in ipairs(bar.glow) do
-		piece:SetAlpha(GLOW_ALPHA)
-	end
-	bar.pillOn = false
-	bar:ShowPill(not bar.vertical)
-	local setColor, setReverse, setOrientation = bar.SetStatusBarColor, bar.SetReverseFill, bar.SetOrientation
-	bar.SetStatusBarColor = function(self, r, g, b, a)
-		setColor(self, r, g, b, a)
-		Widgets.ColorSlice(self.glow, r, g, b, a)
-	end
-	bar.SetReverseFill = function(self, ...)
-		setReverse(self, ...)
-		self:PlaceCaps()
-	end
-	bar.SetOrientation = function(self, orientation, ...)
-		setOrientation(self, orientation, ...)
-		self.vertical = orientation == "VERTICAL"
-		self:ShowPill(not self.vertical)
-	end
-	bar:HookScript("OnSizeChanged", function(self, _, height)
-		self:SizeCaps(height)
-		if self.innerEdge then
-			self:PlaceInnerEdge()
-		end
-		FitGlow(self)
-	end)
-	bar:HookScript("OnValueChanged", FitGlow)
-	bar:HookScript("OnMinMaxChanged", FitGlow)
 end
 
 function Widgets.StatusBar(parent, opts)
@@ -760,11 +630,14 @@ function Widgets.StatusBar(parent, opts)
 	end
 	bar:SetBarTexture(opts.texture)
 	if opts.border then
-		local frame = CreateFrame("Frame", nil, bar)
-		frame:SetFrameLevel(math.max(0, bar:GetFrameLevel() - 1))
-		bar.borderFrame = frame
-		bar.chrome = Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false, edge = opts.edge or "edgeBar" })
-		PillFill(bar)
+		bar.barEdge = Widgets.BarEdge(bar)
+		if bar.background then
+			bar.lit = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, LIT_SUBLEVEL))
+			bar.lit:SetColorTexture(Tokens.Color("white"))
+			bar.shade = bar:CreateTexture(nil, "ARTWORK", nil, SHADE_SUBLEVEL)
+			bar.shade:SetColorTexture(Tokens.Color("white"))
+			Shade(bar.shade)
+		end
 	end
 	if opts.spark then
 		local spark = bar:CreateTexture(nil, "OVERLAY")
