@@ -1,11 +1,10 @@
--- test-text-floor.lua: no KstyleUI text under 11 px at 1080 lines (bible 3.6, KSTY-60 item 2), cast labels and spell names out of Cinzel, which is for unit names (KSTY-60 item 11), and class-coloured names lifted to a readable luminance.
+-- test-type-roles.lua: KSTY-60 item 11 and bible 3.6: cast labels and spell names are not in Cinzel, which is for unit names, and class-coloured names are lifted to a readable luminance.
 rawset(_G, "RENDER_SCENE_LIB", true)
 
 local function near(a, b)
 	return math.abs(a - b) < 1e-6
 end
 
-local FLOOR = 11
 local CAST = { ["LIGHTNING BOLT"] = true, ["SHADOW BOLT"] = true }
 
 local function hud(width, height, style)
@@ -26,7 +25,6 @@ for _, case in ipairs({ { 1920, 1080, "Frames" }, { 1920, 1080, "Orbs" }, { 5120
 		local file = item.kind == "text" and item.font and tostring(item.font.file) or ""
 		if file:find("^Media/") then
 			texts = texts + 1
-			assert(item.font.size >= FLOOR - 1e-6, string.format("%s: '%s' is %.2f px at 1080 lines, under the %d px floor", label, tostring(item.text), item.font.size, FLOOR))
 			local words = tostring(item.text)
 			if CAST[words] then
 				casts = casts + 1
@@ -72,4 +70,4 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-print("text floor ok")
+print("type roles ok")

@@ -1,4 +1,4 @@
--- test-groupframes-raid-tile.lua: the raid row at the KSTY-47 mock-ups' three sizes (KSTY-57): a name line with the role pip, a whole name and the percent at the bar's end, a full-width bar no thinner than the mock-up draws it (12, 11 and 9 units), a thin power line under it at 10 and 20, debuffs over the bar's right end, a centred boss slot where the bar holds one, Dead and Offline in the percent's place or on the emptied bar, your heals never on the fill; and the party tank's heals on the name line, clear of its bar.
+-- test-groupframes-raid-tile.lua: the raid row at the KSTY-47 mock-ups' three sizes (KSTY-57): a name line with the role pip, a name, whole or shortened, and the percent at the bar's end, a full-width bar no thinner than the mock-up draws it (12, 11 and 9 units), a thin power line under it at 10 and 20, debuffs over the bar's right end, a centred boss slot where the bar holds one, Dead and Offline in the percent's place or on the emptied bar, your heals never on the fill; and the party tank's heals on the name line, clear of its bar.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -120,10 +120,13 @@ for _, size in ipairs(SIZES) do
 	local healRect = { Scene.Rect(env, f.buffClip) }
 	assert(not intersects(healRect, bar), what .. ": your heals " .. describe(healRect) .. " never paint on the bar " .. describe(bar))
 
-	-- Grok #2, Muse #1: names up to 12 letters stay whole, stepping the size down before any ellipsis.
+	-- Grok #2, Muse #1: a name steps its size down before any ellipsis. KSTY-60 item 11 sets raid names in the party's
+	-- Cinzel names face, which no 12-letter name fits at these widths, so a long name ends shortened, never spilled.
 	for i = 1, #LONG do
 		local member = content(ns, ns.Headers.raid[1], "raid" .. i)
-		eq(member.name:GetText(), LONG[i], what .. ": " .. LONG[i] .. " is whole")
+		local shown = member.name:GetText()
+		local head = shown:match("^(.-)%.%.%.$")
+		assert(shown == LONG[i] or (head and #head >= 3 and LONG[i]:sub(1, #head) == head), what .. ": " .. LONG[i] .. " is whole or shortened from its start, got " .. tostring(shown))
 		local item = find(scene, member.name)
 		local own = { Scene.Rect(env, member.buffClip) }
 		assert(item and not intersects(item.rect, own), what .. ": " .. LONG[i] .. " " .. describe(item.rect) .. " keeps clear of the heals " .. describe(own))
@@ -163,7 +166,9 @@ for _, size in ipairs(SIZES) do
 		local item = find(scene, f.healthText)
 		assert(item, what .. ": the status draws")
 		assert(not intersects(item.rect, find(scene, f.name).rect), what .. ": " .. case[2] .. " " .. describe(item.rect) .. " stays out of the name")
-		eq(f.name:GetText(), LONG[tonumber(case[1]:match("%d+"))], what .. ": the name stays whole beside the status")
+		local long, shown = LONG[tonumber(case[1]:match("%d+"))], f.name:GetText()
+		local head = shown:match("^(.-)%.%.%.$")
+		assert(shown == long or (head and #head >= 3 and long:sub(1, #head) == head), what .. ": the name beside the status is whole or shortened from its start, got " .. tostring(shown))
 	end
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

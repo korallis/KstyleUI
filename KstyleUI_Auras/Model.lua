@@ -226,9 +226,7 @@ end
 
 function Model.TimerArea(timer)
 	if timer.position == "below" and timer.format ~= "none" then
-		local scale = K and K.Scale
-		local least = scale and scale.TextFloor and scale.TextFloor() * scale.Pixel(1) or 0
-		return math.max(timer.size, least) + Model.TIMER_GAP
+		return timer.size + Model.TIMER_GAP
 	end
 	return 0
 end

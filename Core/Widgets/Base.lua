@@ -260,20 +260,9 @@ local function TextFactor(text)
 	return frame and Widgets.ScaleFactor(frame) or 1
 end
 
-local fitted = setmetatable({}, { __mode = "k" })
-
-function Widgets.Fitted(text)
-	fitted[text] = true
-	return text
-end
-
-local function SnapSize(size, f, text)
+local function SnapSize(size, f)
 	local px = Scale.Pixel(1) / f
-	local snapped = floor(size / px + 0.5) * px
-	if text and fitted[text] then
-		return max(px, snapped)
-	end
-	return max(Scale.TextFloor() * px, snapped)
+	return max(px, floor(size / px + 0.5) * px)
 end
 
 local function Shadow(text, flags, f)
@@ -294,7 +283,7 @@ local function Shadow(text, flags, f)
 end
 
 function Widgets.FontSize(text, size)
-	return SnapSize(size, TextFactor(text), text)
+	return SnapSize(size, TextFactor(text))
 end
 
 function Widgets.TextShadow(text, flags)
@@ -455,7 +444,7 @@ end
 function Widgets.ApplyFont(text, path, size, flags, plain)
 	flags = flags or ""
 	local f = TextFactor(text)
-	local ok = text:SetFont(path, SnapSize(size, f, text), flags) ~= false
+	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
 	Shadow(text, flags, f)
 	if not plain then
 		Widgets.SyncTracking(text)

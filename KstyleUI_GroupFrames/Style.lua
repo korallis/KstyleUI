@@ -185,7 +185,7 @@ local function LayoutTexts(f, k, parts)
 	local namePath = cfg.nameFont
 	local roleFont = Theme.RoleFont("names") ~= ""
 	local follows = Theme.FollowsKit(namePath)
-	f.nativeName = follows and not roleFont
+	f.nativeName = follows and not roleFont and f.kind ~= "raid"
 	local kit = false
 	if follows then
 		namePath = (Tokens.Font("names"))

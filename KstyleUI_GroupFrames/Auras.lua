@@ -464,11 +464,11 @@ local function BuildIcon(button, key)
 	textFrame:SetAllPoints(p.skin)
 	textFrame:SetFrameLevel(button:GetFrameLevel() + TEXT_ABOVE)
 	p.textFrame = textFrame
-	local count = Widgets.Fitted(Widgets.FontString(textFrame, "OVERLAY"))
+	local count = Widgets.FontString(textFrame, "OVERLAY")
 	count:SetJustifyH("RIGHT")
 	p.markBack = textFrame:CreateTexture(nil, "OVERLAY", nil, MARK_BACK_SUBLEVEL)
 	p.markBack:SetColorTexture(Widgets.Rgba("black", MARK_BACK_ALPHA))
-	p.mark = Widgets.Fitted(Widgets.FontString(textFrame, "OVERLAY"))
+	p.mark = Widgets.FontString(textFrame, "OVERLAY")
 	p.mark:SetDrawLayer("OVERLAY", MARK_SUBLEVEL)
 	p.cooldown, p.count = cooldown, count
 	parts[button] = p

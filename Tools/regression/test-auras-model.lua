@@ -75,8 +75,7 @@ local below = Model.Timer({ timer = { format = "short", position = "below", size
 local inside = Model.Timer({ timer = { format = "short", position = "inside", size = 10 } })
 local none = Model.Timer({ timer = { format = "none", position = "below", size = 10 } })
 local w, h = Model.ElementSize(g, below)
-local least = K.Scale.TextFloor() * K.Scale.Pixel(1)
-check(w == 30 and math.abs(h - (30 + math.max(10, least) + 3)) < 1e-6, "a timer under a 30-unit icon adds its size, raised to the 11 px text floor, plus the 3-unit gap, got " .. w .. " x " .. h)
+check(w == 30 and h == 43, "a timer under a 30-unit icon adds its size plus the 3-unit gap, got " .. w .. " x " .. h)
 w, h = Model.ElementSize(g, inside)
 check(w == 30 and h == 30, "a timer inside the icon adds nothing")
 w, h = Model.ElementSize(g, none)
@@ -84,7 +83,7 @@ check(w == 30 and h == 30, "no timer adds nothing")
 
 -- Footprint: columns and rows of elements with their gaps; no gap after the last one.
 w, h = Model.Footprint(g, below)
-check(w == 5 * 30 + 4 * 4 and math.abs(h - (3 * (30 + math.max(10, least) + 3) + 2 * 2)) < 1e-6, "5 columns by 3 rows, got " .. w .. " x " .. h)
+check(w == 5 * 30 + 4 * 4 and h == 3 * 43 + 2 * 2, "5 columns by 3 rows, got " .. w .. " x " .. h)
 
 -- Line size: exactly the columns fit on a line, and one more does not.
 local line = Model.LineSize(g, below)
