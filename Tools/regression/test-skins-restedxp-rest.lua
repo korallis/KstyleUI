@@ -332,7 +332,7 @@ do
 	rxp.SetupArrow()
 	rxp.fake.arrow("Talk to |cRXP_FRIENDLY_Aarnor Galestrike|r", 1344, 0.5)
 	local path, size = arrow.text:GetFont()
-	assert(path == (ns.Style.Font("caption")), "the arrow's text is in KstyleUI's caption face, got " .. tostring(path))
+	assert(path == (ns.Style.Font("number")), "the arrow's text is in KstyleUI's number face, as KSTY-34 asked, got " .. tostring(path))
 	local caption = select(2, ns.Style.Font("caption")) / K.Widgets.ScaleFactor(arrow)
 	assert(near(size, K.Widgets.FontSize(arrow.text, math.max(9, caption)), 1e-6), "at the kit's caption size in root units, or RestedXP's 9 where that is larger, got " .. tostring(size))
 	arrow.text:SetFont(path, 4, "")
