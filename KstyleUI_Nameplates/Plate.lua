@@ -208,7 +208,6 @@ function ns.NewPlate(parent, sample)
 	for i, layer in ipairs({ "outer", "rim", "inner", "fill" }) do
 		local texture = diamond:CreateTexture(nil, "ARTWORK", nil, i)
 		texture:SetTexture((Tokens.Texture("diamond")))
-		texture:SetPoint("CENTER", diamond, "CENTER")
 		diamond.layers[i] = texture
 		diamond[layer] = texture
 	end
@@ -294,14 +293,14 @@ function Plate:Restyle()
 	Widgets.Size(self, w, h)
 	self:ClearAllPoints()
 	if self.sample then
-		self:SetPoint("CENTER", self:GetParent(), "CENTER")
+		Widgets.Point(self, "CENTER", self:GetParent(), "CENTER")
 	else
-		self:SetPoint("BOTTOM", self:GetParent(), "BOTTOM", 0, Widgets.Snap(self, Settings.Get("offsetY") + BottomRoom(self)))
+		Widgets.Point(self, "BOTTOM", self:GetParent(), "BOTTOM", 0, Settings.Get("offsetY") + BottomRoom(self))
 	end
 
 	local health = self.health
 	health:ClearAllPoints()
-	health:SetPoint("CENTER", self, "CENTER")
+	Widgets.Point(health, "CENTER", self, "CENTER")
 	local orientation = Settings.Get("health.orientation")
 	health:SetOrientation(orientation)
 	health.vertical = orientation == "VERTICAL"
@@ -316,7 +315,7 @@ function Plate:Restyle()
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"))
 
 	self.healthText:ClearAllPoints()
-	self.healthText:SetPoint("RIGHT", health, "RIGHT", -Widgets.Snap(self, TEXT_INSET), 0)
+	Widgets.Point(self.healthText, "RIGHT", health, "RIGHT", -TEXT_INSET, 0)
 
 	self:LayoutDiamond()
 	self:LayoutBrackets()
@@ -324,7 +323,7 @@ function Plate:Restyle()
 	local raidSize = Settings.Get("markers.raidSize")
 	Widgets.Size(self.raid, raidSize, raidSize)
 	self.raid:ClearAllPoints()
-	self.raid:SetPoint("LEFT", health, "RIGHT", Widgets.Snap(self, Plate.MarkerReach()), 0)
+	Widgets.Point(self.raid, "LEFT", health, "RIGHT", Plate.MarkerReach(), 0)
 
 	self.glowFrame:SetFrameLevel(math.max(0, health:GetFrameLevel() - 2))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
@@ -353,7 +352,7 @@ function Plate:LayoutDiamond()
 	local outer = Plate.DiamondSize(self)
 	Widgets.Size(diamond, outer, outer)
 	diamond:ClearAllPoints()
-	diamond:SetPoint("CENTER", health, "LEFT", outer / 2 - Plate.DiamondReach(self), 0)
+	Widgets.Point(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self), 0)
 	diamond.outer:SetSize(outer, outer)
 	diamond.rim:SetSize(Diagonal(self, DIAMOND_SIDE), Diagonal(self, DIAMOND_SIDE))
 	diamond.rimPixel = px
@@ -361,7 +360,7 @@ function Plate:LayoutDiamond()
 	self.rimWeight = nil
 	self:SetRimWeight(1)
 	self.levelText:ClearAllPoints()
-	self.levelText:SetPoint("CENTER", diamond, "CENTER")
+	Widgets.Point(self.levelText, "CENTER", diamond, "CENTER")
 
 end
 
@@ -375,6 +374,10 @@ function Plate:SetRimWeight(weight)
 	local inner = DIAMOND_SIDE - px * 2 * weight
 	diamond.inner:SetSize(Diagonal(self, inner), Diagonal(self, inner))
 	diamond.fill:SetSize(Diagonal(self, inner - px * 2), Diagonal(self, inner - px * 2))
+	for _, layer in ipairs(diamond.layers) do
+		layer:ClearAllPoints()
+		Widgets.Point(layer, "CENTER", diamond, "CENTER")
+	end
 end
 
 function Plate:LayoutBrackets()
@@ -393,7 +396,7 @@ function Plate:LayoutBrackets()
 		local sign = left and -1 or 1
 		frame:SetSize(arm, height)
 		frame:ClearAllPoints()
-		frame:SetPoint(left and "RIGHT" or "LEFT", health, edge, sign * (reach - arm), 0)
+		Widgets.Point(frame, left and "RIGHT" or "LEFT", health, edge, sign * (reach - arm), 0)
 		frame.stroke:ClearAllPoints()
 		frame.stroke:SetPoint("TOP" .. edge, frame, "TOP" .. edge)
 		frame.stroke:SetPoint("BOTTOM" .. edge, frame, "BOTTOM" .. edge)
@@ -443,10 +446,10 @@ function Plate:LayoutName()
 	name:SetWidth(0)
 	if self.nameOnly then
 		name:SetJustifyH("CENTER")
-		name:SetPoint("CENTER", self, "CENTER")
+		Widgets.Point(name, "CENTER", self, "CENTER")
 	else
 		name:SetJustifyH("CENTER")
-		name:SetPoint("BOTTOM", health, "TOP", 0, Widgets.Snap(self, NAME_GAP))
+		Widgets.Point(name, "BOTTOM", health, "TOP", 0, NAME_GAP)
 	end
 end
 

@@ -81,7 +81,11 @@ return Common.Run(function()
 	N.Target(env, "nameplate1")
 	env._units.nameplate1.health = 1206
 	env.FireEvent("UNIT_HEALTH", "nameplate1")
-	ns.Plates.Get("nameplate1").health.flash:Hide()
+	local hit = ns.Plates.Get("nameplate1").health
+	hit.flash:Hide()
+	if hit.recentFlash then
+		hit.recentFlash:Hide()
+	end
 	cast(env, "nameplate3", { name = "Snap", text = "Snap", texture = SNAP, notInterruptible = false })
 	N.Debuffs(env, "nameplate1", 1)
 	env.RunTimers()

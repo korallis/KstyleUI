@@ -390,7 +390,7 @@ end
 function Cast.Place(plate)
 	local cast = plate.cast
 	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Cast.Gap(plate))
+	Widgets.Point(cast, "TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Cast.Gap(plate))
 end
 
 function Component.Restyle(plate)
@@ -403,13 +403,13 @@ function Component.Restyle(plate)
 	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
 	icon:ClearAllPoints()
-	icon:SetPoint("LEFT", cast, "LEFT")
+	Widgets.Point(icon, "LEFT", cast, "LEFT")
 	icon:SetShown(showIcon)
 	plate.castShield:SetShown(showIcon)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
 	bar:ClearAllPoints()
-	bar:SetPoint("RIGHT", cast, "RIGHT")
+	Widgets.Point(bar, "RIGHT", cast, "RIGHT")
 	local orientation = Settings.Get("cast.orientation")
 	bar:SetOrientation(orientation)
 	bar.vertical = orientation == "VERTICAL"
@@ -424,7 +424,7 @@ function Component.Restyle(plate)
 	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
 	plate.castName:SetShown(Settings.Get("cast.showName"))
 	plate.castTime:ClearAllPoints()
-	plate.castTime:SetPoint("RIGHT", bar, "RIGHT", -Widgets.Snap(plate, TEXT_INSET), 0)
+	Widgets.Point(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0)
 end
 
 function Component.Refresh(plate, immediate)

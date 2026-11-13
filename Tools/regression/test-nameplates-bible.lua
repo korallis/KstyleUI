@@ -161,9 +161,8 @@ for _, screen in ipairs(SCREENS) do
 	local where = screen[1] .. "x" .. screen[2]
 	local px = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(plate)
 	local reach = K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH)
-	local _, _, _, x = plate.level:GetPoint(1)
-	local tip = -x - env.Look(plate.level:GetWidth()) / 2
-	assert(tip >= reach + px - 1e-6, where .. ": the diamond's right point is a pixel clear of the left bracket")
+	local point, _, _, x = plate.level:GetPoint(1)
+	assert(point == "RIGHT" and -x >= reach + px - 1e-6, where .. ": the diamond's right point is a pixel clear of the left bracket, got " .. tostring(-x - reach))
 	local _, _, _, rx = plate.raid:GetPoint(1)
 	assert(rx >= reach - 1e-6, where .. ": the raid marker starts beyond the right bracket")
 	local _, _, _, bx = plate.brackets.sides[2]:GetPoint(1)

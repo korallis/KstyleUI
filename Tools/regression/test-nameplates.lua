@@ -427,9 +427,8 @@ do
 	local diamond = plate.level
 	assert(diamond:IsShown(), "the level diamond shows by default")
 	local point, relative, relativePoint, x = diamond:GetPoint(1)
-	assert(point == "CENTER" and relative == health and relativePoint == "LEFT" and x < 0, "the diamond sits left of the bar")
-	local half = env.Look(diamond:GetWidth()) / 2
-	assert(-x - half >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "the diamond's right point stays clear of the left bracket")
+	assert(point == "RIGHT" and relative == health and relativePoint == "LEFT" and x < 0, "the diamond sits left of the bar")
+	assert(-x >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "the diamond's right point stays clear of the left bracket")
 	assert(diamond:GetFrameLevel() > health:GetFrameLevel(), "the diamond draws over the bar")
 	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
 	assert(select(2, plate.name:GetFont()) == 16, "the name reads at 16 units")
