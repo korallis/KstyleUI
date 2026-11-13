@@ -1023,8 +1023,8 @@ for orb_name, width, height, about in (
         f"Media/Textures/{orb_name}.png", width, height,
         lambda name=orb_name, w=width, h=height: material_pixels(name, w, h),
         about,
-        "Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below",
-        drawn="2026-11-13", maker="Higgsfield (KSTY-44 job 0b133988, the base); production pass by `Tools/media/orbs.py`",
+        "Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below",
+        drawn="2026-11-13", maker="Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py`",
     ))
 
 

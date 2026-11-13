@@ -48,8 +48,9 @@ end
 local BODY = 0.432
 local SPIKE = { { 0.43, 0.45, 0.056 }, { 0.45, 0.47, 0.026 }, { 0.47, 0.49, 0.013 }, { 0.49, 0.5, 0.006 } }
 
--- Hits(rect, box) -> whether a drawn rect reaches the ring's ink inside its texture box.
-local function Hits(rect, box)
+-- Hits(rect, box, tip) -> whether a drawn rect reaches the ring's ink inside its texture box; with tip false, the last
+-- band of each spike (its needle point) does not count.
+local function Hits(rect, box, tip)
 	local size = box[3] - box[1]
 	local cx, cy = (box[1] + box[3]) / 2, (box[2] + box[4]) / 2
 	local dx = math.max(rect[1] - cx, cx - rect[1] - rect[3], 0)
@@ -57,7 +58,10 @@ local function Hits(rect, box)
 	if dx * dx + dy * dy < (BODY * size) ^ 2 - 0.001 then
 		return true
 	end
-	for _, band in ipairs(SPIKE) do
+	for i, band in ipairs(SPIKE) do
+		if tip == false and i == #SPIKE then
+			break
+		end
 		local near, far, half = band[1] * size, band[2] * size, band[3] * size
 		for _, side in ipairs({ -1, 1 }) do
 			local a, b = cx + side * near, cx + side * far
@@ -102,9 +106,9 @@ local function Case(layout, class, screen, required)
 			label .. ": the " .. kind .. " orb stays on the screen")
 	end
 	local AB = spaces.actionbars
-	-- Bar 1 sits in the tray between the rings, and each ring's inner spike reaches the tray's hole by design (the
-	-- KSTY-44 base art): the rings, the tray and bar 1 are one assembly, so bar 1 is not checked against the rings.
-	local tray = { [AB.bars.bar1.holder] = true }
+	-- Each ring's inner spike reaches into the tray's hole by design (the KSTY-44 base art), its needle point to the
+	-- edge of bar 1's first button: bar 1 is checked against the ring's body and spikes without that last band.
+	local bar1 = { [AB.bars.bar1.holder] = true }
 	if U.Orbs.Tray() then
 		roots[U.Orbs.Tray()] = "tray"
 	end
@@ -129,11 +133,12 @@ local function Case(layout, class, screen, required)
 		local count = 0
 		for _, item in ipairs(scene.items) do
 			local rect = item.rect
-			local own = name == "unitframes" and Under(item.object, roots) or name == "actionbars" and Under(item.object, tray)
+			local own = name == "unitframes" and Under(item.object, roots)
+			local tip = not (name == "actionbars" and Under(item.object, bar1))
 			if rect[3] > 0 and rect[4] > 0 and not own then
 				count = count + 1
 				for kind, box in pairs(orbs) do
-					assert(not Hits(rect, box), string.format("%s: %s draws into the %s orb (%.1f %.1f %.1f %.1f): %s at %.1f %.1f %.1f %.1f", label, name, kind, box[1], box[2], box[3], box[4],
+					assert(not Hits(rect, box, tip), string.format("%s: %s draws into the %s orb (%.1f %.1f %.1f %.1f): %s at %.1f %.1f %.1f %.1f", label, name, kind, box[1], box[2], box[3], box[4],
 						tostring(item.text or item.file or item.kind), rect[1], rect[2], rect[3], rect[4]))
 				end
 			end

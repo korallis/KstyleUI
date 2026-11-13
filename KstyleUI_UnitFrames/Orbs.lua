@@ -13,7 +13,7 @@ local BAR_KEY = "actionbars.bar1"
 local OPENING = 0.701
 local TRAY_STRATA = "BACKGROUND"
 local HOLE_ALPHA = 0.88
-local FLOOR = 2
+local EDGE = 2
 local SURFACE_HEIGHT = 14
 local SURFACE_ALPHA = 0.8
 local VALUE_SIZE = 17
@@ -191,44 +191,84 @@ local function BarRect()
 	return left, bottom, width, height
 end
 
-function Orbs.Centres()
+local function Assembly()
 	local left, bottom, width, height = BarRect()
-	local rootWidth, rootHeight = K.Layout.RootSize()
 	local art = K.Setup.Layouts.OrbsTray(width)
-	local low = art.ring / 2 + FLOOR
-	local x = left + width / 2
-	local y = math.min(math.max(bottom + height / 2 + art.lift, low), rootHeight - low)
-	return math.max(x - art.ringX, low), math.min(x + art.ringX, rootWidth - low), y, art.ring
+	local rootWidth, rootHeight = K.Layout.RootSize()
+	local reach, low = art.ringX + art.ring / 2 + EDGE, art.ring / 2 + EDGE
+	local x, y = left + width / 2, bottom + height / 2
+	local cx = math.min(math.max(x, reach), rootWidth - reach)
+	local cy = math.min(math.max(y, low - art.lift), rootHeight - low - art.lift)
+	return cx, cy, art, cx ~= x or cy ~= y
+end
+
+function Orbs.Centres()
+	local x, y, art = Assembly()
+	return x - art.ringX, x + art.ringX, y + art.lift, art.ring
+end
+
+local function Faded()
+	local Store = K.Store
+	local bars = Store.IsLoaded() and Store.Module("ActionBars")
+	local bar = type(bars) == "table" and bars.bar1
+	return type(bar) == "table" and bar.fade == true
 end
 
 local function TrayWanted()
-	return K.Layout.Live(BAR_KEY) == true
+	return K.Layout.Live(BAR_KEY) == true and not Faded()
 end
 
 function Orbs.Tray()
 	return tray
 end
 
-local function Piece(region, box)
+local function Snapped(box)
 	local Snap = K.Widgets.Snap
+	return { left = Snap(tray, box.left), right = Snap(tray, box.right), top = Snap(tray, box.top), bottom = Snap(tray, box.bottom) }
+end
+
+local function Piece(region, box, mirrored)
+	local left, right = box.left, box.right
+	if mirrored then
+		left, right = -box.right, -box.left
+	end
 	region:ClearAllPoints()
-	region:SetPoint("BOTTOMLEFT", tray, "CENTER", Snap(tray, box.left), Snap(tray, box.bottom))
-	region:SetPoint("TOPRIGHT", tray, "CENTER", Snap(tray, box.right), Snap(tray, box.top))
+	region:SetPoint("BOTTOMLEFT", tray, "CENTER", left, box.bottom)
+	region:SetPoint("TOPRIGHT", tray, "CENTER", right, box.top)
+end
+
+local function Hang(x, y, clamped)
+	local Layout, root = K.Layout, K.Scale.Root()
+	local el = Layout.Element and Layout.Element(BAR_KEY)
+	local holder = el and Layout.Live(BAR_KEY) and el.frame or root
+	if InCombatLockdown() then
+		return
+	end
+	if tray:GetParent() ~= holder then
+		tray:SetParent(holder)
+		tray:SetFrameStrata(TRAY_STRATA)
+	end
+	local scale = holder:GetScale()
+	tray:SetScale(holder ~= root and type(scale) == "number" and scale > 0 and 1 / scale or 1)
+	tray:ClearAllPoints()
+	if holder ~= root and not clamped then
+		tray:SetPoint("CENTER", holder, "CENTER", 0, 0)
+	else
+		tray:SetPoint("CENTER", root, "BOTTOMLEFT", K.Widgets.Snap(tray, x), K.Widgets.Snap(tray, y))
+	end
 end
 
 local function PlaceTray()
-	local left, bottom, width, height = BarRect()
-	local art = K.Setup.Layouts.OrbsTray(width)
-	local Snap = K.Widgets.Snap
-	tray:ClearAllPoints()
-	tray:SetPoint("CENTER", K.Scale.Root(), "BOTTOMLEFT", Snap(tray, left + width / 2), Snap(tray, bottom + height / 2))
+	local x, y, art, clamped = Assembly()
+	Hang(x, y, clamped)
 	tray.hole:SetColorTexture(K.Widgets.Rgba("black", HOLE_ALPHA))
-	Piece(tray.hole, art.hole)
-	Piece(tray.rail, art.rail)
-	Piece(tray.railBottom, art.railBottom)
-	Piece(tray.crest, art.crest)
-	Piece(tray.armLeft, art.arm)
-	Piece(tray.armRight, { left = -art.arm.right, right = -art.arm.left, top = art.arm.top, bottom = art.arm.bottom })
+	Piece(tray.hole, Snapped(art.hole))
+	Piece(tray.rail, Snapped(art.rail))
+	Piece(tray.railBottom, Snapped(art.railBottom))
+	Piece(tray.crest, Snapped(art.crest))
+	local arm = Snapped(art.arm)
+	Piece(tray.armLeft, arm)
+	Piece(tray.armRight, arm, true)
 	tray:SetShown(active and TrayWanted())
 end
 
@@ -341,6 +381,11 @@ local function Listen()
 	Callbacks.Register("LayoutChanged", OWNER, OnLayoutChanged)
 	Callbacks.Register("ThemeChanged", OWNER, OnTheme)
 	Callbacks.Register("ScaleChanged", OWNER, OnTheme)
+	Callbacks.Register("SettingChanged", OWNER, function(_, module)
+		if module == "ActionBars" then
+			PlaceTray()
+		end
+	end)
 end
 
 local function Quiet()

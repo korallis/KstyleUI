@@ -37,7 +37,8 @@ local function Check(label)
 	local hole = tray.hole
 	assert(hole:GetLeft() <= left + 0.5 and hole:GetRight() >= left + width - 0.5 and hole:GetBottom() <= bottom + 0.5 and hole:GetTop() >= bottom + height - 0.5,
 		label .. ": the hole holds bar 1")
-	assert(near(tray.armLeft:GetRight() - tx, -(tray.armRight:GetLeft() - tx)) and near(tray.crest:GetLeft() - tx, -(tray.crest:GetRight() - tx)), label .. ": the pieces mirror about bar 1")
+	assert(near(tray.armLeft:GetRight() - tx, -(tray.armRight:GetLeft() - tx), 0.01) and near(tray.armLeft:GetLeft() - tx, -(tray.armRight:GetRight() - tx), 0.01),
+		label .. ": the right arm mirrors the left exactly")
 	assert(near(tray.armLeft:GetLeft(), cx + art.arm.left) and near(tray.rail:GetTop(), cy + art.rail.top), label .. ": arms and rails at the art's measurements")
 	assert(near(tray.rail:GetLeft(), tray.armLeft:GetRight()) and near(tray.rail:GetRight(), tray.armRight:GetLeft()), label .. ": the rails run arm to arm")
 	local health, power = ns.Orbs.Get("health"), ns.Orbs.Get("power")
@@ -52,6 +53,33 @@ assert(K.Layout.Set("actionbars.bar1", "y", K.Layout.Get("actionbars.bar1").y + 
 Check("moved")
 assert(K.Layout.Set("actionbars.bar1", "scale", 1.2), "bar 1 scales")
 Check("scaled")
+assert(K.Layout.Set("actionbars.bar1", "scale", 1), "bar 1 back to its size")
+
+-- The tray hides with bar 1 (its shown rule, a hidden holder) and while bar 1 fades until hovered.
+bar:Hide()
+assert(not tray:IsVisible(), "a hidden bar 1 hides the tray with it")
+bar:Show()
+assert(tray:IsVisible(), "the tray returns with bar 1")
+local bars = K.Store.Module("ActionBars")
+bars.bar1 = { fade = true }
+K.Callbacks.Fire("SettingChanged", "ActionBars", "bar1.fade")
+assert(not tray:IsShown(), "a bar 1 that fades until hovered has no tray")
+bars.bar1.fade = false
+K.Callbacks.Fire("SettingChanged", "ActionBars", "bar1.fade")
+assert(tray:IsShown(), "the tray returns when the fade is off")
+
+-- Bar 1 dragged into a corner: the rings stay on the screen and stay on the tray's arms.
+assert(K.Layout.Update("actionbars.bar1", { anchor = "BOTTOMLEFT", x = 0, y = 0 }), "bar 1 moves into the corner")
+do
+	local _, _, width = K.Layout.Rect("actionbars.bar1")
+	local art = Layouts.OrbsTray(width)
+	local tx = tray:GetLeft() + tray:GetWidth() / 2
+	local ty = tray:GetBottom() + tray:GetHeight() / 2
+	local health = ns.Orbs.Get("health")
+	local hx, hy = health:GetLeft() + health:GetWidth() / 2, health:GetBottom() + health:GetHeight() / 2
+	assert(health:GetLeft() >= 0 and health:GetBottom() >= 0, "the ring stays on the screen")
+	assert(near(hx, tx - art.ringX) and near(hy, ty + art.lift), "the ring stays on its arm")
+end
 
 K.Options.Write("HudStyle", "style", "frames")
 assert(not tray:IsShown() and not ns.Orbs.Get("health"):IsShown(), "Frames hides the tray with the orbs")

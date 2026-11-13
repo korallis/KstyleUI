@@ -27,7 +27,9 @@ ARM = ((556, 185, 736, 545), (128, 256))
 CREST = ((1152, 146, 1512, 326), (256, 128))
 RAIL_TOP_ROWS = (262, 326)
 RAIL_BOTTOM_ROWS = (452, 516)
-RAIL_SEGMENTS = ((720, 1140), (1530, 1960), (720, 1140))
+# Each segment: left, right, and whether it is mirrored. The strip runs from the left arm's inner edge (736) and ends
+# on the same joint mirrored, because the game draws the right arm as the left one flipped.
+RAIL_SEGMENTS = ((736, 1140, False), (1530, 1927, False), (736, 1140, True))
 RAIL_FADE = 40
 RAIL_SIZE = (1024, 64)
 ALPHA_FLOOR = 4
@@ -79,7 +81,10 @@ def piece(source, spec):
 
 def rail(source, rows):
     top, bottom = rows
-    strips = [source.crop((a, top, b, bottom)) for a, b in RAIL_SEGMENTS]
+    strips = []
+    for a, b, mirrored in RAIL_SEGMENTS:
+        strip = source.crop((a, top, b, bottom))
+        strips.append(strip.transpose(Image.FLIP_LEFT_RIGHT) if mirrored else strip)
     width = sum(s.width for s in strips) - RAIL_FADE * (len(strips) - 1)
     joined = Image.new("RGBA", (width, bottom - top))
     x = 0
