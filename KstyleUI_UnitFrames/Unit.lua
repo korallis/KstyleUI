@@ -240,7 +240,10 @@ function Unit.Glow(view, unit)
 end
 
 local function LumenHealth(view, unit, form, format)
-	if form == "column" and view.geometry.mirror then
+	if form == "bar" then
+		Format.Health(view.healthText, unit, format == "none" and "none" or "percent")
+		Format.HealthDetail(view.healthSub, unit, format == "none" and "none" or "both")
+	elseif form == "column" and view.geometry.mirror then
 		Format.Health(view.healthText, unit, Format.Main(format))
 	elseif form == "vitals" or form == "column" then
 		local main, split = format, false
@@ -506,9 +509,9 @@ function Unit.Caption(view, unit)
 		else
 			text:SetText("")
 		end
-	elseif form == "column" then
+	elseif form == "column" or form == "bar" then
 		local label
-		if view.geometry and view.geometry.mirror then
+		if form == "bar" or view.geometry and view.geometry.mirror then
 			label = UnitCreatureType and UnitCreatureType(unit)
 		else
 			label = (UnitClass(unit))
@@ -551,7 +554,7 @@ function Unit.Level(view, unit)
 	Rank(view, unit)
 	if view.form and view.form ~= "plate" then
 		Unit.Caption(view, unit)
-		if (view.form == "vitals" or view.form == "column") and view.s.level then
+		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then
 			text:SetText(UnitLevel(unit))
 			text:SetTextColor(Tokens.Color("textEmphasis"))
 		end

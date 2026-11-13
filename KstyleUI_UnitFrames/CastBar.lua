@@ -914,7 +914,7 @@ local function Enabled(cb)
 	end
 	local form = Settings.Form(kind)
 	local plate = form == "plate"
-	local separate = kind == "player" and form == "column"
+	local separate = kind == "player" and form == "column" or form == "bar"
 	if cb.inline then
 		return not plate and not separate and Settings.Value(kind, "enabled")
 	end

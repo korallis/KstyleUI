@@ -211,7 +211,7 @@ end
 
 function Style.Shape(view, round)
 	view.round = round
-	local column = view.form == "column"
+	local column = view.form == "column" or view.form == "bar"
 	local gutter = column and RING_GUTTER or 0
 	view.ring:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
 	view.discRing:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
@@ -347,7 +347,13 @@ local function LumenTexts(view, g)
 	view.healthText:SetJustifyH("RIGHT")
 	view.powerText:Hide()
 	view.capRule:Hide()
-	if form == "column" and g.mirror then
+	if form == "bar" then
+		for key, justify in pairs({ name = "CENTER", healthText = "CENTER", caption = "LEFT", healthSub = "RIGHT" }) do
+			local text = view[key]
+			PlaceText(view, text, g[key])
+			text:SetJustifyH(justify)
+		end
+	elseif form == "column" and g.mirror then
 		if g.name then
 			NameBottom(view, g, g.name)
 		else
@@ -634,7 +640,7 @@ function Style.Restyle(view, kind)
 	for key, spec in pairs(TEXTS) do
 		local element = spec.element or key
 		local path, size, flags = Settings.Font(kind, element)
-		if form == "column" and key == "levelText" then
+		if (form == "column" or form == "bar") and key == "levelText" then
 			size = size * COLUMN_LEVEL_SCALE
 		end
 		local share = spec.share or 1
@@ -697,7 +703,7 @@ function Style.Accent(view)
 	view.discBack:SetVertexColor(Lumen.Color("deep"))
 	Widgets.Tint(view.discEdge, "black")
 	Widgets.Tint(view.discInner, "black")
-	if view.form == "column" then
+	if view.form == "column" or view.form == "bar" then
 		view.discBack:SetVertexColor(Tokens.Color("materialForged"))
 	end
 	view.portraitChrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RIM_WHITE))
