@@ -347,7 +347,7 @@ function Plate:Restyle()
 	local raidSide = Widgets.Snap(self, raidSize)
 	Place(self.raid, "LEFT", health, "RIGHT", Plate.MarkerReach(), 0, raidSide, raidSide, barW, barH)
 
-	self.glowFrame:SetFrameLevel(math.max(0, health:GetFrameLevel() - 2))
+	self.glowFrame:SetFrameLevel(math.max(0, health.under:GetFrameLevel() - 1))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
 	self.nameOnly = nil
@@ -551,7 +551,7 @@ end
 function Plate:UpdateStyle()
 	local canAttack = self:Is("enemy", UnitCanAttack, "player", self.unit)
 	self.kind = (IsSecret(canAttack) or canAttack) and "enemy" or "friendly"
-	local nameOnly = self.kind == "friendly" and Settings.Get("friendly.nameOnly")
+	local nameOnly = IsTrue(self:Is("gameObject", UnitIsGameObject, self.unit)) or (self.kind == "friendly" and Settings.Get("friendly.nameOnly"))
 	if nameOnly ~= self.nameOnly then
 		self.nameOnly = nameOnly
 		self:LayoutName()

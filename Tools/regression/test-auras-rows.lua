@@ -114,7 +114,9 @@ check(#harmful._order == 1 and harmful._groups.debuffs and harmful._groups.debuf
 
 -- A tile: the icon, inset one border inside a square rim plate in the dark edge colour (under the engine's dispel
 -- plate on debuffs), no mask, no chamfer, no body, no bezel, no shadow; the timer under the icon in white in the body face;
--- the stack count on a corner badge that is a StatusBar the engine shows only from two applications.
+-- the stack count in the tile's top right corner as world text, an outline and a soft shadow with no plate behind it
+-- (KSTY-60 item 26: the plate poked out of the icon), on a badge that is a StatusBar the engine shows only from two
+-- applications.
 local entry = desc.buttons[1]
 check(entry and entry.chrome == nil, "a buff tile has no icon chrome")
 local chamfer = (Tokens.Texture("chamferTile"))
@@ -147,25 +149,35 @@ local aura = bg.frames[1]._aura
 check(aura.bar == entry.badge and aura.barOptions.minApplications == 2 and type(aura.barOptions.maxApplications) == "number", "the engine shows the badge from two applications")
 check(aura.count == entry.count, "and writes the count on the badge's text")
 local bp = entry.badge._points[1]
-check(bp and bp[2] == entry.count, "the badge wraps the count text")
+check(bp and bp[2] == entry.skin and #entry.badge._points <= 2, "the badge covers the tile and no more, so nothing it holds pokes out")
 local cp = entry.count._points[1]
-check(cp[1] == "TOPRIGHT" and cp[2] == entry.skin, "in the icon's top right corner")
-check(entry.plate and entry.plate:GetParent() == entry.badge, "the badge plate draws on the bar, so it goes with it")
+local inside = Widgets.Border(entry.skin) + Widgets.Snap(entry.skin, 1)
+check(cp[1] == "TOPRIGHT" and cp[2] == entry.skin and near(cp[4], -inside) and near(cp[5], -inside), "in the icon's top right corner, inside the rim")
+check(entry.plate == nil, "no plate behind the count")
+for _, region in ipairs({ entry.badge:GetRegions() }) do
+	check(region:GetObjectType() ~= "Texture" or region:GetAlpha() == 0 or region == entry.badge:GetStatusBarTexture(), "the badge draws no box of its own")
+end
+local _, _, countFlags = entry.count:GetFont()
+local csx, csy = entry.count:GetShadowOffset()
+check(countFlags == "OUTLINE" and csx > 0 and csy < 0, "the count is world text: a one-pixel outline and a soft shadow")
 local dentry = ddesc.buttons[1]
 check(#dentry.rim == 1 and dentry.rim[1]:IsShown() and dentry.dispel and #dentry.dispel == 1 and not dentry.dispel[1]:IsShown(), "a debuff tile shows its rim plate; the engine's dispel plate waits hidden for a type")
 check(sameRGB(dentry.rim[1], er, eg, eb), "its own rim is the same dark edge")
 check(#dg.frames[1]._aura.dispel == 1 and dg.frames[1]._aura.dispel[1].texture == dentry.dispel[1], "the dispel plate is the engine's")
 
--- The "+N" socket: one counting pair per row, on the row's own filter and cap, its window on the last cell (the
--- bottom right for a row listed left to right, hung from the right) covering the tile and its timer lane, so the covered aura's timer
--- never reads as the count's. No "+00" is reserved anywhere.
+-- The "+N" tile: one counting pair per row, on the row's own filter and cap, its window the tile of the last cell (the
+-- bottom right for a row listed left to right, hung from the right), exactly the size of the other tiles and level
+-- with them (KSTY-60 item 26: it covered the timer lane too, so it stood taller than its row). The covered aura's timer
+-- stays under it like every other cell's, so a full row of ten still shows ten. No "+00" is reserved anywhere.
 local chip = desc.chip
 check(chip and #chip.pairs == 1 and chip.pairs[1].a._groups.count.filter == "HELPFUL", "the buff row counts its own filter")
 check(chip.pairs[1].a._groups.count.maxFrameCount > 10, "and can count past the row")
 check(ddesc.chip and #ddesc.chip.pairs == 1 and ddesc.chip.pairs[1].a._groups.count.filter == "HARMFUL", "the debuff row counts its own")
 local host = rect(desc.host)
 local window = rect(chip.window)
-check(near(window.right, host.right) and near(window.bottom, host.bottom) and near(window.right - window.left, K.Scale.Snap(27.5)) and near(window.top - window.bottom, K.Scale.Snap(27.5) + 14), "the count window is the last cell: 27.5 wide, 41.5 tall (whole pixels at this size), at the host's bottom right corner")
+local tile = K.Scale.Snap(27.5)
+check(near(window.right, host.right) and near(window.bottom, host.bottom + 14) and near(window.right - window.left, tile) and near(window.top - window.bottom, tile), "the count window is the last cell's tile: 27.5 square (whole pixels at this size), over the timer lane at the host's bottom right corner")
+check(near(window.top - window.bottom, entry.skin:GetHeight()) and near(window.top, host.top), "the same size as an aura tile, level with the row's tiles")
 for _, object in ipairs(A.Descendants(desc.host)) do
 	if object.GetObjectType and object:GetObjectType() == "FontString" and object:IsShown() then
 		check(object:GetText() ~= "+00", "no shown text reads +00")

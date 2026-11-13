@@ -152,7 +152,7 @@ local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
 local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
-local QUESTS_BOTTOM, STORY_FLOOR, QUESTS_FOUR = TEXT_TOP + GAP, 72, 264
+local QUESTS_BOTTOM, STORY_FLOOR = TEXT_TOP + GAP, 72
 local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
 local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
 local _, MICRO_H = ElementSize("databars.micro")
@@ -187,7 +187,7 @@ local DPS = {
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -((6 * CENTRE_BUTTON + 5 * CENTRE_GAP) / 2 + GAP + 182.6 / 2), y = 335.3 + LIFT },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 + LIFT },
-	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 + LIFT },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 421 + 14 + 8 + LIFT },
 	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
@@ -604,7 +604,7 @@ function Layouts.Story(name, rootHeight, guide, style, class)
 		if not guide then
 			return { quests = Card(STORY_KEYS.quests, quests.x, math.max(1, column), quests) }
 		end
-		local top = math.max(1, math.min(ORBS_QUESTS_H, math.max((column - GAP) / 2, math.min(QUESTS_FOUR, column - GAP - STORY_FLOOR))))
+		local top = math.max(1, math.min(ORBS_QUESTS_H, (column - GAP) / 2))
 		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
 	end
 	if not guide then
@@ -619,7 +619,7 @@ end
 local LIFTED = {
 	"unitframes.player", "unitframes.pet", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
 	"unitframes.targettarget", "unitframes.castbar.player", "cooldowns.essential", "cooldowns.utility",
-	"cooldowns.buffs", "cooldowns.bars", "meters.swing", "meters.threat", "combattext.player", "actionbars.bar3",
+	"cooldowns.buffs", "cooldowns.bars", "meters.threat", "combattext.player", "actionbars.bar3",
 }
 local LIFTED_IN = {
 	DPS = {},
@@ -637,6 +637,7 @@ local TRAY_OLD = {
 	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
 	["unitframes.resource"] = { "BOTTOM", 0, 420 },
 	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 - LIFT },
+	["meters.swing"] = { "BOTTOM", 0, 376.5 },
 }
 
 local CAST_OLD = {
@@ -715,6 +716,10 @@ function Layouts.HealerMoves()
 		out[key] = { place[1], place[2], place[3] }
 	end
 	return out
+end
+
+function Layouts.SwingMoves()
+	return { ["meters.swing"] = { "BOTTOM", 0, 376.5 + LIFT } }
 end
 
 function Layouts.TrayMoves(name)

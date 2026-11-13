@@ -17,6 +17,16 @@ local LEVEL_BUTTON = 2
 local ICON_FILL = 0.72
 local HOVER_GRACE = 0.5
 local DRAG_BUTTON = "LeftButton"
+local OWN_BUTTONS = {
+	"BlackthornesMinimapButton",
+	"BlackthornesButlerMinimapButton",
+	"BlackthornesEquipmentMinimapButton",
+	"BlackthornesFarmerMinimapButton",
+	"BlackthornesPathfinderMinimapButton",
+	"BlackthornesPetsMinimapButton",
+	"BlackthornesTSMinimapButton",
+	"OxgleBugsMinimapButton",
+}
 
 local hooked = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
@@ -62,6 +72,46 @@ local function ButtonFor(lib, name)
 		end
 	end
 	return type(lib.objects) == "table" and lib.objects[name] or nil
+end
+
+local function IsSecret(value)
+	return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
+local function Points(button)
+	local points = {}
+	for i = 1, button:GetNumPoints() do
+		local point, relativeTo, relativePoint, x, y = button:GetPoint(i)
+		if not point or IsSecret(x) or IsSecret(y) or type(x) ~= "number" or type(y) ~= "number" then
+			return {}
+		end
+		points[i] = { point, relativeTo, relativePoint, x, y }
+	end
+	return points
+end
+
+local function IconPoints(icon, button)
+	local points = {}
+	for i = 1, icon:GetNumPoints() do
+		local point, relativeTo, relativePoint, x, y = icon:GetPoint(i)
+		if not point or IsSecret(x) or IsSecret(y) then
+			return {}
+		end
+		points[i] = { point, relativeTo or button, relativePoint or point, x or 0, y or 0 }
+	end
+	return points
+end
+
+local function IconOf(button)
+	if type(button.icon) == "table" then
+		return button.icon
+	end
+	for _, region in ipairs({ button:GetRegions() }) do
+		if region:GetObjectType() == "Texture" and region:GetDrawLayer() == "ARTWORK" then
+			return region
+		end
+	end
+	return nil
 end
 
 local function SortKey(text)
@@ -198,7 +248,7 @@ function Drawer:Place(button)
 	button:ClearAllPoints()
 	button:SetPoint(point, self.panel, point, x, y)
 	button:SetSize(size, size)
-	local icon = button.icon
+	local icon = state.icon
 	if type(icon) == "table" and type(icon.SetPoint) == "function" then
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", button, "CENTER")
@@ -239,9 +289,17 @@ end
 
 local function OnMoved(button)
 	local drawer = ns.Map and ns.Map.drawer
-	if drawer and drawer.active and not drawer.placing and drawer.adopted[button] then
-		drawer:Place(button)
+	local state = drawer and drawer.active and not drawer.placing and drawer.adopted[button]
+	if not state then
+		return
 	end
+	if state.points then
+		local asked = Points(button)
+		if #asked > 0 then
+			state.points = asked
+		end
+	end
+	drawer:Place(button)
 end
 
 local function KeepOpaque(button, alpha)
@@ -266,7 +324,7 @@ local function OnAddonClick()
 	end
 end
 
-function Drawer:Adopt(name, button)
+function Drawer:Adopt(name, button, own)
 	if self.adopted[button] then
 		return false
 	end
@@ -274,7 +332,16 @@ function Drawer:Adopt(name, button)
 		return false
 	end
 	local panel = self.panel
-	self.adopted[button] = { name = name, parent = button:GetParent() }
+	local state = { name = name, parent = button:GetParent(), icon = IconOf(button) }
+	if own then
+		state.points = Points(button)
+		state.width, state.height = button:GetSize()
+		if state.icon then
+			state.iconPoints = IconPoints(state.icon, button)
+			state.iconWidth, state.iconHeight = state.icon:GetSize()
+		end
+	end
+	self.adopted[button] = state
 	self.order[#self.order + 1] = button
 	table.sort(self.order, function(a, b)
 		return self.adopted[a].name < self.adopted[b].name
@@ -295,8 +362,8 @@ function Drawer:Adopt(name, button)
 	if not hooked[button] then
 		hooked[button] = true
 		local keep = {}
-		if type(button.icon) == "table" then
-			keep[button.icon] = true
+		if state.icon then
+			keep[state.icon] = true
 		end
 		K.Skin.Strip(button, { keep = keep })
 		K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill" })
@@ -316,7 +383,7 @@ function Drawer:Adopt(name, button)
 		hooksecurefunc(button, "Hide", OnShownChanged)
 		button:HookScript("OnClick", OnAddonClick)
 	end
-	Log("collected the LibDBIcon button " .. tostring(name) .. " into the drawer")
+	Log("collected the minimap button " .. tostring(name) .. " into the drawer")
 	return true
 end
 
@@ -330,15 +397,20 @@ function Drawer:Collect()
 	if self.preview or not self.active then
 		return
 	end
-	local lib = Drawer.Lib()
-	if not lib then
-		return
-	end
-	self:Subscribe(lib)
 	local added = false
-	for _, name in ipairs(Names(lib)) do
-		local button = ButtonFor(lib, name)
-		if button and self:Adopt(name, button) then
+	local lib = Drawer.Lib()
+	if lib then
+		self:Subscribe(lib)
+		for _, name in ipairs(Names(lib)) do
+			local button = ButtonFor(lib, name)
+			if button and self:Adopt(name, button) then
+				added = true
+			end
+		end
+	end
+	for _, name in ipairs(OWN_BUTTONS) do
+		local button = rawget(_G, name)
+		if type(button) == "table" and type(button.GetParent) == "function" and button:GetParent() == Minimap and self:Adopt(name, button, true) then
 			added = true
 		end
 	end
@@ -380,7 +452,25 @@ function Drawer:Stop()
 		if type(button.RegisterForDrag) == "function" then
 			button:RegisterForDrag(DRAG_BUTTON)
 		end
-		if lib and type(lib.Refresh) == "function" then
+		if state.points then
+			local width, height = state.width, state.height
+			if type(width) == "number" and type(height) == "number" and not IsSecret(width) and not IsSecret(height) then
+				button:SetSize(width, height)
+			end
+			for _, point in ipairs(state.points) do
+				button:SetPoint(point[1], point[2], point[3], point[4], point[5])
+			end
+			local icon, iconWidth, iconHeight = state.icon, state.iconWidth, state.iconHeight
+			if icon and state.iconPoints and #state.iconPoints > 0 then
+				icon:ClearAllPoints()
+				if type(iconWidth) == "number" and type(iconHeight) == "number" and not IsSecret(iconWidth) and not IsSecret(iconHeight) then
+					icon:SetSize(iconWidth, iconHeight)
+				end
+				for _, point in ipairs(state.iconPoints) do
+					icon:SetPoint(point[1], point[2], point[3], point[4], point[5])
+				end
+			end
+		elseif lib and type(lib.Refresh) == "function" then
 			pcall(lib.Refresh, lib, state.name)
 		end
 	end
@@ -487,6 +577,19 @@ function Drawer:Refresh()
 	elseif self.open and behaviour == "hover" and not self.panel:GetScript("OnUpdate") then
 		self.graceLeft = HOVER_GRACE
 		self.panel:SetScript("OnUpdate", Watch)
+	end
+end
+
+function Drawer:Reposition()
+	local lib = Drawer.Lib()
+	if not lib or type(lib.Refresh) ~= "function" then
+		return
+	end
+	for _, name in ipairs(Names(lib)) do
+		local button = ButtonFor(lib, name)
+		if button and not self.adopted[button] then
+			pcall(lib.Refresh, lib, name)
+		end
 	end
 end
 

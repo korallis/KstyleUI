@@ -176,7 +176,7 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | `altCounts` | `true` | toggle: other characters' counts in item tooltips |
 | `custom1.name`, `custom1.rule` | `""`, `""` | text rows, up to 60 letters; `custom2` and `custom3` the same |
 
-Position, scale, opacity, strata and the shown rule come from Layout, on the Elements page and in Layout Mode. The preview shows eight sample slots drawn by `Slot.lua` with the current settings; it makes no Blizzard item buttons.
+Position, scale, opacity, strata and the shown rule come from Layout, on the Elements page and in Layout Mode. The preview shows eight sample slots drawn by `Slot.lua` with the current settings under the card heading the bag window's sections wear (`Widgets.SectionCap`: the diamond, `BAGS` in the caps face and heading gold, and the rule, as wide as the slots; KSTY-60 item 28 found the old centred caption dim); it makes no Blizzard item buttons.
 
 ## /kstyle test
 

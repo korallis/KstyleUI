@@ -379,8 +379,10 @@ local function Bar(holder)
 	if Parts.IsTexture(fill) then
 		keep[fill] = true
 	end
+	for region in pairs(Widgets.BarEdge(bar).regions) do
+		keep[region] = true
+	end
 	Skin.Strip(bar, { keep = keep })
-	Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	Style.StatusBar(bar)
 	if bar.Label then
 		Style.Text(bar.Label, "caption", "textEmphasis")

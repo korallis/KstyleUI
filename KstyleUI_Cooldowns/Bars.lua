@@ -1,4 +1,4 @@
--- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown; past the last bar, a "+N" bar one slot above the full stack, clear of the buff row under it, lists the rest on hover.
+-- Bars.lua: a holder of KstyleUI tracked buff bars: a square bar (a black pixel round a dark track) with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown; past the last bar, a "+N" bar one slot above the full stack, clear of the buff row under it, lists the rest on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -94,7 +94,7 @@ function BarRow:Bar(index)
 		return bar
 	end
 	bar = CreateFrame("Frame", nil, self.content)
-	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
+	bar.edge = Widgets.BarEdge(bar)
 	local tile = CreateFrame("Frame", nil, bar)
 	tile:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
 	tile.chrome = Widgets.IconChrome(tile)

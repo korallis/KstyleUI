@@ -257,8 +257,8 @@ return Common.Run(function()
 	settle(T1, env1)
 	frames:Add(env1, compare, {
 		name = "tooltips_compare", title = "Compare tooltip", grade = "panel", reference = "player",
-		caption = "ShoppingTooltip1 under its CompareHeader: the glass on the panel grade, the header's Blizzard art stripped and replaced by a buttonFill tile (Style.lua:112) with the caption Currently Equipped, the item's icon tile and the rare quality caption.",
-		match = "Glass fill, edge and chamfer as the mockup's unit frames; the header tile is the button body with the plain hairline. The shopping glass draws no shadow (Style.lua:135 turns it off for tooltips with a compare header), unlike the mockup's panels.",
+		caption = "ShoppingTooltip1 under its CompareHeader: the glass on the panel grade, the header's Blizzard art and label stripped and replaced by a card heading on the tooltip's own material (a diamond and Currently Equipped in the caps face, Style.lua PlaceHeader), the item's icon tile, the title's heading diamond and the rare quality caption.",
+		match = "Glass fill, edge and chamfer as the mockup's unit frames; the header is a strip of the same card material with the card heading's diamond and caps. The shopping glass draws no shadow (Style.lua:135 turns it off for tooltips with a compare header), unlike the mockup's panels.",
 		rect = Gallery.Union(env1, { compare, header }),
 	})
 	extra[#extra + 1] = "the compare header is placed by the scene above its tooltip; Blizzard's ShoppingTooltipTemplate anchors it"

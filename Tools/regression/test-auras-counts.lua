@@ -115,7 +115,7 @@ for _, name in ipairs(Layouts.Names()) do
 		if over > 0 then
 			check(count(desc.chip) == "+" .. (over + 1), label .. ": the last cell counts the rest: " .. tostring(count(desc.chip)))
 			local window = rect(desc.chip.window)
-			check(near(window.right, bh.right) and near(window.bottom, bh.bottom), label .. ": the count sits on the last cell, the row's right end")
+			check(near(window.right, bh.right) and near(window.bottom, bh.bottom + desc.ctx.foot) and near(window.top, bh.top), label .. ": the count is the last cell's tile, the row's right end, level with the row")
 		else
 			check(count(desc.chip) == nil, label .. ": no count when every buff shows: " .. tostring(count(desc.chip)))
 		end

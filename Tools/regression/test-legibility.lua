@@ -138,19 +138,10 @@ do
 	assert(overlay.keyline == nil, "an overlay bar with no track of its own draws no keyline")
 end
 
--- A capsule bar's glow stays inside the bar's ends: it never runs past the track.
+-- A bordered bar draws no glow, so nothing of its fill runs past the track.
 do
 	local bar = Widgets.StatusBar(root, { width = 200, height = 8, border = true, min = 0, max = 1, value = 1 })
-	local first, last = bar.glow[1], bar.glow[9]
-	local function x(region, point)
-		for _, p in ipairs(region._points) do
-			if p[1] == point then
-				return p[4] or 0
-			end
-		end
-	end
-	assert(x(first, "TOPLEFT") >= 0, "the glow's left end starts at the fill's left end, got an outset of " .. tostring(-x(first, "TOPLEFT")))
-	assert(x(last, "BOTTOMRIGHT") <= 0, "the glow's right end stops at the fill's right end")
+	assert(bar.glow == nil, "a bordered bar has no fill glow to run past its ends")
 end
 
 assert(#env._errors == 0, tostring(env._errors[1]))

@@ -20,8 +20,8 @@ end
 local _, _, _, _, y = xp.text:GetPoint(1)
 eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "XP caption raise")
 eq(xp.text:GetText(), "Level 11 \194\183 0% \194\183 rested 5%", "level caption")
-eq(xp.fill.pillOn, false, "square fill: the bible's bars have no end caps")
-eq(xp.track.pillOn, false, "square track")
+eq(xp.fill.caps, nil, "square fill: the bible's bars have no end caps")
+eq(xp.track.caps, nil, "square track")
 local ticks = 0
 for _, tick in ipairs(xp.ticks) do
 	ticks = ticks + (tick:IsShown() and 1 or 0)
