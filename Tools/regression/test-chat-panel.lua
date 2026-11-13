@@ -45,7 +45,7 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 393) and near(settings.height, 186), "the picture's 393 by 186 card, at the left rail's foot")
+	assert(near(settings.width, 442) and near(settings.height, 186), "the left rail's 442 by 186 card (KSTY-64; the picture's 393 widened with the rails), at the rail's foot")
 	assert(near(settings.x, K.Tokens.Size("screenMargin")) and near(settings.y, K.Tokens.Size("screenMargin")), "anchored to the screenMargin token, not a literal")
 	-- Owner pass 1: "the chat box is too thin". Blizzard's 430-unit window holds 24 em of its 18-unit text; the card's
 	-- message column, between its glass inset and the dock's button column, holds at least 21 em of the 14-unit default.

@@ -737,9 +737,13 @@ function Layouts.TrayMoves(name)
 	for key, place in pairs(TRAY_OLD) do
 		out[key] = { place[1], place[2], place[3] }
 	end
+	local moved = Layouts.RailMoves().places
 	local function lift(key)
 		local now = layout[key]
-		if now then
+		local was = moved[key]
+		if was then
+			out[key] = { was[1], was[2], was[3] - LIFT }
+		elseif now then
 			out[key] = { now.anchor, now.x, now.y - LIFT }
 		end
 	end
