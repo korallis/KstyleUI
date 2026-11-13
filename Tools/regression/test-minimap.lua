@@ -56,10 +56,11 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
--- The overhaul (KSTY-44's mock-ups, binding by the Captain's COMMON.md): the map is still 188 units square and the
+-- The overhaul (KSTY-44's mock-ups, binding by the Captain's COMMON.md): the map is the mock-up's 208 units square (KSTY-64; it
+-- was 188) and the
 -- element itself; the zone moved above it, so the element's reserve keeps only the 14-unit coordinate row under it.
-assert(holder:GetWidth() == 188 and holder:GetHeight() == 188, "the element is a 188-unit square at the 1080 reference: " .. tostring(holder:GetWidth()) .. "x" .. tostring(holder:GetHeight()))
-assert(K.Setup.Layouts.Element("minimap.main").reserve[2] == 188 + ns.Format.CAPTION and ns.Format.CAPTION == 14, "the layout reserves the 14-unit coordinate row under the map")
+assert(holder:GetWidth() == 208 and holder:GetHeight() == 208, "the element is a 208-unit square at the 1080 reference: " .. tostring(holder:GetWidth()) .. "x" .. tostring(holder:GetHeight()))
+assert(K.Setup.Layouts.Element("minimap.main").reserve[2] == 208 + ns.Format.CAPTION and ns.Format.CAPTION == 14, "the layout reserves the 14-unit coordinate row under the map")
 assert(element.opts.minWidth == 100 and element.opts.maxWidth == 320 and element.opts.minHeight == 100 and element.opts.maxHeight == 320, "it resizes from 100 to 320 units, square")
 
 local minimap = env.Minimap
@@ -85,11 +86,11 @@ assert(env._zoom == 2 and (env._zoomCalls or 0) == 0, "fitting the map leaves th
 -- they read whole; a dark pixel line edges the map and a soft dark fall-off sits inside it.
 local Format = ns.Format
 assert(W.Near(face.mapArea:GetWidth(), holder:GetWidth()) and W.Near(face.mapArea:GetHeight(), holder:GetHeight()), "the map fills the element")
-assert(W.Near(mw, 188, 0.5), "the map is the element, 188 units: " .. tostring(mw))
+assert(W.Near(mw, 208, 0.5), "the map is the element, 208 units: " .. tostring(mw))
 assert(face.rim == nil and face.ornament == nil and face.plaqueOrnament == nil, "no gilt rim and no forged ornament pieces: the card's brackets are the only ornament")
 local card = face.card
 assert(card:GetFrameLevel() < minimap:GetFrameLevel() and card:GetFrameLevel() > holder:GetFrameLevel(), "the card lies under the map")
-assert(W.Near(card:GetWidth(), 188 + 2 * Format.FRAME, 1) and W.Near(card:GetHeight(), 188 + 2 * Format.FRAME, 1), "the card is 3 units wider than the map on every side: " .. tostring(card:GetWidth()))
+assert(W.Near(card:GetWidth(), 208 + 2 * Format.FRAME, 1) and W.Near(card:GetHeight(), 208 + 2 * Format.FRAME, 1), "the card is 3 units wider than the map on every side: " .. tostring(card:GetWidth()))
 local cardPoint, cardRel, cardRelPoint, cardX, cardY = card:GetPoint(1)
 assert(cardPoint == "TOPLEFT" and cardRel == face.mapArea and cardRelPoint == "TOPLEFT" and W.Near(cardX, -Format.FRAME) and W.Near(cardY, Format.FRAME), "centred on the map")
 assert(Format.FRAME == K.Setup.Layouts.MAP_FRAME, "the layouts set the map in by the card's frame, so the card's edge, not the square's, stands on the card margin (KSTY-60 item 28)")
@@ -156,7 +157,7 @@ local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
 assert(zp1 == "LEFT" and zrel1 == face.card and zrelp1 == "TOPLEFT" and W.Near(zx, Format.CAPTION_X, 1) and W.Near(zy, Format.ZONE_CENTER, 1), "the zone name stands above the card from its left edge: " .. tostring(zx) .. ", " .. tostring(zy))
 assert(Format.ZONE_CENTER - Format.FRAME > Format.NORTH / 2, "clear of the north diamond")
 assert(W.LastCall(face.zone, "SetJustifyH")[1] == "LEFT", "and reads from the left")
-assert(W.Near(face.zone:GetWidth(), 188 + 2 * Format.FRAME - 2 * Format.CAPTION_X, 1), "its width is the card's, so a long name truncates")
+assert(W.Near(face.zone:GetWidth(), 208 + 2 * Format.FRAME - 2 * Format.CAPTION_X, 1), "its width is the card's, so a long name truncates")
 local cp1, crel1, crelp1, cx1, cy1 = face.coords:GetPoint(1)
 assert(cp1 == "LEFT" and crel1 == face.card and crelp1 == "BOTTOMLEFT" and W.Near(cx1, Format.CAPTION_X, 1) and W.Near(cy1, -Format.ROW_CENTER, 1), "the coordinates sit under the card, at the left")
 local kp1, krel1, krelp1, _, ky1 = face.clock:GetPoint(1)
@@ -555,7 +556,7 @@ do
 	assert(entry.width == nil and entry.height == nil, "the lens card's saved size is dropped")
 	assert(entry.anchor == "TOPRIGHT" and entry.x == -40 and entry.y == -30, "the element's position stays")
 	local mholder = M.Holder(mK)
-	assert(mholder and mholder:GetWidth() == 188 and mholder:GetHeight() == 188, "so the square builds at its default size: " .. tostring(mholder:GetWidth()))
+	assert(mholder and mholder:GetWidth() == 208 and mholder:GetHeight() == 208, "so the square builds at its default size: " .. tostring(mholder:GetWidth()))
 	assert(mns.Map.face.coords:IsShown(), "and the coordinates the player turned on still show")
 	assert(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end

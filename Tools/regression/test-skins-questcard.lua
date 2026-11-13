@@ -320,8 +320,13 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local px = K.Scale.Pixel(1) + 0.01
 		assert(K.Layout.Get("skins.quests") ~= nil, what .. ": the quest card is a Layout element of its own")
 		assert(math.abs(holder.left - band.left) <= px and math.abs(holder.top - band.top) <= px and math.abs(holder.bottom - band.bottom) <= px, what .. ": the element is the card's band")
-		assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
-		assert(math.abs(card.top - st) <= px, what .. ": at the story slot's top, got " .. card.top .. " for " .. st)
+		if withGuide then
+			local rows = Box("auras.debuffs").bottom
+			assert(math.abs(card.top - (rows - 15)) <= px, what .. ": beside the guide, the card starts 15 under the aura rows over its column, not under the map, so it has room for its quests (KSTY-60), got " .. card.top .. " for " .. rows)
+		else
+			assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
+			assert(math.abs(card.top - st) <= px, what .. ": at the story slot's top, got " .. card.top .. " for " .. st)
+		end
 		assert(card.bottom >= band.bottom - px and card.top <= band.top + px, what .. ": inside its element")
 		assert(math.abs(card.left - band.left) <= px and math.abs(card.right - band.right) <= px, what .. ": on its element's edge and width")
 		assert(math.abs(card.right - card.left - 278) <= 0.6, what .. ": the picture's 278 rail column")

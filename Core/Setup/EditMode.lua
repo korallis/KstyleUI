@@ -134,7 +134,7 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh, part)
-	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current())
+	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current(), ns.Scale.Aspect())
 	local card = story and story[part or "guide"]
 	if not card then
 		return nil
@@ -184,7 +184,11 @@ end
 local function Spots(group, boxes, icons)
 	local slot, focus = boxes[VIEWERS[group].key], boxes["unitframes.focus"]
 	if group == "buffs" then
-		local list = { { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } } }
+		local list, essential = {}, boxes["cooldowns.essential"]
+		if essential then
+			list[1] = { x = essential.l - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
+		end
+		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
 		local edges, rail = {}, boxes["meters.damage"]
 		edges[#edges + 1] = focus and focus.l
