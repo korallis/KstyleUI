@@ -51,7 +51,6 @@ local EVENTS = {
 	UNIT_SPELLCAST_DELAYED = "Cast",
 	UNIT_SPELLCAST_CHANNEL_UPDATE = "Channel",
 	UNIT_SPELLCAST_STOP = "Stop",
-	UNIT_SPELLCAST_SUCCEEDED = "Landed",
 	UNIT_SPELLCAST_CHANNEL_STOP = "Stop",
 	UNIT_SPELLCAST_FAILED = "Failed",
 	UNIT_SPELLCAST_INTERRUPTED = "Interrupted",
@@ -161,8 +160,13 @@ local function Tick(frame, elapsed)
 	end
 end
 
+local function StopFlash(cb)
+	cb.flash.group:Stop()
+	cb.flash:Hide()
+end
+
 local function Flash(cb, colorName, alpha)
-	if Motion.Level() == "off" then
+	if Motion.Level() == "off" or not cb.frame:IsShown() then
 		return
 	end
 	cb.flash.wash:SetVertexColor(Widgets.Rgba(colorName, alpha))
@@ -205,6 +209,25 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
+local function EndTimer(cb, value)
+	StopTimer(cb)
+	cb.duration = nil
+	local util, bar = C_DurationUtil, cb.bar
+	if util and type(util.CreateDuration) == "function" and type(bar.SetTimerDuration) == "function" then
+		cb.zero = cb.zero or util.CreateDuration()
+		pcall(bar.SetTimerDuration, bar, cb.zero)
+	end
+	bar:SetMinMaxValues(0, 1)
+	bar:SetValue(value)
+end
+
+local function HoldThen(cb, seconds)
+	local token = (cb.token or 0) + 1
+	cb.token, cb.hold = token, token
+	cb.holds = cb.holds + 1
+	C_Timer.After(seconds, cb.release)
+end
+
 local function Notify(cb)
 	if cb.notify then
 		cb.notify(cb.active == true)
@@ -212,12 +235,13 @@ local function Notify(cb)
 end
 
 local function Hide(cb, instant)
-	cb.active = false
+	cb.active, cb.landed = false, false
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
 	StopTimer(cb)
 	cb.duration = nil
 	if instant or not cb.frame:IsShown() then
+		StopFlash(cb)
 		cb.frame:Hide()
 		return
 	end
@@ -423,8 +447,8 @@ local function LayoutCaption(cb, width, height)
 	local above = mode == "above"
 	cb.geometry = { caption = mode }
 	local lead = 0
-	if Settings.Value(cb.kind, "castbarIcon") then
-		local side = Snap(cb, height)
+	local side = Snap(cb, height)
+	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
 		lead = side + Snap(cb, CAPTION_ICON_GAP)
 		cb.geometry.icon = { x = 0, y = 0, w = side, h = side }
 		Place(cb, cb.iconFrame, cb.geometry.icon)
@@ -744,7 +768,8 @@ local function Start(cb, channel)
 		Hide(cb, true)
 		return
 	end
-	cb.active, cb.channel = true, channel
+	cb.active, cb.landed, cb.channel = true, false, channel
+	StopFlash(cb)
 	cb.castBarID = nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then
 		cb.castBarID = castBarID
@@ -778,23 +803,24 @@ local function Start(cb, channel)
 end
 
 local function Finish(cb, message)
-	if not cb.active then
+	if not (cb.active or cb.landed) then
 		return
 	end
-	cb.active = false
-	StopTimer(cb)
-	cb.duration = nil
+	cb.active, cb.landed = false, false
+	EndTimer(cb, 0)
 	cb.locked = false
 	ShowLock(cb)
 	CastBars.SetName(cb, message)
-	cb.bar:SetMinMaxValues(0, 1)
-	cb.bar:SetValue(0)
 	Paint(cb, Tokens.Color("hostile"))
 	Flash(cb, "hostile", STOPPED_ALPHA)
-	local token = (cb.token or 0) + 1
-	cb.token, cb.hold = token, token
-	cb.holds = cb.holds + 1
-	C_Timer.After(HOLD, cb.release)
+	HoldThen(cb, HOLD)
+end
+
+local function Land(cb)
+	cb.active, cb.landed = false, true
+	EndTimer(cb, 1)
+	Flash(cb, "giltLit", LANDED_ALPHA)
+	HoldThen(cb, Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
 end
 
 local function Casting(unit)
@@ -823,14 +849,13 @@ local HANDLERS = {
 	Channel = function(cb)
 		Start(cb, true)
 	end,
-	Landed = function(cb, event, ...)
-		if cb.active and not cb.channel and Matches(cb, event, ...) then
-			Flash(cb, "giltLit", LANDED_ALPHA)
-		end
-	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
-			Hide(cb)
+			if cb.channel then
+				Hide(cb)
+			else
+				Land(cb)
+			end
 		end
 	end,
 	Failed = function(cb, event, ...)

@@ -201,9 +201,18 @@ do
 				assert(extent <= height + 0.6, where .. ": the bar and its label stand inside the frame, reaching " .. extent)
 				assert(barH >= math.min(3, height) - 0.01 and barH <= (mode == "above" and 9 or 8) + 0.6, where .. ": the bar keeps a sane height " .. barH)
 				assert(cb.text:IsShown() == cb.timer:IsShown(), where .. ": the label and its time go together")
+				local barW = env.Look(cb.bar:GetSize())
+				local _, _, _, barX = env.Look(cb.bar:GetPoint(1))
+				local icon = cb.iconFrame:IsShown() and cb.geometry.icon
+				assert(icon and barX > icon.x + icon.w or not icon and near(barX, 0), where .. ": the bar starts after the icon tile and its gap, at " .. barX)
+				assert(barX + barW <= 347 + 0.6, where .. ": the bar ends inside the frame")
 			end
 		end
 	end
+	CastBars.Layout(element, 20, 26.5)
+	local narrowW = env.Look(element.bar:GetSize())
+	local _, _, _, narrowX = env.Look(element.bar:GetPoint(1))
+	assert(not element.iconFrame:IsShown() and near(narrowX, 0) and narrowW <= 20.6, "a bar narrower than its icon tile drops the tile and keeps its own width")
 	K.Options.Write("UnitFrames", "player.fonts.cast.size", 12)
 	settle()
 	noErrors("cast room")
