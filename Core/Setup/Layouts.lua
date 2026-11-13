@@ -359,6 +359,7 @@ local ART = {
 	hole = { 641, 320, 2023, 460 }, arm = { 556, 185, 736, 545 }, crest = { 1152, 146, 1512, 326 },
 	rail = { 262, 326 }, railBottom = { 452, 516 }, ring = { 332, 334, 608 },
 	fit = 1359, bottom = 668, floor = 21, bar2 = { 243.5, 79.5, 349.8 }, cast = 87, xp = 519.6,
+	level = { 174.6, 101.1, 34.4 },
 }
 local ART_X, ART_Y = (ART.hole[1] + ART.hole[3]) / 2, (ART.hole[2] + ART.hole[4]) / 2
 local ORBS_PARTY_Y, ORBS_TARGET_Y, ORBS_AURA_ICONS = 465, 40, 5
@@ -659,6 +660,8 @@ function Layouts.OrbsTray(width)
 	end
 	local hole, arm, crest = ART.hole, ART.arm, ART.crest
 	local inner = 2 * ART_X - arm[3]
+	local level = ART.level
+	local half = level[2] / 2
 	return {
 		hole = Box(hole[1], hole[2], hole[3], hole[4]),
 		arm = Box(arm[1], arm[2], arm[3], arm[4]),
@@ -668,6 +671,8 @@ function Layouts.OrbsTray(width)
 		ring = ART.ring[3] * s,
 		ringX = (ART_X - ART.ring[1]) * s,
 		lift = (ART_Y - ART.ring[2]) * s,
+		level = Box(ART_X - half, level[1] - half, ART_X + half, level[1] + half),
+		levelText = level[3] * s,
 	}
 end
 Layouts.STYLES = { "orbs" }
