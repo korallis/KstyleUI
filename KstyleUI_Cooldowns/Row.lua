@@ -45,7 +45,7 @@ end
 function Row:Icon(index)
 	local icon = self.icons[index]
 	if not icon then
-		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size }), self.group)
+		icon = Style.Decorate(Widgets.Slot(self.content, { size = self.cfg.size }), self.group)
 		self.icons[index] = icon
 		self:StyleIcon(icon)
 	end
@@ -97,6 +97,7 @@ function Row:SetCount(count)
 	for i = count + 1, #self.icons do
 		local icon = self.icons[i]
 		icon.entry = nil
+		icon.onCooldown, icon.coolingEntry, icon.coolingTrusted = nil, nil, false
 		Style.SetReady(icon, false)
 		Style.SetProc(icon, false)
 		icon:Hide()

@@ -340,6 +340,16 @@ function IconButton:Restyle()
 	self:Paint()
 end
 
+function IconButton:FlashReady()
+	if not self:IsVisible() or Motion.Level() == "off" then
+		return
+	end
+	self.readyWash:SetAlpha(0)
+	self.readyWash:Show()
+	self.readyFlash:Stop()
+	self.readyFlash:Play()
+end
+
 local function WatchCooldown(button, cooldown)
 	local function started()
 		button.cooling = true
@@ -351,11 +361,8 @@ local function WatchCooldown(button, cooldown)
 	end
 	local function done()
 		ended()
-		if button.realCooldown and button:IsVisible() and Motion.Level() ~= "off" then
-			button.ready:SetAlpha(0)
-			button.ready:Show()
-			button.readyFlash:Stop()
-			button.readyFlash:Play()
+		if button.realCooldown then
+			button:FlashReady()
 		end
 	end
 	cooldown:HookScript("OnShow", started)
@@ -401,7 +408,7 @@ function Widgets.IconButton(parent, opts)
 	flash:SetScript("OnFinished", function()
 		ready:Hide()
 	end)
-	button.ready, button.readyFlash, button.readyFade = ready, flash, fade
+	button.readyWash, button.readyFlash, button.readyFade = ready, flash, fade
 	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA, core = HOVER_WASH })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(icon)

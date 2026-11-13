@@ -17,9 +17,9 @@ local function appearance()
 	assert(c[1] == "BOTTOMRIGHT" and c[3] == "BOTTOMRIGHT", "charges remain in the bottom right")
 	assert(icon.chrome.shadowOn == false and icon.procGlow == nil, "there is no socket shadow or proc halo")
 	assert(not icon.readyGlow:IsPlaying(), "ready spells have no default halo")
-	local er, eg, eb, ea = K.Widgets.Rgba("edgeInner")
+	local er, eg, eb, ea = K.Widgets.Rgba("slotRim")
 	local edge = icon.chrome.edge
-	assert(W.Near(edge[1], er) and W.Near(edge[2], eg) and W.Near(edge[3], eb) and W.Near(edge[4], ea), "quiet mode overrides the class-coloured inner edge")
+	assert(W.Near(edge[1], er) and W.Near(edge[2], eg) and W.Near(edge[3], eb) and W.Near(edge[4], ea), "quiet mode rests on the slot's lit rim, not the class colour")
 end
 appearance()
 ns.Style.SetProc(icon, true)

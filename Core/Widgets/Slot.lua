@@ -77,16 +77,60 @@ local function Layer(button, target)
 	return frame
 end
 
+local HALO = {
+	{ "TOPLEFT", "TOPLEFT", -1, 1, 0, 0.5, 0, 0.5 },
+	{ "TOP", "TOP", 0, 1, 0.5, 0.5, 0, 0.5 },
+	{ "TOPRIGHT", "TOPRIGHT", 1, 1, 0.5, 1, 0, 0.5 },
+	{ "LEFT", "LEFT", -1, 0, 0, 0.5, 0.5, 0.5 },
+	{ "RIGHT", "RIGHT", 1, 0, 0.5, 1, 0.5, 0.5 },
+	{ "BOTTOMLEFT", "BOTTOMLEFT", -1, -1, 0, 0.5, 0.5, 1 },
+	{ "BOTTOM", "BOTTOM", 0, -1, 0.5, 0.5, 0.5, 1 },
+	{ "BOTTOMRIGHT", "BOTTOMRIGHT", 1, -1, 0.5, 1, 0.5, 1 },
+}
+
 local function Halo(button, layer)
 	local holder = CreateFrame("Frame", nil, layer)
-	holder:SetAllPoints(button)
-	local slice = Widgets.NineSlice(holder, "shadow", "BACKGROUND", 0)
-	slice.holder = holder
-	for _, piece in ipairs(slice) do
-		piece:SetBlendMode("ADD")
+	local halo = { holder = holder, button = button }
+	for i, spec in ipairs(HALO) do
+		local t = holder:CreateTexture(nil, "BACKGROUND")
+		t:SetTexture((Tokens.Texture("glow")))
+		t:SetTexCoord(spec[5], spec[6], spec[7], spec[8])
+		t:SetBlendMode("ADD")
+		halo[i] = t
 	end
-	slice[5]:Hide()
-	return slice
+	return halo
+end
+
+local function PlaceHalo(halo, spread)
+	local holder = halo.holder
+	local inset = 3 * Widgets.Border(halo.button)
+	holder:ClearAllPoints()
+	holder:SetPoint("TOPLEFT", halo.button, "TOPLEFT", inset, -inset)
+	holder:SetPoint("BOTTOMRIGHT", halo.button, "BOTTOMRIGHT", -inset, inset)
+	spread = spread + inset
+	for i, spec in ipairs(HALO) do
+		local t = halo[i]
+		t:ClearAllPoints()
+		local dx, dy = spec[3], spec[4]
+		if dx ~= 0 and dy ~= 0 then
+			t:SetPoint(spec[1], holder, spec[2], dx * spread, dy * spread)
+			t:SetSize(spread, spread)
+		elseif dx == 0 then
+			t:SetPoint(dy > 0 and "BOTTOMLEFT" or "TOPLEFT", holder, dy > 0 and "TOPLEFT" or "BOTTOMLEFT")
+			t:SetPoint(dy > 0 and "BOTTOMRIGHT" or "TOPRIGHT", holder, dy > 0 and "TOPRIGHT" or "BOTTOMRIGHT")
+			t:SetHeight(spread)
+		else
+			t:SetPoint(dx > 0 and "TOPLEFT" or "TOPRIGHT", holder, dx > 0 and "TOPRIGHT" or "TOPLEFT")
+			t:SetPoint(dx > 0 and "BOTTOMLEFT" or "BOTTOMRIGHT", holder, dx > 0 and "BOTTOMRIGHT" or "BOTTOMLEFT")
+			t:SetWidth(spread)
+		end
+	end
+end
+
+local function ColorHalo(halo, r, g, b, a)
+	for i = 1, #HALO do
+		halo[i]:SetVertexColor(r, g, b, a)
+	end
 end
 
 local function Fade(group, from, to, duration, smoothing, delay)
@@ -199,8 +243,8 @@ local function PlaceLayers(self)
 	bottom:SetHeight(Widgets.Snap(self, size * BEVEL_BOTTOM))
 	PlaceRing(self.hoverRim, self, -line, line)
 	PlaceRing(self.pressRim, self, line, line)
-	Widgets.LayoutSlice(self.pressHalo, self.pressHalo.holder, PRESS_SPREAD, PRESS_SPREAD)
-	Widgets.LayoutSlice(self.procHalo, self.procHalo.holder, PROC_SPREAD, PROC_SPREAD)
+	PlaceHalo(self.pressHalo, Widgets.Snap(self, PRESS_SPREAD))
+	PlaceHalo(self.procHalo, Widgets.Snap(self, PROC_SPREAD))
 	local inset = Widgets.Snap(self, TEXT_INSET)
 	self.hotkey:ClearAllPoints()
 	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset)
@@ -228,10 +272,10 @@ local function PaintLayers(self)
 	self.well:SetVertexColor(Tokens.Color("slotWell"))
 	ColorRing(self.hoverRim, Widgets.Rgba("textHover", HOVER_RIM))
 	ColorRing(self.pressRim, Tokens.Color("slotPress"))
-	Widgets.ColorSlice(self.pressHalo, Widgets.Rgba("slotPress", PRESS_HALO))
+	ColorHalo(self.pressHalo, Widgets.Rgba("slotPress", PRESS_HALO))
 	self.lumenGlow.texture:SetVertexColor(Widgets.Rgba("giltLit", PROC_GLOW))
-	Widgets.ColorSlice(self.procHalo, Widgets.Rgba("giltLit", PROC_HALO))
-	self.ready:SetColorTexture(Tokens.Color("giltLit"))
+	ColorHalo(self.procHalo, Widgets.Rgba("giltLit", PROC_HALO))
+	self.readyWash:SetColorTexture(Tokens.Color("giltLit"))
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
 	end

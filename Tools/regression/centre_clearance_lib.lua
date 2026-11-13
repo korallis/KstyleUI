@@ -1,4 +1,4 @@
--- centre_clearance_lib.lua: source-drawn centre assets after Setup.Apply, with all lanes occupied, checked separately from their mostly empty Layout holders.
+-- centre_clearance_lib.lua: source-drawn centre assets after Setup.Apply, with all lanes occupied, checked separately from their mostly empty Layout holders; additive Glow.png light (a slot's proc and press halos) is glow, not ink, and is not a clearance obstacle.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
 local M = {}
@@ -43,7 +43,8 @@ local function Collect(scene, roots, groups, painted, scale, label)
 	end
 	for _, item in ipairs(scene.items) do
 		local r = item.rect
-		if r[3] > 0 and r[4] > 0 then
+		local light = item.blend == "ADD" and item.file and item.file:find("Glow.png", 1, true)
+		if r[3] > 0 and r[4] > 0 and not light then
 			local object, group = item.object
 			while object do
 				painted[object] = true
