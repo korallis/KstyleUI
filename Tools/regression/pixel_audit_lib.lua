@@ -285,10 +285,10 @@ local function Progress(anim, elapsed)
 	return math.min(1, (elapsed - delay) / duration)
 end
 
--- Moving(group, now) -> whether a played, non-looping group is translating its frame at the clock: one of its
+-- Translating(group, now) -> whether a played, non-looping group is translating its frame at the clock: one of its
 -- Translations is strictly part way, or every animation has ended and the group's OnFinished takes the frame away.
 -- A finished group without an OnFinished stays at its end offset until Stop, as the game and the renderer leave it.
-local function Moving(group, now)
+local function Translating(group, now)
 	local started = group._playedAt
 	local looping = stored(group, "Looping")
 	if type(started) ~= "number" or looping == "REPEAT" or looping == "BOUNCE" then
@@ -317,7 +317,7 @@ local function InFlight(object, now)
 	local node = object
 	while node do
 		for _, group in ipairs(node._groups or {}) do
-			if Moving(group, now) then
+			if Translating(group, now) then
 				return true
 			end
 		end
