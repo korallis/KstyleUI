@@ -39,7 +39,7 @@ end
 -- whole pixels the row's own context snapped them to.
 local function size(container, row, n)
 	local ctx, group = row.ctx, row.ctx.group
-	local shown = math.min(n, Model.Capacity(group, 0) - (row.chip and 1 or 0))
+	local shown = math.min(n, Model.Capacity(group, 0))
 	local columns = math.min(shown, group.columns)
 	local rows = math.ceil(shown / group.columns)
 	container:SetSize(columns > 0 and columns * ctx.width + (columns - 1) * ctx.spacing or 0, rows * ctx.height + math.max(0, rows - 1) * ctx.rowSpacing)
@@ -111,12 +111,11 @@ for _, name in ipairs(Layouts.Names()) do
 			check(not overlap(lb, other), string.format("%s: the buff rows (%.0f,%.0f-%.0f,%.0f) overlap %s (%.0f,%.0f-%.0f,%.0f)", label, lb.left, lb.bottom, lb.right, lb.top, key, other.left, other.bottom, other.right, other.top))
 			check(not overlap(ld, other), string.format("%s: the debuff rows (%.0f,%.0f-%.0f,%.0f) overlap %s", label, ld.left, ld.bottom, ld.right, ld.top, key))
 		end
-		local over = math.max(0, n - (capacity - 1))
+		local over = math.max(0, n - capacity)
 		if over > 0 then
-			check(count(desc.chip) == "+" .. over, label .. ": the last cell counts the rest: " .. tostring(count(desc.chip)))
+			check(count(desc.chip) == "+" .. (over + 1), label .. ": the last cell counts the rest: " .. tostring(count(desc.chip)))
 			local window = rect(desc.chip.window)
-			check(near(window.left, bh.left) and near(window.bottom, bh.bottom + desc.ctx.foot) and near(window.top, bh.top), label .. ": the count is the free cell's tile, the row's far end, level with the row")
-			check(window.right <= brows.left + 0.5, label .. ": and no shown aura sits under it")
+			check(near(window.right, bh.right) and near(window.bottom, bh.bottom + desc.ctx.foot) and near(window.top, bh.top), label .. ": the count is the last cell's tile, the row's right end, level with the row")
 		else
 			check(count(desc.chip) == nil, label .. ": no count when every buff shows: " .. tostring(count(desc.chip)))
 		end
@@ -151,9 +150,7 @@ check(count(desc.chip) == "+31", "in the pull the last cell counts the thirty pa
 state(20)
 check(count(desc.chip) == "+11", "buffs fall away in the pull: +11, never the +31 from before: " .. tostring(count(desc.chip)))
 state(10)
-check(count(desc.chip) == "+1", "ten buffs: the tenth is counted on the cell the row keeps free: " .. tostring(count(desc.chip)))
-state(9)
-check(count(desc.chip) == nil, "and the count goes when the row's tiles hold them all")
+check(count(desc.chip) == nil, "and the count goes when the row holds them all")
 state(8, 30)
 check(count(ddesc.chip) == "+21", "thirty debuffs: twenty-one on the last cell: " .. tostring(count(ddesc.chip)))
 env.SetCombat(false)

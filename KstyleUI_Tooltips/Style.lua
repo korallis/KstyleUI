@@ -421,7 +421,7 @@ function Style.PlaceGem(gem, title, role)
 	local side = Widgets.Snap(gem:GetParent(), GEM_SIZE)
 	gem:SetSize(side, side)
 	gem:ClearAllPoints()
-	Widgets.Point(gem, "CENTER", title, "TOPLEFT", -(GEM_GAP + GEM_SIZE / 2), -size / 2)
+	gem:SetPoint("TOPLEFT", title, "TOPLEFT", -Widgets.Snap(gem:GetParent(), GEM_GAP) - side, -Widgets.Snap(gem:GetParent(), (size - GEM_SIZE) / 2))
 	Style.PaintGem(gem)
 	gem:Show()
 	return true

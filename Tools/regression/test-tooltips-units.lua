@@ -340,7 +340,7 @@ do
 	local room = K.Widgets.Snap(glass, ns.Style.GEM_ROOM)
 	assert(Near(TEXT_INSET + left, x + icon:GetWidth() + 11 + room), "the text column starts 11 units right of the icon, as in the design, plus the heading diamond's room (KSTY-60 item 17)")
 	local gx = select(4, glass.gem:GetPoint(1))
-	assert(glass.gem:IsShown() and Near(TEXT_INSET + left + gx - glass.gem:GetWidth() / 2, x + icon:GetWidth() + 11, 0.6), "the diamond stands where the title used to start, 11 units right of the icon")
+	assert(glass.gem:IsShown() and Near(TEXT_INSET + left + gx, x + icon:GetWidth() + 11, 0.6), "the diamond stands where the title used to start, 11 units right of the icon")
 	tip:ClearPadding()
 	assert(select(3, tip:GetPadding()) == left, "GameTooltip_OnShow clears the padding; the icon's column comes back")
 	tip:SetPadding(16, 0)
@@ -373,7 +373,7 @@ do
 	assert(math.abs(select(3, tip:GetPadding()) - room) < 1e-6, "and gives Blizzard's lines their place back, all but the heading diamond's room")
 	local gem = glass.gem
 	local gp, grel, grelp, unitX = gem:GetPoint(1)
-	assert(gem:IsShown() and gp == "CENTER" and grel == tip:GetLeftLine(1) and grelp == "TOPLEFT" and unitX < 0, "the unit's name is a card heading too: the diamond before it (KSTY-60 item 17)")
+	assert(gem:IsShown() and gp == "TOPLEFT" and grel == tip:GetLeftLine(1) and grelp == "TOPLEFT" and unitX < 0, "the unit's name is a card heading too: the diamond before it (KSTY-60 item 17)")
 	assert(math.abs(gem:GetWidth() - K.Widgets.Snap(glass, 8)) < 1e-6, "the card heading's 8-unit diamond")
 	assert(tip:GetLeftLine(1):GetText() == "Valerin", "unit names keep their case; the heading face carries the capitals")
 

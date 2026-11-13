@@ -108,7 +108,7 @@ local point, rel, relPoint = helpful:GetPoint(1)
 check(point == "TOPRIGHT" and rel == desc.host and relPoint == "TOPRIGHT", "the buff container hangs from the host's top right corner, got " .. tostring(point) .. " on " .. tostring(rel == desc.host))
 check(helpful._flow.anchor == "TOPLEFT" and helpful._flow.horizontal == 1 and helpful._flow.vertical == -1, "the flow lists left to right, then down")
 check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14 and bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "the engine lays 27.5 x 41.5 elements on one 31-unit pitch of whole pixels (so the row never outgrows the layout's reserve), in rows 4 apart")
-check(bg.maxFrameCount == 9 and dg.maxFrameCount == 9, "nine buffs and nine debuffs at most: the tenth cell is the +N tile's (KSTY-60 item 26)")
+check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "ten buffs and ten debuffs at most")
 check(#harmful._order == 1 and harmful._groups.debuffs and harmful._groups.debuffs.candidateFilters == nil, "the debuff container runs one group with no dispel split")
 
 -- A tile: the icon, inset one border inside a square rim plate in the dark edge colour (under the engine's dispel
@@ -164,10 +164,10 @@ check(#dentry.rim == 1 and dentry.rim[1]:IsShown() and dentry.dispel and #dentry
 check(sameRGB(dentry.rim[1], er, eg, eb), "its own rim is the same dark edge")
 check(#dg.frames[1]._aura.dispel == 1 and dg.frames[1]._aura.dispel[1].texture == dentry.dispel[1], "the dispel plate is the engine's")
 
--- The "+N" tile: one counting pair per row, on the row's own filter and cap, its window the tile of the cell the row
--- leaves free, exactly the size of the other tiles (KSTY-60 item 26): the engine shows one aura fewer than the row has
--- cells, and the container hangs from the element's right, so a single row's free cell is its left end (a taller
--- block's is the last cell). No aura and no timer sits under the count. No "+00" is reserved anywhere.
+-- The "+N" tile: one counting pair per row, on the row's own filter and cap, its window the tile of the last cell (the
+-- bottom right for a row listed left to right, hung from the right), exactly the size of the other tiles and level
+-- with them (KSTY-60 item 26: it covered the timer lane too, so it stood taller than its row). The covered aura's timer
+-- stays under it like every other cell's, so a full row of ten still shows ten. No "+00" is reserved anywhere.
 local chip = desc.chip
 check(chip and #chip.pairs == 1 and chip.pairs[1].a._groups.count.filter == "HELPFUL", "the buff row counts its own filter")
 check(chip.pairs[1].a._groups.count.maxFrameCount > 10, "and can count past the row")
@@ -175,7 +175,7 @@ check(ddesc.chip and #ddesc.chip.pairs == 1 and ddesc.chip.pairs[1].a._groups.co
 local host = rect(desc.host)
 local window = rect(chip.window)
 local tile = K.Scale.Snap(27.5)
-check(near(window.left, host.left) and near(window.bottom, host.bottom + 14) and near(window.right - window.left, tile) and near(window.top - window.bottom, tile), "the count window is the free cell's tile: 27.5 square (whole pixels at this size), over the timer lane at the row's far end, the one cell the right-hung row of nine leaves free")
+check(near(window.right, host.right) and near(window.bottom, host.bottom + 14) and near(window.right - window.left, tile) and near(window.top - window.bottom, tile), "the count window is the last cell's tile: 27.5 square (whole pixels at this size), over the timer lane at the host's bottom right corner")
 check(near(window.top - window.bottom, entry.skin:GetHeight()) and near(window.top, host.top), "the same size as an aura tile, level with the row's tiles")
 for _, object in ipairs(A.Descendants(desc.host)) do
 	if object.GetObjectType and object:GetObjectType() == "FontString" and object:IsShown() then
@@ -189,29 +189,25 @@ for _, n in ipairs({ 0, 2, 8 }) do
 	A.Ghosts(chip, { n })
 	check(count(chip) == nil, n .. " buffs fit: no count, got " .. tostring(count(chip)))
 end
-A.Ghosts(chip, { 9 })
-check(count(chip) == nil, "nine buffs fill the row's tiles beside the free cell: no count")
-A.Ghosts(chip, { 10 })
-check(count(chip) == "+1", "ten buffs: the tenth is counted in the last cell, got " .. tostring(count(chip)))
 A.Ghosts(chip, { 24 })
-check(count(chip) == "+15", "24 buffs: the last cell reads +15, the fifteen past the nine shown, got " .. tostring(count(chip)))
+check(count(chip) == "+15", "24 buffs: the last cell reads +15, the covered one and the fourteen past the row, got " .. tostring(count(chip)))
 A.Ghosts(chip, { 40 })
 check(count(chip) == "+31", "40 buffs: +31, got " .. tostring(count(chip)))
 A.Ghosts(ddesc.chip, { 12 })
 check(count(ddesc.chip) == "+3", "twelve debuffs: the last cell reads +3, got " .. tostring(count(ddesc.chip)))
-A.Ghosts(ddesc.chip, { 9 })
-check(count(ddesc.chip) == nil, "nine debuffs fit the row")
+A.Ghosts(ddesc.chip, { 10 })
+check(count(ddesc.chip) == nil, "ten debuffs fit the row")
 A.Ghosts(ddesc.chip, { 20 })
 check(count(ddesc.chip) == "+11", "twenty debuffs: +11, got " .. tostring(count(ddesc.chip)))
 -- The count follows the enchantment slots: an active weapon enchantment takes one cell.
 env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 env.FireEvent("WEAPON_ENCHANT_CHANGED")
 env.RunTimers()
-check(chip.cap == 8 and chip.pairs[1].b == nil and bg.maxFrameCount == 8, "with an enchantment the row shows eight buffs")
+check(chip.cap == 9 and chip.pairs[1].b == nil, "with an enchantment the buff cap is nine")
 env._enchants = {}
 env.FireEvent("WEAPON_ENCHANT_CHANGED")
 env.RunTimers()
-check(chip.cap == 9 and bg.maxFrameCount == 9, "and nine again without")
+check(chip.cap == 10, "and ten again without")
 
 -- Tracked buffs: the Cooldown Manager's tracked-buff category, read from C_CooldownViewer out of the secure
 -- engine, becomes the buff group's excludeSpellIDs candidate filter (base, override and linked spells), on the

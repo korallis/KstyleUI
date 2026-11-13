@@ -220,14 +220,6 @@ function Model.LastCell(growth)
 	return LAST_CELL[(Model.Growth(growth))]
 end
 
-function Model.FreeCell(group)
-	local corner = Model.LastCell(group.growth)
-	if group.rows == 1 then
-		return (corner:gsub("RIGHT", "LEFT"))
-	end
-	return corner
-end
-
 function Model.Sort(sort, reverse)
 	return SORT[sort] or SORT[defaults.buffs.sort], reverse == true and "Reverse" or "Normal"
 end

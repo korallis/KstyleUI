@@ -1,11 +1,11 @@
--- Panel.lua: the buff and debuff rows: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" tile the size of the others in the last cell, which the row leaves free for it, counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
+-- Panel.lua: the buff and debuff rows: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" tile the size of the others over the last cell, counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Overflow = Widgets.Overflow
 local Model, Button, Tracked = ns.Model, ns.Button, ns.Tracked
-local format, concat, min, max = string.format, table.concat, math.min, math.max
+local format, concat, min = string.format, table.concat, math.min
 
 local Panel = {}
 ns.Panel = Panel
@@ -337,10 +337,6 @@ local function Capacity(desc)
 	return Model.Capacity(desc.ctx.group, ActiveEnchants(desc))
 end
 
-local function Shown(desc)
-	return max(0, Capacity(desc) - (desc.chip and 1 or 0))
-end
-
 local function ChipStyle(ctx)
 	return function(text)
 		Button.StyleText(text, ctx.count)
@@ -355,12 +351,11 @@ local function ApplyChip(desc, candidates)
 		return
 	end
 	local ctx, host = desc.ctx, desc.host
-	local corner = Model.FreeCell(ctx.group)
-	local shown = Shown(desc)
+	local corner = Model.LastCell(ctx.group.growth)
 	Overflow.Apply(chip, {
-		enabled = true, after = true,
-		groups = { { filter = Model.FILTERS[desc.name], candidates = candidates, cap = shown, labels = Model.LABELS[desc.name] } },
-		cap = shown, cell = ctx.icon, width = ctx.icon,
+		enabled = true,
+		groups = { { filter = Model.FILTERS[desc.name], candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
+		cap = Capacity(desc), cell = ctx.icon, width = ctx.icon,
 		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
 		accent = function()
@@ -376,7 +371,7 @@ local function ApplyGroup(desc)
 	if method ~= nil and direction ~= nil then
 		container:SetAuraGroupSortMethod(key, method, direction)
 	end
-	container:SetAuraGroupMaxFrameCount(key, Shown(desc))
+	container:SetAuraGroupMaxFrameCount(key, Capacity(desc))
 	local candidates = Candidates(desc)
 	if type(container.SetAuraGroupCandidateFilters) == "function" then
 		container:SetAuraGroupCandidateFilters(key, candidates)
