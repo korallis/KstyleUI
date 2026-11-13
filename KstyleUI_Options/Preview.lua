@@ -480,7 +480,7 @@ function Preview.Create(parent)
 		Widgets.Point(self.holder, "TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
 		local width, height = self:GetWidth(), self.room or self:GetHeight()
 		if Known(width) and Known(height) then
-			local top = pad + Widgets.SECTION_CAP_HEIGHT + gap
+			local top = pad + self.caption:SetWrapWidth(math.max(1, width - 2 * pad)) + gap
 			local holder = math.max(1, math.min(holderHeight or math.huge, height - top - pad))
 			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), holder)
 			if self.room then

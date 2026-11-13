@@ -357,7 +357,7 @@ do
 	assert(caption:IsShown() and caption:GetText() == "Item level 60 \194\183 Rare" and Colored(caption, K.Tokens.Color("text")), "the item level and rarity as a muted caption")
 	point, relative, relativePoint = caption:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
-	assert(select(2, caption:GetFont()) == select(2, ns.Style.FontSpec("small")), "in the small line size")
+	assert(select(2, caption:GetFont()) == K.Widgets.FontSize(caption, select(2, ns.Style.FontSpec("small"))), "in the small line size, or on the text floor")
 	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1), "the gilt rule runs under the header")
 	e = glass.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("edgeInner")), "the panel keeps its faint hairline")
@@ -393,7 +393,7 @@ do
 	K.Options.Write("Tooltips", "title.size", 10)
 	K.Options.Write("Tooltips", "small.size", 20)
 	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 1, 1, 1 } })
-	assert(select(2, caption:GetFont()) <= select(2, ns.Style.FontSpec("title")), "the caption never outgrows the line the title keeps for it")
+	assert(select(2, caption:GetFont()) <= K.Widgets.FontSize(caption, select(2, ns.Style.FontSpec("title"))), "the caption never outgrows the line the title keeps for it")
 
 	K.Options.Write("Tooltips", "icon", false)
 	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 1, 1, 1 } })

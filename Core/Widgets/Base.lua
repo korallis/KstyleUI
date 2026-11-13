@@ -263,8 +263,8 @@ end
 local fitted = setmetatable({}, { __mode = "k" })
 local Previewed
 
-function Widgets.Fitted(text)
-	fitted[text] = true
+function Widgets.Fitted(text, on)
+	fitted[text] = on ~= false or nil
 	return text
 end
 

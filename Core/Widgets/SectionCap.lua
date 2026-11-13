@@ -17,6 +17,7 @@ local DEFAULT_WIDTH = 278
 local Cap = {}
 
 Widgets.CAPS_SIZE = CAP_SIZE
+Widgets.SECTION_CAP_CHROME = GEM_CENTRE + TEXT_FROM_GEM + GEM_GAP + COUNT_GAP
 
 function Widgets.CapsSize(text, plain)
 	Widgets.CapsSized[text] = plain or false
