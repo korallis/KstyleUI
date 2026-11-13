@@ -45,6 +45,8 @@ local function Refresh(frame)
 	frame.grid:SetSize(max(1, width), max(1, height))
 	frame.title.opts.width = max(1, width)
 	frame.title:Restyle()
+	frame.title:ClearAllPoints()
+	Widgets.Point(frame.title, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	for i, slot in ipairs(frame.slots) do
 		local x, y = Data.Cell(i, cols, rows, size, spacing, growth)
 		slot.button:ClearAllPoints()
@@ -58,11 +60,9 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	local title = Widgets.SectionCap(frame, { text = L["Bags"] })
-	title:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
-	frame.title = title
+	frame.title = Widgets.SectionCap(frame, { text = L["Bags"] })
 	frame.grid = CreateFrame("Frame", nil, frame)
-	frame.grid:SetPoint("TOP", title, "BOTTOM", 0, -Tokens.Size("gapLarge"))
+	frame.grid:SetPoint("TOP", frame.title, "BOTTOM", 0, -Tokens.Size("gapLarge"))
 	frame.slots = {}
 	for i = 1, PREVIEW_COLUMNS * PREVIEW_ROWS do
 		frame.slots[i] = Slot.New(frame.grid, i)

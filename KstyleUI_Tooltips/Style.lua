@@ -46,7 +46,7 @@ local PLAIN_EDGE_ALPHA = 0.35
 local COLOR_TOLERANCE = 0.02
 local GEM_SIZE, GEM_GAP = 8, 7
 Style.GEM_ROOM = GEM_SIZE + GEM_GAP
-local HEADER_INSET, HEADER_LIFT = 10, 3
+local HEADER_INSET, HEADER_HEIGHT, HEADER_GAP = 10, 19, 2
 
 local skinned = {}
 local savedFonts = {}
@@ -205,9 +205,8 @@ local function PlaceHeader(tooltip)
 	Widgets.Point(caption, "LEFT", gem, "RIGHT", GEM_GAP, 0)
 	Style.PaintGem(gem)
 	heading:ClearAllPoints()
-	heading:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
-	heading:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, Widgets.Snap(heading, HEADER_LIFT))
-	heading:SetWidth(Widgets.Snap(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0)))
+	Widgets.Size(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0), HEADER_HEIGHT)
+	heading:SetPoint("BOTTOMLEFT", tooltip, "TOPLEFT", 0, Widgets.Snap(heading, HEADER_GAP))
 	heading.chrome:Restyle()
 end
 

@@ -149,7 +149,7 @@ local function Headed(glass)
 end
 
 local function Room(glass)
-	return Headed(glass) and Style.GEM_ROOM or 0
+	return Headed(glass) and Widgets.Snap(glass, Style.GEM_ROOM) or 0
 end
 
 local function LayoutSample(glass)
@@ -272,6 +272,8 @@ end
 local function Refresh(frame)
 	frame.item.indent = (Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0) + Room(frame.item)
 	LayoutSample(frame.item)
+	frame.item:ClearAllPoints()
+	Widgets.Point(frame.item, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit.indent = Room(frame.unit)
 	frame.unit.reserve = BarReserve()
 	LayoutSample(frame.unit)
@@ -289,7 +291,6 @@ function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
 	frame.item = Sample(frame, ITEM)
-	frame.item:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)
 	frame.icon = Style.IconTile(frame.item)
 	frame.icon.texture:SetTexture(SAMPLE_ICON)
