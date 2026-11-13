@@ -158,7 +158,9 @@ local function StatRow(row, elementData)
 			Parts.AccentLine(row, { alpha = 0.5 })
 		end
 	end
-	if row.Title then
+	if row.Title and type(elementData) == "table" and elementData.isHeader then
+		Style.Title(row.Title)
+	elseif row.Title then
 		Style.Text(row.Title, "caption", "text")
 	end
 	if row.Label then
@@ -285,7 +287,7 @@ local function DetailPane(pane, checks)
 		description:SetJustifyH("LEFT")
 	end
 	if pane.StandingBar then
-		Parts.FillBar(pane.StandingBar)
+		Parts.FillBar(pane.StandingBar, { tone = Parts.StandingTone })
 	end
 	for _, key in ipairs(checks) do
 		local check = pane[key]
@@ -309,7 +311,7 @@ local function ListRow(row)
 		rows[row] = true
 		if type(content) == "table" then
 			if content.ReputationBar then
-				Parts.FillBar(content.ReputationBar)
+				Parts.FillBar(content.ReputationBar, { tone = Parts.StandingTone })
 			end
 			Parts.Wash(content.BackgroundHighlight)
 		else

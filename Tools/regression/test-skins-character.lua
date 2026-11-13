@@ -256,7 +256,7 @@ do
 	assert(FontPath(env.CharacterLevelText) == Style.Font("caption"))
 
 	assert(Alpha(p.stats.Border) == 0 and K.Skin.IsSkinned(p.stats.ScrollBar, "ScrollBar"), "the stats pane's frame art goes and its scroll bar is restyled")
-	assert(Alpha(p.header.Background) == 0 and FontPath(p.header.Title) == Style.Font("caption"), "a stat category reads as a caption")
+	assert(Alpha(p.header.Background) == 0 and FontPath(p.header.Title) == Style.Font("caps"), "a stat category reads as a caps heading, as every card heading (bible 3.2, KSTY-60 item 26)")
 	assert(Alpha(p.stat.Background) == 0 and Alpha(p.stat.Icon) == 1, "a stat row keeps its icon")
 	assert(FontPath(p.stat.Value) == Style.Font("number"), "stat values use the number font")
 	local late = p.lateStat
@@ -265,17 +265,21 @@ do
 
 	local rep = p.rep
 	assert(K.Skin.IsSkinned(rep.filterDropdown, "Backdrop") and Alpha(rep.filterDropdown.Background) == 0, "the filter dropdown wears a raised tile")
-	assert(Alpha(rep.filterDropdown.Arrow) == 1, "and keeps its arrow")
+	assert(Alpha(rep.filterDropdown.Arrow) == 0 and ns.Parts.ChevronOf(rep.filterDropdown), "ending in the Options chevron, not Blizzard's arrow (KSTY-60 item 18)")
 	assert(Alpha(p.scrollLine) == 0, "the list's scroll lines are stripped")
 	assert(Alpha(p.repHeaderArt) == 0 and Alpha(p.repHeader.StateIcon) == 1, "a header keeps its expand icon")
 	local bar = p.entry.Content.ReputationBar
 	assert(Alpha(p.entryBarArt) == 0 and Alpha(bar.Fill) == 1, "a reputation bar keeps only its fill")
 	assert(bar.Fill:GetNumMaskTextures() == 0, "the fill loses Blizzard's rounded mask")
 	assert(W.LastCall(bar.Fill, "SetTexture")[1] == Style.BarTexture(), "the fill uses the bar texture")
-	bar.Fill:SetVertexColor(0, 0, 0.1)
-	local er, eg, eb = K.Theme.Brighten(0, 0, 0.1)
-	r, g, b = bar.Fill:GetVertexColor()
-	assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "Blizzard's standing colour is lifted for the glass")
+	-- Blizzard's FACTION_BAR_COLORS (SharedColorConstants.lua:3) become the bible's state colours (3.7), lifted for
+	-- the glass: green standings are friend, yellow neutral is quest, red and orange are hostile (KSTY-60 item 26).
+	for _, case in ipairs({ { 0, 0.6, 0.1, "friend" }, { 0.9, 0.7, 0, "quest" }, { 0.75, 0.27, 0, "hostile" }, { 0.8, 0.3, 0.22, "hostile" } }) do
+		bar.Fill:SetVertexColor(case[1], case[2], case[3])
+		local er, eg, eb = K.Theme.Brighten(K.Tokens.Color(case[4]))
+		r, g, b = bar.Fill:GetVertexColor()
+		assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "a standing colour wears " .. case[4] .. ", lifted for the glass")
+	end
 	K.Options.Write("Skins", "bars.fill", "right")
 	assert(bar.Fill._points[1][1] == "RIGHT", "the fill direction setting re-anchors the fill")
 	assert(Alpha(p.washArt) == 0, "the row highlight's Blizzard art is stripped")

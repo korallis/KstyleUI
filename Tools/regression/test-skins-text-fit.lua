@@ -97,7 +97,7 @@ do
 	Inside(Rect(body, root), Rect(env.OpenMailScrollFrame, root), "the body lies inside the letter's scroll frame")
 end
 
--- Trainer: the skill bar is the kit capsule, the skill's name LEFT and the rank RIGHT, both inside the bar -----
+-- Trainer: the skill bar is the kit capsule, the skill's name LEFT inside it, the rank beside it on the right ----
 
 do
 	local env, K, ns = Open("trainer")
@@ -106,15 +106,15 @@ do
 	local parts = K.Safe.Side(bar).partBBar
 	assert(parts and parts.label, "the skill bar gets a KstyleUI label")
 	assert(parts.label:GetText() == "Polearms" and parts.label:IsShown(), "the label names the trainer's skill line, got " .. tostring(parts.label:GetText()))
-	assert(Justify(parts.label) == "LEFT" and Justify(bar.rankText) == "RIGHT", "label LEFT, rank RIGHT")
+	assert(Justify(parts.label) == "LEFT" and Justify(bar.rankText) == "LEFT", "label LEFT inside, rank LEFT-justified beside the bar")
 	assert((bar.rankText:GetFont()) == ns.Style.Font("number"), "the rank wears the number face")
 	Natural(bar.rankText)
 	Natural(parts.label)
 	local track, label, rank = Rect(bar, root), Rect(parts.label, root), Rect(bar.rankText, root)
 	Inside(label, track, "the label sits inside the bar")
-	Inside(rank, track, "the rank sits inside the bar")
+	assert(rank.left >= track.right - EPS, "the rank stands beside the bar, so no digit sits on its fill edge (KSTY-60 item 26)")
 	assert(label.right <= rank.left + EPS, "the label ends before the rank begins")
-	assert(label.left > track.left and rank.right < track.right, "both keep an inset from the bar's ends")
+	assert(label.left > track.left, "the label keeps an inset from the bar's start")
 	local ar, ag, ab = ns.Style.Accent()
 	local er, eg, eb = ns.Style.BarColor(ar, ag, ab, 1)
 	local r, g, b = bar:GetStatusBarColor()

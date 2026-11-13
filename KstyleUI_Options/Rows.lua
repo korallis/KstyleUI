@@ -22,9 +22,7 @@ local DROPDOWN_CHEVRON = 8
 local DROPDOWN_GAPS = 3
 local DROPDOWN_SAFETY = 1
 local DROPDOWN_RESERVE = DROPDOWN_GAPS * Tokens.Size("gapMedium") + DROPDOWN_CHEVRON + DROPDOWN_SAFETY
-local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL = 2, 8, 3, 20
-local PICTURE_WIDTH = (Rows.CONTROL_WIDTH - (PICTURE_COUNT - 1) * PICTURE_GAP) / PICTURE_COUNT
-local PICTURE_HEIGHT = (PICTURE_WIDTH - 2 * PICTURE_INSET) / 2 + 2 * PICTURE_INSET + PICTURE_LABEL
+local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL, PICTURE_MAX = 2, 12, 4, 24, 280
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
@@ -218,14 +216,8 @@ local function PictureCard(row, holder, i)
 	card.label = Widgets.Text(card, "body", "text")
 	card.label:SetJustifyH("CENTER")
 	card.label:SetWordWrap(false)
-	Widgets.Size(card, PICTURE_WIDTH, PICTURE_HEIGHT)
-	Widgets.Point(card, "TOPLEFT", holder, "TOPLEFT", (i - 1) * (PICTURE_WIDTH + PICTURE_GAP), 0)
-	local inset = Snap(card, PICTURE_INSET)
-	Widgets.Point(card.picture, "TOPLEFT", card, "TOPLEFT", inset, -inset)
-	Widgets.Point(card.picture, "TOPRIGHT", card, "TOPRIGHT", -inset, -inset)
-	card.picture:SetHeight(Snap(card, (PICTURE_WIDTH - 2 * PICTURE_INSET) / 2))
 	Widgets.Point(card.label, "TOPLEFT", card.picture, "BOTTOMLEFT", 0, 0)
-	Widgets.Point(card.label, "BOTTOMRIGHT", card, "BOTTOMRIGHT", -inset, 0)
+	Widgets.Point(card.label, "BOTTOMRIGHT", card, "BOTTOMRIGHT", -Snap(card, PICTURE_INSET), 0)
 	card:SetScript("OnClick", function(self)
 		Apply(row, self.value, holder)
 	end)
@@ -234,11 +226,26 @@ end
 
 function MAKERS.pictures(row)
 	local holder = CreateFrame("Frame", nil, row)
-	Widgets.Size(holder, Rows.CONTROL_WIDTH, PICTURE_HEIGHT)
 	holder.cards = {}
 	for i = 1, PICTURE_COUNT do
 		holder.cards[i] = PictureCard(row, holder, i)
 	end
+	function holder:Fit(width)
+		local cardWidth = Snap(self, min(PICTURE_MAX, (width - (PICTURE_COUNT - 1) * PICTURE_GAP) / PICTURE_COUNT))
+		local inset = Snap(self, PICTURE_INSET)
+		local picture = Snap(self, (cardWidth - 2 * inset) / 2)
+		local height = inset + picture + Snap(self, PICTURE_LABEL)
+		for i, card in ipairs(self.cards) do
+			Widgets.Size(card, cardWidth, height)
+			card:ClearAllPoints()
+			Widgets.Point(card, "TOPLEFT", self, "TOPLEFT", (i - 1) * (cardWidth + Snap(self, PICTURE_GAP)), 0)
+			card.picture:ClearAllPoints()
+			Widgets.Point(card.picture, "TOPLEFT", card, "TOPLEFT", inset, -inset)
+			card.picture:SetSize(cardWidth - 2 * inset, picture)
+		end
+		Widgets.Size(self, PICTURE_COUNT * cardWidth + (PICTURE_COUNT - 1) * Snap(self, PICTURE_GAP), height)
+	end
+	holder:Fit(Rows.CONTROL_WIDTH)
 	function holder:SetEnabled(enabled)
 		for _, card in ipairs(self.cards) do
 			card:SetEnabled(enabled)
@@ -461,7 +468,10 @@ local function PlaceText(row, item, control, width)
 	local full = width - 2 * gap
 	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
 	local column = full - reserve
-	local stacked = control ~= nil and Widgets.TextWidth(row.label, 0) > column
+	local stacked = control ~= nil and (item.kind == "pictures" or Widgets.TextWidth(row.label, 0) > column)
+	if stacked and control.Fit then
+		control:Fit(full)
+	end
 	local banded = control ~= nil and not stacked and column < Rows.MIN_TEXT_WIDTH
 	local labelWidth = stacked and full or column
 	local helpWidth = (stacked or banded) and full or column
@@ -475,7 +485,7 @@ local function PlaceText(row, item, control, width)
 	local height = Snap(row, max(Rows.HEIGHT, blockHeight + 2 * gap))
 	local top = Snap(row, (height - ((stacked or banded) and blockHeight or labelHeight + helpBlock)) / 2)
 	local labelTop = banded and top + Snap(row, (band - labelHeight) / 2) or top
-	local helpTop = (stacked or banded) and top + band + tiny or top + labelHeight + tiny
+	local helpTop = Snap(row, (stacked or banded) and top + band + tiny or top + labelHeight + tiny)
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
 	Widgets.Point(row.label, "TOPLEFT", row, "TOPLEFT", gap, -labelTop)
@@ -484,12 +494,14 @@ local function PlaceText(row, item, control, width)
 	Widgets.Point(row.help, "RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0)
 	if control then
 		control:ClearAllPoints()
-		if stacked then
+		if stacked and control.Fit then
+			Widgets.Point(control, "TOPLEFT", row, "TOPLEFT", gap, -Snap(row, top + labelHeight + tiny))
+		elseif stacked then
 			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -(top + labelHeight + tiny))
 		elseif banded then
 			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - controlHeight) / 2)))
 		else
-			Widgets.Point(control, "RIGHT", row, "TOPRIGHT", -gap, -height / 2)
+			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -Snap(row, (height - controlHeight) / 2))
 		end
 	end
 	row:EnableMouse(Truncated(row.label))

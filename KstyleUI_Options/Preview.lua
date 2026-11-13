@@ -1,4 +1,4 @@
--- Preview.lua: the live preview pane: a module's own preview builder, the kit sample for General, or a quiet placeholder.
+-- Preview.lua: the live preview pane: a module's own preview builder or the kit sample for General, in a card sized to what it draws; a page with no preview hides the pane.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,8 +11,8 @@ ns.Preview = Preview
 local SAMPLE_WIDTH = 220
 local SAMPLE_BAR = 0.7
 local SAMPLE_SLIDER = 68
-local LOGO_SIZE = 64
-local LOGO_ALPHA = 0.35
+local SNUG_MARGIN = 4
+local SCALE_SAME = 0.0001
 Preview.MAX_SCALE = 1.25
 Preview.SCALE_STEP = 0.01
 Preview.MIN_GAIN = 0.05
@@ -39,20 +39,6 @@ function Preview.Sample(parent)
 	local button = Widgets.Button(frame, { text = L["Button"], primary = true })
 	Widgets.Point(button, "TOPLEFT", slider, "BOTTOMLEFT", 0, -gap)
 	frame.bar, frame.toggle, frame.slider, frame.button = bar, toggle, slider, button
-	return frame
-end
-
-local function Placeholder(pane)
-	local frame = CreateFrame("Frame", nil, pane.holder)
-	frame:SetAllPoints(pane.holder)
-	local logo = frame:CreateTexture(nil, "ARTWORK")
-	logo:SetTexture((Tokens.Texture("logo")))
-	logo:SetSize(LOGO_SIZE, LOGO_SIZE)
-	Widgets.Point(logo, "CENTER", frame, "CENTER", 0, LOGO_SIZE / 2)
-	logo:SetAlpha(LOGO_ALPHA)
-	frame.text = Widgets.Text(frame, "body", "text")
-	Widgets.Point(frame.text, "TOP", logo, "BOTTOM", 0, -Tokens.Size("gapMedium"))
-	frame.text:SetWidth(SAMPLE_WIDTH)
 	return frame
 end
 
@@ -85,7 +71,7 @@ local function IsDecor(region)
 	return false
 end
 
-local function Extent(frame, holder)
+local function Bounds(frame)
 	local left, right, top, bottom
 	local function take(object)
 		local eff = Edge(object:GetEffectiveScale())
@@ -110,6 +96,11 @@ local function Extent(frame, holder)
 		end
 	end
 	walk(frame)
+	return left, right, top, bottom
+end
+
+local function Extent(frame, holder)
+	local left, right, top, bottom = Bounds(frame)
 	local eff = Edge(holder:GetEffectiveScale())
 	if not left or not eff or eff <= 0 then
 		return nil
@@ -316,11 +307,8 @@ local function Choose(pane, frame)
 	end
 end
 
-function RefreshCurrent(pane)
+local function Settle(pane)
 	local frame = pane.current
-	if not frame or frame == pane.placeholder then
-		return
-	end
 	local wide = frame.Choose ~= nil and Widgets.Setting("ornaments") ~= "Off" and Widgets.Setting("cardMaterial") ~= "Glass"
 	if (pane.wide or false) ~= wide then
 		pane.wide = wide
@@ -341,6 +329,101 @@ function RefreshCurrent(pane)
 	end
 end
 
+local function Span(pane, frame)
+	local _, _, top, bottom = Bounds(frame)
+	local _, _, ornamentTop, ornamentBottom = Widgets.OrnamentExtent({ [frame] = true })
+	if ornamentTop and top then
+		top, bottom = math.max(top, ornamentTop), math.min(bottom, ornamentBottom)
+	end
+	local eff = Edge(pane.holder:GetEffectiveScale())
+	local holderTop, holderBottom = Edge(pane.holder:GetTop()), Edge(pane.holder:GetBottom())
+	if not (top and eff and eff > 0 and holderTop and holderBottom) then
+		return nil
+	end
+	return top / eff, bottom / eff, holderTop, holderBottom
+end
+
+local function Snug(pane, frame)
+	local top, bottom = Span(pane, frame)
+	if not top then
+		if not pane.refit and C_Timer and C_Timer.After then
+			pane.refit = true
+			C_Timer.After(0, function()
+				if pane.current == frame and frame:IsShown() then
+					RefreshCurrent(pane)
+				end
+			end)
+		end
+		return
+	end
+	local room = pane.holder:GetHeight()
+	if not Known(room) then
+		return nil
+	end
+	local pixel = 2 * Widgets.Border(pane)
+	local function even(height)
+		return room - pixel * math.floor((room - height) / pixel + 0.001)
+	end
+	local want = even(top - bottom + 2 * SNUG_MARGIN)
+	if want >= room then
+		return nil
+	end
+	local scale, slack = frame:GetScale(), K.Scale.Pixel(1)
+	for _ = 1, 3 do
+		pane:Place(want)
+		Settle(pane)
+		local newTop, newBottom, holderTop, holderBottom = Span(pane, frame)
+		local now = frame:GetScale()
+		if not newTop or newTop > holderTop + slack then
+			break
+		end
+		if math.abs(now - scale) > SCALE_SAME then
+			want = even(want * scale / now + pixel)
+		elseif newBottom >= holderBottom - slack then
+			return want
+		else
+			want = even(want + holderBottom - newBottom + SNUG_MARGIN)
+		end
+		if want >= room then
+			break
+		end
+	end
+	pane:Place()
+	Settle(pane)
+end
+
+local function Holds(pane, frame, height)
+	local top, bottom, holderTop, holderBottom = Span(pane, frame)
+	if not top then
+		return false
+	end
+	if not height then
+		return Widgets.Snap(pane, top - bottom + 2 * SNUG_MARGIN) >= pane.holder:GetHeight()
+	end
+	local slack = K.Scale.Pixel(1)
+	return top <= holderTop + slack and bottom >= holderBottom - slack and bottom - holderBottom <= SNUG_MARGIN + 2 * Widgets.Border(pane) + slack
+end
+
+function RefreshCurrent(pane)
+	local frame = pane.current
+	if not frame then
+		return
+	end
+	local held = pane.held[frame]
+	local again = held and held.room == pane.room and held.wide == pane.wide
+	pane:Place(again and held.height or nil)
+	Settle(pane)
+	if again and math.abs(frame:GetScale() - held.scale) <= SCALE_SAME and Holds(pane, frame, held.height) then
+		return
+	end
+	if again and held.height then
+		pane:Place()
+		Settle(pane)
+	end
+	local height = Snug(pane, frame)
+	pane.held[frame] = { room = pane.room, wide = pane.wide, height = height, scale = frame:GetScale() }
+end
+
 function Preview.Show(pane, page)
 	local frame
 	if page then
@@ -354,24 +437,20 @@ function Preview.Show(pane, page)
 			end
 		end
 	end
-	if not frame then
-		frame = pane.placeholder
-		local text = page and page.id == "Elements" and L["Press Layout Mode to drag and resize elements on screen."] or L["This page has no preview."]
-		Widgets.SetText(frame.text, text)
-	end
 	for _, other in pairs(pane.built) do
 		if other and other ~= frame then
 			other:Hide()
 		end
 	end
-	if frame ~= pane.placeholder then
-		pane.placeholder:Hide()
-	end
-	frame:Show()
 	pane.current = frame
 	pane.module = page and page.module
 	pane.refit = nil
-	RefreshCurrent(pane)
+	pane:SetShown(frame ~= nil)
+	if frame then
+		frame:Show()
+		RefreshCurrent(pane)
+	end
+	return frame ~= nil
 end
 
 function Preview.Refresh(pane, module)
@@ -386,10 +465,10 @@ function Preview.Create(parent)
 	pane.holder = CreateFrame("Frame", nil, pane)
 	pane.holder:SetClipsChildren(true)
 	pane.built = {}
-	pane.placeholder = Placeholder(pane)
+	pane.held = {}
 	pane.ruler = Widgets.Text(pane, "body", "text")
 	pane.ruler:Hide()
-	pane.Place = function(self)
+	pane.Place = function(self, holderHeight)
 		local pad = Widgets.WindowInset(self)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		local side = self.wide and pad or 0
@@ -398,14 +477,23 @@ function Preview.Create(parent)
 		Widgets.Point(self.caption, "TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
 		self.holder:ClearAllPoints()
 		Widgets.Point(self.holder, "TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
-		local width, height = self:GetWidth(), self:GetHeight()
+		local width, height = self:GetWidth(), self.room or self:GetHeight()
 		if Known(width) and Known(height) then
 			local top = pad + Widgets.SECTION_CAP_HEIGHT + gap
-			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), math.max(1, height - top - pad))
+			local holder = math.max(1, math.min(holderHeight or math.huge, height - top - pad))
+			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), holder)
+			if self.room then
+				Widgets.Size(self, width, top + holder + pad)
+			end
 			return true
 		end
 		Widgets.Point(self.holder, "BOTTOMRIGHT", self, "BOTTOMRIGHT", -(pad - side), pad)
 		return false
+	end
+	pane.SetRoom = function(self, width, height)
+		self.room = height
+		Widgets.Size(self, width, height)
+		self:Layout()
 	end
 	pane.Layout = function(self)
 		if self:Place() then
