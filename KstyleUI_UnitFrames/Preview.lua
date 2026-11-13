@@ -396,7 +396,7 @@ local function Fit(frame, holder, kind, width, height)
 	end
 	holder:SetScale(scale)
 	holder:ClearAllPoints()
-	holder:SetPoint("CENTER", frame, "CENTER", (width - l - r) / 2 + (rl - rr) / 2 / scale, (t + b - height) / 2 + (rb - rt) / 2 / scale)
+	K.Widgets.Point(holder, "CENTER", frame, "CENTER", (width - l - r) / 2 + (rl - rr) / 2 / scale, (t + b - height) / 2 + (rb - rt) / 2 / scale)
 end
 
 local function Refresh(frame)
@@ -424,6 +424,9 @@ local function Refresh(frame)
 	PaintIndicators(view, view.s, SAMPLES[kind])
 	PaintCast(frame, view, kind, height)
 	frame.auraCount = PaintAuras(frame, view, kind)
+	Fit(frame, holder, kind, width, height)
+	Style.Layout(view, view.s, width, height)
+	PaintCast(frame, view, kind, height)
 	Fit(frame, holder, kind, width, height)
 	frame.kind = kind
 end

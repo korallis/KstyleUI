@@ -72,12 +72,53 @@ local function Glyphs(object)
 	return x, y
 end
 
+-- Moving(object) -> x, y: whether an axis follows a status bar fill's moving end. A region whose every point is anchored
+-- to that end of a fill, or to a region that is, moves with the value as the fill's own end does (a spark at the end of
+-- a bar), so that axis is the engine's and is not judged; the other axis still is.
+local function MovingSide(bar)
+	local reverse = stored(bar, "ReverseFill") == true
+	if stored(bar, "Orientation") == "VERTICAL" then
+		return reverse and "BOTTOM" or "TOP", "y"
+	end
+	return reverse and "LEFT" or "RIGHT", "x"
+end
+
+local function Moving(object, depth)
+	local points = object._points or {}
+	if #points == 0 or (depth or 0) > 4 then
+		return false, false
+	end
+	local axis
+	for _, pack in ipairs(points) do
+		local relative = Relative(object, pack)
+		local own
+		if relative and relative._barOwner then
+			local side, along = MovingSide(relative._barOwner)
+			local at = type(pack[3]) == "string" and pack[3] or pack[1]
+			own = at:find(side, 1, true) and along or nil
+		elseif relative and relative ~= object._parent then
+			local x, y = Moving(relative, (depth or 0) + 1)
+			own = x and "x" or y and "y" or nil
+		end
+		if not own or (axis and axis ~= own) then
+			return false, false
+		end
+		axis = own
+	end
+	return axis == "x", axis == "y"
+end
+Audit.Moving = Moving
+
 -- Edges(item, px) -> the list of { what, value, axis } in physical pixels that must be whole for this item.
 local function Edges(item, px)
 	local r, object = item.rect, item.object
 	local left, top, width, height = r[1] * px, r[2] * px, r[3] * px, r[4] * px
 	local right, bottom = left + width, top + height
 	local glyphX, glyphY = Glyphs(object)
+	if item.kind ~= "text" then
+		local movingX, movingY = Moving(object)
+		glyphX, glyphY = glyphX or movingX, glyphY or movingY
+	end
 	local out = {}
 	local function add(what, value, axis)
 		if not (axis == "x" and glyphX or axis == "y" and glyphY) then
@@ -118,6 +159,7 @@ local function Edges(item, px)
 	end
 	return out
 end
+Audit.Edges = Edges
 
 -- Host(object) -> the region itself when a scene or fake placed it, or else the nearest frame holding it that KstyleUI
 -- does not place: a Blizzard window, another addon's frame, or one of our frames a scene or fake placed. nil when
