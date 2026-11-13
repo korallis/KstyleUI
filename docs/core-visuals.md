@@ -196,6 +196,7 @@ The accent resolves on first use without firing anything, and again at `PLAYER_L
 | `Aspect() -> class` | The layout class: `16:9`, `21:9` or `32:9`, the shape of the root itself (see below). |
 | `AspectClass(width, height) -> class` | The class of any shape: `21:9` from a width-to-height ratio of `ASPECT_FROM["21:9"]` (2.05), `32:9` from 2.9, else `16:9`. |
 | `Arrangement() -> arrangement` | The `Layout.arrangement` setting, `centred` or `spread`. |
+| `Band() -> units` | Under Spread, the inset in root units of the centred band the HUD width would give; 0 under Centred or on a screen that fits it. The party, raid and boss frames keep to it (`Setup.Layouts.Band`). |
 | `Pixel(n) -> units` | `n` whole physical pixels in root units. |
 | `Border() -> units` | The border line: exactly one physical pixel at every screen and size. |
 | `Snap(units) -> units` | The nearest whole physical pixel. |
@@ -216,7 +217,7 @@ Lee, 2026-11-13: "we should have a seperate profile for the ultra wide resolutio
 | 2560x1080, 3440x1440 | `21:9`, the screen | `21:9` |
 | 3840x1080, 5120x1440 | `21:9`, the centred column | `32:9`, the screen |
 
-A HUD width of 16:9 makes the class `16:9` on any wider screen under Centred. Positions anchor to the root, so Spread moves every element anchored to a side out to its margin from the screen edge and leaves the centre cluster, anchored to the centre, where it was. `Setup.Layouts.PLACES` holds a class's own places; Layout applies them to elements at their defaults and re-resolves on a class change (Core/Layout/README.md). The class also chooses the places `ScaleLimit` checks. `test-layout-ultrawide.lua` covers the classes, the switch, combat, the places and migration 30.
+A HUD width of 16:9 makes the class `16:9` on any wider screen under Centred. Positions anchor to the root, so Spread moves every rail element anchored to a side out to its margin from the screen edge and leaves the centre cluster, anchored to the centre, where it was; the party, raid and boss frames keep to the band (below). `Setup.Layouts.PLACES` holds a class's own places; Layout applies them to elements at their defaults and re-resolves on a class change (Core/Layout/README.md). The class also chooses the places `ScaleLimit` checks. Under Spread, `Band() -> units` is the inset, in root units, that the centred band would have had (0 under Centred, or when the screen fits the HUD width); the party, raid and boss frames keep to it at their defaults, so on a 32:9 screen only the rails go to the edges (KSTY-60 item 6). `test-layout-ultrawide.lua` covers the classes, the switch, combat, the places, the band (including a HUD width change under Spread) and migration 30; `test-store-placement.lua` covers migration 31.
 
 ### The pixel-perfect size
 

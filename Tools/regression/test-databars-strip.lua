@@ -834,8 +834,9 @@ do
 	noErrors(env, K)
 end
 
--- The separator's blank is 4/21 of the font, snapped to the panel's pixel and never under one pixel.
--- A fixed zero gap (staging) fails this. On the picture's screen the snapped gap is 4 px.
+-- The separator's blank is a third of the font, snapped to the panel's pixel and never under one pixel, and it is
+-- the same on both sides of every dot, as the KSTY-44 mock-up spaces "120 fps · 17 ms". Staging's 4/21 snap took a
+-- pixel off each side and gave one back before a 1, so "162 fps· 15 ms" touched on the left (KSTY-60 item 28).
 local screens = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
 	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
@@ -851,33 +852,31 @@ for _, screen in ipairs(screens) do
 	local _, size = dot:GetFont()
 	local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(frame)
 	local gap = KS.Widgets.DotGap(size, step, nsS.Strip.DOT_GAP_EM)
-	local dx = select(4, dot:GetPoint(1))
 	local label = screen[1] .. "x" .. screen[2]
 	local gapPx = gap / step
 	local wanted = nsS.Strip.DOT_GAP_EM * size / step
-	assert(nsS.Strip.DOT_GAP_EM == 4 / 21, "the readout's share is 4 px against the 21 px em")
-	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
+	assert(nsS.Strip.DOT_GAP_EM == 1 / 3, "the readout's blank is a third of its em")
+	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the mock-up's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
 	assert(gapPx + 1e-6 >= 1, label .. ": at least one pixel")
-	assert(dx < -(gap - 1e-6), label .. ": the dot is set in from the item by the gap, got " .. tostring(dx))
-	if screen[1] == 3456 and screen[2] == 2234 then
-		assert(math.abs(gapPx - 4) < 0.05, label .. ": the picture's screen still has 4 px, got " .. tostring(gapPx))
-		local function inset(marker)
-			local advance = marker:GetUnboundedStringWidth()
-			local offset = select(4, marker:GetPoint(1))
-			return (-offset - advance / 2) / step
-		end
-		-- A following tabular 1 paints on the first pixel of its advance, so that side keeps the
-		-- full snap. Every other side sits one pixel under it, which is what puts fps on the picture.
-		local game = envS._game
-		game.latencyHome = 15
-		game.money = 2616
-		nsS.Strip.Refresh()
-		eq(item(nsS, "latency").value:GetText(), "15", "the picture's latency")
-		eq(item(nsS, "gold").value:GetText(), "26s 16c", "the picture's gold")
-		local latencyInset = inset(item(nsS, "latency").dot)
-		local goldInset = inset(item(nsS, "gold").dot)
-		assert(math.abs(latencyInset - 4) < 0.05, label .. ": the 1 keeps 4 px, got " .. tostring(latencyInset))
-		assert(math.abs(goldInset - 3) < 0.05, label .. ": a following 2 sits 3 px off, got " .. tostring(goldInset))
+	local game = envS._game
+	game.latencyHome = 15
+	game.money = 2616
+	nsS.Strip.Refresh()
+	eq(item(nsS, "latency").value:GetText(), "15", "the mock-up's latency, a value that starts with a 1")
+	local function right(id)
+		return select(4, item(nsS, id).button:GetPoint(1))
+	end
+	local function left(id)
+		return right(id) - item(nsS, id).button:GetWidth()
+	end
+	for _, pair in ipairs({ { "fps", "latency" }, { "latency", "gold" } }) do
+		local marker = item(nsS, pair[2]).dot
+		local advance = marker:GetUnboundedStringWidth()
+		local centre = left(pair[2]) + select(4, marker:GetPoint(1))
+		local before = (centre - advance / 2 - right(pair[1])) / step
+		local after = (left(pair[2]) - centre - advance / 2) / step
+		assert(math.abs(after - gapPx) < 0.05, label .. ": the dot before " .. pair[2] .. " stands the gap off it, got " .. tostring(after))
+		assert(math.abs(before - after) <= 0.5 + 1e-6, label .. ": and the same gap, to the half pixel the snapped advance leaves, off " .. pair[1] .. ", got " .. tostring(before) .. " and " .. tostring(after))
 	end
 	noErrors(envS, KS)
 end

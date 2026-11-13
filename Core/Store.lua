@@ -802,6 +802,22 @@ Store.migrations[30] = function(data)
 	end
 end
 
+Store.migrations[31] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local moves = layouts and type(layouts.PlaceMoves) == "function" and layouts.PlaceMoves()
+	for _, layout in pairs(moves and type(data.layouts) == "table" and data.layouts or {}) do
+		for key in pairs(type(layout) == "table" and moves or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				railEntry(entry, key, nil, moves)
+				if next(entry) == nil then
+					layout[key] = nil
+				end
+			end
+		end
+	end
+end
+
 local CAST_HEIGHT_V30 = { ["unitframes.castbar.target"] = 24 }
 Store.migrations[32] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts

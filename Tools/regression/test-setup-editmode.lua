@@ -256,6 +256,16 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		hits = Everything(K, name, barBox)
 		assert(#hits == 0, string.format("%s: the bars (%.1f,%.1f-%.1f,%.1f) touch %s", where, barBox[1], barBox[2], barBox[3], barBox[4], table.concat(hits, ", ")))
 		assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
+		-- KSTY-60 item 28: the bars once ended two units over the utility row and hung over its right end. A bar column
+		-- over a cooldown row it shares any width with stands at least a cluster gap above it.
+		local rw, rh = K.Layout.RootSize()
+		for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
+			local w, h = K.Setup.Layouts.Footprint(name, key)
+			local l, _, r, t = K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
+			if barBox[1] < r and l < barBox[3] and barBox[2] >= t - 0.5 then
+				assert(barBox[2] - t >= K.Setup.Layouts.GAP - 0.5, string.format("%s: the bars hang over %s %.1f over it, under a cluster gap", where, key, barBox[2] - t))
+			end
+		end
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
 		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
 		assert(thick >= 20 / k - 0.5 and thick <= NativeIconSize(k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the nearest reference step, got " .. thick)

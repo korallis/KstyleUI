@@ -36,6 +36,10 @@ local function Foot()
 	return Snap(FOOT * math.max(1, Style.Setting("text", "size")))
 end
 
+local function MoreRow()
+	return Snap(ROW_GAP + TextSize() * MORE_SCALE + LINE_LEAD)
+end
+
 local function Gutter()
 	return Snap(Lumen.Size(card, GUTTER))
 end
@@ -498,10 +502,11 @@ function Card.Render()
 		heights[i] = Height(Data.Get(i))
 	end
 	local top = Snap(HEAD)
-	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot()
+	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot() + (over and MoreRow() or 0)
 	local room = math.max(0, maxHeight - chrome)
 	if not over and not Fits(Window(total, n, gap), room) then
 		over = true
+		chrome = chrome + MoreRow()
 		right = Snap(BAR_WIDTH + BAR_GAP)
 		rowWidth = (card:GetWidth() or 0) - 2 * inset - right
 		for i = 1, total do
@@ -666,8 +671,8 @@ local function Restyle()
 	ruler:SetSpacing(lead)
 	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
 	more:ClearAllPoints()
-	more:SetPoint("TOP", view, "BOTTOM", 0, 0)
-	more:SetPoint("BOTTOM", card, "BOTTOM", 0, Widgets.Border(card))
+	more:SetPoint("TOP", view, "BOTTOM", 0, -Snap(ROW_GAP))
+	more:SetPoint("BOTTOM", card, "BOTTOM", 0, Foot())
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
 	track:SetWidth(Snap(BAR_WIDTH))
