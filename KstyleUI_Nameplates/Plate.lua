@@ -347,7 +347,7 @@ function Plate:Restyle()
 	local raidSide = Widgets.Snap(self, raidSize)
 	Place(self.raid, "LEFT", health, "RIGHT", Plate.MarkerReach(), 0, raidSide, raidSide, barW, barH)
 
-	self.glowFrame:SetFrameLevel(math.max(0, health:GetFrameLevel() - 2))
+	self.glowFrame:SetFrameLevel(math.max(0, health.under:GetFrameLevel() - 1))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
 	self.nameOnly = nil

@@ -232,21 +232,12 @@ local function Style(view, s)
 	track:SetOrientation(orientation)
 	fill:SetReverseFill(s.reverse == true)
 	track:SetReverseFill(s.reverse == true)
-	if track.borderFrame then
-		track.borderFrame:SetShown(s.border ~= false)
-	end
-	for _, bar in ipairs({ fill, track }) do
-		if bar.caps then
-			bar:ShowPill(false)
-		end
-	end
+	track.barEdge:SetShown(s.border ~= false)
 	if view.def.id == "xp" then
 		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
-		fill.borderFrame:Hide()
-		for _, bar in ipairs({ fill, track }) do
-			bar.sheenTop:Hide()
-			bar:SetGlowShown(false)
-		end
+		fill.barEdge:SetShown(false)
+		track.lit:Hide()
+		track.shade:Hide()
 	end
 	if orientation == "VERTICAL" then
 		view.holder:SetHitRectInsets(-HIT_PAD, -HIT_PAD, 0, 0)

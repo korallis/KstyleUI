@@ -22,6 +22,7 @@ local TRAY_STRIP_GAP = 9 * MOCK_PX
 local XP_H = 5
 local LIFT = math.ceil(TRAY_TOP - 132)
 local PLAYER_CAST_Y = 385.5 + LIFT
+local SWING_Y_V30 = 376.5
 local COMBAT_TEXT_H = 180
 local GRIDS = {
 	["actionbars.bar1"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
@@ -185,7 +186,7 @@ local DPS = {
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 + LIFT },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 + LIFT },
-	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 + LIFT },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 421 + 14 + 8 + LIFT },
 	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
@@ -614,7 +615,7 @@ end
 local LIFTED = {
 	"unitframes.player", "unitframes.pet", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
 	"unitframes.targettarget", "unitframes.castbar.player", "cooldowns.essential", "cooldowns.utility",
-	"cooldowns.buffs", "cooldowns.bars", "meters.swing", "meters.threat", "combattext.player", "actionbars.bar3",
+	"cooldowns.buffs", "cooldowns.bars", "meters.threat", "combattext.player", "actionbars.bar3",
 }
 local LIFTED_IN = {
 	DPS = {},
@@ -632,6 +633,7 @@ local TRAY_OLD = {
 	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
 	["unitframes.resource"] = { "BOTTOM", 0, 420 },
 	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 - LIFT },
+	["meters.swing"] = { "BOTTOM", 0, SWING_Y_V30 },
 }
 
 local CAST_OLD = {
@@ -660,6 +662,10 @@ function Layouts.HealerMoves()
 		out[key] = { place[1], place[2], place[3] }
 	end
 	return out
+end
+
+function Layouts.SwingMoves()
+	return { ["meters.swing"] = { "BOTTOM", 0, SWING_Y_V30 + LIFT } }
 end
 
 function Layouts.TrayMoves(name)

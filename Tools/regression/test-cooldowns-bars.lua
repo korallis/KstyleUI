@@ -47,10 +47,9 @@ assert(ns.Settings.current.bars.growth == "down", "bars grow downward by default
 assert(LastArg(first, "SetPoint", 5) == 0, "the first bar sits at the top of the holder")
 assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 23), "the second bar sits one 20-unit bar and one 3-unit gap below")
 
--- The bar is a glass tile with no accent edge; the icon sits on its own dark button tile, inset inside it.
-assert(first.chrome.fillName == "surface", "a bar is a glass tile, got " .. tostring(first.chrome.fillName))
-local er, eg, eb, ea = K.Widgets.Rgba("edgeBar")
-assert(W.Near(first.chrome.edge[1], er) and W.Near(first.chrome.edge[2], eg) and W.Near(first.chrome.edge[3], eb) and W.Near(first.chrome.edge[4], ea), "the bar wears the mockup's faint bar edge")
+-- The bar is the bible's square bar (KSTY-60 item 10), a black pixel round a dark track; the icon sits on its own dark button tile, inset inside it.
+assert(first.chrome == nil and first.edge, "a bar is the square bar, not a glass tile")
+assert(W.SameColor(first.edge.hard, K.Tokens.Color("black")) and W.SameColor(first.edge.track, K.Tokens.Color("barTrack")), "a black pixel round the dark track")
 local tile = first.iconTile
 assert(tile and tile.chrome.fillName == "buttonFill", "the icon sits on a dark button tile")
 local tw, th = tile:GetSize()

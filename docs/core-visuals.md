@@ -44,7 +44,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Grades
 
-Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
+Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track, which no bar wears since KSTY-60 item 10: status bars use the square `Widgets.BarEdge`). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
 
 ### Sizes, durations and easings
 
@@ -142,7 +142,7 @@ Window and panel titles, the Options window's title and section headings, the se
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
 | `diamond` | `Diamond.png`, 64x64 | | The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. The story card's captions draw it in gilt, 8 units from point to point |
-| `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
+| `pillCapLeft`, `pillCapRight`, `barSheen` | | | Unused since KSTY-60 item 10 (bars are square): the old bar fill's round-end masks and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right; the section cap's rule is now a flat colour, as the picture draws it, so no widget uses this one |
 | `iconMask` | `SocketMask.png`, 128x128 | | Every square icon, rounded 3 units on 44 to meet the socket's inner corner |

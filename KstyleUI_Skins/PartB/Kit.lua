@@ -622,9 +622,12 @@ local function Bar(frame, opts)
 	if IsTexture(fill) then
 		keep[fill] = true
 	end
-	K.Skin.Strip(frame, { keep = keep })
 	local bar = { frame = frame, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
-	bar.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
+	bar.edge = K.Widgets.BarEdge(frame)
+	for region in pairs(bar.edge.regions) do
+		keep[region] = true
+	end
+	K.Skin.Strip(frame, { keep = keep })
 	ns.Style.StatusBar(frame, { accent = opts.accent == true })
 	if type(frame.rankText) == "table" then
 		ns.Style.Text(frame.rankText, "number", "textEmphasis")

@@ -121,13 +121,13 @@ do
 	assert(Alpha(f.RewardTrackPage.ProgressBarBackground) == 0, "and loses its background art")
 	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == Style.BarTexture(), "it takes the bar texture")
 	local track = ns.PartC.Bar(bar)
-	assert(track and track.owner == bar, "its dark track is drawn on the bar itself, so page art at the bar's frame level cannot cover it")
-	local piece = track.fill[5]
+	assert(track and track.target == bar, "its dark track is drawn on the bar itself, so page art at the bar's frame level cannot cover it")
+	local piece = track.track
 	assert(piece:GetDrawLayer() == "BACKGROUND" and Alpha(piece) == 1, "under the fill")
 	S.Show(bar)
 	assert(Alpha(piece) == 1 and Alpha(bar.ProgressBarFrame) == 0, "showing the bar again keeps the track and keeps Blizzard's frame hidden")
 	assert(FontPath(bar.Text) == Style.Font("number"))
-	assert(ns.PartC.Bar(f.ChallengesPage.LegacyChallengePointSummary.PointsBar).owner, "the challenge points bar too")
+	assert(ns.PartC.Bar(f.ChallengesPage.LegacyChallengePointSummary.PointsBar).target, "the challenge points bar too")
 	assert(FontPath(f.RewardTrackPage.Points) == Style.Font("display") and FontPath(f.RewardTrackPage.PointsLabel) == Style.Font("caption"))
 
 	local list = f.ChallengesPage.CategoryList
