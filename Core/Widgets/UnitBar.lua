@@ -216,23 +216,32 @@ local function PlaceSpark(self)
 	glow:SetVertexColor(Widgets.Rgba("white", GLOW_ALPHA))
 end
 
+local function Clip(owner, fill)
+	local clip = CreateFrame("Frame", nil, owner)
+	clip:SetClipsChildren(true)
+	clip:SetPoint("TOPLEFT", fill, "TOPLEFT")
+	clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+	return clip
+end
+
 local function PlaceFill(self)
-	local fill, px = self:GetStatusBarTexture(), Widgets.Border(self)
+	local px = Widgets.Border(self)
 	local height = Span(self, "GetHeight", self.opts.height or Tokens.Size("buffBarHeight"))
 	local sheen, shade, lit = self.cleanSheen, self.cleanShade, self.cleanLit
+	local span = self.vertical and self:GetStatusBarTexture() or self
 	sheen:ClearAllPoints()
 	shade:ClearAllPoints()
 	lit:ClearAllPoints()
 	sheen:SetShown(not self.vertical)
 	shade:SetShown(not self.vertical)
-	lit:SetPoint("TOPLEFT", fill, "TOPLEFT")
-	lit:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
+	lit:SetPoint("TOPLEFT", span, "TOPLEFT")
+	lit:SetPoint("TOPRIGHT", span, "TOPRIGHT")
 	lit:SetHeight(px)
 	lit:SetColorTexture(Widgets.Rgba("white", HIGHLIGHT_ALPHA))
-	sheen:SetPoint("TOPLEFT", fill, "TOPLEFT")
-	sheen:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
+	sheen:SetPoint("TOPLEFT", self, "TOPLEFT")
+	sheen:SetPoint("TOPRIGHT", self, "TOPRIGHT")
 	sheen:SetHeight(Widgets.Snap(self, height * SHEEN_SHARE))
-	shade:SetPoint("BOTTOMLEFT", fill, "BOTTOMLEFT")
+	shade:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT")
 	shade:SetPoint("TOPRIGHT", sheen, "BOTTOMRIGHT")
 end
 
@@ -335,8 +344,8 @@ local function Under(bar, parent)
 end
 
 local function Flash(bar)
-	local flash = bar.under:CreateTexture(nil, "ARTWORK", nil, 1)
-	flash:SetAllPoints(bar.under:GetStatusBarTexture())
+	local flash = Clip(bar.under, bar.under:GetStatusBarTexture()):CreateTexture(nil, "ARTWORK", nil, 1)
+	flash:SetAllPoints(bar.under)
 	flash:Hide()
 	local group = flash:CreateAnimationGroup()
 	local hit = Tokens.Duration("hitFlash")
@@ -352,8 +361,8 @@ local function Flash(bar)
 		bar:ReleaseLoss()
 	end)
 	bar.flash, bar.lossAnim = flash, group
-	local recentFlash = bar.recent:CreateTexture(nil, "ARTWORK", nil, 1)
-	recentFlash:SetAllPoints(bar.recent:GetStatusBarTexture())
+	local recentFlash = Clip(bar.recent, bar.recent:GetStatusBarTexture()):CreateTexture(nil, "ARTWORK", nil, 1)
+	recentFlash:SetAllPoints(bar.recent)
 	recentFlash:Hide()
 	local recentGroup = recentFlash:CreateAnimationGroup()
 	local recentFade = recentGroup:CreateAnimation("Alpha")
@@ -401,14 +410,16 @@ function Widgets.UnitBar(parent, opts)
 	bar.lossOn = opts.loss ~= false
 	bar.lossKnown = false
 	bar.under = Under(bar, bar:GetParent())
-	bar.cleanSheen = bar:CreateTexture(nil, "ARTWORK", nil, 2)
+	local clip = Clip(bar, bar:GetStatusBarTexture())
+	bar.fillClip = clip
+	bar.cleanSheen = clip:CreateTexture(nil, "ARTWORK", nil, 2)
 	bar.cleanSheen:SetColorTexture(Widgets.Rgba("white"))
-	bar.cleanShade = bar:CreateTexture(nil, "ARTWORK", nil, 2)
+	bar.cleanShade = clip:CreateTexture(nil, "ARTWORK", nil, 2)
 	bar.cleanShade:SetColorTexture(Widgets.Rgba("white"))
-	bar.cleanLit = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, 3))
+	bar.cleanLit = Widgets.Crisp(clip:CreateTexture(nil, "ARTWORK", nil, 3))
 	if bar.lowHealth then
-		bar.lowFill = bar:CreateTexture(nil, "ARTWORK", nil, 1)
-		bar.lowFill:SetAllPoints(bar:GetStatusBarTexture())
+		bar.lowFill = clip:CreateTexture(nil, "ARTWORK", nil, 1)
+		bar.lowFill:SetAllPoints(bar)
 		bar.lowFill:SetColorTexture(Widgets.Rgba("healthLow"))
 		bar.lowFill:SetAlpha(0)
 	end
