@@ -372,7 +372,6 @@ local ORBS_RING = ART.ring[3] * ORBS_SOURCE
 local ORBS_X = (ART_X - ART.ring[1]) * ORBS_SOURCE
 local ORBS_REACH = ORBS_X - ORBS_BAR1_W / 2
 local ORBS_LIFT = (ART_Y - ART.ring[2]) * ORBS_SOURCE
-local ORBS_OUTER = ORBS_X + ORBS_RING / 2
 local ORBS_TOP = ORBS_CENTRE + ORBS_LIFT + ORBS_RING / 2
 local ORBS_BAR2_SCALE = ART.bar2[2] * ORBS_SOURCE / GRIDS["actionbars.bar2"].size
 local ORBS_SPLIT = ART.bar2[3] * ORBS_SOURCE / ORBS_BAR2_SCALE
@@ -388,10 +387,8 @@ local ORBS_AURA_HALF = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AU
 local ORBS_AURA_SHIFT = ORBS_AURA_HALF - AURA_W / 2
 local ORBS_TRACKED_W = ElementSize("cooldowns.buffs")
 local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + 8
-local ORBS_PET_W, ORBS_PET_H = GridSize("actionbars.pet")
+local ORBS_PET_W = GridSize("actionbars.pet")
 local ORBS_STANCE_W = GridSize("actionbars.stance")
-local ORBS_REP_W = ElementSize("databars.rep")
-local ORBS_PET_FRAME_W = ElementSize("unitframes.pet")
 local ORBS_GLOW = 30
 local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
@@ -400,6 +397,13 @@ local ORBS_RAIL_X = EDGE + STORY_W + GAP
 local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
 local ORBS_STORY_BOTTOM = TIP_Y + ORBS_TIP_H + GAP
 local ORBS_QUESTS_H = 268 * MOCK_PX
+local ORBS_FIT = {
+	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + NEAR,
+	nudge = 32,
+	tieX = (ART_X - ART.arm[3]) * ORBS_SOURCE,
+	bossX = ORBS_RAIL_X + 2 * RAIL_COLUMN + RAIL_BUTTON + GAP,
+	textX = CAST_HALF + GAP + ElementSize("combattext.player") / 2,
+}
 
 local ORBS = {
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_CENTRE - ORBS_BAR1_H / 2 },
@@ -410,15 +414,17 @@ local ORBS = {
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = 0, y = ORBS_UTILITY_Y },
 	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = ORBS_RESOURCE_Y },
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = ORBS_SWING_Y },
-	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X, y = ORBS_AURA_Y },
+	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X + ORBS_FIT.nudge, y = ORBS_AURA_Y },
 	["auras.debuffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT + ORBS_X, y = ORBS_AURA_Y },
-	["cooldowns.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_HALF - ORBS_X - ORBS_TRACKED_W / 2, y = ORBS_TRACKED_Y },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_HALF - ORBS_X + ORBS_FIT.nudge - ORBS_TRACKED_W / 2, y = ORBS_TRACKED_Y },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
-	["actionbars.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = BAR1_Y },
-	["actionbars.stance"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_STANCE_W / 2, y = BAR1_Y },
-	["databars.rep"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_REP_W / 2), y = 52 },
-	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_REP_W / 2, y = 52 },
-	["unitframes.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_GLOW + ORBS_PET_FRAME_W / 2), y = BAR1_Y + ORBS_PET_H + GAP },
+	["actionbars.pet"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY },
+	["actionbars.stance"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR, y = ORBS_FIT.cornerY },
+	["databars.rep"] = { anchor = "BOTTOM", x = -ORBS_FIT.tieX, y = 52 },
+	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX, y = 52 },
+	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },
+	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -ORBS_FIT.bossX, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
+	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = DPS["combattext.player"].y },
 	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
 	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
@@ -451,6 +457,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 	STYLES.orbs[name] = style
 end
+STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = DPS["groupframes.party"].x, y = DPS["groupframes.party"].y + (PARTY.healer - PARTY.height) / 2 }
 
 Layouts.ELEMENTS = ELEMENTS
 Layouts.FEED_LINES = FEED_LINES
