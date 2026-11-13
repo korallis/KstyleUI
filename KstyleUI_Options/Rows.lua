@@ -485,7 +485,7 @@ local function PlaceText(row, item, control, width)
 	local height = Snap(row, max(Rows.HEIGHT, blockHeight + 2 * gap))
 	local top = Snap(row, (height - ((stacked or banded) and blockHeight or labelHeight + helpBlock)) / 2)
 	local labelTop = banded and top + Snap(row, (band - labelHeight) / 2) or top
-	local helpTop = (stacked or banded) and top + band + tiny or top + labelHeight + tiny
+	local helpTop = Snap(row, (stacked or banded) and top + band + tiny or top + labelHeight + tiny)
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
 	row.label:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -labelTop)
@@ -501,7 +501,7 @@ local function PlaceText(row, item, control, width)
 		elseif banded then
 			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - controlHeight) / 2)))
 		else
-			control:SetPoint("RIGHT", row, "TOPRIGHT", -gap, -height / 2)
+			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -Snap(row, (height - controlHeight) / 2))
 		end
 	end
 	row:EnableMouse(Truncated(row.label))

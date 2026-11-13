@@ -67,13 +67,7 @@ local function build(page, unitFrames, setup)
 	assert(K.Options.Open(page) == true, "the window opens on " .. page)
 	env.RunTimers()
 	W.Settle(env)
-	local ns = env._addons.KstyleUI_Options
-	-- The stub learns a font string's size when Scene.Build measures it, as the game knows it at once, so the preview
-	-- pane fits its card to what it draws only after a first build.
-	Scene.Build(env, {})
-	ns.Preview.Refresh(ns.Window.Parts().preview)
-	W.Settle(env)
-	return env, K, ns
+	return env, K, env._addons.KstyleUI_Options
 end
 
 local function settle(env)

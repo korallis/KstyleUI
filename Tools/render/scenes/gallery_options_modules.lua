@@ -90,11 +90,6 @@ local function Open(loader, module, at, small, extra)
 	place(K, at, small)
 	settle(env)
 	local ns = env._addons.KstyleUI_Options
-	-- The stub learns a font string's size when Scene.Build measures it, as the game knows it at once, so the preview
-	-- pane fits its card to what it draws only after a first build.
-	Scene.Build(env, {})
-	ns.Preview.Refresh(ns.Window.Parts().preview)
-	settle(env)
 	assert(ns.Window.State().page == module, "the window shows " .. module)
 	assert(settingRows(ns) >= MIN_ROWS, module .. " offers " .. MIN_ROWS .. " or more settings, got " .. settingRows(ns))
 	-- The module's own frames on the HUD are not this scene's subject and would show between the windows.
