@@ -88,10 +88,6 @@ local function Case(layout, class, screen, required)
 			end
 		end
 	end
-	local own = {}
-	for _, orb in pairs(roots) do
-		own[orb] = true
-	end
 	for name, scene in pairs(scenes) do
 		local count = 0
 		for _, item in ipairs(scene.items) do
