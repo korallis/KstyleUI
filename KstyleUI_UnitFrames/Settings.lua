@@ -201,6 +201,7 @@ end
 Settings.CHOICES = {
 	style = Options({ { "column", L["Column"] }, { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
 	styleLumen = Options({ { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
+	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
@@ -318,7 +319,7 @@ function Settings.Value(kind, key)
 	if type(value) ~= type(default) then
 		return default
 	end
-	local choice = CHOICE_OF[key]
+	local choice = kind == "target" and key == "style" and "styleTarget" or CHOICE_OF[key]
 	if choice and not Allowed(CHOICES[choice], value) then
 		LogOnce(kind .. "." .. key .. "=" .. tostring(value), kind .. "." .. key .. ": " .. tostring(value) .. " is not a choice; using " .. tostring(default))
 		return default
@@ -427,6 +428,9 @@ function Settings.Form(kind)
 	end
 	if style == "column" and Settings.COLUMN[kind] then
 		return "column"
+	end
+	if style == "bar" and kind == "target" then
+		return "bar"
 	end
 	return Settings.FORMS[kind]
 end
@@ -723,6 +727,7 @@ end
 
 local STYLE_HELP = {
 	column = L["Column: full-width bars, portrait outside. Lumen: the older style. Classic: the glass plate."],
+	target = L["Column: bars by a portrait. Wide bar: one bar, no portrait. Lumen, Classic: older styles."],
 	vitals = L["Lumen: one line with a gilt portrait ring. Classic: the glass plate."],
 	sigil = L["Lumen: a centred sigil with gems and your debuffs. Classic: the glass plate."],
 	card = L["Lumen: a glass card with a section cap. Classic: the glass plate."],
@@ -740,7 +745,8 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "style", label = L["Style"],
-		help = STYLE_HELP[Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]], options = Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
+		help = STYLE_HELP[kind == "target" and "target" or Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]],
+		options = kind == "target" and CHOICES.styleTarget or Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
 	})
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, {

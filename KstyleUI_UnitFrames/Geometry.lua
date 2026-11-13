@@ -7,6 +7,7 @@ local Geometry = {}
 ns.Geometry = Geometry
 
 local max, min, ceil, floor = math.max, math.min, math.ceil, math.floor
+local MOCK_PX = 1 / KstyleUI.Scale.DEFAULT_USER_SCALE
 
 local PORTRAIT_GAP = 0
 local PAD_X, PAD_TOP, PAD_BOTTOM = 6, 4, 2
@@ -558,7 +559,34 @@ local function ColumnFrame(out, s, width, height, scale)
 	end
 end
 
+local BAR = { health = 18 * MOCK_PX, nameGap = 6 * MOCK_PX, subGap = 4 * MOCK_PX, auraGap = 12 * MOCK_PX, disc = 34, discOut = 26 * MOCK_PX }
+Geometry.BAR = BAR
+
+local function BarFrame(out, s, width, _, scale)
+	local nameH = s.name and TextH(Size(s, "name", scale)) or 0
+	local top = nameH > 0 and nameH + BAR.nameGap or 0
+	out.health = Rect(0, top, width, BAR.health)
+	if s.name then
+		out.name = Rect(0, 0, width, nameH)
+	end
+	if (s.healthText or "none") ~= "none" then
+		out.healthText = Rect(0, top, width, BAR.health)
+		out.healthSub = Rect(width / 2, top + BAR.health + BAR.subGap, width / 2, TextH(Size(s, "health", scale)))
+	end
+	out.caption = Rect(0, top + BAR.health + BAR.subGap, width / 2, TextH(Size(s, "level", scale)))
+	if s.level then
+		local cy = top + BAR.health / 2
+		out.badge = Rect(-BAR.discOut - BAR.disc / 2, cy - BAR.disc / 2, BAR.disc, BAR.disc)
+	end
+	if s.auras then
+		out.aura = { x = width / 2, y = top + BAR.health + BAR.auraGap, w = 0, h = 0, centred = true }
+	end
+end
+
 function Geometry.Reach(s)
+	if s.form == "bar" then
+		return s.level and BAR.discOut + BAR.disc / 2 or 0, 0
+	end
 	if s.form ~= "column" then
 		return 0, 0
 	end
@@ -573,7 +601,7 @@ function Geometry.Reach(s)
 	return 0, ring + aura
 end
 
-local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, column = ColumnFrame }
+local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, column = ColumnFrame, bar = BarFrame }
 
 local MARKER_EXTRA, MARKER_GAP = 4, 4
 Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP

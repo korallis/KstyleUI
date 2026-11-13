@@ -160,13 +160,16 @@ function Auras.LayoutTile(tile)
 end
 
 local function Centred(kind)
+	if Settings.Form(kind) == "bar" then
+		return true
+	end
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
 	return position ~= nil and position.centred == true
 end
 
 local function TimerBelow(kind)
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
-	local below = position ~= nil and (position.centred == true or position.below == true)
+	local below = Centred(kind) or position ~= nil and position.below == true
 	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
 end
 
@@ -582,6 +585,11 @@ end
 
 function Auras.Anchor(host, frame, kind, panelX, spot)
 	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
+	if spot and spot.centred then
+		host:ClearAllPoints()
+		host:SetPoint("TOP", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		return
+	end
 	if spot and Settings.Value(kind, "auraPosition") == "SIDE" then
 		host:ClearAllPoints()
 		host:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
