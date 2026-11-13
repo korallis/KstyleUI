@@ -144,6 +144,39 @@ for _, line in ipairs(scene.log) do
 end
 assert(logged, "the unanchored frame is logged")
 
+-- A mask on a texture that is itself unresolved is not logged as an unresolved mask: the texture is skipped and logged
+-- once, so the mask line never sends a reader to a mask that is fine; a mask that fails on a drawn texture still is.
+local strayButton = env.CreateFrame("Button", "StrayButton", UIParent)
+strayButton:SetSize(10, 10)
+local skin = env.CreateFrame("Frame", nil, strayButton)
+skin:SetAllPoints(strayButton)
+local skinIcon = skin:CreateTexture()
+skinIcon:SetAllPoints(skin)
+skinIcon:SetTexture(136048)
+local skinMask = skin:CreateMaskTexture()
+skinMask:SetTexture("Interface\\AddOns\\KstyleUI\\Media\\Textures\\SocketMask.png")
+skinMask:SetAllPoints(skinIcon)
+skinIcon:AddMaskTexture(skinMask)
+local masked = env.CreateFrame("Frame", "MaskedFrame", UIParent)
+masked:SetSize(10, 10)
+masked:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+local maskedTexture = masked:CreateTexture()
+maskedTexture:SetAllPoints(masked)
+maskedTexture:SetTexture(136048)
+local strayMask = masked:CreateMaskTexture()
+strayMask:SetTexture("Interface\\AddOns\\KstyleUI\\Media\\Textures\\SocketMask.png")
+maskedTexture:AddMaskTexture(strayMask)
+scene = Scene.Build(env)
+local strayLogged, maskedLogged = false, false
+for _, line in ipairs(scene.log) do
+	strayLogged = strayLogged or line:find("mask unresolved", 1, true) ~= nil and line:find("StrayButton", 1, true) ~= nil
+	maskedLogged = maskedLogged or line:find("mask unresolved", 1, true) ~= nil and line:find("MaskedFrame", 1, true) ~= nil
+end
+assert(not strayLogged, "a mask on a texture whose button has no anchors is not logged as an unresolved mask")
+assert(maskedLogged, "a drawn texture's unanchored mask is still logged")
+strayButton:Hide()
+masked:Hide()
+
 -- A frame moved under a hidden parent with SetParent stops drawing; a gradient keeps both stops in JSON.
 local moved = env.CreateFrame("Frame", nil, UIParent)
 moved:SetAllPoints(UIParent)
