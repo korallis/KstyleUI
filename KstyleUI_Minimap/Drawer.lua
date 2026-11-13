@@ -90,6 +90,18 @@ local function Points(button)
 	return points
 end
 
+local function IconPoints(icon, button)
+	local points = {}
+	for i = 1, icon:GetNumPoints() do
+		local point, relativeTo, relativePoint, x, y = icon:GetPoint(i)
+		if not point or IsSecret(x) or IsSecret(y) then
+			return {}
+		end
+		points[i] = { point, relativeTo or button, relativePoint or point, x or 0, y or 0 }
+	end
+	return points
+end
+
 local function IconOf(button)
 	if type(button.icon) == "table" then
 		return button.icon
@@ -324,6 +336,10 @@ function Drawer:Adopt(name, button, own)
 	if own then
 		state.points = Points(button)
 		state.width, state.height = button:GetSize()
+		if state.icon then
+			state.iconPoints = IconPoints(state.icon, button)
+			state.iconWidth, state.iconHeight = state.icon:GetSize()
+		end
 	end
 	self.adopted[button] = state
 	self.order[#self.order + 1] = button
@@ -443,6 +459,16 @@ function Drawer:Stop()
 			end
 			for _, point in ipairs(state.points) do
 				button:SetPoint(point[1], point[2], point[3], point[4], point[5])
+			end
+			local icon, iconWidth, iconHeight = state.icon, state.iconWidth, state.iconHeight
+			if icon and state.iconPoints and #state.iconPoints > 0 then
+				icon:ClearAllPoints()
+				if type(iconWidth) == "number" and type(iconHeight) == "number" and not IsSecret(iconWidth) and not IsSecret(iconHeight) then
+					icon:SetSize(iconWidth, iconHeight)
+				end
+				for _, point in ipairs(state.iconPoints) do
+					icon:SetPoint(point[1], point[2], point[3], point[4], point[5])
+				end
 			end
 		elseif lib and type(lib.Refresh) == "function" then
 			pcall(lib.Refresh, lib, state.name)
