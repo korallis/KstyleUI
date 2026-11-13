@@ -17,9 +17,7 @@ local Lib = {}
 
 Lib.OPT_OUTS = {}
 
-Lib.ACCENTS = {
-	["meters.threat"] = "the threat warning edge (KstyleUI_Meters/README.md, Warnings): a warning turns the panel's hairline neutral and danger turns it hostile; Chrome:SyncMaterialFrame swaps the rounded rim for a square edge inside the forged frame and its brackets so the state stays visible",
-}
+Lib.ACCENTS = {}
 
 -- The party stands bare on the world since KSTY-57, so no preset draws a party card.
 Lib.ROLES = {

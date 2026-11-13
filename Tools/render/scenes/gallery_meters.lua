@@ -189,8 +189,8 @@ local function live(frames)
 	env.RunTimers()
 	frames:Add(env, ns.Threat.holder, {
 		name = "meters_threat", title = "Threat meter", grade = "panel", reference = "player",
-		caption = "The threat meter: the party's threat on the crocolisk, the tanking warrior first with a full bar, the player at 72% under the 80% warning, threat points and the percentage column, on the glass panel grade.",
-		match = "The same glass as the damage meter: surface fill, two-line edge, shadow, 8-unit chamfer; a warning would recolour only the light line (neutral, then hostile).",
+		caption = "The threat meter: the party's threat on the crocolisk, the tanking warrior first with a full bar, the player at 72% under the 80% warning, threat points and the percentage column; the cap's count is the player's own 72%.",
+		match = "The same card as the damage meter and the quest card; a warning colours only the cap's count (neutral, then hostile), never the card.",
 	})
 
 	-- The swing timer: main hand and off hand mid-swing, in combat, with the time left.
@@ -216,7 +216,7 @@ local function live(frames)
 	preview:Refresh()
 	frames:Add(env, parent, {
 		name = "meters_preview", title = "Meters preview", grade = "panel", reference = "player",
-		caption = "The Meters page's live preview (Preview.Build): a sample damage meter and threat meter side by side, five classes each, the threat sample's warning lighting its edge neutral, and the sample swing bar across the bottom on the bar grade.",
+		caption = "The Meters page's live preview (Preview.Build): a sample damage meter with its spells' names and icons and a threat meter side by side, the threat sample's warning colouring its count (88%) neutral, and the sample swing bar across the bottom on the bar grade.",
 		match = "The two sample windows are the glass panel grade as the live meters; the swing sample is the bar grade's surface tile with the edgeBar line.",
 	})
 
@@ -277,8 +277,8 @@ local function hovered(frames)
 		local split = ns.Damage.list.split.frame
 		frames:Add(env, split, {
 			name = "meters_damage_split", title = "Damage meter: a source's split on hover", grade = "panel", reference = "player",
-			caption = "The damage meter with the pointer on Kragar's row: a chevron follows his name, and his split opens under the row, inside the card, spanning the row's width: his top three spells with their amounts and shares of his damage, read the way a click reads them, then the count of spells a click lists (all 6). Near the card's bottom the split opens above the row instead, so it never leaves the window.",
-			match = "The split is a panel-grade glass card on the window's glass, as the kit tooltip; the same rows as the source list.",
+			caption = "The damage meter with the pointer on Kragar's row: a chevron follows his name, and his top three spells open under the row as rows of the card itself (icon, school-coloured bar, name, amount and share), then the count of spells a click lists (all 6). Near the card's bottom they open above the row instead, so they never leave the window.",
+			match = "No box inside the card: the spell rows are the card's own rows on the card's fill.",
 			rect = Gallery.Union(env, { ns.Damage.holder, split }),
 		})
 	end, {
@@ -494,13 +494,13 @@ local function skin(frames)
 	env.RunTimers()
 	frames:Add(env, source, {
 		name = "meters_damage_skin_spells", title = "Blizzard's spell breakdown, restyled", grade = "panel", reference = "player",
-		caption = "The spell breakdown window Blizzard's Damage Meter opens on a click (DamageMeterSourceWindow), restyled with the session window: its art stripped, KstyleUI glass behind it, and each spell row on the own meter's 4-unit class pill in the meter's font.",
-		match = "The same panel grade and pill rows as the restyled session window beside it.",
+		caption = "The spell breakdown window Blizzard's Damage Meter opens on a click (DamageMeterSourceWindow), restyled with the session window: its art stripped, the card material behind it, and each spell row as the card's row, a flat bar filling Blizzard's bar under its name and value.",
+		match = "The same material and rows as the restyled session window beside it.",
 	})
 	frames:Add(env, window, {
 		name = "meters_damage_skin", title = "Blizzard's Damage Meter, restyled", grade = "panel", reference = "player",
-		caption = "Blizzard's Damage Meter session window restyled in place (DamageSkin): the header art stripped, KstyleUI glass behind the window, and each row's bar on a buttonFill tile with the meter's texture, font and class colour.",
-		match = "The window's glass is the panel grade (surface, two lines, shadow, 8-unit chamfer) as KstyleUI's own meter; each row tile is the button body with the edgeInner hairline, the brief's bar track, since a surface track would vanish against the window's glass.",
+		caption = "Blizzard's Damage Meter session window restyled in place (DamageSkin): the header art stripped and the card's section cap drawn over it (diamond, DAMAGE DONE, rule, the fight timer), the card material behind the window, and each row as the card's row, a flat bar in the toned class colour under Blizzard's name and value.",
+		match = "One meter design (KSTY-60 item 24): the same material, heading and rows as KstyleUI's own damage card; the fight, settings and minimise controls stay where Blizzard puts them.",
 	})
 	Gallery.Ticks(M.W, env, 20)
 	return env, K
