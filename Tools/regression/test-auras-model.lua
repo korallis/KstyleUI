@@ -146,4 +146,15 @@ check(near(cr, ar) and near(cg, ag) and near(cb, ab), "the class accent follows 
 local fr = Model.AccentColor({ accent = { source = "custom", color = { r = "red" } } })
 check(near(fr, ar), "a broken custom colour falls back to the class accent")
 
+-- The cell a row keeps free for its "+N" tile: the engine shows one aura fewer than the row has cells and the
+-- container hangs from the element's right, so a single row's free cell is its left end; a taller block's first line
+-- is full, so its free cell is where the flow ends.
+for _, case in ipairs({
+	{ "RIGHT_DOWN", 1, "BOTTOMLEFT" }, { "RIGHT_UP", 1, "TOPLEFT" }, { "LEFT_DOWN", 1, "BOTTOMLEFT" }, { "LEFT_UP", 1, "TOPLEFT" },
+	{ "RIGHT_DOWN", 2, "BOTTOMRIGHT" }, { "RIGHT_UP", 2, "TOPRIGHT" }, { "LEFT_DOWN", 2, "BOTTOMLEFT" }, { "LEFT_UP", 3, "TOPLEFT" },
+}) do
+	local cell = Model.FreeCell({ growth = case[1], rows = case[2] })
+	check(cell == case[3], case[1] .. " in " .. case[2] .. " rows keeps " .. case[3] .. " free, got " .. tostring(cell))
+end
+
 print("auras model ok")

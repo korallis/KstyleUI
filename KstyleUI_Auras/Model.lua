@@ -43,7 +43,7 @@ Model.defaults = {
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = "", size = 11, outline = "NONE", expiring = 5 },
-	count = { font = "", size = 10, outline = "NONE" },
+	count = { font = "", size = 10, outline = "OUTLINE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
 local defaults = Model.defaults
@@ -218,6 +218,14 @@ end
 
 function Model.LastCell(growth)
 	return LAST_CELL[(Model.Growth(growth))]
+end
+
+function Model.FreeCell(group)
+	local corner = Model.LastCell(group.growth)
+	if group.rows == 1 then
+		return (corner:gsub("RIGHT", "LEFT"))
+	end
+	return corner
 end
 
 function Model.Sort(sort, reverse)

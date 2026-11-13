@@ -1,4 +1,4 @@
--- test-tooltips-runtime-restyle.lua: after a type-set or font change at run time, the compare header, its caption and the embedded item border match a fresh load with that setting, and a shown item keeps its quality edge.
+-- test-tooltips-runtime-restyle.lua: after a type-set or font change at run time, the compare header's diamond and caps caption (a card heading since KSTY-60 item 26 retired its steel-blue tile), its caption and the embedded item border match a fresh load with that setting, and a shown item keeps its quality edge.
 local T = dofile("Tools/regression/tooltips_env.lua")
 
 local function saved(appearance)
@@ -40,10 +40,14 @@ end
 local function snapshot(env, K, ns)
 	local out = {}
 	local header = env.ShoppingTooltip1.CompareHeader
-	local panel = K.Skin.Backdrop(header)
-	pieces(out, "header.", panel.chrome)
-	points(out, "header.point", panel)
-	local path, size, flags = header.Label:GetFont()
+	local heading = K.Safe.Side(header).tooltipsHeading
+	local gw, gh = heading.gem:GetSize()
+	out["header.gem"] = round(gw) .. "x" .. round(gh)
+	points(out, "header.gem.point", heading.gem)
+	points(out, "header.caption.point", heading.caption)
+	pieces(out, "header.", heading.chrome)
+	points(out, "header.point", heading)
+	local path, size, flags = heading.caption:GetFont()
 	out.caption = tostring(path) .. " " .. round(size) .. " " .. tostring(flags)
 	local border = ns.Style.ItemBorder(env.GameTooltip.ItemTooltip)
 	pieces(out, "border.", border.chrome)

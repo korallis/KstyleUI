@@ -1,4 +1,4 @@
--- Style.lua: the quest card on each restyled tooltip (its material, edge and the one heading rule), the fade in, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
+-- Style.lua: the quest card on each restyled tooltip (its material, edge, the heading's diamond and its one rule, the compare caption as a card heading), the fade in, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
 local _, ns = ...
 
 local K = KstyleUI
@@ -44,6 +44,9 @@ local BORDER_LINES = 2
 local SPELL_EDGE_ALPHA = 0.5
 local PLAIN_EDGE_ALPHA = 0.35
 local COLOR_TOLERANCE = 0.02
+local GEM_SIZE, GEM_GAP = 8, 7
+Style.GEM_ROOM = GEM_SIZE + GEM_GAP
+local HEADER_INSET, HEADER_LIFT = 10, 3
 
 local skinned = {}
 local savedFonts = {}
@@ -95,10 +98,12 @@ local function Pad(tooltip, glass, left)
 	end
 	local added = glass.added or { right = 0, bottom = 0 }
 	local reserve = glass.reserve or { right = 0, bottom = 0 }
+	local room = glass.gemmed and Widgets.Snap(glass, Style.GEM_ROOM) or 0
 	glass.padding = true
-	tooltip:SetPadding(Base(right, added.right) + reserve.right, Base(bottom, added.bottom) + reserve.bottom, left, Logic.IsNumber(top) and top or 0)
+	tooltip:SetPadding(Base(right, added.right) + reserve.right, Base(bottom, added.bottom) + reserve.bottom, left + room, Logic.IsNumber(top) and top or 0)
 	glass.padding = false
 	glass.padded = left > 0 and left or nil
+	glass.gemRoom = room > 0 and room or nil
 	glass.added = { right = reserve.right, bottom = reserve.bottom }
 	return true
 end
@@ -112,7 +117,7 @@ local function HideIcon(tooltip, glass)
 	if glass.icon then
 		glass.icon:Hide()
 	end
-	if (glass.padded or Reserved(glass)) and not Pad(tooltip, glass, 0) then
+	if (glass.padded or glass.gemRoom or Reserved(glass)) and not Pad(tooltip, glass, 0) then
 		glass.padded = nil
 	end
 end
@@ -123,7 +128,7 @@ local function Repad(tooltip)
 		return
 	end
 	glass.added = nil
-	if (glass.padded or Reserved(glass)) and not Pad(tooltip, glass, glass.padded or 0) then
+	if (glass.padded or glass.gemmed or Reserved(glass)) and not Pad(tooltip, glass, glass.padded or 0) then
 		HideIcon(tooltip, glass)
 	end
 end
@@ -159,19 +164,64 @@ local function Reset(tooltip)
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
 		glass.caption:Hide()
+		glass.gem:Hide()
+		glass.gemmed = nil
 		HideIcon(tooltip, glass)
 	end
 end
 Style.Reset = Reset
 
+function Style.PaintGem(gem)
+	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
+	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
+	if material and material.rule then
+		gem:SetVertexColor(Tokens.Color("materialGold"))
+	else
+		gem:SetVertexColor(Style.Gilt())
+	end
+end
+
+local function Header(tooltip)
+	local header = tooltip.CompareHeader
+	local heading = type(header) == "table" and Safe.Side(header).tooltipsHeading
+	if heading then
+		return header, heading
+	end
+end
+
+local function PlaceHeader(tooltip)
+	local header, heading = Header(tooltip)
+	if not header then
+		return
+	end
+	local gem, caption = heading.gem, heading.caption
+	Widgets.CapsSize(caption)
+	Widgets.TextColor(caption, "capsGold")
+	local side = Widgets.Snap(heading, GEM_SIZE)
+	gem:SetSize(side, side)
+	gem:ClearAllPoints()
+	Widgets.Point(gem, "LEFT", heading, "LEFT", HEADER_INSET, 0)
+	caption:ClearAllPoints()
+	Widgets.Point(caption, "LEFT", gem, "RIGHT", GEM_GAP, 0)
+	Style.PaintGem(gem)
+	heading:ClearAllPoints()
+	heading:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
+	heading:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, Widgets.Snap(heading, HEADER_LIFT))
+	heading:SetWidth(Widgets.Snap(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0)))
+	heading.chrome:Restyle()
+end
+
 local function SkinParts(tooltip)
 	local header = tooltip.CompareHeader
-	if type(header) == "table" then
+	if type(header) == "table" and type(header.Label) == "table" then
 		Skin.Strip(header)
-		Safe.Side(header).tooltipsPanel = Skin.Backdrop(header, { shape = "tile", fill = "buttonFill", shadow = false })
-		if type(header.Label) == "table" then
-			Skin.Text(header.Label, "caption", "text")
-		end
+		header.Label:SetAlpha(0)
+		local heading = CreateFrame("Frame", nil, header)
+		heading.chrome = Widgets.Chrome(heading, { shape = "window", fill = "surface", shadow = false, popup = true })
+		heading.gem = heading:CreateTexture(nil, "OVERLAY")
+		heading.caption = Widgets.Text(heading, "caps", "capsGold")
+		Safe.Side(header).tooltipsHeading = heading
+		PlaceHeader(tooltip)
 	end
 	if type(tooltip.CloseButton) == "table" then
 		Skin.CloseButton(tooltip.CloseButton)
@@ -244,6 +294,8 @@ function Style.Skin(tooltip, name)
 	glass.divider = divider
 	glass.caption = Widgets.FontString(glass, "OVERLAY")
 	glass.caption:Hide()
+	glass.gem = glass:CreateTexture(nil, "OVERLAY")
+	glass.gem:Hide()
 	glass.iconOwner = not NO_ICON[name]
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
@@ -360,6 +412,34 @@ local function PlaceRule(glass, line)
 	divider:SetHeight(Widgets.Border(glass))
 	Style.PaintRule(divider)
 	divider:Show()
+end
+
+function Style.PlaceGem(gem, title, role)
+	local _, size = title:GetFont()
+	if not Logic.IsNumber(size) then
+		_, size = Style.FontSpec(role or "title")
+	end
+	local side = Widgets.Snap(gem:GetParent(), GEM_SIZE)
+	gem:SetSize(side, side)
+	gem:ClearAllPoints()
+	Widgets.Point(gem, "CENTER", title, "TOPLEFT", -(GEM_GAP + GEM_SIZE / 2), -size / 2)
+	Style.PaintGem(gem)
+	gem:Show()
+	return true
+end
+
+local function SetGem(tooltip, glass, title)
+	local wanted = title ~= nil and glass.iconOwner and Style.PlaceGem(glass.gem, title) or nil
+	if not wanted then
+		glass.gem:Hide()
+	end
+	if wanted ~= glass.gemmed then
+		glass.gemmed = wanted
+		if not Pad(tooltip, glass, glass.padded or 0) then
+			glass.gemmed = nil
+			glass.gem:Hide()
+		end
+	end
 end
 
 local function PlaceDivider(glass, tooltip)
@@ -608,6 +688,11 @@ function Style.Lines(tooltip, item)
 	if not glass then
 		return
 	end
+	local header, heading = Header(tooltip)
+	if header then
+		Widgets.SetText(heading.caption, header.Label:GetText())
+		PlaceHeader(tooltip)
+	end
 	local count = Style.NumLines(tooltip)
 	local stats, footer
 	if item and count >= 2 then
@@ -625,9 +710,11 @@ function Style.Lines(tooltip, item)
 	end
 	if not (Settings.Get("divider") and count >= 2) then
 		glass.divider:Hide()
+		SetGem(tooltip, glass, nil)
 		return
 	end
 	PlaceDivider(glass, tooltip)
+	SetGem(tooltip, glass, glass.divider:IsShown() and glass.ruleLine or nil)
 end
 
 function Style.FollowsFont(role)
@@ -687,6 +774,7 @@ function Style.ApplyFonts()
 		if glass then
 			CaptionFont(glass.caption)
 			TitleFont(tooltip, glass)
+			PlaceHeader(tooltip)
 		end
 	end
 end
@@ -721,17 +809,7 @@ local function EffectiveScale(frame)
 end
 
 local function RestyleParts(tooltip)
-	local header = tooltip.CompareHeader
-	local panel = type(header) == "table" and Safe.Side(header).tooltipsPanel
-	if panel then
-		if Widgets.MayMove(panel) then
-			panel:Restyle()
-		end
-		panel.chrome:Restyle()
-		if type(header.Label) == "table" then
-			Widgets.StyleText(header.Label)
-		end
-	end
+	PlaceHeader(tooltip)
 	local item = tooltip.ItemTooltip
 	local frame = type(item) == "table" and Safe.Side(item).tooltipsBorder
 	if frame then
@@ -756,6 +834,10 @@ function Style.ApplyScale(elementScale)
 			glass.chrome:Restyle()
 			if glass.divider:IsShown() and glass.ruleLine then
 				PlaceRule(glass, glass.ruleLine)
+			end
+			if glass.gemmed and glass.ruleLine then
+				Style.PlaceGem(glass.gem, glass.ruleLine)
+				Pad(tooltip, glass, glass.padded or 0)
 			end
 		end
 	end

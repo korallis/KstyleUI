@@ -1,5 +1,5 @@
 -- gallery_chat.lua: KstyleUI_Chat's frames beyond the HUD's panel, each cropped as one frame of the gallery: the
--- tab strip with the filled tab style, the edit box skinned while the player types, an undocked window on its own
+-- tab strip in the shipped tab style, the edit box skinned while the player types, an undocked window on its own
 -- glass, the copy window open with the general window's lines, and the settings window's live preview. The chat
 -- panel itself is the HUD scene's frame. The stub ScrollingMessageFrame draws nothing, so the scene lays the lines
 -- out as scenes/chat.lua does (its layout is local to that scene, so the minimum is copied here).
@@ -91,7 +91,7 @@ return Common.Run(function()
 	local env, K, ns = C.New({
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
-		saved = Gallery.Saved({ Chat = { tabStyle = "filled" } }),
+		saved = Gallery.Saved({ "Chat" }),
 		install = { frames = #TABS },
 		setup = function(env)
 			Gallery.Setup(env)
@@ -178,9 +178,9 @@ return Common.Run(function()
 		tabs[id] = env["ChatFrame" .. id .. "Tab"]
 	end
 	frames:Add(env, dock, {
-		name = "chat_tabs_filled", title = "Chat tabs, filled style", grade = "button", reference = "chat",
-		caption = "The chat panel's tab strip with tabStyle = filled: the selected GENERAL tab on a buttonFill tile (Frames.lua:174) with its edge in the accent, the other tabs plain upper-case text on the panel glass.",
-		match = "The tile is the mockup's button body with a one-border line; the mockup's selected tab is underlined in the class colour instead, which is the default style.",
+		name = "chat_tabs", title = "Chat tabs", grade = "button", reference = "chat",
+		caption = "The chat panel's tab strip in the shipped underline style, the one design the HUD and the settings preview draw too (Frames.TabLook): the selected GENERAL tab in the heading gold over a one-unit gilt underline and its glow, the other tabs in the dim grey.",
+		match = "As the overhaul's Frames mock-up draws the framed chat card's caps tabs: gilt over a gilt underline, the others faint.",
 		rect = Gallery.Union(env, tabs),
 	})
 	frames:Add(env, box, {

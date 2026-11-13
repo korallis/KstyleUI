@@ -161,6 +161,26 @@ local function PaintGlow(glow, r, g, b)
 	end
 end
 
+function Frames.TabLook(style, selected)
+	local text
+	if style == "plain" then
+		text = selected and "capsGold" or "muted"
+	elseif style == "underline" then
+		text = selected and "capsGold" or "dim"
+	end
+	return text, selected and style == "underline", selected and style == "filled"
+end
+
+function Frames.PaintUnderline(line, glow, shown)
+	local r, g, b = Widgets.LumenColor("gilt")
+	line:SetVertexColor(r, g, b, 1)
+	line:SetShown(shown)
+	if glow then
+		PaintGlow(glow, r, g, b)
+		glow:SetShown(shown)
+	end
+end
+
 local function PaintTab(parts)
 	local settings = state.settings
 	if not settings or not parts.underline then
@@ -168,15 +188,8 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
-	local plain = style == "plain"
-	local r, g, b = Widgets.LumenColor("gilt")
-	local underlined = selected and style == "underline"
-	parts.underline:SetVertexColor(r, g, b, 1)
-	parts.underline:SetShown(underlined)
-	if parts.chatGlow then
-		PaintGlow(parts.chatGlow, r, g, b)
-		parts.chatGlow:SetShown(underlined)
-	end
+	local textColor, underlined, filled = Frames.TabLook(style, selected)
+	Frames.PaintUnderline(parts.underline, parts.chatGlow, underlined)
 	local fill = parts.backdrop
 	if not fill and style == "filled" then
 		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "buttonFill", shadow = false, inset = {} })
@@ -188,7 +201,7 @@ local function PaintTab(parts)
 		fill:Restyle()
 	end
 	if parts.wash then
-		parts.wash:SetShown(selected and style == "filled")
+		parts.wash:SetShown(filled)
 		if fill and not parts.washFitted then
 			parts.washFitted = true
 			parts.wash:ClearAllPoints()
@@ -196,20 +209,14 @@ local function PaintTab(parts)
 		end
 	end
 	if fill then
-		fill:SetShown(selected and style == "filled")
+		fill:SetShown(filled)
 		if fill.chrome then
 			fill.chrome:SetEdgeRGBA(Accent())
 		end
 	end
 	local text = parts.text
-	if (plain or style == "underline") and text and type(text.SetTextColor) == "function" then
-		if selected then
-			text:SetTextColor(Tokens.Color("capsGold"))
-		elseif plain then
-			text:SetTextColor(Tokens.Color("muted"))
-		else
-			text:SetTextColor(Tokens.Color("dim"))
-		end
+	if textColor and text and type(text.SetTextColor) == "function" then
+		text:SetTextColor(Tokens.Color(textColor))
 	end
 end
 
@@ -231,16 +238,20 @@ local function TabCase(tab)
 	end
 end
 
+function Frames.PlaceGlow(glow, line)
+	glow:ClearAllPoints()
+	glow:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, 0)
+	glow:SetPoint("BOTTOMRIGHT", line, "TOPRIGHT", 0, 0)
+	glow:SetHeight(Widgets.Snap(glow, UNDERLINE_GLOW_UNITS))
+end
+
 local function LayoutTab(parts)
 	local line, tab, glow = parts.underline, parts.frame, parts.chatGlow
 	line:ClearAllPoints()
 	line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
 	line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
 	line:SetHeight(Widgets.Snap(line, UNDERLINE_UNITS))
-	glow:ClearAllPoints()
-	glow:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, 0)
-	glow:SetPoint("BOTTOMRIGHT", line, "TOPRIGHT", 0, 0)
-	glow:SetHeight(Widgets.Snap(glow, UNDERLINE_GLOW_UNITS))
+	Frames.PlaceGlow(glow, line)
 end
 
 local function StyleTab(frame, tab)

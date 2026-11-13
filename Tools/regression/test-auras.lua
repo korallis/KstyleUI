@@ -94,7 +94,7 @@ do
 			check(not (type(r) == "number" and math.abs(r - fr) < 1e-3 and math.abs(g - fg) < 1e-3 and math.abs(b - fb) < 1e-3), "an aura tile is bare: no button body under the icon")
 		end
 	end
-	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "one row of ten buffs and one of ten debuffs")
+	check(bg.maxFrameCount == 9 and dg.maxFrameCount == 9, "one row of ten cells each: nine auras and the +N cell")
 	check(bg.sortMethod == env.AuraContainerSortMethod.Expiration and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by use: the engine's Expiration comparator (yours, then ones you can cast, then the soonest to end, always-on after timed)")
 	check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14, "each buff is a 27.5-unit icon (whole pixels at this size) with its 10-unit timer in 14 units under it")
 	check(bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "icons on one 31-unit pitch of whole pixels, 4 between rows")
@@ -176,7 +176,7 @@ do
 
 	K.Options.Write("Auras", "buffs.rows", 3)
 	K.Options.Write("Auras", "buffs.columns", 12)
-	check(bg.maxFrameCount == 36, "3 rows of 12")
+	check(bg.maxFrameCount == 35, "3 rows of 12: thirty-five auras and the +N cell")
 	check(buffs._flow.lineSize >= 12 * 32 + 11 * 3 and buffs._flow.lineSize < 13 * 32 + 12 * 3, "twelve icons per line")
 
 	K.Options.Write("Auras", "buffs.cancel", false)
@@ -224,7 +224,7 @@ end
 do
 	local env = start({ layout = true })
 	local container, bg = A.Container(env, "HELPFUL")
-	check(bg.maxFrameCount == 10, "no enchantment, 10 buffs")
+	check(bg.maxFrameCount == 9, "no enchantment, 9 buffs beside the +N cell")
 	local applied = 0
 	local setCount = container.SetAuraGroupMaxFrameCount
 	container.SetAuraGroupMaxFrameCount = function(...)
@@ -235,18 +235,18 @@ do
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	env.FireEvent("WEAPON_SLOT_CHANGED")
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(applied == 0 and bg.maxFrameCount == 10, "enchantment events wait for the end of the frame")
+	check(applied == 0 and bg.maxFrameCount == 9, "enchantment events wait for the end of the frame")
 	env.RunTimers()
 	check(applied == 1, "three enchantment events in one frame re-apply the buff row once, got " .. applied)
-	check(bg.maxFrameCount == 9, "a main-hand enchantment leaves 9 buffs, got " .. bg.maxFrameCount)
+	check(bg.maxFrameCount == 8, "a main-hand enchantment leaves 8 buffs, got " .. bg.maxFrameCount)
 	env._enchants[env.INVSLOT_OFFHAND] = { enchantID = 2, hasExpirationTime = false, remainingTimeMs = 0 }
 	env.FireEvent("WEAPON_SLOT_CHANGED")
 	env.RunTimers()
-	check(bg.maxFrameCount == 8, "two enchantments leave 8")
+	check(bg.maxFrameCount == 7, "two enchantments leave 7")
 	env._enchants = {}
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	env.RunTimers()
-	check(bg.maxFrameCount == 10, "expired enchantments give their places back")
+	check(bg.maxFrameCount == 9, "expired enchantments give their places back")
 end
 
 -- A panel smaller than the enchantment slots shows only as many enchantments as it has places.
@@ -273,7 +273,7 @@ do
 			enabled = enabled + 1
 		end
 	end
-	check(enabled == 3 and bg.maxFrameCount == 10, "a wider panel takes every slot back, got " .. enabled .. " and " .. bg.maxFrameCount)
+	check(enabled == 3 and bg.maxFrameCount == 9, "a wider panel takes every slot back, the last cell the +N's, got " .. enabled .. " and " .. bg.maxFrameCount)
 end
 
 -- The secrecy gate: while aura data is secret, nothing touches an aura button; the change applies after.
