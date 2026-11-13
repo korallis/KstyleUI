@@ -2,7 +2,7 @@
 -- left, the diagram bottom right, empty space). Two even cards side by side, Your choices and the layout Apply builds,
 -- one height and 12 units apart, over a full-width status card headed with what is left to do; each card keeps its
 -- 16-unit padding around its heading, text, buttons and diagram, the diagram centred in its card, and nothing spills
--- past the page, before Apply and after it at the largest text size with every Edit Mode note showing.
+-- past the page, before Apply and after it at the largest text size with every Edit Mode note showing, modules on or off.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local Scene = dofile("Tools/render/scene.lua")
@@ -99,8 +99,9 @@ do
 	check(env, K, K.Setup.window, "before Apply")
 end
 
--- After Apply at the largest text size, with Edit Mode's layout written and both tracked viewers left in place.
-do
+-- After Apply at the largest text size, with Edit Mode's layout written and both tracked viewers left in place, with
+-- every module on and then with all but one off (the Off list must not push the status card off the page).
+for _, off in ipairs({ false, true }) do
 	local env, K = Boot()
 	EditModeFake.Install(env, { saved = {}, active = 1 })
 	env.CooldownViewerSettings = { ShowUIPanel = function() end }
@@ -110,13 +111,18 @@ do
 	end)
 	K.Setup.Open()
 	W.Settle(env)
+	if off then
+		for i, name in ipairs(MODULES) do
+			K.Setup.Choice().modules[name] = i == 1
+		end
+	end
 	K.Setup.Go(6)
 	W.Settle(env)
 	local panel = K.Setup.window
 	W.Click(panel.apply)
 	W.Settle(env)
 	assert(panel.editMode:IsShown() and panel.manager:IsShown() and panel.retry:IsShown(), "the notes, Try again and the Cooldown Manager show")
-	check(env, K, panel, "after Apply at the largest text size")
+	check(env, K, panel, off and "after Apply at the largest text size with modules off" or "after Apply at the largest text size")
 end
 
 print("setup summary ok")

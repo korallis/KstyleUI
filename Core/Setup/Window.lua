@@ -165,10 +165,8 @@ local function Refresh()
 		local head = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
 			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
-		panel.summaryTexts = {
-			head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail,
-			head .. string.format(L["Modules on: %d of %d."], #on, #on + #off) .. tail,
-		}
+		local count = head .. string.format(L["Modules on: %d of %d."], #on, #on + #off)
+		panel.summaryTexts = { head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail, count .. tail, count }
 		panel.summary:SetText(panel.summaryTexts[1])
 		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
 		panel.summaryHelp:SetText(applied
@@ -702,7 +700,7 @@ PlaceSummary = function()
 			break
 		end
 	end
-	local row = Widgets.Snap(page, max(choices, free))
+	local row = Widgets.Snap(page, free)
 	local left, right, low = panel.summaryChoices, panel.summaryLayout, panel.summaryStatus
 	SizeCard(left, 0, 0, column, row, pad)
 	SizeCard(right, column + spacing, 0, column, row, pad)
