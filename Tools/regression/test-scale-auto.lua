@@ -43,7 +43,7 @@ end
 -- In Frames the boss column caps every screen at 0.995, so 1080 lines take 15/16 and 2160 lines 31/16.
 -- Orbs reaches at least Frames' step on the seven screens of the matrix and on 1366x768 (KSTY-60 item 2, the Captain's
 -- ruling of 2026-11-13), and on 3840x1080 one step more, the mock-ups' own size; on 3:2 screens the left aura row meets
--- the loot feed one step earlier, a recorded limit.
+-- the loot feed a step earlier (three in Healer, where its raid meets the target), a recorded limit.
 local SAME = { "5120x1440", "3440x1440", "3840x1080", "2560x1440", "1920x1080", "3840x2160", "1280x720", "1366x768" }
 local WANT = {
 	frames = {
