@@ -268,7 +268,7 @@ local function spanChanged(frame)
 	end
 	rawset(frame, "_lastSpan", { w, h })
 	local script = frame._scripts and frame._scripts.OnSizeChanged
-	if script and last then
+	if script and (last or (type(w) == "number" and w > 0) or (type(h) == "number" and h > 0)) then
 		script(frame, w, h)
 	end
 	return true
