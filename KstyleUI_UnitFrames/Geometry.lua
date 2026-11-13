@@ -448,7 +448,7 @@ local function PillRow(out, s, width, height, scale)
 end
 
 local COLUMN = {
-	ring = 70, ringGap = 21.5, disc = 33.5 / 70, discAlong = 30 / 70, discDrop = 27 / 70,
+	ring = 70, ringGap = 21.5, disc = 33.5 / 70, discAlong = 30 / 70, discDrop = 22 / 70,
 	health = 21.5, healthMirror = 19, power = 8, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.78,
 	castBar = 7, castGap = 11, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,

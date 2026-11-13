@@ -123,7 +123,10 @@ function Resource.Layout()
 		end
 	end
 	if state.showMana then
-		Place(state.mana, 0, state.showCombo and pipRow + GAP or (h - manaH) / 2, w, manaH)
+		local edge = 2 * Widgets.Border(state.content)
+		local top = max(edge, state.showCombo and pipRow + GAP or (h - manaH) / 2)
+		local bottom = min(h - edge, top + manaH)
+		Place(state.mana, edge, top, max(0, w - 2 * edge), max(0, bottom - top))
 		state.mana:Show()
 	else
 		state.mana:Hide()
