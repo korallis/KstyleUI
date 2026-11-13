@@ -1,4 +1,4 @@
--- Frames.lua: restyles Blizzard's chat windows in place: their art, the tabs in Cinzel caps with the selected one gold, edit boxes, scroll bars, fonts and buttons.
+-- Frames.lua: restyles Blizzard's chat windows in place: their art, the tabs in the caps face with the selected one gilt and underlined, edit boxes, scroll bars, fonts and buttons.
 local _, ns = ...
 
 local K = KstyleUI
@@ -19,6 +19,7 @@ local UNDERLINE_GLOW_ALPHA = 0.25
 local CHEVRON = 8
 local PROBE_SIZE = 12
 local FADE_DEFAULT = 120
+local WORLD_FLAGS = "OUTLINE"
 
 local IsSecret = Format.IsSecret
 
@@ -101,7 +102,7 @@ function Frames.Fonts(settings)
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(ns.TextSize(s), ns.FONT_MIN, ns.FONT_MAX, Tokens.TypeDefault("chatSize"))
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
-	local tabPath = Tokens.Font("names")
+	local tabPath = Tokens.Font("caps")
 	return path, size, flags, tabSize, tabPath
 end
 
@@ -189,11 +190,13 @@ local function PaintTab(parts)
 		end
 	end
 	local text = parts.text
-	if plain and text and type(text.SetTextColor) == "function" then
+	if (plain or style == "underline") and text and type(text.SetTextColor) == "function" then
 		if selected then
 			text:SetTextColor(Tokens.Color("capsGold"))
-		else
+		elseif plain then
 			text:SetTextColor(Tokens.Color("muted"))
+		else
+			text:SetTextColor(Tokens.Color("dim"))
 		end
 	end
 end
@@ -331,12 +334,25 @@ function Frames.Pitch(settings)
 	return size * hud, Halves(ns.LineSpacing(s), ns.SPACING_MIN, ns.SPACING_MAX, Tokens.TypeDefault("chatSpacing")) * hud
 end
 
+local function WorldText(frame)
+	if type(frame.SetShadowOffset) ~= "function" then
+		return
+	end
+	local offset = K.Scale.Border() / Widgets.ScaleFactor(frame)
+	frame:SetShadowColor(Tokens.Color("textShadow"))
+	frame:SetShadowOffset(offset, -offset)
+end
+
 local function ApplyFrame(frame)
 	local s = state.settings
 	local path, size, flags, tabSize, tabPath = Frames.Fonts()
 	local hud = HudSize()
 	size, tabSize = size * hud, tabSize * hud
-	Frames.ApplyFont(frame, path, size, flags)
+	local world = flags == "" and Panel.Bare(s)
+	Frames.ApplyFont(frame, path, size, world and WORLD_FLAGS or flags)
+	if world then
+		WorldText(frame)
+	end
 	if type(frame.SetFading) == "function" then
 		frame:SetFading(s.fade == true)
 	end

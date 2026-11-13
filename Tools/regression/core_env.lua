@@ -72,6 +72,11 @@ function CoreEnv.LoadSaved(env)
 		assert(env.KstyleUI.Tokens.Material(env._renderCardMaterial), "unknown RENDER_CARD_MATERIAL: " .. env._renderCardMaterial)
 		env.KstyleUI.Options.Write("Widgets", "cardMaterial", env._renderCardMaterial)
 	end
+	if env._renderChatFraming then
+		local framing = env._renderChatFraming
+		assert(framing == "auto" or framing == "card" or framing == "bare", "unknown RENDER_CHAT_FRAMING: " .. tostring(framing))
+		env.KstyleUI.Store.Module("Chat").framing = framing
+	end
 	if env._renderOrnaments then
 		local level = env._renderOrnaments
 		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))

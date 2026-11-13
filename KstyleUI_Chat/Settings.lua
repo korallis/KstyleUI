@@ -29,6 +29,7 @@ end
 local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 local defaults = {
+	framing = "auto",
 	panelOpacity = SURFACE_ALPHA,
 	shadow = true,
 	buttons = false,
@@ -42,7 +43,7 @@ local defaults = {
 	fadeTime = 120,
 	history = true,
 	historyLines = 100,
-	tabStyle = "plain",
+	tabStyle = "underline",
 	tabCase = "upper",
 	tabFontSize = 12,
 	accentSource = "class",
@@ -158,6 +159,15 @@ function ns.Schema()
 	local schema = {
 		{ type = "header", label = L["Panel"] },
 		{
+			type = "dropdown", key = "framing", label = L["Framing"],
+			help = L["A card with tabs, or text on a soft shadow with tabs on hover. Auto: card in Frames, bare in Orbs."],
+			options = {
+				{ value = "auto", label = L["Follow the HUD style"] },
+				{ value = "card", label = L["Framed card"] },
+				{ value = "bare", label = L["Text on a soft shadow"] },
+			},
+		},
+		{
 			type = "slider", key = "panelOpacity", label = L["Glass opacity"],
 			help = L["How solid the glass behind the chat looks. The text stays fully visible."],
 			min = OPACITY_MIN, max = OPACITY_MAX, step = OPACITY_STEP,
@@ -228,7 +238,7 @@ function ns.Schema()
 			help = L["How the selected tab stands out."],
 			options = {
 				{ value = "plain", label = L["Gold text"] },
-				{ value = "underline", label = L["Accent underline"] },
+				{ value = "underline", label = L["Gilt underline"] },
 				{ value = "filled", label = L["Filled tile"] },
 				{ value = "minimal", label = L["Bright text only"] },
 			},

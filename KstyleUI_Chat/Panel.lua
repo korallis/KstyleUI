@@ -1,4 +1,4 @@
--- Panel.lua: the chat's glass panel, a Layout element that holds Blizzard's main chat window, its tabs and its edit box.
+-- Panel.lua: the chat's panel, a Layout element that holds Blizzard's main chat window, its tabs and its edit box: a framed card, or in the Orbs HUD style bare text on a soft shadow, with tabs that show on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,8 @@ ns.Panel = Panel
 local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
-local DIVIDER_ALPHA = 0.25
+local RULE_ALPHA = 0.35
+local SHADE_REACH, SHADE_CORNER, SHADE_ALPHA = 36, 72, 0.5
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
 local COPY_SQUARE = 5.5
 local EDIT_MODE_EXIT = "EditMode.Exit"
@@ -46,8 +47,11 @@ local state = {
 	alpha = nil,
 	hooked = false,
 	trimmed = false,
+	bare = false,
+	hover = false,
 }
 local logged = {}
+local HookHover
 local mirrored = setmetatable({}, { __mode = "k" })
 local edits = setmetatable({}, { __mode = "k" })
 local busy = false
@@ -168,6 +172,19 @@ function Panel.UndockedInsets(frame)
 		top = -(BACKGROUND_RISE + STRIP_HEIGHT / k),
 		bottom = bottom,
 	}
+end
+
+function Panel.Bare(settings)
+	settings = settings or state.settings
+	local framing = settings and settings.framing
+	if framing == "bare" then
+		return true
+	end
+	if framing == "card" then
+		return false
+	end
+	local hud = K.HudStyle
+	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == "orbs"
 end
 
 function Panel.Holder()
@@ -312,14 +329,21 @@ local function EditAlpha(frame)
 	ApplyEdit(box, info)
 end
 
-local function SetChatAlpha(alpha)
-	if state.alpha == alpha then
+local function DockAlpha(alpha)
+	if state.active and state.bare and not state.hover then
+		return 0
+	end
+	return alpha
+end
+
+local function SetChatAlpha(alpha, force)
+	if state.alpha == alpha and not force then
 		return
 	end
 	state.alpha = alpha
 	local dock = GENERAL_CHAT_DOCK
 	if type(dock) == "table" and type(dock.SetAlpha) == "function" then
-		dock:SetAlpha(alpha)
+		dock:SetAlpha(DockAlpha(alpha))
 	end
 	for _, frame in ipairs(Windows.List()) do
 		if state.active and frame.isDocked then
@@ -363,8 +387,8 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left, -g.divider)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
-	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
-	divider:Hide()
+	Widgets.Tint(divider, "gilt", RULE_ALPHA)
+	divider:SetShown(not state.bare)
 	local y = -(g.divider - TAB_TEXT_RISE * g.k)
 	glass.plus:ClearAllPoints()
 	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
@@ -422,6 +446,8 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	for _, frame in ipairs(Windows.List()) do
+		local name = frame:GetName()
+		HookHover(IsText(name) and _G[name .. "Tab"] or nil)
 		PlaceEdit(frame, g.k, frame.isDocked ~= nil and not EditAlways(), frame.isDocked ~= nil)
 		if frame ~= chat and frame.isDocked and g.spacing and type(frame.SetSpacing) == "function" then
 			frame:SetSpacing(g.spacing)
@@ -471,6 +497,9 @@ function Panel.Rest()
 	local show = state.hover == true
 	glass.plus:SetShown(show)
 	glass.copy:SetShown(show and settings ~= nil and settings.copyButton == true)
+	if state.bare and state.alpha ~= nil then
+		SetChatAlpha(state.alpha, true)
+	end
 end
 
 local function Reveal()
@@ -491,7 +520,7 @@ local function Conceal()
 	end)
 end
 
-local function HookHover(frame)
+function HookHover(frame)
 	if type(frame) ~= "table" or type(frame.HookScript) ~= "function" or hovered[frame] then
 		return
 	end
@@ -502,12 +531,23 @@ end
 
 local function Paint(settings)
 	local glass = state.glass
+	local bare = Panel.Bare(settings)
+	state.bare = bare
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
+	glass.chrome:SetShown(not bare)
+	glass.divider:SetShown(not bare)
+	local shade = state.shade
+	Widgets.LayoutSlice(shade, state.holder, SHADE_CORNER, SHADE_REACH)
+	Widgets.ColorSlice(shade, Widgets.Rgba("black", SHADE_ALPHA))
+	Widgets.ShowSlice(shade, bare)
 	glass.copy:Paint()
 	glass.plus:Paint()
 	Panel.Rest()
+	if state.alpha ~= nil then
+		SetChatAlpha(state.alpha, true)
+	end
 end
 
 local function FollowTab(_, alpha)
@@ -663,7 +703,9 @@ local function Build()
 	glass:SetAllPoints(holder)
 	glass:SetFixedFrameStrata(true)
 	glass.divider = glass:CreateTexture(nil, "ARTWORK")
-	glass.divider:SetTexture((Tokens.Texture("divider")))
+	glass.divider:SetColorTexture(Tokens.Color("white"))
+	state.shade = Widgets.NineSlice(holder, "shadow", "BACKGROUND")
+	Widgets.ShowSlice(state.shade, false)
 	glass.plus = PlusButton(glass)
 	glass.copy = CopyButton(glass)
 	glass.dockEnd = CreateFrame("Frame", nil, glass)
@@ -740,7 +782,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" then
+	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then

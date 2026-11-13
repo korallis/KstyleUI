@@ -1,4 +1,4 @@
--- test-layout-calm.lua: combat calm. In combat the idle lines (XP, reputation, honour) rest at 30%, the readout card and its menus at a legible 65%, the cards you read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit; a hover wakes a calmed card; out of combat the cards return after a delay. Alpha only, one owner per frame, with a setting.
+-- test-layout-calm.lua: combat calm. In combat the idle lines (XP, reputation, honour) rest at 30%, the readout card and its menus at a legible 65%, the cards you read (map, tracker, guide) dim only to 75%, the chat card keeps its material solid and leaves its text to the client's own chat fading (KSTY-50), and the focus cards stay lit; a hover wakes a calmed card; out of combat the cards return after a delay. Alpha only, one owner per frame, with a setting.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 
@@ -8,7 +8,7 @@ end
 
 local IDLE = { "databars.xp", "databars.rep", "databars.honor" }
 local READOUT = { "databars.strip", "databars.micro", "databars.bags" }
-local READ = { "chat.main", "minimap.main" }
+local READ = { "minimap.main" }
 local SLOW = { "chat.main", "minimap.main", "databars.strip", "databars.micro", "databars.bags", "databars.xp", "databars.rep", "databars.honor" }
 local FOCUS = {
 	"groupframes.party", "groupframes.raid", "unitframes.boss", "unitframes.target", "unitframes.player", "unitframes.castbar.player",
@@ -64,8 +64,9 @@ do
 		assert(K.Setup.Layouts.Element(key), key .. " is an element key")
 	end
 	for _, key in ipairs(SLOW) do
-		assert(cards[key], key .. " is a slow card")
+		assert(cards[key] or key == "chat.main", key .. " is a slow card")
 	end
+	assert(not cards["chat.main"], "the chat card keeps its material solid in combat (KSTY-50)")
 	for _, key in ipairs(FOCUS) do
 		assert(not cards[key], key .. " is a focus card and never calms")
 	end
@@ -119,20 +120,36 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- The chat card is not calmed (KSTY-50): its material stays solid in combat, as KSTY-34 found Lee's card at 72% and
+-- the overhaul's plan asks; its lines fade by the client's own chat fading (SetFading, SetTimeVisible).
+
+do
+	local env, K, frames = New()
+	env.SetCombat(true)
+	W.Settle(env)
+	Wait(env, 1)
+	assert(frames["chat.main"]:GetAlpha() == 1, "the chat card stays at 100% in combat, got " .. frames["chat.main"]:GetAlpha())
+	assert(near(frames["minimap.main"]:GetAlpha(), 0.75), "while the map calms")
+	for _, key in ipairs(K.Layout.Calm.CARDS) do
+		assert(key ~= "chat.main", "the chat is not a calm card")
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Hover: a calmed card wakes while the pointer is on it ---------------------------------------------------------
 
 do
 	local env, _, frames = New()
 	env.SetCombat(true)
 	W.Settle(env)
-	local chat = frames["chat.main"]
-	chat._mouseOver = true
+	local map = frames["minimap.main"]
+	map._mouseOver = true
 	Poll(env)
-	assert(near(chat:GetAlpha(), 1), "the pointer on the chat wakes it")
-	assert(near(frames["minimap.main"]:GetAlpha(), 0.75) and near(frames["databars.strip"]:GetAlpha(), 0.65), "the other cards stay calm")
-	chat._mouseOver = false
+	assert(near(map:GetAlpha(), 1), "the pointer on the map wakes it")
+	assert(near(frames["databars.strip"]:GetAlpha(), 0.65), "the other cards stay calm")
+	map._mouseOver = false
 	Poll(env)
-	assert(near(chat:GetAlpha(), 0.75), "the chat calms again once the pointer leaves")
+	assert(near(map:GetAlpha(), 0.75), "the map calms again once the pointer leaves")
 	env.SetCombat(false)
 	Wait(env, 4)
 	W.Settle(env)
@@ -178,10 +195,10 @@ do
 	local env, K, frames = New()
 	K.Motion.SetLevel("reduced")
 	env.SetCombat(true)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.75) and near(frames["databars.xp"]:GetAlpha(), 0.3), "with reduced motion the cards calm at once")
+	assert(near(frames["minimap.main"]:GetAlpha(), 0.75) and near(frames["databars.xp"]:GetAlpha(), 0.3), "with reduced motion the cards calm at once")
 	env.SetCombat(false)
 	Wait(env, 3.05)
-	assert(near(frames["chat.main"]:GetAlpha(), 1), "and returns at once after the wait")
+	assert(near(frames["minimap.main"]:GetAlpha(), 1), "and returns at once after the wait")
 end
 
 -- The setting: off, nothing calms; turned off in combat, the cards return ----------------------------------------
@@ -191,13 +208,13 @@ do
 	K.Options.Write("Layout", "calm", false)
 	env.SetCombat(true)
 	W.Settle(env)
-	assert(frames["chat.main"]:GetAlpha() == 1, "with the setting off the chat stays at 100% in combat")
+	assert(frames["minimap.main"]:GetAlpha() == 1, "with the setting off the map stays at 100% in combat")
 	K.Options.Write("Layout", "calm", true)
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.75), "turned on in combat, the rails calm")
+	assert(near(frames["minimap.main"]:GetAlpha(), 0.75), "turned on in combat, the rails calm")
 	K.Options.Write("Layout", "calm", false)
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 1), "turned off in combat, the rails return")
+	assert(near(frames["minimap.main"]:GetAlpha(), 1), "turned off in combat, the rails return")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -205,17 +222,17 @@ end
 
 do
 	local env, K, frames = New()
-	assert(K.Layout.Set("chat.main", "alphaCombat", 0.8))
+	assert(K.Layout.Set("databars.strip", "alphaCombat", 0.8))
 	assert(K.Layout.Set("minimap.main", "shown", "mouseover"))
 	W.Settle(env)
 	env.SetCombat(true)
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.8), "the chat keeps the player's 80% combat opacity, got " .. frames["chat.main"]:GetAlpha())
+	assert(near(frames["databars.strip"]:GetAlpha(), 0.8), "the readout keeps the player's 80% combat opacity, got " .. frames["databars.strip"]:GetAlpha())
 	assert(frames["minimap.main"]:GetAlpha() == 0, "the minimap keeps the player's mouseover rule")
 	assert(near(frames["databars.xp"]:GetAlpha(), 0.3), "a card at its defaults calms")
-	assert(K.Layout.Set("chat.main", "alphaCombat", 1))
+	assert(K.Layout.Set("databars.strip", "alphaCombat", 1))
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.75), "an opacity put back at 100% hands the chat back to the calm")
+	assert(near(frames["databars.strip"]:GetAlpha(), 0.65), "an opacity put back at 100% hands the readout back to the calm")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

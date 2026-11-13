@@ -1,4 +1,4 @@
--- Feed.lua: the loot feed: the player's own item and money gains as short lines above the chat card, each item in a quality-rimmed icon tile with its name in its quality colour and a stack count, money in coin colours, on a glass backdrop that hugs the lines.
+-- Feed.lua: the loot feed: the player's own item and money gains as short lines above the chat card, each item in a quality-rimmed icon tile with its name in its quality colour and a stack count, money in coin colours, on a card that hugs the lines, or bare on the world when the chat is bare.
 local _, ns = ...
 
 local K = ns.K
@@ -19,10 +19,26 @@ local COINS = {
 local quality = Enum and Enum.ItemQuality or {}
 local RIM_FROM = quality.Uncommon or 2
 
+local OWNER = "QoL.feed"
+local WORLD_FLAGS = "OUTLINE"
+
 local Feed = { lines = {}, free = {}, pending = {} }
 ns.Feed = Feed
 
-local holder, backdrop
+local holder, backdrop, listening
+
+function Feed.Bare()
+	local ok, chat = pcall(K.Store.Module, "Chat")
+	local framing = ok and type(chat) == "table" and chat.framing or "auto"
+	if framing == "bare" then
+		return true
+	end
+	if framing == "card" then
+		return false
+	end
+	local hud = K.HudStyle
+	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == "orbs"
+end
 
 local function Inset()
 	return Widgets.WindowInset(backdrop)
@@ -40,7 +56,13 @@ end
 
 local function Style(text, role, color)
 	local path, _, flags = Tokens.Font(role)
-	Widgets.ApplyFont(text, path, Tokens.Size("lootText"), flags)
+	local bare = Feed.Bare()
+	Widgets.ApplyFont(text, path, Tokens.Size("lootText"), bare and WORLD_FLAGS or flags)
+	if bare then
+		local offset = K.Scale.Border() / Widgets.ScaleFactor(text)
+		text:SetShadowColor(Tokens.Color("textShadow"))
+		text:SetShadowOffset(offset, -offset)
+	end
 	if color then
 		text:SetTextColor(Tokens.Color(color))
 	end
@@ -89,6 +111,13 @@ end
 local function Refit()
 	local count = #Feed.lines
 	if count == 0 then
+		return
+	end
+	if Feed.Bare() then
+		Motion.Stop(backdrop.fit, true)
+		backdrop.leaving = false
+		backdrop:Hide()
+		backdrop:SetAlpha(0)
 		return
 	end
 	local tile, gap, inset = Tokens.Size("lootTile"), Tokens.Size("gapSmall"), Inset()
@@ -349,12 +378,46 @@ local function Clear()
 	end
 end
 
+local function Restyle()
+	if holder then
+		holder.Restyle()
+	end
+end
+
+local function Reframe(_, module, key)
+	if module == "Chat" and (key == nil or key == "framing") then
+		Restyle()
+	end
+end
+
+local function Listen(on)
+	if on == listening then
+		return
+	end
+	listening = on
+	local Callbacks = K.Callbacks
+	local styled = K.HudStyle and type(K.HudStyle.Current) == "function"
+	if on then
+		Callbacks.Register("SettingChanged", OWNER, Reframe)
+		if styled then
+			Callbacks.Register("HudStyleChanged", OWNER, Restyle)
+		end
+		return
+	end
+	Callbacks.Unregister("SettingChanged", OWNER)
+	if styled then
+		Callbacks.Unregister("HudStyleChanged", OWNER)
+	end
+end
+
 local function Sync()
 	if ns.running and ns.Get("lootFeed") then
 		Build()
 		SetLive(true)
+		Listen(true)
 		return
 	end
+	Listen(false)
 	Clear()
 	if holder then
 		SetLive(false)
@@ -377,6 +440,9 @@ ns.AddPart({
 	Setting = function(key)
 		if key == nil or key == "lootFeed" then
 			Sync()
+		end
+		if key == nil then
+			Restyle()
 		end
 	end,
 })

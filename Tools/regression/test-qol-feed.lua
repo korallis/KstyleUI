@@ -383,4 +383,30 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 	end
 end
 
+-- Framing (KSTY-50): the loot line follows the chat's framing. Over the bare chat of the Orbs HUD style it stands on
+-- the world with no card, its texts outlined with the kit's shadow; back in Frames the card returns.
+do
+	local env, K, ns = New()
+	local style = "orbs"
+	local had = K.HudStyle
+	K.HudStyle = { Current = function()
+		return style
+	end }
+	Loot(env, "You receive loot: " .. BUG_EYE)
+	local backdrop, line = ns.Feed.Backdrop(), ns.Feed.lines[1]
+	assert(line and line:IsShown() and line.name:GetText() == "Bug Eye", "the line shows")
+	assert(not backdrop:IsShown(), "with no card behind it")
+	local _, _, flags = line.name:GetFont()
+	local shadow = Q.W.LastCall(line.name, "SetShadowOffset")
+	assert(flags == "OUTLINE" and shadow and shadow[1] > 0, "its name stands on the world: an outline and the kit's shadow")
+	style = "frames"
+	ns.Feed.Holder().Restyle()
+	Settle(env)
+	assert(backdrop:IsShown(), "in Frames the card comes back")
+	_, _, flags = line.name:GetFont()
+	assert(flags ~= "OUTLINE", "and the name its card style")
+	K.HudStyle = had
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("qol feed ok")

@@ -118,6 +118,10 @@ function Common.ForceScreen(env)
 	env._materialChromes = env._materialChromes or {}
 	local material = os.getenv("RENDER_CARD_MATERIAL")
 	env._renderCardMaterial = material and material ~= "" and material or nil
+	-- RENDER_CHAT_FRAMING (auto, card or bare) is the chat's saved framing, so a scene shows the bare chat the Orbs
+	-- HUD style gives it, or a framing the player picked.
+	local framing = os.getenv("RENDER_CHAT_FRAMING")
+	env._renderChatFraming = framing and framing ~= "" and framing or nil
 	-- RENDER_ORNAMENTS (Off, Subtle or Full) is the ornament level a scene draws at. A scene draws Off unless it
 	-- names a level, so hud_reference, the measurements and the galleries keep their meaning; a test that builds
 	-- several levels in one process sets the global RENDER_ORNAMENTS instead. env._ornamentHandles collects every
