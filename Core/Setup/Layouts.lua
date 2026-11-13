@@ -361,17 +361,27 @@ for _, name in ipairs(NAMES) do
 	}
 end
 
-local ORBS_RING, ORBS_REACH, ORBS_LIFT = 200, 60 + 200 * 0.87 / 2, 30
-local ORBS_RAIL, ORBS_BAR2_SCALE, ORBS_SPLIT = 31, 0.75, 156
+local ART = {
+	hole = { 641, 320, 2023, 460 }, arm = { 556, 185, 736, 545 }, crest = { 1152, 146, 1512, 326 },
+	rail = { 262, 326 }, railBottom = { 452, 516 }, ring = { 332, 334, 608 },
+	fit = 1359, bottom = 668, floor = 21, bar2 = { 243.5, 79.5, 349.8 }, cast = 87, xp = 519.6,
+}
+local ART_X, ART_Y = (ART.hole[1] + ART.hole[3]) / 2, (ART.hole[2] + ART.hole[4]) / 2
 local ORBS_PARTY_Y, ORBS_TARGET_Y, ORBS_AURA_ICONS = 465, 40, 5
-local ORBS_BAR1 = DPS["actionbars.bar1"]
 local ORBS_BAR1_W, ORBS_BAR1_H = GridSize("actionbars.bar1")
-local _, ORBS_BAR2_H = GridSize("actionbars.bar2")
-local ORBS_X = ORBS_BAR1_W / 2 + ORBS_REACH
+local ORBS_SOURCE = ORBS_BAR1_W / ART.fit
+local ORBS_CENTRE = (ART.bottom - ART_Y + ART.floor) * ORBS_SOURCE
+local ORBS_RING = ART.ring[3] * ORBS_SOURCE
+local ORBS_X = (ART_X - ART.ring[1]) * ORBS_SOURCE
+local ORBS_REACH = ORBS_X - ORBS_BAR1_W / 2
+local ORBS_LIFT = (ART_Y - ART.ring[2]) * ORBS_SOURCE
 local ORBS_OUTER = ORBS_X + ORBS_RING / 2
-local ORBS_TOP = ORBS_BAR1.y + ORBS_BAR1_H / 2 + ORBS_LIFT + ORBS_RING / 2
-local ORBS_BAR2_Y = ORBS_BAR1.y + ORBS_BAR1_H + ORBS_RAIL
-local ORBS_CAST_Y = ORBS_BAR2_Y + ORBS_BAR2_H * ORBS_BAR2_SCALE + ORBS_RAIL - 6
+local ORBS_TOP = ORBS_CENTRE + ORBS_LIFT + ORBS_RING / 2
+local ORBS_BAR2_SCALE = ART.bar2[2] * ORBS_SOURCE / GRIDS["actionbars.bar2"].size
+local ORBS_SPLIT = ART.bar2[3] * ORBS_SOURCE / ORBS_BAR2_SCALE
+local ORBS_BAR2_Y = ORBS_CENTRE + (ART_Y - ART.bar2[1]) * ORBS_SOURCE
+local ORBS_CAST_Y = ORBS_CENTRE + (ART_Y - ART.cast) * ORBS_SOURCE
+local ORBS_XP_Y = ORBS_CENTRE - (ART.xp - ART_Y) * ORBS_SOURCE - select(2, ElementSize("databars.xp"))
 local ORBS_ESSENTIAL_Y = ORBS_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP
 local ORBS_UTILITY_Y = ORBS_ESSENTIAL_Y + CENTRE_BUTTON + 8
 local ORBS_RESOURCE_Y = ORBS_UTILITY_Y + BUTTON + 6
@@ -388,7 +398,8 @@ local ORBS_TARGET_W = ElementSize("unitframes.target")
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 
 local ORBS = {
-	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR1.y },
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_CENTRE - ORBS_BAR1_H / 2 },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = ORBS_XP_Y },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR2_Y, scale = ORBS_BAR2_SCALE },
 	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = ORBS_CAST_Y },
 	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = ORBS_ESSENTIAL_Y },
@@ -630,6 +641,25 @@ Layouts.ORBS_RING = ORBS_RING
 Layouts.ORBS_REACH = ORBS_REACH
 Layouts.ORBS_LIFT = ORBS_LIFT
 Layouts.SPLIT_GAP = ORBS_SPLIT
+
+function Layouts.OrbsTray(width)
+	local s = width / ART.fit
+	local function Box(l, top, r, bottom)
+		return { left = (l - ART_X) * s, right = (r - ART_X) * s, top = (ART_Y - top) * s, bottom = (ART_Y - bottom) * s }
+	end
+	local hole, arm, crest = ART.hole, ART.arm, ART.crest
+	local inner = 2 * ART_X - arm[3]
+	return {
+		hole = Box(hole[1], hole[2], hole[3], hole[4]),
+		arm = Box(arm[1], arm[2], arm[3], arm[4]),
+		crest = Box(crest[1], crest[2], crest[3], crest[4]),
+		rail = Box(arm[3], ART.rail[1], inner, ART.rail[2]),
+		railBottom = Box(arm[3], ART.railBottom[1], inner, ART.railBottom[2]),
+		ring = ART.ring[3] * s,
+		ringX = (ART_X - ART.ring[1]) * s,
+		lift = (ART_Y - ART.ring[2]) * s,
+	}
+end
 Layouts.STYLES = { "orbs" }
 
 function Layouts.Style(style, name, key)

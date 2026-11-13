@@ -10,11 +10,10 @@ ns.Orbs = Orbs
 local MODULE = Settings.MODULE
 local OWNER = MODULE .. ":orbs"
 local BAR_KEY = "actionbars.bar1"
-local RING = K.Setup.Layouts.ORBS_RING
-local HOLE = RING * 0.701
-local REACH = K.Setup.Layouts.ORBS_REACH
-local LIFT = K.Setup.Layouts.ORBS_LIFT
-local FLOOR = 2
+local OPENING = 0.701
+local TRAY_STRATA = "BACKGROUND"
+local HOLE_ALPHA = 0.88
+local EDGE = 2
 local SURFACE_HEIGHT = 14
 local SURFACE_ALPHA = 0.8
 local VALUE_SIZE = 17
@@ -27,7 +26,8 @@ local LEVEL_LOSS, LEVEL_FILL, LEVEL_GLASS = 1, 2, 3
 local KINDS = { "health", "power" }
 local NEEDED = { "SetOrientation", "SetStatusBarTexture", "GetStatusBarTexture", "SetMinMaxValues", "SetValue" }
 
-local orbs = {}
+local orbs, tray = {}, nil
+local hangQueued, Place = false, nil
 local running, active, built, available = false, false, false, nil
 
 local function Log(message)
@@ -130,8 +130,29 @@ local function NewOrb(kind)
 	return orb
 end
 
+local function NewTray()
+	local frame = CreateFrame("Frame", nil, K.Scale.Root())
+	frame:SetFrameStrata(TRAY_STRATA)
+	frame:SetSize(1, 1)
+	frame:Hide()
+	frame.hole = frame:CreateTexture(nil, "BACKGROUND")
+	frame.rail = frame:CreateTexture(nil, "BORDER")
+	frame.rail:SetTexture(Texture("orbRail"))
+	frame.railBottom = frame:CreateTexture(nil, "BORDER")
+	frame.railBottom:SetTexture(Texture("orbRailBottom"))
+	frame.armLeft = frame:CreateTexture(nil, "ARTWORK")
+	frame.armLeft:SetTexture(Texture("orbArm"))
+	frame.armRight = frame:CreateTexture(nil, "ARTWORK")
+	frame.armRight:SetTexture(Texture("orbArm"))
+	frame.armRight:SetTexCoord(1, 0, 0, 1)
+	frame.crest = frame:CreateTexture(nil, "OVERLAY")
+	frame.crest:SetTexture(Texture("orbCrest"))
+	return frame
+end
+
 local function Build()
 	built = true
+	tray = NewTray()
 	for _, kind in ipairs(KINDS) do
 		local orb, missing = NewOrb(kind)
 		if not orb then
@@ -171,31 +192,114 @@ local function BarRect()
 	return left, bottom, width, height
 end
 
-function Orbs.Centres()
+local function Assembly()
 	local left, bottom, width, height = BarRect()
+	local art = K.Setup.Layouts.OrbsTray(width)
 	local rootWidth, rootHeight = K.Layout.RootSize()
-	local low = RING / 2 + FLOOR
-	local y = math.min(math.max(bottom + height / 2 + LIFT, low), rootHeight - low)
-	return math.max(left - REACH, low), math.min(left + width + REACH, rootWidth - low), y
+	local reach, low = art.ringX + art.ring / 2 + EDGE, art.ring / 2 + EDGE
+	local x, y = left + width / 2, bottom + height / 2
+	local cx = math.min(math.max(x, reach), rootWidth - reach)
+	local cy = math.min(math.max(y, low - art.lift), rootHeight - low - art.lift)
+	return cx, cy, art, cx ~= x or cy ~= y
 end
 
-local function Place()
+function Orbs.Centres()
+	local x, y, art = Assembly()
+	return x - art.ringX, x + art.ringX, y + art.lift, art.ring
+end
+
+local function Faded()
+	local Store = K.Store
+	local bars = Store.IsLoaded() and Store.Module("ActionBars")
+	local bar = type(bars) == "table" and bars.bar1
+	return type(bar) == "table" and bar.fade == true
+end
+
+local function TrayWanted()
+	return K.Layout.Live(BAR_KEY) == true and not Faded()
+end
+
+function Orbs.Tray()
+	return tray
+end
+
+local function Snapped(box)
 	local Snap = K.Widgets.Snap
-	local healthX, powerX, y = Orbs.Centres()
-	local centres = { health = healthX, power = powerX }
-	for kind, orb in pairs(orbs) do
-		orb:ClearAllPoints()
-		orb:SetPoint("CENTER", K.Scale.Root(), "BOTTOMLEFT", Snap(orb, centres[kind]), Snap(orb, y))
-		K.Widgets.Size(orb, RING, RING)
-		K.Widgets.Size(orb.back, HOLE, HOLE)
-		K.Widgets.Size(orb.glass, HOLE, HOLE)
-		K.Widgets.Size(orb.bar, HOLE, HOLE)
-		if orb.loss then
-			K.Widgets.Size(orb.loss, HOLE, HOLE)
+	return { left = Snap(tray, box.left), right = Snap(tray, box.right), top = Snap(tray, box.top), bottom = Snap(tray, box.bottom) }
+end
+
+local function Piece(region, box, mirrored)
+	local left, right = box.left, box.right
+	if mirrored then
+		left, right = -box.right, -box.left
+	end
+	region:ClearAllPoints()
+	region:SetPoint("BOTTOMLEFT", tray, "CENTER", left, box.bottom)
+	region:SetPoint("TOPRIGHT", tray, "CENTER", right, box.top)
+end
+
+local function Hang(x, y, clamped)
+	local Layout, root = K.Layout, K.Scale.Root()
+	local el = Layout.Element and Layout.Element(BAR_KEY)
+	local holder = el and Layout.Live(BAR_KEY) and el.frame or root
+	if InCombatLockdown() then
+		if not hangQueued then
+			hangQueued = true
+			K.Combat.Queue(function()
+				hangQueued = false
+				if active then
+					Place()
+				end
+			end)
 		end
-		K.Widgets.Size(orb.surface, HOLE, SURFACE_HEIGHT)
+		return
+	end
+	if tray:GetParent() ~= holder then
+		tray:SetParent(holder)
+		tray:SetFrameStrata(TRAY_STRATA)
+	end
+	local scale = holder:GetScale()
+	tray:SetScale(holder ~= root and type(scale) == "number" and scale > 0 and 1 / scale or 1)
+	tray:ClearAllPoints()
+	if holder ~= root and not clamped then
+		tray:SetPoint("CENTER", holder, "CENTER", 0, 0)
+	else
+		K.Widgets.Point(tray, "CENTER", root, "BOTTOMLEFT", x, y)
+	end
+end
+
+local function PlaceTray()
+	local x, y, art, clamped = Assembly()
+	Hang(x, y, clamped)
+	tray.hole:SetColorTexture(K.Widgets.Rgba("black", HOLE_ALPHA))
+	Piece(tray.hole, Snapped(art.hole))
+	Piece(tray.rail, Snapped(art.rail))
+	Piece(tray.railBottom, Snapped(art.railBottom))
+	Piece(tray.crest, Snapped(art.crest))
+	local arm = Snapped(art.arm)
+	Piece(tray.armLeft, arm)
+	Piece(tray.armRight, arm, true)
+	tray:SetShown(active and TrayWanted())
+end
+
+function Place()
+	local healthX, powerX, y, ring = Orbs.Centres()
+	local hole = ring * OPENING
+	local centres = { health = healthX, power = powerX }
+	PlaceTray()
+	for kind, orb in pairs(orbs) do
+		K.Widgets.Size(orb, ring, ring)
+		orb:ClearAllPoints()
+		K.Widgets.Point(orb, "CENTER", K.Scale.Root(), "BOTTOMLEFT", centres[kind], y)
+		K.Widgets.Size(orb.back, hole, hole)
+		K.Widgets.Size(orb.glass, hole, hole)
+		K.Widgets.Size(orb.bar, hole, hole)
+		if orb.loss then
+			K.Widgets.Size(orb.loss, hole, hole)
+		end
+		K.Widgets.Size(orb.surface, hole, SURFACE_HEIGHT)
 		orb.value:ClearAllPoints()
-		orb.value:SetPoint("CENTER", orb, "CENTER", 0, -Snap(orb, HOLE * VALUE_DROP))
+		K.Widgets.Point(orb.value, "CENTER", orb, "CENTER", 0, -hole * VALUE_DROP)
 	end
 end
 
@@ -286,6 +390,11 @@ local function Listen()
 	Callbacks.Register("LayoutChanged", OWNER, OnLayoutChanged)
 	Callbacks.Register("ThemeChanged", OWNER, OnTheme)
 	Callbacks.Register("ScaleChanged", OWNER, OnTheme)
+	Callbacks.Register("SettingChanged", OWNER, function(_, module)
+		if module == "ActionBars" then
+			PlaceTray()
+		end
+	end)
 end
 
 local function Quiet()
@@ -322,6 +431,9 @@ function Orbs.Apply()
 	end
 	for _, orb in pairs(orbs) do
 		orb:SetShown(want)
+	end
+	if tray then
+		tray:SetShown(want and TrayWanted())
 	end
 end
 
