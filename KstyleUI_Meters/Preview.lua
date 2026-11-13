@@ -104,7 +104,7 @@ local function Arrange(frame)
 	local listHeight = height - SWING_HEIGHT - gap
 	for _, list in ipairs({ frame.damage, frame.threat }) do
 		list.width, list.height = listWidth, listHeight
-		list.holder:SetSize(listWidth, listHeight)
+		Widgets.Size(list.holder, listWidth, listHeight)
 	end
 	frame.damage.holder:ClearAllPoints()
 	Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
@@ -137,7 +137,7 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetAllPoints(parent)
+	Widgets.Fill(frame, parent, 0, 0, 0, 0)
 	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true })
 	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
 	frame.swing = Widgets.StatusBar(frame, {

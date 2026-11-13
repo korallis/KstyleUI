@@ -704,6 +704,8 @@ local function OnPixel(raw, relShare, relPx, ownShare, ownPx)
 	return floor(raw + target + 0.5) - target
 end
 
+local Reown, Refollow
+
 function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	local relative = relativeTo or region:GetParent()
 	relativePoint = relativePoint or point
@@ -738,6 +740,9 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	else
 		record.points[point] = { relative, relativePoint, x, y, dx * px, dy * px }
 	end
+	if (own[1] ~= 0 or own[2] ~= 1) and not region.kstyleOwnHooked and type(region.HookScript) == "function" and region:GetObjectType() ~= "FontString" then
+		region.kstyleOwnHooked = region:HookScript("OnSizeChanged", Reown) ~= false
+	end
 	if type(relative) == "table" and (rel[1] ~= 0 or rel[2] ~= 1) then
 		local set = dependents[relative]
 		if not set then
@@ -745,6 +750,9 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 			dependents[relative] = set
 		end
 		set[region] = true
+		if helped[relative] and not relative.kstyleFollowed and type(relative.HookScript) == "function" then
+			relative.kstyleFollowed = relative:HookScript("OnSizeChanged", Refollow) ~= false
+		end
 	end
 end
 
@@ -809,7 +817,21 @@ local function Depth(region)
 	return depth
 end
 
-local function Refollow(frame)
+function Reown(region)
+	local record = helped[region]
+	if not record or region.kstyleReowning then
+		return
+	end
+	region.kstyleReowning = true
+	for point, p in pairs(record.points) do
+		if Anchored(region, point, p[1], p[5], p[6]) then
+			Widgets.Point(region, point, p[1], p[2], p[3], p[4])
+		end
+	end
+	region.kstyleReowning = false
+end
+
+function Refollow(frame)
 	local set = dependents[frame]
 	if not set or frame.kstyleFollowing then
 		return

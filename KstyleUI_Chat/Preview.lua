@@ -93,7 +93,7 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetAllPoints(parent)
+	Widgets.Fill(frame, parent, 0, 0, 0, 0)
 	local pad = Tokens.Size("gapMedium")
 	local glass = Widgets.Panel(frame, {})
 	Widgets.Point(glass, "TOPLEFT", frame, "TOPLEFT", pad, -pad)

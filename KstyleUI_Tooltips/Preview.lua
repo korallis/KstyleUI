@@ -266,7 +266,7 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetAllPoints(parent)
+	Widgets.Fill(frame, parent, 0, 0, 0, 0)
 	frame.item = Sample(frame, ITEM)
 	Widgets.Point(frame.item, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)

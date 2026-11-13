@@ -182,6 +182,7 @@ end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
 -- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.
+local notifySpanners
 local function resize(self, w, h)
 	if self._width == w and self._height == h then
 		return
@@ -191,6 +192,7 @@ local function resize(self, w, h)
 	if script then
 		script(self, w, h)
 	end
+	notifySpanners(self, {})
 end
 function Object:SetSize(w, h) resize(self, w, h) end
 function Object:SetWidth(w) resize(self, w, self._height) end
@@ -222,6 +224,24 @@ local function spanned(self, axis)
 		return size + (b[4] or 0) - (a[4] or 0)
 	end
 	return size + (a[5] or 0) - (b[5] or 0)
+end
+-- A frame spanned on a target changes size with it, so it runs OnSizeChanged too, as the game does for a frame
+-- whose size comes from its anchors.
+function notifySpanners(self, seen)
+	local set = rawget(self, "_spanners")
+	if not set then
+		return
+	end
+	for frame in pairs(set) do
+		if not seen[frame] and (spanned(frame, "w") or spanned(frame, "h")) then
+			seen[frame] = true
+			local script = frame._scripts and frame._scripts.OnSizeChanged
+			if script then
+				script(frame, rawSize(frame, "w"), rawSize(frame, "h"))
+			end
+			notifySpanners(frame, seen)
+		end
+	end
 end
 function rawSize(self, axis)
 	if axis == "w" then
@@ -448,8 +468,20 @@ local function checkAnchor(self, relative)
 	end
 end
 
+local function spans(self, relative)
+	local target = anchorTarget(self, relative)
+	if type(target) == "table" and target ~= self then
+		local set = rawget(target, "_spanners")
+		if not set then
+			set = setmetatable({}, { __mode = "k" })
+			rawset(target, "_spanners", set)
+		end
+		set[self] = true
+	end
+end
 function Object:SetPoint(point, ...)
 	checkAnchor(self, (...))
+	spans(self, (...))
 	if self._env._trackOrigin then
 		self._placedBy = origin()
 	end
@@ -465,6 +497,7 @@ function Object:ClearAllPoints() self._points = {} end
 -- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
 function Object:SetAllPoints(relative)
 	checkAnchor(self, relative)
+	spans(self, relative)
 	if self._env._trackOrigin then
 		self._placedBy = origin()
 	end
