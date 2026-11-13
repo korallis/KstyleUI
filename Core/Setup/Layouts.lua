@@ -381,6 +381,9 @@ local ORBS_AURA_SHIFT = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * A
 local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + 8
 local ORBS_PET_W, ORBS_PET_H = GridSize("actionbars.pet")
 local ORBS_STANCE_W = GridSize("actionbars.stance")
+local ORBS_REP_W = ElementSize("databars.rep")
+local ORBS_PET_FRAME_W = ElementSize("unitframes.pet")
+local ORBS_GLOW = 30
 local ORBS_TARGET_W = ElementSize("unitframes.target")
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 
@@ -398,9 +401,9 @@ local ORBS = {
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_STANCE_W / 2, y = BAR1_Y },
-	["databars.rep"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = 52 },
-	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_STANCE_W / 2, y = 52 },
-	["unitframes.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_PET_W / 2), y = BAR1_Y + ORBS_PET_H + GAP },
+	["databars.rep"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_REP_W / 2), y = 52 },
+	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_OUTER + NEAR + ORBS_REP_W / 2, y = 52 },
+	["unitframes.pet"] = { anchor = "BOTTOM", x = -(ORBS_OUTER + NEAR + ORBS_GLOW + ORBS_PET_FRAME_W / 2), y = BAR1_Y + ORBS_PET_H + GAP },
 	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },

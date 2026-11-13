@@ -48,7 +48,7 @@ local function Card(main)
 end
 
 function Tray.Wanted(main, second, steady)
-	if ns.Config("tray") ~= true or not (main and second) or not steady then
+	if ns.Config("tray") ~= true or K.HudStyle.Current() == "orbs" or not (main and second) or not steady then
 		return false
 	end
 	if not (main:Shown() and second:Shown()) or main.holderHidden or second.holderHidden then
