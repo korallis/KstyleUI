@@ -414,6 +414,9 @@ local function OrbPowerColor()
 	if not issecretvalue(token) and token == "MANA" then
 		return K.Tokens.Color("orbMana")
 	end
+	if not issecretvalue(token) and token == "RAGE" then
+		return K.Tokens.Color("orbRage")
+	end
 	return Unit.PowerTypeColor("player", true)
 end
 

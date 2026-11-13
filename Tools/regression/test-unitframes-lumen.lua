@@ -113,15 +113,14 @@ end
 local bare = Geometry.Frame(lumen("vitals", { portrait = false }), 490, 80, 1)
 assert(bare.portrait == nil and bare.badge == nil and near(bare.health.x, 0), "without the portrait the column takes the whole line")
 
--- The sigil at 640 units: centred name, the level line under it, a 12-unit pill between two gems.
+-- The sigil at 640 units: centred name, the level line under it, a clean 12-unit pill with no gems (KSTY-60 item 1).
 local t = Geometry.Frame(lumen("sigil", { fonts = { name = { size = 20 }, health = { size = 12 }, power = { size = 10 }, level = { size = 13 } } }), 640, 80, 1)
 assert(t.form == "sigil" and t.chrome == false and t.portrait == nil and t.badge == nil and t.power == nil, "the sigil is text and one pill: no glass, portrait, badge or power")
 assert(near(t.name.x, 0) and near(t.name.w, 640), "the name row spans the sigil, centred")
 assert(t.caption and t.caption.y >= t.name.y + t.name.h - 1e-6 and near(t.caption.w, 640), "the level line is under the name, centred")
 assert(near(t.health.h, 12) and t.health.y > t.caption.y + t.caption.h, "the 12-unit pill is under the level line")
-assert(t.gemLeft and t.gemRight and near(mid(t.gemLeft), mid(t.health)) and near(mid(t.gemRight), mid(t.health)), "a gem at each end of the pill, on its middle")
-assert(near(t.gemLeft.x, 0) and near(t.gemRight.x + t.gemRight.w, 640), "the gems close the row")
-assert(t.health.x > t.gemLeft.x + t.gemLeft.w + 8 and near(t.health.x - (t.gemLeft.x + t.gemLeft.w), t.gemRight.x - (t.health.x + t.health.w)), "the pill keeps an equal gap to each gem")
+assert(t.gemLeft == nil and t.gemRight == nil, "no gems close the pill")
+assert(near(t.health.x, 0) and near(t.health.w, 640), "the pill runs the sigil's whole width")
 assert(t.healthText == nil, "the sigil shows no numbers, as the mockup")
 assert(t.cast and t.cast.y > t.health.y + t.health.h and near(t.cast.x + t.cast.w / 2, 320), "the target's cast line is centred under the pill")
 for key, part in pairs(t) do
@@ -133,9 +132,9 @@ local squeezed = Geometry.Frame(lumen("sigil", { fonts = { name = { size = 20 },
 assert(squeezed.cast and squeezed.cast.y + squeezed.cast.h <= 72 + 1e-6 and squeezed.cast.y >= squeezed.health.y + squeezed.health.h, "a short sigil closes its gaps first and keeps the cast line")
 assert(Geometry.Frame(lumen("sigil"), 640, 50, 1).cast == nil, "a sigil too short for its cast line leaves it out")
 
--- The card: a section cap, the name with the percentage, a pill, the cast line, on a glass card.
+-- The card: a section cap, the name with the percentage, a pill and the cast line, with no glass card round them (KSTY-60 item 1).
 local c = Geometry.Frame(lumen("card", { power = false, fonts = { name = { size = 16 }, health = { size = 14 }, power = { size = 9 }, level = { size = 12 } } }), 318, 120, 1)
-assert(c.form == "card" and c.chrome == true, "the card wears the glass")
+assert(c.form == "card" and c.chrome == false, "the card wears no glass")
 assert(near(c.glass.x, 0) and near(c.glass.w, 318) and near(c.glass.h, 120), "the glass is the whole card")
 assert(c.cap and c.capGem and c.capLabel and near(mid(c.capGem), mid(c.cap)), "a section cap: the gem on the cap's middle, then the label")
 assert(c.capGem.x >= 12 and c.capLabel.x > c.capGem.x + c.capGem.w, "inside the card's padding, label after the gem")
@@ -270,7 +269,7 @@ assert(target.button:IsShown() and target.geometry.form == "sigil", "the target 
 assert(target.name:GetJustifyH() == "CENTER" and target.caption:GetJustifyH() == "CENTER", "its texts are centred")
 assert(target.name:GetFont() == headingPath, "the name is in the heading face")
 assert(U.Shown(env, target.caption) == "Level 10 elite \194\183 Beast", "the level line: " .. U.Shown(env, target.caption))
-assert(target.gemLeft:IsShown() and target.gemRight:IsShown(), "the gems close the pill")
+assert(target.gemLeft == nil and target.gemRight == nil, "no gems close the pill")
 local _, grel = target.glowFrame:GetPoint(1)
 assert(grel == target.health, "the threat glow hugs the sigil's pill, not an empty box around the frame")
 assert(not glass(target) and not target.portraitFrame:IsShown() and not target.power:IsShown(), "no glass, portrait or power")
@@ -334,7 +333,7 @@ env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 5000)
 env.RunTimers()
 local boss = Frames.Get("boss").views[1]
 assert(boss.button:IsShown() and boss.geometry.form == "card", "boss frames are cards")
-assert(glass(boss), "the card wears its glass")
+assert(not glass(boss), "the card wears no glass: unit-frame bars are clean (KSTY-60 item 1)")
 assert(boss.capGem:IsShown() and U.Shown(env, boss.capLabel) == K.L["Boss"], "the section cap reads Boss: " .. U.Shown(env, boss.capLabel))
 assert(U.Shown(env, boss.caption) == K.L["Elite"], "the classification at the cap's right: " .. U.Shown(env, boss.caption))
 assert(U.Shown(env, boss.healthText) == "62%", "the percentage on the name's row: " .. U.Shown(env, boss.healthText))
@@ -370,7 +369,7 @@ do
 		local font = W.LastCall(tot[key], "SetFont")
 		assert(font and font[3] == "OUTLINE", "the row's " .. key .. " wears the world role's outline, got " .. tostring(font and font[3]))
 	end
-	assert(not focus.scrim:IsShown(), "a card has glass and no scrim")
+	assert(focus.scrim:IsShown() and not glass(focus), "a card has no glass, so it reads on the world over the same soft scrim")
 end
 U.SetUnit(env, "targettarget", nil)
 noErrors("rows")

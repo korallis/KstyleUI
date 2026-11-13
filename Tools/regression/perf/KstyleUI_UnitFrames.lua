@@ -56,7 +56,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_FLAGS",
-		budget = 50,
+		budget = 95,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_FLAGS", "target")

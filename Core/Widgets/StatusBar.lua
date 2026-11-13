@@ -59,14 +59,14 @@ end
 
 local Bar = {}
 
-local function Shade(texture)
+local function Shade(texture, alpha)
 	if type(texture.SetGradient) ~= "function" or type(CreateColor) ~= "function" then
 		texture:Hide()
 		Widgets.LogOnce("bar-shade", "Texture:SetGradient or CreateColor is missing; bars draw without their shade")
 		return
 	end
 	local r, g, b = Tokens.Color("black")
-	texture:SetGradient("VERTICAL", CreateColor(r, g, b, SHADE_ALPHA), CreateColor(r, g, b, 0))
+	texture:SetGradient("VERTICAL", CreateColor(r, g, b, alpha or SHADE_ALPHA), CreateColor(r, g, b, 0))
 end
 
 local FitGlow
@@ -158,8 +158,17 @@ function Bar:Paint()
 		self.sheenTop:SetVertexColor(Widgets.Rgba("white", SHEEN_TOP_ALPHA))
 	end
 	if self.lit then
-		self.lit:SetVertexColor(Widgets.Rgba("white", LIT_ALPHA))
+		self.lit:SetVertexColor(Widgets.Rgba("white", self.litAlpha or LIT_ALPHA))
 	end
+end
+
+function Bar:SetLitShade(lit, shade)
+	if not (self.lit and self.shade) then
+		return
+	end
+	self.litAlpha = lit
+	Shade(self.shade, shade)
+	self:Paint()
 end
 
 local function Clamp01(value)
@@ -238,6 +247,10 @@ function Bar:EdgeThickness()
 	return edge
 end
 
+function Bar:EdgeLine()
+	return math.min(self:EdgeThickness(), self.edgeMax or EDGE_PIXELS)
+end
+
 local function Ends(visibleTop, visibleBot, tHi, tLo, span)
 	return Clamp01((visibleTop * tLo - visibleBot * tHi) / span),
 		Clamp01(((1 - tHi) * visibleBot - (1 - tLo) * visibleTop) / span)
@@ -253,7 +266,7 @@ local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
 		return topR, topG, topB, botR, botG, botB
 	end
 	local pixels = height / unit
-	local edge = self:EdgeThickness()
+	local edge = self:EdgeLine()
 	if edge <= 0 or pixels <= edge * 2 + 1 then
 		return topR, topG, topB, botR, botG, botB
 	end
@@ -335,7 +348,7 @@ function Bar:PlaceInnerEdge()
 	if not edge then
 		return
 	end
-	local thickness = self:EdgeThickness()
+	local thickness = self:EdgeLine()
 	local px = Widgets.Snap(self, Scale.Pixel(math.max(thickness, 1)) / Widgets.ScaleFactor(self))
 	local token = self.innerEdgeToken or "black"
 	local show = self.innerEdgeOn == true and thickness > 0
@@ -344,6 +357,9 @@ function Bar:PlaceInnerEdge()
 		edge[i]:SetShown(show)
 	end
 	ApplyEdgeMasks(self)
+	if self.lit then
+		self:PlaceLit()
+	end
 	if self.fillSource and (self.rampOn or self.fillRamped) then
 		self:ApplyFillRamp()
 	end
@@ -449,11 +465,12 @@ end
 
 function Bar:PlaceLit()
 	local lit, fill = self.lit, self:GetStatusBarTexture()
-	if lit.fill ~= fill then
-		lit.fill = fill
+	local inset = self.innerEdgeOn and Widgets.Snap(self, Scale.Pixel(self:EdgeLine()) / Widgets.ScaleFactor(self)) or 0
+	if lit.fill ~= fill or lit.inset ~= inset then
+		lit.fill, lit.inset = fill, inset
 		lit:ClearAllPoints()
-		lit:SetPoint("TOPLEFT", fill, "TOPLEFT")
-		lit:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
+		lit:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, -inset)
+		lit:SetPoint("TOPRIGHT", fill, "TOPRIGHT", 0, -inset)
 		self.shade:ClearAllPoints()
 		self.shade:SetPoint("TOPLEFT", fill, "TOPLEFT")
 		self.shade:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")

@@ -87,6 +87,7 @@ local COLORS = {
 	orbHealth = { "c0302b", 1 },
 	orbMana = { "2a64c8", 1 },
 	orbLoss = { "f6aa92", 0.42 },
+	orbRage = { "d9782a", 1 },
 	meterPhysical = { "7a6a52", 1 },
 	meterNature = { "2e7d4f", 1 },
 	meterFire = { "b4501f", 1 },

@@ -36,7 +36,7 @@ local player, target = ns.Frames.Get("player").views[1], ns.Frames.Get("target")
 for _, cast in ipairs({ ns.CastBars.Get("player")[1], ns.CastBars.Inline("target")[1] }) do
 	assert(cast.bar.texturePath == paths.Flat, "a caption cast defaults to the actual Flat texture")
 	assert(not cast.bar.spark:IsShown() and not cast.bar.keyline:IsShown(), "a caption cast paints no spark or outside keyline")
-	assert(not cast.bar.lit:IsShown() and not cast.bar.shade:IsShown(), "caption cast paint is flat")
+	assert(cast.bar.lit:IsShown() and cast.bar.shade:IsShown(), "a caption cast keeps the mock-up's lit top edge and shade (KSTY-60 item 4)")
 	color(cast.bar, "gilt")
 end
 for _, view in ipairs({ player, target }) do
