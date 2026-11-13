@@ -577,7 +577,7 @@ local function PlaceHeading(h)
 	local size = Widgets.Snap(h.holder, CAP_GEM)
 	gem:SetSize(size, size)
 	gem:ClearAllPoints()
-	gem:SetPoint("RIGHT", caption, "LEFT", -Widgets.Snap(h.holder, CAP_GEM_GAP), 0)
+	Widgets.Point(gem, "RIGHT", caption, "LEFT", -CAP_GEM_GAP, 0)
 	local width, room = Widgets.TextWidth(caption), Plain(panel:GetWidth())
 	local gap = Widgets.Snap(h.holder, CAP_RULE_GAP)
 	local stop = inset + CAP_PAD
@@ -591,8 +591,8 @@ local function PlaceHeading(h)
 		rule:Hide()
 		return
 	end
-	rule:SetPoint("LEFT", caption, "LEFT", width + gap, 0)
-	rule:SetSize(length, Widgets.Border(h.holder))
+	Widgets.Point(rule, "LEFT", caption, "LEFT", width + CAP_RULE_GAP, 0)
+	rule:SetSize(Widgets.Snap(h.holder, length), Widgets.Border(h.holder))
 	rule:Show()
 end
 
@@ -717,7 +717,7 @@ local function LayoutChevron(state)
 	local chevron = state.chevron
 	Widgets.Size(chevron, CHEVRON_UNITS, CHEVRON_UNITS)
 	chevron:ClearAllPoints()
-	chevron:SetPoint("RIGHT", state.overlay, "RIGHT", -Widgets.Snap(state.overlay, Tokens.Size("gapMedium")), 0)
+	Widgets.Point(chevron, "RIGHT", state.overlay, "RIGHT", -Tokens.Size("gapMedium"), 0)
 	PaintChevron(state)
 end
 

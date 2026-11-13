@@ -582,7 +582,7 @@ local function PlaceBarTexts(bar)
 	if type(rank) == "table" then
 		rank:ClearAllPoints()
 		if bar.rankOutside then
-			rank:SetPoint("LEFT", frame, "RIGHT", inset, 0)
+			K.Widgets.Point(rank, "LEFT", frame, "RIGHT", K.Tokens.Size("gapMedium"), 0)
 			rank:SetJustifyH("LEFT")
 		else
 			rank:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
