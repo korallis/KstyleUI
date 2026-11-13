@@ -357,7 +357,7 @@ do
 	button:Restyle()
 	local p = button.countdown._points[1]
 	assert(p and p[1] == "CENTER" and p[2] == button.cooldown and p[3] == "BOTTOM" and W.Near(p[4], 0), "centred over the cooldown's bottom edge")
-	assert(W.Near(p[5], K.Scale.Snap(button:GetHeight() * 0.25)), "a quarter of the height up")
+	assert(math.abs(p[5] - K.Tokens.Size("actionButton") * 0.25) <= K.Widgets.Border(button) / 2 + 1e-6, "a quarter of the height up, within the half pixel Widgets.Point moves it so its centre lands on a whole pixel")
 end
 
 -- With countdownCorner the countdown sits in the top right corner, as the mockup's centre cluster reads "4s".

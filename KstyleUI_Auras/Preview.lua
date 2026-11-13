@@ -61,6 +61,7 @@ local function Context(canvas, group, timer, count, edge)
 	end
 	local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge }
 	ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
+	ctx.spacing, ctx.rowSpacing = Model.Gaps(group, timer, snap)
 	return ctx
 end
 
@@ -81,8 +82,8 @@ local function PlaceGroup(box, entries, group, ctx)
 	local shown = min(#entries, group.rows * group.columns)
 	local columns = max(1, min(group.columns, shown))
 	local rows = max(1, ceil(shown / group.columns))
-	local boxWidth = columns * w + (columns - 1) * group.spacing
-	local boxHeight = rows * h + (rows - 1) * group.rowSpacing
+	local boxWidth = columns * w + (columns - 1) * ctx.spacing
+	local boxHeight = rows * h + (rows - 1) * ctx.rowSpacing
 	box:SetSize(max(1, boxWidth), max(1, boxHeight))
 	local _, horizontal, vertical = Model.Growth(group.growth)
 	for i, entry in ipairs(entries) do
@@ -92,11 +93,11 @@ local function PlaceGroup(box, entries, group, ctx)
 		else
 			button:Show()
 			local col, row = (i - 1) % group.columns, floor((i - 1) / group.columns)
-			local x = col * (w + group.spacing)
+			local x = col * (w + ctx.spacing)
 			if horizontal == "Left" then
 				x = boxWidth - w - x
 			end
-			local top = row * (h + group.rowSpacing)
+			local top = row * (h + ctx.rowSpacing)
 			if vertical == "Up" then
 				top = boxHeight - h - top
 			end
@@ -147,7 +148,7 @@ local function Refresh(frame)
 		end
 		local w, h = PlaceGroup(box, entries, group, ctx)
 		box:ClearAllPoints()
-		box:SetPoint("TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
+		Widgets.Point(box, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
 		top = top + h + gap
 		widest = max(widest, w)
 	end
@@ -157,13 +158,14 @@ local function Refresh(frame)
 	end
 	frame.canvas:SetScale(scale)
 	frame.canvas:SetSize(max(widest, 1), max(top, 1))
+	frame.canvas:ClearAllPoints()
+	Widgets.Point(frame.canvas, "TOPRIGHT", frame, "TOPRIGHT")
 end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
 	local canvas = CreateFrame("Frame", nil, frame)
-	canvas:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 	frame.canvas = canvas
 	frame.buffBox = CreateFrame("Frame", nil, canvas)
 	frame.debuffBox = CreateFrame("Frame", nil, canvas)

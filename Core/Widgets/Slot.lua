@@ -252,7 +252,7 @@ local function PlaceLayers(self)
 	local countdown = self.countdown
 	if countdown then
 		countdown:ClearAllPoints()
-		countdown:SetPoint("CENTER", self.icon, "CENTER")
+		Widgets.Point(countdown, "CENTER", self.icon, "CENTER")
 		countdown:SetJustifyH("CENTER")
 	end
 end

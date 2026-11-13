@@ -9,7 +9,8 @@ local icon = essential.icons[1]
 local function appearance()
 	assert(icon.opts.size == 36.7 and ns.Settings.current.essential.spacing == 4.6, "the essential row keeps the measured size and pitch")
 	local p = icon.countdown._points[1]
-	assert(p[1] == "CENTER" and p[2] == icon and p[3] == "CENTER" and p[4] == 0 and p[5] == -K.Widgets.Snap(icon, 1), "the essential timer is optically centred, not raised for a charge band")
+	local half = K.Widgets.Border(icon) / 2 + 1e-6
+	assert(p[1] == "CENTER" and p[2] == icon and p[3] == "CENTER" and math.abs(p[4]) <= half and math.abs(p[5] + K.Widgets.Snap(icon, 1)) <= half, "the essential timer is optically centred, not raised for a charge band")
 	local _, size = icon.countdown:GetFont()
 	assert(size == K.Widgets.FontSize(icon.countdown, 16.5), "the number role's bold face uses the picture's smaller size")
 	assert(W.LastCall(icon.cooldown, "SetCountdownFormatter")[1] == nil, "the engine draws native unitless seconds, never Lua string operations on secrets")

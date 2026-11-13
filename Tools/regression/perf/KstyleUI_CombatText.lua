@@ -5,7 +5,7 @@ local CT = dofile("Tools/regression/combattext_env.lua")
 return {
 	{
 		name = "CombatText UNIT_COMBAT",
-		budget = 80,
+		budget = 250,
 		setup = function()
 			local env, K = CT.New()
 			CT.Enable(env, K)

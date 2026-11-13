@@ -95,9 +95,9 @@ local function Refresh(frame)
 		row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group]))
 		row.holder:ClearAllPoints()
 		if previous then
-			row.holder:SetPoint("TOP", previous.holder, "BOTTOM", 0, -Widgets.Snap(row.holder, gap))
+			Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, -gap)
 		else
-			row.holder:SetPoint("TOP", frame, "TOP", 0, -Widgets.Snap(row.holder, Tokens.Size("gapHuge")))
+			Widgets.Point(row.holder, "TOP", frame, "TOP", 0, -Tokens.Size("gapHuge"))
 		end
 		if group == "bars" then
 			FillBars(row)

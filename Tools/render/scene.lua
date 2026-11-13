@@ -1562,6 +1562,7 @@ function Scene.Build(env, opts)
 		items = items,
 		log = log,
 		skipped = skipped,
+		time = now,
 	}
 end
 
@@ -1601,10 +1602,14 @@ function Scene.Rect(env, object)
 	return Scene.RectIn(Scene.RectSolver(env), object)
 end
 
--- Merge(scenes) -> one scene whose items are every scene's items in order, for modules drawn in separate environments.
+-- Merge(scenes) -> one scene whose items are every scene's items in order, for modules drawn in separate environments,
+-- with their animation clock (time) when every scene shares one.
 function Scene.Merge(scenes)
-	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 } }
+	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 }, time = scenes[1].time }
 	for _, scene in ipairs(scenes) do
+		if scene.time ~= out.time then
+			out.time = nil
+		end
 		for _, item in ipairs(scene.items) do
 			out.items[#out.items + 1] = item
 		end
