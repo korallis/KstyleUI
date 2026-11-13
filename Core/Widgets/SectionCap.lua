@@ -47,13 +47,13 @@ end
 local function Placed(self)
 	local count = self.counted
 	self.rule:ClearAllPoints()
-	self.rule:SetPoint("LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
+	Widgets.Point(self.rule, "LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
 	if count then
-		self.rule:SetPoint("RIGHT", self.count, "LEFT", -Widgets.Snap(self, COUNT_GAP), 0)
+		Widgets.Point(self.rule, "RIGHT", self.count, "LEFT", -Widgets.Snap(self, COUNT_GAP), 0)
 	elseif self.reserve then
-		self.rule:SetPoint("RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
+		Widgets.Point(self.rule, "RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
 	else
-		self.rule:SetPoint("RIGHT", self, "RIGHT")
+		Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
 	end
 	self.count:SetShown(count)
 end
@@ -116,13 +116,13 @@ function Cap:Restyle()
 	local gem = Widgets.Snap(self, GEM_SIZE)
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
-	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
+	Widgets.Point(self.gem, "CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
 	Widgets.CapsSize(self.label)
 	self.label:ClearAllPoints()
-	self.label:SetPoint("LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
+	Widgets.Point(self.label, "LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))
 	self.count:ClearAllPoints()
-	self.count:SetPoint("RIGHT", self, "RIGHT")
+	Widgets.Point(self.count, "RIGHT", self, "RIGHT")
 	Placed(self)
 	if self.wrapWidth then
 		self:SetWrapWidth(self.wrapWidth)

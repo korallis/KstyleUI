@@ -26,7 +26,7 @@ function Tab:Paint()
 	local offset = Widgets.PressOffset(self)
 	if self.placedOffset ~= offset then
 		self.placedOffset = offset
-		self.label:SetPoint("CENTER", self, "CENTER", 0, -offset)
+		Widgets.Point(self.label, "CENTER", self, "CENTER", 0, -offset)
 	end
 end
 
@@ -59,7 +59,7 @@ local function Slide(strip, t)
 	local x = strip.fromX + (strip.toX - strip.fromX) * t
 	local w = strip.fromW + (strip.toW - strip.fromW) * t
 	strip.underX, strip.underW = x, w
-	strip.underline:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", x, Widgets.Border(strip))
+	Widgets.Point(strip.underline, "BOTTOMLEFT", strip, "BOTTOMLEFT", x, Widgets.Border(strip))
 	strip.underline:SetWidth(w)
 	strip.underGlow:SetWidth(w)
 end
@@ -100,7 +100,7 @@ function Tabs:Layout()
 		local w = equal or Widgets.Snap(self, max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
 		tab.x, tab.w, tab.inset = x, w, Widgets.Snap(self, Tokens.Size("gapMedium"))
 		tab:ClearAllPoints()
-		tab:SetPoint("TOPLEFT", self, "TOPLEFT", x, 0)
+		Widgets.Point(tab, "TOPLEFT", self, "TOPLEFT", x, 0)
 		tab:SetSize(w, height)
 		tab.placedOffset = nil
 		tab:Paint()
@@ -204,7 +204,7 @@ function Widgets.Tabs(parent, opts)
 	glow:SetTexture(shadowPath)
 	glow:SetBlendMode("ADD")
 	glow:SetTexCoord(GLOW_COLUMN - GLOW_REACH, GLOW_COLUMN + GLOW_REACH, 0, shadowTexels / 2 / Widgets.TEXTURE_TEXELS.shadow)
-	glow:SetPoint("BOTTOMLEFT", strip.underline, "TOPLEFT")
+	Widgets.Point(glow, "BOTTOMLEFT", strip.underline, "TOPLEFT")
 	strip.underGlow = glow
 	strip:SetTabs(opts.tabs, opts.value)
 	return Widgets.Track(strip)

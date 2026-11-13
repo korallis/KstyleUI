@@ -118,17 +118,17 @@ local function Arrange(frame)
 	local listHeight = height - SWING_HEIGHT - gap
 	for _, list in ipairs({ frame.damage, frame.threat }) do
 		list.width, list.height = listWidth, listHeight
-		list.holder:SetSize(listWidth, listHeight)
+		Widgets.Size(list.holder, listWidth, listHeight)
 	end
 	frame.damage.holder:ClearAllPoints()
-	frame.damage.holder:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
 	frame.threat.holder:ClearAllPoints()
-	frame.threat.holder:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+	Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
 	local swing = frame.swing
 	swing.opts.width, swing.opts.height = width, SWING_HEIGHT
 	swing:Restyle()
 	swing:ClearAllPoints()
-	swing:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+	Widgets.Point(swing, "BOTTOMLEFT", frame, "BOTTOMLEFT")
 end
 
 local function StyleSwing(swing)
@@ -151,7 +151,7 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetAllPoints(parent)
+	Widgets.Fill(frame, parent, 0, 0, 0, 0)
 	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
 	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
 	frame.swing = Widgets.StatusBar(frame, {

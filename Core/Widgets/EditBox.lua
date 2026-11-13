@@ -33,8 +33,8 @@ function EditBox:Restyle()
 	local pad = Widgets.Snap(self, Tokens.Size("gapMedium"))
 	self:SetTextInsets(pad, pad, 0, 0)
 	self.placeholder:ClearAllPoints()
-	self.placeholder:SetPoint("LEFT", self, "LEFT", pad, 0)
-	self.placeholder:SetPoint("RIGHT", self, "RIGHT", -pad, 0)
+	Widgets.Point(self.placeholder, "LEFT", self, "LEFT", pad, 0)
+	Widgets.Point(self.placeholder, "RIGHT", self, "RIGHT", -pad, 0)
 	self:Paint()
 end
 

@@ -17,19 +17,48 @@ end
 
 -- origin() -> the addon file whose code made the object being created, or false when a test, a scene or a fake made
 -- it. Only an environment made while the global PIXEL_AUDIT is set records it (pixel_audit_lib.lua).
+-- The kit's placement helpers (Widgets.Point, Fill and Size) place for their caller, so a region they place is the
+-- caller's: the first addon file up the stack outside them. When the kit replays a placement (on a rescale or a size
+-- change), the region keeps the file that placed it first (KEEP).
+local HELPERS = { Point = true, Fill = true, Size = true }
+local REPLAYS = { PlaceAgain = true, Reown = true, Refollow = true, Refill = true }
+local KIT = "Core/Widgets/Base.lua"
+local KEEP = {}
 local function origin()
+	local helped = false
 	for level = 3, 60 do
-		local info = debug.getinfo(level, "S")
+		local info = debug.getinfo(level, "Sn")
 		if not info then
-			return false
+			return helped and KIT or false
 		end
 		local source = info.source
 		if source:sub(1, 1) == "@" and not source:find("Tools/regression/stubs/", 1, true) then
 			local path = source:sub(2):gsub("^%./", "")
-			return not path:find("^Tools/") and path
+			if path == KIT and helped and (info.name == nil or REPLAYS[info.name]) then
+				return KEEP
+			elseif path == KIT and (helped or HELPERS[info.name]) then
+				helped = true
+			else
+				return not path:find("^Tools/") and path
+			end
 		end
 	end
-	return false
+	return helped and KIT or false
+end
+local function originFile()
+	local found = origin()
+	if found == KEEP then
+		return KIT
+	end
+	return found
+end
+local function placedBy(self)
+	local found = origin()
+	if found ~= KEEP then
+		self._placedBy = found
+	elseif self._placedBy == nil then
+		self._placedBy = KIT
+	end
 end
 
 -- Secret values ---------------------------------------------------------------------------------
@@ -182,6 +211,7 @@ end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
 -- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.
+local notifySpanners
 local function resize(self, w, h)
 	if self._width == w and self._height == h then
 		return
@@ -191,6 +221,7 @@ local function resize(self, w, h)
 	if script then
 		script(self, w, h)
 	end
+	notifySpanners(self, {})
 end
 function Object:SetSize(w, h) resize(self, w, h) end
 function Object:SetWidth(w) resize(self, w, self._height) end
@@ -222,6 +253,48 @@ local function spanned(self, axis)
 		return size + (b[4] or 0) - (a[4] or 0)
 	end
 	return size + (a[5] or 0) - (b[5] or 0)
+end
+-- A frame whose size comes from its anchors (spanned on a target) runs OnSizeChanged when that size changes, from a
+-- SetPoint or from its target's resize, as the game does; regions that are not frames have no such script.
+local NOT_FRAMES = { Texture = true, FontString = true, Line = true, MaskTexture = true }
+local function spanSize(frame)
+	if not (spanned(frame, "w") or spanned(frame, "h")) then
+		return nil
+	end
+	return rawSize(frame, "w"), rawSize(frame, "h")
+end
+local function spanChanged(frame)
+	if NOT_FRAMES[frame._type] then
+		return false
+	end
+	local ok, w, h = pcall(spanSize, frame)
+	if not ok or w == nil then
+		return false
+	end
+	local last = rawget(frame, "_lastSpan")
+	if last and last[1] == w and last[2] == h then
+		return false
+	end
+	rawset(frame, "_lastSpan", { w, h })
+	local script = frame._scripts and frame._scripts.OnSizeChanged
+	if script and (last or (type(w) == "number" and w > 0) or (type(h) == "number" and h > 0)) then
+		script(frame, w, h)
+	end
+	return true
+end
+function notifySpanners(self, seen)
+	local set = rawget(self, "_spanners")
+	if not set then
+		return
+	end
+	for frame in pairs(set) do
+		if not seen[frame] then
+			seen[frame] = true
+			if spanChanged(frame) then
+				notifySpanners(frame, seen)
+			end
+		end
+	end
 end
 function rawSize(self, axis)
 	if axis == "w" then
@@ -379,7 +452,11 @@ function Object:GetEffectiveScale()
 	if self._ignoreParentScale or not self._parent then
 		return self._scale
 	end
-	return self._scale * self._parent:GetEffectiveScale()
+	local parent = self._parent
+	if rawget(parent, "_calls") ~= nil and parent._denied ~= true and rawget(parent, "GetEffectiveScale") == nil then
+		return self._scale * Object.GetEffectiveScale(parent)
+	end
+	return self._scale * parent:GetEffectiveScale()
 end
 
 local function booleanAlpha(value, yes, no)
@@ -448,29 +525,52 @@ local function checkAnchor(self, relative)
 	end
 end
 
+local function spans(self, relative)
+	local target = anchorTarget(self, relative)
+	if type(target) == "table" and target ~= self then
+		local set = rawget(target, "_spanners")
+		if not set then
+			set = setmetatable({}, { __mode = "k" })
+			rawset(target, "_spanners", set)
+		end
+		set[self] = true
+	end
+end
 function Object:SetPoint(point, ...)
 	checkAnchor(self, (...))
+	spans(self, (...))
 	if self._env._trackOrigin then
-		self._placedBy = origin()
+		placedBy(self)
 	end
+	local replaced = false
 	for i, existing in ipairs(self._points) do
 		if existing[1] == point then
 			self._points[i] = pack(point, ...)
-			return
+			replaced = true
+			break
 		end
 	end
-	self._points[#self._points + 1] = pack(point, ...)
+	if not replaced then
+		self._points[#self._points + 1] = pack(point, ...)
+	end
+	if spanChanged(self) then
+		notifySpanners(self, {})
+	end
 end
 function Object:ClearAllPoints() self._points = {} end
 -- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
 function Object:SetAllPoints(relative)
 	checkAnchor(self, relative)
+	spans(self, relative)
 	if self._env._trackOrigin then
-		self._placedBy = origin()
+		placedBy(self)
 	end
 	local target = anchorTarget(self, relative)
 	self._points = { pack("TOPLEFT", target, "TOPLEFT", 0, 0), pack("BOTTOMRIGHT", target, "BOTTOMRIGHT", 0, 0) }
 	self._state.AllPoints = pack(relative)
+	if spanChanged(self) then
+		notifySpanners(self, {})
+	end
 end
 -- GetRect reads frame._rect { left, bottom, width, height } when a test sets it, otherwise a rect of the
 -- frame's size at the origin, or nothing for a frame with no size.
@@ -718,7 +818,7 @@ local function newObject(env, objectType, name, parent)
 	return setmetatable({
 		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
-		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and origin(),
+		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and originFile(),
 	}, ObjectMeta)
 end
 

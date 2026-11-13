@@ -491,6 +491,7 @@ local scaledRoots = {}
 local function RestyleWidgets()
 	restylePending = false
 	ns.Widgets.RestyleUnder(scaledRoots)
+	ns.Widgets.PlaceAgain(scaledRoots)
 	for frame in pairs(scaledRoots) do
 		scaledRoots[frame] = nil
 	end

@@ -124,11 +124,11 @@ local function Layout()
 	local bodyHeight = Widgets.TextHeight(body, bodySize * BODY_LINES)
 	local y = Widgets.Snap(host, pad + Tokens.Size("heading") + Tokens.Size("gapMedium")) + gap
 	body:ClearAllPoints()
-	body:SetPoint("TOPLEFT", host, "TOPLEFT", pad, -y)
+	Widgets.Point(body, "TOPLEFT", host, "TOPLEFT", pad, -y)
 	y = y + bodyHeight + gap
 	if host.editBox:IsShown() then
 		host.editBox:ClearAllPoints()
-		host.editBox:SetPoint("TOPLEFT", host, "TOPLEFT", pad, -y)
+		Widgets.Point(host.editBox, "TOPLEFT", host, "TOPLEFT", pad, -y)
 		host.editBox.opts.width = inner
 		host.editBox:Restyle()
 		y = y + (host.editBox:GetHeight() or 0) + gap
@@ -138,7 +138,7 @@ local function Layout()
 	for i = #host.visibleButtons, 1, -1 do
 		local button = host.visibleButtons[i]
 		button:ClearAllPoints()
-		button:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -x, pad)
+		Widgets.Point(button, "BOTTOMRIGHT", host, "BOTTOMRIGHT", -x, pad)
 		x = x + (button:GetWidth() or 0) + gap
 		tallest = max(tallest, button:GetHeight() or 0)
 	end

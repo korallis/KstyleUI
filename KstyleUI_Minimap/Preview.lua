@@ -34,7 +34,7 @@ function Preview.Build(parent)
 	local element = K.Setup.Layouts.Element(KEY)
 	local frame = CreateFrame("Frame", nil, parent)
 	Widgets.Size(frame, element.width, element.height)
-	frame:SetPoint("CENTER", parent, "CENTER", 0, Widgets.Snap(frame, (Format.CAPTION - Format.HEADING) / 2))
+	Widgets.Point(frame, "CENTER", parent, "CENTER", 0, Widgets.Snap(frame, (Format.CAPTION - Format.HEADING) / 2))
 	local face = Face.New(frame)
 	frame.face = face
 
@@ -56,7 +56,7 @@ function Preview.Build(parent)
 	local player = area:CreateTexture(nil, "OVERLAY")
 	player:SetTexture((Tokens.Texture("dot")))
 	Widgets.Size(player, PLAYER_SIZE, PLAYER_SIZE)
-	player:SetPoint("CENTER", area, "CENTER")
+	Widgets.Point(player, "CENTER", area, "CENTER")
 	frame.player = player
 	frame.column = Column.New(face, { preview = true })
 	frame.column.drawer = ns.Drawer.New(frame.column, { preview = true })
