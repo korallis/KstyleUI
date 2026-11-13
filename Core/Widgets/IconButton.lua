@@ -317,6 +317,7 @@ function IconButton:Restyle()
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
 		self.placedOffset = nil
+		PlaceIcon(self)
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()
 		self.hotkey:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
@@ -328,7 +329,7 @@ function IconButton:Restyle()
 				self.countdown:SetPoint("TOPRIGHT", self, "TOPRIGHT", -Widgets.Snap(self, size * COUNTDOWN_CORNER_X), -Widgets.Snap(self, size * COUNTDOWN_CORNER_Y))
 				self.countdown:SetJustifyH("RIGHT")
 			else
-				self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+				Widgets.Point(self.countdown, "CENTER", self.cooldown, "BOTTOM", 0, size * COUNTDOWN_RISE)
 				self.countdown:SetJustifyH("CENTER")
 			end
 		end

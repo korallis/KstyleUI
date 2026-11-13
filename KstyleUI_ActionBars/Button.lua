@@ -22,7 +22,7 @@ function Button.PlaceArrow(b, direction)
 	local place = ARROWS[direction] or ARROWS.UP
 	Widgets.Size(arrow, ARROW_SIZE, ARROW_SIZE)
 	arrow:ClearAllPoints()
-	arrow:SetPoint("CENTER", b, place[1])
+	Widgets.Point(arrow, "CENTER", b, place[1])
 	arrow:SetRotation(place[2])
 end
 local NOOP = ""
