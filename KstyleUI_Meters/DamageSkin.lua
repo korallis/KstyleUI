@@ -236,24 +236,38 @@ local function IsRegion(object)
 	return type(object) == "table" and type(object.GetObjectType) == "function"
 end
 
-local function Reserve(window)
+local function Reserve(window, cap)
 	local session = window.SessionDropdown
 	if not IsRegion(session) then
 		return CAP_RIGHT
 	end
 	local right, left = Logic.Plain(window:GetRight()), Logic.Plain(session:GetLeft())
-	local own, other = Logic.Plain(window:GetEffectiveScale()), Logic.Plain(session:GetEffectiveScale())
-	if not (right and left and own and other) or own <= 0 then
+	local own, other, scale = Logic.Plain(window:GetEffectiveScale()), Logic.Plain(session:GetEffectiveScale()), Logic.Plain(cap:GetEffectiveScale())
+	if not (right and left and own and other and scale) or scale <= 0 then
 		return CAP_RIGHT
 	end
-	return math.max(CAP_RIGHT, (right * own - left * other) / own + Tokens.Size("gapMedium"))
+	return math.max(CAP_RIGHT, (right * own - left * other) / scale + Tokens.Size("gapMedium"))
+end
+
+local function Match(window, cap)
+	local head = cap:GetParent()
+	local root, own = Logic.Plain(K.Scale.Root():GetEffectiveScale()), Logic.Plain(window:GetEffectiveScale())
+	if not (root and own) or own <= 0 then
+		return
+	end
+	local ratio = root / own
+	if math.abs((Logic.Plain(head:GetScale()) or 1) - ratio) > 1e-6 then
+		head:SetScale(ratio)
+		cap:Restyle()
+	end
 end
 
 local function PlaceCap(window, cap)
+	Match(window, cap)
 	local top = CAP_MIDDLE - Widgets.SECTION_CAP_HEIGHT / 2
 	cap:ClearAllPoints()
 	Widgets.Point(cap, "TOPLEFT", window, "TOPLEFT", CAP_LEFT, -top)
-	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window), -top)
+	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window, cap), -top)
 end
 
 local function NewCap(window)
