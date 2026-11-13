@@ -47,25 +47,21 @@ function ns.NewBar(def)
 	local header = CreateFrame("Frame", "KstyleUI_" .. def.name, holder, "SecureHandlerStateTemplate")
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
-	if def.key == "bar1" then
-		bar.ornament = Widgets.Ornament(header, "row")
-		bar.ornament.keystone = true
-	end
 	holder:HookScript("OnShow", function()
 		bar.holderHidden = nil
-		bar:RefreshOrnament()
+		bar:RefreshTray()
 	end)
 	holder:HookScript("OnHide", function()
 		bar.holderHidden = true
-		bar:RefreshOrnament()
+		bar:RefreshTray()
 	end)
 	header:HookScript("OnShow", function()
 		bar.headerHidden = nil
-		bar:RefreshOrnament()
+		bar:RefreshTray()
 	end)
 	header:HookScript("OnHide", function()
 		bar.headerHidden = true
-		bar:RefreshOrnament()
+		bar:RefreshTray()
 	end)
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
@@ -328,79 +324,23 @@ local function Steady(bar)
 	return s.shown ~= "mouseover", s.alphaCombat, s.alphaIdle
 end
 
-local function Seen(bar)
-	return bar:Shown() and not bar.holderHidden and not bar.headerHidden
-end
-
-function Bar:RefreshOrnament(force)
+function Bar:RefreshTray(force)
 	local bars = ns.bars
 	if not bars or ns.trayHeld then
 		return
 	end
 	local main = self.def.key == "bar1" and self or bars.bar1
 	local second = self.def.key == "bar2" and self or bars.bar2
-	local tray = main and main.ornament
-	if not (second and tray) then
+	if not (main and second) then
 		return
 	end
-	local pair, gap = second.header, main:Config().spacing
 	local mainSteady, mainCombat, mainIdle = Steady(main)
 	local secondSteady, secondCombat, secondIdle = Steady(second)
-	local enabled = Seen(second) and main:Config().fade ~= true and second:Config().fade ~= true
-		and mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle
-	local changed = force or tray.pair ~= pair or tray.pairGap ~= gap or tray.pairEnabled ~= enabled
-	tray.pair, tray.pairGap, tray.pairEnabled = pair, gap, enabled
-	local avoid = tray.avoidBars
-	if not avoid then
-		avoid = {}
-		tray.avoidBars = avoid
-		changed = true
-	end
-	local count = 0
-	for _, def in ipairs(ns.BARS) do
-		local bar = def.key == self.def.key and self or bars[def.key]
-		if def.key ~= "bar1" and def.key ~= "bar2" and bar and Seen(bar) and bar:Visibility() ~= "hide" then
-			local visible = true
-			if def.kind == "pet" and type(UnitExists) == "function" then
-				local exists = UnitExists("pet")
-				if not ns.IsSecret(exists) and exists == false then visible = false end
-			end
-			if visible then
-				count = count + 1
-				if avoid[count] ~= bar.holder then
-					avoid[count] = bar.holder
-					changed = true
-				end
-			end
-		end
-	end
-	local leave = ns.leaveShown and ns.leaveButton
-	if leave then
-		count = count + 1
-		if avoid[count] ~= leave then
-			avoid[count] = leave
-			changed = true
-		end
-	end
-	for k = #avoid, count + 1, -1 do
-		avoid[k] = nil
-		changed = true
-	end
-	if changed then
-		if not Widgets.MayMove(tray.owner) then
-			if not enabled then
-				tray:Yield()
-			end
-			for k = 1, count do
-				tray:Yield(avoid[k])
-			end
-		end
-		tray:Restyle()
-	end
+	ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
 end
 
 function Bar:Refresh()
-	self:RefreshOrnament(true)
+	self:RefreshTray(true)
 	for _, b in ipairs(self.buttons) do
 		ns.Button.StyleTexts(b)
 		ns.Button.Update(b)

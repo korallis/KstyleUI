@@ -60,17 +60,12 @@ function Vehicle.Update()
 	end
 	button:ClearAllPoints()
 	if bar then
-		button:SetPoint("LEFT", bar.holder, "RIGHT", Widgets.Snap(button, Tokens.Size("gapMedium")), 0)
+		local pad = ns.Config("tray") == true and K.Setup.Layouts.TRAY_PAD or 0
+		button:SetPoint("LEFT", bar.holder, "RIGHT", Widgets.Snap(button, Tokens.Size("gapMedium") + pad), 0)
 	else
 		local root = K.Scale.Root()
 		button:SetPoint("BOTTOM", root, "BOTTOM", 0, Tokens.Size("gapHuge"))
 	end
 	local shown = ns.running and not ns.gamepad and CanLeave()
 	button:SetShown(shown)
-	if ns.leaveShown ~= shown then
-		ns.leaveShown = shown
-		if bar then
-			bar:RefreshOrnament()
-		end
-	end
 end

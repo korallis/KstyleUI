@@ -11,17 +11,26 @@ local L = ns.L
 
 local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
 local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
-local PLAYER_CAST_Y = 385.5
 local RAIL_BUTTON, RAIL_PITCH = CENTRE_BUTTON, CENTRE_GAP
+local MOCK_PX = 1 / ns.Scale.DEFAULT_USER_SCALE
+local TRAY_BUTTON, TRAY_GAP, TRAY_PAD, TRAY_BOTTOM = 38 * MOCK_PX, 3 * MOCK_PX, 9 * MOCK_PX, 40 * MOCK_PX
+local TRAY_WIDTH = 12 * TRAY_BUTTON + 11 * TRAY_GAP + 2 * TRAY_PAD
+local TRAY_BAR1_Y = TRAY_BOTTOM + TRAY_PAD
+local TRAY_BAR2_Y = TRAY_BAR1_Y + TRAY_BUTTON + TRAY_GAP
+local TRAY_TOP = TRAY_BAR2_Y + TRAY_BUTTON + TRAY_PAD
+local TRAY_STRIP_GAP = 9 * MOCK_PX
+local LIFT = math.ceil(TRAY_TOP - 132)
+local PLAYER_CAST_Y = 385.5 + LIFT
+local COMBAT_TEXT_H = 180
 local GRIDS = {
-	["actionbars.bar1"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
-	["actionbars.bar2"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
+	["actionbars.bar1"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
+	["actionbars.bar2"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
 	["actionbars.bar3"] = { buttons = 12, rows = 1, size = BUTTON },
 	["actionbars.bar4"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
 	["actionbars.bar5"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
 	["actionbars.bar6"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
-	["actionbars.pet"] = { buttons = 10, rows = 2, size = SMALL_BUTTON },
-	["actionbars.stance"] = { buttons = 10, rows = 2, size = SMALL_BUTTON, growth = "RIGHTUP" },
+	["actionbars.pet"] = { buttons = 10, rows = 3, size = SMALL_BUTTON },
+	["actionbars.stance"] = { buttons = 10, rows = 3, size = SMALL_BUTTON, growth = "RIGHTUP" },
 }
 
 local function GridSize(key)
@@ -88,7 +97,7 @@ local ELEMENTS = {
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
 	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = THREAT_W, height = THREAT_H },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
-	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = 180 },
+	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = COMBAT_TEXT_H - LIFT },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
@@ -102,9 +111,10 @@ end
 local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
 local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
-local ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + GridSize("actionbars.pet") / 2
+local ENDS = TRAY_WIDTH / 2 + NEAR + GridSize("actionbars.pet") / 2
+local STRIP_ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + (5 * SMALL_BUTTON + 4 * PITCH) / 2
 local BAR = BUTTON + PITCH
-local BAR1_Y = 68
+local BAR1_Y = 68 + LIFT
 local SPARE_TOP = BAR1_Y + 3 * BAR - PITCH
 local VITALS_Y = SPARE_TOP + 12
 local VITALS_TOP = VITALS_Y + 80
@@ -121,7 +131,7 @@ local SIGIL_CLEAR = GAP
 local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
-local TEXT_TOP = CLUSTER_TOP + GAP + 180
+local TEXT_TOP = CLUSTER_TOP - LIFT + GAP + COMBAT_TEXT_H
 local BOSS_X = -(EDGE + 2 * STORY_W + 2 * GAP)
 local function ElementSize(key)
 	for _, element in ipairs(ELEMENTS) do
@@ -159,23 +169,23 @@ local DPS = {
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
-	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 36.5 },
-	["databars.rep"] = { anchor = "BOTTOM", x = -ENDS, y = 52 },
-	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
-	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 54 },
-	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 95.3 },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 8 },
+	["databars.rep"] = { anchor = "BOTTOM", x = -STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 15 },
+	["databars.honor"] = { anchor = "BOTTOM", x = STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 15 },
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR1_Y },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR2_Y },
 	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = math.max(MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP, PLAYER_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP) },
-	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = BAR1_Y },
-	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
-	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
+	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
+	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
+	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
-	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 },
-	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 },
-	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 },
-	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 },
-	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 },
-	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 },
-	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 + LIFT },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 + LIFT },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 + LIFT },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 + LIFT },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 + LIFT },
+	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
@@ -356,6 +366,12 @@ Layouts.FEED_LINES = FEED_LINES
 Layouts.FEED_PAD = FEED_PAD
 Layouts.SIGIL_CLEAR = SIGIL_CLEAR
 Layouts.BUTTON = BUTTON
+Layouts.TRAY_TOP = TRAY_TOP
+Layouts.TRAY_BOTTOM = TRAY_BOTTOM
+Layouts.TRAY_WIDTH = TRAY_WIDTH
+Layouts.TRAY_PAD = TRAY_PAD
+Layouts.TRAY_GAP = TRAY_GAP
+Layouts.TRAY_LIFT = LIFT
 Layouts.HEIGHT = HEIGHT
 Layouts.STORY_KEYS = STORY_KEYS
 Layouts.STORY_FLOOR = STORY_FLOOR
@@ -493,6 +509,51 @@ function Layouts.Story(name, rootHeight, guide)
 	end
 	local column = slot.height - (QUESTS_BOTTOM - STORY_BOTTOM)
 	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column) }
+end
+
+local LIFTED = {
+	"unitframes.player", "unitframes.pet", "unitframes.resource", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
+	"unitframes.targettarget", "unitframes.castbar.player", "unitframes.castbar.target", "cooldowns.essential", "cooldowns.utility",
+	"cooldowns.buffs", "cooldowns.bars", "meters.swing", "meters.threat", "combattext.player", "actionbars.bar3",
+}
+local LIFTED_IN = {
+	DPS = {},
+	Tank = {},
+	Healer = { "groupframes.party", "groupframes.raid" },
+}
+local OLD_ENDS = STRIP_ENDS
+local TRAY_OLD = {
+	["actionbars.bar1"] = { "BOTTOM", 0, 54 },
+	["actionbars.bar2"] = { "BOTTOM", 0, 95.3 },
+	["actionbars.pet"] = { "BOTTOM", -OLD_ENDS, 68 },
+	["actionbars.stance"] = { "BOTTOM", OLD_ENDS, 68 },
+	["databars.xp"] = { "BOTTOM", 0, 36.5 },
+	["databars.rep"] = { "BOTTOM", -OLD_ENDS, 52 },
+	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
+}
+
+function Layouts.TrayMoves(name)
+	local layout = layouts[name]
+	if not layout then
+		return nil
+	end
+	local out = {}
+	for key, place in pairs(TRAY_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	local function lift(key)
+		local now = layout[key]
+		if now then
+			out[key] = { now.anchor, now.x, now.y - LIFT }
+		end
+	end
+	for _, key in ipairs(LIFTED) do
+		lift(key)
+	end
+	for _, key in ipairs(LIFTED_IN[name] or {}) do
+		lift(key)
+	end
+	return out
 end
 
 function Layouts.Default(key)

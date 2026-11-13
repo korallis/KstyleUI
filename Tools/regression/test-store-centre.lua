@@ -92,10 +92,10 @@ local env10, K10 = CoreEnv.New({ saved = {
 } })
 CoreEnv.Boot(env10)
 assert(env10.KstyleUIDB.version == K.Store.DB_VERSION and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
-assert(K10.Store.Layout()["unitframes.player"].y == 138, "version 10 receives the new player position")
+assert(K10.Store.Layout()["unitframes.player"].y == now["unitframes.player"].y, "version 10 receives the new player position")
 assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 186, "the centre migration preserves the migrated chat dimensions, and version 16 takes the picture's 186 height")
-assert(db.layouts.Old["unitframes.resource"].y == 420, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
-assert(db.layouts.Old["actionbars.bar3"].y == 431.5, "the old spare bar position migrates above both the loot feed and player cast")
+assert(db.layouts.Old["unitframes.resource"].y == now["unitframes.resource"].y, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
+assert(db.layouts.Old["actionbars.bar3"].y == now["actionbars.bar3"].y, "the old spare bar position migrates above both the loot feed and player cast")
 for key in pairs(old) do
 	local entry, place = db.layouts.Old[key], now[key]
 	assert(entry.anchor == place.anchor and entry.x == place.x and entry.y == place.y, key .. " moves to the new reference: " .. tostring(entry.anchor) .. "," .. tostring(entry.x) .. "," .. tostring(entry.y) .. " expected " .. tostring(place.anchor) .. "," .. tostring(place.x) .. "," .. tostring(place.y))

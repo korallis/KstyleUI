@@ -2,36 +2,6 @@
 local D = dofile("Tools/regression/databars_env.lua")
 local M = dofile("Tools/regression/minimap_env.lua")
 
-local counts = { Restyle = 0, Place = 0, Piece = 0, Follow = 0, Swap = 0 }
-local wrapped = {}
-local function Count(handle)
-	local Handle = getmetatable(handle).__index
-	if wrapped[Handle] then return end
-	wrapped[Handle] = true
-	for name in pairs(counts) do
-		local original = Handle[name]
-		Handle[name] = function(...)
-			counts[name] = counts[name] + 1
-			return original(...)
-		end
-	end
-end
-local function Reset()
-	for name in pairs(counts) do counts[name] = 0 end
-end
-local function Total()
-	local n = 0
-	for _, v in pairs(counts) do n = n + v end
-	return n
-end
-local function Shown(handle)
-	local n = 0
-	for i = 1, handle.used do
-		if handle.textures[i]:IsVisible() then n = n + 1 end
-	end
-	return n
-end
-
 -- The stubs fire OnShow only on the frame shown; the game fires it on every frame that becomes visible.
 local function PropagateShow(env)
 	for _, frame in ipairs(env._frames) do
@@ -52,64 +22,58 @@ end
 
 -- Data bars -------------------------------------------------------------------------------------------------
 
+-- Since the overhaul (KSTY-44 bible 3.4: no ornament around a bar) the experience, reputation and honour bars are
+-- clean: no bar owns an ornament handle, and no path makes one on a bar, whatever the level.
 local env, K, ns, game = D.New()
 D.W.Settle(env)
 PropagateShow(env)
 assert(K.Widgets.Setting("ornaments") == "Full", "a profile without a stored level is Full")
-local xp, rep = ns.Bars.views.xp, ns.Bars.views.rep
-assert(xp.ornament.used > 0 and Shown(xp.ornament) == xp.ornament.used, "the experience bar places its pieces at Full")
-Count(xp.ornament)
-D.W.Settle(env)
-env.RunTimers()
-
-local function Step(what, fn, restyles)
-	Reset()
-	fn()
-	D.W.Settle(env)
-	env.RunTimers()
-	if restyles == 0 then
-		assert(Total() == 0, what .. " makes no ornament call, not " .. Total())
-	else
-		assert(counts.Restyle == restyles, what .. " restyles " .. restyles .. " time(s), not " .. counts.Restyle)
-	end
+for id, view in pairs(ns.Bars.views) do
+	assert(view.ornament == nil and view.rim == nil, "the " .. id .. " bar owns no ornament at Full")
 end
-
-local label = xp.text:GetText()
-Step("an experience gain that keeps the label's width", function()
-	game.xp = game.xp + 1
-	env.FireEvent("PLAYER_XP_UPDATE", "player")
-end, 0)
-assert(xp.text:GetText() == label, "the fixture's gain keeps the label")
-Step("UPDATE_EXHAUSTION with the same rested share", function() env.FireEvent("UPDATE_EXHAUSTION") end, 0)
-Step("PLAYER_UPDATE_RESTING", function() env.FireEvent("PLAYER_UPDATE_RESTING") end, 0)
-Step("a reputation gain on a bar whose text shows on hover", function()
-	game.faction.currentStanding = (game.faction.currentStanding or 0) + 1
-	env.FireEvent("UPDATE_FACTION")
-end, 0)
-Step("rested experience running out, which shortens the label", function()
-	game.rested = nil
-	env.FireEvent("UPDATE_EXHAUSTION")
-end, 1)
-assert(xp.text:GetText() ~= label, "the label lost its rested share")
-
-local enter, leave = rep.holder:GetScript("OnEnter"), rep.holder:GetScript("OnLeave")
-Step("the pointer entering the reputation bar, which shows its text", function() enter(rep.holder) end, 1)
-Step("the pointer leaving it", function() leave(rep.holder) end, 1)
-
-Step("the experience bar hiding at the level cap, which restyles it and the two bars that avoid it", function()
-	game.level = game.maxLevel
-	env.FireEvent("PLAYER_LEVEL_UP", game.maxLevel)
-end, 3)
-assert(not xp.content:IsShown() and xp.ornament.stale, "the hidden experience bar's ornament is stale")
-Step("an experience event while the bar is hidden", function() env.FireEvent("PLAYER_XP_UPDATE", "player") end, 0)
-Reset()
+local function Under(frame, roots)
+	while frame do
+		if roots[frame] then return true end
+		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
+	end
+	return false
+end
+local holders = {}
+for _, view in pairs(ns.Bars.views) do
+	holders[view.holder] = true
+end
+local made = 0
+local Ornament = K.Widgets.Ornament
+K.Widgets.Ornament = function(owner, ...)
+	if Under(owner, holders) then
+		made = made + 1
+	end
+	return Ornament(owner, ...)
+end
+local xp, rep = ns.Bars.views.xp, ns.Bars.views.rep
+game.xp = game.xp + 1
+env.FireEvent("PLAYER_XP_UPDATE", "player")
+env.FireEvent("UPDATE_EXHAUSTION")
+env.FireEvent("PLAYER_UPDATE_RESTING")
+game.faction.currentStanding = (game.faction.currentStanding or 0) + 1
+env.FireEvent("UPDATE_FACTION")
+game.rested = nil
+env.FireEvent("UPDATE_EXHAUSTION")
+rep.holder:GetScript("OnEnter")(rep.holder)
+rep.holder:GetScript("OnLeave")(rep.holder)
+game.level = game.maxLevel
+env.FireEvent("PLAYER_LEVEL_UP", game.maxLevel)
+D.W.Settle(env)
+assert(not xp.content:IsShown(), "the experience bar hides at the level cap")
 game.level = 38
 env.FireEvent("PLAYER_LEVEL_UP", 38)
 D.W.Settle(env)
-assert(xp.content:IsShown() and not xp.ornament.stale and Shown(xp.ornament) == xp.ornament.used and xp.ornament.used > 0, "the bar places its pieces again when it shows")
-Step("the reputation bar moving, which restyles it and the two bars that avoid it", function()
-	K.Callbacks.Fire("LayoutChanged", "databars.rep")
-end, 3)
+assert(xp.content:IsShown(), "and shows again below it")
+K.Callbacks.Fire("LayoutChanged", "databars.rep")
+D.W.Settle(env)
+env.RunTimers()
+K.Widgets.Ornament = Ornament
+assert(made == 0, "the data bars' paths make no ornament on a bar, not " .. made)
 assert(#env._errors == 0, tostring(env._errors[1]))
 
 -- Minimap ---------------------------------------------------------------------------------------------------
@@ -122,11 +86,11 @@ M.Settle(menv)
 local face = mns.Map.face
 assert(MK.Widgets.Setting("ornaments") == "Full", "the minimap fixture is at Full")
 assert(face.ornament == nil and face.plaqueOrnament == nil, "the minimap card owns no ornament handle at Full")
-local made = 0
-local Ornament = MK.Widgets.Ornament
+local mapMade = 0
+local MapOrnament = MK.Widgets.Ornament
 MK.Widgets.Ornament = function(...)
-	made = made + 1
-	return Ornament(...)
+	mapMade = mapMade + 1
+	return MapOrnament(...)
 end
 M.RunTickers(menv)
 menv.FireEvent("PLAYER_STARTED_MOVING")
@@ -139,7 +103,7 @@ MK.Callbacks.Fire("LayoutChanged", "auras.buffs")
 mns.Map.drawer:Open()
 mns.Map.drawer:Close(true)
 M.Settle(menv)
-MK.Widgets.Ornament = Ornament
-assert(made == 0, "the minimap's paths make no ornament, not " .. made)
+MK.Widgets.Ornament = MapOrnament
+assert(mapMade == 0, "the minimap's paths make no ornament, not " .. mapMade)
 assert(#menv._errors == 0, tostring(menv._errors[1]))
 print("ok bars and map paths")

@@ -8,7 +8,7 @@ local SIZE_MIN, SIZE_MAX = 16, 64
 local SPACING_MAX = 16
 local FADE_STEP = 0.05
 local FONT_MIN, FONT_MAX = 6, 24
-local COOLDOWN_TEXT = 13
+local HOTKEY_TEXT, COOLDOWN_TEXT = 12, 19
 local PAGING_LETTERS = 255
 local ON_BY_DEFAULT = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, pet = true, stance = true }
 
@@ -66,8 +66,9 @@ local defaults = {
 	powerColor = Color(ns.Socket.TOKENS.cool),
 	tooltips = "always",
 	ranks = "ask",
+	tray = true,
 	text = {
-		hotkey = { font = "", size = Tokens.Size("caption"), outline = "NONE" },
+		hotkey = { font = "", size = HOTKEY_TEXT, outline = "NONE" },
 		count = { font = "", size = Tokens.Size("number"), outline = "NONE" },
 		macro = { font = "", size = Tokens.Size("caption"), outline = "NONE" },
 		cooldown = { font = "", size = COOLDOWN_TEXT, outline = "NONE" },
@@ -223,6 +224,8 @@ function ns.Schema()
 				{ value = "never", label = L["Never"] },
 			},
 		},
+		{ type = "header", label = L["Tray"] },
+		{ type = "toggle", key = "tray", label = L["Tray card"], help = L["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."] },
 		{ type = "header", label = L["Spell ranks"] },
 		{
 			type = "dropdown", key = "ranks", label = L["New spell ranks"], help = L["What happens when you learn a higher rank of a spell on your bars."],

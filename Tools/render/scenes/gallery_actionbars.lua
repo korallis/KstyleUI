@@ -130,6 +130,7 @@ return Common.Run(function()
 	place(pet.holder, 60, 540)
 	place(stance.holder, 60, 620)
 	place(bar3.holder, 700, 80)
+	bar1:RefreshTray(true)
 
 	-- The preview on a plain frame, as the settings window shows it.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())

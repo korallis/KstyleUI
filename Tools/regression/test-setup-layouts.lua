@@ -5,6 +5,9 @@ local Raises = CoreEnv.Raises
 local env, K = CoreEnv.New()
 CoreEnv.Boot(env)
 local Layouts = K.Setup and K.Setup.Layouts
+local LIFT, TRAY_PAD, TRAY_BOTTOM = Layouts.TRAY_LIFT, Layouts.TRAY_PAD, Layouts.TRAY_BOTTOM
+local TRAY_TILE, TRAY_GAP = 38 * 19 / 16, 3 * 19 / 16
+local TRAY_ROW = 12 * TRAY_TILE + 11 * TRAY_GAP
 assert(type(Layouts) == "table", "KstyleUI.Setup.Layouts is missing")
 
 -- The element keys modules register with Layout, as docs/superpowers/plans/element-keys.md lists them.
@@ -41,15 +44,15 @@ end
 
 -- LEE-20: the owner's picture wins over the earlier Lumen sigil and spare-bar stack.
 local REFERENCE = {
-	["unitframes.player"] = { 491, 77.5, 0, 138, 586.5, -47.75 },
-	["unitframes.target"] = { 491, 102.5, 0, 217.5, 737.4, 123.2 },
-	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 },
-	["unitframes.resource"] = { 120, 14, 0, 420 },
-	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 },
-	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 },
-	["actionbars.bar1"] = { 491, 36.7, 0, 54 },
-	["actionbars.bar2"] = { 491, 36.7, 0, 95.3 },
-	["databars.xp"] = { 491, 8, 0, 36.5 },
+	["unitframes.player"] = { 491, 77.5, 0, 138 + LIFT, 586.5, -47.75 },
+	["unitframes.target"] = { 491, 102.5, 0, 217.5 + LIFT, 737.4, 123.2 },
+	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 + LIFT },
+	["unitframes.resource"] = { 120, 14, 0, 420 + LIFT },
+	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 + LIFT },
+	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 + LIFT },
+	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
+	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
+	["databars.xp"] = { 491, 8, 0, TRAY_BOTTOM - 9 * 19 / 16 - 8 },
 }
 for _, name in ipairs(Layouts.Names()) do
 	for key, want in pairs(REFERENCE) do
@@ -239,7 +242,7 @@ local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframe
 local EXTRAS = set({ "unitframes.castbar.player", "unitframes.castbar.target" })
 -- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster (the plate
 -- target cast bar's retained top, 664) to the top.
-local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
+local CLEAR = { half = 260, bottom = 664 + LIFT, top = HEIGHT - 28 }
 -- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer three quarters, never
 -- past them. KSTY-33 moved it 75 units in to clear the quest card's column beside the RestedXP guide (the Captain's
 -- ruling on the Fable audit), so on 16:10 it stands 69 units right of the centre line, where it stood 144.
@@ -366,7 +369,7 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 431.5) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
+				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 431.5 + LIFT) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
 				assert(r.bottom - feed.top >= 16 and same(r.bottom - rect("unitframes.castbar.player").top, 16), label .. ": bar 3 clears the feed's full reserve and the player cast by at least 16")
 				assert(r.right <= width * 0.3 or r.left >= width * 0.7, label .. ": LEE-20 bar 3 stays outside the central 40% band")
 			elseif not onRail then
@@ -396,37 +399,38 @@ for _, name in ipairs(names) do
 		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
-		assert(same(xp.bottom, 36.5) and same(bar1.bottom - xp.top, 9.5), label .. ": LEE-20 the XP line sits at 36.5, 9.5 under bar 1")
+		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 8) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the XP line sits 9 px under the KSTY-44 tray card")
 		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
-		assert(same(playerBar[1], bar1.left) and same(playerBar[3], bar1.right), label .. ": LEE-20 the player's bars, not its external portrait reserve, span bar 1")
+		assert(same((playerBar[1] + playerBar[3]) / 2, (bar1.left + bar1.right) / 2), label .. ": LEE-20 the player's bars, not its external portrait reserve, stand centred over the tray")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
 		local resource = rect("unitframes.resource")
-		assert(same(resource.bottom, 420) and same(resource.bottom - cast.top, 4.5), label .. ": the optional class resource sits 4.5 above the player cast, clear after independent pixel snapping")
-		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
+		assert(same(resource.bottom, 420 + LIFT) and same(resource.bottom - cast.top, 4.5), label .. ": the optional class resource sits 4.5 above the player cast, clear after independent pixel snapping")
+		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3 + LIFT) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
-		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
-		assert(same(bars.x - mid, -480) and same(bars.bottom, 340), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
+		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9 + LIFT) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
+		assert(same(bars.x - mid, -480) and same(bars.bottom, 340 + LIFT), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
 		local swing = rect("meters.swing")
 		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
 		local block = math.max(swing.top, bars.top, essential.top, utility.top)
 		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
-		assert(same(petBar.x - mid, -337.5) and petBar.bottom == 68, label .. ": the optional pet sockets keep their original slot beside the centre bars")
-		assert(same(stance.x - mid, 337.5) and stance.bottom == 68, label .. ": the optional stance sockets keep their original slot beside the centre bars")
+		local near = K.Tokens.Size("gapLarge")
+		assert(same(bar1.left - TRAY_PAD - petBar.right, near) and same(petBar.bottom, TRAY_BOTTOM), label .. ": the optional pet sockets stand beside the tray card, on its bottom edge")
+		assert(same(stance.left - bar1.right - TRAY_PAD, near) and same(stance.bottom, TRAY_BOTTOM), label .. ": the optional stance sockets stand beside the tray card, on its bottom edge")
 		local rep, honor = rect("databars.rep"), rect("databars.honor")
-		assert(rep.bottom == 52 and rep.left == petBar.left and rep.right == petBar.right, label .. ": the reputation line keeps its baseline under the pet sockets")
-		assert(honor.bottom == 52 and honor.left == stance.left and honor.right == stance.right, label .. ": the honour line keeps its baseline under the stance sockets")
+		assert(same(rep.x - mid, -337.5) and same(rep.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 15) and rep.top < TRAY_BOTTOM, label .. ": the reputation line keeps its old x under the tray card's left end")
+		assert(same(honor.x - mid, 337.5) and same(honor.bottom, rep.bottom), label .. ": the honour line mirrors it under the right end")
 		local pet = rect("unitframes.pet")
-		assert(same(pet.x - mid, -317) and pet.bottom == 258 and pet.w == 120 and pet.h == 22, label .. ": the optional pet frame keeps its original compact slot")
+		assert(same(pet.x - mid, -317) and same(pet.bottom, 258 + LIFT) and pet.w == 120 and pet.h == 22, label .. ": the optional pet frame keeps its original compact slot")
 
 		-- LEE-20 places the target over the player; optional compact frames keep their previous slots.
 		local target, tot = rect("unitframes.target"), rect("unitframes.targettarget")
 		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
-		assert(same(target.bottom - vitals.top, 2) and same(target.top, 320), label .. ": LEE-20 the target sits 2 over the player, below the cooldown row")
+		assert(same(target.bottom - vitals.top, 2) and same(target.top, 320 + LIFT), label .. ": LEE-20 the target sits 2 over the player, below the cooldown row")
 		assert(same(target.left, playerBar[1]) and same(target.right, playerBar[3] + 246.4), label .. ": LEE-20 the target reserve extends 230.4 right for portrait and debuffs plus a 16-unit pixel-rounding buffer")
-		assert(same(focus.x - mid, -357) and focus.top == 540, label .. ": the optional focus card keeps its original slot above the centre column")
+		assert(same(focus.x - mid, -357) and same(focus.top, 540 + LIFT), label .. ": the optional focus card keeps its original slot above the centre column")
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
-		assert(same(tot.x - mid, 317) and tot.top == 540, label .. ": the optional target of target keeps its original slot opposite the focus")
-		local clusterTop = 540
+		assert(same(tot.x - mid, 317) and same(tot.top, 540 + LIFT), label .. ": the optional target of target keeps its original slot opposite the focus")
+		local clusterTop = 540 + LIFT
 		do
 			local threat = rect("meters.threat")
 			assert(threat.left == tot.left and tot.bottom - threat.top == CLUSTER_GAP and threat.bottom >= block + 4, label .. ": the threat card stands under the target of target")
@@ -452,10 +456,10 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
-		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 640), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its slot")
+		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 640 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its slot")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
-		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, 4.6) and same(vitals.bottom - bar2.top, 6), label .. ": LEE-20 bars 1 and 2 stack at the picture's 4.6 gap, 6 under the player")
+		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
 		if healer then
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
@@ -505,7 +509,7 @@ for _, name in ipairs(names) do
 	assert(settings["ActionBars.bar4.enabled"] == true and settings["ActionBars.bar5.enabled"] == true, name .. " writes bars 4 and 5 on, the rail's two columns")
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.bar2.enabled"] == true and settings["ActionBars.bar2.rows"] == 1, name .. ": LEE-20 writes bar 2 on, one row")
-	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
+	assert(settings["ActionBars.pet.rows"] == 3 and settings["ActionBars.stance.rows"] == 3, name .. " folds the pet and stance sockets into three rows of four beside the tray")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
 	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
 	assert(settings["ActionBars.bar1.showEmpty"] == true and settings["ActionBars.bar2.showEmpty"] == true, name .. ": LEE-20 shows both central bars' empty tiles")
@@ -555,8 +559,7 @@ end
 -- LEE-20 supersedes the common 38-unit size: essential icons match the 36.7 action tiles,
 -- tracked buffs include their timer row, and unchanged utility icons retain their optional 38-unit slot.
 do
-	local button = Layouts.Element("actionbars.bar1").height
-	assert(same(button, 36.7) and same(Layouts.Element("cooldowns.essential").height, button), "LEE-20 essential icons match the action tiles")
+	assert(same(Layouts.Element("actionbars.bar1").height, TRAY_TILE) and same(Layouts.Element("cooldowns.essential").height, 36.7), "the action tiles take the KSTY-44 tray's 38 px; essential icons keep LEE-20's 36.7")
 	assert(same(Layouts.Element("cooldowns.utility").height, 38) and same(Layouts.Element("cooldowns.buffs").height, 41.6), "LEE-20 utility keeps its size and tracked buffs include timers")
 	assert(same(select(2, Layouts.Footprint("DPS", "unitframes.player")), 77.5), "LEE-20 the player frame is 77.5 tall with its cast in a separate element")
 	for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
@@ -566,14 +569,14 @@ end
 
 -- Footprints: LEE-20 centre dimensions and unchanged optional frames and rail cards. ----------------------------
 local FOOTPRINTS = {
-	["actionbars.bar1"] = { 491, 36.7 },
-	["actionbars.bar2"] = { 491, 36.7 },
+	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE },
+	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE },
 	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar4"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
 	["actionbars.bar5"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
 	["actionbars.bar6"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
-	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
-	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
+	["actionbars.pet"] = { 4 * 30 + 3 * 3, 3 * 30 + 2 * 3 },
+	["actionbars.stance"] = { 4 * 30 + 3 * 3, 3 * 30 + 2 * 3 },
 	-- LEE-20 reserves external portraits and target debuffs; the optional focus retains its 22-unit aura reserve.
 	["cooldowns.essential"] = { 243.2, 36.7 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },

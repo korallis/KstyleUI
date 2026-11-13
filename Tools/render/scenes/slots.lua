@@ -45,6 +45,7 @@ return Common.Run(function()
 	local bar = ns.bars.bar1
 	bar.holder:ClearAllPoints()
 	bar.holder:SetPoint("CENTER", bar.holder:GetParent(), "CENTER", 0, 0)
+	bar:RefreshTray(true)
 	local function button(state)
 		for i, name in ipairs(STATES) do
 			if name == state then

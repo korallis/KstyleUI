@@ -5,6 +5,7 @@
 	<Script file="Settings.lua"/>
 	<Script file="Button.lua"/>
 	<Script file="Flyout.lua"/>
+	<Script file="Tray.lua"/>
 	<Script file="Bar.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Blizzard.lua"/>

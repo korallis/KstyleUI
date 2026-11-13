@@ -232,6 +232,10 @@ function Buttons.Menus(opts)
 	env.RunTimers()
 	D.W.Settle(env)
 	K.Widgets.RestyleAll()
+	local strip = K.Layout.Element("databars.strip")
+	if strip then
+		strip.frame:Hide()
+	end
 	local scene = Scene.Build(env)
 	return finish(env, K, scene, "menus")
 end

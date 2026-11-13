@@ -43,8 +43,8 @@ do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local button = Layouts.Element("actionbars.bar1").height
-	assert(near(button, 36.7) and near(Layouts.Element("cooldowns.essential").height, button), "LEE-20 essential icons match the 36.7 action tiles")
+	assert(near(Layouts.Element("actionbars.bar1").height, 38 * 19 / 16), "bar 1 takes the KSTY-44 tray's 38 px tile")
+	assert(near(Layouts.Element("cooldowns.essential").height, 36.7), "LEE-20 essential icons keep the 36.7 action tile")
 	assert(near(Layouts.Element("cooldowns.utility").height, 38), "optional utility icons retain their 38-unit height")
 	assert(near(Layouts.Element("cooldowns.buffs").height, 41.6), "LEE-20 tracked buffs reserve their icons and timer row")
 	assert(near(Layouts.Element("cooldowns.essential").width, 6 * 36.7 + 5 * 4.6), "LEE-20 six essential icons at the 41.3-unit action pitch")
@@ -57,8 +57,8 @@ do
 	local _, _, abns = AB.New()
 	local d = ns.Settings.defaults
 	local button = abns.defaults.bar1.size
-	assert(near(button, 36.7) and near(abns.defaults.bar1.spacing, 4.6), "LEE-20 bar 1's tiles are 36.7 with 4.6 gaps")
-	assert(near(abns.defaults.bar2.size, button) and near(abns.defaults.bar2.spacing, 4.6), "LEE-20 bar 2 matches bar 1's pitch")
+	assert(near(button, 38 * 19 / 16) and near(abns.defaults.bar1.spacing, 3 * 19 / 16), "bar 1's tiles are the KSTY-44 tray's 38 px with 3 px gaps at 1080p")
+	assert(near(abns.defaults.bar2.size, button) and near(abns.defaults.bar2.spacing, abns.defaults.bar1.spacing), "bar 2 matches bar 1's pitch")
 	assert(abns.defaults.bar2.enabled and abns.defaults.bar1.showEmpty and abns.defaults.bar2.showEmpty, "LEE-20 both action rows show their empty tiles by default")
 	local sizes = { essential = { 36.7, 4.6 }, utility = { 38, 3 }, buffs = { 27.6, 3.4 } }
 	for group, want in pairs(sizes) do
@@ -79,7 +79,7 @@ do
 		local grid = Layouts.Grid(key)
 		assert(grid.rows == 1, key .. " is one row of twelve, like bar 1")
 	end
-	assert(near(Layouts.Grid("actionbars.bar1").spacing, 4.6) and near(Layouts.Grid("actionbars.bar2").spacing, 4.6), "LEE-20 the central grids expose the picture's gap")
+	assert(near(Layouts.Grid("actionbars.bar1").spacing, 3 * 19 / 16) and near(Layouts.Grid("actionbars.bar2").spacing, 3 * 19 / 16), "the central grids expose the KSTY-44 tray's gap")
 	for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
 		assert(Layouts.Grid(key).rows == 12, key .. " is a column of twelve")
 	end
@@ -93,14 +93,16 @@ do
 			end
 			local label = string.format("%s at %.0f wide", name, width)
 			local bar1, bar2, bar3 = rect("actionbars.bar1"), rect("actionbars.bar2"), rect("actionbars.bar3")
-			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, 491) and near(bar1.r - bar1.l, 491), label .. ": LEE-20 the two enabled rows share the 491-unit column")
-			assert(near(bar1.b, 54) and near(bar2.b, 95.3) and near(bar2.b - bar1.t, 4.6), label .. ": LEE-20 the action rows use the reference bottoms and gap")
-			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 431.5) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
+			local row = 12 * 38 * 19 / 16 + 11 * 3 * 19 / 16
+			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, row) and near(bar1.r - bar1.l, row), label .. ": the two enabled rows share the KSTY-44 tray's column")
+			assert(near(bar1.b, Layouts.TRAY_BOTTOM + Layouts.TRAY_PAD) and near(bar2.t + Layouts.TRAY_PAD, Layouts.TRAY_TOP) and near(bar2.b - bar1.t, 3 * 19 / 16), label .. ": the action rows stand inside the tray at its gap")
+			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 431.5 + Layouts.TRAY_LIFT) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
 			assert(bar3.b - rect("qol.lootfeed").t >= 16 and near(bar3.b - rect("unitframes.castbar.player").t, 16), label .. ": spare bar 3 clears both the loot feed's full reserve and the player cast by at least 16")
 			assert(bar3.r <= width * 0.3 or bar3.l >= width * 0.7, label .. ": LEE-20 spare bar 3 stays outside the central 40% band")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
-			assert(near(player.b - bar2.t, 6) and near(target.b - player.t, 2), label .. ": LEE-20 player and target stack directly over bar 2")
-			assert(near(player.l, bar1.l - 95.5) and near(player.r, bar1.r) and near(target.l, bar1.l) and near(target.r, bar1.r + 246.4), label .. ": LEE-20 asymmetric reserves leave both bar columns centred")
+			assert(near(player.b, 138 + Layouts.TRAY_LIFT) and player.b - bar2.t - Layouts.TRAY_PAD >= 6 and near(target.b - player.t, 2), label .. ": player and target stack directly over the tray card, at least 6 clear of it")
+			local centre = (bar1.l + bar1.r) / 2
+			assert(near((player.l + 95.5 + player.r) / 2, centre) and near((target.l + target.r - 246.4) / 2, centre), label .. ": LEE-20 asymmetric reserves leave both bar columns centred over the tray")
 			local readout, damage = rect("databars.strip"), rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
 			local railPitch = Layouts.Grid("actionbars.bar4").spacing

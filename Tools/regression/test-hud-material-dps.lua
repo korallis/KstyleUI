@@ -3,7 +3,7 @@ local Lib = dofile("Tools/regression/hud_material_lib.lua")
 
 local scene = Lib.Build("DPS", "ForgedBrackets")
 local cards = Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS)
-assert(#cards == 5, "DPS draws its guide, quest, chat, loot and damage cards, got " .. #cards)
+assert(#cards == 6, "DPS draws its guide, quest, chat, loot, damage and action bar tray cards, got " .. #cards)
 
 local function fails(mutate, reason, role)
 	local card

@@ -67,7 +67,7 @@ local function RefreshTray()
 	ns.trayHeld = false
 	local main = ns.bars.bar1
 	if main then
-		main:RefreshOrnament(true)
+		main:RefreshTray(true)
 	end
 end
 
@@ -151,7 +151,7 @@ local function UpdatePets()
 		ns.Button.Update(list[i])
 	end
 	local main = ns.bars.bar1
-	if main then main:RefreshOrnament() end
+	if main then main:RefreshTray() end
 end
 
 local function UpdateStances()

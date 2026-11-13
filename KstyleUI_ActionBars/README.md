@@ -14,7 +14,7 @@ Main bar with stance, stealth, form and possess paging, extra bars, pet bar, sta
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
 - Action bars are KstyleUI's own secure buttons. Keybinds use `SetOverrideBindingClick`. Paging uses `RegisterStateDriver`. Cooldowns use `C_ActionBar.GetActionCooldownDuration` with `Cooldown:SetCooldownFromDurationObject`.
-- LEE-20 (2026-11-09, "let the picture win"): bars 1 and 2 are enabled preset rows of twelve 36.7-unit buttons, with 4.6-unit gaps and a 41.3-unit pitch. Their 491-unit rows share the player/target bar column. Absolute button origins are snapped instead of accumulating rounded gaps. Bars 4 to 6, the rail's columns of twelve on the same slots, do the same, so a column is as tall as the 491 units the layout reserves at any scale. Keybind, stack and cooldown text sit on the kit's square tiles; no name labels.
+- KSTY-44 (the overhaul mock-ups Lee approved on 2026-11-12, which replace LEE-20's picture for the tray): bars 1 and 2 are enabled preset rows of twelve 45.125-unit buttons (38 px at 1080p), with 3.5625-unit gaps (3 px), inside the [Frames tray](#frames-tray) card. LEE-20's 36.7-unit tiles stay on the rail's bars 4 to 6. Absolute button origins are snapped instead of accumulating rounded gaps. Bars 4 to 6, the rail's columns of twelve on the same slots, do the same, so a column is as tall as the 491 units the layout reserves at any scale. Keybind, stack and cooldown text sit on the kit's square tiles; no name labels.
 - Blizzard's bars are reparented to a hidden frame through `KstyleUI.Safe.HideBlizzard`. The module never touches `Blizzard_GamepadActionBars`, and switching to gamepad mode must not error or taint.
 - Protected work in combat goes through `KstyleUI.Combat.Queue`.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
@@ -35,6 +35,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Button.lua` | One button: the kit's `Slot` on `SecureActionButtonTemplate`, and every visual update |
 | `Flyout.lua` | KstyleUI's own secure spell flyout |
 | `Bar.lua` | One bar: a Layout holder, a secure state header, the button grid, paging and the mouseover fade |
+| `Tray.lua` | The [Frames tray](#frames-tray): one card behind bars 1 and 2 while they stand stacked |
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
 | `Vehicle.lua` | The leave-vehicle button beside bar 1 |
@@ -55,7 +56,7 @@ Tests: `Tools/regression/test-actionbars-data.lua` (the pure parts and the page 
 | Action bar 5 | `actionbars.bar5` | 4 (left) | `MULTIACTIONBAR4BUTTON1` to `12` | Yes, in the right rail (the owner's picture, LEE-20) |
 | Action bar 6 | `actionbars.bar6` | 13 (Blizzard's bar 6) | `MULTIACTIONBAR5BUTTON1` to `12` | No |
 | Pet bar | `actionbars.pet` | pet actions 1 to 10 | `BONUSACTIONBUTTON1` to `10` | Yes, shown while a pet exists |
-| Stance bar | `actionbars.stance` | shapeshift forms 1 to 10 | `SHAPESHIFTBUTTON1` to `10` | Yes, shown when the class has forms. Folded into rows (the Lumen layouts write two rows of five), it keeps a full row's width and fills from its bottom left, so up to five forms make one row on the bar's foot, beside bar 1 and on its baseline, and a sixth starts the row above |
+| Stance bar | `actionbars.stance` | shapeshift forms 1 to 10 | `SHAPESHIFTBUTTON1` to `10` | Yes, shown when the class has forms. Folded into rows (the layouts write three rows of four), it keeps a full row's width and fills from its bottom left, so up to four forms make one row on the bar's foot, beside the tray card and on its bottom edge, and a fifth starts the row above |
 
 A bar is built the first time it is switched on, so a bar that stays off costs nothing. Each bar is a plain holder frame registered with `KstyleUI.Layout.Register` as a scalable element, with the label and default position from `Setup.Layouts`. The holder's child is a `SecureHandlerStateTemplate` header, and the buttons are the header's children, so Layout owns the holder's position, scale, opacity and shown rule while the module owns the header's visibility, paging and fade.
 
@@ -89,6 +90,12 @@ A secret value is never compared: a secret flag counts as its safe default (usab
 Drag and drop works out of combat only. With **Lock Action Bars** on (`lockActionBars`), dragging needs the pick-up modifier, as Blizzard's bars do. `PickupAction`, `PlaceAction` and `PickupPetAction` never run in combat.
 
 Hover keybinds go through Blizzard's own Quick Keybind mode (`Blizzard_QuickKeybind`, which Edit Mode's and the keybinding settings' buttons open, and `/kstyle bind` shows out of combat). Each KstyleUI button carries `commandName`, its slot's binding command (`ACTIONBUTTON3`, `BONUSACTIONBUTTON2`), and Blizzard's `QuickKeybindButtonSetTooltip`; while the mode is on, entering a button calls `QuickKeybindFrame:SetSelected(commandName, button)` and leaving clears it, so the next key pressed binds that slot, as it does over Blizzard's buttons, and `UPDATE_BINDINGS` mirrors the new key onto the button.
+
+## Frames tray
+
+The Frames HUD style's tray is one card behind bars 1 and 2, as the KSTY-44 mock-ups draw it (style-B-frames-*, detail-B-unit-frames-and-tray). `Tray.lua` owns it: a plain frame on bar 1's holder, below the headers, wearing the quest card's chrome (`Widgets.Chrome` with the `card` shape, so the selected card material and its corner brackets), anchored 10.6875 units (9 px at 1080p, `Layouts.TRAY_PAD`) outside bar 2's top left and bar 1's bottom right. The bars take the mock-up's 38 px tiles 3 px apart (45.125 and 3.5625 units); the card spans 602.06 by 115.19 units, its bottom 47.5 units over the screen's bottom edge. `Layouts.TRAY_TOP`, `TRAY_BOTTOM`, `TRAY_WIDTH` and `TRAY_PAD` publish its edges, so the player and target block stands over its top and the experience strip under its bottom.
+
+The card shows while bars 1 and 2 stand stacked: both shown and steady (no fade, no mouseover rule, the same combat and idle opacity), their left and right edges within one physical pixel, bar 2 straight above bar 1 within two gaps. Any other arrangement hides it, and `Tray card` in the settings (on by default) turns it off. It follows the bars' holders, so it moves and scales with bar 1; it is re-placed only when the pair or a settings pass changes, never on a per-event update. The pet and stance bars stand beside it on its bottom edge, three rows of four, and the leave-vehicle button keeps the pad's distance from it. The forged row ornament (finials and keystone) that once framed the pair is gone: the bible allows ornament at card corners only (KSTY-44, section 3.3).
 
 ## Lumen sockets
 
@@ -152,11 +159,11 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Per bar | Values |
 | --- | --- |
 | Show this bar | On for bars 1, 2, 4 and 5, the pet bar and the stance bar |
-| Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. By default each bar takes the rows its layout element plans (`Setup.Layouts.Grid`): bar 1 one row, bars 2 and 3 one row each (their slots stack over bar 1), bars 4 to 6 one column of twelve (bars 4 and 5 stand as two columns in the right rail under the story slot, bar 6 a third column beside them: the owner's picture, LEE-20, replaced #208's columns left of the rail), the pet and stance bars two rows of five (round 5, Fable #2: the pet bar once drew one row of ten in a footprint planned for two rows), and the stance bar grows up. |
+| Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. By default each bar takes the rows its layout element plans (`Setup.Layouts.Grid`): bar 1 one row, bars 2 and 3 one row each (their slots stack over bar 1), bars 4 to 6 one column of twelve (bars 4 and 5 stand as two columns in the right rail under the story slot, bar 6 a third column beside them: the owner's picture, LEE-20, replaced #208's columns left of the rail), the pet and stance bars three rows of four beside the tray card (two rows of five reached far enough out to close the chat-side column that Blizzard's tracked buff icons fall back to), and the stance bar grows up. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
-| Button size, Spacing | 16 to 64 and 0 to 16 units. 36.7 and 4.6 for bars 1/2; 38 and 3 for bar 3; 36.7 and 4.6 for the rail's bars 4 to 6 as well (LEE-69: the picture's 64 px slots at a 72 px pitch, the same as the centre rows); 30 and 3 for pet/stance. |
+| Button size, Spacing | 16 to 64 and 0 to 16 units. 45.125 and 3.5625 for bars 1/2 (the tray); 38 and 3 for bar 3; 36.7 and 4.6 for the rail's bars 4 to 6 as well (LEE-69: the picture's 64 px slots at a 72 px pitch, the same as the centre rows); 30 and 3 for pet/stance. |
 | Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On (off on bars 4 and 5), off, off, 0. Lumen's sockets float with no band behind them; the backing strip is the v3 mockup's band behind each bar row, measured in the theme spec: the opaque `buttonFill` body with the panel's light edge line, 10-unit chamfered ends, 3 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |
-| Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on |
+| Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on; the keybind at 12 and the cooldown number at 19, the mock-ups' sizes in a 45-unit tile |
 | Paging (bar 1) | Stances and forms, Stealth, Possess and vehicles, Page keys: all on |
 | Custom paging (action bars) | Empty |
 
