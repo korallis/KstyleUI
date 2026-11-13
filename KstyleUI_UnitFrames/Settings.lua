@@ -426,11 +426,11 @@ function Settings.Form(kind)
 	if style == "plate" then
 		return "plate"
 	end
+	if kind == "target" and (style == "bar" or style == "column" and K.HudStyle.Current() == "orbs") then
+		return "bar"
+	end
 	if style == "column" and Settings.COLUMN[kind] then
 		return "column"
-	end
-	if style == "bar" and kind == "target" then
-		return "bar"
 	end
 	return Settings.FORMS[kind]
 end
