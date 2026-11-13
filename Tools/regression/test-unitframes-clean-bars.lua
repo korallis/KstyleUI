@@ -172,16 +172,20 @@ do
 		version = 30, profiles = {}, layouts = {
 			Default = {
 				["unitframes.castbar.player"] = { height = 30 },
+				["unitframes.castbar.target"] = { height = 24 },
+				["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 + K.Setup.Layouts.TRAY_LIFT },
 				["orbs:unitframes.castbar.target"] = { height = 24, x = 4 },
-				["unitframes.castbar.target"] = { height = 40 },
 			},
 		},
 	}
 	K.Store.migrations[31](data)
 	local layout = data.layouts.Default
-	assert(layout["unitframes.castbar.player"] == nil, "the player cast bar's old default height goes")
+	assert(layout["unitframes.castbar.target"] == nil, "the target cast bar's old default height goes")
 	assert(layout["orbs:unitframes.castbar.target"].height == nil and layout["orbs:unitframes.castbar.target"].x == 4, "a style's old default height goes, its place stays")
-	assert(layout["unitframes.castbar.target"].height == 40, "a height the player chose stays")
+	assert(layout["unitframes.castbar.player"].height == 30, "the player cast bar keeps its 30-unit element")
+	assert(layout["unitframes.resource"] == nil, "a class resource saved at its old default follows the new one, clear of the cast label")
+	local now = K.Setup.Layouts.Get("DPS")["unitframes.resource"]
+	assert(near(now.y, 421 + K.Setup.Layouts.TRAY_LIFT), "the new default stands one unit higher")
 	noErrors(env, K, "migration")
 end
 

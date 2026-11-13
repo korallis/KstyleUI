@@ -22,7 +22,7 @@ local function settle()
 end
 
 local PLAYER_CAST = Layouts.Element("unitframes.castbar.player")
-assert(PLAYER_CAST.width == 347 and PLAYER_CAST.height == 32, "the player's cast element is 347 by 32, room for the 14-unit bar under its label (KSTY-60 item 4)")
+assert(PLAYER_CAST.width == 347 and PLAYER_CAST.height == 30, "the player's cast element is the picture's 347 by 30, room for the 14-unit bar under its label (KSTY-60 item 4)")
 
 assert(CastBars.ElementLive("player") == true, "the player's own cast bar is live beside its column frame")
 assert(CastBars.ElementLive("target") == false, "the target's cast bar is inside its column, not a second element")

@@ -29,7 +29,7 @@ local ELAPSED_FORMAT = "%.1f / %.1f"
 local REMAINING_FORMAT = "%.1f"
 local CAPTION_BAR = { above = 14, below = 14 }
 local CAPTION_OFFSET = { above = 0, below = 0.5 }
-local CAPTION_GAP = { above = 3, below = 3.5 }
+local CAPTION_GAP = { above = 1, below = 3.5 }
 local CAPTION_TIMER_EM = { above = 6.2, below = 3 }
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }

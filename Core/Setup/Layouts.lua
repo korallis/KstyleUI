@@ -67,7 +67,7 @@ local ELEMENTS = {
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
 	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
 	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], short = L["Boss"], width = 222, height = 334, reserve = { 318, 334 } },
-	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 32 },
+	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 32 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
 	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
@@ -180,7 +180,7 @@ local DPS = {
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
-	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 422 + LIFT },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 421 + LIFT },
 	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 + LIFT },
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 + LIFT },
@@ -580,8 +580,8 @@ function Layouts.Story(name, rootHeight, guide)
 end
 
 local LIFTED = {
-	"unitframes.player", "unitframes.pet", "unitframes.resource", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
-	"unitframes.targettarget", "unitframes.castbar.player", "unitframes.castbar.target", "cooldowns.essential", "cooldowns.utility",
+	"unitframes.player", "unitframes.pet", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
+	"unitframes.targettarget", "unitframes.castbar.player", "cooldowns.essential", "cooldowns.utility",
 	"cooldowns.buffs", "cooldowns.bars", "meters.swing", "meters.threat", "combattext.player", "actionbars.bar3",
 }
 local LIFTED_IN = {
@@ -598,7 +598,22 @@ local TRAY_OLD = {
 	["databars.xp"] = { "BOTTOM", 0, 36.5 },
 	["databars.rep"] = { "BOTTOM", -OLD_ENDS, 52 },
 	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
+	["unitframes.resource"] = { "BOTTOM", 0, 420 },
+	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 - LIFT },
 }
+
+local CAST_OLD = {
+	["unitframes.resource"] = { "BOTTOM", 0, 420 + LIFT },
+	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 },
+}
+
+function Layouts.CastMoves()
+	local out = {}
+	for key, place in pairs(CAST_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	return out
+end
 
 local HEALER_OLD = {
 	["groupframes.party"] = { "BOTTOM", HEALER_X, HEALER_Y },

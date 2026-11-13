@@ -802,13 +802,20 @@ Store.migrations[30] = function(data)
 	end
 end
 
-local CAST_HEIGHT_V30 = { ["unitframes.castbar.player"] = 30, ["unitframes.castbar.target"] = 24 }
+local CAST_HEIGHT_V30 = { ["unitframes.castbar.target"] = 24 }
 Store.migrations[31] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local moves = layouts and type(layouts.CastMoves) == "function" and layouts.CastMoves() or {}
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		for key, entry in pairs(type(layout) == "table" and layout or {}) do
-			local old = CAST_HEIGHT_V30[key:match("^%a+:(.+)$") or key]
-			if old and type(entry) == "table" and entry.height == old then
-				entry.height = nil
+			if type(entry) == "table" then
+				local old = CAST_HEIGHT_V30[key:match("^%a+:(.+)$") or key]
+				if old and entry.height == old then
+					entry.height = nil
+				end
+				if moves[key] and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
+					railEntry(entry, key, nil, moves)
+				end
 				if next(entry) == nil then
 					layout[key] = nil
 				end
