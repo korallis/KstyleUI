@@ -27,6 +27,10 @@ local function finish(group)
 end
 
 assert(under:GetFrameLevel() < bar:GetFrameLevel(), "the loss band's bar sits below the fill's bar")
+assert(bar.underClip:GetFrameLevel() < bar:GetFrameLevel() and bar.recentClip:GetFrameLevel() < bar:GetFrameLevel(), "the flashes sit below the fill, so it covers them up to the health")
+root:SetFrameLevel(40)
+bar:Restyle()
+assert(under:GetFrameLevel() > root:GetFrameLevel() and bar.recentClip:GetFrameLevel() < bar:GetFrameLevel(), "after the parent's level moves, a restyle keeps the band, its flashes and the fill in order")
 assert(under:GetParent() == bar:GetParent(), "the loss band is the fill's sibling, so the fill draws over it")
 assert(not bar.background and not bar.keyline, "the fill bar draws no track or keyline of its own")
 assert(under.track and under.edgeHard and under.edgeSoft, "the track and the two-pixel black edge are drawn under the band")

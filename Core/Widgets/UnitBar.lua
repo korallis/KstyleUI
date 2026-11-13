@@ -273,11 +273,26 @@ local function Paint(self)
 	Gradient(self.cleanShade, gradient.shadeBottom, gradient.shadeTop)
 end
 
+local function SyncLevels(self)
+	local parent = self.under:GetParent()
+	local base = parent and parent:GetFrameLevel() or 0
+	self.under:SetFrameLevel(base + 1)
+	self.underClip:SetFrameLevel(base + 1)
+	self.recent:SetFrameLevel(base + 2)
+	self.recentClip:SetFrameLevel(base + 2)
+	self:SetFrameLevel(base + 3)
+	self.fillClip:SetFrameLevel(base + 4)
+	if self.sparkFrame then
+		self.sparkFrame:SetFrameLevel(base + 5)
+	end
+end
+
 local function Wrap(bar)
 	local restyle, setOrientation, setReverse = bar.Restyle, bar.SetOrientation, bar.SetReverseFill
 	local show, hide, setShown = bar.Show, bar.Hide, bar.SetShown
 	bar.Restyle = function(self)
 		restyle(self)
+		SyncLevels(self)
 		PlaceUnder(self)
 		PlaceFill(self)
 		PlaceSpark(self)
@@ -301,6 +316,7 @@ local function Wrap(bar)
 	bar.Show = function(self)
 		show(self)
 		self.under:Show()
+		SyncLevels(self)
 	end
 	bar.Hide = function(self)
 		hide(self)
@@ -337,14 +353,14 @@ local function Under(bar, parent)
 	recent:SetReverseFill(Reversed(bar))
 	recent:SetMinMaxValues(0, 1)
 	recent:SetValue(0)
-	recent:SetFrameLevel(under:GetFrameLevel() + 1)
-	bar:SetFrameLevel(under:GetFrameLevel() + 2)
+
 	bar.recent = recent
 	return under
 end
 
 local function Flash(bar)
-	local flash = Clip(bar.under, bar.under:GetStatusBarTexture()):CreateTexture(nil, "ARTWORK", nil, 1)
+	bar.underClip = Clip(bar.under, bar.under:GetStatusBarTexture())
+	local flash = bar.underClip:CreateTexture(nil, "ARTWORK", nil, 1)
 	flash:SetAllPoints(bar.under)
 	flash:Hide()
 	local group = flash:CreateAnimationGroup()
@@ -361,7 +377,8 @@ local function Flash(bar)
 		bar:ReleaseLoss()
 	end)
 	bar.flash, bar.lossAnim = flash, group
-	local recentFlash = Clip(bar.recent, bar.recent:GetStatusBarTexture()):CreateTexture(nil, "ARTWORK", nil, 1)
+	bar.recentClip = Clip(bar.recent, bar.recent:GetStatusBarTexture())
+	local recentFlash = bar.recentClip:CreateTexture(nil, "ARTWORK", nil, 1)
 	recentFlash:SetAllPoints(bar.recent)
 	recentFlash:Hide()
 	local recentGroup = recentFlash:CreateAnimationGroup()
@@ -378,7 +395,6 @@ end
 local function Spark(bar)
 	local frame = CreateFrame("Frame", nil, bar:GetParent())
 	frame:SetAllPoints(bar)
-	frame:SetFrameLevel(bar:GetFrameLevel() + 2)
 	frame:Hide()
 	local line = Widgets.Crisp(frame:CreateTexture(nil, "OVERLAY", nil, 2))
 	local glow = frame:CreateTexture(nil, "OVERLAY", nil, 1)
