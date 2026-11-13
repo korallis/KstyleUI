@@ -212,7 +212,9 @@ local function Reskin(frames)
 	iconViewer(env, viewers.EssentialCooldownViewer, ESSENTIAL)
 	iconViewer(env, viewers.BuffIconCooldownViewer, RESKIN_BUFFS)
 	barViewer(env, viewers.BuffBarCooldownViewer, RESKIN_BARS)
-	-- Blizzard's RefreshLayout hands every item over again once the layout has sized it, as C.Native does.
+	-- A scene step: the scene sized the items above after the reskin saw them, so it hands each over again for the
+	-- reskin to see the sizes iconViewer and barViewer applied, as the game's hook runs after OnAcquireItemFrame
+	-- (where CooldownViewer.lua sizes the item, SetBarWidth for bars) and before Layout().
 	for _, name in ipairs({ "EssentialCooldownViewer", "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
 		local viewer = viewers[name]
 		for _, item in ipairs(viewer._items) do
