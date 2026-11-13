@@ -89,9 +89,7 @@ do
 	local px = K.Scale.Pixel(1) + 0.01
 	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st, px) and near(band.bottom, sb, px), "the guide's element is the whole story slot")
 	assert(K.Layout.Get("skins.guide") ~= nil, "a Layout element of its own, with its own mover")
-	local column = K.Setup.Layouts.Story("DPS", rh, true).quests
-	local _, _, _, ct = K.Setup.Layouts.Rect(column, column, rw, rh)
-	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, ct, px) and ct > band.top, "the quests' column stands a rail gap to its left, from under the aura rows (KSTY-64)")
+	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, band.top, px), "the quests' column stands a rail gap to its left, at the same top")
 	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")

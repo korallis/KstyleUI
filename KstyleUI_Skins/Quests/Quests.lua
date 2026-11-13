@@ -94,8 +94,8 @@ local function Story(guide, style)
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
-	local _, rh = Setup.RootSize()
-	return Layouts.Story(Preset(), rh, guide, style) or Layouts.Story(DEFAULT_PRESET, rh, guide, style)
+	local rw, rh = Setup.RootSize()
+	return Layouts.Story(Preset(), rh, guide, style, rw) or Layouts.Story(DEFAULT_PRESET, rh, guide, style, rw)
 end
 
 local function Spec(guide, style)

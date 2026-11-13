@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -16,7 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
-local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP = 800, 100, 0.15
+local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE = 800, 100, 0.15, 4
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 27.6, floor = 24 },
@@ -134,7 +134,7 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh, part)
-	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current())
+	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current(), rw)
 	local card = story and story[part or "guide"]
 	if not card then
 		return nil
@@ -151,6 +151,7 @@ local function Others(name, rw, rh, skip)
 			local box = Box(name, key, rw, rh)
 			if box then
 				box.passing = key == "combattext.player" or nil
+				box.group = (key == "groupframes.party" or key == "groupframes.raid") or nil
 				out[#out + 1] = box
 			end
 		end
@@ -420,12 +421,12 @@ local function Rows(name, k, rw, rh, notes)
 	return places
 end
 
-local function Sink(lane, rects, clear, height)
+local function Sink(lane, rects, side, clear, height)
 	local moved = true
 	while moved do
 		moved, lane.b = false, lane.t - height
 		for _, o in ipairs(rects) do
-			if lane.l < o.r + clear and o.l - clear < lane.r and lane.b < o.t + clear and o.b - clear < lane.t then
+			if lane.l < o.r + side and o.l - side < lane.r and lane.b < o.t + clear and o.b - clear < lane.t then
 				lane.t, moved = o.b - clear, true
 			end
 		end
@@ -435,7 +436,7 @@ end
 
 local function Warning(name, k, rw, rh, others, chosen)
 	local system, sigil = Enum.EditModeSystem.RaidWarning, Box(name, "unitframes.target", rw, rh)
-	local rects, xs = {}, { rw / 2 }
+	local rects = {}
 	local story = StoryBox(name, rw, rh)
 	rects[1] = story
 	local left, right = Box(name, "chat.main", rw, rh), story or Box(name, "minimap.main", rw, rh)
@@ -453,24 +454,46 @@ local function Warning(name, k, rw, rh, others, chosen)
 	for _, pick in pairs(chosen) do
 		rects[#rects + 1] = pick.rect
 	end
+	local high = sigil.b > rh / 2
+	if high then
+		local place, own = Positions(name)["unitframes.target"], Layouts.Style(ns.HudStyle and ns.HudStyle.Current(), name, "unitframes.target")
+		if own and own.width and own.height then
+			local l, b, r, t = Layouts.Rect({ width = own.width, height = own.height }, place, rw, rh)
+			rects[#rects + 1] = { l = l, b = b, r = r, t = t }
+		end
+		rects[#rects + 1] = Box(name, "unitframes.castbar.target", rw, rh)
+	end
+	local loose = {}
 	for _, o in ipairs(rects) do
-		xs[#xs + 1], xs[#xs + 2] = o.r + clear + half, o.l - clear - half
+		if not o.group then
+			loose[#loose + 1] = o
+		end
 	end
 	local best
-	local top = rh * (1 - WARNING_TOP)
-	for _, x in ipairs(xs) do
-		if x - half >= left.r and x + half <= right.l then
-			local lane = Sink({ l = x - half, r = x + half, t = top, x = x }, rects, clear, height)
-			if lane.b >= sigil.t + clear and (not best or lane.t > best.t or (lane.t == best.t and abs(x - rw / 2) < abs(best.x - rw / 2))) then
-				best = lane
+	local top, low = rh * (1 - WARNING_TOP), high and rh / 2 or sigil.t + clear
+	for pass, list in ipairs(high and { rects, rects, loose } or { rects }) do
+		local side = pass == 1 and clear or WARNING_SIDE
+		local xs = { rw / 2 }
+		for _, o in ipairs(list) do
+			xs[#xs + 1], xs[#xs + 2] = o.r + side + half, o.l - side - half
+		end
+		for _, x in ipairs(xs) do
+			if x - half >= left.r and x + half <= right.l then
+				local lane = Sink({ l = x - half, r = x + half, t = top, x = x }, list, side, clear, height)
+				if lane.b >= low and (not best or lane.t > best.t or (lane.t == best.t and abs(x - rw / 2) < abs(best.x - rw / 2))) then
+					best = lane
+				end
 			end
+		end
+		if best then
+			break
 		end
 	end
 	if not best then
 		log("Edit Mode: no free band between the rails holds the raid warnings; they stay where Edit Mode puts them")
 		return nil
 	end
-	return { label = "the raid and boss warnings", system = system, point = "TOP", x = best.x * k, y = best.t * k, settings = {} }
+	return { label = "the raid and boss warnings", system = system, stamp = "warnings", point = "TOP", x = best.x * k, y = best.t * k, settings = {} }
 end
 
 local function Places(name, story, notes)

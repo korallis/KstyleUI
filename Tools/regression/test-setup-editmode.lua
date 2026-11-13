@@ -466,7 +466,7 @@ do
 end
 
 -- With RestedXP loaded, the guide's card holds the slot and the tracker stands in the quest card's column, a rail gap
--- to its left (KSTY-33), its top under the aura rows
+-- to its left at the same top (KSTY-33; KSTY-67 item 1 put it back under the map after KSTY-64 raised it)
 
 do
 	local state = { saved = {}, active = 1 }
@@ -479,7 +479,7 @@ do
 	local story = K.Setup.Story("DPS", true)
 	local slot = K.Setup.Story("DPS", false).tracker
 	assert(story.guide and near(story.guide.top, slot.top) and near(story.guide.left, slot.left) and near(story.guide.bottom, slot.bottom), "the guide takes the whole slot")
-	assert(story.tracker.top > slot.top + 100 and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, its top under the aura rows rather than the map, so the quest card has room for its quests (KSTY-60)")
+	assert(near(story.tracker.top, slot.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local a = Find(Named(state, "KstyleUI DPS"), TRACKER).anchorInfo
 	assert(near(a.offsetY, K.Setup.EditMode.TrackerPlace(story.tracker).y * k), "Apply places the tracker under the guide when RestedXP is loaded")
