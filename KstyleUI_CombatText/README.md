@@ -45,7 +45,7 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 
 | Place | Element | What shows there |
 | --- | --- | --- |
-| Your field | `combattext.player`, a Layout element (160 by 180 units, above your character, resizable) | The damage and healing you take, while `playerPlacement` is `field`, or while it is `frame` and no KstyleUI player frame is running. Numbers start at the field's bottom edge and travel up through it, so the field's height sets how far they travel and its width how far apart they spread. |
+| Your field | `combattext.player`, a Layout element (160 units wide, above your character, resizable; 149 tall by default since the Frames tray lifted the centre stack) | The damage and healing you take, while `playerPlacement` is `field`, or while it is `frame` and no KstyleUI player frame is running. Numbers start at the field's bottom edge and rise at most 48 units (KSTY-44's short rise), or less when the field is too short for that; its width sets how far apart they spread. |
 | Unit frames | The secure buttons inside the `unitframes.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet` and `.boss` elements | Each unit's numbers on its own frame. Boss frames match `boss1` to `boss5` by their `unit` attribute. |
 | Group frames | The secure buttons inside the `groupframes.party` and `groupframes.raid` elements | Each member's numbers on their frame, at `groupSize` and 60% of the travel distance |
 | Nameplates | Blizzard's base plate from `C_NamePlate.GetNamePlateForUnit`, under KstyleUI's plate | Numbers for `nameplate1` to `nameplate40`, while KstyleUI's Nameplates module runs |
@@ -91,9 +91,9 @@ A module that is off at login runs no code, so the core restores its CVars at lo
 | `duration` | 1.2 | slider, 0.6 to 3 s | How long a number stays |
 | `maxPerFrame` | 4 | slider, 1 to 8 | The most numbers one place shows at once |
 | `font`, `size`, `outline` | Interface font (the `number` role), 18, thin outline | font, slider 8 to 40, dropdown | The numbers' text. No outline gives the soft text shadow. |
-| `colorMode` | `school` | dropdown | Damage takes its spell school's token colour, or `damageColor` |
-| `damageColor`, `healColor`, `missColor` | `hostile`, `friendly`, `text` | colours | |
-| `critScale` | 1.4 | slider, 1 to 2 | How much larger critical hits and heals are. Above 1 they also pop in. |
+| `colorMode` | `single` | dropdown | Damage takes `damageColor`, or its spell school's token colour |
+| `damageColor`, `healColor`, `missColor` | `white`, `friendly`, `text` | colours | |
+| `critScale` | 1.6 | slider, 1 to 2 | How much larger critical hits and heals are. Above 1 they also pop in. |
 | `critColor`, `critTint` | `true`, `neutral` | toggle, colour | Critical damage takes its own colour. Critical heals keep the heal colour. |
 | `units.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet`, `.boss`, `.party`, `.raid`, `.nameplate` | on, except `targettarget`, `focustarget`, `raid` and `nameplate` | toggles | Which places show numbers |
 | `playerPlacement` | `field` | dropdown: field, frame | Where your own numbers show |
@@ -102,6 +102,8 @@ A module that is off at login runs no code, so the core restores its CVars at lo
 | `groupSize` | 14 | slider, 8 to 40 | The text size on party and raid frames |
 
 ## Why
+
+- **Three colours, two sizes (KSTY-44 row 8).** The design bible's damage numbers are white for a normal hit and gold for a critical one, and a critical hit is 1.6 times a normal one (section 3.10). So `colorMode` defaults to one colour, white, `critTint` stays the gold `neutral` token, `critScale` is 1.6, and a glancing blow keeps the normal size, so a number has two sizes. Heals stay `friendly` and words stay `text`. The bible's third colour, orange for periodic damage, cannot be drawn: `UNIT_COMBAT`'s flag is only `CRITICAL`, `CRUSHING`, `GLANCING`, `ABSORB`, `BLOCK`, `RESIST` or `BLOCK_REDUCED` (Blizzard's own `CombatFeedback_OnCombatEvent`, `Blizzard_FrameXML/Mainline/CombatFeedback.lua`), so a tick reads as a normal hit. The school colours stay a choice.
 
 - **Amounts stay secret.** `UNIT_COMBAT`'s amount is secret under restrictions. It goes from the event straight into `AbbreviateNumbers` or `BreakUpLargeNumbers`, both of which accept secrets, and the result goes straight to `SetText`, or to `SetFormattedText("+%s", ...)` for heals. Lua never compares, adds or tests it. A formatter that fails falls back to `SetText(amount)`, which the engine formats.
 - **Zero without comparing.** Blizzard's own feedback shows a word instead of 0 when a hit is fully absorbed, blocked or resisted. Code can test `amount == 0` only when `issecretvalue` says the amount is plain. When it is secret, a hit flagged `ABSORB`, `BLOCK` or `RESIST` shows the word, because a full avoid is the case where a number would read 0. A partial absorb then shows the word too, which is the safer error.
