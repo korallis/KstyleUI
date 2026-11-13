@@ -398,6 +398,12 @@ It anchors to `UIParent` (offset by the HUD canvas, `Scale.Origin`), never to a 
 
 Tests: `Tools/regression/test-skins-restedxp-theme.lua`, `test-skins-restedxp-windows.lua`, `test-skins-restedxp-leases.lua` and `test-skins-restedxp-rail.lua`, through `Tools/regression/restedxp_fake.lua`, a stand-in RestedXP written from those names and anchored as RestedXP's `GuideWindow.lua` anchors its frames. The fake runs `OnShow` and `OnHide` as the game does, only when a frame's visibility changes, and models AceGUI's pool for the Labels, Headings, frames and edit boxes RestedXP takes from it.
 
+### Minimap buttons (`Addons/MinimapButtons.lua`, keys `blackthornes` and `oxgleBugs`)
+
+Two third-party addons place their minimap button on a circle. `Blackthornes_*/UI/SharedMinimap.lua` anchors `BlackthornesMinimapButton` and the per-addon buttons at `cos(angle) * (w / 2 + 5)` from the map's centre, and `0xgleBugs/Launcher.lua` anchors `OxgleBugsMinimapButton` at the offset it saved. On KstyleUI's square map both sit in the empty corners, so each gets a switch, **Blackthornes** and **0xgle Bugs**, on by default. A skin keeps the button's own art and moves nothing on a round map: while `GetMinimapShape()` answers anything but `"ROUND"`, it moves the button out along its own angle until `max(|x|, |y|)` reaches the square's half width plus `gapSmall`, so a button at 45 degrees lands on a corner. A `hooksecurefunc` on the button's `SetPoint` follows the addon's own drags and re-edges each of them, and the anchor the addon asked for is kept, so turning the switch off puts it back. The buttons arrive a frame or more after the addons load, and Blackthornes makes its shared button after the ones each addon made, so the skin keeps looking for five seconds (`C_Timer.NewTicker`) and holds every button it finds on each pass.
+
+Test: `Tools/regression/test-skins-minimapbuttons.lua`.
+
 ## Why
 
 - **One module, one switch per window.** Players turn the module on once and then pick windows. Each window's switch lives in the module's own settings section, so a profile string carries every choice, and the registry adds the switches so a skin file cannot forget its own.

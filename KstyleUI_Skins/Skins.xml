@@ -48,6 +48,7 @@
 	<Script file="Addons\RestedXP\Chrome.lua"/>
 	<Script file="Addons\RestedXP\Rail.lua"/>
 	<Script file="Addons\RestedXP\Skin.lua"/>
+	<Script file="Addons\MinimapButtons.lua"/>
 	<!-- End of other addons. -->
 
 	<Script file="Preview.lua"/>
