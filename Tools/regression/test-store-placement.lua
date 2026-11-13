@@ -109,5 +109,8 @@ do
 	assert(db34.layouts.Healer["chat.main"].width == 318 and db34.layouts.Healer["chat.main"].height == 186, "the Healer chat keeps its rail width")
 	local custom34 = db34.layouts.Custom
 	assert(custom34["chat.main"].x == 40 and custom34["chat.main"].width == nil, "a chat the player placed keeps its place, and its old default size follows the new one")
+	local orbsChat = custom34["orbs:chat.main"]
+	assert(orbsChat and orbsChat.anchor == "BOTTOMLEFT" and orbsChat.x == 40 and orbsChat.y == 40, "and Orbs, whose chat now has a style place of its own, keeps the player's place too")
+	assert(db34.layouts.Default["orbs:chat.main"] == nil, "a chat at its old default leaves Orbs on its own default")
 end
 print("store placement ok")

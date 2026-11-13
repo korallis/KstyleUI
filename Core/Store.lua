@@ -860,7 +860,12 @@ Store.migrations[34] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local moves = layouts and type(layouts.RailMoves) == "function" and layouts.RailMoves()
 	for _, layout in pairs(moves and type(data.layouts) == "table" and data.layouts or {}) do
-		for key, entry in pairs(type(layout) == "table" and layout or {}) do
+		local keys = {}
+		for key in pairs(type(layout) == "table" and layout or {}) do
+			keys[#keys + 1] = key
+		end
+		for _, key in ipairs(keys) do
+			local entry = layout[key]
 			if type(entry) == "table" then
 				if moves.places[key] and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
 					railEntry(entry, key, nil, moves.places)
@@ -869,6 +874,10 @@ Store.migrations[34] = function(data)
 					if near(entry.width, size[1]) and near(entry.height, size[2]) then
 						entry.width, entry.height = nil, nil
 					end
+				end
+				local styled = moves.styled[key]
+				if styled and layout[styled] == nil and (entry.anchor ~= nil or entry.width ~= nil) then
+					layout[styled] = { anchor = entry.anchor, x = entry.x, y = entry.y, width = entry.width, height = entry.height }
 				end
 				if next(entry) == nil then
 					layout[key] = nil

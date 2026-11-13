@@ -1706,7 +1706,7 @@
 	"Thaldrin": "萨尔德林",
 	"That did not work": "操作失败",
 	"The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first.": "DPS布局，队伍框体更高，团队框体宽到能放下你的三个治疗效果，可驱散减益优先显示。",
-	"The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away.": "伤害输出布局，仇恨统计位于战斗区中目标的目标下方，不必移开视线就能看到谁拥有仇恨。",
+	"The DPS layout with the threat meter on the right, under the quest card, where it reads who holds aggro without covering the enemies' nameplates.": "伤害输出布局，仇恨统计位于右侧任务卡片下方，显示谁拥有仇恨，且不遮挡敌人的姓名板。",
 	"The accent KstyleUI uses when the accent colour is set to custom.": "强调色设为自定义时 KstyleUI 使用的强调色。",
 	"The accent colour the meters use when the accent is custom.": "强调色为自定义时统计使用的强调色。",
 	"The accent colour when it does not follow your class.": "不跟随你职业时的强调色。",

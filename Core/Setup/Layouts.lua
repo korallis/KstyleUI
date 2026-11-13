@@ -301,7 +301,7 @@ local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
 	DPS = L["Party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
-	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
+	Tank = L["The DPS layout with the threat meter on the right, under the quest card, where it reads who holds aggro without covering the enemies' nameplates."],
 	Healer = L["The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first."],
 }
 
@@ -696,7 +696,7 @@ do
 	}
 
 	function Layouts.RailMoves()
-		local out = { places = {}, sizes = {} }
+		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat" } }
 		for key, place in pairs(RAILS_V33.places) do
 			out.places[key] = { place[1], place[2], place[3] }
 		end
