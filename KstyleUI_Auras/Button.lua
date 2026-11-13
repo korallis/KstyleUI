@@ -1,4 +1,4 @@
--- Button.lua: dresses an engine aura button as a plain square tile as the owner's picture draws it: the icon one border inside a one-pixel dark square rim, the timer under it in the Medium timer face on whole pixels (Widgets.ApplyFont), the stack count on a corner badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
+-- Button.lua: dresses an engine aura button as a plain square tile as the owner's picture draws it: the icon one border inside a one-pixel dark square rim, the timer under it in the Medium timer face on whole pixels (Widgets.ApplyFont), the stack count in the tile's top right corner as world text (an outline and a soft shadow, no plate) on a badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,8 +13,6 @@ local TEXT_INSET = 1
 local TIMER_LIFT = 0.5
 local RIM_SUBLEVEL = 5
 local DISPEL_SUBLEVEL = 7
-local BADGE_PAD = 2
-local BADGE_ALPHA = 0.6
 local BADGE_LEVEL = 2
 local MIN_APPLICATIONS = 2
 local MAX_APPLICATIONS = 999
@@ -65,8 +63,6 @@ function Button.Create(button, hasDispel)
 	if fill then
 		fill:SetAlpha(0)
 	end
-	local plate = badge:CreateTexture(nil, "BACKGROUND")
-	plate:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
 	local count = Widgets.FontString(badge, "OVERLAY")
 	local entry = {
 		button = button,
@@ -77,7 +73,6 @@ function Button.Create(button, hasDispel)
 		timer = Widgets.FontString(over, "OVERLAY"),
 		count = count,
 		badge = badge,
-		plate = plate,
 	}
 	if hasDispel then
 		local tint = skin:CreateTexture(nil, "BORDER", nil, DISPEL_SUBLEVEL)
@@ -101,17 +96,14 @@ local function PlaceTexts(entry, ctx, inset)
 	else
 		Widgets.Point(timer, "TOP", skin, "BOTTOM", 0, -(ns.Model.TIMER_GAP - TIMER_LIFT))
 	end
-	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -inset, -inset)
+	local shadow = Widgets.Border(skin)
+	count:SetShadowColor(Tokens.Color("textShadow"))
+	count:SetShadowOffset(shadow, -shadow)
+	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -(inset + text), -(inset + text))
 	timer:SetJustifyH("CENTER")
 	count:SetJustifyH("RIGHT")
-	local pad = Widgets.Snap(skin, BADGE_PAD)
 	badge:ClearAllPoints()
-	badge:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
-	badge:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
-	entry.plate:ClearAllPoints()
-	entry.plate:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
-	entry.plate:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
-	entry.plate:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
+	badge:SetAllPoints(skin)
 end
 
 local function BindTimer(entry, ctx)

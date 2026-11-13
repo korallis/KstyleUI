@@ -1,4 +1,4 @@
--- Preview.lua: the chat page's live preview in the settings window, a small glass panel with tabs and sample lines drawn with the current settings.
+-- Preview.lua: the chat page's live preview in the settings window, a small glass panel with tabs and sample lines drawn with the current settings, its tabs painted by the live chat's own tab look.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,7 +11,6 @@ ns.Preview = Preview
 local TAB_WIDTH = 72
 local TAB_TOP = 16
 local UNDERLINE = 1
-local DIVIDER_ALPHA = 0.25
 local LINE_GAP = 3
 
 local SAMPLES = {
@@ -53,7 +52,7 @@ local function Refresh(self)
 	glass.chrome:SetShadow(settings.shadow == true)
 	local path, size, flags, tabSize, tabPath = ns.Frames.Fonts(settings)
 	local ar, ag, ab = ns.Accent(settings)
-	local plain = settings.tabStyle == "plain"
+	local style = settings.tabStyle
 	local x = Tokens.Size("gapMedium")
 	local gap = Tokens.Size("gapLarge")
 	for i, tab in ipairs(self.tabs) do
@@ -72,17 +71,12 @@ local function Refresh(self)
 			Widgets.Size(self.underline, width, UNDERLINE)
 		end
 		x = x + width + gap
-		if plain then
-			tab:SetTextColor(Tokens.Color(i == 1 and "capsGold" or "muted"))
-		elseif i == 1 then
-			tab:SetTextColor(Tokens.Color("textEmphasis"))
-		else
-			tab:SetTextColor(Tokens.Color("text"))
-		end
+		local color = ns.Frames.TabLook(style, i == 1) or (i == 1 and "textEmphasis" or "text")
+		tab:SetTextColor(Tokens.Color(color))
 	end
-	self.underline:SetVertexColor(ar, ag, ab, 1)
-	self.underline:SetShown(settings.tabStyle == "underline")
-	self.fill:SetShown(settings.tabStyle == "filled")
+	local _, underlined, filled = ns.Frames.TabLook(style, true)
+	ns.Frames.PaintUnderline(self.underline, self.glow, underlined)
+	self.fill:SetShown(filled)
 	self.fill.chrome:SetEdgeRGBA(ar, ag, ab, 1)
 	for i, line in ipairs(self.lines) do
 		Widgets.TextColor(line, "textEmphasis")
@@ -116,12 +110,14 @@ function Preview.Build(parent)
 	frame.underline:SetTexture((Tokens.Texture("divider")))
 	frame.underline:SetPoint("TOPLEFT", glass, "TOPLEFT", pad + pad, -(TAB_TOP * 2))
 	Widgets.Size(frame.underline, TAB_WIDTH - 2 * pad, UNDERLINE)
+	frame.glow = top:CreateTexture(nil, "OVERLAY", nil, -1)
+	ns.Frames.PlaceGlow(frame.glow, frame.underline)
 	frame.divider = glass:CreateTexture(nil, "ARTWORK")
 	frame.divider:SetTexture((Tokens.Texture("divider")))
 	frame.divider:SetPoint("TOPLEFT", glass, "TOPLEFT", pad, -(TAB_TOP * 2))
 	frame.divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -pad, -(TAB_TOP * 2))
 	frame.divider:SetHeight(K.Scale.Border())
-	Widgets.Tint(frame.divider, "text", DIVIDER_ALPHA)
+	ns.Panel.PaintRule(frame.divider)
 	frame.lines = {}
 	local previous
 	for i = 1, #SAMPLES do

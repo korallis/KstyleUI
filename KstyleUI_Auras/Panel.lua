@@ -1,4 +1,4 @@
--- Panel.lua: the buff and debuff rows: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" socket on the last cell counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
+-- Panel.lua: the buff and debuff rows: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" tile the size of the others over the last cell, counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
@@ -355,8 +355,8 @@ local function ApplyChip(desc, candidates)
 	Overflow.Apply(chip, {
 		enabled = true,
 		groups = { { filter = Model.FILTERS[desc.name], candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
-		cap = Capacity(desc), cell = ctx.icon, foot = ctx.foot, width = ctx.icon,
-		point = corner, rel = host, relPoint = corner, x = 0, y = 0,
+		cap = Capacity(desc), cell = ctx.icon, width = ctx.icon,
+		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
 		accent = function()
 			return Tokens.Color(EDGE_TOKENS[desc.name])

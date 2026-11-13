@@ -68,7 +68,14 @@ do
 		local header = env[name].CompareHeader
 		local art = W.Regions(header, "Texture")[1]
 		assert(art:GetAlpha() == 0, name .. ": the compare label's art is hidden")
-		assert(K.Skin.IsSkinned(header, "Backdrop"), name .. ": the compare label sits on a KstyleUI tile")
+		assert(not K.Skin.IsSkinned(header, "Backdrop"), name .. ": no tile under the compare caption (KSTY-60 item 26: it was a steel-blue slab)")
+		local heading = K.Safe.Side(header).tooltipsHeading
+		assert(header.Label:GetAlpha() == 0 and heading and heading.gem and heading.caption, name .. ": Blizzard's label gives way to a card heading: a diamond and a caption")
+		assert(heading.chrome and heading.chrome.shapeName == "window" and heading.chrome.fillName == "surface" and heading.chrome.popup, name .. ": on the card's own material, as the tooltip under it")
+		assert(heading.gem:GetAlpha() ~= 0 and heading:GetParent() == header, name .. ": a frame of its own, so stripping Blizzard's art never hides the diamond")
+		local cr, cg, cb = heading.caption:GetTextColor()
+		local gr, gg, gb = K.Tokens.Color("capsGold")
+		assert(math.abs(cr - gr) < 1e-6 and math.abs(cg - gg) < 1e-6 and math.abs(cb - gb) < 1e-6 and heading.caption:GetFont() == (K.Tokens.Font("caps")), name .. ": in the caps face and the heading gold")
 		assert(ns.Style.Glass(env[name]).chrome.shadowOn == false, name .. ": no shadow over the compare label")
 	end
 	assert(ns.Style.Glass(env.GameTooltip).chrome.shadowOn == true, "GameTooltip casts the panel shadow")

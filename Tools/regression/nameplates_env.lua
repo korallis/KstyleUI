@@ -32,6 +32,7 @@ N.UNIT = {
 	threat = nil,
 	raid = nil,
 	tapped = false,
+	gameObject = false,
 	widgetsOnly = false,
 	secretName = false,
 	secretClass = false,
@@ -187,6 +188,10 @@ function N.Install(env, opts)
 		end
 		local u = unit(token)
 		return u and u.isPlayer or false
+	end
+	function env.UnitIsGameObject(token)
+		local u = unit(token)
+		return u and u.gameObject or false
 	end
 	function env.UnitIsTapDenied(token)
 		local u = unit(token)

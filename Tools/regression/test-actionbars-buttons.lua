@@ -535,6 +535,10 @@ do
 	local leave = ns.leaveButton
 	assert(leave and not leave:IsShown(), "hidden while there is no vehicle")
 	assert(leave:GetParent() == ns.bars.bar1.holder, "it sits in bar 1's element, so it follows bar 1's Layout scale, opacity and shown rule")
+	local slot = ns.bars.bar1.buttons[1]
+	assert(leave.well and leave.bevelTop and leave.bevelBottom and leave.innerLine, "the leave button is an action slot: its well, bevel and inner line (KSTY-60 item 26: it was a flat steel-blue tile)")
+	assert(leave.opts.fill == slot.opts.fill and leave.rimToken == slot.rimToken and leave.opts.primary == slot.opts.primary, "with bar 1's slot fill and rim")
+	assert(leave.opts.fill == "slotFill", "the opaque slot fill, never the half-clear button body")
 	env._canExit = true
 	env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
 	assert(leave:IsShown(), "shown in a vehicle")
