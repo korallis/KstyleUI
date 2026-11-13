@@ -122,7 +122,7 @@ No helpful aura ever paints on the health bar (`test-groupframes-clear.lua`). Ha
 | `party.sortBy` | `INDEX` | Group order, name or role |
 | `party.showPlayer`, `party.showSolo` | on, off | Include yourself; show when solo |
 | `party.portrait` | off | With it on, the party keeps the portrait layout instead of the row: the class-ringed portrait with the level disc: a `buttonFill` disc with a ring in the accent one border outside it, the edge line the unit frames' badge wears |
-| `raid.width`, `raid.height`, `raid.spacing` | 116, 36, 9 | Frame size and gap: the 20-player mock-up's row (the Healer layout writes 40 tall) |
+| `raid.width`, `raid.height`, `raid.spacing` | 116, 36, 9 | Frame size and gap: the 20-player mock-up's row (the Healer layout keeps 36 and writes 43-unit party rows) |
 | `raid.growth`, `raid.groupGrowth`, `raid.groupSpacing` | `DOWN`, `RIGHT`, 13 | Member growth, group or column growth and the gap between groups |
 | `raid.sortBy` | `GROUP` | Group, role or class |
 | `raid.groupsPerRow` | 8 | Groups side by side before a new row (group sort) |
