@@ -158,10 +158,12 @@ local pet = Frames.Get("pet").views[1]
 assert(select(2, pieces(pet.panel, "lumenShape")) == 9 and select(1, pieces(pet.panel, "cardShape")) == 0, "the pet frame's glass is a rounded tile")
 assert(select(2, pieces(Frames.Get("target").views[1].panel, "cardShape")) == 9, "the target's glass is a card panel")
 
--- Cast bars. The player's, as the owner's mockup draws Slam: no icon, the glass across the whole width.
+-- Cast bars. The player's carries its icon tile by default (KSTY-44); with the icon off, the glass runs across the whole width.
 local cast = CastBars.Get("player")[1]
+assert(K.Options.Read("UnitFrames", "player.castbarIcon") == true, "the player cast bar shows its icon tile by default")
+K.Options.Write("UnitFrames", "player.castbarIcon", false)
 local cg = cast.geometry
-assert(cg and cg.icon == nil and near(cg.panel.x, 0) and near(cg.panel.w, K.Setup.Layouts.Element("unitframes.castbar.player").width), "the player cast bar has no icon by default and its glass spans the width")
+assert(cg and cg.icon == nil and near(cg.panel.x, 0) and near(cg.panel.w, K.Setup.Layouts.Element("unitframes.castbar.player").width), "with the icon off the player's glass spans the width")
 -- With the icon on, the design file's layout: the spell icon in its own chamfered square, a gap, then the glass bar.
 K.Options.Write("UnitFrames", "player.castbarIcon", true)
 K.Options.Write("UnitFrames", "player.castbarCaps", true)

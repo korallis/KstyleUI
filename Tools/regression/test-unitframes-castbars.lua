@@ -46,7 +46,7 @@ local timer = W.LastCall(player.bar, "SetTimerDuration")
 assert(timer and timer[1].finish == 3.5, "the bar runs on the cast's duration object")
 assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills up")
 assert(U.Shown(env, player.text) == "Frostbolt", "the spell name shows as the game writes it, like the mockup's Slam: " .. U.Shown(env, player.text))
-assert(player.geometry.icon == nil, "the player cast bar has no icon, as on the mockup")
+assert(player.geometry.icon ~= nil and player.iconFrame:IsShown(), "the player cast bar has its icon tile, as the KSTY-44 mock-up draws it")
 assert(W.LastCall(player.icon, "SetTexture")[1] == 135846, "the icon shows the spell's file ID")
 env._time = 2
 W.Tick(env, 0.1)

@@ -62,7 +62,7 @@ for kind, sizes in pairs({ player = { 22, 15, 10, 14 }, target = { 22, 15, 10, 1
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
 end
 assert(defaults.player.iconSize == 12 and defaults.target.iconSize == 12, "the status icons on the 70-unit frames are 12 units")
-assert(defaults.player.castbarIcon == false and defaults.player.castbarCaps == true, "the player cast bar has no icon and writes the spell in capitals, as the picture's LIGHTNING BOLT")
+assert(defaults.player.castbarIcon == true and defaults.player.castbarCaps == true, "the player cast bar has its icon tile and writes the spell in capitals, as the KSTY-44 mock-up's LIGHTNING BOLT")
 assert(defaults.target.castbarIcon == false and defaults.target.castbarCaps == true, "the target cast bar has no icon and writes the spell in capitals under its bar, as the picture's SHADOW BOLT")
 assert(defaults.boss.castbarCaps == true, "boss cast names are in capitals by default, like the player's and the target's")
 -- The owner's ruling of 2026-11-08: power reads as its type (mana blue, rage red, energy yellow) on every frame; the

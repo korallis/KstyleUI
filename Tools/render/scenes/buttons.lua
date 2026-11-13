@@ -2,6 +2,7 @@
 -- 62-unit showcase size and at the HUD's 34, the bag window's slots, the aura preview's buff and debuff
 -- tiles, and the micro menu and bag bar, on the design file's near-black ground.
 --
+--   Tools/render/shoot.sh buttons                  -- run as a scene it draws buttons_mac's full rim
 --   local Buttons = dofile("Tools/render/scenes/buttons.lua")
 --   local scene = Buttons.Build({ rim = 1 })      -- rim: Widgets.SECONDARY_RIM for the micro menu and bag bar
 --
@@ -245,4 +246,9 @@ function Buttons.Build(opts)
 	return Scene.Merge({ Buttons.Widgets(opts), Buttons.Bags(opts), Buttons.Menus(opts) })
 end
 
+if ... then
+	return Common.Run(function()
+		return Buttons.Build({ rim = 1 })
+	end)
+end
 return Buttons

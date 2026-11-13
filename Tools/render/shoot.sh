@@ -83,6 +83,11 @@ raw="$outdir/$scene.guard.tsv"
 rm -f "$raw"
 RENDER_PPU=$ppu "$lua" "$script" "$json"
 if [ ! -s "$json" ]; then
+	if ! grep -q 'Common.Run' "$script"; then
+		users=$(grep -l "scenes/$scene.lua" Tools/render/scenes/*.lua | xargs grep -l 'Common.Run' | xargs -n1 basename | sed 's/\.lua$//' | grep -v "^_" | tr '\n' ' ')
+		echo "$script is a library, not a scene; shoot one that builds on it: $users" >&2
+		exit 2
+	fi
 	echo "the scene wrote no JSON" >&2
 	exit 1
 fi

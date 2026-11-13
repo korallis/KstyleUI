@@ -41,6 +41,9 @@ local LINE_BAR_MIN = 24
 local LINE_LABEL_EM = 4.2
 local LINE_NAME_EM = 12
 local ORIENTATION = Style.ORIENTATION
+local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
+local CAPTION_ICON_GAP = 7
+local FLASH_LEVEL = 2
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -157,8 +160,84 @@ local function Tick(frame, elapsed)
 	end
 end
 
+local function StopFlash(cb)
+	cb.flash.group:Stop()
+	cb.flash:Hide()
+end
+
+local function Flash(cb, colorName, alpha)
+	if Motion.Level() == "off" or not cb.frame:IsShown() then
+		return
+	end
+	cb.flash.wash:SetVertexColor(Widgets.Rgba(colorName, alpha))
+	cb.flash:Show()
+	cb.flash.group:Stop()
+	cb.flash.group:Play()
+end
+
+local function NewFlash(cb)
+	local flash = CreateFrame("Frame", nil, cb.bar)
+	flash:SetAllPoints(cb.bar)
+	flash:SetFrameLevel(cb.bar:GetFrameLevel() + FLASH_LEVEL)
+	flash:Hide()
+	local wash = flash:CreateTexture(nil, "OVERLAY")
+	wash:SetColorTexture(Tokens.Color("white"))
+	wash:SetBlendMode("ADD")
+	wash:SetAllPoints(flash)
+	flash.wash = wash
+	local group = flash:CreateAnimationGroup()
+	local rise = Tokens.Duration("pressIn")
+	local up = group:CreateAnimation("Alpha")
+	up:SetFromAlpha(0)
+	up:SetToAlpha(1)
+	up:SetDuration(rise)
+	up:SetSmoothing("OUT")
+	local down = group:CreateAnimation("Alpha")
+	down:SetFromAlpha(1)
+	down:SetToAlpha(0)
+	down:SetDuration(Tokens.Duration("readyFlash"))
+	down:SetStartDelay(rise)
+	down:SetSmoothing("IN")
+	group:SetScript("OnFinished", function()
+		flash:Hide()
+	end)
+	flash.group = group
+	cb.flash = flash
+end
+
 local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
+end
+
+local function EndTimer(cb, value)
+	StopTimer(cb)
+	cb.duration = nil
+	cb.timer:SetText("")
+	local bar = cb.bar
+	bar:SetMinMaxValues(0, 1)
+	bar:SetValue(value)
+	if not cb.timed then
+		return
+	end
+	cb.timed = false
+	local util = C_DurationUtil
+	if not (util and type(util.CreateDuration) == "function") then
+		return
+	end
+	if not cb.ended then
+		cb.ended = util.CreateDuration()
+		pcall(cb.ended.SetTimeSpan, cb.ended, 0, 1)
+	end
+	if not pcall(bar.SetTimerDuration, bar, cb.ended, Interpolation(), Direction(value <= 0)) then
+		LogOnce("timer-end-refused", "cast bars: SetTimerDuration refused the ended span; the bar keeps its last timer")
+	end
+end
+
+local function HoldThen(cb, seconds)
+	local token = (cb.token or 0) + 1
+	cb.token, cb.hold = token, token
+	cb.holds = cb.holds + 1
+	C_Timer.After(seconds, cb.release)
 end
 
 local function Notify(cb)
@@ -168,12 +247,16 @@ local function Notify(cb)
 end
 
 local function Hide(cb, instant)
-	cb.active = false
+	cb.active, cb.landed = false, false
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
+	if cb.timed then
+		EndTimer(cb, 0)
+	end
 	StopTimer(cb)
 	cb.duration = nil
 	if instant or not cb.frame:IsShown() then
+		StopFlash(cb)
 		cb.frame:Hide()
 		return
 	end
@@ -219,6 +302,7 @@ local function New(parent, kind, unit)
 	cb.lock = NewText(over, "LEFT")
 	cb.lock:SetText(L["Locked"])
 	cb.lock:Hide()
+	NewFlash(cb)
 	return cb
 end
 
@@ -377,7 +461,22 @@ local function LayoutCaption(cb, width, height)
 	local mode, frame = cb.mode, cb.frame
 	local above = mode == "above"
 	cb.geometry = { caption = mode }
-	cb.iconFrame:Hide()
+	local lead = 0
+	local side = Snap(cb, height)
+	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
+		lead = side + Snap(cb, CAPTION_ICON_GAP)
+		cb.geometry.icon = { x = 0, y = 0, w = side, h = side }
+		Place(cb, cb.iconFrame, cb.geometry.icon)
+		cb.iconChrome:Restyle()
+		local inset = Widgets.Border(cb.frame)
+		cb.icon:ClearAllPoints()
+		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
+		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
+		cb.iconFrame:Show()
+	else
+		cb.iconFrame:Hide()
+	end
+	width = width - lead
 	cb.chrome:SetShadow(false)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
@@ -398,7 +497,7 @@ local function LayoutCaption(cb, width, height)
 	bar.opts.width, bar.opts.height = width, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, -barOffset)
+	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", lead, -barOffset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
@@ -414,7 +513,7 @@ local function LayoutCaption(cb, width, height)
 		text:SetHeight(Snap(cb, rowH))
 		text:SetJustifyV(above and "BOTTOM" or "TOP")
 	end
-	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", 0, offset)
+	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
 	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
@@ -647,6 +746,7 @@ local function RunDuration(cb, channel)
 		return false
 	end
 	LogOnce("timer", "cast bars: duration objects through SetTimerDuration")
+	cb.timed = true
 	if issecretvalue(duration) then
 		cb.duration = nil
 		cb.timer:SetText("")
@@ -674,20 +774,24 @@ local function RunTimes(cb, channel, startMs, endMs)
 end
 
 local function Start(cb, channel)
-	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, castBarID
+	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, spellID, castBarID
 	if channel then
 		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, _, _, _, castBarID = UnitChannelInfo(cb.unit)
 	else
-		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, _, castBarID = UnitCastingInfo(cb.unit)
+		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, spellID, castBarID = UnitCastingInfo(cb.unit)
 	end
 	if type(isTradeSkill) ~= "boolean" or cb.noRoom then
 		Hide(cb, true)
 		return
 	end
-	cb.active, cb.channel = true, channel
-	cb.castBarID = nil
+	cb.active, cb.landed, cb.channel = true, false, channel
+	StopFlash(cb)
+	cb.castBarID, cb.spellID = nil, nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then
 		cb.castBarID = castBarID
+	end
+	if not issecretvalue(spellID) and type(spellID) == "number" then
+		cb.spellID = spellID
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
@@ -718,22 +822,24 @@ local function Start(cb, channel)
 end
 
 local function Finish(cb, message)
-	if not cb.active then
+	if not (cb.active or cb.landed) then
 		return
 	end
-	cb.active = false
-	StopTimer(cb)
-	cb.duration = nil
+	cb.active, cb.landed = false, false
+	EndTimer(cb, 0)
 	cb.locked = false
 	ShowLock(cb)
 	CastBars.SetName(cb, message)
-	cb.bar:SetMinMaxValues(0, 1)
-	cb.bar:SetValue(1)
 	Paint(cb, Tokens.Color("hostile"))
-	local token = (cb.token or 0) + 1
-	cb.token, cb.hold = token, token
-	cb.holds = cb.holds + 1
-	C_Timer.After(HOLD, cb.release)
+	Flash(cb, "hostile", STOPPED_ALPHA)
+	HoldThen(cb, HOLD)
+end
+
+local function Land(cb)
+	cb.active, cb.landed = false, true
+	EndTimer(cb, 1)
+	Flash(cb, "giltLit", LANDED_ALPHA)
+	HoldThen(cb, Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
 end
 
 local function Casting(unit)
@@ -752,6 +858,10 @@ local function Matches(cb, event, ...)
 	if type(barID) == "number" and cb.castBarID then
 		return barID == cb.castBarID
 	end
+	local spellID = select(3, ...)
+	if cb.landed and cb.spellID and not issecretvalue(spellID) and type(spellID) == "number" then
+		return spellID == cb.spellID
+	end
 	return not Casting(cb.unit)
 end
 
@@ -764,7 +874,16 @@ local HANDLERS = {
 	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
-			Hide(cb)
+			if not cb.channel then
+				Land(cb)
+				return
+			end
+			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
+			if not issecretvalue(by) and type(by) == "string" and by ~= "" then
+				Finish(cb, L["Interrupted"])
+			else
+				Hide(cb)
+			end
 		end
 	end,
 	Failed = function(cb, event, ...)
