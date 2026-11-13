@@ -211,7 +211,7 @@ local function live(frames)
 
 	-- The Meters page's live preview: sample damage and threat meters and a swing bar.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
-	at(parent, 400, 80, 248, 516)
+	at(parent, 1460, 80, 248, 516)
 	local preview = K.Options.Preview("Meters")(parent)
 	preview:Refresh()
 	frames:Add(env, parent, {
