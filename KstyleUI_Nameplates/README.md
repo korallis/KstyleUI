@@ -21,7 +21,7 @@ The KSTY-44 design bible and its mock-up (`renders/KSTY-44/detail-nameplate-and-
 - **The effect over the bar's end.** The player's effects grow left from the bar's right end, above the name, 29 units square with a black, red and black pixel rim; the stack count shows and the time left is off by default (a setting).
 - **The name** is Cinzel caps at 16 units, 8 units above the bar, sized by its text, so a long name is never cut short.
 - **The cast bar** runs under the plate, 2.375 units below the bar's edge, as before.
-- Saved settings still at the 2026-11-09 defaults (name 12, level hidden at 16 with an outline, effects 26 growing right with timers at 12, health text 9, cast text 10, target colour `gilt`) and a saved plate size still at 151.56 by 13.78 follow the new defaults through Store migration 26; a value the player chose is kept.
+- Saved settings still at the 2026-11-09 defaults (name 12, level hidden at 16 with an outline, effects 26 growing right with timers at 12, health text 9, cast text 10, target colour `gilt`) and a saved plate size still at 151.56 by 13.78 follow the new defaults through Store migration 28; a value the player chose is kept.
 
 ## Reference ruling (2026-11-09)
 

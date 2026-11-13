@@ -35,8 +35,8 @@ local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
 end
 
-function Stacking.Extent()
-	local plate = ns.Preview.samplePlate
+function Stacking.Extent(plate)
+	plate = plate or ns.Preview.samplePlate
 	if not plate then
 		return nil
 	end

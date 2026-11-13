@@ -236,7 +236,7 @@ end
 do
 	local problem, shown = PreviewOverlaps()
 	assert(not problem, "at the defaults, " .. tostring(problem))
-	assert(shown == 3, "the defaults show all three sample plates, not " .. shown)
+	assert(shown == 1, "the defaults show one sample plate, the richest that fits (KSTY-48), not " .. shown)
 	problem = PreviewOverlaps({ ["debuffs.rows"] = 2, ["debuffs.size"] = 32 })
 	assert(not problem, "with two rows of 32-unit icons, " .. tostring(problem))
 	problem = PreviewOverlaps({ ["debuffs.growthY"] = "DOWN" })

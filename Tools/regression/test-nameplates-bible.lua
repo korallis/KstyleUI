@@ -206,4 +206,34 @@ do
 	errors(env, K, "the footprint")
 end
 
+-- The settings preview shows one sample, the richest that fits, chosen from the plate's own extent -------------
+
+do
+	local env, K, ns = N.New()
+	local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
+	holder:SetSize(400, 300)
+	holder:SetPoint("CENTER")
+	local preview = K.Options.Preview("Nameplates")(holder)
+	preview:SetAllPoints(holder)
+	preview:Refresh()
+	local shown = {}
+	for i, plate in ipairs(preview.plates) do
+		if plate:GetParent():IsShown() then
+			shown[#shown + 1] = i
+		end
+	end
+	assert(#shown == 1 and shown[1] == 1, "a roomy preview shows the elite target sample alone, got " .. table.concat(shown, ","))
+	local width = ns.Stacking.Extent(preview.plates[1])
+	holder:SetSize(width - 1, 300)
+	preview:Refresh()
+	shown = {}
+	for i, plate in ipairs(preview.plates) do
+		if plate:GetParent():IsShown() then
+			shown[#shown + 1] = i
+		end
+	end
+	assert(#shown == 1, "a narrow preview still shows one sample, got " .. #shown)
+	errors(env, K, "the preview")
+end
+
 print("nameplates bible ok")

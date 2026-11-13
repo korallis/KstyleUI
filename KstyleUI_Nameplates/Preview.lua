@@ -8,7 +8,6 @@ local Settings, Plates = ns.Settings, ns.Plates
 local Preview = {}
 ns.Preview = Preview
 
-local ROW_GAP = 12
 local SAMPLE_Y = 160
 local SIZE_LIMITS = { minWidth = 40, maxWidth = 320, minHeight = 4, maxHeight = 40 }
 
@@ -29,30 +28,31 @@ Preview.SAMPLES = {
 	},
 }
 
+local function Fits(plate, width, height)
+	local w, above, h, below = ns.Stacking.Extent(plate)
+	return w ~= nil and w <= width and above + h + below <= height
+end
+
 local function Stack(frame)
-	local above, below = 0, 0
-	for _, plate in ipairs(frame.plates) do
-		local up, down = ns.Auras.Extent(plate)
-		local marked = Settings.Get("level.show") or Settings.Get("markers.classification")
-		local overhang = marked and (ns.Plate.DiamondSize(plate) - ns.state.height) / 2 or 0
-		if Settings.Get("target.highlight") then
-			overhang = math.max(overhang, (ns.Plate.BRACKET_HEIGHT - ns.state.height) / 2)
+	local width, height = frame:GetWidth(), frame:GetHeight()
+	local known = type(width) == "number" and width > 0 and type(height) == "number" and height > 0
+	local chosen = #frame.plates
+	for i, plate in ipairs(frame.plates) do
+		if not known or Fits(plate, width, height) then
+			chosen = i
+			break
 		end
-		above = math.max(above, up, overhang)
-		below = math.max(below, down, overhang)
-	end
-	local pitch = above + ns.state.height + below + ROW_GAP
-	local count = #frame.plates
-	local room = frame:GetHeight()
-	if type(room) == "number" and room > 0 then
-		count = math.max(1, math.min(count, math.floor((room + ROW_GAP) / pitch)))
 	end
 	for i, plate in ipairs(frame.plates) do
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()
-		holder:SetPoint("CENTER", frame, "CENTER", 0, ((count + 1) / 2 - i) * pitch + (below - above) / 2)
-		holder:SetShown(i <= count)
+		if i == chosen then
+			local _, above, _, below = ns.Stacking.Extent(plate)
+			holder:SetPoint("CENTER", frame, "CENTER", 0, ((below or 0) - (above or 0)) / 2)
+		end
+		holder:SetShown(i == chosen)
 	end
+	frame.chosen = chosen
 end
 
 function Preview.Build(parent)
