@@ -9,7 +9,7 @@ local MAX_WINDOWS = 3
 local WINDOW_NAME = "DamageMeterSessionWindow"
 local LEVEL_ABOVE = 1
 local CAP_LEFT = 12
-local CAP_MIDDLE = 13.5
+local CAP_MIDDLE = 14
 local CAP_RIGHT = 16
 
 local DamageSkin = { active = false, applied = false }
@@ -71,6 +71,7 @@ local function PlacePill(pill)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", holder, "TOPLEFT")
 	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT")
+	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 
 local function StylePill(pill)
@@ -235,15 +236,24 @@ local function IsRegion(object)
 	return type(object) == "table" and type(object.GetObjectType) == "function"
 end
 
-local function PlaceCap(window, cap)
-	cap:ClearAllPoints()
-	Widgets.Point(cap, "LEFT", window, "TOPLEFT", CAP_LEFT, -CAP_MIDDLE)
+local function Reserve(window)
 	local session = window.SessionDropdown
-	if IsRegion(session) then
-		Widgets.Point(cap, "RIGHT", session, "LEFT", -Tokens.Size("gapMedium"), 0)
-	else
-		Widgets.Point(cap, "RIGHT", window, "TOPRIGHT", -CAP_RIGHT, -CAP_MIDDLE)
+	if not IsRegion(session) then
+		return CAP_RIGHT
 	end
+	local right, left = Logic.Plain(window:GetRight()), Logic.Plain(session:GetLeft())
+	local own, other = Logic.Plain(window:GetEffectiveScale()), Logic.Plain(session:GetEffectiveScale())
+	if not (right and left and own and other) or own <= 0 then
+		return CAP_RIGHT
+	end
+	return math.max(CAP_RIGHT, (right * own - left * other) / own + Tokens.Size("gapMedium"))
+end
+
+local function PlaceCap(window, cap)
+	local top = CAP_MIDDLE - Widgets.SECTION_CAP_HEIGHT / 2
+	cap:ClearAllPoints()
+	Widgets.Point(cap, "TOPLEFT", window, "TOPLEFT", CAP_LEFT, -top)
+	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window), -top)
 end
 
 local function NewCap(window)

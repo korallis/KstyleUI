@@ -201,7 +201,11 @@ local function Update()
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)
-	Count(list, watched and PercentText(watched) or "")
+	local text = ""
+	if watched then
+		text = PercentText(watched)
+	end
+	Count(list, text)
 	local level = Logic.NO_WARNING
 	if ns.Get("threat.warnings") then
 		level = Logic.ThreatWarning(Threat.rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
