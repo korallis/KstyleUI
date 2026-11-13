@@ -112,7 +112,7 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { Update = true, SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
+local HOOKED = { Update = true, SetAlpha = true, SetText = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
 -- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
@@ -151,11 +151,12 @@ end
 assert(backdrop, "a KstyleUI backdrop is a child of the window")
 assert(backdrop.chrome.shapeName == "panel" and backdrop.chrome.fillName == "surface", "the window wears the glass panel, as KstyleUI's own meter window does")
 
--- Each row wears the own meter's row: Blizzard's full-height fill is hushed, and a 4-unit KstyleUI pill on a
--- buttonFill track sits at the row's foot in the class colour, a flat capsule as BarList draws its rows.
--- The pill lives on a KstyleUI holder frame one level above Blizzard's bar.
+-- Each row wears the own card's row (KSTY-60 item 24: one meter design): Blizzard's fill is hushed, and a flat
+-- KstyleUI bar on a buttonFill track fills Blizzard's bar rect in the toned class colour, as BarList draws the
+-- card's rows, so Blizzard's name sits inside the fill. The bar lives on a KstyleUI holder frame under Blizzard's
+-- bar, so Blizzard's text draws over it.
 local function Holder(entry)
-	for _, child in ipairs(entry.StatusBar._kids) do
+	for _, child in ipairs(entry._kids) do
 		for _, inner in ipairs(child._kids) do
 			if type(inner.SetBarValue) == "function" then
 				return child, inner
@@ -180,14 +181,16 @@ local function Glow(entry)
 end
 local entry = window.entries[1]
 local fill = entry.StatusBar:GetStatusBarTexture()
-assert(fill:GetAlpha() == 0, "Blizzard's full-height fill is hushed: the pill carries the value")
+assert(fill:GetAlpha() == 0, "Blizzard's full-height fill is hushed: the KstyleUI bar carries the value")
 assert(entry.StatusBar.Background:GetAlpha() == 0, "the bar's shadow art is hushed")
 for _, child in ipairs(entry.StatusBar._kids) do
 	assert(not (child.chrome and child.chrome.fillName == "buttonFill" and child.chrome.shapeName == "tile"), "no full-row tile: the own meter's rows have none")
 end
 local pill = Pill(entry)
 assert(pill, "a KstyleUI status bar is a child of each row's bar")
-assert(pill.opts.height == K.Widgets.Snap(pill, ns.BarList.PILL_HEIGHT), "the pill is the own meter's 4-unit pill, snapped, got " .. tostring(pill.opts.height))
+local holder = Holder(entry)
+assert(holder:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "the bar sits under Blizzard's bar, so its name and value draw over the fill")
+assert(not pill.keyline:IsShown() and not pill.lit:IsShown() and not pill.shade:IsShown(), "the bar is flat, as the card's rows")
 assert(pill.backgroundName == "buttonFill", "the pill's track is the button body, as the own meter's rows")
 assert(pill.textureKey == ns.Get("damage.texture"), "the pill takes KstyleUI's bar texture")
 local points = {}
@@ -196,11 +199,11 @@ for _, call in ipairs(pill._calls) do
 		points[call.args[1]] = call.args[2]
 	end
 end
-assert(points.BOTTOMLEFT == entry.StatusBar and points.BOTTOMRIGHT == entry.StatusBar, "the pill runs along the row's foot")
+assert(points.TOPLEFT == holder and points.BOTTOMRIGHT == holder, "the bar fills Blizzard's bar rect")
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")
-assert(M.Last(entry.StatusBar.Value, "SetFont"), "values take KstyleUI's font")
+assert(M.Last(entry.StatusBar.Value, "SetFont")[1] == K.Tokens.Font("number"), "values take the card's figure face")
 
 -- The value text is written by the formatter KstyleUI's own card uses, so every meter view reads "284K · 30%"
 -- (the Captain on #311's merge renders: one view still read "284.2k"). A secret amount stays the game's
@@ -239,8 +242,9 @@ local secret = env.Secret(99)
 entry.StatusBar:SetValue(secret)
 assert(M.Last(pill, "SetValue")[1] == secret, "a secret value reaches the pill untouched")
 
--- Colours: the class colour on the pill at full alpha.
+-- Colours: the class colour toned as the card's, at full alpha.
 local r, g, b = K.Theme.ClassColor("WARRIOR")
+r, g, b = r * ns.DAMAGE_CLASS_TONE, g * ns.DAMAGE_CLASS_TONE, b * ns.DAMAGE_CLASS_TONE
 window:Refresh()
 local colour = pill.colorRGBA
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "after Blizzard colours the bar, the class colour wins on the pill")
@@ -254,15 +258,34 @@ colour = creaturePill.colorRGBA
 assert(colour[1] == hr and colour[2] == hg and colour[3] == hb, "an enemy without a class takes the hostile colour")
 assert(Pill(window.own), "the player's pinned entry is restyled")
 
--- The header reads as the own meter's cap: the type name in the tracked caption face in gilt, the session and timer muted.
-local captionPath = K.Tokens.Font("caption")
-assert(M.Last(window.DamageMeterTypeDropdown.TypeName, "SetFont")[1] == captionPath, "the type name takes the caption face, as the own meter's cap title")
-local gr, gg, gb = K.Tokens.Color("giltLit")
-local typeColour = M.Last(window.DamageMeterTypeDropdown.TypeName, "SetTextColor")
-assert(typeColour and typeColour[1] == gr and typeColour[2] == gg and typeColour[3] == gb, "the type name is gilt, as the own meter's cap title")
+-- The header is the card's section cap (diamond, caps title, rule, count at the right), drawn by KstyleUI over
+-- Blizzard's hushed type name and timer, which it mirrors through hooks on their SetText.
+local cap
+for _, child in ipairs(window._kids) do
+	for _, inner in ipairs(child._kids or {}) do
+		if inner.gem and inner.rule and inner.label and inner.count then
+			cap = inner
+		end
+	end
+end
+assert(cap, "a KstyleUI section cap heads the window")
+assert(window.DamageMeterTypeDropdown.TypeName:GetAlpha() == 0 and window.SessionTimer:GetAlpha() == 0, "Blizzard's type name and timer are hushed")
+window.DamageMeterTypeDropdown.TypeName:SetAlpha(1)
+assert(window.DamageMeterTypeDropdown.TypeName:GetAlpha() == 0, "Blizzard code cannot bring the type name back")
+window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
+assert(tostring(M.Last(cap.label, "SetText")[1]):upper() == "DAMAGE DONE", "the cap's title follows Blizzard's type name")
+assert(select(1, cap.label:GetFont()) == K.Tokens.Font("caps"), "in the caps face, as the card's heading")
+window.SessionTimer:SetText("1:40")
+assert(cap.counted and M.Last(cap.count, "SetText")[1] == "1:40", "the count at the right is Blizzard's fight timer")
+window.SessionTimer:SetText("")
+assert(not cap.counted, "an empty timer leaves no count")
+local secretTimer = env.Secret("0:12")
+window.SessionTimer:SetText(secretTimer)
+assert(M.Last(cap.count, "SetText")[1] == secretTimer and #env._errors == 0, "a secret timer passes straight to the count")
+window.SessionTimer:SetText("1:40")
 local mr, mg, mb = K.Tokens.Color("muted")
-local timerColour = M.Last(window.SessionTimer, "SetTextColor")
-assert(timerColour and timerColour[1] == mr and timerColour[2] == mg and timerColour[3] == mb, "the timer is muted, as the own meter's aside")
+local sessionColour = M.Last(window.SessionDropdown.SessionName, "SetTextColor")
+assert(sessionColour and sessionColour[1] == mr and sessionColour[2] == mg and sessionColour[3] == mb, "the fight's name is muted, as the card's aside")
 
 -- The spell breakdown window wears the same glass, and its spell rows the same pills.
 do
@@ -278,6 +301,7 @@ do
 	local spellPill = Pill(source.entries[1])
 	assert(spellPill and spellPill.backgroundName == "buttonFill", "a spell row gets the own meter's pill")
 	local sr, sg, sb = K.Theme.ClassColor("WARRIOR")
+	sr, sg, sb = sr * ns.DAMAGE_CLASS_TONE, sg * ns.DAMAGE_CLASS_TONE, sb * ns.DAMAGE_CLASS_TONE
 	local c = spellPill.colorRGBA
 	assert(c[1] == sr and c[2] == sg and c[3] == sb, "a spell row takes its source's class colour")
 	local later = Entry(env, source, "WARRIOR", 1)

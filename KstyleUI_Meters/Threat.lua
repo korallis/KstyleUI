@@ -145,6 +145,14 @@ local function Columns()
 	return { value = value ~= "percent", percent = value ~= "threat" }
 end
 
+local function Count(list, text)
+	if not IsSecret(text) and text == Threat.countText then
+		return
+	end
+	Threat.countText = not IsSecret(text) and text or nil
+	list:SetColumn(text)
+end
+
 local function Visible()
 	if not ns.Get("threat.shown") then
 		return false
@@ -175,6 +183,7 @@ local function Update()
 	local mob = Mob()
 	if not mob then
 		Threat.count = 0
+		Count(list, "")
 		list:SetWarning(Logic.NO_WARNING)
 		list:Finish(0, L["No target"])
 		return
@@ -191,6 +200,8 @@ local function Update()
 		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, ValueText(row), PercentText(row))
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
+	local watched = Logic.ThreatWatch(Threat.rows, count)
+	Count(list, watched and PercentText(watched) or "")
 	local level = Logic.NO_WARNING
 	if ns.Get("threat.warnings") then
 		level = Logic.ThreatWarning(Threat.rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
@@ -221,6 +232,8 @@ local function Build()
 		key = KEY, width = width or 260, height = height or 130, columns = Columns,
 	})
 	Threat.list:SetTitle(L["Threat"])
+	Threat.list:SetColumn("")
+	Threat.countText = ""
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
 end
@@ -252,7 +265,6 @@ function Threat:Apply()
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
 	end
-	self.list:SetColumn(ns.Get("threat.value") == "threat" and "" or "%")
 	self.list:Restyle()
 	BuildRoster()
 	Update()

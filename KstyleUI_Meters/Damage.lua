@@ -24,7 +24,6 @@ local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
 local drill = { active = false }
 local TOOLTIP_SPELLS = 3
-local SWITCH_GAP = "  "
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
@@ -231,6 +230,7 @@ local function Remember(i, source, reaction, deaths)
 	slot.name = PlainString(source.name) or (own and Own(UnitName) or nil)
 	slot.class = source.classFilename
 	slot.reaction = reaction
+	slot.own = own
 	slot.ok = not deaths and slot.name ~= nil and (slot.guid ~= nil or slot.creature ~= nil)
 end
 
@@ -476,7 +476,10 @@ local function RowSplit(split, list, i)
 		return true
 	end
 	local spells = source.combatSpells
-	local total = source.totalAmount
+	local total, maxAmount = source.totalAmount, source.maxAmount
+	if not Present(maxAmount) then
+		maxAmount = 1
+	end
 	local percent = ns.Get("damage.percent")
 	local listed = 0
 	for n = 1, TOOLTIP_SPELLS do
@@ -485,11 +488,13 @@ local function RowSplit(split, list, i)
 			break
 		end
 		listed = n
-		local right = Logic.Abbreviate(Amount(spell, info))
-		if percent then
-			right = right .. SWITCH_GAP .. Logic.FormatPercent(Logic.Percent(spell.totalAmount, total))
+		local amount = spell.totalAmount
+		if not Present(amount) then
+			amount = 0
 		end
-		split:AddLine(SpellName(spell, slot.name), right)
+		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
+		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText,
+			SpellCall("GetSpellTexture", spell.spellID), Logic.SchoolToken(spell.spellID))
 	end
 	if listed == 0 then
 		split:SetNote(L["No data yet"])
@@ -588,7 +593,9 @@ local function Refresh()
 	end
 	local own = not drill.active and IsInGroup() ~= true and OwnSource(info) or nil
 	Damage.resting = own ~= nil
-	if drill.active then
+	if drill.active and drill.own then
+		list:SetTitle(info.cap or info.label)
+	elseif drill.active then
 		list:SetTitle(drill.name)
 	elseif FAMILY[info.value] then
 		list:SetTitleSwitch(L["Damage"], L["Healing"], HEALING[info.value] and 2 or 1)
@@ -666,7 +673,7 @@ local function OnRowClick(list, i, button)
 	end
 	drill.active = true
 	drill.guid, drill.creature, drill.name = slot.guid, slot.creature, slot.name
-	drill.class, drill.reaction = slot.class, slot.reaction
+	drill.class, drill.reaction, drill.own = slot.class, slot.reaction, slot.own
 	Damage.view = Damage.view + 1
 	list:SetIcons(true)
 	Refresh()

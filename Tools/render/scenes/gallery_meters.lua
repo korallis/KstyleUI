@@ -32,6 +32,11 @@ local PARTY = {
 	{ "party4", "Sylaen", "PRIEST", { false, 0, 41, 36, 510000 } },
 }
 local FIGHT_SECONDS = 100
+-- The preview's sample spells (Preview.lua's SPELLS): spell ID, the name and icon file ID the client gives them.
+local PREVIEW_SPELLS = {
+	{ 403, "Lightning Bolt", 136048 }, { 8050, "Flame Shock", 135813 }, { 8042, "Earth Shock", 136026 },
+	{ 6603, "Melee", 132147 }, { 3599, "Searing Totem", 135825 },
+}
 -- Kragar's spells in the fight, highest first: spell ID, name, icon file ID, amount. They add up to his total.
 local SPELLS = {
 	{ 12294, "Mortal Strike", 132355, 92400 },
@@ -72,6 +77,16 @@ local function setup(env)
 	}
 	env._units.player = { name = "Valerin", class = "WARRIOR" }
 	env._speeds = { 2.6, 1.8, nil }
+	-- The client's class icons (Blizzard_DamageMeter's GetClassAtlas) from the atlas cache, as hud.lua draws them.
+	env.GetClassAtlas = function(class)
+		return ("classicon-%s"):format(class)
+	end
+	env.C_Texture = env.C_Texture or {}
+	env.C_Texture.GetAtlasInfo = Scene.AtlasInfo
+	-- The Meters page's preview names its sample spells through C_Spell, as the client does.
+	for _, spell in ipairs(PREVIEW_SPELLS) do
+		env._spells[spell[1]] = { name = spell[2], icon = spell[3] }
+	end
 end
 
 local function session(list)
@@ -287,8 +302,10 @@ end
 
 -- Blizzard's Damage Meter window, restyled in place -------------------------------------------------------------
 
-local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 260, 180
-local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 26, 16, 4
+local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 300, 180
+local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 16, 4
+-- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
+local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
 
 local function skin(frames)
 	local M = dofile("Tools/regression/meters_env.lua")
@@ -306,6 +323,10 @@ local function skin(frames)
 			window.Header = window:CreateTexture(nil, "BACKGROUND")
 			window.SessionTimer = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 			window.DamageMeterTypeDropdown = { TypeName = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall") }
+			-- The fight dropdown at the header's right end (DamageMeterSessionWindow.xml), left of the settings and minimise buttons.
+			local fight = env.CreateFrame("Button", nil, window)
+			fight.SessionName = fight:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			window.SessionDropdown = fight
 			local container = env.CreateFrame("Frame", nil, window)
 			container.Background = container:CreateTexture(nil, "BACKGROUND")
 			window.MinimizeContainer = container
@@ -419,6 +440,10 @@ local function skin(frames)
 	window.SessionTimer:SetText("1:40")
 	window.DamageMeterTypeDropdown.TypeName:SetPoint("TOPRIGHT", window, "TOPRIGHT", -SKIN_PAD, -SKIN_PAD)
 	window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
+	window.SessionDropdown:SetPoint("RIGHT", window, "TOPRIGHT", -SKIN_PAD - SKIN_SETTINGS, -SKIN_SESSION_MIDDLE)
+	window.SessionDropdown:SetSize(SKIN_SESSION_W, SKIN_ROW)
+	window.SessionDropdown.SessionName:SetAllPoints(window.SessionDropdown)
+	window.SessionDropdown.SessionName:SetText("Current")
 	window.container:SetPoint("TOPLEFT", window, "TOPLEFT", 0, -SKIN_HEADER)
 	window.container:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", 0, 0)
 	window.scroll:SetPoint("TOPRIGHT", window.container, "TOPRIGHT", -SKIN_PAD / 2, -SKIN_PAD)
