@@ -485,6 +485,9 @@ local function Build(name)
 	local host = LayoutFrame(root)
 	local desc = { name = name, host = host, buttons = {}, enchants = {} }
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, host, TEMPLATE)
+	if ok and container then
+		Widgets.KeepOut(container)
+	end
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
 		host:Hide()
 		desc.failed = true

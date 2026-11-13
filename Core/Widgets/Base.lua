@@ -699,6 +699,23 @@ local function Waits(region, fn, ...)
 end
 
 local helped = setmetatable({}, { __mode = "k" })
+local keptOut = setmetatable({}, { __mode = "k" })
+
+function Widgets.KeepOut(frame)
+	keptOut[frame] = true
+	return frame
+end
+
+local function Inside(region)
+	local node = region
+	while node do
+		if keptOut[node] then
+			return true
+		end
+		node = node:GetParent()
+	end
+	return false
+end
 local dependents = setmetatable({}, { __mode = "k" })
 
 local function OnPixel(raw, relShare, relPx, ownShare, ownPx)
@@ -784,6 +801,9 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
 	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
+	if Inside(region) then
+		return
+	end
 	local record = Record(region)
 	local entry = record.points[point]
 	if entry then
@@ -814,7 +834,7 @@ local function Refill(region)
 	end
 	region.kstyleFilling = true
 	local fill = region.kstyleFill
-	ns.Call(Widgets.Fill, region, fill[1], fill[2], fill[3], fill[4], fill[5])
+	pcall(Widgets.Fill, region, fill[1], fill[2], fill[3], fill[4], fill[5])
 	region.kstyleFilling = false
 end
 
@@ -835,6 +855,9 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	region:ClearAllPoints()
 	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
 	region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
+	if Inside(region) then
+		return
+	end
 	local record = Record(region)
 	local fill = record.fill
 	if fill then
@@ -868,6 +891,9 @@ end
 local function Depth(region)
 	local depth, node = 0, region:GetParent()
 	while node do
+		if not Plain(node) then
+			return nil
+		end
 		depth, node = depth + 1, node:GetParent()
 	end
 	return depth
@@ -887,7 +913,7 @@ function Reown(region)
 		return
 	end
 	region.kstyleReowning = true
-	ns.Call(Replay, region, record)
+	pcall(Replay, region, record)
 	region.kstyleReowning = false
 end
 
@@ -900,7 +926,7 @@ function Refollow(frame)
 	for region in pairs(set) do
 		local record = helped[region]
 		if record then
-			ns.Call(Replay, region, record, frame)
+			pcall(Replay, region, record, frame)
 		end
 	end
 	frame.kstyleFollowing = false
@@ -908,29 +934,33 @@ end
 
 Widgets.Refollow = Refollow
 
+local function PlaceRecorded(region, record)
+	local size = record.size
+	local w, h = region:GetWidth(), region:GetHeight()
+	if size and not IsSecret(w) and not IsSecret(h) and type(w) == "number" and type(h) == "number" and abs(w - size[3]) < 1e-6 and abs(h - size[4]) < 1e-6 then
+		Widgets.Size(region, size[1], size[2])
+	end
+	local fill = record.fill
+	if fill and Anchored(region, "TOPLEFT", fill[1], "TOPLEFT", fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1], "BOTTOMRIGHT", fill[8], fill[9]) then
+		Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
+	end
+	Replay(region, record)
+end
+
 function Widgets.PlaceAgain(roots)
 	local list, depth = {}, {}
 	for region in pairs(helped) do
-		if Plain(region) and (roots == nil or Under(region, roots)) then
+		local d = Plain(region) and (roots == nil or Under(region, roots)) and Depth(region)
+		if d then
 			list[#list + 1] = region
-			depth[region] = Depth(region)
+			depth[region] = d
 		end
 	end
 	table.sort(list, function(a, b)
 		return depth[a] < depth[b]
 	end)
 	for _, region in ipairs(list) do
-		local record = helped[region]
-		local size = record.size
-		local w, h = region:GetWidth(), region:GetHeight()
-		if size and not IsSecret(w) and not IsSecret(h) and type(w) == "number" and type(h) == "number" and abs(w - size[3]) < 1e-6 and abs(h - size[4]) < 1e-6 then
-			Widgets.Size(region, size[1], size[2])
-		end
-		local fill = record.fill
-		if fill and Anchored(region, "TOPLEFT", fill[1], "TOPLEFT", fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1], "BOTTOMRIGHT", fill[8], fill[9]) then
-			Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
-		end
-		Replay(region, record)
+		pcall(PlaceRecorded, region, helped[region])
 	end
 end
 
@@ -944,6 +974,9 @@ function Widgets.Size(frame, width, height)
 	local f = Widgets.ScaleFactor(frame)
 	local w, h = SnapIn(width, f), SnapIn(height, f)
 	frame:SetSize(w, h)
+	if Inside(frame) then
+		return
+	end
 	Refollow(frame)
 	local record = Record(frame)
 	local size = record.size
@@ -1919,7 +1952,6 @@ end)
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
 	RestyleTexts()
 	Widgets.RestyleAll()
-	Widgets.PlaceAgain()
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)

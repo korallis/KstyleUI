@@ -257,11 +257,20 @@ end
 -- A frame whose size comes from its anchors (spanned on a target) runs OnSizeChanged when that size changes, from a
 -- SetPoint or from its target's resize, as the game does; regions that are not frames have no such script.
 local NOT_FRAMES = { Texture = true, FontString = true, Line = true, MaskTexture = true }
+local function spanSize(frame)
+	if not (spanned(frame, "w") or spanned(frame, "h")) then
+		return nil
+	end
+	return rawSize(frame, "w"), rawSize(frame, "h")
+end
 local function spanChanged(frame)
-	if NOT_FRAMES[frame._type] or not (spanned(frame, "w") or spanned(frame, "h")) then
+	if NOT_FRAMES[frame._type] then
 		return false
 	end
-	local w, h = rawSize(frame, "w"), rawSize(frame, "h")
+	local ok, w, h = pcall(spanSize, frame)
+	if not ok or w == nil then
+		return false
+	end
 	local last = rawget(frame, "_lastSpan")
 	if last and last[1] == w and last[2] == h then
 		return false

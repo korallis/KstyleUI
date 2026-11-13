@@ -632,6 +632,9 @@ end
 
 local function NewHighlights(f)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, f, TEMPLATE)
+	if ok and container then
+		Widgets.KeepOut(container)
+	end
 	if not ok or type(container) ~= "table" or type(container.AddAuraSlot) ~= "function" then
 		Style.LogOnce("dispelSlotMissing", "AddAuraSlot is missing; group frames show no dispel highlight or debuff glow")
 		return nil
