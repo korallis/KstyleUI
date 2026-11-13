@@ -1,4 +1,4 @@
--- orbs_clearance_lib.lua: under the Orbs HUD style, nothing another surface draws (the bars beside the orbs, the tracked buff icons, the buff and debuff rows, the reputation and honour bars, the cast bar, the cooldowns) reaches into either orb, on four screens.
+-- orbs_clearance_lib.lua: under the Orbs HUD style, nothing another surface draws (the bars beside the orbs, the tracked buff icons, the buff and debuff rows, the reputation and honour bars, the cast bar, the cooldowns) reaches into either orb, at 1280x720, 1920x1080, 3440x1440 and 5120x1440.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
 local M = {}
@@ -104,16 +104,17 @@ local function Case(layout, class, screen, required)
 	end
 end
 
-function M.Run(layout, class, required)
+-- Run(layout, class, required, wide) checks 1280x720 and 1920x1080, or with wide 3440x1440 and 5120x1440.
+function M.Run(layout, class, required, wide)
 	local previousScreen, previousStyle = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_HUD_STYLE")
 	rawset(_G, "RENDER_HUD_STYLE", "Orbs")
-	for _, screen in ipairs(M.SCREENS) do
+	for _, screen in ipairs(wide and { M.SCREENS[3], M.SCREENS[4] } or { M.SCREENS[1], M.SCREENS[2] }) do
 		Case(layout, class, screen, required or {})
 		collectgarbage("collect")
 	end
 	rawset(_G, "RENDER_SCREEN", previousScreen)
 	rawset(_G, "RENDER_HUD_STYLE", previousStyle)
-	print("ok orbs clearance " .. layout .. " " .. class .. ": four screens")
+	print("ok orbs clearance " .. layout .. " " .. class .. (wide and ": 3440x1440 and 5120x1440" or ": 1280x720 and 1920x1080"))
 end
 
 return M

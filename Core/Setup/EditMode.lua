@@ -782,6 +782,7 @@ function EditMode.Write(name, story)
 		return Fail(name, reason, why)
 	end
 	local placed, notes, rows = {}, {}, {}
+	local viewer = Enum.EditModeSystem.CooldownViewer
 	for _, place in ipairs(Places(name, story, notes)) do
 		if place.row then
 			if PlaceRow(all[index], place) then
@@ -790,6 +791,9 @@ function EditMode.Write(name, story)
 			end
 		elseif Place(all[index], place) then
 			placed[#placed + 1] = place.label
+			if place.system == viewer then
+				rows[#rows + 1] = place
+			end
 		end
 	end
 	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = index })
@@ -865,6 +869,44 @@ local function WriteRows()
 		labels[i] = place.label
 	end
 	log("Edit Mode: placed " .. table.concat(labels, ", ") .. " on KstyleUI's own rows in " .. layoutName)
+	return true
+end
+
+local function Mine(layout, place)
+	local stamps = Stamps()
+	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.index]
+	return stamp == nil or Owned(layout, place)
+end
+
+function EditMode.Restyle(name, story)
+	local all, _, active = Read()
+	if not all or Own(all, active) ~= name then
+		return false
+	end
+	local layout, viewer, moved = all[active], Enum.EditModeSystem.CooldownViewer, {}
+	for _, place in ipairs(Places(name, story, {})) do
+		if place.system == viewer and Mine(layout, place) and Place(layout, place) then
+			moved[#moved + 1] = place
+		end
+	end
+	if #moved == 0 then
+		return false
+	end
+	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = active })
+	if not saved then
+		log("Edit Mode: C_EditMode.SaveLayouts failed (" .. tostring(err) .. "); Blizzard's cooldown viewers keep their places")
+		return false
+	end
+	Remember(layout, moved)
+	local activated, refusal = pcall(C_EditMode.SetActiveLayout, active)
+	if not activated then
+		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); the viewers move at the next reload")
+	end
+	local labels = {}
+	for i, place in ipairs(moved) do
+		labels[i] = place.label
+	end
+	log("Edit Mode: placed " .. table.concat(labels, ", ") .. " for the HUD style in " .. layout.layoutName)
 	return true
 end
 

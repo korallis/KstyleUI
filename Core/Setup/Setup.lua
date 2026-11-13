@@ -230,11 +230,16 @@ function Setup.RetryEditMode()
 	return true
 end
 
+local applying = false
+
 ns.Callbacks.Register("HudStyleChanged", "Setup", function()
-	local name = Setup.EditMode.ActiveName()
-	if name then
-		WriteEditMode(name)
+	local name = ns.Layout.Setting("preset")
+	if applying or Setup.EditMode.ActiveName() ~= name then
+		return
 	end
+	ns.Combat.Queue(function()
+		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
+	end)
 end)
 
 function Setup.Apply(picked)
@@ -266,7 +271,9 @@ function Setup.Apply(picked)
 	end
 	local hudStyle = (picked.hudStyle == "frames" or picked.hudStyle == "orbs") and picked.hudStyle
 	if hudStyle then
-		ns.Options.Write("HudStyle", "style", hudStyle)
+		applying = true
+		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)
+		applying = false
 	end
 	WriteEditMode(picked.layout)
 	Setup.MarkSeen()

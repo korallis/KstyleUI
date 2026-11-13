@@ -1477,7 +1477,11 @@ end)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION and key == "preset" and Style() then
-		Restyle()
+		if InCombatLockdown() then
+			Combat.Queue(Restyle)
+		else
+			Restyle()
+		end
 	end
 	if module == SECTION and state.active then
 		Mode("Refresh")
