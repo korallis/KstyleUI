@@ -452,7 +452,11 @@ function Object:GetEffectiveScale()
 	if self._ignoreParentScale or not self._parent then
 		return self._scale
 	end
-	return self._scale * self._parent:GetEffectiveScale()
+	local parent = self._parent
+	if rawget(parent, "_calls") ~= nil and parent._denied ~= true and rawget(parent, "GetEffectiveScale") == nil then
+		return self._scale * Object.GetEffectiveScale(parent)
+	end
+	return self._scale * parent:GetEffectiveScale()
 end
 
 local function booleanAlpha(value, yes, no)

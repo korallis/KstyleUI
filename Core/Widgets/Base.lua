@@ -707,6 +707,9 @@ function Widgets.KeepOut(frame)
 end
 
 local function Inside(region)
+	if next(keptOut) == nil then
+		return false
+	end
 	local node = region
 	while node do
 		if keptOut[node] then
