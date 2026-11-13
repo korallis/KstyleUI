@@ -264,7 +264,7 @@ local function Hang(x, y, clamped)
 	if holder ~= root and not clamped then
 		tray:SetPoint("CENTER", holder, "CENTER", 0, 0)
 	else
-		tray:SetPoint("CENTER", root, "BOTTOMLEFT", K.Widgets.Snap(tray, x), K.Widgets.Snap(tray, y))
+		K.Widgets.Point(tray, "CENTER", root, "BOTTOMLEFT", x, y)
 	end
 end
 
@@ -283,15 +283,14 @@ local function PlaceTray()
 end
 
 function Place()
-	local Snap = K.Widgets.Snap
 	local healthX, powerX, y, ring = Orbs.Centres()
 	local hole = ring * OPENING
 	local centres = { health = healthX, power = powerX }
 	PlaceTray()
 	for kind, orb in pairs(orbs) do
-		orb:ClearAllPoints()
-		orb:SetPoint("CENTER", K.Scale.Root(), "BOTTOMLEFT", Snap(orb, centres[kind]), Snap(orb, y))
 		K.Widgets.Size(orb, ring, ring)
+		orb:ClearAllPoints()
+		K.Widgets.Point(orb, "CENTER", K.Scale.Root(), "BOTTOMLEFT", centres[kind], y)
 		K.Widgets.Size(orb.back, hole, hole)
 		K.Widgets.Size(orb.glass, hole, hole)
 		K.Widgets.Size(orb.bar, hole, hole)
@@ -300,7 +299,7 @@ function Place()
 		end
 		K.Widgets.Size(orb.surface, hole, SURFACE_HEIGHT)
 		orb.value:ClearAllPoints()
-		orb.value:SetPoint("CENTER", orb, "CENTER", 0, -Snap(orb, hole * VALUE_DROP))
+		K.Widgets.Point(orb.value, "CENTER", orb, "CENTER", 0, -hole * VALUE_DROP)
 	end
 end
 
