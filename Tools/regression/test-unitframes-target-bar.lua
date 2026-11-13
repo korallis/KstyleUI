@@ -61,6 +61,11 @@ if host then
 end
 noErrors("bar form")
 
+U.SetUnit(env, "target", { name = "Galestrider", level = 6, health = 0, healthMax = 1698, reaction = 2, canAttack = true, creature = "Beast", dead = true })
+env.SetTarget(true)
+assert(U.Shown(env, view.healthSub) == "", "a dead target shows its state once, in the bar, and no values under it: " .. U.Shown(env, view.healthSub))
+noErrors("dead target")
+
 K.Options.Write("UnitFrames", "target.style", "column")
 assert(Frames.Get("target").views[1].form == "column" and view.portraitFrame:IsShown(), "back to the column, the portrait returns")
 noErrors("back to column")

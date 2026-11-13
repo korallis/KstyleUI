@@ -242,7 +242,7 @@ end
 local function LumenHealth(view, unit, form, format)
 	if form == "bar" then
 		Format.Health(view.healthText, unit, format == "none" and "none" or "percent")
-		Format.Health(view.healthSub, unit, format == "none" and "none" or "currentMax")
+		Format.HealthDetail(view.healthSub, unit, format == "none" and "none" or "both")
 	elseif form == "column" and view.geometry.mirror then
 		Format.Health(view.healthText, unit, Format.Main(format))
 	elseif form == "vitals" or form == "column" then
