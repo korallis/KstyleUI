@@ -153,13 +153,19 @@ end)
 Check(function()
 	local scene = Scene("gallery_skins_trainer")
 	local rank, label = Text(scene, "186/300"), Text(scene, "Polearms")
-	local track
+	local fill, track
 	for _, item in ipairs(scene.items) do
-		if File(item, "RingLine3") and math.abs(Middle(item.rect) - Middle(label.rect)) < 3 then
+		if item.bar and math.abs(Middle(item.rect) - Middle(label.rect)) < 3 then
+			fill = item
+		end
+	end
+	for _, item in ipairs(scene.items) do
+		if fill and item.kind == "texture" and not item.file and not item.bar
+			and math.abs(item.rect[1] - fill.rect[1]) < 0.01 and math.abs(item.rect[2] - fill.rect[2]) < 0.01 then
 			track = item
 		end
 	end
-	assert(track and rank.rect[1] >= track.rect[1] + track.rect[3], "the rank stands to the right of the skill bar")
+	assert(track and rank.rect[1] >= track.rect[1] + track.rect[3], "the rank stands to the right of the skill bar's square track")
 end)
 
 -- Reputation (item 26): fills wear the bible's state colours, not Blizzard's pure faction colours.
