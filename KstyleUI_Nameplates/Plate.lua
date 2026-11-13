@@ -168,6 +168,13 @@ local function IsTrue(value)
 	return not IsSecret(value) and value == true
 end
 
+local function GameObject(plate)
+	if plate.sample then
+		return false
+	end
+	return IsTrue(type(UnitIsGameObject) == "function" and UnitValue(UnitIsGameObject, plate.unit))
+end
+
 local function Rgb(color)
 	return color.r, color.g, color.b
 end
@@ -551,7 +558,7 @@ end
 function Plate:UpdateStyle()
 	local canAttack = self:Is("enemy", UnitCanAttack, "player", self.unit)
 	self.kind = (IsSecret(canAttack) or canAttack) and "enemy" or "friendly"
-	local nameOnly = self.kind == "friendly" and Settings.Get("friendly.nameOnly")
+	local nameOnly = (self.kind == "friendly" and Settings.Get("friendly.nameOnly")) or GameObject(self)
 	if nameOnly ~= self.nameOnly then
 		self.nameOnly = nameOnly
 		self:LayoutName()
