@@ -194,10 +194,12 @@ do
 end
 noErrors("chip")
 
--- The sigil's chip owns its socket's timer lane --------------------------------------------------------------------
+-- The sigil's chip owns no aura's timer lane -----------------------------------------------------------------------
 -- Round 5 (Astra #2, Opus #3): the sigil's timers sit in a lane under each tile, outside the cell, so a chip that
--- covered only the cell left the covered aura's "44s" under "+11", as if the count had a duration. Past the cap, no
--- visible timer may sit within one cell below the chip; at the cap and below, every timer shows.
+-- covered only the cell left the covered aura's "44s" under "+11", as if the count had a duration. KSTY-69 (the
+-- Captain, 2026-11-13): the chip is one tile tall, so where timers sit under the tiles it stands after the last
+-- socket and covers none. Past the cap, no visible timer may sit within one cell below the chip; at every count,
+-- every shown socket's timer shows.
 do
 	local Scene = dofile("Tools/render/scene.lua")
 	local function box(object)
@@ -272,12 +274,14 @@ do
 			assert(timers == shown, n .. " debuffs fit: all " .. shown .. " timers show, got " .. timers)
 		else
 			assert(face, n .. " debuffs: the chip shows")
-			assert(timers == cap - 1, n .. " debuffs: the " .. (cap - 1) .. " uncovered sockets keep their timers, got " .. timers)
+			assert(timers == cap, n .. " debuffs: all " .. cap .. " sockets keep their timers, got " .. timers)
+			assert(math.abs((win.bottom - win.top) - (box(buttons[cap]).bottom - box(buttons[cap]).top)) < EPS, n .. " debuffs: the chip is one tile tall")
+			assert(win.left >= box(buttons[cap]).right - EPS, n .. " debuffs: after the last socket")
 			local shownLabels = 0
 			for i, label in ipairs(chip.labels) do
 				if hits(box(label), win) then
 					shownLabels = shownLabels + 1
-					assert(chip.texts[i]:GetText() == "+" .. (n - cap + 1), n .. " debuffs read +" .. (n - cap + 1) .. ", got " .. tostring(chip.texts[i]:GetText()))
+					assert(chip.texts[i]:GetText() == "+" .. (n - cap), n .. " debuffs read +" .. (n - cap) .. ", got " .. tostring(chip.texts[i]:GetText()))
 					assert(within(box(label), win), "the count stays inside the chip")
 				end
 			end

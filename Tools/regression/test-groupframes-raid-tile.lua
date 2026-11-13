@@ -13,6 +13,22 @@ local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
 end
 
+-- ShortOrWhole: the name is whole, or, when even the text floor cannot hold it, its head and an ellipsis; never under
+-- the floor.
+local function ShortOrWhole(f, full, what)
+	local K = f._env.KstyleUI
+	local text = f.name:GetText()
+	local _, size = f.name:GetFont()
+	local px = size * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1)
+	assert(px >= K.Scale.TextFloor() - 0.01, what .. ": " .. full .. " is at least the " .. K.Scale.TextFloor() .. " px floor, got " .. px)
+	if text == full then
+		return
+	end
+	local head = text:match("^(.-)%.%.%.$")
+	assert(head and #head >= 4 and full:sub(1, #head) == head, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
+	assert(size <= f.nameFit.min + 1e-6 or px <= K.Scale.TextFloor() + 0.01, what .. ": " .. full .. " shortens only at its smallest size")
+end
+
 local function intersects(a, b)
 	return a[1] < b[1] + b[3] - 0.01 and b[1] < a[1] + a[3] - 0.01 and a[2] < b[2] + b[4] - 0.01 and b[2] < a[2] + a[4] - 0.01
 end
@@ -120,10 +136,12 @@ for _, size in ipairs(SIZES) do
 	local healRect = { Scene.Rect(env, f.buffClip) }
 	assert(not intersects(healRect, bar), what .. ": your heals " .. describe(healRect) .. " never paint on the bar " .. describe(bar))
 
-	-- Grok #2, Muse #1: names up to 12 letters stay whole, stepping the size down before any ellipsis.
+	-- Grok #2, Muse #1: names up to 12 letters stay whole, stepping the size down before any ellipsis, down to the
+	-- 11 px text floor (KSTY-69: the Captain's 2026-11-13 ruling puts size over wholeness on 20 and 40-player rows),
+	-- where a name the lane cannot hold keeps its head and shortens.
 	for i = 1, #LONG do
 		local member = content(ns, ns.Headers.raid[1], "raid" .. i)
-		eq(member.name:GetText(), LONG[i], what .. ": " .. LONG[i] .. " is whole")
+		ShortOrWhole(member, LONG[i], what)
 		local item = find(scene, member.name)
 		local own = { Scene.Rect(env, member.buffClip) }
 		assert(item and not intersects(item.rect, own), what .. ": " .. LONG[i] .. " " .. describe(item.rect) .. " keeps clear of the heals " .. describe(own))
@@ -163,7 +181,7 @@ for _, size in ipairs(SIZES) do
 		local item = find(scene, f.healthText)
 		assert(item, what .. ": the status draws")
 		assert(not intersects(item.rect, find(scene, f.name).rect), what .. ": " .. case[2] .. " " .. describe(item.rect) .. " stays out of the name")
-		eq(f.name:GetText(), LONG[tonumber(case[1]:match("%d+"))], what .. ": the name stays whole beside the status")
+		ShortOrWhole(f, LONG[tonumber(case[1]:match("%d+"))], what .. ", beside the status")
 	end
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

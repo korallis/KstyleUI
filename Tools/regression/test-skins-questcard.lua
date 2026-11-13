@@ -287,6 +287,49 @@ do
 	Clean(env, K)
 end
 
+-- KSTY-67 item 1: beside the RestedXP guide the quest card stands under the map, level with the guide's card, as mock-up B
+-- draws them, and its column runs down to a rail gap over the threat card, so it shows at least three of ten quests at
+-- 1920x1080 and four at 1440-tall screens, at the sizes the game picks there (15/16 and 21/16 pixels a unit), in every
+-- preset and both arrangements ----------------------------------------------------------------------------------------
+
+do
+	local SCREENS = { { 1920, 1080, 15 / 16, 3 }, { 2560, 1440, 21 / 16, 4 }, { 3440, 1440, 21 / 16, 4 }, { 5120, 1440, 21 / 16, 4 } }
+	for _, screen in ipairs(SCREENS) do
+		local width, height, perUnit, need = screen[1], screen[2], screen[3], screen[4]
+		for _, arrangement in ipairs({ "centred", "spread" }) do
+			for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+				local what = string.format("%s %dx%d %s", preset, width, height, arrangement)
+				local env, K, ns, _, _, rxp = Boot({ screen = { width = width, height = height, uiScale = 1 }, saved = Sized(perUnit * 1080 / height), rxp = true })
+				K.Options.Write("Layout", "arrangement", arrangement)
+				K.Options.Write("Layout", "preset", preset)
+				env.RunTimers()
+				W.Settle(env)
+				local Layouts = K.Setup.Layouts
+				local rw, rh = K.Layout.RootSize()
+				assert(math.abs(rh - height / perUnit) < 1e-6, what .. ": the root is " .. height / perUnit .. " units tall, got " .. rh)
+				local story = K.Setup.Story(preset, true)
+				local glass = RootRect(K, assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass"))
+				local card = RootRect(K, ns.Quests.Card())
+				local px = K.Scale.Pixel(1) + 0.01
+				assert(math.abs(card.top - glass.top) <= px and math.abs(story.tracker.top - story.guide.top) <= px, what .. ": the quest card's top is level with the guide's, got " .. card.top .. " for " .. glass.top)
+				local w, h = Layouts.Footprint(preset, "meters.threat")
+				local _, _, _, threatTop = Layouts.Rect({ width = w, height = h }, Layouts.Get(preset, rh)["meters.threat"], rw, rh)
+				local tw, th = Layouts.Footprint(preset, "unitframes.targettarget")
+				local _, _, totRight, totTop = Layouts.Rect({ width = tw, height = th }, Layouts.Get(preset, rh)["unitframes.targettarget"], rw, rh)
+				local foot = story.tracker.left >= totRight + 4 and threatTop + 16 or totTop + 16
+				assert(math.abs(story.tracker.bottom - foot) <= px, what .. ": the column ends a rail gap over the threat card's top where it clears the target of target, else a rail gap over the cluster top, got " .. story.tracker.bottom .. " for " .. foot)
+				assert(#Shown(ns) >= need, what .. ": at least " .. need .. " quests show, got " .. #Shown(ns))
+				for _, row in ipairs(ns.Quests.Rows()) do
+					if row:IsShown() then
+						assert(RootRect(K, row).bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
+					end
+				end
+				Clean(env, K)
+			end
+		end
+	end
+end
+
 -- The card fits its own element at the owner's screen (2383 by 1540 at UI scale 768/1080) with fifteen quests of five
 -- objectives each, with and without RestedXP, in every preset. Without the guide it takes the story slot on the right
 -- rail under the map and the aura rows, over the tooltip anchor, the damage card and the readout. With the guide the
@@ -320,13 +363,8 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local px = K.Scale.Pixel(1) + 0.01
 		assert(K.Layout.Get("skins.quests") ~= nil, what .. ": the quest card is a Layout element of its own")
 		assert(math.abs(holder.left - band.left) <= px and math.abs(holder.top - band.top) <= px and math.abs(holder.bottom - band.bottom) <= px, what .. ": the element is the card's band")
-		if withGuide then
-			local rows = Box("auras.debuffs").bottom
-			assert(math.abs(card.top - (rows - 15)) <= px, what .. ": beside the guide, the card starts 15 under the aura rows over its column, not under the map, so it has room for its quests (KSTY-60), got " .. card.top .. " for " .. rows)
-		else
-			assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
-			assert(math.abs(card.top - st) <= px, what .. ": at the story slot's top, got " .. card.top .. " for " .. st)
-		end
+		assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
+		assert(math.abs(card.top - st) <= px, what .. ": at the story slot's top, level with the guide's card beside it as mock-up B draws them (KSTY-67 item 1), got " .. card.top .. " for " .. st)
 		assert(card.bottom >= band.bottom - px and card.top <= band.top + px, what .. ": inside its element")
 		assert(math.abs(card.left - band.left) <= px and math.abs(card.right - band.right) <= px, what .. ": on its element's edge and width")
 		assert(math.abs(card.right - card.left - 278) <= 0.6, what .. ": the picture's 278 rail column")
