@@ -97,11 +97,11 @@ do
 	end
 	eq(shownTicks, 0, "no segments, no ticks")
 	K.Options.Write("DataBars", "xp.segments", 10)
-	-- The overhaul's strip (KSTY-44 bible 3.4, Lee's 5 px experience strip): 5 units tall at 1080, square ends with
+	-- The overhaul's strip: the mock-up's 7 px at 1080 (KSTY-60 item 28; 7 mock-up px, 8.3125 units), square ends with
 	-- no pill caps, and no ornament around it.
-	eq(K.Setup.Layouts.Element("databars.xp").height, 5, "the experience strip is 5 units tall")
-	eq(xp.fill.pillOn, false, "the fill has square ends")
-	eq(xp.track.pillOn, false, "and so does the track")
+	eq(K.Setup.Layouts.Element("databars.xp").height, 7 * 19 / 16, "the experience strip is the mock-up's 7 px, 8.3125 units tall")
+	eq(xp.fill.caps, nil, "the fill has square ends")
+	eq(xp.track.caps, nil, "and so does the track")
 	eq(xp.ornament, nil, "no ornament frames the strip")
 	eq(xp.rim, nil, "and no rim frame waits for one")
 
@@ -298,7 +298,7 @@ do
 	eq(shown, 0, "no segments draw no ticks")
 
 	Options.Write("DataBars", "xp.border", false)
-	eq(xp.track.borderFrame:IsShown(), false, "the frame around the bar can be turned off")
+	eq(xp.track.barEdge.hard:IsShown(), false, "the frame around the bar can be turned off")
 
 	Options.Write("DataBars", "xp.rested", false)
 	eq(xp.track:GetValue(), 0, "the rested overlay can be turned off")

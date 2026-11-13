@@ -88,8 +88,8 @@ function Setup.MarkSeen()
 end
 
 local function writeLayout(name)
-	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect())
-	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect())
+	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect(), ns.Scale.Band())
+	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect(), ns.Scale.Band())
 	for key, size in pairs(Layouts.Sizes(name)) do
 		local position = positions[key]
 		position.width, position.height = size.width, size.height
@@ -250,10 +250,10 @@ end
 
 ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
 
-local aspect = ns.Scale.Aspect()
+local aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
-	if ns.Scale.Aspect() ~= aspect then
-		aspect = ns.Scale.Aspect()
+	if ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band then
+		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 		Restyle()
 	end
 end)

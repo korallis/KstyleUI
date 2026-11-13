@@ -92,6 +92,14 @@ assert(card:GetFrameLevel() < minimap:GetFrameLevel() and card:GetFrameLevel() >
 assert(W.Near(card:GetWidth(), 188 + 2 * Format.FRAME, 1) and W.Near(card:GetHeight(), 188 + 2 * Format.FRAME, 1), "the card is 3 units wider than the map on every side: " .. tostring(card:GetWidth()))
 local cardPoint, cardRel, cardRelPoint, cardX, cardY = card:GetPoint(1)
 assert(cardPoint == "TOPLEFT" and cardRel == face.mapArea and cardRelPoint == "TOPLEFT" and W.Near(cardX, -Format.FRAME) and W.Near(cardY, Format.FRAME), "centred on the map")
+assert(Format.FRAME == K.Setup.Layouts.MAP_FRAME, "the layouts set the map in by the card's frame, so the card's edge, not the square's, stands on the card margin (KSTY-60 item 28)")
+do
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local root = K.Scale.Root()
+	local cardBox = assert(Geometry.ScaledRect(card, env.UIParent, root))
+	local rootBox = assert(Geometry.ScaledRect(root, env.UIParent, root))
+	assert(W.Near(rootBox.right - cardBox.right, K.Tokens.Size("screenMargin"), 0.5), "the card ends on the card margin with the cards under it, got " .. tostring(rootBox.right - cardBox.right))
+end
 assert(W.SameRGB(face.fill, K.Tokens.Color("materialForged")) and face.fill:IsShown(), "its fill is the forged iron")
 local pixel = K.Widgets.Border(face.mapArea)
 local frameSlice

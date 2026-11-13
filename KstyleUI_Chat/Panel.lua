@@ -380,6 +380,10 @@ function Panel.Sync()
 	Mirror()
 end
 
+function Panel.PaintRule(divider)
+	Widgets.Tint(divider, "gilt", RULE_ALPHA)
+end
+
 local function PlaceDivider(g)
 	local glass = state.glass
 	local divider = glass.divider
@@ -387,7 +391,7 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left, -g.divider)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
-	Widgets.Tint(divider, "gilt", RULE_ALPHA)
+	Panel.PaintRule(divider)
 	divider:SetShown(not state.bare)
 	local y = -(g.divider - TAB_TEXT_RISE * g.k)
 	glass.plus:ClearAllPoints()

@@ -54,6 +54,13 @@ do
 		assert(env._frames[i]._template ~= "ContainerFrameItemButtonTemplate", "the preview never makes Blizzard's item buttons")
 	end
 	preview:Refresh()
+	local cap = preview.title
+	assert(cap.gem and cap.rule and cap.label, "the preview's title is the card heading the bag sections wear: diamond, caps and rule (KSTY-60 item 28: it was a dim centred caption)")
+	assert(cap.gem:IsShown() and cap.rule:IsShown() and cap.label:GetText() == "BAGS", "with every piece drawn, got " .. tostring(cap.label:GetText()))
+	local tr, tg, tb = cap.label:GetTextColor()
+	local gr, gg, gb = K.Tokens.Color("capsGold")
+	assert(math.abs(tr - gr) < 1e-6 and math.abs(tg - gg) < 1e-6 and math.abs(tb - gb) < 1e-6, "in the heading gold at full strength")
+	assert(math.abs(cap:GetWidth() - preview.grid:GetWidth()) < 1e-6, "as wide as the slots it heads")
 end
 
 -- Item buttons ------------------------------------------------------------------------------------

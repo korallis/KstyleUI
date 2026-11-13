@@ -1,4 +1,4 @@
--- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup, RestedXP and meter overlays opt into opaque materials at runtime.
+-- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup and RestedXP overlays opt into opaque materials at runtime, and the meter's hover split, rows of its card with no chrome of its own, keeps its rows across material changes.
 local W = dofile("Tools/regression/widget_env.lua")
 local materials = { "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 
@@ -264,15 +264,17 @@ do
 		assert(rect, tostring(why))
 		return rect.right - rect.left
 	end
-	split.chrome:Restyle()
+	-- The split is rows of the card (KSTY-60 item 24), with no popup chrome of its own: the card's material shows
+	-- behind it, so cycling the card's material keeps the split open, its size and its spells.
+	assert(split.chrome == nil, "the split carries no popup chrome")
 	local width, height = split.frame:GetSize()
 	assert(type(width) == "number" and type(height) == "number", "the hovered split has measured dimensions")
-	local text = split.lines[1].left:GetText()
+	local text = split.lines[1].name:GetText()
 	assert(text:find("Mortal Strike", 1, true))
-	Cycle(K, { split.chrome }, function()
+	Cycle(K, {}, function()
 		assert(split.frame:IsShown(), "the detail overlay remains open")
 		assert(W.Near(split.frame:GetWidth(), width) and W.Near(split.frame:GetHeight(), height), "the split size changed from " .. width .. "x" .. height .. " to " .. split.frame:GetWidth() .. "x" .. split.frame:GetHeight())
-		assert(split.lines[1].left:GetText() == text, "the split keeps its spell content")
+		assert(split.lines[1].name:GetText() == text, "the split keeps its spell content")
 	end)
 	row:GetScript("OnLeave")(row)
 	env.RunTimers()

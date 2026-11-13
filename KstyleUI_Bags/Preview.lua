@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample slots drawn with the module's own slot code and current settings.
+-- Preview.lua: the settings window's live preview: sample slots drawn with the module's own slot code and current settings, under the card heading every bag section wears.
 local _, ns = ...
 
 local K = KstyleUI
@@ -43,6 +43,10 @@ local function Refresh(frame)
 	local cols, rows = Data.Grid(#frame.slots, PREVIEW_COLUMNS)
 	local width, height = Data.Size(cols, rows, size, spacing)
 	frame.grid:SetSize(max(1, width), max(1, height))
+	frame.title.opts.width = max(1, width)
+	frame.title:Restyle()
+	frame.title:ClearAllPoints()
+	Widgets.Point(frame.title, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	for i, slot in ipairs(frame.slots) do
 		local x, y = Data.Cell(i, cols, rows, size, spacing, growth)
 		slot.button:ClearAllPoints()
@@ -56,13 +60,9 @@ end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	local title = Widgets.Text(frame, "caps", "capsGold")
-	Widgets.CapsSize(title)
-	title:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
-	Widgets.SetText(title, L["Bags"])
-	frame.title = title
+	frame.title = Widgets.SectionCap(frame, { text = L["Bags"] })
 	frame.grid = CreateFrame("Frame", nil, frame)
-	frame.grid:SetPoint("TOP", title, "BOTTOM", 0, -Tokens.Size("gapLarge"))
+	frame.grid:SetPoint("TOP", frame.title, "BOTTOM", 0, -Tokens.Size("gapLarge"))
 	frame.slots = {}
 	for i = 1, PREVIEW_COLUMNS * PREVIEW_ROWS do
 		frame.slots[i] = Slot.New(frame.grid, i)

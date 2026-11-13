@@ -42,8 +42,9 @@ assert(Text(list.rows[1].value) == "10K", "threat reads in threat points: " .. t
 assert(Text(list.rows[1].percent) == "100%", "the tank holds 100%")
 assert(list.warning == 0, "60% does not warn")
 
--- The warning outline is a state of the card, not a second material: the threat card keeps the damage card's panel
--- shape and square corners, and a warning or danger only recolours its rim (LEE-70).
+-- The threat card is the quest card and the damage card (KSTY-60 item 23): the same panel and rim in every state.
+-- The cap's count is the figure the warning watches, the player's own share of aggro (or, for a tank, the closest
+-- member's), and a warning or danger colours that count, never the card's edge.
 local function rimIs(name)
 	local rim = list.panel.chrome.rim[1]
 	local want = { K.Tokens.Color(name) }
@@ -52,6 +53,14 @@ local function rimIs(name)
 end
 assert(list.panel.chrome.shapeName == "panel" and list.panel.chrome.fillName == "surface", "the threat card is the shared card")
 assert(rimIs("edgeInner"), "at rest the rim is the card's muted rim")
+local function countIs(text, colour)
+	local shown = Text(list.column)
+	local want = { K.Tokens.Color(colour) }
+	local got = M.Last(list.column, "SetTextColor")
+	return shown == text and math.abs(got[1] - want[1]) < 1e-3 and math.abs(got[2] - want[2]) < 1e-3 and math.abs(got[3] - want[3]) < 1e-3
+end
+assert(list.cap.frame.counted, "the cap carries a count")
+assert(countIs("60%", "textEmphasis"), "the count is the player's own threat: " .. tostring(Text(list.column)))
 
 -- Classes colour the bars.
 local r, g, b = K.Theme.ClassColor("WARRIOR")
@@ -63,13 +72,15 @@ env._threat.player = { false, 2, 85, 80, 850000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(list.warning == 1, "85% warns")
-assert(rimIs("neutral") and list.panel.chrome.shapeName == "panel", "a warning draws the rim in the neutral gold on the same shape")
+assert(rimIs("edgeInner") and list.panel.chrome.shapeName == "panel", "a warning leaves the card's rim alone")
+assert(countIs("85%", "neutral"), "a warning colours the count neutral: " .. tostring(Text(list.column)))
 env._threat.player = { false, 3, 97, 90, 970000 }
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 env.RunTimers()
 assert(list.warning == 2, "97% is danger")
-assert(rimIs("hostile") and list.panel.chrome.shapeName == "panel", "danger draws it red on the same shape")
-assert(list.glow and list.glow:IsPlaying(), "danger pulses the meter")
+assert(rimIs("edgeInner") and list.panel.chrome.shapeName == "panel", "danger leaves the card's rim alone")
+assert(countIs("97%", "hostile"), "danger colours the count hostile")
+assert(list.glow == nil, "no glow rides on the card")
 M.Write(env, K, "threat.warnings", false)
 assert(list.warning == 0, "warnings switched off clear the warning")
 M.Write(env, K, "threat.warnings", true)
@@ -83,6 +94,7 @@ env._threat.party1 = { false, 2, 92, 90, 920000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(list.warning == 1, "a tank is warned at another member's 92%")
+assert(countIs("92%", "neutral"), "a tank's count is the closest member's threat: " .. tostring(Text(list.column)))
 
 -- Secret threat values reach only widget setters and never warn or sort.
 local secretScaled = S(70)
@@ -94,6 +106,13 @@ assert(Text(list.rows[3].name) == "Sylaen", "with a secret value the group keeps
 assert(M.Last(list.rows[3].bar, "SetValue")[1] == secretScaled, "the secret percentage goes straight to the bar")
 assert(env.issecretvalue(Text(list.rows[3].percent)), "the secret percentage text passes through whole")
 assert(M.Logged(env, "secret"), "the secret path is logged")
+local tankRow = env._threat.player
+env._threat.player = { S(false), S(1), S(64), S(60), S(640000) }
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+env.RunTimers()
+assert(#env._errors == 0, "a secret own threat raises no error: " .. tostring(env._errors[1]))
+assert(env.issecretvalue(Text(list.column)), "a secret own threat reaches the count whole")
+env._threat.player = tankRow
 env._threat.party2 = { false, 0, 30, 25, 300000 }
 
 -- The value setting picks the columns.
@@ -109,6 +128,7 @@ env._units.target = { name = "Kragar", hostile = false }
 env.FireEvent("PLAYER_TARGET_CHANGED")
 env.RunTimers()
 assert(list.count == 0 and list.note:IsShown(), "no hostile target shows the note")
+assert(not list.cap.frame.counted, "and no count")
 env._units.targettarget = { name = "Magmatus", hostile = true }
 env.FireEvent("UNIT_TARGET", "target")
 env.RunTimers()

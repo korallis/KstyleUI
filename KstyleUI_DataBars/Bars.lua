@@ -232,21 +232,20 @@ local function Style(view, s)
 	track:SetOrientation(orientation)
 	fill:SetReverseFill(s.reverse == true)
 	track:SetReverseFill(s.reverse == true)
-	if track.borderFrame then
-		track.borderFrame:SetShown(s.border ~= false)
-	end
-	for _, bar in ipairs({ fill, track }) do
-		if bar.caps then
-			bar:ShowPill(false)
-		end
-	end
+	track.barEdge:SetShown(s.border ~= false)
 	if view.def.id == "xp" then
-		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
-		fill.borderFrame:Hide()
-		for _, bar in ipairs({ fill, track }) do
-			bar.sheenTop:Hide()
-			bar:SetGlowShown(false)
+		local edge = Widgets.Border(view.holder)
+		for _, bar in ipairs({ track, fill }) do
+			bar:ClearAllPoints()
+			bar:SetPoint("TOPLEFT", view.content, "TOPLEFT", edge, -edge)
+			bar:SetPoint("BOTTOMRIGHT", view.content, "BOTTOMRIGHT", -edge, edge)
 		end
+		view.edge:SetColorTexture(Widgets.Rgba("black", 1))
+		view.edge:Show()
+		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
+		fill.barEdge:SetShown(false)
+		track.lit:Hide()
+		track.shade:Hide()
 	end
 	if orientation == "VERTICAL" then
 		view.holder:SetHitRectInsets(-HIT_PAD, -HIT_PAD, 0, 0)
@@ -334,6 +333,9 @@ function Bars.NewView(parent, def)
 	local content = CreateFrame("Frame", nil, holder)
 	content:SetAllPoints(holder)
 	view.content = content
+	view.edge = content:CreateTexture(nil, "BACKGROUND")
+	view.edge:SetAllPoints(content)
+	view.edge:Hide()
 	local track = Widgets.StatusBar(content, { background = "track", border = true, min = 0, max = 1, value = 0 })
 	track:SetAllPoints(content)
 	local fill = Widgets.StatusBar(content, { background = false, border = def.id == "xp", min = 0, max = 1, value = 0 })

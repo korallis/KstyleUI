@@ -1989,6 +1989,7 @@
 	"Turn this frame off to leave its unit without a KstyleUI frame.": "关闭此框体，让其单位不使用 KstyleUI 框体。",
 	"Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay.": "把暴雪的金色和白色行改为 KstyleUI 的灰色。彩色行保持不变。",
 	"Turns this bar on or off.": "开启或关闭此动作条。",
+	"Turns this bar on or off. Beside the party frames it lowers the largest HUD size.": "开启或关闭此动作条。它紧邻小队框体，开启后界面的最大尺寸会稍小。",
 	"Turns this module on or off.": "开启或关闭此模块。",
 	"Turns web addresses into links. Click one to copy it.": "把网址变成链接。点击即可复制。",
 	"Two-Hand": "双手",

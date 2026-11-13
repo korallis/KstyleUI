@@ -217,8 +217,7 @@ local function Level(percent, warnAt, dangerAt)
 	return NO_WARNING
 end
 
-function Logic.ThreatWarning(rows, count, warnAt, dangerAt)
-	dangerAt = max(warnAt, dangerAt)
+function Logic.ThreatWatch(rows, count)
 	local player
 	for i = 1, count do
 		if rows[i].isPlayer == true then
@@ -227,25 +226,31 @@ function Logic.ThreatWarning(rows, count, warnAt, dangerAt)
 		end
 	end
 	if not player then
-		return NO_WARNING
+		return nil
 	end
 	local tanking = player.tanking
-	if IsSecret(tanking) then
-		return NO_WARNING
+	if IsSecret(tanking) or tanking ~= true then
+		return player, player
 	end
-	if tanking ~= true then
-		local own = Plain(player.scaled)
-		return own and Level(own, warnAt, dangerAt) or NO_WARNING
-	end
-	local highest
+	local watched, highest
 	for i = 1, count do
 		local row = rows[i]
 		if row ~= player then
 			local scaled = Plain(row.scaled)
 			if scaled and (not highest or scaled > highest) then
-				highest = scaled
+				watched, highest = row, scaled
 			end
 		end
 	end
-	return highest and Level(highest, warnAt, dangerAt) or NO_WARNING
+	return watched or player, player
+end
+
+function Logic.ThreatWarning(rows, count, warnAt, dangerAt)
+	dangerAt = max(warnAt, dangerAt)
+	local watched, player = Logic.ThreatWatch(rows, count)
+	if not watched or IsSecret(player.tanking) or (watched == player and player.tanking == true) then
+		return NO_WARNING
+	end
+	local scaled = Plain(watched.scaled)
+	return scaled and Level(scaled, warnAt, dangerAt) or NO_WARNING
 end

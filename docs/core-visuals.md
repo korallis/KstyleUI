@@ -44,7 +44,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Grades
 
-Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
+Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track, which no bar wears since KSTY-60 item 10: status bars use the square `Widgets.BarEdge`). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
 
 ### Sizes, durations and easings
 
@@ -142,7 +142,7 @@ Window and panel titles, the Options window's title and section headings, the se
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
 | `diamond` | `Diamond.png`, 64x64 | | The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. The story card's captions draw it in gilt, 8 units from point to point |
-| `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
+| `pillCapLeft`, `pillCapRight`, `barSheen` | | | Unused since KSTY-60 item 10 (bars are square): the old bar fill's round-end masks and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right; the section cap's rule is now a flat colour, as the picture draws it, so no widget uses this one |
 | `iconMask` | `SocketMask.png`, 128x128 | | Every square icon, rounded 3 units on 44 to meet the socket's inner corner |
@@ -196,6 +196,7 @@ The accent resolves on first use without firing anything, and again at `PLAYER_L
 | `Aspect() -> class` | The layout class: `16:9`, `21:9` or `32:9`, the shape of the root itself (see below). |
 | `AspectClass(width, height) -> class` | The class of any shape: `21:9` from a width-to-height ratio of `ASPECT_FROM["21:9"]` (2.05), `32:9` from 2.9, else `16:9`. |
 | `Arrangement() -> arrangement` | The `Layout.arrangement` setting, `centred` or `spread`. |
+| `Band() -> units` | Under Spread, the inset in root units of the centred band the HUD width would give; 0 under Centred or on a screen that fits it. The party, raid and boss frames keep to it (`Setup.Layouts.Band`). |
 | `Pixel(n) -> units` | `n` whole physical pixels in root units. |
 | `Border() -> units` | The border line: exactly one physical pixel at every screen and size. |
 | `Snap(units) -> units` | The nearest whole physical pixel. |
@@ -216,7 +217,7 @@ Lee, 2026-11-13: "we should have a seperate profile for the ultra wide resolutio
 | 2560x1080, 3440x1440 | `21:9`, the screen | `21:9` |
 | 3840x1080, 5120x1440 | `21:9`, the centred column | `32:9`, the screen |
 
-A HUD width of 16:9 makes the class `16:9` on any wider screen under Centred. Positions anchor to the root, so Spread moves every element anchored to a side out to its margin from the screen edge and leaves the centre cluster, anchored to the centre, where it was. `Setup.Layouts.PLACES` holds a class's own places; Layout applies them to elements at their defaults and re-resolves on a class change (Core/Layout/README.md). The class also chooses the places `ScaleLimit` checks. `test-layout-ultrawide.lua` covers the classes, the switch, combat, the places and migration 30.
+A HUD width of 16:9 makes the class `16:9` on any wider screen under Centred. Positions anchor to the root, so Spread moves every rail element anchored to a side out to its margin from the screen edge and leaves the centre cluster, anchored to the centre, where it was; the party, raid and boss frames keep to the band (below). `Setup.Layouts.PLACES` holds a class's own places; Layout applies them to elements at their defaults and re-resolves on a class change (Core/Layout/README.md). The class also chooses the places `ScaleLimit` checks. Under Spread, `Band() -> units` is the inset, in root units, that the centred band would have had (0 under Centred, or when the screen fits the HUD width); the party, raid and boss frames keep to it at their defaults, so on a 32:9 screen only the rails go to the edges (KSTY-60 item 6). `test-layout-ultrawide.lua` covers the classes, the switch, combat, the places, the band (including a HUD width change under Spread) and migration 30; `test-store-placement.lua` covers migration 31.
 
 ### The pixel-perfect size
 

@@ -406,8 +406,9 @@ do
 	assert(FontPath(timer.Label) == Style.Font("caption"), "timer bar labels take the skin font")
 	assert(timer.Bar.BorderLeft:GetAlpha() == 0, "timer bars lose their border art")
 	assert(timer.Bar:GetStatusBarTexture():GetAlpha() == 1, "timer bars keep their fill")
-	local timerChrome = K.Skin.Parts(timer.Bar).backdrop.chrome
-	assert(timerChrome.fillName == "surface" and S.W.SameColor(timerChrome.rim[1], K.Tokens.Color("edgeBar")), "timer and progress bars wear the bar grade: the glass surface under the edgeBar line")
+	local kids = select("#", timer.Bar:GetRegions())
+	local timerEdge = K.Widgets.BarEdge(timer.Bar)
+	assert(select("#", timer.Bar:GetRegions()) == kids and S.W.SameColor(timerEdge.hard, K.Tokens.Color("black")), "timer and progress bars are the square bar: a black pixel round a dark track")
 	assert(FontPath(module:GetProgressBar("q1").Bar.Label) == Style.Font("caption"), "progress bar labels take the skin font")
 	K.Options.Write("Skins", "tracker.panel", false)
 	assert(not panel:IsShown(), "the panel switch still hides the panel")

@@ -1,4 +1,4 @@
--- Vehicle.lua: the leave-vehicle button beside bar 1, which stands in for Blizzard's button that hides with the main bar.
+-- Vehicle.lua: the leave-vehicle button beside bar 1, an action slot like bar 1's own with the close glyph in its well, which stands in for Blizzard's button that hides with the main bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -34,7 +34,7 @@ function Vehicle.Build()
 		return ns.leaveButton
 	end
 	local bar = ns.bars.bar1
-	local button = Widgets.IconButton(bar and bar.holder or K.Scale.Root(), {
+	local button = Widgets.Slot(bar and bar.holder or K.Scale.Root(), {
 		name = "KstyleUI_LeaveVehicleButton",
 		icon = (Tokens.Texture("glyphClose")),
 		crop = false,

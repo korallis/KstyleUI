@@ -76,9 +76,11 @@ do
 		local out = {}
 		for _, line in ipairs(split.lines) do
 			if line.frame:IsShown() then
-				local left = M.Last(line.left, "SetText")
-				local right = M.Last(line.right, "SetText")
+				local left = M.Last(line.name, "SetText")
+				local right = M.Last(line.value, "SetText")
+				local share = M.Last(line.percent, "SetText")
 				out[#out + 1] = (tostring(left and left[1]):gsub("\226\128\137", "")) .. (right and right[1] and right[1] ~= "" and (" | " .. tostring(right[1])) or "")
+					.. (share and share[1] and share[1] ~= "" and (" " .. tostring(share[1])) or "")
 			end
 		end
 		local note = M.Last(split.note, "SetText")
@@ -106,6 +108,16 @@ do
 	assert(joined:find("Click for all 4 spells", 1, true), "the split ends by counting the spells a click lists: " .. joined)
 	assert(env._lastSource and env._lastSource[4] == "Player-1", "the hover read the source by its GUID, as a click does")
 	assert(split.frame:GetParent() == list.panel, "the split is the card's own child, inside the window")
+	-- No box inside the card (KSTY-60 item 24): the spells are rows of the card itself, each the card's row with
+	-- its spell icon, its school-coloured bar, its name and amount, one row pitch apart under the hovered row.
+	assert(split.chrome == nil, "the split draws no bordered box of its own")
+	local first, second = split.lines[1], split.lines[2]
+	assert(first.bar.opts.height == list.rowHeight and first.bar.keyline and not first.bar.keyline:IsShown(), "a spell row is the card's flat full-height bar")
+	assert(first.icon:IsShown(), "a spell row leads with its icon")
+	local pitch = list.rowHeight + list.spacing
+	local _, _, _, _, y1 = first.frame:GetPoint(1)
+	local _, _, _, _, y2 = second.frame:GetPoint(1)
+	assert(math.abs((y1 - y2) - pitch) < 1e-6, "spell rows sit one row pitch apart: " .. tostring(y1 - y2) .. " vs " .. pitch)
 	row.frame._scripts.OnLeave(row.frame)
 	env.RunTimers()
 	assert(not row.more:IsShown(), "the chevron hides when the pointer leaves")

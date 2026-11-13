@@ -1,18 +1,19 @@
--- test-hud-material-tank.lua: the raw Tank reference HUD draws every card in ForgedBrackets.
+-- test-hud-material-tank.lua: the raw Tank reference HUD draws every card in ForgedBrackets, the threat card as the quest card with no warning outline (KSTY-60 item 23).
 collectgarbage("setpause", 120)
 collectgarbage("collect")
 local Lib = dofile("Tools/regression/hud_material_lib.lua")
 
-local r, g, b
+local rims = {}
 for _, card in ipairs(Lib.Audit(Lib.Build("Tank", "Glass"), "Glass", Lib.ROLES.Tank)) do
-	if card.role == "meters.threat" then
-		r, g, b = card.chrome.owner._env.KstyleUI.Tokens.Color("neutral")
-		assert(card.drawn.rim and #card.drawn.rim > 0 and not card.drawn.materialEdge, "under Glass the threat warning edge stays the rounded rim")
-		for _, item in ipairs(card.drawn.rim) do
-			local v = item.vertex
-			assert(math.abs(v[1] - r) < 1e-4 and math.abs(v[2] - g) < 1e-4 and math.abs(v[3] - b) < 1e-4, "the Glass threat card's rim is its neutral warning edge")
-		end
+	if card.role == "meters.threat" or card.role == "meters.damage" then
+		assert(card.drawn.rim and #card.drawn.rim > 0 and not card.drawn.materialEdge, "under Glass the " .. card.role .. " card draws its rounded rim")
+		rims[card.role] = card.drawn.rim[1].vertex
 	end
+end
+local threatRim, damageRim = rims["meters.threat"], rims["meters.damage"]
+assert(threatRim and damageRim, "the Tank HUD draws the threat and damage cards")
+for i = 1, 4 do
+	assert(math.abs(threatRim[i] - damageRim[i]) < 1e-4, "the Glass threat card's rim is the damage card's, with the warning on the count instead")
 end
 collectgarbage("collect")
 
@@ -24,17 +25,5 @@ for _, card in ipairs(cards) do
 		outlined[#outlined + 1] = card.role
 	end
 end
-assert(#outlined == 1 and outlined[1] == "meters.threat", "only the threat card's warning edge outlines a forged frame, got " .. table.concat(outlined, ", "))
-local threat
-for _, card in ipairs(cards) do
-	threat = card.role == "meters.threat" and card or threat
-end
-for _, item in ipairs(threat.drawn.materialEdge) do
-	local v = item.vertex
-	assert(math.abs(v[1] - r) < 1e-4 and math.abs(v[2] - g) < 1e-4 and math.abs(v[3] - b) < 1e-4, "the threat card's outline is its neutral warning edge")
-end
-local square = threat.drawn.materialEdge
-assert(#square == 4 and not threat.drawn.rim, "under ForgedBrackets the threat warning edge is the frame's square, not the rounded rim")
-Lib.ACCENTS["meters.threat"] = nil
-assert(not pcall(Lib.AuditCard, threat, "ForgedBrackets"), "an outline over a forged frame with no recorded reason fails the audit")
+assert(#outlined == 0, "no card outlines its forged frame, the threat card's warning included, got " .. table.concat(outlined, ", "))
 print("ok test-hud-material-tank")
