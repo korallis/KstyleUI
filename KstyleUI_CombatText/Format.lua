@@ -8,13 +8,12 @@ local Format = {}
 ns.Format = Format
 
 local HEAL_FORMAT = "+%s"
-local GLANCE_SCALE = 0.8
 local WORD_EVENTS = {
 	MISS = true, DODGE = true, PARRY = true, BLOCK = true, EVADE = true, IMMUNE = true,
 	DEFLECT = true, ABSORB = true, REFLECT = true, RESIST = true, INTERRUPT = true,
 }
 local AVOIDED = { ABSORB = true, BLOCK = true, RESIST = true }
-local EMPHASIS = { CRITICAL = "crit", CRUSHING = "crit", GLANCING = "glance" }
+local EMPHASIS = { CRITICAL = "crit", CRUSHING = "crit" }
 local FALLBACK_WORDS = {
 	MISS = L["Miss"], DODGE = L["Dodge"], PARRY = L["Parry"], BLOCK = L["Block"], EVADE = L["Evade"],
 	IMMUNE = L["Immune"], DEFLECT = L["Deflect"], ABSORB = L["Absorb"], REFLECT = L["Reflect"],
@@ -156,8 +155,6 @@ end
 function Format.Scale(cfg, emphasis)
 	if emphasis == "crit" then
 		return cfg.critScale
-	elseif emphasis == "glance" then
-		return GLANCE_SCALE
 	end
 	return 1
 end

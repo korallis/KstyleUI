@@ -58,7 +58,7 @@ do
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 
--- Damage: the amount reaches AbbreviateNumbers untouched and the number takes the school's colour ---
+-- Damage: the amount reaches AbbreviateNumbers untouched and a normal hit is white (KSTY-44) -------
 
 do
 	local env, K, ns = enabled()
@@ -68,7 +68,7 @@ do
 	assert(#shown == 1, "one hit shows one number, got " .. #shown)
 	local number = shown[1]
 	assert(Text(env, number) == "secret:short(1234)", "the text is AbbreviateNumbers of the secret amount, got " .. tostring(Text(env, number)))
-	assert(isColor(number, K, "schoolFire"), "fire damage is the fire school's colour")
+	assert(isColor(number, K, "white"), "a normal hit is white, whatever its school")
 	assert(number.frame:IsShown(), "the number shows")
 	local _, relative, relPoint = number.frame:GetPoint(1)
 	assert(relative == K.Layout.Element("combattext.player").frame and relPoint == "BOTTOM", "the number starts at the bottom of the player's field")
@@ -103,7 +103,7 @@ do
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 
--- Critical hits grow and take the critical colour; glancing blows shrink ---------------------------
+-- Two sizes: critical hits grow to 1.6 and turn gold; glancing blows keep the normal size ---------
 
 do
 	local env, K, ns = enabled()
@@ -112,17 +112,17 @@ do
 	Hit(env, "player", "WOUND", "GLANCING", env.Secret(400), 1)
 	local plain, crit, glance = Shown(ns)[1], Shown(ns)[2], Shown(ns)[3]
 	assert(near(plain.frame:GetScale(), 1), "a plain hit has no emphasis")
-	assert(near(crit.frame:GetScale(), 1.4), "a critical hit grows to the critical size, got " .. tostring(crit.frame:GetScale()))
-	assert(crit.frame:GetScale() > glance.frame:GetScale() and glance.frame:GetScale() < 1, "a glancing blow is smaller")
-	assert(isColor(crit, K, "neutral"), "critical damage takes the critical colour")
-	assert(isColor(plain, K, "schoolPhysical"), "plain physical damage keeps the school colour")
+	assert(near(crit.frame:GetScale(), 1.6), "a critical hit is 1.6 times a normal one (KSTY-44 3.10), got " .. tostring(crit.frame:GetScale()))
+	assert(near(glance.frame:GetScale(), 1), "a glancing blow keeps the normal size: two sizes, normal and critical")
+	assert(isColor(crit, K, "neutral"), "critical damage is gold")
+	assert(isColor(plain, K, "white") and isColor(glance, K, "white"), "plain and glancing damage are white")
 	assert(Anim(crit, "pop").scaleFrom > 1, "a critical hit pops in")
 
 	K.Options.Write("CombatText", "critColor", false)
 	K.Options.Write("CombatText", "critScale", 1)
 	Hit(env, "player", "WOUND", "CRITICAL", env.Secret(1900), 1)
 	local calm = Shown(ns)[4]
-	assert(near(calm.frame:GetScale(), 1) and isColor(calm, K, "schoolPhysical"), "a critical size of 1 and no critical colour turn the emphasis off")
+	assert(near(calm.frame:GetScale(), 1) and isColor(calm, K, "white"), "a critical size of 1 and no critical colour turn the emphasis off")
 
 	Hit(env, "player", "HEAL", "CRITICAL", env.Secret(700), 2)
 	local healCrit = Shown(ns)[4]
@@ -136,7 +136,7 @@ do
 	Hit(env, "player", "WOUND", env.Secret("CRITICAL"), env.Secret(10), env.Secret(4))
 	local hidden = Shown(ns)[1]
 	assert(hidden and near(hidden.frame:GetScale(), 1), "a secret flag gives no emphasis")
-	assert(isColor(hidden, K, "hostile"), "a secret school takes the damage colour")
+	assert(isColor(hidden, K, "white"), "a secret school takes the damage colour")
 	Hit(env, "player", env.Secret("HEAL"), "", env.Secret(10), 2)
 	local unknown = Shown(ns)[2]
 	assert(unknown and Text(env, unknown) == "secret:short(10)" and isColor(unknown, K, "text"), "a secret event shows the amount in the neutral colour")
@@ -156,22 +156,26 @@ do
 	Hit(env, "player", "WOUND", "", env.Secret(12345), 8)
 	assert(Text(env, Shown(ns)[1]) == "secret:full(12345)", "the full format uses BreakUpLargeNumbers")
 
+	K.Options.Write("CombatText", "colorMode", "school")
+	Hit(env, "player", "WOUND", "", env.Secret(5), 4)
+	local school = Shown(ns)[2]
+	assert(isColor(school, K, "schoolFire"), "by spell school, fire damage takes the fire colour")
 	K.Options.Write("CombatText", "colorMode", "single")
 	K.Options.Write("CombatText", "damageColor", { r = 0.1, g = 0.2, b = 0.3 })
 	Hit(env, "player", "WOUND", "", env.Secret(5), 8)
-	local r, g, b = color(Shown(ns)[2])
+	local r, g, b = color(Shown(ns)[3])
 	assert(near(r, 0.1) and near(g, 0.2) and near(b, 0.3), "one colour for all damage when the school is not followed")
 
 	K.Options.Write("CombatText", "heals", false)
 	K.Options.Write("CombatText", "misses", false)
 	Hit(env, "player", "HEAL", "", env.Secret(5), 2)
 	Hit(env, "player", "PARRY", "", 0, 1)
-	assert(#Shown(ns) == 2, "heals and misses can be switched off")
+	assert(#Shown(ns) == 3, "heals and misses can be switched off")
 	K.Options.Write("CombatText", "damage", false)
 	Hit(env, "player", "WOUND", "", env.Secret(5), 8)
-	assert(#Shown(ns) == 2, "damage can be switched off")
+	assert(#Shown(ns) == 3, "damage can be switched off")
 	Hit(env, "target", "WOUND", "", env.Secret(5), 8)
-	assert(#Shown(ns) == 2, "another unit has no field")
+	assert(#Shown(ns) == 3, "another unit has no field")
 end
 
 -- Throttling and pooling -----------------------------------------------------------------------------

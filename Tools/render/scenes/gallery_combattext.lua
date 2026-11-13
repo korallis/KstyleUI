@@ -64,7 +64,7 @@ return Common.Run(function()
 	tick(FIELD_TICKS)
 	frames:Add(env, ns.Module.field, {
 		name = "combattext_numbers", title = "Your combat text", grade = "panel", reference = "player",
-		caption = "Your combat text field with a fire hit in the centre lane, a shadow crit (larger, in the crit tint) to the left and a heal to the right, a third of a second into their rise; the numbers draw no chrome, as the theme spec gives combat text none, and the field itself is an invisible Layout element.",
+		caption = "Your combat text field with a white hit in the centre lane, a gold crit 1.6 times its size to the left and a heal to the right, a third of a second into their rise; the numbers draw no chrome, as the theme spec gives combat text none, and the field itself is an invisible Layout element.",
 		match = "Nothing to match: the mockup draws no backdrop under its combat numbers either; the frame is listed for completeness, cropped to the field's footprint.",
 	})
 	frames:Add(env, holder, {

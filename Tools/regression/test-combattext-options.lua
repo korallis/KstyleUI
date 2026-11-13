@@ -45,7 +45,7 @@ do
 	CT.Enable(env, K)
 	local cfg = ns.Module.cfg
 	assert(cfg.style == "rise" and cfg.size == 18 and cfg.flags == "OUTLINE" and cfg.format == "short", "bad style, size, outline and format use the defaults")
-	assert(cfg.duration == 1.2 and cfg.maxPerFrame == 4 and cfg.critScale == 1.4 and cfg.colorMode == "school", "bad numbers and choices use the defaults")
+	assert(cfg.duration == 1.2 and cfg.maxPerFrame == 4 and cfg.critScale == 1.6 and cfg.colorMode == "single", "bad numbers and choices use the defaults")
 	local r, g, b = K.Tokens.Color("friendly")
 	assert(cfg.healR == r and cfg.healG == g and cfg.healB == b, "a broken colour uses the default colour")
 	assert(cfg.fontPath == (K.Tokens.Font("number")), "a font that is not a font path uses the default")
