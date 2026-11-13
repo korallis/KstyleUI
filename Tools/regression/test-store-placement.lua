@@ -82,7 +82,6 @@ assert(map.x == -(margin + Layouts.MAP_FRAME), "the map's card, its frame outsid
 -- Migration 34 (KSTY-64's rails scale-up): saved sizes and places still at the #348 defaults follow the new ones, written
 -- out as literals so a wrong old value fails here; a size or a place the player chose stays.
 do
-	local MOCK = 19 / 16
 	local env34, K34 = C.New({ saved = {
 		version = 32,
 		profiles = { Default = {}, Healer = { Layout = { preset = "Healer" } }, Custom = {} },
@@ -110,6 +109,5 @@ do
 	assert(db34.layouts.Healer["chat.main"].width == 318 and db34.layouts.Healer["chat.main"].height == 186, "the Healer chat keeps its rail width")
 	local custom34 = db34.layouts.Custom
 	assert(custom34["chat.main"].x == 40 and custom34["chat.main"].width == nil, "a chat the player placed keeps its place, and its old default size follows the new one")
-	local _ = MOCK
 end
 print("store placement ok")
