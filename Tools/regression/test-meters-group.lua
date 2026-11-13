@@ -114,8 +114,10 @@ for i = 1, 5 do
 	assert(Text(row.value) == amounts[i], i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == shares[i] and row.dot:IsShown(), i .. ": the share: " .. tostring(Text(row.percent)))
 	local cr, cg, cb = K.Theme.ClassColor(classes[i])
+	local tone = ns.DAMAGE_CLASS_TONE
 	local fill = M.Last(row.bar, "SetStatusBarColor")
-	assert(fill[1] == cr and fill[2] == cg and fill[3] == cb, i .. ": the fill is the class colour")
+	assert(tone > 0.5 and tone < 0.8, "the card's class colours are toned down to the school colours' depth")
+	assert(fill[1] == cr * tone and fill[2] == cg * tone and fill[3] == cb * tone, i .. ": the fill is the class colour at the card's tone, so white text reads on a priest or a rogue")
 	assert(row.icon:IsShown() and M.Last(row.icon, "SetAtlas")[1] == "classicon-" .. classes[i], i .. ": the class icon leads the row")
 	local value = M.Last(row.bar, "SetValue")
 	assert(value[2] == EASE, i .. ": the client eases the bar to its new value")

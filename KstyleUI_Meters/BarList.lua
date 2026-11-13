@@ -507,7 +507,7 @@ function List:Top(pad)
 end
 
 local function Recolor(list, row)
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school)
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)

@@ -146,6 +146,7 @@ local fill = M.Last(list.rows[2].bar, "SetStatusBarColor")
 assert(fill[1] == r and fill[2] == g and fill[3] == b, "a spell the school table lacks is drawn physical")
 M.Write(env, K, "damage.colorSource", "class")
 r, g, b = K.Theme.ClassColor("WARRIOR")
+r, g, b = r * ns.DAMAGE_CLASS_TONE, g * ns.DAMAGE_CLASS_TONE, b * ns.DAMAGE_CLASS_TONE
 fill = M.Last(list.rows[2].bar, "SetStatusBarColor")
 assert(fill[1] == r and fill[2] == g and fill[3] == b, "spell rows take the source's class colour when the colour source is class")
 M.Write(env, K, "damage.colorSource", "school")

@@ -258,6 +258,7 @@ M.Write(env, K, "damage.percent", true)
 M.Write(env, K, "damage.colorSource", "class")
 local cr, cg, cb = K.Theme.ClassColor("SHAMAN")
 local br, bg, bb = Color(list.rows[1].bar)
+cr, cg, cb = cr * ns.DAMAGE_CLASS_TONE, cg * ns.DAMAGE_CLASS_TONE, cb * ns.DAMAGE_CLASS_TONE
 assert(br == cr and bg == cg and bb == cb, "the class colour source colours a spell by class")
 M.Write(env, K, "damage.colorSource", "school")
 assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 18, "the picture's look is the default")
@@ -273,6 +274,7 @@ do
 	assert(Text(group.column) == "38.4 dps", "the cap shows the local player's rate: " .. tostring(Text(group.column)))
 	local ar, ag, ab = KG.Theme.ClassColor("SHAMAN")
 	local sr, sg, sb = Color(group.rows[1].bar)
+	ar, ag, ab = ar * nsG.DAMAGE_CLASS_TONE, ag * nsG.DAMAGE_CLASS_TONE, ab * nsG.DAMAGE_CLASS_TONE
 	assert(sr == ar and sg == ag and sb == ab, "a source's bar is its class colour")
 	group.rows[1].frame._scripts.OnMouseUp(group.rows[1].frame, "LeftButton")
 	envG.RunTimers()

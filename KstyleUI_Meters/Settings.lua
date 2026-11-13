@@ -53,6 +53,8 @@ end
 local CAPTION = Tokens.Size("caption")
 local ROW, SPACING, ROW_TEXT = 18, 2, 12
 local DAMAGE_SPACING = 3
+local DAMAGE_CLASS_TONE = 0.62
+ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
 	accent = "class",
@@ -449,7 +451,7 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction, schoolToken)
+function ns.BarColor(section, classFile, reaction, schoolToken, muted)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
@@ -458,7 +460,11 @@ function ns.BarColor(section, classFile, reaction, schoolToken)
 		return Tokens.Color(schoolToken)
 	end
 	if source ~= "reaction" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
-		return Theme.ClassColor(classFile)
+		local r, g, b = Theme.ClassColor(classFile)
+		if muted then
+			return r * DAMAGE_CLASS_TONE, g * DAMAGE_CLASS_TONE, b * DAMAGE_CLASS_TONE
+		end
+		return r, g, b
 	end
 	return Tokens.Color(reaction or "friendly")
 end

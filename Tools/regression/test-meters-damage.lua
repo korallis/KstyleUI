@@ -86,6 +86,7 @@ do
 	local fill = M.Last(row.bar, "SetStatusBarColor")
 	assert(fill and (fill[4] == nil or fill[4] == 1), "the bar is the class colour at full strength: " .. tostring(fill and fill[4]))
 	local r, g, b = K.Theme.ClassColor("WARRIOR")
+	r, g, b = r * ns.DAMAGE_CLASS_TONE, g * ns.DAMAGE_CLASS_TONE, b * ns.DAMAGE_CLASS_TONE
 	assert(fill[1] == r and fill[2] == g and fill[3] == b, "a source's bar is its class colour: the school colour belongs to a spell")
 end
 
