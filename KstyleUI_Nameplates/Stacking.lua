@@ -35,6 +35,10 @@ local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
 end
 
+function Stacking.Size()
+	return applied.w, applied.h
+end
+
 function Stacking.Extent(plate)
 	plate = plate or ns.Preview.samplePlate
 	if not plate then
@@ -86,6 +90,12 @@ local function Footprint()
 	return Logic.Footprint(width, height, above, below, scale)
 end
 
+local function Settle(plate)
+	if not plate.sample then
+		plate:PlaceOnBase(ns.state.width, ns.state.height)
+	end
+end
+
 local function Write(w, h)
 	local set = Api("SetNamePlateSize")
 	if not set then
@@ -97,6 +107,7 @@ local function Write(w, h)
 		return
 	end
 	applied.w, applied.h = w, h
+	ns.Plates.Each(Settle)
 end
 
 local function Remember()

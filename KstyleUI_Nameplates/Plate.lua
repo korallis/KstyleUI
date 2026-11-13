@@ -101,6 +101,25 @@ end
 
 Plate.Pixel = Pixel
 
+local SHARES = {
+	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, 0.5 }, CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 },
+	BOTTOMLEFT = { 0, 0 }, BOTTOM = { 0.5, 0 }, BOTTOMRIGHT = { 1, 0 },
+}
+
+local function OnPixel(raw, relShare, relSize, ownShare, ownSize)
+	local target = relShare * relSize - ownShare * ownSize
+	return math.floor(raw + target + 0.5) - target
+end
+
+function Plate.Place(region, point, relative, relativePoint, x, y, ownW, ownH, relW, relH)
+	local px = Pixel(region)
+	local own, rel = SHARES[point], SHARES[relativePoint]
+	local dx = OnPixel((x or 0) / px, rel[1], (relW or 0) / px, own[1], (ownW or 0) / px)
+	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], (relH or 0) / px, 1 - own[2], (ownH or 0) / px)
+	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
+end
+local Place = Plate.Place
+
 function ns.FlatBar(parent, opts)
 	opts.border = false
 	local bar = Widgets.StatusBar(parent, opts)
@@ -295,12 +314,14 @@ function Plate:Restyle()
 	if self.sample then
 		Widgets.Point(self, "CENTER", self:GetParent(), "CENTER")
 	else
-		Widgets.Point(self, "BOTTOM", self:GetParent(), "BOTTOM", 0, Settings.Get("offsetY") + BottomRoom(self))
+		self:PlaceOnBase(w, h)
 	end
 
 	local health = self.health
 	health:ClearAllPoints()
-	Widgets.Point(health, "CENTER", self, "CENTER")
+	health:SetPoint("TOPLEFT", self, "TOPLEFT")
+	local barW, barH = Widgets.Snap(self, w), Widgets.Snap(self, h)
+	self.barW, self.barH = barW, barH
 	local orientation = Settings.Get("health.orientation")
 	health:SetOrientation(orientation)
 	health.vertical = orientation == "VERTICAL"
@@ -315,7 +336,7 @@ function Plate:Restyle()
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"))
 
 	self.healthText:ClearAllPoints()
-	Widgets.Point(self.healthText, "RIGHT", health, "RIGHT", -TEXT_INSET, 0)
+	Place(self.healthText, "RIGHT", health, "RIGHT", -TEXT_INSET, 0, nil, nil, barW, barH)
 
 	self:LayoutDiamond()
 	self:LayoutBrackets()
@@ -323,7 +344,8 @@ function Plate:Restyle()
 	local raidSize = Settings.Get("markers.raidSize")
 	Widgets.Size(self.raid, raidSize, raidSize)
 	self.raid:ClearAllPoints()
-	Widgets.Point(self.raid, "LEFT", health, "RIGHT", Plate.MarkerReach(), 0)
+	local raidSide = Widgets.Snap(self, raidSize)
+	Place(self.raid, "LEFT", health, "RIGHT", Plate.MarkerReach(), 0, raidSide, raidSide, barW, barH)
 
 	self.glowFrame:SetFrameLevel(math.max(0, health:GetFrameLevel() - 2))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
@@ -352,16 +374,16 @@ function Plate:LayoutDiamond()
 	local outer = Plate.DiamondSize(self)
 	Widgets.Size(diamond, outer, outer)
 	diamond:ClearAllPoints()
-	Widgets.Point(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self), 0)
-	diamond.outer:SetSize(outer, outer)
-	diamond.rim:SetSize(Diagonal(self, DIAMOND_SIDE), Diagonal(self, DIAMOND_SIDE))
+	Place(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self), 0, outer, outer, self.barW, self.barH)
+	diamond.size = outer
+	diamond.outer.side = outer
+	diamond.rim.side = Diagonal(self, DIAMOND_SIDE)
 	diamond.rimPixel = px
 	diamond.fill:SetVertexColor(DIAMOND_FILL[1], DIAMOND_FILL[2], DIAMOND_FILL[3], 1)
 	self.rimWeight = nil
 	self:SetRimWeight(1)
 	self.levelText:ClearAllPoints()
-	Widgets.Point(self.levelText, "CENTER", diamond, "CENTER")
-
+	Place(self.levelText, "CENTER", diamond, "CENTER", 0, 0, nil, nil, outer, outer)
 end
 
 function Plate:SetRimWeight(weight)
@@ -372,11 +394,13 @@ function Plate:SetRimWeight(weight)
 	local diamond = self.level
 	local px = diamond.rimPixel
 	local inner = DIAMOND_SIDE - px * 2 * weight
-	diamond.inner:SetSize(Diagonal(self, inner), Diagonal(self, inner))
-	diamond.fill:SetSize(Diagonal(self, inner - px * 2), Diagonal(self, inner - px * 2))
+	diamond.inner.side = Diagonal(self, inner)
+	diamond.fill.side = Diagonal(self, inner - px * 2)
 	for _, layer in ipairs(diamond.layers) do
+		local side = layer.side
+		layer:SetSize(side, side)
 		layer:ClearAllPoints()
-		Widgets.Point(layer, "CENTER", diamond, "CENTER")
+		Place(layer, "CENTER", diamond, "CENTER", 0, 0, side, side, diamond.size, diamond.size)
 	end
 end
 
@@ -396,7 +420,7 @@ function Plate:LayoutBrackets()
 		local sign = left and -1 or 1
 		frame:SetSize(arm, height)
 		frame:ClearAllPoints()
-		Widgets.Point(frame, left and "RIGHT" or "LEFT", health, edge, sign * (reach - arm), 0)
+		Place(frame, left and "RIGHT" or "LEFT", health, edge, sign * (reach - arm), 0, arm, height, self.barW, self.barH)
 		frame.stroke:ClearAllPoints()
 		frame.stroke:SetPoint("TOP" .. edge, frame, "TOP" .. edge)
 		frame.stroke:SetPoint("BOTTOM" .. edge, frame, "BOTTOM" .. edge)
@@ -440,16 +464,36 @@ function Plate:ShowBrackets(shown)
 	end
 end
 
+local function Plain(value)
+	return not IsSecret(value) and type(value) == "number" and value > 0 and value or nil
+end
+
+function Plate:PlaceOnBase(w, h)
+	local base = self:GetParent()
+	self:ClearAllPoints()
+	local x, y = 0, Widgets.Snap(self, Settings.Get("offsetY") + BottomRoom(self))
+	local bw, bh = ns.Stacking.Size()
+	local k = Plain(base:GetEffectiveScale()) and Plain(self:GetEffectiveScale()) and base:GetEffectiveScale() / self:GetEffectiveScale()
+	if bw and bh and k then
+		local px = Pixel(self)
+		local across = (bw * k - Widgets.Snap(self, w)) / px / 2
+		x = (math.floor(across + 0.5) - across) * px
+		local down = (bh * k - y - Widgets.Snap(self, h)) / px
+		y = y + (down - math.floor(down + 0.5)) * px
+	end
+	self:SetPoint("BOTTOM", base, "BOTTOM", x, y)
+end
+
 function Plate:LayoutName()
 	local name, health = self.name, self.health
 	name:ClearAllPoints()
 	name:SetWidth(0)
 	if self.nameOnly then
 		name:SetJustifyH("CENTER")
-		Widgets.Point(name, "CENTER", self, "CENTER")
+		Place(name, "CENTER", self, "CENTER", 0, 0, nil, nil, self.barW, self.barH)
 	else
 		name:SetJustifyH("CENTER")
-		Widgets.Point(name, "BOTTOM", health, "TOP", 0, NAME_GAP)
+		Place(name, "BOTTOM", health, "TOP", 0, NAME_GAP, nil, nil, self.barW, self.barH)
 	end
 end
 

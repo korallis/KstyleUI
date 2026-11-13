@@ -390,7 +390,7 @@ end
 function Cast.Place(plate)
 	local cast = plate.cast
 	cast:ClearAllPoints()
-	Widgets.Point(cast, "TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Cast.Gap(plate))
+	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, Cast.Gap(plate)))
 end
 
 function Component.Restyle(plate)
@@ -403,13 +403,13 @@ function Component.Restyle(plate)
 	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
 	icon:ClearAllPoints()
-	Widgets.Point(icon, "LEFT", cast, "LEFT")
+	icon:SetPoint("TOPLEFT", cast, "TOPLEFT")
 	icon:SetShown(showIcon)
 	plate.castShield:SetShown(showIcon)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
 	bar:ClearAllPoints()
-	Widgets.Point(bar, "RIGHT", cast, "RIGHT")
+	bar:SetPoint("TOPRIGHT", cast, "TOPRIGHT")
 	local orientation = Settings.Get("cast.orientation")
 	bar:SetOrientation(orientation)
 	bar.vertical = orientation == "VERTICAL"
@@ -420,11 +420,11 @@ function Component.Restyle(plate)
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime, "time")
 	plate.castName:ClearAllPoints()
-	plate.castName:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(plate, TEXT_INSET), 0)
+	ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
 	plate.castName:SetShown(Settings.Get("cast.showName"))
 	plate.castTime:ClearAllPoints()
-	Widgets.Point(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0)
+	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 end
 
 function Component.Refresh(plate, immediate)

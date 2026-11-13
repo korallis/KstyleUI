@@ -369,10 +369,14 @@ function N.Install(env, opts)
 		GetNamePlateSize = function()
 			return env._plateSize[1], env._plateSize[2]
 		end,
+		-- The engine sizes every nameplate base to this size, in the base's own units.
 		SetNamePlateSize = function(w, h)
 			assert(not env._combat, "C_NamePlate.SetNamePlateSize in combat")
 			env._plateSize = { w, h }
 			env._plateSizeWrites[#env._plateSizeWrites + 1] = { w, h }
+			for _, base in ipairs(env._allBases or {}) do
+				base:SetSize(w, h)
+			end
 		end,
 	}
 	env._plateSize, env._plateSizeWrites, env._driverSize = { 110, 45 }, {}, { 110, 45 }
@@ -479,7 +483,9 @@ end
 -- so measuring anything anchored to it raises, as in the game; opts.free gives a base the game would not hand out.
 function N.Base(env, opts)
 	local base = env.CreateFrame("Frame", nil, env.WorldFrame)
-	base:SetSize(110, 45)
+	base:SetSize(env._plateSize[1], env._plateSize[2])
+	env._allBases = env._allBases or {}
+	env._allBases[#env._allBases + 1] = base
 	if opts and opts.scale then
 		base:SetScale(opts.scale)
 	end

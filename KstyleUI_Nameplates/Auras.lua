@@ -347,7 +347,7 @@ end
 local function Anchor(plate, frame, anchor)
 	local relPoint, y = AnchorTo(plate, anchor)
 	frame:ClearAllPoints()
-	Widgets.Point(frame, anchor, plate.health, relPoint, 0, y)
+	frame:SetPoint(anchor, plate.health, relPoint, 0, Widgets.Snap(plate, y))
 end
 
 function Auras.Extent(plate, rowsCap)
