@@ -440,17 +440,17 @@ function modules.unitframes(opts)
 		U.W.Tick(env, 0.05)
 	end
 	-- RENDER_ORBS_HIT=1 (with RENDER_HUD_STYLE=Orbs): the player in combat at the KSTY-44 mock-up's 147 of 237 health and
-	-- 58% of the resource, a moment after a hit from the reference's 203. The stub has no interpolation, so the scene
-	-- holds the pale band where the engine's ease would still have it, at the health before the hit.
+	-- 58% of the resource, a moment after a hit from the mock-up's 71% (168); the orb's own hold keeps the pale band at
+	-- the health before the hit, as it does in the game, so RENDER_LOSS leaves the player's orb to this hit.
 	local orbs = ns.Orbs and ns.Orbs.Active() and os.getenv("RENDER_ORBS_HIT") == "1"
 	if orbs then
-		local before = player.health
 		env.SetCombat(true)
-		player.health, player.healthMax = 147, 237
+		player.health, player.healthMax = 168, 237
+		env.FireEvent("UNIT_MAXHEALTH", "player")
+		player.health = 147
 		player.power = math.floor(player.powerMax * 0.58 + 0.5)
 		env.FireEvent("UNIT_HEALTH", "player")
 		env.FireEvent("UNIT_POWER_UPDATE", "player", player.powerToken)
-		ns.Orbs.Get("health").loss:SetValue(env.Secret(before))
 		env.RunTimers()
 	end
 	-- The stub draws no portraits: the class's portrait (standins.py copies scenery/portraits/<class>.png), the
@@ -477,7 +477,7 @@ function modules.unitframes(opts)
 		local clock = env._now
 		env._now = env._time - LOSS_AGO
 		for _, token in ipairs({ "player", "target" }) do
-			local u = env._units[token]
+			local u = not (orbs and token == "player") and env._units[token]
 			if u and u.health and u.healthMax then
 				local now = u.health
 				u.health = math.min(u.healthMax, now + math.floor(u.healthMax * LOSS_SHARE[token]))
@@ -487,7 +487,8 @@ function modules.unitframes(opts)
 			end
 		end
 		env._now = clock
-		notes[#notes + 1] = "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target " .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
+		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
+		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
 	local scene = build(env, opts, { time = env._time })
 	for _, note in ipairs(notes) do
