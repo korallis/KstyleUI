@@ -30,8 +30,8 @@ PICTURE = (512, 256)
 # Left, top, right, bottom in screen units of a 1920 by 1080 render: the cast bar, the cooldown row, the target and
 # player frames and the two-row tray for Frames; the two orbs, the forged tray and the cast bar for Orbs.
 CROPS = {
-    "HudStyleFrames": (598, 692.5, 1318, 1052.5),
-    "HudStyleOrbs": (499, 618, 1423, 1080),
+    "HudStyleFrames": (540, 640, 1360, 1050),
+    "HudStyleOrbs": (501, 621, 1419, 1080),
 }
 
 
