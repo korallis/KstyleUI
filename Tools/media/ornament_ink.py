@@ -4,9 +4,7 @@ The ornament registry and the centre-clearance guard measure the level badge, th
 rank pendants by their drawn ink instead of their texture boxes. Any non-zero alpha counts as ink. A circle is the
 smallest circle about the visible box's centre that covers every ink pixel, as a fraction of half the visible width;
 a band's hole is the distance from that centre to its nearest ink pixel's centre, as the same fraction.
-A pendant is a list of row runs, each widened by one texel on both sides. Each shipped font gives its ascender and
-descender and, for every Latin character that reaches below the baseline, how far, in em, so a text's ink can be told
-from its box.
+A pendant is a list of row runs, each widened by one texel on both sides.
 """
 
 import argparse
@@ -81,16 +79,15 @@ def hole(rows, width, height):
     return near ** 0.5 / (width / 2)
 
 
-def spans(rows, width, height, split=False):
-    """Runs of rows as (top, bottom, left, right) texels, bottom and right exclusive, widened by one texel. With
-    split, a row with ink in separate places (the plaque's two brackets) has a run for each place, and runs that
-    touch once widened are one run; without it a row is one run from its first ink to its last."""
+def spans(rows, width, height):
+    """Runs of rows as (top, bottom, left, right) texels, bottom and right exclusive, widened by one texel: a row is
+    one run from its first ink to its last."""
     runs, last = [], []
     for y in range(height):
         pieces = []
         for x, value in enumerate(rows[y][:width]):
             if value:
-                if pieces and (not split or x - 1 <= pieces[-1][1]):
+                if pieces:
                     pieces[-1][1] = x + 2
                 else:
                     pieces.append([x - 1, x + 2])
@@ -107,71 +104,6 @@ def spans(rows, width, height, split=False):
     return runs
 
 
-FONTS = ROOT / "Media" / "Fonts"
-LATIN = range(0x20, 0x250)
-
-
-def font_metrics(path):
-    """Returns (ascent, descent, deep) for a TrueType font, in em: the hhea ascender and descender and, for each
-    character from U+0020 to U+024F whose glyph reaches below the baseline, how far it reaches."""
-    data = path.read_bytes()
-    count = struct.unpack(">H", data[4:6])[0]
-    tables = {}
-    for i in range(count):
-        tag, _, offset, length = struct.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
-        tables[tag.decode("latin-1")] = (offset, length)
-    head = tables["head"][0]
-    upm = struct.unpack(">H", data[head + 18:head + 20])[0]
-    long_loca = struct.unpack(">h", data[head + 50:head + 52])[0] == 1
-    hhea = tables["hhea"][0]
-    ascent, descent = struct.unpack(">hh", data[hhea + 4:hhea + 8])
-    glyphs = struct.unpack(">H", data[tables["maxp"][0] + 4:tables["maxp"][0] + 6])[0]
-    loca, glyf = tables["loca"][0], tables["glyf"][0]
-    if long_loca:
-        starts = struct.unpack(">%dI" % (glyphs + 1), data[loca:loca + 4 * (glyphs + 1)])
-    else:
-        starts = [2 * v for v in struct.unpack(">%dH" % (glyphs + 1), data[loca:loca + 2 * (glyphs + 1)])]
-    cmap = tables["cmap"][0]
-    mapping = {}
-    for i in range(struct.unpack(">H", data[cmap + 2:cmap + 4])[0]):
-        platform, encoding, offset = struct.unpack(">HHI", data[cmap + 4 + 8 * i:cmap + 12 + 8 * i])
-        at = cmap + offset
-        kind = struct.unpack(">H", data[at:at + 2])[0]
-        if platform == 3 and encoding in (1, 10) and kind == 4:
-            segs = struct.unpack(">H", data[at + 6:at + 8])[0] // 2
-            ends = struct.unpack(">%dH" % segs, data[at + 14:at + 14 + 2 * segs])
-            begin = at + 16 + 2 * segs
-            firsts = struct.unpack(">%dH" % segs, data[begin:begin + 2 * segs])
-            deltas = struct.unpack(">%dh" % segs, data[begin + 2 * segs:begin + 4 * segs])
-            ranges = begin + 4 * segs
-            offsets = struct.unpack(">%dH" % segs, data[ranges:ranges + 2 * segs])
-            for k in range(segs):
-                for code in range(firsts[k], ends[k] + 1):
-                    if code not in LATIN:
-                        continue
-                    if offsets[k] == 0:
-                        glyph = (code + deltas[k]) & 0xFFFF
-                    else:
-                        where = ranges + 2 * k + offsets[k] + 2 * (code - firsts[k])
-                        glyph = struct.unpack(">H", data[where:where + 2])[0]
-                        glyph = (glyph + deltas[k]) & 0xFFFF if glyph else 0
-                    if glyph:
-                        mapping.setdefault(code, glyph)
-        elif platform == 3 and encoding == 10 and kind == 12:
-            for k in range(struct.unpack(">I", data[at + 12:at + 16])[0]):
-                first, last, glyph = struct.unpack(">III", data[at + 16 + 12 * k:at + 28 + 12 * k])
-                for code in range(first, last + 1):
-                    if code in LATIN:
-                        mapping.setdefault(code, glyph + code - first)
-    deep = {}
-    for code, glyph in mapping.items():
-        if glyph < glyphs and starts[glyph + 1] > starts[glyph]:
-            y_min = struct.unpack(">h", data[glyf + starts[glyph] + 4:glyf + starts[glyph] + 6])[0]
-            if y_min < 0:
-                deep[code] = -y_min / upm
-    return ascent / upm, -descent / upm, deep
-
-
 def render():
     sizes = {name: (int(w), int(h)) for name, w, h in re.findall(r"\t(\w+) = \{ (\d+), (\d+),", DATA.read_text())}
     circles, holes, tapers = {}, {}, {}
@@ -184,8 +116,6 @@ def render():
             circles[name], holes[name] = circle(rows, width, height), hole(rows, width, height)
         elif re.fullmatch(r"(Boss|Elite)PendantR\d+", name):
             tapers[name] = (width, height, spans(alpha(FORGED / (name + ".png"))[2], width, height))
-        elif re.fullmatch(r"(Map|Point|Plaque)\d+", name):
-            tapers[name] = (width, height, spans(alpha(FORGED / (name + ".png"))[2], width, height, True))
     lines = ["-- OrnamentInk.lua: ink shapes of round and tapered art, generated from the PNG alpha by Tools/media/ornament_ink.py.",
              "local _, ns = ...", "ns.Widgets.OrnamentInk = {", "\tcircles = {"]
     for name in sorted(circles):
@@ -197,11 +127,6 @@ def render():
     for name in sorted(tapers):
         width, height, runs = tapers[name]
         lines.append("\t\t%s = { %d, %d, %s }," % (name, width, height, ", ".join("%d, %d, %d, %d" % tuple(run) for run in runs)))
-    lines += ["\t},", "\tfonts = {"]
-    for path in sorted(FONTS.glob("*.ttf")):
-        ascent, descent, deep = font_metrics(path)
-        runs = ", ".join("[%d] = %.4f" % (code, (int(deep[code] * 10000 - 1e-9) + 1) / 10000) for code in sorted(deep))
-        lines.append('\t\t["%s"] = { ascent = %.4f, descent = %.4f, deep = { %s } },' % (path.stem, ascent, int(descent * 10000) / 10000, runs))
     lines += ["\t},", "}"]
     return ("\r\n".join(lines) + "\r\n").encode("ascii")
 

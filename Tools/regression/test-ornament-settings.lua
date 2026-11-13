@@ -58,18 +58,6 @@ h:Restyle()
 check(h, {}, "Subtle draws no portrait ring: the band and its pendants belong to Full")
 profile.ornaments = "Full"
 h:Restyle()
-local map = env.CreateFrame("Frame", nil, K.Scale.Root())
-map:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 900.25 * pixel, -300.25 * pixel)
-map:SetSize(200 * pixel, 200 * pixel)
-local corners = widgets.Ornament(map, "map")
-check(corners, { "Map24", "Map24" }, "small Full minimap leaves the zone label clear")
-profile.ornaments = "Subtle"
-corners:Restyle()
-check(corners, { "Map20", "Map20" }, "small Subtle minimap keeps both quieter top corners and leaves the zone label clear")
-profile.ornaments = "Full"
-map:SetSize(300 * pixel, 300 * pixel)
-corners:Restyle()
-check(corners, { "Map40", "Map40", "Map40", "Map40", "Point12" }, "large Full minimap has space below its face")
 local originalWidth = frame.GetWidth
 for _, bad in ipairs({ 0, -1, "unknown", env.Secret(40) }) do
 	frame.GetWidth = function() return bad end

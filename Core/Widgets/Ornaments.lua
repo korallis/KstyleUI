@@ -10,8 +10,6 @@ local POINTS = { TOPLEFT = { 0, 0 }, TOP = { 0.5, 0 }, TOPRIGHT = { 1, 0 }, LEFT
 	CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 }, BOTTOMLEFT = { 0, 1 }, BOTTOM = { 0.5, 1 }, BOTTOMRIGHT = { 1, 1 } }
 local Handle = {}
 Handle.__index = Handle
-local BARS, ROWS = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
-W.OrnamentRows, W.OrnamentBars = ROWS, BARS
 
 local function Plain(v)
 	return not W.IsSecret(v) and type(v) == "number" and v > 0
@@ -104,7 +102,7 @@ local function Scratch(self)
 	return S
 end
 
-local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "row", "cut", "card", "cx", "cy", "radius", "spans", "inkb" }
+local FIELDS = { "l", "r", "t", "b", "clear", "icon", "other", "ink", "cut", "card", "cx", "cy", "radius", "spans" }
 
 local function Rec(S)
 	local n = S.nrec + 1
@@ -158,12 +156,12 @@ function Handle:Blocked(x, y, w, h)
 end
 
 local function Slot(self)
-	local level = (self.kind == "bar" or self.kind == "plate") and self.target:GetFrameLevel()
+	local level = self.kind == "bar" and self.target:GetFrameLevel()
 	if level ~= false and (W.IsSecret(level) or type(level) ~= "number") then return end
 	self.used = self.used + 1
 	local t = self.textures[self.used]
 	if not t then
-		if self.kind == "bar" or self.kind == "plate" then
+		if self.kind == "bar" then
 			if not self.host then
 				self.host = CreateFrame("Frame", nil, self.owner)
 				self.host:SetAllPoints(self.target)
@@ -201,21 +199,6 @@ function Handle:Place(name, left, top, flipX, flipY, width)
 	t:ClearAllPoints()
 	t:SetPoint("TOPLEFT", self.target, "TOPLEFT", left * self.pixel, -top * self.pixel)
 	t:SetSize((width or spec[1]) * self.pixel, spec[2] * self.pixel)
-	t.placed = true
-	t:Show()
-	return t
-end
-
-function Handle:Fill(left, top, width, height, color)
-	local t = Slot(self)
-	if not t then return end
-	t.ink, t.inkFlip = nil, nil
-	local r, g, b, a = W.Rgba(color)
-	t:SetColorTexture(r * a, g * a, b * a, 1)
-	t:SetTexCoord(0, 1, 0, 1)
-	t:ClearAllPoints()
-	t:SetPoint("TOPLEFT", self.target, "TOPLEFT", left * self.pixel, -top * self.pixel)
-	t:SetSize(width * self.pixel, height * self.pixel)
 	t.placed = true
 	t:Show()
 	return t
@@ -316,43 +299,11 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 			else l, r = (l + r - width) / 2, (l + r + width) / 2 end
 		end
 	end
-	local inkb
-	if ink and not reserved and self.kind == "plate" and type(region.GetFont) == "function" then
-		local file, size = region:GetFont()
-		local text = region:GetText()
-		if type(file) == "string" and not W.IsSecret(file) and region.inkFile ~= file then
-			region.inkFile, region.inkFont = file, file:match("([^/\\]+)%.[tT][tT][fF]$") or false
-		end
-		local metrics = region.inkFile == file and region.inkFont and INK.fonts[region.inkFont]
-		if metrics and Plain(size) and type(text) == "string" and not W.IsSecret(text) then
-			local deep, i, n = 0, 1, #text
-			while i <= n do
-				local c = text:byte(i)
-				local code, step = c, 1
-				if c >= 0xF0 then
-					code, step = nil, 4
-				elseif c >= 0xE0 then
-					code, step = nil, 3
-				elseif c >= 0xC0 then
-					code, step = (c % 32) * 64 + (text:byte(i + 1) or 0) % 64, 2
-				end
-				local reach = code and (code < 0x250 and (metrics.deep[code] or 0) or metrics.descent) or metrics.descent
-				if reach > deep then deep = reach end
-				i = i + step
-			end
-			inkb = b + max(0, metrics.descent - deep) * min(size, (t - b) / (metrics.ascent + metrics.descent))
-			local _, drop
-			if type(region.GetShadowOffset) == "function" then _, drop = region:GetShadowOffset() end
-			if Known(drop) and drop < 0 then inkb = inkb + drop end
-		end
-	end
 	outset = outset or 0
 	local o = Rec(S)
 	o.l, o.r, o.t, o.b, o.clear = (l - outset) * f / pixel, (r + outset) * f / pixel, (t + outset) * f / pixel, (b - outset) * f / pixel, clear
-	o.inkb = inkb and inkb * f / pixel or false
 	if self.mode ~= SCREEN then
 		o.l, o.r, o.t, o.b = Snug(o.l), Snug(o.r), Snug(o.t), Snug(o.b)
-		o.inkb = o.inkb and Snug(o.inkb)
 	end
 	list[#list + 1] = o
 	return true
@@ -411,15 +362,6 @@ function Handle:Obstacles()
 		if not Add(self, S, list, pixel, bar, 1, false, bar.rimOutset or W.Border(bar)) then return end
 	end
 	AddNeighbours(self, S, list, pixel)
-	if self.kind == "bar" then
-		for row in pairs(ROWS) do
-			for i = 1, row.used do
-				local count = #list
-				if not Add(self, S, list, pixel, row.textures[i], max(4 / pixel, 3)) then return end
-				if #list > count then list[#list].row = true end
-			end
-		end
-	end
 	local card = self.card
 	if card and card.visible then
 		local frame = card.owner
@@ -462,15 +404,13 @@ local INSET = 2
 local CAP_SHARE = 0.4
 
 local CREST_SIZES = { 32, 20 }
-local ENDS = { Crested = "EndCrested", Winged = "EndWinged", Clawed = "EndClawed", Pointed = "EndPointed" }
+local ENDS = { Clawed = "EndClawed", Pointed = "EndPointed" }
 
 local function CutOrder(a, b)
 	return a[1] < b[1]
 end
 
 local FAMILIES = {
-	Crested = { "Crested", "Winged", "Clawed", "Pointed" },
-	Winged = { "Winged", "Clawed", "Pointed" },
 	Clawed = { "Clawed", "Pointed" },
 	Pointed = { "Pointed" },
 }
@@ -495,11 +435,6 @@ end
 
 function Handle:Family(full)
 	if self.light then return "Pointed" end
-	if self.kind == "plate" then
-		if not full then return "Pointed" end
-		if self.boss or self.selected then return "Crested" end
-		return self.elite and "Winged" or "Clawed"
-	end
 	return full and "Clawed" or "Pointed"
 end
 
@@ -514,32 +449,9 @@ end
 local function Fits(S, west, k, spec, near)
 	local ring = S.ringOn and S.ring
 	if ring and ring.left == west then return 0 end
-	local out = max(k, 0)
-	local thickness = S.rim + out
-	local x0, y0, boxW, boxH = S.x0, S.y0, S.boxW, S.boxH
-	for slide = 0, S.plate and boxH or 0 do
-		local extra = S.wrap[west and 1 or 2] + slide
-		local from = west and x0 - extra or x0 + boxW + extra - 1
-		if slide > 0 and not (Free(S.plain, from, y0 + out, 1, thickness) and Free(S.plain, from, y0 - boxH - out + thickness, 1, thickness)) then return end
-		if Free(near, west and x0 - extra - spec[1] or x0 + boxW + extra, y0 + k + floor(spec[5] + 0.5), spec[1], spec[2]) then return extra end
-	end
-end
-
-local function Clip(list, l, r, b, t)
-	for _, o in ipairs(list) do
-		local c = o.clear
-		if o.icon and l < o.r + c and o.l - c < r and b < o.t + c and o.b - c < t then
-			local top, low, right, left = floor(o.b - c), math.ceil(o.t + c), floor(o.l - c), math.ceil(o.r + c)
-			local w, h = r - l, t - b
-			local least = min((t - top) * w, (low - b) * w, (r - right) * h, (left - l) * h)
-			if least == (t - top) * w then t = top
-			elseif least == (low - b) * w then b = low
-			elseif least == (r - right) * h then r = right
-			else l = left end
-			if r <= l or t <= b then return end
-		end
-	end
-	return l, r, b, t
+	local x0, y0, boxW = S.x0, S.y0, S.boxW
+	local extra = S.wrap[west and 1 or 2]
+	if Free(near, west and x0 - extra - spec[1] or x0 + boxW + extra, y0 + k + floor(spec[5] + 0.5), spec[1], spec[2]) then return extra end
 end
 
 local function Reachable(n, reach)
@@ -575,7 +487,7 @@ local function Search(S, families, strict, loose)
 					return piece
 				end
 				local blocked = S.blocked
-				if not single and not S.plate and (west and (blocked[2] or S.portraitWest == false) or east and (blocked[1] or S.portraitWest == true)) then single = piece end
+				if not single and (west and (blocked[2] or S.portraitWest == false) or east and (blocked[1] or S.portraitWest == true)) then single = piece end
 			end
 		end
 	end
@@ -611,36 +523,18 @@ function Handle:Frame(full)
 	local x0, y0 = floor(left * f + 0.5) - rim, floor(top * f + 0.5) + rim
 	local boxW = floor(right * f + 0.5) + rim - x0
 	local boxH = y0 - (floor(bottom * f + 0.5) - rim) + (joined and 1 or 0)
-	if joined and self.kind == "plate" then boxH = Grown(boxH, rim) end
 	local h = boxH - 2 * rim
 	self.height = h
 	local forged = full and self.forged
 	local wrap, blocked = S.wrap, S.blocked
 	wrap[1], wrap[2], blocked[1], blocked[2] = 0, 0, false, false
-	S.rim, S.x0, S.y0, S.boxW, S.boxH, S.plate = rim, x0, y0, boxW, boxH, self.kind == "plate"
-	if self.kind == "plate" then
-		for _, o in ipairs(list) do
-			local mid = (o.t + o.b) / 2
-			if o.icon then o.clear = 1 end
-			if o.icon and mid < y0 and mid > y0 - boxH then
-				blocked[1] = blocked[1] or o.l < x0 + boxH and o.r > x0 - 3 * boxH
-				blocked[2] = blocked[2] or o.r > x0 + boxW - boxH and o.l < x0 + boxW + 3 * boxH
-			end
-			if o.icon and mid < y0 - rim and mid > y0 - boxH + rim then
-				if o.r <= x0 and o.l >= x0 - 3 * boxH then
-					wrap[1] = max(wrap[1], math.ceil(x0 - o.l) + 1)
-				elseif o.l >= x0 + boxW and o.r <= x0 + boxW + 3 * boxH then
-					wrap[2] = max(wrap[2], math.ceil(o.r - x0 - boxW) + 1)
-				end
-			end
-		end
-	end
+	S.rim, S.x0, S.y0, S.boxW, S.boxH = rim, x0, y0, boxW, boxH
 	local reach = 0
 	local open, bar = list, self.kind == "bar" and not forged
 	if not forged then
 		open = List(S, "open")
 		for _, o in ipairs(list) do
-			if not (o.row or bar and o.other) then open[#open + 1] = o end
+			if not (bar and o.other) then open[#open + 1] = o end
 		end
 	end
 	if not full and Free(open, x0, y0 + 1, boxW, 1) and Free(open, x0, y0 - boxH, boxW, 1) then reach = 1 end
@@ -676,7 +570,7 @@ function Handle:Frame(full)
 		pieces, hooked = List(S, "pieces"), List(S, "hooked")
 		for i, o in ipairs(list) do
 			pieces[i] = o.ink and Copy(S, o, max(o.clear, floor(3 / pixel + 0.5))) or o
-			hooked[i] = o.row and Copy(S, o, max(o.clear, floor(boxH / 2))) or pieces[i]
+			hooked[i] = pieces[i]
 		end
 	end
 	if self.swaps and not joined then
@@ -743,9 +637,8 @@ function Handle:Frame(full)
 	local dx = x0 - ox
 	local touching, loose = List(S, "touching"), List(S, "loose")
 	for _, o in ipairs(plain) do
-		if not (o.row or o.cut or bar and o.other) then
-			touching[#touching + 1] = Copy(S, o, o.ink and self.kind == "plate" and 0 or o.clear)
-			if o.inkb then touching[#touching].b = o.inkb end
+		if not (o.cut or bar and o.other) then
+			touching[#touching + 1] = Copy(S, o, o.clear)
 			if not o.card then loose[#loose + 1] = touching[#touching] end
 		end
 	end
@@ -825,9 +718,9 @@ function Handle:Frame(full)
 			S.cutPool = pool
 		end
 		for _, o in ipairs(list) do
-			local split = o.row or o.cut or bar and o.other or self.kind == "plate" and o.ink
+			local split = o.cut or bar and o.other
 			local clear = (forged or split) and 1 or o.clear
-			if (o.icon or split) and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and (o.inkb or o.b) - clear < edge then
+			if (o.icon or split) and from < o.r + clear and o.l - clear < to and edge - weight < o.t + clear and o.b - clear < edge then
 				S.ncut = S.ncut + 1
 				local cut = pool[S.ncut]
 				if not cut then
@@ -899,36 +792,8 @@ function Handle:Frame(full)
 		local tip = oy - y0 - ends.reach - ends.rise
 		local west = ends.west and not (ring and ring.left) and (reached1 or wrap[1] == 0)
 		local east = ends.east and not (ring and not ring.left) and (reached2 or wrap[2] == 0)
-		if S.plate and not (west and east) then west, east = false, false end
 		if west then self:Place(ends.name, dx - wrap[1] - ends.width, tip) end
 		if east then self:Place(ends.name, dx + boxW + wrap[2], tip, true) end
-	end
-	if S.plate and (wrap[1] > 0 or wrap[2] > 0) then
-		local l, t, r, b
-		if joined then
-			local outset = joined.rimOutset or W.Border(joined)
-			local sl, sr, st, sb = self:Edges(joined)
-			if Known(sl) and Known(st) and Known(sr) and Known(sb) then
-				l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
-			end
-		end
-		if l or not joined then
-			local roof = weights[1] and min(y0, lanes[1][3] - lanes[1][2]) or y0
-			local low = max(b or floor(upper * f + 0.5) - rim, weights[2] and lanes[2][3] or -math.huge)
-			for side = 1, 2 do
-				if wrap[side] > 0 then
-					local cl = side == 1 and x0 - wrap[1] or max(x0 + boxW, r or x0 + boxW)
-					local cr = side == 1 and min(x0, l or x0) or x0 + boxW + wrap[2]
-					local fl, fr, fb, ft = Clip(list, cl, cr, low, roof)
-					if fl == cl and fr == cr and fb == low and ft == roof then
-						self:Fill(cl - ox, oy - roof, cr - cl, roof - low, self.target.backgroundName or "track")
-					elseif l then
-						fl, fr, fb, ft = Clip(list, side == 1 and x0 - wrap[1] or r, side == 1 and l or x0 + boxW + wrap[2], b, t)
-						if fl and fr > fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, joined.backgroundName or "track") end
-					end
-				end
-			end
-		end
 	end
 	if self.swaps then
 		self.textures.reach = reach
@@ -968,64 +833,6 @@ function Handle:Ring(full)
 		self:Rank("BossPendantR")
 	elseif self.elite then
 		self:Rank("ElitePendantR")
-	end
-end
-
-local function MapObstacles(self, pixel)
-	local S = Scratch(self)
-	S.nrec = 0
-	local list = List(S, "list")
-	for _, text in ipairs(self.texts or EMPTY) do
-		if not Add(self, S, list, pixel, text, 1, true) then return end
-	end
-	AddNeighbours(self, S, list, pixel)
-	return list
-end
-
-function Handle:Clear(list, name, point, relative, x, y, flipX, flipY)
-	local left, top, originX, originY, spec = self:Spot(name, point, relative, x, y)
-	if not left then return false end
-	if #list == 0 then return true end
-	local pl, pt, runs = originX + left, originY - top, INK.spans[name]
-	if not runs then return Free(list, pl, pt, spec[1], spec[2]) end
-	for i = 3, #runs, 4 do
-		local r0, r1, x0, x1 = runs[i], runs[i + 1], runs[i + 2], runs[i + 3]
-		if flipX then x0, x1 = spec[1] - x1, spec[1] - x0 end
-		if flipY then r0, r1 = spec[2] - r1, spec[2] - r0 end
-		if not Free(list, pl + x0, pt - r0, x1 - x0, r1 - r0) then return false end
-	end
-	return true
-end
-
-function Handle:MapPair(list, n, bottom)
-	local wanted = n
-	while true do
-		local name = Tier("Map", wanted)
-		if not name then return end
-		local size = ASSETS[name][2]
-		local outset = floor(size * 0.4)
-		local y = bottom and -outset or outset
-		local west, east = bottom and "BOTTOMLEFT" or "TOPLEFT", bottom and "BOTTOMRIGHT" or "TOPRIGHT"
-		if self:Clear(list, name, west, west, -outset, y, false, bottom) and self:Clear(list, name, east, east, outset, y, true, bottom) then
-			self:Piece(name, west, west, -outset, y, false, bottom)
-			self:Piece(name, east, east, outset, y, true, bottom)
-			return name
-		end
-		wanted = size - 1
-	end
-end
-
-function Handle:Map(full)
-	local side = min(self.width, self.height)
-	local n = side >= 280 and 40 or side >= 150 and 24 or 16
-	if not full then n = n == 40 and 32 or n == 24 and 20 or 12 end
-	local list = MapObstacles(self, Scale.Pixel(1))
-	if not list then return end
-	self:MapPair(list, n, false)
-	if side >= 280 then
-		self:MapPair(list, n, true)
-		local point = Tier("Point", 12)
-		if full and point and self:Clear(list, point, "TOP", "BOTTOM", 0, -1) then self:Piece(point, "TOP", "BOTTOM", 0, -1) end
 	end
 end
 
@@ -1106,14 +913,6 @@ function Handle:Crest(full)
 		height = (top * self.factor - bottom * f) / pixel
 	end
 	if not full or not self.span and self.width * pixel < CREST_WIDTH or height * pixel < CREST_HEIGHT then return end
-	if self.bottom then
-		local _, _, _, bottom = self:Edges(self.target)
-		local name = Tier("Keystone", self.pixel > 0.8 and 8 or 12)
-		if name and Known(bottom) and bottom * self.factor / Scale.Pixel(1) > ASSETS[name][2] + 1 then
-			self:Piece(name, "TOP", "BOTTOM", 0, 0)
-		end
-		return
-	end
 	if not self.inside or not next(self.inside) then return end
 	local root = Scale.Root()
 	local left, right, top = self:Edges(self.target)
@@ -1160,103 +959,6 @@ function Handle:Crest(full)
 				return
 			end
 		end
-	end
-end
-
-function Handle:Row(full)
-	if not self.keystone or self.width < 240 or not self.pair or self.pairEnabled == false then return end
-	local other = self.pair
-	local left, right, ownTop, bottom = self:Edges(self.target)
-	local otherLeft, otherRight, top, otherBottom = self:Edges(other)
-	if not (Known(left) and Known(right) and Known(bottom) and Known(otherLeft) and Known(otherRight) and Known(top)) then return end
-	local factor, pixel = W.ScaleFactor(other), Scale.Pixel(1)
-	if not Plain(factor) or not Plain(pixel) then return end
-	if math.abs(left * self.factor - otherLeft * factor) > pixel
-		or math.abs(right * self.factor - otherRight * factor) > pixel then return end
-	if not Known(ownTop) or not Known(otherBottom) or not Plain(self.pairGap) then return end
-	local gap = floor((otherBottom * factor - ownTop * self.factor) / pixel + 0.5)
-	if gap < 0 or math.abs(gap - floor(self.pairGap / self.pixel + 0.5)) > 1 then return end
-	local height = floor((top * factor - bottom * self.factor) / pixel + 0.5)
-	if height < self.height or height > self.height * 3 then return end
-	local up = (height - self.height) / 2
-	local S = Scratch(self)
-	S.nrec = 0
-	local bars = List(S, "rowBars")
-	for bar in pairs(BARS) do
-		local target = bar.target
-		local shown = target and type(target.IsVisible) == "function" and target:IsVisible()
-		if W.IsSecret(shown) then return end
-		if shown then
-			local l, r, t, b = self:Edges(target)
-			local f = W.ScaleFactor(target)
-			if Known(l) and Known(r) and Known(t) and Known(b) and Plain(f) then
-				local rim = target.rimOutset or W.Border(target)
-				local o = Rec(S)
-				o.l, o.r, o.t, o.b, o.clear = (l - rim) * f / pixel, (r + rim) * f / pixel, (t + rim) * f / pixel, (b - rim) * f / pixel, 1
-				bars[#bars + 1] = o
-			end
-		end
-	end
-	local wanted = min(full and 96 or 32, full and height or floor(height * 0.4))
-	local name, spec
-	while true do
-		name = Tier(full and "Tray" or "Arrow", wanted)
-		spec = name and ASSETS[name]
-		if not spec then break end
-		local clear = true
-		local originX, originY = left * self.factor / pixel, ownTop * self.factor / pixel
-		local finialTop = floor(originY - floor(self.height / 2 - up - spec[2] / 2 + 0.5) + 0.5)
-		local finialBottom = finialTop - spec[2]
-		local clearance = max(4 / pixel, 3)
-		for _, blocker in ipairs(self.avoidBars or EMPTY) do
-			local l, r, t, b = self:Edges(blocker)
-			local f = W.ScaleFactor(blocker)
-			if not (Known(l) and Known(r) and Known(t) and Known(b) and Plain(f)) then
-				clear = false
-				break
-			end
-			l, r, t, b = l * f / pixel, r * f / pixel, t * f / pixel, b * f / pixel
-			if r <= l or t <= b then
-				clear = false
-				break
-			end
-			if finialBottom < t and b < finialTop then
-				for side = 1, 2 do
-					local x = side == 1 and floor(originX - 2 - spec[1] + 0.5) or floor(originX + self.width + 2 + 0.5)
-					if x < r + clearance and l < x + spec[1] + clearance then
-						clear = false
-						break
-					end
-				end
-			end
-			if not clear then break end
-		end
-		if not clear then break end
-		for side = 1, 2 do
-			local x = side == 1 and floor(originX - 2 - spec[1] + 0.5) or floor(originX + self.width + 2 + 0.5)
-			if not Free(bars, x, finialTop, spec[1], spec[2]) then
-				clear = false
-				break
-			end
-		end
-		if clear then
-			self:Piece(name, "RIGHT", "LEFT", -2, up)
-			self:Piece(name, "LEFT", "RIGHT", 2, up, true)
-			break
-		end
-		wanted = spec[2] - 1
-	end
-	if full and self.height >= 30 then
-		local avoid = List(Scratch(self), "avoid")
-		avoid[1] = other
-		for i, bar in ipairs(self.avoidBars or EMPTY) do avoid[i + 1] = bar end
-		self.avoid, self.avoidShown = avoid, true
-		local keystone = Tier("Keystone", self.height >= 50 and 12 or 6)
-		local kx, ky, kox, koy, kspec = self:Spot(keystone, "TOP", "BOTTOM", 0, -1)
-		if kx and Free(bars, kox + kx, koy - ky, kspec[1], kspec[2]) then
-			self:Piece(keystone, "TOP", "BOTTOM", 0, -1)
-		end
-		self.avoid, self.avoidShown = nil, nil
 	end
 end
 
@@ -1326,17 +1028,10 @@ local function Draw(self)
 			self.width, self.height = floor(width / self.pixel + 0.5), floor(height / self.pixel + 0.5)
 			local full = level == "Full"
 			done = true
-			if self.kind == "bar" or self.kind == "plate" then done = self:Frame(full)
+			if self.kind == "bar" then done = self:Frame(full)
 			elseif self.kind == "ring" then self:Ring(full)
-			elseif self.kind == "map" then self:Map(full)
 			elseif self.kind == "crest" then self:Crest(full)
 			elseif self.kind == "corners" then self:Corners(full)
-			elseif self.kind == "row" then self:Row(full)
-			elseif self.kind == "plaque" and full then
-				local name = Tier("Plaque", self.height + 4)
-				if name and ASSETS[name][2] + 2 >= self.height then
-					self:Piece(name, "CENTER", "CENTER", 0, 0)
-				end
 			end
 		end
 	end
@@ -1356,9 +1051,6 @@ local function Draw(self)
 		end
 	end
 	for _, dependent in ipairs(self.dependents or EMPTY) do dependent:Restyle() end
-	if self.kind == "row" then
-		for bar in pairs(BARS) do bar:Restyle() end
-	end
 end
 
 function Handle:Restyle()
@@ -1452,7 +1144,6 @@ end
 function W.Ornament(owner, kind, target, passive)
 	target = target or owner
 	local handle = setmetatable({ owner = owner, target = target, kind = kind, textures = {}, used = 0 }, Handle)
-	if kind == "bar" then BARS[handle] = true elseif kind == "row" then ROWS[handle] = true end
 	if not passive and type(target.HookScript) == "function" then
 		target:HookScript("OnSizeChanged", function() handle:Restyle() end)
 		if target ~= owner then
@@ -1468,21 +1159,11 @@ function W.Ornament(owner, kind, target, passive)
 	end
 	local function wake()
 		if handle.stale then handle:Restyle() end
-		if kind == "bar" then
-			for row in pairs(ROWS) do
-				if not W.MayMove(row.owner) then row:Yield(handle.target) end
-				row:Restyle()
-			end
-		end
-	end
-	local function hidden()
-		for row in pairs(ROWS) do row:Restyle() end
 	end
 	local frame = owner
 	while frame and frame ~= UIParent do
 		if type(frame.HookScript) == "function" then
 			frame:HookScript("OnShow", wake)
-			if kind == "bar" then frame:HookScript("OnHide", hidden) end
 		end
 		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
 	end

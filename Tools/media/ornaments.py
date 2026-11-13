@@ -64,39 +64,18 @@ def build(source, work, output, lua, reach=None):
                               ("SlimPlain", "slender-plain-left"), ("SlimElite", "slender-elite-left")):
             if height <= 32 or family.startswith("Slim"):
                 save(family + str(height), painted(piece, height=height), [piece])
-    for size in (12, 16, 20, 24, 32, 40):
-        for family, piece in (("Map", "minimap-claw-top-left"),):
-            image = painted(piece, width=size, height=size)
-            if family == "Map":
-                alpha = image.getchannel("A")
-                outset = int(size * 0.4)
-                ImageDraw.Draw(alpha).rectangle((outset, outset, size, size), fill=0)
-                image.putalpha(alpha)
-            save(family + str(size), image, [piece])
     for family, piece, heights in (
-        ("Tray", "tray-finial-left", (20, 32, 40, 64, 80, 96)),
-        ("Keystone", "tray-keystone", (6, 8, 12)),
         ("Crest", "window-crest-open", (6, 8, 12, 16, 20, 32, 48, 64)),
         ("Selected", "selected-crest", (8, 12, 16, 24)),
-        ("Plaque", "minimap-plaque", (8, 12, 16, 20, 24, 28, 32)),
-        ("Point", "minimap-point", (6, 12)),
         ("Corner", "corner-plain", (12, 16, 20, 24, 32, 40)),
     ):
         for height in heights:
             if height <= masters["components"][piece]["native_size"][1]:
                 image = painted(piece, height=height)
-                if family == "Plaque":
-                    alpha = image.getchannel("A")
-                    cx, cy = image.width / 2, image.height / 2
-                    radius = height / 2 + 1
-                    ImageDraw.Draw(alpha).ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=0)
-                    image.putalpha(alpha)
                 save(family + str(height), image, [piece])
     for family, piece, top, bottom in (
         ("Pointed", "frame-pointed", 44, 117),
         ("Clawed", "frame-clawed", 198, 270),
-        ("Winged", "frame-winged", 367, 439),
-        ("Crested", "frame-crested", 550, 626),
     ):
         entry = masters["components"][piece]
         width, height = entry["native_size"]

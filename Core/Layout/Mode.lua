@@ -105,19 +105,25 @@ local function PlaceHandles()
 	for name, handle in pairs(handles) do
 		local show = (name == "SCALE" and scalable) or (name ~= "SCALE" and resizable)
 		if show then
-			handle:ClearAllPoints()
-			handle:SetPoint("CENTER", plate, HANDLE_POINT[name])
 			handle:SetSize(size, size)
+			handle:ClearAllPoints()
+			Widgets.Point(handle, "CENTER", plate, HANDLE_POINT[name])
 			handle:SetFrameLevel(level)
-			handle.fill:ClearAllPoints()
-			handle.fill:SetPoint("TOPLEFT", handle, "TOPLEFT", border, -border)
-			handle.fill:SetPoint("BOTTOMRIGHT", handle, "BOTTOMRIGHT", -border, border)
+			Widgets.Fill(handle.fill, handle, border, border, border, border)
 			PaintHandle(handle)
 			handle:Show()
 		else
 			handle:Hide()
 		end
 	end
+end
+
+local function PlacePlate(plate, frame, w, h)
+	Widgets.Size(plate, max(PLATE_MIN, w), max(PLATE_MIN, h))
+	plate:ClearAllPoints()
+	Widgets.Point(plate, "CENTER", frame, "CENTER")
+	Widgets.Point(plate.label, "CENTER", plate, "CENTER")
+	Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 end
 
 local function RefreshPlate(key)
@@ -131,10 +137,8 @@ local function RefreshPlate(key)
 	end
 	plate = plate or Mode.NewPlate(key)
 	local _, _, w, h = Layout.Rect(key)
-	plate:ClearAllPoints()
-	plate:SetPoint("CENTER", el.frame, "CENTER")
-	plate:SetSize(max(PLATE_MIN, w), max(PLATE_MIN, h))
 	Widgets.SetText(plate.label, el.label)
+	PlacePlate(plate, el.frame, w, h)
 	plate.chrome:Restyle()
 	PaintPlate(plate)
 	plate:Show()
@@ -225,9 +229,9 @@ local function UpdateDrag()
 	d.moved = true
 	d.l, d.b, d.w, d.h, d.s = l, b, w, h, s
 	Layout.Preview(d.key, l, b, w, h, s)
-	local plate = plates[d.key]
-	if plate and d.kind ~= "move" then
-		plate:SetSize(max(PLATE_MIN, w), max(PLATE_MIN, h))
+	local plate, el = plates[d.key], Layout.Element(d.key)
+	if plate and el and d.kind ~= "move" then
+		PlacePlate(plate, el.frame, w, h)
 	end
 end
 
@@ -411,9 +415,7 @@ function Mode.NewPlate(key)
 	plate.key = key
 	plate.chrome = Widgets.Chrome(plate, { shape = "tile", fill = "buttonFill", shadow = false })
 	plate.label = Widgets.Text(plate, "caption", "textEmphasis")
-	plate.label:SetPoint("CENTER", plate, "CENTER")
 	plate.info = Widgets.Text(plate, "caption", "text")
-	plate.info:SetPoint("TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 	plate:EnableMouse(true)
 	plate:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	plate:RegisterForDrag("LeftButton")
@@ -564,7 +566,7 @@ local function FillHelp(card, texts, width, pad)
 	for i, entry in ipairs(texts) do
 		local text, lines = entry[1], entry[2]
 		text:ClearAllPoints()
-		text:SetPoint("TOPLEFT", card, "TOPLEFT", pad, y)
+		Widgets.Point(text, "TOPLEFT", card, "TOPLEFT", pad, y)
 		text:SetWidth(max(1, width - pad * 2))
 		local tall = Widgets.TextHeight(text, Tokens.Size(entry[3]) * HELP_LEADING * lines)
 		local step = tall + (i < #texts and Widgets.Snap(card, Tokens.Size("gapSmall")) or 0)
@@ -587,9 +589,9 @@ local function PlaceSlot()
 	local line = Scale.Border()
 	local pad = Widgets.Snap(slot, Tokens.Size("gapLarge"))
 	local inner = Widgets.Snap(slot, Tokens.Size("gapMedium"))
+	Widgets.Size(slot, r - l, t - b)
 	slot:ClearAllPoints()
-	slot:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", l, b)
-	slot:SetSize(r - l, t - b)
+	Widgets.Point(slot, "BOTTOMLEFT", overlay, "BOTTOMLEFT", l, b)
 	slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
 	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
 	for _, edge in ipairs(slot.edges) do
@@ -613,9 +615,9 @@ local function PlaceSlot()
 	slot.hint:SetText(want.hint)
 	local help = slot.help
 	local tall = FillHelp(help, { { slot.label, 1, "heading" }, { slot.hint, HINT_LINES, "caption" } }, width, inner)
+	Widgets.Size(help, width, tall)
 	help:ClearAllPoints()
-	help:SetPoint("TOPLEFT", slot, "TOPLEFT", pad, -pad)
-	help:SetSize(width, tall)
+	Widgets.Point(help, "TOPLEFT", slot, "TOPLEFT", pad, -pad)
 	help:SetShown(not Covered(l + pad, t - pad - tall, r - pad, t - pad))
 	slot:Show()
 end
