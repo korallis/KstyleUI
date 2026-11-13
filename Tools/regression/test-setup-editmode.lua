@@ -140,8 +140,12 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(K.Setup.Apply({ layout = name, modules = {} }))
 			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, count, 2)
 			local where = name .. " at " .. tostring(screen.width or 1920) .. " with " .. count .. " icons"
-			local l, b, r = Slot(K, name, "cooldowns.buffs")
-			assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, (b + 14) * k), where .. ": LEE-20 the buff icons hang from the slot's right edge above the timer band")
+			-- KSTY-60 item 28: the icons stand at the left end of the essential cooldown row, a cluster gap off it and on its foot,
+			-- not beside the player portrait.
+			local el, eb = Slot(K, name, "cooldowns.essential")
+			local cast = { Slot(K, name, "unitframes.castbar.player") }
+			local r, b = math.min(el, cast[1]) - K.Setup.Layouts.GAP, eb
+			assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, b * k), where .. ": the buff icons stand at the essential row's left end, on its foot")
 			assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.RIGHT, where .. ": the right-aligned row preserves the configured left-to-right order")
 			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
 			local size = (iconBox[4] - iconBox[2])
@@ -149,15 +153,10 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(near(iconBox[3] - iconBox[1], count * size + (count - 1) * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
 			if screen == OWNER then
 				assert(math.abs(size - 28.5) < 0.01 and Setting(icon, ICON_SIZE) == 1, where .. ": LEE-20 native 60% is nearest the 27.6-unit reference at the shipped scale, got " .. size)
-				if count == 6 then
-					assert(math.abs(iconBox[3] - iconBox[1] - 188.8125) < 0.01 and math.abs(l - iconBox[1] - 6.2125) < 0.01, where .. ": the quantized native row extends into clear space left of the renderer holder")
-				end
 			end
-			assert(near(iconBox[3], r), where .. ": the native row keeps the reference's portrait-side edge")
-			local player = { Slot(K, name, "unitframes.player") }
-			local portraitLeft = player[3] - K.Setup.Layouts.Element("unitframes.player").width - 91.5
-			assert(near(portraitLeft - iconBox[3], 14.5) and iconBox[2] >= player[2] and iconBox[4] <= player[4], where .. ": LEE-20 the buffs fit beside the visible external player portrait")
-			assert(not Overlaps(iconBox, player), where .. ": the buffs also clear the portrait's full pixel-snapping reserve")
+			assert(near(iconBox[3], r) and near(iconBox[2], b), where .. ": the native row ends a cluster gap left of the essential row, on its foot")
+			assert(not Overlaps(iconBox, { Slot(K, name, "unitframes.player") }), where .. ": the buffs clear the player frame")
+			assert(iconBox[3] <= cast[1] - K.Setup.Layouts.GAP + 0.01, where .. ": the buffs stand a cluster gap clear of the player cast bar and its spell icon (Captain, KSTY-64)")
 			local bl, bb, br = Slot(K, name, "cooldowns.bars")
 			assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
 			assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")
@@ -467,7 +466,7 @@ do
 end
 
 -- With RestedXP loaded, the guide's card holds the slot and the tracker stands in the quest card's column, a rail gap
--- to its left at the same top (KSTY-33)
+-- to its left (KSTY-33), its top under the aura rows
 
 do
 	local state = { saved = {}, active = 1 }
@@ -480,7 +479,7 @@ do
 	local story = K.Setup.Story("DPS", true)
 	local slot = K.Setup.Story("DPS", false).tracker
 	assert(story.guide and near(story.guide.top, slot.top) and near(story.guide.left, slot.left) and near(story.guide.bottom, slot.bottom), "the guide takes the whole slot")
-	assert(near(story.tracker.top, slot.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
+	assert(story.tracker.top > slot.top + 100 and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, its top under the aura rows rather than the map, so the quest card has room for its quests (KSTY-60)")
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local a = Find(Named(state, "KstyleUI DPS"), TRACKER).anchorInfo
 	assert(near(a.offsetY, K.Setup.EditMode.TrackerPlace(story.tracker).y * k), "Apply places the tracker under the guide when RestedXP is loaded")

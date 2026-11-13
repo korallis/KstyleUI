@@ -43,7 +43,7 @@ local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
-	local positions = Layouts.Get(name, rh)
+	local positions = Layouts.Positions(name, "frames", K.Scale.AspectClass(width, height))
 	local rects, keys = {}, {}
 	local function add(key, w, h, position, offsetX)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
@@ -280,11 +280,11 @@ end
 
 -- Only the shared micro/bags dock edge gets a one-pixel contact allowance, never a general overlap tolerance.
 do
-	local get = Layouts.Get
+	local get = Layouts.Positions
 	local k = 0.6
 	local overlapPixels = 1
-	Layouts.Get = function(name, rh)
-		local positions = get(name, rh)
+	Layouts.Positions = function(name, ...)
+		local positions = get(name, ...)
 		local micro = positions["databars.micro"]
 		local _, height = Layouts.Footprint(name, "databars.micro")
 		local top = math.floor(micro.y * k + 0.5) + math.floor(height * k + 0.5)
@@ -296,7 +296,7 @@ do
 	overlapPixels = 2
 	assert(not Layouts.Fits("DPS", 1920, 1080, k), "two pixels at the shared dock boundary are refused")
 	assert(not PhysicalFit("DPS", 1920, 1080, k), "the independent live model also refuses two pixels")
-	Layouts.Get = get
+	Layouts.Positions = get
 end
 
 -- The original owner-window failure must remain a failure before the service applies the cap. Since KSTY-57 the

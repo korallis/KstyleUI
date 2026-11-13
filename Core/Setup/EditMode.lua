@@ -148,7 +148,11 @@ local function Others(name, rw, rh, skip)
 	skip = skip or TRACKED
 	for key in pairs(Positions(name)) do
 		if not skip[key] and Layouts.Shown(name, key) ~= false then
-			out[#out + 1] = Box(name, key, rw, rh)
+			local box = Box(name, key, rw, rh)
+			if box then
+				box.passing = key == "combattext.player" or nil
+				out[#out + 1] = box
+			end
 		end
 	end
 	out[#out + 1] = StoryBox(name, rw, rh)
@@ -184,7 +188,12 @@ end
 local function Spots(group, boxes, icons)
 	local slot, focus = boxes[VIEWERS[group].key], boxes["unitframes.focus"]
 	if group == "buffs" then
-		local list = { { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } } }
+		local list, essential, cast = {}, boxes["cooldowns.essential"], boxes["unitframes.castbar.player"]
+		if essential then
+			local edge = cast and math.min(essential.l, cast.l) or essential.l
+			list[1] = { x = edge - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
+		end
+		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
 		local edges, rail = {}, boxes["meters.damage"]
 		edges[#edges + 1] = focus and focus.l
@@ -369,7 +378,7 @@ local function Rows(name, k, rw, rh, notes)
 		local row = ROWS[group]
 		local slot = Native(group) and indices[row.index] ~= nil and Box(name, row.key, rw, rh)
 		if slot then
-			local others = Others(name, rw, rh, { [row.key] = true })
+			local others = Others(name, rw, rh, { [row.key] = true, ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true })
 			for _, rect in ipairs(placed) do
 				others[#others + 1] = rect
 			end
@@ -437,7 +446,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
 	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	for _, rect in ipairs(others) do
-		if not rect.quests then
+		if not (rect.quests or rect.passing) then
 			rects[#rects + 1] = rect
 		end
 	end
@@ -450,7 +459,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local best
 	local top = rh * (1 - WARNING_TOP)
 	for _, x in ipairs(xs) do
-		if x - half >= left.r + clear and x + half <= right.l - clear then
+		if x - half >= left.r and x + half <= right.l then
 			local lane = Sink({ l = x - half, r = x + half, t = top, x = x }, rects, clear, height)
 			if lane.b >= sigil.t + clear and (not best or lane.t > best.t or (lane.t == best.t and abs(x - rw / 2) < abs(best.x - rw / 2))) then
 				best = lane
@@ -502,6 +511,9 @@ local function Places(name, story, notes)
 		end
 		for key in pairs(Positions(name)) do
 			boxes[key] = Box(name, key, rw, rh)
+		end
+		for _, place in ipairs(rows) do
+			boxes[ROWS[place.row].key] = place.rect
 		end
 		local function Arrange(spare, order)
 			local list, out, told, picks = {}, {}, {}, {}

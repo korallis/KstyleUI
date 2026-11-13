@@ -400,52 +400,57 @@ hud_reference	1920x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	1920x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	1920x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	1920x1080	KstyleUI_Skins/Lumen.lua	4
+hud_reference	1920x1080	KstyleUI_Skins/Quests/Card.lua	4
 hud_reference	2560x1080	Core/Widgets/Base.lua	2
 hud_reference	2560x1080	KstyleUI_Chat/Frames.lua	2
 hud_reference	2560x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	2560x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	2560x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	2560x1080	KstyleUI_Skins/Lumen.lua	4
+hud_reference	2560x1080	KstyleUI_Skins/Quests/Card.lua	4
 hud_reference	2560x1440	Core/Skin.lua	23
 hud_reference	2560x1440	KstyleUI_Chat/Frames.lua	2
 hud_reference	2560x1440	KstyleUI_DataBars/Strip.lua	2
 hud_reference	2560x1440	KstyleUI_Minimap/Face.lua	5
 hud_reference	2560x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	3
 hud_reference	2560x1440	KstyleUI_Skins/Lumen.lua	1
-hud_reference	2560x1440	KstyleUI_Skins/Quests/Card.lua	2
+hud_reference	2560x1440	KstyleUI_Skins/Quests/Card.lua	5
 hud_reference	3440x1440	Core/Skin.lua	23
 hud_reference	3440x1440	KstyleUI_Chat/Frames.lua	2
 hud_reference	3440x1440	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3440x1440	KstyleUI_Minimap/Face.lua	5
 hud_reference	3440x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	3
 hud_reference	3440x1440	KstyleUI_Skins/Lumen.lua	1
-hud_reference	3440x1440	KstyleUI_Skins/Quests/Card.lua	2
+hud_reference	3440x1440	KstyleUI_Skins/Quests/Card.lua	5
 hud_reference	3840x1080	Core/Widgets/Base.lua	2
 hud_reference	3840x1080	KstyleUI_Chat/Frames.lua	2
 hud_reference	3840x1080	KstyleUI_DataBars/Bars.lua	1
 hud_reference	3840x1080	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x1080	KstyleUI_Minimap/Face.lua	2
 hud_reference	3840x1080	KstyleUI_Skins/Lumen.lua	4
+hud_reference	3840x1080	KstyleUI_Skins/Quests/Card.lua	4
 hud_reference	3840x1080 spread	Core/Widgets/Base.lua	2
 hud_reference	3840x1080 spread	KstyleUI_Chat/Frames.lua	2
 hud_reference	3840x1080 spread	KstyleUI_DataBars/Bars.lua	1
 hud_reference	3840x1080 spread	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x1080 spread	KstyleUI_Minimap/Face.lua	2
 hud_reference	3840x1080 spread	KstyleUI_Skins/Lumen.lua	4
+hud_reference	3840x1080 spread	KstyleUI_Skins/Quests/Card.lua	4
 hud_reference	3840x2160	KstyleUI_Chat/Frames.lua	2
 hud_reference	3840x2160	KstyleUI_DataBars/Strip.lua	2
 hud_reference	3840x2160	KstyleUI_Minimap/Face.lua	2
+hud_reference	3840x2160	KstyleUI_Skins/Quests/Card.lua	4
 hud_reference	5120x1440	Core/Skin.lua	23
 hud_reference	5120x1440	KstyleUI_Chat/Frames.lua	2
 hud_reference	5120x1440	KstyleUI_DataBars/Strip.lua	2
 hud_reference	5120x1440	KstyleUI_Minimap/Face.lua	5
 hud_reference	5120x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	3
 hud_reference	5120x1440	KstyleUI_Skins/Lumen.lua	1
-hud_reference	5120x1440	KstyleUI_Skins/Quests/Card.lua	2
+hud_reference	5120x1440	KstyleUI_Skins/Quests/Card.lua	5
 hud_reference	5120x1440 spread	Core/Skin.lua	23
 hud_reference	5120x1440 spread	KstyleUI_Chat/Frames.lua	2
 hud_reference	5120x1440 spread	KstyleUI_DataBars/Strip.lua	2
 hud_reference	5120x1440 spread	KstyleUI_Minimap/Face.lua	5
 hud_reference	5120x1440 spread	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	3
 hud_reference	5120x1440 spread	KstyleUI_Skins/Lumen.lua	1
-hud_reference	5120x1440 spread	KstyleUI_Skins/Quests/Card.lua	2
+hud_reference	5120x1440 spread	KstyleUI_Skins/Quests/Card.lua	5

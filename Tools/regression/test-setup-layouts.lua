@@ -48,7 +48,7 @@ local REFERENCE = {
 	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 + LIFT },
 	["unitframes.resource"] = { 120, 14, 0, 421 + LIFT },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 + LIFT },
-	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 + LIFT },
+	["cooldowns.buffs"] = { 182.6, 41.6, -(243.2 / 2 + 16 + 182.6 / 2), 335.3 + LIFT },
 	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
 	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
 	["databars.xp"] = { 491, 7 * 19 / 16, 0, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 },
@@ -214,7 +214,7 @@ local LEFT_RAIL = {
 }
 -- The picture (LEE-20, LEE-69) draws the chat card 393 by 186. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
-local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
+local CHAT_WIDTH = { DPS = 442, Tank = 442, Healer = 318 }
 -- The right rail, as the owner's picture draws it (LEE-20, "let the picture win", 2026-11-09), on the screenMargin
 -- token's margin: the 188 map heads it with its 36-unit caption (zone, coordinates, clock) under it and the aura rows
 -- 12 left of it; the 278 story slot hangs 15 under the caption; bars 4 and 5 stand as two 36.7-unit columns 4.6 apart (LEE-69: the centre bars' pitch, 1.4 inside the margin), 12
@@ -222,8 +222,8 @@ local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
 -- readout. Bar 6, off, is a third column beside them, so its slot costs the rail no height. The micro menu, the bag bar
 -- and the tooltip anchor stand left of the columns, off every card.
 local EDGE = K.Tokens.Size("screenMargin")
-local MAP, MAP_HEADING, MAP_CAPTION = 188, 22, 14
-local RIGHT_EDGE = { ["minimap.main"] = 188, ["meters.damage"] = 269, ["databars.strip"] = 278 }
+local MAP, MAP_HEADING, MAP_CAPTION = 208, 22, 14
+local RIGHT_EDGE = { ["minimap.main"] = 208, ["meters.damage"] = 269, ["databars.strip"] = 278 }
 local RAIL_COLUMN, RAIL_PITCH, RAIL_INSET = 36.7, 4.6, 1.4
 local STORY_W, STORY_RAIL_MIN = 278, 280
 -- The aura rows: one row of ten 28-unit icons each, 307 x 42, the buffs 12 left of the map and top-aligned with it,
@@ -249,13 +249,13 @@ local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
 	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
-		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
 	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
-		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
 	Healer = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
-		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
 }
 -- The optional focus target and Tank threat card retain their four-unit gaps.
 local CLUSTER_GAP = 4
@@ -285,7 +285,7 @@ for _, name in ipairs(names) do
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-		assert(map.top == HEIGHT - (EDGE - 1 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
+		assert(map.top == HEIGHT - (EDGE - 1 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
 		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the map and 2.4 under the top of the zone heading over it")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
 		assert(auraBuffs.w == 306.5 and auraBuffs.h == 41.5 and auraDebuffs.w == 306.5 and auraDebuffs.h == 41.5, label .. ": each aura row is ten 27.5-unit icons 3.5 apart, 306.5 x 41.5")
@@ -394,8 +394,8 @@ for _, name in ipairs(names) do
 		assert(same(resource.bottom, 421 + LIFT) and same(resource.bottom - cast.top, 5.5), label .. ": the optional class resource sits 5.5 above the player cast, clear of its label after independent pixel snapping")
 		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3 + LIFT) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
-		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9 + LIFT) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
-		assert(same(bars.x - mid, -480) and same(bars.bottom, 340 + LIFT), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
+		assert(same(essential.left - buffs.right, 16) and same(buffs.bottom, essential.bottom), label .. ": the tracked buffs stand a cluster gap left of the essential row, on its foot (KSTY-60 item 28)")
+		assert(same(bars.bottom, 340 + LIFT) and same(rect("unitframes.castbar.player").left - 16 - (6 * 28.5 + 5 * 3) - 16, bars.right), label .. ": the optional tracked buff bars keep their slot, left of the room six tracked icons take at the essential row's left end")
 		local swing = rect("meters.swing")
 		assert(same(swing.bottom - resource.top, 8) and swing.bottom - cast.top >= 8 + 14, label .. ": KSTY-60 item 13: the swing line has its own slot 8 above the class resource, clear of the player cast, as in Orbs")
 		local block = math.max(bars.top, essential.top, utility.top)
@@ -419,9 +419,11 @@ for _, name in ipairs(names) do
 		assert(same(tot.x - mid, 317) and same(tot.top, 540 + LIFT), label .. ": the optional target of target keeps its original slot opposite the focus")
 		local clusterTop = 540 + LIFT
 		do
+			-- KSTY-64: the threat card covered nameplates under the target of target once Auto grew, so it leaves the clear
+			-- centre for the right rail, under the quest card's column, a rail gap over the target's top.
 			local threat = rect("meters.threat")
-			assert(threat.left == tot.left and tot.bottom - threat.top == CLUSTER_GAP and threat.bottom >= block + 4, label .. ": the threat card stands under the target of target")
-			assert(threat.top <= clusterTop, label .. ": the threat card stays inside the cluster")
+			assert(same(threat.right, width - EDGE - STORY_W - 16) and same(threat.bottom, target.top + 16), label .. ": the threat card stands under the quest card's column, a rail gap over the target")
+			assert(threat.top <= clusterTop and threat.left >= mid + CLEAR.half, label .. ": the threat card stays under the cluster's top and out of the clear centre")
 		end
 		for _, key in ipairs({ "unitframes.focus", "unitframes.focustarget", "unitframes.targettarget", "unitframes.target" }) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
@@ -435,7 +437,7 @@ for _, name in ipairs(names) do
 			if key:find("^actionbars%.") or key:find("^unitframes%.castbar%.") or key:find("^cooldowns%.") or key == "meters.swing" then
 				local bar = rect(key)
 				if bar.left < target.right and target.left < bar.right and bar.bottom >= target.top - 1e-6 then
-					if key == "cooldowns.essential" or key == "cooldowns.utility" then
+					if key == "cooldowns.essential" or key == "cooldowns.utility" or key == "cooldowns.buffs" then
 						assert(same(bar.bottom - target.top, 15.3), label .. ": LEE-20 " .. key .. " keeps the picture's exact 15.3-unit gap over the target")
 					else
 						assert(bar.bottom - target.top >= SIGIL - 1e-6, label .. ": " .. key .. " keeps " .. SIGIL .. " over the target, got " .. (bar.bottom - target.top))
@@ -457,7 +459,8 @@ for _, name in ipairs(names) do
 			local column = Layouts.Story(name, HEIGHT, true).quests
 			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
 			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
-			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
+			assert(boss.bottom == 752 and boss.bottom > text.top, label .. ": the boss column keeps its foot at 752, over your combat text, which stands beside the cast since KSTY-64, got " .. boss.bottom)
+			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 16, label .. ": your combat text stands right of the cast, a rail gap off the target of target, the swing timer and the target's cast, so it leaves the quest card's column")
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
 			for _, entry in ipairs(Layouts.Settings(name)) do
@@ -466,9 +469,8 @@ for _, name in ipairs(names) do
 				end
 			end
 			assert(up, label .. ": the layout grows the boss column up from its foot")
-			assert(text.left >= mid + CLEAR.half, label .. ": your combat text rises beside the clear centre")
+			assert(text.left > mid and text.top <= CLEAR.bottom, label .. ": your combat text rises right of your character under the clear centre's foot (KSTY-64: over the cluster it took the quest card's column on 16:9)")
 		end
-		assert(text.bottom - clusterTop >= 16, label .. ": your combat text rises over the cluster")
 		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
 	end
 
@@ -586,14 +588,14 @@ local FOOTPRINTS = {
 	-- The owner's picture (LEE-20): a 188 square map with its zone, coordinates and clock in 36 units under it; one
 	-- row of ten 27.5-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
 	-- 0 to 40 buffs); the 269 x 158 damage card; the readout as one 12-unit line.
-	["minimap.main"] = { 188, 202 },
+	["minimap.main"] = { 208, 222 },
 	["auras.buffs"] = { 306.5, 41.5 },
 	["auras.debuffs"] = { 306.5, 41.5 },
 	["meters.damage"] = { 269, 158 },
 	["meters.threat"] = { 200, 112 },
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 393, 186 },
+	["chat.main"] = { 442, 186 },
 	["groupframes.party"] = { 259, 5 * 39 + 4 * 13 },
 	["groupframes.raid"] = { 543, 401 },
 	["databars.xp"] = { 491, 7 * 19 / 16 },
@@ -610,7 +612,7 @@ end
 do
 	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves. The map's zone, coordinates and clock hang
 	-- in the 36 units under its 188 square.
-	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 188, 202 } }
+	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 208, 222 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]

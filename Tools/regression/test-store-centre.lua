@@ -93,7 +93,7 @@ local env10, K10 = CoreEnv.New({ saved = {
 CoreEnv.Boot(env10)
 assert(env10.KstyleUIDB.version == K.Store.DB_VERSION and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
 assert(K10.Store.Layout()["unitframes.player"].y == now["unitframes.player"].y, "version 10 receives the new player position")
-assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 186, "the centre migration preserves the migrated chat dimensions, and version 16 takes the picture's 186 height")
+assert(K10.Store.Layout()["chat.main"].width == nil and K10.Store.Layout()["chat.main"].height == nil, "the centre migration preserves the migrated chat dimensions, version 16 takes the picture's 186 height, and version 34 lets that old 393 by 186 default take the new one")
 assert(db.layouts.Old["unitframes.resource"].y == now["unitframes.resource"].y, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
 assert(db.layouts.Old["actionbars.bar3"].y == now["actionbars.bar3"].y, "the old spare bar position migrates above both the loot feed and player cast")
 for key in pairs(old) do

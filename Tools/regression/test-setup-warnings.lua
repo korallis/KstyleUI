@@ -9,6 +9,9 @@ local RAID_WARNING, ACCOUNT = EditModeFake.RAID_WARNING, EditModeFake.ACCOUNT
 local HEIGHT = 100
 -- The lane's top lies in the upper 35% of the screen, and at least the top margin under the screen's edge.
 local UPPER, MARGIN = 0.35, 28
+-- Your combat text is passing text like the warnings, so the warnings may cross it, as they cross the quest card
+-- (Captain, KSTY-64): it holds the centre beside the cast since the Frames quest column runs to the cluster top.
+local PASSING = { ["combattext.player"] = true }
 
 local SCREENS = {
 	{ name = "default" },
@@ -71,7 +74,7 @@ for _, screen in ipairs(SCREENS) do
 		local centred = { l = rw / 2 - half, r = rw / 2 + half, b = lane.b, t = lane.t }
 		local free = true
 		for key in pairs(Layouts.Get(name)) do
-			if Layouts.Shown(name, key) ~= false then
+			if not PASSING[key] and Layouts.Shown(name, key) ~= false then
 				local box = Box(key)
 				if Overlap(centred, { l = box.l - 16, r = box.r + 16, b = box.b - 16, t = box.t + 16 }) then
 					free = false
@@ -85,7 +88,7 @@ for _, screen in ipairs(SCREENS) do
 		local sl, sb, sr, st = Layouts.Rect(slot, slot, rw, rh)
 		assert(not Overlap(lane, { l = sl, b = sb, r = sr, t = st }), where .. ": the warnings clear the story slot")
 		for key in pairs(Layouts.Get(name)) do
-			if Layouts.Shown(name, key) ~= false then
+			if not PASSING[key] and Layouts.Shown(name, key) ~= false then
 				assert(not Overlap(lane, Box(key)), where .. ": the warnings clear " .. key)
 			end
 		end
@@ -114,7 +117,7 @@ for _, screen in ipairs(SCREENS) do
 			lane.b = lane.t - HEIGHT / k
 			local Layouts = K.Setup.Layouts
 			for key in pairs(Layouts.Get(name)) do
-				if Layouts.Shown(name, key) ~= false then
+				if not PASSING[key] and Layouts.Shown(name, key) ~= false then
 					local w, h = Layouts.Footprint(name, key)
 					local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name, rh)[key], rw, rh)
 					assert(not Overlap(lane, { l = l, b = b, r = r, t = t }), where .. ": Blizzard's full width clears " .. key)

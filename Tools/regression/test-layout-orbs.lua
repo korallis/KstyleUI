@@ -47,7 +47,8 @@ do
 			assert(Layouts.Style("orbs", name, key), name .. ": Orbs places " .. key)
 		end
 		assert(Layouts.Style("frames", name, CAST) == nil, name .. ": Frames has no style table")
-		assert(Layouts.Style("orbs", name, CHAT) == nil, name .. ": chat stays where Frames puts it")
+		local chat, framesChat = Layouts.Style("orbs", name, CHAT), Layouts.Get(name)[CHAT]
+		assert(chat.anchor == framesChat.anchor and chat.x == framesChat.x and chat.y == framesChat.y and chat.width == 393 and chat.height == 186, name .. ": chat stays where Frames puts it, at the bare chat's 393 by 186 while the Frames card takes the mock-up's 442 (KSTY-60)")
 	end
 	local frames = Layouts.Get("DPS")["groupframes.party"]
 	local orbs = Layouts.Style("orbs", "DPS", "groupframes.party")

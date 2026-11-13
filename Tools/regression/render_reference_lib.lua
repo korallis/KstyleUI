@@ -57,11 +57,14 @@ return function(preset, built)
 	assert(firstObjective and Scene.WrappedLines(Scene.PlainText(firstObjective.text), firstObjective.font.size, firstObjective.font.path, firstObjective.rect[3]) == 3, preset .. " draws the first objective on three lines")
 	-- The picture's counts end at 3398 px. KSTY-33 moved the quest card one column (the slot's width and a rail gap) left
 	-- of the RestedXP guide's card and up to the slot's top, so they end that much further left at the card's same
-	-- right inset, the first quest's three lines higher.
-	local column = (Layouts.Slot(preset, rh).width + 16) * 2234 / rh
+	-- right inset, the first quest's three lines higher. KSTY-64 starts the column under the aura rows, so they stand
+	-- that much higher again.
+	local slot, story = Layouts.Slot(preset, rh), Layouts.Story(preset, rh, true)
+	local column = (slot.width + 16) * 2234 / rh
+	local rise = (story.quests.y - slot.y) * 1080 / rh
 	local counts = 0
 	for _, item in ipairs(built.items) do
-		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 and item.rect[2] > 300 and item.rect[2] < 420 then
+		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 and item.rect[2] > 300 - rise and item.rect[2] < 420 - rise then
 			local right = (item.rect[1] + item.rect[3]) * 2.0685
 			assert(math.abs(right - (3398 - column)) <= 1, preset .. " keeps the resting quest count at the picture's right inset, got " .. right)
 			counts = counts + 1

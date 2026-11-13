@@ -1713,7 +1713,7 @@ ns.Locale.Add({
 	["Thaldrin"] = "Thaldrin",
 	["That did not work"] = "No ha funcionado",
 	["The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first."] = "La disposici\195\179n DPS con filas de grupo m\195\161s altas y filas de banda lo bastante anchas para tres de tus sanaciones; perjuicios disipables primero.",
-	["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."] = "El dise\195\177o de Da\195\177o con el medidor de amenaza en el bloque de combate, bajo el objetivo del objetivo, donde ves qui\195\169n tiene la amenaza sin apartar la vista.",
+	["The DPS layout with the threat meter on the right, under the quest card, where it reads who holds aggro without covering the enemies' nameplates."] = "El dise\195\177o de Da\195\177o con el medidor de amenaza a la derecha, bajo la tarjeta de misiones, donde muestra qui\195\169n tiene la amenaza sin tapar las placas de nombre enemigas.",
 	["The accent KstyleUI uses when the accent colour is set to custom."] = "El acento que usa KstyleUI cuando el color de acento es personalizado.",
 	["The accent colour the meters use when the accent is custom."] = "El color de acento de los medidores cuando el acento es personalizado.",
 	["The accent colour when it does not follow your class."] = "El color de acento cuando no sigue a tu clase.",

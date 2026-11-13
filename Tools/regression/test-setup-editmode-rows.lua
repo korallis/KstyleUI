@@ -94,7 +94,7 @@ local function Hits(K, name, box, own, extra)
 	local rw, rh = K.Layout.RootSize()
 	local hits = {}
 	for key in pairs(K.Setup.Layouts.Get(name, rh)) do
-		if key ~= own and K.Setup.Layouts.Shown(name, key) ~= false and K.Setup.Layouts.Footprint(name, key) and Overlaps(box, Slot(K, name, key)) then
+		if not (key == own or type(own) == "table" and own[key]) and K.Setup.Layouts.Shown(name, key) ~= false and K.Setup.Layouts.Footprint(name, key) and Overlaps(box, Slot(K, name, key)) then
 			hits[#hits + 1] = key
 		end
 	end
@@ -122,6 +122,16 @@ end
 local function Canvas(K, l, b, r, t)
 	local origin = K.Scale.Origin() or 0
 	return { l - origin, b, r - origin, t }
+end
+
+-- RowHits(K, name, layout, box, k) -> what the essential row touches. The tracked buff viewers are measured where
+-- Apply put them, after the rows and around them (KSTY-64), not at their Layout slots.
+local function RowHits(K, name, layout, box, k)
+	local utility = Canvas(K, EditModeFake.RowRect(Find(layout, VIEWER, UTILITY), 4, k, 30))
+	local icons = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_ICON), 5, k))
+	local bars = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_BAR), 2, k, true))
+	local own = { ["cooldowns.essential"] = true, ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
+	return Hits(K, name, box, own, { ["utility row"] = utility, ["tracked buff icons"] = icons, ["tracked buff bars"] = bars })
 end
 
 local function Factor(K, env)
@@ -207,8 +217,7 @@ for _, name in ipairs({ "DPS", "Healer" }) do
 				refused = refused + 1
 			else
 				local box = Canvas(K, EditModeFake.RowRect(entry, count, k, 50))
-				local utility = Canvas(K, EditModeFake.RowRect(Find(layout, VIEWER, UTILITY), 4, k, 30))
-				local hits = Hits(K, name, box, "cooldowns.essential", { ["utility row"] = utility })
+				local hits = RowHits(K, name, layout, box, k)
 				assert(#hits == 0, string.format("%s: the essential row (%.1f,%.1f-%.1f,%.1f) touches %s", where, box[1], box[2], box[3], box[4], table.concat(hits, ", ")))
 				assert(math.ceil(count / Setting(entry, ICON_LIMIT)) <= 2, where .. ": in one line or two")
 				placed = placed + 1
@@ -279,8 +288,7 @@ do
 	local second = Find(Named(state, "KstyleUI DPS"), VIEWER, ESSENTIAL)
 	assert(second.isInDefaultPosition == false and not Same(first, second), "Apply moves its own row again to hold eight")
 	local box = Canvas(K, EditModeFake.RowRect(second, 8, Factor(K, env), 50))
-	local utility = Canvas(K, EditModeFake.RowRect(Find(Named(state, "KstyleUI DPS"), VIEWER, UTILITY), 4, Factor(K, env), 30))
-	assert(#Hits(K, "DPS", box, "cooldowns.essential", { ["utility row"] = utility }) == 0, "and the eight fit clear")
+	assert(#RowHits(K, "DPS", Named(state, "KstyleUI DPS"), box, Factor(K, env)) == 0, "and the eight fit clear")
 	second.anchorInfo = { point = "BOTTOM", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = 300, offsetY = 500 }
 	local dragged = Copy(second)
 	counts.essential = 6
