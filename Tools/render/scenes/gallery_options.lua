@@ -254,7 +254,7 @@ return Common.Run(function()
 		settle(env3)
 		frames:Add(env3, ns3.Window.Frame(), {
 			name = "options_profiles", title = "Profiles page", grade = "window", reference = "chat",
-			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section; the preview pane shows the placeholder logo and This page has no preview." .. SCALE_NOTE,
+			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section; the page has no preview, so the pane hides and the rows take its width." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the text buttons and dropdowns wear the button body with the one-border hairline, as the mockup's data strip pill.",
 		})
 		scenes[#scenes + 1] = Gallery.Build(env3)

@@ -21,7 +21,6 @@ local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
 local LABEL_FLOOR = 8
 local PREVIEW_FALLBACK, LEGEND_WIDTH = 260, 240
-local SUMMARY_PREVIEW = 352
 local ROW_HEIGHT = 44
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
@@ -120,7 +119,7 @@ local function RefreshEditMode()
 	panel.retry:SetShown(text ~= nil and last ~= nil and (last.state == "failed" or (last.state == "written" and #last.notes > 0)))
 	panel.manager:SetShown(text ~= nil and last ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
 	if step == STEPS then
-		Widgets.SetText(panel.summaryTitle, SummaryTitle())
+		panel.summaryStatus.cap:SetText(SummaryTitle())
 	end
 end
 
@@ -136,7 +135,7 @@ local function Select(cards, value)
 	end
 end
 
-local FitStyles
+local FitStyles, PlaceSummary
 
 local function Refresh()
 	local choice = Setup.Choice()
@@ -163,19 +162,22 @@ local function Refresh()
 		end
 		local ornaments = Setup.Ornament(choice.ornaments)
 		local style = choice.hudStyle == "orbs" and L["Orbs"] or L["Frames"]
-		local text = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s. %s"], Layouts.Label(choice.layout), Layouts.Note(choice.layout))
-			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note)
-			.. "\n\n" .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"])
-		if #off > 0 then
-			text = text .. "\n" .. L["Off: "] .. table.concat(off, ", ")
-		end
-		panel.summary:SetText(text)
-		panel.summaryPreview:Draw(choice.layout)
+		local head = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
+		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
+		local count = head .. string.format(L["Modules on: %d of %d."], #on, #on + #off)
+		panel.summaryTexts = { head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail, count .. tail, count }
+		panel.summary:SetText(panel.summaryTexts[1])
+		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
 		panel.summaryHelp:SetText(applied
 			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
 			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
 	end
 	RefreshEditMode()
+	if step == STEPS then
+		PlaceSummary()
+		panel.summaryPreview:Draw(choice.layout)
+	end
 end
 
 local function Changed()
@@ -647,25 +649,93 @@ local function BuildOrnaments(page, width)
 	panel.ornamentHint = hint
 end
 
+local function SummaryCard(page, text)
+	local card = CreateFrame("Frame", nil, page)
+	card.chrome = Widgets.Chrome(card, { shape = "card", shadow = false })
+	card.cap = Widgets.SectionCap(card, { text = text })
+	return card
+end
+
+local function SizeCard(card, x, y, width, height, pad)
+	card:ClearAllPoints()
+	card:SetPoint("TOPLEFT", card:GetParent(), "TOPLEFT", x, -y)
+	Widgets.Size(card, width, height)
+	card.cap.opts.width = width - 2 * pad
+	card.cap:Restyle()
+	card.cap:ClearAllPoints()
+	card.cap:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+end
+
+PlaceSummary = function()
+	local page = panel.pages[STEPS]
+	local width, height = page:GetWidth(), page:GetHeight()
+	if type(width) ~= "number" or width <= 0 or type(height) ~= "number" or height <= 0 then
+		width, height = panel.summaryWidth, PREVIEW_FALLBACK + CARD_HEIGHT
+	end
+	local pad, spacing, line = gap("gapHuge"), gap("gapLarge"), gap("gapMedium")
+	local column = Widgets.Snap(page, (width - spacing) / 2)
+	local inner, full = column - 2 * pad, width - 2 * pad
+	local cap = Widgets.Snap(page, Widgets.SECTION_CAP_HEIGHT)
+	local top = pad + cap + line
+	local summary, editMode, help, retry = panel.summary, panel.editMode, panel.summaryHelp, panel.retry
+	summary:SetWidth(inner)
+	editMode:SetWidth(full)
+	help:SetWidth(full)
+	local y = top
+	local editAt, retryAt
+	if editMode:IsShown() then
+		editAt, y = y, y + Widgets.Snap(page, Widgets.WrappedHeight(editMode, full)) + line
+	end
+	if retry:IsShown() then
+		retryAt, y = y, y + Widgets.Snap(page, retry:GetHeight()) + line
+	end
+	local helpAt = y
+	local status = y + Widgets.Snap(page, Widgets.WrappedHeight(help, full)) + pad
+	local free = height - spacing - status
+	local choices
+	for _, text in ipairs(panel.summaryTexts or { summary:GetText() or "" }) do
+		summary:SetText(text)
+		choices = top + Widgets.WrappedHeight(summary, inner) + pad
+		if choices <= free then
+			break
+		end
+	end
+	local row = Widgets.Snap(page, free)
+	local left, right, low = panel.summaryChoices, panel.summaryLayout, panel.summaryStatus
+	SizeCard(left, 0, 0, column, row, pad)
+	SizeCard(right, column + spacing, 0, column, row, pad)
+	SizeCard(low, 0, row + spacing, width, max(status, height - row - spacing), pad)
+	summary:ClearAllPoints()
+	summary:SetPoint("TOPLEFT", left, "TOPLEFT", pad, -top)
+	local room = row - top - pad
+	local previewWidth = Widgets.Snap(page, min(inner, room * REFERENCE_WIDTH / REFERENCE_HEIGHT))
+	local previewHeight = Widgets.Snap(page, previewWidth * REFERENCE_HEIGHT / REFERENCE_WIDTH)
+	local preview = panel.summaryPreview
+	preview.size = { previewWidth, previewHeight }
+	preview:ClearAllPoints()
+	preview:SetPoint("TOPLEFT", right, "TOPLEFT", Widgets.Snap(page, (column - previewWidth) / 2), -(top + Widgets.Snap(page, (room - previewHeight) / 2)))
+	editMode:ClearAllPoints()
+	editMode:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(editAt or top))
+	retry:ClearAllPoints()
+	retry:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(retryAt or top))
+	help:ClearAllPoints()
+	help:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -helpAt)
+end
+
 local function BuildSummary(page, width)
-	local title = Widgets.Text(page, "heading", "textEmphasis")
-	title:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
-	local summary = Paragraph(page, "body", "textEmphasis", width, true)
-	summary:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
-	local preview = NewPreview(page)
-	preview.size = { SUMMARY_PREVIEW, Widgets.Snap(page, SUMMARY_PREVIEW * REFERENCE_HEIGHT / REFERENCE_WIDTH) }
-	preview:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
-	local column = width - SUMMARY_PREVIEW - gap("gapLarge")
-	local editMode = Paragraph(page, "body", "text", column, true)
-	editMode:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -gap("gapHuge"))
+	local choices = SummaryCard(page, L["Your choices"])
+	local layout = SummaryCard(page, L["Layout"])
+	local status = SummaryCard(page, L["Ready to apply"])
+	local summary = Paragraph(choices, "body", "textEmphasis", width)
+	local preview = NewPreview(layout)
+	local editMode = Paragraph(status, "body", "text", width, true)
 	editMode:Hide()
-	local retry = Widgets.Button(page, {
+	local retry = Widgets.Button(status, {
 		text = L["Try again"],
 		onClick = function()
 			Setup.RetryEditMode()
 		end,
 	})
-	retry:SetPoint("TOPLEFT", editMode, "BOTTOMLEFT", 0, -gap("gapMedium"))
 	retry:Hide()
 	local manager = Widgets.Button(page, {
 		text = L["Open the Cooldown Manager"],
@@ -678,10 +748,17 @@ local function BuildSummary(page, width)
 	})
 	manager:SetPoint("LEFT", retry, "RIGHT", gap("gapSmall"), 0)
 	manager:Hide()
-	local help = Paragraph(page, "body", "text", column, true)
-	help:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
-	panel.summaryTitle, panel.summary, panel.summaryHelp, panel.summaryPreview = title, summary, help, preview
+	local help = Paragraph(status, "body", "muted", width, true)
+	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
+	panel.summaryTitle, panel.summary, panel.summaryHelp, panel.summaryPreview = status.cap.label, summary, help, preview
 	panel.editMode, panel.retry, panel.manager = editMode, retry, manager
+	page.Restyle = function()
+		if step == STEPS then
+			PlaceSummary()
+			preview:Draw(Setup.Choice().layout)
+		end
+	end
+	Widgets.Track(page)
 end
 
 local function SyncChoice()

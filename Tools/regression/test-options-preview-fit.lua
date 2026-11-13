@@ -89,6 +89,9 @@ local holderW, holderH = holder:GetWidth(), holder:GetHeight()
 assert(type(holderW) == "number" and holderW > 0 and type(holderH) == "number" and holderH > 0, "the preview holder has an explicit size: " .. tostring(holderW) .. " x " .. tostring(holderH))
 local paneW, paneH = pane:GetWidth(), pane:GetHeight()
 assert(holderW < paneW and holderH < paneH, "the holder sits inside the pane's inset")
+-- The pane fits its card to what the preview draws (KSTY-65), so the room a preview may fill is the holder at the
+-- pane's full height, not the snug holder the strip left.
+holderH = pane.room - (paneH - holderH)
 local current = pane.current
 assert(current and current.strip, "the UnitFrames preview is current")
 assert(builds.rooms and builds.rooms[#builds.rooms] == holderW, "the preview read the holder's width, not nil: " .. tostring(builds.rooms and builds.rooms[#builds.rooms]))
