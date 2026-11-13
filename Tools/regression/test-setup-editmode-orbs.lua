@@ -36,6 +36,38 @@ local orbsIcons = Anchor(state, "KstyleUI DPS", VIEWER, BUFF_ICON)
 assert(not Same(orbsIcons, framesIcons), "the tracked buff icons move for the Orbs layout")
 assert(Same(Anchor(state, "KstyleUI DPS", TRACKER), moved), "the tracker the player moved stays")
 
+-- With RestedXP loaded, the tracker Apply placed follows the style's story: under Orbs it heads the one column under the
+-- map (KSTY-60 item 8), clear of the rail bars that stand beside it, and back under Frames it returns to the quests' own
+-- column beside the guide.
+tracker.anchorInfo = moved
+local fresh = { saved = { { layoutName = "Mine", layoutType = EditModeFake.ACCOUNT, systems = EditModeFake.Modern().systems } }, active = 1 }
+local env2, K2 = W.New({ boot = false, setup = function(e)
+	EditModeFake.Install(e, fresh)
+	local addons = e.C_AddOns or {}
+	local loaded = addons.IsAddOnLoaded
+	addons.IsAddOnLoaded = function(name)
+		if name == "RXPGuides" then
+			return true, true
+		end
+		return loaded and loaded(name)
+	end
+	e.C_AddOns = addons
+end })
+CoreEnv.Boot(env2)
+assert(K2.Setup.Apply({ layout = "DPS", modules = {}, hudStyle = "frames" }), "Apply DPS under Frames, second game")
+local framesTracker = Anchor(fresh, "KstyleUI DPS", TRACKER)
+K2.Options.Write("HudStyle", "style", "orbs")
+local orbsTracker = Anchor(fresh, "KstyleUI DPS", TRACKER)
+local k = K2.Scale.Root():GetEffectiveScale() / env2.UIParent:GetEffectiveScale()
+local rw, rh = K2.Setup.RootSize()
+local quests = K2.Setup.Layouts.Story("DPS", rh, true, "orbs").quests
+local ql, _, _, qt = K2.Setup.Layouts.Rect(quests, quests, rw, rh)
+assert(not Same(orbsTracker, framesTracker), "under Orbs the tracker moves")
+assert(math.abs(orbsTracker.offsetX - (ql + K2.Setup.EditMode.TRACKER_LEFT + K2.Scale.Origin()) * k) < 0.01 and math.abs(orbsTracker.offsetY - (qt + K2.Setup.EditMode.TRACKER_TOP) * k) < 0.01, "to the head of the Orbs column")
+K2.Options.Write("HudStyle", "style", "frames")
+assert(Same(Anchor(fresh, "KstyleUI DPS", TRACKER), framesTracker), "and back under Frames to the quests' own column")
+assert(#env2._errors == 0 and K2.ErrorCount() == 0, "no errors: " .. tostring(env2._errors[1]))
+
 -- Apply Healer under Frames while KstyleUI DPS is active: Apply's own style change does not rewrite KstyleUI DPS.
 assert(K.Setup.Apply({ layout = "Healer", modules = {}, hudStyle = "frames" }), "Apply Healer under Frames")
 assert(K.HudStyle.Current() == "frames", "Apply switched the style")

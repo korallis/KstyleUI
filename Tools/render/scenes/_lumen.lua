@@ -244,6 +244,13 @@ function Lumen.Build(state, opts)
 		end
 	end
 	Hud.layoutElements = nil
+	local tracked = built.tracker and built.tracker.ns and built.tracker.ns.QuestCard
+	local card = tracked and tracked.Frame()
+	if card and card:IsShown() then
+		local K = Hud.envs[built.tracker.scene].KstyleUI
+		local root, f = K.Scale.Root(), K.Widgets.ScaleFactor(card)
+		base.questCard = { card:GetLeft() * f - root:GetLeft(), card:GetBottom() * f - root:GetBottom(), card:GetWidth() * f, card:GetHeight() * f }
+	end
 	local guide, R = Hud.Module("restedxp", base)
 	table.insert(scenes, 1, guide)
 	if state == "combat" then
