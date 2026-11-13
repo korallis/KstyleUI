@@ -1,4 +1,4 @@
--- test-groupframes-clear.lua: no helpful aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes: a whole name lane, the deficit in its own lane on the bar, a 2x2 debuff block over the bar's right end (rank R5: harmful auras may overlay a raid bar's end, as Cell draws them), your heals on the name line and a status ("Dead") off the name lane, at the default and the setup layouts' party and raid sizes.
+-- test-groupframes-clear.lua: no helpful aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes (KSTY-57): a whole name lane with the percent at its end over the bar's end, a row of three debuffs over the bar's right end (rank R5: harmful auras may overlay a raid bar's end, as Cell draws them), your heals on the name line, the indicators covering only the name's tail and a status ("Dead") in the percent's place, off the bar and the name, at the KSTY-47 mock-ups' 10, 20 and 40-player sizes and the Healer layout's.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -72,8 +72,8 @@ local function Clear(env, f, what)
 	local auras = Auras(env, f)
 	assert(#auras > 0, what .. ": the frame shows auras to check")
 	local overlay = f.parts and f.parts.overlay
-	-- Round 6 (Astra #2): a raid tile's helpful indicators (external and big defensives) may overlay the bar only in its
-	-- status lane, the corner over the role icon and the marker, clear of the name, the missing health and the debuffs.
+	-- KSTY-57: the indicator lane sits on the name row's end, off the bar, so a helpful indicator in it never meets
+	-- the bar either.
 	local lane = overlay and f.parts.lane
 	if lane then
 		local fx, fy = Scene.Rect(env, f)
@@ -133,57 +133,67 @@ do
 	local nameItem = find(scene, dead.name)
 	local path, size = dead.name:GetFont()
 	assert(nameItem and nameItem.rect[3] + 0.01 >= Scene.TextWidth("Kragar", size, path), "party: the dead member's name stays whole beside \"Dead\"")
-	-- Codex review, round 4: risen again, the class caption comes back with its text, not blank.
+	-- Codex review, round 4: risen again, the percent comes back in the status's place.
 	env._member("party2").dead, env._member("party2").health = false, 60
 	env.FireEvent("UNIT_HEALTH", "party2")
-	assert(dead.classLine:IsShown(), "party: risen, the class caption shows again")
-	local caption = dead.classLine:GetText()
-	assert(type(caption) == "string" and caption:find("SHAMAN") ~= nil, "party: and says the class, got " .. tostring(caption))
+	local formatted = dead.healthText._state.FormattedText
+	assert(formatted and env.Reveal(formatted[2]) == 60, "party: risen, the percent shows again")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- Muse R4 #2, Grok R4 #4: the raid tile at the default size and at the setup layouts' sizes (DPS and Tank 77 by
--- 40, Healer 77 by 46).
-for _, size in ipairs({ { width = 72, height = 40 }, { width = 77, height = 40 }, { width = 77, height = 46 } }) do
-	local what = "raid " .. size.width .. " by " .. size.height
-	local env, _, ns = Raid(size)
+-- Muse R4 #2, Grok R4 #4: the raid tile at the KSTY-47 mock-ups' three sizes (10, 20 and 40 players) and the Healer
+-- layout's 40-unit rows.
+for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { members = 20, height = 40 } }) do
+	local what = "raid of " .. case.members .. (case.height and (" at " .. case.height .. " tall") or "")
+	local env, _, ns = Raid({ height = case.height }, case.members)
 	local f = content(ns, ns.Headers.raid[1], "raid1")
 	local k = ns.Settings.current.raid
 	local auras, bar = Clear(env, f, what)
-	-- Muse R4 #2: the raid tile is the party's glass at reduced ornament, the same chrome without a drop shadow.
-	eq(f.chrome.shadowOn, false, what .. ": a raid tile casts no drop shadow")
-	-- Four debuffs, two by two, boss and dispellable ones first.
+	eq(f.chrome.shadowOn, false, what .. ": a raid row casts no drop shadow")
+	-- Three debuffs in a row, boss and dispellable ones first.
 	local block = ns.Auras.Block(f, k)
-	eq(block.columns, 2, what .. ": the debuff block is two wide")
-	eq(block.rows, 2, what .. ": and two high")
-	eq(block.cells, 4, what .. ": four debuffs show")
+	eq(block.columns, 3, what .. ": the debuff block is three wide")
+	eq(block.rows, 1, what .. ": and one high")
+	eq(block.cells, 3, what .. ": three debuffs show")
 	local order = ns.Auras.Order()
 	assert(order.dispels < order.debuffs and order.boss < order.debuffs, what .. ": dispellable and boss debuffs come first")
-	-- Your heals keep a row of their own and at least two of them show.
+	-- Your heals keep their place on the name line.
 	local _, heals = ns.Auras.HealIcons(f, k)
-	assert(heals >= 2, what .. ": two or more of your heals have room, got " .. heals)
-	-- The name lane and the deficit lane. Rank R5: the deficit left the name lane for its own lane at the bar's left
-	-- end; round 4 right-aligned it beside the name, which then ellipsised.
+	assert(heals >= 1, what .. ": your heals have room, got " .. heals)
 	local scene = Scene.Build(env)
-	local name, deficit = find(scene, f.name), find(scene, f.healthText)
-	assert(name and deficit, what .. ": the name and the deficit draw")
-	assert(not intersects(name.rect, deficit.rect), what .. ": the name " .. describe(name.rect) .. " never competes with the deficit " .. describe(deficit.rect))
-	assert(deficit.rect[2] >= bar[2] - 0.01, what .. ": the deficit sits on the bar, below the name lane " .. describe(deficit.rect))
-	assert(deficit.rect[1] < bar[1] + bar[3] / 2, what .. ": at the bar's left end")
-	for _, aura in ipairs(auras) do
-		assert(not intersects(aura[2], name.rect), what .. ": " .. aura[1] .. " stays off the name")
-		assert(not intersects(aura[2], deficit.rect), what .. ": " .. aura[1] .. " stays off the deficit")
+	local name = find(scene, f.name)
+	assert(name, what .. ": the name draws")
+	local fx = Scene.Rect(env, f)
+	local head = f.parts.lane and fx + f.parts.lane.left or bar[1] + bar[3]
+	if k.healthText ~= "NONE" then
+		-- The percent ends at the bar's end, on the name row above it, and the name never competes with it.
+		local percent = find(scene, f.healthText)
+		assert(percent, what .. ": the percent draws")
+		assert(not intersects(name.rect, percent.rect), what .. ": the name " .. describe(name.rect) .. " never competes with the percent " .. describe(percent.rect))
+		assert(percent.rect[2] + percent.rect[4] <= bar[2] + 0.01, what .. ": the percent sits above the bar " .. describe(percent.rect))
+		assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= 1, what .. ": and ends at the bar's end")
+		for _, aura in ipairs(auras) do
+			assert(not intersects(aura[2], percent.rect), what .. ": " .. aura[1] .. " stays off the percent")
+		end
 	end
-	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole; round 4 ellipsised it
-	-- ("Thald...") beside the deficit.
+	for _, aura in ipairs(auras) do
+		local nameHead = { name.rect[1], name.rect[2], math.min(name.rect[3], head - name.rect[1]), name.rect[4] }
+		assert(not intersects(aura[2], nameHead), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the name's head " .. describe(nameHead))
+	end
+	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole.
 	eq(f.name:GetText(), "Thaldrenwick", what .. ": a twelve-letter name stays whole")
 	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
-	-- Muse R4 #2, rank R5: "Dead" sits in the status lane on the emptied bar, never in the name lane.
+	-- "Dead" takes the percent's place at the row's end, off the bar; with no percent (over 25 members) it centres on
+	-- the emptied bar. Either way it stays off the name.
 	local dead = content(ns, ns.Headers.raid[1], "raid2")
 	local status = find(scene, dead.healthText)
 	eq(dead.healthText:GetText(), "Dead", what .. ": the dead member says so")
 	local deadBar = { Scene.Rect(env, dead.health) }
-	assert(status.rect[2] >= deadBar[2] - 0.01, what .. ": \"Dead\" " .. describe(status.rect) .. " stays below the name lane")
+	if k.healthText ~= "NONE" then
+		assert(not intersects(status.rect, deadBar), what .. ": Dead " .. describe(status.rect) .. " stays off the bar")
+	else
+		assert(math.abs(status.rect[1] + status.rect[3] / 2 - (deadBar[1] + deadBar[3] / 2)) < 1, what .. ": Dead centres on the emptied bar")
+	end
 	assert(not intersects(status.rect, find(scene, dead.name).rect), what .. ": and off the name")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

@@ -1,5 +1,6 @@
 -- test-groupframes-depth.lua: the round-2 healer depth: party debuffs inside the card, one dead state, short deficits, distinct short names, heal absorbs, the debuff priority list and glow, the indicator slots, the automatic layout, the click casting panel, the preview fixture and many auras kept inside the tile.
 local G = dofile("Tools/regression/group_env.lua")
+local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -63,9 +64,11 @@ local PARTY = {
 	{ name = "Lunara", class = "MAGE", role = "DAMAGER", health = 64 },
 }
 
--- The shared party environment. Click Casting stand-ins go in at setup, as the game provides them.
+-- The shared party environment, in KSTY-31's party card (KSTY-57 made the bare lanes the default; the card's depth
+-- stays covered here). Click Casting stand-ins go in at setup, as the game provides them.
 local click = { profile = {}, saved = nil, opened = 0, cursor = nil }
 local env, K, ns = G.New({
+	saved = Looks.Saved(Looks.PARTY_CARD),
 	setup = function(e)
 		e.C_ClickBindings = {
 			GetProfileInfo = function()
@@ -421,25 +424,49 @@ do
 	eq(ns.Slots.Plan({ category = "OFF" }), nil, "an off slot has no plan")
 end
 
--- Muse #4, Opus #7: the layout switches by raid size and role. A raid over 25 gets compact tiles without power
--- bars; a healer gets two dispellable debuffs first and three of their heals.
+-- Muse #4, Opus #7: the layout switches by raid size and role; a healer gets two dispellable debuffs first and three
+-- of their heals. KSTY-57: three sizes, as the KSTY-47 raid mock-ups draw them at 10, 20 and 40: the saved size is the
+-- 20-player cell; up to ten get the larger cell, over 25 the compact one without power bars or the percent.
 do
 	local A = ns.AutoLayout
-	eq(A.Bracket(20), "MEDIUM", "twenty is a medium raid")
-	eq(A.Bracket(30), "LARGE", "thirty is large")
-	local cfg = { auto = { size = true, role = true }, party = { height = 40, auraDispelCount = 1, buffCount = 2 }, raid = { height = 40, power = true, auraDispelCount = 1, buffCount = 3 } }
-	A.Overlay(cfg, { bracket = "LARGE", healer = true })
-	-- Round 6 (Astra #2): 85% height, but never below the 40 units the status lane, the name and the missing health
-	-- need (Geometry.LaneHeight), so a 40-unit tile keeps its height and a 46-unit Healer tile drops to 40, not 39.
-	eq(cfg.raid.height, 40, "large raids: a 40-unit tile keeps the height its lanes need")
-	eq(cfg.raid.power, false, "and no power bars")
-	for _, case in ipairs({ { 46, 40 }, { 60, 51 }, { 30, 30 } }) do
-		local tall = { auto = { size = true, role = false }, party = cfg.party, raid = { height = case[1], power = false, auraDispelCount = 1, buffCount = 3 } }
-		A.Overlay(tall, { bracket = "LARGE", healer = false })
-		eq(tall.raid.height, case[2], "large raids: " .. case[1] .. " units tall")
+	eq(A.Bracket(10), "SMALL", "ten is a small raid")
+	eq(A.Bracket(11), "MEDIUM", "eleven is a medium raid")
+	eq(A.Bracket(25), "MEDIUM", "twenty-five is medium")
+	eq(A.Bracket(26), "LARGE", "twenty-six is large")
+	eq(A.Bracket(0), "MEDIUM", "no raid keeps the saved size")
+	eq(A.Bracket(env.Secret(10)), "MEDIUM", "a secret count keeps the saved size")
+	local function raid()
+		return { width = 116, height = 36, spacing = 9, nameSize = 12, healthTextSize = 10, power = true, powerHeight = 2, healthText = "PERCENT", auraDispelCount = 1, buffCount = 3 }
 	end
+	local cfg = { auto = { size = true, role = true }, party = { height = 39, auraDispelCount = 1, buffCount = 2 }, raid = raid() }
+	A.Overlay(cfg, { bracket = "LARGE", healer = true })
+	local r = cfg.raid
+	eq(r.width, 116, "large raids: the 40-player mock-up's 96-unit cell, 20 wider for a healer's three heals")
+	eq(r.height, 28, "28 tall: an 11-unit name line over a 9-unit bar, no power line")
+	eq(r.nameSize, 11, "11-unit names")
+	eq(r.power, false, "no power bars")
+	eq(r.healthText, "NONE", "and no percent")
+	eq(r.spacing, 6, "rows 6 apart")
 	eq(cfg.party.auraDispelCount, 2, "a healer sees two dispellable debuffs first")
 	eq(cfg.party.buffCount, 3, "and three of their heals")
+	eq(cfg.raid.buffCount, 3, "on raid frames too")
+	local small = { auto = { size = true, role = false }, party = cfg.party, raid = raid() }
+	A.Overlay(small, { bracket = "SMALL", healer = false })
+	r = small.raid
+	eq(r.width, 132, "small raids: the 10-player mock-up's 132-unit cell")
+	eq(r.height, 39, "39 tall: a 13-unit name line, a 12-unit bar and a 3-unit power line")
+	eq(r.nameSize, 13, "13-unit names")
+	eq(r.healthTextSize, 11, "an 11-unit percent")
+	eq(r.powerHeight, 3, "a 3-unit power line")
+	eq(r.spacing, 13, "rows 13 apart")
+	local medium = { auto = { size = true, role = false }, party = cfg.party, raid = raid() }
+	A.Overlay(medium, { bracket = "MEDIUM", healer = false })
+	eq(medium.raid.width, 116, "medium raids keep the saved 20-player cell")
+	eq(medium.raid.height, 36, "and its height")
+	local bare = { auto = { size = true, role = false }, party = cfg.party, raid = raid() }
+	bare.raid.power = false
+	A.Overlay(bare, { bracket = "LARGE", healer = false })
+	eq(bare.raid.height, 33, "without a power line, only the name and the bar shrink")
 end
 
 -- Speed fix: an icon's chrome is rebuilt only when its size or pixel border changes, yet a restyle the game's
@@ -585,24 +612,24 @@ eq(#env._errors, 0, tostring(env._errors[1]))
 
 -- The raid environment: the size switch out of combat, then many auras on a raid tile and the owner's extreme
 -- debuff settings.
--- Round 6 (Astra #2): compact tiles stop at the 40 units their lanes need, so the switch is checked on the Healer
--- preset's 46-unit tiles, which drop to 40.
+-- KSTY-57: the switch is checked on 50-unit rows (a size migration 29 leaves alone), which drop 8 units over 25 members (one off the name line, two
+-- off the bar, five with the power line).
 do
-	local renv, RK, rns = G.New({ saved = { version = 2, profiles = { Default = { GroupFrames = { raid = { height = 46 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
+	local renv, RK, rns = G.New({ saved = { version = 2, profiles = { Default = { GroupFrames = { raid = { height = 50 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
 	G.SetRoster(renv, "raid", G.Members(20))
 	assert(RK.Modules.Enable("GroupFrames"))
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "twenty members keep the set height")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "twenty members keep the set height")
 	renv.SetCombat(true)
 	G.SetRoster(renv, "raid", G.Members(30))
 	renv.RunTimers()
 	eq(#renv._blocked, 0, "a roster change in combat touches nothing protected: " .. tostring(renv._blocked[1]))
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "and the size waits for combat to end")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "and the size waits for combat to end")
 	renv.SetCombat(false)
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 40, "thirty members get compact frames after combat")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 42, "thirty members get compact frames after combat")
 	Batch(renv, RK, { { "auto.size", false } })
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "the switch can be turned off")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "the switch can be turned off")
 	Batch(renv, RK, { { "raid.height", 40 } })
 	local f = content(rns, rns.Headers.raid[1], "raid1")
 	ManyAuras(renv, RK, rns, f, { Scene.Rect(renv, f) }, "raid")

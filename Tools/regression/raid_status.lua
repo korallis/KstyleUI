@@ -1,4 +1,4 @@
--- raid_status.lua: shared checks for the raid tile's statuses (rank round 6): the engine played from the containers' own settings, the "+N" chip's count, the boss route and the status lane, and the presets at 20 and 40 players.
+-- raid_status.lua: shared checks for the raid tile's statuses (rank round 6): the engine played from the containers' own settings, the "+N" chip's count, the boss route and the indicator lane (KSTY-57: the three defaults at the name line's end, off the bar), and the presets at 20 and 40 players.
 local G = dofile("Tools/regression/group_env.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -235,22 +235,31 @@ local BOSS_CASES = {
 	{ { { 3, "boss" }, { 2, "important" }, { 3, "dispel" }, { 4, "other" } }, "a mixed 12" },
 }
 
--- The status lane --------------------------------------------------------------------------------------------------
-local HELPFUL = { EXTERNAL = true, BIG_DEFENSIVE = true }
-
+-- The indicator lane -----------------------------------------------------------------------------------------------
+-- KSTY-57: the three default indicators take the lane at the name line's end, left of the percent: off the bar, the
+-- pip, the percent, the debuffs, your heals and the boss slot, covering only the name's tail while they show.
 local function Statuses(env, ns, f, what)
 	local parts = f.parts
+	local name, lane = parts.name, parts.lane
+	assert(lane and lane.legible, what .. ": the row has a legible indicator lane")
 	local reserved = {
-		name = Part(env, f, parts.name),
-		deficit = Part(env, f, { left = parts.healthText.left, top = parts.healthText.top, width = parts.healthText.right - parts.healthText.left, height = parts.healthText.height }),
+		["name's head"] = Part(env, f, { left = name.left, top = name.top, width = math.min(name.width, lane.left - name.left), height = name.height }),
+		percent = Part(env, f, { left = parts.healthText.left, top = parts.healthText.top, width = parts.healthText.right - parts.healthText.left, height = parts.healthText.height }),
+		pip = Part(env, f, parts.icons.role),
+		bar = { Scene.Rect(env, f.health) },
 		debuffs = { Scene.Rect(env, f.auraClip) },
 		heals = { Scene.Rect(env, f.buffClip) },
 	}
+	if parts.power then
+		reserved.power = Part(env, f, parts.power)
+	end
 	local tile = { Scene.Rect(env, f) }
-	local boss = f.highlights:GetAuraSlotFrame("boss")
-	boss:Show()
-	local bossRect = { Scene.Rect(env, boss) }
-	boss:Hide()
+	if parts.boss then
+		local boss = f.highlights:GetAuraSlotFrame("boss")
+		boss:Show()
+		reserved.boss = { Scene.Rect(env, boss) }
+		boss:Hide()
+	end
 	local placed = {}
 	for i = 1, 3 do
 		local key = "indicator" .. i
@@ -264,17 +273,9 @@ local function Statuses(env, ns, f, what)
 		local r = { Scene.Rect(env, slot.frame) }
 		slot.frame:Hide()
 		assert(inside(r, tile), what .. ": " .. category .. " " .. describe(r) .. " inside the tile")
-		for name, rect in pairs(reserved) do
-			assert(not intersects(r, rect), what .. ": " .. category .. " " .. describe(r) .. " clear of the " .. name .. " " .. describe(rect))
-		end
-		if HELPFUL[category] then
-			assert(not intersects(r, bossRect), what .. ": " .. category .. " clear of the boss slot")
-			assert(parts.lane and inside(r, Part(env, f, parts.lane)), what .. ": " .. category .. " " .. describe(r) .. " in the status lane")
-		else
-			-- Crowd control is harmful: it takes the centred spot under the boss slot, which draws over it.
-			assert(inside(r, bossRect) and math.abs(r[1] + r[3] / 2 - bossRect[1] - bossRect[3] / 2) < 0.6 and math.abs(r[2] + r[4] / 2 - bossRect[2] - bossRect[4] / 2) < 0.6,
-				what .. ": " .. category .. " centred in the boss slot's spot " .. describe(r) .. " " .. describe(bossRect))
-			assert(slot.frame:GetFrameLevel() < boss:GetFrameLevel(), what .. ": the boss slot draws over " .. category)
+		assert(inside(r, Part(env, f, lane)), what .. ": " .. category .. " " .. describe(r) .. " in the indicator lane")
+		for rname, rect in pairs(reserved) do
+			assert(not intersects(r, rect), what .. ": " .. category .. " " .. describe(r) .. " clear of the " .. rname .. " " .. describe(rect))
 		end
 		for j, other in pairs(placed) do
 			assert(not intersects(r, other), what .. ": indicators " .. j .. " and " .. i .. " apart " .. describe(other) .. " " .. describe(r))
@@ -294,7 +295,8 @@ function S.Presets(names)
 		local function check(what, routes)
 			local w, h = ns.Style.Size(f)
 			what = what .. " (" .. w .. " by " .. h .. ")"
-			assert(h >= 40, what .. ": the tile keeps the height its status lane needs")
+			local least = ns.AutoLayout.state.bracket == "LARGE" and 9 or 11
+			assert(f.parts.health.height >= least - PIXEL, what .. ": the bar keeps the mock-up's " .. least .. " units, got " .. f.parts.health.height)
 			Statuses(env, ns, f, what)
 			-- Astra #1: the boss group stays in the row, so the second and later boss debuffs have a route.
 			local groups = f.auras._groups

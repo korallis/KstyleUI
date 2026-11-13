@@ -18,6 +18,7 @@ local READY_LEVEL = 10
 local THREAT_SPREAD = { party = "gapSmall", raid = "gapSmall" }
 local CENTRE_PIECE = 5
 local ROLE_OPTIONS = { displayRoleIcon = true, displayRaidRoleIcon = true }
+local PIP_COLORS = { TANK = "rare", HEALER = "friendly", DAMAGER = "hostile" }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -45,6 +46,13 @@ end
 local function Build(f)
 	local layer = f.text
 	f.role = layer:CreateTexture(nil, "OVERLAY")
+	f.pipEdge = layer:CreateTexture(nil, "OVERLAY")
+	f.pipFill = layer:CreateTexture(nil, "OVERLAY", nil, 1)
+	for _, pip in ipairs({ f.pipEdge, f.pipFill }) do
+		pip:SetTexture((Tokens.Texture("diamond")))
+		pip:Hide()
+	end
+	f.pipEdge:SetVertexColor(Tokens.Color("black"))
 	f.leader = layer:CreateTexture(nil, "OVERLAY", nil, BADGE_SUBLEVEL)
 	if HasAtlas(LEADER_ATLAS) then
 		f.leader:SetAtlas(LEADER_ATLAS)
@@ -86,9 +94,20 @@ local function Layout(f, parts, k)
 	if f.roleInRing then
 		f.role:Hide()
 	end
-	PlaceIcon(f, f.role, icons.role, size)
+	f.pipped = icons.pip == true
+	local roleSize = f.pipped and Widgets.Snap(f, icons.role.width) or size
+	PlaceIcon(f, f.role, icons.role, roleSize)
+	PlaceIcon(f, f.pipEdge, icons.role, roleSize)
+	local edge = Widgets.Border(f)
+	f.pipFill:ClearAllPoints()
+	f.pipFill:SetPoint("TOPLEFT", f.pipEdge, "TOPLEFT", edge, -edge)
+	f.pipFill:SetPoint("BOTTOMRIGHT", f.pipEdge, "BOTTOMRIGHT", -edge, edge)
+	if not f.pipped then
+		f.pipEdge:Hide()
+		f.pipFill:Hide()
+	end
 	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
-	PlaceIcon(f, f.marker, icons.marker, size)
+	PlaceIcon(f, f.marker, icons.marker, f.pipped and Widgets.Snap(f, icons.marker.width) or size)
 	f.assist:ClearAllPoints()
 	f.assist:SetSize(size, size)
 	f.assist:SetPoint("CENTER", f.leader, "CENTER", 0, 0)
@@ -110,10 +129,28 @@ local function UnitRole(f)
 	f.role:Show()
 end
 
+local function ShowPip(f, role)
+	local token = PIP_COLORS[role]
+	f.pipEdge:SetShown(token ~= nil)
+	f.pipFill:SetShown(token ~= nil)
+	if token then
+		f.pipFill:SetVertexColor(Tokens.Color(token))
+	end
+end
+
 local function Role(f)
+	ShowPip(f, nil)
 	if not Settings.current.icons.role or f.roleInRing then
 		f.role:Hide()
 		return
+	end
+	if f.pipped then
+		local role = UnitGroupRolesAssigned(f.unit)
+		if not issecretvalue(role) then
+			f.role:Hide()
+			ShowPip(f, role)
+			return
+		end
 	end
 	local util = UnitFrameUtil
 	if util and type(util.UpdateUnitFrameRoleIcon) == "function" then
@@ -266,7 +303,10 @@ end
 local function PaintSample(f, sample)
 	local icons = Settings.current.icons
 	local atlas = icons.role and not f.roleInRing and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
-	if type(atlas) == "string" then
+	ShowPip(f, f.pipped and icons.role and sample.role or nil)
+	if f.pipped then
+		f.role:Hide()
+	elseif type(atlas) == "string" then
 		f.role:SetAtlas(atlas)
 		f.role:Show()
 	else

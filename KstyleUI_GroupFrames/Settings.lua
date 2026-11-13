@@ -38,30 +38,30 @@ Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 Settings.defaults = {
 	blizzard = { party = true, raid = true, manager = true },
 	party = {
-		width = 278, height = 40, spacing = 8, growth = "DOWN",
+		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
-		portrait = true, roleRing = true, classLine = true, power = false, powerHeight = 4,
-		textLayout = "ABOVE", nameSize = 11, healthText = "NONE", healthTextSize = 11, healthTextPlace = "ROW",
+		portrait = false, roleRing = false, classLine = false, power = true, powerHeight = 3,
+		textLayout = "ABOVE", nameSize = 13, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
-		buffSize = 14, buffCount = 3,
+		buffSize = 11, buffCount = 3,
 	},
 	raid = {
-		width = 72, height = 40, spacing = 3, growth = "DOWN",
-		groupGrowth = "RIGHT", groupSpacing = 3, groupsPerRow = 8,
+		width = 116, height = 36, spacing = 9, growth = "DOWN", card = true,
+		groupGrowth = "RIGHT", groupSpacing = 13, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
-		roleRing = false, classLine = false, power = false, powerHeight = 3,
-		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9, healthTextPlace = "ROW",
+		roleRing = false, classLine = false, power = true, powerHeight = 2,
+		textLayout = "ABOVE", nameSize = 12, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
 		iconSize = 10,
-		auraSize = 12, auraCount = 4, auraDispelCount = 1, auraColumns = 2, auraRows = 2, auraSpacing = 1,
+		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
 	},
-	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
+	health = { texture = DefaultTexture(), colorSource = "custom", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
 	text = {
-		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "text", nameColor = Rgb("textEmphasis"),
+		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "class", nameColor = Rgb("textEmphasis"),
 		healthFont = NUMBER_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
@@ -182,6 +182,13 @@ local function Toggle(key, label, help, extra)
 	return row
 end
 
+local function Portraits(kind)
+	local portrait = Is(kind .. ".portrait", true)
+	return function(settings)
+		return kind == "party" and portrait(settings)
+	end
+end
+
 local function KindRows(schema, kind, label)
 	local function add(row)
 		schema[#schema + 1] = row
@@ -192,8 +199,10 @@ local function KindRows(schema, kind, label)
 	add(Slider(p .. "height", L["Frame height"], L["How tall each frame is."], 16, 120, 1))
 	add(Slider(p .. "spacing", L["Spacing"], L["The gap between frames."], 0, 40, 1))
 	add(Dropdown(p .. "growth", L["Growth"], L["Which way the next frame goes."], GROWTH))
+	add(Toggle(p .. "card", L["Card"], L["Seats the frames in a card with a title, as the quest tracker is."]))
 	add(Toggle(p .. "roleRing", L["Role rings"], L["A ring in the class colour with the role's letter where the portrait would be."]))
 	add(Toggle(p .. "classLine", L["Class and level"], L["A small caption with the member's class and level at the right."]))
+	schema[#schema].showWhen = Portraits(kind)
 	if kind == "party" then
 		add(Dropdown(p .. "sortBy", L["Sort by"], L["The order of the party frames."], PARTY_SORT))
 		add(Toggle(p .. "showPlayer", L["Show yourself"], L["Includes your own frame with the party."]))
@@ -218,7 +227,7 @@ local function KindRows(schema, kind, label)
 	schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
 	add(Dropdown(p .. "healthTextPlace", L["Health text place"], L["Beside the name, or on the bar so a narrow frame keeps the whole name."], TEXT_PLACE))
 	schema[#schema].showWhen = function(settings)
-		return IsNot(p .. "healthText", "NONE")(settings) and Is(p .. "textLayout", "ABOVE")(settings)
+		return IsNot(p .. "healthText", "NONE")(settings) and Is(p .. "textLayout", "ABOVE")(settings) and Portraits(kind)(settings)
 	end
 	add(Slider(p .. "iconSize", L["Status icon size"], L["The size of the role, leader, marker and ready-check icons."], 6, 32, 1))
 	add(Slider(p .. "auraSize", L["Debuff icon size"], L["The size of each debuff icon."], 8, 40, 1))
@@ -314,8 +323,8 @@ local function BuildSchema()
 	add({ type = "header", label = L["Your heals over time"] })
 	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields beside or under the health bar, never on it."]))
 	add({ type = "header", label = L["Automatic layout"] })
-	add(Toggle("auto.size", L["Size by raid size"], L["Shorter raid frames without power bars in raids over 25."]))
-	add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer, frames show two dispellable debuffs first and three of your heals."]))
+	add(Toggle("auto.size", L["Size by raid size"], L["Larger raid frames up to 10 players; over 25, shorter ones without power bars or health text."]))
+	add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer: two dispellable debuffs first and three of your heals, on wider raid frames."]))
 	add({ type = "header", label = L["Click casting"] })
 	add(Toggle("clickCast.hint", L["Click casting reminder"], L["Points the tooltip to the game's Click Casting, which these frames use, until you bind a spell."]))
 	add({ type = "header", label = L["Incoming heals and absorbs"] })

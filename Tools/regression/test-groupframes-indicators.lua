@@ -44,9 +44,38 @@ end
 local env, K, _, party, content = setup()
 local tank, healer, dps = content("party1"), content("party2"), content("party3")
 
--- Grok R5 #1: with the role ring on (the default) the ring's letter carries the role, so the role icon stays hidden
--- and its corner holds your heals on the name line.
+-- KSTY-57: in the lanes the role is a pip, the kit's diamond in the role's colour on a black edge, before the name:
+-- tank blue, healer green, damage red. No role atlas shows beside it.
+local function pip(f, token, what)
+	eq(f.pipEdge:IsShown() and f.pipFill:IsShown(), true, what .. ": the pip shows")
+	eq(f.role:IsShown(), false, what .. ": and no role atlas")
+	local r, g, b = f.pipFill:GetVertexColor()
+	local wr, wg, wb = K.Tokens.Color(token)
+	assert(r == wr and g == wg and b == wb, what .. ": in " .. token)
+	eq(f.pipEdge:GetTexture(), (K.Tokens.Texture("diamond")), what .. ": a diamond")
+end
+pip(tank, "rare", "the tank")
+pip(healer, "friendly", "the healer")
+pip(dps, "hostile", "the damage dealer")
+party[3].role = "HEALER"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.RunTimers()
+pip(dps, "friendly", "a new healer after PLAYER_ROLES_ASSIGNED")
+party[3].role = "NONE"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.RunTimers()
+eq(dps.pipFill:IsShown() or dps.role:IsShown(), false, "no role shows no pip")
+party[3].role = "DAMAGER"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.RunTimers()
+
+-- Grok R5 #1: with the portrait and the role ring on, the ring's letter carries the role, so the role icon stays
+-- hidden and its corner holds your heals on the name line.
+K.Options.Write("GroupFrames", "party.portrait", true)
+K.Options.Write("GroupFrames", "party.roleRing", true)
+env.RunTimers()
 eq(tank.role:IsShown(), false, "the role ring carries the role, so no second role icon shows")
+eq(tank.pipFill:IsShown(), false, "nor a pip")
 eq(tank.roleText:GetText(), "T", "the ring reads T")
 K.Options.Write("GroupFrames", "party.roleRing", false)
 env.RunTimers()
@@ -160,6 +189,17 @@ env, utilK, _, _, content = setup({
 		}
 	end,
 })
+-- In the lanes, a secret role cannot pick a pip colour, so Blizzard's helper draws its role icon in the pip's place.
+env._member("party1").role = env.Secret("TANK")
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.RunTimers()
+local secretRole = content("party1")
+eq(secretRole.pipFill:IsShown(), false, "a secret role shows no pip")
+eq(last(secretRole.role, "SetAtlas")[1], "blizzard-role", "UnitFrameUtil draws the role icon for a secret role")
+assert(seen ~= nil, "UnitFrameUtil gets the unit")
+env._member("party1").role = "TANK"
+seen = nil
+utilK.Options.Write("GroupFrames", "party.portrait", true)
 utilK.Options.Write("GroupFrames", "party.roleRing", false)
 env.RunTimers()
 eq(last(content("party1").role, "SetAtlas")[1], "blizzard-role", "UnitFrameUtil draws the role icon")

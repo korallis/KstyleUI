@@ -140,6 +140,9 @@ local function Field(f, w, h)
 		if parts.boss and Settings.current.auras.enabled then
 			blocked[#blocked + 1] = FromRect(parts.boss)
 		end
+		if parts.power then
+			blocked[#blocked + 1] = FromRect(parts.power)
+		end
 	end
 	if parts.nameInside then
 		local line = k.nameSize + NAME_LINE_EXTRA
@@ -253,9 +256,6 @@ local function Spots(f)
 		local left = lane.fromRight and lane.left + lane.width - lane.size - along or lane.left + along
 		out.lane[j] = Box(left, lane.top, lane.size, lane.size)
 	end
-	if parts.boss and Settings.current.auras.enabled then
-		out.centre = FromRect(parts.boss)
-	end
 	return out
 end
 
@@ -264,9 +264,6 @@ local function Key2(f, w, h, field, blocked, spots)
 	local out = { f.kind, w, h, field.left, field.top, field.right, field.bottom, Widgets.Snap(f, 1) }
 	for _, spot in ipairs(spots and spots.lane or {}) do
 		out[#out + 1] = "l" .. spot.left .. ":" .. spot.top .. ":" .. spot.right
-	end
-	if spots and spots.centre then
-		out[#out + 1] = "c" .. spots.centre.left .. ":" .. spots.centre.top .. ":" .. spots.centre.right
 	end
 	for _, b in ipairs(blocked) do
 		out[#out + 1] = b.left .. ":" .. b.top .. ":" .. b.right .. ":" .. b.bottom
@@ -337,24 +334,20 @@ function Slots.Placements(f)
 			return a < b
 		end)
 	end
-	local lane, centre = 1, spots and spots.centre
+	local lane = 1
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
 		local place = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }
 		if CATEGORIES[slot.category] then
 			local spot
-			if spots then
-				if centre and not Slots.Helpful(slot.category) then
-					spot, centre, place.under = centre, nil, true
-				elseif spots.lane[lane] then
-					spot, lane = spots.lane[lane], lane + 1
-				end
+			if spots and spots.lane[lane] then
+				spot, lane = spots.lane[lane], lane + 1
 			end
 			if spot then
 				local full = spot.right - spot.left
 				if place.size < full then
-					local inset = place.under and (full - place.size) / 2 or 0
-					spot = Box(spot.left + inset, spot.top + inset, place.size, place.size)
+					local inset = Widgets.Snap(f, (full - place.size) / 2)
+					spot = Box(spot.left + full - place.size, spot.top + inset, place.size, place.size)
 				end
 				Put(place, spot, w, h)
 			else
@@ -393,7 +386,7 @@ local function Place(f)
 			local place = placements[i]
 			button:ClearAllPoints()
 			button:SetPoint(place.point, f, place.point, place.x, place.y)
-			button:SetFrameLevel(place.under and f:GetFrameLevel() + Auras.CONTAINER_LEVEL + 1 or base + COUNT - i)
+			button:SetFrameLevel(base + COUNT - i)
 			Auras.StyleIcon(button)
 			Widgets.Size(button, place.size, place.size)
 		end

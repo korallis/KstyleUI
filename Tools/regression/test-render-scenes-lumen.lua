@@ -1,5 +1,5 @@
 -- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
--- guide and the tracker fit the right rail's story slot as one card, where Apply puts them, the party card and chat share the left rail's edge, and every card is lit; in combat the idle cards rest at 30%, the cards you
+-- guide and the tracker fit the right rail's story slot as one card, where Apply puts them, the bare party and chat share the left rail's edge, and every card is lit; in combat the idle cards rest at 30%, the cards you
 -- read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
@@ -49,8 +49,8 @@ do
 	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
 end
 
--- Two rails. The left holds the party card and chat on one left edge, the party card 318 wide, chat 393, the party over
--- chat. On the right the guide's card holds the story slot on the rail's edge and width, and the quest card wears its
+-- Two rails. The left holds the party and chat on one left edge, the party over chat; since KSTY-57 the party stands
+-- bare, its rows no wider than chat. On the right the guide's card holds the story slot on the rail's edge and width, and the quest card wears its
 -- own glass in its column; neither card's words leave it.
 for _, scene in ipairs({ questing, combat }) do
 	local seen = {}
@@ -61,8 +61,8 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(party and chat and guide and quests, scene.state .. ": the rails show the party, chat, the guide and the quests")
 	assert(math.abs(party.left - chat.left) <= 0.5, scene.state .. ": the party card and chat share the left edge, got " .. party.left .. " and " .. chat.left)
 	assert(party.left < slot.left / 2, scene.state .. ": on the left rail")
-	assert(math.abs(chat.width - party.width * 393 / 318) <= 1, scene.state .. ": chat is 393 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
-	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party card")
+	assert(party.width <= chat.width + 0.5, scene.state .. ": the party's rows are no wider than chat, got " .. party.width .. " for " .. chat.width)
+	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party")
 	assert(math.abs(guide.left - slot.left) <= 0.5 and math.abs(guide.width - slot.width) <= 1, scene.state .. ": the guide's card is on the right rail's edge and width, got " .. guide.left .. " by " .. guide.width)
 	assert(guide.top >= slot.top - 0.5 and guide.top + guide.height <= slot.top + slot.height + 0.5, scene.state .. ": the guide's card stays inside the story slot")
 	assert(math.abs(quests.left - column.left) <= 0.75 and quests.top >= column.top - 0.75 and quests.top + quests.height <= column.top + column.height + 0.75, scene.state .. ": the quest card stays in its column, got " .. quests.left .. ", " .. quests.top .. ", " .. quests.height .. " for " .. column.left .. ", " .. column.top .. ", " .. column.height)

@@ -178,13 +178,14 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 	end
 end
 
--- Bar 3 binds Healer at 1920 x 1080 (0.99742 off, 0.99720 on); at 3456 x 2234 the target frame and the micro menu bind first (LEE-69 moved the rail 1.4 units in).
+-- Bar 3 binds Healer on a 16:10 1920 x 1200 screen (0.9948 off, 0.8975 on). KSTY-57 gave Healer the DPS places for
+-- its group frames and boss column, so at 1920 x 1080 the boss column binds Healer with bar 3 on or off.
 do
-	assert(Layouts.Fits("Healer", 1920, 1080, 0.9973), "disabled bar 3 must not collide with focus at a size above the old cap")
+	assert(Layouts.Fits("Healer", 1920, 1200, 0.95), "disabled bar 3 must not collide with focus at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
 	enabled["actionbars.bar3"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1080, 0.9973, enabled), "the same bar counts when the player enables it")
-	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
+	assert(not Layouts.Fits("Healer", 1920, 1200, 0.95, enabled), "the same bar counts when the player enables it")
+	assert(Layouts.ScaleLimit(1920, 1200, "Healer", enabled) < Layouts.ScaleLimit(1920, 1200, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
 do
@@ -203,10 +204,12 @@ do
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
 end
 
--- Bar 3 binds the Healer preset at 1920 x 1080 (LEE-69 moved the rail in, so at 3456 x 2234 the target frame and the micro menu bind first).
+-- Bar 3 binds the Healer preset on a 16:10 1920 x 1200 screen (at 1920 x 1080 the boss column binds first since
+-- KSTY-57 gave Healer the DPS places; LEE-69 moved the rail in, so at 3456 x 2234 the target frame and the micro menu
+-- bind first).
 do
 	local menv, MK = CoreEnv.New({
-		width = 1920, height = 1080, fit = true,
+		width = 1920, height = 1200, fit = true,
 		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
 			Default = Profile("Healer", 1.5), WithBar3 = Profile("Healer", 1.5, true), Small = Profile("Healer", 0.7, true),
 		} },
@@ -296,16 +299,17 @@ do
 	Layouts.Get = get
 end
 
--- The original owner-window failure must remain a failure before the service applies the cap.
+-- The original owner-window failure must remain a failure before the service applies the cap. Since KSTY-57 the
+-- Healer group frames sit at the top left, so the boss column, which grows up from its foot, reaches the top edge.
 do
 	local low, high = K.Scale.DEFAULT_USER_SCALE, K.Scale.MAX_USER_SCALE
 	for _ = 1, 60 do
 		local mid = (low + high) / 2
-		if PhysicalRects("Healer", 1920, 1080, mid)["groupframes.raid"][4] > 1080 then high = mid else low = mid end
+		if PhysicalRects("Healer", 1920, 1080, mid)["unitframes.boss"][4] > 1080 then high = mid else low = mid end
 	end
 	local edge = high
 	local unsafeRaid = PhysicalRects("Healer", 1920, 1080, edge)
-	assert(unsafeRaid["groupframes.raid"][4] == 1081, "an edge-only cap puts the live raid one pixel off screen")
+	assert(unsafeRaid["unitframes.boss"][4] == 1081, "an edge-only cap puts the live boss column one pixel off screen")
 	assert(not Layouts.Fits("Healer", 1920, 1080, edge), "live placement rejects the edge-only false positive")
 	local rects = PhysicalRects("DPS", 2383, 1540, 1.5)
 	assert(overlap(rects["chat.main"], rects["unitframes.player"]), "uncapped owner-window chat overlaps the player")

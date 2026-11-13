@@ -10,8 +10,8 @@ ns.Style = Style
 
 local TEXT_LEVEL = 4
 local NAME_LINE_EXTRA = 2
-local ON_BAR_OUTLINE = "OUTLINE"
 local ON_FILL_OUTLINE = "THICKOUTLINE"
+local ON_BAR_OUTLINE = "OUTLINE"
 local LEVEL_SHARE = 0.36
 local BADGE = "buttonFill"
 local PORTRAIT_INSET = 2
@@ -39,6 +39,7 @@ local RESERVE = {
 		CURRENT_PERCENT = { "88.8k  100%" },
 	},
 }
+local PIP = { party = 13, raid = 10 }
 Style.ROLE_RING = ROLE_RING
 Style.ROLE_LETTERS = ROLE_LETTERS
 Style.PILL_HEIGHT = PILL_HEIGHT
@@ -142,11 +143,11 @@ Style.SetFont = SetFont
 
 local function Place(f, region, rect)
 	region:ClearAllPoints()
-	region:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	Widgets.Point(region, "TOPLEFT", f, "TOPLEFT", rect.left, -rect.top)
 end
 
 local function PlaceBar(f, bar, rect)
-	bar.opts.width, bar.opts.height = rect.width, rect.height
+	bar.opts.width, bar.opts.height = Widgets.Snap(f, rect.width), Widgets.Snap(f, rect.height)
 	Place(f, bar, rect)
 	bar:Restyle()
 end
@@ -307,8 +308,8 @@ local function health_orientation(cfg)
 	return cfg.health.orientation ~= "VERTICAL"
 end
 
-function Style.Reserve(f, k, size)
-	local samples = RESERVE[f.kind] and RESERVE[f.kind][k.healthText]
+function Style.Reserve(f, k, size, lanes)
+	local samples = RESERVE[lanes and "raid" or f.kind][k.healthText]
 	local Names = ns.Names
 	if not samples or not Names then
 		return nil
@@ -342,31 +343,38 @@ local function PlaceOverlay(f, k, parts)
 	local rect, spot = parts.name, parts.healthText
 	local status = f.status ~= nil
 	local shown = k.healthText ~= "NONE"
-	f.classLine:Hide()
-	local outline = cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline
 	local size, lane = k.healthTextSize, spot.right - spot.left
+	f.classLine:Hide()
+	local onBar = status and lane <= 0
+	local outline = onBar and cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline
 	SetFont(healthText, cfg.healthFont, size, outline)
-	local reserve = not status and Style.Reserve(f, k)
+	local reserve = not status and Style.Reserve(f, k, nil, true)
 	while reserve and reserve > lane and size > NAME_FLOOR do
 		size = size - 1
 		SetFont(healthText, cfg.healthFont, size, outline)
-		reserve = Style.Reserve(f, k, size)
+		reserve = Style.Reserve(f, k, size, true)
 	end
 	healthText:SetShown(shown or status)
 	healthText:ClearAllPoints()
-	if status then
+	local overflow = 0
+	if onBar then
 		healthText:SetJustifyH("CENTER")
 		healthText:SetWidth(0)
 		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, spot.center), -Widgets.Snap(f, spot.middle))
 	else
+		local width = status and Style.StatusWidth(f, size) or math.max(lane, reserve or 0)
 		healthText:SetJustifyH(spot.justify)
-		healthText:SetWidth(math.max(1, Widgets.Snap(f, math.max(lane, reserve or 0))))
-		healthText:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, spot.left), -Widgets.Snap(f, spot.top))
+		healthText:SetWidth(math.max(1, Widgets.Snap(f, width)))
+		healthText:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, Widgets.Snap(f, parts.health.top) - Widgets.Snap(f, spot.top))
+		if status then
+			local free = spot.left - (rect.left + rect.width)
+			overflow = math.max(0, Widgets.Snap(f, width) - Widgets.Snap(f, lane + free))
+		end
 	end
 	name:ClearAllPoints()
 	name:SetJustifyH("LEFT")
 	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
-	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width))
+	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width) - overflow)
 	name:SetWidth(f.nameWidth)
 	ApplyName(f)
 end
@@ -459,7 +467,12 @@ function Style.Apply(f, width, height)
 	local k = cfg[f.kind]
 	width, height = width or Style.MemberWidth(f.kind), height or k.height
 	f.width, f.height = width, height
-	local overlay = f.kind == "raid"
+	local overlay = k.textLayout == "ABOVE" and (f.kind == "raid" or not k.portrait)
+	local reserve = 0
+	if overlay and k.healthText ~= "NONE" then
+		SetFont(f.healthText, cfg.text.healthFont, k.healthTextSize, cfg.text.healthOutline)
+		reserve = Style.Reserve(f, k, nil, true) or 0
+	end
 	local place, outside = Geometry.AuraPlace(k, f.kind == "party" and Geometry.AuraLane(k) or 0)
 	local aura = cfg.auras.enabled and not outside and {
 		position = place, count = math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows)), columns = k.auraColumns, rows = k.auraRows,
@@ -485,6 +498,9 @@ function Style.Apply(f, width, height)
 		healCount = k.buffCount,
 		healSpacing = Widgets.Snap(f, k.auraSpacing),
 		overlay = overlay,
+		indent = f.kind == "party",
+		pip = PIP[f.kind],
+		reserve = reserve,
 		boss = overlay and cfg.auras.enabled and BOSS_SLOT or nil,
 		laneSize = overlay and math.max(Geometry.LEGIBLE, Widgets.Snap(f, k.auraSize)) or nil,
 		nameMin = nameMin,
@@ -515,7 +531,7 @@ function Style.Apply(f, width, height)
 	end
 	Style.PlaceRowEnd(f)
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
-	f.tileless = f.kind == "party" and k.roleRing == true
+	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then
 		f.chromeHooked = true
 		local restyle = f.chrome.Restyle

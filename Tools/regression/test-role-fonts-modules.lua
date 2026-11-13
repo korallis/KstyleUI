@@ -42,9 +42,11 @@ local function fits(K, ns, f, what)
 	assert(size >= K.Widgets.FontSize(f.name, f.nameFit.min) - 0.001, what .. ": fitting respects the existing floor")
 end
 
--- GroupFrames: party names.
+-- GroupFrames: party names, in the captioned rows of KSTY-31's party card (KSTY-57's bare rows take names; see
+-- test-groupframes-rows.lua).
 do
-	local env, K, ns = G.New()
+	local Looks = dofile("Tools/regression/group_looks.lua")
+	local env, K, ns = G.New({ saved = Looks.Saved(Looks.PARTY_CARD) })
 	G.SetRoster(env, "party", {
 		{ name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 },
 		{ name = "Kragar", class = "SHAMAN", role = "DAMAGER", health = 60 },

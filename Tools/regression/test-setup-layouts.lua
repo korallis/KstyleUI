@@ -209,9 +209,9 @@ local MARGIN, RAIL = 17, 318
 local BAND = MARGIN + RAIL + 16
 local CARD_GAP_MIN = 16
 local LEFT_RAIL = {
-	DPS = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
-	Tank = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
-	Healer = { "unitframes.boss", "qol.lootfeed" },
+	DPS = { "groupframes.party", "qol.lootfeed" },
+	Tank = { "groupframes.party", "qol.lootfeed" },
+	Healer = { "groupframes.party", "qol.lootfeed" },
 }
 -- The picture (LEE-20, LEE-69) draws the chat card 393 by 186. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
@@ -254,19 +254,15 @@ local RAIL_KEYS = {
 	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
-	Healer = set({ "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
+	Healer = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 }
--- Healer retains the group frames' upper-left slots, 152 off centre; the character's column stays clear.
-local HEALER = { right = 152, gap = 16, character = 100 }
 -- The optional focus target and Tank threat card retain their four-unit gaps.
 local CLUSTER_GAP = 4
-local GROUP = set({ "groupframes.party", "groupframes.raid" })
 
 for _, name in ipairs(names) do
 	local layout = Layouts.Get(name)
-	local healer = name == "Healer"
 	for _, screen in ipairs(SCREENS) do
 		local width = HEIGHT * screen[1] / screen[2]
 		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
@@ -344,16 +340,12 @@ for _, name in ipairs(names) do
 				label .. ": " .. key .. " stays off the story slot")
 		end
 
-		-- The left rail's head: the party and raid card, or in Healer the boss column.
+		-- The left rail's head: the party and raid card, in every layout (KSTY-57: the raid card's real size leaves the
+		-- Healer layout no other room that keeps the raid warnings' lane and the tracked bars' spot).
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
-		local head
-		if healer then
-			head = rect("unitframes.boss")
-			assert(head.top == HEIGHT - MARGIN, label .. ": the boss column heads the left rail")
-		else
-			assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
-			head = party
-		end
+		assert(raid.left == MARGIN, label .. ": the raid card stands on the left margin")
+		assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
+		local head = party
 
 		-- The left rail holds only its head, the loot feed and chat, on one left edge (the story slot moved to the right rail).
 		assert(head.left == chat.left, label .. ": the left rail's head and chat share the left edge")
@@ -376,14 +368,7 @@ for _, name in ipairs(names) do
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
-			if healer and GROUP[key] then
-				assert(r.right <= mid - HEALER.right + 1e-6 and r.right <= mid - HEALER.character, label .. ": " .. key .. " stays left of the character's column")
-				assert(r.left >= BAND, label .. ": " .. key .. " stays off the left rail")
-			elseif healer and key == "combattext.player" then
-				-- Healer mirrors the group frames: your combat text rises right of the cast bars as the group frames stand
-				-- left of them, the same 152 off the centre line.
-				assert(math.abs(r.left - (mid + HEALER.right)) < 1e-6, label .. ": your combat text mirrors the group frames right of the cast bars")
-			elseif EDGE_RIGHT[key] and not onRail then
+			if EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 4, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
@@ -460,18 +445,13 @@ for _, name in ipairs(names) do
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
-		if healer then
-			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
-				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
-			end
-		end
 
 		-- The boss column stands on the centre's right edge in DPS and Tank, a rail gap left of the quest card's column
 		-- beside the RestedXP guide (KSTY-33, the Captain's ruling on the Fable audit), its foot a rail gap over your combat
 		-- text, which rises right of the cluster. It grows up from that foot, so a single boss sits by the cluster rather than
 		-- alone at the top of the screen (round 6, Grok #4); five fill the column upward.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
-		if not healer then
+		do
 			local column = Layouts.Story(name, HEIGHT, true).quests
 			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
 			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
@@ -511,7 +491,7 @@ for _, name in ipairs(names) do
 	assert(settings["ActionBars.bar2.enabled"] == true and settings["ActionBars.bar2.rows"] == 1, name .. ": LEE-20 writes bar 2 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 3 and settings["ActionBars.stance.rows"] == 3, name .. " folds the pet and stance sockets into three rows of four beside the tray")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
-	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
+	assert(settings["UnitFrames.boss.auraPosition"] == "LEFT", name .. " hangs the boss debuffs towards the centre")
 	assert(settings["ActionBars.bar1.showEmpty"] == true and settings["ActionBars.bar2.showEmpty"] == true, name .. ": LEE-20 shows both central bars' empty tiles")
 	for _, i in ipairs({ 3, 6 }) do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
@@ -527,16 +507,21 @@ for _, name in ipairs(names) do
 	end
 	assert(sizes["meters.damage"].width == 269 and sizes["meters.damage"].height == 158, name .. ": the picture's 269 x 158 damage card")
 	assert(settings["GroupFrames.raid.groupsPerRow"] == 4, name .. " folds the raid into four groups a row, for the rail")
-	local raidW = 4 * settings["GroupFrames.raid.width"] + 3 * 3
-	assert(raidW <= RAIL and raidW >= RAIL - 4, name .. ": four raid groups fill the rail's 318, got " .. raidW)
+	assert(settings["GroupFrames.raid.width"] == nil and settings["GroupFrames.party.spacing"] == nil, name .. " keeps the KSTY-47 mock-ups' cell width and party pitch (KSTY-57)")
 end
 do
 	local function h(name, key)
 		return select(2, Layouts.Footprint(name, key))
 	end
-	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and h("Healer", "groupframes.raid") > h("DPS", "groupframes.raid"), "Healer gets larger party and raid frames")
-	local healerParty, dpsParty = Layouts.Get("Healer")["groupframes.party"], Layouts.Get("DPS")["groupframes.party"]
-	assert(healerParty.anchor ~= dpsParty.anchor or healerParty.x ~= dpsParty.x, "Healer moves the party and raid: it is not the DPS layout with taller rows")
+	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and Layouts.Footprint("Healer", "groupframes.raid") > Layouts.Footprint("DPS", "groupframes.raid"), "Healer gets taller party rows and wider raid rows")
+	-- KSTY-57: a healer's raid card (623 wide at 20 players) left the Healer layout no room for the raid warnings'
+	-- lane or the tracked bars' only Healer spot by the cluster, so Healer keeps the DPS places for its party, raid,
+	-- boss column and combat text.
+	local healerAt, dpsAt = Layouts.Get("Healer"), Layouts.Get("DPS")
+	for _, key in ipairs({ "groupframes.party", "groupframes.raid", "unitframes.boss", "combattext.player" }) do
+		local a, b = healerAt[key], dpsAt[key]
+		assert(a.anchor == b.anchor and a.x == b.x and a.y == b.y, "Healer keeps the DPS place for " .. key)
+	end
 	local threatW, threatH = Layouts.Footprint("Tank", "meters.threat")
 	assert(threatW == 200 and threatH == 112, "Tank sizes the threat card to the cluster's side, 200 by 112, got " .. threatW .. " x " .. threatH)
 	local hs = {}
@@ -546,12 +531,14 @@ do
 	local dps, healer = {}, {}
 	for _, entry in ipairs(Layouts.Settings("DPS")) do dps[entry.module .. "." .. entry.key] = entry.value end
 	for _, entry in ipairs(Layouts.Settings("Healer")) do healer[entry.module .. "." .. entry.key] = entry.value end
-	assert(healer["GroupFrames.party.height"] > dps["GroupFrames.party.height"] and healer["GroupFrames.raid.height"] > dps["GroupFrames.raid.height"], "Healer writes taller party and raid rows")
-	assert(dps["GroupFrames.party.spacing"] == 8 and healer["GroupFrames.party.spacing"] == 8, "the party rows sit 8 apart, the mockup's pitch")
-	local party = 5 * healer["GroupFrames.party.height"] + 4 * healer["GroupFrames.party.spacing"]
-	assert(5 * dps["GroupFrames.party.height"] + 4 * 8 <= h("DPS", "groupframes.party"), "the DPS party fits its card")
+	assert(healer["GroupFrames.party.height"] > dps["GroupFrames.party.height"] and healer["GroupFrames.raid.height"] == dps["GroupFrames.raid.height"], "Healer writes taller party rows; its raid rows keep the DPS height, so the 40-player card stays 401 tall")
+	local spacing = 13
+	local party = 5 * healer["GroupFrames.party.height"] + 4 * spacing
+	assert(5 * dps["GroupFrames.party.height"] + 4 * spacing <= h("DPS", "groupframes.party"), "the DPS party fits its card")
 	assert(party <= h("Healer", "groupframes.party"), "the Healer party fits its card, got " .. party)
-	local raid = 2 * (5 * healer["GroupFrames.raid.height"] + 4 * 3) + 3
+	-- The tallest Healer raid card: 40 players, two rows of four groups of compact rows (8 shorter, 6 apart), in the
+	-- card's 20-unit padding under its 12-unit cap and 8-unit gap.
+	local raid = 2 * (5 * (healer["GroupFrames.raid.height"] - 8) + 4 * 6) + 13 + 20 + 12 + 8 + 20
 	assert(raid <= h("Healer", "groupframes.raid"), "the Healer raid fits its card, got " .. raid)
 	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil and Layouts.Sizes("Raid") == nil, "an unknown layout gives nil")
 end
@@ -606,7 +593,7 @@ local FOOTPRINTS = {
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 393, 186 },
 	["groupframes.party"] = { 318, 324 },
-	["groupframes.raid"] = { 318, 427 },
+	["groupframes.raid"] = { 543, 401 },
 	["databars.xp"] = { 491, 5 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },
