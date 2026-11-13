@@ -235,21 +235,21 @@ local function BuildWelcome(page)
 	local logo = page:CreateTexture(nil, "ARTWORK")
 	logo:SetTexture((Tokens.Texture("logoLarge")))
 	logo:SetSize(Widgets.Snap(page, LOGO_SIZE), Widgets.Snap(page, LOGO_SIZE))
-	logo:SetPoint("TOPLEFT", page, "TOPLEFT", pad, -pad)
+	Widgets.Point(logo, "TOPLEFT", page, "TOPLEFT", pad, -pad)
 	local title = Widgets.Text(page, "display", "textEmphasis")
-	title:SetPoint("TOPLEFT", logo, "TOPRIGHT", gap("gapHuge") * 2, 0)
+	Widgets.Point(title, "TOPLEFT", logo, "TOPRIGHT", gap("gapHuge") * 2, 0)
 	title:SetText(L["Welcome to KstyleUI"])
 	local body = Paragraph(page, "body", "text", TEXT_WIDTH)
-	body:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
+	Widgets.Point(body, "TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
 	body:SetText(L["This short setup picks a layout and the parts of the interface KstyleUI replaces. You can change everything later in the settings window, and move or resize any element in Layout Mode."])
 	local caption = Widgets.Text(page, "caption", "text")
-	caption:SetPoint("TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
+	Widgets.Point(caption, "TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
-	list:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
+	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
 	list:SetText(L["1. Pick a HUD style: Frames or Orbs."] .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
-	note:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
+	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
 	panel.welcomeTitle, panel.welcomeNote = title, note
 end
@@ -270,9 +270,9 @@ end
 function Card:Restyle()
 	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
 	self.title:ClearAllPoints()
-	self.title:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
+	Widgets.Point(self.title, "TOPLEFT", self, "TOPLEFT", pad, -pad)
 	self.note:ClearAllPoints()
-	self.note:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self, Tokens.Size("gapSmall")))
+	Widgets.Point(self.note, "TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self, Tokens.Size("gapSmall")))
 	self.note:SetWidth(max(1, self:GetWidth() - pad * 2))
 	self:Paint()
 end
@@ -308,7 +308,7 @@ local function PlaceSlot(preview, s, line)
 	local l, b, r, t = Layouts.Rect(want, want, REFERENCE_WIDTH, REFERENCE_HEIGHT)
 	local slot = preview.slot
 	slot:ClearAllPoints()
-	slot:SetPoint("BOTTOMLEFT", preview, "BOTTOMLEFT", Widgets.Snap(preview, l * s), Widgets.Snap(preview, b * s))
+	Widgets.Point(slot, "BOTTOMLEFT", preview, "BOTTOMLEFT", Widgets.Snap(preview, l * s), Widgets.Snap(preview, b * s))
 	slot:SetSize(Widgets.Snap(preview, (r - l) * s), Widgets.Snap(preview, (t - b) * s))
 	slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
 	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
@@ -316,22 +316,22 @@ local function PlaceSlot(preview, s, line)
 		edge:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE))
 		edge:ClearAllPoints()
 	end
-	top:SetPoint("TOPLEFT")
-	top:SetPoint("TOPRIGHT")
+	Widgets.Point(top, "TOPLEFT")
+	Widgets.Point(top, "TOPRIGHT")
 	top:SetHeight(line)
-	bottom:SetPoint("BOTTOMLEFT")
-	bottom:SetPoint("BOTTOMRIGHT")
+	Widgets.Point(bottom, "BOTTOMLEFT")
+	Widgets.Point(bottom, "BOTTOMRIGHT")
 	bottom:SetHeight(line)
-	left:SetPoint("TOPLEFT")
-	left:SetPoint("BOTTOMLEFT")
+	Widgets.Point(left, "TOPLEFT")
+	Widgets.Point(left, "BOTTOMLEFT")
 	left:SetWidth(line)
-	right:SetPoint("TOPRIGHT")
-	right:SetPoint("BOTTOMRIGHT")
+	Widgets.Point(right, "TOPRIGHT")
+	Widgets.Point(right, "BOTTOMRIGHT")
 	right:SetWidth(line)
 	slot:Show()
 	local label = slot.label
 	label:ClearAllPoints()
-	label:SetPoint("CENTER", slot, "CENTER", 0, 0)
+	Widgets.Point(label, "CENTER", slot, "CENTER", 0, 0)
 	label:SetJustifyH("CENTER")
 	Widgets.StyleText(label, "caption")
 	label:SetShown(FitLabel(label, STORY, slot:GetWidth(), slot:GetHeight()))
@@ -386,7 +386,7 @@ FitLabel = Fit
 local function Name(rect, width, height)
 	local label, element = rect.label, rect.element
 	label:ClearAllPoints()
-	label:SetPoint("CENTER", rect, "CENTER", 0, 0)
+	Widgets.Point(label, "CENTER", rect, "CENTER", 0, 0)
 	label:SetJustifyH("CENTER")
 	Widgets.StyleText(label, "caption")
 	if Layouts.Dock(element.key) or Tokens.Size("caption") > height - LABEL_ROOM then
@@ -413,7 +413,7 @@ function Preview:Draw(name)
 		local width, height = max(line, Widgets.Snap(self, (r - l) * s)), max(line, Widgets.Snap(self, (t - b) * s))
 		rect:SetShown(shown)
 		rect:ClearAllPoints()
-		rect:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", Widgets.Snap(self, l * s), Widgets.Snap(self, b * s))
+		Widgets.Point(rect, "BOTTOMLEFT", self, "BOTTOMLEFT", Widgets.Snap(self, l * s), Widgets.Snap(self, b * s))
 		rect:SetSize(width, height)
 		if rect.role then
 			rect:SetColorTexture(Widgets.Rgba("accent", ROLE_ALPHA))
@@ -500,7 +500,7 @@ function Preview:Fit()
 	local previewWidth = Widgets.Snap(page, min(width - spacing - LEGEND_WIDTH, previewHeight * REFERENCE_WIDTH / REFERENCE_HEIGHT))
 	previewHeight = Widgets.Snap(page, previewWidth * REFERENCE_HEIGHT / REFERENCE_WIDTH)
 	self:ClearAllPoints()
-	self:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -top)
+	Widgets.Point(self, "TOPLEFT", page, "TOPLEFT", 0, -top)
 	Widgets.Size(self, previewWidth, previewHeight)
 	panel.layoutHint:SetWidth(width - previewWidth - spacing)
 end
@@ -523,7 +523,7 @@ local function BuildLayouts(page, width)
 			panel.preview.hovered = false
 			panel.preview:Draw(Setup.Choice().layout)
 		end)
-		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
+		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.cards[name] = card
 	end
 	local preview = NewPreview(page)
@@ -531,11 +531,11 @@ local function BuildLayouts(page, width)
 	panel.preview = preview
 	local shown = Widgets.Text(page, "heading", "textEmphasis")
 	shown:SetJustifyH("LEFT")
-	shown:SetPoint("TOPLEFT", preview, "TOPRIGHT", spacing, 0)
+	Widgets.Point(shown, "TOPLEFT", preview, "TOPRIGHT", spacing, 0)
 	preview.nameText = shown
 	panel.previewName = shown
 	local hint = Paragraph(page, "body", "text", width / 2)
-	hint:SetPoint("TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
+	Widgets.Point(hint, "TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
 	hint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
 		.. "\n\n" .. L["Point at a layout to preview it."]
 		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
@@ -553,12 +553,12 @@ end
 
 local function BuildModules(page, width)
 	local header = Paragraph(page, "body", "text", width / 2)
-	header:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
+	Widgets.Point(header, "TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
 	header:SetText(L["Every module starts on. Turn off any you do not want."])
 	local allOff = Widgets.Button(page, { text = L["All off"], onClick = function() SetAll(false) end })
-	allOff:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 0)
+	Widgets.Point(allOff, "TOPRIGHT", page, "TOPRIGHT", 0, 0)
 	local allOn = Widgets.Button(page, { text = L["All on"], onClick = function() SetAll(true) end })
-	allOn:SetPoint("RIGHT", allOff, "LEFT", -gap("gapSmall"), 0)
+	Widgets.Point(allOn, "RIGHT", allOff, "LEFT", -gap("gapSmall"), 0)
 	local column = Widgets.Snap(page, width / 2)
 	local top = Widgets.Snap(page, HEADER_HEIGHT) + gap("gapMedium")
 	panel.toggles = {}
@@ -573,7 +573,7 @@ local function BuildModules(page, width)
 				Changed()
 			end,
 		})
-		toggle:SetPoint("TOPLEFT", page, "TOPLEFT", col * column, -(top + row * Widgets.Snap(page, ROW_HEIGHT)))
+		Widgets.Point(toggle, "TOPLEFT", page, "TOPLEFT", col * column, -(top + row * Widgets.Snap(page, ROW_HEIGHT)))
 		local note = Widgets.FontString(page)
 		note.Restyle = NoteStyle
 		Widgets.Track(note)
@@ -581,7 +581,7 @@ local function BuildModules(page, width)
 		note:SetJustifyH("LEFT")
 		note:SetWordWrap(false)
 		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
-		note:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
+		Widgets.Point(note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
 		note:SetWidth(column - indent - gap("gapLarge"))
 		toggle.note = note
 		panel.toggles[name] = toggle
@@ -604,9 +604,9 @@ local function BuildStyles(page, width)
 		card.picture = card:CreateTexture(nil, "ARTWORK")
 		card.picture:SetTexture((Tokens.Texture(entry.picture)))
 		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
-		card.picture:SetPoint("TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
-		card.picture:SetPoint("LEFT", card, "LEFT", pad, 0)
-		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
+		Widgets.Point(card.picture, "TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
+		Widgets.Point(card.picture, "LEFT", card, "LEFT", pad, 0)
+		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.styleCards[value] = card
 	end
 	local hint = Paragraph(page, "body", "text", width)
@@ -626,7 +626,7 @@ FitStyles = function()
 		Widgets.Size(card, fit.width, height)
 	end
 	panel.styleHint:ClearAllPoints()
-	panel.styleHint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
+	Widgets.Point(panel.styleHint, "TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
 end
 
 local function BuildOrnaments(page, width)
@@ -639,11 +639,11 @@ local function BuildOrnaments(page, width)
 			Setup.Choice().ornaments = value
 		end)
 		card.ornaments = value
-		card:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(i - 1) * (height + spacing))
+		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", 0, -(i - 1) * (height + spacing))
 		panel.ornamentCards[value] = card
 	end
 	local hint = Paragraph(page, "body", "text", width)
-	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -#Setup.ORNAMENTS * (height + spacing))
+	Widgets.Point(hint, "TOPLEFT", page, "TOPLEFT", 0, -#Setup.ORNAMENTS * (height + spacing))
 	hint:SetText(L["Ornaments add forged trim around the HUD without moving anything. They show on every card material but Glass."]
 		.. "\n\n" .. L["Change them at any time in the settings window, on the General page."])
 	panel.ornamentHint = hint
@@ -658,12 +658,12 @@ end
 
 local function SizeCard(card, x, y, width, height, pad)
 	card:ClearAllPoints()
-	card:SetPoint("TOPLEFT", card:GetParent(), "TOPLEFT", x, -y)
+	Widgets.Point(card, "TOPLEFT", card:GetParent(), "TOPLEFT", x, -y)
 	Widgets.Size(card, width, height)
 	card.cap.opts.width = width - 2 * pad
 	card.cap:Restyle()
 	card.cap:ClearAllPoints()
-	card.cap:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+	Widgets.Point(card.cap, "TOPLEFT", card, "TOPLEFT", pad, -pad)
 end
 
 PlaceSummary = function()
@@ -706,20 +706,20 @@ PlaceSummary = function()
 	SizeCard(right, column + spacing, 0, column, row, pad)
 	SizeCard(low, 0, row + spacing, width, max(status, height - row - spacing), pad)
 	summary:ClearAllPoints()
-	summary:SetPoint("TOPLEFT", left, "TOPLEFT", pad, -top)
+	Widgets.Point(summary, "TOPLEFT", left, "TOPLEFT", pad, -top)
 	local room = row - top - pad
 	local previewWidth = Widgets.Snap(page, min(inner, room * REFERENCE_WIDTH / REFERENCE_HEIGHT))
 	local previewHeight = Widgets.Snap(page, previewWidth * REFERENCE_HEIGHT / REFERENCE_WIDTH)
 	local preview = panel.summaryPreview
 	preview.size = { previewWidth, previewHeight }
 	preview:ClearAllPoints()
-	preview:SetPoint("TOPLEFT", right, "TOPLEFT", Widgets.Snap(page, (column - previewWidth) / 2), -(top + Widgets.Snap(page, (room - previewHeight) / 2)))
+	Widgets.Point(preview, "TOPLEFT", right, "TOPLEFT", Widgets.Snap(page, (column - previewWidth) / 2), -(top + Widgets.Snap(page, (room - previewHeight) / 2)))
 	editMode:ClearAllPoints()
-	editMode:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(editAt or top))
+	Widgets.Point(editMode, "TOPLEFT", low, "TOPLEFT", pad, -(editAt or top))
 	retry:ClearAllPoints()
-	retry:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -(retryAt or top))
+	Widgets.Point(retry, "TOPLEFT", low, "TOPLEFT", pad, -(retryAt or top))
 	help:ClearAllPoints()
-	help:SetPoint("TOPLEFT", low, "TOPLEFT", pad, -helpAt)
+	Widgets.Point(help, "TOPLEFT", low, "TOPLEFT", pad, -helpAt)
 end
 
 local function BuildSummary(page, width)
@@ -746,7 +746,7 @@ local function BuildSummary(page, width)
 			end
 		end,
 	})
-	manager:SetPoint("LEFT", retry, "RIGHT", gap("gapSmall"), 0)
+	Widgets.Point(manager, "LEFT", retry, "RIGHT", gap("gapSmall"), 0)
 	manager:Hide()
 	local help = Paragraph(status, "body", "muted", width, true)
 	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
@@ -809,12 +809,11 @@ local function Build()
 			Setup.Go(value)
 		end,
 	})
-	panel.steps:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
+	Widgets.Point(panel.steps, "TOPLEFT", content, "TOPLEFT", 0, 0)
 	panel.pages = {}
 	for i = 1, STEPS do
 		local page = CreateFrame("Frame", nil, content)
-		page:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(Widgets.Snap(panel, STRIP_HEIGHT) + gap("gapLarge")))
-		page:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, Widgets.Snap(panel, FOOTER_HEIGHT) + gap("gapLarge"))
+		Widgets.Fill(page, content, 0, STRIP_HEIGHT + Tokens.Size("gapLarge"), 0, FOOTER_HEIGHT + Tokens.Size("gapLarge"))
 		page:Hide()
 		panel.pages[i] = page
 	end
@@ -825,7 +824,7 @@ local function Build()
 	BuildOrnaments(panel.pages[5], width)
 	BuildSummary(panel.pages[6], width)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
-	panel.back:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
+	Widgets.Point(panel.back, "BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {
 		text = L["Keep my UI"],
 		onClick = function()
@@ -833,9 +832,9 @@ local function Build()
 			panel:Close()
 		end,
 	})
-	panel.skip:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
+	Widgets.Point(panel.skip, "BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.next = Widgets.Button(content, { text = L["Next"], primary = true, onClick = function() Setup.Go(step + 1) end })
-	panel.next:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
+	Widgets.Point(panel.next, "BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
 	panel.apply = Widgets.Button(content, {
 		text = L["Apply"],
 		primary = true,
@@ -846,11 +845,11 @@ local function Build()
 			end
 		end,
 	})
-	panel.apply:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
+	Widgets.Point(panel.apply, "BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
 	panel.reload = Widgets.ReloadButton(content, {})
-	panel.reload:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
+	Widgets.Point(panel.reload, "BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
 	panel.later = Widgets.Button(content, { text = L["Later"], onClick = function() panel:Close() end })
-	panel.later:SetPoint("RIGHT", panel.reload, "LEFT", -gap("gapSmall"), 0)
+	Widgets.Point(panel.later, "RIGHT", panel.reload, "LEFT", -gap("gapSmall"), 0)
 	Setup.window = panel
 	Setup.EditModeChanged = function()
 		if panel:IsShown() then

@@ -155,25 +155,25 @@ function Panel:Restyle()
 		local gem = Widgets.Snap(self, GEM_SIZE)
 		cap.gem:SetSize(gem, gem)
 		cap.gem:ClearAllPoints()
-		cap.gem:SetPoint("CENTER", cap, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
+		Widgets.Point(cap.gem, "CENTER", cap, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
 		Widgets.CapsSize(cap.label)
 		cap.label:ClearAllPoints()
-		cap.label:SetPoint("LEFT", cap.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
+		Widgets.Point(cap.label, "LEFT", cap.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 		cap.label:SetSize(0, heading)
 		cap.rule:ClearAllPoints()
-		cap.rule:SetPoint("LEFT", cap.label, "RIGHT", Widgets.Snap(self, RULE_GAP - Widgets.TrackPad(cap.label)), 0)
-		cap.rule:SetPoint("RIGHT", cap, "RIGHT")
+		Widgets.Point(cap.rule, "LEFT", cap.label, "RIGHT", Widgets.Snap(self, RULE_GAP - Widgets.TrackPad(cap.label)), 0)
+		Widgets.Point(cap.rule, "RIGHT", cap, "RIGHT")
 		cap.rule:SetHeight(Widgets.Border(self))
 		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
 		Widgets.PaintCapMaterial(cap.gem, cap.rule, RULE_ALPHA)
 		Widgets.TextColor(cap.label, "capsGold")
 		cap:SetHeight(heading)
 		self.cap:ClearAllPoints()
-		self.cap:SetPoint("LEFT", self, "TOPLEFT", pad, -(pad + heading / 2))
+		Widgets.Point(self.cap, "LEFT", self, "TOPLEFT", pad, -(pad + heading / 2))
 		if self.closeButton then
-			self.cap:SetPoint("RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
+			Widgets.Point(self.cap, "RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
 		else
-			self.cap:SetPoint("RIGHT", self, "TOPRIGHT", -pad, -(pad + heading / 2))
+			Widgets.Point(self.cap, "RIGHT", self, "TOPRIGHT", -pad, -(pad + heading / 2))
 		end
 		top = bar + Widgets.Snap(self, Tokens.Size("gapMedium"))
 	end
@@ -182,14 +182,14 @@ function Panel:Restyle()
 		self.closeButton:ClearAllPoints()
 		if self.cap then
 			local heading = Widgets.Snap(self, Tokens.Size("heading"))
-			self.closeButton:SetPoint("RIGHT", self, "TOPRIGHT", -gap, -(pad + heading / 2))
+			Widgets.Point(self.closeButton, "RIGHT", self, "TOPRIGHT", -gap, -(pad + heading / 2))
 		else
-			self.closeButton:SetPoint("TOPRIGHT", self, "TOPRIGHT", -gap, -gap)
+			Widgets.Point(self.closeButton, "TOPRIGHT", self, "TOPRIGHT", -gap, -gap)
 		end
 	end
 	self.content:ClearAllPoints()
-	self.content:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -top)
-	self.content:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
+	Widgets.Point(self.content, "TOPLEFT", self, "TOPLEFT", pad, -top)
+	Widgets.Point(self.content, "BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
 end
 
 local function StartDrag(bar)
@@ -221,8 +221,8 @@ function Widgets.Panel(parent, opts)
 	panel.content = CreateFrame("Frame", nil, panel)
 	if titled then
 		local bar = CreateFrame("Frame", nil, panel)
-		bar:SetPoint("TOPLEFT", panel, "TOPLEFT")
-		bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT")
+		Widgets.Point(bar, "TOPLEFT", panel, "TOPLEFT")
+		Widgets.Point(bar, "TOPRIGHT", panel, "TOPRIGHT")
 		panel.titleBar = bar
 		local cap = CreateFrame("Frame", nil, panel)
 		cap.gem = cap:CreateTexture(nil, "ARTWORK")

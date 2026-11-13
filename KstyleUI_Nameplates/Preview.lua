@@ -40,6 +40,9 @@ end
 local function Stack(frame)
 	local width, height = frame:GetWidth(), frame:GetHeight()
 	local known = type(width) == "number" and width > 0 and type(height) == "number" and height > 0
+	for _, plate in ipairs(frame.plates) do
+		plate:GetParent():SetScale(1)
+	end
 	local chosen, smallest
 	for i, plate in ipairs(frame.plates) do
 		local w, h = Span(plate)
