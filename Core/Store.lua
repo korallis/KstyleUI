@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 31
+Store.DB_VERSION = 32
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -803,7 +803,7 @@ Store.migrations[30] = function(data)
 end
 
 local CAST_HEIGHT_V30 = { ["unitframes.castbar.target"] = 24 }
-Store.migrations[31] = function(data)
+Store.migrations[32] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local moves = layouts and type(layouts.CastMoves) == "function" and layouts.CastMoves() or {}
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do

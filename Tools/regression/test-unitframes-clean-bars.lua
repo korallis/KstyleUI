@@ -12,7 +12,7 @@ end
 
 local function saved(style, frames)
 	local profile = { UnitFrames = frames or { enabled = true }, HudStyle = { style = style } }
-	return { version = 31, profiles = { Default = profile }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	return { version = 32, profiles = { Default = profile }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 end
 
 local function noErrors(env, K, where)
@@ -185,7 +185,7 @@ do
 			},
 		},
 	}
-	K.Store.migrations[31](data)
+	K.Store.migrations[32](data)
 	local layout = data.layouts.Default
 	assert(layout["unitframes.castbar.target"] == nil, "the target cast bar's old default height goes")
 	assert(layout["orbs:unitframes.castbar.target"].height == nil and layout["orbs:unitframes.castbar.target"].x == 4, "a style's old default height goes, its place stays")
