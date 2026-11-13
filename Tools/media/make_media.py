@@ -1013,6 +1013,20 @@ for orb_name, width, height, about in (
         drawn=ORB_DRAWN, maker="Higgsfield (KSTY-44 job 5a7af16a, the ring); production pass by `Tools/media/orbs.py`",
     ))
 
+for orb_name, width, height, about in (
+    ("OrbArm", 128, 256, "The Orbs tray's arm: the forged bracket that joins an orb's ring to the tray, the tray hole's left edge at 47.2% across."),
+    ("OrbCrest", 256, 128, "The Orbs tray's centre crest over the top rail, between the two halves of action bar 2."),
+    ("OrbRail", 1024, 64, "The Orbs tray's top rail, one strip with cross-faded seams, stretched between the arms."),
+    ("OrbRailBottom", 1024, 64, "The Orbs tray's bottom rail, one strip with cross-faded seams, stretched between the arms."),
+):
+    ASSETS.append(Asset(
+        f"Media/Textures/{orb_name}.png", width, height,
+        lambda name=orb_name, w=width, h=height: material_pixels(name, w, h),
+        about,
+        "Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below",
+        drawn="2026-11-13", maker="Higgsfield (KSTY-44 job 0b133988, the base); production pass by `Tools/media/orbs.py`",
+    ))
+
 
 def provenance_table():
     lines = [

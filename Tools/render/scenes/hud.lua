@@ -448,6 +448,15 @@ function modules.unitframes(opts)
 			env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", opts.boss.cast.spellID)
 		end
 	end
+	-- Under Orbs the tray frames action bar 1, which lives in the action bars' own scene: a stand-in of bar 1's size
+	-- registers its element here, so the orbs and the tray place from bar 1's Layout rect as they do in the game.
+	if ns.Orbs and ns.Orbs.Active() then
+		local stand = env.CreateFrame("Frame", nil, K.Scale.Root())
+		local grid = K.Setup.Layouts.Grid("actionbars.bar1")
+		stand:SetSize(grid.buttons * grid.size + (grid.buttons - 1) * grid.spacing, grid.size)
+		K.Layout.Register(stand, "actionbars.bar1", K.Setup.Layouts.Default("actionbars.bar1"), { label = "Action bar 1 stand-in", scalable = true })
+		ns.Orbs.Apply()
+	end
 	env.RunTimers()
 	-- The cast bars fade in over a tween; run the frames with the clock held, so the bars read as mid-cast.
 	for _ = 1, 40 do

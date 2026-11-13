@@ -10,10 +10,9 @@ ns.Orbs = Orbs
 local MODULE = Settings.MODULE
 local OWNER = MODULE .. ":orbs"
 local BAR_KEY = "actionbars.bar1"
-local RING = K.Setup.Layouts.ORBS_RING
-local HOLE = RING * 0.701
-local REACH = K.Setup.Layouts.ORBS_REACH
-local LIFT = K.Setup.Layouts.ORBS_LIFT
+local OPENING = 0.701
+local TRAY_STRATA = "BACKGROUND"
+local HOLE_ALPHA = 0.88
 local FLOOR = 2
 local SURFACE_HEIGHT = 14
 local SURFACE_ALPHA = 0.8
@@ -27,7 +26,7 @@ local LEVEL_LOSS, LEVEL_FILL, LEVEL_GLASS = 1, 2, 3
 local KINDS = { "health", "power" }
 local NEEDED = { "SetOrientation", "SetStatusBarTexture", "GetStatusBarTexture", "SetMinMaxValues", "SetValue" }
 
-local orbs = {}
+local orbs, tray = {}, nil
 local running, active, built, available = false, false, false, nil
 
 local function Log(message)
@@ -130,8 +129,29 @@ local function NewOrb(kind)
 	return orb
 end
 
+local function NewTray()
+	local frame = CreateFrame("Frame", nil, K.Scale.Root())
+	frame:SetFrameStrata(TRAY_STRATA)
+	frame:SetSize(1, 1)
+	frame:Hide()
+	frame.hole = frame:CreateTexture(nil, "BACKGROUND")
+	frame.rail = frame:CreateTexture(nil, "BORDER")
+	frame.rail:SetTexture(Texture("orbRail"))
+	frame.railBottom = frame:CreateTexture(nil, "BORDER")
+	frame.railBottom:SetTexture(Texture("orbRailBottom"))
+	frame.armLeft = frame:CreateTexture(nil, "ARTWORK")
+	frame.armLeft:SetTexture(Texture("orbArm"))
+	frame.armRight = frame:CreateTexture(nil, "ARTWORK")
+	frame.armRight:SetTexture(Texture("orbArm"))
+	frame.armRight:SetTexCoord(1, 0, 0, 1)
+	frame.crest = frame:CreateTexture(nil, "OVERLAY")
+	frame.crest:SetTexture(Texture("orbCrest"))
+	return frame
+end
+
 local function Build()
 	built = true
+	tray = NewTray()
 	for _, kind in ipairs(KINDS) do
 		local orb, missing = NewOrb(kind)
 		if not orb then
@@ -174,28 +194,63 @@ end
 function Orbs.Centres()
 	local left, bottom, width, height = BarRect()
 	local rootWidth, rootHeight = K.Layout.RootSize()
-	local low = RING / 2 + FLOOR
-	local y = math.min(math.max(bottom + height / 2 + LIFT, low), rootHeight - low)
-	return math.max(left - REACH, low), math.min(left + width + REACH, rootWidth - low), y
+	local art = K.Setup.Layouts.OrbsTray(width)
+	local low = art.ring / 2 + FLOOR
+	local x = left + width / 2
+	local y = math.min(math.max(bottom + height / 2 + art.lift, low), rootHeight - low)
+	return math.max(x - art.ringX, low), math.min(x + art.ringX, rootWidth - low), y, art.ring
+end
+
+local function TrayWanted()
+	return K.Layout.Live(BAR_KEY) == true
+end
+
+function Orbs.Tray()
+	return tray
+end
+
+local function Piece(region, box)
+	local Snap = K.Widgets.Snap
+	region:ClearAllPoints()
+	region:SetPoint("BOTTOMLEFT", tray, "CENTER", Snap(tray, box.left), Snap(tray, box.bottom))
+	region:SetPoint("TOPRIGHT", tray, "CENTER", Snap(tray, box.right), Snap(tray, box.top))
+end
+
+local function PlaceTray()
+	local left, bottom, width, height = BarRect()
+	local art = K.Setup.Layouts.OrbsTray(width)
+	local Snap = K.Widgets.Snap
+	tray:ClearAllPoints()
+	tray:SetPoint("CENTER", K.Scale.Root(), "BOTTOMLEFT", Snap(tray, left + width / 2), Snap(tray, bottom + height / 2))
+	tray.hole:SetColorTexture(K.Widgets.Rgba("black", HOLE_ALPHA))
+	Piece(tray.hole, art.hole)
+	Piece(tray.rail, art.rail)
+	Piece(tray.railBottom, art.railBottom)
+	Piece(tray.crest, art.crest)
+	Piece(tray.armLeft, art.arm)
+	Piece(tray.armRight, { left = -art.arm.right, right = -art.arm.left, top = art.arm.top, bottom = art.arm.bottom })
+	tray:SetShown(active and TrayWanted())
 end
 
 local function Place()
 	local Snap = K.Widgets.Snap
-	local healthX, powerX, y = Orbs.Centres()
+	local healthX, powerX, y, ring = Orbs.Centres()
+	local hole = ring * OPENING
 	local centres = { health = healthX, power = powerX }
+	PlaceTray()
 	for kind, orb in pairs(orbs) do
 		orb:ClearAllPoints()
 		orb:SetPoint("CENTER", K.Scale.Root(), "BOTTOMLEFT", Snap(orb, centres[kind]), Snap(orb, y))
-		K.Widgets.Size(orb, RING, RING)
-		K.Widgets.Size(orb.back, HOLE, HOLE)
-		K.Widgets.Size(orb.glass, HOLE, HOLE)
-		K.Widgets.Size(orb.bar, HOLE, HOLE)
+		K.Widgets.Size(orb, ring, ring)
+		K.Widgets.Size(orb.back, hole, hole)
+		K.Widgets.Size(orb.glass, hole, hole)
+		K.Widgets.Size(orb.bar, hole, hole)
 		if orb.loss then
-			K.Widgets.Size(orb.loss, HOLE, HOLE)
+			K.Widgets.Size(orb.loss, hole, hole)
 		end
-		K.Widgets.Size(orb.surface, HOLE, SURFACE_HEIGHT)
+		K.Widgets.Size(orb.surface, hole, SURFACE_HEIGHT)
 		orb.value:ClearAllPoints()
-		orb.value:SetPoint("CENTER", orb, "CENTER", 0, -Snap(orb, HOLE * VALUE_DROP))
+		orb.value:SetPoint("CENTER", orb, "CENTER", 0, -Snap(orb, hole * VALUE_DROP))
 	end
 end
 
@@ -322,6 +377,9 @@ function Orbs.Apply()
 	end
 	for _, orb in pairs(orbs) do
 		orb:SetShown(want)
+	end
+	if tray then
+		tray:SetShown(want and TrayWanted())
 	end
 end
 

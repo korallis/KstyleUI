@@ -52,7 +52,7 @@ do
 	assert(Layouts.Style("orbs", "DPS", "groupframes.party").anchor == "TOPLEFT", "DPS party sits at the left edge under Orbs")
 	assert(Layouts.Style("orbs", "Healer", "groupframes.party") == nil, "Healer party keeps its Frames place beside the cluster")
 	assert(Layouts.Style("orbs", "DPS", "unitframes.target").anchor == "TOP", "the target is a top-centre bar under Orbs")
-	assert(near(Layouts.Style("orbs", "DPS", BAR2).scale, 0.75), "bar 2 is the smaller second row under Orbs")
+	assert(Layouts.Style("orbs", "DPS", BAR2).scale < 0.85, "bar 2 is the smaller second row under Orbs")
 	local positions = Layouts.Positions("DPS", "orbs")
 	assert(positions[CAST].y == Layouts.Style("orbs", "DPS", CAST).y and positions[CHAT].y == Layouts.Get("DPS")[CHAT].y,
 		"Positions merges the Orbs table over the Frames preset")
@@ -78,7 +78,7 @@ do
 	Style(K, "orbs")
 	assert(fired[CAST] and fired[CHAT], "a switch re-places every element")
 	At(K, CAST, orbs, "Orbs default")
-	assert(near(Layout.Get(BAR2).scale, 0.75), "bar 2 takes the Orbs scale")
+	assert(near(Layout.Get(BAR2).scale, Layouts.Style("orbs", "DPS", BAR2).scale), "bar 2 takes the Orbs scale")
 	At(K, CHAT, Layouts.Default(CHAT), "unmoved under Orbs")
 	assert(Layout.Set(CAST, "y", orbs.y + 30), "an Orbs position saves")
 	assert(near(saved["orbs:" .. CAST].y, orbs.y + 30), "an Orbs position is saved under orbs:")
