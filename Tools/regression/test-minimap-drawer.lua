@@ -32,6 +32,7 @@ assert(drawer and drawer.panel, "ns.Map.drawer holds the drawer")
 local toggle = ns.Map.column.buttons.drawer
 assert(toggle and toggle:IsShown(), "the column ends with the drawer button while the drawer has buttons")
 local alpha, bravo, hidden = lib.objects.Alpha, lib.objects.Bravo, lib.objects.Hidden
+assert(not lib.refreshed.Alpha and not lib.refreshed.Bravo, "a button the drawer holds is left to the drawer, not placed by the library again")
 
 -- Collecting -------------------------------------------------------------------------------------------
 
@@ -241,6 +242,24 @@ do
 	local frame = PK.Options.Preview("Minimap")(penv.CreateFrame("Frame", nil, penv.UIParent))
 	assert(frame.column.buttons.drawer:IsShown(), "the preview shows the drawer button")
 	NoErrors(penv, "preview")
+end
+
+-- A button the library placed before the module claimed the square map ---------------------------------------
+do
+	local senv, _, sns = M.New({
+		enabled = true,
+		settings = { column = { drawer = false } },
+		setup = function(e)
+			e._soloLib = M.FakeLibDBIcon(e)
+			e._soloLib:Add("Solo")
+		end,
+	})
+	M.Settle(senv)
+	local solo = senv._soloLib
+	assert(senv.GetMinimapShape and senv.GetMinimapShape() == "SQUARE", "the module's map shape is square")
+	assert(solo.refreshed.Solo, "with the drawer off, the library places its button again once the map is square")
+	assert(solo.objects.Solo:GetParent() == senv.Minimap, "and the button stays on the map")
+	NoErrors(senv, "drawer off")
 end
 
 print("minimap drawer ok")

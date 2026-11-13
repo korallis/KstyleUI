@@ -56,7 +56,7 @@ When the module starts it:
 2. Moves `Minimap` into the map square: `SetParent`, then one `CENTER` point and the square's size, so later resizes never touch Blizzard's frame beyond that. It waits for Edit Mode to close, and for combat to end if the frame is ever protected.
 3. Sets the plain square mask (`Tokens.Texture("minimapMask")`, `Media/Textures/MinimapMask.png`) and sets the arch, quest and task blob ring scalars to 0, since a round ring would cut across a square map's corners. A hook on `MinimapCluster.UpdateMinimapConfig`, which Camelot runs when `rotateMinimap` changes (`Blizzard_Minimap/Camelot/Minimap.lua`, `MinimapClusterMixin:UpdateMinimapConfig` calls `minimap:SetMaskTexture(data.mask)` with Blizzard's round `ui-hud-minimap-frame-generic-mask`), puts KstyleUI's mask back.
 4. Hides `MinimapCluster`, `MinimapBackdrop`, `Minimap.ZoomIn`, `Minimap.ZoomOut` and `Minimap.ZoomHitArea` through `KstyleUI.Safe.HideBlizzard`. Hiding the cluster hides the header, tracking, mail indicator, calendar, clock, compartment, day and night orb and Blizzard's coordinates with it.
-5. Sets the global `GetMinimapShape` to return `"SQUARE"`, which minimap button libraries read to place buttons on the edge.
+5. Sets the global `GetMinimapShape` to return `"SQUARE"`, which minimap button libraries read to place buttons on the edge. Since LibDBIcon read that shape when its button was made, before the module ran, it then asks the library to place every button the drawer does not hold again.
 6. Gives `HybridMinimap.CircleMask` the same square mask when `Blizzard_HybridMinimap` loads.
 7. Hooks `OnEnter` and `OnLeave` on `Minimap` (a `HookScript`, never `SetScript`) for the hover group.
 

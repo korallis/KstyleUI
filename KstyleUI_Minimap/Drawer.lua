@@ -490,6 +490,19 @@ function Drawer:Refresh()
 	end
 end
 
+function Drawer:Reposition()
+	local lib = Drawer.Lib()
+	if not lib or type(lib.Refresh) ~= "function" then
+		return
+	end
+	for _, name in ipairs(Names(lib)) do
+		local button = ButtonFor(lib, name)
+		if button and not self.adopted[button] then
+			pcall(lib.Refresh, lib, name)
+		end
+	end
+end
+
 function Drawer:Paint()
 	local r, g, b = ns.Style.Accent()
 	self.chrome:SetEdgeRGBA(r, g, b, 1)

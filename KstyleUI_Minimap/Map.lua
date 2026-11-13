@@ -719,6 +719,7 @@ function Map.Enable()
 		K.DevTest.AddCheck(MODULE, Check)
 	end
 	Map.Refresh()
+	Map.drawer:Reposition()
 end
 
 function Map.Disable()
