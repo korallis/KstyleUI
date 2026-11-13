@@ -233,4 +233,16 @@ do
 	local wr, wg, wb = K.Tokens.Color("text")
 	assert(near(dr, wr) and near(dg, wg) and near(db, wb), "the dot reads in the text grey like the line")
 end
+
+-- The overhaul (KSTY-44): the readout is world text, an outline with the kit's shadow, as the mock-up's line is.
+do
+	eq(K.Options.Read("DataBars", "strip.outline"), "WORLD", "the readout stands on the world by default")
+	for _, id in ipairs({ "fps", "latency", "gold" }) do
+		local entry = item(ns, id)
+		local _, _, flags = entry.value:GetFont()
+		local shadow = D.W.LastCall(entry.value, "SetShadowOffset")
+		eq(flags, "OUTLINE", id .. " has an outline")
+		assert(shadow and shadow[1] > 0 and shadow[2] < 0, id .. " keeps the kit's shadow under it")
+	end
+end
 print("databars readout line ok")

@@ -601,6 +601,48 @@ local TRAY_GRID_V20 = {
 	stance = { rows = 2 },
 }
 
+local function NearColour(c, r, g, b, a)
+	return type(c) == "table" and near(c.r, r) and near(c.g, g) and near(c.b, b) and near(c.a == nil and 1 or c.a, a)
+end
+
+Store.migrations[24] = function(data)
+	local Tokens = ns.Tokens
+	local gr, gg, gb = Tokens.Color("accentDefault")
+	local er, eg, eb = Tokens.Color("epic")
+	local cr, cg, cb = Tokens.Color("hudRested")
+	for _, profile in pairs(data.profiles) do
+		local bars = type(profile) == "table" and profile.DataBars
+		local xp = type(bars) == "table" and bars.xp
+		if type(xp) == "table" then
+			if xp.colorSource == "gilt" and (xp.color == nil or NearColour(xp.color, gr, gg, gb, 1)) then
+				xp.colorSource, xp.color = "custom", { r = er, g = eg, b = eb }
+			end
+			if xp.segments == 0 then
+				xp.segments = 10
+			end
+			if xp.outline == "NONE" then
+				xp.outline = "WORLD"
+			end
+			if NearColour(xp.restedColor, cr, cg, cb, 1) then
+				xp.restedColor.a = 0.55
+			end
+		end
+		local strip = type(bars) == "table" and bars.strip
+		if type(strip) == "table" and strip.outline == "NONE" then
+			strip.outline = "WORLD"
+		end
+	end
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["databars.xp"]
+		if type(entry) == "table" and near(entry.height, 8) and (entry.width == nil or near(entry.width, 491)) then
+			entry.width, entry.height = nil, nil
+			if next(entry) == nil then
+				layout["databars.xp"] = nil
+			end
+		end
+	end
+end
+
 Store.migrations[26] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local moves = layouts and type(layouts.TrayMoves) == "function"

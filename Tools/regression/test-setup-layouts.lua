@@ -52,7 +52,7 @@ local REFERENCE = {
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 + LIFT },
 	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
 	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
-	["databars.xp"] = { 491, 8, 0, TRAY_BOTTOM - 9 * 19 / 16 - 8 },
+	["databars.xp"] = { 491, 5, 0, TRAY_BOTTOM - 9 * 19 / 16 - 5 },
 }
 for _, name in ipairs(Layouts.Names()) do
 	for key, want in pairs(REFERENCE) do
@@ -399,7 +399,7 @@ for _, name in ipairs(names) do
 		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
-		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 8) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the XP line sits 9 px under the KSTY-44 tray card")
+		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 5) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the 5-unit experience strip sits 9 px under the KSTY-44 tray card")
 		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
 		assert(same((playerBar[1] + playerBar[3]) / 2, (bar1.left + bar1.right) / 2), label .. ": LEE-20 the player's bars, not its external portrait reserve, stand centred over the tray")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
@@ -607,7 +607,7 @@ local FOOTPRINTS = {
 	["chat.main"] = { 393, 186 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
-	["databars.xp"] = { 491, 8 },
+	["databars.xp"] = { 491, 5 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },
 }

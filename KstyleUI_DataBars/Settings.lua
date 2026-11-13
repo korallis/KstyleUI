@@ -10,8 +10,9 @@ local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = Tokens.Size("caption")
 local XP_FONT_SIZE = 12
 local SEGMENTS = 0
+local XP_SEGMENTS = 10
+local XP_RESTED_ALPHA = 0.55
 local MAX_SEGMENTS = 20
-local RESTED_ALPHA = 1
 local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
@@ -62,22 +63,23 @@ local defaults = ns.defaults
 defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
-defaults.xp = BarDefaults("gilt", "accentDefault", "levelRested")
+defaults.xp = BarDefaults("custom", "epic", "levelRested")
 defaults.xp.texture = Texture("Flat")
 defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"
-defaults.xp.outline = "NONE"
+defaults.xp.outline = Font.WORLD
+defaults.xp.segments = XP_SEGMENTS
 defaults.xp.fontSize = XP_FONT_SIZE
 defaults.xp.rested = true
-defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, RESTED_ALPHA)
+defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
 	line = true, labels = "inline", menus = false, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
-	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
+	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
 }
 for i, id in ipairs(Strip.DEFAULT_SLOTS) do
@@ -339,17 +341,17 @@ function ns.Preview(parent)
 	local y = PREVIEW_TOP
 	for _, def in ipairs(Bars.DEFS) do
 		local caption = Widgets.Text(frame, "caption", "text")
-		caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
+		Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 		Widgets.SetText(caption, def.title)
 		local view = Bars.NewView(frame, def)
-		view.holder:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y)
-		view.holder:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -y)
-		view.holder:SetHeight(PREVIEW_BAR)
+		Widgets.Point(view.holder, "TOPLEFT", frame, "TOPLEFT", 0, -y)
+		Widgets.Point(view.holder, "TOPRIGHT", frame, "TOPRIGHT", 0, -y)
+		view.holder:SetHeight(Widgets.Snap(view.holder, PREVIEW_BAR))
 		frame.bars[def.id], frame.captions[def.id] = view, caption
 		y = y + PREVIEW_BAR + PREVIEW_GAP + PREVIEW_TOP
 	end
 	local caption = Widgets.Text(frame, "caption", "text")
-	caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
+	Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 	Widgets.SetText(caption, L["Data strip"])
 	local strip = Strip.NewView(frame)
 	strip.top = y
