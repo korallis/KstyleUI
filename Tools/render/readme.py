@@ -3,26 +3,22 @@
 
     python3 Tools/render/readme.py [--work DIR] [--no-render] [--only NAME ...]
 
-Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into
-Tools/render/out (as shoot.sh always does), cuts them into DIR (default ~/.capy/work/readme-renders), and writes the
-finished PNGs to docs/media/readme/, where README.md reads them. Every render draws at the game's defaults:
-RENDER_ORNAMENTS=Full, because Full is the shipped default while a scene draws Off unless told. None of the pictures
-is a game screenshot; each README caption says it is a test render.
+Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
+~/.capy/work/readme-renders), cuts them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
+Every render draws at the shipped ornament level, Full. None of the pictures is a game screenshot; each README caption says it is a test render of the addon.
 
 The pictures:
 
-  hud_dps, hud_tank, hud_healer   the whole HUD of each layout preset, hud_reference at 3456x2234, scaled to HUD_WIDTH
-  ornaments_strip                 the same HUD region at Off, Subtle and Full, side by side
-  card_materials                  one card at each of the five card materials
-  settings_*, setup_ornaments     the settings window's General page and the setup's ornament step
-  merit_*, tile_*, class_*        every other picture the README shows, cut from the gallery and class scenes
+  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames and in Orbs, in combat, on a 5120x1440 screen at
+                                       Interface size Auto and on a 1920x1080 screen at the 15/16 size the game picks there
+  ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
+  crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the unit
+                                       frames, the right rail, the group meter, and the nameplate scene
+  options_hudstyle                     the settings window's General page at its HUD style picker
+  frame_*                              frames cut from the gallery scenes (gallery.py)
 
-The HUD pictures (the three presets, the strip, the combat cluster, the right rail) draw over the scenery plate so they read
-the way the game looks; the gallery, class, window and material pictures draw over a flat colour. A README section uses one
-of the two. The gallery and class cuts still read the handoff mockup for their reference crops (see
-gallery.py). --no-render reuses the renders a previous run left in Tools/render/out and DIR. --only redoes the named
-pictures. Pillow is needed; the script runs itself again with the wow-dev virtual environment's Python when this one
-has none.
+--no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
+runs itself again with the wow-dev virtual environment's Python when this one has none.
 """
 
 import argparse
@@ -37,58 +33,62 @@ OUT = os.path.join(ROOT, "docs", "media", "readme")
 DEFAULT_WORK = os.path.expanduser("~/.capy/work/readme-renders")
 
 GALLERY_MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
-SCREEN = (3456, 2234)
-HUD_PPU = SCREEN[1] / 1080
 GALLERY_PPU = 2.0
-LAYOUTS = ("DPS", "Tank", "Healer")
-LEVELS = ("Off", "Subtle", "Full")
-MATERIALS = ("ForgedBrackets", "ForgedTicks", "Slate", "Flat", "Glass")
-CLASSES = ("druid", "hunter", "mage", "paladin", "priest", "rogue", "shaman", "warlock", "warrior")
+STYLES = ("Frames", "Orbs")
+BUDGET_BYTES = 4 * 1024 * 1024
+QUALITY = 86
 
-HUD_WIDTH = 840
-STRIP_WIDTH = 1150
-BUDGET_BYTES = 6 * 1024 * 1024
+FULL = {"RENDER_ORNAMENTS": "Full"}
+COMBAT = {"RENDER_LAYOUT": "DPS", "RENDER_LOSS": "1", "RENDER_METER_SECRET": "1"}
+ULTRAWIDE = {"RENDER_SIZE": "auto", "RENDER_SCREEN": "5120x1440"}
+HD = {"RENDER_SIZE": "0.9375", "RENDER_SCREEN": "1920x1080"}
 
-# The HUD region the strip crops, in physical pixels of the 3456x2234 render (x, y, width, height): the cast bar, the
-# cooldown row, both unit frames, the action bars and the experience bar of the centre column.
-STRIP_BOX = (1200, 1480, 1100, 750)
-# The chat card in the left rail, the card the materials sheet shows.
-CARD_BOX = (20, 1870, 710, 345)
 
-GALLERIES = (
-    "gallery_skins_character", "gallery_skins_spellbook", "gallery_groupframes", "gallery_setup",
-    "gallery_nameplates_pull", "gallery_unitframes", "gallery_cooldowns", "gallery_auras", "gallery_minimap",
-    "gallery_chat", "gallery_bags", "gallery_meters", "gallery_layout", "gallery_options",
-)
+def style_env(style):
+    env = dict(COMBAT, RENDER_HUD_STYLE=style)
+    if style == "Orbs":
+        env["RENDER_ORBS_HIT"] = "1"
+    return env
 
-# name, source, crop, width. A source is "hud:<layout>", "frame:<frame name>", "lumen_combat" or "class:<class>"; a
-# crop is "WxH+X+Y" in the source's pixels, "cover" (a centred 16:10 window hung from the top edge, the shape every
-# tile in the README's grid shares) or None. A picture narrower than its width stays as it is.
+
+# name -> (scene, px per unit, environment, guard). Every HUD render is hud_reference in combat over the scenery plate,
+# under the strict guard; the 1080 renders at ppu 2 are the same screen at twice the density, for the close crops. The
+# settings window renders under --report: only its HUD style picker is cut, and at Full the Unit Frames live preview
+# beside it truncates four texts.
+RENDERS = {}
+for _style in STYLES:
+    _key = _style.lower()
+    RENDERS[_key + "_5120"] = ("hud_reference", 1440 / 1080, dict(ULTRAWIDE, **style_env(_style)), "--strict")
+    RENDERS[_key + "_1080"] = ("hud_reference", 1.0, dict(HD, **style_env(_style)), "--strict")
+    RENDERS[_key + "_1080_2x"] = ("hud_reference", 2.0, dict(HD, **style_env(_style)), "--strict")
+for _arrangement in ("centred", "spread"):
+    RENDERS["healer_" + _arrangement] = ("hud_reference", 1440 / 1080, dict(
+        ULTRAWIDE, **dict(style_env("Frames"), RENDER_LAYOUT="Healer", RENDER_ARRANGEMENT=_arrangement)), "--strict")
+RENDERS["meter_party"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party")), "--strict")
+RENDERS["plates"] = ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict")
+RENDERS["options"] = ("gallery_options", 3.0, {}, "--report")
+
+GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
+
+# name, source, crop, width. A source is "render:<RENDERS key>" or "frame:<gallery frame name>"; a crop is
+# "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
-    ("merit_skins", "frame:skins_character", None, 480),
-    ("merit_combat", "lumen_combat", "1860x740+620+1420", 560),
-    ("merit_raid", "frame:groupframes_raid", None, 720),
-    ("merit_setup", "frame:setup_layouts", None, 640),
-    ("merit_plates", "frame:nameplates_pull", None, 640),
-    ("merit_rail", "hud:DPS", "916x990+2540+20", 400),
-    ("settings_type", "frame:options_appearance", None, 600),
-    ("settings_ornaments", "frame:options_ornaments", None, 600),
-    ("setup_ornaments", "frame:setup_ornaments", None, 600),
-    ("tile_unitframes", "frame:unitframes_preview", "cover", 400),
-    ("tile_groupframes", "frame:groupframes_party", "cover", 400),
-    ("tile_actionbars", "lumen_combat_flat", "1066x477+1164+1683", 400),
-    ("tile_cooldowns", "frame:cooldowns_preview", "cover", 400),
-    ("tile_auras", "frame:auras_preview", "cover", 400),
-    ("tile_nameplates", "frame:nameplates_pull", "850x531+0+0", 400),
-    ("tile_minimap", "frame:minimap_preview", "cover", 400),
-    ("tile_chat", "frame:chat_preview", "cover", 400),
-    ("tile_bags", "frame:bags_window", "cover", 400),
-    ("tile_meters", "frame:meters_damage", "cover", 400),
-    ("tile_skins", "frame:skins_spellbook", "cover", 400),
-    ("tile_layout", "frame:layout_plates", "cover", 400),
-] + [("class_" + name, "class:" + name, "1880x701+120+154", 400) for name in CLASSES]
-
-COMPOSED = ("hud_dps", "hud_tank", "hud_healer", "ornaments_strip", "card_materials")
+    ("hud_frames_5120", "render:frames_5120", None, 1600),
+    ("hud_orbs_5120", "render:orbs_5120", None, 1600),
+    ("hud_frames_1080", "render:frames_1080", None, 1200),
+    ("hud_orbs_1080", "render:orbs_1080", None, 1200),
+    ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
+    ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
+    ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
+    ("crop_meter", "render:meter_party", "540x300+3290+1820", 540),
+    ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
+    ("options_hudstyle", "render:options", "640x330+370+1955", 640),
+    ("ultrawide_centred", "render:healer_centred", None, 1600),
+    ("ultrawide_spread", "render:healer_spread", None, 1600),
+    ("frame_setup", "frame:setup_layouts", None, 720),
+    ("frame_raid", "frame:groupframes_raid", None, 720),
+    ("frame_skins", "frame:skins_character", None, 560),
+]
 
 Image = None
 
@@ -110,16 +110,7 @@ def pillow():
 
 
 def picture_names():
-    return list(COMPOSED) + [name for name, _, _, _ in IMAGES]
-
-
-def cover_box(width, height):
-    """A centred 16:10 window hung from the top edge, never larger than the frame: (left, top, right, bottom)."""
-    crop_w, crop_h = width, width * 10 // 16
-    if crop_h > height:
-        crop_h, crop_w = height, height * 16 // 10
-    left = (width - crop_w) // 2
-    return left, 0, left + crop_w, crop_h
+    return [name for name, _, _, _ in IMAGES]
 
 
 def parse_crop(spec):
@@ -143,83 +134,36 @@ def run(cmd, env=None):
     subprocess.run(cmd, check=True, cwd=ROOT, env=full)
 
 
-def shoot(scene, env, out=None, *args):
-    cmd = ["bash", "Tools/render/shoot.sh", scene, *args]
-    if "--ppu" not in args:
-        cmd += ["--ppu", str(GALLERY_PPU)]
-    if out:
-        cmd += ["--out", out]
-    run(cmd, env)
-
-
 def render_all(work, wanted):
     """Render every scene the wanted pictures need, one process at a time."""
     os.makedirs(work, exist_ok=True)
-    full = {"RENDER_ORNAMENTS": "Full"}
-    hud = dict(full, RENDER_SCREEN="%dx%d" % SCREEN)
-    ppu = ("--strict", "--backdrop", "--ppu", repr(HUD_PPU))
-    flat = ("--strict", "--ppu", repr(HUD_PPU))
-    sources = {source.split(":")[0] if source.startswith(("frame:", "class:")) else source
-               for name, source, _, _ in IMAGES if name in wanted}
-    layouts = set()
-    if "hud_dps" in wanted or "ornaments_strip" in wanted or "merit_rail" in wanted:
-        layouts.add("DPS")
-    if "hud_tank" in wanted:
-        layouts.add("Tank")
-    if "hud_healer" in wanted:
-        layouts.add("Healer")
-    for layout in sorted(layouts):
-        shoot("hud_reference", dict(hud, RENDER_LAYOUT=layout), os.path.join(work, "hud_%s.png" % layout), *ppu)
-    if "ornaments_strip" in wanted:
-        for level in ("Off", "Subtle"):
-            shoot("hud_reference", dict(hud, RENDER_LAYOUT="DPS", RENDER_ORNAMENTS=level),
-                  os.path.join(work, "level_%s.png" % level), *ppu)
-    if "card_materials" in wanted:
-        for material in MATERIALS:
-            shoot("hud_reference", dict(hud, RENDER_LAYOUT="DPS", RENDER_CARD_MATERIAL=material),
-                  os.path.join(work, "material_%s.png" % material), *flat)
-    if "lumen_combat" in sources:
-        shoot("hud_lumen_combat", full, os.path.join(work, "lumen_combat.png"), "--backdrop")
-    if "lumen_combat_flat" in sources:
-        shoot("hud_lumen_combat", full, os.path.join(work, "lumen_combat_flat.png"))
-    if any(source.startswith("frame:") and not source.endswith("_ornaments") for name, source, _, _ in IMAGES if name in wanted):
+    sources = {source for name, source, _, _ in IMAGES if name in wanted}
+    for key, (scene, ppu, env, guard) in RENDERS.items():
+        if "render:" + key in sources:
+            run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
+                dict(FULL, **env))
+    if any(source.startswith("frame:") for source in sources):
         for scene in GALLERIES:
-            shoot(scene, full)
-    for subject in ("setup", "options"):
-        frame = "frame:setup_ornaments" if subject == "setup" else "frame:options_ornaments"
-        if any(source == frame for name, source, _, _ in IMAGES if name in wanted):
-            shoot("setup_ornaments", dict(full, RENDER_SUBJECT=subject))
-            run([sys.executable, "Tools/render/gallery.py", "--no-render", "--out", os.path.join(work, "frames"),
-                 "--refs", os.path.join(work, "refs"), "--ppu", str(GALLERY_PPU), "setup_ornaments"])
-    if "class" in sources:
-        for name in CLASSES:
-            shoot("hud_%s_mac" % name, full)
+            run(["bash", "Tools/render/shoot.sh", scene, "--ppu", str(GALLERY_PPU)], FULL)
 
 
 def cut_all(work, wanted):
-    """Cut the gallery frames and the class close-ups out of the renders with gallery.py and classes.py."""
-    if any(source.startswith("frame:") and not source.endswith("_ornaments") for name, source, _, _ in IMAGES if name in wanted):
+    """Cut the gallery frames out of their renders with gallery.py."""
+    if any(source.startswith("frame:") for name, source, _, _ in IMAGES if name in wanted):
         run([sys.executable, "Tools/render/gallery.py", "--no-render", "--out", os.path.join(work, "frames"),
              "--refs", os.path.join(work, "refs"), "--ppu", str(GALLERY_PPU), *GALLERIES])
-    if any(source.startswith("class:") for name, source, _, _ in IMAGES if name in wanted):
-        run([sys.executable, "Tools/render/classes.py", "--no-render", "--out", os.path.join(work, "classes"),
-             "--ppu", str(GALLERY_PPU), *CLASSES])
 
 
 def source_path(work, source):
     kind, _, name = source.partition(":")
-    if kind == "hud":
-        return os.path.join(work, "hud_%s.png" % name)
     if kind == "frame":
         return os.path.join(work, "frames", "kstyle_%s.png" % name)
-    if kind == "class":
-        return os.path.join(work, "classes", "%s_frames.png" % name)
-    return os.path.join(work, source + ".png")
+    return os.path.join(work, name + ".png")
 
 
 def save(image, name):
-    path = os.path.join(OUT, name + ".png")
-    image.convert("RGB").save(path, optimize=True)
+    path = os.path.join(OUT, name + ".jpg")
+    image.convert("RGB").save(path, quality=QUALITY, optimize=True, progressive=True)
     print("%s %dx%d %d KB" % (name, image.width, image.height, os.path.getsize(path) // 1024))
 
 
@@ -228,60 +172,19 @@ def scaled(image, limit):
     return image if size == image.size else image.resize(size, Image.LANCZOS)
 
 
-def compose_row(images, gap, background):
-    """The images side by side, top aligned, on the background colour."""
-    sheet = Image.new("RGB", (sum(i.width for i in images) + gap * (len(images) - 1), max(i.height for i in images)), background)
-    left = 0
-    for i in images:
-        sheet.paste(i, (left, 0))
-        left += i.width + gap
-    return sheet
-
-
-def compose_grid(images, columns, gap, background):
-    """The images in rows of columns, each cell the size of the first image."""
-    cell_w, cell_h = images[0].size
-    rows = (len(images) + columns - 1) // columns
-    sheet = Image.new("RGB", (columns * cell_w + gap * (columns - 1), rows * cell_h + gap * (rows - 1)), background)
-    for index, i in enumerate(images):
-        sheet.paste(i, ((index % columns) * (cell_w + gap), (index // columns) * (cell_h + gap)))
-    return sheet
-
-
-def box(x, y, w, h):
-    return x, y, x + w, y + h
-
-
 def finish(work, wanted):
     os.makedirs(OUT, exist_ok=True)
-    hud = {layout: Image.open(source_path(work, "hud:" + layout)) for layout in LAYOUTS
-           if os.path.exists(source_path(work, "hud:" + layout))}
-    for layout in LAYOUTS:
-        if "hud_" + layout.lower() in wanted:
-            save(scaled(hud[layout], HUD_WIDTH), "hud_" + layout.lower())
-    if "ornaments_strip" in wanted:
-        levels = {"Off": Image.open(os.path.join(work, "level_Off.png")),
-                  "Subtle": Image.open(os.path.join(work, "level_Subtle.png")), "Full": hud["DPS"]}
-        crops = [levels[level].crop(box(*STRIP_BOX)) for level in LEVELS]
-        save(scaled(compose_row(crops, 24, crops[0].getpixel((0, 0))), STRIP_WIDTH), "ornaments_strip")
-    if "card_materials" in wanted:
-        cards = [Image.open(os.path.join(work, "material_%s.png" % m)).crop(box(*CARD_BOX)) for m in MATERIALS]
-        background = cards[0].getpixel((0, 0))
-        cards.append(Image.new("RGB", cards[0].size, background))
-        save(scaled(compose_grid(cards, 3, 24, background), 1000), "card_materials")
     for name, source, crop, width in IMAGES:
         if name not in wanted:
             continue
         image = Image.open(source_path(work, source))
-        if crop == "cover":
-            image = image.crop(cover_box(image.width, image.height))
-        elif crop:
+        if crop:
             image = image.crop(parse_crop(crop))
         save(scaled(image, width), name)
 
 
 def total_bytes():
-    paths = [os.path.join(OUT, name + ".png") for name in picture_names()]
+    paths = [os.path.join(OUT, name + ".jpg") for name in picture_names()]
     return sum(os.path.getsize(path) for path in paths if os.path.exists(path))
 
 
@@ -303,6 +206,9 @@ def main(argv=None):
         render_all(args.work, wanted)
     cut_all(args.work, wanted)
     finish(args.work, wanted)
+    for path in os.listdir(OUT):
+        if os.path.splitext(path)[0] not in picture_names() or not path.endswith(".jpg"):
+            os.remove(os.path.join(OUT, path))
     total = total_bytes()
     print("total %.2f MB of %.0f MB" % (total / 1048576, BUDGET_BYTES / 1048576))
     return 0 if total <= BUDGET_BYTES else 1

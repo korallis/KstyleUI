@@ -7,13 +7,20 @@ The notes a contributor needs that the [README](../README.md) no longer carries:
 Read [`AGENTS.md`](../AGENTS.md) for the branch flow, the commands to run before every push and the repository rules.
 The binding design is [`docs/superpowers/specs/2026-11-07-kstyleui-design.md`](superpowers/specs/2026-11-07-kstyleui-design.md).
 
-## Status
+## Releases and testing
 
-The whole suite is built and passes its offline checks. It has not been released yet: the first
-release follows the owner's in-game test of the `staging` branch. [`docs/TESTING.md`](TESTING.md)
-is the test guide, and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) lists what the first release holds.
+Each release is a `vX.Y.Z` tag on `main`, cut after the owner's in-game pass on `staging` (`AGENTS.md`, Releases). [`CHANGELOG.md`](../CHANGELOG.md) and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) hold what each release changed, and [`docs/TESTING.md`](TESTING.md) is the test guide.
 
 To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install the addons](TESTING.md#install-the-addons) in the test guide.
+
+The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x1440, 3440x1440, 3840x1080, 5120x1440, 3840x2160, 2383x1540 and 3456x2234. Every picture in the README is a test render from `Tools/render/`, retaken with `python3 Tools/render/readme.py` ([`Tools/render/README.md`](../Tools/render/README.md), README pictures); a render is not the game, so each release is also checked in game.
+
+## Developer commands
+
+| Command | What it does |
+| --- | --- |
+| `/kstyle test` | Runs the smoke checks and writes the results to the devlog. Type `/reload` afterwards to save them. |
+| `/kstyle devlog on`, `/kstyle devlog off` | Arms or stops the [Edit Mode geometry recorder](EDIT_MODE_RECORDER.md) for this session; it is off after every reload. |
 
 ## Repository
 
