@@ -61,8 +61,11 @@ function Button.Create(button, hasDispel)
 	badge:SetStatusBarTexture((Tokens.Texture("barFlat")))
 	badge:SetStatusBarColor(Widgets.Rgba("black", 0))
 	badge:SetFrameLevel(over:GetFrameLevel())
+	local fill = badge:GetStatusBarTexture()
+	if fill then
+		fill:SetAlpha(0)
+	end
 	local plate = badge:CreateTexture(nil, "BACKGROUND")
-	plate:SetAllPoints(badge)
 	plate:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
 	local count = Widgets.FontString(badge, "OVERLAY")
 	local entry = {
@@ -94,9 +97,9 @@ local function PlaceTexts(entry, ctx, inset)
 	count:ClearAllPoints()
 	local text = Widgets.Snap(skin, TEXT_INSET)
 	if ctx.timer.position == "inside" then
-		timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, inset + text)
+		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", 0, inset + text)
 	else
-		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, ns.Model.TIMER_GAP - TIMER_LIFT))
+		Widgets.Point(timer, "TOP", skin, "BOTTOM", 0, -(ns.Model.TIMER_GAP - TIMER_LIFT))
 	end
 	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -inset, -inset)
 	timer:SetJustifyH("CENTER")
@@ -105,6 +108,9 @@ local function PlaceTexts(entry, ctx, inset)
 	badge:ClearAllPoints()
 	badge:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
 	badge:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
+	entry.plate:ClearAllPoints()
+	entry.plate:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
+	entry.plate:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
 	entry.plate:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
 end
 

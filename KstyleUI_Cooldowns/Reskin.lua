@@ -58,8 +58,10 @@ end
 local function Outset(backdrop, outset)
 	if backdrop then
 		local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(backdrop)
-		if backdrop.inset ~= -outset or backdrop.reskinPixel ~= pixel then
-			backdrop.inset, backdrop.reskinPixel = -outset, pixel
+		local farX, farY = Widgets.Remainder(backdrop.target or backdrop:GetParent())
+		local fraction = farX .. ":" .. farY
+		if backdrop.inset ~= -outset or backdrop.reskinPixel ~= pixel or backdrop.reskinFraction ~= fraction then
+			backdrop.inset, backdrop.reskinPixel, backdrop.reskinFraction = -outset, pixel, fraction
 			backdrop:Restyle()
 			backdrop.chrome:Restyle()
 		end

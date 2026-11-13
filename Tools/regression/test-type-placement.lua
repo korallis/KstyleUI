@@ -36,7 +36,8 @@ for _, screen in ipairs(screens) do
 	ae.RunTimers()
 	local entry = an.Panel.Group("buffs").buttons[1]
 	local _, _, _, x, y = entry.timer:GetPoint(1)
-	assert(x == 0 and math.abs(y + AK.Widgets.Snap(entry.skin, 2.5)) < 1e-6, label .. ": the timer stays centred and lifted on whole pixels")
+	local half = AK.Scale.Pixel(1) / AK.Widgets.ScaleFactor(entry.timer) / 2 + 1e-6
+	assert(math.abs(x) <= half and math.abs(y + AK.Widgets.Snap(entry.skin, 2.5)) <= half, label .. ": the timer stays centred and lifted, moved at most half a pixel onto the grid by Widgets.Point")
 	assert(entry.timer:GetFont() == (AK.Tokens.Font("timer")), label .. ": the default timer uses Medium")
 	snapped(AK, entry.timer, label .. " timer")
 	local custom = AK.Tokens.FontPath("InterSemiBold")
