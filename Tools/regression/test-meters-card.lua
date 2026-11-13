@@ -49,6 +49,11 @@ local function Plain(text)
 	return (tostring(text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
+local function Hex(K, name)
+	local r, g, b = K.Widgets.Rgba(name)
+	return string.format("|cff%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
 local function Color(frame)
 	local fill = M.Last(frame, "SetStatusBarColor")
 	return fill[1], fill[2], fill[3]
@@ -64,7 +69,8 @@ assert(list.count == 5, "the player's five spells show: " .. tostring(list.count
 assert(W.Near(list.holder:GetWidth(), 269) and W.Near(list.holder:GetHeight(), 158), "the card is the picture's 269 by 158")
 
 -- The cap: the meter's name in caps, the rate at its right; the source's name and the fight switch are not shown.
-assert(Text(list.title) == "DAMAGE", "the cap names the meter, not the source: " .. tostring(Text(list.title)))
+assert(Plain(Text(list.title)) == "DAMAGE  HEALING", "the cap is the damage and healing switch, not the source: " .. tostring(Text(list.title)))
+assert(Text(list.title):find(Hex(K, "capsGold") .. "DAMAGE|r", 1, true) and Text(list.title):find(Hex(K, "muted") .. "HEALING|r", 1, true), "the meter shown is lit in caption gold, the other muted")
 assert(Text(list.column) == "38.4 dps", "the cap's right end is the player's rate: " .. tostring(Text(list.column)))
 assert(select(1, list.column:GetFont()) == K.Tokens.Font("number"), "the rate is set in the bold figure face")
 local r, g, b = K.Tokens.Color("textEmphasis")
@@ -98,7 +104,9 @@ for i, spell in ipairs(SPELLS) do
 	assert(at[1] == "TOPLEFT" and W.Near(at[4], 16), i .. ": the row is 16 units in from the left")
 	assert(W.Near(-at[5], 35.5 + (i - 1) * 21, 0.51), i .. ": the row is " .. (35.5 + (i - 1) * 21) .. " units under the card's top, got " .. tostring(-at[5]))
 	assert(W.Near(row.frame:GetWidth(), 237), i .. ": the row ends 16 units from the right edge")
-	assert(not row.icon:IsShown(), i .. ": no icon")
+	assert(row.icon:IsShown() and M.Last(row.icon, "SetTexture")[1] == 100 + i, i .. ": the spell's icon leads the row")
+	assert(row.back:IsShown() and W.Near(row.back:GetWidth(), 18) and W.Near(row.back:GetHeight(), 18), i .. ": in a square as tall as the row")
+	assert(W.Near(row.bar:GetWidth(), 237 - 18 - 2), i .. ": the bar starts 2 units after the icon")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == tostring(spell[3]), i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
@@ -205,7 +213,7 @@ end
 do
 	local row = list.rows[1]
 	local name = { row.name:GetPoint(1) }
-	assert(name[1] == "LEFT" and name[2] == row.frame and name[4] > 0 and name[4] < 12, "the name starts just inside the bar's left edge")
+	assert(name[1] == "LEFT" and name[2] == row.bar and name[4] > 0 and name[4] < 12, "the name starts just inside the bar's left edge")
 	local share = { row.percent:GetPoint(1) }
 	assert(share[1] == "RIGHT" and share[4] < 0 and share[4] > -12, "the share ends just inside the bar's right edge")
 	assert(M.Last(row.value, "SetFont")[1] == K.Tokens.Font("number"), "the amount is bold")
@@ -229,14 +237,16 @@ local before = env._lastSource
 list.rows[1].frame._scripts.OnMouseUp(list.rows[1].frame, "LeftButton")
 env.RunTimers()
 assert(env._lastSource == before or env._lastSource[4] == "Player-7", "a click on a spell row opens nothing new")
-assert(Text(list.title) == "DAMAGE" and list.count == 5, "and the card stays on the spell list")
+assert(Plain(Text(list.title)) == "DAMAGE  HEALING" and list.count == 5, "and the card stays on the spell list")
 assert(list.rows[1].more == nil or not list.rows[1].more:IsShown(), "no chevron on a spell row")
 
 -- The meter's name follows the meter type; the rate's unit follows it too.
 M.Write(env, K, "damage.meter", "Dps")
-assert(Text(list.title) == "DAMAGE", "damage per second is still the damage card")
+assert(Plain(Text(list.title)) == "DAMAGE  HEALING" and Text(list.title):find(Hex(K, "capsGold") .. "DAMAGE|r", 1, true), "damage per second is still the damage card")
 M.Write(env, K, "damage.meter", "HealingDone")
-assert(Text(list.title) == "HEALING DONE", "healing names itself: " .. tostring(Text(list.title)))
+assert(Text(list.title):find(Hex(K, "capsGold") .. "HEALING|r", 1, true) and Text(list.title):find(Hex(K, "muted") .. "DAMAGE|r", 1, true), "healing lights its own word: " .. tostring(Text(list.title)))
+M.Write(env, K, "damage.meter", "Interrupts")
+assert(Text(list.title) == "INTERRUPTS", "a meter outside the two names itself: " .. tostring(Text(list.title)))
 M.Write(env, K, "damage.meter", "DamageDone")
 
 -- The percent switch drops the share and the dot together.
@@ -248,6 +258,7 @@ M.Write(env, K, "damage.percent", true)
 M.Write(env, K, "damage.colorSource", "class")
 local cr, cg, cb = K.Theme.ClassColor("SHAMAN")
 local br, bg, bb = Color(list.rows[1].bar)
+cr, cg, cb = cr * ns.DAMAGE_CLASS_TONE, cg * ns.DAMAGE_CLASS_TONE, cb * ns.DAMAGE_CLASS_TONE
 assert(br == cr and bg == cg and bb == cb, "the class colour source colours a spell by class")
 M.Write(env, K, "damage.colorSource", "school")
 assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 18, "the picture's look is the default")
@@ -259,15 +270,16 @@ do
 	M.Enable(envG, KG)
 	envG.RunTimers()
 	local group = nsG.Damage.list
-	assert(Text(group.title) == "DAMAGE" and group.count == 1, "in a group the card lists the sources under the meter's name")
+	assert(Plain(Text(group.title)) == "DAMAGE  HEALING" and group.count == 1, "in a group the card lists the sources under the meter's name")
 	assert(Text(group.column) == "38.4 dps", "the cap shows the local player's rate: " .. tostring(Text(group.column)))
 	local ar, ag, ab = KG.Theme.ClassColor("SHAMAN")
 	local sr, sg, sb = Color(group.rows[1].bar)
+	ar, ag, ab = ar * nsG.DAMAGE_CLASS_TONE, ag * nsG.DAMAGE_CLASS_TONE, ab * nsG.DAMAGE_CLASS_TONE
 	assert(sr == ar and sg == ag and sb == ab, "a source's bar is its class colour")
 	group.rows[1].frame._scripts.OnMouseUp(group.rows[1].frame, "LeftButton")
 	envG.RunTimers()
 	assert(Plain(Text(group.title)) == "Korallis" or tostring(Text(group.title)):upper() == "KORALLIS", "an opened source titles the card: " .. tostring(Text(group.title)))
-	assert(group.count == 5 and not group.rows[1].icon:IsShown(), "its spells list as bars without icons")
+	assert(group.count == 5 and group.rows[1].icon:IsShown(), "its spells list as bars led by their icons")
 	assert(Text(group.column) == "38.4 dps", "and the cap keeps the source's rate")
 	assert(#envG._errors == 0, "no Lua error: " .. tostring(envG._errors[1]))
 end

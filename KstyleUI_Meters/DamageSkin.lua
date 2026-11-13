@@ -106,6 +106,29 @@ local function NewPill(entry, source)
 	return pill
 end
 
+local function Revalue(entry)
+	local bar = entry.StatusBar
+	local text = DamageSkin.active and type(bar) == "table" and bar.Value
+	local recap = entry.deathRecapID
+	if not text or (not Logic.IsSecret(recap) and recap ~= nil and recap ~= 0) then
+		return
+	end
+	local ok, perSecond = pcall(entry.ShowsValuePerSecondAsPrimary, entry)
+	local main, rate = entry.value, entry.valuePerSecond
+	if ok and perSecond == true and (Logic.IsSecret(rate) or rate ~= nil) then
+		main = rate
+	end
+	if not Logic.IsSecret(main) and main == nil then
+		main = 0
+	end
+	local shown = Logic.Abbreviate(main)
+	local share = ns.Get("damage.percent") and Logic.Percent(entry.value, entry.sessionTotalValue)
+	if share then
+		shown = shown .. " \194\183 " .. Logic.FormatPercent(share)
+	end
+	text:SetText(shown)
+end
+
 local function StyleEntry(entry)
 	if type(entry) ~= "table" or not DamageSkin.active then
 		return
@@ -120,6 +143,9 @@ local function StyleEntry(entry)
 		pills[entry] = NewPill(entry, bar)
 		if type(entry.UpdateStatusBarColor) == "function" then
 			hooksecurefunc(entry, "UpdateStatusBarColor", Recolor)
+		end
+		if type(entry.UpdateValue) == "function" then
+			hooksecurefunc(entry, "UpdateValue", Revalue)
 		end
 	end
 	if styled ~= generation then

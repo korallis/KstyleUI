@@ -1366,21 +1366,31 @@ function modules.meters(opts)
 			hide = function(value)
 				return opts.meterSecret and env.Secret(value) or value
 			end
+			-- The client's class icons (Blizzard_DamageMeter's GetClassAtlas) from the atlas cache.
+			env.GetClassAtlas = function(class)
+				return ("classicon-%s"):format(class)
+			end
+			env.C_Texture = env.C_Texture or {}
+			env.C_Texture.GetAtlasInfo = Scene.AtlasInfo
+			local me = opts.meterMe or 1
 			local sources, total = {}, 0
 			for i, row in ipairs(rows) do
 				total = total + row[3]
 				sources[i] = {
-					name = row[1], classFilename = row[2], totalAmount = hide(row[3]), amountPerSecond = hide(row[3] / 60), sourceGUID = "Player-" .. tostring(row[1]),
-					sourceDisplayType = 1, isLocalPlayer = i == 1, deathRecapID = 0, deathTimeSeconds = 0,
+					name = row[1], classFilename = row[2], totalAmount = hide(row[3]), amountPerSecond = hide(row[3] / 60), sourceGUID = hide("Player-" .. tostring(row[1])),
+					sourceDisplayType = 1, isLocalPlayer = i == me, deathRecapID = 0, deathTimeSeconds = 0,
 				}
 			end
 			env._session = { combatSources = sources, maxAmount = hide(rows[1] and rows[1][3] or 0), totalAmount = hide(total), durationSeconds = 60 }
-			env._group = { raid = false, size = opts.meterSolo and 0 or #rows }
-			env._units.player = { name = rows[1] and rows[1][1] or "Valerin", class = rows[1] and rows[1][2] or "WARRIOR" }
+			env._group = { raid = #rows > 5, size = opts.meterSolo and 0 or #rows }
+			env._units.player = { name = rows[me] and rows[me][1] or "Valerin", class = rows[me] and rows[me][2] or "WARRIOR", guid = rows[me] and ("Player-" .. tostring(rows[me][1])) or nil }
 			env._units.target = { name = opts.target and opts.target.name or TARGET.name, hostile = true }
 			for i, row in ipairs(rows) do
 				local unit = i == 1 and "player" or ("party" .. (i - 1))
-				env._units[unit] = { name = row[1], class = row[2], guid = "Player-" .. tostring(row[1]) }
+				if i == 1 and me ~= 1 then
+					unit = "party" .. me
+				end
+				env._units[unit] = env._units[unit] or { name = row[1], class = row[2], guid = "Player-" .. tostring(row[1]) }
 				env._threat[unit] = { i == 2, i == 2 and 3 or 0, 100 - i * 14, 100 - i * 16, (#rows - i + 1) * 100000 }
 			end
 		end,

@@ -26,6 +26,7 @@ local BLOCK_CAP_TOP = 14.5
 local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
+local BLOCK_ICON_GAP = 2
 local DOT = "\194\183"
 local DOT_GAP_EM = 5 / 21
 local BEARING_DEFAULT = 0.025
@@ -145,6 +146,12 @@ local function NewRow(list, index)
 	local icon = frame:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	icon:Hide()
+	local back
+	if list.block then
+		back = frame:CreateTexture(nil, "BACKGROUND")
+		back:SetColorTexture(Tokens.Color("black"))
+		back:Hide()
+	end
 	local ink = frame
 	if list.block then
 		bar.keyline:Hide()
@@ -159,6 +166,7 @@ local function NewRow(list, index)
 		frame = frame,
 		bar = bar,
 		icon = icon,
+		back = back,
 		name = Text(ink, "LEFT"),
 		value = Text(ink, "RIGHT"),
 		percent = Text(ink, "RIGHT"),
@@ -499,7 +507,7 @@ function List:Top(pad)
 end
 
 local function Recolor(list, row)
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school)
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
@@ -552,7 +560,7 @@ local function PlaceBlockText(list, row)
 	local rowHeight = list.rowHeight
 	local joined = list.percentWidth > 0 and row.joined == true
 	row.percent:ClearAllPoints()
-	row.percent:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+	Widgets.Point(row.percent, "RIGHT", frame, "RIGHT", -inset, 0)
 	row.percent:SetHeight(rowHeight)
 	row.percent:SetWidth(0)
 	row.percent:SetShown(joined)
@@ -578,10 +586,10 @@ local function PlaceBlockText(list, row)
 		dot:Show()
 		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
-		row.value:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+		Widgets.Point(row.value, "RIGHT", frame, "RIGHT", -inset, 0)
 	end
 	row.name:ClearAllPoints()
-	row.name:SetPoint("LEFT", frame, "LEFT", inset, 0)
+	Widgets.Point(row.name, "LEFT", row.bar, "LEFT", inset, 0)
 	if list.valueWidth > 0 then
 		row.name:SetPoint("RIGHT", row.value, "LEFT", -gap, 0)
 	else
@@ -595,12 +603,24 @@ local function PlaceBlockRow(list, row, y)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", list.pad, -y)
 	frame:SetSize(max(1, list.barWidth), list.rowHeight)
-	bar.opts.width = max(1, list.barWidth)
+	local slot = list.blockIcons and list.rowHeight or 0
+	local reach = slot > 0 and slot + Widgets.Snap(panel, BLOCK_ICON_GAP) or 0
+	bar.opts.width = max(1, list.barWidth - reach)
 	bar.opts.height = list.rowHeight
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetAllPoints(frame)
-	row.icon:Hide()
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", reach, 0)
+	bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+	local back, icon = row.back, row.icon
+	back:ClearAllPoints()
+	back:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	back:SetSize(max(1, slot), max(1, slot))
+	back:SetShown(slot > 0)
+	local edge = K.Scale.Pixel(1) / Widgets.ScaleFactor(panel)
+	icon:ClearAllPoints()
+	icon:SetPoint("TOPLEFT", back, "TOPLEFT", edge, -edge)
+	icon:SetPoint("BOTTOMRIGHT", back, "BOTTOMRIGHT", -edge, edge)
+	icon:SetShown(slot > 0 and row.iconSet == true)
 	PlaceBlockText(list, row)
 	PlaceMore(list, row)
 end
@@ -736,6 +756,7 @@ function List:Restyle()
 	local width = Size(self.holder, self.width, self.height)
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
 	local columns = self.columns()
+	self.blockIcons = self.block and self.iconsOn ~= nil and self.iconsOn() == true
 	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * VALUE_EMS) or 0
 	self.percentWidth = columns.percent and Widgets.Snap(self.panel, em * PERCENT_EMS) or 0
 	self.barWidth = Widgets.Snap(self.panel, width - 2 * self.pad)
@@ -853,6 +874,27 @@ function List:Finish(count, note)
 	end
 end
 
+function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
+	local row = self:Row(i)
+	local icon = row.icon
+	local set = atlas ~= nil or Logic.IsSecret(texture) or texture ~= nil
+	if atlas then
+		if row.iconAtlas ~= atlas then
+			icon:SetAtlas(atlas)
+		end
+	elseif set then
+		icon:SetTexture(texture)
+		if left then
+			icon:SetTexCoord(left, right, top, bottom)
+		else
+			icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+		end
+	end
+	row.iconAtlas = atlas
+	row.iconSet = set
+	icon:SetShown(set and self.blockIcons == true)
+end
+
 function List:SetIcons(shown)
 	shown = shown == true
 	if self.block or self.icons == shown then
@@ -874,6 +916,8 @@ local function SetAside(list, text)
 end
 
 function List:SetTitle(text)
+	self.titleText = nil
+	self.switchFirst = nil
 	self.cap:SetTitle(text)
 end
 
@@ -900,6 +944,31 @@ local function SwitchText(words, selected, only)
 		end
 	end
 	return table.concat(parts, SWITCH_GAP)
+end
+
+function List:PaintTitleSwitch()
+	local first, second, selected = self.switchFirst, self.switchSecond, self.switchPick
+	local hot = self.hot == true
+	if not first or (self.titleText and first == self.paintFirst and second == self.paintSecond and selected == self.paintPick and hot == self.paintHot) then
+		return
+	end
+	self.paintFirst, self.paintSecond, self.paintPick, self.paintHot = first, second, selected, hot
+	local Upper = K.Locale.Upper
+	local text
+	if hot then
+		text = Hex("capsGold") .. Upper(selected == 2 and second or first) .. "|r"
+	else
+		text = Hex(selected == 1 and "capsGold" or "muted") .. Upper(first) .. "|r" .. SWITCH_GAP .. Hex(selected == 2 and "capsGold" or "muted") .. Upper(second) .. "|r"
+	end
+	if text ~= self.titleText then
+		self.titleText = text
+		self.title:SetText(text)
+	end
+end
+
+function List:SetTitleSwitch(first, second, selected)
+	self.switchFirst, self.switchSecond, self.switchPick = first, second, selected
+	self:PaintTitleSwitch()
 end
 
 function List:ShowRest()
@@ -944,6 +1013,7 @@ function List:SetSwitch(words, selected, short)
 end
 
 function List:ShowSwitch()
+	self:PaintTitleSwitch()
 	if self.switchWords then
 		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
 	end
@@ -1000,6 +1070,7 @@ function BarList.New(parent, section, opts)
 	list.rowSplits = opts.rowSplits
 	list.rowSplit = opts.rowSplit
 	list.block = opts.block == true
+	list.iconsOn = opts.icons
 	list.key = opts.key
 	list.icons = false
 	list.rows = {}
@@ -1028,13 +1099,36 @@ function BarList.New(parent, section, opts)
 	if opts.tooltip then
 		Widgets.AttachTooltip(panel, opts.tooltip, Inward)
 	end
+	if opts.onTitle then
+		local hit = CreateFrame("Frame", nil, panel)
+		hit:SetFrameLevel(panel:GetFrameLevel() + 2)
+		hit:SetAllPoints(list.title)
+		hit:EnableMouse(true)
+		hit:SetScript("OnMouseUp", function(_, button)
+			opts.onTitle(list, button)
+		end)
+		if opts.titleTooltip then
+			Widgets.AttachTooltip(hit, opts.titleTooltip, Inward)
+		end
+		list.titleHit = hit
+	end
+	if opts.onWheel then
+		panel:EnableMouseWheel(true)
+		panel:SetScript("OnMouseWheel", function(_, delta)
+			opts.onWheel(list, delta)
+		end)
+	end
 	if opts.onSwitch then
 		local switch = CreateFrame("Frame", nil, panel)
 		switch:SetFrameLevel(panel:GetFrameLevel() + 2)
 		if list.block then
 			switch:SetPoint("TOPRIGHT", list.cap.frame, "TOPRIGHT")
 			switch:SetPoint("BOTTOMRIGHT", list.cap.frame, "BOTTOMRIGHT")
-			switch:SetWidth(BLOCK_SWITCH_REACH)
+			if list.titleHit then
+				switch:SetPoint("LEFT", list.titleHit, "RIGHT")
+			else
+				switch:SetWidth(BLOCK_SWITCH_REACH)
+			end
 			switch:HookScript("OnEnter", function()
 				list.hot = true
 				list:ShowSwitch()

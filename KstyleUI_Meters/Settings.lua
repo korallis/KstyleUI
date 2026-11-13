@@ -53,6 +53,8 @@ end
 local CAPTION = Tokens.Size("caption")
 local ROW, SPACING, ROW_TEXT = 18, 2, 12
 local DAMAGE_SPACING = 3
+local DAMAGE_CLASS_TONE = 0.62
+ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
 	accent = "class",
@@ -68,6 +70,7 @@ ns.defaults = {
 		title = true,
 		titleSize = CAPTION,
 		percent = true,
+		icons = true,
 	}),
 	threat = Merge(Bars("left"), Text(ROW_TEXT), {
 		shown = true,
@@ -256,7 +259,7 @@ local schema = {
 	},
 	{
 		type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["What the window measures. Click its title to change it in game."], options = ns.METER_TYPES,
+		help = L["What the window measures. Click its title to switch between damage and healing in game."], options = ns.METER_TYPES,
 	},
 	{
 		type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
@@ -269,6 +272,10 @@ local schema = {
 	{
 		type = "toggle", key = "damage.percent", label = L["Show percentages"], disableWhen = Off("damage"), showWhen = WindowStyle,
 		help = L["Shows each share of the total, when the game lets addons read it."],
+	},
+	{
+		type = "toggle", key = "damage.icons", label = L["Show icons"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Shows each player's class or each spell's icon at the start of its row."],
 	},
 }
 ListRows("damage", schema)
@@ -444,7 +451,7 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction, schoolToken)
+function ns.BarColor(section, classFile, reaction, schoolToken, muted)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
@@ -453,7 +460,11 @@ function ns.BarColor(section, classFile, reaction, schoolToken)
 		return Tokens.Color(schoolToken)
 	end
 	if source ~= "reaction" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
-		return Theme.ClassColor(classFile)
+		local r, g, b = Theme.ClassColor(classFile)
+		if muted then
+			return r * DAMAGE_CLASS_TONE, g * DAMAGE_CLASS_TONE, b * DAMAGE_CLASS_TONE
+		end
+		return r, g, b
 	end
 	return Tokens.Color(reaction or "friendly")
 end
