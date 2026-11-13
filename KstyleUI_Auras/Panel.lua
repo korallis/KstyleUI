@@ -159,9 +159,17 @@ function Panel.Flush()
 	end
 end
 
+local flushQueued, enchantsQueued = false, false
+
+local function QueuedFlush()
+	flushQueued = false
+	Panel.Flush()
+end
+
 local function OnGateEvent()
-	if waiting then
-		C_Timer.After(0, Panel.Flush)
+	if waiting and not flushQueued then
+		flushQueued = true
+		C_Timer.After(0, QueuedFlush)
 	end
 end
 
@@ -613,10 +621,18 @@ local HANDLERS = {
 	end,
 }
 
-local function OnEnchant()
+local function ApplyEnchants()
+	enchantsQueued = false
 	local desc = groups.buffs
-	if desc and not desc.failed then
+	if running and desc and not desc.failed then
 		K.Call(ApplyGroup, desc)
+	end
+end
+
+local function OnEnchant()
+	if not enchantsQueued then
+		enchantsQueued = true
+		C_Timer.After(0, ApplyEnchants)
 	end
 end
 

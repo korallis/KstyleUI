@@ -56,12 +56,13 @@ check(anchor == "TOPLEFT", "an unknown growth falls back to the default, right t
 
 -- Sort: setting value to the engine's AuraContainerSortMethod and direction names.
 local sorts = {
+	{ "use", false, "Expiration", "Normal" },
 	{ "time", false, "ExpirationOnly", "Normal" },
 	{ "time", true, "ExpirationOnly", "Reverse" },
 	{ "name", false, "NameOnly", "Normal" },
 	{ "applied", false, "AuraInstanceIDOnly", "Normal" },
 	{ "blizzard", true, "Default", "Reverse" },
-	{ "nonsense", false, "ExpirationOnly", "Normal" },
+	{ "nonsense", false, "Expiration", "Normal" },
 }
 for _, case in ipairs(sorts) do
 	local method, direction = Model.Sort(case[1], case[2])

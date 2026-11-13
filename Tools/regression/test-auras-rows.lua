@@ -190,9 +190,11 @@ check(count(ddesc.chip) == "+11", "twenty debuffs: +11, got " .. tostring(count(
 -- The count follows the enchantment slots: an active weapon enchantment takes one cell.
 env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 env.FireEvent("WEAPON_ENCHANT_CHANGED")
+env.RunTimers()
 check(chip.cap == 9 and chip.pairs[1].b == nil, "with an enchantment the buff cap is nine")
 env._enchants = {}
 env.FireEvent("WEAPON_ENCHANT_CHANGED")
+env.RunTimers()
 check(chip.cap == 10, "and ten again without")
 
 -- Tracked buffs: the Cooldown Manager's tracked-buff category, read from C_CooldownViewer out of the secure
