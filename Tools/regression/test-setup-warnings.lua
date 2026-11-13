@@ -58,9 +58,9 @@ local function Cluster(K, name)
 	local positions = Layouts.Positions(name, "orbs", K.Scale.Aspect(), K.Scale.Band())
 	local out = {}
 	for _, key in ipairs({ "unitframes.target", "unitframes.castbar.target", "unitframes.targettarget" }) do
-		local place = positions[key]
+		local place, own = positions[key], Layouts.Style("orbs", name, key) or {}
 		local w, h = Layouts.Footprint(name, key)
-		local l, b, r, t = Layouts.Rect({ width = place.width or w, height = place.height or h }, place, rw, rh)
+		local l, b, r, t = Layouts.Rect({ width = own.width or w, height = own.height or h }, place, rw, rh)
 		out[key] = { l = l, b = b, r = r, t = t }
 	end
 	return out

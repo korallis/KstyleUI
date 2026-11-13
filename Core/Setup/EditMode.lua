@@ -456,9 +456,9 @@ local function Warning(name, k, rw, rh, others, chosen)
 	end
 	local high = sigil.b > rh / 2
 	if high then
-		local place = Positions(name)["unitframes.target"]
-		if place.width and place.height then
-			local l, b, r, t = Layouts.Rect(place, place, rw, rh)
+		local place, own = Positions(name)["unitframes.target"], Layouts.Style(ns.HudStyle and ns.HudStyle.Current(), name, "unitframes.target")
+		if own and own.width and own.height then
+			local l, b, r, t = Layouts.Rect({ width = own.width, height = own.height }, place, rw, rh)
 			rects[#rects + 1] = { l = l, b = b, r = r, t = t }
 		end
 		rects[#rects + 1] = Box(name, "unitframes.castbar.target", rw, rh)

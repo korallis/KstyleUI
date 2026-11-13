@@ -83,7 +83,7 @@ function Lumen.Preset(layout)
 		local l, _, r, t = Layouts.Rect(spec, spec, rootHeight * width / Common.SCREEN.height, rootHeight)
 		return { left = origin + l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = spec.height * k }
 	end
-	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(Layouts.Story(layout, rootHeight, true).quests)
+	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(Layouts.Story(layout, rootHeight, true, nil, rootHeight * width / Common.SCREEN.height).quests)
 end
 
 -- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,

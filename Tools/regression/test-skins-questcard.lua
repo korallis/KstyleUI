@@ -314,7 +314,10 @@ do
 				assert(math.abs(card.top - glass.top) <= px and math.abs(story.tracker.top - story.guide.top) <= px, what .. ": the quest card's top is level with the guide's, got " .. card.top .. " for " .. glass.top)
 				local w, h = Layouts.Footprint(preset, "meters.threat")
 				local _, _, _, threatTop = Layouts.Rect({ width = w, height = h }, Layouts.Get(preset, rh)["meters.threat"], rw, rh)
-				assert(story.tracker.bottom >= threatTop + 16 - px, what .. ": the column ends a rail gap over the threat card's top, got " .. story.tracker.bottom .. " for " .. threatTop)
+				local tw, th = Layouts.Footprint(preset, "unitframes.targettarget")
+				local _, _, totRight, totTop = Layouts.Rect({ width = tw, height = th }, Layouts.Get(preset, rh)["unitframes.targettarget"], rw, rh)
+				local foot = story.tracker.left >= totRight + 4 and threatTop + 16 or totTop + 16
+				assert(math.abs(story.tracker.bottom - foot) <= px, what .. ": the column ends a rail gap over the threat card's top where it clears the target of target, else a rail gap over the cluster top, got " .. story.tracker.bottom .. " for " .. foot)
 				assert(#Shown(ns) >= need, what .. ": at least " .. need .. " quests show, got " .. #Shown(ns))
 				for _, row in ipairs(ns.Quests.Rows()) do
 					if row:IsShown() then
