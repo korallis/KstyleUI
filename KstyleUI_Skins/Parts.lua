@@ -1,4 +1,4 @@
--- Parts.lua: the pieces skins draw on KstyleUI's own child frames: quality rims, accent lines, side tabs, the docked-tab treatment that grows a window's glass around the tabs Blizzard hangs past its edge (a side column behind a seam hairline, a bottom tab strip inset with none), dropdowns, list rows and fill bars.
+-- Parts.lua: the pieces skins draw on KstyleUI's own child frames: quality rims, accent lines, side tabs, the quest card's title cap on a window (a gilt diamond, the title at the left, a rule to the close glyph), the docked-tab treatment that grows a window's glass around the tabs Blizzard hangs past its edge (a side column behind a seam hairline, a bottom tab strip inset with none), dropdowns, list rows and fill bars.
 local _, ns = ...
 
 local K = KstyleUI
@@ -29,6 +29,7 @@ local rims = setmetatable({}, WEAK)
 local tabs = setmetatable({}, WEAK)
 local fills = setmetatable({}, WEAK)
 local docks = setmetatable({}, WEAK)
+local caps = setmetatable({}, WEAK)
 local painting = false
 local rowOwner = {}
 
@@ -336,7 +337,7 @@ local function ShiftTitle(dock)
 	if not title or type(title.AdjustPointsOffset) ~= "function" then
 		return
 	end
-	local shift = (dock.reach.RIGHT - dock.reach.LEFT) / 2
+	local shift = caps[title] and -dock.reach.LEFT or (dock.reach.RIGHT - dock.reach.LEFT) / 2
 	local delta = shift - (dock.shift or 0)
 	if math.abs(delta) > 0 then
 		title:AdjustPointsOffset(delta, 0)
@@ -426,6 +427,132 @@ end
 
 function Parts.DockOf(window)
 	return docks[window]
+end
+
+local CAP_PAD, CAP_GEM, CAP_GEM_GAP, CAP_RULE_GAP, CAP_ALPHA = 16, 8, 7, 10, 0.5
+
+function Parts.IsCapped(title)
+	return caps[title] ~= nil
+end
+
+local function TextWidth(title)
+	local fn = title.GetUnboundedStringWidth or title.GetStringWidth
+	if type(fn) ~= "function" then
+		return nil
+	end
+	local width = fn(title)
+	if IsSecret(width) or type(width) ~= "number" then
+		return nil
+	end
+	local room = title:GetWidth()
+	if not IsSecret(room) and type(room) == "number" and room > 0 then
+		width = math.min(width, room)
+	end
+	return width
+end
+
+local function TitleLeft(title)
+	for i = 1, title:GetNumPoints() do
+		local point, relative, relativePoint, x = title:GetPoint(i)
+		if (point == "LEFT" or point == "TOPLEFT" or point == "BOTTOMLEFT") and type(relative) == "table" and type(relativePoint) == "string"
+			and relativePoint:find("LEFT$") and type(relative.GetLeft) == "function" and not Widgets.Restricted(relative) then
+			local edge = Plain(relative:GetLeft())
+			if edge and not IsSecret(x) and type(x) == "number" then
+				return edge + x
+			end
+		end
+	end
+	return Plain(title:GetLeft())
+end
+
+local function AlignTitle(cap)
+	if cap.aligned or Widgets.Restricted(cap.holder) or Widgets.Restricted(cap.frame) or Widgets.Restricted(cap.title) then
+		return
+	end
+	local backdrop, frame = cap.backdrop, cap.frame
+	local left, from = Plain(frame:GetLeft()), TitleLeft(cap.title)
+	if not (left and from) then
+		return
+	end
+	local inset = backdrop.inset
+	if type(inset) == "table" then
+		inset = inset.left
+	end
+	local want = left + Widgets.Snap(backdrop, (type(inset) == "number" and inset or 0) + CAP_PAD + CAP_GEM + CAP_GEM_GAP)
+	cap.title:AdjustPointsOffset(want - from, 0)
+	cap.aligned = true
+end
+
+local function PlaceCap(cap)
+	local holder, title, gem, rule = cap.holder, cap.title, cap.gem, cap.rule
+	AlignTitle(cap)
+	local size = Widgets.Snap(holder, CAP_GEM)
+	gem:SetSize(size, size)
+	gem:ClearAllPoints()
+	gem:SetPoint("RIGHT", title, "LEFT", -Widgets.Snap(holder, CAP_GEM_GAP), 0)
+	local width = TextWidth(title)
+	rule:ClearAllPoints()
+	if not width then
+		rule:Hide()
+		return
+	end
+	local gap = Widgets.Snap(holder, CAP_RULE_GAP)
+	rule:SetPoint("LEFT", title, "LEFT", width + gap, 0)
+	local close = cap.close
+	if close then
+		rule:SetPoint("RIGHT", close, "LEFT", -gap, 0)
+	else
+		rule:SetPoint("RIGHT", title, "RIGHT")
+	end
+	rule:SetHeight(Widgets.Border(holder))
+	rule:Show()
+end
+
+local function PaintCap(cap)
+	cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
+	Widgets.PaintCapMaterial(cap.gem, cap.rule, CAP_ALPHA)
+end
+
+local function RestyleCap(cap)
+	PlaceCap(cap)
+	PaintCap(cap)
+end
+
+function Parts.TitleCap(frame, title, close)
+	if type(frame) ~= "table" or type(title) ~= "table" or type(title.SetJustifyH) ~= "function" then
+		return nil
+	end
+	if caps[title] then
+		return caps[title]
+	end
+	local backdrop = Skin.Parts(frame) and Skin.Parts(frame).backdrop
+	if not backdrop or type(title.AdjustPointsOffset) ~= "function" then
+		Log("a window title has no KstyleUI backdrop to carry its cap; it keeps Blizzard's place")
+		return nil
+	end
+	local holder = CreateFrame("Frame", nil, backdrop)
+	holder:SetAllPoints(backdrop)
+	local cap = { frame = frame, title = title, backdrop = backdrop, holder = holder }
+	cap.gem = holder:CreateTexture(nil, "OVERLAY")
+	cap.rule = holder:CreateTexture(nil, "OVERLAY")
+	close = close or frame.CloseButton
+	if type(close) == "table" and type(close.GetObjectType) == "function" then
+		cap.close = close
+	end
+	cap.Restyle = RestyleCap
+	caps[title] = cap
+	title:SetJustifyH("LEFT")
+	local function place()
+		PlaceCap(cap)
+	end
+	hooksecurefunc(title, "SetText", place)
+	if type(title.SetFormattedText) == "function" then
+		hooksecurefunc(title, "SetFormattedText", place)
+	end
+	frame:HookScript("OnShow", place)
+	RestyleCap(cap)
+	Widgets.Track(cap)
+	return cap
 end
 
 local function PaintGlyph(state)

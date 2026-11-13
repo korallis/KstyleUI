@@ -41,9 +41,10 @@ local panel = Widgets.Panel(root, { width = 300, height = 180 })
 local p = panel.content._points[1]
 assert(W.Near(p[4], panel.chrome:Inset("gapMedium")) and W.Near(p[5], -panel.chrome:Inset("gapMedium")), "panel content starts one rule inset in")
 local titled = Widgets.Panel(root, { width = 320, height = 200, title = "Title" })
-local t = titled.titleText._points[1]
-assert(W.Near(t[4], titled.chrome:Inset("gapMedium")), "a panel title sits one rule inset from the left")
-assert(W.Near(t[5], -titled.chrome:Inset("gapMedium")), "and from the top")
+local t = titled.cap._points[1]
+local heading = Widgets.Snap(titled, Tokens.Size("heading"))
+assert(t[1] == "LEFT" and W.Near(t[4], titled.chrome:Inset("gapMedium")), "a panel's title cap sits one rule inset from the left")
+assert(W.Near(t[5], -(titled.chrome:Inset("gapMedium") + heading / 2)), "and centres on the heading line one rule down from the top")
 
 -- The kit's tooltip pads its lines by the rule.
 local tip = Widgets.Tooltip and Widgets.Tooltip(root)

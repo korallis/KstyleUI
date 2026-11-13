@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
+local Tokens, Scale, L = ns.Tokens, ns.Scale, ns.L
 local max = math.max
 
 local WIDTH = 360
@@ -26,8 +26,7 @@ local function Finish(handle)
 		if #queue > 0 then
 			ShowNext()
 		else
-			Motion.FadeOut(host, Tokens.Duration("panelClose"))
-			Widgets.Sound("IG_MAINMENU_CLOSE")
+			host:Close()
 		end
 		return
 	end

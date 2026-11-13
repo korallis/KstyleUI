@@ -61,13 +61,47 @@ function W.Tick(env, dt)
 	end
 end
 
--- Settle(env) steps every OnUpdate in 16 ms frames until none is left, at most 1000 frames.
+-- FinishGroups(env) ends every animation group still playing on a shown frame that does not loop, leaves its end
+-- alpha on the frame when it is set to final alpha, and runs its OnFinished, as the client does once its animations
+-- have run; it reports whether it ended any.
+function W.FinishGroups(env)
+	local finished = false
+	for _, frame in ipairs(env._frames) do
+		for _, group in ipairs(frame._groups or {}) do
+			local looping = group._state.Looping
+			if group._playedAt and frame:IsShown() and not (looping and looping[1] ~= "NONE") then
+				group._playedAt = nil
+				finished = true
+				local final = group._state.ToFinalAlpha
+				if final and final[1] then
+					for _, animation in ipairs(group._anims or {}) do
+						local to = animation._type == "Alpha" and animation._state.ToAlpha
+						if to then
+							frame:SetAlpha(to[1])
+						end
+					end
+				end
+				local onFinished = group:GetScript("OnFinished")
+				if onFinished then
+					onFinished(group, false)
+				end
+			end
+		end
+	end
+	return finished
+end
+
+-- Settle(env) steps every OnUpdate in 16 ms frames until none is left, at most 1000 frames, then ends the animation
+-- groups that played (FinishGroups), and steps again for any OnUpdate their OnFinished started.
 function W.Settle(env)
 	for _ = 1, 1000 do
 		if #updating(env) == 0 then
-			return
+			if not W.FinishGroups(env) then
+				return
+			end
+		else
+			W.Tick(env, 0.016)
 		end
-		W.Tick(env, 0.016)
 	end
 	error("Settle: an OnUpdate kept running for 1000 frames")
 end

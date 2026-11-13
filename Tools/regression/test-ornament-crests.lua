@@ -1,4 +1,4 @@
--- test-ornament-crests.lua: a kit window's crest is seated on its top edge, 1 physical pixel clear of the title, the close button, the content and anything else the window lists, taking a smaller tier where the larger one would touch them and none below Crest20, draws nothing for a window that lists nothing, measures a short band down to the frame below it, follows the level, restyles on a resize and on a drop but never during a drag, drops at the screen's top edge and on secret geometry, and only hides in lockdown.
+-- test-ornament-crests.lua: a kit window that asks for a crest (kit windows carry none by default since the KSTY-44 bible; RestedXP windows still ask) is seated on its top edge, 1 physical pixel clear of the title, the close button, the content and anything else the window lists, taking a smaller tier where the larger one would touch them and none below Crest20, draws nothing for a window that lists nothing, measures a short band down to the frame below it, follows the level, restyles on a resize and on a drop but never during a drag, drops at the screen's top edge and on secret geometry, and only hides in lockdown.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New()
 local Widgets, Scale = K.Widgets, K.Scale
@@ -21,7 +21,7 @@ env.CreateFrame = function(...)
 	return frame
 end
 
-local panel = Widgets.Panel(Scale.Root(), { title = "Kstyle window", close = true, movable = true, width = 600, height = 420 })
+local panel = Widgets.Panel(Scale.Root(), { title = "Kstyle window", close = true, movable = true, ornament = "crest", width = 600, height = 420 })
 panel:ClearAllPoints()
 panel:SetPoint("CENTER", Scale.Root(), "CENTER", 0, 0)
 panel:Show()
@@ -271,7 +271,7 @@ neighbour:Hide()
 crest:Restyle()
 assert(one(crest, "the window above hidden"):GetTexture() == centredName, "a hidden window above does not block")
 
-local band = Widgets.Panel(Scale.Root(), { title = "Band", width = 500, height = 40 })
+local band = Widgets.Panel(Scale.Root(), { title = "Band", ornament = "crest", width = 500, height = 40 })
 band:ClearAllPoints()
 band:SetPoint("CENTER", Scale.Root(), "CENTER", 0, 200)
 band:Show()
@@ -312,7 +312,7 @@ env.RunTimers()
 one(crest, "after combat")
 panel.IsProtected = function() return false end
 
-local opened = Widgets.Panel(Scale.Root(), { title = "Opened in combat", close = true, width = 500, height = 300, hidden = true })
+local opened = Widgets.Panel(Scale.Root(), { title = "Opened in combat", close = true, ornament = "crest", width = 500, height = 300, hidden = true })
 opened:ClearAllPoints()
 opened:SetPoint("CENTER", Scale.Root(), "CENTER", 0, -200)
 env._combat = true
@@ -327,7 +327,7 @@ assert(untitled.chrome.ornament == nil, "an untitled panel carries no crest")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors: " .. tostring(env._errors[1]))
 
 local env2, K2 = W.New({ setup = function(e) e.GetPhysicalScreenSize = function() return 3456, 2234 end end })
-local narrow = K2.Widgets.Panel(K2.Scale.Root(), { title = "Narrow at 3456", close = true, width = 175, height = 300 })
+local narrow = K2.Widgets.Panel(K2.Scale.Root(), { title = "Narrow at 3456", close = true, ornament = "crest", width = 175, height = 300 })
 narrow:ClearAllPoints()
 narrow:SetPoint("CENTER", K2.Scale.Root(), "CENTER", 0, 0)
 narrow:Show()

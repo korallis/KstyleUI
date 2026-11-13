@@ -211,9 +211,10 @@ do
 	assert(win:GetAlpha() == 1, "the window fades in to full alpha")
 	assert(win:GetFrameStrata() == "HIGH", "the window sits in the HIGH strata")
 	assert(win.chrome and win.chrome.shapeName == "window", "the settings window, a titled window, wears the window grade's 12-unit chamfer, not the panel's 8")
-	local neighbours = {}
-	for _, region in ipairs(win.chrome.ornament and win.chrome.ornament.inside or {}) do neighbours[region] = true end
-	assert(neighbours[win.title] and neighbours[win.closeButton] and neighbours[ns.Window.Parts().search], "the settings window's crest keeps clear of its title, close button and search box")
+	assert(win.chrome.ornament == nil, "the settings window carries no crest: the bible allows ornament on card corners and the heading rule only")
+	local rp, rto, rtoPoint = win.rule:GetPoint(1)
+	local ep, eto, etoPoint = win.rule:GetPoint(2)
+	assert(rp == "LEFT" and rto == win.title and rtoPoint == "RIGHT" and ep == "RIGHT" and eto == ns.Window.Parts().search and etoPoint == "LEFT", "the quest card's heading rule runs from the title to the search box")
 	local title = select(2, win.title:GetFont())
 	assert(title == math.max(K.Tokens.Size("caps"), K.Widgets.CAPS_SIZE * K.Theme.FontScale()), "the title is set at the card caption size")
 	assert(K.Theme.SetFontScale(1.1), "the text size changes")

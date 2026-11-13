@@ -129,9 +129,39 @@ function Object:SetParent(parent)
 		parent._kids[#parent._kids + 1] = self
 	end
 end
+-- Hiding a frame stops its animation groups without running OnFinished, as the client does; a group set to final
+-- alpha leaves its alpha animations' end alpha on the frame (SetToFinalAlpha, SimpleAnimGroupAPIDocumentation.lua).
+local function finalAlpha(group)
+	local final = group._state.ToFinalAlpha
+	if not (final and final[1]) then
+		return
+	end
+	for _, animation in ipairs(group._anims or {}) do
+		local to = animation._type == "Alpha" and animation._state.ToAlpha
+		if to and group._parent then
+			group._parent:SetAlpha(to[1])
+		end
+	end
+end
+local function stopGroups(self)
+	for _, group in ipairs(self._groups or {}) do
+		if group._playedAt then
+			group._playedAt = nil
+			finalAlpha(group)
+		end
+	end
+end
 function Object:Show() self._shown = true end
-function Object:Hide() self._shown = false end
-function Object:SetShown(shown) self._shown = not not shown end
+function Object:Hide()
+	self._shown = false
+	stopGroups(self)
+end
+function Object:SetShown(shown)
+	self._shown = not not shown
+	if not shown then
+		stopGroups(self)
+	end
+end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
 -- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.

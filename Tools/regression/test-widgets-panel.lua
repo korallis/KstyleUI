@@ -1,4 +1,4 @@
--- test-widgets-panel.lua: the glass panel: chamfered chrome, title bar, close button, open and close motion, Escape, dragging and Layout.
+-- test-widgets-panel.lua: the card panel: chamfered chrome, the quest card's title cap, one close glyph, the open and close motion the client plays (never in combat), Escape, dragging and Layout.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function panelWith(opts, envOpts)
@@ -50,6 +50,23 @@ do
 	assert(W.Near(panel.chrome:Radius(), 6 * K.Scale.Border()), "the picture's card corner, six lines")
 	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the card's gilt ticks")
 	assert(panel.divider == nil, "no line under the title, as the kit's glass panel")
+	local cap = panel.cap
+	assert(cap and cap.label == panel.titleText, "the title is the quest card's cap: its label is the title")
+	assert(cap.gem:IsShown() and cap.rule:IsShown(), "with the cap's diamond before it and its rule after it")
+	local rulePoint, ruleTo, ruleToPoint = cap.rule:GetPoint(1)
+	assert(rulePoint == "LEFT" and ruleTo == cap.label and ruleToPoint == "RIGHT", "the rule starts after the title")
+	local capRight, capTo, capToPoint = cap:GetPoint(2)
+	assert(capRight == "RIGHT" and capTo == panel.closeButton and capToPoint == "LEFT", "and runs to the close glyph")
+	local gx, gy = select(4, cap:GetPoint(1))
+	assert(W.Near(gx, K.Widgets.WindowInset(panel)) and gy < 0, "the cap sits one padding in from the left, inside the top padding")
+	local closeY = select(5, panel.closeButton:GetPoint(1))
+	assert(W.Near(closeY, gy), "the close glyph sits on the cap's line")
+	assert(panel.chrome.ornament == nil, "a window carries no crest: the bible allows ornament on card corners and the heading rule only")
+	local closers = 0
+	for _, kid in ipairs({ panel:GetChildren() }) do
+		if kid == panel.closeButton then closers = closers + 1 end
+	end
+	assert(closers == 1, "one close glyph")
 	for _, region in ipairs(W.Regions(panel, "Texture")) do
 		assert(region:GetTexture() ~= Tokens.Texture("divider"), "no divider texture on the panel")
 	end
@@ -72,31 +89,84 @@ do
 	assert(panel:GetAlpha() == 1, "a later Show shows it at full alpha")
 end
 
--- Opening fades in and plays the rise; reduced motion skips both.
+-- Opening: the client plays a 0.25 s fade and a 6-unit rise; closing a 0.15 s fade, then hides. Nothing animates in
+-- combat or with motion off, and no Lua tween runs.
 do
 	local env, K, panel = panelWith({ width = 200, height = 120, hidden = true })
 	assert(panel:IsShown() == false, "hidden makes the panel start hidden")
+	local tweens = 0
+	local tween = K.Motion.Tween
+	K.Motion.Tween = function(...)
+		tweens = tweens + 1
+		return tween(...)
+	end
 	panel:Open()
-	assert(panel:IsShown() and panel:GetAlpha() == 0, "Open shows the panel at alpha 0")
-	assert(#W.Calls(panel.rise, "Play") == 1, "the rise plays")
-	local translations = 0
+	assert(panel:IsShown() and panel:GetAlpha() == 1, "Open shows the panel")
+	assert(panel.fadeIn:IsPlaying() and panel.rise:IsPlaying(), "and the client plays its fade and its rise")
+	local alpha = panel.fadeIn._anims[1]
+	assert(alpha:GetObjectType() == "Alpha" and W.LastCall(alpha, "SetFromAlpha")[1] == 0 and W.LastCall(alpha, "SetToAlpha")[1] == 1, "the fade runs from clear to whole")
+	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], 0.25), "over 0.25 s, the bible's card open")
+	local translations, up = 0, 0
 	for _, anim in ipairs(panel.riseParts) do
 		local offset = W.LastCall(anim, "SetOffset")
 		translations = translations + offset[2]
+		up = math.max(up, offset[2])
 	end
 	assert(W.Near(translations, 0), "the rise ends where the panel rests, so nothing jumps")
+	assert(W.Near(up, 6), "a 6-unit rise")
 	W.Settle(env)
-	assert(panel:GetAlpha() == 1, "and fades to full alpha")
+	assert(not panel.fadeIn:IsPlaying() and panel:GetAlpha() == 1, "and settles whole")
 	panel:Close()
+	assert(panel:IsShown() and panel.fadeOut:IsPlaying(), "Close plays the fade out first")
+	assert(W.Near(W.LastCall(panel.fadeOut._anims[1], "SetDuration")[1], 0.15), "over 0.15 s, the bible's card close")
 	W.Settle(env)
+	assert(panel:IsShown() == false and panel:GetAlpha() == 1, "then hides, ready to show whole")
+	assert(tweens == 0, "no Lua tween moves a window")
+
+	env.SetCombat(true)
+	panel:Open()
+	assert(panel:IsShown() and not panel.fadeIn:IsPlaying() and not panel.rise:IsPlaying(), "in combat a window opens at once")
+	panel:Close()
+	assert(panel:IsShown() == false and not panel.fadeOut:IsPlaying(), "and closes at once")
+	env.SetCombat(false)
+	K.Motion.Tween = tween
+
+	panel:Open()
+	W.Settle(env)
+	panel:Close()
+	panel:Open()
+	W.Settle(env)
+	assert(panel:IsShown() and panel:GetAlpha() == 1 and not panel.closing, "Close then Open at once leaves the window open and whole")
+	panel:Close()
+	panel:Toggle()
+	assert(panel:IsShown() and not panel.fadeOut:IsPlaying(), "Toggle while it fades out opens it again")
+	W.Settle(env)
+	assert(panel:IsShown() and panel:GetAlpha() == 1, "and it stays open, whole")
+	panel:Close()
+	env.SetCombat(true)
+	W.Settle(env)
+	env.SetCombat(false)
+	assert(panel:IsShown() == false and panel:GetAlpha() == 1, "combat starting mid-fade still hides it, ready to show whole")
+	panel:Show()
+	assert(panel:GetAlpha() == 1, "a plain Show after a close shows it whole")
+	panel:Close()
+	panel:Hide()
+	panel:GetScript("OnHide")(panel)
+	assert(panel:GetAlpha() == 1 and not panel.closing, "a Hide during the fade out leaves it whole for the next Show")
+	panel:Show()
+	W.Settle(env)
+	assert(panel:IsShown(), "and a stale fade never hides it again")
+
 	K.Motion.SetReducedMotion(true)
+	local plays = #W.Calls(panel.rise, "Play")
 	panel:Open()
 	assert(panel:IsShown() and panel:GetAlpha() == 1, "reduced motion opens at once")
-	assert(#W.Calls(panel.rise, "Play") == 1, "and does not play the rise")
+	assert(#W.Calls(panel.rise, "Play") == plays, "and does not play the rise")
 	panel:Toggle()
 	assert(panel:IsShown() == false, "Toggle closes an open panel")
 	panel:Toggle()
 	assert(panel:IsShown() == true, "and opens a closed one")
+	K.Motion.SetReducedMotion(false)
 end
 
 -- Escape closes a panel that asks for it.
