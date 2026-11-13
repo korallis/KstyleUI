@@ -1,4 +1,4 @@
--- test-nameplates-bible.lua: the KSTY-44 bible's plate. No ornament on or around the bar at any ornament level; a plate on a nameplate the game restricts for measurement builds, takes a target, a cast, effects and a setting change with no measuring and no error; nothing moves a plate or its pieces after it builds (Lee saw plates "dart around"), so a target change only shows or hides the brackets; the brackets close in once at full motion and never on a restyle; the level diamond and the right-hand raid marker stay clear of the brackets on every screen.
+-- test-nameplates-bible.lua: the KSTY-44 bible's plate. No ornament on or around the bar at Off, Subtle or Full; a plate on a nameplate the game restricts for measurement builds, takes a target, a cast, effects and a setting change with no measuring and no error; nothing moves a plate or its pieces after it builds (Lee saw plates "dart around"), so a target change only shows or hides the brackets; the brackets close in once at full motion and never on a restyle; the level diamond and the right-hand raid marker stay clear of the brackets on every screen.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local A = dofile("Tools/regression/auras_env.lua")
@@ -30,9 +30,9 @@ local function counts(frames)
 	return out
 end
 
--- No ornament on a plate, at Subtle or Full -----------------------------------------------------------------
+-- No ornament on a plate, at Off, Subtle or Full ----------------------------------------------------------------
 
-for _, level in ipairs({ "Subtle", "Full" }) do
+for _, level in ipairs({ "Off", "Subtle", "Full" }) do
 	for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		local env, K, ns = N.New({ width = screen[1], height = screen[2] })
 		local widgets = K.Store.Module("Widgets")
