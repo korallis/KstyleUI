@@ -3,14 +3,16 @@
 -- its brackets, the same mob not targeted, an elite casting an interruptible spell, a rare, a world boss and a
 -- friendly player. The fake AuraContainer engine lays out no buttons, so the scene fills the effect tiles and places
 -- them as the engine's flow layout would (Hud.PlaceAuras). Every base sits at scale 1, so the crops read in root
--- units. RENDER_COMBAT=1 puts the player in combat with a group, so threat shows on the plates that carry it.
+-- units. The target has just taken a hit from 77 to 71 percent, so its pale loss band shows as the mock-up's does, after its 0.18 s white flash has faded (the
+-- still cannot play the animation, so the scene hides the flash).
+-- RENDER_COMBAT=1 puts the player in combat with a group, so threat shows on the plates that carry it.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
 local EMBER, SNAP = 135813, 132200
 local PLATES = {
-	{ token = "nameplate1", x = 320, y = 200, unit = { name = "Galestrider", health = 1206, maxHealth = 1698, level = 6, reaction = 2, canAttack = true, threat = 3 } },
+	{ token = "nameplate1", x = 320, y = 200, unit = { name = "Galestrider", health = 1307, maxHealth = 1698, level = 6, reaction = 2, canAttack = true, threat = 3 } },
 	{ token = "nameplate2", x = 320, y = 330, unit = { name = "Galestrider", health = 1698, maxHealth = 1698, level = 6, reaction = 2, canAttack = true, threat = 0 } },
 	{ token = "nameplate3", x = 320, y = 460, unit = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, threat = 2, raid = 8 } },
 	{ token = "nameplate4", x = 760, y = 200, unit = { name = "Gorefang", health = 2400, maxHealth = 5200, level = 39, classification = "rare", reaction = 2, canAttack = true } },
@@ -77,6 +79,9 @@ return Common.Run(function()
 		place(env, base, spec.x, spec.y)
 	end
 	N.Target(env, "nameplate1")
+	env._units.nameplate1.health = 1206
+	env.FireEvent("UNIT_HEALTH", "nameplate1")
+	ns.Plates.Get("nameplate1").health.flash:Hide()
 	cast(env, "nameplate3", { name = "Snap", text = "Snap", texture = SNAP, notInterruptible = false })
 	N.Debuffs(env, "nameplate1", 1)
 	env.RunTimers()
