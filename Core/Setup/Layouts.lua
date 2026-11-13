@@ -594,7 +594,7 @@ function Layouts.Slot(name, rootHeight)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style)
+function Layouts.Story(name, rootHeight, guide, style, rootWidth)
 	local slot = Layouts.Slot(name, rootHeight)
 	if not slot then
 		return nil
@@ -615,8 +615,16 @@ function Layouts.Story(name, rootHeight, guide, style)
 	if not guide then
 		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - DPS["meters.threat"].y - THREAT_H - GAP)
-	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column) }
+	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
+	local tot = rootWidth and Layouts.Get(name, rootHeight)["unitframes.targettarget"]
+	if tot then
+		local w, h = Layouts.Footprint(name, "unitframes.targettarget")
+		local _, _, right = Layouts.Rect({ width = w, height = h }, tot, rootWidth, rootHeight)
+		if rootWidth + x - slot.width >= right + TIGHT then
+			foot = DPS["meters.threat"].y + THREAT_H
+		end
+	end
+	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, x, math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP)) }
 end
 
 local LIFTED = {
@@ -1060,7 +1068,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local pixelScale = physicalHeight / rootHeight
 	enabled = enabled or Layouts.Enabled(name)
 	local rects = {}
-	local story = Layouts.Story(name, rootHeight, true, style)
+	local story = Layouts.Story(name, rootHeight, true, style, physicalWidth / pixelScale)
 	local cards = { story.guide, story.quests }
 	for i = 1, #ELEMENTS + #cards do
 		local key, width, height, position, offsetX

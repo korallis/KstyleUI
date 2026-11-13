@@ -134,7 +134,7 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh, part)
-	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current())
+	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current(), rw)
 	local card = story and story[part or "guide"]
 	if not card then
 		return nil
