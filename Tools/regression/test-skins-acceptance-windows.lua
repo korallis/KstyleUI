@@ -126,11 +126,10 @@ Check(function()
 	assert(words.color[1] < 0.6, "the instructions are the Options placeholder's faint grey")
 end)
 
--- Legacy (item 15): the reading sits above the bar, never on it; each reward has a level diamond above it and its
--- name centred under it.
+-- Legacy (item 15): the reward track's bar fills with the accent, not Blizzard's white fill art; each reward has a
+-- level diamond above it and its name centred under it.
 Check(function()
 	local scene = Scene("gallery_skins_legacy")
-	local reading = Text(scene, "6,400 / 10,000 to the next reward")
 	local fill
 	for _, item in ipairs(scene.items) do
 		if File(item, "BarGlass") and item.rect[3] > 300 then
@@ -138,7 +137,7 @@ Check(function()
 		end
 	end
 	assert(fill, "the reward track's bar draws its fill")
-	assert(reading.rect[2] + reading.rect[4] <= fill.rect[2], "the reading stands above the bar, not on it")
+	assert(not (fill.vertex[1] > 0.99 and fill.vertex[2] > 0.99 and fill.vertex[3] > 0.99), "the fill is the accent, not Blizzard's white fill art")
 	local gems = {}
 	for _, item in ipairs(scene.items) do
 		if File(item, "Diamond.png") and not File(item, "Forged") then

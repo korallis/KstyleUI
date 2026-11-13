@@ -1747,7 +1747,8 @@ function build.legacy(env, B)
 	bar:SetStatusBarColor(1, 1, 1)
 	track.LegacyRewardProgressBar = bar
 	bar.ProgressBarFrame = B.texture(bar, "OVERLAY")
-	bar.Text = Text(B.text(bar), "6,400 / 10,000 to the next reward", "CENTER", bar)
+	-- SetupProgressDetails (Blizzard_LegacyRewardTrack.lua:234) never writes the bar's text, so it stays empty.
+	bar.Text = Text(B.text(bar), "", "CENTER", bar)
 	local progress = B.frame("Frame", track)
 	track.LegacyRewardProgressFrame = progress
 	progress:SetSize(849, 270)

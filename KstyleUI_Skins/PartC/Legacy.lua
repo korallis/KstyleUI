@@ -1,4 +1,4 @@
--- Legacy.lua: the Legacy window skin: the window and its side tabs on glass, progress bars in the shared bar look with their reading above the bar, the reward cards as slot-edged icons under a level diamond, and the challenge and tree pages' controls.
+-- Legacy.lua: the Legacy window skin: the window and its side tabs on glass, progress bars in the shared bar look filled with the accent, the reward cards as slot-edged icons under a level diamond, and the challenge and tree pages' controls.
 local _, ns = ...
 
 local K = KstyleUI
@@ -60,7 +60,7 @@ local function RewardCard(card)
 		end
 	end
 	if card.Level then
-		Style.Text(card.Level, "number", "textEmphasis")
+		Style.Text(card.Level, "number")
 	end
 	if card.RewardName then
 		Style.Text(card.RewardName, "body")
@@ -89,12 +89,6 @@ local function RewardTrack(page)
 	local bar = page.LegacyRewardProgressBar
 	if type(bar) == "table" and type(bar.GetStatusBarTexture) == "function" then
 		Style.StatusBar(bar, { accent = true })
-		if type(bar.Text) == "table" and type(bar.Text.SetPoint) == "function" then
-			bar.Text:ClearAllPoints()
-			bar.Text:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", 0, K.Widgets.Snap(bar, Tokens.Size("gapSmall")))
-			bar.Text:SetJustifyH("RIGHT")
-			Style.Text(bar.Text, "number", "text")
-		end
 	end
 	local progress = page.LegacyRewardProgressFrame
 	if type(progress) == "table" then

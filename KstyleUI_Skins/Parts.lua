@@ -748,12 +748,14 @@ function Parts.Dropdown(drop)
 		PaintChevron(state)
 	end)
 	if type(drop.IsEnabled) == "function" then
-		drop:HookScript("OnEnable", function()
+		local function enabled()
+			if drop.Text then
+				ns.Style.Text(drop.Text, "body")
+			end
 			PaintChevron(state)
-		end)
-		drop:HookScript("OnDisable", function()
-			PaintChevron(state)
-		end)
+		end
+		drop:HookScript("OnEnable", enabled)
+		drop:HookScript("OnDisable", enabled)
 	end
 	chevrons[drop] = state
 	LayoutChevron(state)
