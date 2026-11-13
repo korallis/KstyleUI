@@ -30,7 +30,6 @@ local ANCHORS = {
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
 local PICTURE_GAPS = {
 	["unitframes.player/unitframes.target"] = 2,
-	["unitframes.castbar.player/meters.swing"] = 1,
 }
 -- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10, 21:9 and the two 32:9 panels (5120 x 1440, the
 -- owner's, and 3840 x 1080): at the Interface size KstyleUI ships (16 / 19) the root is Layouts.HEIGHT (1282.5) units
@@ -398,8 +397,8 @@ for _, name in ipairs(names) do
 		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9 + LIFT) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
 		assert(same(bars.x - mid, -480) and same(bars.bottom, 340 + LIFT), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
 		local swing = rect("meters.swing")
-		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
-		local block = math.max(swing.top, bars.top, essential.top, utility.top)
+		assert(same(swing.bottom - resource.top, 8) and swing.bottom - cast.top >= 8 + 14, label .. ": KSTY-60 item 13: the swing line has its own slot 8 above the class resource, clear of the player cast, as in Orbs")
+		local block = math.max(bars.top, essential.top, utility.top)
 		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
 		local near = K.Tokens.Size("gapLarge")
 		assert(same(bar1.left - TRAY_PAD - petBar.right, near) and same(petBar.bottom, TRAY_BOTTOM), label .. ": the optional pet sockets stand beside the tray card, on its bottom edge")
@@ -444,7 +443,7 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
-		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 632 + LIFT) and same(targetCast.top, 664 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
+		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 632 + LIFT) and same(targetCast.top, 664 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")

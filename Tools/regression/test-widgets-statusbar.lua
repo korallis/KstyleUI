@@ -127,10 +127,8 @@ do
 	local reversed = K.Widgets.StatusBar(K.Scale.Root(), { reverse = true, spark = true })
 	assert(W.LastCall(reversed, "SetReverseFill")[1] == true and reversed.spark._points[1][3] == "LEFT", "a reversed spark rides the left edge")
 	local plain = K.Widgets.StatusBar(K.Scale.Root(), { background = false, border = true })
-	assert(plain.background == nil and plain.chrome, "no background, and a pill track when asked")
-	assert(plain.chrome.shapeName == "bar" and plain.chrome.fillName == "surface" and W.SameColor(plain.chrome.rim[1], K.Tokens.Color("edgeBar")), "the border is the bar grade: a pill track with the faint bar edge")
-	local lined = K.Widgets.StatusBar(K.Scale.Root(), { background = false, border = true, edge = "edgeInner" })
-	assert(W.SameColor(lined.chrome.rim[1], K.Tokens.Color("edgeInner")), "a bar may ask for the panel edge instead")
+	assert(plain.background == nil and plain.barEdge and plain.chrome == nil, "no background, and the square bar edge when asked")
+	assert(W.SameColor(plain.barEdge.hard, K.Tokens.Color("black")) and W.SameColor(plain.barEdge.track, K.Tokens.Color("barTrack")), "the border is the bible's bar edge: a black pixel round the dark track")
 end
 
 -- Combat paths recolour and retexture bars on every cast and unit event, so the setters allocate nothing.
@@ -230,8 +228,8 @@ do
 	assert(top.a == 0, "clear at the top, under the lit line")
 	local plain = K.Widgets.StatusBar(K.Scale.Root(), { background = false })
 	assert(not plain.shade and not plain.lit, "an overlay bar with no track (prediction, absorbs) adds no edge or shade")
-	local pill = K.Widgets.StatusBar(K.Scale.Root(), { border = true })
-	assert(not pill.shade and not pill.lit, "a pill bar keeps its own sheen")
+	local boxed = K.Widgets.StatusBar(K.Scale.Root(), { border = true })
+	assert(boxed.shade and boxed.lit and boxed.sheenTop == nil, "a bordered bar takes the same lit line and shade, with no sheen of its own")
 end
 
 local function byte(value)
@@ -317,7 +315,7 @@ for _, screen in ipairs(SCREENS) do
 end
 
 -- Two pixels from 8 px, one pixel from 5 px, none below that, always leaving three coloured rows.
--- A pill's edge wears the bar's cap masks. The 1920x1080 case is the column power bar's 8 root
+-- A bordered bar's edge stays a rectangle like any other. The 1920x1080 case is the column power bar's 8 root
 -- units, about 7 px at the shipped scale: staging draws no edge there.
 local function stepped(K, pixels, border)
 	local unit = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(K.Scale.Root())
@@ -335,8 +333,7 @@ for _, screen in ipairs(SCREENS) do
 	assert(thin.innerEdge[1]:IsShown() == true and math.abs(edgePixels(K, thin) - 1) < 0.01, where .. ": five pixels keep a one-pixel edge and three coloured rows")
 	local tall = stepped(K, 14, true)
 	assert(tall.innerEdge[1]:IsShown() == true and math.abs(edgePixels(K, tall) - 2) < 0.01, where .. ": fourteen pixels keep the two-pixel edge")
-	assert(tall.innerEdge[1]:GetMaskTexture(1) == tall.caps[3] and tall.innerEdge[1]:GetMaskTexture(2) == tall.caps[4], where .. ": the edge follows the bar's capsule caps")
-	assert(tall.innerEdge[2]:GetNumMaskTextures() == 2, where .. ": every edge strip is masked")
+	assert(tall.innerEdge[1]:GetNumMaskTextures() == 0 and tall.innerEdge[2]:GetNumMaskTextures() == 0, where .. ": a bordered bar's edge is square, with no capsule masks")
 	local square = stepped(K, 14, false)
 	assert(square.innerEdge[1]:GetNumMaskTextures() == 0, where .. ": a rectangular bar's edge stays a rectangle")
 	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))

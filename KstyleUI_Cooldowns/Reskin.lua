@@ -10,7 +10,6 @@ ns.Reskin = Reskin
 
 local ICON_CROP = 0.07
 local ICON_OUTSET = 0
-local BAR_OUTSET = 1
 local BAR_ICON_OUTSET = 2
 local CVAR = "cooldownViewerEnabled"
 
@@ -115,10 +114,13 @@ local function SkinBar(item)
 	local scale = ItemScale(item)
 	local bar = item.Bar
 	if type(bar) == "table" and type(bar.GetStatusBarTexture) == "function" then
-		Skin.Strip(bar, { keep = Keep(bar:GetStatusBarTexture()) })
+		local keep = Keep(bar:GetStatusBarTexture())
+		for region in pairs(Widgets.BarEdge(bar).regions) do
+			keep[region] = true
+		end
+		Skin.Strip(bar, { keep = keep })
 		bar:SetStatusBarTexture(cfg.texture)
 		bar:SetStatusBarColor(Settings.BarColor())
-		Outset(Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", inset = -BAR_OUTSET / scale }), BAR_OUTSET / scale)
 		Text(bar.Name, current.nameFont, cfg.nameSize / scale, current.nameOutline, "body")
 		Text(bar.Duration, current.timerFont, cfg.timerSize / scale, current.timerOutline, "timer")
 	end

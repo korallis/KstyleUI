@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 32
+Store.DB_VERSION = 33
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -832,6 +832,22 @@ Store.migrations[32] = function(data)
 				if moves[key] and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
 					railEntry(entry, key, nil, moves)
 				end
+				if next(entry) == nil then
+					layout[key] = nil
+				end
+			end
+		end
+	end
+end
+
+Store.migrations[33] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local moves = layouts and type(layouts.SwingMoves) == "function" and layouts.SwingMoves()
+	for _, layout in pairs(moves and type(data.layouts) == "table" and data.layouts or {}) do
+		for key in pairs(type(layout) == "table" and moves or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				railEntry(entry, key, nil, moves)
 				if next(entry) == nil then
 					layout[key] = nil
 				end

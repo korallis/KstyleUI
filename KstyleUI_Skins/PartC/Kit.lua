@@ -306,14 +306,6 @@ function Kit.Highlight(button)
 	return texture
 end
 
-local function RegionSet(frame)
-	local set = {}
-	for _, region in ipairs({ frame:GetRegions() }) do
-		set[region] = true
-	end
-	return set
-end
-
 function Kit.Bar(bar)
 	if type(bar) ~= "table" or type(bar.GetStatusBarTexture) ~= "function" then
 		return nil
@@ -326,17 +318,12 @@ function Kit.Bar(bar)
 	if Parts.IsTexture(fill) then
 		keep[fill] = true
 	end
+	local track = Widgets.BarEdge(bar)
+	for region in pairs(track.regions) do
+		keep[region] = true
+	end
 	Skin.Strip(bar, { keep = keep })
 	Style.StatusBar(bar)
-	local before = RegionSet(bar)
-	local track = Widgets.Chrome(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
-	local added = {}
-	for region in pairs(RegionSet(bar)) do
-		if not before[region] then
-			added[region] = true
-		end
-	end
-	Skin.Strip(bar, { keep = added })
 	if bar.Text then
 		Style.Text(bar.Text, "number", "textEmphasis")
 	end

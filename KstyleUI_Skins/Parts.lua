@@ -853,7 +853,6 @@ end
 
 local function RestyleFill(state)
 	local bar, fill, area, track = state.bar, state.fill, state.area, state.track
-	local border = Widgets.Border(bar)
 	local height = Widgets.Snap(bar, BAR_UNITS)
 	fill:SetTexture(ns.Style.BarTexture())
 	if Widgets.MayMove(bar) then
@@ -862,11 +861,11 @@ local function RestyleFill(state)
 		fill:ClearAllPoints()
 		fill:SetPoint(point, area, point)
 		track:ClearAllPoints()
-		track:SetPoint("LEFT", area, "LEFT", -border, 0)
-		track:SetPoint("RIGHT", area, "RIGHT", border, 0)
-		track:SetHeight(height + 2 * border)
+		track:SetPoint("LEFT", area, "LEFT")
+		track:SetPoint("RIGHT", area, "RIGHT")
+		track:SetHeight(height)
 	end
-	track.chrome:Restyle()
+	track.edge:Restyle()
 	PaintFill(state)
 	if bar.Text then
 		ns.Style.Text(bar.Text, "caption", "textEmphasis")
@@ -888,7 +887,7 @@ function Parts.FillBar(bar, opts)
 	end
 	local track = CreateFrame("Frame", nil, bar)
 	track:SetFrameLevel(math.max(0, bar:GetFrameLevel() - LEVEL_BELOW))
-	track.chrome = Widgets.Chrome(track, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
+	track.edge = Widgets.BarEdge(track)
 	local state = { bar = bar, fill = fill, track = track, area = bar.FillArea or bar, tone = opts and opts.tone }
 	state.r, state.g, state.b, state.a = fill:GetVertexColor()
 	state.Restyle = RestyleFill

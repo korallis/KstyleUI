@@ -200,7 +200,7 @@ do
 	local blizzard = tip.StatusBar
 	local bar = ns.Health.Bar()
 	assert(bar and bar:GetParent() == ns.Style.Glass(tip), "KstyleUI's bar lives on the glass")
-	assert(bar.borderFrame and bar.chrome.owner == bar.borderFrame and bar.chrome.shapeName == "bar", "framed by the kit's pill track")
+	assert(bar.barEdge and bar.chrome == nil and W.SameColor(bar.barEdge.hard, K.Tokens.Color("black")), "framed by the square bar edge, a black pixel round the track")
 	assert(bar.backgroundName == "track" and W.SameColor(bar.background, K.Tokens.Color("track")), "over the kit's track")
 	assert(not bar:IsShown(), "hidden until Blizzard shows a unit's health")
 	assert(blizzard:GetStatusBarTexture():GetAlpha() == 0, "Blizzard's bar art is hidden by alpha")
