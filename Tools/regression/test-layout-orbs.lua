@@ -43,7 +43,7 @@ do
 			assert(position.anchor and position.x and position.y, name .. ": " .. key .. " has a whole position")
 		end
 		for _, key in ipairs({ "actionbars.bar1", BAR2, CAST, "unitframes.target", "auras.buffs", "auras.debuffs",
-			"cooldowns.buffs", "actionbars.pet", "actionbars.stance", "databars.rep", "databars.honor" }) do
+			"cooldowns.buffs", "actionbars.pet", "actionbars.stance", "databars.rep", "databars.honor", "unitframes.boss", "combattext.player", "unitframes.pet" }) do
 			assert(Layouts.Style("orbs", name, key), name .. ": Orbs places " .. key)
 		end
 		assert(Layouts.Style("frames", name, CAST) == nil, name .. ": Frames has no style table")
@@ -52,11 +52,7 @@ do
 	local frames = Layouts.Get("DPS")["groupframes.party"]
 	local orbs = Layouts.Style("orbs", "DPS", "groupframes.party")
 	assert(orbs.anchor == "LEFT" and orbs.x == frames.x and orbs.y == frames.y, "DPS party sits at mid-left under Orbs, where Frames puts it (KSTY-60 item 6)")
-	local healer = Layouts.Style("orbs", "Healer", "groupframes.party")
-	local _, healerHeight = Layouts.Footprint("Healer", "groupframes.party")
-	local _, dpsHeight = Layouts.Footprint("DPS", "groupframes.party")
-	assert(healerHeight > dpsHeight and healer.anchor == "LEFT" and healer.x == frames.x and near(healer.y - healerHeight / 2, frames.y - dpsHeight / 2),
-		"Healer party stays mid-left under Orbs, its taller rows lifted so its foot is DPS's, clear of the pet and stance bars (KSTY-60 item 2)")
+	assert(Layouts.Style("orbs", "Healer", "groupframes.party") == nil, "Healer party keeps its Frames place, the same mid-left")
 	assert(Layouts.Style("orbs", "DPS", "unitframes.target").anchor == "TOP", "the target is a top-centre bar under Orbs")
 	assert(Layouts.Style("orbs", "DPS", BAR2).scale < 0.85, "bar 2 is the smaller second row under Orbs")
 	local positions = Layouts.Positions("DPS", "orbs")

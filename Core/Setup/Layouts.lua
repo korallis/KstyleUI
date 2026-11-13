@@ -398,7 +398,7 @@ local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
 local ORBS_STORY_BOTTOM = TIP_Y + ORBS_TIP_H + GAP
 local ORBS_QUESTS_H = 268 * MOCK_PX
 local ORBS_FIT = {
-	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + NEAR,
+	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + TIGHT,
 	nudge = 32,
 	tieX = (ART_X - ART.arm[3]) * ORBS_SOURCE,
 	bossX = ORBS_RAIL_X + 2 * RAIL_COLUMN + RAIL_BUTTON + GAP,
@@ -457,7 +457,6 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 	STYLES.orbs[name] = style
 end
-STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = DPS["groupframes.party"].x, y = DPS["groupframes.party"].y + (PARTY.healer - PARTY.height) / 2 }
 
 Layouts.ELEMENTS = ELEMENTS
 Layouts.FEED_LINES = FEED_LINES
