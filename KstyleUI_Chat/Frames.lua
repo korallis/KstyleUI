@@ -11,7 +11,7 @@ ns.Frames = Frames
 
 local OUTLINES = { none = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local EDIT_TEXTS = { "header", "headerSuffix", "languageHeader", "prompt", "NewcomerHint" }
-local TAB_FILL_INSET = { left = 4, right = 4, top = 9, bottom = 1 }
+local TAB_FILL_TOP, TAB_FILL_BOTTOM, TAB_FILL_PAD = 9, 1, 6
 local TAB_GAP = 13.5
 local UNDERLINE_UNITS = 1
 local UNDERLINE_GLOW_UNITS = 5
@@ -34,6 +34,7 @@ local state = {
 }
 local styled = setmetatable({}, { __mode = "k" })
 local logged = {}
+local Lead
 
 local function Log(message)
 	K.DevTest.Log(ns.NAME, message)
@@ -176,12 +177,23 @@ local function PaintTab(parts)
 		PaintGlow(parts.chatGlow, r, g, b)
 		parts.chatGlow:SetShown(underlined)
 	end
-	if parts.wash then
-		parts.wash:SetShown(selected and style == "filled")
-	end
 	local fill = parts.backdrop
 	if not fill and style == "filled" then
-		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "buttonFill", shadow = false, inset = TAB_FILL_INSET })
+		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "buttonFill", shadow = false, inset = {} })
+	end
+	if fill and style == "filled" then
+		local inset = fill.inset
+		inset.left, inset.right = Lead(parts.chatFrame) - TAB_FILL_PAD, TAB_GAP - TAB_FILL_PAD
+		inset.top, inset.bottom = TAB_FILL_TOP, TAB_FILL_BOTTOM
+		fill:Restyle()
+	end
+	if parts.wash then
+		parts.wash:SetShown(selected and style == "filled")
+		if fill and not parts.washFitted then
+			parts.washFitted = true
+			parts.wash:ClearAllPoints()
+			parts.wash:SetAllPoints(fill)
+		end
 	end
 	if fill then
 		fill:SetShown(selected and style == "filled")
@@ -255,6 +267,7 @@ local function StyleTab(frame, tab)
 		end
 		LayoutTab(parts)
 	end
+	parts.chatFrame = frame
 	parts.selected = IsSelected(frame)
 end
 
@@ -472,7 +485,7 @@ local function OnWindowName(frame)
 	end
 end
 
-local function Lead(frame)
+function Lead(frame)
 	local overhang = 0
 	local bg = type(frame) == "table" and frame.Background
 	if type(bg) == "table" and type(bg.GetPoint) == "function" then

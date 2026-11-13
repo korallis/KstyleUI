@@ -554,6 +554,16 @@ do
 	assert(not parts.underline:IsShown(), "the minimal style has no underline")
 	K.Options.Write("Chat", "tabStyle", "filled")
 	assert(parts.backdrop and parts.backdrop:IsShown(), "the filled style puts a tile behind the selected tab")
+	-- The tile and the selected wash sit around the name, inside the card: the wash fills the tile, not the whole tab
+	-- frame (which reaches above the card), and the tile starts a pad left of the name rather than under its first letter.
+	local wp, wrel = parts.wash:GetPoint(1)
+	assert(wrel == parts.backdrop, "the selected wash fills the tile, not the tab frame: " .. tostring(wp))
+	local bp, brel, _, bx, by = parts.backdrop:GetPoint(1)
+	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
+	local lead = -bgx
+	assert(bp == "TOPLEFT" and brel == tab and near(bx, K.Widgets.Snap(parts.backdrop, lead - 6)) and by < 0, "the tile starts 6 units left of the name, which sits at the dock's lead, under the tab frame's top: " .. tostring(bx) .. ", " .. tostring(by))
+	local ep, erel, _, ex = parts.backdrop:GetPoint(2)
+	assert(ep == "BOTTOMRIGHT" and erel == tab and near(ex, -K.Widgets.Snap(parts.backdrop, 13.5 - 6)), "and ends 6 units past it, inside the tab's 13.5-unit gap: " .. tostring(ex))
 	K.Options.Write("Chat", "tabStyle", "plain")
 	assert(not parts.underline:IsShown(), "the gold text style has no underline")
 	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
