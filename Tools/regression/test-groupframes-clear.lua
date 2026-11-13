@@ -38,6 +38,12 @@ local function saved(settings)
 	return { version = 2, profiles = { Default = { GroupFrames = settings } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 end
 
+-- The checks read state, not the stubs' call log, so every environment runs quiet (the documented perf mode): the
+-- 40-player raid's log alone held about 2 GB under Lua 5.1.
+local function quiet(e)
+	e.SetQuiet(true)
+end
+
 -- Every aura rect on the frame that shows: the debuff block, your heals, the six indicator slots. The third field
 -- says whether it is harmful, so it may overlay a raid tile's bar.
 local function Auras(env, f)
@@ -93,7 +99,7 @@ end
 -- A raid of five in its own environment at one tile size, the first member a long-named tank, the second dead.
 local function Raid(size, members)
 	local settings = { enabled = true, raid = { width = size.width, height = size.height } }
-	local env, K, ns = G.New({ saved = saved(settings) })
+	local env, K, ns = G.New({ saved = saved(settings), setup = quiet })
 	G.SetRoster(env, "raid", G.Members(members or 5, function(i, m)
 		if i == 1 then
 			m.name, m.role, m.health = "Thaldrenwick", "TANK", 60
@@ -202,7 +208,7 @@ end
 for _, position in ipairs({ "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT", "TOPRIGHT", "OUTSIDE_RIGHT", "OUTSIDE_LEFT" }) do
 	for _, kind in ipairs({ "party", "raid" }) do
 		local settings = { enabled = true, [kind] = { auraPosition = position } }
-		local env, K, ns = G.New({ saved = saved(settings) })
+		local env, K, ns = G.New({ saved = saved(settings), setup = quiet })
 		if kind == "party" then
 			G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 } })
 		else
@@ -219,7 +225,7 @@ end
 -- Codex review, round 4: a party frame with the name on the bar has no side lane, so your heals take a row under the
 -- bar instead of vanishing.
 do
-	local env, K, ns = G.New({ saved = saved({ enabled = true, party = { textLayout = "INSIDE" } }) })
+	local env, K, ns = G.New({ saved = saved({ enabled = true, party = { textLayout = "INSIDE" } }), setup = quiet })
 	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 } })
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
@@ -234,7 +240,7 @@ end
 -- icons out at the size their buttons are drawn and the clips hold them whole.
 for _, screen in ipairs({ { 2560, 1600 }, { 3456, 2234 } }) do
 	local what = "raid at " .. screen[1] .. " by " .. screen[2]
-	local env, K, ns = G.New({ width = screen[1], height = screen[2] })
+	local env, K, ns = G.New({ width = screen[1], height = screen[2], setup = quiet })
 	G.SetRoster(env, "raid", G.Members(5))
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
