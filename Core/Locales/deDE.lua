@@ -278,6 +278,7 @@ ns.Locale.Add({
 	["Buy tab"] = "Reiter kaufen",
 	["By PvP status"] = "Nach PvP-Status",
 	["By spell school"] = "Nach Zauberschule",
+	["By use (yours, then ones you can cast, then soonest to end)"] = "Nach Gebrauch (deine zuerst, dann die du wirken kannst, dann die bald endenden)",
 	["Calendar"] = "Kalender",
 	["Calendar button"] = "Kalenderknopf",
 	["Calm the rails in combat"] = "Die Leisten im Kampf beruhigen",

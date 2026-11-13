@@ -36,7 +36,7 @@ Model.defaults = {
 	hideBlizzard = true,
 	buffs = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
-		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true, tracked = "cdm",
+		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
@@ -55,6 +55,7 @@ Model.GROWTH_OPTIONS = {
 	{ value = "RIGHT_UP", label = L["Right, then up"] },
 }
 Model.SORT_OPTIONS = {
+	{ value = "use", label = L["By use (yours, then ones you can cast, then soonest to end)"] },
 	{ value = "time", label = L["Time left"] },
 	{ value = "name", label = L["Name"] },
 	{ value = "applied", label = L["Order applied"] },
@@ -93,7 +94,7 @@ local GROWTH = {
 }
 local HANG = { TOPRIGHT = "TOPRIGHT", BOTTOMRIGHT = "BOTTOMRIGHT", TOPLEFT = "TOPRIGHT", BOTTOMLEFT = "BOTTOMRIGHT" }
 local LAST_CELL = { TOPRIGHT = "BOTTOMLEFT", BOTTOMRIGHT = "TOPLEFT", TOPLEFT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPRIGHT" }
-local SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
+local SORT = { use = "Expiration", time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
 local FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
 local function allowed(options)

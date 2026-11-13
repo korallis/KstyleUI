@@ -95,7 +95,7 @@ do
 		end
 	end
 	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "one row of ten buffs and one of ten debuffs")
-	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
+	check(bg.sortMethod == env.AuraContainerSortMethod.Expiration and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by use: the engine's Expiration comparator (yours, then ones you can cast, then the soonest to end, always-on after timed)")
 	check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14, "each buff is a 27.5-unit icon (whole pixels at this size) with its 10-unit timer in 14 units under it")
 	check(bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "icons on one 31-unit pitch of whole pixels, 4 between rows")
 	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs list the first aura at the left, then down")
@@ -223,16 +223,29 @@ end
 -- Weapon enchantments share the buff rows: an active one takes a buff's place.
 do
 	local env = start({ layout = true })
-	local _, bg = A.Container(env, "HELPFUL")
+	local container, bg = A.Container(env, "HELPFUL")
 	check(bg.maxFrameCount == 10, "no enchantment, 10 buffs")
+	local applied = 0
+	local setCount = container.SetAuraGroupMaxFrameCount
+	container.SetAuraGroupMaxFrameCount = function(...)
+		applied = applied + 1
+		return setCount(...)
+	end
 	env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	env.FireEvent("WEAPON_SLOT_CHANGED")
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	check(applied == 0 and bg.maxFrameCount == 10, "enchantment events wait for the end of the frame")
+	env.RunTimers()
+	check(applied == 1, "three enchantment events in one frame re-apply the buff row once, got " .. applied)
 	check(bg.maxFrameCount == 9, "a main-hand enchantment leaves 9 buffs, got " .. bg.maxFrameCount)
 	env._enchants[env.INVSLOT_OFFHAND] = { enchantID = 2, hasExpirationTime = false, remainingTimeMs = 0 }
 	env.FireEvent("WEAPON_SLOT_CHANGED")
+	env.RunTimers()
 	check(bg.maxFrameCount == 8, "two enchantments leave 8")
 	env._enchants = {}
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	env.RunTimers()
 	check(bg.maxFrameCount == 10, "expired enchantments give their places back")
 end
 

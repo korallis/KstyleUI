@@ -278,6 +278,7 @@ ns.Locale.Add({
 	["Buy tab"] = "Comprar pesta\195\177a",
 	["By PvP status"] = "Seg\195\186n el estado JcJ",
 	["By spell school"] = "Seg\195\186n la escuela de magia",
+	["By use (yours, then ones you can cast, then soonest to end)"] = "Por uso (los tuyos, luego los que puedes lanzar, luego los que acaban antes)",
 	["Calendar"] = "Calendario",
 	["Calendar button"] = "Bot\195\179n del calendario",
 	["Calm the rails in combat"] = "Calmar las columnas en combate",
