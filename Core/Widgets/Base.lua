@@ -696,6 +696,9 @@ local function Waits(region, fn, ...)
 	return true
 end
 
+local helped = setmetatable({}, { __mode = "k" })
+local dependents = setmetatable({}, { __mode = "k" })
+
 local function OnPixel(raw, relShare, relPx, ownShare, ownPx)
 	local target = relShare * (relPx or 0) - (ownShare == 0.5 and ownPx and ownPx / 2 or 0)
 	return floor(raw + target + 0.5) - target
@@ -724,6 +727,25 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
 	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
+	local record = helped[region]
+	if not record then
+		record = { points = {} }
+		helped[region] = record
+	end
+	local entry = record.points[point]
+	if entry then
+		entry[1], entry[2], entry[3], entry[4], entry[5], entry[6] = relative, relativePoint, x, y, dx * px, dy * px
+	else
+		record.points[point] = { relative, relativePoint, x, y, dx * px, dy * px }
+	end
+	if type(relative) == "table" and (rel[1] ~= 0 or rel[2] ~= 1) then
+		local set = dependents[relative]
+		if not set then
+			set = setmetatable({}, { __mode = "k" })
+			dependents[relative] = set
+		end
+		set[region] = true
+	end
 end
 
 local function Refill(region)
@@ -753,15 +775,103 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	region:ClearAllPoints()
 	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
 	region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
+	local record = helped[region]
+	if not record then
+		record = { points = {} }
+		helped[region] = record
+	end
+	local fill = record.fill
+	if fill then
+		fill[1], fill[2], fill[3], fill[4], fill[5], fill[6], fill[7] = relative, left, top, right, bottom, l * px, -t * px
+	else
+		record.fill = { relative, left, top, right, bottom, l * px, -t * px }
+	end
 	if not region.kstyleSettles and type(region.HookScript) == "function" then
 		region.kstyleSettles = region:HookScript("OnSizeChanged", Refill) ~= false
 	end
 end
 
+local function Anchored(region, point, relative, x, y)
+	for i = 1, region:GetNumPoints() do
+		local own, to, _, ox, oy = region:GetPoint(i)
+		if own == point then
+			return to == relative and (x == nil or not IsSecret(ox) and not IsSecret(oy) and type(ox) == "number" and type(oy) == "number" and abs(ox - x) < 1e-6 and abs(oy - y) < 1e-6)
+		end
+	end
+	return false
+end
+
+local function Depth(region)
+	local depth, node = 0, region:GetParent()
+	while node do
+		depth, node = depth + 1, node:GetParent()
+	end
+	return depth
+end
+
+local function Refollow(frame)
+	local set = dependents[frame]
+	if not set or frame.kstyleFollowing then
+		return
+	end
+	frame.kstyleFollowing = true
+	for region in pairs(set) do
+		local record = helped[region]
+		for point, p in pairs(record and record.points or set) do
+			if record and p[1] == frame and Anchored(region, point, frame, p[5], p[6]) then
+				Widgets.Point(region, point, p[1], p[2], p[3], p[4])
+			end
+		end
+	end
+	frame.kstyleFollowing = false
+end
+
+function Widgets.PlaceAgain(roots)
+	local list, depth = {}, {}
+	for region in pairs(helped) do
+		if not Widgets.Restricted(region) and (roots == nil or Under(region, roots)) then
+			list[#list + 1] = region
+			depth[region] = Depth(region)
+		end
+	end
+	table.sort(list, function(a, b)
+		return depth[a] < depth[b]
+	end)
+	for _, region in ipairs(list) do
+		local record = helped[region]
+		local size = record.size
+		local w, h = region:GetWidth(), region:GetHeight()
+		if size and not IsSecret(w) and not IsSecret(h) and type(w) == "number" and type(h) == "number" and abs(w - size[3]) < 1e-6 and abs(h - size[4]) < 1e-6 then
+			Widgets.Size(region, size[1], size[2])
+		end
+		local fill = record.fill
+		if fill and Anchored(region, "TOPLEFT", fill[1], fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1]) then
+			Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
+		end
+		for point, p in pairs(record.points) do
+			if Anchored(region, point, p[1], p[5], p[6]) then
+				Widgets.Point(region, point, p[1], p[2], p[3], p[4])
+			end
+		end
+	end
+end
 
 function Widgets.Size(frame, width, height)
 	local f = Widgets.ScaleFactor(frame)
-	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
+	local w, h = SnapIn(width, f), SnapIn(height, f)
+	frame:SetSize(w, h)
+	Refollow(frame)
+	local record = helped[frame]
+	if not record then
+		record = { points = {} }
+		helped[frame] = record
+	end
+	local size = record.size
+	if size then
+		size[1], size[2], size[3], size[4] = width, height, w, h
+	else
+		record.size = { width, height, w, h }
+	end
 end
 
 function Widgets.Inset(frame, radius, gap)
@@ -1728,6 +1838,7 @@ end)
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
 	RestyleTexts()
 	Widgets.RestyleAll()
+	Widgets.PlaceAgain()
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)

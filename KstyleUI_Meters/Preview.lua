@@ -107,14 +107,14 @@ local function Arrange(frame)
 		list.holder:SetSize(listWidth, listHeight)
 	end
 	frame.damage.holder:ClearAllPoints()
-	frame.damage.holder:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
 	frame.threat.holder:ClearAllPoints()
-	frame.threat.holder:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+	Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
 	local swing = frame.swing
 	swing.opts.width, swing.opts.height = width, SWING_HEIGHT
 	swing:Restyle()
 	swing:ClearAllPoints()
-	swing:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+	Widgets.Point(swing, "BOTTOMLEFT", frame, "BOTTOMLEFT")
 end
 
 local function StyleSwing(swing)

@@ -23,7 +23,7 @@ local function PlaceContent(self, region)
 	local offset = Widgets.PressOffset(self)
 	if self.placedOffset ~= offset then
 		self.placedOffset = offset
-		region:SetPoint("CENTER", self, "CENTER", 0, -offset)
+		Widgets.Point(region, "CENTER", self, "CENTER", 0, -offset)
 	end
 end
 

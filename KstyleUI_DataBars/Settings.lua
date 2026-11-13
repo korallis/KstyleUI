@@ -372,7 +372,7 @@ function ns.Preview(parent)
 		sample.frame:SetScale(scale)
 		sample.frame:SetSize(max(needed, available / scale), PREVIEW_STRIP)
 		sample.frame:ClearAllPoints()
-		sample.frame:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -sample.top / scale)
+		Widgets.Point(sample.frame, "TOPLEFT", self, "TOPLEFT", 0, -sample.top / scale)
 		Strip.Paint(sample, s, samples)
 	end
 	frame:Refresh()

@@ -171,9 +171,9 @@ function MAKERS.color(row)
 		holder.bound = row.item
 		return open(self, ...)
 	end
-	holder.swatch:SetPoint("RIGHT", holder, "RIGHT")
+	Widgets.Point(holder.swatch, "RIGHT", holder, "RIGHT")
 	holder.hex = Widgets.Text(holder, "body", "textEmphasis")
-	holder.hex:SetPoint("RIGHT", holder.swatch, "LEFT", -Gap(holder), 0)
+	Widgets.Point(holder.hex, "RIGHT", holder.swatch, "LEFT", -Gap(holder), 0)
 	return holder
 end
 
@@ -202,9 +202,9 @@ function MAKERS.button(row)
 			end,
 		})
 		if i == 1 then
-			button:SetPoint("RIGHT", holder, "RIGHT")
+			Widgets.Point(button, "RIGHT", holder, "RIGHT")
 		else
-			button:SetPoint("RIGHT", holder.buttons[i - 1], "LEFT", -Gap(holder, "gapSmall"), 0)
+			Widgets.Point(button, "RIGHT", holder.buttons[i - 1], "LEFT", -Gap(holder, "gapSmall"), 0)
 		end
 		holder.buttons[i] = button
 	end
@@ -219,13 +219,13 @@ local function PictureCard(row, holder, i)
 	card.label:SetJustifyH("CENTER")
 	card.label:SetWordWrap(false)
 	Widgets.Size(card, PICTURE_WIDTH, PICTURE_HEIGHT)
-	card:SetPoint("TOPLEFT", holder, "TOPLEFT", Snap(holder, (i - 1) * (PICTURE_WIDTH + PICTURE_GAP)), 0)
+	Widgets.Point(card, "TOPLEFT", holder, "TOPLEFT", (i - 1) * (PICTURE_WIDTH + PICTURE_GAP), 0)
 	local inset = Snap(card, PICTURE_INSET)
-	card.picture:SetPoint("TOPLEFT", card, "TOPLEFT", inset, -inset)
-	card.picture:SetPoint("TOPRIGHT", card, "TOPRIGHT", -inset, -inset)
+	Widgets.Point(card.picture, "TOPLEFT", card, "TOPLEFT", inset, -inset)
+	Widgets.Point(card.picture, "TOPRIGHT", card, "TOPRIGHT", -inset, -inset)
 	card.picture:SetHeight(Snap(card, (PICTURE_WIDTH - 2 * PICTURE_INSET) / 2))
-	card.label:SetPoint("TOPLEFT", card.picture, "BOTTOMLEFT", 0, 0)
-	card.label:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -inset, 0)
+	Widgets.Point(card.label, "TOPLEFT", card.picture, "BOTTOMLEFT", 0, 0)
+	Widgets.Point(card.label, "BOTTOMRIGHT", card, "BOTTOMRIGHT", -inset, 0)
 	card:SetScript("OnClick", function(self)
 		Apply(row, self.value, holder)
 	end)
@@ -478,18 +478,18 @@ local function PlaceText(row, item, control, width)
 	local helpTop = (stacked or banded) and top + band + tiny or top + labelHeight + tiny
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
-	row.label:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -labelTop)
-	row.label:SetPoint("RIGHT", row, "RIGHT", -(gap + (stacked and 0 or reserve)), 0)
-	row.help:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -helpTop)
-	row.help:SetPoint("RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0)
+	Widgets.Point(row.label, "TOPLEFT", row, "TOPLEFT", gap, -labelTop)
+	Widgets.Point(row.label, "RIGHT", row, "RIGHT", -(gap + (stacked and 0 or reserve)), 0)
+	Widgets.Point(row.help, "TOPLEFT", row, "TOPLEFT", gap, -helpTop)
+	Widgets.Point(row.help, "RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0)
 	if control then
 		control:ClearAllPoints()
 		if stacked then
-			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + labelHeight + tiny))
+			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -(top + labelHeight + tiny))
 		elseif banded then
-			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - controlHeight) / 2)))
+			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - controlHeight) / 2)))
 		else
-			control:SetPoint("RIGHT", row, "TOPRIGHT", -gap, -height / 2)
+			Widgets.Point(control, "RIGHT", row, "TOPRIGHT", -gap, -height / 2)
 		end
 	end
 	row:EnableMouse(Truncated(row.label))
@@ -500,20 +500,20 @@ local function ShowHeader(row, item, width)
 	local gap = Gap(row)
 	if (item.level or 1) == 1 then
 		row.caption:ClearAllPoints()
-		row.caption:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
-		row.caption:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
+		Widgets.Point(row.caption, "BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
+		Widgets.Point(row.caption, "BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
 		row.caption:SetText(item.label)
 		local height = row.caption:SetWrapWidth(width - 2 * gap)
 		row.caption:Show()
 		return Snap(row, max(Rows.HEIGHT, height + 2 * gap))
 	else
 		row.mark:ClearAllPoints()
-		row.mark:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
+		Widgets.Point(row.mark, "BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
 		Widgets.Size(row.mark, MARK_WIDTH, MARK_HEIGHT)
 		row.mark:Show()
 		row.label:ClearAllPoints()
-		row.label:SetPoint("LEFT", row.mark, "RIGHT", gap, 0)
-		row.label:SetPoint("RIGHT", row, "RIGHT", -gap, 0)
+		Widgets.Point(row.label, "LEFT", row.mark, "RIGHT", gap, 0)
+		Widgets.Point(row.label, "RIGHT", row, "RIGHT", -gap, 0)
 		Widgets.SetText(row.label, item.label)
 		Widgets.TextColor(row.label, "textEmphasis")
 		row.label:Show()
@@ -526,8 +526,8 @@ local function ShowNote(row, item, width)
 	Widgets.SetText(row.note, item.label)
 	local height = Snap(row, max(Rows.HEIGHT, Widgets.WrappedHeight(row.note, max(1, width - 2 * gap)) + 2 * gap))
 	row.note:ClearAllPoints()
-	row.note:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -gap)
-	row.note:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
+	Widgets.Point(row.note, "TOPLEFT", row, "TOPLEFT", gap, -gap)
+	Widgets.Point(row.note, "BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
 	row.note:Show()
 	return height
 end

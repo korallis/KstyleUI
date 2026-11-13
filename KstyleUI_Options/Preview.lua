@@ -22,22 +22,22 @@ function Preview.Sample(parent)
 	local gap = Tokens.Size("gapLarge")
 	local title = Widgets.Text(frame, "caps", "capsGold")
 	Widgets.CapsSize(title)
-	title:SetPoint("TOP", frame, "TOP", 0, -gap)
+	Widgets.Point(title, "TOP", frame, "TOP", 0, -gap)
 	Widgets.SetText(title, L["Sample panel"])
 	local body = Widgets.Text(frame, "body", "text")
-	body:SetPoint("TOP", title, "BOTTOM", 0, -Tokens.Size("gapSmall"))
+	Widgets.Point(body, "TOP", title, "BOTTOM", 0, -Tokens.Size("gapSmall"))
 	body:SetWidth(SAMPLE_WIDTH)
 	Widgets.SetText(body, L["Accent, font, size and motion changes show here at once."])
 	local bar = Widgets.StatusBar(frame, { width = SAMPLE_WIDTH, smooth = true, spark = true })
-	bar:SetPoint("TOP", body, "BOTTOM", 0, -gap)
+	Widgets.Point(bar, "TOP", body, "BOTTOM", 0, -gap)
 	bar:SetBarRange(0, 1)
 	bar:SetBarValue(SAMPLE_BAR)
 	local toggle = Widgets.Toggle(frame, { value = true, label = L["Switch"] })
-	toggle:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -gap)
+	Widgets.Point(toggle, "TOPLEFT", bar, "BOTTOMLEFT", 0, -gap)
 	local slider = Widgets.Slider(frame, { min = 0, max = 100, step = 1, value = SAMPLE_SLIDER, width = SAMPLE_WIDTH })
-	slider:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", 0, -gap)
+	Widgets.Point(slider, "TOPLEFT", toggle, "BOTTOMLEFT", 0, -gap)
 	local button = Widgets.Button(frame, { text = L["Button"], primary = true })
-	button:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -gap)
+	Widgets.Point(button, "TOPLEFT", slider, "BOTTOMLEFT", 0, -gap)
 	frame.bar, frame.toggle, frame.slider, frame.button = bar, toggle, slider, button
 	return frame
 end
@@ -48,10 +48,10 @@ local function Placeholder(pane)
 	local logo = frame:CreateTexture(nil, "ARTWORK")
 	logo:SetTexture((Tokens.Texture("logo")))
 	logo:SetSize(LOGO_SIZE, LOGO_SIZE)
-	logo:SetPoint("CENTER", frame, "CENTER", 0, LOGO_SIZE / 2)
+	Widgets.Point(logo, "CENTER", frame, "CENTER", 0, LOGO_SIZE / 2)
 	logo:SetAlpha(LOGO_ALPHA)
 	frame.text = Widgets.Text(frame, "body", "text")
-	frame.text:SetPoint("TOP", logo, "BOTTOM", 0, -Tokens.Size("gapMedium"))
+	Widgets.Point(frame.text, "TOP", logo, "BOTTOM", 0, -Tokens.Size("gapMedium"))
 	frame.text:SetWidth(SAMPLE_WIDTH)
 	return frame
 end
@@ -137,7 +137,7 @@ function Fit(pane, frame)
 		end
 		Rescale(frame, scale)
 		frame:ClearAllPoints()
-		frame:SetPoint("CENTER", pane.holder, "CENTER", 0, 0)
+		Widgets.Point(frame, "CENTER", pane.holder, "CENTER", 0, 0)
 		return
 	end
 	local own = frame:GetScale()
@@ -394,17 +394,17 @@ function Preview.Create(parent)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		local side = self.wide and pad or 0
 		self.caption:ClearAllPoints()
-		self.caption:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
-		self.caption:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
+		Widgets.Point(self.caption, "TOPLEFT", self, "TOPLEFT", pad, -pad)
+		Widgets.Point(self.caption, "TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
 		self.holder:ClearAllPoints()
-		self.holder:SetPoint("TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
+		Widgets.Point(self.holder, "TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
 		local width, height = self:GetWidth(), self:GetHeight()
 		if Known(width) and Known(height) then
 			local top = pad + Widgets.SECTION_CAP_HEIGHT + gap
 			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), math.max(1, height - top - pad))
 			return true
 		end
-		self.holder:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -(pad - side), pad)
+		Widgets.Point(self.holder, "BOTTOMRIGHT", self, "BOTTOMRIGHT", -(pad - side), pad)
 		return false
 	end
 	pane.Layout = function(self)
