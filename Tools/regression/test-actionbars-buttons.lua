@@ -192,6 +192,21 @@ do
 	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0, "an empty slot in the rail draws nothing at rest")
 	assert(filled:GetAlpha() == 1, "a filled slot in the rail always draws")
 	assert(centre:GetAlpha() == 1, "bar 1 keeps its empty tile")
+	-- KSTY-60 item 7: the rail bars grow up from the rail's foot, so the first slots (the ones a player fills first)
+	-- stand on the readout beside the micro menu instead of floating at mid-height under the story cards.
+	assert(ns.Config("bar6").growth == "RIGHTUP", "bar 6, the third rail column, grows up from its foot too")
+	for _, bar in ipairs({ "bar4", "bar5" }) do
+		assert(ns.Config(bar).growth == "RIGHTUP", bar .. " grows up from its foot")
+		local lowest
+		for i = 1, 12 do
+			local _, _, _, _, y = AB.Button(ns, bar, i):GetPoint(1)
+			assert(lowest == nil or y > lowest, bar .. ": slot " .. i .. " stands over slot " .. (i - 1))
+			lowest = y
+		end
+		local height = ns.bars[bar].header:GetHeight()
+		local _, _, _, _, first = AB.Button(ns, bar, 1):GetPoint(1)
+		assert(math.abs(-first + AB.Button(ns, bar, 1):GetHeight() - height) < 1e-6, bar .. ": its first slot stands on the bar's foot")
+	end
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(empty:GetAlpha() == 1 and other:GetAlpha() == 1, "dragging an action onto the bars shows the rail's empty slots")
 	env.FireEvent("ACTIONBAR_HIDEGRID")

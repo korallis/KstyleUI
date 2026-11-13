@@ -408,9 +408,17 @@ local function Aspect(el, d, style)
 	return d
 end
 
+local function Band(el, d)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	if layouts and layouts.Band then
+		d.x = layouts.Band(el.key, d.anchor, d.x, Scale.Band())
+	end
+	return d
+end
+
 local function StyleDefault(el)
-	el.frames = Aspect(el, Copy(el.base))
-	local d = Copy(el.frames)
+	local d = Aspect(el, Copy(el.base))
+	el.frames = Band(el, Copy(d))
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
 	el.style = over and style or nil
@@ -426,7 +434,7 @@ local function StyleDefault(el)
 		end
 		Aspect(el, d, style)
 	end
-	el.default = d
+	el.default = Band(el, d)
 end
 
 local function StoreKey(el, field, frames)
@@ -1483,11 +1491,11 @@ ns.Events.Register(SECTION, "PLAYER_LOGIN", function()
 end)
 
 
-local aspect = Scale.Aspect()
+local aspect, band = Scale.Aspect(), Scale.Band()
 
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
-	local resolve = Scale.Aspect() ~= aspect
-	aspect = Scale.Aspect()
+	local resolve = Scale.Aspect() ~= aspect or Scale.Band() ~= band
+	aspect, band = Scale.Aspect(), Scale.Band()
 	if resolve then
 		Log("the " .. aspect .. " layout applies to elements at their defaults")
 		ResolveAll()

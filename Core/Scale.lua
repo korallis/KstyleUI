@@ -1,4 +1,4 @@
--- Scale.lua: the KstyleUI_Root canvas (the whole screen, or under the Centred arrangement a centred band on a screen wider than the HUD width setting allows), its layout class (16:9, 21:9 or 32:9), the automatic pixel-perfect size and the whole-physical-pixel maths.
+-- Scale.lua: the KstyleUI_Root canvas (the whole screen, or under the Centred arrangement a centred band on a screen wider than the HUD width setting allows), its layout class (16:9, 21:9 or 32:9), the inset of that band under Spread, where group and boss frames stay, the automatic pixel-perfect size and the whole-physical-pixel maths.
 local _, ns = ...
 
 local Scale = {}
@@ -35,6 +35,7 @@ local state = {
 	pixel = 1,
 	canvas = 0,
 	origin = 0,
+	band = 0,
 	aspect = ASPECTS[1],
 	applied = {},
 	waiting = false,
@@ -102,9 +103,9 @@ local function ArrangementSetting()
 	return DEFAULT_ARRANGEMENT
 end
 
-local function CanvasWidth(width, height)
+local function BandWidth(width, height)
 	local aspect = CANVAS[CanvasSetting()]
-	if not aspect or ArrangementSetting() == "spread" or not IsPositive(width) or width <= height * aspect then
+	if not aspect or not IsPositive(width) or width <= height * aspect then
 		return width
 	end
 	local canvas = floor(height * aspect + 0.5)
@@ -112,6 +113,13 @@ local function CanvasWidth(width, height)
 		canvas = canvas + 1
 	end
 	return canvas
+end
+
+local function CanvasWidth(width, height)
+	if ArrangementSetting() == "spread" then
+		return width
+	end
+	return BandWidth(width, height)
 end
 
 Scale.CanvasWidth = CanvasWidth
@@ -200,6 +208,7 @@ local function Apply()
 	state.canvas = width
 	state.aspect = AspectClass(width, height)
 	state.origin = (screen - width) / 2 * state.pixel
+	state.band = (width - BandWidth(screen, height)) / 2 * state.pixel
 	root:ClearAllPoints()
 	if width < screen then
 		root:SetPoint("TOPLEFT", UIParent, "TOPLEFT", state.origin, 0)
@@ -270,6 +279,10 @@ end
 
 function Scale.Origin()
 	return state.origin
+end
+
+function Scale.Band()
+	return state.band
 end
 
 function Scale.Aspect()

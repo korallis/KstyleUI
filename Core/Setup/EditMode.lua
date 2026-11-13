@@ -120,7 +120,7 @@ local function Native(group)
 end
 
 local function Positions(name)
-	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current(), ns.Scale.Aspect())
+	return Layouts.Positions(name, ns.HudStyle and ns.HudStyle.Current(), ns.Scale.Aspect(), ns.Scale.Band())
 end
 
 local function Box(name, key, rw, rh)
@@ -203,7 +203,7 @@ local function Spots(group, boxes, icons)
 	local list = { { x = slot.l, y = slot.b, width = width, gaps = { 2 } } }
 	local tot, utility = boxes["unitframes.targettarget"], boxes["cooldowns.utility"]
 	if tot and utility then
-		list[#list + 1] = { x = tot.l, y = utility.t + VIEWER_CLEAR, width = width, gaps = { 2 } }
+		list[#list + 1] = { x = utility.r + Layouts.GAP, y = utility.b, width = width, gaps = { 2 } }
 	end
 	if focus then
 		list[#list + 1] = { x = focus.l, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }

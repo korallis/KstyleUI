@@ -1,0 +1,65 @@
+-- test-store-placement.lua: migration 31 lets every saved place still at its pre-KSTY-64 default follow the new one (the party out of the top-left corner to mid-left, the map's card onto the card margin with the aura rows beside it, the taller experience strip, the Orbs party and raid), and keeps a place or a size the player chose.
+local C = dofile("Tools/regression/core_env.lua")
+local Layouts
+do
+	local probe, PK = C.New()
+	C.Boot(probe)
+	Layouts = PK.Setup.Layouts
+end
+local old = Layouts.PlaceMoves()
+local function At(key, extra)
+	local place = old[key]
+	local entry = { anchor = place[1], x = place[2], y = place[3] }
+	for field, value in pairs(extra or {}) do
+		entry[field] = value
+	end
+	return entry
+end
+local env, K = C.New({ saved = {
+	version = 30,
+	profiles = { Default = {}, Healer = { Layout = { preset = "Healer" } }, Custom = {} },
+	layouts = {
+		Default = {
+			["groupframes.party"] = At("groupframes.party"),
+			["minimap.main"] = At("minimap.main"),
+			["auras.buffs"] = At("auras.buffs"),
+			["auras.debuffs"] = At("auras.debuffs"),
+			["databars.xp"] = At("databars.xp", { width = 491, height = 5 }),
+			["orbs:groupframes.party"] = At("orbs:groupframes.party"),
+			["orbs:groupframes.raid"] = At("orbs:groupframes.raid"),
+			["orbs:databars.xp"] = At("orbs:databars.xp"),
+		},
+		Healer = { ["groupframes.party"] = { width = 300 } },
+		Custom = {
+			["groupframes.party"] = { anchor = "TOPLEFT", x = 40, y = -200 },
+			["minimap.main"] = At("minimap.main", { scale = 1.2 }),
+			["databars.xp"] = At("databars.xp", { width = 600, height = 5 }),
+		},
+	},
+} })
+C.Boot(env)
+local db = env.KstyleUIDB
+assert(db.version == K.Store.DB_VERSION and db.version == 31 and K.ErrorCount() == 0, "the migration reaches 31 without errors")
+local default = db.layouts.Default
+for key in pairs(default) do
+	error(key .. " at its old default still holds a saved place")
+end
+assert(db.layouts.Healer["groupframes.party"].width == 300 and db.layouts.Healer["groupframes.party"].anchor == nil, "a saved size alone stays, and the party follows its new place")
+local custom = db.layouts.Custom
+assert(custom["groupframes.party"].anchor == "TOPLEFT" and custom["groupframes.party"].x == 40 and custom["groupframes.party"].y == -200, "a party the player placed stays put")
+assert(custom["minimap.main"].anchor == nil and custom["minimap.main"].scale == 1.2, "the map follows its new place and keeps its scale")
+assert(custom["databars.xp"].anchor == nil and custom["databars.xp"].width == 600 and custom["databars.xp"].height == 5, "a strip the player sized keeps its size")
+-- The new places themselves: the party at mid-left in both styles and every role, the map's card on the card margin.
+local margin = K.Tokens.Size("screenMargin")
+for _, name in ipairs(Layouts.Names()) do
+	for _, style in ipairs({ "frames", "orbs" }) do
+		local party = Layouts.Place(name, style, "16:9", "groupframes.party")
+		local _, height = Layouts.Footprint("DPS", "groupframes.party")
+		assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - 465) < 1e-6, name .. " " .. style .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
+		local raid = Layouts.Place(name, style, "16:9", "groupframes.raid")
+		assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == -margin, name .. " " .. style .. ": the raid card keeps the top-left corner")
+	end
+end
+local map = Layouts.Get("DPS")["minimap.main"]
+assert(map.x == -(margin + Layouts.MAP_FRAME), "the map's card, its frame outside the square, ends on the card margin")
+print("store placement ok")

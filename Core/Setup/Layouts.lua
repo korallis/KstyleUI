@@ -19,7 +19,7 @@ local TRAY_BAR1_Y = TRAY_BOTTOM + TRAY_PAD
 local TRAY_BAR2_Y = TRAY_BAR1_Y + TRAY_BUTTON + TRAY_GAP
 local TRAY_TOP = TRAY_BAR2_Y + TRAY_BUTTON + TRAY_PAD
 local TRAY_STRIP_GAP = 9 * MOCK_PX
-local XP_H = 5
+local XP_H = 7 * MOCK_PX
 local LIFT = math.ceil(TRAY_TOP - 132)
 local PLAYER_CAST_Y = 385.5 + LIFT
 local COMBAT_TEXT_H = 180
@@ -27,9 +27,9 @@ local GRIDS = {
 	["actionbars.bar1"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
 	["actionbars.bar2"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
 	["actionbars.bar3"] = { buttons = 12, rows = 1, size = BUTTON },
-	["actionbars.bar4"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
-	["actionbars.bar5"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
-	["actionbars.bar6"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
+	["actionbars.bar4"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
+	["actionbars.bar5"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
+	["actionbars.bar6"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
 	["actionbars.pet"] = { buttons = 10, rows = 3, size = SMALL_BUTTON },
 	["actionbars.stance"] = { buttons = 10, rows = 3, size = SMALL_BUTTON, growth = "RIGHTUP" },
 }
@@ -48,13 +48,16 @@ local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 
 local EDGE = ns.Tokens.Size("screenMargin")
 local RAIL_EDGE = EDGE + 1.4
-local MAP, MAP_HEADING, MAP_CAPTION = 188, 22, 14
-local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 10.9
+local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 188, 22, 14, 3
+local MAP_X = EDGE + MAP_FRAME
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 11.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
 local DAMAGE_W, DAMAGE_H = 269, 158
 local THREAT_W, THREAT_H = 200, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
+
+local PARTY_W, PARTY_H, HEALER_PARTY_H = 259, 5 * 39 + 4 * 13, 5 * 43 + 4 * 13
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
@@ -70,7 +73,7 @@ local ELEMENTS = {
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
-	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = PARTY_W, height = PARTY_H },
 	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 401 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
@@ -142,7 +145,9 @@ local function ElementSize(key)
 	end
 end
 local _, CHAT_H = ElementSize("chat.main")
-local AURAS_X = EDGE + MAP + AURA_MAP_GAP
+local AURAS_X = MAP_X + MAP + AURA_MAP_GAP
+local PARTY_TOP = 465
+local PARTY_Y = HEIGHT / 2 - PARTY_TOP - PARTY_H / 2
 local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
 local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
@@ -158,11 +163,11 @@ local _, BAGS_H = ElementSize("databars.bags")
 local TIP_Y = RAIL_BARS_Y + MICRO_H + BAGS_H + GAP
 
 local DPS = {
-	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
+	["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = PARTY_Y },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE - 1), y = -(EDGE - 1 + MAP_HEADING) },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -MAP_X, y = -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
@@ -216,7 +221,7 @@ local SIZES = {
 		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Healer = {
-		["groupframes.party"] = { RAIL, 354 },
+		["groupframes.party"] = { PARTY_W, HEALER_PARTY_H },
 		["groupframes.raid"] = { 623, 401 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { THREAT_W, THREAT_H },
@@ -361,7 +366,7 @@ local ART = {
 	fit = 1359, bottom = 668, floor = 21, bar2 = { 243.5, 79.5, 349.8 }, cast = 87, xp = 519.6,
 }
 local ART_X, ART_Y = (ART.hole[1] + ART.hole[3]) / 2, (ART.hole[2] + ART.hole[4]) / 2
-local ORBS_PARTY_Y, ORBS_TARGET_Y, ORBS_AURA_ICONS = 465, 40, 5
+local ORBS_TARGET_Y, ORBS_AURA_ICONS = 40, 5
 local ORBS_BAR1_W, ORBS_BAR1_H = GridSize("actionbars.bar1")
 local ORBS_SOURCE = ORBS_BAR1_W / ART.fit
 local ORBS_CENTRE = (ART.bottom - ART_Y + ART.floor) * ORBS_SOURCE
@@ -412,8 +417,8 @@ local ORBS = {
 	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
 	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
-	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
-	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -ORBS_PARTY_Y },
+	["groupframes.party"] = DPS["groupframes.party"],
+	["groupframes.raid"] = DPS["groupframes.raid"],
 }
 local ORBS_KEEP = {
 	Healer = { ["groupframes.party"] = true, ["groupframes.raid"] = true },
@@ -607,6 +612,25 @@ local HEALER_OLD = {
 	["combattext.player"] = { "BOTTOM", CAST_HALF + GAP + 160 / 2, CLUSTER_TOP + GAP },
 }
 
+local PLACES_V30 = {
+	["groupframes.party"] = { "TOPLEFT", MARGIN, -MARGIN },
+	["orbs:groupframes.party"] = { "TOPLEFT", MARGIN, -PARTY_TOP },
+	["orbs:groupframes.raid"] = { "TOPLEFT", MARGIN, -PARTY_TOP },
+	["minimap.main"] = { "TOPRIGHT", -(EDGE - 1), -(EDGE - 1 + MAP_HEADING) },
+	["auras.buffs"] = { "TOPRIGHT", -(EDGE + MAP + 10.9), -RAIL_EDGE },
+	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + MAP + 10.9), -DEBUFFS_Y },
+	["databars.xp"] = { "BOTTOM", 0, TRAY_BOTTOM - TRAY_STRIP_GAP - 5, COLUMN, 5 },
+	["orbs:databars.xp"] = { "BOTTOM", 0, ORBS_XP_Y + XP_H - 5 },
+}
+
+function Layouts.PlaceMoves()
+	local out = {}
+	for key, place in pairs(PLACES_V30) do
+		out[key] = { place[1], place[2], place[3], place[4], place[5] }
+	end
+	return out
+end
+
 function Layouts.HealerMoves()
 	local out = {}
 	for key, place in pairs(HEALER_OLD) do
@@ -647,6 +671,8 @@ function Layouts.Default(key)
 	return copy(position)
 end
 
+Layouts.MAP_FRAME = MAP_FRAME
+Layouts.GAP = GAP
 Layouts.ORBS_RING = ORBS_RING
 Layouts.ORBS_REACH = ORBS_REACH
 Layouts.ORBS_LIFT = ORBS_LIFT
@@ -696,19 +722,29 @@ function Layouts.Aspect(class, style, name, key)
 	end
 end
 
-function Layouts.Place(name, style, class, key)
+local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true }
+local SIDES = { TOPLEFT = 1, LEFT = 1, BOTTOMLEFT = 1, TOPRIGHT = -1, RIGHT = -1, BOTTOMRIGHT = -1 }
+
+function Layouts.Band(key, anchor, x, band)
+	if not BANDED[key] or type(band) ~= "number" or type(x) ~= "number" then
+		return x
+	end
+	return x + (SIDES[anchor] or 0) * band
+end
+
+function Layouts.Place(name, style, class, key, band)
 	local base = layouts[name] and layouts[name][key]
 	if not base then
 		return nil
 	end
 	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key) or base
-	return { anchor = place.anchor, x = place.x, y = place.y }
+	return { anchor = place.anchor, x = Layouts.Band(key, place.anchor, place.x, band), y = place.y }
 end
 
-function Layouts.Positions(name, style, class)
+function Layouts.Positions(name, style, class, band)
 	local out = Layouts.Get(name)
 	for key, position in pairs(out or {}) do
-		local place = Layouts.Place(name, style, class, key)
+		local place = Layouts.Place(name, style, class, key, band)
 		position.anchor, position.x, position.y = place.anchor, place.x, place.y
 	end
 	return out

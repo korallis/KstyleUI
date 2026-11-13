@@ -265,6 +265,16 @@ do
 		end
 	end
 	assert(rects >= 30, "the preview draws the layout's elements at their real footprints, got " .. rects)
+	-- KSTY-60 item 6: the diagram draws the party at mid-left, where the mock-ups and the layouts put it, not in the
+	-- top-left corner.
+	for _, rect in ipairs(preview.rects) do
+		if rect.element.key == "groupframes.party" then
+			local s = preview:GetWidth() / (K.Setup.Layouts.HEIGHT * 16 / 9)
+			local _, _, _, _, bottom = rect:GetPoint(1)
+			local top = (K.Setup.Layouts.HEIGHT * s - bottom - rect:GetHeight()) / s
+			assert(rect:IsShown() and math.abs(top - 465) <= 2 * K.Widgets.Border(preview) / s, "the diagram draws the DPS party 465 under the top, at mid-left, to its snapped pixels, got " .. top)
+		end
+	end
 	W.Click(cards.Healer)
 	W.Settle(env)
 	assert(K.Setup.Choice().layout == "Healer" and cards.Healer.selected and not cards.DPS.selected, "a click picks the layout")
