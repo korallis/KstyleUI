@@ -132,7 +132,8 @@ do
 	assert(Layout.Get("Test.Player").x == -150)
 	assert(near(select(4, Point(frame)), -150), "Set applies at once")
 	local saved = K.Store.Layout()["Test.Player"]
-	assert(saved and saved.x == -150 and saved.y == nil and saved.anchor == nil, "only the changed field is saved")
+	local default = Layout.Get("Test.Player")
+	assert(saved and saved.x == -150 and saved.y == default.y and saved.anchor == default.anchor, "a moved element saves its whole place, so a layout for another screen never half-moves it")
 	assert(Layout.Set("Test.Player", "x", -200) == true)
 	assert(K.Store.Layout()["Test.Player"] == nil, "a value back at its default leaves nothing saved")
 

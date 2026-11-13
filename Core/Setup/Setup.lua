@@ -88,8 +88,7 @@ function Setup.MarkSeen()
 end
 
 local function writeLayout(name)
-	local _, rh = Setup.RootSize()
-	local positions = Layouts.Get(name, rh)
+	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect())
 	for key, size in pairs(Layouts.Sizes(name)) do
 		local position = positions[key]
 		position.width, position.height = size.width, size.height
@@ -232,7 +231,7 @@ end
 
 local applying = false
 
-ns.Callbacks.Register("HudStyleChanged", "Setup", function()
+local function Restyle()
 	local layout = ns.Layout
 	local name = layout and layout.Setting and layout.Setting("preset")
 	if applying or not name or Setup.EditMode.ActiveName() ~= name then
@@ -241,6 +240,16 @@ ns.Callbacks.Register("HudStyleChanged", "Setup", function()
 	ns.Combat.Queue(function()
 		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
 	end)
+end
+
+ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
+
+local aspect = ns.Scale.Aspect()
+ns.Callbacks.Register("ScaleChanged", "Setup", function()
+	if ns.Scale.Aspect() ~= aspect then
+		aspect = ns.Scale.Aspect()
+		Restyle()
+	end
 end)
 
 function Setup.Apply(picked)

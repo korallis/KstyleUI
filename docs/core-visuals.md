@@ -191,6 +191,10 @@ The accent resolves on first use without firing anything, and again at `PLAYER_L
 | Function | Behaviour |
 | --- | --- |
 | `Root() -> Frame` | `KstyleUI_Root`, created at load on `UIParent` with `SetAllPoints(UIParent)`. |
+| `Origin() -> units` | The root's left edge in `UIParent` units: 0 unless the HUD width narrows it to a centred band. |
+| `Aspect() -> class` | The layout class: `16:9`, `21:9` or `32:9`, the shape of the root itself (see below). |
+| `AspectClass(width, height) -> class` | The class of any shape: `21:9` from a width-to-height ratio of `ASPECT_FROM["21:9"]` (2.05), `32:9` from 2.9, else `16:9`. |
+| `Arrangement() -> arrangement` | The `Layout.arrangement` setting, `centred` or `spread`. |
 | `Pixel(n) -> units` | `n` whole physical pixels in root units. |
 | `Border() -> units` | The border line: exactly one physical pixel at every screen and size. |
 | `Snap(units) -> units` | The nearest whole physical pixel. |
@@ -200,6 +204,18 @@ The accent resolves on first use without firing anything, and again at `PLAYER_L
 | `AppliedUserScale()`, `MaxUserScale()` | The applied size, always a step, and the current preset's screen-fit maximum. |
 
 The root's scale is `768 / 1080 / UIParent:GetEffectiveScale() * appliedSize`, so it is `1080 / appliedSize` units tall on the normal UIParent canvas, and one unit is `physicalHeight * appliedSize / 1080` physical pixels whatever the game's own UI scale. One pixel is `768 / (physicalHeight * root:GetEffectiveScale())` units, read from the root's real effective scale.
+
+### Layout classes and the ultrawide arrangement
+
+Lee, 2026-11-13: "we should have a seperate profile for the ultra wide resolution so everything just slots into place perfectly", with Centred and Spread both offered ("A and b as options user can select between them"). `Scale` reads the class from the root it lays out, at load, at `PLAYER_LOGIN`, on `DISPLAY_SIZE_CHANGED` and when the HUD width or the arrangement changes, out of combat like every rescale. The root is the HUD width's centred column under Centred and the whole screen under Spread:
+
+| Screen | Centred (HUD width 21:9) | Spread, or HUD width Full |
+| --- | --- | --- |
+| 1920x1080, 2560x1600, 3456x2234 | `16:9`, the screen | `16:9` |
+| 2560x1080, 3440x1440 | `21:9`, the screen | `21:9` |
+| 3840x1080, 5120x1440 | `21:9`, the centred column | `32:9`, the screen |
+
+A HUD width of 16:9 makes the class `16:9` on any wider screen under Centred. Positions anchor to the root, so Spread moves every element anchored to a side out to its margin from the screen edge and leaves the centre cluster, anchored to the centre, where it was. `Setup.Layouts.PLACES` holds a class's own places; Layout applies them to elements at their defaults and re-resolves on a class change (Core/Layout/README.md). The class also chooses the places `ScaleLimit` checks. `test-layout-ultrawide.lua` covers the classes, the switch, combat, the places and migration 30.
 
 ### The pixel-perfect size
 

@@ -1,4 +1,4 @@
--- Scale.lua: the KstyleUI_Root canvas (the whole screen, or a centred band on a screen wider than the HUD width setting allows), the automatic pixel-perfect size and the whole-physical-pixel maths.
+-- Scale.lua: the KstyleUI_Root canvas (the whole screen, or under the Centred arrangement a centred band on a screen wider than the HUD width setting allows), its layout class (16:9, 21:9 or 32:9), the automatic pixel-perfect size and the whole-physical-pixel maths.
 local _, ns = ...
 
 local Scale = {}
@@ -15,10 +15,16 @@ local STEPS_PER_PIXEL = 16
 local WHOLE_BAND = 0.125
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
+local ARRANGEMENT = { centred = true, spread = true }
+local DEFAULT_ARRANGEMENT = "centred"
+local ASPECTS = { "16:9", "21:9", "32:9" }
+local ASPECT_FROM = { ["21:9"] = 2.05, ["32:9"] = 2.9 }
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
 Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
 Scale.STEPS_PER_PIXEL, Scale.WHOLE_BAND = STEPS_PER_PIXEL, WHOLE_BAND
 Scale.CANVAS, Scale.DEFAULT_CANVAS = CANVAS, DEFAULT_CANVAS
+Scale.ARRANGEMENT, Scale.DEFAULT_ARRANGEMENT = ARRANGEMENT, DEFAULT_ARRANGEMENT
+Scale.ASPECTS, Scale.ASPECT_FROM = ASPECTS, ASPECT_FROM
 
 local state = {
 	user = DEFAULT_USER_SCALE,
@@ -29,6 +35,7 @@ local state = {
 	pixel = 1,
 	canvas = 0,
 	origin = 0,
+	aspect = ASPECTS[1],
 	applied = {},
 	waiting = false,
 }
@@ -86,9 +93,18 @@ local function CanvasSetting()
 	return DEFAULT_CANVAS
 end
 
+local function ArrangementSetting()
+	local store = ns.Store
+	local value = store and store.IsLoaded() and store.Module("Layout").arrangement
+	if ARRANGEMENT[value] then
+		return value
+	end
+	return DEFAULT_ARRANGEMENT
+end
+
 local function CanvasWidth(width, height)
 	local aspect = CANVAS[CanvasSetting()]
-	if not aspect or not IsPositive(width) or width <= height * aspect then
+	if not aspect or ArrangementSetting() == "spread" or not IsPositive(width) or width <= height * aspect then
 		return width
 	end
 	local canvas = floor(height * aspect + 0.5)
@@ -99,6 +115,20 @@ local function CanvasWidth(width, height)
 end
 
 Scale.CanvasWidth = CanvasWidth
+
+local function AspectClass(width, height)
+	local class = ASPECTS[1]
+	if IsPositive(width) and IsPositive(height) then
+		for i = 2, #ASPECTS do
+			if width / height >= ASPECT_FROM[ASPECTS[i]] then
+				class = ASPECTS[i]
+			end
+		end
+	end
+	return class
+end
+
+Scale.AspectClass = AspectClass
 
 local function Limit(width, height)
 	local layouts = ns.Setup and ns.Setup.Layouts
@@ -168,12 +198,13 @@ local function Apply()
 	end
 	state.pixel = UI_HEIGHT / (height * effective)
 	state.canvas = width
+	state.aspect = AspectClass(width, height)
 	state.origin = (screen - width) / 2 * state.pixel
 	root:ClearAllPoints()
 	if width < screen then
 		root:SetPoint("TOPLEFT", UIParent, "TOPLEFT", state.origin, 0)
 		root:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -state.origin, 0)
-		Log(string.format("the HUD spreads over a centred %d px of the %d px screen (HUD width %s)", width, screen, CanvasSetting()))
+		Log(string.format("the HUD spreads over a centred %d px of the %d px screen (HUD width %s, %s layout)", width, screen, CanvasSetting(), state.aspect))
 	else
 		root:SetAllPoints(UIParent)
 	end
@@ -241,6 +272,14 @@ function Scale.Origin()
 	return state.origin
 end
 
+function Scale.Aspect()
+	return state.aspect
+end
+
+function Scale.Arrangement()
+	return ArrangementSetting()
+end
+
 function Scale.Pixel(n)
 	return (n or 1) * state.pixel
 end
@@ -301,6 +340,8 @@ ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 		Request("the layout preset")
 	elseif module == "Layout" and key == "canvas" then
 		Request("the HUD width")
+	elseif module == "Layout" and key == "arrangement" then
+		Request("the arrangement")
 	elseif ns.Features.modules[module] ~= nil then
 		Request("an element setting")
 	end

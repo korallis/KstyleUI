@@ -4,7 +4,7 @@ local Hud = dofile("Tools/render/scenes/hud.lua")
 local M = {}
 local SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
-	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 }, { 2560, 1080 }, { 3840, 1080 },
 }
 local EXCEPTIONS = {
 	["player.level/player.portrait"] = true,
@@ -243,7 +243,7 @@ function M.Run(layout, class, form)
 	end
 	rawset(_G, "RENDER_SCREEN", previous)
 	rawset(_G, "RENDER_ORNAMENTS", level)
-	print("ok centre clearance " .. layout .. " " .. class .. " " .. (form or "") .. ": nine screens")
+	print("ok centre clearance " .. layout .. " " .. class .. " " .. (form or "") .. ": eleven screens")
 end
 
 return M

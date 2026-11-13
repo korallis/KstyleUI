@@ -82,7 +82,7 @@ do
 	At(K, CHAT, Layouts.Default(CHAT), "unmoved under Orbs")
 	assert(Layout.Set(CAST, "y", orbs.y + 30), "an Orbs position saves")
 	assert(near(saved["orbs:" .. CAST].y, orbs.y + 30), "an Orbs position is saved under orbs:")
-	assert(near(saved[CAST].x, 40) and saved[CAST].y == nil, "the Frames position is untouched")
+	assert(near(saved[CAST].x, 40) and near(saved[CAST].y, frames.y), "the Frames position is untouched")
 	assert(Layout.Set(CAST, "alphaIdle", 0.5), "a non-position field saves")
 	assert(saved[CAST].alphaIdle == 0.5 and saved["orbs:" .. CAST].alphaIdle == nil, "opacity is shared by both styles")
 	Style(K, "frames")

@@ -1,8 +1,8 @@
--- orbs_clearance_lib.lua: under the Orbs HUD style, nothing another surface draws (the bars beside the orbs, the tracked buff icons, the buff and debuff rows, the reputation and honour bars, the cast bar, the cooldowns) reaches into either orb, at 1280x720, 1920x1080, 3440x1440 and 5120x1440.
+-- orbs_clearance_lib.lua: under the Orbs HUD style, nothing another surface draws (the bars beside the orbs, the tracked buff icons, the buff and debuff rows, the reputation and honour bars, the cast bar, the cooldowns) reaches into either orb, at 1280x720, 1920x1080, 2560x1080, 3440x1440, 5120x1440 and 3840x1080.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
 local M = {}
-M.SCREENS = { { 1280, 720 }, { 1920, 1080 }, { 3440, 1440 }, { 5120, 1440 } }
+M.SCREENS = { { 1280, 720 }, { 1920, 1080 }, { 2560, 1080 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 1080 } }
 local MODULES = { "actionbars", "databars", "cooldowns", "auras", "unitframes" }
 
 local function Options(layout, class)
@@ -147,17 +147,17 @@ local function Case(layout, class, screen, required)
 	end
 end
 
--- Run(layout, class, required, wide) checks 1280x720 and 1920x1080, or with wide 3440x1440 and 5120x1440.
+-- Run(layout, class, required, wide) checks 1280x720, 1920x1080 and 2560x1080, or with wide 3440x1440, 5120x1440 and 3840x1080.
 function M.Run(layout, class, required, wide)
 	local previousScreen, previousStyle = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_HUD_STYLE")
 	rawset(_G, "RENDER_HUD_STYLE", "Orbs")
-	for _, screen in ipairs(wide and { M.SCREENS[3], M.SCREENS[4] } or { M.SCREENS[1], M.SCREENS[2] }) do
+	for _, screen in ipairs(wide and { M.SCREENS[4], M.SCREENS[5], M.SCREENS[6] } or { M.SCREENS[1], M.SCREENS[2], M.SCREENS[3] }) do
 		Case(layout, class, screen, required or {})
 		collectgarbage("collect")
 	end
 	rawset(_G, "RENDER_SCREEN", previousScreen)
 	rawset(_G, "RENDER_HUD_STYLE", previousStyle)
-	print("ok orbs clearance " .. layout .. " " .. class .. (wide and ": 3440x1440 and 5120x1440" or ": 1280x720 and 1920x1080"))
+	print("ok orbs clearance " .. layout .. " " .. class .. (wide and ": 3440x1440, 5120x1440 and 3840x1080" or ": 1280x720, 1920x1080 and 2560x1080"))
 end
 
 return M

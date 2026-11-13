@@ -121,7 +121,12 @@ local function Viewers(K, env, state, name, icons, bars)
 	local layout = Named(state, "KstyleUI " .. name)
 	local icon, bar = Find(layout, VIEWER, BUFF_ICON), Find(layout, VIEWER, BUFF_BAR)
 	assert(icon and bar, "the KstyleUI layout carries both tracked buff viewers")
-	return icon, bar, { EditModeFake.ViewerRect(icon, icons, k) }, { EditModeFake.ViewerRect(bar, bars, k, true) }, k
+	local iconBox, barBox = { EditModeFake.ViewerRect(icon, icons, k) }, { EditModeFake.ViewerRect(bar, bars, k, true) }
+	local origin = K.Scale.Origin()
+	for _, box in ipairs({ iconBox, barBox }) do
+		box[1], box[3] = box[1] - origin, box[3] - origin
+	end
+	return icon, bar, iconBox, barBox, k
 end
 
 for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
@@ -197,6 +202,13 @@ local SCREENS = {
 	{ label = "16:10", width = 1920, height = 1200 },
 	{ label = "21:9", width = 2560, height = 1080 },
 }
+-- The ultrawides at the automatic size (KSTY-59), the 32:9 screens under both arrangements; the full placement only.
+local WIDE = {
+	{ label = "3440 x 1440", width = 3440, height = 1440, size = "auto" },
+	{ label = "5120 x 1440 Centred", width = 5120, height = 1440, size = "auto" },
+	{ label = "5120 x 1440 Spread", width = 5120, height = 1440, size = "auto", arrangement = "spread" },
+	{ label = "3840 x 1080 Spread", width = 3840, height = 1080, size = "auto", arrangement = "spread" },
+}
 
 local function Screen(screen)
 	return { width = screen.width, height = screen.height, uiScale = screen.uiScale, size = screen.size }
@@ -217,10 +229,20 @@ local function Everything(K, name, box)
 	return hits
 end
 
+local placed = {}
+for _, screen in ipairs(SCREENS) do
+	placed[#placed + 1] = screen
+end
+for _, screen in ipairs(WIDE) do
+	placed[#placed + 1] = screen
+end
 for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
-	for _, screen in ipairs(SCREENS) do
+	for _, screen in ipairs(placed) do
 		local state = { saved = {}, active = 1 }
 		local env, K = Boot(state, Screen(screen))
+		if screen.arrangement then
+			K.Options.Write("Layout", "arrangement", screen.arrangement)
+		end
 		K.Setup.EditMode.CountTracked(function(group)
 			return ({ buffs = 16, bars = 6 })[group]
 		end)
