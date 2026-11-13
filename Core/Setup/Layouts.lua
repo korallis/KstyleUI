@@ -152,7 +152,7 @@ local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
 local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
-local QUESTS_BOTTOM, STORY_FLOOR = TEXT_TOP + GAP, 72
+local STORY_FLOOR = 72
 local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
 local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
 local _, MICRO_H = ElementSize("databars.micro")
@@ -186,7 +186,7 @@ local DPS = {
 	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 + LIFT },
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -((6 * CENTRE_BUTTON + 5 * CENTRE_GAP) / 2 + GAP + 182.6 / 2), y = 335.3 + LIFT },
-	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 + LIFT },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = -(347 / 2 + GAP + 6 * 28.5 + 5 * 3 + GAP + TRACKED / 2), y = 340 + LIFT },
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 421 + 14 + 8 + LIFT },
 	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
@@ -195,7 +195,7 @@ local DPS = {
 	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_CAST_Y },
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
-	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
+	["combattext.player"] = { anchor = "BOTTOM", x = SIDE - 80 - GAP, y = 421 + 14 + 8 + LIFT + 8 + GAP },
 	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -RAIL_EDGE, y = RAIL_BARS_Y },
 	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + RAIL_COLUMN), y = RAIL_BARS_Y },
 	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + 2 * RAIL_COLUMN), y = RAIL_BARS_Y },
@@ -395,7 +395,6 @@ local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 local ORBS_RAIL_X = EDGE + STORY_W + GAP
 local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
 local ORBS_STORY_BOTTOM = TIP_Y + select(2, ElementSize("tooltips.anchor")) + GAP
-local ORBS_QUESTS_H = 268 * MOCK_PX
 local ORBS_FIT = {
 	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + TIGHT,
 	nudge = 32,
@@ -423,7 +422,7 @@ local ORBS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX, y = 52 },
 	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },
 	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -ORBS_FIT.bossX, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
-	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = DPS["combattext.player"].y },
+	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = CLUSTER_TOP + GAP },
 	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
 	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
@@ -436,7 +435,7 @@ local ORBS = {
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -ORBS_RAIL_X, y = ORBS_STORY_BOTTOM + RAIL_BARS_H + GAP },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + 3 * RAIL_COLUMN - RAIL_PITCH + GAP), y = ORBS_TRACKED_Y + select(2, ElementSize("cooldowns.bars")) + GAP },
 }
 local STORY_STYLES = {
 	orbs = {
@@ -595,7 +594,7 @@ function Layouts.Slot(name, rootHeight)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style, class)
+function Layouts.Story(name, rootHeight, guide, style)
 	local slot = Layouts.Slot(name, rootHeight)
 	if not slot then
 		return nil
@@ -610,15 +609,14 @@ function Layouts.Story(name, rootHeight, guide, style, class)
 		if not guide then
 			return { quests = Card(STORY_KEYS.quests, quests.x, math.max(1, column), quests) }
 		end
-		local top = math.max(1, math.min(ORBS_QUESTS_H, (column - GAP) / 2))
+		local top = math.max(1, (column - GAP) / 2, column - GAP - slot.height)
 		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
 	end
 	if not guide then
 		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
 	local top = DEBUFFS_Y + AURA_H + GAP - 1
-	local bottom = (class == nil or class == ns.Scale.ASPECTS[1]) and QUESTS_BOTTOM or CLUSTER_TOP + GAP
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - top - bottom)
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - top - CLUSTER_TOP - GAP)
 	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column, { anchor = slot.anchor, y = -top }) }
 end
 
@@ -693,6 +691,8 @@ do
 		places = {
 			["meters.threat"] = { "BOTTOM", SIDE + THREAT_W / 2, CLUSTER_TOP - 22 - TIGHT - THREAT_H },
 			["cooldowns.buffs"] = { "BOTTOM", -442.8, 155.9 + LIFT },
+			["combattext.player"] = { "BOTTOM", 376, CLUSTER_TOP + GAP },
+			["cooldowns.bars"] = { "BOTTOM", -480, 340 + LIFT },
 			["auras.buffs"] = { "TOPRIGHT", -OLD_AURAS_X, -RAIL_EDGE },
 			["auras.debuffs"] = { "TOPRIGHT", -OLD_AURAS_X, -DEBUFFS_Y },
 		},
@@ -702,7 +702,7 @@ do
 	}
 
 	function Layouts.RailMoves()
-		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat" } }
+		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat", ["combattext.player"] = "orbs:combattext.player" } }
 		for key, place in pairs(RAILS_V33.places) do
 			out.places[key] = { place[1], place[2], place[3] }
 		end
@@ -1058,7 +1058,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local pixelScale = physicalHeight / rootHeight
 	enabled = enabled or Layouts.Enabled(name)
 	local rects = {}
-	local story = Layouts.Story(name, rootHeight, true, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
+	local story = Layouts.Story(name, rootHeight, true, style)
 	local cards = { story.guide, story.quests }
 	for i = 1, #ELEMENTS + #cards do
 		local key, width, height, position, offsetX

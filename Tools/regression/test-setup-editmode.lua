@@ -143,7 +143,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			-- KSTY-60 item 28: the icons stand at the left end of the essential cooldown row, a cluster gap off it and on its foot,
 			-- not beside the player portrait.
 			local el, eb = Slot(K, name, "cooldowns.essential")
-			local r, b = el - K.Setup.Layouts.GAP, eb
+			local cast = { Slot(K, name, "unitframes.castbar.player") }
+			local r, b = math.min(el, cast[1]) - K.Setup.Layouts.GAP, eb
 			assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, b * k), where .. ": the buff icons stand at the essential row's left end, on its foot")
 			assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.RIGHT, where .. ": the right-aligned row preserves the configured left-to-right order")
 			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
@@ -155,6 +156,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			end
 			assert(near(iconBox[3], r) and near(iconBox[2], b), where .. ": the native row ends a cluster gap left of the essential row, on its foot")
 			assert(not Overlaps(iconBox, { Slot(K, name, "unitframes.player") }), where .. ": the buffs clear the player frame")
+			assert(iconBox[3] <= cast[1] - K.Setup.Layouts.GAP + 0.01, where .. ": the buffs stand a cluster gap clear of the player cast bar and its spell icon (Captain, KSTY-64)")
 			local bl, bb, br = Slot(K, name, "cooldowns.bars")
 			assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
 			assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")

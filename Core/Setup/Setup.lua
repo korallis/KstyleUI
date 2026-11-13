@@ -204,7 +204,7 @@ end
 
 function Setup.Story(name, guide)
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current(), ns.Scale.Aspect())
+	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current())
 	if not story then
 		return nil
 	end

@@ -31,8 +31,8 @@ local combat = L.guard("hud_lumen_combat", check("hud_lumen_combat", Lumen.Build
 L.globs()
 local slot = questing.slot
 
--- The story slot holds the RestedXP guide's card and the quests stand in their own column a rail gap to its left, at
--- the same top (KSTY-33), on the right rail under the map and the aura rows and over the damage meter (owner,
+-- The story slot holds the RestedXP guide's card and the quests stand in their own column a rail gap to its left (KSTY-33),
+-- from a rail gap under the aura rows (KSTY-64), on the right rail under the map and the aura rows and over the damage meter (owner,
 -- 2026-11-09: "The quest tracker can go back to the right side").
 local column = questing.column
 local function within(item, box, what)
@@ -46,7 +46,14 @@ do
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
 	within(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), slot, "the guide's active step")
 	assert(find(questing, "DAMAGE  HEALING").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
-	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
+	local CoreEnv = dofile("Tools/regression/core_env.lua")
+	local env, K = CoreEnv.New()
+	CoreEnv.Boot(env)
+	local Layouts = K.Setup.Layouts
+	local debuffs = Layouts.Get("DPS")["auras.debuffs"]
+	local _, auraH = Layouts.Footprint("DPS", "auras.debuffs")
+	local under = (-debuffs.y + auraH + Layouts.GAP - 1) * 1080 / Layouts.HEIGHT
+	assert(math.abs(column.top - under) < 0.02 and column.top < slot.top and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, its top a rail gap under the aura rows")
 end
 
 -- Two rails. The left holds the party and chat on one left edge, the party over chat; since KSTY-57 the party stands

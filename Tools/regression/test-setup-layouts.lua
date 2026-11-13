@@ -395,7 +395,7 @@ for _, name in ipairs(names) do
 		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3 + LIFT) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
 		assert(same(essential.left - buffs.right, 16) and same(buffs.bottom, essential.bottom), label .. ": the tracked buffs stand a cluster gap left of the essential row, on its foot (KSTY-60 item 28)")
-		assert(same(bars.x - mid, -480) and same(bars.bottom, 340 + LIFT), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
+		assert(same(bars.bottom, 340 + LIFT) and same(rect("unitframes.castbar.player").left - 16 - (6 * 28.5 + 5 * 3) - 16, bars.right), label .. ": the optional tracked buff bars keep their slot, left of the room six tracked icons take at the essential row's left end")
 		local swing = rect("meters.swing")
 		assert(same(swing.bottom - resource.top, 8) and swing.bottom - cast.top >= 8 + 14, label .. ": KSTY-60 item 13: the swing line has its own slot 8 above the class resource, clear of the player cast, as in Orbs")
 		local block = math.max(bars.top, essential.top, utility.top)
@@ -459,7 +459,8 @@ for _, name in ipairs(names) do
 			local column = Layouts.Story(name, HEIGHT, true).quests
 			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
 			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
-			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
+			assert(boss.bottom == 752 and boss.bottom > text.top, label .. ": the boss column keeps its foot at 752, over your combat text, which stands beside the cast since KSTY-64, got " .. boss.bottom)
+			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 16, label .. ": your combat text stands right of the cast, a rail gap off the target of target, the swing timer and the target's cast, so it leaves the quest card's column")
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
 			for _, entry in ipairs(Layouts.Settings(name)) do
@@ -468,9 +469,8 @@ for _, name in ipairs(names) do
 				end
 			end
 			assert(up, label .. ": the layout grows the boss column up from its foot")
-			assert(text.left >= mid + CLEAR.half, label .. ": your combat text rises beside the clear centre")
+			assert(text.left > mid and text.top <= CLEAR.bottom, label .. ": your combat text rises right of your character under the clear centre's foot (KSTY-64: over the cluster it took the quest card's column on 16:9)")
 		end
-		assert(text.bottom - clusterTop >= 16, label .. ": your combat text rises over the cluster")
 		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
 	end
 

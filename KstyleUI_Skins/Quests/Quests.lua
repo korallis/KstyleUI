@@ -95,8 +95,7 @@ local function Story(guide, style)
 		return nil
 	end
 	local _, rh = Setup.RootSize()
-	local class = K.Scale.Aspect()
-	return Layouts.Story(Preset(), rh, guide, style, class) or Layouts.Story(DEFAULT_PRESET, rh, guide, style, class)
+	return Layouts.Story(Preset(), rh, guide, style) or Layouts.Story(DEFAULT_PRESET, rh, guide, style)
 end
 
 local function Spec(guide, style)

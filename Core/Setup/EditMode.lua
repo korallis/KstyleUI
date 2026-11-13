@@ -134,7 +134,7 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh, part)
-	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current(), ns.Scale.Aspect())
+	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current())
 	local card = story and story[part or "guide"]
 	if not card then
 		return nil
@@ -184,9 +184,10 @@ end
 local function Spots(group, boxes, icons)
 	local slot, focus = boxes[VIEWERS[group].key], boxes["unitframes.focus"]
 	if group == "buffs" then
-		local list, essential = {}, boxes["cooldowns.essential"]
+		local list, essential, cast = {}, boxes["cooldowns.essential"], boxes["unitframes.castbar.player"]
 		if essential then
-			list[1] = { x = essential.l - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
+			local edge = cast and math.min(essential.l, cast.l) or essential.l
+			list[1] = { x = edge - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
 		end
 		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
@@ -373,7 +374,7 @@ local function Rows(name, k, rw, rh, notes)
 		local row = ROWS[group]
 		local slot = Native(group) and indices[row.index] ~= nil and Box(name, row.key, rw, rh)
 		if slot then
-			local others = Others(name, rw, rh, { [row.key] = true })
+			local others = Others(name, rw, rh, { [row.key] = true, ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true })
 			for _, rect in ipairs(placed) do
 				others[#others + 1] = rect
 			end
@@ -506,6 +507,9 @@ local function Places(name, story, notes)
 		end
 		for key in pairs(Positions(name)) do
 			boxes[key] = Box(name, key, rw, rh)
+		end
+		for _, place in ipairs(rows) do
+			boxes[ROWS[place.row].key] = place.rect
 		end
 		local function Arrange(spare, order)
 			local list, out, told, picks = {}, {}, {}, {}
