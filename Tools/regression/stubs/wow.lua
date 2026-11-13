@@ -254,21 +254,36 @@ local function spanned(self, axis)
 	end
 	return size + (a[5] or 0) - (b[5] or 0)
 end
--- A frame spanned on a target changes size with it, so it runs OnSizeChanged too, as the game does for a frame
--- whose size comes from its anchors.
+-- A frame whose size comes from its anchors (spanned on a target) runs OnSizeChanged when that size changes, from a
+-- SetPoint or from its target's resize, as the game does; regions that are not frames have no such script.
+local NOT_FRAMES = { Texture = true, FontString = true, Line = true, MaskTexture = true }
+local function spanChanged(frame)
+	if NOT_FRAMES[frame._type] or not (spanned(frame, "w") or spanned(frame, "h")) then
+		return false
+	end
+	local w, h = rawSize(frame, "w"), rawSize(frame, "h")
+	local last = rawget(frame, "_lastSpan")
+	if last and last[1] == w and last[2] == h then
+		return false
+	end
+	rawset(frame, "_lastSpan", { w, h })
+	local script = frame._scripts and frame._scripts.OnSizeChanged
+	if script and last then
+		script(frame, w, h)
+	end
+	return true
+end
 function notifySpanners(self, seen)
 	local set = rawget(self, "_spanners")
 	if not set then
 		return
 	end
 	for frame in pairs(set) do
-		if not seen[frame] and (spanned(frame, "w") or spanned(frame, "h")) then
+		if not seen[frame] then
 			seen[frame] = true
-			local script = frame._scripts and frame._scripts.OnSizeChanged
-			if script then
-				script(frame, rawSize(frame, "w"), rawSize(frame, "h"))
+			if spanChanged(frame) then
+				notifySpanners(frame, seen)
 			end
-			notifySpanners(frame, seen)
 		end
 	end
 end
@@ -514,13 +529,20 @@ function Object:SetPoint(point, ...)
 	if self._env._trackOrigin then
 		placedBy(self)
 	end
+	local replaced = false
 	for i, existing in ipairs(self._points) do
 		if existing[1] == point then
 			self._points[i] = pack(point, ...)
-			return
+			replaced = true
+			break
 		end
 	end
-	self._points[#self._points + 1] = pack(point, ...)
+	if not replaced then
+		self._points[#self._points + 1] = pack(point, ...)
+	end
+	if spanChanged(self) then
+		notifySpanners(self, {})
+	end
 end
 function Object:ClearAllPoints() self._points = {} end
 -- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
@@ -533,6 +555,9 @@ function Object:SetAllPoints(relative)
 	local target = anchorTarget(self, relative)
 	self._points = { pack("TOPLEFT", target, "TOPLEFT", 0, 0), pack("BOTTOMRIGHT", target, "BOTTOMRIGHT", 0, 0) }
 	self._state.AllPoints = pack(relative)
+	if spanChanged(self) then
+		notifySpanners(self, {})
+	end
 end
 -- GetRect reads frame._rect { left, bottom, width, height } when a test sets it, otherwise a rect of the
 -- frame's size at the origin, or nothing for a frame with no size.

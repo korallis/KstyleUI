@@ -704,7 +704,43 @@ local function OnPixel(raw, relShare, relPx, ownShare, ownPx)
 	return floor(raw + target + 0.5) - target
 end
 
+local function Plain(region)
+	if Widgets.Restricted(region) then
+		return false
+	end
+	if type(region.IsAnchoringSecret) == "function" then
+		local secret = region:IsAnchoringSecret()
+		if IsSecret(secret) or secret == true then
+			return false
+		end
+	end
+	return true
+end
+
+local function IsFrame(region)
+	if type(region.IsObjectType) ~= "function" then
+		return false
+	end
+	local frame = region:IsObjectType("Frame")
+	return not IsSecret(frame) and frame == true
+end
+
+local function Record(region)
+	local record = helped[region]
+	if not record then
+		record = { points = {} }
+		helped[region] = record
+	end
+	return record
+end
+
 local Reown, Refollow
+
+local function HookFollow(frame)
+	if dependents[frame] and not frame.kstyleFollowed and type(frame.HookScript) == "function" and IsFrame(frame) then
+		frame.kstyleFollowed = frame:HookScript("OnSizeChanged", Refollow) ~= false
+	end
+end
 
 function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	local relative = relativeTo or region:GetParent()
@@ -729,18 +765,14 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
 	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
-	local record = helped[region]
-	if not record then
-		record = { points = {} }
-		helped[region] = record
-	end
+	local record = Record(region)
 	local entry = record.points[point]
 	if entry then
 		entry[1], entry[2], entry[3], entry[4], entry[5], entry[6] = relative, relativePoint, x, y, dx * px, dy * px
 	else
 		record.points[point] = { relative, relativePoint, x, y, dx * px, dy * px }
 	end
-	if (own[1] ~= 0 or own[2] ~= 1) and not region.kstyleOwnHooked and type(region.HookScript) == "function" and region:GetObjectType() ~= "FontString" then
+	if (own[1] ~= 0 or own[2] ~= 1) and not region.kstyleOwnHooked and type(region.HookScript) == "function" and IsFrame(region) then
 		region.kstyleOwnHooked = region:HookScript("OnSizeChanged", Reown) ~= false
 	end
 	if type(relative) == "table" and (rel[1] ~= 0 or rel[2] ~= 1) then
@@ -750,8 +782,8 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 			dependents[relative] = set
 		end
 		set[region] = true
-		if helped[relative] and not relative.kstyleFollowed and type(relative.HookScript) == "function" then
-			relative.kstyleFollowed = relative:HookScript("OnSizeChanged", Refollow) ~= false
+		if helped[relative] then
+			HookFollow(relative)
 		end
 	end
 end
@@ -762,7 +794,7 @@ local function Refill(region)
 	end
 	region.kstyleFilling = true
 	local fill = region.kstyleFill
-	Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
+	ns.Call(Widgets.Fill, region, fill[1], fill[2], fill[3], fill[4], fill[5])
 	region.kstyleFilling = false
 end
 
@@ -783,27 +815,31 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	region:ClearAllPoints()
 	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
 	region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
-	local record = helped[region]
-	if not record then
-		record = { points = {} }
-		helped[region] = record
-	end
+	local record = Record(region)
 	local fill = record.fill
 	if fill then
-		fill[1], fill[2], fill[3], fill[4], fill[5], fill[6], fill[7] = relative, left, top, right, bottom, l * px, -t * px
+		fill[1], fill[2], fill[3], fill[4], fill[5], fill[6], fill[7], fill[8], fill[9] = relative, left, top, right, bottom, l * px, -t * px, dx * px, dy * px
 	else
-		record.fill = { relative, left, top, right, bottom, l * px, -t * px }
+		record.fill = { relative, left, top, right, bottom, l * px, -t * px, dx * px, dy * px }
 	end
-	if not region.kstyleSettles and type(region.HookScript) == "function" then
+	if not region.kstyleSettles and type(region.HookScript) == "function" and IsFrame(region) then
 		region.kstyleSettles = region:HookScript("OnSizeChanged", Refill) ~= false
 	end
+	HookFollow(region)
 end
 
-local function Anchored(region, point, relative, x, y)
+local function Anchored(region, point, relative, relativePoint, x, y)
+	if not Plain(region) then
+		return false
+	end
 	for i = 1, region:GetNumPoints() do
-		local own, to, _, ox, oy = region:GetPoint(i)
+		local own, to, toPoint, ox, oy = region:GetPoint(i)
+		if IsSecret(own) or IsSecret(to) or IsSecret(toPoint) or IsSecret(ox) or IsSecret(oy) then
+			return false
+		end
 		if own == point then
-			return to == relative and (x == nil or not IsSecret(ox) and not IsSecret(oy) and type(ox) == "number" and type(oy) == "number" and abs(ox - x) < 1e-6 and abs(oy - y) < 1e-6)
+			return to == relative and toPoint == relativePoint and type(ox) == "number" and type(oy) == "number"
+				and abs(ox - x) < 1e-6 and abs(oy - y) < 1e-6
 		end
 	end
 	return false
@@ -817,17 +853,21 @@ local function Depth(region)
 	return depth
 end
 
+local function Replay(region, record, only)
+	for point, p in pairs(record.points) do
+		if (only == nil or p[1] == only) and Anchored(region, point, p[1], p[2], p[5], p[6]) then
+			Widgets.Point(region, point, p[1], p[2], p[3], p[4])
+		end
+	end
+end
+
 function Reown(region)
 	local record = helped[region]
 	if not record or region.kstyleReowning then
 		return
 	end
 	region.kstyleReowning = true
-	for point, p in pairs(record.points) do
-		if Anchored(region, point, p[1], p[5], p[6]) then
-			Widgets.Point(region, point, p[1], p[2], p[3], p[4])
-		end
-	end
+	ns.Call(Replay, region, record)
 	region.kstyleReowning = false
 end
 
@@ -839,10 +879,8 @@ function Refollow(frame)
 	frame.kstyleFollowing = true
 	for region in pairs(set) do
 		local record = helped[region]
-		for point, p in pairs(record and record.points or set) do
-			if record and p[1] == frame and Anchored(region, point, frame, p[5], p[6]) then
-				Widgets.Point(region, point, p[1], p[2], p[3], p[4])
-			end
+		if record then
+			ns.Call(Replay, region, record, frame)
 		end
 	end
 	frame.kstyleFollowing = false
@@ -851,7 +889,7 @@ end
 function Widgets.PlaceAgain(roots)
 	local list, depth = {}, {}
 	for region in pairs(helped) do
-		if not Widgets.Restricted(region) and (roots == nil or Under(region, roots)) then
+		if Plain(region) and (roots == nil or Under(region, roots)) then
 			list[#list + 1] = region
 			depth[region] = Depth(region)
 		end
@@ -867,33 +905,32 @@ function Widgets.PlaceAgain(roots)
 			Widgets.Size(region, size[1], size[2])
 		end
 		local fill = record.fill
-		if fill and Anchored(region, "TOPLEFT", fill[1], fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1]) then
+		if fill and Anchored(region, "TOPLEFT", fill[1], "TOPLEFT", fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1], "BOTTOMRIGHT", fill[8], fill[9]) then
 			Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
 		end
-		for point, p in pairs(record.points) do
-			if Anchored(region, point, p[1], p[5], p[6]) then
-				Widgets.Point(region, point, p[1], p[2], p[3], p[4])
-			end
-		end
+		Replay(region, record)
 	end
 end
 
 function Widgets.Size(frame, width, height)
+	if type(frame.IsProtected) == "function" and not Widgets.MayMove(frame) then
+		ns.Combat.Queue(function()
+			Widgets.Size(frame, width, height)
+		end)
+		return
+	end
 	local f = Widgets.ScaleFactor(frame)
 	local w, h = SnapIn(width, f), SnapIn(height, f)
 	frame:SetSize(w, h)
 	Refollow(frame)
-	local record = helped[frame]
-	if not record then
-		record = { points = {} }
-		helped[frame] = record
-	end
+	local record = Record(frame)
 	local size = record.size
 	if size then
 		size[1], size[2], size[3], size[4] = width, height, w, h
 	else
 		record.size = { width, height, w, h }
 	end
+	HookFollow(frame)
 end
 
 function Widgets.Inset(frame, radius, gap)
