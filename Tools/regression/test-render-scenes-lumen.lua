@@ -10,7 +10,7 @@ for _, script in ipairs({ "hud_lumen_questing", "hud_lumen_combat" }) do
 end
 
 local function plain(text)
-	return (text:gsub("\226\128\137", ""))
+	return (text:gsub("\226\128\137", ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
 -- find(scene, text) -> the first text item that reads text (case kept), or nil.
@@ -45,7 +45,7 @@ do
 	within(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level"), column, "the second quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
 	within(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), slot, "the guide's active step")
-	assert(find(questing, "DAMAGE").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
+	assert(find(questing, "DAMAGE  HEALING").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
 	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
 end
 
@@ -101,7 +101,7 @@ do
 		assert(find(questing, name), "the party shows " .. name)
 	end
 	assert(not find(questing, "Khont"), "a party of three")
-	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "DAMAGE" }) do
+	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "DAMAGE  HEALING" }) do
 		assert(near(find(questing, text).alpha, 1), text .. " is lit out of combat")
 	end
 end
@@ -128,7 +128,7 @@ do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.65), text .. " is on the readout and rests at a legible 65% in combat, got " .. tostring(item.alpha))
 	end
-	for _, text in ipairs({ "Leduc", "DAMAGE", "BLOODTALON MATRIARCH", "VALERIN" }) do
+	for _, text in ipairs({ "Leduc", "DAMAGE  HEALING", "BLOODTALON MATRIARCH", "VALERIN" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 1), text .. " stays lit in combat, got " .. tostring(item.alpha))
 	end

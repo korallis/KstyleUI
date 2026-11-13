@@ -16,9 +16,9 @@ do
 	local scene = check("hud_dps_threat", dofile("Tools/render/scenes/hud_dps_threat.lua")())
 	local shown = {}
 	for _, item in ipairs(scene.items) do
-		if item.kind == "text" then shown[item.text] = true end
+		if item.kind == "text" then shown[(tostring(item.text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))] = true end
 	end
-	assert(shown.THREAT and shown.DAMAGE, "the DPS scene draws both meter cards")
+	assert(shown.THREAT and shown["DAMAGE  HEALING"], "the DPS scene draws both meter cards, the damage card under its damage and healing switch")
 	assert(shown["86%"] and shown["72%"] and shown["58%"], "all three compact threat rows draw")
 end
 
