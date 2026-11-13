@@ -26,10 +26,11 @@ end
 local function Friend(row, first)
 	if first then
 		Kit.Highlight(row)
+		Parts.Hush(row.background)
 	end
 	Style.Text(row.name, "body")
 	if row.info then
-		Style.Text(row.info, "body")
+		Style.Text(row.info, "caption")
 	end
 end
 
