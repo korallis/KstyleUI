@@ -23,10 +23,6 @@ local Hud = {}
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
--- Hud.ornamentRows, while a HUD composes (scenes/_lumen.lua), holds the ornament rows the modules built so far placed
--- (Widgets.OrnamentRows). The game keeps one registry for every module, so a bar ornament keeps clear of the action
--- bars' tray; build() gives each environment the rows the others placed.
-Hud.ornamentRows = nil
 -- Hud.layoutElements, while a HUD composes, holds every module's Layout elements ({ [key] = { el, live } }). The game
 -- keeps one Layout registry, where the minimap's corners find the elements beside it (KstyleUI_Minimap/Map.lua);
 -- build() lets each environment's Layout.Element and Layout.Live fall back to them. Nothing else crosses environments.
@@ -230,27 +226,8 @@ local function build(env, opts, extra)
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
-	local W = K and K.Widgets
 	Hud.ShareLayout(env)
-	local registry = Hud.ornamentRows and W and W.OrnamentRows
-	if registry then
-		local placed = false
-		for row in pairs(Hud.ornamentRows) do
-			registry[row] = true
-			placed = placed or row.used > 0
-		end
-		if placed then
-			for bar in pairs(W.OrnamentBars) do
-				bar:Restyle()
-			end
-		end
-	end
 	local scene = Scene.Build(env, sceneOpts)
-	if registry then
-		for row in pairs(registry) do
-			Hud.ornamentRows[row] = true
-		end
-	end
 	for _, line in ipairs(previewed) do
 		scene.log[#scene.log + 1] = "sizes " .. line .. ", as Layout > Apply writes it for the layout"
 	end

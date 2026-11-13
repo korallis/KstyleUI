@@ -112,9 +112,6 @@ end
 local bar = env.CreateFrame("Frame", nil, root)
 bar:SetPoint("TOPLEFT", root, "TOPLEFT", 500 * pixel, -300 * pixel)
 local caps = widgets.Ornament(bar, "bar")
-local map = env.CreateFrame("Frame", nil, root)
-map:SetPoint("TOPLEFT", root, "TOPLEFT", 900 * pixel, -300 * pixel)
-local corners = widgets.Ornament(map, "map")
 local names = {}
 for name in pairs(shipped) do
 	names[#names + 1] = name
@@ -133,11 +130,6 @@ for trial = 1, 40 do
 			bar:SetSize(140 * pixel, height * pixel)
 			caps:Restyle()
 			pieces = pieces + #drawn(caps, "trial " .. trial .. " " .. level .. " bar " .. height)
-		end
-		for _, side in ipairs({ 120, 200, 300 }) do
-			map:SetSize(side * pixel, side * pixel)
-			corners:Restyle()
-			pieces = pieces + #drawn(corners, "trial " .. trial .. " " .. level .. " map " .. side)
 		end
 		for _, side in ipairs({ 30, 47, 64, 99, 140 }) do
 			frame:SetSize(side * pixel, side * pixel)
