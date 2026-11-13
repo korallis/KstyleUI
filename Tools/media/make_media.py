@@ -58,11 +58,22 @@ PORTRAIT_RADIUS_SHARE = 8 / 44
 # the card's own 14-unit rounded shape is cut out, so translucent glass shows the world through it, not its shadow.
 LUMEN_SHADOW_REACH, LUMEN_SHADOW_DROP, LUMEN_SHADOW_RADIUS, LUMEN_SHADOW_BLUR = 14, 3, 6, 3.5
 SHEEN_REACH = 0.55  # the bar sheen fades from the top to nothing 55% of the way down, as the mockup's .bar i
-# The Orbs HUD style's orb (KSTY-46), drawn from the KSTY-44 mock-up's CSS: the empty orb's dark glass lit from 38% down,
+# The Orbs HUD style's orb (KSTY-46), drawn from the KSTY-44 mock-up's CSS: the empty orb's dark glass lit from 34% down,
 # a rim that darkens from 52% of the radius out, the four glints of its glass, and liquid shaded as a cylinder whose
-# edges keep 55% of the centre's light. The game tints the liquid and the surface line with SetStatusBarColor and
-# SetVertexColor.
-ORB_BACK_STOPS = ((0.0, 0.098), (0.55, 0.039), (1.0, 0.008))
+# edges keep 55% of the centre's light. The game tints the glass, the liquid and its surface with SetVertexColor and
+# SetStatusBarColor, so the back keeps the mock-up's light ratios (#2b1414, #150909 at 52%, #050202) with its centre white.
+ORB_BACK_STOPS = ((0.0, 1.0), (0.52, 0.49), (1.0, 0.12))
+ORB_BACK_LIGHT = 0.34
+# The liquid's surface (KSTY-63): the mock-up's lit ellipse, as wide as the orb and 11% as tall, lit from 35% down its
+# height, its top edge a white line at 55% and a soft shadow 2 units under it at 35%. OrbSurface holds the ellipse's
+# light for the liquid's colour; OrbSurfaceLight holds the white line, the white sheen at its lit point and the shadow.
+ORB_SURFACE_SIZE = (256, 64)
+ORB_SURFACE_RY = 14
+ORB_SURFACE_STOPS = ((0.0, 1.0), (0.38, 0.92), (0.78, 0.72), (1.0, 0.58))
+ORB_SURFACE_LIT = 0.35
+ORB_SURFACE_SHEEN = ((0.0, 0.45), (0.55, 0.0))
+ORB_SURFACE_RIM = (0.86, 0.55)
+ORB_SURFACE_SHADOW = (3, 7, 0.35)
 ORB_RIM_STOPS = ((0.0, 0.0), (0.52, 0.0), (0.78, 0.55), (1.0, 0.9))
 ORB_GLINTS = (
     (0.37, 0.15, 0.30, 0.15, ((0.0, 0.5), (0.6, 0.14), (1.0, 0.0))),
@@ -694,10 +705,10 @@ def draw_orb_mask(size):
 
 def draw_orb_back(size):
     coverage = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
-    reach = math.hypot(0.5, 0.62)
+    reach = math.hypot(0.5, 1 - ORB_BACK_LIGHT)
 
     def level(u, v):
-        return ramp(ORB_BACK_STOPS, math.hypot(u - 0.5, v - 0.38) / reach)
+        return ramp(ORB_BACK_STOPS, math.hypot(u - 0.5, v - ORB_BACK_LIGHT) / reach)
 
     return shaded(at_centres(size, size, level), coverage)
 
@@ -724,13 +735,48 @@ def draw_orb_liquid(width, height):
     return grey(sample_columns(width, height, level))
 
 
-def draw_orb_surface(width, height):
-    def fn(u, v):
-        t = (u - 0.5) * 2
-        across = math.sqrt(max(0.0, 1 - t * t))
-        return across * math.exp(-(((v - 0.5) / 0.3) ** 2))
+def ellipse_spans(cx, cy, rx, ry):
+    def spans(y):
+        t = (y - cy) / ry
+        if abs(t) > 1:
+            return []
+        half = rx * math.sqrt(1 - t * t)
+        return [(cx - half, cx + half)]
 
-    return white(at_centres(width, height, fn))
+    return spans
+
+
+def orb_surface_shape(width, height):
+    """The surface ellipse's coverage and its normalised radius at each pixel centre, lit point and all."""
+    cx, cy, rx, ry = width / 2, height / 2, width / 2 - 1, ORB_SURFACE_RY
+    coverage = sample_spans(width, height, ellipse_spans(cx, cy, rx, ry))
+    lit = cy - ry + 2 * ry * ORB_SURFACE_LIT
+    radius, from_lit, shadow = [], [], []
+    drop, blur, _ = ORB_SURFACE_SHADOW
+    for py in range(height):
+        for px in range(width):
+            x, y = px + 0.5, py + 0.5
+            radius.append(math.hypot((x - cx) / rx, (y - cy) / ry))
+            from_lit.append(math.hypot((x - cx) / rx, (y - lit) / ry))
+            below = math.hypot((x - cx) / rx, (y - cy - drop) / ry)
+            shadow.append(1 - smoothstep(1 - blur / ry / 2, 1 + blur / ry, below))
+    return coverage, radius, from_lit, shadow
+
+
+def draw_orb_surface(width, height):
+    coverage, _, from_lit, _ = orb_surface_shape(width, height)
+    return shaded([ramp(ORB_SURFACE_STOPS, min(1.0, t)) for t in from_lit], coverage)
+
+
+def draw_orb_surface_light(width, height):
+    coverage, radius, from_lit, shadow = orb_surface_shape(width, height)
+    cy, ry = height / 2, ORB_SURFACE_RY
+    band, rim = ORB_SURFACE_RIM
+    tops = [max(0.0, min(1.0, (cy - (py + 0.5)) / ry)) for py in range(height) for _ in range(width)]
+    shade = [s * ORB_SURFACE_SHADOW[2] * (1 - c) for s, c in zip(shadow, coverage)]
+    sheen = [c * ramp(ORB_SURFACE_SHEEN, t) for c, t in zip(coverage, from_lit)]
+    line = [c * rim * smoothstep(band, 1.0, r) * math.sqrt(top) for c, r, top in zip(coverage, radius, tops)]
+    return composite(width, height, [((0, 0, 0, 1), shade), ((255, 255, 255, 1), sheen), ((255, 255, 255, 1), line)])
 
 
 def circle_spans(cx, cy, radius):
@@ -991,16 +1037,18 @@ for art_name, width, height, margin in (
 
 
 ORB_DRAWN = "2026-11-12"
+ORB_REDRAWN = {"OrbBack": "2026-11-13", "OrbSurface": "2026-11-13", "OrbSurfaceLight": "2026-11-13"}
 for orb_name, width, height, draw, about in (
     ("OrbMask", 256, 256, lambda: draw_orb_mask(256), "Round mask for the Orbs HUD style's liquid: opaque white inside the orb's opening."),
-    ("OrbBack", 128, 128, lambda: draw_orb_back(128), "The empty orb: dark glass lit from 38% down, drawn under the liquid."),
+    ("OrbBack", 128, 128, lambda: draw_orb_back(128), "The empty orb: glass lit from 34% down, white at its lit point, so SetVertexColor gives each orb its own dark tint under the liquid."),
     ("OrbGlass", 128, 128, lambda: draw_orb_glass(128), "The orb's glass over the liquid: a rim that darkens towards the ring and four glints."),
     ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
-    ("OrbSurface", 128, 16, lambda: draw_orb_surface(128, 16), "The lit line on the liquid's surface, anchored to the fill's top edge."),
+    ("OrbSurface", *ORB_SURFACE_SIZE, lambda: draw_orb_surface(*ORB_SURFACE_SIZE), "The liquid's curved surface: an ellipse as wide as the orb and 11% as tall, lit from 35% down, centred on the fill's top edge and tinted with the liquid's colour; also the pale cap of the loss band."),
+    ("OrbSurfaceLight", *ORB_SURFACE_SIZE, lambda: draw_orb_surface_light(*ORB_SURFACE_SIZE), "The light over the surface ellipse: a white line along its top edge, a white sheen at its lit point and a soft shadow under it, drawn untinted."),
     ("HudStyleFrames", 256, 128, lambda: draw_hud_style("frames"), "The Frames HUD style's picture for the settings window and the setup: the bars and the player and target frames."),
     ("HudStyleOrbs", 256, 128, lambda: draw_hud_style("orbs"), "The Orbs HUD style's picture for the settings window and the setup: the bars between the two orbs and the target bar on top."),
 ):
-    ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_DRAWN))
+    ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_REDRAWN.get(orb_name, ORB_DRAWN)))
 
 for orb_name, width, height, about in (
     ("OrbRing", 512, 512, "Forged ring around an orb, with its four spikes; its opening is 70.1% of the texture."),

@@ -1,5 +1,6 @@
 -- test-unitframes-orbs-tray.lua: the Orbs style's forged tray: hole, rails, arms and crest placed round action bar 1 from the base art's own measurements, the rings hung on the arms, the tray shown only with the orbs and a live bar 1, and every piece following bar 1 when it moves or scales.
 local U = dofile("Tools/regression/unitframes_env.lua")
+local W = U.W
 
 local function near(a, b, eps)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (eps or 1.5)
@@ -49,6 +50,30 @@ local function Check(label)
 	assert(health:GetRight() > tray.armLeft:GetLeft() and health:GetRight() < tray.armLeft:GetRight() + 8, label .. ": the ring meets its arm")
 end
 Check("default")
+
+-- The level diamond (KSTY-60 item 9): the player's level in a gilt-edged diamond on the crest's spike, between the
+-- two halves of bar 2, at the mock-up's place and size, and it follows a level-up.
+do
+	local _, _, width = K.Layout.Rect("actionbars.bar1")
+	local art = Layouts.OrbsTray(width)
+	local level, crest = tray.level, tray.crest
+	assert(level and level:IsShown() and level:GetParent() == tray, "the level diamond is part of the tray")
+	assert(level:GetFrameLevel() > tray:GetFrameLevel(), "the diamond draws over the crest")
+	local lw, lh = level:GetRight() - level:GetLeft(), level:GetTop() - level:GetBottom()
+	local lx = level:GetLeft() + lw / 2
+	local cx = (crest:GetLeft() + crest:GetRight()) / 2
+	assert(near(lx, cx, 1) and near(lw, lh, 1), "the diamond is square and centred on the crest")
+	assert(near(lw, art.level.right - art.level.left, 1), "the diamond is the mock-up's size")
+	assert(level:GetBottom() < crest:GetTop() and level:GetTop() > crest:GetTop(), "the diamond sits on the crest's spike")
+	assert(#tray.levelLayers == 4 and tray.levelLayers[1]:GetTexture() == K.Tokens.Texture("diamond"), "edge, gilt line, inner edge and fill")
+	local gilt = W.LastCall(tray.levelLayers[2], "SetVertexColor")
+	local r, g, b = K.Tokens.Color("gilt")
+	assert(near(gilt[1], r, 0.01) and near(gilt[2], g, 0.01) and near(gilt[3], b, 0.01), "the second layer is the gilt line")
+	assert(U.Shown(env, tray.levelText) == tostring(env._units.player.level), "the diamond shows the player's level, got " .. tostring(U.Shown(env, tray.levelText)))
+	env._units.player.level = env._units.player.level + 1
+	env.FireEvent("PLAYER_LEVEL_UP", env._units.player.level)
+	assert(U.Shown(env, tray.levelText) == tostring(env._units.player.level), "a level-up updates the diamond")
+end
 assert(K.Layout.Set("actionbars.bar1", "y", K.Layout.Get("actionbars.bar1").y + 40), "bar 1 moves")
 Check("moved")
 assert(K.Layout.Set("actionbars.bar1", "scale", 1.2), "bar 1 scales")
