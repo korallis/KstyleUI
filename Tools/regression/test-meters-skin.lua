@@ -191,7 +191,7 @@ assert(pill, "a KstyleUI status bar is a child of each row's bar")
 local holder = Holder(entry)
 assert(holder:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "the holder sits under Blizzard's bar")
 assert(pill:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "and so does the drawn bar, so Blizzard's name and value draw over the fill")
-assert(not pill.keyline:IsShown() and not pill.lit:IsShown() and not pill.shade:IsShown(), "the bar is flat, as the card's rows")
+assert(not pill.keyline:IsShown() and pill.lit:IsShown(), "no outside keyline, and the lit top edge the card's rows keep (KSTY-60 item 4)")
 assert(pill.backgroundName == "buttonFill", "the pill's track is the button body, as the own meter's rows")
 assert(pill.textureKey == ns.Get("damage.texture"), "the pill takes KstyleUI's bar texture")
 local points = {}
