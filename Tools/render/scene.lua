@@ -371,7 +371,8 @@ local function findOwnAlpha(node)
 		end
 	end
 	local own = node._state.Alpha
-	return own and type(own[1]) == "number" and own[1] or 1
+	local value = own and reveal(node._env, own[1])
+	return type(value) == "number" and value or 1
 end
 
 -- ownAlpha(node) -> findOwnAlpha(node), remembered for the rest of the build.

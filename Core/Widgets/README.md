@@ -413,37 +413,8 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 | `SetBarRange(min, max)` | `SetMinMaxValues(min, max)`. |
 | `SetBarDuration(durationObject) -> ok` | `SetTimerDuration`, for cast bars driven by a duration object. Returns `false` and logs once when the method is missing. |
 | `SetColorToken(name)` | Colours the fill with a token. An `accent` bar follows the class colour on `ThemeChanged`. |
-| `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. It reuses one table per bar, so it allocates nothing on combat paths. |
-| `SetFillColor(r, g, b, a)` | As `SetBarColor`, but recolours the fill alone in one widget call and leaves the spark and sheen as they are: for a combat path that recolours many bars at once, such as every cast bar when the player's interrupt comes back. |
-| `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. A key is looked up in a table built at load, and a path the bar already has changes nothing, so it allocates nothing on combat paths. |
-| `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it, and switching it on stops a looping sheen. |
-| `SetSparkShown(shown)` | |
-
-A flat bar (a `background` and no `border`) reads as a lit, shaded object, so a health bar over a power bar of a similar hue separates by tone while each keeps its colour: `lit`, a white line at 30% one border tall, rides the fill's top, and `shade`, a vertical gradient from clear at the top to black at 28% at the foot, covers the fill (`SetGradient` with `CreateColor`; without them the shade hides). Both follow the fill, so Lua never reads the value. Overlay bars with no track and pill bars draw neither.
-
-The spark is the `glow` texture, additive, 10 units along the bar and 1.8 times the bar's thickness across, centred on the edge of the fill texture (`GetStatusBarTexture()`): right, left for a reversed bar, top or bottom for a vertical one. The engine moves it with the fill.
-
-Fields: `background`, `keyline`, `lit`, `shade`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
-
-## UnitBar
-
-`UnitBar(parent, opts) -> StatusBar` is the one health and power bar: player, target, focus, boss, the small unit frames and the druid's mana bar use it, and the nameplates, party and raid frames, tooltips and orbs are to follow. It is a `StatusBar` from `StatusBar(parent, { background = false, smooth = true })`, so every `StatusBar` method works, with the clean look of the KSTY-44 design bible (section 3.4) and Lee's rule that no ornament sits on or around a bar.
-
-| Part | What it is |
-| --- | --- |
-| `bar.under` | A sibling `StatusBar` one frame level below the fill's bar, at the same rect. It draws the edge (one physical pixel of `black`, then one of `barEdgeSoft`, outside the bar), the `barTrack` track, and its own fill: the pale loss band, a vertical `barLoss` to `barLossLit` gradient. Showing or hiding the bar shows or hides it too. |
-| fill | The bar's own fill, Flat by default; `healthTexture` and the other texture settings still pick another. Over it, colour-free overlays anchored to the fill shade it whatever its colour, a secret one included: a white sheen down the top 42%, a black shade under that, and a one-pixel white highlight on the top edge. A vertical bar keeps only the highlight. |
-| `bar.recent` | A second band, a child of `bar.under` one level above it and one below the fill. It always takes the health just before the last update, so a hit that lands inside the hold after a heal still shows. |
-| `bar.flash` | A white texture over the band's fill. The fill's bar covers the band up to the health, so only the part just lost flashes. |
-| `bar.sparkFrame` | A two-pixel white line with a soft glow at the fill's end, shown while the fill moves. `opts.spark = false` leaves it out. |
-
-| Method | Behaviour |
-| --- | --- |
-| `SetBarRange(low, high)` | Sets the range on the fill and the band. |
-| `SetBarValue(value)` | Eases the fill with `Enum.StatusBarInterpolation.ExponentialEaseOut` and lights the spark. Power uses it. |
-| `SetHealth(value, instant)` | Health. The band takes the previous health with no interpolation and the fill eases to `value`, so a hit shows from the new health to the old, and a heal leaves the band below the fill, hidden. Updates inside the hold leave the first band where it was, so a burst shows from the health before it; the second band (`bar.recent`) takes the health before each update, so a hit just after a heal shows too. The flash and a `lossHold` hold play as one animation group; when it finishes both bands ease down to the newest health. `instant` (a new unit, a first draw), `opts.loss = false` and motion Off set both at once and stop the flash. Nothing reads, compares or computes the values: they pass from `UnitHealth` to `SetValue`, which takes secrets (`SimpleStatusBarAPIDocumentation.lua`, `SetValue`: `SecretArguments = "AllowedWhenTainted"`). |
-| `SetBarColor(r, g, b, a)` | The bar's own colour. With `opts.lowHealth` and a plain colour, it also builds (once per colour) a `C_CurveUtil.CreateColorCurve` step curve: `healthLow` up to 35%, the bar's colour above. A secret colour gets no curve. |
-| `SetHealthUnit(unit)` | Colours the fill from `UnitHealthPercent(unit, true, curve)` on every `SetHealth` and restyle, through `SetStatusBarColor`, which takes secrets. `nil` stops it. The unit frames pass no unit for a hostile, disconnected or tapped unit. |
+| `SetBarColor(r, g, b, a)` | The bar's own colour, plain or secret. |
+| `SetHealthUnit(unit)` | With `opts.lowHealth`, on every `SetHealth` and restyle, sets the alpha of a `healthLow` fill laid on the bar's fill (under the sheen) to `UnitHealthPercent(unit, true, curve)`, a `C_CurveUtil.CreateCurve` step curve that answers 1 below 35% and 0 above. The secret number goes straight to `SetAlpha`, which takes secrets (`SimpleRegionAPIDocumentation.lua`, `SetAlpha`: `SecretArguments = "AllowedWhenTainted"`), so the red does not depend on the bar's colour and nothing reads the percentage. `nil` hides the red. The unit frames pass no unit for a hostile, disconnected or tapped unit. |
 | `SetLoss(on)` | Turns the band on or off. |
 
 Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then `sparkFade` 0.35 s. At motion Reduced the band and its hold stay and the flash and spark do not show; at Off the band is off and the fill snaps. No part has an `OnUpdate`. `Tools/regression/test-widgets-unitbar.lua` drives the band, the flash, the spark and the curve with secret values that raise on any comparison or arithmetic.

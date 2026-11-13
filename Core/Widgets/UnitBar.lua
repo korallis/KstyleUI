@@ -47,39 +47,29 @@ local function Gradient(texture, bottom, top)
 	texture:SetGradient("VERTICAL", bottom, top)
 end
 
-local function Plain(r, g, b)
-	if Widgets.IsSecret(r) or Widgets.IsSecret(g) or Widgets.IsSecret(b) then
-		return false
+local lowCurve, lowTried
+
+local function LowCurve()
+	if lowTried then
+		return lowCurve
 	end
-	return type(r) == "number" and type(g) == "number" and type(b) == "number"
-end
-
-local curves = {}
-
-local function LowCurve(r, g, b)
+	lowTried = true
 	local util = C_CurveUtil
-	if not (util and type(util.CreateColorCurve) == "function" and type(CreateColor) == "function" and UnitHealthPercent) then
-		Widgets.LogOnce("unitbar-curve", "C_CurveUtil.CreateColorCurve or UnitHealthPercent is missing; low health keeps the bar's own colour")
+	if not (util and type(util.CreateCurve) == "function" and UnitHealthPercent) then
+		Widgets.LogOnce("unitbar-curve", "C_CurveUtil.CreateCurve or UnitHealthPercent is missing; low health keeps the bar's own colour")
 		return nil
 	end
-	local key = string.format("%.3f:%.3f:%.3f", r, g, b)
-	local curve = curves[key]
-	if curve then
-		return curve
-	end
-	curve = util.CreateColorCurve()
+	lowCurve = util.CreateCurve()
 	local kinds = Enum and Enum.LuaCurveType
-	if kinds and kinds.Step and curve.SetType then
-		curve:SetType(kinds.Step)
+	if kinds and kinds.Step and lowCurve.SetType then
+		lowCurve:SetType(kinds.Step)
 	end
-	local low, base = NewColor("healthLow"), CreateColor(r, g, b, 1)
-	curve:AddPoint(0, low)
-	curve:AddPoint(LOW_SHARE, low)
-	curve:AddPoint(LOW_SHARE + LOW_STEP, base)
-	curve:AddPoint(1, base)
-	curves[key] = curve
-	Widgets.LogOnce("unitbar-curve-on", "unit bars: low health turns the bar red through a C_CurveUtil step curve over UnitHealthPercent")
-	return curve
+	lowCurve:AddPoint(0, 1)
+	lowCurve:AddPoint(LOW_SHARE, 1)
+	lowCurve:AddPoint(LOW_SHARE + LOW_STEP, 0)
+	lowCurve:AddPoint(1, 0)
+	Widgets.LogOnce("unitbar-curve-on", "unit bars: below 35% health a red fill shows, its alpha a C_CurveUtil step curve over UnitHealthPercent")
+	return lowCurve
 end
 
 local function Restart(group)
@@ -90,12 +80,15 @@ end
 local Bar = {}
 
 function Bar:ColorByHealth()
-	local unit, curve = self.healthUnit, self.curve
-	if not (unit and curve) then
+	local unit, low = self.healthUnit, self.lowFill
+	local curve = unit and low and LowCurve()
+	if not curve then
+		if low then
+			low:SetAlpha(0)
+		end
 		return
 	end
-	local color = UnitHealthPercent(unit, true, curve)
-	self:SetStatusBarColor(color:GetRGBA())
+	low:SetAlpha(UnitHealthPercent(unit, true, curve))
 end
 
 function Bar:SetHealthUnit(unit)
@@ -109,9 +102,6 @@ function Bar:SetBarColor(...)
 	c[1], c[2], c[3], c[4] = ...
 	self.ownColor = true
 	self:SetStatusBarColor(...)
-	local r, g, b = c[1], c[2], c[3]
-	self.curve = self.lowHealth and Plain(r, g, b) and LowCurve(r, g, b) or nil
-	self:ColorByHealth()
 end
 
 function Bar:SetBarValue(value)
@@ -416,6 +406,12 @@ function Widgets.UnitBar(parent, opts)
 	bar.cleanShade = bar:CreateTexture(nil, "ARTWORK", nil, 2)
 	bar.cleanShade:SetColorTexture(Widgets.Rgba("white"))
 	bar.cleanLit = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, 3))
+	if bar.lowHealth then
+		bar.lowFill = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+		bar.lowFill:SetAllPoints(bar:GetStatusBarTexture())
+		bar.lowFill:SetColorTexture(Widgets.Rgba("healthLow"))
+		bar.lowFill:SetAlpha(0)
+	end
 	bar.gradients = {
 		lossBottom = NewColor("barLoss"), lossTop = NewColor("barLossLit"),
 		sheenBottom = NewColor("white", SHEEN_BOTTOM), sheenTop = NewColor("white", SHEEN_TOP),
