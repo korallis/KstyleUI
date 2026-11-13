@@ -809,6 +809,8 @@ end
 
 -- Framing (KSTY-50): a framed card in the Frames HUD style, bare text on a soft shadow in Orbs, and a setting that
 -- overrides either. Bare hides the card's material and the rule, shows a soft dark shade reaching past the text, and
+-- (KSTY-60 item 28) that shade is three overlapping radial falloffs, as the KSTY-44 mock-up's radial gradient, with no
+-- flat interior or straight edge to read as a slab, and it follows the panel's size; and it
 -- keeps the tabs out of sight until the pointer is on the chat. The HUD style is read through K.HudStyle.Current,
 -- and without it the chat is Frames.
 do
@@ -824,7 +826,7 @@ do
 	local function shaded()
 		local shown = 0
 		for _, region in ipairs({ holder:GetRegions() }) do
-			if region:IsShown() and tostring((W.LastCall(region, "SetTexture") or {})[1]):find("Shadow", 1, true) then
+			if region:IsShown() and tostring((W.LastCall(region, "SetTexture") or {})[1]):find("Glow", 1, true) then
 				shown = shown + 1
 			end
 		end
@@ -840,7 +842,26 @@ do
 	K.Options.Write("Chat", "framing", "auto")
 	env.RunTimers()
 	assert(bare(), "in Orbs the card's material and the rule hide")
-	assert(shaded() == 9, "and a soft shade of nine pieces lies behind the text")
+	assert(shaded() == 3, "and a soft shade of three radial falloffs lies behind the text")
+	local function reach()
+		local hw, hh = holder:GetSize()
+		local l, r, b, top = math.huge, -math.huge, math.huge, -math.huge
+		for _, region in ipairs({ holder:GetRegions() }) do
+			if region:IsShown() and tostring((W.LastCall(region, "SetTexture") or {})[1]):find("Glow", 1, true) then
+				local point, relative, relativePoint, x, y = region:GetPoint(1)
+				assert(point == "CENTER" and relative == holder and relativePoint == "TOPLEFT", "each falloff hangs from the panel")
+				local w, h = region:GetSize()
+				l, r, b, top = math.min(l, x - w / 2), math.max(r, x + w / 2), math.min(b, y - h / 2), math.max(top, y + h / 2)
+			end
+		end
+		return -l, r - hw, -b - hh, top, hw, hh
+	end
+	local left, right, below, above, hw, hh = reach()
+	assert(left > 0.2 * hw and right > 0.1 * hw and below > 0.5 * hh and above > 0.5 * hh, "the falloffs reach well past the text on every side, so the shade fades out before its edge")
+	holder:SetSize(hw * 1.5, hh * 1.5)
+	local left2 = reach()
+	assert(left2 > left * 1.4, "the shade follows the panel's size")
+	holder:SetSize(hw, hh)
 	assert(select(3, env.ChatFrame1:GetFont()) == "OUTLINE", "the bare lines stand on the world: an outline")
 	local shadow = W.LastCall(env.ChatFrame1, "SetShadowOffset")
 	assert(shadow and shadow[1] > 0 and shadow[2] < 0, "with the kit's shadow under it")
@@ -864,7 +885,7 @@ do
 	style = "frames"
 	K.Options.Write("Chat", "framing", "bare")
 	env.RunTimers()
-	assert(bare() and shaded() == 9, "and leaves it bare in Frames")
+	assert(bare() and shaded() == 3, "and leaves it bare in Frames")
 	K.Options.Write("Chat", "framing", "auto")
 	env.RunTimers()
 	assert(not bare(), "auto in Frames is the card again")

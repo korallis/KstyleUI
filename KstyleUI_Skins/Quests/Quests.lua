@@ -1,4 +1,4 @@
--- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
+-- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot; in Orbs on top of the guide's card in one column, the guide re-placed whenever the card's height changes), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
 local _, ns = ...
 
 local K = KstyleUI
@@ -88,15 +88,26 @@ local function Preset()
 	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
 end
 
-local function Spec(guide)
+local function Story(guide, style)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
 	local _, rh = Setup.RootSize()
-	local story = Layouts.Story(Preset(), rh, guide) or Layouts.Story(DEFAULT_PRESET, rh, guide)
+	return Layouts.Story(Preset(), rh, guide, style) or Layouts.Story(DEFAULT_PRESET, rh, guide, style)
+end
+
+local function Spec(guide, style)
+	local story = Story(guide, style)
 	return story and story.quests
+end
+
+local function Follow()
+	local story = state.guide and Story(true, K.HudStyle.Current())
+	if story and story.stacked then
+		Rail()
+	end
 end
 
 local function Register(spec)
@@ -106,7 +117,7 @@ end
 local function Place()
 	local holder = state.holder
 	local guide = Guide()
-	local spec = Spec(guide)
+	local spec = Spec(guide, K.HudStyle.Current())
 	if not holder or not spec then
 		Log("the layout has no story slot; the card keeps its last place")
 		return
@@ -114,7 +125,7 @@ local function Place()
 	holder:SetSize(spec.width, spec.height)
 	if state.guide ~= guide then
 		state.guide = guide
-		Register(spec)
+		Register(Spec(guide))
 	end
 	Card.Place(holder, 0, spec.height, spec.width, spec.height)
 end
@@ -236,6 +247,7 @@ local function Build()
 	Place()
 	card:HookScript("OnShow", Rail)
 	card:HookScript("OnHide", Rail)
+	card:HookScript("OnSizeChanged", Follow)
 	if type(tracker.UpdateHeaderPosition) == "function" then
 		hooksecurefunc(tracker, "UpdateHeaderPosition", OnTrackerUpdate)
 	else
@@ -255,6 +267,7 @@ local function Build()
 		Evaluate()
 	end)
 	K.Callbacks.Register("SettingChanged", OWNER, OnSettingChanged)
+	K.Callbacks.Register("HudStyleChanged", OWNER, Replace)
 	K.Widgets.Track({ Restyle = Replace })
 	state.built = true
 end

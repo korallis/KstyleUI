@@ -1455,6 +1455,18 @@ function modules.restedxp(opts)
 	end
 	local R = RestedXP.Build()
 	applyPreset(R.env, opts)
+	-- The quest card renders in its own environment; a clear stand-in of its rect lets a stacked rail hang the guide
+	-- under it, as the game does with both cards in one.
+	local card = opts.questCard
+	if card and R.ns.QuestCard then
+		local root = R.K.Scale.Root()
+		local standin = R.env.CreateFrame("Frame", nil, root)
+		standin:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", card[1], card[2])
+		standin:SetSize(card[3], card[4])
+		standin:SetAlpha(0)
+		R.ns.QuestCard = setmetatable({ Frame = function() return standin end }, { __index = R.ns.QuestCard })
+		R.ns.RestedXP.Rail.Place()
+	end
 	for _, name in ipairs({ "items", "v2", "configurator" }) do
 		for _, frame in ipairs(R.windows[name]) do
 			frame:Hide()

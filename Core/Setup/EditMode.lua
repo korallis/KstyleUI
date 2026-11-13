@@ -134,7 +134,7 @@ local function Box(name, key, rw, rh)
 end
 
 local function StoryBox(name, rw, rh, part)
-	local story = Layouts.Story(name, rh, true)
+	local story = Layouts.Story(name, rh, true, ns.HudStyle and ns.HudStyle.Current())
 	local card = story and story[part or "guide"]
 	if not card then
 		return nil
@@ -474,7 +474,7 @@ local function Places(name, story, notes)
 		local height = (story.tracker.top - story.tracker.bottom) * k
 		trackerSettings[trackerSetting] = Clamp(floor((height - TRACKER_HEIGHT_MIN) / TRACKER_HEIGHT_STEP), 0, TRACKER_HEIGHT_STEPS)
 	end
-	places[#places + 1] = { label = "the objective tracker", system = enum.EditModeSystem.ObjectiveTracker, x = tracker.x * k, y = tracker.y * k, settings = trackerSettings }
+	places[#places + 1] = { label = "the objective tracker", system = enum.EditModeSystem.ObjectiveTracker, stamp = "tracker", x = tracker.x * k, y = tracker.y * k, settings = trackerSettings }
 	local meterSystem = enum.EditModeSystem.DamageMeter
 	local position = Positions(name)["meters.damage"]
 	local w, h = Layouts.Footprint(name, "meters.damage")
@@ -622,7 +622,7 @@ local function Owned(layout, place)
 		return true
 	end
 	local stamps = Stamps()
-	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.index]
+	local stamp = stamps and IsTable(stamps[layout.layoutName]) and stamps[layout.layoutName][place.stamp or place.index]
 	local a = entry.anchorInfo
 	if not (IsTable(stamp) and IsTable(stamp.settings) and IsTable(a) and type(a.offsetX) == "number" and type(a.offsetY) == "number") then
 		return false
@@ -665,7 +665,7 @@ local function Remember(layout, places)
 		for setting, value in pairs(place.settings) do
 			settings[setting] = value
 		end
-		mine[place.index] = { point = a.point, x = a.offsetX, y = a.offsetY, settings = settings }
+		mine[place.stamp or place.index] = { point = a.point, x = a.offsetX, y = a.offsetY, settings = settings }
 	end
 end
 
@@ -791,7 +791,7 @@ function EditMode.Write(name, story)
 			end
 		elseif Place(all[index], place) then
 			placed[#placed + 1] = place.label
-			if place.system == viewer then
+			if place.system == viewer or place.stamp then
 				rows[#rows + 1] = place
 			end
 		end
@@ -885,7 +885,8 @@ function EditMode.Restyle(name, story)
 	end
 	local layout, viewer, moved = all[active], Enum.EditModeSystem.CooldownViewer, {}
 	for _, place in ipairs(Places(name, story, {})) do
-		if place.system == viewer and Mine(layout, place) and Place(layout, place) then
+		local ours = place.system == viewer and Mine(layout, place) or place.stamp ~= nil and Owned(layout, place)
+		if ours and Place(layout, place) then
 			moved[#moved + 1] = place
 		end
 	end
