@@ -461,7 +461,7 @@ local function RestyleWidgets()
 	end
 end
 
-local function ApplyGeometry(el)
+local function ApplyGeometry(el, quiet)
 	local frame, s = el.frame, el.settings
 	local oldWidth, oldHeight = FrameSize(frame)
 	local restyle = false
@@ -482,7 +482,7 @@ local function ApplyGeometry(el)
 		frame:SetSize(w, h)
 	end
 	Place(el, s.anchor, s.x, s.y, w * f, h * f, f, pixel)
-	if restyle or oldWidth ~= w or oldHeight ~= h then
+	if not quiet and (restyle or oldWidth ~= w or oldHeight ~= h) then
 		scaledRoots[frame] = true
 		if not restylePending then
 			restylePending = true
@@ -746,6 +746,23 @@ local function Queue(el)
 	if not el.queued then
 		el.queued = true
 		Combat.Queue(el.flush)
+	end
+end
+
+local function OnElementSize(frame)
+	local el = byFrame[frame]
+	if not el or el.opts.resizable then
+		return
+	end
+	local f, pixel = Factor(frame), Scale.Pixel(1)
+	local w, h = FrameSize(frame)
+	if w <= 0 or h <= 0 or (abs(G.SnapSize(w, f, pixel) - w) * f < pixel / 1000 and abs(G.SnapSize(h, f, pixel) - h) * f < pixel / 1000) then
+		return
+	end
+	if InCombatLockdown() then
+		Queue(el)
+	else
+		ApplyGeometry(el, true)
 	end
 end
 
@@ -1068,6 +1085,7 @@ function Layout.Register(frame, key, defaultPosition, opts)
 	if not showHooked[frame] then
 		showHooked[frame] = true
 		frame:HookScript("OnShow", OnShow)
+		frame:HookScript("OnSizeChanged", OnElementSize)
 		local restyle = frame.Restyle
 		if type(restyle) == "function" then
 			frame.Restyle = function(self, ...)

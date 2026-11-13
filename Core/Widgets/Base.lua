@@ -660,6 +660,105 @@ function Widgets.Border(frame)
 	return Scale.Border() / Widgets.ScaleFactor(frame)
 end
 
+local POINT_SHARES = {
+	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, 0.5 }, CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 },
+	BOTTOMLEFT = { 0, 0 }, BOTTOM = { 0.5, 0 }, BOTTOMRIGHT = { 1, 0 },
+}
+
+local function PixelsOf(region)
+	if Widgets.Restricted(region) then
+		return nil
+	end
+	local w, h = region:GetWidth(), region:GetHeight()
+	if IsSecret(w) or IsSecret(h) or type(w) ~= "number" or type(h) ~= "number" or w ~= w or h ~= h then
+		return nil
+	end
+	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
+	return w / px, h / px
+end
+
+function Widgets.Remainder(region)
+	local w, h = PixelsOf(region)
+	if not w then
+		return 0, 0
+	end
+	return floor(w + 0.5) - w, floor(h + 0.5) - h
+end
+
+local function Waits(region, fn, ...)
+	if type(region.IsProtected) ~= "function" or Widgets.MayMove(region) then
+		return false
+	end
+	local args = { n = select("#", ...), ... }
+	ns.Combat.Queue(function()
+		fn(unpack(args, 1, args.n))
+	end)
+	return true
+end
+
+local function OnPixel(raw, relShare, relPx, ownShare, ownPx)
+	local target = relShare * (relPx or 0) - (ownShare == 0.5 and ownPx and ownPx / 2 or 0)
+	return floor(raw + target + 0.5) - target
+end
+
+function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
+	local relative = relativeTo or region:GetParent()
+	relativePoint = relativePoint or point
+	local own, rel = POINT_SHARES[point], POINT_SHARES[relativePoint]
+	if not (own and rel) then
+		error("KstyleUI.Widgets.Point: unknown anchor point " .. tostring(own and relativePoint or point), 2)
+	end
+	if Waits(region, Widgets.Point, region, point, relativeTo, relativePoint, x, y) then
+		return
+	end
+	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
+	local ownW, ownH
+	local kind = not Widgets.Restricted(region) and region:GetObjectType()
+	if kind and not IsSecret(kind) and kind ~= "FontString" then
+		ownW, ownH = PixelsOf(region)
+	end
+	local relW, relH
+	if type(relative) == "table" and relative.GetWidth then
+		relW, relH = PixelsOf(relative)
+	end
+	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
+	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
+	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
+end
+
+local function Refill(region)
+	if region.kstyleFilling then
+		return
+	end
+	region.kstyleFilling = true
+	local fill = region.kstyleFill
+	Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
+	region.kstyleFilling = false
+end
+
+function Widgets.Fill(region, relativeTo, left, top, right, bottom)
+	local relative = relativeTo or region:GetParent()
+	region.kstyleFill = { relativeTo, left, top, right, bottom }
+	if Waits(region, Widgets.Fill, region, relativeTo, left, top, right, bottom) then
+		return
+	end
+	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
+	local w, h = PixelsOf(relative)
+	local l, t = floor((left or 0) / px + 0.5), floor((top or 0) / px + 0.5)
+	local r, b = (right or 0) / px, (bottom or 0) / px
+	local dx, dy = -floor(r + 0.5), floor(b + 0.5)
+	if w then
+		dx, dy = floor(w - r + 0.5) - w, h - floor(h - b + 0.5)
+	end
+	region:ClearAllPoints()
+	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
+	region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
+	if not region.kstyleSettles and type(region.HookScript) == "function" then
+		region.kstyleSettles = region:HookScript("OnSizeChanged", Refill) ~= false
+	end
+end
+
+
 function Widgets.Size(frame, width, height)
 	local f = Widgets.ScaleFactor(frame)
 	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
@@ -814,17 +913,18 @@ local function SizeCorner(corner, size)
 	corner:SetSize(size, size)
 end
 
-local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop, outsetX)
+local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop, outsetX, farX, farY)
 	drop = drop or 0
 	outsetX = outsetX or outset
+	farX, farY = farX or 0, farY or 0
 	SizeCorner(tl, size)
 	SizeCorner(tr, size)
 	SizeCorner(bl, size)
 	SizeCorner(br, size)
 	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outsetX, outset - drop)
-	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outsetX, outset - drop)
-	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outsetX, -outset - drop)
-	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outsetX, -outset - drop)
+	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outsetX + farX, outset - drop)
+	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outsetX, -outset - drop - farY)
+	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outsetX + farX, -outset - drop - farY)
 end
 
 function Widgets.NineSlice(owner, name, layer, sublevel)
@@ -837,7 +937,10 @@ end
 function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame, outsetX)
 	local f = Widgets.ScaleFactor(scaleFrame or owner)
 	local across = outsetX and SnapIn(outsetX, f)
-	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f), across)
+	local farX, farY = Widgets.Remainder(owner)
+	local px = Scale.Pixel(1) / f
+	slice.remainder = farX .. ":" .. farY
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f), across, farX * px, farY * px)
 	AnchorRuns(slice, slice.runs and Scale.Border() / f or nil)
 end
 
@@ -876,6 +979,15 @@ function Widgets.LayoutPill(pill, height)
 	local cap = Widgets.Snap(pill[1], height / 2)
 	pill[1]:SetWidth(cap)
 	pill[3]:SetWidth(cap)
+	local box = pill[1]:GetParent()
+	local farX, farY = Widgets.Remainder(box)
+	local px = Scale.Pixel(1) / Widgets.ScaleFactor(box)
+	pill[1]:ClearAllPoints()
+	pill[1]:SetPoint("TOPLEFT", box, "TOPLEFT")
+	pill[1]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 0, -farY * px)
+	pill[3]:ClearAllPoints()
+	pill[3]:SetPoint("TOPRIGHT", box, "TOPRIGHT", farX * px, 0)
+	pill[3]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", farX * px, -farY * px)
 end
 
 local Chrome = {}
@@ -1028,9 +1140,13 @@ function Chrome:OnSizeChanged()
 	if self.ornament and not Widgets.MayMove(self.owner) then
 		self.ornament:Yield()
 	end
+	local farX, farY = Widgets.Remainder(self.owner)
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
 	else
+		if self.fill.remainder ~= farX .. ":" .. farY then
+			self:Layout()
+		end
 		self:PaintMaterial()
 		self:RestyleOrnament()
 	end
@@ -1072,8 +1188,10 @@ function Chrome:LayoutTicks(corner, line, f)
 	SliceCoords(arcBR, 9, share)
 	arcTL:SetSize(corner, corner)
 	arcBR:SetSize(corner, corner)
+	local farX, farY = Widgets.Remainder(owner)
+	local px = Scale.Pixel(1) / f
 	arcTL:SetPoint("TOPLEFT", owner, "TOPLEFT", line, -line)
-	arcBR:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -line, line)
+	arcBR:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -line + farX * px, line - farY * px)
 	topLeg:SetSize(leg, line)
 	topLeg:SetPoint("TOPLEFT", arcTL, "TOPRIGHT")
 	leftLeg:SetSize(line, leg)

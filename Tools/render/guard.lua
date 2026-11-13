@@ -38,6 +38,9 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local Guard = {}
 
 Guard.SLACK = 1
+-- KstyleUI lands every edge on a whole physical pixel, so an edge may sit up to a pixel from where its units put it;
+-- Check widens SLACK by one pixel of the scene's screen.
+local slack = Guard.SLACK
 Guard.OVERLAP = 2
 Guard.COVER_ALPHA = 0.5
 Guard.ppu = tonumber(os.getenv and os.getenv("RENDER_PPU") or nil) or 1.426
@@ -297,11 +300,11 @@ end
 -- around it is still a spill.
 function Guard.Excused(cards, card, rect)
 	local r = bounds(rect)
-	if Geometry.Outside(r, bounds(card.glass)) <= Guard.SLACK then
+	if Geometry.Outside(r, bounds(card.glass)) <= slack then
 		return true
 	end
 	for _, other in ipairs(cards) do
-		if other ~= card and not (other.scope and within(card.frame, other.scope)) and Geometry.Outside(r, bounds(other.glass)) <= Guard.SLACK then
+		if other ~= card and not (other.scope and within(card.frame, other.scope)) and Geometry.Outside(r, bounds(other.glass)) <= slack then
 			return true
 		end
 	end
@@ -430,6 +433,8 @@ end
 -- Check(scene) -> every finding in the scene, sorted by key. The scene must still carry its stub objects (call it
 -- before the scene is written as JSON, or on a scene a test built).
 function Guard.Check(scene)
+	local physical = scene.screen and scene.screen.physical
+	slack = Guard.SLACK + (physical and physical.height and physical.height > 0 and 1080 / physical.height or 0)
 	local findings, seen = {}, {}
 	local function add(kind, item, card, detail, subject)
 		subject = subject or subjectOf(item)
@@ -446,7 +451,7 @@ function Guard.Check(scene)
 		local outer = Guard.Holder(cards, inner)
 		if outer then
 			local past = Geometry.Outside(bounds(inner.glass), bounds(outer.glass))
-			if past > Guard.SLACK then
+			if past > slack then
 				local subject = keyPath(inner.frame) .. " glass"
 				local key = "outside|" .. subject
 				if not seen[key] then
@@ -468,7 +473,7 @@ function Guard.Check(scene)
 				local card = Guard.Owner(cards, item, rect)
 				if card and not Guard.Excused(cards, card, rect) then
 					local past = Geometry.Outside(bounds(rect), bounds(card.glass))
-					if past > Guard.SLACK then
+					if past > slack then
 						add("outside", item, card, string.format("%.1f units past its card's glass", past))
 					end
 				end
@@ -477,7 +482,7 @@ function Guard.Check(scene)
 					if item.clip and not item.scroll then
 						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
 						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
-						if cut > Guard.SLACK then
+						if cut > slack then
 							add("clipped", item, card, string.format("%.1f units past the frame that clips it", cut))
 						end
 					end

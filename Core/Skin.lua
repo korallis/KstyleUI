@@ -198,7 +198,7 @@ end
 
 local function Overlay(frame)
 	local overlay = CreateFrame("Frame", nil, frame)
-	overlay:SetAllPoints(frame)
+	W().Fill(overlay, frame, 0, 0, 0, 0)
 	overlay:SetFrameLevel(frame:GetFrameLevel() + LEVEL_ABOVE)
 	return overlay
 end
@@ -249,9 +249,7 @@ end
 local function PlaceBackdrop(panel)
 	local frame = panel.target or panel:GetParent()
 	local left, right, top, bottom = Insets(panel, panel.inset)
-	panel:ClearAllPoints()
-	panel:SetPoint("TOPLEFT", frame, "TOPLEFT", left, -top)
-	panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -right, bottom)
+	W().Fill(panel, frame, left, top, right, bottom)
 end
 
 local function Backdrop(frame, opts)

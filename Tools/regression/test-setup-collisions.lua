@@ -356,8 +356,9 @@ do
 	assert(item, "the interface size has a real schema row")
 	ons.Rows.Update(row, item, nil, list)
 	local slider = row.controls.slider
-	assert(slider.max == OK.Scale.MaxUserScale(), "the slider never offers a size above the actual fit maximum")
-	assert(slider:GetValue() == OK.Scale.AppliedUserScale(), "a capped request displays its actual size")
+	local step = OK.Scale.Step()
+	assert(slider.max <= OK.Scale.MaxUserScale() + 1e-9 and slider.max > OK.Scale.MaxUserScale() - step, "the slider never offers a size above the actual fit maximum: its top stop is the largest pixel-perfect step within it")
+	assert(math.abs(slider:GetValue() - math.min(OK.Scale.AppliedUserScale(), slider.max)) < 1e-9, "a capped request displays its actual size")
 	assert(OK.Options.Read("Appearance", "uiScale") == 1.5, "filling the slider never writes the clamped display value")
 	assert(OK.Options.Row("Appearance", "uiScale").max == 1.5, "the schema keeps the portable profile storage range")
 	assert(#oenv._errors == 0, tostring(oenv._errors[1]))

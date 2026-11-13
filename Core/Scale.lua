@@ -1,30 +1,34 @@
--- Scale.lua: the KstyleUI_Root canvas (the whole screen, or a centred band on a screen wider than the HUD width setting allows) and the whole-physical-pixel maths.
+-- Scale.lua: the KstyleUI_Root canvas (the whole screen, or a centred band on a screen wider than the HUD width setting allows), the automatic pixel-perfect size and the whole-physical-pixel maths.
 local _, ns = ...
 
 local Scale = {}
 ns.Scale = Scale
 
-local floor, max, min = math.floor, math.max, math.min
+local abs, ceil, floor, max, min = math.abs, math.ceil, math.floor, math.max, math.min
 
 local REFERENCE_HEIGHT = 1080
 local UI_HEIGHT = 768
 local REFERENCE_SCALE = UI_HEIGHT / REFERENCE_HEIGHT
 local MIN_USER_SCALE, MAX_USER_SCALE = 0.6, 1.5
 local DEFAULT_USER_SCALE = 16 / 19
+local STEPS_PER_PIXEL = 16
+local WHOLE_BAND = 0.125
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
 Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
+Scale.STEPS_PER_PIXEL, Scale.WHOLE_BAND = STEPS_PER_PIXEL, WHOLE_BAND
 Scale.CANVAS, Scale.DEFAULT_CANVAS = CANVAS, DEFAULT_CANVAS
 
 local state = {
 	user = DEFAULT_USER_SCALE,
+	auto = true,
 	maximum = MAX_USER_SCALE,
 	effectiveUser = DEFAULT_USER_SCALE,
+	height = REFERENCE_HEIGHT,
 	pixel = 1,
 	canvas = 0,
 	origin = 0,
-	borderPixels = 1,
 	applied = {},
 	waiting = false,
 }
@@ -107,12 +111,38 @@ local function Limit(width, height)
 	return layouts.ScaleLimit(width, height, preset, enabled), enabled
 end
 
+local function Step(height)
+	return REFERENCE_HEIGHT / (STEPS_PER_PIXEL * height)
+end
+
+local function Within(k, height, maximum)
+	local step = Step(height)
+	return max(ceil(MIN_USER_SCALE / step - 1e-9), min(k, floor(maximum / step + 1e-9)))
+end
+
+local function Nearest(size, height, maximum)
+	local step = Step(height)
+	return Within(floor(size / step + 0.5), height, maximum) * step
+end
+
+local function Auto(height, maximum)
+	local today = height * DEFAULT_USER_SCALE / REFERENCE_HEIGHT
+	local whole = max(1, floor(today + 0.5))
+	local size = whole * REFERENCE_HEIGHT / height
+	if abs(whole - today) <= WHOLE_BAND * today and size >= MIN_USER_SCALE - 1e-9 and size <= maximum + 1e-9 then
+		return size
+	end
+	return Nearest(DEFAULT_USER_SCALE, height, maximum)
+end
+
+Scale.Nearest, Scale.Auto = Nearest, Auto
+
 local function Apply()
 	local screen, height = PhysicalSize()
 	local width = CanvasWidth(screen, height)
-	local parent, user = ParentScale(), state.user
+	local parent, user, auto = ParentScale(), state.user, state.auto
 	local maximum, enabled = Limit(width, height)
-	local effectiveUser = min(user, maximum)
+	local effectiveUser = auto and Scale.Auto(height, maximum) or Scale.Nearest(user, height, maximum)
 	local added = false
 	if state.enabled and enabled then
 		for _, element in ipairs(ns.Setup.Layouts.ELEMENTS) do
@@ -124,19 +154,19 @@ local function Apply()
 	end
 	state.enabled = enabled
 	local last = state.applied
-	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen then
+	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto then
 		return
 	end
 	local previous = state.effectiveUser
 	root:SetScale(REFERENCE_SCALE / parent * effectiveUser)
 	state.maximum, state.effectiveUser = maximum, effectiveUser
-	last[1], last[2], last[3], last[4], last[5], last[6] = height, parent, user, width, maximum, screen
+	last[1], last[2], last[3], last[4], last[5], last[6], last[7] = height, parent, user, width, maximum, screen, auto
+	state.height = height
 	local effective = root:GetEffectiveScale()
 	if not IsPositive(effective) then
 		effective = REFERENCE_SCALE * effectiveUser
 	end
 	state.pixel = UI_HEIGHT / (height * effective)
-	state.borderPixels = max(1, floor(1 / state.pixel + 0.5))
 	state.canvas = width
 	state.origin = (screen - width) / 2 * state.pixel
 	root:ClearAllPoints()
@@ -148,7 +178,7 @@ local function Apply()
 		root:SetAllPoints(UIParent)
 	end
 	Fire("ScaleChanged")
-	if added and user > maximum and effectiveUser < previous - 1e-9 then
+	if added and not auto and user > maximum and effectiveUser < previous - 1e-9 then
 		ns.Print(string.format(ns.L["HUD resized to %.1f%% to keep enabled elements on screen and apart."], effectiveUser * 100))
 	end
 end
@@ -183,18 +213,24 @@ local function Recheck()
 	Request("a late display change")
 end
 
+local UI_SCALE_CVARS = { uiscale = true, useuiscale = true }
+
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("UI_SCALE_CHANGED")
 events:RegisterEvent("DISPLAY_SIZE_CHANGED")
-events:SetScript("OnEvent", function(_, event)
+events:RegisterEvent("CVAR_UPDATE")
+events:SetScript("OnEvent", function(_, event, name)
 	if event == "PLAYER_LOGIN" then
 		Apply()
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		ApplyWaiting()
-	else
+	elseif event ~= "CVAR_UPDATE" or type(name) == "string" and UI_SCALE_CVARS[name:lower()] then
 		Request(event)
 		C_Timer.After(0, Recheck)
 	end
+end)
+root:SetScript("OnSizeChanged", function()
+	Request("the window size")
 end)
 
 function Scale.Root()
@@ -210,7 +246,7 @@ function Scale.Pixel(n)
 end
 
 function Scale.Border()
-	return state.borderPixels * state.pixel
+	return state.pixel
 end
 
 function Scale.Snap(units)
@@ -227,6 +263,25 @@ end
 
 function Scale.MaxUserScale()
 	return state.maximum
+end
+
+function Scale.IsAuto()
+	return state.auto
+end
+
+function Scale.SetAuto(on)
+	if type(on) ~= "boolean" then
+		return false
+	end
+	if on ~= state.auto then
+		state.auto = on
+		Request("the automatic size")
+	end
+	return true
+end
+
+function Scale.Step()
+	return Step(state.height)
 end
 
 function Scale.SetUserScale(size)
@@ -255,6 +310,7 @@ ns.Callbacks.Register("ModuleChanged", "Scale", function()
 end)
 ns.Callbacks.Register("ProfileChanged", "Scale", function()
 	if ns.Appearance then
+		Scale.SetAuto(ns.Appearance.Get("uiScaleAuto"))
 		Scale.SetUserScale(ns.Appearance.Get("uiScale"))
 	end
 	Request("the profile")

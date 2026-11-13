@@ -46,8 +46,10 @@ local function Inside(inner, outer, what)
 	assert(inner.bottom >= outer.bottom - EPS and inner.top <= outer.top + EPS, what .. ": bottom " .. inner.bottom .. " top " .. inner.top .. " in " .. outer.bottom .. ".." .. outer.top)
 end
 
+-- The skin's own edges land on whole pixels (Widgets.Fill), so they may sit up to one pixel from a Blizzard edge that
+-- does not, which is under one unit on these screens.
 local function Same(a, b, what)
-	assert(math.abs(a - b) <= EPS, what .. ": " .. a .. " vs " .. b)
+	assert(math.abs(a - b) <= 1, what .. ": " .. a .. " vs " .. b)
 end
 
 -- Capped(title, glass, root): the title is the quest card's cap (KSTY-44 plan row 15): left-justified, its text one
@@ -115,7 +117,7 @@ do
 	assert(seam == nil or not seam:IsShown(), "no hairline runs along the top of a bottom tab strip")
 	local stripRect = Rect(strip, root)
 	local under = stripRect.bottom - glass.bottom
-	assert(math.abs(under - K.Tokens.Size("gapLarge")) < 0.5, "the glass ends a large gap under the strip, to the pixel: " .. under)
+	assert(math.abs(under - K.Tokens.Size("gapLarge")) <= K.Scale.Pixel(1) + 1e-6, "the glass ends a large gap under the strip, to the pixel: " .. under)
 	assert(stripRect.top <= window.bottom + EPS, "the strip hangs from the window's own bottom edge, where Blizzard put the tabs")
 	-- The open letter beside the inbox has no tabs; its glass is its frame.
 	local letter = env.OpenMailFrame

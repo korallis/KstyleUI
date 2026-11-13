@@ -169,14 +169,14 @@ assert(list.capacity == 0 or RowsBottom(list) <= list.panel:GetHeight() - list.p
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, "fitting raises no errors")
 
--- On a high-density screen a border is several pixels: a row never falls below its minimum and the card still
--- fills its holder.
+-- On a high-density screen a unit is several pixels while the border stays one: a row never falls below its minimum
+-- and the card still fills its holder.
 do
 	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234, game = function(e) e._group = { raid = false, size = 2 } end })
 	hiEnv._session = Session(30)
 	M.Enable(hiEnv, hiK)
 	local hi = hiNs.Damage.list
-	assert(hiK.Scale.Border() > hiK.Scale.Pixel(1) * 1.5, "this screen draws a border several pixels wide")
+	assert(hiK.Scale.Pixel(1) < 0.75 and math.abs(hiK.Scale.Border() - hiK.Scale.Pixel(1)) < 1e-9, "this screen draws more than a pixel per unit and a one-pixel border")
 	for _, height in ipairs({ 385, 300, 211, 130 }) do
 		hi.holder:SetHeight(height)
 		Show(hiEnv, 30)

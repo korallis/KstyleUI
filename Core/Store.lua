@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 26
+Store.DB_VERSION = 27
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -629,6 +629,18 @@ Store.migrations[26] = function(data)
 					end
 				end
 			end
+		end
+	end
+end
+
+local OLD_DEFAULT_SIZE = 16 / 19
+
+Store.migrations[27] = function(data)
+	for _, profile in pairs(type(data.profiles) == "table" and data.profiles or {}) do
+		local appearance = type(profile) == "table" and profile.Appearance
+		local size = type(appearance) == "table" and appearance.uiScale
+		if type(size) == "number" and appearance.uiScaleAuto == nil and math.abs(size - OLD_DEFAULT_SIZE) >= 1e-6 then
+			appearance.uiScaleAuto = false
 		end
 	end
 end

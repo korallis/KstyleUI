@@ -77,8 +77,10 @@ local function audit(w, material, scene)
 					for _, item in ipairs(card.drawn.materialFrame) do
 						got = { math.min(got[1], item.rect[1]), math.min(got[2], item.rect[2]), math.max(got[3], item.rect[1] + item.rect[3]), math.max(got[4], item.rect[2] + item.rect[4]) }
 					end
+					-- The chrome grows its far corners to the next whole pixel (Widgets.Remainder), so the frame may end
+					-- up to one physical pixel past an owner whose own size is fractional.
 					for i = 1, 4 do
-						assert(math.abs(got[i] - span[i]) < 0.01, o.name .. " " .. material .. " forged frame is off the owner's resolved rect")
+						assert(math.abs(got[i] - span[i]) <= 1080 / physicalHeight + 0.01, o.name .. " " .. material .. " forged frame is off the owner's resolved rect")
 					end
 				end
 				local grain = card.drawn.grain and card.drawn.grain[1]
