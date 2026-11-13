@@ -398,6 +398,15 @@ It anchors to `UIParent` (offset by the HUD canvas, `Scale.Origin`), never to a 
 
 Tests: `Tools/regression/test-skins-restedxp-theme.lua`, `test-skins-restedxp-windows.lua`, `test-skins-restedxp-leases.lua` and `test-skins-restedxp-rail.lua`, through `Tools/regression/restedxp_fake.lua`, a stand-in RestedXP written from those names and anchored as RestedXP's `GuideWindow.lua` anchors its frames. The fake runs `OnShow` and `OnHide` as the game does, only when a frame's visibility changes, and models AceGUI's pool for the Labels, Headings, frames and edit boxes RestedXP takes from it.
 
+## Pixel-grid exceptions
+
+Every piece a skin draws lands on whole pixels through the kit's helpers (\`Widgets.Snap\`, \`Widgets.Point\`, \`Widgets.Border\`) where its anchor allows it. These pieces ride frames whose position Blizzard or another addon sets off the grid, so they follow those frames, and their counts are allowed in \`Tools/regression/pixel_allow.tsv\` (the Captain accepted the KSTY-65 rises on #351):
+
+- **Legacy reward cards** (\`PartC/Legacy.lua\`, and the rims \`Parts.Rim\` draws for them): each card's slot rim and level diamond follow Blizzard's reward card. The cards hang under a bar anchored to a font string's bottom and slide sideways on Blizzard's own per-frame update (\`RewardTrackFrameMixin:OnUpdate\`, \`Blizzard_FrameXML/RewardTrackTemplates.lua\` 120). Snapping them would mean redoing the anchor every frame, which the smoothness rule forbids.
+- **RestedXP headings** (\`Addons/RestedXP/Chrome.lua\` and \`Parts.Heading\`): a heading's caption stands on a lane over RestedXP's own title row, so the title stays where RestedXP lays out its window; the row sits where RestedXP's frame puts it, and measuring the row to snap it is not allowed (no measuring of positions another addon owns). The diamond and the rule are placed with \`Widgets.Point\` relative to the caption.
+- **Trainer rank** (\`PartB/Kit.lua\`, \`rankOutside\`): the rank's font string stands beside Blizzard's skill bar, centred on its middle; a font string's own height is fractional, so its centre can fall between pixels.
+- **World Map title** (\`Parts.TitleCap\`): the title moves to the heading's indent from Blizzard's title container, which starts 58 units in (\`SharedUIPanelTemplates.xml\` 600).
+
 ## Why
 
 - **One module, one switch per window.** Players turn the module on once and then pick windows. Each window's switch lives in the module's own settings section, so a profile string carries every choice, and the registry adds the switches so a skin file cannot forget its own.

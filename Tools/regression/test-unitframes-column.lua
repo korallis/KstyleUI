@@ -26,8 +26,8 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(Settings.Form(kind) == "column" and Settings.Snapshot(kind).form == "column", kind .. " takes the column form")
 	assert(Settings.Value(kind, "healthColor") == "hud", kind .. " takes the picture's colours")
 end
-assert(Settings.Value("player", "healthOrientation") == "RIGHT" and Settings.Value("target", "healthOrientation") == "LEFT", "the target's health fills from the right, reversed")
-assert(Settings.Value("target", "powerOrientation") == "LEFT", "and so does its power")
+assert(Settings.Value("player", "healthOrientation") == "RIGHT" and Settings.Value("target", "healthOrientation") == "RIGHT", "the target's health fills from the left, as both KSTY-44 mock-ups draw it (KSTY-60 item 3)")
+assert(Settings.Value("target", "powerOrientation") == "RIGHT", "and so does its power")
 assert(Settings.Value("target", "auraPosition") == "SIDE" and Settings.Value("target", "auraSize") == 27.6, "your debuffs are 27.6 units, right of the portrait")
 for _, kind in ipairs({ "focus", "boss", "targettarget", "focustarget", "pet" }) do
 	assert(Settings.Value(kind, "style") == "lumen", kind .. " keeps its Lumen form")
@@ -62,8 +62,8 @@ local tg = Geometry.Frame(Settings.Snapshot("target"), TARGET.width, TARGET.heig
 assert(tg.mirror and tg.form == "column", "the target mirrors the player")
 assert(near(tg.health.w, 491) and tg.power == nil, "the target's health is 491 wide and, as the KSTY-44 mock-up draws it, it has no power line by default")
 assert(near(tg.portrait.x, 512.5) and near(tg.portrait.y, 0) and near(tg.portrait.w, 70), "a 70-unit portrait at the right, keeping the 91.5-unit reserve")
-assert(near(tg.health.y, 46) and near(tg.health.h, 19), "health is the mock-up's 17 of 439 across 491; the cast element stays")
-assert(tg.cast and near(tg.cast.x, 0) and near(tg.cast.w, 491) and near(tg.cast.y, 76) and near(tg.cast.y + tg.cast.h, 102.5), "the cast bar and its label run the full 491 under the health bar")
+assert(near(tg.health.y, 41) and near(tg.health.h, 19), "health is the mock-up's 17 of 439 across 491, raised 5 for the taller cast bar")
+assert(tg.cast and near(tg.cast.x, 0) and near(tg.cast.w, 491) and near(tg.cast.y, 69) and near(tg.cast.y + tg.cast.h, 102.5), "the cast bar and its label run the full 491 under the health bar")
 assert(tg.healthText and near(tg.healthText.x, 0), "the percentage is at the left")
 assert(tg.name and near(tg.name.x + tg.name.w, 491), "the name ends at the bars' right edge")
 assert(tg.caption, "the creature type sits by the name")
@@ -116,7 +116,7 @@ local target = Frames.Get("target").views[1]
 local tr, tgc, tb = Tokens.Color("hudTargetHealth")
 local tc = target.health.colorRGBA
 assert(near(tc[1], tr) and near(tc[2], tgc) and near(tc[3], tb), "a hostile target's health is the picture's red")
-assert(target.health:GetReverseFill() == true and target.power:GetReverseFill() == true, "health and power are reversed")
+assert(target.health:GetReverseFill() ~= true and target.power:GetReverseFill() ~= true, "health and power fill from the left, as the mock-ups draw them")
 assert(U.Shown(env, target.healthText) == "50%", "the percentage reads 50%: " .. U.Shown(env, target.healthText))
 local percent = W.LastCall(target.healthText, "SetFormattedText")
 assert(percent and percent[1] == "%.0f%%" and env.issecretvalue(percent[2]), "the percentage reaches SetFormattedText as a secret from UnitHealthPercent")

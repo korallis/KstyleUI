@@ -230,7 +230,7 @@ end
 
 -- No class-blue line, no pill: the bar is the whole row and nothing else rides under it.
 assert(list.rows[1].edge == nil and list.rows[1].glow == nil, "no thin line under a row")
-assert(M.Calls(list.rows[1].bar.keyline, "Hide") > 0 and M.Calls(list.rows[1].bar.lit, "Hide") > 0 and M.Calls(list.rows[1].bar.shade, "Hide") > 0, "the bar is flat: its keyline, highlight and shade are off")
+assert(M.Calls(list.rows[1].bar.keyline, "Hide") > 0 and list.rows[1].bar.lit:IsShown(), "no outside keyline; the fill keeps the mock-up's lit top edge (KSTY-60 item 4)")
 
 -- Clicking a row does nothing: the spell list is the rest state, and there is nothing behind it to go back to.
 local before = env._lastSource

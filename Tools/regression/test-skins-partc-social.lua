@@ -190,8 +190,8 @@ do
 	assert(K.Skin.IsSkinned(env.FriendsFrameAddFriendButton, "Button") and K.Skin.IsSkinned(env.FriendsFrameSendMessageButton, "Button"))
 
 	local friend = p.friend
-	assert(Alpha(friend.background) == 1 and Alpha(friend.status) == 1 and Alpha(friend.gameIcon) == 1, "a friend row keeps its tint, status and game icons")
-	assert(FontPath(friend.name) == Style.Font("body") and FontPath(friend.info) == Style.Font("body"))
+	assert(Alpha(friend.background) == 0 and Alpha(friend.status) == 1 and Alpha(friend.gameIcon) == 1, "a friend row drops Blizzard's tint and keeps its status and game icons")
+	assert(FontPath(friend.name) == Style.Font("body") and FontPath(friend.info) == Style.Font("caption"), "the name in the body face, the info line under it as the caption")
 	local highlight = friend:GetHighlightTexture()
 	assert(W.SameRGB(highlight, Style.Accent()), "the friend row highlight is an accent wash")
 	assert(Alpha(p.dividerArt) == 0, "the online divider art goes for an accent line")

@@ -162,7 +162,7 @@ Settings.defaults = {
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
-		healthOrientation = "LEFT", powerOrientation = "LEFT", power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
+		power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
@@ -199,9 +199,9 @@ local function Options(list)
 end
 
 Settings.CHOICES = {
-	style = Options({ { "column", L["Column"] }, { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
-	styleLumen = Options({ { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
-	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
+	style = Options({ { "column", L["Column"] }, { "lumen", L["Vitals line"] }, { "plate", L["Plate"] } }),
+	styleLumen = Options({ { "lumen", L["Standard"] }, { "plate", L["Plate"] } }),
+	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Sigil"] }, { "plate", L["Plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
@@ -726,12 +726,10 @@ ResourceRows = function(schema)
 end
 
 local STYLE_HELP = {
-	column = L["Column: full-width bars, portrait outside. Lumen: the older style. Classic: the glass plate."],
-	target = L["Column: bars by a portrait. Wide bar: one bar, no portrait. Lumen, Classic: older styles."],
-	vitals = L["Lumen: one line with a gilt portrait ring. Classic: the glass plate."],
-	sigil = L["Lumen: a centred sigil with gems and your debuffs. Classic: the glass plate."],
-	card = L["Lumen: a glass card with a section cap. Classic: the glass plate."],
-	row = L["Lumen: a name over a thin pill. Classic: a small glass tile."],
+	column = L["Column: full-width bars, portrait outside. Vitals line: one line, gilt ring. Plate: a panel."],
+	target = L["Column: bars by a portrait. Wide bar: no portrait. Sigil: centred, with debuffs. Plate: a panel."],
+	card = L["Standard: clean bars under a section cap. Plate: a panel."],
+	row = L["Standard: a name over a thin bar. Plate: a small tile."],
 }
 
 local function KindRows(schema, kind)

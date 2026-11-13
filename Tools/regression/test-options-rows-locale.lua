@@ -17,9 +17,9 @@ local RAIL_MODULE = "Cooldowns"
 local RAIL_LABEL = "Abklingzeiten, Zauberbereitschaft und sonstige Anzeigen der verbleibenden Wartezeit auf jede Fähigkeit"
 
 local env, K, ns = O.New({
-	before = function(_, K)
+	before = function(e, K)
 		K.Modules.Register(Module("Nameplates", { defaults = { shrink = true, dispel = "mine", size = 20, big = true, huge = true, heal = 3 } }))
-		K.Options.Register("Nameplates", {
+		local schema = {
 			{ type = "header", label = "Namensplaketten" },
 			{ type = "toggle", key = "shrink", label = LONG, help = "Zeigt KstyleUI-Namensplaketten." },
 			{ type = "toggle", key = "big", label = LONGER, help = "Les barres lointaines sont plus petites." },
@@ -30,7 +30,14 @@ local env, K, ns = O.New({
 			{ type = "toggle", key = "huge", label = HUGE, help = "Ein sehr langer Text." },
 			{ type = "header", label = LONGER_SECTION },
 			{ type = "slider", key = "heal", label = "Heilung", help = "Eintreffende Heilung.", min = 0, max = 10, step = 1 },
-		})
+		}
+		-- A preview, as the real module has, so the pane keeps its column (a page without one gives the rows its width).
+		schema.preview = function(parent)
+			local frame = e.CreateFrame("Frame", nil, parent)
+			frame:SetSize(100, 60)
+			return frame
+		end
+		K.Options.Register("Nameplates", schema)
 		rawset(K.L, "Cooldowns", RAIL_LABEL)
 		K.Modules.Register(Module(RAIL_MODULE, { defaults = { on = true } }))
 		K.Options.Register(RAIL_MODULE, {

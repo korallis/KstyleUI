@@ -154,9 +154,6 @@ local function Glass(frame, opts)
 		inset.top = -Tokens.Size(opts.rise)
 	end
 	local ornament = opts.ornament
-	if ornament == nil then
-		ornament = "crest"
-	end
 	local inside
 	if opts.inside then
 		inside = {}
@@ -493,7 +490,7 @@ local function HangsLeft(title)
 	return x
 end
 
-local function CaptionFor(text, title, sized)
+local function CaptionFor(text, title, sized, heading)
 	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or type(text.GetParent) ~= "function" or captions[text] then
 		return
 	end
@@ -513,6 +510,9 @@ local function CaptionFor(text, title, sized)
 		caption:SetPoint("CENTER", text, "CENTER", 0, 0)
 	end
 	caption:SetWordWrap(false)
+	if heading and heading.panel then
+		Parts.Heading(heading.panel, caption, { row = text, close = heading.close })
+	end
 	captions[text] = entry
 	HushText(text)
 	Worded(text, K.Locale.Upper)
@@ -535,10 +535,6 @@ local function CaptionFor(text, title, sized)
 		end
 	end)
 	word(text:GetText())
-end
-
-local function Caption(title)
-	CaptionFor(IsTable(title) and title.text, title)
 end
 
 function Chrome.Caption(text)
@@ -1330,6 +1326,9 @@ TipWindow = function(step)
 	Widgets.TextColor(caption, "capsGold")
 	caption:ClearAllPoints()
 	caption:SetPoint("LEFT", step, "TOPLEFT", Widgets.Snap(step, CAP_LEFT) + Lumen.CapColumn(step), Widgets.Snap(step, rise - (Plain(height) and height or 0) / 2))
+	if glass and not Parts.HeadingOf(caption) then
+		Parts.Heading(glass, caption, { row = plate })
+	end
 	caption:SetText(K.Locale.Upper(PlainText(plate.text:GetText())))
 end
 
@@ -1345,6 +1344,9 @@ local function CaptionReach(f, title)
 		return nil
 	end
 	local over = 2 * (x + PLATE_PAD) + Widgets.TextWidth(caption, 0) - width
+	if Parts.HeadingOf(caption) then
+		over = Parts.CAP_INDENT + Parts.CAP_PAD + Widgets.TextWidth(caption, 0) - width
+	end
 	return over > 0 and -Widgets.Snap(f, over) or nil
 end
 
@@ -1360,7 +1362,7 @@ local function IconFrame(f, hide)
 		if not InCombatLockdown() then
 			Skin.Strip(title, { children = RXP_ART })
 		end
-		Caption(title)
+		CaptionFor(title.text, title, nil, { panel = Panel(f) })
 	end
 	local glass = Panel(f)
 	local rise = TitleRise(f, title)
@@ -1447,7 +1449,7 @@ local function Report(tracker, labels)
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
 			Glass(frame, { rise = TITLE_RISE, inside = { ui.titletext } })
-			CaptionFor(ui.titletext)
+			CaptionFor(ui.titletext, nil, nil, { panel = Panel(frame) })
 			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
 			for _, child in ipairs({ frame:GetChildren() }) do
 				if child.obj == ui and child ~= status and child:GetObjectType() == "Button" then
@@ -1951,7 +1953,7 @@ local function Configurator(configurator)
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
 		Glass(ui.frame, { rise = TITLE_RISE, inside = { ui.titletext, ui.closebutton } })
 	end
-	CaptionFor(ui.titletext)
+	CaptionFor(ui.titletext, nil, nil, { panel = Panel(ui.frame), close = ui.closebutton })
 	Label(Find(ui, "description"), "body", "text")
 	local known = {}
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
@@ -2002,7 +2004,7 @@ local function Importer(importer)
 		Glass(window.frame, { rise = TITLE_RISE, inside = { window.title, window.closebutton } })
 	end
 	CloseButton(window.closebutton)
-	CaptionFor(window.title)
+	CaptionFor(window.title, nil, nil, { panel = Panel(window.frame), close = window.closebutton })
 	Label(Find(window, "description"), "body", "text")
 	for _, key in ipairs(IMPORT_BUTTONS) do
 		local widget = widgets[key]
@@ -2039,7 +2041,7 @@ local function Importer(importer)
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
 				Glass(popup.frame, { popup = true, inside = { popup.title } })
 			end
-			CaptionFor(popup.title)
+			CaptionFor(popup.title, nil, nil, { panel = Panel(popup.frame), close = popup.closebutton })
 			Label(Find(popup, "message"), "body", "text")
 			local known = {}
 			for _, button in pairs(IsTable(popup.buttons) and popup.buttons or {}) do
@@ -2127,7 +2129,11 @@ local function DressDialog(global)
 			end
 		end
 	end
-	local panel = DressPanel(frame, TITLE_RISE, true)
+	local panel = DressPanel(frame, TITLE_RISE)
+	local titled = IsTable(frame.obj) and temporary[frame] and temporary[frame].controls[frame.obj.titletext]
+	if titled and titled.label then
+		Parts.Heading(panel, titled.label, { row = frame.obj.titletext })
+	end
 	local crest = panel.chrome.ornament
 	if crest and crest.inside then
 		local entry = temporary[frame]

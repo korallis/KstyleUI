@@ -95,7 +95,7 @@ local function Apply()
 		return false
 	end
 	Kit.Window(frame, { titleRole = "names" })
-	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine() })
+	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine(), rankOutside = true })
 	if bar and type(ClassTrainerFrame_Update) == "function" then
 		hooksecurefunc("ClassTrainerFrame_Update", function()
 			bar:SetLabel(SkillLine())

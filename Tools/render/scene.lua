@@ -1234,7 +1234,7 @@ function Scene.Build(env, opts)
 		local item = {
 			kind = "text", alpha = round4(alpha), text = text,
 			font = { file = resolve(path), path = path, size = round4(size * scale * k), flags = flags },
-			color = color4(region._state.TextColor, colour and { colour[1], colour[2], colour[3], 1 } or { 1, 1, 1, 1 }),
+			color = color4(region._state.TextColor, colour and { colour[1], colour[2], colour[3], 1 } or { 1, 1, 1, 1 }, env),
 			justifyH = state(region, "JustifyH") or "CENTER",
 			justifyV = state(region, "JustifyV") or "MIDDLE",
 		}
