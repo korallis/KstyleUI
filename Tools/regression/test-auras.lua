@@ -95,7 +95,7 @@ do
 		end
 	end
 	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "one row of ten buffs and one of ten debuffs")
-	check(bg.sortMethod == env.AuraContainerSortMethod.Expiration and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by use: the engine's Expiration comparator puts yours first, then the soonest to end, and always-on buffs last")
+	check(bg.sortMethod == env.AuraContainerSortMethod.Expiration and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by use: the engine's Expiration comparator (yours, then ones you can cast, then the soonest to end, always-on after timed)")
 	check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14, "each buff is a 27.5-unit icon (whole pixels at this size) with its 10-unit timer in 14 units under it")
 	check(bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "icons on one 31-unit pitch of whole pixels, 4 between rows")
 	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs list the first aura at the left, then down")

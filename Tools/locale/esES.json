@@ -271,7 +271,7 @@
 	"Buy tab": "Comprar pestaña",
 	"By PvP status": "Según el estado JcJ",
 	"By spell school": "Según la escuela de magia",
-	"By use (yours first, soonest first, always-on last)": "Por uso (los tuyos primero, los que acaban antes primero, los permanentes al final)",
+	"By use (yours, then ones you can cast, then soonest to end)": "Por uso (los tuyos, luego los que puedes lanzar, luego los que acaban antes)",
 	"Calendar": "Calendario",
 	"Calendar button": "Botón del calendario",
 	"Calm the rails in combat": "Calmar las columnas en combate",

@@ -55,7 +55,7 @@ Model.GROWTH_OPTIONS = {
 	{ value = "RIGHT_UP", label = L["Right, then up"] },
 }
 Model.SORT_OPTIONS = {
-	{ value = "use", label = L["By use (yours first, soonest first, always-on last)"] },
+	{ value = "use", label = L["By use (yours, then ones you can cast, then soonest to end)"] },
 	{ value = "time", label = L["Time left"] },
 	{ value = "name", label = L["Name"] },
 	{ value = "applied", label = L["Order applied"] },
