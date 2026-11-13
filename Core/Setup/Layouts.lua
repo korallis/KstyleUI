@@ -615,9 +615,8 @@ function Layouts.Story(name, rootHeight, guide, style)
 	if not guide then
 		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
-	local top = DEBUFFS_Y + AURA_H + GAP - 1
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - top - CLUSTER_TOP - GAP)
-	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column, { anchor = slot.anchor, y = -top }) }
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - DPS["meters.threat"].y - THREAT_H - GAP)
+	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, slot.x - slot.width - GAP, column) }
 end
 
 local LIFTED = {

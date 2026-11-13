@@ -81,7 +81,7 @@ do
 						end
 					end
 					local frames = Layouts.Story(name, rh, true)
-					assert(not frames.stacked and frames.quests.x < frames.guide.x and frames.quests.y >= frames.guide.y, what .. ": Frames keeps the cards side by side, the quests' top under the aura rows at or above the guide's")
+					assert(not frames.stacked and frames.quests.x < frames.guide.x and frames.quests.y == frames.guide.y, what .. ": Frames keeps the cards side by side under the map, their tops level (mock-up B, KSTY-67 item 1)")
 					cases = cases + 1
 				end
 			end
