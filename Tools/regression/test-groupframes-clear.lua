@@ -186,8 +186,16 @@ for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { 
 		local nameHead = { name.rect[1], name.rect[2], math.min(name.rect[3], head - name.rect[1]), name.rect[4] }
 		assert(not intersects(aura[2], nameHead), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the name's head " .. describe(nameHead))
 	end
-	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole.
-	eq(f.name:GetText(), "Thaldrenwick", what .. ": a twelve-letter name stays whole")
+	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole, down to the 11 px text
+	-- floor (KSTY-69); where the floor cannot hold it, it keeps its head and shortens, never under the floor.
+	local K = f._env.KstyleUI
+	local text, floor = f.name:GetText(), K.Scale.TextFloor()
+	local _, nameSize = f.name:GetFont()
+	assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) >= floor - 0.01, what .. ": the name is at least " .. floor .. " px")
+	if text ~= "Thaldrenwick" then
+		assert(text:match("^Thaldren"), what .. ": a twelve-letter name keeps its head, got " .. tostring(text))
+		assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) <= floor + 0.01, what .. ": and shortens only at the floor")
+	end
 	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
 	-- "Dead" takes the percent's place at the row's end, off the bar; with no percent (over 25 members) it centres on
 	-- the emptied bar. Either way it stays off the name.

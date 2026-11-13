@@ -106,7 +106,7 @@ local function Paint(f, sample)
 	if f.status then
 		f.name:SetTextColor(Tokens.Color("textDisabled"))
 	elseif cfg.text.nameColorSource == "class" then
-		f.name:SetTextColor(cr, cg, cb)
+		f.name:SetTextColor(Unit.NameColor(sample.class))
 	end
 	if f.showPortrait then
 		f.ring:SetVertexColor(cr, cg, cb)
@@ -226,8 +226,8 @@ end
 function Preview.Build(parent)
 	local preview = CreateFrame("Frame", nil, parent)
 	preview:SetAllPoints(parent)
-	preview.canvas = CreateFrame("Frame", nil, preview)
-	preview.raidCanvas = CreateFrame("Frame", nil, preview)
+	preview.canvas = K.Widgets.MarkPreview(CreateFrame("Frame", nil, preview))
+	preview.raidCanvas = K.Widgets.MarkPreview(CreateFrame("Frame", nil, preview))
 	preview.party = CreateFrame("Frame", nil, preview.canvas)
 	preview.raid = CreateFrame("Frame", nil, preview.raidCanvas)
 	preview.partyFrames, preview.raidFrames = {}, {}
