@@ -214,17 +214,17 @@ local _, crel, crelPoint = player.caption:GetPoint(1)
 assert(crel == player.name and crelPoint:find("RIGHT"), "the caption hangs off the name's end")
 noErrors("vitals")
 
--- Low health: the ring's glow takes its colour from a colour curve over the health percentage, never a comparison.
+-- Low health: the ring's glow is hostile red, its alpha a curve over the health percentage, never a comparison.
 local glow = player.ringGlow
 local function glowAlpha()
-	local _, _, _, a = glow:GetVertexColor()
-	return reveal(a) or 1
+	local call = W.LastCall(glow, "SetAlpha")
+	return reveal(call[1])
 end
 assert(glow:IsShown(), "the glow sits behind the ring")
 local hr, hg, hb = Tokens.Color("healthHostile")
 local gr, gg, gb = glow:GetVertexColor()
-assert(near(reveal(gr), hr) and near(reveal(gg), hg) and near(reveal(gb), hb), "the glow is hostile red")
-assert(env.issecretvalue((glow:GetVertexColor())), "the glow's colour comes straight from the curve: a secret the module never reads")
+assert(near(gr, hr) and near(gg, hg) and near(gb, hb), "the glow is hostile red")
+assert(env.issecretvalue(W.LastCall(glow, "SetAlpha")[1]), "the glow's alpha comes straight from the curve: a secret the module never reads")
 local healthy = glowAlpha()
 env._units.player.health = 400
 env.FireEvent("UNIT_HEALTH", "player")
@@ -411,14 +411,34 @@ assert(layout.lineSpacing >= layout.elementSpacing + sizeAura, "a single row kee
 K.Options.Write("UnitFrames", "target.auraRows", 2)
 noErrors("fallbacks")
 
--- No colour curve API: the glow stays off and the devlog says so once.
+-- No curve API: the glow stays off and the devlog says so once.
 do
 	local env2, K2, ns2 = U.New({ setup = function(e)
-		e.C_CurveUtil.CreateColorCurve = nil
+		e.C_CurveUtil.CreateCurve = nil
 	end })
 	local view = ns2.Frames.Get("player").views[1]
-	assert(not view.ringGlow:IsShown(), "no colour curve: no glow")
+	assert(not view.ringGlow:IsShown(), "no curve: no glow")
 	assert(#env2._errors == 0 and K2.ErrorCount() == 0, "and no error")
+end
+
+-- The curve's answer may itself be a secret value Lua cannot index: the glow never reads it, it hands it to SetAlpha.
+do
+	local env3, K3, ns3 = U.New({ lumen = true })
+	local unitHealthPercent = env3.UnitHealthPercent
+	env3.UnitHealthPercent = function(token, predicted, curve)
+		local answer = unitHealthPercent(token, predicted, curve)
+		if type(answer) == "table" then
+			return env3.Secret(answer)
+		end
+		return answer
+	end
+	ns3.Unit.ResetGlow()
+	env3._units.player.health = 400
+	env3.FireEvent("UNIT_HEALTH", "player")
+	local view = ns3.Frames.Get("player").views[1]
+	local alpha = W.LastCall(view.ringGlow, "SetAlpha")
+	assert(alpha and env3.issecretvalue(alpha[1]), "the glow's alpha is the curve's secret answer")
+	assert(#env3._errors == 0 and K3.ErrorCount() == 0, "a secret curve answer raises no error: " .. tostring(env3._errors[1]))
 end
 
 print("unitframes lumen ok")
