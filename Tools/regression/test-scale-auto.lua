@@ -17,6 +17,12 @@ local function New(width, height, opts)
 		end,
 	})
 	CoreEnv.Boot(env)
+	local profile = K.Store.Profile()
+	for _, element in ipairs(K.Setup.Layouts.ELEMENTS) do
+		profile[element.module] = profile[element.module] or {}
+		profile[element.module].enabled = true
+	end
+	K.Callbacks.Fire("ModuleChanged")
 	return env, K
 end
 
@@ -32,27 +38,44 @@ local function whole(v)
 	return near(v, math.floor(v + 0.5))
 end
 
--- Auto picks, per screen, one unit = a whole number of pixels where that is within 12.5% of the default look and
--- fits; elsewhere the nearest sixteenth of a pixel per unit. The default look is 16 / 19 of the 1080-unit reference.
+-- Auto picks, per screen, the sixteenth-of-a-pixel step nearest the KSTY-44 mock-ups' size (one unit per mock-up pixel at
+-- 1080 lines, Scale.MOCKUP_SIZE) that fits the active HUD style (KSTY-60 item 2, the Captain's ruling of 2026-11-13).
+-- In Frames the boss column caps every screen at 0.995, so 1080 lines take 15/16 and 2160 lines 31/16.
 local WANT = {
-	["5120x1440"] = 1, ["3440x1440"] = 1, ["2560x1440"] = 1, ["3840x1080"] = 13 / 16, ["1920x1080"] = 13 / 16,
-	["3840x2160"] = 27 / 16, ["1280x720"] = 9 / 16, ["2383x1540"] = 19 * 1540 / (16 * 1080) * 1080 / 1540,
+	frames = {
+		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 15 / 16, ["1920x1080"] = 15 / 16,
+		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 20 / 16, ["3456x2234"] = 29 / 16,
+	},
+	orbs = {
+		["5120x1440"] = 18 / 16, ["3440x1440"] = 18 / 16, ["2560x1440"] = 17 / 16, ["3840x1080"] = 14 / 16, ["1920x1080"] = 13 / 16,
+		["3840x2160"] = 26 / 16, ["1280x720"] = 8 / 16, ["1366x768"] = 9 / 16,
+	},
 }
+local FITS = { ["2383x1540"] = { orbs = false }, ["3456x2234"] = { orbs = false } }
 for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 }, { 2383, 1540 }, { 3456, 2234 }, { 1366, 768 } }) do
 	local env, K = New(screen[1], screen[2])
 	local Scale = K.Scale
 	local name = screen[1] .. "x" .. screen[2]
-	local ppu = perUnit(env, K)
 	assert(Scale.IsAuto() and K.Appearance.Get("uiScaleAuto") == true, name .. ": a new profile is on the automatic size")
-	assert(whole(ppu * Scale.STEPS_PER_PIXEL), name .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
-	assert(math.abs(Scale.AppliedUserScale() - DEFAULT) <= Scale.WHOLE_BAND * DEFAULT + 1e-9, name .. ": the size stays near the default look, got " .. Scale.AppliedUserScale())
-	assert(Scale.AppliedUserScale() <= Scale.MaxUserScale() + 1e-9, name .. ": the automatic size fits the screen")
-	assert(near(Scale.Border() * ppu, 1) and near(Scale.Pixel(1) * ppu, 1), name .. ": the border is exactly one physical pixel")
-	if screen[2] == 1440 then
-		assert(near(ppu, 1), name .. ": one unit is exactly one pixel at 1440 lines")
-	end
-	if WANT[name] and name ~= "2383x1540" then
-		assert(near(ppu, WANT[name]), name .. ": " .. WANT[name] .. " px per unit, got " .. ppu)
+	local profile = K.Store.Profile()
+	for _, style in ipairs({ "frames", "orbs" }) do
+		K.Options.Write("HudStyle", "style", style)
+		env.RunTimers()
+		local label = name .. " " .. style
+		local ppu = perUnit(env, K)
+		local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
+		assert(K.HudStyle.Current() == style, label .. ": the style applies")
+		assert(whole(ppu * Scale.STEPS_PER_PIXEL), label .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
+		assert(size <= cap + 1e-9, label .. ": the automatic size fits the screen")
+		assert(math.abs(size - Scale.MOCKUP_SIZE) <= step / 2 + 1e-9 or size + step > cap + 1e-9, label .. ": the step nearest the mock-ups' size that fits, got " .. size)
+		assert(near(Scale.Border() * ppu, 1) and near(Scale.Pixel(1) * ppu, 1), label .. ": the border is exactly one physical pixel")
+		local fits = not (FITS[name] and FITS[name][style] == false)
+		local Layouts = K.Setup.Layouts
+		local canvas = Scale.CanvasWidth(screen[1], screen[2])
+		assert(Layouts.Fits("DPS", canvas, screen[2], size, Layouts.Enabled("DPS", profile), Layouts.Positions("DPS", style, Scale.AspectClass(canvas, screen[2])), style) == fits, label .. ": the style's layout fits at its automatic size")
+		if WANT[style][name] then
+			assert(near(ppu, WANT[style][name]), label .. ": " .. WANT[style][name] .. " px per unit, got " .. ppu)
+		end
 	end
 	assert(#env._errors == 0, name .. ": " .. tostring(env._errors[1]))
 end
@@ -70,7 +93,7 @@ do
 	local ppu = perUnit(env, K)
 	assert(Scale.AppliedUserScale() <= Scale.MaxUserScale() + 1e-9 and whole(ppu * 16), "a size over the fit takes the largest step that fits")
 	K.Options.Write("Appearance", "uiScaleAuto", true)
-	assert(Scale.IsAuto() and near(perUnit(env, K), 13 / 16), "Auto comes back to the automatic size")
+	assert(Scale.IsAuto() and near(perUnit(env, K), 15 / 16), "Auto comes back to the automatic size")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -95,7 +118,7 @@ do
 	local ppu = perUnit(env, K)
 	assert(not K.Scale.IsAuto() and whole(ppu * 16) and math.abs(K.Scale.AppliedUserScale() - math.min(1, K.Scale.MaxUserScale())) <= K.Scale.Step() / 2 + 1e-9, "the chosen size applies snapped to the nearest step, got " .. K.Scale.AppliedUserScale())
 	K.Store.SetProfile("Untouched")
-	assert(K.Scale.IsAuto() and near(perUnit(env, K), 1), "the untouched profile is pixel perfect at 1440 lines")
+	assert(K.Scale.IsAuto() and near(perUnit(env, K), 21 / 16), "the untouched profile takes the automatic size at 1440 lines")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -107,19 +130,19 @@ do
 	env._physical = { 5120, 1440 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	env.RunTimers()
-	assert(near(perUnit(env, K), 1), "a new display size rescales to its automatic size")
+	assert(near(perUnit(env, K), 21 / 16), "a new display size rescales to its automatic size")
 	env.UIParent._scale = 0.65
 	env.FireEvent("CVAR_UPDATE", "Sound_MasterVolume", "0.5")
-	assert(not near(perUnit(env, K), 1), "a CVar that is not the UI scale leaves the root alone")
+	assert(not near(perUnit(env, K), 21 / 16), "a CVar that is not the UI scale leaves the root alone")
 	env.FireEvent("CVAR_UPDATE", "uiScale", "0.65")
 	env.RunTimers()
-	assert(near(perUnit(env, K), 1), "the game's UI scale CVar rescales the root to stay pixel perfect")
+	assert(near(perUnit(env, K), 21 / 16), "the game's UI scale CVar rescales the root to stay pixel perfect")
 	env.UIParent._scale = 0.8
 	env.FireEvent("UI_SCALE_CHANGED")
-	assert(near(perUnit(env, K), 1), "UI_SCALE_CHANGED rescales the root")
+	assert(near(perUnit(env, K), 21 / 16), "UI_SCALE_CHANGED rescales the root")
 	env._physical = { 1920, 1080 }
 	root._scripts.OnSizeChanged(root)
-	assert(near(perUnit(env, K), 13 / 16), "the window resizing the root rescales it")
+	assert(near(perUnit(env, K), 15 / 16), "the window resizing the root rescales it")
 	local rootScale = root:GetScale()
 	env.SetCombat(true)
 	env._physical = { 3840, 2160 }
@@ -129,11 +152,11 @@ do
 	assert(root:GetScale() == rootScale, "no SetScale on the root in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(near(perUnit(env, K), 27 / 16), "leaving combat applies the waiting rescale")
+	assert(near(perUnit(env, K), 31 / 16), "leaving combat applies the waiting rescale")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Widgets.Point and Widgets.Fill put edges on whole pixels at 13/16 px per unit, against a relative frame whose own
+-- Widgets.Point and Widgets.Fill put edges on whole pixels at 15/16 px per unit, against a relative frame whose own
 -- size is not whole; a protected frame in combat waits; a chrome on such an owner keeps its far corners whole.
 do
 	local env, K = New(1920, 1080)
