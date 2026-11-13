@@ -61,6 +61,7 @@ local function Layout(f, parts)
 	local rect = parts.health
 	local vertical = cfg.health.orientation == "VERTICAL"
 	local fill = f.health:GetStatusBarTexture()
+	f.predict:SetFrameLevel(f.health:GetFrameLevel() + LEVEL_ABOVE_HEALTH)
 	for _, bar in ipairs({ f.heals, f.absorbs }) do
 		bar:SetOrientation(cfg.health.orientation)
 		bar:SetBarTexture(cfg.health.texture)

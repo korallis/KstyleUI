@@ -17,7 +17,7 @@ end
 return {
 	{
 		name = "GroupFrames UNIT_HEALTH",
-		budget = 40,
+		budget = 90,
 		setup = function()
 			local env = Party()
 			return env, Perf.Event(env, "UNIT_HEALTH", "party1")

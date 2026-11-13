@@ -197,25 +197,24 @@ local function GlowCurve()
 	end
 	glowTried = true
 	local util = C_CurveUtil
-	if not (util and type(util.CreateColorCurve) == "function" and CreateColor and UnitHealthPercent) then
-		Log("low-health ring: no colour curve API; the ring does not glow")
+	if not (util and type(util.CreateCurve) == "function" and UnitHealthPercent) then
+		Log("low-health ring: no curve API; the ring does not glow")
 		return nil
 	end
-	local ok, curve = pcall(util.CreateColorCurve)
+	local ok, curve = pcall(util.CreateCurve)
 	if not ok or not curve then
-		Log("low-health ring: CreateColorCurve failed; the ring does not glow")
+		Log("low-health ring: CreateCurve failed; the ring does not glow")
 		return nil
 	end
 	local kinds = Enum and Enum.LuaCurveType
 	if kinds and kinds.Linear and curve.SetType then
 		curve:SetType(kinds.Linear)
 	end
-	local r, g, b = Tokens.Color("healthHostile")
 	for _, point in ipairs(GLOW_POINTS) do
-		curve:AddPoint(point[1], CreateColor(r, g, b, point[2]))
+		curve:AddPoint(point[1], point[2])
 	end
 	glowCurve = curve
-	Log("low-health ring: a C_CurveUtil colour curve over UnitHealthPercent")
+	Log("low-health ring: its alpha is a C_CurveUtil curve over UnitHealthPercent")
 	return curve
 end
 
@@ -234,8 +233,8 @@ function Unit.Glow(view, unit)
 		glow:Hide()
 		return
 	end
-	local color = UnitHealthPercent(unit, true, curve)
-	glow:SetVertexColor(color:GetRGBA())
+	glow:SetVertexColor(Tokens.Color("healthHostile"))
+	glow:SetAlpha(UnitHealthPercent(unit, true, curve))
 	glow:Show()
 end
 
