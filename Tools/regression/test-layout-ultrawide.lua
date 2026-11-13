@@ -97,7 +97,7 @@ do
 	Element("minimap.main")
 	Element("unitframes.player")
 	Element("actionbars.bar1")
-	local margin = K.Tokens.Size("screenMargin")
+	local margin = K.Tokens.Size("screenMargin") / K.Scale.Pixel(1)
 	local chatLeft = Physical(K, "chat.main")
 	local _, playerCentre = Physical(K, "unitframes.player")
 	local _, barCentre = Physical(K, "actionbars.bar1")

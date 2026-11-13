@@ -133,15 +133,73 @@ do
 	assert(y - 100 >= 0 and y > bottom, "the orbs clear the foot of the screen")
 end
 
--- A hit: the fill snaps, the pale band behind it eases to the new value, and nothing reads the secret health.
+-- The look (KSTY-60 item 5): the glass behind the liquid takes a dark tint of the orb's own colour, the liquid a
+-- curved lit surface tinted from it with its white line and shadow over it, and the mana orb the mock-up's blue.
+do
+	local function rgb(region, method)
+		local call = W.LastCall(region, method)
+		return call[1], call[2], call[3]
+	end
+	for _, orb in ipairs({ health, power }) do
+		local lr, lg, lb = rgb(orb.bar, "SetStatusBarColor")
+		local br, bg, bb = rgb(orb.back, "SetVertexColor")
+		assert(br < 0.25 and bg < 0.25 and bb < 0.25, orb.kind .. ": the empty glass stays dark")
+		assert((lr > lb) == (br > bb) and (lr > lg) == (br > bg), orb.kind .. ": the empty glass is tinted with the liquid's own hue, not black")
+		local sr, sg, sb = rgb(orb.surface, "SetVertexColor")
+		assert(sr >= lr and sg >= lg and sb >= lb and sr + sg + sb > lr + lg + lb, orb.kind .. ": the surface is a lighter tint of the liquid")
+		assert(orb.surface:GetTexture() == K.Tokens.Texture("orbSurface") and orb.surfaceLight:GetTexture() == K.Tokens.Texture("orbSurfaceLight"), orb.kind .. ": the surface ellipse and its light")
+		local size, hole = W.LastCall(orb.surface, "SetSize"), W.LastCall(orb.bar, "SetSize")
+		assert(math.abs(size[2] - hole[2] * 0.25) < 1 and size[1] == hole[1], orb.kind .. ": the surface's texture spans the opening and a quarter of it tall, its ellipse 11% of the opening, not a line")
+		local point = W.LastCall(orb.surfaceLight, "SetPoint")
+		assert(point[2] == orb.bar:GetStatusBarTexture() and point[3] == "TOP" and orb.surfaceLight._masks[1] == orb.bar.mask, orb.kind .. ": the surface's light rides the fill's top inside the mask")
+	end
+	local r, g, b = rgb(power.bar, "SetStatusBarColor")
+	assert(b > r and b > g and g > r * 1.5, "the mana orb is the mock-up's blue, not the bar's violet")
+	local band, recentBand = W.LastCall(health.loss, "SetStatusBarColor"), W.LastCall(health.recent, "SetStatusBarColor")
+	assert(band[4] == 1 and band[1] > 0.35 and band[2] > 0.25 and band[3] > 0.2, "the loss band is a pale glaze, opaque")
+	for i = 1, 4 do
+		assert(band[i] == recentBand[i], "the two loss bands share one opaque colour, so they overlap without a seam")
+	end
+	local capPoint = W.LastCall(health.lossCap, "SetPoint")
+	assert(health.lossCap:GetTexture() == K.Tokens.Texture("orbSurface") and capPoint[1] == "CENTER" and capPoint[2] == health.loss:GetStatusBarTexture() and capPoint[3] == "TOP", "a pale cap rides the loss band's top")
+	assert(W.LastCall(health.lossCap, "SetSize")[2] < W.LastCall(health.surface, "SetSize")[2], "the cap is flatter than the surface, so a band at the health hides under it")
+end
+
+-- A hit: the fill snaps, the pale band behind it holds at the health before the hit, then eases to the new value,
+-- and nothing reads the secret health.
+local function finish(group)
+	group:Stop()
+	group:GetScript("OnFinished")(group)
+end
 env._restricted = true
+local beforeHit = unit.health
 unit.health = 1200
 env.FireEvent("UNIT_HEALTH", "player")
 noErrors(env, K, "a hit while restricted")
 assert(W.LastCall(health.bar, "SetValue").n == 1, "the fill snaps to the hit")
+local held = W.LastCall(health.loss, "SetValue")
+assert(env.Reveal(held[1]) == beforeHit and held.n == 1, "the loss band holds the health before the hit, so the lost part shows pale")
+assert(health.hold:IsPlaying(), "the hold plays")
+unit.health = 1100
+env.FireEvent("UNIT_HEALTH", "player")
+assert(env.Reveal(W.LastCall(health.loss, "SetValue")[1]) == beforeHit, "a second hit inside the hold keeps the band at the health before the burst")
+assert(env.Reveal(W.LastCall(health.recent, "SetValue")[1]) == 1200, "the second band holds the health just before the last hit")
+finish(health.hold)
 local eased = W.LastCall(health.loss, "SetValue")
 assert(eased[2] == EASE, "the loss band eases with the engine's ExponentialEaseOut")
-assert(env.Reveal(eased[1]) == 1200, "the loss band eases to the new health")
+assert(env.Reveal(eased[1]) == 1100, "after the hold the loss band eases to the new health")
+assert(env.Reveal(W.LastCall(health.recent, "SetValue")[1]) == 1100, "and the second band with it")
+unit.health = 1500
+env.FireEvent("UNIT_HEALTH", "player")
+finish(health.hold)
+unit.health = 1300
+env.FireEvent("UNIT_HEALTH", "player")
+assert(env.Reveal(W.LastCall(health.recent, "SetValue")[1]) == 1500, "a hit after a heal shows on the second band")
+finish(health.hold)
+unit.healthMax = unit.healthMax + 100
+env.FireEvent("UNIT_MAXHEALTH", "player")
+assert(not health.hold:IsPlaying() and env.Reveal(W.LastCall(health.loss, "SetValue")[1]) == unit.health, "a new maximum snaps the band to the health")
+unit.health = 1200
 unit.power = 900
 env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
 noErrors(env, K, "power while restricted")
