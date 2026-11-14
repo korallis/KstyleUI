@@ -279,12 +279,12 @@ function Previewed(text)
 	if next(previews) == nil then
 		return false
 	end
-	local node = text:GetParent()
-	while node do
+	local node = text
+	while type(node) == "table" and type(node.GetParent) == "function" do
+		node = node:GetParent()
 		if previews[node] then
 			return true
 		end
-		node = node:GetParent()
 	end
 	return false
 end
@@ -476,6 +476,9 @@ function Widgets.TrackPad(text)
 end
 
 function Widgets.SyncTracking(text)
+	if type(text.GetNumPoints) ~= "function" then
+		return
+	end
 	local path, size = text:GetFont()
 	local tracking = type(path) == "string" and type(size) == "number" and Tokens.FaceTracking(path) or 0
 	if tracking ~= 0 or trackers[text] then

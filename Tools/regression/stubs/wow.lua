@@ -211,7 +211,10 @@ end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
 -- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.
+-- A size no script has seen yet reaches the first OnSizeChanged script when the frame is next measured, as
+-- the game resolves a frame's rect on GetWidth or GetHeight: a hook set after SetSize runs inside that call.
 local notifySpanners
+local NOT_FRAMES
 local function resize(self, w, h)
 	if self._width == w and self._height == h then
 		return
@@ -220,8 +223,17 @@ local function resize(self, w, h)
 	local script = self._scripts.OnSizeChanged
 	if script then
 		script(self, w, h)
+	elseif not NOT_FRAMES[self._type] then
+		rawset(self, "_sizeUnseen", true)
 	end
 	notifySpanners(self, {})
+end
+local function resolve(self)
+	local script = rawget(self, "_sizeUnseen") and self._scripts.OnSizeChanged
+	if script then
+		rawset(self, "_sizeUnseen", nil)
+		script(self, self._width, self._height)
+	end
 end
 function Object:SetSize(w, h) resize(self, w, h) end
 function Object:SetWidth(w) resize(self, w, self._height) end
@@ -256,7 +268,7 @@ local function spanned(self, axis)
 end
 -- A frame whose size comes from its anchors (spanned on a target) runs OnSizeChanged when that size changes, from a
 -- SetPoint or from its target's resize, as the game does; regions that are not frames have no such script.
-local NOT_FRAMES = { Texture = true, FontString = true, Line = true, MaskTexture = true }
+NOT_FRAMES = { Texture = true, FontString = true, Line = true, MaskTexture = true }
 local function spanSize(frame)
 	if not (spanned(frame, "w") or spanned(frame, "h")) then
 		return nil
@@ -309,8 +321,14 @@ local function veil(self, value)
 	end
 	return value
 end
-function Object:GetWidth() return veil(self, rawSize(self, "w")) end
-function Object:GetHeight() return veil(self, rawSize(self, "h")) end
+function Object:GetWidth()
+	resolve(self)
+	return veil(self, rawSize(self, "w"))
+end
+function Object:GetHeight()
+	resolve(self)
+	return veil(self, rawSize(self, "h"))
+end
 function Object:GetSize() return self:GetWidth(), self:GetHeight() end
 
 -- A font string's text metrics. The stub has none, so GetUnboundedStringWidth answers nil and IsTruncated
@@ -439,7 +457,13 @@ function Object:GetStringHeight()
 	spacing = spacing and type(spacing[1]) == "number" and spacing[1] > 0 and spacing[1] or 0
 	return lines and lines * size * 1.2 + (lines - 1) * spacing
 end
-function Object:SetScale(scale) self._scale = scale end
+-- SetScale refuses a scale that is not a number, with the game's usage error.
+function Object:SetScale(scale)
+	if type(scale) ~= "number" or scale ~= scale then
+		error("bad argument #1 to 'SetScale' (Usage: self:SetScale(scale))", 2)
+	end
+	self._scale = scale
+end
 function Object:DoesClipChildren()
 	local stored = self._state.ClipsChildren
 	return stored ~= nil and stored[1] == true
@@ -1132,8 +1156,21 @@ end })
 
 -- Any other key reads as nil, as on a real frame.
 local WRAPPERS = {}
+-- A Font object (CreateFont, ObjectiveTrackerLineFont) is no region: it answers only SimpleFontAPI and
+-- SimpleFrameScriptObjectAPI (Blizzard_APIDocumentationGenerated, 70862), so it has no GetParent or GetWidth.
+local FONT_METHODS = {}
+for name in ([[CopyFontObject GetAlpha GetFont GetFontHeight GetFontObject GetFontObjectForAlphabet GetIndentedWordWrap
+	GetJustifyH GetJustifyV GetShadowColor GetShadowOffset GetSpacing GetTextColor SetAlpha SetFont SetFontHeight
+	SetFontObject SetIndentedWordWrap SetJustifyH SetJustifyV SetShadowColor SetShadowOffset SetSpacing SetTextColor
+	AddAccessRestrictions AddForbiddenAspects AddSecretAspect CanBeAccessedInContext GetAccessRestrictions
+	GetForbiddenAspects GetInheritableForbiddenAspects GetName GetObjectTable GetObjectType HasAccessConstraints
+	HasAnyAccessRestrictions HasAnyForbiddenAspects HasAnySecretAspect HasSecretAspect HasSecretValues IsForbidden
+	IsObjectType IsPreventingSecretValues SetForbidden SetToDefaults]]):gmatch("%a+") do
+	FONT_METHODS[name] = true
+end
+
 ObjectMeta.__index = function(object, key)
-	if not METHODS[key] then
+	if not METHODS[key] or (rawget(object, "_type") == "Font" and not FONT_METHODS[key]) then
 		return nil
 	end
 	if object._env and object._env._quiet then

@@ -253,9 +253,9 @@ local function Tracker(env, B, unloadable)
 	p.layout = tracker.Update
 	p.layout(tracker)
 
-	env.GameFontHighlight = B.text(env.UIParent)
+	env.GameFontHighlight = env.CreateFont("GameFontHighlight")
 	env.GameFontHighlight:SetFont(FALLBACK_FACE, 12, "")
-	env.ObjectiveTrackerLineFont, env.ObjectiveTrackerHeaderFont = B.text(env.UIParent), B.text(env.UIParent)
+	env.ObjectiveTrackerLineFont, env.ObjectiveTrackerHeaderFont = env.CreateFont("ObjectiveTrackerLineFont"), env.CreateFont("ObjectiveTrackerHeaderFont")
 	env.ObjectiveTrackerLineFont:SetFont(BLIZZARD_FACE, 12, "")
 	env.ObjectiveTrackerHeaderFont:SetFont(BLIZZARD_FACE, 14, "")
 	if unloadable then
@@ -701,6 +701,33 @@ do
 	header:SetWidth(260)
 	header.Text:SetText("Quests")
 	assert(not cap:IsTruncated() and cap:GetWidth() == 0, "back at the rail's width the title takes its natural width again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The tracker's fonts are Font objects, which have no parent (SimpleFontAPIDocumentation.lua). With the Options
+-- window's preview open and the smallest text size, a HUD style switch restyles them below the text floor, where
+-- the kit asks whether the text sits in a preview; it must answer no for a Font object instead of calling its
+-- GetParent, which raised "attempt to call a nil value" in the owner's v0.1.0 session (Base.lua:282).
+do
+	local env, K = S.New({
+		loaded = { Blizzard_ObjectiveTracker = true },
+		before = function(env)
+			Tracker(env, S.Blizzard(env))
+		end,
+	})
+	K.Modules.Enable("Skins")
+	K.Widgets.MarkPreview(env.CreateFrame("Frame", nil, env.UIParent))
+	K.Options.Write("Skins", "text.size", 0.8)
+	K.Options.Write("HudStyle", "style", "orbs")
+	K.Options.Write("HudStyle", "style", "frames")
+	local lineFont = env.ObjectiveTrackerLineFont
+	assert(lineFont.GetParent == nil, "the stub's Font object has no GetParent, as the game's has none")
+	assert(FontPath(lineFont):find("KstyleUI", 1, true), "the line font still takes the skin face, got " .. tostring(FontPath(lineFont)))
+	local caps = K.Tokens.FontPath("CinzelCaps")
+	assert(caps and K.Tokens.FaceTracking(caps) ~= 0, "the test needs a tracked face, got " .. tostring(caps))
+	K.Options.Write("Skins", "text.font", caps)
+	K.Options.Write("HudStyle", "style", "orbs")
+	assert(FontPath(lineFont) == caps, "a tracked face reaches the Font object without the kit's letter tracking, got " .. tostring(FontPath(lineFont)))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
