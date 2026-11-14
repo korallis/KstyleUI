@@ -1,4 +1,4 @@
--- Stacking.lua: gives the game the plate's own footprint as the nameplate size it stacks and clicks by, holds the game's plate scale CVars at 1 while plates ignore that scale, out of combat, and gives the game's size and values back when the module stops.
+-- Stacking.lua: has the game stack plates by the plate's own footprint, through each base's stacking bounds where the client has them (the game keeps its own nameplate size and each bar sits where Blizzard's own health bar does) and through the nameplate size where it has not, holds the game's plate scale CVars at 1 while plates ignore that scale, out of combat, and gives the game's size and values back when the module stops.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,7 @@ ns.Stacking = Stacking
 
 local original
 local applied = { w = nil, h = nil }
-local queued, hooked = false, false
+local queued, hooked, bounded = false, false, false
 
 local SCALE_CVARS = { "nameplateMinScale", "nameplateMaxScale", "nameplateSelectedScale" }
 local HELD = {}
@@ -35,8 +35,79 @@ local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
 end
 
+local function Bounding()
+	local mixin = NamePlateScriptBaseMixin
+	return ns.Plates.running and Settings.Get("stacking.footprint") == "plate"
+		and type(mixin) == "table" and type(mixin.SetStackingBoundsFrame) == "function"
+end
+
 function Stacking.Size()
-	return applied.w, applied.h
+	if applied.w then
+		return applied.w, applied.h
+	end
+	if original and Bounding() then
+		return original.w, original.h
+	end
+	return nil
+end
+
+function Stacking.BarRise()
+	local options = NamePlateSetupOptions
+	if not Bounding() or type(options) ~= "table" then
+		return nil
+	end
+	local cast, icon, gap = Plain(options.castBarHeight), Plain(options.castIconHeight), Plain(options.castBarToHealthBarSpacing)
+	if not (cast and icon and gap) then
+		LogOnce("stacking-rise", "NamePlateSetupOptions has no cast block; plates keep their own room under the bar")
+		return nil
+	end
+	local inside = options.spellNameInsideCastBar
+	if not IsSecret(inside) and inside == true then
+		icon = 0
+	end
+	return cast + icon + gap
+end
+
+local function Register(plate)
+	local base = plate.base
+	if plate.boundTo == base or type(base.SetStackingBoundsFrame) ~= "function" then
+		return
+	end
+	local ok, err = pcall(base.SetStackingBoundsFrame, base, plate.stackBounds)
+	if ok then
+		plate.boundTo = base
+	elseif not plate.boundQueued then
+		plate.boundQueued = true
+		LogOnce("stacking-bounds-refused", "SetStackingBoundsFrame refused a plate: " .. tostring(err) .. "; it is tried again out of combat")
+		K.Combat.Queue(function()
+			plate.boundQueued = nil
+			Register(plate)
+		end)
+	end
+end
+
+function Stacking.Bound(plate, rise)
+	local frame = plate.stackBounds
+	if not frame then
+		return
+	end
+	if Bounding() then
+		local width, above, height, below = Stacking.Extent(plate)
+		local own, theirs = Plain(plate:GetEffectiveScale()), Plain(frame:GetEffectiveScale())
+		if not (width and own and theirs and own > 0 and theirs > 0) then
+			LogOnce("stacking-bounds-scale", "a plate's scale could not be read; its stacking bounds wait for the next restyle")
+			return
+		end
+		local k = own / theirs
+		below = math.max(below, rise)
+		frame:ClearAllPoints()
+		frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -below * k)
+		frame:SetSize(width * k, (above + height + below) * k)
+		Register(plate)
+	elseif plate.boundTo then
+		frame:ClearAllPoints()
+		frame:SetAllPoints(plate.base)
+	end
 end
 
 function Stacking.Extent(plate)
@@ -285,10 +356,19 @@ function Stacking.Sync()
 		hold.waiting = true
 		K.Events.Register("NameplatesScale", "VARIABLES_LOADED", OnVariables)
 	end
-	if ns.Plates.running and Settings.Get("stacking.footprint") == "plate" then
+	local was = bounded
+	bounded = Bounding()
+	if bounded then
+		Restore()
+		Remember()
+		LogOnce("stacking-bounds", "plates stack by their own footprint through SetStackingBoundsFrame; the game keeps its own nameplate size and each bar sits where Blizzard's own health bar does")
+	elseif ns.Plates.running and Settings.Get("stacking.footprint") == "plate" then
 		Apply()
 	else
 		Restore()
+	end
+	if bounded or was then
+		ns.Plates.Each(Settle)
 	end
 end
 
@@ -311,6 +391,10 @@ local function Hook()
 				local size = original and (original.w .. " x " .. original.h) or "a size it would not report"
 				K.DevTest.Log(MODULE, "Blizzard reset the nameplate size in combat to " .. size .. "; the game stacks plates by it until combat ends, then KstyleUI's footprint comes back")
 			end
+			Stacking.Schedule()
+		elseif bounded then
+			original = nil
+			Remember()
 			Stacking.Schedule()
 		end
 	end)

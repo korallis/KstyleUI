@@ -205,6 +205,9 @@ function ns.NewPlate(parent, sample)
 	end
 	plate.sample = sample
 	plate.base = not sample and parent or nil
+	if not sample then
+		plate.stackBounds = CreateFrame("Frame", nil, parent)
+	end
 
 	local glowFrame = CreateFrame("Frame", nil, plate)
 	plate.glowFrame = glowFrame
@@ -471,9 +474,14 @@ end
 function Plate:PlaceOnBase(w, h)
 	local base = self:GetParent()
 	self:ClearAllPoints()
-	local x, y = 0, Widgets.Snap(self, Settings.Get("offsetY") + BottomRoom(self))
 	local bw, bh = ns.Stacking.Size()
 	local k = Plain(base:GetEffectiveScale()) and Plain(self:GetEffectiveScale()) and base:GetEffectiveScale() / self:GetEffectiveScale()
+	local room = BottomRoom(self)
+	local rise = k and ns.Stacking.BarRise()
+	if rise then
+		room = math.max(room, rise * k)
+	end
+	local x, y = 0, Widgets.Snap(self, Settings.Get("offsetY") + room)
 	if bw and bh and k then
 		local px = Pixel(self)
 		local across = (bw * k - Widgets.Snap(self, w)) / px / 2
@@ -482,6 +490,7 @@ function Plate:PlaceOnBase(w, h)
 		y = y + (down - math.floor(down + 0.5)) * px
 	end
 	self:SetPoint("BOTTOM", base, "BOTTOM", x, y)
+	ns.Stacking.Bound(self, y)
 end
 
 function Plate:LayoutName()
