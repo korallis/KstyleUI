@@ -1661,6 +1661,10 @@ function Hud.PresetSettings(layout)
 		end
 		node[parts[#parts]] = entry.value
 	end
+	-- RENDER_BAR3=1 turns action bar 3 on, which every preset leaves off, so a render shows where its place puts it.
+	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" then
+		settings.ActionBars.bar3.enabled = true
+	end
 	return settings
 end
 
