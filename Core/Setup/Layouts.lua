@@ -1110,7 +1110,11 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			rects[#rects + 1] = { left, bottom, right, top, key = key }
 		end
 	end
-	if style == "orbs" then
+	local orbs = false
+	for _, element in ipairs(style == "orbs" and ELEMENTS or {}) do
+		orbs = orbs or element.module == "UnitFrames" and enabled[element.key] ~= false
+	end
+	if orbs then
 		local bar = layout["actionbars.bar1"]
 		local barWidth, barHeight = Layouts.Footprint(name, "actionbars.bar1")
 		local w = max(1, floor(barWidth * pixelScale + 0.5))
