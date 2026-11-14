@@ -512,6 +512,10 @@ function Rail.Fit()
 	return Fit(f, RestedXP.Chrome.Path(f), Rail.Band())
 end
 
+function Rail.Cut(region)
+	return state.cut[region] == "alpha"
+end
+
 function Rail.Hidden()
 	return state.hidden
 end
