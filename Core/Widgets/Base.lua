@@ -279,12 +279,12 @@ function Previewed(text)
 	if next(previews) == nil then
 		return false
 	end
-	local node = text:GetParent()
-	while node do
+	local node = text
+	while type(node) == "table" and type(node.GetParent) == "function" do
+		node = node:GetParent()
 		if previews[node] then
 			return true
 		end
-		node = node:GetParent()
 	end
 	return false
 end

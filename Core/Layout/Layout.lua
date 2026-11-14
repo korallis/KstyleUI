@@ -497,11 +497,22 @@ local function RestyleWidgets()
 	end
 end
 
+local function Placeable(el, s)
+	if not (G.IsAnchor(s.anchor) and IsFinite(s.x) and IsFinite(s.y)) then
+		return false
+	end
+	return not el.opts.resizable or (IsFinite(s.width) and IsFinite(s.height))
+end
+
 local function ApplyGeometry(el, quiet)
 	local frame, s = el.frame, el.settings
+	if not Placeable(el, s) then
+		LogOnce(el.key .. ":unplaceable", format("%s has no anchor, offset or size to place it by; it stays where it is", el.key))
+		return
+	end
 	local oldWidth, oldHeight = FrameSize(frame)
 	local restyle = false
-	if el.opts.scalable then
+	if el.opts.scalable and IsFinite(s.scale) and s.scale > 0 then
 		frame:SetScale(s.scale)
 		restyle = el.appliedScale ~= s.scale
 		el.appliedScale = s.scale
@@ -1128,7 +1139,6 @@ function Layout.Register(frame, key, defaultPosition, opts)
 		Log(key .. " registered again with another frame")
 	end
 	el.frame = frame
-	byFrame[frame] = el
 	if not showHooked[frame] then
 		showHooked[frame] = true
 		frame:HookScript("OnShow", OnShow)
@@ -1153,6 +1163,7 @@ function Layout.Register(frame, key, defaultPosition, opts)
 		el.appliedScale = IsFinite(own) and own or nil
 	end
 	Resolve(el)
+	byFrame[frame] = el
 	UpdateEvents()
 	Apply(el, true)
 	if Layout.Calm then
