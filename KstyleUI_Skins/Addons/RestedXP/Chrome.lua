@@ -460,6 +460,13 @@ local function PaintCaption(text, entry)
 		Widgets.Fitted(caption, entry.room ~= nil and entry.room < size)
 		size = math.max(entry.own, math.min(size, entry.room or size))
 	end
+	if entry.compact then
+		Style.ApplyFont(caption, "caps", size)
+		local width = Widgets.TextWidth(caption, 0)
+		if Plain(width) and width > entry.compact then
+			size = size * entry.compact / width
+		end
+	end
 	Style.ApplyFont(caption, "caps", size)
 	Widgets.TextColor(caption, "capsGold")
 	if entry.busy then
@@ -527,8 +534,9 @@ local function CaptionFor(text, title, sized, heading)
 	end)
 	PaintCaption(text, entry)
 	local function word(value)
-		caption:SetText(K.Locale.Upper(PlainText(value)))
+		caption:SetText(K.Locale.Upper(entry.label or PlainText(value)))
 	end
+	entry.word = word
 	hooksecurefunc(text, "SetText", function(_, value)
 		word(value)
 		if sized and Active() then
@@ -540,6 +548,18 @@ end
 
 function Chrome.Caption(text)
 	return captions[text] and captions[text].caption
+end
+
+function Chrome.Label(f, label, room)
+	local text = IsTable(f.title) and f.title.text
+	local entry = text and captions[text]
+	if not entry or entry.label == label and entry.compact == room then
+		return
+	end
+	entry.label, entry.compact = label, room
+	entry.word(text:GetText())
+	PaintCaption(text, entry)
+	Chrome.IconInset(f)
 end
 
 local function IsTip(step)
@@ -1338,6 +1358,10 @@ function Chrome.TipCaption(step)
 end
 
 local function CaptionReach(f, title)
+	local entry = IsTable(title) and IsTable(title.text) and captions[title.text]
+	if entry and entry.compact then
+		return nil
+	end
 	local caption = IsTable(title) and IsTable(title.text) and Chrome.Caption(title.text)
 	local x = caption and HangsLeft(title)
 	local width = f:GetWidth()

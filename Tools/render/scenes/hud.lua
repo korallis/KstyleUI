@@ -1106,6 +1106,10 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
+	if opts.questGive then
+		ns.Quests.Give(opts.questGive)
+		S.W.Settle(env)
+	end
 	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
 	-- slot, or the column beside the RestedXP guide's card while the guide holds the slot (opts.withGuide).
 	local card = ns.Quests.Active()
@@ -1476,7 +1480,7 @@ function modules.restedxp(opts)
 	R.ns.RestedXP.Rail.Place()
 	-- RENDER_RXP_BOXES=1 shows RestedXP's Active Targets and Active Items boxes, each with one icon, starting from the
 	-- places the owner's RestedXP settings saved for them (KSTY-77), so the render shows where the rail docks them.
-	if os.getenv("RENDER_RXP_BOXES") == "1" then
+	if (rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")) == "1" then
 		local rxp, UIParent = R.rxp, R.env.UIParent
 		local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 		items:ClearAllPoints()

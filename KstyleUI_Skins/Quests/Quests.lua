@@ -1,4 +1,4 @@
--- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot; in Orbs on top of the guide's card in one column, the guide re-placed whenever the card's height changes), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
+-- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot; in Orbs on top of the guide's card in one column, the guide re-placed whenever the card's height changes, and the card giving up the room the rail asks for so the guide keeps its current step beside RestedXP's docked boxes), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,7 +18,7 @@ local EVENTS = {
 	"QUEST_TURNED_IN", "QUEST_AUTOCOMPLETE",
 }
 
-local state = { on = false, active = false, dirty = false, built = false, queued = false, holder = nil, guide = nil }
+local state = { on = false, active = false, dirty = false, built = false, queued = false, holder = nil, guide = nil, give = 0 }
 local others = false
 
 local function Log(message)
@@ -127,7 +127,7 @@ local function Place()
 		state.guide = guide
 		Register(Spec(guide))
 	end
-	Card.Place(holder, 0, spec.height, spec.width, spec.height)
+	Card.Place(holder, 0, spec.height, spec.width, spec.height - state.give)
 end
 
 local function Flush()
@@ -298,6 +298,22 @@ local function OnSetting(_, field)
 			Card.Render()
 		end
 	end
+end
+
+function Quests.Give(units)
+	units = math.max(0, units or 0)
+	if math.abs(units - state.give) < 0.01 then
+		return
+	end
+	state.give = units
+	Place()
+	if state.active then
+		Card.Render()
+	end
+end
+
+function Quests.Given()
+	return state.give
 end
 
 function Quests.Active()

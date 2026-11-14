@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card at its width (a box with more icons keeps the card's right edge and grows toward the middle), a small gap apart, the guide's room cut to leave them space, until the player drags one away.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away.
 local _, ns = ...
 
 local K = KstyleUI
@@ -194,14 +194,31 @@ local function Icons(box)
 	return need
 end
 
-local function Plan()
-	local plan, drop = {}, 0
-	for i, box in ipairs(Boxes()) do
-		drop = drop + Tokens.Size(BOX_GAP)
-		plan[i] = { box = box, drop = drop }
-		drop = drop + Tall(box, Reach(box))
+local function Plan(band)
+	local boxes, gap = Boxes(), Tokens.Size(BOX_GAP)
+	local gutter = gap
+	local span = band.right - band.left
+	local share = (span - gutter) / 2
+	local row = #boxes == 2
+	for _, box in ipairs(boxes) do
+		if Icons(box) * Widgets.ScaleFactor(box) > share then
+			row = false
+		end
 	end
-	return plan, drop
+	local plan, drop, tall = {}, 0, 0
+	for i, box in ipairs(boxes) do
+		local height = Tall(box, Reach(box))
+		if row then
+			plan[i] = { box = box, left = band.left + (i - 1) * (share + gutter), width = share, drop = gap, label = box == Box("items") and L["Items"] or L["Targets"] }
+			tall = math.max(tall, gap + height)
+		else
+			drop = drop + gap
+			plan[i] = { box = box, left = band.left, width = span, drop = drop }
+			drop = drop + height
+			tall = drop
+		end
+	end
+	return plan, tall
 end
 
 function Rail.Band()
@@ -210,7 +227,7 @@ function Rail.Band()
 	if not band then
 		return band
 	end
-	local _, reserve = Plan()
+	local _, reserve = Plan(band)
 	band.bottom = band.bottom + reserve
 	if not story.stacked then
 		return band
@@ -408,7 +425,7 @@ local function Fit(f, path, band)
 		if reach > 0 then
 			keep, partial = 1, 1
 		end
-		height = reach + row
+		height = reach > 0 and reach + row or 0
 	end
 	for i = keep + 1, #steps do
 		Cut(steps[i].step)
@@ -418,7 +435,7 @@ local function Fit(f, path, band)
 		current:SetHeight(math.max(EMPTY_STEPS, height))
 	end
 	if more then
-		if hidden > 0 then
+		if hidden > 0 and height > 0 then
 			ns.Style.ApplyFont(more, "body", ns.Lumen.Size(more, ns.Lumen.TEXT_SIZE) * MORE_SCALE)
 			Widgets.TextColor(more, "muted")
 			more:SetText(string.format(L["%d more"], hidden))
@@ -444,6 +461,49 @@ local function Refresh(f)
 	end
 end
 
+local function Minimum(f, path)
+	local current = f.CurrentStepFrame
+	local first
+	for _, step in ipairs(IsTable(current.framePool) and current.framePool or {}) do
+		if IsTable(step) and step:IsShown() and not IsTip(step) then
+			first = step
+			break
+		end
+	end
+	if not first then
+		return 0
+	end
+	local line, top = 0, first:GetTop()
+	for _, element in ipairs(IsTable(first.elements) and first.elements or {}) do
+		local bottom = IsTable(element) and element:IsShown() and element:GetBottom()
+		if Plain(top) and Plain(bottom) then
+			line = top - bottom
+			break
+		end
+	end
+	local scale = Widgets.ScaleFactor(f)
+	local over, under = Around(f, path)
+	local span = over and over + under or Shape(f, path, 0).span
+	return (span + line + Widgets.Snap(f, MORE_ROW / scale)) * scale
+end
+
+local function Give(f, path)
+	local quests = ns.Quests
+	if not (quests and type(quests.Give) == "function") then
+		return
+	end
+	local story = Rail.Story()
+	local raw = story and story.stacked and story.guide
+	local need = 0
+	if raw then
+		local _, reserve = Plan(raw)
+		if reserve > 0 then
+			need = math.max(0, Minimum(f, path) + reserve - (raw.top - raw.bottom))
+		end
+	end
+	quests.Give(need)
+end
+
 function Rail.Fit()
 	local f = Frame()
 	if not f or not On() or not state.placed then
@@ -463,6 +523,9 @@ function Rail.Place()
 	end
 	local f = Frame()
 	Holder()
+	if f then
+		Give(f, RestedXP.Chrome.Path(f))
+	end
 	local band = Rail.Band()
 	if not f or not band then
 		return false
@@ -525,6 +588,9 @@ Rail.Schedule = Schedule
 
 local function Restore()
 	ReleaseBoxes(true)
+	if ns.Quests and type(ns.Quests.Give) == "function" then
+		ns.Quests.Give(0)
+	end
 	local f = Frame()
 	local original = state.original
 	state.placed = nil
@@ -603,6 +669,7 @@ function ReleaseBoxes(restore, save)
 			if entry.held then
 				box[SAVE] = entry.held.value
 			end
+			RestedXP.Chrome.Label(box, nil)
 		end
 		local settings = save and IsTable(state.rxp) and state.rxp.settings
 		if IsTable(settings) and type(settings.SaveFramePositions) == "function" then
@@ -675,7 +742,7 @@ function Dock(f, path, band)
 	for _, entry in pairs(state.boxes) do
 		entry.shown = false
 	end
-	for _, slot in ipairs(Plan()) do
+	for _, slot in ipairs(Plan(band)) do
 		local box = slot.box
 		WatchBox(box)
 		local entry = state.boxes[box]
@@ -688,15 +755,17 @@ function Dock(f, path, band)
 			box[SAVE] = false
 			state.boxes[box] = entry
 		end
-		local reach, scale, icons = Reach(box), Widgets.ScaleFactor(box), Icons(box)
+		local scale = Widgets.ScaleFactor(box)
+		RestedXP.Chrome.Label(box, slot.label, slot.label and slot.width / scale - ns.Parts.CAP_INDENT - ns.Parts.CAP_PAD or nil)
+		local reach, icons = Reach(box), Icons(box)
 		local width
 		for _ = 1, 2 do
-			width = math.max(icons, (band.right - band.left) / scale - reach.left - reach.right)
+			width = math.max(icons, slot.width / scale - reach.left - reach.right)
 			box:SetWidth(width)
 			RestedXP.Chrome.IconInset(box)
 			reach = Reach(box)
 		end
-		local left = band.right / scale - reach.right - width
+		local left = (slot.left + slot.width) / scale - reach.right - width
 		local y = (top - slot.drop) / scale - reach.top
 		box:ClearAllPoints()
 		box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, y)

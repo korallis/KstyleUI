@@ -258,14 +258,29 @@ function Lumen.Build(state, opts)
 			log[#log + 1] = "nameplates: drawn again with the fixture plates seated clear of the cards the HUD draws over them"
 		end
 	end
-	local tracked = built.tracker and built.tracker.ns and built.tracker.ns.QuestCard
-	local card = tracked and tracked.Frame()
-	if card and card:IsShown() then
-		local K = Hud.envs[built.tracker.scene].KstyleUI
-		local root, f = K.Scale.Root(), K.Widgets.ScaleFactor(card)
-		base.questCard = { card:GetLeft() * f - root:GetLeft(), card:GetBottom() * f - root:GetBottom(), card:GetWidth() * f, card:GetHeight() * f }
+	local function QuestCard()
+		local tracked = built.tracker and built.tracker.ns and built.tracker.ns.QuestCard
+		local card = tracked and tracked.Frame()
+		if card and card:IsShown() then
+			local K = Hud.envs[built.tracker.scene].KstyleUI
+			local root, f = K.Scale.Root(), K.Widgets.ScaleFactor(card)
+			base.questCard = { card:GetLeft() * f - root:GetLeft(), card:GetBottom() * f - root:GetBottom(), card:GetWidth() * f, card:GetHeight() * f }
+		end
 	end
+	QuestCard()
 	local guide, R = Hud.Module("restedxp", base)
+	-- The rail asks the quest card for the room the guide's current step needs beside RestedXP's docked boxes; the
+	-- card renders in its own environment here, so it is drawn again giving that room, and the guide placed again.
+	local give = R and R.ns.Quests and R.ns.Quests.Given() or 0
+	if give > 0 and built.tracker then
+		base.questGive = give
+		local scene, ns, extra = Hud.Module("tracker", base)
+		scenes[at.tracker] = scene
+		built.tracker = { scene = scene, ns = ns, extra = extra }
+		QuestCard()
+		guide, R = Hud.Module("restedxp", base)
+		log[#log + 1] = string.format("tracker: drawn again giving the guide %.1f units for its current step", give)
+	end
 	table.insert(scenes, 1, guide)
 	if state == "combat" then
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))

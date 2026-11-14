@@ -68,12 +68,20 @@ for _, screen in ipairs(SCREENS) do
 		local guide, t, i = Glass(K, rxp.RXPFrame), Glass(K, targets), Glass(K, items)
 		local slot = K.Setup.Story("DPS", true).guide
 		for name, box in pairs({ targets = t, items = i }) do
-			assert(Near(box.left, guide.left, px) and Near(box.right, guide.right, px), string.format("%s: the %s box has the guide card's edges and width, got %.1f..%.1f for %.1f..%.1f", what, name, box.left, box.right, guide.left, guide.right))
 			assert(Clear(box, guide), string.format("%s: the %s box keeps off the guide's card, box %.1f..%.1f card %.1f..%.1f", what, name, box.bottom, box.top, guide.bottom, guide.top))
+			assert(Near(guide.bottom - box.top, gap, 2 * px), string.format("%s: the %s box docks a small gap under the card's foot, got %.2f", what, name, guide.bottom - box.top))
+			assert(box.bottom >= slot.bottom - px, string.format("%s: the %s box stays in the guide's slot, got %.1f for %.1f", what, name, box.bottom, slot.bottom))
 		end
-		assert(Near(guide.bottom - t.top, gap, 2 * px), string.format("%s: Active Targets docks a small gap under the card's foot, got %.2f", what, guide.bottom - t.top))
-		assert(Near(t.bottom - i.top, gap, 2 * px), string.format("%s: Active Items docks a small gap under Active Targets, got %.2f", what, t.bottom - i.top))
-		assert(i.bottom >= slot.bottom - px, string.format("%s: both boxes stay in the guide's slot, got %.1f for %.1f", what, i.bottom, slot.bottom))
+		local half = (guide.right - guide.left - gap) / 2
+		assert(Near(t.left, guide.left, px) and Near(i.right, guide.right, px) and Near(i.left - t.right, gap, 2 * px), string.format("%s: the two boxes share one row at the card's width, its gutter between them, got %.1f..%.1f and %.1f..%.1f for %.1f..%.1f", what, t.left, t.right, i.left, i.right, guide.left, guide.right))
+		assert(Near(t.right - t.left, half, 2 * px) and Near(i.right - i.left, half, 2 * px), what .. ": each takes half the width")
+		for name, box in pairs({ targets = targets, items = items }) do
+			local caption = ns.RestedXP.Chrome.Caption(box.title.text)
+			local glass = Glass(K, box)
+			assert(caption:GetText() == (name == "items" and "ITEMS" or "TARGETS"), what .. ": the " .. name .. " box wears a compact caps header, got " .. tostring(caption:GetText()))
+			local c = Geometry.ScaledRect(caption, env.UIParent, K.Scale.Root())
+			assert(not c or c.right <= glass.right + px, what .. ": the " .. name .. " header fits its half")
+		end
 		if screen[1] == 3456 or style == "orbs" then
 			assert(ns.RestedXP.Rail.Hidden() == 0, what .. ": the guide keeps its step on show above the boxes")
 		end
@@ -87,7 +95,8 @@ for _, screen in ipairs(SCREENS) do
 		S.W.Settle(env)
 		env.RunTimers()
 		guide, t, i = Glass(K, rxp.RXPFrame), Glass(K, targets), Glass(K, items)
-		assert(Near(i.right, guide.right, px) and i.left <= guide.left + px and Near(t.bottom - i.top, gap, 2 * px), what .. ": eight items, more than the card's width holds, keep the card's right edge and grow toward the screen's middle")
+		assert(Near(t.left, guide.left, px) and Near(t.right, guide.right, px) and Near(i.right, guide.right, px) and i.left <= guide.left + px and Near(t.bottom - i.top, gap, 2 * px), what .. ": eight items do not fit half the card, so the boxes stack at its full width, the items box growing toward the screen's middle")
+		assert(ns.RestedXP.Chrome.Caption(items.title.text):GetText() == "ACTIVE ITEMS", what .. ": a full-width box keeps RestedXP's own caption")
 		for n = 1, #items.buttonList do
 			local button = items.buttonList[n]
 			if button:IsShown() then
@@ -104,6 +113,7 @@ for _, screen in ipairs(SCREENS) do
 		local alone = Glass(K, targets)
 		local card = Glass(K, rxp.RXPFrame)
 		assert(Near(card.bottom - alone.top, gap, 2 * px) and alone.bottom >= slot.bottom - px, what .. ": Active Targets stays docked alone")
+		assert(Near(alone.left, card.left, px) and Near(alone.right, card.right, px), what .. ": and takes the card's full width")
 
 		rxp.fake.check(HOOKED)
 		assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))
