@@ -196,6 +196,15 @@ local function applyPreset(env, opts)
 		enabled[name] = K.Modules.IsEnabled(name)
 	end
 	assert(K.Setup.Apply({ layout = opts.layout, modules = enabled }), "the scene could not Apply " .. tostring(opts.layout))
+	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
+		K.Options.Write("ActionBars", "bar3.enabled", true)
+		local defaults = K.Store.Defaults("ActionBars")
+		for _, bar in ipairs({ "bar3", "pet", "stance" }) do
+			if type(defaults[bar]) == "table" and defaults[bar].showEmpty ~= nil then
+				K.Options.Write("ActionBars", bar .. ".showEmpty", true)
+			end
+		end
+	end
 	env._renderPreset = opts.layout
 	env.RunTimers()
 end
@@ -1660,11 +1669,6 @@ function Hud.PresetSettings(layout)
 			node = node[parts[i]]
 		end
 		node[parts[#parts]] = entry.value
-	end
-	-- RENDER_BAR3=1 turns action bar 3 on, which every preset leaves off, with its empty slots shown, so a render shows
-	-- where its place puts it.
-	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" then
-		settings.ActionBars.bar3.enabled, settings.ActionBars.bar3.showEmpty = true, true
 	end
 	return settings
 end
