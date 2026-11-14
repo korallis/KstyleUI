@@ -29,7 +29,7 @@ class SuppressionsTest(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.dir = Path(self.tmp.name)
         git(self.dir, "init", "-q", "-b", "base")
-        (self.dir / "a.lua").write_text("local a = 1\n", encoding="utf-8")
+        (self.dir / "a.lua").write_text("".join("local a%d = %d\n" % (i, i) for i in range(10)), encoding="utf-8")
         git(self.dir, "add", "-A")
         git(self.dir, "commit", "-q", "-m", "base")
         git(self.dir, "checkout", "-q", "-b", "change")
@@ -53,6 +53,16 @@ class SuppressionsTest(unittest.TestCase):
 
     def test_a_python_suppression_without_a_ticket_fails(self):
         self.assertEqual(self.check("b.py", "import os  " + NOQA + "\n").returncode, 1)
+
+    def test_a_renamed_file_that_gains_a_suppression_fails(self):
+        git(self.dir, "mv", "a.lua", "renamed.lua")
+        with open(self.dir / "renamed.lua", "a", encoding="utf-8") as handle:
+            handle.write("local unused = 2 -- " + IGNORE + "\n")
+        git(self.dir, "add", "-A")
+        git(self.dir, "commit", "-q", "-m", "rename")
+        result = subprocess.run(["bash", str(SUPPRESSIONS), "base"], cwd=self.dir, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("renamed.lua", result.stdout)
 
     def test_markdown_is_skipped(self):
         self.assertEqual(self.check("notes.md", PROSE).returncode, 0)
