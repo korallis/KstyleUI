@@ -224,11 +224,6 @@ local function Repaired(saved)
 	return data
 end
 
--- KeyError(message) -> true for the error migrations 30 and 32 raise on a non-string layout key (LEE-1462).
-local function KeyError(message)
-	return (message:find("Store.lua:792:", 1, true) or message:find("Store.lua:828:", 1, true)) ~= nil and message:find("attempt to index local 'key' (a number value)", 1, true) ~= nil
-end
-
 local function Holds(c)
 	local out = {}
 	local function Fail(text, ...)
@@ -236,7 +231,6 @@ local function Holds(c)
 	end
 	local env, K = Load(c.saved)
 	for _, message in ipairs(env._errors) do
-		c.keyError = c.keyError or KeyError(message)
 		Fail("loading raised: %s", tostring(message))
 	end
 	local db = env.KstyleUIDB
@@ -288,19 +282,4 @@ Property.Check({
 		return Property.Describe(c.saved) .. " (each migration's own data comes from the same seed and case)"
 	end,
 	property = Holds,
-	known = {
-		{
-			issue = "LEE-1462", why = "migrations 30 and 32 index a non-string layout key; Linear LEE-5749",
-			match = function(c, why)
-				local version = why:match("^migration (%d+) raised on its own: ")
-				if version then
-					return (version == "30" or version == "32") and KeyError(why)
-				end
-				if why:find("^loading raised: ") or why:find("^loading the saved data again raised: ") then
-					return KeyError(why)
-				end
-				return c.keyError == true and why:find("^saved version .- loads as ") ~= nil
-			end,
-		},
-	},
 })
