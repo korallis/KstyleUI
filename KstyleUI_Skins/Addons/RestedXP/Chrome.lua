@@ -1351,6 +1351,18 @@ local function CaptionReach(f, title)
 	return over > 0 and -Widgets.Snap(f, over) or nil
 end
 
+function Chrome.IconInset(f)
+	local glass, title = Panel(f), f.title
+	local rise = TitleRise(f, title)
+	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
+	local right = CaptionReach(f, title)
+	local inset = glass and type(glass.inset) == "table" and glass.inset or {}
+	if glass and (inset.top ~= top or inset.right ~= right) then
+		glass.inset = (top or right) and { top = top, right = right } or nil
+		glass:Restyle()
+	end
+end
+
 local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
 	local title = f.title
@@ -1365,15 +1377,7 @@ local function IconFrame(f, hide)
 		end
 		CaptionFor(title.text, title, nil, { panel = Panel(f) })
 	end
-	local glass = Panel(f)
-	local rise = TitleRise(f, title)
-	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
-	local right = CaptionReach(f, title)
-	local inset = glass and type(glass.inset) == "table" and glass.inset or {}
-	if glass and (inset.top ~= top or inset.right ~= right) then
-		glass.inset = (top or right) and { top = top, right = right } or nil
-		glass:Restyle()
-	end
+	Chrome.IconInset(f)
 	local panel = Panel(f)
 	if panel then
 		panel:SetShown(not Profile(hide))

@@ -23,7 +23,7 @@ Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
-	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false },
+	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
 	zone = { shown = true, color = "plain", font = "", size = 12, outline = "world" },
 	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world" },
@@ -200,6 +200,10 @@ local schema = {
 	{
 		type = "toggle", key = "drawer.hideEmpty", label = L["Hide when empty"],
 		help = L["Hides the drawer button while no addon has a button to show."],
+	},
+	{
+		type = "toggle", key = "drawer.edgePins", label = L["Addon pins on the map's edge"],
+		help = L["Shows the pins addons such as guides park on the map's edge for places off the map."],
 	},
 	{ type = "header", label = L["Zoom"] },
 	{

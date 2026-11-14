@@ -59,7 +59,7 @@ Reference.STATE = {
 		{ "Flametongue Weapon", 135814, "23m" },
 	},
 	debuffRow = { { "Poison", 136016, "7s" }, { "Shadow Word: Pain", 136207, "18s" } },
-	zone = "Windfield Orchard",
+	zone = os.getenv("RENDER_ZONE") or "Windfield Orchard",
 	position = { 0.462, 0.618 },
 	clock = { hour = 21, minute = 20, realmHour = 21, realmMinute = 20 },
 	cvars = { timeMgrUseMilitaryTime = false },

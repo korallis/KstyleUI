@@ -1,4 +1,4 @@
--- Drawer.lua: the addon-button drawer: LibDBIcon buttons collected into a glass flyout beside the button column, and the addon compartment's list.
+-- Drawer.lua: the addon-button drawer: LibDBIcon buttons and any other addon's named button on the minimap collected into a glass flyout beside the button column, and the addon compartment's list.
 local _, ns = ...
 
 local K = KstyleUI
@@ -17,16 +17,7 @@ local LEVEL_BUTTON = 2
 local ICON_FILL = 0.72
 local HOVER_GRACE = 0.5
 local DRAG_BUTTON = "LeftButton"
-local OWN_BUTTONS = {
-	"BlackthornesMinimapButton",
-	"BlackthornesButlerMinimapButton",
-	"BlackthornesEquipmentMinimapButton",
-	"BlackthornesFarmerMinimapButton",
-	"BlackthornesPathfinderMinimapButton",
-	"BlackthornesPetsMinimapButton",
-	"BlackthornesTSMinimapButton",
-	"OxgleBugsMinimapButton",
-}
+local OWN_PREFIX = "^KstyleUI"
 
 local hooked = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
@@ -408,9 +399,10 @@ function Drawer:Collect()
 			end
 		end
 	end
-	for _, name in ipairs(OWN_BUTTONS) do
-		local button = rawget(_G, name)
-		if type(button) == "table" and type(button.GetParent) == "function" and button:GetParent() == Minimap and self:Adopt(name, button, true) then
+	local minimap = Minimap
+	for _, child in ipairs(minimap and { minimap:GetChildren() } or {}) do
+		local name = child:GetObjectType() == "Button" and child:GetName()
+		if type(name) == "string" and not name:find(OWN_PREFIX) and not ns.Pins.Is(child) and self:Adopt(name, child, true) then
 			added = true
 		end
 	end

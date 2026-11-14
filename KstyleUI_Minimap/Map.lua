@@ -380,6 +380,7 @@ local function CollectButtons()
 	if running and Map.drawer then
 		Map.drawer:Collect()
 		Map.column:Refresh()
+		ns.Pins.Sync(running)
 	end
 end
 
@@ -394,6 +395,7 @@ function Map.Refresh()
 	Fit()
 	Map.drawer:Sync(running)
 	Map.column:Refresh()
+	ns.Pins.Sync(running)
 	SyncQueue()
 	UpdateZone()
 	UpdateClock()
@@ -733,6 +735,7 @@ function Map.Disable()
 	if Map.drawer then
 		Map.drawer:Sync(false)
 	end
+	ns.Pins.Sync(false)
 	local registry = EventRegistry
 	if registry and type(registry.UnregisterCallback) == "function" then
 		registry:UnregisterCallback(QUEUE_CALLBACK, Map)

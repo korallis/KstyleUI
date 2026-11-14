@@ -209,7 +209,7 @@ function Face.New(holder, opts)
 	local plate = CreateFrame("Frame", nil, holder)
 	Level(plate, holder, LEVEL_PLATE)
 	plate.diamond = NewDiamond(plate)
-	face.north = NewText(plate)
+	face.north = Widgets.Fitted(NewText(plate))
 	face.north:SetText(L["N"])
 	face.north:SetPoint("CENTER", plate, "CENTER", 0, 0)
 	face.plate = plate
@@ -273,6 +273,30 @@ function Face:SetZone(text, pvpType)
 		self.zone:SetText("")
 	end
 	self.zone:SetTextColor(Style.Color(Format.ZoneToken(pvpType, Settings.Get("zone.color"))))
+	self:PlaceZone()
+end
+
+local function Extent(text)
+	local height = text:GetStringHeight()
+	if Plain(height) and height > 0 then
+		return height
+	end
+	local _, size = text:GetFont()
+	return Plain(size) and size or 0
+end
+
+function Face:PlaceZone()
+	local card, zone = self.card, self.zone
+	local side = self.mapSize
+	if not side then
+		return
+	end
+	local mark = max(self.plate.diamond.black:GetHeight(), Extent(self.north)) / 2
+	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
+	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
+	zone:ClearAllPoints()
+	zone:SetPoint("LEFT", card, "TOPLEFT", Snap(card, Format.CAPTION_X), y)
+	zone:SetWidth(Snap(card, max(0, side + 2 * Format.FRAME - 2 * Format.CAPTION_X)))
 end
 
 local MERIDIEMS = { { L["AM"], " " .. L["AM"] }, { L["PM"], " " .. L["PM"] } }
@@ -482,11 +506,9 @@ function Face:Layout()
 	diamond.gilt:SetSize(plateSize, plateSize)
 	diamond.fill:SetSize(max(0, plateSize - 4 * border), max(0, plateSize - 4 * border))
 
-	local x, zoneY, rowY = Snap(card, Format.CAPTION_X), Snap(card, Format.ZONE_CENTER), Snap(card, Format.ROW_CENTER)
-	local zone, coords = self.zone, self.coords
-	zone:ClearAllPoints()
-	zone:SetPoint("LEFT", card, "TOPLEFT", x, zoneY)
-	zone:SetWidth(Snap(card, math.max(0, side + 2 * Format.FRAME - 2 * Format.CAPTION_X)))
+	local x, rowY = Snap(card, Format.CAPTION_X), Snap(card, Format.ROW_CENTER)
+	local coords = self.coords
+	self:PlaceZone()
 	coords:ClearAllPoints()
 	coords:SetPoint("LEFT", card, "BOTTOMLEFT", x, -rowY)
 	self:PlaceClock()

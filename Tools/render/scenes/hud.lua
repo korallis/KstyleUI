@@ -1473,6 +1473,25 @@ function modules.restedxp(opts)
 			frame:Hide()
 		end
 	end
+	R.ns.RestedXP.Rail.Place()
+	-- RENDER_RXP_BOXES=1 shows RestedXP's Active Targets and Active Items boxes, each with one icon, starting from the
+	-- places the owner's RestedXP settings saved for them (KSTY-77), so the render shows where the rail docks them.
+	if os.getenv("RENDER_RXP_BOXES") == "1" then
+		local rxp, UIParent = R.rxp, R.env.UIParent
+		local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
+		items:ClearAllPoints()
+		items:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -47.7, 242.5)
+		targets:ClearAllPoints()
+		targets:SetPoint("RIGHT", UIParent, "RIGHT", -191.5, -276.6)
+		rxp.targeting:UpdateTargetFrame(1, 0)
+		rxp.UpdateItemFrame(nil, 1)
+		for _, frame in ipairs({ items, items.title, R.K.Skin.Parts(items).backdrop }) do
+			frame:Show()
+		end
+		R.env.RunTimers()
+		R.ns.RestedXP.Rail.Place()
+		R.S.W.Settle(R.env)
+	end
 	local scene = build(R.env, opts)
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line

@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card at its width (a box with more icons keeps the card's right edge and grows toward the middle), a small gap apart, the guide's room cut to leave them space, until the player drags one away.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,8 +21,14 @@ local SAVE = "savePosition"
 local FOOT_GAP = "gapSmall"
 local MOVED = 1
 local RXP_STEP_GAP, MORE_ROW, MORE_SCALE, REST_FOOT = 5, 12.5, 0.85, 12
+local DOCK = "boxes"
+local BOXES = { "targets", "items" }
+local BOX_GAP = "gapSmall"
+local BOX_PAD = 4
 
-local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0 }
+local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
+
+local Dock, ReleaseBoxes
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -122,10 +128,91 @@ local function CardBottom()
 	end
 end
 
+local function Docking()
+	return On() and ns.Skins.Setting(KEY, DOCK) == true
+end
+
+local function Box(which)
+	local rxp = state.rxp
+	if not IsTable(rxp) then
+		return nil
+	end
+	local box
+	if which == "items" then
+		box = rxp.activeItemFrame
+	elseif IsTable(rxp.targeting) then
+		box = rxp.targeting.activeTargetFrame
+	end
+	return IsTable(box) and type(box.GetPoint) == "function" and box or nil
+end
+
+local function Boxes()
+	local out = {}
+	if not Docking() then
+		return out
+	end
+	for _, which in ipairs(BOXES) do
+		local box = Box(which)
+		if box and box:IsShown() then
+			out[#out + 1] = box
+		end
+	end
+	return out
+end
+
+local function Reach(box)
+	local parts = K.Skin.Parts(box)
+	local glass = parts and parts.backdrop
+	local none = { top = 0, left = 0, right = 0, bottom = 0 }
+	if not glass then
+		return none
+	end
+	local bl, bb, br, bt = box:GetLeft(), box:GetBottom(), box:GetRight(), box:GetTop()
+	local gl, gb, gr, gt = glass:GetLeft(), glass:GetBottom(), glass:GetRight(), glass:GetTop()
+	if not (Plain(bl) and Plain(bb) and Plain(br) and Plain(bt) and Plain(gl) and Plain(gb) and Plain(gr) and Plain(gt)) then
+		return none
+	end
+	return { top = gt - bt, left = bl - gl, right = gr - br, bottom = bb - gb }
+end
+
+local function Tall(box, reach)
+	local height = box:GetHeight()
+	return ((Plain(height) and height or 0) + reach.top + reach.bottom) * Widgets.ScaleFactor(box)
+end
+
+local function Icons(box)
+	local left, need = box:GetLeft(), 0
+	if not Plain(left) then
+		return need
+	end
+	for _, child in ipairs({ box:GetChildren() }) do
+		local right = child ~= box.title and child:GetObjectType() == "Button" and child:IsShown() and child:GetRight()
+		if Plain(right) then
+			need = math.max(need, right - left + BOX_PAD)
+		end
+	end
+	return need
+end
+
+local function Plan()
+	local plan, drop = {}, 0
+	for i, box in ipairs(Boxes()) do
+		drop = drop + Tokens.Size(BOX_GAP)
+		plan[i] = { box = box, drop = drop }
+		drop = drop + Tall(box, Reach(box))
+	end
+	return plan, drop
+end
+
 function Rail.Band()
 	local story = Rail.Story()
 	local band = story and story.guide
-	if not (band and story.stacked) then
+	if not band then
+		return band
+	end
+	local _, reserve = Plan()
+	band.bottom = band.bottom + reserve
+	if not story.stacked then
 		return band
 	end
 	local gap = K.Setup.Layouts.STORY_GAP
@@ -403,6 +490,11 @@ function Rail.Place()
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
+	if Docking() then
+		Dock(f, path, band)
+	else
+		ReleaseBoxes(true)
+	end
 	Refresh(f)
 	if shape.height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
@@ -432,6 +524,7 @@ end
 Rail.Schedule = Schedule
 
 local function Restore()
+	ReleaseBoxes(true)
 	local f = Frame()
 	local original = state.original
 	state.placed = nil
@@ -489,6 +582,124 @@ local function Moved(f)
 	end
 end
 
+function ReleaseBoxes(restore)
+	for box, entry in pairs(state.boxes) do
+		if entry.held then
+			box[SAVE] = entry.held.value
+		end
+		local original = restore and entry.original
+		if original then
+			K.Combat.Queue(function()
+				box:ClearAllPoints()
+				for _, point in ipairs(original.points) do
+					box:SetPoint(unpack(point))
+				end
+				if Plain(original.width) then
+					box:SetWidth(original.width)
+				end
+			end)
+		end
+	end
+	state.boxes = {}
+end
+
+local function BoxMoved(box)
+	local entry = state.boxes[box]
+	if not (entry and entry.placed and Docking() and Shifted(box, entry.placed)) then
+		return
+	end
+	entry.original = nil
+	ReleaseBoxes(true)
+	local settings = IsTable(state.rxp) and state.rxp.settings
+	if IsTable(settings) and type(settings.SaveFramePositions) == "function" then
+		RestedXP.Try("settings.SaveFramePositions", settings.SaveFramePositions, settings)
+	end
+	K.Options.Write(MODULE, KEY .. "." .. DOCK, false)
+	Log("the player moved one of RestedXP's boxes; the rail lets them be")
+	K.Print(L["KstyleUI leaves RestedXP's item and target boxes where you put them. Turn Dock RestedXP's boxes back on in the RestedXP skin's settings."])
+end
+
+local function Drifted()
+	for _, which in ipairs(BOXES) do
+		local box = Box(which)
+		local entry = box and state.boxes[box]
+		if box then
+			local shown = box:IsShown() == true
+			local width = box:GetWidth()
+			if shown ~= (entry ~= nil and entry.shown == true) then
+				return true
+			end
+			if shown and entry.placed and Plain(width) and math.abs(width - entry.placed.width) > 0.01 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function Watch()
+	if Docking() and Drifted() then
+		Schedule()
+	end
+end
+
+local watched = setmetatable({}, { __mode = "k" })
+
+local function WatchBox(box)
+	if watched[box] then
+		return
+	end
+	watched[box] = true
+	local function Dropped()
+		BoxMoved(box)
+	end
+	box:HookScript("OnShow", Watch)
+	box:HookScript("OnHide", Watch)
+	box:HookScript("OnMouseUp", Dropped)
+	if IsTable(box.title) and type(box.title.HookScript) == "function" then
+		box.title:HookScript("OnMouseUp", Dropped)
+	end
+end
+
+function Dock(f, path, band)
+	local card, root = path and path.card, K.Scale.Root()
+	local bottom, rb = card and card:GetBottom(), root:GetBottom()
+	if not (Plain(bottom) and Plain(rb)) then
+		return
+	end
+	local top = bottom * Widgets.ScaleFactor(f) - rb
+	for _, entry in pairs(state.boxes) do
+		entry.shown = false
+	end
+	for _, slot in ipairs(Plan()) do
+		local box = slot.box
+		WatchBox(box)
+		local entry = state.boxes[box]
+		if not entry then
+			local points = {}
+			for i = 1, box:GetNumPoints() do
+				points[i] = { box:GetPoint(i) }
+			end
+			entry = { original = { points = points, width = box:GetWidth() }, held = { value = box[SAVE] } }
+			box[SAVE] = false
+			state.boxes[box] = entry
+		end
+		local reach, scale, icons = Reach(box), Widgets.ScaleFactor(box), Icons(box)
+		local width
+		for _ = 1, 2 do
+			width = math.max(icons, (band.right - band.left) / scale - reach.left - reach.right)
+			box:SetWidth(width)
+			RestedXP.Chrome.IconInset(box)
+			reach = Reach(box)
+		end
+		local left = band.right / scale - reach.right - width
+		local y = (top - slot.drop) / scale - reach.top
+		box:ClearAllPoints()
+		box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, y)
+		entry.placed, entry.shown = { left = left, top = y, width = width }, true
+	end
+end
+
 local function OnHead(f)
 	if state.placed and On() and IsTable(f) and f == Frame() then
 		Fit(f, RestedXP.Chrome.Path(f), Rail.Band())
@@ -534,6 +745,21 @@ function Rail.Start(rxp)
 	end
 	Holder()
 	Hook(f)
+	for _, which in ipairs(BOXES) do
+		local box = Box(which)
+		if box then
+			WatchBox(box)
+		end
+	end
+	if not state.watching then
+		state.watching = true
+		if type(rxp.UpdateItemFrame) == "function" then
+			hooksecurefunc(rxp, "UpdateItemFrame", Watch)
+		end
+		if IsTable(rxp.targeting) and type(rxp.targeting.UpdateTargetFrame) == "function" then
+			hooksecurefunc(rxp.targeting, "UpdateTargetFrame", Watch)
+		end
+	end
 	RestedXP.Chrome.OnHead = OnHead
 	if not state.tracked then
 		state.tracked = { Restyle = Schedule }

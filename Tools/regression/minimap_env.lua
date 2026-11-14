@@ -405,6 +405,10 @@ function M.New(opts)
 	local env, K = W.New({
 		saved = saved,
 		boot = false,
+		width = opts.width,
+		height = opts.height,
+		uiScale = opts.uiScale,
+		size = opts.size,
 		setup = function(env)
 			M.Blizzard(env, opts)
 			if opts.setup then
