@@ -1113,17 +1113,29 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	if style == "orbs" then
 		local bar = layout["actionbars.bar1"]
 		local barWidth, barHeight = Layouts.Footprint(name, "actionbars.bar1")
+		local w = max(1, floor(barWidth * pixelScale + 0.5))
+		local h = max(1, floor(barHeight * pixelScale + 0.5))
 		local point = OFFSETS[bar.anchor] or OFFSETS.CENTER
-		local x = physicalWidth * point[1] + (bar.x + barWidth * (0.5 - point[1])) * pixelScale
-		local y = physicalHeight * point[2] + (bar.y + barHeight * (0.5 - point[2]) + ORBS_LIFT) * pixelScale
-		local radius = ORBS_RING / 2 * pixelScale
-		for _, cx in ipairs({ x - ORBS_X * pixelScale, x + ORBS_X * pixelScale }) do
-			if cx - radius < 0 or y - radius < 0 or cx + radius > physicalWidth or y + radius > physicalHeight then
+		local art = Layouts.OrbsTray(w / pixelScale)
+		local radius = max(art.ring * pixelScale, floor(art.ring * pixelScale + 0.5)) / 2
+		local centres = {}
+		local left = physicalWidth * point[1] + bar.x * pixelScale - w * point[1] + 0.5
+		local bottom = physicalHeight * point[2] + bar.y * pixelScale - h * point[2] + 0.5
+		for _, l in ipairs({ floor(left), left - floor(left) < 1e-6 and floor(left) - 1 or nil }) do
+			for _, b in ipairs({ floor(bottom), bottom - floor(bottom) < 1e-6 and floor(bottom) - 1 or nil }) do
+				local x, y = l + w / 2, b + h / 2 + art.lift * pixelScale
+				centres[#centres + 1] = { x - art.ringX * pixelScale, y }
+				centres[#centres + 1] = { x + art.ringX * pixelScale, y }
+			end
+		end
+		for _, centre in ipairs(centres) do
+			local cx, cy = centre[1], centre[2]
+			if cx - radius < 0 or cy - radius < 0 or cx + radius > physicalWidth or cy + radius > physicalHeight then
 				return false
 			end
 			for index = 1, #rects do
 				local rect = rects[index]
-				local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - y, 0, y - rect[4])
+				local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - cy, 0, cy - rect[4])
 				if dx * dx + dy * dy < radius * radius then
 					return false
 				end
