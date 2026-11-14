@@ -602,7 +602,7 @@ local function Allowed(row, value)
 		end
 		return nil
 	end
-	return type(value) == "string" and (kind == "font" or value ~= "") and value or nil
+	return type(value) == "string" and (kind == "font" or kind == "text" or value ~= "") and value or nil
 end
 
 local cache = {}

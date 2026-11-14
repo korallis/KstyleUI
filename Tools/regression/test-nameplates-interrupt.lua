@@ -117,6 +117,12 @@ do
 	assert(ns.Interrupt.spell == "Spell Nobody Knows", "an unresolved name is still handed to the cooldown API as it is")
 	K.Options.Write("Nameplates", "cast.interruptSpell", "")
 	assert(ns.Interrupt.spell == PUMMEL, "blank: back to the class table")
+	-- Blank is the default and a value the player may save, so reading it logs nothing (the owner's v0.1.0
+	-- devlog said "the saved value of cast.interruptSpell is not allowed" on every login).
+	assert(ns.Settings.Get("cast.interruptSpell") == "", "a saved blank reads as blank")
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		assert(not tostring(entry.message):find("cast.interruptSpell is not allowed", 1, true), "a saved blank is allowed, got " .. tostring(entry.message))
+	end
 
 	-- Another profile names another spell; switching profiles finds it.
 	K.Store.CreateProfile("Bash")
