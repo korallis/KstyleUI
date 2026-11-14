@@ -22,14 +22,14 @@ Run `bash scripts/gate.sh` from the repository root before every push. It runs, 
 - `scripts/gate.sh lint`, `lua` and `python` run one group. CI calls them: `pre-commit` runs `lint`, each Lua shard runs `lua --shard I/2`, and `python` runs `python`. `GATE_BASE` changes the base ref.
 - `pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install`: worktrees share `.git/hooks`.
 - `check-suppressions.sh` fails on a new `-- luacheck: ignore`, workaround marker or lint suppression whose line carries no ticket id such as `LEE-1234`.
-- `run-all.sh --affected` runs the test files that load a file you changed plus the source guards, and prints why. A file that half the tests load, a stub, an env file or the runner runs every file. The first run on a machine runs everything once to record what each file loads. `bash Tools/regression/run-all.sh` with no argument is the full suite, as CI runs it; use it to reproduce a CI failure. It runs under Lua 5.1 (`bash Tools/dev/install-lua51.sh` installs it) or `luajit -joff`. Each test file must stay within 20 s and 4096 MB. [`Tools/regression/README.md`](Tools/regression/README.md) explains modes, budgets and worker slots.
+- `run-all.sh --affected` runs the test files that load a file you changed plus the source guards, and prints why. A file that half the tests load, a stub, an env file or the runner runs every file. The first run on a machine runs everything once to record what each file loads. `bash Tools/regression/run-all.sh` with no argument is the full suite; use it to reproduce a CI failure. It runs under Lua 5.1 (`bash Tools/dev/install-lua51.sh` installs it) or `luajit -joff`. Each test file must stay within 20 s and 4096 MB. [`Tools/regression/README.md`](Tools/regression/README.md) explains modes, budgets and worker slots.
 - `luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives it. `Tools/build/gen_globals.py` writes `Tools/data/forever_globals.lua` from the matching UI source and the client's FrameXML GlobalStrings names; regenerate when the build changes. A global your module creates (a named frame, a `BINDING_*` string, a `SLASH_*` command) goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the source does not prove it: never add a Blizzard name to your module's line.
 - `check_toc.py` reports files a TOC or XML include lists that are missing or differ in letter case from the file on disk. macOS loads such a file and a case-sensitive file system does not, so this check is the only guard.
 - A change to a player-facing string needs `python3 Tools/locale/strings.py sync`; the gate's `check` names the fix.
 
 ## Pull requests
 
-Pull requests target `staging`. The title is `type(scope): summary` (Conventional Commits). The body has a `## Changelog` section whose line starts with `Added:`, `Changed:` or `Fixed:`, and an `## In-game checks` list. A pull request that changes only tooling or docs gets the `no changelog` label instead. `Tools/hooks/check-pr.sh` and CI enforce this. There is no line limit; keep each pull request to one coherent piece of work.
+Every change merges into `staging` by squash; `main` follows `staging` at a release. Pull requests target `staging`. The title is `type(scope): summary` (Conventional Commits). The body has a `## Changelog` section whose line starts with `Added:`, `Changed:` or `Fixed:`, and an `## In-game checks` list. A pull request that changes only tooling or docs gets the `no changelog` label instead. `Tools/hooks/check-pr.sh` and CI enforce this. There is no line limit; keep each pull request to one coherent piece of work.
 
 Change these only when the task needs it, and say why in the body: `.github/workflows/`, `.pkgmeta`, `Core/Tokens.lua`.
 
@@ -79,7 +79,7 @@ Each is a test; its failure message names the fix.
 - Never read state back from regions inside engine aura buttons; keep the wanted state yourself (`test-unitframes-auras.lua`).
 - Register one event handler per owner and event in `Core/Events.lua`; give each piece of work its own owner (`Tools/regression/event_guard.lua`).
 - Add no top-level local to `Core/Setup/Layouts.lua` (`test-layouts-locals.lua` keeps a margin under Lua's 200-local limit).
-- The stubs raise what the client raises: nil rects, nil and NaN scales, restricted measurements, and methods a Font object lacks (`test-stub-refusals.lua`, `test-stubs.lua`).
+- The stubs raise what the client raises: nil rects, nil and NaN scales, and methods a Font object lacks (`test-stub-refusals.lua`); restricted measurements and secret values too (`test-stubs.lua`).
 
 ## Learned mistakes
 

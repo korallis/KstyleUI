@@ -43,7 +43,7 @@ bash scripts/gate.sh
 
 It runs `python3 Tools/dev/crlf.py --check`, `pre-commit run --all-files`, `luacheck .`, `python3 Tools/hooks/check_toc.py`, `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those.
 
-The `lua` group runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why. CI runs every file, so `bash Tools/regression/run-all.sh` with no argument is for reproducing a CI failure.
+With no options the `lua` group runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why; CI passes `--shard I/2` and runs every file. `bash Tools/regression/run-all.sh` with no argument reproduces a CI failure.
 
 ### What CI runs
 

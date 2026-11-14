@@ -10,7 +10,7 @@ if [ -z "$base" ]; then
 fi
 mb=$(git merge-base "$base" HEAD)
 
-git diff -U0 --no-color --diff-filter=AM "$mb" HEAD -- . \
+git diff -U0 --no-color --diff-filter=AMR "$mb" HEAD -- . \
   ':(exclude)*.md' ':(exclude)*.mdx' ':(exclude)*.txt' ':(exclude)*.lock' ':(exclude)*.resolved' \
   ':(exclude)**/check-suppressions.sh' |
 awk '

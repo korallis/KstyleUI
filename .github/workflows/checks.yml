@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
       - name: Check the runner's luacheck and pre-commit
         run: |
@@ -35,7 +35,7 @@ jobs:
           pre-commit --version | grep '^pre-commit 4\.7\.0$'
       - name: Run the lint gate (crlf, pre-commit, luacheck, check_toc, strings, suppressions)
         env:
-          GATE_BASE: HEAD^1
+          GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
           KSTYLEUI_PYTHON: python3
         run: bash scripts/gate.sh lint
 

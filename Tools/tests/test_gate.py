@@ -82,7 +82,7 @@ class GateTest(unittest.TestCase):
         text = CHECKS.read_text(encoding="utf-8")
         for group in ("lint", "lua", "python"):
             self.assertRegex(text, r"bash scripts/gate\.sh " + group)
-        self.assertIsNotNone(re.search(r"GATE_BASE: HEAD\^1", text))
+        self.assertIn("GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}", text)
 
 
 if __name__ == "__main__":

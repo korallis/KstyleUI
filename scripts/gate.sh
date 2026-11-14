@@ -12,7 +12,7 @@ group=${1:-all}
 [ $# -gt 0 ] && shift
 base=${GATE_BASE:-origin/staging}
 py=${KSTYLEUI_PYTHON:-$HOME/.local/share/wow-dev/venv/bin/python}
-[ -x "$py" ] || py=python3
+command -v "$py" >/dev/null 2>&1 || py=python3
 
 case "$group" in
 lint | lua | python | all) ;;
