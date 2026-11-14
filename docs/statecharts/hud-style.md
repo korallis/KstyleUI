@@ -1,6 +1,6 @@
 # HUD style switch
 
-The HUD style is Frames or Orbs, saved per profile in the `HudStyle` section. `Core/HudStyle.lua` owns the switch: it applies the saved style out of combat, holds a change made in combat until combat ends, fires `HudStyleChanged` once per real change, and offers a reload when a listener raised an error. `test-unitframes-orbs` drives every transition below.
+The HUD style is Frames or Orbs, saved per profile in the `HudStyle` section. `Core/HudStyle.lua` owns the switch: it applies the saved style out of combat, holds a change made in combat until combat ends, fires `HudStyleChanged` once per real change, and offers a reload when a listener raised an error. `test-unitframes-orbs` drives the live switch, the combat queue (a second pick in combat prints nothing more) and the reload prompt; no test yet ends combat with the pick undone, or presses Later or Reload now.
 
 ```mermaid
 stateDiagram-v2
@@ -42,7 +42,7 @@ stateDiagram-v2
 | --- | --- |
 | `Core/Scale.lua` | `Request("the HUD style")`: the scale limit depends on the style. See [arrangement-layout-class.md](arrangement-layout-class.md). |
 | `Core/Layout/Layout.lua` | `Restyle`: `ResolveAll` (each element's default comes from `StyleDefault` for the new style), `UpdateEvents`, `ApplyAll`, `LayoutChanged` for every element, then `Mode("Refresh")` when Layout Mode is open. |
-| `Core/Setup/Setup.lua` | `Restyle`: when the active Edit Mode layout is KstyleUI's and `Setup.Apply` is not writing, queues `EditMode.Restyle` to move the viewers and rows KstyleUI placed. |
+| `Core/Setup/Setup.lua` | `Restyle`: when `Setup.Apply` is not writing and the active Edit Mode layout is KstyleUI's layout for the current `Layout.preset` (`EditMode.ActiveName()` equals the preset), queues `EditMode.Restyle` to move the viewers and rows KstyleUI placed. |
 | `KstyleUI_UnitFrames/Frames.lua` | `OnHudStyleChanged`: `Orbs.Apply`, the player frame, every restyle, and Blizzard's frames. |
 | `KstyleUI_Chat/Module.lua` | `Refresh("framing")`. |
 | `KstyleUI_Skins/Quests/Quests.lua` | `Replace`: places the quest card again. |

@@ -12,7 +12,7 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | Feature | Where | Code | Tests | Render |
 | --- | --- | --- | --- | --- |
 | HUD style: Frames and Orbs | General > HUD style; setup step 2 | `Core/HudStyle.lua`, `KstyleUI_UnitFrames/Orbs.lua`, `Core/Layout/Layout.lua` (`Style`, `StyleDefault`) | `test-unitframes-orbs` (combat queue, reload prompt), `test-options-hud-pictures`, `test-layout-orbs*`, `test-setup-editmode-orbs`, `test-orbs-clearance-*` | `hud_reference` with `RENDER_HUD_STYLE=Frames\|Orbs`, `RENDER_ORBS_HIT=1` for the hit orb; statechart [hud-style.md](statecharts/hud-style.md) |
-| Clean bars (player, target, focus, pet, boss frames) | Unit Frames | `KstyleUI_UnitFrames/` (`Frames.lua`, `Unit.lua`, `Style.lua`) | `test-unitframes-*`, `test-ornament-unitframe-bars` | `hud_reference` with `RENDER_LOSS=1`; `gallery_unitframes`, `unitframes_design` |
+| Clean bars (player, target, target of target, focus, focus target, pet and boss frames) | Unit Frames | `KstyleUI_UnitFrames/` (`Frames.lua`, `Unit.lua`, `Style.lua`) | `test-unitframes-*`, `test-ornament-unitframe-bars` | `hud_reference` with `RENDER_LOSS=1`; `gallery_unitframes`, `unitframes_design` |
 | Orbs and the forged tray | Unit Frames; General > HUD style | `KstyleUI_UnitFrames/Orbs.lua`, `KstyleUI_ActionBars/Tray.lua` | `test-unitframes-orbs`, `test-unitframes-orbs-tray`, `test-store-tray` | `hud_reference` with `RENDER_HUD_STYLE=Orbs RENDER_ORBS_HIT=1` |
 | Wide target bar | Unit Frames > Target > Style | `KstyleUI_UnitFrames/Frames.lua`, `Geometry.lua` | `test-unitframes-target-bar`, `test-unitframes-target-orbs` | `hud_reference` with `RENDER_HUD_STYLE=Orbs`, or `hud` scenes with `RENDER_TARGET_STYLE` |
 | Cast bars | Unit Frames | `KstyleUI_UnitFrames/CastBar.lua` | `test-unitframes-castbar*`, `test-unitframes-cast-flashes`, `test-unitframes-column-cast` | `hud_reference` (the picture's casts), `gallery_unitframes` |
@@ -27,11 +27,11 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | Threat card | Meters | `KstyleUI_Meters/Threat.lua` | `test-meters-threat`, `test-store-threat` | `hud_reference` with `RENDER_LAYOUT=Tank`; `hud_dps_threat` |
 | Swing timer | Meters | `KstyleUI_Meters/Swing.lua` | `test-meters-swing`, `test-store-swing` | `gallery_meters` |
 | Map card and addon drawer | Minimap | `KstyleUI_Minimap/` (`Map.lua`, `Drawer.lua`) | `test-minimap*` | `gallery_minimap`, `minimap_ornaments` |
-| Quest card | Window Skins | `KstyleUI_Skins/Quests/`, `Tracker.lua` | `test-skins-questcard`, `test-skins-quests`, `test-skins-tracker*` | `hud_reference` (the right rail), `tracker` |
+| Quest card | Window Skins | `KstyleUI_Skins/Quests/`, `KstyleUI_Skins/Tracker.lua` | `test-skins-questcard`, `test-skins-quests`, `test-skins-tracker*` | `hud_reference` (the right rail), `tracker` |
 | RestedXP guide card and windows | Window Skins | `KstyleUI_Skins/Addons/` | `test-skins-restedxp-*`, `test-restedxp-readability` | `restedxp`, `gallery_restedxp`; `hud_reference` with `RENDER_STORY=live` |
-| Experience strip, readout and micro menu | Data Bars | `KstyleUI_DataBars/` | `test-databars-*` | `databars`, `gallery_databars`; `hud_reference` with `RENDER_XP`, `RENDER_FACTION=1` |
+| Experience, reputation and honour strip, readout and micro menu | Data Bars | `KstyleUI_DataBars/` | `test-databars-*` | `databars`, `gallery_databars`; `hud_reference` with `RENDER_XP=<amount>`, `RENDER_FACTION=1` |
 | Chat card | Chat | `KstyleUI_Chat/` | `test-chat-*` | `chat`, `gallery_chat`; `RENDER_CHAT_FRAMING=auto\|card\|bare` |
-| Loot feed, fast loot, repair, quest hand-in | Quality of Life | `KstyleUI_QoL/` | `test-qol*` | `gallery_qol` |
+| Loot feed, fast loot, auto repair, quest hand-in, quiet error text | Quality of Life | `KstyleUI_QoL/` | `test-qol*` | `gallery_qol` |
 
 ## Screens and layouts
 
@@ -40,7 +40,7 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | Interface size: Auto (pixel perfect) | General > Size | `Core/Scale.lua` (`Apply`, `Auto`), `Core/Appearance.lua` | `test-scale-auto`, `test-hud-scale`, `test-pixel-grid-*`, `test-text-floor` | any HUD scene with `RENDER_SIZE=auto` and `RENDER_SCREEN` |
 | Ultrawide arrangement: Centred and Spread | Elements > Ultrawide arrangement | `Core/Scale.lua` (`CanvasWidth`, `AspectClass`), `Core/Layout/Layout.lua` | `test-layout-ultrawide`, `test-setup-warnings` | `hud_reference` with `RENDER_ARRANGEMENT=centred\|spread RENDER_SCREEN=5120x1440 RENDER_SIZE=auto`; statechart [arrangement-layout-class.md](statecharts/arrangement-layout-class.md) |
 | HUD width: 21:9, 16:9, full | Elements > HUD width | `Core/Scale.lua` (`BandWidth`) | `test-layout-ultrawide` | as above |
-| DPS, Tank and Healer layouts | setup step 3; Elements | `Core/Setup/Layouts.lua` | `test-setup-layouts`, `test-setup-collisions`, `test-render-scenes-reference*`, `test-centre-clearance-*` | `hud_reference` with `RENDER_LAYOUT=DPS\|Tank\|Healer` |
+| DPS, Tank and Healer layouts | setup step 3 (`/kstyle setup` to change it) | `Core/Setup/Layouts.lua` | `test-setup-layouts`, `test-setup-collisions`, `test-render-scenes-reference*`, `test-centre-clearance-*` | `hud_reference` with `RENDER_LAYOUT=DPS\|Tank\|Healer` |
 | Layout Mode | `/kstyle layout`; Elements | `Core/Layout/Mode.lua`, `Layout.lua`, `History.lua` | `test-layout-mode`, `test-layout*` | `gallery_layout` |
 | Calm the rails in combat | Elements > Combat | `Core/Layout/Calm.lua` | `test-layout-calm` | `hud_lumen_combat` |
 

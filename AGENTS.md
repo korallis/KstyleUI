@@ -59,7 +59,7 @@ RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_HUD_STYLE=Orbs RENDER_LAYOUT=DPS
 - It needs `luajit` and Google Chrome (`CHROME` overrides the binary). Without `--out`, the scene's JSON, page and PNG land in `Tools/render/out/`, which git ignores.
 - [`Tools/render/README.md`](Tools/render/README.md) lists every scene and variable. `python3 Tools/render/readme.py` retakes the README pictures.
 
-The regression harness drives behaviour the same way without pixels. Each `Tools/regression/test-*.lua` boots a module's `*_env.lua` stub environment on fixtures, sends it events such as combat, a target or a setting change, and asserts on the frames. Run one alone with `lua5.1 Tools/regression/test-<name>.lua`, or `luajit -joff` where Lua 5.1 is missing.
+The regression harness drives behaviour the same way without pixels. A behaviour test in `Tools/regression/` boots a module's `*_env.lua` stub environment on fixtures, sends it events such as combat, a target or a setting change, and asserts on the frames; the source guards, such as `test-comments.lua` and `test-syntax.lua`, scan the tree instead. Run one alone with `lua5.1 Tools/regression/test-<name>.lua`, or `luajit -joff` where Lua 5.1 is missing.
 
 [`docs/statecharts/`](docs/statecharts/) charts the HUD style switch, the first-run setup and the arrangement and layout-class switch. A PR that changes one of those flows updates its chart in the same PR, and a PR that adds, renames or removes a player-facing feature updates its row in the feature map.
 
