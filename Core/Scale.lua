@@ -148,29 +148,34 @@ local function Limit(width, height)
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
 	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
-	return layouts.ScaleLimit(width, height, preset, enabled, style), enabled
+	local maximum, fits = layouts.ScaleLimit(width, height, preset, enabled, style)
+	return maximum, enabled, fits
 end
 
 local function Step(height)
 	return REFERENCE_HEIGHT / (STEPS_PER_PIXEL * height)
 end
 
-local function Within(k, height, maximum)
+local function Within(k, height, maximum, fits)
 	local step = Step(height)
-	local top = floor(maximum / step + 1e-9)
+	local low, top = ceil(MIN_USER_SCALE / step - 1e-9), floor(maximum / step + 1e-9)
 	if top * step > maximum then
 		top = top - 1
 	end
-	return max(ceil(MIN_USER_SCALE / step - 1e-9), min(k, top))
+	k = max(low, min(k, top))
+	while fits and k > low and not fits(k * step) do
+		k = k - 1
+	end
+	return k
 end
 
-local function Nearest(size, height, maximum)
+local function Nearest(size, height, maximum, fits)
 	local step = Step(height)
-	return Within(floor(size / step + 0.5), height, maximum) * step
+	return Within(floor(size / step + 0.5), height, maximum, fits) * step
 end
 
-local function Auto(height, maximum)
-	return Nearest(MOCKUP_SIZE, height, maximum)
+local function Auto(height, maximum, fits)
+	return Nearest(MOCKUP_SIZE, height, maximum, fits)
 end
 
 Scale.Nearest, Scale.Auto = Nearest, Auto
@@ -179,8 +184,8 @@ local function Apply()
 	local screen, height = PhysicalSize()
 	local width, band = CanvasWidth(screen, height), BandWidth(screen, height)
 	local parent, user, auto = ParentScale(), state.user, state.auto
-	local maximum, enabled = Limit(width, height)
-	local effectiveUser = auto and Scale.Auto(height, maximum) or Scale.Nearest(user, height, maximum)
+	local maximum, enabled, fits = Limit(width, height)
+	local effectiveUser = auto and Scale.Auto(height, maximum, fits) or Scale.Nearest(user, height, maximum, fits)
 	local added = false
 	if state.enabled and enabled then
 		for _, element in ipairs(ns.Setup.Layouts.ELEMENTS) do
@@ -192,7 +197,7 @@ local function Apply()
 	end
 	state.enabled = enabled
 	local last = state.applied
-	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto and last[8] == band then
+	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto and last[8] == band and state.effectiveUser == effectiveUser then
 		return
 	end
 	local previous = state.effectiveUser

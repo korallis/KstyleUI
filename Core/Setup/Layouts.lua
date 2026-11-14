@@ -1150,12 +1150,15 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	local signature = style .. table.concat(flags)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
-		return cached.scale
+		return cached.scale, cached.fits
 	end
 	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
-	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled, positions, style) then
-		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
-		return high
+	local function fits(size)
+		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style)
+	end
+	if fits(high) then
+		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }
+		return high, fits
 	end
 	local span = HEIGHT
 	for _, element in ipairs(ELEMENTS) do
@@ -1169,7 +1172,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		if candidate == high then
 			break
 		end
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions, style) then
+		if fits(candidate) then
 			low = candidate
 			break
 		end
@@ -1177,12 +1180,12 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	end
 	for _ = 1, 32 do
 		local candidate = (low + high) / 2
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled, positions, style) then
+		if fits(candidate) then
 			low = candidate
 		else
 			high = candidate
 		end
 	end
-	limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = low }
-	return low
+	limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = low, fits = fits }
+	return low, fits
 end

@@ -1,4 +1,4 @@
--- test-layout-orbs-fit.lua: three fit bugs the layout property test found (Capy LEE-1459, LEE-1460 and LEE-1461): the fit check counts the Orbs HUD's two orbs as circles, so no size it allows puts an orb over a card; action bar 3 has an Orbs place of its own, with the pet and stance bars under it on whole units; and the applied size never passes the fit cap, even by a rounding hair.
+-- test-layout-orbs-fit.lua: the fit bugs the layout property test found (Capy LEE-1459, LEE-1460, LEE-1461 and LEE-1483): the fit check counts the Orbs HUD's two orbs as circles, so no size it allows puts an orb over a card; action bar 3 has an Orbs place of its own, with the pet and stance bars under it on whole units; the fit cap is the largest size step that fits, and the size Scale applies is a step that fits, never above the cap, so pixel rounding that makes one step fit and the next smaller one not (fitting is not monotonic in size) cannot slip an overlap through.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local function New(width, height)
@@ -66,6 +66,7 @@ do
 			for _, name in ipairs(Layouts.Names()) do
 				local on = Layouts.Enabled(name)
 				local size = Scale.Auto(height, Layouts.ScaleLimit(physical, height, name, on, "orbs"))
+				assert(Layouts.Fits(name, physical, height, size, on, nil, "orbs"), name .. " " .. width .. "x" .. height .. ": the automatic size fits")
 				local what = string.format("%s %dx%d on %d at %.4f", name, width, height, physical, size)
 				local rh = 1080 / size
 				local rw = rh * physical / height
@@ -130,4 +131,45 @@ do
 end
 
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+-- LEE-1483 and the mechanism behind LEE-1460 and LEE-1461: a size that fits does not mean every smaller size fits, because
+-- each edge rounds to whole pixels on its own. The cap is the largest step that fits, and Scale checks the size it
+-- applies, stepping down to the next one that fits. The property test's failing cases, booted through Scale.Apply: the
+-- applied size fits with every enabled element, whatever the player asked for.
+local CASES = {
+	{ "930", 2266, 1000, "Tank", "orbs", "centred", "21:9" },
+	{ "988", 3247, 1359, "Healer", "orbs", "spread", "full", 1.2368 },
+	{ "292", 2043, 855, "Tank", "frames", "centred", "16:9", 0.9299, true },
+	{ "18", 4236, 1495, "Healer", "orbs", "spread", "full", nil, true },
+	{ "52", 1685, 1123, "Tank", "orbs", "spread", "21:9", 0.871 },
+	{ "113", 2642, 1651, "Tank", "orbs", "spread", "21:9" },
+}
+for _, case in ipairs(CASES) do
+	local label, width, height, preset, style, arrangement, canvas, size, bar3 = unpack(case)
+	local caseEnv, CK = New(width, height)
+	local profile = CK.Store.Profile()
+	for _, element in ipairs(CK.Setup.Layouts.ELEMENTS) do
+		profile[element.module] = profile[element.module] or {}
+		profile[element.module].enabled = true
+	end
+	if bar3 then
+		profile.ActionBars.bar3 = { enabled = true }
+	end
+	local layout = CK.Store.Module("Layout")
+	layout.preset, layout.arrangement, layout.canvas = preset, arrangement, canvas
+	CK.Options.Write("HudStyle", "style", style)
+	if size then
+		CK.Options.Write("Appearance", "uiScaleAuto", false)
+		CK.Options.Write("Appearance", "uiScale", size)
+	end
+	CK.Callbacks.Fire("ModuleChanged")
+	caseEnv.RunTimers()
+	local applied, physical = CK.Scale.AppliedUserScale(), CK.Scale.CanvasWidth(width, height)
+	local what = string.format("case %s, %dx%d %s %s %s on %d: applied %.4f under cap %.4f", label, width, height, preset, style, arrangement, physical, applied, CK.Scale.MaxUserScale())
+	assert(CK.HudStyle.Current() == style, what .. ": the style applies")
+	assert(applied <= CK.Scale.MaxUserScale(), what .. ": the applied size stays under the cap")
+	assert(CK.Setup.Layouts.Fits(preset, physical, height, applied, CK.Setup.Layouts.Enabled(preset, profile), nil, style), what .. ": the applied size fits")
+	assert(#caseEnv._errors == 0, what .. ": " .. tostring(caseEnv._errors[1]))
+end
+
 print("layout orbs fit ok")
