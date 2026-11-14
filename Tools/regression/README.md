@@ -105,7 +105,7 @@ property "layout at any screen" failed at case 18 of seed 20261114: actionbars.b
   reproduce: KSTYLE_PROPERTY_SEED=20261114 KSTYLE_PROPERTY_CASE=18 lua5.1 Tools/regression/test-property-layout.lua
 ```
 
-A bug a property finds is filed, and until it is fixed the file's `known` list claims its violations, and only those, by the issue code, so the suite stays green and the run prints `known failure LEE-n` with its first case. Fixing the bug means deleting its entry.
+A bug a property finds is filed, and until it is fixed the file's `known` list claims its violations, and only those, by the issue code, so the suite stays green and the run prints `known failure LEE-n` with its first case. Fixing the bug means deleting its entry. The fix also adds the failing seed and case to the file's `regressions` list, which every run checks first whatever its seed, so the case stays covered after the seed changes.
 
 ## Interpreter
 

@@ -1092,7 +1092,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local w = max(1, floor(width * pixelScale + 0.5))
 			local h = max(1, floor(height * pixelScale + 0.5))
 			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
-			local left = floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
+			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
 			local right, top = left + w, bottom + h
 			if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then

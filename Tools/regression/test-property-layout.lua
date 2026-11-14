@@ -207,4 +207,13 @@ Property.Check({
 	generate = Generate,
 	show = Show,
 	property = Holds,
+	regressions = {
+		{ seed = 20261114, case = 52, issue = "LEE-1459" }, { seed = 20261114, case = 113, issue = "LEE-1459" },
+		{ seed = 20261114, case = 225, issue = "LEE-1459" }, { seed = 99, case = 22, issue = "LEE-1459" }, { seed = 99, case = 694, issue = "LEE-1459" },
+		{ seed = 20261114, case = 18, issue = "LEE-1460" },
+		{ seed = 20261114, case = 292, issue = "LEE-1461" },
+		{ seed = 777, case = 930, issue = "LEE-1483" }, { seed = 777, case = 988, issue = "LEE-1483" },
+		{ seed = 20261114238, case = 422, issue = "LEE-1486" }, { seed = 2026, case = 584, issue = "LEE-1486" },
+		{ seed = 20261114238, case = 1040, issue = "LEE-1487" }, { seed = 20261114238, case = 1991, issue = "LEE-1487" },
+	},
 })

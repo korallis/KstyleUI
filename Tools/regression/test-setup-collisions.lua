@@ -49,8 +49,8 @@ local function PhysicalRects(name, width, height, user, enabled)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
 		local fy = position.anchor:find("BOTTOM") and 0 or position.anchor:find("TOP") and 1 or 0.5
 		w, h = math.max(1, math.floor(w * k + 0.5)) / k, math.max(1, math.floor(h * k + 0.5)) / k
-		local l, b = rw * fx + position.x + (offsetX or 0) - w * fx, rh * fy + position.y - h * fy
-		l, b = math.floor(l * k + 0.5), math.floor(b * k + 0.5)
+		local l, b = rw * fx + position.x - w * fx, rh * fy + position.y - h * fy
+		l, b = math.floor(l * k + 0.5) + (offsetX or 0) * k, math.floor(b * k + 0.5)
 		rects[key] = { l, b, l + math.floor(w * k + 0.5), b + math.floor(h * k + 0.5) }
 		keys[#keys + 1] = key
 	end

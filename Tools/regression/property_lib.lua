@@ -97,6 +97,8 @@ Property.Describe = Describe
 --   property(case)   true, or false and why: a text or a list of texts, one per violation; an error counts as a failure
 --   known            { { issue = "LEE-n", why = text, match = function(case, why) -> boolean } }, violations filed and not fixed yet;
 --                    a case fails when any of its violations is unclaimed
+--   regressions      { { seed = n, case = n, issue = "LEE-n" } }, cases an earlier run failed on; every run checks them
+--                    first, whatever its seed, unless KSTYLE_PROPERTY_CASE picks one case
 function Property.Check(spec)
 	local seed = Property.Seed()
 	local only = Whole("KSTYLE_PROPERTY_CASE")
@@ -108,8 +110,16 @@ function Property.Check(spec)
 	local show = spec.show or Describe
 	local passed, known, failed = 0, {}, {}
 	local started = os.clock()
+	local runs = {}
+	for _, pinned in ipairs(not only and spec.regressions or {}) do
+		runs[#runs + 1] = { pinned.seed, pinned.case }
+	end
 	for case = first, last do
-		local value = spec.generate(Property.Generator(seed, case), case)
+		runs[#runs + 1] = { seed, case }
+	end
+	for _, run in ipairs(runs) do
+		local from, case = run[1], run[2]
+		local value = spec.generate(Property.Generator(from, case), case)
 		local ok, holds, why = pcall(spec.property, value)
 		if not ok then
 			holds, why = false, "raised: " .. tostring(holds)
@@ -130,7 +140,7 @@ function Property.Check(spec)
 				if claim then
 					known[claim.issue] = (known[claim.issue] or 0) + 1
 					if known[claim.issue] == 1 then
-						print(string.format("known failure %s (%s) at case %d of seed %d: %s\n  case: %s", claim.issue, claim.why, case, seed, violation, show(value)))
+						print(string.format("known failure %s (%s) at case %d of seed %d: %s\n  case: %s", claim.issue, claim.why, case, from, violation, show(value)))
 					end
 				else
 					open[#open + 1] = violation
@@ -138,12 +148,12 @@ function Property.Check(spec)
 			end
 			if #open > 0 or #violations == 0 then
 				local message = string.format("property %q failed at case %d of seed %d: %s\n  case: %s\n  reproduce: KSTYLE_PROPERTY_SEED=%d KSTYLE_PROPERTY_CASE=%d lua5.1 %s",
-					spec.name, case, seed, #open > 0 and table.concat(open, "; ") or "no reason given", show(value), seed, case, spec.script or "<test file>")
+					spec.name, case, from, #open > 0 and table.concat(open, "; ") or "no reason given", show(value), from, case, spec.script or "<test file>")
 				if not all then
 					error(message, 0)
 				end
 				print(message)
-				failed[#failed + 1] = case
+				failed[#failed + 1] = from == seed and tostring(case) or case .. " of seed " .. from
 			end
 		end
 	end
@@ -152,7 +162,7 @@ function Property.Check(spec)
 		claimed[#claimed + 1] = issue .. " x" .. n
 	end
 	table.sort(claimed)
-	print(string.format("property %q: %d of %d cases hold, seed %d, %.2f s%s", spec.name, passed, last - first + 1, seed, os.clock() - started,
+	print(string.format("property %q: %d of %d cases hold, seed %d, %.2f s%s", spec.name, passed, #runs, seed, os.clock() - started,
 		#claimed > 0 and ("; known failures " .. table.concat(claimed, ", ")) or ""))
 	if #failed > 0 then
 		error(string.format("property %q failed at %d cases of seed %d: %s", spec.name, #failed, seed, table.concat(failed, ", ")), 0)
