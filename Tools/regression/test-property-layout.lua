@@ -207,30 +207,4 @@ Property.Check({
 	generate = Generate,
 	show = Show,
 	property = Holds,
-	known = {
-		{
-			issue = "LEE-1459", why = "the fit check does not count the orbs, which cover the chat card on narrow screens; Linear LEE-5746",
-			match = function(c, why)
-				return c.style == "orbs" and (why == "orbs.health overlaps chat.main" or why == "orbs.power overlaps meters.damage")
-			end,
-		},
-		{
-			issue = "LEE-1460", why = "bar 3 has no Orbs place and the Orbs pet and stance bars end half a unit above its bottom; Linear LEE-5747",
-			match = function(c, why)
-				return c.style == "orbs" and c.bars.bar3 and (why:match("^actionbars%.bar3 overlaps actionbars%.[ps]%a+$") or why:match("^actionbars%.[ps]%a+ overlaps actionbars%.bar3$")) ~= nil
-			end,
-		},
-		{
-			issue = "LEE-1483", why = "near size 1 the Orbs pet and stance bars end above the party frames' bottom edge; Linear LEE-5765",
-			match = function(c, why)
-				return c.style == "orbs" and (why:match("^groupframes%.party overlaps actionbars%.[ps]%a+$") or why:match("^actionbars%.[ps]%a+ overlaps groupframes%.party$")) ~= nil
-			end,
-		},
-		{
-			issue = "LEE-1461", why = "Scale.Within's tolerance applies a size a hair above the fit cap; Linear LEE-5748",
-			match = function(c, why)
-				return c.applied > c.cap and c.fitsAtCap and not c.fitsApplied and why:match(" overlaps ") ~= nil
-			end,
-		},
-	},
 })
