@@ -148,4 +148,14 @@ for label, extra in pairs({
 	end
 end
 
+local env28, K28 = C.New({ saved = { version = 28, profiles = { Default = { Layout = { preset = "Healer" } } }, layouts = { Default = { ["unitframes.boss"] = 7 } } } })
+C.Boot(env28)
+assert(env28.KstyleUIDB.version == K28.Store.DB_VERSION and K28.ErrorCount() == 0, "a non-table boss layout entry no longer stops migration 29")
+
+local own = { profiles = { Default = { Layout = { preset = "DPS" } } }, layouts = { Default = { [1] = { x = 1 }, ["unitframes.player"] = { x = 5 } } } }
+K.Store.migrations[30](own)
+local player = own.layouts.Default["unitframes.player"]
+assert(player.anchor ~= nil and player.y ~= nil and player.x == 5, "migration 30 still completes a partly saved place beside an odd key")
+assert(C.DeepEqual(own.layouts.Default[1], { x = 1 }), "migration 30 leaves the odd key as it was")
+
 print("store migration types ok (" .. cases .. " sweep cases)")
