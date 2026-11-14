@@ -50,10 +50,10 @@ for _, screen in ipairs(SCREENS) do
 	for size = 1, 5 do
 		local blizzard = N.Blizzard(size)
 		local env, K, ns = N.New({ stackingBounds = true, nameplateSize = size, width = screen[1], height = screen[2] })
-		local base = N.Add(env, "nameplate1", {})
+		local base = N.Add(env, "nameplate1", {}, { scale = env.UIParent:GetEffectiveScale() })
 		local plate = ns.Plates.Get("nameplate1")
 		local label = screen[1] .. "x" .. screen[2] .. " nameplateSize " .. size
-		for _, scale in ipairs({ 0.8, 1, 1.25 }) do
+		for _, scale in ipairs({ 0.8, 16 / 19, 1, 1.25 }) do
 			K.Scale.SetUserScale(scale)
 			env.RunTimers()
 			local at = label .. " HUD " .. scale
@@ -84,8 +84,8 @@ end
 -- its own nameplate size, so its box and Blizzard's bar stay where Blizzard put them.
 do
 	local blizzard = N.Blizzard(3)
-	local env, K, ns = N.New({ stackingBounds = true })
-	local base = N.Add(env, "nameplate1", {})
+	local env, K, ns = N.New({ stackingBounds = true, width = 2560, height = 1440 })
+	local base = N.Add(env, "nameplate1", {}, { scale = env.UIParent:GetEffectiveScale() })
 	local plate = ns.Plates.Get("nameplate1")
 	local bounds = plate.stackBounds
 	local calls = N.Calls(base, "SetStackingBoundsFrame")
@@ -100,14 +100,29 @@ do
 		below = math.max(below, rise)
 		return width, above + height + below, below
 	end
-	local width, tall, below = footprint()
-	local point, relative, relativePoint, x, y = bounds:GetPoint(1)
-	assert(point == "BOTTOM" and relative == plate and relativePoint == "BOTTOM" and x == 0 and N.Same(y, -below),
-		"the bounds hang from the plate down to the base's bottom")
-	assert(N.Same(bounds:GetWidth(), width) and N.Same(bounds:GetHeight(), tall), "the bounds are the whole footprint")
+	-- The engine reads the bounds frame on screen. The frame lives in the base's units and the footprint in the
+	-- plate's, so the frame must cover the footprint in screen units, from the plate's bottom down to the base's.
+	local function onScreen(label)
+		local width, tall, below = footprint()
+		local ps, bs = plate:GetEffectiveScale(), bounds:GetEffectiveScale()
+		local point, relative, relativePoint, x, y = bounds:GetPoint(1)
+		assert(point == "BOTTOM" and relative == plate and relativePoint == "BOTTOM" and x == 0, label .. ": the bounds hang from the plate")
+		assert(N.Same(y * bs, -below * ps), label .. ": the bounds reach the base's bottom, got " .. y * bs .. " for " .. -below * ps)
+		assert(N.Same(bounds:GetWidth() * bs, width * ps) and N.Same(bounds:GetHeight() * bs, tall * ps),
+			label .. ": the bounds are the whole footprint on screen, got " .. bounds:GetHeight() * bs .. " for " .. tall * ps)
+		local rise = select(5, plate:GetPoint(1)) * ps
+		assert(N.Same(below * ps, math.max(rise, below * ps)), label .. ": the bounds' bottom is no higher than the base's")
+		return tall * ps
+	end
+	local tall
+	for _, scale in ipairs({ 16 / 19, 1, 1.25 }) do
+		K.Scale.SetUserScale(scale)
+		env.RunTimers()
+		tall = onScreen("HUD " .. scale)
+	end
+	assert(not N.Same(plate:GetEffectiveScale(), bounds:GetEffectiveScale()), "the case covers a plate and a base at different scales")
 	K.Options.Write("Nameplates", "debuffs.rows", 3)
-	local _, taller = footprint()
-	assert(taller > tall and N.Same(bounds:GetHeight(), taller), "every debuff row counts")
+	assert(onScreen("three debuff rows") > tall, "every debuff row counts")
 	K.Options.Write("Nameplates", "debuffs.rows", 1)
 	assert(#N.Calls(base, "SetStackingBoundsFrame") == 1, "resizing the bounds frame needs no new call")
 

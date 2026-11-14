@@ -61,7 +61,8 @@ function Stacking.BarRise()
 		LogOnce("stacking-rise", "NamePlateSetupOptions has no cast block; plates keep their own room under the bar")
 		return nil
 	end
-	if options.spellNameInsideCastBar == true then
+	local inside = options.spellNameInsideCastBar
+	if not IsSecret(inside) and inside == true then
 		icon = 0
 	end
 	return cast + icon + gap
@@ -92,13 +93,16 @@ function Stacking.Bound(plate, rise)
 	end
 	if Bounding() then
 		local width, above, height, below = Stacking.Extent(plate)
-		if not width then
+		local own, theirs = Plain(plate:GetEffectiveScale()), Plain(frame:GetEffectiveScale())
+		if not (width and own and theirs and own > 0 and theirs > 0) then
+			LogOnce("stacking-bounds-scale", "a plate's scale could not be read; its stacking bounds wait for the next restyle")
 			return
 		end
+		local k = own / theirs
 		below = math.max(below, rise)
 		frame:ClearAllPoints()
-		frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -below)
-		frame:SetSize(width, above + height + below)
+		frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -below * k)
+		frame:SetSize(width * k, (above + height + below) * k)
 		Register(plate)
 	elseif plate.boundTo then
 		frame:ClearAllPoints()
