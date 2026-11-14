@@ -1,48 +1,37 @@
 # AGENTS.md
 
-Rules for any agent working in this repository. Read the [design spec](docs/superpowers/specs/2026-11-07-kstyleui-design.md) and the [roadmap](docs/superpowers/plans/2026-11-07-kstyleui-roadmap.md) before you change code. The roadmap's Global Constraints and Core public API are binding.
+KstyleUI is a World of Warcraft addon suite for the Forever client, written in Lua 5.1. This file holds the repository's facts: layout, commands, encoding, the Forever API rule and the mistakes that still need a person to remember them. Read the [design spec](docs/superpowers/specs/2026-11-07-kstyleui-design.md) and the [roadmap](docs/superpowers/plans/2026-11-07-kstyleui-roadmap.md) before you change code; the roadmap's Global Constraints and Core public API are binding. [`docs/DEVELOPING.md`](docs/DEVELOPING.md) has the contributor guide and [`docs/TESTING.md`](docs/TESTING.md) the test guide.
 
-## Branch flow
+## Layout
 
-- Every change merges into `staging`. `main` moves only after the owner confirms the in-game tests on `staging`.
-- `~/KstyleUI` is the owner's live copy. It is the checkout of `staging` that the game runs the addons from. Never edit files, commit, or switch branches in it. Always work in your own worktree, one per pull request:
+| Path | What it holds |
+| --- | --- |
+| `Core/` | The core addon: services, the widget kit, Layout Mode, the first-run setup (`Core/Setup/Layouts.lua`) |
+| `KstyleUI_<Module>/` | One addon per module, each with a README |
+| `Media/` | Fonts, textures and the logo, with their provenance |
+| `Tools/regression/` | Lua tests (`test-*.lua`), the stubs (`stubs/wow.lua`) and `run-all.sh` |
+| `Tools/tests/` | The Python suite for the tools and the CI workflows |
+| `Tools/hooks/` | Checks CI and the gate call, such as `check_toc.py` and `ci_scope.py` |
+| `scripts/` | `gate.sh` and `check-suppressions.sh` |
+| `docs/` | The spec, the plans, the guides and the README's images |
 
-```bash
-git -C ~/KstyleUI fetch origin
-git -C ~/KstyleUI worktree add -b <type>/<scope>-<slug> ~/KstyleUI.worktrees/<type>-<scope>-<slug> origin/staging
-```
+## The gate
 
-- `~/KstyleUI` has `staging` checked out, so no worktree can check out the local `staging` branch. Branch from `origin/staging` as the command above does.
+Run `bash scripts/gate.sh` from the repository root before every push. It runs, in order: `Tools/dev/crlf.py --check`, `pre-commit run --all-files`, `luacheck`, `Tools/hooks/check_toc.py`, `Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `Tools/regression/run-all.sh --affected origin/staging` and the Python suite with the venv interpreter (`~/.local/share/wow-dev/venv/bin/python`, or `KSTYLEUI_PYTHON`). It runs every step, then lists the ones that failed and exits 1.
 
-- Open the pull request with `gh pr create --base staging`. Squash-merge it.
-- A pull request has no line limit. The owner waived the global 400-line rule for KstyleUI on 2026-11-07. Keep each PR to one coherent piece of work so it can be reviewed.
-- The title is `type(scope): summary` (Conventional Commits).
-- The body has a `## Changelog` section whose line starts with `Added:`, `Changed:`, or `Fixed:`. A pull request that changes only tooling or docs gets the `no changelog` label instead.
-- The body has an `## In-game checks` list.
+- `scripts/gate.sh lint`, `lua` and `python` run one group. CI calls them: `pre-commit` runs `lint`, each Lua shard runs `lua --shard I/2`, and `python` runs `python`. `GATE_BASE` changes the base ref.
+- `pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install`: worktrees share `.git/hooks`.
+- `check-suppressions.sh` fails on a new `-- luacheck: ignore`, workaround marker or lint suppression whose line carries no ticket id such as `LEE-1234`.
+- `run-all.sh --affected` runs the test files that load a file you changed plus the source guards, and prints why. A file that half the tests load, a stub, an env file or the runner runs every file. The first run on a machine runs everything once to record what each file loads. `bash Tools/regression/run-all.sh` with no argument is the full suite, as CI runs it; use it to reproduce a CI failure. It runs under Lua 5.1 (`bash Tools/dev/install-lua51.sh` installs it) or `luajit -joff`. Each test file must stay within 20 s and 4096 MB. [`Tools/regression/README.md`](Tools/regression/README.md) explains modes, budgets and worker slots.
+- `luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives it. `Tools/build/gen_globals.py` writes `Tools/data/forever_globals.lua` from the matching UI source and the client's FrameXML GlobalStrings names; regenerate when the build changes. A global your module creates (a named frame, a `BINDING_*` string, a `SLASH_*` command) goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the source does not prove it: never add a Blizzard name to your module's line.
+- `check_toc.py` reports files a TOC or XML include lists that are missing or differ in letter case from the file on disk. macOS loads such a file and a case-sensitive file system does not, so this check is the only guard.
+- A change to a player-facing string needs `python3 Tools/locale/strings.py sync`; the gate's `check` names the fix.
 
-## Commands
+## Pull requests
 
-Run these from the repository root before every push, one at a time, and read the exit code of each. All of them must pass.
+Pull requests target `staging`. The title is `type(scope): summary` (Conventional Commits). The body has a `## Changelog` section whose line starts with `Added:`, `Changed:` or `Fixed:`, and an `## In-game checks` list. A pull request that changes only tooling or docs gets the `no changelog` label instead. `Tools/hooks/check-pr.sh` and CI enforce this. There is no line limit; keep each pull request to one coherent piece of work.
 
-```bash
-python3 Tools/dev/crlf.py
-pre-commit run --all-files
-luacheck .
-python3 Tools/hooks/check_toc.py
-bash Tools/regression/run-all.sh --affected origin/staging
-```
-
-CI runs everything, once: every Lua test file, the Python suite (`python3 -m unittest discover -s Tools/tests`) and the package check, on each pull request and again on every push to `staging`. On 2026-11-10 the owner asked for the pipeline to stop repeating tests ("you may want to change the CI/CD pipeline based on if we do tests here so we are not duplicating tests etc."). So the 2026-11-07 rule that every pull request is checked locally with the full Lua and Python suites before a push is replaced by the commands above: lint, and only the Lua tests the change can reach. Do not run the full suite for a push. Run the Python suite yourself only when your diff touches `Tools/`, `Media/`, `.github/` or a locale string; CI runs it for every code change.
-
-`bash Tools/regression/run-all.sh --affected origin/staging` runs the test files that load a file your change touched, plus the source guards that scan the whole tree, and prints what it chose and why. A file loaded by half the test files or more, a stub, an env file or the runner itself runs every file. The first run on a machine has no record of what each file loads, so it runs every file once and keeps the record in `~/.cache/kstyleui/regression-deps.json` for every worktree. Its last line says how many files ran and that CI runs the rest. When an addon Lua file or a file in `Tools/locale/` changed, it also runs `python3 Tools/locale/strings.py check` (the cheap part of CI's `test_locale_strings`) and fails with the `sync` command when an `L[...]` key is missing from the English base. Every local run takes worker slots, a third of the CPUs for all the runs on the machine together (`KSTYLEUI_SLOTS` changes it), so threads cannot overload the Mac; it prints the load it saw, and a time failure names the load. `bash Tools/regression/run-all.sh` with no argument is the full suite, as CI runs it: use it to reproduce a CI failure or when the owner asks. It runs under Lua 5.1, or `luajit -joff` when Lua 5.1 is missing. Its first line names the interpreter. Install Lua 5.1 once with `bash Tools/dev/install-lua51.sh`. Each test file must stay within 20 s and 4096 MB, or `run-all.sh` fails it. `LUA=luajit` is fast mode, for quick iteration only: its compiler hides slow tests. `Tools/regression/README.md` explains the modes, the budgets and how to set a `test-perf` budget.
-
-`pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install` in a worktree: every worktree shares `.git/hooks` with `~/KstyleUI`, so it would install hooks into the owner's checkout and into branches that have no `.pre-commit-config.yaml`. To check a commit message, run `pre-commit run --hook-stage commit-msg --commit-msg-filename <file>`.
-
-`python3 Tools/hooks/check_toc.py` reports each file a TOC or an XML include lists that is missing, or whose letter case differs from the file on disk. A file whose case differs loads on macOS but not on a case-sensitive file system, and CI's Mac runners would not catch it, so this check is the only guard.
-
-`luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives addons. `Tools/build/gen_globals.py --source <matching wow-ui-source> --global-strings <GlobalStrings.csv> --client-build <build>` writes `Tools/data/forever_globals.lua` from the UI source and the matching client's FrameXML GlobalStrings names. Export the CSV read-only with `Tools/icons/casc_export.py`'s `export_tables(..., tables=["GlobalStrings"])`; only names with the FrameXML flag are included, never localized values or GlueXML-only strings. Regenerate when the build changes; mismatched client and UI builds are rejected. A global your module creates, such as a named frame, a `BINDING_HEADER_*` or `BINDING_NAME_*` string, or a `SLASH_*` command, goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the evidence does not prove it or `.luacheckrc` denies it: consult the matching source and never add a Blizzard name to your module's line.
-
-After the checks pass, get one cross-family review of the diff against `origin/staging` and fix what it finds.
+Change these only when the task needs it, and say why in the body: `.github/workflows/`, `.pkgmeta`, `Core/Tokens.lua`.
 
 ## App driver
 
@@ -65,54 +54,34 @@ The regression harness drives behaviour the same way without pixels. A behaviour
 
 ## Line endings and encoding
 
-- Every `.lua`, `.toc`, and `.xml` file outside `Tools/` and `docs/` is an addon file. Addon files are ASCII only and use CRLF line endings.
-- `.gitattributes` sets `* -text`, so git never rewrites line endings.
-- Agents write LF. `python3 Tools/dev/crlf.py` converts every changed or untracked addon file to CRLF. Pass paths to convert only those files.
-- `python3 Tools/dev/crlf.py --check` changes nothing. It lists each addon file with LF endings and exits 1 if it finds any.
+- Every `.lua`, `.toc` and `.xml` file outside `Tools/` and `docs/` is an addon file: ASCII only, CRLF line endings. `.gitattributes` sets `* -text`, so git never rewrites line endings.
+- Write LF, then run `python3 Tools/dev/crlf.py` to convert every changed or untracked addon file (pass paths to convert only those). `--check` changes nothing and exits 1 for any addon file with LF endings. Never rewrite an addon file with Python's `read_text` and `write_text`; that turns CRLF into LF.
 - Files in `Tools/` and `docs/` use LF and may contain non-ASCII text.
 
-## In-game testing
+## The game and its test copy
 
-The game runs the addons from `~/KstyleUI`, the owner's live copy on `staging`. `bash Tools/dev/link-addons.sh` links `KstyleUI` and every `KstyleUI_*` folder in `~/KstyleUI` into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. `KSTYLEUI_LIVE` overrides the checkout folder, and `WOW_ADDONS` overrides the AddOns folder. The script never clones, pulls, or switches branches. If the checkout folder has no `KstyleUI.toc`, the script names the folder and exits 1. To bring merged changes into the game, the owner runs `git -C ~/KstyleUI pull --ff-only`, then `/reload` in game.
-
-The repainted icons are not an addon. They ship as a loose-file texture pack in `_forever_/Interface/Icons` that the client loads at a full start; `python3 Tools/icons/iconset.py install --wow "/Applications/World of Warcraft/_forever_"` copies it there and `--uninstall` removes it. An agent never runs `install` against the owner's game folder; it runs `--dry-run` and says so. [`docs/icons.md`](docs/icons.md) has the details.
-
-## Releases
-
-A release starts when the owner pushes a `vX.Y.Z` tag on `main`, after the in-game pass on `staging` and a fast-forward of `main`. `.github/workflows/release.yml` then runs two jobs:
-
-1. `check` fails unless the tag is on `main`, runs the Lua regression tests, packages with the BigWigs packager without uploading, and runs `Tools/hooks/check-package.sh` on the zip.
-2. `release` packages again and uploads. It runs in the `release` environment and is the only job in the repository with write permission (`contents: write`, for the GitHub release).
-
-The owner sets the `CF_API_KEY` and `WAGO_API_TOKEN` secrets in the repository or the `release` environment. The packager uploads to CurseForge only when `KstyleUI.toc` has `## X-Curse-Project-ID`, and to Wago only when it has `## X-Wago-ID`. Until the owner creates those projects and adds the IDs, a tag makes only the GitHub release. Never print or commit a token.
-
-`docs/RELEASE_NOTES.md` holds the notes for each release.
-
-## Sensitive paths
-
-Change these only when your task needs it, and say why in the pull request:
-
-- `.github/workflows/`
-- `.pkgmeta`
-- `Core/Tokens.lua`
+The addons load from a checkout through `bash Tools/dev/link-addons.sh` (`--dry-run` changes nothing; `KSTYLEUI_LIVE` and `WOW_ADDONS` override the folders). The repainted icons are a loose-file texture pack, not an addon: `python3 Tools/icons/iconset.py` builds and installs it, and [`docs/icons.md`](docs/icons.md) has the details. `install --dry-run` lists what it would copy into the game folder.
 
 ## Forever API
 
-- Blizzard's UI source for the live build (1.60.1.70862, commit `9dc84f0`) is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). The matching read-only audit copy is at `~/.capy/work/wow-ui-source-70862`; the owner's checkout at `~/.local/share/wow-dev/wow-ui-source` is still 70840 and only the owner updates it.
-- Grep that source before you use any API, event, template, mixin, CVar, or Blizzard frame name. `Blizzard_APIDocumentationGenerated/` lists every C API with its `SecretReturns` and `SecretArguments` flags.
+- Blizzard's UI source for the live build (1.60.1.70862, commit `9dc84f0`) is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). Grep it before you use any API, event, template, mixin, CVar or Blizzard frame name, and name the proving file in the pull request. `Blizzard_APIDocumentationGenerated/` lists every C API with its `SecretReturns` and `SecretArguments` flags.
 - Forever does not load the `Blizzard_Deprecated*` folders. Forever overrides live in `Camelot/` subfolders.
 - Code defensively, as the spec's "Build mode" section says: check that an API exists before you call it, check `issecretvalue` before any comparison, and fall back to a safer path when the preferred one is unavailable.
 
+## Conventions the tests enforce
+
+Each is a test; its failure message names the fix.
+
+- A TOC-loaded Lua file has one comment, its first line (`test-comments.lua`). Contracts go in `docs/` or the module's README.
+- Make font strings with `K.Widgets.FontString(parent, layer)`, never a raw `CreateFontString` (`test-fontstrings.lua`).
+- Place a secure overlay with `K.Widgets.Cover(overlay, visual)`, never by anchoring to the region it covers (the stub raises the game's error).
+- Insert tracking thin spaces only where `KstyleUI.Locale.TrackMode(fontPath)` answers `"space"`; headings use the `caps` role (`test-thin-space.lua`).
+- Never read state back from regions inside engine aura buttons; keep the wanted state yourself (`test-unitframes-auras.lua`).
+- Register one event handler per owner and event in `Core/Events.lua`; give each piece of work its own owner (`Tools/regression/event_guard.lua`).
+- Add no top-level local to `Core/Setup/Layouts.lua` (`test-layouts-locals.lua` keeps a margin under Lua's 200-local limit).
+- The stubs raise what the client raises: nil rects, nil and NaN scales, restricted measurements, and methods a Font object lacks (`test-stub-refusals.lua`, `test-stubs.lua`).
+
 ## Learned mistakes
 
-Add one line for each mistake that happened twice: what went wrong and the rule that prevents it.
-
-- Doc comments inside four core files (Tokens, Theme, Scale, Motion) broke the one-comment rule across four PRs. A file has one comment, its first line; contracts go in `docs/` or the module's README. `test-comments.lua` fails on any other comment.
-- Editing an addon file with Python's `read_text` and `write_text` turned its CRLF endings into LF twice in one task, and a fix-up commit shipped the LF file. Run `python3 Tools/dev/crlf.py` and `pre-commit run --all-files` before every commit, fix-ups included.
-- Three modules (Minimap, UnitFrames, Skins) set text on a raw `CreateFontString` before styling it. The game raised "Font not set" and stopped two modules from loading. Make font strings with `K.Widgets.FontString(parent, layer)`. `test-fontstrings.lua` fails on a raw call, and the stub raises the game's error.
-- Three secure overlays (Minimap, Reload, DataBars) anchored to the button they cover. The minimap's zone button sits on a font string, so the game raised "Cannot anchor protected frames to regions" on every hover. Place a secure overlay with `K.Widgets.Cover(overlay, visual)`. The stub raises the game's error when a protected frame's anchors lead to a region.
-- Piping `run-all.sh` or a test into `tail` hid two failures, and a failing branch was pushed twice in one task. Before a push, read the exit code of every check (`run-all.sh --affected` ends with `passed N, failed 0` and then says how many files ran), never the tail of piped output.
-- LuaJIT's compiler ran a new test in 0.5 s on the Mac. Under Lua 5.1 it took 53 s and peaked at 10 GB, and CI's tests job passed its 15-minute limit. A `test-perf` budget set from LuaJIT times also failed on CI (51.9 us against 40 us). Run `run-all.sh` with no `LUA`: it runs Lua 5.1 or `luajit -joff` and fails any test file over 20 s or 4096 MB. Never run it with `LUA=luajit` to decide a push. `test-perf` fails any budget below 5 times the Lua 5.1 time.
-- Cinzel has no thin-space glyph, so the game draws a box for one. UnitFrames hit it first, then the Skins section caps and the kit tooltip titles shipped "Q□U□E□S□T□S" to the first in-game test, which the renderer could not show. Insert tracking thin spaces only where `KstyleUI.Locale.TrackMode(fontPath)` answers `"space"`; for headings use the `caps` role, whose font file carries the spacing (the game has no letter-spacing call). `test-thin-space.lua` fails on a Cinzel heading that carries a thin space.
-- A badge on an engine aura button read its own `IsShown()` in a restyle. On Forever, visibility inside a secure aura button is a secret, and the boolean test raised 30 errors in the first in-game test. Never read state back from regions inside engine aura buttons; keep the wanted state yourself. `test-unitframes-auras.lua` makes those reads raise.
-- Two modules (Auras, GroupFrames) registered one event twice under the same owner. `Core/Events.lua` keeps one handler per owner and event, so the last registration silently replaced the others: Auras never flushed its waiting restyle on `PLAYER_ENTERING_WORLD`, and GroupFrames never refreshed its role icons on `PLAYER_ROLES_ASSIGNED`. Give each piece of work its own owner, or register one handler that calls them all. `test-suite-load.lua` runs `Tools/regression/event_guard.lua` and fails on a new replacement.
+- Piping `run-all.sh` or a test into `tail` hid two failures. Read the exit code of every check. Ends: judgment.
+- A `test-perf` budget set from LuaJIT times failed on CI, and a new test took 53 s and 10 GB under Lua 5.1 against 0.5 s under LuaJIT. Decide a push from `run-all.sh` with no `LUA` set, never from `LUA=luajit`. Ends: judgment.
