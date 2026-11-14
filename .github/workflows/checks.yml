@@ -27,13 +27,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Check the runner's luacheck and pre-commit
         run: |
           luacheck --version | grep '^Luacheck: 1\.2\.0$'
           pre-commit --version | grep '^pre-commit 4\.7\.0$'
-      - name: Run pre-commit
-        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Run the lint gate (crlf, pre-commit, luacheck, check_toc, strings, suppressions)
+        env:
+          GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
+          KSTYLEUI_PYTHON: python3
+        run: bash scripts/gate.sh lint
 
   lua:
     name: lua ${{ matrix.shard }}/2
@@ -59,7 +63,7 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         env:
           SHARD: ${{ matrix.shard }}
-        run: bash Tools/regression/run-all.sh --shard "$SHARD/2"
+        run: bash scripts/gate.sh lua --shard "$SHARD/2"
 
   python:
     name: python
@@ -82,7 +86,9 @@ jobs:
         run: python3 --version | grep '^Python 3\.12\.'
       - name: Python tool tests
         if: steps.scope.outputs.run == 'true'
-        run: python3 -m unittest discover -s Tools/tests
+        env:
+          KSTYLEUI_PYTHON: python3
+        run: bash scripts/gate.sh python
 
   package:
     name: package

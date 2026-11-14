@@ -4,12 +4,12 @@ The notes a contributor needs that the [README](../README.md) no longer carries:
 
 ## Rules and design
 
-Read [`AGENTS.md`](../AGENTS.md) for the branch flow, the commands to run before every push and the repository rules.
+Read [`AGENTS.md`](../AGENTS.md) for the gate to run before every push and the repository rules.
 The binding design is [`docs/superpowers/specs/2026-11-07-kstyleui-design.md`](superpowers/specs/2026-11-07-kstyleui-design.md).
 
 ## Releases and testing
 
-Each release is a `vX.Y.Z` tag on `main`, cut after the owner's in-game pass on `staging` (`AGENTS.md`, Releases). [`CHANGELOG.md`](../CHANGELOG.md) and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) hold what each release changed, and [`docs/TESTING.md`](TESTING.md) is the test guide.
+Each release is a `vX.Y.Z` tag on `main`, cut after the owner's in-game pass on `staging`. [`CHANGELOG.md`](../CHANGELOG.md) and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) hold what each release changed, and [`docs/TESTING.md`](TESTING.md) is the test guide.
 
 To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install the addons](TESTING.md#install-the-addons) in the test guide.
 
@@ -35,17 +35,15 @@ The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x
 
 ## Checks
 
-Run these from the repository root before every push, one at a time, and read each exit code. All of them must pass; `AGENTS.md` explains each one.
+Run the gate from the repository root before every push and read its exit code. `AGENTS.md` explains each step.
 
 ```bash
-python3 Tools/dev/crlf.py
-pre-commit run --all-files
-luacheck .
-python3 Tools/hooks/check_toc.py
-bash Tools/regression/run-all.sh --affected origin/staging
+bash scripts/gate.sh
 ```
 
-The last command runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why. CI runs everything, so the Mac does not repeat it. On 2026-11-10 the owner asked for the pipeline to stop duplicating tests (`AGENTS.md` quotes him), which replaced the earlier rule of a full local `run-all.sh` and Python suite before every push. Run the Python suite (`python3 -m unittest discover -s Tools/tests`) yourself only when your diff touches `Tools/`, `Media/`, `.github/` or a locale string.
+It runs `python3 Tools/dev/crlf.py --check`, `pre-commit run --all-files`, `luacheck .`, `python3 Tools/hooks/check_toc.py`, `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those.
+
+With no options the `lua` group runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why; CI passes `--shard I/2` and runs every file. `bash Tools/regression/run-all.sh` with no argument reproduces a CI failure.
 
 ### What CI runs
 
