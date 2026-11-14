@@ -582,14 +582,16 @@ local function Moved(f)
 	end
 end
 
-function ReleaseBoxes(restore)
-	for box, entry in pairs(state.boxes) do
-		if entry.held then
-			box[SAVE] = entry.held.value
-		end
-		local original = restore and entry.original
-		if original then
-			K.Combat.Queue(function()
+function ReleaseBoxes(restore, save)
+	local entries = state.boxes
+	state.boxes = {}
+	if next(entries) == nil then
+		return
+	end
+	K.Combat.Queue(function()
+		for box, entry in pairs(entries) do
+			local original = restore and entry.original
+			if original then
 				box:ClearAllPoints()
 				for _, point in ipairs(original.points) do
 					box:SetPoint(unpack(point))
@@ -597,10 +599,16 @@ function ReleaseBoxes(restore)
 				if Plain(original.width) then
 					box:SetWidth(original.width)
 				end
-			end)
+			end
+			if entry.held then
+				box[SAVE] = entry.held.value
+			end
 		end
-	end
-	state.boxes = {}
+		local settings = save and IsTable(state.rxp) and state.rxp.settings
+		if IsTable(settings) and type(settings.SaveFramePositions) == "function" then
+			RestedXP.Try("settings.SaveFramePositions", settings.SaveFramePositions, settings)
+		end
+	end)
 end
 
 local function BoxMoved(box)
@@ -609,11 +617,7 @@ local function BoxMoved(box)
 		return
 	end
 	entry.original = nil
-	ReleaseBoxes(true)
-	local settings = IsTable(state.rxp) and state.rxp.settings
-	if IsTable(settings) and type(settings.SaveFramePositions) == "function" then
-		RestedXP.Try("settings.SaveFramePositions", settings.SaveFramePositions, settings)
-	end
+	ReleaseBoxes(true, true)
 	K.Options.Write(MODULE, KEY .. "." .. DOCK, false)
 	Log("the player moved one of RestedXP's boxes; the rail lets them be")
 	K.Print(L["KstyleUI leaves RestedXP's item and target boxes where you put them. Turn Dock RestedXP's boxes back on in the RestedXP skin's settings."])

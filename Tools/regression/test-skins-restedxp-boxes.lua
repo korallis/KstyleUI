@@ -138,4 +138,27 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
+-- A drag in combat: RestedXP's own save skips both docked boxes, and the rail waits for combat to end, then puts the
+-- other box back and saves, so a logout never keeps the other box's docked place.
+do
+	local env, K, ns, rxp = Boot({ 1920, 1080, 1 }, "orbs")
+	local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
+	env.SetCombat(true)
+	targets:ClearAllPoints()
+	targets:SetPoint("CENTER", env.UIParent, "CENTER", -300, 40)
+	targets:GetScript("OnMouseUp")(targets, "LeftButton")
+	assert(items.savePosition == false, "in combat the undragged box stays out of RestedXP's saved places")
+	rxp.fake.logout()
+	local saved = rxp.settings.profile.framePositions.activeItemFrame
+	assert(saved[1][1] == LEE.activeItemFrame[1] and saved[1][4] == LEE.activeItemFrame[4], "a logout in combat keeps the undragged box's own saved place")
+	env.SetCombat(false)
+	env.RunTimers()
+	S.W.Settle(env)
+	saved = rxp.settings.profile.framePositions
+	assert(saved.activeTargetFrame[1][1] == "CENTER" and saved.activeTargetFrame[1][4] == -300, "after combat RestedXP saves the drag")
+	assert(saved.activeItemFrame[1][1] == LEE.activeItemFrame[1] and saved.activeItemFrame[1][4] == LEE.activeItemFrame[4], "and the undragged box's own place")
+	assert(ns.Skins.Setting("restedXP", "boxes") == false, "docking is off")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
 print("skins restedxp boxes ok")
