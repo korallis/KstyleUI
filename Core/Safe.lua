@@ -1,4 +1,4 @@
--- Safe.lua: taint-safe helpers: hide Blizzard frames by reparenting, and weak-keyed per-frame side tables.
+-- Safe.lua: taint-safe helpers: hide Blizzard frames by reparenting them onto a hidden frame that spans UIParent, so a hidden frame whose anchors name no frame (they hang on its parent) keeps a rect for Edit Mode and the client to read, and weak-keyed per-frame side tables.
 local _, ns = ...
 
 local Safe = {}
@@ -116,6 +116,7 @@ function Safe.HideBlizzard(frame)
 	end
 	if not hiddenParent then
 		hiddenParent = CreateFrame("Frame")
+		hiddenParent:SetAllPoints(UIParent)
 		hiddenParent:Hide()
 	end
 	wanted[frame] = "hide"
