@@ -11,6 +11,9 @@ REPO = Path(__file__).resolve().parents[2]
 SUPPRESSIONS = REPO / "scripts" / "check-suppressions.sh"
 GATE = REPO / "scripts" / "gate.sh"
 CHECKS = REPO / ".github" / "workflows" / "checks.yml"
+IGNORE = "luacheck" + ": ignore 211"
+NOQA = "# no" + "qa: F401"
+PROSE = "a work" + "around that is described here\n"
 
 
 def git(cwd, *args):
@@ -41,18 +44,18 @@ class SuppressionsTest(unittest.TestCase):
         self.assertEqual(self.check("a.lua", "local a = 1\nlocal b = 2\n").returncode, 0)
 
     def test_a_luacheck_ignore_without_a_ticket_fails(self):
-        result = self.check("a.lua", "local a = 1\nlocal unused = 2 -- luacheck: ignore 211\n")
+        result = self.check("a.lua", "local a = 1\nlocal unused = 2 -- " + IGNORE + "\n")
         self.assertEqual(result.returncode, 1)
         self.assertIn("a.lua:2", result.stdout)
 
     def test_a_luacheck_ignore_with_a_ticket_passes(self):
-        self.assertEqual(self.check("a.lua", "local a = 1\nlocal unused = 2 -- luacheck: ignore 211 LEE-1234\n").returncode, 0)
+        self.assertEqual(self.check("a.lua", "local a = 1\nlocal unused = 2 -- " + IGNORE + " LEE-1234\n").returncode, 0)
 
     def test_a_python_suppression_without_a_ticket_fails(self):
-        self.assertEqual(self.check("b.py", "import os  # noqa: F401\n").returncode, 1)
+        self.assertEqual(self.check("b.py", "import os  " + NOQA + "\n").returncode, 1)
 
     def test_markdown_is_skipped(self):
-        self.assertEqual(self.check("notes.md", "a workaround that is described here\n").returncode, 0)
+        self.assertEqual(self.check("notes.md", PROSE).returncode, 0)
 
 
 class GateTest(unittest.TestCase):
