@@ -26,9 +26,9 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | Group damage meter | Meters | `KstyleUI_Meters/Damage.lua`, `BarList.lua` | `test-meters-damage`, `-drill`, `-fights`, `-group`, `-solo`, `-card` | `hud_reference` with `RENDER_METER_GROUP=party RENDER_METER_SECRET=1`; `gallery_meters` |
 | Threat card | Meters | `KstyleUI_Meters/Threat.lua` | `test-meters-threat`, `test-store-threat` | `hud_reference` with `RENDER_LAYOUT=Tank`; `hud_dps_threat` |
 | Swing timer | Meters | `KstyleUI_Meters/Swing.lua` | `test-meters-swing`, `test-store-swing` | `gallery_meters` |
-| Map card and addon drawer | Minimap | `KstyleUI_Minimap/` (`Map.lua`, `Drawer.lua`) | `test-minimap*` | `gallery_minimap`, `minimap_ornaments` |
+| Map card, addon drawer and addon edge pins | Minimap | `KstyleUI_Minimap/` (`Map.lua`, `Drawer.lua`, `Pins.lua`) | `test-minimap*` | `gallery_minimap`, `minimap_ornaments`; `hud_reference` with `RENDER_ZONE` for a zone name |
 | Quest card | Window Skins | `KstyleUI_Skins/Quests/`, `KstyleUI_Skins/Tracker.lua` | `test-skins-questcard`, `test-skins-quests`, `test-skins-tracker*` | `hud_reference` (the right rail), `tracker` |
-| RestedXP guide card and windows | Window Skins | `KstyleUI_Skins/Addons/` | `test-skins-restedxp-*`, `test-restedxp-readability` | `restedxp`, `gallery_restedxp`; `hud_reference` with `RENDER_STORY=live` |
+| RestedXP guide card, its docked target and item boxes, and windows | Window Skins | `KstyleUI_Skins/Addons/` | `test-skins-restedxp-*`, `test-restedxp-readability` | `restedxp`, `gallery_restedxp`; `hud_reference` with `RENDER_STORY=live`, and `RENDER_RXP_BOXES=1` for the boxes |
 | Experience, reputation and honour strip, readout and micro menu | Data Bars | `KstyleUI_DataBars/` | `test-databars-*` | `databars`, `gallery_databars`; `hud_reference` with `RENDER_XP=<amount>`, `RENDER_FACTION=1` |
 | Chat card | Chat | `KstyleUI_Chat/` | `test-chat-*` | `chat`, `gallery_chat`; `RENDER_CHAT_FRAMING=auto\|card\|bare` |
 | Loot feed, fast loot, auto repair, quest hand-in, quiet error text | Quality of Life | `KstyleUI_QoL/` | `test-qol*` | `gallery_qol` |
