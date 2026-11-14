@@ -476,6 +476,9 @@ function Widgets.TrackPad(text)
 end
 
 function Widgets.SyncTracking(text)
+	if type(text.GetNumPoints) ~= "function" then
+		return
+	end
 	local path, size = text:GetFont()
 	local tracking = type(path) == "string" and type(size) == "number" and Tokens.FaceTracking(path) or 0
 	if tracking ~= 0 or trackers[text] then
