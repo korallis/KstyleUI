@@ -1,0 +1,63 @@
+# Feature map
+
+One row per player-facing feature, in the names the README and the v0.1.0 changelog use. Briefs, tickets and PRs use these names. A PR that adds, renames or removes a feature updates its row.
+
+- **Where** is the settings window page (`/kstyle`) or the slash command where the player finds it. A module page carries the module's name; General holds the HUD style, Appearance and Widgets sections; Elements holds the Layout section.
+- **Code** is the main code path, relative to the repository root.
+- **Tests** are the regression files under `Tools/regression/` that cover it. `test-<name>*` means every file with that prefix.
+- **Render** is the scene under `Tools/render/scenes/` and the `RENDER_*` variables that show it. Run it with the app driver in [AGENTS.md](../AGENTS.md#app-driver): `bash Tools/render/shoot.sh <scene> --strict`, with the variables in front.
+
+## The HUD
+
+| Feature | Where | Code | Tests | Render |
+| --- | --- | --- | --- | --- |
+| HUD style: Frames and Orbs | General > HUD style; setup step 2 | `Core/HudStyle.lua`, `KstyleUI_UnitFrames/Orbs.lua`, `Core/Layout/Layout.lua` (`Style`, `StyleDefault`) | `test-unitframes-orbs` (combat queue, reload prompt), `test-options-hud-pictures`, `test-layout-orbs*`, `test-setup-editmode-orbs`, `test-orbs-clearance-*` | `hud_reference` with `RENDER_HUD_STYLE=Frames\|Orbs`, `RENDER_ORBS_HIT=1` for the hit orb; statechart [hud-style.md](statecharts/hud-style.md) |
+| Clean bars (player, target, focus, pet, boss frames) | Unit Frames | `KstyleUI_UnitFrames/` (`Frames.lua`, `Unit.lua`, `Style.lua`) | `test-unitframes-*`, `test-ornament-unitframe-bars` | `hud_reference` with `RENDER_LOSS=1`; `gallery_unitframes`, `unitframes_design` |
+| Orbs and the forged tray | Unit Frames; General > HUD style | `KstyleUI_UnitFrames/Orbs.lua`, `KstyleUI_ActionBars/Tray.lua` | `test-unitframes-orbs`, `test-unitframes-orbs-tray`, `test-store-tray` | `hud_reference` with `RENDER_HUD_STYLE=Orbs RENDER_ORBS_HIT=1` |
+| Wide target bar | Unit Frames > Target > Style | `KstyleUI_UnitFrames/Frames.lua`, `Geometry.lua` | `test-unitframes-target-bar`, `test-unitframes-target-orbs` | `hud_reference` with `RENDER_HUD_STYLE=Orbs`, or `hud` scenes with `RENDER_TARGET_STYLE` |
+| Cast bars | Unit Frames | `KstyleUI_UnitFrames/CastBar.lua` | `test-unitframes-castbar*`, `test-unitframes-cast-flashes`, `test-unitframes-column-cast` | `hud_reference` (the picture's casts), `gallery_unitframes` |
+| Action bars and the shared action slot | Action Bars; `/kstyle bind` | `KstyleUI_ActionBars/` (`Bar.lua`, `Button.lua`, `Socket.lua`) | `test-actionbars*` | `gallery_actionbars`, `slots`, `buttons_mac` |
+| New spell rank offer | Action Bars | `KstyleUI_ActionBars/Ranks.lua` | `test-actionbars-ranks` | none |
+| Cooldown Manager rows and tracked buffs | Cooldowns | `KstyleUI_Cooldowns/` | `test-cooldowns-*`, `test-tracked-caps` | `cooldowns`, `gallery_cooldowns`, `gallery_tracked`; `hud_reference` with `RENDER_COOLDOWN_FALLBACK=1` |
+| Buffs and debuffs | Auras | `KstyleUI_Auras/` | `test-auras*`, `test-aura-tile-text` | `auras_tracker` with `RENDER_BUFFS=16`; `gallery_auras` |
+| Nameplates | Nameplates | `KstyleUI_Nameplates/` (`Plate.lua`, `Plates.lua`, `Cast.lua`) | `test-nameplates*`, `test-reference-plates*` | `nameplate_bible` with `RENDER_COMBAT=1`; `gallery_nameplates*`, `nameplate` |
+| Combat text | Combat Text | `KstyleUI_CombatText/` | `test-combattext-*` | `gallery_combattext` |
+| Party and raid frames | Party and Raid | `KstyleUI_GroupFrames/` | `test-groupframes-*` | `group_lanes` with `RENDER_GROUP=party\|10\|20\|40`; `gallery_groupframes`; `hud_reference` with `RENDER_LAYOUT=Healer` |
+| Group damage meter | Meters | `KstyleUI_Meters/Damage.lua`, `BarList.lua` | `test-meters-damage`, `-drill`, `-fights`, `-group`, `-solo`, `-card` | `hud_reference` with `RENDER_METER_GROUP=party RENDER_METER_SECRET=1`; `gallery_meters` |
+| Threat card | Meters | `KstyleUI_Meters/Threat.lua` | `test-meters-threat`, `test-store-threat` | `hud_reference` with `RENDER_LAYOUT=Tank`; `hud_dps_threat` |
+| Swing timer | Meters | `KstyleUI_Meters/Swing.lua` | `test-meters-swing`, `test-store-swing` | `gallery_meters` |
+| Map card and addon drawer | Minimap | `KstyleUI_Minimap/` (`Map.lua`, `Drawer.lua`) | `test-minimap*` | `gallery_minimap`, `minimap_ornaments` |
+| Quest card | Window Skins | `KstyleUI_Skins/Quests/`, `Tracker.lua` | `test-skins-questcard`, `test-skins-quests`, `test-skins-tracker*` | `hud_reference` (the right rail), `tracker` |
+| RestedXP guide card and windows | Window Skins | `KstyleUI_Skins/Addons/` | `test-skins-restedxp-*`, `test-restedxp-readability` | `restedxp`, `gallery_restedxp`; `hud_reference` with `RENDER_STORY=live` |
+| Experience strip, readout and micro menu | Data Bars | `KstyleUI_DataBars/` | `test-databars-*` | `databars`, `gallery_databars`; `hud_reference` with `RENDER_XP`, `RENDER_FACTION=1` |
+| Chat card | Chat | `KstyleUI_Chat/` | `test-chat-*` | `chat`, `gallery_chat`; `RENDER_CHAT_FRAMING=auto\|card\|bare` |
+| Loot feed, fast loot, repair, quest hand-in | Quality of Life | `KstyleUI_QoL/` | `test-qol*` | `gallery_qol` |
+
+## Screens and layouts
+
+| Feature | Where | Code | Tests | Render |
+| --- | --- | --- | --- | --- |
+| Interface size: Auto (pixel perfect) | General > Size | `Core/Scale.lua` (`Apply`, `Auto`), `Core/Appearance.lua` | `test-scale-auto`, `test-hud-scale`, `test-pixel-grid-*`, `test-text-floor` | any HUD scene with `RENDER_SIZE=auto` and `RENDER_SCREEN` |
+| Ultrawide arrangement: Centred and Spread | Elements > Ultrawide arrangement | `Core/Scale.lua` (`CanvasWidth`, `AspectClass`), `Core/Layout/Layout.lua` | `test-layout-ultrawide`, `test-setup-warnings` | `hud_reference` with `RENDER_ARRANGEMENT=centred\|spread RENDER_SCREEN=5120x1440 RENDER_SIZE=auto`; statechart [arrangement-layout-class.md](statecharts/arrangement-layout-class.md) |
+| HUD width: 21:9, 16:9, full | Elements > HUD width | `Core/Scale.lua` (`BandWidth`) | `test-layout-ultrawide` | as above |
+| DPS, Tank and Healer layouts | setup step 3; Elements | `Core/Setup/Layouts.lua` | `test-setup-layouts`, `test-setup-collisions`, `test-render-scenes-reference*`, `test-centre-clearance-*` | `hud_reference` with `RENDER_LAYOUT=DPS\|Tank\|Healer` |
+| Layout Mode | `/kstyle layout`; Elements | `Core/Layout/Mode.lua`, `Layout.lua`, `History.lua` | `test-layout-mode`, `test-layout*` | `gallery_layout` |
+| Calm the rails in combat | Elements > Combat | `Core/Layout/Calm.lua` | `test-layout-calm` | `hud_lumen_combat` |
+
+## Setup and settings
+
+| Feature | Where | Code | Tests | Render |
+| --- | --- | --- | --- | --- |
+| First-run setup | opens on first login; `/kstyle setup` | `Core/Setup/Setup.lua`, `Window.lua` | `test-setup`, `test-setup-summary`, `test-setup-warnings` | `gallery_setup` (welcome, layouts, modules, summary), `setup_ornaments` with `RENDER_SUBJECT=setup`; statechart [setup.md](statecharts/setup.md) |
+| Edit Mode layout written by Apply | setup summary, Try again | `Core/Setup/EditMode.lua` | `test-setup-editmode*`, `test-skins-tracker-editmode` | `gallery_setup_tracked`, `gallery_tracked` |
+| Settings window with search and live preview | `/kstyle`; Esc > Options > AddOns | `KstyleUI_Options/`, `Core/Options.lua` | `test-options-*` | `gallery_options`, `gallery_options_modules` |
+| Profiles, export and import | Profiles; `/kstyle profile ...` | `Core/Store.lua`, `Core/Codec.lua`, `Core/Slash.lua` | `test-store*` | none |
+| Card material | General > Card material | `Core/Widgets/Base.lua` | `test-card-material*`, `test-popup-material*`, `test-hud-material-*` | any scene with `RENDER_CARD_MATERIAL=Glass\|Flat\|Slate\|ForgedTicks\|ForgedBrackets`; `material_study` |
+| Ornaments: Off, Subtle, Full | General > Ornaments; setup step 5 | `Core/Widgets/Ornaments.lua`, `OrnamentData.lua` | `test-ornament-*` | any scene with `RENDER_ORNAMENTS=Off\|Subtle\|Full`; `setup_ornaments`, `crest_states` |
+| Type sets and fonts by role | General > Text, Fonts by role | `Core/Fonts.lua`, `Core/Appearance.lua` | `test-fonts`, `test-folio-*`, `test-role-fonts*`, `test-type-*` | `components_mac` (the component sheet) |
+| Window skins | Window Skins | `KstyleUI_Skins/` (`Registry.lua`, `PartB/`, `PartC/`) | `test-skins-*` | `gallery_skins_<window>` (19 windows) |
+| Native context menus | Window Skins | `KstyleUI_Skins/ContextMenus.lua` | `test-skins-contextmenus` | `native_menus_*` with `RENDER_MATERIAL` |
+| Tooltips | Tooltips | `KstyleUI_Tooltips/` | `test-tooltips*` | `gallery_tooltips`, `tooltip_design` |
+| Bags and bank | Bags | `KstyleUI_Bags/` | `test-bags-*` | `gallery_bags`, `gallery_bags_browse` |
+| Languages | the client's locale | `Core/Locale.lua`, `Core/Locales/` | `test-locale*`, `test-render-scenes-locale-*` | any scene with `RENDER_LOCALE=deDE\|frFR\|esES\|zhCN` |
+| Repainted icon pack | not an addon; a loose-file pack | `Tools/icons/iconset.py`, [icons.md](icons.md) | `Tools/tests/test_iconset.py` | every scene draws set B where the pack has the icon |
