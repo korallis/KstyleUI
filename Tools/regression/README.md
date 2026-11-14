@@ -80,6 +80,33 @@ The common `centre_clearance_lib.lua` assigns the renderer's actual visible text
 
 The twelve matrix files split by class/form and preset, with collection between screens, so no file retains the whole matrix or approaches the Lua 5.1 time/memory budget. Measure them with `bash Tools/regression/run-all.sh --affected origin/staging --margins`. They test the normal automatic path (essential/utility mirrors, tracked buff/bar native reskins), not hand-saved layouts or native Essential/Utility fallback; those need their own native-template and managed-flow fixture.
 
+## Property tests
+
+Three test files check properties on random cases instead of fixed ones. `property_lib.lua` makes each case from a seed and the case number with its own generator (Park and Miller's, exact in both Lua 5.1 and LuaJIT), so the same seed and case give the same case on every machine.
+
+| File | Property | Default cases |
+| --- | --- | --- |
+| `test-property-layout.lua` | At random screens from 1024 x 768 to 7680 x 2160 (4:3, 3:2, 16:10, 16:9, 21:9 and 32:9, and ratios between), Interface sizes, HUD widths, both HUD styles and arrangements, the three layouts and random optional bars, every element Layout places from its defaults (stand-ins of each element's footprint, bar 2 split under Orbs as `Bar:Layout` does, and the quest card) lies on screen with its edges on whole physical pixels, the orbs (placed and clamped as `Orbs.lua` does) lie on screen, and no two elements the fit check keeps apart overlap, the orbs included. | 60 |
+| `test-property-pixels.lua` | At random screens and sizes, `Scale.Pixel(1)` is one physical pixel, `Scale.Snap`, `Geometry.Align`, `Geometry.SnapSize` and `Widgets.Snap` give whole pixels and snap a snapped value to itself, no positive size snaps below one pixel, and `Scale.Nearest` gives a whole size step inside the allowed range. | 100 |
+| `test-property-migrations.lua` | Random saved data (missing keys, wrong types, damaged profiles and layouts, any version) loads without an error at the current version (newer data keeps its own), loads again unchanged, and each migration run twice on data aimed at the fields it reads changes nothing the second time. | 80 |
+
+These environment variables steer them:
+
+- `KSTYLE_PROPERTY_ITERATIONS`: the number of cases. The defaults keep each file near 5 s under Lua 5.1, well inside the 20 s budget. The nightly verification run sets it high: 2000 for the layout file and the pixel file and 3000 for the migration file take about 3, 2 and 4 minutes under Lua 5.1. `run-all.sh` holds files to its budget, so run the files alone with `lua5.1` for that.
+- `KSTYLE_PROPERTY_SEED`: the seed, a whole number. The default, 20261114, keeps every pull request's run the same; the nightly run passes a new one each night.
+- `KSTYLE_PROPERTY_CASE`: run that one case alone.
+- `KSTYLE_PROPERTY_ALL=1`: report every failing case before failing, not only the first.
+
+A failure prints the seed, the case number, the case and the command that runs it again:
+
+```text
+property "layout at any screen" failed at case 18 of seed 20261114: actionbars.bar3 overlaps actionbars.pet
+  case: 4236x1495 Healer orbs spread, HUD width full, size automatic (...)
+  reproduce: KSTYLE_PROPERTY_SEED=20261114 KSTYLE_PROPERTY_CASE=18 lua5.1 Tools/regression/test-property-layout.lua
+```
+
+A bug a property finds is filed, and until it is fixed the file's `known` list claims its violations, and only those, by the issue code, so the suite stays green and the run prints `known failure LEE-n` with its first case. Fixing the bug means deleting its entry.
+
 ## Interpreter
 
 CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
@@ -132,6 +159,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
 | `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for `test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua`. |
 | `perf/` | The combat paths `test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua` measure, one file per addon folder, split between them by `perf_runner.lua`. |
+| `property_lib.lua` | The seeded generator and `Property.Check` for the property tests. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan

@@ -574,7 +574,9 @@ local function Trail(f)
 	end
 	for _, step in ipairs(pool) do
 		local plate = IsTable(step) and step.number
-		if IsTable(plate) and IsTable(plate.text) and not IsTip(step) and step:IsShown() and not Widgets.IsSecret(step:GetAlpha()) and step:GetAlpha() > 0 then
+		local rail = RestedXP.Rail
+		local cut = rail and rail.Cut(step)
+		if IsTable(plate) and IsTable(plate.text) and not IsTip(step) and step:IsShown() and not Widgets.IsSecret(step:GetAlpha()) and (cut or step:GetAlpha() > 0) then
 			local value = PlainText(plate.text:GetText())
 			if value ~= "" then
 				return value
