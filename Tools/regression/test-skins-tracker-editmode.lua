@@ -75,11 +75,16 @@ local function Managed(env, tracker)
 	tracker:SetHeight(EDIT_MODE_HEIGHT)
 end
 
--- StartMoving(env, tracker): OnDragStart for a tracker in its default place: BreakFromFrameManager's
--- SetParent(UIParent) (EditModeSystemTemplates.lua:335), then the engine moves it from where it stands.
+-- StartMoving(env, tracker): OnDragStart for a tracker in its default place (EditModeSystemTemplates.lua:890):
+-- BreakFromFrameManager takes it out of the container, whose RemoveManagedFrame keeps its anchor because the tracker
+-- has IsInDefaultPosition (ManagedFrameSystem.lua:99), and puts it on UIParent (EditModeSystemTemplates.lua:343), so
+-- the anchor that names no frame now hangs on UIParent; then the snap preview starts reading its selection, and the
+-- engine moves it from where it stands.
 local function StartMoving(env, tracker)
-	local left, top = tracker:GetLeft(), tracker:GetTop()
 	tracker:SetParent(env.UIParent)
+	local ok, err = pcall(Sides, tracker)
+	assert(ok, "the first snap preview of the drag reads the selection's rect: " .. tostring(err))
+	local left, top = tracker:GetLeft(), tracker:GetTop()
 	tracker:ClearAllPoints()
 	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", left, top)
 end
@@ -195,18 +200,18 @@ do
 end
 
 -- The card on, the tracker in Blizzard's default place (a preset layout, or Reset To Default Position): the card hides
--- it on Safe's hidden parent, and its anchor, which names no frame, hangs on that parent. Edit Mode's snap preview reads
--- the snap-preview frame's selection every frame without asking whether it shows (EditModeManager.lua:85, :1116), so
--- the hidden tracker keeps a rect at rest, on Edit Mode's enter, through Blizzard's layout apply and a drag, and after
--- Edit Mode closes and the card hides it again.
+-- it on Safe's hidden parent, and its anchor, which names no frame, hangs on that parent. Safe's hidden parent spans
+-- UIParent, so the hidden tracker keeps a rect at rest, on Edit Mode's enter and after Edit Mode closes; this pins
+-- Safe's parked state, which the snap preview (EditModeManager.lua:85, :1116) would read without asking whether the
+-- frame shows. Blizzard's layout apply puts it back in its container, and the drag from there keeps its rect.
 
 do
 	local env, K, ns, tracker = Boot({ managed = true })
 	assert(ns.Quests.Active() and not tracker:IsVisible(), "the card stands in for the tracker in its default place")
 	assert(K.Safe.IsHidden(tracker), "the card hid Blizzard's tracker")
-	Sides(tracker)
+	assert(pcall(Sides, tracker), "the hidden tracker keeps a rect at rest")
 	Enter(env)
-	Sides(tracker)
+	assert(pcall(Sides, tracker), "and on Edit Mode's enter")
 	Managed(env, tracker)
 	assert(tracker:IsVisible(), "Blizzard's layout apply puts the tracker back in its container")
 	StartMoving(env, tracker)
@@ -215,7 +220,7 @@ do
 	Exit(env)
 	assert(not tracker:IsVisible() and K.Safe.IsHidden(tracker), "after Edit Mode closes the card hides Blizzard's tracker again")
 	assert(ns.Quests.Active() and ns.Quests.Card():IsShown(), "and keeps the slot")
-	Sides(tracker)
+	assert(pcall(Sides, tracker), "and the hidden tracker keeps a rect after Edit Mode closes")
 	Clean(env, K)
 end
 
