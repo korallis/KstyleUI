@@ -157,7 +157,11 @@ end
 
 local function Within(k, height, maximum)
 	local step = Step(height)
-	return max(ceil(MIN_USER_SCALE / step - 1e-9), min(k, floor(maximum / step + 1e-9)))
+	local top = floor(maximum / step + 1e-9)
+	if top * step > maximum then
+		top = top - 1
+	end
+	return max(ceil(MIN_USER_SCALE / step - 1e-9), min(k, top))
 end
 
 local function Nearest(size, height, maximum)

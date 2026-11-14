@@ -116,4 +116,28 @@ do
 	local text = custom34["combattext.player"]
 	assert(text and text.anchor == "BOTTOM" and text.x == 410 and text.y == 500 and custom34["orbs:combattext.player"] == nil, "a combat text the player placed keeps its Frames place, and Orbs, which always had its own, is left alone")
 end
+-- Migration 35 (Capy LEE-1460): action bar 3 gained an Orbs place of its own, so a bar 3 the player placed, which Orbs
+-- showed from the shared key, keeps its place under Orbs too; a profile that never moved it, or already has an Orbs
+-- place for it, is left alone.
+do
+	local env35, K35 = C.New({ saved = {
+		version = 34,
+		profiles = { Default = {}, Moved = {}, Both = {} },
+		layouts = {
+			Default = {},
+			Moved = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 60, y = 520 } },
+			Both = { ["actionbars.bar3"] = { anchor = "TOPLEFT", x = 30, y = -30 }, ["orbs:actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = 600 } },
+		},
+	} })
+	C.Boot(env35)
+	local db35 = env35.KstyleUIDB
+	assert(db35.version == K35.Store.DB_VERSION and K35.Store.DB_VERSION >= 35 and K35.ErrorCount() == 0, "migration 35 runs without errors")
+	local moved = db35.layouts.Moved
+	assert(moved["actionbars.bar3"].x == 60 and moved["actionbars.bar3"].y == 520, "the Frames place stays")
+	local orbs = moved["orbs:actionbars.bar3"]
+	assert(orbs and orbs.anchor == "BOTTOMLEFT" and orbs.x == 60 and orbs.y == 520, "and Orbs keeps the place the player gave bar 3")
+	assert(db35.layouts.Default["orbs:actionbars.bar3"] == nil, "a bar 3 never moved takes the new Orbs place")
+	local both = db35.layouts.Both["orbs:actionbars.bar3"]
+	assert(both.anchor == "BOTTOM" and both.y == 600, "an Orbs place already saved is kept")
+end
 print("store placement ok")

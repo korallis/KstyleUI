@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 34
+Store.DB_VERSION = 35
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -883,6 +883,15 @@ Store.migrations[34] = function(data)
 					layout[key] = nil
 				end
 			end
+		end
+	end
+end
+
+Store.migrations[35] = function(data)
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["actionbars.bar3"]
+		if type(entry) == "table" and entry.anchor ~= nil and layout["orbs:actionbars.bar3"] == nil then
+			layout["orbs:actionbars.bar3"] = { anchor = entry.anchor, x = entry.x, y = entry.y }
 		end
 	end
 end

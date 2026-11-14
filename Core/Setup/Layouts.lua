@@ -418,6 +418,7 @@ local ORBS = {
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
 	["actionbars.pet"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY },
 	["actionbars.stance"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR, y = ORBS_FIT.cornerY },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY + select(2, GridSize("actionbars.pet")) + NEAR },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ORBS_FIT.tieX, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX, y = 52 },
 	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },
@@ -1107,6 +1108,26 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				end
 			end
 			rects[#rects + 1] = { left, bottom, right, top, key = key }
+		end
+	end
+	if style == "orbs" then
+		local bar = layout["actionbars.bar1"]
+		local barWidth, barHeight = Layouts.Footprint(name, "actionbars.bar1")
+		local point = OFFSETS[bar.anchor] or OFFSETS.CENTER
+		local x = physicalWidth * point[1] + (bar.x + barWidth * (0.5 - point[1])) * pixelScale
+		local y = physicalHeight * point[2] + (bar.y + barHeight * (0.5 - point[2]) + ORBS_LIFT) * pixelScale
+		local radius = ORBS_RING / 2 * pixelScale
+		for _, cx in ipairs({ x - ORBS_X * pixelScale, x + ORBS_X * pixelScale }) do
+			if cx - radius < 0 or y - radius < 0 or cx + radius > physicalWidth or y + radius > physicalHeight then
+				return false
+			end
+			for index = 1, #rects do
+				local rect = rects[index]
+				local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - y, 0, y - rect[4])
+				if dx * dx + dy * dy < radius * radius then
+					return false
+				end
+			end
 		end
 	end
 	return true
