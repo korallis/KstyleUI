@@ -766,7 +766,7 @@ Store.migrations[29] = function(data)
 			end
 			local boss = layout["unitframes.boss"]
 			local frames = type(profile.UnitFrames) == "table" and profile.UnitFrames.boss
-			if (boss == nil or boss.anchor == nil) and type(frames) == "table" then
+			if (type(boss) ~= "table" or boss.anchor == nil) and type(frames) == "table" then
 				for field, flip in pairs(HEALER_BOSS_AURAS) do
 					if frames[field] == flip[1] then
 						frames[field] = flip[2]
@@ -789,8 +789,11 @@ Store.migrations[30] = function(data)
 		local preset = layouts.Get(section.preset) and section.preset or "DPS"
 		local presets = layouts.Get(preset)
 		for key, entry in pairs(type(layout) == "table" and layout or {}) do
-			local style, element = key:match("^(%a+):(.+)$")
-			local old = type(entry) == "table" and (style and (layouts.Style(style, preset, element) or presets[element]) or presets[key])
+			local style, element
+			if type(key) == "string" then
+				style, element = key:match("^(%a+):(.+)$")
+			end
+			local old = type(key) == "string" and type(entry) == "table" and (style and (layouts.Style(style, preset, element) or presets[element]) or presets[key])
 			if old and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
 				for _, field in ipairs(PLACED) do
 					if entry[field] == nil then
@@ -825,7 +828,7 @@ Store.migrations[32] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		for key, entry in pairs(type(layout) == "table" and layout or {}) do
 			if type(entry) == "table" then
-				local old = CAST_HEIGHT_V30[key:match("^%a+:(.+)$") or key]
+				local old = type(key) == "string" and CAST_HEIGHT_V30[key:match("^%a+:(.+)$") or key]
 				if old and entry.height == old then
 					entry.height = nil
 				end
