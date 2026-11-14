@@ -1,5 +1,17 @@
 # KstyleUI changelog
 
+## v0.1.1 (2026-11-14)
+
+A hotfix for errors that players hit after v0.1.0.
+
+### Fixed
+
+- Raid frames and window skins no longer raise an error when the game loads.
+- Switching the HUD style with Options open no longer raises an error.
+- The "interrupt spell not allowed" warning no longer shows at login when no interrupt spell is set.
+- Dragging the quest tracker in Edit Mode no longer raises an error.
+- Nameplates no longer drop below the mob in combat.
+
 ## v0.1.0 (2026-11-13)
 
 This is the overhaul. KstyleUI now has two HUD styles, Frames and Orbs, that you pick in Options and in the first-run setup, and almost every part of the screen was redrawn to match them: cleaner bars, new nameplates, a group damage meter and an interface size that lands exactly on whole screen pixels.
@@ -104,5 +116,5 @@ KstyleUI is a full interface for World of Warcraft: Forever, drawn in one dark, 
 
 ## How to install
 
-1. Download the addon zip (`KstyleUI-v0.0.7-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Start the game (or `/reload`), then type `/kstyle` and switch on the modules you want.
+1. Download the addon zip (`KstyleUI-v0.1.1-forever.zip`) from the [GitHub release](https://github.com/korallis/KstyleUI/releases) and unzip it into `World of Warcraft/_forever_/Interface/AddOns`. You get `KstyleUI` and a `KstyleUI_<Module>` folder for each module. Fully quit the game and start it again (a `/reload` is not enough) so the addon's fonts load, then type `/kstyle` and switch on the modules you want.
 2. Optional: the icon pack `KstyleUI-Icons-0.0.7.zip`, from the same release, repaints ability and item icons everywhere, buff tiles included. It is not an addon and does not go into `AddOns`: quit the game, copy its `Interface` folder into `_forever_`, and start the game again. The steps, and how to remove it, are in [the icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md).
