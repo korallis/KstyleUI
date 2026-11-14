@@ -443,6 +443,38 @@ function N.Install(env, opts)
 			return true
 		end,
 	}
+	if opts.stackingBounds then
+		local blizzard = N.Blizzard(opts.nameplateSize or 3)
+		env.NamePlateScriptBaseMixin = { SetStackingBoundsFrame = function() end }
+		env.NamePlateSetupOptions = blizzard.options
+		env._plateSize, env._driverSize = { blizzard.width, blizzard.height }, { blizzard.width, blizzard.height }
+	end
+end
+
+-- Blizzard(size) -> Blizzard's own plate at a nameplateSize (1 Small to 5 Huge) in the Modern style, the 70862
+-- default: the driver's NamePlateSetupOptions, its nameplate size (width, height) and its health bar's bottom
+-- above the base's bottom (rise). Blizzard_NamePlates.lua:347-536 sizes the box: one aura row, the health bar,
+-- the cast bar and the cast icon row (the name sits inside the bar in Modern), with nameplateDebuffPadding at 0.
+-- Blizzard_NamePlateUnitFrame.lua:216-217 and 693-716 lay it out from the bottom: the cast block, its spacing,
+-- then the health bar. Camelot/Blizzard_NamePlateConstants.lua holds the constants and the size scales.
+N.BLIZZARD_SCALES = { 0.8, 1.0, 1.25, 1.4, 1.6 }
+N.BLIZZARD_WIDTH_SCALES = { 0.75, 1.0, 1.25, 1.4, 1.6 }
+function N.Blizzard(size)
+	local v, h = N.BLIZZARD_SCALES[size], N.BLIZZARD_WIDTH_SCALES[size]
+	local aura = size == 1 and 0.75 or v
+	local options = {
+		castBarHeight = 6 * v,
+		castIconHeight = 10 * v,
+		castBarToHealthBarSpacing = 2 * v,
+		healthBarHeight = 20 * v,
+		spellNameInsideCastBar = false,
+	}
+	return {
+		options = options,
+		width = 190 * h,
+		height = 25 * aura + options.healthBarHeight + options.castBarHeight + 10 * v,
+		rise = options.castBarHeight + options.castIconHeight + options.castBarToHealthBarSpacing,
+	}
 end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts: saved, setup(env), noBitfield, motion,
