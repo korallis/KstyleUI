@@ -58,7 +58,7 @@ local function run(case)
 	local blizzard = case.bounds and N.Blizzard(case.size) or nil
 	local env, K, ns = boot(case)
 	local scale = env.UIParent:GetEffectiveScale()
-	N.Add(env, "nameplate1", {}, { scale = scale })
+	N.Add(env, "nameplate1", case.unit, { scale = scale })
 	local plate = ns.Plates.Get("nameplate1")
 	local want = shape(plate)
 
@@ -117,16 +117,16 @@ local function run(case)
 	end
 
 	N.Remove(env, "nameplate1")
-	N.Add(env, "nameplate1", {}, { base = plate.base })
+	N.Add(env, "nameplate1", case.unit, { base = plate.base })
 	assert(ns.Plates.Get("nameplate1") == plate, label .. ": a re-added unit reuses its base's plate")
 	same("re-added on its pooled base")
 
-	N.Add(env, "nameplate2", {}, { scale = scale })
+	N.Add(env, "nameplate2", case.unit, { scale = scale })
 	local second = ns.Plates.Get("nameplate2")
 	assert(shape(second) == want, label .. ": a second plate hangs where the first does\n  first  " .. want .. "\n  second " .. shape(second))
 
 	env.SetCombat(true)
-	N.Add(env, "nameplate3", {}, { scale = scale })
+	N.Add(env, "nameplate3", case.unit, { scale = scale })
 	local third = ns.Plates.Get("nameplate3")
 	assert(shape(third) == want, label .. ": a plate built in combat hangs where the others do\n  others " .. want .. "\n  combat " .. shape(third))
 	for i = 1, 4 do
@@ -142,10 +142,12 @@ local function run(case)
 
 	CoreEnv.Logout(env)
 	local again, K2, ns2 = boot(case, CoreEnv.DeepCopy(env.KstyleUIDB))
-	N.Add(again, "nameplate1", {}, { scale = again.UIParent:GetEffectiveScale() })
+	N.Add(again, "nameplate1", case.unit, { scale = again.UIParent:GetEffectiveScale() })
 	local reloaded = ns2.Plates.Get("nameplate1")
 	again.RunTimers()
 	assert(shape(reloaded) == want, label .. ": after a reload the plate hangs where it did\n  before " .. want .. "\n  after  " .. shape(reloaded))
+	ns2.Plates.RestyleAll()
+	assert(shape(reloaded) == want, label .. ": and a restyle after the reload leaves it there\n  before " .. want .. "\n  after  " .. shape(reloaded))
 	blizzardKept(again, label .. " after a reload", blizzard)
 	assert(#again._errors == 0 and K2.ErrorCount() == 0, label .. " after a reload: " .. tostring(again._errors[1]))
 end
@@ -159,5 +161,30 @@ run({ bounds = false, screen = { 2383, 1540 }, scale = 1.25, size = 2 })
 run({ bounds = true, screen = { 1920, 1080 }, scale = 1, size = 2 })
 run({ bounds = true, screen = { 1920, 1080 }, scale = 1, size = 1, settings = { ["cast.height"] = 20 }, tag = "a tall cast bar" })
 run({ bounds = true, screen = { 5120, 1440 }, scale = 1.25, size = 1, settings = { ["cast.height"] = 20 }, tag = "a tall cast bar" })
+-- A friendly shown by its name only stacks by a smaller footprint, from its first placement on.
+local FRIEND = { canAttack = false, reaction = 5, name = "Guard Thelman" }
+run({ bounds = true, screen = { 1920, 1080 }, scale = 1, size = 2, unit = FRIEND, settings = { ["friendly.nameOnly"] = true }, tag = "a name-only friendly" })
+
+-- A pooled base handed from an enemy to a name-only friendly, and back, stacks by the footprint of the unit it now
+-- shows, the same as a plate built for that unit.
+do
+	local case = { bounds = true, screen = { 1920, 1080 }, scale = 1, size = 2, settings = { ["friendly.nameOnly"] = true } }
+	local env, K, ns = boot(case)
+	local scale = env.UIParent:GetEffectiveScale()
+	N.Add(env, "nameplate1", {}, { scale = scale })
+	N.Add(env, "nameplate2", FRIEND, { scale = scale })
+	local enemy, friend = shape(ns.Plates.Get("nameplate1")), shape(ns.Plates.Get("nameplate2"))
+	assert(enemy ~= friend, "the case covers two footprints")
+	local base = env._bases.nameplate1
+	local plate = ns.Plates.Get("nameplate1")
+	N.Remove(env, "nameplate1")
+	N.Add(env, "nameplate3", FRIEND, { base = base })
+	assert(ns.Plates.Get("nameplate3") == plate, "the friendly reuses the enemy's plate")
+	assert(shape(plate) == friend, "a pooled plate takes the friendly's footprint\n  fresh  " .. friend .. "\n  pooled " .. shape(plate))
+	N.Remove(env, "nameplate3")
+	N.Add(env, "nameplate4", {}, { base = base })
+	assert(shape(plate) == enemy, "and the enemy's again\n  fresh  " .. enemy .. "\n  pooled " .. shape(plate))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
 
 print("test-nameplates-restyle: ok")
