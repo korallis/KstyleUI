@@ -18,7 +18,7 @@ local PLATES = {
 	{ token = "nameplate3", x = 320, y = 460, unit = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, threat = 2, raid = 8 } },
 	{ token = "nameplate4", x = 760, y = 200, unit = { name = "Gorefang", health = 2400, maxHealth = 5200, level = 39, classification = "rare", reaction = 2, canAttack = true } },
 	{ token = "nameplate5", x = 760, y = 330, unit = { name = "Azuregos", health = 610000, maxHealth = 850000, level = -1, classification = "worldboss", reaction = 2, canAttack = true } },
-	{ token = "nameplate6", x = 760, y = 460, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN" } },
+	{ token = "nameplate6", x = 760, y = 460, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN", race = "Human", sex = 3 } },
 }
 
 local function place(env, base, x, y)
@@ -72,6 +72,20 @@ return Common.Run(function()
 			Gallery.Setup(env)
 			env.UnitClass = unitClass
 			env.RAID_CLASS_COLORS.PALADIN = { r = 0.96, g = 0.55, b = 0.73 }
+			env.UnitRace = function(unit)
+				local u = env._units[unit]
+				if u and u.race then
+					return u.race, u.race, 1
+				end
+			end
+			env.UnitSex = function(unit)
+				local u = env._units[unit]
+				return u and u.sex or 2
+			end
+			env.C_Secrets = env.C_Secrets or {}
+			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
+				return false
+			end
 			env._group = { raid = false, size = combat and 4 or 1 }
 			env.IsInGroup = function()
 				return combat

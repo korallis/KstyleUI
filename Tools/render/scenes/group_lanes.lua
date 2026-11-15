@@ -30,6 +30,9 @@ local PARTY = {
 }
 local PLAYER = { name = "Valerin", class = "SHAMAN", health = 82, maxHealth = 100, power = 70, maxPower = 100, role = "HEALER" }
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
+local IDENTITY = {
+	Valerin = { "Dwarf", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
+}
 
 local function place(K, key, x, y)
 	assert(K.Layout.Set(key, "anchor", "TOPLEFT"))
@@ -50,6 +53,23 @@ return Common.Run(function()
 				env.RAID_CLASS_COLORS[class] = { r = c[1], g = c[2], b = c[3] }
 			end
 			env.UnitClass = unitClass
+			local function identity(unit)
+				return IDENTITY[env.UnitName(unit) or ""]
+			end
+			env.UnitRace = function(unit)
+				local id = identity(unit)
+				if id then
+					return id[1], id[1], 1
+				end
+			end
+			env.UnitSex = function(unit)
+				local id = identity(unit)
+				return id and id[2] or 2
+			end
+			env.C_Secrets = env.C_Secrets or {}
+			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
+				return false
+			end
 		end,
 	}))
 	local kind, members = "party", {}
