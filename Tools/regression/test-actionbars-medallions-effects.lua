@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation; the crest comes from KstyleUI.Medallions.Crest when it answers, else a placeholder; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps only the idle loops; the crest comes from KstyleUI.Medallions.Crest when it answers, else a placeholder; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -133,6 +133,35 @@ do
 	ns.Slab.Refresh()
 	assert(hub.crestPath ~= "x", "a secret answer falls back to the placeholder")
 	K.Medallions = nil
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
+	local level = "Calm"
+	K.Effects = { Level = function()
+		return level
+	end }
+	Medallions(K, env)
+	local hub = ns.Slab.hub
+	assert(ns.Slab.Level() == "calm", "the effects layer's level rules the hub")
+	assert(hub.runes.turn:IsPlaying() and hub.glow.breath:IsPlaying() and hub.sheen.run:IsPlaying(), "calm keeps the idle loops")
+	for _, p in ipairs(hub.particles) do
+		assert(not p.anim:IsPlaying(), "calm has no particles")
+	end
+	local rest = WingX(hub.wings[1])
+	env.SetCombat(true)
+	assert(not hub.wings[1].anim:IsPlaying() and not hub.shock.anim:IsPlaying() and WingX(hub.wings[1]) > rest, "calm moves the wings at once with no flare")
+	env.SetCombat(false)
+	level = "off"
+	K.Callbacks.Fire("SettingChanged", "Effects", "level")
+	assert(not hub.runes.turn:IsPlaying() and not hub.glow.breath:IsPlaying(), "off stills the hub at once")
+	level = "full"
+	K.Callbacks.Fire("SettingChanged", "Effects", "level")
+	assert(hub.runes.turn:IsPlaying(), "full brings the motion back")
+	level = 7
+	assert(ns.Slab.Level() == "full", "an answer that is not a level falls back to the motion setting")
+	K.Effects = nil
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

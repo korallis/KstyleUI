@@ -172,8 +172,25 @@ local function Turn(region)
 	return g
 end
 
+local LEVELS = { full = true, calm = true, off = true }
+
+function Slab.Level()
+	local effects = K.Effects
+	if effects and type(effects.Level) == "function" then
+		local ok, level = pcall(effects.Level)
+		if ok and type(level) == "string" and not IsSecret(level) and LEVELS[level:lower()] then
+			return level:lower()
+		end
+	end
+	return Motion.Level() == "full" and "full" or "off"
+end
+
 local function Moving()
-	return Motion.Level() == "full"
+	return Slab.Level() == "full"
+end
+
+local function Idling()
+	return Slab.Level() ~= "off"
 end
 
 local function Play(g)
@@ -550,7 +567,7 @@ end
 
 local function Animate()
 	local hub = Slab.hub
-	if not (Moving() and hub:IsShown()) then
+	if not (Idling() and hub:IsShown()) then
 		Motionless()
 		return
 	end
@@ -561,7 +578,7 @@ local function Animate()
 			g:Play()
 		end
 	end
-	local alive = state.combat and PARTICLES or CALM_PARTICLES
+	local alive = not Moving() and 0 or state.combat and PARTICLES or CALM_PARTICLES
 	for i, p in ipairs(hub.particles) do
 		if i <= alive then
 			if not p.anim:IsPlaying() then
