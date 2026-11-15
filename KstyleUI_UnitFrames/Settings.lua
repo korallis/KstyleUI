@@ -365,6 +365,9 @@ local function OutlineFlags(outline)
 end
 
 local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
+local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 13, "PTSerifBold" }, power = { 9, "PTSerifBold" }, level = { 10, "InterSemiBold" } }
+local SLAB_MINI_NAME = 9
+local SLAB_MINI = { targettarget = true, focustarget = true }
 
 function Settings.Role(kind, element)
 	local role = LUMEN_ROLES[element]
@@ -394,6 +397,14 @@ function Settings.Font(kind, element)
 	local size = style.size
 	if not (IsNumber(size) and size >= FONT_SIZE_MIN and size <= FONT_SIZE_MAX) then
 		size = default.size
+	end
+	local slab = SLAB_TEXT[element]
+	if slab and Settings.Form(kind) == "slab" then
+		local base = SLAB_MINI[kind] and element == "name" and SLAB_MINI_NAME or slab[1]
+		size = base / K.Scale.DEFAULT_USER_SCALE * size / default.size
+		if path == themePath then
+			path = Tokens.FontPath(slab[2]) or path
+		end
 	end
 	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline)
 end
@@ -426,6 +437,9 @@ function Settings.Form(kind)
 	if style == "plate" then
 		return "plate"
 	end
+	if K.HudStyle.Current() == "medallions" then
+		return "slab"
+	end
 	if kind == "target" and (style == "bar" or style == "column" and K.HudStyle.Current() == "orbs") then
 		return "bar"
 	end
@@ -442,7 +456,7 @@ function Settings.Snapshot(kind)
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
-	local s = { fonts = fonts, form = form, inlineCast = form == "column" and kind ~= "player" }
+	local s = { fonts = fonts, form = form, kind = kind, inlineCast = form == "column" and kind ~= "player" }
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
 			s[key] = Settings.Value(kind, key)

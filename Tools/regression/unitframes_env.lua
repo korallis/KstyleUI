@@ -9,6 +9,7 @@
 -- UnitPower and UnitHealthMax return secrets while env._restricted is true. Fields a unit takes:
 --   name, class (file name such as "MAGE"), level, health, healthMax, power, powerMax, powerType,
 --   powerToken, isPlayer, reaction, dead, ghost, offline, tapDenied, classification, incoming, absorb,
+--   race (file name such as "Dwarf"), sex (2 male, 3 female), secretIdentity (race, class and sex are secrets),
 --   secretReaction (UnitReaction returns the reaction as a secret)
 -- env._portraits[texture] is the unit SetPortraitTexture last drew there, and env._unmasked[texture] whether
 -- it asked for the square, unmasked image.
@@ -153,8 +154,24 @@ function U.Install(env)
 		local u = unitOf(token)
 		if u and u.class then
 			local file = u.class
-			return secretWhen(u.secretClass, file:sub(1, 1) .. file:sub(2):lower()), secretWhen(u.secretClass, file), 1
+			local secret = u.secretClass or u.secretIdentity
+			return secretWhen(secret, file:sub(1, 1) .. file:sub(2):lower()), secretWhen(secret, file), 1
 		end
+	end
+	function env.UnitRace(token)
+		local u = unitOf(token)
+		if u and u.race then
+			return secretWhen(u.secretIdentity, u.race), secretWhen(u.secretIdentity, u.race), 1
+		end
+	end
+	function env.UnitSex(token)
+		local u = unitOf(token)
+		return secretWhen(u and u.secretIdentity, u and u.sex or 1)
+	end
+	env.C_Secrets = env.C_Secrets or {}
+	function env.C_Secrets.ShouldUnitIdentityBeSecret(token)
+		local u = unitOf(token)
+		return u ~= nil and u.secretIdentity == true
 	end
 	function env.UnitLevel(token)
 		local u = unitOf(token)

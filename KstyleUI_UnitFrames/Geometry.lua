@@ -579,7 +579,81 @@ local function BarFrame(out, s, width, _, scale)
 	end
 end
 
+local SLAB = {
+	player = { h = 54, d = 84, bar = 21, side = "LEFT", extra = "health" },
+	target = { h = 54, d = 84, bar = 21, side = "RIGHT", extra = "caption" },
+	focus = { h = 44, d = 62, bar = 15, side = "LEFT" },
+	pet = { h = 40, d = 54, bar = 13, side = "LEFT" },
+	boss = { h = 48, d = 62, bar = 16, side = "RIGHT" },
+	targettarget = { h = 36, bar = 12 },
+	focustarget = { h = 36, bar = 12 },
+}
+local SLAB_PAD = { top = 7, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 3, powerNameGap = 4, auraGap = 16, nameShare = 0.66 }
+Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
+
+local function SlabFrame(out, s, width, height, scale)
+	local spec = SLAB[s.kind] or SLAB.targettarget
+	local k = height / spec.h
+	local top, barH = SLAB_PAD.top * k, spec.bar * k
+	local nameSize = Size(s, "name", scale)
+	if not spec.d then
+		local pad = SLAB_PAD.top * k
+		out.health = Rect(pad, top, width - 2 * pad, barH)
+		if s.name then
+			out.name = Rect(pad, top + barH, width - 2 * pad, max(0, height - top - barH))
+		end
+		return
+	end
+	local d = spec.d * k
+	local right = spec.side == "RIGHT"
+	local cx = right and width - SLAB_PAD.centre * k or SLAB_PAD.centre * k
+	out.medal = Rect(cx - d / 2, height / 2 - d / 2, d, d)
+	out.medalSide = spec.side
+	out.mirror = right
+	local inner, outer = d / 2 + SLAB_PAD.inner * k, SLAB_PAD.outer * k
+	local left = right and outer or inner
+	local barW = max(0, width - inner - outer)
+	out.health = Rect(left, top, barW, barH)
+	local y = top + barH + SLAB_PAD.nameGap * k
+	if s.power then
+		local powerTop = top + barH + SLAB_PAD.powerGap * k
+		out.power = Rect(left, powerTop, barW, SLAB_PAD.power * k)
+		y = powerTop + SLAB_PAD.power * k + SLAB_PAD.powerNameGap * k
+	end
+	if (s.healthText or "none") ~= "none" then
+		out.healthText = Rect(left, top, barW, barH)
+	end
+	local rowH = TextH(nameSize)
+	local extra = (spec.extra == "health" and s.healthText == "both") or spec.extra == "caption"
+	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
+	if s.name then
+		out.name = Rect(right and left + barW - room or left, y, room, rowH)
+		out.nameRoom = room
+	end
+	local extraW = max(0, barW - room - TEXT_GAP)
+	local extraX = right and left or left + barW - extraW
+	if spec.extra == "health" and extra then
+		out.healthSub = Rect(extraX, y, extraW, rowH)
+	elseif spec.extra == "caption" then
+		out.caption = Rect(extraX, y, extraW, rowH)
+	end
+	if s.auras and s.auraPosition == "SIDE" then
+		out.aura = Rect(left, -(s.auraSize + SLAB_PAD.auraGap), 0, 0)
+	end
+end
+
 function Geometry.Reach(s)
+	if s.form == "slab" then
+		local spec = SLAB[s.kind]
+		if not (spec and spec.d) then
+			return 0, 0
+		end
+		local over = (spec.d / 2 - SLAB_PAD.centre) * MOCK_PX
+		if spec.side == "RIGHT" then
+			return 0, over
+		end
+		return over, 0
+	end
 	if s.form == "bar" then
 		return s.level and BAR.discOut + BAR.disc / 2 or 0, 0
 	end
@@ -597,7 +671,7 @@ function Geometry.Reach(s)
 	return 0, ring + aura
 end
 
-local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, column = ColumnFrame, bar = BarFrame }
+local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, column = ColumnFrame, bar = BarFrame, slab = SlabFrame }
 
 local MARKER_EXTRA, MARKER_GAP = 4, 4
 Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP

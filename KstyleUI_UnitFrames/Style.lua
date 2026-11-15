@@ -36,7 +36,7 @@ local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
-local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 } }
+local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 }, slab = { 18, 14, 0.55 } }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -553,8 +553,10 @@ function Style.Layout(view, s, width, height)
 	view.form = g.form
 	if g.form ~= "plate" then
 		LayoutLumen(view, g, s)
+		ns.Slab.Layout(view, g)
 		return g
 	end
+	ns.Slab.Layout(view, g)
 	HideLumen(view)
 	Place(view, view.panel, g.glass)
 	view.chrome:Restyle()
@@ -657,6 +659,7 @@ function Style.Restyle(view, kind)
 	view.absorb:SetBarColor(Widgets.Rgba("white", ABSORB_ALPHA))
 	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
 	Style.Accent(view)
+	ns.Slab.Restyle(view, form)
 end
 
 local function Plain(...)

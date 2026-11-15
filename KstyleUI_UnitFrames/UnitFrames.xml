@@ -5,6 +5,7 @@
 	<Script file="Format.lua"/>
 	<Script file="Geometry.lua"/>
 	<Script file="Indicators.lua"/>
+	<Script file="Slab.lua"/>
 	<Script file="Style.lua"/>
 	<Script file="Unit.lua"/>
 	<Script file="Blizzard.lua"/>
