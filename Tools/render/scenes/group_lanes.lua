@@ -1,5 +1,5 @@
 -- group_lanes.lua: the party and raid frames as the KSTY-44 and KSTY-47 mock-ups draw them, on the owner's screen:
--- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20 or 40 (a raid of that size in
+-- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20, 25 or 40 (a raid of that size in
 -- groups of five, seated in its card); RENDER_HUD_STYLE picks the HUD style and RENDER_SCREEN the screen. The
 -- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -60,7 +60,7 @@ return Common.Run(function()
 	else
 		kind = "raid"
 		local n = tonumber(group)
-		assert(n == 10 or n == 20 or n == 40, "RENDER_GROUP must be party, 10, 20 or 40")
+		assert(n == 10 or n == 20 or n == 25 or n == 40, "RENDER_GROUP must be party, 10, 20, 25 or 40")
 		members = G.Members(n, function(i, m)
 			m.name = NAMES[i]
 			m.class = CLASSES[(i - 1) % #CLASSES + 1]

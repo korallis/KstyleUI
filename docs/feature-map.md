@@ -22,7 +22,7 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | Buffs and debuffs | Auras | `KstyleUI_Auras/` | `test-auras*`, `test-aura-tile-text` | `auras_tracker` with `RENDER_BUFFS=16`; `gallery_auras` |
 | Nameplates | Nameplates | `KstyleUI_Nameplates/` (`Plate.lua`, `Plates.lua`, `Cast.lua`) | `test-nameplates*`, `test-reference-plates*` | `nameplate_bible` with `RENDER_COMBAT=1`, or `RENDER_HUD_STYLE=Medallions` for the badges and steel brackets; `gallery_nameplates*`, `nameplate` |
 | Combat text | Combat Text | `KstyleUI_CombatText/` | `test-combattext-*` | `gallery_combattext` |
-| Party and raid frames | Party and Raid | `KstyleUI_GroupFrames/` | `test-groupframes-*` | `group_lanes` with `RENDER_GROUP=party\|10\|20\|40`, and `RENDER_HUD_STYLE=Medallions` for the badges and class tiles; `gallery_groupframes`; `hud_reference` with `RENDER_LAYOUT=Healer` |
+| Party and raid frames | Party and Raid | `KstyleUI_GroupFrames/` | `test-groupframes-*` | `group_lanes` with `RENDER_GROUP=party\|10\|20\|25\|40`, and `RENDER_HUD_STYLE=Medallions` for the badges and class tiles; `gallery_groupframes`; `hud_reference` with `RENDER_LAYOUT=Healer` |
 | Group damage meter | Meters | `KstyleUI_Meters/Damage.lua`, `BarList.lua` | `test-meters-damage`, `-drill`, `-fights`, `-group`, `-solo`, `-card` | `hud_reference` with `RENDER_METER_GROUP=party RENDER_METER_SECRET=1`; `gallery_meters` |
 | Threat card | Meters | `KstyleUI_Meters/Threat.lua` | `test-meters-threat`, `test-store-threat` | `hud_reference` with `RENDER_LAYOUT=Tank`; `hud_dps_threat` |
 | Swing timer | Meters | `KstyleUI_Meters/Swing.lua` | `test-meters-swing`, `test-store-swing` | `gallery_meters` |
