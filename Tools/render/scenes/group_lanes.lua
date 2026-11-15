@@ -29,9 +29,12 @@ local PARTY = {
 	{ "Ilyra", "PRIEST", 100, "HEALER", 46 }, { "Dunmar", "WARRIOR", 38, "DAMAGER", 30 },
 }
 local PLAYER = { name = "Valerin", class = "SHAMAN", health = 82, maxHealth = 100, power = 70, maxPower = 100, role = "HEALER" }
+if os.getenv("RENDER_PLAYER") == "warlock" then
+	PLAYER = { name = "Morvane", class = "WARLOCK", health = 82, maxHealth = 100, power = 70, maxPower = 100, role = "DAMAGER" }
+end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
 local IDENTITY = {
-	Valerin = { "Dwarf", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
+	Valerin = { "Dwarf", 2 }, Morvane = { "Scourge", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
 }
 
 local function place(K, key, x, y)

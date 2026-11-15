@@ -20,6 +20,7 @@ end
 
 local env, K, ns = N.New()
 STEEL, STEEL_LIT = { K.Tokens.Color("steel") }, { K.Tokens.Color("steelLit") }
+local resolver = K.Medallions
 local painted, cuts = true, {}
 K.Medallions = {
 	Portrait = function(region, unit, cut)
@@ -119,6 +120,31 @@ assert(near(r, STEEL_LIT[1]) and near(g, STEEL_LIT[2]) and near(b, STEEL_LIT[3])
 local hr, hg, hb = K.Tokens.Color("hostile")
 r, g, b = boss.levelText:GetTextColor()
 assert(near(r, hr) and near(g, hg) and near(b, hb), "the skull level stays red")
+
+-- Lee's warlock out with an imp: an undead warlock friend wears the real Scourge warlock badge, and the imp's
+-- friendly plate wears none.
+K.Medallions = resolver
+env.UnitRace = function(unit)
+	local u = env._units[unit]
+	if u and u.race then
+		return u.race, u.race, 5
+	end
+end
+env.UnitSex = function()
+	return 2
+end
+env.C_Secrets = env.C_Secrets or {}
+env.C_Secrets.ShouldUnitIdentityBeSecret = function()
+	return false
+end
+N.Add(env, "nameplate4", { name = "Morvane", level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "WARLOCK", race = "Scourge" })
+N.Add(env, "nameplate5", { name = "Zevrim", level = 58, reaction = 5, canAttack = false })
+env.RunTimers()
+local lee, imp = ns.Plates.Get("nameplate4"), ns.Plates.Get("nameplate5")
+assert(lee.medBadge:IsShown(), "the undead warlock wears a badge")
+assert(tostring(lee.medBadge._state.Texture[1]):find("scourge_warlock_male", 1, true), "the Scourge warlock badge: " .. tostring(lee.medBadge._state.Texture[1]))
+eq(lee.medBadge:GetNumMaskTextures(), 0, "painted, so no mask")
+assert(not (imp.medBadge and imp.medBadge:IsShown()), "the imp wears no badge")
 
 -- Back to Frames.
 K.Options.Write("HudStyle", "style", "frames")

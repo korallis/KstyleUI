@@ -21,6 +21,11 @@ local PLATES = {
 	{ token = "nameplate6", x = 760, y = 460, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN", race = "Human", sex = 3 } },
 }
 
+-- RENDER_PLAYER=warlock adds Lee's character's imp as a friendly pet plate, which wears no badge.
+if os.getenv("RENDER_PLAYER") == "warlock" then
+	PLATES[#PLATES + 1] = { token = "nameplate7", x = 760, y = 590, unit = { name = "Zevrim", health = 380, maxHealth = 420, level = 58, reaction = 5, canAttack = false } }
+end
+
 local function place(env, base, x, y)
 	local k = 768 / 1080
 	base:ClearAllPoints()
@@ -141,6 +146,9 @@ return Common.Run(function()
 	crop("nameplate4", "plate_rare", "Nameplate: a rare", "The rare's diamond takes a two-pixel rim in the rare colour.")
 	crop("nameplate5", "plate_boss", "Nameplate: a world boss", "The boss's diamond reads ?? in red, inside a two-pixel red rim.")
 	crop("nameplate6", "plate_friendly", "Nameplate: a friendly player", "A friendly player's plate in the class colour.")
+	if ns.Plates.Get("nameplate7") then
+		crop("nameplate7", "plate_pet", "Nameplate: the warlock's imp", "A friendly pet's plate: no badge, which is for players.")
+	end
 	local scene = frames:Finish(Gallery.Build(env, { time = env._time }), env, K, "nameplate bible")
 	if problem then
 		scene.log[#scene.log + 1] = "nameplate bible: error: " .. problem

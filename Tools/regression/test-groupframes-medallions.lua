@@ -27,6 +27,7 @@ local env, K, ns = G.New()
 local Unit, Settings = ns.Unit, ns.Settings
 local STEEL_LIT = { K.Tokens.Color("steelLit") }
 
+local resolver = K.Medallions
 local painted, cuts = false, {}
 K.Medallions = {
 	Portrait = function(region, unit, cut)
@@ -109,6 +110,38 @@ env.RunTimers()
 eq(Settings.current.party.roleRing, true, "a role ring the player turned on wins")
 K.Options.Write("GroupFrames", "party.roleRing", false)
 env.RunTimers()
+
+-- Lee's character, an undead warlock, gets the real resolver's painted badge in its own row.
+K.Medallions = resolver
+env.UnitRace = function(unit)
+	if unit == "player" then
+		return "Undead", "Scourge", 5
+	end
+end
+env.UnitSex = function()
+	return 2
+end
+env.C_Secrets = env.C_Secrets or {}
+env.C_Secrets.ShouldUnitIdentityBeSecret = function()
+	return false
+end
+G.SetRoster(env, "party", party, { name = "Morvane", class = "WARLOCK" })
+env.RunTimers()
+local lee
+Unit.ForEach(function(f)
+	if f.unit == "player" then
+		lee = f
+	end
+end)
+assert(lee, "the party shows the player's own row")
+eq(lee.portrait._state.Texture[1], resolver.PortraitPath("player", "badge"), "the undead warlock wears the resolver's badge")
+assert(tostring(lee.portrait._state.Texture[1]):find("scourge_warlock_male", 1, true), "the badge file is the undead warlock's: " .. tostring(lee.portrait._state.Texture[1]))
+eq(lee.portrait:GetNumMaskTextures(), 0, "the painted badge is pre-circled, so no mask")
+local _, warlock = env.UnitClass("player")
+eq(warlock, "WARLOCK", "the player is a warlock")
+local ring = lee.ring._state.VertexColor
+local wr, wg, wb = ns.Unit.ClassColor("WARLOCK")
+assert(near(ring[1], wr) and near(ring[2], wg) and near(ring[3], wb), "the enamel ring is warlock violet")
 
 -- The raid: class-coloured tiles, white names on the fill, no medallion, a steel target ring.
 G.SetRoster(env, "raid", G.Members(10, function(i, m)
