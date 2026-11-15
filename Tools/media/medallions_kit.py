@@ -11,8 +11,8 @@ bake reads them from DIR under the names that file gives (on the owner's MacBook
 script is the production pass. Effects are drawn for additive blending: their colour is stored unpremultiplied with
 alpha set to the brightest channel, so ADD and BLEND both draw the light the source shows. Every flipbook is registered
 on its core (each frame's light centroid moves to the centre of its cell), resampled in linear light and checked for a
-clean loop; a loop whose seam step is more than LOOP_LIMIT times the median step between frames is cross-faded into a
-seamless one. Steel pieces are trimmed to their silhouette, resampled with premultiplied alpha in linear light, lightly
+clean loop; when a loop's seam step is more than LOOP_LIMIT times the median step between frames, its last SEAM_FADE
+frames fade toward the first, so the cycle keeps all 16 distinct frames and closes without a jump. Steel pieces are trimmed to their silhouette, resampled with premultiplied alpha in linear light, lightly
 sharpened, and get their 1 px outlines drawn procedurally at the shipped size. sheets writes contact sheets at the
 shipped sizes and a loop strip for every flipbook. bake needs Pillow and NumPy; sheets and provenance need Pillow only.
 The procedural Medallions pieces (rings, enamel, slabs, aura and group tiles, brackets) are drawn by make_media.py.
@@ -32,6 +32,7 @@ SOURCES = Path(__file__).resolve().parent / "medallions_sources.json"
 CLASSES = ("Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior")
 BAKED = "2026-11-15"
 LOOP_LIMIT = 1.3
+SEAM_FADE = 4  # frames at the end of a loop that fade toward the first frame when the seam jumps
 CELL = 128
 EDGE_FADE = 3  # texels at each cell edge that fade to black, so bilinear sampling never bleeds into a neighbour
 ALPHA_FLOOR = 4
@@ -149,7 +150,7 @@ def sources():
 
 BEGIN, END = "<!-- BEGIN medallions_kit -->", "<!-- END medallions_kit -->"
 SETTINGS = {
-    "loop": "GIF frames on black, registered by cross-correlation (at most 4 px) and centred on the dark core of the mean frame, linear-light Lanczos to 128 cells, 3 px cell-edge fade, loop checked (cross-faded if the seam step exceeds 1.3x the median step), ADD alpha",
+    "loop": "GIF frames on black, registered by cross-correlation (at most 4 px) and centred on the dark core of the mean frame, linear-light Lanczos to 128 cells, 3 px cell-edge fade, loop checked (if the seam step exceeds 1.3x the median step, the last 4 frames fade toward the first), ADD alpha",
     "oneshot": "GIF frames on black, registered by cross-correlation and centred on the light's mean centroid, linear-light Lanczos to 128 cells, 3 px cell-edge fade, ends near black, ADD alpha",
     "radial": "on black, centred on its dark core, black point and gain normalised, linear-light Lanczos, radial edge fade, ADD alpha",
     "vignette": "on black, averaged with its mirror images, linear-light Lanczos, ADD alpha",
@@ -400,9 +401,10 @@ def bake(gen, root):
         seam = float(np.abs(lum(frames[0]) - lum(frames[-1])).mean())
         faded = False
         if not oneshot and seam > LOOP_LIMIT * float(np.median(steps)):
-            half = len(frames) // 2
-            weights = [math.sin(math.pi * (i + 0.5) / len(frames)) ** 2 for i in range(len(frames))]
-            frames = [w * frames[i] + (1 - w) * frames[(i + half) % len(frames)] for i, w in enumerate(weights)]
+            count = len(frames)
+            start = count - SEAM_FADE
+            frames = [f if i < start else (1 - t) * f + t * frames[0]
+                      for i, f in enumerate(frames) for t in [(i - start + 1) / (SEAM_FADE + 1)]]
             faded = True
         rows, cols = kit.flip[0], kit.flip[1]
         sheet = np.zeros((rows * CELL, cols * CELL, 3), np.float32)

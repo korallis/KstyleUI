@@ -143,6 +143,18 @@ class EffectsTest(unittest.TestCase):
                 self.assertLessEqual(m["seam"], kit.LOOP_LIMIT * m["median_step"], "the last frame flows into the first")
                 self.assertGreater(min(m["means"]), 1.0, "no frame of a loop is empty")
 
+    def test_every_loop_frame_is_distinct(self):
+        for item in kit.KIT:
+            if item.recipe != "loop":
+                continue
+            rows, columns, frames, _ = item.flip
+            lights = [kit.light(c) for c in kit.cells(open_rgba(item.path), rows, columns)[:frames]]
+            median = kit.flipbook_metrics(ROOT / item.path, rows, columns, frames)["median_step"]
+            for i in range(frames):
+                for j in range(i + 1, frames):
+                    with self.subTest(item=item.name, pair=(i + 1, j + 1)):
+                        self.assertGreater(kit.mean_difference(lights[i], lights[j]), 0.2 * median, "two frames are the same picture")
+
     def test_level_up_swells_from_a_spark_and_fades_out(self):
         item = kit.BY_NAME["LevelUp"]
         m = kit.flipbook_metrics(ROOT / item.path, 4, 4, 16, oneshot=True)
@@ -178,7 +190,6 @@ class SteelTest(unittest.TestCase):
         inner = (kit.mean_difference(column(w // 2), column(w // 2 + 1)) + kit.mean_difference(row(h // 2), row(h // 2 + 1))) / 2
         wrap = (kit.mean_difference(column(w - 1), column(0)) + kit.mean_difference(row(h - 1), row(0))) / 2
         self.assertLessEqual(wrap, 1.5 * inner + 0.5)
-        self.assertEqual(image.getextrema()[0] >= 0, True)
 
     def test_bars_are_the_same_in_every_column(self):
         for name in ("BarFill", "BarTrack"):
