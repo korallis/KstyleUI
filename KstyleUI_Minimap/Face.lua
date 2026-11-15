@@ -28,6 +28,7 @@ local BRACKET_CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
 local VIGNETTE_EDGES = { "top", "bottom", "left", "right" }
 local PLAQUE_HEIGHT = 18
 local PLAQUE_PAD = 6
+local RING_OUTER = 0.9189
 local RING_SUBLEVEL = 3
 
 Face.LEVEL_MAP = LEVEL_MAP
@@ -441,10 +442,11 @@ function Face:PlaceRound(round)
 	local name, standin = Widgets.TextureName("medMinimapRing")
 	ring:SetTexture((Tokens.Texture(name)))
 	ring:SetVertexColor(Widgets.Rgba(standin and "steel" or "white"))
-	ring:ClearAllPoints()
-	ring:SetAllPoints(self.mapArea)
-	ring:Show()
 	local card, side = self.card, self.mapSize or 0
+	ring:ClearAllPoints()
+	ring:SetPoint("CENTER", self.mapArea, "CENTER")
+	Widgets.Size(ring, side / RING_OUTER, side / RING_OUTER)
+	ring:Show()
 	local height = Snap(card, PLAQUE_HEIGHT)
 	local width = Snap(card, side + 2 * Format.FRAME)
 	local zone, row = plaques[1], plaques[2]

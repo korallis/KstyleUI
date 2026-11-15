@@ -34,7 +34,9 @@ assert(env.GetMinimapShape() == "ROUND", "LibDBIcon and friends place their butt
 assert(LastArg(minimap, "SetMaskTexture") == round, "the minimap wears the round mask")
 assert(W.LastCall(face.mask, "SetTexture")[1] == round, "and so does the face's own mask")
 assert(face.ring and face.ring:IsShown(), "a steel ring frames the map")
-assert(LastArg(face.ring, "SetAllPoints") == face.mapArea, "the ring covers the map square, so the map never shows past it")
+local rp, rrel, rrelp = face.ring:GetPoint(1)
+assert(rp == "CENTER" and rrel == face.mapArea and rrelp == "CENTER", "the ring is centred on the map")
+assert(face.ring:GetWidth() * 0.9189 >= face.mapArea:GetWidth() - 1, "the ring's outer edge covers the map square's disc, so the map never shows past it: " .. face.ring:GetWidth() .. " for " .. face.mapArea:GetWidth())
 assert(not face.fill:IsShown() and not face.shade.top:IsShown() and not face.vignette.top:IsShown(), "no square card behind or on the round map")
 for _, bracket in ipairs(face.brackets) do
 	assert(not bracket.across:IsShown() and not bracket.down:IsShown(), "no gilt brackets")
