@@ -299,7 +299,7 @@ do
 	env.RunTimers()
 	W.Settle(env)
 	assert(ns.Quests.Active() and ns.RestedXP.Rail.Placed(), "the quest card shows and the guide is placed")
-	local story = K.Setup.Story("DPS", true)
+	local story = K.Setup.Story("DPS", true, ns.RestedXP.Rail.Shown())
 	local path = ns.RestedXP.Chrome.Path(f)
 	assert(not path.meta:IsShown(), "the guide's group line is hushed, so the steps are the guide's last row")
 	local glass = Rect(K, K.Skin.Parts(f).backdrop)
@@ -308,7 +308,7 @@ do
 	assert(glass.bottom >= story.guide.bottom - 0.5, "and ends inside it")
 	assert(near(f:GetHeight(), 28, 0.01), "RestedXP's window is folded to its floor")
 	assert(path.card._points[3][2] == f and ns.Quests.Parts().glass:IsShown(), "the guide's card ends at RestedXP's window; the quest card wears its own glass")
-	assert(quests.right <= glass.left - 16 + 1, "the quests stand a rail gap left of the guide's card, got " .. quests.right .. " for " .. glass.left)
+	assert(glass.right <= quests.left - 16 + 1, "the guide shown takes the tall column, a rail gap left of the quest card in the slot (LEE-1532), got " .. glass.right .. " for " .. quests.left)
 	assert(near(quests.top, story.tracker.top, 1), "at the same top, got " .. quests.top .. " for " .. story.tracker.top)
 
 	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, inside the card.

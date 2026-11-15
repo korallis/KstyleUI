@@ -1115,15 +1115,27 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
+	-- The guide renders in its own environment, so here the rail stands in for it being on screen (opts.withGuide):
+	-- in a style that does not stack the two cards, the quest card then holds the story slot and the guide the column.
+	local rail = opts.withGuide and ns.RestedXP and ns.RestedXP.Rail
+	if rail then
+		function rail.Shown()
+			local story = K.Setup.Story(K.Layout.Setting("preset") or "DPS", true)
+			return story ~= nil and not story.stacked and ns.Quests.Active()
+		end
+		ns.Quests.Replace()
+		S.W.Settle(env)
+	end
 	if opts.questGive then
 		ns.Quests.Give(opts.questGive)
 		S.W.Settle(env)
 	end
 	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
-	-- slot, or the column beside the RestedXP guide's card while the guide holds the slot (opts.withGuide).
+	-- slot, or under Orbs on top of the RestedXP guide's card (opts.withGuide).
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local place = opts.withGuide and "in its own column beside the RestedXP guide's card" or "in the layout's story slot"
+	local stacked = rail and not rail.Shown() and K.Setup.Story(K.Layout.Setting("preset") or "DPS", true).stacked
+	local place = opts.withGuide and (stacked and "on top of the RestedXP guide's card in one column" or "in the story slot, the shown RestedXP guide's card in the column beside it") or "in the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else
@@ -1472,6 +1484,12 @@ function modules.restedxp(opts)
 	-- The quest card renders in its own environment; a clear stand-in of its rect lets a stacked rail hang the guide
 	-- under it, as the game does with both cards in one.
 	local card = opts.questCard
+	-- The quest card renders in the tracker's environment; while it is up there, the rail here sees it up.
+	if card and R.ns.Quests then
+		R.ns.Quests.Active = function()
+			return true
+		end
+	end
 	if card and R.ns.QuestCard then
 		local root = R.K.Scale.Root()
 		local standin = R.env.CreateFrame("Frame", nil, root)
@@ -1487,6 +1505,16 @@ function modules.restedxp(opts)
 		end
 	end
 	R.ns.RestedXP.Rail.Place()
+	-- RENDER_RXP_ANCHOR=bottom anchors RestedXP's active steps under its window, as its "bottom" orientation does and as
+	-- RestedXP does itself when the steps' top would pass the screen's top (GuideWindow.lua 353-391), then lays the
+	-- steps out again, as its update loop does.
+	if (rawget(_G, "RENDER_RXP_ANCHOR") or os.getenv("RENDER_RXP_ANCHOR")) == "bottom" then
+		R.rxp.settings.profile.anchorOrientation = "bottom"
+		R.rxp.RXPFrame.SetStepFrameAnchor()
+		R.rxp.RXPFrame.CurrentStepFrame.UpdateText()
+		R.env.RunTimers()
+		R.ns.RestedXP.Rail.Place()
+	end
 	-- RENDER_RXP_BOXES=1 shows RestedXP's Active Targets and Active Items boxes, each with one icon, starting from the
 	-- places the owner's RestedXP settings saved for them (KSTY-77), so the render shows where the rail docks them.
 	if (rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")) == "1" then

@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away; in Frames, while the guide is shown and the quest card is up, the guide takes the quest card's tall column and the quest card the story slot (the quest card gives up rows before the guide gives up its step), trading places only when the guide shows or hides, never per step, and the boxes take only the room the guide's current step leaves. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -28,7 +28,7 @@ local BOX_PAD = 4
 
 local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
 
-local Dock, ReleaseBoxes
+local Dock, ReleaseBoxes, Need
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -67,14 +67,28 @@ local function Preset()
 	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
 end
 
+local function Shown()
+	local f, quests, Setup = Frame(), ns.Quests, K.Setup
+	local Layouts = Setup and Setup.Layouts
+	if not (f and f:IsShown() and On() and quests and type(quests.Active) == "function" and quests.Active() and Layouts and type(Layouts.Story) == "function") then
+		return false
+	end
+	local _, rh = Setup.RootSize()
+	local story = Layouts.Story(Preset(), rh, true, K.HudStyle.Current())
+	return story ~= nil and not story.stacked
+end
+
+Rail.Shown = Shown
+
 local function Spec(style)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
-	local _, rh = Setup.RootSize()
-	local story = Layouts.Story(Preset(), rh, true, style) or Layouts.Story(DEFAULT_PRESET, rh, true, style)
+	local rw, rh = Setup.RootSize()
+	local shown = Shown()
+	local story = Layouts.Story(Preset(), rh, true, style, rw, shown) or Layouts.Story(DEFAULT_PRESET, rh, true, style, rw, shown)
 	return story and story.guide
 end
 
@@ -84,6 +98,26 @@ local function Size()
 		holder:SetSize(spec.width, spec.height)
 	end
 	return spec
+end
+
+local function Register(spec)
+	Widgets.Place(state.holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = L["RestedXP guide"], module = MODULE })
+end
+
+local function Swap()
+	local shown = Shown()
+	if not state.holder or shown == state.shown then
+		return
+	end
+	state.shown = shown
+	local spec = Spec()
+	if spec then
+		Register(spec)
+	end
+	local quests = ns.Quests
+	if quests and type(quests.Replace) == "function" then
+		quests.Replace()
+	end
 end
 
 local function Holder()
@@ -98,7 +132,7 @@ local function Holder()
 	holder:EnableMouse(false)
 	state.holder = holder
 	Size()
-	Widgets.Place(holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = L["RestedXP guide"], module = MODULE })
+	Register(spec)
 	return holder
 end
 
@@ -113,7 +147,7 @@ end
 function Rail.Story()
 	local Setup = K.Setup
 	Size()
-	return Setup and type(Setup.Story) == "function" and Setup.Story(Preset(), true) or nil
+	return Setup and type(Setup.Story) == "function" and Setup.Story(Preset(), true, Shown()) or nil
 end
 
 local function CardBottom()
@@ -228,10 +262,11 @@ function Rail.Band()
 		return band
 	end
 	local _, reserve = Plan(band)
-	band.bottom = band.bottom + reserve
 	if not story.stacked then
+		band.bottom = band.bottom + math.min(reserve, math.max(0, band.top - band.bottom - Need()))
 		return band
 	end
+	band.bottom = band.bottom + reserve
 	local gap = K.Setup.Layouts.STORY_GAP
 	local bottom = CardBottom()
 	if bottom and math.abs(story.tracker.bottom - band.top - gap) < 2 * K.Scale.Pixel(1) and bottom > story.tracker.bottom then
@@ -454,6 +489,28 @@ local function Fit(f, path, band)
 	return hidden
 end
 
+local function Lift(f)
+	local current = f.CurrentStepFrame
+	if current.anchor ~= "BOTTOM" then
+		return false
+	end
+	current:ClearAllPoints()
+	current:SetPoint("BOTTOMLEFT", f.GuideName, "TOPLEFT", 0, STEP_GAP)
+	current:SetPoint("BOTTOMRIGHT", f.GuideName, "TOPRIGHT", 0, STEP_GAP)
+	current.anchor = "TOP"
+	local rxp = state.rxp
+	if type(rxp.SortTimers) == "function" then
+		RestedXP.Try("SortTimers", rxp.SortTimers, rxp)
+	end
+	return true
+end
+
+local function KeepAbove(f)
+	if state.placed and On() and f == Frame() and f.CurrentStepFrame.anchor == "BOTTOM" and RestedXP.Try("guide steps lift", Lift, f) then
+		RestedXP.Chrome.Refit(f)
+	end
+end
+
 local function Refresh(f)
 	local list = f.BottomFrame
 	if IsTable(list) and type(list.UpdateFrame) == "function" then
@@ -485,6 +542,32 @@ local function Minimum(f, path)
 	local over, under = Around(f, path)
 	local span = over and over + under or Shape(f, path, 0).span
 	return (span + line + Widgets.Snap(f, MORE_ROW / scale)) * scale
+end
+
+function Need()
+	local f = Frame()
+	local current = f and f.CurrentStepFrame
+	if not (current and current:IsShown()) then
+		return 0
+	end
+	local first, more
+	for _, step in ipairs(IsTable(current.framePool) and current.framePool or {}) do
+		if IsTable(step) and step:IsShown() and not IsTip(step) and Height(step) > 1 then
+			if first then
+				more = true
+				break
+			end
+			first = step
+		end
+	end
+	if not first then
+		return 0
+	end
+	local path = RestedXP.Chrome.Path(f)
+	local scale = Widgets.ScaleFactor(f)
+	local over, under = Around(f, path)
+	local span = over and over + under or Shape(f, path, 0).span
+	return (span + Height(first) + (more and Widgets.Snap(f, MORE_ROW / scale) or 0)) * scale
 end
 
 local function Give(f, path)
@@ -527,6 +610,7 @@ function Rail.Place()
 	end
 	local f = Frame()
 	Holder()
+	Swap()
 	if f then
 		Give(f, RestedXP.Chrome.Path(f))
 	end
@@ -541,6 +625,9 @@ function Rail.Place()
 	local left = band.left / scale - SIDE + reach
 	Remember(f)
 	Hold(f, true)
+	if Lift(f) then
+		RestedXP.Chrome.Refit(f)
+	end
 	local shape
 	for _ = 1, 2 do
 		local before = Height(f.CurrentStepFrame)
@@ -589,6 +676,7 @@ local function Schedule()
 end
 
 Rail.Schedule = Schedule
+Rail.Need = Need
 
 local function Restore()
 	ReleaseBoxes(true)
@@ -597,7 +685,7 @@ local function Restore()
 	end
 	local f = Frame()
 	local original = state.original
-	state.placed = nil
+	state.placed, state.shown = nil, nil
 	Live()
 	if f then
 		Fit(f, nil, nil)
@@ -616,6 +704,9 @@ local function Restore()
 		end
 		Hold(f, false)
 		RestedXP.Chrome.Rest(f, false)
+		if type(f.SetStepFrameAnchor) == "function" then
+			RestedXP.Try("RXPFrame.SetStepFrameAnchor", f.SetStepFrameAnchor)
+		end
 		Refresh(f)
 	end)
 end
@@ -791,6 +882,7 @@ local function Hook(f)
 	state.hooked = true
 	local function Check()
 		Moved(f)
+		KeepAbove(f)
 	end
 	for _, part in ipairs({ f, f.CurrentStepFrame, f.GuideName, f.Footer }) do
 		if IsTable(part) and type(part.HookScript) == "function" then
@@ -798,6 +890,12 @@ local function Hook(f)
 		end
 	end
 	f:HookScript("OnShow", Schedule)
+	f:HookScript("OnHide", Schedule)
+	if type(f.SetStepFrameAnchor) == "function" then
+		hooksecurefunc(f, "SetStepFrameAnchor", function()
+			KeepAbove(f)
+		end)
+	end
 	local rxp = state.rxp
 	if type(rxp.SetStep) == "function" then
 		hooksecurefunc(rxp, "SetStep", Schedule)

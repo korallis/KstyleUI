@@ -202,9 +202,9 @@ local function Band(spec, rw, rh)
 	return { left = left, bottom = bottom, right = left + width, top = bottom + height }
 end
 
-function Setup.Story(name, guide)
+function Setup.Story(name, guide, shown)
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current(), rw)
+	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current(), rw, shown)
 	if not story then
 		return nil
 	end
