@@ -307,7 +307,9 @@ do
 				local Layouts = K.Setup.Layouts
 				local rw, rh = K.Layout.RootSize()
 				assert(math.abs(rh - height / perUnit) < 1e-6, what .. ": the root is " .. height / perUnit .. " units tall, got " .. rh)
-				local story = K.Setup.Story(preset, true)
+				local shown = ns.RestedXP.Rail.Shown()
+				local story = K.Setup.Story(preset, true, shown)
+				local column = shown and story.guide or story.tracker
 				local glass = RootRect(K, assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass"))
 				local card = RootRect(K, ns.Quests.Card())
 				local px = K.Scale.Pixel(1) + 0.01
@@ -316,9 +318,10 @@ do
 				local _, _, _, threatTop = Layouts.Rect({ width = w, height = h }, Layouts.Get(preset, rh)["meters.threat"], rw, rh)
 				local tw, th = Layouts.Footprint(preset, "unitframes.targettarget")
 				local _, _, totRight, totTop = Layouts.Rect({ width = tw, height = th }, Layouts.Get(preset, rh)["unitframes.targettarget"], rw, rh)
-				local foot = story.tracker.left >= totRight + 4 and threatTop + 16 or totTop + 16
-				assert(math.abs(story.tracker.bottom - foot) <= px, what .. ": the column ends a rail gap over the threat card's top where it clears the target of target, else a rail gap over the cluster top, got " .. story.tracker.bottom .. " for " .. foot)
-				assert(#Shown(ns) >= need, what .. ": at least " .. need .. " quests show, got " .. #Shown(ns))
+				local foot = column.left >= totRight + 4 and threatTop + 16 or totTop + 16
+				assert(math.abs(column.bottom - foot) <= px, what .. ": the column ends a rail gap over the threat card's top where it clears the target of target, else a rail gap over the cluster top, got " .. story.tracker.bottom .. " for " .. foot)
+				need = shown and 1 or need
+				assert(#Shown(ns) >= need, what .. ": at least " .. need .. " quests show, got " .. #Shown(ns) .. (shown and " (the guide is shown, so the quest card holds the story slot, LEE-1532)" or ""))
 				for _, row in ipairs(ns.Quests.Rows()) do
 					if row:IsShown() then
 						assert(RootRect(K, row).bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
@@ -353,7 +356,8 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		end
 		local slot = Layouts.Slot(preset, rh)
 		local sl, sb, sr, st = Layouts.Rect(slot, slot, rw, rh)
-		local story = K.Setup.Story(preset, withGuide)
+		local shown = withGuide and ns.RestedXP.Rail.Shown()
+		local story = K.Setup.Story(preset, withGuide, shown)
 		local band = story.tracker
 		local over = math.min(Box("minimap.main").bottom, Box("auras.debuffs").bottom)
 		local under = math.max(Box("actionbars.bar4").top, Box("actionbars.bar5").top, Box("meters.damage").top, Box("databars.strip").top)
@@ -369,7 +373,9 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(math.abs(card.left - band.left) <= px and math.abs(card.right - band.right) <= px, what .. ": on its element's edge and width")
 		assert(math.abs(card.right - card.left - 278) <= 0.6, what .. ": the picture's 278 rail column")
 		local edge = K.Tokens.Size("screenMargin")
-		if withGuide then
+		if shown then
+			assert(math.abs(card.left - sl) <= px and math.abs(card.right - sr) <= px, what .. ": the guide shown takes the tall column, so the quest card holds the story slot (LEE-1532), got " .. card.left .. " for " .. sl)
+		elseif withGuide then
 			assert(math.abs(card.right - (sl - 16)) <= px, what .. ": a rail gap left of the guide's slot, got " .. card.right .. " for " .. sl)
 		else
 			local foot = K.Tokens.Size("gapLarge")
@@ -390,8 +396,12 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
 			local g = RootRect(K, glass)
 			assert(g.top <= over - 15 + 0.5 and g.top >= st - px, what .. ": the guide's card starts at the slot's top, under the map and the aura rows, got " .. g.top)
-			assert(g.bottom >= sb - px and g.left >= sl - px and g.right <= sr + px, what .. ": and stays inside the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
-			assert(g.left >= card.right + 16 - px, what .. ": a rail gap right of the quests, never over them")
+			if shown then
+				assert(g.bottom >= story.guide.bottom - px and g.right <= sl - 16 + px, what .. ": and stays in its column a rail gap left of the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
+			else
+				assert(g.bottom >= sb - px and g.left >= sl - px and g.right <= sr + px, what .. ": and stays inside the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
+				assert(g.left >= card.right + 16 - px, what .. ": a rail gap right of the quests, never over them")
+			end
 		end
 		Clean(env, K)
 	end

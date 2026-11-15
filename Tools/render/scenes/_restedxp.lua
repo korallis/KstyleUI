@@ -111,7 +111,7 @@ local function Steps(R)
 	for i, spec in ipairs(RestedXP.STEPS) do
 		local elements = {}
 		for e, value in ipairs(spec.elements) do
-			elements[e] = { text = value }
+			elements[e] = type(value) == "table" and value or { text = value }
 		end
 		specs[i] = { index = i, title = spec.title, elements = elements }
 	end

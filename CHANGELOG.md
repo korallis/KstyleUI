@@ -1,5 +1,21 @@
 # KstyleUI changelog
 
+## v0.1.3 (2026-11-15)
+
+A hotfix for the RestedXP guide card, with fixes for the bag window, the swing timer and nameplates.
+
+### Changed
+
+- Under Frames, while the RestedXP guide is shown, the guide card takes the tall column beside the minimap and the quest card moves into the space under the minimap, where it shows at least one quest and scrolls for the rest. That gives the guide room to show your whole current step. The two cards swap only when the guide opens or closes, never from one step to the next. Without RestedXP, or with its guide closed, the quest card stays where it was.
+
+### Fixed
+
+- The RestedXP guide card shows your current step again. When RestedXP put its steps under its own window, the card showed a blank block with only the step's last line and "1 more".
+- RestedXP's Active Targets and Active Items boxes no longer take room the guide needs for your current step.
+- The bag window's close button works again after you drag the window.
+- A hunter's ranged swing shows one swing bar instead of two.
+- Nameplates no longer creep upward a pixel at a time.
+
 ## v0.1.2 (2026-11-15)
 
 Fixes for the minimap, the RestedXP guide and the HUD's size on screens that are not 16:9.

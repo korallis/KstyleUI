@@ -55,10 +55,10 @@ return function(preset, built)
 	assert(questCount == 4, preset .. " draws all four picture quests, got " .. questCount)
 	local Scene = dofile("Tools/render/scene.lua")
 	assert(firstObjective and Scene.WrappedLines(Scene.PlainText(firstObjective.text), firstObjective.font.size, firstObjective.font.path, firstObjective.rect[3]) == 3, preset .. " draws the first objective on three lines")
-	-- The picture's counts end at 3398 px. KSTY-33 moved the quest card one column (the slot's width and a rail gap) left
-	-- of the RestedXP guide's card and up to the slot's top, so they end that much further left at the card's same
-	-- right inset, the first quest's three lines higher.
-	local column = (Layouts.Slot(preset, rh).width + 16) * 2234 / rh
+	-- The picture's counts end at 3398 px. KSTY-33 moved the quest card one column left of the RestedXP guide's card;
+	-- with the guide shown under Frames the quest card holds the story slot again (LEE-1532), so its counts end at the
+	-- picture's own right inset.
+	local column = 0
 	local counts = 0
 	for _, item in ipairs(built.items) do
 		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 and item.rect[2] > 300 and item.rect[2] < 420 then
