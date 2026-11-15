@@ -37,8 +37,8 @@ def jobs_of(text):
 
 
 def title_pattern():
-    match = re.search(r"^\s*pattern='([^']+)'$", (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8"), re.M)
-    assert match, "pr-title.yml has no pattern='...' line"
+    match = re.search(r"^\s*pattern='([^']+)'$", (WORKFLOWS / "pr-rules.yml").read_text(encoding="utf-8"), re.M)
+    assert match, "pr-rules.yml has no pattern='...' line"
     return match.group(1)
 
 
@@ -51,7 +51,7 @@ def title_passes(title):
 
 class WorkflowsTest(unittest.TestCase):
     def test_has_the_planned_workflows(self):
-        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-rules.yml", "pr-title.yml", "release.yml"])
+        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-rules.yml", "release.yml"])
 
     def test_every_action_is_pinned_by_full_sha_with_its_version(self):
         uses = [(path.name, m) for path in workflows() for m in USES.finditer(path.read_text(encoding="utf-8"))]
@@ -100,8 +100,17 @@ class WorkflowsTest(unittest.TestCase):
             ]),
         )
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["check", "release"])
-        self.assertIn("needs: check", text)
+        self.assertEqual(jobs, ["check", "lua", "release"])
+        self.assertIn("needs: [check, lua]", text)
+
+    def test_release_runs_the_lua_tests_in_shards_with_room_to_finish_on_a_busy_runner(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        jobs = jobs_of(text)
+        shards = re.search(r"shard: \[([\d, ]+)\]", jobs["lua"]).group(1).split(", ")
+        self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
+        self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
+        self.assertNotIn("run-all.sh", jobs["check"], "the unsharded run timed out the v0.1.3 release")
+        self.assertGreaterEqual(int(re.search(r"timeout-minutes: (\d+)", jobs["lua"]).group(1)), 20)
 
     def test_release_builds_the_icon_pack_in_both_jobs_and_uploads_it_beside_the_addon_zip(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
@@ -121,9 +130,9 @@ class WorkflowsTest(unittest.TestCase):
     def test_checks_has_the_suite_jobs_and_one_verdict(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["pre-commit", "lua", "python", "package", "verdict"])
+        self.assertEqual(jobs, ["pre-commit", "lua", "python-package", "verdict"])
         verdict = text.split("\n  verdict:\n", 1)[1]
-        self.assertIn("needs: [pre-commit, lua, python, package]", verdict)
+        self.assertIn("needs: [pre-commit, lua, python-package]", verdict)
         self.assertIn("if: ${{ !cancelled() && (" + FORK_GUARD + ") }}", verdict, "the verdict must report even when a job failed")
 
     def test_checks_runs_on_pull_request_opening_and_pushes_never_on_edits_or_labels(self):
@@ -142,23 +151,28 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("check-pr.sh", text)
         self.assertNotIn("check-pr.sh", (WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
 
-    def test_pr_title_and_pr_rules_check_on_every_run_so_none_hides_an_earlier_failure(self):
-        for name in ("pr-title.yml", "pr-rules.yml"):
-            text = (WORKFLOWS / name).read_text(encoding="utf-8")
-            self.assertNotIn("steps.scope", text, name)
-            self.assertNotRegex(text.replace("    if: " + FORK_GUARD + "\n", ""), r"(?m)^\s+if:", name)
-        self.assertIn("types: [opened, edited, synchronize, reopened]", (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8"))
+    def test_pr_rules_checks_the_title_and_the_body_on_every_run_so_none_hides_an_earlier_failure(self):
+        text = (WORKFLOWS / "pr-rules.yml").read_text(encoding="utf-8")
+        self.assertNotIn("steps.scope", text)
+        self.assertNotRegex(text.replace("    if: " + FORK_GUARD + "\n", ""), r"(?m)^\s+if:")
+        self.assertIn("TITLE: ${{ github.event.pull_request.title }}", text)
 
-    def test_every_step_after_the_scope_decision_waits_for_it(self):
-        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+    def test_pre_commit_decides_the_scope_and_every_suite_waits_for_it(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        self.assertIn("python3 Tools/hooks/ci_scope.py all", jobs["pre-commit"])
         for area in ("lua", "python", "package"):
-            job = text.split("\n  {0}:\n".format(area), 1)[1].split("\n\n  ", 1)[0]
-            self.assertIn("python3 Tools/hooks/ci_scope.py {0}".format(area), job)
-            steps = re.split(r"(?m)^      - ", job)[1:]
-            deciding = [i for i, step in enumerate(steps) if "ci_scope.py" in step]
-            self.assertEqual(len(deciding), 1, area)
-            for step in steps[deciding[0] + 1:]:
-                self.assertIn("if: steps.scope.outputs.run == 'true'", step, area)
+            self.assertIn("{0}: ${{{{ steps.scope.outputs.{0} }}}}".format(area), jobs["pre-commit"])
+        self.assertIn("needs: pre-commit", jobs["lua"])
+        self.assertIn("needs: pre-commit", jobs["python-package"])
+        self.assertIn("needs.pre-commit.outputs.lua != 'false'", jobs["lua"])
+        for step, output in (("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
+            block = jobs["python-package"].split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("if: needs.pre-commit.outputs.{0} != 'false'".format(output), block, step)
+
+    def test_a_suite_skipped_by_scope_still_passes_the_verdict_but_a_failed_pre_commit_does_not(self):
+        verdict = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["verdict"]
+        self.assertIn('[ "$PRE_COMMIT" = success ] || failed=1', verdict)
+        self.assertIn('[ "$result" = success ] || [ "$result" = skipped ] || failed=1', verdict)
 
     def test_the_lua_matrix_matches_the_shard_count_the_runner_gets(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
@@ -179,8 +193,10 @@ class WorkflowsTest(unittest.TestCase):
                 self.assertIn("\n    " + RUNNERS + "\n", body, f"{path.name}: {job}")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
-                allowed = ["${{ !cancelled() && (" + FORK_GUARD + ") }}"] if job == "verdict" else [FORK_GUARD]
-                self.assertIn(guard.group(1), allowed, f"{path.name}: {job}")
+                if job == "verdict":
+                    self.assertEqual(guard.group(1), "${{ !cancelled() && (" + FORK_GUARD + ") }}", f"{path.name}: {job}")
+                else:
+                    self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():
@@ -193,9 +209,9 @@ class WorkflowsTest(unittest.TestCase):
         checks = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
         self.assertIn("luacheck --version | grep '^Luacheck: 1\\.2\\.0$'", checks["pre-commit"])
         self.assertIn("pre-commit --version | grep '^pre-commit 4\\.7\\.0$'", checks["pre-commit"])
-        for job in ("lua", "python", "package"):
+        for job in ("lua", "python-package"):
             self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", checks[job], job)
-        self.assertIn("python3 --version | grep '^Python 3\\.12\\.'", checks["python"])
+        self.assertIn("python3 --version | grep '^Python 3\\.12\\.'", checks["python-package"])
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
         self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", release["check"])
         for job in ("check", "release"):

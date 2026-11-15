@@ -1,6 +1,7 @@
 # checks.yml: the suites. A pull request runs them once per head commit; a push to staging runs them all on the merged result.
-# Each job decides for itself, with Tools/hooks/ci_scope.py, whether its files changed, and ends with a success and a line saying why when they did not.
-# The verdict job is the one result to read. Label and body edits run pr-rules.yml only.
+# pre-commit runs first: it lints, and decides with Tools/hooks/ci_scope.py which suites have work. A lint failure stops the rest, and a suite with
+# nothing to do is skipped before it takes a runner. The verdict job is the one result to read.
+# Label and body edits run pr-rules.yml only.
 name: checks
 run-name: "${{ github.event_name == 'push' && format('staging: {0}', github.event.head_commit.message) || github.event.pull_request.title || 'checks (manual run)' }}"
 
@@ -24,11 +25,18 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 10
+    outputs:
+      lua: ${{ steps.scope.outputs.lua }}
+      python: ${{ steps.scope.outputs.python }}
+      package: ${{ steps.scope.outputs.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Decide which suites have work
+        id: scope
+        run: python3 Tools/hooks/ci_scope.py all
       - name: Check the runner's luacheck and pre-commit
         run: |
           luacheck --version | grep '^Luacheck: 1\.2\.0$'
@@ -41,7 +49,8 @@ jobs:
 
   lua:
     name: lua ${{ matrix.shard }}/2
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: pre-commit
+    if: needs.pre-commit.outputs.lua != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 10
     strategy:
@@ -53,73 +62,48 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
-      - name: Decide whether the Lua tests have work
-        id: scope
-        run: python3 Tools/hooks/ci_scope.py lua
       - name: Check the runner's Lua is 5.1.5
-        if: steps.scope.outputs.run == 'true'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Lua regression tests, one slice of the files
-        if: steps.scope.outputs.run == 'true'
         env:
           SHARD: ${{ matrix.shard }}
         run: bash scripts/gate.sh lua --shard "$SHARD/2"
 
-  python:
-    name: python
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+  python-package:
+    name: python and package
+    needs: pre-commit
+    if: (needs.pre-commit.outputs.python != 'false' || needs.pre-commit.outputs.package != 'false') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, mac-ci, KstyleUI]
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Decide whether the Python tests have work
-        id: scope
-        run: python3 Tools/hooks/ci_scope.py python
-      - name: Check the runner's Lua is 5.1.5
-        if: steps.scope.outputs.run == 'true'
-        run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
-      - name: Check the runner's Python is 3.12
-        if: steps.scope.outputs.run == 'true'
-        run: python3 --version | grep '^Python 3\.12\.'
-      - name: Python tool tests
-        if: steps.scope.outputs.run == 'true'
-        env:
-          KSTYLEUI_PYTHON: python3
-        run: bash scripts/gate.sh python
-
-  package:
-    name: package
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, mac-ci, KstyleUI]
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The packager reads the history for the version and the changelog.
           fetch-depth: 0
           persist-credentials: false
-      - name: Decide whether the package has work
-        id: scope
-        run: python3 Tools/hooks/ci_scope.py package
       - name: Check the runner's Lua is 5.1.5
-        if: steps.scope.outputs.run == 'true'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
+      - name: Check the runner's Python is 3.12
+        if: needs.pre-commit.outputs.python != 'false'
+        run: python3 --version | grep '^Python 3\.12\.'
+      - name: Python tool tests
+        if: needs.pre-commit.outputs.python != 'false'
+        env:
+          KSTYLEUI_PYTHON: python3
+        run: bash scripts/gate.sh python
       - name: Package without uploading or localisation
-        if: steps.scope.outputs.run == 'true'
+        if: needs.pre-commit.outputs.package != 'false'
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d -l
           pandoc: false
       - name: Check the zip
-        if: steps.scope.outputs.run == 'true'
+        if: needs.pre-commit.outputs.package != 'false'
         run: bash Tools/hooks/check-package.sh
 
   verdict:
     name: verdict
-    needs: [pre-commit, lua, python, package]
+    needs: [pre-commit, lua, python-package]
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 2
@@ -128,25 +112,28 @@ jobs:
         env:
           PRE_COMMIT: ${{ needs.pre-commit.result }}
           LUA: ${{ needs.lua.result }}
-          PYTHON: ${{ needs.python.result }}
-          PACKAGE: ${{ needs.package.result }}
+          PYTHON_PACKAGE: ${{ needs.python-package.result }}
           EVENT: ${{ github.event_name }}
         run: |
           failed=0
           {
             echo "| job | result |"
             echo "| --- | --- |"
-            for pair in "pre-commit=$PRE_COMMIT" "lua=$LUA" "python=$PYTHON" "package=$PACKAGE"; do
-              echo "| ${pair%%=*} | ${pair#*=} |"
-              [ "${pair#*=}" = success ] || failed=1
-            done
+            echo "| pre-commit | $PRE_COMMIT |"
+            echo "| lua | $LUA |"
+            echo "| python and package | $PYTHON_PACKAGE |"
           } >> "$GITHUB_STEP_SUMMARY"
+          # pre-commit decides what has work, so it alone must succeed; a suite it skips reports skipped.
+          [ "$PRE_COMMIT" = success ] || failed=1
+          for result in "$LUA" "$PYTHON_PACKAGE"; do
+            [ "$result" = success ] || [ "$result" = skipped ] || failed=1
+          done
           if [ "$failed" -ne 0 ]; then
             if [ "$EVENT" = push ]; then
-              echo "::error title=staging is red::The merged result of staging fails: pre-commit=$PRE_COMMIT lua=$LUA python=$PYTHON package=$PACKAGE. Open the failed job above for the test."
+              echo "::error title=staging is red::The merged result of staging fails: pre-commit=$PRE_COMMIT lua=$LUA python-package=$PYTHON_PACKAGE. Open the failed job above for the test."
             else
-              echo "::error title=checks failed::pre-commit=$PRE_COMMIT lua=$LUA python=$PYTHON package=$PACKAGE"
+              echo "::error title=checks failed::pre-commit=$PRE_COMMIT lua=$LUA python-package=$PYTHON_PACKAGE"
             fi
             exit 1
           fi
-          echo "pre-commit, lua, python and package all succeeded or had nothing to do"
+          echo "pre-commit succeeded; lua and python-package succeeded or had nothing to do"

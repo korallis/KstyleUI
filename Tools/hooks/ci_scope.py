@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """ci_scope.py: decide whether a CI job has work to do, from the files a pull request changes.
 
-Usage: python3 Tools/hooks/ci_scope.py <lua|python|package>
+Usage: python3 Tools/hooks/ci_scope.py <lua|python|package|all>
 Run it from the repository root after a checkout of at least two commits. A pull request run checks out the merge
 commit of the pull request and its base, so the first parent is the base and the diff between it and HEAD is
-exactly what the pull request changes. Prints one line that says whether the job runs and why, and appends
-run=true or run=false to $GITHUB_OUTPUT. It always exits 0: a job that has nothing to do succeeds, so every
+exactly what the pull request changes. Prints one line per area that says whether the job runs and why, and appends
+run=true or run=false (one area) or lua=, python= and package= (all) to $GITHUB_OUTPUT. It always exits 0: a job that has nothing to do succeeds, so every
 job reports a result on every pull request.
 
 Only a pull request can skip work. Any other event (a push to staging, a manual run) runs everything, and so
@@ -100,17 +100,21 @@ def changed_paths():
 
 
 def main(argv):
-    if len(argv) != 1 or argv[0] not in AREAS:
-        print("usage: ci_scope.py <{0}>".format("|".join(AREAS)), file=sys.stderr)
+    if len(argv) != 1 or argv[0] not in AREAS + ("all",):
+        print("usage: ci_scope.py <{0}|all>".format("|".join(AREAS)), file=sys.stderr)
         return 2
-    area = argv[0]
+    areas = AREAS if argv[0] == "all" else (argv[0],)
     event = os.environ.get("GITHUB_EVENT_NAME", "")
-    run, reason = decide(area, event, changed_paths() if event == "pull_request" else None)
-    print("{0}: {1}: {2}".format(area, "run" if run else "skip", reason))
+    paths = changed_paths() if event == "pull_request" else None
+    lines = []
+    for area in areas:
+        run, reason = decide(area, event, paths)
+        print("{0}: {1}: {2}".format(area, "run" if run else "skip", reason))
+        lines.append("{0}={1}".format(area if argv[0] == "all" else "run", "true" if run else "false"))
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
         with open(output, "a", encoding="utf-8") as handle:
-            handle.write("run={0}\n".format("true" if run else "false"))
+            handle.write("\n".join(lines) + "\n")
     return 0
 
 

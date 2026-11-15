@@ -63,11 +63,11 @@ One card with a bar per player in their class colour, in the style of Details. S
 
 ## Quests, guide and map on the right
 
-<p align="center"><img src="docs/media/readme/crop_rail.jpg" width="560" alt="Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the buff rows above it, the quest card with four quests and the RestedXP guide card beside it"></p>
+<p align="center"><img src="docs/media/readme/crop_rail.jpg" width="560" alt="Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the buff rows above it, the quest card in the slot under the map and the RestedXP guide card in the column beside it"></p>
 
 <p align="center"><sub>Test render of the addon's right rail: the map card, the quest card and the guide card.</sub></p>
 
-Your buffs and debuffs sit in rows above a square map card with the zone, your coordinates and the clock. Under it, the quest card keeps four quests in view with the count of the rest (one fewer when the guide needs the room for its step), and the RestedXP guide gets its own card beside it with the current step. When RestedXP shows its Active Targets and Active Items boxes, they dock side by side under the guide card, which keeps your current step in view. Tooltips, windows and these cards share one card design. The minimap's addon drawer collects every addon button on the map, and the pins guides park on the map's edge stay hidden unless you turn on **Addon pins on the map's edge** in the Minimap settings.
+Your buffs and debuffs sit in rows above a square map card with the zone, your coordinates and the clock. Under it, the quest card keeps four quests in view with the count of the rest, and scrolls for the others. While a RestedXP guide is shown, the guide takes the tall column beside the quest card, with room for your whole current step, and the quest card sits in the slot under the map, showing at least one quest. The two swap places only when the guide opens or closes. When RestedXP shows its Active Targets and Active Items boxes, they dock side by side under the guide card. Tooltips, windows and these cards share one card design. The minimap's addon drawer collects every addon button on the map, and the pins guides park on the map's edge stay hidden unless you turn on **Addon pins on the map's edge** in the Minimap settings.
 
 ## Pixel perfect at every size
 

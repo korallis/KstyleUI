@@ -1,4 +1,4 @@
-# pr-rules.yml: the changelog line and the release markers. It runs when the body or the labels change, which the suites in checks.yml do not.
+# pr-rules.yml: the title, the changelog line and the release markers. It runs when the title, the body or the labels change, which the suites in checks.yml do not.
 # Every run checks again: a skipped or no-op run would replace an earlier failure on the same commit with a success.
 name: pr-rules
 
@@ -25,9 +25,22 @@ jobs:
           # check-pr.sh diffs against the merge base with the base branch.
           fetch-depth: 0
           persist-credentials: false
-      - name: Check the changelog line and the release markers
+      - name: Check the title, the changelog line and the release markers
         env:
           BASE_REF: ${{ github.base_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: bash Tools/hooks/check-pr.sh "origin/$BASE_REF"
+        run: |
+          failed=0
+          pattern='^(feat|fix|perf|refactor|docs|test|ci|build|chore|revert)(\([a-z0-9-]+\))?: [^[:space:]]'
+          if [[ $TITLE =~ $pattern ]]; then
+            printf 'title ok: %s\n' "$TITLE"
+          else
+            printf 'title: %s\n' "$TITLE"
+            echo "The title must read 'type(scope): summary'. Types: feat fix perf refactor docs test ci build chore revert."
+            echo "The scope is optional and uses lowercase letters, digits and hyphens."
+            failed=1
+          fi
+          bash Tools/hooks/check-pr.sh "origin/$BASE_REF" || failed=1
+          exit "$failed"
