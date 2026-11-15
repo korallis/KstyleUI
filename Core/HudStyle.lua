@@ -9,6 +9,9 @@ local Store, Tokens, L = ns.Store, ns.Tokens, ns.L
 local SECTION = "HudStyle"
 local STYLES = { frames = true, orbs = true, medallions = true }
 
+HudStyle.MEDALLIONS_READY = false
+local medallionsOffered = HudStyle.MEDALLIONS_READY or KSTYLEUI_DEV_MEDALLIONS == true
+
 HudStyle.defaults = { style = "frames" }
 
 local applied, queued
@@ -21,10 +24,14 @@ function HudStyle.Valid(value)
 	return not (issecretvalue and issecretvalue(value)) and STYLES[value] == true
 end
 
+function HudStyle.Offered(value)
+	return HudStyle.Valid(value) and (value ~= "medallions" or medallionsOffered)
+end
+
 function HudStyle.Saved()
 	if Store.IsLoaded() then
 		local value = Store.Module(SECTION).style
-		if HudStyle.Valid(value) then
+		if HudStyle.Offered(value) then
 			return value
 		end
 	end
@@ -65,14 +72,16 @@ HudStyle.schema = {
 	{ type = "header", label = L["HUD"] },
 	{
 		type = "pictures", key = "style", label = L["HUD style"],
-		help = L["Orbs puts health and resource in orbs; Medallions adds round portraits. Changes out of combat."],
+		help = medallionsOffered and L["Orbs puts health and resource in orbs; Medallions adds round portraits. Changes out of combat."] or L["Orbs puts health and resource in orbs. Changes out of combat."],
 		options = {
 			{ value = "frames", label = L["Frames"], picture = (Tokens.Texture("hudStyleFrames")) },
 			{ value = "orbs", label = L["Orbs"], picture = (Tokens.Texture("hudStyleOrbs")) },
-			{ value = "medallions", label = L["Medallions"], picture = (Tokens.Texture("hudStyleMedallions")) },
 		},
 	},
 }
+if medallionsOffered then
+	table.insert(HudStyle.schema[2].options, { value = "medallions", label = L["Medallions"], picture = (Tokens.Texture("hudStyleMedallions")) })
+end
 
 Store.RegisterDefaults(SECTION, HudStyle.defaults)
 ns.Options.Register(SECTION, HudStyle.schema)

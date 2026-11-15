@@ -37,6 +37,11 @@ local STYLES = {
 	{ value = "orbs", label = L["Orbs"], note = L["Your health and resource in two orbs either side of the action bars."], picture = "hudStyleOrbs" },
 	{ value = "medallions", label = L["Medallions"], note = L["Round portraits on your unit frames and a hub in the middle of one long action slab."], picture = "hudStyleMedallions" },
 }
+for i = #STYLES, 1, -1 do
+	if not ns.HudStyle.Offered(STYLES[i].value) then
+		table.remove(STYLES, i)
+	end
+end
 
 local panel
 local step, reached, applied, open = 0, 1, false, false
@@ -253,7 +258,7 @@ local function BuildWelcome(page)
 	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	list:SetText(L["1. Pick a HUD style: Frames, Orbs or Medallions."] .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
+	list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."]) .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
 	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
