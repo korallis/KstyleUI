@@ -1,0 +1,249 @@
+{
+ "_comment": "Locked references for every Medallions generation. Lee approved the portrait finish (KSTY-87) and the crests (KSTY-88) on 2026-11-15; see handoffs/medallions/COMMON.md. copy is the committed 512 px copy; sha256 is the Higgsfield original's.",
+ "badge": {
+  "copy": "anchors/badge_scourge_paladin_female.png",
+  "date": "2026-11-15",
+  "job": "e53a95dc-3b54-4b6e-913b-68a833e94521",
+  "key": "scourge_paladin_female",
+  "model": "gpt_image_2_6",
+  "prompt": "Repaint the reference character as a tiny-size game icon meant to be read at 24 pixels wide. Same character, same colours, same painted style, but: face only, tightly framed, the face filling 80 percent of the square and centred; very large simple shapes; only four or five value groups; a strong dark outline around the head silhouette; the eyes as two bright glowing amber shapes; remove all small detail, texture, scratches, hair strands and background elements. Plain dark charcoal background. No text, no border, no frame.",
+  "promptSha256": "cc5303126c66ea81f6a25af0e1d1e982bb5128a9f10538d9b8e8ad1d245778d4",
+  "references": [
+   "d6effd44-d503-4cf9-98cb-8344e3f00452"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "39414f5222eb847c8d138e3fc47e8948b39737df89a56a2a86908f296e66d929",
+  "source": "KSTY-87 badge style",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_180210_e53a95dc-3b54-4b6e-913b-68a833e94521.png"
+ },
+ "crestStyle": {
+  "copy": "anchors/crest_dwarf_shaman.png",
+  "date": "2026-11-15",
+  "job": "20a1fd62-401b-4570-9cfe-147d5467a66b",
+  "key": "dwarf_shaman",
+  "model": "gpt_image_2_6",
+  "prompt": "Heraldic crest for a fantasy RPG game interface: one ornate shield emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (mountain dwarf clans): a broad, squat hexagonal shield of hammered dark bronze framing a slab of carved grey granite; thick angular knotwork engraved along the bronze border; heavy round rivets; a stylised mountain peak with a small anvil forged into the top of the frame; two small blood-red garnets set at the left and right corners.\n\nClass emblem (shaman, storm caller): in the centre field a carved stone totem crowned with forked lightning, ringed by four small elemental runes for earth, fire, water and air, inlaid in deep cobalt-blue enamel with a soft electric-blue inner glow, and a bright sapphire set at the totem's heart.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished bronze edges with warm specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The shield fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the shield.",
+  "promptSha256": "a49a2796c409707f93a9c08d901371fb10df9d35b5a899d772aa6303a5c771c2",
+  "references": [],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "007a0231fcc1d408397c9acc76e9b66cb4ef8ff38940a150e7116d4ed992cae1",
+  "source": "KSTY-88 crest anchor",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183234_20a1fd62-401b-4570-9cfe-147d5467a66b.png"
+ },
+ "crests": {
+  "dwarf": {
+   "copy": "anchors/crest_dwarf_shaman.png",
+   "date": "2026-11-15",
+   "job": "20a1fd62-401b-4570-9cfe-147d5467a66b",
+   "key": "dwarf_shaman",
+   "model": "gpt_image_2_6",
+   "prompt": "Heraldic crest for a fantasy RPG game interface: one ornate shield emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (mountain dwarf clans): a broad, squat hexagonal shield of hammered dark bronze framing a slab of carved grey granite; thick angular knotwork engraved along the bronze border; heavy round rivets; a stylised mountain peak with a small anvil forged into the top of the frame; two small blood-red garnets set at the left and right corners.\n\nClass emblem (shaman, storm caller): in the centre field a carved stone totem crowned with forked lightning, ringed by four small elemental runes for earth, fire, water and air, inlaid in deep cobalt-blue enamel with a soft electric-blue inner glow, and a bright sapphire set at the totem's heart.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished bronze edges with warm specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The shield fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the shield.",
+   "promptSha256": "a49a2796c409707f93a9c08d901371fb10df9d35b5a899d772aa6303a5c771c2",
+   "references": [],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "007a0231fcc1d408397c9acc76e9b66cb4ef8ff38940a150e7116d4ed992cae1",
+   "source": "KSTY-88 crest anchor",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183234_20a1fd62-401b-4570-9cfe-147d5467a66b.png"
+  },
+  "gnome": {
+   "copy": "anchors/crest_gnome_mage.png",
+   "date": "2026-11-15",
+   "job": "36cd01cb-168e-4623-b267-c6de2e32dbf8",
+   "key": "gnome_mage",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (gnome tinkerers): a round shield framed by a polished brass cogwheel with sharp gear teeth, copper rivets, small curved brass pipes and a tiny pressure gauge at the top, a riveted copper field, a round sapphire lens at the bottom.\n\nClass emblem (mage, arcane scholar): in the centre field a floating six-pointed arcane crystal star ringed by two crossed orbit rings like an astrolabe, inlaid in bright icy cyan enamel with a bright arcane cyan inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "c852dd486665cb361a704f6f02f1ec0794f320a75b409097d1d8aff14f0baff4",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "91919d597ce12ffc915341801585db760890a29b5d7c2f809bbc9674211dcb01",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183529_36cd01cb-168e-4623-b267-c6de2e32dbf8.png"
+  },
+  "human": {
+   "copy": "anchors/crest_human_paladin.png",
+   "date": "2026-11-15",
+   "job": "34c3eed3-69f3-457e-a1d5-d21fff77fe85",
+   "key": "human_paladin",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (human kingdoms): a classic heater shield of polished silver plate with royal-blue enamel along the border, fine gold trim, a small gold crown on a laurel wreath on top, a blue sapphire set at each upper corner.\n\nClass emblem (paladin, holy knight): in the centre field a radiant sunburst with a two-handed warhammer standing upright through it, inlaid in soft rose-pink enamel with a warm pink-gold holy inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "0eb6d79d562d8892326edd863455f574ae236ec978c61bd84e0a7b30526dfa90",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "6173d60bf10ee486369553d0954e18ef0b34d601db3c467f731ffa98042b5f2b",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_34c3eed3-69f3-457e-a1d5-d21fff77fe85.png"
+  },
+  "nightelf": {
+   "copy": "anchors/crest_nightelf_druid.png",
+   "date": "2026-11-15",
+   "job": "3329d533-0be9-427b-9a7d-9971353cbe54",
+   "key": "nightelf_druid",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (moonlit forest elves): a tall, slender almond-shaped shield like a pointed leaf, framed in pale moonsilver with sweeping curved filigree, a deep violet-blue night-sky enamel border dusted with tiny silver stars, a slim silver crescent moon rising from the top with a long owl feather curving out to each side, a small amethyst at the bottom tip.\n\nClass emblem (druid, keeper of the wild): in the centre field a pair of stag antlers cradling a round full moon, with an oak leaf and an acorn beneath, inlaid in warm amber-orange enamel with a soft orange inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "8f1c51c309dd32521e8b1da73152560665ef8dc4d3d38ac998c91600e85b4c05",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "788fee6c6af398975aa5e47e0885aee901b940e3f0c04932ba97f419ad5312ed",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183741_3329d533-0be9-427b-9a7d-9971353cbe54.png"
+  },
+  "orc": {
+   "copy": "anchors/crest_orc_warrior.png",
+   "date": "2026-11-15",
+   "job": "dd9b05aa-8ead-4e04-bc7e-d26ad7ec5b73",
+   "key": "orc_warrior",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (orc war clans): a round war shield of thick riveted dark iron over stretched red-brown hide, a ring of short iron spikes around the rim and two large curved boar tusks rising from the top, crude bold hammered shapes, deep red war-paint slashes on the hide, a blood-red stone at the bottom.\n\nClass emblem (warrior, battle master): in the centre field two crossed broad greatswords point-down behind a small round iron boss, inlaid in warm tan and bronze enamel with a fiery orange ember inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "5f32ff319f0279a043750b619bf8b69c861375bfb78770227cc4074618dc6f37",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "f5cf9f50ed818fa998ef7d04b485b72432ad3f93f51c1b78bd372ce3d9fb0a28",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_dd9b05aa-8ead-4e04-bc7e-d26ad7ec5b73.png"
+  },
+  "scourge": {
+   "copy": "anchors/crest_scourge_warlock.png",
+   "date": "2026-11-15",
+   "job": "72ef8dc2-ca20-4b9f-a23e-3c7b43eaae62",
+   "key": "scourge_warlock",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (the risen undead): a jagged, cracked kite shield of blackened iron and pale weathered bone, with torn tattered edges, iron thorns along the rim, rusted rivets, a broken iron crown with snapped points on top, faint sickly green light leaking from the cracks, a cracked jade stone at the bottom tip.\n\nClass emblem (warlock, binder of demons): in the centre field a horned demonic sigil circle bound by iron chains around a writhing fel flame, inlaid in deep violet-purple enamel with a sickly fel-green and violet inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "9a7887e9e2fbc1717f66891be0986f1165db1da3e884058a30d617114b32bd38",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "3a4a518d666472c7bbaa9b08a128365864550ec889568678bfd404005c1d7cc7",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_72ef8dc2-ca20-4b9f-a23e-3c7b43eaae62.png"
+  },
+  "skyborne": {
+   "copy": "anchors/crest_skyborne_rogue.png",
+   "date": "2026-11-15",
+   "job": "139e5df2-e909-4c65-ab6b-09f7b75cff22",
+   "key": "skyborne_rogue",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (the Skyborne, winged people of the high skies): a round crest of white gold and pearl with a sky-blue enamel border, a pair of feathered white wings spreading wide from the left and right sides, a small spiralling cloud with a four-pointed star on top, an aquamarine at the bottom.\n\nClass emblem (rogue, shadow blade): in the centre field two crossed curved daggers beneath a small crescent moon, inlaid in pale lemon-yellow enamel with a soft pale-gold inner glow and thin wisps of dark smoke.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "51dc850e4921895f00edd161f315723a3d5b4e9a8524beb37cdb1e343ba4a29e",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "ffd71626e8b7d8fc287511fe56a0cd7e460df576bf85b868b832098f2fe941cf",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_139e5df2-e909-4c65-ab6b-09f7b75cff22.png"
+  },
+  "tauren": {
+   "copy": "anchors/crest_tauren_hunter.png",
+   "date": "2026-11-15",
+   "job": "452a238d-661f-4bac-896f-3dbc4d97a915",
+   "key": "tauren_hunter",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (plains tribes of the great bull-folk): a circular totemic shield of stretched pale hide in a bent-wood hoop bound with leather cord, two great curved bull horns sweeping up from the top, eagle feathers and turquoise beads hanging at the sides, bronze fittings.\n\nClass emblem (hunter, master of the wild hunt): in the centre field a drawn longbow with a nocked arrow pointing up, crossed over a spread hawk's wing, inlaid in fresh moss-green enamel with a soft green inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "088028b721405e27e3a67820649278aadcbbfc4580662e56da48283a4cf415c4",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "46c2f9ef276ea2a78e974389f9b9631e17cf4b4a8a1fee78c21f351c834809dd",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183529_452a238d-661f-4bac-896f-3dbc4d97a915.png"
+  },
+  "troll": {
+   "copy": "anchors/crest_troll_priest.png",
+   "date": "2026-11-15",
+   "job": "7048fb43-43da-4f44-adad-e34128937ae2",
+   "key": "troll_priest",
+   "model": "gpt_image_2_6",
+   "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (jungle trolls): a tall oval mask-shaped shield of carved dark jungle wood and pale bone, painted with bold teal-turquoise tribal patterns, two large ivory tusks curving up from the bottom, a crest of upright feathers and hanging carved beads on top, a turquoise stone set at the top centre.\n\nClass emblem (priest, voice of the light): in the centre field a radiant eight-pointed star inside a halo ring with fine rays, inlaid in pearl-white enamel with a soft white-gold holy inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+   "promptSha256": "cf21a0ad175f504b3732deb70656f4e7f54c6a688d51bd8fd9e1600bee187138",
+   "references": [
+    "20a1fd62-401b-4570-9cfe-147d5467a66b"
+   ],
+   "settings": {
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "quality": "xhigh",
+    "resolution": "1k"
+   },
+   "sha256": "55b916ed9db947a53b090506e9b0a822fe5feb55743b18f71f70a26ef5720075",
+   "source": "KSTY-88 race master",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_7048fb43-43da-4f44-adad-e34128937ae2.png"
+  }
+ },
+ "portrait": {
+  "copy": "anchors/portrait_dwarf_shaman_male.png",
+  "date": "2026-11-15",
+  "job": "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b",
+  "key": "dwarf_shaman_male",
+  "model": "gpt_image_2_6",
+  "prompt": "Hand-painted fantasy game portrait icon. Head-and-shoulders bust, three-quarter view turned slightly to the left, the face filling the central 65 percent of the square so it survives a circular crop. Bold, instantly readable silhouette; clean crisp edges with no fuzz; a few large shapes, not fine noise. Warm key light from the upper left, cool cyan rim light on the right edge, strong value contrast on the face and eyes. Saturated but limited palette. Stylised painterly rendering with sharp edges, like premium MMO class art. Plain deep charcoal-to-black radial background. No text, no letters, no border, no frame, no ring, no logo, no watermark. Character: a stout, broad-shouldered mountain dwarf shaman, a man with a thick braided copper-red beard bound with stone rings, a grey wolf-pelt hood, a necklace of carved stone and bone totems, faint blue storm light crackling in his eyes and around one raised fist.",
+  "promptSha256": "7773e668cea46ff27c0ef69361cd6d5b970f365c33118a252fac9d291ff2ea11",
+  "references": [],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "bce1234b1a9cd3c966f02fa50f7d3994f579bc47f0b00be24ce95a6b7722592f",
+  "source": "KSTY-87 portrait anchor",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_175717_ebf64cee-0f61-4a03-ba67-8b9f0ffe178b.png"
+ }
+}
