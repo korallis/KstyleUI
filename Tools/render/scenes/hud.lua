@@ -1131,10 +1131,11 @@ function modules.tracker(opts)
 		S.W.Settle(env)
 	end
 	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
-	-- slot, or the column beside the RestedXP guide's card while the guide holds the slot (opts.withGuide).
+	-- slot, or under Orbs on top of the RestedXP guide's card (opts.withGuide).
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local place = opts.withGuide and "in its own column beside the RestedXP guide's card" or "in the layout's story slot"
+	local stacked = rail and not rail.Shown() and K.Setup.Story(K.Layout.Setting("preset") or "DPS", true).stacked
+	local place = opts.withGuide and (stacked and "on top of the RestedXP guide's card in one column" or "in the story slot, the shown RestedXP guide's card in the column beside it") or "in the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else

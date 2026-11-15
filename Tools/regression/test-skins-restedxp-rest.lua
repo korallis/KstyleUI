@@ -299,7 +299,7 @@ do
 	env.RunTimers()
 	W.Settle(env)
 	assert(ns.Quests.Active() and ns.RestedXP.Rail.Placed(), "the quest card shows and the guide is placed")
-	local story = K.Setup.Story("DPS", true)
+	local story = K.Setup.Story("DPS", true, ns.RestedXP.Rail.Shown())
 	local path = ns.RestedXP.Chrome.Path(f)
 	assert(not path.meta:IsShown(), "the guide's group line is hushed, so the steps are the guide's last row")
 	local glass = Rect(K, K.Skin.Parts(f).backdrop)
