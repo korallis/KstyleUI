@@ -397,6 +397,7 @@ local TEXTURES = {
 	medTargetBrackets = { file = "Textures\\Medallions\\TargetBrackets.png" },
 	medUnitSlab = { file = "Textures\\Medallions\\UnitSlab.png", slice = 16, density = 4 },
 	medVignette = { file = "Textures\\Medallions\\Vignette.png" },
+	hudStyleMedallions = { file = "Textures\\HudStyleMedallions.png" },
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.png" },
 }

@@ -54,7 +54,7 @@ class FilesTest(unittest.TestCase):
                     self.assertEqual(side & (side - 1), 0, f"{item.name} is not a power of two")
 
     def test_the_folder_holds_only_kit_and_procedural_files(self):
-        on_disk = {p.name for p in (ROOT / kit.OUT).iterdir()}
+        on_disk = {p.name for p in (ROOT / kit.OUT).iterdir() if p.is_file()}
         listed = {Path(i.path).name for i in kit.KIT} | {Path(a.path).name for a in PROCEDURAL}
         self.assertEqual(on_disk, listed)
         self.assertEqual(len(listed), len(kit.KIT) + len(PROCEDURAL), "two pieces share a file name")

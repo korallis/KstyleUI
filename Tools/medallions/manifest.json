@@ -1,0 +1,618 @@
+[
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Badges/gnome_rogue_male.png",
+  "job": "d170a830-dcb6-42ca-8402-778f394f016e",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 15.22,
+    "contrast": 60.43,
+    "cx": 0.469,
+    "cy": 0.5109,
+    "luma": 66.43,
+    "sat": 0.8139,
+    "separation": 86.04
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "gnome_rogue_male",
+  "kind": "badge",
+  "model": "gpt_image_2_6",
+  "prompt": "Make a small-size badge version of the first reference portrait, in the flat badge style of the second reference image: the same character, cropped to the face and the top of the shoulders and centred, simplified into four or five clear value groups with bold shapes, a strong dark outline around the head, minimal fine detail (no individual hair strands or fur), high contrast against a plain dark background, so it still reads at 24 pixels. No text.",
+  "promptSha256": "41a6908fff2292235f5bb488bc51d975a2c5d4436b0a9cb71ffdaa59c1cf7575",
+  "rawSha256": "4663a7e8cfdada52c70a49cfa006a0d54540a6c56c11031580787178820a25cb",
+  "references": [
+   "c3da94ac-2699-408c-83d9-5648fd886b0a",
+   "e53a95dc-3b54-4b6e-913b-68a833e94521"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "d2ebe106703ebde44b42c58ab3dfa65016bded9faf8d1db968a7271861f54729",
+  "size": 64,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192952_d170a830-dcb6-42ca-8402-778f394f016e.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Badges/human_mage_female.png",
+  "job": "bf4431ec-10ab-4e75-bced-fde9db2fec39",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 19.18,
+    "contrast": 66.26,
+    "cx": 0.4992,
+    "cy": 0.4844,
+    "luma": 68.17,
+    "sat": 0.7271,
+    "separation": 63.02
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "human_mage_female",
+  "kind": "badge",
+  "model": "gpt_image_2_6",
+  "prompt": "Make a small-size badge version of the first reference portrait, in the flat badge style of the second reference image: the same character, cropped to the face and the top of the shoulders and centred, simplified into four or five clear value groups with bold shapes, a strong dark outline around the head, minimal fine detail (no individual hair strands or fur), high contrast against a plain dark background, so it still reads at 24 pixels. No text.",
+  "promptSha256": "41a6908fff2292235f5bb488bc51d975a2c5d4436b0a9cb71ffdaa59c1cf7575",
+  "rawSha256": "bf81acd6be03c9f2818677c043795bdc2de3bfaa429ee6757d52d8132e25bb79",
+  "references": [
+   "97f8f42c-7ab9-4199-aed8-3ff67f35009f",
+   "e53a95dc-3b54-4b6e-913b-68a833e94521"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "dd21d3df93bafdd45b74c4aac611fe0dc43224b6976ef84ead02ee319c705773",
+  "size": 64,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192846_bf4431ec-10ab-4e75-bced-fde9db2fec39.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Badges/nightelf_priest_female.png",
+  "job": "08905cc5-b149-4c34-9f81-1d6f0649b7bd",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 12.95,
+    "contrast": 72.87,
+    "cx": 0.4933,
+    "cy": 0.5582,
+    "luma": 82.49,
+    "sat": 0.5505,
+    "separation": 68.38
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "nightelf_priest_female",
+  "kind": "badge",
+  "model": "gpt_image_2_6",
+  "prompt": "Make a small-size badge version of the first reference portrait, in the flat badge style of the second reference image: the same character, cropped to the face and the top of the shoulders and centred, simplified into four or five clear value groups with bold shapes, a strong dark outline around the head, minimal fine detail (no individual hair strands or fur), high contrast against a plain dark background, so it still reads at 24 pixels. No text.",
+  "promptSha256": "41a6908fff2292235f5bb488bc51d975a2c5d4436b0a9cb71ffdaa59c1cf7575",
+  "rawSha256": "4781ab10bae32d1b2d6a7e9fda60230dc0df2dd2f3703de81d3702d7cad60c79",
+  "references": [
+   "17a90339-9dd3-4df5-b15f-60d3c1710604",
+   "e53a95dc-3b54-4b6e-913b-68a833e94521"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "68cc46538ad39c2438b01efdb075aa74538fa0ca92659858eaa1338a610c3104",
+  "size": 64,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192916_08905cc5-b149-4c34-9f81-1d6f0649b7bd.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Badges/orc_warrior_male.png",
+  "job": "357f9fee-6741-44e9-8fbf-ed4fc87113e5",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 10.53,
+    "contrast": 58.36,
+    "cx": 0.523,
+    "cy": 0.5589,
+    "luma": 54.24,
+    "sat": 0.6132,
+    "separation": 46.29
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "orc_warrior_male",
+  "kind": "badge",
+  "model": "gpt_image_2_6",
+  "prompt": "Make a small-size badge version of the first reference portrait, in the flat badge style of the second reference image: the same character, cropped to the face and the top of the shoulders and centred, simplified into four or five clear value groups with bold shapes, a strong dark outline around the head, minimal fine detail (no individual hair strands or fur), high contrast against a plain dark background, so it still reads at 24 pixels. No text.",
+  "promptSha256": "41a6908fff2292235f5bb488bc51d975a2c5d4436b0a9cb71ffdaa59c1cf7575",
+  "rawSha256": "ae5cad167fd39c0e67c146e6ce06e21b44e9e1033ce8a961fec34750116477eb",
+  "references": [
+   "2a58116d-e14a-48f9-b6ba-d903999cc580",
+   "e53a95dc-3b54-4b6e-913b-68a833e94521"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "d228a48a0075f662b92241f0e012c4b8258762a67160c5ecb404dcef4eb65f55",
+  "size": 64,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192913_357f9fee-6741-44e9-8fbf-ed4fc87113e5.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Busts/gnome_rogue_male.png",
+  "job": "c3da94ac-2699-408c-83d9-5648fd886b0a",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 58.11,
+    "cx": 0.4767,
+    "cy": 0.4485,
+    "luma": 67.55,
+    "sat": 0.6093
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "gnome_rogue_male",
+  "kind": "bust",
+  "model": "gpt_image_2_6",
+  "prompt": "Hand-painted fantasy game portrait icon. Head-and-shoulders bust, three-quarter view turned slightly to the left, the face filling the central 65 percent of the square so it survives a circular crop. Bold, instantly readable silhouette; clean crisp edges with no fuzz; a few large shapes, not fine noise. Warm key light from the upper left, cool cyan rim light on the right edge, strong value contrast on the face and eyes. Saturated but limited palette. Stylised painterly rendering with sharp edges, like premium MMO class art. Plain deep charcoal-to-black radial background. No text, no letters, no border, no frame, no ring, no logo, no watermark. Match the reference image's rendering style, brushwork, lighting, framing and level of detail exactly, but paint a completely different character. Character: a tiny, big-eyed gnome tinkerer man with a large nose, a waxed moustache and wild bright orange hair, a rogue, wearing a dark leather hood and a scarf pulled down from the face, a curved dagger held close, thin wisps of smoke and a pale gold glint on the blade.",
+  "promptSha256": "dea08667d0c7fe469ec98374ce5dbf9e7931b0514116e8dc4de49f5eb12986fd",
+  "rawSha256": "e0de2d322c8348ce7d959a1d9c30c4065e556b52fc439a4493d78f7fe1bad3e0",
+  "references": [
+   "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "f02c23856e5c068fd5d2b01828a638b9623d79cfd69e41365883aec028bcc1ff",
+  "size": 128,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192643_c3da94ac-2699-408c-83d9-5648fd886b0a.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Busts/human_mage_female.png",
+  "job": "97f8f42c-7ab9-4199-aed8-3ff67f35009f",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 36.79,
+    "cx": 0.4998,
+    "cy": 0.5567,
+    "luma": 75.84,
+    "sat": 0.5391
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "human_mage_female",
+  "kind": "bust",
+  "model": "gpt_image_2_6",
+  "prompt": "Hand-painted fantasy game portrait icon. Head-and-shoulders bust, three-quarter view turned slightly to the left, the face filling the central 65 percent of the square so it survives a circular crop. Bold, instantly readable silhouette; clean crisp edges with no fuzz; a few large shapes, not fine noise. Warm key light from the upper left, cool cyan rim light on the right edge, strong value contrast on the face and eyes. Saturated but limited palette. Stylised painterly rendering with sharp edges, like premium MMO class art. Plain deep charcoal-to-black radial background. No text, no letters, no border, no frame, no ring, no logo, no watermark. Match the reference image's rendering style, brushwork, lighting, framing and level of detail exactly, but paint a completely different character. Character: a human woman in her prime, keen-eyed and resolute, with dark hair tied back, a mage, wearing a high-collared robe embroidered with arcane sigils, a swirl of glowing icy-cyan arcane light curling around one shoulder.",
+  "promptSha256": "3f9ee9f52e6f3990d33c3586b0de67e5f8abbc901c7cb4b668ed2a55ca0324cb",
+  "rawSha256": "5e4855e7fe33b7ad36c8dd45043937a9fcbb897c93360e6c90a13c631657b683",
+  "references": [
+   "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "3854572f89fe5bb815ee7c593f20c519de9f49644c52eeed84acbc79e850407d",
+  "size": 128,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192519_97f8f42c-7ab9-4199-aed8-3ff67f35009f.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Busts/nightelf_priest_female.png",
+  "job": "17a90339-9dd3-4df5-b15f-60d3c1710604",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 41.01,
+    "cx": 0.459,
+    "cy": 0.5709,
+    "luma": 98.22,
+    "sat": 0.4183
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "nightelf_priest_female",
+  "kind": "bust",
+  "model": "gpt_image_2_6",
+  "prompt": "Hand-painted fantasy game portrait icon. Head-and-shoulders bust, three-quarter view turned slightly to the left, the face filling the central 65 percent of the square so it survives a circular crop. Bold, instantly readable silhouette; clean crisp edges with no fuzz; a few large shapes, not fine noise. Warm key light from the upper left, cool cyan rim light on the right edge, strong value contrast on the face and eyes. Saturated but limited palette. Stylised painterly rendering with sharp edges, like premium MMO class art. Plain deep charcoal-to-black radial background. No text, no letters, no border, no frame, no ring, no logo, no watermark. Match the reference image's rendering style, brushwork, lighting, framing and level of detail exactly, but paint a completely different character. Character: a tall moonlit forest elf woman with very long swept-back pointed ears, pale violet skin, long midnight-blue hair and glowing silver eyes, a priest, wearing white and gold vestments with a high collar and a thin halo-like circlet, soft pearl-white holy light around the face.",
+  "promptSha256": "f8263fdcdb20da5c08f725a5cce1864cb5f01efd9a41c0c5da296bd1240cbb1f",
+  "rawSha256": "0833c36235add8384241cf0f0cac1822b2cde129c393818da628160ce38c202a",
+  "references": [
+   "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "889b1bbb8e8c8543ab0cab68ed2d9dbf54814a8499d66deb5c632b090fa90eca",
+  "size": 128,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192519_17a90339-9dd3-4df5-b15f-60d3c1710604.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Busts/orc_warrior_male.png",
+  "job": "2a58116d-e14a-48f9-b6ba-d903999cc580",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "background": 36.17,
+    "cx": 0.5078,
+    "cy": 0.5283,
+    "luma": 65.4,
+    "sat": 0.5125
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "orc_warrior_male",
+  "kind": "bust",
+  "model": "gpt_image_2_6",
+  "prompt": "Hand-painted fantasy game portrait icon. Head-and-shoulders bust, three-quarter view turned slightly to the left, the face filling the central 65 percent of the square so it survives a circular crop. Bold, instantly readable silhouette; clean crisp edges with no fuzz; a few large shapes, not fine noise. Warm key light from the upper left, cool cyan rim light on the right edge, strong value contrast on the face and eyes. Saturated but limited palette. Stylised painterly rendering with sharp edges, like premium MMO class art. Plain deep charcoal-to-black radial background. No text, no letters, no border, no frame, no ring, no logo, no watermark. Match the reference image's rendering style, brushwork, lighting, framing and level of detail exactly, but paint a completely different character. Character: a massive green-skinned orc man with jutting lower tusks, a heavy brow and a black warrior's topknot, a warrior, wearing battered steel plate pauldrons over a red tabard, the hilt of a greatsword over the shoulder, warm ember light from below on one side.",
+  "promptSha256": "d3f213140b7d0e2eb3a9d1b453db673652c5cf0f03e26b68a7d065273c11e14a",
+  "rawSha256": "de7f7b0599ca1e992326f4e3ae4bea23133e486224bfa79f02985f0e0c645714",
+  "references": [
+   "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "sha256": "64d2ae563fe946122aae83337734c4786616fd2a9ba2a004e623ff222a718b5e",
+  "size": 128,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192432_2a58116d-e14a-48f9-b6ba-d903999cc580.png"
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/human_mage.png",
+  "job": "f05cb539-bc92-4aac-aede-0957c8804bbb",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "corner_alpha": 0.0,
+    "cx": 0.4995,
+    "cy": 0.502,
+    "emblem_changed": 0.5437,
+    "fill": 0.9961,
+    "frame_luma_drift": 0.0199,
+    "frame_mae": 0.1084,
+    "hue": 185.3,
+    "iou": 0.987,
+    "luma": 137.62,
+    "white": 0.1397
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "human_mage",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Edit the reference crest. Keep its whole outer frame exactly as it is: the polished silver heater shield, the royal-blue enamel border, the fine gold trim, the small gold crown on its laurel wreath, the two sapphires, the size, placement, lighting and transparent background. Replace only the centre field emblem and its colour.\n\nNew class emblem (mage, arcane scholar): on the same polished silver field, a floating six-pointed arcane crystal star ringed by two crossed orbit rings like an astrolabe, inlaid in bright icy cyan enamel with a bright arcane cyan inner glow. No sunburst, no hammer, no pink.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background.",
+  "promptSha256": "603344ed7636b1dbf591b03fd3ea3e6fb88efb45aebfd05c052f6804d93c5e1e",
+  "rawSha256": "a63c01869898989f50cb759a746f6cfdfcc737e1c21059ae0fdaafef9059fcb4",
+  "references": [
+   "34c3eed3-69f3-457e-a1d5-d21fff77fe85"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "96a3a919ce3f0b5b8d3b1eff5476c5c58148267ed72a9e6c8477f508c5c03b0d",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192553_f05cb539-bc92-4aac-aede-0957c8804bbb.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_mage.png",
+  "file": "Media/Textures/Medallions/Crests/human_mage_glow.png",
+  "key": "human_mage",
+  "kind": "crest_glow",
+  "sha256": "757e574859a2486fcbeaccc7021afcd5f6bcf9a27d0084793274ad774180d38d",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_mage.png",
+  "file": "Media/Textures/Medallions/Crests/human_mage_metal.png",
+  "key": "human_mage",
+  "kind": "crest_metal",
+  "sha256": "35e2f3705f035d941f68d1b48d50585f1f657c3074c35786c5305ec95191d61b",
+  "size": 256
+ },
+ {
+  "anchor": true,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/human_paladin.png",
+  "job": "34c3eed3-69f3-457e-a1d5-d21fff77fe85",
+  "judge": {
+   "by": "anchor",
+   "metrics": {},
+   "note": "",
+   "overruled": []
+  },
+  "key": "human_paladin",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (human kingdoms): a classic heater shield of polished silver plate with royal-blue enamel along the border, fine gold trim, a small gold crown on a laurel wreath on top, a blue sapphire set at each upper corner.\n\nClass emblem (paladin, holy knight): in the centre field a radiant sunburst with a two-handed warhammer standing upright through it, inlaid in soft rose-pink enamel with a warm pink-gold holy inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+  "promptSha256": "0eb6d79d562d8892326edd863455f574ae236ec978c61bd84e0a7b30526dfa90",
+  "rawSha256": "6173d60bf10ee486369553d0954e18ef0b34d601db3c467f731ffa98042b5f2b",
+  "references": [
+   "20a1fd62-401b-4570-9cfe-147d5467a66b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "fc420f5fa22c70c0a91c172e53bfca06356a4b6bda261415fb76f39f391b8fea",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_34c3eed3-69f3-457e-a1d5-d21fff77fe85.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_paladin.png",
+  "file": "Media/Textures/Medallions/Crests/human_paladin_glow.png",
+  "key": "human_paladin",
+  "kind": "crest_glow",
+  "sha256": "1b642d8ff8bf62f2883de9b346ffb5a8c3e5d7c91a53abef406d157da405511e",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_paladin.png",
+  "file": "Media/Textures/Medallions/Crests/human_paladin_metal.png",
+  "key": "human_paladin",
+  "kind": "crest_metal",
+  "sha256": "ed01551adccf6b6931c8e2fc17d24ed484661b6d2fb938af43ced262b14191b7",
+  "size": 256
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/human_warrior.png",
+  "job": "893de9c0-1b83-490d-8177-9b3a69de3918",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "corner_alpha": 0.0,
+    "cx": 0.4995,
+    "cy": 0.5024,
+    "emblem_changed": 0.4085,
+    "fill": 0.9951,
+    "frame_luma_drift": 0.0085,
+    "frame_mae": 0.1102,
+    "hue": 25.7,
+    "iou": 0.9887,
+    "luma": 130.5,
+    "white": 0.4849
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "human_warrior",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Edit the reference crest. Keep its whole outer frame exactly as it is: the polished silver heater shield, the royal-blue enamel border, the fine gold trim, the small gold crown on its laurel wreath, the two sapphires, the size, placement, lighting and transparent background. Replace only the centre field emblem and its colour.\n\nNew class emblem (warrior, battle master): on the same polished silver field, two crossed broad greatswords point-down behind a small round iron boss, inlaid in warm tan and bronze enamel with a fiery orange ember inner glow. No sunburst, no hammer, no pink.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background.",
+  "promptSha256": "5ddf882eb96fb5eb67ce89c1a55b7eed53c3befffef05873866829f49b68cdc4",
+  "rawSha256": "8bdc94ff75902e9f3b612de6ceffc5b52b5a1646094103dbb3b4ed2e079a483b",
+  "references": [
+   "34c3eed3-69f3-457e-a1d5-d21fff77fe85"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "5a0abb629bc2f739b525de17d322b55bef685cbb67d350d063a4ce7966c87487",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192435_893de9c0-1b83-490d-8177-9b3a69de3918.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_warrior.png",
+  "file": "Media/Textures/Medallions/Crests/human_warrior_glow.png",
+  "key": "human_warrior",
+  "kind": "crest_glow",
+  "sha256": "b4a87654ae1bd74ead3aea335067af488389750cf8dc571561dfa4682b3f3165",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/human_warrior.png",
+  "file": "Media/Textures/Medallions/Crests/human_warrior_metal.png",
+  "key": "human_warrior",
+  "kind": "crest_metal",
+  "sha256": "792b967784560fc3e30ee9073c72b4811900b886a09a6fd75deeec73cd290225",
+  "size": 256
+ },
+ {
+  "anchor": true,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/troll_priest.png",
+  "job": "7048fb43-43da-4f44-adad-e34128937ae2",
+  "judge": {
+   "by": "anchor",
+   "metrics": {},
+   "note": "",
+   "overruled": []
+  },
+  "key": "troll_priest",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Use the reference image only for its rendering style: the same painterly finish, lighting direction, cool rim light, level of detail, thin dark outline, straight-on camera, canvas size, placement in the canvas and fully transparent background. Do not copy its shape, materials, colours or symbols.\n\nHeraldic crest for a fantasy RPG game interface: one ornate emblem, centred, seen straight on, isolated on a fully transparent background.\n\nRace heraldry (jungle trolls): a tall oval mask-shaped shield of carved dark jungle wood and pale bone, painted with bold teal-turquoise tribal patterns, two large ivory tusks curving up from the bottom, a crest of upright feathers and hanging carved beads on top, a turquoise stone set at the top centre.\n\nClass emblem (priest, voice of the light): in the centre field a radiant eight-pointed star inside a halo ring with fine rays, inlaid in pearl-white enamel with a soft white-gold holy inner glow.\n\nFinish: premium hand-painted fantasy game-art icon with rich materials: polished metal edges with specular highlights, glossy enamel, cut gems catching the light, depth from bevels and recessed engraving, a cool rim light from the upper left, deep contact shadows. Crisp clean silhouette with a thin dark outline so it still reads at 64 pixels. The crest fills about 80 percent of the canvas height and is perfectly left-right symmetrical.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background, no cast shadow outside the crest.",
+  "promptSha256": "cf21a0ad175f504b3732deb70656f4e7f54c6a688d51bd8fd9e1600bee187138",
+  "rawSha256": "55b916ed9db947a53b090506e9b0a822fe5feb55743b18f71f70a26ef5720075",
+  "references": [
+   "20a1fd62-401b-4570-9cfe-147d5467a66b"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "ba45f6b1a5b6d0ae0bcb4b486c0605471c79abe46ea093493b6f2f1d03c0e342",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_7048fb43-43da-4f44-adad-e34128937ae2.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_priest.png",
+  "file": "Media/Textures/Medallions/Crests/troll_priest_glow.png",
+  "key": "troll_priest",
+  "kind": "crest_glow",
+  "sha256": "5f39b463c2d2e9cc8cbf5194ef5d137fd3fe2cf465e69d985a7219bed1710a75",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_priest.png",
+  "file": "Media/Textures/Medallions/Crests/troll_priest_metal.png",
+  "key": "troll_priest",
+  "kind": "crest_metal",
+  "sha256": "17853beeca0984f905d4c42eb07c9b746f8ed5300eb501ab95b7153e10267c35",
+  "size": 256
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/troll_rogue.png",
+  "job": "46590e56-ddbf-4fe0-b830-cf4f8e274359",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "corner_alpha": 0.0,
+    "cx": 0.499,
+    "cy": 0.5015,
+    "emblem_changed": 0.3975,
+    "fill": 0.9951,
+    "frame_luma_drift": 0.0559,
+    "frame_mae": 0.1041,
+    "hue": 50.5,
+    "iou": 0.9793,
+    "luma": 103.35,
+    "white": 0.0778
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "troll_rogue",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Edit the reference crest. Keep its whole outer frame exactly as it is: the carved dark wood and bone mask shield with its teal tribal paint, the two ivory tusks at the bottom, the feather crest and carved beads on top, the turquoise stone, the size, placement, lighting and transparent background. Replace only the centre field emblem and its colour.\n\nNew class emblem (rogue, shadow blade): on the same carved wood field, two crossed curved daggers beneath a small crescent moon, inlaid in pale lemon-yellow enamel with a soft pale-gold inner glow and thin wisps of dark smoke. No eight-pointed star, no halo, no white glow.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background.",
+  "promptSha256": "c95401a0d8b7db33b8af4b731da32db8db9d395d9048970408425d11886c9300",
+  "rawSha256": "ec7cceae0a480e64ac1d78fefef791161560e0acb3c63f0bed87cdd024aeda28",
+  "references": [
+   "7048fb43-43da-4f44-adad-e34128937ae2"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "083d695639da586ba8b609e1c12e323255d953b50d572337ea8f067958867b41",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192435_46590e56-ddbf-4fe0-b830-cf4f8e274359.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_rogue.png",
+  "file": "Media/Textures/Medallions/Crests/troll_rogue_glow.png",
+  "key": "troll_rogue",
+  "kind": "crest_glow",
+  "sha256": "628c81234843391380834171fc95d924b0712d8a7c8391897f839b7b757b8ab2",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_rogue.png",
+  "file": "Media/Textures/Medallions/Crests/troll_rogue_metal.png",
+  "key": "troll_rogue",
+  "kind": "crest_metal",
+  "sha256": "b413450b98e968753dd1c24b768ccf0bcdc2c126b6bcd5095bf86c908f600d96",
+  "size": 256
+ },
+ {
+  "anchor": false,
+  "date": "2026-11-15",
+  "file": "Media/Textures/Medallions/Crests/troll_shaman.png",
+  "job": "94045caa-5e28-4bcd-b0f5-d79e746bb539",
+  "judge": {
+   "by": "script",
+   "metrics": {
+    "corner_alpha": 0.0,
+    "cx": 0.499,
+    "cy": 0.5015,
+    "emblem_changed": 0.4365,
+    "fill": 0.9971,
+    "frame_luma_drift": 0.0464,
+    "frame_mae": 0.0684,
+    "hue": 214.7,
+    "iou": 0.9933,
+    "luma": 103.52,
+    "white": 0.2039
+   },
+   "note": "",
+   "overruled": []
+  },
+  "key": "troll_shaman",
+  "kind": "crest",
+  "model": "gpt_image_2_6",
+  "prompt": "Edit the reference crest. Keep its whole outer frame exactly as it is: the carved dark wood and bone mask shield with its teal tribal paint, the two ivory tusks at the bottom, the feather crest and carved beads on top, the turquoise stone, the size, placement, lighting and transparent background. Replace only the centre field emblem and its colour.\n\nNew class emblem (shaman, storm caller): on the same carved wood field, a carved stone totem crowned with forked lightning, ringed by four small elemental runes for earth, fire, water and air, inlaid in deep cobalt-blue enamel with a soft electric-blue inner glow, and a bright sapphire set at the totem's heart. No eight-pointed star, no halo, no white glow.\n\nNo text, no letters, no numbers, no faces, no characters, no scenery, no background.",
+  "promptSha256": "2b0535030ac5cc3d18bb750faea4f25d22b0344e7a7158cde481624dd9a36970",
+  "rawSha256": "823ea3dc4edc78ad71935e175c965ebe5b4e4a99b8cd876a3ca5f68c42fe9cd4",
+  "references": [
+   "7048fb43-43da-4f44-adad-e34128937ae2"
+  ],
+  "settings": {
+   "aspect_ratio": "1:1",
+   "background": "transparent",
+   "quality": "xhigh",
+   "resolution": "1k"
+  },
+  "sha256": "a86f17ad881b58ca4e761ce6cc0233c8d37a2a5b462b4574fdb305f3e247bf91",
+  "size": 256,
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192609_94045caa-5e28-4bcd-b0f5-d79e746bb539.png"
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_shaman.png",
+  "file": "Media/Textures/Medallions/Crests/troll_shaman_glow.png",
+  "key": "troll_shaman",
+  "kind": "crest_glow",
+  "sha256": "b409969a343f8ae3d45ee3d109349a7a8d2d3a8e323d3a4377fbe2d7036001c2",
+  "size": 256
+ },
+ {
+  "derivedFrom": "Media/Textures/Medallions/Crests/troll_shaman.png",
+  "file": "Media/Textures/Medallions/Crests/troll_shaman_metal.png",
+  "key": "troll_shaman",
+  "kind": "crest_metal",
+  "sha256": "6abb874818cdc16de20d98bf97798497628d7666d109d902505a0b2521eacc3c",
+  "size": 256
+ }
+]

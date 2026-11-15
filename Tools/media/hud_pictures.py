@@ -1,14 +1,14 @@
-"""Prepare the HUD style pictures: crops of the Frames and Orbs HUD as the hud_reference render draws them.
+"""Prepare the HUD style pictures: crops of the Frames, Orbs and Medallions HUD as the hud_reference render draws them.
 
 Usage:
-    python3 Tools/media/hud_pictures.py --frames FRAMES.png --orbs ORBS.png
+    python3 Tools/media/hud_pictures.py --frames FRAMES.png --orbs ORBS.png --medallions MEDALLIONS.png
 
-The sources are two renders of the shipped code with no game art in them: no backdrop, no stand-ins cut from the
+The sources are three renders of the shipped code with no game art in them: no backdrop, no stand-ins cut from the
 handoff mock-up, and a HOME without the Blizzard icon and atlas caches, so every icon is the KstyleUI icon pack's
 own repaint (Tools/icons/setB) and every portrait the renderer's flat stand-in. From the repository root:
 
     mv Tools/render/out/standins Tools/render/out/standins.off
-    for style in Frames Orbs; do
+    for style in Frames Orbs Medallions; do
         HOME=$(mktemp -d) RENDER_HUD_STYLE=$style RENDER_SIZE=auto RENDER_SCREEN=1920x1080 \\
             bash Tools/render/shoot.sh hud_reference --ppu 2 --no-standins --out /tmp/hud-$style.png
     done
@@ -28,10 +28,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SCREEN_HEIGHT = 1080
 PICTURE = (512, 256)
 # Left, top, right, bottom in screen units of a 1920 by 1080 render: the cast bar, the cooldown row, the target and
-# player frames and the two-row tray for Frames; the two orbs, the forged tray and the cast bar for Orbs.
+# player frames and the two-row tray for Frames; the two orbs, the forged tray and the cast bar for Orbs; the unit
+# frames either side of the hub, the split tray and the cast bar for Medallions.
 CROPS = {
     "HudStyleFrames": (540, 640, 1360, 1050),
     "HudStyleOrbs": (501, 621, 1419, 1080),
+    "HudStyleMedallions": (501, 621, 1419, 1080),
 }
 
 
@@ -47,9 +49,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--frames", required=True, type=Path, help="the hud_reference render with RENDER_HUD_STYLE=Frames")
     parser.add_argument("--orbs", required=True, type=Path, help="the hud_reference render with RENDER_HUD_STYLE=Orbs")
+    parser.add_argument("--medallions", required=True, type=Path, help="the hud_reference render with RENDER_HUD_STYLE=Medallions")
     parser.add_argument("--out", type=Path, default=ROOT / "Tools" / "media" / "materials")
     args = parser.parse_args(argv)
-    for name, source in (("HudStyleFrames", args.frames), ("HudStyleOrbs", args.orbs)):
+    for name, source in (("HudStyleFrames", args.frames), ("HudStyleOrbs", args.orbs), ("HudStyleMedallions", args.medallions)):
         path = args.out / f"{name}.png"
         prepare(source, CROPS[name]).save(path, optimize=True)
         print(f"wrote {path}")

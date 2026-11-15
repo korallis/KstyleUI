@@ -285,7 +285,7 @@ function Setup.Apply(picked)
 	if ornaments then
 		ns.Options.Write("Widgets", "ornaments", ornaments)
 	end
-	local hudStyle = (picked.hudStyle == "frames" or picked.hudStyle == "orbs") and picked.hudStyle
+	local hudStyle = ns.HudStyle.Valid(picked.hudStyle) and picked.hudStyle
 	if hudStyle then
 		applying = true
 		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)

@@ -140,7 +140,7 @@ local function saved(opts, module, settings, more)
 	local profile = { [module] = section }
 	local style = Hud.Style()
 	if style then
-		assert(style == "Orbs" or style == "Frames", "RENDER_HUD_STYLE must be Orbs or Frames")
+		assert(style == "Orbs" or style == "Frames" or style == "Medallions", "RENDER_HUD_STYLE must be Frames, Orbs or Medallions")
 		profile.HudStyle = { style = style:lower() }
 	end
 	for _, name in ipairs(more or {}) do

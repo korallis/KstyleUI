@@ -620,13 +620,17 @@ do
 	assert(K3.Options.Open("General") == true)
 	settle(env3)
 	local pictures = rowFor(ns3, "HUD style").controls.pictures
-	assert(pictures and #pictures.cards == 2, "the HUD style row shows two picture cards")
-	local frames, orbs = pictures.cards[1], pictures.cards[2]
-	assert(frames.value == "frames" and orbs.value == "orbs", "Frames first, then Orbs")
+	assert(pictures and #pictures.cards == 3, "the HUD style row shows three picture cards")
+	local frames, orbs, medallions = pictures.cards[1], pictures.cards[2], pictures.cards[3]
+	assert(frames.value == "frames" and orbs.value == "orbs" and medallions.value == "medallions", "Frames, Orbs, then Medallions")
+	assert(medallions.picture:GetTexture() == (K3.Tokens.Texture("hudStyleMedallions")), "the Medallions card shows its picture")
 	assert(frames.picture:GetTexture() == (K3.Tokens.Texture("hudStyleFrames")) and orbs.picture:GetTexture() == (K3.Tokens.Texture("hudStyleOrbs")), "each card shows its picture")
 	W.Click(orbs)
 	settle(env3)
 	assert(K3.HudStyle.Saved() == "orbs", "a click on Orbs saves it")
+	W.Click(medallions)
+	settle(env3)
+	assert(K3.HudStyle.Saved() == "medallions", "a click on Medallions saves it")
 	assert(#env3._errors == 0, "errors: " .. table.concat(env3._errors, "\n"))
 end
 

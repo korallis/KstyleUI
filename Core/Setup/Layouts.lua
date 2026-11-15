@@ -448,7 +448,7 @@ local REPLACED = { orbs = { ["unitframes.player"] = true } }
 local ORBS_KEEP = {
 	Healer = { ["groupframes.party"] = true, ["groupframes.raid"] = true },
 }
-local STYLES = { orbs = {} }
+local STYLES = { orbs = {}, medallions = {} }
 for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	local style = {}
 	for key, position in pairs(ORBS) do
@@ -800,7 +800,7 @@ function Layouts.OrbsTray(width)
 		levelText = level[3] * s,
 	}
 end
-Layouts.STYLES = { "orbs" }
+Layouts.STYLES = { "orbs", "medallions" }
 
 function Layouts.Style(style, name, key)
 	local set = STYLES[style] and STYLES[style][name]
@@ -813,9 +813,73 @@ end
 local ASPECTS = ns.Scale.ASPECTS
 local PLACES = {}
 for _, class in ipairs(ASPECTS) do
-	PLACES[class] = { frames = {}, orbs = {} }
+	PLACES[class] = { frames = {}, orbs = {}, medallions = {} }
 end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
+
+Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
+
+function Layouts.MedallionsGroup(class)
+	local columns, rows = 12, 1
+	if class == ASPECTS[1] then
+		columns, rows = 6, 2
+	end
+	local grid = GRIDS["actionbars.bar1"]
+	return columns, rows, columns * grid.size + (columns - 1) * grid.spacing, rows * grid.size + (rows - 1) * grid.spacing
+end
+
+function Layouts.StyleSize(style, class, key)
+	if style == "medallions" and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+		local _, _, width, height = Layouts.MedallionsGroup(class)
+		return width, height
+	end
+end
+
+function Layouts.BuildMedallions()
+	local hub = Layouts.MEDALLIONS_HUB_GAP
+	local reach, rise = 104 * MOCK_PX, 120 * MOCK_PX
+	local sets = {}
+	for _, class in ipairs(ASPECTS) do
+		local _, _, width, height = Layouts.MedallionsGroup(class)
+		local baseline = math.max(TRAY_BAR1_Y, layouts.DPS["databars.xp"].y + XP_H + TIGHT + Layouts.MEDALLIONS_RING / 2 - height)
+		local top = baseline + height
+		local ends = hub / 2 + width + NEAR
+		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
+		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + 2 * TIGHT + tot[2])
+		local function At(anchor, x, y, size)
+			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
+		end
+		sets[class] = {
+			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
+			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
+			["actionbars.pet"] = { anchor = "BOTTOM", x = -(ends + GridSize("actionbars.pet") / 2), y = TRAY_BOTTOM },
+			["actionbars.stance"] = { anchor = "BOTTOM", x = ends + GridSize("actionbars.stance") / 2, y = TRAY_BOTTOM },
+			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
+			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, top + rise, frame),
+			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, top + rise + frame[2] - 9 * MOCK_PX - tot[2], tot),
+			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] / 2), top + GAP, { 180 * MOCK_PX, 40 * MOCK_PX }),
+			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
+			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
+			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
+		}
+	end
+	for _, name in ipairs(NAMES) do
+		STYLES.medallions[name] = {}
+		for key, place in pairs(sets[ASPECTS[1]]) do
+			STYLES.medallions[name][key] = place
+		end
+	end
+	for _, class in ipairs(ASPECTS) do
+		if class ~= ASPECTS[1] then
+			for key, place in pairs(sets[class]) do
+				PLACES[class].medallions[key] = place
+			end
+		end
+	end
+end
+Layouts.BuildMedallions()
+Layouts.BuildMedallions = nil
 
 function Layouts.Aspect(class, style, name, key)
 	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
@@ -1062,7 +1126,8 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	end
 	local floor, max, min = math.floor, math.max, math.min
 	local rootHeight = 1080 / user
-	local layout = positions or Layouts.Positions(name, style or "frames", ns.Scale.AspectClass(physicalWidth, physicalHeight))
+	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
+	local layout = positions or Layouts.Positions(name, style or "frames", class)
 	if not layout then
 		return false
 	end
@@ -1079,6 +1144,10 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local styled = style and Layouts.Style(style, name, key)
 			if styled and styled.width then
 				width, height, offsetX = styled.width, styled.height, nil
+			end
+			local grouped, groupHeight = Layouts.StyleSize(style, class, key)
+			if grouped then
+				width, height, offsetX = grouped, groupHeight, nil
 			end
 			position = layout[key]
 		else
@@ -1108,6 +1177,22 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				end
 			end
 			rects[#rects + 1] = { left, bottom, right, top, key = key }
+		end
+	end
+	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
+		local bar = layout["actionbars.bar1"]
+		local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
+		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
+		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
+		local bottom = floor((bar.y + groupHeight) * pixelScale - ring / 2 + 0.5)
+		if left < 0 or bottom < 0 or bottom + ring > physicalHeight then
+			return false
+		end
+		for index = 1, #rects do
+			local rect = rects[index]
+			if left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
+				return false
+			end
 		end
 	end
 	local orbs = false
