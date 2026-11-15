@@ -380,11 +380,11 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	return Settings.Get("cast.height") + Cast.Gap(plate) + plate.castBar.rimOutset
+	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2
 end
 
 function Cast.Gap(plate)
-	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + plate.castBar.rimPixel
+	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
 end
 
 function Cast.Place(plate)
