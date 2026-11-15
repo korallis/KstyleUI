@@ -50,6 +50,9 @@ stateDiagram-v2
 | `KstyleUI_GroupFrames/Medallions.lua` | `Frames.Apply`, registered while the group frames run: the party medallions and the raid tiles. |
 | `KstyleUI_Nameplates/Medallions.lua` | `Plates.RestyleAll`, registered while the plates run: the badges, brackets and level diamonds. |
 | `Core/Widgets/Base.lua` | Fires `ThemeChanged` when the switch enters or leaves Medallions, so every module repaints its gilt as steel (or back), cards take or drop the steel material and the minimap turns round or square. A switch between Frames and Orbs fires nothing here. |
+| `Core/EffectModels.lua` | Leaving Medallions stops every live 3D model. |
+| `Core/Vignette.lua` | Listens to the player's health and death only under Medallions; shows or hides the low-health vignette. |
+| `Core/Layout/Rest.lua` | Listens to combat only under Medallions; leaving Medallions wakes any resting secondary frame at once. |
 | `KstyleUI_ActionBars/Slab.lua` | `OnStyle`: `Slab.Refresh` shows the action slab and the crest hub under Medallions while bars 1 and 2 stand on one baseline, hides them otherwise, and starts or stops each proc slot's Medallions loop. Bars 1 and 2 take the slab's rows (`Slab.Rows`, from `Layouts.MedallionsGroup`) when Layout's `LayoutChanged` lays them out again. |
 
 ## Medallions in the module listeners

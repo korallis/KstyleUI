@@ -90,6 +90,8 @@ do
 
 	assert(Kinds(hub.runes.turn).Rotation == 1 and hub.runes.turn:GetLooping() == "REPEAT" and hub.runes.turn:IsPlaying(), "the rune ring turns")
 	assert(hub.glow.breath:IsPlaying() and hub.glow.breath:GetLooping() == "BOUNCE", "the glow breathes")
+	env.RunTimers()
+	assert(K.Effects.Holder("hub") == nil, "the proc's hold on the hub has ended")
 	assert(hub.sheen.run:IsPlaying(), "the sheen passes")
 	local alive = 0
 	for _, p in ipairs(hub.particles) do

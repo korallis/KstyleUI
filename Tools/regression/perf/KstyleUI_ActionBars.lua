@@ -1,6 +1,7 @@
 -- KstyleUI_ActionBars.lua: the action bars' combat paths, with their time budgets in microseconds per call, for test-perf.lua.
 local Perf = ...
 local AB = dofile("Tools/regression/actionbars_env.lua")
+local FX = dofile("Tools/regression/effects_env.lua")
 
 local SLOTS = 12
 
@@ -81,6 +82,35 @@ return {
 				show()
 				hide()
 			end
+		end,
+	},
+	{
+		name = "ActionBars Medallions ready flash on a slot",
+		budget = 120,
+		setup = function()
+			local env, K, ns = AB.New()
+			AB.Enable(env, K)
+			K.Options.Write("HudStyle", "style", "medallions")
+			env.RunTimers()
+			AB.Slot(env, 1, { texture = 135001, type = "spell", id = 101 })
+			local b = AB.Button(ns, "bar1", 1)
+			b.realCooldown = true
+			b:FlashReady()
+			assert(b.medReady and b.medReady.anim:IsPlaying(), "the fixture plays the Medallions flash")
+			return env, function()
+				b:FlashReady()
+			end
+		end,
+	},
+	{
+		name = "ActionBars Medallions hub ring UNIT_POWER_UPDATE",
+		budget = 20,
+		setup = function()
+			local env, K = AB.New({ setup = FX.Install })
+			AB.Enable(env, K)
+			K.Options.Write("HudStyle", "style", "medallions")
+			env.RunTimers()
+			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "RAGE")
 		end,
 	},
 }

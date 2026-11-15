@@ -125,4 +125,21 @@ return {
 			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "MANA")
 		end,
 	},
+	{
+		name = "UnitFrames Medallions cast flash",
+		budget = 200,
+		setup = function()
+			local env, K, ns = U.New()
+			K.Options.Write("HudStyle", "style", "medallions")
+			env.RunTimers()
+			local cb = ns.CastBars.NewBar(env.UIParent, "player", false)
+			cb.frame:SetSize(240, 20)
+			cb.bar:SetSize(220, 12)
+			cb.frame:Show()
+			assert(ns.CastEffects.Flash(cb, "giltLit", 0.6) and cb.medStreak, "the fixture runs the Medallions flash")
+			return env, function()
+				ns.CastEffects.Flash(cb, "giltLit", 0.6)
+			end
+		end,
+	},
 }

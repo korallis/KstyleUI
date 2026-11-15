@@ -18,6 +18,7 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local Classes = dofile("Tools/render/scenes/_classes.lua")
+local Fx = dofile("Tools/render/scenes/_effects.lua")
 
 local Hud = {}
 Hud.Classes = Classes
@@ -507,6 +508,7 @@ function modules.unitframes(opts)
 		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
+	Fx.Apply(env, "unitframes", ns, notes)
 	local scene = build(env, opts, { time = env._time })
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note
@@ -645,7 +647,12 @@ function modules.actionbars(opts)
 		end
 		env._now = clock
 	end
+	local notes = {}
+	Fx.Apply(env, "actionbars", ns, notes)
 	local scene = build(env, opts, { time = env._time })
+	for _, note in ipairs(notes) do
+		scene.log[#scene.log + 1] = note
+	end
 	return finish(env, K, scene, "actionbars"), ns
 end
 

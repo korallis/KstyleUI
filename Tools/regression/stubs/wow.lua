@@ -847,11 +847,13 @@ local function newObject(env, objectType, name, parent)
 end
 
 -- An AnimationGroup plays from the stub clock (env._now) when Play is called, so a render can sample its
--- animations at a later time; Stop and Finish end it. The group lists its animations in _anims and the frame
+-- animations at a later time; Stop and Finish end it, and Pause holds it until Play. The group lists its animations in _anims and the frame
 -- its groups in _groups.
-function Object:Play() self._playedAt = self._env._now end
-function Object:Stop() self._playedAt = nil end
-function Object:Finish() self._playedAt = nil end
+function Object:Play() self._playedAt, self._paused = self._env._now, nil end
+function Object:Stop() self._playedAt, self._paused = nil, nil end
+function Object:Finish() self._playedAt, self._paused = nil, nil end
+function Object:Pause() if self._playedAt then self._playedAt, self._paused = nil, true end end
+function Object:IsPaused() return self._paused == true end
 function Object:IsPlaying() return self._playedAt ~= nil end
 
 -- A status bar draws its fill with a texture region that GetStatusBarTexture returns.

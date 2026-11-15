@@ -13,6 +13,11 @@ local FLIP, FLIP_FROM = 0.18, 0.05
 local PULSE, PULSE_LOW = 0.4, 0.45
 local SHEEN, SHEEN_PERIOD = 1.75, 5
 local LEVEL_PLAQUE, LEVEL_RING = 2, 1
+local BURST, BURST_SHARE, BURST_FROM, BURST_TO, BURST_RISE = 1.2, 2.2, 0.6, 1.15, 0.2
+local CLASS_WORD = {
+	DRUID = "Druid", HUNTER = "Hunter", MAGE = "Mage", PALADIN = "Paladin", PRIEST = "Priest",
+	ROGUE = "Rogue", SHAMAN = "Shaman", WARLOCK = "Warlock", WARRIOR = "Warrior",
+}
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local DEAD_TINT = 0.45
 
@@ -149,6 +154,14 @@ function Medallion:Layout(size, plaqueSide)
 end
 
 function Medallion:SetUnit(unit, cut)
+	local effects = ns.Effects
+	if effects then
+		if unit == "player" then
+			effects.playerMedallion = self
+		elseif effects.playerMedallion == self then
+			effects.playerMedallion = nil
+		end
+	end
 	return ns.Medallions.Portrait(self.portrait, unit, cut)
 end
 
@@ -183,7 +196,32 @@ function Medallion:LowHealth(unit)
 	end
 end
 
+local function SheenParts(self)
+	if not self.sheenStart then
+		self.sheenStart = function()
+			self.sheen:Show()
+			self.sheenAnim:Play()
+		end
+		self.sheenStop = function()
+			self.sheenAnim:Pause()
+			self.sheen:Hide()
+		end
+	end
+end
+
 function Medallion:Sheen(on)
+	local effects = ns.Effects
+	if effects and effects.Ambient then
+		SheenParts(self)
+		if on == true then
+			effects.Ambient(self, self.sheenStart, self.sheenStop)
+		else
+			effects.Ambient(self, nil, nil)
+			self.sheenAnim:Stop()
+			self.sheen:Hide()
+		end
+		return
+	end
 	local want = on == true and Allows("ambient")
 	self.sheen:SetShown(want)
 	if want and not self.sheenAnim:IsPlaying() then
@@ -197,6 +235,77 @@ function Medallion:FlipIn()
 	if not Allows("flare") then
 		return
 	end
+	local effects = ns.Effects
+	if effects and effects.ClaimFor then
+		if not self.flipStop then
+			self.flipStop = function()
+				self.flip:Stop()
+			end
+		end
+		if not effects.ClaimFor(self, effects.PRIORITY.target, FLIP, self.flipStop) then
+			return
+		end
+	end
 	self.flip:Stop()
 	self.flip:Play()
+end
+
+local function BurstParts(self)
+	local burst = self.burst
+	if not burst then
+		burst = self:CreateTexture(nil, "BACKGROUND", nil, -8)
+		burst:SetBlendMode("ADD")
+		burst:SetPoint("CENTER", self, "CENTER", 0, 0)
+		burst:SetAlpha(0)
+		local group = burst:CreateAnimationGroup()
+		local grow = group:CreateAnimation("Scale")
+		grow:SetScaleFrom(BURST_FROM, BURST_FROM)
+		grow:SetScaleTo(BURST_TO, BURST_TO)
+		grow:SetOrigin("CENTER", 0, 0)
+		grow:SetDuration(BURST)
+		grow:SetSmoothing("OUT")
+		local rise = group:CreateAnimation("Alpha")
+		rise:SetFromAlpha(0)
+		rise:SetToAlpha(1)
+		rise:SetDuration(BURST * BURST_RISE)
+		local fall = group:CreateAnimation("Alpha")
+		fall:SetFromAlpha(1)
+		fall:SetToAlpha(0)
+		fall:SetStartDelay(BURST * BURST_RISE)
+		fall:SetDuration(BURST * (1 - BURST_RISE))
+		group:SetScript("OnFinished", function()
+			burst:SetAlpha(0)
+		end)
+		burst.anim = group
+		self.burst = burst
+		self.burstPlay = function()
+			group:Stop()
+			group:Play()
+		end
+		self.burstStop = function()
+			group:Stop()
+			burst:SetAlpha(0)
+		end
+	end
+	return burst
+end
+
+function Medallion:Burst(class)
+	local effects = ns.Effects
+	if not (effects and effects.Burst and self:IsVisible()) then
+		return false
+	end
+	local burst = BurstParts(self)
+	local word = CLASS_WORD[class]
+	local path, own = effects.Texture(word and ("medBurst" .. word) or "glow", "glow")
+	burst:SetTexture(path)
+	local c = not own and class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+	if c then
+		burst:SetVertexColor(c.r, c.g, c.b, 1)
+	else
+		burst:SetVertexColor(1, 1, 1, 1)
+	end
+	local side = Snap(self, self.size * BURST_SHARE)
+	burst:SetSize(side, side)
+	return effects.Burst(self, effects.PRIORITY.burst, self, class or "", self.size * BURST_SHARE, BURST, self.burstPlay, self.burstStop)
 end

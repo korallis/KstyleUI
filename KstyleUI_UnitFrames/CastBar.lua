@@ -178,6 +178,9 @@ local function StopFlash(cb)
 end
 
 local function Flash(cb, colorName, alpha)
+	if ns.CastEffects.Flash(cb, colorName, alpha) then
+		return
+	end
 	if Motion.Level() == "off" or not cb.frame:IsShown() then
 		return
 	end

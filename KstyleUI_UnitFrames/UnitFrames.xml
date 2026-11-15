@@ -10,6 +10,7 @@
 	<Script file="Unit.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Resource.lua"/>
+	<Script file="CastEffects.lua"/>
 	<Script file="CastBar.lua"/>
 	<Script file="Overflow.lua"/>
 	<Script file="Auras.lua"/>

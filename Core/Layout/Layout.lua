@@ -618,9 +618,9 @@ end
 local function ApplyAlpha(el, instant, duration)
 	local s = el.settings
 	local alpha = Rules.Alpha(s.shown, state.combat, el.hovered, s.alphaCombat, s.alphaIdle)
-	local calm = Layout.Calm
-	if calm and s.shown ~= "mouseover" and s.alphaCombat == 1 and s.alphaIdle == 1 then
-		alpha = alpha * calm.Level(el.key)
+	local calm, rest = Layout.Calm, Layout.Rest
+	if s.shown ~= "mouseover" and s.alphaCombat == 1 and s.alphaIdle == 1 then
+		alpha = alpha * (calm and calm.Level(el.key) or 1) * (rest and rest.Level(el.key) or 1)
 	end
 	if alpha == 1 and not el.alphaSet then
 		return

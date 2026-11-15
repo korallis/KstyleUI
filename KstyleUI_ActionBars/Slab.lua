@@ -441,6 +441,14 @@ local function BuildMoments(hub)
 			Slab.PaintPlaque(false)
 		end
 	end)
+	burst.play = function()
+		Play(burst.anim)
+	end
+	burst.stop = function()
+		burst.anim:Stop()
+		burst:SetAlpha(0)
+		Slab.PaintPlaque(false)
+	end
 	hub.burst = burst
 
 	local plaque = Region(hub.top, "OVERLAY", 3, Slab.Texture("medLevelPlaque"))
@@ -584,6 +592,11 @@ local function Motionless()
 	hub.bloom:SetAlpha(BREATH_LOW)
 end
 
+local function Held()
+	local effects = K.Effects
+	return effects ~= nil and effects.Holder ~= nil and effects.Holder("hub") ~= nil
+end
+
 local function Animate()
 	local hub = Slab.hub
 	if not (Idling() and hub:IsShown()) then
@@ -591,13 +604,14 @@ local function Animate()
 		return
 	end
 	local speed = state.combat and COMBAT_SPEED or 1
+	local held = Held()
 	for _, g in ipairs(Loops()) do
 		g:SetAnimationSpeedMultiplier(speed)
-		if not g:IsPlaying() then
+		if not g:IsPlaying() and not (held and g == hub.sheen.run) then
 			g:Play()
 		end
 	end
-	local alive = not Slab.Allows("particle") and 0 or state.combat and PARTICLES or CALM_PARTICLES
+	local alive = (held or not Slab.Allows("particle")) and 0 or state.combat and PARTICLES or CALM_PARTICLES
 	for i, p in ipairs(hub.particles) do
 		if i <= alive then
 			if not p.anim:IsPlaying() then
@@ -639,13 +653,25 @@ function Slab.Pair()
 	return left, right, l2 - r1, l1, r2
 end
 
+local function Yield()
+	local hub = Slab.hub
+	hub.sheen.run:Pause()
+	for _, p in ipairs(hub.particles) do
+		p.anim:Pause()
+	end
+end
+
 local function Hide()
 	if not state.built then
 		return
 	end
 	Slab.frame:Hide()
 	Slab.hub:Hide()
+	if K.Effects and K.Effects.Ambient then
+		K.Effects.Ambient("hub", nil, nil)
+	end
 	Motionless()
+	ns.SlabEffects.UpdateCap()
 end
 
 local function PlaceSweeps(slab, half)
@@ -705,7 +731,11 @@ function Slab.Refresh()
 	PaintLevel()
 	slab:Show()
 	hub:Show()
+	if K.Effects and K.Effects.Ambient then
+		K.Effects.Ambient("hub", Animate, Yield)
+	end
 	Animate()
+	ns.SlabEffects.UpdateCap()
 	return true
 end
 
@@ -767,7 +797,7 @@ function Slab.LevelUp(level)
 	end
 	if Moving() then
 		Slab.PaintPlaque(true)
-		Play(hub.burst.anim)
+		ns.SlabEffects.LevelUp(hub, hub.burst.play, hub.burst.stop)
 		Play(hub.caption.anim)
 		Play(hub.shock.anim)
 	end
@@ -823,6 +853,7 @@ function Slab.SetProc(b, on)
 	if b.kind ~= "action" then
 		return
 	end
+	ns.SlabEffects.SlotProc(b, on and Slab.Active())
 	if b.lumenGlow then
 		b.lumenGlow:SetShown(b.proc == true and not Slab.Active())
 	end
@@ -851,6 +882,7 @@ function Slab.SetProc(b, on)
 	end
 	Play(start.anim)
 	Slab.Pulse()
+	ns.SlabEffects.Proc(Slab.hub)
 end
 
 local function OnCombat(event)

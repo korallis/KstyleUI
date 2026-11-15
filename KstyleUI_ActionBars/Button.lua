@@ -603,6 +603,7 @@ function Button.New(bar, index)
 		primary = true,
 	})
 	b.kbar, b.index, b.kind = bar, index, def.kind
+	b.readyEffect = ns.SlabEffects.Ready
 	b.commandName = def.binding .. index
 	b.QuickKeybindButtonSetTooltip = QuickKeybindTooltip
 	b.hasAction, b.outOfRange, b.lacksPower = false, false, false

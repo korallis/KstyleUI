@@ -230,6 +230,8 @@ The core has no icon service. KstyleUI's repainted icons ship as a loose-file te
 | `Medallions.Portrait(texture, unit, cut) -> painted` | Sets the painted cut and returns true; otherwise calls `SetPortraitTexture(texture, unit)` and returns false. It resets the texture coordinates either way. |
 | `Medallions.Crest(unit) -> crest, glow, metal` | The three paths of the race and class crest for the hub, or nil. |
 
+The effects that animate Medallions (motion level, priorities, the 3D model pool) are in [medallions-effects.md](medallions-effects.md).
+
 ## Setup
 
 `Core/Setup/` holds the first-run setup: it opens once per account, picks the HUD style (Frames, Orbs or Medallions), a DPS, Tank or Healer layout and the modules, then applies them and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.

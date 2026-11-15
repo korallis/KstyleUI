@@ -342,7 +342,14 @@ function IconButton:Restyle()
 end
 
 function IconButton:FlashReady()
-	if not self:IsVisible() or Motion.Level() == "off" then
+	if not self:IsVisible() then
+		return
+	end
+	local effect = self.readyEffect
+	if effect and effect(self) then
+		return
+	end
+	if Motion.Level() == "off" then
 		return
 	end
 	self.readyWash:SetAlpha(0)
