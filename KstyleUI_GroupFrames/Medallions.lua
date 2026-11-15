@@ -11,7 +11,8 @@ ns.Medallions = Medallions
 local STYLE = "medallions"
 local OWNER = "GroupFrames.Medallions"
 local STEEL_LIT = { Tokens.Color("steelLit") }
-local TILE_INSET = 3
+local TILE_INSET = 2
+local LINE_EXTRA = 2
 local MIN_CELL = 8
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
@@ -79,11 +80,14 @@ local function TileParts(out, w, h, o)
 	local pad, gap = Tokens.Size("gapSmall"), Tokens.Size("gapTiny")
 	local inset = TILE_INSET
 	local spacing = o.aura and o.aura.spacing or 0
-	local nameLine, line = o.nameHeight or 0, o.healthLine or 0
+	local nameLine, line = (o.nameHeight or 0) - LINE_EXTRA, (o.healthLine or 0) - LINE_EXTRA
 	local full = h - 2 * pad
 	local width = w - 2 * pad
-	local stacked = full >= nameLine + line + 2 * inset
-	local heal = o.healRow and math.min(o.healRow, stacked and line or o.healRow) or nil
+	local heal = o.healRow and math.min(o.healRow, full - nameLine - 2 * inset) or nil
+	local stacked = full >= nameLine + math.max(line, heal or 0) + 2 * inset
+	if not stacked then
+		heal = o.healRow
+	end
 	local bar = { left = pad, top = pad, width = width, height = full }
 	out.healRow = nil
 	if heal and stacked then
@@ -204,14 +208,13 @@ local function Tile(f, parts, k)
 	Style.SetFont(f.healthText, Settings.current.text.healthFont, k.healthTextSize, TILE_OUTLINE)
 	local reserve = Medallions.TextReserve(f, k)
 	local block = parts.block
-	local pipsRight = (tile.stacked or reserve <= 0) and right or right - reserve - gap
-	local nameRight = pipsRight
+	local textLeft = reserve > 0 and right - reserve - gap or right
+	local pipsRight = textLeft
+	local nameRight = textLeft
 	if block then
 		block.left = pipsRight - block.width
 		block.top = tile.stacked and health.top + tile.inset or health.top + math.floor((health.height - block.height) / 2)
-		nameRight = Widgets.Snap(f, block.left) - gap
-	elseif not tile.stacked and reserve > 0 then
-		nameRight = right - reserve - gap
+		nameRight = math.min(nameRight, Widgets.Snap(f, block.left) - gap)
 	end
 	f.tileText = { left = left, nameRight = nameRight, textRight = right, reserve = reserve, stacked = tile.stacked }
 	f.nameWidth = math.max(1, nameRight - left)
