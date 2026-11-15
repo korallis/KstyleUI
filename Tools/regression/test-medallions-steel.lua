@@ -88,4 +88,21 @@ do
 	assert(#env._errors == 0)
 end
 
+do
+	local saved = { version = 2, profiles = { Default = { HudStyle = { style = "medallions" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local env, K = W.New({ saved = saved })
+	assert(K.HudStyle.Current() == "medallions", "a login already on Medallions")
+	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Bags", close = true })
+	assert(panel.chrome.steelCorners[1]:IsShown(), "builds its cards in steel")
+	local fired = 0
+	K.Callbacks.Register("ThemeChanged", "test-medallions-steel", function()
+		fired = fired + 1
+	end)
+	SetStyle(K, "orbs")
+	assert(fired == 1, "and leaving Medallions repaints, though the switch into it was never seen")
+	assert(not panel.chrome.steelCorners[1]:IsShown() and panel.chrome.materialBrackets[1]:IsShown(), "the cards go back to the forged frame")
+	assert(not panel.closeButton.closeRing.chrome.fill[5]:IsShown(), "and the close button to its bare glyph")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("test-medallions-steel: ok")

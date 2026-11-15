@@ -1,5 +1,5 @@
 -- Base.lua: the widget kit's shared parts: settings, the restyle registry, text, chrome, motion, Escape, placement and sound.
-local _, ns = ...
+local addonName, ns = ...
 
 local Widgets = {}
 ns.Widgets = Widgets
@@ -2099,6 +2099,12 @@ end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 
 local painted = Widgets.Medallions()
+ns.Events.Register("Widgets.Steel", "ADDON_LOADED", function(_, name)
+	if name == addonName and ns.Store.IsLoaded() then
+		ns.Events.Unregister("Widgets.Steel", "ADDON_LOADED")
+		painted = Widgets.Medallions()
+	end
+end)
 ns.Callbacks.Register("HudStyleChanged", SECTION, function()
 	local medallions = Widgets.Medallions()
 	if medallions ~= painted then

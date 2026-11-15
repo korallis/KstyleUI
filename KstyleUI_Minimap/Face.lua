@@ -360,10 +360,20 @@ function Face:SetClock(text)
 	end
 end
 
+function Face:SyncPlaques()
+	local plaques = self.plaques
+	if not plaques or not Face.Round() then
+		return
+	end
+	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true)
+	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true or self.coordsText ~= nil and Settings.Get("coords.shown") == true)
+end
+
 function Face:SetCoords(text)
 	self.coordsText = text
 	self.coords:SetText(text or "")
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown"))
+	self:SyncPlaques()
 end
 
 function Face:SetRevealed(on)
@@ -457,8 +467,8 @@ function Face:PlaceRound(round)
 	for _, plaque in ipairs(plaques) do
 		plaque:SetSize(width, height)
 		plaque.chrome:SetEdge("steel", 0.5)
-		plaque.chrome:SetShown(true)
 	end
+	self:SyncPlaques()
 end
 
 function Face:PlaceFrame()
