@@ -79,6 +79,7 @@ do
 	assert(panel.titleText:GetText() == secret, "a secret title passes through")
 	local close = panel.closeButton
 	assert(close and close:GetObjectType() == "Button", "a close button")
+	assert(close:GetFrameLevel() > panel.titleBar:GetFrameLevel(), "the close glyph sits above the title bar, whose mouse covers it and would take the click at the same level")
 	panel:Open()
 	W.Settle(env)
 	assert(panel:IsShown() and panel:GetAlpha() == 1)

@@ -149,7 +149,9 @@ function Close:Restyle()
 end
 
 function Widgets.CloseButton(parent, onClick)
-	local button = CreateFrame("Button", nil, parent or Scale.Root())
+	parent = parent or Scale.Root()
+	local button = CreateFrame("Button", nil, parent)
+	button:SetFrameLevel(parent:GetFrameLevel() + 2)
 	for k, fn in pairs(Close) do
 		button[k] = fn
 	end
