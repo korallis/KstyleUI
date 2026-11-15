@@ -122,11 +122,12 @@ end
 do
 	local env35, K35 = C.New({ saved = {
 		version = 34,
-		profiles = { Default = {}, Moved = {}, Both = {} },
+		profiles = { Default = {}, Moved = {}, Both = {}, Broken = {} },
 		layouts = {
 			Default = {},
 			Moved = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 60, y = 520 } },
 			Both = { ["actionbars.bar3"] = { anchor = "TOPLEFT", x = 30, y = -30 }, ["orbs:actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = 600 } },
+			Broken = { ["actionbars.bar3"] = { anchor = 7, x = "left" } },
 		},
 	} })
 	C.Boot(env35)
@@ -139,5 +140,6 @@ do
 	assert(db35.layouts.Default["orbs:actionbars.bar3"] == nil, "a bar 3 never moved takes the new Orbs place")
 	local both = db35.layouts.Both["orbs:actionbars.bar3"]
 	assert(both.anchor == "BOTTOM" and both.y == 600, "an Orbs place already saved is kept")
+	assert(db35.layouts.Broken["orbs:actionbars.bar3"] == nil, "a damaged bar 3 place is not copied to Orbs")
 end
 print("store placement ok")

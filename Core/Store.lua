@@ -890,7 +890,7 @@ end
 Store.migrations[35] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		local entry = type(layout) == "table" and layout["actionbars.bar3"]
-		if type(entry) == "table" and entry.anchor ~= nil and layout["orbs:actionbars.bar3"] == nil then
+		if type(entry) == "table" and type(entry.anchor) == "string" and type(entry.x) == "number" and type(entry.y) == "number" and layout["orbs:actionbars.bar3"] == nil then
 			layout["orbs:actionbars.bar3"] = { anchor = entry.anchor, x = entry.x, y = entry.y }
 		end
 	end

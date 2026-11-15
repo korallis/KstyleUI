@@ -1125,8 +1125,12 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		local centres = {}
 		local left = physicalWidth * point[1] + bar.x * pixelScale - w * point[1] + 0.5
 		local bottom = physicalHeight * point[2] + bar.y * pixelScale - h * point[2] + 0.5
-		for _, l in ipairs({ floor(left), left - floor(left) < 1e-6 and floor(left) - 1 or nil }) do
-			for _, b in ipairs({ floor(bottom), bottom - floor(bottom) < 1e-6 and floor(bottom) - 1 or nil }) do
+		local function Ties(v)
+			local whole, part = floor(v), v - floor(v)
+			return { whole, part < 1e-6 and whole - 1 or part > 1 - 1e-6 and whole + 1 or nil }
+		end
+		for _, l in ipairs(Ties(left)) do
+			for _, b in ipairs(Ties(bottom)) do
 				local x, y = l + w / 2, b + h / 2 + art.lift * pixelScale
 				centres[#centres + 1] = { x - art.ringX * pixelScale, y }
 				centres[#centres + 1] = { x + art.ringX * pixelScale, y }
