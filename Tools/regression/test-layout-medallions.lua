@@ -34,25 +34,32 @@ do
 	local Layouts = K.Setup.Layouts
 	for _, name in ipairs(Layouts.Names()) do
 		local keys = Layouts.StyleKeys("medallions", name)
-		assert(#keys >= 15, name .. ": Medallions places the surfaces it moves, got " .. #keys)
+		assert(#keys >= 11, name .. ": Medallions places the surfaces it moves, got " .. #keys)
 		for _, key in ipairs(keys) do
 			assert(Layouts.Element(key), name .. ": " .. key .. " is an element")
 			local position = Layouts.Style("medallions", name, key)
 			assert(position.anchor and position.x and position.y, name .. ": " .. key .. " has a whole position")
 		end
-		for _, key in ipairs({ BAR1, BAR2, PLAYER, "unitframes.target", "actionbars.pet", "actionbars.stance", "unitframes.castbar.player" }) do
+		for _, key in ipairs({ BAR1, BAR2, PLAYER, "unitframes.target", "actionbars.pet", "actionbars.stance", "unitframes.targettarget", "unitframes.focus", "unitframes.boss" }) do
 			assert(Layouts.Style("medallions", name, key), name .. ": Medallions places " .. key)
 		end
 		assert(Layouts.Style("medallions", name, "chat.main") == nil, name .. ": the rails keep their Frames places")
 	end
 	local one, two = Layouts.Style("medallions", "DPS", BAR1), Layouts.Style("medallions", "DPS", BAR2)
 	assert(near(one.x, -two.x) and near(one.y, two.y), "bar 1 is the slab's left group and bar 2 its right, on one baseline")
-	local frames = Layouts.Get("DPS")[PLAYER]
-	local lifted = Layouts.Style("medallions", "DPS", PLAYER)
-	assert(lifted.y > frames.y and near(lifted.x, frames.x), "the player frame stands above the hub, not on it")
+	local mock = 1 / K.Scale.DEFAULT_USER_SCALE
+	local _, _, _, groupHeight = Layouts.MedallionsGroup("16:9")
+	local player, target = Layouts.Style("medallions", "DPS", PLAYER), Layouts.Style("medallions", "DPS", "unitframes.target")
+	assert(near(player.width, 300 * mock) and near(player.height, 54 * mock) and near(target.width, player.width) and near(target.height, player.height), "the player and target slabs are the mock's 300 by 54")
+	assert(near(player.x, -target.x) and near(player.y, target.y) and near(player.y, one.y + groupHeight + 120 * mock), "the player and target mirror about the hub, 120 mock pixels over the slots' top edge")
+	assert(near(target.x - target.width / 2, 104 * mock), "the target's inner edge stands 104 mock pixels from the hub's centre")
+	local tot = Layouts.Style("medallions", "DPS", "unitframes.targettarget")
+	assert(near(tot.width, 112 * mock) and near(tot.x - tot.width / 2, target.x + target.width / 2 + 52 * mock) and near(tot.y + tot.height, target.y + target.height - 9 * mock), "the target of target stands 52 mock pixels off the target's outer edge, 9 under its top")
+	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")
+	assert(near(boss.width, 280 * mock) and near(boss.height, 324 * mock), "the boss column is 280 wide and five 60-tall rows and four 6-unit gaps tall")
 	local wide = Layouts.Positions("DPS", "medallions", "21:9")
 	local narrow = Layouts.Positions("DPS", "medallions", "16:9")
-	assert(wide[BAR1].x < narrow[BAR1].x and wide[PLAYER].y < narrow[PLAYER].y, "the one-row slab is wider and its hub stands lower, so the stack sits lower at 21:9")
+	assert(wide[BAR1].x < narrow[BAR1].x and wide[PLAYER].y < narrow[PLAYER].y, "the one-row slab is wider and its hub stands lower, so the unit frames sit lower at 21:9")
 	local _, _, width = Layouts.MedallionsGroup("21:9")
 	assert(near(wide[BAR2].x, Layouts.MEDALLIONS_HUB_GAP / 2 + width / 2), "at 21:9 bar 2 starts a hub gap from the centre line")
 end

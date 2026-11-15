@@ -837,28 +837,31 @@ end
 
 function Layouts.BuildMedallions()
 	local hub = Layouts.MEDALLIONS_HUB_GAP
-	local lifted = { "unitframes.resource", "meters.swing", "unitframes.castbar.target" }
-	for _, key in ipairs(LIFTED) do
-		if key ~= "actionbars.bar3" then
-			lifted[#lifted + 1] = key
-		end
-	end
+	local reach, rise = 104 * MOCK_PX, 120 * MOCK_PX
 	local sets = {}
 	for _, class in ipairs(ASPECTS) do
 		local _, _, width, height = Layouts.MedallionsGroup(class)
-		local lift = math.max(0, TRAY_BAR1_Y + height + Layouts.MEDALLIONS_RING / 2 + TIGHT - layouts.DPS["unitframes.player"].y)
+		local top = TRAY_BAR1_Y + height
 		local ends = hub / 2 + width + NEAR
-		local set = {
+		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
+		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + 2 * TIGHT + tot[2])
+		local function At(anchor, x, y, size)
+			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
+		end
+		sets[class] = {
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = TRAY_BAR1_Y },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = TRAY_BAR1_Y },
 			["actionbars.pet"] = { anchor = "BOTTOM", x = -(ends + GridSize("actionbars.pet") / 2), y = TRAY_BOTTOM },
 			["actionbars.stance"] = { anchor = "BOTTOM", x = ends + GridSize("actionbars.stance") / 2, y = TRAY_BOTTOM },
+			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
+			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, top + rise, frame),
+			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, top + rise + frame[2] - 9 * MOCK_PX - tot[2], tot),
+			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] / 2), top + GAP, { 180 * MOCK_PX, 40 * MOCK_PX }),
+			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
+			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
+			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
 		}
-		for _, key in ipairs(lifted) do
-			local place = layouts.DPS[key]
-			set[key] = { anchor = place.anchor, x = place.x, y = place.y + lift }
-		end
-		sets[class] = set
 	end
 	for _, name in ipairs(NAMES) do
 		STYLES.medallions[name] = {}

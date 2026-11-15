@@ -50,7 +50,7 @@ do
 	for _, option in ipairs(row.options) do
 		values[#values + 1] = option.value
 	end
-	assert(table.concat(values, ",") == "frames,orbs", "the choices are Frames and Orbs, got " .. table.concat(values, ","))
+	assert(table.concat(values, ",") == "frames,orbs,medallions", "the choices are Frames, Orbs and Medallions, got " .. table.concat(values, ","))
 end
 
 -- The migration: saved data from version 20 gets version 21 and every existing profile reads Frames, the default, with
