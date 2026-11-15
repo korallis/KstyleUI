@@ -8,7 +8,6 @@ local Settings = ns.Settings
 local Slab = {}
 ns.Slab = Slab
 
-local Color = Widgets.MedallionColor
 local HOSTILE_MAX = 3
 local UNKNOWN_LEVEL = "??"
 local LEVEL_MEDAL = 3
@@ -22,11 +21,11 @@ local function Plain(value, kind)
 	return not IsSecret(value) and type(value) == kind
 end
 
-local function Lines(owner, layer, sublevel, name, fallback)
+local function Lines(owner, layer, sublevel, name)
 	local lines = {}
 	for i = 1, 4 do
 		local line = owner:CreateTexture(nil, layer, nil, sublevel)
-		line:SetColorTexture(Color(name, fallback))
+		line:SetColorTexture(Tokens.Color(name))
 		lines[i] = line
 	end
 	return lines
@@ -55,16 +54,16 @@ end
 local function Gradient(texture)
 	if type(CreateColor) == "function" and texture.SetGradient then
 		texture:SetColorTexture(Tokens.Color("white"))
-		texture:SetGradient("VERTICAL", CreateColor(Color("slabBottom", "materialForged")), CreateColor(Color("slabTop", "materialFlat")))
+		texture:SetGradient("VERTICAL", CreateColor(Tokens.Color("slabBottom")), CreateColor(Tokens.Color("slabTop")))
 	else
-		texture:SetColorTexture(Color("slabBottom", "materialForged"))
+		texture:SetColorTexture(Tokens.Color("slabBottom"))
 	end
 end
 
 local function Muted(view, text)
 	local path, size, flags = Settings.Font(view.kind, "level")
 	Widgets.ApplyFont(text, path, size, flags)
-	text:SetTextColor(Color("labelMuted", "muted"))
+	text:SetTextColor(Tokens.Color("labelMuted"))
 end
 
 local function Build(view)
@@ -72,9 +71,9 @@ local function Build(view)
 	local slab = { fill = panel:CreateTexture(nil, "BACKGROUND", nil, 1) }
 	slab.fill:SetAllPoints(panel)
 	Gradient(slab.fill)
-	slab.outer = Lines(panel, "BACKGROUND", 2, "black", "black")
-	slab.hairline = Lines(panel, "BORDER", 6, "steelEdge", "materialFlatEdge")
-	slab.inner = Lines(panel, "BORDER", 7, "slabInner", "socketEdge")
+	slab.outer = Lines(panel, "BACKGROUND", 2, "black")
+	slab.hairline = Lines(panel, "BORDER", 6, "steelEdge")
+	slab.inner = Lines(panel, "BORDER", 7, "slabInner")
 	view.slab = slab
 	view.slabLevel = Widgets.FontString(view.top, "OVERLAY")
 	view.slabLevel:SetWordWrap(false)
@@ -226,10 +225,10 @@ end
 
 local function RingColor(view, unit)
 	if Dead(unit) then
-		return Color("medDead", "textDisabled")
+		return Tokens.Color("medDead")
 	end
 	if view.kind == "boss" then
-		return Color("steel", "muted")
+		return Tokens.Color("steel")
 	end
 	local known, file = ClassFile(unit)
 	if known and IsPlayer(unit) then
@@ -244,7 +243,7 @@ function Slab.Colors(view, unit)
 	end
 	local known, file = ClassFile(unit)
 	if Hostile(unit) then
-		view.name:SetTextColor(Color("nameHostile", "hostile"))
+		view.name:SetTextColor(Tokens.Color("nameHostile"))
 	elseif unit ~= "player" and known and IsPlayer(unit) then
 		view.name:SetTextColor(Theme.ClassColorForWidget(file))
 	else

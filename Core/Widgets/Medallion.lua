@@ -3,44 +3,18 @@ local _, ns = ...
 
 local Widgets, Tokens, Motion = ns.Widgets, ns.Tokens, ns.Motion
 
-local PORTRAIT_SHARE = 0.71
-local PLAQUE_SHARE, PLAQUE_MIN = 0.25, 12
+local PORTRAIT_SHARE = 0.8
+local PLAQUE_SHARE, PLAQUE_MIN = 0.27, 12
 local PLAQUE_ALONG, PLAQUE_DOWN = 0.18, 0.86
-local PLAQUE_FONT = 0.5
+local PLAQUE_FONT = 0.46
 local LOW_SPREAD = 1.3
-local SHEEN_WIDTH, SHEEN_ALPHA = 0.55, 0.45
+local SHEEN_ALPHA = 0.45
 local FLIP, FLIP_FROM = 0.18, 0.05
 local PULSE, PULSE_LOW = 0.4, 0.45
 local SHEEN, SHEEN_PERIOD = 1.75, 5
 local LEVEL_PLAQUE, LEVEL_RING = 2, 1
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
-
 local DEAD_TINT = 0.45
-
-local ART = {
-	ring = { "medRing", "ringBevel" },
-	enamel = { "medEnamel", "ring" },
-	low = { "medLowHealthRing", "glow" },
-	sheen = { "medPortraitSheen", "glow" },
-}
-
-local function Art(key)
-	for _, name in ipairs(ART[key]) do
-		local ok, path = pcall(Tokens.Texture, name)
-		if ok and path then
-			return path, name
-		end
-	end
-end
-
-local function Color(name, fallback)
-	local ok, r, g, b, a = pcall(Tokens.Color, name)
-	if ok then
-		return r, g, b, a
-	end
-	return Tokens.Color(fallback)
-end
-Widgets.MedallionColor = Color
 
 local function Allows(kind)
 	local effects = ns.Effects
@@ -97,71 +71,51 @@ local function NewSheen(texture)
 	return group
 end
 
-local function Diamond(owner, layer, sublevel)
-	local texture = owner:CreateTexture(nil, layer, nil, sublevel)
-	texture:SetTexture((Tokens.Texture("diamond")))
-	return texture
-end
-
 function Widgets.Medallion(parent)
 	local m = CreateFrame("Frame", nil, parent)
 	for key, fn in pairs(Medallion) do
 		m[key] = fn
 	end
-	local dot = Tokens.Texture("dot")
 	m.portrait = m:CreateTexture(nil, "BORDER")
 	m.mask = m:CreateMaskTexture()
-	m.mask:SetTexture(dot, MASK_WRAP, MASK_WRAP)
+	m.mask:SetTexture((Tokens.Texture("dot")), MASK_WRAP, MASK_WRAP)
 	m.mask:SetAllPoints(m.portrait)
 	m.portrait:AddMaskTexture(m.mask)
 	m.portrait:SetPoint("CENTER", m, "CENTER")
 	m.sheen = m:CreateTexture(nil, "ARTWORK")
-	m.sheen:SetTexture((Art("sheen")))
+	m.sheen:SetTexture((Tokens.Texture("medPortraitSheen")))
 	m.sheen:SetBlendMode("ADD")
 	m.sheen:SetAlpha(SHEEN_ALPHA)
 	m.sheen:AddMaskTexture(m.mask)
 	m.sheen:Hide()
 	m.sheenAnim = NewSheen(m.sheen)
 	m.enamel = m:CreateTexture(nil, "OVERLAY", nil, 0)
-	m.enamel:SetTexture((Art("enamel")))
+	m.enamel:SetTexture((Tokens.Texture("medEnamel")))
 	m.enamel:SetAllPoints(m)
 	m.ring = m:CreateTexture(nil, "OVERLAY", nil, 1)
-	local ring, ringName = Art("ring")
-	m.ring:SetTexture(ring)
-	m.share = ringName == ART.ring[1] and PORTRAIT_SHARE or 1 - 2 * Widgets.RING_INSET
+	m.ring:SetTexture((Tokens.Texture("medRing")))
 	m.ring:SetAllPoints(m)
 	m.lowFrame = CreateFrame("Frame", nil, m)
 	m.lowFrame:SetPoint("CENTER", m, "CENTER")
 	m.low = m.lowFrame:CreateTexture(nil, "OVERLAY")
-	local low, lowName = Art("low")
-	m.low:SetTexture(low)
+	m.low:SetTexture((Tokens.Texture("medLowHealthRing")))
 	m.low:SetBlendMode("ADD")
 	m.low:SetAllPoints(m.lowFrame)
-	if lowName ~= ART.low[1] then
-		m.low:SetVertexColor(Tokens.Color("healthHostile"))
-	end
 	m.lowFrame:Hide()
 	m.pulse = NewPulse(m.lowFrame)
 	m.plaque = CreateFrame("Frame", nil, m)
-	m.plaqueLayers = {
-		Diamond(m.plaque, "BACKGROUND", 0),
-		Diamond(m.plaque, "BACKGROUND", 1),
-		Diamond(m.plaque, "BACKGROUND", 2),
-		Diamond(m.plaque, "BACKGROUND", 3),
-	}
-	m.plaqueLayers[1]:SetVertexColor(Tokens.Color("black"))
-	m.plaqueLayers[2]:SetVertexColor(Color("steel", "muted"))
-	m.plaqueLayers[3]:SetVertexColor(Tokens.Color("black"))
-	m.plaqueLayers[4]:SetVertexColor(Color("plaqueFill", "deep"))
+	m.plaqueArt = m.plaque:CreateTexture(nil, "BACKGROUND")
+	m.plaqueArt:SetTexture((Tokens.Texture("medLevelPlaque")))
+	m.plaqueArt:SetAllPoints(m.plaque)
 	m.levelText = Widgets.FontString(m.plaque, "OVERLAY")
 	m.levelText:SetJustifyH("CENTER")
 	m.levelText:SetJustifyV("MIDDLE")
 	m.levelText:SetWordWrap(false)
-	m.levelText:SetTextColor(Color("steelLit", "textEmphasis"))
+	m.levelText:SetTextColor(Tokens.Color("steelLit"))
 	m.plaque:Hide()
 	m.flip = NewFlip(m)
 	m.size = 0
-	m:SetRingColor(Color("steel", "muted"))
+	m:SetRingColor(Tokens.Color("steel"))
 	return m
 end
 
@@ -170,15 +124,14 @@ function Medallion:Layout(size, plaqueSide)
 	local level = self:GetFrameLevel()
 	self.lowFrame:SetFrameLevel(level + LEVEL_RING)
 	self.plaque:SetFrameLevel(level + LEVEL_PLAQUE)
-	local inner = Snap(self, size * self.share)
+	local inner = Snap(self, size * PORTRAIT_SHARE)
 	self.portrait:SetSize(inner, inner)
 	local spread = Snap(self, size * LOW_SPREAD)
 	self.lowFrame:SetSize(spread, spread)
 	self.sheen:ClearAllPoints()
-	self.sheen:SetSize(Snap(self, inner * SHEEN_WIDTH), inner)
+	self.sheen:SetSize(inner, inner)
 	self.sheen:SetPoint("CENTER", self.portrait, "CENTER", -inner, 0)
 	self.sheenAnim.move:SetOffset(2 * inner, 0)
-	self.plaqueSide = plaqueSide
 	if not plaqueSide then
 		self.plaque:Hide()
 		return
@@ -188,12 +141,6 @@ function Medallion:Layout(size, plaqueSide)
 	self.plaque:ClearAllPoints()
 	self.plaque:SetPoint("CENTER", self, "TOPLEFT", Snap(self, size * along), -Snap(self, size * PLAQUE_DOWN))
 	self.plaque:SetSize(s, s)
-	local px = Widgets.Border(self.plaque)
-	for i, layer in ipairs(self.plaqueLayers) do
-		layer:ClearAllPoints()
-		layer:SetPoint("TOPLEFT", self.plaque, "TOPLEFT", px * (i - 1), -px * (i - 1))
-		layer:SetPoint("BOTTOMRIGHT", self.plaque, "BOTTOMRIGHT", -px * (i - 1), px * (i - 1))
-	end
 	self.levelText:ClearAllPoints()
 	self.levelText:SetPoint("CENTER", self.plaque, "CENTER")
 	self.levelText:SetSize(s, s)
@@ -202,7 +149,6 @@ function Medallion:Layout(size, plaqueSide)
 end
 
 function Medallion:SetUnit(unit, cut)
-	self.unit = unit
 	return ns.Medallions.Portrait(self.portrait, unit, cut)
 end
 
@@ -222,7 +168,7 @@ function Medallion:SetDead(dead)
 end
 
 function Medallion:LowHealth(unit)
-	local curve = unit and UnitHealthPercent and Widgets.LowHealthCurve and Widgets.LowHealthCurve()
+	local curve = unit and UnitHealthPercent and Widgets.LowHealthCurve()
 	if not curve then
 		self.pulse:Stop()
 		self.lowFrame:Hide()
@@ -254,5 +200,3 @@ function Medallion:FlipIn()
 	self.flip:Stop()
 	self.flip:Play()
 end
-
-Widgets.MEDALLION_PORTRAIT_SHARE = PORTRAIT_SHARE

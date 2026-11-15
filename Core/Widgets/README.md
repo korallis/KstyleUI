@@ -423,7 +423,7 @@ Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then
 
 ## Medallion
 
-`Widgets.Medallion(parent) -> medallion` (`Medallion.lua`) is the round unit medallion that the Medallions HUD style puts on unit frames; other modules can reuse it. The caller places and sizes the frame, then calls `Layout`. From back to front: the portrait (masked to a circle), the sheen, the `medEnamel` accent ring tinted by `SetRingColor`, the `medRing` steel bezel, the low-health ring in its own frame, and the level plaque. The plaque is a black, `steel`, black and `plaqueFill` diamond with the level in the `number` font. Until M3's `med*` textures load, each part falls back to `ringBevel`, `ring`, `glow` or `diamond`, and the portrait fills the bevel's hole instead of the steel bezel's 0.71 share.
+`Widgets.Medallion(parent) -> medallion` (`Medallion.lua`) is the round unit medallion that the Medallions HUD style puts on unit frames; other modules can reuse it. The caller places and sizes the frame, then calls `Layout`. From back to front: the portrait (masked to a circle, 0.8 of the medallion, which is the `medRing` bezel's hole), the `medPortraitSheen` sheen, the `medEnamel` accent ring tinted by `SetRingColor`, the `medRing` steel bezel, the `medLowHealthRing` in its own frame, and the `medLevelPlaque` diamond with the level in the `number` font, coloured `steelLit`.
 
 | Method | Behaviour |
 | --- | --- |
@@ -435,7 +435,7 @@ Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then
 | `Sheen(on)` | A 1.75 s translation across the portrait every 5 s, off under reduced motion. |
 | `FlipIn()` | A 0.18 s scale from 5% width with a fade in; nothing when motion is off. |
 
-No part runs Lua per frame: the curve, the pulse, the sheen and the flip are all engine work. `Widgets.LowHealthCurve()` is the same 40% step curve `UnitBar` uses for its red fill. `Widgets.MedallionColor(name, fallback)` reads a colour token and falls back to an older one while a Medallions token is missing.
+No part runs Lua per frame: the curve, the pulse, the sheen and the flip are all engine work. `Widgets.LowHealthCurve()` is the same 40% step curve `UnitBar` uses for its red fill.
 
 ## Popup and Confirm
 
