@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, else a placeholder; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, else from KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear M3's slot frames; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -203,6 +203,41 @@ do
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(b.lumenGlow:IsShown() and not b.medProc:IsShown(), "back to Frames the slot's own proc glow returns")
 	K.Tokens.Texture = texture
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
+	env.UnitRace = function()
+		return "Dwarf", "Dwarf", 3
+	end
+	Medallions(K, env)
+	local hub = ns.Slab.hub
+	local own = K.MedallionAssets.crests.Dwarf.SHAMAN
+	assert(hub.crestPath == own.crest and hub.bloom:GetTexture() == own.glow, "with no resolver the hub looks the player's crest up by race and class")
+	env.C_Secrets = { ShouldUnitIdentityBeSecret = function()
+		return true
+	end }
+	ns.Slab.Refresh()
+	assert(hub.crestPath ~= own.crest, "a secret identity indexes no crest")
+	env.C_Secrets = nil
+	env.UnitRace = function()
+		return env.Secret("Dwarf"), env.Secret("Dwarf"), 3
+	end
+	ns.Slab.Refresh()
+	assert(hub.crestPath ~= own.crest, "a secret race indexes no crest")
+
+	local b = AB.Button(ns, "bar1", 1)
+	assert(b.medFrame and b.medFrame:IsShown() and b.medFrame:GetTexture() == K.Tokens.Texture("medSlot"), "the slot wears M3's slot frame")
+	assert(b.medHover:GetParent() == b.hoverLayer and b.medPushed:GetParent() == b.pressLayer, "the highlight and pushed frames ride the slot's hover and press layers")
+	assert(not b.medChecked:IsShown(), "the checked frame waits for a checked action")
+	b:SetSelected(true)
+	assert(b.medChecked:IsShown(), "a checked action shows the checked frame")
+	b:SetSelected(false)
+	assert(not b.medChecked:IsShown(), "and hides it again")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(not b.medFrame:IsShown() and not b.medHover:IsShown(), "back to Frames the slot frames hide")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

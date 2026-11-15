@@ -1190,6 +1190,25 @@ function Scene.Build(env, opts)
 				item.texCoord = { round4(column / columns), round4((column + 1) / columns), round4(row / rows), round4((row + 1) / rows) }
 			end
 		end
+		-- A playing FlipBook animation shows the cell its progress has reached, counted along the rows from the top
+		-- left, as the engine steps it; a repeating group starts over each cycle.
+		for _, group in ipairs(region._groups or {}) do
+			local started = group._playedAt
+			for _, anim in ipairs(type(started) == "number" and type(animationClock) == "number" and group._anims or {}) do
+				if anim._type == "FlipBook" then
+					local fRows, fColumns = num(env, state(anim, "FlipBookRows"), 1), num(env, state(anim, "FlipBookColumns"), 1)
+					local frames, duration = num(env, state(anim, "FlipBookFrames"), fRows * fColumns), num(env, state(anim, "Duration"), 0)
+					local elapsed = animationClock - started - num(env, state(anim, "StartDelay"), 0)
+					if state(group, "Looping") == "REPEAT" and duration > 0 then
+						elapsed = elapsed % duration
+					end
+					local index = duration > 0 and math.floor(math.max(0, elapsed) / duration * frames) or frames - 1
+					index = math.max(0, math.min(frames - 1, index))
+					local column, row = index % fColumns, math.floor(index / fColumns)
+					item.texCoord = { round4(column / fColumns), round4((column + 1) / fColumns), round4(row / fRows), round4((row + 1) / fRows) }
+				end
+			end
+		end
 		local blend = state(region, "BlendMode")
 		if blend and blend ~= "BLEND" then
 			item.blend = blend

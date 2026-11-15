@@ -59,6 +59,7 @@ local function Build(def)
 	local r, g, b = Accent()
 	for _, button in ipairs(bar.buttons) do
 		ns.Button.SetAccent(button, r, g, b)
+		ns.Slab.Dress(button)
 	end
 	return bar
 end

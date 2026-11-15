@@ -536,6 +536,10 @@ function modules.actionbars(opts)
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
+			-- The player's race, which picks the Medallions crest with the class: the mock-ups' dwarf.
+			env.UnitRace = env.UnitRace or function()
+				return "Dwarf", "Dwarf", 3
+			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
 			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.
@@ -601,6 +605,32 @@ function modules.actionbars(opts)
 	end
 	env.RunTimers()
 	AB.W.Settle(env)
+	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
+	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
+	-- (entering combat 0.3 s ago: the wings out and the sweep halfway), proc (a fresh proc on slot 6, beside the hub,
+	-- 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
+	local slabState = os.getenv("RENDER_MEDALLIONS_STATE")
+	if slabState and slabState ~= "" then
+		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
+		assert(ago, "RENDER_MEDALLIONS_STATE must be calm, combat, proc or levelup")
+		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs RENDER_HUD_STYLE=Medallions")
+		env._game.slots[61].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
+		env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+		local charging = AB.Button(ns, "bar2", 1)
+		charging.cooldown:Show()
+		charging.cooldown:GetScript("OnShow")(charging.cooldown)
+		local clock = env._now
+		env._now = env._time - ago
+		if slabState == "combat" then
+			env.SetCombat(true)
+		elseif slabState == "proc" then
+			env._game.procs[1006] = true
+			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1006)
+		elseif slabState == "levelup" then
+			env.FireEvent("PLAYER_LEVEL_UP", 12)
+		end
+		env._now = clock
+	end
 	local scene = build(env, opts, { time = env._time })
 	return finish(env, K, scene, "actionbars"), ns
 end

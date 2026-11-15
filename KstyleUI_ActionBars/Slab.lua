@@ -14,7 +14,7 @@ local STRATA = "LOW"
 local RING, CREST, SOCKET = 150, 134, 122
 local MARGIN, PAD, WING_LIFT = 4, 6, 2
 local GLOW_SHARE, BLOOM_SHARE = 1.5, 1.08
-local WING_W, WING_H, WING_ROOT, WING_SLIDE = 150, 38, 0.36, 22
+local WING_W, WING_TOP, WING_BOTTOM, WING_SLIDE = 230, 66 / 256, 199 / 256, 22
 local PLAQUE_W, PLAQUE_H = 30, 18
 local PARTICLES, CALM_PARTICLES, PARTICLE_SIZE, PARTICLE_RISE = 10, 5, 7, 30
 local RUNE_TURN, COMBAT_SPEED = 90, 2.25
@@ -327,9 +327,11 @@ local function BuildRing(hub)
 	hub.wings = {}
 	for i, side in ipairs({ -1, 1 }) do
 		local wing = Region(hub, "BORDER", 0, Slab.Texture("medHubWing"))
-		Widgets.Size(wing, WING_W, WING_H)
+		Widgets.Size(wing, WING_W, WING_W / 2 * (WING_BOTTOM - WING_TOP))
 		if side < 0 then
-			wing:SetTexCoord(1, 0, 0, 1)
+			wing:SetTexCoord(1, 0, WING_TOP, WING_BOTTOM)
+		else
+			wing:SetTexCoord(0, 1, WING_TOP, WING_BOTTOM)
 		end
 		wing.side = side
 		local g = Group(wing)
@@ -486,8 +488,7 @@ function Slab.PlaceWings()
 	if not hub then
 		return
 	end
-	local out = state.wingsOut and WING_SLIDE or 0
-	local root = Widgets.Snap(hub, RING * WING_ROOT + out)
+	local root = Widgets.Snap(hub, state.wingsOut and WING_SLIDE or 0)
 	local lift = Widgets.Snap(hub, WING_LIFT)
 	for _, wing in ipairs(hub.wings) do
 		wing:ClearAllPoints()
@@ -526,6 +527,36 @@ local function PaintLevel(level)
 	Slab.hub.level:SetText(level and tostring(level) or "")
 end
 
+local function Identity()
+	local secrets = C_Secrets
+	if secrets and type(secrets.ShouldUnitIdentityBeSecret) == "function" then
+		local ok, secret = pcall(secrets.ShouldUnitIdentityBeSecret, "player")
+		if not ok or IsSecret(secret) or secret == true then
+			return nil
+		end
+	end
+	if type(UnitRace) ~= "function" then
+		return nil
+	end
+	local _, race = UnitRace("player")
+	local _, class = UnitClass("player")
+	if IsSecret(race) or IsSecret(class) or type(race) ~= "string" or type(class) ~= "string" then
+		return nil
+	end
+	return race, class
+end
+
+local function OwnCrest()
+	local assets = K.MedallionAssets
+	local crests = assets and assets.crests
+	local race, class = Identity()
+	local entry = race and crests and crests[race] and crests[race][class]
+	if type(entry) == "table" and entry.crest then
+		return entry.crest, entry.glow
+	end
+	return nil
+end
+
 local function Crest()
 	local medallions = K.Medallions
 	if medallions and type(medallions.Crest) == "function" then
@@ -533,6 +564,10 @@ local function Crest()
 		if ok and crest and not IsSecret(crest) then
 			return crest, not IsSecret(glow) and glow or nil
 		end
+	end
+	local crest, glow = OwnCrest()
+	if crest then
+		return crest, glow
 	end
 	return Slab.Texture("medCrest"), nil
 end
@@ -852,9 +887,41 @@ local function OnLevel(_, level)
 	Slab.LevelUp(not IsSecret(level) and level or nil)
 end
 
+local function SlotLayer(parent, sublevel, name, owner)
+	local t = parent:CreateTexture(nil, "OVERLAY", nil, sublevel)
+	t:SetTexture((Tokens.Texture(name)))
+	t:SetAllPoints(owner)
+	return t
+end
+
+function Slab.Dress(b)
+	local on = Slab.Active() and b.kind == "action" and Known("medSlot") ~= nil
+	if not b.medFrame then
+		if not on then
+			return
+		end
+		b.medFrame = SlotLayer(b, 2, "medSlot", b)
+		b.medChecked = SlotLayer(b, 3, "medSlotChecked", b)
+		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, 2, "medSlotHighlight", b)
+		b.medPushed = b.pressLayer and SlotLayer(b.pressLayer, 2, "medSlotPushed", b)
+		if type(hooksecurefunc) == "function" and type(b.SetSelected) == "function" then
+			hooksecurefunc(b, "SetSelected", Slab.Dress)
+		end
+	end
+	b.medFrame:SetShown(on)
+	b.medChecked:SetShown(on and b.selected == true)
+	if b.medHover then
+		b.medHover:SetShown(on)
+	end
+	if b.medPushed then
+		b.medPushed:SetShown(on)
+	end
+end
+
 local function OnStyle()
 	Slab.Refresh()
 	for _, b in ipairs(ns.actionButtons or {}) do
+		Slab.Dress(b)
 		Slab.SetProc(b, b.proc == true)
 	end
 end
@@ -877,7 +944,7 @@ function Slab.Enable()
 	if K.Effects then
 		K.Callbacks.Register("EffectsLevelChanged", OWNER, OnMotion)
 	end
-	Slab.Refresh()
+	OnStyle()
 end
 
 function Slab.Disable()
