@@ -11,8 +11,8 @@ ns.Medallions = Medallions
 
 local STYLE = "medallions"
 local OWNER = "Nameplates.Medallions"
-local STEEL = { 0.725, 0.757, 0.8 }
-local STEEL_LIT = { 0.902, 0.925, 0.953 }
+local STEEL = { Tokens.Color("steel") }
+local STEEL_LIT = { Tokens.Color("steelLit") }
 local RIM_ALPHA = 0.8
 local BADGE = 22
 local BADGE_GAP = 2
@@ -28,15 +28,6 @@ Medallions.BADGE = BADGE
 function Medallions.Active()
 	local hud = K.HudStyle
 	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == STYLE
-end
-
-local function Texture(name, fallback)
-	local ok, path = pcall(Tokens.Texture, name)
-	if ok then
-		return path
-	end
-	ns.LogOnce("texture:" .. name, "the " .. name .. " texture is missing; Medallions plates use " .. fallback)
-	return (Tokens.Texture(fallback))
 end
 
 local function Mask(badge, masked)
@@ -102,8 +93,8 @@ function Component.Restyle(plate)
 		ShowBadge(badge, false)
 		return
 	end
-	badge.ring:SetTexture(Texture("medRing", "ringBevel"))
-	local glowPath, glowSize = Texture("medBracketGlow", "glow"), Widgets.Snap(plate, GLOW)
+	badge.ring:SetTexture((Tokens.Texture("medRing")))
+	local glowPath, glowSize = (Tokens.Texture("medBracketGlow")), Widgets.Snap(plate, GLOW)
 	for _, frame in ipairs(plate.brackets.sides) do
 		for i, corner in ipairs(CORNERS[frame.side]) do
 			local glow = frame.glow[i]

@@ -9,7 +9,8 @@ local function near(a, b)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-6
 end
 
-local STEEL, STEEL_LIT = { 0.725, 0.757, 0.8 }, { 0.902, 0.925, 0.953 }
+
+local STEEL, STEEL_LIT
 
 local function steel(region, tone)
 	tone = tone or STEEL_LIT
@@ -18,6 +19,7 @@ local function steel(region, tone)
 end
 
 local env, K, ns = N.New()
+STEEL, STEEL_LIT = { K.Tokens.Color("steel") }, { K.Tokens.Color("steelLit") }
 local painted, cuts = true, {}
 K.Medallions = {
 	Portrait = function(region, unit, cut)

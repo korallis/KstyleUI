@@ -25,7 +25,7 @@ end
 
 local env, K, ns = G.New()
 local Unit, Settings = ns.Unit, ns.Settings
-local STEEL_LIT = { 0.902, 0.925, 0.953 }
+local STEEL_LIT = { K.Tokens.Color("steelLit") }
 
 local painted, cuts = false, {}
 K.Medallions = {

@@ -10,7 +10,7 @@ ns.Medallions = Medallions
 
 local STYLE = "medallions"
 local OWNER = "GroupFrames.Medallions"
-local STEEL_LIT = { 0.902, 0.925, 0.953 }
+local STEEL_LIT = { Tokens.Color("steelLit") }
 local TILE_INSET = 3
 local MIN_CELL = 8
 local PIP_SHARE = 0.6
@@ -25,15 +25,6 @@ Medallions.LOOK = LOOK
 function Medallions.Active()
 	local hud = K.HudStyle
 	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == STYLE
-end
-
-local function Texture(name, fallback)
-	local ok, path = pcall(Tokens.Texture, name)
-	if ok then
-		return path
-	end
-	Style.LogOnce("texture:" .. name, "the " .. name .. " texture is missing; Medallions group frames use " .. fallback)
-	return (Tokens.Texture(fallback))
 end
 
 local function Overlay(cfg)
@@ -172,9 +163,9 @@ local function Badge(f, on)
 		end
 		return
 	end
-	f.ring:SetTexture(Texture("medEnamel", "ringBevel"))
+	f.ring:SetTexture((Tokens.Texture("medEnamel")))
 	bezel = Bezel(f)
-	bezel:SetTexture(Texture("medRing", "ringBevel"))
+	bezel:SetTexture((Tokens.Texture("medRing")))
 	bezel:ClearAllPoints()
 	bezel:SetAllPoints(f.ring)
 	bezel:SetDrawLayer("OVERLAY", 1)
