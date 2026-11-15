@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps only the idle loops; the crest comes from KstyleUI.Medallions.Crest when it answers, else a placeholder; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, else a placeholder; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -151,7 +151,15 @@ do
 	end
 	local rest = WingX(hub.wings[1])
 	env.SetCombat(true)
-	assert(not hub.wings[1].anim:IsPlaying() and not hub.shock.anim:IsPlaying() and WingX(hub.wings[1]) > rest, "calm moves the wings at once with no flare")
+	assert(hub.wings[1].anim:IsPlaying() and hub.shock.anim:IsPlaying(), "calm keeps the one-shot flares: the wings slide and the shockwave fires")
+	assert(ns.Slab.Allows("flare") and not ns.Slab.Allows("pulse") and not ns.Slab.Allows("particle"), "calm allows ambient and flares, no loops or particles")
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.medProc:IsShown() and not b.medProc.anim:IsPlaying() and b.medProcStart.anim:IsPlaying(), "calm shows the slot loop still and plays its start burst")
+	assert(hub.crest.pulse:IsPlaying(), "calm keeps the hub's one-shot proc pulse")
+	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
+	assert(WingX(hub.wings[1]) > rest, "the wings rest out after the slide")
 	env.SetCombat(false)
 	level = "off"
 	K.Callbacks.Fire("SettingChanged", "Effects", "level")

@@ -185,7 +185,7 @@ function Slab.Level()
 	return Motion.Level() == "full" and "full" or "off"
 end
 
-local ALLOWED = { full = { ambient = true, flare = true, particle = true, pulse = true }, calm = { ambient = true }, off = {} }
+local ALLOWED = { full = { ambient = true, flare = true, particle = true, pulse = true }, calm = { ambient = true, flare = true }, off = {} }
 
 function Slab.Allows(kind)
 	local effects = K.Effects
@@ -741,8 +741,8 @@ function Slab.Pulse()
 	if not (state.built and Slab.hub:IsShown()) then
 		return
 	end
-	Play(Slab.hub.crest.pulse, "pulse")
-	Play(Slab.hub.glyphs.flash, "pulse")
+	Play(Slab.hub.crest.pulse)
+	Play(Slab.hub.glyphs.flash)
 end
 
 function Slab.LevelUp(level)
