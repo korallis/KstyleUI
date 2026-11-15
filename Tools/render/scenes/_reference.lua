@@ -120,6 +120,29 @@ local PLATE_NAME_HALF, PLATE_GAP = 90, 16
 -- A fixture plate's reach above and below its point: the name over the bar, the cast under it.
 local PLATE_ABOVE, PLATE_BELOW = 30, 40
 
+-- TIRISFAL is the story rail of the owner's v0.1.2 report of 2026-11-15: RestedXP's "1-6 Tirisfal Glades" guide on step
+-- 11 for his Undead warlock (Guides/forever/Horde-01-14_Undead.lua), two waypoints, a target and a quest check with no
+-- text of their own around his three lines, and his two quests. Reference.Build({ story = "tirisfal" }), or
+-- RENDER_STORY=tirisfal, draws it.
+Reference.TIRISFAL = {
+	guide = {
+		title = "1-6 Tirisfal Glades",
+		steps = {
+			{ title = "Step 11", elements = {
+				{}, {},
+				{ text = "|Tinterface/worldmap/chatbubble_64grey.blp:20|tTalk to |cRXP_FRIENDLY_Joshua|r", textOnly = true },
+				{ text = "|cRXP_BUY_Buy|r |T132794:0|t[Refreshing Spring Water] |cRXP_BUY_from him|r", textOnly = true },
+				{ text = "Refreshing Spring Water: 0/5" },
+				{}, {},
+			} },
+		},
+	},
+	quests = {
+		{ title = "Piercing the Veil", level = 3, objectives = { "Rattlecage Skull 3/3" }, questID = 1470, superTracked = true },
+		{ title = "The Mindless Ones", level = 2, objectives = { "Mindless Zombie slain 0/8", "Wretched Zombie slain 0/8" }, questID = 364 },
+	},
+}
+
 -- LIVE is the story rail of the owner's first live session (2026-11-12, 5120x1440): RestedXP's step 57 with three
 -- active steps of wrapped lines, and nine tracked quests, the first with four objectives. Reference.Build({ live =
 -- true }), or RENDER_STORY=live, draws it in place of the picture's short guide and seven quests.
@@ -261,6 +284,9 @@ function Reference.Build(opts)
 		end
 		if opts.live or os.getenv("RENDER_STORY") == "live" then
 			state.guide, state.quests = Reference.LIVE.guide, Reference.LIVE.quests
+		end
+		if opts.story == "tirisfal" or os.getenv("RENDER_STORY") == "tirisfal" then
+			state.guide, state.quests = Reference.TIRISFAL.guide, Reference.TIRISFAL.quests
 		end
 		local modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" }
 		if layout ~= "DPS" then

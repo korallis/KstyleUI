@@ -490,6 +490,7 @@ function Plate:PlaceOnBase(w, h)
 		y = y + (down - math.floor(down + 0.5)) * px
 	end
 	self:SetPoint("BOTTOM", base, "BOTTOM", x, y)
+	self.rise = y
 	ns.Stacking.Bound(self, y)
 end
 
@@ -564,6 +565,9 @@ function Plate:UpdateStyle()
 	if nameOnly ~= self.nameOnly then
 		self.nameOnly = nameOnly
 		self:LayoutName()
+		if self.rise then
+			ns.Stacking.Bound(self, self.rise)
+		end
 	end
 	self.health:SetShown(not nameOnly)
 	self:UpdateColor()

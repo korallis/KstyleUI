@@ -98,7 +98,8 @@ end
 local function Check(K, ns, rxp, what)
 	local px = K.Scale.Pixel(1) + 0.01
 	local rw, rh = K.Layout.RootSize()
-	local slot = K.Setup.Layouts.Slot(K.Layout.Setting("preset"), rh)
+	local story = K.Setup.Layouts.Story(K.Layout.Setting("preset"), rh, true, K.HudStyle.Current(), rw, ns.RestedXP.Rail.Shown())
+	local slot = story.stacked and K.Setup.Layouts.Slot(K.Layout.Setting("preset"), rh) or story.guide
 	local _, sb, _, st = K.Setup.Layouts.Rect(slot, slot, rw, rh)
 	local guide = RootRect(K, assert(K.Skin.Parts(rxp.RXPFrame).backdrop, what .. ": the guide wears its glass"))
 	local card = RootRect(K, ns.Quests.Card())

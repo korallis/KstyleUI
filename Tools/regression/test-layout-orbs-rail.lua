@@ -154,7 +154,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3440, 1440 }, { 5120, 1440 } }) do
 
 	local liveEnv, liveK, liveNs, liveRxp = Boot(screen, "frames")
 	local frameCard, frameGuide = Cards(liveK, liveNs, liveRxp)
-	assert(frameCard.right < frameGuide.left, what .. ": Frames keeps the quests beside the guide")
+	assert(frameGuide.right < frameCard.left, what .. ": Frames keeps the quests beside the guide, the guide in the tall column while it is shown (LEE-1532)")
 	liveK.Options.Write("HudStyle", "style", "orbs")
 	liveEnv.RunTimers()
 	S.W.Settle(liveEnv)
