@@ -41,14 +41,10 @@ local function geometry(plate)
 	return table.concat({ w, h, point, tostring(relative), relativePoint, x, y, hw, hh }, " ")
 end
 
--- Frames: no badge, the accent brackets with no glow.
-assert(not friend.medBadge:IsShown(), "Frames shows no badge")
+-- Frames: a plate builds nothing for the style, so its cost stays the Frames build's, and the brackets take the accent.
+assert(friend.medBadge == nil and enemy.brackets.sides[1].glow == nil, "Frames builds no badge and no glow")
 eq(#cuts, 0, "Frames asks for no painted badge")
-local side = enemy.brackets.sides[1]
-assert(not steel(side.stroke), "Frames brackets take the accent")
-for _, glow in ipairs(side.glow) do
-	assert(not glow:IsShown(), "Frames brackets have no glow")
-end
+assert(not steel(enemy.brackets.sides[1].stroke), "Frames brackets take the accent")
 ns.Plates.RestyleAll()
 env.RunTimers()
 local before = { geometry(enemy), geometry(friend), geometry(boss) }
@@ -68,8 +64,9 @@ end
 local badge = friend.medBadge
 assert(badge:IsShown(), "a friendly player wears a badge")
 eq(cuts[#cuts], "badge", "the plate asks for the badge cut")
-eq(badge.portrait._state.Texture[1], "badge:nameplate2", "the badge shows the unit's painted art")
-eq(badge.portrait:GetNumMaskTextures(), 0, "painted art is pre-circled, so no mask")
+eq(badge._state.Texture[1], "badge:nameplate2", "the badge shows the unit's painted art")
+eq(badge:GetNumMaskTextures(), 0, "painted art is pre-circled, so no mask")
+assert(badge.ring:IsShown(), "a steel ring rings it")
 local point, relative, relativePoint, x, y = badge:GetPoint(1)
 eq(point, "BOTTOM", "the badge hangs from its bottom")
 eq(relative, friend.name, "over the name")
@@ -81,7 +78,7 @@ assert(not enemy.medBadge:IsShown() and not boss.medBadge:IsShown(), "an enemy w
 
 painted = false
 friend:Refresh(true)
-eq(badge.portrait:GetNumMaskTextures(), 1, "the engine portrait keeps its circle mask")
+eq(badge:GetNumMaskTextures(), 1, "the engine portrait keeps its circle mask")
 
 -- The target's brackets: steel, with a glow at each of the four corners.
 for _, s in ipairs(enemy.brackets.sides) do
@@ -104,7 +101,7 @@ assert(near(r, hr) and near(g, hg) and near(b, hb), "the skull level stays red")
 -- Back to Frames.
 K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
-assert(not badge:IsShown(), "Frames takes the badge away")
+assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")
 for _, s in ipairs(enemy.brackets.sides) do
 	assert(not steel(s.stroke), s.side .. " bracket takes the accent again")
 	for _, glow in ipairs(s.glow) do

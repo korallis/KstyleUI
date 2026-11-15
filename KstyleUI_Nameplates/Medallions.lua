@@ -45,25 +45,28 @@ local function Mask(badge, masked)
 	end
 	badge.masked = masked
 	if masked then
-		badge.portrait:AddMaskTexture(badge.mask)
+		badge:AddMaskTexture(badge.mask)
 	else
-		badge.portrait:RemoveMaskTexture(badge.mask)
+		badge:RemoveMaskTexture(badge.mask)
 	end
+end
+
+local function ShowBadge(badge, shown)
+	badge:SetShown(shown)
+	badge.ring:SetShown(shown)
 end
 
 local Component = {}
 
-function Component.Build(plate)
-	local badge = CreateFrame("Frame", nil, plate)
-	badge:SetFrameLevel(plate.level:GetFrameLevel())
-	badge.portrait = badge:CreateTexture(nil, "ARTWORK")
-	badge.mask = badge:CreateMaskTexture()
+local function Build(plate)
+	local badge = plate:CreateTexture(nil, "ARTWORK")
+	badge.mask = plate:CreateMaskTexture()
 	badge.mask:SetTexture((Tokens.Texture("dot")))
-	badge.mask:SetAllPoints(badge.portrait)
+	badge.mask:SetAllPoints(badge)
 	badge.masked = false
 	Mask(badge, true)
-	badge.ring = badge:CreateTexture(nil, "OVERLAY")
-	badge:Hide()
+	badge.ring = plate:CreateTexture(nil, "OVERLAY")
+	ShowBadge(badge, false)
 	plate.medBadge = badge
 	for _, frame in ipairs(plate.brackets.sides) do
 		frame.glow = {}
@@ -78,18 +81,23 @@ end
 
 function Component.Restyle(plate)
 	local on = Medallions.Active()
+	if not on and not plate.medBadge then
+		return
+	end
+	if not plate.medBadge then
+		Build(plate)
+	end
 	local badge = plate.medBadge
 	local size = Widgets.Snap(plate, BADGE)
 	Widgets.Size(badge, size, size)
 	badge:ClearAllPoints()
 	Plate.Place(badge, "BOTTOM", plate.name, "TOP", 0, BADGE_GAP, size, size, 0, 0)
-	badge.portrait:SetAllPoints(badge)
 	local outset = Widgets.Snap(plate, size * Widgets.RING_INSET / (1 - 2 * Widgets.RING_INSET))
 	badge.ring:ClearAllPoints()
 	badge.ring:SetPoint("TOPLEFT", badge, "TOPLEFT", -outset, outset)
 	badge.ring:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", outset, -outset)
 	if not on then
-		badge:Hide()
+		ShowBadge(badge, false)
 		return
 	end
 	badge.ring:SetTexture(Texture("medRing", "ringBevel"))
@@ -114,33 +122,38 @@ local function Portrait(plate)
 		if not sample.badge then
 			return false
 		end
-		badge.portrait:SetTexture(sample.badge)
+		badge:SetTexture(sample.badge)
 		Mask(badge, false)
 		return true
 	end
 	local api = K.Medallions
 	if api and type(api.Portrait) == "function" then
-		Mask(badge, not api.Portrait(badge.portrait, plate.unit, "badge"))
+		Mask(badge, not api.Portrait(badge, plate.unit, "badge"))
 		return true
 	end
 	if type(SetPortraitTexture) ~= "function" then
 		return false
 	end
-	SetPortraitTexture(badge.portrait, plate.unit)
+	SetPortraitTexture(badge, plate.unit)
 	Mask(badge, true)
 	return true
 end
 
 function Component.Refresh(plate)
 	local badge = plate.medBadge
+	if not badge then
+		return
+	end
 	local isPlayer = plate:Is("isPlayer", UnitIsPlayer, plate.unit)
 	local shown = Medallions.Active() and plate.kind == "friendly" and not IsSecret(isPlayer) and isPlayer == true
 		and plate.name:IsShown() and Portrait(plate)
-	badge:SetShown(shown and true or false)
+	ShowBadge(badge, shown and true or false)
 end
 
 function Component.Clear(plate)
-	plate.medBadge:Hide()
+	if plate.medBadge then
+		ShowBadge(plate.medBadge, false)
+	end
 end
 
 ns.Components[#ns.Components + 1] = Component
