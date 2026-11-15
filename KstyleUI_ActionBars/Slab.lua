@@ -548,7 +548,7 @@ local function PaintParticles(r, g, b)
 			p:SetTexCoord(col / cells.columns, (col + 1) / cells.columns, row / cells.rows, (row + 1) / cells.rows)
 		end
 		if cells then
-			p:SetVertexColor(1, 1, 1, 1)
+			Widgets.Tint(p, "white")
 		else
 			p:SetVertexColor(r, g, b, 1)
 		end
@@ -842,7 +842,7 @@ function Slab.SetProc(b, on)
 	if loop.path == Slab.Texture("medProc") then
 		loop:SetVertexColor(r, g, bl, 1)
 	else
-		loop:SetVertexColor(1, 1, 1, 1)
+		Widgets.Tint(loop, "white")
 	end
 	start:SetVertexColor(r, g, bl, 1)
 	loop:Show()
