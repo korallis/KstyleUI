@@ -106,7 +106,7 @@ do
 	local env, K, ns = New()
 	K.Motion.SetLevel("off")
 	Medallions(K, env)
-	local Slab, hub = ns.Slab, ns.Slab.hub
+	local hub = ns.Slab.hub
 	assert(not hub.runes.turn:IsPlaying() and not hub.glow.breath:IsPlaying(), "motion off keeps the hub still")
 	local rest = WingX(hub.wings[1])
 	env.SetCombat(true)
