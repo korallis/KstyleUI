@@ -6,6 +6,7 @@
 -- units. The target has just taken a hit from 77 to 71 percent, so its pale loss band shows as the mock-up's does, after its 0.18 s white flash has faded (the
 -- still cannot play the animation, so the scene hides the flash).
 -- RENDER_COMBAT=1 puts the player in combat with a group, so threat shows on the plates that carry it.
+-- RENDER_HUD_STYLE picks the HUD style the plates are drawn in.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -51,12 +52,21 @@ local function cast(env, token, spec)
 	env.FireEvent("UNIT_SPELLCAST_START", token)
 end
 
+local function saved()
+	local out = Gallery.Saved({ "Nameplates" })
+	local style = Hud.Style()
+	if style then
+		out.profiles.Default.HudStyle = { style = style:lower() }
+	end
+	return out
+end
+
 return Common.Run(function()
 	local N = dofile("Tools/regression/nameplates_env.lua")
 	local frames = Gallery.Frames()
 	local combat = os.getenv("RENDER_COMBAT") == "1"
 	local env, K, ns = N.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ "Nameplates" }),
+		saved = saved(),
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Gallery.Setup(env)
@@ -96,6 +106,9 @@ return Common.Run(function()
 	local function crop(token, name, title, caption)
 		local plate = ns.Plates.Get(token)
 		local list = { plate, plate.level, plate.marker, plate.brackets, plate.name }
+		if plate.medBadge and plate.medBadge:IsShown() then
+			list[#list + 1] = plate.medBadge
+		end
 		if plate.auras and plate.auras:IsShown() then
 			list[#list + 1] = plate.auras
 		end

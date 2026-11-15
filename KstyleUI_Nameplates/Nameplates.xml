@@ -9,6 +9,7 @@
 	<Script file="Plates.lua"/>
 	<Script file="CVars.lua"/>
 	<Script file="Stacking.lua"/>
+	<Script file="Medallions.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Presets.lua"/>
 	<Script file="Module.lua"/>

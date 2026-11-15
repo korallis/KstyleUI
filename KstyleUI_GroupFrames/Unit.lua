@@ -181,17 +181,23 @@ function Unit.NameColor(class)
 	return Theme.ClassTextColorForWidget(class, NAME_LUMINANCE)
 end
 
+function Unit.ColorSources()
+	local current = Settings.current
+	return current.health.colorSource, current.text.nameColorSource
+end
+
 local function Colors(f)
 	local unit = f.unit
 	local _, class = UnitClass(unit)
 	local cr, cg, cb = Unit.ClassColor(class)
 	local health = Settings.current.health
+	local healthSource, nameSource = Unit.ColorSources(f)
 	f.health:SetHealthUnit(nil)
 	if f.status then
 		f.health:SetBarColor(Tokens.Color("textDisabled"))
-	elseif health.colorSource == "class" then
+	elseif healthSource == "class" then
 		f.health:SetBarColor(cr, cg, cb)
-	elseif health.colorSource == "reaction" then
+	elseif healthSource == "reaction" then
 		f.health:SetBarColor(Theme.ReactionColor(UnitReaction and UnitReaction(unit, "player")))
 	else
 		local c = health.color
@@ -203,9 +209,9 @@ local function Colors(f)
 	local text = Settings.current.text
 	if f.status then
 		f.name:SetTextColor(Tokens.Color("textDisabled"))
-	elseif text.nameColorSource == "class" then
+	elseif nameSource == "class" then
 		f.name:SetTextColor(Unit.NameColor(class))
-	elseif text.nameColorSource == "custom" then
+	elseif nameSource == "custom" then
 		local c = text.nameColor
 		f.name:SetTextColor(c.r, c.g, c.b)
 	else
@@ -295,9 +301,15 @@ local function Name(f)
 	ns.Names.Set(f, UnitName(f.unit))
 end
 
-local function Portrait(f)
-	if f.showPortrait and SetPortraitTexture then
+function Unit.SetPortrait(f)
+	if SetPortraitTexture then
 		SetPortraitTexture(f.portrait, f.unit)
+	end
+end
+
+local function Portrait(f)
+	if f.showPortrait then
+		Unit.SetPortrait(f)
 	end
 end
 

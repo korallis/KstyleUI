@@ -65,6 +65,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Stacking.lua` | `ns.Stacking`: the nameplate size the game stacks and clicks by |
+| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's component: the friendly player's badge, steel brackets with a glow, the steel level diamond |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
 | `Presets.lua` | `ns.Presets`: the presets one dropdown applies |
 | `Module.lua` | `Modules.Register`, `Options.Register`, `Enable` and `Disable` |
@@ -177,6 +178,14 @@ The role comes from the setting: from the group role (`UnitGroupRolesAssigned("p
 ### Highlights
 
 The target's plate gets a glow and an edge in the accent, or a custom colour. The focus's plate gets an edge in the focus colour. While the player has a target, other plates can fade to a set opacity.
+
+## Medallions
+
+Under the Medallions HUD style, `Medallions.lua` adds a component and wraps three plate methods; it restyles every plate on `HudStyleChanged`. The bar keeps Blizzard's size and anchor (#373): the component places nothing that moves the bar, and `test-nameplates-medallions.lua` compares every plate's size and anchor before and after the switch.
+
+- **Friendly players** carry a 22-unit painted badge centred over the name, from `KstyleUI.Medallions.Portrait(texture, unit, "badge")` (the engine portrait with its circle mask when the identity is secret or the resolver is missing), ringed in steel (`medRing`). NPCs and enemies wear none.
+- **Target brackets** turn steel (`#e6ecf3`), and a soft glow (`medBracketGlow`, ADD blended) sits on each of the four corners. The strokes stay procedural, so they stay one crisp line at every scale.
+- **Level diamond.** A plain diamond's rim and number turn steel; a classification rim and the skull's red stay.
 
 ## Stacking
 

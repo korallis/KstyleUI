@@ -47,6 +47,8 @@ stateDiagram-v2
 | `KstyleUI_Chat/Module.lua` | `Refresh("framing")`. |
 | `KstyleUI_Skins/Quests/Quests.lua` | `Replace`: places the quest card again. |
 | `KstyleUI_QoL/Feed.lua` | `Restyle`, registered while the loot feed is on. |
+| `KstyleUI_GroupFrames/Medallions.lua` | `Frames.Apply`, registered while the group frames run: the party medallions and the raid tiles. |
+| `KstyleUI_Nameplates/Medallions.lua` | `Plates.RestyleAll`, registered while the plates run: the badges, brackets and level diamonds. |
 
 ## Medallions in the module listeners
 

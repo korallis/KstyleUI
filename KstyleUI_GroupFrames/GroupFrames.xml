@@ -13,6 +13,7 @@
 	<Script file="Prediction.lua"/>
 	<Script file="Auras.lua"/>
 	<Script file="Slots.lua"/>
+	<Script file="Medallions.lua"/>
 	<Script file="AutoLayout.lua"/>
 	<Script file="ClickCast.lua"/>
 	<Script file="Preview.lua"/>

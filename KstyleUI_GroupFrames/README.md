@@ -43,6 +43,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill, heal absorbs back from its end, and the shield line under the bar |
 | `Auras.lua` | `ns.Auras`: debuff icons in the priority order, clipped to the cells that fit with a `+` for the rest, dressed as the kit's chamfered icon tiles; the dispellable debuff highlight and the boss debuff glow in a highlights container; your own heals over time in a third; all on the AuraContainer engine |
 | `Slots.lua` | `ns.Slots`: the six indicator slots, aura slots on the engine that take a category the game's own filters define |
+| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's look, laid over the saved settings: painted badge medallions on the party, class-coloured raid tiles, a steel target ring |
 | `AutoLayout.lua` | `ns.AutoLayout`: compact raid frames over 25 members and healer-first debuffs while you heal, switched out of combat |
 | `ClickCast.lua` | `ns.ClickCast`: the settings page's click casting panel on `C_ClickBindings` |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview with sample party and raid frames and the click casting panel |
@@ -172,7 +173,19 @@ No helpful aura ever paints on the health bar (`test-groupframes-clear.lua`). Ha
 
 ## Extension points
 
-Feature files add to the frame without editing it: `Button.built` (build parts on a new frame), `Style.appliers` (lay them out after `Style.Apply`), `Style.painters` (paint them on preview samples), `Unit.extra` (refresh them with the unit), `Unit.Chain(event, fn)` (handle another unit event, registering it when new) and `Frames.events` (global events while the module runs).
+Feature files add to the frame without editing it: `Button.built` (build parts on a new frame), `Style.appliers` (lay them out after `Style.Apply`), `Style.painters` (paint them on preview samples), `Unit.extra` (refresh them with the unit), `Unit.Chain(event, fn)` (handle another unit event, registering it when new), `Unit.ColorSources(f)` (the bar and name colour sources a frame uses), `Unit.SetPortrait(f)` (what fills a shown portrait) and `Frames.events` (global events while the module runs).
+
+## Medallions
+
+Under the Medallions HUD style (`KstyleUI.HudStyle.Current() == "medallions"`, KSTY-87 and KSTY-88's group sheet), `Medallions.lua` changes the look and nothing else; it switches live on `HudStyleChanged` through `Frames.Apply`, so it waits for combat to end like any other change.
+
+- **Party.** Each row gets its medallion (`party.portrait` on): the painted 64 px badge cut from `KstyleUI.Medallions.Portrait(texture, unit, "badge")`, the secret-safe resolver, which falls back to the engine portrait when the unit's race, class or sex is secret. Painted art is pre-circled, so it drops the circle mask the engine portrait keeps. The class-coloured enamel ring (`medEnamel`) sits under a steel bezel (`medRing`); there is no level badge and no tile. Without the resolver, the engine portrait stands in.
+- **Raid.** Class-coloured tiles with no medallion: the bar takes the class colour, the name sits on the fill in white (`raid.textLayout` `INSIDE`), the percent at the tile's lower right, or beside the name when the tile is too short for two lines; no power bar, no own-heals row unless the player heals, no glass tile.
+- **Target ring.** Steel (`#e6ecf3`) instead of the accent.
+- **Settings.** The style lays its values over the defaults only: a value the player changed from its default wins. A two-way setting such as `raid.power` has only the style's value and the default, so under Medallions it always follows the style.
+- **Textures.** `medRing` and `medEnamel` come from M3; until they ship the ring falls back to `ringBevel` and logs it once.
+
+`test-groupframes-medallions.lua` holds all of it, and the switch back to Frames.
 
 ## Why
 
