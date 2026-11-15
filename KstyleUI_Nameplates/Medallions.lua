@@ -56,7 +56,7 @@ local function ShowBadge(badge, shown)
 	badge.ring:SetShown(shown)
 end
 
-local Component = {}
+local Component = { events = {} }
 
 local function Build(plate)
 	local badge = plate:CreateTexture(nil, "ARTWORK")
@@ -152,6 +152,8 @@ function Component.Refresh(plate)
 	ShowBadge(badge, shown and true or false)
 end
 
+Component.events.UNIT_PORTRAIT_UPDATE = Component.Refresh
+
 function Component.Clear(plate)
 	if plate.medBadge then
 		ShowBadge(plate.medBadge, false)
@@ -179,8 +181,9 @@ end
 
 local showBrackets = Plate.ShowBrackets
 function Plate:ShowBrackets(shown)
-	local was = self.bracketsShown
 	showBrackets(self, shown)
+	local was = self.medFramed
+	self.medFramed = shown
 	local effects = K.Effects
 	if shown and not was and self.medGlows and Medallions.Active() and effects and type(effects.TargetGlow) == "function" then
 		effects.TargetGlow(self.medGlows)

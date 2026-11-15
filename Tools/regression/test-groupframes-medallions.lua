@@ -27,7 +27,7 @@ local env, K, ns = G.New()
 local Unit, Settings = ns.Unit, ns.Settings
 local STEEL_LIT = { 0.902, 0.925, 0.953 }
 
-local painted, cuts = true, {}
+local painted, cuts = false, {}
 K.Medallions = {
 	Portrait = function(region, unit, cut)
 		cuts[#cuts + 1] = cut
@@ -64,9 +64,17 @@ each("party", function(f)
 	eq(#cuts, 0, "Frames asks for no painted badge")
 end)
 
+-- The first look under Medallions may find every identity secret: the engine portrait keeps its one circle mask.
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
+each("party", function(f)
+	eq(f.portrait:GetNumMaskTextures(), 1, f.unit .. ": a secret identity keeps one circle mask")
+end)
+painted = true
+each("party", function(f)
+	Unit.Refresh(f)
+end)
 eq(Settings.current.party.portrait, true, "Medallions gives the party its medallion")
 eq(Settings.current.raid.textLayout, "INSIDE", "and puts the raid's name on the fill")
 
@@ -94,6 +102,13 @@ each("party", function(f)
 	eq(f.portrait._portraitUnit, f.unit, f.unit .. ": without the resolver the engine portrait stands in")
 	eq(f.portrait:GetNumMaskTextures(), 1, f.unit .. ": masked")
 end)
+
+-- Role rings give way to the medallion.
+K.Options.Write("GroupFrames", "party.roleRing", true)
+env.RunTimers()
+eq(Settings.current.party.roleRing, true, "a role ring the player turned on wins")
+K.Options.Write("GroupFrames", "party.roleRing", false)
+env.RunTimers()
 
 -- The raid: class-coloured tiles, white names on the fill, no medallion, a steel target ring.
 G.SetRoster(env, "raid", G.Members(10, function(i, m)

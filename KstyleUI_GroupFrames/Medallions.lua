@@ -13,7 +13,7 @@ local OWNER = "GroupFrames.Medallions"
 local STEEL_LIT = { 0.902, 0.925, 0.953 }
 local TILE_INSET = 3
 local LOOK = {
-	party = { portrait = true },
+	party = { portrait = true, roleRing = false },
 	raid = { textLayout = "INSIDE", power = false, buffCount = 0 },
 }
 Medallions.LOOK = LOOK
@@ -62,7 +62,8 @@ function Unit.ColorSources(f)
 end
 
 local function Mask(f, masked)
-	if f.masked == masked then
+	if (f.masked ~= false) == masked then
+		f.masked = masked
 		return
 	end
 	f.masked = masked

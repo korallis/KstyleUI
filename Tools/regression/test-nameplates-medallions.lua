@@ -79,6 +79,12 @@ assert(not enemy.medBadge:IsShown() and not boss.medBadge:IsShown(), "an enemy w
 painted = false
 friend:Refresh(true)
 eq(badge:GetNumMaskTextures(), 1, "the engine portrait keeps its circle mask")
+-- When the identity stops being secret the game sends UNIT_PORTRAIT_UPDATE, and the badge turns painted.
+painted = true
+badge:SetTexture("engine")
+env.FireEvent("UNIT_PORTRAIT_UPDATE", "nameplate2")
+eq(badge._state.Texture[1], "badge:nameplate2", "the portrait event repaints the badge")
+eq(badge:GetNumMaskTextures(), 0, "and drops the mask")
 
 -- The target's brackets: steel, with a glow at each of the four corners.
 for _, s in ipairs(enemy.brackets.sides) do
@@ -99,6 +105,9 @@ env.RunTimers()
 eq(#handed, 1, "a new target hands its glows over once")
 eq(handed[1], enemy.medGlows, "the plate's own glows")
 eq(#enemy.medGlows, 4, "one glow at each corner")
+ns.Plates.RestyleAll()
+env.RunTimers()
+eq(#handed, 1, "a restyle of the same target hands nothing over again")
 K.Effects = nil
 
 -- The level diamond: steel numbers, but the skull keeps its red.
