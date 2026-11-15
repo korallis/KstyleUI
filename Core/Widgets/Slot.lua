@@ -275,7 +275,7 @@ local function PaintLayers(self)
 	ColorHalo(self.pressHalo, Widgets.Rgba("slotPress", PRESS_HALO))
 	self.lumenGlow.texture:SetVertexColor(Widgets.Rgba("giltLit", PROC_GLOW))
 	ColorHalo(self.procHalo, Widgets.Rgba("giltLit", PROC_HALO))
-	self.readyWash:SetColorTexture(Tokens.Color("giltLit"))
+	self.readyWash:SetColorTexture(Widgets.Rgba("giltLit"))
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
 	end

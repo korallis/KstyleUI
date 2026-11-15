@@ -26,8 +26,27 @@ local MERIDIEM_GAP = 2
 local BRACKET_ARM, BRACKET_LINES = 8, 2
 local BRACKET_CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
 local VIGNETTE_EDGES = { "top", "bottom", "left", "right" }
+local PLAQUE_HEIGHT = 18
+local PLAQUE_PAD = 6
+local RING_OUTER = 0.9189
+local RING_SUBLEVEL = 3
 
 Face.LEVEL_MAP = LEVEL_MAP
+
+function Face.Round()
+	return Widgets.Medallions()
+end
+
+local function CaptionX()
+	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
+end
+
+function Face.MaskPath()
+	if Face.Round() then
+		return (Tokens.Texture((Widgets.TextureName("medMinimapMask"))))
+	end
+	return (Tokens.Texture("minimapMask"))
+end
 
 local function Level(frame, holder, offset)
 	frame:SetFrameLevel(holder:GetFrameLevel() + offset)
@@ -190,7 +209,7 @@ function Face.New(holder, opts)
 	face.overlay = overlay
 
 	local mask = overlay:CreateMaskTexture()
-	mask:SetTexture((Tokens.Texture("minimapMask")), MASK_WRAP, MASK_WRAP)
+	mask:SetTexture(Face.MaskPath(), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(mapArea)
 	face.mask = mask
 
@@ -295,8 +314,8 @@ function Face:PlaceZone()
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
 	zone:ClearAllPoints()
-	zone:SetPoint("LEFT", card, "TOPLEFT", Snap(card, Format.CAPTION_X), y)
-	zone:SetWidth(Snap(card, max(0, side + 2 * Format.FRAME - 2 * Format.CAPTION_X)))
+	zone:SetPoint("LEFT", card, "TOPLEFT", Snap(card, CaptionX()), y)
+	zone:SetWidth(Snap(card, max(0, side + 2 * Format.FRAME - 2 * CaptionX())))
 end
 
 local MERIDIEMS = { { L["AM"], " " .. L["AM"] }, { L["PM"], " " .. L["PM"] } }
@@ -329,7 +348,7 @@ function Face:PlaceClock()
 	meridiem:ClearAllPoints()
 	meridiem:SetPoint("BOTTOMLEFT", clock, "BOTTOMRIGHT", gap, 0)
 	clock:ClearAllPoints()
-	clock:SetPoint("RIGHT", card, "BOTTOMRIGHT", -(Snap(card, Format.CAPTION_X) + width + gap), -rowY)
+	clock:SetPoint("RIGHT", card, "BOTTOMRIGHT", -(Snap(card, CaptionX()) + width + gap), -rowY)
 end
 
 function Face:SetClock(text)
@@ -341,10 +360,20 @@ function Face:SetClock(text)
 	end
 end
 
+function Face:SyncPlaques()
+	local plaques = self.plaques
+	if not plaques or not Face.Round() then
+		return
+	end
+	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true)
+	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true or self.coordsText ~= nil and Settings.Get("coords.shown") == true)
+end
+
 function Face:SetCoords(text)
 	self.coordsText = text
 	self.coords:SetText(text or "")
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown"))
+	self:SyncPlaques()
 end
 
 function Face:SetRevealed(on)
@@ -397,8 +426,55 @@ local function FramePixels(card)
 	return min(3, max(1, floor(Widgets.Border(card) / pixel + 0.5))), pixel
 end
 
+function Face:PlaceRound(round)
+	local ring, plaques = self.ring, self.plaques
+	if not round then
+		if ring then
+			ring:Hide()
+			for _, plaque in ipairs(plaques) do
+				plaque.chrome:SetShown(false)
+			end
+		end
+		return
+	end
+	if not ring then
+		ring = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL)
+		self.ring = ring
+		plaques = {}
+		for i = 1, 2 do
+			local plaque = CreateFrame("Frame", nil, self.overlay)
+			plaque:SetFrameLevel(self.overlay:GetFrameLevel())
+			plaque.chrome = Widgets.Chrome(plaque, { shape = "tile", fill = "surface", shadow = false })
+			plaques[i] = plaque
+		end
+		self.plaques = plaques
+	end
+	local name, standin = Widgets.TextureName("medMinimapRing")
+	ring:SetTexture((Tokens.Texture(name)))
+	ring:SetVertexColor(Widgets.Rgba(standin and "steel" or "white"))
+	local card, side = self.card, self.mapSize or 0
+	ring:ClearAllPoints()
+	ring:SetPoint("CENTER", self.mapArea, "CENTER")
+	Widgets.Size(ring, side / RING_OUTER, side / RING_OUTER)
+	ring:Show()
+	local height = Snap(card, PLAQUE_HEIGHT)
+	local width = Snap(card, side + 2 * Format.FRAME)
+	local zone, row = plaques[1], plaques[2]
+	zone:ClearAllPoints()
+	zone:SetPoint("LEFT", self.zone, "LEFT", -Snap(card, PLAQUE_PAD), 0)
+	row:ClearAllPoints()
+	row:SetPoint("CENTER", card, "BOTTOM", 0, -Snap(card, Format.ROW_CENTER))
+	for _, plaque in ipairs(plaques) do
+		plaque:SetSize(width, height)
+		plaque.chrome:SetEdge("steel", 0.5)
+	end
+	self:SyncPlaques()
+end
+
 function Face:PlaceFrame()
 	local card = self.card
+	local round = Face.Round()
+	self:PlaceRound(round)
 	local w, h = card:GetWidth(), card:GetHeight()
 	local pixels, pixel = FramePixels(card)
 	local name = "forgedFrame" .. pixels
@@ -414,7 +490,7 @@ function Face:PlaceFrame()
 		self.frames[name] = slice
 	end
 	local size = 8 * pixels * pixel
-	local shown = Plain(w) and Plain(h) and min(w, h) >= 2 * size
+	local shown = not round and Plain(w) and Plain(h) and min(w, h) >= 2 * size
 	Widgets.ShowSlice(slice, shown)
 	if shown then
 		Widgets.LayoutSlice(slice, card, size, 0)
@@ -443,11 +519,19 @@ function Face:Paint()
 	Widgets.Tint(self.zoom.track, "track")
 	self.zoom.fill:SetVertexColor(r, g, b, 1)
 	self.zoom:SetShown(Settings.Get("zoom.slider"))
+	local round = Face.Round()
+	self.mask:SetTexture(Face.MaskPath(), MASK_WRAP, MASK_WRAP)
 	for _, line in pairs(self.shade) do
 		Widgets.Tint(line, "black", SHADE_ALPHA)
+		line:SetShown(not round)
 	end
 	PaintVignette(self.vignette)
+	for _, texture in pairs(self.vignette) do
+		texture:SetShown(not round)
+	end
 	Widgets.Tint(self.fill, "materialForged")
+	self.fill:SetShown(not round)
+	self.zone:SetJustifyH(round and "CENTER" or "LEFT")
 	for _, bracket in ipairs(self.brackets) do
 		Widgets.Tint(bracket.across, "gilt")
 		Widgets.Tint(bracket.down, "gilt")
@@ -457,7 +541,7 @@ function Face:Paint()
 	Widgets.Tint(diamond.gilt, "gilt")
 	Widgets.Tint(diamond.fill, "materialForged")
 	Style.Text(self.north, NORTH_ROLE, "zone", NORTH_SIZE)
-	self.north:SetTextColor(Tokens.Color("giltLit"))
+	self.north:SetTextColor(Widgets.Rgba("giltLit"))
 
 	self.zoneSize = Style.Text(self.zone, ZONE_ROLE, "zone")
 	self.clockSize = Style.Text(self.clock, CLOCK_ROLE, "clock")
@@ -506,7 +590,7 @@ function Face:Layout()
 	diamond.gilt:SetSize(plateSize, plateSize)
 	diamond.fill:SetSize(max(0, plateSize - 4 * border), max(0, plateSize - 4 * border))
 
-	local x, rowY = Snap(card, Format.CAPTION_X), Snap(card, Format.ROW_CENTER)
+	local x, rowY = Snap(card, CaptionX()), Snap(card, Format.ROW_CENTER)
 	local coords = self.coords
 	self:PlaceZone()
 	coords:ClearAllPoints()

@@ -172,7 +172,7 @@ function Frames.TabLook(style, selected)
 end
 
 function Frames.PaintUnderline(line, glow, shown)
-	local r, g, b = Widgets.LumenColor("gilt")
+	local r, g, b = Widgets.LumenColor(Widgets.Medallions() and "accent" or "gilt")
 	line:SetVertexColor(r, g, b, 1)
 	line:SetShown(shown)
 	if glow then
@@ -216,7 +216,7 @@ local function PaintTab(parts)
 	end
 	local text = parts.text
 	if textColor and text and type(text.SetTextColor) == "function" then
-		text:SetTextColor(Tokens.Color(textColor))
+		text:SetTextColor(Widgets.Rgba(textColor))
 	end
 end
 

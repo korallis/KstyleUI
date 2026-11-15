@@ -231,8 +231,9 @@ function MAKERS.pictures(row)
 		holder.cards[i] = PictureCard(row, holder, i)
 	end
 	function holder:Fit(width)
-		local columns = max(1, min(PICTURE_COUNT, floor((width + PICTURE_GAP) / (PICTURE_MIN + PICTURE_GAP))))
-		local rows = math.ceil(PICTURE_COUNT / columns)
+		local count = self.count or PICTURE_COUNT
+		local columns = max(1, min(count, floor((width + PICTURE_GAP) / (PICTURE_MIN + PICTURE_GAP))))
+		local rows = math.ceil(count / columns)
 		local cardWidth = Snap(self, min(PICTURE_MAX, (width - (columns - 1) * PICTURE_GAP) / columns))
 		local inset = Snap(self, PICTURE_INSET)
 		local picture = Snap(self, (cardWidth - 2 * inset) / 2)
@@ -392,11 +393,15 @@ end
 
 function FILL.pictures(control, item, value)
 	local disabled = Model.IsDisabled(item)
+	local known = false
+	for _, option in ipairs(item.options) do
+		known = known or option.value == value
+	end
 	for i, card in ipairs(control.cards) do
 		local option = item.options[i]
 		card:SetShown(option ~= nil)
 		if option then
-			local selected = option.value == value
+			local selected = option.value == value or not known and i == 1
 			card.value = option.value
 			card.picture:SetTexture(option.picture)
 			card.picture:SetDesaturated(disabled)
@@ -472,6 +477,7 @@ local function PlaceText(row, item, control, width)
 	local column = full - reserve
 	local stacked = control ~= nil and (item.kind == "pictures" or Widgets.TextWidth(row.label, 0) > column)
 	if stacked and control.Fit then
+		control.count = item.options and #item.options or nil
 		control:Fit(full)
 	end
 	local banded = control ~= nil and not stacked and column < Rows.MIN_TEXT_WIDTH

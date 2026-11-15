@@ -1215,6 +1215,7 @@ function Stubs.NewEnv(opts)
 	local width, height, uiScale = opts.width or 1920, opts.height or 1080, opts.uiScale or 1
 	local env = setmetatable({}, { __index = _G })
 	env._G = env
+	env.KSTYLEUI_DEV_MEDALLIONS = opts.medallions ~= false
 	env._size = opts.size == nil and 1 or opts.size
 	env._fitScale = opts.fit == true or opts.size == "default"
 	env._trackOrigin = rawget(_G, "PIXEL_AUDIT") == true
