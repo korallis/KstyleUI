@@ -39,7 +39,7 @@ local function PlainSize(value)
 end
 
 function Lumen.Color(name)
-	local ok, r, g, b, a = pcall(Tokens.Color, S1_NAMES[name] or name)
+	local ok, r, g, b, a = pcall(Tokens.Color, Widgets.ColorName(S1_NAMES[name] or name))
 	if ok then
 		return r, g, b, a
 	end
@@ -153,7 +153,7 @@ end
 function Cap:Paint()
 	Lumen.Tint(self.gem, "gilt")
 	local r, g, b = Lumen.Color("gilt")
-	self.title:SetTextColor(Tokens.Color("capsGold"))
+	self.title:SetTextColor(Widgets.Rgba("capsGold"))
 	Widgets.TextColor(self.trail, "textEmphasis")
 	self.rule:SetColorTexture(r, g, b, RULE_ALPHA)
 	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)

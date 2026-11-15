@@ -38,6 +38,7 @@ end
 
 function Widgets.LumenColor(name, alphaScale)
 	local r, g, b, a
+	name = Widgets.ColorName(name)
 	if Known(name) then
 		r, g, b, a = Tokens.Color(name)
 	else

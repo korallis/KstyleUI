@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
+local L, Widgets = K.L, K.Widgets
 local Settings, Face, Data, Column, SecureClick, Drawer = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick, ns.Drawer
 
 local Map = {}
@@ -47,11 +47,11 @@ local function Log(message)
 end
 
 local function MaskPath()
-	return (Tokens.Texture("minimapMask"))
+	return Face.MaskPath()
 end
 
-local function SquareShape()
-	return "SQUARE"
+local function MapShape()
+	return Face.Round() and "ROUND" or "SQUARE"
 end
 
 local function ApplyMask()
@@ -76,7 +76,7 @@ local function MaskHybrid()
 	local mask = hybrid and hybrid.CircleMask
 	if mask and type(mask.SetTexture) == "function" then
 		mask:SetTexture(MaskPath(), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-		Log("the hybrid minimap uses the square mask")
+		Log("the hybrid minimap uses the module's mask")
 	end
 end
 
@@ -392,6 +392,8 @@ function Map.Refresh()
 		return
 	end
 	face:Refresh()
+	ApplyMask()
+	MaskHybrid()
 	Fit()
 	Map.drawer:Sync(running)
 	Map.column:Refresh()
@@ -712,7 +714,7 @@ function Map.Enable()
 	Adopt()
 	HideBlizzard()
 	HookBlizzard()
-	GetMinimapShape = SquareShape
+	GetMinimapShape = MapShape
 	RegisterEvents()
 	RegisterCallbacks()
 	SecureClick.SetActive(true)
@@ -745,7 +747,7 @@ function Map.Disable()
 		Map.holder:Hide()
 	end
 	Release()
-	if GetMinimapShape == SquareShape then
+	if GetMinimapShape == MapShape then
 		GetMinimapShape = nil
 	end
 	if Map.drawer then

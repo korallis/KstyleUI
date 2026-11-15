@@ -53,7 +53,7 @@ local savedFonts = {}
 local savedScales = setmetatable({}, { __mode = "k" })
 
 function Style.Gilt()
-	local ok, r, g, b = pcall(Tokens.Color, GILT)
+	local ok, r, g, b = pcall(Tokens.Color, Widgets.ColorName(GILT))
 	if ok then
 		return r, g, b
 	end

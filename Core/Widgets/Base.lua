@@ -226,8 +226,57 @@ function Widgets.RestyleUnder(roots, only)
 	end
 end
 
+local STEEL_NAMES = { gilt = "steel", giltLit = "steelLit", giltDim = "steelDim", capsGold = "steelLit", materialGold = "steel" }
+local STEEL_STANDINS = { steel = "muted", steelLit = "textEmphasis", steelDim = "dim", steelFill = "materialFlat", steelEdge = "materialFlatEdge" }
+local steelKnown = {}
+
+function Widgets.Medallions()
+	local hud = ns.HudStyle
+	return hud ~= nil and hud.Current() == "medallions"
+end
+
+function Widgets.ColorName(name)
+	if STEEL_NAMES[name] and Widgets.Medallions() then
+		name = STEEL_NAMES[name]
+	end
+	local standin = STEEL_STANDINS[name]
+	if standin then
+		local known = steelKnown[name]
+		if known == nil then
+			known = pcall(Tokens.Color, name)
+			steelKnown[name] = known
+		end
+		if not known then
+			return standin
+		end
+	end
+	return name
+end
+
+local STEEL_TEXTURE_STANDINS = { medSteelCard = "materialSlate", medCardCorner = "forgedBracket2", medMinimapRing = "ringBevel", medMinimapMask = "orbMask" }
+local STEEL_MATERIAL = { fill = "steelFill", edge = "steelEdge", texture = "medSteelCard", texels = 256, grain = 0.06 }
+
+function Widgets.TextureName(name)
+	local standin = STEEL_TEXTURE_STANDINS[name]
+	if standin then
+		local known = steelKnown[name]
+		if known == nil then
+			known = pcall(Tokens.Texture, name)
+			steelKnown[name] = known
+		end
+		if not known then
+			return standin, true
+		end
+	end
+	return name, false
+end
+
+function Widgets.SteelMaterial()
+	return Tokens.Material("Steel") or STEEL_MATERIAL
+end
+
 function Widgets.Rgba(name, alphaScale)
-	local r, g, b, a = Tokens.Color(name)
+	local r, g, b, a = Tokens.Color(Widgets.ColorName(name))
 	return r, g, b, (a or 1) * (alphaScale or 1)
 end
 
@@ -601,7 +650,7 @@ end
 function Widgets.Text(parent, role, colorName, layer)
 	local text = Widgets.FontString(parent, layer)
 	Widgets.StyleText(text, role or "body")
-	text:SetTextColor(Tokens.Color(colorName or "text"))
+	text:SetTextColor(Widgets.Rgba(colorName or "text"))
 	return text
 end
 
@@ -1522,6 +1571,9 @@ function Chrome:Material()
 				return nil
 			end
 		end
+		if Widgets.Medallions() then
+			return Widgets.SteelMaterial()
+		end
 		return Tokens.Material(Widgets.Setting("cardMaterial"))
 	end
 end
@@ -1535,7 +1587,13 @@ function Chrome:MaterialOpacity()
 end
 
 function Chrome:SyncMaterialFrame()
+	if self.steelCorners then
+		Widgets.ShowSlice(self.steelCorners, self.visible and self.cornersWanted == true)
+	end
 	if not self.frameWanted and not self.materialFrame then
+		if self.gilt and self.steel then
+			ShowOnce(self, "giltState", self.gilt, false)
+		end
 		return
 	end
 	local active = self.frameWanted and self.frameReady
@@ -1554,7 +1612,35 @@ function Chrome:SyncMaterialFrame()
 		Widgets.ShowSlice(self.materialBrackets, self.visible and active and self.bracketsWanted)
 	end
 	if self.gilt then
-		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not (active and self.bracketsWanted))
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel and not (active and self.bracketsWanted))
+	end
+end
+
+local STEEL_CORNER = 12
+
+function Chrome:PaintCorners()
+	local owner = self.owner
+	if not self.steelCorners then
+		self.steelCorners = {}
+		for i = 1, 4 do
+			self.steelCorners[i] = NewTexture(owner, "BORDER", SUBLEVEL_GILT)
+		end
+	end
+	local name, standin = Widgets.TextureName("medCardCorner")
+	local path = Tokens.Texture(name)
+	local f = Widgets.ScaleFactor(owner)
+	local size = SnapIn(STEEL_CORNER, f)
+	local tint = standin and "steelLit" or "white"
+	for i, corner in ipairs(BRACKET_CORNERS) do
+		local texture = self.steelCorners[i]
+		local left = i % 2 == 1
+		local top = i <= 2
+		texture:SetTexture(path)
+		texture:SetTexCoord(left and 0 or 1, left and 1 or 0, top and 0 or 1, top and 1 or 0)
+		texture:SetVertexColor(Widgets.Rgba(tint, min(1, self:MaterialOpacity())))
+		texture:ClearAllPoints()
+		texture:SetSize(size, size)
+		texture:SetPoint(corner, owner, corner)
 	end
 end
 
@@ -1563,9 +1649,15 @@ function Chrome:PaintMaterial()
 		return
 	end
 	local material = self:Material()
-	local framed = self.shape.card and material and material.frame
+	local steel = material ~= nil and Widgets.Medallions()
+	local framed = self.shape.card and material and material.frame and not steel
+	self.steel = steel
 	self.frameWanted = framed
-	self.bracketsWanted = material and material.brackets
+	self.bracketsWanted = material and material.brackets and not steel
+	self.cornersWanted = steel
+	if steel and Widgets.MayMove(self.owner) then
+		self:PaintCorners()
+	end
 	if not framed then
 		self.frameReady = false
 	end
@@ -1676,7 +1768,7 @@ function Chrome:PaintMaterial()
 	self.grain:ClearAllPoints()
 	self.grain:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
 	self.grain:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
-	if self.grain:SetTexture(Tokens.Texture(material.texture), "REPEAT", "REPEAT") == false then
+	if self.grain:SetTexture(Tokens.Texture((Widgets.TextureName(material.texture))), "REPEAT", "REPEAT") == false then
 		self.grain:Hide()
 		return
 	end
@@ -1698,7 +1790,7 @@ function Chrome:Paint()
 	end
 	local material = self:Material()
 	if material and material.fill then
-		r, g, b, a = Tokens.Color(material.fill)
+		r, g, b, a = Widgets.Rgba(material.fill)
 		a = self.popup and 1 or min(1, a * self:MaterialOpacity())
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
@@ -1707,7 +1799,7 @@ function Chrome:Paint()
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 	if self.gilt then
-		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not (self.frameReady and material and material.brackets))
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel and not (self.frameReady and material and material.brackets))
 	end
 	self:PaintEdge()
 end
@@ -1717,21 +1809,22 @@ function Chrome:PaintEdge()
 	local e = self.edge
 	local material = self:Material()
 	if material and material.edge and not self.ownEdge then
-		e = { Tokens.Color(material.edge) }
+		e = { Widgets.Rgba(material.edge) }
 	end
 	if self.line then
 		local name = self.proc and "giltLit" or self.shape.line
-		if self.lineName ~= name then
-			self.lineName = name
-			Widgets.ColorSlice(self.line, Tokens.Color(name))
+		local key = Widgets.ColorName(name)
+		if self.lineName ~= key then
+			self.lineName = key
+			Widgets.ColorSlice(self.line, Widgets.Rgba(name))
 		end
 	elseif self.proc then
-		Widgets.ColorSlice(self.rim, Tokens.Color("gilt"))
+		Widgets.ColorSlice(self.rim, Widgets.Rgba("gilt"))
 		return
 	end
 	local r, g, b, a = e[1], e[2], e[3], e[4]
 	if self.frameWanted and self.frameReady and self.proc then
-		r, g, b, a = Tokens.Color("giltLit")
+		r, g, b, a = Widgets.Rgba("giltLit")
 	end
 	Widgets.ColorSlice(self.rim, r, g, b, a)
 	if self.materialEdge then
@@ -2004,6 +2097,15 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 	Widgets.RestyleAll()
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
+
+local painted = Widgets.Medallions()
+ns.Callbacks.Register("HudStyleChanged", SECTION, function()
+	local medallions = Widgets.Medallions()
+	if medallions ~= painted then
+		painted = medallions
+		ns.Callbacks.Fire("ThemeChanged")
+	end
+end)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION or (module == "Appearance" and key == "motion") then
 		Widgets.RestyleAll()

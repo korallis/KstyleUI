@@ -23,7 +23,7 @@ function Style.Color(token)
 	if token == "accent" then
 		return Style.Accent()
 	end
-	local r, g, b = Tokens.Color(token)
+	local r, g, b = Widgets.Rgba(token)
 	return r, g, b
 end
 
