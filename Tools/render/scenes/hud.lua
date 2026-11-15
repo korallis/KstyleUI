@@ -1115,6 +1115,17 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
+	-- The guide renders in its own environment, so here the rail stands in for it being on screen (opts.withGuide):
+	-- in a style that does not stack the two cards, the quest card then holds the story slot and the guide the column.
+	local rail = opts.withGuide and ns.RestedXP and ns.RestedXP.Rail
+	if rail then
+		function rail.Shown()
+			local story = K.Setup.Story(K.Layout.Setting("preset") or "DPS", true)
+			return story ~= nil and not story.stacked and ns.Quests.Active()
+		end
+		ns.Quests.Replace()
+		S.W.Settle(env)
+	end
 	if opts.questGive then
 		ns.Quests.Give(opts.questGive)
 		S.W.Settle(env)
@@ -1472,6 +1483,12 @@ function modules.restedxp(opts)
 	-- The quest card renders in its own environment; a clear stand-in of its rect lets a stacked rail hang the guide
 	-- under it, as the game does with both cards in one.
 	local card = opts.questCard
+	-- The quest card renders in the tracker's environment; while it is up there, the rail here sees it up.
+	if card and R.ns.Quests then
+		R.ns.Quests.Active = function()
+			return true
+		end
+	end
 	if card and R.ns.QuestCard then
 		local root = R.K.Scale.Root()
 		local standin = R.env.CreateFrame("Frame", nil, root)
