@@ -1,7 +1,8 @@
 {
- "_comment": "Locked references for every Medallions generation. Lee approved the portrait finish (KSTY-87) and the crests (KSTY-88) on 2026-11-15; see handoffs/medallions/COMMON.md. copy is the committed 512 px copy; sha256 is the Higgsfield original's.",
+ "_comment": "Locked references for every Medallions generation. Lee approved the portrait finish (KSTY-87) and the crests (KSTY-88) on 2026-11-15; see handoffs/medallions/COMMON.md. copy is the committed 512 px copy; sha256 is the Higgsfield original's. historicalWords lists words of the setting a locked prompt carried when KSTY-88 sent it, before tables.py was reworded; a locked anchor is never sent again.",
  "badge": {
   "copy": "anchors/badge_scourge_paladin_female.png",
+  "copySha256": "ba637d902cdc8d3f5b867404ed8e7e5f988aca6e6648181373b7d821d70b5894",
   "date": "2026-11-15",
   "job": "e53a95dc-3b54-4b6e-913b-68a833e94521",
   "key": "scourge_paladin_female",
@@ -22,6 +23,7 @@
  },
  "crestStyle": {
   "copy": "anchors/crest_dwarf_shaman.png",
+  "copySha256": "311a518c1449a8b5b69c680df07a5446f26a31c1341a7e672da3057ec6946eb3",
   "date": "2026-11-15",
   "job": "20a1fd62-401b-4570-9cfe-147d5467a66b",
   "key": "dwarf_shaman",
@@ -42,6 +44,7 @@
  "crests": {
   "dwarf": {
    "copy": "anchors/crest_dwarf_shaman.png",
+   "copySha256": "311a518c1449a8b5b69c680df07a5446f26a31c1341a7e672da3057ec6946eb3",
    "date": "2026-11-15",
    "job": "20a1fd62-401b-4570-9cfe-147d5467a66b",
    "key": "dwarf_shaman",
@@ -61,6 +64,7 @@
   },
   "gnome": {
    "copy": "anchors/crest_gnome_mage.png",
+   "copySha256": "1bb56ceb596d179bf8f4186a4d4460c34d4e1809ece5fd4f688dfcd27aa56f3d",
    "date": "2026-11-15",
    "job": "36cd01cb-168e-4623-b267-c6de2e32dbf8",
    "key": "gnome_mage",
@@ -82,6 +86,7 @@
   },
   "human": {
    "copy": "anchors/crest_human_paladin.png",
+   "copySha256": "01b9d00f4d2e979ea77f51c8e6e2bb3d09c03fa9cf8b97898ce341a9642131d5",
    "date": "2026-11-15",
    "job": "34c3eed3-69f3-457e-a1d5-d21fff77fe85",
    "key": "human_paladin",
@@ -103,6 +108,7 @@
   },
   "nightelf": {
    "copy": "anchors/crest_nightelf_druid.png",
+   "copySha256": "9161bde1be87820d2e5bc4e28402cc97a4930a09d911dabcc3e12b5a48ed8ee7",
    "date": "2026-11-15",
    "job": "3329d533-0be9-427b-9a7d-9971353cbe54",
    "key": "nightelf_druid",
@@ -124,6 +130,7 @@
   },
   "orc": {
    "copy": "anchors/crest_orc_warrior.png",
+   "copySha256": "6f2556cd1980587a1061e2b8c83bac228f51d130c4b2a353379f5386398e113b",
    "date": "2026-11-15",
    "job": "dd9b05aa-8ead-4e04-bc7e-d26ad7ec5b73",
    "key": "orc_warrior",
@@ -145,6 +152,7 @@
   },
   "scourge": {
    "copy": "anchors/crest_scourge_warlock.png",
+   "copySha256": "c027460c19a5e0a3961399cda3f365580824e14caddc563dc7eacefde9b83157",
    "date": "2026-11-15",
    "job": "72ef8dc2-ca20-4b9f-a23e-3c7b43eaae62",
    "key": "scourge_warlock",
@@ -166,7 +174,11 @@
   },
   "skyborne": {
    "copy": "anchors/crest_skyborne_rogue.png",
+   "copySha256": "a5aae2213b0fa30a92244b591be6cefe587ee38215570f6b244d3d73613c7c57",
    "date": "2026-11-15",
+   "historicalWords": [
+    "skyborne"
+   ],
    "job": "139e5df2-e909-4c65-ab6b-09f7b75cff22",
    "key": "skyborne_rogue",
    "model": "gpt_image_2_6",
@@ -187,6 +199,7 @@
   },
   "tauren": {
    "copy": "anchors/crest_tauren_hunter.png",
+   "copySha256": "fc86987670da553ab2745e7723dd310c11feea99699a3c1cc82b39ea1590693a",
    "date": "2026-11-15",
    "job": "452a238d-661f-4bac-896f-3dbc4d97a915",
    "key": "tauren_hunter",
@@ -208,6 +221,7 @@
   },
   "troll": {
    "copy": "anchors/crest_troll_priest.png",
+   "copySha256": "2cef6da1731c2ff40831b27c76e81c5b441d3435d82a9978c33c734198de00e5",
    "date": "2026-11-15",
    "job": "7048fb43-43da-4f44-adad-e34128937ae2",
    "key": "troll_priest",
@@ -230,6 +244,7 @@
  },
  "portrait": {
   "copy": "anchors/portrait_dwarf_shaman_male.png",
+  "copySha256": "87a81dc9cc3179aa9adef18dc975df21db762d0ca60ef6004ea696ec612b2666",
   "date": "2026-11-15",
   "job": "ebf64cee-0f61-4a03-ba67-8b9f0ffe178b",
   "key": "dwarf_shaman_male",

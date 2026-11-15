@@ -1,8 +1,8 @@
 """Generate, judge, bake and verify the Medallions art: a painted bust and badge for every race, class and sex, and a
 painted crest for every race and class.
 
-Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python; plan, status and verify
-need none):
+Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python; plan and status need
+none):
     medallions.py plan      [--kind bust|badge|crest] [--keys KEY ...] [--json]
     medallions.py anchors
     medallions.py generate  --kind bust|badge|crest --max-credits N [--keys KEY ... | --all] [--jobs 8] [--dry-run]
@@ -46,9 +46,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-import tables  # noqa: E402
+import tables
 
 REPO = Path(__file__).resolve().parents[2]
 HERE = REPO / "Tools" / "medallions"
@@ -71,7 +69,7 @@ SIZES = {"bust": 128, "badge": 64, "crest": 256}
 FOLDERS = {"bust": "Busts", "badge": "Badges", "crest": "Crests"}
 MASKS = ("glow", "metal")
 MAX_IMAGES = 3
-MAX_FAILURES = 2
+MAX_FAILURES = 2  # jobs that end without an image file
 MAX_JOBS = 12
 DEFAULT_JOBS = 8  # the Higgsfield plus plan runs at most 8 jobs at once
 RATE_LIMIT_WAIT = 15
@@ -142,6 +140,8 @@ def accepted(record):
 
 
 def next_step(record):
+    """done, generate, or exhausted: three images in the current reroll window, or two jobs that ended without one.
+    An image whose judge raised still counts as an image, and judge, accept and reject can still reach it."""
     if accepted(record) is not None:
         return "done"
     tries = record["attempts"][record.get("rerollFrom", 0):]
@@ -222,20 +222,24 @@ def make_judge(kind, key, anchors, raw, here=HERE):
 
 class Budget:
     """Lets a job start only while this run's spend stays within its cap. A job that ends without an image still
-    counts as spent, since the account may have charged it."""
+    counts as spent, since the account may have charged it. A refusal does not latch: a reservation handed back
+    after a rate limit can start another job. Only an error in the run stops it."""
 
     def __init__(self, cap, log=print):
         self.cap, self.log = float(cap), log
         self.spent = 0.0
         self.stopped = False
+        self._warned = False
         self._lock = threading.Lock()
 
     def reserve(self, cost):
         with self._lock:
-            if self.stopped or self.spent + cost > self.cap + 1e-9:
-                if not self.stopped:
-                    self.log(f"credits: stopping at this run's cap of {self.cap:g} ({self.spent:g} spent)")
-                self.stopped = True
+            if self.stopped:
+                return False
+            if self.spent + cost > self.cap + 1e-9:
+                if not self._warned:
+                    self.log(f"credits: at this run's cap of {self.cap:g} ({self.spent:g} spent)")
+                    self._warned = True
                 return False
             self.spent += cost
             return True
@@ -247,16 +251,19 @@ class Budget:
 
 # Generation --------------------------------------------------------------------------------------------------------
 
-def _start_job(runner, kind, prompt, references, budget, sleep):
-    for _ in range(RATE_LIMIT_TRIES):
+def _start_job(runner, kind, prompt, references, budget, sleep, log):
+    """Run one job, waiting out the account's rate limit; None when the cap or a long rate limit stops it, so
+    nothing is recorded and a later run tries again."""
+    for tries in range(RATE_LIMIT_TRIES):
         if not budget.reserve(COST[kind]):
             return None
         try:
             return runner(kind, prompt, references)
         except RateLimited:
             budget.release(COST[kind])
-            sleep(RATE_LIMIT_WAIT)
-    raise GenerationError(f"still rate limited after {RATE_LIMIT_TRIES} tries")
+            sleep(RATE_LIMIT_WAIT * (1 + tries % 4))
+    log(f"{kind}: still rate limited after {RATE_LIMIT_TRIES} tries; left for the next run")
+    return None
 
 
 def _attempt(kind, key, raw, anchors, runner, fetch, judge_for, budget, log, sleep):
@@ -271,7 +278,7 @@ def _attempt(kind, key, raw, anchors, runner, fetch, judge_for, budget, log, sle
         attempt = {"n": n, "model": MODEL, "settings": SETTINGS[kind], "prompt": prompt, "references": refs,
                    "date": today()}
         try:
-            job = _start_job(runner, kind, prompt, refs, budget, sleep)
+            job = _start_job(runner, kind, prompt, refs, budget, sleep, log)
         except GenerationError as error:
             job = None
             attempt.update(verdict="failed", error=str(error))
@@ -283,24 +290,31 @@ def _attempt(kind, key, raw, anchors, runner, fetch, judge_for, budget, log, sle
             attempt.update(job=job["id"], url=job["url"])
             try:
                 fetch(job["url"], path)
+                attempt.update(image=image, rawSha256=sha256(path), by="script")
                 metrics, reasons = judge_for(key)(path)
-                attempt.update(image=image, rawSha256=sha256(path), metrics=metrics, reasons=reasons,
-                               verdict="rejected" if reasons else "accepted", by="script")
+                attempt.update(metrics=metrics, reasons=reasons, verdict="rejected" if reasons else "accepted")
             except (GenerationError, OSError, ValueError) as error:
                 attempt.update(verdict="failed", error=str(error))
         record["attempts"].append(attempt)
         save_record(raw, record)
         detail = attempt.get("error") or ", ".join(attempt.get("reasons", [])) or "ok"
         log(f"{kind} {key}: attempt {n} {attempt['verdict']} ({detail})")
+        if "image" in attempt and attempt["verdict"] == "failed":
+            log(f"{kind} {key}: the judge failed on a paid image; kept for medallions.py judge, no reroll this run")
+            return record
     return record
 
 
 def generate(kind, keys, raw, anchors, *, runner, fetch, judge_for, budget, jobs=DEFAULT_JOBS, log=print,
              sleep=time.sleep):
     """Generate every listed asset that is not finished, at most jobs at a time; returns {key: step} afterwards.
-    A locked race master is never generated."""
+    A locked race master is never generated. Each asset's judge is built before anything is spent, so a missing
+    anchor copy stops the run instead of paying for images it cannot judge; a badge whose bust is not accepted yet
+    is left for a later run."""
     todo = [key for key in keys if not (kind == "crest" and is_locked_master(anchors, key))
             and next_step(load_record(raw, kind, key)) == "generate"]
+    for key in [k for k in todo if references_for(kind, k, anchors, raw) is not None]:
+        judge_for(key)
     (Path(raw) / kind).mkdir(parents=True, exist_ok=True)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, min(MAX_JOBS, jobs))) as pool:
         futures = [pool.submit(_attempt, kind, key, raw, anchors, runner, fetch, judge_for, budget, log, sleep)
@@ -429,6 +443,8 @@ def fetch_anchors(anchors, raw, fetch=download, here=HERE, log=print):
         if sha256(original) != anchor["sha256"]:
             raise SystemExit(f"anchor {label}: {original} does not match its SHA-256 in anchors.json")
         copy = anchor_copy(anchor, here)
+        if copy.exists() and anchor.get("copySha256") and sha256(copy) != anchor["copySha256"]:
+            raise SystemExit(f"anchor {label}: {copy} differs from its copySha256 in anchors.json")
         if not copy.exists():
             copy.parent.mkdir(parents=True, exist_ok=True)
             image = Image.open(original).convert("RGBA")
@@ -607,6 +623,27 @@ def contact_sheets(raw, kinds, keys, out_dir, log=print):
 
 # Verify ------------------------------------------------------------------------------------------------------------
 
+def banned_in(text):
+    low = text.lower()
+    return [w for w in tables.BANNED_WORDS if w in low]
+
+
+def historical_words(anchors, entry):
+    """Words a locked anchor's prompt carried when it was sent, before the table was reworded; never sent again."""
+    race = tables.split_key(entry["key"])[0]
+    anchor = anchors.get("crests", {}).get(race, {})
+    return anchor.get("historicalWords", ()) if anchor.get("job") == entry.get("job") else ()
+
+
+def mask_matches(repo, entry, mask):
+    """Whether a shipped mask is exactly what imaging.crest_masks derives from its shipped crest."""
+    import imaging
+    from PIL import Image
+
+    derived = dict(zip(MASKS, imaging.crest_masks(Image.open(Path(repo) / entry["derivedFrom"]).convert("RGBA"))))[mask]
+    return Image.open(Path(repo) / entry["file"]).convert("RGBA").tobytes() == derived.tobytes()
+
+
 def png_size(path):
     data = Path(path).read_bytes()[:24]
     if not data.startswith(PNG_SIGNATURE):
@@ -647,6 +684,8 @@ def verify(repo=REPO, complete=False):
         if "derivedFrom" in e:
             if e["derivedFrom"] not in listed:
                 problems.append(f"{e['file']}: derived from {e['derivedFrom']}, which the manifest does not list")
+            elif path.exists() and (repo / e["derivedFrom"]).exists() and not mask_matches(repo, e, mask):
+                problems.append(f"{e['file']}: does not match the {mask} mask of {e['derivedFrom']} (run medallions.py bake)")
             continue
         if text_sha256(e["prompt"]) != e["promptSha256"]:
             problems.append(f"{e['file']}: its prompt SHA-256 does not match its prompt")
@@ -654,9 +693,8 @@ def verify(repo=REPO, complete=False):
             problems.append(f"{e['file']}: no Higgsfield job")
         if e["judge"]["by"] == "script" and e["judge"].get("overruled"):
             problems.append(f"{e['file']}: judged by script but has overruled reasons")
-        if not e.get("anchor"):
-            low = e["prompt"].lower()
-            problems += [f"{e['file']}: its prompt names '{w}'" for w in tables.BANNED_WORDS if w in low]
+        allowed = historical_words(anchors, e) if e.get("anchor") else ()
+        problems += [f"{e['file']}: its prompt names '{w}'" for w in banned_in(e["prompt"]) if w not in allowed]
     if render_provenance(entries) not in (repo / PROVENANCE).read_text(encoding="utf-8") and entries:
         problems.append(f"{PROVENANCE}: the Medallions section is stale (run medallions.py bake)")
     lua = repo / LUA
@@ -672,8 +710,13 @@ def verify(repo=REPO, complete=False):
                 problems.append(f"anchors.json has no {label} anchor")
             elif not (here / anchor["copy"]).exists():
                 problems.append(f"anchor {label}: {anchor['copy']} is missing")
-            elif text_sha256(anchor["prompt"]) != anchor["promptSha256"]:
-                problems.append(f"anchor {label}: its prompt SHA-256 does not match its prompt")
+            else:
+                if sha256(here / anchor["copy"]) != anchor["copySha256"]:
+                    problems.append(f"anchor {label}: {anchor['copy']} differs from its copySha256")
+                if text_sha256(anchor["prompt"]) != anchor["promptSha256"]:
+                    problems.append(f"anchor {label}: its prompt SHA-256 does not match its prompt")
+                problems += [f"anchor {label}: its prompt names '{w}'" for w in banned_in(anchor["prompt"])
+                             if w not in anchor.get("historicalWords", ())]
         missing = [r for r in tables.RACES if r not in anchors.get("crests", {})]
         problems += [f"anchors.json has no crest race master for {r}" for r in missing]
         for race, anchor in anchors.get("crests", {}).items():
@@ -779,6 +822,8 @@ def main(argv=None):
             for key in _keys(args, kind):
                 record = load_record(RAW, kind, key)
                 todo = [a for a in record["attempts"] if "image" in a and a.get("by") == "script"]
+                for attempt in todo:
+                    attempt.pop("error", None)
                 if not todo:
                     continue
                 judge = make_judge(kind, key, anchors, RAW)

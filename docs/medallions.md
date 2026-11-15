@@ -12,7 +12,7 @@
 
 ## Keys and files
 
-Keys are the game's own tokens, lowercased: the race file UnitRace returns, the class file UnitClass returns, and `male` or `female`. A portrait key is `<race>_<class>_<sex>` (`nightelf_priest_female`), a crest key `<race>_<class>` (`troll_shaman`). The undead race file is `scourge`. No prompt names a race, place or faction of the setting; `tables.BANNED_WORDS` lists the words a test keeps out.
+Keys are the game's own tokens, lowercased: the race file UnitRace returns, the class file UnitClass returns, and `male` or `female`. A portrait key is `<race>_<class>_<sex>` (`nightelf_priest_female`), a crest key `<race>_<class>` (`troll_shaman`). The undead race file is `scourge`. Prompts describe each people in plain fantasy words (a mountain dwarf, a bull-headed minotaur) and never use the setting's own names: `tables.BANNED_WORDS` lists the words a test and `verify` keep out of every prompt. A locked anchor sent before the table was reworded lists the words it carried in `historicalWords` (the Skyborne master); it is never sent again.
 
 | Kind | Shipped file | Size |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ MedallionAssets.crests[raceFile][classFile] = { crest = path, glow = path, metal
 
 ## The judge
 
-Each image is measured at 256 px against the committed anchor copies; a rejected image is rerolled with the same prompt, at most three images per asset. Every threshold was set so that the art Lee approved passes; `imaging.py` holds the values.
+Each image is measured at 256 px: a bust against the committed portrait anchor copy, a badge against its own accepted bust, a crest edit against its race master's copy. A rejected image is rerolled with the same prompt. An asset is exhausted after three images, or after two jobs that ended without an image (`MAX_IMAGES`, `MAX_FAILURES`); `reject` opens a new window of three. A rate limit that lasts through 40 waits, or the run's credit cap, records nothing and leaves the asset for the next run. If the judge itself fails on a paid image, the image is kept and not rerolled: fix the cause and run `judge`, or decide by eye. Every threshold was set so that the art Lee approved passes; `imaging.py` holds the values.
 
 | Check | Rule | Calibration |
 | --- | --- | --- |
@@ -70,4 +70,4 @@ $PY Tools/medallions/medallions.py bake
 $PY Tools/medallions/medallions.py verify --complete
 ```
 
-`generate` needs the Higgsfield CLI signed in. It never spends more than `--max-credits` in one run and prints the balance before and after. Raw images and records live in `~/.local/share/wow-dev/medallions/raw` (`MEDALLIONS_RAW` overrides it), so a rerun picks up where it stopped. `adopt` records an image another thread generated, with its job id, prompt and references, and judges it like any other. `Tools/tests/test_medallions.py` runs `verify` on the repository.
+`generate` needs the Higgsfield CLI signed in and the anchor copies in place: it builds every asset's judge before it spends anything. It never spends more than `--max-credits` in one run and prints the balance before and after. Raw images and records live in `~/.local/share/wow-dev/medallions/raw` (`MEDALLIONS_RAW` overrides it), so a rerun picks up where it stopped. `adopt` records an image another thread generated, with its job id, prompt and references, and judges it like any other. `Tools/tests/test_medallions.py` runs `verify` on the repository.

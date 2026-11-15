@@ -4,6 +4,7 @@ tests spend no credits.
 """
 
 import copy
+import importlib
 import json
 import shutil
 import sys
@@ -13,14 +14,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "Tools" / "medallions"))
-
-import medallions  # noqa: E402
-import tables  # noqa: E402
+medallions = importlib.import_module("medallions")
+tables = importlib.import_module("tables")
 
 try:
     from PIL import Image, ImageDraw
 
-    import imaging
+    imaging = importlib.import_module("imaging")
 except ImportError:  # the image tests need Pillow, as the venv interpreter has
     Image = None
 
@@ -54,6 +54,12 @@ class TablesTest(unittest.TestCase):
             for text in texts:
                 for word in tables.BANNED_WORDS:
                     self.assertNotIn(word, text.lower(), f"{race} {cls}: {word}")
+
+    def test_every_anchor_prompt_is_clean_apart_from_its_historical_words(self):
+        anchors = [ANCHORS["portrait"], ANCHORS["badge"], ANCHORS["crestStyle"], *ANCHORS["crests"].values()]
+        for anchor in anchors:
+            extra = set(medallions.banned_in(anchor["prompt"])) - set(anchor.get("historicalWords", ()))
+            self.assertEqual(extra, set(), anchor["key"])
 
     def test_keys_are_checked_against_the_matrix(self):
         self.assertEqual(tables.split_key("nightelf_priest_female"), ("nightelf", "priest", "female"))
@@ -89,8 +95,8 @@ class TablesTest(unittest.TestCase):
 class FakeService:
     """Stands in for Higgsfield: each job makes one image whose verdict the test scripts by job number."""
 
-    def __init__(self, rejected=(), failed=(), busy=0):
-        self.rejected, self.failed, self.busy = set(rejected), set(failed), busy
+    def __init__(self, rejected=(), failed=(), busy=0, broken=()):
+        self.rejected, self.failed, self.busy, self.broken = set(rejected), set(failed), busy, set(broken)
         self.calls = []
 
     def run(self, kind, prompt, references):
@@ -110,6 +116,8 @@ class FakeService:
     def judge_for(self, key):
         def judge(path):
             n = int(Path(path).read_text().rsplit("/", 1)[1].split(".")[0])
+            if n in self.broken:
+                raise ValueError("cannot read the image")
             return {"n": n}, (["off-centre"] if n in self.rejected else [])
         return judge
 
@@ -164,6 +172,43 @@ class GenerateTest(unittest.TestCase):
         steps, budget = self.run_generate(service, "bust", ["gnome_rogue_male"])
         self.assertEqual(steps["gnome_rogue_male"], "done")
         self.assertEqual(budget.spent, 1.5)
+
+    def test_a_sustained_rate_limit_records_nothing_and_leaves_the_asset_for_the_next_run(self):
+        service = FakeService(busy=10 ** 6)
+        steps, budget = self.run_generate(service, "bust", ["gnome_rogue_male"])
+        self.assertEqual(steps["gnome_rogue_male"], "generate")
+        self.assertEqual(budget.spent, 0)
+        self.assertEqual(medallions.load_record(self.raw, "bust", "gnome_rogue_male")["attempts"], [])
+
+    def test_a_judge_error_keeps_the_paid_image_and_stops_rerolling_it(self):
+        service = FakeService(broken={1})
+        steps, _ = self.run_generate(service, "bust", ["gnome_rogue_male"])
+        self.assertEqual(len(service.calls), 1)
+        self.assertEqual(steps["gnome_rogue_male"], "generate")
+        attempt = medallions.load_record(self.raw, "bust", "gnome_rogue_male")["attempts"][0]
+        self.assertEqual((attempt["verdict"], attempt["image"]), ("failed", "gnome_rogue_male-1.png"))
+        chosen = medallions.accept_by_eye(self.raw, "bust", "gnome_rogue_male", "looked at it")
+        self.assertEqual(chosen["n"], 1)
+
+    def test_a_missing_anchor_stops_the_run_before_anything_is_spent(self):
+        service = FakeService()
+
+        def judge_for(key):
+            raise FileNotFoundError("anchors/crest_troll_priest.png")
+
+        budget = medallions.Budget(100, log=self.log.append)
+        with self.assertRaises(FileNotFoundError):
+            medallions.generate("crest", ["troll_rogue"], self.raw, ANCHORS, runner=service.run, fetch=service.fetch,
+                                judge_for=judge_for, budget=budget, jobs=1, log=self.log.append, sleep=lambda s: None)
+        self.assertEqual((service.calls, budget.spent), ([], 0))
+
+    def test_a_reservation_handed_back_at_the_cap_can_start_another_job(self):
+        budget = medallions.Budget(3.0, log=self.log.append)
+        self.assertTrue(budget.reserve(1.5))
+        self.assertTrue(budget.reserve(1.5))
+        self.assertFalse(budget.reserve(1.5))
+        budget.release(1.5)
+        self.assertTrue(budget.reserve(1.5))
 
     def test_two_failed_jobs_exhaust_an_asset(self):
         service = FakeService(failed={1, 2})
@@ -262,6 +307,18 @@ class ImagingTest(unittest.TestCase):
         _, reasons = imaging.judge_crest(master, tables.GLOW_HUES["rogue"], master)
         self.assertEqual(reasons, ["emblem unchanged (0% of the field)"])
 
+    def test_a_change_in_blue_alone_counts_as_a_new_emblem(self):
+        master = Image.open(ROOT / "Tools" / "medallions" / ANCHORS["crests"]["troll"]["copy"]).convert("RGBA")
+        r, g, b, a = master.split()
+        bluer = Image.merge("RGBA", (r, g, b.point(lambda v: min(255, v + 80)), a))
+        metrics = imaging.crest_metrics(bluer, master)
+        self.assertGreater(metrics["emblem_changed"], 0.5)
+
+    def test_a_portrait_with_no_subject_is_not_centred(self):
+        flat = Image.new("RGB", (512, 512), (30, 30, 30))
+        _, reasons = imaging.judge_portrait(flat, {"luma": 30, "sat": 0.0, "cy": 0.5})
+        self.assertIn("no subject stands out from the background", reasons)
+
     def test_an_edit_of_another_race_s_master_drifts(self):
         here = ROOT / "Tools" / "medallions"
         troll = Image.open(here / ANCHORS["crests"]["troll"]["copy"])
@@ -319,6 +376,23 @@ class VerifyTest(unittest.TestCase):
         problems = medallions.verify(repo)
         self.assertIn(f"{medallions.LUA} is stale (run medallions.py bake)", problems)
         self.assertIn(f"{medallions.PROVENANCE}: the Medallions section is stale (run medallions.py bake)", problems)
+
+    @unittest.skipIf(Image is None, "needs Pillow")
+    def test_finds_a_changed_mask_and_a_changed_anchor_copy(self):
+        repo = self.copy_repo()
+        entries = json.loads((repo / "Tools/medallions/manifest.json").read_text())
+        glow = next(e for e in entries if e["kind"] == "crest_glow")
+        path = repo / glow["file"]
+        image = Image.open(path).convert("RGBA")
+        image.putpixel((128, 128), (255, 255, 255, 7))
+        image.save(path)
+        glow["sha256"] = medallions.sha256(path)
+        (repo / "Tools/medallions/manifest.json").write_text(json.dumps(entries))
+        anchor = repo / "Tools/medallions" / ANCHORS["portrait"]["copy"]
+        anchor.write_bytes(anchor.read_bytes() + b"\0")
+        problems = medallions.verify(repo)
+        self.assertTrue(any(p.startswith(f"{glow['file']}: does not match the glow mask") for p in problems), problems)
+        self.assertIn(f"anchor portrait: {ANCHORS['portrait']['copy']} differs from its copySha256", problems)
 
     def test_complete_names_every_missing_combination(self):
         problems = medallions.verify(ROOT, complete=True)

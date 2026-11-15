@@ -27,7 +27,7 @@ CREST_FILL_RANGE = (0.6, 1.0)  # the crest's longest side as a share of the canv
 SILHOUETTE_IOU_MIN = 0.93  # an edit's silhouette against its master's
 FRAME_MAE_MAX = 0.12  # an edit's frame band against its master, mean absolute difference of 0..1 RGB
 FRAME_LUMA_DRIFT = 0.20
-CHANGE_THRESHOLD = 60  # luma difference that marks an interior pixel as part of the new emblem
+CHANGE_THRESHOLD = 60  # largest channel difference that marks an interior pixel as part of the new emblem
 EMBLEM_CHANGED_MIN = 0.05  # share of the interior the new emblem must change
 HUE_TOLERANCE = 40
 WHITE_SHARE_MIN = 0.30  # a white emblem: share of its bright pixels with saturation under 0.25
@@ -187,7 +187,7 @@ def _centroid(mask):
                 total += 1
                 sx += x
                 sy += y
-    return (sx / total / w, sy / total / h) if total else (0.5, 0.5)
+    return (sx / total / w, sy / total / h) if total else (None, None)
 
 
 def portrait_metrics(image):
@@ -201,7 +201,8 @@ def portrait_metrics(image):
     subject = Image.composite(subject, Image.new("L", subject.size, 0), inside)
     cx, cy = _centroid(subject)
     return {"luma": round(_mean(luma, inside), 2), "sat": round(_mean(s, inside), 4),
-            "background": round(background, 2), "cx": round(cx, 4), "cy": round(cy, 4)}
+            "background": round(background, 2), "cx": None if cx is None else round(cx, 4),
+            "cy": None if cy is None else round(cy, 4)}
 
 
 def badge_readability(image, size=24):
@@ -223,7 +224,9 @@ def judge_portrait(image, reference, badge=False):
     anchor for a bust, and of the badge's own bust for a badge."""
     m = portrait_metrics(image)
     reasons = []
-    if abs(m["cx"] - 0.5) > CENTRE_TOLERANCE or abs(m["cy"] - reference["cy"]) > CENTRE_TOLERANCE:
+    if m["cx"] is None:
+        reasons.append("no subject stands out from the background")
+    elif abs(m["cx"] - 0.5) > CENTRE_TOLERANCE or abs(m["cy"] - reference["cy"]) > CENTRE_TOLERANCE:
         reasons.append(f"off-centre (subject at {m['cx']:.2f}, {m['cy']:.2f})")
     if m["background"] > BACKGROUND_MAX:
         reasons.append(f"bright background ({m['background']:.0f})")
@@ -262,7 +265,7 @@ def _emblem_colour(crest, region):
                 white += 1
             elif sd[px, py] > 0.35:
                 w = sd[px, py] * vd[px, py]
-                angle = hd[px, py] / 256 * 2 * math.pi
+                angle = hd[px, py] / 255 * 2 * math.pi
                 x += w * math.cos(angle)
                 y += w * math.sin(angle)
                 weight += w
@@ -301,7 +304,8 @@ def crest_metrics(raw, master=None):
         m["frame_luma_drift"] = round(_drift(_mean(luma, band), _mean(ref.convert("RGB").convert("L"), band)), 4)
     else:
         m["frame_mae"], m["frame_luma_drift"] = 1.0, 1.0
-    changed = ImageChops.difference(crest.convert("RGB"), ref.convert("RGB")).convert("L")
+    r, g, b = ImageChops.difference(crest.convert("RGB"), ref.convert("RGB")).split()
+    changed = ImageChops.lighter(ImageChops.lighter(r, g), b)
     changed = ImageChops.multiply(changed.point(lambda v: 255 if v > CHANGE_THRESHOLD else 0), interior)
     m["emblem_changed"] = round(_count(changed) / max(1, _count(interior)), 4)
     m["hue"], m["white"] = _emblem_colour(crest, changed)
