@@ -55,8 +55,11 @@ local function Check(scene)
 	local file = scene.file
 	misses[file] = (misses[file] or 0) + 1
 	failed[file] = misses[file] >= MISSES or nil
-	local fallback = scene.fallback
+	local fallback, place, priority, seconds = scene.fallback, scene.place, scene.priority, scene.seconds
 	Idle(scene)
+	if place then
+		Effects.ClaimFor(place, priority, seconds, Effects.Stopper(place))
+	end
 	if fallback then
 		fallback()
 	end
@@ -71,8 +74,11 @@ local function NewScene()
 		return nil
 	end
 	scene:Hide()
-	local actor = scene:CreateActor()
-	if not actor then
+	local ok, actor = pcall(scene.CreateActor, scene, nil, "ModelSceneActorTemplate")
+	if not (ok and actor) then
+		ok, actor = pcall(scene.CreateActor, scene)
+	end
+	if not (ok and actor) then
 		return nil
 	end
 	scene.actor = actor
@@ -125,7 +131,11 @@ local function Pick(priority)
 		return free
 	end
 	if worst and worst.priority >= priority then
+		local fallback = worst.fallback
 		Idle(worst)
+		if fallback then
+			fallback()
+		end
 		return worst
 	end
 end
@@ -160,7 +170,7 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 		return false
 	end
 	clock = clock + 1
-	scene.busy, scene.priority, scene.started, scene.file = true, priority, clock, file
+	scene.busy, scene.priority, scene.started, scene.file, scene.seconds = true, priority, clock, file, seconds
 	scene.fallback, scene.place = fallback, place
 	local side = size * MARGIN
 	scene:SetParent(anchor)
@@ -180,18 +190,22 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 	return true
 end
 
-function Effects.StopModels(place)
+function Effects.StopModels(place, twins)
 	for i = 1, #pool do
 		local scene = pool[i]
 		if scene.busy and (place == nil or scene.place == place) then
+			local fallback = scene.fallback
 			Idle(scene)
+			if twins and fallback then
+				fallback()
+			end
 		end
 	end
 end
 
 local stoppers, stop2Ds = {}, {}
 
-local function Stopper(place)
+function Effects.Stopper(place)
 	local stop = stoppers[place]
 	if not stop then
 		stop = function()
@@ -210,7 +224,7 @@ function Effects.Burst(place, priority, anchor, key, size, seconds, play2D, stop
 	if not Effects.Allows("flare") then
 		return false
 	end
-	if not Effects.ClaimFor(place, priority, seconds, Stopper(place)) then
+	if not Effects.ClaimFor(place, priority, seconds, Effects.Stopper(place)) then
 		return false
 	end
 	stop2Ds[place] = stop2D
@@ -225,7 +239,7 @@ end
 
 ns.Callbacks.Register("EffectsLevelChanged", "EffectModels", function()
 	if not Effects.Allows("model") then
-		Effects.StopModels()
+		Effects.StopModels(nil, Effects.Allows("flare"))
 	end
 end)
 ns.Callbacks.Register("HudStyleChanged", "EffectModels", function(_, style)

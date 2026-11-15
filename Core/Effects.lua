@@ -115,22 +115,42 @@ function Effects.Release(place, token)
 	return true
 end
 
+local RING = 8
+
+local function Expire(place, rec, slot)
+	slot.waiting = slot.waiting - 1
+	if slot.waiting > 0 or slot.token ~= rec.token then
+		return
+	end
+	local stop = rec.stop
+	Effects.Release(place, rec.token)
+	if stop then
+		stop()
+	end
+end
+
 function Effects.ClaimFor(place, priority, seconds, stop)
 	local token = Effects.Claim(place, priority, stop)
 	if not token then
 		return nil
 	end
 	local rec = places[place]
-	rec.timed, rec.waiting = token, (rec.waiting or 0) + 1
-	if not rec.expire then
-		rec.expire = function()
-			rec.waiting = rec.waiting - 1
-			if rec.waiting == 0 and rec.timed == rec.token then
-				Effects.Release(place, rec.token)
+	local slots = rec.slots
+	if not slots then
+		slots = {}
+		for i = 1, RING do
+			local slot = { waiting = 0 }
+			slot.expire = function()
+				Expire(place, rec, slot)
 			end
+			slots[i] = slot
 		end
+		rec.slots, rec.next = slots, 0
 	end
-	C_Timer.After(seconds, rec.expire)
+	rec.next = rec.next % RING + 1
+	local slot = slots[rec.next]
+	slot.token, slot.waiting = token, slot.waiting + 1
+	C_Timer.After(seconds, slot.expire)
 	return token
 end
 

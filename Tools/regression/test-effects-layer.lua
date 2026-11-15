@@ -100,6 +100,7 @@ do
 	assert(E.LiveModels() == 3, "three models are live")
 	assert(not E.Model(anchor, keys[4], 100, 1.2, E.PRIORITY.cap, Twin), "a lower priority is refused when the pool is full")
 	assert(E.Model(anchor, keys[4], 100, 1.2, E.PRIORITY.lowHealth, Twin), "a higher priority evicts the oldest of the lowest")
+	assert(twins == 1, "the evicted effect plays its 2D twin")
 	assert(E.LiveModels() == 3, "the pool never holds more than three live models")
 	local scenes = 0
 	for _, frame in ipairs(env._frames) do
@@ -131,11 +132,11 @@ do
 	end
 	assert(E.Model(anchor, "WARLOCK", 100, 1.2, E.PRIORITY.proc, Twin), "the model starts loading")
 	env.RunTimers()
-	assert(twins == 1 and E.LiveModels() == 0, "a model that does not load in time gives way to its 2D twin")
+	assert(twins == 2 and E.LiveModels() == 0, "a model that does not load in time gives way to its 2D twin")
 	assert(not E.ModelFailed("WARLOCK"), "one slow load does not rule a file out")
 	assert(E.Model(anchor, "WARLOCK", 100, 1.2, E.PRIORITY.proc, Twin), "the file is tried again")
 	env.RunTimers()
-	assert(twins == 2 and E.ModelFailed("WARLOCK"), "a file that misses twice is not tried again")
+	assert(twins == 3 and E.ModelFailed("WARLOCK"), "a file that misses twice is not tried again")
 	assert(not E.Model(anchor, "WARLOCK", 100, 1.2, E.PRIORITY.proc, Twin), "the failed file plays nothing")
 
 	for _, frame in ipairs(env._frames) do
@@ -149,14 +150,14 @@ do
 	assert(E.ModelFailed("ROGUE"), "a refused file is not tried again")
 
 	local played = E.Burst("hub", E.PRIORITY.levelUp, anchor, "DRUID", 100, 1.2, Twin, nil)
-	assert(played == "2d" and twins == 3, "a burst falls back to its 2D twin when no model plays")
+	assert(played == "2d" and twins == 4, "a burst falls back to its 2D twin when no model plays")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not E.Model(anchor, "levelUp", 100, 1.2, E.PRIORITY.levelUp, Twin), "Calm plays no 3D")
 	env.RunTimers()
-	assert(E.Burst("hub", E.PRIORITY.levelUp, anchor, "levelUp", 100, 1.2, Twin, nil) == "2d" and twins == 4, "Calm plays the 2D twin")
+	assert(E.Burst("hub", E.PRIORITY.levelUp, anchor, "levelUp", 100, 1.2, Twin, nil) == "2d" and twins == 5, "Calm plays the 2D twin")
 	K.Options.Write("Medallions", "motion", "off")
 	env.RunTimers()
-	assert(not E.Burst("hub", E.PRIORITY.levelUp, anchor, "levelUp", 100, 1.2, Twin, nil) and twins == 4, "Off plays nothing")
+	assert(not E.Burst("hub", E.PRIORITY.levelUp, anchor, "levelUp", 100, 1.2, Twin, nil) and twins == 5, "Off plays nothing")
 	Errors(env, K)
 end
 
@@ -204,6 +205,69 @@ do
 	env.SetCombat(true)
 	env.RunTimers()
 	assert(not Rest.Resting(), "a fade that combat interrupted does not land")
+	Errors(env, K)
+end
+
+do
+	local env, K = New()
+	local E, P = K.Effects, K.Effects.PRIORITY
+	local pending = {}
+	env.C_Timer.After = function(seconds, fn)
+		pending[#pending + 1] = { seconds = seconds, fn = fn }
+	end
+	local function Fire(i)
+		local timer = table.remove(pending, i)
+		timer.fn()
+	end
+	local stops = {}
+	local function Stop(name)
+		return function()
+			stops[#stops + 1] = name
+		end
+	end
+	E.ClaimFor("hub", P.levelUp, 1.2, Stop("levelup"))
+	E.ClaimFor("hub", P.proc, 0.9, Stop("proc"))
+	assert(stops[1] == "levelup", "the proc replaces the level-up and stops it")
+	Fire(2)
+	assert(E.Holder("hub") == nil and stops[2] == "proc", "the proc's own timer frees the hub and runs its stop, though the level-up's timer is still pending")
+	Fire(1)
+	assert(#stops == 2 and E.Holder("hub") == nil, "the replaced claim's timer does nothing")
+	E.ClaimFor("hub", P.proc, 0.9, Stop("a"))
+	local held = E.Claim("hub", P.lowHealth, Stop("b"))
+	Fire(1)
+	assert(E.Holder("hub") == P.lowHealth and E.Release("hub", held), "a timer never frees a claim it did not make")
+
+	Medallions(env, K)
+	local anchor = env.CreateFrame("Frame", nil, env.UIParent)
+	local twins = {}
+	local function Twin(name)
+		return function()
+			twins[#twins + 1] = name
+		end
+	end
+	for _, key in ipairs({ "levelUp", "SHAMAN", "MAGE" }) do
+		assert(E.Model(anchor, key, 100, 1.2, P.cap, Twin(key)))
+	end
+	assert(E.Model(anchor, "PALADIN", 100, 1.2, P.proc, Twin("PALADIN")), "a higher priority takes a full pool")
+	assert(twins[1] == "levelUp", "the evicted model's effect falls back to its 2D twin")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(E.LiveModels() == 0 and #twins == 4, "a switch to Calm turns every live model into its 2D twin")
+	K.Options.Write("Medallions", "motion", "full")
+	for _, frame in ipairs(env._frames) do
+		if frame:GetObjectType() == "ModelScene" then
+			frame.actor.IsLoaded = function()
+				return false
+			end
+		end
+	end
+	twins = {}
+	assert(E.Burst("burst", P.burst, anchor, "DRUID", 100, 1.2, Twin("druid"), nil) == "model", "the burst starts as a model")
+	for i = #pending, 1, -1 do
+		if pending[i].seconds == E.MODEL_GRACE then
+			Fire(i)
+		end
+	end
+	assert(twins[1] == "druid" and E.Holder("burst") == P.burst, "a model that misses its load hands over to the twin, which holds the place for its own run")
 	Errors(env, K)
 end
 

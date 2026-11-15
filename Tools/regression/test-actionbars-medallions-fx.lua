@@ -143,7 +143,7 @@ do
 		AB.Slot(env, i, { texture = 1, type = "spell", id = 100 + i })
 		env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100 + i)
 	end
-	assert(K.Effects.LiveModels() <= 3, "never more than three live models")
+	assert(K.Effects.LiveModels() == 1 and K.Effects.Holder("hub") == K.Effects.PRIORITY.proc, "each proc takes the hub from the last, so one hub model plays at a time")
 	for _, frame in ipairs(env._frames) do
 		if frame:GetObjectType() == "ModelScene" and frame:IsShown() then
 			assert(frame:GetFrameStrata() == hub:GetFrameStrata(), "a hub model stays in the hub's strata, under every slot")
