@@ -61,6 +61,12 @@ local function Gradient(texture)
 	end
 end
 
+local function Muted(view, text)
+	local path, size, flags = Settings.Font(view.kind, "level")
+	Widgets.ApplyFont(text, path, size, flags)
+	text:SetTextColor(Color("labelMuted", "muted"))
+end
+
 local function Build(view)
 	local panel = view.panel
 	local slab = { fill = panel:CreateTexture(nil, "BACKGROUND", nil, 1) }
@@ -70,6 +76,10 @@ local function Build(view)
 	slab.hairline = Lines(panel, "BORDER", 6, "steelEdge", "materialFlatEdge")
 	slab.inner = Lines(panel, "BORDER", 7, "slabInner", "socketEdge")
 	view.slab = slab
+	view.slabLevel = Widgets.FontString(view.top, "OVERLAY")
+	view.slabLevel:SetWordWrap(false)
+	view.slabLevel:SetJustifyV("MIDDLE")
+	Muted(view, view.slabLevel)
 	local medallion = Widgets.Medallion(view.parent)
 	medallion:SetFrameLevel(view.parent:GetFrameLevel() + LEVEL_MEDAL)
 	view.medallion = medallion
@@ -87,6 +97,7 @@ end
 
 local function Hide(view)
 	ShowSlab(view, false)
+	view.slabLevel:Hide()
 	local m = view.medallion
 	m:Sheen(false)
 	m:LowHealth(nil)
@@ -111,6 +122,34 @@ local function Extra(view, text, rect, justify)
 	text:Show()
 end
 
+local function NameLine(view, g)
+	local name, level, rect = view.name, view.slabLevel, g.name
+	if not (rect and g.medal) then
+		level:Hide()
+		name:SetJustifyH(g.medal and (g.mirror and "RIGHT" or "LEFT") or "CENTER")
+		return
+	end
+	local Snap, parent = Widgets.Snap, view.parent
+	local y, gap = -Snap(parent, rect.y + rect.h / 2), Snap(parent, g.levelGap)
+	name:ClearAllPoints()
+	level:ClearAllPoints()
+	name:SetHeight(Snap(parent, rect.h))
+	level:SetHeight(Snap(parent, rect.h))
+	name:SetWidth(view.nameBound and Snap(parent, g.nameRoom) or 0)
+	level:SetWidth(0)
+	if g.mirror then
+		level:SetPoint("RIGHT", parent, "TOPLEFT", Snap(parent, rect.x + rect.w), y)
+		name:SetPoint("RIGHT", level, "LEFT", -gap, 0)
+		name:SetJustifyH("RIGHT")
+	else
+		name:SetPoint("LEFT", parent, "TOPLEFT", Snap(parent, rect.x), y)
+		level:SetPoint("LEFT", name, "RIGHT", gap - Widgets.TrackPad(name), 0)
+		name:SetJustifyH("LEFT")
+	end
+	level:SetJustifyH(g.mirror and "RIGHT" or "LEFT")
+	level:Show()
+end
+
 function Slab.Layout(view, g)
 	if g.form ~= "slab" then
 		if view.slab then
@@ -130,7 +169,7 @@ function Slab.Layout(view, g)
 	local m, rect = view.medallion, g.medal
 	if rect then
 		Place(view, m, rect)
-		m:Layout(rect.w, view.s and view.s.level and g.medalSide or nil)
+		m:Layout(rect.w, g.medalSide)
 		m:Show()
 		m:Sheen(SHEEN[view.kind] == true)
 	else
@@ -138,7 +177,7 @@ function Slab.Layout(view, g)
 		m:LowHealth(nil)
 		m:Hide()
 	end
-	view.name:SetJustifyH(g.mirror and "RIGHT" or "LEFT")
+	NameLine(view, g)
 	view.healthText:SetJustifyH("CENTER")
 	local opposite = g.mirror and "LEFT" or "RIGHT"
 	Extra(view, view.healthSub, g.healthSub, opposite)
@@ -150,10 +189,10 @@ function Slab.Restyle(view, form)
 	if form ~= "slab" then
 		return
 	end
-	local path, size, flags = Settings.Font(view.kind, "level")
-	for _, key in ipairs({ "healthSub", "caption" }) do
-		Widgets.ApplyFont(view[key], path, size, flags)
-		view[key]:SetTextColor(Color("labelMuted", "muted"))
+	Muted(view, view.healthSub)
+	Muted(view, view.caption)
+	if view.slabLevel then
+		Muted(view, view.slabLevel)
 	end
 	view.healthText:SetTextColor(Tokens.Color("textEmphasis"))
 end
@@ -162,12 +201,9 @@ local function Active(view)
 	return view.form == "slab" and view.medallion ~= nil and view.geometry ~= nil and view.geometry.medal ~= nil
 end
 
-local function ClassColor(unit)
+local function ClassFile(unit)
 	local _, file = UnitClass(unit)
-	if IsSecret(file) or type(file) == "string" then
-		return Theme.ClassColorForWidget(file)
-	end
-	return nil
+	return IsSecret(file) or type(file) == "string", file
 end
 
 local function IsPlayer(unit)
@@ -195,11 +231,9 @@ local function RingColor(view, unit)
 	if view.kind == "boss" then
 		return Color("steel", "muted")
 	end
-	if IsPlayer(unit) then
-		local r, g, b = ClassColor(unit)
-		if r then
-			return r, g, b
-		end
+	local known, file = ClassFile(unit)
+	if known and IsPlayer(unit) then
+		return Theme.ClassColorForWidget(file)
 	end
 	return ns.Unit.ReactionColor(UnitReaction and UnitReaction(unit, "player"))
 end
@@ -208,10 +242,11 @@ function Slab.Colors(view, unit)
 	if view.form ~= "slab" then
 		return
 	end
+	local known, file = ClassFile(unit)
 	if Hostile(unit) then
 		view.name:SetTextColor(Color("nameHostile", "hostile"))
-	elseif unit ~= "player" and IsPlayer(unit) and ClassColor(unit) then
-		view.name:SetTextColor(ClassColor(unit))
+	elseif unit ~= "player" and known and IsPlayer(unit) then
+		view.name:SetTextColor(Theme.ClassColorForWidget(file))
 	else
 		view.name:SetTextColor(Tokens.Color("textEmphasis"))
 	end
@@ -245,13 +280,20 @@ function Slab.Level(view, unit)
 	end
 	local level = UnitLevel(unit)
 	local classification = UnitClassification and UnitClassification(unit)
-	if IsSecret(level) or IsSecret(classification) then
-		view.medallion:SetLevel(level)
-	elseif classification == "worldboss" or type(level) ~= "number" or level <= 0 then
-		view.medallion:SetLevel(UNKNOWN_LEVEL)
-	else
-		view.medallion:SetLevel(level)
+	if not (IsSecret(level) or IsSecret(classification)) and (classification == "worldboss" or type(level) ~= "number" or level <= 0) then
+		level = UNKNOWN_LEVEL
 	end
+	view.medallion:SetLevel(level)
+	view.slabLevel:SetText(level)
+end
+
+function Slab.Refresh(view, unit)
+	if view.form ~= "slab" then
+		return
+	end
+	ns.Unit.Portrait(view, unit)
+	ns.Unit.HealthColor(view, unit)
+	ns.Unit.Caption(view, unit)
 end
 
 function Slab.FlipIn(view)

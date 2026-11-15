@@ -248,9 +248,7 @@ function Medallion:Sheen(on)
 end
 
 function Medallion:FlipIn()
-	local effects = ns.Effects
-	local level = effects and effects.Level and effects.Level() or Motion.Level()
-	if level == "off" then
+	if not Allows("flare") then
 		return
 	end
 	self.flip:Stop()

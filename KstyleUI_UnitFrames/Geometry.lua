@@ -588,7 +588,7 @@ local SLAB = {
 	targettarget = { h = 36, bar = 12 },
 	focustarget = { h = 36, bar = 12 },
 }
-local SLAB_PAD = { top = 7, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 3, powerNameGap = 4, auraGap = 16, nameShare = 0.66 }
+local SLAB_PAD = { top = 7, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 3, powerNameGap = 4, auraGap = 16, nameShare = 0.66, levelGap = 6, levelEm = 1.9 }
 Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
 
 local function SlabFrame(out, s, width, height, scale)
@@ -627,8 +627,10 @@ local function SlabFrame(out, s, width, height, scale)
 	local extra = (spec.extra == "health" and s.healthText == "both") or spec.extra == "caption"
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
 	if s.name then
+		local levelSize = Size(s, "level", scale)
 		out.name = Rect(right and left + barW - room or left, y, room, rowH)
-		out.nameRoom = room
+		out.nameAuto, out.levelGap = true, SLAB_PAD.levelGap
+		out.nameRoom = max(0, room - ceil(SLAB_PAD.levelEm * levelSize) - SLAB_PAD.levelGap)
 	end
 	local extraW = max(0, barW - room - TEXT_GAP)
 	local extraX = right and left or left + barW - extraW

@@ -98,7 +98,29 @@ local pr, pg, pb = K.Theme.ClassColorForWidget("PALADIN")
 er, eg, eb = tm.enamel:GetVertexColor()
 assert(near(er, pr) and near(eg, pg) and near(eb, pb), "a player target's ring takes its class colour")
 assert(U.Shown(env, target.caption) == "PALADIN", "a player target's slab names the class")
+local fr, fg, fb = K.Theme.ReactionColor(5)
+local br, bg, bb = target.health:GetStatusBarColor()
+assert(near(br, fr) and near(bg, fg) and near(bb, fb), "under hud colours only your own bar takes the class colour; a friendly player target keeps the reaction colour")
+assert(U.Shown(env, target.slabLevel) == "12" and target.slabLevel:IsShown(), "the level follows the name")
 noErrors("target")
+
+local tinted = #U.W.Calls(tm.enamel, "SetVertexColor")
+U.SetUnit(env, "target", { name = "Stranger", class = "MAGE", race = "Gnome", sex = 2, isPlayer = true, secretClass = true, level = 20, health = 300, healthMax = 400, reaction = 5 })
+env.SetTarget(true)
+assert(#U.W.Calls(tm.enamel, "SetVertexColor") > tinted, "a secret class still tints the ring through the widget colour")
+assert(env._portraits[tm.portrait] == "target", "a secret identity keeps the engine portrait")
+noErrors("secret class")
+
+local pet = frames.pet.views[1]
+assert(pet.medallion.plaque:IsShown(), "the pet medallion carries its plaque even with the pet's level setting off")
+
+player.secretIdentity = true
+env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
+assert(env._portraits[m.portrait] == "player", "a restriction change re-resolves the portrait")
+player.secretIdentity = nil
+env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
+assert(m.portrait:GetTexture() == BUST, "the painted bust returns when the restriction lifts")
+noErrors("restriction")
 
 for _, kind in ipairs({ "focus", "pet" }) do
 	local each = frames[kind].views[1]
@@ -125,6 +147,7 @@ player.dead, player.health = true, 0
 env.FireEvent("UNIT_HEALTH", "player")
 assert(U.W.LastCall(m.portrait, "SetDesaturated")[1] == true, "a dead unit's portrait greys")
 assert(not m.lowFrame:IsShown(), "no low-health ring on the dead")
+assert(U.Shown(env, view.healthSub) == "", "the dead show Dead once, on the bar, got " .. tostring(U.Shown(env, view.healthSub)))
 player.dead, player.health = nil, 3000
 env.FireEvent("UNIT_HEALTH", "player")
 assert(U.W.LastCall(m.portrait, "SetDesaturated")[1] == false, "the portrait regains colour")

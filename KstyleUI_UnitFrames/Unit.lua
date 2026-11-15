@@ -100,7 +100,7 @@ function Unit.HealthColor(view, unit)
 		local c = s.healthCustom
 		r, g, b = c.r, c.g, c.b
 	else
-		r, g, b = UnitColor(unit, view.form == "slab" and s.healthColor == "hud" and "class" or s.healthColor)
+		r, g, b = UnitColor(unit, view.form == "slab" and s.healthColor == "hud" and unit == "player" and "class" or s.healthColor)
 	end
 	SetColor(view.health, r, g, b)
 	local reaction = UnitReaction and UnitReaction(unit, "player")
@@ -260,7 +260,9 @@ local function LumenHealth(view, unit, form, format)
 		Format.Health(view.healthText, unit, Format.Main(format))
 	elseif form == "slab" then
 		Format.Health(view.healthText, unit, format == "both" and "currentMax" or format)
-		Format.Health(view.healthSub, unit, format == "both" and "percent" or "none")
+		local dead = UnitIsDeadOrGhost and UnitIsDeadOrGhost(unit)
+		local gone = not IsSecret(dead) and dead == true
+		Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none")
 	elseif form == "row" then
 		Format.Health(view.healthText, unit, format)
 	end
