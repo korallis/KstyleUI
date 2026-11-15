@@ -548,7 +548,7 @@ Store.migrations[20] = function(data)
 	end
 end
 
-local HUD_STYLES = { frames = true, orbs = true }
+local HUD_STYLES = { frames = true, orbs = true, medallions = true }
 
 Store.migrations[21] = function(data)
 	for _, profile in pairs(data.profiles) do
