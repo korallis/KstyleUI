@@ -53,7 +53,7 @@ SK.Setup.Open()
 S.Settle(senv)
 SK.Setup.Go(2)
 S.Settle(senv)
-for value, texture in pairs({ frames = want[1], orbs = want[2] }) do
+for value, texture in pairs({ frames = want[1], orbs = want[2], medallions = want[3] }) do
 	local card = SK.Setup.window.styleCards[value]
 	local width, height = card.picture:GetSize()
 	assert(card.picture:GetTexture() == texture, "the setup's " .. value .. " card shows the same picture")

@@ -1,4 +1,4 @@
--- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab at any CREW screen, in all three presets: bars 1 and 2 stand on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
+-- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab or the experience strip at any CREW screen, in all three presets: bars 1 and 2 stand on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({
@@ -38,6 +38,8 @@ for _, name in ipairs(Layouts.Names()) do
 		assert(columns * rows == 12, label .. ": each group holds the bar's twelve slots")
 		assert(two.x - groupWidth / 2 - (one.x + groupWidth / 2) >= GAP - 1e-9, label .. ": the groups stand at least the hub gap apart")
 		local hub = { -RING / 2, one.y + groupHeight - RING / 2, RING / 2, one.y + groupHeight + RING / 2 }
+		local _, xpHeight = Layouts.Footprint(name, "databars.xp")
+		assert(hub[2] >= positions["databars.xp"].y + xpHeight, label .. ": the hub clears the experience strip")
 		for _, bar in ipairs({ one, two }) do
 			for column = 0, columns - 1 do
 				for row = 0, rows - 1 do

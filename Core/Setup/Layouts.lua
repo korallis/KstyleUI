@@ -841,7 +841,8 @@ function Layouts.BuildMedallions()
 	local sets = {}
 	for _, class in ipairs(ASPECTS) do
 		local _, _, width, height = Layouts.MedallionsGroup(class)
-		local top = TRAY_BAR1_Y + height
+		local baseline = math.max(TRAY_BAR1_Y, layouts.DPS["databars.xp"].y + XP_H + TIGHT + Layouts.MEDALLIONS_RING / 2 - height)
+		local top = baseline + height
 		local ends = hub / 2 + width + NEAR
 		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
@@ -850,8 +851,8 @@ function Layouts.BuildMedallions()
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
 		end
 		sets[class] = {
-			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = TRAY_BAR1_Y },
-			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = TRAY_BAR1_Y },
+			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
+			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = { anchor = "BOTTOM", x = -(ends + GridSize("actionbars.pet") / 2), y = TRAY_BOTTOM },
 			["actionbars.stance"] = { anchor = "BOTTOM", x = ends + GridSize("actionbars.stance") / 2, y = TRAY_BOTTOM },
 			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
@@ -1189,7 +1190,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		end
 		for index = 1, #rects do
 			local rect = rects[index]
-			if rect.key ~= "databars.xp" and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
+			if left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
 				return false
 			end
 		end
