@@ -185,16 +185,29 @@ function Slab.Level()
 	return Motion.Level() == "full" and "full" or "off"
 end
 
+local ALLOWED = { full = { ambient = true, flare = true, particle = true, pulse = true }, calm = { ambient = true }, off = {} }
+
+function Slab.Allows(kind)
+	local effects = K.Effects
+	if effects and type(effects.Allows) == "function" then
+		local ok, on = pcall(effects.Allows, kind)
+		if ok and type(on) == "boolean" then
+			return on
+		end
+	end
+	return ALLOWED[Slab.Level()][kind] == true
+end
+
 local function Moving()
-	return Slab.Level() == "full"
+	return Slab.Allows("flare")
 end
 
 local function Idling()
-	return Slab.Level() ~= "off"
+	return Slab.Allows("ambient")
 end
 
-local function Play(g)
-	if g and Moving() then
+local function Play(g, kind)
+	if g and Slab.Allows(kind or "flare") then
 		g:Stop()
 		g:Play()
 	end
@@ -578,7 +591,7 @@ local function Animate()
 			g:Play()
 		end
 	end
-	local alive = not Moving() and 0 or state.combat and PARTICLES or CALM_PARTICLES
+	local alive = not Slab.Allows("particle") and 0 or state.combat and PARTICLES or CALM_PARTICLES
 	for i, p in ipairs(hub.particles) do
 		if i <= alive then
 			if not p.anim:IsPlaying() then
@@ -728,8 +741,8 @@ function Slab.Pulse()
 	if not (state.built and Slab.hub:IsShown()) then
 		return
 	end
-	Play(Slab.hub.crest.pulse)
-	Play(Slab.hub.glyphs.flash)
+	Play(Slab.hub.crest.pulse, "pulse")
+	Play(Slab.hub.glyphs.flash, "pulse")
 end
 
 function Slab.LevelUp(level)
@@ -816,10 +829,10 @@ function Slab.SetProc(b, on)
 	loop:SetVertexColor(r, g, bl, 1)
 	start:SetVertexColor(r, g, bl, 1)
 	loop:Show()
-	if Moving() then
+	if Slab.Allows("pulse") then
 		loop.anim:Play()
-		Play(start.anim)
 	end
+	Play(start.anim)
 	Slab.Pulse()
 end
 
@@ -838,6 +851,12 @@ local function OnStyle()
 	end
 end
 
+local function OnMotion()
+	if state.built and Slab.hub:IsShown() then
+		Animate()
+	end
+end
+
 function Slab.Enable()
 	state.combat = InCombatLockdown() == true
 	state.wingsOut = state.combat
@@ -846,11 +865,10 @@ function Slab.Enable()
 	K.Events.Register(OWNER, "PLAYER_LEVEL_UP", OnLevel)
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", OnStyle)
 	K.Callbacks.Register("HudStyleChanged", OWNER, OnStyle)
-	K.Callbacks.Register("SettingChanged", OWNER, function()
-		if state.built and Slab.hub:IsShown() then
-			Animate()
-		end
-	end)
+	K.Callbacks.Register("SettingChanged", OWNER, OnMotion)
+	if K.Effects then
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, OnMotion)
+	end
 	Slab.Refresh()
 end
 
@@ -858,5 +876,8 @@ function Slab.Disable()
 	K.Events.UnregisterAll(OWNER)
 	K.Callbacks.Unregister("HudStyleChanged", OWNER)
 	K.Callbacks.Unregister("SettingChanged", OWNER)
+	if K.Effects then
+		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	end
 	Hide()
 end
