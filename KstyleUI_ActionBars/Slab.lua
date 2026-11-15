@@ -507,11 +507,8 @@ function Slab.PaintPlaque(gold)
 	if gold then
 		Widgets.Tint(hub.plaque, "capsGold")
 		hub.level:SetTextColor(Tokens.Color("capsGold"))
-	elseif Known("medLevelPlaque") then
-		hub.plaque:SetVertexColor(1, 1, 1, 1)
-		hub.level:SetTextColor(Tokens.Color("text"))
 	else
-		Widgets.Tint(hub.plaque, "raised")
+		Widgets.Tint(hub.plaque, Known("medLevelPlaque") and "white" or "buttonFill")
 		hub.level:SetTextColor(Tokens.Color("text"))
 	end
 end
