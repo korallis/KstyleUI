@@ -527,36 +527,6 @@ local function PaintLevel(level)
 	Slab.hub.level:SetText(level and tostring(level) or "")
 end
 
-local function Identity()
-	local secrets = C_Secrets
-	if secrets and type(secrets.ShouldUnitIdentityBeSecret) == "function" then
-		local ok, secret = pcall(secrets.ShouldUnitIdentityBeSecret, "player")
-		if not ok or IsSecret(secret) or secret == true then
-			return nil
-		end
-	end
-	if type(UnitRace) ~= "function" then
-		return nil
-	end
-	local _, race = UnitRace("player")
-	local _, class = UnitClass("player")
-	if IsSecret(race) or IsSecret(class) or type(race) ~= "string" or type(class) ~= "string" then
-		return nil
-	end
-	return race, class
-end
-
-local function OwnCrest()
-	local assets = K.MedallionAssets
-	local crests = assets and assets.crests
-	local race, class = Identity()
-	local entry = race and crests and crests[race] and crests[race][class]
-	if type(entry) == "table" and entry.crest then
-		return entry.crest, entry.glow
-	end
-	return nil
-end
-
 local function Crest()
 	local medallions = K.Medallions
 	if medallions and type(medallions.Crest) == "function" then
@@ -564,10 +534,6 @@ local function Crest()
 		if ok and crest and not IsSecret(crest) then
 			return crest, not IsSecret(glow) and glow or nil
 		end
-	end
-	local crest, glow = OwnCrest()
-	if crest then
-		return crest, glow
 	end
 	return Slab.Texture("medCrest"), nil
 end

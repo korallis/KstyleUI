@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, else from KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear M3's slot frames; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear M3's slot frames; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -211,10 +211,13 @@ do
 	env.UnitRace = function()
 		return "Dwarf", "Dwarf", 3
 	end
+	env.UnitSex = function()
+		return 2
+	end
 	Medallions(K, env)
 	local hub = ns.Slab.hub
 	local own = K.MedallionAssets.crests.Dwarf.SHAMAN
-	assert(hub.crestPath == own.crest and hub.bloom:GetTexture() == own.glow, "with no resolver the hub looks the player's crest up by race and class")
+	assert(hub.crestPath == own.crest and hub.bloom:GetTexture() == own.glow, "the hub shows the player's crest from KstyleUI.Medallions.Crest, by race and class")
 	env.C_Secrets = { ShouldUnitIdentityBeSecret = function()
 		return true
 	end }
