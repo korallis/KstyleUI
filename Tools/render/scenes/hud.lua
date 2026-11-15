@@ -1487,6 +1487,16 @@ function modules.restedxp(opts)
 		end
 	end
 	R.ns.RestedXP.Rail.Place()
+	-- RENDER_RXP_ANCHOR=bottom anchors RestedXP's active steps under its window, as its "bottom" orientation does and as
+	-- RestedXP does itself when the steps' top would pass the screen's top (GuideWindow.lua 353-391), then lays the
+	-- steps out again, as its update loop does.
+	if (rawget(_G, "RENDER_RXP_ANCHOR") or os.getenv("RENDER_RXP_ANCHOR")) == "bottom" then
+		R.rxp.settings.profile.anchorOrientation = "bottom"
+		R.rxp.RXPFrame.SetStepFrameAnchor()
+		R.rxp.RXPFrame.CurrentStepFrame.UpdateText()
+		R.env.RunTimers()
+		R.ns.RestedXP.Rail.Place()
+	end
 	-- RENDER_RXP_BOXES=1 shows RestedXP's Active Targets and Active Items boxes, each with one icon, starting from the
 	-- places the owner's RestedXP settings saved for them (KSTY-77), so the render shows where the rail docks them.
 	if (rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")) == "1" then
