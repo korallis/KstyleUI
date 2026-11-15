@@ -1,0 +1,620 @@
+{
+ "ambient_druid": {
+  "job_id": "f566d181-0ebe-46b3-8dd1-6978d13a5a10",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: warm amber nature magic with small glowing autumn leaves swirling along it, a soft golden-orange core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_hunter": {
+  "job_id": "8a83c390-c1c6-4bf9-a049-86abd5bfa7d1",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: moss-green wind currents with small pale feathers and green motes streaming along it. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_mage": {
+  "job_id": "948af1ad-70ae-45c0-aea9-56419e84a9be",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: icy cyan arcane energy with tiny glowing runic glyph sparks orbiting along it, a bright white-cyan core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_paladin": {
+  "job_id": "97638332-b5ae-4e6e-8aa1-9f5a0348341f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: radiant rose-gold holy light with short beams of light radiating outward, a bright warm white core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_priest": {
+  "job_id": "a01e0b7d-9f94-4f82-ac5d-7fc9891f6b8b",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: soft pearl-white holy light with tiny glowing motes and small four-pointed twinkles drifting along it. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_rogue": {
+  "job_id": "8dbaac1e-6132-405a-b583-0ec98f92da7a",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: thin wisps of dark smoke edged with pale gold light and small gold glints along it. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_shaman": {
+  "job_id": "e7d9e40f-c089-4fcb-81d3-e79ef54c671f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: crackling electric-blue storm lightning, small forks and arcs running along it, a bright white-blue core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_warlock": {
+  "job_id": "5e9ecb19-ec0e-4c94-8ffa-2e9ac2adc246",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: violet shadow flame licking along it with drifting fel-green embers, a bright magenta-violet core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "ambient_warrior": {
+  "job_id": "8ce1b126-1194-4e04-9042-2f0d390c3ead",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 90
+  },
+  "prompt": "Game interface ambient effect for a round character portrait medallion in a fantasy RPG, made to be drawn with additive blending at low opacity. The portrait is a pure black disc filling the middle 70 percent of the canvas; a calm, sparse, gentle ring of the motif drifts slowly around its rim and fades to black well before the canvas edge. Motif: tan and ember-orange forge fire with hot sparks and embers flying off it, a bright yellow-white core. Subtle and quiet, mostly dark, perfectly centred. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "barfill": {
+  "job_id": "09aa3974-f666-483c-89f4-41da03017c51",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "A seamless horizontal texture strip for the fill of a status bar in a game interface, in neutral greyscale only so it can be tinted any colour: a flat light-grey band filling the whole canvas, with one soft, slightly lighter horizontal stripe a little above the middle and a very slightly darker bottom edge. Completely uniform from left to right so it tiles horizontally without a seam; no bevel, no shine spot, no texture grain, no border, no colour."
+ },
+ "bartrack": {
+  "job_id": "dacefc4e-5fa6-4ee5-939d-90f4ce46e3b2",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "A seamless horizontal texture for the empty track behind a status bar in a game interface, in neutral greyscale only: a flat dark grey band filling the whole canvas, very slightly darker along the top edge as if gently recessed, with an extremely faint fine brushed-metal grain running horizontally. Completely uniform from left to right so it tiles horizontally without a seam; no border, no colour, no highlights."
+ },
+ "burst_druid": {
+  "job_id": "e29affa7-2e1d-4227-8d29-76d98a42c59d",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: warm amber nature magic with glowing autumn leaves swirling outward, a golden-orange core. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_hunter": {
+  "job_id": "227f9cbf-d583-48a1-b695-b9321aa5411f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: moss-green wind gusts with pale feathers and green motes streaming outward. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_mage": {
+  "job_id": "06e9a4bd-d25f-44c1-a71c-4a6e9b8e5ada",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: icy cyan arcane energy with tiny glowing runic glyph sparks, a bright white-cyan core. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_paladin": {
+  "job_id": "e4f9571e-c0dd-4b15-a748-3ff9e17c17f9",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: radiant rose-gold holy light with long beams radiating outward, a bright warm white core. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_priest": {
+  "job_id": "37f67f8f-64d3-4a07-b45a-c8f29a9e549d",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: soft pearl-white holy light with glowing motes and four-pointed twinkles. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_rogue": {
+  "job_id": "2b559640-e995-458a-9af7-cb184ecd3df7",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: curling dark smoke edged with pale gold light and sharp gold glints. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_shaman": {
+  "job_id": "5a87a6b6-dd3d-4b9f-86ce-fbb02673c207",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: crackling electric-blue storm lightning, forks and arcs, a bright white-blue core. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_warlock": {
+  "job_id": "d97fffaa-da00-4ba5-be6f-b08e5527c97f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: violet shadow flame with drifting fel-green embers, a bright magenta-violet core. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "burst_warrior": {
+  "job_id": "856b3cd0-42c8-45f8-8c69-d71128ccb4c9",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a radial burst that blooms behind a round character portrait medallion. The middle 40 percent of the canvas is a pure black disc where the medallion sits; around it the motif bursts outward in every direction, brightest near the disc and fading to black before the canvas edge, roughly radially symmetric. Motif: tan and ember-orange forge fire with hot sparks and embers flying outward. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "levelup": {
+  "job_id": "a24bbf83-3153-4d6a-a16e-25ceb24728d7",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 80
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG level-up moment, made to be drawn with additive blending, on a pure black background. A one-shot radiant golden burst centred on the canvas: frame 1 is a tiny bright white-gold spark in the centre, it swells into a bright golden starburst with long thin rays and a thin expanding ring of light and a few golden sparks, then the rays and ring fade out completely so the last frame is almost pure black. The centre stays exactly in the middle of the canvas in every frame, nothing touches the canvas edge. No text, no icon, no border."
+ },
+ "lowhealth": {
+  "job_id": "8a8f9e10-b030-44d1-bbb2-e0c16f4c1ce6",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG: a danger ring around a round character portrait. The middle 72 percent of the canvas is a pure black disc; around its rim a ring of deep crimson-red energy with smoky blood-red wisps and a soft red glow, evenly all the way round, fading to black before the canvas edge. Perfectly centred and round. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_druid": {
+  "job_id": "54f841dd-41c0-4f74-bcbe-42a09b9731dc",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a small glowing amber autumn leaf, each at a different rotation, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_hunter": {
+  "job_id": "325bc73f-3e8c-4c02-9e3c-42b7ff3a8026",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a small glowing moss-green mote, two of them with a tiny pale feather, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_mage": {
+  "job_id": "f44862a9-2849-4596-97ec-0753f11a768d",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a tiny icy-cyan arcane spark shaped like a small glowing rune glyph, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_paladin": {
+  "job_id": "c70b2c39-6308-43ba-bba8-ba52c617b2bc",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a small rose-gold holy mote of light with a soft round glow, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_priest": {
+  "job_id": "0a8afda4-9564-43e5-9e1e-0fb78b4296b0",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a tiny pearl-white four-pointed twinkle star, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_rogue": {
+  "job_id": "87a5fa3c-88b5-4cee-b81f-c0ff311815f5",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a tiny pale-gold glint, a sharp four-pointed sparkle, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_shaman": {
+  "job_id": "1bdf009d-6370-4807-93ae-5efe2101bc66",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a tiny electric-blue spark with a short forked arc of lightning, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_warlock": {
+  "job_id": "9734a0f9-a0fe-49d4-bb92-850eca078a81",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a small glowing ember, two violet and two fel-green, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "particle_warrior": {
+  "job_id": "9495c3d4-506b-40ba-957b-48e02649005f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Four small particle sprites for a game particle effect, arranged in a 2 by 2 grid, each one centred in its own quarter of the canvas and filling about half of its quarter, each fading to black well before the edge of its quarter, no grid lines. Each sprite is a small hot forge ember, orange-yellow with a short motion streak, slightly different from the others. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "proc_druid": {
+  "job_id": "e1d8ce26-6d84-41e5-b81e-99955066cc59",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: warm amber nature magic with small glowing autumn leaves swirling along it, a soft golden-orange core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_hunter": {
+  "job_id": "ab980ab3-2e58-410e-807e-d3f4a2655f6e",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: moss-green wind currents with small pale feathers and green motes streaming along it. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_mage": {
+  "job_id": "55817b07-e35a-48e9-a915-f7978e132fa3",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: icy cyan arcane energy with tiny glowing runic glyph sparks orbiting along it, a bright white-cyan core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_paladin": {
+  "job_id": "8d15971b-d230-4f3a-bc52-c038c0a74ff3",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: radiant rose-gold holy light with short beams of light radiating outward, a bright warm white core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_priest": {
+  "job_id": "38ff54d6-b80d-4717-adde-8c327a1871db",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: soft pearl-white holy light with tiny glowing motes and small four-pointed twinkles drifting along it. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_rogue": {
+  "job_id": "5c580efe-a6ae-4078-a1c9-dbf8a0580191",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: thin wisps of dark smoke edged with pale gold light and small gold glints along it. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_shaman": {
+  "job_id": "5d3d0a60-e0ea-4c77-90e4-e10613f2087a",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: crackling electric-blue storm lightning, small forks and arcs running along it, a bright white-blue core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_warlock": {
+  "job_id": "68da105e-fbfd-4b2d-85f2-7b0b5acb844e",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: violet shadow flame licking along it with drifting fel-green embers, a bright magenta-violet core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "proc_warrior": {
+  "job_id": "377c99fd-56eb-4702-899e-4e00abc1841a",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "output_format": "gif",
+   "size": "256x256",
+   "frame_count": 16,
+   "frame_duration_ms": 60
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button, made to be drawn with additive blending. A square energy frame hugging the edge of an empty square button: the inner square is pure black and fills the middle 56 percent of the canvas, the effect lives in a band around it and fades to black well before the canvas edge. Motif: tan and ember-orange forge fire with hot sparks and embers flying off it, a bright yellow-white core. Perfectly centred, straight-on. Animate it as a seamless looping animation: the effect flickers and flows continuously, the shape stays in exactly the same place and size in every frame, nothing enters or leaves the canvas, and the last frame flows back into the first. Pure black background, no text, no icon, no border."
+ },
+ "procstart": {
+  "job_id": "5cd5273d-8dcc-40ec-95b8-0d72083d9527",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button: the first bright flash when a button lights up. A square ring of brilliant white light hugging the edge of an empty square button, with short soft white rays bursting outward from it; the inner square is pure black and fills the middle 50 percent of the canvas; everything fades to black before the canvas edge. Pure white and silver light only, no colour, perfectly centred and symmetric. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "readyflash": {
+  "job_id": "2dd3aa53-457e-4465-9e85-1590d2f6ef37",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface visual effect for a fantasy RPG action button: a crisp glint when a cooldown finishes. A thin bright white square outline of light around an empty square button, the inner square pure black filling the middle 70 percent of the canvas, a soft white glow just outside the outline and a small bright four-pointed star glint at the top-left corner. Pure white light only, no colour, perfectly centred. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "sheen": {
+  "job_id": "63bba841-86f5-46cd-a6ce-44cd083aa2b7",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game interface effect: a single soft band of white light running diagonally from the lower left to the upper right across the centre of the canvas, like a glint of light sweeping across polished metal, soft feathered edges, brightest along its centre line, fading to black at its ends before the canvas corners. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "slot": {
+  "job_id": "914b6ef5-5bb2-4db4-91da-df972fa5f3cc",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1",
+   "background": "transparent"
+  },
+  "prompt": "A square frame for an action button in a fantasy game interface, isolated on a fully transparent background, flat front view. The frame is a thin band of dark steel with a bevelled raised rim, its width about 9 percent of the square's side, with sharp square corners; the inside of the frame is completely empty and transparent. The frame fills 98 percent of the canvas and is perfectly square and straight. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. No text, no letters, no numbers, no logos, no symbols."
+ },
+ "socket": {
+  "job_id": "09a8ed36-1c8b-4d01-b413-82fd92dda756",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1",
+   "background": "transparent"
+  },
+  "prompt": "Game interface part for a fantasy RPG, straight-on: the empty recessed socket at the heart of a round steel medallion, a dark round dish of blackened brushed steel with a thin bright bevelled inner lip around its edge, subtle radial brushed texture, darker towards the centre, soft cool light from the upper left. Perfectly round, centred, filling 92 percent of the canvas, isolated on a fully transparent background. No text, no symbols, no gems."
+ },
+ "spark": {
+  "job_id": "76f24e9f-a813-4b7f-b521-74059a7064f0",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "9:16"
+  },
+  "prompt": "Game interface effect for the leading edge of a status bar: one thin vertical line of brilliant white light, perfectly vertical and centred horizontally, tall, with a soft white glow on both sides that fades to black, both ends tapering. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "src88_tex_corner": {
+  "job_id": "a5065123-809c-4aa8-97f8-b3248d6aaa1e",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-88",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "prompt": "One ornamental corner bracket for a dark fantasy interface panel, isolated on a fully transparent background: an L-shaped piece of dark steel forming the top-left corner of a rectangular frame, its two arms running to the right and downward and tapering to fine points, with a small faceted diamond-shaped stud at the corner itself and a thin engraved filigree line along each arm. The corner sits in the top-left of the canvas with its arms reaching about 80 percent of the way across and down. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
+ },
+ "src88_tex_hub": {
+  "job_id": "218ebe76-0073-44c1-a867-d3d8e0b442e1",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-88",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "prompt": "A centre mount for a fantasy game action bar, isolated on a fully transparent background: a large circular socket ring, its round opening completely empty and transparent, the ring a thick band of dark steel with a raised outer lip and a recessed inner channel; from the left and right of the ring two long tapered steel wings sweep out horizontally like the guard of a sword, each wing ending in a sharp point, with a fine engraved line running along each wing. The ring takes about 45 percent of the image height and sits in the exact centre; the wings span about 90 percent of the width. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
+ },
+ "src88_tex_mapring": {
+  "job_id": "4f94806e-220d-4391-9c8d-69a1cbaddf2d",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-88",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "prompt": "A round minimap frame for a fantasy game interface, isolated on a fully transparent background, the centre is an empty transparent circle about 84 percent of the diameter. The frame is a dark steel compass ring: 36 fine engraved tick marks around it, longer ticks every 30 degrees, and at the four cardinal points small sharp arrowhead-shaped polished silver studs pointing outward (no letters). A thin polished silver lip on the inner edge. The ring fills 96 percent of the canvas. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
+ },
+ "src88_tex_rune": {
+  "job_id": "cb0cf113-c345-4fa4-ae39-1211e39dbe62",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-88",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "prompt": "A thin circular band of engraved runes, flat front view, isolated on a fully transparent background, the centre completely empty and transparent. The band is dark steel bordered by two fine bright silver lines, and carved into it are 24 evenly spaced abstract angular glyphs (invented symbols, not any real alphabet), each glyph a clean bright silver-white inlay so it can be tinted later. The ring fills 94 percent of the canvas, its band is about 8 percent of the diameter thick. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
+ },
+ "src88_tex_steel": {
+  "job_id": "ff5ed2f4-0ce9-4486-b11e-b7d1a327d317",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-88",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k"
+  },
+  "prompt": "A seamless tileable square texture of very dark blued gunmetal plate for a fantasy game interface panel: extremely fine brushed grain, a few faint hammer marks, very low contrast, almost black (average brightness about 8 percent), no edges, no borders, no rivets, no seams, no lighting gradient, uniform across the whole square so it tiles without a visible seam."
+ },
+ "sweep": {
+  "job_id": "7d3650bc-faca-41ac-aa59-5f9c0ef727a1",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "21:9"
+  },
+  "prompt": "Game interface visual effect: one long thin horizontal streak of soft white light, brightest in the middle and tapering smoothly to nothing at both ends, with a faint soft glow around it, perfectly horizontal and centred vertically across the whole width. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ },
+ "vignette": {
+  "job_id": "ad7b2b70-4431-4ee9-b5b7-f5f15157754f",
+  "model": "gpt_image_2_6",
+  "thread": "KSTY-90",
+  "settings": {
+   "quality": "high",
+   "resolution": "1k",
+   "aspect_ratio": "1:1"
+  },
+  "prompt": "Game screen-edge warning vignette: a dark crimson-red smoky glow hugging all four edges and the corners of the canvas, strongest at the very edges and corners, fading smoothly to pure black towards the middle; the middle 60 percent of the canvas is pure black. Evenly balanced on all four sides, soft, no hard shapes. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
+ }
+}
