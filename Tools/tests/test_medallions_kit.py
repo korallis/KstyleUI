@@ -2,7 +2,7 @@
 
 The bake itself needs NumPy and the raw generations, so these tests check what it shipped: sizes, the effects' clean
 edges, every flipbook's registration and loop, the steel pieces' geometry, and that Core/Tokens.lua, Media/PROVENANCE.md
-and Tools/media/medallions_sources.json agree with the files. Pillow only.
+and Tools/media/medallions_sources.json agree with the files. The image checks need Pillow and skip without it.
 """
 
 import importlib.util
@@ -11,7 +11,10 @@ import re
 import unittest
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageStat
+try:
+    from PIL import Image, ImageChops, ImageStat
+except ImportError:
+    Image = None
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -42,6 +45,7 @@ def tokens():
     return found
 
 
+@unittest.skipIf(Image is None, "needs Pillow")
 class FilesTest(unittest.TestCase):
     def test_every_kit_file_is_a_power_of_two_rgba_png_at_its_size(self):
         for item in kit.KIT:
@@ -115,6 +119,7 @@ class TokensTest(unittest.TestCase):
                 self.assertEqual(spec["density"], media.TEXELS_PER_UNIT, asset.name)
 
 
+@unittest.skipIf(Image is None, "needs Pillow")
 class EffectsTest(unittest.TestCase):
     def border_alpha(self, image):
         w, h = image.size
@@ -179,6 +184,7 @@ class EffectsTest(unittest.TestCase):
                     self.assertLess(abs(x - 31.5) + abs(y - 31.5), 8)
 
 
+@unittest.skipIf(Image is None, "needs Pillow")
 class SteelTest(unittest.TestCase):
     def test_steel_card_tiles_without_a_seam(self):
         image = open_rgba(f"{kit.OUT}/SteelCard.png").convert("L")
