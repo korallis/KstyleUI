@@ -87,6 +87,10 @@ each("party", function(f)
 	eq(texture(f.portrait), "badge:" .. f.unit, f.unit .. ": the painted badge fills the medallion")
 	eq(f.portrait:GetNumMaskTextures(), 0, f.unit .. ": painted art is pre-circled, so no mask")
 end)
+each("party", function(f)
+	assert(f.pipped and not f.role:IsShown(), f.unit .. ": the role is a pip of our own art, never the atlas square")
+	assert(f.parts.icons.role.left + f.parts.icons.role.width <= f.parts.name.left, f.unit .. ": the pip comes before the name")
+end)
 for _, cut in ipairs(cuts) do
 	eq(cut, "badge", "the party asks for the 64 px badge cut")
 end
@@ -160,6 +164,13 @@ each("raid", function(f)
 	local er, eg, eb = K.Tokens.Color("textEmphasis")
 	assert(near(r, er) and near(g, eg) and near(b, eb), f.unit .. ": the name reads white on the fill")
 	assert(f.tileless and not f.chrome.fill[5]:IsShown(), f.unit .. ": the fill is the tile")
+	local namePath, _, nameFlags = f.name:GetFont()
+	eq(namePath, K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name is in the Medallions label face")
+	assert(not tostring(nameFlags or ""):find("OUTLINE"), f.unit .. ": with a soft shadow, not an outline")
+	eq(f.name:GetText(), K.Locale.Upper(f.rawName), f.unit .. ": in caps")
+	local percentPath = f.healthText:GetFont()
+	eq(percentPath, K.Tokens.FontPath("PTSerifBold"), f.unit .. ": the percent is in the number face")
+	eq(f.health.sparkLine:GetAlpha(), 0, f.unit .. ": no end cap under the percent")
 	for _, line in ipairs(f.targetRing) do
 		for _, piece in ipairs(line) do
 			local v = piece._state.VertexColor
@@ -183,6 +194,7 @@ each("raid", function(f)
 	local color = last(f.health, "SetStatusBarColor")
 	local gr, gg, gb = K.Tokens.Color("friendly")
 	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar is the friendly green again")
+	eq(f.health.sparkLine:GetAlpha(), 1, f.unit .. ": the end cap returns")
 	local pieces = f.targetRing[1]
 	local v = pieces[1]._state.VertexColor
 	assert(not near(v[1], STEEL_LIT[1]) or not near(v[2], STEEL_LIT[2]), f.unit .. ": the target ring takes the accent again")

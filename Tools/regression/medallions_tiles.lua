@@ -4,7 +4,7 @@
 -- tile takes two lines and a short one takes one (the 40-player tile takes either, by a unit or two of snapping); the
 -- fill spans the tile on all four sides (the bottom too on two lines, where the heal row sits inside the fill); the
 -- name, the percent and the debuff block never meet; the name fits its lane; both texts sit at the text floor or over;
--- and no role square draws. The debuff block is checked by its clip frame, which clips the engine's icons (Auras.lua),
+-- and no role square draws; a Dead or Offline tile hides its debuff block, which its status text may cover. The debuff block is checked by its clip frame, which clips the engine's icons (Auras.lua),
 -- so no icon can draw outside it.
 local G = dofile("Tools/regression/group_env.lua")
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -41,6 +41,10 @@ local function rows(ns)
 		end
 	end
 	return out
+end
+
+local function eq(got, want, what)
+	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
 end
 
 local function apart(a, b)
@@ -129,7 +133,9 @@ function T.Run(screens, file)
 				if clip then
 					assert(clip[1], who .. ": the debuff block resolves")
 					assert(apart(name, clip), who .. ": the name " .. describe(name) .. " clears the debuffs " .. describe(clip))
-					if percentOn then
+					if f.status then
+						eq(f.auraClip:GetAlpha(), 0, who .. ": the debuffs give way to " .. f.status)
+					elseif percentOn then
 						assert(apart(percent, clip), who .. ": the percent " .. describe(percent) .. " clears the debuffs " .. describe(clip))
 					end
 					assert(clip[1] >= bar[1] - EPS and clip[1] + clip[3] <= bar[1] + bar[3] + EPS, who .. ": the debuffs sit on the fill")

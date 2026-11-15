@@ -16,7 +16,9 @@ local LINE_EXTRA = 2
 local MIN_CELL = 8
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
-local TILE_OUTLINE = "THICKOUTLINE"
+local TILE_TEXT = "NONE"
+local LABEL_FACE = Tokens.FontPath("InterSemiBold")
+local NUMBER_FACE = Tokens.FontPath("PTSerifBold")
 local LOOK = {
 	party = { portrait = true, roleRing = false },
 	raid = { textLayout = "INSIDE", power = false, buffCount = 0 },
@@ -106,21 +108,50 @@ local function TileParts(out, w, h, o)
 	return out
 end
 
-local tiling = false
+local function PartyParts(out, o)
+	local icons, name, spot = out.icons, out.name, out.healthText
+	if not (icons and name and spot and icons.role and o.role and not icons.roleInRing) then
+		return out
+	end
+	local gap = Tokens.Size("gapTiny")
+	local reclaim = icons.role.width + gap
+	local pip = math.floor(math.min(o.pip or icons.role.width, name.height))
+	icons.pip = true
+	icons.role = { left = name.left, top = name.top + math.floor((name.height - pip) / 2), width = pip, height = pip }
+	out.name = { left = name.left + pip + gap, top = name.top, width = name.width + reclaim - pip - gap, height = name.height }
+	spot.right = spot.right + reclaim
+	spot.markedRight = spot.markedRight and spot.markedRight + reclaim
+	if out.healRow and out.healRow.side == "RIGHT" then
+		out.healRow.left = out.healRow.left + reclaim
+	end
+	return out
+end
+
+local styling = nil
 local apply = Style.Apply
 function Style.Apply(f, ...)
-	tiling = f.kind == "raid" and Medallions.Active()
+	styling = Medallions.Active() and f.kind or nil
 	apply(f, ...)
-	tiling = false
+	styling = nil
 end
 
 local button = Geometry.Button
 function Geometry.Button(w, h, o)
 	local out = button(w, h, o)
-	if tiling and out.nameInside then
+	if styling == "raid" and out.nameInside then
 		return TileParts(out, w, h, o)
+	elseif styling == "party" and out.portrait and not out.overlay then
+		return PartyParts(out, o)
 	end
 	return out
+end
+
+local setName = ns.Names.Set
+function ns.Names.Set(f, name, ...)
+	if f.kind == "raid" and f.parts and f.parts.tile and type(name) == "string" and not Unit.IsSecret(name) then
+		name = K.Locale.Upper(name)
+	end
+	return setName(f, name, ...)
 end
 
 local function Mask(f, masked)
@@ -179,41 +210,34 @@ local function Badge(f, on)
 	f.level:Hide()
 end
 
-function Medallions.TextReserve(f, k)
-	local reserve = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
-	for status in pairs(Unit.STATUS_TEXT or {}) do
-		local saved = f.status
-		f.status = status
-		reserve = math.max(reserve, Style.StatusWidth(f, k.healthTextSize) or 0)
-		f.status = saved
-	end
-	return reserve + K.Scale.Pixel(1) / Widgets.ScaleFactor(f)
+local function Slack(f)
+	return K.Scale.Pixel(1) / Widgets.ScaleFactor(f)
 end
 
-local function Tile(f, parts, k)
-	local health, tile = parts.health, parts.tile
-	f.tileless = true
-	f.chrome:SetShadow(false)
-	f.chrome:Restyle()
+local function ShowCap(f, shown)
+	local bar = f.health
+	if bar.sparkLine then
+		bar.sparkLine:SetAlpha(shown and 1 or 0)
+		bar.sparkGlow:SetAlpha(shown and 1 or 0)
+	end
+	f.medSparkHidden = not shown or nil
+end
+
+local function TextReserve(f, k)
+	local percent = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
+	local status = f.status and Style.StatusWidth(f, k.healthTextSize) or 0
+	return math.max(percent, status) + Slack(f), percent > 0 and percent + Slack(f) or 0
+end
+
+local function TileText(f)
+	local parts, k = f.parts, Settings.current[f.kind]
+	local health, tile, block = parts.health, parts.tile, parts.block
 	local left = Widgets.Snap(f, health.left + tile.inset)
 	local right = Widgets.Snap(f, tile.right)
 	local gap = Widgets.Snap(f, tile.gap)
-	local fit = f.nameFit
-	if fit then
-		fit.set = function(text, size, path)
-			Style.SetFont(text, path or fit.path, size, TILE_OUTLINE)
-		end
-		fit.set(f.name, fit.size)
-	end
-	Style.SetFont(f.healthText, Settings.current.text.healthFont, k.healthTextSize, TILE_OUTLINE)
-	local reserve = Medallions.TextReserve(f, k)
-	local block = parts.block
-	local textLeft = reserve > 0 and right - reserve - gap or right
-	local pipsRight = textLeft
-	local nameRight = textLeft
-	if block then
-		block.left = pipsRight - block.width
-		block.top = tile.stacked and health.top + tile.inset or health.top + math.floor((health.height - block.height) / 2)
+	local reserve = TextReserve(f, k)
+	local nameRight = reserve > 0 and right - reserve - gap or right
+	if block and block.left then
 		nameRight = math.min(nameRight, Widgets.Snap(f, block.left) - gap)
 	end
 	f.tileText = { left = left, nameRight = nameRight, textRight = right, reserve = reserve, stacked = tile.stacked }
@@ -224,6 +248,7 @@ local function Tile(f, parts, k)
 	f.healthText:ClearAllPoints()
 	f.healthText:SetJustifyH("RIGHT")
 	f.healthText:SetWidth(math.max(1, reserve))
+	f.healthText:SetShown(k.healthText ~= "NONE" or f.status ~= nil)
 	if tile.stacked then
 		f.name:SetPoint("TOPLEFT", f, "TOPLEFT", left, -Widgets.Snap(f, health.top + tile.inset))
 		f.healthText:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", right, -Widgets.Snap(f, health.top + health.height - tile.inset))
@@ -232,8 +257,44 @@ local function Tile(f, parts, k)
 		f.name:SetPoint("LEFT", f, "TOPLEFT", left, middle)
 		f.healthText:SetPoint("RIGHT", f, "TOPLEFT", right, middle)
 	end
+	if f.auraClip then
+		f.auraClip:SetAlpha(f.status and 0 or 1)
+	end
 	f.nativeName = false
 	ns.Names.Apply(f)
+end
+
+local function Tile(f, parts, k)
+	local health, tile, block = parts.health, parts.tile, parts.block
+	f.tileless = true
+	f.chrome:SetShadow(false)
+	f.chrome:Restyle()
+	local fit = f.nameFit
+	if fit then
+		fit.path, fit.kit = LABEL_FACE, false
+		fit.set = function(text, size)
+			Style.SetFont(text, LABEL_FACE, size, TILE_TEXT)
+		end
+		fit.set(f.name, fit.size)
+	end
+	Style.SetFont(f.healthText, NUMBER_FACE, k.healthTextSize, TILE_TEXT)
+	ShowCap(f, false)
+	if block then
+		local _, percent = TextReserve(f, k)
+		local right = Widgets.Snap(f, tile.right)
+		block.left = (percent > 0 and right - percent - Widgets.Snap(f, tile.gap) or right) - block.width
+		block.top = tile.stacked and health.top + tile.inset or health.top + math.floor((health.height - block.height) / 2)
+	end
+	TileText(f)
+end
+
+local placeRowEnd = Style.PlaceRowEnd
+function Style.PlaceRowEnd(f)
+	if f.parts and f.parts.tile and Medallions.Active() then
+		TileText(f)
+		return
+	end
+	return placeRowEnd(f)
 end
 
 local function Applied(f, parts, k)
@@ -247,6 +308,11 @@ local function Applied(f, parts, k)
 		end
 	elseif on and parts.tile then
 		Tile(f, parts, k)
+	elseif f.medSparkHidden then
+		ShowCap(f, true)
+		if f.auraClip then
+			f.auraClip:SetAlpha(1)
+		end
 	end
 end
 table.insert(Style.appliers, 1, Applied)
