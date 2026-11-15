@@ -1616,7 +1616,7 @@ function Chrome:SyncMaterialFrame()
 	end
 end
 
-local STEEL_CORNER = 12
+local STEEL_CORNER = 20
 
 function Chrome:PaintCorners()
 	local owner = self.owner
