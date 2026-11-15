@@ -15,10 +15,10 @@ Fixes for the minimap, the RestedXP guide and the HUD's size on screens that are
 
 ### Fixed
 
-- The zone name above the minimap no longer runs into the N diamond, and the N stays inside its diamond on large screens.
-- RestedXP's Active Targets and Active Items boxes now sit side by side under the guide card instead of over it, and the guide keeps showing your current step and its step number.
+- The zone name above the minimap no longer runs into the N diamond, and the N stays inside its diamond.
+- RestedXP's Active Targets and Active Items boxes now sit side by side under the guide card instead of over it, and the guide keeps showing your current step and its step number. To make room for the step, the quest card may show one quest fewer while both boxes are up.
 - Under Orbs, the health and power orbs no longer cover chat or the damage meter on 4:3, 3:2 and 16:10 screens.
-- The pet and stance bars no longer overlap action bar 3 or the party frames, and the target frame and your buffs no longer overlap the bags bar or the loot feed. Interface size Auto never picks a size where two parts of the HUD touch.
+- The pet and stance bars no longer overlap action bar 3 or the party frames, and the target frame and your buffs no longer overlap the bags bar or the loot feed. Interface size Auto now steps down until the whole HUD fits.
 - Settings saved by an older version that had stopped updating now update at your next login.
 
 ## v0.1.1 (2026-11-14)
