@@ -1,5 +1,6 @@
 # release.yml: on a v* tag on main, package with the BigWigs packager and upload to CurseForge, Wago and GitHub,
 # then build the loose-file icon pack (Tools/icons/iconset.py pack, docs/icons.md) and upload it beside the addon zip.
+# The Lua tests run in two shards like checks.yml, so one slow slice on a busy runner cannot time out the release.
 name: release
 
 on:
@@ -37,8 +38,6 @@ jobs:
         run: |
           lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
           "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
-      - name: Lua regression tests
-        run: bash Tools/regression/run-all.sh
       - name: Build the icon pack without uploading
         run: |
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py verify
@@ -52,9 +51,32 @@ jobs:
       - name: Check the zip
         run: bash Tools/hooks/check-package.sh
 
+  lua:
+    name: lua ${{ matrix.shard }}/2
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, mac-ci, KstyleUI]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Check the runner's Lua is 5.1.5
+        run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
+      - name: Lua regression tests, one slice of the files
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: bash scripts/gate.sh lua --shard "$SHARD/2"
+
   release:
     name: release
-    needs: check
+    needs: [check, lua]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15

@@ -9,12 +9,14 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOOT = ROOT / "Tools" / "render" / "shoot.sh"
 SCENE = ROOT / "Tools" / "render" / "scenes" / "hud_reference.lua"
 RUNS = 4
+PARALLEL = 4
 CONFIGS = [("1280x720", "DPS"), ("1366x768", "Healer"), ("3840x2160", "Tank")]
 
 
@@ -34,10 +36,14 @@ class RenderDeterminism(unittest.TestCase):
         return digest(out)
 
     def test_scene_json_is_identical_across_processes(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            for screen, layout in CONFIGS:
+        with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(max_workers=PARALLEL) as pool:
+            runs = {
+                (screen, layout): [pool.submit(self.scene, Path(tmp) / f"{screen}-{layout}-{i}.json", screen, layout) for i in range(RUNS)]
+                for screen, layout in CONFIGS
+            }
+            for (screen, layout), futures in runs.items():
                 with self.subTest(screen=screen, layout=layout):
-                    digests = {self.scene(Path(tmp) / "scene.json", screen, layout) for _ in range(RUNS)}
+                    digests = {future.result() for future in futures}
                     self.assertEqual(len(digests), 1, "the scene JSON differs between runs of one tree")
 
     def test_screenshot_is_identical_across_runs(self):

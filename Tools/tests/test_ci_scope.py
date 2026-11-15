@@ -176,6 +176,24 @@ class MainTest(unittest.TestCase):
         self.assertEqual(output, "run=true\n")
         self.assertIn("Core/Init.lua", result.stdout)
 
+    def test_all_writes_one_output_per_area(self):
+        self.merge_of({"docs/a.md": "b\n", "README.md": "c\n"})
+        result, output = self.scope("all")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, "lua=false\npython=true\npackage=false\n")
+
+    def test_all_runs_every_area_for_code(self):
+        self.merge_of({"Core/Init.lua": "b\n"})
+        self.assertEqual(self.scope("all")[1], "lua=true\npython=true\npackage=true\n")
+
+    def test_all_runs_every_area_for_a_push(self):
+        self.merge_of({"docs/a.md": "b\n"})
+        self.assertEqual(self.scope("all", event="push")[1], "lua=true\npython=true\npackage=true\n")
+
+    def test_a_mixed_pull_request_runs_what_any_of_its_files_reach(self):
+        self.merge_of({"docs/a.md": "b\n", "Media/Textures/Dot.png": "x\n"})
+        self.assertEqual(self.scope("all")[1], "lua=true\npython=true\npackage=true\n")
+
     def test_a_bad_area_is_a_usage_error(self):
         result, _ = self.scope("bogus")
         self.assertEqual(result.returncode, 2)
