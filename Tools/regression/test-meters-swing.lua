@@ -103,16 +103,17 @@ env.SetTime(260)
 M.Tick(env)
 env._speeds[1] = 2.6
 
--- An off-hand weapon adds a bar, and the bars share the element's height.
+-- Two hands swinging split the element's height and name their bars.
 env._speeds[2] = 2.4
 env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
-env.RunTimers()
-assert(off:IsShown(), "an off-hand weapon shows the off-hand bar")
+env.SetTime(300)
+assert(not off:IsShown(), "a weapon in an idle hand takes no row")
+env.FireEvent("PLAYER_SWING", 2, MAIN)
+env.FireEvent("PLAYER_SWING", 2, OFF)
+assert(main:IsShown() and off:IsShown(), "two swinging hands show two bars")
 local h1, h2 = main:GetHeight(), off:GetHeight()
 assert(h1 == h2 and h1 < Swing.holder:GetHeight(), "two bars split the height: " .. tostring(h1))
 assert(main.label:GetText() == K.L["Main hand"] and off.label:GetText() == K.L["Off hand"], "two bars name their hands")
-env.SetTime(300)
-env.FireEvent("PLAYER_SWING", 2, OFF)
 env.SetTime(301)
 M.Tick(env)
 assert(M.Last(off, "SetValue")[1] == 0.5, "the off hand fills on its own swing")
@@ -139,6 +140,38 @@ env.FireEvent("PLAYER_SWING_RANGE_UPDATE", MAIN, false, true)
 assert(main:GetAlpha() < 1, "the range event dims the bar")
 env.FireEvent("PLAYER_SWING_RANGE_UPDATE", MAIN, false, false)
 assert(main:GetAlpha() == 1, "a range event that made no check leaves the bar bright")
+
+-- A ranged weapon in use takes the one row: a hand that is not swinging takes none beside it (the owner's hunter
+-- showed an idle Waffenhand row under the Distanz bar).
+env._speeds[2] = nil
+env._speeds[3] = 2.9
+env.SetTime(450)
+env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+env.FireEvent("PLAYER_SWING", 2.9, RANGED)
+assert(ranged:IsShown(), "the ranged swing shows the ranged bar")
+assert(not main:IsShown() and not off:IsShown(), "an idle hand takes no row beside it")
+assert(Swing.count == 1 and ranged.label:GetText() == K.L["Swing timer"], "one bar is named for the timer")
+env.SetTime(460)
+M.Tick(env)
+assert(ranged:IsShown(), "a just-finished ranged swing lingers")
+env.SetTime(461.6)
+M.Tick(env)
+assert(not ranged:IsShown() and not main:IsShown(), "the bars hide once the swing and its linger are over")
+env._speeds[3] = nil
+
+-- A hand that stops lingering drops its row while the other hand still swings.
+env.SetTime(470)
+env.FireEvent("PLAYER_SWING", 2, MAIN)
+env.FireEvent("PLAYER_SWING", 5, OFF)
+env.SetTime(472.1)
+M.Tick(env)
+assert(main:IsShown() and off:IsShown(), "a hand's linger keeps its row beside the running hand")
+env.SetTime(473.7)
+M.Tick(env)
+assert(not main:IsShown() and off:IsShown(), "an expired linger drops its row while the other hand still swings")
+assert(Swing.count == 1, "one row is left: " .. tostring(Swing.count))
+env.SetTime(476)
+M.Tick(env)
 
 -- A secret duration never reaches Lua arithmetic: the engine fills the bar from a duration object.
 local durations = {}
@@ -168,6 +201,18 @@ env.RunTimers()
 assert(not Swing.content:IsShown(), "the bars hide after combat")
 M.Write(env, K, "swing.hideIdle", false)
 assert(Swing.content:IsShown(), "with hide-when-idle off the bars stay")
+-- With hide-when-idle off, a swinging hand still takes the only row.
+env._speeds[3] = 2.9
+env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+env.SetTime(510)
+env.FireEvent("PLAYER_SWING", 2.9, RANGED)
+assert(ranged:IsShown() and not main:IsShown() and not off:IsShown(), "with hide-when-idle off a swinging hand still takes the only row")
+assert(Swing.count == 1, "one bar is named for the timer: " .. tostring(Swing.count))
+env.SetTime(512)
+M.Tick(env)
+env.SetTime(513.6)
+M.Tick(env)
+env._speeds[3] = nil
 
 -- Switching the swing timer off, or the module off, gives Blizzard's timers back.
 M.Write(env, K, "swing.shown", false)

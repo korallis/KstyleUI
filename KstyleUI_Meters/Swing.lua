@@ -116,14 +116,6 @@ local function UpdateWeapons()
 	weapons[RANGED] = Speed(RANGED) ~= nil
 end
 
-local function Visible(slot)
-	if not Enabled(slot) then
-		return false
-	end
-	local st = Swing.state[slot.type]
-	return Swing.weapons[slot.type] == true or st.running or st.engine
-end
-
 local function Now()
 	if type(GetTime) == "function" then
 		return Logic.Plain(GetTime())
@@ -145,11 +137,26 @@ local function AnyRunning(now)
 	return false
 end
 
+local function Visible(slot, now)
+	if not Enabled(slot) then
+		return false
+	end
+	local st = Swing.state[slot.type]
+	if st.running or st.engine or Lingering(st, now) then
+		return true
+	end
+	if ns.Get("swing.hideIdle") then
+		return false
+	end
+	return not AnyRunning(now) and Swing.weapons[slot.type] == true
+end
+
 local function Arrange()
 	local holder = Swing.holder
+	local now = Now()
 	local mask = 0
 	for _, slot in ipairs(SLOTS) do
-		if Visible(slot) then
+		if Visible(slot, now) then
 			mask = mask + 2 ^ slot.type
 		end
 	end
@@ -164,7 +171,7 @@ local function Arrange()
 	local gap = Widgets.Snap(holder, ns.Get("swing.spacing"))
 	local count = 0
 	for _, slot in ipairs(SLOTS) do
-		if Visible(slot) then
+		if Visible(slot, now) then
 			count = count + 1
 		end
 	end
@@ -176,7 +183,7 @@ local function Arrange()
 	local index = 0
 	for _, slot in ipairs(SLOTS) do
 		local bar = Swing.bars[slot.type]
-		if Visible(slot) then
+		if Visible(slot, now) then
 			local offset = Widgets.Snap(holder, index * (size + gap))
 			index = index + 1
 			bar.opts.width = vertical and size or width
@@ -247,10 +254,15 @@ local function OnUpdate()
 			end
 		elseif Lingering(st, now) then
 			any = true
+		elseif st.idleAt then
+			st.idleAt = nil
+			Swing.dirty = true
 		end
 	end
 	if not any then
 		Swing.driver:SetScript("OnUpdate", nil)
+	end
+	if not any or Swing.dirty then
 		Refresh()
 	end
 end

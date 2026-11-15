@@ -106,9 +106,9 @@ The owner ruled on 2026-11-09 that where the picture contradicts an earlier deci
 
 ## Swing timer
 
-- One bar per hand: main hand, off hand and ranged. A bar shows when its switch is on and the weapon is there (`UnitAttackSpeed` gives an off-hand or ranged speed), or while a swing runs.
-- `PLAYER_SWING(duration, type)` starts a bar. One `OnUpdate` on a parentless driver frame fills the bars while a swing runs and stops when none does.
-- With **Hide when idle** on, the bars show only in combat or while a swing runs.
+- One bar per hand: main hand, off hand and ranged. A bar shows while that hand's swing runs or lingers just after it, so a hunter shooting a bow gets one ranged bar and no idle main-hand row; with **Hide when idle** off a hand's bar also shows whenever its switch is on and the weapon is there, but only while no hand is swinging.
+- `PLAYER_SWING(duration, type)` starts a bar. One `OnUpdate` on a parentless driver frame fills the bars while a swing runs or lingers, and stops when none does.
+- With **Hide when idle** on, the bars show only while a swing runs or lingers, in combat too.
 - **Dim out of range** follows `PLAYER_SWING_RANGE_UPDATE` (after `C_SwingTimer.EnableRangeCheck`) and `C_SwingTimer.IsTargetWithinSwingRange` on target changes. As in Blizzard's timer, a running swing never dims, and no answer is not out of range.
 - While the swing timer runs, `SwingTimerMainHandFrame`, `SwingTimerOffHandFrame` and `SwingTimerRangedFrame` are held at alpha 0: a `hooksecurefunc` on each frame's `SetAlpha` sets it back to 0. The hook records the alpha Blizzard asks for, so switching the swing timer or the module off restores it.
 
