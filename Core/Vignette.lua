@@ -40,7 +40,7 @@ end
 
 local function Edge(point, relative, horizontal, from, to)
 	local t = frame.layer:CreateTexture(nil, "BACKGROUND")
-	t:SetColorTexture(1, 1, 1, 1)
+	t:SetColorTexture(ns.Tokens.Color("white"))
 	t:SetPoint(point, frame.layer, point)
 	t:SetPoint(relative, frame.layer, relative)
 	local r, g, b = ns.Tokens.Color("healthLow")

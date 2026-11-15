@@ -303,7 +303,7 @@ function Medallion:Burst(class)
 	if c then
 		burst:SetVertexColor(c.r, c.g, c.b, 1)
 	else
-		burst:SetVertexColor(1, 1, 1, 1)
+		burst:SetVertexColor(Tokens.Color("white"))
 	end
 	local side = Snap(self, self.size * BURST_SHARE)
 	burst:SetSize(side, side)
