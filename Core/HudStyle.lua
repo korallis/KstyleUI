@@ -1,4 +1,4 @@
--- HudStyle.lua: the HUD style setting, Frames or Orbs, saved per profile; it switches out of combat, waits for combat to end when chosen in lockdown, fires HudStyleChanged, and offers a reload when a module fails to switch.
+-- HudStyle.lua: the HUD style setting, Frames, Orbs or Medallions, saved per profile; it switches out of combat, waits for combat to end when chosen in lockdown, fires HudStyleChanged, and offers a reload when a module fails to switch.
 local addonName, ns = ...
 
 local HudStyle = {}
@@ -7,7 +7,7 @@ ns.HudStyle = HudStyle
 local Store, Tokens, L = ns.Store, ns.Tokens, ns.L
 
 local SECTION = "HudStyle"
-local STYLES = { frames = true, orbs = true }
+local STYLES = { frames = true, orbs = true, medallions = true }
 
 HudStyle.defaults = { style = "frames" }
 
@@ -17,10 +17,14 @@ local function Log(message)
 	ns.DevTest.Log(SECTION, message)
 end
 
+function HudStyle.Valid(value)
+	return not (issecretvalue and issecretvalue(value)) and STYLES[value] == true
+end
+
 function HudStyle.Saved()
 	if Store.IsLoaded() then
 		local value = Store.Module(SECTION).style
-		if not (issecretvalue and issecretvalue(value)) and STYLES[value] then
+		if HudStyle.Valid(value) then
 			return value
 		end
 	end
@@ -61,10 +65,11 @@ HudStyle.schema = {
 	{ type = "header", label = L["HUD"] },
 	{
 		type = "pictures", key = "style", label = L["HUD style"],
-		help = L["Orbs shows health and resource in two orbs beside the main action buttons. Changes out of combat."],
+		help = L["Orbs puts health and resource in orbs; Medallions adds round portraits. Changes out of combat."],
 		options = {
 			{ value = "frames", label = L["Frames"], picture = (Tokens.Texture("hudStyleFrames")) },
 			{ value = "orbs", label = L["Orbs"], picture = (Tokens.Texture("hudStyleOrbs")) },
+			{ value = "medallions", label = L["Medallions"], picture = (Tokens.Texture("hudStyleMedallions")) },
 		},
 	},
 }

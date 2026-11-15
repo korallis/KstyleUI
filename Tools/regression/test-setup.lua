@@ -959,7 +959,7 @@ end
 
 print("setup ok")
 
--- The HUD style step: two picture cards, Frames picked first for a profile on Frames; Apply saves the pick.
+-- The HUD style step: three picture cards, Frames picked first for a profile on Frames; Apply saves the pick, Medallions too.
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
@@ -967,7 +967,8 @@ do
 	W.Settle(env)
 	assert(panel.steps.buttons[2].label:GetText() == "HUD STYLE", "step 2 is the HUD style step")
 	local cards = panel.styleCards
-	assert(cards.frames and cards.orbs and cards.frames:IsShown() and cards.orbs:IsShown(), "a card for each style")
+	assert(cards.frames and cards.orbs and cards.medallions and cards.frames:IsShown() and cards.orbs:IsShown() and cards.medallions:IsShown(), "a card for each style")
+	assert(cards.medallions.picture:GetTexture() == (K.Tokens.Texture("hudStyleMedallions")), "the Medallions card shows its picture")
 	assert(cards.frames.picture:GetTexture() == (K.Tokens.Texture("hudStyleFrames")) and cards.orbs.picture:GetTexture() == (K.Tokens.Texture("hudStyleOrbs")), "each card shows its style's picture")
 	assert(K.Setup.Choice().hudStyle == "frames" and cards.frames.selected and not cards.orbs.selected, "Frames is picked first")
 	W.Click(cards.orbs)
@@ -978,5 +979,21 @@ do
 	assert(panel.summary:GetText():find(K.L["Orbs"], 1, true), "the summary names the style")
 	assert(K.Setup.Apply(K.Setup.Choice()), "Apply runs")
 	assert(K.HudStyle.Saved() == "orbs", "Apply saves the HUD style")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	W.Click(panel.styleCards.medallions)
+	W.Settle(env)
+	assert(K.Setup.Choice().hudStyle == "medallions" and panel.styleCards.medallions.selected, "a click picks Medallions")
+	K.Setup.Go(6)
+	W.Settle(env)
+	assert(panel.summary:GetText():find(K.L["Medallions"], 1, true), "the summary names Medallions")
+	assert(K.Setup.Apply(K.Setup.Choice()), "Apply runs")
+	assert(K.HudStyle.Saved() == "medallions", "Apply keeps the third style instead of dropping it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

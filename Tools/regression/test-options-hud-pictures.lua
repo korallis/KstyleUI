@@ -1,7 +1,7 @@
 -- test-options-hud-pictures.lua: the HUD style picker shows real pictures of each style at a size that reads (KSTY-60
--- item 27: the picker drew schematic diagrams in two 106-unit cards). The General page's HUD style row stacks its two
+-- item 27: the picker drew schematic diagrams in two 106-unit cards). The General page's HUD style row stacks its three
 -- picture cards under the label across the row, each picture 2:1 and the render crop Media/Textures holds, and the
--- setup's HUD style step shows the same two pictures.
+-- setup's HUD style step shows the same three pictures.
 local O = dofile("Tools/regression/options_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local W = O.W
@@ -33,7 +33,8 @@ for _, candidate in ipairs(ns.Window.Parts().content.rows) do
 end
 assert(row, "General shows the HUD style row")
 local holder = row.controls.pictures
-local want = { (K.Tokens.Texture("hudStyleFrames")), (K.Tokens.Texture("hudStyleOrbs")) }
+local want = { (K.Tokens.Texture("hudStyleFrames")), (K.Tokens.Texture("hudStyleOrbs")), (K.Tokens.Texture("hudStyleMedallions")) }
+assert(#holder.cards == 3 and holder.cards[3]:IsShown(), "the row shows a card for each of the three styles")
 Scene.Build(env, {})
 for i, card in ipairs(holder.cards) do
 	local _, _, width, height = Scene.Rect(env, card.picture)

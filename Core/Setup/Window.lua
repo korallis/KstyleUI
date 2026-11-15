@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style, layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
+-- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style (three cards), layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -35,6 +35,7 @@ local STEP_LABELS = { L["Welcome"], L["HUD style"], L["Layout"], L["Modules"], L
 local STYLES = {
 	{ value = "frames", label = L["Frames"], note = L["Your health and resource on the player frame above the action bars."], picture = "hudStyleFrames" },
 	{ value = "orbs", label = L["Orbs"], note = L["Your health and resource in two orbs either side of the action bars."], picture = "hudStyleOrbs" },
+	{ value = "medallions", label = L["Medallions"], note = L["Round portraits on your unit frames and a hub in the middle of one long action slab."], picture = "hudStyleMedallions" },
 }
 
 local panel
@@ -161,7 +162,12 @@ local function Refresh()
 			end
 		end
 		local ornaments = Setup.Ornament(choice.ornaments)
-		local style = choice.hudStyle == "orbs" and L["Orbs"] or L["Frames"]
+		local style = STYLES[1].label
+		for _, entry in ipairs(STYLES) do
+			if entry.value == choice.hudStyle then
+				style = entry.label
+			end
+		end
 		local head = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
 			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
@@ -247,7 +253,7 @@ local function BuildWelcome(page)
 	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	list:SetText(L["1. Pick a HUD style: Frames or Orbs."] .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
+	list:SetText(L["1. Pick a HUD style: Frames, Orbs or Medallions."] .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
 	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])

@@ -313,6 +313,7 @@ local TEXTURES = {
 	orbSurfaceLight = { file = "Textures\\OrbSurfaceLight.png" },
 	hudStyleFrames = { file = "Textures\\HudStyleFrames.png" },
 	hudStyleOrbs = { file = "Textures\\HudStyleOrbs.png" },
+	hudStyleMedallions = { file = "Textures\\HudStyleMedallions.png" },
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.png" },
 }

@@ -22,7 +22,7 @@ local DROPDOWN_CHEVRON = 8
 local DROPDOWN_GAPS = 3
 local DROPDOWN_SAFETY = 1
 local DROPDOWN_RESERVE = DROPDOWN_GAPS * Tokens.Size("gapMedium") + DROPDOWN_CHEVRON + DROPDOWN_SAFETY
-local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL, PICTURE_MAX = 2, 12, 4, 24, 280
+local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL, PICTURE_MAX, PICTURE_MIN = 3, 12, 4, 24, 280, 200
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
@@ -231,19 +231,21 @@ function MAKERS.pictures(row)
 		holder.cards[i] = PictureCard(row, holder, i)
 	end
 	function holder:Fit(width)
-		local cardWidth = Snap(self, min(PICTURE_MAX, (width - (PICTURE_COUNT - 1) * PICTURE_GAP) / PICTURE_COUNT))
+		local columns = max(1, min(PICTURE_COUNT, floor((width + PICTURE_GAP) / (PICTURE_MIN + PICTURE_GAP))))
+		local rows = math.ceil(PICTURE_COUNT / columns)
+		local cardWidth = Snap(self, min(PICTURE_MAX, (width - (columns - 1) * PICTURE_GAP) / columns))
 		local inset = Snap(self, PICTURE_INSET)
 		local picture = Snap(self, (cardWidth - 2 * inset) / 2)
 		local height = inset + picture + Snap(self, PICTURE_LABEL)
 		for i, card in ipairs(self.cards) do
 			Widgets.Size(card, cardWidth, height)
 			card:ClearAllPoints()
-			Widgets.Point(card, "TOPLEFT", self, "TOPLEFT", (i - 1) * (cardWidth + Snap(self, PICTURE_GAP)), 0)
+			Widgets.Point(card, "TOPLEFT", self, "TOPLEFT", ((i - 1) % columns) * (cardWidth + Snap(self, PICTURE_GAP)), -floor((i - 1) / columns) * (height + Snap(self, PICTURE_GAP)))
 			card.picture:ClearAllPoints()
 			Widgets.Point(card.picture, "TOPLEFT", card, "TOPLEFT", inset, -inset)
 			card.picture:SetSize(cardWidth - 2 * inset, picture)
 		end
-		Widgets.Size(self, PICTURE_COUNT * cardWidth + (PICTURE_COUNT - 1) * Snap(self, PICTURE_GAP), height)
+		Widgets.Size(self, columns * cardWidth + (columns - 1) * Snap(self, PICTURE_GAP), rows * height + (rows - 1) * Snap(self, PICTURE_GAP))
 	end
 	holder:Fit(Rows.CONTROL_WIDTH)
 	function holder:SetEnabled(enabled)

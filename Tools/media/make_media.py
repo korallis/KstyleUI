@@ -1017,6 +1017,7 @@ for orb_name, width, height, about in (
 for picture_name, about in (
     ("HudStyleFrames", "The Frames HUD style's picture for the settings window and the setup: the cast bar, cooldowns, target and player frames and the two-row tray, cropped from the hud_reference render."),
     ("HudStyleOrbs", "The Orbs HUD style's picture for the settings window and the setup: the two orbs, the forged tray and the cast bar, cropped from the hud_reference render."),
+    ("HudStyleMedallions", "The Medallions HUD style's picture for the settings window and the setup: the unit frames either side of the hub, the split tray and the cast bar, cropped from the hud_reference render."),
 ):
     ASSETS.append(Asset(
         f"Media/Textures/{picture_name}.png", 512, 256,
