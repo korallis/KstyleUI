@@ -219,6 +219,17 @@ The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's se
 
 The core has no icon service. KstyleUI's repainted icons ship as a loose-file texture pack the client loads from `_forever_/Interface/Icons`, so every texture that shows a game icon just calls `SetTexture(fileID)` and the client swaps the file; see [`docs/icons.md`](icons.md). Saved data from before this change carried `Icons` and `IconsColour` sections, which `Store.migrations[3]` drops.
 
+## Medallions
+
+`Core/Medallions.lua` resolves a unit's painted Medallions art without ever comparing a secret. Only plain strings index the art table, which is M1's generated `KstyleUI.MedallionAssets` (`portraits[raceFile][classFile][sex] = { bust, badge }`, `crests[raceFile][classFile] = { crest, glow, metal }`).
+
+| Function | Behaviour |
+| --- | --- |
+| `Medallions.Identity(unit) -> raceFile, classFile, sex` | Nil when `C_Secrets.ShouldUnitIdentityBeSecret(unit)` is true or secret (SecretPredicateAPIDocumentation.lua), or when `UnitRace`, `UnitClass` or `UnitSex` (each `SecretWhenUnitIdentityRestricted` in UnitDocumentation.lua) returns a secret or a value of the wrong type. NPCs have no race, so they come back nil. |
+| `Medallions.PortraitPath(unit, cut) -> path` | The `bust` (128 px) or `badge` (64 px) path, or nil when there is no identity or no art yet. |
+| `Medallions.Portrait(texture, unit, cut) -> painted` | Sets the painted cut and returns true; otherwise calls `SetPortraitTexture(texture, unit)` and returns false. It resets the texture coordinates either way. |
+| `Medallions.Crest(unit) -> crest, glow, metal` | The three paths of the race and class crest for the hub, or nil. |
+
 ## Setup
 
 `Core/Setup/` holds the first-run setup: it opens once per account, picks the HUD style (Frames, Orbs or Medallions), a DPS, Tank or Healer layout and the modules, then applies them and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.

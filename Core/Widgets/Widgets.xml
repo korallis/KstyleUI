@@ -22,6 +22,7 @@
 	<Script file="MediaPicker.lua"/>
 	<Script file="StatusBar.lua"/>
 	<Script file="UnitBar.lua"/>
+	<Script file="Medallion.lua"/>
 	<Script file="Overflow.lua"/>
 	<Script file="Duration.lua"/>
 	<Script file="SectionCap.lua"/>

@@ -67,13 +67,16 @@ end
 
 local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "normal", creature = "Beast" }
 
+-- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art; Frames and Orbs never read it.
+Hud.RACES = { WARRIOR = "Human", PALADIN = "Dwarf", HUNTER = "NightElf", ROGUE = "Human", PRIEST = "Dwarf", SHAMAN = "Dwarf", MAGE = "Gnome", WARLOCK = "Scourge", DRUID = "NightElf" }
+
 -- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
 	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
 		power = spec.power.value, powerMax = spec.power.max, powerType = spec.power.type, powerToken = spec.power.token,
-		isPlayer = true, reaction = 5,
+		isPlayer = true, reaction = 5, race = Hud.RACES[class], sex = 2,
 	}
 	for k, v in pairs(type(opts) == "table" and type(opts.player) == "table" and opts.player or {}) do
 		player[k] = v

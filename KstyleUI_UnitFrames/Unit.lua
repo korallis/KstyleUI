@@ -100,7 +100,7 @@ function Unit.HealthColor(view, unit)
 		local c = s.healthCustom
 		r, g, b = c.r, c.g, c.b
 	else
-		r, g, b = UnitColor(unit, s.healthColor)
+		r, g, b = UnitColor(unit, view.form == "slab" and s.healthColor == "hud" and unit == "player" and "class" or s.healthColor)
 	end
 	SetColor(view.health, r, g, b)
 	local reaction = UnitReaction and UnitReaction(unit, "player")
@@ -109,6 +109,7 @@ function Unit.HealthColor(view, unit)
 		view.health:SetHealthUnit(unit)
 	end
 	ns.Style.HealthTint(view, r, g, b)
+	ns.Slab.Colors(view, unit)
 end
 
 local function PowerTypeColor(unit, column)
@@ -257,6 +258,11 @@ local function LumenHealth(view, unit, form, format)
 		end
 	elseif form == "card" then
 		Format.Health(view.healthText, unit, Format.Main(format))
+	elseif form == "slab" then
+		Format.Health(view.healthText, unit, format == "both" and "currentMax" or format)
+		local dead = UnitIsDeadOrGhost and UnitIsDeadOrGhost(unit)
+		local gone = not IsSecret(dead) and dead == true
+		Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none")
 	elseif form == "row" then
 		Format.Health(view.healthText, unit, format)
 	end
@@ -271,6 +277,7 @@ function Unit.Health(view, unit, instant)
 	if form ~= "plate" then
 		LumenHealth(view, unit, form, format)
 		Unit.Glow(view, unit)
+		ns.Slab.Health(view, unit)
 	elseif view.geometry and view.geometry.healthSub then
 		Format.Health(view.healthText, unit, Format.Main(format))
 		Format.HealthDetail(view.healthSub, unit, format)
@@ -522,6 +529,23 @@ function Unit.Caption(view, unit)
 		else
 			text:SetText("")
 		end
+	elseif form == "slab" then
+		local label
+		if view.geometry and view.geometry.caption then
+			local player = UnitIsPlayer(unit)
+			if not IsSecret(player) and player then
+				label = (UnitClass(unit))
+			else
+				label = UnitCreatureType and UnitCreatureType(unit)
+			end
+		end
+		if IsSecret(label) then
+			text:SetText(label)
+		elseif type(label) == "string" then
+			text:SetText(Unit.Tracked(label, (text:GetFont())))
+		else
+			text:SetText("")
+		end
 	elseif form == "sigil" then
 		LevelLine(text, unit, false)
 	elseif form == "card" then
@@ -552,6 +576,11 @@ end
 
 function Unit.Level(view, unit)
 	local text = view.levelText
+	if view.form == "slab" then
+		ns.Slab.Level(view, unit)
+		Unit.Caption(view, unit)
+		return
+	end
 	Rank(view, unit)
 	if view.form and view.form ~= "plate" then
 		Unit.Caption(view, unit)
@@ -600,6 +629,10 @@ local function ClassIcon(texture, unit)
 end
 
 function Unit.Portrait(view, unit)
+	if view.form == "slab" then
+		ns.Slab.Portrait(view, unit)
+		return
+	end
 	if not view.s.portrait then
 		return
 	end

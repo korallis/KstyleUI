@@ -386,7 +386,7 @@ local function PlaceChip(view, width)
 end
 
 local function Reach(view, g, width)
-	local button, p = view.button, g.form == "column" and g.portrait
+	local button, p = view.button, (g.form == "column" and g.portrait) or (g.form == "slab" and g.medal)
 	if p then
 		button:SetHitRectInsets(math.min(0, p.x), -math.max(0, p.x + p.w - width), 0, 0)
 		view.reached = true
@@ -513,7 +513,7 @@ local function Extent(uf)
 	local view = uf.views[1]
 	local g, button = view.geometry, view.button
 	local Snap = K.Widgets.Snap
-	local p = g.portrait
+	local p = g.portrait or g.medal
 	local width = Snap(button, g.panel.w)
 	local left, right = 0, 0
 	if p then
@@ -568,7 +568,8 @@ function Frames.Relayout(uf)
 	end
 	local slots = Slots(uf, w, h)
 	local gap = CAST_GAP[uf.kind]
-	local castH = gap and uf.s.form == "plate" and uf.s.castbar and uf.s.castbarHeight or 0
+	local below = uf.s.form == "plate" or uf.s.form == "slab"
+	local castH = gap and below and uf.s.castbar and uf.s.castbarHeight or 0
 	for i, view in ipairs(uf.views) do
 		local slot = slots[i]
 		local button = view.button
@@ -594,7 +595,7 @@ function Frames.Relayout(uf)
 			cb.noRoom = false
 			cb.frame:SetShown(cb.active == true)
 			ns.CastBars.Layout(cb, c.w, c.h)
-		elseif cb and gap and g.form == "plate" then
+		elseif cb and gap and (g.form == "plate" or g.form == "slab") then
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
 			cb.frame:SetSize(g.panel.w, room)
@@ -769,10 +770,29 @@ local function OnLayoutChanged(_, key)
 	end)
 end
 
+local function RefreshIdentity()
+	if K.HudStyle.Current() == "medallions" then
+		EachShown(ns.Slab.Refresh)
+	end
+end
+
+local function OnRestriction(_, _, state)
+	local states = Enum and Enum.AddOnRestrictionState
+	local activating = states and states.Activating
+	if activating ~= nil and not (issecretvalue and issecretvalue(state)) and state == activating and C_Timer and C_Timer.After then
+		C_Timer.After(0, RefreshIdentity)
+		return
+	end
+	RefreshIdentity()
+end
+
 local function RegisterEvents()
 	local Events = K.Events
 	Events.Register(MODULE, "PLAYER_TARGET_CHANGED", function()
 		RefreshKind("target", true)
+		if frames.target and UnitExists("target") then
+			ns.Slab.FlipIn(frames.target.views[1])
+		end
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
 	end)
@@ -802,6 +822,7 @@ local function RegisterEvents()
 			EachShown(Indicators.Status)
 		end)
 	end
+	Events.Register(MODULE, "ADDON_RESTRICTION_STATE_CHANGED", OnRestriction)
 	Events.Register(MODULE, "UNIT_THREAT_SITUATION_UPDATE", OnThreat)
 	Events.Register(MODULE, "UNIT_THREAT_LIST_UPDATE", OnThreat)
 	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", function()

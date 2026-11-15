@@ -98,6 +98,7 @@ local function TextCurves(token)
 end
 
 Widgets.LOW_HEALTH_SHARE = LOW_SHARE
+Widgets.LowHealthCurve = LowCurve
 
 function Widgets.LowHealthText(text, unit, token)
 	local curves = unit and TextCurves(token)
