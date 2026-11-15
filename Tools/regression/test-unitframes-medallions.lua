@@ -87,7 +87,7 @@ local hr, hg, hb = K.Tokens.Color("healthHostile")
 er, eg, eb = tm.enamel:GetVertexColor()
 assert(near(er, hr) and near(eg, hg) and near(eb, hb), "a hostile NPC's ring takes the hostile colour")
 assert(env._portraits[tm.portrait] == "target", "an NPC target shows the engine portrait")
-assert(U.Shown(env, target.caption) == "Beast", "the target slab names the creature type, got " .. tostring(U.Shown(env, target.caption)))
+assert(U.Shown(env, target.caption) == "BEAST", "the target slab names the creature type in capitals, got " .. tostring(U.Shown(env, target.caption)))
 assert(tm.sheenAnim:IsPlaying(), "the target portrait carries the sheen")
 
 tm.flip:Stop()
@@ -97,7 +97,7 @@ assert(tm.flip:IsPlaying(), "a new target flips its medallion in")
 local pr, pg, pb = K.Theme.ClassColorForWidget("PALADIN")
 er, eg, eb = tm.enamel:GetVertexColor()
 assert(near(er, pr) and near(eg, pg) and near(eb, pb), "a player target's ring takes its class colour")
-assert(U.Shown(env, target.caption) == "Paladin", "a player target's slab names the class")
+assert(U.Shown(env, target.caption) == "PALADIN", "a player target's slab names the class")
 noErrors("target")
 
 for _, kind in ipairs({ "focus", "pet" }) do

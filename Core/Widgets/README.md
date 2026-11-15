@@ -421,6 +421,22 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 
 Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then `sparkFade` 0.35 s. At motion Reduced the band and its hold stay and the flash and spark do not show; at Off the band is off and the fill snaps. No part has an `OnUpdate`. `Tools/regression/test-widgets-unitbar.lua` drives the band, the flash, the spark and the curve with secret values that raise on any comparison or arithmetic.
 
+## Medallion
+
+`Widgets.Medallion(parent) -> medallion` (`Medallion.lua`) is the round unit medallion that the Medallions HUD style puts on unit frames; other modules can reuse it. The caller places and sizes the frame, then calls `Layout`. From back to front: the portrait (masked to a circle), the sheen, the `medEnamel` accent ring tinted by `SetRingColor`, the `medRing` steel bezel, the low-health ring in its own frame, and the level plaque. The plaque is a black, `steel`, black and `plaqueFill` diamond with the level in the `number` font. Until M3's `med*` textures load, each part falls back to `ringBevel`, `ring`, `glow` or `diamond`, and the portrait fills the bevel's hole instead of the steel bezel's 0.71 share.
+
+| Method | Behaviour |
+| --- | --- |
+| `Layout(size, plaqueSide)` | Sizes the portrait, the low-health ring (1.3 times the medallion) and the sheen. `plaqueSide` `LEFT` or `RIGHT` puts the plaque 18% across from that side and 86% down; `nil` hides it. |
+| `SetUnit(unit, cut) -> painted` | Calls `KstyleUI.Medallions.Portrait` with `cut` `bust` or `badge`. |
+| `SetRingColor(r, g, b)`, `SetLevel(level)` | Set the ring's tint and the plaque's text. A secret passes through. |
+| `SetDead(dead)` | Desaturates and darkens the portrait. |
+| `LowHealth(unit)` | Sets the ring's alpha to `UnitHealthPercent(unit, true, Widgets.LowHealthCurve())` and pulses its frame with a 0.4 s bounce; `nil` hides the ring. Reduced motion keeps the ring still. |
+| `Sheen(on)` | A 1.75 s translation across the portrait every 5 s, off under reduced motion. |
+| `FlipIn()` | A 0.18 s scale from 5% width with a fade in; nothing when motion is off. |
+
+No part runs Lua per frame: the curve, the pulse, the sheen and the flip are all engine work. `Widgets.LowHealthCurve()` is the same 40% step curve `UnitBar` uses for its red fill. `Widgets.MedallionColor(name, fallback)` reads a colour token and falls back to an older one while a Medallions token is missing.
+
 ## Popup and Confirm
 
 KstyleUI's own dialogs. They never use `StaticPopupDialogs`. One dialog shows at a time in a shared glass panel, `DialogHost()`, in the `DIALOG` strata, 360 units wide. It registers with Layout as `Widgets.Dialog` (scalable, 120 units above the centre by default), so the player can move and resize it.

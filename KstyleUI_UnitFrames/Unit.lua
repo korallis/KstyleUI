@@ -537,7 +537,13 @@ function Unit.Caption(view, unit)
 				label = UnitCreatureType and UnitCreatureType(unit)
 			end
 		end
-		text:SetText(Shows(label) and label or "")
+		if IsSecret(label) then
+			text:SetText(label)
+		elseif type(label) == "string" then
+			text:SetText(Unit.Tracked(label, (text:GetFont())))
+		else
+			text:SetText("")
+		end
 	elseif form == "sigil" then
 		LevelLine(text, unit, false)
 	elseif form == "card" then

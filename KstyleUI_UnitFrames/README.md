@@ -113,6 +113,27 @@ Options > General > HUD style (the `HudStyle` section's `style`, saved per profi
 - **Source (1.60.1.70862, `9dc84f0`).** `Blizzard_APIDocumentationGenerated/SimpleStatusBarAPIDocumentation.lua` (`SetOrientation`, `SetStatusBarTexture`, `GetStatusBarTexture`, `SetMinMaxValues` and `SetValue` with an interpolation argument, secret arguments allowed when tainted), `SimpleStatusBarConstantsDocumentation.lua` (`StatusBarInterpolation`: Immediate, ExponentialEaseOut), `SimpleFrameAPIDocumentation.lua` (`CreateMaskTexture`), `SimpleMaskTextureAPIDocumentation.lua` (the mask texture), `SimpleTextureAPIDocumentation.lua` (`AddMaskTexture`). The unit calls are the ones the frames already use.
 - `test-unitframes-orbs.lua` covers the default, migration 21, the live switch and its way back, the combat queue, profile switches, the reload fallback, the masked vertical fill, the eased band on secret values with no arithmetic, Motion Off and the placement.
 
+## Medallions (HUD style)
+
+Under the Medallions HUD style (`HudStyle.Current() == "medallions"`), `Settings.Form` returns `slab` for every frame whose `style` is not `plate`, so a frame set to plate stays a plate. `Slab.lua` draws the slab. `Geometry.lua` (`SlabFrame`) lays it out from the KSTY-88 mock's numbers, scaled by the element's height over the mock's height for that kind, so a resized element keeps its proportions.
+
+| Kind | Mock size (1080p px) | Medallion |
+| --- | --- | --- |
+| Player | 300 x 54, bar 21, power 5 | 84 across, its centre 2 in from the left end, plaque lower left |
+| Target | 300 x 54, bar 21 | 84, mirrored to the right end, plaque lower right |
+| Focus | 220 x 44, bar 15 | 62, left |
+| Pet | 180 x 40, bar 13 | 54, left |
+| Boss | 280 x 48 each, bar 16 | 62, right |
+| Target of target, focus target | 112 x 36, bar 12 | none: a mini slab with the name centred under the bar |
+
+- **Slab.** A vertical gradient (`slabTop` to `slabBottom`) with one black pixel outside it and a `steelEdge` hairline and a `slabInner` line inside it. Every line is a whole device pixel from `Widgets.Border`, so it stays sharp at 5120x1440. The shadow is the existing scrim. Nothing is drawn on or around a bar. The bars are the kit's `Widgets.UnitBar`, 7 down from the slab's top. On the outer end they start 9 in; on the medallion's end they start half the medallion plus 6 in.
+- **Texts.** The name sits under the bar on the medallion side, in Inter SemiBold capitals. The health value is centred on the bar in PT Serif Bold (`currentMax` when the setting is `both`). The player's percentage, or the target's creature type or class, sits at the far end in `labelMuted` capitals. Sizes come from the mock (name 10, value 13, extra 10, mini name 9, in mock px), multiplied by the player's own size over the kind's default, so the font sliders still scale them.
+- **Colours.** With `healthColor = hud`, the player's bar takes its class colour, a hostile unit's bar the hostile colour, and other units their reaction colour. A hostile unit's name is `nameHostile` and another player's name is its class colour. The ring (`Medallion:SetRingColor`) is the class colour for players, the reaction colour for NPCs, `steel` for bosses and `medDead` for the dead.
+- **Portrait.** `KstyleUI.Medallions.Portrait(texture, unit, "bust")` (docs/core-services.md, Medallions) draws the painted bust when the unit's race, class and sex are plain strings and art exists, and `SetPortraitTexture` otherwise. It runs on the refresh events `Frames.lua` already handles (`UNIT_PORTRAIT_UPDATE`, `UNIT_MODEL_CHANGED`, `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED`), never per frame.
+- **Effects.** A new target flips its medallion in on `PLAYER_TARGET_CHANGED`. Below `Widgets.LOW_HEALTH_SHARE` the low-health ring shows at an alpha taken from a step curve over `UnitHealthPercent`, pulsing through an AnimationGroup. The dead get no ring and a greyed portrait. The player and target portraits carry the sheen. All three are engine animations (Core/Widgets/README.md, Medallion) and follow the motion level.
+- Focus and boss cast bars sit under the slab inside their slot, as plates do. The player's and target's cast bars are their own elements.
+- `test-unitframes-medallions` covers the forms, the medallion placement, the ring colours, the resolver's secret paths, the effects and the switch back to Frames.
+
 ## Files
 
 `UnitFrames.xml` loads the files in this order:

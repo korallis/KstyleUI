@@ -12,7 +12,7 @@ local SHEEN_WIDTH, SHEEN_ALPHA = 0.55, 0.45
 local FLIP, FLIP_FROM = 0.18, 0.05
 local PULSE, PULSE_LOW = 0.4, 0.45
 local SHEEN, SHEEN_PERIOD = 1.75, 5
-local LEVEL_PLAQUE, LEVEL_RING, LEVEL_TEXT = 2, 1, 3
+local LEVEL_PLAQUE, LEVEL_RING = 2, 1
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 
 local DEAD_TINT = 0.45
@@ -41,6 +41,17 @@ local function Color(name, fallback)
 	return Tokens.Color(fallback)
 end
 Widgets.MedallionColor = Color
+
+local function Allows(kind)
+	local effects = ns.Effects
+	if effects and effects.Allows then
+		return effects.Allows(kind) == true
+	end
+	if kind == "pulse" then
+		return not Motion.ReducedMotion()
+	end
+	return Motion.Level() ~= "off"
+end
 
 local Medallion = {}
 
@@ -115,10 +126,11 @@ function Widgets.Medallion(parent)
 	m.enamel:SetTexture((Art("enamel")))
 	m.enamel:SetAllPoints(m)
 	m.ring = m:CreateTexture(nil, "OVERLAY", nil, 1)
-	m.ring:SetTexture((Art("ring")))
+	local ring, ringName = Art("ring")
+	m.ring:SetTexture(ring)
+	m.share = ringName == ART.ring[1] and PORTRAIT_SHARE or 1 - 2 * Widgets.RING_INSET
 	m.ring:SetAllPoints(m)
 	m.lowFrame = CreateFrame("Frame", nil, m)
-	m.lowFrame:SetFrameLevel(m:GetFrameLevel() + LEVEL_RING)
 	m.lowFrame:SetPoint("CENTER", m, "CENTER")
 	m.low = m.lowFrame:CreateTexture(nil, "OVERLAY")
 	local low, lowName = Art("low")
@@ -131,7 +143,6 @@ function Widgets.Medallion(parent)
 	m.lowFrame:Hide()
 	m.pulse = NewPulse(m.lowFrame)
 	m.plaque = CreateFrame("Frame", nil, m)
-	m.plaque:SetFrameLevel(m:GetFrameLevel() + LEVEL_PLAQUE)
 	m.plaqueLayers = {
 		Diamond(m.plaque, "BACKGROUND", 0),
 		Diamond(m.plaque, "BACKGROUND", 1),
@@ -156,7 +167,10 @@ end
 
 function Medallion:Layout(size, plaqueSide)
 	self.size = size
-	local inner = Snap(self, size * PORTRAIT_SHARE)
+	local level = self:GetFrameLevel()
+	self.lowFrame:SetFrameLevel(level + LEVEL_RING)
+	self.plaque:SetFrameLevel(level + LEVEL_PLAQUE)
+	local inner = Snap(self, size * self.share)
 	self.portrait:SetSize(inner, inner)
 	local spread = Snap(self, size * LOW_SPREAD)
 	self.lowFrame:SetSize(spread, spread)
@@ -216,7 +230,7 @@ function Medallion:LowHealth(unit)
 	end
 	self.low:SetAlpha(UnitHealthPercent(unit, true, curve))
 	self.lowFrame:Show()
-	if Motion.ReducedMotion() then
+	if not Allows("pulse") then
 		self.pulse:Stop()
 	elseif not self.pulse:IsPlaying() then
 		self.pulse:Play()
@@ -224,7 +238,7 @@ function Medallion:LowHealth(unit)
 end
 
 function Medallion:Sheen(on)
-	local want = on == true and not Motion.ReducedMotion()
+	local want = on == true and Allows("ambient")
 	self.sheen:SetShown(want)
 	if want and not self.sheenAnim:IsPlaying() then
 		self.sheenAnim:Play()
@@ -234,7 +248,9 @@ function Medallion:Sheen(on)
 end
 
 function Medallion:FlipIn()
-	if Motion.Level() == "off" then
+	local effects = ns.Effects
+	local level = effects and effects.Level and effects.Level() or Motion.Level()
+	if level == "off" then
 		return
 	end
 	self.flip:Stop()
