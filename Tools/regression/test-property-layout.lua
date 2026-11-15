@@ -169,6 +169,7 @@ local function Apart(Layouts, a, b)
 	if pair["groupframes.party"] and pair["groupframes.raid"] then
 		return false
 	end
+	-- The hub's level plaque may cross the experience strip under the slab, as Layouts.Fits allows.
 	if pair["medallions.hub"] and pair["databars.xp"] then
 		return false
 	end

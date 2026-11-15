@@ -55,6 +55,7 @@ do
 	assert(Kinds(hub.crest.pulse).Scale == 2, "the pulse grows and settles")
 	assert(not (other.medProc and other.medProc:IsShown()), "only the proc's own slot loops")
 	assert(b.medProc:GetParent() == b.overlay, "the loop draws on the slot, above the hub")
+	assert(not (b.lumenGlow and b.lumenGlow:IsShown()), "the Medallions loop replaces the slot's own proc glow")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
 	assert(not b.medProc:IsShown() and not b.medProc.anim:IsPlaying(), "the hide stops the slot loop")
 
@@ -73,6 +74,11 @@ do
 		assert(sweep.anim:IsPlaying() and sweep.move:GetOffset() * sweep.side > 0, "light runs along the slab both ways")
 	end
 	assert(hub.runes.turn:GetAnimationSpeedMultiplier() > 1, "the rune ring turns faster in combat")
+	local sliding = WingX(hub.wings[1])
+	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim, true)
+	assert(WingX(hub.wings[1]) == sliding, "a stopped slide does not move the wings to the end")
+	ns.Slab.Refresh()
+	assert(WingX(hub.wings[1]) == sliding, "a refresh during the slide leaves the wings to the animation")
 	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
 	assert(WingX(hub.wings[1]) > rest, "after the slide the wings rest further out")
 	env.SetCombat(false)
@@ -96,6 +102,8 @@ do
 	assert(hub.burst.anim:IsPlaying() and hub.caption.anim:IsPlaying(), "the level-up burst plays")
 	local pr = hub.plaque:GetVertexColor()
 	assert(pr < 1, "the plaque turns gold")
+	hub.burst.anim:GetScript("OnFinished")(hub.burst.anim, true)
+	assert(hub.plaque:GetVertexColor() == pr, "a burst stopped for the next one keeps the plaque gold")
 	hub.burst.anim:GetScript("OnFinished")(hub.burst.anim)
 	assert(hub.plaque:GetVertexColor() ~= pr, "the plaque settles after the burst")
 	env.FireEvent("PLAYER_LEVEL_UP", env.Secret(13))
@@ -170,6 +178,31 @@ do
 	level = 7
 	assert(ns.Slab.Level() == "full", "an answer that is not a level falls back to the motion setting")
 	K.Effects = nil
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
+	local texture = K.Tokens.Texture
+	K.Tokens.Texture = function(name)
+		if name == "medProcShaman" then
+			return "Interface\\ProcShaman.png"
+		end
+		return texture(name)
+	end
+	Medallions(K, env)
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.medProc:GetTexture() == "Interface\\ProcShaman.png", "the slot loop takes the class's flipbook")
+	local kinds = Kinds(b.medProc.anim)
+	assert(kinds.FlipBook == 1 and b.medProc.anim._anims[1]:GetFlipBookFrames() == 16, "the class flipbook runs as a FlipBook of 16 frames")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.lumenGlow:IsShown() and not b.medProc:IsShown(), "back to Frames the slot's own proc glow returns")
+	K.Tokens.Texture = texture
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

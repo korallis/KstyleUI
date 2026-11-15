@@ -336,8 +336,10 @@ local function BuildRing(hub)
 		wing.move = g:CreateAnimation("Translation")
 		wing.move:SetDuration(WINGS_RUN)
 		wing.move:SetSmoothing("OUT")
-		g:SetScript("OnFinished", function()
-			Slab.PlaceWings()
+		g:SetScript("OnFinished", function(_, requested)
+			if not requested then
+				Slab.PlaceWings()
+			end
 		end)
 		wing.anim = g
 		hub.wings[i] = wing
@@ -432,8 +434,10 @@ local function BuildMoments(hub)
 	end
 	Fade(burst.anim, 0, 1, BURST_RUN * 0.2)
 	Fade(burst.anim, 1, 0, BURST_RUN * 0.8, 1, BURST_RUN * 0.2)
-	burst.anim:SetScript("OnFinished", function()
-		Slab.PaintPlaque(false)
+	burst.anim:SetScript("OnFinished", function(_, requested)
+		if not requested then
+			Slab.PaintPlaque(false)
+		end
 	end)
 	hub.burst = burst
 
@@ -682,15 +686,19 @@ function Slab.Refresh()
 	gap:SetPoint("TOPLEFT", left.holder, "TOPRIGHT", 0, 0)
 	gap:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMLEFT", 0, 0)
 	local unit = K.Scale.Root():GetEffectiveScale()
-	local fit = Plain(unit) and unit > 0 and (gapWidth / unit - 2 * MARGIN) / RING or 1
-	hub:SetScale(max(0.01, min(1, fit)))
+	if not (Plain(unit) and unit > 0) then
+		unit = 1
+	end
+	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
 	hub:SetPoint("CENTER", gap, "TOP", 0, 0)
 	hub:SetFrameLevel(slab:GetFrameLevel() + 2)
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
-	Slab.PlaceWings()
+	if not hub.wings[1].anim:IsPlaying() then
+		Slab.PlaceWings()
+	end
 	Paint()
 	PaintLevel()
 	slab:Show()
@@ -812,6 +820,9 @@ end
 function Slab.SetProc(b, on)
 	if b.kind ~= "action" then
 		return
+	end
+	if b.lumenGlow then
+		b.lumenGlow:SetShown(b.proc == true and not Slab.Active())
 	end
 	if not (on and Slab.Active()) then
 		if b.medProc then
