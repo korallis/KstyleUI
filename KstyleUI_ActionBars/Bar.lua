@@ -212,14 +212,15 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
+	local rows = ns.Slab.Rows(def, cfg)
 	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
-	local width, height = ns.GridSize(count, cfg.rows, size, gap)
+	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch = size + gap
 	if CUMULATIVE[def.key] then
-		local _, _, columns, rows = ns.GridSize(count, cfg.rows, cfg.size, cfg.spacing)
+		local _, _, columns, used = ns.GridSize(count, rows, cfg.size, cfg.spacing)
 		pitch = cfg.size + cfg.spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
-		height = Widgets.Snap(header, (rows - 1) * pitch) + size
+		height = Widgets.Snap(header, (used - 1) * pitch) + size
 	end
 	local cols, used
 	if def.kind == "stance" and (cfg.rows or 1) > 1 then
@@ -230,7 +231,7 @@ function Bar:Layout()
 	local split = SplitGap(cfg)
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
-		local _, _, columns = ns.GridSize(count, cfg.rows, 1, 0)
+		local _, _, columns = ns.GridSize(count, rows, 1, 0)
 		if columns > 1 then
 			half = ceil(columns / 2)
 			split = Widgets.Snap(header, split)
@@ -260,7 +261,7 @@ function Bar:Layout()
 					row = used - 1 - row
 				end
 			else
-				col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
+				col, row = ns.Cell(i, count, rows, cfg.orientation, cfg.growth)
 			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch))
@@ -359,6 +360,7 @@ function Bar:RefreshTray(force)
 	local mainSteady, mainCombat, mainIdle = Steady(main)
 	local secondSteady, secondCombat, secondIdle = Steady(second)
 	ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
+	ns.Slab.Refresh()
 end
 
 function Bar:Refresh()
