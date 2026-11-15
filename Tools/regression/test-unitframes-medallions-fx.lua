@@ -124,4 +124,38 @@ env.RunTimers()
 assert(Fx.Flash(cb, "giltLit", 0.6) == false, "Frames keeps CastBar's own flash")
 noErrors("cast")
 
+do
+	local wenv, WK, wns = U.New()
+	local me = wenv._units.player
+	me.class, me.race, me.sex = "WARLOCK", "Scourge", 2
+	U.SetUnit(wenv, "pet", { name = "Zabnik", level = 38, health = 100, healthMax = 100, reaction = 5 })
+	local wframes = {}
+	for _, kind in ipairs(wns.Settings.KINDS) do
+		wframes[kind] = wns.Frames.Get(kind)
+	end
+	WK.Options.Write("HudStyle", "style", "medallions")
+	wenv.RunTimers()
+	local wm = wframes.player.views[1].medallion
+	assert(wm and wm:IsShown() and WK.Effects.playerMedallion == wm, "Lee's undead warlock has a player medallion")
+	assert(tostring(wm.portrait:GetTexture()):lower():find("scourge_warlock", 1, true), "it shows the undead warlock bust: " .. tostring(wm.portrait:GetTexture()))
+	local pet = wframes.pet.views[1].medallion
+	assert(pet and pet:IsShown(), "the imp has its medallion")
+	wenv.FireEvent("PLAYER_LEVEL_UP", 39)
+	assert(wm.burst and tostring(wm.burst:GetTexture()):find("BurstWarlock", 1, true), "the level-up burst is the fel burst: " .. tostring(wm.burst and wm.burst:GetTexture()))
+	local fel
+	for _, frame in ipairs(wenv._frames) do
+		if frame:GetObjectType() == "ModelScene" and frame:IsShown() then
+			fel = frame.actor._state.ModelByFileID and frame.actor._state.ModelByFileID[1]
+		end
+	end
+	assert(fel == WK.Effects.MODELS.WARLOCK, "at Full the burst is the warlock's fel model: " .. tostring(fel))
+	wenv.RunTimers()
+	wenv.SetCombat(true)
+	wenv.SetCombat(false)
+	wenv.RunTimers()
+	assert(WK.Layout.Rest.Resting() and WK.Layout.Rest.Level("unitframes.pet") == WK.Layout.Rest.ALPHA, "the imp's frame rests after combat")
+	assert(WK.Layout.Rest.Level("unitframes.player") == 1, "the warlock's own frame never rests")
+	assert(#wenv._errors == 0 and WK.ErrorCount() == 0, "warlock: " .. tostring(wenv._errors[1]))
+end
+
 print("ok unitframes medallions fx")

@@ -156,4 +156,24 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+do
+	local env, K, ns = New("WARLOCK")
+	env._powerType, env._powerToken = 0, "MANA"
+	Medallions(K, env)
+	assert(env._askedPower == 7, "Lee's warlock: the hub ring follows soul shards, not mana")
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.medProc and b.medProc:IsShown(), "a warlock proc runs the slot's loop")
+	assert(b.medProc:GetTexture():find("ProcWarlock", 1, true), "the slot's loop is the fel flipbook: " .. tostring(b.medProc:GetTexture()))
+	local fel
+	for _, frame in ipairs(env._frames) do
+		if frame:GetObjectType() == "ModelScene" and frame:IsShown() then
+			fel = frame.actor._state.ModelByFileID and frame.actor._state.ModelByFileID[1]
+		end
+	end
+	assert(fel == K.Effects.MODELS.WARLOCK, "the hub's proc model is the warlock's fel fire: " .. tostring(fel))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 print("ok actionbars medallions fx")

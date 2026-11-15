@@ -5,6 +5,8 @@ local Effects = {}
 
 local PEAK = { ready = 0.075, cap = 0, levelup = 0.3, cast = 0.12, stopped = 0.12, vignette = 0, burst = 0.3, rest = 0 }
 
+local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
+
 local function Clamp(x)
 	return math.max(0, math.min(1, x))
 end
@@ -33,9 +35,11 @@ function Effects.State()
 end
 
 local function Fixtures(env)
-	local keep = { UnitHealthPercent = env.UnitHealthPercent, UnitPowerType = env.UnitPowerType }
+	local powerType = env.UnitPowerType
 	FX.Install(env)
-	return keep
+	if powerType then
+		env.UnitPowerType = powerType
+	end
 end
 
 local function Medallions(K)
@@ -63,9 +67,13 @@ function Effects.Apply(env, module, ns, notes)
 			notes[#notes + 1] = "fx: slot 4's ready flash " .. t .. " s after its cooldown ended"
 		elseif state == "cap" then
 			Fixtures(env)
-			env._powerType, env._powerToken, env._power = 1, "RAGE", 1
+			local _, class = env.UnitClass("player")
+			if MANA[class] then
+				env._powerType, env._powerToken = 0, "MANA"
+			end
+			env._power = 1
 			ns.SlabEffects.UpdateCap()
-			notes[#notes + 1] = "fx: the hub ring at a capped resource, its alpha the curve's answer"
+			notes[#notes + 1] = "fx: the hub ring at a capped resource (power type " .. tostring(env._askedPower) .. "), its alpha the curve's answer"
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)
@@ -86,7 +94,8 @@ function Effects.Apply(env, module, ns, notes)
 		elseif state == "burst" then
 			local m = E.playerMedallion
 			K.Options.Write("Medallions", "motion", "calm")
-			if m and m:Burst("SHAMAN") then
+			local _, class = env.UnitClass("player")
+			if m and m:Burst(class) then
 				m.burst.anim:Stop()
 				local share = 0.6 + (1.15 - 0.6) * Clamp(t / 1.2)
 				local side = m.burst:GetWidth() * share

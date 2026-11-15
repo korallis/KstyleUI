@@ -88,6 +88,10 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 | Hub proc model | `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW` (plain), through M6's `Slab.SetProc` | The class model at the hub, 0.9 s, over M6's 2D pulse | 2 | model |
 | Hub level-up model | `PLAYER_LEVEL_UP`, through M6's `Slab.LevelUp` | `levelup.m2` over M6's 2D burst, which always plays | 2 | model |
 
+## The primary test character
+
+Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warlock_mac` under `RENDER_HUD_STYLE=Medallions` renders the undead warlock bust and crest with the imp out, and every `RENDER_FX` state above renders there too. The tests pin the warlock's effects: the hub ring follows soul shards rather than mana, a proc runs the fel flipbook (`medProcWarlock`) and the warlock's model (166071) at the hub, the level-up burst is `medBurstWarlock` (the warlock model at Full), and the imp's frame rests after combat while the warlock's own does not (`test-actionbars-medallions-fx`, `test-unitframes-medallions-fx`).
+
 ## In-game checks
 
 The render harness cannot draw models or run the client, so five things wait for Lee's single test. Each says what to look for and what happens when it fails; none of them can break the HUD, because every one already has its fallback in code.
