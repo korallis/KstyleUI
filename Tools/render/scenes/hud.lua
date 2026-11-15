@@ -624,7 +624,8 @@ function modules.actionbars(opts)
 		if slabState == "combat" then
 			env.SetCombat(true)
 		elseif slabState == "proc" then
-			local beside = K.Scale.Aspect() == "16:9" and 1006 or 1012
+			local bar = ns.bars.bar1
+			local beside = AB.Button(ns, "bar1", ns.Slab.Rows(bar.def, bar:Config()) == 2 and 6 or 12).spellID
 			env._game.procs[beside] = true
 			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", beside)
 		elseif slabState == "levelup" then
