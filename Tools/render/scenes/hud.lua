@@ -608,7 +608,7 @@ function modules.actionbars(opts)
 	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
 	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
 	-- (entering combat 0.3 s ago: the wings out and the sweep halfway), proc (a fresh proc on slot 6, beside the hub,
-	-- 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
+	-- or slot 12 on one row, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
 	local slabState = os.getenv("RENDER_MEDALLIONS_STATE")
 	if slabState and slabState ~= "" then
 		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
@@ -624,8 +624,9 @@ function modules.actionbars(opts)
 		if slabState == "combat" then
 			env.SetCombat(true)
 		elseif slabState == "proc" then
-			env._game.procs[1006] = true
-			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1006)
+			local beside = K.Scale.Aspect() == "16:9" and 1006 or 1012
+			env._game.procs[beside] = true
+			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", beside)
 		elseif slabState == "levelup" then
 			env.FireEvent("PLAYER_LEVEL_UP", 12)
 		end
