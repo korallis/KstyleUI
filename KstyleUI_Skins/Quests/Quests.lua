@@ -1,4 +1,4 @@
--- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot; in Orbs on top of the guide's card in one column, the guide re-placed whenever the card's height changes, and the card giving up the room the rail asks for so the guide keeps its current step beside RestedXP's docked boxes), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
+-- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story slot under the map, or in a second column beside the RestedXP guide's card while the guide holds the slot, and back in the slot with the guide in that column while the guide is shown in Frames; in Orbs on top of the guide's card in one column, the guide re-placed whenever the card's height changes, and the card giving up the room the rail asks for so the guide keeps its current step beside RestedXP's docked boxes), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
 local _, ns = ...
 
 local K = KstyleUI
@@ -88,18 +88,18 @@ local function Preset()
 	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
 end
 
-local function Story(guide, style)
+local function Story(guide, style, shown)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
 	local rw, rh = Setup.RootSize()
-	return Layouts.Story(Preset(), rh, guide, style, rw) or Layouts.Story(DEFAULT_PRESET, rh, guide, style, rw)
+	return Layouts.Story(Preset(), rh, guide, style, rw, shown) or Layouts.Story(DEFAULT_PRESET, rh, guide, style, rw, shown)
 end
 
-local function Spec(guide, style)
-	local story = Story(guide, style)
+local function Spec(guide, style, shown)
+	local story = Story(guide, style, shown)
 	return story and story.quests
 end
 
@@ -117,15 +117,17 @@ end
 local function Place()
 	local holder = state.holder
 	local guide = Guide()
-	local spec = Spec(guide, K.HudStyle.Current())
+	local RestedXP = ns.RestedXP
+	local shown = guide and RestedXP and RestedXP.Rail and RestedXP.Rail.Shown() or false
+	local spec = Spec(guide, K.HudStyle.Current(), shown)
 	if not holder or not spec then
 		Log("the layout has no story slot; the card keeps its last place")
 		return
 	end
 	holder:SetSize(spec.width, spec.height)
-	if state.guide ~= guide then
-		state.guide = guide
-		Register(Spec(guide))
+	if state.guide ~= guide or state.shown ~= shown then
+		state.guide, state.shown = guide, shown
+		Register(Spec(guide, nil, shown))
 	end
 	Card.Place(holder, 0, spec.height, spec.width, spec.height - state.give)
 end
@@ -341,6 +343,7 @@ Quests.Buttons = Card.Buttons
 Quests.Parts = Card.Parts
 Quests.Offset = Card.Offset
 Quests.Refresh = Dirty
+Quests.Replace = Replace
 
 Skins.Add({
 	key = KEY,

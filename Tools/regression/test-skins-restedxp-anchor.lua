@@ -6,11 +6,9 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local Measure = dofile("Tools/regression/databars_env.lua")
 
 local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true, SetScale = true, StopMovingOrSizing = true }
--- Each screen at the Interface size KstyleUI shipped before its automatic size, and the owner's MacBook also at the
--- automatic size that ships now. At 1920x1080 and 5120x1440 under Blizzard's UI scale 1 the automatic size leaves the
--- Frames story slot shorter than this step's first line in RestedXP's own units: a layout question this fix leaves
--- open.
-local SCREENS = { { 3456, 2234, 768 / 1080, { 16 / 19, "auto" } }, { 1920, 1080, 1, { 16 / 19 } }, { 5120, 1440, 1, { 16 / 19 } } }
+-- Each screen at the Interface size KstyleUI shipped before its automatic size and at the automatic size that ships
+-- now; test-skins-restedxp-whole-step.lua covers every screen the crew checks.
+local SCREENS = { { 3456, 2234, 768 / 1080, { 16 / 19, "auto" } }, { 1920, 1080, 1, { 16 / 19, "auto" } }, { 5120, 1440, 1, { 16 / 19, "auto" } } }
 local LINES = { "Talk to", "Buy", "Refreshing Spring Water" }
 
 -- Step 11 of RestedXP's "1-6 Tirisfal Glades" for an Undead warlock (Guides/forever/Horde-01-14_Undead.lua), the
@@ -92,26 +90,19 @@ local function Case(screen, style, boxes, size)
 	local card = Card(K, ns, rxp)
 	local px = K.Scale.Pixel(1) + 0.01
 	local band = ns.RestedXP.Rail.Band()
-	local fits = band.top - band.bottom >= (ns.RestedXP.Rail.Need and ns.RestedXP.Rail.Need() or 0) - px
-	assert(fits or size == "auto", what .. ": the step fits its element, the boxes taking only the room it leaves")
+	assert(band.top - band.bottom >= (ns.RestedXP.Rail.Need and ns.RestedXP.Rail.Need() or 0) - px, what .. ": the step fits its element, the boxes taking only the room it leaves")
 	local lowest
 	for i, want in ipairs(LINES) do
 		local line = card.lines[i]
-		assert(line or (not fits and i > 1), string.format("%s: the step's line %q shows", what, want))
-		if line then
-			assert(line.top <= card.glass.top + px and line.bottom >= card.glass.bottom - px, string.format("%s: the line %q sits inside the card", what, want))
-			assert(above.lines[i] and math.abs(line.top - above.lines[i].top) <= px, string.format("%s: the line %q stands where it does with RestedXP's steps above its header, got %.1f for %.1f", what, want, line.top, above.lines[i] and above.lines[i].top or -1))
-			lowest = line
-		end
+		assert(line, string.format("%s: the step's line %q shows", what, want))
+		assert(line.top <= card.glass.top + px and line.bottom >= card.glass.bottom - px, string.format("%s: the line %q sits inside the card", what, want))
+		assert(above.lines[i] and math.abs(line.top - above.lines[i].top) <= px, string.format("%s: the line %q stands where it does with RestedXP's steps above its header, got %.1f for %.1f", what, want, line.top, above.lines[i] and above.lines[i].top or -1))
+		lowest = line
 	end
 	local gap = card.cap.bottom - card.lines[1].top
 	assert(gap >= 0 and gap <= 6, string.format("%s: the step's first line stands right under the cap, %.1f units under it", what, gap))
 	assert(lowest.bottom >= band.bottom - px, string.format("%s: the step stays inside its element, its last shown line at %.1f for a foot at %.1f", what, lowest.bottom, band.bottom))
-	if fits then
-		assert(ns.RestedXP.Rail.Hidden() == 0, string.format("%s: no \"more\" line, %d of the step rest under one", what, ns.RestedXP.Rail.Hidden()))
-	else
-		assert(ns.RestedXP.Rail.Hidden() > 0, what .. ": a step taller than its element rests partly under a \"more\" line")
-	end
+	assert(ns.RestedXP.Rail.Hidden() == 0, string.format("%s: no \"more\" line, %d of the step rest under one", what, ns.RestedXP.Rail.Hidden()))
 	for _, edge in ipairs({ "top", "bottom", "left", "right" }) do
 		assert(math.abs(card.glass[edge] - above.glass[edge]) <= px, string.format("%s: the card's %s is where it is with RestedXP's steps above its header, got %.1f for %.1f", what, edge, card.glass[edge], above.glass[edge]))
 	end

@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away; in Frames the boxes take only the room the guide's current step leaves, so a step that fits the element keeps every line and only a step taller than the element rests partly under the "N more" line. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away; in Frames, while the guide is shown and the quest card is up, the guide takes the quest card's tall column and the quest card the story slot (the quest card gives up rows before the guide gives up its step), trading places only when the guide shows or hides, never per step, and the boxes take only the room the guide's current step leaves. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -67,14 +67,28 @@ local function Preset()
 	return Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
 end
 
+local function Shown()
+	local f, quests, Setup = Frame(), ns.Quests, K.Setup
+	local Layouts = Setup and Setup.Layouts
+	if not (f and f:IsShown() and On() and quests and type(quests.Active) == "function" and quests.Active() and Layouts and type(Layouts.Story) == "function") then
+		return false
+	end
+	local _, rh = Setup.RootSize()
+	local story = Layouts.Story(Preset(), rh, true, K.HudStyle.Current())
+	return story ~= nil and not story.stacked
+end
+
+Rail.Shown = Shown
+
 local function Spec(style)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
-	local _, rh = Setup.RootSize()
-	local story = Layouts.Story(Preset(), rh, true, style) or Layouts.Story(DEFAULT_PRESET, rh, true, style)
+	local rw, rh = Setup.RootSize()
+	local shown = Shown()
+	local story = Layouts.Story(Preset(), rh, true, style, rw, shown) or Layouts.Story(DEFAULT_PRESET, rh, true, style, rw, shown)
 	return story and story.guide
 end
 
@@ -84,6 +98,26 @@ local function Size()
 		holder:SetSize(spec.width, spec.height)
 	end
 	return spec
+end
+
+local function Register(spec)
+	Widgets.Place(state.holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = L["RestedXP guide"], module = MODULE })
+end
+
+local function Swap()
+	local shown = Shown()
+	if not state.holder or shown == state.shown then
+		return
+	end
+	state.shown = shown
+	local spec = Spec()
+	if spec then
+		Register(spec)
+	end
+	local quests = ns.Quests
+	if quests and type(quests.Replace) == "function" then
+		quests.Replace()
+	end
 end
 
 local function Holder()
@@ -98,7 +132,7 @@ local function Holder()
 	holder:EnableMouse(false)
 	state.holder = holder
 	Size()
-	Widgets.Place(holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = L["RestedXP guide"], module = MODULE })
+	Register(spec)
 	return holder
 end
 
@@ -113,7 +147,7 @@ end
 function Rail.Story()
 	local Setup = K.Setup
 	Size()
-	return Setup and type(Setup.Story) == "function" and Setup.Story(Preset(), true) or nil
+	return Setup and type(Setup.Story) == "function" and Setup.Story(Preset(), true, Shown()) or nil
 end
 
 local function CardBottom()
@@ -576,6 +610,7 @@ function Rail.Place()
 	end
 	local f = Frame()
 	Holder()
+	Swap()
 	if f then
 		Give(f, RestedXP.Chrome.Path(f))
 	end
@@ -650,7 +685,7 @@ local function Restore()
 	end
 	local f = Frame()
 	local original = state.original
-	state.placed = nil
+	state.placed, state.shown = nil, nil
 	Live()
 	if f then
 		Fit(f, nil, nil)
@@ -855,6 +890,7 @@ local function Hook(f)
 		end
 	end
 	f:HookScript("OnShow", Schedule)
+	f:HookScript("OnHide", Schedule)
 	if type(f.SetStepFrameAnchor) == "function" then
 		hooksecurefunc(f, "SetStepFrameAnchor", function()
 			KeepAbove(f)
