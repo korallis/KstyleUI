@@ -1649,7 +1649,7 @@
     "sat": 0.6178,
     "separation": 85.04
    },
-   "note": "By eye on the KSTY-92 sheet: the same character as its bust, reads at 24 px; the flat cut is bolder (or, for pale hair, brighter) than its dark painted bust by design, which the drift check counts as a change.",
+   "note": "By eye on the KSTY-92 contact sheet: Third attempt; all three cut the violet skin and purple-gold cowl bolder than the dark bust, which the check counts as drift. Same character, reads at 24 px.",
    "overruled": [
     "saturation drift 57%"
    ]
@@ -2449,7 +2449,7 @@
     "sat": 0.6001,
     "separation": 112.89
    },
-   "note": "By eye on the KSTY-92 sheet: the same character as its bust, reads at 24 px; the flat cut is bolder (or, for pale hair, brighter) than its dark painted bust by design, which the drift check counts as a change.",
+   "note": "By eye on the KSTY-92 contact sheet: Third attempt; all three cut the green skin and brown hood more saturated than the muted bust. Same character, reads at 24 px.",
    "overruled": [
     "saturation drift 61%"
    ]
@@ -2641,7 +2641,7 @@
     "sat": 0.567,
     "separation": 84.59
    },
-   "note": "By eye on the KSTY-92 sheet: the same character as its bust, reads at 24 px; the flat cut is bolder (or, for pale hair, brighter) than its dark painted bust by design, which the drift check counts as a change.",
+   "note": "By eye on the KSTY-92 contact sheet: Third attempt; all three render the pale hair and bone skin brighter than the dark painted bust. Same character, reads at 24 px.",
    "overruled": [
     "luminance drift 42%"
    ]
@@ -2947,7 +2947,7 @@
     "sat": 0.5864,
     "separation": 93.43
    },
-   "note": "By eye on the KSTY-92 sheet: the same character as its bust, reads at 24 px; the flat cut is bolder than its dark painted bust by design, which the drift check counts as a change.",
+   "note": "By eye on the KSTY-92 contact sheet: Third attempt; all three cut the gold-trimmed cowl and blue scarf bolder than the muted bust. Same character, reads at 24 px.",
    "overruled": [
     "saturation drift 63%"
    ]
@@ -4043,7 +4043,7 @@
     "luma": 80.62,
     "sat": 0.6986
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the red-orange braids, gilded plate and red sash; brushwork and lighting match the anchor.",
    "overruled": [
     "saturation drift 35%"
    ]
@@ -4080,7 +4080,7 @@
     "luma": 82.73,
     "sat": 0.6706
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the red-orange beard and gilded plate; brushwork and lighting match the anchor.",
    "overruled": [
     "saturation drift 30%"
    ]
@@ -4117,7 +4117,7 @@
     "luma": 88.66,
     "sat": 0.654
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the red-orange braids against white and gold vestments; same finish as the anchor.",
    "overruled": [
     "saturation drift 27%"
    ]
@@ -4224,7 +4224,7 @@
     "luma": 53.76,
     "sat": 0.6018
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark hood and leathers darken the disc; the red beard and lit face still read at 24 px.",
    "overruled": [
     "luminance drift 32%"
    ]
@@ -4331,7 +4331,7 @@
     "luma": 71.24,
     "sat": 0.6669
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the bright red-orange braids and red tabard; brushwork and lighting match the anchor.",
    "overruled": [
     "saturation drift 29%"
    ]
@@ -4508,7 +4508,7 @@
     "luma": 92.76,
     "sat": 0.6134
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled to drop the first one's halo; the reading of 61 is the orange hair crest in the top ring, not a lit background.",
    "overruled": [
     "bright background (61)"
    ]
@@ -4965,7 +4965,7 @@
     "luma": 95.08,
     "sat": 0.4873
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Head sits 9 % low because the high white collar fills the bottom; the face stays whole inside the disc at 128 to 24 px, so no reroll.",
    "overruled": [
     "off-centre (subject at 0.52, 0.59)"
    ]
@@ -5002,7 +5002,7 @@
     "luma": 95.77,
     "sat": 0.5193
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Head sits 9 % low because the high white collar fills the bottom; the face stays whole inside the disc at 128 to 24 px, so no reroll.",
    "overruled": [
     "off-centre (subject at 0.51, 0.59)"
    ]
@@ -5039,7 +5039,7 @@
     "luma": 52.88,
     "sat": 0.5149
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark leather hood and cowl take up half the disc, so the bust reads darker than the anchor; face lit and readable at 24 px, same finish.",
    "overruled": [
     "luminance drift 33%"
    ]
@@ -5076,7 +5076,7 @@
     "luma": 49.06,
     "sat": 0.4975
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark leather hood and cowl take up half the disc, so the bust reads darker than the anchor; face lit and readable at 24 px, same finish.",
    "overruled": [
     "luminance drift 38%"
    ]
@@ -5323,7 +5323,7 @@
     "luma": 91.38,
     "sat": 0.3483
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the violet skin and feathered hair; same finish as the anchor.",
    "overruled": [
     "saturation drift 33%"
    ]
@@ -5360,7 +5360,7 @@
     "luma": 91.42,
     "sat": 0.3556
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Pale lilac hair fills the ring above the head (the background itself is near-black), and violet skin raises saturation; reads at 24 px.",
    "overruled": [
     "bright background (65)",
     "saturation drift 31%"
@@ -5433,7 +5433,7 @@
     "luma": 108.44,
     "sat": 0.3582
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; violet skin and white-gold vestments make it brighter and less saturated than the anchor, but it reads as a man in the same finish.",
    "overruled": [
     "luminance drift 37%",
     "saturation drift 31%"
@@ -5471,7 +5471,7 @@
     "luma": 78.22,
     "sat": 0.3695
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the violet skin and purple cowl; same finish as the anchor.",
    "overruled": [
     "saturation drift 28%"
    ]
@@ -5753,7 +5753,7 @@
     "luma": 53.08,
     "sat": 0.4592
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark hood and leathers darken the disc; green face lit and readable at 24 px.",
    "overruled": [
     "luminance drift 33%"
    ]
@@ -5790,7 +5790,7 @@
     "luma": 57.38,
     "sat": 0.526
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark hood and leathers darken the disc; green face lit and readable at 24 px.",
    "overruled": [
     "luminance drift 27%"
    ]
@@ -6247,7 +6247,7 @@
     "luma": 66.63,
     "sat": 0.3725
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a man; the brown hood lowers saturation, and she reads as a woman at every size.",
    "overruled": [
     "saturation drift 28%"
    ]
@@ -6284,7 +6284,7 @@
     "luma": 53.94,
     "sat": 0.3734
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Brown hood and rotted leathers make it darker and greyer than the anchor; yellow eyes and face read at 24 px.",
    "overruled": [
     "luminance drift 32%",
     "saturation drift 28%"
@@ -6462,7 +6462,7 @@
     "luma": 120.13,
     "sat": 0.415
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: White feathered hair and pale skin lift luminance and fill the top ring; background near-black, reads at 24 px.",
    "overruled": [
     "bright background (77)",
     "luminance drift 52%"
@@ -6500,7 +6500,7 @@
     "luma": 107.06,
     "sat": 0.4615
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; pale skin and silver hair lift luminance and fill the top ring.",
    "overruled": [
     "bright background (65)",
     "luminance drift 35%"
@@ -6538,7 +6538,7 @@
     "luma": 125.36,
     "sat": 0.3517
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: White fur collar and white feathered hair lift luminance and fill the top ring; background near-black, reads at 24 px.",
    "overruled": [
     "bright background (82)",
     "luminance drift 59%",
@@ -6577,7 +6577,7 @@
     "luma": 107.07,
     "sat": 0.3665
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; white fur collar and silver hair lift luminance and fill the top ring.",
    "overruled": [
     "bright background (68)",
     "luminance drift 35%",
@@ -6616,7 +6616,7 @@
     "luma": 125.69,
     "sat": 0.369
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: White and sky-blue robe, white hair and pale skin lift luminance and fill the top ring; background near-black.",
    "overruled": [
     "bright background (65)",
     "luminance drift 59%",
@@ -6655,7 +6655,7 @@
     "luma": 114.48,
     "sat": 0.4206
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; white and sky-blue robe and silver hair lift luminance.",
    "overruled": [
     "luminance drift 45%"
    ]
@@ -6692,7 +6692,7 @@
     "luma": 98.87,
     "sat": 0.3721
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Dark cowl against pale skin and hair shifts luminance and saturation; same finish as the anchor.",
    "overruled": [
     "luminance drift 25%",
     "saturation drift 28%"
@@ -6730,7 +6730,7 @@
     "luma": 86.18,
     "sat": 0.3598
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; the dark cowl lowers saturation against the pale sky-blue palette.",
    "overruled": [
     "saturation drift 30%"
    ]
@@ -6767,7 +6767,7 @@
     "luma": 127.66,
     "sat": 0.3661
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: White furs, white feathered hair and pale skin lift luminance and fill the top ring; background near-black.",
    "overruled": [
     "bright background (77)",
     "luminance drift 61%",
@@ -6806,7 +6806,7 @@
     "luma": 114.57,
     "sat": 0.3699
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; white furs, silver hair and pale skin lift luminance and fill the top ring.",
    "overruled": [
     "bright background (66)",
     "luminance drift 45%",
@@ -6845,7 +6845,7 @@
     "luma": 114.14,
     "sat": 0.4044
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Pale skin, white feathered hair and silver plate lift luminance and fill the top ring; the background is near-black and she reads at 24 px.",
    "overruled": [
     "bright background (77)",
     "luminance drift 44%"
@@ -6883,7 +6883,7 @@
     "luma": 101.86,
     "sat": 0.471
    },
-   "note": "By eye on the KSTY-92 reroll sheet: reads as the right sex and matches the anchor finish; the drift and top-ring brightness come from pale sky-elf hair and skin, not from the background.",
+   "note": "By eye on the KSTY-92 contact sheet: Second attempt, rerolled because the first read as a woman; silver hair and pale skin fill the top ring and lift luminance, background is near-black.",
    "overruled": [
     "bright background (70)",
     "luminance drift 29%"
@@ -6921,7 +6921,7 @@
     "luma": 81.32,
     "sat": 0.6653
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: Saturation comes from the autumn-leaf mantle and green magic; same finish as the anchor.",
    "overruled": [
     "saturation drift 29%"
    ]
@@ -6958,7 +6958,7 @@
     "luma": 74.55,
     "sat": 0.6473
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The autumn-leaf mantle and horns fill the top ring (62 is foliage, not background) and raise saturation; same finish as the anchor's bull-folk druid.",
    "overruled": [
     "bright background (62)",
     "saturation drift 25%"
@@ -7416,7 +7416,7 @@
     "luma": 58.7,
     "sat": 0.4981
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark hood and leathers darken the disc; teal face and red crest read at 24 px.",
    "overruled": [
     "luminance drift 26%"
    ]
@@ -7453,7 +7453,7 @@
     "luma": 57.3,
     "sat": 0.5055
    },
-   "note": "By eye on the KSTY-92 contact sheet: matches the anchor finish at 128 to 24 px; the drift comes from the race or class palette (red dwarf hair, dark rogue hoods, pale sky-elf hair against the top ring), not from a change of style.",
+   "note": "By eye on the KSTY-92 contact sheet: The dark hood and leathers darken the disc; teal face and red crest read at 24 px.",
    "overruled": [
     "luminance drift 28%"
    ]
@@ -8202,7 +8202,7 @@
     "luma": 109.23,
     "white": 0.2127
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Violet and fel-green sigil reads clearly; the hue of 35 comes from the brass cogwheel and copper field around it.",
    "overruled": [
     "emblem glow hue 35, wanted 280 or 110"
    ]
@@ -8598,7 +8598,7 @@
     "luma": 115.16,
     "white": 0.1433
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Violet and fel-green sigil reads clearly; the measured hue of 7 comes from the red-gold crown and gems around the field. Frame identical to the human master.",
    "overruled": [
     "emblem glow hue 7, wanted 280 or 110"
    ]
@@ -8762,7 +8762,7 @@
     "luma": 110.49,
     "white": 0.2087
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Moss-green bow and wing read clearly; the hue of 39 comes from the gold bow and arrow inlay. Frame identical to the forest-elf master.",
    "overruled": [
     "emblem glow hue 39, wanted 95"
    ]
@@ -8822,7 +8822,7 @@
     "luma": 165.57,
     "white": 0.7301
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Frame unchanged by eye; the pearl-white field and its glow spill onto the inner rim, which the frame-band check reads as drift.",
    "overruled": [
     "frame drift from the master (0.165)",
     "frame luminance drift 34%"
@@ -8999,7 +8999,7 @@
     "luma": 83.71,
     "white": 0.0575
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Green bow and wing read clearly; the hue of 51 comes from the gold bow on red hide.",
    "overruled": [
     "emblem glow hue 51, wanted 95"
    ]
@@ -9233,7 +9233,7 @@
     "luma": 83.25,
     "white": 0.1866
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Violet and fel-green sigil reads clearly; the hue of 28 comes from the red war-painted hide behind it.",
    "overruled": [
     "emblem glow hue 28, wanted 280 or 110"
    ]
@@ -9455,7 +9455,7 @@
     "luma": 97.55,
     "white": 0.4269
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Frame unchanged by eye; the white-gold star's glow lightens the inner rim, which the frame-band check reads as drift (0.128 against 0.12).",
    "overruled": [
     "frame drift from the master (0.128)"
    ]
@@ -10511,7 +10511,7 @@
     "luma": 104.57,
     "white": 0.1696
    },
-   "note": "By eye on the KSTY-92 contact sheet: frame unchanged from its race master and the emblem reads in its class colour; the script hue or frame check is thrown by the frame colours (red hide, pearl field) bleeding into the measured region.",
+   "note": "By eye on the KSTY-92 contact sheet: Violet and fel-green sigil reads clearly; the hue of 23 comes from the carved wood and red-orange beads around the field.",
    "overruled": [
     "emblem glow hue 23, wanted 280 or 110"
    ]

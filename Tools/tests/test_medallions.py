@@ -360,11 +360,11 @@ class VerifyTest(unittest.TestCase):
     def test_finds_an_unlisted_file_a_changed_file_and_a_stale_table(self):
         repo = self.copy_repo()
         entries = json.loads((repo / "Tools/medallions/manifest.json").read_text())
-        stray = repo / "Media/Textures/Medallions/Busts/human_warrior_male.png"
+        stray = repo / "Media/Textures/Medallions/Busts/not_a_key.png"
         stray.parent.mkdir(parents=True, exist_ok=True)
         stray.write_bytes(b"x")
         problems = medallions.verify(repo)
-        self.assertIn(f"{medallions.MEDIA}/Busts/human_warrior_male.png has no manifest entry", problems)
+        self.assertIn(f"{medallions.MEDIA}/Busts/not_a_key.png has no manifest entry", problems)
         stray.unlink()
         first = repo / entries[0]["file"]
         first.write_bytes(first.read_bytes() + b"\0")
