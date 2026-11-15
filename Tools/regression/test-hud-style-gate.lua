@@ -31,6 +31,15 @@ do
 		end
 	end
 	assert(#shown == 2 and shown[1] == "frames" and shown[2] == "orbs", "the General page shows Frames and Orbs only, got " .. table.concat(shown, ","))
+	local holder
+	for _, row in ipairs(ns.Window.Parts().content.rows) do
+		if row:IsShown() and row.item and row.item.kind == "pictures" then
+			holder = row.controls.pictures
+		end
+	end
+	local _, cardHeight = holder.cards[1]:GetSize()
+	local _, holderHeight = holder:GetSize()
+	assert(holderHeight <= cardHeight + 1, "the picker reserves one row of cards, not a blank slot for the hidden third: " .. holderHeight .. " tall for cards " .. cardHeight)
 	assert(not K.HudStyle.schema[2].help:find("Medallions", 1, true), "the picker help does not name Medallions")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
@@ -48,6 +57,18 @@ do
 	assert(cards.medallions == nil, "the setup shows no Medallions card")
 	assert(K.Setup.Choice().hudStyle == "frames", "the pick starts on Frames")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local env, K, ns = O.New({ saved = saved, medallions = false })
+	K.Options.Open("General")
+	Settle(env)
+	for _, row in ipairs(ns.Window.Parts().content.rows) do
+		if row:IsShown() and row.item and row.item.kind == "pictures" then
+			local cards = row.controls.pictures.cards
+			assert(cards[1].chrome.ownEdge == true and cards[2].chrome.ownEdge ~= true, "a saved Medallions profile shows Frames picked in the picker")
+		end
+	end
 end
 
 do

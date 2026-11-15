@@ -22,7 +22,7 @@ stateDiagram-v2
 
 | State | What holds | Code |
 | --- | --- | --- |
-| Unapplied | `applied` is nil, so `HudStyle.Current()` returns `HudStyle.Saved()`: the profile's style when the Store is loaded and the value is a known, non-secret style, else `frames`. | `HudStyle.Saved`, `HudStyle.Current` |
+| Unapplied | `applied` is nil, so `HudStyle.Current()` returns `HudStyle.Saved()`: the profile's style when the Store is loaded and the value is a known, non-secret style that is offered, else `frames`. Medallions is known but not offered while `HudStyle.MEDALLIONS_READY` is false, so a profile that saved it draws Frames and keeps the saved value. | `HudStyle.Saved`, `HudStyle.Current` |
 | Applied | `applied` is the style every module draws; `Current()` returns it. | `Apply` (local) |
 | Queued | `queued` is true. The player was told "Your HUD style changes when combat ends." and one function waits in `ns.Combat.Queue`. `Current()` still returns the old style, so modules keep drawing it while `Saved()` already holds the new one. | `Apply`, `Combat.Queue` (`Core/Combat.lua`) |
 | Switching | `applied` is already the new style. `ns.Callbacks.Fire("HudStyleChanged", style)` runs each listener through `ns.Call`, so a listener that raises is counted, not propagated. | `Apply`, `Callbacks.Fire` (`Core/Callbacks.lua`), `ns.ErrorCount` (`Core/Init.lua`) |
@@ -42,7 +42,7 @@ stateDiagram-v2
 | --- | --- |
 | `Core/Scale.lua` | `Request("the HUD style")`: the scale limit depends on the style. Under Medallions `Layouts.Fits` sizes bars 1 and 2 as the slab's two groups (6 by 2 slots below 21:9, 12 by 1 at 21:9 and wider) and counts the hub, a square 150 units wide centred on the slots' top edge, as a rect no element may enter; the one-row slab stands high enough that the hub clears the experience strip. See [arrangement-layout-class.md](arrangement-layout-class.md). |
 | `Core/Layout/Layout.lua` | `Restyle`: `ResolveAll` (each element's default comes from `StyleDefault` for the new style: Orbs and Medallions each have a table in `Setup/Layouts.lua`, Medallions' with 21:9 and 32:9 places of its own), `UpdateEvents`, `ApplyAll`, `LayoutChanged` for every element, then `Mode("Refresh")` when Layout Mode is open. |
-| `Core/Setup/Setup.lua` | `Apply` takes any style `HudStyle.Valid` knows, Medallions included; `Restyle`: when `Setup.Apply` is not writing and the active Edit Mode layout is KstyleUI's layout for the current `Layout.preset` (`EditMode.ActiveName()` equals the preset), queues `EditMode.Restyle` to move the viewers and rows KstyleUI placed. |
+| `Core/Setup/Setup.lua` | `Apply` takes any style `HudStyle.Offered` allows (Medallions only once `HudStyle.MEDALLIONS_READY` is true); `Restyle`: when `Setup.Apply` is not writing and the active Edit Mode layout is KstyleUI's layout for the current `Layout.preset` (`EditMode.ActiveName()` equals the preset), queues `EditMode.Restyle` to move the viewers and rows KstyleUI placed. |
 | `KstyleUI_UnitFrames/Frames.lua` | `OnHudStyleChanged`: `Orbs.Apply`, the player frame, every restyle, and Blizzard's frames. |
 | `KstyleUI_Chat/Module.lua` | `Refresh("framing")`. |
 | `KstyleUI_Skins/Quests/Quests.lua` | `Replace`: places the quest card again. |

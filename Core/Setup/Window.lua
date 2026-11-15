@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style (three cards), layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
+-- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style (a card per offered style), layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
 local _, ns = ...
 
 local Setup = ns.Setup
