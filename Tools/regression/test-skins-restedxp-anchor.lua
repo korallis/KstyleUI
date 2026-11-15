@@ -7,6 +7,9 @@ local Measure = dofile("Tools/regression/databars_env.lua")
 
 local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true, SetScale = true, StopMovingOrSizing = true }
 local SCREENS = { { 3456, 2234, 768 / 1080 }, { 1920, 1080, 1 }, { 5120, 1440, 1 } }
+-- The Interface sizes: the one KstyleUI shipped before its automatic size, and full size, where the story slot is
+-- shortest (98 units at 3456x2234 in Frames), as the whole HUD's automatic size leaves it on the owner's MacBook.
+local SIZES = { 16 / 19, 1 }
 local LINES = { "Talk to", "Buy", "Refreshing Spring Water" }
 
 -- Step 11 of RestedXP's "1-6 Tirisfal Glades" for an Undead warlock (Guides/forever/Horde-01-14_Undead.lua), the
@@ -20,9 +23,9 @@ local STEP = { index = 11, elements = {
 	{}, {},
 } }
 
-local function Boot(screen, style, boxes, below)
+local function Boot(screen, style, boxes, below, size)
 	local rxp
-	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, Layout = { preset = "DPS" }, HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = size, uiScaleAuto = false }, Layout = { preset = "DPS" }, HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2], uiScale = screen[3], saved = saved,
 		setup = function(e)
@@ -80,11 +83,11 @@ local function Card(K, ns, rxp)
 	return card
 end
 
-local function Case(screen, style, boxes)
-	local what = string.format("%dx%d %s, RestedXP's boxes %s", screen[1], screen[2], style, boxes and "up" or "down")
-	local _, aK, ans, arxp = Boot(screen, style, boxes, false)
+local function Case(screen, style, boxes, size)
+	local what = string.format("%dx%d %s at Interface size %.3f, RestedXP's boxes %s", screen[1], screen[2], style, size, boxes and "up" or "down")
+	local _, aK, ans, arxp = Boot(screen, style, boxes, false, size)
 	local above = Card(aK, ans, arxp)
-	local env, K, ns, rxp = Boot(screen, style, boxes, true)
+	local env, K, ns, rxp = Boot(screen, style, boxes, true, size)
 	local card = Card(K, ns, rxp)
 	local px = K.Scale.Pixel(1) + 0.01
 	for i, want in ipairs(LINES) do
@@ -110,7 +113,9 @@ end
 for _, screen in ipairs(SCREENS) do
 	for _, style in ipairs({ "frames", "orbs" }) do
 		for _, boxes in ipairs({ true, false }) do
-			Case(screen, style, boxes)
+			for _, size in ipairs(SIZES) do
+				Case(screen, style, boxes, size)
+			end
 		end
 	end
 end
