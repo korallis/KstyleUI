@@ -90,6 +90,17 @@ for _, s in ipairs(enemy.brackets.sides) do
 	end
 end
 
+-- Taking the target again hands the four glows to the effects layer, which owns their motion.
+local handed = {}
+K.Effects = { TargetGlow = function(glows) handed[#handed + 1] = glows end }
+N.Target(env, nil)
+N.Target(env, "nameplate1")
+env.RunTimers()
+eq(#handed, 1, "a new target hands its glows over once")
+eq(handed[1], enemy.medGlows, "the plate's own glows")
+eq(#enemy.medGlows, 4, "one glow at each corner")
+K.Effects = nil
+
 -- The level diamond: steel numbers, but the skull keeps its red.
 assert(steel(enemy.level.rim, STEEL), "the plain diamond's rim is steel")
 local r, g, b = enemy.levelText:GetTextColor()

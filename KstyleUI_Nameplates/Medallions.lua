@@ -68,6 +68,7 @@ local function Build(plate)
 	badge.ring = plate:CreateTexture(nil, "OVERLAY")
 	ShowBadge(badge, false)
 	plate.medBadge = badge
+	plate.medGlows = {}
 	for _, frame in ipairs(plate.brackets.sides) do
 		frame.glow = {}
 		for i = 1, #CORNERS[frame.side] do
@@ -75,6 +76,7 @@ local function Build(plate)
 			glow:SetBlendMode("ADD")
 			glow:Hide()
 			frame.glow[i] = glow
+			plate.medGlows[#plate.medGlows + 1] = glow
 		end
 	end
 end
@@ -172,6 +174,16 @@ function Plate:PaintBrackets()
 			glow:SetVertexColor(STEEL_LIT[1], STEEL_LIT[2], STEEL_LIT[3], GLOW_ALPHA)
 			glow:SetShown(on)
 		end
+	end
+end
+
+local showBrackets = Plate.ShowBrackets
+function Plate:ShowBrackets(shown)
+	local was = self.bracketsShown
+	showBrackets(self, shown)
+	local effects = K.Effects
+	if shown and not was and self.medGlows and Medallions.Active() and effects and type(effects.TargetGlow) == "function" then
+		effects.TargetGlow(self.medGlows)
 	end
 end
 
