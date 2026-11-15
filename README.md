@@ -67,11 +67,11 @@ One card with a bar per player in their class colour, in the style of Details. S
 
 <p align="center"><sub>Test render of the addon's right rail: the map card, the quest card and the guide card.</sub></p>
 
-Your buffs and debuffs sit in rows above a square map card with the zone, your coordinates and the clock. Under it, the quest card keeps four quests in view with the count of the rest, and the RestedXP guide gets its own card beside it with the current step. Tooltips, windows and these cards share one card design, and the minimap's addon drawer collects stray minimap buttons.
+Your buffs and debuffs sit in rows above a square map card with the zone, your coordinates and the clock. Under it, the quest card keeps four quests in view with the count of the rest, and the RestedXP guide gets its own card beside it with the current step. When RestedXP shows its Active Targets and Active Items boxes, they dock side by side under the guide card, which keeps your current step in view. Tooltips, windows and these cards share one card design. The minimap's addon drawer collects every addon button on the map, and the pins guides park on the map's edge stay hidden unless you turn on **Addon pins on the map's edge** in the Minimap settings.
 
 ## Pixel perfect at every size
 
-With **Interface size: Auto (pixel perfect)**, the default, KstyleUI works out the size that fits your screen exactly and keeps every frame, bar, slot, aura and combat number on whole screen pixels, so edges stay sharp instead of blurring between pixels. Both HUD styles reach the same size. Turn Auto off in **Options, General, Size** to set the size yourself, still in whole-pixel steps. Text never drops below a readable size.
+With **Interface size: Auto (pixel perfect)**, the default, KstyleUI works out the size that fits your screen exactly and keeps every frame, bar, slot, aura and combat number on whole screen pixels, so edges stay sharp instead of blurring between pixels. On 16:9 screens both HUD styles reach the same size. On other shapes the two can differ by a step, because Auto fits each style's own layout and never picks a size where two parts of the HUD touch, so under Orbs the orbs stay clear of chat on 4:3 and 16:10 screens. Turn Auto off in **Options, General, Size** to set the size yourself, still in whole-pixel steps. Text never drops below a readable size.
 
 ## Every screen, ultrawide included
 
@@ -122,7 +122,7 @@ KstyleUI is one core addon and one addon per module. A module you switch off cos
 | Auras | Your buffs and debuffs as icon rows beside the map, sorted by how you use them |
 | Nameplates | Flat plates with your debuffs, a cast bar, threat colour and name-only plates for objects |
 | Combat Text | White hits and gold crits with a short rise, on KstyleUI's font |
-| Minimap | A square map card with the zone, coordinates, clock and an addon-button drawer |
+| Minimap | A square map card with the zone, coordinates, clock and an addon-button drawer, with guide pins on the map's edge hidden unless you want them |
 | Chat | Chat on a card, with tabs, timestamps, short channel names, clickable links, a copy window and history that survives a reload |
 | Bags | Combined bags and bank with search, sorting, categories, quality borders and junk selling |
 | Tooltips | Tooltips on the same card, with quality and class colours, a health bar and cursor anchoring |

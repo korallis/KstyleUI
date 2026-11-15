@@ -1,5 +1,26 @@
 # KstyleUI changelog
 
+## v0.1.2 (2026-11-15)
+
+Fixes for the minimap, the RestedXP guide and the HUD's size on screens that are not 16:9.
+
+### Added
+
+- A Minimap setting, **Addon pins on the map's edge**, under the addon drawer. Guides such as RestedXP park pins on the edge of the map for places off the map, which lined the map like a row of buttons. KstyleUI now hides those edge pins unless you turn the setting on. Pins for places on the map always show.
+
+### Changed
+
+- The minimap's addon drawer now collects every addon button that sits on the map, not only the ones it knew by name.
+- Action bar 3 has its own place under Orbs, above the pet and stance bars. If you moved bar 3 yourself, it keeps your place.
+
+### Fixed
+
+- The zone name above the minimap no longer runs into the N diamond, and the N stays inside its diamond on large screens.
+- RestedXP's Active Targets and Active Items boxes now sit side by side under the guide card instead of over it, and the guide keeps showing your current step and its step number.
+- Under Orbs, the health and power orbs no longer cover chat or the damage meter on 4:3, 3:2 and 16:10 screens.
+- The pet and stance bars no longer overlap action bar 3 or the party frames, and the target frame and your buffs no longer overlap the bags bar or the loot feed. Interface size Auto never picks a size where two parts of the HUD touch.
+- Settings saved by an older version that had stopped updating now update at your next login.
+
 ## v0.1.1 (2026-11-14)
 
 A hotfix for errors that players hit after v0.1.0.

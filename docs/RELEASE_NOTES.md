@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.1.2: minimap, RestedXP guide and screen fit
+
+Keeps the minimap's zone name clear of the N diamond, hides the pins that guides such as RestedXP park on the map's edge (the new setting **Addon pins on the map's edge** brings them back), and docks RestedXP's Active Targets and Active Items boxes side by side under the guide card. Under Orbs, the orbs no longer cover chat on 4:3, 3:2 and 16:10 screens, and action bar 3 has its own place. Interface size Auto never picks a size where two parts of the HUD touch, and settings that had stopped updating at an older version update again. No fonts or textures changed, but the Minimap module has a new file, so fully restart the game after installing rather than using `/reload`. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.1.1: hotfix
 
 Fixes load and switch errors in raid frames, window skins, the HUD style switch and the quest tracker in Edit Mode, a false interrupt warning at login, and nameplates that dropped below the mob in combat. After installing, fully restart the game so the addon's fonts load. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
