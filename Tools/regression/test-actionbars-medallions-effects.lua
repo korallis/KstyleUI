@@ -49,8 +49,9 @@ do
 	assert(b.medProc.anim:IsPlaying() and b.medProc.anim:GetLooping() == "REPEAT", "the slot loop repeats")
 	assert(b.medProcStart.anim:IsPlaying(), "the proc opens with its start burst")
 	local r, g, bl = K.Theme.ClassColor("SHAMAN")
-	local vr, vg, vb = b.medProc:GetVertexColor()
-	assert(math.abs(vr - r) < 1e-6 and math.abs(vg - g) < 1e-6 and math.abs(vb - bl) < 1e-6, "the loop takes the class colour")
+	local vr, vg, vb = b.medProcStart:GetVertexColor()
+	assert(math.abs(vr - r) < 1e-6 and math.abs(vg - g) < 1e-6 and math.abs(vb - bl) < 1e-6, "the white start burst takes the class colour")
+	assert(b.medProc:GetTexture() == K.Tokens.Texture("medProcShaman"), "the loop is the shaman's own flipbook")
 	assert(hub.crest.pulse:IsPlaying() and hub.glyphs.flash:IsPlaying(), "the hub's crest pulses and its glyphs flash")
 	assert(Kinds(hub.crest.pulse).Scale == 2, "the pulse grows and settles")
 	assert(not (other.medProc and other.medProc:IsShown()), "only the proc's own slot loops")
@@ -195,6 +196,8 @@ do
 	local b = AB.Button(ns, "bar1", 1)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(b.medProc:GetTexture() == "Interface\\ProcShaman.png", "the slot loop takes the class's flipbook")
+	local wr, wg, wb = b.medProc:GetVertexColor()
+	assert(wr == 1 and wg == 1 and wb == 1, "a class flipbook keeps its own baked colours, untinted")
 	local kinds = Kinds(b.medProc.anim)
 	assert(kinds.FlipBook == 1 and b.medProc.anim._anims[1]:GetFlipBookFrames() == 16, "the class flipbook runs as a FlipBook of 16 frames")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
@@ -241,6 +244,38 @@ do
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not b.medFrame:IsShown() and not b.medHover:IsShown(), "back to Frames the slot frames hide")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Lee's own character, an undead warlock with his imp out: the Forsaken warlock crest, and the fel motif in the slot
+-- loop and the particles, each in its baked colours.
+do
+	local env, K, ns = New({ class = "WARLOCK" })
+	env._game.petExists = true
+	env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
+	env.UnitRace = function()
+		return "Undead", "Scourge", 5
+	end
+	env.UnitSex = function()
+		return 2
+	end
+	Medallions(K, env)
+	local hub = ns.Slab.hub
+	local art = K.MedallionAssets.crests.Scourge.WARLOCK
+	assert(hub.crestPath == art.crest and hub.bloom:GetTexture() == art.glow, "the hub wears the undead warlock's crest")
+	local fel = K.Tokens.Texture("medParticleWarlock")
+	for _, p in ipairs(hub.particles) do
+		local r, g, b = p:GetVertexColor()
+		assert(p:GetTexture() == fel and r == 1 and g == 1 and b == 1, "the particles are the warlock's fel embers in their own colours")
+	end
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 686 })
+	local slot = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 686)
+	assert(slot.medProc:IsShown() and slot.medProc:GetTexture() == K.Tokens.Texture("medProcWarlock"), "a proc runs the warlock's fel flipbook on its slot")
+	assert(Kinds(slot.medProc.anim).FlipBook == 1, "the fel loop runs as a FlipBook")
+	local r, g, b = slot.medProc:GetVertexColor()
+	assert(r == 1 and g == 1 and b == 1, "the fel loop keeps its baked violet and green")
+	assert(ns.bars.pet and ns.bars.pet.buttons[1]:IsVisible(), "the imp's bar is out")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

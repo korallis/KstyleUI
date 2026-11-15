@@ -536,9 +536,10 @@ function modules.actionbars(opts)
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
-			-- The player's race, which picks the Medallions crest with the class: the mock-ups' dwarf.
+			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
 			env.UnitRace = env.UnitRace or function()
-				return "Dwarf", "Dwarf", 3
+				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
+				return race, race, 1
 			end
 			env.UnitSex = env.UnitSex or function()
 				return 2
@@ -611,7 +612,7 @@ function modules.actionbars(opts)
 	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
 	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
 	-- (entering combat 0.3 s ago: the wings out and the sweep halfway), proc (a fresh proc on slot 6, beside the hub,
-	-- or slot 12 on one row, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
+	-- or slot 12 on one row, or the nearest filled slot before it, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
 	local slabState = os.getenv("RENDER_MEDALLIONS_STATE")
 	if slabState and slabState ~= "" then
 		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
@@ -628,7 +629,10 @@ function modules.actionbars(opts)
 			env.SetCombat(true)
 		elseif slabState == "proc" then
 			local bar = ns.bars.bar1
-			local beside = AB.Button(ns, "bar1", ns.Slab.Rows(bar.def, bar:Config()) == 2 and 6 or 12).spellID
+			local beside
+			for i = ns.Slab.Rows(bar.def, bar:Config()) == 2 and 6 or 12, 1, -1 do
+				beside = beside or AB.Button(ns, "bar1", i).spellID
+			end
 			env._game.procs[beside] = true
 			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", beside)
 		elseif slabState == "levelup" then

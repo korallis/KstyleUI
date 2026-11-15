@@ -822,6 +822,7 @@ end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
+Layouts.MEDALLIONS_WING = { reach = 254, lift = 2, top = 64 }
 
 function Layouts.MedallionsGroup(class)
 	local columns, rows = 12, 1
@@ -862,7 +863,7 @@ function Layouts.BuildMedallions()
 			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
 			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, top + rise, frame),
 			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, top + rise + frame[2] - 9 * MOCK_PX - tot[2], tot),
-			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] / 2), top + GAP, { 180 * MOCK_PX, 40 * MOCK_PX }),
+			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] / 2), top + Layouts.MEDALLIONS_WING.top + TIGHT, { 180 * MOCK_PX, 40 * MOCK_PX }),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
 			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
@@ -1195,6 +1196,19 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		for index = 1, #rects do
 			local rect = rects[index]
 			if left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
+				return false
+			end
+		end
+		local wing, slotTop = Layouts.MEDALLIONS_WING, bar.y + groupHeight
+		local reach = floor(wing.reach * pixelScale + 0.5)
+		local low, high = floor((slotTop + wing.lift) * pixelScale + 0.5), floor((slotTop + wing.top) * pixelScale + 0.5)
+		local wingLeft, wingRight = floor(physicalWidth / 2 + 0.5) - reach, floor(physicalWidth / 2 + 0.5) + reach
+		if wingLeft < 0 or wingRight > physicalWidth then
+			return false
+		end
+		for index = 1, #rects do
+			local rect = rects[index]
+			if wingLeft < rect[3] and rect[1] < wingRight and low < rect[4] and rect[2] < high then
 				return false
 			end
 		end

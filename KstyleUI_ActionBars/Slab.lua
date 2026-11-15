@@ -547,7 +547,11 @@ local function PaintParticles(r, g, b)
 			local col, row = p.cell % cells.columns, floor(p.cell / cells.columns) % cells.rows
 			p:SetTexCoord(col / cells.columns, (col + 1) / cells.columns, row / cells.rows, (row + 1) / cells.rows)
 		end
-		p:SetVertexColor(r, g, b, 1)
+		if cells then
+			p:SetVertexColor(1, 1, 1, 1)
+		else
+			p:SetVertexColor(r, g, b, 1)
+		end
 	end
 end
 
@@ -835,7 +839,11 @@ function Slab.SetProc(b, on)
 	local loop, start = ProcParts(b)
 	ProcLoop(loop)
 	local r, g, bl = ClassRGB()
-	loop:SetVertexColor(r, g, bl, 1)
+	if loop.path == Slab.Texture("medProc") then
+		loop:SetVertexColor(r, g, bl, 1)
+	else
+		loop:SetVertexColor(1, 1, 1, 1)
+	end
 	start:SetVertexColor(r, g, bl, 1)
 	loop:Show()
 	if Slab.Allows("pulse") then

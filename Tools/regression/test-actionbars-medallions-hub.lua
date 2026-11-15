@@ -1,4 +1,4 @@
--- test-actionbars-medallions-hub.lua: under the Medallions HUD style the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its wings, rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the wings ride above the top row, bars 1 and 2 are two rows of six below 21:9 and one row of twelve at 21:9 and wider, and Frames brings the bars back with the slab and hub hidden.
+-- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its wings, rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the wings ride above the top row and, out in combat, stay inside the reach and height Layouts keeps clear of other elements, bars 1 and 2 are two rows of six below 21:9 and one row of twelve at 21:9 and wider, and Frames brings the bars back with the slab and hub hidden.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
@@ -49,7 +49,11 @@ local checked = 0
 for _, screen in ipairs(SCREENS) do
 	local width, height = screen[1], screen[2]
 	local what = width .. "x" .. height
-	local env, K, ns = AB.New({ width = width, height = height, class = "SHAMAN" })
+	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK" })
+	env._game.petExists = true
+	for i, action in ipairs({ "Firebolt", "Fire Shield", "Blood Pact", "Phase Shift" }) do
+		env._game.pet[i] = { name = action, texture = 135809 + i, spellID = 8000 + i }
+	end
 	AB.Enable(env, K)
 	assert(not (ns.Slab.frame and ns.Slab.frame:IsShown()), what .. ": under Frames there is no slab")
 	Medallions(K)
@@ -71,6 +75,14 @@ for _, screen in ipairs(SCREENS) do
 		end
 	end
 	assert(#slots == 24, what .. ": 24 slots on the slab")
+	local petSlots = 0
+	for _, b in ipairs(ns.bars.pet and ns.bars.pet.buttons or {}) do
+		if b:IsVisible() then
+			slots[#slots + 1] = b
+			petSlots = petSlots + 1
+		end
+	end
+	assert(petSlots > 0, what .. ": the warlock's pet is out, so its bar shows, held to the same rule")
 	local hubRank = RANK[Strata(hub)]
 	assert(Strata(hub) == Slab.STRATA and Strata(slab) == Slab.STRATA, what .. ": the hub and the slab draw at " .. Slab.STRATA)
 	local top = -math.huge
@@ -84,7 +96,9 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		local slot = Rect(b)
-		top = math.max(top, slot[4])
+		if b:GetParent() ~= ns.bars.pet.header then
+			top = math.max(top, slot[4])
+		end
 		assert(not Overlaps(hubRect, slot), what .. ": the hub's footprint overlaps slot " .. tostring(b:GetName()))
 	end
 	for _, wing in ipairs(hub.wings) do
@@ -96,6 +110,21 @@ for _, screen in ipairs(SCREENS) do
 		end
 	end
 	assert(hub:GetScale() <= 1 and hub:GetScale() > 0.9, what .. ": the gap holds the full ring, scale " .. hub:GetScale())
+	do
+		local wing = K.Setup.Layouts.MEDALLIONS_WING
+		local unit = K.Scale.Root():GetEffectiveScale()
+		Slab.SetCombat(true)
+		Slab.hub.wings[1].anim:GetScript("OnFinished")(Slab.hub.wings[1].anim)
+		local centre = (hubRect[1] + hubRect[3]) / 2
+		for _, w in ipairs(hub.wings) do
+			local s = hub:GetEffectiveScale()
+			local far = math.max(math.abs(w:GetLeft() * s - centre), math.abs(w:GetRight() * s - centre))
+			assert(far <= wing.reach * unit + 1e-6, what .. ": a wing out in combat stays inside the reach Layouts keeps clear, " .. far / unit .. " units")
+			assert(w:GetTop() * s <= top + wing.top * unit + 1e-6, what .. ": a wing stays under the height Layouts keeps clear")
+		end
+		Slab.SetCombat(false)
+		Slab.hub.wings[1].anim:GetScript("OnFinished")(Slab.hub.wings[1].anim)
+	end
 	local centre = (hubRect[1] + hubRect[3]) / 2
 	local gapLeft, gapRight = Rect(bar1.holder)[3], Rect(bar2.holder)[1]
 	assert(math.abs(centre - (gapLeft + gapRight) / 2) < 1, what .. ": the hub is centred in the gap")
