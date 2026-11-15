@@ -595,7 +595,7 @@ function Layouts.Slot(name, rootHeight)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style, rootWidth, shown)
+function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
 	local slot = Layouts.Slot(name, rootHeight)
 	if not slot then
 		return nil
@@ -626,7 +626,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, shown)
 		end
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP)
-	if shown then
+	if guideShown then
 		return { guide = Card(STORY_KEYS.guide, x, column), quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
 	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, x, column) }

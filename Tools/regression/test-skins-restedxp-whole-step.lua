@@ -91,7 +91,7 @@ local function Describe(r)
 	return string.format("%.1f..%.1f x %.1f..%.1f", r.left, r.right, r.bottom, r.top)
 end
 
-local function Quests(ns)
+local function QuestCount(ns)
 	local count = 0
 	for _, row in ipairs(ns.Quests.Rows()) do
 		if row:IsShown() and row.questID and row:GetAlpha() > 0 then
@@ -136,7 +136,7 @@ for _, screen in ipairs(SCREENS) do
 			assert(card, what .. ": the quest card is up")
 			local quests = Rect(K, ns.Quests.Parts().glass)
 			assert(not Overlap(glass, quests, px), string.format("%s: the guide %s and the quest card %s keep apart", what, Describe(glass), Describe(quests)))
-			assert(Quests(ns) >= 1, what .. ": the quest card still shows a quest")
+			assert(QuestCount(ns) >= 1, what .. ": the quest card still shows a quest")
 			for _, box in ipairs({ rxp.targeting.activeTargetFrame, rxp.activeItemFrame }) do
 				if box:IsShown() then
 					local r = Rect(K, K.Skin.Parts(box).backdrop)
