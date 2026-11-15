@@ -850,8 +850,10 @@ function Layouts.BuildMedallions()
 		local top = baseline + height
 		local ends = hub / 2 + width + NEAR
 		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
-		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
-		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + 2 * TIGHT + tot[2])
+		local focusSize, pet = { 220 * MOCK_PX, 64 * MOCK_PX }, { 180 * MOCK_PX, 40 * MOCK_PX }
+		local slabPad, petDrop, castH = 6, 7 * MOCK_PX, select(2, ElementSize("unitframes.castbar.player"))
+		local cast = { frame[1] - 57 * MOCK_PX, castH }
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
 		local function At(anchor, x, y, size)
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
 		end
@@ -863,7 +865,9 @@ function Layouts.BuildMedallions()
 			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
 			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, top + rise, frame),
 			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, top + rise + frame[2] - 9 * MOCK_PX - tot[2], tot),
-			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] / 2), top + Layouts.MEDALLIONS_WING.top + TIGHT, { 180 * MOCK_PX, 40 * MOCK_PX }),
+			["unitframes.castbar.player"] = At("BOTTOM", -(reach + 9 * MOCK_PX + cast[1] / 2), top + rise - NEAR - castH, cast),
+			["unitframes.castbar.target"] = At("BOTTOM", reach + 9 * MOCK_PX + cast[1] / 2, top + rise - NEAR - castH, cast),
+			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] - pet[1] / 2), top + slabPad + NEAR + petDrop, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
 			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),

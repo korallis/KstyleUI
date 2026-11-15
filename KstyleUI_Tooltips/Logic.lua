@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text and the tooltip scale.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text and the tooltip scale.
 local _, ns = ...
 
 local Logic = {}
@@ -39,6 +39,22 @@ function Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)
 	local vertical = (bottom + height / 2) > rootHeight / 2 and "TOP" or "BOTTOM"
 	local horizontal = (left + width / 2) < rootWidth / 2 and "LEFT" or "RIGHT"
 	return vertical .. horizontal
+end
+
+function Logic.Lift(bottom, left, right, rects, gap, reach)
+	if not (IsNumber(bottom) and IsNumber(left) and IsNumber(right) and IsNumber(gap) and IsNumber(reach)) then
+		return 0
+	end
+	local y, moved = bottom, true
+	while moved do
+		moved = false
+		for _, r in ipairs(rects) do
+			if r[1] < right and left < r[3] and r[2] < y + reach and r[4] > y then
+				y, moved = r[4] + gap, true
+			end
+		end
+	end
+	return y - bottom
 end
 
 function Logic.Flags(outline)

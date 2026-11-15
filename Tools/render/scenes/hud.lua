@@ -473,7 +473,12 @@ function modules.unitframes(opts)
 		if token == "player" and Common.StandIn("portrait-player-" .. class:lower() .. ".png") then
 			name = "portrait-player-" .. class:lower() .. ".png"
 		end
-		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
+		if token == "pet" and spec.pet and spec.pet.portrait then
+			texture:SetTexture(spec.pet.portrait)
+			notes[#notes + 1] = "the pet portrait is its summoning spell's icon; the game draws the pet's model"
+		else
+			notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
+		end
 	end
 	table.sort(notes)
 	if orbs then
@@ -1323,6 +1328,16 @@ function modules.tooltips(opts)
 		K.Modules.Enable("Tooltips")
 	end
 	env.RunTimers()
+	local threat = opts.settings and opts.settings.Meters and opts.settings.Meters.threat
+	local liftNote
+	if threat and threat.shown then
+		local Layouts, key = K.Setup.Layouts, "meters.threat"
+		local element = Layouts.Element(key)
+		local card = env.CreateFrame("Frame", nil, K.Scale.Root())
+		K.Widgets.Place(card, key, Layouts.Default(key), { label = element.label, module = "Meters" })
+		K.Widgets.Size(card, element.width, element.height)
+		liftNote = "the threat card's place stands in for the Meters module in the tooltip's environment, so the tooltip lifts over it as in the game"
+	end
 	local tip = env.GameTooltip
 	env._items[4232] = { quality = 2, icon = 135349 }
 	env.GameTooltip_SetDefaultAnchor(tip, env.UIParent)
@@ -1341,6 +1356,7 @@ function modules.tooltips(opts)
 	T.W.Settle(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the tooltip's lines are laid out by the scene; the game's GameTooltip sizes and places its own text"
+	scene.log[#scene.log + 1] = liftNote
 	return finish(env, K, scene, "tooltips"), ns
 end
 
