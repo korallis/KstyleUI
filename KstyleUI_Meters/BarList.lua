@@ -822,6 +822,9 @@ function FillRow(list, row, name, classFile, reaction, value, maxValue, valueTex
 	row.frame:Show()
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
+	if type(name) == "string" and not Widgets.IsSecret(name) and Widgets.Medallions() then
+		name = K.Locale.Upper(name)
+	end
 	row.name:SetText(name)
 	PlaceMore(list, row)
 	row.value:SetText(valueText)

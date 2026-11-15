@@ -72,7 +72,7 @@ local function Refresh(self)
 		end
 		x = x + width + gap
 		local color = ns.Frames.TabLook(style, i == 1) or (i == 1 and "textEmphasis" or "text")
-		tab:SetTextColor(Tokens.Color(color))
+		tab:SetTextColor(Widgets.Rgba(color))
 	end
 	local _, underlined, filled = ns.Frames.TabLook(style, true)
 	ns.Frames.PaintUnderline(self.underline, self.glow, underlined)

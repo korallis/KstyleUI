@@ -276,6 +276,7 @@ end
 
 local function PaintClose(parts)
 	local Widgets = W()
+	Widgets.CloseRing(parts.frame, true, parts)
 	if not Enabled(parts.frame) then
 		Widgets.Tint(parts.glyph, "textDisabled")
 	else

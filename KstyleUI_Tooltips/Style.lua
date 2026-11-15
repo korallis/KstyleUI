@@ -53,7 +53,7 @@ local savedFonts = {}
 local savedScales = setmetatable({}, { __mode = "k" })
 
 function Style.Gilt()
-	local ok, r, g, b = pcall(Tokens.Color, GILT)
+	local ok, r, g, b = pcall(Tokens.Color, Widgets.ColorName(GILT))
 	if ok then
 		return r, g, b
 	end
@@ -174,7 +174,10 @@ Style.Reset = Reset
 function Style.PaintGem(gem)
 	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
 	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
-	if material and material.rule then
+	if Widgets.Medallions() then
+		gem:SetTexture((Tokens.Texture("diamond")))
+		gem:SetVertexColor(Tokens.Color("accent"))
+	elseif material and material.rule then
 		gem:SetVertexColor(Tokens.Color("materialGold"))
 	else
 		gem:SetVertexColor(Style.Gilt())

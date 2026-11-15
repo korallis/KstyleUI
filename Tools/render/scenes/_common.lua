@@ -116,6 +116,16 @@ end
 -- ForceScreen(env) gives any environment the owner's screen, whatever options its loader passed on. Call it
 -- from the loader's setup hook, after Stubs.NewEnv has made UIParent and before the addon loads.
 function Common.ForceScreen(env)
+	-- RENDER_HUD_STYLE (Frames, Orbs or Medallions) is the saved HUD style of every profile the scene loads that names none.
+	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
+	local db = rawget(env, "KstyleUIDB")
+	if style and style ~= "" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			if type(profile) == "table" and profile.HudStyle == nil then
+				profile.HudStyle = { style = style:lower() }
+			end
+		end
+	end
 	env._materialChromes = env._materialChromes or {}
 	local material = os.getenv("RENDER_CARD_MATERIAL")
 	env._renderCardMaterial = material and material ~= "" and material or nil

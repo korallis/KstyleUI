@@ -279,7 +279,7 @@ function IconButton:SetProc(on)
 	self.chrome:SetProc(self.proc)
 	if self.proc and not self.procGlow then
 		self.procGlow = Widgets.Glow(self, { kind = "proc", alpha = PROC_HALO_ALPHA })
-		self.procGlow:SetColorRGB(Tokens.Color("giltLit"))
+		self.procGlow:SetColorRGB(Widgets.Rgba("giltLit"))
 	end
 	if self.procGlow then
 		if self.proc then

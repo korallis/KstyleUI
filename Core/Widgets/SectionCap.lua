@@ -26,6 +26,11 @@ function Widgets.CapsSize(text, plain)
 end
 
 function Widgets.PaintCapRule(rule, alpha)
+	if Widgets.Medallions() then
+		rule:SetColorTexture(Widgets.Rgba("steel", alpha))
+		rule:SetVertexColor(Tokens.Color("white"))
+		return nil
+	end
 	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
 	if material and material.rule then
 		rule:SetTexture((Tokens.Texture(material.rule)))
@@ -42,6 +47,8 @@ function Widgets.PaintCapMaterial(gem, rule, alpha)
 	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
 	if material and material.rule then
 		gem:SetVertexColor(Tokens.Color("materialGold"))
+	elseif Widgets.Medallions() then
+		gem:SetVertexColor(Tokens.Color("accent"))
 	end
 end
 

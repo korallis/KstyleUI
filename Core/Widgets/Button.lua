@@ -10,6 +10,7 @@ local TEXT_FALLBACK_WIDTH = 60
 local PRIMARY_EDGE_ALPHA = 0.7
 local CLOSE_SIZE = 20
 local CLOSE_GLYPH = 10
+local CLOSE_RING_ALPHA = 0.7
 local CLICK_SOUND = "U_CHAT_SCROLL_BUTTON"
 
 local function ButtonHeight()
@@ -128,9 +129,36 @@ function Widgets.Button(parent, opts)
 	return Widgets.Track(button)
 end
 
+function Widgets.CloseRing(owner, below, store)
+	store = store or owner
+	local ring = store.closeRing
+	if not Widgets.Medallions() then
+		if ring then
+			ring.chrome:SetShown(false)
+		end
+		return
+	end
+	if not ring then
+		local frame = owner
+		if below then
+			frame = CreateFrame("Frame", nil, owner)
+			frame:SetFrameLevel(owner:GetFrameLevel() + 1)
+			frame:SetPoint("CENTER", owner, "CENTER")
+		end
+		ring = { frame = frame, chrome = Widgets.Chrome(frame, { shape = "tile", fill = "buttonFill", shadow = false, radius = CLOSE_SIZE / 2 }) }
+		store.closeRing = ring
+	end
+	if ring.frame ~= owner and Widgets.MayMove(ring.frame) then
+		Widgets.Size(ring.frame, CLOSE_SIZE, CLOSE_SIZE)
+	end
+	ring.chrome:SetEdge("steel", CLOSE_RING_ALPHA)
+	ring.chrome:SetShown(true)
+end
+
 local Close = {}
 
 function Close:Paint()
+	Widgets.CloseRing(self)
 	if self:IsEnabled() == false then
 		Widgets.Tint(self.glyph, "textDisabled")
 	else
