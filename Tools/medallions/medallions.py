@@ -2,7 +2,7 @@
 painted crest for every race and class.
 
 Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python; plan and status need
-none):
+none, and verify skips re-deriving the crest masks without it):
     medallions.py plan      [--kind bust|badge|crest] [--keys KEY ...] [--json]
     medallions.py anchors
     medallions.py generate  --kind bust|badge|crest --max-credits N [--keys KEY ... | --all] [--jobs 8] [--dry-run]
@@ -34,6 +34,7 @@ runs it, and --complete also requires every combination.
 
 import argparse
 import concurrent.futures
+import importlib.util
 import datetime
 import hashlib
 import json
@@ -47,6 +48,8 @@ import urllib.request
 from pathlib import Path
 
 import tables
+
+PILLOW = importlib.util.find_spec("PIL") is not None  # verify re-derives the crest masks only where Pillow is
 
 REPO = Path(__file__).resolve().parents[2]
 HERE = REPO / "Tools" / "medallions"
@@ -684,7 +687,7 @@ def verify(repo=REPO, complete=False):
         if "derivedFrom" in e:
             if e["derivedFrom"] not in listed:
                 problems.append(f"{e['file']}: derived from {e['derivedFrom']}, which the manifest does not list")
-            elif path.exists() and (repo / e["derivedFrom"]).exists() and not mask_matches(repo, e, mask):
+            elif PILLOW and path.exists() and (repo / e["derivedFrom"]).exists() and not mask_matches(repo, e, mask):
                 problems.append(f"{e['file']}: does not match the {mask} mask of {e['derivedFrom']} (run medallions.py bake)")
             continue
         if text_sha256(e["prompt"]) != e["promptSha256"]:

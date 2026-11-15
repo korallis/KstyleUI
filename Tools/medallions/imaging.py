@@ -113,7 +113,7 @@ def bake_portrait(image, size):
     """A bust or badge at its shipped size: linear-light reduction, a disc alpha and a 1 px dark rim on its edge."""
     out = resize_linear(image.convert("RGB").convert("RGBA"), (size, size))
     outer, inner = disc(size), disc(size, size / 2 - 1)
-    rim = _math(lambda a: (a["o"] - a["i"]) / 255.0 * EDGE_STRENGTH, o=outer, i=inner)
+    rim = _math(lambda a: (a["o"] - a["i"]) / 255.0 * EDGE_STRENGTH, o=outer.convert("F"), i=inner.convert("F"))
     keep = _math(lambda a: 1.0 - a["r"], r=rim)
     channels = [_math(lambda a, d=d: a["c"] * a["k"] + d * a["r"], c=c.convert("F"), k=keep, r=rim).convert("L")
                 for c, d in zip(out.split()[:3], DARK)]
