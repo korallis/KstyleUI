@@ -12,7 +12,7 @@ LUA = shutil.which("lua5.1") or shutil.which("luajit")
 @unittest.skipUnless(LUA, "Lua 5.1 or LuaJIT is required")
 class GalleryScenes(unittest.TestCase):
     def test_galleries_under_medallions(self):
-        for scene in ("gallery_options", "gallery_unitframes"):
+        for scene in ("gallery_options", "gallery_unitframes", "gallery_auras_counts"):
             with self.subTest(scene=scene):
                 result = subprocess.run(
                     [LUA, "-"], cwd=ROOT,

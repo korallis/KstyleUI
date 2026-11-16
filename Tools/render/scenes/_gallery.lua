@@ -68,7 +68,7 @@ end
 function Gallery.Build(env, opts)
 	for _, container in ipairs(env._containers or {}) do
 		for _, group in pairs(container._groups) do
-			for _, button in ipairs(group.buttons) do
+			for _, button in ipairs(group.buttons or {}) do
 				if #button._points == 0 then
 					button:Hide()
 				end
