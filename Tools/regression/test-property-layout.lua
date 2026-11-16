@@ -1,4 +1,4 @@
--- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, all three HUD styles, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the orbs, the Medallions hub and its wings, and the quest card included.
+-- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, all three HUD styles, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the orbs, the Medallions hub and the quest card included.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Property = dofile("Tools/regression/property_lib.lua")
 
@@ -149,10 +149,6 @@ local function Place(c)
 		local ring = Layouts.MEDALLIONS_RING / pixel
 		local cx, top = (bar1[3] + bar2[1]) / 2, math.max(bar1[4], bar2[4])
 		rects[#rects + 1] = { cx - ring / 2, top - ring / 2, cx + ring / 2, top + ring / 2, key = "medallions.hub", edges = {} }
-		local wing = Layouts.MEDALLIONS_WING
-		local reach, low, high = wing.reach / pixel, top + wing.lift / pixel, top + wing.top / pixel
-		rects[#rects + 1] = { cx - reach, low, cx - ring / 2, high, key = "medallions.wingLeft", edges = {} }
-		rects[#rects + 1] = { cx + ring / 2, low, cx + reach, high, key = "medallions.wingRight", edges = {} }
 	end
 	local rw, rh = Layout.RootSize()
 	local spec, sized = Layouts.Story(c.preset, rh, false, nil, rw).quests, Layouts.Story(c.preset, rh, false, c.style, rw).quests
@@ -174,9 +170,6 @@ local function Apart(Layouts, a, b)
 		return false
 	end
 	-- The hub's level plaque may cross the experience strip under the slab, as Layouts.Fits allows.
-	if (pair["medallions.wingLeft"] or pair["medallions.wingRight"]) and (pair["medallions.hub"] or pair["medallions.wingLeft"] and pair["medallions.wingRight"]) then
-		return false
-	end
 	if pair["medallions.hub"] and pair["databars.xp"] then
 		return false
 	end

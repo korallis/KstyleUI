@@ -69,7 +69,8 @@ function Slab.Spec()
 end
 
 local function Grouped(def)
-	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(Layouts().MedallionsGroup) == "function"
+	local group = Layouts().MedallionsGroup
+	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(group) == "function"
 end
 
 local function Sided(def)
@@ -736,6 +737,7 @@ function Slab.Refresh()
 	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
 	hub:SetPoint("CENTER", gap, "TOP", 0, 0)
+	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
 	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
 	local slabScale = slab:GetEffectiveScale()

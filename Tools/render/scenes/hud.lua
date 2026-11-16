@@ -1616,7 +1616,13 @@ end
 Hud.modules = modules
 
 -- Order(opts) -> the module names a HUD draws, in draw order.
+-- Order() -> the modules in the order the page draws them; a merged scene does not sort across modules. Under
+-- Medallions the experience strip sits on the action slab at a higher frame level than the slab, so databars draws
+-- after actionbars there; Frames and Orbs keep their order.
 function Hud.Order()
+	if Hud.Style() == "Medallions" then
+		return { "nameplates", "chat", "minimap", "auras", "tracker", "unitframes", "actionbars", "databars", "cooldowns", "tooltips" }
+	end
 	return { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "unitframes", "actionbars", "cooldowns", "tooltips" }
 end
 
