@@ -54,6 +54,7 @@ do
 	local p1, anchor = b.medProc:GetPoint(1)
 	assert(p1 == "TOPLEFT" and anchor == b.icon and b.medProc:GetNumMaskTextures() > 0, "the loop is clipped to the socket's opening")
 	assert(b.medProcEdge:IsShown(), "the proc draws its border inside the socket")
+	assert(b.medProcEdge._state.BlendMode and b.medProcEdge._state.BlendMode[1] == "ADD", "the proc border adds light, as the kit's checked overlay is drawn to")
 	local er, eg, eb = b.medProcEdge:GetVertexColor()
 	assert(math.abs(er - r) < 1e-6 and math.abs(eg - g) < 1e-6 and math.abs(eb - bl) < 1e-6, "the proc border takes the class colour")
 	assert(not (b.procGlow and b.procGlow:IsPlaying()), "the slot's gilt halo stays off under Medallions")
@@ -225,6 +226,9 @@ do
 	AB.Slot(env, 1, nil)
 	assert(not b.hasAction and not b.hotkey:IsShown(), "clearing the slot hides its keybind again")
 	assert(b.medHover:GetParent() == b.hoverLayer, "the highlight frame rides the slot's hover layer")
+	for _, overlay in ipairs({ b.medHover, b.medChecked }) do
+		assert(overlay._state.BlendMode and overlay._state.BlendMode[1] == "ADD", "the socket's highlight and checked overlays add light, as the kit draws them")
+	end
 	assert(not b.medPushed:IsShown(), "the pushed frame waits for a press")
 	K.Motion.SetLevel("off")
 	b:GetScript("OnClick")(b, "LeftButton", true)
