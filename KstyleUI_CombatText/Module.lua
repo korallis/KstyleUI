@@ -142,7 +142,7 @@ local function OnSetting(_, module, key)
 	Refresh()
 	if WORLD_KEYS[key] then
 		World.Apply(Module.cfg)
-		K.Print(L["The game's own damage numbers change font at your next login."])
+		K.Print(L["The game's own damage numbers change font after you log out to the character screen and back in; /reload is not enough."])
 	elseif BLIZZARD_KEYS[key] then
 		Blizzard.Schedule()
 	end

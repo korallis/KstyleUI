@@ -149,6 +149,7 @@ local function saved(opts, module, settings, more)
 	end
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
+		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	return {
 		version = 2,
@@ -1286,7 +1287,8 @@ function modules.nameplates(opts)
 		CT.Hit(env, "player", "HEAL", "", 168, 2)
 	end
 	local font = env.DAMAGE_TEXT_FONT
-	for _, number in ipairs(opts.plates and {} or WORLD_NUMBERS) do
+	local worldShown = env._cvars[CT.TARGETS[1]] ~= "0"
+	for _, number in ipairs((opts.plates or not worldShown) and {} or WORLD_NUMBERS) do
 		local text = env.WorldFrame:CreateFontString(nil, "OVERLAY")
 		if type(font) == "string" then
 			text:SetFont(font, number[2], "OUTLINE")
@@ -1299,7 +1301,7 @@ function modules.nameplates(opts)
 	if opts.plates then
 		scene.log[#scene.log + 1] = "nameplates: " .. #opts.plates .. " plates where the scene puts them; the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); cast fills stand in for the engine's timer"
 	else
-		scene.log[#scene.log + 1] = "the world numbers over the target are stand-ins in DAMAGE_TEXT_FONT; the game draws and sizes them itself"
+		scene.log[#scene.log + 1] = worldShown and "the world numbers over the target are stand-ins in DAMAGE_TEXT_FONT; the game draws and sizes them itself" or "Blizzard world numbers are hidden by CombatText's damage CVar"
 		scene.log[#scene.log + 1] = "nameplates: the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); the " .. ADD.unit.name .. " casts " .. ADD.cast.name .. " with the " .. class:lower() .. "'s interrupt ready, so its bar takes the accent; cast fills stand in for the engine's timer"
 	end
 	if not combatText then

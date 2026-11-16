@@ -1,5 +1,18 @@
 # KstyleUI changelog
 
+## v0.2.2 (2026-11-16)
+
+### Fixed
+
+- The Medallions hub no longer leaves its shock ring and square flash visible between effects. Recoloring now preserves their opacity instead of bringing them back over the painted crest and runes.
+- Medallions health and resource bars use flat fills without the white sheen. Health numbers use dark ink on bright fills and return to light ink when health falls onto the dark track.
+- CombatText hides Blizzard's separate damage and healing numbers by default while KstyleUI's scrolling text is enabled. An explicit Keep choice remains available, and disabling the module restores the original settings.
+- Blizzard's world numbers inherit the combat-text font role before login. Log out to the character screen and back in to apply the font; `/reload` is not enough.
+
+### Added
+
+- Bounded quest-card diagnostics in `/kstyle test`, plus automatic saved diagnostics when tracked quests have no visible rows. The intermittent blank card is still under investigation; this release does not claim to fix it.
+
 ## v0.2.1 (2026-11-16)
 
 The Medallions action slab as it was designed: one row and one connected piece.

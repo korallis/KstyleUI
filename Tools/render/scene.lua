@@ -360,6 +360,10 @@ end
 
 local function findOwnAlpha(node)
 	local call = lastAlphaCall(node)
+	if call and call.method == "SetVertexColor" then
+		local value = reveal(node._env, call.args[4])
+		return type(value) == "number" and value or 1
+	end
 	if call and call.method == "SetAlphaFromBoolean" then
 		local value = reveal(node._env, call.args[1])
 		if type(value) == "boolean" then
@@ -1168,6 +1172,7 @@ function Scene.Build(env, opts)
 			item.color = colour
 		end
 		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 }, env)
+		item.vertex[4] = 1
 		if region._barOwner and region._barOwner._state.StatusBarColor then
 			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex, env)
 		end

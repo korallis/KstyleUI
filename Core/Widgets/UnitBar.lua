@@ -269,8 +269,9 @@ local function PlaceFill(self)
 	sheen:ClearAllPoints()
 	shade:ClearAllPoints()
 	lit:ClearAllPoints()
-	sheen:SetShown(not self.vertical)
-	shade:SetShown(not self.vertical)
+	sheen:SetShown(not self.vertical and not self.flat)
+	shade:SetShown(not self.vertical and not self.flat)
+	lit:SetShown(not self.flat)
 	lit:SetPoint("TOPLEFT", span, "TOPLEFT")
 	lit:SetPoint("TOPRIGHT", span, "TOPRIGHT")
 	lit:SetHeight(px)
@@ -280,6 +281,11 @@ local function PlaceFill(self)
 	sheen:SetHeight(Widgets.Snap(self, height * SHEEN_SHARE))
 	shade:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT")
 	shade:SetPoint("TOPRIGHT", sheen, "BOTTOMRIGHT")
+end
+
+function Bar:SetFlat(on)
+	self.flat = on == true
+	PlaceFill(self)
 end
 
 local function PlaceUnder(self)

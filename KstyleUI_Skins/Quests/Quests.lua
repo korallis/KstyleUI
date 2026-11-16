@@ -272,6 +272,10 @@ local function Build()
 	K.Callbacks.Register("HudStyleChanged", OWNER, Replace)
 	K.Widgets.Track({ Restyle = Replace })
 	state.built = true
+	K.DevTest.AddCheck("quest card diagnostics", Card.Diagnose)
+	K.Events.Register(OWNER .. ".Diagnostics", "PLAYER_REGEN_DISABLED", function()
+		C_Timer.After(0, Card.CheckDiagnostic)
+	end)
 end
 
 local function Apply()

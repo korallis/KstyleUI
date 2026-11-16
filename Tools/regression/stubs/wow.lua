@@ -508,6 +508,16 @@ function Object:GetAlpha()
 	return self._alpha
 end
 
+function Object:SetVertexColor(r, g, b, a)
+	self._state.VertexColor = pack(r, g, b, a == nil and 1 or a)
+	self._alpha = a == nil and 1 or a
+end
+
+function Object:GetVertexColor()
+	local color = self._state.VertexColor or { 1, 1, 1 }
+	return color[1], color[2], color[3], self:GetAlpha()
+end
+
 -- A frame made from a Secure template is protected. The game refuses to anchor a protected frame to a
 -- region, or to a frame whose own anchors lead to one, with the error below.
 local ANCHOR_REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = true }
@@ -1189,7 +1199,7 @@ ObjectMeta.__index = function(object, key)
 		end
 		local call = { method = key, args = pack(...) }
 		self._calls[#self._calls + 1] = call
-		if key == "SetAlpha" or key == "SetAlphaFromBoolean" then
+		if key == "SetAlpha" or key == "SetAlphaFromBoolean" or key == "SetVertexColor" then
 			self._lastAlpha = call
 		end
 		if not READERS[key] then

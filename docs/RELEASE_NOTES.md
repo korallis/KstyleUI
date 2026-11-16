@@ -2,6 +2,12 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.2: readable Medallions and one combat-text display
+
+The crest hub keeps its painted steel and runes visible between effects: changing its tint no longer revives the shock ring and square flash. Medallions bars are flat, without the white sheen, and bright health fills get dark, readable numbers. CombatText now hides Blizzard's separate world damage and healing numbers by default; a saved Keep choice remains unchanged. With Keep selected, the native numbers use the combat-text font role after a full logout to the character screen and login. `/reload` alone cannot refresh that font.
+
+The intermittent blank quest card remains under investigation. If it goes blank, `/kstyle test` records its native visibility, opacity, frame levels and geometry. Zero-visible-row layouts also record a bounded, deduplicated diagnostic automatically. Reloading or logging out saves that devlog for inspection; these diagnostics do not change the card's layout.
+
 ## 0.2.1: the Medallions action slab, connected
 
 Under Medallions your first two action bars now stand in one row on every screen, twelve either side of the crest, as the design drew them, instead of two rows of six below 21:9. The slab, the crest, its wings and your experience strip are one connected piece: the crest sits in the slab, its wings grow out along the slab's top edge and slide along it in combat, and the experience strip runs along the slab's lower edge. On 16:9 and narrower screens the buttons are a fifth smaller so the row fits beside your chat, and the pet and stance bars move to the right of the slab in two rows of five. Frames and Orbs are unchanged. No fonts or textures changed, so `/reload` is enough after installing. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

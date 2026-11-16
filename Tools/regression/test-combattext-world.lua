@@ -12,7 +12,7 @@ do
 		login = false,
 	})
 	seen = env.DAMAGE_TEXT_FONT
-	assert(seen == (K.Tokens.Font("number")), "the switched-on module sets DAMAGE_TEXT_FONT at load, got " .. tostring(seen))
+	assert(seen == (K.Tokens.Font("world")), "the switched-on module sets DAMAGE_TEXT_FONT to the world combat role at load, got " .. tostring(seen))
 	assert(not K.Modules.IsRunning("CombatText"), "setting the font starts nothing before login")
 	CT.CoreEnv.Login(env)
 	env.RunTimers()
@@ -43,7 +43,8 @@ do
 	local before = #env._printed
 	K.Options.Write("CombatText", "worldFace", K.Tokens.FontPath("SourceSans3Regular"))
 	assert(env.DAMAGE_TEXT_FONT == K.Tokens.FontPath("SourceSans3Regular"), "a new choice applies to the next login")
-	assert(#env._printed == before + 1 and env._printed[#env._printed]:find("next login", 1, true), "the player is told it changes at the next login")
+	assert(#env._printed == before + 1 and env._printed[#env._printed]:find("character screen", 1, true)
+		and env._printed[#env._printed]:find("/reload is not enough", 1, true), "the player is told a full relog is required")
 	K.Options.Write("CombatText", "worldFont", false)
 	assert(env.DAMAGE_TEXT_FONT == BLIZZARD, "switching the world font off restores Blizzard's")
 end
@@ -52,15 +53,18 @@ end
 
 do
 	local env, K = CT.New({ saved = CT.Saved({ enabled = true, worldFace = "Interface\\Icons\\Spell.blp" }) })
-	assert(env.DAMAGE_TEXT_FONT == (K.Tokens.Font("number")), "a saved world font that is not a font file uses the default")
+	assert(env.DAMAGE_TEXT_FONT == (K.Tokens.Font("world")), "a saved world font that is not a font file uses the default")
 end
 
--- The setting's help text says the change waits for the next login -------------------------------
+-- The setting's help text says the change needs a full relog --------------------------------------
 
 do
 	local _, K = CT.New()
-	local row = K.Options.Row("CombatText", "worldFont")
-	assert(row and row.help:find("next login", 1, true), "the world font option says it applies at the next login")
+	for _, key in ipairs({ "worldFont", "worldFace" }) do
+		local row = K.Options.Row("CombatText", key)
+		assert(row and row.help:find("character screen", 1, true) and row.help:find("/reload is not enough", 1, true),
+			"the world font option explains the full relog: " .. key)
+	end
 end
 
 print("combat text world font ok")

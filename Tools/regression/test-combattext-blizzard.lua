@@ -29,8 +29,7 @@ local function Logged(env, text)
 	return n
 end
 
--- Hiding(values) is saved data that hides Blizzard's numbers over targets too. The default keeps them, since
--- they are the only numbers that show just the player's own hits; the cases below test the hide path.
+-- Hiding(values) explicitly selects Hide, independently of the default.
 local function Hiding(values)
 	values = values or {}
 	if values.blizzardTargets == nil then
@@ -184,19 +183,17 @@ Case("a client without C_CVar.SetCVar keeps the player's values and logs once", 
 	Off(env, K)
 end)
 
-Case("by default the text over you hides, Blizzard's own-hit numbers over targets stay, and so do restored ones", function()
+Case("by default both Blizzard's text over you and its world numbers hide", function()
 	local env, K = CT.New({ saved = CT.Saved({}) })
 	CT.Enable(env, K)
-	assert(K.Options.Read("CombatText", "blizzardTargets") == "keep", "Blizzard's numbers over targets are kept by default")
+	assert(K.Options.Read("CombatText", "blizzardTargets") == "hide", "Blizzard's numbers over targets are hidden by default")
 	assert(K.Options.Read("CombatText", "units.nameplate") == false, "KstyleUI's nameplate numbers, every player's hits, are off by default")
-	assert(env._cvars[SELF] == "0" and Targets(env, "1"), "only the text over you is hidden")
-	for _, write in ipairs(env._cvarWrites) do
-		assert(write.name ~= DAMAGE and write.name ~= HEALING, "the target CVars are never written")
-	end
+	assert(env._cvars[SELF] == "0" and Targets(env, "0"), "both sets of Blizzard numbers are hidden")
 	Off(env, K)
+	assert(env._cvars[SELF] == "1" and Targets(env, "1"), "disabling restores both sets of numbers")
 end)
 
-Case("numbers over targets that an earlier default hid come back under the new one", function()
+Case("a profile with no explicit target choice hides without losing the remembered originals", function()
 	local env = On()
 	assert(Targets(env, "0"), "hidden under the old default")
 	CT.CoreEnv.Logout(env)
@@ -208,8 +205,9 @@ Case("numbers over targets that an earlier default hid come back under the new o
 		end
 	end })
 	CT.Enable(again, K2)
-	assert(Targets(again, "1") and again._cvars[HEALING] == "1", "the player's numbers are back")
+	assert(Targets(again, "0"), "the default continues to hide world numbers after login")
 	Off(again, K2)
+	assert(Targets(again, "1"), "the player's original values survive the inherited default")
 end)
 
 local function Variables(env)

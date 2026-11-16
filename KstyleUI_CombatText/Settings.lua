@@ -22,7 +22,7 @@ end
 
 local defaults = {
 	blizzardSelf = "hide",
-	blizzardTargets = "keep",
+	blizzardTargets = "hide",
 	worldFont = true,
 	worldFace = "",
 	style = "rise",
@@ -128,12 +128,12 @@ Settings.schema = {
 	{ type = "header", label = L["World numbers"] },
 	{
 		type = "toggle", key = "worldFont", label = L["KstyleUI font for world numbers"],
-		help = L["Draws the game's own damage numbers in a KstyleUI font from your next login."],
+		help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
 	},
 	{
 		type = "font", key = "worldFace", label = L["World number font"],
 		options = K.Widgets.InheritedFontOptions,
-		help = L["The font for the game's own damage numbers; it changes at your next login."],
+		help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
 		showWhen = WorldFontOn,
 	},
 	{ type = "header", label = L["Numbers"] },
@@ -318,7 +318,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.blizzardSelf = Choice(values.blizzardSelf, BLIZZARD, d.blizzardSelf)
 	cfg.blizzardTargets = Choice(values.blizzardTargets, BLIZZARD, d.blizzardTargets)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
-	cfg.worldFace = FontPath(values.worldFace, (Tokens.Font("number")))
+	cfg.worldFace = FontPath(values.worldFace, (Tokens.Font("world")))
 	cfg.style = Choice(values.style, STYLES, d.style)
 	cfg.damage = Bool(values.damage, d.damage)
 	cfg.heals = Bool(values.heals, d.heals)

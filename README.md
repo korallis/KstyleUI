@@ -37,7 +37,7 @@
 
 <p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen.</sub></p>
 
-**Medallions** is new in v0.2.0. Your player and target frames become dark steel slabs with clean bars and a round medallion on the outer end. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait.
+**Medallions** turns your player and target frames into dark steel slabs with clean bars and a round medallion on the outer end. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. **v0.2.2** fixes the hub's lingering white ring and square, removes the white bar sheen and gives bright health fills readable dark numbers. CombatText hides Blizzard's separate world numbers by default; changing their font needs a full logout and login, not just `/reload`.
 
 Your first two action bars sit on one steel slab in a single row on every screen: twelve buttons left of the centre and twelve right of it, with your experience along the slab's lower edge. On 16:9 and narrower screens the buttons are a fifth smaller so the row fits beside your chat, and the pet and stance bars stand in two rows of five to its right. In the middle is a crest painted for your race and class, 52 in all, seated in the slab in a turning ring of runes in your class colour. At rest the crest breathes. Its wings grow out along the slab's top edge when you enter combat, it pulses when an ability beside it lights up, and it bursts when you level up. It sits under your action buttons, so it never hides a spell.
 

@@ -596,9 +596,10 @@ local function PaintParticles(r, g, b)
 			p:SetTexCoord(col / cells.columns, (col + 1) / cells.columns, row / cells.rows, (row + 1) / cells.rows)
 		end
 		if cells then
-			Widgets.Tint(p, "white")
+			local wr, wg, wb = Tokens.Color("white")
+			p:SetVertexColor(wr, wg, wb, p:GetAlpha())
 		else
-			p:SetVertexColor(r, g, b, 1)
+			p:SetVertexColor(r, g, b, p:GetAlpha())
 		end
 	end
 end
@@ -611,10 +612,10 @@ local function Paint()
 	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
 	local r, g, b = ClassRGB()
 	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.shock, hub.flash }) do
-		region:SetVertexColor(r, g, b, 1)
+		region:SetVertexColor(r, g, b, region:GetAlpha())
 	end
 	for _, sweep in ipairs(Slab.frame.sweeps) do
-		sweep:SetVertexColor(r, g, b, 1)
+		sweep:SetVertexColor(r, g, b, sweep:GetAlpha())
 	end
 	PaintParticles(r, g, b)
 end

@@ -175,7 +175,7 @@ do
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
 		face(env, K, key)
 		font(number.text, (K.Tokens.Font("number")), "active combat numbers inherit the number role")
-		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("number")), "world numbers inherit the number role")
+		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "world numbers inherit the world combat role")
 	end
 	write(K, "CombatText", "font", explicit)
 	write(K, "CombatText", "worldFace", explicit)
@@ -188,14 +188,14 @@ do
 	write(K, "CombatText", "worldFace", "")
 	face(env, K, "SourceSans3Regular")
 	font(number.text, (K.Tokens.Font("number")), "reset combat font inherits again")
-	eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("number")), "reset world font inherits again")
+	eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "reset world font inherits again")
 	for _, word in ipairs({ "theme", "kit" }) do
 		write(K, "CombatText", "font", explicit)
 		write(K, "CombatText", "font", word)
 		write(K, "CombatText", "worldFace", word)
 		face(env, K, "Lumen")
 		font(number.text, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for combat numbers")
-		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for world numbers")
+		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "the saved word " .. word .. " still follows the kit for world numbers")
 	end
 	write(K, "CombatText", "worldFont", false)
 	local original = env.DAMAGE_TEXT_FONT

@@ -12,6 +12,7 @@ local HOSTILE_MAX = 3
 local UNKNOWN_LEVEL = "??"
 local LEVEL_MEDAL = 3
 local SHEEN = { player = true, target = true }
+local INK_LUMINANCE, INK_FILL = 0.5, 0.65
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -185,9 +186,13 @@ function Slab.Layout(view, g)
 end
 
 function Slab.Restyle(view, form)
+	view.health:SetFlat(form == "slab")
+	view.power:SetFlat(form == "slab")
 	if form ~= "slab" then
 		return
 	end
+	view.health:SetBarTexture("Flat")
+	view.power:SetBarTexture("Flat")
 	Muted(view, view.healthSub)
 	Muted(view, view.caption)
 	if view.slabLevel then
@@ -198,6 +203,38 @@ end
 
 local function Active(view)
 	return view.form == "slab" and view.medallion ~= nil and view.geometry ~= nil and view.geometry.medal ~= nil
+end
+
+local inkCurves
+
+local function HealthInk(view, unit)
+	if view.form ~= "slab" or not view.slabInk then
+		return
+	end
+	if not inkCurves and C_CurveUtil and C_CurveUtil.CreateCurve and UnitHealthPercent then
+		inkCurves = {}
+		local light, dark = { Tokens.Color("textEmphasis") }, { Tokens.Color("slabBottom") }
+		for i = 1, 3 do
+			local curve = C_CurveUtil.CreateCurve()
+			if Enum and Enum.LuaCurveType and Enum.LuaCurveType.Step and curve.SetType then
+				curve:SetType(Enum.LuaCurveType.Step)
+			end
+			curve:AddPoint(0, light[i])
+			curve:AddPoint(INK_FILL, light[i])
+			curve:AddPoint(INK_FILL + 0.001, dark[i])
+			curve:AddPoint(1, dark[i])
+			inkCurves[i] = curve
+		end
+	end
+	if inkCurves and unit then
+		view.healthText:SetTextColor(UnitHealthPercent(unit, true, inkCurves[1]), UnitHealthPercent(unit, true, inkCurves[2]), UnitHealthPercent(unit, true, inkCurves[3]))
+	end
+end
+
+function Slab.Ink(view, r, g, b)
+	view.slabInk = Plain(r, "number") and Plain(g, "number") and Plain(b, "number")
+		and 0.2126 * r + 0.7152 * g + 0.0722 * b >= INK_LUMINANCE
+	view.healthText:SetTextColor(Tokens.Color(view.slabInk and "slabBottom" or "textEmphasis"))
 end
 
 local function ClassFile(unit)
@@ -241,6 +278,7 @@ function Slab.Colors(view, unit)
 	if view.form ~= "slab" then
 		return
 	end
+	HealthInk(view, unit)
 	local known, file = ClassFile(unit)
 	if Hostile(unit) then
 		view.name:SetTextColor(Tokens.Color("nameHostile"))
@@ -255,6 +293,7 @@ function Slab.Colors(view, unit)
 end
 
 function Slab.Health(view, unit)
+	HealthInk(view, unit)
 	if not Active(view) then
 		return
 	end
