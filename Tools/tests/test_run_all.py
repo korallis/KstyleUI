@@ -1,22 +1,150 @@
 """Tests for Tools/regression/run-all.sh and the runner it starts, run_all.py.
 
-The runner only runs "<interpreter> <file>", so sh stands in for Lua and the test files hold shell commands.
+The runner only runs "<interpreter> <file>"; Python fixtures exercise the same contract on every OS.
 """
 
 import json
+import ctypes
+import errno
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
+from unittest import mock
 from pathlib import Path
 
 REGRESSION = Path(__file__).resolve().parents[1] / "regression"
 BASH = shutil.which("bash")
+sys.path.insert(0, str(REGRESSION))
+
+
+class PortableRunnerTest(unittest.TestCase):
+    def setUp(self):
+        import run_all
+        self.runner = run_all
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.folder = Path(self.tmp.name)
+
+    def run_python(self, source, limit=10):
+        script = self.folder / "test.py"
+        script.write_text(source, encoding="utf-8")
+        return self.runner.run_one([sys.executable], str(script), self.folder / "log", limit)
+
+    def test_timeout_kills_the_native_child(self):
+        start = time.monotonic()
+        result = self.run_python("import time; time.sleep(30)", limit=0.3)
+        self.assertTrue(result["stopped"])
+        self.assertFalse(result["ok"])
+        self.assertLess(time.monotonic() - start, 5)
+
+    def test_peak_memory_still_fails_the_budget_after_memory_is_freed(self):
+        result = self.run_python("x = bytearray(100 << 20); del x")
+        self.assertTrue(result["ok"])
+        self.assertGreater(result["mb"], 90)
+        self.assertIn("peaked at", self.runner.problems("test", result, 10, 50)[0])
+
+    def test_shard_selection_is_unchanged(self):
+        tests = ["a", "b", "c", "d"]
+        weights = {"a": 9, "b": 8, "c": 2, "d": 1}
+        self.assertEqual(self.runner.shard(tests, 1, 2, weights), ["a", "d"])
+        self.assertEqual(self.runner.shard(tests, 2, 2, weights), ["b", "c"])
+
+    def test_explicit_interpreter_passes_the_resolved_executable(self):
+        with mock.patch.dict(os.environ, LUA='"C:\\Program Files\\Lua\\lua5.1.exe" -e hello'), \
+                mock.patch.object(self.runner, "os", SimpleNamespace(name="nt", environ=os.environ)), \
+                mock.patch.object(self.runner.shutil, "which", return_value="resolved.exe") as which:
+            command, _ = self.runner.interpreter()
+        which.assert_called_once_with("C:\\Program Files\\Lua\\lua5.1.exe")
+        self.assertEqual(command, ["resolved.exe", "-e", "hello"])
+
+    def test_default_interpreter_preferences_and_exe_fallback(self):
+        for lua, jit, expected in (("lua51", "jit", ["lua51"]), (None, "jit", ["jit", "-joff"]), (None, None, None)):
+            with self.subTest(lua=lua, jit=jit), mock.patch.dict(os.environ, {"HOME": str(self.folder)}, clear=True), \
+                    mock.patch.object(self.runner.shutil, "which", side_effect=lambda name: {"lua5.1": lua, "luajit": jit}[name]):
+                self.assertEqual(self.runner.interpreter()[0], expected)
+        local = self.folder / ".local" / "bin" / ("lua5.1.exe" if os.name == "nt" else "lua5.1")
+        local.parent.mkdir(parents=True)
+        local.touch()
+        local.chmod(0o755)
+        with mock.patch.dict(os.environ, {"HOME": str(self.folder)}, clear=True), \
+                mock.patch.object(self.runner.shutil, "which", return_value=None):
+            self.assertEqual(self.runner.interpreter()[0], [str(local)])
+
+    def test_luajit_fast_mode_and_explicit_joff(self):
+        for choice, fast in (("luajit", True), ("luajit -joff", False)):
+            with mock.patch.dict(os.environ, LUA=choice), mock.patch.object(self.runner.shutil, "which", return_value="luajit"):
+                command, label = self.runner.interpreter()
+            self.assertEqual("fast mode" in label, fast)
+            self.assertEqual(command, choice.split())
+
+    def test_platform_locks_use_nonblocking_os_calls_and_only_ignore_contention(self):
+        import runner_platform as platform
+        with open(self.folder / "slot", "a+b") as guard:
+            for windows, flags in ((True, 2), (False, 6)):
+                locker = mock.Mock()
+                self.assertTrue(platform.try_lock(guard, windows=windows, locker=locker))
+                locker.assert_called_once_with(guard.fileno(), flags, *([1] if windows else []))
+                locker.side_effect = OSError(errno.EACCES, "locked")
+                self.assertFalse(platform.try_lock(guard, windows=windows, locker=locker))
+                locker.side_effect = OSError(errno.EBADF, "bad descriptor")
+                with self.assertRaises(OSError):
+                    platform.try_lock(guard, windows=windows, locker=locker)
+
+    def test_windows_accounting_on_every_os(self):
+        import runner_platform as platform
+
+        def memory(handle, counters, size):
+            self.assertEqual(handle.value, 123)
+            self.assertEqual(size, ctypes.sizeof(platform.MemoryCounters))
+            counters._obj.PeakPagefileUsage = 123 << 20
+            return 1
+
+        def times(handle, created, exited, kernel, user):
+            kernel._obj.value, user._obj.value = 10_000_000, 20_000_000
+            return 1
+
+        self.assertEqual(platform.windows_usage(123, memory, times), (123, 3))
+        self.assertEqual(platform.windows_usage(123, lambda *args: 0, times), (None, 3))
+        self.assertEqual(platform.windows_usage(123, memory, lambda *args: 0), (123, None))
+        self.assertEqual(platform.windows_usage(123, mock.Mock(side_effect=OSError), times), (None, None))
+
+    def test_windows_kill_and_wait_on_every_os(self):
+        import runner_platform as platform
+        child = mock.Mock()
+        platform.kill(child, windows=True)
+        child.kill.assert_called_once_with()
+        with mock.patch.object(platform, "windows_usage", return_value=(12, 3)) as usage:
+            self.assertEqual(platform.wait(child, windows=True), (12, 3))
+        child.wait.assert_called_once_with()
+        usage.assert_called_once_with(child._handle)
+
+    def test_posix_kill_and_wait_on_every_os(self):
+        import runner_platform as platform
+        child = mock.Mock(pid=123)
+        with mock.patch.object(platform.os, "killpg", create=True) as killpg, \
+                mock.patch.object(platform, "signal", SimpleNamespace(SIGKILL=9)):
+            platform.kill(child, windows=False)
+        killpg.assert_called_once_with(123, 9)
+        usage = SimpleNamespace(ru_maxrss=2 << 20, ru_utime=1, ru_stime=2)
+        for system, mb in (("darwin", 2), ("linux", 2048)):
+            with mock.patch.object(platform.os, "wait4", create=True, return_value=(123, 0, usage)), \
+                    mock.patch.object(platform.os, "waitstatus_to_exitcode", create=True, return_value=0), \
+                    mock.patch.object(platform.sys, "platform", system):
+                self.assertEqual(platform.wait(child, windows=False), (mb, 3))
+        self.assertEqual(child.returncode, 0)
+
+    def test_missing_memory_and_load_print_na_without_failing_or_crashing(self):
+        result = {"mb": None, "seconds": 1, "load": None, "stopped": False}
+        self.assertEqual(self.runner.problems("test", result, 2, 50), [])
+        self.assertEqual(self.runner.memory_text(None), "n/a")
+        with mock.patch.object(self.runner.os, "getloadavg", create=True, side_effect=AttributeError):
+            self.assertIsNone(self.runner.load_now())
 
 
 class RunAllTest(unittest.TestCase):
@@ -25,18 +153,18 @@ class RunAllTest(unittest.TestCase):
         self.tmp = Path(self._tmp.name)
         self.regression = self.tmp / "Tools" / "regression"
         self.regression.mkdir(parents=True)
-        for name in ("run-all.sh", "run_all.py", "affected.py", "trace.lua"):
+        for name in ("run-all.sh", "run_all.py", "runner_platform.py", "affected.py", "trace.lua"):
             shutil.copy(REGRESSION / name, self.regression / name)
-        (self.regression / "helper.lua").write_text("exit 1\n")
+        (self.regression / "helper.lua").write_text("raise SystemExit(1)\n")
 
     def tearDown(self):
         self._tmp.cleanup()
 
-    def run_all(self, *args, lua="sh", **changes):
+    def run_all(self, *args, lua=sys.executable, **changes):
         env = {key: value for key, value in os.environ.items() if key not in ("CI", "RUNNER_ENVIRONMENT", "LUA", "TEST_TIME_BUDGET", "TEST_MEMORY_BUDGET")}
         env.update(KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64")
         if lua is not None:
-            env["LUA"] = lua
+            env["LUA"] = f'"{lua}"' if " " in lua and Path(lua).exists() else lua
         for key, value in changes.items():
             if value is None:
                 env.pop(key, None)
@@ -45,38 +173,16 @@ class RunAllTest(unittest.TestCase):
         return subprocess.run([BASH, str(self.regression / "run-all.sh"), *args], env=env, capture_output=True, text=True)
 
     def start_all(self, **changes):
-        env = dict(os.environ, LUA="sh", KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64", JOBS="4")
+        env = dict(os.environ, LUA=f'"{sys.executable}"', KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64", JOBS="4")
         env.pop("CI", None)
         env.pop("RUNNER_ENVIRONMENT", None)
         env.update(changes)
         return subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=env, stdout=subprocess.PIPE, text=True)
 
-    def write_slots(self, *holders):
-        (self.tmp / "slots").mkdir(exist_ok=True)
-        (self.tmp / "slots" / "worker-slots.json").write_text(json.dumps(
-            [{"pid": pid, "token": f"t{i}", "until": time.time() + until} for i, (pid, until) in enumerate(holders)]))
-
-    def fake_bin(self, *names):
-        """A PATH with python3 and a fake interpreter per name that records its name and arguments."""
-        folder = self.tmp / "bin"
-        folder.mkdir(exist_ok=True)
-        os.symlink(sys.executable, folder / "python3")
-        for name in names:
-            self.fake_lua(folder / name)
-        return str(folder)
-
-    def fake_lua(self, path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f'#!/bin/sh\necho "{path.name} $*" >> "{self.tmp}/ran"\n')
-        path.chmod(0o755)
-
-    def ran(self):
-        return (self.tmp / "ran").read_text()
-
     def test_counts_passes_and_failures(self):
-        (self.regression / "test-pass.lua").write_text("echo fine\n")
-        lines = "".join(f"echo line{i}\n" for i in range(1, 8))
-        (self.regression / "test-fail.lua").write_text(lines + "exit 1\n")
+        (self.regression / "test-pass.lua").write_text("print('fine')\n")
+        lines = "".join(f"print('line{i}')\n" for i in range(1, 8))
+        (self.regression / "test-fail.lua").write_text(lines + "raise SystemExit(1)\n")
         result = self.run_all()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL test-fail", result.stdout)
@@ -87,30 +193,32 @@ class RunAllTest(unittest.TestCase):
         self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 1"))
 
     def test_exits_0_when_all_pass(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        (self.regression / "test-b.lua").write_text("true\n")
+        (self.regression / "test-a.lua").write_text("pass\n")
+        (self.regression / "test-b.lua").write_text("pass\n")
         result = self.run_all()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
 
     def test_runs_from_the_repository_root(self):
-        (self.regression / "test-cwd.lua").write_text("test -d Tools/regression\n")
+        (self.regression / "test-cwd.lua").write_text("from pathlib import Path; assert Path('Tools/regression').is_dir()\n")
         result = self.run_all()
         self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_runs_tests_in_parallel(self):
-        # Two tests that each wait for the other's marker finish only when they run at the same time.
-        (self.regression / "test-x.lua").write_text(
-            f"touch {self.tmp}/x; for i in $(seq 50); do [ -e {self.tmp}/y ] && exit 0; sleep 0.1; done; exit 1\n")
-        (self.regression / "test-y.lua").write_text(
-            f"touch {self.tmp}/y; for i in $(seq 50); do [ -e {self.tmp}/x ] && exit 0; sleep 0.1; done; exit 1\n")
+        for own, other in (("x", "y"), ("y", "x")):
+            (self.regression / f"test-{own}.lua").write_text(
+                "import time\nfrom pathlib import Path\n"
+                f"Path({str(self.tmp / own)!r}).touch()\n"
+                "deadline = time.monotonic() + 5\n"
+                f"while not Path({str(self.tmp / other)!r}).exists():\n"
+                "    assert time.monotonic() < deadline\n    time.sleep(0.05)\n")
         result = self.run_all(JOBS="2")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
 
     def test_reports_failures_in_file_order(self):
         for name in ("test-c.lua", "test-a.lua", "test-b.lua"):
-            (self.regression / name).write_text("exit 1\n")
+            (self.regression / name).write_text("raise SystemExit(1)\n")
         result = self.run_all()
         self.assertNotEqual(result.returncode, 0)
         order = [line for line in result.stdout.splitlines() if line.startswith("FAIL ")]
@@ -122,8 +230,8 @@ class RunAllTest(unittest.TestCase):
         self.assertIn("no tests found", result.stdout)
 
     def test_stops_with_one_message_when_lua_is_missing(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        (self.regression / "test-b.lua").write_text("true\n")
+        (self.regression / "test-a.lua").write_text("pass\n")
+        (self.regression / "test-b.lua").write_text("pass\n")
         result = self.run_all(lua="no-such-lua-kstyleui")
         self.assertEqual(result.returncode, 2, result.stdout)
         self.assertIn("no-such-lua-kstyleui not found", result.stdout)
@@ -133,7 +241,7 @@ class RunAllTest(unittest.TestCase):
 
     def marking_tests(self, names):
         for name in names:
-            (self.regression / f"test-{name}.lua").write_text(f"echo {name} >> {self.tmp}/marks\n")
+            (self.regression / f"test-{name}.lua").write_text(f"with open({str(self.tmp / 'marks')!r}, 'a') as out: out.write('{name}\\n')\n")
 
     def marks(self):
         path = self.tmp / "marks"
@@ -188,8 +296,8 @@ class RunAllTest(unittest.TestCase):
     # The time budget.
 
     def test_fails_a_test_over_the_time_budget_and_names_the_fix(self):
-        (self.regression / "test-fast.lua").write_text("true\n")
-        (self.regression / "test-slow.lua").write_text("sleep 1.5\n")
+        (self.regression / "test-fast.lua").write_text("pass\n")
+        (self.regression / "test-slow.lua").write_text("import time; time.sleep(1.5)\n")
         result = self.run_all(TEST_TIME_BUDGET="1")
         self.assertNotEqual(result.returncode, 0, result.stdout)
         line = next((line for line in result.stdout.splitlines() if line.startswith("FAIL test-slow")), "")
@@ -198,13 +306,13 @@ class RunAllTest(unittest.TestCase):
         self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 1"))
 
     def test_passes_tests_within_the_time_budget(self):
-        (self.regression / "test-fast.lua").write_text("sleep 0.1\n")
+        (self.regression / "test-fast.lua").write_text("import time; time.sleep(0.1)\n")
         result = self.run_all(TEST_TIME_BUDGET="1")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 0"))
 
     def test_stops_a_test_at_three_times_the_budget(self):
-        (self.regression / "test-hang.lua").write_text("exec sleep 30\n")
+        (self.regression / "test-hang.lua").write_text("import time; time.sleep(30)\n")
         start = time.monotonic()
         result = self.run_all(TEST_TIME_BUDGET="0.5")
         self.assertLess(time.monotonic() - start, 10, result.stdout)
@@ -212,33 +320,26 @@ class RunAllTest(unittest.TestCase):
         self.assertIn("FAIL test-hang: stopped after 1.5 s, 3 times the 0.5 s budget", result.stdout)
 
     def test_stopping_the_runner_stops_its_tests(self):
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            with self.subTest(signal=sig.name):
-                pidfile = self.tmp / f"pid-{sig.name}"
-                (self.regression / "test-hang.lua").write_text(f"echo $$ > {pidfile}.tmp; mv {pidfile}.tmp {pidfile}; exec sleep 30\n")
-                env = {key: value for key, value in os.environ.items() if key != "CI"}
-                runner = subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=dict(env, LUA="sh", KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64"),
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                deadline = time.monotonic() + 10
-                while not pidfile.exists() and time.monotonic() < deadline:
-                    time.sleep(0.05)
-                test_pid = int(pidfile.read_text())
-                runner.send_signal(sig)
-                runner.wait(timeout=5)
-                time.sleep(0.2)
-                with self.assertRaises(ProcessLookupError, msg="the test outlived the runner"):
-                    os.kill(test_pid, 0)
+        import run_all
+        children = run_all.Children()
+        with open(os.devnull, "wb") as out:
+            child = children.start([sys.executable, "-c", "import time; time.sleep(30)"], out)
+        children.stop_all()
+        child.wait(timeout=5)
+        self.assertNotEqual(child.returncode, 0)
+        with self.assertRaises(KeyboardInterrupt):
+            children.start([], None)
 
     def test_the_default_budget_is_20_s_and_four_times_that_on_ci(self):
-        (self.regression / "test-a.lua").write_text("true\n")
+        (self.regression / "test-a.lua").write_text("pass\n")
         self.assertIn("budget 20 s", self.run_all().stdout)
         self.assertIn("budget 80 s", self.run_all(CI="true").stdout)
 
     # The memory budget.
 
     def test_fails_a_test_over_the_memory_budget(self):
-        (self.regression / "test-small.lua").write_text("true\n")
-        (self.regression / "test-big.lua").write_text(f"exec '{sys.executable}' -c 'x = b\"1\" * (300 << 20)'\n")
+        (self.regression / "test-small.lua").write_text("pass\n")
+        (self.regression / "test-big.lua").write_text("x = bytearray(300 << 20)\n")
         result = self.run_all(TEST_MEMORY_BUDGET="200")
         self.assertNotEqual(result.returncode, 0, result.stdout)
         line = next((line for line in result.stdout.splitlines() if line.startswith("FAIL test-big")), "")
@@ -249,7 +350,7 @@ class RunAllTest(unittest.TestCase):
 
     def test_prints_the_slowest_five_and_the_total(self):
         for i, seconds in enumerate(("0", "0.2", "0.4", "0.6", "0.8", "1.0")):
-            (self.regression / f"test-{i}.lua").write_text(f"sleep {seconds}\n")
+            (self.regression / f"test-{i}.lua").write_text(f"import time; time.sleep({seconds})\n")
         result = self.run_all(JOBS="6")
         self.assertEqual(result.returncode, 0, result.stdout)
         lines = result.stdout.splitlines()
@@ -261,16 +362,25 @@ class RunAllTest(unittest.TestCase):
     # The machine-wide worker limit.
 
     def overlaps(self):
-        """The most test files that were running at once, from the start and end lines the tests append to a log."""
+        """Count overlapping intervals, with a separate timestamp file per process."""
         running = most = 0
-        for line in (self.tmp / "log").read_text().split():
-            running += 1 if line == "start" else -1
+        events = [(int(path.read_text()), 1 if path.suffix == ".start" else -1)
+                  for path in (self.tmp / "log").iterdir()]
+        for _, change in sorted(events):
+            running += change
             most = max(most, running)
+        self.assertEqual(running, 0, "every started fixture must finish")
         return most
 
     def timed_tests(self, count):
         for i in range(count):
-            (self.regression / f"test-{i}.lua").write_text(f"echo start >> {self.tmp}/log; sleep 0.3; echo end >> {self.tmp}/log\n")
+            (self.regression / f"test-{i}.lua").write_text(
+                "import os, time\nfrom pathlib import Path\n"
+                f"folder = Path({str(self.tmp / 'log')!r})\n"
+                "folder.mkdir(exist_ok=True)\nstem = folder / str(os.getpid())\n"
+                "stem.with_suffix('.start').write_text(str(time.monotonic_ns()))\n"
+                "time.sleep(0.3)\n"
+                "stem.with_suffix('.end').write_text(str(time.monotonic_ns()))\n")
 
     def test_the_slot_limit_caps_the_files_running_at_once(self):
         self.timed_tests(6)
@@ -288,20 +398,20 @@ class RunAllTest(unittest.TestCase):
         self.assertEqual(self.overlaps(), 1)
         self.assertTrue(any("other runs held up to 1 of 1" in out for out in outputs), outputs)
 
-    def test_a_holder_whose_process_is_gone_or_whose_lease_ran_out_is_dropped(self):
-        dead = subprocess.Popen(["true"])
-        dead.wait()
-        self.write_slots((dead.pid, 600), (os.getpid(), -5))
-        self.timed_tests(1)
-        result = self.run_all(KSTYLEUI_SLOTS="2")
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("0 held by other runs", result.stdout)
-        self.assertEqual(json.loads((self.tmp / "slots" / "worker-slots.json").read_text()), [])
-
     def test_a_live_holder_keeps_its_slot_until_it_lets_go(self):
-        holder = subprocess.Popen(["sleep", "30"])
-        self.addCleanup(holder.kill)
-        self.write_slots((holder.pid, 600))
+        (self.tmp / "slots").mkdir()
+        ready = self.tmp / "ready"
+        source = ("import sys, time; from pathlib import Path; "
+                  f"sys.path.insert(0, {str(REGRESSION)!r}); import runner_platform; "
+                  f"guard = open({str(self.tmp / 'slots' / 'worker-slot-0.lock')!r}, 'a+b'); "
+                  "assert runner_platform.try_lock(guard); "
+                  f"Path({str(ready)!r}).touch(); time.sleep(30)")
+        holder = subprocess.Popen([sys.executable, "-c", source])
+        self.addCleanup(lambda: holder.poll() is None and holder.kill())
+        deadline = time.monotonic() + 10
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(ready.exists(), "the native slot holder never started")
         self.timed_tests(1)
         waiting = self.start_all(KSTYLEUI_SLOTS="1")
         time.sleep(1.5)
@@ -316,14 +426,16 @@ class RunAllTest(unittest.TestCase):
     def test_prints_the_load_the_run_saw(self):
         self.timed_tests(1)
         result = self.run_all()
-        self.assertRegex(result.stdout, r"machine load [\d.]+ on \d+ CPUs; worker slots: 64")
-        self.assertRegex(result.stdout, r"machine load [\d.]+ at the start, [\d.]+ at the end, [\d.]+ at most when a test started; waited [\d.]+ s for worker slots")
+        self.assertRegex(result.stdout, r"machine load (?:[\d.]+|n/a) on \d+ CPUs; worker slots: 64")
+        self.assertRegex(result.stdout, r"machine load (?:[\d.]+|n/a) at the start, (?:[\d.]+|n/a) at the end, (?:[\d.]+|n/a) at most when a test started; waited [\d.]+ s for worker slots")
 
     def test_a_time_failure_names_the_load(self):
-        (self.regression / "test-slow.lua").write_text("sleep 1.2\n")
+        (self.regression / "test-slow.lua").write_text("import time; time.sleep(1.2)\n")
         result = self.run_all(TEST_TIME_BUDGET="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertRegex(result.stdout, r"FAIL test-slow: took [\d.]+ s, over the 1 s budget\..* Machine load was [\d.]+ when it started")
+        self.assertRegex(result.stdout, r"FAIL test-slow: took [\d.]+ s, over the 1 s budget")
+        if hasattr(os, "getloadavg"):
+            self.assertRegex(result.stdout, r"Machine load was [\d.]+ when it started")
 
     def test_the_limit_is_off_in_ci_and_with_zero_slots(self):
         self.timed_tests(1)
@@ -349,8 +461,8 @@ class RunAllTest(unittest.TestCase):
     # Margins.
 
     def test_margins_lists_the_files_within_20_percent_of_the_budget(self):
-        (self.regression / "test-near.lua").write_text("sleep 0.9\n")
-        (self.regression / "test-far.lua").write_text("sleep 0.2\n")
+        (self.regression / "test-near.lua").write_text("import time; time.sleep(0.9)\n")
+        (self.regression / "test-far.lua").write_text("import time; time.sleep(0.2)\n")
         result = self.run_all("--margins", TEST_TIME_BUDGET="1", JOBS="8")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("within 20% of the budget, run alone:", result.stdout)
@@ -359,53 +471,13 @@ class RunAllTest(unittest.TestCase):
         self.assertRegex(result.stdout, r", 1 at a time\n")
 
     def test_margins_says_none_when_every_file_has_room(self):
-        (self.regression / "test-far.lua").write_text("true\n")
+        (self.regression / "test-far.lua").write_text("pass\n")
         result = self.run_all("--margins")
         self.assertIn("within 20% of the budget, run alone: none", result.stdout)
 
     def test_margins_cannot_write_weights(self):
-        (self.regression / "test-a.lua").write_text("true\n")
+        (self.regression / "test-a.lua").write_text("pass\n")
         self.assertEqual(self.run_all("--margins", "--write-weights").returncode, 2)
-
-    # The interpreter.
-
-    def test_prefers_lua51_on_the_path(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        result = self.run_all(lua=None, PATH=self.fake_bin("lua5.1", "luajit"), HOME=str(self.tmp))
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.ran(), "lua5.1 Tools/regression/test-a.lua\n")
-        self.assertIn("Lua 5.1, as CI runs", result.stdout)
-
-    def test_finds_lua51_in_the_home_local_bin(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        self.fake_lua(self.tmp / ".local" / "bin" / "lua5.1")
-        result = self.run_all(lua=None, PATH=self.fake_bin("luajit"), HOME=str(self.tmp))
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.ran(), "lua5.1 Tools/regression/test-a.lua\n")
-
-    def test_falls_back_to_luajit_without_the_jit(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        result = self.run_all(lua=None, PATH=self.fake_bin("luajit"), HOME=str(self.tmp))
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.ran(), "luajit -joff Tools/regression/test-a.lua\n")
-        self.assertIn("install-lua51.sh", result.stdout)
-
-    def test_stops_when_no_lua_is_installed(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        result = self.run_all(lua=None, PATH=self.fake_bin(), HOME=str(self.tmp))
-        self.assertEqual(result.returncode, 2, result.stdout)
-        self.assertIn("install-lua51.sh", result.stdout)
-
-    def test_labels_luajit_with_the_jit_as_fast_mode(self):
-        (self.regression / "test-a.lua").write_text("true\n")
-        path = self.fake_bin("luajit")
-        fast = self.run_all(lua="luajit", PATH=path, HOME=str(self.tmp))
-        self.assertEqual(fast.returncode, 0, fast.stdout)
-        self.assertIn("fast mode, not CI-equivalent", fast.stdout)
-        interpreted = self.run_all(lua="luajit -joff", PATH=path, HOME=str(self.tmp))
-        self.assertNotIn("fast mode", interpreted.stdout)
-        self.assertEqual(self.ran().splitlines()[-1], "luajit -joff Tools/regression/test-a.lua")
-
 
 if __name__ == "__main__":
     unittest.main()

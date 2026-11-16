@@ -65,7 +65,8 @@ class PreCommitConfigTest(unittest.TestCase):
 
     def test_api_contracts_checks_whole_addon_on_contract_changes(self):
         hook = self.hooks["forever-api-contracts"]
-        self.assertEqual(hook["entry"], "python3 Tools/hooks/check_api_contracts.py")
+        self.assertEqual(hook["entry"], "python Tools/hooks/check_api_contracts.py")
+        self.assertEqual(hook["language"], "python")
         self.assertEqual(hook["pass_filenames"], "false")
         for path in ("Core/Events.lua", "KstyleUI.toc", "Core/Core.xml", "Tools/data/forever_api_contracts.json", "Tools/build/gen_api_contracts.py"):
             self.assertRegex(path, hook["files"])

@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# install-lua51.sh: build Lua 5.1.5, the interpreter CI runs the tests with, into ~/.local/bin/lua5.1, where run-all.sh finds it.
-# PREFIX changes ~/.local. The script checks the tarball's SHA-256 and does nothing when the binary is already Lua 5.1.5.
+# install-lua51.sh: install SHA-256-checked Lua 5.1.5 in ${PREFIX:-~/.local}/bin.
 set -euo pipefail
+
+case "$(uname -s)" in
+MINGW* | MSYS* | CYGWIN*)
+	source "$(dirname "${BASH_SOURCE[0]}")/../regression/run-all.sh"
+	pick_python || exit 2
+	exec "${py[@]}" "$(dirname "${BASH_SOURCE[0]}")/install-lua51-windows.py"
+	;;
+esac
 
 version=5.1.5
 sha256=2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333

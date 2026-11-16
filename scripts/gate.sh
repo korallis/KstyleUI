@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # gate.sh [lint|lua|python|all] [run-all.sh options]: the one gate. Agents and CI both run it.
-# lint runs crlf --check, pre-commit, luacheck, check_toc, strings.py check and check-suppressions.
 # lua runs Tools/regression/run-all.sh; with no options that is --affected against the base, and CI passes --shard I/N.
 # python runs the Python suite with the venv interpreter. all (the default) runs the three groups.
 # Environment: GATE_BASE is the base ref (default origin/staging, CI passes HEAD^1); KSTYLEUI_PYTHON is the interpreter.
 set -uo pipefail
 
-cd "${BASH_SOURCE[0]%/*}/.." || exit 2
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 2
 
 group=${1:-all}
 [ $# -gt 0 ] && shift
 base=${GATE_BASE:-origin/staging}
-py=${KSTYLEUI_PYTHON:-$HOME/.local/share/wow-dev/venv/bin/python}
-command -v "$py" >/dev/null 2>&1 || py=python3
+source Tools/regression/run-all.sh
+pick_python || exit 2
 
 case "$group" in
 lint | lua | python | all) ;;
@@ -36,11 +35,9 @@ step() {
 }
 
 if [ "$group" = lint ] || [ "$group" = all ]; then
-	step "crlf --check" "$py" Tools/dev/crlf.py --check
-	step "pre-commit" pre-commit run --all-files --show-diff-on-failure
-	step "luacheck" luacheck --no-color .
-	step "check_toc" "$py" Tools/hooks/check_toc.py
-	step "strings.py check" "$py" Tools/locale/strings.py check
+	step "crlf --check" "${py[@]}" Tools/dev/crlf.py --check
+	step "pre-commit" env -u SKIP pre-commit run --all-files --show-diff-on-failure
+	step "strings.py check" "${py[@]}" Tools/locale/strings.py check
 	step "check-suppressions against $base" bash scripts/check-suppressions.sh "$base"
 fi
 
@@ -50,7 +47,7 @@ if [ "$group" = lua ] || [ "$group" = all ]; then
 fi
 
 if [ "$group" = python ] || [ "$group" = all ]; then
-	step "python suite" "$py" -m unittest discover -s Tools/tests
+	step "python suite" "${py[@]}" -m unittest discover -s Tools/tests
 fi
 
 if [ ${#failed[@]} -gt 0 ]; then

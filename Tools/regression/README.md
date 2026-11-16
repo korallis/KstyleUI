@@ -58,9 +58,9 @@ It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU 
 
 Many runs share the Mac, and a test file that takes 18 s alone can take 23 s on a loaded Mac and fail the 20 s budget for no fault of its own. So every local run takes a **worker slot** for each test file it runs, and all the runs on the machine together run at most as many files as there are slots: a third of the CPUs by default (6 on the 18-CPU Mac, which leaves the rest for the game), `KSTYLEUI_SLOTS` sets another count and `KSTYLEUI_SLOTS=0` turns the limit off. A run that finds every slot taken waits and polls; the wait is not part of a file's time.
 
-The holders are listed in `~/.cache/kstyleui/worker-slots.json` (`KSTYLEUI_SLOT_DIR` moves the folder) behind a lock. A holder whose process is gone, or whose lease has run out (3 times the time budget plus 30 s, longer than a file can run), is dropped by the next run that looks, so a crashed or killed run frees its slots by itself. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
+Each slot is a lock file, `~/.cache/kstyleui/worker-slot-N.lock` (`KSTYLEUI_SLOT_DIR` moves the folder), held with nonblocking `flock` on POSIX or `msvcrt.locking` on Windows. The OS releases a crashed or killed runner's locks. A hung runner keeps its slots until it exits or is killed; stop only a runner you started, by its PID. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
 
-Each run prints the load it saw. The second line is `machine load N on C CPUs; worker slots: S for every run on this machine, K held by other runs`. The line before `passed` is `machine load N at the start, M at the end, P at most when a test started; waited W s for worker slots, other runs held up to K of S`. A time failure adds `Machine load was N when it started`, so the first thing to do with one is to run that file alone (`lua5.1 Tools/regression/test-NAME.lua`) and read its time against the load.
+Each completed file prints `progress: N/T test files done`. Each run prints the load it saw (`n/a` where the OS has no load average). The second line is `machine load N on C CPUs; worker slots: S for every run on this machine, K held by other runs`. The line before `passed` is `machine load N at the start, M at the end, P at most when a test started; waited W s for worker slots, other runs held up to K of S`. A time failure adds `Machine load was N when it started`, so the first thing to do with one is to run that file alone (`lua5.1 Tools/regression/test-NAME.lua`) and read its time against the load.
 
 ### Margins
 
@@ -112,8 +112,10 @@ A bug a property finds is filed, and until it is fixed the file's `known` list c
 CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
 
 1. `lua5.1` on the `PATH`. This is what CI runs.
-2. `~/.local/bin/lua5.1`. `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 there; Homebrew has no Lua 5.1.
+2. `~/.local/bin/lua5.1` (`lua5.1.exe` on Windows). `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 on POSIX and installs the SHA-256-checked LuaBinaries 5.1.5 Win64 archive plus luacheck 1.2.0 on Windows; Homebrew has no Lua 5.1.
 3. `luajit -joff`, LuaJIT with its compiler off. Its speed is within 10% of Lua 5.1's on this suite. It is not the same interpreter: it accepts `goto`, and `test-widgets-statusbar` fails its allocation check in about one run in ten under it.
+
+`gate.sh` and `run-all.sh` choose Python in this order: `$KSTYLEUI_PYTHON`, `~/.local/share/wow-dev/venv/bin/python` or `Scripts/python.exe`, `py -3`, `python3`, `python`. Each candidate must run `-c 'import sys'`; a Microsoft Store alias that fails the probe is rejected. The command uses a Bash array, and `KSTYLEUI_PYTHON` exports its resolved executable for child scripts. A quoted `LUA` path may contain spaces and Windows backslashes.
 
 `LUA=luajit bash Tools/regression/run-all.sh` is fast mode, for quick iteration only. LuaJIT's compiler runs some tests 100 times faster than Lua 5.1. A test that took 0.5 s in fast mode took 53 s under Lua 5.1 and pushed CI past its 15-minute limit. Fast mode times do not predict CI, so run without `LUA` before a push.
 
@@ -127,8 +129,8 @@ FAIL test-groupframes-depth: peaked at 10028 MB, over the 4096 MB budget. Make t
 ```
 
 - **Time.** The budget is 20 s of wall time under Lua 5.1 on the Mac. When `CI=true` the budget is 80 s, set when CI ran on Ubuntu runners about 4 times slower than the Mac and kept when CI moved to the Macs. On 2026-11-09 the slowest file took 9.8 s here.
-- **Memory.** The budget is 4096 MB of peak resident memory. CI runs as many files at once as the Mac's worker slots allow, beside other work on that Mac, and a file over the budget can push it into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
-- **Stop.** A file still running at 3 times the time budget is stopped and fails.
+- **Memory.** The budget is 4096 MB: OS peak resident memory on POSIX, or Windows `PeakPagefileUsage` (peak committed memory). Windows reads memory and process CPU time from the child handle after it exits; unavailable measurements print `n/a`. CPU time is recorded but does not change the wall-time budget. CI runs as many files at once as the Mac's worker slots allow, beside other work on that Mac, and a file over the budget can push it into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
+- **Stop.** A file still running at 3 times the time budget is stopped and fails. POSIX kills the test's process group; Windows kills and waits for the direct test process. Windows has no Job object or descendant-kill command, so tests must limit shell children to short commands.
 
 After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line always starts with `passed N, failed M`; `--affected` adds a note on how many files did not run. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.
 
@@ -141,6 +143,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | File | What it does |
 | --- | --- |
 | `run_all.py` | Runs the test files for `run-all.sh`: picks the interpreter, picks the files for `--shard` and `--affected`, runs them in parallel and checks each one's time and memory budget. |
+| `runner_platform.py` | OS slot locks, process stopping and peak-memory/CPU accounting; its injectable Windows paths are tested on every OS. |
 | `affected.py` | Reads `trace.lua`'s record of what a test loads, keeps it in a cache and chooses the files a change can reach. `Tools/tests/test_affected.py` covers it. |
 | `trace.lua` | Records the files a test opens and the commands it runs, for `--affected`. It changes no result a test sees. |
 | `render_locales_lib.lua` | The settings-scene render check for one locale; the four `test-render-scenes-locale-*.lua` files call it so they run in parallel. |

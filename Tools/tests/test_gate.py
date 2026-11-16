@@ -74,15 +74,21 @@ class GateTest(unittest.TestCase):
         for needle in (
             "Tools/dev/crlf.py --check",
             "pre-commit run --all-files",
-            "luacheck",
-            "Tools/hooks/check_toc.py",
             "Tools/locale/strings.py check",
             "scripts/check-suppressions.sh",
             "Tools/regression/run-all.sh",
             "unittest discover -s Tools/tests",
-            ".local/share/wow-dev/venv/bin/python",
         ):
             self.assertIn(needle, text)
+        self.assertIn("env -u SKIP pre-commit run --all-files", text)
+        self.assertNotIn('step "luacheck"', text)
+        self.assertNotIn('step "check_toc"', text)
+        hooks = (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+        self.assertIn("entry: luacheck --no-color .", hooks)
+        self.assertIn("entry: python Tools/hooks/check_toc.py", hooks)
+        self.assertIn("source Tools/regression/run-all.sh", text)
+        picker = (REPO / "Tools/regression/run-all.sh").read_text(encoding="utf-8")
+        self.assertIn(".local/share/wow-dev/venv/bin/python", picker)
 
     def test_gate_rejects_an_unknown_group(self):
         result = subprocess.run(["bash", str(GATE), "nonsense"], cwd=REPO, capture_output=True, text=True)

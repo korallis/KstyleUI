@@ -272,7 +272,7 @@ class RunAllAffectedTest(GitRepoCase):
         super().setUp()
         regression = self.repo / "Tools" / "regression"
         regression.mkdir(parents=True)
-        for name in ("run-all.sh", "run_all.py", "affected.py", "trace.lua"):
+        for name in ("run-all.sh", "run_all.py", "runner_platform.py", "affected.py", "trace.lua"):
             shutil.copy(REGRESSION / name, regression / name)
         self.commit({
             "Mod/a.lua": "return 1\n",

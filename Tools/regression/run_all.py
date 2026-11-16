@@ -5,8 +5,6 @@ choice, the budgets, the output, --shard (one slice of the files, for CI) and --
 """
 
 import argparse
-import contextlib
-import fcntl
 import json
 import os
 import random
@@ -22,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import affected
+import runner_platform
 
 HERE = Path(__file__).resolve().parent
 
@@ -37,7 +36,6 @@ SLOWEST = 5
 AFFECTED_LINES = 40
 MARGIN = 0.2
 SLOT_POLL = 0.25
-SLOT_SLACK = 30.0
 
 LUA51_HELP = "Install Lua 5.1 with bash Tools/dev/install-lua51.sh, or set LUA."
 SLOW_FIX = "Make the test cheaper; CI runs Lua 5.1, about {0} times slower than this Mac.".format(CI_SLOWDOWN)
@@ -48,21 +46,27 @@ def interpreter():
     """Return (command, label), or (None, message) when no Lua is found."""
     chosen = os.environ.get("LUA")
     if chosen:
-        command = shlex.split(chosen)
-        if not shutil.which(command[0]):
+        command = shlex.split(chosen, posix=os.name != "nt")
+        if not command:
+            return None, LUA51_HELP
+        executable = command[0].strip('"')
+        found = shutil.which(executable)
+        if not found:
             return None, "{0} not found. {1}".format(command[0], LUA51_HELP)
+        command[0] = found
         if Path(command[0]).name.startswith("luajit") and "-joff" not in command[1:]:
             return command, ("LUA={0}: fast mode, not CI-equivalent. The JIT runs some tests 100 times faster than "
                              "CI's Lua 5.1, so the times and the budget do not predict CI. Run without LUA before a push.").format(chosen)
         return command, "LUA={0}".format(chosen)
     found = shutil.which("lua5.1")
-    home = Path(os.environ.get("HOME", "~")).expanduser() / ".local" / "bin" / "lua5.1"
+    home = Path(os.environ.get("HOME", "~")).expanduser() / ".local" / "bin" / ("lua5.1.exe" if os.name == "nt" else "lua5.1")
     if not found and os.access(home, os.X_OK):
         found = str(home)
     if found:
         return [found], "lua: {0} (Lua 5.1, as CI runs)".format(found)
-    if shutil.which("luajit"):
-        return ["luajit", "-joff"], ("lua: luajit -joff (no JIT, close to CI's Lua 5.1 in speed). "
+    found = shutil.which("luajit")
+    if found:
+        return [found, "-joff"], ("lua: luajit -joff (no JIT, close to CI's Lua 5.1 in speed). "
                                      "For CI's exact interpreter: bash Tools/dev/install-lua51.sh")
     return None, "No Lua found: lua5.1, ~/.local/bin/lua5.1 and luajit are missing. " + LUA51_HELP
 
@@ -76,120 +80,94 @@ def budgets():
     return seconds, float(os.environ.get("TEST_MEMORY_BUDGET", MEMORY_BUDGET_MB))
 
 
-def peak_mb(usage):
-    # ru_maxrss is in bytes on macOS and in kilobytes on Linux.
-    return usage.ru_maxrss / (1 << 20) if sys.platform == "darwin" else usage.ru_maxrss / 1024
-
-
 class Children:
-    """The running tests' process groups. Each test runs in its own group so a stop kills what it started."""
+    """The test processes this run owns."""
 
     def __init__(self):
         self.lock = threading.Lock()
-        self.groups = set()
+        self.children = set()
         self.stopping = False
 
     def start(self, args, out, env=None):
         with self.lock:
             if self.stopping:
                 raise KeyboardInterrupt
-            child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=env)
-            self.groups.add(child.pid)
+            child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=not runner_platform.WINDOWS, env=env)
+            self.children.add(child)
             return child
 
     def done(self, child):
         with self.lock:
-            self.groups.discard(child.pid)
+            self.children.discard(child)
 
     def stop_all(self):
         with self.lock:
             self.stopping = True
-            for group in self.groups:
-                try:
-                    os.killpg(group, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+            for child in self.children:
+                runner_platform.kill(child)
 
 
 CHILDREN = Children()
 
 
 class Slots:
-    """The machine-wide limit on running test files.
+    """One OS-held lock per machine-wide worker slot; process exit releases it."""
 
-    Every local run takes one slot while a test file runs, so all the runs on the Mac together never run more files
-    than there are slots. The holders live in one JSON file behind a flock; a holder whose process is gone, or whose
-    lease (the time a test may take, plus slack) has run out, is dropped by the next run to look. Nothing is killed.
-    """
-
-    def __init__(self, folder, count, lease):
-        self.folder, self.count, self.lease = Path(folder), count, lease
-        self.table = self.folder / "worker-slots.json"
+    def __init__(self, folder, count):
+        self.folder, self.count = Path(folder), count
+        self.held = {}
         self.lock = threading.Lock()
         self.waited = 0.0
         self.peak_others = 0
 
-    @contextlib.contextmanager
-    def locked(self):
-        with open(self.folder / "worker-slots.lock", "a") as guard:
-            fcntl.flock(guard, fcntl.LOCK_EX)
-            yield
-
-    def holders(self):
-        try:
-            rows = json.loads(self.table.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return []
-        live = []
-        for row in rows if isinstance(rows, list) else []:
-            try:
-                if row["until"] < time.time():
-                    continue
-                os.kill(row["pid"], 0)
-            except ProcessLookupError:
-                continue
-            except PermissionError:
-                pass
-            except (KeyError, TypeError, ValueError, OverflowError):
-                continue
-            live.append(row)
-        return live
-
-    def save(self, rows):
-        scratch = self.table.with_name("worker-slots.{0}.tmp".format(os.getpid()))
-        scratch.write_text(json.dumps(rows), encoding="utf-8")
-        os.replace(scratch, self.table)
+    def probe(self, index):
+        guard = open(self.folder / "worker-slot-{0}.lock".format(index), "a+b")
+        if runner_platform.try_lock(guard):
+            return guard
+        guard.close()
+        return None
 
     def others(self):
-        with self.locked():
-            return sum(1 for row in self.holders() if row["pid"] != os.getpid())
+        with self.lock:
+            return self.scan()[1]
+
+    def scan(self):
+        free, others = None, 0
+        for index in range(self.count):
+            if index in self.held:
+                continue
+            guard = self.probe(index)
+            if guard is None:
+                others += 1
+            else:
+                guard.close()
+                if free is None:
+                    free = index
+        return free, others
 
     def acquire(self):
         """Wait for a free slot and return (token, slots held by other runs)."""
-        token = "{0}-{1}-{2}".format(os.getpid(), threading.get_ident(), time.monotonic_ns())
         started = time.monotonic()
         while True:
             if CHILDREN.stopping:
                 raise KeyboardInterrupt
-            with self.locked():
-                rows = self.holders()
-                others = sum(1 for row in rows if row["pid"] != os.getpid())
-                with self.lock:
-                    self.peak_others = max(self.peak_others, others)
-                if len(rows) < self.count:
-                    rows.append({"pid": os.getpid(), "token": token, "until": time.time() + self.lease})
-                    self.save(rows)
-                    with self.lock:
+            with self.lock:
+                index, others = self.scan()
+                self.peak_others = max(self.peak_others, others)
+                if index is not None:
+                    guard = self.probe(index)
+                    if guard is not None:
+                        self.held[index] = guard
                         self.waited += time.monotonic() - started
-                    return token, others
+                        return index, others
             time.sleep(SLOT_POLL + random.random() * SLOT_POLL)
 
     def release(self, token):
-        with self.locked():
-            self.save([row for row in self.holders() if row["token"] != token])
+        with self.lock:
+            self.held.pop(token).close()
 
 
-def make_slots(lease):
+def make_slots():
     """Return the Slots for this run, or (None, why) when the limit is off or its folder cannot be made."""
     if os.environ.get("CI") == "true" and os.environ.get("RUNNER_ENVIRONMENT") != "self-hosted":
         return None, "worker slots: off in CI"
@@ -200,7 +178,7 @@ def make_slots(lease):
     folder = Path(os.environ.get("KSTYLEUI_SLOT_DIR") or Path.home() / ".cache" / "kstyleui")
     try:
         folder.mkdir(parents=True, exist_ok=True)
-        slots = Slots(folder, count, lease)
+        slots = Slots(folder, count)
         slots.others()
     except OSError as error:
         return None, "worker slots: off, cannot use {0} ({1})".format(folder, error)
@@ -211,7 +189,7 @@ def load_now():
     try:
         return os.getloadavg()[0]
     except (OSError, AttributeError):
-        return 0.0
+        return None
 
 
 def run_one(command, path, log, limit, trace=None, slots=None):
@@ -234,34 +212,39 @@ def run_held(command, path, log, limit, trace, load, others):
 
     def stop():
         stopped.append(True)
-        try:
-            os.killpg(child.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        runner_platform.kill(child)
 
     timer = threading.Timer(limit, stop)
     timer.start()
-    _, status, usage = os.wait4(child.pid, 0)
-    timer.cancel()
-    CHILDREN.done(child)
-    child.returncode = os.waitstatus_to_exitcode(status)
-    return {"seconds": time.monotonic() - start, "mb": peak_mb(usage), "ok": child.returncode == 0, "stopped": bool(stopped),
+    try:
+        mb, cpu = runner_platform.wait(child)
+    finally:
+        timer.cancel()
+        timer.join()
+        CHILDREN.done(child)
+    return {"seconds": time.monotonic() - start, "mb": mb, "cpu": cpu, "ok": child.returncode == 0, "stopped": bool(stopped),
             "load": load, "others": others}
 
 
 def fmt(seconds):
+    if seconds is None:
+        return "n/a"
     return "{0:g}".format(round(seconds, 1))
+
+
+def memory_text(mb):
+    return "{0:.0f}".format(mb) if mb is not None else "n/a"
 
 
 def problems(name, result, seconds, megabytes):
     lines = []
-    seen = " Machine load was {0:.1f} when it started; run it alone before you call it load.".format(result["load"])
+    seen = " Machine load was {0:.1f} when it started; run it alone before you call it load.".format(result["load"]) if result["load"] is not None else ""
     if result["stopped"]:
         lines.append("FAIL {0}: stopped after {1} s, {2} times the {3} s budget. {4}{5}".format(
             name, fmt(seconds * STOP_AFTER), STOP_AFTER, fmt(seconds), SLOW_FIX, seen))
     elif result["seconds"] > seconds:
         lines.append("FAIL {0}: took {1:.1f} s, over the {2} s budget. {3}{4}".format(name, result["seconds"], fmt(seconds), SLOW_FIX, seen))
-    if result["mb"] > megabytes:
+    if result["mb"] is not None and result["mb"] > megabytes:
         lines.append("FAIL {0}: peaked at {1:.0f} MB, over the {2:.0f} MB budget. {3}".format(name, result["mb"], megabytes, BIG_FIX))
     return lines
 
@@ -374,19 +357,19 @@ def main(argv):
     if command is None:
         print(label)
         return 2
-    every = sorted(str(path) for path in Path("Tools/regression").glob("test-*.lua"))
+    every = sorted(path.as_posix() for path in Path("Tools/regression").glob("test-*.lua"))
     if not every:
         print("no tests found in Tools/regression")
         return 1
     seconds, megabytes = budgets()
     jobs = jobs_for(args)
-    slots, off = make_slots(seconds * STOP_AFTER + SLOT_SLACK)
+    slots, off = make_slots()
     if slots:
         jobs = min(jobs, slots.count)
     print(label)
     print("budget {0} s and {1:.0f} MB per test file".format(fmt(seconds), megabytes), flush=True)
     start_load = load_now()
-    print("machine load {0:.1f} on {1} CPUs; {2}".format(start_load, os.cpu_count() or 0, off or (
+    print("machine load {0} on {1} CPUs; {2}".format(fmt(start_load), os.cpu_count() or 0, off or (
         "worker slots: {0} for every run on this machine, {1} held by other runs".format(slots.count, slots.others()))), flush=True)
 
     tests, weights = every, load_weights()
@@ -404,16 +387,23 @@ def main(argv):
     start = time.monotonic()
     records = {}
     with tempfile.TemporaryDirectory() as logs:
+        progress_lock = threading.Lock()
+        completed = 0
+
         def task(path):
+            nonlocal completed
             stem = Path(path).stem
             trace = os.path.join(logs, stem + ".trace") if args.affected else None
-            return run_one(command, path, os.path.join(logs, stem + ".out"), seconds * STOP_AFTER, trace, slots)
+            result = run_one(command, path, os.path.join(logs, stem + ".out"), seconds * STOP_AFTER, trace, slots)
+            with progress_lock:
+                completed += 1
+                print("progress: {0}/{1} test files done".format(completed, len(tests)), flush=True)
+            return result
 
         pool = ThreadPoolExecutor(max_workers=jobs)
         try:
             results = dict(zip(order, pool.map(task, order)))
         except BaseException:
-            # Ctrl-C or SIGTERM: the tests are in their own groups and get no signal, so kill them.
             CHILDREN.stop_all()
             pool.shutdown(wait=True, cancel_futures=True)
             raise
@@ -456,26 +446,27 @@ def main(argv):
     print("slowest:")
     ranked = sorted(tests, key=lambda path: results[path]["seconds"], reverse=True)
     for path in ranked[:SLOWEST]:
-        print("  {0:6.1f} s {1:6.0f} MB  {2}".format(results[path]["seconds"], results[path]["mb"], Path(path).stem))
+        print("  {0:6.1f} s {1:>6} MB  {2}".format(results[path]["seconds"], memory_text(results[path]["mb"]), Path(path).stem))
     if args.margins:
-        near = [path for path in ranked if results[path]["seconds"] >= seconds * (1 - MARGIN) or results[path]["mb"] >= megabytes * (1 - MARGIN)]
+        near = [path for path in ranked if results[path]["seconds"] >= seconds * (1 - MARGIN) or (results[path]["mb"] is not None and results[path]["mb"] >= megabytes * (1 - MARGIN))]
         print("within {0:.0f}% of the budget, run alone:".format(MARGIN * 100) + ("" if near else " none"))
         for path in near:
             result = results[path]
-            print("  {0:6.1f} s ({1:3.0f}%) {2:6.0f} MB ({3:3.0f}%), load {4:.1f}  {5}".format(
-                result["seconds"], 100 * result["seconds"] / seconds, result["mb"], 100 * result["mb"] / megabytes,
-                result["load"], Path(path).stem))
+            print("  {0:6.1f} s ({1:3.0f}%) {2:>6} MB ({3}%), load {4}  {5}".format(
+                result["seconds"], 100 * result["seconds"] / seconds, memory_text(result["mb"]),
+                fmt(100 * result["mb"] / megabytes) if result["mb"] is not None else "n/a",
+                fmt(result["load"]), Path(path).stem))
     total = sum(result["seconds"] for result in results.values())
     print("total {0:.1f} s of test time in {1:.1f} s, {2} at a time".format(total, wall, jobs))
-    loads = [result["load"] for result in results.values()]
-    seen = "machine load {0:.1f} at the start, {1:.1f} at the end, {2:.1f} at most when a test started".format(
-        start_load, load_now(), max(loads, default=start_load))
+    loads = [result["load"] for result in results.values() if result["load"] is not None]
+    seen = "machine load {0} at the start, {1} at the end, {2} at most when a test started".format(
+        fmt(start_load), fmt(load_now()), fmt(max(loads, default=start_load)))
     if slots:
         seen += "; waited {0:.1f} s for worker slots, other runs held up to {1} of {2}".format(slots.waited, slots.peak_others, slots.count)
     print(seen)
     if args.write_weights and failed == 0:
         measured = {Path(path).name: round(results[path]["seconds"], 1) for path in tests}
-        (HERE / "weights.json").write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        (HERE / "weights.json").write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         print("wrote {0} weights to {1}".format(len(measured), HERE / "weights.json"))
     summary = "passed {0}, failed {1}".format(passed, failed)
     if args.affected:
