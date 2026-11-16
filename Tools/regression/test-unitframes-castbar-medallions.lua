@@ -47,7 +47,8 @@ assert(element.geometry.medal == true, "the layout is the Medallions layout")
 assert(element.frame:IsShown(), "the cast stays shown across the switch")
 
 local frameW, frameH = element.frame:GetSize()
-assert(near(frameH, 30) and near(frameW, 347), "the cast element keeps the picture's footprint, which this style does not move")
+local styled = K.Setup.Layouts.Style("medallions", "DPS", "unitframes.castbar.player")
+assert(near(frameH, 30) and near(frameW, styled.width, 1), "the cast element takes the width of the player slab's bar it hangs under (LEE-1535), got " .. tostring(frameW))
 
 assert(element.iconFrame:IsShown(), "the spell icon shows on the left")
 local iw, ih = element.iconFrame:GetSize()
