@@ -65,7 +65,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Stacking.lua` | `ns.Stacking`: the nameplate size the game stacks and clicks by |
-| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's component: the friendly player's badge, steel brackets with a glow, the steel level diamond |
+| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
 | `Presets.lua` | `ns.Presets`: the presets one dropdown applies |
 | `Module.lua` | `Modules.Register`, `Options.Register`, `Enable` and `Disable` |
@@ -181,11 +181,14 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Medallions
 
-Under the Medallions HUD style, `Medallions.lua` adds a component and wraps three plate methods; it restyles every plate on `HudStyleChanged`. The bar keeps Blizzard's size and anchor (#373): the component places nothing that moves the bar, and `test-nameplates-medallions.lua` compares every plate's size and anchor before and after the switch.
+Under the Medallions HUD style, `Medallions.lua` adds a component, wraps five plate methods, `Plates.ReadSize` and `Settings.Get`, and on `HudStyleChanged` reads the size again and restyles every plate. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles, and that Frames gets its own back.
 
-- **Friendly players** carry a 22-unit painted badge centred over the name, from `KstyleUI.Medallions.Portrait(texture, unit, "badge")` (the engine portrait with its circle mask when the identity is secret or the resolver is missing), ringed in steel (`medRing`). NPCs and enemies wear none.
-- **Target brackets** turn steel (`#e6ecf3`), and a soft glow (`medBracketGlow`, ADD blended) sits on each of the four corners. The strokes stay procedural, so they stay one crisp line at every scale.
-- **Level diamond.** A plain diamond's rim and number turn steel; a classification rim and the skull's red stay.
+- **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
+- **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 17 units with 10-unit counts. A setting the player changed keeps the player's value.
+- **Type.** With the module's font following the kit, the name is Inter SemiBold in capitals and the level and health text are the Medallions number face, Barlow Semi Condensed (`Tokens.Font("number")`).
+- **Level.** No diamond: the number stands 7 units off the bar's left end, clear of the target tick so it never moves when the target changes, in the classification marker's colour when there is one, else the creature's difficulty colour (`GetCreatureDifficultyColor`, defined in `Blizzard_FrameXMLUtil/Mainline/DifficultyUtil.lua`, which Forever loads: its camelot-only `Camelot/DifficultyUtilOverrides.lua` writes into the `DifficultyUtil` table that only the mainline-tagged `Mainline/DifficultyUtil_Base.lua` creates; lifted by `Theme.Brighten`) for an enemy, red for the skull and `medText` otherwise. A secret level reads in `medText`.
+- **Target.** Two gunmetal (`medGunLit`) ticks, 2 units wide, 3 units off each end of the bar and 2 units past it above and below. No arms, no glow and no slide: they appear in place.
+- **Friendly players** carry a 22-unit painted badge centred over the name, from `KstyleUI.Medallions.Portrait(texture, unit, "badge")` (the engine portrait with its circle mask when the identity is secret or the resolver is missing), ringed in `medRing`. NPCs and enemies wear none.
 
 ## Stacking
 

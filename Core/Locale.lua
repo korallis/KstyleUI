@@ -22,7 +22,7 @@ local GAME_FONTS = {
 	koKR = { path = "Fonts\\2002.TTF", every = true },
 	ruRU = { path = "Fonts\\FRIZQT___CYR.TTF" },
 }
-local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true, ["FolioDisplay-Regular.ttf"] = true }
+local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true, ["FolioDisplay-Regular.ttf"] = true, ["BarlowSemiCondensedTabular-SemiBold.ttf"] = true, ["BarlowSemiCondensedTabular-Bold.ttf"] = true }
 local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["FolioCaps-SemiBold.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true }
 local SPACED_FACES = { ["AlegreyaSansTabular-Regular.ttf"] = true, ["AlegreyaSansTabular-Medium.ttf"] = true, ["AlegreyaSansTabular-Bold.ttf"] = true, ["AlegreyaSansTabular-ExtraBold.ttf"] = true }
 local OWN_ROOT = "interface\\addons\\kstyleui\\media\\fonts\\"

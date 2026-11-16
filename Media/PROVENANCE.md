@@ -71,6 +71,21 @@ The existing `OFL.txt` already includes the pinned Cinzel licence (no Reserved F
 
 `Tools/tests/test_folio_fonts.py` reads the actual Windows Unicode cmap, not a font-family coverage claim. Every printable character in the keys and values of the shipped `enUS`, `deDE`, `frFR` and `esES` JSON locale tables is covered by every Folio file, including the uppercase of each string and accented letters: 83, 92, 108 and 98 distinct characters respectively at this build, 128 in their union, zero missing glyphs. The test recomputes that corpus when locale strings change. It also checks static TrueType outlines, weights, hashes, uppercase cmap mappings, baked tracking and word spacing, and the native PT Serif tabular lining digits. This is a cmap/metric check, not an in-game rasterization or arbitrary player-name coverage guarantee.
 
+### Medallions number faces (KSTY-114, 2026-11-16)
+
+Barlow Semi Condensed is the Medallions HUD style's face for every number (KSTY-110 section 4.4, Lee's ruling of 2026-11-16). The sources are pinned to [google/fonts commit `cc39c4c2c304bc368c9b7c311ea2bcc6013299fe`](https://github.com/google/fonts/tree/cc39c4c2c304bc368c9b7c311ea2bcc6013299fe/ofl/barlowsemicondensed), downloaded on 2026-11-16. `Tools/media/make_fonts.py --only barlow --src DIR` checks both sources' SHA-256 and builds only these two files; run with fontTools 4.60.2 in an isolated environment outside the repository, without uharfbuzz. Two runs gave the same bytes.
+
+Why the digits are remapped: Barlow's default figures are proportional (the one is 313 units wide, the four 522 in SemiBold) and the game applies no OpenType features, so a ticking health value or timer would change width. Each file points the digits 0 to 9 at the font's own tabular lining figures (`zero.tf` to `nine.tf`) and is renamed Barlow Semi Condensed Tabular. Outlines, kerning and every other glyph are Barlow's. The fonts have no Cyrillic, so `Core/Locale.lua` lists them as Latin-only and a ruRU client draws them in its own font.
+
+| File | Pinned source and source SHA-256 | Transform | Built SHA-256 | Bytes |
+| --- | --- | --- | --- | ---: |
+| `Media/Fonts/BarlowSemiCondensedTabular-SemiBold.ttf` | [`ofl/barlowsemicondensed/BarlowSemiCondensed-SemiBold.ttf`](https://github.com/google/fonts/blob/cc39c4c2c304bc368c9b7c311ea2bcc6013299fe/ofl/barlowsemicondensed/BarlowSemiCondensed-SemiBold.ttf), `bd299f4bc5b44d30be8d42e9bad3a5df7d66af1cd55d0ed72a8b8916360a1424` | Digits mapped to the tabular lining figures, 507 units each; renamed; weight class 600. The `number`, `time` and `timer` roles under Medallions, and the plates' level. | `6bccab84cd6f547304ebd648905cff143aeacc01bb5fc7af6238c1daa4155327` | 109772 |
+| `Media/Fonts/BarlowSemiCondensedTabular-Bold.ttf` | [`ofl/barlowsemicondensed/BarlowSemiCondensed-Bold.ttf`](https://github.com/google/fonts/blob/cc39c4c2c304bc368c9b7c311ea2bcc6013299fe/ofl/barlowsemicondensed/BarlowSemiCondensed-Bold.ttf), `5bd6757e459a110da81b44532f0f43058e2dab2401688abca84f2fdbde193cbb` | As SemiBold, 521 units each; weight class 700. The `world` role under Medallions and the scrolling combat text. | `33e28cef46bb34f09326b3f8ee9b7eaf317991082dbdb34531d1f9a267ad9ade` | 111800 |
+
+| Licence file | Pinned source | SHA-256: source; bundled copy | Reserved Font Names |
+| --- | --- | --- | --- |
+| `Media/Fonts/OFL-Barlow.txt` | [`ofl/barlowsemicondensed/OFL.txt`](https://github.com/google/fonts/blob/cc39c4c2c304bc368c9b7c311ea2bcc6013299fe/ofl/barlowsemicondensed/OFL.txt) | `186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f`; `10b0e6bb43166a50fbe7cde2895bd7f703738a5da843acb5c97c95dc9ea26817` | None declared. The derivatives are renamed Barlow Semi Condensed Tabular as a courtesy. |
+
 ## Procedural textures and logo
 
 `Tools/media/make_media.py` draws the procedural files below and re-exports the prepared sources for the optional card-material study. The procedural rows use no image model or prompt: each texture is a shape or a smooth function sampled 4x4 times per pixel and averaged. The study rows name their source model or pixel-construction method and retained prepared source; their prompts follow the table. Run `python3 Tools/media/make_media.py` to rebuild the files and this table.

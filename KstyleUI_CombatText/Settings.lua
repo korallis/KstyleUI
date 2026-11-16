@@ -13,6 +13,7 @@ local DURATION_MIN, DURATION_MAX, DURATION_STEP = 0.6, 3, 0.1
 local PER_FRAME_MIN, PER_FRAME_MAX = 1, 8
 local CRIT_MIN, CRIT_MAX, CRIT_STEP = 1, 2, 0.05
 local DISTANCE_MIN, DISTANCE_MAX, DISTANCE_STEP = 8, 120, 4
+local MEDALLIONS_FADE, MEDALLIONS_RISE = 0.3, 40
 local UNIT_KEYS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss", "party", "raid", "nameplate" }
 
 local function TokenColor(name)
@@ -60,6 +61,17 @@ local defaults = {
 	},
 }
 Settings.defaults = defaults
+
+local MEDALLIONS = {
+	size = 20,
+	critScale = 1.4,
+	duration = 0.9,
+	maxPerFrame = 6,
+	damageColor = { r = 0xff / 255, g = 0xd2 / 255, b = 0x3f / 255 },
+	critTint = { r = 0xff / 255, g = 0xf1 / 255, b = 0xa8 / 255 },
+	healColor = { r = 0x62 / 255, g = 0xd5 / 255, b = 0x8d / 255 },
+}
+Settings.MEDALLIONS = MEDALLIONS
 Settings.UNIT_KEYS = UNIT_KEYS
 
 local BLIZZARD_OPTIONS = {
@@ -303,6 +315,29 @@ local function Formatter(format)
 	return short or full
 end
 
+local function Same(a, b)
+	if type(a) == "table" and type(b) == "table" then
+		if IsSecret(a.r) or IsSecret(a.g) or IsSecret(a.b) then
+			return false
+		end
+		return a.r == b.r and a.g == b.g and a.b == b.b
+	end
+	return a == b
+end
+
+local function Medallions()
+	local hud = K.HudStyle
+	return hud ~= nil and hud.Current() == "medallions"
+end
+
+local function Styled(values, key, medallions)
+	local value = values[key]
+	if medallions and (value == nil or (not IsSecret(value) and Same(value, defaults[key]))) then
+		return MEDALLIONS[key]
+	end
+	return value
+end
+
 function Settings.Values()
 	local Store = K.Store
 	if Store.IsLoaded() then
@@ -315,6 +350,7 @@ function Settings.Snapshot(values, cfg)
 	cfg = cfg or {}
 	values = type(values) == "table" and values or defaults
 	local d = defaults
+	local medallions = Medallions()
 	cfg.blizzardSelf = Choice(values.blizzardSelf, BLIZZARD, d.blizzardSelf)
 	cfg.blizzardTargets = Choice(values.blizzardTargets, BLIZZARD, d.blizzardTargets)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
@@ -326,20 +362,22 @@ function Settings.Snapshot(values, cfg)
 	cfg.neutral = cfg.damage or cfg.heals
 	cfg.format = Choice(values.format, FORMATS, d.format)
 	cfg.formatter = Formatter(cfg.format)
-	cfg.duration = Number(values.duration, DURATION_MIN, DURATION_MAX, d.duration)
-	cfg.maxPerFrame = Number(values.maxPerFrame, PER_FRAME_MIN, PER_FRAME_MAX, d.maxPerFrame, true)
-	cfg.fontPath = FontPath(values.font, (Tokens.Font("number")))
-	cfg.size = Number(values.size, SIZE_MIN, SIZE_MAX, d.size)
+	cfg.duration = Number(Styled(values, "duration", medallions), DURATION_MIN, DURATION_MAX, d.duration)
+	cfg.maxPerFrame = Number(Styled(values, "maxPerFrame", medallions), PER_FRAME_MIN, PER_FRAME_MAX, d.maxPerFrame, true)
+	cfg.fontPath = FontPath(values.font, medallions and Tokens.FontPath("BarlowBold") or (Tokens.Font("number")))
+	cfg.size = Number(Styled(values, "size", medallions), SIZE_MIN, SIZE_MAX, d.size)
+	cfg.fadeTime = medallions and MEDALLIONS_FADE or nil
+	cfg.rise = medallions and MEDALLIONS_RISE or nil
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"
 	cfg.colorMode = Choice(values.colorMode, COLOR_MODES, d.colorMode)
-	cfg.damageR, cfg.damageG, cfg.damageB = Color(values.damageColor, d.damageColor)
-	cfg.healR, cfg.healG, cfg.healB = Color(values.healColor, d.healColor)
+	cfg.damageR, cfg.damageG, cfg.damageB = Color(Styled(values, "damageColor", medallions), d.damageColor)
+	cfg.healR, cfg.healG, cfg.healB = Color(Styled(values, "healColor", medallions), d.healColor)
 	cfg.missR, cfg.missG, cfg.missB = Color(values.missColor, d.missColor)
-	cfg.critScale = Number(values.critScale, CRIT_MIN, CRIT_MAX, d.critScale)
+	cfg.critScale = Number(Styled(values, "critScale", medallions), CRIT_MIN, CRIT_MAX, d.critScale)
 	cfg.critColor = Bool(values.critColor, d.critColor)
-	cfg.critR, cfg.critG, cfg.critB = Color(values.critTint, d.critTint)
+	cfg.critR, cfg.critG, cfg.critB = Color(Styled(values, "critTint", medallions), d.critTint)
 	cfg.playerPlacement = Choice(values.playerPlacement, PLACEMENTS, d.playerPlacement)
 	cfg.framePoint = Choice(values.framePoint, POINTS, d.framePoint)
 	cfg.distance = Number(values.distance, DISTANCE_MIN, DISTANCE_MAX, d.distance)

@@ -135,7 +135,7 @@ local function FieldGeometry(emitter, cfg)
 	local height = Plain(frame:GetHeight(), 0)
 	local size = cfg.size
 	local x = NextLane(emitter) * width * FIELD_LANE
-	local distance = math.min(FIELD_RISE, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
+	local distance = math.min(cfg.rise or FIELD_RISE, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
 	return "BOTTOM", x, size * FIELD_START, distance, width * FIELD_ARC, 1
 end
 
@@ -191,8 +191,9 @@ local function Animate(number, emitter, cfg, emphasis, per, distance, spread)
 		fade:SetStartDelay(duration - OFF_FADE)
 		fade:SetDuration(OFF_FADE)
 	else
-		fade:SetStartDelay(duration * (1 - FADE_SHARE))
-		fade:SetDuration(duration * FADE_SHARE)
+		local fadeTime = cfg.fadeTime or duration * FADE_SHARE
+		fade:SetStartDelay(duration - fadeTime)
+		fade:SetDuration(fadeTime)
 	end
 end
 

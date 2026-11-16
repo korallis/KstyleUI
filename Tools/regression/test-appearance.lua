@@ -38,7 +38,7 @@ do
 	local colour = K.Options.Row("Appearance", "accentColor")
 	assert(colour.showWhen({ accentSource = "custom" }) and not colour.showWhen({ accentSource = "class" }), "the colour row shows only for a custom accent")
 	local faces = K.Options.Row("Appearance", "font").options()
-	assert(#faces == 19 and faces[1].value == "" and faces[6].value == "SourceSans3Semibold", "the font row offers no override and the eighteen bundled faces")
+	assert(#faces == 21 and faces[1].value == "" and faces[6].value == "SourceSans3Semibold", "the font row offers no override and the twenty bundled faces")
 	local sets = K.Options.Row("Appearance", "typeSet").options()
 	assert(#sets == 2 and sets[1].value == "Folio" and sets[2].value == "Lumen", "the separate type set row offers Folio and the original Lumen")
 	assert(K.Appearance.Get("uiScale") == 16 / 19, "Get answers with the default before the saved settings load")
@@ -146,7 +146,7 @@ do
 		names[c.key] = true
 		assert(c.path:match("^Interface\\AddOns\\KstyleUI\\Media\\"), "media paths are KstyleUI's own")
 	end
-	assert(counts.font == 18 and counts.statusbar == 3, "eighteen fonts and three bars, registered once; type sets are not fonts")
+	assert(counts.font == 20 and counts.statusbar == 3, "twenty fonts and three bars, registered once; type sets are not fonts")
 	assert(names["KstyleUI Glass"] and names["KstyleUI Source Sans 3 Semibold"], "names read well in other addons' lists")
 
 	local without = CoreEnv.New({ setup = setup() })

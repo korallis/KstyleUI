@@ -234,6 +234,8 @@ local FONT_FACES = {
 	{ key = "FolioUnit", label = "Cinzel Unit SemiBold", path = FONTS_DIR .. "CinzelUnit-SemiBold.ttf", tracking = -0.064, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "PTSerifRegular", label = "PT Serif", path = FONTS_DIR .. "PTSerif-Regular.ttf", tracking = 0 },
 	{ key = "PTSerifBold", label = "PT Serif Bold", path = FONTS_DIR .. "PTSerif-Bold.ttf", tracking = 0 },
+	{ key = "BarlowSemiBold", label = "Barlow Semi Condensed SemiBold", path = FONTS_DIR .. "BarlowSemiCondensedTabular-SemiBold.ttf", tracking = 0 },
+	{ key = "BarlowBold", label = "Barlow Semi Condensed Bold", path = FONTS_DIR .. "BarlowSemiCondensedTabular-Bold.ttf", tracking = 0 },
 }
 local ROLE_FACES = {
 	{ key = "CinzelCaps", label = "Cinzel Caps Medium", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
@@ -527,7 +529,7 @@ function Tokens.Font(role)
 		unknown("Font", role)
 	end
 	local theme = ns.Theme
-	local key = RoleChoice(role)
+	local key = RoleChoice(role) or theme and theme.StyleFace and theme.StyleFace(role)
 	if not key then
 		key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
 		if key == "Folio" then

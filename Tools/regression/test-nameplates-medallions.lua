@@ -1,25 +1,20 @@
--- test-nameplates-medallions.lua: under the Medallions HUD style a friendly player's plate carries a painted badge over its name, the target's brackets turn steel with a soft glow at each corner and the level diamond turns steel, while every bar keeps Blizzard's size and anchor (#373); an enemy never wears a badge, and switching back to Frames restores every look.
+-- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 17-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
 end
 
-local function near(a, b)
-	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-6
+local function near(a, b, tolerance)
+	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (tolerance or 1e-6)
 end
 
-
-local STEEL, STEEL_LIT
-
-local function steel(region, tone)
-	tone = tone or STEEL_LIT
+local function tinted(region, r, g, b)
 	local v = region._state.VertexColor
-	return v ~= nil and near(v[1], tone[1]) and near(v[2], tone[2]) and near(v[3], tone[3])
+	return v ~= nil and near(v[1], r) and near(v[2], g) and near(v[3], b)
 end
 
 local env, K, ns = N.New()
-STEEL, STEEL_LIT = { K.Tokens.Color("steel") }, { K.Tokens.Color("steelLit") }
 local resolver = K.Medallions
 local painted, cuts = true, {}
 K.Medallions = {
@@ -29,39 +24,118 @@ K.Medallions = {
 		return painted
 	end,
 }
+env.GetCreatureDifficultyColor = function(level)
+	if level >= 10 then
+		return { r = 1, g = 0.1, b = 0.1 }
+	end
+	return { r = 0.25, g = 0.75, b = 0.25 }
+end
 
-N.Add(env, "nameplate1", { name = "Galestrider", level = 6, reaction = 2, canAttack = true })
+N.Add(env, "nameplate1", { name = "Decrepit Darkhound", level = 12, reaction = 2, canAttack = true })
 N.Add(env, "nameplate2", { name = "Leduc", level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN" })
 N.Add(env, "nameplate3", { name = "Azuregos", level = -1, classification = "worldboss", reaction = 2, canAttack = true })
+N.Add(env, "nameplate6", { name = "Rotting Dead", level = 6, reaction = 2, canAttack = true })
 N.Target(env, "nameplate1")
 env.RunTimers()
-local enemy, friend, boss = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2"), ns.Plates.Get("nameplate3")
+local enemy, friend, boss, low = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2"), ns.Plates.Get("nameplate3"), ns.Plates.Get("nameplate6")
 
 local function geometry(plate)
 	local w, h = plate:GetSize()
 	local point, relative, relativePoint, x, y = plate:GetPoint(1)
-	local hw, hh = plate.barW, plate.barH
-	return table.concat({ w, h, point, tostring(relative), relativePoint, x, y, hw, hh }, " ")
+	return table.concat({ w, h, point, tostring(relative), relativePoint, x, y, plate.barW, plate.barH }, " ")
 end
 
--- Frames: a plate builds nothing for the style, so its cost stays the Frames build's, and the brackets take the accent.
-assert(friend.medBadge == nil and enemy.brackets.sides[1].glow == nil, "Frames builds no badge and no glow")
+local function face(text)
+	local path, size, flags = text:GetFont()
+	return path, size, flags
+end
+
+-- Frames: a plate builds nothing for the style, and its brackets, diamond and fonts are the Frames look.
+assert(friend.medBadge == nil, "Frames builds no badge")
 eq(#cuts, 0, "Frames asks for no painted badge")
-assert(not steel(enemy.brackets.sides[1].stroke), "Frames brackets take the accent")
-ns.Plates.RestyleAll()
-env.RunTimers()
+local accent = { enemy.brackets.sides[1].stroke._state.VertexColor[1], enemy.brackets.sides[1].stroke._state.VertexColor[2], enemy.brackets.sides[1].stroke._state.VertexColor[3] }
 local before = { geometry(enemy), geometry(friend), geometry(boss) }
+local beforeName, beforeLevel = { face(enemy.name) }, { face(enemy.levelText) }
+local beforeBracket = N.Last(enemy.brackets.sides[1], "SetSize")
+assert(enemy.level.rim:IsShown() and enemy.brackets.sides[1].top:IsShown(), "Frames draws the diamond and the bracket arms")
+assert(not tostring(beforeLevel[1]):find("Barlow", 1, true), "Frames' level is not Barlow")
 
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 eq(#env._errors, 0, "the switch raised no error: " .. tostring(env._errors[1]))
 
--- Every bar keeps Blizzard's size and anchor.
-local after = { geometry(enemy), geometry(friend), geometry(boss) }
-for i = 1, #before do
-	eq(after[i], before[i], "plate " .. i .. " keeps its size and anchor")
+-- The bar: 120 by 9 units, snapped to the plate's pixels.
+for _, plate in ipairs({ enemy, friend, boss }) do
+	local w, h = plate:GetSize()
+	assert(near(w, 120, 1) and near(h, 9, 1), "the plate is 120 by 9: " .. w .. " by " .. h)
+	assert(near(plate.barW, 120, 1) and near(plate.barH, 9, 1), "the bar is 120 by 9: " .. plate.barW .. " by " .. plate.barH)
 end
+
+-- The name: Inter SemiBold caps, outlined, at the kit's 11-unit text floor.
+local path, size, flags = face(enemy.name)
+eq(path, K.Tokens.FontPath("InterSemiBold"), "the name is Inter SemiBold")
+assert(near(size, 11, 0.6), "the name is 11 units: " .. tostring(size))
+eq(flags, "OUTLINE", "the name is outlined over the world")
+
+-- The level: Barlow, 12 units, at the bar's left outside the target tick, so it never moves with the target, and no diamond behind it.
+path, size = face(enemy.levelText)
+eq(path, K.Tokens.FontPath("BarlowSemiBold"), "the level is Barlow Semi Condensed")
+eq(path, (K.Tokens.Font("number")), "the level is the Medallions number face")
+assert(near(size, 12, 0.6), "the level is 12 units: " .. tostring(size))
+local point, relative, relativePoint, x = enemy.levelText:GetPoint(1)
+eq(point, "RIGHT", "the level hangs from its right")
+eq(relative, enemy.health, "beside the bar")
+eq(relativePoint, "LEFT", "on the bar's left")
+assert(x <= -6 and x > -9, "clear of the target tick, a few units off the bar: " .. tostring(x))
+for _, layer in ipairs(enemy.level.layers) do
+	assert(not layer:IsShown(), "the diamond's layers are gone")
+end
+
+-- The level's colour: the creature's difficulty, lifted for legibility; the skull stays red; a world boss's marker wins.
+local r, g, b = enemy.levelText:GetTextColor()
+local dr, dg, db = K.Theme.Brighten(1, 0.1, 0.1)
+assert(near(r, dr) and near(g, dg) and near(b, db), "a level 12 enemy reads in its difficulty colour")
+r, g, b = low.levelText:GetTextColor()
+dr, dg, db = K.Theme.Brighten(0.25, 0.75, 0.25)
+assert(near(r, dr) and near(g, dg) and near(b, db), "a level 6 enemy reads in its own difficulty colour")
+r, g, b = boss.levelText:GetTextColor()
+local mark = ns.Logic.MarkerColor("worldboss")
+local mr, mg, mb = K.Tokens.Color(mark)
+assert(near(r, mr) and near(g, mg) and near(b, mb), "the world boss's skull reads in its marker colour")
+
+-- The target: two 2-unit gunmetal ticks a few units off each end of the bar, no arms and no glow.
+local gun = ns.Medallions.GUNMETAL
+for _, side in ipairs(enemy.brackets.sides) do
+	local w, h = unpack(N.Last(side, "SetSize"))
+	assert(near(w, 2, 0.6), side.side .. " tick is 2 units wide: " .. tostring(w))
+	assert(near(h, enemy.barH + 4, 0.6), side.side .. " tick stands 2 units past the bar each way: " .. tostring(h))
+	assert(not side.top:IsShown() and not side.bottom:IsShown(), side.side .. " tick has no arms")
+	assert(tinted(side.stroke, gun[1], gun[2], gun[3]), side.side .. " tick is gunmetal")
+	eq(side.glow, nil, side.side .. " tick has no glow")
+	local ox = side.open._state.Offset
+	assert(ox and ox[1] == 0 and ox[2] == 0, side.side .. " tick appears in place, with no slide")
+end
+local tp, trel, trp, tx = enemy.brackets.sides[1]:GetPoint(1)
+eq(tp, "RIGHT", "the left tick hangs from its right")
+eq(trel, enemy.health, "beside the bar")
+eq(trp, "LEFT", "off the bar's left end")
+assert(tx < 0, "clear of the bar")
+
+-- Debuffs: 17 units with 10-unit counts, read through the module's settings.
+eq(ns.Settings.Get("debuffs.size"), 17, "debuffs are 17 units")
+eq(ns.Settings.Get("debuffs.textSize"), 10, "their counts are 10 units")
+
+-- A setting the player changed keeps the player's value.
+K.Options.Write("Nameplates", "debuffs.size", 24)
+K.Options.Write("Nameplates", "name.size", 14)
+env.RunTimers()
+eq(ns.Settings.Get("debuffs.size"), 24, "a chosen debuff size stays")
+size = select(2, face(enemy.name))
+assert(near(size, 14, 0.6), "a chosen name size stays: " .. tostring(size))
+K.Options.Write("Nameplates", "debuffs.size", 29)
+K.Options.Write("Nameplates", "name.size", 16)
+env.RunTimers()
 
 -- The friendly player's badge: painted, unmasked, centred over the name.
 local badge = friend.medBadge
@@ -69,12 +143,11 @@ assert(badge:IsShown(), "a friendly player wears a badge")
 eq(cuts[#cuts], "badge", "the plate asks for the badge cut")
 eq(badge._state.Texture[1], "badge:nameplate2", "the badge shows the unit's painted art")
 eq(badge:GetNumMaskTextures(), 0, "painted art is pre-circled, so no mask")
-assert(badge.ring:IsShown(), "a steel ring rings it")
-local point, relative, relativePoint, x, y = badge:GetPoint(1)
+assert(badge.ring:IsShown(), "a ring rings it")
+point, relative, relativePoint = badge:GetPoint(1)
 eq(point, "BOTTOM", "the badge hangs from its bottom")
 eq(relative, friend.name, "over the name")
 eq(relativePoint, "TOP", "on the name's top")
-assert(near(x, 0) and y > 0, "centred, with a gap above the name")
 local w, h = unpack(N.Last(badge, "SetSize"))
 assert(w >= 20 and w <= 24 and near(w, h), "the badge is 20 to 24 units and round: " .. tostring(w))
 assert(not enemy.medBadge:IsShown() and not boss.medBadge:IsShown(), "an enemy wears no badge")
@@ -82,44 +155,11 @@ assert(not enemy.medBadge:IsShown() and not boss.medBadge:IsShown(), "an enemy w
 painted = false
 friend:Refresh(true)
 eq(badge:GetNumMaskTextures(), 1, "the engine portrait keeps its circle mask")
--- When the identity stops being secret the game sends UNIT_PORTRAIT_UPDATE, and the badge turns painted.
 painted = true
 badge:SetTexture("engine")
 env.FireEvent("UNIT_PORTRAIT_UPDATE", "nameplate2")
 eq(badge._state.Texture[1], "badge:nameplate2", "the portrait event repaints the badge")
 eq(badge:GetNumMaskTextures(), 0, "and drops the mask")
-
--- The target's brackets: steel, with a glow at each of the four corners.
-for _, s in ipairs(enemy.brackets.sides) do
-	assert(steel(s.stroke) and steel(s.top) and steel(s.bottom), s.side .. " bracket is steel")
-	eq(#s.glow, 2, s.side .. " bracket glows at two corners")
-	for _, glow in ipairs(s.glow) do
-		assert(glow:IsShown(), s.side .. " glow shows")
-		eq(glow._state.BlendMode and glow._state.BlendMode[1], "ADD", s.side .. " glow adds light")
-	end
-end
-
--- Taking the target again hands the four glows to the effects layer, which owns their motion.
-local handed = {}
-K.Effects = { TargetGlow = function(glows) handed[#handed + 1] = glows end }
-N.Target(env, nil)
-N.Target(env, "nameplate1")
-env.RunTimers()
-eq(#handed, 1, "a new target hands its glows over once")
-eq(handed[1], enemy.medGlows, "the plate's own glows")
-eq(#enemy.medGlows, 4, "one glow at each corner")
-ns.Plates.RestyleAll()
-env.RunTimers()
-eq(#handed, 1, "a restyle of the same target hands nothing over again")
-K.Effects = nil
-
--- The level diamond: steel numbers, but the skull keeps its red.
-assert(steel(enemy.level.rim, STEEL), "the plain diamond's rim is steel")
-local r, g, b = enemy.levelText:GetTextColor()
-assert(near(r, STEEL_LIT[1]) and near(g, STEEL_LIT[2]) and near(b, STEEL_LIT[3]), "the level reads in steel")
-local hr, hg, hb = K.Tokens.Color("hostile")
-r, g, b = boss.levelText:GetTextColor()
-assert(near(r, hr) and near(g, hg) and near(b, hb), "the skull level stays red")
 
 -- Lee's warlock out with an imp: an undead warlock friend wears the real Scourge warlock badge, and the imp's
 -- friendly plate wears none.
@@ -143,21 +183,30 @@ env.RunTimers()
 local lee, imp = ns.Plates.Get("nameplate4"), ns.Plates.Get("nameplate5")
 assert(lee.medBadge:IsShown(), "the undead warlock wears a badge")
 assert(tostring(lee.medBadge._state.Texture[1]):find("scourge_warlock_male", 1, true), "the Scourge warlock badge: " .. tostring(lee.medBadge._state.Texture[1]))
-eq(lee.medBadge:GetNumMaskTextures(), 0, "painted, so no mask")
 assert(not (imp.medBadge and imp.medBadge:IsShown()), "the imp wears no badge")
+r, g, b = imp.levelText:GetTextColor()
+local er, eg, eb = K.Tokens.Color("medText")
+assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level takes the Medallions label colour, not a difficulty")
 
 -- Back to Frames.
 K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")
-for _, s in ipairs(enemy.brackets.sides) do
-	assert(not steel(s.stroke), s.side .. " bracket takes the accent again")
-	for _, glow in ipairs(s.glow) do
-		assert(not glow:IsShown(), s.side .. " glow hides")
-	end
+eq(geometry(enemy), before[1], "the enemy's plate is Frames' size and anchor again")
+eq(geometry(friend), before[2], "the friend's too")
+eq(geometry(boss), before[3], "the boss's too")
+for _, side in ipairs(enemy.brackets.sides) do
+	assert(side.top:IsShown() and side.bottom:IsShown(), side.side .. " bracket has its arms again")
+	assert(tinted(side.stroke, accent[1], accent[2], accent[3]), side.side .. " bracket takes the accent again")
 end
-assert(not steel(enemy.level.rim, STEEL), "the diamond's rim is gilt again")
-eq(geometry(enemy), before[1], "and the bar never moved")
+local bw, bh = unpack(N.Last(enemy.brackets.sides[1], "SetSize"))
+assert(near(bw, beforeBracket[1]) and near(bh, beforeBracket[2]), "the bracket is Frames' size again")
+for _, layer in ipairs(enemy.level.layers) do
+	assert(layer:IsShown(), "the diamond is back")
+end
+eq(face(enemy.name), beforeName[1], "the name is Frames' face again")
+eq(face(enemy.levelText), beforeLevel[1], "the level is Frames' face again")
+eq(ns.Settings.Get("debuffs.size"), 29, "debuffs are Frames' size again")
 eq(#env._errors, 0, "no error: " .. tostring(env._errors[1]))
 eq(K.ErrorCount(), 0, "no addon error")
 print("ok - test-nameplates-medallions")

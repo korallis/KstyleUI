@@ -1,4 +1,4 @@
--- test-nameplates-restyle.lua: a restyle is idempotent. However often and by whichever path a plate is restyled (added, re-added on a pooled base, the target changing, a setting, the HUD style, the theme or the HUD size changing and coming back, combat, a reload), it hangs from the same point of its base at the same size, its stacking bounds stay put, and the game keeps Blizzard's own nameplate size (#373).
+-- test-nameplates-restyle.lua: a restyle is idempotent. However often and by whichever path a plate is restyled (added, re-added on a pooled base, the target changing, a setting, the HUD style, the theme or the HUD size changing and coming back, combat, a reload), it hangs from the same point of its base at the same size (Medallions draws its own size, and holds it as firmly), its stacking bounds stay put, and the game keeps Blizzard's own nameplate size (#373).
 local N = dofile("Tools/regression/nameplates_env.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
@@ -98,7 +98,19 @@ local function run(case)
 	for _, style in ipairs({ "orbs", "medallions", "frames" }) do
 		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
-		same("HUD style " .. style)
+		if style == "medallions" then
+			local medallions = shape(plate)
+			assert(medallions ~= want, label .. ": Medallions draws its own 120 by 9 plate")
+			for i = 1, 3 do
+				ns.Plates.RestyleAll()
+				K.Callbacks.Fire("ThemeChanged")
+				env.RunTimers()
+				assert(shape(plate) == medallions, label .. ", Medallions restyle " .. i .. ": the plate moved\n  was " .. medallions .. "\n  now " .. shape(plate))
+			end
+			blizzardKept(env, label .. ", HUD style medallions", blizzard)
+		else
+			same("HUD style " .. style)
+		end
 	end
 
 	for i = 1, 3 do

@@ -23,7 +23,7 @@ local SHIPPED = {
 	"AlegreyaSansTabular-Regular.ttf", "Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf",
 	"CinzelNames-SemiBold.ttf", "CinzelUnit-Medium.ttf", "CinzelUnit-SemiBold.ttf", "FolioCaps-SemiBold.ttf",
 	"FolioDisplay-Regular.ttf", "Inter-SemiBold.ttf", "PTSerif-Bold.ttf", "PTSerif-Regular.ttf",
-	"SourceSans3-Regular.ttf", "SourceSans3-Semibold.ttf",
+	"SourceSans3-Regular.ttf", "SourceSans3-Semibold.ttf", "BarlowSemiCondensedTabular-SemiBold.ttf", "BarlowSemiCondensedTabular-Bold.ttf",
 }
 local CUSTOM = "Interface\\AddOns\\OtherMedia\\Font.ttf"
 local OTHER = "Interface\\AddOns\\OtherMedia\\Second.otf"
@@ -266,7 +266,7 @@ do
 		for n, option in ipairs(plumbing) do
 			assert(options[n].value == option.value and options[n].label == option.label, role .. " option " .. n .. " is the shared plumbing's")
 		end
-		assert(#options == 1 + 18 + 1 and options[#options].value == shared, role .. " offers 18 shipped faces then shared fonts")
+		assert(#options == 1 + 20 + 1 and options[#options].value == shared, role .. " offers 20 shipped faces then shared fonts")
 		for _, option in ipairs(options) do
 			assert(option.value ~= "Folio" and option.value ~= "Lumen", "no type set is a face")
 		end
@@ -275,7 +275,7 @@ do
 	K.Options.Write("Appearance", "roleFontProse", shared)
 	assert(K.Tokens.Font("prose") == shared, "a shared font can be chosen for a role")
 	local faces = K.Options.Row("Appearance", "font").options()
-	assert(#faces == 1 + 18 + 1, "the whole-interface list offers every shipped face too")
+	assert(#faces == 1 + 20 + 1, "the whole-interface list offers every shipped face too")
 	assert(#env._errors == 0)
 end
 
@@ -297,7 +297,7 @@ do
 	end
 	K.Theme.SetFontFace("")
 	K.Theme.SetRoleFonts({})
-	assert(#list == 18, "all eighteen shipped faces are listed")
+	assert(#list == 20, "all twenty shipped faces are listed")
 	table.sort(files)
 	local want = {}
 	for i, name in ipairs(SHIPPED) do
@@ -355,7 +355,7 @@ do
 		end
 		return n
 	end
-	assert(#calls == 18 + 3, "login registers all eighteen fonts and three bars once: " .. #calls)
+	assert(#calls == 20 + 3, "login registers all twenty fonts and three bars once: " .. #calls)
 	assert(count("Cinzel Caps Medium") == 1 and count("KstyleUI Soft") == 1)
 	local before = #calls
 	env.FireEvent("PLAYER_ENTERING_WORLD")

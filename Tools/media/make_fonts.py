@@ -3,6 +3,7 @@
 Usage (fontTools is needed, so run it from a throwaway virtual environment, never the repository):
     python3 -m venv /tmp/fonts-venv && /tmp/fonts-venv/bin/pip install fonttools
     /tmp/fonts-venv/bin/python Tools/media/make_fonts.py --src DIR [--out Media/Fonts]
+    /tmp/fonts-venv/bin/python Tools/media/make_fonts.py --only barlow --src DIR
 
 DIR holds the files from google/fonts at the commit Media/PROVENANCE.md names:
     Cinzel[wght].ttf (ofl/cinzel), AlegreyaSans-Regular.ttf, AlegreyaSans-Medium.ttf, AlegreyaSans-Bold.ttf,
@@ -14,6 +15,12 @@ The default build stays Lumen-only. --only folio instead needs these flat source
 Folio pins its sources to the SHA-256 values below. Its caps and Cinzel faces use weight 600,
 uppercase cmap mappings, and their own tracking and word spacing. IM Fell and PT Serif are
 byte-for-byte copies, including their Reserved Font Names. See Media/PROVENANCE.md.
+
+--only barlow makes the Medallions number faces from BarlowSemiCondensed-SemiBold.ttf and
+BarlowSemiCondensed-Bold.ttf (ofl/barlowsemicondensed), pinned to the SHA-256 values in BARLOW_SOURCES. Barlow's
+default figures are proportional (the one is 313 units, the four 522), so each file is copied with its character map
+pointing the digits 0 to 9 at the font's own tabular lining figures (zero.tf to nine.tf, 507 units wide in SemiBold and 521 in Bold) and the family
+renamed Barlow Semi Condensed Tabular. Nothing else changes.
 
 Cinzel ships only as a variable font, and the game loads static TrueType files, so this pins the weight axis
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
@@ -71,6 +78,12 @@ FOLIO_SOURCES = {
     "PT_Serif-Web-Regular.ttf": "a4951fade06ff8f09b7673aa81ffb65a8cd409e24d3289a6dc670bc4dda2557a",
     "PT_Serif-Web-Bold.ttf": "038ba7336bd7ea14f12ad155bed51a4345cac5153275d521dec3ba04021c526e",
 }
+BARLOW_SOURCES = {
+    "BarlowSemiCondensed-SemiBold.ttf": "bd299f4bc5b44d30be8d42e9bad3a5df7d66af1cd55d0ed72a8b8916360a1424",
+    "BarlowSemiCondensed-Bold.ttf": "5bd6757e459a110da81b44532f0f43058e2dab2401688abca84f2fdbde193cbb",
+}
+BARLOW = (("SemiBold", 600), ("Bold", 700))
+BARLOW_FAMILY = "Barlow Semi Condensed Tabular"
 FOLIO_TRACKED = (
     ("FolioCaps-SemiBold", "Folio Caps SemiBold", "EBGaramond[wght].ttf", "EB Garamond SemiBold", 0.045, 0.08),
     ("CinzelNames-SemiBold", "Cinzel Names SemiBold", "Cinzel[wght].ttf", "Cinzel SemiBold", 0.0, 0.16),
@@ -148,20 +161,47 @@ def make_folio(src, out):
         print("wrote", make_tracked(src, out, stem, family, tracking_em, space_em, source=source, weight=600, label=label))
 
 
-def make_alegreya(src, out, style, weight, figures=FIGURES):
-    from fontTools.ttLib import TTFont
-
-    font = TTFont(src / f"AlegreyaSans-{style}.ttf", recalcTimestamp=False)
+def tabular_digits(font, suffix, source):
     order = set(font.getGlyphOrder())
     for table in font["cmap"].tables:
         if not table.isUnicode():
             continue
         for i, glyph in enumerate(DIGITS):
-            tabular = glyph + TABULAR_SUFFIX[figures]
+            tabular = glyph + suffix
             if tabular not in order:
-                raise SystemExit(f"AlegreyaSans-{style}.ttf has no {tabular}")
+                raise SystemExit(f"{source} has no {tabular}")
             if ord("0") + i in table.cmap:
                 table.cmap[ord("0") + i] = tabular
+
+
+def make_barlow(src, out):
+    from fontTools.ttLib import TTFont
+
+    for name, expected in BARLOW_SOURCES.items():
+        if hashlib.sha256((src / name).read_bytes()).hexdigest() != expected:
+            raise SystemExit(f"{name} does not match the pinned google/fonts source in Media/PROVENANCE.md")
+    paths = []
+    for style, weight in BARLOW:
+        source = f"BarlowSemiCondensed-{style}.ttf"
+        font = TTFont(src / source, recalcTimestamp=False)
+        tabular_digits(font, TABULAR_SUFFIX["lining"], source)
+        full = f"{BARLOW_FAMILY} {style}"
+        if style == "Bold":
+            set_names(font, BARLOW_FAMILY, style, full, f"BarlowSemiCondensedTabular-{style}")
+        else:
+            set_names(font, full, "Regular", full, f"BarlowSemiCondensedTabular-{style}", (BARLOW_FAMILY, style))
+        font["OS/2"].usWeightClass = weight
+        path = out / f"BarlowSemiCondensedTabular-{style}.ttf"
+        font.save(path)
+        paths.append(path)
+    return paths
+
+
+def make_alegreya(src, out, style, weight, figures=FIGURES):
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(src / f"AlegreyaSans-{style}.ttf", recalcTimestamp=False)
+    tabular_digits(font, TABULAR_SUFFIX[figures], f"AlegreyaSans-{style}.ttf")
     full = f"{TABULAR_FAMILY} {style}"
     if style in ("Regular", "Bold"):
         set_names(font, TABULAR_FAMILY, style, full, f"AlegreyaSansTabular-{style}")
@@ -178,13 +218,17 @@ def main(argv):
     parser.add_argument("--src", type=Path, required=True, help="folder with the google/fonts source files")
     parser.add_argument("--out", type=Path, default=ROOT / "Media" / "Fonts", help="where to write (default: Media/Fonts)")
     parser.add_argument("--figures", choices=tuple(TABULAR_SUFFIX), default=FIGURES, help="the digits' form in the Alegreya Sans files (default: %(default)s)")
-    parser.add_argument("--only", choices=("cinzel", "alegreya", "folio"), help="make only these files (default: Lumen); see the docstring for flat source filenames")
+    parser.add_argument("--only", choices=("cinzel", "alegreya", "folio", "barlow"), help="make only these files (default: Lumen); see the docstring for flat source filenames")
     args = parser.parse_args(argv)
     if importlib.util.find_spec("uharfbuzz"):
         sys.exit("uharfbuzz is installed: fontTools then packs GPOS differently and the Cinzel files change bytes; run this from a virtual environment with fontTools alone")
     args.out.mkdir(parents=True, exist_ok=True)
     if args.only == "folio":
         make_folio(args.src, args.out)
+        return 0
+    if args.only == "barlow":
+        for path in make_barlow(args.src, args.out):
+            print("wrote", path)
         return 0
     if args.only != "alegreya":
         print("wrote", make_cinzel(args.src, args.out))

@@ -16,6 +16,9 @@ local THREAT_MIX = 0.5
 local QUALITY_RARE, QUALITY_EPIC = 3, 4
 
 local SOURCES = { class = true, custom = true }
+local STYLE_FACES = {
+	medallions = { number = "BarlowSemiBold", time = "BarlowSemiBold", timer = "BarlowSemiBold", world = "BarlowBold" },
+}
 local MIN_FONT_SCALE, MAX_FONT_SCALE = 0.8, 1.3
 local MAX_PATH = 260
 Theme.MIN_FONT_SCALE, Theme.MAX_FONT_SCALE = MIN_FONT_SCALE, MAX_FONT_SCALE
@@ -221,6 +224,12 @@ function Theme.SetFontFace(key)
 		Fire("ThemeChanged")
 	end
 	return true
+end
+
+function Theme.StyleFace(role)
+	local hud = ns.HudStyle
+	local faces = hud and STYLE_FACES[hud.Current()]
+	return faces and faces[role]
 end
 
 function Theme.RoleFont(role)

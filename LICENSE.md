@@ -20,4 +20,11 @@ KstyleUI bundles the third-party items below. Each keeps its own licence. `Media
 - Copyright 2016 The Inter Project Authors
 - Licence: SIL Open Font License 1.1, in `Media/Fonts/OFL.txt`
 
+### Barlow Semi Condensed
+
+- Files: `Media/Fonts/BarlowSemiCondensedTabular-SemiBold.ttf`, `Media/Fonts/BarlowSemiCondensedTabular-Bold.ttf`
+- Source: [google/fonts](https://github.com/google/fonts/tree/cc39c4c2c304bc368c9b7c311ea2bcc6013299fe/ofl/barlowsemicondensed), with the digits mapped to the font's tabular figures and the family renamed Barlow Semi Condensed Tabular
+- Copyright 2017 The Barlow Project Authors
+- Licence: SIL Open Font License 1.1, in `Media/Fonts/OFL-Barlow.txt`
+
 The repository also holds files that never ship. The fonts in `Tools/spikes/KstyleUI_Spike/Media/` are the same OFL fonts, and their licence texts sit beside them.

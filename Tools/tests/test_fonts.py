@@ -171,6 +171,23 @@ class FontFilesTest(unittest.TestCase):
         self.assertEqual(module.FIGURES, "oldstyle")
         self.assertEqual(module.TABULAR_SUFFIX, {"oldstyle": ".tosf", "lining": ".tf"})
 
+    def test_barlow_number_faces_have_tabular_lining_digits(self):
+        # Medallions' numbers (KSTY-110): Barlow's default figures are proportional and the game applies no OpenType
+        # features, so the files point the digits at the font's own tabular lining figures and a ticking number keeps its width.
+        text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
+        for name, weight, width in (("BarlowSemiCondensedTabular-SemiBold.ttf", 600, 507), ("BarlowSemiCondensedTabular-Bold.ttf", 700, 521)):
+            data = (FONTS / name).read_bytes()
+            widths = {advance(data, glyph_index(data, ord(c))) for c in "0123456789"}
+            self.assertEqual(widths, {width}, f"{name} digits share one advance of {width} units, got {sorted(widths)}")
+            for digit in "0123456789":
+                y_min, y_max = glyph_box(data, glyph_index(data, ord(digit)))
+                self.assertGreater(y_min, -20, f"{name}: {digit} stands on the baseline, a lining figure")
+                self.assertGreater(y_max, 650, f"{name}: {digit} reaches cap height, a lining figure")
+            self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], weight, name)
+            self.assertIn("Barlow Semi Condensed Tabular".encode("utf-16-be"), table(data, "name"), f"{name}: the modified family carries its own name")
+            self.assertIn(hashlib.sha256(data).hexdigest(), text, f"{name} changed: record its SHA-256 in Media/PROVENANCE.md")
+        self.assertIn("The Barlow Project Authors", (FONTS / "OFL-Barlow.txt").read_text(encoding="ascii"))
+
     def test_tokens_name_files_that_exist(self):
         text = TOKENS.read_text(encoding="ascii")
         named = set()
