@@ -319,6 +319,26 @@ local function Choose(pane, frame)
 	end
 end
 
+local function FitLabels(frame)
+	for _, text in ipairs({ frame:GetRegions() }) do
+		if text:GetObjectType() == "FontString" and text:IsShown() then
+			local cut = text.IsTruncated and text:IsTruncated()
+			local room, width = Edge(text:GetWidth()), Widgets.TextWidth(text, 0)
+			if not Widgets.IsSecret(cut) and cut and Known(room) and Known(width) and width > room then
+				local path, size, flags = text:GetFont()
+				if Known(size) then
+					local pixel = Widgets.Border(text)
+					Widgets.Fitted(text)
+					Widgets.ApplyFont(text, path, math.max(pixel, math.floor(size * room / width / pixel) * pixel), flags)
+				end
+			end
+		end
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do
+		if child:IsShown() then FitLabels(child) end
+	end
+end
+
 local function Settle(pane)
 	local frame = pane.current
 	local wide = frame.Choose ~= nil and Widgets.Setting("ornaments") ~= "Off" and Widgets.Setting("cardMaterial") ~= "Glass"
@@ -339,6 +359,7 @@ local function Settle(pane)
 	else
 		Reserve(pane, frame)
 	end
+	if frame.Reserve then FitLabels(frame) end
 end
 
 local function Span(pane, frame)

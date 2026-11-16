@@ -76,25 +76,6 @@ local function settle(env)
 	env.RunTimers()
 end
 
-local function wholeRows(ns)
-	local list = ns.Window.Parts().content
-	local offset, height = list:GetOffset(), list:GetHeight()
-	local start = 0
-	for _, top in ipairs(list.tops) do
-		if top > offset then break end
-		start = top
-	end
-	list:ScrollTo(start, true)
-	offset = list:GetOffset()
-	local bottom = offset
-	for _, top in ipairs(list.tops) do
-		if top > offset + height then break end
-		bottom = top
-	end
-	list:SetHeight(bottom - offset)
-	list:Refresh(true)
-end
-
 -- The real module's frames on the HUD (the player frame, its cast bar and class resource) are not this scene's
 -- subject and would show through the other states' windows, so each state hides them before it builds.
 local function hideHud(K)
@@ -233,7 +214,6 @@ return Common.Run(function()
 		match = "Only the button has chrome: body #101214, the accent hairline of a primary button, the tile chamfer, as the mockup's data strip pill. Nothing else on the canvas is a backdrop.",
 	})
 	hideHud(K)
-	wholeRows(ns)
 	scenes[#scenes + 1] = Gallery.Build(env, { hover = hover })
 	errorsOf(scenes[#scenes], env, K, "main")
 
@@ -263,7 +243,6 @@ return Common.Run(function()
 			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the search field wears the button body with the hairline.",
 		})
 		hideHud(K2)
-		wholeRows(ns2)
 		scenes[#scenes + 1] = Gallery.Build(env2)
 		errorsOf(scenes[#scenes], env2, K2, "search")
 	end
@@ -278,7 +257,6 @@ return Common.Run(function()
 			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section; the page has no preview, so the pane hides and the rows take its width." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the text buttons and dropdowns wear the button body with the one-border hairline, as the mockup's data strip pill.",
 		})
-		wholeRows(ns3)
 		scenes[#scenes + 1] = Gallery.Build(env3)
 		errorsOf(scenes[#scenes], env3, K3, "profiles")
 	end
@@ -295,7 +273,6 @@ return Common.Run(function()
 			caption = "The General page at its top: the core's Appearance schema (Accent colour dropdown, Font, Text size, Interface size and Motion) with the kit sample in the preview pane following them." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the dropdowns and sliders on the rows wear the button and bar grades.",
 		})
-		wholeRows(ns4)
 		scenes[#scenes + 1] = Gallery.Build(env4)
 		errorsOf(scenes[#scenes], env4, K4, "appearance")
 	end
@@ -318,7 +295,6 @@ return Common.Run(function()
 			caption = "The General page scrolled to the core's Widgets schema: Panel appearance (Panel opacity slider, Panel shadows toggle), Feedback (Interface sounds) and Tooltips (Tooltip size), with the scroll bar's thumb low in its track." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the slider and toggle tracks wear the bar grade's surface fill with a faint line.",
 		})
-		wholeRows(ns5)
 		scenes[#scenes + 1] = Gallery.Build(env5)
 		errorsOf(scenes[#scenes], env5, K5, "widgets")
 	end

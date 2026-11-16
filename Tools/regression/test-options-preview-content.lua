@@ -1,4 +1,4 @@
--- test-options-preview-content.lua: the hosted Medallions preview uses preview fonts on its first layout and keeps portrait textures inside its clip.
+-- test-options-preview-content.lua: hosted previews initialise their fonts, keep portraits inside their clip, and show the full French target name in Frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -20,6 +20,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 }, { 1920
 			end
 		end,
 	}))
+	if screen[3] then assert(K.L["Frost Howler"] == "Hurleur du givre", "the French preview fixture is loaded") end
 	K.Options.Write("UnitFrames", "edit", "target")
 	K.Options.Open("UnitFrames")
 	local ns = env._addons.KstyleUI_Options
