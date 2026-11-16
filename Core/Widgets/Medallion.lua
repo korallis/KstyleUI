@@ -1,12 +1,12 @@
 -- Medallion.lua: the round unit medallion, a portrait or badge in a steel bezel with a class or reaction enamel ring, a level plaque, a low-health ring whose alpha is a health curve, an idle sheen and a flip-in, all drawn by the engine with no per-frame Lua.
 local _, ns = ...
 
-local Widgets, Tokens, Motion = ns.Widgets, ns.Tokens, ns.Motion
+local Widgets, Tokens, Motion, Scale = ns.Widgets, ns.Tokens, ns.Motion, ns.Scale
 
 local PORTRAIT_SHARE = 0.8
-local PLAQUE_SHARE, PLAQUE_MIN = 0.27, 12
+local PLAQUE_SHARE = 0.27
 local PLAQUE_ALONG, PLAQUE_DOWN = 0.18, 0.86
-local PLAQUE_FONT = 0.46
+local PLAQUE_FONT, LEVEL_FLOOR = 0.46, 9
 local LOW_SPREAD = 1.3
 local SHEEN_ALPHA = 0.45
 local FLIP, FLIP_FROM = 0.18, 0.05
@@ -141,7 +141,9 @@ function Medallion:Layout(size, plaqueSide)
 		self.plaque:Hide()
 		return
 	end
-	local s = math.max(PLAQUE_MIN, Snap(self, size * PLAQUE_SHARE))
+	local px = Widgets.Border(self)
+	local least = Widgets.FontSize(self.levelText, math.ceil(LEVEL_FLOOR / (Scale.AppliedUserScale() * Scale.Pixel(1)) - 1e-6) * px)
+	local s = math.max(Snap(self, size * PLAQUE_SHARE), math.ceil(least / PLAQUE_FONT / px - 1e-6) * px)
 	local along = plaqueSide == "RIGHT" and 1 - PLAQUE_ALONG or PLAQUE_ALONG
 	self.plaque:ClearAllPoints()
 	self.plaque:SetPoint("CENTER", self, "TOPLEFT", Snap(self, size * along), -Snap(self, size * PLAQUE_DOWN))

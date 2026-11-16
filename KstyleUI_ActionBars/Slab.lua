@@ -456,6 +456,7 @@ local function BuildMoments(hub)
 	plaque:SetPoint("CENTER", hub, "BOTTOM", 0, Widgets.Snap(hub, PLAQUE_H / 2))
 	hub.plaque = plaque
 	local level = Widgets.Text(hub.top, "caption", "text")
+	level:SetDrawLayer("OVERLAY", select(2, plaque:GetDrawLayer()) + 1)
 	level:SetPoint("CENTER", plaque, "CENTER", 0, 0)
 	level:SetJustifyH("CENTER")
 	hub.level = level

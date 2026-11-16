@@ -551,6 +551,10 @@ function modules.actionbars(opts)
 			env.UnitSex = env.UnitSex or function()
 				return 2
 			end
+			-- The player's level, which the Medallions hub's plaque shows, as the unit frames draw it (Hud.Player).
+			env.UnitLevel = env.UnitLevel or function()
+				return Hud.Player(opts).level
+			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
 			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.

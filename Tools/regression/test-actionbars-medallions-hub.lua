@@ -27,6 +27,37 @@ local function Overlaps(a, b)
 	return a[1] < b[3] - 1e-6 and b[1] < a[3] - 1e-6 and a[2] < b[4] - 1e-6 and b[2] < a[4] - 1e-6
 end
 
+local LAYER = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT = 5 }
+
+-- Below(region, text) -> whether the engine draws region under text: a lower frame level, or on the same frame a
+-- lower draw layer, or the same layer at a lower sublevel. Regions on another frame at the same level have no
+-- order the engine promises, so they count as drawing over.
+local function Below(region, text)
+	local a, b = region:GetParent(), text:GetParent()
+	if a:GetFrameLevel() ~= b:GetFrameLevel() then
+		return a:GetFrameLevel() < b:GetFrameLevel()
+	end
+	if a ~= b then
+		return false
+	end
+	local layerA, subA = region:GetDrawLayer()
+	local layerB, subB = text:GetDrawLayer()
+	if LAYER[layerA] ~= LAYER[layerB] then
+		return LAYER[layerA] < LAYER[layerB]
+	end
+	return (subA or 0) < (subB or 0)
+end
+
+local function Drawn(frame, out)
+	for _, region in ipairs({ frame:GetRegions() }) do
+		out[#out + 1] = region
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do
+		Drawn(child, out)
+	end
+	return out
+end
+
 local function Columns(bar)
 	local tops = {}
 	for i = 1, 12 do
@@ -50,6 +81,9 @@ for _, screen in ipairs(SCREENS) do
 	local width, height = screen[1], screen[2]
 	local what = width .. "x" .. height
 	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK" })
+	env.UnitLevel = function()
+		return 38
+	end
 	env._game.petExists = true
 	for i, action in ipairs({ "Firebolt", "Fire Shield", "Blood Pact", "Phase Shift" }) do
 		env._game.pet[i] = { name = action, texture = 135809 + i, spellID = 8000 + i }
@@ -110,6 +144,22 @@ for _, screen in ipairs(SCREENS) do
 		end
 	end
 	assert(hub:GetScale() <= 1 and hub:GetScale() > 0.9, what .. ": the gap holds the full ring, scale " .. hub:GetScale())
+	do
+		local level = hub.level
+		assert(level:IsVisible() and level:GetText() == "38", what .. ": the plaque shows the player's level, got " .. tostring(level:GetText()))
+		local point, anchor, to = level:GetPoint(1)
+		assert(point == "CENTER" and anchor == hub.plaque and to == "CENTER", what .. ": the level number centres on the plaque")
+		local text = Rect(hub.plaque)
+		local covers = 0
+		for _, region in ipairs(Drawn(hub, {})) do
+			if region ~= level and region ~= hub.caption and region:IsVisible() and region:GetAlpha() > 0 and region:GetLeft() and Overlaps(Rect(region), text) then
+				covers = covers + 1
+				local layer, sub = region:GetDrawLayer()
+				assert(Below(region, level), string.format("%s: a region on %s %s at frame level %d draws over the plaque's level number (%s %s at frame level %d)", what, tostring(layer), tostring(sub), region:GetParent():GetFrameLevel(), level:GetDrawLayer(), select(2, level:GetDrawLayer()), level:GetParent():GetFrameLevel()))
+			end
+		end
+		assert(covers > 0 and Below(hub.plaque, level), what .. ": the plaque sits under the level number")
+	end
 	do
 		local wing = K.Setup.Layouts.MEDALLIONS_WING
 		local unit = K.Scale.Root():GetEffectiveScale()
