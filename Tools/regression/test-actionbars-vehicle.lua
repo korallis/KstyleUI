@@ -1,5 +1,6 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
+local D = dofile("Tools/regression/databars_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 
 local function Rect(frame)
@@ -16,6 +17,9 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		width = screen[1], height = screen[2], class = "WARLOCK",
 		setup = function(e)
 			U.Install(e)
+			local game = e._game
+			D.Game(e)
+			e._game = game
 			e.UnitHasVehicleUI = function() return true end
 			e.CanExitVehicle = function() return true end
 			e._game.vehicle = 12
@@ -25,13 +29,15 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		end,
 	})
 	Load(U.Files(), env)
+	Load(D.Files(), env)
 	AB.Enable(env, K)
 	K.Modules.Enable("UnitFrames")
+	K.Modules.Enable("DataBars")
 	for _, style in ipairs({ "medallions", "frames", "orbs" }) do
 		env.CanExitVehicle = function() return true end
 		local label = style .. " " .. screen[1] .. "x" .. screen[2]
 		K.Options.Write("HudStyle", "style", style)
-		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true, UnitFrames = true } }))
+		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true, UnitFrames = true, DataBars = true } }))
 		env.RunTimers()
 		env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
 		local leave = ns.leaveButton
@@ -42,6 +48,13 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		if style == "medallions" then
 			assert(ns.Slab.hub:IsShown(), label .. ": exercise the visible hub")
 			Clear(rect, Rect(ns.Slab.hub), label .. " hub")
+			local xp = env._addons.KstyleUI_DataBars.Bars.views.xp
+			assert(xp and xp.holder:IsShown(), label .. ": exercise the live experience strip")
+			Clear(rect, Rect(xp.holder), label .. " experience strip")
+			assert(Rect(xp.holder)[2] - rect[4] >= K.Tokens.Size("gapSmall") * leave:GetEffectiveScale() - K.Scale.Pixel(1),
+				label .. ": leave a readable gap below the experience strip")
+			assert(math.abs(leave:GetWidth() - ns.bars.bar1.buttons[1]:GetWidth()) < 1e-6,
+				label .. ": the leave slot matches the rendered action slot size")
 		end
 		for key, bar in pairs(ns.bars) do
 			if bar:Shown() then
@@ -77,13 +90,18 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 				end
 			end
 		end
-		AB.Protect(env, leave)
+		assert(not leave._template, label .. ": the leave button is a plain Button")
 		env.SetCombat(true)
 		env._blocked = {}
 		env.FireEvent("VEHICLE_UPDATE")
 		env.FireEvent("UPDATE_VEHICLE_ACTIONBAR")
-		assert(#env._blocked == 0, label .. ": vehicle updates must defer protected changes until combat ends: " .. table.concat(env._blocked, ", "))
-		assert(K.Combat.Pending() > 0, label .. ": vehicle updates queue an out-of-combat refresh")
+		assert(#env._blocked == 0, label .. ": vehicle updates must not touch protected frames: " .. table.concat(env._blocked, ", "))
+		env.CanExitVehicle = function() return false end
+		env.FireEvent("UNIT_EXITED_VEHICLE", "player")
+		assert(not leave:IsShown(), label .. ": leaving in combat hides the button immediately")
+		env.CanExitVehicle = function() return true end
+		env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
+		assert(leave:IsShown(), label .. ": boarding in combat shows the button immediately")
 		env.SetCombat(false)
 		env.RunTimers()
 		for i, edge in ipairs(Rect(leave)) do

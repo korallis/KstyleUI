@@ -535,6 +535,9 @@ do
 	local leave = ns.leaveButton
 	assert(leave and not leave:IsShown(), "hidden while there is no vehicle")
 	assert(leave:GetParent() == K.Scale.Root(), "the leave button stands outside the tray card's content")
+	assert(K.Layout.Set("actionbars.bar1", "scale", 1.3))
+	env.RunTimers()
+	assert(near(ns.bars.bar1.holder:GetScale(), 1.3), "exercise a non-default Layout scale")
 	assert(near(leave:GetScale(), ns.bars.bar1.holder:GetScale()), "the leave button follows bar 1's Layout scale")
 	local slot = ns.bars.bar1.buttons[1]
 	assert(leave.well and leave.bevelTop and leave.bevelBottom and leave.innerLine, "the leave button is an action slot: its well, bevel and inner line (KSTY-60 item 26: it was a flat steel-blue tile)")
