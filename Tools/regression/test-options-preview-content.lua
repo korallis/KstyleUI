@@ -5,9 +5,10 @@ local O = dofile("Tools/regression/options_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local failures = {}
-for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 }, { 1920, 1080, "frFR", "Frames" }, { 5120, 1440, "frFR", "Frames" } }) do
 	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], uiScale = 768 / 1080 })
-	rawset(_G, "RENDER_HUD_STYLE", "Medallions")
+	rawset(_G, "RENDER_HUD_STYLE", screen[4] or "Medallions")
+	rawset(_G, "RENDER_LOCALE", screen[3] or "enUS")
 	local env, K = U.New(Common.ScreenOpts({
 		saved = Gallery.Saved({ UnitFrames = {} }),
 		setup = function(e)
@@ -34,10 +35,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 		local pane = ns.Window.Parts().preview
 		local frame = pane.current
 		local view = frame.views.target
-		local label = screen[1] .. "x" .. screen[2] .. " scale " .. scale
+		local label = (screen[3] or "enUS") .. " " .. (screen[4] or "Medallions") .. " " .. screen[1] .. "x" .. screen[2] .. " scale " .. scale
 		local _, name = view.name:GetFont()
 		local _, caption = view.caption:GetFont()
-		if name < caption - 0.01 then failures[#failures + 1] = label .. ": initialise preview fonts before building the unit preview" end
+		if not screen[3] and name < caption - 0.01 then failures[#failures + 1] = label .. ": initialise preview fonts before building the unit preview" end
 		local scene = Common.Scene.Build(env)
 		local rings = 0
 		for _, item in ipairs(scene.items) do
@@ -55,7 +56,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 		assert(rings > 0, label .. ": the preview portrait ring draws")
 		local Guard = dofile("Tools/render/guard.lua")
 		for _, finding in ipairs(Guard.Check(scene)) do
-			if finding.kind == "ellipsis" and finding.subject == "Frost Howler" then failures[#failures + 1] = label .. ": show the whole preview name" end
+			if finding.kind == "ellipsis" and finding.subject == K.L["Frost Howler"] then failures[#failures + 1] = label .. ": show the whole preview name " .. finding.subject end
 		end
 	end
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
@@ -63,5 +64,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 end
 rawset(_G, "RENDER_SCREEN", nil)
 rawset(_G, "RENDER_HUD_STYLE", nil)
+rawset(_G, "RENDER_LOCALE", nil)
 assert(#failures == 0, table.concat(failures, "\n"))
 print("options preview content ok")
