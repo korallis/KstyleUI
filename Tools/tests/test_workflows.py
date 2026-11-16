@@ -110,25 +110,37 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
         self.assertIn("needs: [check, lua]", jobs["release"])
-        self.assertNotRegex(jobs["release"], r"(?m)^    if:.*(?:always\(|!cancelled\(|needs\.)")
         self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), [FORK_GUARD])
         self.assertNotIn("continue-on-error:", jobs["lua"])
         steps = jobs["lua"].split("\n      - ")[1:]
         self.assertIn("uses: actions/checkout@", steps[0])
         self.assertIn("id: proof", steps[1])
-        self.assertIn("run: python3 Tools/hooks/ci_scope.py proven-sha", steps[1])
+        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[1]), ["python3 Tools/hooks/ci_scope.py proven-sha"])
         self.assertNotIn("if:", steps[1])
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", steps[1])
         self.assertIn("actions: read", jobs["lua"])
         self.assertIn("contents: read", jobs["lua"])
         self.assertEqual(len(steps[2:]), 2)
         for step in steps[2:]:
-            self.assertIn("if: steps.proof.outputs.run != 'false'", step)
+            self.assertEqual(re.findall(r"(?m)^        if: (.+)$", step), ["steps.proof.outputs.run != 'false'"])
+        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[2]), ["lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '"])
+        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[3]),
+                         ['bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards))])
+        self.assertGreaterEqual(int(re.search(r"timeout-minutes: (\d+)", jobs["lua"]).group(1)), 35)
+
+    def test_release_upload_requires_successful_dependencies(self):
+        jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), [FORK_GUARD])
+
+    def test_release_check_and_lua_cannot_ignore_errors(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        self.assertNotIn("continue-on-error:", text)
 
     def test_release_check_validates_the_tag_changelog(self):
         job = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]
-        step = next(step for step in job.split("\n      - ")
-                    if "run: python3 -m unittest Tools.tests.test_release_changelog" in step)
+        step = next(step for step in job.split("\n      - ") if "Tools.tests.test_release_changelog" in step)
+        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", step),
+                         ["python3 -m unittest Tools.tests.test_release_changelog"])
         self.assertNotIn("if:", step)
         self.assertNotIn("continue-on-error:", step)
 

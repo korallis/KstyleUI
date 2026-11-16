@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Decide CI work from PR changes or successful PR markers for a staging tree.
+"""Decide CI work from PR changes, staging tree markers or a completed SHA proof.
 
 Usage: ci_scope.py <lint|lua|python|package|all|proven-sha>. Writes run=true/false to
 GITHUB_OUTPUT, or one output per area for all. Missing or uncertain proof runs.
@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.parse
 import urllib.request
 
@@ -150,17 +151,26 @@ def push_decision(area):
 def sha_decision():
     try:
         repo, sha = os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_SHA"]
-        result = github_json(f"/repos/{repo}/actions/runs?" + urllib.parse.urlencode(
-            {"head_sha": sha, "event": "push", "per_page": 100}))
-        runs = [run for run in result["workflow_runs"]
-                if run["path"] == ".github/workflows/checks.yml" and run["event"] == "push"
-                and run["head_sha"] == sha and run["head_repository"]["full_name"] == repo]
-        if not runs:
-            return True, f"no checks.yml push run for {sha}: running"
-        newest = max(runs, key=lambda run: (run["created_at"], run["id"]))
-        if newest["status"] == "completed" and newest["conclusion"] == "success":
-            return False, f"SHA {sha} passed in checks.yml push run {newest['id']}: skipping"
-        return True, f"checks.yml push run {newest['id']} is {newest['status']}/{newest['conclusion']}: running"
+        deadline = time.monotonic() + 900
+        while True:
+            result = github_json(f"/repos/{repo}/actions/runs?" + urllib.parse.urlencode(
+                {"head_sha": sha, "event": "push", "per_page": 100}))
+            runs = [run for run in result["workflow_runs"]
+                    if run["path"] == ".github/workflows/checks.yml" and run["event"] == "push"
+                    and run["head_sha"] == sha and run["head_repository"]["full_name"] == repo]
+            if not runs:
+                return True, f"no checks.yml push run for {sha}: running"
+            newest = max(runs, key=lambda run: (run["created_at"], run["id"]))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return True, f"timed out waiting for checks.yml push run {newest['id']} after 900s: running"
+            if newest["status"] == "completed" and newest["conclusion"] == "success":
+                return False, f"SHA {sha} passed in checks.yml push run {newest['id']}: skipping"
+            if newest["status"] not in ("queued", "in_progress"):
+                return True, f"checks.yml push run {newest['id']} is {newest['status']}/{newest['conclusion']}: running"
+            print(f"proven-sha: waiting for checks.yml push run {newest['id']} ({newest['status']}); "
+                  f"{remaining:.0f}s remaining", flush=True)
+            time.sleep(min(15, remaining))
     except (OSError, http.client.HTTPException, ValueError, KeyError, TypeError):
         return True, "API error or missing SHA proof: running"
 
