@@ -42,7 +42,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
         run: bash scripts/gate.sh lua --shard "$SHARD/2"
       - name: Report a failed staging push
-        if: failure() && github.event_name == 'push'
+        if: (failure() || cancelled()) && github.event_name == 'push'
         run: 'echo "::error title=staging is red::The merged result of staging fails: lua. Open the failed step above for the test."'
 
   python-package:
@@ -88,5 +88,5 @@ jobs:
         if: ${{ !cancelled() && steps.scope.outputs.package != 'false' }}
         run: bash Tools/hooks/check-package.sh
       - name: Report a failed staging push
-        if: failure() && github.event_name == 'push'
+        if: (failure() || cancelled()) && github.event_name == 'push'
         run: 'echo "::error title=staging is red::The merged result of staging fails: lint, python and package. Open the failed step above for the test."'

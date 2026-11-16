@@ -22,7 +22,7 @@ CI runs the whole suite once per pull request head and once per push to `staging
 | `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
 
-`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs both.
+`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass; CI requires both Lua shard jobs and the parallel `lint, python and package` job to pass.
 
 ### Shards and weights
 

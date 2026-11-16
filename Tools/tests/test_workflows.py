@@ -181,12 +181,20 @@ class WorkflowsTest(unittest.TestCase):
         for command in ("bash scripts/gate.sh python", "BigWigsMods/packager@", "bash Tools/hooks/check-package.sh"):
             self.assertGreater(job.index(command), lint)
 
-    def test_each_checks_job_annotates_a_failed_staging_push_as_its_last_step(self):
+    def test_each_checks_job_annotates_a_failed_or_cancelled_staging_push_as_its_last_step(self):
         jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
         for job, body in jobs.items():
-            last_step = body.rsplit("\n      - ", 1)[1]
-            self.assertIn("if: failure() && github.event_name == 'push'", last_step, job)
-            self.assertIn("::error title=staging is red::The merged result of staging fails", last_step, job)
+            with self.subTest(job=job):
+                last_step = body.rsplit("\n      - ", 1)[1]
+                self.assertIn("if: (failure() || cancelled()) && github.event_name == 'push'", last_step, job)
+                self.assertIn("::error title=staging is red::The merged result of staging fails", last_step, job)
+
+    def test_checks_jobs_never_allow_errors_to_leave_a_job_green(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        for job, body in jobs.items():
+            with self.subTest(job=job):
+                self.assertNotRegex(body, r"(?m)^\s+(?:- )?continue-on-error:",
+                                    job + ": remove continue-on-error so every failing step fails its job")
 
     def test_checks_lua_shards_have_fifteen_minutes_to_finish(self):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
