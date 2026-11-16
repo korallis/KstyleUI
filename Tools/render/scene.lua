@@ -1635,7 +1635,7 @@ end
 -- scenes by strata, frame level, draw layer and sublevel as the client stacks them, scene order breaking ties.
 function Scene.Merge(scenes, ordered)
 	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 }, time = scenes[1].time }
-	local turn, key = {}, {}
+	local turn, stack = {}, {}
 	for _, scene in ipairs(scenes) do
 		if scene.time ~= out.time then
 			out.time = nil
@@ -1645,7 +1645,7 @@ function Scene.Merge(scenes, ordered)
 			out.items[#out.items + 1] = item
 			turn[item] = #out.items
 			last = DRAW[item] or last
-			key[item] = last
+			stack[item] = last
 		end
 		for _, line in ipairs(scene.log) do
 			out.log[#out.log + 1] = line
