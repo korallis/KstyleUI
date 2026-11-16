@@ -42,6 +42,12 @@ Widgets.TEXTURE_TEXELS = {
 	chamferTile = 128,
 	shadow = 128,
 	lumenShadow = 128,
+	medActionSlab = 128,
+	medUnitSlab = 128,
+	medCardEdge = 128,
+	medAuraBorder = 64,
+	medGroupTile = 64,
+	medGroupTargetRing = 64,
 }
 local TEXELS = Widgets.TEXTURE_TEXELS
 

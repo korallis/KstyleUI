@@ -113,6 +113,9 @@ do
 	for _, name in ipairs({ "lumenShape", "cardShape", "lumenOutline", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenShadow", "shadow" }) do
 		assert(names[name], name .. " is a sliced texture")
 	end
+	for _, name in ipairs({ "medActionSlab", "medUnitSlab", "medCardEdge", "medAuraBorder", "medGroupTile", "medGroupTargetRing" }) do
+		assert(names[name], name .. " is a sliced texture, so Widgets.NineSlice draws it instead of raising")
+	end
 	for _, name in ipairs({ "lumenFrost", "lumenRim", "lumenRimSmall", "gilt" }) do
 		assert(not names[name] and not pcall(K.Tokens.Texture, name), name .. " is retired with the frost glass")
 	end
