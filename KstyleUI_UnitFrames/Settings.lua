@@ -371,7 +371,7 @@ local function OutlineFlags(outline)
 end
 
 local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
-local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 9 }, level = { 10, "InterSemiBold" }, aura = { 10 } }
+local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 9, role = "number" }, level = { 10, "InterSemiBold" }, aura = { 10 } }
 local SLAB_MINI_NAME = 9
 local SLAB_MINI = { targettarget = true, focustarget = true }
 
@@ -410,6 +410,8 @@ function Settings.Font(kind, element)
 		size = base * size / default.size
 		if path == themePath and slab[2] then
 			path = Tokens.FontPath(slab[2]) or path
+		elseif path == themePath and slab.role then
+			path = Tokens.Font(slab.role)
 		end
 	end
 	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline)

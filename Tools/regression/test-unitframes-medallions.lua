@@ -65,6 +65,7 @@ assert(view.form == "slab" and view.geometry.form == "slab", "the player is laid
 assert(view.slab and view.slab[5]:IsShown(), "the slab's sliced material shows")
 assert(view.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")), "the slab wears the shared unit slab texture, not drawn lines")
 assert(view.healthText:GetJustifyH() == "RIGHT" and select(3, view.healthText:GetFont()) == "OUTLINE", "the player's health number sits right in the bar, outlined")
+assert(view.healthText:GetFont() == K.Tokens.Font("number") and Settings.Font("player", "power") == K.Tokens.Font("number"), "the health and power numbers read in the number role")
 assert(view.health.finish == "medallions" and view.health.cleanSheen:IsShown() and view.health.cleanLit:IsShown(), "the bar wears the Medallions finish: shade, sheen and a lit fill end")
 assert(not view.health.under.edgeSoft:IsShown() and view.health.under.edgeHard:IsShown(), "only the one black pixel stands round the bar")
 assert(view.geometry.chrome == false, "the glass chrome is off")
