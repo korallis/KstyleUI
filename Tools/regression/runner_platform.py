@@ -7,19 +7,21 @@ import signal
 import sys
 
 WINDOWS = os.name == "nt"
+SLOT_LOCK_BYTES = 1
 if WINDOWS:
     import msvcrt
 else:
     import fcntl
 
 
-def try_lock(guard, windows=WINDOWS, locker=None):
+def try_lock(guard, windows=WINDOWS, locker=None, constants=None):
+    constants = constants or (msvcrt if windows else fcntl)
     guard.seek(0)
     try:
         if windows:
-            (locker or msvcrt.locking)(guard.fileno(), 2, 1)  # LK_NBLCK
+            (locker or msvcrt.locking)(guard.fileno(), constants.LK_NBLCK, SLOT_LOCK_BYTES)
         else:
-            (locker or fcntl.flock)(guard.fileno(), 2 | 4)  # LOCK_EX | LOCK_NB
+            (locker or fcntl.flock)(guard.fileno(), constants.LOCK_EX | constants.LOCK_NB)
     except OSError as error:
         if error.errno in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
             return False

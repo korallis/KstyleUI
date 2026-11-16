@@ -41,7 +41,7 @@ Run the gate from the repository root before every push and read its exit code. 
 bash scripts/gate.sh
 ```
 
-It runs `python3 Tools/dev/crlf.py --check`, `pre-commit run --all-files`, `luacheck .`, `python3 Tools/hooks/check_toc.py`, `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those.
+It runs `python3 Tools/dev/crlf.py --check`, `env -u SKIP pre-commit run --all-files` (including luacheck and the TOC/API hooks), `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those.
 
 With no options the `lua` group runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why; CI passes `--shard I/2` and runs every file. `bash Tools/regression/run-all.sh` with no argument reproduces a CI failure.
 

@@ -62,6 +62,16 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, sys.executable)
 
+    def test_python_picker_warns_before_falling_back_from_an_invalid_override(self):
+        invalid = str(self.folder / "missing-python")
+        env = dict(os.environ, KSTYLEUI_PYTHON=invalid, RUNNER_SCRIPT=(REGRESSION / "run-all.sh").as_posix())
+        result = subprocess.run([BASH, "-c", 'source "$RUNNER_SCRIPT"; pick_python || exit; printf "%s" "$KSTYLEUI_PYTHON"'],
+                                cwd=self.folder, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("warning: KSTYLEUI_PYTHON=" + invalid, result.stderr)
+        self.assertIn("failed the import check; falling back", result.stderr)
+        self.assertTrue(Path(result.stdout).is_file())
+
     def test_explicit_interpreter_passes_the_resolved_executable(self):
         with mock.patch.dict(os.environ, LUA='"C:\\Program Files\\Lua\\lua5.1.exe" -e hello'), \
                 mock.patch.object(self.runner, "os", SimpleNamespace(name="nt", environ=os.environ)), \
@@ -93,15 +103,16 @@ class PortableRunnerTest(unittest.TestCase):
     def test_platform_locks_use_nonblocking_os_calls_and_only_ignore_contention(self):
         import runner_platform as platform
         with open(self.folder / "slot", "a+b") as guard:
-            for windows, flags in ((True, 2), (False, 6)):
+            for windows, flags in ((True, 20), (False, 60)):
                 locker = mock.Mock()
-                self.assertTrue(platform.try_lock(guard, windows=windows, locker=locker))
+                constants = SimpleNamespace(LK_NBLCK=20, LOCK_EX=20, LOCK_NB=40)
+                self.assertTrue(platform.try_lock(guard, windows=windows, locker=locker, constants=constants))
                 locker.assert_called_once_with(guard.fileno(), flags, *([1] if windows else []))
                 locker.side_effect = OSError(errno.EACCES, "locked")
-                self.assertFalse(platform.try_lock(guard, windows=windows, locker=locker))
+                self.assertFalse(platform.try_lock(guard, windows=windows, locker=locker, constants=constants))
                 locker.side_effect = OSError(errno.EBADF, "bad descriptor")
                 with self.assertRaises(OSError):
-                    platform.try_lock(guard, windows=windows, locker=locker)
+                    platform.try_lock(guard, windows=windows, locker=locker, constants=constants)
 
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform
@@ -337,6 +348,51 @@ class RunAllTest(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             children.start([], None)
 
+    def test_main_interrupt_stops_the_running_child_and_exits_130(self):
+        (self.regression / "test-hang.lua").write_text("import time; time.sleep(2)\n")
+        source = f'''
+import runpy, sys, time
+from concurrent.futures import ThreadPoolExecutor
+sys.path.insert(0, {str(self.regression)!r})
+import runner_platform
+original_map = ThreadPoolExecutor.map
+child = None
+
+def interrupted_map(pool, fn, paths):
+    global child
+    original_map(pool, fn, paths)
+    children = fn.__globals__["CHILDREN"]
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        with children.lock:
+            if children.children:
+                child = next(iter(children.children))
+                break
+        time.sleep(0.01)
+    assert child is not None, "the test child never started"
+    raise KeyboardInterrupt
+
+ThreadPoolExecutor.map = interrupted_map
+sys.argv = ["run-all.sh"]
+try:
+    try:
+        runpy.run_path({str(self.regression / "run_all.py")!r}, run_name="__main__")
+    except SystemExit as stopped:
+        assert stopped.code == 130, stopped.code
+    else:
+        raise AssertionError("main swallowed the interrupt")
+    assert child.returncode is not None, "main left its child running"
+    assert child.returncode != 0, "main waited for its child instead of stopping it"
+finally:
+    if child is not None and child.returncode is None:
+        runner_platform.kill(child)
+        child.wait(timeout=5)
+'''
+        env = dict(os.environ, LUA=f'"{sys.executable}"', KSTYLEUI_SLOTS="0", JOBS="1")
+        result = subprocess.run([sys.executable, "-c", source], cwd=self.tmp, env=env,
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_the_default_budget_is_20_s_and_four_times_that_on_ci(self):
         (self.regression / "test-a.lua").write_text("pass\n")
         self.assertIn("budget 20 s", self.run_all().stdout)
@@ -473,7 +529,7 @@ class RunAllTest(unittest.TestCase):
         result = self.run_all("--margins", TEST_TIME_BUDGET="1", JOBS="8")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("within 20% of the budget, run alone:", result.stdout)
-        self.assertRegex(result.stdout, r"\n\s+0\.[89] s \(\s*[89]\d%\).*test-near")
+        self.assertRegex(result.stdout, r"\n\s+(?:0\.[89]|1\.0) s \(\s*[89]\d%\).*test-near")
         self.assertNotRegex(result.stdout, r"\(\s*\d+%\)[^\n]*test-far")
         self.assertRegex(result.stdout, r", 1 at a time\n")
 

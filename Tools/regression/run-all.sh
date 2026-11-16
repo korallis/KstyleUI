@@ -12,6 +12,9 @@ pick_python() {
 			export KSTYLEUI_PYTHON
 			return 0
 		fi
+		if [ "$candidate" = "${KSTYLEUI_PYTHON:-}" ]; then
+			echo "warning: KSTYLEUI_PYTHON=$KSTYLEUI_PYTHON failed the import check; falling back" >&2
+		fi
 	done
 	echo "No Python found; install Python 3 or set KSTYLEUI_PYTHON." >&2
 	return 2
