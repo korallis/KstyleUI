@@ -850,7 +850,7 @@ local function ProcParts(b)
 		start.anim = Group(start)
 		Grow(start.anim, 0.7, 1.1, PROC_START)
 		Fade(start.anim, 1, 0, PROC_START)
-		local edge = Region(b.overlay, "OVERLAY", 7, Slab.Texture("medSlotChecked"))
+		local edge = Region(b.overlay, "OVERLAY", 7, Slab.Texture("medSlotChecked"), true)
 		edge:SetAllPoints(b)
 		edge:Hide()
 		b.medProc, b.medProcStart, b.medProcEdge = loop, start, edge
@@ -978,7 +978,11 @@ function Slab.Dress(b)
 		end
 		b.medFrame = SlotLayer(b, "OVERLAY", 2, "medSlot", b)
 		b.medChecked = SlotLayer(b, "OVERLAY", 3, "medSlotChecked", b)
+		b.medChecked:SetBlendMode("ADD")
 		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, "OVERLAY", 2, "medSlotHighlight", b)
+		if b.medHover then
+			b.medHover:SetBlendMode("ADD")
+		end
 		b.medPushed = SlotLayer(b, "OVERLAY", 3, "medSlotPushed", b)
 		if type(hooksecurefunc) == "function" then
 			for _, method in ipairs({ "SetSelected", "AnimatePress" }) do
