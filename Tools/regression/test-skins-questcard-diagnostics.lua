@@ -105,4 +105,28 @@ do
 	assert(#autoEnv._errors == 0 and autoK.ErrorCount() == 0, tostring(autoEnv._errors[1]))
 end
 
+do
+	local emptyEnv, emptyK, emptyNs = S.New({
+		setup = function(e)
+			Quests.Install(e, Quests.List(8))
+			e.C_QuestLog.GetTitleForQuestID = function() return nil end
+		end,
+		before = function(e) Quests.Tracker(e, S.Blizzard(e)) end,
+	})
+	emptyK.Modules.Enable("Skins")
+	S.LoadAddOn(emptyEnv, "Blizzard_ObjectiveTracker")
+	emptyEnv.RunTimers()
+	local automatic, context = false, false
+	for _, entry in ipairs(emptyK.Store.Data().devlog) do
+		if entry.module == "Skins.Quests" then
+			if entry.message:find("automatic=no-visible-rows measuredRows=0", 1, true) then automatic = true end
+			if entry.message:find("watches=8 read=title-unavailable", 1, true)
+				and entry.message:find("style=", 1, true) and entry.message:find("guideIsShown=", 1, true)
+				and entry.message:find("trigger=", 1, true) then context = true end
+		end
+	end
+	assert(emptyNs.QuestData.Count() == 0 and automatic and context, "a zero-row initial read records watched quests, missing input, HUD style, guide state and last trigger")
+	assert(#emptyEnv._errors == 0 and emptyK.ErrorCount() == 0, tostring(emptyEnv._errors[1]))
+end
+
 print("test-skins-questcard-diagnostics: ok")
