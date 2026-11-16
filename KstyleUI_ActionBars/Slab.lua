@@ -943,8 +943,18 @@ function Slab.Keybind(b, wanted)
 	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
 end
 
+local function Inset(b)
+	local slot = Layouts().MEDALLIONS_SLOT
+	if not (slot and Grouped(b.kbar.def)) then
+		return ICON_INSET
+	end
+	local _, _, _, _, size = Layouts().MedallionsGroup(K.Scale.Aspect())
+	return Plain(size) and ICON_INSET * size / slot.size or ICON_INSET
+end
+
 local function Socket(b, on)
-	if (b.medSocketOn == true) == on then
+	local inset = on and Inset(b) or nil
+	if (b.medSocketOn == true) == on and b.opts.iconInset == inset then
 		return
 	end
 	b.medSocketOn = on
@@ -952,7 +962,7 @@ local function Socket(b, on)
 		b.medCoords = { b.icon:GetTexCoord() }
 	end
 	b.chrome:SetShown(not on)
-	b.opts.iconInset = on and ICON_INSET or nil
+	b.opts.iconInset = inset
 	if on then
 		b.icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	else

@@ -1,4 +1,4 @@
--- test-actionbars-medallions-slab.lua: the Medallions action slab is one connected piece at every CREW screen (LEE-1543, KSTY-110): bars 1 and 2 stand as one group each in Layouts' rows (one row at 21:9 and wider, two rows of six at 16:9), bar 1's twelve slots left of the crest hub and bar 2's twelve right of it, the slab, the hub and the experience strip along the slab's lower edge touch or overlap with no gap between their rects, the hub has no wings, the slots stand at the 42-unit socket and 5-unit gap with the icon inset 3 units, the warlock's pet bar sits in its own small slab 12 units outboard of the action slab, and the slab's edges are on whole physical pixels.
+-- test-actionbars-medallions-slab.lua: the Medallions action slab is one connected piece at every CREW screen (LEE-1543, KSTY-110): bars 1 and 2 stand as one row of twelve each at every screen (Lee's v0.2.0 report: one row, as the mock-up; at 16:9 the sockets shrink to fit beside the chat), bar 1's twelve slots left of the crest hub and bar 2's twelve right of it, the slab, the hub and the experience strip along the slab's lower edge touch or overlap with no gap between their rects, the hub has no wings, the slots stand at Layouts' socket and gap for the screen's class (42 and 5 at 21:9 and wider) with the icon inset 3/42 of the socket, the warlock's pet bar sits in its own small slab 12 units outboard of the action slab (left of it at 21:9 and wider, right of it at 16:9), and the slab's edges are on whole physical pixels.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
@@ -52,7 +52,8 @@ for _, screen in ipairs(SCREENS) do
 	local unit = K.Scale.Root():GetEffectiveScale()
 	local px = math.max(1, 768 / height / unit * 1.01)
 
-	local _, rows = Layouts.MedallionsGroup(K.Scale.Aspect())
+	local _, rows, _, _, size, gap = Layouts.MedallionsGroup(K.Scale.Aspect())
+	assert(rows == 1, what .. ": Layouts gives each group one row")
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
 	local hubRect = Rect(hub)
 	for _, bar in ipairs({ bar1, bar2 }) do
@@ -61,9 +62,9 @@ for _, screen in ipairs(SCREENS) do
 			local b = bar.buttons[i]
 			assert(b:IsShown(), what .. ": " .. bar.def.key .. " shows all twelve slots")
 			local r = Rect(b)
-			assert(math.abs((r[3] - r[1]) / unit - Layouts.MEDALLIONS_SLOT.size) < px, what .. ": a socket is " .. (r[3] - r[1]) / unit .. " units")
+			assert(math.abs((r[3] - r[1]) / unit - size) < px, what .. ": a socket is " .. (r[3] - r[1]) / unit .. " units")
 			local icon = Rect(b.icon)
-			assert(math.abs((icon[1] - r[1]) / unit - 3) < px, what .. ": the icon sits 3 units inside its socket")
+			assert(math.abs((icon[1] - r[1]) / unit - 3 * size / Layouts.MEDALLIONS_SLOT.size) < px, what .. ": the icon sits 3/42 of the socket inside it")
 			assert(not b.chrome.visible, what .. ": the socket replaces the slot's own chrome")
 			if bar == bar1 then
 				assert(r[3] <= hubRect[1] + EPS, what .. ": bar 1's slot " .. i .. " stands left of the hub")
@@ -72,7 +73,7 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		local pitch = (bar.buttons[2]:GetLeft() - bar.buttons[1]:GetLeft()) * bar.buttons[1]:GetEffectiveScale() / unit
-		assert(math.abs(pitch - Layouts.MEDALLIONS_SLOT.size - Layouts.MEDALLIONS_SLOT.gap) < px, what .. ": the sockets stand " .. pitch .. " units apart")
+		assert(math.abs(pitch - size - gap) < px, what .. ": the sockets stand " .. pitch .. " units apart")
 	end
 	assert(math.abs(bar1.buttons[1]:GetBottom() - bar2.buttons[1]:GetBottom()) < EPS, what .. ": both groups share one baseline")
 
@@ -111,8 +112,9 @@ for _, screen in ipairs(SCREENS) do
 			assert(r[1] >= petRect[1] - EPS and r[3] <= petRect[3] + EPS and r[2] >= petRect[2] - EPS and r[4] <= petRect[4] + EPS, what .. ": the pet slab holds every pet slot")
 		end
 	end
-	local apart = (slabRect[1] - petRect[3]) / unit
-	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": the pet slab stands " .. apart .. " units left of the action slab")
+	local narrow = K.Scale.Aspect() == Layouts.ASPECTS[1]
+	local apart = (narrow and petRect[1] - slabRect[3] or slabRect[1] - petRect[3]) / unit
+	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": the pet slab stands " .. apart .. " units " .. (narrow and "right" or "left") .. " of the action slab")
 	assert(math.abs(petRect[2] - slabRect[2]) / unit < 2 * px, what .. ": the pet slab sits on the action slab's lower edge")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1

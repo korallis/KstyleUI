@@ -822,8 +822,7 @@ end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
-Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 35 }
-Layouts.MEDALLIONS_ROWS = { [ASPECTS[1]] = 2 }
+Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33.5, [ASPECTS[1]] = 34 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 10, castStack = 6 }
@@ -831,9 +830,9 @@ Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["u
 
 function Layouts.MedallionsGroup(class)
 	local slot = Layouts.MEDALLIONS_SLOT
-	local rows = Layouts.MEDALLIONS_ROWS[class] or 1
-	local columns = math.ceil(GRIDS["actionbars.bar1"].buttons / rows)
-	return columns, rows, columns * slot.size + (columns - 1) * slot.gap, rows * slot.size + (rows - 1) * slot.gap, slot.size, slot.gap
+	local size = slot[class] or slot.size
+	local gap, columns = slot.gap * size / slot.size, GRIDS["actionbars.bar1"].buttons
+	return columns, 1, columns * size + (columns - 1) * gap, size, size, gap
 end
 
 function Layouts.MedallionsSide(_, key)
@@ -871,6 +870,10 @@ function Layouts.BuildMedallions()
 		local sideY = strip - slab.bottom + side.pad
 		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
 		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
+		if class == ASPECTS[1] then
+			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = sideY }
+			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad + side.gap }
+		end
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
