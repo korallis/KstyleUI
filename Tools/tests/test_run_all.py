@@ -55,6 +55,13 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(self.runner.shard(tests, 1, 2, weights), ["a", "d"])
         self.assertEqual(self.runner.shard(tests, 2, 2, weights), ["b", "c"])
 
+    def test_python_picker_exports_the_selected_executable_without_a_cr(self):
+        env = dict(os.environ, KSTYLEUI_PYTHON=sys.executable, RUNNER_SCRIPT=(REGRESSION / "run-all.sh").as_posix())
+        result = subprocess.run([BASH, "-c", 'source "$RUNNER_SCRIPT"; pick_python || exit; printf "%s" "$KSTYLEUI_PYTHON"'],
+                                cwd=self.folder, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, sys.executable)
+
     def test_explicit_interpreter_passes_the_resolved_executable(self):
         with mock.patch.dict(os.environ, LUA='"C:\\Program Files\\Lua\\lua5.1.exe" -e hello'), \
                 mock.patch.object(self.runner, "os", SimpleNamespace(name="nt", environ=os.environ)), \
