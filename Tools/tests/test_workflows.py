@@ -167,6 +167,20 @@ class WorkflowsTest(unittest.TestCase):
         for job, body in jobs.items():
             self.assertNotRegex(body, r"(?m)^    needs:", job)
 
+    def test_check_package_removes_tags_even_when_a_self_hosted_checkout_keeps_them(self):
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        cleanup_name = "Remove tags from the check build"
+        self.assertIn("- name: " + cleanup_name, job,
+                      "remove checkout tags before packaging: the packager skips branch pushes whose HEAD has a tag")
+        cleanup = steps_after(job, job.index("      - name: " + cleanup_name))
+        self.assertIn("git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin", cleanup)
+        package = steps_after(job, job.index("      - name: Package without uploading or localisation"))
+        self.assertEqual(re.search(r"(?m)^        if: (.*)$", cleanup).group(1),
+                         re.search(r"(?m)^        if: (.*)$", package).group(1))
+        self.assertLess(job.index(cleanup), job.index(package))
+        self.assertIn("args: -d -l", package)
+        self.assertIn("pandoc: false", package)
+
     def test_checks_runs_on_pull_request_opening_and_pushes_never_on_edits_or_labels(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         on = text.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
