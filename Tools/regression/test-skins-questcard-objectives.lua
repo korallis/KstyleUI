@@ -8,10 +8,22 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		R.K.Options.Write("HudStyle", "style", style)
 		R.settle()
 		local ns, env, K = R.ns, R.env, R.K
+		if screen.width == 5120 and style ~= "orbs" then
+			assert(ns.Quests.Parts().cap.row:IsShown(), "a complete first quest fits with QUESTS 8 at 5120x1440, as on staging")
+			assert(ns.Quests.Rows()[1].questID == 301 and not ns.Quests.Rows()[2]:IsShown(), "5120x1440 preserves staging's one visible quest")
+			assert(ns.Quests.Parts().more:GetText() == "7 more, scroll down", "a full card keeps staging's scroll hint")
+		end
 		local hiddenSteps = ns.RestedXP.Rail.Hidden()
 		local seen = {}
 		for _ = 1, 8 do
+			local parts = ns.Quests.Parts()
 			local view = assert(Geometry.ScaledRect(ns.Quests.Parts().view, env.UIParent, K.Scale.Root()))
+			if not parts.cap.row:IsShown() then
+				local card = assert(Geometry.ScaledRect(ns.Quests.Card(), env.UIParent, K.Scale.Root()))
+				local title = assert(Geometry.ScaledRect(ns.Quests.Rows()[1].title, env.UIParent, K.Scale.Root()))
+				assert(card.top - title.top >= 11 - K.Scale.Pixel(1), "compact titles keep the normal eleven-unit top padding")
+				assert(parts.more:GetText():find("Quests 8:", 1, true), "compact pages keep the total quest count visible")
+			end
 			for _, row in ipairs(ns.Quests.Rows()) do
 				if row:IsShown() then
 					seen[row.questID] = true
