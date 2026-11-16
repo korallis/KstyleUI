@@ -350,9 +350,7 @@ class ChromeTest(unittest.TestCase):
         self.assertLessEqual(inside, round(kit.MAP_SHADOW_PEAK * 255))
 
     def test_committed_files_match_the_script(self):
-        try:
-            import numpy  # noqa: F401
-        except ImportError:
+        if importlib.util.find_spec("numpy") is None:
             self.skipTest("needs NumPy")
         self.assertEqual(kit.check_chrome(ROOT), [], "run Tools/media/medallions_kit.py chrome")
 
