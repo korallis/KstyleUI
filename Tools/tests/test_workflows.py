@@ -219,7 +219,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertLess(job.index("python3 Tools/hooks/ci_scope.py all"), lint)
         steps = job[lint:].split("\n      - ")[1:]
         suite_steps = [step for step in steps[:-1] if "actions/upload-artifact@" not in step]
-        self.assertEqual(len(suite_steps), 5)
+        self.assertEqual(len(suite_steps), 6)
         for step in suite_steps:
             self.assertRegex(step, r"if: \$\{\{ !cancelled\(\) && .*steps\.scope\.outputs\.", step)
         for step, output in (("Check the runner's Python is 3.12", "python"), ("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):

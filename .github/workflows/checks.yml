@@ -171,6 +171,9 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 7
+      - name: Remove tags from the check build
+        if: ${{ !cancelled() && steps.scope.outputs.package != 'false' && (github.event_name != 'pull_request' || steps.start_package.outcome == 'success') }}
+        run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
       - name: Package without uploading or localisation
         if: ${{ !cancelled() && steps.scope.outputs.package != 'false' && (github.event_name != 'pull_request' || steps.start_package.outcome == 'success') }}
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
