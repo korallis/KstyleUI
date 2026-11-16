@@ -113,7 +113,7 @@ class ReadByTestsTest(unittest.TestCase):
 
 
 class PushProofTest(unittest.TestCase):
-    def scope(self, *, artifacts=None, run=None, area="lua", event="push", error=None, env=None):
+    def scope(self, *, artifacts=None, run=None, area="lua", event="push", error=None, env=None, total_count=None):
         tree = "a" * 40
         marker = {"id": 2, "name": f"green-{tree}-lua-1-of-2", "created_at": "2026-11-16T12:00:00Z",
                   "expired": False, "workflow_run": {"id": 123}}
@@ -125,7 +125,10 @@ class PushProofTest(unittest.TestCase):
             calls.append(path)
             if error:
                 raise error
-            return {"artifacts": artifacts if artifacts is not None else [marker]} if "/artifacts?" in path else (run if run is not None else proof)
+            if "/artifacts?" in path:
+                items = artifacts if artifacts is not None else [marker]
+                return {"artifacts": items, "total_count": len(items) if total_count is None else total_count}
+            return run if run is not None else proof
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "out"
@@ -156,6 +159,9 @@ class PushProofTest(unittest.TestCase):
 
     def test_a_marker_for_one_shard_does_not_prove_the_other(self):
         self.assertEqual(self.scope(env={"SHARD": "2"})[0], "run=true\n")
+
+    def test_a_partial_artifact_page_cannot_prove_which_marker_is_newest(self):
+        self.assertEqual(self.scope(total_count=101)[0], "run=true\n")
 
     def test_a_different_tree_expired_marker_or_missing_proof_runs(self):
         for markers in ([], [{"name": "green-" + "b" * 40 + "-lua-1-of-2"}],

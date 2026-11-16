@@ -124,7 +124,10 @@ def push_decision(area):
             marker_area = f"lua-{shard}-of-{total}"
         name = f"green-{tree}-{marker_area}"
         repo = os.environ["GITHUB_REPOSITORY"]
-        artifacts = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))["artifacts"]
+        result = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))
+        artifacts = result["artifacts"]
+        if result["total_count"] != len(artifacts):
+            return True, "staging moved or no proof: running"
         matches = [artifact for artifact in artifacts if artifact["name"] == name]
         if matches:
             newest = max(matches, key=lambda artifact: (artifact["created_at"], artifact["id"]))
