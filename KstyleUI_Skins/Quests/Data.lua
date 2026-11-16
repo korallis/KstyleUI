@@ -1,4 +1,4 @@
--- Data.lua: reads the tracked quests for the quest card from the game's own quest log, in the watch order Blizzard's tracker uses with the super-tracked quest first: each quest's title with Forever's level prefix, its objectives split into words and count, its complete and failed states and its item, into tables it reuses so a combat update allocates nothing.
+-- Data.lua: reads tracked quest titles, objectives, states and items in watch order, reusing cached quest tables and allocating entries and objective tables as needed.
 local _, ns = ...
 
 local Data = {}
@@ -160,22 +160,24 @@ function Data.Read()
 		Data.status = "watches-unavailable"
 		return total
 	end
-	local count, available, status = 0, 0, "ready"
+	local count, status = 0, "ready"
 	for w = 1, watches do
-		local id = Number(log.GetQuestIDForQuestWatchIndex(w))
+		local id = log.GetQuestIDForQuestWatchIndex(w)
+		if IsSecret(id) then
+			Data.status = "watch-id-withheld"
+			return total
+		end
+		id = Number(id)
 		if not id or id <= 0 then
 			status = "watch-id-unavailable"
 		elseif not Skipped(log, id) then
 			local title = Text(log.GetTitleForQuestID(id))
-			if title then available = available + 1 else status = "title-unavailable" end
+			if not title then status = "title-unavailable" end
 			count = count + 1
 			watchIDs[count], watchTitles[count] = id, title
 		end
 	end
 	Data.status = status
-	if count > 0 and available == 0 then
-		return total
-	end
 	local before = total
 	entries, previous = previous, entries
 	total = 0

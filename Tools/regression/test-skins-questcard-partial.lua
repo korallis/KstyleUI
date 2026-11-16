@@ -121,7 +121,7 @@ local cases = {
 			assert(R.ns.Quests.Rows()[1].title:GetText() == "[6] Recovered watch", "the after-combat retry repaints recovered watches without another quest event")
 		end
 	end },
-	{ "whole read unavailable", function()
+	{ "unavailable counts and retained uncached rows", function()
 		for _, kind in ipairs({ "nil count", "secret count", "all titles" }) do
 			local R = New()
 			if kind == "all titles" then
