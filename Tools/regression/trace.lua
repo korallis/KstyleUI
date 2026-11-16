@@ -5,7 +5,7 @@ if not path or path == "" then
 	return
 end
 
-local log = io.open(path, "a")
+local log = io.open(path, "ab")
 if not log then
 	return
 end

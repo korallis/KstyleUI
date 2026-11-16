@@ -13,7 +13,7 @@ local function read(path)
 end
 
 local function literalMode(tokens, i)
-	local depth, from = 0, nil
+	local depth, commas, from, close = 0, 0, nil, nil
 	for j = i, #tokens do
 		local t = tokens[j]
 		if t.type == "op" and (t.value == "(" or t.value == "{" or t.value == "[") then
@@ -21,14 +21,16 @@ local function literalMode(tokens, i)
 		elseif t.type == "op" and (t.value == ")" or t.value == "}" or t.value == "]") then
 			depth = depth - 1
 			if depth == 0 then
+				close = j
 				break
 			end
 		elseif depth == 1 and t.type == "op" and t.value == "," then
-			from = j + 1
+			commas = commas + 1
+			from = from or j + 1
 		end
 	end
-	local t, after = tokens[from or 0], tokens[(from or 0) + 1]
-	return t and t.type == "string" and after.type == "op" and after.value == ")" and t.value or nil
+	local t = tokens[from or 0]
+	return commas == 1 and close == from + 1 and t.type == "string" and t.value or nil
 end
 
 local function Problems(path, text)
@@ -44,8 +46,8 @@ local function Problems(path, text)
 				problems[#problems + 1] = where .. ' reads in text mode, which drops CR on Windows; use io.open(path, "rb") and handle:lines()'
 			elseif lib.value == "io" and fn.value == "open" then
 				local mode = call.type == "op" and call.value == "(" and literalMode(tokens, i + 3)
-				if not mode or (mode:find("r") and not mode:find("b")) then
-					problems[#problems + 1] = where .. ' must be called as io.open(path, "rb") to read, the mode a string, so Windows reads the bytes the Mac does'
+				if not mode or not mode:find("b") then
+					problems[#problems + 1] = where .. ' must be called as io.open(path, mode) with a literal binary mode ("rb", "wb", "ab", "r+b"), so Windows reads and writes the bytes the Mac does'
 				end
 			end
 		end
@@ -64,6 +66,13 @@ for _, case in ipairs({
 	{ 'local text = io.open "AGENTS.md":read("*a")', '"rb"' },
 	{ 'local f = io.open { "AGENTS.md" }', '"rb"' },
 	{ "local open = io.open", '"rb"' },
+	{ 'local f = io.open(path, "r+")', '"rb"' },
+	{ 'local f = io.open(path, "a+")', '"rb"' },
+	{ 'local f = io.open(path, "w+")', '"rb"' },
+	{ 'local f = io.open(path, "a")', '"rb"' },
+	{ 'local f = io.open(path, "w")', '"rb"' },
+	{ 'local f = io.open(path, "r", "rb")', '"rb"' },
+	{ 'local f = io.open(path, "r" .. "b")', '"rb"' },
 	{ 'for line in io.lines("AGENTS.md") do end', "text mode" },
 	{ 'for line in io.lines "AGENTS.md" do end', "text mode" },
 	{ 'io.input("AGENTS.md")', "text mode" },
@@ -71,7 +80,10 @@ for _, case in ipairs({
 	local found = Problems("Tools/render/x.lua", "if false then " .. case[1] .. " end")
 	assert(#found == 1 and found[1]:find(case[2], 1, true), "the guard rejects " .. case[1] .. ": " .. table.concat(found, "; "))
 end
-for _, fine in ipairs({ 'io.open(path, "rb")', 'io.open(path, "wb")', 'io.open(path, "ab")', 'io.open(path, "a")', 'f:read("*a")', "x.io.open(path)", 's = "io.open(path)"' }) do
+for _, fine in ipairs({
+	'io.open(path, "rb")', 'io.open(path, "wb")', 'io.open(path, "ab")', 'io.open(path, "a+b")', 'io.open(path, "r+b")', 'io.open(path, "w+b")',
+	'io.open(dir .. "/" .. f(a, b), "rb")', 'f:read("*a")', "x.io.open(path)", 's = "io.open(path)"',
+}) do
 	local found = Problems("Tools/render/x.lua", fine)
 	assert(#found == 0, "the guard accepts " .. fine .. ": " .. table.concat(found, "; "))
 end

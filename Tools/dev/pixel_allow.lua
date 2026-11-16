@@ -10,7 +10,7 @@ for _, job in ipairs(Audit.Jobs()) do
 	end
 end
 table.sort(rows)
-local f = assert(io.open(Audit.ALLOW, "w"))
+local f = assert(io.open(Audit.ALLOW, "wb"))
 f:write("# scene\tscreen\tfile\tregions off the whole-pixel grid. Counts may only fall: each owner adopts Widgets.Point, Widgets.Fill and\n")
 f:write("# Widgets.Size (docs/core-visuals.md) and reruns lua5.1 Tools/dev/pixel_allow.lua. Written by that script; do not edit by hand.\n")
 for _, row in ipairs(rows) do
