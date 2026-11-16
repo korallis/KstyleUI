@@ -5,7 +5,7 @@ local scene = build()
 local Guard = dofile("Tools/render/guard.lua")
 local count = 0
 for _, item in ipairs(scene.items) do
-	if item.kind == "text" and item.scroll and item.clip and item.text:match("^%-?%d+%.?%d*$") then
+	if item.kind == "text" and item.scroll and item.clip then
 		local whole = {}
 		for key, value in pairs(item) do whole[key] = value end
 		whole.clip = nil
