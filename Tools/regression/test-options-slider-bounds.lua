@@ -4,6 +4,8 @@ local Scene = dofile("Tools/render/scene.lua")
 local env, K, ns = O.New()
 K.Options.Open("General")
 local list = env.CreateFrame("Frame", nil, K.Scale.Root())
+list:SetSize(340, 300)
+list:SetPoint("CENTER")
 list.view = list
 list.GetViewWidth = function() return 340 end
 local row = ns.Rows.Create(list)

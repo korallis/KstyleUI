@@ -79,6 +79,13 @@ end
 local function wholeRows(ns)
 	local list = ns.Window.Parts().content
 	local offset, height = list:GetOffset(), list:GetHeight()
+	local start = 0
+	for _, top in ipairs(list.tops) do
+		if top > offset then break end
+		start = top
+	end
+	list:ScrollTo(start, true)
+	offset = list:GetOffset()
 	local bottom = offset
 	for _, top in ipairs(list.tops) do
 		if top > offset + height then break end

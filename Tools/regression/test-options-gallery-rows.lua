@@ -1,4 +1,4 @@
--- test-options-gallery-rows.lua: the options gallery snapshots scrolling lists between rows so no slider value is cut in half.
+-- test-options-gallery-rows.lua: the options gallery snapshots scrolling lists between rows so no text is cut in half.
 rawset(_G, "RENDER_SCENE_LIB", true)
 local build = dofile("Tools/render/scenes/gallery_options.lua")
 local scene = build()
@@ -10,7 +10,7 @@ for _, item in ipairs(scene.items) do
 		for key, value in pairs(item) do whole[key] = value end
 		whole.clip = nil
 		local r, c = Guard.Ink(whole), item.clip
-		assert(r[2] >= c[2] - 0.01 and r[2] + r[4] <= c[2] + c[4] + 0.01, string.format("snapshot complete options rows: slider value %s at %.2f..%.2f is cut by %.2f..%.2f", item.text, r[2], r[2] + r[4], c[2], c[2] + c[4]))
+		assert(r[2] >= c[2] - 0.01 and r[2] + r[4] <= c[2] + c[4] + 0.01, string.format("snapshot complete options rows: text %s at %.2f..%.2f is cut by %.2f..%.2f", item.text, r[2], r[2] + r[4], c[2], c[2] + c[4]))
 		count = count + 1
 	end
 end
