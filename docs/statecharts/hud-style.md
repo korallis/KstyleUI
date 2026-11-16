@@ -43,7 +43,7 @@ stateDiagram-v2
 | `Core/Scale.lua` | `Request("the HUD style")`: the scale limit depends on the style. Under Medallions `Layouts.Fits` sizes bars 1 and 2 as the slab's two groups (12 by 1 at every layout class, the slots `Layouts.MEDALLIONS_SLOT` wide) and counts the hub, a square 150 units wide centred on the slots' top edge, as a rect no element may enter except the experience strip, which runs along the slab's lower edge under the hub (the hub draws over it). See [arrangement-layout-class.md](arrangement-layout-class.md). |
 | `Core/Layout/Layout.lua` | `Restyle`: `ResolveAll` (each element's default comes from `StyleDefault` for the new style: Orbs and Medallions each have a table in `Setup/Layouts.lua`, Medallions' with 21:9 and 32:9 places of its own), `UpdateEvents`, `ApplyAll`, `LayoutChanged` for every element, then `Mode("Refresh")` when Layout Mode is open. |
 | `Core/Setup/Setup.lua` | `Apply` takes any style `HudStyle.Offered` allows (Medallions while `HudStyle.MEDALLIONS_READY` is true, as it ships); `Restyle`: when `Setup.Apply` is not writing and the active Edit Mode layout is KstyleUI's layout for the current `Layout.preset` (`EditMode.ActiveName()` equals the preset), queues `EditMode.Restyle` to move the viewers and rows KstyleUI placed. |
-| `KstyleUI_UnitFrames/Frames.lua` | `OnHudStyleChanged`: `Orbs.Apply`, the player frame, every restyle, and Blizzard's frames. |
+| `KstyleUI_UnitFrames/Frames.lua` | `OnHudStyleChanged`: `Orbs.Apply`, the player frame, every restyle, and Blizzard's frames. `Auras.Apply` releases the old debuff/buff groups and selects tiles born in the new style; restricted auras wait for the gate to open. |
 | `KstyleUI_Chat/Module.lua` | `Refresh("framing")`. |
 | `KstyleUI_Skins/Quests/Quests.lua` | `Replace`: places the quest card again. |
 | `KstyleUI_QoL/Feed.lua` | `Restyle`, registered while the loot feed is on. |
@@ -57,4 +57,18 @@ stateDiagram-v2
 
 ## Medallions in the module listeners
 
-The style switch itself has no Medallions state: `HudStyle.Valid` accepts the value and `HudStyle.Current()` answers `"medallions"`. The module listeners above test for `"orbs"` only, so until the Medallions module work lands each draws the Frames look under Medallions (unit frames, chat framing, story rail, loot feed), while the action bars draw the Medallions slab: bars 1 and 2 as its two groups and the crest hub between them at strata LOW under every slot (`test-actionbars-medallions-hub`, `test-actionbars-medallions-effects`). The widget kit's listener in `Core/Widgets/Base.lua` is the exception: under Medallions every card, popup, tooltip and menu takes the steel material and the minimap turns round (`test-medallions-steel`, `test-medallions-minimap`). What Medallions changes today is placement: `Core/Setup/Layouts.lua` gives it its own table, `Layouts.Fits` and so `Scale`'s limit know the slab's two groups and the hub, and the unit frames take the mock-up's sizes and stand either side of the hub, 120 mock pixels over the slots' top edge. `test-layout-medallions` drives the switch and the way back; `test-layout-medallions-hub` holds the hub against every slot.
+The style switch itself has no Medallions state: `HudStyle.Valid` accepts the value and `HudStyle.Current()` answers `"medallions"`. Medallions places the unit slabs 14 units above the action slab, with one row of twelve action sockets on each side of the crest hub. The unit frames use Medallions slabs and debuff underlines; Frames and Orbs use their own creation paths.
+
+## Aura tile pools
+
+`Auras.Apply` disables both old aura groups, which releases their assigned frames, and disables and hides their container. It creates a destination-style container through the same `Dress` path used at login, or reactivates that style's existing pool. Pools never change style, so switching repeatedly stays bounded and never converts regions in place. `test-unitframes-aura-style-switch` compares switched debuff and buff trees against fresh controls, including texture colours, layers, sublevels and frame levels, and keeps overlapping dispel tint below the icon.
+
+```mermaid
+stateDiagram-v2
+    [*] --> ActivePool
+    ActivePool --> Rebuilding : HUD style differs, auras readable
+    ActivePool --> Waiting : HUD style differs, auras restricted
+    Waiting --> Rebuilding : aura gate opens, style still differs
+    Waiting --> ActivePool : aura gate opens, original style restored
+    Rebuilding --> ActivePool : release old groups, select or create destination pool
+```
