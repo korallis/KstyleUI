@@ -1,4 +1,4 @@
-"""Keep addon files CRLF and Tools/docs text and media provenance LF."""
+"""Keep addon files CRLF and Tools/docs text and media provenance UTF-8 with LF."""
 
 import argparse
 import os
@@ -10,6 +10,8 @@ from pathlib import Path
 ADDON_SUFFIXES = {".lua", ".toc", ".xml"}
 SKIPPED_TOP_DIRS = {"Tools", "docs"}
 LF_FILES = {"Media/PROVENANCE.md"}
+BINARY_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".blp", ".ttf", ".otf", ".woff", ".woff2", ".zip", ".pdf"}
+TEXT_SUFFIXES = {".py", ".lua", ".md", ".txt", ".json", ".csv", ".tsv", ".sh", ".xml", ".toc", ".js", ".ps1", ".swift", ".html"}
 
 
 def is_addon_file(rel):
@@ -47,7 +49,7 @@ def changed_files(root):
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", help="files to convert; default: changed and untracked files")
-    parser.add_argument("--check", action="store_true", help="check addon CRLF and Tools/docs LF without changing files")
+    parser.add_argument("--check", action="store_true", help="check addon CRLF and Tools/docs UTF-8/LF without changing files")
     parser.add_argument("--root", default=".", help="repository root (default: current directory)")
     args = parser.parse_args(argv)
 
@@ -65,10 +67,11 @@ def main(argv):
             continue
         data = path.read_bytes()
         if Path(rel).parts[0] in SKIPPED_TOP_DIRS or Path(rel).as_posix() in LF_FILES:
-            if args.check and b"\r\n" in data and b"\0" not in data:
+            if args.check and path.suffix.lower() not in BINARY_SUFFIXES and (b"\0" not in data or path.suffix.lower() in TEXT_SUFFIXES):
                 try:
                     text = data.decode("utf-8")
                 except UnicodeDecodeError:
+                    found.append(f'{Path(rel).as_posix()}: save text as UTF-8; Python writers must use encoding="utf-8"')
                     continue
                 if path.suffix == ".csv":
                     text = re.sub(r'"(?:[^"]|"")*"', "", text)

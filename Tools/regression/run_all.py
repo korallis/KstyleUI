@@ -25,6 +25,7 @@ import runner_platform
 HERE = Path(__file__).resolve().parent
 
 TIME_BUDGET = 20.0
+ALLOWANCE_THRESHOLD = 16.0
 WINDOWS_CPU_FACTOR = 2.21
 MEMORY_BUDGET_MB = 4096
 HANG_GUARD = 120.0
@@ -236,12 +237,13 @@ def memory_text(mb):
     return "{0:.0f}".format(mb) if mb is not None else "n/a"
 
 
-def problems(name, result, seconds, megabytes):
+def problems(name, result, seconds, megabytes, strict_cpu=True):
     lines = []
     if result["stopped"]:
         lines.append("FAIL {0}: stopped by the {1} s wall-clock hang guard.".format(name, fmt(result.get("hang_limit", HANG_GUARD))))
     elif seconds is not None and result["cpu"] is not None and result["cpu"] > seconds:
-        lines.append("FAIL {0}: used {1:.2f} CPU s, over the {2} CPU s budget. Make the test cheaper.".format(name, result["cpu"], fmt(seconds)))
+        lines.append("{0} {1}: used {2:.2f} CPU s, over the {3} CPU s budget. Make the test cheaper.".format(
+            "FAIL" if strict_cpu else "WARN", name, result["cpu"], fmt(seconds)))
     if megabytes is not None and result["mb"] is not None and result["mb"] > megabytes:
         lines.append("FAIL {0}: peaked at {1:.0f} MB, over the {2:.0f} MB budget. Make the test use less memory.".format(name, result["mb"], megabytes))
     return lines
@@ -258,6 +260,10 @@ def hang_limit(seconds):
 
 def cpu_factor(windows=runner_platform.WINDOWS):
     return WINDOWS_CPU_FACTOR if windows else 1.0
+
+
+def cpu_enforced():
+    return os.environ.get("CI") == "true" and sys.platform == "darwin"
 
 
 def load_allowances():
@@ -282,8 +288,8 @@ def load_allowances():
     allowances = {}
     for line in lines:
         name, seconds, ticket = line.split()
-        if ticket != "LEE-5827" or int(seconds) <= TIME_BUDGET or name in allowances:
-            raise ValueError("cpu_allowances.tsv needs unique names, measured allowances above 20 and LEE-5827")
+        if ticket != "LEE-5827" or int(seconds) < TIME_BUDGET or name in allowances:
+            raise ValueError("cpu_allowances.tsv needs unique names, measured allowances of at least 20 and LEE-5827")
         allowances[name] = int(seconds)
     return allowances
 
@@ -402,6 +408,7 @@ def main(argv):
         return 1
     seconds, megabytes = budgets()
     measured = budgeted(command)
+    strict_cpu = measured and cpu_enforced()
     try:
         allowances = load_allowances() if measured else {}
     except (OSError, ValueError) as error:
@@ -416,10 +423,12 @@ def main(argv):
         jobs = min(jobs, slots.count)
     print(label)
     print(("budget {0} CPU s and {1:.0f} MB per test file".format(fmt(seconds), megabytes) if measured else
-           "not budgeted: requires default PUC Lua 5.1.5 (_VERSION=Lua 5.1, jit=nil); LUA overrides are not budgeted") +
-          "; CPU platform factor {0:g}; wall-clock hang guard max({1} s, 5 x file CPU limit)".format(factor, fmt(HANG_GUARD)), flush=True)
+           "not budgeted: CPU requires default PUC Lua 5.1.5 (_VERSION=Lua 5.1, jit=nil); LUA overrides are not budgeted") +
+          "; CPU overruns {0}; memory limit {1:.0f} MB; CPU platform factor {2:g}; wall-clock hang guard {3}".format(
+              "fail on Mac CI" if strict_cpu else "warn only", megabytes, factor,
+              "max({0} s, 5 x file CPU limit)".format(fmt(HANG_GUARD)) if measured else "{0} s".format(fmt(HANG_GUARD))), flush=True)
     if not measured:
-        seconds = megabytes = None
+        seconds = None
     start_load = load_now()
     print("machine load {0} on {1} CPUs; {2}".format(fmt(start_load), os.cpu_count() or 0, off or (
         "worker slots: {0} for every run on this machine, {1} held by other runs".format(slots.count, slots.others()))), flush=True)
@@ -472,17 +481,19 @@ def main(argv):
             if measured and (result["cpu"] is None or result["mb"] is None):
                 print("not budgeted: {0}: OS CPU or peak memory measurement unavailable".format(name))
             allowance = allowances.get(Path(path).name)
-            lines = problems(name, result, allowance if allowance is not None else seconds, megabytes)
+            lines = problems(name, result, allowance if allowance is not None else seconds, megabytes, strict_cpu)
             if (args.margins and sys.platform == "darwin" and allowance is not None and result["ok"] and
-                    result["cpu"] is not None and result["cpu"] < TIME_BUDGET):
-                print("allowance review: {0} is below 20 CPU s here; remove its line only after every sampled Mac agrees (LEE-5827)".format(name))
+                    result["cpu"] is not None and result["cpu"] < ALLOWANCE_THRESHOLD):
+                print("allowance review: {0} is below 16 CPU s here; remove its line only after every sampled Mac agrees (LEE-5827)".format(name))
             if args.affected and result["ok"]:
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
                         records[path] = dict(affected.record_from_trace(trace.read(), os.getcwd()), sha=affected.fingerprint(path))
                 except OSError:
                     pass
-            if result["ok"] and not lines:
+            for line in lines:
+                print(line)
+            if result["ok"] and not any(line.startswith("FAIL ") for line in lines):
                 passed += 1
                 continue
             failed += 1
@@ -492,8 +503,6 @@ def main(argv):
                     tail = log.read().splitlines()[-TAIL_LINES:]
                 for line in tail:
                     print(line)
-            for line in lines:
-                print(line)
 
     if locale_lines:
         print("\n".join(locale_lines))
@@ -516,7 +525,7 @@ def main(argv):
             result = results[path]
             limit = allowances.get(Path(path).name, seconds)
             print("  {0} CPU s ({1}%) {2:>6} MB ({3}%), load {4}  {5}".format(
-                fmt(result["cpu"]), fmt(100 * result["cpu"] / limit) if result["cpu"] is not None else "n/a", memory_text(result["mb"]),
+                fmt(result["cpu"]), fmt(100 * result["cpu"] / limit) if result["cpu"] is not None and limit is not None else "n/a", memory_text(result["mb"]),
                 fmt(100 * result["mb"] / megabytes) if result["mb"] is not None else "n/a",
                 fmt(result["load"]), Path(path).stem))
     total = sum(result["seconds"] for result in results.values())

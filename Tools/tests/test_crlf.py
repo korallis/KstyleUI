@@ -94,6 +94,20 @@ class CrlfTest(unittest.TestCase):
                  self.write("Tools/image.png", b"\x89PNG\r\n\x1a\n"), self.write("Tools/image.dat", b"\0\r\n")]
         self.assertEqual(self.run_main("--check", *(str(path) for path in paths)), (0, ""))
 
+    def test_check_rejects_non_utf8_tools_and_docs_and_names_the_fix(self):
+        for rel in ("Tools/regression/README.md", "docs/bad.md", "Tools/bad.py"):
+            with self.subTest(rel=rel):
+                path = self.write(rel, b"calibration \x97 multiplication \xd7\n")
+                code, out = self.run_main("--check", str(path))
+                self.assertEqual(code, 1, "Reject non-UTF-8 text; save Tools/docs with encoding='utf-8'")
+                self.assertIn(rel, out)
+                self.assertIn('encoding="utf-8"', out)
+                self.assertEqual(path.read_bytes(), b"calibration \x97 multiplication \xd7\n")
+
+    def test_check_accepts_utf8_text(self):
+        path = self.write("docs/good.md", "calibration \u2014 multiplication \u00d7\n".encode("utf-8"))
+        self.assertEqual(self.run_main("--check", str(path)), (0, ""))
+
     def test_no_paths_checks_untracked_tools_text(self):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         self.write("Tools/New.py", b"text\r\n")
