@@ -89,16 +89,25 @@ local function Signature(entry)
 	return table.concat(lines, "\n")
 end
 
+local controls = {}
+local function Control(style)
+	if not controls[style] then
+		local env, K, view = New(style)
+		controls[style] = { env = env, K = K, view = view }
+	end
+	return controls[style].view
+end
+
 for _, pair in ipairs({
-	{"medallions", "frames"}, {"medallions", "orbs"}, {"frames", "medallions"},
-	{"orbs", "medallions"}, {"frames", "orbs"}, {"orbs", "frames"},
+	{ "medallions", "frames", combat = "orbs", gateLast = false }, { "medallions", "orbs" }, { "frames", "medallions" },
+	{ "orbs", "medallions", combat = "frames", gateLast = true }, { "frames", "orbs", combat = "medallions", gateLast = true }, { "orbs", "frames" },
 }) do
 	local env, K, view = New(pair[1])
 	local before, old = view.auras.container, Entry(view, "debuffs")
 	K.Options.Write("HudStyle", "style", pair[2])
 	env.RunTimers()
 	W.Settle(env)
-	local controlEnv, controlK, control = New(pair[2])
+	local control = Control(pair[2])
 	for _, group in ipairs({ "debuffs", "buffs" }) do
 		local switched, born = Entry(view, group), Entry(control, group)
 		for _, tint in ipairs(switched.button._aura.dispel or {}) do
@@ -121,7 +130,42 @@ for _, pair in ipairs({
 	env.RunTimers()
 	assert(view.auras.container == targetPool, "reuse only a pool born in the same target style, rather than leaking containers on repeated switches")
 	assert(Signature(Entry(view, "debuffs")) == Signature(Entry(control, "debuffs")), "a reused style pool still matches fresh tiles")
-	assert(#env._errors == 0 and K.ErrorCount() == 0 and #controlEnv._errors == 0 and controlK.ErrorCount() == 0, "aura style switches must stay error-free")
+
+	local third, gateLast = pair.combat, pair.gateLast
+	if third then
+		local label = pair[2] .. "->" .. third .. " in combat, " .. (gateLast and "combat ending before the aura gate opens" or "the aura gate opening before combat ends")
+		local function OpenGate()
+			env._restricted = false
+			env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+			env.RunTimers()
+		end
+		env.SetCombat(true)
+		env._restricted = true
+		K.Options.Write("HudStyle", "style", third)
+		env.RunTimers()
+		assert(K.HudStyle.Current() == pair[2], label .. ": a style picked in combat lockdown is held until combat ends")
+		assert(view.auras.container == targetPool and targetPool._enabled ~= false and targetPool:IsShown(), label .. ": combat lockdown keeps the old style's live tiles")
+		if not gateLast then
+			OpenGate()
+			assert(view.auras.container == targetPool, label .. ": an open aura gate does not rebuild tiles for a style still queued behind combat")
+		end
+		env.SetCombat(false)
+		env.RunTimers()
+		assert(K.HudStyle.Current() == third, label .. ": the queued style applies when combat ends")
+		if gateLast then
+			assert(view.auras.container == targetPool and targetPool._enabled ~= false, label .. ": the old tiles stay until aura buttons are readable")
+			OpenGate()
+		end
+		W.Settle(env)
+		assert(view.auras.container ~= targetPool and targetPool._enabled == false and not targetPool:IsShown(), label .. ": release the old-style tiles once combat has ended and the aura gate is open")
+		for _, group in ipairs({ "debuffs", "buffs" }) do
+			assert(Signature(Entry(view, group)) == Signature(Entry(Control(third), group)), label .. " " .. group .. ": tiles rebuilt after combat match tiles born in the target style")
+		end
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "aura style switches must stay error-free")
+end
+for style, control in pairs(controls) do
+	assert(#control.env._errors == 0 and control.K.ErrorCount() == 0, "the " .. style .. " control must stay error-free")
 end
 do
 	local env, K, view = New("medallions")
@@ -135,38 +179,5 @@ do
 	env.RunTimers()
 	assert(view.auras.container ~= old, "the queued rebuild uses the current style when restriction ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a deferred style rebuild must stay error-free")
-end
-for _, gateLast in ipairs({ false, true }) do
-	local env, K, view = New("medallions")
-	local old, order = view.auras.container, gateLast and "combat ends before the aura gate opens" or "the aura gate opens before combat ends"
-	local function OpenGate()
-		env._restricted = false
-		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
-		env.RunTimers()
-	end
-	env.SetCombat(true)
-	env._restricted = true
-	K.Options.Write("HudStyle", "style", "frames")
-	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions", "a style picked in combat lockdown is held until combat ends")
-	assert(view.auras.container == old and old._enabled ~= false and old:IsShown(), "combat lockdown keeps the old style's live tiles")
-	if not gateLast then
-		OpenGate()
-		assert(view.auras.container == old, order .. ": an open aura gate does not rebuild tiles for a style still queued behind combat")
-	end
-	env.SetCombat(false)
-	env.RunTimers()
-	assert(K.HudStyle.Current() == "frames", "the queued style applies when combat ends")
-	if gateLast then
-		assert(view.auras.container == old and old._enabled ~= false, order .. ": the old tiles stay until aura buttons are readable")
-		OpenGate()
-	end
-	W.Settle(env)
-	assert(view.auras.container ~= old and old._enabled == false and not old:IsShown(), order .. ": release the old-style tiles once both gates are open")
-	local controlEnv, controlK, control = New("frames")
-	for _, group in ipairs({ "debuffs", "buffs" }) do
-		assert(Signature(Entry(view, group)) == Signature(Entry(control, group)), order .. " " .. group .. ": tiles rebuilt after combat match tiles born in the target style")
-	end
-	assert(#env._errors == 0 and K.ErrorCount() == 0 and #controlEnv._errors == 0 and controlK.ErrorCount() == 0, "a style switch in combat must stay error-free")
 end
 print("ok aura style switches match fresh tiles and keep icons above dispel tint")
