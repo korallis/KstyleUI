@@ -16,7 +16,7 @@ local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
 local MORE_SCALE = 0.85
-local COMPACT_PAD = 4
+local COMPACT_PAD = 2
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
@@ -516,17 +516,17 @@ function Card.Render()
 		end
 		room = math.max(0, maxHeight - chrome)
 	end
-	local compact = not Fits(Window(total, 1, gap), room)
+	local compact = not Fits(heights[math.max(1, math.min(offset, total))], room)
 	if compact then
 		n = 1
-		top, foot = Snap(COMPACT_PAD), Snap(COMPACT_PAD)
+		foot = Snap(COMPACT_PAD)
 		capHeight, capGap = 0, 0
-		chrome = top + foot + (over and MoreRow() - Snap(ROW_GAP - COMPACT_PAD) or 0)
+		chrome = top + foot + MoreRow() - Snap(ROW_GAP)
 		room = math.max(0, maxHeight - chrome)
 	end
 	cap.row:SetShown(not compact)
 	more:ClearAllPoints()
-	Widgets.Point(more, "TOP", view, "BOTTOM", 0, -Snap(compact and COMPACT_PAD or ROW_GAP))
+	Widgets.Point(more, "TOP", view, "BOTTOM", 0, -Snap(compact and 0 or ROW_GAP))
 	Widgets.Point(more, "BOTTOM", card, "BOTTOM", 0, foot)
 	local viewHeight = Snap(math.min(Window(total, n, gap), room))
 	local fit = FitFromEnd(total, n, viewHeight, gap)
@@ -557,7 +557,11 @@ function Card.Render()
 	view:SetHeight(viewHeight)
 	Bar(total, offset, k, viewHeight)
 	local above, below = offset - 1, total - (offset + k - 1)
-	if over and above + below > 0 then
+	if compact then
+		local hint = above + below > 0 and MoreText(above, below) or cut > 0 and string.format(L["%d more"], cut) or ""
+		more:SetText(L["Quests"] .. " " .. total .. (hint ~= "" and ": " .. hint or ""))
+		more:Show()
+	elseif over and above + below > 0 then
 		more:SetText(MoreText(above, below))
 		more:Show()
 	elseif cut > 0 then
