@@ -41,9 +41,19 @@ assert(math.abs(leave:GetAlpha() - 0.14) < 1e-6, "the leave button follows Layou
 AB.W.Enter(bar.buttons[1])
 AB.W.Settle(env)
 assert(math.abs(leave:GetAlpha() - 0.4) < 1e-6, "the leave button follows the bar's hover fade immediately")
+bar.holder:SetAlpha(env.Secret(0.4))
+assert(math.abs(leave:GetAlpha() - 0.4) < 1e-6, "a restricted alpha keeps the last readable opacity")
+bar.holder:SetAlpha(0.4)
 bar.holder:Hide()
 assert(leave:IsVisible(), "a vehicle leave control stays visible when bar 1 is hidden")
+vehicle = false
+env.FireEvent("UNIT_EXITED_VEHICLE", "player")
+vehicle = true
+env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
+assert(leave:IsVisible(), "boarding while bar 1 is hidden still shows the leave control")
 bar.holder:Show()
+K.Options.Write("ActionBars", "bar1.fade", false)
+AB.W.Settle(env)
 
 assert(K.Layout.Set("actionbars.bar1", "scale", 1.3))
 env.RunTimers()

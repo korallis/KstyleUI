@@ -1,4 +1,4 @@
--- Vehicle.lua: the leave-vehicle slot beside bar 1, or below its outer end under Medallions.
+-- Vehicle.lua: the leave-vehicle slot below the Medallions slab, beyond the power orb or beside the Frames tray and stance bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -29,6 +29,16 @@ local function Leave()
 	end
 end
 
+local function Alpha()
+	local bar = ns.bars.bar1
+	if ns.leaveButton and bar then
+		local holder, header = bar.holder:GetAlpha(), bar.header:GetAlpha()
+		if not ns.IsSecret(holder) and not ns.IsSecret(header) then
+			ns.leaveButton:SetAlpha(holder * header)
+		end
+	end
+end
+
 function Vehicle.Build()
 	if ns.leaveButton then
 		return ns.leaveButton
@@ -43,16 +53,18 @@ function Vehicle.Build()
 	})
 	button:Hide()
 	ns.leaveButton = button
+	local bar = ns.bars.bar1
+	if bar then
+		hooksecurefunc(bar.holder, "SetAlpha", Alpha)
+		hooksecurefunc(bar.header, "SetAlpha", Alpha)
+	end
+	Alpha()
 	return button
 end
 
 function Vehicle.Update()
 	local button = ns.leaveButton
 	if not button then
-		return
-	end
-	if InCombatLockdown() and not ns.enabling then
-		ns.QueueApply()
 		return
 	end
 	local bar = ns.bars.bar1
