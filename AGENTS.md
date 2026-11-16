@@ -85,6 +85,7 @@ Each is a test; its failure message names the fix.
 - Register one event handler per owner and event in `Core/Events.lua`; give each piece of work its own owner (`Tools/regression/event_guard.lua`).
 - Add no top-level local to `Core/Setup/Layouts.lua` (`test-layouts-locals.lua` keeps a margin under Lua's 200-local limit).
 - The stubs raise what the client raises: nil rects, nil and NaN scales, and methods a Font object lacks (`test-stub-refusals.lua`); restricted measurements and secret values too (`test-stubs.lua`).
+- In `Tools/regression/`, list folders and files and make temp folders only through `fs.lua`, never `io.popen`, `os.execute` or `os.tmpname`, and open files to read with `"rb"` (`test-shell-guard.lua`).
 
 ## Learned mistakes
 
