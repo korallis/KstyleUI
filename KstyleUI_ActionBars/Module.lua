@@ -59,6 +59,7 @@ local function Build(def)
 	local r, g, b = Accent()
 	for _, button in ipairs(bar.buttons) do
 		ns.Button.SetAccent(button, r, g, b)
+		ns.Slab.Dress(button)
 	end
 	return bar
 end
@@ -439,6 +440,7 @@ local function Enable()
 	ns.Flyout.Refresh()
 	ns.HideBlizzard()
 	UpdateAll()
+	ns.Slab.Enable()
 	ns.enabling = false
 	ns.Log("running for class " .. tostring(ns.class) .. (ns.gamepad and " in gamepad mode: the bars stay hidden" or "") .. "; Blizzard's keyboard bars are hidden through Safe")
 end
@@ -454,6 +456,7 @@ local function Disable()
 		end
 	end
 	ns.Flyout.Close()
+	ns.Slab.Disable()
 	ns.Ranks.Stop()
 	ns.RestoreBlizzard()
 	gridShown.action, gridShown.pet, ns.grid, ns.layout = false, false, 0, false

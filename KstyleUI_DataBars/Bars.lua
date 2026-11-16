@@ -16,6 +16,7 @@ local MAX_SEGMENTS = 20
 local HIT_PAD = 4
 local TEXT_GAP, XP_TEXT_GAP = 2, 6
 local XP_CAPTION_RAISE = 1.15
+local MEDAL_SEGMENTS, MEDAL_FONT_SIZE, MEDAL_TEXT_GAP = 10, 10, 3
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
@@ -148,7 +149,12 @@ local function LayoutTicks(view, s)
 	end
 end
 
-local function PlaceText(view, position)
+local function PlaceText(view, position, medal)
+	if medal then
+		view.text:ClearAllPoints()
+		view.text:SetPoint("TOPRIGHT", view.holder, "BOTTOMRIGHT", 0, -Widgets.Snap(view.holder, MEDAL_TEXT_GAP))
+		return
+	end
 	local p = TEXT_POINTS[position] or TEXT_POINTS.CENTER
 	local gap = Widgets.Snap(view.holder, view.def.id == "xp" and position == "BOTTOM" and XP_TEXT_GAP or TEXT_GAP)
 	if view.def.id == "xp" and position == "BOTTOM" then
@@ -233,7 +239,20 @@ local function Style(view, s)
 	fill:SetReverseFill(s.reverse == true)
 	track:SetReverseFill(s.reverse == true)
 	track.barEdge:SetShown(s.border ~= false)
-	if view.def.id == "xp" then
+	local strip = view.def.id == "xp" or s.medal == true
+	if view.stripped and not strip then
+		view.stripped = false
+		for _, bar in ipairs({ track, fill }) do
+			bar:ClearAllPoints()
+			bar:SetAllPoints(view.content)
+		end
+		view.edge:Hide()
+		fill:SetInnerEdge(false)
+		track.lit:Show()
+		track.shade:Show()
+	end
+	if strip then
+		view.stripped = true
 		local edge = Widgets.Border(view.holder)
 		for _, bar in ipairs({ track, fill }) do
 			bar:ClearAllPoints()
@@ -243,7 +262,9 @@ local function Style(view, s)
 		view.edge:SetColorTexture(Widgets.Rgba("black", 1))
 		view.edge:Show()
 		fill:SetInnerEdge(fill:FlatTexture(), "barEdge")
-		fill.barEdge:SetShown(false)
+		if fill.barEdge then
+			fill.barEdge:SetShown(false)
+		end
 		track.lit:Hide()
 		track.shade:Hide()
 	end
@@ -254,7 +275,7 @@ local function Style(view, s)
 	end
 	LayoutTicks(view, s)
 	Font.Apply(view.text, s.font, s.fontSize, s.outline, "prose")
-	PlaceText(view, s.textPosition)
+	PlaceText(view, s.textPosition, s.medal)
 end
 
 function Bars.PaintValues(view, s, info, instant)
@@ -301,11 +322,28 @@ local function AddTooltip(view, tip)
 	end
 end
 
+local function Settings(view)
+	local s = ns.Settings()[view.def.id]
+	if K.HudStyle.Current() ~= "medallions" or view.def.id == "honor" then
+		return s
+	end
+	local medal = {}
+	for key, value in pairs(s) do
+		medal[key] = value
+	end
+	medal.medal, medal.border, medal.textHover, medal.textPosition = true, false, false, "BOTTOM"
+	medal.texture, medal.segments, medal.fontSize = Tokens.Texture("barFlat"), MEDAL_SEGMENTS, MEDAL_FONT_SIZE
+	if view.def.id == "xp" and s.text ~= "none" then
+		medal.text = "percentRested"
+	end
+	return medal
+end
+
 local function OnEnter(holder)
 	local view = holder.kView
 	view.hovered = true
 	if running then
-		UpdateText(view, ns.Settings()[view.def.id], view.info)
+		UpdateText(view, Settings(view), view.info)
 	end
 	local tip = Widgets.Tooltip()
 	tip:SetOwner(holder, "ANCHOR_TOP")
@@ -317,7 +355,7 @@ local function OnLeave(holder)
 	local view = holder.kView
 	view.hovered = false
 	if running then
-		UpdateText(view, ns.Settings()[view.def.id], view.info)
+		UpdateText(view, Settings(view), view.info)
 	end
 	local tip = Widgets.Tooltip()
 	if tip:IsOwned(holder) then
@@ -396,7 +434,7 @@ function Bars.Update(id, instant)
 	if not view or not running then
 		return
 	end
-	local s = ns.Settings()[id]
+	local s = Settings(view)
 	local info, why = view.def.read()
 	if info and id == "honor" and s.show == "pvp" and not Sources.InPvP() then
 		info, why = nil, "not in PvP"
@@ -497,6 +535,10 @@ ns.Subscribe("LayoutChanged", function(key)
 	if running and def then
 		Bars.Update(def.id, true)
 	end
+end)
+
+ns.Subscribe("HudStyleChanged", function()
+	Bars.UpdateAll(true)
 end)
 
 ns.AddPart({ Enable = Bars.Enable, Disable = Bars.Disable, Setting = Bars.Setting, Refresh = function()

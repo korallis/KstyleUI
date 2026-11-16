@@ -126,6 +126,10 @@ end
 local function Box(name, key, rw, rh)
 	local position = Positions(name)[key]
 	local w, h, offsetX = Layouts.Footprint(name, key)
+	local styled = ns.HudStyle and Layouts.Style(ns.HudStyle.Current(), name, key)
+	if styled and styled.width then
+		w, h, offsetX = styled.width, styled.height, nil
+	end
 	if not (position and w) then
 		return nil
 	end
@@ -191,7 +195,9 @@ local function Spots(group, boxes, icons)
 	if group == "buffs" then
 		local list, essential, cast = {}, boxes["cooldowns.essential"], boxes["unitframes.castbar.player"]
 		if essential then
-			local edge = cast and math.min(essential.l, cast.l) or essential.l
+			local row = essential.t - essential.b
+			local beside = cast and cast.t > essential.b - row and cast.b < essential.t + 2 * row
+			local edge = beside and math.min(essential.l, cast.l) or essential.l
 			list[1] = { x = edge - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
 		end
 		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }

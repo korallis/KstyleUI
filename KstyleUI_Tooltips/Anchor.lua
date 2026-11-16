@@ -1,4 +1,4 @@
--- Anchor.lua: the tooltip anchor element that Layout places and scales, and the hook that puts GameTooltip at it or at the cursor.
+-- Anchor.lua: the tooltip anchor element that Layout places and scales, and the hook that puts GameTooltip at it, lifted over a shown threat card or target of target in its column, or at the cursor.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,6 +9,9 @@ ns.Anchor = Anchor
 
 local KEY = "tooltips.anchor"
 Anchor.KEY = KEY
+local LIFTS = { "meters.threat", "unitframes.targettarget" }
+local COLUMN, REACH = 300, 240
+Anchor.LIFTS, Anchor.COLUMN, Anchor.REACH = LIFTS, COLUMN, REACH
 
 local FALLBACK = {
 	label = K.L["Tooltip anchor"],
@@ -72,6 +75,31 @@ function Anchor.Corner()
 	return Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)
 end
 
+function Anchor.Lift(corner)
+	local Layout = K.Layout
+	if (corner ~= "BOTTOMRIGHT" and corner ~= "BOTTOMLEFT") or not (Layout and Layout.Rect and Layout.Element) then
+		return 0
+	end
+	local left, bottom, width = Layout.Rect(KEY)
+	if not (Logic.IsNumber(left) and Logic.IsNumber(bottom) and Logic.IsNumber(width)) then
+		return 0
+	end
+	local rects = {}
+	for _, key in ipairs(LIFTS) do
+		local element = Layout.Element(key)
+		local frame = element and element.frame
+		local visible = frame and frame:IsVisible()
+		if not Logic.IsSecret(visible) and visible == true then
+			local l, b, w, h = Layout.Rect(key)
+			if Logic.IsNumber(l) and Logic.IsNumber(b) and Logic.IsNumber(w) and Logic.IsNumber(h) then
+				rects[#rects + 1] = { l, b, l + w, b + h }
+			end
+		end
+	end
+	local right = corner == "BOTTOMRIGHT" and left + width or left + COLUMN
+	return Logic.Lift(bottom, right - COLUMN, right, rects, K.Tokens.Size("gapLarge"), REACH)
+end
+
 local function Place(tooltip, parent)
 	if not ns.active or tooltip ~= GameTooltip then
 		return
@@ -84,8 +112,14 @@ local function Place(tooltip, parent)
 		return
 	end
 	local corner = Anchor.Corner()
+	local lift = Anchor.Lift(corner)
+	local root, own = K.Scale.Root():GetEffectiveScale(), tooltip:GetEffectiveScale()
 	tooltip:ClearAllPoints()
-	tooltip:SetPoint(corner, holder, corner)
+	if lift > 0 and Logic.IsNumber(root) and Logic.IsNumber(own) and own > 0 then
+		tooltip:SetPoint(corner, holder, corner, 0, lift * root / own)
+	else
+		tooltip:SetPoint(corner, holder, corner)
+	end
 end
 
 function Anchor.IsHooked()

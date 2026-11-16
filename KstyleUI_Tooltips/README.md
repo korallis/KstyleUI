@@ -23,15 +23,15 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
-`Tooltips.xml` loads them in this order. Tests: `Tools/regression/test-tooltips-logic.lua` (the pure rules), `test-tooltips.lua` (glass, fonts, scale, anchor and settings) and `test-tooltips-units.lua` (unit lines, the health bar, IDs, the icon and embedded items), all against stand-in Blizzard tooltips from `tooltips_env.lua`.
+`Tooltips.xml` loads them in this order. Tests: `Tools/regression/test-tooltips-logic.lua` (the pure rules), `test-tooltips.lua` (glass, fonts, scale, anchor and settings), `test-tooltips-lift.lua` (the lift over the threat card and the target of target) and `test-tooltips-units.lua` (unit lines, the health bar, IDs, the icon and embedded items), all against stand-in Blizzard tooltips from `tooltips_env.lua`.
 
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Logic.lua` | Pure rules: the fixed anchor's corner, font flags, which item qualities light the edge, the line colours that soften, the title and caption text, Blizzard's item level line, the tooltip scale, the guild text and ID text |
+| `Logic.lua` | Pure rules: the fixed anchor's corner and its lift over the cards in its column, font flags, which item qualities light the edge, the line colours that soften, the title and caption text, Blizzard's item level line, the tooltip scale, the guild text and ID text |
 | `Settings.lua` | The defaults, the settings page and `Settings.Get(key)`, which returns the default for a saved value that is not allowed and logs it once |
 | `Style.lua` | The quest card on each tooltip, its edge, its heading's diamond and one heading rule, its fade in and icon, the embedded item border, the tooltip fonts, line spacing and the tooltip scale. `Style.Gilt()` reads S1's `gilt` token and falls back to `GILT_FALLBACK` until it lands: the one switch in this module |
-| `Anchor.lua` | The `tooltips.anchor` Layout element and the hook on `GameTooltip_SetDefaultAnchor` |
+| `Anchor.lua` | The `tooltips.anchor` Layout element, the hook on `GameTooltip_SetDefaultAnchor` and the lift over a shown threat card or target of target |
 | `Health.lua` | GameTooltip's health on a KstyleUI status bar |
 | `Units.lua` | Unit name colours, the guild and target lines, the unit edge and the bar colour |
 | `Content.lua` | The `TooltipDataProcessor` post-call that runs the rest for each tooltip type |
@@ -86,6 +86,7 @@ The bar docks inside the tooltip's glass: horizontal along the bottom edge (8 un
 `Anchor.lua` builds an empty 180 by 24 frame on `KstyleUI_Root` and registers it with Layout as `tooltips.anchor`, scalable, at the DPS position from `Setup.Layouts`: 8 units over the readout card's right corner, on no card, so a tooltip grows up the right rail and never covers the readout or the menu you hover. Its mover plate shows in Layout Mode; it draws nothing otherwise.
 
 - **Tooltip anchor** (the default): the hook on `GameTooltip_SetDefaultAnchor` moves `GameTooltip` to the anchor's corner nearest the screen corner, so a tooltip at the bottom right grows up and to the left. Only tooltips Blizzard puts at its default place move; a tooltip a button anchors to itself stays there.
+- **Lift**: a tooltip that grows up first rises over the threat card and the target of target when either is shown in its column (`Anchor.LIFTS`: 300 units wide from the anchor's growing edge, 240 units up from the anchor), a large gap clear of the topmost (`Logic.Lift`, `Anchor.Lift`), so it never covers who holds aggro. Each card's rect is Layout's own (`Layout.Rect`), never a measurement. A tooltip that grows down never lifts. LEE-1535: under every HUD style the item tooltip covered the threat card.
 - **Mouse cursor**: the hook calls `SetOwner(parent, "ANCHOR_CURSOR_RIGHT", cursorX, cursorY)`.
 - The anchor element's scale, from Layout Mode or the element's Size setting, is every tooltip's scale.
 

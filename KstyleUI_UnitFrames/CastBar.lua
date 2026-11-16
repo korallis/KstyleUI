@@ -1,4 +1,4 @@
--- CastBar.lua: cast bars for the player, target, focus and boss frames: a chamfered icon square and a glass bar, run by duration objects through StatusBar:SetTimerDuration.
+-- CastBar.lua: cast bars for the player, target, focus and boss frames: a chamfered icon square and a glass bar, or under Medallions a square icon and a flat strip, run by duration objects through StatusBar:SetTimerDuration.
 local _, ns = ...
 
 local K = KstyleUI
@@ -45,6 +45,9 @@ local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
 local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
+local MEDAL_BAR, MEDAL_ROW_GAP = 8, 3
+local STEEL = { 185 / 255, 193 / 255, 204 / 255 }
+local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -126,8 +129,12 @@ local function Caption(cb)
 	return nil
 end
 
+local function Elapsed(cb)
+	return cb.mode == "above" or cb.medal == true
+end
+
 local function WriteTimer(cb, elapsed, total, remaining)
-	if cb.mode == "above" then
+	if Elapsed(cb) then
 		cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total)
 	elseif cb.mode == "below" then
 		cb.timer:SetFormattedText(REMAINING_FORMAT, remaining)
@@ -145,7 +152,7 @@ local function Tick(frame, elapsed)
 	cb.elapsed = 0
 	local duration = cb.duration
 	if duration then
-		if cb.mode == "above" then
+		if Elapsed(cb) then
 			WriteTimer(cb, duration:GetElapsedDuration(), duration:GetTotalDuration())
 		else
 			WriteTimer(cb, nil, nil, duration:GetRemainingDuration())
@@ -289,6 +296,11 @@ local function New(parent, kind, unit)
 	cb.iconMask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	cb.iconMask:SetAllPoints(cb.icon)
 	cb.icon:AddMaskTexture(cb.iconMask)
+	cb.iconEdge = iconFrame:CreateTexture(nil, "BACKGROUND")
+	cb.iconEdge:SetColorTexture(Tokens.Color("black"))
+	cb.iconEdge:SetAllPoints(iconFrame)
+	cb.iconEdge:Hide()
+	cb.medalOn = false
 	cb.panel = CreateFrame("Frame", nil, frame)
 	cb.chrome = Widgets.Chrome(cb.panel, { shape = "panel", fill = "surface", shadow = true })
 	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
@@ -388,6 +400,25 @@ local function Lined(cb)
 	end
 	local form = Settings.Form(cb.kind)
 	return form ~= "plate" and form ~= "column"
+end
+
+local function Form(cb)
+	cb.medal = K.HudStyle.Current() == "medallions"
+	cb.line = not cb.medal and Lined(cb)
+	cb.mode = not cb.medal and Caption(cb) or nil
+	if cb.medalOn == cb.medal then
+		return
+	end
+	cb.medalOn = cb.medal
+	cb.iconChrome:SetShown(not cb.medal)
+	cb.iconEdge:SetShown(cb.medal)
+	if cb.medal then
+		cb.icon:RemoveMaskTexture(cb.iconMask)
+	else
+		cb.icon:AddMaskTexture(cb.iconMask)
+	end
+	cb.bar.lit:SetShown(not cb.medal)
+	cb.bar.shade:SetShown(not cb.medal)
 end
 
 local function Anchor(cb, region, point, relative, relPoint, x)
@@ -529,9 +560,76 @@ local function LayoutCaption(cb, width, height)
 	cb.timer:SetShown(timerOn)
 end
 
+local function Spark(cb)
+	local cursor = cb.bar.fillCursor
+	if cb.medal and cursor then
+		cursor:SetColorTexture(unpack(SPARK))
+	end
+end
+
+local function LayoutMedal(cb, width, height)
+	local frame = cb.frame
+	local g = { medal = true }
+	cb.geometry = g
+	local lead = 0
+	local side = Snap(cb, height)
+	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
+		lead = side + Snap(cb, CAPTION_ICON_GAP)
+		g.icon = { x = 0, y = 0, w = side, h = side }
+		Place(cb, cb.iconFrame, g.icon)
+		local inset = Widgets.Border(frame)
+		cb.icon:ClearAllPoints()
+		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
+		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
+		cb.iconFrame:Show()
+	else
+		cb.iconFrame:Hide()
+	end
+	width = width - lead
+	cb.chrome:SetShadow(false)
+	cb.chrome:SetShown(false)
+	cb.panel:ClearAllPoints()
+	cb.panel:SetAllPoints(frame)
+	ShowLock(cb)
+	local size = Settings.FontSize(cb.kind, "cast")
+	local rowH = size + TEXT_EXTRA
+	local barH = math.min(MEDAL_BAR, height)
+	local labelOn = height - barH - MEDAL_ROW_GAP >= rowH
+	local bar = cb.bar
+	bar.opts.width, bar.opts.height = width, barH
+	bar:Restyle()
+	bar:ClearAllPoints()
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", lead, 0)
+	bar:SetSparkShown(false)
+	bar.keyline:Hide()
+	bar:SetTrackBacking(true)
+	bar:SetInnerEdge(true, "black")
+	bar:SetFillCursor(true)
+	Spark(cb)
+	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
+	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM.above * size), math.floor(width / 2)) or 0
+	local y = -Snap(cb, barH + MEDAL_ROW_GAP)
+	for _, text in ipairs({ cb.text, cb.timer }) do
+		text:ClearAllPoints()
+		text:SetHeight(Snap(cb, rowH))
+		text:SetJustifyV("TOP")
+	end
+	cb.text:SetPoint("TOPLEFT", frame, "TOPLEFT", lead, y)
+	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
+	cb.text:SetJustifyH("LEFT")
+	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
+	cb.timer:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, y)
+	cb.timer:SetWidth(Snap(cb, timerW))
+	cb.timer:SetJustifyH("RIGHT")
+	cb.timer:SetShown(timerOn)
+end
+
 function CastBars.Layout(cb, width, height)
-	cb.line = Lined(cb)
-	cb.mode = Caption(cb)
+	Form(cb)
+	if cb.medal then
+		LayoutMedal(cb, width, height)
+		return
+	end
 	if cb.mode then
 		LayoutCaption(cb, width, height)
 		return
@@ -593,6 +691,9 @@ end
 
 local function BarColor(cb)
 	local source = Settings.Value(cb.kind, "castbarColor")
+	if cb.medal and cb.kind == "player" and source ~= "custom" then
+		return unpack(STEEL)
+	end
 	if source == "custom" then
 		local c = Settings.Value(cb.kind, "castbarCustom")
 		return c.r, c.g, c.b
@@ -645,15 +746,15 @@ end
 
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
-	cb.line = Lined(cb)
-	cb.mode = Caption(cb)
+	Form(cb)
+	local caption = cb.mode ~= nil or cb.medal
 	local textPath, timerPath = path, path
-	if cb.mode and Settings.ThemeFont(cb.kind, "cast") then
+	if caption and Settings.ThemeFont(cb.kind, "cast") then
 		textPath, timerPath = (Tokens.Font("caps")), Lumen.Font("time")
 	end
 	cb.textPath = textPath
 	StyleText(cb.text, textPath, size, flags)
-	if cb.mode and flags == "" then
+	if caption and flags == "" then
 		local border = K.Scale.Border() / Widgets.ScaleFactor(cb.text)
 		cb.text:SetShadowColor(Tokens.Color("textShadow"))
 		cb.text:SetShadowOffset(border, -border)
@@ -663,7 +764,7 @@ function CastBars.Restyle(cb)
 	StyleText(cb.lock, path, size, flags)
 	cb.label:SetTextColor(Lumen.Color("muted"))
 	cb.lock:SetTextColor(Tokens.Color("hostile"))
-	if cb.mode then
+	if caption then
 		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 		cb.timer:SetTextColor(Tokens.Color("textEmphasis"))
 	elseif cb.line then
@@ -673,10 +774,17 @@ function CastBars.Restyle(cb)
 		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 		cb.timer:SetTextColor(Tokens.Color("text"))
 	end
-	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
-	cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "castEdge")
-	cb.bar:SetFillCursor(cb.mode ~= nil and cb.kind == "player")
+	if cb.medal then
+		cb.bar:SetBarTexture(Tokens.Texture("barFlat"))
+		cb.bar:SetInnerEdge(true, "black")
+		cb.bar:SetFillCursor(true)
+	else
+		cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
+		cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "castEdge")
+		cb.bar:SetFillCursor(cb.mode ~= nil and cb.kind == "player")
+	end
 	Orient(cb)
+	Spark(cb)
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -826,7 +934,7 @@ local function Start(cb, channel)
 	else
 		StopTimer(cb)
 	end
-	if not cb.bar.vertical and not cb.line and not cb.mode then
+	if not cb.bar.vertical and not cb.line and not cb.mode and not cb.medal then
 		cb.bar:PlaySheen(false)
 	end
 end
@@ -924,7 +1032,7 @@ local function Enabled(cb)
 	end
 	local form = Settings.Form(kind)
 	local plate = form == "plate"
-	local separate = kind == "player" and form == "column" or form == "bar"
+	local separate = kind == "player" and form == "column" or form == "bar" or K.HudStyle.Current() == "medallions" and Settings.CAST_ELEMENTS[kind] ~= nil
 	if cb.inline then
 		return not plate and not separate and Settings.Value(kind, "enabled")
 	end

@@ -233,6 +233,7 @@ end
 function Button.SetProc(b, on)
 	if on ~= (b.proc == true) then
 		b:SetProc(on)
+		ns.Slab.SetProc(b, on)
 	end
 end
 

@@ -268,7 +268,7 @@ Classes.WARLOCK = {
 		{ "Demon Skin", 136185, "20m" }, { "Blood Pact", 136124, "" },
 	},
 	pet = {
-		name = "Zabnik", level = 38, health = 920, healthMax = 1500, power = 820, powerMax = 1100, powerType = 0, powerToken = "MANA",
+		name = "Zabnik", level = 38, portrait = 136218, health = 920, healthMax = 1500, power = 820, powerMax = 1100, powerType = 0, powerToken = "MANA",
 		actions = { { "Firebolt", 135809 }, { "Fire Shield", 135806 }, { "Blood Pact", 136124 }, { "Phase Shift", 136164 } },
 	},
 }

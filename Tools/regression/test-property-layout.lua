@@ -1,4 +1,4 @@
--- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, both HUD styles, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the orbs and the quest card included.
+-- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, all three HUD styles, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the orbs, the Medallions hub and its wings, and the quest card included.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Property = dofile("Tools/regression/property_lib.lua")
 
@@ -20,7 +20,7 @@ local function Generate(g)
 	end
 	return {
 		width = math.max(1024, width), height = height,
-		preset = g:pick({ "DPS", "Tank", "Healer" }), style = g:pick({ "frames", "orbs" }),
+		preset = g:pick({ "DPS", "Tank", "Healer" }), style = g:pick({ "frames", "orbs", "medallions" }),
 		arrangement = g:pick({ "centred", "spread" }), canvas = g:pick({ "21:9", "16:9", "full" }),
 		size = (not g:bool(0.4)) and g:float(0.6, 1.5) or nil,
 		bars = { bar3 = g:bool(0.3), bar4 = g:bool(0.7), bar5 = g:bool(0.7), bar6 = g:bool(0.3) },
@@ -119,6 +119,10 @@ local function Place(c)
 			if c.style == "orbs" and key == "actionbars.bar2" then
 				w = w + Layouts.SPLIT_GAP
 			end
+			local grouped, groupHeight = Layouts.StyleSize(c.style, Scale.Aspect(), key)
+			if grouped then
+				w, h, offsetX = grouped, groupHeight, nil
+			end
 			local frame = env.CreateFrame("Frame", nil, Scale.Root())
 			frame:SetSize(w, h)
 			Layout.Register(frame, key, Layouts.Default(key), { label = key, module = element.module, scalable = true })
@@ -135,6 +139,20 @@ local function Place(c)
 				orbs[2] = { key = "orbs.power", x = (origin + cx + art.ringX) / pixel, y = cy / pixel, radius = art.ring / 2 / pixel }
 			end
 		end
+	end
+	local bar1, bar2
+	for _, r in ipairs(rects) do
+		bar1 = r.key == "actionbars.bar1" and r or bar1
+		bar2 = r.key == "actionbars.bar2" and r or bar2
+	end
+	if c.style == "medallions" and bar1 and bar2 then
+		local ring = Layouts.MEDALLIONS_RING / pixel
+		local cx, top = (bar1[3] + bar2[1]) / 2, math.max(bar1[4], bar2[4])
+		rects[#rects + 1] = { cx - ring / 2, top - ring / 2, cx + ring / 2, top + ring / 2, key = "medallions.hub", edges = {} }
+		local wing = Layouts.MEDALLIONS_WING
+		local reach, low, high = wing.reach / pixel, top + wing.lift / pixel, top + wing.top / pixel
+		rects[#rects + 1] = { cx - reach, low, cx - ring / 2, high, key = "medallions.wingLeft", edges = {} }
+		rects[#rects + 1] = { cx + ring / 2, low, cx + reach, high, key = "medallions.wingRight", edges = {} }
 	end
 	local rw, rh = Layout.RootSize()
 	local spec, sized = Layouts.Story(c.preset, rh, false, nil, rw).quests, Layouts.Story(c.preset, rh, false, c.style, rw).quests
@@ -153,6 +171,13 @@ end
 local function Apart(Layouts, a, b)
 	local pair = { [a] = true, [b] = true }
 	if pair["groupframes.party"] and pair["groupframes.raid"] then
+		return false
+	end
+	-- The hub's level plaque may cross the experience strip under the slab, as Layouts.Fits allows.
+	if (pair["medallions.wingLeft"] or pair["medallions.wingRight"]) and (pair["medallions.hub"] or pair["medallions.wingLeft"] and pair["medallions.wingRight"]) then
+		return false
+	end
+	if pair["medallions.hub"] and pair["databars.xp"] then
 		return false
 	end
 	return Layouts.Dock(a) ~= b and Layouts.Dock(b) ~= a

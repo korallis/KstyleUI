@@ -473,7 +473,12 @@ function modules.unitframes(opts)
 		if token == "player" and Common.StandIn("portrait-player-" .. class:lower() .. ".png") then
 			name = "portrait-player-" .. class:lower() .. ".png"
 		end
-		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
+		if token == "pet" and spec.pet and spec.pet.portrait then
+			texture:SetTexture(spec.pet.portrait)
+			notes[#notes + 1] = "the pet portrait is its summoning spell's icon; the game draws the pet's model"
+		else
+			notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
+		end
 	end
 	table.sort(notes)
 	if orbs then
@@ -535,6 +540,14 @@ function modules.actionbars(opts)
 			-- The game lists the class's forms (GetNumShapeshiftForms); the bar shows one button per form.
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
+			end
+			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
+			env.UnitRace = env.UnitRace or function()
+				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
+				return race, race, 1
+			end
+			env.UnitSex = env.UnitSex or function()
+				return 2
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
@@ -601,6 +614,37 @@ function modules.actionbars(opts)
 	end
 	env.RunTimers()
 	AB.W.Settle(env)
+	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
+	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
+	-- (entering combat 0.3 s ago: the wings out and the sweep halfway), proc (a fresh proc on slot 6, beside the hub,
+	-- or slot 12 on one row, or the nearest filled slot before it, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
+	local slabState = os.getenv("RENDER_MEDALLIONS_STATE")
+	if slabState and slabState ~= "" then
+		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
+		assert(ago, "RENDER_MEDALLIONS_STATE must be calm, combat, proc or levelup")
+		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs RENDER_HUD_STYLE=Medallions")
+		env._game.slots[61].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
+		env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+		local charging = AB.Button(ns, "bar2", 1)
+		charging.cooldown:Show()
+		charging.cooldown:GetScript("OnShow")(charging.cooldown)
+		local clock = env._now
+		env._now = env._time - ago
+		if slabState == "combat" then
+			env.SetCombat(true)
+		elseif slabState == "proc" then
+			local bar = ns.bars.bar1
+			local beside
+			for i = ns.Slab.Rows(bar.def, bar:Config()) == 2 and 6 or 12, 1, -1 do
+				beside = beside or AB.Button(ns, "bar1", i).spellID
+			end
+			env._game.procs[beside] = true
+			env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", beside)
+		elseif slabState == "levelup" then
+			env.FireEvent("PLAYER_LEVEL_UP", 12)
+		end
+		env._now = clock
+	end
 	local scene = build(env, opts, { time = env._time })
 	return finish(env, K, scene, "actionbars"), ns
 end
@@ -1284,6 +1328,16 @@ function modules.tooltips(opts)
 		K.Modules.Enable("Tooltips")
 	end
 	env.RunTimers()
+	local threat = opts.settings and opts.settings.Meters and opts.settings.Meters.threat
+	local liftNote
+	if threat and threat.shown then
+		local Layouts, key = K.Setup.Layouts, "meters.threat"
+		local element = Layouts.Element(key)
+		local card = env.CreateFrame("Frame", nil, K.Scale.Root())
+		K.Widgets.Place(card, key, Layouts.Default(key), { label = element.label, module = "Meters" })
+		K.Widgets.Size(card, element.width, element.height)
+		liftNote = "the threat card's place stands in for the Meters module in the tooltip's environment, so the tooltip lifts over it as in the game"
+	end
 	local tip = env.GameTooltip
 	env._items[4232] = { quality = 2, icon = 135349 }
 	env.GameTooltip_SetDefaultAnchor(tip, env.UIParent)
@@ -1302,6 +1356,9 @@ function modules.tooltips(opts)
 	T.W.Settle(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the tooltip's lines are laid out by the scene; the game's GameTooltip sizes and places its own text"
+	if liftNote then
+		scene.log[#scene.log + 1] = liftNote
+	end
 	return finish(env, K, scene, "tooltips"), ns
 end
 

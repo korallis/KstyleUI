@@ -36,6 +36,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Flyout.lua` | KstyleUI's own secure spell flyout |
 | `Bar.lua` | One bar: a Layout holder, a secure state header, the button grid, paging and the mouseover fade |
 | `Tray.lua` | The [Frames tray](#frames-tray): one card behind bars 1 and 2 while they stand stacked |
+| `Slab.lua` | The [Medallions slab](#medallions-slab): the slab behind bars 1 and 2, the crest hub between them and its motion |
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
 | `Vehicle.lua` | The leave-vehicle button beside bar 1 |
@@ -181,3 +182,12 @@ Shared rows: the font, size and outline of each of the four texts (the size is m
 - **Mouse clicks act on key down.** `SecureActionButtonTemplate` cannot tell an addon's mouse click from a key press, so both follow `ActionButtonUseKeyDown`, as other addon bars on this template do.
 - **A flyout of our own.** Blizzard's spell flyout expects Blizzard's button mixins and runs secure code on the button it opens from. A secure wrap and a small flyout frame of KstyleUI's own keep flyouts working in combat without KstyleUI code ever running inside Blizzard's flyout.
 - **Bars 3 and 6 start off; bars 4 and 5 start on.** The owner's picture (2026-11-09, LEE-20: "let the picture win") draws bars 4 and 5 as two columns of twelve in the right rail with every slot shown. Bars 3 and 6 are one switch away, and their Blizzard keybinds keep working on Blizzard's hidden buttons until the player turns them on.
+
+## Medallions slab
+
+Under the Medallions HUD style (KSTY-87 and KSTY-88, Lee's rulings of 2026-11-15), bars 1 and 2 are the two groups of one action slab: 6 by 2 slots each below 21:9, 12 by 1 at 21:9 and wider (`Slab.Rows`, from `Layouts.MedallionsGroup`). `Layouts.lua` places them on one baseline with `MEDALLIONS_HUB_GAP` between them; `Slab.lua` draws the slab behind them and the crest hub centred in the gap, its centre on the slots' top edge.
+
+- **Slots draw above the hub.** The slab and the hub, with its wings, rune ring, glow, sheen, particles, burst and plaque, draw at strata `LOW`; the slots and everything on them inherit the root's `MEDIUM`. The hub scales down to fit a gap narrower than its ring plus 4 units each side, and the wings sit above the top row, so no part of it covers a slot. `test-actionbars-medallions-hub` holds both at every CREW screen.
+- **The crest** comes from `KstyleUI.Medallions.Crest("player")` (its first return, with the second as the bloom), else a placeholder.
+- **Motion** is AnimationGroups only: the rune ring turns (Rotation, 90 s a turn, 2.25 times faster in combat through `SetAnimationSpeedMultiplier`), the glow and bloom breathe (Alpha, 4.2 s), a sheen crosses the crest every 6 s, and 5 particles rise at rest, 10 in combat. `PLAYER_REGEN_DISABLED` slides the wings out 22 units and fires the shockwave, crest flash and a light sweep along the slab both ways; `PLAYER_REGEN_ENABLED` folds them back. `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW` starts a class-tinted loop on the slot (the class's flipbook) and pulses the crest and glyphs; `SPELL_ACTIVATION_OVERLAY_GLOW_HIDE` stops the loop. `PLAYER_LEVEL_UP` writes the level, turns the plaque gold and plays the burst. Each piece asks `KstyleUI.Effects.Allows(kind)` (ambient, flare, particle or pulse) and follows `EffectsLevelChanged` when the effects layer is loaded, else maps the motion setting the same way: Full plays everything, Calm keeps the rune turn, breathing and sheen and every one-shot flare but holds the slot loop still and shows no particles, Off keeps the hub still and moves the wings at once.
+- **Textures** are M3's `med*` tokens; until they exist each falls back to an existing texture.
