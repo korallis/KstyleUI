@@ -39,6 +39,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 }, { 1920
 		local label = (screen[3] or "enUS") .. " " .. (screen[4] or "Medallions") .. " " .. screen[1] .. "x" .. screen[2] .. " scale " .. scale
 		local _, name = view.name:GetFont()
 		local _, caption = view.caption:GetFont()
+		if view.form == "slab" then
+			local unit = env._addons.KstyleUI_UnitFrames.Unit
+			assert(U.Shown(env, view.caption) == unit.Tracked(K.L["Beast"], (view.caption:GetFont())), label .. ": show the preview creature type before fitting the row")
+			assert(not view.caption:IsTruncated(), label .. ": show the complete preview creature type")
+		end
 		if not screen[3] and name < caption - 0.01 then failures[#failures + 1] = label .. ": initialise preview fonts before building the unit preview" end
 		local scene = Common.Scene.Build(env)
 		local rings = 0

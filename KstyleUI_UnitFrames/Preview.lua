@@ -141,6 +141,7 @@ local function Paint(view, kind)
 		PaintLumen(view, kind, sample)
 	end
 	if view.form == "slab" then
+		view.caption:SetText(ns.Unit.Tracked(sample.creature or sample.class or "", (view.caption:GetFont())))
 		ns.Slab.Caption(view)
 		ns.Unit.Refit(view)
 	end
