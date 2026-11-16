@@ -1,4 +1,3 @@
--- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab at any CREW screen, in all three presets: bars 1 and 2 stand in one row of twelve each at every screen (Lee's v0.2.0 report; the 16:9 sockets shrink to Layouts.MEDALLIONS_SLOT's 16:9 size), on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the experience strip runs along the slab's lower edge under both groups and the gap (the hub drawn over it), the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({

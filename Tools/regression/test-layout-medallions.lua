@@ -1,4 +1,3 @@
--- test-layout-medallions.lua: the Medallions HUD style's own positions: the style's preset table for every preset, defaults that follow the style and come back unchanged when it switches away, HudStyleChanged firing once with medallions, a position saved under Medallions kept under its medallions: key so the Frames position survives, and the 16:9 and 21:9 places of the slab and the tight unit cluster over it (KSTY-110 WP-C).
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function near(a, b)

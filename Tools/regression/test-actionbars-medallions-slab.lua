@@ -1,4 +1,3 @@
--- test-actionbars-medallions-slab.lua: the Medallions action slab is one connected piece at every CREW screen (LEE-1543, KSTY-110): bars 1 and 2 stand as one row of twelve each at every screen (Lee's v0.2.0 report: one row, as the mock-up; at 16:9 the sockets shrink to fit beside the chat), bar 1's twelve slots left of the crest hub and bar 2's twelve right of it, the slab, the hub and the experience strip along the slab's lower edge touch or overlap with no gap between their rects, the hub has no wings, the slots stand at Layouts' socket and gap for the screen's class (42 and 5 at 21:9 and wider) with the icon inset 3/42 of the socket, the warlock's pet bar sits in its own small slab 12 units outboard of the action slab (left of it at 21:9 and wider, right of it at 16:9), and the slab's edges are on whole physical pixels.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {

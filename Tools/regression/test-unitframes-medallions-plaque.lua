@@ -3,7 +3,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 
 local SCREENS = {
 	{ 1280, 720 }, { 1366, 768 }, { 1600, 900 }, { 1920, 1080 }, { 2383, 1540 }, { 2560, 1080 }, { 2560, 1440 },
-	{ 3440, 1440 }, { 3840, 1080 }, { 3840, 2160 }, { 5120, 1440 },
+	{ 3456, 2234 }, { 3440, 1440 }, { 3840, 1080 }, { 3840, 2160 }, { 5120, 1440 },
 }
 local FLOOR, REFERENCE, UI_HEIGHT = 9, 1080, 768
 local KINDS = { "pet", "player", "target", "focus" }
@@ -31,6 +31,10 @@ for _, screen in ipairs(SCREENS) do
 	local least = math.ceil(FLOOR * height / REFERENCE - 1e-6)
 	for _, kind in ipairs(KINDS) do
 		local view = ns.Frames.Get(kind).views[1]
+		for _, key in ipairs({ "healthText", "powerText" }) do
+			local font = view[key]:GetFont()
+			assert(font:match("BarlowSemiCondensedTabular%-SemiBold.ttf$"), what .. ": " .. kind .. " " .. key .. " must use Barlow's number role, got " .. font)
+		end
 		local m = view.medallion
 		assert(m and m:IsShown() and m.plaque:IsShown(), what .. ": the " .. kind .. " medallion shows its plaque")
 		assert(U.Shown(env, m.levelText) == tostring(env._units[kind].level), what .. ": the " .. kind .. " plaque shows its level")

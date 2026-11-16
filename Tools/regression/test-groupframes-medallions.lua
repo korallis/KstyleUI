@@ -1,4 +1,3 @@
--- test-groupframes-medallions.lua: under the Medallions HUD style the party wears painted badge medallions in a steel ring with no level badge or tile, the raid wears class-coloured tiles in the group tile slab material with the name on the fill and no portrait, the target ring turns steel, a painted badge drops the circle mask the engine portrait keeps, and switching back to Frames restores every look; a value the player changed from its default wins over the style's.
 local G = dofile("Tools/regression/group_env.lua")
 
 local function eq(got, want, what)

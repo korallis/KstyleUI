@@ -1,4 +1,4 @@
--- Slab.lua: the Medallions unit frame, a slab in the shared unit slab material, clean bars with the Medallions finish, an outlined health number and a medallion on its outer end, with the slab's colours and texts and the event effects (target flip-in, low-health ring, portrait sheen).
+-- Slab.lua: Medallions unit slabs and portrait effects.
 local _, ns = ...
 
 local K = KstyleUI

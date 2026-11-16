@@ -1,4 +1,3 @@
--- test-unitframes-medallions-auras.lua: under Medallions the target's debuffs are 22-unit tiles in the aura slab material over the target slab, the row ending at the bar's medallion end and growing away from it, each tile with a dispel-colour underline the engine paints and no Frames chrome; a saved aura size still wins, and Frames gets its chrome back on the same tiles.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 

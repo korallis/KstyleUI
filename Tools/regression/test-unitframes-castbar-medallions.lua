@@ -1,4 +1,3 @@
--- test-unitframes-castbar-medallions.lua: under the Medallions HUD style every cast bar is a slab of the unit slab material holding a flat bar on a dark track, with the caps spell name on its left and the time left on its right, and Frames and Orbs get their own look back.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
