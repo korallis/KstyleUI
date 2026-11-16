@@ -3,7 +3,7 @@
 KstyleUI is a World of Warcraft addon suite for the Forever client, written in Lua 5.1. This file holds the repository's facts: layout, commands, encoding, the Forever API rule and the mistakes that still need a person to remember them. Read the [design spec](docs/superpowers/specs/2026-11-07-kstyleui-design.md) and the [roadmap](docs/superpowers/plans/2026-11-07-kstyleui-roadmap.md) before you change code; the roadmap's Global Constraints and Core public API are binding. [`docs/DEVELOPING.md`](docs/DEVELOPING.md) has the contributor guide and [`docs/TESTING.md`](docs/TESTING.md) the test guide.
 
 Gate: bash scripts/gate.sh
-Known failing: on Windows, `test-actionbars-vehicle.lua` exceeds the 4096 MB peak-memory limit (4268 MB measured); a separate fix is in flight.
+Known failing: none
 Evidence: see verify/SKILL.md
 Budget rule: Mac CI is the CPU budget of record: default PUC Lua 5.1.5 files use 20 CPU s or measured LEE-5827 allowances for files at or above 16 CPU s. Windows and every non-CI CPU overrun warn; memory (4096 MB) and hang limits fail everywhere. The wall-clock hang guard is max(120 s, five times the adjusted CPU limit), or 120 s when CPU is not budgeted. LuaJIT and every `LUA` override print "not budgeted" for CPU. `test-perf` budgets remain at least five times measured Lua 5.1 CPU time; Windows skips headroom because MSVC `os.clock` measures wall time. See `Tools/regression/README.md` for calibration.
 
