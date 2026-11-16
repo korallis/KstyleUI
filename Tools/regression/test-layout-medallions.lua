@@ -112,4 +112,35 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+do
+	local _, K = New()
+	local Layouts = K.Setup.Layouts
+	local OFFSETS = { BOTTOM = { 0.5, 0 }, BOTTOMLEFT = { 0, 0 }, BOTTOMRIGHT = { 1, 0 }, TOP = { 0.5, 1 }, TOPLEFT = { 0, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, 0.5 }, RIGHT = { 1, 0.5 }, CENTER = { 0.5, 0.5 } }
+	local pad = Layouts.MEDALLIONS_SIDE.pad
+	for _, screen in ipairs({ { 1920, 1080, 0.9375 }, { 3456, 2234, 0.8158 }, { 2383, 1540, 0.789 }, { 1280, 720, 0.9375 } }) do
+		local cw, ch = screen[1] / screen[2] * 1080 / screen[3], 1080 / screen[3]
+		for _, name in ipairs(Layouts.Names()) do
+			local at = Layouts.Positions(name, "medallions", "16:9")
+			local function Box(key, grow)
+				local p = at[key]
+				local w, h = Layouts.StyleSize("medallions", "16:9", key)
+				if not w then
+					w, h = Layouts.Footprint(name, key)
+				end
+				local o = OFFSETS[p.anchor]
+				local l, b = cw * o[1] + p.x - w * o[1], ch * o[2] + p.y - h * o[2]
+				return { l - grow, b - grow, l + w + grow, b + h + grow }
+			end
+			local stance = Box("actionbars.stance", pad)
+			for _, key in ipairs({ "databars.micro", "databars.strip", "databars.bags", "meters.damage", "actionbars.pet" }) do
+				if at[key] then
+					local o = Box(key, key == "actionbars.pet" and pad or 0)
+					local clear = stance[3] <= o[1] + 1e-6 or o[3] <= stance[1] + 1e-6 or stance[4] <= o[2] + 1e-6 or o[4] <= stance[2] + 1e-6
+					assert(clear, string.format("%s %dx%d: the stance slab %.1f %.1f %.1f %.1f overlaps %s %.1f %.1f %.1f %.1f", name, screen[1], screen[2], stance[1], stance[2], stance[3], stance[4], key, o[1], o[2], o[3], o[4]))
+				end
+			end
+		end
+	end
+end
+
 print("ok layout medallions")

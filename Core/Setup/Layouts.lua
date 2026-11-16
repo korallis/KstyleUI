@@ -822,7 +822,7 @@ end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
-Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33.5, [ASPECTS[1]] = 34 }
+Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33, [ASPECTS[1]] = 33.5 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 10, castStack = 6 }
@@ -872,7 +872,7 @@ function Layouts.BuildMedallions()
 		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
 		if class == ASPECTS[1] then
 			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = sideY }
-			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad + side.gap }
+			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad }
 		end
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
