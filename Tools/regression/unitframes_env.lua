@@ -671,7 +671,7 @@ U.KINDS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "
 -- DbVersion() -> the saved-data version the core runs at, read from Core/Store.lua. A profile saved at the current
 -- version skips the migrations, so the older styles' saved settings stay as they are written.
 function U.DbVersion()
-	local file = assert(io.open("Core/Store.lua", "r"))
+	local file = assert(io.open("Core/Store.lua", "rb"))
 	local source = file:read("*a")
 	file:close()
 	return tonumber(assert(source:match("Store%.DB_VERSION = (%d+)")))

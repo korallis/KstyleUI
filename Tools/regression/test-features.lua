@@ -2,6 +2,7 @@
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local core = {}
 for _, path in ipairs(TocFiles("%.lua$")) do
@@ -32,14 +33,12 @@ assert(type(Features.account) == "table", "Features.account is missing")
 
 -- One module switch per KstyleUI_<Module> folder, named <Module>, and no switch without a folder.
 local folders = {}
-local pipe = assert(io.popen("ls -1d KstyleUI_*/ 2>/dev/null"))
-for line in pipe:lines() do
-	local module = line:match("^KstyleUI_(%w+)/?$")
+for _, folder in ipairs(fs.list(".", { dirs = true, match = "KstyleUI_*" })) do
+	local module = folder:match("^KstyleUI_(%w+)$")
 	if module then
 		folders[module] = true
 	end
 end
-pipe:close()
 assert(next(folders), "no KstyleUI_<Module> folders found")
 for module in pairs(folders) do
 	assert(Features.modules[module] ~= nil, "Features.modules has no switch for KstyleUI_" .. module)

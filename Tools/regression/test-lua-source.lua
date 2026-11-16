@@ -1,5 +1,6 @@
 -- test-lua-source.lua: the Lua tokenizer and walker that the source scanners share.
 local Source = dofile("Tools/regression/lua_source.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local function render(tokens)
 	local out = {}
@@ -204,9 +205,8 @@ expectEqual(
 )
 
 -- Every Lua file in the repository walks without an error.
-local pipe = assert(io.popen("git ls-files '*.lua'"))
 local count = 0
-for path in pipe:lines() do
+for _, path in ipairs(fs.tracked("*.lua")) do
 	local handle = assert(io.open(path, "rb"))
 	local text = handle:read("*a")
 	handle:close()
@@ -218,7 +218,6 @@ for path in pipe:lines() do
 	assert(walked, path .. ": " .. tostring(walkErr))
 	count = count + 1
 end
-pipe:close()
 assert(count > 10, "expected the repository's Lua files, walked " .. count)
 
 print("lua source ok: walked " .. count .. " files")

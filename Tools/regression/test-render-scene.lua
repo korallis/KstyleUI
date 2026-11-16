@@ -362,16 +362,7 @@ assert(Scene.PathKey("interface/targetingframe/UI-RaidTargetingIcons.BLP") == "i
 assert(Scene.PathKey("Interface\\AddOns\\KstyleUI\\Media\\Textures\\Dot.png") == nil, "an addon's file is not a client path")
 assert(Scene.PathKey("Fonts\\FRIZQT__.TTF") == nil, "a font is not a texture path")
 assert(Scene.PathKey(136235) == nil, "a file ID is not a path")
-local pathsDir = "Tools/render/out/paths-test"
-os.execute("mkdir -p " .. pathsDir .. "/interface/test")
-do
-	local source = assert(io.open("Media/Textures/Dot.png", "rb"))
-	local bytes = source:read("*a")
-	source:close()
-	local copy = assert(io.open(pathsDir .. "/interface/test/glyph.png", "wb"))
-	copy:write(bytes)
-	copy:close()
-end
+local pathsDir = "Tools/regression/fixtures/paths"
 Scene.PATHS_DIR = pathsDir
 local byPath = f:CreateTexture(nil, "ARTWORK")
 byPath:SetSize(10, 10)

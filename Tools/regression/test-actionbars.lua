@@ -1,5 +1,6 @@
 -- test-actionbars.lua: KstyleUI_ActionBars builds its secure bars on Enable, pages bar 1, mirrors keybinds, hides Blizzard's bars and stays out of gamepad mode's way.
 local AB = dofile("Tools/regression/actionbars_env.lua")
+local fs = dofile("Tools/regression/fs.lua")
 local W = AB.W
 
 local function near(a, b)
@@ -280,16 +281,16 @@ end
 -- The module's code never names a frame or function of Blizzard_GamepadActionBars.
 do
 	local names = {}
-	local pipe = assert(io.popen("grep -rhoE 'name=\"[A-Za-z_][A-Za-z0-9_]*\"|^function [A-Za-z_][A-Za-z0-9_]*|^[A-Za-z_][A-Za-z0-9_]* = ' ~/.local/share/wow-dev/wow-ui-source/Interface/AddOns/Blizzard_GamepadActionBars 2>/dev/null"))
-	for line in pipe:lines() do
-		local name = line:match('name="([%w_]+)"') or line:match("^function ([%w_]+)") or line:match("^([%w_]+) = ")
-		if name and #name > 6 then
+	local list = assert(io.open("Tools/data/gamepad_actionbar_names.txt", "rb"))
+	for name in list:read("*a"):gmatch("[^\r\n]+") do
+		if name:sub(1, 1) ~= "#" then
 			names[name] = true
 		end
 	end
-	pipe:close()
-	local files = assert(io.popen("ls KstyleUI_ActionBars/*.lua"))
-	for path in files:lines() do
+	list:close()
+	assert(names.GamepadActionBarMixin, "Tools/data/gamepad_actionbar_names.txt lists Blizzard_GamepadActionBars' names")
+	for _, file in ipairs(fs.list("KstyleUI_ActionBars", { match = "*.lua" })) do
+		local path = "KstyleUI_ActionBars/" .. file
 		local handle = assert(io.open(path, "rb"))
 		local text = handle:read("*a")
 		handle:close()
@@ -298,7 +299,6 @@ do
 			assert(not names[word], path .. " names " .. word .. " from Blizzard_GamepadActionBars")
 		end
 	end
-	files:close()
 end
 
 -- A reload in combat: Enable at PLAYER_LOGIN builds the secure bars at once, the one time that is allowed.

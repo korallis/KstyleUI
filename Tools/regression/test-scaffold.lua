@@ -1,5 +1,6 @@
 -- test-scaffold.lua: each module folder has its TOC, XML, README, package line, taint area and luacheck line, and the core loads its service files.
 local TocFiles = dofile("Tools/regression/toc_files.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 -- The modules the spec names. A folder on disk that is not listed here gets the same checks.
 local SPEC_MODULES = {
@@ -38,21 +39,9 @@ local function lines(text)
 	return out
 end
 
-local function list(glob)
-	local out = {}
-	local pipe = assert(io.popen("ls -1d " .. glob .. " 2>/dev/null"))
-	for line in pipe:lines() do
-		out[#out + 1] = line
-	end
-	pipe:close()
-	table.sort(out)
-	return out
-end
-
 -- Folders on disk, by module name.
 local folders = {}
-for _, dir in ipairs(list("KstyleUI_*/")) do
-	local folder = dir:gsub("/+$", "")
+for _, folder in ipairs(fs.list(".", { dirs = true, match = "KstyleUI_*" })) do
 	local module = folder:match("^KstyleUI_(%w+)$")
 	if module then
 		folders[module] = folder

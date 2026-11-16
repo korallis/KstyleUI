@@ -117,11 +117,13 @@ do
 	assert(NilBeforeSecret("if a == nil or Logic.IsSecret(b) then") == nil, "other values pass")
 	for _, path in ipairs(T.Files()) do
 		local n = 0
-		for line in io.lines(path) do
+		local handle = assert(io.open(path, "rb"))
+		for line in handle:lines() do
 			n = n + 1
 			local var = NilBeforeSecret(line)
 			assert(not var, path .. ":" .. n .. ": test issecretvalue(" .. tostring(var) .. ") before comparing it with nil")
 		end
+		handle:close()
 	end
 end
 

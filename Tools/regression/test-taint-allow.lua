@@ -1,9 +1,10 @@
 -- test-taint-allow.lua: the per-area allow-list loads and merges, rejects bad files, and must match findings exactly.
 local Scan = dofile("Tools/regression/taint_scan.lua")
 local loader = assert(loadfile("Tools/regression/taint_allow.lua"))
+local fs = dofile("Tools/regression/fs.lua")
 
-local root = os.tmpname()
-os.remove(root)
+local root = fs.TMP .. "/test-taint-allow"
+fs.rmtree(root)
 local cases = 0
 
 local function write(path, text)
@@ -15,8 +16,7 @@ end
 -- A fresh folder holding the given area files.
 local function folder(files)
 	cases = cases + 1
-	local dir = root .. "/case" .. cases
-	os.execute("mkdir -p '" .. dir .. "'")
+	local dir = fs.mkdir(root .. "/case" .. cases)
 	for name, text in pairs(files) do
 		write(dir .. "/" .. name, text)
 	end
@@ -62,7 +62,7 @@ local ok, err = pcall(function()
 	rejects({ ["Core.lua"] = "return {" }, "Core.lua")
 	rejects({ ["Core.lua"] = "os.exit(1)" }, "Core.lua")
 end)
-os.execute("rm -rf '" .. root .. "'")
+fs.rmtree(root)
 assert(ok, err)
 
 -- Check: a finding needs an entry, and the entry's count must match the number of places in the

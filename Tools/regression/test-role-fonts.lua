@@ -1,6 +1,7 @@
 -- test-role-fonts.lua: per-role font choices in Appearance: precedence, clearing, saving, profiles, custom paths, numeric roles, every shipped face, and LibSharedMedia retries.
 local Core = dofile("Tools/regression/core_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local ROLES = { "display", "heading", "title", "caps", "names", "unit", "body", "prose", "caption", "number", "time", "timer", "world" }
 local FOLIO = {
@@ -305,20 +306,8 @@ do
 	end
 	table.sort(want)
 	assert(table.concat(files, ",") == table.concat(want, ","), "the list is exactly the shipped files: " .. table.concat(files, ","))
-	local listing = io.popen and io.popen("ls Media/Fonts 2>/dev/null")
-	if listing then
-		local onDisk = {}
-		for line in listing:lines() do
-			if line:match("%.ttf$") then
-				onDisk[#onDisk + 1] = line
-			end
-		end
-		listing:close()
-		if #onDisk > 0 then
-			table.sort(onDisk)
-			assert(table.concat(onDisk, ",") == table.concat(want, ","), "every .ttf in Media/Fonts is selectable and none listed is missing")
-		end
-	end
+	local onDisk = fs.list("Media/Fonts", { match = "*.ttf" })
+	assert(table.concat(onDisk, ",") == table.concat(want, ","), "every .ttf in Media/Fonts is selectable and none listed is missing")
 	assert(#K.Tokens.FontRoles() == 13)
 end
 

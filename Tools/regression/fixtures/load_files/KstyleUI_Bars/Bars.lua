@@ -1,0 +1,3 @@
+local name, ns = ...
+ns.name = name
+KstyleUI_BarsLoaded = ns

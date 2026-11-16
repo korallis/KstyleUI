@@ -17,6 +17,7 @@
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(_G, "PIXEL_AUDIT", true)
 local Scene = dofile("Tools/render/scene.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local Audit = {}
 
@@ -397,14 +398,12 @@ function Audit.Reference(screen, layout)
 	return Audit.Check(scene, screen[2])
 end
 
--- Galleries() -> every gallery scene's name, in ls order.
+-- Galleries() -> every gallery scene's name, sorted.
 function Audit.Galleries()
 	local names = {}
-	local pipe = assert(io.popen("ls -1 Tools/render/scenes/gallery_*.lua 2>/dev/null"))
-	for line in pipe:lines() do
-		names[#names + 1] = line:match("([^/]+)%.lua$")
+	for i, file in ipairs(fs.list("Tools/render/scenes", { match = "gallery_*.lua" })) do
+		names[i] = file:match("^(.+)%.lua$")
 	end
-	pipe:close()
 	return names
 end
 
@@ -483,11 +482,12 @@ end
 -- LoadAllow() -> { [scene .. "\t" .. screen] = { [file] = count } } from pixel_allow.tsv.
 function Audit.LoadAllow(path)
 	local allow = {}
-	local f = io.open(path or Audit.ALLOW, "r")
+	local f = io.open(path or Audit.ALLOW, "rb")
 	if not f then
 		return allow
 	end
 	for line in f:lines() do
+		line = line:gsub("\r$", "")
 		if line ~= "" and line:sub(1, 1) ~= "#" then
 			local sceneName, screen, file, count = line:match("^([^\t]+)\t([^\t]+)\t([^\t]+)\t(%d+)$")
 			assert(sceneName, Audit.ALLOW .. ": a line must be scene, WIDTHxHEIGHT, file and count, got " .. line)

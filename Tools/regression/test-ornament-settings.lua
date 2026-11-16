@@ -5,7 +5,7 @@ local G = dofile("Tools/regression/ornament_guard_lib.lua")
 local env, K = W.New()
 local widgets, assets = K.Widgets, K.Widgets.OrnamentAssets
 local profile = K.Store.Module("Widgets")
-local reach = io.open("Tools/media/ornament_reach.json"):read("*a")
+local reach = io.open("Tools/media/ornament_reach.json", "rb"):read("*a")
 for name in pairs(assets) do assert(reach:find('"' .. name .. '"', 1, true), "only reachable tiers ship: " .. name) end
 for name in reach:gmatch('"(%w+)": ') do assert(assets[name], "a reachable tier ships: " .. name) end
 for name, spec in pairs(assets) do

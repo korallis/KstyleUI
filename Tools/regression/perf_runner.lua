@@ -11,10 +11,11 @@
 -- reports an error. A path that fails on time is measured again, up to ATTEMPTS times in all, and its
 -- fastest attempt counts, so a round that another process slowed (five agents' test runs on one Mac)
 -- does not fail a sound budget; an allocation found on any attempt stands. When a failure stands, the
--- report names the machine's load average. The perf/ files are split into GROUPS, one test file each,
+-- report names the machine's load average when the runner passes it in KSTYLEUI_LOAD. The perf/ files are split into GROUPS, one test file each,
 -- so each file keeps well inside its 20 s budget when run-all runs 18 files at once; a perf/ file that
 -- no group lists fails every group. Tools/regression/README.md describes the format.
 local Measure = dofile("Tools/regression/measure.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local ATTEMPTS = 3
 local GROUPS = {
@@ -63,17 +64,6 @@ function Perf.Event(env, event, ...)
 			handlers[i](frames[i], event, unpack(args, 1, n))
 		end
 	end
-end
-
-local function List(folder)
-	local names = {}
-	local pipe = assert(io.popen("ls -1A '" .. folder:gsub("'", "'\\''") .. "' 2>/dev/null"))
-	for name in pipe:lines() do
-		names[#names + 1] = name
-	end
-	pipe:close()
-	table.sort(names)
-	return names
 end
 
 local function Exists(path)
@@ -192,7 +182,7 @@ end
 
 -- Load(group) -> the paths of the group's files, each file and entry checked.
 local function Load(group)
-	local names = List(DIR)
+	local names = fs.list(DIR)
 	local grouping = GroupProblem(names, GROUPS)
 	assert(not grouping, grouping)
 	assert(GROUPS[group], "no perf group named " .. tostring(group))
@@ -214,15 +204,9 @@ local function Load(group)
 	return paths
 end
 
--- LoadAverage() -> the machine's 1, 5 and 15 minute load averages as uptime prints them, or nil.
 local function LoadAverage()
-	local pipe = io.popen("uptime 2>/dev/null")
-	if not pipe then
-		return nil
-	end
-	local line = pipe:read("*a") or ""
-	pipe:close()
-	return line:match("load averages?:%s*(.-)%s*$")
+	local load = os.getenv("KSTYLEUI_LOAD")
+	return load ~= "" and load or nil
 end
 
 -- TimeProblems(problems) -> the problems that are about time, which another attempt may clear; the

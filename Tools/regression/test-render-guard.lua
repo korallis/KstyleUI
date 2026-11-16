@@ -2,6 +2,7 @@
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Guard = dofile("Tools/render/guard.lua")
+local fs = dofile("Tools/regression/fs.lua")
 
 local TEX = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\"
 
@@ -22,12 +23,12 @@ local function glass(frame)
 end
 
 local function text(parent, value, width, wrap)
-	local fs = parent:CreateFontString(nil, "OVERLAY")
-	fs:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Regular.ttf", 14, "")
-	fs:SetWordWrap(wrap ~= false)
-	fs:SetSize(width, 16)
-	fs:SetText(value)
-	return fs
+	local label = parent:CreateFontString(nil, "OVERLAY")
+	label:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Regular.ttf", 14, "")
+	label:SetWordWrap(wrap ~= false)
+	label:SetSize(width, 16)
+	label:SetText(value)
+	return label
 end
 
 local function icon(parent, x, y)
@@ -314,7 +315,7 @@ assert(has("GuardSmall.big glass"), "a card larger than the card that holds it i
 assert(#outside == 5, "only the five spills are listed, not the popout's tiles or the wide holder's children: " .. table.concat(outside, "; "))
 
 -- The allowlist: an owner scope, a scene glob, a kind and a subject prefix ("=" for the whole subject).
-local path = os.tmpname()
+local path = fs.mkdir(fs.TMP .. "/test-render-guard") .. "/allow.tsv"
 local handle = assert(io.open(path, "wb"))
 handle:write("# a comment\n\n")
 handle:write("R4b\tgallery_window\toutside\tGuardWindow.column\tthe column is R4b's\n")

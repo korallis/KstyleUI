@@ -1,6 +1,7 @@
 -- render_scenes_lib.lua: what the test-render-scenes-*.lua tests share. It loads the scene scripts as libraries
 -- and checks that a scene built without error, is not empty, sits on the owner's screen and writes as JSON.
 rawset(_G, "RENDER_SCENE_LIB", true)
+local fs = dofile("Tools/regression/fs.lua")
 
 local M = {}
 
@@ -17,17 +18,15 @@ function M.setB(icon)
 end
 
 -- galleryScenes(keep) -> the names of the gallery scenes (Tools/render/scenes/gallery_*.lua) that keep(name) accepts,
--- in ls order; the render-scenes tests split them between files so each stays under its memory budget.
+-- sorted; the render-scenes tests split them between files so each stays under its memory budget.
 function M.galleryScenes(keep)
 	local names = {}
-	local pipe = assert(io.popen("ls -1 Tools/render/scenes/gallery_*.lua 2>/dev/null"))
-	for line in pipe:lines() do
-		local name = line:match("([^/]+)%.lua$")
-		if name and (keep == nil or keep(name)) then
+	for _, file in ipairs(fs.list("Tools/render/scenes", { match = "gallery_*.lua" })) do
+		local name = file:match("^(.+)%.lua$")
+		if keep == nil or keep(name) then
 			names[#names + 1] = name
 		end
 	end
-	pipe:close()
 	return names
 end
 

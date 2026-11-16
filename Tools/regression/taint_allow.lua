@@ -10,20 +10,10 @@
 -- that holds it. Tools/regression/README.md describes the format.
 
 local dir = ... or "Tools/regression/taint_allow"
+local fs = dofile("Tools/regression/fs.lua")
 
 local function fail(file, message)
 	error(file .. ": " .. message, 0)
-end
-
-local function list(folder)
-	local names = {}
-	local pipe = assert(io.popen("ls -1A '" .. folder:gsub("'", "'\\''") .. "' 2>/dev/null"))
-	for name in pipe:lines() do
-		names[#names + 1] = name
-	end
-	pipe:close()
-	table.sort(names)
-	return names
 end
 
 local function loadArea(file)
@@ -74,7 +64,7 @@ local function checkEntry(file, area, path, entry)
 end
 
 local merged = {}
-for _, name in ipairs(list(dir)) do
+for _, name in ipairs(fs.list(dir, { allow_empty = true })) do
 	local file = dir .. "/" .. name
 	local area = name:match("^(.+)%.lua$")
 	if not area then

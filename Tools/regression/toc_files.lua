@@ -1,20 +1,5 @@
 -- toc_files.lua: list the files the game loads, in load order, from the TOCs and their XML includes.
-
-local function shellQuote(s)
-	return "'" .. s:gsub("'", "'\\''") .. "'"
-end
-
--- Lua 5.1 has no directory API, so the shell expands the glob.
-local function list(glob)
-	local out = {}
-	local pipe = assert(io.popen("ls -1d " .. glob .. " 2>/dev/null"))
-	for line in pipe:lines() do
-		out[#out + 1] = line
-	end
-	pipe:close()
-	table.sort(out)
-	return out
-end
+local fs = dofile("Tools/regression/fs.lua")
 
 local function readFile(path)
 	local f = io.open(path, "rb")
@@ -108,11 +93,12 @@ return function(pattern, root)
 	end
 	local prefix = root == "." and "" or root .. "/"
 	local rels = {}
-	for _, tocPath in ipairs(list(shellQuote(root) .. "/*.toc")) do
-		local name = tocPath:match("([^/]+)%.toc$")
-		walkToc(prefix, name .. ".toc", rels)
-		for _, moduleToc in ipairs(list(shellQuote(root) .. "/" .. shellQuote(name) .. "_*/*.toc")) do
-			walkToc(prefix, moduleToc:match("([^/]+/[^/]+)$"), rels)
+	for _, toc in ipairs(fs.list(root, { match = "*.toc" })) do
+		walkToc(prefix, toc, rels)
+		for _, folder in ipairs(fs.list(root, { dirs = true, match = toc:match("^(.+)%.toc$") .. "_*", allow_empty = true })) do
+			for _, moduleToc in ipairs(fs.list(prefix .. folder, { match = "*.toc", allow_empty = true })) do
+				walkToc(prefix, folder .. "/" .. moduleToc, rels)
+			end
 		end
 	end
 	local files = {}
