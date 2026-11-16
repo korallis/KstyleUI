@@ -358,11 +358,23 @@ local function TileText(f)
 	ns.Names.Apply(f)
 end
 
+local function Slab(f, shown)
+	if not (f.medSlab or shown) then
+		return
+	end
+	f.medSlab = f.medSlab or Widgets.NineSlice(f, "medGroupTile", "BACKGROUND", 1)
+	Widgets.ShowSlice(f.medSlab, shown)
+	if shown then
+		Widgets.LayoutSlice(f.medSlab, f, select(3, Tokens.Texture("medGroupTile")))
+	end
+end
+
 local function Tile(f, parts, k)
 	local health, tile, block = parts.health, parts.tile, parts.block
 	f.tileless = true
 	f.chrome:SetShadow(false)
 	f.chrome:Restyle()
+	Slab(f, true)
 	local fit = f.nameFit
 	if fit then
 		fit.path, fit.kit = LABEL_FACE, false
@@ -405,7 +417,10 @@ local function Applied(f, parts, k)
 		end
 	elseif on and parts.tile then
 		Tile(f, parts, k)
-	elseif f.medSparkHidden then
+		return
+	end
+	Slab(f, false)
+	if f.medSparkHidden then
 		ShowCap(f, true)
 		Chip(f, false)
 		if f.auraClip then

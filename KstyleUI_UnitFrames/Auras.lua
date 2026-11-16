@@ -48,6 +48,7 @@ local TIMER_ROOM_EXTRA = 3
 local BADGE_PAD, BADGE_ALPHA = 1, 0.62
 local TEXT_FLOOR, TEXT_LINE = 10, 1.2
 local CHIP_LEVEL = 8
+local SLAB_ICON_INSET, SLAB_UNDERLINE = 2, 1.5
 local SORT = "Expiration"
 
 local issecretvalue = issecretvalue or function()
@@ -148,6 +149,21 @@ end
 
 function Auras.LayoutTile(tile)
 	local skin = tile.skin
+	local slab = tile.slab ~= nil and Settings.Form(tile.kind) == "slab"
+	if tile.slab then
+		Widgets.ShowSlice(tile.slab, slab)
+		tile.lineFrame:SetShown(slab)
+		tile.chrome:SetShown(not slab)
+	end
+	if slab then
+		Widgets.LayoutSlice(tile.slab, skin, select(3, Tokens.Texture("medAuraBorder")))
+		local inset = Widgets.Snap(skin, SLAB_ICON_INSET)
+		tile.icon:ClearAllPoints()
+		tile.icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
+		tile.icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+		tile.underline:SetHeight(math.max(Widgets.Border(skin), Widgets.Snap(skin, SLAB_UNDERLINE)))
+		return
+	end
 	tile.restyleChrome(tile.chrome)
 	tile.chrome:SetRimAccent(Settings.Accent())
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
@@ -286,6 +302,10 @@ local function Dispel(entry, button)
 	if not options then
 		return
 	end
+	if entry.slab then
+		button:AddDispelTypeTexture(entry.underline, { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false })
+		return
+	end
 	local slice = Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	Widgets.ShowSlice(slice, false)
 	entry.dispel = slice
@@ -298,6 +318,17 @@ local function Dress(view, key, button)
 	local entry = Auras.NewTile(button)
 	local skin = entry.skin
 	skin:SetAllPoints(button)
+	entry.kind = view.kind
+	if Settings.Form(view.kind) == "slab" then
+		entry.slab = Widgets.NineSlice(skin, "medAuraBorder", "BACKGROUND", 1)
+		entry.lineFrame = CreateFrame("Frame", nil, skin)
+		entry.lineFrame:SetAllPoints(skin)
+		entry.underline = entry.lineFrame:CreateTexture(nil, "OVERLAY")
+		entry.underline:SetTexture((Tokens.Texture("barFlat")))
+		entry.underline:SetPoint("BOTTOMLEFT", skin, "BOTTOMLEFT")
+		entry.underline:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT")
+		entry.underline:Hide()
+	end
 	entry.chrome.Restyle = function(chrome)
 		if Auras.Open() then
 			return entry.restyleChrome(chrome)

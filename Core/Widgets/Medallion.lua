@@ -3,10 +3,10 @@ local _, ns = ...
 
 local Widgets, Tokens, Motion, Scale = ns.Widgets, ns.Tokens, ns.Motion, ns.Scale
 
-local PORTRAIT_SHARE = 0.8
-local PLAQUE_SHARE = 0.27
-local PLAQUE_ALONG, PLAQUE_DOWN = 0.18, 0.86
-local PLAQUE_FONT, LEVEL_FLOOR = 0.46, 9
+local PORTRAIT_SHARE = 0.82
+local PLAQUE_SHARE = 16 / 86
+local PLAQUE_ALONG, PLAQUE_DOWN = 0.5 - 0.5 * math.sqrt(0.5), 0.5 + 0.5 * math.sqrt(0.5)
+local PLAQUE_FONT, LEVEL_FLOOR = 0.6, 9
 local LOW_SPREAD = 1.3
 local SHEEN_ALPHA = 0.45
 local FLIP, FLIP_FROM = 0.18, 0.05

@@ -62,7 +62,11 @@ end
 
 local view = frames.player.views[1]
 assert(view.form == "slab" and view.geometry.form == "slab", "the player is laid out as a slab")
-assert(view.slab and view.slab.fill:IsShown(), "the slab fill shows")
+assert(view.slab and view.slab[5]:IsShown(), "the slab's sliced material shows")
+assert(view.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")), "the slab wears the shared unit slab texture, not drawn lines")
+assert(view.healthText:GetJustifyH() == "RIGHT" and select(3, view.healthText:GetFont()) == "OUTLINE", "the player's health number sits right in the bar, outlined")
+assert(view.health.finish == "medallions" and view.health.cleanSheen:IsShown() and view.health.cleanLit:IsShown(), "the bar wears the Medallions finish: shade, sheen and a lit fill end")
+assert(not view.health.under.edgeSoft:IsShown() and view.health.under.edgeHard:IsShown(), "only the one black pixel stands round the bar")
 assert(view.geometry.chrome == false, "the glass chrome is off")
 local m = view.medallion
 assert(m and m:IsShown(), "the player medallion shows")
@@ -83,6 +87,7 @@ local target = frames.target.views[1]
 local tm = target.medallion
 assert(tm and tm:IsShown() and target.geometry.medalSide == "RIGHT" and target.geometry.mirror, "the target medallion sits on the right")
 assert(target.geometry.medal.x + target.geometry.medal.w > target.geometry.glass.w, "it hangs off the slab's right end")
+assert(target.healthText:GetJustifyH() == "LEFT", "the target's health number sits left in the bar, away from its medallion")
 local hr, hg, hb = K.Tokens.Color("healthHostile")
 er, eg, eb = tm.enamel:GetVertexColor()
 assert(near(er, hr) and near(eg, hg) and near(eb, hb), "a hostile NPC's ring takes the hostile colour")
@@ -156,7 +161,8 @@ assert(near(er, cr) and near(eg, cg) and near(eb, cb), "the class ring returns")
 noErrors("effects")
 
 K.Options.Write("HudStyle", "style", "frames")
-assert(view.form ~= "slab" and not m:IsShown() and not view.slab.fill:IsShown(), "Frames hides the slab and the medallion")
+assert(view.form ~= "slab" and not m:IsShown() and not view.slab[5]:IsShown(), "Frames hides the slab and the medallion")
+assert(view.health.finish == nil and view.health.under.edgeSoft:IsShown(), "Frames takes its own bar finish and soft edge back")
 assert(not m.sheenAnim:IsPlaying() and not m.pulse:IsPlaying(), "the medallion's animations stop")
 noErrors("back to Frames")
 print("ok unitframes medallions")

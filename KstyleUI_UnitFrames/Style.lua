@@ -673,9 +673,7 @@ local function Plain(...)
 end
 
 function Style.HealthTint(view, r, g, b)
-	if view.form == "slab" then
-		ns.Slab.Ink(view, r, g, b)
-	elseif view.geometry and view.geometry.form == "plate" and not view.geometry.compact and Plain(r, g, b) then
+	if view.geometry and view.geometry.form == "plate" and not view.geometry.compact and Plain(r, g, b) then
 		view.healthText:SetTextColor(r + (1 - r) * TINT, g + (1 - g) * TINT, b + (1 - b) * TINT)
 	else
 		view.healthText:SetTextColor(Tokens.Color("textEmphasis"))

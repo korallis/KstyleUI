@@ -45,8 +45,7 @@ local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
 local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
-local MEDAL_BAR, MEDAL_ROW_GAP = 8, 3
-local STEEL = { 185 / 255, 193 / 255, 204 / 255 }
+local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 
 local EVENTS = {
@@ -130,13 +129,13 @@ local function Caption(cb)
 end
 
 local function Elapsed(cb)
-	return cb.mode == "above" or cb.medal == true
+	return cb.mode == "above"
 end
 
 local function WriteTimer(cb, elapsed, total, remaining)
 	if Elapsed(cb) then
 		cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total)
-	elseif cb.mode == "below" then
+	elseif cb.mode == "below" or cb.medal then
 		cb.timer:SetFormattedText(REMAINING_FORMAT, remaining)
 	else
 		cb.timer:SetFormattedText(TIMER_FORMAT, remaining)
@@ -299,10 +298,6 @@ local function New(parent, kind, unit)
 	cb.iconMask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	cb.iconMask:SetAllPoints(cb.icon)
 	cb.icon:AddMaskTexture(cb.iconMask)
-	cb.iconEdge = iconFrame:CreateTexture(nil, "BACKGROUND")
-	cb.iconEdge:SetColorTexture(Tokens.Color("black"))
-	cb.iconEdge:SetAllPoints(iconFrame)
-	cb.iconEdge:Hide()
 	cb.medalOn = false
 	cb.panel = CreateFrame("Frame", nil, frame)
 	cb.chrome = Widgets.Chrome(cb.panel, { shape = "panel", fill = "surface", shadow = true })
@@ -414,11 +409,11 @@ local function Form(cb)
 	end
 	cb.medalOn = cb.medal
 	cb.iconChrome:SetShown(not cb.medal)
-	cb.iconEdge:SetShown(cb.medal)
-	if cb.medal then
-		cb.icon:RemoveMaskTexture(cb.iconMask)
-	else
-		cb.icon:AddMaskTexture(cb.iconMask)
+	if cb.medal and not cb.slab then
+		cb.slab = Widgets.NineSlice(cb.frame, "medUnitSlab", "BACKGROUND", 1)
+	end
+	if cb.slab then
+		Widgets.ShowSlice(cb.slab, cb.medal)
 	end
 	cb.bar.lit:SetShown(not cb.medal)
 	cb.bar.shade:SetShown(not cb.medal)
@@ -572,56 +567,40 @@ end
 
 local function LayoutMedal(cb, width, height)
 	local frame = cb.frame
-	local g = { medal = true }
-	cb.geometry = g
-	local lead = 0
-	local side = Snap(cb, height)
-	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
-		lead = side + Snap(cb, CAPTION_ICON_GAP)
-		g.icon = { x = 0, y = 0, w = side, h = side }
-		Place(cb, cb.iconFrame, g.icon)
-		local inset = Widgets.Border(frame)
-		cb.icon:ClearAllPoints()
-		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
-		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
-		cb.iconFrame:Show()
-	else
-		cb.iconFrame:Hide()
-	end
-	width = width - lead
+	cb.geometry = { medal = true }
+	cb.iconFrame:Hide()
 	cb.chrome:SetShadow(false)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
 	cb.panel:SetAllPoints(frame)
+	Widgets.LayoutSlice(cb.slab, frame, select(3, Tokens.Texture("medUnitSlab")))
 	ShowLock(cb)
-	local size = Settings.FontSize(cb.kind, "cast")
-	local rowH = size + TEXT_EXTRA
-	local barH = math.min(MEDAL_BAR, height)
-	local labelOn = height - barH - MEDAL_ROW_GAP >= rowH
+	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)
+	local barW, barH = math.max(0, width - 2 * MEDAL_INSET), math.max(0, height - 2 * MEDAL_INSET)
 	local bar = cb.bar
-	bar.opts.width, bar.opts.height = width, barH
+	bar.opts.width, bar.opts.height = barW, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", lead, 0)
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", inset, -inset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
 	bar:SetInnerEdge(true, "black")
 	bar:SetFillCursor(true)
 	Spark(cb)
-	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
-	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM.above * size), math.floor(width / 2)) or 0
-	local y = -Snap(cb, barH + MEDAL_ROW_GAP)
+	local size = Settings.FontSize(cb.kind, "cast")
+	local timerOn = Settings.Value(cb.kind, "castbarTimer")
+	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * size), math.floor(barW / 2)) or 0
 	for _, text in ipairs({ cb.text, cb.timer }) do
 		text:ClearAllPoints()
-		text:SetHeight(Snap(cb, rowH))
-		text:SetJustifyV("TOP")
+		text:SetHeight(Snap(cb, barH))
+		text:SetJustifyV("MIDDLE")
 	end
-	cb.text:SetPoint("TOPLEFT", frame, "TOPLEFT", lead, y)
-	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
+	cb.text:SetPoint("LEFT", bar, "LEFT", pad, 0)
+	cb.text:SetWidth(Snap(cb, math.max(0, barW - timerW - 2 * MEDAL_TEXT_PAD - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
-	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
-	cb.timer:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, y)
+	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
+	cb.timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
 	cb.timer:SetWidth(Snap(cb, timerW))
 	cb.timer:SetJustifyH("RIGHT")
 	cb.timer:SetShown(timerOn)
@@ -695,7 +674,7 @@ end
 local function BarColor(cb)
 	local source = Settings.Value(cb.kind, "castbarColor")
 	if cb.medal and cb.kind == "player" and source ~= "custom" then
-		return unpack(STEEL)
+		return K.Theme.Accent()
 	end
 	if source == "custom" then
 		local c = Settings.Value(cb.kind, "castbarCustom")

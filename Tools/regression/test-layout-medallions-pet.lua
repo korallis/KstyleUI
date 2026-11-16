@@ -8,12 +8,12 @@ local NEAR = K.Tokens.Size("gapLarge")
 -- the slots (Layouts.MEDALLIONS_SLAB).
 local RING, PLATE = Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_SLAB.pad
 -- KstyleUI_UnitFrames/Geometry.lua SLAB: the medallion's diameter for the slab's height, centred 2 in from its outer end.
-local MEDAL = { pet = 54 / 40, player = 84 / 54 }
+local MEDAL = { pet = 56 / 34, player = 86 / 58 }
 
 local function Box(place, kind)
 	local left, bottom = place.x - place.width / 2, place.y
 	local d = MEDAL[kind] * place.height
-	local cx, cy = left + 2 * place.height / (kind == "pet" and 40 or 54), bottom + place.height / 2
+	local cx, cy = left + 2 * place.height / (kind == "pet" and 34 or 58), bottom + place.height / 2
 	return {
 		math.min(left, cx - d / 2), math.min(bottom, cy - d / 2), place.x + place.width / 2, math.max(bottom + place.height, cy + d / 2),
 	}

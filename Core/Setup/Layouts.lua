@@ -826,6 +826,8 @@ Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 35 }
 Layouts.MEDALLIONS_ROWS = { [ASPECTS[1]] = 2 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
+Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 10, castStack = 6 }
+Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["unitframes.target"] = { side = 1, d = 86 }, ["unitframes.pet"] = { side = -1, d = 56 } }
 
 function Layouts.MedallionsGroup(class)
 	local slot = Layouts.MEDALLIONS_SLOT
@@ -856,7 +858,7 @@ end
 
 function Layouts.BuildMedallions()
 	local hub, slab = Layouts.MEDALLIONS_HUB_GAP, Layouts.MEDALLIONS_SLAB
-	local reach, rise = 104 * MOCK_PX, 120 * MOCK_PX
+	local unit = Layouts.MEDALLIONS_UNITS
 	local sets = {}
 	for _, class in ipairs(ASPECTS) do
 		local _, _, width, height = Layouts.MedallionsGroup(class)
@@ -869,14 +871,15 @@ function Layouts.BuildMedallions()
 		local sideY = strip - slab.bottom + side.pad
 		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
 		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
-		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
-		local focusSize, pet = { 220 * MOCK_PX, 64 * MOCK_PX }, { 180 * MOCK_PX, 40 * MOCK_PX }
-		local petDrop, castH = 7 * MOCK_PX, select(2, ElementSize("unitframes.castbar.player"))
-		local cast = { frame[1] - 57 * MOCK_PX, castH }
+		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
+		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
+		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
 		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
-		local row = top + rise
-		if Layouts.MEDALLIONS_ROWS[class] then
-			row = math.max(row, layouts.DPS["databars.bags"].y + select(2, ElementSize("databars.bags")) + TIGHT + tot[2] + 9 * MOCK_PX - frame[2])
+		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
+		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
+		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2
+		if class == ASPECTS[1] then
+			petX, totX, miniY = reach + frame[1] - pet[1] / 2, reach + frame[1] - tot[1] / 2, row + frame[2] + unit.stack
 		end
 		local function At(anchor, x, y, size)
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
@@ -889,10 +892,10 @@ function Layouts.BuildMedallions()
 			["databars.xp"] = At("BOTTOM", 0, strip, { 2 * width + hub, slab.strip }),
 			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), row, frame),
 			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, row, frame),
-			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, row + frame[2] - 9 * MOCK_PX - tot[2], tot),
-			["unitframes.castbar.player"] = At("BOTTOM", -(reach + 9 * MOCK_PX + cast[1] / 2), row - NEAR - castH, cast),
-			["unitframes.castbar.target"] = At("BOTTOM", reach + 9 * MOCK_PX + cast[1] / 2, row - NEAR - castH, cast),
-			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] - pet[1] / 2), top + slab.pad + NEAR + petDrop, pet),
+			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
+			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
+			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
+			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
 			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
@@ -1199,20 +1202,32 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
-			local right, top = left + w, bottom + h
-			if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then
-				return false
+			local boxes = { { left, bottom, left + w, bottom + h, key = key } }
+			local medal = style == "medallions" and Layouts.MEDALLIONS_MEDALS[key]
+			if medal then
+				local d = floor(medal.d * pixelScale + 0.5)
+				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
+				local cy = bottom + h / 2
+				boxes[2] = { floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key = key }
 			end
-			for index = 1, #rects do
-				local rect = rects[index]
-				if left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top and Apart(key, rect.key) then
-					local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
-					if not dockBoundary or min(top, rect[4]) - max(bottom, rect[2]) > 1 then
-						return false
+			for _, box in ipairs(boxes) do
+				local l, b, r, t = box[1], box[2], box[3], box[4]
+				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight or r <= l or t <= b then
+					return false
+				end
+				for index = 1, #rects do
+					local rect = rects[index]
+					if l < rect[3] and rect[1] < r and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
+						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
+						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
+							return false
+						end
 					end
 				end
 			end
-			rects[#rects + 1] = { left, bottom, right, top, key = key }
+			for _, box in ipairs(boxes) do
+				rects[#rects + 1] = box
+			end
 		end
 	end
 	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then

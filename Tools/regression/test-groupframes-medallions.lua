@@ -1,4 +1,4 @@
--- test-groupframes-medallions.lua: under the Medallions HUD style the party wears painted badge medallions in a steel ring with no level badge or tile, the raid wears class-coloured tiles with the name on the fill and no portrait, the target ring turns steel, a painted badge drops the circle mask the engine portrait keeps, and switching back to Frames restores every look; a value the player changed from its default wins over the style's.
+-- test-groupframes-medallions.lua: under the Medallions HUD style the party wears painted badge medallions in a steel ring with no level badge or tile, the raid wears class-coloured tiles in the group tile slab material with the name on the fill and no portrait, the target ring turns steel, a painted badge drops the circle mask the engine portrait keeps, and switching back to Frames restores every look; a value the player changed from its default wins over the style's.
 local G = dofile("Tools/regression/group_env.lua")
 
 local function eq(got, want, what)
@@ -180,6 +180,7 @@ each("raid", function(f)
 		assert(not f.medInked and sr < 0.1, f.unit .. ": with a dark shadow")
 	end
 	assert(f.tileless and not f.chrome.fill[5]:IsShown(), f.unit .. ": the fill is the tile")
+	assert(f.medSlab and f.medSlab[5]:IsShown() and f.medSlab[5]:GetTexture() == (K.Tokens.Texture("medGroupTile")), f.unit .. ": the tile sits in the group tile slab material")
 	local namePath, _, nameFlags = f.name:GetFont()
 	eq(namePath, K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name is in the Medallions label face")
 	assert(not tostring(nameFlags or ""):find("OUTLINE"), f.unit .. ": with a soft shadow, not an outline")
@@ -211,6 +212,7 @@ each("raid", function(f)
 	local gr, gg, gb = K.Tokens.Color("friendly")
 	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar is the friendly green again")
 	eq(f.health.sparkLine:GetAlpha(), 1, f.unit .. ": the end cap returns")
+	assert(not f.medSlab[5]:IsShown(), f.unit .. ": the slab material goes with the style")
 	assert(f.name:GetFont() ~= K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name leaves the Medallions label face")
 	eq(f.name:GetText(), f.rawName, f.unit .. ": in its own case")
 	assert(f.healthText:GetFont() ~= K.Tokens.FontPath("PTSerifBold") or Settings.current.text.healthFont == K.Tokens.FontPath("PTSerifBold"), f.unit .. ": the percent takes the module's number face")

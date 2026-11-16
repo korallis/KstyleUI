@@ -309,6 +309,8 @@ local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
 end
 
+local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
+
 function Settings.Value(kind, key)
 	local own, d = Kinds(kind)
 	local default = d[key]
@@ -316,6 +318,10 @@ function Settings.Value(kind, key)
 		error("UnitFrames.Settings.Value: unknown setting " .. tostring(key), 2)
 	end
 	local value = own[key]
+	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
+	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
+		return slab
+	end
 	if type(value) ~= type(default) then
 		return default
 	end
@@ -365,7 +371,7 @@ local function OutlineFlags(outline)
 end
 
 local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
-local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 13, "PTSerifBold" }, power = { 9, "PTSerifBold" }, level = { 10, "InterSemiBold" } }
+local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 9 }, level = { 10, "InterSemiBold" }, aura = { 10 } }
 local SLAB_MINI_NAME = 9
 local SLAB_MINI = { targettarget = true, focustarget = true }
 
@@ -401,8 +407,8 @@ function Settings.Font(kind, element)
 	local slab = SLAB_TEXT[element]
 	if slab and Settings.Form(kind) == "slab" then
 		local base = SLAB_MINI[kind] and element == "name" and SLAB_MINI_NAME or slab[1]
-		size = base / K.Scale.DEFAULT_USER_SCALE * size / default.size
-		if path == themePath then
+		size = base * size / default.size
+		if path == themePath and slab[2] then
 			path = Tokens.FontPath(slab[2]) or path
 		end
 	end

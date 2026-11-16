@@ -13,6 +13,7 @@ local FLASH_ALPHA = 0.85
 local SPARK_PIXELS = 2
 local GLOW_WIDTH = 10
 local GLOW_ALPHA = 0.55
+local MED_SHEEN_SHARE, MED_SHEEN_ALPHA, MED_SHADE, MED_EDGE_ALPHA = 0.3, 0.13, 0.3, 0.35
 local LOW_SHARE = 0.4
 local LOW_STEP = 0.001
 local CHANNELS = 4
@@ -269,9 +270,20 @@ local function PlaceFill(self)
 	sheen:ClearAllPoints()
 	shade:ClearAllPoints()
 	lit:ClearAllPoints()
-	sheen:SetShown(not self.vertical and not self.flat)
-	shade:SetShown(not self.vertical and not self.flat)
-	lit:SetShown(not self.flat)
+	sheen:SetShown(not self.vertical)
+	shade:SetShown(not self.vertical)
+	if self.finish == "medallions" and not self.vertical then
+		local fill, side = self:GetStatusBarTexture(), Reversed(self) and "LEFT" or "RIGHT"
+		lit:SetPoint("TOP" .. side, fill, "TOP" .. side)
+		lit:SetPoint("BOTTOM" .. side, fill, "BOTTOM" .. side)
+		lit:SetWidth(px)
+		lit:SetColorTexture(Widgets.Rgba("white", MED_EDGE_ALPHA))
+		sheen:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -px)
+		sheen:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, -px)
+		sheen:SetHeight(Widgets.Snap(self, height * MED_SHEEN_SHARE))
+		shade:SetAllPoints(self)
+		return
+	end
 	lit:SetPoint("TOPLEFT", span, "TOPLEFT")
 	lit:SetPoint("TOPRIGHT", span, "TOPRIGHT")
 	lit:SetHeight(px)
@@ -283,11 +295,6 @@ local function PlaceFill(self)
 	shade:SetPoint("TOPRIGHT", sheen, "BOTTOMRIGHT")
 end
 
-function Bar:SetFlat(on)
-	self.flat = on == true
-	PlaceFill(self)
-end
-
 local function PlaceUnder(self)
 	local under, px = self.under, Widgets.Border(self)
 	local soft, hard = under.edgeSoft, under.edgeHard
@@ -295,11 +302,12 @@ local function PlaceUnder(self)
 	soft:SetPoint("TOPLEFT", self, "TOPLEFT", -2 * px, 2 * px)
 	soft:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 2 * px, -2 * px)
 	soft:SetColorTexture(Widgets.Rgba("barEdgeSoft"))
+	soft:SetShown(self.finish ~= "medallions")
 	hard:ClearAllPoints()
 	hard:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
 	hard:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
 	hard:SetColorTexture(Widgets.Rgba("black"))
-	under.track:SetColorTexture(Widgets.Rgba("barTrack"))
+	under.track:SetColorTexture(Widgets.Rgba(self.finish == "medallions" and "medFillBottom" or "barTrack"))
 	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:GetStatusBarTexture():SetShown(self.lossOn)
 	self.recent:SetStatusBarColor(Widgets.Rgba("white"))
@@ -312,8 +320,23 @@ local function Paint(self)
 	local gradient = self.gradients
 	Gradient(self.under:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
 	Gradient(self.recent:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
+	if self.finish == "medallions" then
+		Gradient(self.cleanSheen, gradient.medSheen, gradient.medSheen)
+		Gradient(self.cleanShade, gradient.medShade, gradient.shadeTop)
+		return
+	end
 	Gradient(self.cleanSheen, gradient.sheenBottom, gradient.sheenTop)
 	Gradient(self.cleanShade, gradient.shadeBottom, gradient.shadeTop)
+end
+
+function Bar:SetFinish(finish)
+	if self.finish == finish then
+		return
+	end
+	self.finish = finish
+	PlaceUnder(self)
+	PlaceFill(self)
+	Paint(self)
 end
 
 local function SyncLevels(self)
@@ -354,6 +377,7 @@ local function Wrap(bar)
 		setReverse(self, ...)
 		self.under:SetReverseFill(...)
 		self.recent:SetReverseFill(...)
+		PlaceFill(self)
 		PlaceSpark(self)
 	end
 	bar.Show = function(self)
@@ -486,6 +510,7 @@ function Widgets.UnitBar(parent, opts)
 		lossBottom = NewColor("barLoss"), lossTop = NewColor("barLossLit"),
 		sheenBottom = NewColor("white", SHEEN_BOTTOM), sheenTop = NewColor("white", SHEEN_TOP),
 		shadeBottom = NewColor("black", SHADE_BOTTOM), shadeTop = NewColor("black", 0),
+		medSheen = NewColor("white", MED_SHEEN_ALPHA), medShade = NewColor("black", MED_SHADE),
 	}
 	Flash(bar)
 	if opts.spark ~= false then

@@ -580,15 +580,15 @@ local function BarFrame(out, s, width, _, scale)
 end
 
 local SLAB = {
-	player = { h = 54, d = 84, bar = 21, side = "LEFT", extra = "health" },
-	target = { h = 54, d = 84, bar = 21, side = "RIGHT", extra = "caption" },
+	player = { h = 58, d = 86, bar = 26, power = 6, name = 14, side = "LEFT", extra = "health" },
+	target = { h = 58, d = 86, bar = 26, power = 6, name = 14, side = "RIGHT", extra = "caption" },
 	focus = { h = 44, d = 62, bar = 15, side = "LEFT" },
-	pet = { h = 40, d = 54, bar = 13, side = "LEFT" },
+	pet = { h = 34, d = 56, bar = 14, power = 3, side = "LEFT" },
 	boss = { h = 48, d = 62, bar = 16, side = "RIGHT" },
-	targettarget = { h = 36, bar = 12 },
-	focustarget = { h = 36, bar = 12 },
+	targettarget = { h = 34, bar = 14 },
+	focustarget = { h = 34, bar = 14 },
 }
-local SLAB_PAD = { top = 7, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 3, powerNameGap = 4, auraGap = 16, nameShare = 0.66, levelGap = 6, levelEm = 1.9 }
+local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7 }
 Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
 
 local function SlabFrame(out, s, width, height, scale)
@@ -616,14 +616,15 @@ local function SlabFrame(out, s, width, height, scale)
 	out.health = Rect(left, top, barW, barH)
 	local y = top + barH + SLAB_PAD.nameGap * k
 	if s.power then
-		local powerTop = top + barH + SLAB_PAD.powerGap * k
-		out.power = Rect(left, powerTop, barW, SLAB_PAD.power * k)
-		y = powerTop + SLAB_PAD.power * k + SLAB_PAD.powerNameGap * k
+		local powerTop, powerH = top + barH + SLAB_PAD.powerGap * k, (spec.power or SLAB_PAD.power) * k
+		out.power = Rect(left, powerTop, barW, powerH)
+		y = powerTop + powerH + SLAB_PAD.powerNameGap * k
 	end
 	if (s.healthText or "none") ~= "none" then
-		out.healthText = Rect(left, top, barW, barH)
+		local pad = SLAB_PAD.valuePad * k
+		out.healthText = Rect(left + pad, top, max(0, barW - 2 * pad), barH)
 	end
-	local rowH = TextH(nameSize)
+	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
 	local extra = (spec.extra == "health" and s.healthText == "both") or spec.extra == "caption"
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
 	if s.name then
@@ -640,7 +641,8 @@ local function SlabFrame(out, s, width, height, scale)
 		out.caption = Rect(extraX, y, extraW, rowH)
 	end
 	if s.auras and s.auraPosition == "SIDE" then
-		out.aura = Rect(left, -(s.auraSize + SLAB_PAD.auraGap), 0, 0)
+		local line = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing
+		out.aura = Rect(right and left + barW - line or left, -(s.auraSize + SLAB_PAD.auraGap), 0, 0)
 	end
 end
 
@@ -650,7 +652,7 @@ function Geometry.Reach(s)
 		if not (spec and spec.d) then
 			return 0, 0
 		end
-		local over = (spec.d / 2 - SLAB_PAD.centre) * MOCK_PX
+		local over = spec.d / 2 - SLAB_PAD.centre
 		if spec.side == "RIGHT" then
 			return 0, over
 		end

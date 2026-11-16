@@ -38,7 +38,7 @@ for _, screen in ipairs(SCREENS) do
 		local pixels = size * m.levelText:GetEffectiveScale() * height / UI_HEIGHT
 		assert(pixels >= least - 1e-6, string.format("%s: the %s's level number is %.2f px, under the %d-unit floor's %d px", what, kind, pixels, FLOOR, least))
 		local px = K.Widgets.Border(m)
-		assert(size <= m.plaque:GetWidth() * 0.46 + px / 2 + 1e-6, string.format("%s: the %s's level number (%.2f units) outgrows its %.2f-unit plaque", what, kind, size, m.plaque:GetWidth()))
+		assert(size <= m.plaque:GetWidth() * 0.6 + px / 2 + 1e-6, string.format("%s: the %s's level number (%.2f units) outgrows its %.2f-unit plaque", what, kind, size, m.plaque:GetWidth()))
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))
 	checked = checked + 1
