@@ -2,6 +2,12 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.3: Medallions, polished
+
+Medallions gets a polish pass. The chrome is dark gunmetal with rounded, bevelled edges, and the rails follow: dark cards with header bands in your class colour, a round minimap ring with an N badge, and matching chat, damage meter, quest card and tooltips. The action slab has recessed, rounded sockets, no keybinds on empty slots, a class-colour border inside a socket whose ability lights up, and a dark gunmetal ring round the crest; the wings are retired. Medallion rims carry an engraved band of runes. Numbers are Barlow Semi Condensed, nameplates are slimmer with ticks on your target, and scrolling combat text is gold and rises and fades faster. Your unit frames sit in one tight cluster just above the action slab, with outlined health numbers at the end of each bar, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline, and the action bars are one row of twelve a side at every screen. Unused Medallions art is gone, so the download is smaller.
+
+Fixes beyond the polish: the quest card keeps a quest whose details have not loaded yet while others update and retries the load after combat, RestedXP's Active Items box lines up with Active Targets, Options sliders and live previews keep their labels and portraits in bounds, the leave-vehicle button sits clear of the hub and stays visible when your first bar is faded, and the quest card, minimap face, data bars and loot feed have crisper edges at fitted HUD sizes. Frames and Orbs are otherwise unchanged. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.2: readable Medallions and one combat-text display
 
 The crest hub keeps its painted steel and runes visible between effects: changing its tint no longer revives the shock ring and square flash. Medallions bars are flat, without the white sheen, and bright health fills get dark, readable numbers. CombatText now hides Blizzard's separate world damage and healing numbers by default; a saved Keep choice remains unchanged. With Keep selected, the native numbers use the combat-text font role after a full logout to the character screen and login. `/reload` alone cannot refresh that font.

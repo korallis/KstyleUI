@@ -2,7 +2,7 @@
 
 <p align="center"><b>A complete, pixel-perfect interface for World of Warcraft: Forever, in one dark forged style.</b></p>
 
-<p align="center">Pick your HUD: classic frames, health and resource in two orbs round a forged tray, or Medallions, with a painted portrait of your character and a crest for your race and class over a steel action slab. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.</p>
+<p align="center">Pick your HUD: classic frames, health and resource in two orbs round a forged tray, or Medallions, with a painted portrait of your character and a crest for your race and class over a dark gunmetal action slab. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.</p>
 
 <p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-frames-orbs-and-medallions">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
 
@@ -33,13 +33,13 @@
 
 ### Medallions
 
-<p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen, in combat: round painted portraits on the player and target slabs, and one long steel action slab with a dwarf shaman's crest in a rune ring at its centre"></p>
+<p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen, in combat: round painted portraits on the player and target slabs, and one long dark action slab with a dwarf shaman's crest in a rune ring at its centre"></p>
 
 <p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen.</sub></p>
 
-**Medallions** turns your player and target frames into dark steel slabs with clean bars and a round medallion on the outer end. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. **v0.2.2** fixes the hub's lingering white ring and square, removes the white bar sheen and gives bright health fills readable dark numbers. CombatText hides Blizzard's separate world numbers by default; changing their font needs a full logout and login, not just `/reload`.
+**Medallions** is dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. Your player and target frames are slabs with clean bars, an outlined health number at the end of each bar and a round medallion on the outer end, its rim engraved with a band of runes. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. The frames sit in one tight cluster just above the action slab, with your pet and your target's target beside the medallions, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline. Numbers use Barlow Semi Condensed, and nameplates are slimmer, with ticks on your target.
 
-Your first two action bars sit in recessed sockets on one dark slab: twelve buttons left of the centre and twelve right of it in one row on every screen, with your experience along the slab's lower edge. An empty socket stays plain, and a keybind shows only on a slot that holds something. Your pet and stance bars get small matching slabs beside it, one each side on ultrawide screens and stacked on the right on 16:9 and narrower screens. In the middle is a crest painted for your race and class, 52 in all, seated in a dark gunmetal ring with a line of runes in your class colour. At rest the crest breathes. It pulses when an ability beside it lights up, and that ability's socket gets a border in your class colour. It bursts when you level up. It sits under your action buttons, so it never hides a spell.
+Your first two action bars sit in recessed, rounded sockets on one dark slab: twelve buttons left of the centre and twelve right of it in one row on every screen, with your experience along the slab's lower edge. An empty socket stays plain, and a keybind shows only on a slot that holds something. Your pet and stance bars get small matching slabs beside it, one each side on ultrawide screens and stacked on the right on 16:9 and narrower screens. In the middle is a crest painted for your race and class, 52 in all, seated in a dark gunmetal ring with a line of runes in your class colour. At rest the crest breathes. It pulses when an ability beside it lights up, and that ability's socket gets a border in your class colour. It bursts when you level up. It sits under your action buttons, so it never hides a spell.
 
 <table>
 <tr>
@@ -50,7 +50,7 @@ Your first two action bars sit in recessed sockets on one dark slab: twelve butt
 
 <p align="center"><sub>Test renders of the addon on a 1920 by 1080 screen, in combat: the whole Medallions HUD on the left, the crest and the slabs up close on the right.</sub></p>
 
-The rest of the screen follows. Cards, windows, tooltips and menus turn to steel, the minimap turns round in a steel ring, party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Medallions also answers what happens in a fight. A slot flashes steel when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low, and a burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
+The rest of the screen follows. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, chat, the damage meter, windows, tooltips and menus wear the same chrome, party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Medallions also answers what happens in a fight. A slot flashes when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low, and a burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
 
 **Medallions motion** in Options, General, Medallions sets how much moves. Full, the default, adds the game's own 3D spell effects for the big moments. Calm keeps the slow motion and short flashes. Off stops the motion, though the low-health edge still shows and the frames still dim after combat. **Options, General, Appearance, Motion** still wins: Reduced caps Medallions motion at Calm, and Off turns it off.
 
@@ -134,14 +134,14 @@ KstyleUI is one core addon and one addon per module. A module you switch off cos
 | Module | What it does |
 | --- | --- |
 | Core | The settings window, the HUD style, Layout Mode, profiles, the first-run setup, fonts, card material and `/kstyle` |
-| Unit Frames | Player, target, target of target, focus, pet and boss 1 to 5, as cards under Frames, as orbs and a wide target bar under Orbs, and as steel slabs with a round medallion under Medallions (a painted portrait for a player, the game's own portrait for a creature, pet or boss), with cast bars, auras, the class resource and threat |
+| Unit Frames | Player, target, target of target, focus, pet and boss 1 to 5, as cards under Frames, as orbs and a wide target bar under Orbs, and as dark slabs with a round medallion under Medallions (a painted portrait for a player, the game's own portrait for a creature, pet or boss), with cast bars, auras, the class resource and threat |
 | Group Frames | Party and raid frames up to 40, with roles, range fade, incoming heals, shields, debuffs and the dispel highlight; under Medallions, painted party badges and class-coloured raid tiles |
-| Action Bars | Secure action bars with paging, pet and stance bars, keybinds, cooldowns, proc glows, range shading and fade on mouseover, and an offer to put a newly learned rank on your bars; under Medallions, one steel slab round your race and class crest |
+| Action Bars | Secure action bars with paging, pet and stance bars, keybinds, cooldowns, proc glows, range shading and fade on mouseover, and an offer to put a newly learned rank on your bars; under Medallions, one dark slab round your race and class crest |
 | Cooldowns | Blizzard's Cooldown Manager in KstyleUI's slots: essential and utility rows, tracked buff icons and bars |
 | Auras | Your buffs and debuffs as icon rows beside the map, sorted by how you use them |
 | Nameplates | Flat plates with your debuffs, a cast bar, threat colour and name-only plates for objects |
 | Combat Text | White hits and gold crits with a short rise, on KstyleUI's font |
-| Minimap | A square map card (round in a steel ring under Medallions) with the zone, coordinates, clock and an addon-button drawer, with guide pins on the map's edge hidden unless you want them |
+| Minimap | A square map card (round in a dark ring with an N badge under Medallions) with the zone, coordinates, clock and an addon-button drawer, with guide pins on the map's edge hidden unless you want them |
 | Chat | Chat on a card, with tabs, timestamps, short channel names, clickable links, a copy window and history that survives a reload |
 | Bags | Combined bags and bank with search, sorting, categories, quality borders and junk selling |
 | Tooltips | Tooltips on the same card, with quality and class colours, a health bar and cursor anchoring |
