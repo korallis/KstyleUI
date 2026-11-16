@@ -155,7 +155,11 @@ function Common.ForceScreen(env, completePreset)
 				local layouts = K.Setup.Layouts
 				local limit = layouts.ScaleLimit
 				layouts.ScaleLimit = function(w, h, preset, _, hudStyle)
-					return limit(w, h, preset, nil, hudStyle)
+					local enabled = layouts.Enabled(preset)
+					if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" then
+						enabled["actionbars.bar3"] = true
+					end
+					return limit(w, h, preset, enabled, hudStyle)
 				end
 				env.FireEvent = fire
 			end

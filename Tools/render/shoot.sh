@@ -22,7 +22,7 @@
 # The render guard (Tools/render/guard.lua) then lists every text the page truncated to "..." and every piece of
 # content that reaches past its glass card, minus Tools/render/guard_allow.tsv. By default a finding the allowlist
 # does not cover fails the run (exit 3, after the PNG is written); --report lists every finding and never fails;
-# --strict also fails on an allowlist line that matched nothing, so a fixed defect leaves the list. RENDER_GUARD
+# --strict also fails on a grey-box texture log or an allowlist line that matched nothing. RENDER_GUARD
 # (report, default or strict) sets the mode for callers such as gallery.py and classes.py.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)

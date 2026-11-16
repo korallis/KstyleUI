@@ -3,15 +3,19 @@
 Usage:
     python3 Tools/media/hud_pictures.py --frames FRAMES.png --orbs ORBS.png --medallions MEDALLIONS.png
 
-The sources are three renders of the shipped code with no game art in them: no backdrop, no stand-ins cut from the
-handoff mock-up, and a HOME without the Blizzard icon and atlas caches, so every icon is the KstyleUI icon pack's
-own repaint (Tools/icons/setB) and every portrait the renderer's flat stand-in. From the repository root:
+The existing Frames and Orbs pictures were captured at revision 5cc0d479, and Medallions at b7ddc008. Those captures
+use the earlier per-module automatic fit; today's RENDER_SIZE=auto produces different geometry. The release
+refresh will retake the pictures with the current fit and crop boxes.
 
+The sources are three renders with no game art in them: no backdrop, no stand-ins cut from the
+handoff mock-up, and a HOME without the Blizzard icon and atlas caches, so every icon is the KstyleUI icon pack's
+own repaint (Tools/icons/setB) and every portrait the renderer's flat stand-in. From a checkout of 5cc0d479, run
+this historical recipe with style=Frames, then style=Orbs; from b7ddc008, use style=Medallions:
+
+    style=Frames
     mv Tools/render/out/standins Tools/render/out/standins.off
-    for style in Frames Orbs Medallions; do
-        HOME=$(mktemp -d) RENDER_HUD_STYLE=$style RENDER_SIZE=auto RENDER_SCREEN=1920x1080 \\
-            bash Tools/render/shoot.sh hud_reference --ppu 2 --no-standins --out /tmp/hud-$style.png
-    done
+    HOME=$(mktemp -d) RENDER_HUD_STYLE=$style RENDER_SIZE=auto RENDER_SCREEN=1920x1080 \\
+        bash Tools/render/shoot.sh hud_reference --ppu 2 --no-standins --out /tmp/hud-$style.png
     mv Tools/render/out/standins.off Tools/render/out/standins
 
 This script crops each render to the style's centre (a 2:1 box in the render's 1080-unit screen, CROPS), resamples
