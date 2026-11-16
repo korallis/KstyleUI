@@ -172,8 +172,9 @@ class WorkflowsTest(unittest.TestCase):
         lint = job.index("run: bash scripts/gate.sh lint")
         self.assertLess(job.index("python3 Tools/hooks/ci_scope.py all"), lint)
         steps = job[lint:].split("\n      - ")[1:]
-        self.assertEqual(len(steps), 6)
-        for step in steps[:-1]:
+        suite_steps = [step for step in steps[:-1] if "actions/upload-artifact@" not in step]
+        self.assertEqual(len(suite_steps), 5)
+        for step in suite_steps:
             self.assertRegex(step, r"if: \$\{\{ !cancelled\(\) && .*steps\.scope\.outputs\.", step)
         for step, output in (("Check the runner's Python is 3.12", "python"), ("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
             block = job.split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
@@ -207,6 +208,37 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('--shard "$SHARD/{0}"'.format(len(shards)), job)
         self.assertIn("lua ${{ matrix.shard }}/" + str(len(shards)), job)
+
+    def test_green_markers_prove_only_areas_that_ran_successfully_on_a_pr(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        for job, areas in (("lua", ("lua-${{ matrix.shard }}-of-${{ strategy.job-total }}",)),
+                           ("python-package", ("lint", "python", "package"))):
+            body = jobs[job]
+            self.assertIn("git rev-parse 'HEAD^{tree}'", body)
+            uploads = [step for step in body.split("\n      - ") if "actions/upload-artifact@" in step]
+            self.assertEqual(len(uploads), len(areas))
+            for area, upload in zip(areas, uploads):
+                self.assertIn("name: green-${{ steps.tree.outputs.tree }}-" + area, upload)
+                self.assertIn("if: ${{ success() && github.event_name == 'pull_request' && steps.scope.outputs.", upload)
+                self.assertIn("!= 'false' }}", upload)
+                self.assertIn("retention-days: 7", upload)
+                self.assertIn("if-no-files-found: error", upload)
+                self.assertIn("overwrite: true", upload)
+            self.assertIn("contents: read", body)
+            self.assertIn("actions: read", body)
+        self.assertIn("SHARD: ${{ matrix.shard }}", jobs["lua"])
+        self.assertIn("SHARD_TOTAL: ${{ strategy.job-total }}", jobs["lua"])
+
+    def test_push_reuse_is_a_step_decision_and_covers_lint_too(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        for body in jobs.values():
+            self.assertIn("    if: " + FORK_GUARD + "\n", body)
+            scope = body.split("id: scope", 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("GITHUB_TOKEN: ${{ github.token }}", scope)
+        job = jobs["python-package"]
+        for name in ("Check the runner's luacheck and pre-commit", "Run the lint gate"):
+            step = job.split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("if: steps.scope.outputs.lint != 'false'", step)
 
     def test_every_job_runs_on_the_mac_ci_runners_and_never_for_a_fork(self):
         for path in workflows():

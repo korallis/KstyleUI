@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
-"""ci_scope.py: decide whether a CI job has work to do, from the files a pull request changes.
+"""Decide CI work from PR changes or successful PR markers for a staging tree.
 
-Usage: python3 Tools/hooks/ci_scope.py <lua|python|package|all>
-Run it from the repository root after a checkout of at least two commits. A pull request run checks out the merge
-commit of the pull request and its base, so the first parent is the base and the diff between it and HEAD is
-exactly what the pull request changes. Prints one line per area that says whether the job runs and why, and appends
-run=true or run=false (one area) or lua=, python= and package= (all) to $GITHUB_OUTPUT. It always exits 0: a job that has nothing to do succeeds, so every
-job reports a result on every pull request.
-
-Only a pull request can skip work. Any other event (a push to staging, a manual run) runs everything, and so
-does a pull request whose changes cannot be read. A file counts as inert for an area only when no test or
-build step of that area can read it; when in doubt the file is not inert.
+Usage: ci_scope.py <lint|lua|python|package|all>. Writes run=true/false to
+GITHUB_OUTPUT, or one output per area for all. Missing or uncertain proof runs.
 """
 
 import fnmatch
+import http.client
+import json
 import os
 import subprocess
 import sys
+import urllib.parse
+import urllib.request
 
 AREAS = ("lua", "python", "package")
 
@@ -76,6 +72,8 @@ def decide(area, event, paths):
     """Return (run, reason). paths is the list of changed files, or None when it could not be read."""
     if event != "pull_request":
         return True, "not a pull request ({0}): everything runs".format(event or "no event")
+    if area == "lint":
+        return True, "lint checks every pull request"
     if not paths:
         return True, "the changed files could not be read or the pull request changes none: running to be safe"
     for path in paths:
@@ -99,21 +97,63 @@ def changed_paths():
     return [path for path in diff.decode("utf-8", "replace").split("\0") if path]
 
 
+def current_tree():
+    return subprocess.run(["git", "rev-parse", "HEAD^{tree}"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+
+
+def github_json(path):
+    request = urllib.request.Request(os.environ.get("GITHUB_API_URL", "https://api.github.com") + path,
+                                     headers={"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                                              "Accept": "application/vnd.github+json",
+                                              "X-GitHub-Api-Version": "2022-11-28"})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        return json.load(response)
+
+
+def push_decision(area):
+    try:
+        if os.environ.get("GITHUB_REF") != "refs/heads/staging":
+            return True, "staging moved or no proof: running"
+        tree = current_tree()
+        marker_area = area
+        if area == "lua":
+            shard, total = int(os.environ["SHARD"]), int(os.environ["SHARD_TOTAL"])
+            if not 1 <= shard <= total:
+                return True, "staging moved or no proof: running"
+            marker_area = f"lua-{shard}-of-{total}"
+        name = f"green-{tree}-{marker_area}"
+        repo = os.environ["GITHUB_REPOSITORY"]
+        artifacts = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))["artifacts"]
+        matches = [artifact for artifact in artifacts if artifact["name"] == name]
+        if matches:
+            newest = max(matches, key=lambda artifact: (artifact["created_at"], artifact["id"]))
+            if not newest["expired"]:
+                run_id = newest["workflow_run"]["id"]
+                run = github_json(f"/repos/{repo}/actions/runs/{run_id}")
+                if (run["path"] == ".github/workflows/checks.yml" and run["event"] == "pull_request"
+                        and run["status"] == "completed" and run["conclusion"] == "success"):
+                    return False, f"tree {tree}, area {marker_area} passed in run {run_id}: skipping"
+    except (OSError, http.client.HTTPException, subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+        pass
+    return True, "staging moved or no proof: running"
+
+
 def main(argv):
-    if len(argv) != 1 or argv[0] not in AREAS + ("all",):
-        print("usage: ci_scope.py <{0}|all>".format("|".join(AREAS)), file=sys.stderr)
+    if len(argv) != 1 or argv[0] not in ("lint",) + AREAS + ("all",):
+        print("usage: ci_scope.py <lint|{0}|all>".format("|".join(AREAS)), file=sys.stderr)
         return 2
-    areas = AREAS if argv[0] == "all" else (argv[0],)
+    areas = ("lint",) + AREAS if argv[0] == "all" else (argv[0],)
     event = os.environ.get("GITHUB_EVENT_NAME", "")
     paths = changed_paths() if event == "pull_request" else None
     lines = []
     for area in areas:
-        run, reason = decide(area, event, paths)
+        run, reason = push_decision(area) if event == "push" else decide(area, event, paths)
         print("{0}: {1}: {2}".format(area, "run" if run else "skip", reason))
         lines.append("{0}={1}".format(area if argv[0] == "all" else "run", "true" if run else "false"))
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
-        with open(output, "a", encoding="utf-8") as handle:
+        with open(output, "a", encoding="utf-8", newline="\n") as handle:
             handle.write("\n".join(lines) + "\n")
     return 0
 

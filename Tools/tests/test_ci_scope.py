@@ -1,12 +1,17 @@
 """Tests for Tools/hooks/ci_scope.py: which CI jobs a pull request can skip."""
 
+import contextlib
+import http.client
 import importlib.util
+import io
+import json
 import os
 import re
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPT = Path(__file__).resolve().parents[1] / "hooks" / "ci_scope.py"
 spec = importlib.util.spec_from_file_location("ci_scope", SCRIPT)
@@ -107,6 +112,97 @@ class ReadByTestsTest(unittest.TestCase):
                         self.assertFalse(ci_scope.is_inert(area, path), f"{source.name} names {path}: list it in READ_BY_TESTS")
 
 
+class PushProofTest(unittest.TestCase):
+    def scope(self, *, artifacts=None, run=None, area="lua", event="push", error=None, env=None):
+        tree = "a" * 40
+        marker = {"id": 2, "name": f"green-{tree}-lua-1-of-2", "created_at": "2026-11-16T12:00:00Z",
+                  "expired": False, "workflow_run": {"id": 123}}
+        proof = {"id": 123, "path": ".github/workflows/checks.yml", "event": "pull_request",
+                 "status": "completed", "conclusion": "success"}
+        calls = []
+
+        def api(path):
+            calls.append(path)
+            if error:
+                raise error
+            return {"artifacts": artifacts if artifacts is not None else [marker]} if "/artifacts?" in path else (run if run is not None else proof)
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "out"
+            settings = dict(GITHUB_EVENT_NAME=event, GITHUB_REF="refs/heads/staging",
+                            GITHUB_REPOSITORY="korallis/KstyleUI", GITHUB_TOKEN="test",
+                            SHARD="1", SHARD_TOTAL="2", GITHUB_OUTPUT=str(output))
+            settings.update(env or {})
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, settings), \
+                    mock.patch.object(ci_scope, "current_tree", return_value=tree, create=True), \
+                    mock.patch.object(ci_scope, "github_json", side_effect=api, create=True), \
+                    mock.patch.object(ci_scope, "changed_paths", return_value=["docs/a.md"]), \
+                    contextlib.redirect_stdout(stdout):
+                self.assertEqual(ci_scope.main([area]), 0)
+            return output.read_text(), stdout.getvalue(), calls
+
+    def test_successful_pr_proof_skips_the_exact_tree_and_shard(self):
+        output, log, calls = self.scope()
+        self.assertEqual(output, "run=false\n")
+        self.assertIn("tree " + "a" * 40 + ", area lua-1-of-2 passed in run 123: skipping", log)
+        self.assertIn("name=green-" + "a" * 40 + "-lua-1-of-2", calls[0])
+
+    def test_failed_cancelled_or_incomplete_latest_attempt_runs(self):
+        for conclusion, status in (("failure", "completed"), ("cancelled", "completed"), (None, "in_progress")):
+            with self.subTest(conclusion=conclusion):
+                self.assertEqual(self.scope(run={"path": ".github/workflows/checks.yml", "event": "pull_request",
+                                                "status": status, "conclusion": conclusion})[0], "run=true\n")
+
+    def test_a_marker_for_one_shard_does_not_prove_the_other(self):
+        self.assertEqual(self.scope(env={"SHARD": "2"})[0], "run=true\n")
+
+    def test_a_different_tree_expired_marker_or_missing_proof_runs(self):
+        for markers in ([], [{"name": "green-" + "b" * 40 + "-lua-1-of-2"}],
+                        [{"name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": True}]):
+            with self.subTest(markers=markers):
+                output, log, _ = self.scope(artifacts=markers)
+                self.assertEqual(output, "run=true\n")
+                self.assertIn("staging moved or no proof: running", log)
+
+    def test_newest_marker_must_pass_even_if_an_older_marker_did(self):
+        markers = [{"id": i, "name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                    "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}} for i in (1, 2)]
+        output, _, calls = self.scope(artifacts=markers, run={"conclusion": "failure"})
+        self.assertEqual(output, "run=true\n")
+        self.assertTrue(calls[-1].endswith("/runs/2"))
+
+    def test_wrong_workflow_or_event_cannot_prove_a_tree(self):
+        for path, event in ((".github/workflows/release.yml", "pull_request"), (".github/workflows/checks.yml", "push")):
+            self.assertEqual(self.scope(run={"path": path, "event": event, "status": "completed", "conclusion": "success"})[0], "run=true\n")
+
+    def test_api_or_malformed_response_errors_run(self):
+        for error in (OSError("offline"), http.client.IncompleteRead(b""), json.JSONDecodeError("bad", "", 0)):
+            output, log, _ = self.scope(error=error)
+            self.assertEqual(output, "run=true\n")
+            self.assertIn("staging moved or no proof: running", log)
+        self.assertEqual(self.scope(artifacts=[{}])[0], "run=true\n")
+
+    def test_pr_scope_and_manual_runs_do_not_query_proof(self):
+        for event, expected in (("pull_request", "false"), ("workflow_dispatch", "true")):
+            output, _, calls = self.scope(event=event)
+            self.assertEqual(output, f"run={expected}\n")
+            self.assertEqual(calls, [])
+
+    def test_combined_job_checks_lint_python_and_package_independently(self):
+        marker = {"id": 2, "name": "green-" + "a" * 40 + "-python", "created_at": "2026-11-16T12:00:00Z",
+                  "expired": False, "workflow_run": {"id": 123}}
+        output, _, _ = self.scope(area="all", artifacts=[marker])
+        self.assertEqual(output, "lint=true\nlua=true\npython=false\npackage=true\n")
+
+    def test_each_non_sharded_area_can_reuse_proof(self):
+        for area in ("lint", "python", "package"):
+            marker = {"id": 2, "name": "green-" + "a" * 40 + "-" + area,
+                      "created_at": "2026-11-16T12:00:00Z", "expired": False, "workflow_run": {"id": 123}}
+            with self.subTest(area=area):
+                self.assertEqual(self.scope(area=area, artifacts=[marker])[0], "run=false\n")
+
+
 class MainTest(unittest.TestCase):
     """Run the script in a repository that holds a pull request's merge commit."""
 
@@ -180,19 +276,19 @@ class MainTest(unittest.TestCase):
         self.merge_of({"docs/a.md": "b\n", "README.md": "c\n"})
         result, output = self.scope("all")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, "lua=false\npython=true\npackage=false\n")
+        self.assertEqual(output, "lint=true\nlua=false\npython=true\npackage=false\n")
 
     def test_all_runs_every_area_for_code(self):
         self.merge_of({"Core/Init.lua": "b\n"})
-        self.assertEqual(self.scope("all")[1], "lua=true\npython=true\npackage=true\n")
+        self.assertEqual(self.scope("all")[1], "lint=true\nlua=true\npython=true\npackage=true\n")
 
     def test_all_runs_every_area_for_a_push(self):
         self.merge_of({"docs/a.md": "b\n"})
-        self.assertEqual(self.scope("all", event="push")[1], "lua=true\npython=true\npackage=true\n")
+        self.assertEqual(self.scope("all", event="push")[1], "lint=true\nlua=true\npython=true\npackage=true\n")
 
     def test_a_mixed_pull_request_runs_what_any_of_its_files_reach(self):
         self.merge_of({"docs/a.md": "b\n", "Media/Textures/Dot.png": "x\n"})
-        self.assertEqual(self.scope("all")[1], "lua=true\npython=true\npackage=true\n")
+        self.assertEqual(self.scope("all")[1], "lint=true\nlua=true\npython=true\npackage=true\n")
 
     def test_a_bad_area_is_a_usage_error(self):
         result, _ = self.scope("bogus")

@@ -21,6 +21,9 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +35,17 @@ jobs:
           persist-credentials: false
       - name: Decide whether the Lua suite has work
         id: scope
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
         run: python3 Tools/hooks/ci_scope.py lua
+      - name: Identify the PR tree
+        id: tree
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+          echo passed > "$RUNNER_TEMP/ci-green"
       - name: Check the runner's Lua is 5.1.5
         if: steps.scope.outputs.run != 'false'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
@@ -41,6 +54,15 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: bash scripts/gate.sh lua --shard "$SHARD/2"
+      - name: Record the green Lua shard
+        if: ${{ success() && github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: green-${{ steps.tree.outputs.tree }}-lua-${{ matrix.shard }}-of-${{ strategy.job-total }}
+          path: ${{ runner.temp }}/ci-green
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Report a failed staging push
         if: (failure() || cancelled()) && github.event_name == 'push'
         run: 'echo "::error title=staging is red::The merged result of staging fails: lua. Open the failed step above for the test."'
@@ -50,6 +72,9 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,16 +82,35 @@ jobs:
           persist-credentials: false
       - name: Decide which suites have work
         id: scope
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python3 Tools/hooks/ci_scope.py all
+      - name: Identify the PR tree
+        id: tree
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+          echo passed > "$RUNNER_TEMP/ci-green"
       - name: Check the runner's luacheck and pre-commit
+        if: steps.scope.outputs.lint != 'false'
         run: |
           luacheck --version | grep '^Luacheck: 1\.2\.0$'
           pre-commit --version | grep '^pre-commit 4\.7\.0$'
       - name: Run the lint gate (crlf, pre-commit, luacheck, check_toc, strings, suppressions)
+        if: steps.scope.outputs.lint != 'false'
         env:
           GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
           KSTYLEUI_PYTHON: python3
         run: bash scripts/gate.sh lint
+      - name: Record green lint
+        if: ${{ success() && github.event_name == 'pull_request' && steps.scope.outputs.lint != 'false' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: green-${{ steps.tree.outputs.tree }}-lint
+          path: ${{ runner.temp }}/ci-green
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Check the runner's Lua is 5.1.5
         if: ${{ !cancelled() && (steps.scope.outputs.python != 'false' || steps.scope.outputs.package != 'false') }}
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
@@ -78,6 +122,15 @@ jobs:
         env:
           KSTYLEUI_PYTHON: python3
         run: bash scripts/gate.sh python
+      - name: Record green Python
+        if: ${{ success() && github.event_name == 'pull_request' && steps.scope.outputs.python != 'false' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: green-${{ steps.tree.outputs.tree }}-python
+          path: ${{ runner.temp }}/ci-green
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Package without uploading or localisation
         if: ${{ !cancelled() && steps.scope.outputs.package != 'false' }}
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
@@ -87,6 +140,15 @@ jobs:
       - name: Check the zip
         if: ${{ !cancelled() && steps.scope.outputs.package != 'false' }}
         run: bash Tools/hooks/check-package.sh
+      - name: Record green package
+        if: ${{ success() && github.event_name == 'pull_request' && steps.scope.outputs.package != 'false' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: green-${{ steps.tree.outputs.tree }}-package
+          path: ${{ runner.temp }}/ci-green
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Report a failed staging push
         if: (failure() || cancelled()) && github.event_name == 'push'
         run: 'echo "::error title=staging is red::The merged result of staging fails: lint, python and package. Open the failed step above for the test."'
