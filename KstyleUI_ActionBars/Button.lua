@@ -450,7 +450,7 @@ function ns.StyleTextsFor(b, barKey)
 		if fs and style then
 			local rolePath, roleSize = Tokens.Font(spec.role)
 			local path = style.font ~= "" and style.font or rolePath
-			local size = (type(style.size) == "number" and style.size or roleSize) * scale
+			local size = ns.Slab.TextSize(barKey, cfg, (type(style.size) == "number" and style.size or roleSize) * scale, spec.key)
 			local flags = ns.FontFlags(style.outline)
 			if not Widgets.ApplyFont(fs, path, size, flags) and path ~= rolePath then
 				Widgets.ApplyFont(fs, rolePath, size, flags)

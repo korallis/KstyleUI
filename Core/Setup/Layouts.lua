@@ -823,51 +823,78 @@ Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
 Layouts.MEDALLIONS_WING = { reach = 254, lift = 0, top = 64 }
+Layouts.MEDALLIONS_SLOT = { floor = 35, [ASPECTS[1]] = 35.5 }
+Layouts.MEDALLIONS_SIDE_ROWS = { [ASPECTS[1]] = 2 }
+Layouts.MEDALLIONS_SLAB = { pad = 6, stripGap = 4, strip = XP_H, bottom = 3 }
 
 function Layouts.MedallionsGroup(class)
-	local columns, rows = 12, 1
-	if class == ASPECTS[1] then
-		columns, rows = 6, 2
-	end
 	local grid = GRIDS["actionbars.bar1"]
-	return columns, rows, columns * grid.size + (columns - 1) * grid.spacing, rows * grid.size + (rows - 1) * grid.spacing
+	local size = Layouts.MEDALLIONS_SLOT[class] or grid.size
+	return grid.buttons, 1, grid.buttons * size + (grid.buttons - 1) * grid.spacing, size, size, grid.spacing
+end
+
+function Layouts.MedallionsSide(class, key)
+	local grid = GRIDS[key]
+	local rows = Layouts.MEDALLIONS_SIDE_ROWS[class] or grid.rows
+	local columns, gap = math.ceil(grid.buttons / rows), grid.spacing or PITCH
+	return rows, columns * grid.size + (columns - 1) * gap, rows * grid.size + (rows - 1) * gap
 end
 
 function Layouts.StyleSize(style, class, key)
-	if style == "medallions" and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+	if style ~= "medallions" then
+		return nil
+	end
+	if key == "actionbars.bar1" or key == "actionbars.bar2" then
 		local _, _, width, height = Layouts.MedallionsGroup(class)
+		return width, height
+	end
+	if (key == "actionbars.pet" or key == "actionbars.stance") and Layouts.MEDALLIONS_SIDE_ROWS[class] then
+		local _, width, height = Layouts.MedallionsSide(class, key)
 		return width, height
 	end
 end
 
 function Layouts.BuildMedallions()
-	local hub = Layouts.MEDALLIONS_HUB_GAP
+	local hub, slab = Layouts.MEDALLIONS_HUB_GAP, Layouts.MEDALLIONS_SLAB
 	local reach, rise = 104 * MOCK_PX, 120 * MOCK_PX
 	local sets = {}
 	for _, class in ipairs(ASPECTS) do
 		local _, _, width, height = Layouts.MedallionsGroup(class)
-		local baseline = math.max(TRAY_BAR1_Y, layouts.DPS["databars.xp"].y + XP_H + TIGHT + Layouts.MEDALLIONS_RING / 2 - height)
-		local top = baseline + height
-		local ends = hub / 2 + width + NEAR
+		local baseline = math.max(TRAY_BAR1_Y, EDGE + Layouts.MEDALLIONS_RING / 2 - height)
+		local top, strip = baseline + height, baseline - slab.stripGap - slab.strip
+		local ends = hub / 2 + width + slab.pad + NEAR
+		local _, petW, petH = Layouts.MedallionsSide(class, "actionbars.pet")
+		local _, stanceW = Layouts.MedallionsSide(class, "actionbars.stance")
+		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = TRAY_BOTTOM }
+		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = TRAY_BOTTOM }
+		if Layouts.MEDALLIONS_SIDE_ROWS[class] then
+			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = strip - slab.bottom }
+			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = strip - slab.bottom + petH + TIGHT }
+		end
 		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize, pet = { 220 * MOCK_PX, 64 * MOCK_PX }, { 180 * MOCK_PX, 40 * MOCK_PX }
-		local slabPad, petDrop, castH = 6, 7 * MOCK_PX, select(2, ElementSize("unitframes.castbar.player"))
+		local petDrop, castH = 7 * MOCK_PX, select(2, ElementSize("unitframes.castbar.player"))
 		local cast = { frame[1] - 57 * MOCK_PX, castH }
 		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
+		local row = top + rise
+		if Layouts.MEDALLIONS_SIDE_ROWS[class] then
+			row = math.max(row, layouts.DPS["databars.bags"].y + select(2, ElementSize("databars.bags")) + TIGHT + tot[2] + 9 * MOCK_PX - frame[2])
+		end
 		local function At(anchor, x, y, size)
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
 		end
 		sets[class] = {
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
-			["actionbars.pet"] = { anchor = "BOTTOM", x = -(ends + GridSize("actionbars.pet") / 2), y = TRAY_BOTTOM },
-			["actionbars.stance"] = { anchor = "BOTTOM", x = ends + GridSize("actionbars.stance") / 2, y = TRAY_BOTTOM },
-			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), top + rise, frame),
-			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, top + rise, frame),
-			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, top + rise + frame[2] - 9 * MOCK_PX - tot[2], tot),
-			["unitframes.castbar.player"] = At("BOTTOM", -(reach + 9 * MOCK_PX + cast[1] / 2), top + rise - NEAR - castH, cast),
-			["unitframes.castbar.target"] = At("BOTTOM", reach + 9 * MOCK_PX + cast[1] / 2, top + rise - NEAR - castH, cast),
-			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] - pet[1] / 2), top + slabPad + NEAR + petDrop, pet),
+			["actionbars.pet"] = petBar,
+			["actionbars.stance"] = stanceBar,
+			["databars.xp"] = At("BOTTOM", 0, strip, { 2 * width + hub, slab.strip }),
+			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), row, frame),
+			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, row, frame),
+			["unitframes.targettarget"] = At("BOTTOM", reach + frame[1] + 52 * MOCK_PX + tot[1] / 2, row + frame[2] - 9 * MOCK_PX - tot[2], tot),
+			["unitframes.castbar.player"] = At("BOTTOM", -(reach + 9 * MOCK_PX + cast[1] / 2), row - NEAR - castH, cast),
+			["unitframes.castbar.target"] = At("BOTTOM", reach + 9 * MOCK_PX + cast[1] / 2, row - NEAR - castH, cast),
+			["unitframes.pet"] = At("BOTTOM", -(reach + frame[1] - pet[1] / 2), top + slab.pad + NEAR + petDrop, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
 			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
@@ -895,7 +922,9 @@ function Layouts.Aspect(class, style, name, key)
 	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
 	local position = set and set[key]
 	if position and position.anchor and position.x and position.y then
-		return copy(position)
+		local place = copy(position)
+		place.width, place.height = position.width, position.height
+		return place
 	end
 end
 
@@ -1150,7 +1179,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
 			width, height, offsetX = Layouts.Footprint(name, key)
-			local styled = style and Layouts.Style(style, name, key)
+			local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
 			if styled and styled.width then
 				width, height, offsetX = styled.width, styled.height, nil
 			end
@@ -1199,7 +1228,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		end
 		for index = 1, #rects do
 			local rect = rects[index]
-			if left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
+			if rect.key ~= "databars.xp" and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
 				return false
 			end
 		end

@@ -1,4 +1,4 @@
--- test-layout-medallions.lua: the Medallions HUD style's own positions: the style's preset table for every preset, defaults that follow the style and come back unchanged when it switches away, HudStyleChanged firing once with medallions, a position saved under Medallions kept under its medallions: key so the Frames position survives, and the 21:9 and wider places of the one-row slab.
+-- test-layout-medallions.lua: the Medallions HUD style's own positions: the style's preset table for every preset, defaults that follow the style and come back unchanged when it switches away, HudStyleChanged firing once with medallions, a position saved under Medallions kept under its medallions: key so the Frames position survives, and the 16:9 and 21:9 places of the one-row slab.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function near(a, b)
@@ -51,15 +51,21 @@ do
 	local _, _, _, groupHeight = Layouts.MedallionsGroup("16:9")
 	local player, target = Layouts.Style("medallions", "DPS", PLAYER), Layouts.Style("medallions", "DPS", "unitframes.target")
 	assert(near(player.width, 300 * mock) and near(player.height, 54 * mock) and near(target.width, player.width) and near(target.height, player.height), "the player and target slabs are the mock's 300 by 54")
-	assert(near(player.x, -target.x) and near(player.y, target.y) and near(player.y, one.y + groupHeight + 120 * mock), "the player and target mirror about the hub, 120 mock pixels over the slots' top edge")
+	assert(near(player.x, -target.x) and near(player.y, target.y) and player.y >= one.y + groupHeight + 120 * mock - 1e-6, "the player and target mirror about the hub, at least 120 mock pixels over the slots' top edge")
+	local wideAt = Layouts.Positions("DPS", "medallions", "21:9")
+	local _, _, _, wideHeight = Layouts.MedallionsGroup("21:9")
+	assert(near(wideAt[PLAYER].y, wideAt[BAR1].y + wideHeight + 120 * mock), "at 21:9 the player and target stand 120 mock pixels over the slots' top edge")
 	assert(near(target.x - target.width / 2, 104 * mock), "the target's inner edge stands 104 mock pixels from the hub's centre")
 	local tot = Layouts.Style("medallions", "DPS", "unitframes.targettarget")
 	assert(near(tot.width, 112 * mock) and near(tot.x - tot.width / 2, target.x + target.width / 2 + 52 * mock) and near(tot.y + tot.height, target.y + target.height - 9 * mock), "the target of target stands 52 mock pixels off the target's outer edge, 9 under its top")
+	local bags = Layouts.Default("databars.bags")
+	local _, bagsHeight = Layouts.Footprint("DPS", "databars.bags")
+	assert(tot.y >= bags.y + bagsHeight - 1e-6, "at 16:9 the one-row slab is low, so the frame row rises until the target of target clears the bag bar")
 	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")
 	assert(near(boss.width, 280 * mock) and near(boss.height, 324 * mock), "the boss column is 280 wide and five 60-tall rows and four 6-unit gaps tall")
 	local wide = Layouts.Positions("DPS", "medallions", "21:9")
 	local narrow = Layouts.Positions("DPS", "medallions", "16:9")
-	assert(wide[BAR1].x < narrow[BAR1].x and wide[PLAYER].y < narrow[PLAYER].y, "the one-row slab is wider and its hub stands lower, so the unit frames sit lower at 21:9")
+	assert(wide[BAR1].x < narrow[BAR1].x and wide[PLAYER].y < narrow[PLAYER].y, "the 21:9 slab is wider, and its frames sit lower than the 16:9 row that rises to clear the bag bar")
 	local _, _, width = Layouts.MedallionsGroup("21:9")
 	assert(near(wide[BAR2].x, Layouts.MEDALLIONS_HUB_GAP / 2 + width / 2), "at 21:9 bar 2 starts a hub gap from the centre line")
 end

@@ -1,5 +1,15 @@
 # KstyleUI changelog
 
+## v0.2.1 (2026-11-16)
+
+The Medallions action slab as it was designed: one row and one connected piece.
+
+### Changed
+
+- Under Medallions, your first two action bars stand in a single row on every screen: twelve buttons left of the crest and twelve right of it. On 16:9 and narrower screens, such as a MacBook, the buttons are a fifth smaller so the row fits beside your chat, and their keybinds and cooldown numbers shrink with them so they never overlap.
+- The slab, the crest and its wings are now one piece. The crest sits in the slab, the wings grow out of the crest along the slab's top edge and slide further along it when you enter combat, and your experience runs along the slab's lower edge, under the crest.
+- Under Medallions on 16:9 and narrower screens, the pet and stance bars stand in two rows of five to the right of the slab, and the player and target frames sit a little higher so your target's target clears the bag bar.
+
 ## v0.2.0 (2026-11-16)
 
 A third HUD style, Medallions, with a painted portrait of your character and a crest for your race and class.

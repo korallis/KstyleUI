@@ -1,4 +1,4 @@
--- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab or the experience strip at any CREW screen, in all three presets: bars 1 and 2 stand on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
+-- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab at any CREW screen, in all three presets: bars 1 and 2 stand in one row on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the experience strip runs along the slab's lower edge under both groups and the gap (the hub drawn over it), the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({
@@ -23,7 +23,6 @@ local function Overlaps(a, b)
 	return a[1] < b[3] - 1e-9 and b[1] < a[3] - 1e-9 and a[2] < b[4] - 1e-9 and b[2] < a[4] - 1e-9
 end
 
-local grid = Layouts.Grid("actionbars.bar1")
 local slots = 0
 for _, name in ipairs(Layouts.Names()) do
 	for _, screen in ipairs(SCREENS) do
@@ -34,18 +33,20 @@ for _, name in ipairs(Layouts.Names()) do
 		local one, two = positions["actionbars.bar1"], positions["actionbars.bar2"]
 		assert(one.anchor == "BOTTOM" and two.anchor == "BOTTOM", label .. ": the slab's groups anchor to the bottom centre")
 		assert(one.y == two.y and one.x == -two.x, label .. ": bar 1 and bar 2 share a baseline and mirror about the centre line")
-		local columns, rows, groupWidth, groupHeight = Layouts.MedallionsGroup(class)
-		assert(columns * rows == 12, label .. ": each group holds the bar's twelve slots")
+		local columns, rows, groupWidth, groupHeight, size, spacing = Layouts.MedallionsGroup(class)
+		assert(columns == 12 and rows == 1, label .. ": each group holds the bar's twelve slots in one row")
+		assert(size >= Layouts.MEDALLIONS_SLOT.floor, label .. ": the slots keep the slot floor")
 		assert(two.x - groupWidth / 2 - (one.x + groupWidth / 2) >= GAP - 1e-9, label .. ": the groups stand at least the hub gap apart")
 		local hub = { -RING / 2, one.y + groupHeight - RING / 2, RING / 2, one.y + groupHeight + RING / 2 }
-		local _, xpHeight = Layouts.Footprint(name, "databars.xp")
-		assert(hub[2] >= positions["databars.xp"].y + xpHeight, label .. ": the hub clears the experience strip")
+		local xp, slab = Layouts.Aspect(class, "medallions", name, "databars.xp") or Layouts.Style("medallions", name, "databars.xp"), Layouts.MEDALLIONS_SLAB
+		assert(xp.anchor == "BOTTOM" and xp.x == 0 and math.abs(xp.width - (two.x + groupWidth / 2 - (one.x - groupWidth / 2))) < 1e-9, label .. ": the experience strip spans both groups and the gap")
+		assert(math.abs(xp.y + xp.height + slab.stripGap - one.y) < 1e-9, label .. ": the experience strip runs along the slab's lower edge, under the slots")
 		for _, bar in ipairs({ one, two }) do
 			for column = 0, columns - 1 do
 				for row = 0, rows - 1 do
-					local left = bar.x - groupWidth / 2 + column * (grid.size + grid.spacing)
-					local bottom = bar.y + row * (grid.size + grid.spacing)
-					assert(not Overlaps(hub, { left, bottom, left + grid.size, bottom + grid.size }), string.format("%s: the hub overlaps a slot at column %d row %d", label, column, row))
+					local left = bar.x - groupWidth / 2 + column * (size + spacing)
+					local bottom = bar.y + row * (size + spacing)
+					assert(not Overlaps(hub, { left, bottom, left + size, bottom + size }), string.format("%s: the hub overlaps a slot at column %d row %d", label, column, row))
 					slots = slots + 1
 				end
 			end

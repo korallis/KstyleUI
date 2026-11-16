@@ -404,6 +404,9 @@ local function Aspect(el, d, style)
 	local place = layouts and layouts.Aspect and layouts.Aspect(Scale.Aspect(), style or "frames", Layout.Setting("preset"), el.key)
 	if place then
 		d.anchor, d.x, d.y = place.anchor, place.x, place.y
+		if style and el.opts.resizable and place.width and place.height then
+			d.width, d.height = place.width, place.height
+		end
 	end
 	return d
 end

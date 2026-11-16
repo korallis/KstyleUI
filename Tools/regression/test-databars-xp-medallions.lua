@@ -1,4 +1,4 @@
--- test-databars-xp-medallions.lua: under the Medallions HUD style the experience and reputation bars are a flat strip of ten segments with the percent and rested share right-aligned under it, and Frames and Orbs get their own look back.
+-- test-databars-xp-medallions.lua: under the Medallions HUD style the experience and reputation bars are a flat strip of ten segments with the percent and rested share right-aligned under it, the experience strip moves to the slab's LOW strata so the crest hub draws over it, and Frames and Orbs get their own look and strata back.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 
@@ -31,6 +31,7 @@ eq(shownTicks(rep), 0, "the Frames reputation bar has no ticks")
 eq(rep.edge:IsShown(), false, "the Frames reputation bar has no strip edge")
 eq(rep.track.lit:IsShown(), true, "the Frames reputation track keeps its lit edge")
 local repPoint = rep.text:GetPoint(1)
+xp.holder:SetFrameStrata("HIGH")
 
 K.Options.Write("HudStyle", "style", "medallions")
 eq(K.HudStyle.Current(), "medallions", "the style switched")
@@ -103,6 +104,7 @@ K.Options.Write("DataBars", "xp.text", "none")
 eq(xp.text:IsShown(), false, "a player who turned the caption off still sees none")
 K.Options.Write("DataBars", "xp.text", "levelRested")
 noErrors("medallions strips")
+eq(xp.holder:GetFrameStrata(), "LOW", "under Medallions the experience strip sits at the slab's strata, under the hub")
 
 K.Options.Write("HudStyle", "style", "frames")
 eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. "rested 14%", "Frames gets the level caption back")
@@ -117,6 +119,7 @@ eq(rep.fill.innerEdgeOn, false, "no inner edge")
 eq(rep.track.lit:IsShown(), true, "and its lit edge is back")
 eq(select(1, rep.text:GetPoint(1)), repPoint, "the reputation caption is where it was")
 eq(rep.fill.texturePath, K.Options.Read("DataBars", "rep.texture"), "with the texture its settings name")
+eq(xp.holder:GetFrameStrata(), "HIGH", "back in Frames the experience strip gets the strata it had before Medallions")
 
 K.Options.Write("HudStyle", "style", "orbs")
 eq(select(1, xp.text:GetPoint(1)), "TOP", "Orbs keeps the Frames caption")

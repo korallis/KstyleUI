@@ -82,7 +82,7 @@ IMAGES = [
     ("hud_medallions_5120", "render:medallions_5120", None, 1600),
     ("hud_medallions_1080", "render:medallions_1080", None, 1200),
     ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
-    ("crop_medallions", "render:medallions_1080_2x", "2120x700+860+1380", 1000),
+    ("crop_medallions", "render:medallions_1080_2x", "2120x700+860+1460", 1000),
     ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
     ("crop_meter", "render:meter_party", "540x300+3290+1820", 540),

@@ -17,6 +17,7 @@ local HIT_PAD = 4
 local TEXT_GAP, XP_TEXT_GAP = 2, 6
 local XP_CAPTION_RAISE = 1.15
 local MEDAL_SEGMENTS, MEDAL_FONT_SIZE, MEDAL_TEXT_GAP = 10, 10, 3
+local SLAB_STRATA = "LOW"
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
@@ -276,6 +277,13 @@ local function Style(view, s)
 	LayoutTicks(view, s)
 	Font.Apply(view.text, s.font, s.fontSize, s.outline, "prose")
 	PlaceText(view, s.textPosition, s.medal)
+	if view.def.id == "xp" and s.medal and not view.lowered then
+		view.lowered = view.holder:GetFrameStrata()
+		view.holder:SetFrameStrata(SLAB_STRATA)
+	elseif view.lowered and not s.medal then
+		view.holder:SetFrameStrata(view.lowered)
+		view.lowered = nil
+	end
 end
 
 function Bars.PaintValues(view, s, info, instant)

@@ -39,12 +39,12 @@
 
 **Medallions** is new in v0.2.0. Your player and target frames become dark steel slabs with clean bars and a round medallion on the outer end. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait.
 
-Your first two action bars sit on one steel slab: two rows of six on each side of the centre on screens narrower than 21:9, and one row of twelve on each side on 21:9 and 32:9. In the middle is a crest painted for your race and class, 52 in all, in a turning ring of runes in your class colour. At rest the crest breathes. Its wings spread when you enter combat, it pulses when an ability beside it lights up, and it bursts when you level up. It sits under your action buttons, so it never hides a spell.
+Your first two action bars sit on one steel slab in a single row on every screen: twelve buttons left of the centre and twelve right of it, with your experience along the slab's lower edge. On 16:9 and narrower screens the buttons are a fifth smaller so the row fits beside your chat, and the pet and stance bars stand in two rows of five to its right. In the middle is a crest painted for your race and class, 52 in all, seated in the slab in a turning ring of runes in your class colour. At rest the crest breathes. Its wings grow out along the slab's top edge when you enter combat, it pulses when an ability beside it lights up, and it bursts when you level up. It sits under your action buttons, so it never hides a spell.
 
 <table>
 <tr>
 <td width="50%"><img src="docs/media/readme/hud_medallions_1080.jpg" alt="Test render of the KstyleUI addon's Medallions HUD on a 1920 by 1080 screen in combat"></td>
-<td width="50%"><img src="docs/media/readme/crop_medallions.jpg" alt="Test render of the KstyleUI addon's Medallions HUD up close: the player and target medallions on their slabs, the cast bars under them, and the crest hub between two rows of six action buttons on each side"></td>
+<td width="50%"><img src="docs/media/readme/crop_medallions.jpg" alt="Test render of the KstyleUI addon's Medallions HUD up close: the player and target medallions on their slabs, the cast bars under them, and the crest hub seated in the action slab between twelve action buttons on each side"></td>
 </tr>
 </table>
 

@@ -212,19 +212,19 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local rows = ns.Slab.Rows(def, cfg)
-	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
+	local rows, cell = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg)
+	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, cfg.spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch = size + gap
 	if CUMULATIVE[def.key] then
-		local _, _, columns, used = ns.GridSize(count, rows, cfg.size, cfg.spacing)
-		pitch = cfg.size + cfg.spacing
+		local _, _, columns, used = ns.GridSize(count, rows, cell, cfg.spacing)
+		pitch = cell + cfg.spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
 	end
 	local cols, used
-	if def.kind == "stance" and (cfg.rows or 1) > 1 then
-		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), cfg.rows, 1, 0)
+	if def.kind == "stance" and (rows or 1) > 1 then
+		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), rows, 1, 0)
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 	end
@@ -245,7 +245,7 @@ function Bar:Layout()
 	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin, -margin)
 	self.backing:SetShown(cfg.backing == true)
 	for i, b in ipairs(self.buttons) do
-		b.opts.size = cfg.size
+		b.opts.size = cell
 		if i <= count then
 			local col, row
 			if cols then

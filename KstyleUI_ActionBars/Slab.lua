@@ -1,4 +1,4 @@
--- Slab.lua: the Medallions action slab: a steel slab behind bar 1 and bar 2 set side by side, the crest hub in the gap between them at a strata below every slot, and its motion: the turning rune ring, breathing glow, sheen and particles, the combat wings and sweep, the proc pulse with each slot's flipbook, and the level-up burst.
+-- Slab.lua: the Medallions action slab: one steel slab enclosing bar 1 and bar 2 in one row either side of the crest hub, with the experience strip along its lower edge, the hub seated over it in the gap and its wings growing out of the hub along the slab's top edge, all at a strata below every slot, and its motion: the turning rune ring, breathing glow, sheen and particles, the combat wings and sweep, the proc pulse with each slot's flipbook, and the level-up burst.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,9 +12,11 @@ local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
 local STRATA = "LOW"
 local RING, CREST, SOCKET = 150, 134, 122
-local MARGIN, PAD, WING_LIFT = 4, 6, 2
+local MARGIN, HUB_LIFT, TEXT_FLOOR = 4, 8, 9
+local SLAB = { pad = 6, stripGap = 4, strip = 8, bottom = 3 }
 local GLOW_SHARE, BLOOM_SHARE = 1.5, 1.08
-local WING_W, WING_TOP, WING_BOTTOM, WING_SLIDE = 230, 66 / 256, 199 / 256, 22
+local WING_TEXEL, WING_LEFT, WING_RIGHT, WING_TOP, WING_CUT = 230 / 512, 158, 493, 67, 134
+local WING_ROOT, WING_SLIDE, WING_SINK = 66, 22, 2
 local PLAQUE_W, PLAQUE_H = 30, 18
 local PARTICLES, CALM_PARTICLES, PARTICLE_SIZE, PARTICLE_RISE = 10, 5, 7, 30
 local RUNE_TURN, COMBAT_SPEED = 90, 2.25
@@ -30,7 +32,6 @@ local PROC_START, PROC_SHARE, PROC_START_SHARE = 0.35, 1.5, 1.9
 local FLIP = { rows = 4, columns = 4, frames = 16, seconds = 0.96 }
 local LEVEL_FLIP = { rows = 4, columns = 4, frames = 16, seconds = 1.2 }
 local PARTICLE_CELLS = { rows = 2, columns = 2, frames = 4 }
-local ONE_ROW = { ["21:9"] = true, ["32:9"] = true }
 
 local FALLBACK = {
 	medHubWing = "orbArm", medHubSocket = "dot", medRuneRing = "ringBevel", medRuneGlyphs = "ring",
@@ -59,16 +60,54 @@ function Slab.Active()
 	return ns.running == true and K.HudStyle.Current() == STYLE
 end
 
+local function Layouts()
+	return K.Setup and K.Setup.Layouts or {}
+end
+
+function Slab.Spec()
+	return Layouts().MEDALLIONS_SLAB or SLAB
+end
+
 function Slab.Rows(def, cfg)
-	if (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE then
-		local Layouts = K.Setup and K.Setup.Layouts
-		if Layouts and type(Layouts.MedallionsGroup) == "function" then
-			local _, rows = Layouts.MedallionsGroup(K.Scale.Aspect())
-			return rows
-		end
-		return ONE_ROW[K.Scale.Aspect()] and 1 or 2
+	if K.HudStyle.Current() ~= STYLE then
+		return cfg.rows
+	end
+	if def.key == "bar1" or def.key == "bar2" then
+		return 1
+	end
+	local side = Layouts().MEDALLIONS_SIDE_ROWS
+	if (def.key == "pet" or def.key == "stance") and side and side[K.Scale.Aspect()] then
+		return side[K.Scale.Aspect()]
 	end
 	return cfg.rows
+end
+
+function Slab.Size(def, cfg)
+	local group = Layouts().MedallionsGroup
+	if not ((def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(group) == "function") then
+		return cfg.size
+	end
+	local _, _, _, _, size = group(K.Scale.Aspect())
+	local grid = Layouts().Grid and Layouts().Grid(def.element)
+	if not (Plain(size) and grid and Plain(grid.size) and grid.size > 0 and Plain(cfg.size)) then
+		return cfg.size
+	end
+	return cfg.size * size / grid.size
+end
+
+function Slab.TextSize(key, cfg, size, text)
+	local bar = ns.bars and ns.bars[key]
+	if not (bar and Plain(cfg.size) and cfg.size > 0) then
+		return size
+	end
+	local fit = Slab.Size(bar.def, cfg) / cfg.size
+	if not (Plain(fit) and fit < 1) then
+		return size
+	end
+	if text == "cooldown" then
+		return min(size, max(K.Scale.TEXT_FLOOR, size * fit * fit))
+	end
+	return max(TEXT_FLOOR, size * fit)
 end
 
 local function Known(name)
@@ -327,12 +366,12 @@ local function BuildRing(hub)
 	hub.wings = {}
 	for i, side in ipairs({ -1, 1 }) do
 		local wing = Region(hub, "BORDER", 0, Slab.Texture("medHubWing"))
-		Widgets.Size(wing, WING_W, WING_W / 2 * (WING_BOTTOM - WING_TOP))
+		Widgets.Size(wing, (WING_RIGHT - WING_LEFT) * WING_TEXEL, (WING_CUT - WING_TOP) * WING_TEXEL)
+		local near, far = WING_LEFT / 512, WING_RIGHT / 512
 		if side < 0 then
-			wing:SetTexCoord(1, 0, WING_TOP, WING_BOTTOM)
-		else
-			wing:SetTexCoord(0, 1, WING_TOP, WING_BOTTOM)
+			near, far = far, near
 		end
+		wing:SetTexCoord(near, far, WING_TOP / 256, WING_CUT / 256)
 		wing.side = side
 		local g = Group(wing)
 		wing.move = g:CreateAnimation("Translation")
@@ -497,8 +536,8 @@ function Slab.PlaceWings()
 	if not hub then
 		return
 	end
-	local root = Widgets.Snap(hub, state.wingsOut and WING_SLIDE or 0)
-	local lift = Widgets.Snap(hub, WING_LIFT)
+	local root = Widgets.Snap(hub, WING_ROOT - (state.wingsOut and 0 or WING_SLIDE))
+	local lift = Widgets.Snap(hub, Slab.Spec().pad - WING_SINK)
 	for _, wing in ipairs(hub.wings) do
 		wing:ClearAllPoints()
 		if wing.side > 0 then
@@ -676,7 +715,7 @@ local function Hide()
 end
 
 local function PlaceSweeps(slab, half)
-	local inset = Widgets.Snap(slab, PAD)
+	local inset = Widgets.Snap(slab, Slab.Spec().pad)
 	for _, sweep in ipairs(slab.sweeps) do
 		sweep:ClearAllPoints()
 		sweep:SetPoint(sweep.side < 0 and "RIGHT" or "LEFT", slab, "TOP", 0, -inset)
@@ -699,13 +738,14 @@ function Slab.Refresh()
 	end
 	local slab, hub = Slab.frame, Slab.hub
 	state.class = select(2, UnitClass("player"))
-	local pad = Widgets.Snap(slab, PAD)
+	local spec = Slab.Spec()
+	local pad = Widgets.Snap(slab, spec.pad)
 	slab:ClearAllPoints()
 	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad)
-	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -pad)
+	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
 	if slab.slice then
 		local _, _, corner = Tokens.Texture("medActionSlab")
-		Widgets.LayoutSlice(slab.slice, slab, corner or PAD)
+		Widgets.LayoutSlice(slab.slice, slab, corner or spec.pad)
 		LayEdges(slab)
 	else
 		slab.chrome:Restyle()
@@ -721,7 +761,7 @@ function Slab.Refresh()
 	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
 	hub:SetPoint("CENTER", gap, "TOP", 0, 0)
-	hub:SetFrameLevel(slab:GetFrameLevel() + 2)
+	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))

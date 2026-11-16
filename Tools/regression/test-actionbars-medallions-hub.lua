@@ -1,8 +1,8 @@
--- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its wings, rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the wings ride above the top row and, out in combat, stay inside the reach and height Layouts keeps clear of other elements, bars 1 and 2 are two rows of six below 21:9 and one row of twelve at 21:9 and wider, and Frames brings the bars back with the slab and hub hidden.
+-- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its wings, rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the wings ride above the top row and, out in combat, stay inside the reach and height Layouts keeps clear of other elements, bars 1 and 2 are one row of twelve each at every screen with no slot under Layouts' slot floor, and Frames brings the bars back with the slab and hub hidden.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
-	{ 1280, 720 }, { 1920, 1080 }, { 2383, 1540 }, { 2560, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 3840, 1080 },
+	{ 1280, 720 }, { 1920, 1080 }, { 2383, 1540 }, { 3456, 2234 }, { 2560, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 3840, 1080 },
 	{ 3840, 2160 }, { 5120, 1440 },
 }
 local RANK = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
@@ -96,9 +96,14 @@ for _, screen in ipairs(SCREENS) do
 	local slab, hub = Slab.frame, Slab.hub
 	assert(slab and slab:IsShown() and hub:IsShown(), what .. ": the slab and the hub are shown under Medallions")
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
-	local wide = K.Scale.Aspect() ~= "16:9"
-	local rows = wide and 1 or 2
-	assert(Columns(bar1) == rows and Columns(bar2) == rows, what .. ": bars 1 and 2 stand in " .. rows .. " rows, got " .. Columns(bar1) .. " and " .. Columns(bar2))
+	assert(Columns(bar1) == 1 and Columns(bar2) == 1, what .. ": bars 1 and 2 stand in one row, got " .. Columns(bar1) .. " and " .. Columns(bar2))
+	local floor = K.Setup.Layouts.MEDALLIONS_SLOT.floor
+	for _, bar in ipairs({ bar1, bar2 }) do
+		for _, b in ipairs(bar.buttons) do
+			assert(b:GetWidth() >= floor - 1e-6 and b:GetHeight() >= floor - 1e-6, what .. ": a slot is " .. b:GetWidth() .. " units, under the " .. floor .. "-unit floor")
+		end
+	end
+	assert(bar1.buttons[12]:GetRight() < bar2.buttons[1]:GetLeft(), what .. ": bar 1's twelve stand left of the hub and bar 2's twelve right of it")
 
 	local slots = {}
 	for _, bar in ipairs({ bar1, bar2 }) do
