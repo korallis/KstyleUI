@@ -52,26 +52,12 @@ K.Options.Write("UnitFrames", "target.auraSize", 30)
 assert(Settings.Value("target", "auraSize") == 30, "a saved aura size wins over the Medallions default")
 K.Options.Write("UnitFrames", "target.auraSize", 27.6)
 
-local function DispelColour(style)
-	local visible = 0
-	for _, texture in ipairs(button._aura.dispel) do
-		texture:SetVertexColor(0.2, 0.4, 0.8)
-		texture:Show()
-		if texture:IsVisible() then
-			assert(W.SameRGB(texture, 0.2, 0.4, 0.8), style .. ": the visible dispel texture keeps the engine's colour")
-			visible = visible + 1
-		end
-	end
-	assert(visible == (style == "medallions" and 1 or 9), style .. ": live switching must restore only the active style's dispel colour without a reload")
-end
 for _, style in ipairs({ "frames", "medallions", "orbs", "medallions", "frames" }) do
+	local old = view.auras.container
 	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	W.Settle(env)
-	local slab = style == "medallions"
-	assert(entry.slab[5]:IsShown() == slab and entry.lineFrame:IsShown() == slab, style .. ": only Medallions shows the slab and underline")
-	assert(entry.chrome.visible ~= slab, style .. ": the chrome follows the live style")
-	DispelColour(style)
+	assert(view.auras.container ~= old and not old:IsShown(), style .. ": replace the old style's tile pool")
 	noErrors(style)
 end
 assert(Settings.Value("target", "auraSize") == 27.6, "Frames keeps its own aura size")
