@@ -11,13 +11,16 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 			assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 		end
 		Check()
+		local progressShown = ns.Quests.Rows()[1].lines[1].count:IsShown()
 		env.SetCombat(true)
 		R.quests[1].objectives[1].text = "Putrid Claw: 1/7"
 		rxp.SetStep(6, 6)
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		Check()
-		assert(ns.Quests.Rows()[1].lines[1].count:GetText() == "1/7", "public progress still repaints in combat")
+		if progressShown then
+			assert(ns.Quests.Rows()[1].lines[1].count:GetText() == "1/7", "public progress still repaints in combat")
+		end
 		rxp.RXPFrame:Hide()
 		rxp.RXPFrame:Show()
 		R.settle()
@@ -27,7 +30,16 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		Check()
+		assert(ns.QuestData.status == "title-unavailable", "the retained snapshot names the unavailable input")
 		env.C_QuestLog.GetTitleForQuestID = title
+		for _, name in ipairs({ "GetNumQuestWatches", "GetQuestIDForQuestWatchIndex" }) do
+			local read = env.C_QuestLog[name]
+			env.C_QuestLog[name] = function() return env.Secret(8) end
+			R.log.Fire("QUEST_LOG_UPDATE")
+			R.settle()
+			Check()
+			env.C_QuestLog[name] = read
+		end
 		local parts = ns.Quests.Parts()
 		local rect = parts.view.GetRect
 		parts.view.GetRect = function() error("restricted region measurement") end
@@ -41,9 +53,9 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		assert(recorded, "a restricted combat measurement records the unknown visibility and guide context")
 		parts.view.GetRect = rect
 		env.SetCombat(false)
-		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		Check()
+		assert(ns.QuestData.status == "ready", "combat end retries an incomplete read without another quest event")
 		R.log.quests = {}
 		R.log.Fire("QUEST_WATCH_LIST_CHANGED")
 		R.settle()

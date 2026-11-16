@@ -1418,6 +1418,14 @@ local function Items(rxp)
 	local function Refresh()
 		IconFrame(f, "activeItemHideBG")
 		IconButtons(f.buttonList, true)
+		local first = IsTable(f.buttonList) and f.buttonList[1]
+		if not InCombatLockdown() then
+			f:SetHeight(41)
+			if first then
+				first:ClearAllPoints()
+				first:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 4, 3)
+			end
+		end
 	end
 	Refresh()
 	Hook(f, "UpdateVisuals", "activeItemFrame.UpdateVisuals", Refresh)

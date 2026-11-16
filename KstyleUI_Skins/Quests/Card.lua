@@ -492,6 +492,7 @@ function Card.Render()
 		end
 		card:Hide()
 		Card.SyncButtons()
+		Card.CheckDiagnostic()
 		return
 	end
 	local n = math.min(wanted, total)
@@ -786,10 +787,14 @@ local function DiagnosticPart(label, frame)
 end
 
 function Card.Diagnose()
+	local rxp = ns.RestedXP and ns.RestedXP.Addon()
 	K.DevTest.Log("Skins.Quests", "combat=" .. DiagnosticText(InCombatLockdown()) .. " active=" .. DiagnosticText(active)
 		.. " total=" .. DiagnosticText(Data.Count()) .. " offset=" .. DiagnosticText(offset) .. " wanted=" .. DiagnosticText(wanted)
 		.. " maxHeight=" .. DiagnosticText(maxHeight) .. " rowWidth=" .. DiagnosticText(rowWidth)
-		.. " pending=" .. DiagnosticText(pending) .. " waiting=" .. DiagnosticText(waiting))
+		.. " pending=" .. DiagnosticText(pending) .. " waiting=" .. DiagnosticText(waiting)
+		.. " watches=" .. DiagnosticText(Data.watches) .. " read=" .. DiagnosticText(Data.status)
+		.. " style=" .. DiagnosticText(K.HudStyle.Current()) .. " guideIsShown=" .. DiagnosticRead(rxp and rxp.RXPFrame, "IsShown")
+		.. ns.Quests.Diagnostic())
 	DiagnosticPart("holder", card and card:GetParent())
 	DiagnosticPart("card", card)
 	DiagnosticPart("glass", glass)
@@ -843,14 +848,11 @@ local function DiagnosticPixels(frame, clipLeft, clipBottom, clipWidth, clipHeig
 end
 
 function Card.CheckDiagnostic()
-	if not active or not card or Data.Count() == 0 or automaticDiagnostics >= 3 then
+	if not active or not card or automaticDiagnostics >= 3 or (Data.Count() == 0 and not (Data.watches and Data.watches > 0)) then
 		return
 	end
 	local clip, left, bottom, width, height = DiagnosticPixels(view)
-	if clip == nil then
-		return
-	end
-	local measured, unknown = 0, false
+	local measured, unknown = 0, clip == nil
 	for _, row in ipairs(rows) do
 		if row.questID then
 			measured = measured + 1
@@ -862,15 +864,13 @@ function Card.CheckDiagnostic()
 			end
 		end
 	end
-	if unknown then
-		return
-	end
-	local key = DiagnosticText(InCombatLockdown()) .. ":" .. DiagnosticText(Data.Count()) .. ":" .. DiagnosticText(maxHeight) .. ":" .. DiagnosticText(measured)
+	local reason = unknown and "measurement-unavailable" or "no-visible-rows"
+	local key = reason .. ":" .. DiagnosticText(InCombatLockdown()) .. ":" .. DiagnosticText(Data.Count()) .. ":" .. DiagnosticText(maxHeight) .. ":" .. DiagnosticText(measured)
 	if diagnosticKeys[key] then
 		return
 	end
 	diagnosticKeys[key] = true
 	automaticDiagnostics = automaticDiagnostics + 1
-	K.DevTest.Log("Skins.Quests", "automatic=no-visible-rows measuredRows=" .. measured .. " slotHeight=" .. DiagnosticText(maxHeight))
+	K.DevTest.Log("Skins.Quests", "automatic=" .. reason .. " measuredRows=" .. measured .. " slotHeight=" .. DiagnosticText(maxHeight))
 	Card.Diagnose()
 end

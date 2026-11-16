@@ -10,6 +10,7 @@ local MAX_OBJECTIVES = 6
 
 local entries = {}
 local total = 0
+local watchIDs, watchTitles = {}, {}
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -125,11 +126,7 @@ local function Item(log, entry, id)
 	entry.item, entry.icon = link, icon
 end
 
-local function Read(log, i, id)
-	local title = Text(log.GetTitleForQuestID(id))
-	if not title then
-		return false
-	end
+local function Read(log, i, id, title)
 	local entry = Entry(i)
 	entry.id = id
 	entry.title = Title(log, id, title)
@@ -154,18 +151,40 @@ local function SuperFirst(super)
 end
 
 function Data.Read()
-	total = 0
 	if not Data.Available() then
-		return 0
+		Data.status = "api-unavailable"
+		return total
 	end
 	local log = C_QuestLog
-	local watches = Number(log.GetNumQuestWatches()) or 0
+	local watches = Number(log.GetNumQuestWatches())
+	Data.watches = watches
+	if not watches then
+		Data.status = "watches-unavailable"
+		return total
+	end
+	local count = 0
 	for w = 1, watches do
 		local id = Number(log.GetQuestIDForQuestWatchIndex(w))
-		if id and id > 0 and not Skipped(log, id) and Read(log, total + 1, id) then
-			total = total + 1
+		if not id or id <= 0 then
+			Data.status = "watch-id-unavailable"
+			return total
+		end
+		if not Skipped(log, id) then
+			local title = Text(log.GetTitleForQuestID(id))
+			if not title then
+				Data.status = "title-unavailable"
+				return total
+			end
+			count = count + 1
+			watchIDs[count], watchTitles[count] = id, title
 		end
 	end
+	total = 0
+	Data.status = "reading"
+	for i = 1, count do
+		if Read(log, i, watchIDs[i], watchTitles[i]) then total = total + 1 end
+	end
+	Data.status = "ready"
 	local super = Fn(C_SuperTrack, "GetSuperTrackedQuestID") and Number(C_SuperTrack.GetSuperTrackedQuestID()) or 0
 	Data.super = super
 	if super > 0 then
