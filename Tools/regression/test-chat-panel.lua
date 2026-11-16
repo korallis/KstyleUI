@@ -2,7 +2,7 @@
 local C = dofile("Tools/regression/chat_env.lua")
 local W = C.W
 
-local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true }
+local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true, SetVertexColor = true }
 
 local function near(a, b)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-6

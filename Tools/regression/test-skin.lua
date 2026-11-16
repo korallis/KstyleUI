@@ -2,7 +2,7 @@
 local W = dofile("Tools/regression/widget_env.lua")
 
 -- Fields a hook may add: hooksecurefunc replaces the hooked method on the object it hooks.
-local HOOKED = { SetAlpha = true, SetTabSelected = true, SetChecked = true }
+local HOOKED = { SetAlpha = true, SetVertexColor = true, SetTabSelected = true, SetChecked = true }
 
 local function fields(object)
 	local out = {}

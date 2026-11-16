@@ -90,8 +90,8 @@ end
 assert(Hud.Order()[4] == "auras", "the fourth HUD module is the buff row")
 assert(buffFiles[tostring(Hud.Classes.WARRIOR.buffRow[1][2])] == SET_B .. Hud.Classes.WARRIOR.buffRow[1][2] .. ".png", "the buff row shows Battle Shout from set B, as the installed pack does")
 
--- Combat text: the crit on the crocolisk and the heal on the player.
-assert(texts["142"] and texts["+168"], "the combat numbers 142 and +168 are drawn")
+-- Combat text owns the scrolling heal and hides the native world crit by default.
+assert(not texts["142"] and texts["+168"], "our heal remains visible without the duplicate native world crit")
 
 -- One rule for every icon: a file ID resolves to set B's art when the pack has it, else to Blizzard's icon
 -- folder, whatever the scene; there is no icon set option any more.

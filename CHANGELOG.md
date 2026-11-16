@@ -5,6 +5,7 @@
 ### Fixed
 
 - The Medallions hub no longer leaves its shock ring and square flash visible between effects. Recoloring now preserves their opacity instead of bringing them back over the painted crest and runes.
+- Hidden Blizzard and RestedXP backdrop textures stay hidden when their owning UI refreshes the vertex color.
 - Medallions health and resource bars use flat fills without the white sheen. Health numbers use dark ink on bright fills and return to light ink when health falls onto the dark track.
 - CombatText hides Blizzard's separate damage and healing numbers by default while KstyleUI's scrolling text is enabled. An explicit Keep choice remains available, and disabling the module restores the original settings.
 - Blizzard's world numbers inherit the combat-text font role before login. Log out to the character screen and back in to apply the font; `/reload` is not enough.

@@ -808,7 +808,7 @@ end
 
 local automaticDiagnostics, diagnosticKeys = 0, {}
 
-local function DiagnosticPixels(frame, clip)
+local function DiagnosticPixels(frame, clipLeft, clipBottom, clipWidth, clipHeight)
 	local ok, visible = pcall(frame.IsVisible, frame)
 	if not ok or Widgets.IsSecret(visible) then
 		return nil
@@ -827,10 +827,8 @@ local function DiagnosticPixels(frame, clip)
 	if not rectOK then
 		return nil
 	end
-	for _, value in pairs({ left, bottom, width, height }) do
-		if Widgets.IsSecret(value) then
-			return nil
-		end
+	if Widgets.IsSecret(left) or Widgets.IsSecret(bottom) or Widgets.IsSecret(width) or Widgets.IsSecret(height) then
+		return nil
 	end
 	if type(left) ~= "number" or type(bottom) ~= "number" or type(width) ~= "number" or type(height) ~= "number" then
 		return false
@@ -838,36 +836,36 @@ local function DiagnosticPixels(frame, clip)
 	if width <= 0 or height <= 0 then
 		return false
 	end
-	if clip then
-		return left < clip[1] + clip[3] and left + width > clip[1] and bottom < clip[2] + clip[4] and bottom + height > clip[2]
+	if clipLeft then
+		return left < clipLeft + clipWidth and left + width > clipLeft and bottom < clipBottom + clipHeight and bottom + height > clipBottom
 	end
-	return { left, bottom, width, height }
+	return true, left, bottom, width, height
 end
 
 function Card.CheckDiagnostic()
 	if not active or not card or Data.Count() == 0 or automaticDiagnostics >= 3 then
 		return
 	end
-	local clip = DiagnosticPixels(view)
+	local clip, left, bottom, width, height = DiagnosticPixels(view)
 	if clip == nil then
 		return
 	end
-	local measured, visible, unknown = 0, 0, false
+	local measured, unknown = 0, false
 	for _, row in ipairs(rows) do
 		if row.questID then
 			measured = measured + 1
-			local pixels = clip and DiagnosticPixels(row, clip)
+			local pixels = clip and DiagnosticPixels(row, left, bottom, width, height)
 			if pixels == nil then
 				unknown = true
 			elseif pixels then
-				visible = visible + 1
+				return
 			end
 		end
 	end
-	if visible > 0 or unknown then
+	if unknown then
 		return
 	end
-	local key = table.concat({ DiagnosticText(InCombatLockdown()), DiagnosticText(Data.Count()), DiagnosticText(maxHeight), DiagnosticText(measured) }, ":")
+	local key = DiagnosticText(InCombatLockdown()) .. ":" .. DiagnosticText(Data.Count()) .. ":" .. DiagnosticText(maxHeight) .. ":" .. DiagnosticText(measured)
 	if diagnosticKeys[key] then
 		return
 	end

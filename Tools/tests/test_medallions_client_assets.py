@@ -3,9 +3,8 @@
 import re
 import struct
 import unittest
+import zlib
 from pathlib import Path
-
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -24,8 +23,25 @@ class MedallionsClientAssets(unittest.TestCase):
                 self.assertEqual((depth, color, compression, filtering, interlace), (8, 6, 0, 0, 0))
                 self.assertTrue(width > 0 and width & (width - 1) == 0)
                 self.assertTrue(height > 0 and height & (height - 1) == 0)
-                with Image.open(path) as image:
-                    image.verify()
+                offset, compressed = 8, bytearray()
+                while offset < len(data):
+                    length = struct.unpack(">I", data[offset:offset + 4])[0]
+                    kind = data[offset + 4:offset + 8]
+                    payload = data[offset + 8:offset + 8 + length]
+                    self.assertEqual(len(payload), length)
+                    crc = struct.unpack(">I", data[offset + 8 + length:offset + 12 + length])[0]
+                    self.assertEqual(crc, zlib.crc32(kind + payload))
+                    if kind == b"IDAT":
+                        compressed.extend(payload)
+                    offset += length + 12
+                    if kind == b"IEND":
+                        break
+                self.assertEqual(offset, len(data))
+                self.assertEqual(kind, b"IEND")
+                pixels = zlib.decompress(compressed)
+                stride = width * 4 + 1
+                self.assertEqual(len(pixels), height * stride)
+                self.assertTrue(all(pixels[row * stride] <= 4 for row in range(height)))
 
     def test_token_paths_match_disk_case(self):
         source = (ROOT / "Core/Tokens.lua").read_text()

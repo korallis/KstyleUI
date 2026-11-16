@@ -508,8 +508,9 @@ function Object:GetAlpha()
 	return self._alpha
 end
 
-function Object:SetVertexColor(r, g, b, a)
-	self._state.VertexColor = pack(r, g, b, a == nil and 1 or a)
+function Object:SetVertexColor(...)
+	local a = select(4, ...)
+	self._state.VertexColor = pack(...)
 	self._alpha = a == nil and 1 or a
 end
 
@@ -1084,6 +1085,13 @@ end
 local Quiet = {}
 
 local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBoolean")
+local setVertexColor = quietSetter("VertexColor")
+function Quiet:SetVertexColor(...)
+	setVertexColor(self, ...)
+	local a = select(4, ...)
+	self._alpha = a == nil and 1 or a
+end
+
 function Quiet:SetAlpha(alpha)
 	setAlpha(self, alpha)
 	self._alpha = alpha

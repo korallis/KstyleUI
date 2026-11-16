@@ -112,7 +112,7 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { Update = true, SetAlpha = true, SetText = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
+local HOOKED = { Update = true, SetAlpha = true, SetVertexColor = true, SetText = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
 -- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
