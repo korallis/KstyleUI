@@ -59,8 +59,8 @@ for _, screen in ipairs(screens) do
 	snapped(width)
 	snapped(height)
 	local _, _, _, x, captionY = view.text:GetPoint(1)
-	snapped(x)
-	snapped(captionY)
+	snapped(view.holder:GetWidth() / 2 + x)
+	snapped(view.holder:GetHeight() - captionY)
 	assert(#e._errors == 0 and SK.ErrorCount() == 0, "the nine-screen XP matrix has no errors")
 end
 print("databars XP finish ok")

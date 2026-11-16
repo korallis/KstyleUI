@@ -128,7 +128,9 @@ do
 	assert((trail:GetFont()) == Style.Font("number"), "in the number face")
 	assert(TextIs(trail, K.Tokens.Color("textEmphasis")), "in near white, as the picture draws Step 134 and the quests' 7")
 	local trailPoint = { trail:GetPoint(1) }
-	assert(trailPoint[1] == "RIGHT" and trailPoint[2] == cap.row and Near(trailPoint[4], -K.Widgets.Snap(cap.row, 24)), "right-aligned at the row's right inset")
+	local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(cap.row)
+	local right = (cap.row:GetWidth() - K.Widgets.Snap(cap.row, 24)) / pixel
+	assert(trailPoint[1] == "RIGHT" and trailPoint[2] == cap.row and Near((cap.row:GetWidth() + trailPoint[4]) / pixel, math.floor(right + 0.5)), "right-aligned at the nearest whole pixel to the row's right inset")
 	cap:SetTrail(nil)
 	assert(trail:GetText() == "", "no count clears the trail")
 	cap:SetTitle("The Deadmines")

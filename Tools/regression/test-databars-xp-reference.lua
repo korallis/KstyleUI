@@ -46,7 +46,9 @@ local point, relative, relativePoint, x, y = xp.text:GetPoint(1)
 eq(point, "TOP", "the caption starts below the bar")
 eq(relative, xp.holder, "the holder owns the caption")
 eq(relativePoint, "BOTTOM", "the caption follows the bottom edge")
-eq(x, 0, "the caption is centred")
+local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(xp.holder)
+local centre = xp.holder:GetWidth() / pixel / 2
+eq(x, (math.floor(centre + 0.5) - centre) * pixel, "the caption's centre anchor is on the nearest whole pixel")
 eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "the caption's six-unit gap includes the picture's snapped optical raise")
 local ticks = 0
 for _, tick in ipairs(xp.ticks) do

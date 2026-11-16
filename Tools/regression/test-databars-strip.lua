@@ -875,8 +875,9 @@ for _, screen in ipairs(screens) do
 		local centre = left(pair[2]) + select(4, marker:GetPoint(1))
 		local before = (centre - advance / 2 - right(pair[1])) / step
 		local after = (left(pair[2]) - centre - advance / 2) / step
-		assert(math.abs(after - gapPx) < 0.05, label .. ": the dot before " .. pair[2] .. " stands the gap off it, got " .. tostring(after))
-		assert(math.abs(before - after) <= 0.5 + 1e-6, label .. ": and the same gap, to the half pixel the snapped advance leaves, off " .. pair[1] .. ", got " .. tostring(before) .. " and " .. tostring(after))
+		assert(math.abs(centre / step - math.floor(centre / step + 0.5)) < 1e-6, label .. ": the dot's anchor is a whole pixel")
+		assert(math.abs(after - gapPx) <= 0.5 + 1e-6, label .. ": the dot before " .. pair[2] .. " stands within half a pixel of the gap, got " .. tostring(after))
+		assert(math.abs(before + after - 2 * gapPx) <= 0.5 + 1e-6, label .. ": the two gaps retain their combined space to the half pixel the snapped advance leaves, got " .. tostring(before) .. " and " .. tostring(after))
 	end
 	noErrors(envS, KS)
 end

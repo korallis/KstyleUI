@@ -133,13 +133,13 @@ local function LayoutTicks(view, s)
 			tick:ClearAllPoints()
 			if vertical then
 				local y = Widgets.Snap(holder, h * i / count)
-				tick:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", 0, y)
-				tick:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", 0, y)
+				Widgets.Point(tick, "BOTTOMLEFT", overlay, "BOTTOMLEFT", 0, y)
+				Widgets.Point(tick, "BOTTOMRIGHT", overlay, "BOTTOMRIGHT", 0, y)
 				tick:SetHeight(border)
 			else
 				local x = Widgets.Snap(holder, w * i / count)
-				tick:SetPoint("TOPLEFT", overlay, "TOPLEFT", x, 0)
-				tick:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", x, 0)
+				Widgets.Point(tick, "TOPLEFT", overlay, "TOPLEFT", x, 0)
+				Widgets.Point(tick, "BOTTOMLEFT", overlay, "BOTTOMLEFT", x, 0)
 				tick:SetWidth(border)
 			end
 			Widgets.Tint(tick, "edgeOuter")
@@ -153,7 +153,7 @@ end
 local function PlaceText(view, position, medal)
 	if medal then
 		view.text:ClearAllPoints()
-		view.text:SetPoint("TOPRIGHT", view.holder, "BOTTOMRIGHT", 0, -Widgets.Snap(view.holder, MEDAL_TEXT_GAP))
+		Widgets.Point(view.text, "TOPRIGHT", view.holder, "BOTTOMRIGHT", 0, -Widgets.Snap(view.holder, MEDAL_TEXT_GAP))
 		return
 	end
 	local p = TEXT_POINTS[position] or TEXT_POINTS.CENTER
@@ -162,7 +162,7 @@ local function PlaceText(view, position, medal)
 		gap = gap - Widgets.Snap(view.holder, XP_CAPTION_RAISE)
 	end
 	view.text:ClearAllPoints()
-	view.text:SetPoint(p[1], view.holder, p[2], p[3] * gap, p[4] * gap)
+	Widgets.Point(view.text, p[1], view.holder, p[2], p[3] * gap, p[4] * gap)
 end
 
 local function PlacePlate(view, s)
@@ -183,7 +183,7 @@ local function PlacePlate(view, s)
 	local width = Widgets.TextWidth(text, guess) + 2 * Widgets.Snap(holder, Tokens.Size("gapMedium"))
 	local height = size + 2 * Widgets.Snap(holder, Tokens.Size("gapTiny"))
 	plate:ClearAllPoints()
-	plate:SetPoint("CENTER", text, "CENTER")
+	Widgets.Point(plate, "CENTER", text, "CENTER")
 	plate:SetSize(Widgets.Snap(holder, width), Widgets.Snap(holder, height))
 end
 
@@ -257,8 +257,8 @@ local function Style(view, s)
 		local edge = Widgets.Border(view.holder)
 		for _, bar in ipairs({ track, fill }) do
 			bar:ClearAllPoints()
-			bar:SetPoint("TOPLEFT", view.content, "TOPLEFT", edge, -edge)
-			bar:SetPoint("BOTTOMRIGHT", view.content, "BOTTOMRIGHT", -edge, edge)
+			Widgets.Point(bar, "TOPLEFT", view.content, "TOPLEFT", edge, -edge)
+			Widgets.Point(bar, "BOTTOMRIGHT", view.content, "BOTTOMRIGHT", -edge, edge)
 		end
 		view.edge:SetColorTexture(Widgets.Rgba("black", 1))
 		view.edge:Show()
