@@ -200,6 +200,10 @@ end
 
 local function Overflow(holder, frame)
 	local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
+	local margin = 2 * K.Scale.Pixel(1)
+	if l then
+		l, r, t, b = l - margin, r + margin, t + margin, b - margin
+	end
 	local cl, cr, ct, cb = Bounds(frame)
 	local root = Edge(K.Scale.Root():GetEffectiveScale())
 	if cl and Known(root) then
@@ -210,8 +214,7 @@ local function Overflow(holder, frame)
 	if not (l and hl and hr and ht and hb and Known(f)) then
 		return nil
 	end
-	local margin = 2 * K.Scale.Pixel(1)
-	hl, hr, ht, hb = hl * f + margin, hr * f - margin, ht * f - margin, hb * f + margin
+	hl, hr, ht, hb = hl * f, hr * f, ht * f, hb * f
 	local left, right, top, bottom = math.max(0, hl - l), math.max(0, r - hr), math.max(0, t - ht), math.max(0, hb - b)
 	local fit = math.min((hr - hl) / (math.max(r, hr) - math.min(l, hl)), (ht - hb) / (math.max(t, ht) - math.min(b, hb)))
 	return left, right, top, bottom, left + right + top + bottom < 0.5, fit

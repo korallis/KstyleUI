@@ -39,10 +39,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 		local _, caption = view.caption:GetFont()
 		if name < caption - 0.01 then failures[#failures + 1] = label .. ": initialise preview fonts before building the unit preview" end
 		local scene = Common.Scene.Build(env)
+		local rings = 0
 		for _, item in ipairs(scene.items) do
 			local node = item.object
 			while node and node ~= frame do node = node:GetParent() end
 			if node and item.clip and item.kind == "texture" and item.file and item.file:find("Ring", 1, true) then
+				rings = rings + 1
 				local x, y, w, h = Common.Scene.Rect(env, item.object)
 				local c = item.clip
 				if x < c[1] - 0.5 or y < c[2] - 0.5 or x + w > c[1] + c[3] + 0.5 or y + h > c[2] + c[4] + 0.5 then
@@ -50,6 +52,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 				end
 			end
 		end
+		assert(rings > 0, label .. ": the preview portrait ring draws")
 		local Guard = dofile("Tools/render/guard.lua")
 		for _, finding in ipairs(Guard.Check(scene)) do
 			if finding.kind == "ellipsis" and finding.subject == "Frost Howler" then failures[#failures + 1] = label .. ": show the whole preview name" end
