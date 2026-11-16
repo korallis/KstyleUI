@@ -57,6 +57,13 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 			end
 		end
 		local units = env._addons.KstyleUI_UnitFrames
+		if style == "orbs" then
+			for _, kind in ipairs({ "health", "power" }) do
+				local orb = units.Orbs.Get(kind)
+				assert(orb and orb:IsShown(), label .. ": exercise the visible " .. kind .. " orb")
+				Clear(rect, Rect(orb), label .. " " .. kind .. " orb")
+			end
+		end
 		for _, kind in ipairs(U.KINDS) do
 			local frame = units.Frames.Get(kind)
 			if frame then
