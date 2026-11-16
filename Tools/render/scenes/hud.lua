@@ -166,7 +166,7 @@ end
 Hud.Saved = saved
 
 local function shared(env, opts)
-	Common.ForceScreen(env)
+	Common.ForceScreen(env, true)
 	local class, spec = Hud.Class(opts)
 	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
 	for _, name in ipairs(Classes.ORDER) do
@@ -739,7 +739,7 @@ function modules.cooldowns(opts)
 		setup = function(env)
 			shared(env, opts)
 			C.Game(env)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, true)
 			env.C_Spell.GetSpellName = function(spell)
 				return names[spell] or ("Spell " .. spell)
 			end
@@ -963,7 +963,7 @@ function modules.minimap(opts)
 		position = opts.position,
 		setup = function(env)
 			shared(env, opts)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, true)
 			env._clock = opts.clock or { hour = 14, minute = 32, realmHour = 9, realmMinute = 5 }
 			for name, value in pairs(opts.cvars or {}) do
 				env._cvars[name] = value
@@ -997,7 +997,7 @@ function modules.databars(opts)
 		game = merge({ xp = 16000, xpMax = 50000, rested = 6000, level = 38, faction = false }, opts.game),
 		setup = function(env)
 			shared(env, opts)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, true)
 			if opts.menus ~= false then
 				D.Menus(env, {
 					bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
@@ -1639,7 +1639,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	local state = { saved = {}, active = 1 }
 	local env, K = CoreEnv.New(Common.ScreenOpts({
 		setup = function(env)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, true)
 			EditModeFake.Install(env, state)
 			env.C_AddOns = env.C_AddOns or {}
 			env.C_AddOns.IsAddOnLoaded = function(name)

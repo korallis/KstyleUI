@@ -10,6 +10,26 @@ LUA = shutil.which("lua5.1") or shutil.which("luajit")
 
 @unittest.skipUnless(LUA, "Lua 5.1 or LuaJIT is required")
 class AutoSize(unittest.TestCase):
+    def test_standalone_gallery_keeps_its_enabled_module_fit(self):
+        result = subprocess.run(
+            [LUA, "-"], cwd=ROOT,
+            env={**os.environ, "RENDER_SIZE": "auto", "RENDER_HUD_STYLE": "Medallions", "RENDER_SCREEN": "3456x2234"},
+            input='''
+local Common = dofile("Tools/render/scenes/_common.lua")
+local Gallery = dofile("Tools/render/scenes/_gallery.lua")
+local U = dofile("Tools/regression/unitframes_env.lua")
+local Core = dofile("Tools/regression/core_env.lua")
+local _, game = Core.New({ size = "auto", fit = true })
+local env, K = U.New(Common.ScreenOpts({ saved = Gallery.Saved({ "UnitFrames" }), setup = Gallery.Setup }))
+local enabled = game.Setup.Layouts.Enabled("DPS", K.Store.Profile())
+local maximum, fits = game.Setup.Layouts.ScaleLimit(3456, 2234, "DPS", enabled, "medallions")
+local expected = game.Scale.Auto(2234, maximum, fits)
+assert(math.abs(K.Scale.AppliedUserScale() - expected) < 1e-8,
+    "standalone galleries must retain the game's fit for their enabled modules")
+''', text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_auto_uses_the_complete_presets_game_fit(self):
         result = subprocess.run(
             [LUA, "-"], cwd=ROOT, env={**os.environ, "RENDER_SIZE": "auto", "RENDER_HUD_STYLE": "Medallions"},

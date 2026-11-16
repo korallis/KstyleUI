@@ -20,7 +20,7 @@ local SEARCH = { x = 1083, y = 16 }
 local PROFILES = { x = 1083, y = 372 }
 local APPEARANCE = { x = 16, y = 724 }
 local WIDGETS = { x = 604, y = 724 }
-local ENTRY = { x = 1190, y = 724, w = 465, h = 330 }
+local ENTRY = { x = 1260, y = 724, w = 465, h = 330 }
 
 local SAMPLE_FONT = "SourceSans3Semibold"
 -- The scene navigates by string keys (K.L[...]), so it builds and checks the same window in every shipped locale

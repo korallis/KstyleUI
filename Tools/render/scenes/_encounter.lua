@@ -38,7 +38,7 @@ function Encounter.Build(Hud, opts)
 		saved = opts.saved,
 		loaded = { Blizzard_RaidWarning = true },
 		setup = function(env)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, true)
 		end,
 		before = function(env)
 			frame = Warnings.Build(env, S.Blizzard(env))

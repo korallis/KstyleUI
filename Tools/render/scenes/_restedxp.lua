@@ -645,7 +645,7 @@ function RestedXP.Build()
 			devlog = {},
 		},
 		setup = function(env)
-			Common.ForceScreen(env)
+			Common.ForceScreen(env, rail)
 			R.rxp = Fake.Install(env, { v2 = not rail, activeTheme = "DarkMode" })
 			-- RestedXP's loaded guide: its title is the name with the group appended (GuideWindow.lua).
 			R.rxp.currentGuide = { name = "6-10 Durotar", subgroup = "Speedrun Guide 1-22" }
