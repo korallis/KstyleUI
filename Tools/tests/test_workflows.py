@@ -178,7 +178,7 @@ class WorkflowsTest(unittest.TestCase):
             self.assertRegex(step, r"if: \$\{\{ !cancelled\(\) && .*steps\.scope\.outputs\.", step)
         for step, output in (("Check the runner's Python is 3.12", "python"), ("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
             block = job.split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
-            self.assertIn("if: ${{{{ !cancelled() && steps.scope.outputs.{0} != 'false' }}}}".format(output), block, step)
+            self.assertIn("if: ${{{{ !cancelled() && steps.scope.outputs.{0} != 'false' && (github.event_name != 'pull_request' || steps.start_{0}.outcome == 'success') }}}}".format(output), block, step)
         for command in ("bash scripts/gate.sh python", "BigWigsMods/packager@", "bash Tools/hooks/check-package.sh"):
             self.assertGreater(job.index(command), lint)
 
@@ -215,7 +215,7 @@ class WorkflowsTest(unittest.TestCase):
                            ("python-package", ("lint", "python", "package"))):
             body = jobs[job]
             self.assertIn("git rev-parse 'HEAD^{tree}'", body)
-            uploads = [step for step in body.split("\n      - ") if "actions/upload-artifact@" in step]
+            uploads = [step for step in body.split("\n      - ") if "actions/upload-artifact@" in step and "name: start-" not in step]
             self.assertEqual(len(uploads), len(areas))
             for area, upload in zip(areas, uploads):
                 self.assertIn("name: ${{ job.status == 'success' && 'green' || 'red' }}-${{ steps.tree.outputs.tree }}-" + area, upload)
@@ -236,7 +236,8 @@ class WorkflowsTest(unittest.TestCase):
                             ("python-package", (("bash scripts/gate.sh lint",), ("bash scripts/gate.sh python",),
                                                 ("BigWigsMods/packager@", "bash Tools/hooks/check-package.sh")))):
             body = jobs[job]
-            uploads = [match.start() for match in re.finditer("uses: actions/upload-artifact@", body)]
+            uploads = [match.start() for match in re.finditer("uses: actions/upload-artifact@", body)
+                       if "name: start-" not in steps_after(body, match.start())]
             self.assertEqual(len(uploads), len(suites))
             for i, commands in enumerate(suites):
                 for command in commands:
@@ -246,7 +247,7 @@ class WorkflowsTest(unittest.TestCase):
 
     def test_cancelled_pr_steps_write_red_markers(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
-        uploads = [step for step in text.split("\n      - ") if "uses: actions/upload-artifact@" in step]
+        uploads = [step for step in text.split("\n      - ") if "uses: actions/upload-artifact@" in step and "name: start-" not in step]
         self.assertEqual(len(uploads), 4)
         for upload in uploads:
             self.assertIn("if: ${{ always() &&", upload)
@@ -259,6 +260,38 @@ class WorkflowsTest(unittest.TestCase):
             if match.group(1).startswith("actions/upload-artifact@"):
                 self.assertEqual(match.group(1), "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9")
                 self.assertEqual(match.group(2), " # v7.0.2")
+
+    def test_tree_steps_run_even_after_scope_failure_or_cancellation(self):
+        for body in jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8")).values():
+            tree = body.split("id: tree", 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("if: ${{ always() && github.event_name == 'pull_request' }}", tree)
+
+    def test_each_area_records_its_start_before_any_suite_work(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        for job, areas in (("lua", (("lua", "lua-${{ matrix.shard }}-of-${{ strategy.job-total }}", "Check the runner's Lua"),)),
+                           ("python-package", (("lint", "lint", "Check the runner's luacheck"),
+                                               ("python", "python", "Check the runner's Lua"),
+                                               ("package", "package", "Check the runner's Lua")))):
+            body = jobs[job]
+            for area, marker, first_step in areas:
+                self.assertIn("id: start_" + area, body, "record the area's start before its suite")
+                start = body.split("id: start_" + area, 1)[1].split("\n      - ", 1)[0]
+                self.assertIn("name: start-${{ steps.tree.outputs.tree }}-" + marker, start)
+                self.assertIn("always() && github.event_name == 'pull_request'", start)
+                scope = "run" if job == "lua" else area
+                self.assertIn("steps.scope.outputs." + scope + " != 'false'", start)
+                self.assertLess(body.index("id: tree"), body.index("id: start_" + area))
+                self.assertLess(body.index("id: start_" + area), body.index("- name: " + first_step))
+
+    def test_a_pr_suite_cannot_run_without_a_successful_start_upload(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        commands = (("lua", "lua", "Check the runner's Lua"), ("lua", "lua", "Lua regression tests"),
+                    ("python-package", "lint", "Check the runner's luacheck"), ("python-package", "lint", "Run the lint gate"),
+                    ("python-package", "python", "Check the runner's Python"), ("python-package", "python", "Python tool tests"),
+                    ("python-package", "package", "Package without"), ("python-package", "package", "Check the zip"))
+        for job, area, name in commands:
+            step = jobs[job].split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("github.event_name != 'pull_request' || steps.start_" + area + ".outcome == 'success'", step)
 
     def test_push_reuse_is_a_step_decision_and_covers_lint_too(self):
         jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))

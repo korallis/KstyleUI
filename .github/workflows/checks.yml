@@ -46,11 +46,21 @@ jobs:
         run: |
           echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           echo checked > "$RUNNER_TEMP/ci-result"
+      - name: Record the lua start
+        id: start_lua
+        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: start-${{ steps.tree.outputs.tree }}-lua-${{ matrix.shard }}-of-${{ strategy.job-total }}
+          path: ${{ runner.temp }}/ci-result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Check the runner's Lua is 5.1.5
-        if: steps.scope.outputs.run != 'false'
+        if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Lua regression tests, one slice of the files
-        if: steps.scope.outputs.run != 'false'
+        if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         env:
           SHARD: ${{ matrix.shard }}
         run: bash scripts/gate.sh lua --shard "$SHARD/2"
@@ -91,13 +101,23 @@ jobs:
         run: |
           echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           echo checked > "$RUNNER_TEMP/ci-result"
+      - name: Record the lint start
+        id: start_lint
+        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.lint != 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: start-${{ steps.tree.outputs.tree }}-lint
+          path: ${{ runner.temp }}/ci-result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Check the runner's luacheck and pre-commit
-        if: steps.scope.outputs.lint != 'false'
+        if: steps.scope.outputs.lint != 'false' && (github.event_name != 'pull_request' || steps.start_lint.outcome == 'success')
         run: |
           luacheck --version | grep '^Luacheck: 1\.2\.0$'
           pre-commit --version | grep '^pre-commit 4\.7\.0$'
       - name: Run the lint gate (crlf, pre-commit, luacheck, check_toc, strings, suppressions)
-        if: steps.scope.outputs.lint != 'false'
+        if: steps.scope.outputs.lint != 'false' && (github.event_name != 'pull_request' || steps.start_lint.outcome == 'success')
         env:
           GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
           KSTYLEUI_PYTHON: python3
@@ -111,14 +131,34 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 7
+      - name: Record the python start
+        id: start_python
+        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.python != 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: start-${{ steps.tree.outputs.tree }}-python
+          path: ${{ runner.temp }}/ci-result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+      - name: Record the package start
+        id: start_package
+        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.package != 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: start-${{ steps.tree.outputs.tree }}-package
+          path: ${{ runner.temp }}/ci-result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Check the runner's Lua is 5.1.5
-        if: ${{ !cancelled() && (steps.scope.outputs.python != 'false' || steps.scope.outputs.package != 'false') }}
+        if: ${{ !cancelled() && ((steps.scope.outputs.python != 'false' && (github.event_name != 'pull_request' || steps.start_python.outcome == 'success')) || (steps.scope.outputs.package != 'false' && (github.event_name != 'pull_request' || steps.start_package.outcome == 'success'))) }}
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Check the runner's Python is 3.12
-        if: ${{ !cancelled() && steps.scope.outputs.python != 'false' }}
+        if: ${{ !cancelled() && steps.scope.outputs.python != 'false' && (github.event_name != 'pull_request' || steps.start_python.outcome == 'success') }}
         run: python3 --version | grep '^Python 3\.12\.'
       - name: Python tool tests
-        if: ${{ !cancelled() && steps.scope.outputs.python != 'false' }}
+        if: ${{ !cancelled() && steps.scope.outputs.python != 'false' && (github.event_name != 'pull_request' || steps.start_python.outcome == 'success') }}
         env:
           KSTYLEUI_PYTHON: python3
         run: bash scripts/gate.sh python
@@ -132,13 +172,13 @@ jobs:
           overwrite: true
           retention-days: 7
       - name: Package without uploading or localisation
-        if: ${{ !cancelled() && steps.scope.outputs.package != 'false' }}
+        if: ${{ !cancelled() && steps.scope.outputs.package != 'false' && (github.event_name != 'pull_request' || steps.start_package.outcome == 'success') }}
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d -l
           pandoc: false
       - name: Check the zip
-        if: ${{ !cancelled() && steps.scope.outputs.package != 'false' }}
+        if: ${{ !cancelled() && steps.scope.outputs.package != 'false' && (github.event_name != 'pull_request' || steps.start_package.outcome == 'success') }}
         run: bash Tools/hooks/check-package.sh
       - name: Record the package result
         if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.package != 'false' }}

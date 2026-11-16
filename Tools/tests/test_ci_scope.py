@@ -188,6 +188,20 @@ class PushProofTest(unittest.TestCase):
         output, _, _ = self.scope(artifacts=markers)
         self.assertEqual(output, "run=true\n")
 
+    def test_a_start_without_an_end_blocks_an_older_green(self):
+        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                    "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}}
+                   for i, kind in ((1, "green"), (2, "start"))]
+        self.assertEqual(self.scope(artifacts=markers)[0], "run=true\n")
+
+    def test_a_newer_green_after_its_start_can_skip(self):
+        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                    "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": 123}}
+                   for i, kind in ((1, "start"), (2, "green"))]
+        output, _, calls = self.scope(artifacts=markers)
+        self.assertEqual(output, "run=false\n")
+        self.assertTrue(any("name=start-" in call for call in calls))
+
     def test_a_newer_green_marker_after_an_older_red_can_skip(self):
         markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": 123}}

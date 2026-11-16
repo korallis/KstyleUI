@@ -125,7 +125,7 @@ def push_decision(area):
         green = f"green-{tree}-{marker_area}"
         repo = os.environ["GITHUB_REPOSITORY"]
         matches = []
-        for name in (green, f"red-{tree}-{marker_area}"):
+        for name in (green, f"red-{tree}-{marker_area}", f"start-{tree}-{marker_area}"):
             result = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))
             artifacts = result["artifacts"]
             if result["total_count"] != len(artifacts):
