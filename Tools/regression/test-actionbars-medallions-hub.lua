@@ -1,4 +1,4 @@
--- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its wings, rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the wings ride above the top row and, out in combat, stay inside the reach and height Layouts keeps clear of other elements, bars 1 and 2 are one row of twelve each at every screen with no slot under Layouts' slot floor, and Frames brings the bars back with the slab and hub hidden.
+-- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the gunmetal ring draws over the crest, which rests at 0.9 so the slots stay brighter, the hub has no wings (KSTY-110), bars 1 and 2 stand in Layouts' rows (one at 21:9 and wider, two at 16:9) with no slot under Layouts' slot floor, and Frames brings the bars back with the slab and hub hidden.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
@@ -96,7 +96,8 @@ for _, screen in ipairs(SCREENS) do
 	local slab, hub = Slab.frame, Slab.hub
 	assert(slab and slab:IsShown() and hub:IsShown(), what .. ": the slab and the hub are shown under Medallions")
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
-	assert(Columns(bar1) == 1 and Columns(bar2) == 1, what .. ": bars 1 and 2 stand in one row, got " .. Columns(bar1) .. " and " .. Columns(bar2))
+	local _, rows = K.Setup.Layouts.MedallionsGroup(K.Scale.Aspect())
+	assert(Columns(bar1) == rows and Columns(bar2) == rows, what .. ": bars 1 and 2 stand in " .. rows .. " row(s), got " .. Columns(bar1) .. " and " .. Columns(bar2))
 	local floor = K.Setup.Layouts.MEDALLIONS_SLOT.floor
 	for _, bar in ipairs({ bar1, bar2 }) do
 		for _, b in ipairs(bar.buttons) do
@@ -140,14 +141,10 @@ for _, screen in ipairs(SCREENS) do
 		end
 		assert(not Overlaps(hubRect, slot), what .. ": the hub's footprint overlaps slot " .. tostring(b:GetName()))
 	end
-	for _, wing in ipairs(hub.wings) do
-		local s = hub:GetEffectiveScale()
-		local w = { wing:GetLeft() * s, wing:GetBottom() * s, wing:GetRight() * s, wing:GetTop() * s }
-		assert(w[2] >= top - 1e-6, what .. ": the wings ride above the top row of slots")
-		for _, b in ipairs(slots) do
-			assert(not Overlaps(w, Rect(b)), what .. ": a wing overlaps a slot")
-		end
-	end
+	assert(hub.wings == nil, what .. ": the hub has no wings")
+	assert(Below(hub.crest, hub.ring) and Below(hub.socket, hub.crest), what .. ": the crest sits in its socket under the gunmetal ring")
+	local cr, cg, cb = hub.crest:GetVertexColor()
+	assert(math.abs(cr - 0.9) < 1e-6 and math.abs(cg - 0.9) < 1e-6 and math.abs(cb - 0.9) < 1e-6, what .. ": the crest rests at 0.9")
 	assert(hub:GetScale() <= 1 and hub:GetScale() > 0.9, what .. ": the gap holds the full ring, scale " .. hub:GetScale())
 	do
 		local level = hub.level
@@ -164,21 +161,6 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		assert(covers > 0 and Below(hub.plaque, level), what .. ": the plaque sits under the level number")
-	end
-	do
-		local wing = K.Setup.Layouts.MEDALLIONS_WING
-		local unit = K.Scale.Root():GetEffectiveScale()
-		Slab.SetCombat(true)
-		Slab.hub.wings[1].anim:GetScript("OnFinished")(Slab.hub.wings[1].anim)
-		local centre = (hubRect[1] + hubRect[3]) / 2
-		for _, w in ipairs(hub.wings) do
-			local s = hub:GetEffectiveScale()
-			local far = math.max(math.abs(w:GetLeft() * s - centre), math.abs(w:GetRight() * s - centre))
-			assert(far <= wing.reach * unit + 1e-6, what .. ": a wing out in combat stays inside the reach Layouts keeps clear, " .. far / unit .. " units")
-			assert(w:GetTop() * s <= top + wing.top * unit + 1e-6, what .. ": a wing stays under the height Layouts keeps clear")
-		end
-		Slab.SetCombat(false)
-		Slab.hub.wings[1].anim:GetScript("OnFinished")(Slab.hub.wings[1].anim)
 	end
 	local centre = (hubRect[1] + hubRect[3]) / 2
 	local gapLeft, gapRight = Rect(bar1.holder)[3], Rect(bar2.holder)[1]

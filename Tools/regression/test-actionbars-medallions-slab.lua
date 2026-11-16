@@ -1,4 +1,4 @@
--- test-actionbars-medallions-slab.lua: the Medallions action slab is one connected piece at every CREW screen (LEE-1543): bars 1 and 2 stand in one row each, bar 1's twelve slots left of the crest hub and bar 2's twelve right of it, and the slab, the hub, both wings and the experience strip along the slab's lower edge touch or overlap with no gap between their rects, at rest and with the wings out in combat, the slab's edges and the wings' seat on whole physical pixels.
+-- test-actionbars-medallions-slab.lua: the Medallions action slab is one connected piece at every CREW screen (LEE-1543, KSTY-110): bars 1 and 2 stand as one group each in Layouts' rows (one row at 21:9 and wider, two rows of six at 16:9), bar 1's twelve slots left of the crest hub and bar 2's twelve right of it, the slab, the hub and the experience strip along the slab's lower edge touch or overlap with no gap between their rects, the hub has no wings, the slots stand at the 42-unit socket and 5-unit gap with the icon inset 3 units, the warlock's pet bar sits in its own small slab 12 units outboard of the action slab, and the slab's edges are on whole physical pixels.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
@@ -22,67 +22,98 @@ local function Whole(v, height)
 	return math.abs(px - math.floor(px + 0.5)) < 1e-4
 end
 
+local function Rows(bar)
+	local seen, rows = {}, 0
+	for i = 1, 12 do
+		local key = math.floor(bar.buttons[i]:GetBottom() * 100 + 0.5)
+		if not seen[key] then
+			seen[key], rows = true, rows + 1
+		end
+	end
+	return rows
+end
+
 local checked = 0
 for _, screen in ipairs(SCREENS) do
 	local width, height = screen[1], screen[2]
 	local what = width .. "x" .. height
 	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK" })
+	env._game.petExists = true
+	env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
 	AB.Enable(env, K)
 	local strip = env.CreateFrame("Frame", nil, K.Scale.Root())
 	K.Layout.Register(strip, "databars.xp", K.Setup.Layouts.Default("databars.xp"), { label = "Experience", module = "DataBars", resizable = true })
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	local Slab = ns.Slab
+	local Slab, Layouts = ns.Slab, K.Setup.Layouts
 	local slab, hub = Slab.frame, Slab.hub
 	assert(slab and slab:IsShown() and hub:IsShown(), what .. ": the slab and the hub are shown under Medallions")
+	assert(hub.wings == nil, what .. ": the hub has no wings")
+	local unit = K.Scale.Root():GetEffectiveScale()
+	local px = math.max(1, 768 / height / unit * 1.01)
 
+	local _, rows = Layouts.MedallionsGroup(K.Scale.Aspect())
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
 	local hubRect = Rect(hub)
-	local centre = (hubRect[1] + hubRect[3]) / 2
 	for _, bar in ipairs({ bar1, bar2 }) do
-		local bottom = bar.buttons[1]:GetBottom()
+		assert(Rows(bar) == rows, what .. ": " .. bar.def.key .. " stands in " .. rows .. " row(s), got " .. Rows(bar))
 		for i = 1, 12 do
 			local b = bar.buttons[i]
 			assert(b:IsShown(), what .. ": " .. bar.def.key .. " shows all twelve slots")
-			assert(math.abs(b:GetBottom() - bottom) < EPS, what .. ": " .. bar.def.key .. " stands in one row, slot " .. i .. " is off its baseline")
 			local r = Rect(b)
+			assert(math.abs((r[3] - r[1]) / unit - Layouts.MEDALLIONS_SLOT.size) < px, what .. ": a socket is " .. (r[3] - r[1]) / unit .. " units")
+			local icon = Rect(b.icon)
+			assert(math.abs((icon[1] - r[1]) / unit - 3) < px, what .. ": the icon sits 3 units inside its socket")
+			assert(not b.chrome.visible, what .. ": the socket replaces the slot's own chrome")
 			if bar == bar1 then
 				assert(r[3] <= hubRect[1] + EPS, what .. ": bar 1's slot " .. i .. " stands left of the hub")
 			else
 				assert(r[1] >= hubRect[3] - EPS, what .. ": bar 2's slot " .. i .. " stands right of the hub")
 			end
 		end
+		local pitch = (bar.buttons[2]:GetLeft() - bar.buttons[1]:GetLeft()) * bar.buttons[1]:GetEffectiveScale() / unit
+		assert(math.abs(pitch - Layouts.MEDALLIONS_SLOT.size - Layouts.MEDALLIONS_SLOT.gap) < px, what .. ": the sockets stand " .. pitch .. " units apart")
 	end
 	assert(math.abs(bar1.buttons[1]:GetBottom() - bar2.buttons[1]:GetBottom()) < EPS, what .. ": both groups share one baseline")
 
 	for _, combat in ipairs({ false, true }) do
 		local state = combat and "in combat" or "at rest"
 		Slab.SetCombat(combat)
-		hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
 		local slabRect, xp = Rect(slab), Rect(strip)
 		local pieces = { slab = slabRect, hub = Rect(hub), xp = xp }
-		for i, wing in ipairs(hub.wings) do
-			local s = hub:GetEffectiveScale()
-			pieces["wing" .. i] = { wing:GetLeft() * s, wing:GetBottom() * s, wing:GetRight() * s, wing:GetTop() * s }
-		end
-		for _, pair in ipairs({ { "slab", "hub" }, { "slab", "wing1" }, { "slab", "wing2" }, { "hub", "wing1" }, { "hub", "wing2" }, { "slab", "xp" } }) do
+		for _, pair in ipairs({ { "slab", "hub" }, { "slab", "xp" } }) do
 			local gap = Gap(pieces[pair[1]], pieces[pair[2]])
 			assert(gap <= EPS, string.format("%s %s: the %s and the %s stand %.3f apart", what, state, pair[1], pair[2], gap))
 		end
-		assert(xp[1] >= slabRect[1] - EPS and xp[3] <= slabRect[3] + EPS and xp[2] >= slabRect[2] - EPS and xp[4] <= bar1.buttons[1]:GetBottom() * bar1.buttons[1]:GetEffectiveScale() + EPS,
+		local lowest = math.huge
+		for _, bar in ipairs({ bar1, bar2 }) do
+			for i = 1, 12 do
+				lowest = math.min(lowest, bar.buttons[i]:GetBottom() * bar.buttons[i]:GetEffectiveScale())
+			end
+		end
+		assert(xp[1] >= slabRect[1] - EPS and xp[3] <= slabRect[3] + EPS and xp[2] >= slabRect[2] - EPS and xp[4] <= lowest + EPS,
 			what .. " " .. state .. ": the experience strip lies inside the slab, under the slots")
 		assert(xp[3] - xp[1] >= (slabRect[3] - slabRect[1]) * 0.95, what .. " " .. state .. ": the experience strip runs the slab's whole width")
-		for i = 1, 2 do
-			local wing = pieces["wing" .. i]
-			assert(wing[2] < slabRect[4] - EPS, what .. " " .. state .. ": wing " .. i .. " is seated into the slab's top edge, not over it")
-			assert(math.abs((wing[1] + wing[3]) / 2 - centre) > 0 and (i == 1) == (wing[3] < centre + EPS), what .. ": wing " .. i .. " grows out of its own side of the hub")
-			assert(Whole(wing[2], height), what .. " " .. state .. ": wing " .. i .. " sits on a whole physical pixel")
-		end
 		for k, edge in ipairs(slabRect) do
 			assert(Whole(edge, height), what .. ": the slab's " .. ({ "left", "bottom", "right", "top" })[k] .. " edge is on a whole physical pixel")
 		end
 	end
 	Slab.SetCombat(false)
+
+	local pet = ns.bars.pet
+	local plate = Slab.sides and Slab.sides.pet
+	assert(pet.buttons[1]:IsVisible() and plate and plate:IsVisible(), what .. ": the imp's bar is out in its own small slab")
+	assert(plate:GetFrameStrata() == Slab.STRATA, what .. ": the pet slab draws at the slab's strata, under its slots")
+	local petRect, slabRect = Rect(plate), Rect(slab)
+	for _, b in ipairs(pet.buttons) do
+		if b:IsShown() then
+			local r = Rect(b)
+			assert(r[1] >= petRect[1] - EPS and r[3] <= petRect[3] + EPS and r[2] >= petRect[2] - EPS and r[4] <= petRect[4] + EPS, what .. ": the pet slab holds every pet slot")
+		end
+	end
+	local apart = (slabRect[1] - petRect[3]) / unit
+	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": the pet slab stands " .. apart .. " units left of the action slab")
+	assert(math.abs(petRect[2] - slabRect[2]) / unit < 2 * px, what .. ": the pet slab sits on the action slab's lower edge")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1
 end

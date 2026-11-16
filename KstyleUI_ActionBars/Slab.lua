@@ -956,7 +956,6 @@ local function Socket(b, on)
 	else
 		b.icon:SetTexCoord(unpack(b.medCoords))
 	end
-	b.mask:SetTexture(on and SocketMask() or (Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	b.placedOffset = nil
 	b:Paint()
 end
@@ -967,7 +966,15 @@ function Slab.Dress(b)
 		if not on then
 			return
 		end
-		b.medFrame = SlotLayer(b, "BACKGROUND", 2, "medSlot", b)
+		b.medWell = b:CreateTexture(nil, "BACKGROUND", nil, 2)
+		b.medWell:SetAllPoints(b)
+		local well = Known("medSlotSocket")
+		if well then
+			b.medWell:SetTexture(well)
+		else
+			b.medWell:SetColorTexture(Tokens.Color("medSocket"))
+		end
+		b.medFrame = SlotLayer(b, "OVERLAY", 2, "medSlot", b)
 		b.medChecked = SlotLayer(b, "OVERLAY", 3, "medSlotChecked", b)
 		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, "OVERLAY", 2, "medSlotHighlight", b)
 		b.medPushed = SlotLayer(b, "OVERLAY", 3, "medSlotPushed", b)
@@ -981,6 +988,7 @@ function Slab.Dress(b)
 	end
 	Socket(b, on)
 	b.medFrame:SetShown(on)
+	b.medWell:SetShown(on)
 	b.medChecked:SetShown(on and b.selected == true)
 	if b.medHover then
 		b.medHover:SetShown(on)

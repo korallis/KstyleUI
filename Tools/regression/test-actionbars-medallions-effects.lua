@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc runs a class-tinted loop on its slot and pulses the hub's crest and glyphs, and its hide stops both; entering combat slides the wings out, fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving folds them back; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear M3's slot frames; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc draws a class-colour border inside its socket and runs a loop clipped to the socket's opening, and pulses the hub's crest and glyphs, and its hide stops all of it; entering combat fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving settles it; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear the recessed socket, with the keybind only on a slot that holds an action; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -19,11 +19,6 @@ local function Kinds(group)
 		out[anim._type] = (out[anim._type] or 0) + 1
 	end
 	return out
-end
-
-local function WingX(wing)
-	local _, _, _, x = wing:GetPoint(1)
-	return math.abs(x)
 end
 
 do
@@ -56,36 +51,27 @@ do
 	assert(Kinds(hub.crest.pulse).Scale == 2, "the pulse grows and settles")
 	assert(not (other.medProc and other.medProc:IsShown()), "only the proc's own slot loops")
 	assert(b.medProc:GetParent() == b.overlay, "the loop draws on the slot, above the hub")
+	local p1, anchor = b.medProc:GetPoint(1)
+	assert(p1 == "TOPLEFT" and anchor == b.icon and b.medProc:GetNumMaskTextures() > 0, "the loop is clipped to the socket's opening")
+	assert(b.medProcEdge:IsShown(), "the proc draws its border inside the socket")
+	local er, eg, eb = b.medProcEdge:GetVertexColor()
+	assert(math.abs(er - r) < 1e-6 and math.abs(eg - g) < 1e-6 and math.abs(eb - bl) < 1e-6, "the proc border takes the class colour")
+	assert(not (b.procGlow and b.procGlow:IsPlaying()), "the slot's gilt halo stays off under Medallions")
 	assert(not (b.lumenGlow and b.lumenGlow:IsShown()), "the Medallions loop replaces the slot's own proc glow")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
-	assert(not b.medProc:IsShown() and not b.medProc.anim:IsPlaying(), "the hide stops the slot loop")
+	assert(not b.medProc:IsShown() and not b.medProc.anim:IsPlaying() and not b.medProcEdge:IsShown(), "the hide stops the slot loop and its border")
 
 	assert(not Slab.InCombat(), "out of combat at the start")
-	local rest = WingX(hub.wings[1])
 	env.SetCombat(true)
-	local combat, out = Slab.InCombat()
-	assert(combat and out, "entering combat puts the wings out")
-	for _, wing in ipairs(hub.wings) do
-		assert(wing.anim:IsPlaying(), "each wing slides")
-		local dx = wing.move:GetOffset()
-		assert(dx * wing.side > 0, "each wing slides outward")
-	end
+	assert(Slab.InCombat(), "entering combat is seen")
 	assert(hub.shock.anim:IsPlaying() and hub.flash.anim:IsPlaying(), "the shockwave and crest flash fire")
 	for _, sweep in ipairs(Slab.frame.sweeps) do
 		assert(sweep.anim:IsPlaying() and sweep.move:GetOffset() * sweep.side > 0, "light runs along the slab both ways")
 	end
 	assert(hub.runes.turn:GetAnimationSpeedMultiplier() > 1, "the rune ring turns faster in combat")
-	local sliding = WingX(hub.wings[1])
-	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim, true)
-	assert(WingX(hub.wings[1]) == sliding, "a stopped slide does not move the wings to the end")
-	ns.Slab.Refresh()
-	assert(WingX(hub.wings[1]) == sliding, "a refresh during the slide leaves the wings to the animation")
-	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
-	assert(WingX(hub.wings[1]) > rest, "after the slide the wings rest further out")
+	assert(hub.wings == nil, "the hub has no wings to slide")
 	env.SetCombat(false)
-	assert(not Slab.InCombat(), "leaving combat folds the wings")
-	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
-	assert(math.abs(WingX(hub.wings[1]) - rest) < 1e-6, "the wings fold back to rest")
+	assert(not Slab.InCombat(), "leaving combat is seen")
 	assert(hub.runes.turn:GetAnimationSpeedMultiplier() == 1, "the rune ring settles")
 
 	assert(Kinds(hub.runes.turn).Rotation == 1 and hub.runes.turn:GetLooping() == "REPEAT" and hub.runes.turn:IsPlaying(), "the rune ring turns")
@@ -119,10 +105,8 @@ do
 	Medallions(K, env)
 	local hub = ns.Slab.hub
 	assert(not hub.runes.turn:IsPlaying() and not hub.glow.breath:IsPlaying(), "motion off keeps the hub still")
-	local rest = WingX(hub.wings[1])
 	env.SetCombat(true)
-	assert(not hub.wings[1].anim:IsPlaying() and not hub.shock.anim:IsPlaying(), "motion off plays no combat effect")
-	assert(WingX(hub.wings[1]) > rest, "motion off still puts the wings out at once")
+	assert(not hub.shock.anim:IsPlaying() and not hub.flash.anim:IsPlaying(), "motion off plays no combat effect")
 	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
@@ -160,17 +144,14 @@ do
 	for _, p in ipairs(hub.particles) do
 		assert(not p.anim:IsPlaying(), "calm has no particles")
 	end
-	local rest = WingX(hub.wings[1])
 	env.SetCombat(true)
-	assert(hub.wings[1].anim:IsPlaying() and hub.shock.anim:IsPlaying(), "calm keeps the one-shot flares: the wings slide and the shockwave fires")
+	assert(hub.shock.anim:IsPlaying() and hub.flash.anim:IsPlaying(), "calm keeps the one-shot flares: the shockwave and crest flash fire")
 	assert(ns.Slab.Allows("flare") and not ns.Slab.Allows("pulse") and not ns.Slab.Allows("particle"), "calm allows ambient and flares, no loops or particles")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(b.medProc:IsShown() and not b.medProc.anim:IsPlaying() and b.medProcStart.anim:IsPlaying(), "calm shows the slot loop still and plays its start burst")
 	assert(hub.crest.pulse:IsPlaying(), "calm keeps the hub's one-shot proc pulse")
-	hub.wings[1].anim:GetScript("OnFinished")(hub.wings[1].anim)
-	assert(WingX(hub.wings[1]) > rest, "the wings rest out after the slide")
 	env.SetCombat(false)
 	level = "off"
 	K.Callbacks.Fire("SettingChanged", "Effects", "level")
@@ -236,7 +217,13 @@ do
 	assert(hub.crestPath ~= own.crest, "a secret race indexes no crest")
 
 	local b = AB.Button(ns, "bar1", 1)
-	assert(b.medFrame and b.medFrame:IsShown() and b.medFrame:GetTexture() == K.Tokens.Texture("medSlot"), "the slot wears M3's slot frame")
+	assert(b.medFrame and b.medFrame:IsShown() and b.medFrame:GetTexture() == K.Tokens.Texture("medSlot"), "the slot wears the socket's frame")
+	assert(b.medWell:IsShown() and not b.chrome.visible, "the recessed well replaces the slot's own chrome")
+	assert(not b.hotkey:IsShown(), "an empty slot shows only its socket, no keybind")
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	assert(b.hasAction and b.hotkey:IsShown(), "a slot that holds an action shows its keybind")
+	AB.Slot(env, 1, nil)
+	assert(not b.hasAction and not b.hotkey:IsShown(), "clearing the slot hides its keybind again")
 	assert(b.medHover:GetParent() == b.hoverLayer, "the highlight frame rides the slot's hover layer")
 	assert(not b.medPushed:IsShown(), "the pushed frame waits for a press")
 	K.Motion.SetLevel("off")
@@ -252,7 +239,8 @@ do
 	assert(not b.medChecked:IsShown(), "and hides it again")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
-	assert(not b.medFrame:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
+	assert(not b.medFrame:IsShown() and not b.medWell:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
+	assert(b.chrome.visible and b.hotkey:IsShown(), "back to Frames the slot's own chrome and keybind return")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
