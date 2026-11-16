@@ -93,6 +93,31 @@ local function NameLine(view, g)
 	level:Show()
 end
 
+function Slab.Caption(view)
+	local g = view.geometry
+	if not (g and g.form == "slab" and g.caption) then
+		return
+	end
+	local text, bar, rect = view.caption, g.health, g.caption
+	local width
+	if Plain(text:GetText(), "string") and text.GetUnboundedStringWidth then
+		width = text:GetUnboundedStringWidth()
+	end
+	local size = Settings.FontSize(view.kind, "level")
+	if not Plain(width, "number") then
+		local _, actual = text:GetFont()
+		width = 12 * (Plain(actual, "number") and actual or size)
+	end
+	rect.w = math.min(bar.w, math.max(0, width) + 2 * Widgets.Border(view.parent))
+	if g.name then
+		local room = math.max(0, bar.w - rect.w - 4)
+		g.name.x, g.name.w = bar.x + bar.w - room, room
+		g.nameRoom = math.max(0, room - math.ceil(ns.Geometry.SLAB_PAD.levelEm * size) - g.levelGap)
+	end
+	Extra(view, text, rect, "LEFT")
+	NameLine(view, g)
+end
+
 function Slab.Layout(view, g)
 	if g.form ~= "slab" then
 		if view.slab then
@@ -121,6 +146,7 @@ function Slab.Layout(view, g)
 	local opposite = g.mirror and "LEFT" or "RIGHT"
 	Extra(view, view.healthSub, g.healthSub, opposite)
 	Extra(view, view.caption, g.caption, opposite)
+	Slab.Caption(view)
 	view.levelText:Hide()
 end
 

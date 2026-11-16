@@ -364,6 +364,7 @@ end
 local function SetName(view, name)
 	local text = view.name
 	local path, full, flags = ns.Settings.Font(view.kind, "name")
+	ns.Slab.Caption(view)
 	K.Widgets.Fitted(text, false)
 	SetFont(text, path, full, flags)
 	if IsSecret(name) then
@@ -383,8 +384,21 @@ local function SetName(view, name)
 		return
 	end
 	local width, room = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth(), view.geometry and view.geometry.nameRoom or text:GetWidth()
+	local nameFloor
+	if view.form == "slab" and Number(width) and Number(room) and room > 0 then
+		local pixel = K.Widgets.Border(text)
+		nameFloor = math.ceil(9 * Theme.FontScale() / (K.Scale.AppliedUserScale() * K.Scale.Pixel(1)) - 1e-6) * pixel
+		local _, size = text:GetFont()
+		while width > room and Number(size) and size > nameFloor do
+			size = math.max(nameFloor, size - 1)
+			K.Widgets.Fitted(text)
+			SetFont(text, path, size, flags)
+			width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
+			if not Number(width) then break end
+		end
+	end
 	if Number(width) and Number(room) and room > 0 and width > room then
-		local limit = math.min(bodySize, full)
+		local limit = math.max(nameFloor or 0, math.min(bodySize, full))
 		SetFont(text, bodyPath, limit, flags)
 		text:SetText(name)
 		width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
@@ -546,6 +560,8 @@ function Unit.Caption(view, unit)
 		else
 			text:SetText("")
 		end
+		ns.Slab.Caption(view)
+		Unit.Refit(view)
 	elseif form == "sigil" then
 		LevelLine(text, unit, false)
 	elseif form == "card" then

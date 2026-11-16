@@ -627,6 +627,9 @@ local function SlabFrame(out, s, width, height, scale)
 	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
 	local extra = (spec.extra == "health" and s.healthText == "both") or spec.extra == "caption"
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
+	if spec.extra == "caption" then
+		room = max(0, barW - 12 * Size(s, "level", scale) - TEXT_GAP)
+	end
 	if s.name then
 		local levelSize = Size(s, "level", scale)
 		out.name = Rect(right and left + barW - room or left, y, room, rowH)
@@ -689,6 +692,12 @@ local function Marker(out, s)
 		return
 	end
 	local size = (s.iconSize or 12) + MARKER_EXTRA
+	if out.form == "slab" and out.medal then
+		local medal = out.medal
+		local x = out.mirror and medal.x + medal.w + MARKER_GAP or medal.x - size - MARKER_GAP
+		out.marker = Rect(x, medal.y - MARKER_GAP, size, size)
+		return
+	end
 	local anchor = out.portrait or out.panel
 	local spot = Rect(anchor.x + anchor.w / 2 - size / 2, -size / 2, size, size)
 	local name = out.name

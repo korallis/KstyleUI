@@ -140,6 +140,10 @@ local function Paint(view, kind)
 	if view.form ~= "plate" then
 		PaintLumen(view, kind, sample)
 	end
+	if view.form == "slab" then
+		ns.Slab.Caption(view)
+		ns.Unit.Refit(view)
+	end
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		view.portrait:SetAtlas(GetClassAtlas(Theme.Class()))
 	elseif SetPortraitTexture then
