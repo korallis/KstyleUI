@@ -1,4 +1,4 @@
--- test-medallions-steel.lua: the Medallions HUD style dresses the kit in steel (cards, caps, close buttons) and leaves Frames and Orbs as they were.
+-- test-medallions-steel.lua: the Medallions HUD style dresses the kit in dark bevelled steel (cards, caps, close buttons) and leaves Frames and Orbs as they were.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function SetStyle(K, style)
@@ -28,7 +28,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 		assert(not Widgets.Medallions())
 		assert(Widgets.ColorName("gilt") == "gilt" and Widgets.ColorName("capsGold") == "capsGold")
 		assert(chrome:Material() == K.Tokens.Material(Widgets.Setting("cardMaterial")), "Frames and Orbs keep the player's card material")
-		assert(not chrome.steelCorners or not chrome.steelCorners[1]:IsShown(), "no steel corners outside Medallions")
+		assert(not chrome.bevel or not chrome.bevel[1]:IsShown(), "no Medallions bevel outside Medallions")
 		assert(chrome.materialBrackets[1]:IsShown(), "the forged brackets stay")
 		assert(not panel.closeButton.closeRing or not panel.closeButton.closeRing.chrome.fill[5]:IsShown(), "the close button stays a bare glyph")
 	end
@@ -39,13 +39,25 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 	assert(Widgets.ColorName("text") == "text" and Widgets.ColorName("accent") == "accent", "other colours are untouched")
 	local material = chrome:Material()
 	assert(material == Widgets.SteelMaterial(), "every card takes the steel material")
-	assert(chrome.steel and chrome.cornersWanted)
-	assert(#chrome.steelCorners == 4)
-	for i, corner in ipairs(chrome.steelCorners) do
-		assert(corner:IsShown(), "steel corner " .. i .. " shows")
-		local point = corner._points[1]
-		assert(point[1] == point[3] and point[2] == chrome.owner, "each corner sits flush in its own corner")
+	assert(chrome.steel and chrome:Bevelled())
+	assert(chrome.steelCorners == nil, "the steel corner brackets are retired")
+	assert(not material.texture, "no grain: the bevel reads as metal")
+	assert(#chrome.bevel == 5, "four rim ramps and a top catch-light")
+	for i, part in ipairs(chrome.bevel) do
+		assert(part:IsShown(), "bevel part " .. i .. " shows")
 	end
+	local outline = chrome.line[1]._state.VertexColor
+	local or_, og, ob, oa = K.Tokens.Color("medOutline")
+	assert(Same(outline, { or_, og, ob, oa }), "the outer line is the solid black outline")
+	local lr, lg, lb, la = K.Tokens.Color("medRimLit")
+	local dr, dg, db, da = K.Tokens.Color("medRimLow")
+	assert(Same(chrome.rim[2]._state.VertexColor, { lr, lg, lb, la }) and Same(chrome.rim[8]._state.VertexColor, { dr, dg, db, da }), "the rim is lit at the top and low at the bottom")
+	local f = Widgets.ScaleFactor(chrome.owner)
+	local pixel = K.Scale.Pixel(1) / f
+	assert(math.abs(chrome:Radius() - 4) < 1e-9, "cards round to 4 units")
+	local top = chrome.bevel[1]
+	assert(top:GetHeight() > 0 and math.abs(top:GetHeight() / pixel - math.floor(top:GetHeight() / pixel + 0.5)) < 1e-6, "the ramp is whole device pixels")
+	assert(panel.cap.rule._state.ColorTexture[4] == 0, "the caps rule gives way to the header band")
 	assert(not chrome.materialFrame[1]:IsShown() and not chrome.materialBrackets[1]:IsShown(), "no forged frame or gilt brackets")
 	for _, tick in ipairs(chrome.gilt) do
 		assert(not tick:IsShown(), "no gilt ticks")
@@ -63,10 +75,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 	assert(math.abs(ring.chrome:Radius() - side / 2) < 0.01 * side, "the ring is a circle: " .. ring.chrome:Radius() .. " of " .. side)
 
 	local tile = Widgets.Chrome(panel, { shape = "tile" })
-	assert(tile:Material() == nil and not tile.steelCorners, "tiles and sockets keep their own surface")
+	assert(tile:Material() == nil and not tile.bevel, "tiles and sockets keep their own surface")
 
 	SetStyle(K, "frames")
-	assert(not chrome.steelCorners[1]:IsShown() and chrome.materialBrackets[1]:IsShown(), "switching back restores the forged brackets")
+	assert(not chrome.bevel[1]:IsShown() and chrome.materialBrackets[1]:IsShown(), "switching back restores the forged brackets")
+	local er, eg, eb, ea = K.Tokens.Color("edgeOuter")
+	assert(Same(chrome.line[1]._state.VertexColor, { er, eg, eb, ea }), "and the Frames outer line")
 	assert(not ring.chrome.fill[5]:IsShown(), "and the bare close glyph")
 	local back = panel.cap.gem._state.VertexColor
 	assert(back[1] == frameCap[1] and back[2] == frameCap[2] and back[3] == frameCap[3], "and the gilt pip")
@@ -93,14 +107,14 @@ do
 	local env, K = W.New({ saved = saved })
 	assert(K.HudStyle.Current() == "medallions", "a login already on Medallions")
 	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Bags", close = true })
-	assert(panel.chrome.steelCorners[1]:IsShown(), "builds its cards in steel")
+	assert(panel.chrome.bevel[1]:IsShown(), "builds its cards in steel")
 	local fired = 0
 	K.Callbacks.Register("ThemeChanged", "test-medallions-steel", function()
 		fired = fired + 1
 	end)
 	SetStyle(K, "orbs")
 	assert(fired == 1, "and leaving Medallions repaints, though the switch into it was never seen")
-	assert(not panel.chrome.steelCorners[1]:IsShown() and panel.chrome.materialBrackets[1]:IsShown(), "the cards go back to the forged frame")
+	assert(not panel.chrome.bevel[1]:IsShown() and panel.chrome.materialBrackets[1]:IsShown(), "the cards go back to the forged frame")
 	assert(not panel.closeButton.closeRing.chrome.fill[5]:IsShown(), "and the close button to its bare glyph")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

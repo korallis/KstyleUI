@@ -30,6 +30,7 @@ local PLAQUE_HEIGHT = 18
 local PLAQUE_PAD = 6
 local RING_OUTER = 0.9189
 local RING_SUBLEVEL = 3
+local BADGE, BADGE_BAND = 16, 2
 
 Face.LEVEL_MAP = LEVEL_MAP
 
@@ -444,7 +445,7 @@ function Face:PlaceRound(round)
 		for i = 1, 2 do
 			local plaque = CreateFrame("Frame", nil, self.overlay)
 			plaque:SetFrameLevel(self.overlay:GetFrameLevel())
-			plaque.chrome = Widgets.Chrome(plaque, { shape = "tile", fill = "surface", shadow = false })
+			plaque.chrome = Widgets.Chrome(plaque, { shape = "card", fill = "surface", shadow = false, gilt = false })
 			plaques[i] = plaque
 		end
 		self.plaques = plaques
@@ -466,7 +467,6 @@ function Face:PlaceRound(round)
 	row:SetPoint("CENTER", card, "BOTTOM", 0, -Snap(card, Format.ROW_CENTER))
 	for _, plaque in ipairs(plaques) do
 		plaque:SetSize(width, height)
-		plaque.chrome:SetEdge("steel", 0.5)
 	end
 	self:SyncPlaques()
 end
@@ -537,11 +537,15 @@ function Face:Paint()
 		Widgets.Tint(bracket.down, "gilt")
 	end
 	local diamond = self.plate.diamond
-	Widgets.Tint(diamond.black, "black")
-	Widgets.Tint(diamond.gilt, "gilt")
-	Widgets.Tint(diamond.fill, "materialForged")
+	local mark = (Tokens.Texture(round and "dot" or "diamond"))
+	for _, layer in pairs(diamond) do
+		layer:SetTexture(mark)
+	end
+	Widgets.Tint(diamond.black, round and "medOutline" or "black")
+	Widgets.Tint(diamond.gilt, round and "medGunLit" or "gilt")
+	Widgets.Tint(diamond.fill, round and "medFillBottom" or "materialForged")
 	Style.Text(self.north, NORTH_ROLE, "zone", NORTH_SIZE)
-	self.north:SetTextColor(Widgets.Rgba("giltLit"))
+	self.north:SetTextColor(Widgets.Rgba(round and "medText" or "giltLit"))
 
 	self.zoneSize = Style.Text(self.zone, ZONE_ROLE, "zone")
 	self.clockSize = Style.Text(self.clock, CLOCK_ROLE, "clock")
@@ -581,14 +585,23 @@ function Face:Layout()
 	PlaceLines(self.shade, area, 0, border)
 	PlaceVignette(self.vignette, area, Snap(area, VIGNETTE))
 
-	local plateSize = Snap(area, Format.NORTH)
-	Widgets.Size(self.plate, Format.NORTH, Format.NORTH)
+	local round = Face.Round()
+	local north = round and BADGE or Format.NORTH
+	local plateSize = Snap(area, north)
+	Widgets.Size(self.plate, north, north)
 	self.plate:ClearAllPoints()
 	self.plate:SetPoint("CENTER", area, "TOP", 0, 0)
 	local diamond = self.plate.diamond
-	diamond.black:SetSize(plateSize + 3 * border, plateSize + 3 * border)
-	diamond.gilt:SetSize(plateSize, plateSize)
-	diamond.fill:SetSize(max(0, plateSize - 4 * border), max(0, plateSize - 4 * border))
+	if round then
+		local band = Snap(area, BADGE_BAND)
+		diamond.black:SetSize(plateSize, plateSize)
+		diamond.gilt:SetSize(plateSize - 2 * border, plateSize - 2 * border)
+		diamond.fill:SetSize(max(0, plateSize - 2 * border - 2 * band), max(0, plateSize - 2 * border - 2 * band))
+	else
+		diamond.black:SetSize(plateSize + 3 * border, plateSize + 3 * border)
+		diamond.gilt:SetSize(plateSize, plateSize)
+		diamond.fill:SetSize(max(0, plateSize - 4 * border), max(0, plateSize - 4 * border))
+	end
 
 	local x, rowY = Snap(card, CaptionX()), Snap(card, Format.ROW_CENTER)
 	local coords = self.coords

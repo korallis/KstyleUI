@@ -27,7 +27,7 @@ end
 
 function Widgets.PaintCapRule(rule, alpha)
 	if Widgets.Medallions() then
-		rule:SetColorTexture(Widgets.Rgba("steel", alpha))
+		rule:SetColorTexture(Widgets.Rgba("steel", 0))
 		rule:SetVertexColor(Tokens.Color("white"))
 		return nil
 	end
@@ -49,6 +49,7 @@ function Widgets.PaintCapMaterial(gem, rule, alpha)
 		gem:SetVertexColor(Tokens.Color("materialGold"))
 	elseif Widgets.Medallions() then
 		gem:SetVertexColor(Tokens.Color("accent"))
+		Widgets.CardHeader(gem)
 	end
 end
 

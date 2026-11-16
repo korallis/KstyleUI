@@ -13,6 +13,7 @@ local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
 local RULE_ALPHA = 0.35
+local CHAT_FILL = "medChatFill"
 local SHADE_LOBES, SHADE_X, SHADE_Y, SHADE_W, SHADE_H, SHADE_ALPHA = { -0.2727, 0, 0.2727 }, 0.47, 0.563, 1.09, 2.38, 0.46
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
 local COPY_SQUARE = 5.5
@@ -384,6 +385,13 @@ function Panel.PaintRule(divider)
 	Widgets.Tint(divider, "gilt", RULE_ALPHA)
 end
 
+local function SyncHeader()
+	local glass = state.glass
+	local banded = Widgets.Medallions()
+	glass.divider:SetShown(not state.bare and not banded)
+	glass.chrome:SetHeader(banded and state.headerUnits or nil)
+end
+
 local function PlaceDivider(g)
 	local glass = state.glass
 	local divider = glass.divider
@@ -392,7 +400,8 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
 	Panel.PaintRule(divider)
-	divider:SetShown(not state.bare)
+	state.headerUnits = g.divider + Widgets.Border(glass)
+	SyncHeader()
 	local y = -(g.divider - TAB_TEXT_RISE * g.k)
 	glass.plus:ClearAllPoints()
 	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
@@ -548,10 +557,11 @@ local function Paint(settings)
 	local bare = Panel.Bare(settings)
 	state.bare = bare
 	local r, g, b = Tokens.Color("surface")
+	glass.chrome:SetSteelFill(CHAT_FILL)
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
 	glass.chrome:SetShown(not bare)
-	glass.divider:SetShown(not bare)
+	SyncHeader()
 	local shade = state.shade
 	Shade()
 	Widgets.ColorSlice(shade, Widgets.Rgba("black", SHADE_ALPHA))

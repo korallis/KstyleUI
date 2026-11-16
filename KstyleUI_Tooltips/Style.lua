@@ -396,7 +396,10 @@ end
 
 function Style.PaintRule(rule)
 	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
-	if material and material.rule then
+	if Widgets.Medallions() then
+		rule:SetTexture((Tokens.Texture("ruleFade")))
+		rule:SetVertexColor(Widgets.Rgba("medCardDivider"))
+	elseif material and material.rule then
 		rule:SetTexture((Tokens.Texture(material.rule)))
 		rule:SetVertexColor(Widgets.Rgba("materialGold", RULE_ALPHA))
 	else

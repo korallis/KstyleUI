@@ -14,6 +14,9 @@ local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
 local SUBLEVEL_SHADOW, SUBLEVEL_FILL = -8, -7
 local SUBLEVEL_LINE, SUBLEVEL_RIM, SUBLEVEL_GILT = -3, -2, -1
+local SUBLEVEL_HEADER = -5
+local BEVEL_RADIUS, BEVEL_RAMP, BEVEL_RAMP_ALPHA = 4, 3, 0.75
+local HEADER_REACH, HEADER_BELOW, HEADER_DEPTH = 28, 11, 6
 local RINGS = { 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }
 local INSET_GAP = "gapSmall"
 local BORDER_UNITS = 1
@@ -180,6 +183,7 @@ ns.Options.Register(SECTION, Widgets.schema)
 
 local tracked = {}
 Widgets.Cards = setmetatable({}, { __mode = "k" })
+local cardOf = setmetatable({}, { __mode = "k" })
 
 function Widgets.Track(widget)
 	tracked[#tracked + 1] = widget
@@ -258,8 +262,8 @@ function Widgets.ColorName(name)
 	return name
 end
 
-local STEEL_TEXTURE_STANDINS = { medSteelCard = "materialSlate", medCardCorner = "forgedBracket2", medMinimapRing = "ringBevel", medMinimapMask = "orbMask" }
-local STEEL_MATERIAL = { fill = "steelFill", edge = "steelEdge", texture = "medSteelCard", texels = 256, grain = 0.06 }
+local STEEL_TEXTURE_STANDINS = { medMinimapRing = "ringBevel", medMinimapMask = "orbMask" }
+local STEEL_MATERIAL = { fill = "medCardFill", edge = "medRimLit" }
 
 function Widgets.TextureName(name)
 	local standin = STEEL_TEXTURE_STANDINS[name]
@@ -277,7 +281,7 @@ function Widgets.TextureName(name)
 end
 
 function Widgets.SteelMaterial()
-	return Tokens.Material("Steel") or STEEL_MATERIAL
+	return STEEL_MATERIAL
 end
 
 function Widgets.Rgba(name, alphaScale)
@@ -1349,6 +1353,7 @@ function Widgets.Chrome(owner, opts)
 		popup = opts.popup == true,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or shape.fill or "surface",
+		steelFill = opts.steelFill,
 		ownEdge = opts.edge ~= nil and opts.edge ~= "edgeInner",
 		edge = { Widgets.Rgba(opts.edge or (shape.pill and "edgeBar") or "edgeInner") },
 		fillColor = { 0, 0, 0, 0 },
@@ -1372,6 +1377,7 @@ function Widgets.Chrome(owner, opts)
 		end
 		if shape.card then
 			Widgets.Cards[c] = true
+			cardOf[owner] = c
 		end
 	end
 	if opts.ornament == "crest" and Widgets.Ornament and type(owner.AttachTexture) ~= "function" then
@@ -1416,6 +1422,8 @@ function Chrome:Radius()
 		radius = self.radius
 	elseif self.share and short then
 		radius = short * self.share
+	elseif self:Bevelled() then
+		radius = BEVEL_RADIUS
 	else
 		radius = self.shape.lines * Widgets.Border(self.owner)
 	end
@@ -1478,6 +1486,7 @@ function Chrome:OnSizeChanged()
 		self:PaintMaterial()
 		self:RestyleOrnament()
 	end
+	self:MeasureHeader()
 end
 
 function Chrome:LayoutPill()
@@ -1552,6 +1561,7 @@ function Chrome:Layout()
 	if self.gilt then
 		self:LayoutTicks(inner, line, f)
 	end
+	self:LayoutBevel(corner, line, f)
 end
 
 local function ShowOnce(chrome, key, slice, shown)
@@ -1592,9 +1602,6 @@ function Chrome:MaterialOpacity()
 end
 
 function Chrome:SyncMaterialFrame()
-	if self.steelCorners then
-		Widgets.ShowSlice(self.steelCorners, self.visible and self.cornersWanted == true)
-	end
 	if not self.frameWanted and not self.materialFrame then
 		if self.gilt and self.steel then
 			ShowOnce(self, "giltState", self.gilt, false)
@@ -1621,31 +1628,202 @@ function Chrome:SyncMaterialFrame()
 	end
 end
 
-local STEEL_CORNER = 20
+function Chrome:Bevelled()
+	return Widgets.Medallions() and self:Material() ~= nil
+end
 
-function Chrome:PaintCorners()
-	local owner = self.owner
-	if not self.steelCorners then
-		self.steelCorners = {}
-		for i = 1, 4 do
-			self.steelCorners[i] = NewTexture(owner, "BORDER", SUBLEVEL_GILT)
+local function Fade(texture, orientation, r, g, b, from, to)
+	if type(texture.SetGradient) == "function" and type(CreateColor) == "function" then
+		texture:SetVertexColor(1, 1, 1, 1)
+		texture:SetGradient(orientation, CreateColor(r, g, b, from), CreateColor(r, g, b, to))
+	else
+		Widgets.LogOnce("card-bevel", "Texture:SetGradient or CreateColor is missing; cards draw their rim flat")
+		texture:SetVertexColor(r, g, b, (from + to) / 2)
+	end
+end
+
+local function Strip(texture, owner, left, top, right, fx)
+	texture:ClearAllPoints()
+	texture:SetPoint("TOPLEFT", owner, "TOPLEFT", left, -top)
+	texture:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -right + fx, -top)
+end
+
+function Chrome:LayoutBevel(corner, line, f)
+	local bevel, owner = self.bevel, self.owner
+	if not self:Bevelled() then
+		if bevel then
+			Widgets.ShowSlice(bevel, false)
+			Widgets.ShowSlice(self.header, false)
+		end
+		return
+	end
+	if not bevel then
+		bevel = {}
+		for i = 1, 5 do
+			bevel[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_RIM))
+		end
+		self.bevel = bevel
+		self.header = {}
+		for i = 1, 3 do
+			self.header[i] = Widgets.Crisp(NewTexture(owner, "BACKGROUND", SUBLEVEL_HEADER))
 		end
 	end
-	local name, standin = Widgets.TextureName("medCardCorner")
-	local path = Tokens.Texture(name)
-	local f = Widgets.ScaleFactor(owner)
-	local size = SnapIn(STEEL_CORNER, f)
-	local tint = standin and "steelLit" or "white"
-	for i, corner in ipairs(BRACKET_CORNERS) do
-		local texture = self.steelCorners[i]
-		local left = i % 2 == 1
-		local top = i <= 2
-		texture:SetTexture(path)
-		texture:SetTexCoord(left and 0 or 1, left and 1 or 0, top and 0 or 1, top and 1 or 0)
-		texture:SetVertexColor(Widgets.Rgba(tint, min(1, self:MaterialOpacity())))
-		texture:ClearAllPoints()
-		texture:SetSize(size, size)
-		texture:SetPoint(corner, owner, corner)
+	local farX, farY = Widgets.Remainder(owner)
+	local px = Scale.Pixel(1) / f
+	local fx, fy = farX * px, farY * px
+	local depth = max(line, SnapIn(BEVEL_RAMP, f) - line)
+	local inset = 2 * line
+	local top, bottom, left, right, shine = bevel[1], bevel[2], bevel[3], bevel[4], bevel[5]
+	Strip(top, owner, corner, inset, corner, fx)
+	top:SetHeight(depth)
+	bottom:ClearAllPoints()
+	bottom:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", corner, inset - fy)
+	bottom:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -corner + fx, inset - fy)
+	bottom:SetHeight(depth)
+	left:ClearAllPoints()
+	left:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -corner)
+	left:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", inset, corner - fy)
+	left:SetWidth(depth)
+	right:ClearAllPoints()
+	right:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -inset + fx, -corner)
+	right:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset + fx, corner - fy)
+	right:SetWidth(depth)
+	Strip(shine, owner, corner, line, corner, fx)
+	shine:SetHeight(line)
+	local height = self.headerUnits and SnapIn(self.headerUnits, f)
+	local header = self.header
+	self.headerSplit = nil
+	if height and height > corner + 2 * line then
+		Strip(header[1], owner, corner, line, corner, fx)
+		header[1]:SetHeight(corner - line)
+		Strip(header[2], owner, line, corner, line, fx)
+		header[2]:SetHeight(height - corner - line)
+		Strip(header[3], owner, line, height - line, line, fx)
+		header[3]:SetHeight(line)
+		self.headerSplit = (corner - line) / (height - 2 * line)
+	end
+end
+
+function Chrome:PaintBevel()
+	local bevel = self.bevel
+	if not bevel then
+		return
+	end
+	local shown = self.visible and self:Bevelled()
+	Widgets.ShowSlice(bevel, shown)
+	Widgets.ShowSlice(self.header, shown and self.headerSplit ~= nil)
+	if not shown then
+		return
+	end
+	local lr, lg, lb = Widgets.Rgba("medRimLit")
+	local dr, dg, db = Widgets.Rgba("medRimLow")
+	local mr, mg, mb = (lr + dr) / 2, (lg + dg) / 2, (lb + db) / 2
+	Fade(bevel[1], "VERTICAL", lr, lg, lb, 0, BEVEL_RAMP_ALPHA)
+	Fade(bevel[2], "VERTICAL", dr, dg, db, BEVEL_RAMP_ALPHA, 0)
+	Fade(bevel[3], "HORIZONTAL", mr, mg, mb, BEVEL_RAMP_ALPHA, 0)
+	Fade(bevel[4], "HORIZONTAL", mr, mg, mb, 0, BEVEL_RAMP_ALPHA)
+	bevel[5]:SetVertexColor(Widgets.Rgba("medTopLine"))
+	local split = self.headerSplit
+	if split then
+		local alpha = self.fillAlpha or 1
+		local tr, tg, tb = Widgets.Rgba("medCardHeaderTop")
+		local br, bg, bb = Widgets.Rgba("medCardHeaderBottom")
+		local sr, sg, sb = tr + (br - tr) * split, tg + (bg - tg) * split, tb + (bb - tb) * split
+		local header = self.header
+		if type(header[1].SetGradient) == "function" and type(CreateColor) == "function" then
+			header[1]:SetVertexColor(1, 1, 1, 1)
+			header[1]:SetGradient("VERTICAL", CreateColor(sr, sg, sb, alpha), CreateColor(tr, tg, tb, alpha))
+			header[2]:SetVertexColor(1, 1, 1, 1)
+			header[2]:SetGradient("VERTICAL", CreateColor(br, bg, bb, alpha), CreateColor(sr, sg, sb, alpha))
+		else
+			header[1]:SetVertexColor(sr, sg, sb, alpha)
+			header[2]:SetVertexColor(sr, sg, sb, alpha)
+		end
+		header[3]:SetVertexColor(Widgets.Rgba("medCardDivider"))
+	end
+end
+
+local function Measured(v)
+	return not IsSecret(v) and type(v) == "number" and v == v
+end
+
+function Chrome:MeasureHeader()
+	local gem, owner = self.headerGem, self.owner
+	if not gem then
+		return
+	end
+	local holder = gem:GetParent()
+	local top = not Widgets.Restricted(owner) and not Widgets.Restricted(holder) and owner:GetTop()
+	local _, y = gem:GetCenter()
+	local scale, gemScale = owner:GetEffectiveScale(), holder:GetEffectiveScale()
+	local units
+	if Measured(top) and Measured(y) and Measured(scale) and Measured(gemScale) and scale > 0 then
+		local reach = top - y * gemScale / scale
+		if reach > 0 and reach <= HEADER_REACH then
+			units = floor((reach + HEADER_BELOW) * 100 + 0.5) / 100
+		end
+	end
+	self:SetHeader(units)
+end
+
+local function CardAt(node)
+	local chrome = cardOf[node]
+	if chrome or type(node.GetChildren) ~= "function" then
+		return chrome
+	end
+	local children = { node:GetChildren() }
+	for i = 1, #children do
+		chrome = cardOf[children[i]]
+		if chrome then
+			return chrome
+		end
+	end
+end
+
+function Widgets.CardHeader(gem)
+	local node = gem:GetParent()
+	for _ = 1, HEADER_DEPTH do
+		if not node then
+			return
+		end
+		local chrome = CardAt(node)
+		if chrome then
+			chrome.headerGem = gem
+			if not chrome.headerHooked then
+				chrome.headerHooked = true
+				local measure = function()
+					chrome:MeasureHeader()
+				end
+				for _, frame in ipairs({ chrome.owner, gem:GetParent() }) do
+					if type(frame.HookScript) == "function" then
+						frame:HookScript("OnShow", measure)
+						frame:HookScript("OnSizeChanged", measure)
+					end
+				end
+			end
+			chrome:MeasureHeader()
+			if C_Timer and C_Timer.After then
+				C_Timer.After(0, function()
+					chrome:MeasureHeader()
+				end)
+			end
+			return
+		end
+		node = node:GetParent()
+	end
+end
+
+function Chrome:SetSteelFill(name)
+	if self.steelFill ~= name then
+		self.steelFill = name
+		self:Paint()
+	end
+end
+
+function Chrome:SetHeader(units)
+	if self.headerUnits ~= units then
+		self.headerUnits = units
+		self:Restyle()
 	end
 end
 
@@ -1659,10 +1837,6 @@ function Chrome:PaintMaterial()
 	self.steel = steel
 	self.frameWanted = framed
 	self.bracketsWanted = material and material.brackets and not steel
-	self.cornersWanted = steel
-	if steel and Widgets.MayMove(self.owner) then
-		self:PaintCorners()
-	end
 	if not framed then
 		self.frameReady = false
 	end
@@ -1795,9 +1969,10 @@ function Chrome:Paint()
 	end
 	local material = self:Material()
 	if material and material.fill then
-		r, g, b, a = Widgets.Rgba(material.fill)
+		r, g, b, a = Widgets.Rgba(Widgets.Medallions() and self.steelFill or material.fill)
 		a = self.popup and 1 or min(1, a * self:MaterialOpacity())
 	end
+	self.fillAlpha = a
 	Widgets.ColorSlice(self.fill, r, g, b, a)
 	self:PaintMaterial()
 	if self.shadow then
@@ -1816,8 +1991,9 @@ function Chrome:PaintEdge()
 	if material and material.edge and not self.ownEdge then
 		e = { Widgets.Rgba(material.edge) }
 	end
+	local bevelled = self:Bevelled()
 	if self.line then
-		local name = self.proc and "giltLit" or self.shape.line
+		local name = self.proc and "giltLit" or (bevelled and "medOutline") or self.shape.line
 		local key = Widgets.ColorName(name)
 		if self.lineName ~= key then
 			self.lineName = key
@@ -1832,9 +2008,24 @@ function Chrome:PaintEdge()
 		r, g, b, a = Widgets.Rgba("giltLit")
 	end
 	Widgets.ColorSlice(self.rim, r, g, b, a)
+	if bevelled and not self.ownEdge and not self.proc then
+		local lr, lg, lb, la = Widgets.Rgba("medRimLit")
+		local dr, dg, db, da = Widgets.Rgba("medRimLow")
+		local rim = self.rim
+		for i = 1, 3 do
+			rim[i]:SetVertexColor(lr, lg, lb, la)
+			rim[i + 6]:SetVertexColor(dr, dg, db, da)
+		end
+		rim[5]:SetVertexColor(lr, lg, lb, la)
+		if type(rim[4].SetGradient) == "function" and type(CreateColor) == "function" then
+			rim[4]:SetGradient("VERTICAL", CreateColor(dr, dg, db, da), CreateColor(lr, lg, lb, la))
+			rim[6]:SetGradient("VERTICAL", CreateColor(dr, dg, db, da), CreateColor(lr, lg, lb, la))
+		end
+	end
 	if self.materialEdge then
 		Widgets.ColorSlice(self.materialEdge, r, g, b, a)
 	end
+	self:PaintBevel()
 end
 
 function Chrome:Restyle()
@@ -1957,6 +2148,7 @@ function Chrome:SetShown(shown)
 	if self.gilt then
 		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown)
 	end
+	self:PaintBevel()
 	if self.shadow then
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end

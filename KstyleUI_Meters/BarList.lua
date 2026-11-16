@@ -497,8 +497,9 @@ end
 
 function StyleRow(list, row)
 	local section = list.section
-	local figures = list.block and "number" or nil
-	ns.ApplyFont(row.name, section)
+	local medallions = Widgets.Medallions()
+	local figures = (list.block or medallions) and "number" or nil
+	ns.ApplyFont(row.name, section, nil, medallions and "unit" or nil)
 	ns.ApplyFont(row.value, section, nil, figures)
 	ns.ApplyFont(row.percent, section, nil, figures)
 	if row.dot then
