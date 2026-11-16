@@ -21,6 +21,12 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		if progressShown then
 			assert(ns.Quests.Rows()[1].lines[1].count:GetText() == "1/7", "public progress still repaints in combat")
 		end
+		env.RestrictAnchoring(rxp.RXPFrame)
+		rxp.SetStep(6, 6)
+		R.log.Fire("QUEST_LOG_UPDATE")
+		R.settle()
+		Check()
+		env.RestrictAnchoring(rxp.RXPFrame, false)
 		rxp.RXPFrame:Hide()
 		rxp.RXPFrame:Show()
 		R.settle()
