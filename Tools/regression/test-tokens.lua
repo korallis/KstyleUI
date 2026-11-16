@@ -256,7 +256,7 @@ assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no mar
 assert(not pcall(Tokens.Texture, "nope"), "an unknown texture is an error")
 
 -- Medallions (KSTY-90, KSTY-110): the style kit names files on disk, its slabs slice at 8 units, and flipbooks say their grid.
-for _, name in ipairs({ "medRing", "medRingLarge", "medEnamel", "medUnitSlab", "medActionSlab", "medSteelCard", "medProcShaman", "medLevelUp", "medHubWing", "medRuneRing", "medMinimapRing", "medMinimapMask" }) do
+for _, name in ipairs({ "medRing", "medRingLarge", "medEnamel", "medUnitSlab", "medActionSlab", "medProcShaman", "medLevelUp", "medHubWing", "medRuneRing", "medMinimapRing", "medMinimapMask" }) do
 	assert(onDisk((Tokens.Texture(name))), "Tokens.Texture(" .. name .. ") names a missing file")
 end
 _, texels, units = Tokens.Texture("medUnitSlab")
@@ -266,6 +266,5 @@ assert(rows == 4 and columns == 4 and frames == 16 and seconds == 0.96, "a proc 
 rows, columns, frames, seconds = Tokens.Flipbook("medParticleMage")
 assert(rows == 2 and columns == 2 and frames == 4 and seconds == nil, "a particle sheet is four variants, not an animation")
 assert(not pcall(Tokens.Flipbook, "medRing"), "a still texture is not a flipbook")
-assert(Tokens.Texture(Tokens.Material("Steel").texture), "the Steel material tiles the steel card grain")
 
 print("tokens ok: " .. scanned .. " files have no colour literal outside " .. TOKENS_FILE)

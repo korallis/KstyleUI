@@ -361,7 +361,6 @@ local TEXTURES = {
 	medBarFill = { file = "Textures\\Medallions\\BarFill.png" },
 	medBarSpark = { file = "Textures\\Medallions\\BarSpark.png" },
 	medBarTrack = { file = "Textures\\Medallions\\BarTrack.png" },
-	medBracketGlow = { file = "Textures\\Medallions\\BracketGlow.png" },
 	medBurstDruid = { file = "Textures\\Medallions\\BurstDruid.png" },
 	medBurstHunter = { file = "Textures\\Medallions\\BurstHunter.png" },
 	medBurstMage = { file = "Textures\\Medallions\\BurstMage.png" },
@@ -416,7 +415,6 @@ local TEXTURES = {
 	medSlotMask = { file = "Textures\\Medallions\\SlotMask.png" },
 	medSlotSocket = { file = "Textures\\Medallions\\SlotSocket.png" },
 	medSlotPushed = { file = "Textures\\Medallions\\SlotPushed.png" },
-	medSteelCard = { file = "Textures\\Medallions\\SteelCard.png" },
 	medTargetBrackets = { file = "Textures\\Medallions\\TargetBrackets.png" },
 	medUnitSlab = { file = "Textures\\Medallions\\UnitSlab.png", slice = 16, density = 2 },
 	medVignette = { file = "Textures\\Medallions\\Vignette.png" },
@@ -638,7 +636,6 @@ local MATERIALS = {
 	Slate = { fill = "materialSlate", edge = "materialSlateEdge", texture = "materialSlate", texels = 256, grain = 0.12 },
 	ForgedTicks = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, gem = "forgedDiamond", rule = "forgedRule" },
 	ForgedBrackets = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, brackets = true, gem = "forgedDiamond", rule = "forgedRule" },
-	Steel = { fill = "steelFill", edge = "steelEdge", texture = "medSteelCard", texels = 256, grain = 0.06, frame = true },
 }
 
 function Tokens.Material(name)

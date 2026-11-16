@@ -6,7 +6,7 @@ Usage:
     python3 Tools/media/medallions_kit.py provenance [--root DIR]
     python3 Tools/media/medallions_kit.py chrome [--root DIR] [--only NAME ...] [--check]
 
-The sources are original Higgsfield generations (KSTY-90, plus six steel pieces from the KSTY-88 mock-ups). They are
+The sources are original Higgsfield generations (KSTY-90, plus the hub and rune band from the KSTY-88 mock-ups). They are
 not committed; Tools/media/medallions_sources.json records each one's job id, model, settings and full prompt, and
 bake reads them from DIR under the names that file gives (on the owner's MacBook, ~/.capy/work/KSTY-90/gen/). This
 script is the production pass. Effects are drawn for additive blending: their colour is stored unpremultiplied with
@@ -17,8 +17,8 @@ frames fade toward the first, so the cycle keeps all 16 distinct frames and clos
 sharpened, and get their 1 px outlines drawn procedurally at the shipped size. sheets writes contact sheets at the
 shipped sizes and a loop strip for every flipbook. bake needs Pillow and NumPy; sheets and provenance need Pillow only.
 chrome draws the dark chrome kit (KSTY-110: slabs, sockets, rings, cards, plaques, tiles, brackets, the minimap bezel)
-procedurally from the med* colours in Core/Tokens.lua, and needs NumPy and Pillow. make_media.py draws the bracket glow,
-the cast shield and the map mask.
+procedurally from the med* colours in Core/Tokens.lua, and needs NumPy and Pillow. make_media.py draws the cast shield
+and the map mask.
 """
 
 import argparse
@@ -115,9 +115,6 @@ KIT += [
         blend="BLEND"),
     Kit("RuneGlyphs", 256, 256, "glyphs", "src88_tex_rune",
         "The rune band's glyphs alone, as a white mask registered on RuneRing, so the class glow can be added on top (ADD, tinted)."),
-    Kit("SteelCard", 256, 256, "tile", "src88_tex_steel",
-        "Seamless dark steel grain for cards and slabs: lighting removed, offset-blended so it tiles, then scaled to 256. Tiled at low alpha over a flat fill.",
-        blend="BLEND"),
     Kit("BarFill", 64, 16, "bar", "barfill",
         "Status bar fill: flat light grey with one soft stripe a little above the middle, the same in every column so it tiles. Greyscale, so SetStatusBarColor tints it.",
         blend="BLEND"),
@@ -148,7 +145,6 @@ SETTINGS = {
     "disc": "trimmed to its silhouette, premultiplied linear-light Lanczos, light unsharp mask, procedural 1 px outlines",
     "glyphs": "glyph strokes inside the band (brighter than their blurred surroundings, thresholded per 7.5 degree sector), as a white mask, linear-light Lanczos",
     "corner": "squared on the arms' meeting point, premultiplied linear-light Lanczos, light unsharp mask",
-    "tile": "low-frequency light removed, offset-blended to tile, linear-light Lanczos on a 3x3 repeat",
     "bar": "the source's row profile, the same in every column, linear-light resample",
 }
 
@@ -532,20 +528,6 @@ def bake(gen, root):
         crop = padded[y0:y0 + side, x0:x0 + side]
         return unsharp(blend_encode(steel_resize(crop, (kit.width, kit.height)))), {"arm_share": round(reach / side, 4)}
 
-    def tile(kit):
-        src = linear(np.asarray(Image.open(gen / f"{kit.source}.png").convert("RGB")).astype(np.float32) / 255)
-        n = src.shape[0]
-        low = np.clip(resize(resize(src, (8, 8)), (n, n)), 1e-4, None)
-        flat = src / low * low.mean((0, 1))
-        rolled = np.roll(flat, (n // 2, n // 2), (0, 1))
-        ramp = np.clip(np.minimum(np.arange(n), np.arange(n)[::-1]).astype(np.float32) / (n * 0.25), 0, 1)
-        w = (ramp[:, None] * ramp[None, :])[..., None]
-        seamless = w * flat + (1 - w) * rolled
-        big = np.tile(seamless, (3, 3, 1))
-        small = np.clip(resize(big, (3 * kit.width, 3 * kit.height)), 0, None)[kit.height:2 * kit.height, kit.width:2 * kit.width]
-        out = np.concatenate([srgb(small), np.ones((kit.height, kit.width, 1), np.float32)], -1)
-        return Image.fromarray(np.round(out * 255).astype(np.uint8), "RGBA"), {"mean": round(float(srgb(small).mean()), 4)}
-
     def bar(kit):
         src = linear(np.asarray(Image.open(gen / f"{kit.source}.png").convert("L")).astype(np.float32) / 255)
         w = src.shape[1]
@@ -560,7 +542,7 @@ def bake(gen, root):
     recipes = {
         "loop": lambda k: flipbook(k, False), "oneshot": lambda k: flipbook(k, True), "radial": radial,
         "vignette": vignette, "plain": plain, "hstrip": lambda k: strip(k, True), "vstrip": lambda k: strip(k, False),
-        "sprites": sprites, "wing": wing, "disc": disc, "glyphs": glyphs, "corner": corner, "tile": tile, "bar": bar,
+        "sprites": sprites, "wing": wing, "disc": disc, "glyphs": glyphs, "corner": corner, "bar": bar,
     }
     report = {}
     for kit in KIT:

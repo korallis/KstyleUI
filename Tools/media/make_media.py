@@ -948,20 +948,6 @@ MEDALLIONS = "Media/Textures/Medallions"
 MEDALLIONS_DRAWN = "2026-11-15"
 
 
-def _bracket(x, y, reach, thickness):
-    return 1.0 if 0 <= x <= reach and 0 <= y <= reach and (x <= thickness or y <= thickness) else 0.0
-
-
-
-def draw_med_bracket_glow(size):
-    offset, reach, thickness, sigma = size // 4, size // 2, 6, 5.0
-    coverage = sample(size, size, lambda x, y: _bracket(x - offset, y - offset, reach, thickness))
-    blurred = gaussian_blur(coverage, size, sigma)
-    peak = max(blurred) or 1.0
-    window = [smoothstep(0, 6, min(i % size, i // size, size - 1 - i % size, size - 1 - i // size)) for i in range(size * size)]
-    return white([min(1.0, v / peak) * w for v, w in zip(blurred, window)])
-
-
 def draw_med_cast_shield(width, height):
     period, stripe = 8, 3
     return white(sample(width, height, lambda x, y: 1.0 if (x + y) % period < stripe else 0.0))
@@ -1057,8 +1043,6 @@ for picture_name, about, picture_drawn in (
 
 
 ASSETS += [
-    _medallions("BracketGlow", 64, 64, lambda: draw_med_bracket_glow(64),
-                "The bracket's glow: the same L blurred (5 texels), its outer corner at texel (16, 16), so it reaches 4 units past the bracket. White for ADD."),
     _medallions("CastShield", 64, 16, lambda: draw_med_cast_shield(64, 16),
                 "Uninterruptible-cast hatch: white 45-degree stripes 3 texels wide every 8, tiling both ways. Tinted over the cast bar."),
     _medallions("MapMask", 256, 256, lambda: draw_disc(256), "Round minimap mask for the Medallions map: a white disc touching the edges."),

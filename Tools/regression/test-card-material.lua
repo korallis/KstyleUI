@@ -2,6 +2,16 @@
 local W = dofile("Tools/regression/widget_env.lua")
 local screens = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
 local total = 0
+for _, material in ipairs({ "Steel", "RemovedMaterial" }) do
+	local saved = { version = 35, profiles = { Default = { Widgets = { cardMaterial = material } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local env, K = W.New({ saved = saved })
+	assert(K.Tokens.Material(material) == nil, "removed materials have no registry entry")
+	assert(K.Widgets.Setting("cardMaterial") == K.Widgets.defaults.cardMaterial, "a saved removed material falls back to the schema default")
+	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Material" })
+	assert(panel.chrome:Material() == K.Tokens.Material(K.Widgets.defaults.cardMaterial), "cards render the default material after loading a removed name")
+	assert(panel.chrome.materialBrackets[1]:IsShown(), "the default forged brackets render")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
 do
 	local env, K = W.New()
 	K.Store.Module("Widgets").cardMaterial = "ForgedBrackets"

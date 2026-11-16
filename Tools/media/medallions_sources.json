@@ -541,16 +541,6 @@
   },
   "prompt": "A thin circular band of engraved runes, flat front view, isolated on a fully transparent background, the centre completely empty and transparent. The band is dark steel bordered by two fine bright silver lines, and carved into it are 24 evenly spaced abstract angular glyphs (invented symbols, not any real alphabet), each glyph a clean bright silver-white inlay so it can be tinted later. The ring fills 94 percent of the canvas, its band is about 8 percent of the diameter thick. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
  },
- "src88_tex_steel": {
-  "job_id": "ff5ed2f4-0ce9-4486-b11e-b7d1a327d317",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-88",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k"
-  },
-  "prompt": "A seamless tileable square texture of very dark blued gunmetal plate for a fantasy game interface panel: extremely fine brushed grain, a few faint hammer marks, very low contrast, almost black (average brightness about 8 percent), no edges, no borders, no rivets, no seams, no lighting gradient, uniform across the whole square so it tiles without a visible seam."
- },
  "sweep": {
   "job_id": "7d3650bc-faca-41ac-aa59-5f9c0ef727a1",
   "model": "gpt_image_2_6",

@@ -193,17 +193,6 @@ class EffectsTest(unittest.TestCase):
 
 @unittest.skipIf(Image is None, "needs Pillow")
 class SteelTest(unittest.TestCase):
-    def test_steel_card_tiles_without_a_seam(self):
-        image = open_rgba(f"{kit.OUT}/SteelCard.png").convert("L")
-        w, h = image.size
-        def column(x):
-            return image.crop((x, 0, x + 1, h))
-        def row(y):
-            return image.crop((0, y, w, y + 1))
-        inner = (kit.mean_difference(column(w // 2), column(w // 2 + 1)) + kit.mean_difference(row(h // 2), row(h // 2 + 1))) / 2
-        wrap = (kit.mean_difference(column(w - 1), column(0)) + kit.mean_difference(row(h - 1), row(0))) / 2
-        self.assertLessEqual(wrap, 1.5 * inner + 0.5)
-
     def test_bars_are_the_same_in_every_column(self):
         for name in ("BarFill", "BarTrack"):
             image = open_rgba(f"{kit.OUT}/{name}.png")
