@@ -134,21 +134,44 @@ class PortableRunnerTest(unittest.TestCase):
                 probe.assert_not_called()
 
     def test_main_applies_cpu_verdict_and_prints_cpu_margins(self):
-        for cpu, wall, expected in ((17, 90, 0), (21, 21, 1)):
+        for cpu, wall, allowance, expected in ((17, 90, None, 0), (21, 21, None, 1),
+                                               (25, 90, 30, 0), (31, 90, 30, 1), (19, 90, 30, 0)):
             result = dict(cpu=cpu, seconds=wall, mb=100, ok=True, stopped=False, load=None, others=0)
             output = io.StringIO()
             with mock.patch.dict(os.environ, {}, clear=True), \
                     mock.patch.object(self.runner, "interpreter", return_value=(["lua"], "lua")), \
                     mock.patch.object(self.runner, "budgeted", return_value=True), \
+                    mock.patch.object(self.runner, "load_allowances", return_value=(
+                        {"test-measured.lua": allowance} if allowance is not None else {})), \
                     mock.patch.object(self.runner, "make_slots", return_value=(None, "slots off")), \
                     mock.patch.object(Path, "glob", return_value=[Path("test-measured.lua")]), \
                     mock.patch.object(self.runner, "run_one", return_value=result) as run, \
                     contextlib.redirect_stdout(output):
                 self.assertEqual(self.runner.main(["--margins"]), expected)
-            self.assertEqual(run.call_args.args[3], 120)
+            self.assertEqual(run.call_args.args[3], max(120, 5 * (allowance or 20)))
             self.assertIn(f"{cpu} CPU s", output.getvalue())
             self.assertIn("budget 20 CPU s", output.getvalue())
             self.assertIn(f"failed {expected}", output.getvalue())
+
+    def test_cpu_allowance_list_may_only_shrink_after_bootstrap(self):
+        path = self.folder / "cpu_allowances.tsv"
+        baseline = "test-heavy.lua\t30\tLEE-5827\n"
+        for content, accepted in ((baseline, True), ("", True), (baseline.replace("30", "31"), False),
+                                  (baseline + "test-new.lua\t25\tLEE-5827\n", False)):
+            path.write_text(content, encoding="ascii", newline="\n")
+            with mock.patch.object(self.runner, "HERE", self.folder), \
+                    mock.patch.object(self.runner.subprocess, "run", return_value=SimpleNamespace(
+                        returncode=0, stdout=baseline)):
+                if accepted:
+                    self.runner.load_allowances()
+                else:
+                    with self.assertRaisesRegex(ValueError, "may only shrink"):
+                        self.runner.load_allowances()
+
+    def test_hang_guard_scales_with_allowance_and_keeps_a_floor(self):
+        self.assertEqual(self.runner.hang_limit(None), 120)
+        self.assertEqual(self.runner.hang_limit(20), 120)
+        self.assertEqual(self.runner.hang_limit(60), 300)
 
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform

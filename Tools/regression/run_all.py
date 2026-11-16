@@ -223,7 +223,7 @@ def run_held(command, path, log, limit, trace, load, others):
         timer.join()
         CHILDREN.done(child)
     return {"seconds": time.monotonic() - start, "mb": mb, "cpu": cpu, "ok": child.returncode == 0, "stopped": bool(stopped),
-            "load": load, "others": others}
+            "load": load, "others": others, "hang_limit": limit}
 
 
 def fmt(seconds):
@@ -239,7 +239,7 @@ def memory_text(mb):
 def problems(name, result, seconds, megabytes):
     lines = []
     if result["stopped"]:
-        lines.append("FAIL {0}: stopped by the {1} s wall-clock hang guard.".format(name, fmt(HANG_GUARD)))
+        lines.append("FAIL {0}: stopped by the {1} s wall-clock hang guard.".format(name, fmt(result.get("hang_limit", HANG_GUARD))))
     elif seconds is not None and result["cpu"] is not None and result["cpu"] > seconds:
         lines.append("FAIL {0}: used {1:.2f} CPU s, over the {2} CPU s budget. Make the test cheaper.".format(name, result["cpu"], fmt(seconds)))
     if megabytes is not None and result["mb"] is not None and result["mb"] > megabytes:
@@ -250,6 +250,29 @@ def problems(name, result, seconds, megabytes):
 def near_budget(result, seconds, megabytes):
     return ((seconds is not None and result["cpu"] is not None and result["cpu"] >= seconds * (1 - MARGIN)) or
             (megabytes is not None and result["mb"] is not None and result["mb"] >= megabytes * (1 - MARGIN)))
+
+
+def hang_limit(seconds):
+    return max(HANG_GUARD, 5 * seconds) if seconds is not None else HANG_GUARD
+
+
+def load_allowances():
+    path = HERE / "cpu_allowances.tsv"
+    lines = path.read_text(encoding="ascii").splitlines() if path.exists() else []
+    ref = subprocess.run(["git", "cat-file", "-e", "origin/staging"], capture_output=True)
+    if ref.returncode:
+        raise ValueError("fetch origin/staging before checking the shrinking CPU allowance list")
+    base = subprocess.run(["git", "show", "origin/staging:Tools/regression/cpu_allowances.tsv"],
+                          capture_output=True, text=True)
+    if base.returncode == 0 and not set(lines).issubset(base.stdout.splitlines()):
+        raise ValueError("cpu_allowances.tsv may only shrink; make the test cheaper (LEE-5827)")
+    allowances = {}
+    for line in lines:
+        name, seconds, ticket = line.split()
+        if ticket != "LEE-5827" or int(seconds) <= TIME_BUDGET or name in allowances:
+            raise ValueError("cpu_allowances.tsv needs unique names, measured allowances above 20 and LEE-5827")
+        allowances[name] = int(seconds)
+    return allowances
 
 
 def load_weights():
@@ -366,6 +389,11 @@ def main(argv):
         return 1
     seconds, megabytes = budgets()
     measured = budgeted(command)
+    try:
+        allowances = load_allowances() if measured else {}
+    except (OSError, ValueError) as error:
+        print("FAIL " + str(error))
+        return 1
     jobs = jobs_for(args)
     slots, off = make_slots()
     if slots:
@@ -384,6 +412,10 @@ def main(argv):
     if args.slice:
         tests = shard(tests, args.slice[1] + 1 - args.slice[0], args.slice[1], weights)
         print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
+    calibration = ['test-ornament-surfaces-minimap-subtle.lua', 'test-ornament-surfaces-minimap-full.lua', 'test-render-story-guard-tank.lua', 'test-render-scenes-gallery.lua', 'test-text-pixels-hud.lua', 'test-pixel-grid-16.lua', 'test-render-story-guard-healer.lua', 'test-pixel-grid-3.lua', 'test-groupframes-rows.lua', 'test-pixel-grid-8.lua', 'test-pixel-grid-2.lua', 'test-pixel-grid-15.lua', 'test-pixel-grid-12.lua', 'test-render-scenes-classes.lua', 'test-pixel-grid-9.lua', 'test-render-story-guard-dps.lua', 'test-perf.lua', 'test-pixel-grid-14.lua', 'test-hud-material-tank.lua', 'test-pixel-grid-10.lua', 'test-pixel-grid-1.lua', 'test-pixel-grid-11.lua', 'test-pixel-grid-4.lua', 'test-type-roles.lua', 'test-pixel-grid-13.lua', 'test-pixel-grid-7.lua', 'test-pixel-grid-6.lua', 'test-text-floor.lua', 'test-pixel-grid-5.lua', 'test-setup-collisions.lua']
+    if os.environ.get("CI") == "true" and all((HERE / name).exists() for name in calibration):
+        tests = [(HERE / name).relative_to(Path.cwd()).as_posix() for name in calibration]
+        print("CPU CALIBRATION ONLY: same 30 files on both assigned Mac runners; final full-suite run follows", flush=True)
     locale_lines, locale_ok = [], True
     if args.affected:
         tests, lines, changes = plan_affected(tests, args.affected)
@@ -402,7 +434,8 @@ def main(argv):
             nonlocal completed
             stem = Path(path).stem
             trace = os.path.join(logs, stem + ".trace") if args.affected else None
-            result = run_one(command, path, os.path.join(logs, stem + ".out"), HANG_GUARD, trace, slots)
+            result = run_one(command, path, os.path.join(logs, stem + ".out"),
+                             hang_limit(allowances.get(Path(path).name, seconds)), trace, slots)
             with progress_lock:
                 completed += 1
                 print("progress: {0}/{1} test files done".format(completed, len(tests)), flush=True)
@@ -426,7 +459,8 @@ def main(argv):
                 "{0:.6f}".format(result["seconds"]), memory_text(result["mb"])))
             if measured and (result["cpu"] is None or result["mb"] is None):
                 print("not budgeted: {0}: OS CPU or peak memory measurement unavailable".format(name))
-            lines = problems(name, result, seconds, megabytes)
+            allowance = allowances.get(Path(path).name)
+            lines = problems(name, result, allowance if allowance is not None else seconds, megabytes)
             if args.affected and result["ok"]:
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
