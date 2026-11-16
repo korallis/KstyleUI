@@ -510,30 +510,6 @@
   },
   "prompt": "Game interface effect: a single soft band of white light running diagonally from the lower left to the upper right across the centre of the canvas, like a glint of light sweeping across polished metal, soft feathered edges, brightest along its centre line, fading to black at its ends before the canvas corners. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
  },
- "slot": {
-  "job_id": "914b6ef5-5bb2-4db4-91da-df972fa5f3cc",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-90",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k",
-   "aspect_ratio": "1:1",
-   "background": "transparent"
-  },
-  "prompt": "A square frame for an action button in a fantasy game interface, isolated on a fully transparent background, flat front view. The frame is a thin band of dark steel with a bevelled raised rim, its width about 9 percent of the square's side, with sharp square corners; the inside of the frame is completely empty and transparent. The frame fills 98 percent of the canvas and is perfectly square and straight. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. No text, no letters, no numbers, no logos, no symbols."
- },
- "socket": {
-  "job_id": "09a8ed36-1c8b-4d01-b413-82fd92dda756",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-90",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k",
-   "aspect_ratio": "1:1",
-   "background": "transparent"
-  },
-  "prompt": "Game interface part for a fantasy RPG, straight-on: the empty recessed socket at the heart of a round steel medallion, a dark round dish of blackened brushed steel with a thin bright bevelled inner lip around its edge, subtle radial brushed texture, darker towards the centre, soft cool light from the upper left. Perfectly round, centred, filling 92 percent of the canvas, isolated on a fully transparent background. No text, no symbols, no gems."
- },
  "spark": {
   "job_id": "76f24e9f-a813-4b7f-b521-74059a7064f0",
   "model": "gpt_image_2_6",
@@ -545,16 +521,6 @@
   },
   "prompt": "Game interface effect for the leading edge of a status bar: one thin vertical line of brilliant white light, perfectly vertical and centred horizontally, tall, with a soft white glow on both sides that fades to black, both ends tapering. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
  },
- "src88_tex_corner": {
-  "job_id": "a5065123-809c-4aa8-97f8-b3248d6aaa1e",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-88",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k"
-  },
-  "prompt": "One ornamental corner bracket for a dark fantasy interface panel, isolated on a fully transparent background: an L-shaped piece of dark steel forming the top-left corner of a rectangular frame, its two arms running to the right and downward and tapering to fine points, with a small faceted diamond-shaped stud at the corner itself and a thin engraved filigree line along each arm. The corner sits in the top-left of the canvas with its arms reaching about 80 percent of the way across and down. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
- },
  "src88_tex_hub": {
   "job_id": "218ebe76-0073-44c1-a867-d3d8e0b442e1",
   "model": "gpt_image_2_6",
@@ -564,16 +530,6 @@
    "resolution": "1k"
   },
   "prompt": "A centre mount for a fantasy game action bar, isolated on a fully transparent background: a large circular socket ring, its round opening completely empty and transparent, the ring a thick band of dark steel with a raised outer lip and a recessed inner channel; from the left and right of the ring two long tapered steel wings sweep out horizontally like the guard of a sword, each wing ending in a sharp point, with a fine engraved line running along each wing. The ring takes about 45 percent of the image height and sits in the exact centre; the wings span about 90 percent of the width. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
- },
- "src88_tex_mapring": {
-  "job_id": "4f94806e-220d-4391-9c8d-69a1cbaddf2d",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-88",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k"
-  },
-  "prompt": "A round minimap frame for a fantasy game interface, isolated on a fully transparent background, the centre is an empty transparent circle about 84 percent of the diameter. The frame is a dark steel compass ring: 36 fine engraved tick marks around it, longer ticks every 30 degrees, and at the four cardinal points small sharp arrowhead-shaped polished silver studs pointing outward (no letters). A thin polished silver lip on the inner edge. The ring fills 96 percent of the canvas. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
  },
  "src88_tex_rune": {
   "job_id": "cb0cf113-c345-4fa4-ae39-1211e39dbe62",

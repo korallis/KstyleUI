@@ -946,119 +946,11 @@ ASSETS = [
 
 MEDALLIONS = "Media/Textures/Medallions"
 MEDALLIONS_DRAWN = "2026-11-15"
-# The Medallions medallion ring (KSTY-90), in 128ths of the texture: a dark outer line, the steel band lit from the upper
-# left, a dark inner lip, then the enamel band (a texture of its own, tinted by class or reaction) and the portrait.
-MED_RING = {"outer": (61.5, 63.5), "band": (52.5, 61.5), "lip": (50.5, 52.5), "enamel": (45.5, 50.5)}
-MED_DARK = 0.04
-MED_SLICE = 16  # the slabs' corner pieces: 4 units at TEXELS_PER_UNIT
-MED_TILE_SLICE = 8  # aura and group tiles: 2 units
-
-
-def _steel_light(dx, dy):
-    """Directional light from the upper left: 1 facing it, 0.4 facing away."""
-    length = math.hypot(dx, dy) or 1.0
-    return 0.7 + 0.3 * (-dx - dy) / (length * math.sqrt(2))
-
-
-def draw_med_ring(size):
-    k = size / 128
-    centre = size / 2
-    (o0, o1), (b0, b1), (l0, l1) = ((a * k, b * k) for a, b in (MED_RING["outer"], MED_RING["band"], MED_RING["lip"]))
-
-    def level(x, y):
-        dx, dy = x - centre, y - centre
-        r = math.hypot(dx, dy)
-        if b0 <= r < b1:
-            t = (r - b0) / (b1 - b0)
-            return (0.45 + 0.45 * math.sin(math.pi * t)) * _steel_light(dx, dy)
-        return MED_DARK
-
-    def inside(x, y):
-        return 1.0 if l0 <= math.hypot(x - centre, y - centre) <= o1 else 0.0
-
-    return shaded(sample(size, size, level), sample(size, size, inside))
-
-
-def draw_med_enamel(size):
-    k = size / 128
-    centre = size / 2
-    e0, e1 = MED_RING["enamel"][0] * k, MED_RING["enamel"][1] * k
-    return white(sample(size, size, lambda x, y: 1.0 if e0 <= math.hypot(x - centre, y - centre) <= e1 else 0.0))
-
-
-def _bevel_rgba(size, margin, centre_rgb, lit_rgb, dark_rgb, side_rgb, alpha=1.0):
-    """A 9-slice fill: flat in the centre, a lit lip along the top, a darker lip along the bottom and slightly lit left and
-    darker right edges, each fading over the margin. Rows vary only by y and columns only by x between the margins."""
-    out = bytearray()
-    for y in range(size):
-        top = max(0.0, 1 - (y + 0.5) / margin) ** 2
-        bottom = max(0.0, 1 - (size - y - 0.5) / margin) ** 2
-        for x in range(size):
-            left = max(0.0, 1 - (x + 0.5) / margin) ** 2
-            right = max(0.0, 1 - (size - x - 0.5) / margin) ** 2
-            rgb = []
-            for c in range(3):
-                v = centre_rgb[c]
-                v += (lit_rgb[c] - centre_rgb[c]) * top + (side_rgb[c] - centre_rgb[c]) * 0.5 * left
-                v += (dark_rgb[c] - centre_rgb[c]) * bottom + (dark_rgb[c] - centre_rgb[c]) * 0.5 * right
-                rgb.append(max(0, min(255, int(v + 0.5))))
-            out += bytes((*rgb, byte(alpha)))
-    return bytes(out)
-
-
-def draw_med_frame_band(size, band):
-    """A steel band, band texels wide, round the edge, lit from the upper left, with the centre clear. 9-slice."""
-    out = bytearray()
-    for y in range(size):
-        for x in range(size):
-            d = min(x, y, size - 1 - x, size - 1 - y)
-            if d >= band:
-                out += bytes((0, 0, 0, 0))
-                continue
-            lift = 0.75 if min(x, y) == d else 0.45
-            g = byte((0.25 + lift * math.sin(math.pi * (d + 0.5) / band)) * 0.8)
-            out += bytes((g, g, g, 255))
-    return bytes(out)
-
-
-def draw_med_aura_border(size):
-    margin = MED_TILE_SLICE
-    line = margin // 2
-
-    def level(x, y):
-        d = min(x, y, size - x, size - y)
-        if d < line:
-            return MED_DARK
-        return 1.0 if min(x, y) == d else 0.72
-
-    def inside(x, y):
-        return 1.0 if min(x, y, size - x, size - y) < margin else 0.0
-
-    return shaded(sample(size, size, level), sample(size, size, inside))
-
-
-def draw_med_group_tile(size):
-    margin = MED_TILE_SLICE
-    out = bytearray()
-    for y in range(size):
-        top = max(0.0, 1 - (y + 0.5) / margin)
-        bottom = max(0.0, 1 - (size - y - 0.5) / margin)
-        g = byte(0.86 + 0.14 * top - 0.24 * bottom)
-        out += bytes((g, g, g, 255)) * size
-    return bytes(out)
-
-
-def draw_med_target_ring(size):
-    line, soft = 6, 2
-    return white(sample(size, size, lambda x, y: 1.0 - smoothstep(line, line + soft, min(x, y, size - x, size - y))))
 
 
 def _bracket(x, y, reach, thickness):
     return 1.0 if 0 <= x <= reach and 0 <= y <= reach and (x <= thickness or y <= thickness) else 0.0
 
-
-def draw_med_brackets(size):
-    return white(sample(size, size, lambda x, y: _bracket(x, y, size, 6)))
 
 
 def draw_med_bracket_glow(size):
@@ -1074,21 +966,6 @@ def draw_med_cast_shield(width, height):
     period, stripe = 8, 3
     return white(sample(width, height, lambda x, y: 1.0 if (x + y) % period < stripe else 0.0))
 
-
-def draw_med_plaque(size):
-    c = size / 2
-    reach = c - 1
-    outer = chamfered_diamond(c, c, reach, 3)
-
-    def level(x, y):
-        inset = min(a * x + b * y + cc for a, b, cc in outer)
-        if inset < 2:
-            return MED_DARK
-        if inset < 7:
-            return 0.35 + 0.55 * (0.5 + 0.5 * ((c - x) + (c - y)) / (2 * reach))
-        return 0.08
-
-    return shaded(sample(size, size, level), sample_spans(size, size, shape_spans(outer)))
 
 
 def _medallions(name, width, height, draw, about, slice_=None):
@@ -1180,39 +1057,10 @@ for picture_name, about, picture_drawn in (
 
 
 ASSETS += [
-    _medallions("Ring128", 128, 128, lambda: draw_med_ring(128),
-                "Medallions medallion ring: a 2-texel dark outer line, a steel band lit from the upper left, a 2-texel dark inner lip; the shading sits in the colour channels. The enamel band and the portrait sit inside (the portrait is 71.1% of the width)."),
-    _medallions("Ring256", 256, 256, lambda: draw_med_ring(256), "Ring128 drawn at 256 for big medallions, every line twice as wide."),
-    _medallions("Enamel128", 128, 128, lambda: draw_med_enamel(128),
-                "The medallion's enamel band, inside the ring's lip: white, tinted by class or reaction colour."),
-    _medallions("Enamel256", 256, 256, lambda: draw_med_enamel(256), "Enamel128 drawn at 256."),
-    _medallions("UnitSlab", 128, 128,
-                lambda: _bevel_rgba(128, MED_SLICE, (15, 19, 24), (46, 53, 62), (6, 8, 10), (24, 29, 35)),
-                "Unit frame slab: flat #0f1318 with a lit top lip, a darker bottom lip and slightly lit left and darker right edges. No hairline: the widget draws it pixel-snapped. Nine-slice.",
-                MED_SLICE),
-    _medallions("ActionSlab", 128, 128,
-                lambda: _bevel_rgba(128, MED_SLICE, (12, 15, 19), (52, 60, 70), (4, 5, 7), (20, 24, 29)),
-                "Action slab: UnitSlab a little darker with a brighter top lip. No hairline. Nine-slice.", MED_SLICE),
-    _medallions("CardEdge", 128, 128, lambda: draw_med_frame_band(128, 8),
-                "A card's steel inner frame: an 8-texel (2-unit) bevelled band lit from the upper left, centre clear, laid inside the card's hairline. Nine-slice.",
-                MED_SLICE),
-    _medallions("AuraBorder", 64, 64, lambda: draw_med_aura_border(64),
-                "Aura tile border: a 1-unit dark outer line and a 1-unit steel line (lit top and left), centre clear; the shading sits in the colour channels so the dispel colour tints the steel. Nine-slice.",
-                MED_TILE_SLICE),
-    _medallions("GroupTile", 64, 64, lambda: draw_med_group_tile(64),
-                "Group and raid tile fill: 86% grey with a lit top edge and a darker bottom edge over 2 units, tinted by class colour. Nine-slice.",
-                MED_TILE_SLICE),
-    _medallions("GroupTargetRing", 64, 64, lambda: draw_med_target_ring(64),
-                "Group tile target highlight: a white outline 1.5 units wide softening over 0.5, centre clear. Nine-slice.",
-                MED_TILE_SLICE),
-    _medallions("TargetBrackets", 32, 32, lambda: draw_med_brackets(32),
-                "A nameplate target bracket: one white L, arms 8 units long and 1.5 thick, in the top-left corner. Flip the texture coordinates for the other corners."),
     _medallions("BracketGlow", 64, 64, lambda: draw_med_bracket_glow(64),
                 "The bracket's glow: the same L blurred (5 texels), its outer corner at texel (16, 16), so it reaches 4 units past the bracket. White for ADD."),
     _medallions("CastShield", 64, 16, lambda: draw_med_cast_shield(64, 16),
                 "Uninterruptible-cast hatch: white 45-degree stripes 3 texels wide every 8, tiling both ways. Tinted over the cast bar."),
-    _medallions("LevelPlaque", 64, 64, lambda: draw_med_plaque(64),
-                "Level plaque: a chamfered steel diamond with a 2-texel dark outline, a 5-texel steel band lit from the upper left and a dark centre for the number."),
     _medallions("MapMask", 256, 256, lambda: draw_disc(256), "Round minimap mask for the Medallions map: a white disc touching the edges."),
 ]
 

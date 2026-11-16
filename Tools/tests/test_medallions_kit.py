@@ -2,7 +2,8 @@
 
 The bake itself needs NumPy and the raw generations, so these tests check what it shipped: sizes, the effects' clean
 edges, every flipbook's registration and loop, the steel pieces' geometry, and that Core/Tokens.lua, Media/PROVENANCE.md
-and Tools/media/medallions_sources.json agree with the files. The image checks need Pillow and skip without it.
+and Tools/media/medallions_sources.json agree with the files. The procedural chrome kit (KSTY-110) is checked for its
+value ceiling and geometry, and redrawn and compared when NumPy is there. The image checks need Pillow and skip without it.
 """
 
 import importlib.util
@@ -29,7 +30,7 @@ def load(name, path):
 kit = load("medallions_kit", "Tools/media/medallions_kit.py")
 media = load("medallions_make_media", "Tools/media/make_media.py")
 PROCEDURAL = [a for a in media.ASSETS if a.path.startswith(kit.OUT + "/")]
-TOKEN_NAMES = {"Ring128": "medRing", "Ring256": "medRingLarge", "Enamel128": "medEnamel", "Enamel256": "medEnamelLarge", "MapMask": "medMinimapMask"}
+TOKEN_NAMES = {"MapMask": "medMinimapMask"}
 
 
 def open_rgba(path):
@@ -59,9 +60,10 @@ class FilesTest(unittest.TestCase):
 
     def test_the_folder_holds_only_kit_and_procedural_files(self):
         on_disk = {p.name for p in (ROOT / kit.OUT).iterdir() if p.is_file()}
-        listed = {Path(i.path).name for i in kit.KIT} | {Path(a.path).name for a in PROCEDURAL}
+        pieces = [i.path for i in kit.KIT] + [a.path for a in PROCEDURAL] + [c.path for c in kit.CHROME]
+        listed = {Path(path).name for path in pieces}
         self.assertEqual(on_disk, listed)
-        self.assertEqual(len(listed), len(kit.KIT) + len(PROCEDURAL), "two pieces share a file name")
+        self.assertEqual(len(listed), len(pieces), "two pieces share a file name")
 
     def test_one_proc_ambient_burst_and_particle_set_per_class(self):
         names = {i.name for i in kit.KIT}
@@ -95,6 +97,7 @@ class TokensTest(unittest.TestCase):
         found = tokens()
         expected = {i.token: i for i in kit.KIT}
         expected.update({TOKEN_NAMES.get(a.name, "med" + a.name): a for a in PROCEDURAL})
+        expected.update({c.token: c for c in kit.CHROME})
         self.assertEqual(set(found), set(expected))
         for name, spec in found.items():
             with self.subTest(name):
@@ -112,6 +115,10 @@ class TokensTest(unittest.TestCase):
                 self.assertEqual(spec.get("seconds"), seconds, item.name)
             else:
                 self.assertNotIn("frames", spec, item.name)
+        for piece in kit.CHROME:
+            spec = found[piece.token]
+            self.assertEqual(spec.get("slice"), piece.slice, piece.name)
+            self.assertEqual(spec.get("density"), piece.density, piece.name)
         for asset in PROCEDURAL:
             spec = found[TOKEN_NAMES.get(asset.name, "med" + asset.name)]
             self.assertEqual(spec.get("slice"), asset.slice, asset.name)
@@ -205,16 +212,6 @@ class SteelTest(unittest.TestCase):
                 self.assertEqual(ImageChops.difference(first, image.crop((x, 0, x + 1, image.height))).getbbox(), None, f"{name} column {x}")
             self.assertEqual(image.getchannel("A").getextrema(), (255, 255))
 
-    def test_slots_have_a_clear_opening_and_black_outer_line(self):
-        for name in ("Slot", "SlotPushed"):
-            image = open_rgba(f"{kit.OUT}/{name}.png")
-            self.assertEqual(image.crop((10, 10, 54, 54)).getchannel("A").getextrema(), (0, 0), name)
-            for x in range(64):
-                for y in (0, 63):
-                    r, g, b, a = image.getpixel((x, y))
-                    self.assertEqual(a, 255, name)
-                    self.assertLess(max(r, g, b), 24, name)
-
     def test_rings_have_a_clear_middle_and_corners(self):
         for name in ("HubSocket", "RuneRing", "MinimapRing"):
             image = open_rgba(f"{kit.OUT}/{name}.png")
@@ -236,6 +233,128 @@ class SteelTest(unittest.TestCase):
         self.assertGreater(left, 0.3 * alpha.width, "the ring is cut away: the wing starts at the rune ring's edge")
         self.assertGreater(right, 0.95 * alpha.width, "the tip reaches the right edge")
         self.assertLess(abs((top + bottom) / 2 - alpha.height / 2), 6, "the wing is centred on the hub's middle")
+
+
+def alpha_at(image, x, y):
+    return image.getpixel((x, y))[3]
+
+
+@unittest.skipIf(Image is None, "needs Pillow")
+class ChromeTest(unittest.TestCase):
+    """KSTY-110's dark chrome kit: procedural, never brighter than the chrome ceiling, rounded, and the geometry the
+    consumers size from."""
+
+    def test_the_kit_is_the_spec_list(self):
+        spec = {"UnitSlab", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
+                "HubSocket", "CardEdge", "CardCorner", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
+                "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket"}
+        self.assertEqual({c.name for c in kit.CHROME}, spec)
+
+    def test_the_ceiling_is_the_lua_checks(self):
+        lua = (ROOT / "Tools" / "regression" / "test-medallions-chrome-value.lua").read_text(encoding="utf-8")
+        self.assertIn('local CEILING = "%02x%02x%02x"' % kit.CHROME_CEILING, lua)
+
+    def test_dark_pieces_stay_under_the_chrome_ceiling(self):
+        for piece in kit.CHROME:
+            if not piece.dark:
+                continue
+            with self.subTest(piece.name):
+                image = open_rgba(piece.path)
+                worst = [0, 0, 0]
+                for r, g, b, a in image.getdata():
+                    if a:
+                        worst = [max(worst[0], r), max(worst[1], g), max(worst[2], b)]
+                for channel, ceiling in zip(worst, kit.CHROME_CEILING):
+                    self.assertLessEqual(channel, ceiling, f"{piece.name} has a texel at {worst}")
+
+    def test_light_pieces_are_white(self):
+        for piece in kit.CHROME:
+            if piece.dark:
+                continue
+            with self.subTest(piece.name):
+                for r, g, b, a in open_rgba(piece.path).getdata():
+                    if a:
+                        self.assertEqual((r, g, b), (255, 255, 255))
+
+    def test_sliced_pieces_have_round_corners_and_stretch_cleanly(self):
+        for piece in kit.CHROME:
+            if not piece.slice:
+                continue
+            with self.subTest(piece.name):
+                image = open_rgba(piece.path)
+                w, h = image.size
+                self.assertEqual(alpha_at(image, 0, 0), 0, "the corner is rounded off")
+                self.assertEqual(alpha_at(image, w // 2, 0), 255, "the edge runs straight between the corners")
+                middle = image.crop((w // 2, 0, w // 2 + 1, h))
+                for x in range(piece.slice, w - piece.slice):
+                    self.assertIsNone(ImageChops.difference(middle, image.crop((x, 0, x + 1, h))).getbbox(), f"column {x}")
+
+    def test_slabs_and_cards_have_a_black_outline_and_a_lit_top(self):
+        for name in ("ActionSlab", "UnitSlab", "CardEdge", "GroupTile", "LevelPlaque"):
+            image = open_rgba(f"{kit.OUT}/{name}.png")
+            w, h = image.size
+            with self.subTest(name):
+                self.assertEqual(image.getpixel((w // 2, 0))[:3], (0, 0, 0))
+                self.assertEqual(image.getpixel((w // 2, h - 1))[:3], (0, 0, 0))
+                top, bottom = image.getpixel((w // 2, 5)), image.getpixel((w // 2, h - 6))
+                self.assertGreater(sum(top[:3]), sum(bottom[:3]), "the rim is lit at the top")
+
+    def test_card_fill_is_translucent(self):
+        image = open_rgba(f"{kit.OUT}/CardEdge.png")
+        self.assertEqual(image.getpixel((64, 64))[3], round(0.94 * 255))
+
+    def test_rings_leave_the_portrait_share_clear(self):
+        for name, units, band in (("Ring128", kit.RING_UNITS, kit.RING_BAND), ("Ring256", kit.HUB_UNITS, kit.HUB_BAND)):
+            image = open_rgba(f"{kit.OUT}/{name}.png")
+            n = image.width
+            per_unit = n / units
+            with self.subTest(name):
+                for e, want in ((0.4, 255), (band - 0.8, 255), (band + 0.8, 0)):
+                    y = int((e * per_unit))
+                    self.assertEqual(alpha_at(image, n // 2, y), want, f"{e} units in from the top")
+                self.assertGreater(sum(image.getpixel((n // 2, int(3 * per_unit)))[:3]),
+                                   sum(image.getpixel((n // 2, n - 1 - int(3 * per_unit)))[:3]), "lit from 12 o'clock")
+
+    def test_accent_lines_sit_just_inside_their_rings(self):
+        for name, units, band in (("Enamel128", kit.RING_UNITS, kit.RING_BAND), ("Enamel256", kit.HUB_UNITS, kit.HUB_BAND)):
+            image = open_rgba(f"{kit.OUT}/{name}.png")
+            n = image.width
+            per_unit = n / units
+            with self.subTest(name):
+                self.assertEqual(alpha_at(image, n // 2, int((band + kit.ACCENT / 2) * per_unit)), 255)
+                self.assertEqual(alpha_at(image, n // 2, int((band - 0.5) * per_unit)), 0)
+                self.assertEqual(alpha_at(image, n // 2, int((band + kit.ACCENT + 0.5) * per_unit) + 1), 0)
+
+    def test_slot_socket_is_opaque_and_its_overlays_leave_the_icon_clear(self):
+        socket = open_rgba(f"{kit.OUT}/SlotSocket.png")
+        self.assertEqual(alpha_at(socket, 0, 0), 0)
+        self.assertEqual(alpha_at(socket, 32, 32), 255, "the socket is drawn behind the icon, well included")
+        self.assertLess(sum(socket.getpixel((32, 8))[:3]), sum(socket.getpixel((32, 55))[:3]), "the well is dark at the top")
+        frame = open_rgba(f"{kit.OUT}/Slot.png")
+        self.assertEqual(frame.crop((7, 7, 57, 57)).getchannel("A").getextrema(), (0, 0), "the frame leaves the icon clear")
+        self.assertEqual((alpha_at(frame, 0, 0), alpha_at(frame, 32, 0), alpha_at(frame, 4, 4)), (0, 255, 255), "the rim rounds the icon's corners")
+        self.assertEqual(frame.getpixel((32, 0))[:3], (0, 0, 0))
+        for name in ("SlotPushed", "SlotHighlight", "SlotChecked"):
+            self.assertEqual(alpha_at(open_rgba(f"{kit.OUT}/{name}.png"), 32, 32), 0, name)
+        mask = open_rgba(f"{kit.OUT}/SlotMask.png")
+        self.assertEqual((alpha_at(mask, 0, 0), alpha_at(mask, 32, 32), alpha_at(mask, 32, 0)), (0, 255, 255))
+
+    def test_minimap_ring_opens_on_the_map_with_an_inner_shadow(self):
+        image = open_rgba(f"{kit.OUT}/MinimapRing.png")
+        n = image.width
+        edge = int(n / 2 * (1 - kit.MAP_OPENING))
+        self.assertEqual(alpha_at(image, n // 2, n // 2), 0)
+        self.assertEqual(alpha_at(image, n // 2, edge // 2), 255, "the band")
+        inside = alpha_at(image, n // 2, edge + 2)
+        self.assertGreater(inside, 120, "the shadow is deepest at the map's edge")
+        self.assertLessEqual(inside, round(kit.MAP_SHADOW_PEAK * 255))
+
+    def test_committed_files_match_the_script(self):
+        try:
+            import numpy  # noqa: F401
+        except ImportError:
+            self.skipTest("needs NumPy")
+        self.assertEqual(kit.check_chrome(ROOT), [], "run Tools/media/medallions_kit.py chrome")
 
 
 if __name__ == "__main__":
