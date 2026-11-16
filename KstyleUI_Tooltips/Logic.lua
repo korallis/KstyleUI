@@ -42,7 +42,7 @@ function Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)
 end
 
 function Logic.Lift(bottom, left, right, rects, gap, reach)
-	if not (IsNumber(bottom) and IsNumber(left) and IsNumber(right) and IsNumber(gap) and IsNumber(reach)) then
+	if not (IsNumber(bottom) and IsNumber(left) and IsNumber(right) and IsNumber(gap) and IsNumber(reach)) or gap < 0 then
 		return 0
 	end
 	local y, moved = bottom, true

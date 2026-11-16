@@ -107,6 +107,7 @@ do
 	assert(Logic.Lift(100, 0, 300, { { 50, 170, 250, 280 }, { 50, 120, 250, 160 } }, 12, 240) == 192, "the order of the cards does not matter")
 	assert(Logic.Lift(100, 0, 300, { { 300, 150, 400, 260 } }, 12, 240) == 0, "a card touching the column's edge is outside it")
 	assert(Logic.Lift(env.Secret(100), 0, 300, { { 50, 150, 250, 260 } }, 12, 240) == 0, "a secret is never compared")
+	assert(Logic.Lift(100, 0, 300, { { 50, 150, 250, 260 } }, -1, 240) == 0, "a negative gap lifts nothing, so the loop always ends")
 end
 
 assert(#env._errors == 0, tostring(env._errors[1]))

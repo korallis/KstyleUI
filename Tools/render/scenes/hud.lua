@@ -1356,7 +1356,9 @@ function modules.tooltips(opts)
 	T.W.Settle(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the tooltip's lines are laid out by the scene; the game's GameTooltip sizes and places its own text"
-	scene.log[#scene.log + 1] = liftNote
+	if liftNote then
+		scene.log[#scene.log + 1] = liftNote
+	end
 	return finish(env, K, scene, "tooltips"), ns
 end
 
