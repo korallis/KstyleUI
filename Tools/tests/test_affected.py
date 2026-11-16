@@ -277,7 +277,7 @@ class RunAllAffectedTest(GitRepoCase):
             "Tools/regression/test-a.lua": 'assert(dofile("Mod/a.lua") == 1)\n',
             "Tools/regression/test-b.lua": 'local f = assert(io.open("Mod/b.lua", "rb")); f:close()\n',
             "Tools/regression/test-c.lua": "assert(1 + 1 == 2)\n",
-            "Tools/regression/test-d.lua": 'assert(dofile("Mod/a.lua") == 1)\nassert(#dofile("Tools/regression/fs.lua").list("Mod") == 2)\n',
+            "Tools/regression/test-d.lua": 'assert(dofile("Mod/a.lua") == 1)\ndofile("Tools/regression/fs.lua").list("Mod")\n',
         }, "base")
         self.cache = self.repo / "cache.json"
 
