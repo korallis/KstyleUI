@@ -40,8 +40,15 @@ do
 		assert(math.abs(reach - math.floor(reach + 0.5)) < 1e-6, "the band ends on a whole device pixel: " .. reach)
 		assert(same(header[3]._state.VertexColor, K.Tokens.Color("medCardDivider")), "a divider line closes the band")
 		assert(header[2]:GetLeft() - panel:GetLeft() < 2 * pixel, "the band runs to the card's edge")
+		local section = Widgets.SectionCap(panel, { text = "Reagents", width = 280 })
+		section:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -120)
+		section:Restyle()
+		assert(header[1]:IsShown() and math.abs(header[3]:GetBottom() - bottom) < 1e-6, "a section cap lower in the card leaves the title's band where it is")
 		setStyle(K, "orbs")
 		assert(not header[1]:IsShown() and not header[3]:IsShown(), "leaving Medallions takes the band away")
+		local er, eg, eb = K.Tokens.Color("edgeInner")
+		local side = chrome.rim[4]._state
+		assert(side.Gradient == nil and near(side.VertexColor[1], er) and near(side.VertexColor[2], eg) and near(side.VertexColor[3], eb), "the rim's sides go back to the flat Frames edge")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end

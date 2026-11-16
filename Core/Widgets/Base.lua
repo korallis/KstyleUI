@@ -1747,23 +1747,43 @@ local function Measured(v)
 	return not IsSecret(v) and type(v) == "number" and v == v
 end
 
-function Chrome:MeasureHeader()
-	local gem, owner = self.headerGem, self.owner
-	if not gem then
-		return
-	end
+local function Reach(owner, gem)
 	local holder = gem:GetParent()
-	local top = not Widgets.Restricted(owner) and not Widgets.Restricted(holder) and owner:GetTop()
+	if not holder or Widgets.Restricted(owner) or Widgets.Restricted(holder) then
+		return nil
+	end
+	local top = owner:GetTop()
 	local _, y = gem:GetCenter()
 	local scale, gemScale = owner:GetEffectiveScale(), holder:GetEffectiveScale()
-	local units
 	if Measured(top) and Measured(y) and Measured(scale) and Measured(gemScale) and scale > 0 then
 		local reach = top - y * gemScale / scale
 		if reach > 0 and reach <= HEADER_REACH then
-			units = floor((reach + HEADER_BELOW) * 100 + 0.5) / 100
+			return reach
 		end
 	end
-	self:SetHeader(units)
+end
+
+function Chrome:MeasureHeader()
+	local gems = self.headerGems
+	if not gems then
+		return
+	end
+	local nearest
+	for gem in pairs(gems) do
+		local reach = Reach(self.owner, gem)
+		if reach and (not nearest or reach < nearest) then
+			nearest = reach
+		end
+	end
+	self:SetHeader(nearest and floor((nearest + HEADER_BELOW) * 100 + 0.5) / 100)
+end
+
+local function Watch(chrome, frame)
+	if frame and not chrome.headerHolders[frame] and type(frame.HookScript) == "function" then
+		chrome.headerHolders[frame] = true
+		frame:HookScript("OnShow", chrome.measureHeader)
+		frame:HookScript("OnSizeChanged", chrome.measureHeader)
+	end
 end
 
 local function CardAt(node)
@@ -1788,19 +1808,16 @@ function Widgets.CardHeader(gem)
 		end
 		local chrome = CardAt(node)
 		if chrome then
-			chrome.headerGem = gem
-			if not chrome.headerHooked then
-				chrome.headerHooked = true
-				local measure = function()
+			if not chrome.headerGems then
+				chrome.headerGems = setmetatable({}, { __mode = "k" })
+				chrome.headerHolders = setmetatable({}, { __mode = "k" })
+				chrome.measureHeader = function()
 					chrome:MeasureHeader()
 				end
-				for _, frame in ipairs({ chrome.owner, gem:GetParent() }) do
-					if type(frame.HookScript) == "function" then
-						frame:HookScript("OnShow", measure)
-						frame:HookScript("OnSizeChanged", measure)
-					end
-				end
+				Watch(chrome, chrome.owner)
 			end
+			chrome.headerGems[gem] = true
+			Watch(chrome, gem:GetParent())
 			chrome:MeasureHeader()
 			if C_Timer and C_Timer.After then
 				C_Timer.After(0, function()
@@ -2017,10 +2034,9 @@ function Chrome:PaintEdge()
 			rim[i + 6]:SetVertexColor(dr, dg, db, da)
 		end
 		rim[5]:SetVertexColor(lr, lg, lb, la)
-		if type(rim[4].SetGradient) == "function" and type(CreateColor) == "function" then
-			rim[4]:SetGradient("VERTICAL", CreateColor(dr, dg, db, da), CreateColor(lr, lg, lb, la))
-			rim[6]:SetGradient("VERTICAL", CreateColor(dr, dg, db, da), CreateColor(lr, lg, lb, la))
-		end
+		local mr, mg, mb, ma = (lr + dr) / 2, (lg + dg) / 2, (lb + db) / 2, (la + da) / 2
+		rim[4]:SetVertexColor(mr, mg, mb, ma)
+		rim[6]:SetVertexColor(mr, mg, mb, ma)
 	end
 	if self.materialEdge then
 		Widgets.ColorSlice(self.materialEdge, r, g, b, a)
