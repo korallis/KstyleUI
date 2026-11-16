@@ -261,7 +261,8 @@ local function InkCurves()
 end
 
 local function InkShadow(text)
-	text:SetShadowColor(1, 1, 1, INK_SHADOW_ALPHA)
+	local r, g, b = Tokens.Color("white")
+	text:SetShadowColor(r, g, b, INK_SHADOW_ALPHA)
 end
 
 local nameColored = Unit.NameColored
