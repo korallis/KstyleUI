@@ -52,17 +52,15 @@ function Gallery.Saved(modules, extra)
 	return saved
 end
 
--- Setup(env) gives an environment the owner's screen and the warrior's class colour; pass it as a loader's setup
--- hook, or call it from one.
+-- Setup(env) gives an environment the owner's screen and the player's class colour, the warrior's unless
+-- RENDER_CLASS names another (_classes.lua); pass it as a loader's setup hook, or call it from one.
 function Gallery.Setup(env)
 	Common.ForceScreen(env)
+	local class, spec = dofile("Tools/render/scenes/_classes.lua").Get()
 	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
-	env.RAID_CLASS_COLORS.WARRIOR = { r = Common.WARRIOR[1], g = Common.WARRIOR[2], b = Common.WARRIOR[3] }
-	env.UnitClass = function(unit)
-		if unit == "player" or unit == nil then
-			return "Warrior", "WARRIOR", 1
-		end
-		return "Warrior", "WARRIOR", 1
+	env.RAID_CLASS_COLORS[class] = { r = spec.colour[1], g = spec.colour[2], b = spec.colour[3] }
+	env.UnitClass = function()
+		return spec.title, class, 1
 	end
 end
 
