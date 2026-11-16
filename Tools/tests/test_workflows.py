@@ -103,14 +103,34 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(jobs, ["check", "lua", "release"])
         self.assertIn("needs: [check, lua]", text)
 
-    def test_release_runs_the_lua_tests_in_shards_with_room_to_finish_on_a_busy_runner(self):
+    def test_release_requires_successful_shards_or_a_successful_sha_proof(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
         jobs = jobs_of(text)
         shards = re.search(r"shard: \[([\d, ]+)\]", jobs["lua"]).group(1).split(", ")
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
-        self.assertNotIn("run-all.sh", jobs["check"], "the unsharded run timed out the v0.1.3 release")
-        self.assertGreaterEqual(int(re.search(r"timeout-minutes: (\d+)", jobs["lua"]).group(1)), 20)
+        self.assertIn("needs: [check, lua]", jobs["release"])
+        self.assertNotRegex(jobs["release"], r"(?m)^    if:.*(?:always\(|!cancelled\(|needs\.)")
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), [FORK_GUARD])
+        self.assertNotIn("continue-on-error:", jobs["lua"])
+        steps = jobs["lua"].split("\n      - ")[1:]
+        self.assertIn("uses: actions/checkout@", steps[0])
+        self.assertIn("id: proof", steps[1])
+        self.assertIn("run: python3 Tools/hooks/ci_scope.py proven-sha", steps[1])
+        self.assertNotIn("if:", steps[1])
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", steps[1])
+        self.assertIn("actions: read", jobs["lua"])
+        self.assertIn("contents: read", jobs["lua"])
+        self.assertEqual(len(steps[2:]), 2)
+        for step in steps[2:]:
+            self.assertIn("if: steps.proof.outputs.run != 'false'", step)
+
+    def test_release_check_validates_the_tag_changelog(self):
+        job = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]
+        step = next(step for step in job.split("\n      - ")
+                    if "run: python3 -m unittest Tools.tests.test_release_changelog" in step)
+        self.assertNotIn("if:", step)
+        self.assertNotIn("continue-on-error:", step)
 
     def test_release_builds_the_icon_pack_in_both_jobs_and_uploads_it_beside_the_addon_zip(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")

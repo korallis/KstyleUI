@@ -211,7 +211,7 @@ class PushProofTest(unittest.TestCase):
         self.assertTrue(any("name=red-" in call for call in calls))
 
     def test_markers_with_the_same_timestamp_cannot_prove_which_is_newest(self):
-        for colours in (("green", "red"), ("green", "green")):
+        for colours in (("green", "red"), ("green", "green"), ("green", "start")):
             markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
                         "created_at": "2026-11-16T12:00:00Z", "workflow_run": {"id": 123}}
                        for i, colour in enumerate(colours, 1)]
@@ -254,6 +254,67 @@ class PushProofTest(unittest.TestCase):
                       "created_at": "2026-11-16T12:00:00Z", "expired": False, "workflow_run": {"id": 123}}
             with self.subTest(area=area):
                 self.assertEqual(self.scope(area=area, artifacts=[marker])[0], "run=false\n")
+
+
+class ShaProofTest(unittest.TestCase):
+    def scope(self, runs=None, error=None):
+        proof = {"id": 123, "path": ".github/workflows/checks.yml", "event": "push",
+                 "head_sha": "a" * 40, "created_at": "2026-11-16T12:00:00Z",
+                 "status": "completed", "conclusion": "success",
+                 "head_repository": {"full_name": "korallis/KstyleUI"}}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "out"
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, GITHUB_REPOSITORY="korallis/KstyleUI", GITHUB_SHA="a" * 40,
+                                 GITHUB_OUTPUT=str(output)), \
+                    mock.patch.object(ci_scope, "github_json", return_value={"workflow_runs": runs(proof) if runs else [proof]},
+                                      side_effect=error) as api, contextlib.redirect_stdout(stdout):
+                self.assertEqual(ci_scope.main(["proven-sha"]), 0)
+            return output.read_text(), stdout.getvalue(), api.call_args.args[0]
+
+    def test_successful_push_proves_the_exact_sha(self):
+        output, log, path = self.scope()
+        self.assertEqual(output, "run=false\n")
+        self.assertIn("123", log)
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(path).query)
+        self.assertEqual(query["head_sha"], ["a" * 40])
+        self.assertEqual(query["event"], ["push"])
+        self.assertTrue(path.startswith("/repos/korallis/KstyleUI/actions/runs?"))
+
+    def test_failed_cancelled_in_progress_or_missing_push_runs(self):
+        for status, conclusion in (("completed", "failure"), ("completed", "cancelled"), ("in_progress", None)):
+            with self.subTest(status=status, conclusion=conclusion):
+                output, log, _ = self.scope(lambda run: [dict(run, status=status, conclusion=conclusion)])
+                self.assertEqual(output, "run=true\n")
+                self.assertIn(str(conclusion or status), log)
+        self.assertEqual(self.scope(lambda run: [])[0], "run=true\n")
+
+    def test_an_older_success_cannot_hide_the_newest_failed_or_running_push(self):
+        for status, conclusion in (("completed", "failure"), ("completed", "cancelled"), ("in_progress", None)):
+            with self.subTest(status=status, conclusion=conclusion):
+                runs = lambda run: [run, dict(run, id=124, created_at="2026-11-16T13:00:00Z",
+                                              status=status, conclusion=conclusion)]
+                self.assertEqual(self.scope(runs)[0], "run=true\n")
+
+    def test_other_workflows_forks_events_or_shas_cannot_prove_the_sha(self):
+        for changes in ({"path": ".github/workflows/release.yml"},
+                        {"head_repository": {"full_name": "attacker/KstyleUI"}},
+                        {"event": "pull_request"}, {"head_sha": "b" * 40}):
+            with self.subTest(changes=changes):
+                self.assertEqual(self.scope(lambda run: [dict(run, **changes)])[0], "run=true\n")
+
+    def test_unrelated_newer_runs_do_not_hide_a_successful_checks_push(self):
+        output, _, _ = self.scope(lambda run: [dict(run, id=124, path=".github/workflows/release.yml",
+                                                   created_at="2026-11-16T13:00:00Z"), run])
+        self.assertEqual(output, "run=false\n")
+
+    def test_api_errors_or_malformed_results_run_the_shards(self):
+        for error in (OSError("offline"), http.client.IncompleteRead(b""), json.JSONDecodeError("bad", "", 0)):
+            with self.subTest(error=error):
+                output, log, _ = self.scope(error=error)
+                self.assertEqual(output, "run=true\n")
+                self.assertIn("API", log)
+        self.assertEqual(self.scope(lambda run: [{}])[0], "run=true\n")
 
 
 class MainTest(unittest.TestCase):

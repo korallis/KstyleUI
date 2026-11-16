@@ -1,6 +1,5 @@
 # release.yml: on a v* tag on main, package with the BigWigs packager and upload to CurseForge, Wago and GitHub,
 # then build the loose-file icon pack (Tools/icons/iconset.py pack, docs/icons.md) and upload it beside the addon zip.
-# The Lua tests run in two shards like checks.yml, so one slow slice on a busy runner cannot time out the release.
 name: release
 
 on:
@@ -34,6 +33,8 @@ jobs:
             echo "The tag $GITHUB_REF_NAME is not on main. Release only from main, after the in-game pass on staging."
             exit 1
           fi
+      - name: Check the release changelog
+        run: python3 -m unittest Tools.tests.test_release_changelog
       - name: Check the runner's Lua is 5.1.5 and its Python has Pillow
         run: |
           lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
@@ -58,6 +59,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -67,9 +69,16 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
+      - name: Reuse the staging result for this commit
+        id: proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 Tools/hooks/ci_scope.py proven-sha
       - name: Check the runner's Lua is 5.1.5
+        if: steps.proof.outputs.run != 'false'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Lua regression tests, one slice of the files
+        if: steps.proof.outputs.run != 'false'
         env:
           SHARD: ${{ matrix.shard }}
         run: bash scripts/gate.sh lua --shard "$SHARD/2"
