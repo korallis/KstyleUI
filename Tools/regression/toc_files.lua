@@ -1,5 +1,5 @@
 -- toc_files.lua: list the files the game loads, in load order, from the TOCs and their XML includes.
-local fs = dofile("Tools/regression/fs.lua")
+local fs = dofile((debug.getinfo(1, "S").source:match("^@(.-)[^/\\]*$") or "") .. "fs.lua")
 
 local function readFile(path)
 	local f = io.open(path, "rb")
