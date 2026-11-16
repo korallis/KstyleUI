@@ -52,7 +52,7 @@ for _, screen in ipairs(SCREENS) do
 	local unit = K.Scale.Root():GetEffectiveScale()
 	local px = math.max(1, 768 / height / unit * 1.01)
 
-	local _, rows, _, _, size, gap = Layouts.MedallionsGroup(K.Scale.Aspect())
+	local _, rows, _, _, size, spacing = Layouts.MedallionsGroup(K.Scale.Aspect())
 	assert(rows == 1, what .. ": Layouts gives each group one row")
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
 	local hubRect = Rect(hub)
@@ -73,7 +73,7 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		local pitch = (bar.buttons[2]:GetLeft() - bar.buttons[1]:GetLeft()) * bar.buttons[1]:GetEffectiveScale() / unit
-		assert(math.abs(pitch - size - gap) < px, what .. ": the sockets stand " .. pitch .. " units apart")
+		assert(math.abs(pitch - size - spacing) < px, what .. ": the sockets stand " .. pitch .. " units apart")
 	end
 	assert(math.abs(bar1.buttons[1]:GetBottom() - bar2.buttons[1]:GetBottom()) < EPS, what .. ": both groups share one baseline")
 
