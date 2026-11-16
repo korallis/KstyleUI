@@ -1,12 +1,12 @@
--- test-layout-medallions-pet.lua: under Medallions the pet slab, medallion included, stays clear of the crest hub's wings at their combat reach, of the action slab's plate under it and of the player's slab and medallion above it, for every preset and every aspect class (LEE-1535: it sat inside the wings, tight on the slab).
+-- test-layout-medallions-pet.lua: under Medallions the pet slab, medallion included, stays clear of the crest hub's footprint, of the action slab's plate under it and of the player's slab and medallion above it, for every preset and every aspect class (LEE-1535: it sat inside the hub's wings, tight on the slab; the wings retired in KSTY-110).
 local W = dofile("Tools/regression/widget_env.lua")
 
 local _, K = W.New()
 local Layouts = K.Setup.Layouts
 local NEAR = K.Tokens.Size("gapLarge")
--- Layouts.MEDALLIONS_WING: the hub wings' combat reach from the hub's centre and their band over the slab top; the
--- plate reaches 6 over the slots (KstyleUI_ActionBars/Slab.lua PAD).
-local WING, PLATE = Layouts.MEDALLIONS_WING, 6
+-- The hub's footprint: a square the ring wide centred on the slots' top edge; the plate reaches the slab's pad over
+-- the slots (Layouts.MEDALLIONS_SLAB).
+local RING, PLATE = Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_SLAB.pad
 -- KstyleUI_UnitFrames/Geometry.lua SLAB: the medallion's diameter for the slab's height, centred 2 in from its outer end.
 local MEDAL = { pet = 54 / 40, player = 84 / 54 }
 
@@ -38,8 +38,8 @@ for _, name in ipairs(Layouts.Names()) do
 		local top = bar.y + groupHeight
 		local box = Box(pet, "pet")
 		local label = name .. " " .. class
-		local wings = { -WING.reach, top + WING.lift, WING.reach, top + WING.top }
-		assert(Clear(box, wings, NEAR), string.format("%s: the pet slab (%.1f..%.1f, %.1f..%.1f) is inside the hub wings' reach", label, box[1], box[3], box[2], box[4]))
+		local hub = { -RING / 2, top - RING / 2, RING / 2, top + RING / 2 }
+		assert(Clear(box, hub, NEAR), string.format("%s: the pet slab (%.1f..%.1f, %.1f..%.1f) is inside the hub's footprint", label, box[1], box[3], box[2], box[4]))
 		assert(box[2] >= top + PLATE + NEAR - 1e-6, string.format("%s: the pet medallion's foot %.1f sits on the slab's plate at %.1f", label, box[2], top + PLATE))
 		assert(Clear(box, Box(player, "player"), NEAR), label .. ": the pet slab crowds the player's slab or medallion")
 		checked = checked + 1

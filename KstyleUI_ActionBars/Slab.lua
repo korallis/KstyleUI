@@ -1,4 +1,4 @@
--- Slab.lua: the Medallions action slab: one steel slab enclosing bar 1 and bar 2 in one row either side of the crest hub, with the experience strip along its lower edge, the hub seated over it in the gap and its wings growing out of the hub along the slab's top edge, all at a strata below every slot, and its motion: the turning rune ring, breathing glow, sheen and particles, the combat wings and sweep, the proc pulse with each slot's flipbook, and the level-up burst.
+-- Slab.lua: the Medallions action slab: one dark slab enclosing bar 1 and bar 2 either side of the crest hub (one row each at 21:9 and wider, two at 16:9), with the experience strip along its lower edge, small matching slabs behind the pet and stance bars, and the hub's gunmetal ring seated over the gap, all at a strata below every slot; the recessed sockets the slots sit in, with the keybind shown only on a slot that holds an action; and the motion: the turning rune ring, breathing glow, sheen and particles, the combat sweep, the proc border with each slot's flipbook clipped to its socket, and the level-up burst.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,30 +11,30 @@ ns.Slab = Slab
 local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
 local STRATA = "LOW"
-local RING, CREST, SOCKET = 150, 134, 122
+local RING, CREST, SOCKET = 150, 108, 118
 local MARGIN, HUB_LIFT, TEXT_FLOOR = 4, 8, 9
-local SLAB = { pad = 6, stripGap = 4, strip = 8, bottom = 3 }
+local SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
+local SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 local GLOW_SHARE, BLOOM_SHARE = 1.5, 1.08
-local WING_TEXEL, WING_LEFT, WING_RIGHT, WING_TOP, WING_CUT = 230 / 512, 158, 493, 67, 134
-local WING_ROOT, WING_SLIDE, WING_SINK = 66, 22, 2
-local PLAQUE_W, PLAQUE_H = 30, 18
+local BADGE, BADGE_RISE = 18, 4
+local CREST_REST = 0.9
+local ICON_INSET, ICON_CROP, KEYBIND = 3, 0.08, 10
 local PARTICLES, CALM_PARTICLES, PARTICLE_SIZE, PARTICLE_RISE = 10, 5, 7, 30
 local RUNE_TURN, COMBAT_SPEED = 90, 2.25
-local BREATH_LOW, BREATH_HIGH, COMBAT_GLOW, GLYPH_REST = 0.3, 0.6, 1.35, 0.6
+local BREATH_LOW, BREATH_HIGH, COMBAT_GLOW, GLYPH_REST, RUNE_REST = 0.28, 0.43, 1.35, 0.35, 0.25
 local BREATH = 4.2
 local SHEEN_EVERY, SHEEN_RUN, SHEEN_W, SHEEN_ALPHA = 6, 1.2, 46, 0.5
 local SWEEP_RUN, SWEEP_W, SWEEP_H = 0.5, 128, 16
-local WINGS_RUN = 0.24
 local PULSE_RUN, PULSE_SCALE = 0.35, 1.05
 local SHOCK_RUN, SHOCK_SCALE = 0.5, 1.6
 local BURST_RUN, BURST_SHARE = 1.2, 2
-local PROC_START, PROC_SHARE, PROC_START_SHARE = 0.35, 1.5, 1.9
+local PROC_START = 0.35
 local FLIP = { rows = 4, columns = 4, frames = 16, seconds = 0.96 }
 local LEVEL_FLIP = { rows = 4, columns = 4, frames = 16, seconds = 1.2 }
 local PARTICLE_CELLS = { rows = 2, columns = 2, frames = 4 }
 
 local FALLBACK = {
-	medHubWing = "orbArm", medHubSocket = "dot", medRuneRing = "ringBevel", medRuneGlyphs = "ring",
+	medHubSocket = "dot", medRingLarge = "ringBevel", medEnamelLarge = "ring", medRuneGlyphs = "ring",
 	medLevelPlaque = "diamond", medPortraitSheen = "barSheen", medProcStart = "glow", medReadyFlash = "glow",
 	medCombatSweep = "barSheen", medLevelUp = "glow", medProc = "glow", medParticle = "dot", medCrest = "logoLarge",
 }
@@ -46,7 +46,7 @@ local CLASS_NAMES = {
 
 Slab.RING, Slab.MARGIN, Slab.STRATA = RING, MARGIN, STRATA
 
-local state = { combat = false, wingsOut = false, built = false, class = nil }
+local state = { combat = false, built = false, class = nil }
 
 local function IsSecret(v)
 	return ns.IsSecret(v)
@@ -68,37 +68,70 @@ function Slab.Spec()
 	return Layouts().MEDALLIONS_SLAB or SLAB
 end
 
+local function Grouped(def)
+	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(Layouts().MedallionsGroup) == "function"
+end
+
+local function Sided(def)
+	return (def.key == "pet" or def.key == "stance") and K.HudStyle.Current() == STYLE
+end
+
+function Slab.Side()
+	return Layouts().MEDALLIONS_SIDE or SIDE
+end
+
 function Slab.Rows(def, cfg)
-	if K.HudStyle.Current() ~= STYLE then
-		return cfg.rows
+	if Grouped(def) then
+		local _, rows = Layouts().MedallionsGroup(K.Scale.Aspect())
+		return Plain(rows) and rows or 1
 	end
-	if def.key == "bar1" or def.key == "bar2" then
-		return 1
-	end
-	local side = Layouts().MEDALLIONS_SIDE_ROWS
-	if (def.key == "pet" or def.key == "stance") and side and side[K.Scale.Aspect()] then
-		return side[K.Scale.Aspect()]
+	if Sided(def) then
+		return Slab.Side().rows
 	end
 	return cfg.rows
 end
 
-function Slab.Size(def, cfg)
-	local group = Layouts().MedallionsGroup
-	if not ((def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(group) == "function") then
-		return cfg.size
-	end
-	local _, _, _, _, size = group(K.Scale.Aspect())
+local function Share(def, cfg)
 	local grid = Layouts().Grid and Layouts().Grid(def.element)
-	if not (Plain(size) and grid and Plain(grid.size) and grid.size > 0 and Plain(cfg.size)) then
+	if not (grid and Plain(grid.size) and grid.size > 0 and Plain(cfg.size)) then
+		return nil
+	end
+	return cfg.size / grid.size
+end
+
+function Slab.Size(def, cfg)
+	if not Grouped(def) then
 		return cfg.size
 	end
-	return cfg.size * size / grid.size
+	local _, _, _, _, size = Layouts().MedallionsGroup(K.Scale.Aspect())
+	local share = Share(def, cfg)
+	if not (Plain(size) and share) then
+		return cfg.size
+	end
+	return size * share
+end
+
+function Slab.Spacing(def, cfg)
+	local gap
+	if Grouped(def) then
+		gap = select(6, Layouts().MedallionsGroup(K.Scale.Aspect()))
+	elseif Sided(def) then
+		gap = Slab.Side().gap
+	end
+	local share = Share(def, cfg)
+	if not (Plain(gap) and share) then
+		return cfg.spacing
+	end
+	return gap * share
 end
 
 function Slab.TextSize(key, cfg, size, text)
 	local bar = ns.bars and ns.bars[key]
 	if not (bar and Plain(cfg.size) and cfg.size > 0) then
 		return size
+	end
+	if text == "hotkey" and K.HudStyle.Current() == STYLE then
+		return KEYBIND * K.Theme.FontScale()
 	end
 	local fit = Slab.Size(bar.def, cfg) / cfg.size
 	if not (Plain(fit) and fit < 1) then
@@ -108,6 +141,13 @@ function Slab.TextSize(key, cfg, size, text)
 		return min(size, max(K.Scale.TEXT_FLOOR, size * fit * fit))
 	end
 	return max(TEXT_FLOOR, size * fit)
+end
+
+function Slab.TextFlags(text, flags)
+	if text == "hotkey" and K.HudStyle.Current() == STYLE then
+		return "OUTLINE"
+	end
+	return flags
 end
 
 local function Known(name)
@@ -282,58 +322,31 @@ local function BuildParticles(hub)
 	return list
 end
 
-local function ColorOf(name, fallback)
-	local ok, r, g, b = pcall(Tokens.Color, name)
-	if ok and Plain(r) then
-		return r, g, b
+local function Plate(parent)
+	local plate = CreateFrame("Frame", nil, parent)
+	plate:SetFrameStrata(STRATA)
+	plate:Hide()
+	local ok, slice = pcall(Widgets.NineSlice, plate, "medActionSlab", "BACKGROUND")
+	if ok and slice then
+		plate.slice = slice
+	else
+		local fill = pcall(Tokens.Color, "medFillBottom") and "medFillBottom" or "buttonFill"
+		plate.chrome = Widgets.Chrome(plate, { shape = "tile", fill = fill, shadow = false })
 	end
-	return Tokens.Color(fallback)
+	return plate
 end
 
-local EDGE_SIDES = {
-	{ "TOPLEFT", 1, -1, "TOPRIGHT", -1, -1, true }, { "BOTTOMLEFT", 1, 1, "BOTTOMRIGHT", -1, 1, true },
-	{ "TOPLEFT", 1, -1, "BOTTOMLEFT", 1, 1, false }, { "TOPRIGHT", -1, -1, "BOTTOMRIGHT", -1, 1, false },
-}
-
-local function BuildEdges(slab)
-	slab.edges = {}
-	for ring = 1, 2 do
-		for _, side in ipairs(EDGE_SIDES) do
-			local t = slab:CreateTexture(nil, "BORDER", nil, ring)
-			t.ring, t.side = ring, side
-			slab.edges[#slab.edges + 1] = t
-		end
-	end
-end
-
-local function LayEdges(slab)
-	local line = Widgets.Border(slab)
-	local colors = { { ColorOf("black", "black") }, { ColorOf("steelEdge", "edgeInner") } }
-	for _, t in ipairs(slab.edges) do
-		local side, inset, c = t.side, (t.ring - 1) * line, colors[t.ring]
-		t:SetColorTexture(c[1], c[2], c[3], 1)
-		t:ClearAllPoints()
-		t:SetPoint(side[1], slab, side[1], side[2] * inset, side[3] * inset)
-		t:SetPoint(side[4], slab, side[4], side[5] * inset, side[6] * inset)
-		if side[7] then
-			t:SetHeight(line)
-		else
-			t:SetWidth(line)
-		end
+local function LayPlate(plate)
+	if plate.slice then
+		local _, _, corner = Tokens.Texture("medActionSlab")
+		Widgets.LayoutSlice(plate.slice, plate, corner or Slab.Spec().pad)
+	else
+		plate.chrome:Restyle()
 	end
 end
 
 local function BuildSlab(root)
-	local slab = CreateFrame("Frame", nil, root)
-	slab:SetFrameStrata(STRATA)
-	slab:Hide()
-	local ok, slice = pcall(Widgets.NineSlice, slab, "medActionSlab", "BACKGROUND")
-	if ok and slice then
-		slab.slice = slice
-		BuildEdges(slab)
-	else
-		slab.chrome = Widgets.Chrome(slab, { shape = "tile", fill = "buttonFill", shadow = false })
-	end
+	local slab = Plate(root)
 	slab.sweeps = {}
 	for i = 1, 2 do
 		local sweep = Region(slab, "OVERLAY", 0, Slab.Texture("medCombatSweep"), true)
@@ -363,48 +376,30 @@ local function BuildRing(hub)
 	Fade(glow.breath, BREATH_LOW, BREATH_HIGH, BREATH / 2)
 	hub.glow = glow
 
-	hub.wings = {}
-	for i, side in ipairs({ -1, 1 }) do
-		local wing = Region(hub, "BORDER", 0, Slab.Texture("medHubWing"))
-		Widgets.Size(wing, (WING_RIGHT - WING_LEFT) * WING_TEXEL, (WING_CUT - WING_TOP) * WING_TEXEL)
-		local near, far = WING_LEFT / 512, WING_RIGHT / 512
-		if side < 0 then
-			near, far = far, near
-		end
-		wing:SetTexCoord(near, far, WING_TOP / 256, WING_CUT / 256)
-		wing.side = side
-		local g = Group(wing)
-		wing.move = g:CreateAnimation("Translation")
-		wing.move:SetDuration(WINGS_RUN)
-		wing.move:SetSmoothing("OUT")
-		g:SetScript("OnFinished", function(_, requested)
-			if not requested then
-				Slab.PlaceWings()
-			end
-		end)
-		wing.anim = g
-		hub.wings[i] = wing
+	local ring = Region(hub, "ARTWORK", 3, Slab.Texture("medRingLarge"))
+	ring:SetAllPoints(hub)
+	if not Known("medRingLarge") then
+		Widgets.Tint(ring, "deep")
 	end
+	hub.ring = ring
 
-	local runes = Region(hub, "ARTWORK", -2, Slab.Texture("medRuneRing"))
-	runes:SetAllPoints(hub)
-	if not Known("medRuneRing") then
-		Widgets.Tint(runes, "muted")
-	end
-	runes.turn = Turn(runes)
-	hub.runes = runes
-	local glyphs = Region(hub, "ARTWORK", -1, Slab.Texture("medRuneGlyphs"), true)
+	local glyphs = Region(hub, "ARTWORK", 4, Slab.Texture("medEnamelLarge"))
 	glyphs:SetAllPoints(hub)
 	glyphs:SetAlpha(GLYPH_REST)
-	glyphs.turn = Turn(glyphs)
 	glyphs.flash = Group(glyphs)
 	Fade(glyphs.flash, GLYPH_REST, 1, PULSE_RUN)
 	Fade(glyphs.flash, 1, GLYPH_REST, PULSE_RUN, 2)
 	hub.glyphs = glyphs
+
+	local runes = Region(hub, "ARTWORK", 5, Slab.Texture("medRuneGlyphs"), true)
+	runes:SetAllPoints(hub)
+	runes:SetAlpha(RUNE_REST)
+	runes.turn = Turn(runes)
+	hub.runes = runes
 end
 
 local function BuildCrest(hub)
-	local socket = Region(hub, "ARTWORK", 0, Slab.Texture("medHubSocket"))
+	local socket = Region(hub, "ARTWORK", -4, Slab.Texture("medHubSocket"))
 	Widgets.Size(socket, SOCKET, SOCKET)
 	socket:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	if not Known("medHubSocket") then
@@ -412,7 +407,7 @@ local function BuildCrest(hub)
 	end
 	hub.socket = socket
 
-	local crest = Region(hub, "ARTWORK", 1)
+	local crest = Region(hub, "ARTWORK", 0)
 	Widgets.Size(crest, CREST, CREST)
 	crest:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	crest.pulse = Group(crest)
@@ -420,7 +415,7 @@ local function BuildCrest(hub)
 	Grow(crest.pulse, PULSE_SCALE, 1, PULSE_RUN, 2)
 	hub.crest = crest
 
-	local bloom = Region(hub, "ARTWORK", 2, nil, true)
+	local bloom = Region(hub, "ARTWORK", 1, nil, true)
 	Widgets.Size(bloom, CREST * BLOOM_SHARE, CREST * BLOOM_SHARE)
 	bloom:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	bloom.breath = Group(bloom, "BOUNCE")
@@ -491,8 +486,8 @@ local function BuildMoments(hub)
 	hub.burst = burst
 
 	local plaque = Region(hub.top, "OVERLAY", 3, Slab.Texture("medLevelPlaque"))
-	Widgets.Size(plaque, PLAQUE_W, PLAQUE_H)
-	plaque:SetPoint("CENTER", hub, "BOTTOM", 0, Widgets.Snap(hub, PLAQUE_H / 2))
+	Widgets.Size(plaque, BADGE, BADGE)
+	plaque:SetPoint("CENTER", hub, "BOTTOM", 0, Widgets.Snap(hub, BADGE_RISE))
 	hub.plaque = plaque
 	local level = Widgets.Text(hub.top, "caption", "text")
 	level:SetDrawLayer("OVERLAY", select(2, plaque:GetDrawLayer()) + 1)
@@ -528,24 +523,7 @@ end
 
 local function Loops()
 	local hub = Slab.hub
-	return { hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.glyphs.turn, hub.sheen.run }
-end
-
-function Slab.PlaceWings()
-	local hub = Slab.hub
-	if not hub then
-		return
-	end
-	local root = Widgets.Snap(hub, WING_ROOT - (state.wingsOut and 0 or WING_SLIDE))
-	local lift = Widgets.Snap(hub, Slab.Spec().pad - WING_SINK)
-	for _, wing in ipairs(hub.wings) do
-		wing:ClearAllPoints()
-		if wing.side > 0 then
-			wing:SetPoint("BOTTOMLEFT", hub, "CENTER", root, lift)
-		else
-			wing:SetPoint("BOTTOMRIGHT", hub, "CENTER", -root, lift)
-		end
-	end
+	return { hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.sheen.run }
 end
 
 function Slab.PaintPlaque(gold)
@@ -608,10 +586,11 @@ local function Paint()
 	local hub = Slab.hub
 	local crest, glow = Crest()
 	hub.crest:SetTexture(crest)
+	hub.crest:SetVertexColor(CREST_REST, CREST_REST, CREST_REST, 1)
 	hub.crestPath = crest
 	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
 	local r, g, b = ClassRGB()
-	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.shock, hub.flash }) do
+	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }) do
 		region:SetVertexColor(r, g, b, region:GetAlpha())
 	end
 	for _, sweep in ipairs(Slab.frame.sweeps) do
@@ -703,6 +682,7 @@ local function Yield()
 end
 
 local function Hide()
+	Slab.PlaceSides(false)
 	if not state.built then
 		return
 	end
@@ -744,13 +724,7 @@ function Slab.Refresh()
 	slab:ClearAllPoints()
 	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad)
 	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
-	if slab.slice then
-		local _, _, corner = Tokens.Texture("medActionSlab")
-		Widgets.LayoutSlice(slab.slice, slab, corner or spec.pad)
-		LayEdges(slab)
-	else
-		slab.chrome:Restyle()
-	end
+	LayPlate(slab)
 	local gap = slab.gap
 	gap:ClearAllPoints()
 	gap:SetPoint("TOPLEFT", left.holder, "TOPRIGHT", 0, 0)
@@ -766,9 +740,6 @@ function Slab.Refresh()
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
-	if not hub.wings[1].anim:IsPlaying() then
-		Slab.PlaceWings()
-	end
 	Paint()
 	PaintLevel()
 	slab:Show()
@@ -777,6 +748,7 @@ function Slab.Refresh()
 		K.Effects.Ambient("hub", Animate, Yield)
 	end
 	Animate()
+	Slab.PlaceSides(true)
 	ns.SlabEffects.UpdateCap()
 	return true
 end
@@ -788,35 +760,21 @@ function Slab.SetCombat(on)
 	end
 	state.combat = on
 	if not (state.built and Slab.hub:IsShown()) then
-		state.wingsOut = on
 		return
 	end
-	local hub = Slab.hub
-	if Moving() then
-		state.wingsOut = not on
-		Slab.PlaceWings()
-		state.wingsOut = on
-		for _, wing in ipairs(hub.wings) do
-			wing.move:SetOffset(wing.side * (on and WING_SLIDE or -WING_SLIDE), 0)
-			wing.anim:Stop()
-			wing.anim:Play()
-		end
-		if on then
-			Play(hub.shock.anim)
-			Play(hub.flash.anim)
-			Each(Slab.frame.sweeps, function(sweep)
-				Play(sweep.anim)
-			end)
-		end
-	else
-		state.wingsOut = on
-		Slab.PlaceWings()
+	if on and Moving() then
+		local hub = Slab.hub
+		Play(hub.shock.anim)
+		Play(hub.flash.anim)
+		Each(Slab.frame.sweeps, function(sweep)
+			Play(sweep.anim)
+		end)
 	end
 	Animate()
 end
 
 function Slab.InCombat()
-	return state.combat, state.wingsOut
+	return state.combat
 end
 
 function Slab.Pulse()
@@ -845,31 +803,57 @@ function Slab.LevelUp(level)
 	end
 end
 
-local function SlotSize(b)
-	local size = b:GetWidth()
-	if not Plain(size) or size <= 0 then
-		return Tokens.Size("actionButton")
+local sides = {}
+
+function Slab.PlaceSides(on)
+	for _, key in ipairs({ "pet", "stance" }) do
+		local bar = ns.bars and ns.bars[key]
+		local plate = sides[key]
+		if bar and on and not plate then
+			plate = Plate(bar.header)
+			sides[key] = plate
+		end
+		if plate then
+			local shown = on and bar:Shown() and not bar.holderHidden
+			if shown then
+				local pad = Widgets.Snap(plate, Slab.Side().pad)
+				plate:ClearAllPoints()
+				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, pad)
+				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -pad)
+				LayPlate(plate)
+			end
+			plate:SetShown(shown)
+		end
 	end
-	return size
+	Slab.sides = sides
+end
+
+local function SocketMask()
+	return Known("medSlotMask") or (Tokens.Texture("iconMask"))
 end
 
 local function ProcParts(b)
 	if not b.medProc then
+		local mask = b.overlay:CreateMaskTexture()
+		mask:SetTexture(SocketMask(), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		mask:SetAllPoints(b.icon)
 		local loop = Region(b.overlay, "OVERLAY", 6, nil, true)
-		loop:SetPoint("CENTER", b, "CENTER", 0, 0)
+		loop:SetAllPoints(b.icon)
+		loop:AddMaskTexture(mask)
 		loop:Hide()
 		local start = Region(b.overlay, "OVERLAY", 7, Slab.Texture("medProcStart"), true)
-		start:SetPoint("CENTER", b, "CENTER", 0, 0)
+		start:SetAllPoints(b.icon)
+		start:AddMaskTexture(mask)
 		start:SetAlpha(0)
 		start.anim = Group(start)
 		Grow(start.anim, 0.7, 1.1, PROC_START)
 		Fade(start.anim, 1, 0, PROC_START)
-		b.medProc, b.medProcStart = loop, start
+		local edge = Region(b.overlay, "OVERLAY", 7, Slab.Texture("medSlotChecked"))
+		edge:SetAllPoints(b)
+		edge:Hide()
+		b.medProc, b.medProcStart, b.medProcEdge = loop, start, edge
 	end
-	local size = SlotSize(b)
-	Widgets.Size(b.medProc, size * PROC_SHARE, size * PROC_SHARE)
-	Widgets.Size(b.medProcStart, size * PROC_START_SHARE, size * PROC_START_SHARE)
-	return b.medProc, b.medProcStart
+	return b.medProc, b.medProcStart, b.medProcEdge
 end
 
 local function ProcLoop(loop)
@@ -905,11 +889,15 @@ function Slab.SetProc(b, on)
 			b.medProc:Hide()
 			b.medProcStart.anim:Stop()
 			b.medProcStart:SetAlpha(0)
+			b.medProcEdge:Hide()
 		end
 		return
 	end
+	if b.procGlow then
+		b.procGlow:Stop()
+	end
 	state.class = state.class or select(2, UnitClass("player"))
-	local loop, start = ProcParts(b)
+	local loop, start, edge = ProcParts(b)
 	ProcLoop(loop)
 	local r, g, bl = ClassRGB()
 	if loop.path == Slab.Texture("medProc") then
@@ -917,7 +905,9 @@ function Slab.SetProc(b, on)
 	else
 		Widgets.Tint(loop, "white")
 	end
-	start:SetVertexColor(r, g, bl, 1)
+	start:SetVertexColor(r, g, bl, start:GetAlpha())
+	edge:SetVertexColor(r, g, bl, 1)
+	edge:Show()
 	loop:Show()
 	if Slab.Allows("pulse") then
 		loop.anim:Play()
@@ -935,23 +925,52 @@ local function OnLevel(_, level)
 	Slab.LevelUp(not IsSecret(level) and level or nil)
 end
 
-local function SlotLayer(parent, sublevel, name, owner)
-	local t = parent:CreateTexture(nil, "OVERLAY", nil, sublevel)
+local function SlotLayer(parent, layer, sublevel, name, owner)
+	local t = parent:CreateTexture(nil, layer, nil, sublevel)
 	t:SetTexture((Tokens.Texture(name)))
 	t:SetAllPoints(owner)
 	return t
 end
 
+local DRESSED = { action = true, pet = true, stance = true }
+
+function Slab.Keybind(b, wanted)
+	if wanted == nil then
+		wanted = ns.Config(b.kbar.def.key).hotkey == true
+	end
+	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
+end
+
+local function Socket(b, on)
+	if (b.medSocketOn == true) == on then
+		return
+	end
+	b.medSocketOn = on
+	if not b.medCoords then
+		b.medCoords = { b.icon:GetTexCoord() }
+	end
+	b.chrome:SetShown(not on)
+	b.opts.iconInset = on and ICON_INSET or nil
+	if on then
+		b.icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	else
+		b.icon:SetTexCoord(unpack(b.medCoords))
+	end
+	b.mask:SetTexture(on and SocketMask() or (Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	b.placedOffset = nil
+	b:Paint()
+end
+
 function Slab.Dress(b)
-	local on = Slab.Active() and b.kind == "action" and Known("medSlot") ~= nil
+	local on = Slab.Active() and DRESSED[b.kind] == true and Known("medSlot") ~= nil
 	if not b.medFrame then
 		if not on then
 			return
 		end
-		b.medFrame = SlotLayer(b, 2, "medSlot", b)
-		b.medChecked = SlotLayer(b, 3, "medSlotChecked", b)
-		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, 2, "medSlotHighlight", b)
-		b.medPushed = SlotLayer(b, 3, "medSlotPushed", b)
+		b.medFrame = SlotLayer(b, "BACKGROUND", 2, "medSlot", b)
+		b.medChecked = SlotLayer(b, "OVERLAY", 3, "medSlotChecked", b)
+		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, "OVERLAY", 2, "medSlotHighlight", b)
+		b.medPushed = SlotLayer(b, "OVERLAY", 3, "medSlotPushed", b)
 		if type(hooksecurefunc) == "function" then
 			for _, method in ipairs({ "SetSelected", "AnimatePress" }) do
 				if type(b[method]) == "function" then
@@ -960,19 +979,23 @@ function Slab.Dress(b)
 			end
 		end
 	end
+	Socket(b, on)
 	b.medFrame:SetShown(on)
 	b.medChecked:SetShown(on and b.selected == true)
 	if b.medHover then
 		b.medHover:SetShown(on)
 	end
 	b.medPushed:SetShown(on and b.pressHeld == true)
+	Slab.Keybind(b)
 end
 
 local function OnStyle()
 	Slab.Refresh()
-	for _, b in ipairs(ns.actionButtons or {}) do
-		Slab.Dress(b)
-		Slab.SetProc(b, b.proc == true)
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+		for _, b in ipairs(list or {}) do
+			Slab.Dress(b)
+			Slab.SetProc(b, b.proc == true)
+		end
 	end
 end
 
@@ -984,7 +1007,6 @@ end
 
 function Slab.Enable()
 	state.combat = InCombatLockdown() == true
-	state.wingsOut = state.combat
 	K.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_LEVEL_UP", OnLevel)

@@ -1,4 +1,4 @@
--- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab at any CREW screen, in all three presets: bars 1 and 2 stand in one row on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the experience strip runs along the slab's lower edge under both groups and the gap (the hub drawn over it), the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
+-- test-layout-medallions-hub.lua: under the Medallions HUD style the hub's footprint, a square the ring wide centred on the slots' top edge, never overlaps a slot of the action slab at any CREW screen, in all three presets: bars 1 and 2 stand in one row each at 21:9 and wider and two rows of six at 16:9 (Layouts.MEDALLIONS_ROWS), on one baseline mirrored about the centre line with at least MEDALLIONS_HUB_GAP between them, the experience strip runs along the slab's lower edge under both groups and the gap (the hub drawn over it), the fit check counts the hub as a rect no other element may enter, and the scale limit is the largest step that fits it.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({
@@ -34,7 +34,8 @@ for _, name in ipairs(Layouts.Names()) do
 		assert(one.anchor == "BOTTOM" and two.anchor == "BOTTOM", label .. ": the slab's groups anchor to the bottom centre")
 		assert(one.y == two.y and one.x == -two.x, label .. ": bar 1 and bar 2 share a baseline and mirror about the centre line")
 		local columns, rows, groupWidth, groupHeight, size, spacing = Layouts.MedallionsGroup(class)
-		assert(columns == 12 and rows == 1, label .. ": each group holds the bar's twelve slots in one row")
+		local want = Layouts.MEDALLIONS_ROWS[class] or 1
+		assert(rows == want and columns * rows == 12, label .. ": each group holds the bar's twelve slots in " .. want .. " row(s), got " .. columns .. "x" .. rows)
 		assert(size >= Layouts.MEDALLIONS_SLOT.floor, label .. ": the slots keep the slot floor")
 		assert(two.x - groupWidth / 2 - (one.x + groupWidth / 2) >= GAP - 1e-9, label .. ": the groups stand at least the hub gap apart")
 		local hub = { -RING / 2, one.y + groupHeight - RING / 2, RING / 2, one.y + groupHeight + RING / 2 }

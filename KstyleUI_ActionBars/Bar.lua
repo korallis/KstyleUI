@@ -212,13 +212,13 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local rows, cell = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg)
-	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, cfg.spacing)
+	local rows, cell, spacing = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg), ns.Slab.Spacing(def, cfg)
+	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch = size + gap
 	if CUMULATIVE[def.key] then
-		local _, _, columns, used = ns.GridSize(count, rows, cell, cfg.spacing)
-		pitch = cell + cfg.spacing
+		local _, _, columns, used = ns.GridSize(count, rows, cell, spacing)
+		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
 	end

@@ -822,22 +822,22 @@ end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
-Layouts.MEDALLIONS_WING = { reach = 254, lift = 0, top = 64 }
-Layouts.MEDALLIONS_SLOT = { floor = 35, [ASPECTS[1]] = 35.5 }
-Layouts.MEDALLIONS_SIDE_ROWS = { [ASPECTS[1]] = 2 }
-Layouts.MEDALLIONS_SLAB = { pad = 6, stripGap = 4, strip = XP_H, bottom = 3 }
+Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 35 }
+Layouts.MEDALLIONS_ROWS = { [ASPECTS[1]] = 2 }
+Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
+Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 
 function Layouts.MedallionsGroup(class)
-	local grid = GRIDS["actionbars.bar1"]
-	local size = Layouts.MEDALLIONS_SLOT[class] or grid.size
-	return grid.buttons, 1, grid.buttons * size + (grid.buttons - 1) * grid.spacing, size, size, grid.spacing
+	local slot = Layouts.MEDALLIONS_SLOT
+	local rows = Layouts.MEDALLIONS_ROWS[class] or 1
+	local columns = math.ceil(GRIDS["actionbars.bar1"].buttons / rows)
+	return columns, rows, columns * slot.size + (columns - 1) * slot.gap, rows * slot.size + (rows - 1) * slot.gap, slot.size, slot.gap
 end
 
-function Layouts.MedallionsSide(class, key)
-	local grid = GRIDS[key]
-	local rows = Layouts.MEDALLIONS_SIDE_ROWS[class] or grid.rows
-	local columns, gap = math.ceil(grid.buttons / rows), grid.spacing or PITCH
-	return rows, columns * grid.size + (columns - 1) * gap, rows * grid.size + (rows - 1) * gap
+function Layouts.MedallionsSide(_, key)
+	local grid, side = GRIDS[key], Layouts.MEDALLIONS_SIDE
+	local columns = math.ceil(grid.buttons / side.rows)
+	return side.rows, columns * grid.size + (columns - 1) * side.gap, side.rows * grid.size + (side.rows - 1) * side.gap
 end
 
 function Layouts.StyleSize(style, class, key)
@@ -848,7 +848,7 @@ function Layouts.StyleSize(style, class, key)
 		local _, _, width, height = Layouts.MedallionsGroup(class)
 		return width, height
 	end
-	if (key == "actionbars.pet" or key == "actionbars.stance") and Layouts.MEDALLIONS_SIDE_ROWS[class] then
+	if key == "actionbars.pet" or key == "actionbars.stance" then
 		local _, width, height = Layouts.MedallionsSide(class, key)
 		return width, height
 	end
@@ -862,22 +862,20 @@ function Layouts.BuildMedallions()
 		local _, _, width, height = Layouts.MedallionsGroup(class)
 		local baseline = math.max(TRAY_BAR1_Y, EDGE + Layouts.MEDALLIONS_RING / 2 - height)
 		local top, strip = baseline + height, baseline - slab.stripGap - slab.strip
-		local ends = hub / 2 + width + slab.pad + NEAR
-		local _, petW, petH = Layouts.MedallionsSide(class, "actionbars.pet")
+		local side = Layouts.MEDALLIONS_SIDE
+		local ends = hub / 2 + width + slab.pad + side.clear + side.pad
+		local _, petW = Layouts.MedallionsSide(class, "actionbars.pet")
 		local _, stanceW = Layouts.MedallionsSide(class, "actionbars.stance")
-		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = TRAY_BOTTOM }
-		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = TRAY_BOTTOM }
-		if Layouts.MEDALLIONS_SIDE_ROWS[class] then
-			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = strip - slab.bottom }
-			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = strip - slab.bottom + petH + TIGHT }
-		end
+		local sideY = strip - slab.bottom + side.pad
+		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
+		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
 		local frame, tot, focus, boss = { 300 * MOCK_PX, 54 * MOCK_PX }, { 112 * MOCK_PX, 36 * MOCK_PX }, layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize, pet = { 220 * MOCK_PX, 64 * MOCK_PX }, { 180 * MOCK_PX, 40 * MOCK_PX }
 		local petDrop, castH = 7 * MOCK_PX, select(2, ElementSize("unitframes.castbar.player"))
 		local cast = { frame[1] - 57 * MOCK_PX, castH }
 		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
 		local row = top + rise
-		if Layouts.MEDALLIONS_SIDE_ROWS[class] then
+		if Layouts.MEDALLIONS_ROWS[class] then
 			row = math.max(row, layouts.DPS["databars.bags"].y + select(2, ElementSize("databars.bags")) + TIGHT + tot[2] + 9 * MOCK_PX - frame[2])
 		end
 		local function At(anchor, x, y, size)
@@ -1229,19 +1227,6 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		for index = 1, #rects do
 			local rect = rects[index]
 			if rect.key ~= "databars.xp" and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
-				return false
-			end
-		end
-		local wing, slotTop = Layouts.MEDALLIONS_WING, bar.y + groupHeight
-		local reach = floor(wing.reach * pixelScale + 0.5)
-		local low, high = floor((slotTop + wing.lift) * pixelScale + 0.5), floor((slotTop + wing.top) * pixelScale + 0.5)
-		local wingLeft, wingRight = floor(physicalWidth / 2 + 0.5) - reach, floor(physicalWidth / 2 + 0.5) + reach
-		if wingLeft < 0 or wingRight > physicalWidth then
-			return false
-		end
-		for index = 1, #rects do
-			local rect = rects[index]
-			if wingLeft < rect[3] and rect[1] < wingRight and low < rect[4] and rect[2] < high then
 				return false
 			end
 		end

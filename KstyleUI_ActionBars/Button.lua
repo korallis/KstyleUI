@@ -109,12 +109,10 @@ function Button.ApplyTint(b, force)
 end
 
 function Button.UpdateAlpha(b)
-	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout
-	if not shown then
-		local cfg = Config(b)
-		shown = cfg.showEmpty == true
-	end
+	local cfg = Config(b)
+	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout or cfg.showEmpty == true
 	b:SetAlpha(shown and 1 or 0)
+	ns.Slab.Keybind(b, cfg.hotkey == true)
 end
 
 local function CooldownInfo(bar, slot)
@@ -451,7 +449,7 @@ function ns.StyleTextsFor(b, barKey)
 			local rolePath, roleSize = Tokens.Font(spec.role)
 			local path = style.font ~= "" and style.font or rolePath
 			local size = ns.Slab.TextSize(barKey, cfg, (type(style.size) == "number" and style.size or roleSize) * scale, spec.key)
-			local flags = ns.FontFlags(style.outline)
+			local flags = ns.Slab.TextFlags(spec.key, ns.FontFlags(style.outline))
 			if not Widgets.ApplyFont(fs, path, size, flags) and path ~= rolePath then
 				Widgets.ApplyFont(fs, rolePath, size, flags)
 				LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; the action bars use the interface font")
@@ -468,7 +466,7 @@ function ns.StyleTextsFor(b, barKey)
 		b.autocast:ClearAllPoints()
 		b.autocast:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", markInset, markInset)
 	end
-	b.hotkey:SetShown(cfg.hotkey == true)
+	ns.Slab.Keybind(b, cfg.hotkey == true)
 	b.count:SetShown(cfg.count ~= false)
 	b.macroText:SetShown(cfg.macro == true)
 	b.cooldown:SetHideCountdownNumbers(cfg.cooldown ~= true)
