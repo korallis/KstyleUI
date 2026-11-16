@@ -21,8 +21,8 @@ GIT_ENV = {
 }
 
 
-def record(files=(), names=(), content=(), wide=False, sha=""):
-    return {"files": sorted(files), "names": sorted(names), "content": sorted(content), "wide": wide, "sha": sha}
+def record(files=(), listings=(), names=(), sha=""):
+    return {"files": sorted(files), "listings": sorted(listings), "names": sorted(names), "sha": sha}
 
 
 def lua():
@@ -32,43 +32,25 @@ def lua():
     return None
 
 
-class CommandDepsTest(unittest.TestCase):
-    def test_ls_reads_names(self):
-        self.assertEqual(affected.command_deps("ls -1d '.'/'KstyleUI'_*/*.toc 2>/dev/null"), ("names", ["./KstyleUI_*/*.toc"]))
-        self.assertEqual(affected.command_deps("ls -1A 'Tools/regression/perf' 2>/dev/null"), ("names", ["Tools/regression/perf"]))
-
-    def test_git_ls_files_reads_names(self):
-        self.assertEqual(affected.command_deps("git ls-files '*.lua'"), ("names", ["*.lua"]))
-        self.assertEqual(affected.command_deps("git ls-files"), ("names", ["*"]))
-
-    def test_grep_reads_content_of_its_paths_not_its_pattern(self):
-        kind, patterns = affected.command_deps("grep -rhoE 'name=\"[A-Za-z]+\"' KstyleUI_ActionBars/ Core")
-        self.assertEqual((kind, patterns), ("content", ["KstyleUI_ActionBars/", "Core"]))
-
-    def test_housekeeping_commands_read_nothing(self):
-        for command in ("mkdir -p /tmp/x", "rm -rf /tmp/x", "uptime 2>/dev/null"):
-            self.assertEqual(affected.command_deps(command)[0], "ignore", command)
-
-    def test_an_unknown_command_makes_the_test_depend_on_everything(self):
-        self.assertEqual(affected.command_deps("python3 Tools/x.py")[0], "wide")
-        self.assertEqual(affected.command_deps("echo 'unterminated")[0], "wide")
-
-
 class RecordFromTraceTest(unittest.TestCase):
     def test_keeps_repository_files_and_drops_outside_ones(self):
         root = "/work/repo"
         text = "\n".join([
             "f Core/Init.lua", "f ./Core/./Init.lua", "f /work/repo/Core/Scale.lua", "f /tmp/other.lua", "f ../up.lua",
-            "c ls -1d KstyleUI_*/", "c mkdir -p /tmp/x", "c grep -rl foo Core",
         ])
         result = affected.record_from_trace(text, root)
         self.assertEqual(result["files"], ["Core/Init.lua", "Core/Scale.lua"])
-        self.assertEqual(result["names"], ["KstyleUI_*"])
-        self.assertEqual(result["content"], ["Core"])
-        self.assertFalse(result["wide"])
 
-    def test_an_unknown_command_marks_the_record_wide(self):
-        self.assertTrue(affected.record_from_trace("c tool --all", "/work/repo")["wide"])
+    def test_a_listing_records_its_folder_and_glob(self):
+        text = "\n".join([
+            "n ./KstyleUI_*", "n Tools/regression/perf", "n Tools/regression/fixtures/toc/Core/", "n .",
+            "n Tools/render/scenes/gallery_*.lua", "n ../outside", "t *.lua",
+        ])
+        result = affected.record_from_trace(text, "/work/repo")
+        self.assertEqual(result["listings"], [
+            "*", "KstyleUI_*", "Tools/regression/fixtures/toc/Core/*", "Tools/regression/perf/*", "Tools/render/scenes/gallery_*.lua",
+        ])
+        self.assertEqual(result["names"], ["*.lua"])
 
 
 class SelectTest(unittest.TestCase):
@@ -78,7 +60,7 @@ class SelectTest(unittest.TestCase):
         base = {
             self.tests[0]: record(["Core/Init.lua", "KstyleUI_A/A.lua", "KstyleUI_A/A.toc"]),
             self.tests[1]: record(["Core/Init.lua", "KstyleUI_B/B.lua", "Tools/regression/b_env.lua"]),
-            self.tests[2]: record(["KstyleUI_C/C.lua"], names=["KstyleUI_*/"]),
+            self.tests[2]: record(["KstyleUI_C/C.lua"], listings=["KstyleUI_*", "KstyleUI_C/*.toc"]),
             self.tests[3]: record(["KstyleUI_A/A.lua"], names=["*.lua"]),
         }
         base.update(changes)
@@ -132,6 +114,13 @@ class SelectTest(unittest.TestCase):
         self.assertNotIn(self.tests[2], self.choose({"KstyleUI_C/Other.lua": "M"})[0], "an edit does not change a listing")
         self.assertIn(self.tests[3], self.choose({"Core/New.lua": "A"})[0])
 
+    def test_a_new_module_folder_selects_every_test_that_lists_the_module_glob(self):
+        cache = self.cache()
+        cache[self.tests[1]] = record(["KstyleUI_B/B.lua"], listings=["KstyleUI_*"])
+        chosen, _ = self.choose({"KstyleUI_New/x.lua": "A"}, cache)
+        self.assertEqual(self.stems(chosen), ["test-b", "test-c", "test-scan"])
+        self.assertEqual(chosen[self.tests[1]], "KstyleUI_New/x.lua was added")
+
     def test_a_module_toc_selects_the_tests_that_load_that_module(self):
         chosen, _ = self.choose({"KstyleUI_A/A.toc": "M", "KstyleUI_A/A.xml": "M"})
         self.assertEqual(self.stems(chosen), ["test-a", "test-scan"])
@@ -148,18 +137,6 @@ class SelectTest(unittest.TestCase):
         del cache[self.tests[1]]
         chosen, _ = self.choose({"docs/note.md": "M"}, cache)
         self.assertEqual(chosen[self.tests[1]], "no record of what it loads yet")
-
-    def test_a_test_that_scans_the_whole_tree_always_runs(self):
-        cache = self.cache()
-        cache[self.tests[1]] = record(wide=True)
-        chosen, _ = self.choose({"docs/note.md": "M"}, cache)
-        self.assertIn(self.tests[1], chosen)
-
-    def test_content_patterns_match_edits_under_the_folder(self):
-        cache = self.cache()
-        cache[self.tests[1]] = record(content=["KstyleUI_Q"])
-        self.assertIn(self.tests[1], self.choose({"KstyleUI_Q/deep/File.lua": "M"}, cache)[0])
-        self.assertNotIn(self.tests[1], self.choose({"KstyleUI_R/File.lua": "M"}, cache)[0])
 
     def test_a_file_no_test_loads_is_named(self):
         _, notes = self.choose({"docs/note.md": "M"})
@@ -237,6 +214,26 @@ class GitRepoCase(unittest.TestCase):
         self.git("commit", "-q", "-m", message)
 
 
+class ChangedFoldersTest(GitRepoCase):
+    def test_a_folder_changes_a_listing_only_when_it_appears_or_goes(self):
+        self.commit({"KstyleUI_Old/a.lua": "1\n", "KstyleUI_Gone/a.lua": "1\n"})
+        self.write({"KstyleUI_Old/b.lua": "1\n", "KstyleUI_New/deep/x.lua": "1\n"})
+        shutil.rmtree(self.repo / "KstyleUI_Gone")
+        changes = {"KstyleUI_Old/b.lua": "A", "KstyleUI_New/deep/x.lua": "A", "KstyleUI_Gone/a.lua": "D"}
+        cwd = os.getcwd()
+        os.chdir(self.repo)
+        try:
+            folders = affected.changed_folders(changes)
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(folders, {"KstyleUI_New", "KstyleUI_New/deep", "KstyleUI_Gone"})
+        self.assertFalse(affected.listing_hit("KstyleUI_*", "KstyleUI_Old/b.lua", folders), "an existing folder keeps its name")
+        self.assertTrue(affected.listing_hit("KstyleUI_Old/*", "KstyleUI_Old/b.lua", folders), "a new file is a new name in its own folder")
+        self.assertTrue(affected.listing_hit("KstyleUI_*", "KstyleUI_New/deep/x.lua", folders))
+        self.assertTrue(affected.listing_hit("KstyleUI_*", "KstyleUI_Gone/a.lua", folders))
+        self.assertFalse(affected.listing_hit("*.toc", "KstyleUI_New/deep/x.lua", folders), "the glob must match the folder's name")
+
+
 class ChangedFilesTest(GitRepoCase):
     def test_reports_committed_staged_unstaged_untracked_and_deleted_files_against_the_merge_base(self):
         self.commit({"keep.lua": "1\n", "edit.lua": "1\n", "gone.lua": "1\n", "staged.lua": "1\n"})
@@ -272,7 +269,7 @@ class RunAllAffectedTest(GitRepoCase):
         super().setUp()
         regression = self.repo / "Tools" / "regression"
         regression.mkdir(parents=True)
-        for name in ("run-all.sh", "run_all.py", "runner_platform.py", "affected.py", "trace.lua"):
+        for name in ("run-all.sh", "run_all.py", "runner_platform.py", "affected.py", "trace.lua", "fs.lua"):
             shutil.copy(REGRESSION / name, regression / name)
         self.commit({
             "Mod/a.lua": "return 1\n",
@@ -280,7 +277,7 @@ class RunAllAffectedTest(GitRepoCase):
             "Tools/regression/test-a.lua": 'assert(dofile("Mod/a.lua") == 1)\n',
             "Tools/regression/test-b.lua": 'local f = assert(io.open("Mod/b.lua", "rb")); f:close()\n',
             "Tools/regression/test-c.lua": "assert(1 + 1 == 2)\n",
-            "Tools/regression/test-d.lua": 'assert(dofile("Mod/a.lua") == 1)\nlocal p = io.popen("ls -1 Mod 2>/dev/null"); p:read("*a"); p:close()\n',
+            "Tools/regression/test-d.lua": 'assert(dofile("Mod/a.lua") == 1)\nassert(#dofile("Tools/regression/fs.lua").list("Mod") == 2)\n',
         }, "base")
         self.cache = self.repo / "cache.json"
 
@@ -304,7 +301,7 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertEqual(records["Tools/regression/test-a.lua"]["files"], ["Mod/a.lua"])
         self.assertEqual(records["Tools/regression/test-b.lua"]["files"], ["Mod/b.lua"])
         self.assertEqual(records["Tools/regression/test-c.lua"]["files"], [])
-        self.assertEqual(records["Tools/regression/test-d.lua"]["names"], ["Mod"])
+        self.assertEqual(records["Tools/regression/test-d.lua"]["listings"], ["Mod/*"])
 
     def test_a_test_edited_after_its_record_runs_again_even_when_the_base_is_unchanged(self):
         self.affected()

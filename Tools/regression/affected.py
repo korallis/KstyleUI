@@ -1,8 +1,8 @@
 """Pick the regression tests a change can affect, from a record of what each test file really loads.
 
-run_all.py --affected BASE uses this. trace.lua records every file a test opens and every shell command it
-runs; this module turns those lines into a per-test record, keeps the records in a cache outside the
-repository, and chooses the tests whose record meets a file that changed against BASE.
+run_all.py --affected BASE uses this. trace.lua records every file a test opens and every folder and tracked-file
+pattern it lists through fs.lua; this module turns those lines into a per-test record, keeps the records in a
+cache outside the repository, and chooses the tests whose record meets a file that changed against BASE.
 Tools/regression/README.md describes the mode and its limits.
 """
 
@@ -12,12 +12,11 @@ import json
 import os
 import posixpath
 import re
-import shlex
 import subprocess
 import tempfile
 from pathlib import Path
 
-VERSION = 2
+VERSION = 3
 SHARED_FRACTION = 0.5
 SHARED_MINIMUM = 10
 GUARDS = (
@@ -29,6 +28,7 @@ GUARDS = (
     "test-modules-load",
     "test-scaffold",
     "test-secrets",
+    "test-shell-guard",
     "test-suite-load",
     "test-syntax",
     "test-taint-scan",
@@ -41,14 +41,13 @@ SHARED_PATHS = (
     "Tools/regression/run_all.py",
     "Tools/regression/affected.py",
     "Tools/regression/trace.lua",
+    "Tools/regression/fs.lua",
     "Tools/regression/stubs/*",
     "Tools/regression/*_env.lua",
     "Tools/regression/load_files.lua",
     "Tools/regression/toc_files.lua",
     ".luacheckrc",
 )
-IGNORED_COMMANDS = ("mkdir", "rm", "uptime", "date", "echo", "true", "false")
-
 
 def cache_path():
     explicit = os.environ.get("KSTYLEUI_DEPS_CACHE")
@@ -95,38 +94,6 @@ def normalize(path, root):
     return path
 
 
-def command_deps(command):
-    """Return (kind, patterns) for a shell command a test ran.
-
-    kind is "names" when only the names in a folder matter (ls, git ls-files), "content" when file
-    contents do (grep -r), "ignore" for a command that reads nothing in the repository, and "wide" when
-    the command is unknown and the test must always run.
-    """
-    try:
-        words = shlex.split(command)
-    except ValueError:
-        return "wide", []
-    if not words:
-        return "ignore", []
-    name = words[0]
-    if name in IGNORED_COMMANDS:
-        return "ignore", []
-    if name == "ls":
-        return "names", [word for word in words[1:] if not word.startswith("-") and word != "2>/dev/null"]
-    if name == "git" and words[1:2] == ["ls-files"]:
-        return "names", [word for word in words[2:] if not word.startswith("-") and word != "2>/dev/null"] or ["*"]
-    if name == "grep":
-        operands, flags_done = [], False
-        for word in words[1:]:
-            if word == "2>/dev/null":
-                continue
-            if word.startswith("-") and not flags_done:
-                continue
-            operands.append(word)
-        return "content", operands[1:] or ["*"]
-    return "wide", []
-
-
 def fingerprint(path):
     """Return a hash of the test file's bytes, or "" when it cannot be read."""
     try:
@@ -136,23 +103,28 @@ def fingerprint(path):
 
 
 def record_from_trace(text, root):
-    """Turn trace.lua's lines into a record: {files, names, content, wide}; run_all.py adds the test's fingerprint."""
-    files, names, content, wide = set(), set(), set(), False
+    """Turn trace.lua's lines into a record: {files, listings, names}; run_all.py adds the test's fingerprint.
+
+    listings holds "<folder>/<glob>" for each folder fs.list read ("<glob>" alone for the repository root), and
+    names the patterns fs.tracked passed to git ls-files.
+    """
+    files, listings, names = set(), set(), set()
     for line in text.splitlines():
         kind, _, value = line.partition(" ")
         if kind == "f":
             path = normalize(value, root)
             if path:
                 files.add(path)
-        elif kind == "c":
-            what, patterns = command_deps(value)
-            if what == "wide":
-                wide = True
-            for pattern in patterns:
-                pattern = normalize(pattern, root) if not any(c in pattern for c in "*?[") else posixpath.normpath(pattern)
-                if pattern:
-                    (names if what == "names" else content).add(pattern)
-    return {"files": sorted(files), "names": sorted(names), "content": sorted(content), "wide": wide}
+        elif kind == "n":
+            folder, _, glob = value.rstrip("/").rpartition("/")
+            if not any(c in glob for c in "*?["):
+                folder, glob = value.rstrip("/"), "*"
+            folder = "" if posixpath.normpath(folder or ".") == "." else normalize(folder, root)
+            if folder is not None:
+                listings.add(posixpath.join(folder, glob))
+        elif kind == "t":
+            names.add(posixpath.normpath(value))
+    return {"files": sorted(files), "listings": sorted(listings), "names": sorted(names)}
 
 
 def prefixes(path):
@@ -161,7 +133,7 @@ def prefixes(path):
 
 
 def pattern_hits(pattern, path):
-    """True when a folder or glob a command named covers the path or one of its folders."""
+    """True when a folder or glob covers the path or one of its folders."""
     pattern = pattern.rstrip("/")
     return any(fnmatch.fnmatchcase(prefix, pattern) for prefix in prefixes(path))
 
@@ -189,7 +161,41 @@ def changed_files(base, cwd=None):
     return merge_base, changes
 
 
-def hit(test, record, changes):
+def files_in(folder):
+    try:
+        return git("ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", folder).split("\0")[:-1]
+    except RuntimeError:
+        return []
+
+
+def changed_folders(changes):
+    """Return the folders that appeared, every file in them being added, or that are gone from disk."""
+    folders, kept = set(), set()
+    for path, status in sorted(changes.items()):
+        if status not in ("A", "D"):
+            continue
+        parents = prefixes(path)[:-1]
+        for i, folder in enumerate(parents):
+            if folder in kept:
+                continue
+            if folder in folders or (not os.path.isdir(folder) if status == "D" else all(changes.get(p) == "A" for p in files_in(folder))):
+                folders.update(parents[i:])
+                break
+            kept.add(folder)
+    return folders
+
+
+def listing_hit(listing, path, folders):
+    """True when adding or deleting path adds or removes a name in a "<folder>/<glob>" listing: the path itself, or
+    its folder in the listing when that folder is one of changed_folders."""
+    folder, _, glob = listing.rpartition("/")
+    if folder and not path.startswith(folder + "/"):
+        return False
+    entry, _, deeper = path[len(folder) + 1 if folder else 0:].partition("/")
+    return fnmatch.fnmatchcase(entry, glob) and (not deeper or posixpath.join(folder, entry) in folders)
+
+
+def hit(test, record, changes, folders):
     """Return the reason a record meets a change, or None."""
     own = test.replace(os.sep, "/")
     if own in changes:
@@ -198,10 +204,11 @@ def hit(test, record, changes):
         if path in changes:
             return path + " changed"
     for path, status in sorted(changes.items()):
-        if status in ("A", "D") and any(pattern_hits(pattern, path) for pattern in record["names"]):
+        if status in ("A", "D") and (
+            any(pattern_hits(pattern, path) for pattern in record["names"])
+            or any(listing_hit(listing, path, folders) for listing in record["listings"])
+        ):
             return path + (" was added" if status == "A" else " was deleted")
-        if any(pattern_hits(pattern, path) for pattern in record["content"]):
-            return path + " changed"
     return None
 
 
@@ -232,7 +239,7 @@ def select(tests, changes, cache, guards=GUARDS):
         loaders = [test for test in known if path in cache[test]["files"]]
         if len(loaders) >= max(SHARED_MINIMUM, SHARED_FRACTION * len(tests)):
             return everything(tests, "{0} is loaded by {1} of {2} test files, so every test file runs".format(path, len(loaders), len(tests)))
-    chosen, notes = {}, []
+    chosen, notes, folders = {}, [], changed_folders(generic)
     for test in tests:
         record = cache.get(test)
         stem = Path(test).stem
@@ -242,10 +249,7 @@ def select(tests, changes, cache, guards=GUARDS):
         if record.get("sha") != fingerprint(test):
             chosen[test] = "the record was made from another version of this test file"
             continue
-        if record["wide"]:
-            chosen[test] = "it runs commands that read the whole tree"
-            continue
-        reason = hit(test, record, generic)
+        reason = hit(test, record, generic, folders)
         for path, folder in sorted(lists.items()):
             if reason is None and any(p.startswith(folder + "/") and p.endswith(".lua") for p in record["files"]):
                 reason = "{0} changed and lists the files {1} loads".format(path, folder)
@@ -256,7 +260,7 @@ def select(tests, changes, cache, guards=GUARDS):
     loaded = set()
     for test in known:
         loaded.update(cache[test]["files"])
-    patterns = [pattern for test in known for pattern in cache[test]["names"] + cache[test]["content"]]
+    patterns = [pattern for test in known for pattern in cache[test]["names"] + cache[test]["listings"]]
     unread = sorted(path for path in generic if path not in loaded and not any(pattern_hits(pattern, path) for pattern in patterns))
     if unread:
         shown = ", ".join(unread[:8]) + (" and {0} more".format(len(unread) - 8) if len(unread) > 8 else "")

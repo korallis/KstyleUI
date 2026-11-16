@@ -34,23 +34,22 @@ CI runs the whole suite once per pull request head and once per push to `staging
 
 When a changed file is an addon `.lua` file (anything outside `Tools/` and `docs/`) or is under `Tools/locale/`, `--affected` also runs `python3 Tools/locale/strings.py check`, which is the cheap part of `test_locale_strings` in CI's Python job. A failure prints `FAIL locale`, each problem and the fix (`python3 Tools/locale/strings.py sync`, then commit `Tools/locale` and `Core/Locales`), and counts as one failed file. A change that touches neither skips it.
 
-What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each shell command it runs (`io.popen`, `os.execute`). `affected.py` turns that into a record per test file:
+What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each listing it makes through `fs.lua`, the only file that runs shell commands (`test-shell-guard.lua`). `affected.py` turns that into a record per test file:
 
 - **files:** the files read. A change to one of them selects the test. The test file itself counts.
-- **names:** the folders and globs a test listed with `ls` or `git ls-files`. Only an added or deleted file selects the test, because only a name can change a listing.
-- **content:** the folders a test searched with `grep -r`. Any change under them selects the test.
-- **wide:** a command it does not know. The test always runs.
+- **listings:** the folders a test listed with `fs.list`, each with its glob (`KstyleUI_*`, `Tools/render/scenes/gallery_*.lua`). A name that appears or disappears in the folder selects the test: an added or deleted file there, or a file in a new or removed subfolder whose name the glob matches.
+- **names:** the patterns a test passed to `fs.tracked` (`git ls-files`). An added or deleted file that matches selects the test.
 
 Each record carries a hash of its test file, so a record made from another version of the test (another worktree changed it) does not count and the test runs. The records live in `~/.cache/kstyleui/regression-deps.json` (`KSTYLEUI_DEPS_CACHE` moves it), shared by every worktree of the Mac, outside the repository so branches never conflict on it. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete the file to rebuild every record; the next `--affected` run then runs and traces every test file.
 
 The choice is conservative in these cases:
 
 - A test file with no record runs.
-- Every file runs when a changed file is one of `SHARED_PATHS` in `affected.py` (the runner, `trace.lua`, `stubs/`, the `*_env.lua` helpers, `load_files.lua`, `toc_files.lua`, `.luacheckrc`), or when 10 or more test files, and at least half of them, load the changed file. In practice a change under `Core/` runs everything.
+- Every file runs when a changed file is one of `SHARED_PATHS` in `affected.py` (the runner, `trace.lua`, `fs.lua`, `stubs/`, the `*_env.lua` helpers, `load_files.lua`, `toc_files.lua`, `.luacheckrc`), or when 10 or more test files, and at least half of them, load the changed file. In practice a change under `Core/` runs everything.
 - The source guards in `GUARDS` (the scanners and loaders that read the whole tree) run on every affected run, even when nothing they read changed.
 - A module's own TOC or XML only lists that module's files, so a change to `KstyleUI_<Module>/*.toc` or `*.xml` selects the tests that load that module's Lua files, not every test that walks the TOCs.
 
-What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository, such as the Blizzard UI source. CI runs every file, so a miss here is caught there, and the run says so on its last line.
+What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository; no test reads one. CI runs every file, so a miss here is caught there, and the run says so on its last line.
 
 It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac). The full run asks for all the CPUs, and the worker slots below hold it to their count.
 
@@ -277,7 +276,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 The paths run as four test files so each stays well inside its 20 s budget while run-all runs 18 files at once: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, `test-perf-frames.lua` the nameplate and unit frame files, `test-perf-skins.lua` the quest card's, and `test-perf-hud.lua` the data bars' and the minimap's. `perf_runner.lua` holds the lists (`GROUPS`) and fails every file when a `perf/` file sits in no group, or in two. A slow path can lower `calls` (the quest card's use 100) so its allocation trace, about fifty times a plain call, stays inside the file's time.
 
-A path that fails on time alone (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average, so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
+A path that fails on time alone (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average (`KSTYLEUI_LOAD`, which the runner sets; without it the load is unknown and not printed), so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
 
 Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode:
 

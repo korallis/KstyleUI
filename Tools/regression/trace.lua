@@ -1,4 +1,4 @@
--- trace.lua: with KSTYLEUI_TRACE set, record each file a test opens to read and each shell command it runs; run_all.py --affected reads the record.
+-- trace.lua: with KSTYLEUI_TRACE set, record each file a test opens to read and each folder or tracked-file pattern fs.lua lists; run_all.py --affected reads the record.
 -- run_all.py loads it before the test through LUA_INIT; it changes no result a test sees.
 local path = os.getenv("KSTYLEUI_TRACE")
 if not path or path == "" then
@@ -46,9 +46,4 @@ end)
 wrap(_G, "loadfile", function(file)
 	note("f", file)
 end)
-wrap(io, "popen", function(command)
-	note("c", command)
-end)
-wrap(os, "execute", function(command)
-	note("c", command)
-end)
+package.loaded["kstyleui.trace"] = note
