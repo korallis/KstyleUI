@@ -127,13 +127,13 @@ class CheckPackageTest(unittest.TestCase):
         self.assertFails(self.run_check(), "Other/")
 
     def test_dev_folders_fail(self):
-        for folder in ("Tools", "docs", "research_notes", "reports", ".github"):
+        for folder in ("Tools", "docs", "research_notes", "reports", "scripts", "verify", ".github"):
             with self.subTest(folder=folder):
                 self.make_zip(GOOD + [f"KstyleUI/{folder}/x.txt"])
                 self.assertFails(self.run_check(), f"KstyleUI/{folder}/x.txt")
 
     def test_dev_files_fail(self):
-        for name in (".luacheckrc", ".pre-commit-config.yaml", ".pkgmeta", "AGENTS.md"):
+        for name in (".luacheckrc", ".pre-commit-config.yaml", ".pkgmeta", "AGENTS.md", "CLAUDE.md"):
             with self.subTest(name=name):
                 self.make_zip(GOOD + [f"KstyleUI/{name}"])
                 self.assertFails(self.run_check(), f"KstyleUI/{name}")

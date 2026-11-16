@@ -15,6 +15,9 @@ ignore:
   - .luacheckrc
   - .pre-commit-config.yaml
   - AGENTS.md
+  - CLAUDE.md
+  - scripts
+  - verify
   - README.md
   - KstyleUI_*/README.md
 

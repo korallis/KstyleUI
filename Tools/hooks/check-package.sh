@@ -82,9 +82,9 @@ problems=$(
 		{
 			n = split($0, parts, "/")
 			for (i = 2; i < n; i++) {
-				if (parts[i] ~ /^(Tools|docs|research_notes|reports|\.github)$/) { print "development folder: " $0; next }
+				if (parts[i] ~ /^(Tools|docs|research_notes|reports|scripts|verify|\.github)$/) { print "development folder: " $0; next }
 			}
-			if (parts[n] ~ /^(\.luacheckrc|\.pre-commit-config\.yaml|\.pkgmeta|AGENTS\.md)$/) print "development file: " $0
+			if (parts[n] ~ /^(\.luacheckrc|\.pre-commit-config\.yaml|\.pkgmeta|AGENTS\.md|CLAUDE\.md)$/) print "development file: " $0
 		}
 	'
 )
