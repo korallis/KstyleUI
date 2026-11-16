@@ -200,6 +200,12 @@ end
 
 local function Overflow(holder, frame)
 	local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
+	local cl, cr, ct, cb = Bounds(frame)
+	local root = Edge(K.Scale.Root():GetEffectiveScale())
+	if cl and Known(root) then
+		l, r = math.min(l or cl / root, cl / root), math.max(r or cr / root, cr / root)
+		t, b = math.max(t or ct / root, ct / root), math.min(b or cb / root, cb / root)
+	end
 	local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
 	if not (l and hl and hr and ht and hb and Known(f)) then
 		return nil
@@ -463,7 +469,7 @@ end
 function Preview.Create(parent)
 	local pane = Widgets.Panel(parent, { shape = "tile", fill = "buttonFill", shadow = false })
 	pane.caption = Widgets.SectionCap(pane, { text = L["Live preview"] })
-	pane.holder = CreateFrame("Frame", nil, pane)
+	pane.holder = Widgets.MarkPreview(CreateFrame("Frame", nil, pane))
 	pane.holder:SetClipsChildren(true)
 	pane.built = {}
 	pane.held = {}

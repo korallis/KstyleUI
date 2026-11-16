@@ -98,6 +98,17 @@ function MAKERS.slider(row)
 			Apply(row, value, control)
 		end,
 	})
+	local restyle = slider.Restyle
+	function slider:Restyle()
+		restyle(self)
+		local above = max(0, Widgets.LineHeight(self.readout) - Tokens.Size("body"))
+		local below = max(0, max(Widgets.LineHeight(self.minText), Widgets.LineHeight(self.maxText)) - Tokens.Size("caption"))
+		local point, relative, anchor, x, y = self.trackBox:GetPoint(1)
+		self.trackBox:ClearAllPoints()
+		Widgets.Point(self.trackBox, point, relative, anchor, x, y - Snap(self, above))
+		Widgets.Size(self, Rows.CONTROL_WIDTH, self:GetHeight() + above + below + Widgets.Border(self))
+	end
+	slider:Restyle()
 	slider:HookScript("OnMouseUp", function()
 		Flush(row)
 	end)

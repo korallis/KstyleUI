@@ -20,7 +20,7 @@ for _, scale in ipairs({ 1, 0.65 }) do
 		local _, hy = Scene.Rect(env, row.help)
 		for _, text in ipairs({ slider.readout, slider.minText, slider.maxText }) do
 			local _, y, _, h = Scene.Rect(env, text)
-			assert(y >= sy - 0.01 and y + h <= sy + sh + 0.01, "size the options slider for its actual fonts: " .. text:GetText() .. " escapes the control at scale " .. scale)
+			assert(y >= sy - 0.01 and y + h <= sy + sh + 0.01, string.format("size the options slider for its actual fonts: %s at %.2f..%.2f escapes %.2f..%.2f at scale %.2f", text:GetText(), y, y + h, sy, sy + sh, scale))
 			assert(y + h <= hy + 0.01, "reserve slider endpoints above the description at scale " .. scale)
 		end
 	end
