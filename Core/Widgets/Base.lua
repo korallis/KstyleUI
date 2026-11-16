@@ -859,17 +859,18 @@ local function Record(region)
 end
 
 local Reown, Refollow
+local followed, following = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
 local TEXT_CHANGES = { "SetText", "SetFormattedText", "SetFont", "SetFontObject", "SetWidth" }
 
 local function HookText(text)
-	if text.kstyleTextFollowed or type(text.IsObjectType) ~= "function" then
+	if followed[text] or type(text.IsObjectType) ~= "function" then
 		return
 	end
 	local isText = text:IsObjectType("FontString")
 	if IsSecret(isText) or isText ~= true then
 		return
 	end
-	text.kstyleTextFollowed = true
+	followed[text] = true
 	for _, method in ipairs(TEXT_CHANGES) do
 		hooksecurefunc(text, method, function(self)
 			Refollow(self)
@@ -878,8 +879,8 @@ local function HookText(text)
 end
 
 local function HookFollow(frame)
-	if dependents[frame] and not frame.kstyleFollowed and type(frame.HookScript) == "function" and IsFrame(frame) then
-		frame.kstyleFollowed = frame:HookScript("OnSizeChanged", Refollow) ~= false
+	if dependents[frame] and not followed[frame] and type(frame.HookScript) == "function" and IsFrame(frame) then
+		followed[frame] = frame:HookScript("OnSizeChanged", Refollow) ~= false
 	end
 end
 
@@ -1025,17 +1026,17 @@ end
 
 function Refollow(frame)
 	local set = dependents[frame]
-	if not set or frame.kstyleFollowing then
+	if not set or following[frame] then
 		return
 	end
-	frame.kstyleFollowing = true
+	following[frame] = true
 	for region in pairs(set) do
 		local record = helped[region]
 		if record then
 			pcall(Replay, region, record, frame)
 		end
 	end
-	frame.kstyleFollowing = false
+	following[frame] = nil
 end
 
 Widgets.Refollow = Refollow

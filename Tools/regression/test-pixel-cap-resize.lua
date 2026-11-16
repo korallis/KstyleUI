@@ -8,6 +8,10 @@ row:SetSize(100 * pixel, 20 * pixel)
 local gem = row:CreateTexture(nil, "OVERLAY")
 Widgets.Size(gem, 8 * pixel, 8 * pixel)
 local title = Widgets.Text(row, "caps")
+local original = {}
+for key in pairs(row) do
+	original[key] = true
+end
 Widgets.Point(gem, "LEFT", row, "LEFT")
 Widgets.Point(title, "LEFT", row, "LEFT")
 
@@ -21,6 +25,11 @@ for _, height in ipairs({ 21, 22, 23 }) do
 	local _, _, _, _, ty = title:GetPoint()
 	assert(Whole(height / 2 - gy / pixel - 4), "Widgets.Point must follow a raw row resize: put the cap gem back on whole pixels")
 	assert(Whole(height / 2 - ty / pixel), "Widgets.Point must follow a raw row resize: put the cap title back on whole pixels")
+end
+for key in pairs(row) do
+	if type(key) ~= "string" or key:sub(1, 1) ~= "_" then
+		assert(original[key], "Widgets.Point must keep follow state in private tables instead of writing onto a relative frame: " .. tostring(key))
+	end
 end
 
 title:SetPoint("LEFT", row, "LEFT", 0, pixel / 4)
