@@ -6,7 +6,8 @@ env.RunTimers()
 local hub = ns.Slab.hub
 assert(hub.shock:GetAlpha() == 0, "recoloring must not revive the dormant shock ring")
 assert(hub.flash:GetAlpha() == 0, "recoloring must not revive the dormant square flash")
-assert(hub.glyphs:GetAlpha() == 0.6, "glyph recoloring keeps its resting opacity")
+assert(math.abs(hub.glyphs:GetAlpha() - 0.35) < 1e-6, "glyph recoloring keeps the rune line's resting opacity")
+assert(math.abs(hub.runes:GetAlpha() - 0.25) < 1e-6, "rune recoloring keeps the turning runes' resting opacity")
 ns.Slab.Refresh()
 assert(hub.shock:GetAlpha() == 0 and hub.flash:GetAlpha() == 0, "refresh preserves dormant effects")
 for _, sweep in ipairs(ns.Slab.frame.sweeps) do
