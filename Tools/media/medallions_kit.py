@@ -693,6 +693,38 @@ def draw_ring(n, units, band):
     return _resolve(_ring_metal(e, cos_top, band, p), ((e >= 0) & (e < band)).astype(float), n, n)
 
 
+def draw_rune_rim(n):
+    import numpy as np
+    p = _Palette()
+    x, y, r, e, cos_top = _polar(n, RING_UNITS)
+    angle = np.arctan2(x - n / 2, n / 2 - y)
+    step = 2 * np.pi / 20
+    sector = np.floor(angle / step + 0.5)
+    gx = (angle - sector * step) * r / (n / RING_UNITS)
+    gy = e - 4.3
+
+    def strokes(offset):
+        distance = np.full(e.shape, np.inf)
+        variant = sector.astype(int) % 4
+        for ax, ay, bx, by, kinds in (
+            (0, -1.8, 0, 1.8, (0, 1, 2, 3)),
+            (0, -1.5, 1.7, -0.1, (0, 1)),
+            (0, 0.1, -1.7, 1.5, (0, 2)),
+            (-1.7, -1.2, 0, 0.2, (1, 3)),
+            (0, 0.2, 1.7, 1.5, (2, 3)),
+        ):
+            dx, dy = bx - ax, by - ay
+            t = np.clip(((gx - ax) * dx + (gy - offset - ay) * dy) / (dx * dx + dy * dy), 0, 1)
+            d = np.hypot(gx - ax - t * dx, gy - offset - ay - t * dy)
+            distance = np.minimum(distance, np.where(np.isin(variant, kinds), d, np.inf))
+        return distance < 0.45
+
+    rgb = _ring_metal(e, cos_top, RING_BAND, p)
+    rgb = _mix(rgb, p.GunLit, strokes(0.65) * (0.65 + 0.25 * cos_top))
+    rgb = _mix(rgb, p.Outline, strokes(0) * 0.9)
+    return _resolve(rgb, ((e >= 0) & (e < RING_BAND)).astype(float), n, n)
+
+
 def draw_accent(n, units, start, width=ACCENT):
     import numpy as np
     _, _, _, e, _ = _polar(n, units)
@@ -868,8 +900,8 @@ CHROME = [
     Chrome("SlotChecked", 64, 64, lambda: draw_slot_light(64, True),
            "Action slot, checked or proc: a 2-unit white border on the opening's edge and a 0.35 glow fading in over 2 more. White for ADD, tinted by the accent or the class glow.",
            "medSlotChecked", blend="ADD", dark=False),
-    Chrome("Ring128", 128, 128, lambda: draw_ring(128, RING_UNITS, RING_BAND),
-           "Medallion ring at 86 units: an 8-unit band (a 1-unit black outline, gunmetal from medGunDark to medGunLit lit from 12 o'clock with its bevel peaking 40% in, a medGunHair hairline on its outer unit, and a 1-unit black inner line), centre clear from 81.4% of the width.",
+    Chrome("Ring128", 256, 256, lambda: draw_rune_rim(256),
+           "Engraved medallion rim at 86 units: the 8-unit gunmetal band carries 20 original angular glyphs cut at 0.9 units with a 0.65-unit bevel lip, lit from above in medGunLit over medOutline cuts. Centre clear from 81.4%; 256 texels for Retina and 5120x1440. The legacy Ring128 filename and medRing registration serve player, target, pet, focus and party alike.",
            "medRing"),
     Chrome("Enamel128", 128, 128, lambda: draw_accent(128, RING_UNITS, RING_BAND),
            "The medallion's accent line: white, 1.5 units wide just inside Ring128's band, tinted by class or reaction colour.",
