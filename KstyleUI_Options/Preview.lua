@@ -204,11 +204,13 @@ local function Overflow(holder, frame)
 	if l then
 		l, r, t, b = l - margin, r + margin, t + margin, b - margin
 	end
-	local cl, cr, ct, cb = Bounds(frame)
-	local root = Edge(K.Scale.Root():GetEffectiveScale())
-	if cl and Known(root) then
-		l, r = math.min(l or cl / root, cl / root), math.max(r or cr / root, cr / root)
-		t, b = math.max(t or ct / root, ct / root), math.min(b or cb / root, cb / root)
+	if frame.Reserve then
+		local cl, cr, ct, cb = Bounds(frame)
+		local root = Edge(K.Scale.Root():GetEffectiveScale())
+		if cl and Known(root) then
+			l, r = math.min(l or cl / root, cl / root), math.max(r or cr / root, cr / root)
+			t, b = math.max(t or ct / root, ct / root), math.min(b or cb / root, cb / root)
+		end
 	end
 	local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
 	if not (l and hl and hr and ht and hb and Known(f)) then

@@ -100,9 +100,13 @@ function MAKERS.slider(row)
 	})
 	local restyle = slider.Restyle
 	function slider:Restyle()
-		Widgets.StyleText(self.readout)
-		Widgets.StyleText(self.minText)
-		Widgets.StyleText(self.maxText)
+		local scale = Widgets.ScaleFactor(self)
+		if self.fontScale ~= scale then
+			Widgets.StyleText(self.readout)
+			Widgets.StyleText(self.minText)
+			Widgets.StyleText(self.maxText)
+			self.fontScale = scale
+		end
 		restyle(self)
 		local above = max(0, Widgets.LineHeight(self.readout) - Tokens.Size("body"))
 		local below = max(0, max(Widgets.LineHeight(self.minText), Widgets.LineHeight(self.maxText)) - Tokens.Size("caption"))
