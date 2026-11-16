@@ -382,7 +382,7 @@ def main(argv):
 
     tests, weights = every, load_weights()
     if args.slice:
-        tests = shard(tests, *args.slice, weights)
+        tests = shard(tests, args.slice[1] + 1 - args.slice[0], args.slice[1], weights)
         print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
     locale_lines, locale_ok = [], True
     if args.affected:

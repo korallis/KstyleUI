@@ -4,8 +4,10 @@ The runner only runs "<interpreter> <file>"; Python fixtures exercise the same c
 """
 
 import json
+import contextlib
 import ctypes
 import errno
+import io
 import os
 import re
 import shutil
@@ -130,6 +132,23 @@ class PortableRunnerTest(unittest.TestCase):
             with mock.patch.dict(os.environ, LUA=override), mock.patch.object(self.runner.subprocess, "run") as probe:
                 self.assertFalse(self.runner.budgeted(["lua"]))
                 probe.assert_not_called()
+
+    def test_main_applies_cpu_verdict_and_prints_cpu_margins(self):
+        for cpu, wall, expected in ((17, 90, 0), (21, 21, 1)):
+            result = dict(cpu=cpu, seconds=wall, mb=100, ok=True, stopped=False, load=None, others=0)
+            output = io.StringIO()
+            with mock.patch.dict(os.environ, {}, clear=True), \
+                    mock.patch.object(self.runner, "interpreter", return_value=(["lua"], "lua")), \
+                    mock.patch.object(self.runner, "budgeted", return_value=True), \
+                    mock.patch.object(self.runner, "make_slots", return_value=(None, "slots off")), \
+                    mock.patch.object(Path, "glob", return_value=[Path("test-measured.lua")]), \
+                    mock.patch.object(self.runner, "run_one", return_value=result) as run, \
+                    contextlib.redirect_stdout(output):
+                self.assertEqual(self.runner.main(["--margins"]), expected)
+            self.assertEqual(run.call_args.args[3], 120)
+            self.assertIn(f"{cpu} CPU s", output.getvalue())
+            self.assertIn("budget 20 CPU s", output.getvalue())
+            self.assertIn(f"failed {expected}", output.getvalue())
 
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform
