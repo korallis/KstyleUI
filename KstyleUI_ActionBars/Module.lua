@@ -311,6 +311,7 @@ local function OnForms()
 		ns.ApplyBindings()
 	end
 	UpdateStances()
+	ns.Vehicle.Update()
 end
 
 local function OnForm()
@@ -354,6 +355,7 @@ local function OnLayout(_, key)
 		local bar = ns.bars[def.key]
 		if bar and def.element == key then
 			bar:Apply()
+			ns.Vehicle.Update()
 		end
 	end
 end

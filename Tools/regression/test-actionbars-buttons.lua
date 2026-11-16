@@ -518,7 +518,7 @@ end
 
 -- The leave-vehicle button replaces Blizzard's, which hides with the main bar.
 do
-	local env, _, ns = new({
+	local env, K, ns = new({
 		setup = function(e)
 			e._exits = 0
 			e.CanExitVehicle = function()
@@ -534,7 +534,8 @@ do
 	})
 	local leave = ns.leaveButton
 	assert(leave and not leave:IsShown(), "hidden while there is no vehicle")
-	assert(leave:GetParent() == ns.bars.bar1.holder, "it sits in bar 1's element, so it follows bar 1's Layout scale, opacity and shown rule")
+	assert(leave:GetParent() == K.Scale.Root(), "the leave button stands outside the tray card's content")
+	assert(near(leave:GetScale(), ns.bars.bar1.holder:GetScale()), "the leave button follows bar 1's Layout scale")
 	local slot = ns.bars.bar1.buttons[1]
 	assert(leave.well and leave.bevelTop and leave.bevelBottom and leave.innerLine, "the leave button is an action slot: its well, bevel and inner line (KSTY-60 item 26: it was a flat steel-blue tile)")
 	assert(leave.opts.fill == slot.opts.fill and leave.rimToken == slot.rimToken and leave.opts.primary == slot.opts.primary, "with bar 1's slot fill and rim")

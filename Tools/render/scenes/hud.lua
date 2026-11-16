@@ -531,6 +531,10 @@ function modules.actionbars(opts)
 		saved = saved(opts, "ActionBars"),
 		setup = function(env)
 			shared(env, opts)
+			if opts.vehicle then
+				env.UnitHasVehicleUI = function() return true end
+				env.CanExitVehicle = function() return true end
+			end
 			local keys = opts.keys or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=" }
 			local keys2 = opts.keys2 or { "Q", "W", "E", "R", "T", "Y", "V", "I", "O", "P", "L", "1" }
 			for i = 1, 12 do
@@ -591,6 +595,14 @@ function modules.actionbars(opts)
 	-- opts.slots ({ [action slot] = icon }) fills further slots: the right-hand columns are bars 4 and 5, slots 25 to 48.
 	for slot, icon in pairs(opts.slots or {}) do
 		env._game.slots[slot] = { texture = icon, type = "spell", id = 3000 + slot }
+	end
+	if opts.vehicle then
+		env._game.vehicle = 12
+		for i = 1, 12 do
+			env._game.slots[132 + i] = env._game.slots[i]
+		end
+		env.RunStateDrivers()
+		env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
 	end
 	-- States: slot 3 on an 8 s cooldown with 4 s left, slot 7 procs, slot 6 disabled, slot 2 pressed (for the
 	-- warrior: Charge, Overpower, Execute and Slam). opts.barStates == false leaves every button at rest.
