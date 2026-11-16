@@ -147,6 +147,21 @@ function Common.ForceScreen(env)
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
 	env._size = Common.SCREEN.size or "default"
 	env._fitScale = true
+	if env._size == "auto" then
+		local fire = env.FireEvent
+		env.FireEvent = function(...)
+			local K = env.KstyleUI
+			if K and K.Setup and K.Setup.Layouts then
+				local layouts = K.Setup.Layouts
+				local limit = layouts.ScaleLimit
+				layouts.ScaleLimit = function(w, h, preset, _, hudStyle)
+					return limit(w, h, preset, nil, hudStyle)
+				end
+				env.FireEvent = fire
+			end
+			return fire(...)
+		end
+	end
 	env.GetPhysicalScreenSize = function()
 		return width, height
 	end

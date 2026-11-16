@@ -31,6 +31,9 @@
 	}
 
 	function url(base, file) {
+		if (/^[a-z]:[\\/]/i.test(file)) {
+			return "file:///" + file.replace(/\\/g, "/");
+		}
 		if (/^(file|https?|data):/.test(file) || file.startsWith("/")) {
 			return file.startsWith("/") ? "file://" + file : file;
 		}

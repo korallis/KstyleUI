@@ -66,6 +66,15 @@ end
 
 -- Build(env, opts) -> Scene.Build with the icon folders, unless opts names its own.
 function Gallery.Build(env, opts)
+	for _, container in ipairs(env._containers or {}) do
+		for _, group in pairs(container._groups) do
+			for _, button in ipairs(group.buttons) do
+				if #button._points == 0 then
+					button:Hide()
+				end
+			end
+		end
+	end
 	opts = opts or {}
 	if opts.iconDirs == nil then
 		opts.iconDirs = Common.IconDirs()

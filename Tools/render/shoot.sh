@@ -100,7 +100,18 @@ for line in scene.get("log", []):
     print("  log: " + line)
 PY
 verdict() {
-	"$lua" Tools/render/guard.lua "$scene" "$raw" "$guard" "$@"
+	local status=0
+	"$lua" Tools/render/guard.lua "$scene" "$raw" "$guard" "$@" || status=$?
+	if [ "$guard" = strict ]; then
+		python3 - "$json" <<'PY' || status=$?
+import json, sys
+missing = [line for line in json.load(open(sys.argv[1])).get("log", []) if "grey box" in line]
+for line in missing:
+    print("guard: " + line, file=sys.stderr)
+sys.exit(3 if missing else 0)
+PY
+	fi
+	return "$status"
 }
 if [ "$json_only" = 1 ]; then
 	verdict json-only
