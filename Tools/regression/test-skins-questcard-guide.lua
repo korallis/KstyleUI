@@ -1,26 +1,24 @@
 -- test-skins-questcard-guide.lua: the open Medallions guide keeps quest rows through combat updates and unavailable titles.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 
-for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, height = 2234 } }) do
+for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, height = 2234 }, { width = 1920, height = 1080 } }) do
 	for _, item in ipairs({ false, true }) do
 		local R = Boot(screen, item)
 		local env, K, ns, rxp = R.env, R.K, R.ns, R.rxp
 		local function Check()
 			assert(rxp.RXPFrame:IsShown() and ns.RestedXP.Rail.Placed(), "the guide is open on its rail")
 			assert(ns.QuestData.Count() == 8 and ns.Quests.Rows()[1]:IsVisible(), "combat guide updates keep all tracked quests and a visible first row")
+			assert(ns.Quests.Rows()[1].lines[1].count:IsVisible(), "the quest title keeps its objective progress beside the guide")
 			assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 		end
 		Check()
-		local progressShown = ns.Quests.Rows()[1].lines[1].count:IsShown()
 		env.SetCombat(true)
 		R.quests[1].objectives[1].text = "Putrid Claw: 1/7"
 		rxp.SetStep(6, 6)
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		Check()
-		if progressShown then
-			assert(ns.Quests.Rows()[1].lines[1].count:GetText() == "1/7", "public progress still repaints in combat")
-		end
+		assert(ns.Quests.Rows()[1].lines[1].count:GetText() == "1/7", "public progress still repaints in combat")
 		env.RestrictAnchoring(rxp.RXPFrame)
 		rxp.SetStep(6, 6)
 		R.log.Fire("QUEST_LOG_UPDATE")
@@ -71,7 +69,7 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		assert(ns.QuestData.Count() == 7, "combat end drops the untracked quest without another quest event")
 		local row = ns.Quests.Rows()[1]
 		assert(row:IsVisible() and row.title:GetText() == "[6] A Putrid Task after combat", "combat end repaints the retained quest title")
-		if progressShown then assert(row.lines[1].count:GetText() == "6/7", "combat end repaints quest progress") end
+		assert(row.lines[1].count:GetText() == "6/7", "combat end repaints quest progress")
 		R.log.quests = {}
 		R.log.Fire("QUEST_WATCH_LIST_CHANGED")
 		R.settle()

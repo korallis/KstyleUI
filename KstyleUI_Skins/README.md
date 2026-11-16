@@ -241,6 +241,8 @@ Render: `Tools/render/shoot.sh tracker` builds the tracker the way Forever does 
 
 ### Quest card (`Quests/`, key `quests`)
 
+When the slot cannot hold a complete quest row under the section cap, the card switches to one quest per page. It folds the cap and uses four-unit top and bottom padding, keeping the title, objectives and scroll hint together without taking space from the open guide or the rail's action bars. The ordinary cap and padding return when every individual quest fits with them; secure item buttons keep the same combat lock and cached quests retain their per-quest progress.
+
 **Count edge and hover rail (LEE-103).** Objective counts without an item socket use the viewport's normal right content edge, inset by one snapped root unit to match the picture's ink. The objective measurement width keeps its existing gutter, so moving the counts does not change line wrapping or card height. The hover scrollbar sits in the existing outer padding, five units beyond the viewport, on an unclipped sibling frame; it never covers the counts and hover changes alpha only. Item-bearing quests keep their count to the left of the item socket. There is no saved geometry change.
 
 The owner's first in-game test showed seven tracked quests in Blizzard's tracker running down into the chat card. Blizzard's tracker cannot help: its Edit Mode height runs from 400 to 1000 units (`Blizzard_EditMode/Shared/EditModeSettingDisplayInfo.lua`), more than the story slot's tracker half, and it never scrolls; it hides what does not fit (`Blizzard_ObjectiveTrackerContainer.lua`, `GetAvailableHeight`). The quest card replaces its quest list in the story slot.

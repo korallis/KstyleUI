@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view, never taller than the card's Layout element, of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time (a quest too tall for the card shows the objectives that fit and the more line counts the rest), a more line that always says how many quests wait (the Captain's ruling on KSTY-33: a hidden overflow line hid content from the owner), and a slim scroll bar that rests unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: quest rows, compact single-quest pages, scroll hints and combat-safe item overlays.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,6 +16,7 @@ local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
 local MORE_SCALE = 0.85
+local COMPACT_PAD = 4
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
@@ -502,8 +503,8 @@ function Card.Render()
 	for i = 1, total do
 		heights[i] = Height(Data.Get(i))
 	end
-	local top = Snap(HEAD)
-	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot() + (over and MoreRow() or 0)
+	local top, capHeight, capGap, foot = Snap(HEAD), Snap(CAP_ROW), Snap(CAP_GAP), Foot()
+	local chrome = top + capHeight + capGap + foot + (over and MoreRow() or 0)
 	local room = math.max(0, maxHeight - chrome)
 	if not over and not Fits(Window(total, n, gap), room) then
 		over = true
@@ -515,6 +516,18 @@ function Card.Render()
 		end
 		room = math.max(0, maxHeight - chrome)
 	end
+	local compact = not Fits(Window(total, 1, gap), room)
+	if compact then
+		n = 1
+		top, foot = Snap(COMPACT_PAD), Snap(COMPACT_PAD)
+		capHeight, capGap = 0, 0
+		chrome = top + foot + (over and MoreRow() - Snap(ROW_GAP - COMPACT_PAD) or 0)
+		room = math.max(0, maxHeight - chrome)
+	end
+	cap.row:SetShown(not compact)
+	more:ClearAllPoints()
+	Widgets.Point(more, "TOP", view, "BOTTOM", 0, -Snap(compact and COMPACT_PAD or ROW_GAP))
+	Widgets.Point(more, "BOTTOM", card, "BOTTOM", 0, foot)
 	local viewHeight = Snap(math.min(Window(total, n, gap), room))
 	local fit = FitFromEnd(total, n, viewHeight, gap)
 	offset = math.max(1, math.min(offset, total - fit + 1))
@@ -537,10 +550,10 @@ function Card.Render()
 	cap.row:ClearAllPoints()
 	Widgets.Point(cap.row, "TOPLEFT", card, "TOPLEFT", 0, -top)
 	Widgets.Point(cap.row, "TOPRIGHT", card, "TOPRIGHT", 0, -top)
-	cap.row:SetHeight(Snap(CAP_ROW))
+	cap.row:SetHeight(capHeight)
 	view:ClearAllPoints()
-	Widgets.Point(view, "TOPLEFT", card, "TOPLEFT", inset, -(top + Snap(CAP_ROW) + Snap(CAP_GAP)))
-	Widgets.Point(view, "TOPRIGHT", card, "TOPRIGHT", -inset, -(top + Snap(CAP_ROW) + Snap(CAP_GAP)))
+	Widgets.Point(view, "TOPLEFT", card, "TOPLEFT", inset, -(top + capHeight + capGap))
+	Widgets.Point(view, "TOPRIGHT", card, "TOPRIGHT", -inset, -(top + capHeight + capGap))
 	view:SetHeight(viewHeight)
 	Bar(total, offset, k, viewHeight)
 	local above, below = offset - 1, total - (offset + k - 1)
@@ -672,9 +685,6 @@ local function Restyle()
 	lead = pitch - natural
 	ruler:SetSpacing(lead)
 	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
-	more:ClearAllPoints()
-	Widgets.Point(more, "TOP", view, "BOTTOM", 0, -Snap(ROW_GAP))
-	Widgets.Point(more, "BOTTOM", card, "BOTTOM", 0, Foot())
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
 	track:SetWidth(Snap(BAR_WIDTH))

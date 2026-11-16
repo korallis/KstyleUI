@@ -8,6 +8,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		R.K.Options.Write("HudStyle", "style", style)
 		R.settle()
 		local ns, env, K = R.ns, R.env, R.K
+		local hiddenSteps = ns.RestedXP.Rail.Hidden()
 		local seen = {}
 		for _ = 1, 8 do
 			local view = assert(Geometry.ScaledRect(ns.Quests.Parts().view, env.UIParent, K.Scale.Root()))
@@ -34,7 +35,16 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 			card:GetScript("OnMouseWheel")(card, -1)
 		end
 		for _, quest in ipairs(R.quests) do assert(seen[quest.id], "the wheel reaches every tracked quest") end
-		assert(R.rxp.RXPFrame:IsShown() and ns.RestedXP.Rail.Hidden() == 0, "the guide keeps its complete current step")
+		ns.QuestCard.Scroll(-99)
+		R.quests[1].objectives[1].text = "Obtain Enchanted Gyrozephyr from the northern shore of Windsong Lake and return to the camp: 0/7"
+		R.log.Fire("QUEST_LOG_UPDATE")
+		R.settle()
+		local first = ns.Quests.Rows()[1].lines[1]
+		assert(first.text:IsVisible() and first.count:IsVisible(), "a three-line first objective keeps its progress beside its title")
+		local rect = assert(Geometry.ScaledRect(first.text, env.UIParent, K.Scale.Root()))
+		local view = assert(Geometry.ScaledRect(ns.Quests.Parts().view, env.UIParent, K.Scale.Root()))
+		assert(rect.bottom >= view.bottom - K.Scale.Pixel(1), "the complete wrapped first objective fits in the view")
+		assert(R.rxp.RXPFrame:IsShown() and ns.RestedXP.Rail.Hidden() == hiddenSteps, "scrolling quests preserves the guide's visible steps")
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 		print(style .. " " .. screen.width .. "x" .. screen.height .. ": all quest objectives visible through the wheel")
 	end
