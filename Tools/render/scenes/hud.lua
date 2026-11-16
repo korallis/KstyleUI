@@ -623,7 +623,7 @@ function modules.actionbars(opts)
 	AB.W.Settle(env)
 	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
 	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
-	-- (entering combat 0.3 s ago: the wings out and the sweep halfway), proc (a fresh proc on bar 1's slot 12, beside the hub,
+	-- (entering combat 0.3 s ago: the shockwave and the sweep halfway), proc (a fresh proc on bar 1's slot 12, beside the hub,
 	-- or the nearest filled slot before it, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
 	local slabState = os.getenv("RENDER_MEDALLIONS_STATE")
 	if slabState and slabState ~= "" then

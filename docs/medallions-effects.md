@@ -21,12 +21,12 @@ General > Medallions > Medallions motion is Full (the default), Calm or Off, sav
 | Kind | Full | Calm | Off | What it covers |
 | --- | --- | --- | --- | --- |
 | `ambient` | yes | yes | no | The hub's rune turn, breathing glow and sheen; the portrait sheen |
-| `flare` | yes | yes | no | One-shot 2D effects: flip-in, wings, combat sweep, proc start, hub pulse, level-up burst, ready flash, cast flash, bracket glow fade-in |
+| `flare` | yes | yes | no | One-shot 2D effects: flip-in, combat sweep, proc start, hub pulse, level-up burst, ready flash, cast flash, bracket glow fade-in |
 | `pulse` | yes | no | no | Repeating event loops: the slot's proc flipbook, the low-health ring, the vignette's and cap ring's breathing, the bracket glow's breathing |
 | `particle` | yes | no | no | The hub's class particles |
 | `model` | yes | no | no | 3D models |
 
-At Off an effect's end state is applied at once (the wings out, the secondary frames dim), and a state such as the low-health ring, the vignette or the cap ring still shows, still.
+At Off an effect's end state is applied at once (the secondary frames dim), and a state such as the low-health ring, the vignette or the cap ring still shows, still.
 
 | Function | Behaviour |
 | --- | --- |
