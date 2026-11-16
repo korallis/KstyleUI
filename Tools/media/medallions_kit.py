@@ -580,7 +580,7 @@ RING_UNITS, RING_BAND, ACCENT = 86, 8, 1.5  # the medallion: Ring128 and Enamel1
 HUB_UNITS, HUB_BAND = 150, 16  # the hub: Ring256 and Enamel256
 HUB_SOCKET_UNITS = HUB_UNITS - 2 * HUB_BAND
 SOCKET_UNITS, SOCKET_INSET, ICON_RADIUS = 42, 3, 2.5  # Slot: a 42-unit socket round a 36-unit icon
-MAP_OPENING, MAP_BAND, MAP_TICKS = 0.88, 14, 24  # MinimapRing: the map's share of the ring, the band in units
+MAP_OPENING, MAP_BAND, MAP_TICKS = 0.9189, 14, 24  # MinimapRing: the map's share of the ring, the band in units
 MAP_SHADOW_REACH, MAP_SHADOW_PEAK = 0.18, 0.67
 SLAB_DENSITY = 2
 SLAB_RIM = 2.5
@@ -901,7 +901,7 @@ CHROME = [
            "Level badge: a round 16-unit slab with a 1-unit black outline, a 2-unit rim ramp and the fill gradient, for the number.",
            "medLevelPlaque"),
     Chrome("MinimapRing", 512, 512, lambda: draw_minimap_ring(512),
-           "Round minimap bezel: the map fills 88% of the width; a 14-unit gunmetal band (outline, hairline, inner line) with 24 dark ticks, every sixth longer and in medGunLit, and an inner shadow over the map's outer 18% of radius up to 0.67 black.",
+           "Round minimap bezel: the map fills 91.89% of the width, as Face.lua sizes it; a 14-unit gunmetal band (outline, hairline, inner line) with 24 dark ticks, every sixth longer and in medGunLit, and an inner shadow over the map's outer 18% of radius up to 0.67 black.",
            "medMinimapRing"),
     Chrome("TargetBrackets", 32, 32, lambda: draw_brackets(32),
            "A nameplate target tick, 8 units square: a medGunLit L, arms 4 units and 1 unit thick, in a 0.5-unit black outline, in the top-left corner. Flip the texture coordinates for the other corners.",
