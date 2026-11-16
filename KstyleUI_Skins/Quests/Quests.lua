@@ -16,6 +16,7 @@ local DEFAULT_SHOWN, MIN_SHOWN, MAX_SHOWN = 4, 1, 8
 local EVENTS = {
 	"QUEST_LOG_UPDATE", "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "QUEST_ACCEPTED", "QUEST_REMOVED",
 	"QUEST_TURNED_IN", "QUEST_AUTOCOMPLETE",
+	"QUEST_DATA_LOAD_RESULT",
 }
 
 local state = { on = false, active = false, dirty = false, built = false, queued = false, holder = nil, guide = nil, give = 0 }

@@ -8,7 +8,7 @@ local COUNT_LEAD = "^(%d+%s*/%s*%d+)%s+(.-)%s*$"
 local COUNT_TRAIL = "^(.-)%s*:?%s+(%d+%s*/%s*%d+)%s*$"
 local MAX_OBJECTIVES = 6
 
-local entries = {}
+local entries, previous = {}, {}
 local total = 0
 local watchIDs, watchTitles = {}, {}
 
@@ -44,13 +44,12 @@ function Data.Available()
 		and Fn(log, "GetQuestObjectives") and Fn(log, "IsComplete")
 end
 
-local function Entry(i)
-	local entry = entries[i]
-	if not entry then
-		entry = { objectives = {}, count = 0 }
-		entries[i] = entry
+local function Previous(id, count)
+	for i = 1, count do
+		if previous[i].id == id then
+			return previous[i]
+		end
 	end
-	return entry
 end
 
 local function Objective(entry, i)
@@ -126,15 +125,14 @@ local function Item(log, entry, id)
 	entry.item, entry.icon = link, icon
 end
 
-local function Read(log, i, id, title)
-	local entry = Entry(i)
+local function Read(log, entry, id, title)
 	entry.id = id
 	entry.title = Title(log, id, title)
 	entry.complete = Yes(log.IsComplete(id))
 	entry.failed = Fn(log, "IsFailed") and Yes(log.IsFailed(id)) or false
 	Objectives(log, entry, id)
 	Item(log, entry, id)
-	return true
+	return entry
 end
 
 local function SuperFirst(super)
@@ -162,29 +160,39 @@ function Data.Read()
 		Data.status = "watches-unavailable"
 		return total
 	end
-	local count = 0
+	local count, available, status = 0, 0, "ready"
 	for w = 1, watches do
 		local id = Number(log.GetQuestIDForQuestWatchIndex(w))
 		if not id or id <= 0 then
-			Data.status = "watch-id-unavailable"
-			return total
-		end
-		if not Skipped(log, id) then
+			status = "watch-id-unavailable"
+		elseif not Skipped(log, id) then
 			local title = Text(log.GetTitleForQuestID(id))
-			if not title then
-				Data.status = "title-unavailable"
-				return total
-			end
+			if title then available = available + 1 else status = "title-unavailable" end
 			count = count + 1
 			watchIDs[count], watchTitles[count] = id, title
 		end
 	end
+	Data.status = status
+	if count > 0 and available == 0 then
+		return total
+	end
+	local before = total
+	entries, previous = previous, entries
 	total = 0
 	Data.status = "reading"
 	for i = 1, count do
-		if Read(log, i, watchIDs[i], watchTitles[i]) then total = total + 1 end
+		local id, title = watchIDs[i], watchTitles[i]
+		local entry = Previous(id, before)
+		if title then
+			entry = Read(log, entry or { objectives = {} }, id, title)
+		end
+		if entry then
+			total = total + 1
+			entries[total] = entry
+		end
 	end
-	Data.status = "ready"
+	for i = #entries, total + 1, -1 do entries[i] = nil end
+	Data.status = status
 	local super = Fn(C_SuperTrack, "GetSuperTrackedQuestID") and Number(C_SuperTrack.GetSuperTrackedQuestID()) or 0
 	Data.super = super
 	if super > 0 then
