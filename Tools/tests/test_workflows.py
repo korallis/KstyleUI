@@ -127,13 +127,13 @@ class WorkflowsTest(unittest.TestCase):
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
 
-    def test_checks_has_the_suite_jobs_and_one_verdict(self):
+    def test_checks_runs_the_suite_jobs_without_dependencies_or_a_verdict(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
-        jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["pre-commit", "lua", "python-package", "verdict"])
-        verdict = text.split("\n  verdict:\n", 1)[1]
-        self.assertIn("needs: [pre-commit, lua, python-package]", verdict)
-        self.assertIn("if: ${{ !cancelled() && (" + FORK_GUARD + ") }}", verdict, "the verdict must report even when a job failed")
+        jobs = jobs_of(text)
+        self.assertEqual(set(jobs), {"lua", "python-package"})
+        self.assertIn("name: lint, python and package", jobs["python-package"])
+        for job, body in jobs.items():
+            self.assertNotRegex(body, r"(?m)^    needs:", job)
 
     def test_checks_runs_on_pull_request_opening_and_pushes_never_on_edits_or_labels(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
@@ -157,22 +157,40 @@ class WorkflowsTest(unittest.TestCase):
         self.assertNotRegex(text.replace("    if: " + FORK_GUARD + "\n", ""), r"(?m)^\s+if:")
         self.assertIn("TITLE: ${{ github.event.pull_request.title }}", text)
 
-    def test_pre_commit_decides_the_scope_and_every_suite_waits_for_it(self):
+    def test_each_suite_decides_its_own_scope(self):
         jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        self.assertIn("python3 Tools/hooks/ci_scope.py all", jobs["pre-commit"])
-        for area in ("lua", "python", "package"):
-            self.assertIn("{0}: ${{{{ steps.scope.outputs.{0} }}}}".format(area), jobs["pre-commit"])
-        self.assertIn("needs: pre-commit", jobs["lua"])
-        self.assertIn("needs: pre-commit", jobs["python-package"])
-        self.assertIn("needs.pre-commit.outputs.lua != 'false'", jobs["lua"])
-        for step, output in (("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
-            block = jobs["python-package"].split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
-            self.assertIn("if: needs.pre-commit.outputs.{0} != 'false'".format(output), block, step)
+        for job, mode in (("lua", "lua"), ("python-package", "all")):
+            self.assertIn("id: scope", jobs[job], job)
+            self.assertIn("python3 Tools/hooks/ci_scope.py " + mode, jobs[job], job)
+        self.assertIn("fetch-depth: 2", jobs["lua"])
+        for step in ("Check the runner's Lua is 5.1.5", "Lua regression tests, one slice of the files"):
+            block = jobs["lua"].split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("if: steps.scope.outputs.run != 'false'", block, step)
 
-    def test_a_suite_skipped_by_scope_still_passes_the_verdict_but_a_failed_pre_commit_does_not(self):
-        verdict = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["verdict"]
-        self.assertIn('[ "$PRE_COMMIT" = success ] || failed=1', verdict)
-        self.assertIn('[ "$result" = success ] || [ "$result" = skipped ] || failed=1', verdict)
+    def test_python_and_package_run_after_a_lint_failure_unless_cancelled_or_out_of_scope(self):
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        lint = job.index("run: bash scripts/gate.sh lint")
+        self.assertLess(job.index("python3 Tools/hooks/ci_scope.py all"), lint)
+        steps = job[lint:].split("\n      - ")[1:]
+        self.assertEqual(len(steps), 6)
+        for step in steps[:-1]:
+            self.assertRegex(step, r"if: \$\{\{ !cancelled\(\) && .*steps\.scope\.outputs\.", step)
+        for step, output in (("Check the runner's Python is 3.12", "python"), ("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
+            block = job.split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("if: ${{{{ !cancelled() && steps.scope.outputs.{0} != 'false' }}}}".format(output), block, step)
+        for command in ("bash scripts/gate.sh python", "BigWigsMods/packager@", "bash Tools/hooks/check-package.sh"):
+            self.assertGreater(job.index(command), lint)
+
+    def test_each_checks_job_annotates_a_failed_staging_push_as_its_last_step(self):
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        for job, body in jobs.items():
+            last_step = body.rsplit("\n      - ", 1)[1]
+            self.assertIn("if: failure() && github.event_name == 'push'", last_step, job)
+            self.assertIn("::error title=staging is red::The merged result of staging fails", last_step, job)
+
+    def test_checks_lua_shards_have_fifteen_minutes_to_finish(self):
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
+        self.assertRegex(job, r"(?m)^    timeout-minutes: 15$")
 
     def test_the_lua_matrix_matches_the_shard_count_the_runner_gets(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
@@ -193,10 +211,7 @@ class WorkflowsTest(unittest.TestCase):
                 self.assertIn("\n    " + RUNNERS + "\n", body, f"{path.name}: {job}")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
-                if job == "verdict":
-                    self.assertEqual(guard.group(1), "${{ !cancelled() && (" + FORK_GUARD + ") }}", f"{path.name}: {job}")
-                else:
-                    self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
+                self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():
@@ -207,8 +222,8 @@ class WorkflowsTest(unittest.TestCase):
 
     def test_the_runner_tools_are_checked_by_version(self):
         checks = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        self.assertIn("luacheck --version | grep '^Luacheck: 1\\.2\\.0$'", checks["pre-commit"])
-        self.assertIn("pre-commit --version | grep '^pre-commit 4\\.7\\.0$'", checks["pre-commit"])
+        self.assertIn("luacheck --version | grep '^Luacheck: 1\\.2\\.0$'", checks["python-package"])
+        self.assertIn("pre-commit --version | grep '^pre-commit 4\\.7\\.0$'", checks["python-package"])
         for job in ("lua", "python-package"):
             self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", checks[job], job)
         self.assertIn("python3 --version | grep '^Python 3\\.12\\.'", checks["python-package"])
