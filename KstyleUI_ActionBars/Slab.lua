@@ -805,10 +805,10 @@ function Slab.LevelUp(level)
 	end
 end
 
-local sides = {}
+local sides, SIDE_BARS = {}, { "pet", "stance" }
 
 function Slab.PlaceSides(on)
-	for _, key in ipairs({ "pet", "stance" }) do
+	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
 		if bar and on and not plate then
