@@ -369,7 +369,6 @@ local TEXTURES = {
 	medBurstShaman = { file = "Textures\\Medallions\\BurstShaman.png" },
 	medBurstWarlock = { file = "Textures\\Medallions\\BurstWarlock.png" },
 	medBurstWarrior = { file = "Textures\\Medallions\\BurstWarrior.png" },
-	medCardCorner = { file = "Textures\\Medallions\\CardCorner.png" },
 	medCardEdge = { file = "Textures\\Medallions\\CardEdge.png", slice = 16, density = 2 },
 	medCastShield = { file = "Textures\\Medallions\\CastShield.png" },
 	medCombatSweep = { file = "Textures\\Medallions\\CombatSweep.png" },

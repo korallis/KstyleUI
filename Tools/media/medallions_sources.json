@@ -521,16 +521,6 @@
   },
   "prompt": "Game interface effect for the leading edge of a status bar: one thin vertical line of brilliant white light, perfectly vertical and centred horizontally, tall, with a soft white glow on both sides that fades to black, both ends tapering. Pure white light only, no colour. Pure black background, made to be drawn with additive blending. No text, no letters, no icon, no border, no frame around the canvas."
  },
- "src88_tex_corner": {
-  "job_id": "a5065123-809c-4aa8-97f8-b3248d6aaa1e",
-  "model": "gpt_image_2_6",
-  "thread": "KSTY-88",
-  "settings": {
-   "quality": "high",
-   "resolution": "1k"
-  },
-  "prompt": "One ornamental corner bracket for a dark fantasy interface panel, isolated on a fully transparent background: an L-shaped piece of dark steel forming the top-left corner of a rectangular frame, its two arms running to the right and downward and tapering to fine points, with a small faceted diamond-shaped stud at the corner itself and a thin engraved filigree line along each arm. The corner sits in the top-left of the canvas with its arms reaching about 80 percent of the way across and down. Premium hand-painted fantasy game UI art, front view, rich but restrained materials: dark blued gunmetal steel with fine brushed grain, crisp bevelled edges catching a cool silver rim light from the upper left, deep recessed engraving, subtle wear. Near-black and gunmetal tones with silver highlights only, no other colour. Perfectly symmetrical where the shape allows. Clean crisp silhouette. No text, no letters, no numbers, no logos, no faces, no characters, no scenery."
- },
  "src88_tex_hub": {
   "job_id": "218ebe76-0073-44c1-a867-d3d8e0b442e1",
   "model": "gpt_image_2_6",
