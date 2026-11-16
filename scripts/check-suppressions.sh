@@ -56,6 +56,16 @@ new_entries() {
       let n = 0;
       for (const [k, c] of h) n += Math.max(0, c - (b.get(k) || 0));
       console.log(n);' "$1" "$2"
+  elif [[ "$3" == *.tsv ]]; then
+    awk -F '\t' '
+      BEGIN { OFS = FS }
+      /^[[:space:]]*(#|$)/ { next }
+      { count = $NF + 0; NF--; key = $0 }
+      FILENAME == ARGV[1] { before[key] = count; next }
+      !(key in before) { added += count ? count : 1; next }
+      count > before[key] { added += count - before[key] }
+      END { print added + 0 }
+    ' "$1" "$2"
   else
     sort "$1" | grep . > "$1.s" || true
     sort "$2" | grep . > "$2.s" || true

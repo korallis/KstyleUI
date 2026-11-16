@@ -202,7 +202,7 @@ def main(argv=None):
     # One group per line keeps the file small and its diffs readable.
     head = {key: value for key, value in data.items() if key != "icons"}
     text = json.dumps(head, ensure_ascii=False)[:-1] + ', "icons": [\n' + ",\n".join(json.dumps(g, ensure_ascii=False, separators=(",", ":")) for g in groups) + "\n]}\n"
-    args.out.write_text(text, encoding="utf-8")
+    args.out.write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {len(groups)} icon groups to {args.out}: " + ", ".join(f"{c} {counts.get(c, 0)}" for c in CATEGORIES))
     return 0
 

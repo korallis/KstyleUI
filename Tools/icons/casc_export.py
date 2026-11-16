@@ -75,7 +75,7 @@ def export_tables(build, wow_dir, out_dir, product, tacttool, dotnet, dbc2csv, t
     with tempfile.TemporaryDirectory(prefix="kstyleui-casc-") as temporary:
         work = Path(temporary)
         listfile = work / "tables.txt"
-        listfile.write_text("".join(f"dbfilesclient/{table.lower()}.db2\n" for table in tables), encoding="utf-8")
+        listfile.write_text("".join(f"dbfilesclient/{table.lower()}.db2\n" for table in tables), encoding="utf-8", newline="\n")
         extract = work / "extract"
         _run([tacttool, "-p", product, "-d", wow_dir, "-m", "list", "-i", listfile, "-o", extract], work)
 

@@ -430,7 +430,7 @@ def load_record(raw_dir, group):
 def save_record(raw_dir, record):
     path = Path(raw_dir) / f"{record['icon']}.json"
     fd, tmp = tempfile.mkstemp(dir=raw_dir, suffix=".tmp")
-    with os.fdopen(fd, "w") as handle:
+    with os.fdopen(fd, "w", newline="\n") as handle:
         json.dump(record, handle, indent=1)
     os.replace(tmp, path)
 
@@ -727,7 +727,7 @@ def reference_id(icon_set, work_dir):
     known = json.loads(cache.read_text()) if cache.exists() else {}
     if digest not in known:
         known[digest] = _higgsfield("upload", "create", str(path), "--json", timeout=300)["id"]
-        cache.write_text(json.dumps(known, indent=1))
+        cache.write_text(json.dumps(known, indent=1), newline="\n")
     return known[digest]
 
 
@@ -997,7 +997,7 @@ def package(icon_set, groups, raw_dir, repo=REPO, log=print):
     for stale in icons.glob("*.png"):
         if stale.name not in keep:
             stale.unlink()
-    (folder / "PROVENANCE.md").write_text(render_provenance(icon_set, entries))
+    (folder / "PROVENANCE.md").write_text(render_provenance(icon_set, entries), newline="\n")
     log(f"packaged {len(entries)} icons into {folder}")
     return entries
 
@@ -1135,7 +1135,7 @@ def write_icon_names(listfile, icons, out, blizzard_dir=BLIZZARD):
     encrypted = {icon for icon in rows if is_encrypted_blp(Path(blizzard_dir) / f"{icon}.blp")}
     lines = [f"{icon};{rows[icon]}" + (";encrypted" if icon in encrypted else "") for icon in sorted(rows)]
     Path(out).parent.mkdir(parents=True, exist_ok=True)
-    Path(out).write_text("".join(line + "\n" for line in lines))
+    Path(out).write_text("".join(line + "\n" for line in lines), newline="\n")
     return {"named": len(rows), "encrypted": len(encrypted), "unnamed": sorted(wanted - set(rows))}
 
 
@@ -1305,7 +1305,7 @@ def install(pack_dir, wow_dir, uninstall=False, dry_run=False, log=print):
     gone = {name: digest for name, digest in previous.items() if name not in placed}
     summary["dropped"], summary["kept"] = _drop_owned(icons, gone, dry_run, log)
     if not dry_run:
-        manifest.write_text(json.dumps({"pack": "KstyleUI icons", "files": placed}, indent=1, sort_keys=True) + "\n")
+        manifest.write_text(json.dumps({"pack": "KstyleUI icons", "files": placed}, indent=1, sort_keys=True) + "\n", newline="\n")
     log(f"{verb('copied', 'copy')} {summary['copied']} icons into {icons}, {summary['unchanged']} already there"
         + (f", {summary['replaced']} replaced files of another pack" if summary["replaced"] else "")
         + (f", {summary['dropped']} of an earlier install removed" if summary["dropped"] else "")

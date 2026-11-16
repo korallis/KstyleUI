@@ -485,7 +485,9 @@ class GenerateTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def record(self, icon):
-        return json.loads((self.raw / f"{icon}.json").read_text())
+        path = self.raw / f"{icon}.json"
+        self.assertNotIn(b"\r\n", path.read_bytes())
+        return json.loads(path.read_text())
 
     def test_accepts_the_first_clean_image_and_records_its_prompt(self):
         service = FakeService()

@@ -1,4 +1,4 @@
-"""Keep addon files CRLF and Tools/ and docs/ text files LF."""
+"""Keep addon files CRLF and Tools/docs text and media provenance LF."""
 
 import argparse
 import os
@@ -9,6 +9,7 @@ from pathlib import Path
 
 ADDON_SUFFIXES = {".lua", ".toc", ".xml"}
 SKIPPED_TOP_DIRS = {"Tools", "docs"}
+LF_FILES = {"Media/PROVENANCE.md"}
 
 
 def is_addon_file(rel):
@@ -53,7 +54,7 @@ def main(argv):
     root = Path(args.root).resolve()
     candidates = [Path(p).resolve() for p in args.paths] if args.paths else changed_files(root)
     if args.check and not args.paths:
-        tracked = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--", "Tools", "docs"],
+        tracked = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--", *sorted(SKIPPED_TOP_DIRS | LF_FILES)],
                                  check=True, capture_output=True).stdout.decode("utf-8", "surrogateescape")
         candidates = sorted(set(candidates) | {root / name for name in tracked.split("\0") if name})
 
@@ -63,7 +64,7 @@ def main(argv):
         if not path.is_file():
             continue
         data = path.read_bytes()
-        if Path(rel).parts[0] in SKIPPED_TOP_DIRS:
+        if Path(rel).parts[0] in SKIPPED_TOP_DIRS or Path(rel).as_posix() in LF_FILES:
             if args.check and b"\r\n" in data and b"\0" not in data:
                 try:
                     text = data.decode("utf-8")

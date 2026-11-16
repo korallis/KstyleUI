@@ -23,7 +23,7 @@ def git(cwd, *args):
     )
 
 
-class SuppressionsTest(unittest.TestCase):
+class GitRepoCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -34,6 +34,8 @@ class SuppressionsTest(unittest.TestCase):
         git(self.dir, "commit", "-q", "-m", "base")
         git(self.dir, "checkout", "-q", "-b", "change")
 
+
+class SuppressionsTest(GitRepoCase):
     def check(self, name, text):
         (self.dir / name).write_text(text, encoding="utf-8")
         git(self.dir, "add", "-A")
@@ -68,7 +70,51 @@ class SuppressionsTest(unittest.TestCase):
         self.assertEqual(self.check("notes.md", PROSE).returncode, 0)
 
 
+class CountBaselinesTest(GitRepoCase):
+    def count_change(self, rows, trailer=""):
+        path = self.dir / "pixel.tsv"
+        path.write_text("# scene\tscreen\tfile\tcount\na\t1080\tA.lua\t4\nb\t1440\tB.lua\t2\n",
+                        encoding="utf-8", newline="\n")
+        git(self.dir, "add", "pixel.tsv")
+        git(self.dir, "commit", "-qm", "baseline")
+        git(self.dir, "branch", "-f", "base", "HEAD")
+        path.write_text("# scene\tscreen\tfile\tcount\n" + rows, encoding="utf-8", newline="\n")
+        git(self.dir, "add", "pixel.tsv")
+        git(self.dir, "commit", "-qm", "counts" + ("\n\n" + trailer if trailer else ""))
+        return subprocess.run(["bash", str(SUPPRESSIONS), "base"], cwd=self.dir,
+                              env=dict(os.environ, SUPPRESSION_BASELINES="pixel.tsv"), capture_output=True, text=True)
+
+    def test_lower_counts_pass_without_a_trailer(self):
+        result = self.count_change("a\t1080\tA.lua\t3\nb\t1440\tB.lua\t2\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_removed_rows_pass_without_a_trailer(self):
+        result = self.count_change("b\t1440\tB.lua\t2\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_higher_counts_require_a_trailer(self):
+        result = self.count_change("a\t1080\tA.lua\t5\nb\t1440\tB.lua\t1\n")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Baseline-Growth:", result.stdout)
+
+    def test_higher_counts_pass_with_a_ticket_trailer(self):
+        result = self.count_change("a\t1080\tA.lua\t5\nb\t1440\tB.lua\t2\n", "Baseline-Growth: LEE-1234")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("allowed by Baseline-Growth: LEE-1234", result.stdout)
+
+    def test_new_keys_require_a_trailer_even_when_another_count_falls(self):
+        result = self.count_change("a\t1080\tA.lua\t3\nb\t1440\tB.lua\t2\na\t1440\tA.lua\t0\n")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Baseline-Growth:", result.stdout)
+
+
 class GateTest(unittest.TestCase):
+    def test_gate_passes_the_pixel_baseline_to_the_suppression_check(self):
+        text = GATE.read_text(encoding="utf-8")
+        self.assertRegex(text, r'(?m)^\s*step "check-suppressions against \$base" env '
+                              r'SUPPRESSION_BASELINES=Tools/regression/pixel_allow\.tsv '
+                              r'bash scripts/check-suppressions\.sh "\$base"$')
+
     def test_gate_runs_every_check_the_repository_names(self):
         text = GATE.read_text(encoding="utf-8")
         for needle in (

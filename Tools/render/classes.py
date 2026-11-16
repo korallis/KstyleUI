@@ -169,7 +169,7 @@ def main(argv=None):
     path = os.path.join(args.out, "manifest.json")
     if args.classes and os.path.exists(path):
         entries = merged(path, entries, set(names))
-    with open(path, "w", encoding="utf-8") as handle:
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
         json.dump(entries, handle, indent=2)
         handle.write("\n")
     print("wrote %d entries to %s" % (len(entries), path))

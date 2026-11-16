@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 CLASSES_LUA = ROOT / "Tools" / "render" / "scenes" / "_classes.lua"
@@ -141,6 +142,23 @@ class ClassesScriptTest(unittest.TestCase):
         self.assertEqual([c.lower() for c in ORDER], list(self.classes.CLASSES))
         for name in self.classes.CLASSES:
             self.assertTrue((ROOT / "Tools" / "render" / "scenes" / ("hud_%s_mac.lua" % name)).exists(), name + " has a scene script")
+
+    def test_manifest_writer_uses_lf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            scene = {"screen": {"width": 100, "height": 80}, "class": {"class": "MAGE"}}
+            (root / "hud_mage_mac.json").write_text(json.dumps(scene), encoding="utf-8", newline="\n")
+            image = mock.Mock()
+            image.open.return_value.size = (100, 80)
+            with mock.patch.object(self.classes, "RENDERS", str(root)), \
+                    mock.patch.object(self.classes, "pillow", return_value=True), \
+                    mock.patch.object(self.classes, "Image", image), \
+                    mock.patch.object(self.classes, "cut", return_value=("mage.png", "mage_frames.png")):
+                code = self.classes.main(["mage", "--no-render", "--ppu", "1", "--out", str(root)])
+            self.assertEqual(code, 0)
+            path = root / "manifest.json"
+            self.assertEqual(json.loads(path.read_bytes())[0]["class"], "MAGE")
+            self.assertNotIn(b"\r\n", path.read_bytes())
 
     @unittest.skipIf(Image is None, "Pillow is not installed")
     def test_cut_writes_the_full_render_and_the_frames_crop(self):

@@ -97,6 +97,7 @@ class GalleryTest(unittest.TestCase):
         code = self.gallery.main(["--no-render", "--out", str(out), "--refs", str(self.root / "refs"), "--mockup", str(self.mockup), "--ppu", "2.0"])
         self.assertEqual(code, 0)
         manifest = json.loads((out / "kstyle_manifest.json").read_text(encoding="utf-8"))
+        self.assertNotIn(b"\r\n", (out / "kstyle_manifest.json").read_bytes())
         self.assertEqual([entry["file"] for entry in manifest], ["kstyle_a_one.png", "kstyle_a_two.png"])
         one = manifest[0]
         self.assertEqual((one["title"], one["grade"], Path(one["reference"]), one["scene"]),

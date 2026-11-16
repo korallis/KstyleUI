@@ -88,6 +88,7 @@ class AtlasMapTest(unittest.TestCase):
     def test_tsv_round_trip(self):
         path = self.dir / "atlas.tsv"
         self.atlas.write_tsv(self.map, path)
+        self.assertNotIn(b"\r\n", path.read_bytes())
         lines = path.read_text(encoding="utf-8").splitlines()
         self.assertEqual(lines[0], "name\tfile\tatlasWidth\tatlasHeight\tleft\tright\ttop\tbottom\twidth\theight\ttilesH\ttilesV")
         self.assertIn("roleicon-tiny-tank\t1004\t64\t32\t0\t16\t0\t16\t16\t16\t0\t0", lines)
@@ -250,6 +251,7 @@ class PathsTest(unittest.TestCase):
         listing = argv[argv.index("-i") + 1]
         self.assertTrue(Path(listing).is_absolute(), listing)
         self.assertEqual(Path(listing).read_text(encoding="utf-8"), "interface/buttons/white8x8.blp\ninterface/test/nowhere.blp\n")
+        self.assertNotIn(b"\r\n", Path(listing).read_bytes())
         self.assertTrue(Path(argv[argv.index("-o") + 1]).is_absolute())
         self.assertEqual(sorted(found), ["interface/buttons/white8x8"])
         self.assertEqual(found["interface/buttons/white8x8"], (self.dir / "extract" / "interface" / "buttons" / "white8x8.blp").resolve())

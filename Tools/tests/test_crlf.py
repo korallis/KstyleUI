@@ -79,7 +79,8 @@ class CrlfTest(unittest.TestCase):
         self.assertEqual(out, "")
 
     def test_check_rejects_crlf_tools_and_docs_text_and_names_the_writer_fix(self):
-        for rel in ("Tools/new.py", "docs/new.md", "Tools/new.json", "Tools/new.lua"):
+        for rel in ("Tools/new.py", "docs/new.md", "Tools/new.json", "Tools/new.lua",
+                    "Tools/icons/new.py", "Tools/render/new.py", "Tools/icons/setB/PROVENANCE.md", "Media/PROVENANCE.md"):
             with self.subTest(rel=rel):
                 path = self.write(rel, b"text\r\n")
                 code, out = self.run_main("--check", str(path))
@@ -102,13 +103,15 @@ class CrlfTest(unittest.TestCase):
 
     def test_check_includes_committed_tools_text(self):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
-        path = self.write("Tools/Old.py", b"text\r\n")
-        subprocess.run(["git", "-C", str(self.root), "add", str(path)], check=True)
+        for rel in ("Tools/Old.py", "Media/PROVENANCE.md"):
+            self.write(rel, b"text\r\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@example.com",
                         "commit", "-qm", "fixture"], check=True)
         code, out = self.run_main("--check")
         self.assertEqual(code, 1)
         self.assertIn("Tools/Old.py", out)
+        self.assertIn("Media/PROVENANCE.md", out)
 
     def test_csv_allows_embedded_crlf_but_requires_lf_record_endings(self):
         path = self.write("Tools/data.csv", b'ID,Text\n1,"a,\r\nb"\n')

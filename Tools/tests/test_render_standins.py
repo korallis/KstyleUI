@@ -16,6 +16,15 @@ except ImportError:  # pragma: no cover - depends on the machine
     Image = None
 
 
+def setUpModule():
+    if Image is None:
+        print("glyph table capabilities: Pillow=unavailable; RAQM=unavailable")
+    else:
+        from PIL import features
+
+        print(f"glyph table capabilities: Pillow=available; RAQM={features.check('raqm')}")
+
+
 def load(name):
     spec = importlib.util.spec_from_file_location(name, RENDER / (name + ".py"))
     module = importlib.util.module_from_spec(spec)

@@ -136,6 +136,7 @@ class MainTest(unittest.TestCase):
                                     "--known", str(known), "--out", str(out)])
             self.assertEqual(code, 0)
             data = json.loads(out.read_text())
+            self.assertNotIn(b"\r\n", out.read_bytes())
         self.assertEqual(data["build"], "1.60.1.70862")
         self.assertEqual(len(data["icons"]), 10)
         self.assertEqual(data["counts"]["spell"], 3)

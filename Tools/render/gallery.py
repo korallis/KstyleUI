@@ -201,7 +201,7 @@ def main(argv=None):
     path = os.path.join(args.out, "kstyle_manifest.json")
     if args.scenes and os.path.exists(path):
         manifest = merged(path, manifest, set(names))
-    with open(path, "w", encoding="utf-8") as handle:
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
         json.dump(manifest, handle, indent=2)
         handle.write("\n")
     print("wrote %d frames from %d scene(s) to %s" % (len(manifest), len(names), args.out))

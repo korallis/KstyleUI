@@ -117,7 +117,7 @@ def write_tsv(atlas_map, path):
         values = [key] + [str(int(entry[column])) for column in COLUMNS[1:]]
         lines.append("\t".join(values))
     partial = path.with_suffix(".tmp")
-    partial.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    partial.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     os.replace(partial, path)
 
 
@@ -197,7 +197,7 @@ def tacttool_paths(keys, out_dir, cache_dir, tools=DEFAULT_TOOLS, wow_dir=DEFAUL
     out_dir = Path(out_dir).resolve()
     # TACTTool runs in the cache's tact folder, so every path it gets is absolute.
     listing = (work / "paths.txt").resolve()
-    listing.write_text("".join(f"{key}.blp\n" for key in keys), encoding="utf-8")
+    listing.write_text("".join(f"{key}.blp\n" for key in keys), encoding="utf-8", newline="\n")
     command = [str(tool), "-p", PRODUCT, "-r", REGION, "-d", str(Path(wow_dir).resolve()), "-m", "list", "-i", str(listing), "-o", str(out_dir)]
     result = subprocess.run(command, cwd=work, capture_output=True, text=True, timeout=1800)
     if result.returncode != 0:
@@ -308,7 +308,7 @@ def export_tables(out_dir, tools=DEFAULT_TOOLS, wow_dir=DEFAULT_WOW_DIR):
         Path(tools) / "casc" / "DBC2CSV" / "DBC2CSV.dll",
         tables=TABLES,
     )
-    (Path(out_dir) / "BUILD").write_text(build + "\n", encoding="utf-8")
+    (Path(out_dir) / "BUILD").write_text(build + "\n", encoding="utf-8", newline="\n")
 
 
 def main(argv=None, export=None, tool=None, decode=None, tool_paths=None):
