@@ -315,7 +315,7 @@ assert(has("GuardSmall.big glass"), "a card larger than the card that holds it i
 assert(#outside == 5, "only the five spills are listed, not the popout's tiles or the wide holder's children: " .. table.concat(outside, "; "))
 
 -- The allowlist: an owner scope, a scene glob, a kind and a subject prefix ("=" for the whole subject).
-local path = fs.mkdir(fs.TMP .. "/test-render-guard") .. "/allow.tsv"
+local path = fs.tmp() .. "/allow.tsv"
 local handle = assert(io.open(path, "wb"))
 handle:write("# a comment\n\n")
 handle:write("R4b\tgallery_window\toutside\tGuardWindow.column\tthe column is R4b's\n")

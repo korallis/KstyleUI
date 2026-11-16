@@ -3,8 +3,7 @@ local Scan = dofile("Tools/regression/taint_scan.lua")
 local loader = assert(loadfile("Tools/regression/taint_allow.lua"))
 local fs = dofile("Tools/regression/fs.lua")
 
-local root = fs.TMP .. "/test-taint-allow"
-fs.rmtree(root)
+local root = fs.tmp()
 local cases = 0
 
 local function write(path, text)
@@ -62,7 +61,6 @@ local ok, err = pcall(function()
 	rejects({ ["Core.lua"] = "return {" }, "Core.lua")
 	rejects({ ["Core.lua"] = "os.exit(1)" }, "Core.lua")
 end)
-fs.rmtree(root)
 assert(ok, err)
 
 -- Check: a finding needs an entry, and the entry's count must match the number of places in the

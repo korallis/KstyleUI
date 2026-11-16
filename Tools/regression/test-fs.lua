@@ -36,8 +36,9 @@ end, "shell characters")
 local tracked = fs.tracked(toc .. "/*.lua")
 same(tracked, { toc .. "/Core/A.lua", toc .. "/Core/Sub/B.lua", toc .. "/Fix_Mod/C.lua" }, "tracked lists the files git tracks")
 
-local dir = fs.TMP .. "/test-fs"
-fs.rmtree(dir)
+local dir = fs.tmp() .. "/test-fs"
+local other = dofile("Tools/regression/fs.lua")
+assert(fs.tmp() == fs.tmp() and other.tmp() ~= fs.tmp(), "each fs gets its own temp folder and keeps it")
 fs.mkdir(dir .. "/empty/deeper")
 same(fs.list(dir, { allow_empty = true, dirs = true }), { "empty" }, "mkdir makes the folders on the way")
 same(fs.list(dir .. "/empty/deeper", { allow_empty = true }), {}, "an empty folder lists as empty with allow_empty")
@@ -47,13 +48,48 @@ end, "lists nothing")
 fs.mkdir(dir .. "/empty/deeper")
 fs.rmtree(dir)
 same(fs.list(dir, { allow_empty = true }), {}, "rmtree removes the folder")
-for _, outside in ipairs({ "Core", fs.TMP, fs.TMP .. "/../Core", fs.TMP .. "x/y" }) do
+for _, outside in ipairs({ "Core", fs.tmp(), fs.tmp() .. "/../Core", fs.tmp() .. "x/y" }) do
 	raises(function()
 		fs.mkdir(outside)
-	end, "is outside " .. fs.TMP)
+	end, "is outside " .. fs.tmp())
 	raises(function()
 		fs.rmtree(outside)
-	end, "is outside " .. fs.TMP)
+	end, "is outside " .. fs.tmp())
 end
+
+fs.mkdir(dir)
+for _, name in ipairs({ "__OK__", "__MISSING__", "OK" }) do
+	local handle = assert(io.open(dir .. "/" .. name, "wb"))
+	handle:close()
+end
+same(fs.list(dir), { "OK", "__MISSING__", "__OK__" }, "a file named like a status word is listed as a file")
+
+local function printing(lines)
+	fs.popen = function()
+		local i = 0
+		return {
+			lines = function()
+				return function()
+					i = i + 1
+					return lines[i]
+				end
+			end,
+			close = function() end,
+		}
+	end
+end
+printing({ "Core/", "Fix.toc" })
+raises(function()
+	fs.list(toc, { allow_empty = true })
+end, "listing " .. toc .. " failed")
+printing({ "Core/", "//fs:missing//x" })
+raises(function()
+	fs.list(toc, { allow_empty = true })
+end, "failed")
+printing({ "Core/A.lua" })
+raises(function()
+	fs.tracked("*.lua")
+end, "git ls-files *.lua failed")
+fs.popen = other.popen
 
 print("fs ok")
