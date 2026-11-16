@@ -10,6 +10,39 @@ LUA = shutil.which("lua5.1") or shutil.which("luajit")
 
 @unittest.skipUnless(LUA, "Lua 5.1 or LuaJIT is required")
 class AutoSize(unittest.TestCase):
+    def test_auto_counts_the_enabled_third_bar_in_every_hud_environment(self):
+        result = subprocess.run(
+            [LUA, "-"], cwd=ROOT, env={**os.environ, "RENDER_SIZE": "auto", "RENDER_BAR3": "1"},
+            input='''
+local Hud = dofile("Tools/render/scenes/hud.lua")
+local Core = dofile("Tools/regression/core_env.lua")
+local _, game = Core.New({ size = "auto", fit = true })
+for _, case in ipairs({ {"Orbs", 1920, 1080}, {"Frames", 3456, 2234}, {"Orbs", 5120, 1440}, {"Medallions", 1920, 1080} }) do
+    RENDER_HUD_STYLE = case[1]
+    RENDER_SCREEN = { width = case[2], height = case[3], size = "auto" }
+    local enabled = game.Setup.Layouts.Enabled("DPS")
+    enabled["actionbars.bar3"] = true
+    local width = game.Scale.CanvasWidth(case[2], case[3])
+    local maximum, fits = game.Setup.Layouts.ScaleLimit(width, case[3], "DPS", enabled, case[1]:lower())
+    local expected = game.Scale.Auto(case[3], maximum, fits)
+    if case[1] == "Orbs" and case[2] == 1920 then
+        assert(math.abs(expected - 0.875) < 1e-8, "the game's Orbs fit with bar 3 changed")
+    end
+    for _, module in ipairs({ "actionbars", "unitframes", "minimap" }) do
+        local scene = Hud.Module(module, { layout = "DPS", applyPreset = true })
+        local K = Hud.envs[scene].KstyleUI
+        if module == "actionbars" then
+            assert(K.Store.Module("ActionBars").bar3.enabled, "the scene enables bar 3")
+        end
+        local actual = K.Scale.AppliedUserScale()
+        print(string.format("%s %dx%d %s bar3 auto=%.8f game=%.8f", case[1], case[2], case[3], module, actual, expected))
+        assert(math.abs(actual - expected) < 1e-8, "RENDER_BAR3=1 must be included in the addon's fit in every HUD environment")
+    end
+end
+''', text=True, capture_output=True, timeout=90,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_standalone_gallery_keeps_its_enabled_module_fit(self):
         result = subprocess.run(
             [LUA, "-"], cwd=ROOT,
