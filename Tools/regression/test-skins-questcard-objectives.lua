@@ -23,6 +23,16 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 				local title = assert(Geometry.ScaledRect(ns.Quests.Rows()[1].title, env.UIParent, K.Scale.Root()))
 				assert(card.top - title.top >= 11 - K.Scale.Pixel(1), "compact titles keep the normal eleven-unit top padding")
 				assert(parts.more:GetText():find("Quests 8:", 1, true), "compact pages keep the total quest count visible")
+				local header = parts.glass.chrome.header or {}
+				local rule = header[3]
+				if rule and rule:IsVisible() then
+					local rect = assert(Geometry.ScaledRect(rule, env.UIParent, K.Scale.Root()))
+					assert(rect.top <= title.bottom or rect.bottom >= title.top or rect.right <= title.left or rect.left >= title.right,
+						"a compact header rule must not overlap the first quest title's bounds")
+				end
+				for _, region in ipairs(header) do
+					assert(not region:IsVisible(), "compact pages hide the empty header band and separator")
+				end
 			end
 			for _, row in ipairs(ns.Quests.Rows()) do
 				if row:IsShown() then
