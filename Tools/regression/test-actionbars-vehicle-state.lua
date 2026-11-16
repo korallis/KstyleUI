@@ -7,6 +7,11 @@ env._game.forms[1] = { texture = 132089, spellID = 7001 }
 AB.Enable(env, K)
 local leave, bar = ns.leaveButton, ns.bars.bar1
 
+local function FullOpacity(reason)
+	assert(leave:IsShown() and leave:IsVisible() and leave:GetAlpha() == 1 and leave:GetEffectiveAlpha() == 1,
+		reason .. ": keep the vehicle leave button visible at full opacity independently of bar 1")
+end
+
 env.SetCombat(true)
 env._blocked = {}
 local applies = 0
@@ -33,26 +38,41 @@ assert(applies == 0, "a stance change in combat must not apply any bars at regen
 
 vehicle = true
 env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
-K.Options.Write("ActionBars", "bar1.fadeAlpha", 0.35)
+assert(ns.Config("bar1").fadeAlpha == 0, "exercise the default faded opacity of zero")
 K.Options.Write("ActionBars", "bar1.fade", true)
 AB.W.Settle(env)
-bar.holder:SetAlpha(0.4)
-assert(math.abs(leave:GetAlpha() - 0.14) < 1e-6, "the leave button follows Layout opacity and action-bar fade")
-AB.W.Enter(bar.buttons[1])
+assert(bar.header:GetAlpha() == 0, "bar 1 actually faded to zero")
+FullOpacity("bar 1 faded to zero")
+AB.W.Enter(leave)
 AB.W.Settle(env)
-assert(math.abs(leave:GetAlpha() - 0.4) < 1e-6, "the leave button follows the bar's hover fade immediately")
-bar.holder:SetAlpha(env.Secret(0.4))
-assert(math.abs(leave:GetAlpha() - 0.4) < 1e-6, "a restricted alpha keeps the last readable opacity")
-bar.holder:SetAlpha(0.4)
+FullOpacity("hovering the leave button")
+AB.W.Leave(leave)
+bar.holder:SetAlpha(0)
+FullOpacity("bar 1 Layout opacity is zero")
 bar.holder:Hide()
-assert(leave:IsVisible(), "a vehicle leave control stays visible when bar 1 is hidden")
+FullOpacity("bar 1 is hidden after fading to zero")
 vehicle = false
 env.FireEvent("UNIT_EXITED_VEHICLE", "player")
 vehicle = true
 env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
-assert(leave:IsVisible(), "boarding while bar 1 is hidden still shows the leave control")
+FullOpacity("boarding while bar 1 is hidden")
 bar.holder:Show()
 K.Options.Write("ActionBars", "bar1.fade", false)
+AB.W.Settle(env)
+assert(K.Layout.Set("actionbars.bar1", "shown", "mouseover"))
+env.RunTimers()
+AB.W.Settle(env)
+assert(bar.holder:GetAlpha() == 0, "exercise Layout's mouseover-only bar at rest")
+FullOpacity("bar 1 is mouseover-only")
+vehicle = false
+env.FireEvent("UNIT_EXITED_VEHICLE", "player")
+env.SetCombat(true)
+vehicle = true
+env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
+FullOpacity("boarding in combat with a mouseover-only bar")
+env.SetCombat(false)
+assert(K.Layout.Set("actionbars.bar1", "shown", "always"))
+env.RunTimers()
 AB.W.Settle(env)
 
 assert(K.Layout.Set("actionbars.bar1", "scale", 1.3))
@@ -79,6 +99,6 @@ lateEnv.CanExitVehicle = function() return true end
 AB.Enable(lateEnv, lateK)
 assert(not late.bars.bar1 and late.leaveButton:IsShown(), "a disabled bar 1 does not hide the vehicle leave control")
 lateK.Options.Write("ActionBars", "bar1.enabled", true)
-late.bars.bar1.holder:SetAlpha(0.4)
-assert(math.abs(late.leaveButton:GetAlpha() - 0.4) < 1e-6, "bar 1 enabled after the leave button was built still supplies its opacity")
+late.bars.bar1.holder:SetAlpha(0)
+assert(late.leaveButton:GetEffectiveAlpha() == 1, "bar 1 enabled later must not fade the vehicle leave control")
 print("vehicle combat, opacity, visibility, scale and forms passed")
