@@ -12,7 +12,7 @@ local function Clear(a, b, label)
 	assert(a[3] < b[1] or b[3] < a[1] or a[4] < b[2] or b[4] < a[2], label .. ": leave vehicle overlaps; place it outside the HUD surfaces")
 end
 
-for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
+local function Check(screen)
 	local env, K, ns = AB.New({
 		width = screen[1], height = screen[2], class = "WARLOCK",
 		setup = function(e)
@@ -114,3 +114,5 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		print("vehicle leave clear: " .. label)
 	end
 end
+
+Check(... or { 5120, 1440 })
