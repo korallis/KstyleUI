@@ -33,7 +33,7 @@ PICTURE = (512, 256)
 CROPS = {
     "HudStyleFrames": (540, 640, 1360, 1050),
     "HudStyleOrbs": (501, 621, 1419, 1080),
-    "HudStyleMedallions": (501, 621, 1419, 1080),
+    "HudStyleMedallions": (440, 560, 1480, 1080),
 }
 
 

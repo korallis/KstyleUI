@@ -1,5 +1,19 @@
 # KstyleUI changelog
 
+## v0.2.0 (2026-11-16)
+
+A third HUD style, Medallions, with a painted portrait of your character and a crest for your race and class.
+
+### Added
+
+- **Medallions**, a third HUD style next to Frames and Orbs. Pick it in Options > General > HUD style or on the HUD style step of the first-run setup.
+  - Your player and target frames are dark steel slabs with clean bars and a round medallion on the outer end. Your medallion shows a painted portrait of your race, class and sex, and so does any other player you target. Creatures, pets and bosses show the game's own portrait. Your focus, pet and boss frames get medallions too, and your target's target and your focus's target are small slabs.
+  - Your first two action bars sit on one steel slab: two rows of six on each side of the centre on screens narrower than 21:9, and one row of twelve on each side on 21:9 and 32:9.
+  - At the centre of the slab is a crest painted for your race and class, 52 in all, in a ring of runes in your class colour. At rest it breathes, its runes turn and your class's particles drift round it. When you enter combat its wings spread. It pulses when an ability beside it lights up, and it bursts when you level up. The crest always sits under your action buttons, so it never hides a spell, a cooldown or a keybind.
+  - Every effect answers something that happened. A slot flashes steel when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low. The crest's ring lights up while your rage, energy or focus is full; a paladin's follows holy power and a warlock's soul shards, and mana never lights it. A burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
+  - **Medallions motion** in Options > General > Medallions sets how much moves: Full (the default) adds the game's own 3D spell effects for procs and level-ups, Calm keeps the slow motion and short flashes, and Off stops the motion, though the low-health edge and the crest's ring still show and the frames still dim after combat. Options > General > Appearance > Motion still wins: Reduced caps Medallions motion at Calm, and Off turns it off.
+  - The rest of the screen follows. Cards, windows, tooltips and menus turn to steel, with your class colour on their headers. The minimap turns round in a steel ring. Party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Your cast bars hang under their slabs, and your experience and reputation show as thin strips under the action slab.
+
 ## v0.1.3 (2026-11-15)
 
 A hotfix for the RestedXP guide card, with fixes for the bag window, the swing timer and nameplates.

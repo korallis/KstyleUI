@@ -1165,17 +1165,17 @@ for orb_name, width, height, about in (
     ))
 
 
-for picture_name, about in (
-    ("HudStyleFrames", "The Frames HUD style's picture for the settings window and the setup: the cast bar, cooldowns, target and player frames and the two-row tray, cropped from the hud_reference render."),
-    ("HudStyleOrbs", "The Orbs HUD style's picture for the settings window and the setup: the two orbs, the forged tray and the cast bar, cropped from the hud_reference render."),
-    ("HudStyleMedallions", "The Medallions HUD style's picture for the settings window and the setup: the unit frames either side of the hub, the split tray and the cast bar, cropped from the hud_reference render."),
+for picture_name, about, picture_drawn in (
+    ("HudStyleFrames", "The Frames HUD style's picture for the settings window and the setup: the cast bar, cooldowns, target and player frames and the two-row tray, cropped from the hud_reference render.", "2026-11-13"),
+    ("HudStyleOrbs", "The Orbs HUD style's picture for the settings window and the setup: the two orbs, the forged tray and the cast bar, cropped from the hud_reference render.", "2026-11-13"),
+    ("HudStyleMedallions", "The Medallions HUD style's picture for the settings window and the setup: the unit frames either side of the hub, the split tray and the cast bar, cropped from the hud_reference render.", "2026-11-16"),
 ):
     ASSETS.append(Asset(
         f"Media/Textures/{picture_name}.png", 512, 256,
         lambda name=picture_name: material_pixels(name, 512, 256),
         about,
         "Prepared source in Tools/media/materials by Tools/media/hud_pictures.py from hud_reference renders at RENDER_SIZE=auto, 1920 by 1080 at 2 px per unit, with no backdrop, no stand-ins and the KstyleUI icon pack's repaints only; Lanczos to 512x256, opaque",
-        drawn="2026-11-13", maker="KstyleUI's own render of its code (Tools/render/shoot.sh); no model",
+        drawn=picture_drawn, maker="KstyleUI's own render of its code (Tools/render/shoot.sh); no model",
     ))
 
 

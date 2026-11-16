@@ -9,12 +9,13 @@ Every render draws at the shipped ornament level, Full. None of the pictures is 
 
 The pictures:
 
-  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames and in Orbs, in combat, on a 5120x1440 screen at
-                                       Interface size Auto and on a 1920x1080 screen at the 15/16 size the game picks there
+  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames, Orbs and Medallions, in combat, on a 5120x1440 screen at
+                                       Interface size Auto and on a 1920x1080 screen at the 15/16 size the game picks
+                                       there
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
-  crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the unit
-                                       frames, the right rail, the group meter, and the nameplate scene
-  options_hudstyle                     the settings window's General page at its HUD style picker
+  crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
+                                       Medallions crest hub and frames, the unit frames, the right rail, the group meter,
+                                       and the nameplate scene
   frame_*                              frames cut from the gallery scenes (gallery.py)
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
@@ -34,7 +35,7 @@ DEFAULT_WORK = os.path.expanduser("~/.capy/work/readme-renders")
 
 GALLERY_MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
 GALLERY_PPU = 2.0
-STYLES = ("Frames", "Orbs")
+STYLES = ("Frames", "Orbs", "Medallions")
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
@@ -48,13 +49,15 @@ def style_env(style):
     env = dict(COMBAT, RENDER_HUD_STYLE=style)
     if style == "Orbs":
         env["RENDER_ORBS_HIT"] = "1"
+    if style == "Medallions":
+        env["RENDER_MEDALLIONS_STATE"] = "combat"
     return env
 
 
+
 # name -> (scene, px per unit, environment, guard). Every HUD render is hud_reference in combat over the scenery plate,
-# under the strict guard; the 1080 renders at ppu 2 are the same screen at twice the density, for the close crops. The
-# settings window renders under --report: only its HUD style picker is cut, and at Full the Unit Frames live preview
-# beside it truncates four texts.
+# under the strict guard; the 1080 renders at ppu 2 are the same screen at twice the density, for the close crops.
+# Medallions renders entering combat, its wings out.
 RENDERS = {}
 for _style in STYLES:
     _key = _style.lower()
@@ -66,7 +69,6 @@ for _arrangement in ("centred", "spread"):
         ULTRAWIDE, **dict(style_env("Frames"), RENDER_LAYOUT="Healer", RENDER_ARRANGEMENT=_arrangement)), "--strict")
 RENDERS["meter_party"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party")), "--strict")
 RENDERS["plates"] = ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict")
-RENDERS["options"] = ("gallery_options", 3.0, {}, "--report")
 
 GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
 
@@ -77,12 +79,14 @@ IMAGES = [
     ("hud_orbs_5120", "render:orbs_5120", None, 1600),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("hud_orbs_1080", "render:orbs_1080", None, 1200),
+    ("hud_medallions_5120", "render:medallions_5120", None, 1600),
+    ("hud_medallions_1080", "render:medallions_1080", None, 1200),
     ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
+    ("crop_medallions", "render:medallions_1080_2x", "2120x700+860+1380", 1000),
     ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
     ("crop_meter", "render:meter_party", "540x300+3290+1820", 540),
     ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
-    ("options_hudstyle", "render:options", "640x330+370+1955", 640),
     ("ultrawide_centred", "render:healer_centred", None, 1600),
     ("ultrawide_spread", "render:healer_spread", None, 1600),
     ("frame_setup", "frame:setup_layouts", None, 720),

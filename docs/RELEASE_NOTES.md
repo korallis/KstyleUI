@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.0: Medallions
+
+A third HUD style, Medallions, next to Frames and Orbs. Your frames become steel slabs with a round medallion that shows a painted portrait of your race, class and sex. Your first two action bars share one steel slab, and at its centre sits a crest painted for your race and class. The crest breathes at rest, spreads its wings in combat, pulses when an ability beside it lights up and bursts when you level up, always under your action buttons. Medallions motion, under Options > General > Medallions, sets how much moves: Full, Calm or Off. Cards, windows, the minimap, party, raid frames and nameplates follow in steel. Pick it in Options > General > HUD style or in the first-run setup. The addon has new files, so fully restart the game after installing rather than using `/reload`. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.1.3: RestedXP guide hotfix
 
 The RestedXP guide card shows your whole current step again, instead of a blank block with only the step's last line and "1 more". Under Frames, while the guide is shown, the guide card takes the tall column and the quest card moves under the minimap, where it shows at least one quest and scrolls for the rest. The cards swap only when the guide opens or closes. Also fixed: the bag window's close button after a drag, a hunter's doubled ranged swing bar, and nameplates that crept upward. No fonts or textures changed, so `/reload` is enough after installing. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

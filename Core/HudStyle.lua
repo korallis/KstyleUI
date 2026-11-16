@@ -9,7 +9,7 @@ local Store, Tokens, L = ns.Store, ns.Tokens, ns.L
 local SECTION = "HudStyle"
 local STYLES = { frames = true, orbs = true, medallions = true }
 
-HudStyle.MEDALLIONS_READY = false
+HudStyle.MEDALLIONS_READY = true
 local medallionsOffered = HudStyle.MEDALLIONS_READY or KSTYLEUI_DEV_MEDALLIONS == true
 
 HudStyle.defaults = { style = "frames" }
