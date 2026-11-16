@@ -1634,7 +1634,7 @@ end
 
 local function Fade(texture, orientation, r, g, b, from, to)
 	if type(texture.SetGradient) == "function" and type(CreateColor) == "function" then
-		texture:SetVertexColor(1, 1, 1, 1)
+		texture:SetVertexColor(Tokens.Color("white"))
 		texture:SetGradient(orientation, CreateColor(r, g, b, from), CreateColor(r, g, b, to))
 	else
 		Widgets.LogOnce("card-bevel", "Texture:SetGradient or CreateColor is missing; cards draw their rim flat")
@@ -1731,9 +1731,9 @@ function Chrome:PaintBevel()
 		local sr, sg, sb = tr + (br - tr) * split, tg + (bg - tg) * split, tb + (bb - tb) * split
 		local header = self.header
 		if type(header[1].SetGradient) == "function" and type(CreateColor) == "function" then
-			header[1]:SetVertexColor(1, 1, 1, 1)
+			header[1]:SetVertexColor(Tokens.Color("white"))
 			header[1]:SetGradient("VERTICAL", CreateColor(sr, sg, sb, alpha), CreateColor(tr, tg, tb, alpha))
-			header[2]:SetVertexColor(1, 1, 1, 1)
+			header[2]:SetVertexColor(Tokens.Color("white"))
 			header[2]:SetGradient("VERTICAL", CreateColor(br, bg, bb, alpha), CreateColor(sr, sg, sb, alpha))
 		else
 			header[1]:SetVertexColor(sr, sg, sb, alpha)
@@ -1749,14 +1749,14 @@ end
 
 local function Reach(owner, gem)
 	local holder = gem:GetParent()
-	if not holder or Widgets.Restricted(owner) or Widgets.Restricted(holder) then
+	if not holder or Widgets.Restricted(holder) then
 		return nil
 	end
-	local top = owner:GetTop()
-	local _, y = gem:GetCenter()
+	local _, _, top = Widgets.Edges(owner)
+	local _, _, gemTop, gemBottom = Widgets.Edges(gem)
 	local scale, gemScale = owner:GetEffectiveScale(), holder:GetEffectiveScale()
-	if Measured(top) and Measured(y) and Measured(scale) and Measured(gemScale) and scale > 0 then
-		local reach = top - y * gemScale / scale
+	if Measured(top) and Measured(gemTop) and Measured(gemBottom) and Measured(scale) and Measured(gemScale) and scale > 0 then
+		local reach = top - (gemTop + gemBottom) / 2 * gemScale / scale
 		if reach > 0 and reach <= HEADER_REACH then
 			return reach
 		end
