@@ -10,6 +10,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest import mock
 
@@ -118,7 +119,8 @@ class PushProofTest(unittest.TestCase):
         marker = {"id": 2, "name": f"green-{tree}-lua-1-of-2", "created_at": "2026-11-16T12:00:00Z",
                   "expired": False, "workflow_run": {"id": 123}}
         proof = {"id": 123, "path": ".github/workflows/checks.yml", "event": "pull_request",
-                 "status": "completed", "conclusion": "success"}
+                 "status": "completed", "conclusion": "success",
+                 "head_repository": {"full_name": "korallis/KstyleUI"}}
         calls = []
 
         def api(path):
@@ -127,6 +129,8 @@ class PushProofTest(unittest.TestCase):
                 raise error
             if "/artifacts?" in path:
                 items = artifacts if artifacts is not None else [marker]
+                name = urllib.parse.parse_qs(urllib.parse.urlparse(path).query)["name"][0]
+                items = [item for item in items if item.get("name") == name]
                 return {"artifacts": items, "total_count": len(items) if total_count is None else total_count}
             return run if run is not None else proof
 
@@ -138,8 +142,8 @@ class PushProofTest(unittest.TestCase):
             settings.update(env or {})
             stdout = io.StringIO()
             with mock.patch.dict(os.environ, settings), \
-                    mock.patch.object(ci_scope, "current_tree", return_value=tree, create=True), \
-                    mock.patch.object(ci_scope, "github_json", side_effect=api, create=True), \
+                    mock.patch.object(ci_scope, "current_tree", return_value=tree), \
+                    mock.patch.object(ci_scope, "github_json", side_effect=api), \
                     mock.patch.object(ci_scope, "changed_paths", return_value=["docs/a.md"]), \
                     contextlib.redirect_stdout(stdout):
                 self.assertEqual(ci_scope.main([area]), 0)
@@ -165,11 +169,40 @@ class PushProofTest(unittest.TestCase):
 
     def test_a_different_tree_expired_marker_or_missing_proof_runs(self):
         for markers in ([], [{"name": "green-" + "b" * 40 + "-lua-1-of-2"}],
-                        [{"name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": True}]):
+                        [{"id": 2, "name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": True,
+                          "created_at": "2026-11-16T12:00:00Z", "workflow_run": {"id": 123}}]):
             with self.subTest(markers=markers):
                 output, log, _ = self.scope(artifacts=markers)
                 self.assertEqual(output, "run=true\n")
                 self.assertIn("staging moved or no proof: running", log)
+
+    def test_a_fork_pr_cannot_prove_a_tree(self):
+        run = {"id": 123, "path": ".github/workflows/checks.yml", "event": "pull_request",
+               "status": "completed", "conclusion": "success", "head_repository": {"full_name": "attacker/KstyleUI"}}
+        self.assertEqual(self.scope(run=run)[0], "run=true\n")
+
+    def test_a_newer_red_marker_beats_an_older_green(self):
+        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                    "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}}
+                   for i, colour in ((1, "green"), (2, "red"))]
+        output, _, _ = self.scope(artifacts=markers)
+        self.assertEqual(output, "run=true\n")
+
+    def test_a_newer_green_marker_after_an_older_red_can_skip(self):
+        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                    "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": 123}}
+                   for i, colour in ((1, "red"), (2, "green"))]
+        output, _, calls = self.scope(artifacts=markers)
+        self.assertEqual(output, "run=false\n")
+        self.assertTrue(any("name=red-" in call for call in calls))
+
+    def test_markers_with_the_same_timestamp_cannot_prove_which_is_newest(self):
+        for colours in (("green", "red"), ("green", "green")):
+            markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+                        "created_at": "2026-11-16T12:00:00Z", "workflow_run": {"id": 123}}
+                       for i, colour in enumerate(colours, 1)]
+            with self.subTest(colours=colours):
+                self.assertEqual(self.scope(artifacts=markers)[0], "run=true\n")
 
     def test_newest_marker_must_pass_even_if_an_older_marker_did(self):
         markers = [{"id": i, "name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": False,

@@ -122,20 +122,25 @@ def push_decision(area):
             if not 1 <= shard <= total:
                 return True, "staging moved or no proof: running"
             marker_area = f"lua-{shard}-of-{total}"
-        name = f"green-{tree}-{marker_area}"
+        green = f"green-{tree}-{marker_area}"
         repo = os.environ["GITHUB_REPOSITORY"]
-        result = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))
-        artifacts = result["artifacts"]
-        if result["total_count"] != len(artifacts):
-            return True, "staging moved or no proof: running"
-        matches = [artifact for artifact in artifacts if artifact["name"] == name]
+        matches = []
+        for name in (green, f"red-{tree}-{marker_area}"):
+            result = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))
+            artifacts = result["artifacts"]
+            if result["total_count"] != len(artifacts):
+                return True, "staging moved or no proof: running"
+            matches.extend(artifact for artifact in artifacts if artifact["name"] == name)
         if matches:
-            newest = max(matches, key=lambda artifact: (artifact["created_at"], artifact["id"]))
-            if not newest["expired"]:
+            newest = max(matches, key=lambda artifact: artifact["created_at"])
+            if sum(artifact["created_at"] == newest["created_at"] for artifact in matches) != 1:
+                return True, "staging moved or no proof: running"
+            if newest["name"] == green and not newest["expired"]:
                 run_id = newest["workflow_run"]["id"]
                 run = github_json(f"/repos/{repo}/actions/runs/{run_id}")
                 if (run["path"] == ".github/workflows/checks.yml" and run["event"] == "pull_request"
-                        and run["status"] == "completed" and run["conclusion"] == "success"):
+                        and run["status"] == "completed" and run["conclusion"] == "success"
+                        and run["head_repository"]["full_name"] == repo):
                     return False, f"tree {tree}, area {marker_area} passed in run {run_id}: skipping"
     except (OSError, http.client.HTTPException, subprocess.CalledProcessError, ValueError, KeyError, TypeError):
         pass
