@@ -160,7 +160,7 @@ def build(source, work, output, lua, reach=None):
         save("Ring" + str(side), image, ["portrait-plain"])
     manifest = {"assets": assets, "source_manifest": masters["sources"],
                 "total_bytes": sum(asset["bytes"] for asset in assets.values())}
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
     for path in output.glob("*.png"):
         if path.stem not in assets:
             path.unlink()
@@ -191,7 +191,7 @@ def build(source, work, output, lua, reach=None):
     for name, entry in sorted(assets.items()):
         rows.append("| `Media/Textures/ForgedOrnaments/%s.png` | %dx%d | %s | %d |" %
                     (name, entry["width"], entry["height"], ", ".join(entry["sources"]), entry["bytes"]))
-    provenance.write_text(text[:start] + "\n".join(rows) + "\n\n" + text[end:])
+    provenance.write_text(text[:start] + "\n".join(rows) + "\n\n" + text[end:], newline="\n")
     print(len(assets), "native assets:", manifest["total_bytes"], "bytes")
 
 

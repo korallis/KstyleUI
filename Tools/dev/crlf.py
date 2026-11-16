@@ -1,7 +1,8 @@
-"""Convert addon files (.lua, .toc, .xml outside Tools/ and docs/) to CRLF line endings."""
+"""Keep addon files CRLF and Tools/ and docs/ text files LF."""
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -45,19 +46,36 @@ def changed_files(root):
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", help="files to convert; default: changed and untracked files")
-    parser.add_argument("--check", action="store_true", help="list LF addon files and exit 1, changing nothing")
+    parser.add_argument("--check", action="store_true", help="check addon CRLF and Tools/docs LF without changing files")
     parser.add_argument("--root", default=".", help="repository root (default: current directory)")
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
     candidates = [Path(p).resolve() for p in args.paths] if args.paths else changed_files(root)
+    if args.check and not args.paths:
+        tracked = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--", "Tools", "docs"],
+                                 check=True, capture_output=True).stdout.decode("utf-8", "surrogateescape")
+        candidates = sorted(set(candidates) | {root / name for name in tracked.split("\0") if name})
 
     found = []
     for path in candidates:
         rel = os.path.relpath(path, root)
-        if not is_addon_file(rel) or not path.is_file():
+        if not path.is_file():
             continue
         data = path.read_bytes()
+        if Path(rel).parts[0] in SKIPPED_TOP_DIRS:
+            if args.check and b"\r\n" in data and b"\0" not in data:
+                try:
+                    text = data.decode("utf-8")
+                except UnicodeDecodeError:
+                    continue
+                if path.suffix == ".csv":
+                    text = re.sub(r'"(?:[^"]|"")*"', "", text)
+                if "\r\n" in text:
+                    found.append(f'{Path(rel).as_posix()}: use LF; Python writers must open with newline="\\n"')
+            continue
+        if not is_addon_file(rel):
+            continue
         fixed = to_crlf(data)
         if fixed == data:
             continue

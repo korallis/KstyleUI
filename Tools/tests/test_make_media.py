@@ -433,6 +433,16 @@ class CommittedMediaTest(unittest.TestCase):
         self.assertEqual(on_disk - listed, set(), "every file in Media/ needs a PROVENANCE.md row")
         self.assertEqual(listed - on_disk, set(), "PROVENANCE.md lists files that do not exist")
 
+    def test_provenance_writer_uses_lf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "Media" / "PROVENANCE.md"
+            path.parent.mkdir()
+            path.write_bytes((self.mm.BEGIN + "\n" + self.mm.END + "\n").encode("utf-8"))
+            self.mm.write_provenance(root)
+            expected = self.mm.BEGIN + "\n" + self.mm.provenance_table() + "\n" + self.mm.END + "\n"
+            self.assertEqual(path.read_bytes(), expected.encode("utf-8"))
+
 
 class FontsTest(unittest.TestCase):
     def test_fonts_ship_with_their_licence(self):

@@ -9,6 +9,7 @@ value ceiling and geometry, and redrawn and compared when NumPy is there. The im
 import importlib.util
 import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -90,6 +91,16 @@ class SourcesTest(unittest.TestCase):
     def test_provenance_holds_the_kit_table(self):
         text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
         self.assertIn(kit.provenance_table(), text, "run Tools/media/medallions_kit.py provenance")
+
+    def test_provenance_writer_uses_lf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "Media" / "PROVENANCE.md"
+            path.parent.mkdir()
+            path.write_bytes((kit.BEGIN + "\n" + kit.END + "\n").encode("utf-8"))
+            kit.write_provenance(root)
+            expected = kit.BEGIN + "\n" + kit.provenance_table() + "\n" + kit.END + "\n"
+            self.assertEqual(path.read_bytes(), expected.encode("utf-8"))
 
 
 class TokensTest(unittest.TestCase):

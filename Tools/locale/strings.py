@@ -112,7 +112,7 @@ def read_json(path):
 
 
 def write_json(path, value):
-    Path(path).write_text(json.dumps(value, ensure_ascii=False, indent="\t", sort_keys=isinstance(value, dict)) + "\n", encoding="utf-8")
+    Path(path).write_text(json.dumps(value, ensure_ascii=False, indent="\t", sort_keys=isinstance(value, dict)) + "\n", encoding="utf-8", newline="\n")
 
 
 def base(root=ROOT):

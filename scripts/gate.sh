@@ -38,7 +38,7 @@ if [ "$group" = lint ] || [ "$group" = all ]; then
 	step "crlf --check" "${py[@]}" Tools/dev/crlf.py --check
 	step "pre-commit" env -u SKIP pre-commit run --all-files --show-diff-on-failure
 	step "strings.py check" "${py[@]}" Tools/locale/strings.py check
-	step "check-suppressions against $base" bash scripts/check-suppressions.sh "$base"
+	step "check-suppressions against $base" env SUPPRESSION_BASELINES=Tools/regression/pixel_allow.tsv bash scripts/check-suppressions.sh "$base"
 fi
 
 if [ "$group" = lua ] || [ "$group" = all ]; then

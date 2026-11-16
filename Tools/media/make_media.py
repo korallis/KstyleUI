@@ -1074,7 +1074,7 @@ def write_provenance(root):
     start, stop = text.find(BEGIN), text.find(END)
     if start < 0 or stop < start:
         raise SystemExit(f"{path} has no {BEGIN} ... {END} block")
-    path.write_text(text[: start + len(BEGIN)] + "\n" + provenance_table() + "\n" + text[stop:], encoding="utf-8")
+    path.write_text(text[: start + len(BEGIN)] + "\n" + provenance_table() + "\n" + text[stop:], encoding="utf-8", newline="\n")
 
 
 def encode(asset, pixels):

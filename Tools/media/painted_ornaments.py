@@ -368,7 +368,7 @@ def build_masters(source_directory, output_directory):
         if circle:
             entry["inner_circle"] = circle
         manifest["components"][name] = entry
-    (output_directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (output_directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
     contact_sheet(images, output_directory / "contact-sheet.png")
     return manifest
 
@@ -461,7 +461,7 @@ def export_sizes(master_directory, output_directory, requests, padding=2, image_
             }
         exported["components"][name] = entry
     exported["total_bytes"] = sum(entry["bytes"] for entry in exported["components"].values())
-    (output_directory / "manifest.json").write_text(json.dumps(exported, indent=2) + "\n")
+    (output_directory / "manifest.json").write_text(json.dumps(exported, indent=2) + "\n", newline="\n")
     return exported
 
 
@@ -480,7 +480,7 @@ def export_band(master_directory, output_directory, hole_diameter, band_width, p
     entry["outward_band_width"] = band_width
     entry["center_content"] = [band.width / 2, band.height / 2]
     entry["hole_policy"] = "alpha zero at every texel centre inside hole radius; 1 texel outward AA"
-    (output_directory / (name + ".json")).write_text(json.dumps(entry, indent=2) + "\n")
+    (output_directory / (name + ".json")).write_text(json.dumps(entry, indent=2) + "\n", newline="\n")
     return entry
 
 

@@ -173,7 +173,8 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("- name: " + cleanup_name, job,
                       "remove checkout tags before packaging: the packager skips branch pushes whose HEAD has a tag")
         cleanup = steps_after(job, job.index("      - name: " + cleanup_name))
-        self.assertIn("git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin", cleanup)
+        self.assertEqual(re.search(r"(?m)^        run: (.*)$", cleanup).group(1),
+                         "git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin")
         package = steps_after(job, job.index("      - name: Package without uploading or localisation"))
         self.assertEqual(re.search(r"(?m)^        if: (.*)$", cleanup).group(1),
                          re.search(r"(?m)^        if: (.*)$", package).group(1))

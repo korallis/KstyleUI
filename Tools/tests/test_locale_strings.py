@@ -49,6 +49,12 @@ class RepositoryTablesTest(unittest.TestCase):
 
 
 class EscapeTest(unittest.TestCase):
+    def test_json_writer_preserves_unicode_and_lf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "locale.json"
+            strings.write_json(path, {"Hello": "Größe"})
+            self.assertEqual(path.read_bytes(), '{\n\t"Hello": "Größe"\n}\n'.encode("utf-8"))
+
     def test_round_trip(self):
         for text in ("Größe", "É1", "小队 2", 'say "hi"\n', "back\\slash", "\x01" + "23", "100%"):
             body = strings.escape(text)

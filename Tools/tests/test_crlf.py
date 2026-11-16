@@ -78,6 +78,46 @@ class CrlfTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(out, "")
 
+    def test_check_rejects_crlf_tools_and_docs_text_and_names_the_writer_fix(self):
+        for rel in ("Tools/new.py", "docs/new.md", "Tools/new.json", "Tools/new.lua"):
+            with self.subTest(rel=rel):
+                path = self.write(rel, b"text\r\n")
+                code, out = self.run_main("--check", str(path))
+                self.assertEqual(code, 1)
+                self.assertIn(rel, out)
+                self.assertIn('newline="\\n"', out)
+                self.assertEqual(path.read_bytes(), b"text\r\n")
+
+    def test_check_accepts_lf_text_and_ignores_binary_assets(self):
+        paths = [self.write("Tools/new.py", b"text\n"), self.write("docs/new.md", b"text\n"),
+                 self.write("Tools/image.png", b"\x89PNG\r\n\x1a\n"), self.write("Tools/image.dat", b"\0\r\n")]
+        self.assertEqual(self.run_main("--check", *(str(path) for path in paths)), (0, ""))
+
+    def test_no_paths_checks_untracked_tools_text(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        self.write("Tools/New.py", b"text\r\n")
+        code, out = self.run_main("--check")
+        self.assertEqual(code, 1)
+        self.assertIn("Tools/New.py", out)
+
+    def test_check_includes_committed_tools_text(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        path = self.write("Tools/Old.py", b"text\r\n")
+        subprocess.run(["git", "-C", str(self.root), "add", str(path)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                        "commit", "-qm", "fixture"], check=True)
+        code, out = self.run_main("--check")
+        self.assertEqual(code, 1)
+        self.assertIn("Tools/Old.py", out)
+
+    def test_csv_allows_embedded_crlf_but_requires_lf_record_endings(self):
+        path = self.write("Tools/data.csv", b'ID,Text\n1,"a,\r\nb"\n')
+        self.assertEqual(self.run_main("--check", str(path)), (0, ""))
+        path.write_bytes(b'ID,Text\r\n1,"a,\r\nb"\r\n')
+        code, out = self.run_main("--check", str(path))
+        self.assertEqual(code, 1)
+        self.assertIn("Tools/data.csv", out)
+
     def test_no_paths_uses_git_status(self):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         changed = self.write("Core/New.lua", b"a\n")

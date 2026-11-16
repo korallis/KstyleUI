@@ -4,7 +4,7 @@ KstyleUI is a World of Warcraft addon suite for the Forever client, written in L
 
 Gate: bash scripts/gate.sh
 Evidence: see verify/SKILL.md
-Known failing: on Windows (Beast), the Lua runner now executes the suite, but 445 of 486 files fail until PR #413 routes shell calls through `fs.lua`: POSIX listings and shell syntax under `cmd.exe`, concurrent `/dev/null` redirection, and empty TOC listings causing missing addon globals. The Python suite still has POSIX-dependent failures and its SIGINT test ends the interpreter (see `verify/SKILL.md`); CI decides that group until PR 6. The `lint` group passes.
+Known failing: on Windows (Beast), the Lua runner now executes the suite, but 445 of 486 files fail until PR #413 routes shell calls through `fs.lua`: POSIX listings and shell syntax under `cmd.exe`, concurrent `/dev/null` redirection, and empty TOC listings causing missing addon globals. The `lint` group passes.
 
 ## Layout
 
@@ -61,7 +61,7 @@ The regression harness drives behaviour the same way without pixels. A behaviour
 
 - Every `.lua`, `.toc` and `.xml` file outside `Tools/` and `docs/` is an addon file: ASCII only, CRLF line endings. `.gitattributes` sets `* -text`, so git never rewrites line endings.
 - Write LF, then run `python3 Tools/dev/crlf.py` to convert every changed or untracked addon file (pass paths to convert only those). `--check` changes nothing and exits 1 for any addon file with LF endings. Never rewrite an addon file with Python's `read_text` and `write_text`; that turns CRLF into LF.
-- Files in `Tools/` and `docs/` use LF and may contain non-ASCII text.
+- Files in `Tools/` and `docs/` use LF and may contain non-ASCII text. `python3 Tools/dev/crlf.py --check` checks tracked and changed text there; Python writers open with `newline="\n"`. CSV fields may retain embedded CRLF, but record endings use LF.
 
 ## The game and its test copy
 

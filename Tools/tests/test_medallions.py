@@ -27,6 +27,21 @@ except ImportError:  # the image tests need Pillow, as the venv interpreter has
 ANCHORS = json.loads((ROOT / "Tools" / "medallions" / "anchors.json").read_text(encoding="utf-8"))
 
 
+class WritersTest(unittest.TestCase):
+    def test_json_and_provenance_use_lf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "record.json"
+            medallions.save_json(path, {"ok": True})
+            self.assertEqual(path.read_bytes(), b'{\n "ok": true\n}\n')
+            provenance = root / medallions.PROVENANCE
+            provenance.parent.mkdir()
+            provenance.write_bytes(b"# Provenance\n")
+            medallions.write_provenance([], root)
+            expected = "# Provenance\n\n" + medallions.render_provenance([]) + "\n"
+            self.assertEqual(provenance.read_bytes(), expected.encode("utf-8"))
+
+
 class TablesTest(unittest.TestCase):
     def test_fifty_two_combinations_and_one_hundred_and_four_portraits(self):
         self.assertEqual(len(tables.combos()), 52)
