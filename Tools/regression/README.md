@@ -112,7 +112,7 @@ CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no
 
 1. `lua5.1` on the `PATH`. This is what CI runs.
 2. `~/.local/bin/lua5.1` (`lua5.1.exe` on Windows). `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 on POSIX and installs the SHA-256-checked LuaBinaries 5.1.5 Win64 archive plus luacheck 1.2.0 on Windows; Homebrew has no Lua 5.1.
-3. `luajit -joff`, LuaJIT with its compiler off. Its speed is within 10% of Lua 5.1's on this suite. It is not the same interpreter: it accepts `goto`, and `test-widgets-statusbar` fails its allocation check in about one run in ten under it.
+3. `luajit -joff`, LuaJIT with its compiler off. These runs print `not budgeted`. It is not the same interpreter: it accepts `goto`, and `test-widgets-statusbar` fails its allocation check in about one run in ten under it.
 
 `gate.sh` and `run-all.sh` choose Python in this order: `$KSTYLEUI_PYTHON`, `~/.local/share/wow-dev/venv/bin/python` or `Scripts/python.exe`, `py -3`, `python3`, `python`. Each candidate must run `-c 'import sys'`; a Microsoft Store alias that fails the probe is rejected. The command uses a Bash array, and `KSTYLEUI_PYTHON` exports its resolved executable for child scripts. A quoted `LUA` path may contain spaces and Windows backslashes.
 
@@ -122,7 +122,7 @@ CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no
 
 Each test file has a **20 CPU second** and **4096 MB** budget under the default PUC Lua 5.1.5 interpreter. CPU time is user plus system time: POSIX `wait4` supplies it alongside `ru_maxrss`; Windows `GetProcessTimes` and `PeakPagefileUsage` supply process CPU time and peak committed memory. Peak committed memory cannot be hidden by working-set trimming. Measurements are collected after exit; missing measurements print `n/a` and an explicit `not budgeted` note. Wall time remains in the summary and sharding weights, so the scheduler is unchanged.
 
-`CI=true` does not change the budgets. `cpu_allowances.tsv` holds the measured LEE-5827 exceptions: name, CPU seconds, ticket, one file per line. Each allowance is the worst observed Mac CPU time plus 25%, rounded up to a whole second. A listed file fails above its allowance; an unlisted file fails above 20 seconds. The runner rejects any added or changed baseline line against `origin/staging`, once the initial approved list has merged; deletions remain allowed. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying them. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. Functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
+`CI=true` does not change the budgets. `cpu_allowances.tsv` holds the measured LEE-5827 exceptions: name, CPU seconds, ticket, one file per line. Each allowance is the worst observed Mac CPU time plus 25%, rounded up to a whole second. A listed file fails above its allowance; an unlisted file fails above 20 seconds. The runner rejects any added or changed baseline line against `origin/staging` locally or the shallow CI checkout's `HEAD^1`, once the initial approved list has merged; deletions remain allowed. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying them. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. Functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
 
 The wall-clock hang guard is **max(120 seconds, five times the file CPU limit)**, including its allowance and platform factor. The 120-second floor applies when a run is not budgeted. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
 
@@ -136,7 +136,38 @@ The only existing random consumer is `test-ornament-tiers.lua`: it removes rando
 
 ### CPU calibration (2026-11-16)
 
-Per-file CPU and wall measurements for both Mac CI runners and Windows are captured in the PR's calibration logs. Platform factors are added only from those measurements; calibration is pending the first instrumented CI run.
+The table covers the 20 slowest files by worst measured Mac CPU time. Mac columns name `mac-KstyleUI-1`, `-2` and `-3`; a dash means no sample on that runner. Every file has samples from at least two Mac runners. Values are user plus system CPU seconds, not wall time.
+
+Mac evidence: [full run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980), [cross-run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619), and the completed 30-file `lua 2/2` calibration job in [run 43948081097](https://github.com/korallis/KstyleUI/actions/runs/43948081097/job/133582934893). The remaining queued jobs of that calibration run were cancelled after the required second-runner samples were collected. Temporary calibration selection and reversed sharding were removed before the final full-suite verification.
+
+Windows evidence: Beast, LuaBinaries PUC 5.1.5, 21 serial files (the final slowest 20 plus the original twentieth-ranked grid-10) (`KSTYLEUI_SLOTS=1`), 2026-11-16. The calibration-only wall guard was 600 seconds, to capture complete CPU samples under the machine's concurrent agent load; no stopped sample enters the table. Raw measurements and commands are attached to the PR evidence. The installed runner uses the budget-derived guard described above.
+
+| File | Mac 1 CPU s | Mac 2 CPU s | Mac 3 CPU s | Windows CPU s | Mac allowance s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `test-ornament-surfaces-minimap-subtle.lua` | — | 38.50 | 35.73 | 49.72 | 49 |
+| `test-ornament-surfaces-minimap-full.lua` | 34.50 | — | 37.13 | 44.42 | 47 |
+| `test-render-story-guard-tank.lua` | — | 26.22 | 23.38 | 29.31 | 33 |
+| `test-render-scenes-gallery.lua` | — | 26.08 | 23.84 | 40.11 | 33 |
+| `test-text-pixels-hud.lua` | 25.76 | — | 23.84 | 44.70 | 33 |
+| `test-render-story-guard-healer.lua` | 23.52 | — | 25.61 | 31.75 | 33 |
+| `test-render-story-guard-dps.lua` | 21.30 | — | 24.30 | 30.16 | 31 |
+| `test-pixel-grid-16.lua` | 24.28 | — | 24.14 | 43.45 | 31 |
+| `test-pixel-grid-8.lua` | 22.26 | — | 23.10 | 39.73 | 29 |
+| `test-pixel-grid-3.lua` | — | 22.58 | 21.73 | 39.50 | 29 |
+| `test-groupframes-rows.lua` | 22.28 | — | 20.79 | 36.48 | 28 |
+| `test-pixel-grid-2.lua` | 22.06 | — | 21.46 | 38.58 | 28 |
+| `test-pixel-grid-15.lua` | — | 21.89 | 20.35 | 30.33 | 28 |
+| `test-pixel-grid-12.lua` | — | 21.70 | 20.74 | 34.16 | 28 |
+| `test-render-scenes-classes.lua` | 21.49 | — | 21.50 | 35.61 | 27 |
+| `test-pixel-grid-9.lua` | — | 21.35 | 20.27 | 34.05 | 27 |
+| `test-pixel-grid-14.lua` | 21.15 | — | 21.30 | 41.20 | 27 |
+| `test-perf.lua` | — | 21.27 | 20.29 | 44.88 | 27 |
+| `test-hud-material-tank.lua` | — | 21.13 | 20.27 | 46.58 | 27 |
+| `test-pixel-grid-11.lua` | 20.75 | — | 21.08 | 37.30 | 27 |
+
+The Windows factor is **2.21**, the largest observed Windows CPU / worst Mac CPU ratio rounded up to 0.01: `test-hud-material-tank.lua` = 46.578125 / 21.126243 = 2.204752. It scales both the ordinary 20-second CPU limit and every per-file allowance; the 4096 MB memory limit is unchanged. POSIX uses factor 1. The 27 initial LEE-5827 allowances are `ceil(worst observed Mac CPU × 1.25)`; files omitted from the allowance list retain 20 seconds.
+
+Under seven competing CPU-bound processes on one Windows core, the same Lua probe changed from 2.343750 CPU / 2.994216 wall seconds to 2.421875 CPU / 24.619557 wall seconds. Both pass 20 CPU seconds; the original runner rejects the loaded sample against its 20-second wall budget. LuaJIT `-joff` prints `not budgeted`. The native timeout and freed-allocation peak-memory checks pass. LEE-1537 margins and slowest-five checks use injected measurements and passed 20 consecutive four-test repetitions.
 
 ## Files
 

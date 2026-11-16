@@ -134,24 +134,30 @@ class PortableRunnerTest(unittest.TestCase):
                 probe.assert_not_called()
 
     def test_main_applies_cpu_verdict_and_prints_cpu_margins(self):
-        for cpu, wall, allowance, expected in ((17, 90, None, 0), (21, 21, None, 1),
-                                               (25, 90, 30, 0), (31, 90, 30, 1), (19, 90, 30, 0)):
-            result = dict(cpu=cpu, seconds=wall, mb=100, ok=True, stopped=False, load=None, others=0)
+        for cpu, wall, allowance, factor, mb, expected in (
+                (17, 90, None, 1, 100, 0), (21, 21, None, 1, 100, 1),
+                (25, 90, 30, 1, 100, 0), (31, 90, 30, 1, 100, 1), (19, 90, 30, 1, 100, 0),
+                (35, 90, None, 2, 100, 0), (41, 90, None, 2, 100, 1),
+                (55, 90, 30, 2, 100, 0), (61, 90, 30, 2, 100, 1), (35, 90, None, 2, 5000, 1)):
+            result = dict(cpu=cpu, seconds=wall, mb=mb, ok=True, stopped=False, load=None, others=0)
             output = io.StringIO()
             with mock.patch.dict(os.environ, {}, clear=True), \
                     mock.patch.object(self.runner, "interpreter", return_value=(["lua"], "lua")), \
                     mock.patch.object(self.runner, "budgeted", return_value=True), \
+                    mock.patch.object(self.runner, "cpu_factor", return_value=factor), \
                     mock.patch.object(self.runner, "load_allowances", return_value=(
                         {"test-measured.lua": allowance} if allowance is not None else {})), \
                     mock.patch.object(self.runner, "make_slots", return_value=(None, "slots off")), \
+                    mock.patch.object(self.runner.sys, "platform", "darwin"), \
                     mock.patch.object(Path, "glob", return_value=[Path("test-measured.lua")]), \
                     mock.patch.object(self.runner, "run_one", return_value=result) as run, \
                     contextlib.redirect_stdout(output):
                 self.assertEqual(self.runner.main(["--margins"]), expected)
-            self.assertEqual(run.call_args.args[3], max(120, 5 * (allowance or 20)))
+            self.assertEqual(run.call_args.args[3], max(120, 5 * (allowance or 20) * factor))
             self.assertIn(f"cpu={cpu:.6f}", output.getvalue())
-            self.assertIn("budget 20 CPU s", output.getvalue())
+            self.assertIn(f"budget {20 * factor} CPU s", output.getvalue())
             self.assertIn(f"failed {expected}", output.getvalue())
+            self.assertEqual("allowance review:" in output.getvalue(), allowance is not None and cpu < 20)
 
     def test_cpu_allowance_list_may_only_shrink_after_bootstrap(self):
         path = self.folder / "cpu_allowances.tsv"
@@ -172,6 +178,12 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(self.runner.hang_limit(None), 120)
         self.assertEqual(self.runner.hang_limit(20), 120)
         self.assertEqual(self.runner.hang_limit(60), 300)
+
+    def test_platform_factor_scales_cpu_only(self):
+        with mock.patch.object(self.runner, "WINDOWS_CPU_FACTOR", 2):
+            self.assertEqual(self.runner.cpu_factor(windows=True), 2)
+            self.assertEqual(self.runner.cpu_factor(windows=False), 1)
+            self.assertEqual(self.runner.hang_limit(30 * self.runner.cpu_factor(windows=True)), 300)
 
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform
@@ -458,17 +470,24 @@ finally:
         self.assertIn("not budgeted", result.stdout)
 
     def test_prints_the_slowest_five_and_the_total(self):
-        for i, seconds in enumerate(("0", "0.2", "0.4", "0.6", "0.8", "1.0")):
-            (self.regression / f"test-{i}.lua").write_text(f"import time; time.sleep({seconds})\n")
-        result = self.run_all(JOBS="6")
-        self.assertEqual(result.returncode, 0, result.stdout)
-        lines = result.stdout.splitlines()
+        import run_all
+        paths = [Path(f"Tools/regression/test-{i}.lua") for i in range(6)]
+        results = {path.as_posix(): dict(seconds=i / 5, cpu=i / 10, mb=100, ok=True,
+                                         stopped=False, load=None, others=0) for i, path in enumerate(paths)}
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, {"JOBS": "6"}, clear=True), \
+                mock.patch.object(run_all, "interpreter", return_value=(["lua"], "lua")), \
+                mock.patch.object(run_all, "budgeted", return_value=False), \
+                mock.patch.object(run_all, "make_slots", return_value=(None, "slots off")), \
+                mock.patch.object(Path, "glob", return_value=paths), \
+                mock.patch.object(run_all, "run_one", side_effect=lambda command, path, *args: results[path]), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(run_all.main([]), 0)
+        lines = output.getvalue().splitlines()
         start = lines.index("slowest:")
         slowest = [re.sub(r"^\s+[\d.]+ s\s+\d+ MB\s+", "", line) for line in lines[start + 1:start + 6]]
         self.assertEqual(slowest, ["test-5", "test-4", "test-3", "test-2", "test-1"])
-        self.assertRegex(result.stdout, r"\ntotal [\d.]+ s of test time in [\d.]+ s, 6 at a time\n")
-
-    # The machine-wide worker limit.
+        self.assertRegex(output.getvalue(), r"\ntotal 3\.0 s of test time in [\d.]+ s, 6 at a time\n")
 
     def overlaps(self):
         """Count overlapping intervals, with a separate timestamp file per process."""

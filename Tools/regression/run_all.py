@@ -25,6 +25,7 @@ import runner_platform
 HERE = Path(__file__).resolve().parent
 
 TIME_BUDGET = 20.0
+WINDOWS_CPU_FACTOR = 2.21
 MEMORY_BUDGET_MB = 4096
 HANG_GUARD = 120.0
 TAIL_LINES = 5
@@ -48,9 +49,8 @@ def interpreter():
         if not found:
             return None, "{0} not found. {1}".format(command[0], LUA51_HELP)
         command[0] = found
-        if Path(command[0]).name.startswith("luajit") and "-joff" not in command[1:]:
-            return command, ("LUA={0}: fast mode, not CI-equivalent. The JIT runs some tests 100 times faster than "
-                             "CI's Lua 5.1, so the times and the budget do not predict CI. Run without LUA before a push.").format(chosen)
+        if Path(command[0]).name.lower().startswith("luajit") and "-joff" not in command[1:]:
+            return command, "LUA={0}: fast mode, not budgeted. Run without LUA before a push.".format(chosen)
         return command, "LUA={0}".format(chosen)
     found = shutil.which("lua5.1")
     home = Path(os.environ.get("HOME", "~")).expanduser() / ".local" / "bin" / ("lua5.1.exe" if os.name == "nt" else "lua5.1")
@@ -60,7 +60,7 @@ def interpreter():
         return [found], "lua: {0} (Lua 5.1, as CI runs)".format(found)
     found = shutil.which("luajit")
     if found:
-        return [found, "-joff"], ("lua: luajit -joff (no JIT, close to CI's Lua 5.1 in speed). "
+        return [found, "-joff"], ("lua: luajit -joff (not budgeted). "
                                      "For CI's exact interpreter: bash Tools/dev/install-lua51.sh")
     return None, "No Lua found: lua5.1, ~/.local/bin/lua5.1 and luajit are missing. " + LUA51_HELP
 
@@ -256,6 +256,10 @@ def hang_limit(seconds):
     return max(HANG_GUARD, 5 * seconds) if seconds is not None else HANG_GUARD
 
 
+def cpu_factor(windows=runner_platform.WINDOWS):
+    return WINDOWS_CPU_FACTOR if windows else 1.0
+
+
 def load_allowances():
     path = HERE / "cpu_allowances.tsv"
     lines = path.read_text(encoding="ascii").splitlines() if path.exists() else []
@@ -271,6 +275,8 @@ def load_allowances():
                           capture_output=True, text=True) if entry.stdout else None
     if base is not None and base.returncode:
         raise ValueError("cannot read origin/staging CPU allowance baseline")
+    if base is not None and not path.exists():
+        raise ValueError("keep cpu_allowances.tsv empty instead of deleting it; the list may only shrink (LEE-5827)")
     if base is not None and not set(lines).issubset(base.stdout.splitlines()):
         raise ValueError("cpu_allowances.tsv may only shrink; make the test cheaper (LEE-5827)")
     allowances = {}
@@ -401,6 +407,9 @@ def main(argv):
     except (OSError, ValueError) as error:
         print("FAIL " + str(error))
         return 1
+    factor = cpu_factor()
+    seconds *= factor
+    allowances = {name: limit * factor for name, limit in allowances.items()}
     jobs = jobs_for(args)
     slots, off = make_slots()
     if slots:
@@ -408,7 +417,7 @@ def main(argv):
     print(label)
     print(("budget {0} CPU s and {1:.0f} MB per test file".format(fmt(seconds), megabytes) if measured else
            "not budgeted: requires default PUC Lua 5.1.5 (_VERSION=Lua 5.1, jit=nil); LUA overrides are not budgeted") +
-          "; wall-clock hang guard max({0} s, 5 x file CPU limit)".format(fmt(HANG_GUARD)), flush=True)
+          "; CPU platform factor {0:g}; wall-clock hang guard max({1} s, 5 x file CPU limit)".format(factor, fmt(HANG_GUARD)), flush=True)
     if not measured:
         seconds = megabytes = None
     start_load = load_now()
@@ -417,12 +426,8 @@ def main(argv):
 
     tests, weights = every, load_weights()
     if args.slice:
-        tests = shard(tests, args.slice[1] + 1 - args.slice[0], args.slice[1], weights)
+        tests = shard(tests, *args.slice, weights)
         print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
-    calibration = ['test-ornament-surfaces-minimap-subtle.lua', 'test-ornament-surfaces-minimap-full.lua', 'test-render-story-guard-tank.lua', 'test-render-scenes-gallery.lua', 'test-text-pixels-hud.lua', 'test-pixel-grid-16.lua', 'test-render-story-guard-healer.lua', 'test-pixel-grid-3.lua', 'test-groupframes-rows.lua', 'test-pixel-grid-8.lua', 'test-pixel-grid-2.lua', 'test-pixel-grid-15.lua', 'test-pixel-grid-12.lua', 'test-render-scenes-classes.lua', 'test-pixel-grid-9.lua', 'test-render-story-guard-dps.lua', 'test-perf.lua', 'test-pixel-grid-14.lua', 'test-hud-material-tank.lua', 'test-pixel-grid-10.lua', 'test-pixel-grid-1.lua', 'test-pixel-grid-11.lua', 'test-pixel-grid-4.lua', 'test-type-roles.lua', 'test-pixel-grid-13.lua', 'test-pixel-grid-7.lua', 'test-pixel-grid-6.lua', 'test-text-floor.lua', 'test-pixel-grid-5.lua', 'test-setup-collisions.lua']
-    if os.environ.get("CI") == "true" and all((HERE / name).exists() for name in calibration):
-        tests = [(HERE / name).relative_to(Path.cwd()).as_posix() for name in calibration]
-        print("CPU CALIBRATION ONLY: same 30 files on both assigned Mac runners; final full-suite run follows", flush=True)
     locale_lines, locale_ok = [], True
     if args.affected:
         tests, lines, changes = plan_affected(tests, args.affected)
@@ -468,6 +473,9 @@ def main(argv):
                 print("not budgeted: {0}: OS CPU or peak memory measurement unavailable".format(name))
             allowance = allowances.get(Path(path).name)
             lines = problems(name, result, allowance if allowance is not None else seconds, megabytes)
+            if (args.margins and sys.platform == "darwin" and allowance is not None and result["ok"] and
+                    result["cpu"] is not None and result["cpu"] < TIME_BUDGET):
+                print("allowance review: {0} is below 20 CPU s here; remove its line only after every sampled Mac agrees (LEE-5827)".format(name))
             if args.affected and result["ok"]:
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
