@@ -114,6 +114,23 @@ class PortableRunnerTest(unittest.TestCase):
                 with self.assertRaises(OSError):
                     platform.try_lock(guard, windows=windows, locker=locker, constants=constants)
 
+    def test_budget_verdict_requires_default_puc_lua_515(self):
+        for stdout, stderr, code, expected in (
+                ("Lua 5.1\ntrue\n", "Lua 5.1.5  Copyright", 0, True),
+                ("Lua 5.1\nfalse\n", "LuaJIT 2.1", 0, False),
+                ("Lua 5.1\ntrue\n", "Lua 5.1.4 Copyright", 0, False),
+                ("Lua 5.4\ntrue\n", "Lua 5.4.0 Copyright", 0, False),
+                ("Lua 5.1\ntrue\n", "Lua 5.1.5  Copyright", 1, False)):
+            with self.subTest(stdout=stdout, stderr=stderr, code=code), \
+                    mock.patch.dict(os.environ, {}, clear=True), \
+                    mock.patch.object(self.runner.subprocess, "run", return_value=SimpleNamespace(
+                        stdout=stdout, stderr=stderr, returncode=code)):
+                self.assertEqual(self.runner.budgeted(["lua"]), expected)
+        for override in ("luajit", "luajit -joff", "lua5.1", ""):
+            with mock.patch.dict(os.environ, LUA=override), mock.patch.object(self.runner.subprocess, "run") as probe:
+                self.assertFalse(self.runner.budgeted(["lua"]))
+                probe.assert_not_called()
+
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform
 
@@ -158,7 +175,7 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(child.returncode, 0)
 
     def test_missing_memory_and_load_print_na_without_failing_or_crashing(self):
-        result = {"mb": None, "seconds": 1, "load": None, "stopped": False}
+        result = {"mb": None, "cpu": None, "seconds": 1, "load": None, "stopped": False}
         self.assertEqual(self.runner.problems("test", result, 2, 50), [])
         self.assertEqual(self.runner.memory_text(None), "n/a")
         with mock.patch.object(self.runner.os, "getloadavg", create=True, side_effect=AttributeError):
@@ -314,28 +331,21 @@ class RunAllTest(unittest.TestCase):
     # The time budget.
 
     def test_fails_a_test_over_the_time_budget_and_names_the_fix(self):
-        (self.regression / "test-fast.lua").write_text("pass\n")
-        (self.regression / "test-slow.lua").write_text("import time; time.sleep(1.5)\n")
-        result = self.run_all(TEST_TIME_BUDGET="1")
-        self.assertNotEqual(result.returncode, 0, result.stdout)
-        line = next((line for line in result.stdout.splitlines() if line.startswith("FAIL test-slow")), "")
-        self.assertRegex(line, r"^FAIL test-slow: took 1\.\d s, over the 1 s budget\. Make the test cheaper; CI runs Lua 5\.1")
-        self.assertNotIn("FAIL test-fast", result.stdout)
-        self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 1"))
+        import run_all
+        result = dict(cpu=21, seconds=80, mb=100, stopped=False)
+        self.assertEqual(run_all.problems("slow", result, 20, 4096),
+                         ["FAIL slow: used 21.00 CPU s, over the 20 CPU s budget. Make the test cheaper."])
 
     def test_passes_tests_within_the_time_budget(self):
-        (self.regression / "test-fast.lua").write_text("import time; time.sleep(0.1)\n")
-        result = self.run_all(TEST_TIME_BUDGET="1")
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 0"))
+        import run_all
+        result = dict(cpu=19, seconds=80, mb=100, stopped=False)
+        self.assertEqual(run_all.problems("loaded", result, 20, 4096), [])
 
-    def test_stops_a_test_at_three_times_the_budget(self):
-        (self.regression / "test-hang.lua").write_text("import time; time.sleep(30)\n")
-        start = time.monotonic()
-        result = self.run_all(TEST_TIME_BUDGET="0.5")
-        self.assertLess(time.monotonic() - start, 10, result.stdout)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("FAIL test-hang: stopped after 1.5 s, 3 times the 0.5 s budget", result.stdout)
+    def test_hang_guard_is_independent_of_budget_and_interpreter(self):
+        import run_all
+        result = dict(cpu=0.01, seconds=120, mb=1, stopped=True)
+        self.assertEqual(run_all.problems("hang", result, None, None),
+                         ["FAIL hang: stopped by the 120 s wall-clock hang guard."])
 
     def test_stopping_the_runner_stops_its_tests(self):
         import run_all
@@ -393,23 +403,17 @@ finally:
                                 capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_the_default_budget_is_20_s_and_four_times_that_on_ci(self):
-        (self.regression / "test-a.lua").write_text("pass\n")
-        self.assertIn("budget 20 s", self.run_all().stdout)
-        self.assertIn("budget 80 s", self.run_all(CI="true").stdout)
+    def test_the_default_cpu_budget_is_20_s_on_local_and_ci(self):
+        import run_all
+        for ci in ("true", "false"):
+            with mock.patch.dict(os.environ, {"CI": ci}, clear=True):
+                self.assertEqual(run_all.budgets(), (20, 4096))
 
-    # The memory budget.
-
-    def test_fails_a_test_over_the_memory_budget(self):
-        (self.regression / "test-small.lua").write_text("pass\n")
-        (self.regression / "test-big.lua").write_text("x = bytearray(300 << 20)\n")
-        result = self.run_all(TEST_MEMORY_BUDGET="200")
-        self.assertNotEqual(result.returncode, 0, result.stdout)
-        line = next((line for line in result.stdout.splitlines() if line.startswith("FAIL test-big")), "")
-        self.assertRegex(line, r"^FAIL test-big: peaked at \d+ MB, over the 200 MB budget\. Make the test use less memory")
-        self.assertNotIn("FAIL test-small", result.stdout)
-
-    # The summary.
+    def test_lua_override_is_not_budgeted(self):
+        (self.regression / "test-big.lua").write_text("x = bytearray(30 << 20)\n")
+        result = self.run_all(TEST_MEMORY_BUDGET="1", TEST_TIME_BUDGET="0.0001")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("not budgeted", result.stdout)
 
     def test_prints_the_slowest_five_and_the_total(self):
         for i, seconds in enumerate(("0", "0.2", "0.4", "0.6", "0.8", "1.0")):
@@ -492,13 +496,11 @@ finally:
         self.assertRegex(result.stdout, r"machine load (?:[\d.]+|n/a) on \d+ CPUs; worker slots: 64")
         self.assertRegex(result.stdout, r"machine load (?:[\d.]+|n/a) at the start, (?:[\d.]+|n/a) at the end, (?:[\d.]+|n/a) at most when a test started; waited [\d.]+ s for worker slots")
 
-    def test_a_time_failure_names_the_load(self):
-        (self.regression / "test-slow.lua").write_text("import time; time.sleep(1.2)\n")
-        result = self.run_all(TEST_TIME_BUDGET="1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertRegex(result.stdout, r"FAIL test-slow: took [\d.]+ s, over the 1 s budget")
-        if hasattr(os, "getloadavg"):
-            self.assertRegex(result.stdout, r"Machine load was [\d.]+ when it started")
+    def test_missing_accounting_does_not_turn_wall_time_into_cpu_time(self):
+        import run_all
+        result = dict(cpu=None, seconds=100, mb=None, stopped=False)
+        self.assertEqual(run_all.problems("unmeasured", result, 20, 4096), [])
+        self.assertFalse(run_all.near_budget(result, 20, 4096))
 
     def test_the_limit_is_off_in_ci_and_with_zero_slots(self):
         self.timed_tests(1)
@@ -524,14 +526,12 @@ finally:
     # Margins.
 
     def test_margins_lists_the_files_within_20_percent_of_the_budget(self):
-        (self.regression / "test-near.lua").write_text("import time; time.sleep(0.9)\n")
-        (self.regression / "test-far.lua").write_text("import time; time.sleep(0.2)\n")
-        result = self.run_all("--margins", TEST_TIME_BUDGET="1", JOBS="8")
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("within 20% of the budget, run alone:", result.stdout)
-        self.assertRegex(result.stdout, r"\n\s+(?:0\.[89]|1\.0) s \(\s*[89]\d%\).*test-near")
-        self.assertNotRegex(result.stdout, r"\(\s*\d+%\)[^\n]*test-far")
-        self.assertRegex(result.stdout, r", 1 at a time\n")
+        import run_all
+        for cpu, mb, expected in ((15.99, 3276, False), (16, 100, True), (1, 3276.8, True),
+                                  (20, 4096, True), (1, 100, False), (None, 4096, True)):
+            with self.subTest(cpu=cpu, mb=mb):
+                self.assertEqual(run_all.near_budget(dict(cpu=cpu, mb=mb, seconds=119), 20, 4096), expected)
+        self.assertFalse(run_all.near_budget(dict(cpu=100, mb=10000), None, None))
 
     def test_margins_says_none_when_every_file_has_room(self):
         (self.regression / "test-far.lua").write_text("pass\n")

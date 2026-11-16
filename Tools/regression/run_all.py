@@ -24,13 +24,9 @@ import runner_platform
 
 HERE = Path(__file__).resolve().parent
 
-# Measured on 2026-11-09: CI's ubuntu-24.04 runner (4 CPUs, 16 GB) runs a test about 4 times slower
-# under lua5.1 than an Apple M5 Max runs it under Lua 5.1.5 or luajit -joff. The slowest file then
-# took 9.8 s and the largest peaked at 2.8 GB.
 TIME_BUDGET = 20.0
-CI_SLOWDOWN = 4
 MEMORY_BUDGET_MB = 4096
-STOP_AFTER = 3
+HANG_GUARD = 120.0
 TAIL_LINES = 5
 SLOWEST = 5
 AFFECTED_LINES = 40
@@ -38,8 +34,6 @@ MARGIN = 0.2
 SLOT_POLL = 0.25
 
 LUA51_HELP = "Install Lua 5.1 with bash Tools/dev/install-lua51.sh, or set LUA."
-SLOW_FIX = "Make the test cheaper; CI runs Lua 5.1, about {0} times slower than this Mac.".format(CI_SLOWDOWN)
-BIG_FIX = "Make the test use less memory; CI runs 4 test files at once on 16 GB."
 
 
 def interpreter():
@@ -72,12 +66,18 @@ def interpreter():
 
 
 def budgets():
-    seconds = os.environ.get("TEST_TIME_BUDGET")
-    if seconds:
-        seconds = float(seconds)
-    else:
-        seconds = TIME_BUDGET * (CI_SLOWDOWN if os.environ.get("CI") == "true" else 1)
-    return seconds, float(os.environ.get("TEST_MEMORY_BUDGET", MEMORY_BUDGET_MB))
+    return float(os.environ.get("TEST_TIME_BUDGET", TIME_BUDGET)), float(os.environ.get("TEST_MEMORY_BUDGET", MEMORY_BUDGET_MB))
+
+
+def budgeted(command):
+    if "LUA" in os.environ:
+        return False
+    try:
+        probe = subprocess.run(command + ["-v", "-e", 'print(_VERSION); print(jit == nil)'],
+                               capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return probe.returncode == 0 and probe.stdout.splitlines() == ["Lua 5.1", "true"] and probe.stderr.startswith("Lua 5.1.5 ")
 
 
 class Children:
@@ -238,15 +238,18 @@ def memory_text(mb):
 
 def problems(name, result, seconds, megabytes):
     lines = []
-    seen = " Machine load was {0:.1f} when it started; run it alone before you call it load.".format(result["load"]) if result["load"] is not None else ""
     if result["stopped"]:
-        lines.append("FAIL {0}: stopped after {1} s, {2} times the {3} s budget. {4}{5}".format(
-            name, fmt(seconds * STOP_AFTER), STOP_AFTER, fmt(seconds), SLOW_FIX, seen))
-    elif result["seconds"] > seconds:
-        lines.append("FAIL {0}: took {1:.1f} s, over the {2} s budget. {3}{4}".format(name, result["seconds"], fmt(seconds), SLOW_FIX, seen))
-    if result["mb"] is not None and result["mb"] > megabytes:
-        lines.append("FAIL {0}: peaked at {1:.0f} MB, over the {2:.0f} MB budget. {3}".format(name, result["mb"], megabytes, BIG_FIX))
+        lines.append("FAIL {0}: stopped by the {1} s wall-clock hang guard.".format(name, fmt(HANG_GUARD)))
+    elif seconds is not None and result["cpu"] is not None and result["cpu"] > seconds:
+        lines.append("FAIL {0}: used {1:.2f} CPU s, over the {2} CPU s budget. Make the test cheaper.".format(name, result["cpu"], fmt(seconds)))
+    if megabytes is not None and result["mb"] is not None and result["mb"] > megabytes:
+        lines.append("FAIL {0}: peaked at {1:.0f} MB, over the {2:.0f} MB budget. Make the test use less memory.".format(name, result["mb"], megabytes))
     return lines
+
+
+def near_budget(result, seconds, megabytes):
+    return ((seconds is not None and result["cpu"] is not None and result["cpu"] >= seconds * (1 - MARGIN)) or
+            (megabytes is not None and result["mb"] is not None and result["mb"] >= megabytes * (1 - MARGIN)))
 
 
 def load_weights():
@@ -362,12 +365,17 @@ def main(argv):
         print("no tests found in Tools/regression")
         return 1
     seconds, megabytes = budgets()
+    measured = budgeted(command)
     jobs = jobs_for(args)
     slots, off = make_slots()
     if slots:
         jobs = min(jobs, slots.count)
     print(label)
-    print("budget {0} s and {1:.0f} MB per test file".format(fmt(seconds), megabytes), flush=True)
+    print(("budget {0} CPU s and {1:.0f} MB per test file".format(fmt(seconds), megabytes) if measured else
+           "not budgeted: requires default PUC Lua 5.1.5 (_VERSION=Lua 5.1, jit=nil); LUA overrides are not budgeted") +
+          "; {0} s wall-clock hang guard".format(fmt(HANG_GUARD)), flush=True)
+    if not measured:
+        seconds = megabytes = None
     start_load = load_now()
     print("machine load {0} on {1} CPUs; {2}".format(fmt(start_load), os.cpu_count() or 0, off or (
         "worker slots: {0} for every run on this machine, {1} held by other runs".format(slots.count, slots.others()))), flush=True)
@@ -394,7 +402,7 @@ def main(argv):
             nonlocal completed
             stem = Path(path).stem
             trace = os.path.join(logs, stem + ".trace") if args.affected else None
-            result = run_one(command, path, os.path.join(logs, stem + ".out"), seconds * STOP_AFTER, trace, slots)
+            result = run_one(command, path, os.path.join(logs, stem + ".out"), HANG_GUARD, trace, slots)
             with progress_lock:
                 completed += 1
                 print("progress: {0}/{1} test files done".format(completed, len(tests)), flush=True)
@@ -413,6 +421,11 @@ def main(argv):
         passed = failed = 0
         for path in tests:
             name, result = Path(path).stem, results[path]
+            print("usage: {0} cpu={1} wall={2} peak_mb={3}".format(
+                Path(path).name, "{0:.6f}".format(result["cpu"]) if result["cpu"] is not None else "n/a",
+                "{0:.6f}".format(result["seconds"]), memory_text(result["mb"])))
+            if measured and (result["cpu"] is None or result["mb"] is None):
+                print("not budgeted: {0}: OS CPU or peak memory measurement unavailable".format(name))
             lines = problems(name, result, seconds, megabytes)
             if args.affected and result["ok"]:
                 try:
@@ -448,12 +461,12 @@ def main(argv):
     for path in ranked[:SLOWEST]:
         print("  {0:6.1f} s {1:>6} MB  {2}".format(results[path]["seconds"], memory_text(results[path]["mb"]), Path(path).stem))
     if args.margins:
-        near = [path for path in ranked if results[path]["seconds"] >= seconds * (1 - MARGIN) or (results[path]["mb"] is not None and results[path]["mb"] >= megabytes * (1 - MARGIN))]
+        near = [path for path in ranked if near_budget(results[path], seconds, megabytes)]
         print("within {0:.0f}% of the budget, run alone:".format(MARGIN * 100) + ("" if near else " none"))
         for path in near:
             result = results[path]
-            print("  {0:6.1f} s ({1:3.0f}%) {2:>6} MB ({3}%), load {4}  {5}".format(
-                result["seconds"], 100 * result["seconds"] / seconds, memory_text(result["mb"]),
+            print("  {0} CPU s ({1}%) {2:>6} MB ({3}%), load {4}  {5}".format(
+                fmt(result["cpu"]), fmt(100 * result["cpu"] / seconds) if result["cpu"] is not None else "n/a", memory_text(result["mb"]),
                 fmt(100 * result["mb"] / megabytes) if result["mb"] is not None else "n/a",
                 fmt(result["load"]), Path(path).stem))
     total = sum(result["seconds"] for result in results.values())

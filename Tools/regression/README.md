@@ -55,15 +55,15 @@ It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU 
 
 ## Worker slots
 
-Many runs share the Mac, and a test file that takes 18 s alone can take 23 s on a loaded Mac and fail the 20 s budget for no fault of its own. So every local run takes a **worker slot** for each test file it runs, and all the runs on the machine together run at most as many files as there are slots: a third of the CPUs by default (6 on the 18-CPU Mac, which leaves the rest for the game), `KSTYLEUI_SLOTS` sets another count and `KSTYLEUI_SLOTS=0` turns the limit off. A run that finds every slot taken waits and polls; the wait is not part of a file's time.
+Every run takes a **worker slot** per test file, so all local runs together use at most a third of the CPUs by default (6 on the 18-CPU Mac, leaving room for the game). `KSTYLEUI_SLOTS` sets the count; `KSTYLEUI_SLOTS=0` disables it. A run waits and polls when every slot is held; waiting does not consume a test's CPU budget.
 
 Each slot is a lock file, `~/.cache/kstyleui/worker-slot-N.lock` (`KSTYLEUI_SLOT_DIR` moves the folder), held with nonblocking `flock` on POSIX or `msvcrt.locking` on Windows. The OS releases a crashed or killed runner's locks. A hung runner keeps its slots until it exits or is killed; stop only a runner you started, by its PID. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
 
-Each completed file prints `progress: N/T test files done`. Each run prints the load it saw (`n/a` where the OS has no load average). The second line is `machine load N on C CPUs; worker slots: S for every run on this machine, K held by other runs`. The line before `passed` is `machine load N at the start, M at the end, P at most when a test started; waited W s for worker slots, other runs held up to K of S`. A time failure adds `Machine load was N when it started`, so the first thing to do with one is to run that file alone (`lua5.1 Tools/regression/test-NAME.lua`) and read its time against the load.
+Each completed file prints `progress: N/T test files done`. Each file also prints `usage: NAME cpu=SECONDS wall=SECONDS peak_mb=MB`, including passing files, so CI logs contain calibration data. Load averages print `n/a` where the OS does not provide them. The summary reports slot waiting separately from test wall time.
 
 ### Margins
 
-`bash Tools/regression/run-all.sh --margins` runs the files one at a time and lists those that took 80% or more of the time budget, or of the memory budget, with their load. The list is the files a slower or busier machine tips over the budget. Run it when the Mac is quiet (the load is printed beside each file) and make the top of the list cheaper before it fails somebody's run.
+`bash Tools/regression/run-all.sh --margins` runs files serially and lists those using at least 80% of their CPU or peak memory budget. Wall time does not determine this list. Runs that are not budgeted have no budget margins.
 
 ## Interface size in tests
 
@@ -120,20 +120,23 @@ CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no
 
 ## Time and memory budget
 
-Each test file has a budget. `run-all.sh` fails a file that goes over it and names the fix:
+Each test file has a **20 CPU second** and **4096 MB** budget under the default PUC Lua 5.1.5 interpreter. CPU time is user plus system time: POSIX `wait4` supplies it alongside `ru_maxrss`; Windows `GetProcessTimes` and `PeakPagefileUsage` supply process CPU time and peak committed memory. Peak committed memory cannot be hidden by working-set trimming. Measurements are collected after exit; missing measurements print `n/a` and an explicit `not budgeted` note. Wall time remains in the summary and sharding weights, so the scheduler is unchanged.
 
-```text
-FAIL test-groupframes-depth: took 57.4 s, over the 20 s budget. Make the test cheaper; CI runs Lua 5.1, about 4 times slower than this Mac.
-FAIL test-groupframes-depth: peaked at 10028 MB, over the 4096 MB budget. Make the test use less memory; CI runs 4 test files at once on 16 GB.
-```
+`CI=true` does not change the budgets. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying them. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. Functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
 
-- **Time.** The budget is 20 s of wall time under Lua 5.1 on the Mac. When `CI=true` the budget is 80 s, set when CI ran on Ubuntu runners about 4 times slower than the Mac and kept when CI moved to the Macs. On 2026-11-09 the slowest file took 9.8 s here.
-- **Memory.** The budget is 4096 MB: OS peak resident memory on POSIX, or Windows `PeakPagefileUsage` (peak committed memory). Windows reads memory and process CPU time from the child handle after it exits; unavailable measurements print `n/a`. CPU time is recorded but does not change the wall-time budget. CI runs as many files at once as the Mac's worker slots allow, beside other work on that Mac, and a file over the budget can push it into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
-- **Stop.** A file still running at 3 times the time budget is stopped and fails. POSIX kills the test's process group; Windows kills and waits for the direct test process. Windows has no Job object or descendant-kill command, so tests must limit shell children to short commands.
+A separate **120 second wall-clock hang guard** applies to every interpreter. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
 
-After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line always starts with `passed N, failed M`; `--affected` adds a note on how many files did not run. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.
+The perf tests retain their existing per-call clock measurements and allocation checks. On POSIX, `os.clock` measures CPU time: budgets must be at least **five times** the measured PUC Lua 5.1 time, including in CI. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; per-call time and allocation checks still run. LuaJIT also skips the PUC headroom check rather than estimating PUC speed.
 
-When a file goes over a budget, make it cheaper: build fewer frames, run fewer rounds, or split it into two files. Never raise the budget to make a file pass.
+### Runtime portability
+
+`test-lua-runtime.lua` records the seeded random hash, large integer formatting, infinity and NaN spelling. The measured seed-7 hashes are 708739911 on macOS and 1701382795 on Windows LuaBinaries 5.1.5; Windows also prints -2147483648 for `%d` of 2^40 and `1.#INF` / `-1.#IND`. No fixture requires those spellings or wide `%d` conversion; numeric infinity/NaN and the integer range fixtures use remain asserted.
+
+The only existing random consumer is `test-ornament-tiers.lua`: it removes random subsets of assets and asserts that every drawn piece exists and resolves to an available tier, with a coverage floor of 1000 pieces, rather than expecting any particular draw. Both platform sequences pass those assertions. The runtime probe rejects additional `math.random` callers: new fixtures must use `property_lib.lua`'s portable generator. The property tests already do. This keeps the installed, isolated Lua 5.1.5 build instead of changing its C runtime to imitate another platform.
+
+### CPU calibration (2026-11-16)
+
+Per-file CPU and wall measurements for both Mac CI runners and Windows are captured in the PR's calibration logs. Platform factors are added only from those measurements; calibration is pending the first instrumented CI run.
 
 ## Files
 

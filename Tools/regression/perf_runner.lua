@@ -1,19 +1,4 @@
--- perf_runner.lua: the shared runner behind test-perf.lua and test-perf-frames.lua: every combat path registered in
--- Tools/regression/perf/ stays within its time budget per call and allocates no memory on addon lines.
---
---   dofile("Tools/regression/perf_runner.lua")("core")      -- the files GROUPS.core lists
---
--- Each file in perf/ is named after the addon folder it covers (Core.lua, KstyleUI_UnitFrames.lua) and
--- returns a list of paths: { name = "UnitFrames UNIT_HEALTH", budget = <microseconds per call>, setup =
--- function(Perf) return env, run end }. setup builds a stub environment and returns it with the function
--- to measure. The runner enters combat, makes the stubs quiet and measures run with measure.lua. A path
--- fails when its fastest round averages over budget, when it allocates on an addon line, or when it
--- reports an error. A path that fails on time is measured again, up to ATTEMPTS times in all, and its
--- fastest attempt counts, so a round that another process slowed (five agents' test runs on one Mac)
--- does not fail a sound budget; an allocation found on any attempt stands. When a failure stands, the
--- report names the machine's load average when the runner passes it in KSTYLEUI_LOAD. The perf/ files are split into GROUPS, one test file each,
--- so each file keeps well inside its 20 s budget when run-all runs 18 files at once; a perf/ file that
--- no group lists fails every group. Tools/regression/README.md describes the format.
+-- perf_runner.lua: measure registered combat paths, allocation budgets and PUC Lua 5.1 CPU headroom.
 local Measure = dofile("Tools/regression/measure.lua")
 local fs = dofile("Tools/regression/fs.lua")
 
@@ -30,9 +15,6 @@ local FIELDS = { name = true, budget = true, setup = true, calls = true }
 
 local Perf = {}
 
--- Event(env, event, ...) -> a function that runs the OnEvent script of each frame registered for the
--- event, with these arguments, as the game dispatches it. It finds the frames on its first call, so
--- it sees the registrations combat makes, and raises if no frame is registered.
 function Perf.Event(env, event, ...)
 	local args, n = { ... }, select("#", ...)
 	local frames, handlers, count
@@ -75,7 +57,6 @@ local function Exists(path)
 	return false
 end
 
--- AreaProblem(name) -> why a perf/ file name is wrong, or nil.
 local function AreaProblem(name)
 	local area = name:match("^(.+)%.lua$")
 	if not area then
@@ -89,7 +70,6 @@ local function AreaProblem(name)
 	end
 end
 
--- EntryProblem(file, i, entry, seen) -> why a registered path is malformed, or nil. seen holds the names so far.
 local function EntryProblem(file, i, entry, seen)
 	local where = file .. " entry " .. i
 	if type(entry) ~= "table" then
@@ -117,29 +97,21 @@ local function EntryProblem(file, i, entry, seen)
 	end
 end
 
--- CI's runner takes about 4 times as long per call as Lua 5.1 on the Mac, so a budget is set near 10 times
--- the Lua 5.1 time measured here and fails below 5 times. LuaJIT's interpreter runs about 1.5 times faster
--- than Lua 5.1, so its time is scaled up first. CI skips this check: there the budget itself is the check.
-local TARGET_HEADROOM, MIN_HEADROOM, LUAJIT_SPEEDUP = 10, 5, 1.5
+local MIN_HEADROOM = 5
 
--- HeadroomProblem(name, budget, us, jitted) -> why a budget is too tight to pass on CI, or nil.
-local function HeadroomProblem(name, budget, us, jitted)
-	local lua51 = jitted and us * LUAJIT_SPEEDUP or us
-	if budget >= MIN_HEADROOM * lua51 then
+local function HeadroomProblem(name, budget, us)
+	if budget >= MIN_HEADROOM * us then
 		return nil
 	end
-	return string.format("%s: budget %g us is %.1f times the %.3g us Lua 5.1 takes here, and CI runs about 4 times slower; set it near %.3g us (%d times)",
-		name, budget, budget / lua51, lua51, TARGET_HEADROOM * lua51, TARGET_HEADROOM)
+	return string.format("%s: budget %g us is %.1f times the %.3g us Lua 5.1 CPU time; set it to at least %.3g us (%d times)",
+		name, budget, budget / us, us, MIN_HEADROOM * us, MIN_HEADROOM)
 end
 
--- The checks on the registry itself.
 do
-	assert(HeadroomProblem("X", 100, 10, false) == nil, "a budget 10 times the Lua 5.1 time passes")
-	assert(HeadroomProblem("X", 50, 10, false) == nil, "a budget 5 times the Lua 5.1 time passes")
-	local tight = HeadroomProblem("X", 40, 13, false)
-	assert(tight and tight:find("^X: budget 40 us is 3.1 times") and tight:find("set it near 130 us", 1, true), "the PR #167 budget, 3 times the Lua 5.1 time, fails and names the fix: " .. tostring(tight))
-	assert(HeadroomProblem("X", 40, 9.66, true), "LuaJIT's interpreter is faster than Lua 5.1, so its time is scaled before the check")
-	assert(HeadroomProblem("X", 100, 10, true) == nil, "a roomy budget passes under LuaJIT too")
+	assert(HeadroomProblem("X", 100, 10) == nil, "a budget 10 times the Lua 5.1 time passes")
+	assert(HeadroomProblem("X", 50, 10) == nil, "a budget 5 times the Lua 5.1 time passes")
+	local tight = HeadroomProblem("X", 40, 13)
+	assert(tight and tight:find("^X: budget 40 us is 3.1 times") and tight:find("set it to at least 65 us", 1, true), "the PR #167 budget, 3 times the Lua 5.1 time, fails and names the fix: " .. tostring(tight))
 	assert(AreaProblem("Core.lua") == nil and AreaProblem("KstyleUI_UnitFrames.lua") == nil, "real areas pass")
 	assert(AreaProblem("KstyleUI_Nowhere.lua"), "an area with no addon folder fails")
 	assert(AreaProblem("notes.txt"), "a file that is not Lua fails")
@@ -153,8 +125,6 @@ do
 	assert(EntryProblem("A.lua", 1, { name = "X", budget = 5, setup = fine.setup, calls = 0.5 }, {}), "a fractional call count fails")
 end
 
--- GroupProblem(names, groups) -> why the perf/ listing and the groups disagree, or nil: every file sits in
--- exactly one group, and every listed file exists.
 local function GroupProblem(names, groups)
 	local owner = {}
 	for group, files in pairs(groups) do
@@ -180,7 +150,6 @@ local function GroupProblem(names, groups)
 	return nil
 end
 
--- Load(group) -> the paths of the group's files, each file and entry checked.
 local function Load(group)
 	local names = fs.list(DIR)
 	local grouping = GroupProblem(names, GROUPS)
@@ -209,27 +178,21 @@ local function LoadAverage()
 	return load ~= "" and load or nil
 end
 
--- TimeProblems(problems) -> the problems that are about time, which another attempt may clear; the
--- allocation problems stay whatever the load.
 local function IsTimeProblem(problem)
 	return problem:find("over its budget", 1, true) ~= nil
 end
 
--- Attempt(entry, run) -> problems, result, tight: one measurement of the path with its headroom check.
-local function Attempt(entry, run, onCI, jitted)
+local function Attempt(entry, run, checkHeadroom)
 	local problems, r = Measure.Check({ name = entry.name, budget = entry.budget, run = run, calls = entry.calls })
-	local tight = not onCI and HeadroomProblem(entry.name, entry.budget, r.time * 1e6, jitted) or nil
+	local tight = checkHeadroom and HeadroomProblem(entry.name, entry.budget, r.time * 1e6) or nil
 	return problems, r, tight
 end
 
--- Fastest(entry, run, onCI, jitted) -> problems, result, tight, attempts: the path measured until it passes
--- its time checks or ATTEMPTS attempts are spent, the fastest attempt's time problems reported together with
--- every allocation problem any attempt found.
-local function Fastest(entry, run, onCI, jitted)
+local function Fastest(entry, run, checkHeadroom)
 	local bestProblems, best, bestTight, attempts
 	local kept, order = {}, {}
 	for attempt = 1, ATTEMPTS do
-		local problems, r, tight = Attempt(entry, run, onCI, jitted)
+		local problems, r, tight = Attempt(entry, run, checkHeadroom)
 		local slow = tight and true or false
 		local timed = {}
 		for _, problem in ipairs(problems) do
@@ -260,12 +223,10 @@ local function Fastest(entry, run, onCI, jitted)
 	return out, best, bestTight, attempts
 end
 
--- The checks on the attempt logic itself.
 do
 	assert(IsTimeProblem("X: 12.0 us per call, over its budget 10 us") and not IsTimeProblem("X: allocates 40 bytes per call: a.lua:1 (40 bytes)"), "only the time problem clears on another attempt")
 	local load = LoadAverage()
 	assert(load == nil or load:match("^%d"), "the load average reads as numbers, got " .. tostring(load))
-	-- A path that is slow on its first attempts and quick on the last passes with its fastest attempt reported.
 	local calls, fake = 0, { name = "Fake", budget = 100 }
 	local slow = function()
 		calls = calls + 1
@@ -276,7 +237,7 @@ do
 		calls = calls + 1
 		return n < 2 and { e.name .. ": 500.0 us per call, over its budget " .. e.budget .. " us" } or {}, { time = n < 2 and 500e-6 or 5e-6, addonKb = 0, kb = 0 }
 	end
-	local problems, r, tight, attempts = Fastest(fake, slow, true, false)
+	local problems, r, tight, attempts = Fastest(fake, slow, false)
 	Measure.Check = real
 	assert(#problems == 0 and attempts == 3 and r.time == 5e-6 and tight == nil, "the third, quick attempt counts: " .. tostring(attempts) .. " attempts, " .. tostring(r.time))
 	calls = 0
@@ -284,10 +245,9 @@ do
 		return { e.name .. ": 500.0 us per call, over its budget " .. e.budget .. " us" }, { time = 500e-6, addonKb = 0, kb = 0 }
 	end
 	local slowest
-	problems, slowest, tight, attempts = Fastest(fake, slow, true, false)
+	problems, slowest, tight, attempts = Fastest(fake, slow, false)
 	Measure.Check = real
 	assert(#problems == 1 and attempts == 3 and slowest.time == 500e-6 and tight == nil, "a path slow on every attempt fails after " .. ATTEMPTS .. " attempts")
-	-- An allocation found on a slow first attempt stands when a quick, allocation-free attempt follows.
 	calls = 0
 	Measure.Check = function(e)
 		local n = calls
@@ -297,7 +257,7 @@ do
 		end
 		return {}, { time = 5e-6, addonKb = 0, kb = 0 }
 	end
-	problems, r, tight, attempts = Fastest(fake, slow, true, false)
+	problems, r, tight, attempts = Fastest(fake, slow, false)
 	Measure.Check = real
 	assert(attempts == 2 and r.time == 5e-6 and tight == nil, "the quick second attempt sets the time")
 	assert(#problems == 1 and problems[1]:find("allocates 40 bytes", 1, true), "the first attempt's allocation still fails the path: " .. tostring(problems[1]))
@@ -307,11 +267,16 @@ do
 	assert(GroupProblem({ "A.lua" }, { x = { "A.lua", "C.lua" } }):find("does not hold", 1, true), "a listed file that is missing fails")
 end
 
--- Run(group): measure the group's paths and exit 1 when any fails.
 return function(group)
 local paths = Load(group)
 local label = "test-perf (" .. group .. ")"
-local onCI, jitted = os.getenv("CI") == "true", rawget(_G, "jit") ~= nil
+local windows = package.config:sub(1, 1) == "\\"
+local checkHeadroom = not windows and rawget(_G, "jit") == nil
+if windows then
+	print("HeadroomProblem skipped: Windows MSVC os.clock measures wall time, not Lua 5.1 CPU time")
+elseif not checkHeadroom then
+	print("HeadroomProblem skipped: requires PUC Lua 5.1 CPU time")
+end
 local failures = {}
 local function Fail(message)
 	failures[#failures + 1] = message
@@ -328,7 +293,7 @@ for _, entry in ipairs(paths) do
 		env.RunTimers()
 		local errors = #env._errors
 		env.SetQuiet(true)
-		local measured, problems, r, tight, attempts = pcall(Fastest, entry, run, onCI, jitted)
+		local measured, problems, r, tight, attempts = pcall(Fastest, entry, run, checkHeadroom)
 		env.SetQuiet(false)
 		if not measured then
 			Fail(entry.name .. ": raised " .. tostring(problems))
