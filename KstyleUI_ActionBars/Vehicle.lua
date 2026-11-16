@@ -53,12 +53,6 @@ function Vehicle.Build()
 	})
 	button:Hide()
 	ns.leaveButton = button
-	local bar = ns.bars.bar1
-	if bar then
-		hooksecurefunc(bar.holder, "SetAlpha", Alpha)
-		hooksecurefunc(bar.header, "SetAlpha", Alpha)
-	end
-	Alpha()
 	return button
 end
 
@@ -68,6 +62,12 @@ function Vehicle.Update()
 		return
 	end
 	local bar = ns.bars.bar1
+	if bar and not bar.vehicleAlphaHooked then
+		hooksecurefunc(bar.holder, "SetAlpha", Alpha)
+		hooksecurefunc(bar.header, "SetAlpha", Alpha)
+		bar.vehicleAlphaHooked = true
+	end
+	Alpha()
 	button:SetScale(bar and bar.holder:GetScale() or 1)
 	local size = bar and bar:Config().size or Tokens.Size("actionButton")
 	if bar and K.HudStyle.Current() == "medallions" then

@@ -73,4 +73,12 @@ env._game.forms[1] = { texture = 132089, spellID = 7001 }
 env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 assert(select(2, leave:GetPoint()) == ns.bars.stance.holder, "new forms move the leave button beyond the stance bar")
 assert(#env._errors == 0, AB.Errors(env))
+
+local lateEnv, lateK, late = AB.New({ saved = { version = 2, profiles = { Default = { ActionBars = { bar1 = { enabled = false } } } } } })
+lateEnv.CanExitVehicle = function() return true end
+AB.Enable(lateEnv, lateK)
+assert(not late.bars.bar1 and late.leaveButton:IsShown(), "a disabled bar 1 does not hide the vehicle leave control")
+lateK.Options.Write("ActionBars", "bar1.enabled", true)
+late.bars.bar1.holder:SetAlpha(0.4)
+assert(math.abs(late.leaveButton:GetAlpha() - 0.4) < 1e-6, "bar 1 enabled after the leave button was built still supplies its opacity")
 print("vehicle combat, opacity, visibility, scale and forms passed")
