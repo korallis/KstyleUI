@@ -19,9 +19,17 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 	R.settle()
 	Check()
 	R.env.SetCombat(true)
+	local items = R.rxp.activeItemFrame
+	local guarded = { [items] = #items._calls, [items.buttonList[1]] = #items.buttonList[1]._calls }
 	R.rxp.UpdateItemFrame(nil, 1)
 	R.settle()
 	Check()
+	for frame, mark in pairs(guarded) do
+		for i = mark + 1, #frame._calls do
+			local method = frame._calls[i].method
+			assert(method ~= "SetHeight" and method ~= "ClearAllPoints" and method ~= "SetPoint", "the Items combat guard must prevent protected geometry writes: " .. method)
+		end
+	end
 	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
 end
 

@@ -36,11 +36,11 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		Check()
-		assert(ns.QuestData.status == "title-unavailable", "the retained snapshot names the unavailable input")
 		env.C_QuestLog.GetTitleForQuestID = title
-		for _, name in ipairs({ "GetNumQuestWatches", "GetQuestIDForQuestWatchIndex" }) do
+		for _, secret in ipairs({ false, true }) do
+			local name = "GetNumQuestWatches"
 			local read = env.C_QuestLog[name]
-			env.C_QuestLog[name] = function() return env.Secret(8) end
+			env.C_QuestLog[name] = function() return secret and env.Secret(8) or nil end
 			R.log.Fire("QUEST_LOG_UPDATE")
 			R.settle()
 			Check()
@@ -58,10 +58,20 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		end
 		assert(recorded, "a restricted combat measurement records the unknown visibility and guide context")
 		parts.view.GetRect = rect
+		R.quests[1].title = "A Putrid Task after combat"
+		R.quests[1].objectives[1].text = "Putrid Claw: 6/7"
+		R.log.Untrack(R.quests[8].id)
+		local ready = env.C_QuestLog.GetTitleForQuestID
+		env.C_QuestLog.GetTitleForQuestID = function() return nil end
+		R.log.Fire("QUEST_LOG_UPDATE")
+		R.settle()
+		env.C_QuestLog.GetTitleForQuestID = ready
 		env.SetCombat(false)
 		R.settle()
-		Check()
-		assert(ns.QuestData.status == "ready", "combat end retries an incomplete read without another quest event")
+		assert(ns.QuestData.Count() == 7, "combat end drops the untracked quest without another quest event")
+		local row = ns.Quests.Rows()[1]
+		assert(row:IsVisible() and row.title:GetText() == "[6] A Putrid Task after combat", "combat end repaints the retained quest title")
+		if progressShown then assert(row.lines[1].count:GetText() == "6/7", "combat end repaints quest progress") end
 		R.log.quests = {}
 		R.log.Fire("QUEST_WATCH_LIST_CHANGED")
 		R.settle()
