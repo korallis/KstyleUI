@@ -160,9 +160,25 @@ each("raid", function(f)
 	local c = G.CLASS_COLORS[class]
 	local color = last(f.health, "SetStatusBarColor")
 	assert(near(color[1], c[1]) and near(color[2], c[2]) and near(color[3], c[3]), f.unit .. ": the tile is the class colour")
-	local r, g, b = f.name:GetTextColor()
-	local er, eg, eb = K.Tokens.Color("textEmphasis")
-	assert(near(r, er) and near(g, eg) and near(b, eb), f.unit .. ": the name reads white on the fill")
+	local ink = ns.Medallions.Inked(class)
+	eq(ink, class == "PRIEST" or class == "ROGUE" or class == "HUNTER", f.unit .. ": " .. class .. " takes dark ink only on a light fill")
+	local sr = f.name:GetShadowColor()
+	if ink then
+		assert(f.medInked and sr > 0.9, f.unit .. ": dark ink on " .. class .. " with a soft light shadow")
+		local values = last(f.name, "SetTextColor")
+		local cr = values and values[1]
+		if env.issecretvalue(cr) then
+			cr = env.Reveal(cr)
+		end
+		local dr = K.Tokens.Color("slabBottom")
+		assert(near(cr, dr), f.unit .. ": the ink is near-black above the low-health line, got " .. tostring(cr))
+		assert(f.medChip and f.medChip:IsShown(), f.unit .. ": the percent sits on its steel chip")
+	else
+		local r, g, b = f.name:GetTextColor()
+		local er, eg, eb = K.Tokens.Color("textEmphasis")
+		assert(near(r, er) and near(g, eg) and near(b, eb), f.unit .. ": the name reads white on the fill")
+		assert(not f.medInked and sr < 0.1, f.unit .. ": with a dark shadow")
+	end
 	assert(f.tileless and not f.chrome.fill[5]:IsShown(), f.unit .. ": the fill is the tile")
 	local namePath, _, nameFlags = f.name:GetFont()
 	eq(namePath, K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name is in the Medallions label face")
@@ -195,10 +211,39 @@ each("raid", function(f)
 	local gr, gg, gb = K.Tokens.Color("friendly")
 	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar is the friendly green again")
 	eq(f.health.sparkLine:GetAlpha(), 1, f.unit .. ": the end cap returns")
+	assert(f.name:GetFont() ~= K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name leaves the Medallions label face")
+	eq(f.name:GetText(), f.rawName, f.unit .. ": in its own case")
+	assert(f.healthText:GetFont() ~= K.Tokens.FontPath("PTSerifBold") or Settings.current.text.healthFont == K.Tokens.FontPath("PTSerifBold"), f.unit .. ": the percent takes the module's number face")
+	assert(not (f.medChip and f.medChip:IsShown()), f.unit .. ": no percent chip")
+	assert(not f.medInked, f.unit .. ": no ink")
+	if f.auraClip then
+		eq(f.auraClip:GetAlpha(), 1, f.unit .. ": the debuffs show")
+	end
 	local pieces = f.targetRing[1]
 	local v = pieces[1]._state.VertexColor
 	assert(not near(v[1], STEEL_LIT[1]) or not near(v[2], STEEL_LIT[2]), f.unit .. ": the target ring takes the accent again")
 end)
+each("party", function(f)
+	assert(not f.medBezel or not f.medBezel:IsShown(), f.unit .. ": no steel bezel")
+end)
+
+-- A theme change drops the cached ink choice, so a class whose colour changed is judged again.
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
+eq(ns.Medallions.Inked("PRIEST"), true, "white priest tiles take dark ink")
+local classColor = env.C_ClassColor and env.C_ClassColor.GetClassColor
+local dark = { r = 0.2, g = 0.2, b = 0.3, GetRGB = function() return 0.2, 0.2, 0.3 end }
+if classColor then
+	env.C_ClassColor.GetClassColor = function(file)
+		if file == "PRIEST" then
+			return dark
+		end
+		return classColor(file)
+	end
+end
+env.RAID_CLASS_COLORS.PRIEST = dark
+K.Callbacks.Fire("ThemeChanged")
+eq(ns.Medallions.Inked("PRIEST"), false, "after a theme change a dark priest colour takes white text")
 eq(#env._errors, 0, "no error: " .. tostring(env._errors[1]))
 eq(K.ErrorCount(), 0, "no addon error")
 print("ok - test-groupframes-medallions")

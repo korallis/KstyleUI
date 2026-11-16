@@ -17,6 +17,10 @@ local MIN_CELL = 8
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
 local TILE_TEXT = "NONE"
+local INK_LUMINANCE = 0.75
+local INK_SHADOW_ALPHA = 0.4
+local LOW_STEP = 0.001
+local CHIP_ALPHA = 0.72
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
 local NUMBER_FACE = Tokens.FontPath("PTSerifBold")
 local LOOK = {
@@ -214,6 +218,94 @@ local function Slack(f)
 	return K.Scale.Pixel(1) / Widgets.ScaleFactor(f)
 end
 
+local inked = {}
+function Medallions.Inked(class)
+	if Unit.IsSecret(class) or type(class) ~= "string" then
+		return false
+	end
+	local value = inked[class]
+	if value == nil then
+		local r, g, b = Unit.ClassColor(class)
+		value = not (Unit.IsSecret(r) or Unit.IsSecret(g) or Unit.IsSecret(b)) and type(r) == "number"
+			and 0.2126 * r + 0.7152 * g + 0.0722 * b >= INK_LUMINANCE
+		inked[class] = value
+	end
+	return value
+end
+
+local inkCurves, inkTried
+local function InkCurves()
+	if inkTried then
+		return inkCurves
+	end
+	inkTried = true
+	local util, kinds = C_CurveUtil, Enum and Enum.LuaCurveType
+	if not (util and type(util.CreateCurve) == "function" and UnitHealthPercent) then
+		Style.LogOnce("inkCurve", "C_CurveUtil.CreateCurve or UnitHealthPercent is missing; dark tile names stay dark at low health")
+		return nil
+	end
+	local light, dark, low = { Tokens.Color("textEmphasis") }, { Tokens.Color("slabBottom") }, Widgets.LOW_HEALTH_SHARE
+	inkCurves = {}
+	for i = 1, 3 do
+		local curve = util.CreateCurve()
+		if kinds and kinds.Step and curve.SetType then
+			curve:SetType(kinds.Step)
+		end
+		curve:AddPoint(0, light[i])
+		curve:AddPoint(low, light[i])
+		curve:AddPoint(low + LOW_STEP, dark[i])
+		curve:AddPoint(1, dark[i])
+		inkCurves[i] = curve
+	end
+	return inkCurves
+end
+
+local function InkShadow(text)
+	text:SetShadowColor(1, 1, 1, INK_SHADOW_ALPHA)
+end
+
+local nameColored = Unit.NameColored
+function Unit.NameColored(f, class)
+	nameColored(f, class)
+	local ink = f.parts and f.parts.tile and not f.status and Medallions.Active() and Medallions.Inked(class)
+	if ink then
+		local curves = f.unit and InkCurves()
+		if curves then
+			f.name:SetTextColor(UnitHealthPercent(f.unit, true, curves[1]), UnitHealthPercent(f.unit, true, curves[2]), UnitHealthPercent(f.unit, true, curves[3]))
+		else
+			f.name:SetTextColor(Tokens.Color("slabBottom"))
+		end
+	end
+	if (ink or false) ~= (f.medInked or false) then
+		f.medInked = ink or nil
+		Widgets.TextShadow(f.name, "")
+		if ink then
+			InkShadow(f.name)
+		end
+	end
+end
+
+local function Chip(f, shown)
+	local chip = f.medChip
+	if not chip then
+		if not shown then
+			return
+		end
+		chip = f.text:CreateTexture(nil, "ARTWORK", nil, -1)
+		f.medChip = chip
+	end
+	chip:SetShown(shown)
+	if not shown then
+		return
+	end
+	local r, g, b = Tokens.Color("steelFill")
+	chip:SetColorTexture(r, g, b, CHIP_ALPHA)
+	local pad = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	chip:ClearAllPoints()
+	chip:SetPoint("TOPLEFT", f.healthText, "TOPLEFT", -pad, 0)
+	chip:SetPoint("BOTTOMRIGHT", f.healthText, "BOTTOMRIGHT", pad, 0)
+end
+
 local function ShowCap(f, shown)
 	local bar = f.health
 	if bar.sparkLine then
@@ -260,6 +352,7 @@ local function TileText(f)
 	if f.auraClip then
 		f.auraClip:SetAlpha(f.status and 0 or 1)
 	end
+	Chip(f, f.healthText:IsShown())
 	f.nativeName = false
 	ns.Names.Apply(f)
 end
@@ -274,6 +367,9 @@ local function Tile(f, parts, k)
 		fit.path, fit.kit = LABEL_FACE, false
 		fit.set = function(text, size)
 			Style.SetFont(text, LABEL_FACE, size, TILE_TEXT)
+			if f.medInked then
+				InkShadow(text)
+			end
 		end
 		fit.set(f.name, fit.size)
 	end
@@ -310,6 +406,7 @@ local function Applied(f, parts, k)
 		Tile(f, parts, k)
 	elseif f.medSparkHidden then
 		ShowCap(f, true)
+		Chip(f, false)
 		if f.auraClip then
 			f.auraClip:SetAlpha(1)
 		end
@@ -341,12 +438,20 @@ local function Restyle()
 end
 
 local enable, disable = Frames.Enable, Frames.Disable
+local function Repaint()
+	for class in pairs(inked) do
+		inked[class] = nil
+	end
+end
+
 function Frames.Enable(...)
 	K.Callbacks.Register("HudStyleChanged", OWNER, Restyle)
+	K.Callbacks.Register("ThemeChanged", OWNER, Repaint)
 	return enable(...)
 end
 
 function Frames.Disable(...)
 	K.Callbacks.Unregister("HudStyleChanged", OWNER)
+	K.Callbacks.Unregister("ThemeChanged", OWNER)
 	return disable(...)
 end

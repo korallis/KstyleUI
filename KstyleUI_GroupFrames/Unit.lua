@@ -181,6 +181,9 @@ function Unit.NameColor(class)
 	return Theme.ClassTextColorForWidget(class, NAME_LUMINANCE)
 end
 
+function Unit.NameColored()
+end
+
 function Unit.ColorSources()
 	local current = Settings.current
 	return current.health.colorSource, current.text.nameColorSource
@@ -217,6 +220,7 @@ local function Colors(f)
 	else
 		f.name:SetTextColor(Tokens.Color("textEmphasis"))
 	end
+	Unit.NameColored(f, class)
 	if f.showPortrait or f.showRoleRing then
 		f.ring:SetVertexColor(cr, cg, cb)
 	end
