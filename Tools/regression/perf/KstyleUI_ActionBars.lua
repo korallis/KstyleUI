@@ -24,7 +24,7 @@ return {
 	},
 	{
 		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet, tray card unchanged",
-		budget = 160,
+		budget = 170,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)

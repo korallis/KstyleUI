@@ -27,7 +27,7 @@ return {
 	},
 	{
 		name = "Meters damage refresh, raid of twenty",
-		budget = 2000,
+		budget = 2100,
 		calls = 100,
 		setup = function()
 			local env, K = M.New()

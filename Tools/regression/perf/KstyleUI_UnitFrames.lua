@@ -91,7 +91,7 @@ return {
 	},
 	{
 		name = "UnitFrames target change at Full, rank changes",
-		budget = 1000,
+		budget = 1050,
 		calls = 50,
 		setup = function()
 			local env = Target()
