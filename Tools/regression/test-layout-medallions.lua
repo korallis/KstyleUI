@@ -144,12 +144,14 @@ end
 
 do
 	local AB = dofile("Tools/regression/actionbars_env.lua")
-	for _, screen in ipairs({ {1280,720}, {1366,768}, {1920,1080}, {2383,1540}, {2560,1440}, {3456,2234} }) do
+	for _, screen in ipairs({ {1280,720,0.9375}, {1366,768,0.9375}, {1920,1080,0.9375}, {2383,1540,0.789}, {2560,1440,0.9375}, {3456,2234,0.8158} }) do
 		local width, height = screen[1], screen[2]
-		local env, K, ns = AB.New({ width = width, height = height, uiScale = 768 / 1080, size = "auto", fit = true, class = "WARLOCK" })
+		local env, K, ns = AB.New({ width = width, height = height, uiScale = 768 / 1080, size = screen[3], fit = true, class = "WARLOCK" })
 		env._game.petExists = true
 		env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
-		env._game.forms = { {texture = 135036, spellID = 15473} }
+		for i = 1, 10 do
+			env._game.forms[i] = { texture = 135036, spellID = 15473 + i }
+		end
 		AB.Enable(env, K)
 		K.Options.Write("HudStyle", "style", "medallions")
 		env.RunTimers()
