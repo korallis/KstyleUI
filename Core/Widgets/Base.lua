@@ -778,19 +778,15 @@ local function PixelsOf(region)
 		return nil
 	end
 	local w, h = region:GetWidth(), region:GetHeight()
-	if IsSecret(w) or IsSecret(h) or type(w) ~= "number" or type(h) ~= "number" or w ~= w or h ~= h then
-		return nil
-	end
 	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
-	return w / px, h / px
+	w = not IsSecret(w) and type(w) == "number" and w == w and w / px or nil
+	h = not IsSecret(h) and type(h) == "number" and h == h and h / px or nil
+	return w, h
 end
 
 function Widgets.Remainder(region)
 	local w, h = PixelsOf(region)
-	if not w then
-		return 0, 0
-	end
-	return floor(w + 0.5) - w, floor(h + 0.5) - h
+	return w and floor(w + 0.5) - w or 0, h and floor(h + 0.5) - h or 0
 end
 
 local function Waits(region, fn, ...)
@@ -908,7 +904,7 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 		relW, relH = PixelsOf(relative)
 	end
 	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
-	local dy = -OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
+	local dy = 0 - OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
 	if Inside(region) then
 		return
@@ -930,9 +926,7 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 			dependents[relative] = set
 		end
 		set[region] = true
-		if helped[relative] then
-			HookFollow(relative)
-		end
+		HookFollow(relative)
 		HookText(relative)
 	end
 end
@@ -959,7 +953,10 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	local r, b = (right or 0) / px, (bottom or 0) / px
 	local dx, dy = -floor(r + 0.5), floor(b + 0.5)
 	if w then
-		dx, dy = floor(w - r + 0.5) - w, h - floor(h - b + 0.5)
+		dx = floor(w - r + 0.5) - w
+	end
+	if h then
+		dy = h - floor(h - b + 0.5)
 	end
 	region:ClearAllPoints()
 	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
