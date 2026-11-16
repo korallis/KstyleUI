@@ -1656,7 +1656,7 @@ function Scene.Merge(scenes, ordered)
 	end
 	if ordered then
 		table.sort(out.items, function(a, b)
-			local x, y = key[a], key[b]
+			local x, y = stack[a], stack[b]
 			for i = 1, 4 do
 				if x[i] ~= y[i] then
 					return x[i] < y[i]
