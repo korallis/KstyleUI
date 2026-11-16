@@ -87,10 +87,10 @@ gallery_minimap	5120x1440	KstyleUI_Minimap/Face.lua	12
 gallery_options	1280x720	Core/Widgets/Base.lua	3
 gallery_options	1280x720	Core/Widgets/Slider.lua	2
 gallery_options	1280x720	KstyleUI_Options/Preview.lua	104
-gallery_options	1280x720	KstyleUI_Options/Rail.lua	28
+gallery_options	1280x720	KstyleUI_Options/Rail.lua	30
 gallery_options	1280x720	KstyleUI_Options/Rows.lua	22
 gallery_options	1920x1080	KstyleUI_Options/Preview.lua	104
-gallery_options	1920x1080	KstyleUI_Options/Rail.lua	28
+gallery_options	1920x1080	KstyleUI_Options/Rail.lua	30
 gallery_options	1920x1080	KstyleUI_Options/Rows.lua	22
 gallery_options	2560x1440	KstyleUI_Options/Preview.lua	104
 gallery_options	2560x1440	KstyleUI_Options/Rail.lua	15
@@ -99,7 +99,7 @@ gallery_options	3440x1440	KstyleUI_Options/Preview.lua	104
 gallery_options	3440x1440	KstyleUI_Options/Rail.lua	15
 gallery_options	3440x1440	KstyleUI_Options/Rows.lua	22
 gallery_options	3840x1080	KstyleUI_Options/Preview.lua	104
-gallery_options	3840x1080	KstyleUI_Options/Rail.lua	28
+gallery_options	3840x1080	KstyleUI_Options/Rail.lua	30
 gallery_options	3840x1080	KstyleUI_Options/Rows.lua	22
 gallery_options	3840x2160	KstyleUI_Options/Preview.lua	104
 gallery_options	3840x2160	KstyleUI_Options/Rail.lua	3
