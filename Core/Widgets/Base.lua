@@ -944,7 +944,9 @@ end
 
 function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	local relative = relativeTo or region:GetParent()
-	region.kstyleFill = { relativeTo, left, top, right, bottom }
+	local requested = region.kstyleFill or {}
+	requested[1], requested[2], requested[3], requested[4], requested[5] = relativeTo, left, top, right, bottom
+	region.kstyleFill = requested
 	if Waits(region, Widgets.Fill, region, relativeTo, left, top, right, bottom) then
 		return
 	end
