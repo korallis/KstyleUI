@@ -28,6 +28,7 @@ return function(screen, item)
 	})
 	K.Modules.Enable("Skins")
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
+	rxp.RXPFrame.GuideName.text:SetText("1-6 Tirisfal Glades\nHorde Undead")
 	rxp.fake.guide({ { index = 11, elements = {
 		{ text = "Talk to Joshua", textOnly = true },
 		{ text = "Buy Refreshing Spring Water from him", textOnly = true },

@@ -28,6 +28,18 @@ for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, heigh
 		R.settle()
 		Check()
 		env.C_QuestLog.GetTitleForQuestID = title
+		local parts = ns.Quests.Parts()
+		local rect = parts.view.GetRect
+		parts.view.GetRect = function() error("restricted region measurement") end
+		local before = #K.Store.Data().devlog
+		ns.QuestCard.CheckDiagnostic()
+		local recorded = false
+		for i = before + 1, #K.Store.Data().devlog do
+			local message = K.Store.Data().devlog[i].message
+			if message:find("automatic=measurement-unavailable", 1, true) then recorded = true end
+		end
+		assert(recorded, "a restricted combat measurement records the unknown visibility and guide context")
+		parts.view.GetRect = rect
 		env.SetCombat(false)
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
