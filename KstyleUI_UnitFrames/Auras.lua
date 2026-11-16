@@ -153,6 +153,9 @@ function Auras.LayoutTile(tile)
 	if tile.slab then
 		Widgets.ShowSlice(tile.slab, slab)
 		tile.lineFrame:SetShown(slab)
+		if tile.dispelFrame then
+			tile.dispelFrame:SetShown(not slab)
+		end
 		tile.chrome:SetShown(not slab)
 	end
 	if slab then
@@ -302,15 +305,20 @@ local function Dispel(entry, button)
 	if not options then
 		return
 	end
+	local parent = entry.skin
 	if entry.slab then
-		button:AddDispelTypeTexture(entry.underline, { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false })
-		return
+		entry.dispelFrame = CreateFrame("Frame", nil, entry.skin)
+		entry.dispelFrame:SetAllPoints(entry.skin)
+		parent = entry.dispelFrame
 	end
-	local slice = Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+	local slice = Widgets.NineSlice(parent, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	Widgets.ShowSlice(slice, false)
 	entry.dispel = slice
 	for i = 1, #slice do
 		button:AddDispelTypeTexture(slice[i], options)
+	end
+	if entry.slab then
+		button:AddDispelTypeTexture(entry.underline, { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false })
 	end
 end
 

@@ -21,7 +21,7 @@ local view = ns.Frames.Get("target").views[1]
 local g = view.geometry
 local line = 6 * 22 + 5 * 2
 assert(g.aura and math.abs(g.aura.x + line - (g.health.x + g.health.w)) < 1e-6, "the debuff row ends at the bar's medallion end")
-assert(g.aura.y < 0, "the row stands over the slab")
+assert(g.aura.y == -38, "the 22-unit row stands 16 units over the slab; restore its -38 y")
 
 local c = view.auras.container
 local button = c._groups.debuffs.buttons[1]
@@ -37,7 +37,7 @@ assert(entry and entry.slab and entry.slab[5]:IsShown(), "the tile wears the aur
 assert(entry.slab[5]:GetTexture() == (Tokens.Texture("medAuraBorder")), "from the medAuraBorder slice")
 assert(not entry.chrome.visible, "the Frames chrome stays off")
 local dispel = button._aura.dispel
-assert(dispel and #dispel == 1 and dispel[1] == entry.underline, "the engine paints one dispel underline and no chamfer border")
+assert(dispel and dispel[#dispel] == entry.underline, "the engine paints the Medallions underline")
 assert(button._aura.dispelOptions.showWithoutDispelType == false, "a debuff with no dispel type draws no line")
 assert(entry.lineFrame:IsShown(), "the underline's frame shows")
 local _, lh = entry.underline:GetSize()
@@ -52,11 +52,27 @@ K.Options.Write("UnitFrames", "target.auraSize", 30)
 assert(Settings.Value("target", "auraSize") == 30, "a saved aura size wins over the Medallions default")
 K.Options.Write("UnitFrames", "target.auraSize", 27.6)
 
-K.Options.Write("HudStyle", "style", "frames")
-env.RunTimers()
-W.Settle(env)
+local function DispelColour(style)
+	local visible = 0
+	for _, texture in ipairs(button._aura.dispel) do
+		texture:SetVertexColor(0.2, 0.4, 0.8)
+		texture:Show()
+		if texture:IsVisible() then
+			assert(W.SameRGB(texture, 0.2, 0.4, 0.8), style .. ": the visible dispel texture keeps the engine's colour")
+			visible = visible + 1
+		end
+	end
+	assert(visible == (style == "medallions" and 1 or 9), style .. ": live switching must restore only the active style's dispel colour without a reload")
+end
+for _, style in ipairs({ "frames", "medallions", "orbs", "medallions", "frames" }) do
+	K.Options.Write("HudStyle", "style", style)
+	env.RunTimers()
+	W.Settle(env)
+	local slab = style == "medallions"
+	assert(entry.slab[5]:IsShown() == slab and entry.lineFrame:IsShown() == slab, style .. ": only Medallions shows the slab and underline")
+	assert(entry.chrome.visible ~= slab, style .. ": the chrome follows the live style")
+	DispelColour(style)
+	noErrors(style)
+end
 assert(Settings.Value("target", "auraSize") == 27.6, "Frames keeps its own aura size")
-assert(not entry.slab[5]:IsShown() and not entry.lineFrame:IsShown(), "Frames hides the slab and the underline")
-assert(entry.chrome.visible, "and shows its chrome again")
-noErrors("frames")
 print("ok unitframes medallions auras")

@@ -1,4 +1,4 @@
--- Slab.lua: the Medallions action slab: one dark slab enclosing bar 1 and bar 2 either side of the crest hub (one row each at 21:9 and wider, two at 16:9), with the experience strip along its lower edge, small matching slabs behind the pet and stance bars, and the hub's gunmetal ring seated over the gap, all at a strata below every slot; the recessed sockets the slots sit in, with the keybind shown only on a slot that holds an action; and the motion: the turning rune ring, breathing glow, sheen and particles, the combat sweep, the proc border with each slot's flipbook clipped to its socket, and the level-up burst.
+-- Slab.lua: Medallions action slabs, one row per side of the crest hub, pet and stance plates, sockets and effects.
 local _, ns = ...
 
 local K = KstyleUI
@@ -819,9 +819,10 @@ function Slab.PlaceSides(on)
 			local shown = on and bar:Shown() and not bar.holderHidden
 			if shown then
 				local pad = Widgets.Snap(plate, Slab.Side().pad)
+				local vertical = pad - (K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
-				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, pad)
-				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -pad)
+				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, vertical)
+				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -vertical)
 				LayPlate(plate)
 			end
 			plate:SetShown(shown)

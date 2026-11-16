@@ -61,5 +61,26 @@ for _, name in ipairs(Layouts.Names()) do
 		assert(not Layouts.Fits(name, width, height, maximum, enabled, crowded, "medallions"), label .. ": a unit frame placed on the hub does not fit")
 	end
 end
+do
+	local function Only(key, other)
+		return setmetatable({ [key] = true, [other or key] = true }, { __index = function() return false end })
+	end
+	for key, diameter in pairs({ ["unitframes.player"] = 86, ["unitframes.target"] = 86, ["unitframes.pet"] = 56 }) do
+		assert(Layouts.MEDALLIONS_MEDALS[key].d == diameter, key .. ": Fits must use the rendered medallion diameter")
+		local at = Layouts.Positions("DPS", "medallions", "16:9")
+		local right = key == "unitframes.target"
+		at[key] = { anchor = right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = 0, y = 200 }
+		assert(not Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at, "medallions"), key .. ": Fits must count the square medallion overhang at the screen edge")
+		at[key].x = right and -50 or 50
+		assert(Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at, "medallions"), key .. ": moving the whole medallion on screen must fit")
+	end
+	local at = Layouts.Positions("DPS", "medallions", "16:9")
+	at["unitframes.player"] = { anchor = "BOTTOMLEFT", x = 300, y = 200 }
+	at["unitframes.targettarget"] = { anchor = "BOTTOMLEFT", x = 90, y = 205 }
+	local enabled = Only("unitframes.player", "unitframes.targettarget")
+	assert(not Layouts.Fits("DPS", 1920, 1080, 1, enabled, at, "medallions"), "Fits must reject another slab on the medallion's square, even when the unit slabs are clear")
+	at["unitframes.targettarget"].x = 80
+	assert(Layouts.Fits("DPS", 1920, 1080, 1, enabled, at, "medallions"), "Fits must accept the same slabs once the medallion is clear")
+end
 assert(slots > 0, "the test checked slots")
 print("ok layout medallions hub: " .. slots .. " slot rects, " .. #SCREENS .. " screens, 3 presets")

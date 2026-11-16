@@ -53,6 +53,9 @@ for _, screen in ipairs(SCREENS) do
 
 	local _, rows, _, _, size, spacing = Layouts.MedallionsGroup(K.Scale.Aspect())
 	assert(rows == 1, what .. ": Layouts gives each group one row")
+	if K.Scale.Aspect() ~= "16:9" then
+		assert(size == 42 and spacing == 5, what .. ": 21:9 and wider must keep 42-unit sockets and five-unit gaps")
+	end
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
 	local hubRect = Rect(hub)
 	for _, bar in ipairs({ bar1, bar2 }) do

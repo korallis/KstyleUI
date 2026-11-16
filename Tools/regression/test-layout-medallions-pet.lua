@@ -1,4 +1,4 @@
--- test-layout-medallions-pet.lua: under Medallions the pet slab, medallion included, stays clear of the crest hub's footprint, of the action slab's plate under it and of the player's slab and medallion above it, for every preset and every aspect class (LEE-1535: it sat inside the hub's wings, tight on the slab; the wings retired in KSTY-110).
+-- test-layout-medallions-pet.lua: pet slab clearance above the player at 16:9 and outboard at wider aspects.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local _, K = W.New()

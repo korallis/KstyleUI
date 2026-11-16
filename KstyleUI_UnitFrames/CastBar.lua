@@ -1,4 +1,4 @@
--- CastBar.lua: cast bars for the player, target, focus and boss frames: a chamfered icon square and a glass bar, or under Medallions a square icon and a flat strip, run by duration objects through StatusBar:SetTimerDuration.
+-- CastBar.lua: duration-driven cast bars for player, target, focus and bosses, with icon-free Medallions slabs.
 local _, ns = ...
 
 local K = KstyleUI

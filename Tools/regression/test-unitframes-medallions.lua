@@ -72,6 +72,7 @@ assert(view.geometry.chrome == false, "the glass chrome is off")
 local m = view.medallion
 assert(m and m:IsShown(), "the player medallion shows")
 local g = view.geometry
+assert(g.medal.w == 86 and g.medal.h == 86, "the player medallion must remain an 86-unit square")
 assert(g.medal.x < 0 and g.medal.x + g.medal.w / 2 > 0, "the medallion hangs off the slab's outer end, centred just inside it")
 assert(g.medalSide == "LEFT" and not g.mirror, "player medallion on the left")
 assert(g.health.x > g.medal.x + g.medal.w / 2, "the bar starts clear of the medallion")
@@ -86,6 +87,7 @@ assert(m.sheenAnim:IsPlaying(), "the player portrait carries the sheen")
 
 local target = frames.target.views[1]
 local tm = target.medallion
+assert(target.geometry.medal.w == 86 and target.geometry.medal.h == 86, "the target medallion must remain an 86-unit square")
 assert(tm and tm:IsShown() and target.geometry.medalSide == "RIGHT" and target.geometry.mirror, "the target medallion sits on the right")
 assert(target.geometry.medal.x + target.geometry.medal.w > target.geometry.glass.w, "it hangs off the slab's right end")
 assert(target.healthText:GetJustifyH() == "LEFT", "the target's health number sits left in the bar, away from its medallion")
@@ -118,6 +120,7 @@ assert(env._portraits[tm.portrait] == "target", "a secret identity keeps the eng
 noErrors("secret class")
 
 local pet = frames.pet.views[1]
+assert(pet.geometry.medal.w == 56 and pet.geometry.medal.h == 56, "the pet medallion must remain a 56-unit square")
 assert(pet.medallion.plaque:IsShown(), "the pet medallion carries its plaque even with the pet's level setting off")
 
 player.secretIdentity = true

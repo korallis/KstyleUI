@@ -118,6 +118,9 @@ assert(CastBars.ElementLive("target"), "the target's cast runs in its own elemen
 assert(tcb.medal and tcb.geometry.medal and tcb.frame:IsShown(), "the target's cast bar wears Medallions too")
 assert(not target.castbar.frame:IsShown() and not target.castbar.active, "and the frame carries no second bar")
 assert(tcb.bar.texturePath == flat and tcb.bar.innerEdgeToken == "black" and not tcb.iconFrame:IsShown(), "flat fill, black edge, no icon")
+local targetW, slabH = tcb.frame:GetSize()
+assert(near(targetW, 300, 1) and near(slabH, 20, 0.6), "the target cast slab must stay 300 by 20")
+assert(near(tcb.frame:GetBottom() - element.frame:GetTop(), K.Widgets.Snap(tcb.frame, 6), 1), "the target cast stacks six units above the player cast")
 local _, targetH = tcb.bar:GetSize()
 assert(targetH <= 14 + 0.6, "its bar fits inside the 20-unit slab, got " .. tostring(targetH))
 for _, kind in ipairs({ "focus", "boss" }) do

@@ -47,7 +47,7 @@ do
 	local one, two = Layouts.Style("medallions", "DPS", BAR1), Layouts.Style("medallions", "DPS", BAR2)
 	assert(near(one.x, -two.x) and near(one.y, two.y), "bar 1 is the slab's left group and bar 2 its right, on one baseline")
 	local mock = 1 / K.Scale.DEFAULT_USER_SCALE
-	local unit, ring, pad = Layouts.MEDALLIONS_UNITS, Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_SLAB.pad
+	local ring, pad = Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_SLAB.pad
 	for _, class in ipairs(Layouts.ASPECTS) do
 		local at = Layouts.Positions("DPS", "medallions", class)
 		local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
@@ -65,19 +65,19 @@ do
 		assert(near(pet.width, 170) and near(pet.height, 34) and near(tot.width, 170) and near(tot.height, 34), label .. ": the pet and target of target are 170 by 34")
 		assert(near(pet.x, -tot.x) and near(pet.y, tot.y), label .. ": the pet and target of target mirror")
 		if class == Layouts.ASPECTS[1] then
-			assert(near(tot.x + tot.width / 2, target.x + target.width / 2) and near(tot.y, target.y + target.height + unit.stack), label .. ": under 21:9 the target of target stands over the target, clear of its debuff row")
+			assert(near(tot.x + tot.width / 2, target.x + target.width / 2) and near(tot.y, target.y + target.height + 46), label .. ": under 21:9 the target of target stands over the target, clear of its debuff row")
 		else
-			assert(near(tot.x - tot.width / 2, target.x + target.width / 2 + unit.medal + 12) and near(tot.y + tot.height / 2, target.y + target.height / 2), label .. ": at 21:9 and wider the target of target stands 12 outboard of the target medallion, centred on the slab")
+			assert(near(tot.x - tot.width / 2, target.x + target.width / 2 + 41 + 12) and near(tot.y + tot.height / 2, target.y + target.height / 2), label .. ": at 21:9 and wider the target of target stands 12 outboard of the target medallion, centred on the slab")
 		end
 		local cast, targetCast = Place("unitframes.castbar.player"), Place("unitframes.castbar.target")
 		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 10), label .. ": the player's cast bar is 300 by 20, centred 10 over the hub")
-		assert(targetCast.x == 0 and near(targetCast.y, cast.y + cast.height + unit.castStack), label .. ": the target's cast bar stacks over it")
+		assert(targetCast.x == 0 and near(targetCast.width, 300) and near(targetCast.height, 20) and near(targetCast.y - (cast.y + cast.height), 6), label .. ": the target cast must be 300 by 20 with a six-unit gap above the player cast")
 	end
 	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")
 	assert(near(boss.width, 280 * mock) and near(boss.height, 324 * mock), "the boss column is 280 wide and five 60-tall rows and four 6-unit gaps tall")
 	local wide = Layouts.Positions("DPS", "medallions", "21:9")
 	local narrow = Layouts.Positions("DPS", "medallions", "16:9")
-	assert(wide[BAR1].x <= narrow[BAR1].x, "the 21:9 slab is no narrower than the 16:9 one")
+	assert(wide[BAR1].x < narrow[BAR1].x, "the 21:9 slab is no narrower than the 16:9 one")
 	local _, _, width = Layouts.MedallionsGroup("21:9")
 	assert(near(wide[BAR2].x, Layouts.MEDALLIONS_HUB_GAP / 2 + width / 2), "at 21:9 bar 2 starts a hub gap from the centre line")
 end
@@ -142,4 +142,22 @@ do
 	end
 end
 
+do
+	local AB = dofile("Tools/regression/actionbars_env.lua")
+	for _, screen in ipairs({ {1280,720}, {1366,768}, {1920,1080}, {2383,1540}, {2560,1440}, {3456,2234} }) do
+		local width, height = screen[1], screen[2]
+		local env, K, ns = AB.New({ width = width, height = height, uiScale = 768 / 1080, size = "auto", fit = true, class = "WARLOCK" })
+		env._game.petExists = true
+		env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
+		env._game.forms = { {texture = 135036, spellID = 15473} }
+		AB.Enable(env, K)
+		K.Options.Write("HudStyle", "style", "medallions")
+		env.RunTimers()
+		local pet, stance = ns.Slab.sides.pet, ns.Slab.sides.stance
+		assert(pet and stance and pet:IsVisible() and stance:IsVisible(), "the pet and stance plates must both show")
+		assert(pet:GetTop() * pet:GetEffectiveScale() <= stance:GetBottom() * stance:GetEffectiveScale() + 1e-6,
+			width .. "x" .. height .. ": snapped pet and stance plates overlap; reserve their pixel padding")
+		assert(#env._errors == 0 and #env._blocked == 0, "side plates must stay error-free and combat-safe")
+	end
+end
 print("ok layout medallions")
