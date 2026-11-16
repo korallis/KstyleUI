@@ -11,13 +11,13 @@ ns.Slab = Slab
 local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
 local STRATA = "LOW"
-local RING, CREST, SOCKET = 150, 108, 118
+local RING, CREST, SOCKET = 150, 150, 134
 local MARGIN, HUB_LIFT, TEXT_FLOOR = 4, 8, 9
 local SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 local SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 local GLOW_SHARE, BLOOM_SHARE = 1.5, 1.08
 local BADGE, BADGE_RISE = 18, 4
-local CREST_REST = 0.9
+local CREST_REST = 1
 local ICON_INSET, ICON_CROP, KEYBIND = 3, 0.08, 10
 local PARTICLES, CALM_PARTICLES, PARTICLE_SIZE, PARTICLE_RISE = 10, 5, 7, 30
 local RUNE_TURN, COMBAT_SPEED = 90, 2.25

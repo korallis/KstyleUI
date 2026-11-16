@@ -60,6 +60,8 @@ A race master's emblem colour is checked by eye on the contact sheet, since only
 
 Portraits are reduced in linear light with premultiplied alpha and Lanczos, given a light unsharp, cut to a disc drawn at 8x and box-filtered, and given a 1 px dark rim on the disc's edge. Crests have alpha below 14 cut to nothing, are trimmed and refitted so the longest side is 900/1024 of the canvas, reduced the same way, and given a 1 px dark outline just outside the silhouette. Every edge is drawn at the shipped size rather than kept from the generated art (KSTY-87's lesson).
 
+The hub draws that crest canvas at 150 units, the same size as its ring, over a 134-unit socket. The baked silhouette's longest side is about 132 units, overlapping the ring's 118-unit opening beneath its bevel. The crest keeps full colour and alpha at rest and in combat. At the game's automatic size on 5120x1440 the canvas is about 188 physical pixels, below the shipped 256 px resolution; no re-bake or enlargement of the PNG is needed. `test-actionbars-medallions-hub.lua` pins the canvas-to-ring ratio, socket size and brightness through combat transitions on every CREW screen.
+
 ## Where the shipped prompts came from
 
 M2 (KSTY-92) generated the bulk set before `tables.py` landed, from its own prompt table built on KSTY-87 and KSTY-88's text: the 100 busts it painted and the 39 crest edits outside M1's proof set use those prompts, and the badges use `tables.BADGE_PROMPT`. The manifest records the exact prompt, references and job of every shipped file, so it, not `prompt_for()`, is the provenance of the shipped art. A reroll runs `generate`, which uses `tables.py`'s prompts; the judge then holds the new image to the same anchors.

@@ -1,4 +1,4 @@
--- test-actionbars-medallions-hub.lua: under the Medallions HUD style, for Lee's undead warlock with a pet out, the action slab stands behind bars 1 and 2 and the crest hub sits in the gap between them at every CREW screen: the hub, its rune ring and every hub effect draw at a lower strata than every slot and everything on it, the hub's footprint never overlaps a slot rect, the gunmetal ring draws over the crest, which rests at 0.9 so the slots stay brighter, the hub has no wings (KSTY-110), bars 1 and 2 stand in Layouts' rows (one at 21:9 and wider, two at 16:9) with no slot under Layouts' slot floor, and Frames brings the bars back with the slab and hub hidden.
+-- test-actionbars-medallions-hub.lua: the crest fills the hub at full brightness, below the ring and action slots on every screen.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SCREENS = {
@@ -29,9 +29,6 @@ end
 
 local LAYER = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT = 5 }
 
--- Below(region, text) -> whether the engine draws region under text: a lower frame level, or on the same frame a
--- lower draw layer, or the same layer at a lower sublevel. Regions on another frame at the same level have no
--- order the engine promises, so they count as drawing over.
 local function Below(region, text)
 	local a, b = region:GetParent(), text:GetParent()
 	if a:GetFrameLevel() ~= b:GetFrameLevel() then
@@ -143,8 +140,14 @@ for _, screen in ipairs(SCREENS) do
 	end
 	assert(hub.wings == nil, what .. ": the hub has no wings")
 	assert(Below(hub.crest, hub.ring) and Below(hub.socket, hub.crest), what .. ": the crest sits in its socket under the gunmetal ring")
-	local cr, cg, cb = hub.crest:GetVertexColor()
-	assert(math.abs(cr - 0.9) < 1e-6 and math.abs(cg - 0.9) < 1e-6 and math.abs(cb - 0.9) < 1e-6, what .. ": the crest rests at 0.9")
+	assert(math.abs(hub:GetWidth() - 150) < 1, what .. ": keep the 150-unit hub ring")
+	assert(math.abs(hub.crest:GetWidth() / hub:GetWidth() - 1) < 0.01, what .. ": size the crest canvas to the ring so its baked 900/1024 silhouette fills the opening")
+	assert(math.abs(hub.socket:GetWidth() / hub:GetWidth() - 134 / 150) < 0.01, what .. ": extend the socket under the ring around the enlarged crest")
+	for _, combat in ipairs({ false, true, false }) do
+		Slab.SetCombat(combat)
+		local cr, cg, cb, ca = hub.crest:GetVertexColor()
+		assert(cr == 1 and cg == 1 and cb == 1 and ca == 1 and hub.crest:GetAlpha() == 1, what .. ": keep the crest at full colour and alpha at rest, in combat and after combat")
+	end
 	assert(hub:GetScale() <= 1 and hub:GetScale() > 0.9, what .. ": the gap holds the full ring, scale " .. hub:GetScale())
 	do
 		local level = hub.level
