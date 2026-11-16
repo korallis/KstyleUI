@@ -246,9 +246,27 @@ class ChromeTest(unittest.TestCase):
 
     def test_the_kit_is_the_spec_list(self):
         spec = {"UnitSlab", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
-                "HubSocket", "CardEdge", "CardCorner", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
+                "HubSocket", "CardEdge", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
                 "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket"}
         self.assertEqual({c.name for c in kit.CHROME}, spec)
+
+    def test_geometry_is_the_spec(self):
+        self.assertEqual((kit.RING_UNITS, kit.RING_BAND, kit.ACCENT), (86, 8, 1.5), "KSTY-110 4.3: medallion 86, band 8")
+        self.assertEqual((kit.HUB_UNITS, kit.HUB_BAND), (150, 16), "KSTY-110 4.3: hub ring 150, band 16")
+        self.assertEqual((kit.SOCKET_UNITS, kit.SOCKET_INSET, kit.ICON_RADIUS), (42, 3, 2.5), "socket 42, icon inset 3, radius 2.5")
+        self.assertEqual(kit.MAP_BAND, 14)
+        face = (ROOT / "KstyleUI_Minimap" / "Face.lua").read_text(encoding="ascii")
+        outer = float(re.search(r"^local RING_OUTER = ([0-9.]+)", face, re.M).group(1))
+        self.assertEqual(kit.MAP_OPENING, outer, "the bezel opens where Face.lua sizes the map")
+
+    def test_ring_openings_measured_from_the_files(self):
+        for name, share in (("Ring128", 0.814), ("Ring256", 0.787)):
+            image = open_rgba(f"{kit.OUT}/{name}.png")
+            n = image.width
+            row = [image.getpixel((x, n // 2))[3] for x in range(n // 2, n)]
+            inner = next(i for i, a in enumerate(row) if a >= 128)
+            with self.subTest(name):
+                self.assertAlmostEqual(2 * inner / n, share, delta=1.5 / n * 2, msg="the portrait's share of the ring")
 
     def test_the_ceiling_is_the_lua_checks(self):
         lua = (ROOT / "Tools" / "regression" / "test-medallions-chrome-value.lua").read_text(encoding="utf-8")

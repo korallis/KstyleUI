@@ -115,6 +115,9 @@ KIT += [
         blend="BLEND"),
     Kit("RuneGlyphs", 256, 256, "glyphs", "src88_tex_rune",
         "The rune band's glyphs alone, as a white mask registered on RuneRing, so the class glow can be added on top (ADD, tinted)."),
+    Kit("CardCorner", 256, 256, "corner", "src88_tex_corner",
+        "A card's top-left steel corner: a diamond stud with two filigree arms tapering right and down. The arms' centre lines run 12.3% in from the top and left edges; mirror it with texture coordinates for the other corners.",
+        blend="BLEND"),
     Kit("SteelCard", 256, 256, "tile", "src88_tex_steel",
         "Seamless dark steel grain for cards and slabs: lighting removed, offset-blended so it tiles, then scaled to 256. Tiled at low alpha over a flat fill.",
         blend="BLEND"),
@@ -147,6 +150,7 @@ SETTINGS = {
     "wing": "the right wing cut from the hub, ring cut away, premultiplied linear-light Lanczos, light unsharp mask",
     "disc": "trimmed to its silhouette, premultiplied linear-light Lanczos, light unsharp mask, procedural 1 px outlines",
     "glyphs": "glyph strokes inside the band (brighter than their blurred surroundings, thresholded per 7.5 degree sector), as a white mask, linear-light Lanczos",
+    "corner": "squared on the arms' meeting point, premultiplied linear-light Lanczos, light unsharp mask",
     "tile": "low-frequency light removed, offset-blended to tile, linear-light Lanczos on a 3x3 repeat",
     "bar": "the source's row profile, the same in every column, linear-light resample",
 }
@@ -523,6 +527,14 @@ def bake(gen, root):
         out[..., :3][out[..., 3] > 0] = 255
         return Image.fromarray(out, "RGBA"), {"band": [0.815, 0.93]}
 
+    def corner(kit):
+        src = rgba(kit.source)
+        meet_x, meet_y, reach, side, pad = 100, 161, 128, 1040, 64
+        padded = np.pad(src, ((pad, pad + side), (pad, pad + side), (0, 0)))
+        y0, x0 = meet_y - reach + pad, meet_x - reach + pad
+        crop = padded[y0:y0 + side, x0:x0 + side]
+        return unsharp(blend_encode(steel_resize(crop, (kit.width, kit.height)))), {"arm_share": round(reach / side, 4)}
+
     def tile(kit):
         src = linear(np.asarray(Image.open(gen / f"{kit.source}.png").convert("RGB")).astype(np.float32) / 255)
         n = src.shape[0]
@@ -551,7 +563,7 @@ def bake(gen, root):
     recipes = {
         "loop": lambda k: flipbook(k, False), "oneshot": lambda k: flipbook(k, True), "radial": radial,
         "vignette": vignette, "plain": plain, "hstrip": lambda k: strip(k, True), "vstrip": lambda k: strip(k, False),
-        "sprites": sprites, "wing": wing, "disc": disc, "glyphs": glyphs, "tile": tile, "bar": bar,
+        "sprites": sprites, "wing": wing, "disc": disc, "glyphs": glyphs, "corner": corner, "tile": tile, "bar": bar,
     }
     report = {}
     for kit in KIT:
@@ -666,15 +678,13 @@ def draw_plaque(n, units):
     return _resolve(_shape_fill(x, y, n, n, d, u, 2, p.FillTop, p.FillBottom, p), (d >= 0).astype(float), n, n)
 
 
-def draw_card(w, h, units, origin_only=False):
-    """The card: radius 4, a 1-unit outline, a 3-unit rim ramp into medCardFill at its alpha. origin_only draws only
-    the top-left corner of a card far larger than the texture."""
+def draw_card(w, h, units):
+    """The card: radius 4, a 1-unit outline, a 3-unit rim ramp into medCardFill at its alpha."""
     import numpy as np
     p, u = _Palette(), units
     x, y = _canvas(w, h)
-    far = (64 * w, 64 * h) if origin_only else (w, h)
-    d = _inset(x, y, 0, 0, far[0], far[1], 4 * u)
-    rgb = _shape_fill(x, y, far[0], far[1], d, u, 3, p.CardFill, p.CardFill, p)
+    d = _inset(x, y, 0, 0, w, h, 4 * u)
+    rgb = _shape_fill(x, y, w, h, d, u, 3, p.CardFill, p.CardFill, p)
     fill = p.alpha("CardFill")
     alpha = np.where(d < u, 1.0, 1 - (1 - fill) * np.clip((d - u) / (3 * u), 0, 1)) * (d >= 0)
     return _resolve(rgb, alpha, w, h)
@@ -856,9 +866,6 @@ CHROME = [
     Chrome("CardEdge", 128, 128, lambda: draw_card(128, 128, SLAB_DENSITY),
            "A whole card: radius 4 units, a 1-unit black outline, a 3-unit rim ramp into medCardFill at its 0.94 alpha. Nine-slice, 2 texels a unit; set the vertex alpha for chat's 0.80.",
            "medCardEdge", 16, SLAB_DENSITY),
-    Chrome("CardCorner", 256, 256, lambda: draw_card(256, 256, 256 / 20, origin_only=True),
-           "A card's plain rounded top-left corner, drawn at 20 units: CardEdge's corner (radius 4, outline, rim, fill) with the edges running on. Mirror it with texture coordinates for the other corners.",
-           "medCardCorner"),
     Chrome("AuraBorder", 64, 64, lambda: draw_aura_border(64),
            "Aura tile border: radius 2.5 units, a 1-unit black outline and a 1-unit rim lit at the top, the opening clear with a 1.5-unit radius. Nine-slice, 2 texels a unit.",
            "medAuraBorder", 8, SLAB_DENSITY),
