@@ -149,7 +149,7 @@ class PortableRunnerTest(unittest.TestCase):
                     contextlib.redirect_stdout(output):
                 self.assertEqual(self.runner.main(["--margins"]), expected)
             self.assertEqual(run.call_args.args[3], max(120, 5 * (allowance or 20)))
-            self.assertIn(f"{cpu} CPU s", output.getvalue())
+            self.assertIn(f"cpu={cpu:.6f}", output.getvalue())
             self.assertIn("budget 20 CPU s", output.getvalue())
             self.assertIn(f"failed {expected}", output.getvalue())
 

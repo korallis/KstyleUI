@@ -63,7 +63,7 @@ Each completed file prints `progress: N/T test files done`. Each file also print
 
 ### Margins
 
-`bash Tools/regression/run-all.sh --margins` runs files serially and lists those using at least 80% of their CPU or peak memory budget. Wall time does not determine this list. Runs that are not budgeted have no budget margins.
+`bash Tools/regression/run-all.sh --margins` runs files serially and lists those using at least 80% of their CPU or peak memory budget. Wall time does not determine this list. Runs that are not budgeted have no budget margins. Allowance removal is a dedicated serial `--margins` calibration review: propose deleting a line only when the file is below 20 CPU seconds on every sampled Mac. Normal shard runs never expire an allowance from a single fast sample. LEE-5827 owns reducing these files and removing the lines; the list may only shrink.
 
 ## Interface size in tests
 
@@ -122,9 +122,9 @@ CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no
 
 Each test file has a **20 CPU second** and **4096 MB** budget under the default PUC Lua 5.1.5 interpreter. CPU time is user plus system time: POSIX `wait4` supplies it alongside `ru_maxrss`; Windows `GetProcessTimes` and `PeakPagefileUsage` supply process CPU time and peak committed memory. Peak committed memory cannot be hidden by working-set trimming. Measurements are collected after exit; missing measurements print `n/a` and an explicit `not budgeted` note. Wall time remains in the summary and sharding weights, so the scheduler is unchanged.
 
-`CI=true` does not change the budgets. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying them. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. Functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
+`CI=true` does not change the budgets. `cpu_allowances.tsv` holds the measured LEE-5827 exceptions: name, CPU seconds, ticket, one file per line. Each allowance is the worst observed Mac CPU time plus 25%, rounded up to a whole second. A listed file fails above its allowance; an unlisted file fails above 20 seconds. The runner rejects any added or changed baseline line against `origin/staging`, once the initial approved list has merged; deletions remain allowed. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying them. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. Functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
 
-A separate **120 second wall-clock hang guard** applies to every interpreter. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
+The wall-clock hang guard is **max(120 seconds, five times the file CPU limit)**, including its allowance and platform factor. The 120-second floor applies when a run is not budgeted. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
 
 The perf tests retain their existing per-call clock measurements and allocation checks. On POSIX, `os.clock` measures CPU time: budgets must be at least **five times** the measured PUC Lua 5.1 time, including in CI. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; per-call time and allocation checks still run. LuaJIT also skips the PUC headroom check rather than estimating PUC speed.
 

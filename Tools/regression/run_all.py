@@ -259,12 +259,19 @@ def hang_limit(seconds):
 def load_allowances():
     path = HERE / "cpu_allowances.tsv"
     lines = path.read_text(encoding="ascii").splitlines() if path.exists() else []
-    ref = subprocess.run(["git", "cat-file", "-e", "origin/staging"], capture_output=True)
+    base_ref = "HEAD^1" if os.environ.get("GITHUB_ACTIONS") == "true" else "origin/staging"
+    ref = subprocess.run(["git", "cat-file", "-e", base_ref], capture_output=True)
     if ref.returncode:
-        raise ValueError("fetch origin/staging before checking the shrinking CPU allowance list")
-    base = subprocess.run(["git", "show", "origin/staging:Tools/regression/cpu_allowances.tsv"],
-                          capture_output=True, text=True)
-    if base.returncode == 0 and not set(lines).issubset(base.stdout.splitlines()):
+        raise ValueError("fetch {0} before checking the shrinking CPU allowance list".format(base_ref))
+    entry = subprocess.run(["git", "ls-tree", base_ref, "--", "Tools/regression/cpu_allowances.tsv"],
+                           capture_output=True, text=True)
+    if entry.returncode:
+        raise ValueError("cannot read origin/staging CPU allowance baseline")
+    base = subprocess.run(["git", "show", base_ref + ":Tools/regression/cpu_allowances.tsv"],
+                          capture_output=True, text=True) if entry.stdout else None
+    if base is not None and base.returncode:
+        raise ValueError("cannot read origin/staging CPU allowance baseline")
+    if base is not None and not set(lines).issubset(base.stdout.splitlines()):
         raise ValueError("cpu_allowances.tsv may only shrink; make the test cheaper (LEE-5827)")
     allowances = {}
     for line in lines:
@@ -401,7 +408,7 @@ def main(argv):
     print(label)
     print(("budget {0} CPU s and {1:.0f} MB per test file".format(fmt(seconds), megabytes) if measured else
            "not budgeted: requires default PUC Lua 5.1.5 (_VERSION=Lua 5.1, jit=nil); LUA overrides are not budgeted") +
-          "; {0} s wall-clock hang guard".format(fmt(HANG_GUARD)), flush=True)
+          "; wall-clock hang guard max({0} s, 5 x file CPU limit)".format(fmt(HANG_GUARD)), flush=True)
     if not measured:
         seconds = megabytes = None
     start_load = load_now()
@@ -495,12 +502,13 @@ def main(argv):
     for path in ranked[:SLOWEST]:
         print("  {0:6.1f} s {1:>6} MB  {2}".format(results[path]["seconds"], memory_text(results[path]["mb"]), Path(path).stem))
     if args.margins:
-        near = [path for path in ranked if near_budget(results[path], seconds, megabytes)]
+        near = [path for path in ranked if near_budget(results[path], allowances.get(Path(path).name, seconds), megabytes)]
         print("within {0:.0f}% of the budget, run alone:".format(MARGIN * 100) + ("" if near else " none"))
         for path in near:
             result = results[path]
+            limit = allowances.get(Path(path).name, seconds)
             print("  {0} CPU s ({1}%) {2:>6} MB ({3}%), load {4}  {5}".format(
-                fmt(result["cpu"]), fmt(100 * result["cpu"] / seconds) if result["cpu"] is not None else "n/a", memory_text(result["mb"]),
+                fmt(result["cpu"]), fmt(100 * result["cpu"] / limit) if result["cpu"] is not None else "n/a", memory_text(result["mb"]),
                 fmt(100 * result["mb"] / megabytes) if result["mb"] is not None else "n/a",
                 fmt(result["load"]), Path(path).stem))
     total = sum(result["seconds"] for result in results.values())
