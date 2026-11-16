@@ -6,3 +6,4 @@ Tools/data/db2cache/
 __pycache__/
 Tools/render/out/
 specs/
+Tools/regression/.tmp/
