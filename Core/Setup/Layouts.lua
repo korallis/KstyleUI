@@ -822,7 +822,7 @@ end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
-Layouts.MEDALLIONS_WING = { reach = 254, lift = 2, top = 64 }
+Layouts.MEDALLIONS_WING = { reach = 254, lift = 0, top = 64 }
 
 function Layouts.MedallionsGroup(class)
 	local columns, rows = 12, 1

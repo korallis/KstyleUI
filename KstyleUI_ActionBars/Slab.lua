@@ -877,9 +877,13 @@ function Slab.Dress(b)
 		b.medFrame = SlotLayer(b, 2, "medSlot", b)
 		b.medChecked = SlotLayer(b, 3, "medSlotChecked", b)
 		b.medHover = b.hoverLayer and SlotLayer(b.hoverLayer, 2, "medSlotHighlight", b)
-		b.medPushed = b.pressLayer and SlotLayer(b.pressLayer, 2, "medSlotPushed", b)
-		if type(hooksecurefunc) == "function" and type(b.SetSelected) == "function" then
-			hooksecurefunc(b, "SetSelected", Slab.Dress)
+		b.medPushed = SlotLayer(b, 3, "medSlotPushed", b)
+		if type(hooksecurefunc) == "function" then
+			for _, method in ipairs({ "SetSelected", "AnimatePress" }) do
+				if type(b[method]) == "function" then
+					hooksecurefunc(b, method, Slab.Dress)
+				end
+			end
 		end
 	end
 	b.medFrame:SetShown(on)
@@ -887,9 +891,7 @@ function Slab.Dress(b)
 	if b.medHover then
 		b.medHover:SetShown(on)
 	end
-	if b.medPushed then
-		b.medPushed:SetShown(on)
-	end
+	b.medPushed:SetShown(on and b.pressHeld == true)
 end
 
 local function OnStyle()

@@ -235,7 +235,14 @@ do
 
 	local b = AB.Button(ns, "bar1", 1)
 	assert(b.medFrame and b.medFrame:IsShown() and b.medFrame:GetTexture() == K.Tokens.Texture("medSlot"), "the slot wears M3's slot frame")
-	assert(b.medHover:GetParent() == b.hoverLayer and b.medPushed:GetParent() == b.pressLayer, "the highlight and pushed frames ride the slot's hover and press layers")
+	assert(b.medHover:GetParent() == b.hoverLayer, "the highlight frame rides the slot's hover layer")
+	assert(not b.medPushed:IsShown(), "the pushed frame waits for a press")
+	K.Motion.SetLevel("off")
+	b:GetScript("OnClick")(b, "LeftButton", true)
+	assert(b.medPushed:IsShown(), "a slot held down shows the pushed frame, with motion off too")
+	b:GetScript("OnClick")(b, "LeftButton", false)
+	assert(not b.medPushed:IsShown(), "and releasing it hides the pushed frame")
+	K.Motion.SetLevel("full")
 	assert(not b.medChecked:IsShown(), "the checked frame waits for a checked action")
 	b:SetSelected(true)
 	assert(b.medChecked:IsShown(), "a checked action shows the checked frame")
@@ -243,7 +250,7 @@ do
 	assert(not b.medChecked:IsShown(), "and hides it again")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
-	assert(not b.medFrame:IsShown() and not b.medHover:IsShown(), "back to Frames the slot frames hide")
+	assert(not b.medFrame:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
