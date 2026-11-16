@@ -69,6 +69,10 @@ function Vehicle.Update()
 	if bar and K.HudStyle.Current() == "medallions" then
 		local slab = ns.Slab.Spec()
 		button:SetPoint("TOPLEFT", bar.holder, "BOTTOMLEFT", 0, -Widgets.Snap(button, slab.stripGap + slab.strip + slab.bottom + Tokens.Size("gapSmall")))
+	elseif bar and K.HudStyle.Current() == "orbs" then
+		local width = bar.holder:GetWidth()
+		local art = K.Setup.Layouts.OrbsTray(width)
+		button:SetPoint("LEFT", bar.holder, "RIGHT", Widgets.Snap(button, art.ringX + art.ring / 2 - width / 2 + Tokens.Size("gapMedium")), 0)
 	elseif bar then
 		local pad = ns.Config("tray") == true and K.Setup.Layouts.TRAY_PAD or 0
 		local stance = ns.bars.stance
