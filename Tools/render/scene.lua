@@ -933,6 +933,8 @@ end
 
 -- Walk ------------------------------------------------------------------------------------------------
 
+local DRAW = setmetatable({}, { __mode = "k" })
+
 local function sortKey(a, b)
 	if a.strata ~= b.strata then
 		return a.strata < b.strata
@@ -1575,6 +1577,7 @@ function Scene.Build(env, opts)
 
 	table.sort(items, sortKey)
 	for _, item in ipairs(items) do
+		DRAW[item] = { item.strata, item.level, item.layer, item.sublevel }
 		item.strata, item.level, item.layer, item.sublevel, item.seq = nil, nil, nil, nil, nil
 	end
 
@@ -1628,14 +1631,21 @@ end
 
 -- Merge(scenes) -> one scene whose items are every scene's items in order, for modules drawn in separate environments,
 -- with their animation clock (time) when every scene shares one.
-function Scene.Merge(scenes)
+-- Merge(scenes, ordered) -> one scene drawing every scene's items in turn; with ordered, the items sort across
+-- scenes by strata, frame level, draw layer and sublevel as the client stacks them, scene order breaking ties.
+function Scene.Merge(scenes, ordered)
 	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 }, time = scenes[1].time }
+	local turn, key = {}, {}
 	for _, scene in ipairs(scenes) do
 		if scene.time ~= out.time then
 			out.time = nil
 		end
+		local last = { 0, 0, 0, 0 }
 		for _, item in ipairs(scene.items) do
 			out.items[#out.items + 1] = item
+			turn[item] = #out.items
+			last = DRAW[item] or last
+			key[item] = last
 		end
 		for _, line in ipairs(scene.log) do
 			out.log[#out.log + 1] = line
@@ -1643,6 +1653,17 @@ function Scene.Merge(scenes)
 		for key, n in pairs(scene.skipped) do
 			out.skipped[key] = (out.skipped[key] or 0) + n
 		end
+	end
+	if ordered then
+		table.sort(out.items, function(a, b)
+			local x, y = key[a], key[b]
+			for i = 1, 4 do
+				if x[i] ~= y[i] then
+					return x[i] < y[i]
+				end
+			end
+			return turn[a] < turn[b]
+		end)
 	end
 	return out
 end
