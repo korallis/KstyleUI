@@ -232,7 +232,16 @@ class InstallTest(unittest.TestCase):
     def test_install_refuses_a_symlinked_icons_folder_or_file(self):
         elsewhere = Path(self.tmp.name) / "elsewhere"
         elsewhere.mkdir()
-        (self.wow / "Interface" / "Icons").symlink_to(elsewhere)
+        try:
+            (self.wow / "Interface" / "Icons").symlink_to(elsewhere, target_is_directory=True)
+        except NotImplementedError as error:
+            print(f"skip: {self.id()}: symbolic links are unavailable: {error}")
+            self.skipTest(f"symbolic links are unavailable: {error}")
+        except OSError as error:
+            if getattr(error, "winerror", None) != 1314:
+                raise
+            print(f"skip: {self.id()}: symbolic links require a privilege this Windows user lacks: {error}")
+            self.skipTest(f"symbolic links require a privilege this Windows user lacks: {error}")
         with self.assertRaisesRegex(SystemExit, "symbolic link"):
             self.install()
         self.assertEqual(list(elsewhere.iterdir()), [])

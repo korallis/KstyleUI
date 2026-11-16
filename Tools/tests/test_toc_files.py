@@ -39,7 +39,7 @@ class TocFilesTest(unittest.TestCase):
         files = [f for f in toc_files(FIXTURE) if f.endswith(".lua")]
         self.assertEqual(
             files,
-            [f"{FIXTURE}/Core/A.lua", f"{FIXTURE}/Core/Sub/B.lua", f"{FIXTURE}/Fix_Mod/C.lua"],
+            [(FIXTURE / rel).as_posix() for rel in ("Core/A.lua", "Core/Sub/B.lua", "Fix_Mod/C.lua")],
         )
 
     def test_lists_xml_files_before_their_contents(self):
@@ -60,7 +60,7 @@ class TocFilesTest(unittest.TestCase):
             b'<Ui>\r\n<!-- <Script file="Old.lua"/> -->\r\n<Script file="New.lua"/>\r\n'
             b'<Texture file="Interface\\Buttons\\WHITE8X8"/>\r\n</Ui>\r\n',
         )
-        self.assertEqual(toc_files(self.root), [f"{self.root}/Load.xml", f"{self.root}/New.lua"])
+        self.assertEqual(toc_files(self.root), [(self.root / rel).as_posix() for rel in ("Load.xml", "New.lua")])
 
     def test_check_toc_passes_fixture(self):
         code, out = self.check(FIXTURE)

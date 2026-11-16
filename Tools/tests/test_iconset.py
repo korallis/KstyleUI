@@ -4,15 +4,16 @@ The loose-file pack (names, pack, install) is tested in test_iconpack.py.
 The generate loop runs with a fake image service, so the tests spend no credits and need no Pillow.
 """
 
+import _thread
+import concurrent.futures
 import json
-import os
 import re
-import signal
 import sys
 import tempfile
-import time
+import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "icons"))
 
@@ -342,8 +343,8 @@ class ExtractTest(unittest.TestCase):
 
     def test_the_tool_reads_the_game_folder_by_file_id(self):
         command = iconset.tacttool_command(132337, Path("/cache/132337.blp"))
-        self.assertEqual(command[1:], ["-p", "wowf", "-r", "eu", "-d", "/Applications/World of Warcraft",
-                                       "-m", "id", "-i", "132337", "-o", "/cache/132337.blp"])
+        self.assertEqual(command[1:], ["-p", "wowf", "-r", "eu", "-d", str(Path("/Applications/World of Warcraft")),
+                                     "-m", "id", "-i", "132337", "-o", str(Path("/cache/132337.blp"))])
 
 
 class FaithfulGenerateTest(unittest.TestCase):
@@ -587,16 +588,26 @@ class GenerateTest(unittest.TestCase):
         groups = [group(i, f"Spell {i}") for i in range(1, 6)]
         service = FakeService()
         real_run = service.run
+        started, release = threading.Event(), threading.Event()
+        real_stop = iconset.Budget.stop
 
         def interrupted(prompt, references=()):
             if not service.prompts:
-                time.sleep(0.2)  # let the main thread finish queueing and wait on the first icon
-                os.kill(os.getpid(), signal.SIGINT)  # Ctrl+C reaches the main thread, not this worker
-                time.sleep(0.3)
+                started.set()
+                self.assertTrue(release.wait(10), "the interrupt handler did not release the running icon")
             return real_run(prompt)
 
+        def interrupt(*args, **kwargs):
+            self.assertTrue(started.wait(10), "the first icon never started")
+            _thread.interrupt_main()
+
+        def stop(budget):
+            real_stop(budget)
+            release.set()
+
         service.run = interrupted
-        with self.assertRaises(KeyboardInterrupt):
+        with mock.patch.object(concurrent.futures.Future, "result", interrupt), \
+                mock.patch.object(iconset.Budget, "stop", stop), self.assertRaises(KeyboardInterrupt):
             run(groups, service, self.raw)
         self.assertEqual(len(service.prompts), 1)
         self.assertEqual([a["verdict"] for a in self.record(1)["attempts"]], ["accepted"])
@@ -675,7 +686,7 @@ class SetBPackageTextTest(unittest.TestCase):
         rows = [line for line in text.splitlines() if line.startswith("| `")]
         self.assertEqual(rows[0], f"| `132337` | Charge | gpt_image_2_5 | subject_reference | Image 1 is \"Charge\" | {digest} | job-3 | 2026-11-07 |")
         self.assertIn("TACTTool", text)
-        self.assertIn("/Applications/World of Warcraft", text)
+        self.assertIn(str(Path("/Applications/World of Warcraft")), text)
         self.assertIn(FAITHFUL.reference, text)
         self.assertIn(FAITHFUL.style, text)
         self.assertIn(SET_B.style, text)
@@ -864,7 +875,7 @@ class JudgeWrapperTest(unittest.TestCase):
         judge = iconset.make_judge(text=False, check=Check(None), icon_set=FAITHFUL,
                                    sources={10: {"png": "/cache/10.png", "blp_sha256": "a"}})
         self.assertEqual(judge(Path("/raw/10-2.png")), [])
-        self.assertEqual(seen, {"raster": "raster:/raw/10-2.png", "reference": "raster:/cache/10.png"})
+        self.assertEqual(seen, {"raster": f"raster:{Path('/raw/10-2.png')}", "reference": "raster:/cache/10.png"})
 
     def test_a_judge_error_records_a_failed_attempt_and_keeps_the_run_going(self):
         with tempfile.TemporaryDirectory() as tmp:

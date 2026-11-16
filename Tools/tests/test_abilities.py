@@ -155,7 +155,7 @@ class LoadCsvTest(unittest.TestCase):
 
     def write(self, name, text):
         path = self.root / name
-        path.write_text(text, encoding="utf-8")
+        path.write_text(text, encoding="utf-8", newline="")
         return path
 
     def test_normalises_array_headers(self):
@@ -266,6 +266,10 @@ class MainTest(unittest.TestCase):
         self.assertFalse(self.out.exists())
 
     def test_written_file_follows_umask(self):
+        if os.name == "nt":
+            reason = "Windows does not apply POSIX umask permission bits"
+            print(f"skip: {self.id()}: {reason}")
+            self.skipTest(reason)
         previous = os.umask(0o022)
         try:
             abilities.write_json_atomic(self.out, {"ok": True})

@@ -75,7 +75,7 @@ def save_cache(path, records):
     tests.update(records)
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".tmp")
-    with os.fdopen(handle, "w", encoding="utf-8") as out:
+    with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as out:
         json.dump({"version": VERSION, "tests": tests}, out, indent=1, sort_keys=True)
         out.write("\n")
     os.replace(temp, path)

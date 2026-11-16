@@ -4,12 +4,12 @@ import contextlib
 import io
 import json
 import os
-import stat
 import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "icons"))
 
@@ -72,6 +72,16 @@ class CascExportTest(unittest.TestCase):
         self.log = self.root / "log.jsonl"
         self.tacttool = self.script("TACTTool", FAKE_TACTTOOL)
         self.dotnet = self.script("dotnet", FAKE_DOTNET)
+        run = casc_export.subprocess.run
+
+        def run_script(command, **kwargs):
+            if Path(command[0]) in (self.tacttool, self.dotnet):
+                command = [sys.executable, *command]
+            return run(command, **kwargs)
+
+        patch = mock.patch.object(casc_export.subprocess, "run", side_effect=run_script)
+        patch.start()
+        self.addCleanup(patch.stop)
         self.dbc2csv = self.root / "DBC2CSV.dll"
         self.dbc2csv.write_bytes(b"")
         self._env = dict(os.environ)
@@ -85,8 +95,7 @@ class CascExportTest(unittest.TestCase):
     def script(self, name, body):
         path = self.root / "bin" / name
         path.parent.mkdir(exist_ok=True)
-        path.write_text(f"#!{sys.executable}\n" + textwrap.dedent(body), encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        path.write_text(textwrap.dedent(body), encoding="utf-8", newline="\n")
         return path
 
     def run_main(self, *extra, build="1.60.1.70840"):

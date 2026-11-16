@@ -34,11 +34,12 @@ def lua():
 
 class RecordFromTraceTest(unittest.TestCase):
     def test_keeps_repository_files_and_drops_outside_ones(self):
-        root = "/work/repo"
-        text = "\n".join([
-            "f Core/Init.lua", "f ./Core/./Init.lua", "f /work/repo/Core/Scale.lua", "f /tmp/other.lua", "f ../up.lua",
-        ])
-        result = affected.record_from_trace(text, root)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            text = "\n".join([
+                "f Core/Init.lua", "f ./Core/./Init.lua", f"f {root / 'Core/Scale.lua'}", f"f {Path(tmp) / 'other.lua'}", "f ../up.lua",
+            ])
+            result = affected.record_from_trace(text, root)
         self.assertEqual(result["files"], ["Core/Init.lua", "Core/Scale.lua"])
 
     def test_a_listing_records_its_folder_and_glob(self):
@@ -161,6 +162,7 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(sorted(affected.load_cache(self.path)), ["a", "b"])
         affected.save_cache(self.path, {"a": record(["z"])})
         self.assertEqual(affected.load_cache(self.path)["a"]["files"], ["z"])
+        self.assertNotIn(b"\r\n", self.path.read_bytes(), 'cache JSON must use LF: open writers with newline="\\n"')
 
     def test_a_missing_corrupt_or_old_cache_is_empty(self):
         self.assertEqual(affected.load_cache(self.path), {})

@@ -99,7 +99,8 @@ class GalleryTest(unittest.TestCase):
         manifest = json.loads((out / "kstyle_manifest.json").read_text(encoding="utf-8"))
         self.assertEqual([entry["file"] for entry in manifest], ["kstyle_a_one.png", "kstyle_a_two.png"])
         one = manifest[0]
-        self.assertEqual((one["title"], one["grade"], one["reference"], one["scene"]), ("A_One", "window", "../refs/ref_chat.png", "gallery_a"))
+        self.assertEqual((one["title"], one["grade"], Path(one["reference"]), one["scene"]),
+                         ("A_One", "window", Path("../refs/ref_chat.png"), "gallery_a"))
         self.assertEqual(one["match"], "fill and edge as the mockup")
         self.assertTrue((out / one["reference"]).resolve().exists())
         crop = Image.open(out / "kstyle_a_one.png")

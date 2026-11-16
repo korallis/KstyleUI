@@ -10,6 +10,13 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / "dev" / "link-addons.sh"
 
 
+def shell_path(path):
+    path = Path(path)
+    if os.name == "nt" and path.drive:
+        return "/" + path.drive[0].lower() + path.as_posix()[2:]
+    return str(path)
+
+
 class LinkAddonsTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -25,13 +32,28 @@ class LinkAddonsTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def run_script(self, *args, **changes):
-        env = dict(os.environ, KSTYLEUI_LIVE=str(self.live), WOW_ADDONS=str(self.addons))
+        env = dict(os.environ, KSTYLEUI_LIVE=shell_path(self.live), WOW_ADDONS=shell_path(self.addons),
+                   MSYS="winsymlinks:nativestrict")
         for key, value in changes.items():
             if value is None:
                 env.pop(key, None)
             else:
-                env[key] = value
+                env[key] = shell_path(value)
         return subprocess.run([os.environ.get("TEST_BASH", "bash"), str(SCRIPT), *args], env=env, capture_output=True, text=True)
+
+    def require_symlinks(self):
+        probe = self.tmp / "symlink-probe"
+        try:
+            probe.symlink_to(self.live, target_is_directory=True)
+        except NotImplementedError as error:
+            print(f"skip: {self.id()}: symbolic links are unavailable: {error}")
+            self.skipTest(f"symbolic links are unavailable: {error}")
+        except OSError as error:
+            if getattr(error, "winerror", None) != 1314:
+                raise
+            print(f"skip: {self.id()}: symbolic links require a privilege this Windows user lacks: {error}")
+            self.skipTest(f"symbolic links require a privilege this Windows user lacks: {error}")
+        probe.unlink()
 
     def make_checkout(self, path):
         (path / "KstyleUI_Bar").mkdir(parents=True)
@@ -43,6 +65,7 @@ class LinkAddonsTest(unittest.TestCase):
         return os.readlink(path) if path.is_symlink() else None
 
     def test_links_core_and_modules(self):
+        self.require_symlinks()
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.link("KstyleUI"), str(self.live))
@@ -50,6 +73,7 @@ class LinkAddonsTest(unittest.TestCase):
         self.assertFalse((self.addons / "KstyleUI_Spike").exists())
 
     def test_second_run_changes_nothing(self):
+        self.require_symlinks()
         self.run_script()
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -57,16 +81,19 @@ class LinkAddonsTest(unittest.TestCase):
         self.assertEqual(self.link("KstyleUI"), str(self.live))
 
     def test_spike_flag_links_spike(self):
+        self.require_symlinks()
         self.run_script("--spike")
         self.assertEqual(self.link("KstyleUI_Spike"), str(self.live / "Tools/spikes/KstyleUI_Spike"))
 
     def test_replaces_a_wrong_symlink(self):
-        (self.addons / "KstyleUI").symlink_to(self.tmp)
+        self.require_symlinks()
+        (self.addons / "KstyleUI").symlink_to(self.tmp, target_is_directory=True)
         self.run_script()
         self.assertEqual(self.link("KstyleUI"), str(self.live))
 
     def test_relative_live_path_links_an_absolute_target(self):
-        env = dict(os.environ, KSTYLEUI_LIVE="live", WOW_ADDONS=str(self.addons))
+        self.require_symlinks()
+        env = dict(os.environ, KSTYLEUI_LIVE="live", WOW_ADDONS=shell_path(self.addons), MSYS="winsymlinks:nativestrict")
         bash = os.environ.get("TEST_BASH", "bash")
         result = subprocess.run([bash, str(SCRIPT)], env=env, cwd=self.tmp, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -79,18 +106,19 @@ class LinkAddonsTest(unittest.TestCase):
         (real / "keep.txt").write_text("keep")
         result = self.run_script()
         self.assertEqual(result.returncode, 1)
-        self.assertIn(str(real), result.stdout + result.stderr)
+        self.assertIn(shell_path(real), result.stdout + result.stderr)
         self.assertTrue((real / "keep.txt").exists())
         self.assertFalse((self.addons / "KstyleUI_Foo").exists())
 
     def test_dry_run_changes_nothing(self):
         result = self.run_script("--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"link {self.addons}/KstyleUI -> {self.live}", result.stdout)
-        self.assertIn(f"link {self.addons}/KstyleUI_Foo -> {self.live}/KstyleUI_Foo", result.stdout)
+        self.assertIn(f"link {shell_path(self.addons)}/KstyleUI -> {shell_path(self.live)}", result.stdout)
+        self.assertIn(f"link {shell_path(self.addons)}/KstyleUI_Foo -> {shell_path(self.live)}/KstyleUI_Foo", result.stdout)
         self.assertEqual(list(self.addons.iterdir()), [])
 
     def test_defaults_to_kstyleui_in_home(self):
+        self.require_symlinks()
         checkout = self.make_checkout(self.tmp / "home" / "KstyleUI")
         result = self.run_script(HOME=str(self.tmp / "home"), KSTYLEUI_LIVE=None)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -98,6 +126,7 @@ class LinkAddonsTest(unittest.TestCase):
         self.assertEqual(self.link("KstyleUI_Bar"), str(checkout / "KstyleUI_Bar"))
 
     def test_kstyleui_live_overrides_the_default(self):
+        self.require_symlinks()
         self.make_checkout(self.tmp / "home" / "KstyleUI")
         result = self.run_script(HOME=str(self.tmp / "home"))
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -110,7 +139,7 @@ class LinkAddonsTest(unittest.TestCase):
             with self.subTest(args=args):
                 result = self.run_script(*args)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertIn(str(self.live), result.stderr)
+                self.assertIn(shell_path(self.live), result.stderr)
                 self.assertFalse(self.live.exists())
                 self.assertEqual(list(self.addons.iterdir()), [])
 
@@ -120,7 +149,7 @@ class LinkAddonsTest(unittest.TestCase):
             with self.subTest(args=args):
                 result = self.run_script(*args)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertIn(str(self.live), result.stderr)
+                self.assertIn(shell_path(self.live), result.stderr)
                 self.assertEqual(list(self.addons.iterdir()), [])
 
 if __name__ == "__main__":
