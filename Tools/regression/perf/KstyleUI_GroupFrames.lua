@@ -16,6 +16,36 @@ end
 
 return {
 	{
+		name = "GroupFrames raid40 prediction events",
+		budget = 10000,
+		calls = 20,
+		setup = function()
+			local env, K = G.New()
+			G.SetRoster(env, "raid", G.Members(40, function(_, m)
+				m.incoming, m.absorb, m.healAbsorb = 12, 9, 7
+			end))
+			K.Modules.Enable("GroupFrames")
+			env.RunTimers()
+			local health, heals, absorbs = {}, {}, {}
+			for i = 1, 40 do
+				local unit = "raid" .. i
+				health[i] = Perf.Event(env, "UNIT_HEALTH", unit)
+				heals[i] = Perf.Event(env, "UNIT_HEAL_PREDICTION", unit)
+				absorbs[i] = Perf.Event(env, "UNIT_ABSORB_AMOUNT_CHANGED", unit)
+			end
+			return env, function()
+				for i = 1, 40 do
+					health[i]()
+					health[i]()
+					heals[i]()
+					if i <= 10 then
+						absorbs[i]()
+					end
+				end
+			end
+		end,
+	},
+	{
 		name = "GroupFrames UNIT_HEALTH",
 		budget = 90,
 		setup = function()
