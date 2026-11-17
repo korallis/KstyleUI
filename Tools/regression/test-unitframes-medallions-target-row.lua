@@ -110,8 +110,12 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	env.FireEvent("UNIT_LEVEL", "target")
 	clearRow("caption event must refit an existing name")
 	for _, width in ipairs({ 120, 180 }) do
+		K.Layout.Set("unitframes.target", "width", 300)
+		env.RunTimers()
+		target("Riverglade Crocolisk", "Mechanical")
 		K.Layout.Set("unitframes.target", "width", width)
 		env.RunTimers()
+		clearRow("resize existing target to " .. width, true)
 		for _, creature in ipairs({ "Mechanical", "Non-combat Pet" }) do
 			target("Riverglade Crocolisk", creature)
 			clearRow("narrow slab width " .. width .. "/" .. creature, true)

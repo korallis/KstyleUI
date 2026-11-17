@@ -163,6 +163,8 @@ function Slab.Layout(view, g)
 	if not view.slab then
 		Build(view)
 	end
+	local resized = view.slabWidth ~= g.glass.w or view.slabHeight ~= g.glass.h
+	view.slabWidth, view.slabHeight = g.glass.w, g.glass.h
 	Widgets.ShowSlice(view.slab, true)
 	Widgets.LayoutSlice(view.slab, view.panel, select(3, Tokens.Texture("medUnitSlab")))
 	local m, rect = view.medallion, g.medal
@@ -182,6 +184,7 @@ function Slab.Layout(view, g)
 	Extra(view, view.healthSub, g.healthSub, opposite)
 	Extra(view, view.caption, g.caption, opposite)
 	Slab.Caption(view)
+	if resized then ns.Unit.Refit(view) end
 	view.levelText:Hide()
 end
 
