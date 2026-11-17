@@ -15,7 +15,7 @@ The release's `check` job validates the tag's changelog section and packages wit
 
 To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install the addons](TESTING.md#install-the-addons) in the test guide.
 
-The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x1440, 3440x1440, 3840x1080, 5120x1440, 3840x2160, 2383x1540 and 3456x2234. Every picture in the README is a test render from `Tools/render/`, retaken with `python3 Tools/render/readme.py` ([`Tools/render/README.md`](../Tools/render/README.md), README pictures); a render is not the game, so each release is also checked in game.
+The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x1440, 3440x1440, 3840x1080, 5120x1440, 3840x2160, 2383x1540 and 3456x2234. Every README picture except the Medallions section's in-game `game_*` captures is a test render from `Tools/render/`, retaken with `python3 Tools/render/readme.py` ([`Tools/render/README.md`](../Tools/render/README.md), README pictures); a render is not the game, so each release is also checked in game.
 
 ## Developer commands
 
@@ -31,7 +31,7 @@ The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x
 | `Core/` | The core addon's services, the widget kit, Layout Mode and the first-run setup |
 | `KstyleUI_<Module>/` | One addon per module, each with a README on how it works |
 | `Media/` | Fonts, procedural textures and the logo, with their provenance |
-| `docs/` | The design spec, the plans, the mockups, the test guide, the release notes and the README's images (`docs/media/readme/`, retaken from the render scenes by `python3 Tools/render/readme.py`) |
+| `docs/` | The design spec, the plans, the mockups, the test guide, the release notes and the README's images (`docs/media/readme/`, retaken from the render scenes by `python3 Tools/render/readme.py`, except the in-game `game_*` captures) |
 | `Tools/` | Checks, tests, the spike addon, the icon pipeline with the repainted icon art (`Tools/icons/setB/`) and developer scripts. They never ship in the addon; the icons ship as their own pack. |
 | `research_notes/`, `reports/` | Research on Forever's API, its addon restrictions and existing UI suites |
 

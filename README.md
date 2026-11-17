@@ -39,9 +39,9 @@ The rest of the screen follows. Cards are dark and bevelled with a header band i
 
 <p align="center"><sub>In-game: Corruption, Immolate and Shadow Bolt fill the cast bar above the breathing crest while the action sockets sweep through their cooldowns.</sub></p>
 
-<p align="center"><img src="docs/media/readme/game_medallions_interrupt.gif" width="100%" alt="In-game animation of an interrupted cast flashing before Drain Soul channels above the Medallions crest"></p>
+<p align="center"><img src="docs/media/readme/game_medallions_interrupt.gif" width="100%" alt="In-game animation of an interrupted cast flashing above the Medallions crest, then a channel counting down as the target frame clears"></p>
 
-<p align="center"><sub>In-game: an interrupted cast flashes, then Drain Soul counts down above the crest as the target frame clears.</sub></p>
+<p align="center"><sub>In-game: an interrupted cast flashes, then a channel counts down above the crest as the target frame clears.</sub></p>
 
 ### Frames
 

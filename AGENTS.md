@@ -52,7 +52,7 @@ RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_HUD_STYLE=Orbs RENDER_LAYOUT=DPS
 - `--ppu` is pixels per unit. Set it to the screen's height over 1080 so the PNG has the screen's own pixels: `--ppu 1` at 1920x1080, `--ppu 1.3333333333` with `RENDER_SCREEN=5120x1440`.
 - `--strict` fails the run (exit 3, after the PNG is written) on text the page truncated, content that spills past its card, a grey-box texture log, or a stale `Tools/render/guard_allow.tsv` line for the scene. Read the printed log before you trust a picture.
 - It needs `luajit` and Google Chrome (`CHROME` overrides the binary). Without `--out`, the scene's JSON, page and PNG land in `Tools/render/out/`, which git ignores.
-- [`Tools/render/README.md`](Tools/render/README.md) lists every scene and variable. `python3 Tools/render/readme.py` retakes the README pictures.
+- [`Tools/render/README.md`](Tools/render/README.md) lists every scene and variable. `python3 Tools/render/readme.py` retakes the rendered README pictures; the `game_*` in-game captures are kept.
 
 The regression harness drives behaviour the same way without pixels. A behaviour test in `Tools/regression/` boots a module's `*_env.lua` stub environment on fixtures, sends it events such as combat, a target or a setting change, and asserts on the frames; the source guards, such as `test-comments.lua` and `test-syntax.lua`, scan the tree instead. Run one alone with `lua5.1 Tools/regression/test-<name>.lua`, or `luajit -joff` where Lua 5.1 is missing.
 
