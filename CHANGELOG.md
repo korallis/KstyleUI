@@ -1,6 +1,6 @@
 # KstyleUI changelog
 
-## v0.2.3 (2026-11-16)
+## v0.2.3 (2026-11-17)
 
 The Medallions polish pass: dark gunmetal chrome, rounded bevelled cards, and a tighter unit cluster on one row of action buttons.
 
