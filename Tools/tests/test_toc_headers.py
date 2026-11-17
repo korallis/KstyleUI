@@ -33,8 +33,11 @@ class TocHeaderTests(unittest.TestCase):
                 self.assertEqual(found["Version"], "@project-version@")
                 self.assertEqual(found["X-Website"], "https://github.com/korallis/KstyleUI")
 
-    def test_no_store_ids_until_the_projects_exist(self):
-        for toc in TOCS:
+    def test_only_the_core_toc_carries_the_store_ids(self):
+        core = headers(ROOT / "KstyleUI.toc")
+        self.assertEqual(core.get("X-Curse-Project-ID"), "1812141")
+        self.assertEqual(core.get("X-Wago-ID"), "EGPabeN1")
+        for toc in TOCS[1:]:
             with self.subTest(toc=toc.name):
                 self.assertFalse({"X-Curse-Project-ID", "X-Wago-ID"} & set(headers(toc)))
 
