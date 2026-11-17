@@ -32,10 +32,12 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		if text:GetJustifyH() == "RIGHT" then x = x + w - visible end
 		return { x, y, visible, h, advance, w }
 	end
-	local function clearRow(label)
+	local function clearRow(label, captionMayTruncate)
 		local name, caption = ink(view.name), ink(view.caption)
-		check(caption[5] <= caption[6] + 0.01, tag .. " " .. label .. ": show the complete drawn creature caption")
+		local level = ink(view.slabLevel)
+		check(captionMayTruncate or caption[5] <= caption[6] + 0.01, tag .. " " .. label .. ": show the complete drawn creature caption")
 		check(not name or caption[1] + caption[3] <= name[1] + 0.01, tag .. " " .. label .. ": drawn name must clear the creature caption")
+		check(not level or caption[1] + caption[3] <= level[1] + 0.01, tag .. " " .. label .. ": drawn level must clear the creature caption")
 	end
 	local function target(name, creature, secretName, secretCreature)
 		U.SetUnit(env, "target", { name = name, creature = creature, secretName = secretName, secretCreature = secretCreature, level = 39, health = 90, healthMax = 100, marker = 8, reaction = 2 })
@@ -61,6 +63,9 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 			end
 			check(pixels(view.name) <= fullPixels + 0.01, tag .. ": fitting must never enlarge a scaled caps name")
 			check(pixels(view.name) >= floorPixels - 1e-6, tag .. ": Text size " .. scale .. " keeps the reading floor")
+			if scale == 1.3 and view.name:GetFont() == K.Tokens.Font("body") then
+				check(pixels(view.name) <= floorPixels + 0.01, tag .. ": fallback must not grow beyond the last caps size at the reading floor")
+			end
 		end
 	end
 	assert(K.Theme.SetFontScale(1))
@@ -81,7 +86,8 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	end
 	target("Hogger", "Non-combat Pet", true, true)
 	clearRow("secret short name/type")
-	check(not view.name:IsTruncated(), tag .. ": secret Hogger must fit beside the longest client type")
+	local shortName = ink(view.name)
+	check(shortName and math.abs(shortName[3] - shortName[5]) <= 0.01, tag .. ": secret Hogger's drawn width must equal its full text width")
 	target("Riverglade Crocolisk", "Non-combat Pet", false, true)
 	clearRow("secret type/plain long name")
 	env._creatureTypes[#env._creatureTypes + 1] = "Unusually Long Creature"
@@ -103,8 +109,8 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	clearRow("caption event must refit an existing name")
 	K.Layout.Set("unitframes.target", "width", 120)
 	env.RunTimers()
-	target("Frost Howler", "Non-combat Pet")
-	clearRow("minimum slab width 120")
+	target("Riverglade Crocolisk", "Mechanical")
+	clearRow("minimum slab width 120", true)
 	check(not view.name:IsShown() or view.name:IsTruncated(), tag .. ": no unbounded name at the minimum slab width")
 	K.Layout.Set("unitframes.target", "width", 300)
 	env.RunTimers()
