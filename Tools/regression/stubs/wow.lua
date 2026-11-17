@@ -930,7 +930,7 @@ local function needFont(self, method)
 end
 local function fontGiven(self, method, font, height)
 	if method == "SetFont" then
-		if secretValues[height] or type(height) ~= "number" or height ~= height or height <= 0 or height == math.huge then
+		if self._type == "FontString" and (secretValues[height] or type(height) ~= "number" or height ~= height or height <= 0 or height == math.huge) then
 			error(self._type .. ":SetFont(): Invalid font height (" .. tostring(height) .. "): height must be > 0", 3)
 		end
 		self._font = type(font) == "string" and font ~= ""

@@ -70,6 +70,7 @@ for _, height in ipairs({ 720, 560 }) do
 	local onSize = preview:GetScript("OnSizeChanged")
 	assert(onSize, "the preview refits when its size resolves or changes")
 	onSize(preview, PANE_W, height)
+	env.RunTimers()
 	local what = "pane " .. PANE_W .. " by " .. height
 	local box = { Scene.Rect(env, pane) }
 	local party, raid, click = { Scene.Rect(env, preview.party) }, { Scene.Rect(env, preview.raid) }, { Scene.Rect(env, preview.clickCast) }

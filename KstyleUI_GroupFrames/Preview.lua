@@ -155,7 +155,15 @@ local function PlaceRun(frames, holder, s, growth, count, x0, y0, corner, width,
 	end
 end
 
+local function Sized(value)
+	return not Unit.IsSecret(value) and type(value) == "number" and value == value and value > 0 and value < math.huge
+end
+
 local function Layout(preview)
+	local availW, availH = preview:GetWidth(), preview:GetHeight()
+	if not Sized(availW) or not Sized(availH) then
+		return
+	end
 	local cfg = Settings.Refresh()
 	local party, raid = cfg.party, cfg.raid
 	local partyGeo = Geometry.Party(party)
@@ -191,14 +199,13 @@ local function Layout(preview)
 	end
 	preview.canvas:SetSize(pw, ph)
 	preview.raidCanvas:SetSize(rw, rh)
-	local availW, availH = preview.fitW or preview:GetWidth(), preview.fitH or preview:GetHeight()
-	local scale, raidScale = 1, 1
 	local top = Tokens.Size("gapTiny")
-	if type(availW) == "number" and type(availH) == "number" and availW > 0 and availH > 0 and not Unit.IsSecret(availW) then
-		raidScale = math.min(1, availW / rw)
-		availH = math.max(1, availH - top - ns.ClickCast.HEIGHT - 2 * SECTION_GAP - rh * raidScale)
-		scale = math.min(1, availW / pw, availH / ph)
+	local raidScale = math.min(1, availW / rw)
+	availH = availH - top - ns.ClickCast.HEIGHT - 2 * SECTION_GAP - rh * raidScale
+	if not Sized(availH) then
+		return
 	end
+	local scale = math.min(1, availW / pw, availH / ph)
 	preview.canvas:SetScale(scale)
 	preview.canvas:ClearAllPoints()
 	preview.canvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -top / scale)
@@ -240,10 +247,13 @@ function Preview.Build(parent)
 	end
 	preview.clickCast = ns.ClickCast.Panel(preview)
 	preview.Refresh = Layout
-	preview:SetScript("OnSizeChanged", function(self, w, h)
-		if self.fitW ~= w or self.fitH ~= h then
-			self.fitW, self.fitH = w, h
-			Layout(self)
+	preview:SetScript("OnSizeChanged", function(self)
+		if not self.refitPending and C_Timer and type(C_Timer.After) == "function" then
+			self.refitPending = true
+			C_Timer.After(0, function()
+				self.refitPending = nil
+				Layout(self)
+			end)
 		end
 	end)
 	Layout(preview)

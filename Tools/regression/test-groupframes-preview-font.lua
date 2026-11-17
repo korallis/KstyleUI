@@ -22,9 +22,10 @@ for _, style in ipairs({ "Medallions", "Frames", "Orbs" }) do
 	local width, height = pane.holder:GetSize()
 	local owner = env._addons.KstyleUI_Options.Window.Frame()
 	local left = owner.GetLeft
-	local measured, measuring, reentrant = false, false, 0
+	local measured, measuring, reentrant, applied = false, false, 0, 0
 	local apply = group.Style.Apply
 	group.Style.Apply = function(...)
+		applied = applied + 1
 		if measuring then reentrant = reentrant + 1 end
 		return apply(...)
 	end
@@ -46,8 +47,24 @@ for _, style in ipairs({ "Medallions", "Frames", "Orbs" }) do
 	assert(reentrant == 0, "defer group preview styling out of GetLeft/header measurement")
 	owner.GetLeft = left
 	env.RunTimers()
+	assert(applied == 0, "skip styling when fixed preview sections leave no room for the party")
 	pane.holder:SetSize(width, height)
 	env.RunTimers()
+	assert(applied > 0, "the next resolved resize styles the samples")
+	local before = applied
+	local getWidth, getHeight = preview.GetWidth, preview.GetHeight
+	for _, invalid in ipairs({ 0, -1, 0 / 0, math.huge, -math.huge, env.Secret(280) }) do
+		preview.GetWidth = function() return invalid end
+		preview:Refresh()
+		preview.GetWidth = getWidth
+		preview.GetHeight = function() return invalid end
+		preview:Refresh()
+		preview.GetHeight = getHeight
+	end
+	preview.GetWidth = function() return nil end
+	preview:Refresh()
+	preview.GetWidth = getWidth
+	assert(applied == before, "ignore unresolved, non-finite and secret dimensions before sizing or styling")
 	preview:Refresh()
 	assert(preview.partyFrames[1].name:GetText() == "Thaldren", "the preview recovers at its resolved size")
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))

@@ -363,7 +363,7 @@ local function SnapSize(size, f, text)
 		return max(px, snapped)
 	end
 	if text and Previewed(text) then
-		return max(floor(Scale.TextFloor() * min(1, f) + 0.5) * px, snapped)
+		return max(px, floor(Scale.TextFloor() * min(1, f) + 0.5) * px, snapped)
 	end
 	return least
 end
@@ -548,9 +548,19 @@ function Widgets.SyncTracking(text)
 end
 
 function Widgets.ApplyFont(text, path, size, flags, plain)
+	if IsSecret(size) or type(size) ~= "number" or size ~= size or size <= 0 or size == math.huge then
+		return false
+	end
 	flags = flags or ""
 	local f = TextFactor(text)
-	local ok = text:SetFont(path, SnapSize(size, f, text), flags) ~= false
+	if IsSecret(f) or type(f) ~= "number" or f ~= f or f <= 0 or f == math.huge then
+		return false
+	end
+	local height = SnapSize(size, f, text)
+	if IsSecret(height) or type(height) ~= "number" or height ~= height or height == math.huge or height == -math.huge then
+		return false
+	end
+	local ok = text:SetFont(path, max(1, height), flags) ~= false
 	Shadow(text, flags, f)
 	if not plain then
 		Widgets.SyncTracking(text)
