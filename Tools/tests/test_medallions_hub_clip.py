@@ -2,11 +2,27 @@
 import math
 import re
 import unittest
+from functools import cache
 from pathlib import Path
 
-from PIL import Image, ImageChops
+from Tools.media.make_media import decode_png
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@cache
+def alpha(path):
+    width, height, pixels = decode_png(path.read_bytes())
+    return width, height, pixels[3::4]
+
+
+def sample(pixels, width, height, x, y):
+    left, top = math.floor(x), math.floor(y)
+    dx, dy = x - left, y - top
+    return sum(pixels[py * width + px] * wx * wy
+               for px, wx in ((left, 1 - dx), (left + 1, dx))
+               for py, wy in ((top, 1 - dy), (top + 1, dy))
+               if 0 <= px < width and 0 <= py < height)
 
 
 class HubClipTest(unittest.TestCase):
@@ -18,27 +34,30 @@ class HubClipTest(unittest.TestCase):
         token = re.search(r'Tokens.Texture\("(\w+)"\)', source[source.index("local function OpeningMask"):]).group(1)
         tokens = (ROOT / "Core/Tokens.lua").read_text()
         path = re.search(r'\b' + token + r' = \{ file = "([^"]+)"', tokens).group(1)
-        with Image.open(ROOT / "Media" / path.replace("\\\\", "/")) as image:
-            mask = image.getchannel("A")
+        mw, mh, mask = alpha(ROOT / "Media" / path.replace("\\\\", "/"))
+        support = [(x, y) for y in range(mh) for x in range(mw) if mask[y * mw + x]]
+        outside = [(x, y) for x, y in support
+                   if math.hypot((x + .5) / mw - .5, (y + .5) / mh - .5) * opening >= opening / 2]
         crests = sorted((ROOT / "Media/Textures/Medallions/Crests").glob("*.png"))
         crests = [p for p in crests if not p.stem.endswith(("_glow", "_metal"))]
         self.assertEqual(len(crests), 52)
         for crest in crests:
             for suffix, share in (("", 1), ("", 1.05), ("_glow", 1.08)):
                 path = crest.with_stem(crest.stem + suffix)
-                with self.subTest(crest=path.name, share=share), Image.open(path) as image:
-                    self.assertEqual(image.size, (512, 512), "rebake original crests at 512 before drawing the pulsed 4K hub")
-                    alpha = image.getchannel("A")
-                scale = opening / (canvas * share) * alpha.width / mask.width
-                offset = (alpha.width - mask.width * scale) / 2
-                fitted = alpha.transform(mask.size, Image.Transform.AFFINE,
-                                         (scale, 0, offset, 0, scale, offset), Image.Resampling.BILINEAR)
-                clipped = ImageChops.multiply(fitted, mask)
-                self.assertIsNotNone(clipped.getbbox(), path.name)
-                reach = max(math.hypot((x + .5) / mask.width - .5, (y + .5) / mask.height - .5) * opening
-                            for y in range(mask.height) for x in range(mask.width) if clipped.getpixel((x, y)))
-                self.assertLess(reach, opening / 2, f"{path.name}: use a circular mask contained in the opening")
-                self.assertLess(reach, ring / 2, f"{path.name}: no crest or glow may reach the ring")
+                with self.subTest(crest=path.name, share=share):
+                    width, height, pixels = alpha(path)
+                    self.assertEqual((width, height), (512, 512), "rebake original crests at 512 before drawing the pulsed 4K hub")
+                    scale = opening / (canvas * share) * width / mw
+                    offset = (width - mw * scale) / 2
+
+                    def visible(point):
+                        x, y = point
+                        return sample(pixels, width, height, (x + .5) * scale + offset - .5,
+                                      (y + .5) * scale + offset - .5) > 0
+
+                    self.assertTrue(any(map(visible, support)), path.name)
+                    self.assertFalse(any(map(visible, outside)), f"{path.name}: use a circular mask contained in the opening")
+                    self.assertLess(opening, ring, "the clipped opening must stay inside the ring")
 
 
 if __name__ == "__main__":
