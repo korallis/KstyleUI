@@ -50,7 +50,9 @@ function Widgets.PaintCapMaterial(gem, rule, alpha)
 	elseif Widgets.Medallions() then
 		gem:SetVertexColor(Tokens.Color("accent"))
 	end
-	Widgets.CardHeader(gem)
+	if not gem.headerTracked or Widgets.Medallions() then
+		Widgets.CardHeader(gem)
+	end
 end
 
 local function Placed(self)

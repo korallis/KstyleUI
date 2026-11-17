@@ -1803,7 +1803,11 @@ end
 
 function Widgets.CardHeader(gem, shown)
 	if shown ~= nil then
-		gem.headerHidden = not shown
+		local hidden = not shown
+		if gem.headerHidden == hidden then
+			return
+		end
+		gem.headerHidden = hidden
 	end
 	local node = gem:GetParent()
 	if node and not gem.headerTracked then
