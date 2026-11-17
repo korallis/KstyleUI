@@ -1,16 +1,28 @@
-![KstyleUI - a complete, pixel-perfect interface for World of Warcraft: Forever. One dark forged style. Three HUDs. Set up in one window.](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/banner.jpg)
+![KstyleUI banner: the chamfered diamond logo and Cinzel wordmark over a darkened in-game Medallions screenshot - dark forged chrome for the whole game](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/banner.jpg)
 
 **Your whole interface, forged as one piece.** Pick a HUD, run one short setup, and play - every bar, plate, bag and window in the same dark gunmetal and gold.
+
+**Install in a minute:** the CurseForge app, the Wago app or WowUp, or unzip by hand into your AddOns folder - full steps are at the bottom.
 
 **Why players switch**
 
 - **Three HUDs, one choice at setup.** Medallions, Frames or Orbs - pick yours on first login, change it any time.
 - **The whole game in one style.** Bars, nameplates, bags, tooltips, windows and the damage meter all wear the same dark forged chrome.
-- **Sharp on every screen.** Pixel-perfect sizing from a laptop to a 32:9 ultrawide, with text that never drops below a readable size.
+- **Sharp on every screen.** Pixel-perfect sizing from a laptop to a 32:9 ultrawide; at 1080 lines and above, a text floor that scales with your screen keeps type readable.
 - **Nothing you don't want.** Every part is its own module. Switch one off and it costs nothing.
 - **Ready in minutes.** One short setup, layouts for DPS, Tank and Healer, and profiles you can copy between characters.
 
-![Six KstyleUI feature cards: three HUD styles, pixel-perfect sizing, ultrawide ready, ready in minutes, the full kit, and nothing you don't want](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/feature-cards.jpg)
+![KstyleUI feature card: Three HUD styles - Medallions, Frames or Orbs; pick at setup, switch any time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-three-huds.jpg)
+
+![KstyleUI feature card: Pixel-perfect sizing - every edge lands on whole pixels, with a readable text floor from 1080 lines up](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-pixel-perfect.jpg)
+
+![KstyleUI feature card: Ultrawide ready - Centred or Spread on 21:9 and 32:9, nothing stranded at the edges](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-ultrawide.jpg)
+
+![KstyleUI feature card: Ready in minutes - one setup for HUD, layout and modules, with DPS, Tank and Healer layouts built in](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-ready-in-minutes.jpg)
+
+![KstyleUI feature card: The full kit - meter, nameplates, bags and tooltips in one style across the whole game](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-full-kit.jpg)
+
+![KstyleUI feature card: Nothing you don't want - every feature is its own module, and switching one off costs nothing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-nothing-extra.jpg)
 
 ![KstyleUI section: Three HUDs - Medallions, Frames or Orbs, pick yours and change it any time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-three-huds.jpg)
 
@@ -24,7 +36,7 @@ Pick your style in the first-run setup. Switch later in **Options, General, HUD 
 
 Dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. You and your target are slabs with clean bars and a round medallion on the outer end, its rim engraved with runes. Yours is a painted portrait of your race, class and sex - other players get their own; a creature, pet or boss shows the game's portrait.
 
-Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, 52 in all, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
+Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
 
 ![In-game Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/game_medallions_16x9.jpg)
 
@@ -60,7 +72,7 @@ Medallions also answers what happens in a fight: a slot flashes when its cooldow
 
 *Test render: the Frames HUD on a 1920 by 1080 screen, in combat.*
 
-![Test render of the KstyleUI addon's Frames unit frames: a target's health bar and cast above the player's health and mana bars, with portraits and level badges](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/crop_unitframes.jpg)
+![Test render of the KstyleUI addon's Frames unit frames: a target's health bar and cast above the player's health and mana bars, with portraits and level badges](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_unitframes.jpg)
 
 *Test render: the target over the player, both mid-cast.*
 
@@ -96,29 +108,29 @@ On a 21:9 or 32:9 monitor, you choose how the HUD uses the width. **Centred** (t
 
 Set it in **Options, Elements, Ultrawide arrangement**, and set the band itself - 21:9, 16:9 or the full width - under **HUD width**. Laptop screens and 4:3, 3:2 and 16:10 displays are covered too.
 
-With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the size that fits your screen exactly. Every frame, bar and slot lands on whole screen pixels, so edges stay sharp instead of blurring between pixels - and text never drops below a readable size. Prefer to set it yourself? Turn Auto off in **Options, General, Size**.
+With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the size that fits your screen exactly. Every frame, bar and slot lands on whole screen pixels, so edges stay sharp instead of blurring between pixels - and at 1080 lines and above, a text floor that scales with your screen keeps type readable. Prefer to set it yourself? Turn Auto off in **Options, General, Size**.
 
 ![KstyleUI section: Set up in one window - one short setup, then you are playing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-set-up.jpg)
 
 The first time you log in, one short setup does it all: pick Medallions, Frames or Orbs, pick the DPS, Tank or Healer layout over a live preview, choose your modules, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
 
-![Test render of the KstyleUI addon's first-run setup on its layout step: DPS, Tank and Healer cards over a preview of the layout under the pointer](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/frame_setup.jpg)
+![Test render of the KstyleUI addon's first-run setup on its layout step: DPS, Tank and Healer cards over a preview of the layout under the pointer](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_setup.jpg)
 
 *Test render: the first-run setup on its layout step.*
 
 Tank adds a threat card in the combat cluster. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
 
-![Test render of the KstyleUI addon's raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/frame_raid.jpg)
+![Test render of the KstyleUI addon's raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_raid.jpg)
 
 *Test render: the raid frames.*
 
 `/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kstyle layout` moves, resizes or scales any element. Profiles copy between characters, and export and import as one string.
 
-![KstyleUI section: The whole interface - every window in the same dark forged style](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-whole-interface.jpg)
+![KstyleUI section: The rest of your UI - nameplates, meter, bags, tooltips and window skins](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-rest-of-your-ui.jpg)
 
 ### Nameplates that stay out of the way
 
-![Test render of the KstyleUI addon's nameplates in combat: a targeted beast with brackets and one of your debuffs, an elite, a rare, a world boss and a friendly player](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/crop_nameplates.jpg)
+![Test render of the KstyleUI addon's nameplates in combat: a targeted beast with brackets and one of your debuffs, an elite, a rare, a world boss and a friendly player](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_nameplates.jpg)
 
 *Test render: nameplates in combat.*
 
@@ -126,7 +138,7 @@ Plain flat bars under tracked capital names, with your own debuffs on top. Your 
 
 ### A group damage meter
 
-![Test render of the KstyleUI addon's damage meter in a party of five: one class-coloured bar per player with their damage](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/crop_meter.jpg)
+![Test render of the KstyleUI addon's damage meter in a party of five: one class-coloured bar per player with their damage](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_meter.jpg)
 
 *Test render: the damage meter in a party of five.*
 
@@ -134,15 +146,15 @@ One card, a class-coloured bar per player. Switch between this fight, the last f
 
 ### Quests, guide and map on the right
 
-![Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/crop_rail.jpg)
+![Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
 
 *Test render: the right rail - map card, quest card and guide card.*
 
-Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps four quests in view and scrolls for the rest. With a RestedXP guide open, the guide takes the tall column beside it, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
+Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps your quests in view and scrolls for the rest; in the picture the taller guide card beside it takes more of the rail, so it shows one quest and counts the others below. With a RestedXP guide open, the guide takes the tall column beside it, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
 ### Bags, tooltips and windows
 
-![Test render of the KstyleUI addon's skin on Blizzard's character sheet](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/frame_skins.jpg)
+![Test render of the KstyleUI addon's skin on Blizzard's character sheet](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_skins.jpg)
 
 *Test render: the skin on the character sheet.*
 

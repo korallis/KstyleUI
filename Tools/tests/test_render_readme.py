@@ -34,7 +34,7 @@ def readme_pictures():
     """
     text = README.read_text(encoding="utf-8")
     found = []
-    for match in re.finditer(r"!\[[^\]]*\]\([^)]*/readme/([a-z0-9_]+)\.(?:jpg|gif)\)", text):
+    for match in re.finditer(r"!\[[^\]]*\]\([^)]*(?:/readme/|/marketing/show_)([a-z0-9_]+)\.(?:jpg|gif)\)", text):
         after = text[match.end():]
         window = after[: after.find("![") if "![" in after else len(after)]
         caption = re.search(r"\*([^*]+)\*", window)
@@ -110,7 +110,7 @@ class ReadmePictures(unittest.TestCase):
     def test_pictures_fit_the_size_budget(self):
         self.assertLessEqual(R.total_bytes(), R.BUDGET_BYTES)
         for path in MEDIA.glob("game_*"):
-            limit = 8 * 1024 * 1024 if path.suffix == ".gif" else 1500000 if path.stem.endswith("_hero") else 600000
+            limit = 1150000 if path.suffix == ".gif" else 1500000 if path.stem.endswith("_hero") else 600000
             self.assertLessEqual(path.stat().st_size, limit, str(path))
 
     def test_in_game_still_aspects_and_animation_limits(self):
@@ -124,14 +124,14 @@ class ReadmePictures(unittest.TestCase):
         self.assertLessEqual(len(clips), 5)
         for path in clips:
             with Image.open(path) as image:
-                self.assertGreaterEqual(image.width, 960, str(path))
+                self.assertGreaterEqual(image.width, 800, str(path))
                 self.assertLessEqual(image.width, 1280, str(path))
                 duration = 0
                 for frame in range(image.n_frames):
                     image.seek(frame)
                     delay = image.info["duration"]
                     self.assertGreaterEqual(delay, 50, str(path))
-                    self.assertLessEqual(delay, 70, str(path))
+                    self.assertLessEqual(delay, 210, str(path))
                     duration += delay / 1000
                 self.assertGreaterEqual(duration, 3, str(path))
                 self.assertLessEqual(duration, 6, str(path))

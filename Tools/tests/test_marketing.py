@@ -36,7 +36,8 @@ def fenced_description(path):
 
 class MarketingImages(unittest.TestCase):
     def expected(self):
-        return {"banner.jpg", "feature-cards.jpg"} | {name for name, _, _ in M.HEADERS}
+        return ({"banner.jpg"} | {name for name, _, _ in M.HEADERS}
+                | {name for name, *_ in M.CARDS} | {name for name, _ in M.SHOWCASES})
 
     def test_folder_holds_exactly_the_script_outputs(self):
         self.assertEqual({p.name for p in MARKETING.glob("*") if p.is_file()}, self.expected())
@@ -66,12 +67,19 @@ class MasterDescription(unittest.TestCase):
     def test_curseforge_and_wago_blocks_equal_the_master(self):
         master = MASTER.read_text(encoding="utf-8").strip("\n")
         for rel in ("docs/store/curseforge.md", "docs/store/wago.md"):
-            self.assertEqual(fenced_description(ROOT / rel), master, rel)
-            self.assertNotIn("releases", fenced_description(ROOT / rel), rel)
+            block = fenced_description(ROOT / rel)
+            self.assertEqual(block, master, rel)
+            self.assertNotIn("releases", block, rel)
+            for url in re.findall(r"https?://[^\s)]+", block):
+                self.assertNotIn("/releases", url, url)
+                self.assertFalse(url.split("?")[0].lower().endswith(".zip"), url)
 
     def test_master_has_no_download_link_and_does_not_repeat_the_summary(self):
         master = MASTER.read_text(encoding="utf-8")
         self.assertNotIn("releases", master)
+        for url in re.findall(r"https?://[^\s)]+", master):
+            self.assertNotIn("/releases", url, url)
+            self.assertFalse(url.split("?")[0].lower().endswith(".zip"), url)
         self.assertNotIn(SUMMARY, master)
         first_text = next(line for line in master.splitlines() if line and not line.startswith("!["))
         self.assertNotEqual(first_text.strip("* "), SUMMARY)

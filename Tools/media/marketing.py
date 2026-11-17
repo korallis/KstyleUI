@@ -38,30 +38,49 @@ CINZEL_CAPS = "CinzelCaps-Medium.ttf"
 BODY = "AlegreyaSans-Regular.ttf"
 BODY_BOLD = "AlegreyaSansTabular-Bold.ttf"
 
-PITCH = "A complete, pixel-perfect interface for World of Warcraft: Forever"
-PITCH2 = "One dark forged style. Three HUDs. Set up in one window."
+PITCH = "Dark forged chrome for the whole game."
+PITCH2 = "Three HUDs. One setup. Every screen."
 
 HEADERS = [
     ("header-three-huds.jpg", "THREE HUDS", "Medallions, Frames or Orbs - pick yours, change it any time"),
     ("header-every-screen.jpg", "EVERY SCREEN", "Pixel-perfect from a laptop to a 32:9 ultrawide"),
     ("header-set-up.jpg", "SET UP IN ONE WINDOW", "One short setup, then you are playing"),
-    ("header-whole-interface.jpg", "THE WHOLE INTERFACE", "Every window in the same dark forged style"),
+    ("header-rest-of-your-ui.jpg", "THE REST OF YOUR UI", "Nameplates, meter, bags, tooltips and window skins"),
 ]
 
+# One image per card, stacked in the markdown, so each stays readable on a phone.
 CARDS = [
-    ("game_medallions_closeup.jpg", "Three HUD styles",
+    ("card-three-huds.jpg", "game_medallions_closeup.jpg", "Three HUD styles",
      "Medallions, Frames or Orbs.", "Pick at setup, switch any time."),
-    ("hud_frames_1080.jpg", "Pixel-perfect sizing",
-     "Every edge lands on whole pixels.", "Text never drops below readable."),
-    ("ultrawide_spread.jpg", "Ultrawide ready",
+    ("card-pixel-perfect.jpg", "hud_frames_1080.jpg", "Pixel-perfect sizing",
+     "Every edge lands on whole pixels.", "A readable text floor from 1080 lines up."),
+    ("card-ultrawide.jpg", "ultrawide_spread.jpg", "Ultrawide ready",
      "Centred or Spread on 21:9 and 32:9.", "Nothing stranded at the edges."),
-    ("frame_setup.jpg", "Ready in minutes",
+    ("card-ready-in-minutes.jpg", "frame_setup.jpg", "Ready in minutes",
      "One setup: HUD, layout, modules.", "DPS, Tank and Healer layouts built in."),
-    ("crop_meter.jpg", "The full kit",
+    ("card-full-kit.jpg", "crop_meter.jpg", "The full kit",
      "Meter, nameplates, bags, tooltips.", "One style across the whole game."),
-    ("frame_skins.jpg", "Nothing you don't want",
+    ("card-nothing-extra.jpg", "frame_skins.jpg", "Nothing you don't want",
      "Every feature is its own module.", "Switch one off and it costs nothing."),
 ]
+
+# Narrow crops framed at banner width so every picture fills the page column.
+SHOWCASES = [
+    ("show_crop_unitframes.jpg", "crop_unitframes.jpg"),
+    ("show_frame_setup.jpg", "frame_setup.jpg"),
+    ("show_frame_raid.jpg", "frame_raid.jpg"),
+    ("show_crop_nameplates.jpg", "crop_nameplates.jpg"),
+    ("show_crop_meter.jpg", "crop_meter.jpg"),
+    ("show_crop_rail.jpg", "crop_rail.jpg"),
+    ("show_frame_skins.jpg", "frame_skins.jpg"),
+]
+
+# (file, frame step, width, colours, posterize step) for clips over the size cap.
+GIF_SPECS = [
+    ("game_medallions_target.gif", 3, 800, 64, 8),
+    ("game_medallions_cast.gif", 2, 880, 80, 4),
+]
+GIF_CAP = 1_100_000
 
 README_HEADER = """<p align="center">
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
@@ -182,8 +201,8 @@ def make_banner():
     word_f, word_t = fit_tracked(draw, "KSTYLEUI", CINZEL, 168, 0.16, 1450)
     tracked(draw, (x, 168), "KSTYLEUI", word_f, EMPHASIS, word_t)
     draw.rectangle([x + 6, 378, x + 220, 381], fill=GILT)
-    draw.text((x + 4, 404), PITCH, font=font(BODY_BOLD, 40), fill=GILT_LIT)
-    draw.text((x + 4, 458), PITCH2, font=font(BODY, 38), fill=TEXT)
+    draw.text((x + 4, 398), PITCH, font=font(BODY_BOLD, 54), fill=GILT_LIT)
+    draw.text((x + 4, 468), PITCH2, font=font(BODY, 48), fill=TEXT)
     gold_rule(draw, width, height - 6, 4)
     return save(img, "banner.jpg")
 
@@ -208,38 +227,92 @@ def make_header(name, title, subtitle):
     return save(img, name)
 
 
-def make_cards():
+def rounded_paste(img, thumb, xy, radius=14):
     from PIL import Image, ImageDraw
-    width, height = 2048, 1220
-    margin, gap = 48, 36
-    cols, rows = 3, 2
-    cw = (width - 2 * margin - (cols - 1) * gap) // cols
-    ch = (height - 2 * margin - (rows - 1) * gap) // rows
+    mask = Image.new("L", thumb.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, thumb.width, thumb.height], radius=radius, fill=255)
+    img.paste(thumb, xy, mask)
+    ImageDraw.Draw(img).rounded_rectangle(
+        [xy[0], xy[1], xy[0] + thumb.width, xy[1] + thumb.height], radius=radius, outline=EDGE, width=2)
+
+
+def make_card(name, picture, title, line1, line2):
+    from PIL import Image, ImageDraw
+    width, height = 1600, 1010
     img = gradient(width, height, (13, 15, 18), FORGED)
     draw = ImageDraw.Draw(img)
     gold_rule(draw, width, 0, 3)
     gold_rule(draw, width, height - 5, 3)
-    title_face = font(CINZEL, 40)
-    body_face = font(BODY, 33)
-    for i, (picture, title, line1, line2) in enumerate(CARDS):
-        col, row = i % cols, i // cols
-        x = margin + col * (cw + gap)
-        y = margin + row * (ch + gap)
-        draw.rounded_rectangle([x, y, x + cw, y + ch], radius=18, fill=SLAB_TOP,
-                               outline=EDGE, width=2)
-        thumb_h = 300
-        src = Image.open(README_MEDIA / picture).convert("RGB")
-        thumb = cover(src, cw - 24, thumb_h, focus_y=0.5)
-        mask = Image.new("L", thumb.size, 0)
-        ImageDraw.Draw(mask).rounded_rectangle([0, 0, thumb.width, thumb.height], radius=12, fill=255)
-        img.paste(thumb, (x + 12, y + 12), mask)
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([x + 28, y + thumb_h + 28, x + 96, y + thumb_h + 31], fill=GILT)
-        face, tracking = fit_tracked(draw, title, CINZEL, 40, 0.04, cw - 56)
-        tracked(draw, (x + 28, y + thumb_h + 46), title, face, EMPHASIS, tracking)
-        draw.text((x + 28, y + thumb_h + 118), line1, font=body_face, fill=TEXT)
-        draw.text((x + 28, y + thumb_h + 164), line2, font=body_face, fill=MUTED)
-    return save(img, "feature-cards.jpg", quality=80)
+    draw.rounded_rectangle([40, 40, width - 40, height - 40], radius=22, fill=SLAB_TOP,
+                           outline=EDGE, width=2)
+    src = Image.open(README_MEDIA / picture).convert("RGB")
+    thumb = cover(src, width - 128, 520, focus_y=0.5)
+    rounded_paste(img, thumb, (64, 64))
+    draw = ImageDraw.Draw(img)
+    x, y = 88, 64 + 520
+    draw.rectangle([x, y + 36, x + 110, y + 40], fill=GILT)
+    face, tracking = fit_tracked(draw, title, CINZEL, 68, 0.04, width - 2 * x)
+    tracked(draw, (x, y + 58), title, face, EMPHASIS, tracking)
+    draw.text((x, y + 162), line1, font=font(BODY, 54), fill=TEXT)
+    draw.text((x, y + 232), line2, font=font(BODY, 54), fill=MUTED)
+    return save(img, name, quality=84)
+
+
+def make_showcase(name, picture):
+    from PIL import Image, ImageDraw, ImageFilter
+    src = Image.open(README_MEDIA / picture).convert("RGB")
+    width, pad, max_scale = 2048, 96, 2.6
+    scale = min((width - 2 * pad) / src.width, 1150 / src.height, max_scale)
+    thumb = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
+    thumb = thumb.filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
+    height = thumb.height + 2 * pad
+    img = gradient(width, height, SLAB_TOP, FORGED)
+    draw = ImageDraw.Draw(img)
+    gold_rule(draw, width, 0, 3)
+    gold_rule(draw, width, height - 5, 3)
+    rounded_paste(img, thumb, ((width - thumb.width) // 2, pad), radius=16)
+    return save(img, name, quality=82)
+
+
+def recompress_gif(name, step, width, colours, poster):
+    """Shrink an oversized clip: fewer frames (same duration), narrower, one shared
+    palette, unchanged pixels stored as transparent."""
+    from PIL import Image, ImageChops
+    path = README_MEDIA / name
+    if path.stat().st_size <= GIF_CAP:
+        return
+    src = Image.open(path)
+    frames, durations = [], []
+    for i in range(src.n_frames):
+        src.seek(i)
+        durations.append(src.info.get("duration", 60))
+        frames.append(src.convert("RGB"))
+    frames = frames[::step]
+    durations = [sum(durations[i:i + step]) for i in range(0, len(frames) * step, step)][:len(frames)]
+    height = round(frames[0].height * width / frames[0].width)
+    frames = [f.resize((width, height), Image.LANCZOS) for f in frames]
+    if poster > 1:
+        frames = [f.point(lambda v: v // poster * poster) for f in frames]
+    tile = Image.new("RGB", (width * 2, height * 2))
+    for j, fi in enumerate((0, len(frames) // 3, 2 * len(frames) // 3, len(frames) - 1)):
+        tile.paste(frames[fi], ((j % 2) * width, (j // 2) * height))
+    palette = tile.quantize(colors=colours - 1, method=Image.MEDIANCUT)
+    indexed = [f.quantize(colors=colours - 1, palette=palette, dither=Image.Dither.NONE)
+               for f in frames]
+    out, prev = [indexed[0]], indexed[0]
+    blank = Image.new("P", indexed[0].size, colours - 1)
+    blank.putpalette(indexed[0].getpalette())
+    for frame in indexed[1:]:
+        a = Image.frombytes("L", frame.size, prev.tobytes())
+        b = Image.frombytes("L", frame.size, frame.tobytes())
+        mask = ImageChops.difference(a, b).point(lambda v: 0 if v else 255)
+        delta = Image.composite(blank, frame, mask)
+        delta.putpalette(frame.getpalette())
+        out.append(delta)
+        prev = frame
+    out[0].save(path, save_all=True, append_images=out[1:], duration=durations, loop=0,
+                optimize=True, transparency=colours - 1, disposal=[0] + [1] * (len(out) - 1))
+    print(f"{name} recompressed to {path.stat().st_size} bytes")
 
 
 def build_pages():
@@ -262,7 +335,12 @@ def main(argv=None):
     make_banner()
     for name, title, subtitle in HEADERS:
         make_header(name, title, subtitle)
-    make_cards()
+    for card in CARDS:
+        make_card(*card)
+    for name, picture in SHOWCASES:
+        make_showcase(name, picture)
+    for spec in GIF_SPECS:
+        recompress_gif(*spec)
     if args.pages:
         build_pages()
     return 0
