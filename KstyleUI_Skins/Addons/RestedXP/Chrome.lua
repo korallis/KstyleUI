@@ -272,6 +272,10 @@ local function PaintReadable(text, entry)
 	entry.busy = true
 	local minimum = Lumen.Size(text:GetParent(), entry.units or Tokens.Size(entry.role))
 	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum))
+	if entry.outline then
+		local path, size = text:GetFont()
+		text:SetFont(path, size, "OUTLINE")
+	end
 	if entry.lead and type(text.SetSpacing) == "function" then
 		local path, size, flags = text:GetFont()
 		if type(size) == "number" and not Widgets.IsSecret(size) then
@@ -282,12 +286,12 @@ local function PaintReadable(text, entry)
 	entry.busy = false
 end
 
-local function Readable(text, role, units, lead)
+local function Readable(text, role, units, lead, outline)
 	if not IsTable(text) or type(text.GetFont) ~= "function" or type(text.GetParent) ~= "function" or readable[text] then
 		return false
 	end
 	local _, size = text:GetFont()
-	local entry = { role = role, units = units, lead = lead, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
+	local entry = { role = role, units = units, lead = lead, outline = outline, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
 	readable[text] = entry
 	hooksecurefunc(text, "SetFont", function(_, _, requested)
 		if Active() and not entry.busy and type(requested) == "number" and not Widgets.IsSecret(requested) then
@@ -785,10 +789,56 @@ end
 
 local function PaintArrow(arrow)
 	local texture = arrow.texture
-	if IsTexture(texture) then
-		texture:SetDesaturated(true)
-		texture:SetVertexColor(Style.Accent())
+	if not IsTexture(texture) or type(arrow.CreateMaskTexture) ~= "function" then
+		return
 	end
+	local entry = arrows[arrow]
+	if not entry then
+		entry = { masks = {} }
+		arrows[arrow] = entry
+		for i = 1, 2 do
+			local layer = arrow:CreateTexture(nil, i == 1 and "BACKGROUND" or "ARTWORK", nil, i == 1 and 0 or 1)
+			local mask = arrow:CreateMaskTexture()
+			mask:SetAllPoints(layer)
+			layer:AddMaskTexture(mask)
+			entry[i], entry.masks[i] = layer, mask
+		end
+		hooksecurefunc(texture, "SetTexture", function(_, ...)
+			for _, mask in ipairs(entry.masks) do mask:SetTexture(...) end
+			for _, layer in ipairs(entry) do layer:SetShown(Active()) end
+		end)
+		for _, method in ipairs({ "SetRotation", "SetTexCoord" }) do
+			hooksecurefunc(texture, method, function(_, ...)
+				for _, mask in ipairs(entry.masks) do mask[method](mask, ...) end
+			end)
+		end
+	end
+	local pad = Widgets.Snap(arrow, 2)
+	Widgets.Fill(entry[1], texture, -pad, -pad, -pad, -pad)
+	local r, g, b = Tokens.Color("shadow")
+	entry[1]:SetColorTexture(r, g, b, 1)
+	Widgets.Fill(entry[2], texture)
+	entry[2]:SetColorTexture(Tokens.Color("textEmphasis"))
+	local rotation = texture:GetRotation()
+	local coords = { texture:GetTexCoord() }
+	for _, mask in ipairs(entry.masks) do
+		mask:SetTexture(texture:GetTexture())
+		mask:SetRotation(Plain(rotation) and rotation or 0)
+		if Plain(coords[1]) then mask:SetTexCoord(unpack(coords)) end
+	end
+	for _, layer in ipairs(entry) do layer:SetShown(Active()) end
+	if Active() then
+		texture:SetVertexColor(Tokens.Color("textEmphasis"))
+		if IsTable(arrow.text) then
+			arrow.text:SetTextColor(Tokens.Color("textEmphasis"))
+			arrow.text:SetShadowColor(Tokens.Color("textShadow"))
+			arrow.text:SetShadowOffset(pad / 2, -pad / 2)
+		end
+	end
+end
+
+function Chrome.SwitchArrow()
+	for arrow in pairs(arrows) do PaintArrow(arrow) end
 end
 
 local function Restyle()
@@ -1248,10 +1298,9 @@ local function Arrow(rxp)
 	if not arrow then
 		return
 	end
-	arrows[arrow] = true
-	PaintArrow(arrow)
 	Worded(arrow.text, Reword)
-	Readable(arrow.text, "number", Tokens.Size("caption"))
+	Readable(arrow.text, "number", Tokens.Size("caption"), nil, true)
+	PaintArrow(arrow)
 	Hook(arrow, "UpdateVisuals", "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
 	end)

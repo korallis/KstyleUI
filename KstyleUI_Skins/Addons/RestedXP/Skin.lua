@@ -36,6 +36,7 @@ ns.Skins.Add({
 		if rxp then
 			RestedXP.Chrome.Start(rxp)
 		end
+		RestedXP.Chrome.SwitchArrow()
 		RestedXP.Rail.Switch(on and ns.Skins.Setting("restedXP", "rail") == true)
 	end,
 	OnSetting = function(_, field)

@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetVertexColor = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true, StopMovingOrSizing = true }
+local HOOKED = { SetAlpha = true, SetVertexColor = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true, StopMovingOrSizing = true, SetTexture = true, SetRotation = true, SetTexCoord = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -318,14 +318,14 @@ end
 do
 	local env, K, ns, rxp = Boot()
 	local arrow = rxp.arrowFrame
-	local ar, ag, ab = ns.Style.Accent()
-	assert(W.LastCall(arrow.texture, "SetDesaturated")[1] == true and W.SameColor(arrow.texture, ar, ag, ab), "the arrow is drawn in the accent")
+	local ar, ag, ab = K.Tokens.Color("textEmphasis")
+	assert(W.SameColor(arrow.texture, ar, ag, ab), "the arrow uses bright ivory instead of multiplying by a potentially dark accent")
 	arrow:UpdateVisuals()
 	assert(W.SameColor(arrow.texture, ar, ag, ab), "and stays so when RestedXP redraws it")
 	K.Theme.SetCustomAccent(0.2, 0.4, 0.9)
 	K.Theme.SetAccentSource("custom")
 	env.RunTimers()
-	assert(W.SameColor(arrow.texture, 0.2, 0.4, 0.9), "an accent change reaches the arrow")
+	assert(W.SameColor(arrow.texture, ar, ag, ab), "an accent change keeps the arrow bright")
 
 	local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 	for _, f in ipairs({ items, targets }) do
