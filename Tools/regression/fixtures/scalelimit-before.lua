@@ -1,0 +1,1350 @@
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own (side by side in Frames, one column with the quests on top in Orbs), and each layout class's own places.
+local _, ns = ...
+
+local Setup = ns.Setup or {}
+ns.Setup = Setup
+
+local Layouts = {}
+Setup.Layouts = Layouts
+
+local L = ns.L
+
+local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
+local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
+local RAIL_BUTTON, RAIL_PITCH = CENTRE_BUTTON, CENTRE_GAP
+local MOCK_PX = 1 / ns.Scale.DEFAULT_USER_SCALE
+local TRAY_BUTTON, TRAY_GAP, TRAY_PAD, TRAY_BOTTOM = 38 * MOCK_PX, 3 * MOCK_PX, 9 * MOCK_PX, 40 * MOCK_PX
+local TRAY_WIDTH = 12 * TRAY_BUTTON + 11 * TRAY_GAP + 2 * TRAY_PAD
+local TRAY_BAR1_Y = TRAY_BOTTOM + TRAY_PAD
+local TRAY_BAR2_Y = TRAY_BAR1_Y + TRAY_BUTTON + TRAY_GAP
+local TRAY_TOP = TRAY_BAR2_Y + TRAY_BUTTON + TRAY_PAD
+local TRAY_STRIP_GAP = 9 * MOCK_PX
+local XP_H = 7 * MOCK_PX
+local LIFT = math.ceil(TRAY_TOP - 132)
+local PLAYER_CAST_Y = 385.5 + LIFT
+local COMBAT_TEXT_H = 180
+local GRIDS = {
+	["actionbars.bar1"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
+	["actionbars.bar2"] = { buttons = 12, rows = 1, size = TRAY_BUTTON, spacing = TRAY_GAP },
+	["actionbars.bar3"] = { buttons = 12, rows = 1, size = BUTTON },
+	["actionbars.bar4"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
+	["actionbars.bar5"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
+	["actionbars.bar6"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH, growth = "RIGHTUP" },
+	["actionbars.pet"] = { buttons = 10, rows = 3, size = SMALL_BUTTON },
+	["actionbars.stance"] = { buttons = 10, rows = 3, size = SMALL_BUTTON, growth = "RIGHTUP" },
+}
+
+local function GridSize(key)
+	local grid = GRIDS[key]
+	local columns = math.ceil(grid.buttons / grid.rows)
+	local gap = grid.spacing or PITCH
+	return columns * grid.size + (columns - 1) * gap, grid.rows * grid.size + (grid.rows - 1) * gap
+end
+
+local function Row(icons)
+	return icons * BUTTON + (icons - 1) * PITCH
+end
+local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
+
+local EDGE = ns.Tokens.Size("screenMargin")
+local RAIL_EDGE = EDGE + 1.4
+local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 208, 22, 14, 3
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 11.9
+local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
+local STORY_W = 278
+local DAMAGE_W, DAMAGE_H = 269, 158
+local THREAT_W, THREAT_H = 200, 112
+local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
+
+local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465 }
+
+local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
+local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
+
+local ELEMENTS = {
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 77.5, reserve = { 586.5, 77.5, -47.75 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 102.5, reserve = { 737.4, 102.5, 123.2 } },
+	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
+	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], short = L["Focus"], width = 200, height = 90, reserve = { 200, 112 } },
+	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
+	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
+	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], short = L["Boss"], width = 222, height = 334, reserve = { 318, 334 } },
+	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 30 },
+	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 32 },
+	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = PARTY.width, height = PARTY.height },
+	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 543, height = 401 },
+	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
+	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
+	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], grid = true },
+	{ key = "actionbars.bar4", module = "ActionBars", label = L["Action bar 4"], grid = true },
+	{ key = "actionbars.bar5", module = "ActionBars", label = L["Action bar 5"], grid = true },
+	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], grid = true },
+	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], grid = true },
+	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], grid = true },
+	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 6 * CENTRE_BUTTON + 5 * CENTRE_GAP, height = CENTRE_BUTTON },
+	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
+	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 182.6, height = 41.6 },
+	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 43 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = AURA_W, height = AURA_H },
+	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = AURA_W, height = AURA_H },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 442, height = 186 },
+	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], short = L["Loot"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
+	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = XP_H },
+	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
+	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = STORY_W, height = READOUT_H },
+	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
+	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
+	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = THREAT_W, height = THREAT_H },
+	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
+	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = COMBAT_TEXT_H - LIFT },
+	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
+}
+
+for _, element in ipairs(ELEMENTS) do
+	if element.grid then
+		element.width, element.height = GridSize(element.key)
+		element.grid = nil
+	end
+end
+
+local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
+local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
+local NEAR = ns.Tokens.Size("gapLarge")
+local ENDS = TRAY_WIDTH / 2 + NEAR + GridSize("actionbars.pet") / 2
+local STRIP_ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + (5 * SMALL_BUTTON + 4 * PITCH) / 2
+local BAR = BUTTON + PITCH
+local BAR1_Y = 68 + LIFT
+local SPARE_TOP = BAR1_Y + 3 * BAR - PITCH
+local VITALS_Y = SPARE_TOP + 12
+local VITALS_TOP = VITALS_Y + 80
+local RESOURCE_Y = VITALS_TOP + 6
+local COOLDOWN_Y = RESOURCE_Y + 14 + 8
+local TRACKED_Y = COOLDOWN_Y + BUTTON + 8
+local HANDS_TOP = TRACKED_Y + 43
+local CLUSTER_TOP = HANDS_TOP + 7 + 136
+local UTILITY_X = ESSENTIAL / 2 + GAP + UTILITY / 2
+local SIDE = 490 / 2 + NEAR
+local FOCUS_X = -(SIDE + 200 / 2)
+local TOT_X = SIDE + 120 / 2
+local SIGIL_CLEAR = GAP
+local STACK = CLUSTER_TOP + SIGIL_CLEAR
+local CAST_HALF = 272 / 2
+local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
+local TEXT_TOP = CLUSTER_TOP - LIFT + GAP + COMBAT_TEXT_H
+local BOSS_X = -(EDGE + 2 * STORY_W + 2 * GAP)
+local function ElementSize(key)
+	for _, element in ipairs(ELEMENTS) do
+		if element.key == key then
+			return element.width, element.height
+		end
+	end
+end
+local _, CHAT_H = ElementSize("chat.main")
+local AURAS_X = EDGE + MAP_FRAME + MAP + AURA_MAP_GAP
+local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
+local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
+local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
+local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
+local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
+local _, RAIL_BARS_H = GridSize("actionbars.bar4")
+local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
+local STORY_FLOOR = 72
+local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
+local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
+local _, MICRO_H = ElementSize("databars.micro")
+local _, BAGS_H = ElementSize("databars.bags")
+local TIP_Y = RAIL_BARS_Y + MICRO_H + BAGS_H + GAP
+
+local DPS = {
+	["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = HEIGHT / 2 - PARTY.top - PARTY.height / 2 },
+	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
+	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
+	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME), y = -(EDGE - 1 + MAP_HEADING) },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + STORY_W + GAP), y = 217.5 + LIFT + 102.5 + GAP },
+	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
+	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - XP_H },
+	["databars.rep"] = { anchor = "BOTTOM", x = -STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 15 },
+	["databars.honor"] = { anchor = "BOTTOM", x = STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 15 },
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR1_Y },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR2_Y },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = math.max(MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP, PLAYER_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP) },
+	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
+	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
+	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
+	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 421 + LIFT },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 + LIFT },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 + LIFT },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -((6 * CENTRE_BUTTON + 5 * CENTRE_GAP) / 2 + GAP + 182.6 / 2), y = 335.3 + LIFT },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = -(347 / 2 + GAP + 6 * 28.5 + 5 * 3 + GAP + TRACKED / 2), y = 340 + LIFT },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 421 + 14 + 8 + LIFT },
+	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 + LIFT },
+	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
+	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
+	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_CAST_Y },
+	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 },
+	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
+	["combattext.player"] = { anchor = "BOTTOM", x = SIDE - 80 - GAP, y = 421 + 14 + 8 + LIFT + 8 + GAP },
+	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -RAIL_EDGE, y = RAIL_BARS_Y },
+	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + RAIL_COLUMN), y = RAIL_BARS_Y },
+	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + 2 * RAIL_COLUMN), y = RAIL_BARS_Y },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y },
+}
+
+local CHANGES = {
+	DPS = {},
+	Tank = {},
+	Healer = {},
+}
+
+local SIZES = {
+	DPS = {
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
+	},
+	Tank = {
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
+	},
+	Healer = {
+		["groupframes.party"] = { PARTY.width, PARTY.healer },
+		["groupframes.raid"] = { 623, 401 },
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
+		["chat.main"] = { RAIL, 186 },
+	},
+}
+local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true, ["chat.main"] = true }
+
+local DOCKS = {
+	["databars.micro"] = "databars.strip",
+	["databars.bags"] = "databars.strip",
+}
+
+local SWITCHES = {
+	{ key = "actionbars.bar1", module = "ActionBars", setting = "bar1.enabled" },
+	{ key = "actionbars.bar2", module = "ActionBars", setting = "bar2.enabled" },
+	{ key = "actionbars.bar3", module = "ActionBars", setting = "bar3.enabled" },
+	{ key = "actionbars.bar4", module = "ActionBars", setting = "bar4.enabled" },
+	{ key = "actionbars.bar5", module = "ActionBars", setting = "bar5.enabled" },
+	{ key = "actionbars.bar6", module = "ActionBars", setting = "bar6.enabled" },
+	{ key = "actionbars.pet", module = "ActionBars", setting = "pet.enabled" },
+	{ key = "actionbars.stance", module = "ActionBars", setting = "stance.enabled" },
+	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
+}
+
+local BARS_OFF = {
+	"actionbars.bar3", "actionbars.bar6",
+	"unitframes.castbar.target",
+}
+local OFF = {
+	DPS = { "meters.threat" },
+	Tank = {},
+	Healer = { "meters.threat" },
+}
+
+local SHARED_SETTINGS = {
+	{ module = "ActionBars", key = "bar1.showEmpty", value = true },
+	{ module = "ActionBars", key = "bar2.showEmpty", value = true },
+	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
+	{ module = "DataBars", key = "strip.menus", value = false },
+	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
+}
+local GRID_ORDER = { "bar1", "bar2", "bar3", "bar4", "bar5", "bar6", "pet", "stance" }
+for i = #GRID_ORDER, 1, -1 do
+	local bar = GRID_ORDER[i]
+	local grid = GRIDS["actionbars." .. bar]
+	if grid.growth then
+		table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".growth", value = grid.growth })
+	end
+	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = grid.rows })
+end
+
+local BOSS_LEFT = {
+	{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
+	{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
+	{ module = "UnitFrames", key = "boss.growth", value = "UP" },
+}
+local EXTRA = {
+	DPS = BOSS_LEFT,
+	Tank = BOSS_LEFT,
+	Healer = {
+		{ module = "GroupFrames", key = "party.auraDispelCount", value = 2 },
+		{ module = "GroupFrames", key = "raid.auraDispelCount", value = 2 },
+		{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
+		{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
+		{ module = "UnitFrames", key = "boss.growth", value = "UP" },
+	},
+}
+local ROWS = {
+	DPS = { party = 39, raid = 36 },
+	Tank = { party = 39, raid = 36 },
+	Healer = { party = 43, raid = 36 },
+}
+
+
+local NAMES = { "DPS", "Tank", "Healer" }
+local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
+local NOTES = {
+	DPS = L["Party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
+	Tank = L["The DPS layout with the threat meter on the right, under the quest card, where it reads who holds aggro without covering the enemies' nameplates."],
+	Healer = L["The DPS layout with taller party rows and raid rows wide enough for three of your heals, dispellable debuffs first."],
+}
+
+local OFFSETS = {
+	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
+	LEFT = { 0, 0.5 }, CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 },
+	BOTTOMLEFT = { 0, 0 }, BOTTOM = { 0.5, 0 }, BOTTOMRIGHT = { 1, 0 },
+}
+
+local byKey = {}
+for _, element in ipairs(ELEMENTS) do
+	byKey[element.key] = element
+end
+
+local function copy(position)
+	return { anchor = position.anchor, x = position.x, y = position.y }
+end
+
+local layouts, shown, settings, slots = {}, {}, {}, {}
+for _, name in ipairs(NAMES) do
+	local layout = {}
+	for key, position in pairs(DPS) do
+		layout[key] = copy(CHANGES[name][key] or position)
+	end
+	layouts[name] = layout
+	local off = {}
+	for _, key in ipairs(BARS_OFF) do
+		off[key] = true
+	end
+	for _, key in ipairs(OFF[name]) do
+		off[key] = true
+	end
+	shown[name] = off
+	local list = {}
+	for _, switch in ipairs(SWITCHES) do
+		list[#list + 1] = { module = switch.module, key = switch.setting, value = not off[switch.key] }
+	end
+	for _, entry in ipairs(SHARED_SETTINGS) do
+		list[#list + 1] = { module = entry.module, key = entry.key, value = entry.value }
+	end
+	list[#list + 1] = { module = "GroupFrames", key = "party.height", value = ROWS[name].party }
+	list[#list + 1] = { module = "GroupFrames", key = "raid.height", value = ROWS[name].raid }
+	for _, entry in ipairs(EXTRA[name]) do
+		list[#list + 1] = { module = entry.module, key = entry.key, value = entry.value }
+	end
+	settings[name] = list
+	slots[name] = {
+		key = "story",
+		anchor = "TOPRIGHT", x = -EDGE, y = -STORY_TOP,
+		width = STORY_W, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
+		label = L["Story rail"],
+		hint = L["Apply places the quest tracker here through Edit Mode; Window skins put the RestedXP guide above it."],
+	}
+end
+
+local ART = {
+	hole = { 641, 320, 2023, 460 }, arm = { 556, 185, 736, 545 }, crest = { 1152, 146, 1512, 326 },
+	rail = { 262, 326 }, railBottom = { 452, 516 }, ring = { 332, 334, 608 },
+	fit = 1359, bottom = 668, floor = 21, bar2 = { 243.5, 79.5, 349.8 }, cast = 87, xp = 519.6,
+	level = { 174.6, 101.1, 34.4 },
+}
+local ART_X, ART_Y = (ART.hole[1] + ART.hole[3]) / 2, (ART.hole[2] + ART.hole[4]) / 2
+local ORBS_TARGET_Y, ORBS_AURA_ICONS = 40, 5
+local ORBS_BAR1_W, ORBS_BAR1_H = GridSize("actionbars.bar1")
+local ORBS_SOURCE = ORBS_BAR1_W / ART.fit
+local ORBS_CENTRE = (ART.bottom - ART_Y + ART.floor) * ORBS_SOURCE
+local ORBS_RING = ART.ring[3] * ORBS_SOURCE
+local ORBS_X = (ART_X - ART.ring[1]) * ORBS_SOURCE
+local ORBS_REACH = ORBS_X - ORBS_BAR1_W / 2
+local ORBS_LIFT = (ART_Y - ART.ring[2]) * ORBS_SOURCE
+local ORBS_TOP = ORBS_CENTRE + ORBS_LIFT + ORBS_RING / 2
+local ORBS_BAR2_SCALE = ART.bar2[2] * ORBS_SOURCE / GRIDS["actionbars.bar2"].size
+local ORBS_SPLIT = ART.bar2[3] * ORBS_SOURCE / ORBS_BAR2_SCALE
+local ORBS_BAR2_Y = ORBS_CENTRE + (ART_Y - ART.bar2[1]) * ORBS_SOURCE
+local ORBS_CAST_Y = ORBS_CENTRE + (ART_Y - ART.cast) * ORBS_SOURCE
+local ORBS_XP_Y = ORBS_CENTRE - (ART.xp - ART_Y) * ORBS_SOURCE - select(2, ElementSize("databars.xp"))
+local ORBS_ESSENTIAL_Y = ORBS_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP
+local ORBS_UTILITY_Y = ORBS_ESSENTIAL_Y + CENTRE_BUTTON + 8
+local ORBS_RESOURCE_Y = ORBS_UTILITY_Y + BUTTON + 6
+local ORBS_SWING_Y = ORBS_RESOURCE_Y + 14 + 8
+local ORBS_AURA_Y = ORBS_TOP + NEAR
+local ORBS_AURA_HALF = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AURA_GAP) / 2
+local ORBS_AURA_SHIFT = ORBS_AURA_HALF - AURA_W / 2
+local ORBS_TRACKED_W = ElementSize("cooldowns.buffs")
+local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + 8
+local ORBS_PET_W = GridSize("actionbars.pet")
+local ORBS_STANCE_W = GridSize("actionbars.stance")
+local ORBS_GLOW = 30
+local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
+local ORBS_TOT_W = ElementSize("unitframes.targettarget")
+local ORBS_RAIL_X = EDGE + STORY_W + GAP
+local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
+local ORBS_STORY_BOTTOM = TIP_Y + select(2, ElementSize("tooltips.anchor")) + GAP
+local ORBS_FIT = {
+	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + TIGHT,
+	nudge = 32,
+	tieX = (ART_X - ART.arm[3]) * ORBS_SOURCE,
+	bossX = ORBS_RAIL_X + 2 * RAIL_COLUMN + RAIL_BUTTON + GAP,
+	textX = CAST_HALF + GAP + ElementSize("combattext.player") / 2,
+}
+
+local ORBS = {
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_CENTRE - ORBS_BAR1_H / 2 },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = ORBS_XP_Y },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR2_Y, scale = ORBS_BAR2_SCALE },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = ORBS_CAST_Y },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = ORBS_ESSENTIAL_Y },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = 0, y = ORBS_UTILITY_Y },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = ORBS_RESOURCE_Y },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = ORBS_SWING_Y },
+	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X + ORBS_FIT.nudge, y = ORBS_AURA_Y },
+	["auras.debuffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT + ORBS_X, y = ORBS_AURA_Y },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_HALF - ORBS_X + ORBS_FIT.nudge - ORBS_TRACKED_W / 2, y = ORBS_TRACKED_Y },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
+	["actionbars.pet"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY },
+	["actionbars.stance"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR, y = ORBS_FIT.cornerY },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY + select(2, GridSize("actionbars.pet")) + NEAR },
+	["databars.rep"] = { anchor = "BOTTOM", x = -ORBS_FIT.tieX, y = 52 },
+	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX, y = 52 },
+	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },
+	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -ORBS_FIT.bossX, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
+	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = CLUSTER_TOP + GAP },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
+	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
+	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
+	["groupframes.party"] = DPS["groupframes.party"],
+	["groupframes.raid"] = DPS["groupframes.raid"],
+	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN, width = 393, height = 186 },
+	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -ORBS_RAIL_X, y = ORBS_STORY_BOTTOM },
+	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + RAIL_COLUMN), y = ORBS_STORY_BOTTOM },
+	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + 2 * RAIL_COLUMN), y = ORBS_STORY_BOTTOM },
+	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + 3 * RAIL_COLUMN - RAIL_PITCH + GAP), y = ORBS_TRACKED_Y + select(2, ElementSize("cooldowns.bars")) + GAP },
+}
+local STORY_STYLES = {
+	orbs = {
+		[STORY_KEYS.quests] = { anchor = "TOPRIGHT", x = -EDGE, y = -ORBS_STORY_TOP },
+		[STORY_KEYS.guide] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = ORBS_STORY_BOTTOM },
+	},
+}
+local REPLACED = { orbs = { ["unitframes.player"] = true } }
+local ORBS_KEEP = {
+	Healer = { ["groupframes.party"] = true, ["groupframes.raid"] = true },
+}
+local STYLES = { orbs = {}, medallions = {} }
+for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
+	local style = {}
+	for key, position in pairs(ORBS) do
+		if not (ORBS_KEEP[name] and ORBS_KEEP[name][key]) then
+			style[key] = position
+		end
+	end
+	STYLES.orbs[name] = style
+end
+
+Layouts.ELEMENTS = ELEMENTS
+Layouts.FEED_LINES = FEED_LINES
+Layouts.FEED_PAD = FEED_PAD
+Layouts.SIGIL_CLEAR = SIGIL_CLEAR
+Layouts.BUTTON = BUTTON
+Layouts.TRAY_TOP = TRAY_TOP
+Layouts.TRAY_BOTTOM = TRAY_BOTTOM
+Layouts.TRAY_WIDTH = TRAY_WIDTH
+Layouts.TRAY_PAD = TRAY_PAD
+Layouts.TRAY_GAP = TRAY_GAP
+Layouts.TRAY_LIFT = LIFT
+Layouts.HEIGHT = HEIGHT
+Layouts.STORY_KEYS = STORY_KEYS
+Layouts.STORY_GAP = GAP
+Layouts.STORY_FLOOR = STORY_FLOOR
+
+function Layouts.Names()
+	local out = {}
+	for i, name in ipairs(NAMES) do
+		out[i] = name
+	end
+	return out
+end
+
+function Layouts.Label(name)
+	return LABELS[name]
+end
+
+function Layouts.Note(name)
+	return NOTES[name]
+end
+
+function Layouts.Element(key)
+	return byKey[key]
+end
+
+function Layouts.Grid(key)
+	local grid = GRIDS[key]
+	if not grid then
+		return nil
+	end
+	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
+end
+
+local function Lift(rootHeight)
+	if type(rootHeight) == "number" and rootHeight > 0 then
+		return HEIGHT - rootHeight
+	end
+	return 0
+end
+
+function Layouts.Get(name)
+	local layout = layouts[name]
+	if not layout then
+		return nil
+	end
+	local out = {}
+	for key, position in pairs(layout) do
+		out[key] = { anchor = position.anchor, x = position.x, y = position.y }
+	end
+	return out
+end
+
+function Layouts.Footprint(name, key)
+	local element = byKey[key]
+	if not element or not layouts[name] then
+		return nil
+	end
+	local size = SIZES[name][key] or element.reserve
+	if size then
+		return size[1], size[2], size[3]
+	end
+	return element.width, element.height
+end
+
+function Layouts.Sizes(name)
+	if not layouts[name] then
+		return nil
+	end
+	local out = {}
+	for key, size in pairs(SIZES[name]) do
+		if APPLIED[key] then
+			out[key] = { width = size[1], height = size[2] }
+		end
+	end
+	return out
+end
+
+function Layouts.Dock(key)
+	return DOCKS[key]
+end
+
+function Layouts.Reserves()
+	local out = {}
+	for _, element in ipairs(ELEMENTS) do
+		local reserve = element.reserve
+		if reserve then
+			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2], offsetX = reserve[3] }
+		end
+	end
+	return out
+end
+
+function Layouts.Shown(name, key)
+	local off = shown[name]
+	if not off or not byKey[key] then
+		return nil
+	end
+	return not off[key]
+end
+
+function Layouts.Settings(name)
+	local list = settings[name]
+	if not list then
+		return nil
+	end
+	local out = {}
+	for i, entry in ipairs(list) do
+		out[i] = { module = entry.module, key = entry.key, value = entry.value }
+	end
+	return out
+end
+
+function Layouts.Slot(name, rootHeight)
+	local slot = slots[name]
+	if not slot then
+		return nil
+	end
+	local out = {}
+	for k, v in pairs(slot) do
+		out[k] = v
+	end
+	out.height = slot.height - Lift(rootHeight)
+	return out
+end
+
+function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
+	local slot = Layouts.Slot(name, rootHeight)
+	if not slot then
+		return nil
+	end
+	local function Card(key, x, height, place)
+		return { key = key, anchor = place and place.anchor or slot.anchor, x = x, y = place and place.y or slot.y, width = slot.width, height = height }
+	end
+	local stack = STORY_STYLES[style]
+	if stack then
+		local quests, below = stack[STORY_KEYS.quests], stack[STORY_KEYS.guide]
+		local column = math.max(0, HEIGHT - Lift(rootHeight) - ORBS_STORY_TOP - ORBS_STORY_BOTTOM)
+		if not guide then
+			return { quests = Card(STORY_KEYS.quests, quests.x, math.max(1, column), quests) }
+		end
+		local top = math.max(1, (column - GAP) / 2, column - GAP - slot.height)
+		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
+	end
+	if not guide then
+		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
+	end
+	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
+	local tot = rootWidth and Layouts.Get(name, rootHeight)["unitframes.targettarget"]
+	if tot then
+		local w, h = Layouts.Footprint(name, "unitframes.targettarget")
+		local _, _, right = Layouts.Rect({ width = w, height = h }, tot, rootWidth, rootHeight)
+		if rootWidth + x - slot.width >= right + TIGHT then
+			foot = DPS["meters.threat"].y + THREAT_H
+		end
+	end
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP)
+	if guideShown then
+		return { guide = Card(STORY_KEYS.guide, x, column), quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
+	end
+	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, x, column) }
+end
+
+local LIFTED = {
+	"unitframes.player", "unitframes.pet", "unitframes.target", "unitframes.focus", "unitframes.focustarget",
+	"unitframes.targettarget", "unitframes.castbar.player", "cooldowns.essential", "cooldowns.utility",
+	"cooldowns.buffs", "cooldowns.bars", "meters.threat", "combattext.player", "actionbars.bar3",
+}
+local LIFTED_IN = {
+	DPS = {},
+	Tank = {},
+	Healer = { "groupframes.party", "groupframes.raid" },
+}
+local OLD_ENDS = STRIP_ENDS
+local TRAY_OLD = {
+	["actionbars.bar1"] = { "BOTTOM", 0, 54 },
+	["actionbars.bar2"] = { "BOTTOM", 0, 95.3 },
+	["actionbars.pet"] = { "BOTTOM", -OLD_ENDS, 68 },
+	["actionbars.stance"] = { "BOTTOM", OLD_ENDS, 68 },
+	["databars.xp"] = { "BOTTOM", 0, 36.5 },
+	["databars.rep"] = { "BOTTOM", -OLD_ENDS, 52 },
+	["databars.honor"] = { "BOTTOM", OLD_ENDS, 52 },
+	["unitframes.resource"] = { "BOTTOM", 0, 420 },
+	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 - LIFT },
+	["meters.swing"] = { "BOTTOM", 0, 376.5 },
+}
+
+local CAST_OLD = {
+	["unitframes.resource"] = { "BOTTOM", 0, 420 + LIFT },
+	["unitframes.castbar.target"] = { "BOTTOM", 0, STACK + 38 + 8 + 30 + 8 },
+}
+
+function Layouts.CastMoves()
+	local out = {}
+	for key, place in pairs(CAST_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	return out
+end
+
+local HEALER_OLD = {
+	["groupframes.party"] = { "BOTTOM", HEALER_X, HEALER_Y },
+	["groupframes.raid"] = { "BOTTOM", HEALER_X, HEALER_Y },
+	["unitframes.boss"] = { "TOPLEFT", MARGIN, -MARGIN },
+	["combattext.player"] = { "BOTTOM", CAST_HALF + GAP + 160 / 2, CLUSTER_TOP + GAP },
+}
+
+do
+local PLACES_V30 = {
+	["groupframes.party"] = { "TOPLEFT", MARGIN, -MARGIN },
+	["orbs:groupframes.party"] = { "TOPLEFT", MARGIN, -PARTY.top },
+	["orbs:groupframes.raid"] = { "TOPLEFT", MARGIN, -PARTY.top },
+	["minimap.main"] = { "TOPRIGHT", -(EDGE - 1), -(EDGE - 1 + MAP_HEADING) },
+	["auras.buffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -RAIL_EDGE },
+	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -DEBUFFS_Y },
+	["databars.xp"] = { "BOTTOM", 0, TRAY_BOTTOM - TRAY_STRIP_GAP - 5, COLUMN, 5 },
+	["orbs:databars.xp"] = { "BOTTOM", 0, ORBS_XP_Y + XP_H - 5 },
+}
+
+function Layouts.PlaceMoves()
+	local out = {}
+	for key, place in pairs(PLACES_V30) do
+		out[key] = { place[1], place[2], place[3], place[4], place[5] }
+	end
+	return out
+end
+end
+
+do
+	local RAILS_V33 = {
+		places = {
+			["meters.threat"] = { "BOTTOM", 357, 433 },
+			["cooldowns.buffs"] = { "BOTTOM", -442.8, 186.9 },
+			["combattext.player"] = { "BOTTOM", 376, 587 },
+			["cooldowns.bars"] = { "BOTTOM", -480, 371 },
+			["auras.buffs"] = { "TOPRIGHT", -219.9, -18.4 },
+			["auras.debuffs"] = { "TOPRIGHT", -219.9, -67.9 },
+		},
+		sizes = {
+			["chat.main"] = { { 393, 186 } },
+		},
+	}
+
+	function Layouts.RailMoves()
+		local out = { places = {}, sizes = {}, styled = { ["chat.main"] = "orbs:chat.main", ["meters.threat"] = "orbs:meters.threat" } }
+		for key, place in pairs(RAILS_V33.places) do
+			out.places[key] = { place[1], place[2], place[3] }
+		end
+		for key, list in pairs(RAILS_V33.sizes) do
+			out.sizes[key] = {}
+			for i, size in ipairs(list) do
+				out.sizes[key][i] = { size[1], size[2] }
+			end
+		end
+		return out
+	end
+end
+
+function Layouts.HealerMoves()
+	local out = {}
+	for key, place in pairs(HEALER_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	return out
+end
+
+function Layouts.SwingMoves()
+	return { ["meters.swing"] = { "BOTTOM", 0, 376.5 + LIFT } }
+end
+
+function Layouts.TrayMoves(name)
+	local layout = layouts[name]
+	if not layout then
+		return nil
+	end
+	local out = {}
+	for key, place in pairs(TRAY_OLD) do
+		out[key] = { place[1], place[2], place[3] }
+	end
+	local moved = Layouts.RailMoves().places
+	local function lift(key)
+		local now = layout[key]
+		local was = moved[key]
+		if was then
+			out[key] = { was[1], was[2], was[3] - LIFT }
+		elseif now then
+			out[key] = { now.anchor, now.x, now.y - LIFT }
+		end
+	end
+	for _, key in ipairs(LIFTED) do
+		lift(key)
+	end
+	for _, key in ipairs(LIFTED_IN[name] or {}) do
+		lift(key)
+	end
+	return out
+end
+
+function Layouts.Default(key)
+	local position = layouts.DPS[key]
+	if not position then
+		error("KstyleUI.Setup.Layouts.Default: unknown element key " .. tostring(key), 2)
+	end
+	return copy(position)
+end
+
+Layouts.MAP_FRAME = MAP_FRAME
+Layouts.GAP = GAP
+Layouts.ORBS_RING = ORBS_RING
+Layouts.ORBS_REACH = ORBS_REACH
+Layouts.ORBS_LIFT = ORBS_LIFT
+Layouts.SPLIT_GAP = ORBS_SPLIT
+
+function Layouts.OrbsTray(width)
+	local s = width / ART.fit
+	local function Box(l, top, r, bottom)
+		return { left = (l - ART_X) * s, right = (r - ART_X) * s, top = (ART_Y - top) * s, bottom = (ART_Y - bottom) * s }
+	end
+	local hole, arm, crest = ART.hole, ART.arm, ART.crest
+	local inner = 2 * ART_X - arm[3]
+	local level = ART.level
+	local half = level[2] / 2
+	return {
+		hole = Box(hole[1], hole[2], hole[3], hole[4]),
+		arm = Box(arm[1], arm[2], arm[3], arm[4]),
+		crest = Box(crest[1], crest[2], crest[3], crest[4]),
+		rail = Box(arm[3], ART.rail[1], inner, ART.rail[2]),
+		railBottom = Box(arm[3], ART.railBottom[1], inner, ART.railBottom[2]),
+		ring = ART.ring[3] * s,
+		ringX = (ART_X - ART.ring[1]) * s,
+		lift = (ART_Y - ART.ring[2]) * s,
+		level = Box(ART_X - half, level[1] - half, ART_X + half, level[1] + half),
+		levelText = level[3] * s,
+	}
+end
+Layouts.STYLES = { "orbs", "medallions" }
+
+function Layouts.Style(style, name, key)
+	local set = STYLES[style] and STYLES[style][name]
+	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
+	if position then
+		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale, width = position.width, height = position.height }
+	end
+end
+
+local ASPECTS = ns.Scale.ASPECTS
+local PLACES = {}
+for _, class in ipairs(ASPECTS) do
+	PLACES[class] = { frames = {}, orbs = {}, medallions = {} }
+end
+Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
+
+Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
+Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33, [ASPECTS[1]] = 33.5 }
+Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
+Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
+Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 10, castStack = 6 }
+Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["unitframes.target"] = { side = 1, d = 86 }, ["unitframes.pet"] = { side = -1, d = 56 } }
+
+function Layouts.MedallionsGroup(class)
+	local slot = Layouts.MEDALLIONS_SLOT
+	local size = slot[class] or slot.size
+	local gap, columns = slot.gap * size / slot.size, GRIDS["actionbars.bar1"].buttons
+	return columns, 1, columns * size + (columns - 1) * gap, size, size, gap
+end
+
+function Layouts.MedallionsSide(_, key)
+	local grid, side = GRIDS[key], Layouts.MEDALLIONS_SIDE
+	local columns = math.ceil(grid.buttons / side.rows)
+	return side.rows, columns * grid.size + (columns - 1) * side.gap, side.rows * grid.size + (side.rows - 1) * side.gap
+end
+
+function Layouts.StyleSize(style, class, key)
+	if style ~= "medallions" then
+		return nil
+	end
+	if key == "actionbars.bar1" or key == "actionbars.bar2" then
+		local _, _, width, height = Layouts.MedallionsGroup(class)
+		return width, height
+	end
+	if key == "actionbars.pet" or key == "actionbars.stance" then
+		local _, width, height = Layouts.MedallionsSide(class, key)
+		return width, height
+	end
+end
+
+function Layouts.BuildMedallions()
+	local hub, slab = Layouts.MEDALLIONS_HUB_GAP, Layouts.MEDALLIONS_SLAB
+	local unit = Layouts.MEDALLIONS_UNITS
+	local sets = {}
+	for _, class in ipairs(ASPECTS) do
+		local _, _, width, height = Layouts.MedallionsGroup(class)
+		local baseline = math.max(TRAY_BAR1_Y, EDGE + Layouts.MEDALLIONS_RING / 2 - height)
+		local top, strip = baseline + height, baseline - slab.stripGap - slab.strip
+		local side = Layouts.MEDALLIONS_SIDE
+		local ends = hub / 2 + width + slab.pad + side.clear + side.pad
+		local _, petW = Layouts.MedallionsSide(class, "actionbars.pet")
+		local _, stanceW = Layouts.MedallionsSide(class, "actionbars.stance")
+		local sideY = strip - slab.bottom + side.pad
+		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
+		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
+		if class == ASPECTS[1] then
+			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = sideY }
+			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad }
+		end
+		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
+		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
+		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
+		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
+		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
+		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2
+		if class == ASPECTS[1] then
+			petX, totX, miniY = reach + frame[1] - pet[1] / 2, reach + frame[1] - tot[1] / 2, row + frame[2] + unit.stack
+		end
+		local function At(anchor, x, y, size)
+			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
+		end
+		sets[class] = {
+			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
+			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
+			["actionbars.pet"] = petBar,
+			["actionbars.stance"] = stanceBar,
+			["databars.xp"] = At("BOTTOM", 0, strip, { 2 * width + hub, slab.strip }),
+			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), row, frame),
+			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, row, frame),
+			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
+			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
+			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
+			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
+			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
+			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
+			["unitframes.boss"] = At(boss.anchor, boss.x, boss.y, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
+		}
+	end
+	for _, name in ipairs(NAMES) do
+		STYLES.medallions[name] = {}
+		for key, place in pairs(sets[ASPECTS[1]]) do
+			STYLES.medallions[name][key] = place
+		end
+	end
+	for _, class in ipairs(ASPECTS) do
+		if class ~= ASPECTS[1] then
+			for key, place in pairs(sets[class]) do
+				PLACES[class].medallions[key] = place
+			end
+		end
+	end
+end
+Layouts.BuildMedallions()
+Layouts.BuildMedallions = nil
+
+function Layouts.Aspect(class, style, name, key)
+	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
+	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
+	local position = set and set[key]
+	if position and position.anchor and position.x and position.y then
+		local place = copy(position)
+		place.width, place.height = position.width, position.height
+		return place
+	end
+end
+
+do
+local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true }
+local SIDES = { TOPLEFT = 1, LEFT = 1, BOTTOMLEFT = 1, TOPRIGHT = -1, RIGHT = -1, BOTTOMRIGHT = -1 }
+
+function Layouts.Band(key, anchor, x, band)
+	if not BANDED[key] or type(band) ~= "number" or type(x) ~= "number" then
+		return x
+	end
+	return x + (SIDES[anchor] or 0) * band
+end
+end
+
+function Layouts.Place(name, style, class, key, band)
+	local base = layouts[name] and layouts[name][key]
+	if not base then
+		return nil
+	end
+	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key) or base
+	return { anchor = place.anchor, x = Layouts.Band(key, place.anchor, place.x, band), y = place.y }
+end
+
+function Layouts.Positions(name, style, class, band)
+	local out = Layouts.Get(name)
+	for key, position in pairs(out or {}) do
+		local place = Layouts.Place(name, style, class, key, band)
+		position.anchor, position.x, position.y = place.anchor, place.x, place.y
+	end
+	return out
+end
+
+function Layouts.StyleKeys(style, name)
+	local out = {}
+	for key in pairs(STYLES[style] and STYLES[style][name] or {}) do
+		out[#out + 1] = key
+	end
+	table.sort(out)
+	return out
+end
+
+local LEGACY = {
+	DPS = {
+		["unitframes.player"] = { "BOTTOM", 0, 118 },
+		["unitframes.pet"] = { "BOTTOM", -317, 176 },
+		["unitframes.resource"] = { "BOTTOM", 0, 204 },
+		["cooldowns.essential"] = { "BOTTOM", 0, 226 },
+		["cooldowns.utility"] = { "BOTTOM", 248, 226 },
+		["cooldowns.buffs"] = { "BOTTOM", -260.5, 226 },
+		["cooldowns.bars"] = { "BOTTOM", -260.5, 264 },
+		["meters.swing"] = { "BOTTOM", 0, 276 },
+		["unitframes.target"] = { "TOP", 0, -630 },
+		["unitframes.focus"] = { "BOTTOM", -357, 338 },
+		["unitframes.focustarget"] = { "BOTTOM", -397, 312 },
+		["unitframes.targettarget"] = { "BOTTOM", 317, 428 },
+		["unitframes.castbar.player"] = { "BOTTOM", 0, 512 },
+		["unitframes.castbar.target"] = { "BOTTOM", 0, 550 },
+		["unitframes.boss"] = { "BOTTOMRIGHT", -362, 662 },
+		["combattext.player"] = { "BOTTOM", 376, 466 },
+		["actionbars.bar2"] = { "TOPLEFT", 362, -28 },
+		["actionbars.bar5"] = { "TOPLEFT", 403, -28 },
+		["actionbars.bar6"] = { "TOPLEFT", 444, -28 },
+		["actionbars.bar3"] = { "TOPLEFT", 485, -28 },
+		["actionbars.bar4"] = { "TOPLEFT", 526, -28 },
+	},
+	Tank = {
+		["meters.threat"] = { "BOTTOM", 357, 312 },
+	},
+	Healer = {
+		["groupframes.party"] = { "BOTTOM", -311, 466 },
+		["groupframes.raid"] = { "BOTTOM", -311, 466 },
+		["combattext.player"] = { "BOTTOM", 232, 466 },
+		["unitframes.boss"] = { "TOPLEFT", 28, -28 },
+		["actionbars.bar2"] = { "TOPRIGHT", -362, -533 },
+		["actionbars.bar3"] = { "TOPRIGHT", -362, -28 },
+		["actionbars.bar4"] = { "TOPRIGHT", -403, -28 },
+		["actionbars.bar5"] = { "TOPRIGHT", -444, -28 },
+		["actionbars.bar6"] = { "TOPRIGHT", -485, -28 },
+	},
+}
+
+local function Legacy(name, key)
+	return LEGACY[name][key] or LEGACY.DPS[key]
+end
+
+local function At(entry, place)
+	return entry.anchor == place[1] and type(entry.x) == "number" and type(entry.y) == "number"
+		and math.abs(entry.x - place[2]) < 0.01 and math.abs(entry.y - place[3]) < 0.01
+end
+
+local function Whole(key, entry)
+	local old = LEGACY.DPS[key]
+	if not old then
+		local now = layouts.DPS[key]
+		old = { now.anchor, now.x, now.y }
+	end
+	local x, y = entry.x, entry.y
+	if x == nil then
+		x = old[2]
+	end
+	if y == nil then
+		y = old[3]
+	end
+	return { anchor = entry.anchor or old[1], x = x, y = y }
+end
+
+function Layouts.Upgrade(saved, preset, rootHeight)
+	if type(saved) ~= "table" then
+		return 0
+	end
+	local order = { "DPS", "Tank", "Healer" }
+	if layouts[preset] then
+		table.insert(order, 1, preset)
+	end
+	local moved = 0
+	for key, entry in pairs(saved) do
+		if type(entry) == "table" and layouts.DPS[key] then
+			local whole = Whole(key, entry)
+			for _, name in ipairs(order) do
+				local place = Legacy(name, key)
+				if place and At(whole, place) then
+					local now = Layouts.Get(name, rootHeight)[key]
+					entry.anchor, entry.x, entry.y = now.anchor, now.x, now.y
+					moved = moved + 1
+					break
+				end
+			end
+		end
+	end
+	return moved
+end
+
+local CENTRE_V9 = {
+	["unitframes.player"] = { "BOTTOM", 0, 200, 490, 80 },
+	["unitframes.target"] = { "TOP", 0, -742.5, 490, 84 },
+	["unitframes.resource"] = { "BOTTOM", 0, 286, 120, 14 },
+	["unitframes.castbar.player"] = { "BOTTOM", 0, 602, 272, 30 },
+	["cooldowns.essential"] = { "BOTTOM", 0, 308, 243, 38 },
+	["cooldowns.utility"] = { "BOTTOM", 218, 308, 161, 38 },
+	["cooldowns.buffs"] = { "BOTTOM", -259, 308, 243, 38 },
+	["cooldowns.bars"] = { "BOTTOM", -259, 354, 243, 43 },
+	["meters.swing"] = { "BOTTOM", 0, 352, 260, 8 },
+	["actionbars.bar1"] = { "BOTTOM", 0, 68, 489, 38 },
+	["actionbars.bar2"] = { "BOTTOM", 0, 109, 489, 38 },
+	["actionbars.bar3"] = { "BOTTOM", 0, 150, 489, 38 },
+	["databars.xp"] = { "BOTTOM", 0, 52, 489, 4 },
+}
+
+function Layouts.UpgradeCentre(saved, rootHeight)
+	if type(saved) ~= "table" then
+		return
+	end
+	for key, old in pairs(CENTRE_V9) do
+		local entry = saved[key]
+		if type(entry) == "table" then
+			local y = old[3] + (key == "unitframes.target" and Lift(rootHeight) or 0)
+			local anchor = entry.anchor or old[1]
+			local x = entry.x == nil and old[2] or entry.x
+			local ey = entry.y == nil and y or entry.y
+			if anchor == old[1] and type(x) == "number" and type(ey) == "number"
+				and math.abs(x - old[2]) < 0.01 and math.abs(ey - y) < 0.01 then
+				local now = layouts.DPS[key]
+				entry.anchor, entry.x, entry.y = now.anchor, now.x, now.y
+			elseif entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil then
+				entry.anchor, entry.x, entry.y = anchor, x, ey
+			end
+			if entry.width == old[4] then
+				entry.width = nil
+			end
+			if entry.height == old[5] then
+				entry.height = nil
+			end
+		end
+	end
+end
+
+function Layouts.Rect(element, position, rootWidth, rootHeight)
+	local point = OFFSETS[position.anchor] or OFFSETS.CENTER
+	local fx, fy = point[1], point[2]
+	local left = rootWidth * fx + position.x - element.width * fx + (element.offsetX or 0)
+	local bottom = rootHeight * fy + position.y - element.height * fy
+	return left, bottom, left + element.width, bottom + element.height
+end
+
+local function Positive(value)
+	if issecretvalue and issecretvalue(value) then
+		return false
+	end
+	return type(value) == "number" and value == value and value > 0 and value < math.huge
+end
+
+function Layouts.Enabled(name, profile)
+	local enabled = {}
+	for _, element in ipairs(ELEMENTS) do
+		local key = element.key
+		local on = Layouts.Shown(name, key) ~= false
+		local section = profile and profile[element.module]
+		if profile then
+			on = type(section) == "table" and section.enabled == true
+			if on then
+				local id = key:match("^[^.]+%.(.+)$")
+				local cast = id:match("^castbar%.(.+)$")
+				local entry = section[cast or id]
+				if cast then
+					on = type(entry) == "table" and entry.castbar ~= false
+					if on and entry.enabled ~= false then
+						on = entry.style == "plate" or (cast == "player" and entry.style == "column")
+					end
+				elseif type(entry) == "table" then
+					on = entry.enabled ~= false and entry.shown ~= false
+				elseif key == "qol.lootfeed" then
+					on = section.lootFeed ~= false
+				else
+					on = Layouts.Shown(name, key) ~= false
+				end
+			end
+		end
+		enabled[key] = on
+	end
+	return enabled
+end
+
+local function Apart(a, b)
+	if (a == "groupframes.party" and b == "groupframes.raid") or (b == "groupframes.party" and a == "groupframes.raid") then
+		return false
+	end
+	if DOCKS[a] == b or DOCKS[b] == a then
+		return false
+	end
+	return true
+end
+
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, style)
+	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
+		return false
+	end
+	local floor, max, min = math.floor, math.max, math.min
+	local rootHeight = 1080 / user
+	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
+	local layout = positions or Layouts.Positions(name, style or "frames", class)
+	if not layout then
+		return false
+	end
+	local pixelScale = physicalHeight / rootHeight
+	enabled = enabled or Layouts.Enabled(name)
+	local rects = {}
+	local story = Layouts.Story(name, rootHeight, true, style, physicalWidth / pixelScale)
+	local cards = { story.guide, story.quests }
+	for i = 1, #ELEMENTS + #cards do
+		local key, width, height, position, offsetX
+		if i <= #ELEMENTS then
+			key = ELEMENTS[i].key
+			width, height, offsetX = Layouts.Footprint(name, key)
+			local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
+			if styled and styled.width then
+				width, height, offsetX = styled.width, styled.height, nil
+			end
+			local grouped, groupHeight = Layouts.StyleSize(style, class, key)
+			if grouped then
+				width, height, offsetX = grouped, groupHeight, nil
+			end
+			position = layout[key]
+		else
+			position = cards[i - #ELEMENTS]
+			key, width, height = position.key, position.width, position.height
+		end
+		if enabled[key] ~= false and not (REPLACED[style] and REPLACED[style][key]) then
+			if width <= 0 or height < STORY_FLOOR and position.key or height <= 0 then
+				return false
+			end
+			local w = max(1, floor(width * pixelScale + 0.5))
+			local h = max(1, floor(height * pixelScale + 0.5))
+			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
+			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
+			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
+			local boxes = { { left, bottom, left + w, bottom + h, key = key } }
+			local medal = style == "medallions" and Layouts.MEDALLIONS_MEDALS[key]
+			if medal then
+				local d = floor(medal.d * pixelScale + 0.5)
+				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
+				local cy = bottom + h / 2
+				boxes[2] = { floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key = key }
+			end
+			for _, box in ipairs(boxes) do
+				local l, b, r, t = box[1], box[2], box[3], box[4]
+				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight or r <= l or t <= b then
+					return false
+				end
+				for index = 1, #rects do
+					local rect = rects[index]
+					if l < rect[3] and rect[1] < r and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
+						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
+						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
+							return false
+						end
+					end
+				end
+			end
+			for _, box in ipairs(boxes) do
+				rects[#rects + 1] = box
+			end
+		end
+	end
+	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
+		local bar = layout["actionbars.bar1"]
+		local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
+		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
+		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
+		local bottom = floor((bar.y + groupHeight) * pixelScale - ring / 2 + 0.5)
+		if left < 0 or bottom < 0 or bottom + ring > physicalHeight then
+			return false
+		end
+		for index = 1, #rects do
+			local rect = rects[index]
+			if rect.key ~= "databars.xp" and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
+				return false
+			end
+		end
+	end
+	local orbs = false
+	for _, element in ipairs(style == "orbs" and ELEMENTS or {}) do
+		orbs = orbs or element.module == "UnitFrames" and enabled[element.key] ~= false
+	end
+	if orbs then
+		local bar = layout["actionbars.bar1"]
+		local barWidth, barHeight = Layouts.Footprint(name, "actionbars.bar1")
+		local w = max(1, floor(barWidth * pixelScale + 0.5))
+		local h = max(1, floor(barHeight * pixelScale + 0.5))
+		local point = OFFSETS[bar.anchor] or OFFSETS.CENTER
+		local art = Layouts.OrbsTray(w / pixelScale)
+		local radius = max(art.ring * pixelScale, floor(art.ring * pixelScale + 0.5)) / 2
+		local centres = {}
+		local left = physicalWidth * point[1] + bar.x * pixelScale - w * point[1] + 0.5
+		local bottom = physicalHeight * point[2] + bar.y * pixelScale - h * point[2] + 0.5
+		local function Ties(v)
+			local whole, part = floor(v), v - floor(v)
+			return { whole, part < 1e-6 and whole - 1 or part > 1 - 1e-6 and whole + 1 or nil }
+		end
+		for _, l in ipairs(Ties(left)) do
+			for _, b in ipairs(Ties(bottom)) do
+				local x, y = l + w / 2, b + h / 2 + art.lift * pixelScale
+				centres[#centres + 1] = { x - art.ringX * pixelScale, y }
+				centres[#centres + 1] = { x + art.ringX * pixelScale, y }
+			end
+		end
+		for _, centre in ipairs(centres) do
+			local cx, cy = centre[1], centre[2]
+			if cx - radius < 0 or cy - radius < 0 or cx + radius > physicalWidth or cy + radius > physicalHeight then
+				return false
+			end
+			for index = 1, #rects do
+				local rect = rects[index]
+				local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - cy, 0, cy - rect[4])
+				if dx * dx + dy * dy < radius * radius then
+					return false
+				end
+			end
+		end
+	end
+	return true
+end
+
+local limits = {}
+
+function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, style)
+	local low, high = ns.Scale.MIN_USER_SCALE, ns.Scale.MAX_USER_SCALE
+	if not Positive(physicalWidth) or not Positive(physicalHeight) then
+		return ns.Scale.DEFAULT_USER_SCALE
+	end
+	preset = layouts[preset] and preset or "DPS"
+	enabled = enabled or Layouts.Enabled(preset)
+	local flags = {}
+	for i, element in ipairs(ELEMENTS) do
+		flags[i] = enabled[element.key] ~= false and "1" or "0"
+	end
+	style = STYLES[style] and style or "frames"
+	local signature = style .. table.concat(flags)
+	local cached = limits[preset]
+	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
+		return cached.scale, cached.fits
+	end
+	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
+	local function fits(size)
+		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style)
+	end
+	if fits(high) then
+		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }
+		return high, fits
+	end
+	local span = HEIGHT
+	for _, element in ipairs(ELEMENTS) do
+		local width, height = Layouts.Footprint(preset, element.key)
+		local position = positions[element.key]
+		span = math.max(span, math.abs(position.x) + width, math.abs(position.y) + height)
+	end
+	local step = 1080 / (physicalHeight * 2 * span)
+	while high > low do
+		local candidate = math.max(low, high - step)
+		if candidate == high then
+			break
+		end
+		if fits(candidate) then
+			low = candidate
+			break
+		end
+		high = candidate
+	end
+	for _ = 1, 32 do
+		local candidate = (low + high) / 2
+		if fits(candidate) then
+			low = candidate
+		else
+			high = candidate
+		end
+	end
+	limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = low, fits = fits }
+	return low, fits
+end

@@ -2,6 +2,7 @@
 local Perf = ...
 local W = dofile("Tools/regression/widget_env.lua")
 local FX = dofile("Tools/regression/effects_env.lua")
+local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local function Bar()
 	local env, K = W.New()
@@ -10,6 +11,24 @@ local function Bar()
 end
 
 return {
+	{
+		name = "Layouts prepared fit candidates",
+		budget = 2000,
+		setup = function()
+			local env, K = CoreEnv.New({ fit = true, size = "auto" })
+			local runs, caps = {}, {}
+			for i, style in ipairs({ "frames", "orbs", "medallions" }) do
+				caps[i], runs[i] = K.Setup.Layouts.ScaleLimit(3456, 2234, "DPS", nil, style)
+				assert(runs[i](caps[i]), "the perf fixture exercises a complete successful fit")
+			end
+			return env, function()
+				for i = 1, #runs do
+					runs[i](caps[i])
+					runs[i](caps[i] + 1e-6)
+				end
+			end
+		end,
+	},
 	{
 		name = "Glow Start and Stop",
 		budget = 30,

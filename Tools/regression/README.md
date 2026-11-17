@@ -533,3 +533,18 @@ Run [43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741)
 | Meters raid-of-twenty damage refresh | 413 | 2100 |
 
 LEE-5831 tracks the Skins quest-update slowdown since #418. The historical slower-runner multiplier is gone. Windows prints a headroom skip note because MSVC `os.clock` measures wall time; LuaJIT also skips this PUC CPU-headroom check. Per-call timing, allocation and error checks continue to run.
+
+## Cold HUD scale search
+
+`lua5.1 Tools/regression/test-scalelimit-identity.lua` compares the search with the independent, frozen `fixtures/scalelimit-before.lua` from staging `a0984bb2`. It checks exact `%.17g` doubles, predicates at both sides of the boundary, public Story geometry and Get's copy ownership. The fixture includes the previous layout data so a shared helper cannot make both sides agree on the same mistake.
+
+Run paired measurements from the repository root with PUC Lua 5.1, never LuaJIT:
+
+```bash
+lua5.1 Tools/regression/bench-scalelimit.lua
+lua5.1 Tools/regression/bench-scalelimit.lua --display
+```
+
+Both commands alternate five before/after cold calls, stop GC while measuring, invalidate the real result cache, verify every result and report median/range time and allocated bytes. `--display` drives `DISPLAY_SIZE_CHANGED` through the loaded core's real Scale.Apply, with automatic size, Spread and the DPS enabled-element fixture. It includes the core's event dispatch, snapping and scale callbacks; the game engine and module frame construction are outside this measurement. Windows MSVC `os.clock` measures wall time, so Windows results must say so.
+
+The perf entry measures six prepared candidate checks (one fitting size and one just above it for each style) with a 2,000 us budget and 0 B on addon lines. Cold preparation allocates the positions, dimensions and collision buffers once per search. The candidate loop reuses them and two Story cards. Its bounded memo holds the last exact Story tuple: name, guide=true, style and shown=nil are fixed by the search closure; rootHeight and the deterministically derived rootWidth are compared exactly. A changed candidate rewrites the cards without allocating, and the cached predicate retains only this small scratch state.

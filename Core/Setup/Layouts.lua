@@ -595,41 +595,61 @@ function Layouts.Slot(name, rootHeight)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
-	local slot = Layouts.Slot(name, rootHeight)
+do
+local function Card(out, key, x, height, place, slot)
+	out = out or {}
+	out.key, out.anchor, out.x, out.y, out.width, out.height = key, place and place.anchor or slot.anchor, x, place and place.y or slot.y, slot.width, height
+	return out
+end
+
+function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, out)
+	local slot = slots[name]
 	if not slot then
 		return nil
 	end
-	local function Card(key, x, height, place)
-		return { key = key, anchor = place and place.anchor or slot.anchor, x = x, y = place and place.y or slot.y, width = slot.width, height = height }
-	end
+	local slotHeight = slot.height - Lift(rootHeight)
+	out = out or {}
+	out.stacked = nil
 	local stack = STORY_STYLES[style]
 	if stack then
 		local quests, below = stack[STORY_KEYS.quests], stack[STORY_KEYS.guide]
 		local column = math.max(0, HEIGHT - Lift(rootHeight) - ORBS_STORY_TOP - ORBS_STORY_BOTTOM)
 		if not guide then
-			return { quests = Card(STORY_KEYS.quests, quests.x, math.max(1, column), quests) }
+			out.quests = Card(out.quests, STORY_KEYS.quests, quests.x, math.max(1, column), quests, slot)
+			out.guide = nil
+			return out
 		end
-		local top = math.max(1, (column - GAP) / 2, column - GAP - slot.height)
-		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
+		local top = math.max(1, (column - GAP) / 2, column - GAP - slotHeight)
+		out.quests = Card(out.quests, STORY_KEYS.quests, quests.x, top, quests, slot)
+		out.guide = Card(out.guide, STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below, slot)
+		out.stacked = true
+		return out
 	end
 	if not guide then
-		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot)
+		out.guide = nil
+		return out
 	end
 	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
-	local tot = rootWidth and Layouts.Get(name, rootHeight)["unitframes.targettarget"]
+	local tot = rootWidth and layouts[name]["unitframes.targettarget"]
 	if tot then
-		local w, h = Layouts.Footprint(name, "unitframes.targettarget")
-		local _, _, right = Layouts.Rect({ width = w, height = h }, tot, rootWidth, rootHeight)
+		local w = Layouts.Footprint(name, "unitframes.targettarget")
+		local point = OFFSETS[tot.anchor] or OFFSETS.CENTER
+		local right = rootWidth * point[1] + tot.x - w * point[1] + 0 + w
 		if rootWidth + x - slot.width >= right + TIGHT then
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP)
 	if guideShown then
-		return { guide = Card(STORY_KEYS.guide, x, column), quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
+		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot)
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot)
+		return out
 	end
-	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, x, column) }
+	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot)
+	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot)
+	return out
+end
 end
 
 local LIFTED = {
@@ -1162,38 +1182,78 @@ local function Apart(a, b)
 	return true
 end
 
-function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, style)
+do
+local function PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style, search)
+	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
+	local layout = positions or Layouts.Positions(name, style or "frames", class)
+	if not layout then
+		return nil
+	end
+	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
+	for i, element in ipairs(ELEMENTS) do
+		local key = element.key
+		local width, height, offsetX = Layouts.Footprint(name, key)
+		if search then
+			local position = layout[key]
+			state.span = math.max(state.span, math.abs(position.x) + width, math.abs(position.y) + height)
+		end
+		if key == "actionbars.bar1" then
+			state.barWidth, state.barHeight = width, height
+		end
+		local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
+		if styled and styled.width then
+			width, height, offsetX = styled.width, styled.height, nil
+		end
+		local grouped, groupHeight = Layouts.StyleSize(style, class, key)
+		if grouped then
+			width, height, offsetX = grouped, groupHeight, nil
+		end
+		state.sizes[i] = { width, height, offsetX }
+		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
+	end
+	for i = 1, #ELEMENTS + 5 do
+		state.rects[i] = {}
+	end
+	local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
+	state.groupHeight = groupHeight
+	return state
+end
+
+local function Story(state, name, physicalWidth, physicalHeight, user, style)
+	local rootHeight = 1080 / user
+	local rootWidth = physicalWidth / (physicalHeight / rootHeight)
+	local memo = state.story
+	if memo.rootHeight ~= rootHeight or memo.rootWidth ~= rootWidth then
+		memo.value = Layouts.Story(name, rootHeight, true, style, rootWidth, nil, memo.value)
+		memo.rootHeight, memo.rootWidth = rootHeight, rootWidth
+	end
+	return memo.value
+end
+
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, style, state)
 	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
 		return false
 	end
 	local floor, max, min = math.floor, math.max, math.min
 	local rootHeight = 1080 / user
-	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
-	local layout = positions or Layouts.Positions(name, style or "frames", class)
-	if not layout then
+	enabled = enabled or Layouts.Enabled(name)
+	state = state or PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style)
+	if not state then
 		return false
 	end
+	local layout = state.layout
 	local pixelScale = physicalHeight / rootHeight
-	enabled = enabled or Layouts.Enabled(name)
-	local rects = {}
-	local story = Layouts.Story(name, rootHeight, true, style, physicalWidth / pixelScale)
-	local cards = { story.guide, story.quests }
-	for i = 1, #ELEMENTS + #cards do
+	local rects, count = state.rects, 0
+	local story = Story(state, name, physicalWidth, physicalHeight, user, style)
+	for i = 1, #ELEMENTS + 2 do
 		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
-			width, height, offsetX = Layouts.Footprint(name, key)
-			local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
-			if styled and styled.width then
-				width, height, offsetX = styled.width, styled.height, nil
-			end
-			local grouped, groupHeight = Layouts.StyleSize(style, class, key)
-			if grouped then
-				width, height, offsetX = grouped, groupHeight, nil
-			end
+			local size = state.sizes[i]
+			width, height, offsetX = size[1], size[2], size[3]
 			position = layout[key]
 		else
-			position = cards[i - #ELEMENTS]
+			position = i == #ELEMENTS + 1 and story.guide or story.quests
 			key, width, height = position.key, position.width, position.height
 		end
 		if enabled[key] ~= false and not (REPLACED[style] and REPLACED[style][key]) then
@@ -1205,20 +1265,24 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
-			local boxes = { { left, bottom, left + w, bottom + h, key = key } }
+			local boxes = state.boxes
+			local box = boxes[1]
+			box[1], box[2], box[3], box[4], box.key = left, bottom, left + w, bottom + h, key
 			local medal = style == "medallions" and Layouts.MEDALLIONS_MEDALS[key]
 			if medal then
 				local d = floor(medal.d * pixelScale + 0.5)
 				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
 				local cy = bottom + h / 2
-				boxes[2] = { floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key = key }
+				box = boxes[2]
+				box[1], box[2], box[3], box[4], box.key = floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key
 			end
-			for _, box in ipairs(boxes) do
+			for j = 1, medal and 2 or 1 do
+				box = boxes[j]
 				local l, b, r, t = box[1], box[2], box[3], box[4]
 				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight or r <= l or t <= b then
 					return false
 				end
-				for index = 1, #rects do
+				for index = 1, count do
 					local rect = rects[index]
 					if l < rect[3] and rect[1] < r and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
@@ -1228,63 +1292,61 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 					end
 				end
 			end
-			for _, box in ipairs(boxes) do
-				rects[#rects + 1] = box
+			for j = 1, medal and 2 or 1 do
+				box = boxes[j]
+				count = count + 1
+				local rect = rects[count]
+				rect[1], rect[2], rect[3], rect[4], rect.key = box[1], box[2], box[3], box[4], box.key
 			end
 		end
 	end
 	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
 		local bar = layout["actionbars.bar1"]
-		local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
+		local groupHeight = state.groupHeight
 		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
 		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
 		local bottom = floor((bar.y + groupHeight) * pixelScale - ring / 2 + 0.5)
 		if left < 0 or bottom < 0 or bottom + ring > physicalHeight then
 			return false
 		end
-		for index = 1, #rects do
+		for index = 1, count do
 			local rect = rects[index]
 			if rect.key ~= "databars.xp" and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
 				return false
 			end
 		end
 	end
-	local orbs = false
-	for _, element in ipairs(style == "orbs" and ELEMENTS or {}) do
-		orbs = orbs or element.module == "UnitFrames" and enabled[element.key] ~= false
-	end
-	if orbs then
+	if state.orbs then
 		local bar = layout["actionbars.bar1"]
-		local barWidth, barHeight = Layouts.Footprint(name, "actionbars.bar1")
+		local barWidth, barHeight = state.barWidth, state.barHeight
 		local w = max(1, floor(barWidth * pixelScale + 0.5))
 		local h = max(1, floor(barHeight * pixelScale + 0.5))
 		local point = OFFSETS[bar.anchor] or OFFSETS.CENTER
-		local art = Layouts.OrbsTray(w / pixelScale)
-		local radius = max(art.ring * pixelScale, floor(art.ring * pixelScale + 0.5)) / 2
-		local centres = {}
+		local s = (w / pixelScale) / ART.fit
+		local ring, ringX, lift = ART.ring[3] * s, (ART_X - ART.ring[1]) * s, (ART_Y - ART.ring[2]) * s
+		local radius = max(ring * pixelScale, floor(ring * pixelScale + 0.5)) / 2
 		local left = physicalWidth * point[1] + bar.x * pixelScale - w * point[1] + 0.5
 		local bottom = physicalHeight * point[2] + bar.y * pixelScale - h * point[2] + 0.5
-		local function Ties(v)
-			local whole, part = floor(v), v - floor(v)
-			return { whole, part < 1e-6 and whole - 1 or part > 1 - 1e-6 and whole + 1 or nil }
-		end
-		for _, l in ipairs(Ties(left)) do
-			for _, b in ipairs(Ties(bottom)) do
-				local x, y = l + w / 2, b + h / 2 + art.lift * pixelScale
-				centres[#centres + 1] = { x - art.ringX * pixelScale, y }
-				centres[#centres + 1] = { x + art.ringX * pixelScale, y }
-			end
-		end
-		for _, centre in ipairs(centres) do
-			local cx, cy = centre[1], centre[2]
-			if cx - radius < 0 or cy - radius < 0 or cx + radius > physicalWidth or cy + radius > physicalHeight then
-				return false
-			end
-			for index = 1, #rects do
-				local rect = rects[index]
-				local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - cy, 0, cy - rect[4])
-				if dx * dx + dy * dy < radius * radius then
-					return false
+		local l0, b0 = floor(left), floor(bottom)
+		local lp, bp = left - l0, bottom - b0
+		local l1 = lp < 1e-6 and l0 - 1 or lp > 1 - 1e-6 and l0 + 1 or nil
+		local b1 = bp < 1e-6 and b0 - 1 or bp > 1 - 1e-6 and b0 + 1 or nil
+		for li = 1, l1 and 2 or 1 do
+			for bi = 1, b1 and 2 or 1 do
+				local l, b = li == 1 and l0 or l1, bi == 1 and b0 or b1
+				local x, y = l + w / 2, b + h / 2 + lift * pixelScale
+				for side = 1, 2 do
+					local cx, cy = side == 1 and x - ringX * pixelScale or x + ringX * pixelScale, y
+					if cx - radius < 0 or cy - radius < 0 or cx + radius > physicalWidth or cy + radius > physicalHeight then
+						return false
+					end
+					for index = 1, count do
+						local rect = rects[index]
+						local dx, dy = max(rect[1] - cx, 0, cx - rect[3]), max(rect[2] - cy, 0, cy - rect[4])
+						if dx * dx + dy * dy < radius * radius then
+							return false
+						end
+					end
 				end
 			end
 		end
@@ -1312,20 +1374,15 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		return cached.scale, cached.fits
 	end
 	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
+	local state = PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, style, true)
 	local function fits(size)
-		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style)
+		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style, state)
 	end
 	if fits(high) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }
 		return high, fits
 	end
-	local span = HEIGHT
-	for _, element in ipairs(ELEMENTS) do
-		local width, height = Layouts.Footprint(preset, element.key)
-		local position = positions[element.key]
-		span = math.max(span, math.abs(position.x) + width, math.abs(position.y) + height)
-	end
-	local step = 1080 / (physicalHeight * 2 * span)
+	local step = 1080 / (physicalHeight * 2 * state.span)
 	while high > low do
 		local candidate = math.max(low, high - step)
 		if candidate == high then
@@ -1347,4 +1404,5 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	end
 	limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = low, fits = fits }
 	return low, fits
+end
 end
