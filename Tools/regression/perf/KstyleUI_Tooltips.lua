@@ -6,7 +6,7 @@ local SIZES = { { 260, 110 }, { 380, 160 } }
 return {
 	{
 		name = "Tooltips GameTooltip shown for two units of different size: the card resized and its fade played",
-		budget = 1000,
+		budget = 1170,
 		calls = 50,
 		setup = function()
 			local env, K, ns = T.New()

@@ -24,7 +24,7 @@ return {
 	},
 	{
 		name = "StatusBar SetBarColor",
-		budget = 10,
+		budget = 15,
 		setup = function()
 			local env, bar = Bar()
 			return env, function()

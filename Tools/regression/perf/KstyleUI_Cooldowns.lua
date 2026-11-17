@@ -29,7 +29,7 @@ return {
 	},
 	{
 		name = "Cooldowns SPELL_UPDATE_COOLDOWN",
-		budget = 80,
+		budget = 85,
 		setup = function()
 			local env = Mirror()
 			return env, Perf.Event(env, "SPELL_UPDATE_COOLDOWN")

@@ -8,7 +8,7 @@ local SLOTS = 12
 return {
 	{
 		name = "ActionBars ACTIONBAR_UPDATE_COOLDOWN",
-		budget = 100,
+		budget = 125,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)
@@ -24,7 +24,7 @@ return {
 	},
 	{
 		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet, tray card unchanged",
-		budget = 170,
+		budget = 215,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)
@@ -71,7 +71,7 @@ return {
 	},
 	{
 		name = "ActionBars SPELL_ACTIVATION_OVERLAY_GLOW_SHOW and HIDE on a slot",
-		budget = 400,
+		budget = 445,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)

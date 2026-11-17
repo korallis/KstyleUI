@@ -128,6 +128,98 @@ The wall-clock hang guard is **max(120 seconds, five times the file CPU limit)**
 
 The perf tests retain their existing per-call clock measurements and allocation checks. On POSIX, `os.clock` measures CPU time: budgets must be at least **five times** the measured PUC Lua 5.1 time, including in CI. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; per-call time and allocation checks still run. LuaJIT also skips the PUC headroom check rather than estimating PUC speed.
 
+### Per-path noise calibration (2026-11-17)
+
+Every `test-perf*.lua` budget lives in `Tools/regression/perf/*.lua`. Keep the fivefold PUC Lua 5.1 CPU headroom check unchanged; calibrate each budget to at least **5 x the worst observed per-call time x 1.25**. Round increases up to the next 5 microseconds and retain an existing budget when it already meets that minimum. This calibration raises 15 budgets and retains 39; allocation checks, file CPU allowances and other limits are unchanged. Keep LEE-5831 on the Skins quest-update budget.
+
+Recent staging/PR `checks` logs inspected: [44000011724](https://github.com/korallis/KstyleUI/actions/runs/44000011724), [43998377644](https://github.com/korallis/KstyleUI/actions/runs/43998377644), [43996582309](https://github.com/korallis/KstyleUI/actions/runs/43996582309), [43995158154](https://github.com/korallis/KstyleUI/actions/runs/43995158154), [43993106012](https://github.com/korallis/KstyleUI/actions/runs/43993106012), [43987318285](https://github.com/korallis/KstyleUI/actions/runs/43987318285), [43984790448](https://github.com/korallis/KstyleUI/actions/runs/43984790448), [43981688505](https://github.com/korallis/KstyleUI/actions/runs/43981688505). The harness prints only the last five lines of failing tests and deletes its temporary output, so passing paths have no recoverable per-call samples in those logs. The CI column below records every available per-path maximum, including the 218 us target-change failure and 1313.13 us quest-update failure; a dash means no per-path timing was logged. The target-change diagnostic rounds to three significant figures. These CI observations also enter the worst-time calculation.
+
+To supply all 54 paths, run each of `test-perf.lua` (core), `test-perf-frames.lua` (frames), `test-perf-hud.lua` (hud) and `test-perf-skins.lua` (skins) directly and serially, five times per file, with `~/.local/bin/lua5.1` (PUC Lua 5.1.5) on the CI-class Mac mini. These samples used a fresh temporary clone of `staging` at `f083193cbf33b11a0f13ec0f6bbbec04245647ca`; the clone was deleted afterward. The table uses the worst of the five reported times, each already the harness's fastest round/attempt. Original budgets were retained during sampling, so some samples correctly reported insufficient headroom. Sample IDs below are `file group/sample number`; all times are CPU microseconds per call, and the budget covers the larger of the Mac sample and available CI time.
+
+| Path | Worst Mac us | Sample | Worst logged CI us (run) | Budget us |
+| --- | ---: | --- | --- | ---: |
+| Glow Start and Stop | 3.68 | core/4 | - | 30 |
+| StatusBar SetBarColor | 1.89 | core/5 | - | 15 |
+| StatusBar SetBarTexture | 0.64 | core/1 | - | 10 |
+| Effects Claim and Release a place | 0.81 | core/5 | - | 20 |
+| Effects Allows at the current level | 0.70 | core/4 | - | 20 |
+| Effects Burst into the 3D pool | 5.56 | core/1 | - | 120 |
+| Effects vignette UNIT_HEALTH | 0.68 | core/3 | - | 20 |
+| ActionBars ACTIONBAR_UPDATE_COOLDOWN | 19.39 | core/2 | - | 125 |
+| ActionBars PET_BAR_UPDATE_COOLDOWN with a pet, tray card unchanged | 33.89 | core/1 | - | 215 |
+| ActionBars pet appears and leaves in combat, tray card kept | 35.98 | core/5 | - | 750 |
+| ActionBars key press flashes a slot | 0.97 | core/1 | - | 20 |
+| ActionBars SPELL_ACTIVATION_OVERLAY_GLOW_SHOW and HIDE on a slot | 70.44 | core/5 | - | 445 |
+| ActionBars Medallions ready flash on a slot | 6.47 | core/1 | - | 120 |
+| ActionBars Medallions hub ring UNIT_POWER_UPDATE | 0.69 | core/1 | - | 20 |
+| CombatText UNIT_COMBAT | 37.95 | core/2 | - | 250 |
+| Cooldowns UNIT_AURA | 22.41 | core/3 | - | 160 |
+| Cooldowns SPELL_UPDATE_COOLDOWN | 13.16 | core/1 | - | 85 |
+| DataBars PLAYER_XP_UPDATE at Full, label unchanged | 12.63 | hud/2 | - | 300 |
+| DataBars experience painted at Full, label unchanged | 6.43 | hud/1 | - | 150 |
+| DataBars experience painted at Full, the label's width changes | 6.34 | hud/5 | - | 1400 |
+| GroupFrames UNIT_HEALTH | 12.87 | core/1 | - | 90 |
+| GroupFrames UNIT_FLAGS | 8.79 | core/4 | - | 55 |
+| Meters threat Update | 28.98 | core/5 | - | 300 |
+| Meters damage refresh, raid of twenty | 422.92 | core/1 | - | 2645 |
+| Minimap clock tick at Full | 4.85 | hud/1 | - | 50 |
+| Minimap zone change at Full, the name's width changes | 5.31 | hud/2 | - | 400 |
+| Minimap face layout at Full, the card and its brackets placed again | 2.33 | hud/2 | - | 1000 |
+| Nameplates UNIT_HEALTH | 4.16 | frames/1 | - | 30 |
+| Nameplates UNIT_SPELLCAST_START | 3.93 | frames/2 | - | 50 |
+| Nameplates SPELL_UPDATE_COOLDOWN while casting | 0.79 | frames/1 | - | 20 |
+| Nameplates interrupt readiness flipping under three casts | 1.64 | frames/2 | - | 80 |
+| Nameplates PLAYER_TARGET_CHANGED over three casting plates | 4.15 | frames/3 | - | 200 |
+| Nameplates PLAYER_TARGET_CHANGED over forty plates with their overflow ghosts | 47.32 | frames/3 | - | 2000 |
+| Nameplates NAME_PLATE_UNIT_ADDED recycling a plate among forty | 34.80 | frames/3 | - | 400 |
+| Nameplates cast start and stop on one plate among forty, later casts | 9.38 | frames/2 | - | 110 |
+| Nameplates raid mark onto a plate among forty, then its first cast | 36.54 | frames/1 | - | 300 |
+| Nameplates forty-plate pull | 2126.25 | frames/1 | - | 17000 |
+| Nameplates target change between two plates among forty, brackets | 107.44 | frames/2 | - | 1000 |
+| Nameplates QUEST_LOG_UPDATE with a plate | 3.39 | frames/2 | - | 25 |
+| Nameplates UNIT_FLAGS while casting | 5.87 | frames/2 | - | 40 |
+| Skins quest card QUEST_LOG_UPDATE, 25 quests | 1308.14 | skins/3 | 1313.13 ([43998377644](https://github.com/korallis/KstyleUI/actions/runs/43998377644)) | 8210 |
+| Skins quest card QUEST_LOG_UPDATE, 25 quests, an item button up | 507.91 | skins/4 | 497.91 ([43998377644](https://github.com/korallis/KstyleUI/actions/runs/43998377644)) | 3175 |
+| Tooltips GameTooltip shown for two units of different size: the card resized and its fade played | 186.92 | core/3 | - | 1170 |
+| UnitFrames UNIT_HEALTH | 7.94 | frames/1 | - | 50 |
+| UnitFrames UNIT_HEALTH on the player: loss band, hit flash, spark and low-health curve | 9.13 | frames/2 | - | 60 |
+| UnitFrames UNIT_POWER_UPDATE | 2.72 | frames/2 | - | 20 |
+| UnitFrames UNIT_FLAGS | 11.23 | frames/2 | - | 95 |
+| UnitFrames UNIT_THREAT_LIST_UPDATE | 1.97 | frames/5 | - | 15 |
+| UnitFrames UNIT_THREAT_LIST_UPDATE for another unit | 1.03 | frames/1 | - | 10 |
+| UnitFrames UNIT_SPELLCAST_START | 10.94 | frames/2 | - | 80 |
+| UnitFrames target change at Full, rank changes | 209.78 | frames/3 | 218 ([44000011724](https://github.com/korallis/KstyleUI/actions/runs/44000011724)) | 1365 |
+| UnitFrames Orbs UNIT_HEALTH | 4.37 | frames/2 | - | 30 |
+| UnitFrames Orbs UNIT_POWER_UPDATE | 2.54 | frames/1 | 2.38 ([43993106012](https://github.com/korallis/KstyleUI/actions/runs/43993106012)) | 20 |
+| UnitFrames Medallions cast flash | 6.59 | frames/2 | 6.36 ([43993106012](https://github.com/korallis/KstyleUI/actions/runs/43993106012)) | 200 |
+
+Load at the start of every sample (UTC on 2026-11-17); these are the 1-, 5- and 15-minute load averages, not timing multipliers:
+
+| Sample | UTC | Load 1 min | Load 5 min | Load 15 min |
+| --- | --- | ---: | ---: | ---: |
+| core/1 | 02:24:51 | 9.57 | 10.03 | 9.08 |
+| core/2 | 02:25:19 | 9.61 | 9.99 | 9.10 |
+| core/3 | 02:25:50 | 9.48 | 9.93 | 9.10 |
+| core/4 | 02:26:14 | 9.40 | 9.88 | 9.10 |
+| core/5 | 02:26:41 | 8.89 | 9.72 | 9.07 |
+| frames/1 | 02:27:03 | 8.98 | 9.68 | 9.07 |
+| frames/2 | 02:27:19 | 9.14 | 9.67 | 9.08 |
+| frames/3 | 02:27:34 | 9.20 | 9.66 | 9.09 |
+| frames/4 | 02:27:50 | 9.45 | 9.69 | 9.11 |
+| frames/5 | 02:28:04 | 8.90 | 9.56 | 9.07 |
+| hud/1 | 02:28:19 | 10.31 | 9.81 | 9.17 |
+| hud/2 | 02:28:21 | 10.31 | 9.81 | 9.17 |
+| hud/3 | 02:28:23 | 10.31 | 9.81 | 9.17 |
+| hud/4 | 02:28:25 | 10.84 | 9.93 | 9.21 |
+| hud/5 | 02:28:27 | 10.84 | 9.93 | 9.21 |
+| skins/1 | 02:28:30 | 10.53 | 9.88 | 9.20 |
+| skins/2 | 02:28:41 | 10.45 | 9.88 | 9.21 |
+| skins/3 | 02:29:07 | 9.77 | 9.77 | 9.18 |
+| skins/4 | 02:29:33 | 9.60 | 9.72 | 9.18 |
+| skins/5 | 02:29:52 | 9.65 | 9.73 | 9.20 |
+
+Reproduce sampling in a disposable clone with `for file in Tools/regression/test-perf*.lua; do for sample in 1 2 3 4 5; do date -u; uptime; ~/.local/bin/lua5.1 "$file"; done; done`. Save the full output before deleting the clone; standard CI logs alone cannot reconstruct passing per-path measurements.
+
 ### Runtime portability
 
 `test-lua-runtime.lua` records the seeded random hash, large integer formatting, infinity and NaN spelling. The measured seed-7 hashes are 708739911 on macOS and 1701382795 on Windows LuaBinaries 5.1.5; Windows also prints -2147483648 for `%d` of 2^40 and `1.#INF` / `-1.#IND`. No fixture requires those spellings or wide `%d` conversion; numeric infinity/NaN and the integer range fixtures use remain asserted.

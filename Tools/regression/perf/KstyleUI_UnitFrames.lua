@@ -32,7 +32,7 @@ end
 return {
 	{
 		name = "UnitFrames UNIT_HEALTH",
-		budget = 40,
+		budget = 50,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_HEALTH", "target")
@@ -48,7 +48,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_POWER_UPDATE",
-		budget = 15,
+		budget = 20,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "MANA")
@@ -91,7 +91,7 @@ return {
 	},
 	{
 		name = "UnitFrames target change at Full, rank changes",
-		budget = 1050,
+		budget = 1365,
 		calls = 50,
 		setup = function()
 			local env = Target()

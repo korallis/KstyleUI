@@ -268,7 +268,7 @@ return {
 	},
 	{
 		name = "Nameplates QUEST_LOG_UPDATE with a plate",
-		budget = 20,
+		budget = 25,
 		setup = function()
 			local env = Plate()
 			return env, Perf.Event(env, "QUEST_LOG_UPDATE")
@@ -276,7 +276,7 @@ return {
 	},
 	{
 		name = "Nameplates UNIT_FLAGS while casting",
-		budget = 30,
+		budget = 40,
 		setup = function()
 			local env = Plate()
 			env._units.nameplate1.cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }

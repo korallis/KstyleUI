@@ -36,7 +36,7 @@ end
 return {
 	{
 		name = "Skins quest card QUEST_LOG_UPDATE, 25 quests",
-		budget = 6500, -- LEE-5831
+		budget = 8210, -- LEE-5831
 		calls = 100,
 		setup = function()
 			return Card(false)
@@ -44,7 +44,7 @@ return {
 	},
 	{
 		name = "Skins quest card QUEST_LOG_UPDATE, 25 quests, an item button up",
-		budget = 2600,
+		budget = 3175,
 		calls = 100,
 		setup = function()
 			return Card(true)
