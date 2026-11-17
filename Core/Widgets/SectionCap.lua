@@ -49,8 +49,8 @@ function Widgets.PaintCapMaterial(gem, rule, alpha)
 		gem:SetVertexColor(Tokens.Color("materialGold"))
 	elseif Widgets.Medallions() then
 		gem:SetVertexColor(Tokens.Color("accent"))
-		Widgets.CardHeader(gem)
 	end
+	Widgets.CardHeader(gem)
 end
 
 local function Placed(self)

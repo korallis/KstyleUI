@@ -16,7 +16,7 @@ local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
 local MORE_SCALE = 0.85
-local COMPACT_PAD = 2
+local COMPACT_PAD = 6
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
@@ -322,6 +322,9 @@ local function Words(row, entry, limit)
 			local objective = entry.objectives[i]
 			local room = Room(right, objective)
 			local lines = Lines(objective, room)
+			if limit and i == 1 then
+				lines = math.max(1, math.min(lines, math.floor((limit - y - LineHeight()) / pitch) + 1))
+			end
 			if limit and Snap(y + Span(lines)) > limit then
 				cut = entry.count - used
 				break
