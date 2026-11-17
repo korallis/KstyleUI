@@ -233,6 +233,16 @@ function U.Install(env)
 			return secretWhen(u.secretCreature, u.creature), 1
 		end
 	end
+	env._creatureTypes = { "Beast", "Dragonkin", "Demon", "Elemental", "Giant", "Undead", "Humanoid", "Critter", "Mechanical", "Not specified", "Totem", "Non-combat Pet", "Gas Cloud", "Wild Pet", "Aberration" }
+	env.C_CreatureInfo = env.C_CreatureInfo or {}
+	function env.C_CreatureInfo.GetCreatureTypeIDs()
+		local ids = {}
+		for id in ipairs(env._creatureTypes) do ids[#ids + 1] = id end
+		return ids
+	end
+	function env.C_CreatureInfo.GetCreatureTypeInfo(id)
+		return { id = id, name = env._creatureTypes[id] }
+	end
 	-- Stances and forms: env._forms is a list of { spellID, name }; env._form the active index, 0 for none.
 	env._forms, env._form = {}, 0
 	function env.GetShapeshiftForm()

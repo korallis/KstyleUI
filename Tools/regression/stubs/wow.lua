@@ -688,6 +688,10 @@ end
 
 function Object:IsAnchoringSecret() return anchoringSecret(self) end
 function Object:HasAnySecretAspect() return self._secretAspect == true end
+function Object:ClearText()
+	self._secretAspect = nil
+	self:SetText("")
+end
 
 local function refuse(self, method)
 	if isRestricted(self) then
