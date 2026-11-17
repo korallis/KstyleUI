@@ -88,6 +88,8 @@ check("character to account confirmation and isolation", function()
 	assert(loads == 0, "do not load or overwrite bindings before confirmation")
 	confirm.onCancel()
 	assert(mode.active and e.GetBindingAction("C") == "CHARACTER_ONLY" and not e._game.savedSet, "Cancel preserves the character set")
+	assert(mode.bindingSet == 2 and mode.panel.character:GetValue(), "Cancel restores the character-binding choice")
+	mode.panel.character:SetValue(false)
 	mode.Save()
 	confirm.onAccept()
 	assert(loads == 1 and e._game.savedSet == 1 and e.GetBindingAction("A") == "ACCOUNT_ONLY", "Save preserves unrelated account bindings")
@@ -103,6 +105,44 @@ check("hover highlight changes the visible fill", function()
 	assert(hovered - idle >= 0.3, "hover must visibly brighten the fill, including an already-active stance rim")
 	mode.Exit()
 	assert(not overlay:IsShown(), "binding highlights never remain after Exit")
+	assert(mode.Enter())
+	assert(select(4, overlay.chrome.fill[5]:GetVertexColor()) == idle, "re-entering mode resets the previous hovered highlight")
+	mode.Exit()
+end)
+
+check("combat cancels account confirmation", function()
+	local e, K, _, mode, overlay = fresh(function(g) g._game.bindingSet = 2 end)
+	local confirm, closed
+	K.Widgets.Confirm = function(opts)
+		confirm = opts
+		return { Close = function() closed = true end }
+	end
+	mode.panel.character:SetValue(false)
+	mode.Save()
+	overlay:GetScript("OnEnter")(overlay)
+	assert(not mode.selected, "the confirmation retains keyboard control when an action is hovered")
+	e.SetCombat(true)
+	assert(closed and not mode.active, "combat closes the pending confirmation")
+	confirm.onAccept()
+	assert(not e._game.savedSet and #e._blocked == 0, "a stale confirmation cannot write bindings in combat")
+end)
+
+check("failed account save restores character bindings", function()
+	local e, K, _, mode = fresh(function(g)
+		g._game.bindingSet = 2
+		g._game.bindings.CHARACTER_ONLY = { "C" }
+		g._game.bindingSets[1] = { ACCOUNT_ONLY = { "A" } }
+	end)
+	local confirm
+	K.Widgets.Confirm = function(opts) confirm = opts; return { Close = function() end } end
+	mode.Input("F8")
+	mode.panel.character:SetValue(false)
+	mode.Save()
+	e.SaveBindings = function() return false end
+	confirm.onAccept()
+	assert(mode.active and e.GetBindingAction("C") == "CHARACTER_ONLY" and e.GetBindingAction("A") == "", "failed Save restores the original character set")
+	assert(e._game.bindingSets[1].ACCOUNT_ONLY[1] == "A", "the saved account set remains intact")
+	mode.Exit()
 end)
 
 check("localized key display", function()
@@ -133,7 +173,8 @@ check("kb alias ownership and core fallback", function()
 	local e, K, ns = AB.New({ setup = function(g) g.SLASH_OTHER1 = "/kb" end })
 	AB.Enable(e, K)
 	assert(e.SLASH_KSTYLEKB1 ~= "/kb" and e.SLASH_KSTYLEKB2 ~= "/kb", "do not claim another loaded addon's /kb")
-	assert(table.concat(e._prints or {}, " "):find("/kstyle kb", 1, true), "print the collision fallback hint")
+	assert(e.SLASH_KSTYLEKB1 == "/bb" and not e.SLASH_KSTYLEKB2, "keep aliases contiguous so Blizzard imports the unclaimed /bb")
+	assert(table.concat(e._printed, " "):find("/kstyle kb", 1, true), "print the collision fallback hint")
 	e.SlashCmdList.KSTYLE("kb")
 	assert(ns.Keybind.active, "/kstyle kb always works when /kb is owned by another addon")
 	ns.Keybind.Exit()

@@ -147,7 +147,7 @@ Tank adds a threat card in the combat cluster. Healer gives party and raid frame
 
 *Test render: the raid frames.*
 
-`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kstyle layout` moves, resizes or scales any element. Profiles copy between characters, and export and import as one string.
+`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kb` or `/kstyle kb` binds your action buttons: hover a button, press a key, then save. `/kstyle layout` moves, resizes or scales any element. Profiles copy between characters, and export and import as one string.
 
 ![KstyleUI section: The rest of your UI - nameplates, meter, bags, tooltips and window skins](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-rest-of-your-ui.jpg)
 

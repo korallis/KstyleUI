@@ -335,6 +335,19 @@ local function InstallGame(env, opts)
 		return "text:" .. tostring(key)
 	end
 	env.GetCurrentBindingSet = function() return g.bindingSet or 1 end
+	local function CopyBindings(bindings)
+		local copy = {}
+		for command, keys in pairs(bindings) do copy[command] = { unpack(keys) } end
+		return copy
+	end
+	g.bindingSets = {}
+	env.LoadBindings = function(set)
+		Block(env, "LoadBindings")
+		local current = env.GetCurrentBindingSet()
+		g.bindingSets[current] = g.bindingSets[current] or CopyBindings(g.bindings)
+		g.bindings = CopyBindings(g.bindingSets[set] or g.bindings)
+		return true
+	end
 	env.GetBindingAction = function(key)
 		for name, keys in pairs(g.bindings) do
 			for _, value in ipairs(keys) do
@@ -346,6 +359,8 @@ local function InstallGame(env, opts)
 	env.SetBinding = function(key, command)
 		Block(env, "SetBinding")
 		if g.failBinding == key then return false end
+		local set = env.GetCurrentBindingSet()
+		g.bindingSets[set] = g.bindingSets[set] or CopyBindings(g.bindings)
 		for _, keys in pairs(g.bindings) do
 			for i = #keys, 1, -1 do
 				if keys[i] == key then table.remove(keys, i) end
@@ -360,12 +375,14 @@ local function InstallGame(env, opts)
 	end
 	env.SaveBindings = function(set)
 		Block(env, "SaveBindings")
+		g.bindingSets[set] = CopyBindings(g.bindings)
 		g.savedSet, g.bindingSet = set, set
 		return true
 	end
 	env.IsShiftKeyDown = function() return g.shift == true end
 	env.IsControlKeyDown = function() return g.ctrl == true end
 	env.IsAltKeyDown = function() return g.alt == true end
+	env.IsMetaKeyDown = function() return g.meta == true end
 	env.SetOverrideBindingClick = function(owner, priority, key, buttonName, mouse)
 		Block(env, "SetOverrideBindingClick")
 		g.overrides[owner] = g.overrides[owner] or {}
