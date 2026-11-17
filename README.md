@@ -2,40 +2,17 @@
 
 <p align="center"><b>A complete, pixel-perfect interface for World of Warcraft: Forever, in one dark forged style.</b></p>
 
-<p align="center">Pick your HUD: classic frames, health and resource in two orbs round a forged tray, or Medallions, with a painted portrait of your character and a crest for your race and class over a dark gunmetal action slab. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.</p>
+<p align="center">Pick your HUD: Medallions, with a painted portrait of your character and a crest for your race and class over a dark gunmetal action slab, or one of the other two styles, classic frames or health and resource in two orbs round a forged tray. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.</p>
 
-<p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-frames-orbs-and-medallions">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
-
-<p align="center"><img src="docs/media/readme/hud_orbs_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen in the Spread arrangement, in combat: health and mana orbs either side of the action bars in the middle, the target bar at the top, nameplates, and chat and loot at the left edge with the map, quest cards, action rail and damage meter down the right edge"></p>
-
-<p align="center"><sub>Test render of the addon: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement that uses the screen edge to edge. Every picture on this page is a test render drawn from KstyleUI's own code, not a game screenshot.</sub></p>
-
-## Three HUD styles: Frames, Orbs and Medallions
-
-<p align="center"><img src="docs/media/readme/hud_frames_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: the target card over the player card above two action bars in the middle, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
-
-<p align="center"><sub>Test render of the addon: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
-
-**Frames** keeps your health and resource on a player card above the action bars, with your target's card stacked over it, its portrait on the far side. **Orbs** puts your health and resource in two orbs either side of a forged tray round your first action bar, and moves your target to a wide bar at the top of the screen.
-
-<table>
-<tr>
-<td width="50%"><img src="docs/media/readme/hud_frames_1080.jpg" alt="Test render of the KstyleUI addon's Frames HUD on a 1920 by 1080 screen in combat"></td>
-<td width="50%"><img src="docs/media/readme/hud_orbs_1080.jpg" alt="Test render of the KstyleUI addon's Orbs HUD on a 1920 by 1080 screen in combat"></td>
-</tr>
-</table>
-
-<p align="center"><sub>Test renders of the addon on a 1920 by 1080 screen, in combat: Frames on the left, Orbs on the right.</sub></p>
-
-<p align="center"><img src="docs/media/readme/crop_orbs.jpg" width="820" alt="Test render of the KstyleUI addon's Orbs HUD up close: a red health orb at 147 of 237 and a blue mana orb at 58 percent either side of a forged tray holding two action bars"></p>
-
-<p align="center"><sub>Test render of the addon: the orbs and the forged tray, a moment after a hit.</sub></p>
-
-### Medallions
+<p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-medallions-frames-and-orbs">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
 
 <p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: round painted portraits on the player and target slabs, and one long dark action slab with a dwarf shaman's crest in a rune ring at its centre, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
+<p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen, in the Spread arrangement that uses the screen edge to edge. Every picture on this page is a test render drawn from KstyleUI's own code, not a game screenshot.</sub></p>
+
+## Three HUD styles: Medallions, Frames and Orbs
+
+### Medallions
 
 **Medallions** is dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. Your player and target frames are slabs with clean bars, an outlined health number at the end of each bar and a round medallion on the outer end, its rim engraved with a band of runes. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. The frames sit in one tight cluster just above the action slab, with your pet and your target's target beside the medallions, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline. Numbers use Barlow Semi Condensed, and nameplates are slimmer, with ticks on your target.
 
@@ -53,6 +30,35 @@ Your first two action bars sit in recessed, rounded sockets on one dark slab: tw
 The rest of the screen follows. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, chat, the damage meter, windows, tooltips and menus wear the same chrome, party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Medallions also answers what happens in a fight. A slot flashes when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low, and a burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
 
 **Medallions motion** in Options, General, Medallions sets how much moves. Full, the default, adds the game's own 3D spell effects for the big moments. Calm keeps the slow motion and short flashes. Off stops the motion, though the low-health edge still shows and the frames still dim after combat. **Options, General, Appearance, Motion** still wins: Reduced caps Medallions motion at Calm, and Off turns it off.
+
+### Frames
+
+<p align="center"><img src="docs/media/readme/hud_frames_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: the target card over the player card above two action bars in the middle, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
+
+<p align="center"><sub>Test render of the addon: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
+
+**Frames** keeps your health and resource on a player card above the action bars, with your target's card stacked over it, its portrait on the far side.
+
+<p align="center"><img src="docs/media/readme/hud_frames_1080.jpg" width="100%" alt="Test render of the KstyleUI addon's Frames HUD on a 1920 by 1080 screen in combat"></p>
+
+<p align="center"><sub>Test render of the addon: the Frames HUD on a 1920 by 1080 screen, in combat.</sub></p>
+
+### Orbs
+
+<p align="center"><img src="docs/media/readme/hud_orbs_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen in the Spread arrangement, in combat: health and mana orbs either side of the action bars in the middle, the target bar at the top, nameplates, and chat and loot at the left edge with the map, quest cards, action rail and damage meter down the right edge"></p>
+
+<p align="center"><sub>Test render of the addon: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
+
+**Orbs** puts your health and resource in two orbs either side of a forged tray round your first action bar, and moves your target to a wide bar at the top of the screen.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/readme/hud_orbs_1080.jpg" alt="Test render of the KstyleUI addon's Orbs HUD on a 1920 by 1080 screen in combat"></td>
+<td width="50%"><img src="docs/media/readme/crop_orbs.jpg" alt="Test render of the KstyleUI addon's Orbs HUD up close: a red health orb at 147 of 237 and a blue mana orb at 58 percent either side of a forged tray holding two action bars"></td>
+</tr>
+</table>
+
+<p align="center"><sub>Test renders of the addon, in combat: the Orbs HUD on a 1920 by 1080 screen on the left, the orbs and the forged tray up close on the right, a moment after a hit.</sub></p>
 
 Switch any time in **Options, General, HUD style**, which shows a picture of each, or on the HUD style step of the first-run setup. The change applies at once out of combat; picked in combat, it waits for the fight to end.
 
