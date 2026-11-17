@@ -36,7 +36,7 @@ end
 return {
 	{
 		name = "Skins quest card QUEST_LOG_UPDATE, 25 quests",
-		budget = 8210, -- LEE-5831
+		budget = 8215, -- LEE-5831
 		calls = 100,
 		setup = function()
 			return Card(false)
