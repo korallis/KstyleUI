@@ -8,8 +8,10 @@
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
 </p>
 
-<!-- CF_URL -->
-<!-- WAGO_URL -->
+<p align="center">
+<a href="https://www.curseforge.com/wow/addons/kstyleui"><img src="https://img.shields.io/badge/CurseForge-KstyleUI-F16436?logo=curseforge&logoColor=white" alt="KstyleUI on CurseForge"></a>
+<a href="https://addons.wago.io/addons/kstyleui"><img src="https://img.shields.io/badge/Wago-KstyleUI-C1272D" alt="KstyleUI on Wago Addons"></a>
+</p>
 
 <p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a>&nbsp;&nbsp;&nbsp;<a href="#faq">FAQ</a></p>
 

@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.4: on CurseForge and Wago
+
+KstyleUI is now published on CurseForge and Wago Addons as well as GitHub, so addon managers such as the CurseForge app and WowUp can install and update it. The addon itself is unchanged from 0.2.3.
+
 ## 0.2.3: Medallions, polished
 
 Medallions gets a polish pass. The chrome is dark gunmetal with rounded, bevelled edges, and the rails follow: dark cards with header bands in your class colour, a round minimap ring with an N badge, and matching chat, damage meter, quest card and tooltips. The action slab has recessed, rounded sockets, no keybinds on empty slots, a class-colour border inside a socket whose ability lights up, and your race-and-class crest fills its dark gunmetal ring at full brightness, clipped to the ring so even wide crests stay inside it; the wings are retired. Medallion rims carry an engraved band of runes. Numbers are Barlow Semi Condensed, nameplates are slimmer with ticks on your target, and scrolling combat text is gold and rises and fades faster. Your unit frames sit in one tight cluster just above the action slab, with outlined health numbers at the end of each bar, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline, and the action bars are one row of twelve a side at every screen. Unused Medallions art is gone, so the download is smaller.

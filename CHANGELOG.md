@@ -1,5 +1,11 @@
 # KstyleUI changelog
 
+## v0.2.4 (2026-11-17)
+
+### Added
+
+- KstyleUI is now on CurseForge and Wago Addons, so the CurseForge app, WowUp and other addon managers can install and update it.
+
 ## v0.2.3 (2026-11-17)
 
 The Medallions polish pass: dark gunmetal chrome, rounded bevelled cards, and a tighter unit cluster on one row of action buttons.
