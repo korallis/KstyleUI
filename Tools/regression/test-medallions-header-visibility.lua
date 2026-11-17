@@ -14,6 +14,7 @@ chrome:MeasureHeader()
 W.Settle(env)
 for _, region in ipairs(chrome.header) do assert(not region:IsVisible(), "a hidden owned cap must not leave an empty header band or rule") end
 panel.cap:Show()
+assert(panel.cap:GetScript("OnShow"), "the cap has a header measurement hook")(panel.cap)
 W.Settle(env)
 assert(chrome.header[3]:IsVisible(), "the cap's existing OnShow hook restores the header band")
 

@@ -1753,6 +1753,10 @@ local function Reach(owner, gem)
 	if not holder or Widgets.Restricted(holder) then
 		return nil
 	end
+	local visible = gem:IsVisible()
+	if IsSecret(visible) or visible ~= true then
+		return nil
+	end
 	local _, _, top = Widgets.Edges(owner)
 	local _, _, gemTop, gemBottom = Widgets.Edges(gem)
 	local scale, gemScale = owner:GetEffectiveScale(), holder:GetEffectiveScale()
