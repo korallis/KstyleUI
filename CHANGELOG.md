@@ -8,7 +8,7 @@ The Medallions polish pass: dark gunmetal chrome, rounded bevelled cards, and a 
 
 - Medallions has a new dark gunmetal chrome kit. Cards, windows and slabs have rounded, bevelled edges instead of thin steel hairlines, with machined medallion rings and round level badges.
 - The rails follow it. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, and chat, the damage meter, the quest card and tooltips wear the same chrome.
-- The action slab has recessed, rounded sockets. An empty socket shows no keybind, an ability that lights up gets a border in your class colour inside its socket, and the crest sits in a dark gunmetal ring. The crest's wings are retired, and your pet and stance bars get small matching slabs.
+- The action slab has recessed, rounded sockets. An empty socket shows no keybind, an ability that lights up gets a border in your class colour inside its socket, and your race-and-class crest fills the hub at full brightness, clipped to its dark gunmetal ring so even wide crests stay inside it. The crest's wings are retired, and your pet and stance bars get small matching slabs.
 - Numbers use Barlow Semi Condensed. Nameplates are slimmer, with the level in its difficulty colour and tick marks on your target. Scrolling combat text is gold and rises and fades faster.
 - Your unit frames sit in one tight cluster just above the action slab, with the pet and target of target beside the medallions. Health numbers are outlined and sit at the end of the bar, cast bars sit over the crest, and target debuffs are small tiles with a dispel-colour underline. Bars and cast bars are cleaner.
 - Medallion rims carry an engraved band of runes.
@@ -23,6 +23,8 @@ The Medallions polish pass: dark gunmetal chrome, rounded bevelled cards, and a 
 - In Options, slider labels stay clear of their descriptions, and live previews keep translated names and portraits inside the space they are given.
 - The leave-vehicle button sits clear of the hub, appears at once in combat, and stays fully visible even when your first action bar is faded out or shown only on mouseover.
 - Crisper edges on the quest card, the minimap face, the data bars and the loot feed at the HUD sizes Interface size Auto picks.
+- On the Medallions target slab, creature types such as Elemental and Mechanical show in full, long names stay in capitals by shrinking a little before they shorten, and the raid marker sits clear of your target's debuff timers.
+- Beside the RestedXP guide, the quest card keeps your objective and its progress on show instead of only the quest name, with the title, quest count and hint clear of the card's edges.
 
 ## v0.2.2 (2026-11-16)
 
