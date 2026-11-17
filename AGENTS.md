@@ -96,7 +96,4 @@ Each is a test; its failure message names the fix.
 ## How we work
 - Minimal code: if it can be done in a few lines, do it in a few lines. Add dependencies, frameworks or abstractions only when the task truly needs them; prefer deleting to adding.
 - Coordinator (no Task and Dispatch IDs in your prompt): answer questions and make trivial edits directly; for substantive work read and follow `C:\Users\leeba\.claude\skills\orca-jev-routing\SKILL.md`.
-- Worker (your prompt has Task and Dispatch IDs): do exactly your task spec, edit only the files it allows, and report evidence via worker_done.
-- Run the Gate green before reporting done.
-- Stop only processes you started, by their PID; never kill by name (`taskkill /IM`, `pkill node`): other agents run on this machine.
-- Comments only explain a non-obvious why; fix the root cause or add a check instead of a comment that justifies a workaround. Never disable a check (eslint-disable, @ts-ignore, .skip) to get green.
+- Worker (your prompt has Task and Dispatch IDs): read and follow `C:\Users\leeba\orca-jev-router\WORKER.md` (Gate, comments, processes, clean-up, report).
