@@ -48,6 +48,17 @@ local function Check(name, style, screen, enabled)
 	cases = cases + 1
 end
 
+local footprint, reads = Layouts.Footprint, {}
+Layouts.Footprint = function(name, key)
+	reads[key] = (reads[key] or 0) + 1
+	return footprint(name, key)
+end
+Layouts.ScaleLimit(1922, 1080, "DPS", nil, "frames")
+Layouts.Footprint = footprint
+for _, element in ipairs(Layouts.ELEMENTS) do
+	assert(reads[element.key] == 1, element.key .. ": hoist the footprint once per search, including Story and the search span")
+end
+
 local story, calls = Layouts.Story, 0
 Layouts.Story = function(...)
 	calls = calls + 1

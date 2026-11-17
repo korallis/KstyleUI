@@ -602,7 +602,7 @@ local function Card(out, key, x, height, place, slot)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, out)
+function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, out, targetWidth)
 	local slot = slots[name]
 	if not slot then
 		return nil
@@ -633,7 +633,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
 	local tot = rootWidth and layouts[name]["unitframes.targettarget"]
 	if tot then
-		local w = Layouts.Footprint(name, "unitframes.targettarget")
+		local w = targetWidth or Layouts.Footprint(name, "unitframes.targettarget")
 		local point = OFFSETS[tot.anchor] or OFFSETS.CENTER
 		local right = rootWidth * point[1] + tot.x - w * point[1] + 0 + w
 		if rootWidth + x - slot.width >= right + TIGHT then
@@ -1199,6 +1199,8 @@ local function PrepareFits(name, physicalWidth, physicalHeight, enabled, positio
 		end
 		if key == "actionbars.bar1" then
 			state.barWidth, state.barHeight = width, height
+		elseif key == "unitframes.targettarget" then
+			state.targetWidth = width
 		end
 		local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
 		if styled and styled.width then
@@ -1224,7 +1226,7 @@ local function Story(state, name, physicalWidth, physicalHeight, user, style)
 	local rootWidth = physicalWidth / (physicalHeight / rootHeight)
 	local memo = state.story
 	if memo.rootHeight ~= rootHeight or memo.rootWidth ~= rootWidth then
-		memo.value = Layouts.Story(name, rootHeight, true, style, rootWidth, nil, memo.value)
+		memo.value = Layouts.Story(name, rootHeight, true, style, rootWidth, nil, memo.value, state.targetWidth)
 		memo.rootHeight, memo.rootWidth = rootHeight, rootWidth
 	end
 	return memo.value
