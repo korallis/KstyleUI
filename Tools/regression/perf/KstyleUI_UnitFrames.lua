@@ -31,6 +31,14 @@ end
 
 return {
 	{
+		name = "UnitFrames UNIT_TARGETABLE_CHANGED for a non-boss unit",
+		budget = 10,
+		setup = function()
+			local env = Target()
+			return env, Perf.Event(env, "UNIT_TARGETABLE_CHANGED", "raid7")
+		end,
+	},
+	{
 		name = "UnitFrames UNIT_HEALTH",
 		budget = 50,
 		setup = function()
