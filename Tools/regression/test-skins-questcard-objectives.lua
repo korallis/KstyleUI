@@ -18,8 +18,15 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		for _ = 1, 8 do
 			local parts = ns.Quests.Parts()
 			local view = assert(Geometry.ScaledRect(ns.Quests.Parts().view, env.UIParent, K.Scale.Root()))
-			if not parts.cap.row:IsShown() then
-				local card = assert(Geometry.ScaledRect(ns.Quests.Card(), env.UIParent, K.Scale.Root()))
+			local card = assert(Geometry.ScaledRect(ns.Quests.Card(), env.UIParent, K.Scale.Root()))
+			local point, relative, _, _, foot = parts.more:GetPoint(2)
+			assert(point == "BOTTOM" and relative == ns.Quests.Card(), "the hint's bottom is anchored inside its card")
+			local hintBottom = card.bottom + foot * K.Widgets.ScaleFactor(parts.more)
+			assert(hintBottom - card.bottom >= K.Scale.Pixel(1) + 4 - 1e-6, "the hint's descenders and shadow must clear the bottom border; increase compact footer padding")
+			local first = ns.Quests.Rows()[1].questID
+			local compact = style ~= "orbs" and (screen.width ~= 5120 or first == 303 or first == 306)
+			if compact then
+				assert(not parts.cap.row:IsShown() and not parts.cap.rule:IsVisible(), "compact pages must hide the section cap and its rule independently of the measured cap state")
 				local title = assert(Geometry.ScaledRect(ns.Quests.Rows()[1].title, env.UIParent, K.Scale.Root()))
 				assert(card.top - title.top >= 11 - K.Scale.Pixel(1), "compact titles keep the normal eleven-unit top padding")
 				assert(parts.more:GetText():find("Quests 8:", 1, true), "compact pages keep the total quest count visible")
@@ -65,7 +72,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		assert(first.text:IsVisible() and first.count:IsVisible(), "a three-line first objective keeps its progress beside its title")
 		local rect = assert(Geometry.ScaledRect(first.text, env.UIParent, K.Scale.Root()))
 		local view = assert(Geometry.ScaledRect(ns.Quests.Parts().view, env.UIParent, K.Scale.Root()))
-		assert(rect.bottom >= view.bottom - K.Scale.Pixel(1), "the complete wrapped first objective fits in the view")
+		assert(rect.bottom >= view.bottom - K.Scale.Pixel(1), "the displayed first objective and its progress fit inside the view")
 		assert(R.rxp.RXPFrame:IsShown() and ns.RestedXP.Rail.Hidden() == hiddenSteps, "scrolling quests preserves the guide's visible steps")
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 		print(style .. " " .. screen.width .. "x" .. screen.height .. ": all quest objectives visible through the wheel")
