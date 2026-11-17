@@ -195,6 +195,7 @@ end
 
 function ns.Schema()
 	local schema = {
+		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
 		{ type = "header", label = L["Bars"] },
 		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 	}

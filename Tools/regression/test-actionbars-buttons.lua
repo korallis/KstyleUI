@@ -371,7 +371,7 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
--- The stance bar: one button per form, cast by spell ID, the active form selected; new forms wait for combat to end.
+-- The stance bar: one button per form, selected through Blizzard's secure click; new forms wait for combat to end.
 do
 	local env, SK, ns = new({
 		setup = function(e)
@@ -385,9 +385,9 @@ do
 	local bar = ns.bars.stance
 	assert(bar.buttons[1]:IsShown() and bar.buttons[2]:IsShown() and not bar.buttons[3]:IsShown(), "two forms, two buttons")
 	assert(near(bar.holder:GetWidth(), 4 * 30 + 3 * 3) and near(bar.holder:GetHeight(), 30), "three rows of four keep a full row's width, the two forms on one row")
-	assert(bar.buttons[1]:GetAttribute("type") == "spell" and bar.buttons[1]:GetAttribute("spell") == 2457)
+	assert(bar.buttons[1]:GetAttribute("type") == "click" and bar.buttons[1]:GetAttribute("clickbutton") == env.StanceBar.actionButtons[1])
 	assert(bar.buttons[1].selected and not bar.buttons[2].selected, "the active form is selected")
-	assert(AB.PressKey(env, "F2") and AB.Used(env) == "spell71")
+	assert(AB.PressKey(env, "F2") and AB.Used(env) == "form2")
 	env.SetCombat(true)
 	env._game.forms[3] = { texture = 132275, spellID = 2458 }
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")

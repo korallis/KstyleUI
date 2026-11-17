@@ -272,7 +272,9 @@ function Bar:Layout()
 		end
 		if def.kind == "stance" then
 			local spell = FormSpell(i)
-			b:SetAttribute("type", spell and "spell" or nil)
+			local delegate = StanceBar and StanceBar.actionButtons and StanceBar.actionButtons[i]
+			b:SetAttribute("type", delegate and "click" or nil)
+			b:SetAttribute("clickbutton", delegate)
 			b:SetAttribute("spell", spell)
 		end
 	end

@@ -335,18 +335,6 @@ local function InstallGame(env, opts)
 		return "text:" .. tostring(key)
 	end
 	env.GetCurrentBindingSet = function() return g.bindingSet or 1 end
-	env.GetNumBindings = function()
-		local n = 0
-		for _ in pairs(g.bindings) do n = n + 1 end
-		return n
-	end
-	env.GetBinding = function(index)
-		local names = {}
-		for name in pairs(g.bindings) do names[#names + 1] = name end
-		table.sort(names)
-		local name = names[index]
-		if name then return name, "Action bars", unpack(g.bindings[name]) end
-	end
 	env.GetBindingAction = function(key)
 		for name, keys in pairs(g.bindings) do
 			for _, value in ipairs(keys) do
@@ -562,6 +550,7 @@ local function InstallGame(env, opts)
 	env.PossessActionBar.actionButtons = {}
 	for i = 1, 2 do
 		local button = env.CreateFrame("CheckButton", "PossessButton" .. i, env.PossessActionBar)
+		button:SetID(i)
 		button.Click = function()
 			if i == 2 then g.possess = false; g.used[#g.used + 1] = "cancelpossess" end
 		end
@@ -696,7 +685,7 @@ function AB.Click(env, button, mouse, down)
 		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell"))
 	elseif kind == "click" then
 		local delegate = button:GetAttribute("clickbutton")
-		if delegate and down ~= false then
+		if delegate then
 			delegate:Click(mouse)
 		end
 	end

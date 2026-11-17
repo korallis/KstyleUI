@@ -10,6 +10,7 @@
 	<Script file="Slab.lua"/>
 	<Script file="SlabEffects.lua"/>
 	<Script file="Bindings.lua"/>
+	<Script file="Keybind.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Vehicle.lua"/>
 	<Script file="Preview.lua"/>

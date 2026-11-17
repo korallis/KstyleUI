@@ -445,10 +445,12 @@ local function Enable()
 	ns.Slab.Enable()
 	ns.SlabEffects.Enable()
 	ns.enabling = false
+	ns.Keybind.Enable()
 	ns.Log("running for class " .. tostring(ns.class) .. (ns.gamepad and " in gamepad mode: the bars stay hidden" or "") .. "; Blizzard's keyboard bars are hidden through Safe")
 end
 
 local function Disable()
+	ns.Keybind.Exit()
 	ns.enabling = false
 	ns.running = false
 	ApplyAll()

@@ -8,6 +8,7 @@ local USAGE = {
 	"/kstyle - " .. L["open the settings"],
 	"/kstyle layout - " .. L["enter or leave Layout Mode"],
 	"/kstyle setup - " .. L["run the first-run setup again"],
+	"/kb - " .. L["hover a button and press a key to bind it"],
 	"/kstyle bind - " .. L["hover a button and press a key to bind it (Blizzard's Quick Keybind mode)"],
 	"/kstyle test - " .. L["run the smoke checks and write the devlog"],
 	"/kstyle devlog on|off - Edit Mode geometry recorder (developer diagnostics)",
@@ -90,6 +91,13 @@ local function profile(rest)
 end
 
 local COMMANDS = {
+	kb = function()
+		if type(SlashCmdList.KSTYLEKB) == "function" then
+			SlashCmdList.KSTYLEKB()
+		else
+			ns.Print(L["Enable KstyleUI action bars with keyboard controls to use /kb."])
+		end
+	end,
 	[""] = function()
 		ns.Options.Open()
 	end,
@@ -138,6 +146,8 @@ local COMMANDS = {
 	profile = profile,
 	help = usage,
 }
+
+COMMANDS.keybind = COMMANDS.kb
 
 SLASH_KSTYLE1 = "/kstyle"
 SlashCmdList.KSTYLE = function(message)
