@@ -54,12 +54,13 @@ class MedallionsClientAssets(unittest.TestCase):
                 path /= part
             self.assertTrue(path.is_file(), value)
 
-    def test_hub_visible_layers_do_not_use_clipping_masks(self):
+    def test_hub_masks_are_not_drawn_as_visible_layers(self):
         source = (ROOT / "KstyleUI_ActionBars/Slab.lua").read_text()
         for line in source.splitlines():
             if "Region(" in line:
                 self.assertNotIn('"portraitMask"', line)
                 self.assertNotIn('"medMinimapMask"', line)
+                self.assertNotIn('"orbMask"', line)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ ns.Slab = Slab
 local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
 local STRATA = "LOW"
-local RING, CREST, SOCKET = 150, 150, 134
+local RING, CREST, OPENING = 150, 150, 118
 local MARGIN, HUB_LIFT, TEXT_FLOOR = 4, 8, 9
 local SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 local SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
@@ -399,42 +399,56 @@ local function BuildRing(hub)
 	hub.runes = runes
 end
 
+local function OpeningMask(parent, hub)
+	local mask = parent:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("orbMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	Widgets.Size(mask, OPENING, OPENING)
+	mask:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	return mask
+end
+
+local function SizeCrest(hub)
+	local resolution = hub.crestPath == Slab.Texture("medCrest") and 256 or 512
+	local texels = K.Scale.Pixel(resolution - 1)
+	local crest, bloom = min(CREST, texels / PULSE_SCALE), min(CREST * BLOOM_SHARE, texels)
+	Widgets.Size(hub.crest, crest, crest)
+	Widgets.Size(hub.bloom, bloom, bloom)
+end
+
 local function BuildCrest(hub)
 	local socket = Region(hub, "ARTWORK", -4, Slab.Texture("medHubSocket"))
-	Widgets.Size(socket, SOCKET, SOCKET)
+	Widgets.Size(socket, OPENING, OPENING)
 	socket:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	if not Known("medHubSocket") then
 		Widgets.Tint(socket, "deep")
 	end
 	hub.socket = socket
 
+	local mask = OpeningMask(hub, hub)
 	local crest = Region(hub, "ARTWORK", 0)
-	Widgets.Size(crest, CREST, CREST)
 	crest:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	crest:AddMaskTexture(mask)
 	crest.pulse = Group(crest)
 	Grow(crest.pulse, 1, PULSE_SCALE, PULSE_RUN)
 	Grow(crest.pulse, PULSE_SCALE, 1, PULSE_RUN, 2)
 	hub.crest = crest
 
 	local bloom = Region(hub, "ARTWORK", 1, nil, true)
-	Widgets.Size(bloom, CREST * BLOOM_SHARE, CREST * BLOOM_SHARE)
 	bloom:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	bloom:AddMaskTexture(mask)
 	bloom.breath = Group(bloom, "BOUNCE")
 	Fade(bloom.breath, BREATH_LOW, BREATH_HIGH, BREATH / 2)
 	hub.bloom = bloom
+	SizeCrest(hub)
 
-	local mask = hub:CreateMaskTexture()
-	mask:SetTexture((Tokens.Texture("portraitMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	Widgets.Size(mask, SOCKET, SOCKET)
-	mask:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	local sheen = Region(hub, "OVERLAY", 0, Slab.Texture("medPortraitSheen"), true)
-	Widgets.Size(sheen, SHEEN_W, CREST)
-	sheen:SetPoint("RIGHT", crest, "LEFT", 0, 0)
+	Widgets.Size(sheen, SHEEN_W, OPENING)
+	sheen:SetPoint("RIGHT", hub, "CENTER", Widgets.Snap(hub, -OPENING / 2), 0)
 	sheen:AddMaskTexture(mask)
 	sheen:SetAlpha(SHEEN_ALPHA)
 	sheen.run = Group(sheen, "REPEAT")
 	local pass = sheen.run:CreateAnimation("Translation")
-	pass:SetOffset(CREST + SHEEN_W, 0)
+	pass:SetOffset(OPENING + SHEEN_W, 0)
 	pass:SetDuration(SHEEN_RUN)
 	pass:SetStartDelay(SHEEN_EVERY - SHEEN_RUN)
 	hub.sheen = sheen
@@ -442,8 +456,9 @@ end
 
 local function BuildMoments(hub)
 	local flash = Region(hub.top, "OVERLAY", 0, Slab.Texture("medReadyFlash"), true)
-	Widgets.Size(flash, CREST, CREST)
+	Widgets.Size(flash, OPENING, OPENING)
 	flash:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	flash:AddMaskTexture(OpeningMask(hub.top, hub))
 	flash:SetAlpha(0)
 	flash.anim = Group(flash)
 	Fade(flash.anim, 0, 0.8, SHOCK_RUN * 0.3)
@@ -743,6 +758,7 @@ function Slab.Refresh()
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
 	Paint()
+	SizeCrest(hub)
 	PaintLevel()
 	slab:Show()
 	hub:Show()

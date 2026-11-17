@@ -7724,8 +7724,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "53c5f633be0ed652770ad9fb28f947ca91c276e8e1f9095657220425156f3d92",
-  "size": 256,
+  "sha256": "9a5908a2ae9d15ac5d8588614d8678f66b3d34043cd98e9b8463505ea37b6bc3",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192213_329214aa-ff5c-4cf7-9939-e794af2be967.png"
  },
  {
@@ -7733,16 +7733,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_hunter_glow.png",
   "key": "dwarf_hunter",
   "kind": "crest_glow",
-  "sha256": "c4f552156d1ad585c314b6d4654dba84a419d37d98878db65b3c3860136e56d3",
-  "size": 256
+  "sha256": "0bf4e6f6d7266b5c28ccfca7101b86b1e217235245af92962175fb776bc35f0c",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_hunter.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_hunter_metal.png",
   "key": "dwarf_hunter",
   "kind": "crest_metal",
-  "sha256": "6b21fa9cbf71d4e85836bd4c79076316f65450f860e88a24ef1c64877b2b5d77",
-  "size": 256
+  "sha256": "7321e0944b29d569811ed0c4cf2da852a0d47eebf7aad5fcfdf8716cdcdb9b8a",
+  "size": 512
  },
  {
   "anchor": false,
@@ -7782,8 +7782,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "13df90a5cc7d18f90abb84b8c9070e63a80aa4d891365225cd5130793785ffbe",
-  "size": 256,
+  "sha256": "416e350a5845f186be6ed9d199c10c1ad22e381e901f215d1ad89efe53d34e12",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_bfe4625a-ba6e-45cf-af7d-40e064d4a073.png"
  },
  {
@@ -7791,16 +7791,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_paladin_glow.png",
   "key": "dwarf_paladin",
   "kind": "crest_glow",
-  "sha256": "5d8766c85f724700c864650bdb74df100d3d34351c570d4ad77b895e3744197f",
-  "size": 256
+  "sha256": "6c800075c6ea6b4a084b1e2713ac6440dfa31b93f315afd48f190595a55d7793",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_paladin.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_paladin_metal.png",
   "key": "dwarf_paladin",
   "kind": "crest_metal",
-  "sha256": "14bad6b9cc3ed44337975f6bfda687c6948b33e8f25ffdb6daa906eec58daf9b",
-  "size": 256
+  "sha256": "ee61024ab7b99ba67b6ed4f46130a76256e396b00b6b7f57fec3759037c6ffe0",
+  "size": 512
  },
  {
   "anchor": false,
@@ -7840,8 +7840,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "1809a2b5477b00a8620dd63dd0d25e84f3ff0a3a60cebb3697397e12b91bdfab",
-  "size": 256,
+  "sha256": "c76721bcd127416676467b75bacb4f85c3fcc9e0205d08eb08ba3a444d482688",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192326_77a989fc-85bf-47cb-8de3-b70d32a7cd0e.png"
  },
  {
@@ -7849,16 +7849,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_priest_glow.png",
   "key": "dwarf_priest",
   "kind": "crest_glow",
-  "sha256": "49ff6e3b3c157f35f9a53ee71d9704efde3dec5c0a5f4454ad3e79ed579f4177",
-  "size": 256
+  "sha256": "3371f1e4d14dc3045215479fa0e49c5aebb04be5286181b20e16ac581844394d",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_priest.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_priest_metal.png",
   "key": "dwarf_priest",
   "kind": "crest_metal",
-  "sha256": "c13ecd852293ad41d22745e508000670b463a07f33307ad2189c05a59509da74",
-  "size": 256
+  "sha256": "ca5f95a9142f41979692183043330f0077414e36745879e70d578d48aa8a0848",
+  "size": 512
  },
  {
   "anchor": false,
@@ -7898,8 +7898,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "c43a33283e6da391f9d85c904f78be6764237801fc12d68ebb90a7c669067e95",
-  "size": 256,
+  "sha256": "3890892319a6d8b5f4f50e4ce91b63c3c84ef7b27fb98032f858318c36b2b87d",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192547_525ebdc0-299b-4fd7-9060-3bb5bc670e33.png"
  },
  {
@@ -7907,16 +7907,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_rogue_glow.png",
   "key": "dwarf_rogue",
   "kind": "crest_glow",
-  "sha256": "13118b04c9504bc5993f05e2b3e6215e7d611606973ab444d32c926875b12c1f",
-  "size": 256
+  "sha256": "64240cf36f0ae19633904e438d806ba009b0a25b9616115a9baae5310072320d",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_rogue.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_rogue_metal.png",
   "key": "dwarf_rogue",
   "kind": "crest_metal",
-  "sha256": "295484c08d19d4d837d926c33379603587d0c4f5b2e9016d65f5742e72ca8807",
-  "size": 256
+  "sha256": "8889b6d01e47ec0e64e36e96d991a691aa9619e5018a9382725cbdf8e94b0e79",
+  "size": 512
  },
  {
   "anchor": true,
@@ -7942,8 +7942,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ef626d7c6343fd73024d05fbb2cb6b123ac7a00f31e620a8f743cd30c995c00e",
-  "size": 256,
+  "sha256": "e17f2ff83236466092001ef5b5b586387adf093ae36f85c6ff1a580213e9e78d",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183234_20a1fd62-401b-4570-9cfe-147d5467a66b.png"
  },
  {
@@ -7951,16 +7951,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_shaman_glow.png",
   "key": "dwarf_shaman",
   "kind": "crest_glow",
-  "sha256": "3e1df328fa9e86bef8bf1e357ba8c98f72eef203455ea7eedf4d3a8b0a017694",
-  "size": 256
+  "sha256": "cb4748ca4d25eeeb57b07afac4fa6ea7ab7cd0ff1d04c0b14af48089ecb1c101",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_shaman.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_shaman_metal.png",
   "key": "dwarf_shaman",
   "kind": "crest_metal",
-  "sha256": "11ad65f67cf498fbc528a1872a956bd3c362a023c573969e25246b1be5649ea3",
-  "size": 256
+  "sha256": "338854faade2bcf10bfb6a969d5aa320c62781839acdb9f64ac83b867c53828e",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8000,8 +8000,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "bf78cb189bb4ae1942b2afdcd56b5cb545f278bcc7196927dd0ef3720394a1e6",
-  "size": 256,
+  "sha256": "8e154fc4e5f981a5614994687062ae1cf89ca9a08b6b7485ec97b1cbfec05a2a",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192658_5643ac1d-32f3-4546-8a04-f90b23ebbc1b.png"
  },
  {
@@ -8009,16 +8009,16 @@
   "file": "Media/Textures/Medallions/Crests/dwarf_warrior_glow.png",
   "key": "dwarf_warrior",
   "kind": "crest_glow",
-  "sha256": "64d8341e7d0ff04cbb61e6fa8c242b3b732fb89670eb94da300d274fa68067b3",
-  "size": 256
+  "sha256": "039ec784ad80aa016ae673c6a27ff7e7bf334a296dd4b0c5ea6b1284ac69f731",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/dwarf_warrior.png",
   "file": "Media/Textures/Medallions/Crests/dwarf_warrior_metal.png",
   "key": "dwarf_warrior",
   "kind": "crest_metal",
-  "sha256": "a3a1026a145714f87c9961b8b13fc52083f3c1819f9314f3c857316e6c74be0a",
-  "size": 256
+  "sha256": "a571c51318cabfa98d9c5837f851c39b528f6257aa8b9d8269e0fae93e70611b",
+  "size": 512
  },
  {
   "anchor": true,
@@ -8046,8 +8046,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "953086929839c3367c9ca01cc5f6d2cbd5065bfb5d721df1261a52a000ee36f2",
-  "size": 256,
+  "sha256": "1bd9ec85199b43f6d7d3e8375287eee4b6f066db1b4f02a1b59412a60b10fa49",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183529_36cd01cb-168e-4623-b267-c6de2e32dbf8.png"
  },
  {
@@ -8055,16 +8055,16 @@
   "file": "Media/Textures/Medallions/Crests/gnome_mage_glow.png",
   "key": "gnome_mage",
   "kind": "crest_glow",
-  "sha256": "8374600268b5a9a9321032b2e4a80107b5288f221850fb07013a2f02e5e0dd3d",
-  "size": 256
+  "sha256": "011e80782be9c323b9997e40240c0323b27ce61009ca2aa1a4b3fb45dbcc81c1",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/gnome_mage.png",
   "file": "Media/Textures/Medallions/Crests/gnome_mage_metal.png",
   "key": "gnome_mage",
   "kind": "crest_metal",
-  "sha256": "c098972eca29470624223bf36eea6aa72170def247fde7f183308e88e37e9110",
-  "size": 256
+  "sha256": "4bb5a3402a5c0f490bd17a674fd6b830aea2e09286076e1b003662c4c0cf4888",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8104,8 +8104,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "e75a4f23db1134999e893a59ff6f58a1d77f11460d75a0b3ffcc2e9019864cfd",
-  "size": 256,
+  "sha256": "d7b794a9b132e7f1117d04a95c14c3525592d79aa637248d631d43ada8831982",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193404_6e55d0d4-e2b3-4f7f-aa89-1377aed5b385.png"
  },
  {
@@ -8113,16 +8113,16 @@
   "file": "Media/Textures/Medallions/Crests/gnome_priest_glow.png",
   "key": "gnome_priest",
   "kind": "crest_glow",
-  "sha256": "60746ad91254e9e1f15948f72ee49f09072ff48929ec1663fa0d2323d4100315",
-  "size": 256
+  "sha256": "cd03e69b95d5da1927c526bc15730702c134b5a2080038e7f956082702d58dd2",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/gnome_priest.png",
   "file": "Media/Textures/Medallions/Crests/gnome_priest_metal.png",
   "key": "gnome_priest",
   "kind": "crest_metal",
-  "sha256": "c3b3a64e93ca4e6f32515596d5f3b5742f1a945ebae6c0b6ed5f03f7cd3460ec",
-  "size": 256
+  "sha256": "0453759373a16b1b70e498b4599433ea675a75df6f7825f41103203b833c0d66",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8162,8 +8162,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "69e86740013b072c0fe0740eefdb076d47bb7c806d911b4bc86f1f6350fef9ba",
-  "size": 256,
+  "sha256": "31135b31086c94578b0483da0b6e3497c386ee3f9cd11b6dae8fddc48c939987",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193405_ecf7fb61-e11e-4a6f-ac76-480213ba6626.png"
  },
  {
@@ -8171,16 +8171,16 @@
   "file": "Media/Textures/Medallions/Crests/gnome_rogue_glow.png",
   "key": "gnome_rogue",
   "kind": "crest_glow",
-  "sha256": "a8c4a661b80b301dd2ebb355f4a6bd06bdd7e9fe4ca17ad94efbdcda7c735e3a",
-  "size": 256
+  "sha256": "ad46a09449403edef4b204089fa62ffb2fd3b6bcd9d323e521f0df6763576609",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/gnome_rogue.png",
   "file": "Media/Textures/Medallions/Crests/gnome_rogue_metal.png",
   "key": "gnome_rogue",
   "kind": "crest_metal",
-  "sha256": "8f6ed328f1d4a825534186aae3b547ee63790ae1310a27aaa8a12bff215767a0",
-  "size": 256
+  "sha256": "f160599e22b11aad4bd08c80898e75f2ed85a6fc482289a589318bff3c4f57dc",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8222,8 +8222,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "8faf6b5feb050ea4b78ea33a47d7ec486bdf54849c1d0f4fd78b3eb33ac35c42",
-  "size": 256,
+  "sha256": "9ae693c4d762e2cb9e3806ad5071d7a53615c761ca050eb32ddb57e5d8bebc78",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193435_4a412bb8-f332-4de8-9bd7-7bfa7321a3ef.png"
  },
  {
@@ -8231,16 +8231,16 @@
   "file": "Media/Textures/Medallions/Crests/gnome_warlock_glow.png",
   "key": "gnome_warlock",
   "kind": "crest_glow",
-  "sha256": "5f25b9783a396ce5ac1695cf8a10d4661eaee8e9280553260dc01e58671616c9",
-  "size": 256
+  "sha256": "2abce9e5133fa5c61b035777b709d6847753423dc3f4a88fd5c7560dff95ccb7",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/gnome_warlock.png",
   "file": "Media/Textures/Medallions/Crests/gnome_warlock_metal.png",
   "key": "gnome_warlock",
   "kind": "crest_metal",
-  "sha256": "90c65abf4f5b01fc72a571716491f5107428550be3f878119577be9b99bc462c",
-  "size": 256
+  "sha256": "ae7df1fb31978b8378e29787fe8171060f0d82849c4c78cd688630af8a0437c3",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8280,8 +8280,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ed1acfd88a50aaf53b689a36321366a95b3370cc40285c1d2a3949dc2296c6ca",
-  "size": 256,
+  "sha256": "a3c66412483360737621f64d1b9d04c332e937ee64414fcded36b7eedbbc67d5",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193549_e061c12d-9d1c-4b40-9eef-36a8e6c9341d.png"
  },
  {
@@ -8289,16 +8289,16 @@
   "file": "Media/Textures/Medallions/Crests/gnome_warrior_glow.png",
   "key": "gnome_warrior",
   "kind": "crest_glow",
-  "sha256": "6651a5ae2763424a6c70185929eaf03181b57a41fe4017451c079e6e7446f8aa",
-  "size": 256
+  "sha256": "ce3983b2cf52df641de3041e302d0ad55c9ca159d6e0098e1f456fa17f3ead3e",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/gnome_warrior.png",
   "file": "Media/Textures/Medallions/Crests/gnome_warrior_metal.png",
   "key": "gnome_warrior",
   "kind": "crest_metal",
-  "sha256": "052f9ef85609bc9c3892ee5787f005fe96cbd181a7de3e79e9e05e764b140606",
-  "size": 256
+  "sha256": "777802746fbcb5e8f93e6f15e80425c04cad8d3ea878c440bbf081fa417f03cb",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8338,8 +8338,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "0d903610bc68c8a59cfa4e4d0ebc14e12d4c4cc31aac67583ccd0061494a22bf",
-  "size": 256,
+  "sha256": "d0222c3fa74992342d39aca80f49424a130d1375cc1dcb5358abddf16211c183",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_191734_f6fc7261-2a49-41be-8cf3-54de0592e5a3.png"
  },
  {
@@ -8347,16 +8347,16 @@
   "file": "Media/Textures/Medallions/Crests/human_hunter_glow.png",
   "key": "human_hunter",
   "kind": "crest_glow",
-  "sha256": "31b7544522140c93ab71bf0e4f1127f2bc6353a411eef1cae8b14d638417e2a6",
-  "size": 256
+  "sha256": "92564bf2a6257b5142841e280f7a64028570f7de2b19d0b8e412252796480c7f",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_hunter.png",
   "file": "Media/Textures/Medallions/Crests/human_hunter_metal.png",
   "key": "human_hunter",
   "kind": "crest_metal",
-  "sha256": "0cfd1830f4942a523a1943270571042591af42182b4cf928fd65f1aa28cb76b5",
-  "size": 256
+  "sha256": "104b385fb171d38c1f4c2a41dcfd2f1cb7ccfba25c71ecf7c57b58174889ccdc",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8396,8 +8396,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "96a3a919ce3f0b5b8d3b1eff5476c5c58148267ed72a9e6c8477f508c5c03b0d",
-  "size": 256,
+  "sha256": "7ba22aa226366c0a544fb83142ad05a4cd5f95f1937bb26832daa032d1292a72",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192553_f05cb539-bc92-4aac-aede-0957c8804bbb.png"
  },
  {
@@ -8405,16 +8405,16 @@
   "file": "Media/Textures/Medallions/Crests/human_mage_glow.png",
   "key": "human_mage",
   "kind": "crest_glow",
-  "sha256": "757e574859a2486fcbeaccc7021afcd5f6bcf9a27d0084793274ad774180d38d",
-  "size": 256
+  "sha256": "bf93fe1d92dad331d529744ac447502dba3b5eb254f5ae571b1f1c06a69a2a67",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_mage.png",
   "file": "Media/Textures/Medallions/Crests/human_mage_metal.png",
   "key": "human_mage",
   "kind": "crest_metal",
-  "sha256": "35e2f3705f035d941f68d1b48d50585f1f657c3074c35786c5305ec95191d61b",
-  "size": 256
+  "sha256": "7ccafb0c053cf60c795986f0d1f10fc50919067ce24a4130ac65d18e6f1d942b",
+  "size": 512
  },
  {
   "anchor": true,
@@ -8442,8 +8442,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "fc420f5fa22c70c0a91c172e53bfca06356a4b6bda261415fb76f39f391b8fea",
-  "size": 256,
+  "sha256": "686d3c03474f26a393d26d3d798a51937f7cdf879c60eb62f8367b756c4a0e59",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_34c3eed3-69f3-457e-a1d5-d21fff77fe85.png"
  },
  {
@@ -8451,16 +8451,16 @@
   "file": "Media/Textures/Medallions/Crests/human_paladin_glow.png",
   "key": "human_paladin",
   "kind": "crest_glow",
-  "sha256": "1b642d8ff8bf62f2883de9b346ffb5a8c3e5d7c91a53abef406d157da405511e",
-  "size": 256
+  "sha256": "f655eeb0f0f9159ca58eed9cf17c8cec8406c0aa1670d8381d3d02510f8f68ed",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_paladin.png",
   "file": "Media/Textures/Medallions/Crests/human_paladin_metal.png",
   "key": "human_paladin",
   "kind": "crest_metal",
-  "sha256": "ed01551adccf6b6931c8e2fc17d24ed484661b6d2fb938af43ced262b14191b7",
-  "size": 256
+  "sha256": "ee70d63da072adaad3480dc3a79b3d2a028f79be4515d7ae7a402f912d3cba2d",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8500,8 +8500,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "76d08375f55b75f8b4e358833886791466472601f49f4cac2fcb118bf91bc217",
-  "size": 256,
+  "sha256": "7f91020a9c5e735365bde7a17ae860b53cd8a72438d3f49cf5a8db8b3cc19db5",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_191912_009db085-cfdc-4eb1-825b-5f6fc66c1f2a.png"
  },
  {
@@ -8509,16 +8509,16 @@
   "file": "Media/Textures/Medallions/Crests/human_priest_glow.png",
   "key": "human_priest",
   "kind": "crest_glow",
-  "sha256": "cd7366da3ad8d40ee7553481441ff00ff782882d771f20500aeeadc898a86e40",
-  "size": 256
+  "sha256": "6ab572c7e6c3d334ee4594c6a548b9b40e1249e34ac1e7432021187ea5b536c0",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_priest.png",
   "file": "Media/Textures/Medallions/Crests/human_priest_metal.png",
   "key": "human_priest",
   "kind": "crest_metal",
-  "sha256": "08e9612d020059f97a6ae51e9364640d07caa00281aef0b03c0a93ac9a3807a5",
-  "size": 256
+  "sha256": "e09a2fda08c1209621fd7ffb582aae98e77e29b9e8888f4d0b8a36bd06a051de",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8558,8 +8558,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "f739b0b58317e789bc327332214143f0161def91ad083f0655588fafa511e46b",
-  "size": 256,
+  "sha256": "d929010c958a1288be2db3f08e85519ec12cd1add216e720e6d9773915e47733",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192029_3130e4bd-fbc7-4739-8311-807e9e5b742d.png"
  },
  {
@@ -8567,16 +8567,16 @@
   "file": "Media/Textures/Medallions/Crests/human_rogue_glow.png",
   "key": "human_rogue",
   "kind": "crest_glow",
-  "sha256": "2b4de2d619601b1257180cac26e89adb6932c5ff1f2d1263f20da5143ebb3dbf",
-  "size": 256
+  "sha256": "8539bdede6528bcad03e7d2a8c98e4cff9b50ee0a89b20348a6b47993eeac026",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_rogue.png",
   "file": "Media/Textures/Medallions/Crests/human_rogue_metal.png",
   "key": "human_rogue",
   "kind": "crest_metal",
-  "sha256": "aa7c694828698013445b4f54f9cde4953207e4a40b66a5cbda54d26390b8120c",
-  "size": 256
+  "sha256": "d385c4a440d1cb3effdbbbdf9bcdc76900e08afda067af198d5c4e922246b720",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8618,8 +8618,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "b56035f490b967675ebcdd2e9996cc5e5545384660bebec119507ad6161267c9",
-  "size": 256,
+  "sha256": "ebe9e4c76846d205304d09d41325b9a88e79b941027dd22bb5ddc1341899eb66",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192054_5f81c532-3dcd-49c5-8c6b-b81a97a25fc8.png"
  },
  {
@@ -8627,16 +8627,16 @@
   "file": "Media/Textures/Medallions/Crests/human_warlock_glow.png",
   "key": "human_warlock",
   "kind": "crest_glow",
-  "sha256": "f4c5cb64184305c8bf0520f5480fc4bbb0b08940a67057e2fc1199ed8b339f9c",
-  "size": 256
+  "sha256": "e6fb809f6090abbd6bf2efd9d76cb02ee020fdcce8c2d0595603858dde094a8c",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_warlock.png",
   "file": "Media/Textures/Medallions/Crests/human_warlock_metal.png",
   "key": "human_warlock",
   "kind": "crest_metal",
-  "sha256": "c9240f27321eb762268e1879a3b49f472b5e205aeb6012909662e426cde93067",
-  "size": 256
+  "sha256": "ce21f31e587e39c513b6097253ab113502f64f14d7b8bd4b3c83792afe6ae042",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8676,8 +8676,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "5a0abb629bc2f739b525de17d322b55bef685cbb67d350d063a4ce7966c87487",
-  "size": 256,
+  "sha256": "7eb56e4ea50f39feda2523d20062e95d4ec333f3b7bc4fc63e3b98f55fa90b54",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192435_893de9c0-1b83-490d-8177-9b3a69de3918.png"
  },
  {
@@ -8685,16 +8685,16 @@
   "file": "Media/Textures/Medallions/Crests/human_warrior_glow.png",
   "key": "human_warrior",
   "kind": "crest_glow",
-  "sha256": "b4a87654ae1bd74ead3aea335067af488389750cf8dc571561dfa4682b3f3165",
-  "size": 256
+  "sha256": "842492284c3fbecbcca129941fa18722597fa252822da728ddd429e3176890c5",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/human_warrior.png",
   "file": "Media/Textures/Medallions/Crests/human_warrior_metal.png",
   "key": "human_warrior",
   "kind": "crest_metal",
-  "sha256": "792b967784560fc3e30ee9073c72b4811900b886a09a6fd75deeec73cd290225",
-  "size": 256
+  "sha256": "763a6af8708232031c204f1d301cfef9739b99ec65d41ade93ce686fe29dd275",
+  "size": 512
  },
  {
   "anchor": true,
@@ -8722,8 +8722,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "6fad420cb29b1339577ce97eb56403c321bb5cf9eb19b3288d2eaa6de871cbe1",
-  "size": 256,
+  "sha256": "787fddf25db37f785d7c07918aa984596dbb523f778137a996e3f08cda25e7e5",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183741_3329d533-0be9-427b-9a7d-9971353cbe54.png"
  },
  {
@@ -8731,16 +8731,16 @@
   "file": "Media/Textures/Medallions/Crests/nightelf_druid_glow.png",
   "key": "nightelf_druid",
   "kind": "crest_glow",
-  "sha256": "97d7945920738dac8f0a05226edc273e1b30afaf60ccc1ce98baf73f63729fa3",
-  "size": 256
+  "sha256": "a50db93a3aed0e3f6fc159d13ef6b38642fdd39d2c35a62b028f29bf1efdb7ca",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/nightelf_druid.png",
   "file": "Media/Textures/Medallions/Crests/nightelf_druid_metal.png",
   "key": "nightelf_druid",
   "kind": "crest_metal",
-  "sha256": "4f722ee3ff1eb9574c875168c04e3438350f2fc790ad2ae383bd2cafd4ecf9b4",
-  "size": 256
+  "sha256": "9abd2e553e7f2522c96d503b378f1122404f5f782942f3a6902cd452c4e695cc",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8782,8 +8782,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "cb14db3bbebdf924f40ca3261b0dec1727698c285ac1b5301da8b25888b1b00e",
-  "size": 256,
+  "sha256": "1f3c5fc85d9455129100e46cbe328a86d1df2c80c9c7c0f2610bc4264b3199d5",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193014_38a982b3-b7a4-4500-81f1-dbfe2a663582.png"
  },
  {
@@ -8791,16 +8791,16 @@
   "file": "Media/Textures/Medallions/Crests/nightelf_hunter_glow.png",
   "key": "nightelf_hunter",
   "kind": "crest_glow",
-  "sha256": "6295939587570a9777bee5ec459097a4921f822f97ec15868e2c91d97b5df6eb",
-  "size": 256
+  "sha256": "7207052445107ed78d1cf8320750761cc24ce7af96049aa20adbfcd370704c39",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/nightelf_hunter.png",
   "file": "Media/Textures/Medallions/Crests/nightelf_hunter_metal.png",
   "key": "nightelf_hunter",
   "kind": "crest_metal",
-  "sha256": "50f449d2cda7a86dcaff5a05f06f3cf2b996a49d6f785468b5fde7107ea74f3a",
-  "size": 256
+  "sha256": "80ec8abf46aeca74b4ead013bbcae84d2a1cfdb570e7527dc8000c669d1480a0",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8843,8 +8843,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "818ca1c6bef38834e7ef138686bee760d71c53723ae25cf88e2b065520b738f3",
-  "size": 256,
+  "sha256": "724a7a0e7c9e83aadb51037e457757e3ed37ab9c5365473d8e328a31e78100f3",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193042_9e73ec3b-0d73-495d-bd7a-552c580c0bb9.png"
  },
  {
@@ -8852,16 +8852,16 @@
   "file": "Media/Textures/Medallions/Crests/nightelf_priest_glow.png",
   "key": "nightelf_priest",
   "kind": "crest_glow",
-  "sha256": "01daee78479882a8f28c3e115aa788e25b4073dfe57258bd0e1ccd76271b8939",
-  "size": 256
+  "sha256": "6b56c8c4b65ab7d83484b3e7a9734a376f98dae425ff746032a3a4787271ed69",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/nightelf_priest.png",
   "file": "Media/Textures/Medallions/Crests/nightelf_priest_metal.png",
   "key": "nightelf_priest",
   "kind": "crest_metal",
-  "sha256": "8cf61aef3e0cc9445f4aef5d8f8f6092c3549ccd7f6e1f96d510f0f1eab16aa8",
-  "size": 256
+  "sha256": "8855bc2f8af7b951b3d07bcc1eac5e7f410dc4c26b549ae4234d1d6f5560d77b",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8901,8 +8901,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "d2851ad2e342579e1b1a42447c8b5b6c4b5df8b0f362c90cb136e7a8c3524064",
-  "size": 256,
+  "sha256": "a6a36dab0125b947af1138ca9ce153382abaec0443ad69c7e014b5930c9e2e02",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193132_50e2ab77-01ac-4d1d-a9d6-9d122e7bf5d1.png"
  },
  {
@@ -8910,16 +8910,16 @@
   "file": "Media/Textures/Medallions/Crests/nightelf_rogue_glow.png",
   "key": "nightelf_rogue",
   "kind": "crest_glow",
-  "sha256": "b78f49477ba5e9b2e0e1c5767227a6b709c8b996121216fc805ee3cc03a0621c",
-  "size": 256
+  "sha256": "fda19ba4a09c0af4929f5656ad9bd9bd92768f9dc0381bbd5be4431ed53fea5f",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/nightelf_rogue.png",
   "file": "Media/Textures/Medallions/Crests/nightelf_rogue_metal.png",
   "key": "nightelf_rogue",
   "kind": "crest_metal",
-  "sha256": "501c2b614a5dcda0cec0e30df749241cdb1f01e510800e4c4b8e0e6c79fbd191",
-  "size": 256
+  "sha256": "337673e67b6647fd2fbac56970dc8d12ffa5705d1e16cd703cd5e3d016edd5e7",
+  "size": 512
  },
  {
   "anchor": false,
@@ -8959,8 +8959,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "854af030149bc4562d12c718a735c07949c898a9d930600e90b946e0a610749b",
-  "size": 256,
+  "sha256": "d1995c1b685850266c0ac90ae151b5ae35ff2bfa04c3289641b0bd81a2157208",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193225_36735f92-a555-4cfc-856d-3860cdb6f2b1.png"
  },
  {
@@ -8968,16 +8968,16 @@
   "file": "Media/Textures/Medallions/Crests/nightelf_warrior_glow.png",
   "key": "nightelf_warrior",
   "kind": "crest_glow",
-  "sha256": "951b23651b29449137977265753ede8aa904935e8021f8ede836962d8928c49d",
-  "size": 256
+  "sha256": "b1d4f18116ad340c5b94716be3f7790b977af7f5ace9f2dce60ee1661c59be61",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/nightelf_warrior.png",
   "file": "Media/Textures/Medallions/Crests/nightelf_warrior_metal.png",
   "key": "nightelf_warrior",
   "kind": "crest_metal",
-  "sha256": "11ec75e3e1d29738e3616c23257685dab1dfccc56afa907c7277393a97c50bb7",
-  "size": 256
+  "sha256": "6170eb11afb83939c20c42183002b58a06a1eafbaa8ba508f6f22991d5f0b6d5",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9019,8 +9019,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "9707dc0b28311a86a5b9146a8c5f21e348625a0477ff9b6c43a10b4dabc42286",
-  "size": 256,
+  "sha256": "1928650639519c02aa0c76aba92ef3b9e1ac390e17c5f2663cc97f967e7b269b",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193644_89675ced-9b4f-434b-a385-a41387d282f8.png"
  },
  {
@@ -9028,16 +9028,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_hunter_glow.png",
   "key": "orc_hunter",
   "kind": "crest_glow",
-  "sha256": "13b131aac0b9bb8ff60945a3d20007d22828995f20a634a30efde50587a2026d",
-  "size": 256
+  "sha256": "cb70240e70c4981607f400f0f46ebb024cdac37be33c6921ca759e603aa48c1e",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_hunter.png",
   "file": "Media/Textures/Medallions/Crests/orc_hunter_metal.png",
   "key": "orc_hunter",
   "kind": "crest_metal",
-  "sha256": "944d0a1b00e9e83942ccae9f90bff7b1079a45840fac2763f2696702cbff611e",
-  "size": 256
+  "sha256": "c00568ce9940e862b551f2f7e3d81b5a6da1b38c5291b9fcbe2165a7bc1810cf",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9077,8 +9077,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "38b2f82b24f71a4b083168935f06c0b236e63cb6588d70b1b17b216389fca300",
-  "size": 256,
+  "sha256": "fb6466cb62f455f702de245c34670f8a62311c4bb65fc4676c9e5957c702255d",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193736_fc9ffc3f-7d66-44bd-9a72-adf281c1f587.png"
  },
  {
@@ -9086,16 +9086,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_mage_glow.png",
   "key": "orc_mage",
   "kind": "crest_glow",
-  "sha256": "0d1c8867bd995ee7e95c6526d0584c40aef9529bae2c9b33fa1ccda7675074dc",
-  "size": 256
+  "sha256": "f2db4de4154cd2b52c12e2e26245a9dc361fd3c9a31bce1a5530f21861a2f055",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_mage.png",
   "file": "Media/Textures/Medallions/Crests/orc_mage_metal.png",
   "key": "orc_mage",
   "kind": "crest_metal",
-  "sha256": "5b23f5ab4500cec976debaf4c24171f536a7d85e7c36c05a2598796230a7ec18",
-  "size": 256
+  "sha256": "b8a69606433e9f2d588924fbdb90d334cef5610bce3f108c706c0ad237d77c88",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9135,8 +9135,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "c56e9917b9cd5232dfc49be20e7bac461182f7653679821e104c0c2903c1c0e0",
-  "size": 256,
+  "sha256": "a18e324a9b791daa0213600facc5f4c30a4e8f9611c7a3a73b7c072a6b8848a7",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193829_e5cfb4de-7964-4565-b075-7f2cfd3e765d.png"
  },
  {
@@ -9144,16 +9144,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_rogue_glow.png",
   "key": "orc_rogue",
   "kind": "crest_glow",
-  "sha256": "246efd4c3f0035e08a17b34150b84e4d3c1095cd9648170a100979d98f2e0efa",
-  "size": 256
+  "sha256": "f2a068bb209e31d9f5f2e4b0804d47f4044b8f05c287d3f4b6e0dbf62108b180",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_rogue.png",
   "file": "Media/Textures/Medallions/Crests/orc_rogue_metal.png",
   "key": "orc_rogue",
   "kind": "crest_metal",
-  "sha256": "6fd3ce6bb3316491d023e7ef0365dfb7756a6df084db8e1948a7355248141bf7",
-  "size": 256
+  "sha256": "234871ba2072ce81f11a0ce1e8047b36b708811dc62e0017553b420eaa6e9a0c",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9193,8 +9193,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "60b99f38ce02237a6ff6fa855d9010ba2832cf5881a1ac1f966f939efe3b28d2",
-  "size": 256,
+  "sha256": "18334efbda786b3bc06752a8ce888b5f8249643238cd220a46852873bdfe87ec",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183742_e4c6b23b-a136-4b3d-9692-0a271e3a2ed2.png"
  },
  {
@@ -9202,16 +9202,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_shaman_glow.png",
   "key": "orc_shaman",
   "kind": "crest_glow",
-  "sha256": "18ec53637745936243f899b15b501a613c64c1d47eb68a852f95ff0d7f3df703",
-  "size": 256
+  "sha256": "863f163e96ee0ca25f8993cd319db4c70d5ed9aae9d5f1e85a14f04ff1ac9a0f",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_shaman.png",
   "file": "Media/Textures/Medallions/Crests/orc_shaman_metal.png",
   "key": "orc_shaman",
   "kind": "crest_metal",
-  "sha256": "813073895472400589f219c92523bb78bb9dace9b0b5a4aa12674a8c3fd93ac8",
-  "size": 256
+  "sha256": "b057854b7f0b4fee1a8ea91a9578d1d068f7f52bb19a03d978c7cca4b3b90537",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9253,8 +9253,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ec23d1fb57ee7dc7710153beb773bd4fd1812dde12f69b545f9be0d2d3b40be6",
-  "size": 256,
+  "sha256": "3d6899b5a49ff0c1a4fe71d23c3d0f4b2729096d78b0b2f3d678707882970a1a",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_193946_0c67b435-1fe7-449c-b679-dabf6c6db34d.png"
  },
  {
@@ -9262,16 +9262,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_warlock_glow.png",
   "key": "orc_warlock",
   "kind": "crest_glow",
-  "sha256": "6346c56c2f113e8c3937596f3adcb558eb732f9a92980702e18a0905200b216e",
-  "size": 256
+  "sha256": "b97879809d8d824f66ccd4d7a75a3bd1a461c45f04266a163e9fd3fe9f57d176",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_warlock.png",
   "file": "Media/Textures/Medallions/Crests/orc_warlock_metal.png",
   "key": "orc_warlock",
   "kind": "crest_metal",
-  "sha256": "e0dbb78a88fa6c90e5be43c92afe3bf8a080e83e1a8128b9989c7b7b251d59b9",
-  "size": 256
+  "sha256": "3c100debcea5eac861060c99779e57933f4e0bc53dd16b76bb153104f7a826a3",
+  "size": 512
  },
  {
   "anchor": true,
@@ -9299,8 +9299,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "5c4f62cc5a895b6eafd2fabcd08a33824ad1d78c3e07a2a57eab7c98981dcf07",
-  "size": 256,
+  "sha256": "f1ec3925cfa825b95e4ac66f5f59e234b1e59484609f5aeebc41e8857a1ffda3",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183528_dd9b05aa-8ead-4e04-bc7e-d26ad7ec5b73.png"
  },
  {
@@ -9308,16 +9308,16 @@
   "file": "Media/Textures/Medallions/Crests/orc_warrior_glow.png",
   "key": "orc_warrior",
   "kind": "crest_glow",
-  "sha256": "4e351df23986e5abdff9ab2d3e832e6e2d4c5891763629e8857f8921053f89d7",
-  "size": 256
+  "sha256": "5bad994496ae1185b949a01b056de7ebabddfbdb053d1044a0cad08924ba402c",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/orc_warrior.png",
   "file": "Media/Textures/Medallions/Crests/orc_warrior_metal.png",
   "key": "orc_warrior",
   "kind": "crest_metal",
-  "sha256": "e912df21c7a0184165c874dba9788cc4ce07dc99d340bcd9a2a914c3d72f212e",
-  "size": 256
+  "sha256": "11246a4963bb98e972762bddc4004b59e9f92e486bc1b6ba19342d47ad3a8a0e",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9357,8 +9357,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "4b59b0f8fcdfd6c8c36f194e53046bb2832b6ba22a95688a7e6074b99f6c87b3",
-  "size": 256,
+  "sha256": "519988e151e199474cc94da3ae89ae53e4be124e93840702896d9e5fa2bb94ad",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194041_6a852910-8a22-430d-96da-b698e69cd9bb.png"
  },
  {
@@ -9366,16 +9366,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_mage_glow.png",
   "key": "scourge_mage",
   "kind": "crest_glow",
-  "sha256": "b44c8f39d83593aaa65a0b2823af7938385441da6c23633a57ff41e1bd109d22",
-  "size": 256
+  "sha256": "17178f0c1e4b20dbc142d982ca53696dec4ca8cedde7a341d3a3692bcd6ebab8",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_mage.png",
   "file": "Media/Textures/Medallions/Crests/scourge_mage_metal.png",
   "key": "scourge_mage",
   "kind": "crest_metal",
-  "sha256": "183b162c48f893c6ad48cf967b2a9daf122c60fad69acf94413fc58e9ec6b145",
-  "size": 256
+  "sha256": "162d65ebf14ba88e9beb43c0592f577289555f6784465dd7872cef274a86bd55",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9415,8 +9415,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "42a965ebaf3f0cda8029ad0e70184c9ea9d1b8f79387a22be13f985d0789dcfb",
-  "size": 256,
+  "sha256": "6cc68d4a85880c1e4a85a19477bdad6fb832c24522c6d14a429b5902df5c0dad",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194139_9dd6296a-6963-4bd7-b9b4-0a9650434d22.png"
  },
  {
@@ -9424,16 +9424,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_paladin_glow.png",
   "key": "scourge_paladin",
   "kind": "crest_glow",
-  "sha256": "b0f44bb58e5b5d7f9540bd8da5b8835ca844c492a7d8e1d59467da3dc4633cea",
-  "size": 256
+  "sha256": "0173116e69955ab950004e0db0e7b5cd40f6620715bb8a4857bd0c7eb5a1435d",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_paladin.png",
   "file": "Media/Textures/Medallions/Crests/scourge_paladin_metal.png",
   "key": "scourge_paladin",
   "kind": "crest_metal",
-  "sha256": "1554db28345c7888ca06409eee0e307ee0b9a3b164ecdc3877d3e296475cfbd3",
-  "size": 256
+  "sha256": "b680d56c0b6f596a811d175675facbfa6f3c82091725bdca8c44b7a10d0f6516",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9475,8 +9475,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "a00f4a0f3e01111e84c26298f73ff7dd824d7a94b227b0de1d053833c519782b",
-  "size": 256,
+  "sha256": "9a5dca4d21dd83933527945c93d0756ac64f26341d9bfe70d052e01784c8214c",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194228_4d4f7977-0982-4d27-b727-88df145120a9.png"
  },
  {
@@ -9484,16 +9484,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_priest_glow.png",
   "key": "scourge_priest",
   "kind": "crest_glow",
-  "sha256": "ae8cc0a3ec854d3f2e6db0aa1cfd02814e6eef7a0683e98ebbd4938db04798f4",
-  "size": 256
+  "sha256": "f6129a7fece47502ec7ffd195eae1c361c1ccd852d5ccf6d5a42e152c999573b",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_priest.png",
   "file": "Media/Textures/Medallions/Crests/scourge_priest_metal.png",
   "key": "scourge_priest",
   "kind": "crest_metal",
-  "sha256": "fe180f330935c745192bcdf097f8fa3dafa9aff9e3ff4f4e44b9ca214b71d75f",
-  "size": 256
+  "sha256": "f0bdc2a2fd15e3b18d6f261c9de3b9b70311d69f09391f7ca3059434d565b148",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9533,8 +9533,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "8ad8bb89eaf9054aba204cdb67021b8708bcccd154bc7925836f69910b3a8a46",
-  "size": 256,
+  "sha256": "685c642f2b2fcff5c412332eec1d7311af38f68ad56a05e82f36bbcc56fdd64f",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194254_af87bbb9-c877-4538-a989-fc71e213976f.png"
  },
  {
@@ -9542,16 +9542,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_rogue_glow.png",
   "key": "scourge_rogue",
   "kind": "crest_glow",
-  "sha256": "79b7335222e5e54647c3b717fc6530cc81f71fd76f5037c8e02fe192b22a8556",
-  "size": 256
+  "sha256": "4f2d0f066d614162e9861824280ee10f7168bd3d58b10d3c1532be2c912447e5",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_rogue.png",
   "file": "Media/Textures/Medallions/Crests/scourge_rogue_metal.png",
   "key": "scourge_rogue",
   "kind": "crest_metal",
-  "sha256": "16ead76dc503416d1284c7008335254dd3d3eb94cd356aa247d986d9489d1d7b",
-  "size": 256
+  "sha256": "376802448e621936357e07ad87d7c55f8a773653174859f5e1617a7e5c4cc5e9",
+  "size": 512
  },
  {
   "anchor": true,
@@ -9579,8 +9579,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "0d0cf2ab7ad68241e99f4dd43910ccf52d7c1a9bcde9b2c523169b4c1eb613bc",
-  "size": 256,
+  "sha256": "57a93d5578bf6e8b1c5633618433c75549829c21f65b28ef9c3b16922fb92de3",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_72ef8dc2-ca20-4b9f-a23e-3c7b43eaae62.png"
  },
  {
@@ -9588,16 +9588,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_warlock_glow.png",
   "key": "scourge_warlock",
   "kind": "crest_glow",
-  "sha256": "1a3e86f34d0544dbbbe1529550bf4f6f855acb335147629f5eab98e464425447",
-  "size": 256
+  "sha256": "eda0c5c6d967328cb2b1191dd9969a58b52a88416845c1f704f7072562d2a0e6",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_warlock.png",
   "file": "Media/Textures/Medallions/Crests/scourge_warlock_metal.png",
   "key": "scourge_warlock",
   "kind": "crest_metal",
-  "sha256": "ecffc24e17e6e7792a5bbff347fa23ccde81a3234e2b40cc11c8427b2a9a060d",
-  "size": 256
+  "sha256": "83f2ed9cf7cd1b703457b52885d9efe360e8e304cdb65617f6bd15099ffcada0",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9637,8 +9637,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ebd3abec15c228e5189a43782f79f2fd3c894bb762d15db47b0db900821656ce",
-  "size": 256,
+  "sha256": "00d00ac1e21c327349e78f15208641b8da770ca43f4af383f46e72d6d603e6be",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194413_305a2d8d-3bac-455a-b2ef-08f180169e5f.png"
  },
  {
@@ -9646,16 +9646,16 @@
   "file": "Media/Textures/Medallions/Crests/scourge_warrior_glow.png",
   "key": "scourge_warrior",
   "kind": "crest_glow",
-  "sha256": "4b121448865fe41e3736fd660d295610c553e625633c183e0a1e4a8597ed03b9",
-  "size": 256
+  "sha256": "8ca23744de8f8caa8d878e2bc4492d7c76d14d45221f4b9240e7865ce116364d",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/scourge_warrior.png",
   "file": "Media/Textures/Medallions/Crests/scourge_warrior_metal.png",
   "key": "scourge_warrior",
   "kind": "crest_metal",
-  "sha256": "1438ef5129253652120689a3ee825831543958d159da9712a074c40711f485d0",
-  "size": 256
+  "sha256": "4c7cf9795edff90938e315989fa85a06ac0c301d116e73a4b2e7403b027db3d0",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9695,8 +9695,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "fbf262363b8cadc64e5aedb9ec89e62f5e05bbe66fbe290c34d0d846ed2688da",
-  "size": 256,
+  "sha256": "c9d1405523228c0a2f2c33add2ee9141141b8362ac775e794939b104a43f9636",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195202_864fad70-7426-47e8-9c32-e8d4ad374480.png"
  },
  {
@@ -9704,16 +9704,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_druid_glow.png",
   "key": "skyborne_druid",
   "kind": "crest_glow",
-  "sha256": "9f74fb5d4a91b49e54fcd0b3e9c34838dafcb7508a02993ce20f1558b0007883",
-  "size": 256
+  "sha256": "08989539cd9b16c4cfe7f2f5a7823421cd9a46ca4e197ef35c7a7b2400fb9f65",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_druid.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_druid_metal.png",
   "key": "skyborne_druid",
   "kind": "crest_metal",
-  "sha256": "9e52f6bbe137b394b5aae344aea1754515e3c151d66aa044cf4d9af9ac58acc4",
-  "size": 256
+  "sha256": "b5b36ef02e05263c3b18c5c95f6f4013a947f6804f80b940d4d080f58cea8159",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9753,8 +9753,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "a0c3cb254578ee78a8c44e45f9fc0a0e79a392e3bad698a2792259399d0e5e1f",
-  "size": 256,
+  "sha256": "cd19495ac3341f486cc3c45ecb1bf4e60e5229f975d43d18213631c61e911b7e",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195259_a997f1bd-eadf-4735-9e7b-824af58870df.png"
  },
  {
@@ -9762,16 +9762,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_hunter_glow.png",
   "key": "skyborne_hunter",
   "kind": "crest_glow",
-  "sha256": "a0b50900081a3cb754a0aecacca5b7dd4f9f7ff95eac6acc55c5eafb2931e5d7",
-  "size": 256
+  "sha256": "6257d2c455515bba232b309134806f3b6d9ff89c121ad45ae47aaaca567822cf",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_hunter.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_hunter_metal.png",
   "key": "skyborne_hunter",
   "kind": "crest_metal",
-  "sha256": "be69ec6d58fc62da56667f5e4fd34ea0975b638844ba435fa03821d7dff159b9",
-  "size": 256
+  "sha256": "9af94dac7da1db168dcc4e8b036241e1e0086f59ba997e454655b972b0d3502e",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9811,8 +9811,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ef5f256212cbcc8a2d9f02bd46b8234155596171840ce61b9319a72b520763a9",
-  "size": 256,
+  "sha256": "e2f151954bb02a41897daa7b2680a786428102662c3631c99699e0d17417c493",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195327_6650602c-0e9e-4b41-9feb-dfde1637dba9.png"
  },
  {
@@ -9820,16 +9820,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_mage_glow.png",
   "key": "skyborne_mage",
   "kind": "crest_glow",
-  "sha256": "1d9cabd174a54feeff6f3fee30501df8c014c2cc5de2439ce39e5b191654f03a",
-  "size": 256
+  "sha256": "aa22a8bc164997f909c9d221e070bcffea023c67c5a3ac8da5aa2739c65852f0",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_mage.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_mage_metal.png",
   "key": "skyborne_mage",
   "kind": "crest_metal",
-  "sha256": "fa57c936a4f838c7d1c062a7a572c623e248b80623be3bc136cb64db6f205b30",
-  "size": 256
+  "sha256": "f109cce1267871ea51969627c29fb8a4b1332a975ed27f4e71661a40821a6493",
+  "size": 512
  },
  {
   "anchor": true,
@@ -9857,8 +9857,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "732daa1f5f285701300a80a42e8e14f0f04e0763e7b1cade0e26d557e6f149f4",
-  "size": 256,
+  "sha256": "4bc31d6fb486051c6e3ffa0d66575ce34cce9b87c85556e01fdc7b1a083606ae",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_139e5df2-e909-4c65-ab6b-09f7b75cff22.png"
  },
  {
@@ -9866,16 +9866,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_rogue_glow.png",
   "key": "skyborne_rogue",
   "kind": "crest_glow",
-  "sha256": "82a889a34dc8cf2a0156d1b6f95df46fa449816985ce28eea5126ca131b120fb",
-  "size": 256
+  "sha256": "4746ee6b6762a981dc6510b5aacc125f8b4d2f1c0c841daabb186274ab0481ac",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_rogue.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_rogue_metal.png",
   "key": "skyborne_rogue",
   "kind": "crest_metal",
-  "sha256": "517598ca698c90b8c0473df9dca4390463e14cd4bc5a0327bd478ba4e1449e21",
-  "size": 256
+  "sha256": "0c3c96d16e5dd9d16fa0c182cc6d05c7af57a3f5d18160173788d0bfc8c9e39c",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9915,8 +9915,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "0037dd6b12a7cc8efd3ab23a193420499e5de78ad78b5994d05b2ba2032aa54c",
-  "size": 256,
+  "sha256": "2bf77589fe113ca50d3d4dd5fe57dd4dcfd0041b2cd6afe84cbf6f72ff8df24a",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195448_b8eebf10-267f-4c57-97ec-fcced8967839.png"
  },
  {
@@ -9924,16 +9924,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_shaman_glow.png",
   "key": "skyborne_shaman",
   "kind": "crest_glow",
-  "sha256": "9edf99adb82afefe44f7243186b6f5af707e61811c96f13cef310896ae7681da",
-  "size": 256
+  "sha256": "6409ed4926f192bc1a1ae715259044b64001507eb5b3ab8b9462ee2b6edf5797",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_shaman.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_shaman_metal.png",
   "key": "skyborne_shaman",
   "kind": "crest_metal",
-  "sha256": "cb5df20086095456e1c6ab9b5fe08b12b33751440387f7af734fbef6fb2981a3",
-  "size": 256
+  "sha256": "ea2da6d3d92dc03a9e6e33f3bfe74945b287815f92ecee93525c1be6c40f3f13",
+  "size": 512
  },
  {
   "anchor": false,
@@ -9973,8 +9973,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "39ee453e55971b6822f8702175fde97957c7b0a85bc1a321334aa80d731e4803",
-  "size": 256,
+  "sha256": "c33819868589bddc172a9265673234a6b1c4a5c072a8b1f0303b48fa0dd6e964",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195514_69309e38-1b05-45e4-b62d-5852d133683b.png"
  },
  {
@@ -9982,16 +9982,16 @@
   "file": "Media/Textures/Medallions/Crests/skyborne_warrior_glow.png",
   "key": "skyborne_warrior",
   "kind": "crest_glow",
-  "sha256": "ff99f4835e6b02b6a629d292cf4b8270c5ff57f9cd2f7fd40934bf3924814b36",
-  "size": 256
+  "sha256": "b99ba8648c906700e5ca92f6e9e621476effa4319f38e7025d5076fd5eb3958e",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/skyborne_warrior.png",
   "file": "Media/Textures/Medallions/Crests/skyborne_warrior_metal.png",
   "key": "skyborne_warrior",
   "kind": "crest_metal",
-  "sha256": "2625b423c43de3dcc4681c8b5bbccfdccf27f85fc0461f5edd35355652610ee0",
-  "size": 256
+  "sha256": "77975d560cfe7f0e794120882b912de538ce9f56707753c5bfcc274c898792ee",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10031,8 +10031,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "006bfad05631bdc70a8babfa53403f4f5b233fe4b241842cafabba97ec25c839",
-  "size": 256,
+  "sha256": "8038de091e49bd47f91a9e08644dd47e663888ad9514e4ba0154fc90f4cfab22",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194441_93e0fac3-567d-462b-877a-1300d960d56d.png"
  },
  {
@@ -10040,16 +10040,16 @@
   "file": "Media/Textures/Medallions/Crests/tauren_druid_glow.png",
   "key": "tauren_druid",
   "kind": "crest_glow",
-  "sha256": "d68bae0d3a26b0973e654b55d7298b95a60caf8186196bda4ae58dfb33015e9f",
-  "size": 256
+  "sha256": "a5ac35fd880e2bc0ff392cb384ac0443d79134653a6cce18786fb3393f457462",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/tauren_druid.png",
   "file": "Media/Textures/Medallions/Crests/tauren_druid_metal.png",
   "key": "tauren_druid",
   "kind": "crest_metal",
-  "sha256": "a44b8d6bb6ff1eb671939b45bce9b6e6ee9b03ece7edc2604277fb3f577b8c43",
-  "size": 256
+  "sha256": "551b06e7a583f4e255961ab5b53159252c57b4dec05ea5b2b3486cb3a4ab5150",
+  "size": 512
  },
  {
   "anchor": true,
@@ -10077,8 +10077,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "66aec0bf9648e5b0a924eccbbef7aea19958d953b6a701a95992c2995bb78ca5",
-  "size": 256,
+  "sha256": "1fb19602b4d2d2d71485ee497de0ce4252c50f033b548cf8173c33db12713723",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183529_452a238d-661f-4bac-896f-3dbc4d97a915.png"
  },
  {
@@ -10086,16 +10086,16 @@
   "file": "Media/Textures/Medallions/Crests/tauren_hunter_glow.png",
   "key": "tauren_hunter",
   "kind": "crest_glow",
-  "sha256": "dbaf89f7a49b498494c270fa0113e57c4d8201c0da498390205eae1566f5b360",
-  "size": 256
+  "sha256": "fca0531ae2ba13c2ce1d7de15d70159edda5674340885da3aa07156c2e970ca1",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/tauren_hunter.png",
   "file": "Media/Textures/Medallions/Crests/tauren_hunter_metal.png",
   "key": "tauren_hunter",
   "kind": "crest_metal",
-  "sha256": "0b1e6238e090204e5accaa1930f747fc945a0e10284a3e72ddd978549fc8d6de",
-  "size": 256
+  "sha256": "017e9937dca2809f3df08c8c0e544af11abb5f913518581565753530d6422233",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10135,8 +10135,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "43de824d66b01f2bcef5bb066c30a3f9c3c71d32096b14a33cfdef9ff0c71797",
-  "size": 256,
+  "sha256": "aacd374d9c5ae414c243ddf71dbf237411c0c6e4a1f815ad8417f1aa3c94adb8",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194557_39a7c720-fb4e-4cf6-bf40-d04d7126cfa0.png"
  },
  {
@@ -10144,16 +10144,16 @@
   "file": "Media/Textures/Medallions/Crests/tauren_shaman_glow.png",
   "key": "tauren_shaman",
   "kind": "crest_glow",
-  "sha256": "a7d266419be90e4ab475ca9de1b65deca3a341120ed63111b1bc45ea250eeb87",
-  "size": 256
+  "sha256": "79dfdd13b2a4c8186897b7e3c0c935b8286b31ca3161b86242037573497eaf92",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/tauren_shaman.png",
   "file": "Media/Textures/Medallions/Crests/tauren_shaman_metal.png",
   "key": "tauren_shaman",
   "kind": "crest_metal",
-  "sha256": "e3e4dab6d7158c56e82d3cfa6649bf7caed95b3e5eef80c224a0b69bda70e369",
-  "size": 256
+  "sha256": "3d0b1339ba51b936c669f77f2db29d644716e76000ae665a86d9b3df264e23df",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10193,8 +10193,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "d2ddcaf62ca89a804478c8f73d2e3ad2d6f0fa3a14992a862c37df9bf37b88e1",
-  "size": 256,
+  "sha256": "17d4f9f3e9c3b7274c75b9d72f1281c3513ce09b315215f7ebc8b5aab57488c4",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194716_ee4b821b-e454-43e8-a87e-79e43cb0e661.png"
  },
  {
@@ -10202,16 +10202,16 @@
   "file": "Media/Textures/Medallions/Crests/tauren_warrior_glow.png",
   "key": "tauren_warrior",
   "kind": "crest_glow",
-  "sha256": "daf96d5741d067909e6cbb396d641f6670e1fa5d694ffe806f014c3cd661ca2e",
-  "size": 256
+  "sha256": "e903a14c791bc8f9adb6d9414997ac0e8a3dd66589cb2dcef1dde9b83d9061a1",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/tauren_warrior.png",
   "file": "Media/Textures/Medallions/Crests/tauren_warrior_metal.png",
   "key": "tauren_warrior",
   "kind": "crest_metal",
-  "sha256": "77da5af5b958ff596b22b1429670b993e2dd91e5bf3912fa6ef6fa8189a0492d",
-  "size": 256
+  "sha256": "334c4e706cbcaa276ffdb38b418ef7c3dac5935e0540b59bd1c85c5b76b299b6",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10251,8 +10251,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "c2f074262011380b2c48932540372b71a8c3972dc45c3202a8aa5ecf1d6a153f",
-  "size": 256,
+  "sha256": "e6e9859a122829e53cb7155fd9d08ddca0e6eae391c40c993ac0904192e2f9cb",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194744_8dff2e50-4faa-4f7d-89a9-2b3eed2fca08.png"
  },
  {
@@ -10260,16 +10260,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_hunter_glow.png",
   "key": "troll_hunter",
   "kind": "crest_glow",
-  "sha256": "f0dce2d880e946130a86be7b529d0b2d2ae37225b1f1339cbce5e7c7a899dbbe",
-  "size": 256
+  "sha256": "38ca6a666f2199aca9d6e32dfd45db05adb5850cb0346e937221fd9565a4d567",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_hunter.png",
   "file": "Media/Textures/Medallions/Crests/troll_hunter_metal.png",
   "key": "troll_hunter",
   "kind": "crest_metal",
-  "sha256": "619d5f302f04a0a1913f7d528713c3a2a3531de4f00e9ff8c5df3a6fa0a2b19b",
-  "size": 256
+  "sha256": "fc698c58a9d6ff1d6edfcd75f60e58ab6a16bca983e3f2ba9697f88a4d997adb",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10309,8 +10309,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "e8fe32f0e84c5ebee29ab1260c62052eb9b5bddb703efe3030038d1d4cce5020",
-  "size": 256,
+  "sha256": "f6d734b5420c098b7cf85043e9a0de3a3fb2da737fb8c597570bc164282c3b9d",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_194835_f527d317-159a-430d-a8d9-3b73426c0e7b.png"
  },
  {
@@ -10318,16 +10318,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_mage_glow.png",
   "key": "troll_mage",
   "kind": "crest_glow",
-  "sha256": "6f326288eb2a2b7851a594b0d1568defe99cf13dac6d82ec5c6fa571cbb8e0a8",
-  "size": 256
+  "sha256": "e152f98cf55e2b8aaba328ad02efa88bce4126bf7bfbf220cc46c40ac7ed6e37",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_mage.png",
   "file": "Media/Textures/Medallions/Crests/troll_mage_metal.png",
   "key": "troll_mage",
   "kind": "crest_metal",
-  "sha256": "f22f1b984ef5dcf758896bcc9ef60c4bdfabe7254d97ace0e8c4532ad04ab979",
-  "size": 256
+  "sha256": "18e71cb208020eb1862b1bb6e907b01684cf84a73857b9eabaa7a866cb905f6a",
+  "size": 512
  },
  {
   "anchor": true,
@@ -10355,8 +10355,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "ba45f6b1a5b6d0ae0bcb4b486c0605471c79abe46ea093493b6f2f1d03c0e342",
-  "size": 256,
+  "sha256": "27ccbd06e58cb0143db1bac1cd7fb6c31febbbf8c47c9ac7af34b3f58806dd31",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_183527_7048fb43-43da-4f44-adad-e34128937ae2.png"
  },
  {
@@ -10364,16 +10364,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_priest_glow.png",
   "key": "troll_priest",
   "kind": "crest_glow",
-  "sha256": "5f39b463c2d2e9cc8cbf5194ef5d137fd3fe2cf465e69d985a7219bed1710a75",
-  "size": 256
+  "sha256": "f94616b4a78b4b4ae34b4c51c723484bef05b6c731e2b35c0847862f25a6a332",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_priest.png",
   "file": "Media/Textures/Medallions/Crests/troll_priest_metal.png",
   "key": "troll_priest",
   "kind": "crest_metal",
-  "sha256": "17853beeca0984f905d4c42eb07c9b746f8ed5300eb501ab95b7153e10267c35",
-  "size": 256
+  "sha256": "6ce40ac2b7de8e023d3179e2c1cdaf824adb3b727be1d1739300dad31f4b567c",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10413,8 +10413,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "083d695639da586ba8b609e1c12e323255d953b50d572337ea8f067958867b41",
-  "size": 256,
+  "sha256": "0466460e05524c8a3891f46197bb39ae2772b7bfbe0244d687ebee2c7f4612a1",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192435_46590e56-ddbf-4fe0-b830-cf4f8e274359.png"
  },
  {
@@ -10422,16 +10422,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_rogue_glow.png",
   "key": "troll_rogue",
   "kind": "crest_glow",
-  "sha256": "628c81234843391380834171fc95d924b0712d8a7c8391897f839b7b757b8ab2",
-  "size": 256
+  "sha256": "21ba69a0430b65f0d1d367439779a4abc7d792ba562929520544ed56ccba38a4",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_rogue.png",
   "file": "Media/Textures/Medallions/Crests/troll_rogue_metal.png",
   "key": "troll_rogue",
   "kind": "crest_metal",
-  "sha256": "b413450b98e968753dd1c24b768ccf0bcdc2c126b6bcd5095bf86c908f600d96",
-  "size": 256
+  "sha256": "fd6ee821faa7f011402ce289e69ab7646bbeb091c643ce322399c3cda4609965",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10471,8 +10471,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "a86f17ad881b58ca4e761ce6cc0233c8d37a2a5b462b4574fdb305f3e247bf91",
-  "size": 256,
+  "sha256": "1704f5c49cda7611466b2698682844eaae15cd85d80b947745ee8cbe649a5f9b",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_192609_94045caa-5e28-4bcd-b0f5-d79e746bb539.png"
  },
  {
@@ -10480,16 +10480,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_shaman_glow.png",
   "key": "troll_shaman",
   "kind": "crest_glow",
-  "sha256": "b409969a343f8ae3d45ee3d109349a7a8d2d3a8e323d3a4377fbe2d7036001c2",
-  "size": 256
+  "sha256": "077e98ffdfdde2aebe652d0cb9594592e25e68c315ad8325434bd61b43014fca",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_shaman.png",
   "file": "Media/Textures/Medallions/Crests/troll_shaman_metal.png",
   "key": "troll_shaman",
   "kind": "crest_metal",
-  "sha256": "6abb874818cdc16de20d98bf97798497628d7666d109d902505a0b2521eacc3c",
-  "size": 256
+  "sha256": "c791bdf1be310d37fbe3ce04c02b67e800973c58defa8a49549961aa915a04a5",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10531,8 +10531,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "eded40e0620cbb0f2f814a12a7465e03576e429625b8ee1498c849eafdc2e663",
-  "size": 256,
+  "sha256": "c84bfbf63527bfcf05626ec541c47fd3627c2f2a3925dcd375cd022f27faa3eb",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195042_8dc8276e-fda1-45a1-96ad-7b31a5eabc99.png"
  },
  {
@@ -10540,16 +10540,16 @@
   "file": "Media/Textures/Medallions/Crests/troll_warlock_glow.png",
   "key": "troll_warlock",
   "kind": "crest_glow",
-  "sha256": "53d59590ee62abbd1aa1ed977eca03bc66b3d33b3cdb26eba9bee47d94000631",
-  "size": 256
+  "sha256": "97ba1aecbabea8dd7cfdf8d094b94735121001f3d1fb7332ad410a29550b084d",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_warlock.png",
   "file": "Media/Textures/Medallions/Crests/troll_warlock_metal.png",
   "key": "troll_warlock",
   "kind": "crest_metal",
-  "sha256": "2f0fd5968de7f1072dcdcbb94855f65cd881ca84a02198027248b03ed3691728",
-  "size": 256
+  "sha256": "bcc1bbf80effc937bea15e9f5adfd8e00a582e3b4ccd2610b25697b8aa490171",
+  "size": 512
  },
  {
   "anchor": false,
@@ -10589,8 +10589,8 @@
    "quality": "xhigh",
    "resolution": "1k"
   },
-  "sha256": "d24676be934ef2da1642f08813f1a3889916023b5c3a9f766493bb480c6059ae",
-  "size": 256,
+  "sha256": "6d3f2cd0fd3d9f657bc874b0d6c9252faa0e463e5125ff999b4f72bd9764e551",
+  "size": 512,
   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3JpAAQCiqO8qg3QRWViCBDmOWXp/hf_20261115_195136_7da8bbfe-818f-4d7f-8ba7-e2943e3dd491.png"
  },
  {
@@ -10598,15 +10598,15 @@
   "file": "Media/Textures/Medallions/Crests/troll_warrior_glow.png",
   "key": "troll_warrior",
   "kind": "crest_glow",
-  "sha256": "cc581bc4b58bea8cdef662a93649264e0e30bbb7e95620c1f8decdc8b48743de",
-  "size": 256
+  "sha256": "c3c5c9e92f5f90fadded3f12d785cc3d23266dd57b876335d8add704ebbbdac4",
+  "size": 512
  },
  {
   "derivedFrom": "Media/Textures/Medallions/Crests/troll_warrior.png",
   "file": "Media/Textures/Medallions/Crests/troll_warrior_metal.png",
   "key": "troll_warrior",
   "kind": "crest_metal",
-  "sha256": "39a087f3fec3c03415f89a33a16fd7014a6e051d79b0097d3420c95a77e4fcc9",
-  "size": 256
+  "sha256": "470212f7969b9f56d03d50076ffa51a5a8a985529c968912bd6deb198fc99360",
+  "size": 512
  }
 ]

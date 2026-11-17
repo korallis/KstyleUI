@@ -27,7 +27,7 @@ the balance before and after. accept and reject record a decision made by eye on
 next generate reroll. adopt records an image another thread generated, with its job and prompt, as a new attempt.
 
 bake writes every accepted asset at its shipped size into Media/Textures/Medallions (busts 128 px, badges 64 px,
-crests and their glow and metal masks 256 px), then writes Tools/medallions/manifest.json, the Medallions section of
+crests and their glow and metal masks 512 px), then writes Tools/medallions/manifest.json, the Medallions section of
 Media/PROVENANCE.md and Core/MedallionAssets.lua from it. verify checks all of that; Tools/tests/test_medallions.py
 runs it, and --complete also requires every combination.
 """
@@ -68,7 +68,7 @@ SETTINGS = {
     "crest": {"aspect_ratio": "1:1", "resolution": "1k", "quality": "xhigh", "background": "transparent"},
 }
 COST = {"bust": 1.5, "badge": 1.5, "crest": 2.5}  # credits, from Higgsfield's cost preflight for these settings
-SIZES = {"bust": 128, "badge": 64, "crest": 256}
+SIZES = {"bust": 128, "badge": 64, "crest": 512}
 FOLDERS = {"bust": "Busts", "badge": "Badges", "crest": "Crests"}
 MASKS = ("glow", "metal")
 MAX_IMAGES = 3

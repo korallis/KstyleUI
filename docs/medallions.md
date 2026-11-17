@@ -22,7 +22,7 @@ Keys are the game's own tokens, lowercased: the race file UnitRace returns, the 
 | --- | --- | --- |
 | Bust | `Media/Textures/Medallions/Busts/<key>.png` | 128x128, pre-circled |
 | Badge | `Media/Textures/Medallions/Badges/<key>.png` | 64x64, pre-circled |
-| Crest | `Media/Textures/Medallions/Crests/<key>.png`, `<key>_glow.png`, `<key>_metal.png` | 256x256 |
+| Crest | `Media/Textures/Medallions/Crests/<key>.png`, `<key>_glow.png`, `<key>_metal.png` | 512x512 |
 
 `bake` writes `Core/MedallionAssets.lua`, which sets `KstyleUI.MedallionAssets`:
 
@@ -60,7 +60,7 @@ A race master's emblem colour is checked by eye on the contact sheet, since only
 
 Portraits are reduced in linear light with premultiplied alpha and Lanczos, given a light unsharp, cut to a disc drawn at 8x and box-filtered, and given a 1 px dark rim on the disc's edge. Crests have alpha below 14 cut to nothing, are trimmed and refitted so the longest side is 900/1024 of the canvas, reduced the same way, and given a 1 px dark outline just outside the silhouette. Every edge is drawn at the shipped size rather than kept from the generated art (KSTY-87's lesson).
 
-The hub draws that crest canvas at 150 units, the same size as its ring, over a 134-unit socket. The baked silhouette's longest side is about 132 units, overlapping the ring's 118-unit opening beneath its bevel. The crest keeps full colour and alpha at rest and in combat. At the game's automatic size on 5120x1440 the canvas is about 188 physical pixels, below the shipped 256 px resolution; no re-bake or enlargement of the PNG is needed. `test-actionbars-medallions-hub.lua` pins the canvas-to-ring ratio, socket size and brightness through combat transitions on every CREW screen.
+The hub draws the 512 px crest canvas at 150 units, the same size as its ring, over a 118-unit socket. A circular OrbMask, fixed to the hub at the 118-unit opening, clips the crest and bloom before they reach the ring. The sheen and combat-entry flash use that opening too, each clipped independently of animation. The crest keeps full colour and alpha through rest and combat repaints. At automatic game fit the pulsed canvas peaks at about 295 physical pixels on 3840x2160; 512 px bakes retain resolution on all four acceptance screens. Larger scales cap the crest (including its pulse) and bloom below 512 physical pixels, leaving one pixel for snapping. The missing-art logo uses its own 256 px cap. The crests and their glow and metal masks are re-baked from the SHA-verified original art with `Tools/medallions/medallions.py bake --kind crest`. `test-actionbars-medallions-opening.lua` checks both axes, centring, masks, effects and brightness; `test_medallions_hub_clip.py` reads all 52 crest and glow PNGs and proves their masked alpha stays inside the opening, including the crest pulse.
 
 ## Where the shipped prompts came from
 

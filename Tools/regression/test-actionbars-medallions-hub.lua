@@ -78,6 +78,8 @@ for _, screen in ipairs(SCREENS) do
 	local width, height = screen[1], screen[2]
 	local what = width .. "x" .. height
 	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK" })
+	env.UnitRace = function() return "Undead", "Scourge" end
+	env.UnitSex = function() return 2 end
 	env.UnitLevel = function()
 		return 38
 	end
@@ -142,7 +144,7 @@ for _, screen in ipairs(SCREENS) do
 	assert(Below(hub.crest, hub.ring) and Below(hub.socket, hub.crest), what .. ": the crest sits in its socket under the gunmetal ring")
 	assert(math.abs(hub:GetWidth() - 150) < 1, what .. ": keep the 150-unit hub ring")
 	assert(math.abs(hub.crest:GetWidth() / hub:GetWidth() - 1) < 0.01, what .. ": size the crest canvas to the ring so its baked 900/1024 silhouette fills the opening")
-	assert(math.abs(hub.socket:GetWidth() / hub:GetWidth() - 134 / 150) < 0.01, what .. ": extend the socket under the ring around the enlarged crest")
+	assert(math.abs(hub.socket:GetWidth() / hub:GetWidth() - 118 / 150) < 0.01, what .. ": keep the socket inside the ring's opening")
 	for _, combat in ipairs({ false, true, false }) do
 		Slab.SetCombat(combat)
 		local cr, cg, cb, ca = hub.crest:GetVertexColor()
