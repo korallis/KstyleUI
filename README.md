@@ -6,9 +6,9 @@
 
 <p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-medallions-frames-and-orbs">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
 
-<p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: round painted portraits on the player and target slabs, and one long dark action slab with a dwarf shaman's crest in a rune ring at its centre, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
+<p align="center"><img src="docs/media/readme/game_medallions_hero.jpg" width="100%" alt="In-game screenshot of KstyleUI's Medallions HUD on a 5120 by 1440 screen: Korallis casting Shadow Bolt at a Decrepit Darkhound, with a warlock crest between the action bars and the map and quest cards at the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen, in the Spread arrangement that uses the screen edge to edge. Every picture on this page is a test render drawn from KstyleUI's own code, not a game screenshot.</sub></p>
+<p align="center"><sub>In-game Medallions HUD on a 5120 by 1440 screen, playing Korallis in Tirisfal Glades. Chat and distant player names are blurred. The Medallions pictures and clips below are also in-game captures; the other sections use labelled test renders.</sub></p>
 
 ## Three HUD styles: Medallions, Frames and Orbs
 
@@ -20,16 +20,28 @@ Your first two action bars sit in recessed, rounded sockets on one dark slab: tw
 
 <table>
 <tr>
-<td width="50%"><img src="docs/media/readme/hud_medallions_1080.jpg" alt="Test render of the KstyleUI addon's Medallions HUD on a 1920 by 1080 screen in combat"></td>
-<td width="50%"><img src="docs/media/readme/crop_medallions.jpg" alt="Test render of the KstyleUI addon's Medallions HUD up close: the player and target medallions on their slabs, the cast bars under them, and the crest hub seated in the action slab between twelve action buttons on each side"></td>
+<td width="50%"><img src="docs/media/readme/game_medallions_16x9.jpg" alt="In-game Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot"></td>
+<td width="50%"><img src="docs/media/readme/game_medallions_closeup.jpg" alt="In-game close-up of Korallis's painted medallion, the darkhound target portrait, Shadow Bolt cast bar and warlock crest hub between the action bars"></td>
 </tr>
 </table>
 
-<p align="center"><sub>Test renders of the addon on a 1920 by 1080 screen, in combat: the whole Medallions HUD on the left, the crest and the slabs up close on the right.</sub></p>
+<p align="center"><sub>In-game crops of the same ultrawide capture: a 16:9 view on the left, the medallions, cast bar and crest hub up close on the right.</sub></p>
 
 The rest of the screen follows. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, chat, the damage meter, windows, tooltips and menus wear the same chrome, party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Medallions also answers what happens in a fight. A slot flashes when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low, and a burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
 
 **Medallions motion** in Options, General, Medallions sets how much moves. Full, the default, adds the game's own 3D spell effects for the big moments. Calm keeps the slow motion and short flashes. Off stops the motion, though the low-health edge still shows and the frames still dim after combat. **Options, General, Appearance, Motion** still wins: Reduced caps Medallions motion at Calm, and Off turns it off.
+
+<p align="center"><img src="docs/media/readme/game_medallions_target.gif" width="960" alt="In-game animation of a target medallion appearing and its red low-health ring pulsing beside the crest"></p>
+
+<p align="center"><sub>In-game: selecting a Tirisfal Farmer brings in the target medallion; its red ring pulses at low health.</sub></p>
+
+<p align="center"><img src="docs/media/readme/game_medallions_cast.gif" width="1120" alt="In-game animation of Corruption, Immolate and Shadow Bolt cast bars filling above the breathing warlock crest, with action-button cooldown sweeps"></p>
+
+<p align="center"><sub>In-game: Corruption, Immolate and Shadow Bolt fill the cast bar above the breathing crest while the action sockets sweep through their cooldowns.</sub></p>
+
+<p align="center"><img src="docs/media/readme/game_medallions_interrupt.gif" width="100%" alt="In-game animation of an interrupted cast flashing before Drain Soul channels above the Medallions crest"></p>
+
+<p align="center"><sub>In-game: an interrupted cast flashes, then Drain Soul counts down above the crest as the target frame clears.</sub></p>
 
 ### Frames
 

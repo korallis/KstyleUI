@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""readme.py: retake every picture the README shows from the render scenes, in one command.
+"""readme.py: retake the README's test renders, preserving its in-game media.
 
     python3 Tools/render/readme.py [--work DIR] [--no-render] [--only NAME ...]
 
 Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
 ~/.capy/work/readme-renders), cuts them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
-Every render draws at the shipped ornament level, Full. None of the pictures is a game screenshot; each README caption says it is a test render of the addon.
+Every render draws at the shipped ornament level, Full. In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
 
-  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames, Orbs and Medallions, in combat, on a 5120x1440 screen
+  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames and Orbs, in combat, on a 5120x1440 screen
                                        in the Spread arrangement at Interface size Auto and on a 1920x1080 screen at the
                                        15/16 size the game picks there
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
   crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
-                                       Medallions crest hub and frames, the unit frames, the right rail, the group meter,
+                                       unit frames, the right rail, the group meter,
                                        and the nameplate scene
   frame_*                              frames cut from the gallery scenes (gallery.py)
 
@@ -35,7 +35,7 @@ DEFAULT_WORK = os.path.expanduser("~/.capy/work/readme-renders")
 
 GALLERY_MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
 GALLERY_PPU = 2.0
-STYLES = ("Frames", "Orbs", "Medallions")
+STYLES = ("Frames", "Orbs")
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
@@ -49,15 +49,10 @@ def style_env(style):
     env = dict(COMBAT, RENDER_HUD_STYLE=style)
     if style == "Orbs":
         env["RENDER_ORBS_HIT"] = "1"
-    if style == "Medallions":
-        env["RENDER_MEDALLIONS_STATE"] = "combat"
     return env
 
 
 
-# name -> (scene, px per unit, environment, guard). Every HUD render is hud_reference in combat over the scenery plate,
-# under the strict guard; the 1080 renders at ppu 2 are the same screen at twice the density, for the close crops.
-# Medallions renders entering combat, its wings out.
 RENDERS = {}
 for _style in STYLES:
     _key = _style.lower()
@@ -79,10 +74,7 @@ IMAGES = [
     ("hud_orbs_5120", "render:orbs_5120", None, 1600),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("hud_orbs_1080", "render:orbs_1080", None, 1200),
-    ("hud_medallions_5120", "render:medallions_5120", None, 1600),
-    ("hud_medallions_1080", "render:medallions_1080", None, 1200),
     ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
-    ("crop_medallions", "render:medallions_1080_2x", "2120x700+860+1460", 1000),
     ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
     ("crop_meter", "render:meter_party", "540x300+3290+1820", 540),
@@ -211,7 +203,7 @@ def main(argv=None):
     cut_all(args.work, wanted)
     finish(args.work, wanted)
     for path in os.listdir(OUT):
-        if os.path.splitext(path)[0] not in picture_names() or not path.endswith(".jpg"):
+        if not path.startswith("game_") and (os.path.splitext(path)[0] not in picture_names() or not path.endswith(".jpg")):
             os.remove(os.path.join(OUT, path))
     total = total_bytes()
     print("total %.2f MB of %.0f MB" % (total / 1048576, BUDGET_BYTES / 1048576))

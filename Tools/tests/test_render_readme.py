@@ -1,11 +1,9 @@
-"""Tests for Tools/render/readme.py and the README's pictures: the crop and size helpers, that README.md shows exactly the
-pictures the script writes, that each one is captioned as a test render, that they fit the size budget and that the
-packaged addon does not ship them."""
-
 import importlib.util
 import re
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
@@ -33,7 +31,7 @@ def readme_pictures():
     text = README.read_text(encoding="utf-8")
     tables = [(m.start(), m.end()) for m in re.finditer(r"<table>.*?</table>", text, re.S)]
     found = []
-    for match in re.finditer(r'<img src="[^"]*/readme/([a-z0-9_]+)\.jpg"[^>]*>', text):
+    for match in re.finditer(r'<img src="[^"]*/readme/([a-z0-9_]+)\.(?:jpg|gif)"[^>]*>', text):
         table = next((t for t in tables if t[0] < match.start() < t[1]), None)
         if table:
             after = text[table[1]:]
@@ -46,6 +44,20 @@ def readme_pictures():
 
 
 class Helpers(unittest.TestCase):
+    def test_rerender_preserves_in_game_media(self):
+        with TemporaryDirectory() as work:
+            media = Path(work)
+            for name in ("game_medallions_hero.jpg", "game_medallions_cast.gif"):
+                (media / name).write_bytes(b"in-game")
+            with patch.multiple(R, OUT=work, GALLERY_MOCKUP=__file__), \
+                    patch.object(R, "pillow", return_value=True), \
+                    patch.object(R, "cut_all"), patch.object(R, "finish"), \
+                    patch.object(R, "total_bytes", return_value=0):
+                self.assertEqual(R.main(["--no-render"]), 0)
+            self.assertEqual(sorted(p.name for p in media.iterdir()),
+                             ["game_medallions_cast.gif", "game_medallions_hero.jpg"],
+                             "readme.py must preserve game_ media when rerendering")
+
     def test_parse_crop_reads_width_height_and_offset(self):
         self.assertEqual(R.parse_crop("620x1160+2800+20"), (2800, 20, 3420, 1180))
 
@@ -76,30 +88,54 @@ class Helpers(unittest.TestCase):
 
 
 class ReadmePictures(unittest.TestCase):
-    def test_readme_shows_exactly_the_pictures_the_script_writes(self):
+    def test_readme_shows_the_renders_and_in_game_media(self):
         shown = [name for name, _ in readme_pictures()]
-        self.assertEqual(sorted(shown), sorted(R.picture_names()))
+        self.assertEqual(sorted(name for name in shown if not name.startswith("game_")), sorted(R.picture_names()))
+        self.assertTrue(any(name.startswith("game_") for name in shown))
         self.assertEqual(len(shown), len(set(shown)), "a picture is shown twice")
 
     def test_every_picture_file_exists_and_nothing_else_is_in_the_folder(self):
         on_disk = {p.stem for p in MEDIA.glob("*") if p.is_file()}
-        self.assertEqual(on_disk, set(R.picture_names()))
-        self.assertTrue(all(p.suffix == ".jpg" for p in MEDIA.glob("*")))
+        self.assertEqual(on_disk, {name for name, _ in readme_pictures()})
+        self.assertTrue(all(p.suffix in (".jpg", ".gif") for p in MEDIA.glob("*")))
 
-    def test_every_picture_is_captioned_as_a_test_render(self):
-        text = README.read_text(encoding="utf-8")
-        self.assertIn("test render", text.lower())
+    def test_captions_distinguish_in_game_media_from_test_renders(self):
         for name, caption in readme_pictures():
-            self.assertRegex(caption, r"(?i)test render", name + " is not captioned as a test render")
+            label = r"(?i)in-game" if name.startswith("game_") else r"(?i)test render"
+            self.assertRegex(caption, label, name + " needs its source in the caption")
 
-    def test_readme_never_claims_a_picture_is_the_game(self):
-        text = README.read_text(encoding="utf-8").lower()
-        for phrase in ("screenshot of the game", "in-game screenshot", "seen in game", "proved in game"):
-            self.assertNotIn(phrase, text)
+    def test_medallions_has_no_generated_sources(self):
+        self.assertFalse(any("medallions" in name for name in R.picture_names()))
+        self.assertFalse(any("medallions" in name for name in R.RENDERS))
 
     def test_pictures_fit_the_size_budget(self):
-        total = sum(p.stat().st_size for p in MEDIA.glob("*.jpg"))
-        self.assertLessEqual(total, R.BUDGET_BYTES)
+        self.assertLessEqual(R.total_bytes(), R.BUDGET_BYTES)
+        for path in MEDIA.glob("game_*"):
+            limit = 8 * 1024 * 1024 if path.suffix == ".gif" else 1500000 if path.stem.endswith("_hero") else 600000
+            self.assertLessEqual(path.stat().st_size, limit, str(path))
+
+    def test_in_game_still_aspects_and_animation_limits(self):
+        if Image is None:
+            self.skipTest("Pillow is not installed")
+        for name, aspect in (("hero", 32 / 9), ("16x9", 16 / 9)):
+            with Image.open(MEDIA / ("game_medallions_" + name + ".jpg")) as image:
+                self.assertAlmostEqual(image.width / image.height, aspect, delta=0.002)
+        clips = list(MEDIA.glob("game_*.gif"))
+        self.assertGreaterEqual(len(clips), 3)
+        self.assertLessEqual(len(clips), 5)
+        for path in clips:
+            with Image.open(path) as image:
+                self.assertGreaterEqual(image.width, 960, str(path))
+                self.assertLessEqual(image.width, 1280, str(path))
+                duration = 0
+                for frame in range(image.n_frames):
+                    image.seek(frame)
+                    delay = image.info["duration"]
+                    self.assertGreaterEqual(delay, 50, str(path))
+                    self.assertLessEqual(delay, 70, str(path))
+                    duration += delay / 1000
+                self.assertGreaterEqual(duration, 3, str(path))
+                self.assertLessEqual(duration, 6, str(path))
 
     def test_whole_screen_pictures_keep_their_screen_aspect(self):
         if Image is None:
