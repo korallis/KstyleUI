@@ -27,18 +27,17 @@ R = load()
 
 
 def readme_pictures():
-    """The picture names README.md shows, in order, with the caption each one is read under."""
+    """The picture names README.md shows, in order, with the caption each one is read under.
+
+    README.md is generated from docs/store/description.md, where each picture
+    is a markdown image followed by an italic caption line.
+    """
     text = README.read_text(encoding="utf-8")
-    tables = [(m.start(), m.end()) for m in re.finditer(r"<table>.*?</table>", text, re.S)]
     found = []
-    for match in re.finditer(r'<img src="[^"]*/readme/([a-z0-9_]+)\.(?:jpg|gif)"[^>]*>', text):
-        table = next((t for t in tables if t[0] < match.start() < t[1]), None)
-        if table:
-            after = text[table[1]:]
-            caption = re.match(r"\s*<p[^>]*><sub>(.*?)</sub>", after, re.S)
-        else:
-            after = text[match.end():]
-            caption = re.search(r"<sub>(.*?)</sub>", after[: after.find("<img") if "<img" in after else len(after)], re.S)
+    for match in re.finditer(r"!\[[^\]]*\]\([^)]*/readme/([a-z0-9_]+)\.(?:jpg|gif)\)", text):
+        after = text[match.end():]
+        window = after[: after.find("![") if "![" in after else len(after)]
+        caption = re.search(r"\*([^*]+)\*", window)
         found.append((match.group(1), caption.group(1) if caption else ""))
     return found
 

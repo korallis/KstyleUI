@@ -28,6 +28,10 @@ PIPELINE = (
 )
 
 READ_BY_TESTS = (
+    "docs/media/marketing/*",
+    "docs/store/description.md",
+    "docs/store/curseforge.md",
+    "docs/store/wago.md",
     "docs/superpowers/plans/element-keys.md",
     "docs/design/mockups/*",
     "docs/icons.md",
