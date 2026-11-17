@@ -56,6 +56,9 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 		for _, creature in ipairs({ "Beast", "Mechanical", "Non-combat Pet" }) do
 			target("Riverglade Crocolisk", creature)
 			clearRow("Text size " .. scale .. "/" .. creature)
+			if creature == "Beast" then
+				check(view.name:GetFont() == path, tag .. ": Text size " .. scale .. " must shrink a fitting long name in caps before fallback")
+			end
 			check(pixels(view.name) <= fullPixels + 0.01, tag .. ": fitting must never enlarge a scaled caps name")
 			check(pixels(view.name) >= floorPixels - 1e-6, tag .. ": Text size " .. scale .. " keeps the reading floor")
 		end
