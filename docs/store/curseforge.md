@@ -20,13 +20,20 @@ A complete, pixel-perfect interface for World of Warcraft: Forever — one dark 
 
 The [moderation policies](https://support.curseforge.com/en/support/solutions/articles/9000197279-project-and-modpack-moderation-policies) call the summary a one-sentence tldr of what the project does.
 
+## Moderation policy
+
+The page follows CurseForge's [moderation policies](https://support.curseforge.com/support/solutions/articles/9000197279-moderation-policies), checked on 2026-11-17:
+
+- The summary is a one-sentence tl;dr and is not repeated as the description's first line.
+- The description has no external download links: the optional icon pack, which is not an addon, is offered only on GitHub and is not linked here. Links to the source code and the issue tracker sit at the bottom of the page.
+- A Credits section credits the bundled SIL Open Font License fonts and says the art is original to KstyleUI, with the AI-made pieces named.
+- The name has no game name or version, the avatar is the 400x400 logo, the gallery has in-game pictures and labels the test renders, and every file carries the changelog.
+
 ## Description
 
 On the Description step, switch the editor to Markdown, then paste this.
 
 ```markdown
-A complete, pixel-perfect interface for World of Warcraft: Forever — one dark forged style, three HUDs, set up in one window.
-
 Pick your HUD. **Medallions** puts a painted portrait of your character and a crest for your race and class over a dark gunmetal action slab. **Frames** keeps classic cards, your target stacked over you. **Orbs** puts health and resource in two orbs round a forged tray. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.
 
 ## Three HUD styles
@@ -55,12 +62,16 @@ KstyleUI runs on the World of Warcraft: Forever client.
 2. Start the game. If the addons are not ticked on the character screen, tick them.
 3. Log in. The setup opens. Pick your HUD, layout and modules, then click **Apply** and **Reload**.
 
-The optional icon pack, which repaints ability and item icons, is a separate zip on the [GitHub release](https://github.com/korallis/KstyleUI/releases/latest). It is not an addon, so this page's file does not include it. Quit the game, copy its `Interface` folder into `World of Warcraft/_forever_/`, and start the game again.
-
 ## Links
 
-- Source and releases: https://github.com/korallis/KstyleUI
+- Source code: https://github.com/korallis/KstyleUI
 - Issues: https://github.com/korallis/KstyleUI/issues
+
+## Credits
+
+- Fonts, all under the SIL Open Font License 1.1, with their licence files in the addon's `Media/Fonts` folder: Cinzel, Alegreya Sans, Barlow Semi Condensed, Source Sans 3, Inter, PT Serif, EB Garamond and IM Fell (the last three in KstyleUI's Folio faces). Some are adapted for the game's renderer and renamed, as the licence allows.
+- All art is original to KstyleUI. The painted portraits, crests and some textures were made for this addon with AI image tools; the rest is drawn by KstyleUI's own code. No game art is extracted or traced.
+- By korallis. All rights reserved.
 ```
 
 ## Class, categories, game version
