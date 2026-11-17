@@ -140,11 +140,14 @@ function Slab.Caption(view)
 	end
 	local text, bar, rect = view.caption, g.health, g.caption
 	local size = Settings.FontSize(view.kind, "level")
-	rect.w = CaptionWidth(view) + 2 * Widgets.Border(view.parent)
+	local levelWidth = Widgets.TextWidth(view.slabLevel, math.ceil(ns.Geometry.SLAB_PAD.levelEm * size))
+	local levelRoom = g.name and math.ceil(levelWidth) + g.levelGap or 0
+	local gap = g.name and TEXT_GAP or 0
+	rect.w = math.min(CaptionWidth(view) + 2 * Widgets.Border(view.parent), math.max(0, bar.w - levelRoom - gap))
 	if g.name then
 		local room = math.max(0, bar.w - rect.w - TEXT_GAP)
 		g.name.x, g.name.w = bar.x + bar.w - room, room
-		g.nameRoom = math.max(0, room - math.ceil(ns.Geometry.SLAB_PAD.levelEm * size) - g.levelGap)
+		g.nameRoom = math.max(0, room - levelRoom)
 	end
 	Extra(view, text, rect, "LEFT")
 	NameLine(view, g)
@@ -288,6 +291,7 @@ function Slab.Level(view, unit)
 		level = UNKNOWN_LEVEL
 	end
 	view.medallion:SetLevel(level)
+	if not IsSecret(level) then level = tostring(level) end
 	view.slabLevel:SetText(level)
 end
 

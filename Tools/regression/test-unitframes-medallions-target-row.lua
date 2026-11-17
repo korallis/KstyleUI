@@ -84,10 +84,12 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 			return width
 		end
 	end
-	target("Hogger", "Non-combat Pet", true, true)
-	clearRow("secret short name/type")
-	local shortName = ink(view.name)
-	check(shortName and math.abs(shortName[3] - shortName[5]) <= 0.01, tag .. ": secret Hogger's drawn width must equal its full text width")
+	for _, name in ipairs({ "Hogger", "Blackfang" }) do
+		target(name, "Non-combat Pet", true, true)
+		clearRow("secret short name/type")
+		local shortName = ink(view.name)
+		check(shortName and math.abs(shortName[3] - shortName[5]) <= 0.01, tag .. ": secret " .. name .. "'s drawn width must equal its full text width")
+	end
 	target("Riverglade Crocolisk", "Non-combat Pet", false, true)
 	clearRow("secret type/plain long name")
 	env._creatureTypes[#env._creatureTypes + 1] = "Unusually Long Creature"
@@ -107,11 +109,15 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	env._units.target.creature = "Non-combat Pet"
 	env.FireEvent("UNIT_LEVEL", "target")
 	clearRow("caption event must refit an existing name")
-	K.Layout.Set("unitframes.target", "width", 120)
-	env.RunTimers()
-	target("Riverglade Crocolisk", "Mechanical")
-	clearRow("minimum slab width 120", true)
-	check(not view.name:IsShown() or view.name:IsTruncated(), tag .. ": no unbounded name at the minimum slab width")
+	for _, width in ipairs({ 120, 180 }) do
+		K.Layout.Set("unitframes.target", "width", width)
+		env.RunTimers()
+		for _, creature in ipairs({ "Mechanical", "Non-combat Pet" }) do
+			target("Riverglade Crocolisk", creature)
+			clearRow("narrow slab width " .. width .. "/" .. creature, true)
+			check(not view.name:IsShown() or view.name:IsTruncated(), tag .. ": no unbounded name at narrow slab widths")
+		end
+	end
 	K.Layout.Set("unitframes.target", "width", 300)
 	env.RunTimers()
 	local g, s = view.geometry, view.s
