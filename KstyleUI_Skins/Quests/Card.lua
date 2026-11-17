@@ -322,7 +322,7 @@ local function Words(row, entry, limit)
 			local objective = entry.objectives[i]
 			local room = Room(right, objective)
 			local lines = Lines(objective, room)
-			if limit and i == 1 then
+			if limit and i == 1 and lines > 1 then
 				lines = math.max(1, math.min(lines, math.floor((limit - y - LineHeight()) / pitch) + 1))
 			end
 			if limit and Snap(y + Span(lines)) > limit then

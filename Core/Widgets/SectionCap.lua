@@ -49,8 +49,9 @@ function Widgets.PaintCapMaterial(gem, rule, alpha)
 		gem:SetVertexColor(Tokens.Color("materialGold"))
 	elseif Widgets.Medallions() then
 		gem:SetVertexColor(Tokens.Color("accent"))
+		Widgets.CardHeader(gem)
 	end
-	if not gem.headerTracked or Widgets.Medallions() then
+	if not gem.headerTracked then
 		Widgets.CardHeader(gem)
 	end
 end
