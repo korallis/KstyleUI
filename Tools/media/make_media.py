@@ -3,6 +3,7 @@
 Usage:
     python3 Tools/media/make_media.py [--root DIR] [--only NAME ...]
     python3 Tools/media/make_media.py --check
+    python3 Tools/media/make_media.py --logo SIZE PATH [--logo SIZE PATH ...]
 
 Every texture is drawn at 4x and downsampled: each pixel is the mean of SUPERSAMPLE x SUPERSAMPLE
 samples of a shape or a smooth function. Shapes are white with their coverage in alpha, so the game
@@ -13,6 +14,7 @@ The default run writes every asset under DIR (the repository root by default) an
 generated table in Media/PROVENANCE.md. --only limits the run to the named assets (file stems).
 --check draws in memory and compares with the files on disk, allowing one step per channel for libm
 differences between platforms. It prints each mismatch and exits 1 if there is any.
+--logo draws the same chamfered diamond at SIZE pixels into PATH and does not touch Media/.
 """
 
 import argparse
@@ -1077,6 +1079,14 @@ def write_provenance(root):
     path.write_text(text[: start + len(BEGIN)] + "\n" + provenance_table() + "\n" + text[stop:], encoding="utf-8", newline="\n")
 
 
+def write_logo(size, dest):
+    """Write the chamfered-diamond logo at size px. dest is a PNG path, not a Media/ asset."""
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(encode_png(size, size, draw_logo(size)))
+    print(f"wrote {dest} ({size}x{size})")
+
+
 def encode(asset, pixels):
     if asset.path.endswith(".tga"):
         return encode_tga(asset.width, asset.height, pixels)
@@ -1120,7 +1130,17 @@ def main(argv):
     parser.add_argument("--root", type=Path, default=ROOT, help="folder that holds Media/ (default: the repository root)")
     parser.add_argument("--only", nargs="+", metavar="NAME", help="draw only these assets, by file stem")
     parser.add_argument("--check", action="store_true", help="compare with the files on disk instead of writing")
+    parser.add_argument("--logo", nargs=2, action="append", metavar=("SIZE", "PATH"),
+                        help="draw the logo at SIZE pixels into PATH, and skip the Media/ run")
     args = parser.parse_args(argv)
+    if args.logo:
+        if args.check or args.only:
+            parser.error("--logo does not combine with --check or --only")
+        for size_text, path in args.logo:
+            if not size_text.isdigit() or not 8 <= int(size_text) <= 1024:
+                parser.error(f"logo size must be an integer from 8 to 1024, not {size_text}")
+            write_logo(int(size_text), path)
+        return 0
     only = set(args.only or [])
     unknown = only - {a.name for a in ASSETS}
     if unknown:

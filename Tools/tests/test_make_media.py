@@ -397,6 +397,30 @@ class DrawingTest(unittest.TestCase):
             self.assertEqual(self.alpha(name, size // 2, 0), 0, f"{name} top point is chamfered")
         self.assertEqual(self.rendered["Logo64.png"][2], self.rendered["Logo64.tga"][2])
 
+    def test_logo_flag_writes_one_png_and_skips_media(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "avatar.png"
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = self.mm.main(["--logo", "48", str(dest)])
+            self.assertEqual(code, 0)
+            self.assertFalse((Path(tmp) / "Media").exists())
+            width, height, pixels = self.mm.decode_png(dest.read_bytes())
+            self.assertEqual((width, height), (48, 48))
+            self.assertEqual(pixels[3], 0, "corner is transparent")
+            centre = 24
+            i = (centre * 48 + centre) * 4
+            self.assertEqual(pixels[i + 3], 255)
+            self.assertGreater(pixels[i + 1], pixels[i], "centre is the accent green")
+
+    def test_store_logos_match_the_script(self):
+        for name, size in (("curseforge-avatar.png", 400), ("wago-icon.png", 64)):
+            path = ROOT / "docs" / "store" / "logo" / name
+            width, height, pixels = self.mm.decode_png(path.read_bytes())
+            self.assertEqual((width, height), (size, size), name)
+            drawn = self.mm.draw_logo(size)
+            worst = max(abs(a - b) for a, b in zip(pixels, drawn))
+            self.assertLessEqual(worst, 1, name)
+
 
 class CommittedMediaTest(unittest.TestCase):
     @classmethod
