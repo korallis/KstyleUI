@@ -1,22 +1,39 @@
+<p align="center"><img src="Media/Logo/Logo256.png" width="120" alt="The KstyleUI logo: a chamfered diamond in dark forged style"></p>
+
 <h1 align="center">KstyleUI</h1>
 
-<p align="center"><b>A complete, pixel-perfect interface for World of Warcraft: Forever, in one dark forged style.</b></p>
+<p align="center"><b>A complete, pixel-perfect interface for World of Warcraft: Forever — one dark forged style, three HUDs, set up in one window.</b></p>
 
-<p align="center">Pick your HUD: Medallions, with a painted portrait of your character and a crest for your race and class over a dark gunmetal action slab, or one of the other two styles, classic frames or health and resource in two orbs round a forged tray. Everything else follows: clean bars, readable nameplates, a group damage meter, quest and guide cards, and a size that lands on whole screen pixels from a laptop to a 32:9 ultrawide.</p>
+<p align="center">
+<a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
+</p>
 
-<p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-medallions-frames-and-orbs">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
+<!-- CF_URL -->
+<!-- WAGO_URL -->
+
+<p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a>&nbsp;&nbsp;&nbsp;<a href="#faq">FAQ</a></p>
 
 <p align="center"><img src="docs/media/readme/game_medallions_hero.jpg" width="100%" alt="In-game screenshot of KstyleUI's Medallions HUD on a 5120 by 1440 screen: Korallis casting Shadow Bolt at a Decrepit Darkhound, with a warlock crest between the action bars and the map and quest cards at the right edge"></p>
 
-<p align="center"><sub>In-game Medallions HUD on a 5120 by 1440 screen, playing Korallis in Tirisfal Glades. Chat and distant player names are blurred. The Medallions pictures and clips below are also in-game captures; the other sections use labelled test renders.</sub></p>
+<p align="center"><sub>In-game: the Medallions HUD on a 5120 by 1440 screen, in Tirisfal Glades. Chat and distant player names are blurred.</sub></p>
 
-## Three HUD styles: Medallions, Frames and Orbs
+**Why players switch**
+
+- **Three HUDs, one choice at setup.** Medallions, Frames or Orbs — pick yours on first login, change it any time.
+- **The whole game in one style.** Bars, nameplates, bags, tooltips, windows and the damage meter all wear the same dark forged chrome.
+- **Sharp on every screen.** Pixel-perfect sizing from a laptop to a 32:9 ultrawide, with text that never drops below a readable size.
+- **Nothing you don't want.** Every part is its own module. Switch one off and it costs nothing.
+- **Ready in minutes.** One short setup, layouts for DPS, Tank and Healer, and profiles you can copy between characters.
+
+## Three HUD styles
+
+Pick your style in the first-run setup. Switch later in **Options, General, HUD style**, which shows a picture of each; out of combat the change applies at once, in combat it waits for the fight to end.
 
 ### Medallions
 
-**Medallions** is dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. Your player and target frames are slabs with clean bars, an outlined health number at the end of each bar and a round medallion on the outer end, its rim engraved with a band of runes. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. The frames sit in one tight cluster just above the action slab, with your pet and your target's target beside the medallions, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline. Numbers use Barlow Semi Condensed, and nameplates are slimmer, with ticks on your target.
+Dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. You and your target are slabs with clean bars and a round medallion on the outer end, its rim engraved with runes. Yours is a painted portrait of your race, class and sex — other players get their own; a creature, pet or boss shows the game's portrait.
 
-Your first two action bars sit in recessed, rounded sockets on one dark slab: twelve buttons left of the centre and twelve right of it in one row on every screen, with your experience along the slab's lower edge. An empty socket stays plain, and a keybind shows only on a slot that holds something. Your pet and stance bars get small matching slabs beside it, one each side on ultrawide screens and stacked on the right on 16:9 and narrower screens. In the middle is a crest painted for your race and class, 52 in all, seated in a dark gunmetal ring with a line of runes in your class colour. At rest the crest breathes. It pulses when an ability beside it lights up, and that ability's socket gets a border in your class colour. It bursts when you level up. It sits under your action buttons, so it never hides a spell.
+Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, 52 in all, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
 
 <table>
 <tr>
@@ -25,11 +42,16 @@ Your first two action bars sit in recessed, rounded sockets on one dark slab: tw
 </tr>
 </table>
 
-<p align="center"><sub>In-game crops of the same ultrawide capture: a 16:9 view on the left, the medallions, cast bar and crest hub up close on the right.</sub></p>
+<p align="center"><sub>In-game crops of the same capture: a 16:9 view on the left, the medallions, cast bar and crest up close on the right.</sub></p>
 
-The rest of the screen follows. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, chat, the damage meter, windows, tooltips and menus wear the same chrome, party members get painted badges, raid frames become class-coloured tiles, and friendly players' nameplates carry a small badge. Medallions also answers what happens in a fight. A slot flashes when its cooldown comes back. Your cast bar flashes when a cast lands, and flashes red when a cast is stopped, interrupted or fails. A red edge grows round the screen when your health runs low, and a burst blooms behind your portrait when you level up. Three seconds after combat, your pet, focus, focus target and target-of-target frames dim to 60%, and they come back when the next fight starts.
+Medallions also answers what happens in a fight:
 
-**Medallions motion** in Options, General, Medallions sets how much moves. Full, the default, adds the game's own 3D spell effects for the big moments. Calm keeps the slow motion and short flashes. Off stops the motion, though the low-health edge still shows and the frames still dim after combat. **Options, General, Appearance, Motion** still wins: Reduced caps Medallions motion at Calm, and Off turns it off.
+- A slot flashes when its cooldown comes back, and its socket takes your class colour when the ability lights up.
+- Your cast bar flashes when a cast lands, and red when it is stopped or fails.
+- A red edge grows round the screen at low health; a burst blooms behind your portrait when you level up.
+- Three seconds after combat your side frames dim, and come back with the next fight.
+
+**Medallions motion** (Options, General, Medallions) sets how much moves: Full adds the game's own 3D spell effects for the big moments, Calm keeps the slow motion and short flashes, Off stills it. The general **Motion** setting still wins over it.
 
 <p align="center"><img src="docs/media/readme/game_medallions_target.gif" width="960" alt="In-game animation of a target medallion appearing and its red low-health ring pulsing beside the crest"></p>
 
@@ -37,7 +59,7 @@ The rest of the screen follows. Cards are dark and bevelled with a header band i
 
 <p align="center"><img src="docs/media/readme/game_medallions_cast.gif" width="1120" alt="In-game animation of Corruption, Immolate and Shadow Bolt cast bars filling above the breathing warlock crest, with action-button cooldown sweeps"></p>
 
-<p align="center"><sub>In-game: Corruption, Immolate and Shadow Bolt fill the cast bar above the breathing crest while the action sockets sweep through their cooldowns.</sub></p>
+<p align="center"><sub>In-game: Corruption, Immolate and Shadow Bolt fill the cast bar above the breathing crest while the sockets sweep through their cooldowns.</sub></p>
 
 <p align="center"><img src="docs/media/readme/game_medallions_interrupt.gif" width="100%" alt="In-game animation of an interrupted cast flashing above the Medallions crest, then a channel counting down as the target frame clears"></p>
 
@@ -47,19 +69,25 @@ The rest of the screen follows. Cards are dark and bevelled with a header band i
 
 <p align="center"><img src="docs/media/readme/hud_frames_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: the target card over the player card above two action bars in the middle, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
+<p align="center"><sub>Test render: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
 
-**Frames** keeps your health and resource on a player card above the action bars, with your target's card stacked over it, its portrait on the far side.
+**Frames** is the classic layout, cleaned up: your health and resource on a player card above the action bars, your target's card stacked over it with its portrait on the far side.
 
 <p align="center"><img src="docs/media/readme/hud_frames_1080.jpg" width="100%" alt="Test render of the KstyleUI addon's Frames HUD on a 1920 by 1080 screen in combat"></p>
 
-<p align="center"><sub>Test render of the addon: the Frames HUD on a 1920 by 1080 screen, in combat.</sub></p>
+<p align="center"><sub>Test render: the Frames HUD on a 1920 by 1080 screen, in combat.</sub></p>
+
+<p align="center"><img src="docs/media/readme/crop_unitframes.jpg" width="820" alt="Test render of the KstyleUI addon's Frames unit frames: the Shadowgale Poacher's health bar at 50 percent and its Shadow Bolt cast above the player's health and mana bars, with portraits and level badges"></p>
+
+<p align="center"><sub>Test render: the target over the player, both mid-cast.</sub></p>
+
+Whichever style you pick, the bars read the same way: a hit flashes, the health you just lost holds as a pale band before it drains, and cast bars are tall enough to read in a pull. Action buttons share one slot design, with a proc glow and a gilt flash when an ability is ready again.
 
 ### Orbs
 
 <p align="center"><img src="docs/media/readme/hud_orbs_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen in the Spread arrangement, in combat: health and mana orbs either side of the action bars in the middle, the target bar at the top, nameplates, and chat and loot at the left edge with the map, quest cards, action rail and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
+<p align="center"><sub>Test render: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
 
 **Orbs** puts your health and resource in two orbs either side of a forged tray round your first action bar, and moves your target to a wide bar at the top of the screen.
 
@@ -70,79 +98,75 @@ The rest of the screen follows. Cards are dark and bevelled with a header band i
 </tr>
 </table>
 
-<p align="center"><sub>Test renders of the addon, in combat: the Orbs HUD on a 1920 by 1080 screen on the left, the orbs and the forged tray up close on the right, a moment after a hit.</sub></p>
-
-Switch any time in **Options, General, HUD style**, which shows a picture of each, or on the HUD style step of the first-run setup. The change applies at once out of combat; picked in combat, it waits for the fight to end.
-
-## Clean bars you read at a glance
-
-<p align="center"><img src="docs/media/readme/crop_unitframes.jpg" width="820" alt="Test render of the KstyleUI addon's Frames unit frames: the Shadowgale Poacher's health bar at 50 percent and its Shadow Bolt cast above the player's health and mana bars, with portraits and level badges"></p>
-
-<p align="center"><sub>Test render of the addon: the target over the player, both mid-cast.</sub></p>
-
-Health and resource fill flat and clean. A hit flashes, the health you just lost holds as a pale band before it drains, and low health warns you. The target fills from the left, cast bars are tall enough to read in a pull, and party and raid frames use the same bars with a glow on a member in trouble. Action buttons and the cooldown rows share one slot: a pressed state, a proc glow, a lit sweep edge and a gilt flash when an ability is ready again.
-
-## Nameplates that stay out of the way
-
-<p align="center"><img src="docs/media/readme/crop_nameplates.jpg" width="720" alt="Test render of the KstyleUI addon's nameplates in combat: a targeted beast with brackets and one of your debuffs, an elite, a rare, a world boss and a friendly player, each a flat bar under a capital name"></p>
-
-<p align="center"><sub>Test render of the addon's nameplates in combat.</sub></p>
-
-Plates are plain flat bars under tracked capital names, with your own debuffs on top. Your target wears brackets, a cast flashes when it starts and when it is stopped, and the track turns black while you hold threat. Objects such as a mailbox get a name-only plate, and plates keep a steady size instead of darting about.
-
-## A group damage meter
-
-<p align="center"><img src="docs/media/readme/crop_meter.jpg" width="460" alt="Test render of the KstyleUI addon's damage meter in a party of five: one class-coloured bar per player with their damage"></p>
-
-<p align="center"><sub>Test render of the addon's damage meter in a party of five.</sub></p>
-
-One card with a bar per player in their class colour, in the style of Details. Switch between this fight, the last fight and the whole session, and point at a row to open that player's spell split under it. Alone, it lists your own spells. The threat card next to it follows the same design.
-
-## Quests, guide and map on the right
-
-<p align="center"><img src="docs/media/readme/crop_rail.jpg" width="560" alt="Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the buff rows above it, the quest card in the slot under the map and the RestedXP guide card in the column beside it"></p>
-
-<p align="center"><sub>Test render of the addon's right rail: the map card, the quest card and the guide card.</sub></p>
-
-Your buffs and debuffs sit in rows above a square map card with the zone, your coordinates and the clock. Under it, the quest card keeps four quests in view with the count of the rest, and scrolls for the others. While a RestedXP guide is shown, the guide takes the tall column beside the quest card, with room for your whole current step, and the quest card sits in the slot under the map, showing at least one quest. The two swap places only when the guide opens or closes. When RestedXP shows its Active Targets and Active Items boxes, they dock side by side under the guide card. Tooltips, windows and these cards share one card design. The minimap's addon drawer collects every addon button on the map, and the pins guides park on the map's edge stay hidden unless you turn on **Addon pins on the map's edge** in the Minimap settings.
-
-## Pixel perfect at every size
-
-With **Interface size: Auto (pixel perfect)**, the default, KstyleUI works out the size that fits your screen exactly and keeps every frame, bar, slot, aura and combat number on whole screen pixels, so edges stay sharp instead of blurring between pixels. Auto fits each HUD style's own layout and steps down until the whole HUD fits, so the styles can land a step or two apart. Frames and Orbs match on 16:9 screens, and under Orbs the orbs stay clear of chat on 4:3, 3:2 and 16:10 screens. Medallions, with its long action slab and crest, matches them on 1080-line screens such as 1920 by 1080 and 3840 by 1080, and lands one step smaller on 1440-line and 2160-line screens. Turn Auto off in **Options, General, Size** to set the size yourself, still in whole-pixel steps. Text never drops below a readable size.
+<p align="center"><sub>Test renders, in combat: the Orbs HUD on a 1920 by 1080 screen on the left, the orbs and the forged tray up close on the right, a moment after a hit.</sub></p>
 
 ## Every screen, ultrawide included
 
 <p align="center"><img src="docs/media/readme/ultrawide_centred.jpg" width="100%" alt="Test render of the KstyleUI addon's Healer layout on a 5120 by 1440 screen in the Centred arrangement: chat, party, map, quests and meter all inside a 21:9 band in the middle"></p>
 
-<p align="center"><sub>Test render of the addon's Healer layout on 5120 by 1440, Centred.</sub></p>
+<p align="center"><sub>Test render: the Healer layout on 5120 by 1440, Centred.</sub></p>
 
 <p align="center"><img src="docs/media/readme/ultrawide_spread.jpg" width="100%" alt="Test render of the KstyleUI addon's Healer layout on a 5120 by 1440 screen in the Spread arrangement: chat and the right rail moved out to the screen edges, the party still on the 21:9 line"></p>
 
-<p align="center"><sub>Test render of the addon's Healer layout on 5120 by 1440, Spread.</sub></p>
+<p align="center"><sub>Test render: the Healer layout on 5120 by 1440, Spread.</sub></p>
 
-On a 21:9 or 32:9 monitor, choose how the HUD uses the width in **Options, Elements, Ultrawide arrangement**. **Centred**, the default, keeps everything in a 21:9 band in the middle, so nothing is stranded at the far edges. **Spread** moves the side columns out to the edges of the screen and keeps your group frames on the 21:9 line, close to your character. **HUD width** sets the band itself: 21:9, 16:9 or the full width.
+On a 21:9 or 32:9 monitor, you choose how the HUD uses the width:
+
+- **Centred** (the default) keeps everything in a band in the middle, so nothing is stranded at the far edges.
+- **Spread** moves the side columns out to the screen edges and keeps your group frames close to your character.
+
+Set it in **Options, Elements, Ultrawide arrangement**, and set the band itself — 21:9, 16:9 or the full width — under **HUD width**. Laptop screens and 4:3, 3:2 and 16:10 displays are covered too.
 
 ## Set up in one window
 
 <p align="center"><img src="docs/media/readme/frame_setup.jpg" width="640" alt="Test render of the KstyleUI addon's first-run setup on its layout step: DPS, Tank and Healer cards over a preview of the layout under the pointer"></p>
 
-<p align="center"><sub>Test render of the addon's first-run setup on its layout step.</sub></p>
+<p align="center"><sub>Test render: the first-run setup on its layout step.</sub></p>
 
-The first time you log in, a short setup walks you through it: pick Frames, Orbs or Medallions, pick the DPS, Tank or Healer layout over a live preview, choose your modules and the level of forged trim, then apply. KstyleUI also writes a matching Edit Mode layout, so the quest tracker and your tracked buffs take their places too. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface as it is. Run it again with `/kstyle setup`.
+The first time you log in, one short setup does it all: pick Medallions, Frames or Orbs, pick the DPS, Tank or Healer layout over a live preview, choose your modules and trim, then apply. KstyleUI also writes a matching Edit Mode layout, so the quest tracker and your tracked buffs land in place. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
 
 <p align="center"><img src="docs/media/readme/frame_raid.jpg" width="640" alt="Test render of the KstyleUI addon's raid frames: twenty tiles with missing health, debuffs, a dead and an offline member"></p>
 
-<p align="center"><sub>Test render of the addon's raid frames.</sub></p>
+<p align="center"><sub>Test render: the raid frames.</sub></p>
 
 Tank adds a threat card in the combat cluster. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
 
-## The rest of the screen, in the same style
+## The rest of your UI, in the same style
+
+### Nameplates that stay out of the way
+
+<p align="center"><img src="docs/media/readme/crop_nameplates.jpg" width="720" alt="Test render of the KstyleUI addon's nameplates in combat: a targeted beast with brackets and one of your debuffs, an elite, a rare, a world boss and a friendly player, each a flat bar under a capital name"></p>
+
+<p align="center"><sub>Test render: nameplates in combat.</sub></p>
+
+Plain flat bars under tracked capital names, with your own debuffs on top. Your target wears brackets, a cast flashes when it starts and when it is stopped, and objects such as a mailbox get a name-only plate.
+
+### A group damage meter
+
+<p align="center"><img src="docs/media/readme/crop_meter.jpg" width="460" alt="Test render of the KstyleUI addon's damage meter in a party of five: one class-coloured bar per player with their damage"></p>
+
+<p align="center"><sub>Test render: the damage meter in a party of five.</sub></p>
+
+One card, a class-coloured bar per player, in the style of Details. Switch between this fight, the last fight and the whole session; point at a row for that player's spell split. The threat card beside it follows the same design.
+
+### Quests, guide and map on the right
+
+<p align="center"><img src="docs/media/readme/crop_rail.jpg" width="560" alt="Test render of the KstyleUI addon's right rail: the square minimap with the zone, coordinates and clock, the buff rows above it, the quest card in the slot under the map and the RestedXP guide card in the column beside it"></p>
+
+<p align="center"><sub>Test render: the right rail — map card, quest card and guide card.</sub></p>
+
+Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps four quests in view and scrolls for the rest. With a RestedXP guide open, the guide takes the tall column beside it with room for your whole current step, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
+
+### Bags, tooltips and windows
 
 <p align="center"><img src="docs/media/readme/frame_skins.jpg" width="480" alt="Test render of the KstyleUI addon's skin on Blizzard's character sheet"></p>
 
-<p align="center"><sub>Test render of the addon's skin on the character sheet.</sub></p>
+<p align="center"><sub>Test render: the skin on the character sheet.</sub></p>
 
-Turn on Window skins and Blizzard's windows take the same dark card: the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu. The settings window (`/kstyle`) has a page per module, a search across every setting and a live preview, and every element can be moved, resized or scaled in Layout Mode.
+- **Bags:** combined bags and bank with search, sorting, categories, quality borders and junk selling.
+- **Tooltips:** on the same dark card, with quality and class colours and a health bar.
+- **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows, the game menu — and the RestedXP windows — all in KstyleUI's style.
+- **Settings that stay simple:** `/kstyle` opens one window with a page per module, a search across every setting and a live preview. Layout Mode moves, resizes or scales any element.
 
 <details>
 <summary>Every module</summary>
@@ -171,6 +195,12 @@ KstyleUI is one core addon and one addon per module. A module you switch off cos
 Every module stays inside the rules Forever sets for addons: a protected change made in combat waits for combat to end, and the action bars, group frames, bags and auras hand back to Blizzard's own in the gamepad interface.
 
 </details>
+
+## Pixel-perfect and light
+
+With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the size that fits your screen exactly. Every frame, bar and slot lands on whole screen pixels, so edges stay sharp instead of blurring between pixels — and text never drops below a readable size. Prefer to set it yourself? Turn Auto off in **Options, General, Size** and step through whole-pixel sizes.
+
+KstyleUI is built to stay out of the way of the game: each feature is its own module, a module you switch off costs nothing, and motion you don't want can be calmed or turned off. Turn on only the parts you play with.
 
 ## Install
 
@@ -206,10 +236,30 @@ The settings window's Profiles page also exports a profile as one string and imp
 
 </details>
 
-### Languages
+## FAQ
 
-KstyleUI ships English, German (`deDE`), French (`frFR`), Spanish (`esES`, also used on `esMX`) and Simplified Chinese (`zhCN`), using WoW's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string as an issue. On Chinese, Korean and Russian clients, KstyleUI uses the game's own font where its bundled fonts have no glyphs.
+**Which client does KstyleUI support?**
+World of Warcraft: Forever. It is built and tested for that client only.
 
-## Licence
+**Does it work with RestedXP?**
+Yes. The guide gets its own tall card beside your quest card with room for the whole current step, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
+
+**How do I switch HUD style?**
+In **Options, General, HUD style** — it shows a picture of Medallions, Frames and Orbs — or by running the setup again with `/kstyle setup`. Out of combat the change applies at once; picked in combat, it waits for the fight to end.
+
+**Can I keep parts of the default UI?**
+Yes. Every feature is a module you can switch off, and **Keep my UI** in the setup leaves the game's interface as it is.
+
+**Which languages are included?**
+English, German (`deDE`), French (`frFR`), Spanish (`esES`, also used on `esMX`) and Simplified Chinese (`zhCN`), using WoW's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string as an issue. On Chinese, Korean and Russian clients, KstyleUI uses the game's own font where its bundled fonts have no glyphs.
+
+**How do I report a bug?**
+Open an issue on [GitHub](https://github.com/korallis/KstyleUI/issues). Say what you were doing, what you expected and what happened instead, and add a screenshot and your KstyleUI version if you can.
+
+## Credits and licence
+
+KstyleUI is made by the KstyleUI authors. It bundles the Source Sans 3, Inter and Barlow Semi Condensed fonts, each under the SIL Open Font License 1.1; [`Media/PROVENANCE.md`](Media/PROVENANCE.md) records where every bundled file came from.
 
 All rights reserved. See [`LICENSE.md`](LICENSE.md). Building or contributing? See [`docs/DEVELOPING.md`](docs/DEVELOPING.md).
+
+
