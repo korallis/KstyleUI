@@ -68,6 +68,8 @@ M2 (KSTY-92) generated the bulk set before `tables.py` landed, from its own prom
 
 ## Running it
 
+The optional bake flag `--oxipng PATH` uses Oxipng 10.2.1 or newer with `-o max --fast --zopfli --nx`: only lossless compression changes. It preserves RGBA, bit depth and every pixel, including RGB under zero alpha; the bake verifies that before updating the manifest. Without the flag, Pillow still saves with `optimize=True`. Glow and metal textures have constant white RGB and carry their mask in alpha; they retain the client's proven eight-bit RGBA encoding.
+
 ```sh
 PY=~/.local/share/wow-dev/venv/bin/python
 $PY Tools/medallions/medallions.py anchors
