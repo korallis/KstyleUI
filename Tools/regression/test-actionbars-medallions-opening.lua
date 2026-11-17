@@ -21,15 +21,15 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 }, { 3840
 		assert(Near(mask:GetLeft() + mask:GetWidth() / 2, hub:GetLeft() + hub:GetWidth() / 2)
 			and Near(mask:GetBottom() + mask:GetHeight() / 2, hub:GetBottom() + hub:GetHeight() / 2), "centre each mask on the hub, independently of crest pulses and sheen motion")
 	end
-	local size = math.min(150, K.Scale.Pixel(511) / 1.05)
+	local size = math.min(150, K.Scale.Pixel(255) / 1.05)
 	assert(Near(hub.crest:GetWidth(), size) and Near(hub.crest:GetHeight(), size), "keep both crest axes at the canvas size, capped by the bake")
 	assert(Near(hub.crest:GetLeft() + hub.crest:GetWidth() / 2, hub:GetLeft() + hub:GetWidth() / 2)
 		and Near(hub.crest:GetBottom() + hub.crest:GetHeight() / 2, hub:GetBottom() + hub:GetHeight() / 2), "centre the crest canvas on the hub")
 	assert(Near(hub.sheen:GetWidth(), 46) and Near(hub.sheen:GetHeight(), 118), "size the sheen from the opening, not the crest canvas")
 	assert(Near(hub.flash:GetWidth(), 118) and Near(hub.flash:GetHeight(), 118), "size the combat flash from the opening, not the crest canvas")
 	local pixels = screen[2] * hub:GetEffectiveScale() / 768
-	assert(hub.crest:GetWidth() * pixels * 1.05 <= 512, "rebake crests before the pulsed canvas exceeds its 512-pixel source")
-	assert(hub.bloom:GetWidth() * pixels <= 512, "cap the bloom to its 512-pixel source")
+	assert(hub.crest:GetWidth() * pixels * 1.05 <= 256, "cap the pulsed crest canvas to its original 256-pixel source")
+	assert(hub.bloom:GetWidth() * pixels <= 256, "cap the bloom to its original 256-pixel source")
 	for _, combat in ipairs({ true, false }) do
 		ns.Slab.SetCombat(combat)
 		ns.Slab.Refresh()

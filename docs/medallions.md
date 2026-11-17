@@ -22,7 +22,7 @@ Keys are the game's own tokens, lowercased: the race file UnitRace returns, the 
 | --- | --- | --- |
 | Bust | `Media/Textures/Medallions/Busts/<key>.png` | 128x128, pre-circled |
 | Badge | `Media/Textures/Medallions/Badges/<key>.png` | 64x64, pre-circled |
-| Crest | `Media/Textures/Medallions/Crests/<key>.png`, `<key>_glow.png`, `<key>_metal.png` | 512x512 |
+| Crest | `Media/Textures/Medallions/Crests/<key>.png`, `<key>_glow.png`, `<key>_metal.png` | 256x256 |
 
 `bake` writes `Core/MedallionAssets.lua`, which sets `KstyleUI.MedallionAssets`:
 
@@ -60,15 +60,13 @@ A race master's emblem colour is checked by eye on the contact sheet, since only
 
 Portraits are reduced in linear light with premultiplied alpha and Lanczos, given a light unsharp, cut to a disc drawn at 8x and box-filtered, and given a 1 px dark rim on the disc's edge. Crests have alpha below 14 cut to nothing, are trimmed and refitted so the longest side is 900/1024 of the canvas, reduced the same way, and given a 1 px dark outline just outside the silhouette. Every edge is drawn at the shipped size rather than kept from the generated art (KSTY-87's lesson).
 
-The hub draws the 512 px crest canvas at 150 units, the same size as its ring, over a 118-unit socket. A circular OrbMask, fixed to the hub at the 118-unit opening, clips the crest and bloom before they reach the ring. The sheen and combat-entry flash use that opening too, each clipped independently of animation. The crest keeps full colour and alpha through rest and combat repaints. At automatic game fit the pulsed canvas peaks at about 295 physical pixels on 3840x2160; 512 px bakes retain resolution on all four acceptance screens. Larger scales cap the crest (including its pulse) and bloom below 512 physical pixels, leaving one pixel for snapping. The missing-art logo uses its own 256 px cap. The crests and their glow and metal masks are re-baked from the SHA-verified original art with `Tools/medallions/medallions.py bake --kind crest`. `test-actionbars-medallions-opening.lua` checks both axes, centring, masks, effects and brightness; `test_medallions_hub_clip.py` reads all 52 crest and glow PNGs and proves their masked alpha stays inside the opening, including the crest pulse.
+The hub draws the original 256 px crest canvas at up to 150 units, over a 118-unit socket inside its 150-unit ring. A circular OrbMask, fixed to the hub at the 118-unit opening, clips the crest and bloom before they reach the ring. The sheen and combat-entry flash use that opening too, each clipped independently of animation. The crest keeps full colour and alpha through rest and combat repaints. The draw size caps the crest (including its pulse) and bloom below 256 physical pixels, leaving one pixel for snapping. On 4K the crest is slightly smaller within the opening so its texture stays at its native resolution. The shipped PNGs are staging's original bakes, byte-for-byte. `test-actionbars-medallions-opening.lua` checks both axes, centring, masks, effects, caps and brightness; `test_medallions_hub_clip.py` reads all 52 crest and glow PNGs and proves their masked alpha stays inside the opening, including the crest pulse.
 
 ## Where the shipped prompts came from
 
 M2 (KSTY-92) generated the bulk set before `tables.py` landed, from its own prompt table built on KSTY-87 and KSTY-88's text: the 100 busts it painted and the 39 crest edits outside M1's proof set use those prompts, and the badges use `tables.BADGE_PROMPT`. The manifest records the exact prompt, references and job of every shipped file, so it, not `prompt_for()`, is the provenance of the shipped art. A reroll runs `generate`, which uses `tables.py`'s prompts; the judge then holds the new image to the same anchors.
 
 ## Running it
-
-The optional bake flag `--oxipng PATH` uses Oxipng 10.2.1 or newer with `-o max --fast --zopfli --nx`: only lossless compression changes. It preserves RGBA, bit depth and every pixel, including RGB under zero alpha; the bake verifies that before updating the manifest. Without the flag, Pillow still saves with `optimize=True`. Glow and metal textures have constant white RGB and carry their mask in alpha; they retain the client's proven eight-bit RGBA encoding.
 
 ```sh
 PY=~/.local/share/wow-dev/venv/bin/python

@@ -27,7 +27,7 @@ the balance before and after. accept and reject record a decision made by eye on
 next generate reroll. adopt records an image another thread generated, with its job and prompt, as a new attempt.
 
 bake writes every accepted asset at its shipped size into Media/Textures/Medallions (busts 128 px, badges 64 px,
-crests and their glow and metal masks 512 px), then writes Tools/medallions/manifest.json, the Medallions section of
+crests and their glow and metal masks 256 px), then writes Tools/medallions/manifest.json, the Medallions section of
 Media/PROVENANCE.md and Core/MedallionAssets.lua from it. verify checks all of that; Tools/tests/test_medallions.py
 runs it, and --complete also requires every combination.
 """
@@ -68,7 +68,7 @@ SETTINGS = {
     "crest": {"aspect_ratio": "1:1", "resolution": "1k", "quality": "xhigh", "background": "transparent"},
 }
 COST = {"bust": 1.5, "badge": 1.5, "crest": 2.5}  # credits, from Higgsfield's cost preflight for these settings
-SIZES = {"bust": 128, "badge": 64, "crest": 512}
+SIZES = {"bust": 128, "badge": 64, "crest": 256}
 FOLDERS = {"bust": "Busts", "badge": "Badges", "crest": "Crests"}
 MASKS = ("glow", "metal")
 MAX_IMAGES = 3
@@ -465,7 +465,7 @@ def shipped_path(kind, key, mask=None):
     return f"{MEDIA}/{FOLDERS[kind]}/{key}{'_' + mask if mask else ''}.png"
 
 
-def bake(raw, kinds, keys=None, repo=REPO, log=print, optimizer=None):
+def bake(raw, kinds, keys=None, repo=REPO, log=print):
     """Write every accepted asset at its shipped size; returns the manifest entries for the files written."""
     import imaging
     from PIL import Image
@@ -485,11 +485,6 @@ def bake(raw, kinds, keys=None, repo=REPO, log=print, optimizer=None):
                 target = Path(repo) / rel
                 target.parent.mkdir(parents=True, exist_ok=True)
                 image.save(target, optimize=True)
-                if optimizer:
-                    subprocess.run([str(optimizer), "-o", "max", "--fast", "--zopfli", "--nx", "--threads", "2", str(target)], check=True)
-                    with Image.open(target) as optimized:
-                        if optimized.mode != "RGBA" or optimized.size != image.size or optimized.tobytes() != image.tobytes():
-                            raise ValueError(f"{target}: PNG optimization must preserve every RGBA pixel and the client encoding")
             main_file = files[0][0]
             entries.append({
                 "file": main_file, "kind": kind, "key": key, "size": SIZES[kind], "sha256": sha256(Path(repo) / main_file),
@@ -763,8 +758,6 @@ def _parser():
             command.add_argument("--json", action="store_true")
         if name == "sheets":
             command.add_argument("--out", required=True)
-        if name == "bake":
-            command.add_argument("--oxipng", metavar="PATH", help="lossless RGBA-preserving compression with oxipng 10.2.1 or newer")
     command = sub.add_parser("generate")
     command.add_argument("--kind", choices=KINDS, required=True)
     command.add_argument("--keys", nargs="+")
@@ -855,7 +848,7 @@ def main(argv=None):
         print(f"{args.kind} {args.key}: adopted as attempt {attempt['n']}, {attempt['verdict']} "
               f"({', '.join(attempt['reasons']) or 'ok'})")
     elif args.command == "bake":
-        entries = merge_manifest(load_json(MANIFEST, []), bake(RAW, kinds, args.keys, optimizer=args.oxipng))
+        entries = merge_manifest(load_json(MANIFEST, []), bake(RAW, kinds, args.keys))
         save_json(MANIFEST, entries)
         write_provenance(entries)
         (REPO / LUA).write_bytes(render_lua(entries).encode("ascii"))

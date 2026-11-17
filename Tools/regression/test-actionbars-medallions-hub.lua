@@ -143,7 +143,8 @@ for _, screen in ipairs(SCREENS) do
 	assert(hub.wings == nil, what .. ": the hub has no wings")
 	assert(Below(hub.crest, hub.ring) and Below(hub.socket, hub.crest), what .. ": the crest sits in its socket under the gunmetal ring")
 	assert(math.abs(hub:GetWidth() - 150) < 1, what .. ": keep the 150-unit hub ring")
-	assert(math.abs(hub.crest:GetWidth() / hub:GetWidth() - 1) < 0.01, what .. ": size the crest canvas to the ring so its baked 900/1024 silhouette fills the opening")
+	local canvas = math.min(150, K.Scale.Pixel(255) / 1.05)
+	assert(math.abs(hub.crest:GetWidth() - canvas) < 1 and math.abs(hub.crest:GetHeight() - canvas) < 1, what .. ": fill the opening while keeping the pulsed crest within its 256-pixel bake")
 	assert(math.abs(hub.socket:GetWidth() / hub:GetWidth() - 118 / 150) < 0.01, what .. ": keep the socket inside the ring's opening")
 	for _, combat in ipairs({ false, true, false }) do
 		Slab.SetCombat(combat)

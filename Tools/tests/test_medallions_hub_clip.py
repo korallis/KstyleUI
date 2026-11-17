@@ -46,7 +46,7 @@ class HubClipTest(unittest.TestCase):
                 path = crest.with_stem(crest.stem + suffix)
                 with self.subTest(crest=path.name, share=share):
                     width, height, pixels = alpha(path)
-                    self.assertEqual((width, height), (512, 512), "rebake original crests at 512 before drawing the pulsed 4K hub")
+                    self.assertEqual((width, height), (256, 256), "keep staging's original 256-pixel crest bakes and cap their draw size")
                     scale = opening / (canvas * share) * width / mw
                     offset = (width - mw * scale) / 2
 

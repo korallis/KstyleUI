@@ -11,7 +11,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "Tools" / "medallions"))
@@ -289,29 +288,6 @@ class LuaTableTest(unittest.TestCase):
 
 @unittest.skipIf(Image is None, "needs Pillow")
 class ImagingTest(unittest.TestCase):
-    def test_bake_rejects_an_optimizer_that_changes_rgb_under_zero_alpha(self):
-        with tempfile.TemporaryDirectory() as folder:
-            raw, repo = Path(folder) / "raw", Path(folder) / "repo"
-            (raw / "crest").mkdir(parents=True)
-            image = Image.new("RGBA", (32, 32))
-            ImageDraw.Draw(image).rectangle((8, 8, 24, 24), (220, 160, 100, 255))
-            image.save(raw / "crest/original.png")
-            medallions.save_record(raw, {"kind": "crest", "key": "troll_rogue", "attempts": [
-                {"image": "original.png", "verdict": "accepted"}]})
-
-            def change_transparent_rgb(command, **kwargs):
-                path = command[-1]
-                with Image.open(path) as baked:
-                    changed = baked.copy()
-                r, g, b, a = changed.getpixel((0, 0))
-                self.assertEqual(a, 0)
-                changed.putpixel((0, 0), (r ^ 1, g, b, a))
-                changed.save(path)
-
-            with patch.object(medallions.subprocess, "run", side_effect=change_transparent_rgb):
-                with self.assertRaisesRegex(ValueError, "preserve every RGBA pixel"):
-                    medallions.bake(raw, ["crest"], ["troll_rogue"], repo=repo, optimizer="optimizer")
-
     def test_resizes_in_linear_light(self):
         checker = Image.new("RGBA", (64, 64))
         checker.putdata([(255, 255, 255, 255) if (x + y) % 2 else (0, 0, 0, 255) for y in range(64) for x in range(64)])

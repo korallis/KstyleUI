@@ -408,8 +408,7 @@ local function OpeningMask(parent, hub)
 end
 
 local function SizeCrest(hub)
-	local resolution = hub.crestPath == Slab.Texture("medCrest") and 256 or 512
-	local texels = K.Scale.Pixel(resolution - 1)
+	local texels = K.Scale.Pixel(256 - 1)
 	local crest, bloom = min(CREST, texels / PULSE_SCALE), min(CREST * BLOOM_SHARE, texels)
 	Widgets.Size(hub.crest, crest, crest)
 	Widgets.Size(hub.bloom, bloom, bloom)
