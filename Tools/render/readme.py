@@ -9,9 +9,9 @@ Every render draws at the shipped ornament level, Full. None of the pictures is 
 
 The pictures:
 
-  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames, Orbs and Medallions, in combat, on a 5120x1440 screen at
-                                       Interface size Auto and on a 1920x1080 screen at the 15/16 size the game picks
-                                       there
+  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames, Orbs and Medallions, in combat, on a 5120x1440 screen
+                                       in the Spread arrangement at Interface size Auto and on a 1920x1080 screen at the
+                                       15/16 size the game picks there
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
   crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
                                        Medallions crest hub and frames, the unit frames, the right rail, the group meter,
@@ -61,7 +61,7 @@ def style_env(style):
 RENDERS = {}
 for _style in STYLES:
     _key = _style.lower()
-    RENDERS[_key + "_5120"] = ("hud_reference", 1440 / 1080, dict(ULTRAWIDE, **style_env(_style)), "--strict")
+    RENDERS[_key + "_5120"] = ("hud_reference", 1440 / 1080, dict(ULTRAWIDE, **style_env(_style), RENDER_ARRANGEMENT="spread"), "--strict")
     RENDERS[_key + "_1080"] = ("hud_reference", 1.0, dict(HD, **style_env(_style)), "--strict")
     RENDERS[_key + "_1080_2x"] = ("hud_reference", 2.0, dict(HD, **style_env(_style)), "--strict")
 for _arrangement in ("centred", "spread"):

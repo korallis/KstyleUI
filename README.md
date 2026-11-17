@@ -6,15 +6,15 @@
 
 <p align="center"><a href="https://github.com/korallis/KstyleUI/releases/latest">Download the latest release</a>&nbsp;&nbsp;&nbsp;<a href="#install">Install</a>&nbsp;&nbsp;&nbsp;<a href="#three-hud-styles-frames-orbs-and-medallions">HUD styles</a>&nbsp;&nbsp;&nbsp;<a href="#every-screen-ultrawide-included">Ultrawide</a></p>
 
-<p align="center"><img src="docs/media/readme/hud_orbs_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen, in combat: health and mana orbs either side of the action bars, the target bar at the top, nameplates, the map, quest and guide cards and the damage meter on the right"></p>
+<p align="center"><img src="docs/media/readme/hud_orbs_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen in the Spread arrangement, in combat: health and mana orbs either side of the action bars in the middle, the target bar at the top, nameplates, and chat and loot at the left edge with the map, quest cards, action rail and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Orbs HUD in combat on a 5120 by 1440 screen. Every picture on this page is a test render drawn from KstyleUI's own code, not a game screenshot.</sub></p>
+<p align="center"><sub>Test render of the addon: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement that uses the screen edge to edge. Every picture on this page is a test render drawn from KstyleUI's own code, not a game screenshot.</sub></p>
 
 ## Three HUD styles: Frames, Orbs and Medallions
 
-<p align="center"><img src="docs/media/readme/hud_frames_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Frames HUD style on a 5120 by 1440 screen, in combat: the target card over the player card above two action bars, centred in the middle of the ultrawide"></p>
+<p align="center"><img src="docs/media/readme/hud_frames_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: the target card over the player card above two action bars in the middle, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Frames HUD in combat on a 5120 by 1440 screen.</sub></p>
+<p align="center"><sub>Test render of the addon: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
 
 **Frames** keeps your health and resource on a player card above the action bars, with your target's card stacked over it, its portrait on the far side. **Orbs** puts your health and resource in two orbs either side of a forged tray round your first action bar, and moves your target to a wide bar at the top of the screen.
 
@@ -33,9 +33,9 @@
 
 ### Medallions
 
-<p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen, in combat: round painted portraits on the player and target slabs, and one long dark action slab with a dwarf shaman's crest in a rune ring at its centre"></p>
+<p align="center"><img src="docs/media/readme/hud_medallions_5120.jpg" width="100%" alt="Test render of the KstyleUI addon in its Medallions HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat: round painted portraits on the player and target slabs, and one long dark action slab with a dwarf shaman's crest in a rune ring at its centre, with chat at the left edge and the map, quest cards and damage meter down the right edge"></p>
 
-<p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen.</sub></p>
+<p align="center"><sub>Test render of the addon: the Medallions HUD in combat on a 5120 by 1440 screen, in the Spread arrangement.</sub></p>
 
 **Medallions** is dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. Your player and target frames are slabs with clean bars, an outlined health number at the end of each bar and a round medallion on the outer end, its rim engraved with a band of runes. Yours is a painted portrait of your race, class and sex, and other players get their own. A creature, pet or boss shows the game's own portrait. The frames sit in one tight cluster just above the action slab, with your pet and your target's target beside the medallions, cast bars over the crest and your target's debuffs as small tiles with a dispel-colour underline. Numbers use Barlow Semi Condensed, and nameplates are slimmer, with ticks on your target.
 
