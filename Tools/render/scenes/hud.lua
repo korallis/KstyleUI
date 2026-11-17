@@ -357,6 +357,20 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
+	if a and a.fan and ns.Fan.Wanted(view) then
+		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
+		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
+		local icons = { 135813, 136026, 136207, 136197, 136118, 136016, 136048 }
+		local fixtures = {}
+		for i = 1, count do
+			fixtures[i] = { id = i, icon = icons[(i - 1) % #icons + 1], left = i * 3, harmful = true, mine = true }
+		end
+		fixtures[#fixtures + 1] = { id = 100, icon = 132155, left = 19, harmful = true, mine = false }
+		env._units.target.auras = fixtures
+		Engine.Install(env)
+		if os.getenv("RENDER_MEDALLIONS_STATE") == "combat" then env.SetCombat(true) end
+		return "crest debuffs: " .. count .. " of yours, soonest expiry at the apex, then alternating left and right; another player's debuff stays on the target"
+	end
 	local group = a and a.container and a.container._groups and a.container._groups.debuffs
 	if not (group and group.buttons) then
 		return "the sigil's debuff sockets: no aura engine stand-in"

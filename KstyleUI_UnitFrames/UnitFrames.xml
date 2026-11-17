@@ -14,6 +14,7 @@
 	<Script file="CastBar.lua"/>
 	<Script file="Overflow.lua"/>
 	<Script file="Auras.lua"/>
+	<Script file="Fan.lua"/>
 	<Script file="Orbs.lua"/>
 	<Script file="Frames.lua"/>
 	<Script file="Preview.lua"/>

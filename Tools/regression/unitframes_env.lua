@@ -523,7 +523,7 @@ function U.Install(env)
 	-- it when it is created (the aura tiles are children of the engine's buttons). A texture or font string runs no layout
 	-- script, so the stub lets one hang from an opted-in frame, but never straight from a container.
 	env.AnchorUtil = { FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 } }
-	env.AuraContainerSortMethod = { Default = 0, UnitFrameDebuff = 2, Expiration = 4 }
+	env.AuraContainerSortMethod = { Default = 0, UnitFrameDebuff = 2, Expiration = 4, ExpirationOnly = 5 }
 	env.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
 	env._containers = {}
 	local rawCreate = env.CreateFrame
@@ -564,7 +564,7 @@ function U.Install(env)
 		local button = createFrame("AuraButton", nil, parent)
 		button._layoutForbidden = true
 		button._aura = {}
-		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures" }) do
+		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures", "AddPandemicRegion" }) do
 			button[method] = function(self, ...)
 				self._aura[method] = { ... }
 			end

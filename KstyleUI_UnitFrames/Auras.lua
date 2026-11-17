@@ -247,12 +247,13 @@ local function Flush()
 	end
 	for view in pairs(pending) do
 		pending[view] = nil
-		if view.auras.style ~= K.HudStyle.Current() then
+		if view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
 			for _, entry in ipairs(view.auras.buttons) do
 				K.Call(StyleButton, view, entry)
 			end
+			ns.Fan.Restyle(view)
 		end
 	end
 	return true
@@ -509,6 +510,7 @@ function Auras.Sync(view)
 		return
 	end
 	a.host:SetShown(Wanted(view) and Visible(view.button))
+	ns.Fan.Sync(view, Wanted(view) and Visible(view.button))
 end
 
 function Auras.LastCell(kind, frame, first, after)
@@ -555,6 +557,9 @@ local function ApplyContainer(view)
 	local a = view.auras
 	local container = a.container
 	local filter = FILTERS[Value(view, "auraFilter")] or FILTERS.mine
+	if ns.Fan.Apply(view, Wanted(view)) then
+		filter = { debuffs = filter.debuffs and "HARMFUL|!PLAYER" or nil, buffs = filter.buffs }
+	end
 	local method, direction = Sort()
 	for _, key in ipairs(GROUPS) do
 		local on = filter[key] ~= nil
@@ -686,6 +691,7 @@ function Auras.Apply(view)
 		return
 	end
 	a.container:SetEnabled(want and true or false)
+	if not want then ns.Fan.Apply(view, false) end
 	if want then
 		K.Call(ApplyContainer, view)
 		Restyle(view)
@@ -703,6 +709,7 @@ function Auras.Disable()
 	for _, view in ipairs(views) do
 		local a = view.auras
 		if a.container then
+			ns.Fan.Apply(view, false)
 			a.container:SetEnabled(false)
 			EnableOverflow(view, false)
 			a.host:Hide()

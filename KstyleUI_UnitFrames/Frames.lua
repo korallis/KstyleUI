@@ -770,6 +770,9 @@ local function OnProfileChanged()
 end
 
 local function OnLayoutChanged(_, key)
+	if key == ns.Fan.KEY and frames.target and frames.target.views[1].auras then
+		ns.Auras.Apply(frames.target.views[1])
+	end
 	if key == ns.Resource.KEY then
 		ns.Resource.Layout()
 	end

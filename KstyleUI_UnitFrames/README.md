@@ -24,6 +24,18 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 - UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations live in the core string tables; see Languages in the repository README.
 - Build mode: check that an API exists before calling it, check `issecretvalue` before any comparison, fall back to a safer path when the preferred one is unavailable, and log the path taken with `KstyleUI.DevTest.Log`.
 
+## Medallions crest debuffs
+
+Unit Frames > Target > Your target debuffs above the crest is on by default. Under Medallions, seven 28-unit chamfered tiles show every `HARMFUL|PLAYER` aura on the target, including control effects; the native `PLAYER` filter also includes your pet and vehicle. The target frame shows `HARMFUL|!PLAYER` beside its medallion and retains any selected helpful group. Turning the option off restores the target's existing aura filter. Frames and Orbs use their existing paths throughout.
+
+The earliest expiry occupies the apex; subsequent expiries alternate left and right at 18-degree steps. Each clipped window reveals its rank from a native AuraContainer capped at that rank (1 through 7), with the same `ExpirationOnly` comparator. Native flow layout, filtering, updates, cooldown sweeps, text bindings and optional pandemic regions handle secret data. Lua never reads aura identities, counts, time values or region state, and never repositions a button during combat. The shared native-anchor overflow chip counts excess auras. The extra native containers are bounded; there is no Lua aura scan or update loop.
+
+The `unitframes.crestDebuffs` Layout Mode element moves and scales the fan independently, starting above the default crest and the cast bars. Timers use the target aura face at 10 to 12 units; the existing frame layout callback reapplies the physical text floor after scaling. Theme restyles wait for the existing aura gate. If engine construction fails, the target's original aura display remains active and the reason goes to the devlog.
+
+### Forever proof
+
+Verified against Gethe/wow-ui-source `forever` commit `9dc84f0d3bbae1768ac3405b3716000bd93eda06`: `Blizzard_FrameXMLUtil/AuraUtil.lua` defines `PLAYER`, its pet/vehicle inclusion and `!` negation; `Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua` exposes the native group/filter/sort/layout setters and restricts button access; `Blizzard_AuraContainerShared.lua` supplies `ExpirationOnly`; `Blizzard_CustomAuraButton.lua` supplies duration-text, cooldown and pandemic-region bindings. `Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua` marks aura queries `SecretWhenUnitAuraRestricted`, and `SecretPredicateAPIDocumentation.lua` documents `ShouldAurasBeSecret`. `Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua` defines `SetClipsChildren`, also used by `Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerShared.lua`. The regression fixture engine models these boundaries; an in-game pull with forced restrictions remains necessary to validate the client's secure rendering.
+
 ## Column style
 
 The owner's picture (LEE-20, "let the picture win") draws the player and target as two mirrored columns, and it replaces the Lumen vitals line and sigil as their default. The player's and target's `style` is `column`; `lumen` (the vitals line and sigil below) and `plate` stay selectable, and `Settings.Form` turns a saved `column` on any other frame into that frame's Lumen form. The saved-data migration clears matching old default fields and preset positions, so profiles receive the new defaults without losing other custom choices.
