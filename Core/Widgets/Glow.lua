@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Motion = ns.Tokens, ns.Motion
+local Tokens, Motion, Scale = ns.Tokens, ns.Motion, ns.Scale
 local max = math.max
 
 local PULSE_LOW, PULSE_HIGH = 0.45, 1
@@ -14,7 +14,13 @@ local SELECTION_ALPHA = 0.6
 local SPARK_LEVEL = 3
 
 local Glow = {}
-Glow.__index = Glow
+Glow.__index = function(self, key)
+	if key == "slice" then
+		self:Build()
+		return rawget(self, key)
+	end
+	return Glow[key]
+end
 
 local function StopAnimations(handle)
 	if handle.pulse then
@@ -66,9 +72,23 @@ local function FrameSize(frame)
 	return width, height
 end
 
+function Glow:PaintShadow()
+	local slice = rawget(self, "slice")
+	if not slice then
+		return
+	end
+	Widgets.PlaceSliceCorners(self.holder, slice[1], slice[3], slice[7], slice[9], self.shadowCorner, self.shadowOutset, 0, nil, self.shadowFarX, self.shadowFarY)
+	slice.remainder = self.shadowRemainder
+	Widgets.ColorSlice(slice, self.shadowR, self.shadowG, self.shadowB, 1)
+end
+
 function Glow:Restyle()
-	local spread = self.spread
-	Widgets.LayoutSlice(self.slice, self.holder, spread * 2, spread)
+	local holder, spread = self.holder, self.spread
+	local farX, farY = Widgets.Remainder(holder)
+	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(holder)
+	self.shadowCorner, self.shadowOutset = Widgets.Snap(holder, spread * 2), Widgets.Snap(holder, spread)
+	self.shadowFarX, self.shadowFarY = farX * pixel, farY * pixel
+	self.shadowRemainder = farX .. ":" .. farY
 	local own = self.colorRGB
 	local r, g, b
 	if own then
@@ -76,7 +96,8 @@ function Glow:Restyle()
 	else
 		r, g, b = Tokens.Color(self.colorName)
 	end
-	Widgets.ColorSlice(self.slice, r, g, b, 1)
+	self.shadowR, self.shadowG, self.shadowB = r, g, b
+	self:PaintShadow()
 	if self.spark then
 		Widgets.Size(self.spark, SPARK_LONG, SPARK_THIN)
 		Widgets.Size(self.sparkCross, SPARK_THIN, SPARK_LONG)
@@ -119,7 +140,18 @@ function Glow:IsPlaying()
 	return self.playing
 end
 
+function Glow:Build()
+	if not rawget(self, "slice") then
+		self.slice = Widgets.NineSlice(self.body, "shadow", "BACKGROUND", 0)
+		for _, piece in ipairs(self.slice) do
+			piece:SetBlendMode("ADD")
+		end
+		self:PaintShadow()
+	end
+end
+
 function Glow:Start()
+	self:Build()
 	if self.playing then
 		return
 	end
@@ -144,6 +176,7 @@ function Glow:SetIntensity(t)
 	end
 	local holder = self.holder
 	if t > 0 then
+		self:Build()
 		holder:SetAlpha(t * self.alpha)
 		holder:Show()
 	else
@@ -227,10 +260,7 @@ function Widgets.Glow(frame, opts)
 		Core(top)
 		handle.coreAlpha = math.min(1, opts.core / handle.alpha)
 	end
-	handle.slice = Widgets.NineSlice(body, "shadow", "BACKGROUND", 0)
-	for _, piece in ipairs(handle.slice) do
-		piece:SetBlendMode("ADD")
-	end
+	handle.body = body
 	handle:Restyle()
 	return Widgets.Track(handle)
 end

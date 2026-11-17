@@ -42,6 +42,7 @@ do
 	assert(K.Modules.Enable("Tooltips"))
 	local chromes = {}
 	for name in pairs(T.TOOLTIPS) do
+		T.BlizzardShow(env[name], true)
 		chromes[#chromes + 1] = assert(ns.Style.Glass(env[name])).chrome
 	end
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -95,6 +96,7 @@ do
 	assert(ns.Skins.IsApplied("popups") and ns.Skins.IsApplied("gameMenu"), "the real skins apply on show")
 	local chromes = { assert(K.Skin.Parts(menu).backdrop).chrome }
 	for _, popup in ipairs(popups) do
+		S.Show(popup)
 		chromes[#chromes + 1] = assert(K.Skin.Parts(popup).backdrop).chrome
 	end
 	for _, kit in ipairs({ ns.PartBKit, ns.PartC }) do

@@ -160,6 +160,8 @@ assert(select(2, pieces(Frames.Get("target").views[1].panel, "cardShape")) == 9,
 
 -- Cast bars. The player's carries its icon tile by default (KSTY-44); with the icon off, the glass runs across the whole width.
 local cast = CastBars.Get("player")[1]
+env._units.player.cast = { name = "Slam", texture = 132340, start = 1000, finish = 3500, spellID = 1464 }
+env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 1464)
 assert(K.Options.Read("UnitFrames", "player.castbarIcon") == true, "the player cast bar shows its icon tile by default")
 K.Options.Write("UnitFrames", "player.castbarIcon", false)
 local cg = cast.geometry
@@ -193,6 +195,9 @@ assert(near(bx, cg.bar.x, 1) and near(-by, cg.bar.y, 1), "the bar is placed from
 
 -- The target cast bar at its 24-unit footprint: the icon square, then the glass with the spell name and the time
 -- stacked over a thin bar, as the kit sheet draws it. Made 14 units tall in Layout, the name and time sit on the bar.
+U.SetUnit(env, "target", { name = "Summoner", level = 51, health = 50, healthMax = 100, reaction = 2,
+	cast = { name = "Slam", texture = 132340, start = 1000, finish = 3500, spellID = 1464 } })
+env.SetTarget(true)
 local target = CastBars.Get("target")[1]
 local tg = target.geometry
 local targetCastH = K.Setup.Layouts.Element("unitframes.castbar.target").height

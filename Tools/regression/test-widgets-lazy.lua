@@ -1,0 +1,313 @@
+-- test-widgets-lazy.lua: unused chrome and effects allocate no regions, and first use preserves eager state.
+local W = dofile("Tools/regression/widget_env.lua")
+
+local function count(env)
+	local n = 0
+	for _, frame in ipairs(env._frames) do
+		n = n + #frame._regions
+	end
+	return n
+end
+
+do
+	local env, K = W.New()
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	local child = env.CreateFrame("Frame", nil, parent)
+	local calls = ""
+	child:SetScript("OnShow", function() calls = calls .. "original " end)
+	child:HookScript("OnShow", function() calls = calls .. "hook " end)
+	parent:Hide(); child:Hide(); child:Show()
+	assert(calls == "", "showing a child of a hidden parent must defer OnShow")
+	parent:Show(); parent:Show(); child:Show()
+	assert(calls == "original hook ", "OnShow must run the original then its hook once when the parent becomes visible")
+	parent:Hide()
+	local chrome = K.Widgets.Chrome(child)
+	local T = dofile("Tools/regression/tooltips_env.lua")
+	T.BlizzardShow(parent, true)
+	assert(chrome.fill, "BlizzardShow must deliver child OnShow so lazy tooltip art appears")
+	local S = dofile("Tools/regression/skins_env.lua")
+	local window, shows = env.CreateFrame("Frame", nil, K.Scale.Root()), 0
+	window:Hide()
+	window:SetScript("OnShow", function() shows = shows + 1 end)
+	S.Show(window)
+	assert(shows == 1, "skins_env.Show must let the stub deliver OnShow once without firing it twice")
+end
+
+do
+	local env, K = W.New()
+	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
+	owner:Hide()
+	local before = count(env)
+	local chrome = K.Widgets.Chrome(owner)
+	chrome:SetFillRGBA(0.2, 0.3, 0.4, 0.5)
+	chrome:SetEdgeRGBA(0.6, 0.7, 0.8, 0.9)
+	chrome:SetProc(true)
+	chrome:SetHeader(25)
+	assert(count(env) == before and not chrome.fill, "hidden Chrome must defer its 36 slice textures and six ticks until shown")
+	owner:Show()
+	assert(chrome.fill and count(env) >= before + 42, "OnShow must build every Chrome group")
+	assert(W.SameColor(chrome.fill[5], 0.2, 0.3, 0.4, 0.5), "first show must apply the stored fill")
+	local built = count(env)
+	owner:Hide(); owner:Show(); chrome:Restyle()
+	assert(count(env) == built, "Chrome must build only once")
+	local hidden = env.CreateFrame("Frame", nil, K.Scale.Root())
+	hidden:Hide()
+	local hiddenChrome = K.Widgets.Chrome(hidden)
+	hiddenChrome:SetShown(false)
+	hidden:Show()
+	assert(not hiddenChrome.fill, "a hidden Chrome must keep its wanted visibility when its owner appears")
+	hiddenChrome:SetShown(true)
+	assert(hiddenChrome.fill[5]:IsShown(), "the first Chrome show must build its art")
+
+	local glow = K.Widgets.Glow(owner, { kind = "selection" })
+	before = count(env)
+	glow:SetColorRGB(0.2, 0.4, 0.6)
+	glow:SetIntensity(0)
+	glow:Restyle()
+	assert(count(env) == before and not rawget(glow, "slice"), "an unused glow must defer all nine shadow textures")
+	glow:SetIntensity(0.5)
+	assert(count(env) == before + 9 and W.SameRGB(glow.slice[5], 0.2, 0.4, 0.6), "first intensity must apply the stored glow colour")
+	glow:Start(); glow:Stop(); glow:Start()
+	assert(count(env) == before + 9, "glow restarts must reuse the slice")
+	local custom = K.Widgets.Glow(owner, { kind = "selection" })
+	before = count(env)
+	custom.slice[5]:Hide()
+	custom:SetIntensity(1)
+	assert(count(env) == before + 9 and not custom.slice[5]:IsShown(), "explicit slice customisation must build once and preserve the hidden centre")
+
+	local slot = K.Widgets.Slot(K.Scale.Root())
+	assert(not slot.hoverRim and not slot.pressRim and not slot.lumenGlow.texture, "an idle slot must defer its 27 hover, press and proc textures")
+	before = count(env)
+	W.Enter(slot)
+	assert(count(env) == before + 5, "first hover must build exactly four rim pieces and one wash")
+	W.Down(slot)
+	assert(count(env) == before + 18, "first press must add exactly eight halo pieces, four rim pieces and one wash")
+	slot:SetProc(true)
+	assert(count(env) == before + 27, "first proc must add exactly eight halo pieces and the inner glow")
+	W.Leave(slot); W.Enter(slot); slot:SetProc(false); slot:SetProc(true); slot:Flash()
+	assert(count(env) == before + 27, "repeated slot effects must reuse every region")
+	assert(#env._errors == 0, table.concat(env._errors, "\n"))
+end
+
+do
+	local env, K = W.New()
+	K.Widgets.Ornament = function(parent)
+		local ornament = { texture = parent:CreateTexture() }
+		function ornament:Restyle() self.texture:SetShown(self.enabled ~= false) end
+		return ornament
+	end
+	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
+	owner:Hide()
+	local chrome = K.Widgets.Chrome(owner, { ornament = "crest" })
+	chrome:SetShown(false)
+	chrome.ornament:Restyle()
+	assert(not chrome.ornament.texture:IsShown(), "a deferred Chrome must pass its hidden state to an ornament before a later wake")
+	chrome:SetShown(true)
+	chrome.ornament:Restyle()
+	assert(chrome.ornament.texture:IsShown() and not chrome.fill, "a deferred Chrome must also pass its wanted visible state without building hidden slices")
+end
+
+local REGION = { Texture = true, FontString = true, MaskTexture = true, Line = true }
+local function snapshot(owner, chrome, glow)
+	local names, regions = {}, {}
+	local function name(object, key)
+		if object then
+			names[object] = key
+			if REGION[object._type] then regions[key] = object end
+		end
+	end
+	local function frames(frame, key)
+		name(frame, key)
+		local n = 0
+		for _, child in ipairs(frame._kids) do
+			if not REGION[child._type] and child._type ~= "AnimationGroup" then
+				n = n + 1
+				frames(child, key .. "/" .. n)
+			end
+		end
+	end
+	frames(owner, "owner")
+	name(owner:GetParent(), "parent")
+	for _, key in ipairs({ "icon", "mask", "well", "bevelTop", "bevelBottom", "hotkey", "count", "countdown", "readyWash" }) do
+		name(owner[key], key)
+	end
+	for _, key in ipairs({ "shadow", "fill", "rim", "line", "gilt", "bevel", "header", "materialFrame", "materialEdge", "materialBrackets" }) do
+		for i, region in ipairs(chrome[key] or {}) do name(region, "chrome/" .. key .. i) end
+	end
+	name(chrome.grain, "chrome/grain")
+	for _, key in ipairs({ "innerLine", "hoverRim", "pressRim", "pressHalo", "procHalo" }) do
+		for i, region in ipairs(owner[key] or {}) do name(region, key .. i) end
+	end
+	name(owner.lumenGlow and owner.lumenGlow.texture, "procTexture")
+	for i, region in ipairs(glow.slice) do name(region, "glow/slice" .. i) end
+	for _, key in ipairs({ "spark", "sparkCross", "core" }) do name(glow[key], "glow/" .. key) end
+	local function remaining(frame)
+		for i, region in ipairs(frame._regions) do
+			if not names[region] then name(region, names[frame] .. "/region" .. i) end
+		end
+		for _, child in ipairs(frame._kids) do
+			if names[child] and not REGION[child._type] then remaining(child) end
+		end
+	end
+	remaining(owner)
+	local function encode(value)
+		if type(value) ~= "table" then return type(value) .. ":" .. tostring(value) end
+		if names[value] then return "@" .. names[value] end
+		assert(not value._env, "snapshot needs a semantic name for " .. tostring(value._type))
+		local parts = {}
+		for key, item in pairs(value) do parts[#parts + 1] = tostring(key) .. "=" .. encode(item) end
+		table.sort(parts)
+		return "{" .. table.concat(parts, ",") .. "}"
+	end
+	local out = {}
+	for key, region in pairs(regions) do
+		out[key] = encode({ points = region._points, width = region:GetWidth(), height = region:GetHeight(),
+			state = region._state, alpha = region:GetAlpha(), shown = region:IsShown() })
+	end
+	for object, key in pairs(names) do
+		if not REGION[object._type] then
+			local order = {}
+			for _, region in ipairs(object._regions) do
+				local layer = encode(region._state.DrawLayer)
+				order[layer] = order[layer] or {}
+				order[layer][#order[layer] + 1] = names[region]
+			end
+			out["draw order/" .. key] = encode(order)
+		end
+	end
+	return out
+end
+
+local function exercise(lazy, style)
+	local env, K = W.New()
+	K.Options.Write("HudStyle", "style", style)
+	assert(K.HudStyle.Current() == style, "the state comparison must exercise its requested HUD style")
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	if lazy then parent:Hide() end
+	local slot = K.Widgets.Slot(parent, { size = 36, icon = 135489 })
+	local chrome = slot.chrome
+	local glow = K.Widgets.Glow(slot)
+	if not lazy then
+		slot:BuildState("hover"); slot:BuildState("press"); slot:BuildState("proc")
+		glow:Build()
+	end
+	chrome:SetFillRGBA(0.3, 0.2, 0.1, 0.7)
+	chrome:SetEdgeRGBA(0.4, 0.5, 0.6, 0.8)
+	chrome:SetShadow(true)
+	glow:SetColorRGB(0.6, 0.3, 0.1)
+	slot:SetSize(43, 39)
+	parent:Show()
+	W.Enter(slot); W.Down(slot); slot:SetProc(true); glow:Start()
+	local first = snapshot(slot, chrome, glow)
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	slot:Restyle(); chrome:Restyle(); glow:Restyle()
+	assert(#env._errors == 0, table.concat(env._errors, "\n"))
+	local final = snapshot(slot, chrome, glow)
+	for key, state in pairs(first) do final["first use/" .. key] = state end
+	return final
+end
+
+local function card(lazy, style, material)
+	local env, K = W.New({ setup = function(e)
+		e.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+	end })
+	K.Options.Write("HudStyle", "style", style)
+	K.Options.Write("Widgets", "cardMaterial", material)
+	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
+	owner:SetSize(240, 150)
+	if lazy then owner:Hide() end
+	local chrome = K.Widgets.Chrome(owner, { shape = "panel", shadow = true })
+	local glow = K.Widgets.Glow(owner)
+	if not lazy then glow:Build() end
+	chrome:SetFill("surface", 0.8)
+	chrome:SetHeader(30)
+	chrome:SetEdgeRGBA(0.4, 0.3, 0.2, 0.7)
+	glow:SetColor("epic")
+	owner:Show(); glow:Start()
+	owner:SetSize(260, 170)
+	chrome:SetHeader(35)
+	chrome:Restyle(); glow:Restyle()
+	if style == "medallions" then assert(chrome.bevel and chrome.headerSplit, "the card comparison must include the steel bevel and header") end
+	assert(#env._errors == 0, table.concat(env._errors, "\n"))
+	return snapshot(owner, chrome, glow)
+end
+
+local function same(eager, lazy, what)
+	for key, state in pairs(eager) do assert(lazy[key] == state, what .. " lazy state differs: " .. key .. "\n" .. state .. "\n" .. tostring(lazy[key])) end
+	for key in pairs(lazy) do assert(eager[key], "lazy widget added an extra region: " .. key) end
+end
+
+local function firstGlow(lazy, kind)
+	local env, K = W.New()
+	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
+	owner:SetSize(32.2, 24.3)
+	local glow = K.Widgets.Glow(owner, { kind = kind, core = 0.2 })
+	if not lazy then glow:Build() end
+	glow:SetColorRGB(0.2, 0.4, 0.6)
+	owner:SetSize(64.4, 48.6)
+	owner:SetScale(1.25)
+	glow:Start()
+	return snapshot(owner, {}, glow)
+end
+
+for _, kind in ipairs({ "proc", "selection" }) do
+	same(firstGlow(false, kind), firstGlow(true, kind), kind .. " first Start before a later restyle")
+end
+
+for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	same(exercise(false, style), exercise(true, style), style .. " slot")
+	for _, material in ipairs({ "Glass", "ForgedBrackets" }) do
+		same(card(false, style, material), card(true, style, material), style .. " " .. material .. " card")
+	end
+end
+
+do
+	local env, K = W.New()
+	local owner = env.CreateFrame("Button", nil, K.Scale.Root(), "SecureActionButtonTemplate")
+	owner.IsProtected = function() return true end
+	owner:Hide()
+	local chrome = K.Widgets.Chrome(owner)
+	assert(chrome.fill, "protected Chrome must prebuild out of combat so its first combat show keeps every pixel")
+	local before = count(env)
+	env.SetCombat(true)
+	for _, method in ipairs({ "Show", "Hide", "SetShown", "SetPoint", "ClearAllPoints", "SetSize", "SetScale", "SetParent", "SetFrameLevel" }) do
+		owner[method] = function() error("protected frame mutation during combat: " .. method) end
+	end
+	owner._shown = true
+	owner:GetScript("OnShow")(owner)
+	chrome:SetFillRGBA(0.2, 0.3, 0.4, 0.5)
+	assert(count(env) == before and W.SameColor(chrome.fill[5], 0.2, 0.3, 0.4, 0.5), "first combat show must reuse the prepared art without touching its protected owner")
+	env.SetCombat(false)
+end
+
+do
+	local original, measured = dofile, nil
+	_G.dofile = function(path)
+		local result = original(path)
+		if path == "Tools/render/scenes/_common.lua" then
+			local force = result.ForceScreen
+			result.ForceScreen = function(env, ...)
+				measured = env
+				return force(env, ...)
+			end
+		end
+		return result
+	end
+	local screen, style, lib = _G.RENDER_SCREEN, _G.RENDER_HUD_STYLE, _G.RENDER_SCENE_LIB
+	_G.RENDER_SCREEN = { width = 5120, height = 1440, size = "auto" }
+	_G.RENDER_HUD_STYLE, _G.RENDER_SCENE_LIB = "Medallions", true
+	local Hud = dofile("Tools/render/scenes/hud.lua")
+	local limits = { unitframes = 4300, actionbars = 4900, databars = 1400, tooltips = 300 }
+	for _, module in ipairs({ "unitframes", "actionbars", "databars", "tooltips" }) do
+		local scene = Hud.Module(module, Hud.Options({ layout = "DPS", class = "ROGUE", applyPreset = true }))
+		local created = count(assert(measured))
+		assert(created <= limits[module], module .. " creates " .. created .. " regions; defer unused chrome and state layers")
+		assert(#scene.items > 0, module .. " must actually draw the HUD fixture")
+		assert(#measured._errors == 0, table.concat(measured._errors, "\n"))
+		print("lazy regions " .. module .. ": " .. created)
+	end
+	_G.dofile = original
+	_G.RENDER_SCREEN, _G.RENDER_HUD_STYLE, _G.RENDER_SCENE_LIB = screen, style, lib
+end
+
+print("widgets lazy ok")

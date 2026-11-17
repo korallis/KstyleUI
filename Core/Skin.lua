@@ -135,15 +135,19 @@ local function IsTexture(region)
 	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "Texture"
 end
 
-local function StripOwn(frame)
-	local keep = kept[frame]
+local function StripRegions(keep, ...)
 	local count = 0
-	for _, region in ipairs({ frame:GetRegions() }) do
+	for i = 1, select("#", ...) do
+		local region = select(i, ...)
 		if IsTexture(region) and not (keep and keep[region]) and Hush(region) then
 			count = count + 1
 		end
 	end
 	return count
+end
+
+local function StripOwn(frame)
+	return StripRegions(kept[frame], frame:GetRegions())
 end
 
 local function Resolve(frame, path)

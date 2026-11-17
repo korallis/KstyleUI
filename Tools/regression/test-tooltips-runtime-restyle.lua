@@ -115,6 +115,8 @@ end
 do
 	local env, K, ns = boot({})
 	local item = env.GameTooltip.ItemTooltip
+	T.BlizzardShow(env.GameTooltip, true)
+	T.BlizzardShow(item, true)
 	item.IconBorder:Show()
 	item.IconBorder:SetVertexColor(0.12, 1, 0)
 	local function quality(what)

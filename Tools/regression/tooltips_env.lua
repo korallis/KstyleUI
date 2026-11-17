@@ -324,6 +324,10 @@ end
 -- OnShow or OnHide script, without counting as a call the module made.
 function T.BlizzardShow(object, shown)
 	object._shown = shown and true or false
+	if shown then
+		object._env._showScripts(object)
+		return
+	end
 	local script = object:GetScript(shown and "OnShow" or "OnHide")
 	if script then
 		script(object)

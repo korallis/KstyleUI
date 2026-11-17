@@ -1260,6 +1260,8 @@ local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop, outsetX, 
 	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outsetX + farX, -outset - drop - farY)
 end
 
+Widgets.PlaceSliceCorners = PlaceCorners
+
 function Widgets.NineSlice(owner, name, layer, sublevel)
 	if not TEXELS[name] then
 		error("KstyleUI.Widgets.NineSlice: " .. tostring(name) .. " is not a sliced texture", 2)
@@ -1363,23 +1365,10 @@ function Widgets.Chrome(owner, opts)
 		visible = true,
 		ticksShown = false,
 	}, Chrome)
-	if shape.pill then
-		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
-		c.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM)
-	else
-		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
-		Widgets.ColorSlice(c.shadow, Tokens.Color("shadow"))
-		c.fill = NewSlice(owner, shape.card and "cardShape" or "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
-		c.rim = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_RIM)
-		c.line = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_LINE)
-		if shape.card and opts.gilt ~= false then
-			c.gilt = NewTicks(owner)
-			Widgets.ColorSlice(c.gilt, Tokens.Color("gilt"))
-		end
-		if shape.card then
-			Widgets.Cards[c] = true
-			cardOf[owner] = c
-		end
+	c.giltOn = shape.card and opts.gilt ~= false
+	if shape.card then
+		Widgets.Cards[c] = true
+		cardOf[owner] = c
 	end
 	if opts.ornament == "crest" and Widgets.Ornament and type(owner.AttachTexture) ~= "function" then
 		c.ornament = Widgets.Ornament(owner, "crest", nil, true)
@@ -1395,6 +1384,11 @@ function Widgets.Chrome(owner, opts)
 	end
 	c:Restyle()
 	if type(owner.HookScript) == "function" then
+		owner:HookScript("OnShow", function()
+			if not c.fill then
+				c:Restyle()
+			end
+		end)
 		owner:HookScript("OnSizeChanged", function()
 			c:OnSizeChanged()
 		end)
@@ -1403,6 +1397,27 @@ function Widgets.Chrome(owner, opts)
 		return c
 	end
 	return Widgets.Track(c)
+end
+
+function Chrome:Build()
+	if self.fill then
+		return
+	end
+	local owner, shape = self.owner, self.shape
+	if shape.pill then
+		self.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
+		self.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM)
+	else
+		self.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
+		Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
+		self.fill = NewSlice(owner, shape.card and "cardShape" or "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
+		self.rim = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_RIM)
+		self.line = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_LINE)
+		if shape.card and self.giltOn then
+			self.gilt = NewTicks(owner)
+			Widgets.ColorSlice(self.gilt, Tokens.Color("gilt"))
+		end
+	end
 end
 
 local function ShortSide(owner)
@@ -1471,6 +1486,10 @@ function Chrome:TicksWanted()
 end
 
 function Chrome:OnSizeChanged()
+	if not self.fill then
+		self:Restyle()
+		return
+	end
 	if self.released then
 		return
 	end
@@ -1603,6 +1622,9 @@ function Chrome:MaterialOpacity()
 end
 
 function Chrome:SyncMaterialFrame()
+	if not self.fill then
+		return
+	end
 	if not self.frameWanted and not self.materialFrame then
 		if self.gilt and self.steel then
 			ShowOnce(self, "giltState", self.gilt, false)
@@ -1862,6 +1884,9 @@ function Chrome:SetHeader(units)
 end
 
 function Chrome:PaintMaterial()
+	if not self.fill then
+		return
+	end
 	if self.released then
 		return
 	end
@@ -1991,6 +2016,9 @@ function Chrome:PaintMaterial()
 end
 
 function Chrome:Paint()
+	if not self.fill then
+		return
+	end
 	local r, g, b, a
 	if self.ownFill then
 		local c = self.fillColor
@@ -2019,6 +2047,9 @@ function Chrome:Paint()
 end
 
 function Chrome:PaintEdge()
+	if not self.fill then
+		return
+	end
 	self:SyncMaterialFrame()
 	local e = self.edge
 	local material = self:Material()
@@ -2065,20 +2096,37 @@ function Chrome:Restyle()
 	if self.released then
 		return
 	end
+	if not self.fill then
+		if not self.visible then
+			return
+		end
+		local owner = self.owner
+		if type(owner.AttachTexture) ~= "function" and type(owner.IsVisible) == "function" then
+			local visible = owner:IsVisible()
+			if not IsSecret(visible) and not visible then
+				local protected = type(owner.IsProtected) == "function" and owner:IsProtected()
+				if not IsSecret(protected) and not protected then
+					return
+				end
+			end
+		end
+	end
 	if Widgets.MayMove(self.owner) then
+		self:Build()
 		self:Layout()
 	elseif not self.layoutQueued then
 		self.layoutQueued = true
 		ns.Combat.Queue(function()
 			self.layoutQueued = false
 			if not self.released then
-				self:Layout()
-				self:Paint()
+				self:Restyle()
 			end
 		end)
 	end
-	self:Paint()
-	self:RestyleOrnament()
+	if self.fill then
+		self:Paint()
+		self:RestyleOrnament()
+	end
 end
 
 function Chrome:RestyleOrnament()
@@ -2168,6 +2216,16 @@ function Chrome:SetShown(shown)
 	self.visible = shown and true or false
 	if self.ornament then
 		self.ornament.enabled = self.visible
+	end
+	if not self.fill then
+		if shown then
+			self:Restyle()
+		end
+		if not self.fill then
+			return
+		end
+	end
+	if self.ornament then
 		self:RestyleOrnament()
 	end
 	if self.grain then

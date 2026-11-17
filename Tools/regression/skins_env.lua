@@ -73,9 +73,10 @@ end
 
 -- Show(frame) shows a stand-in Blizzard window and runs its OnShow scripts, as the game does.
 function S.Show(frame)
+	local was = frame:IsShown()
 	frame:Show()
 	local fn = frame:GetScript("OnShow")
-	if fn then
+	if was and fn then
 		fn(frame)
 	end
 end

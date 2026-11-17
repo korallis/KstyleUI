@@ -197,15 +197,30 @@ local function stopGroups(self)
 		end
 	end
 end
-function Object:Show() self._shown = true end
+local function shownScripts(frame)
+	if not frame._shown then return end
+	local fn = frame._scripts.OnShow
+	if fn then fn(frame) end
+	for _, child in ipairs(frame._kids or {}) do
+		shownScripts(child)
+	end
+end
+function Object:Show()
+	local changed = not self._shown
+	self._shown = true
+	if changed and (not self._parent or self._parent:IsVisible()) then
+		shownScripts(self)
+	end
+end
 function Object:Hide()
 	self._shown = false
 	stopGroups(self)
 end
 function Object:SetShown(shown)
-	self._shown = not not shown
-	if not shown then
-		stopGroups(self)
+	if shown then
+		Object.Show(self)
+	else
+		Object.Hide(self)
 	end
 end
 function Object:IsShown() return self._shown end
@@ -1249,6 +1264,7 @@ function Stubs.NewEnv(opts)
 	end
 	env._combat = false
 	env._frames = {}
+	env._showScripts = shownScripts
 	local timers = {}
 
 	env.UIParent = newObject(env, "Frame", "UIParent", nil)

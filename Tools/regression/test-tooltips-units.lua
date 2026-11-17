@@ -118,6 +118,7 @@ local function ShowUnit(env, tip, unit, lines)
 	for _, line in ipairs(lines) do
 		tip:AddLine(line, 1, 1, 1)
 	end
+	T.BlizzardShow(tip, true)
 	T.PostCall(env, tip, { type = Unit, guid = info.guid, healthGUID = info.guid })
 end
 
@@ -317,6 +318,7 @@ local function Show(env, tip, kind, id, lines)
 	for _, line in ipairs(lines) do
 		tip:AddLine(line[1], line[2], line[3], line[4])
 	end
+	T.BlizzardShow(tip, true)
 	T.PostCall(env, tip, { type = kind, id = id })
 end
 

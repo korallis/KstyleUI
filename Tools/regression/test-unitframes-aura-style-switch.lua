@@ -42,12 +42,33 @@ end
 
 local function Signature(entry)
 	local nodes, ids, lines = {}, {}, {}
+	local unused = {}
+	if not entry.chrome.visible then
+		for _, key in ipairs({ "shadow", "fill", "rim", "line" }) do
+			for _, region in ipairs(entry.chrome[key] or {}) do
+				assert(not region:IsShown(), "unused socket chrome must stay hidden behind the Medallions tile")
+				unused[region] = true
+			end
+		end
+	end
 	local function Add(node)
 		ids[node] = tostring(#nodes + 1)
 		nodes[#nodes + 1] = node
-		for _, region in ipairs({ node:GetRegions() }) do
-			ids[region] = tostring(#nodes + 1)
-			nodes[#nodes + 1] = region
+		local regions, order = { node:GetRegions() }, {}
+		for i, region in ipairs(regions) do order[region] = i end
+		table.sort(regions, function(a, b)
+			local al, az = a:GetDrawLayer()
+			local bl, bz = b:GetDrawLayer()
+			al, bl = LAYERS[al] or 0, LAYERS[bl] or 0
+			if al ~= bl then return al < bl end
+			if (az or 0) ~= (bz or 0) then return (az or 0) < (bz or 0) end
+			return order[a] < order[b]
+		end)
+		for _, region in ipairs(regions) do
+			if not unused[region] then
+				ids[region] = tostring(#nodes + 1)
+				nodes[#nodes + 1] = region
+			end
 		end
 		for _, child in ipairs({ node:GetChildren() }) do
 			Add(child)

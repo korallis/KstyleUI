@@ -1,5 +1,6 @@
 -- test-groupframes-auras.lua: debuff icons and the dispellable debuff highlight on the AuraContainer engine: filters, layout, settings, secrecy, combat and a client without the engine.
 local G = dofile("Tools/regression/group_env.lua")
+local A = dofile("Tools/regression/auras_env.lua")
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": expected " .. tostring(want) .. ", got " .. tostring(got))
@@ -74,6 +75,7 @@ do
 end
 
 -- Each aura button: icon, swipe and stack count bound to the engine, clicks passing through to the unit.
+A.Assign(env, container, "debuffs", 1)
 local button = group.frames[1]
 assert(button._aura.icon, "the icon is bound")
 assert(button._aura.cooldown, "the duration swipe is bound")

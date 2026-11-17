@@ -249,7 +249,7 @@ assert(not element.frame:IsShown(), "the classic cast bar element stays hidden u
 assert(not ns.CastBars.ElementLive("player"), "the classic cast bar element is not live")
 assert(U.Shown(env, inline.text) == "Slam", "the spell's name")
 assert(U.Shown(env, inline.label) == K.L["Casting"], "after the word Casting")
-assert(not inline.iconFrame:IsShown() and not inline.chrome.fill[5]:IsShown(), "no icon tile, no glass: a line")
+assert(not inline.iconFrame:IsShown() and (not inline.chrome.fill or not inline.chrome.fill[5]:IsShown()), "no icon tile, no glass: a line")
 local _, lineH = inline.bar:GetSize()
 assert(lineH <= 5, "the line's bar is thin, got " .. tostring(lineH))
 local fx = inline.frame:GetPoint(1)

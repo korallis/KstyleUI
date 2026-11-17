@@ -90,20 +90,21 @@ local HALO = {
 
 local function Halo(button, layer)
 	local holder = CreateFrame("Frame", nil, layer)
-	local halo = { holder = holder, button = button }
+	return { holder = holder, button = button }
+end
+
+local function BuildHalo(halo)
 	for i, spec in ipairs(HALO) do
-		local t = holder:CreateTexture(nil, "BACKGROUND")
+		local t = halo.holder:CreateTexture(nil, "BACKGROUND")
 		t:SetTexture((Tokens.Texture("glow")))
 		t:SetTexCoord(spec[5], spec[6], spec[7], spec[8])
 		t:SetBlendMode("ADD")
 		halo[i] = t
 	end
-	return halo
 end
 
-local function PlaceHalo(halo, spread)
+local function PlaceHalo(halo, spread, inset)
 	local holder = halo.holder
-	local inset = 3 * Widgets.Border(halo.button)
 	holder:ClearAllPoints()
 	holder:SetPoint("TOPLEFT", halo.button, "TOPLEFT", inset, -inset)
 	holder:SetPoint("BOTTOMRIGHT", halo.button, "BOTTOMRIGHT", -inset, inset)
@@ -162,6 +163,7 @@ function Slot:AnimateHover(on)
 	self.hovered = on
 	local layer = self.hoverLayer
 	if on then
+		self:BuildState("hover")
 		self.hoverOut:Stop()
 		if Animated() then
 			layer:SetAlpha(0)
@@ -192,6 +194,7 @@ function Slot:Flash()
 	if not Animated() then
 		return
 	end
+	self:BuildState("press")
 	self.pressLayer:SetAlpha(0)
 	self.pressLayer:Show()
 	Replay(self.press)
@@ -215,6 +218,9 @@ function Slot:SetProc(on)
 		return
 	end
 	self.proc = on
+	if on then
+		self:BuildState("proc")
+	end
 	self.chrome:SetProc(on)
 	self.lumenGlow:SetShown(on)
 	self:Paint()
@@ -228,8 +234,27 @@ local function Height(self)
 	return size
 end
 
+local function PlaceStates(self)
+	local line = self.stateLine
+	if not line then
+		return
+	end
+	if self.hoverRim then
+		PlaceRing(self.hoverRim, self, -line, line)
+	end
+	if self.pressRim then
+		PlaceRing(self.pressRim, self, line, line)
+		PlaceHalo(self.pressHalo, self.statePressSpread, self.stateInset)
+	end
+	if self.lumenGlow.texture then
+		PlaceHalo(self.procHalo, self.stateProcSpread, self.stateInset)
+	end
+end
+
 local function PlaceLayers(self)
 	local line = Widgets.Border(self)
+	self.stateLine, self.stateInset = line, 3 * line
+	self.statePressSpread, self.stateProcSpread = Widgets.Snap(self, PRESS_SPREAD), Widgets.Snap(self, PROC_SPREAD)
 	local size = Height(self)
 	PlaceRing(self.innerLine, self.icon, 0, line)
 	local top, bottom = self.bevelTop, self.bevelBottom
@@ -241,10 +266,7 @@ local function PlaceLayers(self)
 	bottom:SetPoint("BOTTOMLEFT", self.icon, "BOTTOMLEFT")
 	bottom:SetPoint("BOTTOMRIGHT", self.icon, "BOTTOMRIGHT")
 	bottom:SetHeight(Widgets.Snap(self, size * BEVEL_BOTTOM))
-	PlaceRing(self.hoverRim, self, -line, line)
-	PlaceRing(self.pressRim, self, line, line)
-	PlaceHalo(self.pressHalo, Widgets.Snap(self, PRESS_SPREAD))
-	PlaceHalo(self.procHalo, Widgets.Snap(self, PROC_SPREAD))
+	PlaceStates(self)
 	local inset = Widgets.Snap(self, TEXT_INSET)
 	self.hotkey:ClearAllPoints()
 	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset)
@@ -257,7 +279,35 @@ local function PlaceLayers(self)
 	end
 end
 
+local function StoreColor(self, key, r, g, b, a)
+	local color = self[key]
+	if not color then
+		color = {}
+		self[key] = color
+	end
+	color[1], color[2], color[3], color[4] = r, g, b, a
+end
+
+local function PaintStates(self)
+	if self.hoverRim then
+		ColorRing(self.hoverRim, unpack(self.hoverRimColor))
+	end
+	if self.pressRim then
+		ColorRing(self.pressRim, unpack(self.pressRimColor))
+		ColorHalo(self.pressHalo, unpack(self.pressHaloColor))
+	end
+	if self.lumenGlow.texture then
+		self.lumenGlow.texture:SetVertexColor(unpack(self.procGlowColor))
+		ColorHalo(self.procHalo, unpack(self.procHaloColor))
+	end
+end
+
 local function PaintLayers(self)
+	StoreColor(self, "hoverRimColor", Widgets.Rgba("textHover", HOVER_RIM))
+	StoreColor(self, "pressRimColor", Tokens.Color("slotPress"))
+	StoreColor(self, "pressHaloColor", Widgets.Rgba("slotPress", PRESS_HALO))
+	StoreColor(self, "procGlowColor", Widgets.Rgba("giltLit", PROC_GLOW))
+	StoreColor(self, "procHaloColor", Widgets.Rgba("giltLit", PROC_HALO))
 	ColorRing(self.innerLine, Widgets.Rgba("black", INNER_ALPHA))
 	if type(self.bevelTop.SetGradient) == "function" and type(CreateColor) == "function" then
 		local wr, wg, wb = Tokens.Color("white")
@@ -270,11 +320,7 @@ local function PaintLayers(self)
 		self.bevelBottom:Hide()
 	end
 	self.well:SetVertexColor(Tokens.Color("slotWell"))
-	ColorRing(self.hoverRim, Widgets.Rgba("textHover", HOVER_RIM))
-	ColorRing(self.pressRim, Tokens.Color("slotPress"))
-	ColorHalo(self.pressHalo, Widgets.Rgba("slotPress", PRESS_HALO))
-	self.lumenGlow.texture:SetVertexColor(Widgets.Rgba("giltLit", PROC_GLOW))
-	ColorHalo(self.procHalo, Widgets.Rgba("giltLit", PROC_HALO))
+	PaintStates(self)
 	self.readyWash:SetColorTexture(Widgets.Rgba("giltLit"))
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
@@ -288,6 +334,29 @@ end
 
 local function Lit(self)
 	return self.usable and self:IsEnabled() ~= false and not self.proc and not self.selected and not (self.cooling and self.realCooldown)
+end
+
+function Slot:BuildState(kind)
+	if kind == "hover" and not self.hoverRim then
+		self.hoverRim = Ring(self.hoverLayer, "OVERLAY", 1)
+		Wash(self, self.hoverLayer, "white", HOVER_WASH)
+	elseif kind == "press" and not self.pressRim then
+		BuildHalo(self.pressHalo)
+		self.pressRim = Ring(self.pressLayer, "OVERLAY", 1)
+		Wash(self, self.pressLayer, "white", PRESS_WASH)
+	elseif kind == "proc" and not self.lumenGlow.texture then
+		local glow = self.lumenGlow
+		local texture = glow:CreateTexture(nil, "OVERLAY")
+		texture:SetTexture((Tokens.Texture("glow")))
+		texture:SetBlendMode("ADD")
+		texture:SetAllPoints(glow)
+		glow.texture = Masked(self, texture)
+		BuildHalo(self.procHalo)
+	else
+		return
+	end
+	PlaceStates(self)
+	PaintStates(self)
 end
 
 function Widgets.Slot(parent, opts)
@@ -309,8 +378,6 @@ function Widgets.Slot(parent, opts)
 	b.bevelBottom = Masked(b, Solid(b, "ARTWORK", 2))
 	local hover = Layer(b)
 	b.hoverLayer = hover
-	b.hoverRim = Ring(hover, "OVERLAY", 1)
-	Wash(b, hover, "white", HOVER_WASH)
 	b.hoverIn = hover:CreateAnimationGroup()
 	b.hoverIn:SetToFinalAlpha(true)
 	Fade(b.hoverIn, 0, 1, Tokens.Duration("hover"), "OUT")
@@ -325,8 +392,6 @@ function Widgets.Slot(parent, opts)
 	local press = Layer(b)
 	b.pressLayer = press
 	b.pressHalo = Halo(b, press)
-	b.pressRim = Ring(press, "OVERLAY", 1)
-	Wash(b, press, "white", PRESS_WASH)
 	b.press = press:CreateAnimationGroup()
 	local rise = Tokens.Duration("pressIn")
 	Fade(b.press, 0, 1, rise, "OUT")
@@ -335,11 +400,6 @@ function Widgets.Slot(parent, opts)
 		press:Hide()
 	end)
 	local glow = Layer(b, b.icon)
-	local texture = glow:CreateTexture(nil, "OVERLAY")
-	texture:SetTexture((Tokens.Texture("glow")))
-	texture:SetBlendMode("ADD")
-	texture:SetAllPoints(glow)
-	glow.texture = Masked(b, texture)
 	b.procHalo = Halo(b, glow)
 	glow.breath = glow:CreateAnimationGroup()
 	glow.breath:SetLooping("BOUNCE")

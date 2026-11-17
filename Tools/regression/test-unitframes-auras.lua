@@ -10,6 +10,7 @@ local function noErrors(where)
 	assert(K.ErrorCount() == 0, where .. ": KstyleUI caught an error")
 end
 noErrors("enable")
+U.SetUnit(env, "focus", { name = "Elunara", level = 60, health = 1, healthMax = 2, reaction = 2 })
 
 -- Focus and boss frames show auras by default, and the target's sigil carries your debuffs; the player leaves them to the Auras module.
 local focus = Frames.Get("focus").views[1]

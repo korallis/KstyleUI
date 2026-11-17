@@ -92,6 +92,7 @@ function Overflow.New(host, unit, groups, cap, opts)
 		ghostHost:Hide()
 		return nil, LAYOUT_TEMPLATE .. " is missing, and only a frame with it may anchor to the engine's containers"
 	end
+	window:Hide()
 	window:SetClipsChildren(true)
 	local strip = LayoutFrame(window)
 	strip:SetClipsChildren(true)
@@ -105,16 +106,12 @@ function Overflow.New(host, unit, groups, cap, opts)
 	end
 	for i = 1, total do
 		local frame = LayoutFrame(strip)
-		local text = Widgets.FontString(frame, "OVERLAY")
-		text:SetAllPoints(frame)
-		chip.labels[i], chip.texts[i] = frame, text
+		chip.labels[i] = frame
 	end
 	if opts.saturate then
 		chip.sat = LayoutFrame(window)
 		chip.sat:SetClipsChildren(true)
 		chip.satLabel = LayoutFrame(chip.sat)
-		chip.satText = Widgets.FontString(chip.satLabel, "OVERLAY")
-		chip.satText:SetAllPoints(chip.satLabel)
 	end
 	return chip
 end
@@ -209,6 +206,10 @@ function Overflow.Apply(chip, o)
 		sat:SetPoint("BOTTOMLEFT", base, at, 0, lift + (chip.count + 1) * pitch - cell)
 		sat:SetPoint("TOPRIGHT", base, at, width, Widgets.Snap(sat, OPEN))
 		local label = chip.satLabel
+		if not chip.satText then
+			chip.satText = Widgets.FontString(label, "OVERLAY")
+			chip.satText:SetAllPoints(label)
+		end
 		label:ClearAllPoints()
 		label:SetAllPoints(window)
 		label:SetFrameLevel(level)
@@ -226,6 +227,11 @@ function Overflow.Apply(chip, o)
 		label:SetPoint("BOTTOMRIGHT", base, at, width, top - cell)
 		label:SetFrameLevel(level)
 		local text = chip.texts[i]
+		if not text then
+			text = Widgets.FontString(label, "OVERLAY")
+			text:SetAllPoints(label)
+			chip.texts[i] = text
+		end
 		if o.style then
 			o.style(text)
 		else

@@ -55,6 +55,8 @@ do
 		local tip = env[name]
 		local glass = ns.Style.Glass(tip)
 		assert(glass and glass:GetParent() == tip, name .. " wears a glass frame of KstyleUI's own")
+		assert(not glass.chrome.fill, name .. ": hidden tooltips defer their glass")
+		T.BlizzardShow(tip, true)
 		assert(glass.chrome and #glass.chrome.fill == 9 and #glass.chrome.shadow == 9, name .. ": a chamfered panel with a shadow")
 		assert(W.Calls(glass, "SetUsingParentLevel")[1] and W.Calls(glass, "SetUsingParentLevel")[1][1] == true, name .. ": the glass draws at the tooltip's own level, behind its text")
 		for _, piece in ipairs(W.Regions(tip.NineSlice, "Texture")) do
