@@ -1,4 +1,4 @@
--- Unit.lua: fills a unit frame's parts from the unit API, passing health, power and other secret values straight to widget setters; a name too long for its line drops to the body size before it truncates.
+-- Unit.lua: fills unit frames from unit APIs and fits readable names without inspecting secret text.
 local _, ns = ...
 
 local K = KstyleUI
@@ -357,7 +357,12 @@ local function BoundName(view, bound)
 	local g = view.geometry
 	view.nameBound = bound
 	if g and g.nameAuto and g.nameRoom then
-		view.name:SetWidth(bound and K.Widgets.Snap(view.name, g.nameRoom) or 0)
+		local width = K.Widgets.Snap(view.name, g.nameRoom)
+		if g.form == "slab" then
+			width = math.max(K.Widgets.Border(view.name), width)
+			view.name:SetShown(g.nameRoom > 0)
+		end
+		view.name:SetWidth(bound and width or 0)
 	end
 end
 
@@ -365,6 +370,7 @@ local function SetName(view, name)
 	local text = view.name
 	local path, full, flags = ns.Settings.Font(view.kind, "name")
 	ns.Slab.Caption(view)
+	if view.form == "slab" and text.ClearText then text:ClearText() end
 	K.Widgets.Fitted(text, false)
 	SetFont(text, path, full, flags)
 	if IsSecret(name) then
@@ -387,10 +393,10 @@ local function SetName(view, name)
 	local nameFloor
 	if view.form == "slab" and Number(width) and Number(room) and room > 0 then
 		local pixel = K.Widgets.Border(text)
-		nameFloor = math.ceil(9 * Theme.FontScale() / (K.Scale.AppliedUserScale() * K.Scale.Pixel(1)) - 1e-6) * pixel
 		local _, size = text:GetFont()
+		nameFloor = math.min(size, math.ceil(9 / (K.Scale.AppliedUserScale() * K.Scale.Pixel(1)) - 1e-6) * pixel)
 		while width > room and Number(size) and size > nameFloor do
-			size = math.max(nameFloor, size - 1)
+			size = math.max(nameFloor, size - full / 10)
 			K.Widgets.Fitted(text)
 			SetFont(text, path, size, flags)
 			width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
@@ -399,11 +405,16 @@ local function SetName(view, name)
 	end
 	if Number(width) and Number(room) and room > 0 and width > room then
 		local limit = math.max(nameFloor or 0, math.min(bodySize, full))
+		if view.form == "slab" then
+			local _, size = text:GetFont()
+			limit = math.min(limit, size)
+			K.Widgets.Fitted(text)
+		end
 		SetFont(text, bodyPath, limit, flags)
 		text:SetText(name)
 		width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
 		local _, actual = text:GetFont()
-		if Number(width) and width > room and Number(actual) and actual > limit then
+		if view.form ~= "slab" and Number(width) and width > room and Number(actual) and actual > limit then
 			K.Widgets.Fitted(text)
 			local pixel = K.Widgets.FontSize(text, 0)
 			SetFont(text, bodyPath, math.max(pixel, actual - pixel), flags)
@@ -553,14 +564,8 @@ function Unit.Caption(view, unit)
 				label = UnitCreatureType and UnitCreatureType(unit)
 			end
 		end
-		if IsSecret(label) then
-			text:SetText(label)
-		elseif type(label) == "string" then
-			text:SetText(Unit.Tracked(label, (text:GetFont())))
-		else
-			text:SetText("")
-		end
-		ns.Slab.Caption(view)
+		if not IsSecret(label) and type(label) ~= "string" then label = "" end
+		ns.Slab.SetCaption(view, label)
 		Unit.Refit(view)
 	elseif form == "sigil" then
 		LevelLine(text, unit, false)

@@ -625,11 +625,8 @@ local function SlabFrame(out, s, width, height, scale)
 		out.healthText = Rect(left + pad, top, max(0, barW - 2 * pad), barH)
 	end
 	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
-	local extra = (spec.extra == "health" and s.healthText == "both") or spec.extra == "caption"
+	local extra = spec.extra == "health" and s.healthText == "both"
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
-	if spec.extra == "caption" then
-		room = max(0, barW - 12 * Size(s, "level", scale) - TEXT_GAP)
-	end
 	if s.name then
 		local levelSize = Size(s, "level", scale)
 		out.name = Rect(right and left + barW - room or left, y, room, rowH)
