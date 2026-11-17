@@ -28,6 +28,7 @@ PIPELINE = (
 )
 
 READ_BY_TESTS = (
+    "docs/feature-map.md",
     "docs/media/marketing/*",
     "docs/store/description.md",
     "docs/store/curseforge.md",
