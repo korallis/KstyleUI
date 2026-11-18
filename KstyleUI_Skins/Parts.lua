@@ -503,7 +503,7 @@ local function PlaceCap(cap)
 		return
 	end
 	local gap = Widgets.Snap(holder, CAP_RULE_GAP)
-	rule:SetPoint("LEFT", title, "LEFT", width + gap, 0)
+	Widgets.Point(rule, "LEFT", title, "LEFT", width + gap, 0)
 	local close = cap.close
 	if close then
 		rule:SetPoint("RIGHT", close, "LEFT", -gap, 0)

@@ -18,4 +18,10 @@ return {
 			["GameMenuFrame.Header.Text:SetPoint"] = 2,
 		},
 	},
+	["KstyleUI_Skins/PartB/Mail.lua"] = {
+		why = "MailFrame.xml anchors the first inbox row below the old portrait header; the skin moves that plain row to twelve units below its 32-unit title band, only when Widgets.MayMove permits it outside combat. Its child item button keeps its own actions and scripts, and MailItem1 is not a protected action frame.",
+		calls = {
+			["MailItem1:ClearAllPoints"] = 1,
+		},
+	},
 }
