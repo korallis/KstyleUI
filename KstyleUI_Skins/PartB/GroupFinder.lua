@@ -123,5 +123,6 @@ ns.Skins.Add({
 	help = L["Restyles the Looking for Group window: listing, browsing and the who list."],
 	addon = "Blizzard_GroupFinder_VanillaStyle",
 	frame = "LFGParentFrame",
+	metrics = { "LFGListingFrame", "LFGBrowseFrame", "LFGWhoListFrame" },
 	Apply = Apply,
 })
