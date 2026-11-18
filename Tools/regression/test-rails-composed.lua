@@ -22,3 +22,12 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("composed story rail ok")
+
+for _, count in ipairs({ 1, 4, 8 }) do
+	local R = Boot({ width = 1920, height = 1080 })
+	for i = 8, count + 1, -1 do R.log.Untrack(R.quests[i].id) end
+	R.settle()
+	assert(R.ns.QuestData.Count() == count and R.rxp.RXPFrame:IsVisible(), "one, four and eight quests keep the guide visible")
+	assert(R.ns.Quests.Rows()[1]:IsShown(), "one, four and eight quests keep a first row")
+	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
+end
