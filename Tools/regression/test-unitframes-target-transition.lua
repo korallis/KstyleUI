@@ -4,6 +4,7 @@ local W = U.W
 local env, K, ns = U.New()
 K.Options.Write("HudStyle", "style", "medallions")
 local view = ns.Frames.Get("target").views[1]
+assert(not view.targetGhost, "E5: defer the outgoing visual until there is a target to crossfade")
 local function target(name)
 	U.SetUnit(env, "target", { name = name, level = 10, health = 80, healthMax = 100, reaction = 2, canAttack = true })
 	env.SetTarget(true)

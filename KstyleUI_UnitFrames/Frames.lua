@@ -710,7 +710,7 @@ local function PrepareTarget(view)
 		view.medallion:SetDead(view.slabDead == true)
 	end
 	local ghost = view.targetGhost
-	if TargetTransitions(view) then
+	if TargetTransitions(view) and (ghost or UnitExists("target")) then
 		if not ghost then
 			local body = CreateFrame("Frame", nil, view.uf.holder)
 			body:SetFrameLevel(view.body:GetFrameLevel())
@@ -735,6 +735,7 @@ local function TargetChange(view)
 	if not view or not view.body then return end
 	if not UnitExists("target") then return end
 	local on = TargetTransitions(view)
+	if on and view.targetSeen and not view.targetGhost then PrepareTarget(view) end
 	if on and view.targetSeen and view.targetGhost then
 		if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
 		local ghost = view.targetGhost
