@@ -27,6 +27,7 @@ end
 
 Settings.defaults = {
 	anchor = "cursorOutOfCombat",
+	minimapAnchor = true,
 	cursorX = 0,
 	cursorY = 0,
 	followFont = true,
@@ -111,6 +112,10 @@ local schema = {
 			{ value = "cursor", label = L["Mouse cursor"] },
 			{ value = "cursorOutOfCombat", label = L["Mouse cursor out of combat"] },
 		},
+	},
+	{
+		type = "toggle", key = "minimapAnchor", label = L["Keep minimap clear"],
+		help = L["Place minimap tooltips beside the map. Turn off to use Tooltip position for them."],
 	},
 	{
 		type = "slider", key = "cursorX", label = L["Cursor offset X"],

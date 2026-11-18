@@ -89,15 +89,19 @@ The bar docks inside the tooltip's glass: horizontal along the bottom edge (8 un
 - **Tooltip anchor**: the hook moves `GameTooltip` to the anchor's corner nearest the screen corner, so a tooltip at the bottom right grows up and to the left. Only tooltips Blizzard puts at its default place move; a tooltip a button anchors to itself stays there. Choosing this restores the previous default behaviour in and out of combat.
 - **Lift**: a tooltip that grows up first rises over the threat card and the target of target when either is shown in its column (`Anchor.LIFTS`: 300 units wide from the anchor's growing edge, 240 units up from the anchor), a large gap clear of the topmost (`Logic.Lift`, `Anchor.Lift`), so it never covers who holds aggro. Each card's rect is Layout's own (`Layout.Rect`), never a measurement. A tooltip that grows down never lifts. LEE-1535: under every HUD style the item tooltip covered the threat card.
 - **Mouse cursor**: the hook calls `SetOwner(parent, "ANCHOR_CURSOR_RIGHT", cursorX, cursorY)`.
+- **Keep minimap clear** (on): minimap tooltips open beside the map toward the screen centre in every position mode. Owners are checked through their parent chain against `Minimap`, `MinimapCluster` and the registered `minimap.main` frame, covering nested buttons and the module's controls. Native blips need the `SetMinimapMouseover` hook too: Forever's `Blizzard_Minimap/Mainline/Minimap.lua:279` sets their owner to `UIParent` and resets cursor anchoring on every update. A hook on `SetOwner` covers buttons that set their own anchors, including while a tooltip is already shown. `SetAnchorType("ANCHOR_NONE")` preserves the owner and lines before placing the tooltip. Turn this off to restore the selected Tooltip position for minimap owners and Blizzard's native blip placement.
 - The anchor element's scale, from Layout Mode or the element's Size setting, is every tooltip's scale.
 
 Forever API proof (Gethe/wow-ui-source `forever`, `9dc84f0`): `Blizzard_GameTooltip/Mainline/GameTooltip.lua` uses `ANCHOR_CURSOR_RIGHT` and `ANCHOR_NONE`; `Blizzard_APIDocumentationGenerated/RestrictedActionsDocumentation.lua` documents `InCombatLockdown()` returning a non-nil boolean, the same API Core/Combat uses. No combat event handler is needed.
+
+Minimap owner proof: `Blizzard_Minimap/Mainline/Minimap.lua:191` checks `GameTooltip:IsOwned(MinimapCluster.ZoneTextButton)`; `Blizzard_GameTooltip/Mainline/GameTooltip.lua:456` reads `GetOwner()`; `Blizzard_SharedXML/RegionUtil.lua` traverses `GetParent()` to check descendants. `Blizzard_FrameXML/Camelot/EquipmentFlyout.lua:806` uses `SetAnchorType`, and `Blizzard_APIDocumentationGenerated/SimpleScriptRegionAPIDocumentation.lua` documents the map geometry. `test-tooltips-minimap-anchor.lua` covers all modes in and out of combat, both screen sides, nested owners, native blips and turning the switch off.
 
 ## Settings
 
 | Key | Default | Row |
 | --- | --- | --- |
 | `anchor` | `"cursorOutOfCombat"` | dropdown: `fixed` (the tooltip anchor), `cursor` (always the mouse), or `cursorOutOfCombat` (the mouse outside combat and the anchor in combat) |
+| `minimapAnchor` | `true` | toggle: Keep minimap clear; turn off to restore the selected position and native blip placement |
 | `cursorX`, `cursorY` | 0 | sliders, -64 to 64, shown for both cursor choices |
 | `followFont` | `true` | toggle: use the current kit roles/global font override for every line; turn off to select per-line faces |
 | `title`, `body`, `small` | `{ font = "theme", size, outline }`: inherited faces at 11, 11 and 9 units, outline `NONE` | Per text kind: a font row (shown while `followFont` is off), a size slider from 8 to 32 and an outline dropdown. The first choice saves a follow-kit sentinel, never a captured path. Empty, `theme` and `kit` values inherit even with the toggle off; an explicit selected path wins and survives type-set changes. |
