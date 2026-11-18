@@ -457,7 +457,7 @@ end
 
 function Style.MetricText(text, title)
 	local role = roles[text]
-	if not title and (sizes[text] ~= nil or role == "number" or role == "caps" or role == "display") then
+	if not title and (role == "number" or role == "caps" or role == "display") then
 		return
 	end
 	local units = title and 16 or role == "caption" and 12 or 13

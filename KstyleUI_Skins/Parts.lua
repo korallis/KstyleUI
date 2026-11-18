@@ -596,7 +596,7 @@ local function MetricChildren(frame, depth)
 		return
 	end
 	local parts = Skin.Parts(frame)
-	if parts and (parts.kinds.Button or parts.kinds.EditBox) and Widgets.MayMove(frame) then
+	if parts and (parts.kinds.Button or parts.kinds.EditBox or chevrons[frame]) and Widgets.MayMove(frame) then
 		frame:SetHeight(Widgets.Snap(frame, 28))
 	end
 	for _, text in ipairs({ frame:GetRegions() }) do
