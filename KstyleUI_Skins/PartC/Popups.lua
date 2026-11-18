@@ -73,5 +73,6 @@ Skins.Add({
 	label = L["Popups"],
 	help = L["Restyles the game's confirmation popups and their buttons."],
 	frame = "StaticPopup1",
+	metrics = { "StaticPopup1", "StaticPopup2", "StaticPopup3", "StaticPopup4" },
 	Apply = Apply,
 })
