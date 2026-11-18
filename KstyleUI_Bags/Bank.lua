@@ -327,6 +327,7 @@ function Bank.Build()
 		title = L["Bank"],
 		position = Bank.POSITION,
 		columns = "bankColumns",
+		canDrop = Bank.IsAtBank,
 		sections = { { bags = SelectedBags, free = true, categories = true } },
 		sort = Bank.Sort,
 		onClosed = Closed,

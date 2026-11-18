@@ -133,6 +133,10 @@ When the window closes by its close button or Escape, `Blizzard.Release` hides e
 
 ## Combat
 
+In category view, clicking or dropping a held item onto a packed Empty tile or a category's unused row space puts it in the first suitable free slot in that window. Profession bags require a matching item family, the reagent bag requires a crafting reagent, and the keyring accepts keys. Packed Empty tiles use the accent rim while an item is held. The bank accepts drops only during a bank visit; saved character views remain read-only. These drop targets do nothing in combat and never queue a cursor action for later.
+
+The placement APIs are proved by Forever `9dc84f0`: `Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua` (`PickupContainerItem`, `GetContainerNumFreeSlots`), `ItemDocumentation.lua` (`GetItemFamily`, `GetItemInfo`, `GetItemInfoInstant`), `GameCursorDocumentation.lua` (`CursorHasItem`, `GetCursorInfo`), and `Blizzard_UIPanels_Game/Mainline/ContainerFrame.lua` (the item button's click and receive-drag paths, inherited by Camelot).
+
 The window opens, closes, searches and refreshes in combat: the item buttons are not protected, and moving or hiding one taints nothing. Making one is different: an item button made in lockdown cannot use items. So the module makes every slot's button out of combat, at `Enable` and whenever a bag changes, and a slot that appears in combat waits for `Combat.Queue`.
 
 ## Gamepad

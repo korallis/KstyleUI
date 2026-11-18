@@ -63,6 +63,9 @@ function Slot.Paint(slot)
 	local hover, press = slot.hoverT or 0, slot.pressT or 0
 	local r, g, b, a = EdgeColor(slot)
 	local t = hover > press and hover or press
+	if state.drop then
+		t = 1
+	end
 	if t > 0 then
 		local ar, ag, ab = Accent()
 		r, g, b, a = Widgets.Mix(r, g, b, a, ar, ag, ab, 1, t)
@@ -205,6 +208,9 @@ function Slot.Update(slot, record, level, match, packed)
 	local state = slot.state
 	local empty = record.empty == true
 	state.empty = empty
+	if slot.dropTarget then
+		slot.dropTarget:SetShown(empty and type(packed) == "number")
+	end
 	state.match = match ~= false
 	state.locked = record.locked == true
 	state.quality = record.quality
@@ -348,6 +354,20 @@ function Slot.New(parent, id, opts)
 	overlay:SetAllPoints(button)
 	overlay:SetFrameLevel(cooldown:GetFrameLevel() + OVERLAY_LEVEL)
 	slot.overlay = overlay
+	if opts.drop then
+		local target = CreateFrame("Button", nil, overlay)
+		target:SetAllPoints(button)
+		target:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		target:RegisterForDrag("LeftButton")
+		target:SetScript("OnClick", function(_, mouse)
+			if mouse == "LeftButton" then
+				opts.drop()
+			end
+		end)
+		target:SetScript("OnReceiveDrag", opts.drop)
+		target:Hide()
+		slot.dropTarget = target
+	end
 	slot.count = Widgets.FontString(overlay, "OVERLAY")
 	slot.count:SetTextColor(Tokens.Color("textEmphasis"))
 	slot.count:Hide()

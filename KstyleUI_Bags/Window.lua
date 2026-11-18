@@ -18,6 +18,7 @@ local FOOTER_HEIGHT = 20
 local SCREEN_MARGIN = 48
 local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
 local STRATA = "MEDIUM"
+local windows = {}
 local ANCHOR_FRACTIONS = {
 	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
 	LEFT = { 0, 0.5 }, CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 },
@@ -37,6 +38,17 @@ local function NewSection(win, spec, group)
 	local view = CreateFrame("Frame", nil, parent)
 	local grid = CreateFrame("Frame", nil, view)
 	local section = { spec = spec, group = group, view = view, grid = grid, bagFrames = {}, order = {}, scroll = 0, rows = 0, visibleRows = 0, total = 0 }
+	if group then
+		view:EnableMouse(true)
+		view:SetScript("OnMouseUp", function(_, mouse)
+			if mouse == "LeftButton" then
+				win:Drop()
+			end
+		end)
+		view:SetScript("OnReceiveDrag", function()
+			win:Drop()
+		end)
+	end
 	if not group then
 		view:SetScript("OnMouseWheel", function(_, delta)
 			win:Scroll(section, delta)
@@ -118,8 +130,42 @@ function Window.New(spec)
 	Widgets.Place(panel, spec.key, spec.position, { label = spec.label, module = Settings.MODULE, scalable = true })
 	win.scale = panel:GetScale()
 	win.built = true
+	windows[#windows + 1] = win
 	return win
 end
+
+function Window:Drop()
+	if InCombatLockdown() or self.remoteData or not self.open or (self.spec.canDrop and not self.spec.canDrop()) then
+		return
+	end
+	local itemID = Data.CursorItem()
+	if not itemID then
+		return
+	end
+	for _, section in ipairs(self.sections) do
+		if Data.Drop(section.spec.bags(), itemID) then
+			return
+		end
+	end
+end
+
+function Window:UpdateDropTargets()
+	local held = not self.remoteData and Data.CursorItem() ~= nil
+	for _, section in ipairs(self.sections) do
+		for _, slot in ipairs(section.order) do
+			slot.state.drop = held and slot.state.empty and slot.packed ~= nil
+			Slot.Paint(slot)
+		end
+	end
+end
+
+ns.On("CURSOR_CHANGED", function()
+	for _, win in ipairs(windows) do
+		if win.open then
+			win:UpdateDropTargets()
+		end
+	end
+end)
 
 function Window:Slot(bag, slot)
 	local bagSlots = self.slots[bag]
@@ -298,7 +344,7 @@ function Window:Ensure(section)
 				if InCombatLockdown() then
 					self:QueueCreate()
 				else
-					slot = Slot.New(frame, slotID, { secure = true, bag = bag })
+					slot = Slot.New(frame, slotID, { secure = true, bag = bag, drop = function() self:Drop() end })
 					bagSlots[slotID] = slot
 				end
 			end
@@ -550,7 +596,7 @@ function Window:PlaceSection(section, parent, top, width, room, rowsLimit, capBl
 	section.view:EnableMouseWheel(scrolls)
 	section.view:ClearAllPoints()
 	section.view:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -top)
-	section.view:SetSize(max(1, section.width), max(1, section.height))
+	section.view:SetSize(max(1, section.group and width or section.width), max(1, section.height))
 	self:PlaceSlots(section)
 	return top + section.height + gap
 end
@@ -725,6 +771,7 @@ function Window:Refresh(force)
 		end
 	end
 	self:UpdateFooter()
+	self:UpdateDropTargets()
 end
 
 function Window:RefreshSoon()

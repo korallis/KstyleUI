@@ -115,16 +115,16 @@ function B.Game(env, opts)
 	env._rtl = false
 	env._merchant = false
 	env.CursorHasItem = function()
-		return env._cursor ~= nil
+		return env._heldItem ~= nil
 	end
 	env.GetCursorInfo = function()
-		local held = env._cursor
+		local held = env._heldItem
 		if held then
 			return "item", held.itemID, held.link
 		end
 	end
 	env.HoldItem = function(held)
-		env._cursor = held
+		env._heldItem = held
 		if held then
 			env._index(held)
 		end
@@ -229,7 +229,7 @@ function B.Game(env, opts)
 		PickupContainerItem = function(bag, slot)
 			assert(not env.InCombatLockdown(), "PickupContainerItem ran in combat")
 			record(env, "PickupContainerItem", bag, slot)
-			local c, held = container(bag), env._cursor
+			local c, held = container(bag), env._heldItem
 			if held and c then
 				local compatible = c.family == nil or c.family == 0
 				local bagMask, itemMask = c.family or 0, held.family or 0
@@ -241,7 +241,11 @@ function B.Game(env, opts)
 					return
 				end
 				c.items = c.items or {}
-				c.items[slot], env._cursor = held, c.items[slot]
+				c.items[slot], env._heldItem = held, c.items[slot]
+				env.FireEvent("CURSOR_CHANGED")
+				env.FireEvent("BAG_UPDATE_DELAYED")
+			elseif c and c.items and c.items[slot] then
+				env._heldItem, c.items[slot] = c.items[slot], nil
 				env.FireEvent("CURSOR_CHANGED")
 				env.FireEvent("BAG_UPDATE_DELAYED")
 			end

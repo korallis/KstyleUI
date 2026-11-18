@@ -22,7 +22,16 @@ end
 local function Empty(win, bag)
 	for _, slot in ipairs(win.sections[1].groups.empty.order) do
 		if not bag or slot.bag == bag then
-			return slot.button
+			if slot.dropTarget then
+				local env = slot.button._env
+				local resolve = env._resolveRects
+				env._resolveRects = true
+				local left, bottom, width, height = slot.button:GetRect()
+				local x, y, w, h = slot.dropTarget:GetRect()
+				env._resolveRects = resolve
+				assert(W.Near(left, x) and W.Near(bottom, y) and W.Near(width, w) and W.Near(height, h) and width > 0, "the drop target covers the visible EMPTY tile")
+			end
+			return slot.dropTarget or slot.button
 		end
 	end
 	error("no empty tile for bag " .. tostring(bag))
@@ -61,11 +70,14 @@ do
 	W.Click(tile)
 	assert(B.Count(env, "PickupContainerItem") == 0, "empty cursor clicks do nothing new")
 	env.HoldItem(Item("potion"))
+	assert(ns.Inventory.window.sections[1].groups.empty.order[1].state.drop, "EMPTY highlights while holding an item")
 	env.SetCombat(true)
 	W.Click(tile)
 	assert(B.Count(env, "PickupContainerItem") == 0 and env.CursorHasItem(), "no placement or deferred cursor action in combat")
 	env.SetCombat(false)
 	assert(env.CursorHasItem(), "leaving combat does not move the cursor item")
+	env.HoldItem(nil)
+	assert(not ns.Inventory.window.sections[1].groups.empty.order[1].state.drop, "EMPTY loses the drop highlight when the cursor clears")
 end
 
 do
@@ -80,6 +92,24 @@ do
 	Placed(env, tile, Item("cloth", { family = 32 }), 1, 1)
 	Placed(env, Empty(ns.Inventory.window, 1), Item("cloth", { reagent = true }), 5, 1)
 	Placed(env, Empty(ns.Inventory.window, 1), Item("key"), -1, 1)
+end
+
+do
+	local env, _, ns = New()
+	local helm = env._bank[7].items[1]
+	env.C_Container.PickupContainerItem(7, 1)
+	assert(not env._bank[7].items[1], "picking up an item clears its source slot")
+	W.Click(Empty(ns.Inventory.window))
+	assert(env._bags[0].items[2] == helm and not env._bank[7].items[1] and not env.CursorHasItem(), "bank to bags uses the bags destination")
+	env.C_Container.PickupContainerItem(0, 2)
+	W.Click(Empty(ns.Bank.window))
+	assert(env._bank[7].items[1] == helm and not env._bags[0].items[2] and not env.CursorHasItem(), "bags to bank uses the selected bank destination")
+	env.HoldItem(Item("sword"))
+	local bankTile = Empty(ns.Bank.window)
+	env.SetBank(false)
+	local before = B.Count(env, "PickupContainerItem")
+	W.Click(bankTile)
+	assert(env.CursorHasItem() and B.Count(env, "PickupContainerItem") == before, "no bank placement after the visit closes")
 end
 
 print("bags drop ok")
