@@ -5,7 +5,7 @@ local Widgets = ns.Widgets
 local Tokens, Motion, Scale = ns.Tokens, ns.Motion, ns.Scale
 local max = math.max
 
-local PULSE_LOW, PULSE_HIGH = 0.55, 1
+local PULSE_LOW, PULSE_HIGH = 0.45, 1
 local SPARK_SCALE = 1.35
 local SPARK_LONG, SPARK_THIN = 6, 1
 local SPARK_INSET_X, SPARK_INSET_Y = 3, 2.5
@@ -278,7 +278,7 @@ function Widgets.Glow(frame, opts)
 	if kind == "proc" then
 		body = CreateFrame("Frame", nil, holder)
 		body:SetAllPoints(holder)
-		handle.pulse = Pulse(body, PULSE_LOW, PULSE_HIGH, Tokens.Duration("glowBreath"))
+		handle.pulse = Pulse(body, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
 		local top = CreateFrame("Frame", nil, frame)
 		top:SetAllPoints(frame)
 		top:SetFrameLevel(frame:GetFrameLevel() + SPARK_LEVEL)
@@ -292,11 +292,11 @@ function Widgets.Glow(frame, opts)
 		end
 		Core(top)
 		handle.coreAlpha = CORE_ALPHA
-		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("glowBreath"))
+		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
 		local grow = sparkPulse:CreateAnimation("Scale")
 		grow:SetScaleFrom(1, 1)
 		grow:SetScaleTo(SPARK_SCALE, SPARK_SCALE)
-		grow:SetDuration(Tokens.Duration("glowBreath"))
+		grow:SetDuration(Tokens.Duration("procPulse") / 2)
 		grow:SetSmoothing(Tokens.Smoothing.loop)
 		handle.sparkPulse = sparkPulse
 		Motion.TrackGroup(handle.pulse, function() StopAnimations(handle) end)
