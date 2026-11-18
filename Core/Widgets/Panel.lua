@@ -95,6 +95,18 @@ function Panel:SetTitle(text)
 end
 
 function Panel:Open()
+	if self.opts.calmMotion and self.opts.calmMotion() then
+		local reopening = self.closing
+		self.closing = false
+		self.fadeOut:Stop()
+		Motion.FadeIn(self)
+		if not reopening and Animated() then
+			self.rise:Stop()
+			self.rise:Play()
+		end
+		Widgets.Sound("IG_MAINMENU_OPEN")
+		return
+	end
 	self.closing = false
 	self.fadeOut:Stop()
 	self:SetAlpha(1)
@@ -116,7 +128,10 @@ function Panel:Close()
 	self.fadeIn:Stop()
 	local shown = self:IsShown()
 	if not IsSecret(shown) and shown then
-		if Animated() then
+		if self.opts.calmMotion and self.opts.calmMotion() then
+			self.closing = true
+			Motion.FadeOut(self)
+		elseif Animated() then
 			self.closing = true
 			self.fadeOut:Stop()
 			self.fadeOut:Play()

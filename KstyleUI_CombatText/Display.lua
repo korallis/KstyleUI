@@ -9,6 +9,7 @@ local Display = {}
 ns.Display = Display
 
 local LANES = { 0, -1, 1 }
+local CALM_LANES = { 0, -1, 1, -2, 2 }
 local FIELD_LANE = 0.25
 local FIELD_ARC = 0.35
 local FIELD_START = 0.6
@@ -58,6 +59,9 @@ function Display.Clear(emitter)
 	local active, pool = emitter.active, emitter.pool
 	while #active > 0 do
 		pool:Release(active[#active])
+	end
+	for i = #pool.active, 1, -1 do
+		if pool.active[i].emitter == emitter then pool:Release(pool.active[i]) end
 	end
 end
 
@@ -123,8 +127,9 @@ local function Opacity(emitter)
 	return math.min(1, math.max(0, alpha))
 end
 
-local function NextLane(emitter)
-	local lane = LANES[emitter.lane % #LANES + 1]
+local function NextLane(emitter, cfg)
+	local lanes = cfg.calmNumbers and CALM_LANES or LANES
+	local lane = lanes[emitter.lane % #lanes + 1]
 	emitter.lane = emitter.lane + 1
 	return lane
 end
@@ -134,7 +139,7 @@ local function FieldGeometry(emitter, cfg)
 	local width = Plain(frame:GetWidth(), 0)
 	local height = Plain(frame:GetHeight(), 0)
 	local size = cfg.size
-	local x = NextLane(emitter) * width * FIELD_LANE
+	local x = NextLane(emitter, cfg) * width * FIELD_LANE
 	local distance = math.min(cfg.rise or FIELD_RISE, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
 	return "BOTTOM", x, size * FIELD_START, distance, width * FIELD_ARC, 1
 end
@@ -154,7 +159,7 @@ local function FrameGeometry(emitter, cfg)
 		local fall = cfg.style == "arc" and travel * (ARC_FALL - ARC_RISE) or 0
 		y = 60 + size * math.max(1, cfg.critScale) * pop / 2 + fall
 	end
-	return point, NextLane(emitter) * size * FRAME_LANE, y, travel, travel * FRAME_ARC, sizeScale
+	return point, NextLane(emitter, cfg) * size * FRAME_LANE, y, travel, travel * FRAME_ARC, sizeScale
 end
 
 local function Animate(number, emitter, cfg, emphasis, per, distance, spread)
@@ -205,11 +210,31 @@ end
 
 function Display.Spawn(emitter, cfg, kind, emphasis, amount, word, school)
 	local pool, active = emitter.pool, emitter.active
+	local now = GetTime()
+	local plain = not IsSecret(amount) and type(amount) == "number"
+	local publicSchool = not IsSecret(school)
+	if cfg.calmNumbers and plain and not word and publicSchool then
+		for i = #active, 1, -1 do
+			local number = active[i]
+			if number.amount and number.kind == kind and number.emphasis == emphasis and number.school == school and now - number.stamp <= 0.25 then
+				number.amount = number.amount + amount
+				Format.Text(number.text, cfg, kind, number.amount)
+				return number
+			end
+		end
+	end
 	while #active >= cfg.maxPerFrame do
-		pool:Release(active[1])
+		if cfg.calmNumbers and K.Motion.Level() ~= "off" then
+			pool:Evict(active[1])
+		else
+			pool:Release(active[1])
+		end
 	end
 	local number = pool:Acquire()
 	number.emitter = emitter
+	number.stamp, number.kind, number.emphasis = now, kind, emphasis
+	number.amount = plain and publicSchool and not word and amount or nil
+	number.school = publicSchool and school or nil
 	active[#active + 1] = number
 	local text = number.text
 	Format.Text(text, cfg, kind, amount, word)

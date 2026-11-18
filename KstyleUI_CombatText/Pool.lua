@@ -1,4 +1,4 @@
--- Pool.lua: reusable numbers, each a small frame with one font string and one AnimationGroup, so the combat path makes no frames.
+-- Pool.lua: reusable numbers with a movement frame and a fading text holder, so eviction leaves motion and inherited opacity intact and the combat path makes no frames.
 local _, ns = ...
 
 local Widgets = KstyleUI.Widgets
@@ -22,7 +22,9 @@ local function Make(pool)
 	local frame = CreateFrame("Frame", nil, pool.parent)
 	frame:SetSize(NUMBER_SIZE, NUMBER_SIZE)
 	frame:Hide()
-	local text = Widgets.FontString(frame, "OVERLAY")
+	local holder = CreateFrame("Frame", nil, frame)
+	holder:SetAllPoints(frame)
+	local text = Widgets.FontString(holder, "OVERLAY")
 	text:SetPoint("CENTER", frame, "CENTER", 0, 0)
 	local group = frame:CreateAnimationGroup()
 	local number = { frame = frame, text = text, group = group, live = false }
@@ -35,8 +37,20 @@ local function Make(pool)
 	number.fade:SetFromAlpha(1)
 	number.fade:SetToAlpha(0)
 	number.fade:SetSmoothing("IN")
-	group:SetScript("OnFinished", function()
+	number.eviction = holder:CreateAnimationGroup()
+	local fade = number.eviction:CreateAnimation("Alpha")
+	fade:SetFromAlpha(1)
+	fade:SetToAlpha(0)
+	fade:SetDuration(0.08)
+	number.eviction:SetScript("OnFinished", function()
 		pool:Release(number)
+	end)
+	group:SetScript("OnFinished", function()
+		if number.retiring then
+			frame:SetAlpha(0)
+		else
+			pool:Release(number)
+		end
 	end)
 	pool.made = pool.made + 1
 	return number
@@ -69,6 +83,8 @@ function Pool:Release(number)
 		return
 	end
 	number.live = false
+	number.eviction:Stop()
+	number.retiring, number.amount, number.stamp = nil, nil, nil
 	number.group:Stop()
 	number.frame:Hide()
 	Remove(self.active, number)
@@ -79,6 +95,12 @@ function Pool:Release(number)
 	end
 	local free = self.free
 	free[#free + 1] = number
+end
+
+function Pool:Evict(number)
+	Remove(number.emitter.active, number)
+	number.retiring = true
+	number.eviction:Play()
 end
 
 function Pool:ReleaseAll()

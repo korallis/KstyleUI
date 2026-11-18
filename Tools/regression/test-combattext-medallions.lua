@@ -16,6 +16,7 @@ end
 
 local env, K, ns = CT.New()
 CT.Enable(env, K)
+K.Options.Write("CombatText", "calmNumbers", false)
 local cfg = ns.Module.cfg
 local frames = { size = cfg.size, critScale = cfg.critScale, duration = cfg.duration, maxPerFrame = cfg.maxPerFrame, fontPath = cfg.fontPath, worldFace = cfg.worldFace }
 assert(not cfg.fontPath:find("Barlow", 1, true), "Frames' numbers are not Barlow")

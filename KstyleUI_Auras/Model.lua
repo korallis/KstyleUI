@@ -43,7 +43,7 @@ Model.defaults = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },
+	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5, cleanEndings = true },
 	count = { font = "", size = 10, outline = "OUTLINE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
@@ -287,5 +287,5 @@ function Model.AccentColor(settings)
 end
 
 function Model.FormatTime(seconds, timerFormat)
-	return KstyleUI.Widgets.Duration.Format(seconds, timerFormat)
+	return KstyleUI.Widgets.Duration.Format(seconds, timerFormat, K.Store.Module(Model.MODULE).timer.cleanEndings ~= false)
 end

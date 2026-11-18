@@ -282,12 +282,15 @@ end
 local function Reveal(self, t)
 	local stagger = Tokens.Duration("listStagger")
 	local fade = Tokens.Duration("fade")
+	if self.revealLimit then
+		stagger = min(stagger, max(0, self.revealLimit - fade) / max(1, #self.rows - 1))
+	end
 	for i, row in ipairs(self.rows) do
 		row:SetAlpha(min(1, max(0, (t - (i - 1) * stagger) / fade)))
 	end
 end
 
-function List:SetData(items, keepOffset)
+function List:SetData(items, keepOffset, cascade)
 	self.items = items or {}
 	Measure(self)
 	EnsureRows(self)
@@ -297,8 +300,11 @@ function List:SetData(items, keepOffset)
 	local offset = keepOffset and min(self.offset, self:GetMaxOffset()) or 0
 	self.target = nil
 	Motion.Tween(self, "SetOffset", offset, offset, 0)
-	if not keepOffset and self.opts.stagger ~= false then
+	if cascade == false then
+		Motion.Tween(self, Reveal, math.huge, math.huge, 0)
+	elseif not keepOffset and self.opts.stagger ~= false then
 		local total = (#self.rows - 1) * Tokens.Duration("listStagger") + Tokens.Duration("fade")
+		total = self.revealLimit and min(total, self.revealLimit) or total
 		Motion.Tween(self, Reveal, 0, total, total, "linear")
 	end
 end

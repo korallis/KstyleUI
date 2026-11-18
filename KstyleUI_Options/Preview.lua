@@ -459,6 +459,7 @@ end
 
 function Preview.Show(pane, page)
 	pane.page = page
+	local previous = pane.current
 	local frame
 	if page then
 		local builder = page.module and K.Options.Preview(page.module)
@@ -481,7 +482,12 @@ function Preview.Show(pane, page)
 	pane.refit = nil
 	pane:SetShown(frame ~= nil)
 	if frame then
-		frame:Show()
+		if frame ~= previous and K.Appearance.Get("calmLists") then
+			frame:SetAlpha(0)
+			K.Motion.FadeIn(frame, 0.2)
+		else
+			frame:Show()
+		end
 		RefreshCurrent(pane)
 	end
 	return frame ~= nil

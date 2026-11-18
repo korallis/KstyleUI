@@ -16,6 +16,23 @@ local MINUTE, HOUR, DAY = 60, 3600, 86400
 
 local made = {}
 
+function Duration.ExpiringColor(expiring)
+	local util, E = C_CurveUtil, Enum
+	if expiring <= 0 or not (util and type(util.CreateColorCurve) == "function" and type(CreateColor) == "function" and E and E.DurationTextBindingProperty and E.LuaCurveType) then
+		return nil
+	end
+	local ok, curve = pcall(function()
+		local c = util.CreateColorCurve()
+		c:SetType(E.LuaCurveType.Step)
+		c:AddPoint(0, CreateColor(ns.Tokens.Color("hostile")))
+		c:AddPoint(expiring, CreateColor(ns.Tokens.Color("timerText")))
+		return c
+	end)
+	if ok then
+		return { curve = curve, property = E.DurationTextBindingProperty.RemainingDuration }
+	end
+end
+
 local function Engine()
 	local inbound = AuraContainerInbound
 	if type(inbound) == "table" and type(inbound.GetDefaultAuraDurationFormatter) == "function" then
@@ -83,11 +100,17 @@ local function Long(seconds)
 	return format("%dd %dh", floor(seconds / DAY), floor(seconds % DAY / HOUR))
 end
 
-function Duration.Format(seconds, kind)
+function Duration.Format(seconds, kind, cleanEndings)
 	if kind == "none" or (issecretvalue and issecretvalue(seconds)) or type(seconds) ~= "number" or seconds ~= seconds then
 		return ""
 	end
 	seconds = max(0, seconds)
+	if cleanEndings and seconds > 0 and seconds < 1 then
+		if kind == "decimal" then
+			return format("%.1f", ceil(seconds * 10) / 10)
+		end
+		seconds = 1
+	end
 	if kind == "long" then
 		return Long(seconds)
 	elseif kind == "decimal" and seconds < Duration.DECIMAL_BELOW then

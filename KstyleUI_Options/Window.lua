@@ -27,6 +27,10 @@ local state = { page = "General", pages = {} }
 local refreshQueued = false
 local Relayout
 
+local function CalmLists()
+	return K.Appearance.Get("calmLists")
+end
+
 local function Snap(units)
 	return Widgets.Snap(win, units)
 end
@@ -62,7 +66,7 @@ local function TrackSection()
 	rail:SetCurrent(current)
 end
 
-local function Render(keepOffset, reselect)
+local function Render(keepOffset, reselect, pageChanged)
 	if not win then
 		return
 	end
@@ -81,7 +85,11 @@ local function Render(keepOffset, reselect)
 	end
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
-	content:SetData(items, keepOffset)
+	local calm = CalmLists()
+	content.revealLimit = calm and 0.45 or nil
+	local cascade
+	if calm then cascade = pageChanged == true and not state.query end
+	content:SetData(items, keepOffset, cascade)
 	if reselect then
 		rail:Select(state.query and "" or state.page, state.sections)
 	else
@@ -127,6 +135,7 @@ local function Select(id)
 	if not page then
 		return
 	end
+	local changed = state.page ~= page.id
 	state.page = page.id
 	if state.query then
 		state.query = nil
@@ -136,7 +145,7 @@ local function Select(id)
 	resetButton:SetEnabled(page.reset ~= nil)
 	Preview.Show(preview, page)
 	Relayout()
-	Render(false, true)
+	Render(false, true, changed)
 end
 
 local function SetQuery(text)
@@ -282,6 +291,7 @@ local function Build()
 		strata = "HIGH",
 		escape = true,
 		hidden = true,
+		calmMotion = CalmLists,
 		onClose = function()
 			if search:HasFocus() then
 				search:ClearFocus()
@@ -401,6 +411,11 @@ function Window.Show(page)
 		Build()
 	end
 	if win:IsShown() then
+		if win.closing and CalmLists() then
+			win:Open()
+			Select(page or state.page)
+			return
+		end
 		if page == nil then
 			win:Close()
 			return

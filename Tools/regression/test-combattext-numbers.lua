@@ -20,6 +20,7 @@ end
 local function enabled(opts)
 	local env, K, ns = CT.New(opts)
 	CT.Enable(env, K)
+	K.Options.Write("CombatText", "calmNumbers", false)
 	return env, K, ns
 end
 

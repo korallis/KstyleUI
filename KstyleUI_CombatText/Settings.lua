@@ -45,6 +45,7 @@ local defaults = {
 	critTint = TokenColor("neutral"),
 	playerPlacement = "field",
 	clearLanes = true,
+	calmNumbers = true,
 	framePoint = "CENTER",
 	distance = 40,
 	groupSize = 14,
@@ -150,6 +151,8 @@ Settings.schema = {
 		showWhen = WorldFontOn,
 	},
 	{ type = "header", label = L["Numbers"] },
+	{ type = "toggle", key = "calmNumbers", label = L["Calmer combat numbers"],
+		help = L["Five lanes, brief fades and combined nearby hits. Secret amounts always stay separate."] },
 	{
 		type = "toggle", key = "clearLanes", label = L["Keep combat text clear"],
 		help = L["In Medallions, places your numbers above the cast bars and target numbers above the debuffs."],
@@ -385,6 +388,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.critR, cfg.critG, cfg.critB = Color(Styled(values, "critTint", medallions), d.critTint)
 	cfg.playerPlacement = Choice(values.playerPlacement, PLACEMENTS, d.playerPlacement)
 	cfg.clearLanes = Bool(values.clearLanes, d.clearLanes)
+	cfg.calmNumbers = Bool(values.calmNumbers, d.calmNumbers)
 	cfg.framePoint = Choice(values.framePoint, POINTS, d.framePoint)
 	cfg.distance = Number(values.distance, DISTANCE_MIN, DISTANCE_MAX, d.distance)
 	cfg.groupSize = Number(values.groupSize, SIZE_MIN, SIZE_MAX, d.groupSize)
