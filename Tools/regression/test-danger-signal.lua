@@ -39,7 +39,7 @@ assert(near(U.W.LastCall(m.dangerPulse, "SetToAlpha")[1], 0.6), "both signals br
 assert(m.lowFrame:GetFrameLevel() == m:GetFrameLevel(), "draw the clean annulus under the bezel")
 assert(near(m.lowFrame:GetWidth(), K.Widgets.Snap(m, m.size * 1.12)), "use LOW_SPREAD 1.12")
 assert(enemy.lowFrame:IsShown() and not enemy.pulse:IsPlaying() and alpha(enemy.low) == 1, "enemies get a static rim, never a low-health pulse")
-assert(enemy.low:GetTexture() == K.Tokens.Texture("medDangerRim"), "the enemy rim is a clean 2-unit ring")
+assert(enemy.low:GetTexture() == K.Tokens.Texture("dangerRim"), "the enemy rim is a clean 2-unit ring")
 env._units.target.canAttack, env._units.target.reaction = false, 5
 env.FireEvent("UNIT_HEALTH", "target")
 assert(not enemy.lowFrame:IsShown(), "friendly units never get the danger rim")

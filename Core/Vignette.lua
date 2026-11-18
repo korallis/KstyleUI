@@ -99,7 +99,7 @@ local function Layer(color, opacity, blend)
 		for x = 1, 3 do
 			if x ~= 2 or y ~= 2 then
 				local t = frame.layer:CreateTexture(nil, "BACKGROUND")
-				t:SetTexture((ns.Tokens.Texture("medDangerEdge")))
+				t:SetTexture((ns.Tokens.Texture("dangerEdge")))
 				t:SetTexCoord(coords[x], coords[x + 1], coords[y], coords[y + 1])
 				t:SetVertexColor(ns.Tokens.Color(color))
 				t:SetAlpha(opacity)

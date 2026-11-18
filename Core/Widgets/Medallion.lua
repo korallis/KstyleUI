@@ -211,7 +211,7 @@ function Medallion:LowHealth(unit, enemy, clean)
 		self.pulse:Stop()
 		local player = unit and SHOW_LOW[unit]
 		local curve = player and DangerCurve()
-		self.low:SetTexture((Tokens.Texture(player and "medDangerAnnulus" or "medDangerRim")))
+		self.low:SetTexture((Tokens.Texture(player and "dangerAnnulus" or "dangerRim")))
 		self.lowFrame:SetShown(unit ~= nil and (curve ~= nil or enemy == true))
 		if curve then
 			self.low:SetAlpha(UnitHealthPercent(unit, true, curve))
