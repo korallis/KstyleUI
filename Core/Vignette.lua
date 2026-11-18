@@ -8,11 +8,15 @@ Effects.Vignette = Vignette
 
 local OWNER = "Vignette"
 Vignette.FULL, Vignette.CLEAR = 0.12, 0.4
-Vignette.BREATH, Vignette.LOW = 0.8, 0.6
+Vignette.LOW = 0.6
 Vignette.EDGE = 0.22
 local EDGE_ALPHA = 0.45
 
 local frame, curve, logged
+
+local function Restrained()
+	return not (ns.Store.IsLoaded() and ns.Store.Defaults("UnitFrames")) or ns.Store.Module("UnitFrames").dangerEdge ~= false
+end
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -78,7 +82,7 @@ local function Build()
 	local alpha = breath:CreateAnimation("Alpha")
 	alpha:SetFromAlpha(1)
 	alpha:SetToAlpha(Vignette.LOW)
-	alpha:SetDuration(Vignette.BREATH)
+	alpha:SetDuration(ns.Tokens.Duration("dangerBreath"))
 	alpha:SetSmoothing("IN_OUT")
 	frame.breath = breath
 	frame:HookScript("OnHide", function()
@@ -86,6 +90,76 @@ local function Build()
 	end)
 	frame:HookScript("OnShow", Vignette.Update)
 	Vignette.frame = frame
+end
+
+local function Layer(color, opacity, blend)
+	local textures = {}
+	local coords = { 0, 0.25, 0.75, 1 }
+	for y = 1, 3 do
+		for x = 1, 3 do
+			if x ~= 2 or y ~= 2 then
+				local t = frame.layer:CreateTexture(nil, "BACKGROUND")
+				t:SetTexture((ns.Tokens.Texture("medDangerEdge")))
+				t:SetTexCoord(coords[x], coords[x + 1], coords[y], coords[y + 1])
+				t:SetVertexColor(ns.Tokens.Color(color))
+				t:SetAlpha(opacity)
+				t:SetBlendMode(blend)
+				textures[#textures + 1] = t
+			end
+		end
+	end
+	return textures
+end
+
+local function LayoutLayer(textures, width, height, band)
+	local xs, ys = { 0, band, width - band, width }, { 0, band, height - band, height }
+	local i = 0
+	for y = 1, 3 do
+		for x = 1, 3 do
+			if x ~= 2 or y ~= 2 then
+				i = i + 1
+				local t = textures[i]
+				t:ClearAllPoints()
+				t:SetPoint("TOPLEFT", frame.layer, "TOPLEFT", xs[x], -ys[y])
+				t:SetSize(xs[x + 1] - xs[x], ys[y + 1] - ys[y])
+			end
+		end
+	end
+end
+
+local function Layout()
+	if not frame then return end
+	local restrained = Restrained()
+	local parent = restrained and UIParent or WorldFrame or UIParent
+	frame:SetParent(parent)
+	frame:ClearAllPoints()
+	frame:SetAllPoints(parent)
+	if not frame.body then
+		frame.body = Layer("dangerBody", 0.6, "BLEND")
+		frame.ember = Layer("hostile", 0.22, "ADD")
+	end
+	for _, t in ipairs(frame.art) do t:SetShown(not restrained) end
+	for _, textures in ipairs({ frame.body, frame.ember }) do
+		for _, t in ipairs(textures) do t:SetShown(restrained) end
+	end
+	local width, height = UIParent:GetWidth(), UIParent:GetHeight()
+	if IsSecret(width) or IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then return end
+	local short = math.min(width, height)
+	LayoutLayer(frame.body, width, height, short * 0.18)
+	LayoutLayer(frame.ember, width, height, short * 0.08)
+end
+
+function Vignette.Breath(target, animation)
+	if not frame then Build() end
+	frame.breath:Stop()
+	animation = animation or frame.breath:CreateAnimation("Alpha")
+	animation:SetTarget(target or frame.layer)
+	animation:SetFromAlpha(1)
+	animation:SetToAlpha(Vignette.LOW)
+	animation:SetDuration(ns.Tokens.Duration("dangerBreath"))
+	animation:SetSmoothing("IN_OUT")
+	Vignette.Update()
+	return animation
 end
 
 local function Edges()
@@ -124,6 +198,7 @@ function Vignette.Update()
 		Build()
 		Edges()
 	end
+	Layout()
 	frame:SetAlpha(UnitHealthPercent("player", true, c))
 	frame:Show()
 	local visible = frame:IsVisible()
@@ -173,3 +248,7 @@ ns.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Listen)
 ns.Callbacks.Register("HudStyleChanged", OWNER, Listen)
 ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
+ns.Callbacks.Register("ScaleChanged", OWNER, Layout)
+ns.Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
+	if module == "UnitFrames" and key == "dangerEdge" then Vignette.Update() end
+end)

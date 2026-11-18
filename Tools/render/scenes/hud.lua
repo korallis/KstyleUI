@@ -427,7 +427,10 @@ function modules.unitframes(opts)
 	end
 	-- Round portraits: the owner chose the mockup's round shape as the default on 2026-11-08.
 	local env, K, ns = U.New(Common.ScreenOpts({
-		saved = saved(opts, "UnitFrames", { player = { portraitShape = "round" }, target = { portraitShape = "round", style = os.getenv("RENDER_TARGET_STYLE") } }),
+		saved = saved(opts, "UnitFrames", {
+			dangerEdge = os.getenv("RENDER_DANGER") ~= "previous", cleanLowRing = os.getenv("RENDER_DANGER") ~= "previous",
+			player = { portraitShape = "round" }, target = { portraitShape = "round", style = os.getenv("RENDER_TARGET_STYLE") },
+		}),
 		setup = function(env)
 			shared(env, opts)
 			env._units.player = player

@@ -296,7 +296,7 @@ function Slab.Health(view, unit)
 		m:SetDead(dead)
 		m:SetRingColor(RingColor(view, unit))
 	end
-	m:LowHealth(not dead and unit or nil)
+	m:LowHealth(not dead and unit or nil, Hostile(unit), K.Store.Module("UnitFrames").cleanLowRing ~= false)
 end
 
 function Slab.Portrait(view, unit)

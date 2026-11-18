@@ -87,6 +87,7 @@ local COLORS = {
 	barLoss = { "ffffff", 0.32 },
 	barLossLit = { "ffffff", 0.45 },
 	healthLow = { "c5443e", 1 },
+	dangerBody = { "3a0a0c", 1 },
 	healthLowText = { "ffb3a7", 1 },
 	barEdge = { "202327", 1 },
 	powerEdge = { "12160a", 1 },
@@ -198,6 +199,7 @@ local SIZES = {
 local SHARES = {}
 
 local DURATIONS = {
+	dangerBreath = 0.8,
 	hover = 0.12,
 	combatIn = 0.24,
 	combatOut = 0.6,
@@ -403,6 +405,9 @@ local TEXTURES = {
 	medLevelPlaque = { file = "Textures\\Medallions\\LevelPlaque.png" },
 	medLevelUp = { file = "Textures\\Medallions\\LevelUp.png", rows = 4, columns = 4, frames = 16, seconds = 1.2 },
 	medLowHealthRing = { file = "Textures\\Medallions\\LowHealthRing.png" },
+	medDangerAnnulus = { file = "Textures\\Medallions\\DangerAnnulus.png" },
+	medDangerRim = { file = "Textures\\Medallions\\DangerRim.png" },
+	medDangerEdge = { file = "Textures\\Medallions\\DangerEdge.png" },
 	medMinimapMask = { file = "Textures\\Medallions\\MapMask.png" },
 	medMinimapRing = { file = "Textures\\Medallions\\MinimapRing.png" },
 	medParticleDruid = { file = "Textures\\Medallions\\ParticleDruid.png", rows = 2, columns = 2, frames = 4 },

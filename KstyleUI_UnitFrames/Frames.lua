@@ -781,6 +781,12 @@ local function OnSettingChanged(_, module, key)
 		ns.Blizzard.Apply(running)
 	elseif key == "orbCastRoom" then
 		ns.CastBars.Apply()
+	elseif key == "cleanLowRing" then
+		ForEach(function(each)
+			if each.active then
+				for _, view in ipairs(each.views) do ns.Slab.Health(view, view.unit) end
+			end
+		end)
 	elseif key == "accent" or key == "accentColor" then
 		ForEach(function(each)
 			for _, view in ipairs(each.views) do

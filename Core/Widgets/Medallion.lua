@@ -7,7 +7,8 @@ local PORTRAIT_SHARE = 0.82
 local PLAQUE_SHARE = 16 / 86
 local PLAQUE_ALONG, PLAQUE_DOWN = 0.5 - 0.5 * math.sqrt(0.5), 0.5 + 0.5 * math.sqrt(0.5)
 local PLAQUE_FONT, LEVEL_FLOOR = 0.6, 9
-local LOW_SPREAD = 1.3
+local LOW_SPREAD, OLD_LOW_SPREAD = 1.12, 1.3
+local SHOW_LOW = { player = true }
 local SHEEN_ALPHA = 0.45
 local FLIP, FLIP_FROM = 0.18, 0.05
 local PULSE, PULSE_LOW = 0.4, 0.45
@@ -63,6 +64,19 @@ local function NewPulse(frame)
 	alpha:SetDuration(PULSE)
 	alpha:SetSmoothing("IN_OUT")
 	return group
+end
+
+local dangerCurve
+local function DangerCurve()
+	if not dangerCurve and C_CurveUtil and type(C_CurveUtil.CreateCurve) == "function" and UnitHealthPercent then
+		dangerCurve = C_CurveUtil.CreateCurve()
+		if dangerCurve.SetType and Enum and Enum.LuaCurveType then dangerCurve:SetType(Enum.LuaCurveType.Linear) end
+		dangerCurve:AddPoint(0, 0.7)
+		dangerCurve:AddPoint(0.15, 0.7)
+		dangerCurve:AddPoint(0.4, 0)
+		dangerCurve:AddPoint(1, 0)
+	end
+	return dangerCurve
 end
 
 local function NewSheen(texture)
@@ -127,11 +141,11 @@ end
 function Medallion:Layout(size, plaqueSide)
 	self.size = size
 	local level = self:GetFrameLevel()
-	self.lowFrame:SetFrameLevel(level + LEVEL_RING)
+	self.lowFrame:SetFrameLevel(level + (self.cleanLow and 0 or LEVEL_RING))
 	self.plaque:SetFrameLevel(level + LEVEL_PLAQUE)
 	local inner = Snap(self, size * PORTRAIT_SHARE)
 	self.portrait:SetSize(inner, inner)
-	local spread = Snap(self, size * LOW_SPREAD)
+	local spread = Snap(self, size * (self.cleanLow and LOW_SPREAD or OLD_LOW_SPREAD))
 	self.lowFrame:SetSize(spread, spread)
 	self.sheen:ClearAllPoints()
 	self.sheen:SetSize(inner, inner)
@@ -182,7 +196,32 @@ function Medallion:SetDead(dead)
 	self.portrait:SetVertexColor(shade, shade, shade, 1)
 end
 
-function Medallion:LowHealth(unit)
+function Medallion:LowHealth(unit, enemy, clean)
+	clean = clean ~= false
+	if self.cleanLow ~= clean then
+		self.cleanLow = clean
+		self.lowFrame:SetFrameLevel(self:GetFrameLevel() + (clean and 0 or LEVEL_RING))
+		local spread = Snap(self, self.size * (clean and LOW_SPREAD or OLD_LOW_SPREAD))
+		self.lowFrame:SetSize(spread, spread)
+		self.low:SetBlendMode(clean and "BLEND" or "ADD")
+		self.low:SetVertexColor(Tokens.Color(clean and "healthLow" or "white"))
+		if self.dangerPulse then ns.Effects.Vignette.Breath(clean and self.lowFrame or nil, self.dangerPulse) end
+	end
+	if clean then
+		self.pulse:Stop()
+		local player = unit and SHOW_LOW[unit]
+		local curve = player and DangerCurve()
+		self.low:SetTexture((Tokens.Texture(player and "medDangerAnnulus" or "medDangerRim")))
+		self.lowFrame:SetShown(unit ~= nil and (curve ~= nil or enemy == true))
+		if curve then
+			self.low:SetAlpha(UnitHealthPercent(unit, true, curve))
+			if not self.dangerPulse then self.dangerPulse = ns.Effects.Vignette.Breath(self.lowFrame) end
+		else
+			self.low:SetAlpha(1)
+		end
+		return
+	end
+	self.low:SetTexture((Tokens.Texture("medLowHealthRing")))
 	local curve = unit and UnitHealthPercent and Widgets.LowHealthCurve()
 	if not curve then
 		self.pulse:Stop()

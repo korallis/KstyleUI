@@ -160,6 +160,8 @@ Settings.defaults = {
 	hideBlizzard = true,
 	accent = "class",
 	accentColor = Color("accentDefault"),
+	dangerEdge = true,
+	cleanLowRing = true,
 	orbGlass = true,
 	orbLedge = true,
 	orbCastRoom = true,
@@ -903,6 +905,15 @@ function Settings.Schema()
 			showWhen = function(s)
 				return s.accent == "custom"
 			end,
+		},
+		{ type = "header", label = L["Medallions danger"] },
+		{
+			type = "toggle", key = "dangerEdge", label = L["Restrained danger edge"],
+			help = L["Keeps danger at the edges and hides it with the UI. Off restores the original red glow."],
+		},
+		{
+			type = "toggle", key = "cleanLowRing", label = L["Clean player danger ring"],
+			help = L["A smooth ring on you, a still red rim on enemies. Off restores every portrait's smoky pulse."],
 		},
 		{ type = "header", label = L["Orbs"] },
 		{

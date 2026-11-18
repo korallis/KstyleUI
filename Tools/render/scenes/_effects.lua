@@ -78,6 +78,10 @@ function Effects.Apply(env, module, ns, notes)
 		if state == "vignette" then
 			Fixtures(env)
 			env._health = 0.08
+			for _, kind in ipairs({ "player", "target" }) do
+				local uf = ns.Frames.Get(kind)
+				if uf then ns.Slab.Health(uf.views[1], kind) end
+			end
 			E.Vignette.Update()
 			if E.Vignette.frame then
 				E.Vignette.frame.breath:Stop()

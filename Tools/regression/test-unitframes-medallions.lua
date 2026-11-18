@@ -142,11 +142,11 @@ for _, kind in ipairs({ "targettarget", "focustarget" }) do
 	assert(not (each.medallion and each.medallion:IsShown()), kind .. " shows no medallion")
 end
 
-player.health = 600
+player.health = player.healthMax * 0.1
 env.FireEvent("UNIT_HEALTH", "player")
-assert(m.lowFrame:IsShown() and m.pulse:IsPlaying(), "low health shows the pulsing ring")
+assert(m.lowFrame:IsShown() and m.dangerPulse and K.Effects.Vignette.frame.breath:IsPlaying(), "low health shows the ring on the shared danger breath")
 local alpha = U.W.LastCall(m.low, "SetAlpha")
-assert(alpha and env.issecretvalue(alpha[1]) and near(env.Reveal(alpha[1]), 1), "the ring's alpha is the curve's secret, full below 40 percent")
+assert(alpha and env.issecretvalue(alpha[1]) and near(env.Reveal(alpha[1]), 0.7), "the ring's alpha is the curve's secret, 0.7 below 15 percent")
 player.health = 3900
 env.FireEvent("UNIT_HEALTH", "player")
 alpha = U.W.LastCall(m.low, "SetAlpha")

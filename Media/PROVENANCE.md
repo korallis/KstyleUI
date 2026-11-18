@@ -924,3 +924,13 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 | `Media/Textures/Medallions/Crests/troll_warrior_metal.png` | 256x256 | The crest's metal mask (bright, unsaturated metal) for the sheen, white with the mask in alpha | Derived from `Media/Textures/Medallions/Crests/troll_warrior.png` by `Tools/medallions/imaging.py`, no model | `7da8bbfe-818f-4d7f-8ba7-e2943e3dd491` | `c89708db8918a4ff` | 2026-11-15 |
 
 <!-- medallions:end -->
+
+## Danger edge and portrait rings (E1/E2, 2026-11-18)
+
+Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt, external art or dependency added. Existing vignette and smoke assets remain for the previous-look settings.
+
+| File | Size | Construction and use |
+| --- | --- | --- |
+| `Media/Textures/Medallions/DangerEdge.png` | 256x256 | White RGB; at each pixel centre, alpha is `max(0, 1 - d/64)^2`, where `d` is distance to the nearest square edge. Eight slices at texture coordinates 0, 0.25, 0.75, 1 omit the transparent centre. Layout assigns the corners and strips equal depths of 18% (body) or 8% (ember) of the screen's short side, avoiding overlaps and aspect stretching. BLEND tinted `dangerBody` at 0.6, then ADD tinted `hostile` at 0.22. |
+| `Media/Textures/Medallions/DangerAnnulus.png` | 256x256 | White RGB, circle radius 43 on a 96.32-unit square (86 x 1.12). Alpha 1 within 0.75 units of the circumference, then `max(0, 1 - (distance - 0.75)/4)^2`: 1.5-unit core and 4-unit soft falloff. Drawn at 1024x1024 and Lanczos-downsampled to 256x256. BLEND tinted `healthLow`, under the bezel. |
+| `Media/Textures/Medallions/DangerRim.png` | 256x256 | Same circle and sampling as the annulus; opaque within 1 unit of its circumference, transparent elsewhere: a static 2-unit enemy rim. BLEND tinted `healthLow`, under the bezel. |
