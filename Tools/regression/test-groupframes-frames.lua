@@ -275,7 +275,6 @@ local first = Button.Content(children(Headers.raid[1])[1])
 local painted = paints(first)
 for _ = 1, 3 do
 	env.FireEvent("GROUP_ROSTER_UPDATE")
-	env.RunStateDrivers()
 	env.UpdateHeaders()
 end
 eq(paints(first), painted + 3, "each roster update paints immediately")
