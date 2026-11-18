@@ -56,6 +56,12 @@ local function NewSection(win, spec, group)
 	end
 	if spec.caption then
 		section.cap = Widgets.SectionCap(parent, { text = spec.caption })
+		local restyle = section.cap.Restyle
+		section.cap.Restyle = function(self)
+			restyle(self)
+			local path, _, flags = Tokens.Font("caps")
+			Widgets.ApplyFont(self.label, path, 11 * K.Theme.FontScale(), flags)
+		end
 	end
 	if spec.categories then
 		section.groups = {}
@@ -418,6 +424,8 @@ function Window:Layout(force)
 	if not Widgets.MayMove(panel) then
 		return
 	end
+	local path, _, flags = Tokens.Font("caps")
+	Widgets.ApplyFont(panel.titleText, path, 14 * K.Theme.FontScale(), flags)
 	local columns = Settings.Get(self.spec.columns or "columns")
 	local rowsLimit = Settings.Get("rows")
 	local size, spacing = Snap(self, Settings.Get("slotSize")), Snap(self, Settings.Get("spacing"))
@@ -558,6 +566,7 @@ function Window:Layout(force)
 	self.money:SetPoint("RIGHT", content, "TOPLEFT", contentWidth, -(top + footer / 2))
 	top = top + footer
 	Widgets.Size(panel, contentWidth + 2 * pad, contentTop + top + pad)
+	panel.chrome:SetHeader(panel.titleBar:GetHeight())
 	self:Paint(force)
 end
 
