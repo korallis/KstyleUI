@@ -78,6 +78,7 @@ Skins.Add({
 	frame = "GroupLootFrame1",
 	defaults = Kit.QualityDefaults(),
 	rows = Kit.QualityRows(L["Colours each roll's item border by its quality."]),
+	metrics = { "GroupLootFrame1", "GroupLootFrame2", "GroupLootFrame3", "GroupLootFrame4" },
 	Apply = Apply,
 	OnSetting = OnSetting,
 })
