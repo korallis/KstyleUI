@@ -956,7 +956,7 @@ function Layouts.BuildMedallions()
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
 		end
 		sets[class] = {
-			["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = 410 },
+			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = petBar,
