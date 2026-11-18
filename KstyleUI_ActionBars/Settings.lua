@@ -67,6 +67,7 @@ local defaults = {
 	powerColor = Color(ns.Socket.TOKENS.cool),
 	tooltips = "always",
 	ranks = "ask",
+	newSpells = "ask",
 	tray = true,
 	trayColumn = true,
 	text = {
@@ -246,6 +247,14 @@ function ns.Schema()
 				{ value = "ask", label = L["Ask"] },
 				{ value = "auto", label = L["Update automatically"] },
 				{ value = "off", label = L["Off"] },
+			},
+		},
+		{
+			type = "dropdown", key = "newSpells", label = L["New spells"], help = L["What happens when you learn an active spell that is not on your bars."],
+			options = {
+				{ value = "ask", label = L["Ask"] },
+				{ value = "auto", label = L["Always add"] },
+				{ value = "off", label = L["Never"] },
 			},
 		},
 	}

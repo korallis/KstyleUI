@@ -117,7 +117,12 @@ end
 local function Layout()
 	local pad = Widgets.WindowInset(host)
 	local gap = Widgets.Snap(host, Tokens.Size("gapMedium"))
-	local inner = Widgets.Snap(host, WIDTH) - 2 * pad
+	local width = 2 * pad + gap * (#host.visibleButtons - 1)
+	for _, button in ipairs(host.visibleButtons) do
+		width = width + (button:GetWidth() or 0)
+	end
+	width = max(Widgets.Snap(host, WIDTH), width)
+	local inner = width - 2 * pad
 	local body = host.body
 	body:SetWidth(inner)
 	local _, bodySize = Tokens.Font("body")
@@ -143,7 +148,8 @@ local function Layout()
 		tallest = max(tallest, button:GetHeight() or 0)
 	end
 	host.opts.height = y + tallest + pad
-	Widgets.Size(host, WIDTH, host.opts.height)
+	host.opts.width = width
+	Widgets.Size(host, width, host.opts.height)
 end
 
 local function Render(handle)

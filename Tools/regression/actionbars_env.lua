@@ -408,9 +408,13 @@ local function InstallGame(env, opts)
 		g.picked[#g.picked + 1] = "pet" .. n
 	end
 	env.GetCursorInfo = function()
+		if type(g.cursor) == "table" and g.cursor.type == "spell" then
+			return "spell", 1, "spell", g.cursor.id
+		end
 		return type(g.cursor) == "table" and g.cursor.type or g.cursor
 	end
 	env.ClearCursor = function()
+		Block(env, "ClearCursor")
 		g.cursor = nil
 	end
 	env.GetCVarBool = function(name)
@@ -515,7 +519,23 @@ local function InstallGame(env, opts)
 		env.C_Spell[api] = function(id) return g.spells[id] and g.spells[id][field] end
 	end
 	env.C_Spell.PickupSpell = function(id)
+		Block(env, "C_Spell.PickupSpell")
 		g.cursor = { type = "spell", id = id, texture = 1000000 + id }
+	end
+	g.bookSpells, g.professions = {}, {}
+	env.C_SpellBook = env.C_SpellBook or {}
+	env.Enum.SpellBookItemType = env.Enum.SpellBookItemType or { Spell = 1, FutureSpell = 2, Flyout = 3 }
+	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
+	env.C_SpellBook.FindSpellBookSlotForSpell = function(id)
+		for index, info in pairs(g.bookSpells) do
+			if info.spellID == id then return index, env.Enum.SpellBookSpellBank.Player end
+		end
+	end
+	env.C_SpellBook.GetSpellBookItemInfo = function(index) return g.bookSpells[index] end
+	env.GetProfessions = function() return unpack(g.professions.indices or {}) end
+	env.GetProfessionInfo = function(index)
+		local profession = g.professions[index]
+		return "Profession", 1, 1, 300, profession.count, profession.offset
 	end
 	-- A spell with no entry in g.spells has not loaded. RequestLoadSpellData records the ID in
 	-- g.loadRequests; a test then adds the entry and fires SPELL_DATA_LOAD_RESULT itself.

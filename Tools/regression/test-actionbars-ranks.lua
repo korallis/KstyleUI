@@ -18,6 +18,7 @@ local function Setup(mode)
 	end
 	AB.Enable(env, K)
 	K.Options.Write("ActionBars", "ranks", mode or "ask")
+	K.Options.Write("ActionBars", "newSpells", "off")
 	for slot, s in pairs(SLOTS) do
 		g.slots[slot] = { type = s[1], id = s[2], texture = slot }
 	end
@@ -169,6 +170,11 @@ do
 	K.Options.Write("ActionBars", "ranks", "ask")
 	env.SetCombat(false)
 	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off cancels the waiting swap for good, and shows and changes nothing")
+	env.FireEvent("LEARNED_SPELL_IN_SKILL_LINE", HS2, 1, false)
+	K.Options.Write("ActionBars", "ranks", "off")
+	K.Options.Write("ActionBars", "ranks", "ask")
+	env.RunTimers()
+	assert(Shown(env, K) == nil and #g.placed == 0, "Off also cancels a rank still in the learn batch")
 end
 
 -- The settings row: Ask by default, Update automatically and Off, with short help.
@@ -304,6 +310,178 @@ do
 	env.RunTimers()
 	Learn(env, ids[25])
 	assert(#g.loadRequests == 21 and g.loadRequests[21] == ids[25] and #env._errors == 0, "a result frees its slot" .. AB.Errors(env))
+end
+
+local function NewSpells(mode)
+	local env, K, g = Setup()
+	K.Options.Write("ActionBars", "newSpells", mode or "ask")
+	g.spells[200] = { name = "New Ability", subtext = "" }
+	g.spells[201] = { name = "Other Ability", subtext = "Rank 1" }
+	g.bookSpells[20] = { spellID = 200, itemType = env.Enum.SpellBookItemType.Spell, isPassive = false, isOffSpec = false }
+	g.bookSpells[21] = { spellID = 201, itemType = env.Enum.SpellBookItemType.Spell, isPassive = false, isOffSpec = false }
+	return env, K, g
+end
+
+-- Ask is on by default; a new active spell gets its own action, and one empty slot gets it.
+do
+	local env, K = AB.New()
+	local row
+	for _, r in ipairs(K.Options.Get("ActionBars")) do
+		if r.key == "newSpells" then row = r end
+	end
+	assert(K.Store.Module("ActionBars").newSpells == "ask" and row.label == "New spells")
+	assert(row.options[2].value == "auto" and row.options[2].label == "Always add" and row.options[3].label == "Never")
+	assert(#env._errors == 0, AB.Errors(env))
+	local g
+	env, K, g = NewSpells()
+	Learn(env, 200)
+	assert(Has(Shown(env, K), "NEW ABILITY") and #K.Widgets.DialogHost().visibleButtons == 2 and #g.placed == 0)
+	Press(env, K, "Add new to bars")
+	assert(Holds(g, 1, 200) and #g.placed == 1 and g.cursor == nil and Shown(env, K) == nil)
+	Learn(env, 200)
+	assert(Shown(env, K) == nil and #g.placed == 1, "a spell already on any action page is never added again")
+end
+
+-- A combined offer preserves the other choice, regardless of which action the player takes first.
+for _, first in ipairs({ "Update bars", "Add new to bars" }) do
+	local env, K, g = NewSpells()
+	Learn(env, HS2, 200)
+	local text = Shown(env, K)
+	assert(Has(text, "HEROIC STRIKE") and Has(text, "NEW ABILITY") and #K.Widgets.DialogHost().visibleButtons == 3)
+	Press(env, K, first)
+	if first == "Update bars" then
+		assert(Holds(g, 3, HS2) and not Holds(g, 1, 200) and Has(Shown(env, K), "NEW ABILITY"))
+		Press(env, K, "Add new to bars")
+	else
+		assert(Holds(g, 1, 200) and Holds(g, 3, HS1) and Has(Shown(env, K), "HEROIC STRIKE"))
+		Press(env, K, "Update bars")
+	end
+	assert(Holds(g, 1, 200) and Holds(g, 3, HS2) and Holds(g, 75, HS2) and #g.placed == 3 and #env._errors == 0, AB.Errors(env))
+end
+
+-- Combat batches both kinds without opening a dialog or making protected calls.
+do
+	local env, K, g = NewSpells()
+	env.SetCombat(true)
+	Learn(env, HS2, 200, 201)
+	assert(Shown(env, K) == nil and #g.placed == 0 and #env._blocked == 0)
+	env.SetCombat(false)
+	assert(Has(Shown(env, K), "NEW ABILITY") and Has(Shown(env, K), "OTHER ABILITY"))
+	env.SetCombat(true)
+	Press(env, K, "Add new to bars")
+	assert(#g.placed == 0 and #env._blocked == 0)
+	env.SetCombat(false)
+	assert(Holds(g, 1, 200) and Holds(g, 2, 201) and #g.placed == 2 and #env._blocked == 0 and #env._errors == 0, AB.Errors(env))
+end
+
+-- Bar 1 fills before bar 2's real page (61 onward); occupied slots and hidden buttons stay intact.
+do
+	local env, K, g = NewSpells("auto")
+	for slot = 1, 12 do g.slots[slot] = { type = "item", id = 6948 } end
+	K.Options.Write("ActionBars", "bar2.buttons", 2)
+	g.slots[61] = { type = "macro", id = 1 }
+	Learn(env, 200)
+	assert(Holds(g, 62, 200) and #g.placed == 1 and g.slots[1].type == "item" and g.slots[61].type == "macro")
+	Learn(env, 201)
+	assert(Has(Shown(env, K), "No free slots") and #g.placed == 1 and not g.slots[63], "hidden buttons cannot receive spells")
+	env, K, g = NewSpells("auto")
+	K.Options.Write("ActionBars", "bar1.enabled", false)
+	Learn(env, 200)
+	assert(Holds(g, 61, 200) and not g.slots[1] and #g.placed == 1, "disabled bar 1 is skipped")
+	K.Options.Write("ActionBars", "bar2.enabled", false)
+	Learn(env, 201)
+	assert(Has(Shown(env, K), "No free slots") and #g.placed == 1)
+end
+
+-- Physical left-to-right order follows reversed growth and vertical layouts too.
+do
+	local env, K, g = NewSpells("auto")
+	K.Options.Write("ActionBars", "bar1.growth", "LEFTDOWN")
+	Learn(env, 200)
+	assert(Holds(g, 12, 200) and #g.placed == 1)
+	env, K, g = NewSpells("auto")
+	K.Options.Write("HudStyle", "style", "frames")
+	K.Options.Write("ActionBars", "bar1.growth", "RIGHTDOWN")
+	K.Options.Write("ActionBars", "bar1.rows", 2)
+	K.Options.Write("ActionBars", "bar1.orientation", "VERTICAL")
+	g.slots[3] = nil
+	g.slots[1] = { type = "item", id = 6948 }
+	Learn(env, 200)
+	assert(Holds(g, 3, 200) and #g.placed == 1, "fill left to right before the next physical row: " .. table.concat(g.placed, ","))
+end
+
+-- Passives, professions, flyouts, future/off-spec spells and unsafe metadata do not qualify.
+for _, excluded in ipairs({ "passive", "profession", "flyout", "future", "offspec", "secret", "missing" }) do
+	local env, K, g = NewSpells()
+	local info = g.bookSpells[20]
+	if excluded == "passive" then info.isPassive = true
+	elseif excluded == "profession" then g.professions = { indices = { 1 }, [1] = { count = 2, offset = 19 } }
+	elseif excluded == "flyout" then info.itemType = env.Enum.SpellBookItemType.Flyout
+	elseif excluded == "future" then info.itemType = env.Enum.SpellBookItemType.FutureSpell
+	elseif excluded == "offspec" then info.isOffSpec = true
+	elseif excluded == "secret" then info.isPassive = env.Secret(false)
+	else env.C_SpellBook.FindSpellBookSlotForSpell = nil end
+	Learn(env, 200)
+	assert(Shown(env, K) == nil and #g.placed == 0 and #env._errors == 0, excluded .. AB.Errors(env))
+end
+
+-- A native auto-push before the batch, before acceptance, or during a cursor wait is not duplicated.
+for _, when in ipairs({ "batch", "accept", "cursor" }) do
+	local env, K, g = NewSpells()
+	if when == "batch" then g.slots[120] = { type = "spell", id = 200 } end
+	Learn(env, 200)
+	if when == "batch" then
+		assert(Shown(env, K) == nil)
+	else
+		if when == "cursor" then g.cursor = { type = "item", id = 6948 } end
+		if when == "accept" then g.slots[120] = { type = "spell", id = 200 } end
+		Press(env, K, "Add new to bars")
+		g.slots[120], g.cursor = { type = "spell", id = 200 }, nil
+		env.RunTimers()
+	end
+	assert(#g.placed == 0 and not g.slots[1] and #env._errors == 0, when .. AB.Errors(env))
+end
+
+-- Never cancels a waiting addition, while disabling rank updates leaves new-spell offers enabled.
+do
+	local env, K, g = NewSpells()
+	Learn(env, 200)
+	g.cursor = { type = "item", id = 6948 }
+	Press(env, K, "Add new to bars")
+	K.Options.Write("ActionBars", "newSpells", "off")
+	K.Options.Write("ActionBars", "newSpells", "ask")
+	g.cursor = nil
+	env.RunTimers()
+	assert(#g.placed == 0 and Shown(env, K) == nil)
+	Learn(env, 200)
+	K.Options.Write("ActionBars", "ranks", "off")
+	assert(Has(Shown(env, K), "NEW ABILITY"))
+	Press(env, K, "Add new to bars")
+	assert(Holds(g, 1, 200) and #env._errors == 0, AB.Errors(env))
+end
+
+-- Successive approvals merge during a cursor wait; learning multiple ranks of a new spell adds only the highest.
+do
+	local env, K, g = NewSpells()
+	local after, retries = env.C_Timer.After, {}
+	env.C_Timer.After = function(delay, fn)
+		if delay >= 1 then retries[#retries + 1] = fn else after(delay, fn) end
+	end
+	g.cursor = { type = "item", id = 6948 }
+	Learn(env, 200)
+	Press(env, K, "Add new to bars")
+	Learn(env, 201)
+	Press(env, K, "Add new to bars")
+	g.cursor = nil
+	env.C_Timer.After = after
+	for _, retry in ipairs(retries) do retry() end
+	assert(Holds(g, 1, 200) and Holds(g, 2, 201) and #g.placed == 2)
+	env, K, g = NewSpells()
+	g.spells[202] = { name = "Other Ability", subtext = "Rank 2" }
+	g.bookSpells[22] = { spellID = 202, itemType = env.Enum.SpellBookItemType.Spell, isPassive = false, isOffSpec = false }
+	Learn(env, 201, 202)
+	Press(env, K, "Add new to bars")
+	assert(Holds(g, 1, 202) and #g.placed == 1 and #env._errors == 0, "only the highest rank of a new spell goes onto the bars" .. AB.Errors(env))
 end
 
 print("test-actionbars-ranks: ok")
