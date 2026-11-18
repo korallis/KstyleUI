@@ -683,6 +683,14 @@ function Card.SetShownCount(n)
 	wanted = math.max(1, math.min(MAX_SHOWN, math.floor(tonumber(n) or 4)))
 end
 
+function Card.Resize(height)
+	if math.abs(maxHeight - height) > 0.01 then
+		maxHeight = height
+		Card.Render()
+	end
+	card:SetHeight(Snap(height))
+end
+
 function Card.Place(root, left, top, width, height)
 	card:ClearAllPoints()
 	Widgets.Point(card, "TOPLEFT", root, "BOTTOMLEFT", Widgets.Snap(card, left), Widgets.Snap(card, top))

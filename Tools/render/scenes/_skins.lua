@@ -133,8 +133,11 @@ function Skins.Scene(key)
 	if spec.addon then
 		S.LoadAddOn(env, spec.addon)
 	end
-	for _, shown in ipairs(parts.show) do
-		S.Show(shown)
+	for opened = 1, math.max(1, math.min(5, tonumber(os.getenv("RENDER_WINDOW_OPENS")) or 1)) do
+		for _, shown in ipairs(parts.show) do
+			if opened > 1 then shown:Hide() end
+			S.Show(shown)
+		end
 	end
 	env.RunTimers()
 	S.W.Settle(env)

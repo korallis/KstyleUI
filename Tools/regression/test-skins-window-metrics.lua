@@ -42,6 +42,17 @@ for _, spec in ipairs(Windows.LIST) do
 	end
 	assert(count > 0, spec.key .. ": opt this window family into the shared native window measures")
 	if spec.key == "merchant" then
+		for _ = 1, 5 do
+			env.MerchantFrame_UpdateMerchantInfo()
+			local point, relative, on, _, y = env.MerchantItem2.AltCurrencyFrame:GetPoint(1)
+			assert(point == "BOTTOMLEFT" and relative == env.MerchantItem2 and on == "BOTTOMLEFT" and math.abs(y) < 0.5, "native merchant updates must keep token prices below wrapped names")
+		end
+		env.MerchantItem2.MoneyFrame:Show()
+		env.MerchantFrame_UpdateMerchantInfo()
+		local mixedPoint, mixedRelative, mixedOn = env.MerchantItem2.AltCurrencyFrame:GetPoint(1)
+		assert(mixedPoint == "LEFT" and mixedRelative == env.MerchantItem2.MoneyFrame and mixedOn == "RIGHT", "mixed gold and token prices retain Blizzard's separate currency chain")
+		env.MerchantItem2.MoneyFrame:Hide()
+		env.MerchantFrame_UpdateMerchantInfo()
 		assert(env.MerchantItem1:GetTop() < env.MerchantFrame.FilterDropdown:GetBottom(), "merchant goods begin below the filter control")
 		for i = 1, 10 do
 			local slot = env["MerchantItem" .. i]

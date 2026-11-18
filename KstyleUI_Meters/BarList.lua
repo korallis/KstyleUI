@@ -726,7 +726,7 @@ local function Fits(list)
 	if not aside then
 		return true
 	end
-	local room = list.barWidth or 0
+	local room = (list.barWidth or 0) - (list.stripReserve or 0)
 	if ns.Get(list.section .. ".title") then
 		local title = TextWidth(list.title)
 		return not title or title + aside <= room - CapReserve(list)
@@ -753,11 +753,18 @@ local function HoldTitle(list)
 		end
 	end
 	local aside = TextWidth(list.column) or 0
-	local room = (list.barWidth or 0) - CapReserve(list) - aside
+	local room = (list.barWidth or 0) - CapReserve(list) - aside - (list.stripReserve or 0)
 	if room > 0 then
 		title:SetWidth(room)
 	else
 		title:SetShown(false)
+	end
+end
+
+function List:ReserveTitle(width)
+	if self.stripReserve ~= width then
+		self.stripReserve = width
+		HoldTitle(self)
 	end
 end
 
@@ -1001,6 +1008,7 @@ end
 function List:SetTitleSwitch(first, second, selected)
 	self.switchFirst, self.switchSecond, self.switchPick = first, second, selected
 	self:PaintTitleSwitch()
+	if self.stripReserve then HoldTitle(self) end
 end
 
 function List:ShowRest()

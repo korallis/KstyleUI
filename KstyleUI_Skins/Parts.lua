@@ -567,6 +567,26 @@ end
 
 local metricWindows = setmetatable({}, WEAK)
 
+local function MetricAnchorGap(frame, relative)
+	local found = false
+	for i = 1, frame:GetNumPoints() do
+		local point, anchor, on, x, y = frame:GetPoint(i)
+		if anchor == relative and type(point) == "string" and type(on) == "string" and Plain(x) and Plain(y) then
+			local gap
+			if point:find("RIGHT", 1, true) and on:find("LEFT", 1, true) then
+				gap = Widgets.Snap(frame, -8)
+			elseif point:find("LEFT", 1, true) and on:find("RIGHT", 1, true) then
+				gap = Widgets.Snap(frame, 8)
+			end
+			if gap then
+				if math.abs(x - gap) > 0.01 then frame:SetPoint(point, anchor, on, gap, y) end
+				found = true
+			end
+		end
+	end
+	return found
+end
+
 local function MetricButtonGaps(frame)
 	local buttons = {}
 	for _, child in ipairs({ frame:GetChildren() }) do
@@ -585,7 +605,9 @@ local function MetricButtonGaps(frame)
 			if Plain(left) and Plain(right) then
 				local gap = left - right
 				if gap >= 0 and gap <= 16 then
-					after.frame:AdjustPointsOffset(Widgets.Snap(after.frame, 8 - gap), 0)
+					if not MetricAnchorGap(before.frame, after.frame) and not MetricAnchorGap(after.frame, before.frame) then
+						after.frame:AdjustPointsOffset(Widgets.Snap(after.frame, 8 - gap), 0)
+					end
 				end
 			end
 		end
@@ -601,7 +623,11 @@ local function MetricChildren(frame, depth)
 	end
 	local parts = Skin.Parts(frame)
 	if parts and (parts.kinds.Button or parts.kinds.EditBox or chevrons[frame]) and Widgets.MayMove(frame) then
-		frame:SetHeight(Widgets.Snap(frame, 28))
+		local parent = frame:GetParent()
+		local height = parent and parent:GetHeight()
+		if not Plain(height) or height <= 0 or height >= Widgets.Snap(parent, 28) then
+			frame:SetHeight(Widgets.Snap(frame, 28))
+		end
 	end
 	for _, text in ipairs({ frame:GetRegions() }) do
 		if type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
@@ -685,8 +711,12 @@ local function PlaceMetrics(state)
 end
 
 function Parts.WindowMetrics(frame)
-	if not ns.Style.MetricsEnabled() or type(frame) ~= "table" or metricWindows[frame] then
+	if not ns.Style.MetricsEnabled() or type(frame) ~= "table" then
 		return
+	end
+	if metricWindows[frame] then
+		PlaceMetrics(metricWindows[frame])
+		return metricWindows[frame]
 	end
 	local container = frame.TitleContainer or type(frame.BorderFrame) == "table" and frame.BorderFrame.TitleContainer
 	local title = type(container) == "table" and container.TitleText or type(frame.Header) == "table" and frame.Header.Text or nil

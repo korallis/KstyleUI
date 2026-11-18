@@ -659,7 +659,7 @@ function Rail.Place()
 		card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
 		card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
 		card:SetHeight(Widgets.Snap(card, height / scale))
-		quest:SetHeight(Widgets.Snap(quest, height / questScale))
+		ns.QuestCard.Resize(Widgets.Snap(quest, height / questScale))
 	end
 	if Docking() then
 		Dock(f, path, band)

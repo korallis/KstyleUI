@@ -21,10 +21,12 @@ end
 local function PriceText(frame)
 	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "FontString" then
 		ns.Style.Text(frame, "caption")
+		ns.Style.MetricText(frame)
 	elseif type(frame.GetRegions) == "function" then
 		for _, text in ipairs({ frame:GetRegions() }) do
 			if type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
 				ns.Style.Text(text, "caption")
+				ns.Style.MetricText(text)
 			end
 		end
 		for _, child in ipairs({ frame:GetChildren() }) do
@@ -38,11 +40,17 @@ local function Prices(slot)
 	if issecretvalue and issecretvalue(name) then
 		name = nil
 	end
+	local money = slot.MoneyFrame or type(name) == "string" and _G[name .. "MoneyFrame"]
 	for _, key in ipairs({ "MoneyFrame", "AltCurrencyFrame" }) do
 		local frame = slot[key] or type(name) == "string" and _G[name .. key]
 		if type(frame) == "table" and K.Widgets.MayMove(frame) then
 			frame:ClearAllPoints()
-			frame:SetPoint("BOTTOMLEFT", slot, "BOTTOMLEFT", K.Widgets.Snap(frame, 46), 0)
+			local gold = money and money:IsShown()
+			if key == "AltCurrencyFrame" and not (issecretvalue and issecretvalue(gold)) and gold == true then
+				frame:SetPoint("LEFT", money, "RIGHT", -12, 0)
+			else
+				frame:SetPoint("BOTTOMLEFT", slot, "BOTTOMLEFT", K.Widgets.Snap(frame, 46), 0)
+			end
 			PriceText(frame)
 		end
 	end
@@ -79,6 +87,17 @@ local function Title()
 	end
 end
 
+local function Updated()
+	Title()
+	if ns.Style.MetricsEnabled() then
+		for i = 1, MAX_ITEMS do
+			local slot = _G["MerchantItem" .. i]
+			if slot then Prices(slot) end
+		end
+		if MerchantBuyBackItem then Prices(MerchantBuyBackItem) end
+	end
+end
+
 local function Apply()
 	local frame = MerchantFrame
 	if not Kit.Have(frame, "MerchantFrame") then
@@ -88,7 +107,7 @@ local function Apply()
 	Title()
 	for _, update in ipairs({ "MerchantFrame_UpdateMerchantInfo", "MerchantFrame_UpdateBuybackInfo" }) do
 		if type(_G[update]) == "function" then
-			hooksecurefunc(update, Title)
+			hooksecurefunc(update, Updated)
 		end
 	end
 	for i = 1, MAX_ITEMS do

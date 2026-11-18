@@ -40,6 +40,7 @@ return Common.Run(function()
 		list:SetRow(i, row[1], "SHAMAN", "friendly", row[2], 412, tostring(row[2]), "20%")
 	end
 	list:Finish(3)
+	list:SetRest("734/s")
 	local scene = Common.Scene.Build(env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(env, K)
 	if err then scene.log[#scene.log + 1] = err end

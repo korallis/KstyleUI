@@ -17,12 +17,21 @@ strip.Refresh()
 local view, meter = strip.view, meters.Damage.list
 assert(view.docked == meter, "dock the default data strip into the damage meter's cap row")
 local point, relative, on = view.frame:GetPoint(1)
-assert(point == "RIGHT" and relative == meter.cap.frame and on == "RIGHT", "keep the strip in the cap row as a right aside")
-assert(meter.column:GetAlpha() == 0, "the docked strip owns the aside lane")
+assert(point == "RIGHT" and relative == meter.column and on == "LEFT", "dock the readouts before the meter rate in its cap row")
+meter:SetRest("123 DPS")
+assert(meter.column:GetAlpha() == 1 and meter.column:IsVisible(), "docking must preserve the visible meter rate")
 strip.Tick()
 local r, g, b = view.items.fps.value:GetTextColor()
 local er, eg, eb = K.Tokens.Color("labelMuted")
 assert(r == er and g == eg and b == eb, "the docked data figures keep labelMuted ink after a tick")
+local reads, anchors = 0, 0
+local framerate, setPoint = env.GetFramerate, view.frame.SetPoint
+env.GetFramerate = function(...) reads = reads + 1; return framerate(...) end
+view.frame.SetPoint = function(self, ...) anchors = anchors + 1; return setPoint(self, ...) end
+meter:Fit()
+reads, anchors = 0, 0
+for _ = 1, 10 do meter:Fit() end
+assert(reads == 0 and anchors == 0, "unchanged meter fits must not refresh sources or re-anchor the data strip")
 K.Options.Write("DataBars", "strip.dockMeter", false)
 assert(not view.docked and meter.column:GetAlpha() == 1, "turning meter docking off restores the separate data strip and meter aside")
 r, g, b = view.items.fps.value:GetTextColor()

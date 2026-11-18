@@ -965,6 +965,7 @@ function build.worldmap(env, B)
 	env.QuestLogQuests_Update = function() end
 	local details = B.frame("Frame", log.QuestsFrame)
 	log.QuestsFrame.DetailsFrame = details
+	details:SetAllPoints(log)
 	details:Hide()
 	details.Bg = B.texture(details, "BACKGROUND")
 	details.BackFrame = B.frame("Frame", details)
@@ -972,6 +973,11 @@ function build.worldmap(env, B)
 	for _, key in ipairs({ "AbandonButton", "ShareButton", "TrackButton" }) do
 		details[key] = Button(B, details, key, 60)
 	end
+	Anchor(details.TrackButton, details, "BOTTOMRIGHT", -8, 5)
+	Anchor(details.AbandonButton, details, "BOTTOMLEFT", 8, 5)
+	details.ShareButton:ClearAllPoints()
+	details.ShareButton:SetPoint("LEFT", details.AbandonButton, "RIGHT")
+	details.ShareButton:SetPoint("RIGHT", details.TrackButton, "LEFT")
 	details.ScrollFrame = B.frame("ScrollFrame", details)
 	details.ScrollFrame.ScrollBar = ScrollBar(B, details.ScrollFrame)
 	return map, { show = { map, log }, bounds = { map, log }, maps = { canvas } }
@@ -1123,6 +1129,7 @@ function build.mail(env, B)
 	inbox.OpenAllMail = Button(B, inbox, "Open All", 100)
 	Anchor(inbox.OpenAllMail, mail, "BOTTOM", 0, 5)
 	local send = B.frame("Frame", mail, "SendMailFrame")
+	send:SetAllPoints(mail)
 	send:Hide()
 	B.texture(send)
 	EditBox(B, send, "", 200, nil, "SendMailNameEditBox")
@@ -1136,6 +1143,8 @@ function build.mail(env, B)
 	Check(B, send, "", "SendMailCODButton")
 	env.SendMailCancelButton = Button(B, send, "Cancel", 80)
 	env.SendMailMailButton = Button(B, send, "Send", 80)
+	Anchor(env.SendMailCancelButton, send, "BOTTOMRIGHT", -7, 4)
+	Anchor(env.SendMailMailButton, env.SendMailCancelButton, "RIGHT", "LEFT", 0, 0)
 	local inset = B.frame("Frame", send, "SendMailMoneyInset")
 	inset.NineSlice = B.frame("Frame", inset)
 	B.texture(inset.NineSlice)
@@ -1173,6 +1182,10 @@ function build.mail(env, B)
 		env[entry[1]] = button
 		Anchor(button, letter, "BOTTOMLEFT", 8 + (i - 1) * 80, 6)
 	end
+	Anchor(env.OpenMailCancelButton, letter, "BOTTOMRIGHT", -6, 4)
+	Anchor(env.OpenMailDeleteButton, env.OpenMailCancelButton, "RIGHT", "LEFT", 0, 0)
+	Anchor(env.OpenMailReplyButton, env.OpenMailDeleteButton, "RIGHT", "LEFT", 0, 0)
+	Anchor(env.OpenMailReportSpamButton, letter, "BOTTOMLEFT", 8, 4)
 	return mail, { show = { mail, letter }, bounds = { mail, letter, env.MailFrameTab1 } }
 end
 
@@ -1209,6 +1222,25 @@ function build.merchant(env, B)
 		slot.Name:SetJustifyV("TOP")
 		slot.MoneyFrame = Text(B.text(slot), good[2], "BOTTOMLEFT", slot, "BOTTOMLEFT", 46, 4)
 	end
+	local tokenSlot = env.MerchantItem2
+	tokenSlot.SlotTexture:SetSize(64, 64)
+	Anchor(tokenSlot.SlotTexture, tokenSlot, "TOPLEFT", -13, 13)
+	tokenSlot.NameFrame = B.add(tokenSlot:CreateTexture("MerchantItem2NameFrame", "BACKGROUND"))
+	tokenSlot.NameFrame:SetSize(128, 78)
+	Anchor(tokenSlot.NameFrame, tokenSlot.SlotTexture, "LEFT", "RIGHT", -9, -18)
+	tokenSlot.AltCurrencyFrame = B.frame("Frame", tokenSlot, "MerchantItem2AltCurrencyFrame")
+	tokenSlot.AltCurrencyFrame:SetSize(90, 16)
+	Text(B.text(tokenSlot.AltCurrencyFrame), "6 marks", "LEFT", tokenSlot.AltCurrencyFrame, "LEFT")
+	tokenSlot.MoneyFrame:Hide()
+	env.MerchantFrame_UpdateMerchantInfo = function()
+		if tokenSlot.MoneyFrame:IsShown() then
+			Anchor(tokenSlot.AltCurrencyFrame, tokenSlot.MoneyFrame, "LEFT", "RIGHT", -12, 0)
+		else
+			Anchor(tokenSlot.AltCurrencyFrame, tokenSlot.NameFrame, "BOTTOMLEFT", 2, 31)
+		end
+	end
+	env.MerchantFrame_UpdateMerchantInfo()
+	merchant:SetScript("OnShow", function() env.MerchantFrame_UpdateMerchantInfo() end)
 	local buyback = B.frame("Frame", merchant, "MerchantBuyBackItem")
 	buyback:SetSize(153, 44)
 	Anchor(buyback, merchant.Inset, "BOTTOMLEFT", 8, 8)
@@ -1224,6 +1256,9 @@ function build.merchant(env, B)
 		button.Icon = Icon(B, button, ICONS[24])
 		x = x + 36
 	end
+	Anchor(env.MerchantRepairAllButton, merchant, "BOTTOMRIGHT", "BOTTOMLEFT", 172, 11)
+	Anchor(env.MerchantRepairItemButton, env.MerchantRepairAllButton, "RIGHT", "LEFT", -2, 0)
+	Anchor(env.MerchantGuildBankRepairButton, env.MerchantRepairAllButton, "LEFT", "RIGHT", 4, 0)
 	for _, name in ipairs({ "MerchantExtraCurrencyInset", "MerchantMoneyInset" }) do
 		local inset = B.frame("Frame", merchant, name)
 		inset.NineSlice = B.frame("Frame", inset)
@@ -1433,6 +1468,10 @@ function build.addonlist(env, B)
 			Anchor(button, f, "BOTTOMLEFT", 14 + (i - 3) * 96, 10)
 		end
 	end
+	Anchor(f.CancelButton, f, "BOTTOMRIGHT", -4, 4)
+	Anchor(f.OkayButton, f.CancelButton, "TOPRIGHT", "TOPLEFT", 0, 0)
+	Anchor(f.EnableAllButton, f, "BOTTOMLEFT", 4, 4)
+	Anchor(f.DisableAllButton, f.EnableAllButton, "TOPLEFT", "TOPRIGHT", 0, 0)
 	f.ScrollBar = ScrollBar(B, f)
 	Anchor(f.ScrollBar, f.Inset, "TOPRIGHT", -4, -4)
 	f.ScrollBar:SetHeight(400)
@@ -1596,8 +1635,12 @@ function build.communities(env, B)
 	f.GuildLogButton = Button(B, f, "Guild Log", 90)
 	Anchor(f.GuildLogButton, f, "BOTTOMRIGHT", -110, 10)
 	f.CommunitiesControlFrame = B.frame("Frame", f)
+	f.CommunitiesControlFrame:SetSize(310, 28)
+	Anchor(f.CommunitiesControlFrame, f, "BOTTOMLEFT", 190, 10)
 	f.CommunitiesControlFrame.GuildControlButton = Button(B, f.CommunitiesControlFrame, "Guild Control", 110)
-	Anchor(f.CommunitiesControlFrame.GuildControlButton, f, "BOTTOMLEFT", 190, 10)
+	Anchor(f.CommunitiesControlFrame.GuildControlButton, f.CommunitiesControlFrame, "BOTTOMRIGHT", 0, 0)
+	f.CommunitiesControlFrame.GuildRecruitmentButton = Button(B, f.CommunitiesControlFrame, "Recruitment", 110)
+	Anchor(f.CommunitiesControlFrame.GuildRecruitmentButton, f.CommunitiesControlFrame.GuildControlButton, "RIGHT", "LEFT", -2, 0)
 	f.GuildBenefitsFrame = B.frame("Frame", f)
 	f.GuildBenefitsFrame:Hide()
 	B.texture(f.GuildBenefitsFrame)

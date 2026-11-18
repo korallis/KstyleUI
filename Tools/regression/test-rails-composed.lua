@@ -10,6 +10,9 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local guide = K.Skin.Parts(R.rxp.RXPFrame).backdrop
 	local q, g = Rect(quest), Rect(guide)
 	local pixel = K.Scale.Pixel(1) + 0.01
+	local composed = ns.QuestCard.Parts()
+	assert(composed.cap.row:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out again at the composed height, with the cap and next quest visible")
+	if screen.width == 1920 then assert(composed.fade:IsShown(), "the 1080 story card uses its added height for a continuation under the fade") end
 	assert(math.abs(q.bottom - g.bottom) <= pixel, "side-by-side story cards share the taller card's foot")
 	assert(math.abs(q.left - g.right - 8) <= pixel, "side-by-side story cards share one eight-unit gutter: " .. q.left .. " - " .. g.right)
 	K.Options.Write("Skins", "restedXP.compose", false)
