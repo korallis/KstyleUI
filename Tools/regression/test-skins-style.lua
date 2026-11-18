@@ -226,16 +226,16 @@ do
 	local title = env.UIParent:CreateFontString(nil, "OVERLAY")
 	Style.Title(title)
 	local before = select(2, title:GetFont())
-	assert(FontSize(K, title, before, 10), "a title uses the shared ten-unit section size, floored")
+	assert(before > K.Tokens.Size("caps"), "a title is set at the card caption size")
 	K.Options.Write("Skins", "text.outline", "OUTLINE")
 	assert(select(2, title:GetFont()) == before, "a skin setting change keeps the title's size")
 	for _, scale in ipairs({ 0.8, 1, 1.3 }) do
 		K.Theme.SetFontScale(scale)
-		local wanted = 10 * scale
+		local wanted = math.max(K.Tokens.Size("caps"), K.Widgets.CAPS_SIZE * scale)
 		assert(FontSize(K, title, select(2, title:GetFont()), wanted), "a skin title scales before its minimum-size clamp: " .. scale)
 	end
 	K.Options.Write("Skins", "text.size", 1.5)
-	assert(FontSize(K, title, select(2, title:GetFont()), 10 * 1.3 * 1.5), "the skin size multiplier applies before the shared pixel floor")
+	assert(FontSize(K, title, select(2, title:GetFont()), K.Widgets.CAPS_SIZE * 1.3 * 1.5), "the skin size multiplier applies after the global caption clamp")
 	local name = env.UIParent:CreateFontString(nil, "OVERLAY")
 	Style.Text(name, "names", "text", function()
 		return 20
