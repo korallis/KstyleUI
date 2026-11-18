@@ -215,6 +215,7 @@ Skins.Add({
 	addon = ADDON,
 	frame = FRAME,
 	sweepSkip = TALENT_TREE,
+	metrics = true,
 	Apply = ApplySpellbook,
 })
 
@@ -225,5 +226,6 @@ Skins.Add({
 	addon = ADDON,
 	frame = FRAME,
 	sweepSkip = TALENT_TREE,
+	metrics = true,
 	Apply = ApplyTalents,
 })
