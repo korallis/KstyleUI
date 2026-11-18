@@ -66,17 +66,18 @@ end
 
 local function Placed(self)
 	local count = self.counted
-	self.rule:ClearAllPoints()
-	Widgets.Point(self.rule, "LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
-	if count then
-		Widgets.Point(self.rule, "RIGHT", self.count, "LEFT", -Widgets.Snap(self, COUNT_GAP), 0)
-	elseif self.reserve then
-		Widgets.Point(self.rule, "RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
-	else
-		Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
-	end
 	if Widgets.Readability("sectionHeadings") then
 		Widgets.RuleBelow(self.rule, self, self.label, Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM))
+	else
+		self.rule:ClearAllPoints()
+		Widgets.Point(self.rule, "LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
+		if count then
+			Widgets.Point(self.rule, "RIGHT", self.count, "LEFT", -Widgets.Snap(self, COUNT_GAP), 0)
+		elseif self.reserve then
+			Widgets.Point(self.rule, "RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
+		else
+			Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
+		end
 	end
 	self.count:SetShown(count)
 end
