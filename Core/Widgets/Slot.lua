@@ -490,19 +490,23 @@ function Widgets.Slot(parent, opts)
 		if Widgets.MayMove(self) then
 			PlaceLayers(self)
 		end
-		self.hoverOutFade:SetDuration(self.opts.inputContinuity and 0.1 or Tokens.Duration("hover"))
-		self.hoverOutFade:SetSmoothing(self.opts.inputContinuity and "IN" or "OUT")
-		local a = self.lumenGlow.breathAlpha
-		a:SetToAlpha(self.opts.procTransitions and 0.55 or BREATH_LOW)
-		a:SetDuration(Tokens.Duration(self.opts.procTransitions and "glowBreath" or "procPulse"))
-		self:SetSlabDress(self.slabProc)
-		local ready = self.opts.procTransitions and self.modernReady or self.legacyReady
-		if self.readyFlash ~= ready then
-			self.readyFlash:Stop()
-			self.readyWash:Hide()
+		local proc, input = not not self.opts.procTransitions, not not self.opts.inputContinuity
+		if self.motionProc ~= proc or self.motionInput ~= input then
+			self.motionProc, self.motionInput = proc, input
+			self.hoverOutFade:SetDuration(input and 0.1 or Tokens.Duration("hover"))
+			self.hoverOutFade:SetSmoothing(input and "IN" or "OUT")
+			local a = self.lumenGlow.breathAlpha
+			a:SetToAlpha(proc and 0.55 or BREATH_LOW)
+			a:SetDuration(Tokens.Duration(proc and "glowBreath" or "procPulse"))
+			local ready = proc and self.modernReady or self.legacyReady
+			if self.readyFlash ~= ready then
+				self.readyFlash:Stop()
+				self.readyWash:Hide()
+			end
+			self.readyFlash = ready
+			self.readyFade = proc and self.readyDecay or self.legacyReadyFade
 		end
-		self.readyFlash = ready
-		self.readyFade = self.opts.procTransitions and self.readyDecay or self.legacyReadyFade
+		self:SetSlabDress(self.slabProc)
 		PaintLayers(self)
 	end
 	b:Restyle()
