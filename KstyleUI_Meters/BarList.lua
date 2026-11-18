@@ -718,6 +718,11 @@ local function TextWidth(text)
 end
 
 local function CapReserve(list)
+	if list.stripReserve then
+		local title = Logic.Plain(select(4, list.title:GetPoint(1)))
+		local gem = Logic.Plain(select(4, list.cap.gem:GetPoint(1)))
+		if title and gem then return title + gem + (list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0) end
+	end
 	return Widgets.SECTION_CAP_CHROME + CAP_RULE + (list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0)
 end
 

@@ -19,7 +19,7 @@ assert(view.docked == meter, "dock the default data strip into the damage meter'
 local point, relative, on = view.frame:GetPoint(1)
 assert(point == "RIGHT" and relative == meter.column and on == "LEFT", "dock the readouts before the meter rate in its cap row")
 meter:SetRest("123 DPS")
-assert(meter.column:GetAlpha() == 1 and meter.column:IsVisible(), "docking must preserve the visible meter rate")
+assert(meter.column:GetAlpha() == 1 and meter.column:IsVisible() and meter.column:GetText() == "123 DPS", "docking must preserve the visible meter rate")
 strip.Tick()
 local r, g, b = view.items.fps.value:GetTextColor()
 local er, eg, eb = K.Tokens.Color("labelMuted")

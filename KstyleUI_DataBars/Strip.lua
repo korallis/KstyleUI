@@ -430,7 +430,13 @@ local function PlaceLine(view, s)
 		end
 	end
 	view.contentWidth = Widgets.Snap(frame, x - edge)
-	if view.docked then view.docked:ReserveTitle(view.contentWidth + Widgets.Snap(frame, 8)) end
+	if view.docked then
+		if view.dockWidth ~= view.contentWidth then
+			frame:SetWidth(view.contentWidth)
+			view.dockWidth = view.contentWidth
+		end
+		view.docked:ReserveTitle(view.contentWidth + Widgets.Snap(frame, LABEL_GAP))
+	end
 end
 
 local function PlaceItems(view, s)
@@ -876,12 +882,12 @@ local function DockMeter(view, s)
 	local default = element and element.default
 	local on = s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
-		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, 8))
-		local width = math.max(1, meter.barWidth - Widgets.TextWidth(meter.title, 80) - Widgets.TextWidth(meter.column, 0) - Widgets.Snap(view.frame, 36))
+		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, LABEL_GAP))
+		local width = math.max(1, view.contentWidth or 1)
 		if view.docked == meter and view.dockWidth == width then return false end
 		local changed = view.docked ~= meter
 		view.frame:ClearAllPoints()
-		Widgets.Point(view.frame, "RIGHT", meter.column, "LEFT", -8, 0)
+		Widgets.Point(view.frame, "RIGHT", meter.column, "LEFT", -LABEL_GAP, 0)
 		Widgets.Size(view.frame, width, LINE)
 		view.docked, view.dockWidth = meter, width
 		return changed
