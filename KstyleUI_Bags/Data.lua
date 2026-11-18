@@ -573,6 +573,9 @@ function Data.CanHold(bag, itemID)
 end
 
 function Data.Drop(bags, itemID)
+	if InCombatLockdown() then
+		return false
+	end
 	local container = C_Container
 	if not container or type(container.PickupContainerItem) ~= "function" then
 		return false

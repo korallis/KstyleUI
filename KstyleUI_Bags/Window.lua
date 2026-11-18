@@ -135,7 +135,7 @@ function Window.New(spec)
 end
 
 function Window:Drop()
-	if InCombatLockdown() or self.remoteData or not self.open or (self.spec.canDrop and not self.spec.canDrop()) then
+	if self.remoteData or not self.open or (self.spec.canDrop and not self.spec.canDrop()) then
 		return
 	end
 	local itemID = Data.CursorItem()
