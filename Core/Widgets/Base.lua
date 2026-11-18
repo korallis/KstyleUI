@@ -173,10 +173,6 @@ Widgets.schema = {
 	},
 	{ type = "header", label = L["Feedback"] },
 	{
-		type = "toggle", key = "resizeDebounce", label = L["Wait for window resizing to stop"],
-		help = L["Keeps the HUD at its previous size until 120 ms after the last window resize."],
-	},
-	{
 		type = "toggle", key = "sounds", label = L["Interface sounds"],
 		help = L["Plays a soft click when you press KstyleUI's buttons, tabs and switches."],
 	},
@@ -185,6 +181,11 @@ Widgets.schema = {
 		type = "slider", key = "tooltipScale", label = L["Tooltip size"],
 		help = L["Makes the tooltips on KstyleUI's own controls larger or smaller."],
 		min = TOOLTIP_SCALE_MIN, max = TOOLTIP_SCALE_MAX, step = TOOLTIP_SCALE_STEP,
+	},
+	{ type = "header", label = L["Window resizing"] },
+	{
+		type = "toggle", key = "resizeDebounce", label = L["Wait for window resizing to stop"],
+		help = L["Keeps the HUD at its previous size until 120 ms after the last window resize."],
 	},
 }
 
@@ -1536,7 +1537,11 @@ function Widgets.Chrome(owner, opts)
 		visible = true,
 		ticksShown = false,
 	}, Chrome)
-	c.drawRun = function() c:DrawSlices() end
+	c.drawRun = function()
+		local ready = c.Restyle == Chrome.Restyle or c:Restyle()
+		c.drawQueued = false
+		if ready then c:DrawSlices() end
+	end
 	c.giltOn = shape.card and opts.gilt ~= false
 	if shape.card then
 		Widgets.Cards[c] = true
@@ -2339,6 +2344,7 @@ function Chrome:Restyle()
 			end
 		end
 	end
+	return self.fill ~= nil
 end
 
 function Chrome:RestyleOrnament()

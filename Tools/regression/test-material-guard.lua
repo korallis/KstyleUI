@@ -12,7 +12,7 @@ for _, screen in ipairs(screens) do
 	for _, material in ipairs({ "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }) do
 		K.Store.Module("Widgets").cardMaterial = material
 		K.Widgets.RestyleAll()
-		env.RunTimers()
+		panel.chrome:DrawSlices()
 		local findings = Guard.Check(Scene.Build(env))
 		assert(#findings == 0, material .. " chrome is not content: " .. (#findings > 0 and findings[1].subject or ""))
 	end

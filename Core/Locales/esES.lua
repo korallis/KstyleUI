@@ -2155,6 +2155,7 @@ ns.Locale.Add({
 	["Widgets"] = "Widgets",
 	["Width"] = "Anchura",
 	["Window Skins"] = "Aspecto de ventanas",
+	["Window resizing"] = "Cambio de tama\195\177o de la ventana",
 	["Window skins"] = "Aspecto de ventanas",
 	["Windows"] = "Ventanas",
 	["With a target"] = "Con un objetivo",

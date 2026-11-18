@@ -2155,6 +2155,7 @@ ns.Locale.Add({
 	["Widgets"] = "Widgets",
 	["Width"] = "Largeur",
 	["Window Skins"] = "Habillage des fen\195\170tres",
+	["Window resizing"] = "Redimensionnement de la fen\195\170tre",
 	["Window skins"] = "Habillage des fen\195\170tres",
 	["Windows"] = "Fen\195\170tres",
 	["With a target"] = "Avec une cible",

@@ -58,7 +58,8 @@ do
 		assert(glass and glass:GetParent() == tip, name .. " wears a glass frame of KstyleUI's own")
 		assert(not glass.chrome.fill, name .. ": hidden tooltips defer their glass")
 		T.BlizzardShow(tip, true)
-		assert(glass.chrome and #glass.chrome.fill == 9 and #glass.chrome.shadow == 9, name .. ": a chamfered panel with a shadow")
+		env.RunTimers()
+		assert(glass.chrome and #glass.chrome.fill == 9 and #glass.chrome.shadow == 0, name .. ": a chamfered panel keeps its disabled shadow unbuilt")
 		assert(W.Calls(glass, "SetUsingParentLevel")[1] and W.Calls(glass, "SetUsingParentLevel")[1][1] == true, name .. ": the glass draws at the tooltip's own level, behind its text")
 		for _, piece in ipairs(W.Regions(tip.NineSlice, "Texture")) do
 			assert(piece:GetAlpha() == 0, name .. ": Blizzard's border art is hidden by alpha")
