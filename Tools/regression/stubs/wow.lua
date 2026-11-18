@@ -877,7 +877,7 @@ local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
 	return setmetatable({
-		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {},
+		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
 		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and originFile(),
 	}, ObjectMeta)
@@ -1238,6 +1238,9 @@ ObjectMeta.__index = function(object, key)
 		end
 		local call = { method = key, args = pack(...) }
 		self._calls[#self._calls + 1] = call
+		if key == "SetAlpha" or key == "SetAlphaFromBoolean" or key == "SetVertexColor" then
+			self._lastAlpha = call
+		end
 		if not READERS[key] then
 			local env = self._env
 			if env then
