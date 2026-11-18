@@ -398,7 +398,7 @@ local function StyleGroup(container, key)
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
 	if not changed then
-		for i = 1, 22 do
+		for i = 1, 21 do
 			if old[i] ~= inputs[i] then changed = true; break end
 		end
 	end
