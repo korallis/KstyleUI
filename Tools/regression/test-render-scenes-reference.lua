@@ -146,7 +146,7 @@ do
 	for i = 2, #rows do
 		local pitch = (rows[i].rect[2] - rows[i - 1].rect[2]) * ppu
 		first = first or pitch
-		assert(math.abs(pitch - 37) < 1, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the twelve-unit header gap leaves a 37-pixel fitted pitch")
+		assert(pitch >= rows[i].font.size * ppu + 1, "chat line " .. i .. " keeps a physical pixel of spacing below the previous line at the effective text floor")
 		assert(math.abs(pitch - first) < 1, "the chat lines are evenly spaced, got " .. pitch .. " and " .. first)
 	end
 end

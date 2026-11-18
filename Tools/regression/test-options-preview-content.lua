@@ -51,7 +51,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 }, { 1920
 				assert(name <= capsSize + 0.01, label .. ": fallback " .. name .. " must not enlarge caps " .. capsSize)
 			end
 			if screen[3] == "esES" and scale == 1 then
-				assert(view.name:GetFont() == K.Tokens.Font("body"), label .. ": exercise the Spanish body fallback")
+				assert(view.name:GetFont() == reference:GetFont(), label .. ": C1 keeps the Spanish slab face")
 				local pixel = K.Widgets.Border(view.name)
 				local floor = math.ceil(9 / (K.Scale.AppliedUserScale() * K.Scale.Pixel(1)) - 1e-6) * pixel
 				assert(name <= math.min(capsSize, floor) + 0.01, label .. ": fallback must not exceed the last caps size")
@@ -85,9 +85,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 }, { 1920
 		env.SetTarget(true)
 		local live = env._addons.KstyleUI_UnitFrames.Frames.Get("target").views[1]
 		local font, size = live.name:GetFont()
-		assert(font == K.Tokens.Font("body"), "esES Text size 1.3 exercises the live body fallback")
-		local pixels = size * live.name:GetEffectiveScale() * screen[2] / 768
-		assert(pixels <= math.ceil(9 * screen[2] / 1080 - 1e-6) + 0.01, "esES Text size 1.3 fallback must not exceed the last caps size at the reading floor")
+		local path, full = env._addons.KstyleUI_UnitFrames.Settings.Font("target", "name")
+		assert(font == path, "esES Text size 1.3 retains the configured slab face")
+		local minimum = math.ceil(9 / (K.Scale.AppliedUserScale() * K.Scale.Pixel(1)) - 1e-6) * K.Widgets.Border(live.name)
+		assert(size >= math.min(K.Widgets.FontSize(live.name, full), minimum) - 0.01, "esES Text size 1.3 respects the slab name floor")
 	end
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 	collectgarbage("collect")

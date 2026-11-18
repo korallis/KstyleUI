@@ -69,7 +69,7 @@ local function Placed(self)
 		Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
 	end
 	if Widgets.Readability("sectionHeadings") then
-		local below = -Widgets.TextHeight(self.label, 0) / 2 - Widgets.Snap(self, 2) - self.rule:GetHeight() / 2
+		local below = -Widgets.TextHeight(self.label, 0) / 2 - Widgets.Snap(self, 2) - Widgets.Border(self) / 2
 		local left = Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM)
 		self.rule:ClearAllPoints()
 		Widgets.Point(self.rule, "LEFT", self, "LEFT", left, below)
@@ -131,7 +131,8 @@ function Cap:Paint()
 	if Widgets.Readability("sectionHeadings") then
 		self.label:SetTextColor(Tokens.Color("capsGold"))
 		self.gem:SetVertexColor(Tokens.Color("capsGold"))
-		self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
+		local r, g, b = Tokens.Color("capsGold")
+		self.rule:SetColorTexture(r, g, b, RULE_ALPHA)
 	end
 end
 

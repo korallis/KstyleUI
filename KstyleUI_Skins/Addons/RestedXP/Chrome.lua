@@ -462,7 +462,8 @@ end
 
 local function PaintCaption(text, entry)
 	local caption = entry.caption
-	local size = Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE)
+	local headings = Widgets.Readability("sectionHeadings")
+	local size = Lumen.Size(caption:GetParent(), headings and 10 * K.Theme.FontScale() or Lumen.CAP_SIZE)
 	if entry.own then
 		Widgets.Fitted(caption, entry.room ~= nil and entry.room < size)
 		size = math.max(entry.own, math.min(size, entry.room or size))
@@ -476,6 +477,7 @@ local function PaintCaption(text, entry)
 	end
 	Style.ApplyFont(caption, "caps", size)
 	Widgets.TextColor(caption, "capsGold")
+	if headings then caption:SetTextColor(Tokens.Color("capsGold")) end
 	if entry.busy then
 		return
 	end
@@ -1397,8 +1399,10 @@ TipWindow = function(step)
 		glass:Restyle()
 	end
 	local caption, height = entry.caption, plate:GetHeight()
-	Style.ApplyFont(caption, "caps", Lumen.Size(step, Lumen.CAP_SIZE))
+	local headings = Widgets.Readability("sectionHeadings")
+	Style.ApplyFont(caption, "caps", Lumen.Size(step, headings and 10 * K.Theme.FontScale() or Lumen.CAP_SIZE))
 	Widgets.TextColor(caption, "capsGold")
+	if headings then caption:SetTextColor(Tokens.Color("capsGold")) end
 	caption:ClearAllPoints()
 	caption:SetPoint("LEFT", step, "TOPLEFT", Widgets.Snap(step, CAP_LEFT) + Lumen.CapColumn(step), Widgets.Snap(step, rise - (Plain(height) and height or 0) / 2))
 	if glass and not Parts.HeadingOf(caption) then
@@ -1759,8 +1763,10 @@ local function TemporaryText(root, text, role, color, shape)
 	local function Lease()
 		local label = holder.label
 		if caps then
-			Style.ApplyFont(label, "caps", Lumen.Size(holder, Lumen.CAP_SIZE))
+			local headings = Widgets.Readability("sectionHeadings")
+			Style.ApplyFont(label, "caps", Lumen.Size(holder, headings and 10 * K.Theme.FontScale() or Lumen.CAP_SIZE))
 			Widgets.TextColor(label, "capsGold")
+			if headings then label:SetTextColor(Tokens.Color("capsGold")) end
 		else
 			Label(label, role, entry.dimmed[text] and "textDisabled" or color)
 		end

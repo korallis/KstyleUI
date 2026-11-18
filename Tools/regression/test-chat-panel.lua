@@ -120,7 +120,7 @@ do
 		local area = (el.height - g.top - g.bottom) / g.k
 		local lines = (area + spacing) / (font + spacing)
 		local em = (el.width - g.left - g.right) / g.k / font
-		local count = size == 1 and 7 or 6
+		local count = 7
 		assert(math.floor(lines + 1e-6) == count, "the twelve-unit header gap leaves " .. count .. " whole lines at size " .. size .. ", got " .. lines)
 		assert(area >= (count - 1) * (font + spacing) + font - 1e-6 and area <= count * (font + spacing) + 1e-6, "the seventh line is whole and an eighth has no pixel in the window at size " .. size .. ", area " .. area)
 		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)

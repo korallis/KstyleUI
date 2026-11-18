@@ -160,7 +160,8 @@ function Cap:Paint()
 	if Widgets.Readability("sectionHeadings") then
 		self.title:SetTextColor(Tokens.Color("capsGold"))
 		self.gem:SetVertexColor(Tokens.Color("capsGold"))
-		self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
+		local cr, cg, cb = Tokens.Color("capsGold")
+		self.rule:SetColorTexture(cr, cg, cb, RULE_ALPHA)
 	end
 end
 
@@ -188,9 +189,10 @@ function Cap:Restyle()
 	self.rule:ClearAllPoints()
 	Widgets.Point(self.rule, "LEFT", self.title, "RIGHT", Widgets.Snap(row, Lumen.Size(row, RULE_LEAD) - Widgets.TrackPad(self.title)), 0)
 	Widgets.Point(self.rule, "RIGHT", self.trail, "LEFT", -Widgets.Snap(row, Lumen.Size(row, RULE_TRAIL)), 0)
-	self.rule:SetHeight(math.max(Widgets.Border(row), Widgets.Snap(row, Lumen.Size(row, RULE_UNITS))))
+	local ruleHeight = math.max(Widgets.Border(row), Widgets.Snap(row, Lumen.Size(row, RULE_UNITS)))
+	self.rule:SetHeight(ruleHeight)
 	if headings then
-		local below = y - Widgets.TextHeight(self.title, 0) / 2 - Widgets.Snap(row, Lumen.Size(row, 2)) - self.rule:GetHeight() / 2
+		local below = y - Widgets.TextHeight(self.title, 0) / 2 - Widgets.Snap(row, Lumen.Size(row, 2)) - ruleHeight / 2
 		self.rule:ClearAllPoints()
 		Widgets.Point(self.rule, "LEFT", row, "LEFT", left + Lumen.CapColumn(row), below)
 		Widgets.Point(self.rule, "RIGHT", row, "RIGHT", -Widgets.Snap(row, Units(opts.right, row)), below)

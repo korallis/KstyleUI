@@ -279,8 +279,8 @@ local FONT_ROLES = {
 }
 
 local TYPE_SET_VALUES = {
-	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10, tooltipTitle = "heading", tooltipName = "names" },
-	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12, tooltipTitle = "heading", tooltipName = "heading" },
+	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10, tooltipTitle = "heading", tooltipLegacyTitle = "body", tooltipName = "names" },
+	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12, tooltipTitle = "heading", tooltipLegacyTitle = "heading", tooltipName = "heading" },
 }
 
 local ROLE_ORDER = { "display", "heading", "title", "caps", "names", "unit", "body", "prose", "caption", "number", "time", "timer", "world" }

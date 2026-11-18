@@ -755,6 +755,7 @@ local function PlaceHeading(h)
 	end
 	rule:ClearAllPoints()
 	local length = width and room and Widgets.Snap(panel, room - stop) - indent - width - 2 * gap
+	if Widgets.Readability("sectionHeadings") and room then length = Widgets.Snap(panel, room - stop) - indent end
 	if not length or length < 2 * gap then
 		rule:Hide()
 		return
@@ -770,8 +771,7 @@ end
 
 local function RestyleHeading(h)
 	if Widgets.Readability("sectionHeadings") then
-		Widgets.StyleText(h.caption, "caps")
-		Widgets.CapsSize(h.caption)
+		ns.Style.ApplyFont(h.caption, "caps", 10 * K.Theme.FontScale() * ns.Style.Setting("text", "size") / Widgets.ScaleFactor(h.caption))
 		local label = h.caption:GetText()
 		if not Widgets.IsSecret(label) and type(label) == "string" and label:find("%d") then
 			Widgets.ApplyFont(h.caption, Tokens.FontPath("PTSerifBold"), select(2, h.caption:GetFont()))
@@ -786,7 +786,8 @@ local function RestyleHeading(h)
 	Widgets.PaintCapMaterial(h.gem, h.rule, CAP_ALPHA)
 	if Widgets.Readability("sectionHeadings") then
 		h.gem:SetVertexColor(Tokens.Color("capsGold"))
-		h.rule:SetColorTexture(Widgets.Rgba("capsGold", CAP_ALPHA))
+		local r, g, b = Tokens.Color("capsGold")
+		h.rule:SetColorTexture(r, g, b, CAP_ALPHA)
 	end
 end
 

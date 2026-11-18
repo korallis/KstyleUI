@@ -17,7 +17,8 @@ for _, case in ipairs({ { 1920, 1080, "Frames" }, { 1920, 1080, "Orbs" }, { 5120
 		local K = item.object and item.object._env and item.object._env.KstyleUI
 		if file:find("^Media/") and not (K and K.Widgets.IsFitted(item.object)) then
 			texts = texts + 1
-			assert(item.font.size * height / 1080 >= math.floor(FLOOR * height / 1080 + 0.5) - 0.01, string.format("%s: '%s' is %.2f px, under the %d px floor scaled to %d lines", label, tostring(item.text), item.font.size * height / 1080, FLOOR, height))
+			local minimum = K and K.Scale.TextFloor() or math.floor(FLOOR * height / 1080 + 0.5)
+			assert(item.font.size * height / 1080 >= minimum - 0.01, string.format("%s: '%s' is %.2f px, under the effective-scale floor of %.2f px", label, tostring(item.text), item.font.size * height / 1080, minimum))
 		end
 	end
 	assert(texts > 80, label .. ": the HUD draws its texts, got " .. texts)

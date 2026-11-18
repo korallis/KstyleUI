@@ -1,6 +1,7 @@
 -- test-type-headings.lua: tabs, section caps, card figures and option help share one hierarchy with an original-look switch.
 local O = dofile("Tools/regression/options_env.lua")
 local env, K, ns = O.New()
+K.Options.Write("HudStyle", "style", "medallions")
 local W, T = K.Widgets, K.Tokens
 local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
 holder:SetSize(700, 400)
@@ -11,6 +12,8 @@ assert(cap.count:GetFont() == T.FontPath("PTSerifBold"), "C3: card-header figure
 local gold = { T.Color("capsGold") }
 local r, g, b = cap.label:GetTextColor()
 assert(r == gold[1] and g == gold[2] and b == gold[3], "C5: section headings keep the gold token")
+local rr, rg, rb = unpack(cap.rule._state.ColorTexture)
+assert(rr == gold[1] and rg == gold[2] and rb == gold[3], "C5: the section rule uses gold even on Medallions steel")
 local list = { view = holder, GetViewWidth = function() return 700 end }
 local row = ns.Rows.Create(list)
 ns.Rows.Update(row, { kind = "toggle", label = "A label", help = "A help line", get = function() return true end }, nil, list)
@@ -35,6 +38,7 @@ assert(#env._errors == 0, tostring(env._errors[1]))
 print("test-type-headings: caps, card figures, option hierarchy and original-look switch")
 local S = dofile("Tools/regression/skins_env.lua")
 local skinEnv, skinK, skin = S.New()
+skinK.Options.Write("HudStyle", "style", "medallions")
 skinK.Modules.Enable("Skins")
 local card = skin.Lumen.SectionCap(skinK.Scale.Root())
 card.row:SetSize(300, 24)

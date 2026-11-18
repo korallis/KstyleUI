@@ -90,12 +90,12 @@ for _, screen in ipairs(SCREENS) do
 		local saved = rxp.settings.profile.framePositions
 		assert(saved.activeItemFrame[1][4] == LEE.activeItemFrame[4] and saved.activeTargetFrame[1][5] == LEE.activeTargetFrame[5], what .. ": the places the player saved stay in RestedXP's settings")
 
-		rxp.UpdateItemFrame(nil, 8)
+		rxp.UpdateItemFrame(nil, 16)
 		env.RunTimers()
 		S.W.Settle(env)
 		env.RunTimers()
 		guide, t, i = Glass(K, rxp.RXPFrame), Glass(K, targets), Glass(K, items)
-		assert(Near(t.left, guide.left, px) and Near(t.right, guide.right, px) and Near(i.right, guide.right, px) and i.left <= guide.left + px and Near(t.bottom - i.top, gap, 2 * px), what .. ": eight items do not fit half the card, so the boxes stack at its full width, the items box growing toward the screen's middle")
+		assert(Near(t.left, guide.left, px) and Near(t.right, guide.right, px) and Near(i.right, guide.right, px) and i.left <= guide.left + px and Near(t.bottom - i.top, gap, 2 * px), string.format("%s: overflowing items stack at full width; guide %.1f..%.1f, targets %.1f..%.1f, items %.1f..%.1f, gap %.1f", what, guide.left, guide.right, t.left, t.right, i.left, i.right, t.bottom - i.top))
 		assert(ns.RestedXP.Chrome.Caption(items.title.text):GetText() == "ACTIVE ITEMS", what .. ": a full-width box keeps RestedXP's own caption")
 		for n = 1, #items.buttonList do
 			local button = items.buttonList[n]

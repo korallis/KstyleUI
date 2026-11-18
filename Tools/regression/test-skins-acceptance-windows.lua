@@ -66,11 +66,14 @@ local function Heading(name, words, rule)
 	if rule then
 		local found = false
 		for _, item in ipairs(scene.items) do
-			if File(item, "Rule") and item.rect[1] > title.rect[1] and math.abs(Middle(item.rect) - Middle(title.rect)) < 3 and item.rect[3] > 10 then
+			local below = math.abs(item.rect[1] - title.rect[1]) < 1 and item.rect[2] >= title.rect[2] + title.rect[4] and item.rect[2] < title.rect[2] + title.rect[4] + 5
+			local inline = item.rect[1] > title.rect[1] and math.abs(Middle(item.rect) - Middle(title.rect)) < 3
+			local gold = item.kind == "texture" and item.color and math.abs(item.color[1] - 211 / 255) < 0.01 and math.abs(item.color[2] - 181 / 255) < 0.01
+			if (below and gold or inline and File(item, "Rule")) and item.rect[3] > 10 then
 				found = found or item.rect[1] + item.rect[3] <= glass[1] + glass[3] + 1
 			end
 		end
-		assert(found, where .. ": a rule runs on from the title inside the card")
+		assert(found, where .. ": the heading rule stays inside the card")
 	end
 end
 

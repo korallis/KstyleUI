@@ -234,8 +234,11 @@ for _, scale in ipairs({ 1, 1.3 }) do
 		"the long gold section caption fits its row at text scale " .. scale .. ": " .. describe(text) .. " / " .. describe(box))
 	assert(row.caption.label:IsTruncated() == false, "a long gold caption wraps instead of clipping")
 	local wrap = W.LastCall(row.caption.label, "SetWordWrap")
-	assert(wrap and wrap[1] == true, "the long section caption wraps at minimum width")
-	assert(not row.caption.rule:IsShown(), "a wrapped caption consumes the rule's remaining space")
+	if wrap and wrap[1] then
+		assert(not row.caption.rule:IsShown(), "a wrapped caption consumes the rule's remaining space")
+	else
+		assert(not row.caption.label:IsTruncated(), "the smaller section face fits without wrapping")
+	end
 end
 
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))

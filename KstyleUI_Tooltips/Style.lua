@@ -25,9 +25,8 @@ local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
 local function KitRole(role, semantic)
 	if role == "title" then
-		if not Settings.Get("hierarchy") and semantic ~= "names" and Theme.TypeSet() == "Folio" then return "body" end
-		if Settings.Get("hierarchy") and semantic == "names" then return "names" end
-		return Tokens.TypeDefault(semantic == "names" and "tooltipName" or "tooltipTitle")
+		if Settings.Get("hierarchy") then return semantic == "names" and "names" or Tokens.TypeDefault("tooltipTitle") end
+		return Tokens.TypeDefault(semantic == "names" and "tooltipName" or "tooltipLegacyTitle")
 	end
 	return KIT_ROLES[role]
 end

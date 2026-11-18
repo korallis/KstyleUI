@@ -96,6 +96,8 @@ for _, locale in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
 		collectgarbage("collect")
 	end
 	local env, K, page = boot({ 1920, 1080 }, "Frames", locale, 0.6)
+	K.Theme.SetFontScale(K.Theme.MAX_FONT_SCALE)
+	W.Settle(env)
 	clean(env, page)
 	local scroll = page.scroll
 	scroll:GetScript("OnMouseWheel")(scroll, -1)
@@ -105,7 +107,9 @@ for _, locale in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
 	assert(#offenders == 0, "keep the scrolled welcome on the pixel grid: " .. table.concat(Audit.Lines("welcome", offenders), "\n"))
 	local viewX, _, viewWidth = Scene.Rect(env, scroll)
 	local thumbX = Scene.Rect(env, page.bar)
-	assert(page.bar:IsShown() and thumbX > viewX + viewWidth, "show the scroll thumb beside the content, where the banner cannot cover it")
+	local overflow = page.branded:GetHeight() > scroll:GetHeight() + 1
+	assert(page.bar:IsShown() == overflow, "show the scroll thumb when welcome content overflows")
+	assert(not overflow or thumbX > viewX + viewWidth, "keep the scroll thumb beside the content, where the banner cannot cover it")
 	for _ = 1, 30 do scroll:GetScript("OnMouseWheel")(scroll, -1) end
 	assert(math.abs(scroll:GetVerticalScroll() - math.max(0, page.branded:GetHeight() - scroll:GetHeight())) < 1, "the smallest interface size can reach all welcome content")
 	clean(env, page)

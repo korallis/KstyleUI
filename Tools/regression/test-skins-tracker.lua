@@ -446,7 +446,7 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
-	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), Lumen.CAP_SIZE / K.Widgets.ScaleFactor(row)), "in the caps face at the picture's cap size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), 10 / K.Widgets.ScaleFactor(row)), "in the caps face at the shared heading size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	local wr, wg, wb = K.Tokens.Color("capsGold")
 	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")
@@ -472,7 +472,7 @@ do
 	end
 	assert(rule and Near(rule:GetHeight(), math.max(K.Widgets.Border(row), K.Widgets.Snap(row, 1 / K.Widgets.ScaleFactor(row)))), "an even rule one root unit thick runs on the caption row")
 	local ruleLeft = { rule:GetPoint(1) }
-	assert(ruleLeft[2] == caption and ruleLeft[3] == "RIGHT", "from the end of the title")
+	assert(ruleLeft[2] == row and ruleLeft[5] < select(5, caption:GetPoint(1)), "the rule sits below the heading")
 	local count = Region(env, K, quests.Header, "FontString")
 	for _, frame in ipairs(Children(env, quests.Header)) do
 		for _, region in ipairs({ frame:GetRegions() }) do
@@ -482,7 +482,7 @@ do
 		end
 	end
 	assert(count and Plain(count) == tostring(#quests.blocks), "the cap counts the module's blocks, got " .. tostring(count and Plain(count)))
-	assert(FontPath(count) == Style.Font("number"), "in the number face")
+	assert(FontPath(count) == K.Tokens.FontPath("PTSerifBold"), "card-header figures use the lining serif face")
 	local countPoint = { count:GetPoint(1) }
 	assert(countPoint[1] == "RIGHT" and countPoint[2] == row and countPoint[4] < 0, "right-aligned before the collapse button")
 	local allCaption, allRow = Caption(env, tracker.Header, "OBJECTIVES")

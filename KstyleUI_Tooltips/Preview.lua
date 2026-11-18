@@ -114,6 +114,8 @@ local function FitPair(row, available, gap)
 		return
 	end
 	local originalLeft, originalRight = leftSize, rightSize
+	Widgets.Fitted(row.left, Settings.Get("hierarchy"))
+	Widgets.Fitted(row.right, Settings.Get("hierarchy"))
 	local pixel = Widgets.FontSize(row.left, 0)
 	local minimum = Widgets.FontSize(row.left, PAIR_MIN_SIZE * Theme.FontScale())
 	local function Restore()
