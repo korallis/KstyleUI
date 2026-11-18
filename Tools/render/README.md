@@ -79,7 +79,7 @@ back in. FontStrings retain the previous independent region/text opacity model.
 
 | Object | Model |
 | --- | --- |
-| Texture (including mask textures and lines) | `SetAlpha`, `SetAlphaFromBoolean`, `SetVertexColor` and `SetColorTexture` write one alpha: the last write wins. Omitted colour alpha is 1. `GetAlpha` and the fourth `GetVertexColor` return agree. File pixels, masks and gradient stops retain their own coverage. |
+| Texture | `SetAlpha`, `SetAlphaFromBoolean`, `SetVertexColor` and `SetColorTexture` write one alpha: the last write wins. Omitted colour alpha is 1. `GetAlpha` and the fourth `GetVertexColor` return agree. File pixels, masks and gradient stops retain their own coverage. |
 | FontString | Preserve the existing model: `SetTextColor` stores text colour/opacity independently of `SetAlpha`/`SetAlphaFromBoolean`, and the renderer multiplies those opacities. The generated secret-aspect flags do not prove shared storage; stronger client evidence would be required to change this model. |
 | Frame | Its own `SetAlpha`/`SetAlphaFromBoolean` value multiplies down the parent chain, stopping at `SetIgnoreParentAlpha`. Colour writes on a child region do not change the frame. |
 
