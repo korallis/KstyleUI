@@ -70,58 +70,29 @@ class StandinsTest(unittest.TestCase):
         self.assertEqual(Image.open(out / "portrait-target.png").getpixel((64, 64)), (20, 40, 200))
 
     def test_worldmap_crop_is_the_minimap_terrain_lifted_to_daylight(self):
-        # The mockup's minimap art is painted dark for its lens; the world map window draws the same terrain,
-        # which the game shows at full brightness, so the map stand-in is the crop lifted to the daylight mean.
-        image = Image.new("RGB", (2574, 1456), (18, 26, 14))
-        left, top, right, bottom = self.standins.CROPS["minimap.png"]
-        image.paste((40, 52, 30), (left, top, left + 120, bottom))
-        path = self.root / "mockup.png"
-        image.save(path)
+        self.standins.pillow()
         out = self.root / "standins"
-        self.standins.write(str(path), str(out), 2383, 1540)
-        night = Image.open(out / "minimap.png").convert("L")
-        day = Image.open(out / "worldmap.png").convert("L")
-        mean = lambda im: sum(im.getdata()) / (im.width * im.height)
-        self.assertLess(mean(night), 60)
-        self.assertGreaterEqual(mean(day), self.standins.MAP_DAYLIGHT - 8)
-        self.assertLessEqual(mean(day), self.standins.MAP_DAYLIGHT + 8)
-        # The lift keeps the terrain's contrast: the brighter strip stays brighter.
-        self.assertGreater(day.getpixel((40, 128)), day.getpixel((220, 128)))
-
-    def test_minimap_crop_drops_the_mockup_north_mark(self):
-        # The mockup paints a white N at the top of its map art; the addon draws its own in the card's head, so the
-        # crop covers the mark with the terrain beside it, else every HUD render shows two.
-        image = Image.new("RGB", (2574, 1456), (20, 40, 200))
-        left, top, right, bottom = self.standins.CROPS["minimap.png"]
-        mark = self.standins.NORTH_MARK
-        image.paste((250, 250, 250), (left + mark[0], top + mark[1], left + mark[2], top + mark[3]))
-        path = self.root / "mockup.png"
-        image.save(path)
-        out = self.root / "standins"
-        self.standins.write(str(path), str(out), 2383, 1540)
-        crop = Image.open(out / "minimap.png")
-        for x in range(0, 256, 8):
-            for y in range(0, 40, 4):
-                self.assertEqual(crop.getpixel((x, y)), (20, 40, 200), f"the N survives at {x},{y}")
+        self.standins.write(str(self.mockup()), str(out), 300, 200)
+        expected = Image.open(self.standins.PLATES / "minimap.png").convert("RGB")
+        with Image.open(out / "minimap.png") as terrain:
+            self.assertEqual(terrain.tobytes(), expected.tobytes(), "map scenery must come from the real screenshot crop")
+        self.assertTrue((out / "worldmap.png").is_file())
 
     def test_backdrop_scales_to_the_height_and_crops_the_width_from_the_centre(self):
         image = Image.new("RGB", (400, 200), (10, 10, 10))
         image.paste((250, 250, 250), (0, 0, 100, 200))  # a white band at the left edge
-        out = self.standins.backdrop(image, 300, 300, areas=[], radius=1, feather=1)
+        out = self.standins.backdrop(image, 300, 300)
         self.assertEqual(out.size, (300, 300))
         # Scaled by 1.5 the image is 600 wide; the centre 300 start at x=150, past the band's end at 150.
         self.assertLess(out.getpixel((2, 150))[0], 30)
         self.assertLess(out.getpixel((297, 150))[0], 30)
 
-    def test_backdrop_blurs_the_ui_areas_only(self):
-        image = Image.new("RGB", (600, 300), (0, 0, 0))
-        for x in range(0, 600, 2):
-            image.paste((255, 255, 255), (x, 0, x + 1, 300))  # one-pixel stripes
-        out = self.standins.backdrop(image, 600, 300, areas=[(0, 0, 200, 300)], radius=6, feather=1)
-        blurred = [out.getpixel((x, 150))[0] for x in range(40, 60)]
-        sharp = [out.getpixel((x, 150))[0] for x in range(500, 520)]
-        self.assertLess(max(blurred) - min(blurred), 60, "the UI area is blurred flat")
-        self.assertGreater(max(sharp) - min(sharp), 150, "the scenery keeps its stripes")
+    def test_wide_backdrop_crops_vertically_instead_of_stretching(self):
+        image = Image.new("RGB", (100, 200), (10, 10, 10))
+        image.paste((250, 250, 250), (0, 0, 100, 50))
+        out = self.standins.backdrop(image, 300, 100)
+        self.assertEqual(out.size, (300, 100))
+        self.assertLess(out.getpixel((150, 2))[0], 30, "crop uniformly; never stretch scenery to fill the canvas")
 
     def test_backdrop_source_prefers_the_clean_plate(self):
         """With a UI-free plate of the scene, the backdrop is that plate scaled to the render, with nothing blurred."""
@@ -133,16 +104,14 @@ class StandinsTest(unittest.TestCase):
         mockup = Image.new("RGB", (2574, 1456), (200, 30, 30))
         source, used = self.standins.backdrop_source(mockup, str(plate_path))
         self.assertEqual(used, str(plate_path))
-        out = self.standins.backdrop(source, 2574, 1456, areas=[] if used else self.standins.UI_AREAS)
+        out = self.standins.backdrop(source, 2574, 1456)
         self.assertEqual(out.size, (2574, 1456))
         band = [out.getpixel((x, 1300))[0] for x in range(100, 140)]  # inside the chat's UI area on the mockup
         self.assertGreater(max(band) - min(band), 100, "the plate is not blurred where the mockup has UI")
 
-    def test_backdrop_source_falls_back_to_the_blurred_mockup(self):
-        mockup = Image.new("RGB", (2574, 1456), (200, 30, 30))
-        source, used = self.standins.backdrop_source(mockup, str(self.root / "missing.png"))
-        self.assertIsNone(used)
-        self.assertIs(source, mockup)
+    def test_missing_plate_never_falls_back_to_mockup_scenery(self):
+        with self.assertRaises(FileNotFoundError):
+            self.standins.backdrop_source(Image.new("RGB", (20, 20)), str(self.root / "missing.png"))
 
     def test_write_uses_the_plate_when_given(self):
         plate_path = self.root / "clean.png"
@@ -150,12 +119,11 @@ class StandinsTest(unittest.TestCase):
         out = self.root / "standins"
         self.standins.write(str(self.mockup()), str(out), 2383, 1540, plate=str(plate_path))
         self.assertEqual(Image.open(out / "backdrop.png").getpixel((1200, 700)), (10, 200, 10))
-        self.standins.write(str(self.mockup()), str(out), 2383, 1540, plate=str(self.root / "missing.png"))
-        self.assertEqual(Image.open(out / "backdrop.png").getpixel((1200, 700))[2], 200, "without a plate the mockup's scenery is the backdrop")
+        with self.assertRaises(FileNotFoundError):
+            self.standins.write(str(self.mockup()), str(out), 2383, 1540, plate=str(self.root / "missing.png"))
 
     def test_plate_option_and_environment(self):
-        """--plate names the plate; KSTYLEUI_PLATE overrides the default; the default is the handoff folder's clean plate."""
-        self.assertTrue(self.standins.PLATE.endswith("scenery/clean.png"))
+        self.assertTrue(Path(self.standins.PLATE).as_posix().endswith("docs/media/plates/forest-mac.jpg"))
         self.assertEqual(self.standins.plate_path(["--plate", "/tmp/x.png"], {}), "/tmp/x.png")
         self.assertEqual(self.standins.plate_path([], {"KSTYLEUI_PLATE": "/tmp/env.png"}), "/tmp/env.png")
         self.assertEqual(self.standins.plate_path([], {}), self.standins.PLATE)
@@ -185,35 +153,13 @@ class StandinsTest(unittest.TestCase):
         self.assertEqual(self.standins.models_path(None, {"KSTYLEUI_MODELS": "/tmp/env"}), "/tmp/env")
         self.assertTrue(self.standins.models_path(None, {}).endswith("scenery/models"))
 
-    def test_main_without_a_mockup_is_quiet_and_succeeds(self):
-        code = self.standins.main(["--mockup", str(self.root / "missing.png"), "--out", str(self.root / "out"), "--quiet"])
+    def test_real_backdrop_does_not_need_the_internal_mockup(self):
+        out = self.root / "out"
+        code = self.standins.main(["--mockup", str(self.root / "missing.png"), "--out", str(out),
+                                   "--width", "320", "--height", "180", "--quiet"])
         self.assertEqual(code, 0)
-        self.assertFalse((self.root / "out").exists())
-
-    def test_a_missing_mockup_needs_no_pillow(self):
-        """shoot.sh runs standins.py on every machine; without a mockup it must not ask for Pillow."""
-        fresh = load("standins")
-        self.assertIsNone(fresh.Image, "Pillow is imported only when a mockup is cropped")
-        self.assertEqual(fresh.main(["--mockup", str(self.root / "missing.png"), "--quiet"]), 0)
-        self.assertIsNone(fresh.Image)
-
-
-class MissingMockupTest(unittest.TestCase):
-    def test_missing_mockup_ignores_even_explicit_assets_without_pillow(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            assets = root / "assets"
-            assets.mkdir()
-            (assets / "warrior.png").write_bytes(b"not an image")
-            with mock.patch.dict(os.environ, {"HOME": tmp, "KSTYLEUI_PLATE": str(assets / "warrior.png"),
-                                              "KSTYLEUI_PORTRAITS": str(assets), "KSTYLEUI_MODELS": str(assets)},
-                                 clear=True):
-                standins = load("standins")
-                with mock.patch.object(standins, "pillow", side_effect=AssertionError("Pillow was requested")):
-                    code = standins.main(["--mockup", str(root / "missing.png"), "--out", str(root / "out"),
-                                          "--portraits", str(assets), "--models", str(assets), "--quiet"])
-            self.assertEqual(code, 0)
-            self.assertFalse((root / "out").exists())
+        self.assertTrue((out / "backdrop.png").exists())
+        self.assertFalse((out / "portrait-player.png").exists())
 
 
 @unittest.skipUnless(Image, "Pillow is not installed")

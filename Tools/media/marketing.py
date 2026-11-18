@@ -13,6 +13,8 @@ created here; the in-game crop is the addon's own screenshot, darkened.
 
 import argparse
 import importlib.util
+import re
+import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +22,19 @@ README_MEDIA = ROOT / "docs" / "media" / "readme"
 OUT = ROOT / "docs" / "media" / "marketing"
 FONTS = ROOT / "Media" / "Fonts"
 MASTER = ROOT / "docs" / "store" / "description.md"
+PLATES = ROOT / "docs/media/plates"
+GALLERY = [
+    ("01-medallions-hero.jpg", "game_medallions_hero.jpg", 2560),
+    ("02-style-medallions.jpg", "game_medallions_16x9.jpg", None),
+    ("03-style-frames.jpg", "hud_frames_1080.jpg", None),
+    ("04-style-orbs.jpg", "hud_orbs_1080.jpg", None),
+    ("05-ultrawide-spread.jpg", "ultrawide_spread.jpg", None),
+    ("06-setup.jpg", "frame_setup.jpg", None),
+    ("07-nameplates.jpg", "crop_nameplates.jpg", None),
+    ("08-meter.jpg", "crop_meter.jpg", None),
+    ("09-quests.jpg", "crop_rail.jpg", None),
+    ("10-medallion-closeup.gif", "game_medallions_target.gif", None),
+]
 
 # Core/Tokens.lua colours.
 FORGED = (16, 18, 17)        # materialForged 101211
@@ -77,10 +92,10 @@ SHOWCASES = [
 
 # (file, frame step, width, colours, posterize step) for clips over the size cap.
 GIF_SPECS = [
-    ("game_medallions_target.gif", 3, 800, 64, 8),
+    ("game_medallions_target.gif", 1, 800, 48, 8),
     ("game_medallions_cast.gif", 2, 880, 80, 4),
 ]
-GIF_CAP = 1_100_000
+GIF_CAP = 1_000_000
 
 README_HEADER = """<p align="center">
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
@@ -176,6 +191,11 @@ def save(img, name, quality=87):
     return path
 
 
+def source_label(draw, xy, picture, size=30):
+    label = "In-game screenshot" if picture.startswith("game_") else "KstyleUI test render over an in-game screenshot"
+    draw.text(xy, label, font=font(BODY, size), fill=MUTED)
+
+
 def make_banner():
     from PIL import Image, ImageDraw
     width, height = 2048, 640
@@ -203,6 +223,7 @@ def make_banner():
     draw.rectangle([x + 6, 378, x + 220, 381], fill=GILT)
     draw.text((x + 4, 398), PITCH, font=font(BODY_BOLD, 54), fill=GILT_LIT)
     draw.text((x + 4, 468), PITCH2, font=font(BODY, 48), fill=TEXT)
+    source_label(draw, (x + 4, 556), "game_medallions_hero.jpg")
     gold_rule(draw, width, height - 6, 4)
     return save(img, "banner.jpg")
 
@@ -255,6 +276,7 @@ def make_card(name, picture, title, line1, line2):
     tracked(draw, (x, y + 58), title, face, EMPHASIS, tracking)
     draw.text((x, y + 162), line1, font=font(BODY, 54), fill=TEXT)
     draw.text((x, y + 232), line2, font=font(BODY, 54), fill=MUTED)
+    source_label(draw, (x, y + 322), picture)
     return save(img, name, quality=84)
 
 
@@ -271,7 +293,30 @@ def make_showcase(name, picture):
     gold_rule(draw, width, 0, 3)
     gold_rule(draw, width, height - 5, 3)
     rounded_paste(img, thumb, ((width - thumb.width) // 2, pad), radius=16)
+    source_label(ImageDraw.Draw(img), (pad, height - 60), picture)
     return save(img, name, quality=82)
+
+
+def make_gallery():
+    from PIL import Image
+    out = ROOT / "docs/store/gallery"
+    out.mkdir(parents=True, exist_ok=True)
+    for name, source, width in GALLERY:
+        if width:
+            with Image.open(README_MEDIA / source) as image:
+                image.resize((width, round(image.height * width / image.width)), Image.Resampling.LANCZOS).save(
+                    out / name, quality=87, optimize=True, progressive=True)
+        else:
+            shutil.copyfile(README_MEDIA / source, out / name)
+        print("gallery/" + name)
+    for store in ("curseforge.md", "wago.md"):
+        path = ROOT / "docs/store" / store
+        text = path.read_text(encoding="utf-8")
+        for name, _, _ in GALLERY:
+            with Image.open(out / name) as image:
+                size = f"{image.width}×{image.height}"
+            text = re.sub(r"(\| `gallery/" + re.escape(name) + r"` \| )[^|]+", r"\g<1>" + size + " ", text)
+        path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def recompress_gif(name, step, width, colours, poster):
@@ -341,6 +386,7 @@ def main(argv=None):
         make_showcase(name, picture)
     for spec in GIF_SPECS:
         recompress_gif(*spec)
+    make_gallery()
     if args.pages:
         build_pages()
     return 0

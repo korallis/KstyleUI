@@ -1,0 +1,107 @@
+{
+  "forest-1080.jpg": {
+    "source": "game_09.png",
+    "source_sha256": "08eaf0d30611516ecbf9d203181865bb858935d2206b9bc10b29bc23386d1d28",
+    "crop": [
+      0,
+      300,
+      1520,
+      1155
+    ],
+    "size": [
+      1920,
+      1080
+    ],
+    "sha256": "157286e944984afcfe6fd102dfea2581ed4cfd06eebb018df9980b1c4c235c99"
+  },
+  "forest-ultrawide.jpg": {
+    "source": "game_09.png",
+    "source_sha256": "08eaf0d30611516ecbf9d203181865bb858935d2206b9bc10b29bc23386d1d28",
+    "crop": [
+      0,
+      300,
+      2048,
+      876
+    ],
+    "size": [
+      5120,
+      1440
+    ],
+    "sha256": "2b08bf6f62d7265b09a3f8cd934ce9a8dc10aeba6ac4d3a70382ee253df2ed69"
+  },
+  "forest-mac.jpg": {
+    "source": "game_09.png",
+    "source_sha256": "08eaf0d30611516ecbf9d203181865bb858935d2206b9bc10b29bc23386d1d28",
+    "crop": [
+      0,
+      300,
+      1296,
+      1138
+    ],
+    "size": [
+      3456,
+      2234
+    ],
+    "sha256": "ec92a03e3bd2458b8017f4d577c41780a0fab4fe74276a5f2ba625f5d6598934"
+  },
+  "town-1080.jpg": {
+    "source": "game_03.png",
+    "source_sha256": "7e27a74274e50426b1f0e41f684bbaa240960359f86a96c37a216fd1791b6ead",
+    "crop": [
+      0,
+      400,
+      1440,
+      1210
+    ],
+    "size": [
+      1920,
+      1080
+    ],
+    "sha256": "8878f64e73fa4073032641a6594f9a3444de3a3870e2821218d05173e0deaf0f"
+  },
+  "town-ultrawide.jpg": {
+    "source": "game_03.png",
+    "source_sha256": "7e27a74274e50426b1f0e41f684bbaa240960359f86a96c37a216fd1791b6ead",
+    "crop": [
+      0,
+      768,
+      1600,
+      1218
+    ],
+    "size": [
+      5120,
+      1440
+    ],
+    "sha256": "0ce4afdbfe89f5f2e02ddf1f187147e66a2e6580dbda3d1c1e3c18dc17a76ea3"
+  },
+  "town-mac.jpg": {
+    "source": "game_03.png",
+    "source_sha256": "7e27a74274e50426b1f0e41f684bbaa240960359f86a96c37a216fd1791b6ead",
+    "crop": [
+      0,
+      400,
+      1248,
+      1207
+    ],
+    "size": [
+      3456,
+      2234
+    ],
+    "sha256": "0a80098d5a8de850feb06980031df457d39ac21c1c6e238cb0546949d1366db8"
+  },
+  "minimap.png": {
+    "source": "game_09.png",
+    "source_sha256": "08eaf0d30611516ecbf9d203181865bb858935d2206b9bc10b29bc23386d1d28",
+    "crop": [
+      4910,
+      70,
+      5038,
+      198
+    ],
+    "size": [
+      256,
+      256
+    ],
+    "sha256": "48898052dc29af661df9e70df0e78b6067cf4ef8a213965f40506653042075d2"
+  }
+}

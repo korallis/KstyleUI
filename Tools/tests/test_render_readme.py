@@ -48,7 +48,7 @@ class Helpers(unittest.TestCase):
             media = Path(work)
             for name in ("game_medallions_hero.jpg", "game_medallions_cast.gif"):
                 (media / name).write_bytes(b"in-game")
-            with patch.multiple(R, OUT=work, GALLERY_MOCKUP=__file__), \
+            with patch.multiple(R, OUT=work), \
                     patch.object(R, "pillow", return_value=True), \
                     patch.object(R, "cut_all"), patch.object(R, "finish"), \
                     patch.object(R, "total_bytes", return_value=0):

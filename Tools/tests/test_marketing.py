@@ -1,7 +1,11 @@
 import importlib.util
+import hashlib
+import json
+import os
 import re
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 MARKETING = ROOT / "docs" / "media" / "marketing"
@@ -62,8 +66,85 @@ class MarketingImages(unittest.TestCase):
             rel = (MARKETING / name).relative_to(ROOT).as_posix()
             self.assertIn(rel, master, name)
 
+    def test_published_render_inputs_never_use_the_mockup_plate(self):
+        spec = importlib.util.spec_from_file_location("readme_media", ROOT / "Tools/render/readme.py")
+        readme = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(readme)
+        manifest = json.loads((M.PLATES / "manifest.json").read_text(encoding="utf-8"))
+        calls = []
+        with patch.object(readme, "run", side_effect=lambda cmd, env=None: calls.append((cmd, env))), \
+                patch.dict(os.environ, {"KSTYLEUI_PLATE": "/internal/mockup/clean.png"}):
+            readme.render_all(str(M.PLATES), set(readme.picture_names()))
+        self.assertEqual(len(calls), len(readme.RENDERS) + len(readme.GALLERIES))
+        for cmd, env in calls:
+            self.assertIn("--out", cmd, "Fix: every published render needs an explicit PNG output path, including galleries")
+            self.assertIn("--backdrop", cmd, "Published pictures must use real scenery, not flat or mockup backdrops")
+            backdrop = cmd[cmd.index("--backdrop") + 1]
+            self.assertIn(backdrop, [readme.bash_path(M.PLATES / name) for name in manifest],
+                          "Fix: pass an explicit real docs/media/plates crop for every published picture")
+            self.assertEqual(readme.bash_path(env["KSTYLEUI_PLATE"]), backdrop,
+                             "Fix: standins.py must receive the same real plate as the published render")
+        for name, entry in manifest.items():
+            self.assertEqual(hashlib.sha256((M.PLATES / name).read_bytes()).hexdigest(), entry["sha256"], name)
+            self.assertIn(entry["source"], ("game_03.png", "game_09.png"))
+        # Every derivative must resolve to either one of those renders or a preserved game capture.
+        known = {name + ".jpg" for name in readme.picture_names()} | {p.name for p in M.README_MEDIA.glob("game_*")}
+        inputs = [source for _, source, *_ in M.CARDS + M.SHOWCASES + M.GALLERY]
+        self.assertTrue(set(inputs) <= known, set(inputs) - known)
+
+    def test_gallery_matches_current_readme_media(self):
+        for name, source, width in M.GALLERY:
+            path = ROOT / "docs/store/gallery" / name
+            if width is None:
+                self.assertEqual(path.read_bytes(), (M.README_MEDIA / source).read_bytes(), name)
+            if path.suffix == ".gif":
+                self.assertLessEqual(path.stat().st_size, 1_000_000, name)
+
+    def test_picture_alt_text_names_the_source(self):
+        master = MASTER.read_text(encoding="utf-8")
+        for alt, rel in re.findall(r"!\[([^\]]+)\]\(" + re.escape(RAW) + r"([^)]+)\)", master):
+            if "/header-" in rel:
+                continue
+            label = "in-game screenshot" if "/game_" in rel or rel.endswith(("banner.jpg", "card-three-huds.jpg")) else "test render over an in-game screenshot"
+            self.assertIn(label, alt.lower(), rel)
+
+    def test_pictured_icon_pack_is_disclosed(self):
+        notice = "Icons in this picture are the optional AI-made icon pack, not art shipped in the addon."
+        master = MASTER.read_text(encoding="utf-8")
+        for match in re.finditer(r"!\[[^\]]+\]\(([^)]+)\)", master):
+            name = match[1].rsplit("/", 1)[-1]
+            if name.startswith("header-") or name in ("show_frame_setup.jpg", "card-ready-in-minutes.jpg"):
+                continue
+            window = master[match.end():].split("![", 1)[0]
+            caption = re.search(r"\*([^*]+)\*", window)
+            self.assertIsNotNone(caption, name)
+            self.assertIn(notice, caption[1], name)
+        for store in ("curseforge.md", "wago.md"):
+            for line in (MASTER.parent / store).read_text(encoding="utf-8").splitlines():
+                if line.startswith("| `gallery/") and "06-setup.jpg" not in line:
+                    self.assertIn(notice, line, store + ": " + line)
+
 
 class MasterDescription(unittest.TestCase):
+    def test_published_prose_has_no_windows_mojibake(self):
+        for path in (MASTER, ROOT / "README.md", ROOT / "Tools/render/README.md",
+                     ROOT / "docs/store/curseforge.md", ROOT / "docs/store/wago.md"):
+            text = path.read_text(encoding="utf-8")
+            for marker in ("\u00c3\u2014", "\u00e2\u20ac", "\u00c2\u00a0"):
+                self.assertNotIn(marker, text, str(path) + ": read and write these docs with encoding='utf-8', not Windows cp1252")
+
+    def test_optional_icon_pack_note_follows_install_without_a_download_url(self):
+        paragraph = ("An optional icon pack repaints ability and item icons everywhere, including buffs. "
+                     "The icons were made with AI image tools. The pack is not an addon and is not part of "
+                     "this download: it is available from this project's GitHub page. Quit the game, copy "
+                     "its Interface folder into your Forever folder so the files land in Interface/Icons, "
+                     "then start the game again.")
+        master = MASTER.read_text(encoding="utf-8")
+        self.assertIn(paragraph, master)
+        self.assertLess(master.index("4. Type `/kstyle`"), master.index(paragraph))
+        self.assertLess(master.index(paragraph), master.index("## FAQ"))
+        self.assertNotRegex(paragraph, r"https?://")
+
     def test_curseforge_and_wago_blocks_equal_the_master(self):
         master = MASTER.read_text(encoding="utf-8").strip("\n")
         for rel in ("docs/store/curseforge.md", "docs/store/wago.md"):

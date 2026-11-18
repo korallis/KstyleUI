@@ -16,13 +16,15 @@ The pictures:
   crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
                                        unit frames, the right rail, the group meter,
                                        and the nameplate scene
-  frame_*                              frames cut from the gallery scenes (gallery.py)
+  frame_*                              frames cut directly from the gallery scenes
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.
 """
 
 import argparse
+import json
+from pathlib import Path
 import os
 import subprocess
 import sys
@@ -31,9 +33,9 @@ VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(ROOT, "docs", "media", "readme")
-DEFAULT_WORK = os.path.expanduser("~/.capy/work/readme-renders")
+DEFAULT_WORK = os.environ.get("KSTYLEUI_MEDIA_WORK", os.path.expanduser("~/.capy/work/readme-renders"))
 
-GALLERY_MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
+PLATES = Path(ROOT) / "docs/media/plates"
 GALLERY_PPU = 2.0
 STYLES = ("Frames", "Orbs")
 BUDGET_BYTES = 4 * 1024 * 1024
@@ -130,24 +132,51 @@ def run(cmd, env=None):
     subprocess.run(cmd, check=True, cwd=ROOT, env=full)
 
 
+def scenery_plate(env):
+    """Published renders always use a committed real plate, ignoring local mockup overrides."""
+    shape = "ultrawide" if env.get("RENDER_SCREEN") == "5120x1440" else "1080" if env.get("RENDER_SCREEN") == "1920x1080" else "mac"
+    ground = "town" if env.get("RENDER_HUD_STYLE") == "Orbs" else "forest"
+    return PLATES / (ground + "-" + shape + ".jpg")
+
+
+def bash_path(path):
+    """Use Git Bash drive paths; shoot.sh converts them to escaped native file URLs."""
+    path = Path(path).resolve().as_posix()
+    return "/" + path[0].lower() + path[2:] if len(path) > 1 and path[1] == ":" else path
+
+
 def render_all(work, wanted):
     """Render every scene the wanted pictures need, one process at a time."""
     os.makedirs(work, exist_ok=True)
     sources = {source for name, source, _, _ in IMAGES if name in wanted}
     for key, (scene, ppu, env, guard) in RENDERS.items():
         if "render:" + key in sources:
-            run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
-                dict(FULL, **env))
+            run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", bash_path(scenery_plate(env)), "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
+                dict(FULL, **env, KSTYLEUI_PLATE=str(scenery_plate(env))))
     if any(source.startswith("frame:") for source in sources):
         for scene in GALLERIES:
-            run(["bash", "Tools/render/shoot.sh", scene, "--ppu", str(GALLERY_PPU)], FULL)
+            run(["bash", "Tools/render/shoot.sh", scene, "--backdrop", bash_path(scenery_plate({})), "--ppu", str(GALLERY_PPU),
+                 "--out", os.path.join(work, scene + ".png")],
+                dict(FULL, KSTYLEUI_PLATE=str(scenery_plate({}))))
 
 
 def cut_all(work, wanted):
-    """Cut the gallery frames out of their renders with gallery.py."""
-    if any(source.startswith("frame:") for name, source, _, _ in IMAGES if name in wanted):
-        run([sys.executable, "Tools/render/gallery.py", "--no-render", "--out", os.path.join(work, "frames"),
-             "--refs", os.path.join(work, "refs"), "--ppu", str(GALLERY_PPU), *GALLERIES])
+    """Cut published gallery frames directly; design-mockup references are internal only."""
+    frames = Path(work) / "frames"
+    frames.mkdir(parents=True, exist_ok=True)
+    needed = {source[6:] for name, source, _, _ in IMAGES if name in wanted and source.startswith("frame:")}
+    for scene in GALLERIES if needed else ():
+        path = Path(ROOT) / "Tools/render/out" / scene
+        data = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+        with Image.open(Path(work) / (scene + ".png")) as image:
+            for frame in data["frames"]:
+                if frame["name"] not in needed:
+                    continue
+                x, y, width, height = frame["rect"]
+                pad = frame.get("pad", 14)
+                box = (max(0, round((x-pad)*GALLERY_PPU)), max(0, round((y-pad)*GALLERY_PPU)),
+                       min(image.width, round((x+width+pad)*GALLERY_PPU)), min(image.height, round((y+height+pad)*GALLERY_PPU)))
+                image.crop(box).save(frames / ("kstyle_" + frame["name"] + ".png"))
 
 
 def source_path(work, source):
@@ -193,8 +222,6 @@ def main(argv=None):
     unknown = [name for name in args.only if name not in picture_names()]
     if unknown:
         sys.exit("unknown picture(s): " + ", ".join(unknown))
-    if not os.path.exists(GALLERY_MOCKUP):
-        sys.exit("readme.py needs the handoff mockup for the gallery cut: " + GALLERY_MOCKUP)
     if not pillow():
         sys.exit("readme.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
     wanted = set(args.only or picture_names())

@@ -1,47 +1,19 @@
 #!/usr/bin/env python3
-"""standins.py: cut the renderer's stand-ins out of the owner's mockup, so a render reads like the game.
+"""Render stand-ins: real screenshot scenery by default; painted portraits remain addon art.
 
-    python3 Tools/render/standins.py [--mockup PNG] [--out DIR] [--width 2383 --height 1540] [--quiet]
-
-The stub draws no world, so the renderer stands in for what the game draws: the two unit portraits that
-SetPortraitTexture would paint, the minimap's terrain, and the scenery behind the HUD. This script crops
-them out of the handoff mockup (`screens/mockup-leveling-warrior-2574.png`, 1.348 px per unit) into
-Tools/render/out/standins/, which git ignores:
-
-    portrait-player.png   the orc's face inside the mockup's round player portrait
-    portrait-target.png   the crocolisk's face inside the mockup's round target portrait
-    minimap.png           the map art inside the mockup's minimap square
-    backdrop.png          the scene behind the HUD at the render's size: the clean plate when there is one, else
-                          the mockup's scenery with its UI areas blurred away
-    portrait-player-<class>.png   one per class portrait in the portraits folder (`--portraits DIR`, or
-                          KSTYLEUI_PORTRAITS, default ~/.local/share/kstyleui-handoff/scenery/portraits/<class>.png,
-                          the class lower-cased): the painted head-and-shoulders portrait squared from its centre
-                          and resampled to the portrait size, for the HUD scene of that class
-    model-player-<class>.png   one per full-body class painting in the models folder (`--models DIR`, or
-                          KSTYLEUI_MODELS, default ~/.local/share/kstyleui-handoff/scenery/models/<class>.png, a
-                          PNG with transparency around the figure), resampled to the model height with its aspect
-                          kept, for the character window's paper doll where the game draws the 3D model
-
-The scenes use a crop when its file exists and fall back to a flat colour when it does not, so a render
-on a machine without the mockup still works; a class with no portrait in the folder falls back to the orc.
-The backdrop is scaled to the render's height and cropped to its width from the centre, because the mockup
-is 1909 units wide and the owner's screen 1671.
-
-The clean plate (`--plate PNG`, or KSTYLEUI_PLATE, default `~/.local/share/kstyleui-handoff/scenery/clean.png`)
-is a UI-free render of the mockup's scene. When it exists it is the backdrop as it is, so no blurred square
-sits next to a panel; when it is missing the mockup's scenery is blurred where its UI was, as before.
-
-Pillow is needed. When the Python running this has none, the script runs itself again with the wow-dev
-virtual environment's Python if that exists. shoot.sh calls this before every render and ignores a
-missing mockup.
+The backdrop and map terrain come from docs/media/plates (PROVENANCE.md records crops).
+--internal-mockup-plate is an explicit escape hatch for internal tests, never publishing.
+The optional handoff mockup supplies portrait art only; it never supplies scenery.
 """
 
 import argparse
 import os
 import sys
+from pathlib import Path
 
 MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
-PLATE = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/clean.png")
+PLATES = Path(__file__).resolve().parents[2] / "docs/media/plates"
+PLATE = str(PLATES / "forest-mac.jpg")
 PLATE_ENV = "KSTYLEUI_PLATE"
 PORTRAITS = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/portraits")
 PORTRAITS_ENV = "KSTYLEUI_PORTRAITS"
@@ -54,7 +26,7 @@ OUT = "Tools/render/out/standins"
 VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
 
 # Crops in the mockup's pixels: left, top, right, bottom. The portraits are the squares inside the gold
-# rings, read off the mockup; the minimap is the map art inside the square's dark border.
+# rings, read off the mockup. The map entry is replaced by a real screenshot crop.
 CROPS = {
     "portrait-player.png": (632, 1008, 736, 1112),
     "portrait-target.png": (1840, 1006, 1944, 1110),
@@ -62,57 +34,29 @@ CROPS = {
 }
 PORTRAIT_SIZE = 128
 MINIMAP_SIZE = 256
-# The world map window draws the minimap's terrain at daylight: the mockup paints the map art dark for its lens,
-# so worldmap.png is the same crop lifted to this mean luminance (0 to 255), its contrast kept.
 MAP_DAYLIGHT = 112
-# The mockup paints a white N at the top of its map art (left, top, right, bottom, relative to the minimap crop).
-# KstyleUI draws its own north mark in the card's head, so the crop covers the mockup's with the terrain under it.
-NORTH_MARK = (118, 0, 142, 16)
-
-# The mockup's UI areas, in its pixels, blurred away in the backdrop so only the scenery stays.
-UI_AREAS = [
-    (0, 1100, 660, 1456),       # chat panel
-    (560, 930, 2020, 1456),     # HUD band: unit frames, cast bar, cooldowns, bars, experience
-    (2190, 0, 2574, 650),       # minimap, buff icons, quest tracker
-    (1300, 480, 1720, 690),     # nameplate and the combat numbers
-    (1800, 1300, 2574, 1456),   # data strip
-    (900, 740, 1200, 920),      # the heal number over the player
-]
-BLUR_RADIUS = 18
-FEATHER = 24
-
-Image = ImageDraw = ImageFilter = None
+Image = None
 
 
 def pillow():
-    """Import Pillow once a mockup is there to crop; a machine without one never needs it."""
-    global Image, ImageDraw, ImageFilter
+    """Import Pillow, or use the wow-dev environment when available."""
+    global Image
     if Image is not None:
         return True
     try:
-        from PIL import Image as image, ImageDraw as draw, ImageFilter as filter_
+        from PIL import Image as image
     except ImportError:  # pragma: no cover - depends on the machine
         VENV_ROOT = os.path.dirname(os.path.dirname(VENV_PYTHON))
         if os.path.exists(VENV_PYTHON) and os.path.realpath(sys.prefix) != os.path.realpath(VENV_ROOT):
             os.execv(VENV_PYTHON, [VENV_PYTHON, "-I", *sys.argv])
         return False
-    Image, ImageDraw, ImageFilter = image, draw, filter_
+    Image = image
     return True
 
 
 def square(image, box, size):
     """The box of the image, resampled to a size by size square."""
     return image.crop(box).resize((size, size), Image.LANCZOS)
-
-
-def cover_mark(crop, mark):
-    """The crop with the mark's box covered by the strip of the same size just under it."""
-    left, top, right, bottom = mark
-    height = bottom - top
-    patch = crop.crop((left, bottom, right, bottom + height)).transpose(Image.FLIP_TOP_BOTTOM)
-    out = crop.copy()
-    out.paste(patch, (left, top))
-    return out
 
 
 def daylight(crop, target=MAP_DAYLIGHT):
@@ -195,53 +139,46 @@ def write_portraits(out_dir, portraits):
     return written
 
 
-def backdrop(image, width, height, areas=UI_AREAS, radius=BLUR_RADIUS, feather=FEATHER):
-    """The mockup scaled to the render's height, cropped to its width from the centre, UI areas blurred."""
-    blurred = image.filter(ImageFilter.GaussianBlur(radius))
-    mask = Image.new("L", image.size, 0)
-    draw = ImageDraw.Draw(mask)
-    for left, top, right, bottom in areas:
-        draw.rectangle((left, top, right, bottom), fill=255)
-    mask = mask.filter(ImageFilter.GaussianBlur(feather))
-    scenery = Image.composite(blurred, image, mask)
-    scale = height / scenery.height
-    scaled = scenery.resize((max(1, round(scenery.width * scale)), height), Image.LANCZOS)
-    left = max(0, (scaled.width - width) // 2)
-    out = Image.new("RGB", (width, height), (0, 0, 0))
-    out.paste(scaled.crop((left, 0, left + min(width, scaled.width), height)), (0, 0))
-    return out
+def backdrop(image, width, height):
+    """Resize uniformly and crop the centre, without painting or extending the scenery."""
+    scale = max(width / image.width, height / image.height)
+    scaled = image.resize((max(width, round(image.width * scale)), max(height, round(image.height * scale))), Image.LANCZOS)
+    left, top = (scaled.width - width) // 2, (scaled.height - height) // 2
+    return scaled.crop((left, top, left + width, top + height))
 
 
 def backdrop_source(mockup_image, plate):
-    """The image the backdrop is made from: the clean plate when its file exists, else the mockup itself.
+    """Open the requested real scenery plate; never fall back to mockup scenery.
 
     Returns (image, plate_path_or_None)."""
     if plate and os.path.exists(plate):
         return Image.open(plate).convert("RGB"), plate
-    return mockup_image, None
+    raise FileNotFoundError("Missing scenery plate; regenerate with python Tools/media/plates.py: " + str(plate))
 
 
 def plate_path(argv, environ):
-    """The plate to use: --plate on the command line, then KSTYLEUI_PLATE, then the handoff folder's clean plate."""
+    """The real plate to use: --plate, then KSTYLEUI_PLATE, then the committed forest crop."""
     if "--plate" in argv:
         return argv[argv.index("--plate") + 1]
     return environ.get(PLATE_ENV) or PLATE
 
 
 def write(mockup, out_dir, width, height, plate=None, portraits=None, models=None):
-    """Write every stand-in from the mockup into out_dir, a portrait-player-<class>.png for each class portrait
-    the portraits folder holds and a model-player-<class>.png for each painting the models folder holds; returns
-    the paths written."""
+    """Write real scenery and map crops, plus optional painted portrait/model stand-ins."""
     if not pillow():
         sys.exit("standins.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
-    image = Image.open(mockup).convert("RGB")
+    image = Image.open(mockup).convert("RGB") if os.path.exists(mockup) else None
     os.makedirs(out_dir, exist_ok=True)
     written = []
     for name, box in CROPS.items():
         size = MINIMAP_SIZE if name == "minimap.png" else PORTRAIT_SIZE
         path = os.path.join(out_dir, name)
+        if image is None and name != "minimap.png":
+            if os.path.exists(path):
+                os.remove(path)
+            continue
         if name == "minimap.png":
-            terrain = cover_mark(image.crop(box), NORTH_MARK).resize((size, size), Image.LANCZOS)
+            terrain = Image.open(PLATES / "minimap.png").convert("RGB").resize((size, size), Image.LANCZOS)
             terrain.save(path)
             day = os.path.join(out_dir, "worldmap.png")
             daylight(terrain).save(day)
@@ -250,8 +187,8 @@ def write(mockup, out_dir, width, height, plate=None, portraits=None, models=Non
             square(image, box, size).save(path)
         written.append(path)
     path = os.path.join(out_dir, "backdrop.png")
-    source, used = backdrop_source(image, plate)
-    backdrop(source, width, height, areas=[] if used else UI_AREAS).save(path)
+    source, used = backdrop_source(image, plate or PLATE)
+    backdrop(source, width, height).save(path)
     written.append(path)
     write.plate_used = used
     written.extend(write_portraits(out_dir, portraits))
@@ -267,27 +204,24 @@ def main(argv=None):
     parser.add_argument("--out", default=OUT, help="the folder the stand-ins land in")
     parser.add_argument("--width", type=int, default=2383, help="the backdrop's width in pixels")
     parser.add_argument("--height", type=int, default=1540, help="the backdrop's height in pixels")
-    parser.add_argument("--plate", default=None, help="the UI-free plate of the scene for the backdrop (default: KSTYLEUI_PLATE, then the handoff folder's clean.png)")
+    parser.add_argument("--plate", default=None, help="real scenery plate (default: KSTYLEUI_PLATE, then docs/media/plates/forest-mac.jpg)")
+    parser.add_argument("--internal-mockup-plate", help="INTERNAL TESTS ONLY: use an unpublished synthetic scenery plate")
     parser.add_argument("--portraits", default=None, help="the folder of <class>.png portraits (default: KSTYLEUI_PORTRAITS, then the handoff folder's scenery/portraits)")
     parser.add_argument("--models", default=None, help="the folder of <class>.png full-body paintings with transparency for the paper doll (default: KSTYLEUI_MODELS, then the handoff folder's scenery/models)")
-    parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
+    parser.add_argument("--quiet", action="store_true", help="do not print written paths")
     args = parser.parse_args(argv)
-    if not os.path.exists(args.mockup):
-        if not args.quiet:
-            print("no mockup at " + args.mockup + "; the scenes fall back to flat stand-ins", file=sys.stderr)
-        return 0
     portraits = portraits_path(args.portraits, os.environ)
     models = models_path(args.models, os.environ)
     raw = argv if argv is not None else sys.argv[1:]
-    plate = plate_path(raw, os.environ)
+    plate = args.internal_mockup_plate or plate_path(raw, os.environ)
     for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits, models=models):
         if not args.quiet:
             print("wrote " + path)
     if not args.quiet:
         if write.plate_used:
-            print("backdrop: the clean plate " + write.plate_used)
+            print("backdrop: " + write.plate_used)
         else:
-            print("backdrop: the mockup with its UI blurred away (no plate at " + plate + ")")
+            raise AssertionError("A real scenery plate is required")
         if write.portraits_used:
             print("class portraits: " + ", ".join(write.portraits_used) + " from " + portraits)
         else:
