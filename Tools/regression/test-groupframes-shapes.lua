@@ -180,7 +180,7 @@ kitOnly(K, textures(slot), { "chamferTile", "lumenOutline" }, slot, "everything 
 -- Debuff icons: the kit's rounded socket, the icon two borders in and masked, the swipe masked.
 local group = tank.auras._groups.debuffs
 A.Assign(env, tank.auras, "debuffs", 1)
-local button = group.frames[1]
+local button = group.active[1]
 local mask = K.Tokens.Texture("iconMask")
 local icon = button._aura.icon
 eq(icon:GetNumMaskTextures(), 1, "the icon is masked")

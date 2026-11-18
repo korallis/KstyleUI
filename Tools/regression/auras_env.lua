@@ -106,7 +106,7 @@ local function isDescendant(object, owner)
 end
 
 local function newButton(env, container)
-	local button = env.CreateFrame("Button", nil, container)
+	local button = env.CreateFrame("AuraButton", nil, container)
 	button._aura = { dispel = {} }
 	local aura = button._aura
 	local function guard(name)
@@ -201,6 +201,38 @@ local function makeButton(env, container, initializeFrame)
 	return button
 end
 
+local function frameProvider(env, container, initializeFrame)
+	local provider = { ownedFrames = {}, availableFrames = {}, activeFrames = {}, rejectedReleases = 0 }
+	function provider:CreateFrameBatch()
+		for _ = 1, BATCH do
+			local frame = makeButton(env, container, initializeFrame)
+			self.ownedFrames[#self.ownedFrames + 1] = frame
+			self.availableFrames[#self.availableFrames + 1] = frame
+		end
+	end
+	function provider:AcquireFrame()
+		if #self.availableFrames == 0 then self:CreateFrameBatch() end
+		local frame = table.remove(self.availableFrames)
+		self.activeFrames[frame] = true
+		return frame
+	end
+	function provider:ReleaseFrame(frame)
+		if not self.activeFrames[frame] then
+			self.rejectedReleases = self.rejectedReleases + 1
+			return
+		end
+		self.activeFrames[frame] = nil
+		frame._shown = false
+		self.availableFrames[#self.availableFrames + 1] = frame
+	end
+	function provider:ReleaseAllFrames()
+		self.availableFrames, self.activeFrames = {}, {}
+		for _, frame in ipairs(self.ownedFrames) do self:ReleaseFrame(frame) end
+	end
+	provider:CreateFrameBatch()
+	return provider
+end
+
 local function installContainer(env, container)
 	container._groups, container._buttons, container._enchants, container._flow = {}, {}, {}, {}
 	-- The engine lays an empty flow container out at its one-unit floor (AnchorUtil.ApplyFlowLayout), so an overflow
@@ -229,17 +261,16 @@ local function installContainer(env, container)
 		for _, field in ipairs({ "includeDispelTypes", "excludeDispelTypes", "includeSpellIDs", "excludeSpellIDs" }) do
 			assert(candidates == nil or candidates[field] == nil or type(candidates[field]) == "table", field .. " must be a table or nil")
 		end
+		local provider = frameProvider(env, self, options.initializeFrame)
 		local group = {
 			key = key, filter = filter, enabled = true, maxFrameCount = maxFrameCount, candidateFilters = candidates,
-			sortMethod = sortMethod, sortDirection = sortDirection, layout = options.layout, frames = {},
+			sortMethod = sortMethod, sortDirection = sortDirection, layout = options.layout, frames = provider.ownedFrames,
+			provider = provider, active = {},
 			initializeFrame = options.initializeFrame,
 		}
 		self._groups[key] = group
 		self._order[#self._order + 1] = key
 		env._initializers[key] = options.initializeFrame
-		for _ = 1, BATCH do
-			group.frames[#group.frames + 1] = makeButton(env, self, options.initializeFrame)
-		end
 	end
 	function container.HasAuraGroup(self, key)
 		return self._groups[key] ~= nil
@@ -612,13 +643,16 @@ end
 function A.Assign(env, container, key, count)
 	local group = assert(container._groups[key], "no aura group " .. tostring(key))
 	local want = math.min(count, group.maxFrameCount)
-	while #group.frames < want do
-		for _ = 1, BATCH do
-			group.frames[#group.frames + 1] = makeButton(env, container, group.initializeFrame)
-		end
+	while #group.active > want do
+		local frame = table.remove(group.active)
+		if frame._shown then fireVisibility(frame, "OnHide") end
+		group.provider:ReleaseFrame(frame)
 	end
-	for i, frame in ipairs(group.frames) do
-		local shown = i <= want
+	while #group.active < want do
+		group.active[#group.active + 1] = group.provider:AcquireFrame()
+	end
+	for _, frame in ipairs(group.frames) do
+		local shown = group.provider.activeFrames[frame] == true
 		if frame._shown ~= shown then
 			frame._shown = shown
 			fireVisibility(frame, shown and "OnShow" or "OnHide")
@@ -626,6 +660,12 @@ function A.Assign(env, container, key, count)
 	end
 	group.assigned = count
 	return want
+end
+
+function A.ReleaseAll(container, key)
+	local group = assert(container._groups[key])
+	group.provider:ReleaseAllFrames()
+	group.active = {}
 end
 
 -- Ghosts(chip, counts) plays the engine's layout pass for an overflow chip's counting containers (K.Widgets.Overflow):

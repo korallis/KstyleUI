@@ -63,6 +63,13 @@ local buffsAvailable = true
 local parts = setmetatable({}, { __mode = "k" })
 local owners = setmetatable({}, { __mode = "k" })
 local buffHolders = setmetatable({}, { __mode = "k" })
+local styleGeneration = 0
+
+for _, event in ipairs({ "ThemeChanged", "ScaleChanged" }) do
+	K.Callbacks.Register(event, "GroupFrames.AuraInputs", function()
+		styleGeneration = styleGeneration + 1
+	end)
+end
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -309,6 +316,15 @@ local function StyleIcon(button)
 	local k = Settings.current[f.kind]
 	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
 	local border = Widgets.Border(p.skin)
+	local text, a = Settings.current.text, Settings.current.auras
+	local ar, ag, ab = Style.Accent()
+	local mark = p.mark and not p.size and (p.buff or not f.debuffChip)
+	local block = mark and (p.buff and f.parts and f.parts.healRow or Block(f, k))
+	local columns = block and (block.columns or block.width)
+	local rows = block and (block.rows or block.height)
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and (not mark or p.styledPriority == MarkLift(p.group)) then
+		return
+	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
 		Widgets.Size(button, size, size)
 		p.restyleChrome(p.chrome)
@@ -318,8 +334,7 @@ local function StyleIcon(button)
 		p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 		p.styledSize, p.styledBorder = size, border
 	end
-	p.chrome:SetRimAccent(Style.Accent())
-	local text = Settings.current.text
+	p.chrome:SetRimAccent(ar, ag, ab)
 	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if p.mark and not p.size then
@@ -331,6 +346,11 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
+	p.styledFont, p.styledSwipe = text.healthFont, a.swipe
+	p.styledR, p.styledG, p.styledB = ar, ag, ab
+	p.styledMark, p.styledColumns, p.styledRows = mark, columns, rows
+	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
+	p.styledGeneration, p.styledPriority = styleGeneration, mark and MarkLift(p.group)
 end
 
 function Auras.PlaceMark(p, button, f, k)
@@ -358,14 +378,37 @@ function Auras.PlaceMark(p, button, f, k)
 	mark:SetPoint("CENTER", back, "CENTER", 0, 0)
 end
 
+local styledGroups = setmetatable({}, { __mode = "k" })
+
 local function StyleGroup(container, key)
-	for i = 1, container:GetAuraGroupFrameCount(key) do
+	local f = owners[container]
+	local k, cfg = Settings.current[f.kind], Settings.current
+	local buff = buffHolders[container]
+	local size, spacing
+	if buff then size, spacing = BuffSizes(f, k) else size, spacing = Sizes(f, k) end
+	local block = Block(f, k)
+	local row = f.parts and f.parts.healRow
+	local ar, ag, ab = Style.Accent()
+	local count = container:GetAuraGroupFrameCount(key)
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side }
+	local groups = styledGroups[container]
+	local old = groups and groups[key]
+	local changed = f.auraInputsDirty or not old or old.count ~= count
+	if not changed then
+		for i = 1, 20 do
+			if old[i] ~= inputs[i] then changed = true; break end
+		end
+	end
+	if not changed then return true end
+	for i = 1, count do
 		local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
 		if not ok then
 			Style.LogOnce("auraStyle", "restyling an aura icon failed: " .. tostring(err))
 			return false
 		end
 	end
+	groups = groups or {}
+	styledGroups[container], groups[key], inputs.count = groups, inputs, count
 	return true
 end
 
@@ -383,6 +426,7 @@ function RestyleNow(f)
 		end
 	end
 	if not container then
+		f.auraInputsDirty = nil
 		return
 	end
 	for _, key in ipairs(GROUPS) do
@@ -402,6 +446,7 @@ function RestyleNow(f)
 			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
 		end
 	end
+	f.auraInputsDirty = nil
 end
 
 local function Restyle(f)
@@ -427,6 +472,7 @@ local function GateChrome(chrome, f, p)
 				p.styledSize = nil
 			end
 			if f then
+				f.auraInputsDirty = true
 				Defer(f)
 			end
 			return
@@ -473,6 +519,7 @@ local function BuildIcon(button, key)
 	p.cooldown, p.count = cooldown, count
 	parts[button] = p
 	StyleIcon(button)
+	p.chrome:DrawSlices()
 	button:SetIcon(p.icon)
 	button:SetDurationCooldown(cooldown)
 	button:SetApplicationCount(count)

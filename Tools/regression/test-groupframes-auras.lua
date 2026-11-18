@@ -76,7 +76,7 @@ end
 
 -- Each aura button: icon, swipe and stack count bound to the engine, clicks passing through to the unit.
 A.Assign(env, container, "debuffs", 1)
-local button = group.frames[1]
+local button = group.active[1]
 assert(button._aura.icon, "the icon is bound")
 assert(button._aura.cooldown, "the duration swipe is bound")
 assert(button._aura.count, "the stack count is bound")
@@ -171,7 +171,7 @@ local after = 0
 for _, call in ipairs(corner._calls) do
 	after = after + (call.method == "SetSize" and 1 or 0)
 end
-assert(after > sizes, "ScaleChanged lays the dispel border out again")
+assert(after == sizes, "P7: an unchanged scale notification preserves the dispel border without repeating its geometry calls")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- While auras are secret, aura buttons are not touched; the change lands when they are readable.
