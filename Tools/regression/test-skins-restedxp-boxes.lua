@@ -62,6 +62,7 @@ for _, screen in ipairs(SCREENS) do
 		local what = string.format("%dx%d %s", screen[1], screen[2], style)
 		local env, K, ns, rxp = Boot(screen, style)
 		local px = K.Scale.Pixel(1) + 0.01
+		local edge = px + K.Scale.Pixel(1) / 2
 		local gap = K.Tokens.Size("gapSmall")
 		local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 		assert(items:IsShown() and targets:IsShown(), what .. ": both boxes show for the step")
@@ -73,7 +74,7 @@ for _, screen in ipairs(SCREENS) do
 			assert(box.bottom >= slot.bottom - px, string.format("%s: the %s box stays in the guide's slot, got %.1f for %.1f", what, name, box.bottom, slot.bottom))
 		end
 		local half = (guide.right - guide.left - gap) / 2
-		assert(Near(t.left, guide.left, px) and Near(i.right, guide.right, px) and Near(i.left - t.right, gap, 2 * px), string.format("%s: the two boxes share one row at the card's width, its gutter between them, got %.1f..%.1f and %.1f..%.1f for %.1f..%.1f", what, t.left, t.right, i.left, i.right, guide.left, guide.right))
+		assert(Near(t.left, guide.left, edge) and Near(i.right, guide.right, edge) and Near(i.left - t.right, gap, 2 * px), string.format("%s: the two boxes share one row at the card's width within the guide's half-pixel snap, its gutter between them, got %.1f..%.1f and %.1f..%.1f for %.1f..%.1f", what, t.left, t.right, i.left, i.right, guide.left, guide.right))
 		assert(Near(t.right - t.left, half, 2 * px) and Near(i.right - i.left, half, 2 * px), what .. ": each takes half the width")
 		for name, box in pairs({ targets = targets, items = items }) do
 			local caption = ns.RestedXP.Chrome.Caption(box.title.text)
@@ -95,7 +96,7 @@ for _, screen in ipairs(SCREENS) do
 		S.W.Settle(env)
 		env.RunTimers()
 		guide, t, i = Glass(K, rxp.RXPFrame), Glass(K, targets), Glass(K, items)
-		assert(Near(t.left, guide.left, px) and Near(t.right, guide.right, px) and Near(i.right, guide.right, px) and i.left <= guide.left + px and Near(t.bottom - i.top, gap, 2 * px), string.format("%s: overflowing items stack at full width; guide %.1f..%.1f, targets %.1f..%.1f, items %.1f..%.1f, gap %.1f", what, guide.left, guide.right, t.left, t.right, i.left, i.right, t.bottom - i.top))
+		assert(Near(t.left, guide.left, edge) and Near(t.right, guide.right, edge) and Near(i.right, guide.right, edge) and i.left <= guide.left + edge and Near(t.bottom - i.top, gap, 2 * px), string.format("%s: overflowing items stack at full width; guide %.1f..%.1f, targets %.1f..%.1f, items %.1f..%.1f, gap %.1f", what, guide.left, guide.right, t.left, t.right, i.left, i.right, t.bottom - i.top))
 		assert(ns.RestedXP.Chrome.Caption(items.title.text):GetText() == "ACTIVE ITEMS", what .. ": a full-width box keeps RestedXP's own caption")
 		for n = 1, #items.buttonList do
 			local button = items.buttonList[n]
@@ -113,7 +114,7 @@ for _, screen in ipairs(SCREENS) do
 		local alone = Glass(K, targets)
 		local card = Glass(K, rxp.RXPFrame)
 		assert(Near(card.bottom - alone.top, gap, 2 * px) and alone.bottom >= slot.bottom - px, what .. ": Active Targets stays docked alone")
-		assert(Near(alone.left, card.left, px) and Near(alone.right, card.right, px), what .. ": and takes the card's full width")
+		assert(Near(alone.left, card.left, edge) and Near(alone.right, card.right, edge), what .. ": and takes the card's full width within its half-pixel snap")
 
 		rxp.fake.check(HOOKED)
 		assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))

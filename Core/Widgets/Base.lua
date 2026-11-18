@@ -935,13 +935,12 @@ end
 
 local function EdgeOrigin(relative, hard)
 	if not hard or not Plain(relative) then return 0, 0 end
-	local left, top = relative:GetLeft(), relative:GetTop()
+	local left, right, top, bottom = Widgets.Edges(relative)
 	if IsSecret(left) or IsSecret(top) or type(left) ~= "number" or type(top) ~= "number"
 		or left ~= left or top ~= top then return 0, 0 end
 	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(relative)
 	local width, height
 	if relative:GetObjectType() == "FontString" then
-		local right, bottom = relative:GetRight(), relative:GetBottom()
 		if not IsSecret(right) and type(right) == "number" and right == right then width = (right - left) / pixel end
 		if not IsSecret(bottom) and type(bottom) == "number" and bottom == bottom then height = (top - bottom) / pixel end
 	end
