@@ -28,7 +28,7 @@ do
 	end)
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(E.Level() == "calm", "the Medallions setting picks Calm")
-	assert(E.Allows("ambient") and E.Allows("flare"), "Calm keeps ambient motion and one-shot flares")
+	assert(not E.Allows("ambient") and E.Allows("flare"), "Calm keeps one-shot flares without ambient loops")
 	assert(not E.Allows("pulse") and not E.Allows("particle") and not E.Allows("model"), "Calm drops loops, particles and 3D")
 	K.Options.Write("Medallions", "motion", "full")
 	K.Options.Write("Appearance", "motion", "reduced")
@@ -78,7 +78,9 @@ do
 	K.Options.Write("Medallions", "motion", "off")
 	assert(ambient == 0, "Off stops ambient motion")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(ambient == 1, "Calm brings ambient motion back")
+	assert(ambient == 0, "Calm leaves ambient loops stopped")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(ambient == 1, "Full brings ambient motion back")
 	Errors(env, K)
 end
 

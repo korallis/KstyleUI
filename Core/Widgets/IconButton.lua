@@ -425,12 +425,13 @@ function IconButton:FlashReady()
 	if effect and effect(self) then
 		return
 	end
-	if Motion.Level() == "off" then
+	if not Motion.Fades() then
 		return
 	end
 	self.readyWash:SetAlpha(0)
 	self.readyWash:Show()
 	self.readyFlash:Stop()
+	self.readyFade:SetDuration(Motion.FadeDuration(Tokens.Duration("castSheen")))
 	self.readyFlash:Play()
 end
 
@@ -488,10 +489,11 @@ function Widgets.IconButton(parent, opts)
 	fade:SetFromAlpha(READY_ALPHA)
 	fade:SetToAlpha(0)
 	fade:SetDuration(Tokens.Duration("castSheen"))
-	fade:SetSmoothing("OUT")
+	fade:SetSmoothing(Tokens.Smoothing.enter)
 	flash:SetScript("OnFinished", function()
 		ready:Hide()
 	end)
+	Motion.TrackGroup(flash)
 	button.readyWash, button.readyFlash, button.readyFade = ready, flash, fade
 	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA, core = HOVER_WASH })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")

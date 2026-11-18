@@ -189,16 +189,19 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Reduced motion: the calm is instant ----------------------------------------------------------------------------
+-- Reduced motion: combat calm keeps a short fade ----------------------------------------------------------------------------
 
 do
 	local env, K, frames = New()
 	K.Motion.SetLevel("reduced")
 	env.SetCombat(true)
-	assert(near(frames["minimap.main"]:GetAlpha(), 0.75) and near(frames["databars.xp"]:GetAlpha(), 0.3), "with reduced motion the cards calm at once")
+	assert(near(frames["minimap.main"]:GetAlpha(), 1), "Reduced starts a real combat fade")
+	W.Tick(env, 0.15)
+	assert(near(frames["minimap.main"]:GetAlpha(), 0.75) and near(frames["databars.xp"]:GetAlpha(), 0.3), "Reduced finishes the combat fade within 150 ms")
 	env.SetCombat(false)
 	Wait(env, 3.05)
-	assert(near(frames["minimap.main"]:GetAlpha(), 1), "and returns at once after the wait")
+	W.Tick(env, 0.15)
+	assert(near(frames["minimap.main"]:GetAlpha(), 1), "and returns within 150 ms after the wait")
 end
 
 -- The setting: off, nothing calms; turned off in combat, the cards return ----------------------------------------

@@ -47,10 +47,10 @@ end
 function Area:ScrollTo(offset, instant)
 	local target = min(self:GetMaxOffset(), max(0, offset))
 	self.target = target
-	if instant or Motion.ReducedMotion() then
+	if instant or not Motion.Slides() then
 		Motion.Tween(self, "SetOffset", target, target, 0)
 	else
-		Motion.Tween(self, "SetOffset", self.offset, target, Tokens.Duration("fade"), Tokens.Easing("hover"))
+		Motion.Tween(self, "SetOffset", self.offset, target, Tokens.Duration("fade"), Tokens.Easing("move"))
 	end
 end
 

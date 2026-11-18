@@ -103,11 +103,11 @@ do
 	tick(env, 1)
 	assert(done == 1, "onDone never runs twice")
 
-	-- A method name works as the setter, and easing defaults to outQuad.
+	-- A method name works as the setter, and easing defaults to the enter token.
 	local frame = env.CreateFrame("Frame")
 	Motion.Tween(frame, "SetAlpha", 0, 1, 1)
 	tick(env, 0.5)
-	assert(near(frame:GetAlpha(), 0.75), "the default easing is outQuad")
+	assert(near(frame:GetAlpha(), 0.875), "the default easing is the outCubic enter token")
 	tick(env, 1)
 	assert(frame:GetAlpha() == 1)
 	assert(not pcall(Motion.Tween, obj, setV, 0, 1, 1, "outBounce"), "an unknown easing is an error")

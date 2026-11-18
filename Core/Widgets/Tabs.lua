@@ -149,7 +149,7 @@ function Tabs:Select(value, silent)
 	self.toX, self.toW = tx, tw
 	self.underline:Show()
 	self.underGlow:Show()
-	Motion.Tween(self, Slide, 0, 1, Tokens.Duration("fade"), Tokens.Easing("fade"))
+	Motion.Tween(self, Slide, 0, 1, Motion.Slides() and Tokens.Duration("fade") or 0, Tokens.Easing("move"))
 	local onSelect = self.opts.onSelect
 	if not silent and onSelect then
 		ns.Call(onSelect, value, self)

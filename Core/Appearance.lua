@@ -291,10 +291,10 @@ Appearance.schema = {
 		help = L["Search appears at once; page lists and previews fade briefly. Off restores the original motion."] },
 	{
 		type = "dropdown", key = "motion", label = L["Motion"],
-		help = L["Full animation, reduced to fades without slides, or off so everything appears at once."],
+		help = L["Full animates; Calm keeps short fades and flashes without slides or loops; Off is still."],
 		options = {
 			{ value = "full", label = L["Full"] },
-			{ value = "reduced", label = L["Reduced"] },
+			{ value = "reduced", label = L["Calm"] },
 			{ value = "off", label = L["Off"] },
 		},
 	},

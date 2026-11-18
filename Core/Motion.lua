@@ -32,6 +32,11 @@ function Ease.inOutSine(t)
 	return (1 - cos(pi * Clamp(t))) / 2
 end
 
+function Ease.inQuad(t)
+	local u = Clamp(t)
+	return u * u
+end
+
 function Ease.outQuad(t)
 	local u = 1 - Clamp(t)
 	return 1 - u * u
@@ -90,7 +95,7 @@ end
 
 local function ResolveEase(easing)
 	if easing == nil then
-		return Ease.outQuad
+		return Ease[Tokens.Easing("enter")]
 	elseif type(easing) == "function" then
 		return easing
 	end
@@ -192,6 +197,7 @@ local function Find(obj, setter)
 end
 
 function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
+	duration = Motion.FadeDuration(duration)
 	local ease = ResolveEase(easing)
 	local existing = Find(obj, setter)
 	if existing then
@@ -261,16 +267,49 @@ function Motion.Level()
 	return level
 end
 
+local groups = setmetatable({}, { __mode = "k" })
+
+function Motion.TrackGroup(group, settle)
+	groups[group] = settle or group:GetScript("OnFinished") or function() end
+	return group
+end
+
+function Motion.Settle()
+	while #active > 0 do
+		Motion.Stop(active[#active].handle, true)
+	end
+	for group, settle in pairs(groups) do
+		if group:IsPlaying() then
+			group:Stop()
+			settle(group)
+		end
+	end
+end
+
+function Motion.Fades()
+	return level ~= "off"
+end
+
+function Motion.Slides()
+	return level == "full"
+end
+
+function Motion.FadeDuration(seconds)
+	if not Motion.Fades() then return 0 end
+	if not IsSecret(seconds) and type(seconds) == "number" and level == "reduced" then
+		return math.min(seconds, Tokens.Duration("panelClose"))
+	end
+	return seconds
+end
+
 function Motion.SetLevel(name)
 	if not LEVELS[name] then
 		return false
 	end
+	if level == name then return true end
 	level = name
-	if name == "off" then
-		while #active > 0 do
-			Motion.Stop(active[#active].handle, true)
-		end
-	end
+	Motion.Settle()
+	if ns.Effects then ns.Effects.Refresh() end
 	return true
 end
 
@@ -312,7 +351,7 @@ function Motion.FadeIn(frame, duration, alpha)
 			frame:Show()
 		end
 	end
-	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or Tokens.Duration("panelOpen"), Tokens.Easing("panelOpen"))
+	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or Tokens.Duration("panelOpen"), Tokens.Easing("enter"))
 end
 
 local function Hidden(frame)
@@ -331,5 +370,5 @@ function Motion.FadeOut(frame, duration)
 	elseif not shown then
 		return nil
 	end
-	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or Tokens.Duration("panelClose"), Tokens.Easing("panelClose"), onDone)
+	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or Tokens.Duration("panelClose"), Tokens.Easing("exit"), onDone)
 end

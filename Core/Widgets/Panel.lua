@@ -29,7 +29,7 @@ local function MayToggle(frame)
 end
 
 local function Animated()
-	return not InCombatLockdown() and not Motion.ReducedMotion()
+	return not InCombatLockdown() and Motion.Fades()
 end
 
 local function Hidden(panel)
@@ -46,7 +46,7 @@ local function AlphaGroup(panel, from, to, duration, smoothing)
 	alpha:SetToAlpha(to)
 	alpha:SetDuration(duration)
 	alpha:SetSmoothing(smoothing)
-	return group
+	return group, alpha
 end
 
 local function BuildMotion(panel)
@@ -59,13 +59,14 @@ local function BuildMotion(panel)
 	drop:SetOrder(1)
 	local up = group:CreateAnimation("Translation")
 	up:SetOffset(0, rise)
-	up:SetDuration(duration)
-	up:SetSmoothing("OUT")
+	up:SetDuration(Tokens.Duration("panelRise"))
+	up:SetSmoothing(Tokens.Smoothing.enter)
 	up:SetOrder(2)
 	panel.rise = group
 	panel.riseParts = { drop, up }
-	panel.fadeIn = AlphaGroup(panel, 0, 1, duration, "OUT")
-	local fadeOut = AlphaGroup(panel, 1, 0, Tokens.Duration("panelClose"), "IN")
+	panel.fadeIn, panel.fadeInAlpha = AlphaGroup(panel, 0, 1, duration, Tokens.Smoothing.enter)
+	local fadeOut, fadeOutAlpha = AlphaGroup(panel, 1, 0, Tokens.Duration("panelClose"), Tokens.Smoothing.exit)
+	panel.fadeOutAlpha = fadeOutAlpha
 	fadeOut:SetToFinalAlpha(true)
 	fadeOut:SetScript("OnFinished", function()
 		if panel.closing then
@@ -74,6 +75,9 @@ local function BuildMotion(panel)
 		end
 	end)
 	panel.fadeOut = fadeOut
+	Motion.TrackGroup(group)
+	Motion.TrackGroup(panel.fadeIn)
+	Motion.TrackGroup(fadeOut)
 	panel:HookScript("OnHide", function()
 		panel.closing = false
 		panel.rise:Stop()
@@ -116,8 +120,9 @@ function Panel:Open()
 	end
 	if Animated() then
 		self.rise:Stop()
-		self.rise:Play()
+		if Motion.Slides() then self.rise:Play() end
 		self.fadeIn:Stop()
+		self.fadeInAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("panelOpen")))
 		self.fadeIn:Play()
 	end
 	Widgets.Sound("IG_MAINMENU_OPEN")
@@ -134,6 +139,7 @@ function Panel:Close()
 		elseif Animated() then
 			self.closing = true
 			self.fadeOut:Stop()
+			self.fadeOutAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("panelClose")))
 			self.fadeOut:Play()
 		else
 			Hidden(self)

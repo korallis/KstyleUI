@@ -528,7 +528,7 @@ local function SheenDistance(self)
 end
 
 function Bar:PlaySheen(loop)
-	if not self.sheenAnim or Motion.ReducedMotion() then
+	if not self.sheenAnim or not Motion.Slides() then
 		return
 	end
 	self.sheenMove:SetOffset(SheenDistance(self), 0)
@@ -571,7 +571,7 @@ function Bar:Restyle()
 		self.sheen:SetPoint("BOTTOMRIGHT", self.sheenClip, "BOTTOMLEFT")
 		self.sheen:SetWidth(Widgets.Snap(self, SHEEN_WIDTH))
 	end
-	if self.sheenLooping and Motion.ReducedMotion() then
+	if not Motion.Slides() then
 		self:StopSheen()
 	end
 	if self.keyline then
@@ -658,10 +658,11 @@ function Widgets.StatusBar(parent, opts)
 		local anim = sheen:CreateAnimationGroup()
 		local move = anim:CreateAnimation("Translation")
 		move:SetDuration(Tokens.Duration("castSheen"))
-		move:SetSmoothing("IN_OUT")
+		move:SetSmoothing(Tokens.Smoothing.loop)
 		anim:SetScript("OnFinished", function()
 			sheen:Hide()
 		end)
+		Motion.TrackGroup(anim)
 		bar.sheenClip, bar.sheen, bar.sheenAnim, bar.sheenMove = clip, sheen, anim, move
 	end
 	if type(opts.min) ~= "nil" and type(opts.max) ~= "nil" then

@@ -60,6 +60,7 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 | HUD width: 21:9, 16:9, full | Elements > HUD width | `Core/Scale.lua` (`BandWidth`) | `test-layout-ultrawide` | as above |
 | DPS, Tank and Healer layouts | setup step 3 (`/kstyle setup` to change it) | `Core/Setup/Layouts.lua` | `test-setup-layouts`, `test-setup-collisions`, `test-render-scenes-reference*`, `test-centre-clearance-*` | `hud_reference` with `RENDER_LAYOUT=DPS\|Tank\|Healer` |
 | Layout Mode | `/kstyle layout`; Elements | `Core/Layout/Mode.lua`, `Layout.lua`, `History.lua` | `test-layout-mode`, `test-layout*` | `gallery_layout` |
+| Motion in every HUD style: Full, Calm (fades and flashes up to 150 ms, no slides or loops), Off; a level change settles running effects | General > Motion; General > Medallions > Medallions motion caps Medallions effects | `Core/Motion.lua`, `Core/Effects.lua`, `Core/Appearance.lua`, `Core/Widgets/Panel.lua`, `Core/Skin.lua`, `KstyleUI_Tooltips/Style.lua` | `test-motion-reduced`, `test-motion`, `test-appearance-levels`, `test-layout-calm`, `test-effects-layer`, `test-widgets-panel`, `test-tooltips` | `hud_reference` with `RENDER_HUD_STYLE=Frames\|Orbs\|Medallions`; timing and settlement in regression tests |
 | Calm the rails in combat | Elements > Combat | `Core/Layout/Calm.lua` | `test-layout-calm` | `hud_lumen_combat` |
 
 ## Setup and settings

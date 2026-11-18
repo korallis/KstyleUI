@@ -2484,7 +2484,7 @@ function Widgets.Press(widget, down)
 	if widget.AnimatePress then
 		return widget:AnimatePress(down)
 	end
-	return Motion.Tween(widget, SetPress, widget.pressT or 0, down and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+	return Motion.Tween(widget, SetPress, widget.pressT or 0, down and 1 or 0, Motion.Slides() and Tokens.Duration("hover") or 0, Tokens.Easing("move"))
 end
 
 function Widgets.PressOffset(widget)

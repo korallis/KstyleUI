@@ -199,6 +199,11 @@ local SHARES = {}
 
 local DURATIONS = {
 	hover = 0.12,
+	ambientBreath = 2.1,
+	sheenEvery = 6,
+	sheenRun = 1.4,
+	medFlip = 0.18,
+	hoverGrace = 0.3,
 	combatIn = 0.24,
 	combatOut = 0.6,
 	combatOutDelay = 3,
@@ -219,7 +224,12 @@ local DURATIONS = {
 	sparkFade = 0.35,
 }
 
+Tokens.Smoothing = { enter = "OUT", exit = "IN", loop = "IN_OUT" }
+
 local EASINGS = {
+	enter = "outCubic",
+	exit = "inQuad",
+	move = "inOutSine",
 	hover = "outQuad",
 	combatIn = "outCubic",
 	combatOut = "inOutSine",

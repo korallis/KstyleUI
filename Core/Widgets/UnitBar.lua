@@ -173,7 +173,7 @@ function Bar:SetBarValue(value)
 	else
 		self:SetValue(value)
 	end
-	if self.sparkAnim and not Motion.ReducedMotion() then
+	if self.sparkAnim and Motion.Slides() then
 		self.sparkFrame:Show()
 		Restart(self.sparkAnim)
 	end
@@ -219,7 +219,14 @@ function Bar:SetHealth(value, instant)
 	self.recent:SetValue(self.lossValue)
 	self.lossValue = value
 	self:SetBarValue(value)
-	local flash = not Motion.ReducedMotion()
+	local flash = Motion.Fades()
+	if self.flashMotion ~= Motion.Level() then
+		self.flashMotion = Motion.Level()
+		local hit = Motion.FadeDuration(Tokens.Duration("hitFlash"))
+		self.lossFade:SetDuration(hit)
+		self.recentFade:SetDuration(hit)
+		self.lossHold:SetDuration(Motion.Slides() and math.max(Tokens.Duration("lossHold"), hit) or hit)
+	end
 	self.flash:SetShown(flash)
 	self.recentFlash:SetShown(flash)
 	Restart(self.lossAnim)
@@ -468,6 +475,8 @@ local function Flash(bar)
 		flash:Hide()
 		bar:ReleaseLoss()
 	end)
+	Motion.TrackGroup(group)
+	bar.lossFade, bar.lossHold = fade, hold
 	bar.flash, bar.lossAnim = flash, group
 	bar.recentClip = Clip(bar.recent, bar.recent:GetStatusBarTexture())
 	local recentFlash = bar.recentClip:CreateTexture(nil, "ARTWORK", nil, 1)
@@ -481,6 +490,8 @@ local function Flash(bar)
 	recentGroup:SetScript("OnFinished", function()
 		recentFlash:Hide()
 	end)
+	Motion.TrackGroup(recentGroup)
+	bar.recentFade = recentFade
 	bar.recentFlash, bar.recentAnim = recentFlash, recentGroup
 end
 
@@ -501,6 +512,7 @@ local function Spark(bar)
 	group:SetScript("OnFinished", function()
 		frame:Hide()
 	end)
+	Motion.TrackGroup(group)
 	bar.sparkFrame, bar.sparkLine, bar.sparkGlow, bar.sparkAnim = frame, line, glow, group
 end
 

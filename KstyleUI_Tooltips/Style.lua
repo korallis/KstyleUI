@@ -255,9 +255,10 @@ local function BuildFade(tooltip)
 	alpha:SetFromAlpha(0)
 	alpha:SetToAlpha(1)
 	alpha:SetDuration(Tokens.Duration("hover"))
-	alpha:SetSmoothing("OUT")
+	alpha:SetSmoothing(Tokens.Smoothing.enter)
 	group:SetToFinalAlpha(true)
-	return group
+	Motion.TrackGroup(group)
+	return group, alpha
 end
 
 function Style.Fade(tooltip)
@@ -271,7 +272,8 @@ local function FadeIn(tooltip)
 		return
 	end
 	fade:Stop()
-	if not Motion.ReducedMotion() then
+	if Motion.Fades() then
+		Style.Glass(tooltip).fadeAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("hover")))
 		fade:Play()
 	end
 end
@@ -303,7 +305,7 @@ function Style.Skin(tooltip, name)
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
-	glass.fade = BuildFade(tooltip)
+	glass.fade, glass.fadeAlpha = BuildFade(tooltip)
 	tooltip:HookScript("OnShow", FadeIn)
 	tooltip:HookScript("OnHide", function()
 		if glass.fade then

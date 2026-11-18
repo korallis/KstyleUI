@@ -163,6 +163,7 @@ assert(not pcall(Tokens.Share, "nope"), "an unknown share is an error")
 for name, want in pairs({
 	hover = 0.12, combatIn = 0.24, combatOut = 0.6, combatOutDelay = 3, panelOpen = 0.25, panelRise = 0.4, panelClose = 0.15,
 	listStagger = 0.05, castSheen = 0.6, procPulse = 0.7,
+	ambientBreath = 2.1, sheenEvery = 6, sheenRun = 1.4, medFlip = 0.18, hoverGrace = 0.3,
 }) do
 	assert(Tokens.Duration(name) == want, "Tokens.Duration(" .. name .. ") is " .. tostring(Tokens.Duration(name)))
 end

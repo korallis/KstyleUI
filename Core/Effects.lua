@@ -12,7 +12,7 @@ local RANK = { off = 1, calm = 2, full = 3 }
 local FROM_MOTION = { full = "full", reduced = "calm", off = "off" }
 local ALLOWS = {
 	full = { ambient = true, flare = true, pulse = true, particle = true, model = true },
-	calm = { ambient = true, flare = true },
+	calm = { flare = true },
 	off = {},
 }
 
@@ -194,6 +194,7 @@ local function Refresh()
 	end
 	local old = last
 	last = level
+	if old then ns.Motion.Settle() end
 	for _, rec in pairs(places) do
 		if rec.ambientStart then
 			if Effects.Allows("ambient") then
@@ -213,7 +214,7 @@ Effects.schema = {
 	{ type = "header", label = L["Medallions"] },
 	{
 		type = "dropdown", key = "motion", label = L["Medallions motion"],
-		help = L["Full adds the game's 3D effects; Calm keeps slow motion and short flashes; Off is still."],
+		help = L["Full adds the game's 3D effects; Calm keeps short fades and flashes; Off is still."],
 		options = {
 			{ value = "full", label = L["Full"] },
 			{ value = "calm", label = L["Calm"] },

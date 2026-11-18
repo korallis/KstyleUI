@@ -28,7 +28,7 @@ function Toggle:SetValue(value, silent)
 		return
 	end
 	self.value = value
-	Motion.Tween(self, SetOn, self.onT or 0, value and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+	Motion.Tween(self, SetOn, self.onT or 0, value and 1 or 0, Motion.Slides() and Tokens.Duration("hover") or 0, Tokens.Easing("move"))
 	if not silent then
 		Widgets.Sound(value and "IG_MAINMENU_OPTION_CHECKBOX_ON" or "IG_MAINMENU_OPTION_CHECKBOX_OFF")
 		local onChange = self.opts.onChange

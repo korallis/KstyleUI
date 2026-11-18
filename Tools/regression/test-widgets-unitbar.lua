@@ -84,7 +84,7 @@ assert(value(under) == 400 and not playing(bar.lossAnim) and not bar.flash:IsSho
 assert(not bar.sparkFrame:IsShown(), "and puts the spark out")
 K.Motion.SetLevel("reduced")
 bar:SetHealth(S(350))
-assert(not bar.flash:IsShown() and playing(bar.lossAnim), "reduced motion keeps the band and its hold but shows no flash")
+assert(bar.flash:IsShown() and playing(bar.lossAnim), "reduced motion keeps the short health flash")
 assert(not bar.sparkFrame:IsShown(), "and no spark")
 K.Motion.SetLevel("full")
 

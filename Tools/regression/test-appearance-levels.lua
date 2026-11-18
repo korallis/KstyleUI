@@ -97,6 +97,7 @@ do
 	assert(defaults.typeSet == "Folio" and defaults.font == "", "Folio is the default set without a global face override")
 	local motion = K.Options.Row("Appearance", "motion")
 	assert(motion and motion.type == "dropdown", "motion is a dropdown")
+	assert(motion.options[2].label == K.L["Calm"], "Calm is the same control in every HUD style; reduced remains the saved value")
 	local values = {}
 	for i, option in ipairs(motion.options) do
 		values[i] = option.value

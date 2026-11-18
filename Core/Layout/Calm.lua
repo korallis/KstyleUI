@@ -7,7 +7,8 @@ local Motion, Modules, Tokens = ns.Motion, ns.Modules, ns.Tokens
 local Calm = {}
 Layout.Calm = Calm
 
-Calm.ALPHA, Calm.SOFT, Calm.FALL, Calm.RISE, Calm.DELAY, Calm.HOVER = 0.3, 0.75, 0.24, 0.6, 3, 0.24
+Calm.ALPHA, Calm.SOFT = 0.3, 0.75
+Calm.FALL, Calm.RISE, Calm.DELAY, Calm.HOVER = Tokens.Duration("combatIn"), Tokens.Duration("combatOut"), Tokens.Duration("combatOutDelay"), Tokens.Duration("combatIn")
 Calm.FLOOR = 0.65
 Calm.STORY = 0.9
 Calm.IDLE = { "databars.xp", "databars.rep", "databars.honor" }
@@ -44,10 +45,7 @@ local function IsSecret(v)
 end
 
 local function Duration(seconds)
-	if Motion.ReducedMotion() then
-		return 0
-	end
-	return seconds
+	return Motion.FadeDuration(seconds)
 end
 
 local function Accessible(frame)

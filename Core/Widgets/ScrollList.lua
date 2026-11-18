@@ -230,16 +230,16 @@ function List:Paint()
 end
 
 local function BounceBack(self)
-	Motion.Tween(self, "SetOffset", self.offset, self.bounceTo, Tokens.Duration("hover"), "outQuad")
+	Motion.Tween(self, "SetOffset", self.offset, self.bounceTo, Tokens.Duration("hover"), Tokens.Easing("move"))
 end
 
 function List:ScrollTo(offset, instant)
 	local target = min(self:GetMaxOffset(), max(0, offset))
 	self.target = target
-	if instant then
+	if instant or not Motion.Slides() then
 		Motion.Tween(self, "SetOffset", target, target, 0)
 	else
-		Motion.Tween(self, "SetOffset", self.offset, target, Tokens.Duration("fade"), Tokens.Easing("hover"))
+		Motion.Tween(self, "SetOffset", self.offset, target, Tokens.Duration("fade"), Tokens.Easing("move"))
 	end
 end
 
@@ -266,14 +266,14 @@ function List:Scroll(delta)
 	local current = self.target or self.offset
 	local target = current + step
 	if (target < 0 and current <= 0) or (target > maxOffset and current >= maxOffset) then
-		if Motion.ReducedMotion() then
+		if not Motion.Slides() then
 			return
 		end
 		local edge = target < 0 and 0 or maxOffset
 		self.bounceTo = edge
 		self.target = edge
 		local reach = Tokens.Size("gapMedium") * (target < 0 and -1 or 1)
-		Motion.Tween(self, "SetOffset", self.offset, edge + reach, Tokens.Duration("hover"), "outQuad", BounceBack)
+		Motion.Tween(self, "SetOffset", self.offset, edge + reach, Tokens.Duration("hover"), Tokens.Easing("move"), BounceBack)
 		return
 	end
 	self:ScrollTo(target)
