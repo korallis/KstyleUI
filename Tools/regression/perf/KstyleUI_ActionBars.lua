@@ -7,6 +7,31 @@ local SLOTS = 12
 
 return {
 	{
+		name = "ActionBars paired SPELL_UPDATE_COOLDOWN and ACTIONBAR_UPDATE_COOLDOWN, 48 buttons",
+		budget = 600,
+		setup = function()
+			local env, K, ns = AB.New()
+			AB.Enable(env, K)
+			for n = 1, SLOTS do
+				AB.Slot(env, n, { texture = 135000 + n, type = "spell", id = 100 + n, cooldown = { name = "cd" .. n } })
+			end
+			AB.Slot(env, 2, {
+				texture = 135002, type = "spell", id = 102, cooldown = { name = "cd2" },
+				charges = { maxCharges = 2, currentCharges = 1, isActive = true }, chargeDuration = { name = "charge2" },
+			})
+			assert(#ns.actionButtons == 48, "the fixture walks 48 action buttons")
+			local info = { isOnGCD = true }
+			env.C_ActionBar.GetActionCooldown = function() return info end
+			local spell = Perf.Event(env, "SPELL_UPDATE_COOLDOWN")
+			local action = Perf.Event(env, "ACTIONBAR_UPDATE_COOLDOWN")
+			return env, function()
+				env._now = env._now + 1 / 60
+				spell()
+				action()
+			end
+		end,
+	},
+	{
 		name = "ActionBars ACTIONBAR_UPDATE_COOLDOWN",
 		budget = 125,
 		setup = function()

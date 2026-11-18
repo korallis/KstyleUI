@@ -228,6 +228,7 @@ function IconButton:SetCooldown(start, duration, gcd)
 		return false
 	end
 	self.cooldown:SetCooldown(start, duration)
+	self.cooldownCleared = false
 	SetRealCooldown(self, gcd ~= true)
 	return true
 end
@@ -239,12 +240,14 @@ function IconButton:SetCooldownFromDuration(durationObject, gcd)
 		return false
 	end
 	cooldown:SetCooldownFromDurationObject(durationObject)
+	self.cooldownCleared = false
 	SetRealCooldown(self, gcd ~= true)
 	return true
 end
 
 function IconButton:ClearCooldown()
 	self.cooldown:Clear()
+	self.cooldownCleared = true
 	SetRealCooldown(self, false)
 end
 
@@ -265,6 +268,7 @@ function IconButton:SetChargeCooldownFromDuration(durationObject)
 		return false
 	end
 	charge:SetCooldownFromDurationObject(durationObject)
+	self.chargeCooldownCleared = false
 	return true
 end
 
@@ -272,6 +276,7 @@ function IconButton:ClearChargeCooldown()
 	if self.chargeCooldown then
 		self.chargeCooldown:Clear()
 	end
+	self.chargeCooldownCleared = true
 end
 
 function IconButton:SetProc(on)

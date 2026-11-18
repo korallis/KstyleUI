@@ -123,10 +123,22 @@ local function CooldownInfo(bar, slot)
 	return type(info) == "table" and info or nil
 end
 
+local function ClearCooldown(b)
+	if not b.cooldownCleared then
+		b:ClearCooldown()
+	end
+end
+
+local function ClearChargeCooldown(b)
+	if not b.chargeCooldownCleared then
+		b:ClearChargeCooldown()
+	end
+end
+
 function Button.UpdateCooldown(b, trusted)
 	if not b.hasAction then
-		b:ClearCooldown()
-		b:ClearChargeCooldown()
+		ClearCooldown(b)
+		ClearChargeCooldown(b)
 		return
 	end
 	local slot, bar = b.slot, C_ActionBar
@@ -140,7 +152,7 @@ function Button.UpdateCooldown(b, trusted)
 		if duration then
 			b:SetCooldownFromDuration(duration, gcd)
 		else
-			b:ClearCooldown()
+			ClearCooldown(b)
 		end
 	elseif info then
 		LogOnce("cooldownPath", "C_ActionBar.GetActionCooldownDuration is missing; cooldowns use GetActionCooldown when it is not secret")
@@ -148,7 +160,7 @@ function Button.UpdateCooldown(b, trusted)
 		if type(start) == "number" and type(duration) == "number" and duration > 0 then
 			b:SetCooldown(start, duration, gcd)
 		else
-			b:ClearCooldown()
+			ClearCooldown(b)
 		end
 	end
 	local charges = b.hasCharges and type(bar.GetActionCharges) == "function" and bar.GetActionCharges(slot)
@@ -160,7 +172,7 @@ function Button.UpdateCooldown(b, trusted)
 			return
 		end
 	end
-	b:ClearChargeCooldown()
+	ClearChargeCooldown(b)
 end
 
 function Button.UpdateCount(b)
@@ -324,7 +336,7 @@ local function SpellCooldown(b, spellID, start, duration, trusted)
 		if object then
 			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(b, spell, spellID, trusted))
 		else
-			b:ClearCooldown()
+			ClearCooldown(b)
 		end
 		return
 	end
@@ -332,7 +344,7 @@ local function SpellCooldown(b, spellID, start, duration, trusted)
 	if type(start) == "number" and type(duration) == "number" and duration > 0 then
 		b:SetCooldown(start, duration)
 	else
-		b:ClearCooldown()
+		ClearCooldown(b)
 	end
 end
 
@@ -370,7 +382,7 @@ local function UpdatePet(b, trusted)
 		end
 		SpellCooldown(b, b.petSpell, start, duration, trusted)
 	else
-		b:ClearCooldown()
+		ClearCooldown(b)
 	end
 	Button.UpdateAlpha(b)
 end
@@ -396,7 +408,7 @@ local function UpdateStance(b, trusted)
 		end
 		SpellCooldown(b, b.formSpell, start, duration, trusted)
 	else
-		b:ClearCooldown()
+		ClearCooldown(b)
 	end
 end
 
