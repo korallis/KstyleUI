@@ -1,5 +1,24 @@
 # KstyleUI changelog
 
+## v0.2.5 (2026-11-18)
+
+Your feedback release: keybinding, a working stealth button, the Options font error, a RestedXP arrow you can see in the dark, and a lighter addon that looks exactly the same.
+
+### Added
+
+- Bind your action buttons with `/kb` or `/kstyle kb`: hover a button, press a key (with Shift, Ctrl, Alt, mouse buttons or the wheel), then Save for your account or this character. Escape clears a binding, Discard undoes your changes, and it refuses to change bindings in combat. It also binds your stance, pet and possess buttons. `/kb` is left to another addon such as Bartender4 if it already owns it; `/kstyle kb` always works.
+
+### Changed
+
+- KstyleUI does much less work at login, `/reload`, display changes and HUD-style changes: working out the HUD size takes about a quarter of the time and almost no temporary memory, and about 40% fewer hidden pieces are created until they are needed. Nothing looks different.
+- In combat, party and raid frames, boss frames and action-bar cooldowns skip updates that could not change anything on screen.
+
+### Fixed
+
+- Clicking the stance button cancels stealth again, and its key binding in Blizzard's Key Bindings window works.
+- Opening Options no longer raises "Invalid font height (0)" from the group-frames preview, and the preview fits the window at its smallest size.
+- The RestedXP guide arrow is ivory with a dark edge, so it is easy to see in dark zones such as Tirisfal Glades.
+
 ## v0.2.4 (2026-11-17)
 
 ### Added

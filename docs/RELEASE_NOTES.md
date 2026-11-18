@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.5: your feedback
+
+Bind any action, stance, pet or possess button by hovering it with `/kb` or `/kstyle kb` and pressing a key, then Save; bindings are real game bindings, so they show in Blizzard's Key Bindings window. Clicking the stance button cancels stealth again. Opening Options no longer raises "Invalid font height (0)". The RestedXP guide arrow is ivory with a dark edge, so it reads in dark zones. KstyleUI also does far less work at login, reload and display changes and skips needless updates in combat, with no visible change. `/reload` is enough after installing. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.4: on CurseForge and Wago
 
 KstyleUI is now published on CurseForge and Wago Addons as well as GitHub, so addon managers such as the CurseForge app and WowUp can install and update it. The addon itself is unchanged from 0.2.3.
