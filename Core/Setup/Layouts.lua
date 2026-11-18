@@ -1008,7 +1008,7 @@ function Layouts.Attached(style, name, key, class)
 		return Layouts.Previous(style, name, key, class)
 	end
 	local places = STYLES[style] and STYLES[style][name] or layouts[name]
-	local cast = PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
+	local cast = PLACES[class] and PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
 	local y = cast.y + (cast.height or 30) + 8
 	local x = 0
 	if style == "medallions" then
@@ -1041,7 +1041,7 @@ function Layouts.Attached(style, name, key, class)
 end
 
 function Layouts.Previous(style, name, key, class)
-	local specific = PLACES[class][style] and PLACES[class][style][key]
+	local specific = PLACES[class] and PLACES[class][style] and PLACES[class][style][key]
 	local themed = STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
 	local place = specific or themed or layouts[name][key]
 	return { anchor = place.anchor, x = place.x, y = place.y, width = place.width, height = place.height }
@@ -1364,16 +1364,17 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local layout = state.layout
 	local pixelScale = physicalHeight / rootHeight
 	local rects, count = state.rects, 0
+	local elements = #ELEMENTS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
-	for i = 1, #ELEMENTS + 2 do
+	for i = 1, elements + 2 do
 		local key, width, height, position, offsetX, offsetY
-		if i <= #ELEMENTS then
+		if i <= elements then
 			key = ELEMENTS[i].key
 			local size = state.sizes[i]
 			width, height, offsetX, offsetY = size[1], size[2], size[3], size[4]
 			position = layout[key]
 		else
-			position = i == #ELEMENTS + 1 and story.guide or story.quests
+			position = i == elements + 1 and story.guide or story.quests
 			key, width, height = position.key, position.width, position.height
 		end
 		if enabled[key] ~= false and not (REPLACED[style] and REPLACED[style][key]) then
