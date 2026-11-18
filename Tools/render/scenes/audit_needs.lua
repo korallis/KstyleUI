@@ -61,7 +61,7 @@ return Common.Run(function()
 				ns.Pages.ReviewImport(text)
 			end
 			if need == "general" or need == "profiles" or need == "readable" then
-				local wanted = need == "profiles" and "Share" or need == "readable" and "Readability" or "Colour vision"
+				local wanted = need == "profiles" and "Share" or need == "readable" and (K.Profiles and "Text preset" or "Readability") or "Colour vision"
 				for i, item in ipairs(ns.Window.State().items) do
 					if item.label == wanted then ns.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
 				end

@@ -369,7 +369,7 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
-	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Readability"] }
+	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Text preset"] }
 	items[#items + 1] = {
 		kind = "dropdown", page = "General", module = "Readability", key = "preset", label = L["Text preset"], help = L["Readable grows text and its rows; Standard restores the usual sizes."],
 		options = { { value = "Standard", label = L["Standard"] }, { value = "Readable", label = L["Readable"] } },

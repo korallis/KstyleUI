@@ -4,6 +4,8 @@ local env, K, ns = O.New({ before = function(_, K)
 	K.Modules.Register(W.CoreEnv.Module("ActionBars", { defaults = { size = 20, bindingHints = true } }))
 	K.Options.Register("ActionBars", { { type = "header", label = "Buttons" }, { type = "slider", key = "size", label = "Size", help = "The size of the buttons.", min = 10, max = 40, step = 2 } })
 end })
+local general = ns.Pages.Find(ns.Pages.List(), "General")
+assert(O.Find(ns.Model.PageItems(general), function(item) return item.kind == "header" and item.label == "Text preset" end), "Give the Readable preset its own Text preset section so it does not duplicate Readability")
 local entered = 0
 env.SlashCmdList.KSTYLEKB = function() entered = entered + 1 end
 K.Options.Open("ActionBars")
