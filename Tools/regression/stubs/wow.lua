@@ -499,6 +499,7 @@ function Object:GetEffectiveScale()
 end
 
 local function booleanAlpha(value, yes, no)
+	yes, no = yes == nil and 1 or yes, no == nil and 0 or no
 	local selected = plain(value) and yes or no
 	if secretValues[value] or secretValues[selected] then
 		return newSecret(plain(selected))
