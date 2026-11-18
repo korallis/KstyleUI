@@ -45,6 +45,14 @@ do
 	R.env.SetCombat(false)
 	R.settle()
 	assert(calls > 0, "story alignment applies when combat ends")
+	local guide = R.K.Skin.Parts(R.rxp.RXPFrame).backdrop
+	local previousHeight = guide:GetHeight()
+	R.K.Store.CopyProfile(R.K.Store.ProfileName(), "Previous finish")
+	R.K.Options.Write("Skins", "restedXP.compose", true)
+	R.settle()
+	R.K.Store.SetProfile("Previous finish")
+	R.settle()
+	assert(math.abs(guide:GetHeight() - previousHeight) < 0.01, "profile changes must restore the previous guide height")
 end
 
 for _, count in ipairs({ 1, 4, 8 }) do
