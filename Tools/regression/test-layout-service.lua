@@ -30,6 +30,10 @@ local function New(opts)
 	return env, K
 end
 
+local function Listed(Layout, key)
+	for _, entry in ipairs(Layout.Elements()) do if entry.key == key then return entry end end
+end
+
 -- Protect(env, frame) makes the frame protected and records each protected call made in combat outside
 -- secure code, as the game would block it with ADDON_ACTION_BLOCKED.
 local PROTECTED = { "SetPoint", "ClearAllPoints", "SetAllPoints", "SetSize", "SetWidth", "SetHeight", "SetScale", "SetFrameStrata", "Show", "Hide", "SetShown", "SetAttribute", "SetMouseMotionEnabled", "EnableMouse" }
@@ -72,15 +76,17 @@ do
 	local env, K = New()
 	local Layout = K.Layout
 	assert(type(Layout.Register) == "function" and type(Layout.Elements) == "function", "the shared Layout API exists")
+	local before = #Layout.Elements()
 	local frame = Element(K, "Test.Player", {
 		label = "Player", module = "UnitFrames", resizable = true,
 		minWidth = 120, maxWidth = 400, minHeight = 30, maxHeight = 90,
 	})
 	local list = Layout.Elements()
-	assert(#list == 1 and list[1].key == "Test.Player" and list[1].label == "Player" and list[1].module == "UnitFrames", "Elements lists the element")
-	assert(list[1].opts.resizable == true and list[1].opts.maxWidth == 400, "Elements gives the element's opts")
-	list[1].opts.maxWidth = 1
-	assert(Layout.Elements()[1].opts.maxWidth == 400, "Elements hands out copies")
+	local player = Listed(Layout, "Test.Player")
+	assert(#list == before + 1 and player and player.label == "Player" and player.module == "UnitFrames", "Elements lists the element")
+	assert(player.opts.resizable == true and player.opts.maxWidth == 400, "Elements gives the element's opts")
+	player.opts.maxWidth = 1
+	assert(Listed(Layout, "Test.Player").opts.maxWidth == 400, "Elements hands out copies")
 
 	local s = Layout.Get("Test.Player")
 	assert(s.anchor == "BOTTOM" and s.x == -200 and s.y == 260, "Get gives the default position")
@@ -112,8 +118,9 @@ do
 	Raises(function() Layout.Register(frame, "A", { anchor = "CENTER" }, { minWidth = -1 }) end, "minWidth", "a bad limit")
 	Layout.Register(frame, "A", { anchor = "CENTER" })
 	assert(Layout.Get("A").x == 0 and Layout.Get("A").label == nil, "offsets default to 0")
+	local count = #Layout.Elements()
 	Layout.Register(frame, "A", { anchor = "TOP", x = 1, y = -2 }, { label = "Again" })
-	assert(#Layout.Elements() == 1 and Layout.Elements()[1].label == "Again", "registering a key again updates it")
+	assert(#Layout.Elements() == count and Listed(Layout, "A").label == "Again", "registering a key again updates it")
 	assert(Layout.Get("A").anchor == "TOP", "with its new default")
 end
 

@@ -537,9 +537,9 @@ local function PlaceText(row, item, control, width)
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
 	Widgets.Point(row.label, "TOPLEFT", row, "TOPLEFT", gap, -labelTop)
-	Widgets.Point(row.label, "RIGHT", row, "RIGHT", -(gap + (stacked and 0 or reserve)), 0)
+	if item.module ~= "ProfileTools" then Widgets.Point(row.label, "RIGHT", row, "RIGHT", -(gap + (stacked and 0 or reserve)), 0) end
 	Widgets.Point(row.help, "TOPLEFT", row, "TOPLEFT", gap, -helpTop)
-	Widgets.Point(row.help, "RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0)
+	if item.module ~= "ProfileTools" then Widgets.Point(row.help, "RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0) end
 	if control then
 		control:ClearAllPoints()
 		if stacked and control.Fit then

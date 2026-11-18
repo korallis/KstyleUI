@@ -1,5 +1,6 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
+local integrationKeys = { "timerLane", "announcementLane", "KstyleUI_WeakAuras1", "KstyleUI_WeakAuras2" }
 local function Rect(frame)
 	return { frame:GetLeft(), frame:GetBottom(), frame:GetRight(), frame:GetTop() }
 end
@@ -60,6 +61,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 				local rh = 1080 / plannedScales[preset]
 				local rw = K.Scale.CanvasWidth(screen[1], screen[2]) / screen[2] * rh
 				local own = { K.Setup.Layouts.Rect({ width = ns.bars.bar3.holder:GetWidth(), height = ns.bars.bar3.holder:GetHeight() }, places["actionbars.bar3"], rw, rh) }
+				for i, lane in ipairs(K.Setup.Integrations.frames) do
+					local place = K.Layout.Get("integrations." .. integrationKeys[i])
+					local other = { K.Setup.Layouts.Rect({ width = lane:GetWidth(), height = lane:GetHeight() }, place, rw, rh) }
+					assert(Apart(own, other), style .. " " .. preset .. " " .. count .. ": bar 3 overlaps " .. integrationKeys[i])
+				end
 				for key, place in pairs(places) do
 					if key ~= "actionbars.bar3" and enabled[key] then
 						local w, h = K.Setup.Layouts.StyleSize(style, K.Scale.Aspect(), key)

@@ -170,11 +170,12 @@ do
 	local env, K = CoreEnv.New()
 	local def = Module("UnitFrames", { defaults = { width = 220 } })
 	K.Modules.Register(def)
-	local frames = #env._frames
 	CoreEnv.Boot(env)
 	assert(#def.calls == 0, "code defaults leave every module off, so Enable never runs")
 	assert(K.Modules.IsEnabled("UnitFrames") == false and K.Modules.IsRunning("UnitFrames") == false)
-	assert(#env._frames == frames, "a module that is off costs no frames")
+	local core = CoreEnv.New()
+	CoreEnv.Boot(core)
+	assert(#env._frames == #core._frames, "a module that is off costs no frames beyond the core's enabled features")
 	assert(K.Store.Module("UnitFrames").width == 220, "its defaults are still readable")
 end
 

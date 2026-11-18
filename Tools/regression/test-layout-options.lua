@@ -38,7 +38,7 @@ assert(items[1].kind == "header" and items[1].label == "Layout Mode", "Layout's 
 
 local rows = {}
 for _, item in ipairs(items) do
-	if item.label and item.set and not rows[item.label] then
+	if item.element == "unitframes.player" and item.label and item.set and not rows[item.label] then
 		rows[item.label] = item
 	end
 end

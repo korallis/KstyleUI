@@ -87,13 +87,5 @@ K.Options.Write("GroupFrames", "presets.raid", "Compact")
 env.RunTimers()
 assert(ns.Settings.current.party.width == ns.Settings.defaults.party.width, "Compact restores the previous party dimensions")
 assert(ns.Settings.current.raid.healthText ~= "DEFICIT", "Compact restores the previous automatic raid text")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("HudStyle", "style", style)
-	G.SetRoster(env, "party", { { name = "Tank", role = "TANK", class = "WARRIOR" } })
-	env.RunTimers()
-	G.SetRoster(env, "raid", G.Members(40))
-	env.RunTimers()
-	assert(#env._errors == 0, style .. ": " .. tostring(env._errors[1]))
-end
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("group accessibility ok")

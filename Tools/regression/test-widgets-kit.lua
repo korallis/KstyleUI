@@ -461,7 +461,8 @@ do
 	K.Widgets.Place(frame, "Test.Frame", { anchor = "TOP", x = 0, y = -40 }, { scalable = true, label = "Test" })
 	local p = frame._points[1]
 	assert(p[1] == "TOP" and p[2] == K.Scale.Root() and p[3] == "TOP" and p[4] == 0 and p[5] == -40, "the default point on the root")
-	local reg = env._layout[1]
+	local reg
+	for _, entry in ipairs(env._layout) do if entry.key == "Test.Frame" then reg = entry; break end end
 	assert(reg and reg.frame == frame and reg.key == "Test.Frame" and reg.position.anchor == "TOP" and reg.opts.scalable, "registered with Layout")
 	local env2, K2 = W.New()
 	local placed = env2.CreateFrame("Frame", nil, K2.Scale.Root())

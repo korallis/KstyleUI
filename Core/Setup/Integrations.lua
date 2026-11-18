@@ -69,28 +69,32 @@ K.Events.Register("Integrations", "PLAYER_LOGIN", Apply)
 
 function Integration.Preview(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetSize(520, 190)
+	Widgets.Size(frame, 520, 190)
 	local lanes = {}
 	for i = 1, 2 do
 		local spec = LANES[i]
 		local lane = CreateFrame("Frame", nil, frame)
 		lane.chrome = Widgets.Chrome(lane, { shape = "tile", fill = "deep", shadow = false })
-		lane:SetSize(spec.width, spec.height)
-		lane:SetPoint("TOP", frame, "TOP", 0, i == 1 and 0 or -132)
 		lane.text = CreateFrame("Frame", nil, lane)
-		lane.text:SetSize(1, 1)
-		lane.text:SetPoint("CENTER")
 		lane.label = Widgets.Text(lane.text, "caption", "textEmphasis")
-		lane.label:SetPoint("CENTER")
 		lane.label:SetText(spec.label)
 		lanes[i] = lane
 	end
-	function frame:Refresh()
+	function frame:Restyle()
+		Widgets.Size(self, 520, 190)
 		for i, lane in ipairs(lanes) do
+			Widgets.Size(lane, LANES[i].width, LANES[i].height)
+			Widgets.Point(lane, "TOP", self, "TOP", 0, i == 1 and 0 or -132)
 			lane:SetShown(Store.Module("Integrations")[LANES[i].key])
 			lane.text:SetScale(1 / self:GetScale())
+			Widgets.Size(lane.text, 6, 6)
+			Widgets.Point(lane.text, "CENTER", lane, "CENTER")
+			Widgets.StyleText(lane.label)
+			Widgets.Point(lane.label, "CENTER", lane.text, "CENTER")
 		end
 	end
+	frame.Refresh = frame.Restyle
+	Widgets.Track(frame)
 	frame:Refresh()
 	return frame
 end

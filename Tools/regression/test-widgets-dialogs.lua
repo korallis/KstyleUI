@@ -111,7 +111,8 @@ do
 	local buttons = host.visibleButtons
 	assert(#buttons == 2 and buttons[1].label:GetText() == "Cancel" and buttons[2].label:GetText() == "Accept", "Cancel, then Accept")
 	assert(buttons[2].primary and not buttons[1].primary, "Accept is the primary button")
-	local reg = env._layout[1]
+	local reg
+	for _, entry in ipairs(env._layout) do if entry.key == "Widgets.Dialog" then reg = entry; break end end
 	assert(reg and reg.frame == host and reg.key == "Widgets.Dialog" and reg.opts.scalable, "the dialog registers with Layout")
 	assert(env.StaticPopupDialogs == nil or next(env.StaticPopupDialogs) == nil, "no StaticPopupDialogs entry")
 	W.Click(buttons[2])

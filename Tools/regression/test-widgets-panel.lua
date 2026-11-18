@@ -204,7 +204,8 @@ do
 		width = 200, height = 120,
 		layout = { key = "Test.Panel", position = { anchor = "LEFT", x = 40, y = 0 }, options = { resizable = true, minWidth = 120, label = "Test" } },
 	}, { layout = true })
-	local reg = env._layout[1]
+	local reg
+	for _, entry in ipairs(env._layout) do if entry.key == "Test.Panel" then reg = entry; break end end
 	assert(reg and reg.frame == panel and reg.key == "Test.Panel" and reg.opts.resizable and reg.position.anchor == "LEFT", "registered with Layout")
 	assert(panel._points[1][1] == "LEFT" and panel._points[1][2] == K.Scale.Root())
 end
