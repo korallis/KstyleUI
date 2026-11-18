@@ -8,8 +8,17 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 37
+Store.DB_VERSION = 38
 Store.migrations = {}
+
+Store.migrations[38] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			profile.Meters = type(profile.Meters) == "table" and profile.Meters or {}
+			profile.Meters.followRole = false
+		end
+	end
+end
 
 Store.migrations[18] = function(data)
 	for _, profile in pairs(data.profiles) do

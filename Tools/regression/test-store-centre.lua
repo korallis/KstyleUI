@@ -77,6 +77,9 @@ for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
 end
 local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
 local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
+for _, profile in ipairs({ customSettings, customLumen, customStyle }) do
+	profile.Meters = { followRole = false }
+end
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)
 local db = env.KstyleUIDB

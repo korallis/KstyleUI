@@ -1526,6 +1526,7 @@ function modules.meters(opts)
 			end
 		end,
 	}))
+	if opts.followRole then K.Options.Write("Meters", "followRole", true) end
 	if not K.Modules.IsRunning("Meters") then
 		K.Modules.Enable("Meters")
 	end
