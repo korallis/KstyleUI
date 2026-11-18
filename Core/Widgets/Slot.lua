@@ -225,7 +225,8 @@ end
 
 local function Breathe(self)
 	if self.opts.procTransitions then
-		Widgets.ShowProc(self.lumenGlow, self.proc == true and not self.slabProc, true, not Motion.ReducedMotion())
+		local on = self.proc == true and not self.slabProc
+		Widgets.ShowProc(self.lumenGlow, on, true, on and not Motion.ReducedMotion())
 		return
 	end
 	if self.lumenGlow.procPolished then
@@ -413,7 +414,10 @@ function Widgets.Slot(parent, opts)
 	local b = Widgets.IconButton(parent, opts)
 	local flashReady = b.FlashReady
 	b.FlashReady = function(self)
-		if not (self.opts.procTransitions and self.proc) then flashReady(self) end
+		if not (self.opts.procTransitions and self.proc) then
+			flashReady(self)
+			self.readyFade:SetDuration(Motion.FadeDuration(self.opts.procTransitions and 0.18 or Tokens.Duration("readyFlash")))
+		end
 	end
 	for k, fn in pairs(Slot) do
 		b[k] = fn

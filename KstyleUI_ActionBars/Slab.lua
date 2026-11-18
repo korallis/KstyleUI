@@ -938,19 +938,21 @@ function Slab.SetProc(b, on, refresh)
 	if b.kind ~= "action" then
 		return
 	end
-	ns.SlabEffects.SlotProc(b, on and Slab.Active())
+	local active = Slab.Active()
+	ns.SlabEffects.SlotProc(b, on and active)
 	if b.lumenGlow then
-		b.slabProc = Slab.Active()
+		b.slabProc = active
+		local glowing = b.proc == true and not active
 		if b.opts.procTransitions then
-			Widgets.ShowProc(b.lumenGlow, b.proc == true and not Slab.Active(), true, not K.Motion.ReducedMotion())
-			if Slab.Active() then b.lumenGlow:Hide() end
+			Widgets.ShowProc(b.lumenGlow, glowing, true, glowing and not K.Motion.ReducedMotion())
+			if active then b.lumenGlow:Hide() end
 		else
-			b.lumenGlow:SetShown(b.proc == true and not Slab.Active())
+			b.lumenGlow:SetShown(glowing)
 		end
 	end
-	if not (on and Slab.Active()) then
+	if not (on and active) then
 		if b.medProc then
-			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions") and Slab.Active(), false)
+			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions") and active, false)
 			if not b.medProcFrame.leave:IsPlaying() then
 				b.medProc.anim:Stop()
 				b.medProc:Hide()
