@@ -72,7 +72,15 @@ env._time = t + 0.1
 ns.Slab.FlipIn(view)
 assert(flips == 1, "E5: a flip may replay after its halfway point")
 view.medallion.FlipIn = flip
+local plain = { view.health:GetStatusBarColor() }
+env._units.target.dead = true
+env.FireEvent("UNIT_HEALTH", "target")
+W.Tick(env, 0.1)
 K.Options.Write("UnitFrames", "target.transitions", false)
+W.Tick(env, 0.2)
+c = W.LastCall(view.health, "SetStatusBarColor")
+assert(c[1] == plain[1] and c[2] == plain[2] and c[3] == plain[3], "E5: switching off during death stops the tween and restores the original bar colour")
+assert(W.LastCall(view.medallion.portrait, "SetDesaturated")[1], "E5: switching off during death settles the original dead portrait")
 env._units.target = nil
 env.SetTarget(false)
 assert(not view.body:IsShown(), "E5: off restores immediate target loss")

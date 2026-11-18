@@ -704,6 +704,11 @@ end
 
 local function PrepareTarget(view)
 	if view.kind ~= "target" then return end
+	if view.deathTween then
+		K.Motion.Stop(view.deathTween)
+		view.deathTween = nil
+		view.medallion:SetDead(view.slabDead == true)
+	end
 	local ghost = view.targetGhost
 	if TargetTransitions(view) then
 		if not ghost then
