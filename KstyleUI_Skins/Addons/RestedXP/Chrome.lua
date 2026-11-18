@@ -437,7 +437,6 @@ local function HushText(text)
 	text:SetAlpha(0)
 	hooksecurefunc(text, "SetAlpha", Rehush)
 	if IsTexture(text) then
-		hooksecurefunc(text, "SetVertexColor", Rehush)
 		hooksecurefunc(text, "SetColorTexture", Rehush)
 	end
 end
