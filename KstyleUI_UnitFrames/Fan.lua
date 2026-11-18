@@ -25,15 +25,10 @@ local function Style(entry)
 	end
 end
 
-local function Dress(button, entries)
-	local entry = ns.Auras.NewTile(button)
+local function Dress(button, entries, chrome)
+	local entry = ns.Auras.NewTile(button, chrome)
 	entry.button = button
 	entry.skin:SetAllPoints(button)
-	entry.chrome.Restyle = function(chrome)
-		if ns.Auras.Open() then
-			entry.restyleChrome(chrome)
-		end
-	end
 	local cooldown = CreateFrame("Cooldown", nil, entry.skin, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(entry.icon)
 	cooldown:SetSwipeTexture((Tokens.Texture("iconMask")))
@@ -74,11 +69,24 @@ local function DefaultPosition()
 	return { anchor = "BOTTOM", x = 0, y = (place and place.y or 55) + height + 145 }
 end
 
+local function Rim(window, container)
+	local extent = CreateFrame("Frame", nil, window, TEMPLATE)
+	extent:SetWidth(SIZE)
+	extent:SetPoint("TOP", container, "TOPRIGHT", 0, 0)
+	extent:SetPoint("CENTER", container, "BOTTOMRIGHT", 0, 0)
+	local face = CreateFrame("Frame", nil, window, TEMPLATE)
+	face:SetSize(SIZE, SIZE)
+	face:SetPoint("TOPRIGHT", extent, "BOTTOM", 0, 2 * SIZE)
+	face:SetFrameLevel(container:GetFrameLevel() + 2)
+	return Widgets.IconChrome(face)
+end
+
 local function Build(view)
 	local holder = CreateFrame("Frame", nil, K.Scale.Root())
 	holder:SetSize(WIDTH, HEIGHT)
 	holder:SetFrameStrata("LOW")
 	local content = CreateFrame("Frame", nil, holder)
+	content:Hide()
 	content:SetAllPoints(holder)
 	local fan = { holder = holder, content = content, windows = {}, containers = {}, buttons = {} }
 	view.auras.fan = fan
@@ -92,12 +100,13 @@ local function Build(view)
 		fan.windows[rank], fan.containers[rank] = window, container
 		container:SetUnit("target")
 		container:SetEnabled(false)
+		local chrome = Rim(window, container)
 		container:AddAuraGroup("debuffs", FILTER, {
 			maxFrameCount = rank,
 			sortMethod = AuraContainerSortMethod.ExpirationOnly,
 			sortDirection = AuraContainerSortDirection.Normal,
 			layout = { elementWidth = SIZE, elementHeight = SIZE, elementSpacing = PITCH - SIZE, lineSpacing = 0 },
-			initializeFrame = function(button) Dress(button, fan.buttons) end,
+			initializeFrame = function(button) Dress(button, fan.buttons, chrome) end,
 		})
 		container:SetFlowLayoutAnchorPoint("TOPLEFT")
 		container:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
@@ -151,7 +160,7 @@ function Fan.Apply(view, enabled)
 			container:SetEnabled(on and true or false)
 		end
 		if fan.overflow then ns.Overflow.Enable(fan.overflow, on) end
-		fan.content:SetShown(on and true or false)
+		if not on then fan.content:Hide() end
 		K.Layout.SetLive(Fan.KEY, on)
 	end
 	return on

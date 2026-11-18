@@ -618,4 +618,17 @@ local json = Scene.ToJSON(scene)
 assert(json:find('"items"', 1, true) and not json:find("table:", 1, true), "JSON has items and no table addresses")
 assert(json:find('"fraction":0.25', 1, true), "numbers are written plainly")
 
+do
+	local source = env.CreateFrame("Frame", nil, env.UIParent)
+	source:SetSize(28, 28)
+	source:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 50, -50)
+	local extent = env.CreateFrame("Frame", nil, env.UIParent)
+	extent:SetWidth(28)
+	extent:SetPoint("TOP", source, "TOPRIGHT")
+	extent:SetPoint("CENTER", source, "BOTTOMRIGHT")
+	local a, b = { Scene.Rect(env, source) }, { Scene.Rect(env, extent) }
+	assert(math.abs(b[4] - 2 * a[4]) < 0.001,
+		"solve a top and centre anchor pair before falling back to an explicit size")
+end
+
 print("ok")

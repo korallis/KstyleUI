@@ -135,9 +135,9 @@ function Auras.StyleSample(tile, kind)
 	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge)
 end
 
-function Auras.NewTile(parent)
+function Auras.NewTile(parent, chrome)
 	local skin = CreateFrame("Frame", nil, parent)
-	local chrome = Widgets.IconChrome(skin)
+	chrome = chrome or Widgets.IconChrome(skin)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = skin:CreateMaskTexture()

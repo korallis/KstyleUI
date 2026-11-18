@@ -836,6 +836,11 @@ function Solver:span(anchors, size)
 			return mid - size / 2, mid + size / 2
 		end
 	end
+	if lo and mid then
+		return lo, 2 * mid - lo
+	elseif hi and mid then
+		return 2 * mid - hi, hi
+	end
 	return nil
 end
 
