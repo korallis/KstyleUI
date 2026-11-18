@@ -112,6 +112,8 @@ expect(
 )
 
 -- Protected calls need InCombatLockdown or Combat.Queue in the 40 lines before them.
+-- Forever ContainerDocumentation.lua gives PickupContainerItem no HasRestrictions; stock bags call it in combat.
+expect("C_Container.PickupContainerItem(0, 1)", "")
 local filler = string.rep("do end\n", 39)
 expect("if InCombatLockdown() then return end\n" .. filler .. "SetBinding('F')", "")
 expect("if InCombatLockdown() then return end\n" .. filler .. "do end\nSetBinding('F')", "42 protected-unguarded SetBinding")

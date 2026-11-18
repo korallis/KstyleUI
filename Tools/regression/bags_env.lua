@@ -115,21 +115,33 @@ function B.Game(env, opts)
 	env._rtl = false
 	env._merchant = false
 	env.CursorHasItem = function()
-		return env._heldItem ~= nil
+		return env._heldItem ~= nil or env._cursorKind == "merchant"
 	end
 	env.GetCursorInfo = function()
 		local held = env._heldItem
 		if held then
 			return "item", held.itemID, held.link
 		end
+		return env._cursorKind
 	end
 	env.HoldItem = function(held)
 		env._heldItem = held
+		env._cursorKind = nil
 		if held then
 			env._index(held)
 		end
 		env.FireEvent("CURSOR_CHANGED")
 	end
+	env.HoldCursor = function(kind)
+		env._heldItem, env._cursorKind = nil, kind
+		env.FireEvent("CURSOR_CHANGED")
+	end
+	env.ERR_INV_FULL = "Inventory is full."
+	env.UIErrorsFrame = {
+		AddExternalErrorMessage = function(_, message)
+			record(env, "UIError", message)
+		end,
+	}
 
 	env.Enum = {
 		BagIndex = bagIndex(),
@@ -227,7 +239,6 @@ function B.Game(env, opts)
 			end
 		end,
 		PickupContainerItem = function(bag, slot)
-			assert(not env.InCombatLockdown(), "PickupContainerItem ran in combat")
 			record(env, "PickupContainerItem", bag, slot)
 			local c, held = container(bag), env._heldItem
 			if held and c then
@@ -474,8 +485,14 @@ function B.Game(env, opts)
 			frame.NewItemTexture = frame:CreateTexture(nil, "OVERLAY")
 			frame.NewItemTexture:SetAlpha(0)
 			frame.icon = frame:CreateTexture(nil, "BORDER")
-			local function click(self)
-				if env.CursorHasItem() then
+			local function click(self, mouse)
+				local kind = env.GetCursorInfo()
+				record(env, "StockContainerClick", mouse or "LeftButton", kind)
+				if kind == "merchant" then
+					record(env, "StockMerchantCursor")
+				elseif kind == "money" or kind == "guildbankmoney" then
+					record(env, "StockMoneyCursor")
+				elseif kind == "item" then
 					env.C_Container.PickupContainerItem(self:GetParent():GetID(), self:GetID())
 				end
 			end
