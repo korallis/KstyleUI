@@ -2503,7 +2503,11 @@ function Widgets.Press(widget, down)
 	if widget.AnimatePress then
 		return widget:AnimatePress(down)
 	end
-	return Motion.Tween(widget, SetPress, widget.pressT or 0, down and 1 or 0, Motion.Slides() and Tokens.Duration(widget.opts and widget.opts.inputContinuity == false and "hover" or (down and "pressIn" or "pressOut")) or 0, Tokens.Easing("move"))
+	local timing = widget.opts and widget.opts.inputContinuity
+	if timing == nil and ns.Store.IsLoaded() and ns.Store.Defaults("ActionBars") then
+		timing = ns.Store.Module("ActionBars").inputContinuity
+	end
+	return Motion.Tween(widget, SetPress, widget.pressT or 0, down and 1 or 0, Motion.Slides() and Tokens.Duration(timing == false and "hover" or (down and "pressIn" or "pressOut")) or 0, Tokens.Easing("move"))
 end
 
 function Widgets.PressOffset(widget)

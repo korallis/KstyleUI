@@ -28,6 +28,10 @@ if not mode or mode == "input" then
     K.Motion.Tween = tween
     assert(durations[1] == K.Tokens.Duration("pressIn") and durations[2] == K.Tokens.Duration("pressOut"), "F5: Widgets.Press uses pressIn and pressOut")
     K.Options.Write("ActionBars", "inputContinuity", false)
+    K.Motion.Tween = function(_, _, _, _, duration) durations[#durations + 1] = duration end
+    K.Widgets.Press(control, false)
+    K.Motion.Tween = tween
+    assert(durations[3] == K.Tokens.Duration("hover"), "F5: disabling continuity restores Widgets.Press timing too")
     W.Enter(b); W.Leave(b)
     assert(not b.hoverLayer:IsShown(), "F5: disabling continuity restores the immediate early hover exit")
     assert(W.Near(b.statePressSpread, K.Widgets.Snap(b, 6)), "F5: disabling continuity restores the six-unit press halo")
