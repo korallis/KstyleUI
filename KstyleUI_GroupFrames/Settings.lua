@@ -434,6 +434,7 @@ CHECK.texture = function(_, v)
 end
 
 function Settings.Get(key)
+	if key == "blizzard.manager" then return false end
 	local row = rows[key]
 	if not row then
 		error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2)
