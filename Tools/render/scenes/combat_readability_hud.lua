@@ -9,7 +9,7 @@ return Common.Run(function()
 	local rogue = os.getenv("RENDER_POWER_CLASS") == "ROGUE"
 	local env, K, ns = U.New(Common.ScreenOpts({
 		login = false,
-		saved = Gallery.Saved({ UnitFrames = { player = { powerSeparate = os.getenv("RENDER_POWER_SEPARATE") == "1" } }, "CombatText", HudStyle = { style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower() } }),
+		saved = Gallery.Saved({ "UnitFrames", "CombatText", HudStyle = { style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower() } }),
 		setup = function(env)
 			Common.ForceScreen(env, true)
 			CT.Fakes(env)
@@ -26,6 +26,9 @@ return Common.Run(function()
 	env.RunTimers()
 	assert(K.Setup.Apply({ layout = "DPS", modules = { UnitFrames = true, CombatText = true } }))
 	env.RunTimers()
+	if os.getenv("RENDER_POWER_SEPARATE") then
+		K.Options.Write("UnitFrames", "player.powerSeparate", os.getenv("RENDER_POWER_SEPARATE") ~= "0")
+	end
 	if os.getenv("RENDER_COMBAT_LEGACY") == "1" then
 		K.Options.Write("UnitFrames", "player.powerText", "legacy")
 		K.Options.Write("UnitFrames", "target.percentLead", false)

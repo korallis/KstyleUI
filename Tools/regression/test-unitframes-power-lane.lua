@@ -60,7 +60,8 @@ end
 
 local env, K, ns = U.New()
 local view = ns.Frames.Get("player").views[1]
-assert(view.s.powerSeparate == false, "H2b defaults off")
+assert(view.s.powerSeparate == true, "H2b defaults on under the owner's new-settings rule")
+K.Options.Write("UnitFrames", "player.powerSeparate", false)
 K.Options.Write("UnitFrames", "player.healthColor", "custom")
 K.Options.Write("UnitFrames", "player.healthCustom", { r = 1, g = 1, b = 0 })
 K.Options.Write("UnitFrames", "player.powerColor", "custom")

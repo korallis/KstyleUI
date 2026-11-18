@@ -23,7 +23,6 @@ Presets.VALUES = {
 	dungeon = {
 		["health.width"] = 120, ["health.height"] = 12,
 		["healthText.show"] = true, ["healthText.size"] = 11, ["healthText.format"] = "percent",
-		["debuffs.size"] = 12,
 	},
 	compact = {
 		["name.size"] = 13, ["healthText.show"] = false,

@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions HUD style on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 17-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value.
+-- Medallions.lua: the Medallions HUD style on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value.
 local _, ns = ...
 
 local K = KstyleUI
@@ -17,8 +17,8 @@ local LOOK = {
 	["name.outline"] = "OUTLINE",
 	["level.size"] = 12,
 	["level.outline"] = "OUTLINE",
-	["debuffs.size"] = 17,
-	["debuffs.textSize"] = 10,
+	["debuffs.size"] = 22,
+	["debuffs.textSize"] = 11,
 }
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local NAME_FACE = "InterSemiBold"

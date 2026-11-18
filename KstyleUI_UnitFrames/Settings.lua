@@ -109,7 +109,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
 		powerText = "none",
-		powerSeparate = false,
+		powerSeparate = true,
 		percentLead = true,
 		raidMarker = true,
 		leader = full,

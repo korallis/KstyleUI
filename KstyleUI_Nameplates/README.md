@@ -2,7 +2,9 @@
 
 A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
-Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon offers a 120 by 12 bar, 12-unit debuffs and an optional 11-unit health percent. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon offers a 120 by 12 bar and an optional 11-unit health percent. Both keep 22-unit debuffs under Medallions (the existing larger 29-unit icons in Frames and Orbs); the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+
+Debuff timers show by default, centred under each icon in outlined number-role text (11 units under Medallions). Stacks keep their corner badge. The engine's duration binding turns time red below five seconds without reading aura durations in Lua. The Nameplates page offers the number-font switch, time and stacks switches, size sliders, and an expiring-colour threshold (zero disables it). Choosing the previous size, plate font and hidden time restores the old appearance.
 
 Target and focus plates show an 11-unit spell name below the cast track. The selected-only toggle can show names on every plate. Known interrupt readiness uses `gilt`; recharge, unknown readiness and no known interrupt use `giltDim`. Uninterruptible casts use `steelDim` and a shield glyph at the track's start even when spell icons are off. Secret interruptibility controls the glyph and colour through engine setters.
 
@@ -106,7 +108,7 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 
 ### Cast bar
 
-The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar as a flat six-unit tan line. The icon, spell name and time left are off by default, and remain settings. While the plate font follows the kit, the spell name reads in `body` and the time left in `time`, as the unit frames' cast times do; a chosen plate font applies to both. `cast.hideOnTarget` is off by default; switching it on suppresses the target plate's cast only while the UnitFrames target cast is enabled.
+The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar as a flat six-unit line. Target and focus spell names are on by default, while icons and time left remain off. Names can return inside the track or be hidden. While the plate font follows the kit, the spell name reads in `body` and the time left in `time`, as the unit frames' cast times do; a chosen plate font applies to both. `cast.hideOnTarget` is off by default; switching it on suppresses the target plate's cast only while the UnitFrames target cast is enabled.
 
 | Moment | What happens |
 | --- | --- |
@@ -122,7 +124,7 @@ Without the duration APIs or `SetTimerDuration`, the bar takes the cast's start 
 
 ### Interrupt
 
-The ready/recharging colour distinction is off by default: both use tan (`gilt`) to match the picture. Give `cast.waitColor` a different colour to enable that cue. Uninterruptible casts still use `cast.shieldColor`.
+Combat cast cues are on by default: ready uses `gilt`, waiting or unknown readiness uses `giltDim`, and uninterruptible casts use `steelDim` and a shield glyph. Switching the cues off restores the earlier single interruptible colour and no shield glyph. The ready, wait and shield colours remain settings.
 
 On Forever every cast by a unit other than the player and their pet is secret (`SecretWhenUnitSpellCastRestricted`), so a plate can never match a cast's name or spell ID against a list of important spells. What a plate can know is what the player can do about the cast. The cast bar has three colours:
 
@@ -194,7 +196,7 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 Under the Medallions HUD style, `Medallions.lua` adds a component, wraps five plate methods, `Plates.ReadSize` and `Settings.Get`, and on `HudStyleChanged` reads the size again and restyles every plate. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles, and that Frames gets its own back.
 
 - **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
-- **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 17 units with 10-unit counts. A setting the player changed keeps the player's value.
+- **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. A setting the player changed keeps the player's value.
 - **Type.** With the module's font following the kit, the name is Inter SemiBold in capitals and the level and health text are the Medallions number face, Barlow Semi Condensed (`Tokens.Font("number")`).
 - **Level.** No diamond: the number stands 7 units off the bar's left end, clear of the target tick so it never moves when the target changes, in the classification marker's colour when there is one, else the creature's difficulty colour (`GetCreatureDifficultyColor`, defined in `Blizzard_FrameXMLUtil/Mainline/DifficultyUtil.lua`, which Forever loads: its camelot-only `Camelot/DifficultyUtilOverrides.lua` writes into the `DifficultyUtil` table that only the mainline-tagged `Mainline/DifficultyUtil_Base.lua` creates; lifted by `Theme.Brighten`) for an enemy, red for the skull and `medText` otherwise. A secret level reads in `medText`.
 - **Target.** Two gunmetal (`medGunLit`) ticks, 2 units wide, 3 units off each end of the bar and 2 units past it above and below. No arms, no glow and no slide: they appear in place.

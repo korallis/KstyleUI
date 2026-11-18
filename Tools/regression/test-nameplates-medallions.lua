@@ -123,8 +123,8 @@ eq(trp, "LEFT", "off the bar's left end")
 assert(tx < 0, "clear of the bar")
 
 -- Debuffs: 17 units with 10-unit counts, read through the module's settings.
-eq(ns.Settings.Get("debuffs.size"), 17, "debuffs are 17 units")
-eq(ns.Settings.Get("debuffs.textSize"), 10, "their counts are 10 units")
+eq(ns.Settings.Get("debuffs.size"), 22, "debuffs are 22 units")
+eq(ns.Settings.Get("debuffs.textSize"), 11, "their timers are 11 units")
 
 -- A setting the player changed keeps the player's value.
 K.Options.Write("Nameplates", "debuffs.size", 24)

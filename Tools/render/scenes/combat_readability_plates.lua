@@ -39,6 +39,12 @@ local function Build(readiness, row)
 	for i = 1, 2 do
 		local button = group.frames[i]
 		button._aura.icon:SetTexture(i == 1 and 135813 or 136026)
+		button._aura.timer:SetText(i == 1 and "12s" or "3s")
+		button._aura.count:SetText(i == 1 and "3" or "")
+		local color = button._aura.timerOptions.textColor
+		if color then
+			button._aura.timer:SetTextColor(color.curve.points[i == 1 and 2 or 1].color:GetRGBA())
+		end
 		buttons[i] = button
 	end
 	Hud.PlaceAuras(plate.auras, group, buttons, ns.Settings.Get("debuffs.columns"))

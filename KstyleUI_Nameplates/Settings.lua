@@ -41,7 +41,7 @@ Settings.defaults = {
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
-		growthX = "LEFT", growthY = "UP", showTime = false, showCount = true, textSize = 13, outline = "OUTLINE",
+		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
 		display = "glow", role = "auto", groupOnly = true,
@@ -442,6 +442,16 @@ local rest = {
 		type = "toggle", key = "debuffs.showCount", label = L["Stacks"],
 		help = L["Shows how many times a debuff has stacked."],
 		disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "toggle", key = "debuffs.readableText", label = L["Number font for debuffs"],
+		help = L["Uses the number font for debuff timers and stacks. Turn off to use the plate font."],
+		disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.expiring", label = L["Expiring timer colour"],
+		help = L["Colours a debuff timer red below this many seconds. Set to zero to keep one colour."],
+		min = 0, max = 20, step = 1, disableWhen = Off("debuffs.enabled"),
 	},
 	{
 		type = "slider", key = "debuffs.textSize", label = L["Text size"],

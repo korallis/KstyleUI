@@ -15,7 +15,7 @@ do
 	assert(d.size >= MIN_ICON, "debuff icons default to at least " .. MIN_ICON .. " units, not " .. d.size)
 	assert(d.textSize >= MIN_TEXT, "the time left and stacks default to at least " .. MIN_TEXT .. " units, not " .. d.textSize)
 	assert(d.outline ~= "NONE", "the debuff text has an outline so it reads over any icon")
-	assert(d.showCount and not d.showTime, "stacks show by default; the time left is a setting, off as the KSTY-44 mock-up's effect shows none")
+	assert(d.showCount and d.showTime, "stacks and remaining time show by default")
 	local line = ns.Logic.AuraLineSize(d.columns, d.size, d.spacing)
 	assert(line <= ns.Plate.DEFAULT_WIDTH, "a full row of " .. d.columns .. " fits the plate's width: " .. line .. " > " .. ns.Plate.DEFAULT_WIDTH)
 	local distant = d.size * ns.Settings.defaults.cvars.minScale
