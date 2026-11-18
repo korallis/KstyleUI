@@ -955,7 +955,14 @@ function modules.chat(opts)
 		text:SetText(tostring(entry[1]))
 		previous = text
 	end
-	local scene = build(env, opts)
+	local scene = build(env, opts, nil, function()
+		-- Settle the stub's pending size callbacks before the native tab update.
+		Scene.Build(env)
+		local dock = env.GENERAL_CHAT_DOCK
+		for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
+			env.FCFTab_UpdateColors(env[frame:GetName() .. "Tab"], frame == dock.selected)
+		end
+	end)
 	scene.log[#scene.log + 1] = "chat lines are laid out by the scene; the game's ScrollingMessageFrame wraps and spaces them itself"
 	scene.log[#scene.log + 1] = "chat tabs are laid out by the scene as Blizzard's dock lays them; the game fades them when the pointer is away"
 	return finish(env, K, scene, "chat"), ns

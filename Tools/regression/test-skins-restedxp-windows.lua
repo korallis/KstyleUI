@@ -256,7 +256,7 @@ do
 	assert(path.cap.trail:GetText() == f.CurrentStepFrame.framePool[1].number.text:GetText(), "the cap's trail is the first shown step's plate text, as RestedXP wrote it: " .. tostring(path.cap.trail:GetText()))
 	holderBottom = path.holder._points[1]
 	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "with steps above the header the cap holder stands on the steps")
-	assert(W.Near(holderBottom[5], -K.Widgets.Snap(path.holder, 12)), "12 under their top: RestedXP's step frame keeps 10 empty units where its hushed Step plate hung and starts its text 2 lower, so the cap reads right over the first line, as the picture draws it, got " .. tostring(holderBottom[5]))
+	assert(math.abs(holderBottom[5] + K.Widgets.Snap(path.holder, 12)) <= K.Scale.Pixel(1) / K.Widgets.ScaleFactor(path.holder) / 2 + 1e-6, "snap the cap within half a physical pixel of the 12-unit rise, got " .. tostring(holderBottom[5]))
 	rxp.fake.trust(function()
 		f.CurrentStepFrame.anchor = "BOTTOM"
 	end)()

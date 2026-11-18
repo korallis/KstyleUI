@@ -636,6 +636,11 @@ local function PlaceHead(path)
 	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
 	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
 	holder:SetHeight(full)
+	if Widgets.Readability("snapEdges") then
+		holder:ClearAllPoints()
+		Widgets.Point(holder, "BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise, true)
+		Widgets.Point(holder, "BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise, true)
+	end
 	PlaceCard(path)
 	if path.OnHead then
 		path.OnHead(path)

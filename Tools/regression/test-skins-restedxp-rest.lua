@@ -148,7 +148,7 @@ do
 		assert(cx + element.button:GetWidth() < x, "its check sits left of the text, got " .. tostring(cx))
 	end
 	local holder = path.holder._points[1]
-	assert(holder[2] == f.CurrentStepFrame and near(holder[5], -K.Widgets.Snap(path.holder, 12), 0.01), "the cap reads right over the first line: its holder stands 12 inside the step frame's empty head")
+	assert(holder[2] == f.CurrentStepFrame and near(holder[5], -K.Widgets.Snap(path.holder, 12), K.Scale.Pixel(1) / K.Widgets.ScaleFactor(path.holder) / 2 + 1e-6), "the cap reads right over the first line, within half a physical pixel of the 12-unit rise")
 	-- RestedXP lays the steps out again whenever a line changes (CurrentStepFrame.UpdateText): the place holds.
 	f.CurrentStepFrame.UpdateText()
 	assert(near(select(4, talk.text:GetPoint(1)), want, 0.01) and select(2, talk.text:GetPoint(1)) == talk, "RestedXP's own layout pass leaves the text under the title")
@@ -398,7 +398,7 @@ do
 	assert(select(2, row.text:GetPoint(2)) == tip, "and ends at the tip's own right edge")
 	local _, _, _, cx = row.button:GetPoint(1)
 	assert(cx >= 0 and cx + row.button:GetWidth() <= gutter, "its check stays left of it, inside the tip, got " .. tostring(cx))
-	assert(near(select(4, step.elements[1].text:GetPoint(1)), want, 0.01), "the guide's own step still starts under the cap's title")
+	assert(near(select(4, step.elements[1].text:GetPoint(1)), want, K.Scale.Pixel(1) / K.Widgets.ScaleFactor(cap.title) / 2 + 1e-6), "the guide's own step stays within half a physical pixel of the snapped cap title")
 	local one = math.ceil(select(2, row.text:GetFont()) * 1.1) + 1
 	assert(row:GetHeight() > one and tip:GetHeight() == row:GetHeight() + 18, "the tip's line wraps in its 230 units and its window grows with it, got " .. tostring(row:GetHeight()) .. " for one line of " .. tostring(one))
 	assert(near(f.CurrentStepFrame:GetHeight(), step:GetHeight(), 0.01), "and the tip's change of height adds nothing to the guide's stack, as in RestedXP's own layout, got " .. tostring(f.CurrentStepFrame:GetHeight()) .. " for " .. tostring(step:GetHeight()))

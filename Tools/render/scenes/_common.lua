@@ -22,6 +22,10 @@ function Common.FinishSettings(profile)
 		profile.ColorVision = profile.ColorVision or {}
 		profile.ColorVision.mode = "standard"
 	end
+	if os.getenv("RENDER_SNAP_EDGES") == "0" then
+		profile.Appearance = profile.Appearance or {}
+		profile.Appearance.snapEdges = false
+	end
 	if not Common.PreviousFinish() then return profile end
 	local previous = {
 		Skins = { steelButtons = false, windowMetrics = false, quests = { continuation = false }, restedXP = { compose = false } },

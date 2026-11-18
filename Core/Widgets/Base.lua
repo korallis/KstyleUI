@@ -933,6 +933,21 @@ local function Plain(region)
 	return true
 end
 
+local function EdgeOrigin(relative, hard)
+	if not hard or not Plain(relative) then return 0, 0 end
+	local left, top = relative:GetLeft(), relative:GetTop()
+	if IsSecret(left) or IsSecret(top) or type(left) ~= "number" or type(top) ~= "number"
+		or left ~= left or top ~= top then return 0, 0 end
+	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(relative)
+	local width, height
+	if relative:GetObjectType() == "FontString" then
+		local right, bottom = relative:GetRight(), relative:GetBottom()
+		if not IsSecret(right) and type(right) == "number" and right == right then width = (right - left) / pixel end
+		if not IsSecret(bottom) and type(bottom) == "number" and bottom == bottom then height = (top - bottom) / pixel end
+	end
+	return left / pixel, -top / pixel, width, height
+end
+
 local function IsFrame(region)
 	if type(region.IsObjectType) ~= "function" then
 		return false
@@ -976,14 +991,14 @@ local function HookFollow(frame)
 	end
 end
 
-function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
+function Widgets.Point(region, point, relativeTo, relativePoint, x, y, hard)
 	local relative = relativeTo or region:GetParent()
 	relativePoint = relativePoint or point
 	local own, rel = POINT_SHARES[point], POINT_SHARES[relativePoint]
 	if not (own and rel) then
 		error("KstyleUI.Widgets.Point: unknown anchor point " .. tostring(own and relativePoint or point), 2)
 	end
-	if Waits(region, Widgets.Point, region, point, relativeTo, relativePoint, x, y) then
+	if Waits(region, Widgets.Point, region, point, relativeTo, relativePoint, x, y, hard) then
 		return
 	end
 	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
@@ -996,8 +1011,10 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	if type(relative) == "table" and relative.GetWidth then
 		relW, relH = PixelsOf(relative)
 	end
-	local dx = OnPixel((x or 0) / px, rel[1], relW, own[1], ownW)
-	local dy = 0 - OnPixel(-(y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
+	local ox, oy, edgeW, edgeH = EdgeOrigin(relative, hard)
+	relW, relH = edgeW or relW, edgeH or relH
+	local dx = OnPixel(ox + (x or 0) / px, rel[1], relW, own[1], ownW) - ox
+	local dy = oy - OnPixel(oy - (y or 0) / px, 1 - rel[2], relH, 1 - own[2], ownH)
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
 	if Inside(region) then
 		return
@@ -1007,8 +1024,10 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y)
 	if entry then
 		entry[1], entry[2], entry[3], entry[4], entry[5], entry[6] = relative, relativePoint, x, y, dx * px, dy * px
 	else
-		record.points[point] = { relative, relativePoint, x, y, dx * px, dy * px }
+		entry = { relative, relativePoint, x, y, dx * px, dy * px }
+		record.points[point] = entry
 	end
+	entry[7] = hard
 	if (own[1] ~= 0 or own[2] ~= 1) and not region.kstyleOwnHooked and type(region.HookScript) == "function" and IsFrame(region) then
 		region.kstyleOwnHooked = region:HookScript("OnSizeChanged", Reown) ~= false
 	end
@@ -1030,28 +1049,30 @@ local function Refill(region)
 	end
 	region.kstyleFilling = true
 	local fill = region.kstyleFill
-	pcall(Widgets.Fill, region, fill[1], fill[2], fill[3], fill[4], fill[5])
+	pcall(Widgets.Fill, region, fill[1], fill[2], fill[3], fill[4], fill[5], fill[6])
 	region.kstyleFilling = false
 end
 
-function Widgets.Fill(region, relativeTo, left, top, right, bottom)
+function Widgets.Fill(region, relativeTo, left, top, right, bottom, hard)
 	local relative = relativeTo or region:GetParent()
 	local requested = region.kstyleFill or {}
 	requested[1], requested[2], requested[3], requested[4], requested[5] = relativeTo, left, top, right, bottom
+	requested[6] = hard
 	region.kstyleFill = requested
-	if Waits(region, Widgets.Fill, region, relativeTo, left, top, right, bottom) then
+	if Waits(region, Widgets.Fill, region, relativeTo, left, top, right, bottom, hard) then
 		return
 	end
 	local px = Scale.Pixel(1) / Widgets.ScaleFactor(region)
 	local w, h = PixelsOf(relative)
-	local l, t = floor((left or 0) / px + 0.5), floor((top or 0) / px + 0.5)
+	local ox, oy = EdgeOrigin(relative, hard)
+	local l, t = floor(ox + (left or 0) / px + 0.5) - ox, floor(oy + (top or 0) / px + 0.5) - oy
 	local r, b = (right or 0) / px, (bottom or 0) / px
 	local dx, dy = -floor(r + 0.5), floor(b + 0.5)
 	if w then
-		dx = floor(w - r + 0.5) - w
+		dx = floor(ox + w - r + 0.5) - ox - w
 	end
 	if h then
-		dy = h - floor(h - b + 0.5)
+		dy = oy + h - floor(oy + h - b + 0.5)
 	end
 	region:ClearAllPoints()
 	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
@@ -1066,6 +1087,7 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom)
 	else
 		record.fill = { relative, left, top, right, bottom, l * px, -t * px, dx * px, dy * px }
 	end
+	record.fill[10] = hard
 	if not region.kstyleSettles and type(region.HookScript) == "function" and IsFrame(region) then
 		region.kstyleSettles = region:HookScript("OnSizeChanged", Refill) ~= false
 	end
@@ -1103,7 +1125,7 @@ end
 local function Replay(region, record, only)
 	for point, p in pairs(record.points) do
 		if (only == nil or p[1] == only) and Anchored(region, point, p[1], p[2], p[5], p[6]) then
-			Widgets.Point(region, point, p[1], p[2], p[3], p[4])
+			Widgets.Point(region, point, p[1], p[2], p[3], p[4], p[7])
 		end
 	end
 end
@@ -1143,7 +1165,7 @@ local function PlaceRecorded(region, record)
 	end
 	local fill = record.fill
 	if fill and Anchored(region, "TOPLEFT", fill[1], "TOPLEFT", fill[6], fill[7]) and Anchored(region, "BOTTOMRIGHT", fill[1], "BOTTOMRIGHT", fill[8], fill[9]) then
-		Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5])
+		Widgets.Fill(region, fill[1], fill[2], fill[3], fill[4], fill[5], fill[10])
 	end
 	Replay(region, record)
 end

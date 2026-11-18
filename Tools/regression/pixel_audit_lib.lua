@@ -258,6 +258,10 @@ Audit.Edges = Edges
 local function Host(object)
 	local node = object
 	while node do
+		-- Final-edge fills use the screen grid rather than a native host's fractional origin.
+		if node.kstyleFill and node.kstyleFill[6] then
+			return nil
+		end
 		if node._name == "UIParent" then
 			return nil
 		end

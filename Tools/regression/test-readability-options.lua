@@ -1,6 +1,6 @@
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New()
-local keys = { "readableBars", "worldText", "chatTabs", "barColors" }
+local keys = { "readableBars", "worldText", "chatTabs", "barColors", "snapEdges" }
 for _, key in ipairs(keys) do
 	assert(K.Options.Row("Appearance", key), "expose readability in Appearance: " .. key)
 	assert(K.Appearance.Readability(key), "readability defaults on: " .. key)

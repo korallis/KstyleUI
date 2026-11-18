@@ -29,6 +29,7 @@ Appearance.defaults = {
 	fontScale = 1,
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	uiScaleAuto = true,
+	snapEdges = true,
 	motion = "full",
 	calmLists = true,
 	auraEndings = true,
@@ -105,7 +106,7 @@ for _, role in ipairs(ROLES) do
 	CLEAN[ROLE_KEY[role]] = CleanRoleFont
 end
 
-local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, textFloor = true, sectionHeadings = true }
+local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, snapEdges = true, textFloor = true, sectionHeadings = true }
 for key in pairs(READABILITY) do
 	CLEAN[key] = function(value)
 		if type(value) == "boolean" then return value end
@@ -259,6 +260,8 @@ Appearance.schema = {
 		min = Theme.MIN_FONT_SCALE, max = Theme.MAX_FONT_SCALE, step = FONT_SCALE_STEP,
 	},
 	{ type = "header", label = L["Size"] },
+	{ type = "toggle", key = "snapEdges", label = L["Snap hard edges"],
+		help = L["Keep window borders and chat tab underlines on whole pixels. Off restores their original placement."] },
 	{
 		type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
 		help = L["Sizes KstyleUI for your screen so every edge lands on a whole pixel."],

@@ -254,7 +254,7 @@ end
 local function PlaceBackdrop(panel)
 	local frame = panel.target or panel:GetParent()
 	local left, right, top, bottom = Insets(panel, panel.inset)
-	W().Fill(panel, frame, left, top, right, bottom)
+	W().Fill(panel, frame, left, top, right, bottom, panel.snapEdges and W().Readability("snapEdges"))
 end
 
 local function Backdrop(frame, opts)
@@ -266,6 +266,7 @@ local function Backdrop(frame, opts)
 	local panel = CreateFrame("Frame", nil, frame)
 	panel:SetFrameLevel(max(0, frame:GetFrameLevel() - 1))
 	panel.inset, panel.target = opts.inset, opts.target
+	panel.snapEdges = opts.icon ~= true
 	panel.Restyle = PlaceBackdrop
 	PlaceBackdrop(panel)
 	if opts.icon then

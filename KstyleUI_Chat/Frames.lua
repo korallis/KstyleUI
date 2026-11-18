@@ -252,17 +252,25 @@ function Frames.PlaceGlow(glow, line)
 	glow:SetHeight(Widgets.Snap(glow, UNDERLINE_GLOW_UNITS))
 end
 
+local function TabPoint(region, point, relative, relativePoint, x, y)
+	if Widgets.Readability("snapEdges") then
+		Widgets.Point(region, point, relative, relativePoint, x, y, true)
+	else
+		region:SetPoint(point, relative, relativePoint, x, y)
+	end
+end
+
 local function LayoutTab(parts)
 	local line, tab, glow = parts.underline, parts.frame, parts.chatGlow
 	line:ClearAllPoints()
 	if Widgets.Readability("chatTabs") then
 		local text = parts.text or tab
 		local pad = Widgets.Snap(tab, 2)
-		line:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", -pad, -Widgets.Border(tab))
-		line:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -Widgets.Border(tab))
+		TabPoint(line, "BOTTOMLEFT", text, "BOTTOMLEFT", -pad, -Widgets.Border(tab))
+		TabPoint(line, "BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -Widgets.Border(tab))
 	else
-		line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
-		line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+		TabPoint(line, "BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+		TabPoint(line, "BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
 	end
 	line:SetHeight(Widgets.Snap(line, UNDERLINE_UNITS))
 	Frames.PlaceGlow(glow, line)
@@ -511,6 +519,7 @@ local function OnTabColors(tab, selected)
 	if parts and parts.chatPaint then
 		parts.selected = selected and true or false
 		parts:Paint()
+		if Widgets.Readability("snapEdges") then LayoutTab(parts) end
 	end
 end
 
@@ -557,6 +566,8 @@ function Frames.FitTabs(dock)
 					tab:SetWidth(width + Widgets.Snap(tab, TAB_GAP))
 				end
 			end
+			local parts = Skin.Parts(tab)
+			if parts and parts.chatPaint and Widgets.Readability("snapEdges") then LayoutTab(parts) end
 		end
 	end
 end

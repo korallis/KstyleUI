@@ -645,7 +645,11 @@ function Rail.Place()
 		local top = band.top / scale - shape.headTop - shape.above - shape.cap
 		f:ClearAllPoints()
 		f:SetSize(width, shape.height)
-		f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top)
+		if Widgets.Readability("snapEdges") then
+			Widgets.Point(f, "TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top, true)
+		else
+			f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top)
+		end
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
