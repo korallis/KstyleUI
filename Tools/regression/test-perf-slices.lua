@@ -1,4 +1,4 @@
--- test-perf-slices.lua: identical slice inputs skip widget mutations, including after bevel painting and engine recolouring.
+-- test-perf-slices.lua: unchanged owned slices skip mutations; bevel corners stay correct and public slices repaint after engine recolouring.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New()
 local owner = env.CreateFrame("Frame", nil, K.Scale.Root())

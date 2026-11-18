@@ -78,7 +78,7 @@ local function Game(env)
 	env.print = function() end
 end
 
-local function Start(saved, W, H, timers)
+local function Start(saved, W, H)
 	local env = Stubs.NewEnv({ width = W, height = H, uiScale = 768 / 1080, size = "auto", fit = true })
 	env.KstyleUIDB = saved
 	Game(env)
@@ -96,16 +96,12 @@ local function Start(saved, W, H, timers)
 		end
 	end
 	env.FireEvent("PLAYER_LOGIN")
-	if timers then
-		timers(env)
-	else
-		env.RunTimers()
-	end
+	env.RunTimers()
 	return env, env.KstyleUI
 end
 
--- Reload(style, W, H, timers): timers(env), when given, runs in place of the RunTimers that follows PLAYER_LOGIN.
-function Suite.Prepare(style, W, H, timers)
+-- Prepare(style, W, H) returns a saved-suite reload function and the initial environment.
+function Suite.Prepare(style, W, H)
 	local env, K = Start(nil, W, H)
 	local choice = K.Setup.NewChoice()
 	choice.hudStyle = style
@@ -115,7 +111,7 @@ function Suite.Prepare(style, W, H, timers)
 	local saved = CoreEnv.DeepCopy(env.KstyleUIDB)
 	local initial = env
 	return function()
-		local reloaded, kit = Start(CoreEnv.DeepCopy(saved), W, H, timers)
+		local reloaded, kit = Start(CoreEnv.DeepCopy(saved), W, H)
 		reloaded.FireEvent("PLAYER_ENTERING_WORLD", false, true)
 		reloaded.RunTimers()
 		assert(kit.HudStyle.Current() == style, "the reload runs " .. tostring(kit.HudStyle.Current()))
@@ -124,9 +120,5 @@ function Suite.Prepare(style, W, H, timers)
 	end, initial
 end
 
-
-function Suite.Reload(style, W, H)
-	return Suite.Prepare(style, W, H)()
-end
 
 return Suite

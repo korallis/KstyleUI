@@ -758,6 +758,8 @@ local function InvalidateScale()
 	scaleGeneration = scaleGeneration + 1
 end
 
+Widgets.InvalidateScale = InvalidateScale
+
 local function OnScale(frame, value)
 	local watched = scaleWatched[frame]
 	if IsSecret(value) then
@@ -1329,11 +1331,12 @@ local SliceMeta = {
 	end,
 }
 
-local function NewSlice(owner, name, layer, sublevel, deferred)
+local function NewSlice(owner, name, layer, sublevel, deferred, cacheColor)
+	cacheColor = cacheColor ~= false
 	if deferred then
-		return setmetatable({ owner = owner, texture = name, runs = RUNS[name] == true, layer = layer, sublevel = sublevel, pending = true, preparing = true, cacheColor = true }, SliceMeta)
+		return setmetatable({ owner = owner, texture = name, runs = RUNS[name] == true, layer = layer, sublevel = sublevel, pending = true, preparing = true, cacheColor = cacheColor }, SliceMeta)
 	end
-	local p = { cacheColor = true }
+	local p = { cacheColor = cacheColor }
 	local soft = SOFT[name]
 	for piece = 1, 9 do
 		local texture = CreateTexture(owner, layer, sublevel)
@@ -1373,9 +1376,7 @@ function Widgets.NineSlice(owner, name, layer, sublevel)
 	if not TEXELS[name] then
 		error("KstyleUI.Widgets.NineSlice: " .. tostring(name) .. " is not a sliced texture", 2)
 	end
-	local slice = NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0)
-	slice.cacheColor = false
-	return slice
+	return NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0, nil, false)
 end
 
 function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame, outsetX)
@@ -1547,11 +1548,6 @@ function Widgets.Chrome(owner, opts)
 		visible = true,
 		ticksShown = false,
 	}, Chrome)
-	c.drawRun = function()
-		local ready = c.Restyle == Chrome.Restyle or c:Restyle()
-		c.drawQueued = false
-		if ready then c:DrawSlices() end
-	end
 	c.giltOn = shape.card and opts.gilt ~= false
 	if shape.card then
 		Widgets.Cards[c] = true
@@ -1572,12 +1568,9 @@ function Widgets.Chrome(owner, opts)
 	c:Restyle()
 	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnShow", function()
-			if not c.fill then
-				c:Restyle()
-			end
-			if not c.drawReady and not c.drawQueued then
-				c.drawQueued = true
-				C_Timer.After(0, c.drawRun)
+			if not c.drawReady then
+				local ready = c:Restyle()
+				if ready then c:DrawSlices() end
 			end
 		end)
 		owner:HookScript("OnSizeChanged", function()
@@ -1614,7 +1607,6 @@ function Chrome:Build()
 end
 
 function Chrome:DrawSlices()
-	self.drawQueued = false
 	if self.released then return end
 	local protected = type(self.owner.IsProtected) == "function" and self.owner:IsProtected()
 	protected = IsSecret(protected) or protected == true
@@ -2345,15 +2337,7 @@ function Chrome:Restyle()
 	if self.fill then
 		self:Paint()
 		self:RestyleOrnament()
-		if self.fill.preparing and not self.drawQueued then
-			local protected = type(self.owner.IsProtected) == "function" and self.owner:IsProtected()
-			if IsSecret(protected) or protected == true or not (C_Timer and C_Timer.After) then
-				self:DrawSlices()
-			else
-				self.drawQueued = true
-				C_Timer.After(0, self.drawRun)
-			end
-		end
+		if self.fill.preparing then self:DrawSlices() end
 	end
 	return self.fill ~= nil
 end

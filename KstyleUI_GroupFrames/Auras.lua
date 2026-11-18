@@ -322,7 +322,8 @@ local function StyleIcon(button)
 	local block = mark and (p.buff and f.parts and f.parts.healRow or Block(f, k))
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and (not mark or p.styledPriority == MarkLift(p.group)) then
+	local side = p.buff and block and block.side
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -348,7 +349,7 @@ local function StyleIcon(button)
 	end
 	p.styledFont, p.styledSwipe = text.healthFont, a.swipe
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
-	p.styledMark, p.styledColumns, p.styledRows = mark, columns, rows
+	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
 	p.styledGeneration, p.styledPriority = styleGeneration, mark and MarkLift(p.group)
 end
@@ -470,7 +471,6 @@ local function GateChrome(chrome, f, p)
 	if draw then
 		chrome.DrawSlices = function(self)
 			if AurasSecret() then
-				self.drawQueued = false
 				if f then
 					f.auraInputsDirty = true
 					Defer(f)

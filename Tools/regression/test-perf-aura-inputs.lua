@@ -23,6 +23,16 @@ assert(fonts > before, "P5c: a font-role or colour theme change must invalidate 
 before = fonts
 K.Callbacks.Fire("ScaleChanged")
 assert(fonts > before, "P5c: a physical pixel or font floor change must invalidate aura inputs")
+local row = assert(f.parts.healRow)
+row.side = row.side == "RIGHT" and "LEFT" or "RIGHT"
+local buffButton = A.Buttons(f.buffs)[1]
+local buff = assert(ns.Auras.Parts(buffButton))
+ns.Auras.Restyle(f)
+local changed = buff.markBack._points[1][4]
+buff.styledGeneration = nil
+f.auraInputsDirty = true
+ns.Auras.Restyle(f)
+assert(buff.markBack._points[1][4] == changed, "P5c: include the heal-row side so cached buff-mark placement equals a full restyle")
 env._aurasSecret = true
 K.Options.Write("GroupFrames", "party.auraSize", 18)
 assert(#env._errors == 0, "P5c: never inspect or mutate restricted aura buttons to check cached inputs")

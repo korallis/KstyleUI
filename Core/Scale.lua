@@ -67,11 +67,18 @@ local function IsPositive(v)
 	return type(v) == "number" and v == v and v > 0 and v < math.huge
 end
 
+local function Invalidate()
+	state.effective = nil
+	if ns.Widgets and ns.Widgets.InvalidateScale then ns.Widgets.InvalidateScale() end
+end
+
 local root = CreateFrame("Frame", "KstyleUI_Root", UIParent)
 root:SetAllPoints(UIParent)
 for _, method in ipairs({ "SetScale", "SetParent", "SetIgnoreParentScale" }) do
-	hooksecurefunc(root, method, function() state.effective = nil end)
+	hooksecurefunc(root, method, Invalidate)
 end
+
+hooksecurefunc(UIParent, "SetScale", Invalidate)
 
 local function PhysicalSize()
 	local width, height
@@ -331,7 +338,13 @@ local function Request(reason)
 end
 
 local function Recheck()
-	Request(ns.Widgets and ns.Widgets.Setting("resizeDebounce") and "DISPLAY_SIZE_CHANGED" or "a late display change")
+	Invalidate()
+	Request("a late display change")
+end
+
+local function RecheckDisplay()
+	Invalidate()
+	Request("DISPLAY_SIZE_CHANGED")
 end
 
 local UI_SCALE_CVARS = { uiscale = true, useuiscale = true }
@@ -342,16 +355,19 @@ events:RegisterEvent("DISPLAY_SIZE_CHANGED")
 events:RegisterEvent("CVAR_UPDATE")
 events:SetScript("OnEvent", function(_, event, name)
 	if event == "PLAYER_LOGIN" then
+		Invalidate()
 		state.dirty = true
 		Apply()
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		ApplyWaiting()
 	elseif event ~= "CVAR_UPDATE" or type(name) == "string" and UI_SCALE_CVARS[name:lower()] then
+		Invalidate()
 		Request(event)
-		C_Timer.After(0, Recheck)
+		C_Timer.After(0, event == "DISPLAY_SIZE_CHANGED" and RecheckDisplay or Recheck)
 	end
 end)
 root:SetScript("OnSizeChanged", function()
+	Invalidate()
 	Request("the window size")
 end)
 

@@ -56,5 +56,39 @@ local art = env.CreateFrame("Frame", nil, engine)
 K.Widgets.ScaleFactor(art)
 engine._scale = 0.75
 assert(K.Widgets.ScaleFactor(art) == art:GetEffectiveScale() / root:GetEffectiveScale(), "P4: keep live scale reads for engine-scaled aura descendants")
+do
+	local fight, kit = W.New()
+	fight.RunTimers()
+	local fightRoot = kit.Scale.Root()
+	local existing = fight.CreateFrame("Frame", nil, fightRoot)
+	local start = fight.UIParent:GetScale()
+	local function check(region, why)
+		assert(kit.Widgets.ScaleFactor(region) == region:GetEffectiveScale() / fightRoot:GetEffectiveScale(), "P4: invalidate both scale caches during combat after " .. why)
+	end
+	check(existing, "initial layout")
+	for _, event in ipairs({ "UI_SCALE_CHANGED", "CVAR_UPDATE", "DISPLAY_SIZE_CHANGED" }) do
+		fight.SetCombat(true)
+		fight.UIParent._scale = start * 1.25
+		fight.FireEvent(event, "uiScale")
+		check(existing, event)
+		local midFight = fight.CreateFrame("Frame", nil, fightRoot)
+		midFight:SetSize(100, 20)
+		check(midFight, event .. " on a new frame")
+		fight.RunTimers()
+		check(midFight, "the late scale recheck")
+		fight.UIParent._scale = start
+		fight.FireEvent(event, "uiScale")
+		check(midFight, event .. " returning to the old scale")
+		fight.RunTimers()
+		fight.SetCombat(false)
+		check(existing, "combat with unchanged Apply inputs")
+		check(midFight, "combat ending after the UI-scale round trip")
+		local chrome = kit.Widgets.Chrome(midFight, { shape = "tile" })
+		assert(math.abs(chrome.line[1]:GetWidth() - 3 * kit.Scale.Border()) < 1e-9, "P4: UI-scale round trips in combat must retain one-pixel slice lines")
+	end
+	fight.UIParent:SetScale(start * 0.8)
+	check(existing, "UIParent:SetScale without an event")
+	assert(#fight._errors == 0, table.concat(fight._errors, "\n"))
+end
 assert(#env._errors == 0, table.concat(env._errors, "\n"))
 print("perf scale factor ok")

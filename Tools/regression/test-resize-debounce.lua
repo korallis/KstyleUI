@@ -55,5 +55,15 @@ assert(changes == 2, "P5b: a protected resize must wait for combat to end")
 env.SetCombat(false)
 advance(0)
 assert(changes == 3, "P5b: apply the latest requested size after combat")
+local root = K.Scale.Root()
+local stable = root:GetEffectiveScale()
+for _, event in ipairs({ "UI_SCALE_CHANGED", "CVAR_UPDATE" }) do
+	env.UIParent._scale = env.UIParent._scale * 1.1
+	env.FireEvent(event, "uiScale")
+	assert(math.abs(root:GetEffectiveScale() - stable) < 1e-9, "P5b: the resize option must not delay UI-scale events")
+	env.UIParent._scale = env.UIParent._scale * 1.2
+	advance(0)
+	assert(math.abs(root:GetEffectiveScale() - stable) < 1e-9, "P5b: the late UI-scale recheck must stay immediate rather than wait for a window resize")
+end
 assert(#env._errors == 0, table.concat(env._errors, "\n"))
 print("resize debounce ok")
