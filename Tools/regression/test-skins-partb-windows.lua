@@ -385,6 +385,7 @@ do
 	end)
 	local font = W.LastCall(made.body, "SetFont")
 	assert(font and font[1] == "H3" and font[2] == ns.Style.Font("body"), "the body's SetFont names the text type, then the body face: " .. tostring(font and font[1]))
+	assert(font[3] == K.Widgets.FontSize(made.body, 13), "mail's native HTML body uses the shared thirteen-unit reading size")
 	local calls = {}
 	for _, call in ipairs(made.body._calls) do
 		if call.method == "SetJustifyH" then
@@ -394,7 +395,7 @@ do
 	assert(calls.P == "LEFT" and calls.H1 == "LEFT", "every text type of the body reads LEFT")
 	K.Options.Write("Skins", "text.size", 1.5)
 	font = W.LastCall(made.body, "SetFont")
-	assert(FontSize(K, made.body, font[3], select(2, ns.Style.Font("body"))) and font[3] ~= 12, "a text size change restyles the body too, got " .. tostring(font[3]))
+	assert(FontSize(K, made.body, font[3], 13 * K.Theme.FontScale() * ns.Style.Setting("text", "size")), "a text size change preserves the mail body's reading size, got " .. tostring(font[3]))
 	assert(Skinned(K, made.mail, "Window") and Skinned(K, made.letter, "Window"), "the mailbox and open letters are glass windows")
 	assert(Skinned(K, made.mail, "Tabs"), "the inbox and send tabs are skinned")
 	assert(Hidden(made.inboxBg) and Hidden(made.bar), "the inbox paper and the send form's bars are hidden")

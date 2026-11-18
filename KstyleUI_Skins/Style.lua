@@ -184,6 +184,9 @@ local htmls = setmetatable({}, WEAK)
 local function PaintHtml(state)
 	local html = state.html
 	local path, size, flags = Style.Font(state.role)
+	if state.units then
+		size = state.units * K.Theme.FontScale() * Style.Setting("text", "size")
+	end
 	local r, g, b = Tokens.Color(state.color)
 	for _, kind in ipairs(HTML_TYPES) do
 		html:SetFont(kind, path, Widgets.FontSize(html, size), flags)
@@ -192,7 +195,7 @@ local function PaintHtml(state)
 	end
 end
 
-function Style.Html(html, role, colorName)
+function Style.Html(html, role, colorName, units)
 	local state = htmls[html]
 	if not state then
 		state = { html = html, Restyle = PaintHtml }
@@ -200,6 +203,7 @@ function Style.Html(html, role, colorName)
 		Style.Track(state)
 	end
 	state.role, state.color = role or "body", colorName or "text"
+	state.units = units
 	PaintHtml(state)
 	return html
 end

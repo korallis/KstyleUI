@@ -81,7 +81,7 @@ local function Body(body)
 		return
 	end
 	if body:GetObjectType() == "SimpleHTML" then
-		ns.Style.Html(body, "body", "textEmphasis")
+		ns.Style.Html(body, "body", "textEmphasis", 13)
 		return
 	end
 	Kit.Text(body, "body", "textEmphasis")
