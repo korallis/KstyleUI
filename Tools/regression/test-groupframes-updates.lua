@@ -44,6 +44,9 @@ for _, kind in ipairs({ "party", "raid" }) do
 		end
 		local function roleReady(f, role)
 			if f.showRoleRing then return f.roleText:GetText() == ns.Style.ROLE_LETTERS[role] end
+			if ns.Settings.current.icons.roleShapes then
+				return f.role:IsShown() and f.role:GetAtlas() == env.GetMicroIconForRole(role)
+			end
 			local token = ({ TANK = "rare", HEALER = "friendly", DAMAGER = "hostile" })[role]
 			local r, g, b = K.Tokens.Color(token)
 			local pr, pg, pb = f.pipFill:GetVertexColor()
