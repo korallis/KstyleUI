@@ -127,5 +127,6 @@ ns.Skins.Add({
 	rows = {
 		{ type = "toggle", key = "qualityRims", label = L["Quality rims"], help = L["Rings each item in the item's quality colour."] },
 	},
+	metrics = { "MailFrame", "OpenMailFrame" },
 	Apply = Apply,
 })
