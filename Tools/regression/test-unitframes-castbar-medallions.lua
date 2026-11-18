@@ -30,7 +30,7 @@ env._time = 2.2
 env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 188196)
 W.Tick(env, 0.1)
-assert(element.mode == "above" and not element.medal, "Frames draws the caption cast")
+assert(element.mode == "inside" and not element.medal, "Frames draws the caption cast, its name inside the bar")
 assert(near(select(2, bar:GetSize()), 14, 0.6), "Frames draws the 14-unit bar")
 assert(not (element.slab and element.slab[5]:IsShown()), "Frames draws no slab")
 assert(element.icon:GetNumMaskTextures() == 1, "Frames masks the icon")
@@ -133,7 +133,7 @@ env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 10
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-4", 188196)
 K.Options.Write("HudStyle", "style", "frames")
 W.Tick(env, 0.1)
-assert(not element.medal and element.mode == "above", "Frames gives back the caption cast")
+assert(not element.medal and element.mode == "inside", "Frames gives back the caption cast")
 assert(not CastBars.ElementLive("target") and not tcb.frame:IsShown(), "the target's cast goes back inside its frame")
 assert(not tcb.medal, "and leaves the Medallions look")
 assert(target.castbar.frame:IsShown() and target.castbar.active and not target.castbar.medal, "and the frame's own bar shows the cast")

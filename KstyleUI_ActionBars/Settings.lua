@@ -68,6 +68,7 @@ local defaults = {
 	tooltips = "always",
 	ranks = "ask",
 	tray = true,
+	trayColumn = true,
 	text = {
 		hotkey = { font = "", size = HOTKEY_TEXT, outline = "NONE" },
 		count = { font = "", size = Tokens.Size("number"), outline = "NONE" },
@@ -237,6 +238,7 @@ function ns.Schema()
 		},
 		{ type = "header", label = L["Tray"] },
 		{ type = "toggle", key = "tray", label = L["Tray card"], help = L["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."] },
+		{ type = "toggle", key = "trayColumn", label = L["Tray on the centre column"], help = L["Frames: bars 1 and 2 shrink so their buttons line up with the unit bars above."] },
 		{ type = "header", label = L["Spell ranks"] },
 		{
 			type = "dropdown", key = "ranks", label = L["New spell ranks"], help = L["What happens when you learn a higher rank of a spell on your bars."],

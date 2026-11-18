@@ -24,6 +24,7 @@ end
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
+	K.Options.Write("ActionBars", "trayColumn", false)
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
 	assert(ns.Config("bar2").split == "auto" and ns.Config("bar1").split == "off", "bar 2 splits with the Orbs style, bar 1 never")
 	local whole = bar2.holder:GetWidth()

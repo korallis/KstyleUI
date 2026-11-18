@@ -213,14 +213,20 @@ function Bar:Layout()
 	end
 	self.count = count
 	local rows, cell, spacing = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg), ns.Slab.Spacing(def, cfg)
+	local wide, wideGap = cell, spacing
+	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
-	local pitch = size + gap
+	local pitch, drop = size + gap, 0
 	if CUMULATIVE[def.key] then
 		local _, _, columns, used = ns.GridSize(count, rows, cell, spacing)
 		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
+		if cell ~= wide then
+			local tall = Widgets.Snap(header, (used - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
+			drop, height = def.key == "bar2" and tall - height or 0, tall
+		end
 	end
 	local cols, used
 	if def.kind == "stance" and (rows or 1) > 1 then
@@ -264,7 +270,7 @@ function Bar:Layout()
 				col, row = ns.Cell(i, count, rows, cfg.orientation, cfg.growth)
 			end
 			b:ClearAllPoints()
-			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch))
+			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch) - drop)
 			b:Restyle()
 			b:Show()
 		else

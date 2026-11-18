@@ -336,7 +336,9 @@ local function OnSetting(_, module, key)
 		ns.Ranks.Stop()
 	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
-	if barKey and ns.BAR[barKey] then
+	if key == "trayColumn" then
+		ApplyAll()
+	elseif barKey and ns.BAR[barKey] then
 		if field ~= "showEmpty" and field ~= "fade" and field ~= "fadeAlpha" and field ~= "hotkey" and field ~= "count" and field ~= "macro" and field ~= "cooldown" then
 			ApplyAll()
 		end

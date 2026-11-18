@@ -15,6 +15,20 @@ local function Plain(v)
 	return type(v) == "number" and not ns.IsSecret(v)
 end
 
+local COLUMN = { size = 37.6, spacing = 3.6 }
+
+function Tray.Column(def)
+	return K.HudStyle.Current() == "frames" and (def.key == "bar1" or def.key == "bar2") and ns.Config("trayColumn") ~= false
+end
+
+function Tray.Grid(def, size, spacing)
+	local grid = Tray.Column(def) and Layouts().Grid(def.element)
+	if not grid then
+		return size, spacing
+	end
+	return size * COLUMN.size / grid.size, spacing * COLUMN.spacing / grid.spacing
+end
+
 local function Edges(frame)
 	local left, right, top, bottom = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
 	if not (Plain(left) and Plain(right) and Plain(top) and Plain(bottom)) then
@@ -73,8 +87,9 @@ function Tray.Refresh(main, second, steady, force)
 		card.pair = second
 		local pad = Widgets.Snap(card, Layouts().TRAY_PAD or 0)
 		card:ClearAllPoints()
-		card:SetPoint("TOPLEFT", second.holder, "TOPLEFT", -pad, pad)
-		card:SetPoint("BOTTOMRIGHT", main.holder, "BOTTOMRIGHT", pad, -pad)
+		local column = Tray.Column(main.def)
+		card:SetPoint("TOPLEFT", column and second.buttons[1] or second.holder, "TOPLEFT", -pad, pad)
+		card:SetPoint("BOTTOMRIGHT", column and main.buttons[main.count] or main.holder, "BOTTOMRIGHT", pad, -pad)
 		card.chrome:Restyle()
 	end
 	card:Show()

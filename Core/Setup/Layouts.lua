@@ -816,6 +816,7 @@ function Layouts.OrbsTray(width)
 		arm = Box(arm[1], arm[2], arm[3], arm[4]),
 		crest = Box(crest[1], crest[2], crest[3], crest[4]),
 		rail = Box(arm[3], ART.rail[1], inner, ART.rail[2]),
+		ledge = Box(arm[3], ART.bar2[1], inner, ART.rail[1]),
 		railBottom = Box(arm[3], ART.railBottom[1], inner, ART.railBottom[2]),
 		ring = ART.ring[3] * s,
 		ringX = (ART_X - ART.ring[1]) * s,

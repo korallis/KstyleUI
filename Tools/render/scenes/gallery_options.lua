@@ -167,7 +167,7 @@ return Common.Run(function()
 	for _, section in ipairs(state.sections) do
 		sections[#sections + 1] = section.label
 	end
-	assert(sections[1] == T(K, "Unit Frames") and sections[2] == T(K, "Customise") and sections[3] == T(K, "Target") .. ": " .. T(K, "frame"), "the page's sections start with the module, the picker and the frame: " .. table.concat(sections, "|"))
+	assert(sections[1] == T(K, "Unit Frames") and sections[2] == T(K, "Orbs") and sections[3] == T(K, "Customise") and sections[4] == T(K, "Target") .. ": " .. T(K, "frame"), "the page's sections start with the module, the Orbs finish, the picker and the frame: " .. table.concat(sections, "|"))
 	local hover = {}
 	local hovered = railRow(ns, T(K, "Target") .. ": " .. T(K, "cast bar"))
 	W.Enter(hovered)

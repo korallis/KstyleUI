@@ -3,6 +3,8 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New()
+K.Options.Write("UnitFrames", "player.castbarInside", false)
+K.Options.Write("UnitFrames", "target.castbarInside", false)
 local CastBars = ns.CastBars
 local Tokens, Layouts = K.Tokens, K.Setup.Layouts
 

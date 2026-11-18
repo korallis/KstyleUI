@@ -16,7 +16,7 @@ local HOLE_ALPHA = 0.88
 local EDGE = 2
 local SURFACE_SHARE = 0.25
 local CAP_SHARE = 0.9
-local CAP_ALPHA = 0.7
+local CAP_ALPHA, GLAZE_CAP_ALPHA = 0.7, 0.35
 local SURFACE_LIFT = 0.18
 local LIQUID_GAIN = 1.15
 local BACK_FLOOR, BACK_SHARE = 0.06, 0.15
@@ -171,6 +171,8 @@ local function NewTray()
 	frame.rail:SetTexture(Texture("orbRail"))
 	frame.railBottom = frame:CreateTexture(nil, "BORDER")
 	frame.railBottom:SetTexture(Texture("orbRailBottom"))
+	frame.ledge = frame:CreateTexture(nil, "BORDER")
+	frame.ledge:SetTexture(Texture("orbRail"))
 	frame.armLeft = frame:CreateTexture(nil, "ARTWORK")
 	frame.armLeft:SetTexture(Texture("orbArm"))
 	frame.armRight = frame:CreateTexture(nil, "ARTWORK")
@@ -341,6 +343,8 @@ local function PlaceTray()
 	Piece(tray.hole, Snapped(art.hole))
 	Piece(tray.rail, Snapped(art.rail))
 	Piece(tray.railBottom, Snapped(art.railBottom))
+	Piece(tray.ledge, Snapped(art.ledge))
+	tray.ledge:SetShown(Settings.Module().orbLedge ~= false)
 	Piece(tray.crest, Snapped(art.crest))
 	local arm = Snapped(art.arm)
 	Piece(tray.armLeft, arm)
@@ -394,14 +398,23 @@ local function Restyle()
 		end
 		orb.value:SetTextColor(Tokens.Color("textEmphasis"))
 	end
+	local sharp = Settings.Module().orbGlass ~= false
+	for _, orb in pairs(orbs) do
+		orb.back:SetTexture(Texture(sharp and "orbBack" or "orbBackSoft"))
+		orb.glass:SetTexture(Texture(sharp and "orbGlass" or "orbGlassSoft"))
+	end
 	local health = orbs.health
 	local r, g, b = Tokens.Color("orbHealth")
 	Tint(health, r, g, b)
-	local br, bg, bb = Back(r, g, b)
-	local lr, lg, lb, la = Tokens.Color("orbLoss")
-	health.loss:SetStatusBarColor(Widgets.Mix(br, bg, bb, 1, lr, lg, lb, 1, la))
-	health.recent:SetStatusBarColor(Widgets.Mix(br, bg, bb, 1, lr, lg, lb, 1, la))
-	health.lossCap:SetVertexColor(lr, lg, lb, CAP_ALPHA)
+	local lr, lg, lb, la = Tokens.Color(sharp and "orbLossGlaze" or "orbLoss")
+	if not sharp then
+		local br, bg, bb = Back(r, g, b)
+		lr, lg, lb, la = Widgets.Mix(br, bg, bb, 1, lr, lg, lb, 1, la)
+	end
+	health.loss:SetStatusBarColor(lr, lg, lb, la)
+	health.recent:SetStatusBarColor(lr, lg, lb, la)
+	lr, lg, lb = Tokens.Color("orbLoss")
+	health.lossCap:SetVertexColor(lr, lg, lb, sharp and GLAZE_CAP_ALPHA or CAP_ALPHA)
 	for i, tone in ipairs(DIAMOND_TONES) do
 		Widgets.Tint(tray.levelLayers[i], tone[1], tone[2])
 	end
@@ -518,7 +531,10 @@ local function Listen()
 	Callbacks.Register("ThemeChanged", OWNER, OnTheme)
 	Callbacks.Register("ScaleChanged", OWNER, OnTheme)
 	Callbacks.Register("SettingChanged", OWNER, function(_, module)
-		if module == "ActionBars" then
+		if module == MODULE then
+			Restyle()
+		end
+		if module == "ActionBars" or module == MODULE then
 			PlaceTray()
 		end
 	end)

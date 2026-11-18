@@ -542,6 +542,9 @@ local function ColumnFrame(out, s, width, height, scale)
 			break
 		end
 	end
+	if out.cast and s.castbarInside then
+		out.cast.h = min(out.cast.h, COLUMN.castBar)
+	end
 	for _, key in ipairs({ "health", "power", "cast" }) do
 		if out[key] then
 			Clamp(out[key], height)

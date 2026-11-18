@@ -27,6 +27,7 @@ do
 		e._game.bindings.ACTIONBUTTON8 = { "8" }
 	end })
 	AB.Enable(env, K)
+	K.Options.Write("ActionBars", "trayColumn", false)
 	local schema = K.Options.Get("ActionBars")
 	for _, row in ipairs(schema) do
 		if row.key == "bar1.size" or row.key == "bar1.spacing" or row.key == "bar2.size" or row.key == "bar2.spacing" then

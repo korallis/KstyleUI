@@ -86,6 +86,10 @@ ORB_GLINTS = (
 ORB_LIQUID_EDGE = 0.55
 # The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
 ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
+# The sharp glass (the Orbs default since the finish plan's G5): the upper-left glint gets a hard core and the foot
+# shade ends at 0.22, drawn at 256 texels; the soft glass above stays for the "Sharp orb glass" option turned off.
+ORB_GLINTS_SHARP = (ORB_GLINTS[0], (0.29, 0.24, 0.20, 0.20, ((0.0, 0.85), (0.12, 0.82), (0.18, 0.28), (0.35, 0.18), (1.0, 0.0))), *ORB_GLINTS[2:])
+ORB_FOOT_STOPS_SHARP = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.22))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -709,16 +713,16 @@ def draw_orb_back(size):
     return shaded(at_centres(size, size, level), coverage)
 
 
-def draw_orb_glass(size):
+def draw_orb_glass(size, glints=ORB_GLINTS, foot_stops=ORB_FOOT_STOPS):
     disc = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
 
     def spot(cx, cy, rx, ry, stops):
         return [c * ramp(stops, math.hypot((u - cx) / rx, (v - cy) / ry)) for c, (u, v) in zip(disc, (
             ((px + 0.5) / size, (py + 0.5) / size) for py in range(size) for px in range(size)))]
 
-    foot = [c * ramp(ORB_FOOT_STOPS, (py + 0.5) / size) for c, py in zip(disc, (py for py in range(size) for _ in range(size)))]
+    foot = [c * ramp(foot_stops, (py + 0.5) / size) for c, py in zip(disc, (py for py in range(size) for _ in range(size)))]
     layers = [((0, 0, 0, 1), foot), ((0, 0, 0, 1), spot(0.5, 0.5, 0.5, 0.5, ORB_RIM_STOPS))]
-    for cx, cy, rx, ry, stops in ORB_GLINTS:
+    for cx, cy, rx, ry, stops in glints:
         layers.append(((255, 255, 255, 1), spot(cx, cy, rx, ry, stops)))
     return composite(size, size, layers)
 
@@ -995,11 +999,13 @@ for art_name, width, height, margin in (
 
 
 ORB_DRAWN = "2026-11-12"
-ORB_REDRAWN = {"OrbBack": "2026-11-13", "OrbSurface": "2026-11-13", "OrbSurfaceLight": "2026-11-13"}
+ORB_REDRAWN = {"OrbBack": "2026-11-18", "OrbGlass": "2026-11-18", "OrbBackSoft": "2026-11-13", "OrbSurface": "2026-11-13", "OrbSurfaceLight": "2026-11-13"}
 for orb_name, width, height, draw, about in (
     ("OrbMask", 256, 256, lambda: draw_orb_mask(256), "Round mask for the Orbs HUD style's liquid: opaque white inside the orb's opening."),
-    ("OrbBack", 128, 128, lambda: draw_orb_back(128), "The empty orb: glass lit from 34% down, white at its lit point, so SetVertexColor gives each orb its own dark tint under the liquid."),
-    ("OrbGlass", 128, 128, lambda: draw_orb_glass(128), "The orb's glass over the liquid: a rim that darkens towards the ring and four glints."),
+    ("OrbBack", 256, 256, lambda: draw_orb_back(256), "The empty orb: glass lit from 34% down, white at its lit point, so SetVertexColor gives each orb its own dark tint under the liquid."),
+    ("OrbGlass", 256, 256, lambda: draw_orb_glass(256, ORB_GLINTS_SHARP, ORB_FOOT_STOPS_SHARP), "The orb's sharp glass over the liquid: a rim that darkens towards the ring, four glints, the upper-left one with a hard core, and a foot shade that ends at 0.22."),
+    ("OrbBackSoft", 128, 128, lambda: draw_orb_back(128), "The empty orb at 128 texels, for the softer glass when Sharp orb glass is off."),
+    ("OrbGlassSoft", 128, 128, lambda: draw_orb_glass(128), "The orb's softer glass over the liquid, when Sharp orb glass is off: a rim that darkens towards the ring and four glints."),
     ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
     ("OrbSurface", *ORB_SURFACE_SIZE, lambda: draw_orb_surface(*ORB_SURFACE_SIZE), "The liquid's curved surface: an ellipse as wide as the orb and 11% as tall, lit from 35% down, centred on the fill's top edge and tinted with the liquid's colour; also the pale cap of the loss band."),
     ("OrbSurfaceLight", *ORB_SURFACE_SIZE, lambda: draw_orb_surface_light(*ORB_SURFACE_SIZE), "The light over the surface ellipse: a white line along its top edge, a white sheen at its lit point and a soft shadow under it, drawn untinted."),

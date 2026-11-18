@@ -156,9 +156,9 @@ do
 	local r, g, b = rgb(power.bar, "SetStatusBarColor")
 	assert(b > r and b > g and g > r * 1.5, "the mana orb is the mock-up's blue, not the bar's violet")
 	local band, recentBand = W.LastCall(health.loss, "SetStatusBarColor"), W.LastCall(health.recent, "SetStatusBarColor")
-	assert(band[4] == 1 and band[1] > 0.35 and band[2] > 0.25 and band[3] > 0.2, "the loss band is a pale glaze, opaque")
+	assert(band[4] == 0.75 and band[1] > 0.35 and band[2] > 0.25 and band[3] > 0.2, "the loss band is a pale glaze at three quarters")
 	for i = 1, 4 do
-		assert(band[i] == recentBand[i], "the two loss bands share one opaque colour, so they overlap without a seam")
+		assert(band[i] == recentBand[i], "the two loss bands share one colour, so they overlap without a seam")
 	end
 	local capPoint = W.LastCall(health.lossCap, "SetPoint")
 	assert(health.lossCap:GetTexture() == K.Tokens.Texture("orbSurface") and capPoint[1] == "CENTER" and capPoint[2] == health.loss:GetStatusBarTexture() and capPoint[3] == "TOP", "a pale cap rides the loss band's top")

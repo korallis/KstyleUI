@@ -127,6 +127,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
 		castbarOrientation = "RIGHT",
+		castbarInside = false,
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
 		auraSize = aura and aura.size or 20,
@@ -155,13 +156,16 @@ Settings.defaults = {
 	hideBlizzard = true,
 	accent = "class",
 	accentColor = Color("accentDefault"),
+	orbGlass = true,
+	orbLedge = true,
+	orbCastRoom = true,
 	edit = "player",
 	player = Kind(true, {
-		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold",
+		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
-		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
+		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
 		power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
 	targettarget = Kind(false),
@@ -597,6 +601,12 @@ CastRows = function(schema, kind)
 			min = CAST_HEIGHT_MIN, max = CAST_HEIGHT_MAX, step = 1,
 		}, on)
 	end
+	if Settings.CAST_ELEMENTS[kind] then
+		schema[#schema + 1] = Row(kind, {
+			type = "toggle", key = "castbarInside", label = L["Spell name inside the bar"],
+			help = L["Frames: the spell name and timer sit inside the cast bar. Off puts them on their own line."],
+		}, on)
+	end
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarIcon", label = L["Spell icon"],
 		help = L["Shows the spell's icon beside the cast bar."],
@@ -858,6 +868,19 @@ function Settings.Schema()
 			showWhen = function(s)
 				return s.accent == "custom"
 			end,
+		},
+		{ type = "header", label = L["Orbs"] },
+		{
+			type = "toggle", key = "orbGlass", label = L["Sharp orb glass"],
+			help = L["A crisper glass with a hard glint and a clearer band for health just lost."],
+		},
+		{
+			type = "toggle", key = "orbLedge", label = L["Ledge under bar 2"],
+			help = L["Seats the split bar 2 on a metal ledge across the tray."],
+		},
+		{
+			type = "toggle", key = "orbCastRoom", label = L["Room for long spell names"],
+			help = L["Widens the target's cast bar so long spell names show in full."],
 		},
 		{ type = "header", label = L["Customise"] },
 	}

@@ -733,6 +733,8 @@ local function OnSettingChanged(_, module, key)
 		ns.Resource.Restyle()
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
+	elseif key == "orbCastRoom" then
+		ns.CastBars.Apply()
 	elseif key == "accent" or key == "accentColor" then
 		ForEach(function(each)
 			for _, view in ipairs(each.views) do

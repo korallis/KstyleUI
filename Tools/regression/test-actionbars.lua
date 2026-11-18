@@ -56,6 +56,7 @@ do
 		local default = K.Setup.Layouts.Default(key)
 		assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, key .. " starts at the v3 position")
 	end
+	K.Options.Write("ActionBars", "trayColumn", false)
 	local bar1 = ns.bars.bar1
 	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
 	local pitch = grid.size + grid.spacing
@@ -215,6 +216,7 @@ end
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
+	K.Options.Write("ActionBars", "trayColumn", false)
 	local bar1 = ns.bars.bar1
 	env.SetCombat(true)
 	K.Options.Write("ActionBars", "bar1.buttons", 6)

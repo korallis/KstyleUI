@@ -27,10 +27,11 @@ local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local ELAPSED_FORMAT = "%.1f / %.1f"
 local REMAINING_FORMAT = "%.1f"
-local CAPTION_BAR = { above = 14, below = 14 }
-local CAPTION_OFFSET = { above = 0, below = 0.5 }
-local CAPTION_GAP = { above = 1, below = 3.5 }
-local CAPTION_TIMER_EM = { above = 6.2, below = 3 }
+local CAPTION_BAR = { above = 14, below = 14, inside = 14 }
+local CAPTION_OFFSET = { above = 0, below = 0.5, inside = 0 }
+local CAPTION_GAP = { above = 1, below = 3.5, inside = 0 }
+local CAPTION_TIMER_EM = { elapsed = 6.2, remaining = 3 }
+local CAPTION_ROOM = 180
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
 local LINE_BAR = 4
@@ -120,6 +121,9 @@ end
 local function Caption(cb)
 	local form = Settings.Form(cb.kind)
 	if form == "column" then
+		if Settings.Value(cb.kind, "castbarInside") and (cb.attached or K.HudStyle.Current() == "frames") then
+			return "inside"
+		end
 		return cb.attached and "below" or "above"
 	end
 	if form ~= "plate" and not cb.attached then
@@ -129,13 +133,13 @@ local function Caption(cb)
 end
 
 local function Elapsed(cb)
-	return cb.mode == "above"
+	return cb.mode == "above" or cb.mode == "inside" and not cb.attached
 end
 
 local function WriteTimer(cb, elapsed, total, remaining)
 	if Elapsed(cb) then
 		cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total)
-	elseif cb.mode == "below" or cb.medal then
+	elseif cb.mode == "below" or cb.mode == "inside" or cb.medal then
 		cb.timer:SetFormattedText(REMAINING_FORMAT, remaining)
 	else
 		cb.timer:SetFormattedText(TIMER_FORMAT, remaining)
@@ -494,15 +498,19 @@ local function LayoutLine(cb, width, height)
 	bar:SetSparkShown(false)
 end
 
+local function Roomy(cb)
+	return cb.kind == "target" and not cb.attached and K.HudStyle.Current() == "orbs" and Settings.Module().orbCastRoom ~= false
+end
+
 local function LayoutCaption(cb, width, height)
 	local mode, frame = cb.mode, cb.frame
-	local above = mode == "above"
+	local above, inside = mode == "above", mode == "inside"
 	cb.geometry = { caption = mode }
 	local lead = 0
-	local side = Snap(cb, height)
+	local side = Snap(cb, inside and math.min(CAPTION_BAR.inside, height) or height)
 	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
 		lead = side + Snap(cb, CAPTION_ICON_GAP)
-		cb.geometry.icon = { x = 0, y = 0, w = side, h = side }
+		cb.geometry.icon = { x = 0, y = inside and height - side or 0, w = side, h = side }
 		Place(cb, cb.iconFrame, cb.geometry.icon)
 		cb.iconChrome:Restyle()
 		local inset = Widgets.Border(cb.frame)
@@ -523,37 +531,51 @@ local function LayoutCaption(cb, width, height)
 	local rowH = size + TEXT_EXTRA
 	local gap = CAPTION_GAP[mode]
 	local spare = height - gap - rowH
-	local labelOn = spare >= BAR_MIN
+	local labelOn = inside or spare >= BAR_MIN
 	local barOffset = Snap(cb, CAPTION_OFFSET[mode])
 	if above then
 		barOffset = barOffset + Widgets.Snap(frame, K.Scale.Pixel(1) / Widgets.ScaleFactor(frame))
 	end
-	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height - barOffset)
+	local barH = math.min(CAPTION_BAR[mode], labelOn and not inside and spare or height - barOffset)
+	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
+	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[Elapsed(cb) and "elapsed" or "remaining"] * size), math.floor(width / 2)) or 0
+	local reach = 0
+	if above and Roomy(cb) then
+		reach = Snap(cb, math.max(0, CAPTION_ROOM + timerW + (timerOn and TEXT_PAD or 0) - width) / 2)
+		width, lead = width + 2 * reach, lead - reach
+	end
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", lead, -barOffset)
+	bar:SetPoint((above or inside) and "BOTTOMLEFT" or "TOPLEFT", frame, (above or inside) and "BOTTOMLEFT" or "TOPLEFT", lead, -barOffset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
 	bar:SetInnerEdge(bar:FlatTexture(), "castEdge")
 	bar:SetFillCursor(cb.kind == "player")
-	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
-	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
 	local y = Snap(cb, barH + gap)
 	local point = above and "BOTTOM" or "TOP"
 	local offset = above and y or -y
+	local pad = inside and Snap(cb, TEXT_PAD) or 0
 	for _, text in ipairs({ cb.text, cb.timer }) do
 		text:ClearAllPoints()
-		text:SetHeight(Snap(cb, rowH))
-		text:SetJustifyV(above and "BOTTOM" or "TOP")
+		text:SetHeight(Snap(cb, inside and barH or rowH))
+		text:SetJustifyV(inside and "MIDDLE" or above and "BOTTOM" or "TOP")
 	end
-	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
-	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
+	if inside then
+		cb.text:SetPoint("LEFT", bar, "LEFT", pad, 0)
+	else
+		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
+	end
+	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
-	cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", 0, offset)
+	if inside then
+		cb.timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
+	else
+		cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", reach, offset)
+	end
 	cb.timer:SetWidth(Snap(cb, timerW))
 	cb.timer:SetJustifyH("RIGHT")
 	cb.timer:SetShown(timerOn)
@@ -739,6 +761,9 @@ end
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
 	Form(cb)
+	if cb.mode == "inside" and flags == "" then
+		flags = "OUTLINE"
+	end
 	local caption = cb.mode ~= nil or cb.medal
 	local textPath, timerPath = path, path
 	if caption and Settings.ThemeFont(cb.kind, "cast") then
