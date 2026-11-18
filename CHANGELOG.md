@@ -1,5 +1,66 @@
 # KstyleUI changelog
 
+## v0.2.6 (unreleased)
+
+Clearer combat and finished HUD styles: tooltips that follow your mouse out of combat, readable casts and power numbers, Orbs and Frames finished with their own switches, a branded welcome page, and a long list of alignment and readability fixes.
+
+### Added
+
+- Tooltips can follow the mouse out of combat and sit at their usual place in combat. This is the new default; pick another anchor in Options if you prefer.
+- Under Medallions, your debuffs on your target fan out in a metal-rimmed row above the crest, with their timers, cooldown sweeps and overflow, a switch in Options and a mover in Layout Mode.
+- Four readability switches in Options > General > Appearance, on by default, with the original look available when you switch one off.
+- Enemy cast names on target and focus nameplates, a shield mark for casts you cannot interrupt, and a Dungeon nameplate preset.
+- Orbs and Frames finish with switches, all on by default. Under Options > Unit Frames > Orbs: Sharp orb glass, Ledge under bar 2 and Room for long spell names. Under Frames: Spell name inside the bar (Options > Unit Frames > Player and Target) and Tray on the centre column (Options > Action Bars).
+- When you learn a new spell, KstyleUI offers to add it to your action bars, beside the offer to update a spell to its new rank.
+- A setting to wait until you stop resizing the game window before the HUD resizes with it, on by default.
+
+### Changed
+
+- Existing players move to the new default of tooltips at the cursor out of combat. If you had chosen Tooltip anchor, older versions did not keep that choice at logout, so choose Tooltip anchor again in Options to restore it.
+- The Personal Resource Display in the middle of the screen is off by default for new setups; turn it on under Nameplates.
+- The first-run setup opens on a branded welcome page with current HUD previews, feature highlights and the addon version, with an option to restore the original page.
+- Frames and Medallions show power numbers by default: your mana as a percent, or the current amount of rage, energy and the like. Orbs keeps its own centred percent. Under Medallions, your target's health percent stands out and combat text keeps clear of casts and debuffs.
+- Nameplate debuffs are larger in both presets, with outlined time left and a red warning as they run out.
+- Orbs glass is crisper, with a hard glint and a clearer band for health just lost, and the split second action bar sits on a metal ledge. Under Frames, cast bars show the spell name and timer inside the bar, and the tray's buttons line up with the unit bars above them.
+- Quest and guide cards line up, meters fit their contents, and the data strip shares the meter heading. Window buttons have a steel surface with clearer pressed and disabled states, and native windows share one spacing for their titles, text and controls.
+- Readability pass: clearer cast and raid text, low-health figures and captions, outlines and backing for bare text where you want them, readable chat tabs, mana a darker step below health, and meter row text with a one-pixel shadow. Bar and threat pill colours are unchanged.
+- Type pass: portrait levels show once, with a larger number badge on the hub; experience captions and meter row names use instrument faces, card-header figures use PT Serif Bold, and section headings and tabs share gold capitals. Tooltips use clearer title, body and caption sizes, bright stat lines and readable reaction names, with separate controls for tooltip and bag quality colours. Options labels and help have their own sizes.
+- Empty Medallions action sockets fade until you drag a spell, bind keys or edit the layout. Cooldown edges are quieter, countdowns are clearer and the seated crest is smaller, each with its own switch, and Medallions icon frames match, with separate text and indicator lanes on party and raid frames.
+- The Cooldown Manager's icons sit with the action bars instead of floating in the middle of the screen; switch them back in Options. The swing timer matches the rest of the HUD and sits with the cast bars.
+- KstyleUI skips repeated background HUD, border and layout work that could not change anything on screen. Nothing looks or times differently.
+
+### Fixed
+
+- Party and raid frames appear as soon as you join a group.
+- With your bags grouped by category, you can drop a held or split item onto the empty slots to put it away. Bag item levels and stack counts now sit in separate corners, and bag and minimap headings keep clear of their edges.
+- The chat window's tabs, frame and buttons line up at every screen size, including 4K.
+- Minimap tooltips open beside the minimap instead of covering it.
+- Reopening a window keeps its native button chains in place, Talents controls use their final size on the first open, vendor prices paid in currency keep their lane after updates, and trainer skill captions stay clear of the window title. Quest cards use their full height, and docking keeps the meter rate without refreshing the data strip when nothing changed.
+- Long names in raid frames stay distinct and clear of debuff pips, and lost-health bands reset correctly after a restricted colour change.
+- Borders are complete on their first visible frame, and changing the interface size during combat keeps one-pixel lines correct.
+- An interrupt whose cooldown is unknown no longer claims to be ready, and changing target refreshes only the two nameplates that changed.
+- Long target spell names in the Orbs style are no longer cut short at 3456x2234 and 5120x1440.
+- Long Medallions names keep their face and capitals at every resolution; the unit tooltip carries the full name. Small text keeps its previous minimum size at 1080p and 1440p, and section rules stay under their headings while text cannot be measured.
+- Long cooldown countdowns no longer cross stack counts, and key labels stay inside their action buttons in Frames, Orbs and Medallions.
+- The dispel colour in the Options raid preview is a light wash again instead of a solid tile.
+- The damage meter goes back to its normal heading once combat data can be read again.
+
+An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
+
+### Draft: still to add before tagging (delete this list at tag time)
+
+Add each line below from that PR's own `## Changelog` section when it merges, then set the release date above.
+
+- [#460](https://github.com/korallis/KstyleUI/pull/460) feat(accessibility): finish setup, options and the third action bar
+- Audit batch E-a: no PR number yet
+- Audit batch E-b: no PR number yet
+- Audit batch F-a: no PR number yet
+- Audit batch F-b: no PR number yet
+- Audit batch F-c: no PR number yet
+- Audit batch G8: no PR number yet
+- Audit batch G-b: no PR number yet
+- Also open against `staging` when this draft was written: [#475](https://github.com/korallis/KstyleUI/pull/475), [#476](https://github.com/korallis/KstyleUI/pull/476), [#477](https://github.com/korallis/KstyleUI/pull/477), [#478](https://github.com/korallis/KstyleUI/pull/478). Confirm whether any of these are the audit batches above before tagging.
+
 ## v0.2.5 (2026-11-18)
 
 Your feedback release: keybinding, a working stealth button, the Options font error, a RestedXP arrow you can see in the dark, and a lighter addon that looks exactly the same.
