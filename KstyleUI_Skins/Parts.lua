@@ -610,6 +610,9 @@ local function MetricChildren(frame, depth)
 		end
 		MetricButtonGaps(frame)
 	end
+	if parts and parts.backdrop then
+		parts.backdrop:Restyle()
+	end
 end
 
 local function PlaceMetrics(state)
@@ -617,7 +620,6 @@ local function PlaceMetrics(state)
 	if InCombatLockdown() or not Widgets.MayMove(frame) then
 		return
 	end
-	MetricChildren(frame, 1)
 	local shift = 0
 	for _, child in ipairs({ frame:GetChildren() }) do
 		local skin = Skin.Parts(child)
@@ -639,13 +641,6 @@ local function PlaceMetrics(state)
 		end
 		frame:SetHeight(frame:GetHeight() + shift)
 	end
-	if title then
-		ns.Style.MetricText(title, true)
-		title:ClearAllPoints()
-		Widgets.Point(title, "LEFT", frame, "TOPLEFT", 12 + CAP_GEM + CAP_GEM_GAP, -16)
-		Widgets.Point(title, "RIGHT", frame, "TOPRIGHT", -40, -16)
-		Parts.Realign(title)
-	end
 	local inset = frame.Inset
 	if type(inset) == "table" and Widgets.MayMove(inset) then
 		local contentTop = 44
@@ -663,6 +658,14 @@ local function PlaceMetrics(state)
 	local parts = Skin.Parts(frame)
 	if parts and parts.backdrop then
 		parts.backdrop.chrome:SetHeader(32)
+	end
+	MetricChildren(frame, 1)
+	if title then
+		ns.Style.MetricText(title, true)
+		title:ClearAllPoints()
+		Widgets.Point(title, "LEFT", frame, "TOPLEFT", 12 + CAP_GEM + CAP_GEM_GAP, -16)
+		Widgets.Point(title, "RIGHT", frame, "TOPRIGHT", -40, -16)
+		Parts.Realign(title)
 	end
 end
 
