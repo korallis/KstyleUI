@@ -396,6 +396,7 @@ Skins.Add({
 			end,
 		},
 	},
+	metrics = true,
 	Apply = Apply,
 	OnSetting = OnSetting,
 })
