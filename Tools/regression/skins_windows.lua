@@ -250,6 +250,8 @@ end
 
 local function Row(B, box, h)
 	local row = B.frame("Button", box.ScrollTarget)
+	-- Native ScrollBox rows stretch to the list width; their two anchors alone leave GetWidth nil in the stub.
+	row.GetWidth = function() return box:GetWidth() end
 	row:SetHeight(h or ROW_HEIGHT)
 	return row
 end
