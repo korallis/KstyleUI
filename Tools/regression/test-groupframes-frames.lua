@@ -260,7 +260,7 @@ do
 	assert(near(hovered.chrome.edge[1], ir) and near(hovered.chrome.edge[4], ia), "leaving eases back")
 end
 
--- Roster events repaint in the same frame, including unchanged unit tokens whose members changed.
+-- The secure header refreshes its children on each roster event; the module must add no delayed paint.
 local function paints(frame)
 	local n = 0
 	for _, call in ipairs(frame.health._calls) do
@@ -273,9 +273,11 @@ end
 env.SetQuiet(false)
 local first = Button.Content(children(Headers.raid[1])[1])
 local painted = paints(first)
-env.FireEvent("GROUP_ROSTER_UPDATE")
-env.FireEvent("GROUP_ROSTER_UPDATE")
-env.FireEvent("GROUP_ROSTER_UPDATE")
+for _ = 1, 3 do
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	env.RunStateDrivers()
+	env.UpdateHeaders()
+end
 eq(paints(first), painted + 3, "each roster update paints immediately")
 env.RunTimers()
 eq(paints(first), painted + 3, "roster updates leave no delayed paint")

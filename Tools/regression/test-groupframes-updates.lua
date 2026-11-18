@@ -72,7 +72,7 @@ for _, kind in ipairs({ "party", "raid" }) do
 		env.FireEvent("PLAYER_ROLES_ASSIGNED")
 		budget("PLAYER_ROLES_ASSIGNED initial", function() return roleReady(f, "DAMAGER") end)
 
-		-- Same token, different member: neither the unit attribute nor visibility changes.
+		-- The header reassigns the same token and fires OnAttributeChanged for the new member.
 		members[1] = { name = "Ysra", class = "PRIEST", health = 43, power = 21, role = "HEALER" }
 		G.SetRoster(env, kind, members)
 		budget("GROUP_ROSTER_UPDATE swap", function() return f.name:GetText() == "Ysra" and value(f.health) == 43 end)
@@ -129,6 +129,34 @@ for _, kind in ipairs({ "party", "raid" }) do
 		assert(#env._blocked == 0, "no protected work in combat: " .. tostring(env._blocked[1]))
 		assert(#env._errors == 0, "no event errors: " .. tostring(env._errors[1]))
 	end
+end
+do
+	local env, K, ns = G.New()
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	env.SetQuiet(true)
+	G.SetRoster(env, "raid", G.Members(40))
+	env.RunTimers()
+	local refreshes, rosterReads = 0, 0
+	local refresh, rosterInfo = ns.Unit.Refresh, env.GetRaidRosterInfo
+	ns.Unit.Refresh = function(f)
+		refreshes = refreshes + 1
+		return refresh(f)
+	end
+	env.GetRaidRosterInfo = function(...)
+		rosterReads = rosterReads + 1
+		return rosterInfo(...)
+	end
+	for _ = 1, 10 do
+		env.FireEvent("GROUP_ROSTER_UPDATE")
+		env.RunStateDrivers()
+		env.UpdateHeaders()
+	end
+	env.RunTimers()
+	print("40 raid members x 10 roster events: Unit.Refresh=" .. refreshes .. " GetRaidRosterInfo=" .. rosterReads .. " (base limits 840 / 40)")
+	assert(refreshes <= 840, "Roster storms must rely on secure-header refreshes; remove per-event Unit.RefreshAll")
+	assert(rosterReads <= 40, "Roster storms must coalesce GetRaidRosterInfo scans while updating counts synchronously")
+	assert(#env._blocked == 0 and #env._errors == 0, "roster storm must not raise errors")
 end
 assert(#failures == 0, table.concat(failures, "\n"))
 print("groupframes update frame budgets ok")

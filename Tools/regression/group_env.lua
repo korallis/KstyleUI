@@ -722,17 +722,13 @@ local function makeHeader(env, header)
 	env._headers[#env._headers + 1] = header
 end
 
--- Children fire OnAttributeChanged on every SetAttribute and OnShow or OnHide when that changes, as
--- frames do in the game.
+-- OnAttributeChanged fires even when SetAttribute repeats a value; OnShow/OnHide require a visibility change.
 local function makeAttributeScripts(env, button)
 	local base = getmetatable(button).__index
 	local setAttribute, hide = base(button, "SetAttribute"), base(button, "Hide")
 	rawset(button, "SetAttribute", function(self, key, value)
-		local previous = self:GetAttribute(key)
 		setAttribute(self, key, value)
-		if previous ~= value then
-			runScript(env, self, "OnAttributeChanged", key, value)
-		end
+		runScript(env, self, "OnAttributeChanged", key, value)
 	end)
 	rawset(button, "Hide", function(self)
 		local was = self._shown
