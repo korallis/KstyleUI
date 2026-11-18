@@ -48,8 +48,8 @@ for _, group in ipairs({ "essential", "utility" }) do
 	end
 end
 
--- The centre cluster's countdowns read with their unit, as the mockup's "4s" and "2m".
-assert(texts["4s"] and texts["2m"], "the cooldown rows show 4s and 2m")
+-- The centre cluster shares the action slots' bare seconds and minute suffix.
+assert(texts["4"] and texts["2m"], "the cooldown rows show bare seconds (4) and minutes (2m)")
 
 -- The quest tracker is the shared stand-in with the skin's one caption header and numbered discs.
 assert(texts["QUESTS"] and texts["1"] and texts["2"] and not texts["Quests"], "the HUD's tracker shows the QUESTS caption and the numbered discs")
