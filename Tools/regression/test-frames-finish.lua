@@ -61,7 +61,7 @@ do
 	assert(inked(player, player.pr, player.pg, player.pb), "with Readable text on bars, the name takes the ink for the gilt under it")
 	env._units.player.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-1", 188196)
-	assert(player.inkEmpty and inked(player, K.Tokens.Color("buttonFill")), "an interrupted cast empties the bar, so the name takes light outlined ink")
+	assert(not player.inkEmpty and inked(player, K.Tokens.Color("hostile")), "an interrupted cast stays full, so the name takes the ink for its hostile fill")
 	K.Options.Write("Appearance", "readableBars", false)
 	env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-3", 188196)

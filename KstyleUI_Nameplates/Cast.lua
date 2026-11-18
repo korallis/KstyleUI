@@ -14,6 +14,8 @@ local GAP = Tokens.Size("gapTiny")
 local TEXT_INSET = Tokens.Size("gapSmall")
 local TIME_STEP = 0.1
 local INTERRUPT_FADE = 0.8
+local function InQuad(t) return t * t end
+local function HideCast(cast) cast:Hide() end
 local SHIELD_ALPHA = 0.6
 local ICON_CROP = 0.07
 local MS = 1000
@@ -274,7 +276,7 @@ function Cast.Stop(plate, interrupted, failed)
 			plate.castToken = token
 			C_Timer.After(Tokens.Duration("castErrorHold"), function()
 				if plate.castToken == token then
-					plate.castFade = Motion.Tween(cast, "SetAlpha", cast:GetAlpha(), 0, 0.25, "inOutSine", function() cast:Hide() end)
+					plate.castFade = Motion.Tween(cast, "SetAlpha", cast:GetAlpha(), 0, 0.25, "inOutSine", HideCast)
 				end
 			end)
 		else
@@ -282,7 +284,7 @@ function Cast.Stop(plate, interrupted, failed)
 		end
 	else
 		if Settings.Get("cast.outcomes") then
-			plate.castFade = Motion.Tween(cast, "SetAlpha", cast:GetAlpha(), 0, Tokens.Duration("fade"), function(t) return t * t end, function() cast:Hide() end)
+			plate.castFade = Motion.Tween(cast, "SetAlpha", cast:GetAlpha(), 0, Tokens.Duration("fade"), InQuad, HideCast)
 		else
 			plate.castFade = Motion.FadeOut(cast, Tokens.Duration("fade"))
 		end

@@ -745,7 +745,6 @@ local function TargetChange(view)
 		K.Motion.Tween(ghost.parent, "SetAlpha", ghost.parent:GetAlpha(), 0, 0.12, "inOutSine", HideBody)
 		view.medallion:SetDead(false)
 		view.slabDead = false
-		if view.castbar then view.castbar.frame:SetParent(view.body) end
 		K.Motion.FadeIn(view.body, 0.12)
 	elseif on then
 		K.Motion.FadeIn(view.body, 0.12)
