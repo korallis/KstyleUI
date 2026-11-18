@@ -1350,6 +1350,7 @@ ns.Locale.Add({
 	["Preset"] = "Voreinstellung",
 	["Press Ctrl+C to copy the link."] = "Dr\195\188ckt Strg+C, um den Link zu kopieren.",
 	["Press Ctrl+C to copy this string, then share it."] = "Dr\195\188ckt Strg+C, um diesen Text zu kopieren, und teilt ihn dann.",
+	["Previous display"] = "Vorherige Anzeige",
 	["Previous fight"] = "Vorheriger Kampf",
 	["Priority"] = "Priorit\195\164t",
 	["Priority (boss, important, yours first)"] = "Priorit\195\164t (Boss, wichtig, Eure zuerst)",

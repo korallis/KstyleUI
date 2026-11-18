@@ -34,6 +34,8 @@ for _, style in ipairs({ "frames", "medallions" }) do
 	assert(U.Shown(env, view.powerText) == "37", "a supplied secret power type is not compared")
 	K.Options.Write("UnitFrames", "player.powerText", "none")
 	assert(not view.powerText:IsShown() and not view.geometry.powerText, "None removes the lane")
+	K.Options.Write("UnitFrames", "player.powerText", "legacy")
+	assert(not view.powerText:IsShown() and not view.geometry.powerText, "Previous display restores the original hidden power text")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
@@ -50,8 +52,10 @@ do
 	env._restricted = true
 	env.FireEvent("UNIT_POWER_UPDATE", "player")
 	assert(U.Shown(env, power.value) == "37", "the orb passes restricted resource values to its number")
+	K.Options.Write("UnitFrames", "player.powerText", "legacy")
+	assert(power.value:GetJustifyH() == "CENTER" and U.Shown(env, power.value) == "37%", "Previous display restores the original centred percent in Orbs")
 	K.Options.Write("UnitFrames", "player.powerText", "none")
-	assert(power.value:GetJustifyH() == "CENTER" and U.Shown(env, power.value) == "37%", "None restores the original centred percent in Orbs")
+	assert(U.Shown(env, power.value) == "", "None hides the orb's number")
 end
 
 local env, K, ns = U.New()

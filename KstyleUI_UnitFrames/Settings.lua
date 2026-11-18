@@ -208,6 +208,7 @@ end
 Settings.CHOICES = {
 	powerText = Options({
 		{ "auto", L["Automatic: mana percent, other resources current"] },
+		{ "legacy", L["Previous display"] },
 		{ "percent", L["Percentage"] }, { "current", L["Current"] }, { "currentMax", L["Current and max"] },
 		{ "both", L["Current, max and percentage"] }, { "none", L["None"] },
 	}),

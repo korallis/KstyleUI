@@ -713,7 +713,7 @@ local function Marker(out, s)
 end
 
 local function PowerLane(out, s)
-	if not (s.power and out.power) or (s.powerText or "none") == "none" then return end
+	if not (s.power and out.power) or (s.powerText or "none") == "none" or s.powerText == "legacy" then return end
 	local bar, name, power = out.health, out.name, out.power
 	if out.form ~= "slab" then
 		out.powerText = Rect(power.x + TEXT_GAP, power.y, max(0, power.w - 2 * TEXT_GAP), power.h)
