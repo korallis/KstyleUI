@@ -95,7 +95,7 @@ local function Config()
 	if next(config.profiles) then
 		for _, choice in ipairs(Service.Choices()) do
 			local name = config.profiles[choice.key]
-			if type(name) ~= "string" or type(ns.Store.Data().profiles[name]) ~= "table" then
+			if type(name) ~= "string" or type((ns.Store.Data().profiles[name])) ~= "table" then
 				config.profiles[choice.key] = ns.Store.ProfileName()
 			end
 		end
@@ -156,7 +156,7 @@ end
 
 function Service.Assign(key, name)
 	local config = Config()
-	if not config or type(name) ~= "string" or type(ns.Store.Data().profiles[name]) ~= "table" then
+	if not config or type(name) ~= "string" or type((ns.Store.Data().profiles[name])) ~= "table" then
 		return false
 	end
 	for _, choice in ipairs(Service.Choices()) do

@@ -20,6 +20,7 @@ return Common.Run(function()
 	D.Menus(env, { backpack = 133633 })
 	Load(D.Files(), env)
 	Load(M.Files(), env)
+	K.Options.Write("Meters", "followRole", false)
 	if Common.PreviousFinish() then
 		K.Options.Write("DataBars", "strip.dockMeter", false)
 		K.Options.Write("Meters", "fitCards", false)
