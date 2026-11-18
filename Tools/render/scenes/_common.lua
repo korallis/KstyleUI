@@ -14,6 +14,14 @@ function Common.PreviousFinish()
 end
 
 function Common.FinishSettings(profile)
+	if os.getenv("RENDER_NEEDS_OFF") == "1" then
+		profile.ActionBars = profile.ActionBars or {}
+		profile.ActionBars.bindingHints = false
+		profile.ActionBars.bar3 = profile.ActionBars.bar3 or {}
+		profile.ActionBars.bar3.finished = false
+		profile.ColorVision = profile.ColorVision or {}
+		profile.ColorVision.mode = "standard"
+	end
 	if not Common.PreviousFinish() then return profile end
 	local previous = {
 		Skins = { steelButtons = false, windowMetrics = false, quests = { continuation = false }, restedXP = { compose = false } },

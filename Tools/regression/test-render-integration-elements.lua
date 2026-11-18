@@ -31,3 +31,16 @@ assert(not K.Setup.Layouts.ThirdBarFinished(), "populate the previous bar-3 choi
 assert(K.Store.Module("ActionBars").bindingHints == false, "populate the previous binding-helper choice before isolated setup summaries are built")
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("isolated HUD off choice ok")
+
+local common = assert(loadfile("Tools/render/scenes/_common.lua"))
+setfenv(common, setmetatable({ os = { getenv = function(key) if key == "RENDER_NEEDS_OFF" then return "1" end end } }, { __index = _G }))
+local saved = common().FinishSettings({})
+local beforeEnv, beforeK = C.New({ saved = { version = 2, profiles = { Default = saved } } })
+C.Boot(beforeEnv)
+local changed = 0
+beforeK.Callbacks.Register("ThemeChanged", "PreviousScene", function() changed = changed + 1 end)
+audit().Apply(beforeK)
+assert(changed == 0, "Seed the previous palette and fit choices before login; late fixture restyles change the guide card's padding")
+assert(beforeK.ColorVision.Mode() == "standard" and not beforeK.Setup.Layouts.ThirdBarFinished())
+assert(#beforeEnv._errors == 0, tostring(beforeEnv._errors[1]))
+print("previous choices start before login ok")
