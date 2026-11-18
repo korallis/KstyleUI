@@ -36,7 +36,7 @@ assert(m.dangerPulse and U.W.LastCall(m.dangerPulse, "SetTarget")[1] == m.lowFra
 assert(m.dangerPulse._parent == V.frame.breath, "one AnimationGroup starts the ring and vignette together")
 assert(near(U.W.LastCall(m.dangerPulse, "SetDuration")[1], K.Tokens.Duration("dangerBreath")), "share dangerBreath 0.8 seconds per leg")
 assert(near(U.W.LastCall(m.dangerPulse, "SetToAlpha")[1], 0.6), "both signals breathe from 1 to 0.6")
-assert(m.lowFrame:GetFrameLevel() == m:GetFrameLevel(), "draw the clean annulus under the bezel")
+assert(m.lowFrame:GetFrameLevel() < m:GetFrameLevel(), "draw the clean annulus below the bezel's frame level")
 assert(near(m.lowFrame:GetWidth(), K.Widgets.Snap(m, m.size * 1.12)), "use LOW_SPREAD 1.12")
 assert(enemy.lowFrame:IsShown() and not enemy.pulse:IsPlaying() and alpha(enemy.low) == 1, "enemies get a static rim, never a low-health pulse")
 assert(enemy.low:GetTexture() == K.Tokens.Texture("dangerRim"), "the enemy rim is a clean 2-unit ring")

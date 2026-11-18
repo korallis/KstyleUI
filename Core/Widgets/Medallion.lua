@@ -141,7 +141,7 @@ end
 function Medallion:Layout(size, plaqueSide)
 	self.size = size
 	local level = self:GetFrameLevel()
-	self.lowFrame:SetFrameLevel(level + (self.cleanLow and 0 or LEVEL_RING))
+	self.lowFrame:SetFrameLevel(math.max(0, level + (self.cleanLow and -1 or LEVEL_RING)))
 	self.plaque:SetFrameLevel(level + LEVEL_PLAQUE)
 	local inner = Snap(self, size * PORTRAIT_SHARE)
 	self.portrait:SetSize(inner, inner)
@@ -200,7 +200,7 @@ function Medallion:LowHealth(unit, enemy, clean)
 	clean = clean ~= false
 	if self.cleanLow ~= clean then
 		self.cleanLow = clean
-		self.lowFrame:SetFrameLevel(self:GetFrameLevel() + (clean and 0 or LEVEL_RING))
+		self.lowFrame:SetFrameLevel(math.max(0, self:GetFrameLevel() + (clean and -1 or LEVEL_RING)))
 		local spread = Snap(self, self.size * (clean and LOW_SPREAD or OLD_LOW_SPREAD))
 		self.lowFrame:SetSize(spread, spread)
 		self.low:SetBlendMode(clean and "BLEND" or "ADD")
