@@ -64,6 +64,18 @@ Tools/render/shoot.sh gallery_skins_mail --backdrop                             
 
 `--strict` also rejects a texture logged as a grey box, with exit 3 after writing the PNG. Populate the texture cache before collecting acceptance pictures; `--report` remains available for inspecting scenes without that cache. Both galleries use `Interface\\TargetingFrame\\UI-RaidTargetingIcons` for their target preview's marker. The canvas accepts Windows drive paths as file URLs, so cached textures load from a native Windows home directory too.
 
+On Windows, set `CHROME` to the real Chrome executable and run `shoot.sh` from
+Git Bash. The launcher uses `cygpath -am` to make native `file:///C:/...` URLs
+for the page, scripts, asset base and backdrop; no browser shim is needed.
+Both `/c/Users/.../ground.png` and `C:/Users/.../ground.png` backdrops work,
+including spaces and URL punctuation in paths.
+
+Region opacity and vertex-colour opacity multiply, independently of setter
+order; colour-texture and gradient alpha remain additional factors. This can
+change existing harness pictures even when addon code is unchanged. Keep
+`docs/media/readme/frame_raid.jpg` until A7 lands and a real Magic dispel has
+been checked in game; then retake it through the normal README workflow.
+
 ### Native context-menu fixtures
 
 `native_menus_tracking`, `native_menus_compartment` and `native_menus_quest` open the actual KstyleUI menu generators over `Tools/regression/native_menu_fixture.lua`. Set `RENDER_MATERIAL` to `Native`, `Glass`, `Flat`, `Slate`, `ForgedTicks` or `ForgedBrackets`; `Native` disables this skin. `RENDER_TEXT_SIZE` and `RENDER_TEXT_FACE` exercise the Skins text controls.
@@ -162,7 +174,7 @@ python3 Tools/render/readme.py --only crop_meter    # redo one
 python3 Tools/render/readme.py --no-render          # recut from the last renders
 ```
 
-Under `RENDER_HUD_STYLE=Medallions`, `RENDER_FX` puts the effects layer into one state before the unit frame and action bar scenes are built (`scenes/_effects.lua`): `ready`, `cap`, `levelup`, `cast`, `stopped`, `vignette`, `burst` or `rest`, and `RENDER_FX_T` is the time in seconds since the effect started (unset, its peak). The harness models neither `Scale` animations nor `SetOrder`, so the file pins each effect to its own alpha and size envelope at that time; 3D models are not drawn. A short clip is a run of `RENDER_FX_T` frames joined with ffmpeg. See [medallions-effects.md](../../docs/medallions-effects.md).
+Under `RENDER_HUD_STYLE=Medallions`, `RENDER_FX` puts the effects layer into one state before the unit frame and action bar scenes are built (`scenes/_effects.lua`): `ready`, `cap`, `levelup`, `cast`, `stopped`, `vignette`, `burst` or `rest`, and `RENDER_FX_T` is the time in seconds since the effect started (unset, the first rising Alpha animation's peak). Casts use the real completion/interruption events after preset timers settle. The harness samples the addon's own animation calls, including orders, delays, smoothing, translations and centred texture scales; it does not pin a separate alpha or size envelope. 3D models are not drawn. Cooldown swipes, edges (including colour, alpha and scale) and countdowns follow their separate addon settings: disabling a swipe does not disable the edge or number. Countdown font strings keep the addon's font, anchors and formatter. A short clip is a run of `RENDER_FX_T` frames joined with ffmpeg. See [medallions-effects.md](../../docs/medallions-effects.md).
 
 `readme.py` retakes every rendered picture the README shows in one command (the Medallions section's `game_*` stills and GIFs are in-game captures it keeps), at the shipped ornament level (`RENDER_ORNAMENTS=Full`), and writes each as a JPEG. The whole-screen pictures are `hud_reference` in combat (`RENDER_LOSS=1`, `RENDER_METER_SECRET=1`, and `RENDER_ORBS_HIT=1` under Orbs) over the scenery plate, under `--strict`: all three styles on 5120 by 1440 at `RENDER_SIZE=auto` and `--ppu 1.3333`, all three on 1920 by 1080 at `RENDER_SIZE=0.9375` (the 15/16 the game's Auto picks there) and `--ppu 1`, Medallions with `RENDER_MEDALLIONS_STATE=combat`, and the Healer layout on 5120 by 1440 in each `RENDER_ARRANGEMENT`. The close crops (`crop_*`) cut the 1080 HUD rendered at `--ppu 2`, the party damage card (`RENDER_METER_GROUP=party`) and `nameplate_bible` in combat. The `frame_*` pictures are gallery frames cut by `gallery.py`, which reads the handoff mockup (`~/.local/share/kstyleui-handoff/screens/`) for its reference crops, so the script needs it. Every rendered caption says test render. The script prints the size of each picture, deletes any file in `docs/media/readme/` it did not write except `game_*`, and fails when the total passes 4 MB. `Tools/tests/test_render_readme.py` checks that the README shows exactly these pictures, each captioned as a test render, that the whole-screen pictures keep their screen's shape, and that the package does not ship them (`docs` is in `.pkgmeta`'s ignore list).
 

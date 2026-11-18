@@ -121,22 +121,35 @@ fi
 page="$outdir/$scene.html"
 width=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.floor(s['screen']['width']*float(sys.argv[2])+0.5))" "$json" "$ppu")
 height=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.floor(s['screen']['height']*float(sys.argv[2])+0.5))" "$json" "$ppu")
+file_url() {
+	local path=$1
+	if command -v cygpath >/dev/null 2>&1; then
+		path=$(cygpath -am "$path")
+	elif [ "${path#/}" = "$path" ]; then
+		path="$root/$path"
+	fi
+	python3 - "$path" <<'PY'
+import sys
+from urllib.parse import quote
+path = sys.argv[1].replace("\\", "/")
+print("file://" + ("" if path.startswith("/") else "/") + quote(path, safe="/:"))
+PY
+}
+base_url=$(file_url "$root")
+page_url=$(file_url "$page")
 {
 	printf '<!doctype html><html><head><meta charset="utf-8"><title>%s</title>' "$scene"
 	printf '<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body>\n'
 	printf '<script>window.SCENE='
 	cat "$json"
 	if [ -n "$backdrop" ]; then
-		case "$backdrop" in
-			/*) backdrop_url="file://$backdrop" ;;
-			*) backdrop_url="file://$root/$backdrop" ;;
-		esac
-		printf ';window.RENDER_OPTIONS={ppu:%s,base:"file://%s/",backdrop:"%s",backdropAlpha:%s};</script>\n' "$ppu" "$root" "$backdrop_url" "$backdrop_alpha"
+		backdrop_url=$(file_url "$backdrop")
+		printf ';window.RENDER_OPTIONS={ppu:%s,base:"%s/",backdrop:"%s",backdropAlpha:%s};</script>\n' "$ppu" "$base_url" "$backdrop_url" "$backdrop_alpha"
 	else
-		printf ';window.RENDER_OPTIONS={ppu:%s,base:"file://%s/"};</script>\n' "$ppu" "$root"
+		printf ';window.RENDER_OPTIONS={ppu:%s,base:"%s/"};</script>\n' "$ppu" "$base_url"
 	fi
-	printf '<script src="file://%s/Tools/render/render.js"></script>\n' "$root"
-	printf '<script src="file://%s/Tools/render/page.js"></script>\n' "$root"
+	printf '<script src="%s/Tools/render/render.js"></script>\n' "$base_url"
+	printf '<script src="%s/Tools/render/page.js"></script>\n' "$base_url"
 	printf '</body></html>\n'
 } > "$page"
 
@@ -156,7 +169,7 @@ fi
 rm -f "$out"
 if ! "$chrome" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
 	--force-device-scale-factor=1 --window-size="$width,$height" --virtual-time-budget=30000 \
-	--screenshot="$out" "file://$root/$page" >/dev/null 2>&1; then
+	--screenshot="$out" "$page_url" >/dev/null 2>&1; then
 	if [ ! -s "$out" ]; then
 		echo "Chrome wrote no screenshot for $scene" >&2
 		exit 1
@@ -169,7 +182,7 @@ fi
 dom=$(mktemp)
 paged=1
 if ! "$chrome" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=30000 \
-	--dump-dom "file://$root/$page" 2>/dev/null > "$dom" || ! grep -q '<title>rendered</title>' "$dom"; then
+	--dump-dom "$page_url" 2>/dev/null > "$dom" || ! grep -q '<title>rendered</title>' "$dom"; then
 	paged=0
 	echo "guard: the page did not finish drawing, so the texts it truncated are unknown" >&2
 fi

@@ -1,37 +1,31 @@
--- _effects.lua: RENDER_FX puts the Medallions effects layer into one state before a HUD module's scene is built, so its 2D effects render through the addon's own code. RENDER_FX is one of ready (a slot's steel ready flash), cap (the hub's rune ring at a capped resource), levelup (the hub's level-up burst), cast (a landed cast's steel wash and streak), stopped (an interrupted cast's red wash), vignette (the low-health vignette), burst (the class burst behind the player's medallion, its 2D still) and rest (the secondary frames resting after combat). RENDER_FX_T is the time in seconds since the effect started; unset, each effect shows at its peak. The harness models neither Scale animations nor SetOrder, so this file pins each effect's alpha and size to its own envelope at that time; the 3D models are not drawn (the stub draws no world), so every state is the 2D layer.
+-- _effects.lua: RENDER_FX starts a Medallions effect through the addon and samples its own animations at RENDER_FX_T, or the first rising alpha's peak; 3D models are not drawn.
 local FX = dofile("Tools/regression/effects_env.lua")
+local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local PEAK = { ready = 0.075, cap = 0, levelup = 0.3, cast = 0.12, stopped = 0.12, vignette = 0, burst = 0.3, rest = 0 }
+local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true }
 
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
-
-local function Clamp(x)
-	return math.max(0, math.min(1, x))
-end
-
--- Envelope(t, total, rise) -> the alpha of a flash that rises over rise * total and falls over the rest.
-local function Envelope(t, total, rise)
-	if t <= 0 or t >= total then
-		return 0
-	end
-	local up = total * rise
-	if t < up then
-		return t / up
-	end
-	return 1 - (t - up) / (total - up)
-end
-Effects.Envelope = Envelope
 
 function Effects.State()
 	local state = rawget(_G, "RENDER_FX") or os.getenv("RENDER_FX")
 	if not state or state == "" then
 		return nil
 	end
-	assert(PEAK[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst or rest")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst or rest")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
-	return state, t or PEAK[state]
+	return state, t
+end
+
+local function Sample(env, group, t, other)
+	t = t or Scene.AnimationPeak(group)
+	for _, each in ipairs({ group, other }) do
+		if each._playedAt then
+			each._playedAt = env._time - t
+		end
+	end
+	return t
 end
 
 local function Fixtures(env)
@@ -56,14 +50,13 @@ function Effects.Apply(env, module, ns, notes)
 	end
 	local E = K.Effects
 	local now = env._now
-	env._now = env._time - t
+	env._now = env._time - (t or 0)
 	if module == "actionbars" then
 		if state == "ready" then
 			local b = ns.actionButtons[4]
 			b.realCooldown = true
 			b:FlashReady()
-			b.medReady.anim:Stop()
-			b.medReady:SetAlpha(Envelope(t, ns.SlabEffects.READY, 0.25))
+			t = Sample(env, b.medReady.anim, t)
 			notes[#notes + 1] = "fx: slot 4's ready flash " .. t .. " s after its cooldown ended"
 		elseif state == "cap" then
 			Fixtures(env)
@@ -78,8 +71,7 @@ function Effects.Apply(env, module, ns, notes)
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)
 			local burst = ns.Slab.hub.burst
-			burst.anim:Stop()
-			burst:SetAlpha(Envelope(t, 1.2, 0.2))
+			t = Sample(env, burst.anim, t)
 			notes[#notes + 1] = "fx: the hub's 2D level-up burst " .. t .. " s in (the 3D rays at Full are not drawn)"
 		end
 	elseif module == "unitframes" then
@@ -96,16 +88,23 @@ function Effects.Apply(env, module, ns, notes)
 			K.Options.Write("Medallions", "motion", "calm")
 			local _, class = env.UnitClass("player")
 			if m and m:Burst(class) then
-				m.burst.anim:Stop()
-				local share = 0.6 + (1.15 - 0.6) * Clamp(t / 1.2)
-				local side = m.burst:GetWidth() * share
-				m.burst:SetSize(side, side)
-				m.burst:SetAlpha(Envelope(t, 1.2, 0.2))
+				t = Sample(env, m.burst.anim, t)
 				notes[#notes + 1] = "fx: the class burst behind the player's medallion " .. t .. " s in"
 			else
 				notes[#notes + 1] = "fx: no player medallion to burst behind"
 			end
 		elseif state == "cast" or state == "stopped" then
+			env.C_DurationUtil = env.C_DurationUtil or {}
+			env.C_DurationUtil.CreateDuration = env.C_DurationUtil.CreateDuration or function()
+				return { SetTimeSpan = function(duration, start, finish)
+					duration.start, duration.finish = start, math.max(start, finish)
+				end }
+			end
+			local player = env._units.player
+			if not player.cast then
+				player.cast = { name = "Lightning Bolt", texture = 136048, start = (env._time - 1) * 1000, finish = (env._time + 1) * 1000, spellID = 403 }
+				env.FireEvent("UNIT_SPELLCAST_START", "player")
+			end
 			local cb
 			for _, kind in ipairs({ "player", "target" }) do
 				for _, list in ipairs({ ns.CastBars.Inline(kind) or {}, ns.CastBars.Get(kind) or {} }) do
@@ -116,37 +115,17 @@ function Effects.Apply(env, module, ns, notes)
 					end
 				end
 			end
-			local standIn = false
-			if not cb then
-				local view = ns.Frames.Get("player").views[1]
-				local anchor = view.slab and view.slab.fill or view.parent
-				cb = ns.CastBars.NewBar(K.Scale.Root(), "player", false)
-				cb.frame:ClearAllPoints()
-				cb.frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
-				cb.frame:SetSize(260, 20)
-				ns.CastBars.Layout(cb, 260, 20)
-				ns.CastBars.SetName(cb, "Lightning Bolt")
-				cb.bar:SetMinMaxValues(0, 1)
-				cb.bar:SetValue(state == "cast" and 1 or 0.6)
-				cb.frame:Show()
-				standIn = true
-			end
 			if cb then
-				ns.CastEffects.Flash(cb, state == "cast" and "giltLit" or "hostile", state == "cast" and 0.6 or 0.55)
-				cb.flash.group:Stop()
-				cb.flash:Show()
-				cb.flash:SetAlpha(Envelope(t, 0.36, 0.17))
-				local streak = cb.medStreak
-				if streak then
-					streak.anim:Stop()
-					streak.streak:SetAlpha(Envelope(t, 0.25, 0.5))
-					local width = cb.bar:GetWidth()
-					local length = streak.streak:GetWidth()
-					streak.streak:ClearAllPoints()
-					streak.streak:SetPoint("RIGHT", streak, "LEFT", (width + length) * Clamp(t / 0.25), 0)
+				local unit = cb.unit
+				env._units[unit].cast, env._units[unit].channel = nil, nil
+				if state == "cast" then
+					env.FireEvent("UNIT_SPELLCAST_STOP", unit, "Cast-1", cb.spellID, cb.castBarID)
+				else
+					env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", unit, "Cast-1", cb.spellID, nil, cb.castBarID)
 				end
+				local streak = cb.medStreak
+				t = Sample(env, cb.flash.group, t, streak and streak.anim)
 				notes[#notes + 1] = "fx: the " .. cb.kind .. " cast bar's " .. state .. " flash " .. t .. " s in"
-					.. (standIn and " (a stand-alone cast bar under the player frame: this build's Medallions player frame shows no cast bar)" or "")
 			else
 				notes[#notes + 1] = "fx: no cast bar is showing"
 			end

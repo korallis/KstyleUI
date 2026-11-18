@@ -10,6 +10,42 @@ You need about two hours for the core and modules, plus a dungeon run and, if yo
 - Have a level 60 character of a class that pages its action bar (warrior, rogue or druid), a character below level 60 for the XP bar, and a hunter or warlock for the pet bar checks if you have one.
 - Install an error catcher such as BugSack and BugGrabber if you do not have one. KstyleUI also logs every error it catches to its devlog.
 
+## Audit finish checklist (Z4-Z6, owner in the live client)
+
+These checks close the finish plan after the harness work; leave each box open
+until its client evidence is saved. Record the addon commit, Forever build,
+date, hardware, resolution, UI scale, HUD style and motion setting with every
+capture or measurement. Harness renders do not complete this checklist.
+
+- [ ] **Z4: current-build captures.** Capture Frames, Orbs, a party, a raid of
+  25, three skinned windows, Options and setup, each over dark and bright ground.
+  Retake the three effect GIFs at 60 fps. Save the originals and the capture
+  settings together.
+- [ ] **Z1/A7: real dispel before the README retake.** After A7 lands, check a
+  real Magic dispel in game: its wash must leave the name and health figure
+  readable, matching the Options sample's intended 16% wash. Only then retake
+  `docs/media/readme/frame_raid.jpg`; the harness correction alone is not proof
+  of the engine's restricted aura path.
+- [ ] **Z5: repeat the three-family audit.** Give the current in-game capture
+  set to all three model families, retain their reports, fix what they find and
+  repeat against fresh captures until no model asks for a change.
+- [ ] **Z6: client acceptance matrix.** At 1920x1080, 3456x2234 and 5120x1440,
+  run Full, Calm and Off, solo, in groups of 5, 25 and 40, and with twenty
+  nameplates where feasible. For each feasible combination, perform three
+  repeats of 30 seconds of settled idle and 60 seconds of representative
+  combat; mark unavailable combinations with the reason.
+- [ ] **Z6: measurements and limits.** Record p50, p95 and p99 frame time,
+  per-addon memory after garbage collection, lifecycle peaks and addon CPU.
+  Name each measuring tool, sampling method and its limits; record unavailable
+  metrics rather than substituting average FPS for percentiles. Compare Full
+  with Off under matching conditions: the proposed budget on Beast is at most
+  0.5 ms added at p95. Report each repeat and the comparison.
+- [ ] **Z6: model fallback.** Exercise all nine class model IDs, including an
+  unavailable or refused model, and verify that the 2D fallback is immediate.
+- [ ] **Z6: owner acceptance.** After real play, re-score the same four lenses:
+  aesthetics, effects, player value and performance; retain the scores and any
+  remaining changes with the evidence.
+
 ## Install the addons
 
 The game runs the addons from your clone at `~/KstyleUI`, on the `staging` branch. A script links each addon folder in the clone into the game's AddOns folder, so the game loads whatever the clone holds. Agents work in their own folders and never change your clone. Run each command in **Terminal**.

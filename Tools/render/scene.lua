@@ -294,29 +294,55 @@ local function eased(p, smoothing)
 	return p
 end
 
+local function animationSchedule(group)
+	local orders, lengths, offsets = {}, {}, {}
+	for _, anim in ipairs(group._anims or {}) do
+		local order = state(anim, "Order") or 1
+		if not lengths[order] then
+			orders[#orders + 1] = order
+		end
+		lengths[order] = max(lengths[order] or 0, (state(anim, "StartDelay") or 0) + (state(anim, "Duration") or 0) + (state(anim, "EndDelay") or 0))
+	end
+	table.sort(orders)
+	local total = 0
+	for _, order in ipairs(orders) do
+		offsets[order], total = total, total + lengths[order]
+	end
+	return offsets, total
+end
+
+function Scene.AnimationPeak(group)
+	local offsets = animationSchedule(group)
+	for _, anim in ipairs(group._anims or {}) do
+		if anim._type == "Alpha" and (state(anim, "ToAlpha") or 1) > (state(anim, "FromAlpha") or 1) then
+			return offsets[state(anim, "Order") or 1] + (state(anim, "StartDelay") or 0) + (state(anim, "Duration") or 0)
+		end
+	end
+	return 0
+end
+
 -- animationState(frame, now) -> dx, dy (in the frame's own units), alpha, absolute: what the frame's playing
 -- animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an Alpha
 -- animation sets the alpha between its from and to values once its start delay has passed, in place of the
 -- frame's own alpha as the game does (absolute is true then), and a finished group leaves each animation at its
 -- end, as the game does until OnFinished hides the frame.
 local function animationState(frame, now)
-	local dx, dy, alpha, absolute = 0, 0, 1, false
+	local dx, dy, alpha, absolute, sx, sy = 0, 0, 1, false, 1, 1
 	if type(now) ~= "number" then
-		return dx, dy, alpha
+		return dx, dy, alpha, absolute, sx, sy
 	end
 	for _, group in ipairs(frame._groups or {}) do
 		local started = group._playedAt
-		if type(started) == "number" then
+		if type(started) == "number" and now >= started then
 			local elapsed = now - started
-			local total = 0
-			for _, anim in ipairs(group._anims or {}) do
-				total = math.max(total, (state(anim, "StartDelay") or 0) + (state(anim, "Duration") or 0))
-			end
+			local offsets, total = animationSchedule(group)
 			if state(group, "Looping") == "REPEAT" and total > 0 then
 				elapsed = elapsed % total
 			end
+			local alphaStart = -1
 			for _, anim in ipairs(group._anims or {}) do
-				local delay, duration = state(anim, "StartDelay") or 0, state(anim, "Duration") or 0
+				local delay = offsets[state(anim, "Order") or 1] + (state(anim, "StartDelay") or 0)
+				local duration = state(anim, "Duration") or 0
 				local p = 0
 				if elapsed >= delay then
 					p = duration > 0 and math.min(1, (elapsed - delay) / duration) or 1
@@ -326,17 +352,23 @@ local function animationState(frame, now)
 					local ox, oy = state(anim, "Offset")
 					dx = dx + (type(ox) == "number" and ox or 0) * p
 					dy = dy + (type(oy) == "number" and oy or 0) * p
-				elseif anim._type == "Alpha" and elapsed >= delay then
+				elseif anim._type == "Alpha" and elapsed >= delay and delay >= alphaStart then
 					local from, to = state(anim, "FromAlpha"), state(anim, "ToAlpha")
 					from = type(from) == "number" and from or 1
 					to = type(to) == "number" and to or 1
-					alpha = alpha * (from + (to - from) * p)
+					alpha = from + (to - from) * p
+					alphaStart = delay
 					absolute = true
+				elseif anim._type == "Scale" then
+					local fx, fy = state(anim, "ScaleFrom")
+					local tx, ty = state(anim, "ScaleTo")
+					sx = sx * ((fx or 1) + ((tx or 1) - (fx or 1)) * p)
+					sy = sy * ((fy or 1) + ((ty or 1) - (fy or 1)) * p)
 				end
 			end
 		end
 	end
-	return dx, dy, alpha, absolute
+	return dx, dy, alpha, absolute, sx, sy
 end
 
 -- findOwnAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
@@ -345,7 +377,7 @@ end
 -- log is not scanned on every build; a node without the field is scanned.
 local function lastAlphaCall(node)
 	local last = node._lastAlpha
-	if last ~= nil then
+	if last ~= nil and (not last or last.method ~= "SetVertexColor") then
 		return last or nil
 	end
 	local calls = node._calls
@@ -360,10 +392,6 @@ end
 
 local function findOwnAlpha(node)
 	local call = lastAlphaCall(node)
-	if call and call.method == "SetVertexColor" then
-		local value = reveal(node._env, call.args[4])
-		return type(value) == "number" and value or 1
-	end
 	if call and call.method == "SetAlphaFromBoolean" then
 		local value = reveal(node._env, call.args[1])
 		if type(value) == "boolean" then
@@ -802,6 +830,12 @@ function Solver:solve(object)
 	if not bottom then
 		return nil, "height unknown"
 	end
+	if object._type == "Texture" and object._groups then
+		local _, _, _, _, sx, sy = animationState(object, self.opts.time)
+		local cx, cy = (left + right) / 2, (bottom + top) / 2
+		left, right = cx + (left - cx) * sx, cx + (right - cx) * sx
+		bottom, top = cy + (bottom - cy) * sy, cy + (top - cy) * sy
+	end
 	return { left, bottom, right, top }
 end
 
@@ -1174,7 +1208,6 @@ function Scene.Build(env, opts)
 			item.color = colour
 		end
 		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 }, env)
-		item.vertex[4] = 1
 		if region._barOwner and region._barOwner._state.StatusBarColor then
 			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex, env)
 		end
@@ -1313,14 +1346,15 @@ function Scene.Build(env, opts)
 		if not fraction then
 			return nil
 		end
-		if state(frame, "DrawSwipe") == false then
-			return nil
-		end
 		local item = { kind = "swipe", alpha = round4(alpha), fraction = round4(fraction), remaining = round4(left) }
+		if state(frame, "DrawSwipe") == false then
+			item.drawSwipe = false
+		end
 		item.reverse = state(frame, "Reverse") == true
 		item.color = color4(frame._state.SwipeColor, { 0, 0, 0, 0.8 })
 		if state(frame, "DrawEdge") == true then
 			item.edge = color4(frame._state.EdgeColor, { 1, 1, 1, 1 })
+			item.edgeScale = num(env, state(frame, "EdgeScale"), 1)
 		end
 		local swipe = state(frame, "SwipeTexture")
 		if swipe then
@@ -1333,6 +1367,9 @@ function Scene.Build(env, opts)
 			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k), flags = "OUTLINE" }
 		end
 		item.mark = frame._renderMark
+		if item.drawSwipe == false and not item.edge and not item.countdown then
+			return nil
+		end
 		return item
 	end
 

@@ -218,7 +218,7 @@ end
 -- ({ [key] = { w, h } }) resizes a free-sized element as Layout > Apply does for the layout (the Tank meters).
 -- With opts.combat the environment enters combat first and runs half a second, so the combat calm has faded the
 -- slow cards.
-local function build(env, opts, extra)
+local function build(env, opts, extra, beforeDraw)
 	applyPreset(env, opts)
 	local K = env.KstyleUI
 	local previewed = {}
@@ -241,6 +241,9 @@ local function build(env, opts, extra)
 		sceneOpts[k] = v
 	end
 	Hud.ShareLayout(env)
+	if beforeDraw then
+		beforeDraw()
+	end
 	local scene = Scene.Build(env, sceneOpts)
 	for _, line in ipairs(previewed) do
 		scene.log[#scene.log + 1] = "sizes " .. line .. ", as Layout > Apply writes it for the layout"
@@ -509,8 +512,9 @@ function modules.unitframes(opts)
 		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
-	Fx.Apply(env, "unitframes", ns, notes)
-	local scene = build(env, opts, { time = env._time })
+	local scene = build(env, opts, { time = env._time }, function()
+		Fx.Apply(env, "unitframes", ns, notes)
+	end)
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note
 	end
@@ -664,8 +668,9 @@ function modules.actionbars(opts)
 		env._now = clock
 	end
 	local notes = {}
-	Fx.Apply(env, "actionbars", ns, notes)
-	local scene = build(env, opts, { time = env._time })
+	local scene = build(env, opts, { time = env._time }, function()
+		Fx.Apply(env, "actionbars", ns, notes)
+	end)
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note
 	end

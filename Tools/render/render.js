@@ -675,7 +675,9 @@
 		lctx.moveTo(cx, cy);
 		lctx.arc(cx, cy, radius, from, to, false);
 		lctx.closePath();
-		lctx.fill();
+		if (item.drawSwipe !== false) {
+			lctx.fill();
+		}
 		if (item.file) {
 			const img = await loadImage(url(base, item.file));
 			if (img) {
@@ -697,9 +699,10 @@
 			ctx.clip();
 			ctx.globalAlpha = Math.min(1, item.alpha);
 			ctx.strokeStyle = rgba(item.edge);
-			ctx.lineWidth = Math.max(1, Math.round(1.5 * ppu));
-			ctx.shadowColor = rgba([item.edge[0], item.edge[1], item.edge[2], 0.8]);
-			ctx.shadowBlur = 4 * ppu;
+			const edgeScale = item.edgeScale === undefined ? 1 : item.edgeScale;
+			ctx.lineWidth = Math.max(1, Math.round(1.5 * ppu * edgeScale));
+			ctx.shadowColor = rgba(item.edge, 0.8);
+			ctx.shadowBlur = 4 * ppu * edgeScale;
 			ctx.beginPath();
 			ctx.moveTo(dest.x + cx, dest.y + cy);
 			ctx.lineTo(dest.x + cx + Math.cos(hand) * radius, dest.y + cy + Math.sin(hand) * radius);

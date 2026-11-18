@@ -1,0 +1,89 @@
+-- test-render-truth.lua: region and vertex alpha multiply, animation orders sample the addon's envelopes, and cooldown controls remain independent.
+local Stubs = dofile("Tools/regression/stubs/wow.lua")
+local Scene = dofile("Tools/render/scene.lua")
+local env = Stubs.NewEnv({ width = 1920, height = 1080 })
+local frame = env.CreateFrame("Frame", nil, env.UIParent)
+frame:SetSize(100, 50)
+frame:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
+frame:SetAlpha(0.5)
+
+local function near(actual, expected, fix)
+	assert(type(actual) == "number" and math.abs(actual - expected) < 0.001, fix .. ": expected " .. expected .. ", got " .. tostring(actual))
+end
+
+local function find(object, time)
+	for _, item in ipairs(Scene.Build(env, { time = time or 10 }).items) do
+		if item.object == object then
+			return item
+		end
+	end
+end
+
+local wash = frame:CreateTexture(nil, "OVERLAY")
+wash:SetAllPoints(frame)
+wash:SetColorTexture(1, 1, 1, 0.8)
+wash:SetAlpha(0.4)
+wash:SetVertexColor(1, 1, 1, 0.16)
+local item = find(wash)
+near(item.alpha * item.vertex[4], 0.5 * 0.4 * 0.16, "multiply region SetAlpha and vertex alpha, retaining colour-texture alpha separately")
+near(item.color[4], 0.8, "keep the colour texture's alpha")
+wash:SetAlphaFromBoolean(env.Secret(true), 0.25, 0)
+wash:SetVertexColor(1, 1, 1, env.Secret(0.5))
+item = find(wash)
+near(item.alpha * item.vertex[4], 0.5 * 0.25 * 0.5, "vertex colour must not replace SetAlphaFromBoolean")
+wash:SetVertexColor(1, 1, 1, 0.5)
+wash:SetAlpha(0.2)
+item = find(wash)
+near(item.alpha * item.vertex[4], 0.5 * 0.2 * 0.5, "alpha multiplication is independent of setter order")
+
+env._now = 10
+wash:SetAlpha(0)
+local group = wash:CreateAnimationGroup()
+local rise = group:CreateAnimation("Alpha")
+rise:SetFromAlpha(0)
+rise:SetToAlpha(1)
+rise:SetDuration(0.075)
+rise:SetOrder(1)
+local fall = group:CreateAnimation("Alpha")
+fall:SetFromAlpha(1)
+fall:SetToAlpha(0)
+fall:SetDuration(0.225)
+fall:SetOrder(2)
+group:Play()
+near(find(wash, 10.075).alpha, 0.5, "sample the ready flash at its real ordered peak")
+near(find(wash, 10.1875).alpha, 0.25, "the second alpha animation replaces the first at its order")
+assert(not find(wash, 10.4), "finished flashes must settle at zero")
+group:Stop()
+assert(not find(wash), "stopping the animation restores the region alpha, not the vertex alpha")
+
+local burst = frame:CreateTexture(nil, "OVERLAY")
+burst:SetSize(20, 20)
+burst:SetPoint("CENTER", frame, "CENTER", 0, 0)
+burst:SetColorTexture(1, 1, 1, 1)
+local grow = burst:CreateAnimationGroup()
+local scale = grow:CreateAnimation("Scale")
+scale:SetScaleFrom(0.6, 0.6)
+scale:SetScaleTo(1.2, 1.2)
+scale:SetDuration(1.2)
+scale:SetSmoothing("OUT")
+grow:Play()
+local original = find(burst, 10).rect
+local grown = find(burst, 10.6).rect
+near(grown[3] / original[3], 1.75, "draw Scale animations from the addon's own easing and scale calls")
+near(grown[1] + grown[3] / 2, original[1] + original[3] / 2, "scale around the centre")
+
+local cooldown = env.CreateFrame("Cooldown", nil, frame)
+cooldown:SetAllPoints(frame)
+cooldown:SetCooldown(6, 8)
+cooldown:SetDrawEdge(true)
+cooldown:SetEdgeColor(0.9, 0.8, 0.7, 0.6)
+cooldown:SetEdgeScale(0.75)
+cooldown:SetDrawSwipe(false)
+item = find(cooldown)
+assert(item and item.drawSwipe == false and item.edge and item.countdown == "4", "DrawSwipe(false) must leave the edge and countdown drawable")
+near(item.edge[4], 0.6, "draw the edge colour's alpha")
+near(item.edgeScale, 0.75, "draw SetEdgeScale")
+cooldown:SetDrawEdge(false)
+cooldown:SetHideCountdownNumbers(true)
+assert(not find(cooldown), "a cooldown with all drawing disabled has no drawable")
+print("ok render truth: independent alphas, ordered peaks, scales and cooldown controls")
