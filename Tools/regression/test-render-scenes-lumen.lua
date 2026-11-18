@@ -65,7 +65,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party")
 	assert(math.abs(quests.left - slot.left) <= 0.5 and math.abs(quests.width - slot.width) <= 1, scene.state .. ": the quest card is on the right rail's edge and width, got " .. quests.left .. " by " .. quests.width)
 	assert(quests.top >= slot.top - 0.75 and quests.top + quests.height <= slot.top + slot.height + 0.75, scene.state .. ": the quest card stays inside the story slot")
-	assert(math.abs(guide.left - column.left) <= 0.75 and guide.top >= column.top - 0.75 and guide.top + guide.height <= column.top + column.height + 0.75, scene.state .. ": the guide's card stays in the column, got " .. guide.left .. ", " .. guide.top .. ", " .. guide.height .. " for " .. column.left .. ", " .. column.top .. ", " .. column.height)
+	assert(math.abs(guide.left - column.left - 8 * 16 / 19) <= 0.75 and guide.top >= column.top - 0.75 and guide.top + guide.height <= column.top + column.height + 0.75, scene.state .. ": the guide leaves one eight-unit gutter beside the quest card, got " .. guide.left .. ", " .. guide.top .. ", " .. guide.height .. " for " .. column.left .. ", " .. column.top .. ", " .. column.height)
 	for _, text in ipairs({ "QUESTS", "Bloodtalon Scythemaw" }) do
 		local item = assert(find(scene, text), scene.state .. ": " .. text .. " draws")
 		within(item, quests, scene.state .. ": '" .. text .. "'")
