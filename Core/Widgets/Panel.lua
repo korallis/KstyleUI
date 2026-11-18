@@ -104,7 +104,7 @@ function Panel:Open()
 		self.closing = false
 		self.fadeOut:Stop()
 		Motion.FadeIn(self)
-		if not reopening then
+		if not reopening and Motion.Slides() then
 			self.rise:Stop()
 			self.rise:Play()
 		end

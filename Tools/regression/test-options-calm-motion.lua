@@ -65,10 +65,18 @@ for _, combat in ipairs({ false, true }) do
 	e.SetCombat(combat)
 	kit.Options.Open("General")
 	local frame = options.Window.Frame()
-	assert(frame:IsShown() and frame:GetAlpha() == 1, "calm panels snap open in combat and Reduced")
+	assert(frame:IsShown() and not frame.rise:IsPlaying(), "combat and Calm suppress the panel rise")
 	O.W.Tick(e, 0.05)
-	assert(frame:GetAlpha() == 1, "no panel fade runs in combat or Reduced")
+	if combat then
+		assert(frame:GetAlpha() == 1 and not frame.fadeIn:IsPlaying(), "no panel fade runs in combat")
+	else
+		assert(frame:GetAlpha() > 0 and frame:GetAlpha() < 1, "Calm keeps the panel opening fade")
+	end
+	O.W.Tick(e, 0.101)
+	assert(frame:GetAlpha() == 1, "Calm opens within 150 ms")
 	frame:Close()
-	assert(not frame:IsShown(), "calm panels snap closed in combat and Reduced")
+	assert(frame:IsShown() == not combat, "combat closes at once while Calm keeps the closing fade")
+	O.W.Tick(e, 0.15)
+	assert(not frame:IsShown(), "Calm closes within 150 ms")
 end
 print("options calm motion ok")
