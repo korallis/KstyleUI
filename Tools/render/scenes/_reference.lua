@@ -308,7 +308,11 @@ function Reference.Build(opts)
 		end
 		return Lumen.Build("questing", {
 			class = "SHAMAN",
-			settings = os.getenv("RENDER_COMBAT_LEGACY") == "1" and { UnitFrames = { player = { powerText = "none" }, target = { percentLead = false } }, Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 } }, CombatText = { clearLanes = false } } or nil,
+			settings = os.getenv("RENDER_COMBAT_LEGACY") == "1" and {
+				UnitFrames = { player = { powerText = "none" }, target = { percentLead = false } },
+				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 } },
+				CombatText = { clearLanes = false },
+			} or nil,
 			layout = layout,
 			applyPreset = true,
 			state = state,

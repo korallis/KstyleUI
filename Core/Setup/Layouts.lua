@@ -828,7 +828,10 @@ end
 Layouts.STYLES = { "orbs", "medallions" }
 
 function Layouts.Style(style, name, key)
-	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText") and ns.Store.Module("CombatText").clearLanes == false then return end
+	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
+		and ns.Store.Module("CombatText").clearLanes == false then
+		return
+	end
 	local set = STYLES[style] and STYLES[style][name]
 	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
 	if position then

@@ -292,9 +292,14 @@ function Setup.Apply(picked)
 		applying = false
 	end
 	WriteEditMode(picked.layout)
-	ns.Combat.Queue(function()
-		ns.CVars.Set("nameplateShowSelf", "0")
-	end)
+	local nameplates = Store.Defaults("Nameplates")
+	if nameplates and type(nameplates.personalResource) == "boolean" then
+		ns.Options.Write("Nameplates", "personalResource", false)
+	else
+		ns.Combat.Queue(function()
+			ns.CVars.Set("nameplateShowSelf", "0")
+		end)
+	end
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
 		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; HUD style: " .. (hudStyle or "unchanged") .. "; on: "
