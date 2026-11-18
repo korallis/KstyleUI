@@ -90,5 +90,6 @@ ns.Skins.Add({
 	help = L["Restyles the game menu that Escape opens."],
 	addon = "Blizzard_GameMenu",
 	frame = "GameMenuFrame",
+	metrics = true,
 	Apply = Apply,
 })
