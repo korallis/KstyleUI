@@ -1,8 +1,9 @@
--- test-resize-debounce.lua: the optional 120 ms trailing resize delay defaults off and honours combat and the final display size.
+-- test-resize-debounce.lua: the optional 120 ms trailing resize delay defaults on and honours combat and the final display size.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New({ size = "auto" })
 env.RunTimers()
-assert(K.Widgets.Setting("resizeDebounce") == false, "P5b: keep the existing immediate resize behaviour by default")
+assert(K.Widgets.Setting("resizeDebounce") == true, "P5b: wait for resizing to stop by default, as the owner requested")
+K.Options.Write("Widgets", "resizeDebounce", false)
 local width, height = 1920, 1080
 env.GetPhysicalScreenSize = function() return width, height end
 local time, timers = 0, {}

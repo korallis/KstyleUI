@@ -108,7 +108,7 @@ Widgets.defaults = {
 	shadows = false,
 	sounds = true,
 	tooltipScale = 1,
-	resizeDebounce = false,
+	resizeDebounce = true,
 }
 
 local VALID = {
@@ -1511,6 +1511,15 @@ local function NewTicks(owner)
 	return ticks
 end
 
+local function PrebuildChrome(owner)
+	local node = owner
+	while node do
+		if previews[node] or node:GetObjectType() == "AuraButton" then return true end
+		node = node:GetParent()
+	end
+	return false
+end
+
 function Widgets.Chrome(owner, opts)
 	opts = opts or {}
 	local shapeName = opts.shape or "panel"
@@ -1520,6 +1529,7 @@ function Widgets.Chrome(owner, opts)
 	end
 	local c = setmetatable({
 		owner = owner,
+		prebuild = PrebuildChrome(owner),
 		shape = shape,
 		shapeName = shapeName,
 		radius = opts.radius or opts.chamfer,
@@ -1585,7 +1595,7 @@ function Chrome:Build()
 		return
 	end
 	local owner, shape = self.owner, self.shape
-	local deferred = type(owner.AttachTexture) ~= "function"
+	local deferred = not self.prebuild and type(owner.AttachTexture) ~= "function"
 	if shape.pill then
 		self.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL, deferred)
 		self.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM, deferred)
@@ -1600,6 +1610,7 @@ function Chrome:Build()
 			Widgets.ColorSlice(self.gilt, Tokens.Color("gilt"))
 		end
 	end
+	if not deferred then self.drawReady = true end
 end
 
 function Chrome:DrawSlices()

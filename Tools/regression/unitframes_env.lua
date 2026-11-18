@@ -561,7 +561,7 @@ function U.Install(env)
 		return frame
 	end
 	local function auraButton(parent)
-		local button = createFrame("Button", nil, parent)
+		local button = createFrame("AuraButton", nil, parent)
 		button._layoutForbidden = true
 		button._aura = {}
 		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures" }) do
