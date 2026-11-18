@@ -142,7 +142,7 @@ do
 			line = entry.message
 		end
 	end
-	assert(line and line:find("^PASS tooltips: 7 tooltips restyled, position fixed"), "the smoke check passes: " .. tostring(line))
+	assert(line and line:find("^PASS tooltips: 7 tooltips restyled, position cursorOutOfCombat"), "the smoke check passes: " .. tostring(line))
 	K.Modules.Disable("Tooltips")
 	K.DevTest.Run()
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do
@@ -176,7 +176,7 @@ do
 	saved.body.size = 400
 	saved.anchor = "nowhere"
 	assert(ns.Settings.Get("body.size") == 11, "an out-of-range size gives the default")
-	assert(ns.Settings.Get("anchor") == "fixed", "an unknown anchor gives the default")
+	assert(ns.Settings.Get("anchor") == "cursorOutOfCombat", "an unknown anchor gives the default")
 	local logged = false
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do
 		logged = logged or (entry.module == "Tooltips" and entry.message:find("body.size", 1, true) ~= nil)
@@ -189,6 +189,7 @@ end
 
 do
 	local env, K, ns = Enabled()
+	K.Options.Write("Tooltips", "anchor", "fixed")
 	local element = K.Layout.Element(KEY)
 	assert(element and element.frame == ns.Anchor.Frame(), "the anchor registers with Layout")
 	assert(element.label == K.Setup.Layouts.Element(KEY).label and element.module == "Tooltips", "with the setup's label and the module's name")

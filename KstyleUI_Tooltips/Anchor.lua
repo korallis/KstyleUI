@@ -104,7 +104,17 @@ local function Place(tooltip, parent)
 	if not ns.active or tooltip ~= GameTooltip then
 		return
 	end
-	if Settings.Get("anchor") == "cursor" then
+	local mode = Settings.Get("anchor")
+	local cursor = mode == "cursor"
+	if mode == "cursorOutOfCombat" then
+		if type(InCombatLockdown) == "function" then
+			local combat = InCombatLockdown()
+			cursor = not Logic.IsSecret(combat) and not combat
+		else
+			Settings.LogOnce("combatAnchor", "InCombatLockdown is missing; tooltips use the placed anchor")
+		end
+	end
+	if cursor then
 		tooltip:SetOwner(parent or UIParent, "ANCHOR_CURSOR_RIGHT", Settings.Get("cursorX"), Settings.Get("cursorY"))
 		return
 	end

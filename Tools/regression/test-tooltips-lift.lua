@@ -4,6 +4,7 @@ local Near = T.Near
 
 local env, K, ns = T.New()
 assert(K.Modules.Enable("Tooltips") and K.Modules.IsRunning("Tooltips"), "the module runs: " .. tostring(env._errors[1]))
+K.Options.Write("Tooltips", "anchor", "fixed")
 local Layout, Layouts, Root = K.Layout, K.Setup.Layouts, K.Scale.Root()
 local KEY = "tooltips.anchor"
 local tip, holder = env.GameTooltip, ns.Anchor.Frame()
