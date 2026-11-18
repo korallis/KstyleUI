@@ -266,11 +266,3 @@ gallery_widgets	5120x1440	Core/Scale.lua	3
 gallery_widgets	5120x1440	Core/Widgets/Base.lua	9
 gallery_widgets	5120x1440	Core/Widgets/Dropdown.lua	36
 gallery_widgets	5120x1440	Core/Widgets/Tooltip.lua	13
-hud_reference	2560x1440	Core/Skin.lua	23
-hud_reference	2560x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	4
-hud_reference	3440x1440	Core/Skin.lua	23
-hud_reference	3440x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	4
-hud_reference	5120x1440	Core/Skin.lua	23
-hud_reference	5120x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	4
-hud_reference	5120x1440 spread	Core/Skin.lua	23
-hud_reference	5120x1440 spread	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	4

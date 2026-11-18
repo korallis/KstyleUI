@@ -266,7 +266,7 @@ local function Backdrop(frame, opts)
 	local panel = CreateFrame("Frame", nil, frame)
 	panel:SetFrameLevel(max(0, frame:GetFrameLevel() - 1))
 	panel.inset, panel.target = opts.inset, opts.target
-	panel.snapEdges = opts.icon ~= true
+	panel.snapEdges = opts.snapEdges == true
 	panel.Restyle = PlaceBackdrop
 	PlaceBackdrop(panel)
 	if opts.icon then
