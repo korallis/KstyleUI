@@ -8,7 +8,7 @@ local Parts = {}
 ns.Parts = Parts
 
 local RIM_UNITS = 2
-local RIM_SUBLEVEL = -7
+local RIM_SUBLEVEL = -6
 local LEVEL_BELOW = 1
 local LINE_UNITS = 2
 local BAR_UNITS = 10

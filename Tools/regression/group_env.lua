@@ -726,17 +726,10 @@ end
 -- frames do in the game.
 local function makeAttributeScripts(env, button)
 	local base = getmetatable(button).__index
-	local setAttribute, show, hide = base(button, "SetAttribute"), base(button, "Show"), base(button, "Hide")
+	local setAttribute, hide = base(button, "SetAttribute"), base(button, "Hide")
 	rawset(button, "SetAttribute", function(self, key, value)
 		setAttribute(self, key, value)
 		runScript(env, self, "OnAttributeChanged", key, value)
-	end)
-	rawset(button, "Show", function(self)
-		local was = self._shown
-		show(self)
-		if not was then
-			runScript(env, self, "OnShow")
-		end
 	end)
 	rawset(button, "Hide", function(self)
 		local was = self._shown

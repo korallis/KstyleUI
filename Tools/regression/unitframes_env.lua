@@ -318,7 +318,7 @@ function U.Install(env)
 		else
 			frame:Hide()
 		end
-		local script = frame:GetScript(shown and "OnShow" or "OnHide")
+		local script = not shown and frame:GetScript("OnHide")
 		if was ~= shown and script then
 			script(frame)
 		end
