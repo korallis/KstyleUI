@@ -169,6 +169,7 @@ Skins.Add({
 			help = L["Shows Blizzard's art behind the Legacy pages instead of plain glass."],
 		},
 	},
+	metrics = true,
 	Apply = Apply,
 	OnSetting = OnSetting,
 })
