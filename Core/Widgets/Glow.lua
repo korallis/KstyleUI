@@ -233,9 +233,9 @@ function Widgets.ShowProc(frame, on, polished, loops)
 			frame:SetShown(on)
 		end
 	end
-	local visible = frame:IsVisible()
+	local visible = on and polished and loops and frame:IsVisible()
 	if Widgets.IsSecret(visible) then visible = false end
-	if on and polished and loops and visible then
+	if visible then
 		if not frame.breath:IsPlaying() then frame.breath:Play() end
 	else
 		frame.breath:Stop()

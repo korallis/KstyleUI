@@ -1087,7 +1087,7 @@ function Slab.Dress(b)
 	end
 	if b.SetSlabDress then b:SetSlabDress(on) end
 	Socket(b, on)
-	b.chrome:SetShown(not on)
+	if b.chrome.visible ~= (not on) then b.chrome:SetShown(not on) end
 	b.medFrame:SetShown(on)
 	b.medWell:SetShown(on)
 	b.medChecked:SetShown(on and b.selected == true)
