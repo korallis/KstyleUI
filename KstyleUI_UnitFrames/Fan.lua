@@ -67,6 +67,13 @@ local function Dress(button, entries)
 	entries[#entries + 1] = entry
 end
 
+local function DefaultPosition()
+	local layouts = K.Setup.Layouts
+	local place = layouts.Aspect(K.Scale.Aspect(), "medallions", K.Layout.Setting("preset"), "actionbars.bar1")
+	local _, _, _, height = layouts.MedallionsGroup(K.Scale.Aspect())
+	return { anchor = "BOTTOM", x = 0, y = (place and place.y or 55) + height + 145 }
+end
+
 local function Build(view)
 	local holder = CreateFrame("Frame", nil, K.Scale.Root())
 	holder:SetSize(WIDTH, HEIGHT)
@@ -97,11 +104,8 @@ local function Build(view)
 		container:SetFlowLayoutMaximumLineSize(Fan.MAX * PITCH)
 		container:SetPoint("TOPLEFT", window, "TOPLEFT", (PITCH - SIZE) / 2 - (rank - 1) * PITCH, 0)
 	end
-	local layouts = K.Setup.Layouts
-	local place = layouts.Aspect(K.Scale.Aspect(), "medallions", K.Layout.Setting("preset"), "actionbars.bar1")
-	local _, _, _, height = layouts.MedallionsGroup(K.Scale.Aspect())
-	K.Layout.Register(holder, Fan.KEY, { anchor = "BOTTOM", x = 0, y = (place and place.y or 55) + height + 145 }, {
-		label = K.L["Your target debuffs"], module = Settings.MODULE, scalable = true,
+	K.Layout.Register(holder, Fan.KEY, DefaultPosition(), {
+		label = K.L["Your target debuffs"], module = Settings.MODULE, scalable = true, defaultPosition = DefaultPosition,
 	})
 	local chip, why = ns.Overflow.New(content, "target", FILTER, Fan.MAX)
 	if chip then

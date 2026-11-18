@@ -358,6 +358,7 @@ local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
 	if a and a.fan and ns.Fan.Wanted(view) then
+		K.Options.Write("UnitFrames", "target.auraFilter", "debuffs")
 		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
 		local icons = { 135813, 136026, 136207, 136197, 136118, 136016, 136048 }

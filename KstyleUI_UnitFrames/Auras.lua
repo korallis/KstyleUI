@@ -247,7 +247,7 @@ local function Flush()
 	end
 	for view in pairs(pending) do
 		pending[view] = nil
-		if view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
+		if not view.auras or view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
 			for _, entry in ipairs(view.auras.buttons) do
@@ -495,8 +495,12 @@ local function Build(view)
 	return a
 end
 
+local function Active(view)
+	return running and view.uf.active and Settings.AURAS[view.kind]
+end
+
 local function Wanted(view)
-	return running and view.uf.active and Settings.AURAS[view.kind] and Value(view, "auras")
+	return Active(view) and Value(view, "auras")
 end
 
 local function Visible(frame)
@@ -510,7 +514,7 @@ function Auras.Sync(view)
 		return
 	end
 	a.host:SetShown(Wanted(view) and Visible(view.button))
-	ns.Fan.Sync(view, Wanted(view) and Visible(view.button))
+	ns.Fan.Sync(view, Active(view) and Visible(view.button))
 end
 
 function Auras.LastCell(kind, frame, first, after)
@@ -553,12 +557,12 @@ local function ApplyOverflow(view, filter, want)
 	end
 end
 
-local function ApplyContainer(view)
+local function ApplyContainer(view, fan)
 	local a = view.auras
 	local container = a.container
 	local filter = FILTERS[Value(view, "auraFilter")] or FILTERS.mine
-	if ns.Fan.Apply(view, Wanted(view)) then
-		filter = { debuffs = filter.debuffs and "HARMFUL|!PLAYER" or nil, buffs = filter.buffs }
+	if fan then
+		filter = { debuffs = filter.debuffs == "HARMFUL" and "HARMFUL|!PLAYER" or nil, buffs = filter.buffs }
 	end
 	local method, direction = Sort()
 	for _, key in ipairs(GROUPS) do
@@ -674,7 +678,11 @@ function Auras.Apply(view)
 	end
 	local want = Wanted(view)
 	if not view.auras then
-		if not want then
+		if not want and not (Active(view) and ns.Fan.Wanted(view)) then
+			return
+		end
+		if not Auras.Open() then
+			Wait(view)
 			return
 		end
 		Build(view)
@@ -691,9 +699,11 @@ function Auras.Apply(view)
 		return
 	end
 	a.container:SetEnabled(want and true or false)
-	if not want then ns.Fan.Apply(view, false) end
+	local fan = ns.Fan.Apply(view, Active(view))
 	if want then
-		K.Call(ApplyContainer, view)
+		K.Call(ApplyContainer, view, fan)
+	end
+	if want or Active(view) and ns.Fan.Wanted(view) then
 		Restyle(view)
 	end
 	EnableOverflow(view, want)

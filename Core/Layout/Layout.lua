@@ -420,7 +420,12 @@ local function Band(el, d)
 end
 
 local function StyleDefault(el)
-	local d = Aspect(el, Copy(el.base))
+	local d = Copy(el.base)
+	local position = el.opts.defaultPosition and el.opts.defaultPosition()
+	if position then
+		d.anchor, d.x, d.y = position.anchor, position.x or 0, position.y or 0
+	end
+	d = Aspect(el, d)
 	el.frames = Band(el, Copy(d))
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
@@ -1005,6 +1010,7 @@ local ELEMENT_FIELDS = {
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
 local OPTION_CHECK = {
+	defaultPosition = function(v) return type(v) == "function" end,
 	label = function(v) return type(v) == "string" end,
 	module = function(v) return type(v) == "string" end,
 	resizable = function(v) return type(v) == "boolean" end,

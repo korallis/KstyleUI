@@ -9,6 +9,10 @@ end })
 local view = ns.Frames.Get("target").views[1]
 local fan = assert(view.auras.fan, "Medallions builds the crest fan")
 assert(not fan.failed and #fan.containers == ns.Fan.MAX, "seven engine windows")
+for rank, window in ipairs(fan.windows) do
+	assert(U.W.LastCall(window, "SetClipsChildren")[1] == true, "native clipping must exclude hidden siblings from drawing and mouse hit testing")
+	assert(fan.containers[rank]:GetParent() == window, "every rank container inherits its own window's clip")
+end
 assert(K.Layout.Element(ns.Fan.KEY).opts.scalable, "the fan has its own scalable Layout Mode element")
 assert(ns.Settings.Value("target", "crestDebuffs"), "the fan defaults on")
 K.Layout.Set(ns.Fan.KEY, "scale", 0.5)
@@ -30,7 +34,7 @@ local function refresh() env.FireEvent("UNIT_AURA", "target", { isFullUpdate = t
 local function assigned() return view.auras.container._groups.debuffs.assigned end
 assert(fan.containers[1]._groups.debuffs.assigned[1] == 2, "your non-damaging control debuff is first because it expires first")
 assert(fan.containers[2]._groups.debuffs.assigned[2] == 1, "your damage debuff is second")
-assert(#assigned() == 1 and assigned()[1] == 3, "only another player's debuff stays beside the target medallion")
+assert(#assigned() == 0, "Your debuffs leaves no medallion debuffs when they are in the fan")
 assert(fan.containers[1]._groups.debuffs.buttons[1]._aura.AddPandemicRegion[1]._shown == true, "the engine owns the pandemic cue")
 K.Options.Write("UnitFrames", "target.auraFilter", "both")
 refresh()
@@ -38,7 +42,7 @@ assert(view.auras.container._groups.buffs.assigned[1] == 4, "other helpful auras
 K.Options.Write("UnitFrames", "target.auraFilter", "buffs")
 refresh()
 assert(#assigned() == 0 and fan.containers[1]._groups.debuffs.assigned[1] == 2, "buff-only medallions retain their filter while your fan remains independent")
-K.Options.Write("UnitFrames", "target.auraFilter", "mine")
+K.Options.Write("UnitFrames", "target.auraFilter", "debuffs")
 refresh()
 
 -- The native clipping must reveal each of your icons exactly once, including its text floor and sweep binding.
@@ -67,7 +71,7 @@ end
 
 -- Forbid all addon access to live fan buttons; native fixture work uses the engine's access context.
 for _, entry in ipairs(fan.buttons) do
-	for _, method in ipairs({ "SetSize", "SetPoint", "ClearAllPoints", "IsShown", "GetPoint", "GetWidth", "GetHeight" }) do
+	for _, method in ipairs({ "SetSize", "SetPoint", "ClearAllPoints", "IsShown", "GetPoint", "GetWidth", "GetHeight", "EnableMouse", "SetMouseMotionEnabled", "SetHitRectInsets" }) do
 		local original = entry.button[method]
 		entry.button[method] = function(self, ...)
 			assert(not env._restricted, "addon touched a secret aura button: " .. method)

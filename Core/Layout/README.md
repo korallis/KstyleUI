@@ -32,6 +32,7 @@ KstyleUI.Layout.Register(frame, key, defaultPosition, opts)
 | `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | Size limits in the frame's own units. Defaults 8 and 4096. |
 | `aspect` | `true` keeps the default proportions; a number is width over height. Only with `resizable`. |
 | `scalable` | Layout owns the frame's scale, from 0.5 to 2. Default: the frame's scale when it registers. |
+| `defaultPosition` | A function returning `{ anchor, x, y }`, or nil to keep the registered position. Layout calls it when resolving defaults, including display/aspect changes; saved player positions and scale still take precedence. |
 | `plate` | `false` draws no mover plate, for a frame that moves itself in Layout Mode, such as the Layout toolbar. |
 | `window` | `true` for a core window the player needs to get back to: the settings window, the dialog host, the Layout Mode toolbar and the first-run setup. The settings window shows no Shown row for it, and its opacity sliders stop at 25%. |
 | `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle` and `strata`. The settings window builds only those rows. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
