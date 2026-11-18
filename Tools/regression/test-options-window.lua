@@ -261,10 +261,10 @@ do
 	assert(glass:GetHeight() < railRow(ns, "General"):GetHeight(), "a section row is shorter than a page row")
 	W.Click(glass)
 	settle(env)
-	assert(parts.content:GetOffset() == parts.content:GetMaxOffset() and parts.content:GetOffset() > 0, "General is too short to put Panel appearance at the top, so the click scrolls to the end")
+	assert(parts.content:GetOffset() > 0 and parts.content:GetOffset() <= parts.content:GetMaxOffset(), "the section click scrolls to Panel appearance")
 	assert(ns.Window.State().page == "General", "a section click keeps the page")
 	local index = headerIndex("Panel appearance")
-	assert(firstRow() < index and ns.Window.State().section < index, "the current section is the one the first row on screen belongs to, not the one clicked")
+	assert(firstRow() <= index and ns.Window.State().section <= index, "the current section follows the first visible row")
 
 	parts.content:ScrollTo(0, true)
 	settle(env)

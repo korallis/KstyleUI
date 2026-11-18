@@ -1,0 +1,47 @@
+local O = dofile("Tools/regression/options_env.lua")
+local W = O.W
+local env, K, ns = O.New({ before = function(_, K)
+	K.Modules.Register(W.CoreEnv.Module("ActionBars", { defaults = { size = 20 } }))
+	K.Options.Register("ActionBars", { { type = "header", label = "Buttons" }, { type = "slider", key = "size", label = "Size", help = "The size of the buttons.", min = 10, max = 40, step = 2 } })
+end })
+local entered = 0
+env.SlashCmdList.KSTYLEKB = function() entered = entered + 1 end
+K.Options.Open("ActionBars")
+W.Settle(env)
+env.RunTimers()
+local page = ns.Pages.Find(ns.Pages.List(), "ActionBars")
+local bind = O.Find(ns.Model.PageItems(page), function(item) return item.label == "Bind keys" end)
+assert(bind and bind.buttons[1].onClick, "Action Bars must have a visible Bind keys button")
+bind.buttons[1].onClick()
+assert(entered == 1)
+local row
+for _, candidate in ipairs(ns.Window.Parts().content.rows) do
+	if candidate.item and candidate.item.key == "size" then row = candidate end
+end
+assert(row, "the size row is visible")
+local slider = row.controls.slider
+assert(slider.edit:GetWidth() == 56)
+W.Click(slider.valueButton)
+assert(slider.edit:IsShown() and W.LastCall(slider.edit, "SetFocus"), "clicking a value starts typing")
+slider.edit:SetText("29")
+slider.edit:GetScript("OnEnterPressed")(slider.edit)
+env.RunTimers()
+W.Settle(env)
+assert(K.Options.Read("ActionBars", "size") == 30, "typed input obeys the slider's step")
+assert(K.Options.IsChanged("ActionBars", "size"))
+W.Settle(env)
+assert(row.changed:IsShown() and row.changed:GetWidth() == K.Widgets.Snap(row, 4), "changed settings have a four-unit diamond")
+row:GetScript("OnMouseUp")(row, "RightButton")
+env.RunTimers()
+W.Settle(env)
+assert(K.Options.Read("ActionBars", "size") == 20, "right-click restores the default")
+assert(K.Layout.Enter())
+W.Settle(env)
+local toolbar = K.Layout.Mode.Toolbar()
+assert(toolbar.bind and toolbar.search and toolbar.elements, "Layout Mode exposes Bind keys and a searchable element list")
+toolbar.search:SetText("toolbar")
+toolbar.search:GetScript("OnTextChanged")(toolbar.search, true)
+W.Click(toolbar.bind)
+assert(entered == 2 and not K.Layout.IsActive(), "binding exits Layout Mode before entering")
+assert(#env._errors == 0, tostring(env._errors[1]))
+print("options needs ok")

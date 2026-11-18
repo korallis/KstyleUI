@@ -324,6 +324,29 @@ function Options.Read(module, key)
 	return lookup(ns.Store.Module(module), parts)
 end
 
+function Options.Default(module, key)
+	local _, default = locate("Default", module, key)
+	return copy(default)
+end
+
+local function Equal(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+	for key, value in pairs(a) do if not Equal(value, b[key]) then return false end end
+	for key in pairs(b) do if a[key] == nil then return false end end
+	return true
+end
+
+function Options.IsChanged(module, key)
+	return not Equal(Options.Read(module, key), Options.Default(module, key))
+end
+
+function Options.BindKeys()
+	local fn = SlashCmdList and SlashCmdList.KSTYLEKB
+	if type(fn) == "function" then return fn() end
+	ns.Print(L["Enable KstyleUI action bars with keyboard controls to use /kb."])
+	return false
+end
+
 function Options.Write(module, key, value)
 	local parts, default = locate("Write", module, key)
 	if type(value) ~= type(default) then

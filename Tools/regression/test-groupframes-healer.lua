@@ -100,7 +100,7 @@ do
 	local tileRect = { Scene.Rect(env, f) }
 	local rects = {}
 	for _, key in ipairs({ "leader", "marker", "role", "healthText", "name" }) do
-		local region = key == "role" and f.pipEdge or f[key]
+		local region = f[key]
 		local item = find(scene, region)
 		assert(item, "the " .. key .. " draws")
 		rects[key] = item.rect

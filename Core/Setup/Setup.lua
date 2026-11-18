@@ -36,7 +36,7 @@ local ORNAMENTS = {
 }
 
 local choice
-local firstRun, kept = false, false
+local firstRun = false
 
 Setup.PICKER = PICKER
 Setup.ORNAMENTS = ORNAMENTS
@@ -217,10 +217,10 @@ local function EditModeChanged()
 	end
 end
 
-local function WriteEditMode(name)
+local function WriteEditMode(name, replace)
 	Setup.EditMode.Waiting(name)
 	ns.Combat.Queue(function()
-		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()))
+		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()), replace)
 		EditModeChanged()
 	end)
 end
@@ -230,7 +230,7 @@ function Setup.RetryEditMode()
 	if not Layouts.Get(name) then
 		return false
 	end
-	WriteEditMode(name)
+	WriteEditMode(name, Setup.Choice().replaceLayout)
 	EditModeChanged()
 	return true
 end
@@ -268,6 +268,11 @@ function Setup.Apply(picked)
 		log("Apply refused an unknown layout " .. tostring(picked and picked.layout))
 		return false
 	end
+	local backed, why = ns.Profiles.Backup(L["Before setup"])
+	if not backed then
+		ns.Print(tostring(why))
+		return false
+	end
 	local on, off = {}, {}
 	local modules = type(picked.modules) == "table" and picked.modules or {}
 	for _, entry in ipairs(PICKER) do
@@ -291,7 +296,7 @@ function Setup.Apply(picked)
 		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)
 		applying = false
 	end
-	WriteEditMode(picked.layout)
+	WriteEditMode(picked.layout, picked.replaceLayout)
 	local nameplates = Store.Defaults("Nameplates")
 	if nameplates and type(nameplates.personalResource) == "boolean" then
 		ns.Options.Write("Nameplates", "personalResource", false)
@@ -312,7 +317,7 @@ function Setup.Open(first)
 		ns.Print(L["KstyleUI has not loaded its saved settings yet."])
 		return false
 	end
-	firstRun, kept = first == true, false
+	firstRun = first == true
 	choice = Setup.NewChoice()
 	local show = Setup.ShowWindow
 	if type(show) ~= "function" then
@@ -328,21 +333,11 @@ function Setup.IsFirstRun()
 end
 
 function Setup.Keep()
-	kept = true
 end
 
 function Setup.Closed(applied)
-	local defaults = firstRun and not applied and not kept
-	firstRun, kept = false, false
+	firstRun = false
 	Setup.MarkSeen()
-	if defaults then
-		local picked = Setup.Choice()
-		if Setup.Apply(picked) then
-			log("the first-run setup closed without Apply: applied " .. picked.layout .. " with the modules it had on and " .. tostring(picked.ornaments) .. " ornaments")
-			ns.Print(string.format(L["KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it."], Layouts.Label(picked.layout)))
-			return
-		end
-	end
 	if not applied then
 		ns.Print(L["You can run the setup again at any time with /kstyle setup."])
 	end

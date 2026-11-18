@@ -668,6 +668,17 @@ function A.ReleaseAll(container, key)
 	group.active = {}
 end
 
+function A.Dispel(button, kind)
+	for _, entry in ipairs(button._aura.dispel) do
+		local map = entry.options.customDispelAssetMap
+		if map then
+			local asset = map[kind]
+			entry.texture:SetShown(asset ~= nil)
+			if asset then entry.texture:SetTexture(asset.asset) end
+		end
+	end
+end
+
 -- Ghosts(chip, counts) plays the engine's layout pass for an overflow chip's counting containers (K.Widgets.Overflow):
 -- counts[g] auras pass the chip's g-th group (a number counts the first), each counting container holds as many as
 -- its group allows while it is enabled, one line of chip.pitch units each, and an empty one keeps one unit.

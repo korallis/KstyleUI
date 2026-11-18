@@ -2,6 +2,18 @@
 
 Every file in `Media/` has a row here: where it came from, how it was made, and when. No file is copied from another addon.
 
+## Accessibility letters
+
+Generated on 2026-11-18 by `python Tools/media/accessibility.py` from the addon's OFL Inter SemiBold font. Each is a 32 by 32 transparent PNG with white ink and a black outline; Forever's aura engine selects the classified type without exposing aura state to Lua.
+
+| File | Meaning | Source |
+| --- | --- | --- |
+| `Media/Textures/Accessibility/DispelM.png` | Magic | `Media/Fonts/Inter-SemiBold.ttf` |
+| `Media/Textures/Accessibility/DispelC.png` | Curse | `Media/Fonts/Inter-SemiBold.ttf` |
+| `Media/Textures/Accessibility/DispelD.png` | Disease | `Media/Fonts/Inter-SemiBold.ttf` |
+| `Media/Textures/Accessibility/DispelP.png` | Poison | `Media/Fonts/Inter-SemiBold.ttf` |
+| `Media/Textures/Accessibility/DispelE.png` | Enrage, only when the engine classifies it | `Media/Fonts/Inter-SemiBold.ttf` |
+
 ## Fonts
 
 All fonts are under the SIL Open Font License 1.1; `Media/Fonts/OFL.txt` holds the original families' licence texts. Folio adds separate `OFL-EBGaramond.txt`, `OFL-IMFell.txt` and `OFL-PTSerif.txt` beside its files without replacing that existing licence bundle. Source Sans's "Source" applies only to modified versions, and its files are unmodified; Cinzel's licence names no Reserved Font Name, so renaming the modified Cinzel Caps and Cinzel Names is a courtesy, not a duty. Folio's Reserved Font Names and unmodified-copy contracts are recorded below.

@@ -220,6 +220,9 @@ function ns.NewPlate(parent, sample)
 	local health = Widgets.UnitBar(plate, { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, color = "plateHostile" })
 	plate.healthOpts = health.opts
 	plate.health = health
+	plate.threatShape = plate:CreateTexture(nil, "OVERLAY")
+	plate.threatShape:SetPoint("LEFT", health, "RIGHT", 6, 0)
+	plate.threatShape:Hide()
 	plate.healthText = NewText(health, "RIGHT")
 
 	plate.name = NewText(plate, "CENTER")
@@ -637,7 +640,7 @@ function Plate:UpdateColor()
 	local r, g, b
 	local state = self.threatState
 	if state and Settings.Get("threat.display") == "health" then
-		r, g, b = Rgb(Settings.Get(THREAT_KEYS[state]))
+		r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
 	else
 		local kind = self.kind
 		local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
@@ -796,9 +799,17 @@ function Plate:UpdateThreat()
 	end
 	local changed = state ~= self.threatState
 	self.threatState = state
+	local shape = self.threatShape
+	shape:SetShown(state ~= nil)
+	if state then
+		if state == "warning" then shape:SetTexture((Tokens.Texture("diamond"))) else shape:SetColorTexture(Tokens.Color("white")) end
+		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
+		shape:SetSize(state == "safe" and 2 or 8, 8)
+		shape:SetVertexColor(K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state]))))
+	end
 	local glow = self.threatGlow
 	if state and display == "glow" then
-		local r, g, b = Rgb(Settings.Get(THREAT_KEYS[state]))
+		local r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
 		Widgets.ColorSlice(glow, r, g, b, THREAT_GLOW_ALPHA)
 		Widgets.ShowSlice(glow, true)
 	else

@@ -2,5 +2,6 @@
 	<Script file="Layouts.lua"/>
 	<Script file="EditMode.lua"/>
 	<Script file="Setup.lua"/>
+	<Script file="Integrations.lua"/>
 	<Script file="Window.lua"/>
 </Ui>

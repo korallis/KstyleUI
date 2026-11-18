@@ -844,20 +844,21 @@ function Slab.LevelUp(level)
 	end
 end
 
-local sides, SIDE_BARS = {}, { "pet", "stance" }
+local sides, SIDE_BARS = {}, { "pet", "stance", "bar3" }
 
 function Slab.PlaceSides(on)
 	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
-		if bar and on and not plate then
+		local wanted = on or key == "bar3" and Slab.Active()
+		if bar and wanted and not plate then
 			plate = Plate(bar.header)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = on and bar:Shown() and not bar.holderHidden
+			local shown = wanted and bar:Shown() and not bar.holderHidden
 			if shown then
-				local pad = Widgets.Snap(plate, Slab.Side().pad)
+				local pad = Widgets.Snap(plate, key == "bar3" and Slab.Spec().pad or Slab.Side().pad)
 				local vertical = pad - (K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
 				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, vertical)

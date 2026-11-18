@@ -204,6 +204,8 @@ local function applyPreset(env, opts)
 	assert(K.Setup.Apply({ layout = opts.layout, modules = enabled }), "the scene could not Apply " .. tostring(opts.layout))
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
+		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")
+		if buttons then K.Options.Write("ActionBars", "bar3.buttons", buttons) end
 		local defaults = K.Store.Defaults("ActionBars")
 		for _, bar in ipairs({ "bar3", "pet", "stance" }) do
 			if type(defaults[bar]) == "table" and defaults[bar].showEmpty ~= nil then

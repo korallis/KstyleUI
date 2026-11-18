@@ -87,7 +87,9 @@ each("party", function(f)
 	eq(f.portrait:GetNumMaskTextures(), 0, f.unit .. ": painted art is pre-circled, so no mask")
 end)
 each("party", function(f)
-	assert(f.pipped and not f.role:IsShown(), f.unit .. ": the role is a pip of our own art, never the atlas square")
+	local role = env.UnitGroupRolesAssigned(f.unit)
+	assert(f.pipped and not f.pipFill:IsShown(), f.unit .. ": colour-only pips stay hidden")
+	if role ~= "NONE" then assert(f.role:IsShown(), f.unit .. ": the role has a shield, cross or blade") end
 	assert(f.parts.icons.role.left + f.parts.icons.role.width <= f.parts.name.left, f.unit .. ": the pip comes before the name")
 end)
 for _, cut in ipairs(cuts) do

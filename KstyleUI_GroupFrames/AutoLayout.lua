@@ -51,7 +51,23 @@ end
 
 function AutoLayout.Overlay(cfg, state)
 	state = state or AutoLayout.state
+	if cfg.presets.raid == "Healer" then
+		local party, raid = cfg.party, cfg.raid
+		party.width, party.height, party.spacing = 200, 44, 6
+		raid.width, raid.height, raid.groupsPerRow, raid.unitsPerColumn = 128, 44, 4, 5
+		for _, kind in ipairs({ "party", "raid" }) do
+			cfg[kind].healthText, cfg[kind].healthTextSize = "DEFICIT", 12
+			cfg[kind].textLayout, cfg[kind].healthTextPlace = "INSIDE", "BAR"
+			cfg[kind].iconSize = 16
+		end
+		for i = 1, Settings.INDICATOR_SLOTS do cfg["indicator" .. i].size = 16 end
+		return cfg
+	end
 	local auto = cfg.auto
+	if K.Store.Module("Readability").preset == "Readable" then
+		cfg.party.height, cfg.raid.height = math.max(44, cfg.party.height), math.max(44, cfg.raid.height)
+		auto.size = false
+	end
 	if auto.role and state.healer then
 		for _, kind in ipairs({ "party", "raid" }) do
 			local k = cfg[kind]

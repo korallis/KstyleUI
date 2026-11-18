@@ -1,0 +1,31 @@
+local W = dofile("Tools/regression/widget_env.lua")
+local env, K = W.New({ setup = function(e)
+	e.GetCVar = function(name) return name == "colorblindSimulator" and "2" or "0" end
+end })
+assert(K.ColorVision.Mode() == "redGreen", "the default follows the game's red-green filter")
+local r, g, b = K.ColorVision.Color(1)
+local wr, wg, wb = K.Tokens.Color("visionRGCalm")
+assert(r == wr and g == wg and b == wb)
+K.Options.Write("ColorVision", "mode", "blueYellow")
+assert(K.ColorVision.Mode() == "blueYellow")
+K.Options.Write("ColorVision", "mode", "standard")
+assert(K.ColorVision.Color(1, 0.2, 0.3, 0.4) == 0.2, "Standard preserves existing alert colours")
+local assets = K.ColorVision.DispelAssets()
+for _, kind in ipairs({ "Magic", "Curse", "Disease", "Poison", "Enrage" }) do assert(assets[kind].asset) end
+assert(not assets.None, "an unclassified aura must never be inferred to be Enrage")
+assert(K.Tokens.Size("body") == 12)
+K.Profiles.Readable("Readable")
+for role, size in pairs({ body = 14, names = 14, caption = 12, number = 16, timer = 14, time = 14 }) do
+	assert(K.Tokens.Size(role) == size, "Readable needs " .. role .. " at " .. size)
+end
+K.Profiles.Readable("Standard")
+assert(K.Tokens.Size("body") == 12, "Standard keeps the shipped text")
+local before = K.Store.Export()
+env.C_AddOns = { IsAddOnLoaded = function(name) return name == "Bartender4" end }
+assert(K.Setup.Integrations.Note("ActionBars", "none"):find("Bartender4", 1, true))
+assert(K.Store.Export() == before, "detection never switches any addon or setting off")
+K.Options.Write("Integrations", "weakAuras", true)
+assert(env.KstyleUI_WeakAuras1 and env.KstyleUI_WeakAuras2, "the two optional named anchors exist")
+assert(K.Layout.Element("integrations.KstyleUI_WeakAuras1"), "the anchors are movable")
+assert(#env._errors == 0, tostring(env._errors[1]))
+print("accessibility ok")

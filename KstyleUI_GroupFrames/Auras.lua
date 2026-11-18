@@ -331,6 +331,7 @@ local function StyleIcon(button)
 		p.restyleChrome(p.chrome)
 		local inset = PlaceIcon(p)
 		Widgets.LayoutSlice(p.dispel, p.skin, p.chrome:Chamfer(), 0)
+		if p.dispelLetter then Widgets.Size(p.dispelLetter, math.min(14, size), math.min(14, size)) end
 		p.count:ClearAllPoints()
 		p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 		p.styledSize, p.styledBorder = size, border
@@ -543,6 +544,13 @@ local function BuildIcon(button, key)
 		for _, piece in ipairs(p.dispel) do
 			button:AddDispelTypeTexture(piece, options)
 		end
+	end
+	local types = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+	if not p.buff and types and types.CustomAsset ~= nil and K.ColorVision and type(button.AddDispelTypeTexture) == "function" then
+		p.dispelLetter = textFrame:CreateTexture(nil, "OVERLAY")
+		p.dispelLetter:SetPoint("TOPRIGHT", p.skin, "TOPRIGHT")
+		p.dispelLetter:SetSize(14, 14)
+		button:AddDispelTypeTexture(p.dispelLetter, { style = types.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
 	end
 end
 

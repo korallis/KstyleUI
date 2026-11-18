@@ -49,7 +49,8 @@ local BLIZZARD = { "PartyFrame", "CompactRaidFrameContainer", "CompactRaidFrameM
 
 local function blizzardHidden(env, K, want, what)
 	for _, name in ipairs(BLIZZARD) do
-		eq(K.Safe.IsHidden(env[name]), want, what .. ": " .. name .. (want and " is hidden" or " is Blizzard's again"))
+		local hidden = want and name ~= "CompactRaidFrameManager"
+		eq(K.Safe.IsHidden(env[name]), hidden, what .. ": " .. name .. (hidden and " is hidden" or " is Blizzard's again"))
 	end
 end
 

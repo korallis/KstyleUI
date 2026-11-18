@@ -122,6 +122,10 @@ local function RefreshEditMode()
 	panel.editMode:SetText(text or "")
 	panel.retry:SetShown(text ~= nil and last ~= nil and (last.state == "failed" or (last.state == "written" and #last.notes > 0)))
 	panel.manager:SetShown(text ~= nil and last ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
+	local choices, full = Setup.EditMode.Replacements()
+	panel.replace:SetOptions(choices)
+	panel.replace:SetValue(Setup.Choice().replaceLayout or "", true)
+	panel.replace:SetShown(full and not applied)
 	if step == STEPS then
 		panel.summaryStatus.cap:SetText(SummaryTitle())
 	end
@@ -181,6 +185,7 @@ local function Refresh()
 		panel.summaryHelp:SetText(applied
 			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
 			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
+		panel.summaryHelp:SetText(panel.summaryHelp:GetText() .. "\n" .. L["Bind keys on the Action Bars page or the Layout Mode toolbar."])
 	end
 	RefreshEditMode()
 	if step == STEPS then
@@ -684,7 +689,7 @@ end
 local function BuildModules(page, width)
 	local header = Paragraph(page, "body", "text", width / 2)
 	Widgets.Point(header, "TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
-	header:SetText(L["Every module starts on. Turn off any you do not want."])
+	header:SetText(L["On uses KstyleUI; Off keeps your other addon for that feature."])
 	local allOff = Widgets.Button(page, { text = L["All off"], onClick = function() SetAll(false) end })
 	Widgets.Point(allOff, "TOPRIGHT", page, "TOPRIGHT", 0, 0)
 	local allOn = Widgets.Button(page, { text = L["All on"], onClick = function() SetAll(true) end })
@@ -812,6 +817,7 @@ PlaceSummary = function()
 	editMode:SetWidth(full)
 	help:SetWidth(full)
 	local y = top
+	if panel.replace:IsShown() then y = y + panel.replace:GetHeight() + line end
 	local editAt, retryAt
 	if editMode:IsShown() then
 		editAt, y = y, y + Widgets.Snap(page, Widgets.WrappedHeight(editMode, full)) + line
@@ -832,6 +838,8 @@ PlaceSummary = function()
 	end
 	local row = Widgets.Snap(page, free)
 	local left, right, low = panel.summaryChoices, panel.summaryLayout, panel.summaryStatus
+	panel.replace:ClearAllPoints()
+	Widgets.Point(panel.replace, "TOPLEFT", low, "TOPLEFT", pad, -top)
 	SizeCard(left, 0, 0, column, row, pad)
 	SizeCard(right, column + spacing, 0, column, row, pad)
 	SizeCard(low, 0, row + spacing, width, max(status, height - row - spacing), pad)
@@ -879,6 +887,11 @@ local function BuildSummary(page, width)
 	Widgets.Point(manager, "LEFT", retry, "RIGHT", gap("gapSmall"), 0)
 	manager:Hide()
 	local help = Paragraph(status, "body", "muted", width, true)
+	panel.replace = Widgets.Dropdown(status, { width = 260, placeholder = L["Replace this one"], onChange = function(value)
+		Setup.Choice().replaceLayout = value
+		Changed()
+	end })
+	panel.replace:Hide()
 	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
 	panel.summaryTitle, panel.summary, panel.summaryHelp, panel.summaryPreview = status.cap.label, summary, help, preview
 	panel.editMode, panel.retry, panel.manager = editMode, retry, manager
@@ -899,7 +912,7 @@ local function SyncChoice()
 		toggle:SetEnabled(available)
 		toggle:SetValue(choice.modules[entry.name] == true, true)
 		if available then
-			toggle.note:SetText(entry.note)
+			toggle.note:SetText(Setup.Integrations.Note(entry.name, entry.note))
 		else
 			toggle.note:SetText(L["Not installed, or turned off in the AddOns list."])
 		end

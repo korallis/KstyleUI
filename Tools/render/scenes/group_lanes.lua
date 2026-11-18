@@ -46,11 +46,16 @@ end
 return Common.Run(function()
 	local G = dofile("Tools/regression/group_env.lua")
 	local group = os.getenv("RENDER_GROUP") or "20"
-	local env, K = G.New(Common.ScreenOpts({
+	local env, K, ns = G.New(Common.ScreenOpts({
 		saved = Hud.Saved({}, "GroupFrames"),
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Common.ForceScreen(env)
+			if os.getenv("RENDER_GROUP_STATUS") == "1" then
+				env.UnitHasIncomingResurrection = function(unit) return env.Secret(unit == "party1" or unit == "raid1") end
+				env.UnitIsAFK = function(unit) return env.Secret(unit == "party3" or unit == "raid3") end
+				env.C_IncomingSummon = { HasIncomingSummon = function(unit) return env.Secret(unit == "party2" or unit == "raid2") end }
+			end
 			env.RAID_CLASS_COLORS = {}
 			for class, c in pairs(COLOURS) do
 				env.RAID_CLASS_COLORS[class] = { r = c[1], g = c[2], b = c[3] }
@@ -97,10 +102,25 @@ return Common.Run(function()
 		assert(K.Modules.Enable("GroupFrames"))
 	end
 	env.RunTimers()
+	if os.getenv("RENDER_HEALER_PRESET") == "1" and K.Options.Row("GroupFrames", "presets.raid") then
+		K.Options.Write("GroupFrames", "presets.raid", "Healer")
+	end
+	if os.getenv("RENDER_TEXT_PRESET") == "Readable" and K.Profiles then K.Profiles.Readable("Readable") end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	env.RunTimers()
 	Hud.Tick(env, 1)
 	env.RunTimers()
+	if os.getenv("RENDER_GROUP_STATUS") == "1" then
+		local A = dofile("Tools/regression/auras_env.lua")
+		ns.Unit.ForEach(function(f)
+			if f.unit == "party1" or f.unit == "raid1" then
+				A.Assign(env, f.auras, "debuffs", 1)
+				local button = f.auras._groups.debuffs.frames[1]
+				button._aura.icon:SetTexture(135813)
+				if A.Dispel then A.Dispel(button, "Magic") end
+			end
+		end)
+	end
 	local scene = Scene.Build(env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(env, K)
 	if err then

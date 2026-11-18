@@ -200,7 +200,7 @@ assert((seen.lumenShape or 0) >= 9, "each icon sits on a rounded socket")
 assert((seen.ringLine3 or 0) >= 5 and (seen.ringLine2 or 0) >= 5, "with the socket's line and rim, each ring's corners and centre from its texture, its runs solid lines (the owner's picture, 2026-11-09)")
 local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
-	dispel[#dispel + 1] = entry.texture
+	if entry.options.style ~= env.Enum.CustomAuraButtonDispelTypeTextureStyle.CustomAsset then dispel[#dispel + 1] = entry.texture end
 end
 counts = kitOnly(K, dispel, { "chamferTile" }, button, "the icon's debuff type border")
 eq(counts.chamferTile, 9, "the debuff type colour fills a rounded tile behind the icon")

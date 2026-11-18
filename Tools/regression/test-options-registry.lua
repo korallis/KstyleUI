@@ -55,7 +55,7 @@ do
 	assert(K.Options.Row("UnitFrames", "nope") == nil)
 	local list = K.Options.List()
 	-- The core registers its own Appearance, HudStyle, Medallions, Widgets and Layout pages at load, before any module.
-	assert(#list == 6 and list[1] == "Appearance" and list[2] == "HudStyle" and list[3] == "Medallions" and list[4] == "Widgets" and list[5] == "Layout" and list[6] == "UnitFrames", "List names every schema in registration order")
+	assert(table.concat(list, "|") == "ColorVision|Appearance|HudStyle|Medallions|Widgets|Layout|Integrations|UnitFrames", "List names every schema in registration order")
 	Raises(function() K.Options.Register("UnitFrames", rows()) end, "already registered", "a second schema for one module")
 end
 

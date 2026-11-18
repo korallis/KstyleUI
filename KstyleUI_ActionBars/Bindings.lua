@@ -36,12 +36,21 @@ local function BindingText(key)
 	return key
 end
 
+function ns.UpdateHotkey(b)
+	local def = b.kbar.def
+	local text = ns.ShortKey(ns.FirstKey(def.binding .. b.index), BindingText)
+	local unbound = text == "" and b.hasAction ~= false
+	b.keyHasAction = b.hasAction
+	b:SetHotkey(unbound and "-" or text)
+	b.hotkey:SetAlpha(unbound and 0.4 or 1)
+end
+
 function ns.UpdateHotkeys()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
-			for i, b in ipairs(bar.buttons) do
-				b:SetHotkey(ns.ShortKey(ns.FirstKey(def.binding .. i), BindingText))
+			for _, b in ipairs(bar.buttons) do
+				ns.UpdateHotkey(b)
 			end
 		end
 	end

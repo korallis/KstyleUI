@@ -213,7 +213,7 @@ eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 -- Blizzard's frames are hidden through Safe, and come back when switched off.
 assert(K.Safe.IsHidden(env.PartyFrame), "Blizzard's party frames are hidden")
 assert(K.Safe.IsHidden(env.CompactRaidFrameContainer), "Blizzard's raid frames are hidden")
-assert(K.Safe.IsHidden(env.CompactRaidFrameManager), "the raid manager is hidden")
+assert(not K.Safe.IsHidden(env.CompactRaidFrameManager), "the raid manager stays available until KstyleUI has a replacement")
 K.Options.Write("GroupFrames", "blizzard.manager", false)
 env.RunTimers()
 assert(not K.Safe.IsHidden(env.CompactRaidFrameManager), "the raid manager comes back when switched off")

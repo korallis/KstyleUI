@@ -47,12 +47,13 @@ local tank, healer, dps = content("party1"), content("party2"), content("party3"
 -- KSTY-57: in the lanes the role is a pip, the kit's diamond in the role's colour on a black edge, before the name:
 -- tank blue, healer green, damage red. No role atlas shows beside it.
 local function pip(f, token, what)
-	eq(f.pipEdge:IsShown() and f.pipFill:IsShown(), true, what .. ": the pip shows")
-	eq(f.role:IsShown(), false, what .. ": and no role atlas")
-	local r, g, b = f.pipFill:GetVertexColor()
-	local wr, wg, wb = K.Tokens.Color(token)
+	eq(f.pipEdge:IsShown() or f.pipFill:IsShown(), false, what .. ": colour-only pips stay hidden")
+	eq(f.role:IsShown(), true, what .. ": the role shape shows")
+	local r, g, b = f.role:GetVertexColor()
+	local wr, wg, wb = K.Tokens.Color("steelLit")
 	assert(r == wr and g == wg and b == wb, what .. ": in " .. token)
-	eq(f.pipEdge:GetTexture(), (K.Tokens.Texture("diamond")), what .. ": a diamond")
+	local role = ({ rare = "TANK", friendly = "HEALER", hostile = "DAMAGER" })[token]
+	eq(f.role:GetAtlas(), env.GetMicroIconForRole(role), what .. ": shield, cross or blade")
 end
 pip(tank, "rare", "the tank")
 pip(healer, "friendly", "the healer")

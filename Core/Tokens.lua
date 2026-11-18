@@ -9,6 +9,12 @@ local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
+	visionRGCalm = { "0072b2", 1 },
+	visionRGDanger = { "d55e00", 1 },
+	visionRGWarning = { "f0e442", 1 },
+	visionBYCalm = { "009e73", 1 },
+	visionBYDanger = { "cc79a7", 1 },
+	visionBYWarning = { "e69f00", 1 },
 	materialFlat = { "13171b", 0.98 },
 	materialSlate = { "171716", 0.98 },
 	materialForged = { "101211", 1 },
@@ -356,6 +362,11 @@ local TEXTURES = {
 	orbSurfaceLight = { file = "Textures\\OrbSurfaceLight.png" },
 	hudStyleFrames = { file = "Textures\\HudStyleFrames.tga" },
 	hudStyleOrbs = { file = "Textures\\HudStyleOrbs.tga" },
+	dispelM = { file = "Textures\\Accessibility\\DispelM.png" },
+	dispelC = { file = "Textures\\Accessibility\\DispelC.png" },
+	dispelD = { file = "Textures\\Accessibility\\DispelD.png" },
+	dispelP = { file = "Textures\\Accessibility\\DispelP.png" },
+	dispelE = { file = "Textures\\Accessibility\\DispelE.png" },
 	medActionSlab = { file = "Textures\\Medallions\\ActionSlab.png", slice = 16, density = 2 },
 	medAmbientDruid = { file = "Textures\\Medallions\\AmbientDruid.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 },
 	medAmbientHunter = { file = "Textures\\Medallions\\AmbientHunter.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 },
@@ -481,7 +492,7 @@ function Tokens.Size(name)
 	if not v then
 		unknown("Size", name)
 	end
-	return v
+	return ns.Profiles and ns.Profiles.TextSize(name, v) or v
 end
 
 function Tokens.Share(name)
@@ -564,7 +575,7 @@ function Tokens.Font(role)
 	if not path and theme and theme.IsFontPath and theme.IsFontPath(key) then
 		path = key
 	end
-	local size = SIZES[role]
+	local size = Tokens.Size(role)
 	if role ~= "world" and theme and theme.FontScale then
 		size = math.max(MIN_TEXT, size * theme.FontScale())
 	end

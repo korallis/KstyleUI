@@ -10,7 +10,7 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets" }
+Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
 local HIDDEN_MODULES = { Options = true }
@@ -368,6 +368,13 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
+	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Readability"] }
+	items[#items + 1] = {
+		kind = "dropdown", page = "General", module = "Readability", key = "preset", label = L["Text preset"], help = L["Readable grows text and its rows; Standard restores the usual sizes."],
+		options = { { value = "Standard", label = L["Standard"] }, { value = "Readable", label = L["Readable"] } },
+		get = function() return K.Store.Module("Readability").preset end, set = K.Profiles.Readable,
+	}
+	items[#items + 1] = { kind = "note", page = "General", label = L["BigWigs and DBM are not skinned; tested addon versions: none, pending a verified Forever API."] }
 	return items
 end
 
@@ -375,6 +382,7 @@ local function ResetGeneral()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
 		Model.ResetSchema(section, K.Options.Get(section))
 	end
+	K.Profiles.Readable("Standard")
 end
 
 local function ElementsItems()
@@ -462,6 +470,11 @@ local function ModuleItems(page)
 		Append(items, rows)
 	end
 	ElementSection(items, module, page.id)
+	if module == "ActionBars" then
+		table.insert(items, 2, { kind = "button", page = page.id, label = L["Bind keys"],
+			help = L["Hover a button and press a key; Save keeps the bindings."],
+			buttons = { { label = L["Bind keys"], onClick = K.Options.BindKeys } } })
+	end
 	return items
 end
 
@@ -527,7 +540,7 @@ local function AllProfiles()
 end
 
 function Pages.ExportProfile()
-	local text, why = K.Store.Export()
+	local text, why = K.Profiles.Export(Pages.shareScope or "everything")
 	if not text then
 		Notify(L["Export failed"], tostring(why))
 		return nil
@@ -551,7 +564,9 @@ function Pages.ExportProfile()
 end
 
 function Pages.ImportProfile(text)
-	local ok, result = K.Store.Import(text)
+	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything")
+	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
+	local ok, result = K.Store.Import(preview.text)
 	ns.Changed()
 	if ok then
 		Notify(L["Profile imported"], format(L["Imported the profile as %s. This character now uses it."], tostring(result)))
@@ -559,6 +574,14 @@ function Pages.ImportProfile(text)
 		Notify(L["Import failed"], tostring(result))
 	end
 	return ok, result
+end
+
+function Pages.ReviewImport(text)
+	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything")
+	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
+	K.Widgets.Confirm({ title = L["Review import"], text = format(L["Will change: %s. A Before import backup will be saved."], preview.summary),
+		acceptLabel = L["Apply"], onAccept = function() Pages.ImportProfile(text) end })
+	return true, preview
 end
 
 local function ProfileItems()
@@ -663,6 +686,14 @@ local function ProfileItems()
 		} },
 	})
 	add({ kind = "header", level = 1, label = L["Share"] })
+	local scopes = { { value = "everything", label = L["Everything"] }, { value = "layout", label = L["Layout only"] } }
+	for _, name in ipairs(K.Modules.List()) do
+		if name ~= "Options" then scopes[#scopes + 1] = { value = name, label = Pages.ModuleLabel(name) } end
+	end
+	add({ kind = "dropdown", label = L["Share scope"], help = L["Export or import everything, the layout, or one module."], options = scopes,
+		get = function() return Pages.shareScope or "everything" end, set = function(value) Pages.shareScope = value end })
+	add({ kind = "button", label = L["Restore backup"], help = K.Store.Account().restoreProfile or L["No backup is available."],
+		disabled = K.Store.Account().restoreProfile == nil, buttons = { { label = L["Restore"], onClick = function() Report(K.Profiles.Restore()) end } } })
 	add({
 		kind = "button", label = L["Export"], help = L["Shows this profile as a string you can copy and share."],
 		buttons = { { label = L["Export"], onClick = Pages.ExportProfile } },
@@ -681,7 +712,7 @@ local function ProfileItems()
 						{
 							label = L["Import"], primary = true,
 							onClick = function(handle)
-								Pages.ImportProfile(handle:GetText())
+								Pages.ReviewImport(handle:GetText())
 							end,
 						},
 					},
@@ -803,6 +834,8 @@ local function ModuleNames()
 end
 
 local function GeneralPreview()
+	local cfg = K.Store.Module("Integrations")
+	if cfg.timerLane or cfg.announcementLane then return K.Setup.Integrations.Preview end
 	return ns.Preview and ns.Preview.Sample
 end
 

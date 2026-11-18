@@ -95,6 +95,8 @@ env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(list.warning == 1, "a tank is warned at another member's 92%")
 assert(countIs("92%", "neutral"), "a tank's count is the closest member's threat: " .. tostring(Text(list.column)))
+assert(Threat.alarm and rimIs("hostile"), "another player passing 90% turns the tank card's edge hostile")
+assert(list.alarmFlash and list.alarmFlash:IsPlaying(), "entering the alarm plays its 200 ms flash")
 
 -- Secret threat values reach only widget setters and never warn or sort.
 local secretScaled = S(70)

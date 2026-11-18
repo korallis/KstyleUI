@@ -19,6 +19,8 @@
 	<Script file="DevTestEditMode.lua"/>
 	<Script file="CVars.lua"/>
 	<Script file="Options.lua"/>
+	<Script file="Profiles.lua"/>
+	<Script file="ColorVision.lua"/>
 	<Script file="Appearance.lua"/>
 	<Script file="HudStyle.lua"/>
 	<Script file="Medallions.lua"/>

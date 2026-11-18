@@ -70,6 +70,17 @@ local function Build(f)
 	f.readyLayer:SetFrameLevel(f:GetFrameLevel() + READY_LEVEL)
 	f.ready = f.readyLayer:CreateTexture(nil, "OVERLAY")
 	f.ready:Hide()
+	f.statusIcons = {}
+	for _, name in ipairs({ "afk", "summon", "resurrection" }) do
+		local icon = f.readyLayer:CreateTexture(nil, "ARTWORK")
+		icon:SetSize(14, 14)
+		icon:SetPoint("CENTER", f.ready, "CENTER")
+		icon:SetAlpha(0)
+		f.statusIcons[name] = icon
+	end
+	f.statusIcons.afk:SetTexture("Interface\\FriendsFrame\\StatusIcon-Away")
+	f.statusIcons.summon:SetAtlas("RaidFrame-Icon-SummonPending")
+	f.statusIcons.resurrection:SetAtlas("RaidFrame-Icon-Rez")
 	f.threat = CreateFrame("Frame", nil, f)
 	f.threat:SetAllPoints(f)
 	f.threat:SetFrameLevel(f:GetFrameLevel())
@@ -144,13 +155,11 @@ local function UnitRole(f)
 end
 
 local function ShowPip(f, role)
-	local token = PIP_COLORS[role]
-	f.pipEdge:SetShown(token ~= nil)
-	f.pipFill:SetShown(token ~= nil)
-	if token then
-		if f.parts and f.parts.tidyLanes then token = "steelLit" end
-		f.pipFill:SetVertexColor(Tokens.Color(token))
-	end
+	f.pipEdge:Hide()
+	f.pipFill:Hide()
+	local atlas = PIP_COLORS[role] and GetMicroIconForRole and GetMicroIconForRole(role)
+	f.role:SetShown(atlas ~= nil)
+	if atlas then f.role:SetAtlas(atlas); f.role:SetVertexColor(Tokens.Color("steelLit")) end
 end
 
 local function Role(f)
@@ -162,7 +171,6 @@ local function Role(f)
 	if f.pipped then
 		local role = UnitGroupRolesAssigned(f.unit)
 		if not issecretvalue(role) then
-			f.role:Hide()
 			ShowPip(f, role)
 			return
 		end
@@ -234,7 +242,32 @@ local READY_ATLAS = {
 	end,
 }
 
+local function Status(f)
+	local icons, unit = f.statusIcons, f.unit
+	if not icons then return end
+	if readyActive then
+		for _, icon in pairs(icons) do icon:SetAlpha(0) end
+		return
+	end
+	local function Read(fn)
+		if type(fn) == "function" then return fn(unit) end
+		return false
+	end
+	local api = C_IncomingSummon
+	local afk, resurrection, summon = Read(UnitIsAFK), Read(UnitHasIncomingResurrection), Read(api and api.HasIncomingSummon)
+	FromBoolean(icons.afk, afk)
+	FromBoolean(icons.resurrection, resurrection)
+	FromBoolean(icons.summon, summon)
+	if icons.afk.SetAlphaFromBoolean then
+		icons.afk:SetAlphaFromBoolean(summon, 0, icons.afk:GetAlpha())
+		icons.afk:SetAlphaFromBoolean(resurrection, 0, icons.afk:GetAlpha())
+		icons.summon:SetAlphaFromBoolean(resurrection, 0, icons.summon:GetAlpha())
+	end
+end
+Indicators.Status = Status
+
 local function Ready(f)
+	Status(f)
 	if not readyActive or not Settings.current.icons.readyCheck or not GetReadyCheckStatus then
 		f.ready:Hide()
 		return
@@ -320,7 +353,7 @@ local function PaintSample(f, sample)
 	local atlas = icons.role and not f.roleInRing and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
 	ShowPip(f, f.pipped and icons.role and sample.role or nil)
 	if f.pipped then
-		f.role:Hide()
+		ShowPip(f, icons.role and sample.role or nil)
 	elseif type(atlas) == "string" then
 		f.role:SetAtlas(atlas)
 		f.role:Show()
@@ -360,3 +393,6 @@ events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Each(Role) }
 events[#events + 1] = { event = "READY_CHECK", fn = ReadyStart }
 events[#events + 1] = { event = "READY_CHECK_CONFIRM", fn = EachReady }
 events[#events + 1] = { event = "READY_CHECK_FINISHED", fn = ReadyFinished }
+for _, event in ipairs({ "INCOMING_RESURRECT_CHANGED", "INCOMING_SUMMON_CHANGED", "PLAYER_FLAGS_CHANGED" }) do
+	events[#events + 1] = { event = event, fn = Each(Status) }
+end

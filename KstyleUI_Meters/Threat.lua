@@ -163,6 +163,32 @@ local function Visible()
 	return true
 end
 
+function Threat.AlarmWanted(rows, count, tankRole)
+	local tank
+	for i = 1, count do if rows[i].isPlayer then tank = rows[i]; break end end
+	if not tank then return false end
+	local tanking = not IsSecret(tank.tanking) and tank.tanking == true
+	if not tanking and not tankRole then return false end
+	local amount = Logic.Plain(tank.threat)
+	if not amount or amount <= 0 then return false end
+	for i = 1, count do
+		local row = rows[i]
+		local other = Logic.Plain(row.threat)
+		if not row.isPlayer and not row.unit:find("pet", 1, true) and other and other > amount * 0.9 then return true end
+	end
+	return false
+end
+
+local function Alarm(on)
+	local list = Threat.list
+	if not list then return end
+	local entering = on and not Threat.alarm
+	Threat.alarm = on
+	list.panel.chrome:SetEdge(on and "hostile" or "edgeInner", 1)
+	K.Widgets.TextColor(list.title, on and "hostile" or "capsGold")
+	if entering and list.alarmFlash then list.alarmFlash:Play() end
+end
+
 local function Update()
 	Threat.pending = false
 	local list = Threat.list
@@ -172,6 +198,7 @@ local function Update()
 	local visible = Visible()
 	list.panel:SetShown(visible)
 	if not visible then
+		Alarm(false)
 		list:SetWarning(Logic.NO_WARNING)
 		return
 	end
@@ -182,6 +209,7 @@ local function Update()
 	end
 	local mob = Mob()
 	if not mob then
+		Alarm(false)
 		Threat.count = 0
 		Count(list, "")
 		list:SetWarning(Logic.NO_WARNING)
@@ -211,6 +239,10 @@ local function Update()
 		level = Logic.ThreatWarning(Threat.rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
 	end
 	list:SetWarning(level)
+	local role
+	if type(UnitGroupRolesAssigned) == "function" then role = UnitGroupRolesAssigned("player") end
+	local tankRole = not IsSecret(role) and role == "TANK" or K.Layout and K.Layout.Setting("preset") == "Tank"
+	Alarm(ns.Get("threat.warnings") and Threat.AlarmWanted(Threat.rows, count, tankRole))
 end
 
 local function Schedule()
@@ -262,6 +294,16 @@ local function Build()
 	Threat.list:SetTitle(L["Threat"])
 	Threat.list:SetColumn("")
 	Threat.countText = ""
+	local flash = Threat.list.panel:CreateTexture(nil, "OVERLAY")
+	flash:SetAllPoints(Threat.list.panel)
+	flash:SetColorTexture(K.Widgets.Rgba("hostile", 0.2))
+	flash:SetAlpha(0)
+	local group = flash:CreateAnimationGroup()
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetFromAlpha(1)
+	alpha:SetToAlpha(0)
+	alpha:SetDuration(0.2)
+	Threat.list.alarmFlash = group
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
 	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide
@@ -305,6 +347,7 @@ function Threat:Stop()
 		return
 	end
 	ns.UnwatchAll(self)
+	Alarm(false)
 	self.list:SetWarning(Logic.NO_WARNING)
 	self.list.panel:Hide()
 	self.holder:Hide()

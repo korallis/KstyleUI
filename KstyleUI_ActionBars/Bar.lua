@@ -201,7 +201,7 @@ local function SplitGap(cfg)
 	return 0
 end
 
-local CUMULATIVE = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, bar6 = true }
+local CUMULATIVE = { bar1 = true, bar2 = true, bar3 = true, bar4 = true, bar5 = true, bar6 = true }
 
 function Bar:Layout()
 	local def, cfg = self.def, self:Config()

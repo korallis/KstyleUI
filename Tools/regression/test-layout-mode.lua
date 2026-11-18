@@ -417,11 +417,11 @@ do
 	assert(Layout.Enter())
 	local Mode = Layout.Mode
 	local plate = Mode.Plate("Test.A")
-	local br, bg, bb = K.Tokens.Color("buttonFill")
+	local br, bg, bb = K.Tokens.Color("deep")
 	local function body(state)
 		local r, g, b, a = plate.chrome.fill[5]:GetVertexColor()
 		assert(near(r, br) and near(g, bg) and near(b, bb), "the plate body " .. state .. " is the button grade's tone, got " .. r .. " " .. g .. " " .. b)
-		assert(a > 0.5 and a < 1, "and translucent so the element shows through, got " .. a)
+		assert(near(a, 0.35), "mover plates must stay at 35% so the element shows through, got " .. a)
 		return a
 	end
 	local rest = body("at rest")
@@ -429,7 +429,7 @@ do
 	local hover = body("under the mouse")
 	W.Down(plate)
 	local active = body("selected")
-	assert(rest < hover and hover < active, "the body deepens from rest to hover to selected")
+	assert(rest == hover and hover == active, "the element stays visible at rest, hover and selection")
 	local er, eg, eb = K.Tokens.Color("accent")
 	local r, g, b = plate.chrome.rim[5]:GetVertexColor()
 	assert(near(r, er) and near(g, eg) and near(b, eb), "the plate's edge is the accent")

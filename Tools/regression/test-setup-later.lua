@@ -1,0 +1,35 @@
+local W = dofile("Tools/regression/widget_env.lua")
+for _, close in ipairs({ "close", "escape", "later" }) do
+	local env, K = W.New({ boot = false })
+	K.Modules.Register(W.CoreEnv.Module("ActionBars"))
+	W.CoreEnv.Boot(env)
+	env.RunTimers()
+	W.Settle(env)
+	local before, writes = K.Store.Export(), 0
+	K.Callbacks.Register("SettingChanged", "test", function() writes = writes + 1 end)
+	K.Setup.Go(3)
+	W.Click(K.Setup.window.cards.Healer)
+	if close == "escape" then W.Key(K.Setup.window, "ESCAPE")
+	elseif close == "later" then W.Click(K.Setup.window.skip)
+	else K.Setup.window:Close() end
+	W.Settle(env)
+	assert(K.Store.Export() == before and writes == 0, close .. ": closing setup must mean Later; only Apply changes the UI")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+do
+	local Fake = dofile("Tools/regression/editmode_fake.lua")
+	local env, K = W.New()
+	local saved = {}
+	for i = 1, 5 do saved[i] = { layoutName = "Mine " .. i, layoutType = Fake.ACCOUNT, systems = Fake.Modern().systems } end
+	local state = { saved = saved, active = 3, max = 5 }
+	Fake.Install(env, state)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {}, replaceLayout = "Mine 2" }))
+	assert(state.saves == 1 and Fake.Named(state, "KstyleUI DPS"), "Apply replaces only the layout the player chose")
+	assert(Fake.Named(state, "Mine 1") and Fake.Named(state, "Mine 3") and not Fake.Named(state, "Mine 2"))
+	local backup = K.Store.Account().editModeBackup
+	assert(backup and backup.name == "Before setup" and #backup.layouts == 7, "the named backup includes Edit Mode's five layouts and two presets")
+	assert(K.Profiles.Restore())
+	assert(Fake.Named(state, "Mine 2") and not Fake.Named(state, "KstyleUI DPS"), "restore brings back the replaced Edit Mode layout")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+print("setup later ok")

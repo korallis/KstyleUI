@@ -37,7 +37,7 @@ Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
 Settings.defaults = {
 	layout = { tidyLanes = true },
-	blizzard = { party = true, raid = true, manager = true },
+	blizzard = { party = true, raid = true, manager = false },
 	party = {
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
@@ -74,6 +74,7 @@ Settings.defaults = {
 	},
 	buffs = { enabled = true },
 	clickCast = { hint = true },
+	presets = { raid = "Compact" },
 	prediction = {
 		heals = true, absorbs = true, shield = true, healAbsorbs = true,
 		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
@@ -254,10 +255,11 @@ local function BuildSchema()
 	local function add(row)
 		schema[#schema + 1] = row
 	end
+	add({ type = "header", label = L["Group preset"] })
+	add(Dropdown("presets.raid", L["Raid preset"], L["Healer keeps missing health and priority indicators visible in a full raid."], Options({ { "Compact", L["Compact"] }, { "Healer", L["Healer"] } })))
 	add({ type = "header", label = L["Blizzard frames"] })
 	add(Toggle("blizzard.party", L["Hide Blizzard party frames"], L["Hides the game's own party frames while these are on."]))
 	add(Toggle("blizzard.raid", L["Hide Blizzard raid frames"], L["Hides the game's own raid frames while these are on."]))
-	add(Toggle("blizzard.manager", L["Hide the raid manager"], L["Hides the game's raid manager tab at the screen's left edge."]))
 	KindRows(schema, "party", L["Party frames"])
 	KindRows(schema, "raid", L["Raid frames"])
 	add({ type = "header", label = L["Health bar"] })
