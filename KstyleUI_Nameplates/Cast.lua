@@ -412,6 +412,7 @@ function Cast.Place(plate)
 end
 
 function Component.Restyle(plate)
+	plate.castShade = nil
 	local state = ns.state
 	local h = Settings.Get("cast.height")
 	local showIcon = Settings.Get("cast.showIcon")
