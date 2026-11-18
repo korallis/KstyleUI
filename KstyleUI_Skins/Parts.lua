@@ -592,6 +592,27 @@ local function PlaceMetrics(state)
 		return
 	end
 	MetricChildren(frame, 1)
+	local shift = 0
+	for _, child in ipairs({ frame:GetChildren() }) do
+		local skin = Skin.Parts(child)
+		if skin and skin.kinds.Button then
+			local point, relative, on, _, y = child:GetPoint(1)
+			if relative == frame and type(point) == "string" and point:find("TOP", 1, true) and type(on) == "string" and on:find("TOP", 1, true) and type(y) == "number" and not IsSecret(y) and y < 0 then
+				shift = math.max(shift, 44 + y)
+			end
+		end
+	end
+	if shift > 0 then
+		for _, child in ipairs({ frame:GetChildren() }) do
+			if child ~= frame.TitleContainer and child ~= frame.PortraitContainer and child ~= frame.CloseButton and child ~= frame.Header and child ~= frame.NineSlice and Widgets.MayMove(child) then
+				local point, relative, on = child:GetPoint(1)
+				if relative == frame and type(point) == "string" and point:find("TOP", 1, true) and type(on) == "string" and on:find("TOP", 1, true) then
+					child:AdjustPointsOffset(0, -shift)
+				end
+			end
+		end
+		frame:SetHeight(frame:GetHeight() + shift)
+	end
 	if title then
 		ns.Style.MetricText(title, true)
 		title:ClearAllPoints()
