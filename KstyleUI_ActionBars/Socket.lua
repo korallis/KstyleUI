@@ -44,6 +44,11 @@ end
 
 local function Countdown(b)
 	local cooldown = b.cooldown
+	if b.opts.readableCountdown then
+		Widgets.CountdownFormat(cooldown)
+		b.kCountdown = nil
+		return
+	end
 	if b.kCountdown or type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
 		return
 	end
@@ -62,6 +67,7 @@ local function Usable(b)
 end
 
 local function AfterPaint(b)
+	b.hotkey:SetAlpha(b.opts.readableCountdown and b.realCooldown and 0.6 or 1)
 	if not Usable(b) then
 		return
 	end

@@ -271,9 +271,9 @@ local function PlaceLayers(self)
 	bottom:SetPoint("BOTTOMRIGHT", self.icon, "BOTTOMRIGHT")
 	bottom:SetHeight(Widgets.Snap(self, size * BEVEL_BOTTOM))
 	PlaceStates(self)
-	local inset = Widgets.Snap(self, TEXT_INSET)
+	local inset = Widgets.Snap(self, self.opts.readableCountdown and 2 or TEXT_INSET)
 	self.hotkey:ClearAllPoints()
-	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset)
+	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, self.opts.readableCountdown and inset or -inset)
 	self.hotkey:SetJustifyH("LEFT")
 	local countdown = self.countdown
 	if countdown then
@@ -329,11 +329,8 @@ local function PaintLayers(self)
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
 	end
-	local cooldown = self.cooldown
-	cooldown:SetDrawEdge(true)
-	if type(cooldown.SetEdgeColor) == "function" then
-		cooldown:SetEdgeColor(Tokens.Color("slotEdge"))
-	end
+	self.slotEdge = true
+	self:StyleCooldown()
 end
 
 local function Lit(self)

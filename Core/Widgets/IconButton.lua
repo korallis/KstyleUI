@@ -160,7 +160,7 @@ function IconButton:Paint()
 	local v, desaturated = UNUSABLE_BRIGHTNESS, not usable
 	if usable then
 		if cooling then
-			v = COOLING_BRIGHTNESS
+			v = self.opts.quietCooldown and 0.65 or COOLING_BRIGHTNESS
 		else
 			v = 1 - PRESS_DIM * press
 			desaturated = press >= 0.5
@@ -215,9 +215,69 @@ function Widgets.ShadeIcon(texture, r, g, b, desaturated)
 	texture:SetVertexColor(r, g, b, select(4, texture:GetVertexColor()))
 end
 
+function IconButton:StyleCooldown()
+	local quiet, cooldown = self.opts.quietCooldown, self.cooldown
+	cooldown:SetDrawEdge(quiet and self.realCooldown == true or not quiet and self.slotEdge == true)
+	cooldown:SetSwipeColor(Widgets.Rgba("black", quiet and not self.realCooldown and 0.4 or SWIPE_ALPHA))
+	if type(cooldown.SetEdgeColor) == "function" then
+		cooldown:SetEdgeColor(Tokens.Color(quiet and "slotEdge" or "slotEdgeLegacy"))
+	end
+	if type(cooldown.SetEdgeScale) == "function" then cooldown:SetEdgeScale(quiet and 0.75 or 1) end
+	local charge = self.chargeCooldown
+	if charge then
+		if type(charge.SetEdgeColor) == "function" then charge:SetEdgeColor(Tokens.Color(quiet and "slotEdge" or "white")) end
+		if type(charge.SetEdgeScale) == "function" then charge:SetEdgeScale(quiet and 0.75 or 1) end
+	end
+end
+
+local countdownFormatter
+function Widgets.CountdownFormat(cooldown)
+	if type(cooldown.SetCountdownFormatter) ~= "function" then return end
+	local util, rounding = C_StringUtil, Enum and Enum.NumericRuleFormatRounding
+	if countdownFormatter == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
+		local ok, formatter = pcall(function()
+			local made = util.CreateNumericRuleFormatter()
+			made:AddBreakpoint({ threshold = 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
+			made:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1, rounding = rounding.Up } } })
+			return made
+		end)
+		countdownFormatter = ok and formatter or false
+	end
+	cooldown:SetCountdownFormatter(countdownFormatter or nil)
+end
+
+function Widgets.MedallionsFrame(button, on, overlay)
+	if not button.medIconFrame and on then
+		local well = button:CreateTexture(nil, "BACKGROUND", nil, 2)
+		well:SetTexture((Tokens.Texture("medSlotSocket")))
+		well:SetAllPoints(button)
+		button.medIconWell = well
+		local frame = (overlay or button):CreateTexture(nil, "OVERLAY", nil, 2)
+		frame:SetTexture((Tokens.Texture("medSlot")))
+		frame:SetAllPoints(button)
+		button.medIconFrame = frame
+	end
+	if button.medIconFrame then
+		button.medIconFrame:SetShown(on)
+		button.medIconWell:SetShown(on)
+	end
+	button.chrome:SetShown(not on)
+end
+
+function Widgets.MedallionsIcon(button, on)
+	Widgets.MedallionsFrame(button, on)
+	for _, region in ipairs({ button.well, button.bevelTop, button.bevelBottom }) do region:SetShown(not on) end
+	Widgets.ShowSlice(button.innerLine, not on)
+	button.mask:SetTexture((Tokens.Texture(on and "medSlotMask" or "iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	button.opts.iconInset = on and 3 or nil
+	button.placedOffset = nil
+	PlaceIcon(button)
+end
+
 local function SetRealCooldown(self, real)
 	if self.realCooldown ~= real then
 		self.realCooldown = real
+		self:StyleCooldown()
 		self:Paint()
 	end
 end
@@ -262,6 +322,7 @@ function IconButton:SetChargeCooldownFromDuration(durationObject)
 		charge:SetHideCountdownNumbers(true)
 		charge:SetFrameLevel(self.cooldown:GetFrameLevel() + 1)
 		self.chargeCooldown = charge
+		self:StyleCooldown()
 	end
 	if type(charge.SetCooldownFromDurationObject) ~= "function" then
 		Widgets.LogOnce("charge-object", "Cooldown:SetCooldownFromDurationObject is missing; charge recharges are not shown")
@@ -323,7 +384,7 @@ function IconButton:Restyle()
 		Widgets.Size(self, size, size)
 		self.placedOffset = nil
 		PlaceIcon(self)
-		local inset = Widgets.Snap(self, TEXT_INSET)
+		local inset = Widgets.Snap(self, self.opts.readableCountdown and 2 or TEXT_INSET)
 		self.hotkey:ClearAllPoints()
 		self.hotkey:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
 		self.count:ClearAllPoints()

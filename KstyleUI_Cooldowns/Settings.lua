@@ -84,6 +84,9 @@ local buffs = IconDefaults(27.6, 9, 9, false, 3.4)
 buffs.growth = "rightAligned"
 
 Settings.defaults = {
+	quietCooldown = true,
+	readableCountdown = true,
+	medallionsIcons = true,
 	path = "auto",
 	accent = "quiet",
 	accentColor = { r = accentR, g = accentG, b = accentB },
@@ -236,6 +239,9 @@ local function BarRows(schema)
 end
 
 local schema = {
+	{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
+	{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Uses the same bare seconds and minute labels as action buttons."] },
+	{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses the action slab's metal frame for cooldown and tracked buff icons in Medallions."] },
 	{ type = "header", label = L["Cooldown Manager"] },
 	{
 		type = "dropdown", key = "path", label = L["Display"],
@@ -368,6 +374,7 @@ end
 
 function Settings.Read()
 	local saved, defaults = Section(), Settings.defaults
+	for _, key in ipairs({ "quietCooldown", "readableCountdown", "medallionsIcons" }) do current[key] = Bool(saved[key], true) end
 	current.path = Choice(saved.path, PATH, defaults.path)
 	current.accent = Choice(saved.accent, ACCENT, defaults.accent)
 	Color(current, "accent", saved.accentColor, defaults.accentColor)

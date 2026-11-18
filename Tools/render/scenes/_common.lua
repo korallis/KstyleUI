@@ -146,6 +146,18 @@ function Common.ForceScreen(env, completePreset)
 	-- RENDER_HUD_STYLE (Frames, Orbs or Medallions) is the saved HUD style of every profile the scene loads that names none.
 	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
 	local db = rawget(env, "KstyleUIDB")
+	if os.getenv("RENDER_SLAB_FINISH") == "off" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			profile.ActionBars = profile.ActionBars or {}
+			for _, key in ipairs({ "quietSockets", "quietCooldown", "readableCountdown", "seatedCrest", "hubAlpha" }) do profile.ActionBars[key] = false end
+			profile.Cooldowns = profile.Cooldowns or {}
+			for _, key in ipairs({ "quietCooldown", "readableCountdown", "medallionsIcons" }) do profile.Cooldowns[key] = false end
+			profile.Auras = profile.Auras or {}
+			profile.Auras.medallionsIcons = false
+			profile.GroupFrames = profile.GroupFrames or {}
+			profile.GroupFrames.layout = { tidyLanes = false }
+		end
+	end
 	local readability = rawget(_G, "RENDER_READABILITY") or os.getenv("RENDER_READABILITY")
 	if readability == "off" and type(db) == "table" and type(db.profiles) == "table" then
 		for _, profile in pairs(db.profiles) do

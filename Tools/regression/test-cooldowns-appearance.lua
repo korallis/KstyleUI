@@ -13,7 +13,7 @@ local function appearance()
 	assert(p[1] == "CENTER" and p[2] == icon and p[3] == "CENTER" and math.abs(p[4]) <= half and math.abs(p[5] + K.Widgets.Snap(icon, 1)) <= half, "the essential timer is optically centred, not raised for a charge band")
 	local _, size = icon.countdown:GetFont()
 	assert(size == K.Widgets.FontSize(icon.countdown, 16.5), "the number role's bold face uses the picture's smaller size")
-	assert(W.LastCall(icon.cooldown, "SetCountdownFormatter")[1] == nil, "the engine draws native unitless seconds, never Lua string operations on secrets")
+	assert(W.LastCall(icon.cooldown, "SetCountdownFormatter")[1]:FormatNumber(4) == "4", "the engine draws unitless seconds, never Lua string operations on secrets")
 	local c = icon.count._points[1]
 	assert(c[1] == "BOTTOMRIGHT" and c[3] == "BOTTOMRIGHT", "charges remain in the bottom right")
 	assert(icon.chrome.shadowOn == false and icon.procGlow == nil, "there is no socket shadow or proc halo")

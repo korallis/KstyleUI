@@ -111,7 +111,8 @@ end
 function Button.UpdateAlpha(b)
 	local cfg = Config(b)
 	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout or cfg.showEmpty == true
-	b:SetAlpha(shown and 1 or 0)
+	local quiet = ns.Config("quietSockets") and ns.Slab.Active() and not b.hasAction and ns.grid == 0 and not ns.layout and not ns.Keybind.active
+	b:SetAlpha(shown and (quiet and 0.4 or 1) or 0)
 	ns.Slab.Keybind(b, cfg.hotkey == true)
 end
 
@@ -452,6 +453,12 @@ end
 
 function ns.StyleTextsFor(b, barKey)
 	local cfg = ns.Config(barKey)
+	local readable = b.opts.readableCountdown
+	b.opts.quietCooldown = ns.Config("quietCooldown") == true
+	b.opts.readableCountdown = ns.Config("readableCountdown") == true
+	if readable ~= b.opts.readableCountdown then b:Restyle() end
+	b:StyleCooldown()
+	ns.Socket.Place(b)
 	local text = ns.Config("text")
 	local scale = K.Theme.FontScale()
 	for _, spec in ipairs(ns.TEXTS) do

@@ -66,7 +66,7 @@ do
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1, count = "3" })
 	local b = AB.Button(ns, "bar1", 1)
 	local hp = b.hotkey._points[1]
-	assert(hp and hp[1] == "TOPLEFT" and hp[2] == b and hp[3] == "TOPLEFT" and hp[4] > 0 and hp[5] < 0, "the keybind is inset at the top left")
+	assert(hp and hp[1] == "TOPLEFT" and hp[2] == b and hp[3] == "TOPLEFT" and hp[4] > 0 and hp[5] > 0, "the keybind sits at the top-left lip, clear of the countdown")
 	assert(W.LastCall(b.hotkey, "SetJustifyH")[1] == "LEFT", "the keybind reads from the left")
 	local cp = b.count._points[1]
 	assert(cp and cp[1] == "BOTTOMRIGHT" and cp[3] == "BOTTOMRIGHT", "the count sits at the bottom right")
@@ -91,7 +91,8 @@ end
 -- kit's one-letter seconds formatter goes on every action button's cooldown, as on the cooldown rows.
 do
 	local C = dofile("Tools/regression/cooldowns_env.lua")
-	local env, _, ns = new({ setup = C.StringUtil })
+	local env, K, ns = new({ setup = C.StringUtil })
+	K.Options.Write("ActionBars", "readableCountdown", false)
 	AB.Slot(env, 3, { texture = 1, type = "spell", id = 1, cooldown = { name = "cd" } })
 	local b = AB.Button(ns, "bar1", 3)
 	local call = W.LastCall(b.cooldown, "SetCountdownFormatter")

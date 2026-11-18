@@ -87,6 +87,13 @@ local function SkinIcon(group, item)
 	end
 	if backdrop and backdrop.chrome then
 		backdrop.chrome:SetShadow(false)
+		local dress = current.medallionsIcons and K.HudStyle.Current() == "medallions"
+		if dress and not backdrop.medOverlay then
+			backdrop.medOverlay = CreateFrame("Frame", nil, item)
+			backdrop.medOverlay:SetFrameLevel(item:GetFrameLevel() + 1)
+			Widgets.Cover(backdrop.medOverlay, item)
+		end
+		Widgets.MedallionsFrame(backdrop, dress, backdrop.medOverlay)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then

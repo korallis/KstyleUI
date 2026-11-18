@@ -75,7 +75,7 @@ for _, screen in ipairs({
 				if pass == 2 then icon:Restyle() end
 				Figure(icon.countdown, icon, 1, 16.5)
 				assert(icon.countdown:GetText() == text and icon.count:GetText() == "3", "restyling preserves native long formats and corner charges")
-				assert(W.LastCall(icon.cooldown, "SetCountdownFormatter")[1] == nil, "essential formatting stays native and unitless")
+				assert(W.LastCall(icon.cooldown, "SetCountdownFormatter")[1]:FormatNumber(4) == "4", "essential seconds stay unitless")
 			end
 		end
 		SameRect(holder, row.holder)
@@ -95,7 +95,7 @@ for _, screen in ipairs({
 				Integer(size * K.Widgets.ScaleFactor(buffText) / K.Scale.Pixel(1), "the tracked font size")
 				assert(#W.Calls(nativeText, "SetText") == writes and W.LastCall(nativeText, "SetText")[1] == value, "native secret and long countdown text passes through untouched")
 				assert(W.LastCall(nativeCount, "SetText")[1] == "3", "native charges stay intact")
-				assert(W.LastCall(native.Cooldown, "SetCountdownFormatter")[1] == nil, "the reskin keeps native formatting too")
+				assert(W.LastCall(native.Cooldown, "SetCountdownFormatter")[1]:FormatNumber(4) == "4", "the reskin keeps the same formatting")
 			end
 		end
 	end

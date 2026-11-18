@@ -123,13 +123,14 @@ local function Formatter()
 	return formatter or nil
 end
 
-function Style.Countdown(cooldown, native)
+function Style.Countdown(cooldown, native, bar)
 	if type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
 		return false
 	end
-	if native then
-		return pcall(cooldown.SetCountdownFormatter, cooldown, nil)
+	if not bar and ns.Settings.current.readableCountdown then
+		return pcall(Widgets.CountdownFormat, cooldown)
 	end
+	if native then return pcall(cooldown.SetCountdownFormatter, cooldown, nil) end
 	local f = Formatter()
 	if not f then
 		return false
@@ -159,9 +160,12 @@ end
 
 local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
-	if usable and icon.greyWhileCooling and icon.onCooldown then
+	icon.realCooldown = icon.onCooldown == true
+	icon:StyleCooldown()
+	if usable and icon.onCooldown and (icon.opts.quietCooldown or icon.greyWhileCooling) then
 		local tint = icon.tint
-		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
+		local brightness = icon.opts.quietCooldown and 0.65 or 1
+		Widgets.ShadeIcon(icon.icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
 	end
 	if ns.Settings.current.accent == "quiet" then
 		icon.chrome:SetRim(Widgets.Rgba("slotRim"))
@@ -334,6 +338,7 @@ function Style.Decorate(icon, group)
 		local restyle = icon.Restyle
 		icon.Restyle = function(self)
 			restyle(self)
+			Style.Dress(self)
 			Style.PlaceText(self, group)
 		end
 		Style.PlaceText(icon, group)
@@ -341,6 +346,10 @@ function Style.Decorate(icon, group)
 	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
 	Style.Tooltips(icon)
 	return icon
+end
+
+function Style.Dress(icon)
+	Widgets.MedallionsIcon(icon, ns.Settings.current.medallionsIcons == true and K.HudStyle.Current() == "medallions")
 end
 
 function Style.Tooltips(frame)

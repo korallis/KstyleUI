@@ -36,6 +36,7 @@ Settings.THEME_FONT = THEME_FONT
 Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
 Settings.defaults = {
+	layout = { tidyLanes = true },
 	blizzard = { party = true, raid = true, manager = true },
 	party = {
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
@@ -286,6 +287,7 @@ local function BuildSchema()
 	add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."] })
 	add(Dropdown("text.healthOutline", L["Health text outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
 	add({ type = "header", label = L["Status icons"] })
+	add(Toggle("layout.tidyLanes", L["Tidy Medallions lanes"], L["Separates names, indicators and percentages, with metal role pips. Off restores the earlier layout."]))
 	add(Toggle("icons.role", L["Role icons"], L["Shows whether each member is a tank, healer or damage dealer."]))
 	add(Toggle("icons.leader", L["Leader icons"], L["Marks the group leader and raid assistants."]))
 	add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))

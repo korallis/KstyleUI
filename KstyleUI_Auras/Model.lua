@@ -32,6 +32,7 @@ local LIMITS = Model.LIMITS
 local ar, ag, ab = Tokens.Color("accentDefault")
 
 Model.defaults = {
+	medallionsIcons = true,
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {

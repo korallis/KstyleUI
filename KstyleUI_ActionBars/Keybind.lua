@@ -64,6 +64,9 @@ end
 
 function Mode.Exit()
 	Mode.active = false
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+		for _, button in ipairs(list) do ns.Button.UpdateAlpha(button) end
+	end
 	Mode.selected, Mode.pending = nil, nil
 	if Mode.confirmation then Mode.confirmation:Close(); Mode.confirmation = nil end
 	Mode.confirmed = nil
@@ -213,6 +216,9 @@ function Mode.Enter()
 	if Mode.active then Mode.Exit(); return false end
 	Mode.panel = Mode.panel or BuildPanel()
 	Mode.pending, Mode.active = {}, true
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+		for _, button in ipairs(list) do ns.Button.UpdateAlpha(button) end
+	end
 	local set = GetCurrentBindingSet()
 	Mode.bindingSet = not ns.IsSecret(set) and set == 2 and 2 or 1
 	Mode.initialSet = Mode.bindingSet

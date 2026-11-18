@@ -26,6 +26,9 @@ function Row:Resize()
 end
 
 function Row:StyleIcon(icon)
+	icon.opts.quietCooldown = ns.Settings.current.quietCooldown
+	icon.opts.readableCountdown = ns.Settings.current.readableCountdown
+	icon:StyleCooldown()
 	local cfg, current = self.cfg, ns.Settings.current
 	if icon.opts.size ~= cfg.size then
 		icon.opts.size = cfg.size
@@ -40,6 +43,7 @@ function Row:StyleIcon(icon)
 	Style.PlaceText(icon, self.group)
 	Style.Mouse(icon, current.tooltips)
 	Style.Accent(icon)
+	Style.Dress(icon)
 end
 
 function Row:Icon(index)

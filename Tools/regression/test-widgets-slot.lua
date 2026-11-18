@@ -54,7 +54,7 @@ do
 	local tr, tg, tb = b.countdown:GetTextColor()
 	assert(W.Near(tr, nr) and W.Near(tg, ng) and W.Near(tb, nb), "in the warm number colour")
 	assert(W.LastCall(b.cooldown, "SetDrawEdge")[1] == true, "the sweep draws its edge")
-	local er, eg, eb, ea = K.Tokens.Color("slotEdge")
+	local er, eg, eb, ea = K.Tokens.Color("slotEdgeLegacy")
 	local edge = W.LastCall(b.cooldown, "SetEdgeColor")
 	assert(edge and W.Near(edge[1], er) and W.Near(edge[2], eg) and W.Near(edge[3], eb) and W.Near(edge[4], ea), "lit in the edge colour")
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))

@@ -58,6 +58,7 @@ local function timerHidden(settings)
 end
 
 local schema = {
+	{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses a dark metal rim around aura tiles in Medallions. Off restores the black rim."] },
 	{ type = "header", label = L["Rows"] },
 	{
 		type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's buff frames"],

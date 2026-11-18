@@ -59,7 +59,7 @@ do
 	env.FireEvent("SPELL_UPDATE_ICON", 1)
 	assert(b.realCooldown == false, "an icon refresh does not trust a stale GCD value")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.rim[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
+	assert(W.Near(b.icon:GetVertexColor(), 0.65) and W.SameRGB(b.chrome.rim[5], K.Tokens.Color("text")), "a real cooldown dims the icon once and greys the rim")
 	-- Forever trusts isOnGCD only in response to SPELL_UPDATE_COOLDOWN, so that event refreshes the classification too.
 	gcd = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")

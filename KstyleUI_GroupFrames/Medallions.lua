@@ -140,12 +140,39 @@ function Style.Apply(f, ...)
 end
 
 local button = Geometry.Button
+local function TidyParts(out, kind, o)
+	if not Settings.current.layout.tidyLanes then return out end
+	local health, name = out.health, out.name
+	if not (health and name) then return out end
+	local right, gap = health.left + health.width, 4
+	local size = kind == "party" and 14 or 10
+	local count = 0
+	for i = 1, Settings.INDICATOR_SLOTS do
+		if ns.Slots.CATEGORIES[Settings.current["indicator" .. i].category] then count = count + 1 end
+	end
+	count = math.min(3, count)
+	local reserve = o.reserve or 0
+	local endName = right - reserve - (reserve > 0 and gap or 0)
+	local width = count > 0 and count * size + (count - 1) * 1 or 0
+	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
+	if out.tile then
+		out.tile.right, out.tile.gap = right, gap
+	else
+		out.healthText.right, out.healthText.markedRight = right, right
+	end
+	out.name = { left = name.left, top = name.top, width = math.max(1, endName - width - (width > 0 and gap or 0) - name.left), height = name.height }
+	out.tidyLanes = true
+	return out
+end
+
 function Geometry.Button(w, h, o)
 	local out = button(w, h, o)
 	if styling == "raid" and out.nameInside then
-		return TileParts(out, w, h, o)
+		return TidyParts(TileParts(out, w, h, o), styling, o)
 	elseif styling == "party" and out.portrait and not out.overlay then
-		return PartyParts(out, o)
+		return TidyParts(PartyParts(out, o), styling, o)
+	elseif styling then
+		return TidyParts(out, styling, o)
 	end
 	return out
 end
@@ -363,6 +390,7 @@ local function TileText(f)
 	local refined = Widgets.Readability("readableBars")
 	local separated = refined and tile.stacked and health.height - 2 * tile.inset >= lines
 	local nameRight = not separated and reserve > 0 and right - reserve - gap or right
+	if parts.tidyLanes and parts.indicatorLane.count > 0 then nameRight = math.min(nameRight, Widgets.Snap(f, parts.indicatorLane.left) - gap) end
 	if block and block.left and (not refined or not tile.stacked) then
 		nameRight = math.min(nameRight, Widgets.Snap(f, block.left) - gap)
 	end

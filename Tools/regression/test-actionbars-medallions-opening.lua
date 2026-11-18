@@ -21,7 +21,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 }, { 3840
 		assert(Near(mask:GetLeft() + mask:GetWidth() / 2, hub:GetLeft() + hub:GetWidth() / 2)
 			and Near(mask:GetBottom() + mask:GetHeight() / 2, hub:GetBottom() + hub:GetHeight() / 2), "centre each mask on the hub, independently of crest pulses and sheen motion")
 	end
-	local size = math.min(150, K.Scale.Pixel(255) / 1.05)
+	local size = math.min(123, K.Scale.Pixel(255) / 1.05)
 	assert(Near(hub.crest:GetWidth(), size) and Near(hub.crest:GetHeight(), size), "keep both crest axes at the canvas size, capped by the bake")
 	assert(Near(hub.crest:GetLeft() + hub.crest:GetWidth() / 2, hub:GetLeft() + hub:GetWidth() / 2)
 		and Near(hub.crest:GetBottom() + hub.crest:GetHeight() / 2, hub:GetBottom() + hub:GetHeight() / 2), "centre the crest canvas on the hub")

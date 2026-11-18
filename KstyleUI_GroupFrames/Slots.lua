@@ -246,7 +246,7 @@ end
 
 local function Spots(f)
 	local parts = f.parts
-	local lane = parts and parts.overlay and parts.lane
+	local lane = parts and (parts.indicatorLane or parts.overlay and parts.lane)
 	if not lane or not lane.legible then
 		return nil
 	end
@@ -350,7 +350,7 @@ function Slots.Placements(f)
 					spot = Box(spot.left + full - place.size, spot.top + inset, place.size, place.size)
 				end
 				Put(place, spot, w, h)
-			else
+			elseif not (f.parts and f.parts.tidyLanes) then
 				spot = Search(f, field, taken, fill, gap, slot, place)
 				if spot then
 					taken[#taken + 1] = spot

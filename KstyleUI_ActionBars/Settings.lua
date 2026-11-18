@@ -69,6 +69,11 @@ local defaults = {
 	ranks = "ask",
 	tray = true,
 	trayColumn = true,
+	quietSockets = true,
+	quietCooldown = true,
+	readableCountdown = true,
+	seatedCrest = true,
+	hubAlpha = true,
 	text = {
 		hotkey = { font = "", size = HOTKEY_TEXT, outline = "NONE" },
 		count = { font = "", size = Tokens.Size("number"), outline = "NONE" },
@@ -196,6 +201,12 @@ end
 
 function ns.Schema()
 	local schema = {
+		{ type = "header", label = L["Slab and cooldowns"] },
+		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."] },
+		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
+		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },
+		{ type = "toggle", key = "seatedCrest", label = L["Seat the crest"], help = L["Fits the Medallions crest inside its opening with a small metal lip. Off restores the larger crest."] },
+		{ type = "toggle", key = "hubAlpha", label = L["Full-strength crest effects"], help = L["Shows particles and combat sweeps at full strength. Off restores the earlier faded effects."] },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
 		{ type = "header", label = L["Bars"] },
 		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },

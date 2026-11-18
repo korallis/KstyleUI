@@ -92,16 +92,16 @@ assert(essential.icons[1].opts.size == 36.7 and utility.icons[1].opts.size == 38
 -- Blessings card does (Opus #7: one duration format).
 do
 	local formatter = LastArg(essential.icons[1].cooldown, "SetCountdownFormatter")
-	assert(formatter == nil, "essential numbers use the engine's native unitless seconds")
+	assert(formatter:FormatNumber(4) == "4", "essential numbers use bare seconds")
 	formatter = LastArg(utility.icons[1].cooldown, "SetCountdownFormatter")
-	assert(type(formatter) == "table" and formatter:Format(4) == "4s", "the utility row keeps one-letter durations")
+	assert(formatter:FormatNumber(4) == "4", "the utility row shares bare seconds")
 	local cp = essential.icons[1].countdown._points[1]
 	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1] and cp[3] == "CENTER" and math.abs(cp[5] + K.Widgets.Snap(essential.icons[1], 1)) <= K.Widgets.Border(essential.icons[1]) / 2 + 1e-6, "the essential countdown is optically centred")
 	essential.icons[1]:Restyle()
 	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1], "a restyle keeps it centred")
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	local buffIcon = buffRow:Icon(1)
-	assert(LastArg(buffIcon.cooldown, "SetCountdownFormatter") == formatter and formatter:Format(24) == "24s", "a tracked buff icon reads 24s, as Blessings does")
+	assert(LastArg(buffIcon.cooldown, "SetCountdownFormatter") == formatter, "tracked buff icons share native bare seconds")
 	assert(buffIcon.countdown._points[1][1] == "TOP" and buffIcon.countdown._points[1][3] == "BOTTOM", "a tracked buff's timer sits below its icon")
 end
 

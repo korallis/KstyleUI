@@ -12,7 +12,7 @@ local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
 local STRATA = "LOW"
 local RING, CREST, OPENING = 150, 150, 118
-local MARGIN, HUB_LIFT, TEXT_FLOOR = 4, 8, 9
+local MARGIN, HUB_LIFT = 4, 8
 local SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
 local SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 local GLOW_SHARE, BLOOM_SHARE = 1.5, 1.08
@@ -132,7 +132,10 @@ function Slab.TextSize(key, cfg, size, text)
 		return size
 	end
 	if text == "hotkey" and K.HudStyle.Current() == STYLE then
-		return KEYBIND * K.Theme.FontScale()
+		return (ns.Config("readableCountdown") and K.Scale.TEXT_FLOOR or KEYBIND) * K.Theme.FontScale()
+	end
+	if text == "cooldown" and ns.Config("readableCountdown") then
+		return max(K.Scale.TEXT_FLOOR, Slab.Size(bar.def, cfg) * 0.42) * K.Theme.FontScale()
 	end
 	local fit = Slab.Size(bar.def, cfg) / cfg.size
 	if not (Plain(fit) and fit < 1) then
@@ -141,10 +144,11 @@ function Slab.TextSize(key, cfg, size, text)
 	if text == "cooldown" then
 		return min(size, max(K.Scale.TEXT_FLOOR, size * fit * fit))
 	end
-	return max(TEXT_FLOOR, size * fit)
+	return max(ns.Config("readableCountdown") and K.Scale.TEXT_FLOOR or 9, size * fit)
 end
 
 function Slab.TextFlags(text, flags)
+	if text == "cooldown" and ns.Config("readableCountdown") then return "OUTLINE" end
 	if text == "hotkey" and K.HudStyle.Current() == STYLE then
 		return "OUTLINE"
 	end
@@ -409,9 +413,14 @@ end
 
 local function SizeCrest(hub)
 	local texels = K.Scale.Pixel(256 - 1)
-	local crest, bloom = min(CREST, texels / PULSE_SCALE), min(CREST * BLOOM_SHARE, texels)
+	local canvas = ns.Config("seatedCrest") and 123 or CREST
+	local crest, bloom = min(canvas, texels / PULSE_SCALE), min(canvas * BLOOM_SHARE, texels)
 	Widgets.Size(hub.crest, crest, crest)
 	Widgets.Size(hub.bloom, bloom, bloom)
+	if hub.seat then
+		hub.seat:SetShown(ns.Config("seatedCrest") == true)
+		hub.seatWell:SetShown(ns.Config("seatedCrest") == true)
+	end
 end
 
 local function BuildCrest(hub)
@@ -422,6 +431,15 @@ local function BuildCrest(hub)
 		Widgets.Tint(socket, "deep")
 	end
 	hub.socket = socket
+	local seat = Region(hub, "ARTWORK", -3, Slab.Texture("orbMask"))
+	Widgets.Size(seat, OPENING, OPENING)
+	seat:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	Widgets.Tint(seat, "medSocketLip")
+	hub.seat = seat
+	local well = Region(hub, "ARTWORK", -2, Slab.Texture("medHubSocket"))
+	Widgets.Size(well, OPENING - 4, OPENING - 4)
+	well:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	hub.seatWell = well
 
 	local mask = OpeningMask(hub, hub)
 	local crest = Region(hub, "ARTWORK", 0)
@@ -590,9 +608,9 @@ local function PaintParticles(r, g, b)
 		end
 		if cells then
 			local wr, wg, wb = Tokens.Color("white")
-			p:SetVertexColor(wr, wg, wb, p:GetAlpha())
+			p:SetVertexColor(wr, wg, wb, ns.Config("hubAlpha") and 1 or p:GetAlpha())
 		else
-			p:SetVertexColor(r, g, b, p:GetAlpha())
+			p:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or p:GetAlpha())
 		end
 	end
 end
@@ -606,10 +624,10 @@ local function Paint()
 	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
 	local r, g, b = ClassRGB()
 	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }) do
-		region:SetVertexColor(r, g, b, region:GetAlpha())
+		region:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or region:GetAlpha())
 	end
 	for _, sweep in ipairs(Slab.frame.sweeps) do
-		sweep:SetVertexColor(r, g, b, sweep:GetAlpha())
+		sweep:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or sweep:GetAlpha())
 	end
 	PaintParticles(r, g, b)
 end
@@ -923,7 +941,7 @@ function Slab.SetProc(b, on)
 	else
 		Widgets.Tint(loop, "white")
 	end
-	start:SetVertexColor(r, g, bl, start:GetAlpha())
+	start:SetVertexColor(r, g, bl, ns.Config("hubAlpha") and 1 or start:GetAlpha())
 	edge:SetVertexColor(r, g, bl, 1)
 	edge:Show()
 	loop:Show()
@@ -957,6 +975,7 @@ function Slab.Keybind(b, wanted)
 		wanted = ns.Config(b.kbar.def.key).hotkey == true
 	end
 	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
+	b.hotkey:SetAlpha(ns.Config("readableCountdown") and b.realCooldown and 0.6 or 1)
 end
 
 local function Inset(b)

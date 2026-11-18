@@ -43,7 +43,7 @@ assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W
 -- The rim comes from the shared icon chrome (Widgets.IconChrome), the helper every square icon button uses.
 assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == false, "the restyled icon uses shared chrome with a quiet rim")
 local formatter = W.LastCall(item.Cooldown, "SetCountdownFormatter")
-assert(formatter and formatter[1] == nil, "the restyled essential icon uses native unitless seconds")
+assert(formatter and formatter[1]:FormatNumber(4) == "4", "the restyled essential icon uses bare seconds")
 
 -- Bar items: the bar takes the texture and colour from the settings; its background and pip are hushed.
 local bars = env._viewers.BuffBarCooldownViewer
@@ -94,7 +94,7 @@ do
 	assert(K3.Skin.IsSkinned(buffItem, "Backdrop"), "the buff icon viewer is restyled on the automatic path")
 	assert(W.LastCall(buffItem.Applications.Applications, "SetFont"), "buff stack counts take the count font")
 	local buffFormatter = W.LastCall(buffItem.Cooldown, "SetCountdownFormatter")
-	assert(buffFormatter and buffFormatter[1]:Format(24) == "24s", "Blizzard's tracked buff icons read 24s too, as Blessings does")
+	assert(buffFormatter and buffFormatter[1]:FormatNumber(24) == "24", "Blizzard's tracked buff icons share bare seconds")
 	-- Edit Mode's IconSize scales each Blizzard item (CooldownViewerMixin:OnAcquireItemFrame); the restyled text is set
 	-- against that scale, so a 50% icon's timer still reads at KstyleUI's own size.
 	FontSize(K3, buffItem.Cooldown:GetCountdownFontString(), ns3.Settings.current.buffs.timerSize / 0.5, "a half-size icon's timer keeps its size on screen")

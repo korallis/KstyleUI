@@ -451,6 +451,10 @@ function Style.PlaceRowEnd(f)
 		f.nameWidth = math.max(1, Widgets.Snap(f, right - rect.left - (reserve and reserve + gap or 0)))
 		name:SetWidth(f.nameWidth)
 	end
+	if parts.tidyLanes then
+		f.nameWidth = math.max(1, math.min(f.nameWidth or rect.width, Widgets.Snap(f, rect.width)))
+		name:SetWidth(f.nameWidth)
+	end
 	ApplyName(f)
 end
 
@@ -470,7 +474,7 @@ function Style.Apply(f, width, height)
 	f.width, f.height = width, height
 	local overlay = k.textLayout == "ABOVE" and (f.kind == "raid" or not k.portrait)
 	local reserve = 0
-	if overlay and k.healthText ~= "NONE" then
+	if (overlay or K.HudStyle.Current() == "medallions" and cfg.layout.tidyLanes) and k.healthText ~= "NONE" then
 		SetFont(f.healthText, cfg.text.healthFont, k.healthTextSize, cfg.text.healthOutline)
 		reserve = Style.Reserve(f, k, nil, true) or 0
 	end

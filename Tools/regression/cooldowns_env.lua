@@ -104,6 +104,35 @@ function C.StringUtil(env)
 	env.Enum.SecondsFormatterRounding = env.Enum.SecondsFormatterRounding or { RoundUp = 0, Truncate = 1 }
 	env.Enum.SecondsFormatterIntervalWhitespace = env.Enum.SecondsFormatterIntervalWhitespace or { Preserve = 0, Strip = 1, StripIgnoreLocale = 2 }
 	env.C_StringUtil = env.C_StringUtil or {}
+	env.Enum.NumericRuleFormatRounding = { Nearest = 0, Up = 1, Down = 2 }
+	env.C_StringUtil.CreateNumericRuleFormatter = env.C_StringUtil.CreateNumericRuleFormatter or function()
+		local f = { breakpoints = {} }
+		function f:AddBreakpoint(rule) self.breakpoints[#self.breakpoints + 1] = rule end
+		function f:FormatNumber(number)
+			local secret = env.issecretvalue(number)
+			if secret then number = env.Reveal(number) end
+			local rule
+			for _, candidate in ipairs(self.breakpoints) do if number >= candidate.threshold then rule = candidate end end
+			assert(rule, "numeric formatter needs a matching breakpoint")
+			local function rounded(value, step, rounding)
+				if not step then return value end
+				local n = value / step
+				return (rounding == 1 and math.ceil(n) or rounding == 2 and math.floor(n) or math.floor(n + 0.5)) * step
+			end
+			local value = rounded(number, rule.step, rule.rounding)
+			if rule.min then value = math.max(rule.min, value) end
+			if rule.max then value = math.min(rule.max, value) end
+			local values = {}
+			for _, component in ipairs(rule.components or {}) do
+				local n = value / (component.div or 1)
+				if component.mod then n = n % component.mod end
+				values[#values + 1] = rounded(n, component.step, component.rounding)
+			end
+			local text = #values > 0 and string.format(rule.format, unpack(values)) or string.format(rule.format, value)
+			return secret and env.Secret(text) or text
+		end
+		return f
+	end
 	env.C_StringUtil.CreateSecondsFormatter = env.C_StringUtil.CreateSecondsFormatter or function()
 		local f = { calls = {} }
 		function f.Format(_, seconds)
