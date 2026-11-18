@@ -245,6 +245,14 @@ local function Paragraph(parent, role, color, width, small)
 	return text
 end
 
+local function WelcomeNote()
+	local later = ns.Store.Module("Setup").closeBehaviour == "later"
+	local text = later and L["Close or press Escape to set up later. Only Apply changes your interface."]
+		or L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."]
+	if later and ns.Store.Module("ProfileTools").backups then text = text .. " " .. L["A backup is saved before Apply."] end
+	return text
+end
+
 local function BuildClassicWelcome(page)
 	local pad = gap("gapLarge")
 	local logo = page:CreateTexture(nil, "ARTWORK")
@@ -367,6 +375,8 @@ local function BuildWelcome(page)
 		scroll:SetShown(shown)
 		local active = shown and branded or classic
 		panel.welcomeTitle, panel.welcomeNote = active.title, active.note
+		classic.note:SetText(WelcomeNote())
+		branded.note:SetText(WelcomeNote())
 		classic.note:SetShown(self.firstRun)
 		branded.note:SetShown(self.firstRun)
 		local pad, gutter = gap("gapLarge"), gap("gapSmall")
@@ -1015,11 +1025,7 @@ function Setup.ShowWindow()
 		panel.pages[i]:Hide()
 	end
 	step = 0
-	local config = ns.Store.Module("Setup")
-	panel.welcomeNote:SetText(config.closeBehaviour == "apply"
-		and L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."]
-		or L["Close or press Escape to set up later. Only Apply changes your interface."])
-	if config.closeBehaviour == "later" and ns.Store.Module("ProfileTools").backups then panel.welcomeNote:SetText(panel.welcomeNote:GetText() .. " " .. L["A backup is saved before Apply."]) end
+	panel.welcomeNote:SetText(WelcomeNote())
 	panel.welcomeNote:SetShown(Setup.IsFirstRun())
 	SyncChoice()
 	Setup.Go(1)
@@ -1032,3 +1038,7 @@ end
 function Setup.IsShown()
 	return open
 end
+
+ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
+	if panel and (module == "Setup" or module == "ProfileTools") then panel.pages[1]:Restyle() end
+end)

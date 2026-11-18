@@ -1,4 +1,21 @@
 local W = dofile("Tools/regression/widget_env.lua")
+do
+	local env, K = W.New()
+	K.Options.Write("Setup", "closeBehaviour", "later")
+	K.Setup.Open(true)
+	for _, branded in ipairs({ false, true }) do
+		K.Options.Write("Widgets", "general.brandedWelcome", branded)
+		W.Settle(env)
+		assert(K.Setup.window.welcomeNote:GetText():find("Only Apply", 1, true), "both welcome styles explain the Later choice")
+	end
+	K.Options.Write("Setup", "closeBehaviour", "apply")
+	assert(K.Setup.window.welcomeNote:GetText():find("applies the DPS", 1, true), "changing the close choice updates an open setup")
+	K.Options.Write("Setup", "closeBehaviour", "later")
+	K.Options.Write("ProfileTools", "backups", false)
+	assert(not K.Setup.window.welcomeNote:GetText():find("backup", 1, true), "the open welcome does not promise a disabled backup")
+	K.Setup.window:Close()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
 for _, close in ipairs({ "close", "escape", "later" }) do
 	local env, K = W.New({ boot = false })
 	K.Modules.Register(W.CoreEnv.Module("ActionBars"))

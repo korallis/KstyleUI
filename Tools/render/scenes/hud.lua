@@ -152,6 +152,11 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
+	if os.getenv("RENDER_NEEDS_OFF") == "1" then
+		profile.ActionBars = profile.ActionBars or {}
+		profile.ActionBars.bar3 = profile.ActionBars.bar3 or {}
+		profile.ActionBars.bar3.finished = false
+	end
 	return {
 		version = 2,
 		profiles = { Default = profile },
