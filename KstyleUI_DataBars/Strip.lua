@@ -399,6 +399,7 @@ local function PlaceLine(view, s)
 		local item = view.items[order[i]]
 		local button = item.button
 		local valueWidth = TextWidth(item.value, s.fontSize)
+		item.valueWidth = valueWidth
 		local labelWidth = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
 		local width = Widgets.Snap(frame, valueWidth + (labelWidth > 0 and unitGap + labelWidth or 0))
 		item.cell, item.inner = nil, nil
@@ -500,25 +501,37 @@ local function PlaceItems(view, s)
 	end
 end
 
-local function SetValues(view, s, values, timedOnly)
+local function SetValues(view, s, values, timedOnly, force)
+	local place = false
 	for _, id in ipairs(view.order) do
 		if not timedOnly or TIMED[id] then
 			local item, value = view.items[id], values[id]
 			local text, grade = value and value[1], value and value[2]
-			item.value:SetText(text or L["--"])
-			CompactGold(item, s)
-			ValueColor(item, s, grade or nil)
-			if view.lineMode then
-				item.inner = nil
-			elseif item.inner and s.labels == "inline" then
-				PlaceInline(item, s)
-			elseif item.inner == nil and s.orientation ~= "VERTICAL" then
-				local w = item.value:GetWidth()
-				item.value:SetWidth(Widgets.Snap(item.value, max(IsNumber(w) and w or 1, TextWidth(item.value, s.fontSize) + 2)))
+			text = text or L["--"]
+			if force or item.grade ~= grade then
+				item.grade = grade
+				ValueColor(item, s, grade or nil)
+			end
+			if force or item.text ~= text then
+				item.text = text
+				item.value:SetText(text)
+				CompactGold(item, s)
+				local width = TextWidth(item.value, s.fontSize)
+				if force or item.valueWidth ~= width then
+					item.valueWidth = width
+					if view.lineMode then
+						item.inner, place = nil, true
+					elseif item.inner and s.labels == "inline" then
+						PlaceInline(item, s)
+					elseif item.inner == nil and s.orientation ~= "VERTICAL" then
+						local w = item.value:GetWidth()
+						item.value:SetWidth(Widgets.Snap(item.value, max(IsNumber(w) and w or 1, width + 2)))
+					end
+				end
 			end
 		end
 	end
-	if view.lineMode then
+	if place then
 		PlaceLine(view, s)
 	end
 end
@@ -559,7 +572,7 @@ function Strip.Paint(view, s, values)
 			PaintItem(item)
 		end
 	end
-	SetValues(view, s, values)
+	SetValues(view, s, values, nil, true)
 	Strip.DockMenus(view, s)
 	PlaceItems(view, s)
 end

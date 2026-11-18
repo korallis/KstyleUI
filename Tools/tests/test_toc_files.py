@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import re
 import sys
 import tempfile
 import unittest
@@ -65,6 +66,20 @@ class TocFilesTest(unittest.TestCase):
     def test_check_toc_passes_fixture(self):
         code, out = self.check(FIXTURE)
         self.assertEqual((code, out), (0, ""))
+
+    def test_locale_conditions_preserve_paths_and_check_all_locales(self):
+        self.write("Add.toc", b"Core\\deDE.lua [AllowLoadTextLocale deDE]\r\n[AllowLoadTextLocale: frFR] Core\\frFR.lua\r\n")
+        self.write("Core/deDE.lua", b"return 1\r\n")
+        self.assertEqual(toc_files(self.root), [(self.root / f"Core/{locale}.lua").as_posix() for locale in ("deDE", "frFR")])
+        self.assertEqual(self.check(self.root), (1, "missing: Core/frFR.lua\n"))
+
+    def test_client_locale_conditions_keep_the_spanish_alias(self):
+        toc = (REPO / "KstyleUI.toc").read_text(encoding="ascii")
+        entries = re.findall(r"^(Core\\Locales\\\w+\.lua) \[AllowLoadTextLocale (\w+)\]$", toc, re.M)
+        expected = {"deDE": "deDE", "frFR": "frFR", "esES": "esES", "esMX": "esES", "zhCN": "zhCN"}
+        self.assertEqual(dict((locale, Path(path.replace("\\", "/")).stem) for path, locale in entries), expected)
+        self.assertLess(toc.index("Core\\Locale.lua"), toc.index("Core\\Locales\\"))
+        self.assertNotIn("Locales\\Locales.xml", (REPO / "Core/Core.xml").read_text(encoding="ascii"))
 
     def test_check_toc_reports_missing(self):
         self.write("Add.toc", b"Core\\Gone.lua\r\n")

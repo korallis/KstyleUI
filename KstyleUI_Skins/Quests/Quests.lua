@@ -153,7 +153,9 @@ local function Flush()
 			Flush()
 		end)
 	end
-	Card.Render()
+	if Data.changed then
+		Card.Render()
+	end
 end
 
 local function Dirty(reason)

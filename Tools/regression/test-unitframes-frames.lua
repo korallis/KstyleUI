@@ -185,13 +185,14 @@ assert(U.Shown(env, tot.healthText) == "50%", "the target of target shows its he
 
 -- Units like targettarget fire no unit events, so their frame polls while it shows, and only then.
 local totHolder = Frames.Get("targettarget").holder
-assert(totHolder:GetScript("OnUpdate"), "the target of target polls while it shows")
+assert(Frames.Get("targettarget").polling, "the target of target polls while it shows")
 env._units.targettarget.health = 15
-W.Tick(env, 0.25)
+env.RunTickers()
 assert(U.Shown(env, tot.healthText) == "25%", "polling updates the target of target's health")
 U.SetUnit(env, "targettarget", nil)
 assert(tot.button:IsShown() == false, "the unit watch hides the frame without a unit")
 assert(totHolder:GetScript("OnUpdate") == nil, "a hidden target of target stops polling")
+assert(not Frames.Get("targettarget").polling, "a hidden target of target cancels its ticker")
 assert(Frames.Get("player").holder:GetScript("OnUpdate") == nil, "frames with unit events never poll")
 
 -- The pet appears with UNIT_PET, and bosses with INSTANCE_ENCOUNTER_ENGAGE_UNIT.

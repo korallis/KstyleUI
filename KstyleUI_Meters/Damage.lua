@@ -182,6 +182,10 @@ local switchWords, switchShort = {}, {}
 
 local function Switch(list, name)
 	local session = ns.Get("damage.session")
+	if not list.hot and Damage.switchLayout == list.textLayout and Damage.switchName == name and Damage.switchSession == session then
+		return
+	end
+	Damage.switchLayout, Damage.switchName, Damage.switchSession = list.textLayout, name, session
 	local words, short, selected = switchWords, switchShort, 1
 	for i, key in ipairs(SESSION_ORDER) do
 		words[i] = SESSION_WORDS[key]

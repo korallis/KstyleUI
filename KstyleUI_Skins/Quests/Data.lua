@@ -10,7 +10,14 @@ local MAX_OBJECTIVES = 6
 
 local entries, previous = {}, {}
 local total = 0
-local watchIDs, watchTitles = {}, {}
+local watchIDs, watchTitles, order = {}, {}, {}
+local changed
+
+local function Set(entry, key, value)
+	if entry[key] ~= value then
+		entry[key], changed = value, true
+	end
+end
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -74,18 +81,18 @@ local function Split(text)
 end
 
 local function Skipped(log, id)
-	if Fn(log, "IsQuestTask") and Yes(log.IsQuestTask(id)) then
+	if type(log.IsQuestTask) == "function" and Yes(log.IsQuestTask(id)) then
 		return true
 	end
-	return Fn(log, "IsQuestBounty") and Yes(log.IsQuestBounty(id))
+	return type(log.IsQuestBounty) == "function" and Yes(log.IsQuestBounty(id))
 end
 
 local function Title(log, id, title)
-	local level = Fn(log, "GetQuestDifficultyLevel") and Number(log.GetQuestDifficultyLevel(id))
+	local level = type(log.GetQuestDifficultyLevel) == "function" and Number(log.GetQuestDifficultyLevel(id))
 	if not level or level <= 0 then
 		return title
 	end
-	local elite = Fn(log, "IsEliteQuest") and Yes(log.IsEliteQuest(id))
+	local elite = type(log.IsEliteQuest) == "function" and Yes(log.IsEliteQuest(id))
 	return "[" .. level .. (elite and "+" or "") .. "] " .. title
 end
 
@@ -99,37 +106,45 @@ local function Objectives(log, entry, id)
 			if text and text ~= "" then
 				n = n + 1
 				local objective = Objective(entry, n)
-				objective.text, objective.count = Split(text)
-				objective.done = Yes(info.finished)
+				local words, count = Split(text)
+				Set(objective, "text", words)
+				Set(objective, "count", count)
+				Set(objective, "done", Yes(info.finished))
 			end
 		end
 	end
-	entry.count = n
+	Set(entry, "count", n)
 end
 
 local function Item(log, entry, id)
-	entry.item, entry.icon = nil, nil
-	local index = Fn(log, "GetLogIndexForQuestID") and Number(log.GetLogIndexForQuestID(id))
-	entry.logIndex = index
+	local index = type(log.GetLogIndexForQuestID) == "function" and Number(log.GetLogIndexForQuestID(id))
+	Set(entry, "logIndex", index)
 	if not index or type(GetQuestLogSpecialItemInfo) ~= "function" then
+		Set(entry, "item", nil)
+		Set(entry, "icon", nil)
 		return
 	end
 	local link, icon, _, whenComplete = GetQuestLogSpecialItemInfo(index)
 	link = Text(link)
 	if not link or IsSecret(icon) or icon == nil then
+		Set(entry, "item", nil)
+		Set(entry, "icon", nil)
 		return
 	end
 	if entry.complete and not Yes(whenComplete) then
+		Set(entry, "item", nil)
+		Set(entry, "icon", nil)
 		return
 	end
-	entry.item, entry.icon = link, icon
+	Set(entry, "item", link)
+	Set(entry, "icon", icon)
 end
 
 local function Read(log, entry, id, title)
-	entry.id = id
-	entry.title = Title(log, id, title)
-	entry.complete = Yes(log.IsComplete(id))
-	entry.failed = Fn(log, "IsFailed") and Yes(log.IsFailed(id)) or false
+	Set(entry, "id", id)
+	Set(entry, "title", Title(log, id, title))
+	Set(entry, "complete", Yes(log.IsComplete(id)))
+	Set(entry, "failed", type(log.IsFailed) == "function" and Yes(log.IsFailed(id)) or false)
 	Objectives(log, entry, id)
 	Item(log, entry, id)
 	return entry
@@ -149,6 +164,7 @@ local function SuperFirst(super)
 end
 
 function Data.Read()
+	changed, Data.changed = false, false
 	if not Data.Available() then
 		Data.status = "api-unavailable"
 		return total
@@ -197,9 +213,19 @@ function Data.Read()
 	Data.status = status
 	local super = Fn(C_SuperTrack, "GetSuperTrackedQuestID") and Number(C_SuperTrack.GetSuperTrackedQuestID()) or 0
 	Data.super = super
+	if super ~= Data.previousSuper then
+		Data.previousSuper, changed = super, true
+	end
 	if super > 0 then
 		SuperFirst(super)
 	end
+	for i = 1, math.max(before, total) do
+		local id = entries[i] and entries[i].id
+		if order[i] ~= id then
+			order[i], changed = id, true
+		end
+	end
+	Data.changed = changed or total ~= before
 	return total
 end
 

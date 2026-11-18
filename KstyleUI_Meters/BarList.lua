@@ -515,6 +515,12 @@ local function PlaceMore(list, row)
 	if not more then
 		return
 	end
+	local name, width = row.name:GetText(), Logic.Plain(row.name:GetWidth())
+	local plain = not Logic.IsSecret(name)
+	if plain and row.moreLayout == list.textLayout and row.moreName == name and row.moreWidth == width then
+		return
+	end
+	row.moreLayout, row.moreName, row.moreWidth = plain and list.textLayout or nil, plain and name or nil, width
 	local panel = list.panel
 	local glyph = Widgets.Snap(panel, MORE_GLYPH)
 	local reach = Widgets.TextWidth(row.name, 0)
@@ -537,6 +543,11 @@ local function FontSize(text, section)
 end
 
 local function PlaceBlockText(list, row)
+	local last, first = EndChar(row.amount, true), EndChar(row.share, false)
+	if row.textLayout == list.textLayout and row.textJoined == row.joined and row.textLast == last and row.textFirst == first then
+		return
+	end
+	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
 	local frame = row.frame
 	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
 	local rowHeight = list.rowHeight
@@ -557,8 +568,6 @@ local function PlaceBlockText(list, row)
 	end
 	if joined and dot and list.valueWidth > 0 then
 		local size = FontSize(row.value, list.section)
-		local last = EndChar(row.amount, true)
-		local first = EndChar(row.share, false)
 		local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
 		local x, y = BarList.JoinOffsets(last, first, size, step, (row.value:GetFont()))
 		dot:SetText(DOT)
@@ -747,6 +756,7 @@ local function HoldTitle(list)
 end
 
 function List:Restyle()
+	self.textLayout = (self.textLayout or 0) + 1
 	local section = self.section
 	self.pad = self.block and Widgets.Snap(self.panel, BLOCK_PAD) or self.panel.chrome:Inset()
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
@@ -1027,6 +1037,9 @@ function List:ShowSwitch()
 end
 
 function List:SetRest(text)
+	if not Logic.IsSecret(text) and self.rest == text then
+		return
+	end
 	self.rest = text
 	self.hasRest = type(text) == "string"
 	if self.block and self.switchWords and not self.hot then

@@ -16,3 +16,11 @@ for i, rel in ipairs(expected) do
 end
 
 print("toc walker ok")
+
+local locales = {}
+for _, path in ipairs(TocFiles("%.lua$")) do
+	if path:match("^Core/Locales/") then
+		locales[#locales + 1] = path
+	end
+end
+assert(table.concat(locales, ",") == "Core/Locales/deDE.lua,Core/Locales/frFR.lua,Core/Locales/esES.lua,Core/Locales/esES.lua,Core/Locales/zhCN.lua", "P9: strip locale conditions and check every locale file, including esMX's shared Spanish table, in load order")

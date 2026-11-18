@@ -81,6 +81,9 @@ local function Build()
 	alpha:SetDuration(Vignette.BREATH)
 	alpha:SetSmoothing("IN_OUT")
 	frame.breath = breath
+	frame:HookScript("OnHide", function()
+		breath:Stop()
+	end)
 	Vignette.frame = frame
 end
 
@@ -122,7 +125,11 @@ function Vignette.Update()
 	end
 	frame:SetAlpha(UnitHealthPercent("player", true, c))
 	frame:Show()
-	if Effects.Allows("pulse") then
+	local visible = UIParent:IsVisible()
+	if IsSecret(visible) then
+		visible = true
+	end
+	if visible and Effects.Allows("pulse") then
 		if not frame.breath:IsPlaying() then
 			frame.breath:Play()
 		end
@@ -165,3 +172,9 @@ ns.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Listen)
 ns.Callbacks.Register("HudStyleChanged", OWNER, Listen)
 ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
+UIParent:HookScript("OnHide", function()
+	if frame then
+		frame.breath:Stop()
+	end
+end)
+UIParent:HookScript("OnShow", Vignette.Update)

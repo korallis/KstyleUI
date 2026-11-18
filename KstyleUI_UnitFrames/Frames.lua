@@ -22,7 +22,7 @@ local POLLED = { targettarget = true, focustarget = true }
 
 local UNIT_EVENTS = {
 	UNIT_HEALTH = "Health",
-	UNIT_MAXHEALTH = "Health",
+	UNIT_MAXHEALTH = "MaxHealth",
 	UNIT_HEAL_PREDICTION = "Prediction",
 	UNIT_ABSORB_AMOUNT_CHANGED = "Prediction",
 	UNIT_HEAL_ABSORB_AMOUNT_CHANGED = "Prediction",
@@ -53,6 +53,10 @@ end
 
 local HANDLERS = {
 	Health = function(view, unit)
+		Unit.Health(view, unit)
+	end,
+	MaxHealth = function(view, unit)
+		Unit.HealthRange(view, unit)
 		Unit.Health(view, unit)
 	end,
 	Prediction = function(view, unit)
@@ -162,13 +166,7 @@ local function OnLeave(button)
 	end
 end
 
-local function Poll(holder, elapsed)
-	local uf = holder.uf
-	uf.elapsed = uf.elapsed + elapsed
-	if uf.elapsed < POLL_INTERVAL then
-		return
-	end
-	uf.elapsed = 0
+local function Poll(uf)
 	local view = uf.views[1]
 	if Active(view) and UnitExists(view.unit) then
 		Unit.Health(view, view.unit, true)
@@ -178,16 +176,31 @@ end
 
 local function StartPolling(uf)
 	if POLLED[uf.kind] and not uf.polling then
-		uf.polling = true
-		uf.elapsed = 0
-		uf.holder:SetScript("OnUpdate", Poll)
+		if C_Timer and type(C_Timer.NewTicker) == "function" then
+			uf.polling = C_Timer.NewTicker(POLL_INTERVAL, function()
+				Poll(uf)
+			end)
+		else
+			uf.polling, uf.elapsed = true, 0
+			uf.holder:SetScript("OnUpdate", function(_, elapsed)
+				uf.elapsed = uf.elapsed + elapsed
+				if uf.elapsed >= POLL_INTERVAL then
+					uf.elapsed = 0
+					Poll(uf)
+				end
+			end)
+		end
 	end
 end
 
 local function StopPolling(uf)
 	if uf.polling then
-		uf.polling = false
-		uf.holder:SetScript("OnUpdate", nil)
+		if uf.polling == true then
+			uf.holder:SetScript("OnUpdate", nil)
+		else
+			uf.polling:Cancel()
+		end
+		uf.polling = nil
 	end
 end
 

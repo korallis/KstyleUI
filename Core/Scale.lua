@@ -14,6 +14,7 @@ local DEFAULT_USER_SCALE = 16 / 19
 local STEPS_PER_PIXEL = 16
 local MOCKUP_SIZE = 1
 local TEXT_FLOOR = 11
+local CACHE_KEYS = 6
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
 local ARRANGEMENT = { centred = true, spread = true }
@@ -40,6 +41,7 @@ local state = {
 	aspect = ASPECTS[1],
 	applied = {},
 	waiting = false,
+	dirty = true,
 }
 
 local function Fire(event, ...)
@@ -139,17 +141,68 @@ end
 
 Scale.AspectClass = AspectClass
 
-local function Limit(width, height)
+local function Limit(width, height, screen, user, auto)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	if not (layouts and layouts.ScaleLimit) then
-		return MAX_USER_SCALE
+		return MAX_USER_SCALE, nil, auto and Scale.Auto(height, MAX_USER_SCALE) or Scale.Nearest(user, height, MAX_USER_SCALE)
 	end
 	local store = ns.Store
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
 	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
+	local cache, key, entry
+	if store and store.IsLoaded() then
+		cache = KstyleUIDB.scaleCache
+		if type(cache) ~= "table" or cache.version ~= ns.VERSION or type(cache.entries) ~= "table" then
+			cache = { version = ns.VERSION, entries = {} }
+			KstyleUIDB.scaleCache = cache
+		end
+		local flags = {}
+		for i, element in ipairs(layouts.ELEMENTS) do
+			flags[i] = enabled[element.key] and "1" or "0"
+		end
+		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags) }, ":")
+		for i, saved in ipairs(cache.entries) do
+			if type(saved) == "table" and saved.key == key and IsPositive(saved.maximum) and saved.maximum <= MAX_USER_SCALE then
+				entry = saved
+				local answer
+				if auto then
+					answer = saved.auto
+				elseif saved.user == user then
+					answer = saved.nearest
+				elseif saved.previousUser == user then
+					answer = saved.previousNearest
+				end
+				if IsPositive(answer) and answer >= MIN_USER_SCALE and answer <= saved.maximum then
+					table.remove(cache.entries, i)
+					table.insert(cache.entries, 1, saved)
+					return saved.maximum, enabled, answer
+				end
+				break
+			end
+		end
+	end
 	local maximum, fits = layouts.ScaleLimit(width, height, preset, enabled, style)
-	return maximum, enabled, fits
+	local effective = auto and Scale.Auto(height, maximum, fits) or Scale.Nearest(user, height, maximum, fits)
+	if cache then
+		if not entry then
+			entry = { key = key }
+			table.insert(cache.entries, 1, entry)
+			while #cache.entries > CACHE_KEYS do
+				cache.entries[#cache.entries] = nil
+			end
+		end
+		entry.maximum = maximum
+		if auto then
+			entry.auto = effective
+		else
+			if entry.user ~= user then
+				entry.previousUser, entry.previousNearest = entry.user, entry.nearest
+			end
+			entry.user, entry.nearest = user, effective
+		end
+	end
+	return maximum, enabled, effective
 end
 
 local function Step(height)
@@ -184,8 +237,12 @@ local function Apply()
 	local screen, height = PhysicalSize()
 	local width, band = CanvasWidth(screen, height), BandWidth(screen, height)
 	local parent, user, auto = ParentScale(), state.user, state.auto
-	local maximum, enabled, fits = Limit(width, height)
-	local effectiveUser = auto and Scale.Auto(height, maximum, fits) or Scale.Nearest(user, height, maximum, fits)
+	local last = state.applied
+	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band then
+		return
+	end
+	state.dirty = false
+	local maximum, enabled, effectiveUser = Limit(width, height, screen, user, auto)
 	local added = false
 	if state.enabled and enabled then
 		for _, element in ipairs(ns.Setup.Layouts.ELEMENTS) do
@@ -196,7 +253,6 @@ local function Apply()
 		end
 	end
 	state.enabled = enabled
-	local last = state.applied
 	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto and last[8] == band and state.effectiveUser == effectiveUser then
 		return
 	end
@@ -266,6 +322,7 @@ events:RegisterEvent("DISPLAY_SIZE_CHANGED")
 events:RegisterEvent("CVAR_UPDATE")
 events:SetScript("OnEvent", function(_, event, name)
 	if event == "PLAYER_LOGIN" then
+		state.dirty = true
 		Apply()
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		ApplyWaiting()
@@ -361,6 +418,9 @@ function Scale.SetUserScale(size)
 end
 
 ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
+	if module == "Layout" or ns.Features.modules[module] ~= nil then
+		state.dirty = true
+	end
 	if module == "Layout" and key == "preset" then
 		Request("the layout preset")
 	elseif module == "Layout" and key == "canvas" then
@@ -372,12 +432,15 @@ ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 	end
 end)
 ns.Callbacks.Register("HudStyleChanged", "Scale", function()
+	state.dirty = true
 	Request("the HUD style")
 end)
 ns.Callbacks.Register("ModuleChanged", "Scale", function()
+	state.dirty = true
 	Request("a module switch")
 end)
 ns.Callbacks.Register("ProfileChanged", "Scale", function()
+	state.dirty = true
 	if ns.Appearance then
 		Scale.SetAuto(ns.Appearance.Get("uiScaleAuto"))
 		Scale.SetUserScale(ns.Appearance.Get("uiScale"))

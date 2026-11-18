@@ -296,7 +296,6 @@ end
 
 local function Health(f)
 	local unit = f.unit
-	f.health:SetBarRange(0, UnitHealthMax(unit))
 	f.health:SetHealth(UnitHealth(unit), f.fresh)
 	HealthText(f)
 end
@@ -383,7 +382,10 @@ local HANDLERS = {
 		end
 		Health(f)
 	end,
-	UNIT_MAXHEALTH = Health,
+	UNIT_MAXHEALTH = function(f)
+		f.health:SetBarRange(0, UnitHealthMax(f.unit))
+		Health(f)
+	end,
 	UNIT_NAME_UPDATE = function(f)
 		Name(f)
 		Colors(f)
@@ -416,6 +418,7 @@ function Unit.Refresh(f)
 	end
 	Status(f)
 	Name(f)
+	f.health:SetBarRange(0, UnitHealthMax(f.unit))
 	Health(f)
 	Colors(f)
 	PowerColor(f)

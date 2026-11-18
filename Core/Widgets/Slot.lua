@@ -202,7 +202,11 @@ end
 
 local function Breathe(self)
 	local breath = self.lumenGlow.breath
-	if self.proc and not Motion.ReducedMotion() then
+	local visible = self.lumenGlow:IsVisible()
+	if Widgets.IsSecret(visible) then
+		visible = true
+	end
+	if self.proc and visible and not Motion.ReducedMotion() then
 		if not breath:IsPlaying() then
 			breath:Play()
 		end
@@ -405,6 +409,12 @@ function Widgets.Slot(parent, opts)
 	glow.breath:SetLooping("BOUNCE")
 	Fade(glow.breath, BREATH_HIGH, BREATH_LOW, Tokens.Duration("procPulse"), "IN_OUT")
 	b.lumenGlow = glow
+	glow:HookScript("OnShow", function()
+		Breathe(b)
+	end)
+	glow:HookScript("OnHide", function()
+		Breathe(b)
+	end)
 	b.readyFade:SetFromAlpha(READY_ALPHA)
 	b.readyFade:SetDuration(Tokens.Duration("readyFlash"))
 	b.rimToken = opts.rim or "slotRim"

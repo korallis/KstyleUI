@@ -158,9 +158,12 @@ function Unit.Prediction(view, unit)
 		view.absorb:Hide()
 		return
 	end
-	local max = UnitHealthMax(unit)
-	view.incoming:SetBarRange(0, max)
-	view.absorb:SetBarRange(0, max)
+	if not view.predictionRange then
+		local max = UnitHealthMax(unit)
+		view.incoming:SetBarRange(0, max)
+		view.absorb:SetBarRange(0, max)
+		view.predictionRange = true
+	end
 	local calc = view.calculator
 	if calc == nil and CreateUnitHealPredictionCalculator and UnitGetDetailedHealPrediction then
 		calc = CreateUnitHealPredictionCalculator()
@@ -268,9 +271,16 @@ local function LumenHealth(view, unit, form, format)
 	end
 end
 
+function Unit.HealthRange(view, unit)
+	view.health:SetBarRange(0, UnitHealthMax(unit))
+	view.healthRangeUnit, view.predictionRange = unit, false
+end
+
 function Unit.Health(view, unit, instant)
 	local bar = view.health
-	bar:SetBarRange(0, UnitHealthMax(unit))
+	if instant or view.healthRangeUnit ~= unit then
+		Unit.HealthRange(view, unit)
+	end
 	bar:SetHealth(UnitHealth(unit), instant)
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
