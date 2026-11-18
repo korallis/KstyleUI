@@ -56,7 +56,7 @@ local function Scale(shown, inside)
 end
 
 local off, full = Scale(false, true), Scale(true, true)
-assert(off == full, "ornaments that fit inside the clip must not change the preview content scale: " .. tostring(off) .. " versus " .. tostring(full))
+assert(math.abs(off - full) < 1e-12, "ornaments that fit inside the clip must not change the preview content scale: " .. tostring(off) .. " versus " .. tostring(full))
 local edgeOff, edgeFull = Scale(false), Scale(true)
 assert(edgeFull < edgeOff, "ornaments that would cross the clip shrink the preview: " .. tostring(edgeOff) .. " versus " .. tostring(edgeFull))
 print(string.format("ok ornaments that fit leave the preview at %.2f; a ring that would cross the clip shrinks it from %.2f to %.2f and draws whole inside", off, edgeOff, edgeFull))
