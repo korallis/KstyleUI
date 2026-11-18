@@ -977,6 +977,7 @@ function modules.minimap(opts)
 	-- zone, the clock and the player's map position the module reads.
 	local env, K, ns = M.New({
 		enabled = true,
+		settings = Common.PreviousFinish() and { clearPlaques = false } or nil,
 		zone = opts.zone or "Riverglades",
 		position = opts.position,
 		setup = function(env)
