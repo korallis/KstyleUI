@@ -1,5 +1,5 @@
 -- test-layouts-locals.lua: Core/Setup/Layouts.lua keeps a margin under Lua 5.1's limit of 200 local variables in one function.
-local PATH, MARGIN, LIMIT = "Core/Setup/Layouts.lua", 5, 200
+local PATH, MARGIN, LIMIT = "Core/Setup/Layouts.lua", 7, 200
 
 local handle = assert(io.open(PATH, "rb"))
 local source = handle:read("*a")

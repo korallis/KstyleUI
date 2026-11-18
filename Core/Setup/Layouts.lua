@@ -1183,7 +1183,7 @@ local function Apart(a, b)
 end
 
 do
-local function PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style, search)
+function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style, search)
 	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
 	local layout = positions or Layouts.Positions(name, style or "frames", class)
 	if not layout then
@@ -1213,7 +1213,11 @@ local function PrepareFits(name, physicalWidth, physicalHeight, enabled, positio
 		state.sizes[i] = { width, height, offsetX }
 		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
 	end
-	for i = 1, #ELEMENTS + 5 do
+	local rectCount = #ELEMENTS + 2
+	for _ in pairs(Layouts.MEDALLIONS_MEDALS) do
+		rectCount = rectCount + 1
+	end
+	for i = 1, rectCount do
 		state.rects[i] = {}
 	end
 	local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
@@ -1221,7 +1225,7 @@ local function PrepareFits(name, physicalWidth, physicalHeight, enabled, positio
 	return state
 end
 
-local function Story(state, name, physicalWidth, physicalHeight, user, style)
+function Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
 	local rootHeight = 1080 / user
 	local rootWidth = physicalWidth / (physicalHeight / rootHeight)
 	local memo = state.story
@@ -1239,14 +1243,14 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local floor, max, min = math.floor, math.max, math.min
 	local rootHeight = 1080 / user
 	enabled = enabled or Layouts.Enabled(name)
-	state = state or PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style)
+	state = state or Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style)
 	if not state then
 		return false
 	end
 	local layout = state.layout
 	local pixelScale = physicalHeight / rootHeight
 	local rects, count = state.rects, 0
-	local story = Story(state, name, physicalWidth, physicalHeight, user, style)
+	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
 	for i = 1, #ELEMENTS + 2 do
 		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
@@ -1376,7 +1380,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		return cached.scale, cached.fits
 	end
 	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
-	local state = PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, style, true)
+	local state = Layouts.PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, style, true)
 	local function fits(size)
 		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style, state)
 	end
