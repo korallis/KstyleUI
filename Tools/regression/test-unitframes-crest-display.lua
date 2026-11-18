@@ -10,6 +10,7 @@ local key = ns.Fan.KEY
 local narrow = K.Layout.Get(key).y
 width, height = 5120, 1440
 env.FireEvent("DISPLAY_SIZE_CHANGED")
+env.RunTimers()
 local wide = K.Layout.Get(key).y
 assert(narrow ~= wide, "recompute the crest fan default from the current display aspect")
 local defaults = K.Layout.Element(key).default
@@ -19,6 +20,7 @@ K.Layout.Set(key, "y", 380)
 K.Layout.Set(key, "scale", 0.7)
 width, height = 1920, 1080
 env.FireEvent("DISPLAY_SIZE_CHANGED")
+env.RunTimers()
 local saved = K.Layout.Get(key)
 assert(saved.x == 60 and saved.y == 380 and saved.scale == 0.7, "display changes preserve the player's whole position and scale")
 assert(K.Layout.Element(key).default.y == narrow, "the narrow default is recalculated even for a moved fan")
