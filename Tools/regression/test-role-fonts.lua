@@ -359,7 +359,7 @@ do
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	assert(#calls == before, "then stops")
-	assert(#env._errors == 0, "a refusing library is never a KstyleUI error")
+	assert(#env._errors == 0, "a refusing library is never a KstyleUI error: " .. table.concat(env._errors, "; "))
 end
 
 -- A library that is missing at login needs no retry and raises nothing.

@@ -240,7 +240,7 @@ function Effects.StopModels(place, twins, preempt)
 end
 
 function Effects.PrewarmModels()
-	if not (Bezel("hub") and Effects.Allows("model")) then return end
+	if not (type(UnitClass) == "function" and Bezel("hub") and Effects.Allows("model")) then return end
 	local _, class = UnitClass("player")
 	if IsSecret(class) then return end
 	for i, key in ipairs({ class, "levelUp" }) do
