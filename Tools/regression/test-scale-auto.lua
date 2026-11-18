@@ -159,11 +159,13 @@ do
 	assert(near(perUnit(env, K), 21 / 16), "UI_SCALE_CHANGED rescales the root")
 	env._physical = { 1920, 1080 }
 	root._scripts.OnSizeChanged(root)
+	env.RunTimers()
 	assert(near(perUnit(env, K), 15 / 16), "the window resizing the root rescales it")
 	local rootScale = root:GetScale()
 	env.SetCombat(true)
 	env._physical = { 3840, 2160 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	env.FireEvent("CVAR_UPDATE", "useUiScale", "1")
 	root._scripts.OnSizeChanged(root)
 	assert(root:GetScale() == rootScale, "no SetScale on the root in combat")

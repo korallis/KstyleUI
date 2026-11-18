@@ -340,6 +340,7 @@ do
 	assert(W.Near(c:Radius(), 3), "a tile's corner is three lines")
 	assert(W.Near(c.line[1]:GetWidth(), 3) and W.Near(rim[1]:GetWidth(), 3), "3 pixels at 1080p")
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	K.Widgets.LayoutSlice(rim, frame, c:Radius(), 0)
 	assert(W.Near(K.Scale.Border(), 0.75), "the border is one 1440p pixel")
 	assert(W.Near(c.line[1]:GetWidth(), 3 * 0.75) and W.Near(c.fill[1]:GetWidth(), 2 * 0.75), "still three lines, each one 1440p pixel")

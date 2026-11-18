@@ -335,6 +335,7 @@ do
 	local narrow = MK.Scale.AppliedUserScale()
 	screen[1], screen[2] = 5120, 1440
 	menv.FireEvent("DISPLAY_SIZE_CHANGED")
+	menv.RunTimers()
 	assert(MK.Scale.AppliedUserScale() > narrow, "a wider aspect restores more of the requested size")
 	assert(math.abs(MK.Scale.AppliedUserScale() - Layouts.ScaleLimit(5120, 1440, "DPS")) < 1e-9, "restoration stops at the new fit cap")
 	MK.Options.Write("Layout", "preset", "Healer")

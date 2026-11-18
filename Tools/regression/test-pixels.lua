@@ -223,6 +223,7 @@ do
 	local before = count(fired, "ScaleChanged")
 	env._physical = { 3840, 2160 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	assert(count(fired, "ScaleChanged") == before + 1, "a display change fires ScaleChanged once")
 	local ppu = perUnit(env, ns)
 	assert(math.abs(ppu - 2) < 1e-6 and math.abs(Scale.Border() * ppu - 1) < 1e-6, "on 4K a unit is two pixels and the border stays one")
@@ -231,6 +232,7 @@ do
 	assert(count(fired, "ScaleChanged") == before + 1, "the next-frame recheck fires nothing when nothing moved")
 	env._physical[1] = 5120
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	assert(count(fired, "ScaleChanged") == before + 2, "a width-only change restyles wrapping and default layouts too")
 	before = before + 1
 
@@ -256,6 +258,7 @@ do
 	env.SetCombat(true)
 	env._physical = { 2560, 1440 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	env.RunTimers()
 	assert(Scale.Root():GetScale() == rootScale, "no SetScale on the root in combat")
@@ -285,6 +288,7 @@ do
 	env.SetCombat(true)
 	env._physical = { 3840, 2160 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	env.FireEvent("UI_SCALE_CHANGED")
 	assert(#queued == 1, "one queued rescale for many events, got " .. #queued)
 	env.SetCombat(false)
@@ -309,9 +313,11 @@ do
 	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a secret screen size falls back to 1080 lines")
 	env._physical = {}
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a missing screen size falls back to 1080 lines")
 	env.GetPhysicalScreenSize = nil
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a missing API falls back without calling nil")
 end
 

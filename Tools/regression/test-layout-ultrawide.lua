@@ -29,6 +29,7 @@ end
 local function Screen(env, width, height)
 	env._physical = { width, height }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 end
 
 -- Physical(K, key) -> the element's left edge and centre in physical pixels from the screen's left edge.

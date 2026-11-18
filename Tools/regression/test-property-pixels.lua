@@ -45,6 +45,7 @@ local function Holds(c)
 		Scale.SetUserScale(c.size)
 	end
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	frame:SetScale(c.frameScale)
 	local pixel = Scale.Pixel(1)
 	local physical = pixel * Scale.Root():GetEffectiveScale() * c.height / 768
