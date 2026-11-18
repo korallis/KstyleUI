@@ -1,4 +1,4 @@
--- test-setup.lua: the first-run setup opens once per account, walks six steps (welcome, HUD style, layout, modules, ornaments, summary), and Apply switches modules on, writes the layout and offers a reload.
+-- test-setup.lua: the first-run setup asks again until applied or explicitly kept, walks six steps (welcome, HUD style, layout, modules, ornaments, summary), and Apply switches modules on, writes the layout and offers a reload.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -58,7 +58,7 @@ do
 	assert(not Seen(K), "opening does not mark it seen")
 	panel:Close()
 	W.Settle(env)
-	assert(not panel:IsShown() and Seen(K), "closing marks the setup seen for the account")
+	assert(not panel:IsShown() and Seen(K), "default Close applies and marks setup seen")
 	assert(CoreEnv.Printed(env, "/kstyle setup"), "closing tells the player how to reopen it")
 	env.SlashCmdList.KSTYLE("setup")
 	W.Settle(env)
@@ -66,8 +66,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- First run: closing the setup without Apply applies the picked layout (DPS) with every loaded module, so a skipped
--- wizard never leaves an empty screen; Keep my UI is the opt-out; a later /kstyle setup closes with no change.
+-- First-run Close and Escape mean Later by default; Apply or Keep my UI completes the first-run choice.
 
 local function Login(opts)
 	local env, K = Boot(opts)
@@ -78,13 +77,16 @@ end
 
 do
 	local env, K, panel = Login()
-	assert(panel.welcomeNote:GetText():find("Only Apply", 1, true), "welcome says closing means Later")
+	K.Options.Write("Setup", "closeBehaviour", "later")
+	K.Setup.Open(true)
+	W.Settle(env)
+	assert(panel.welcomeNote:GetText():find("Only Apply", 1, true), "the Later choice explains that closing changes nothing")
 	local before = K.Store.Export()
 	K.Setup.Go(3)
 	W.Click(panel.cards.Healer)
 	W.Key(panel, "ESCAPE")
 	W.Settle(env)
-	assert(K.Store.Export() == before and Seen(K), "Escape keeps the interface and records Later")
+	assert(K.Store.Export() == before and not Seen(K), "Escape keeps the interface and asks again later")
 	for _, name in ipairs(MODULES) do assert(not K.Modules.IsEnabled(name), "Later leaves " .. name .. " off") end
 	assert(next(K.Store.Layout()) == nil, "Later moves nothing")
 	assert(#env._errors == 0, tostring(env._errors[1]))

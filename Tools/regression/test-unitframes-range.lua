@@ -1,5 +1,5 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
-local env, _, ns = U.New()
+local env, K, ns = U.New()
 local view = ns.Frames.Get("target").views[1]
 env.UnitInRange = function() return false, true end
 env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
@@ -26,4 +26,14 @@ env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
 U.W.Settle(env)
 assert(env.Reveal(view.name:GetAlpha()) == 1 and env.Reveal(view.portrait:GetAlpha()) == 1, "a secret update cancels the old plain range tween")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+K.Options.Write("UnitFrames", "target.rangeFade", false)
+env.UnitInRange = function() return env.Secret(false), env.Secret(true) end
+env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
+U.W.Settle(env)
+assert(view.name:GetAlpha() == 1 and view.portrait:GetAlpha() == 1, "range fading off restores the previous opaque target")
+K.Options.Write("UnitFrames", "target.rangeFade", true)
+assert(env.Reveal(view.name:GetAlpha()) == 0.55, "range fading can be turned back on immediately")
+assert(#env._errors == 0, tostring(env._errors[1]))
+
 print("unit frame range ok")

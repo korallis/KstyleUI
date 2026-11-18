@@ -850,7 +850,7 @@ function Slab.PlaceSides(on)
 	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
-		local wanted = on or key == "bar3" and Slab.Active()
+		local wanted = key == "bar3" and Slab.Active() and ns.Config("bar3").finished or key ~= "bar3" and on
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)
 			sides[key] = plate

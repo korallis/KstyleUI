@@ -314,6 +314,7 @@ local function StyleIcon(button)
 		return
 	end
 	local k = Settings.current[f.kind]
+	if p.dispelLetter then p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0) end
 	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
 	local border = Widgets.Border(p.skin)
 	local text, a = Settings.current.text, Settings.current.auras
@@ -551,6 +552,7 @@ local function BuildIcon(button, key)
 		p.dispelLetter:SetPoint("TOPRIGHT", p.skin, "TOPRIGHT")
 		Widgets.Size(p.dispelLetter, 14, 14)
 		p.dispelLetter:Hide()
+		p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0)
 		button:AddDispelTypeTexture(p.dispelLetter, { style = types.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
 	end
 end

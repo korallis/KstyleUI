@@ -14,6 +14,7 @@ return Common.Run(function()
 			env._threat.party1 = { false, 2, 91, 91, 910000 }
 			env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 		end
+		dofile("Tools/render/scenes/_audit.lua").Apply(env.KstyleUI)
 		env.RunTimers()
 		Hud.Tick(env, 0.5)
 		assert(not Common.Errors(env, env.KstyleUI), tostring(Common.Errors(env, env.KstyleUI)))

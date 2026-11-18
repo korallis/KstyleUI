@@ -135,7 +135,7 @@ function MAKERS.slider(row)
 	slider.valueButton = CreateFrame("Button", nil, slider)
 	slider.valueButton:SetAllPoints(slider.readout)
 	slider.valueButton:SetScript("OnClick", function()
-		if slider:IsEnabled() then
+		if slider:IsEnabled() and K.Store.Module("OptionControls").numericInput then
 			slider.edit:SetText(tostring(slider:GetValue()))
 			slider.readout:Hide()
 			slider.edit:Show()
@@ -552,7 +552,7 @@ local function PlaceText(row, item, control, width)
 			Widgets.Point(control, "TOPRIGHT", row, "TOPRIGHT", -gap, -Snap(row, (height - controlHeight) / 2))
 		end
 	end
-	row:EnableMouse(true)
+	row:EnableMouse(K.Store.Module("OptionControls").changedSettings or Truncated(row.label))
 	return height
 end
 
@@ -669,7 +669,13 @@ function Rows.Update(row, item, _, list)
 	row.item = item
 	row.list = list or row.list
 	local _, control = Layout(row, item, RowWidth(row.list))
-	row.changed:SetShown(item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
+	if row.controls.slider and row.controls.slider.valueButton then
+		local slider = row.controls.slider
+		local numeric = K.Store.Module("OptionControls").numericInput
+		slider.valueButton:SetShown(numeric)
+		if not numeric then slider.edit:Hide(); slider.edit:ClearFocus() end
+	end
+	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
 	if kind ~= "header" and kind ~= "note" then
 		local disabled = Model.IsDisabled(item)
 		Widgets.TextColor(row.label, disabled and "textDisabled" or "textEmphasis")
@@ -754,7 +760,7 @@ function Rows.Create(list)
 	row.changed:Hide()
 	row:SetScript("OnMouseUp", function(self, button)
 		local item = self.item
-		if button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
+		if K.Store.Module("OptionControls").changedSettings and button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
 			Apply(self, K.Options.Default(item.module, item.key))
 		end
 	end)

@@ -18,6 +18,7 @@ return Common.Run(function()
 			base:SetPoint("CENTER", env.WorldFrame, "CENTER", (column - 2) * 350 * 768 / 1080, (2 - row) * 180 * 768 / 1080)
 			N.Cast(env, token, { name = "Shadow Bolt", text = "Shadow Bolt", texture = 136197, notInterruptible = env.Secret(row == 3) })
 		end
+		dofile("Tools/render/scenes/_audit.lua").Apply(K)
 		for _ = 1, 20 do N.Tick(env, 0.05) end
 		env.RunTimers()
 		assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

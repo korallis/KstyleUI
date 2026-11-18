@@ -38,4 +38,17 @@ env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(not ns.Threat.alarm, "the alarm clears when the other player falls below 90%")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+env._threat.party1[5] = 910000
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+env.RunTimers()
+assert(ns.Threat.alarm)
+K.Options.Write("Meters", "threat.tankAlarm", false)
+env.RunTimers()
+assert(not ns.Threat.alarm and not ns.Threat.list.alarmFlash:IsPlaying(), "Tank alarm off restores the previous quiet title and edge")
+K.Options.Write("Meters", "threat.tankAlarm", true)
+env.RunTimers()
+assert(ns.Threat.alarm, "Tank alarm can be turned back on")
+assert(#env._errors == 0, tostring(env._errors[1]))
+
 print("tank alarm ok")

@@ -132,7 +132,7 @@ end
 
 local function Paint(plate, openR, openG, openB)
 	local flag = plate.castFlag
-	if plate.castBadge.SetAlphaFromBoolean and (IsSecret(flag) or type(flag) == "boolean") then
+	if Settings.Get("cast.shieldBadge") and plate.castBadge.SetAlphaFromBoolean and (IsSecret(flag) or type(flag) == "boolean") then
 		plate.castBadge:SetAlphaFromBoolean(flag, 1, 0)
 	else
 		plate.castBadge:SetAlpha(0)

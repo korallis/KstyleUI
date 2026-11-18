@@ -163,6 +163,14 @@ local function UnitRole(f)
 end
 
 local function ShowPip(f, role)
+	if not Settings.current.icons.roleShapes then
+		f.role:SetVertexColor(Tokens.Color("white"))
+		local token = PIP_COLORS[role]
+		f.pipEdge:SetShown(token ~= nil)
+		f.pipFill:SetShown(token ~= nil)
+		if token then f.pipFill:SetVertexColor(Tokens.Color(token)) end
+		return
+	end
 	f.pipEdge:Hide()
 	f.pipFill:Hide()
 	local atlas = PIP_COLORS[role] and GetMicroIconForRole and GetMicroIconForRole(role)
@@ -179,6 +187,7 @@ local function Role(f)
 	if f.pipped then
 		local role = UnitGroupRolesAssigned(f.unit)
 		if not issecretvalue(role) then
+			f.role:Hide()
 			ShowPip(f, role)
 			return
 		end
@@ -253,7 +262,7 @@ local READY_ATLAS = {
 local function Status(f)
 	local icons, unit = f.statusIcons, f.unit
 	if not icons then return end
-	if readyActive then
+	if readyActive or not Settings.current.icons.statuses then
 		for _, icon in pairs(icons) do icon:SetAlpha(0) end
 		return
 	end
@@ -310,16 +319,18 @@ local function Threat(f)
 		return
 	end
 	f.threatGlow:SetColorRGB(r, g, b)
-	if status == 2 then
-		f.threatShape:SetTexture((Tokens.Texture("diamond")))
-		f.threatShape:SetTexCoord(0, 1, 0, 0.5)
-	else
-		f.threatShape:SetColorTexture(Tokens.Color("white"))
-		f.threatShape:SetTexCoord(0, 1, 0, 1)
+	if Settings.current.threat.shapes then
+		if status == 2 then
+			f.threatShape:SetTexture((Tokens.Texture("diamond")))
+			f.threatShape:SetTexCoord(0, 1, 0, 0.5)
+		else
+			f.threatShape:SetColorTexture(Tokens.Color("white"))
+			f.threatShape:SetTexCoord(0, 1, 0, 1)
+		end
+		Widgets.Size(f.threatShape, status == 1 and 2 or 8, 8)
+		f.threatShape:SetVertexColor(r, g, b)
+		f.threatShape:Show()
 	end
-	Widgets.Size(f.threatShape, status == 1 and 2 or 8, 8)
-	f.threatShape:SetVertexColor(r, g, b)
-	f.threatShape:Show()
 	f.threat:Show()
 end
 
@@ -372,6 +383,7 @@ local function PaintSample(f, sample)
 	local atlas = icons.role and not f.roleInRing and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
 	ShowPip(f, f.pipped and icons.role and sample.role or nil)
 	if f.pipped then
+		f.role:Hide()
 		ShowPip(f, icons.role and sample.role or nil)
 	elseif type(atlas) == "string" then
 		f.role:SetAtlas(atlas)

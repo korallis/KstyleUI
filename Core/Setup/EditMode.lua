@@ -716,6 +716,7 @@ local function MaxLayouts()
 end
 
 local function Target(all, presets, layoutName, active, replace)
+	if not ns.Store.Module("Setup").replaceLayout then replace = nil end
 	local types = Enum.EditModeLayoutType
 	local lastAccount, accounts = nil, 0
 	for i = presets + 1, #all do
@@ -735,7 +736,7 @@ local function Target(all, presets, layoutName, active, replace)
 				return i
 			end
 		end
-		return nil, "every one of the " .. limit .. " account layouts is taken", L["All account layouts are in use. Choose Replace this one, then Apply."]
+		return nil, "every one of the " .. limit .. " account layouts is taken", ns.Store.Module("Setup").replaceLayout and L["All account layouts are in use. Choose Replace this one, then Apply."] or L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(limit)
 	end
 	if Fn(C_EditMode, "IsValidLayoutName") then
 		local ok, valid = pcall(C_EditMode.IsValidLayoutName, layoutName)
@@ -823,7 +824,9 @@ function EditMode.Write(name, story, replace)
 		return Fail(name, presets, active)
 	end
 	local layoutName = PREFIX .. name
-	ns.Store.Account().editModeBackup = { name = L["Before setup"], profile = ns.Store.Account().restoreProfile, layouts = Copy(all), activeLayout = active }
+	if ns.Store.Module("ProfileTools").backups then
+		ns.Store.Account().editModeBackup = { name = L["Before setup"], profile = ns.Store.Account().restoreProfile, layouts = Copy(all), activeLayout = active }
+	end
 	local index, reason, why = Target(all, presets, layoutName, active, replace)
 	if not index then
 		return Fail(name, reason, why)

@@ -182,8 +182,10 @@ end
 local function Alarm(on)
 	local list = Threat.list
 	if not list then return end
-	local entering = on and not Threat.alarm
+	local entering, leaving = on and not Threat.alarm, not on and Threat.alarm
 	Threat.alarm = on
+	if not on and not leaving then return end
+	if not on and list.alarmFlash then list.alarmFlash:Stop() end
 	list.panel.chrome:SetEdge(on and "hostile" or "edgeInner", 1)
 	K.Widgets.TextColor(list.title, on and "hostile" or "capsGold")
 	if entering and list.alarmFlash then list.alarmFlash:Play() end
@@ -242,7 +244,7 @@ local function Update()
 	local role
 	if type(UnitGroupRolesAssigned) == "function" then role = UnitGroupRolesAssigned("player") end
 	local tankRole = not IsSecret(role) and role == "TANK" or K.Store.Module("Layout").preset == "Tank"
-	Alarm(ns.Get("threat.warnings") and Threat.AlarmWanted(Threat.rows, count, tankRole))
+	Alarm(ns.Get("threat.tankAlarm") and ns.Get("threat.warnings") and Threat.AlarmWanted(Threat.rows, count, tankRole))
 end
 
 local function Schedule()

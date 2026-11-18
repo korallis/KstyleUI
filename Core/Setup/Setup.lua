@@ -4,6 +4,15 @@ local _, ns = ...
 local Setup = ns.Setup
 local Layouts = Setup.Layouts
 local L = ns.L
+ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true })
+ns.Options.Register("Setup", {
+	{ type = "header", label = L["Setup"] },
+	{ type = "dropdown", key = "closeBehaviour", label = L["Closing the setup window"], help = L["Choose whether first-run Close or Escape leaves your UI alone or applies the setup."], options = {
+		{ value = "apply", label = L["Apply the default setup"] },
+		{ value = "later", label = L["Do nothing, ask again later"] },
+	} },
+	{ type = "toggle", key = "replaceLayout", label = L["Choose an Edit Mode replacement"], help = L["When all layouts are full, choose one to replace. Off keeps the previous full-list message."] },
+})
 
 local OWNER = "Setup"
 local OPEN_DELAY = 2
@@ -36,7 +45,7 @@ local ORNAMENTS = {
 }
 
 local choice
-local firstRun = false
+local firstRun, kept = false, false
 
 Setup.PICKER = PICKER
 Setup.ORNAMENTS = ORNAMENTS
@@ -317,7 +326,7 @@ function Setup.Open(first)
 		ns.Print(L["KstyleUI has not loaded its saved settings yet."])
 		return false
 	end
-	firstRun = first == true
+	firstRun, kept = first == true, false
 	choice = Setup.NewChoice()
 	local show = Setup.ShowWindow
 	if type(show) ~= "function" then
@@ -333,11 +342,19 @@ function Setup.IsFirstRun()
 end
 
 function Setup.Keep()
+	kept = true
 end
 
 function Setup.Closed(applied)
-	firstRun = false
-	Setup.MarkSeen()
+	local first, keep = firstRun, kept
+	firstRun, kept = false, false
+	if first and not applied and not keep and ns.Store.Module("Setup").closeBehaviour == "apply" then
+		if Setup.Apply(Setup.Choice()) then
+			ns.Print(string.format(L["KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it."], Layouts.Label(Setup.Choice().layout)))
+			return
+		end
+	end
+	if applied or keep or not first then Setup.MarkSeen() end
 	if not applied then
 		ns.Print(L["You can run the setup again at any time with /kstyle setup."])
 	end

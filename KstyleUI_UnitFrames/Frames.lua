@@ -54,6 +54,14 @@ end
 
 function Frames.Range(view)
 	if view.kind ~= "target" or type(UnitInRange) ~= "function" then return end
+	if not Settings.Value("target", "rangeFade") then
+		for _, region in ipairs({ view.name, view.portrait }) do
+			if region.rangeTween then K.Motion.Stop(region.rangeTween); region.rangeTween = nil end
+			region:SetAlpha(1)
+		end
+		view.rangeAlpha = 1
+		return
+	end
 	local inRange, checked = UnitInRange(view.unit)
 	local alpha
 	if not issecretvalue(inRange) and not issecretvalue(checked) then alpha = checked == true and inRange == false and 0.55 or 1 end
@@ -743,6 +751,7 @@ local function OnSettingChanged(_, module, key)
 			ns.Blizzard.Apply(running)
 		elseif uf.active then
 			Frames.Restyle(uf)
+			if rest == "rangeFade" then for _, view in ipairs(uf.views) do Frames.Range(view) end end
 		end
 		if kind == "target" then
 			Frames.MarkTargets()

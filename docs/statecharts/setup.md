@@ -37,7 +37,9 @@ stateDiagram-v2
     Open --> Closing : close button, Esc or Later
     Open --> Closing : Keep my UI on Welcome, Setup.Keep()
     Open --> [*] : Reload, after Apply
-    Closing --> Done : Later; save setupSeen without applying choices
+    Closing --> Done : Later choice; leave choices alone, ask next login
+    Closing --> Done : Apply the default setup (default); first-run close calls Apply
+    Closing --> Done : Keep my UI or already applied; save setupSeen
 ```
 
 | State | What holds | Code |
@@ -47,11 +49,11 @@ stateDiagram-v2
 | Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, every installed module on, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
 | Steps | Next and Back call `Setup.Go` one step on; a step tab calls `Setup.Go(value)` for any step up to the furthest reached, and `Go` clamps to 1 to 6. Keep my UI shows only on step 1. | `Setup.Go`, `Refresh` |
 | NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking any card (HUD style, layout, ornaments) or module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |
-| Closing | Close, Escape and Later call `Setup.Closed(applied)`, mark setup seen and leave settings, enabled modules and positions alone. An unapplied close prints how to reopen setup. | `OnClose`, `Setup.Closed`, `Setup.MarkSeen` |
+| Closing | Close, Escape and Later call `Setup.Closed(applied)`. By default an unapplied first-run close applies the picked setup, as before. General > Closing the setup window > Do nothing, ask again later leaves settings, modules, positions and setupSeen alone, so next login asks again. Keep my UI and an applied setup mark setupSeen. | `OnClose`, `Setup.Closed`, `Setup.MarkSeen` |
 
-`Setup.Apply(picked)` refuses when the Store is not loaded or the layout is unknown. It first saves a named **Before setup** recovery profile, then writes module switches, layout positions, module settings, ornaments and the chosen HUD style, queues the Edit Mode write, and marks setup seen. Closing never calls Apply. The Modules step names detected overlapping addons; its feature toggles choose which KstyleUI modules Apply enables, without rewriting another addon's settings.
+`Setup.Apply(picked)` refuses when the Store is not loaded or the layout is unknown. With Profiles > Recovery backups on (default), it first saves a named **Before setup** recovery profile, then writes module switches, layout positions, module settings, ornaments and the chosen HUD style, queues the Edit Mode write, and marks setup seen. Closing calls Apply in the default **Apply the default setup** mode; the **Do nothing, ask again later** choice does not apply. Timer/announcement lanes and named WeakAuras anchors default on and can be switched off in General. With General > Other-addon notices on (default), the Modules step names detected overlapping addons; its feature toggles choose which KstyleUI modules Apply enables, without rewriting another addon's settings.
 
-When all five account Edit Mode layouts are occupied, the summary offers **Replace this one**. Apply replaces only the chosen account layout; leaving the picker empty preserves every layout and reports the refusal. The previous Edit Mode layouts are included in the setup backup and restored with the profile's **Restore backup** action, queued out of combat.
+When all five account Edit Mode layouts are occupied, the summary offers **Replace this one** while General > Choose an Edit Mode replacement is on (default). Off retains the previous full-list refusal. Apply replaces only the chosen account layout; leaving the picker empty preserves every layout and reports the refusal. With Recovery backups on, the previous Edit Mode layouts are included in the setup backup and restored with the profile's **Restore backup** action, queued out of combat.
 
 ## Edit Mode write
 

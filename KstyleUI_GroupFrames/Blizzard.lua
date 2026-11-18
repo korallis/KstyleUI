@@ -13,6 +13,9 @@ local FRAMES = {
 	{ setting = "raid", label = "CompactRaidFrameContainer", get = function()
 		return CompactRaidFrameContainer
 	end },
+	{ setting = "manager", label = "CompactRaidFrameManager", get = function()
+		return CompactRaidFrameManager
+	end },
 }
 
 local missing = {}

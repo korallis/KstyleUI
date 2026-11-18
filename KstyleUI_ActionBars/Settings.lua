@@ -62,6 +62,7 @@ end
 local defaults = {
 	hubNumber = true,
 	editBar = "bar1",
+	bindingHints = true,
 	accent = "quiet",
 	accentColor = Color("accentDefault"),
 	rangeColor = Color("hostile"),
@@ -84,6 +85,7 @@ local defaults = {
 }
 for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
+	if def.key == "bar3" then defaults[def.key].finished = true end
 end
 ns.defaults = defaults
 
@@ -131,6 +133,9 @@ end
 
 local function BarRows(schema, def)
 	local key = def.key
+	if key == "bar3" then
+		schema[#schema + 1] = { type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."], showWhen = Editing(key) }
+	end
 	local editing = Editing(key)
 	local function Off(settings)
 		return not settings[key].enabled
@@ -211,6 +216,7 @@ function ns.Schema()
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."] },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
 		{ type = "header", label = L["Bars"] },
+		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },
 		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 	}
 	for _, def in ipairs(ns.BARS) do

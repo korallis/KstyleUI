@@ -125,7 +125,7 @@ local function RefreshEditMode()
 	local choices, full = Setup.EditMode.Replacements()
 	panel.replace:SetOptions(choices)
 	panel.replace:SetValue(Setup.Choice().replaceLayout or "", true)
-	panel.replace:SetShown(full and not applied)
+	panel.replace:SetShown(full and not applied and ns.Store.Module("Setup").replaceLayout)
 	if step == STEPS then
 		panel.summaryStatus.cap:SetText(SummaryTitle())
 	end
@@ -185,7 +185,8 @@ local function Refresh()
 		panel.summaryHelp:SetText(applied
 			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
 			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
-		panel.summaryHelp:SetText(panel.summaryHelp:GetText() .. "\n" .. L["Bind keys on the Action Bars page or the Layout Mode toolbar."])
+		local bars = ns.Store.Module("ActionBars")
+		if bars.bindingHints ~= false then panel.summaryHelp:SetText(panel.summaryHelp:GetText() .. "\n" .. L["Bind keys on the Action Bars page or the Layout Mode toolbar."]) end
 	end
 	RefreshEditMode()
 	if step == STEPS then
@@ -1011,6 +1012,11 @@ function Setup.ShowWindow()
 		panel.pages[i]:Hide()
 	end
 	step = 0
+	local config = ns.Store.Module("Setup")
+	panel.welcomeNote:SetText(config.closeBehaviour == "apply"
+		and L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."]
+		or L["Close or press Escape to set up later. Only Apply changes your interface."])
+	if config.closeBehaviour == "later" and ns.Store.Module("ProfileTools").backups then panel.welcomeNote:SetText(panel.welcomeNote:GetText() .. " " .. L["A backup is saved before Apply."]) end
 	panel.welcomeNote:SetShown(Setup.IsFirstRun())
 	SyncChoice()
 	Setup.Go(1)

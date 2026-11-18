@@ -24,6 +24,7 @@ function Integration.Detected(module)
 end
 
 function Integration.Note(module, standard)
+	if Store.IsLoaded() and not Store.Module("Integrations").notices then return standard end
 	local detected = Integration.Detected(module)
 	return #detected > 0 and string.format(L["Also detected: %s. Choose above."], table.concat(detected, ", ")) or standard
 end
@@ -34,9 +35,10 @@ local LANES = {
 	{ key = "weakAuras", label = L["WeakAuras anchor 1"], name = "KstyleUI_WeakAuras1", width = 180, height = 48, x = -300, y = 180 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },
 }
-Store.RegisterDefaults("Integrations", { timerLane = false, announcementLane = false, weakAuras = false })
+Store.RegisterDefaults("Integrations", { notices = true, timerLane = true, announcementLane = true, weakAuras = true })
 K.Options.Register("Integrations", {
 	{ type = "header", label = L["Existing addons"] },
+	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },
 	{ type = "toggle", key = "timerLane", label = L["Boss timer lane"], help = L["Reserve a movable 360 by 120 lane for your boss addon's timers."] },
 	{ type = "toggle", key = "announcementLane", label = L["Announcement lane"], help = L["Reserve a movable 520 by 48 lane for boss announcements."] },
 	{ type = "toggle", key = "weakAuras", label = L["WeakAuras anchors"], help = L["Two movable anchors; attach your own auras to KstyleUI_WeakAuras1 and KstyleUI_WeakAuras2."] },

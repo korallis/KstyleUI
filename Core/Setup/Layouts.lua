@@ -811,7 +811,18 @@ function Layouts.TrayMoves(name)
 	return out
 end
 
+function Layouts.ThirdBarFinished()
+	if not ns.Store or not ns.Store.IsLoaded() then return true end
+	local cfg = ns.Store.Module("ActionBars").bar3
+	return type(cfg) ~= "table" or cfg.finished ~= false
+end
+
+function Layouts.LegacyThirdBar(style)
+	return { anchor = "BOTTOMLEFT", x = 17, y = style == "orbs" and 475 or 462.5 }
+end
+
 function Layouts.Default(key)
+	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar("frames") end
 	local position = layouts.DPS[key]
 	if not position then
 		error("KstyleUI.Setup.Layouts.Default: unknown element key " .. tostring(key), 2)
@@ -856,6 +867,7 @@ function Layouts.Style(style, name, key)
 		and ns.Store.Module("CombatText").clearLanes == false then
 		return
 	end
+	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar(style) end
 	if not STYLES[style] then return nil end
 	local attached = Layouts.Attached(style, name, key, ns.Scale.Aspect())
 	if attached then
@@ -979,6 +991,7 @@ end
 Layouts.BuildMedallions()
 
 function Layouts.Aspect(class, style, name, key)
+	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar(style) end
 	local attached = Layouts.Attached(style, name, key, class)
 	if attached then
 		return attached
@@ -1490,7 +1503,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		flags[i] = enabled[element.key] ~= false and "1" or "0"
 	end
 	style = STYLES[style] and style or "frames"
-	local signature = style .. table.concat(flags)
+	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits

@@ -5,6 +5,7 @@ for _, close in ipairs({ "close", "escape", "later" }) do
 	W.CoreEnv.Boot(env)
 	env.RunTimers()
 	W.Settle(env)
+	K.Options.Write("Setup", "closeBehaviour", "later")
 	local before, writes = K.Store.Export(), 0
 	K.Callbacks.Register("SettingChanged", "test", function() writes = writes + 1 end)
 	K.Setup.Go(3)
@@ -32,4 +33,30 @@ do
 	assert(Fake.Named(state, "Mine 2") and not Fake.Named(state, "KstyleUI DPS"), "restore brings back the replaced Edit Mode layout")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
+
+do
+	local env, K = W.New({ boot = false })
+	K.Modules.Register(W.CoreEnv.Module("ActionBars"))
+	W.CoreEnv.Boot(env)
+	assert(K.Options.Read("Setup", "closeBehaviour") == "apply", "the owner keeps the previous Close behaviour as the default")
+	K.Options.Write("ProfileTools", "backups", false)
+	K.Setup.Open(true)
+	K.Setup.window:Close()
+	assert(K.Options.Read("ActionBars", "enabled") and K.Store.Account().setupSeen, "Apply the default setup restores the previous first-run Close behaviour")
+	assert(#K.Store.ListProfiles() == 1, "Setup backups can be switched off")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+do
+	local Fake = dofile("Tools/regression/editmode_fake.lua")
+	local env, K = W.New()
+	local saved = {}
+	for i = 1, 5 do saved[i] = { layoutName = "Mine " .. i, layoutType = Fake.ACCOUNT, systems = Fake.Modern().systems } end
+	local state = { saved = saved, active = 3, max = 5 }
+	Fake.Install(env, state)
+	K.Options.Write("Setup", "replaceLayout", false)
+	assert(not K.Setup.EditMode.Write("DPS", nil, "Mine 2"), "Edit Mode replacement off restores the previous refusal at five full slots")
+	assert(not state.saves and Fake.Named(state, "Mine 2"))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("setup later ok")

@@ -85,6 +85,7 @@ ns.defaults = {
 		title = true,
 		titleSize = CAPTION,
 		warnings = true,
+		tankAlarm = true,
 		warnAt = 80,
 		dangerAt = 95,
 	}),
@@ -288,6 +289,7 @@ ListRows("damage", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
+schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
 schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], help = L["Shows your group's threat on your target."] }
 schema[#schema + 1] = {
 	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),

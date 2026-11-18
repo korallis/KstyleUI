@@ -332,6 +332,7 @@ local function OnSetting(_, module, key)
 	if module ~= MODULE or type(key) ~= "string" or key == "editBar" or key == "tooltips" then
 		return
 	end
+	if key == "bindingHints" then ns.UpdateHotkeys() end
 	if key == "ranks" and ns.Config("ranks") == "off" then
 		ns.Ranks.Stop()
 	end

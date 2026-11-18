@@ -17,4 +17,14 @@ local tint = N.Last(plate.castBar:GetStatusBarTexture(), "SetVertexColorFromBool
 local cr, cg, cb = K.Tokens.Color("visionRGCalm")
 assert(tint and tint[3].r == cr and tint[3].g == cg and tint[3].b == cb, "the engine also gets the selected palette for secret interruptibility")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+K.Options.Write("Nameplates", "threat.shapes", false)
+K.Options.Write("Nameplates", "cast.shieldBadge", false)
+N.Cast(env, "nameplate1", { name = "Shadow Bolt", texture = 136197, notInterruptible = env.Secret(true) })
+assert(not plate.threatShape:IsShown() and plate.castBadge:GetAlpha() == 0, "turning off shapes restores the previous plate")
+K.Options.Write("Nameplates", "threat.shapes", true)
+K.Options.Write("Nameplates", "cast.shieldBadge", true)
+assert(plate.threatShape:IsShown() and env.Reveal(plate.castBadge:GetAlpha()) == 1, "both shape options update the visible plate")
+assert(#env._errors == 0, tostring(env._errors[1]))
+
 print("nameplate accessibility ok")

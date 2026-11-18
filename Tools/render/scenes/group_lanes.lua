@@ -122,6 +122,9 @@ return Common.Run(function()
 			end
 		end)
 	end
+	dofile("Tools/render/scenes/_audit.lua").Apply(K)
+	env.RunTimers()
+	Hud.Tick(env, 1)
 	local scene = Scene.Build(env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(env, K)
 	assert(not err, tostring(err))

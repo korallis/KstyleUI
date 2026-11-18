@@ -37,7 +37,7 @@ Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
 Settings.defaults = {
 	layout = { tidyLanes = true },
-	blizzard = { party = true, raid = true, manager = false },
+	blizzard = { party = true, raid = true, manager = false, keepManager = true },
 	party = {
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
@@ -66,10 +66,10 @@ Settings.defaults = {
 		healthFont = NUMBER_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
-	icons = { role = true, leader = true, marker = true, readyCheck = true },
-	threat = { enabled = true },
+	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },
+	threat = { enabled = true, shapes = true },
 	auras = {
-		enabled = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		enabled = true, typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true },
@@ -260,6 +260,7 @@ local function BuildSchema()
 	add({ type = "header", label = L["Blizzard frames"] })
 	add(Toggle("blizzard.party", L["Hide Blizzard party frames"], L["Hides the game's own party frames while these are on."]))
 	add(Toggle("blizzard.raid", L["Hide Blizzard raid frames"], L["Hides the game's own raid frames while these are on."]))
+	add(Toggle("blizzard.keepManager", L["Keep raid tools available"], L["Keeps the game's raid controls available. Off restores the previous hidden raid manager."]))
 	KindRows(schema, "party", L["Party frames"])
 	KindRows(schema, "raid", L["Raid frames"])
 	add({ type = "header", label = L["Health bar"] })
@@ -291,12 +292,16 @@ local function BuildSchema()
 	add({ type = "header", label = L["Status icons"] })
 	add(Toggle("layout.tidyLanes", L["Tidy Medallions lanes"], L["Separates names, indicators and percentages, with metal role pips. Off restores the earlier layout."]))
 	add(Toggle("icons.role", L["Role icons"], L["Shows whether each member is a tank, healer or damage dealer."]))
+	add(Toggle("icons.roleShapes", L["Role shapes"], L["Uses distinct role symbols on compact frames. Off restores the coloured pips."]))
 	add(Toggle("icons.leader", L["Leader icons"], L["Marks the group leader and raid assistants."]))
 	add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
 	add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
+	add(Toggle("icons.statuses", L["Resurrection, summon and AFK"], L["Shows these states in the ready-check space. Off leaves only ready checks."]))
 	add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
+	add(Toggle("threat.shapes", L["Threat shapes"], L["Adds a tick, triangle or square beside the threat border. Off keeps the border alone."]))
 	add({ type = "header", label = L["Debuffs"] })
 	add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
+	add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
 	add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
 	add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 	add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
@@ -434,7 +439,7 @@ CHECK.texture = function(_, v)
 end
 
 function Settings.Get(key)
-	if key == "blizzard.manager" then return false end
+	if key == "blizzard.manager" then return not Settings.Get("blizzard.keepManager") end
 	local row = rows[key]
 	if not row then
 		error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2)

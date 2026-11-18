@@ -25,6 +25,8 @@ return Common.Run(function()
 			Hud.PlaceAuras(f.auras, group, { button }, 1)
 		end
 	end)
+	dofile("Tools/render/scenes/_audit.lua").Apply(K)
+	env.RunTimers()
 	Hud.Tick(env, 0.5)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Common.Scene.Build(env, { iconDirs = Common.IconDirs() })

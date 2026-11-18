@@ -3,6 +3,12 @@ local _, K = ...
 local Store, Codec, L = K.Store, K.Codec, K.L
 local Profiles = {}
 K.Profiles = Profiles
+Store.RegisterDefaults("ProfileTools", { review = true, backups = true })
+K.Options.Register("ProfileTools", {
+	{ type = "header", label = L["Profile tools"] },
+	{ type = "toggle", key = "review", label = L["Scoped sharing and import review"], help = L["Share a layout or one module and review imports. Off shares and imports whole profiles directly."] },
+	{ type = "toggle", key = "backups", label = L["Recovery backups"], help = L["Saves a restore point before setup, import or reset. Off keeps the previous direct changes."] },
+})
 
 local function Copy(value)
 	if type(value) ~= "table" then return value end
@@ -18,6 +24,7 @@ end
 
 function Profiles.Backup(label, source)
 	if not Store.IsLoaded() then return false end
+	if not Store.Module("ProfileTools").backups then return true end
 	local names, name, i = {}, label, 1
 	for _, existing in ipairs(Store.ListProfiles()) do names[existing] = true end
 	while names[name] do i = i + 1; name = label .. " " .. i end
@@ -46,7 +53,7 @@ end
 
 function Profiles.Export(scope)
 	local text, why = Store.Export()
-	if not text or not scope or scope == "everything" then return text, why end
+	if not text or not scope or scope == "everything" or not Store.Module("ProfileTools").review then return text, why end
 	local payload, err = Store.Decode(text)
 	if not payload then return nil, err end
 	if scope == "layout" then
@@ -134,7 +141,7 @@ end
 
 local import, reset = Store.Import, Store.ResetProfile
 function Store.Import(text, name)
-	if not Store.IsLoaded() then return import(text, name) end
+	if not Store.IsLoaded() or not Store.Module("ProfileTools").backups then return import(text, name) end
 	local payload, why = Store.Decode(text)
 	if not payload then return false, why end
 	local ok, err = Profiles.Backup(L["Before import"])
@@ -143,7 +150,7 @@ function Store.Import(text, name)
 end
 
 function Store.ResetProfile(name)
-	if not Store.IsLoaded() then return reset(name) end
+	if not Store.IsLoaded() or not Store.Module("ProfileTools").backups then return reset(name) end
 	local ok, why = Profiles.Backup(L["Before reset"], name)
 	if not ok then return false, why end
 	return reset(name)

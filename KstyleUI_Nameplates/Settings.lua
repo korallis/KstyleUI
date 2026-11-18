@@ -34,7 +34,7 @@ Settings.defaults = {
 	level = { show = true, size = 13, outline = "NONE" },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent" },
 	cast = {
-		enabled = true, combatCues = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		enabled = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
 		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
@@ -44,7 +44,7 @@ Settings.defaults = {
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
-		display = "glow", role = "auto", groupOnly = true,
+		display = "glow", shapes = true, role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
 	target = { highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
@@ -295,6 +295,7 @@ schema[#schema + 1] = {
 
 local rest = {
 	{ type = "header", label = L["Cast bar"] },
+	{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
 	{
 		type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
 		help = L["Dims casts while your interrupt is unavailable and marks uninterruptible casts with a shield."],
@@ -464,6 +465,7 @@ local rest = {
 		options = OUTLINES, disableWhen = Off("debuffs.enabled"),
 	},
 	{ type = "header", label = L["Threat"] },
+	{ type = "toggle", key = "threat.shapes", label = L["Threat shapes"], help = L["Adds a tick, triangle or square beside threat colours. Off keeps the colours alone."] },
 	{
 		type = "dropdown", key = "threat.display", label = L["Threat display"],
 		help = L["How a plate shows that its unit is attacking you or about to."],

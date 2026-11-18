@@ -171,7 +171,7 @@ Settings.defaults = {
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		crestDebuffs = true,
-		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
+		style = "column", rangeFade = true, portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
 		power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
 	targettarget = Kind(false),
@@ -584,6 +584,9 @@ local ICON_ROWS = {
 }
 
 IconRows = function(schema, kind)
+	if kind == "target" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "rangeFade", label = L["Fade target out of range"], help = L["Fades the target name and portrait to 55 percent out of range. Off keeps them fully visible."] })
+	end
 	schema[#schema + 1] = Header(kind, L["icons"])
 	for _, spec in ipairs(ICON_ROWS) do
 		if spec[4] == nil or spec[4] == kind then

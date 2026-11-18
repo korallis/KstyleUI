@@ -224,6 +224,7 @@ end
 local function build(env, opts, extra, beforeDraw)
 	applyPreset(env, opts)
 	local K = env.KstyleUI
+	dofile("Tools/render/scenes/_audit.lua").Apply(K)
 	local previewed = {}
 	for key, size in pairs(opts.sizes or {}) do
 		local el = K and K.Layout and K.Layout.Element and K.Layout.Element(key)

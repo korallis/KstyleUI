@@ -33,4 +33,17 @@ assert(K.Profiles.Preview("KSS1:broken") == nil, "bad scoped strings are rejecte
 local backups = #K.Store.ListProfiles()
 assert(not K.Store.Import("not a profile") and #K.Store.ListProfiles() == backups, "invalid imports create no backup or profile")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+K.Options.Write("ProfileTools", "review", false)
+assert(K.Profiles.Export("Chat") == K.Store.Export(), "Scoped sharing off restores full-profile export")
+K.Options.Write("ProfileTools", "backups", false)
+local full, previous = K.Store.Export(), K.Store.Account().restoreProfile
+local count = #K.Store.ListProfiles()
+assert(K.Store.Import(full))
+assert(#K.Store.ListProfiles() == count + 1 and K.Store.Account().restoreProfile == previous, "Recovery backups off imports directly, without a backup profile")
+count = #K.Store.ListProfiles()
+assert(K.Store.ResetProfile())
+assert(#K.Store.ListProfiles() == count, "Recovery backups off resets directly")
+assert(#env._errors == 0, tostring(env._errors[1]))
+
 print("profile scopes ok")

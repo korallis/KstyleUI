@@ -800,7 +800,7 @@ function Plate:UpdateThreat()
 	local changed = state ~= self.threatState
 	self.threatState = state
 	local shape = self.threatShape
-	shape:SetShown(state ~= nil)
+	shape:SetShown(state ~= nil and Settings.Get("threat.shapes"))
 	if state then
 		if state == "warning" then shape:SetTexture((Tokens.Texture("diamond"))) else shape:SetColorTexture(Tokens.Color("white")) end
 		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
