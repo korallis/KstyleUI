@@ -45,7 +45,7 @@ local FRAME_METHODS = set({
 -- RunMacroText is C_Macro.RunMacroText on Forever; the bare name stays in case a shim returns.
 local PROTECTED = set({
 	"PickupAction", "PlaceAction", "SetBinding", "SetOverrideBinding", "SetOverrideBindingClick",
-	"ClearOverrideBindings", "CreateMacro", "EditMacro", "C_Container.PickupContainerItem",
+	"ClearOverrideBindings", "CreateMacro", "EditMacro",
 	"C_Container.UseContainerItem", "TargetUnit", "CastSpellByName", "CastSpellByID", "UseAction",
 	"RunMacroText", "C_Macro.RunMacroText", "ShowUIPanel", "HideUIPanel",
 })

@@ -209,7 +209,8 @@ function Slot.Update(slot, record, level, match, packed)
 	local empty = record.empty == true
 	state.empty = empty
 	if slot.dropTarget then
-		slot.dropTarget:SetShown(empty and type(packed) == "number")
+		state.drop = empty and type(packed) == "number" and ns.Data.CursorItem() ~= nil
+		slot.dropTarget:SetShown(state.drop)
 	end
 	state.match = match ~= false
 	state.locked = record.locked == true
@@ -238,6 +239,16 @@ function Slot.Update(slot, record, level, match, packed)
 	state.isNew = not empty and record.isNew == true
 	SetGlow(slot, state.isNew and Settings.Get("showNewGlow"))
 	Slot.Paint(slot)
+end
+
+function Slot.SetDrop(slot, on)
+	if slot.state.drop ~= on then
+		slot.state.drop = on
+		if slot.dropTarget then
+			slot.dropTarget:SetShown(on)
+		end
+		Slot.Paint(slot)
+	end
 end
 
 function Slot.SetMatch(slot, match)
@@ -361,10 +372,15 @@ function Slot.New(parent, id, opts)
 		target:RegisterForDrag("LeftButton")
 		target:SetScript("OnClick", function(_, mouse)
 			if mouse == "LeftButton" then
-				opts.drop()
+				opts.drop(slot.bag)
 			end
 		end)
-		target:SetScript("OnReceiveDrag", opts.drop)
+		target:SetScript("OnReceiveDrag", function() opts.drop(slot.bag) end)
+		bySlotButton[target] = slot
+		target:HookScript("OnEnter", OnEnter)
+		target:HookScript("OnLeave", OnLeave)
+		target:HookScript("OnMouseDown", OnMouseDown)
+		target:HookScript("OnMouseUp", OnMouseUp)
 		target:Hide()
 		slot.dropTarget = target
 	end

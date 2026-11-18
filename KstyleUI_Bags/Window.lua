@@ -134,7 +134,7 @@ function Window.New(spec)
 	return win
 end
 
-function Window:Drop()
+function Window:Drop(preferredBag)
 	if self.remoteData or not self.open or (self.spec.canDrop and not self.spec.canDrop()) then
 		return
 	end
@@ -142,9 +142,21 @@ function Window:Drop()
 	if not itemID then
 		return
 	end
+	local bags = {}
 	for _, section in ipairs(self.sections) do
-		if Data.Drop(section.spec.bags(), itemID) then
-			return
+		for _, bag in ipairs(section.spec.bags()) do
+			bags[#bags + 1] = bag
+		end
+	end
+	if Data.Drop(bags, itemID, preferredBag) then
+		return
+	end
+	local message = Data.Plain(ERR_INV_FULL, "string")
+	if message then
+		if UIErrorsFrame and type(UIErrorsFrame.AddExternalErrorMessage) == "function" then
+			UIErrorsFrame:AddExternalErrorMessage(message)
+		else
+			K.Print(message)
 		end
 	end
 end
@@ -153,8 +165,7 @@ function Window:UpdateDropTargets()
 	local held = not self.remoteData and Data.CursorItem() ~= nil
 	for _, section in ipairs(self.sections) do
 		for _, slot in ipairs(section.order) do
-			slot.state.drop = held and slot.state.empty and slot.packed ~= nil
-			Slot.Paint(slot)
+			Slot.SetDrop(slot, held and slot.state.empty and slot.packed ~= nil)
 		end
 	end
 end
@@ -344,7 +355,7 @@ function Window:Ensure(section)
 				if InCombatLockdown() then
 					self:QueueCreate()
 				else
-					slot = Slot.New(frame, slotID, { secure = true, bag = bag, drop = function() self:Drop() end })
+					slot = Slot.New(frame, slotID, { secure = true, bag = bag, drop = function(targetBag) self:Drop(targetBag) end })
 					bagSlots[slotID] = slot
 				end
 			end
