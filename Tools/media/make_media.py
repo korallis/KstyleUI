@@ -1032,18 +1032,19 @@ for orb_name, width, height, about in (
     ))
 
 
-for picture_name, about, picture_drawn in (
-    ("HudStyleFrames", "The Frames HUD style's picture for the settings window and the setup: the cast bar, cooldowns, target and player frames and the two-row tray, cropped from the hud_reference render.", "2026-11-13"),
-    ("HudStyleOrbs", "The Orbs HUD style's picture for the settings window and the setup: the two orbs, the forged tray and the cast bar, cropped from the hud_reference render.", "2026-11-13"),
-    ("HudStyleMedallions", "The Medallions HUD style's picture for the settings window and the setup: the unit frames either side of the hub, the split tray and the cast bar, cropped from the hud_reference render.", "2026-11-16"),
+for picture_name, about in (
+    ("HudStyleFrames", "Frames: player and target frames, casts, cooldowns and two stacked action bars."),
+    ("HudStyleOrbs", "Orbs: health and resource orbs around two stacked action bars, with the cast bar above."),
+    ("HudStyleMedallions", "Medallions: unit frames over one twelve-button row on each side of the crest."),
 ):
-    ASSETS.append(Asset(
-        f"Media/Textures/{picture_name}.png", 512, 256,
-        lambda name=picture_name: material_pixels(name, 512, 256),
-        about,
-        "Prepared source in Tools/media/materials by Tools/media/hud_pictures.py from hud_reference renders at RENDER_SIZE=auto, 1920 by 1080 at 2 px per unit, with no backdrop, no stand-ins and the KstyleUI icon pack's repaints only; Lanczos to 512x256, opaque",
-        drawn=picture_drawn, maker="KstyleUI's own render of its code (Tools/render/shoot.sh); no model",
-    ))
+    for extension in ("png", "tga"):
+        ASSETS.append(Asset(
+            f"Media/Textures/{picture_name}.{extension}", 1024, 512,
+            lambda name=picture_name: material_pixels(name, 1024, 512),
+            about,
+            "Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels",
+            drawn="2026-11-18", maker="KstyleUI render plus owner's game screenshot; no generated scenery",
+        ))
 
 
 ASSETS += [

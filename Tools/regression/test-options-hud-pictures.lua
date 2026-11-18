@@ -34,6 +34,10 @@ end
 assert(row, "General shows the HUD style row")
 local holder = row.controls.pictures
 local want = { (K.Tokens.Texture("hudStyleFrames")), (K.Tokens.Texture("hudStyleOrbs")), (K.Tokens.Texture("hudStyleMedallions")) }
+for _, texture in ipairs(want) do
+	assert(texture:match("%.tga$"), "HUD preview textures use the client's proven TGA format")
+	assert(Scene.ResolvePath(texture):match("%.png$"), "Chrome draws the pixel-identical PNG companion")
+end
 assert(#holder.cards == 3 and holder.cards[3]:IsShown(), "the row shows a card for each of the three styles")
 Scene.Build(env, {})
 for i, card in ipairs(holder.cards) do

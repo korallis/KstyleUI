@@ -216,7 +216,10 @@ function Scene.ResolvePath(path, iconDirs)
 		end
 		local found = false
 		if rel then
-			if fileExists(rel) then
+			local companion = rel:gsub("%.[^.]+$", ".png")
+			if rel:lower():match("%.tga$") and fileExists(companion) then
+				found = companion
+			elseif fileExists(rel) then
 				found = rel
 			elseif rel:lower():match("%.tga$") or rel:lower():match("%.blp$") then
 				local png = rel:gsub("%.[^.]+$", ".png")

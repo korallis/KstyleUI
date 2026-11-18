@@ -1,4 +1,4 @@
--- setup_welcome.lua: the real first-run welcome page at the selected screen, HUD style and locale.
+-- setup_welcome.lua: the real welcome or HUD-style page (RENDER_SETUP_STEP=2) at the selected screen, HUD style and locale.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local W = dofile("Tools/regression/widget_env.lua")
@@ -16,6 +16,9 @@ return Common.Run(function()
 		K.Options.Write("Widgets", "general.brandedWelcome", false)
 	end
 	assert(K.Setup.Open(true))
+	if os.getenv("RENDER_SETUP_STEP") then
+		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP"))))
+	end
 	W.Settle(env)
 	env.RunTimers()
 	Gallery.Ticks(W, env, 40)

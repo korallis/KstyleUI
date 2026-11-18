@@ -58,8 +58,10 @@ class ManifestTest(unittest.TestCase):
         # (Tools/media/hud_pictures.py), not the flat schematic drawing of a handful of colours it showed before.
         for name in ("HudStyleFrames", "HudStyleOrbs", "HudStyleMedallions"):
             asset = next(a for a in self.mm.ASSETS if Path(a.path).stem == name)
-            self.assertEqual((asset.width, asset.height), (512, 256), name)
+            self.assertEqual((asset.width, asset.height), (1024, 512), name)
             width, height, pixels = self.mm.decode_png((ROOT / asset.path).read_bytes())
+            self.assertEqual((width, height, pixels), self.mm.decode_tga((ROOT / f"Media/Textures/{name}.tga").read_bytes()),
+                             f"{name}: client TGA and browser PNG must have identical pixels")
             colours = {bytes(pixels[i:i + 3]) for i in range(0, len(pixels), 4)}
             self.assertGreater(len(colours), 2000, f"{name} is a picture, not a schematic of {len(colours)} colours")
 

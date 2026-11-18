@@ -44,7 +44,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 		local logo, pictures, version = false, 0, false
 		for _, item in ipairs(scene.items) do
 			if item.path == K.Tokens.Texture("logoLarge") then logo = true end
-			if item.file and item.file:match("HudStyle.*%.png$") then pictures = pictures + 1 end
+			if item.file and item.file:match("HudStyle.*%.png$") then
+				assert(item.path:match("%.tga$"), "HUD previews load as TGA in the client and PNG companions in Chrome")
+				pictures = pictures + 1
+			end
 			if item.kind == "text" and item.text == K.VERSION then version = true end
 		end
 		assert(logo and pictures == 3 and version, "welcome shows the logo, three HUD pictures and addon version")
