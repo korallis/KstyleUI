@@ -96,6 +96,9 @@ local function OnSetting(_, module, key)
 		return
 	end
 	local section = type(key) == "string" and key:match("^(%w+)%.") or nil
+	if section == "roles" then
+		section = nil
+	end
 	for _, part in ipairs(parts) do
 		if section == nil or section == part.section then
 			K.Call(part.Apply, part)
@@ -120,6 +123,7 @@ local function Enable()
 	K.Callbacks.Register("ThemeChanged", MODULE, ApplyAll)
 	K.Callbacks.Register("ScaleChanged", MODULE, ApplyAll)
 	K.Callbacks.Register("ProfileChanged", MODULE, ApplyAll)
+	K.Callbacks.Register("PlayerRoleChanged", MODULE, ApplyAll)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 end
 

@@ -605,6 +605,22 @@ local function ProfileItems()
 	end
 	add({ kind = "header", level = 1, label = L["Active profile"] })
 	add({
+		kind = "toggle", label = L["Use a profile per specialization"],
+		help = L["Switch profiles with your spec after combat; without specs, use your assigned role."],
+		get = K.Specialization.Enabled, set = K.Specialization.SetEnabled,
+	})
+	add({ kind = "note", label = L["Every specialization starts on your current profile. Pick another profile to customize it."] })
+	for _, choice in ipairs(K.Specialization.Choices()) do
+		local key = choice.key
+		add({
+			kind = "dropdown", label = choice.label, options = AllProfiles,
+			help = L["The profile for this specialization or assigned role. Changes wait until combat ends."],
+			disableWhen = function() return not K.Specialization.Enabled() end,
+			get = function() return K.Specialization.Profile(key) end,
+			set = function(name) K.Specialization.Assign(key, name) end,
+		})
+	end
+	add({
 		kind = "dropdown", label = L["Profile"], help = L["The profile this character uses."], options = AllProfiles,
 		get = store.ProfileName,
 		set = function(name)

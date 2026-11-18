@@ -2,6 +2,12 @@
 
 Damage Meter skin, our own threat meter and a swing timer.
 
+**Show the meter for my role** is on by default in Options > Meters. Tanks see threat; healers and damage dealers see damage. The assigned party or raid role wins; when unassigned, the current specialization's role is used, with damage as the safe fallback. Each role can choose Damage, Threat or Both. Changes in combat wait until combat ends. The existing group-only visibility settings still apply. Turning role following off restores the saved manual Show switches, which automatic changes never overwrite. Bars retain their existing class colours.
+
+Options > Profiles also enables **Use a profile per specialization** by default. Each specialization starts on the current profile, and can select another existing profile. Classes without specialization information get Tank, Healer and Damage assignments keyed to their assigned group role. These assignments belong to the character, survive logout and profile renames, and stay outside exported profiles. A deleted profile's assignments fall back to the active profile. Switching uses the normal `ProfileChanged` path after combat; no reload or form-specific layout is involved.
+
+Regression evidence: `test-meters-role.lua` and `test-specialization.lua`. `meters_role` renders the real party meter; `RENDER_ROLE=TANK` shows threat and `RENDER_ROLE=DAMAGER` shows damage.
+
 | Field | Value |
 | --- | --- |
 | Module name | `Meters`: its switch in `Core/Features.lua` and the `name` it registers with `KstyleUI.Modules.Register` |

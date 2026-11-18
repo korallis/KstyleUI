@@ -12,6 +12,7 @@ local env, K = O.New({
 	end,
 })
 local ns = env._addons.KstyleUI_Meters
+K.Options.Write("Meters", "followRole", false)
 
 local function Text(fontString)
 	local args = M.Last(fontString, "SetText")

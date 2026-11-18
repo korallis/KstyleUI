@@ -57,6 +57,8 @@ local DAMAGE_CLASS_TONE = 0.62
 ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
+	followRole = true,
+	roles = { TANK = "threat", HEALER = "damage", DAMAGER = "damage" },
 	fitCards = true,
 	instrumentNames = true,
 	accent = "class",
@@ -180,6 +182,10 @@ end
 
 local function Off(section)
 	return function(settings)
+		if section ~= "swing" and settings.followRole ~= false then
+			local choice = settings.roles and settings.roles[K.Specialization.Role()]
+			return choice ~= "both" and choice ~= section
+		end
 		return type(settings[section]) == "table" and settings[section].shown == false
 	end
 end
@@ -244,6 +250,25 @@ local function ListRows(section, rows)
 end
 
 local schema = {
+	{
+		type = "toggle", key = "followRole", label = L["Show the meter for my role"],
+		help = L["Follows your group role, then spec role, after combat. Off restores the manual show switches."],
+	},
+	{
+		type = "dropdown", key = "roles.TANK", label = L["Tank"],
+		help = L["The meter to show while tanking. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+	},
+	{
+		type = "dropdown", key = "roles.HEALER", label = L["Healer"],
+		help = L["The meter to show while healing. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+	},
+	{
+		type = "dropdown", key = "roles.DAMAGER", label = L["Damage"],
+		help = L["The meter to show while dealing damage. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+	},
 	{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
 	{ type = "toggle", key = "instrumentNames", label = L["Instrument row names"],
 		help = L["Use compact sans capitals for Medallions meter names. Off restores the original face."] },
@@ -258,7 +283,7 @@ local schema = {
 		help = L["The accent colour the meters use when the accent is custom."],
 	},
 	{ type = "header", label = L["Damage meter"] },
-	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], help = L["Shows the Damage Meter in KstyleUI's style."] },
+	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], disableWhen = Is("followRole", true), help = L["Shows the Damage Meter in KstyleUI's style when role-based meters are off."] },
 	{
 		type = "dropdown", key = "damage.mode", label = L["Style"], disableWhen = Off("damage"),
 		help = L["Automatic picks once, at login, the window that shows numbers in combat on this client."],
@@ -290,7 +315,7 @@ ListRows("damage", schema)
 schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
 schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
-schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], help = L["Shows your group's threat on your target."] }
+schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
 schema[#schema + 1] = {
 	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),
 	help = L["Hides the meter while you play alone."],
@@ -439,6 +464,14 @@ end
 
 function ns.Log(message)
 	K.DevTest.Log(ns.MODULE, message)
+end
+
+function ns.MeterShown(section)
+	if not ns.Get("followRole") then
+		return ns.Get(section .. ".shown")
+	end
+	local choice = ns.Get("roles." .. K.Specialization.Role())
+	return choice == "both" or choice == section
 end
 
 local logged = {}

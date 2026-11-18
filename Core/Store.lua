@@ -1473,6 +1473,18 @@ function Store.CopyProfile(source, target)
 	return true
 end
 
+local function reassignSpecializations(from, to)
+	local assignments = account.specializationProfiles
+	for _, config in pairs(type(assignments) == "table" and assignments or {}) do
+		local profiles = type(config) == "table" and config.profiles
+		for key, name in pairs(type(profiles) == "table" and profiles or {}) do
+			if name == from then
+				profiles[key] = to
+			end
+		end
+	end
+end
+
 function Store.RenameProfile(old, new)
 	if not db then
 		return false, NOT_LOADED
@@ -1494,6 +1506,7 @@ function Store.RenameProfile(old, new)
 	end
 	db.profiles[to], db.profiles[from] = db.profiles[from], nil
 	db.layouts[to], db.layouts[from] = db.layouts[from] or {}, nil
+	reassignSpecializations(from, to)
 	for key, name in pairs(db.characters) do
 		if name == from then
 			db.characters[key] = to
@@ -1519,6 +1532,7 @@ function Store.DeleteProfile(name)
 	end
 	db.profiles[clean] = nil
 	db.layouts[clean] = nil
+	reassignSpecializations(clean, activeName)
 	for key, assigned in pairs(db.characters) do
 		if assigned == clean then
 			db.characters[key] = nil

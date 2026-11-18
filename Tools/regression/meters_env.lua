@@ -252,6 +252,10 @@ function M.New(opts)
 	})
 	env._moduleFrames = #env._frames
 	Load(M.Files(), env)
+	-- Existing meter fixtures exercise manual visibility; role-following fixtures opt in explicitly.
+	if not opts.followRole then
+		K.Options.Write("Meters", "followRole", false)
+	end
 	return env, K, env._addons.KstyleUI_Meters
 end
 

@@ -154,7 +154,7 @@ local function Count(list, text)
 end
 
 local function Visible()
-	if not ns.Get("threat.shown") then
+	if not ns.MeterShown("threat") then
 		return false
 	end
 	if ns.Get("threat.group") then
@@ -329,8 +329,8 @@ function Threat:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
-	ns.SetLive(KEY, ns.Get("threat.shown"))
-	if not ns.Get("threat.shown") then
+	ns.SetLive(KEY, ns.MeterShown("threat"))
+	if not ns.MeterShown("threat") then
 		self:Stop()
 		return
 	end

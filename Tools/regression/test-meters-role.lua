@@ -1,0 +1,40 @@
+-- test-meters-role.lua: role choices override manual switches, settle after combat and restore manual behaviour when off.
+local M = dofile("Tools/regression/meters_env.lua")
+local env, K, ns = M.New({ followRole = true, setup = function(e)
+	e._role = "TANK"
+	e.UnitGroupRolesAssigned = function() return e._role end
+	e._group.size = 5
+end })
+local settings = K.Store.Module("Meters")
+assert(settings.followRole == true, "role meters default on")
+settings.threat.shown = false
+M.Enable(env, K)
+assert(ns.Threat.holder:IsShown() and ns.Threat.list.panel:IsShown(), "tanks see threat even when the manual switch is off")
+assert(not ns.Damage.holder:IsShown() and not K.Layout.Live("meters.damage"), "tanks hide damage and its mover")
+assert(not env.DamageMeter:IsVisible(), "tanks also hide Blizzard's damage window")
+local previewParent = env.CreateFrame("Frame", nil, K.Scale.Root())
+previewParent:SetSize(600, 400)
+local preview = ns.Preview.Build(previewParent)
+assert(preview.threat.holder:IsShown() and not preview.damage.holder:IsShown(), "the Options preview follows the tank's role")
+env.SetCombat(true)
+env._role = "DAMAGER"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.FireEvent("GROUP_ROSTER_UPDATE")
+assert(ns.Threat.holder:IsShown() and not ns.Damage.holder:IsShown(), "combat retains the tank meter")
+env.SetCombat(false)
+env.RunTimers()
+assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "combat end shows damage for DPS")
+M.Write(env, K, "roles.DAMAGER", "both")
+assert(ns.Damage.holder:IsShown() and ns.Threat.holder:IsShown(), "each role can show both")
+M.Write(env, K, "roles.DAMAGER", "threat")
+assert(not ns.Damage.holder:IsShown() and ns.Threat.holder:IsShown(), "DPS can choose threat")
+env._role = "HEALER"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "healers default to damage")
+M.Write(env, K, "followRole", false)
+assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "off restores saved manual switches")
+M.Write(env, K, "threat.shown", true)
+assert(ns.Damage.holder:IsShown() and ns.Threat.holder:IsShown(), "off permits both manual meters")
+assert(settings.threat.shown == true and settings.damage.shown == true, "role changes do not overwrite manual choices")
+assert(K.ErrorCount() == 0)
+print("role meters ok")

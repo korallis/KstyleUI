@@ -108,7 +108,7 @@ local function Alone()
 end
 
 local function Visible()
-	return ns.Get("damage.shown") and Damage.Mode() == "window" and not Alone()
+	return ns.MeterShown("damage") and Damage.Mode() == "window" and not Alone()
 end
 
 local function DeathText(source)
@@ -829,9 +829,12 @@ function Damage:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
-	ns.SetLive(KEY, ns.Get("damage.shown") and Damage.Mode() == "window")
-	if not ns.Get("damage.shown") then
+	ns.SetLive(KEY, ns.MeterShown("damage") and Damage.Mode() == "window")
+	if not ns.MeterShown("damage") then
 		self:Stop()
+		if ns.Get("followRole") then
+			HideBlizzard()
+		end
 		return
 	end
 	if Damage.Mode() == "window" then
