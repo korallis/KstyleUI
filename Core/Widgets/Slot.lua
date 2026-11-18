@@ -191,7 +191,8 @@ function Slot:AnimatePress(down)
 		if not self.heldLayer then
 			local heldLayer = Layer(self)
 			self.heldLayer, self.heldRim = heldLayer, Ring(heldLayer, "OVERLAY", 1)
-			PlaceRing(self.heldRim, self, self.stateLine, self.stateLine)
+			local line = self.stateLine or Widgets.Border(self)
+			PlaceRing(self.heldRim, self, line, line)
 			ColorRing(self.heldRim, Tokens.Color("slotPress"))
 			self.heldRelease = heldLayer:CreateAnimationGroup()
 			Fade(self.heldRelease, 0.6, 0, 0.1, "IN")
@@ -472,10 +473,11 @@ function Widgets.Slot(parent, opts)
 	end)
 	b.readyFade:SetFromAlpha(READY_ALPHA)
 	b.readyFade:SetDuration(Tokens.Duration("readyFlash"))
-	b.readyAttack = b.readyFlash:CreateAnimation("Alpha")
-	b.readyAttack:SetFromAlpha(0)
-	b.readyAttack:SetToAlpha(1)
-	b.readyAttack:SetOrder(1)
+	b.legacyReady, b.legacyReadyFade = b.readyFlash, b.readyFade
+	b.modernReady = b.readyWash:CreateAnimationGroup()
+	b.readyAttack = Fade(b.modernReady, 0, 0.45, 0.06, "OUT")
+	b.readyDecay = Fade(b.modernReady, 0.45, 0, 0.18, "IN", 0.06)
+	b.modernReady:SetScript("OnFinished", function() b.readyWash:Hide() end)
 	b.rimToken = opts.rim or "slotRim"
 	b:HookScript("OnClick", function(self, _, down)
 		self:AnimatePress(down)
@@ -499,11 +501,13 @@ function Widgets.Slot(parent, opts)
 		a:SetToAlpha(self.opts.procTransitions and 0.55 or BREATH_LOW)
 		a:SetDuration(Tokens.Duration(self.opts.procTransitions and "glowBreath" or "procPulse"))
 		self:SetSlabDress(self.slabProc)
-		self.readyAttack:SetDuration(self.opts.procTransitions and 0.06 or 0)
-		self.readyFade:SetOrder(2)
-		self.readyAttack:SetToAlpha(self.opts.procTransitions and 0.45 or READY_ALPHA)
-		self.readyFade:SetFromAlpha(self.opts.procTransitions and 0.45 or READY_ALPHA)
-		self.readyFade:SetDuration(self.opts.procTransitions and 0.18 or Tokens.Duration("readyFlash"))
+		local ready = self.opts.procTransitions and self.modernReady or self.legacyReady
+		if self.readyFlash ~= ready then
+			self.readyFlash:Stop()
+			self.readyWash:Hide()
+		end
+		self.readyFlash = ready
+		self.readyFade = self.opts.procTransitions and self.readyDecay or self.legacyReadyFade
 		PaintLayers(self)
 	end
 	b:Restyle()

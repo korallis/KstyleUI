@@ -42,7 +42,7 @@ for _, effect in ipairs({ "cast", "stopped", "ready", "burst" }) do
 		assert(Scene.BarFraction(env, cb.bar, env._time) == 1, effect .. ": model CreateDuration/SetTimeSpan so EndTimer holds a full outcome fill")
 	end
 	local item = find(scene, texture)
-	local peak = group._parent == texture and 1 or texture:GetAlpha()
+	local peak = effect == "ready" and 0.45 or (group._parent == texture and 1 or texture:GetAlpha())
 	assert(item and math.abs(item.alpha - peak) < 0.001, effect .. ": default RENDER_FX must draw the rising alpha's full peak with the wash's own opacity")
 	assert(math.abs(env._time - group._playedAt - Scene.AnimationPeak(group)) < 1e-8, effect .. ": take peak timing from the addon's animation calls")
 	local roots = { env.KstyleUI.Scale.Root() }

@@ -1,4 +1,4 @@
--- EffectModels.lua: the Medallions 3D effects: a pool of at most three live ModelScenes, each larger than its effect so it never clips, paused and hidden when idle and rebuilt after a reload; a model plays only at the Full motion level, and the caller's 2D twin plays instead when the pool is full, the file was refused, or it has not loaded in time (twice for a file means it is not tried again).
+-- EffectModels.lua: the guarded pool of three Medallions model scenes, with 2D motifs, prewarming and fading models behind the player and hub bezels.
 local _, ns = ...
 
 local Effects = ns.Effects
@@ -33,7 +33,11 @@ local clock = 0
 local hubAt
 
 local function Bezel(place)
-	return place == "hub" and ns.Store.IsLoaded() and ns.Store.Defaults("ActionBars") and ns.Store.Module("ActionBars").bezelModels == true
+	if place ~= "hub" and (place == nil or place ~= Effects.playerMedallion) then return false end
+	if ns.Store.IsLoaded() and ns.Store.Defaults("ActionBars") then
+		return ns.Store.Module("ActionBars").bezelModels == true
+	end
+	return true
 end
 
 local function IsSecret(value)
@@ -145,6 +149,11 @@ local function Pick(priority)
 	end
 	if worst and worst.priority >= priority then
 		local fallback = worst.fallback
+		if Bezel(worst.place) then
+			worst.fade:Stop()
+			if not worst.preempt:IsPlaying() then worst.preempt:Play() end
+			return nil
+		end
 		Idle(worst)
 		if fallback then
 			fallback()
@@ -175,7 +184,7 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 	end
 	local bezel = Bezel(place)
 	local now = type(GetTime) == "function" and GetTime() or 0
-	if bezel and hubAt and now - hubAt < 2.5 then return false end
+	if bezel and place == "hub" and hubAt and now - hubAt < 2.5 then return false end
 	local scene = Pick(priority)
 	if not scene then
 		return false
@@ -185,12 +194,16 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 		failed[file] = true
 		return false
 	end
-	if bezel then hubAt = now end
+	if bezel and place == "hub" then hubAt = now end
 	clock = clock + 1
 	scene.busy, scene.priority, scene.started, scene.file, scene.seconds = true, priority, clock, file, seconds
 	scene.fallback, scene.place = fallback, place
 	local side = size * MARGIN
 	scene:SetParent(bezel and anchor:GetParent() or anchor)
+	if bezel and place == Effects.playerMedallion and not anchor.modelHideHooked then
+		anchor.modelHideHooked = true
+		anchor:HookScript("OnHide", function() Effects.StopModels(anchor) end)
+	end
 	scene:SetScale(bezel and anchor:GetScale() or 1)
 	scene:SetFrameStrata(anchor:GetFrameStrata())
 	scene:SetFrameLevel(math.max(0, anchor:GetFrameLevel() + (bezel and -1 or PAD)))
@@ -268,7 +281,7 @@ function Effects.Burst(place, priority, anchor, key, size, seconds, play2D, stop
 		return false
 	end
 	stop2Ds[place] = stop2D
-	if always2D and play2D then
+	if (always2D or Bezel(place)) and play2D then
 		play2D()
 		play2D = nil
 	end

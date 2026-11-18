@@ -75,7 +75,12 @@ assert(E.Holder(tm) == nil and tm.sheenAnim:IsPlaying(), "the sheen picks up aga
 
 env.FireEvent("PLAYER_LEVEL_UP", 12)
 assert(E.Holder(m) == E.PRIORITY.burst, "a level-up bursts behind the player's medallion")
-assert(E.LiveModels() >= 1 and not (m.burst and m.burst.anim:IsPlaying()), "at Full the burst is the class model")
+assert(E.LiveModels() >= 1 and m.burst and m.burst.anim:IsPlaying(), "at Full the class model keeps its 2D motif")
+for _, scene in ipairs(env._frames) do
+	if scene:GetObjectType() == "ModelScene" and scene.busy and scene.place == m then
+		assert(scene:GetParent() == m:GetParent() and scene:GetFrameLevel() < m:GetFrameLevel(), "the player model stays behind the portrait bezel")
+	end
+end
 assert(not m.sheenAnim:IsPlaying(), "the sheen yields to the burst")
 tm:FlipIn()
 assert(E.Holder(tm) == E.PRIORITY.target, "another medallion is another place")
