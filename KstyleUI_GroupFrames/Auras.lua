@@ -393,12 +393,12 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
 	if not changed then
-		for i = 1, 20 do
+		for i = 1, 22 do
 			if old[i] ~= inputs[i] then changed = true; break end
 		end
 	end
