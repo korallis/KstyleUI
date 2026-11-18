@@ -92,6 +92,23 @@ class MarketingImages(unittest.TestCase):
         inputs = [source for _, source, *_ in M.CARDS + M.SHOWCASES + M.GALLERY]
         self.assertTrue(set(inputs) <= known, set(inputs) - known)
 
+    def test_scenery_plate_crops_avoid_recorded_source_ui(self):
+        spec = importlib.util.spec_from_file_location("plates", ROOT / "Tools/media/plates.py")
+        plates = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(plates)
+        manifest = json.loads((M.PLATES / "manifest.json").read_text(encoding="utf-8"))
+        for name, entry in manifest.items():
+            self.assertEqual(tuple(entry["crop"]), plates.SPECS[name][1],
+                             "Fix: regenerate the plate manifest with python Tools/media/plates.py")
+            if name == "minimap.png":  # This map stand-in intentionally captures UI, not scenery.
+                continue
+            left, top, right, bottom = entry["crop"]
+            self.assertTrue(0 <= left < right <= 5120 and 0 <= top < bottom <= 1440, name)
+            for label, (x1, y1, x2, y2) in plates.UI_REGIONS[entry["source"]].items():
+                overlaps = max(left, x1) < min(right, x2) and max(top, y1) < min(bottom, y2)
+                self.assertFalse(overlaps,
+                                 f"{name} includes {entry['source']} {label}; fix: recrop outside the recorded UI regions and run python Tools/media/plates.py")
+
     def test_gallery_matches_current_readme_media(self):
         for name, source, width in M.GALLERY:
             path = ROOT / "docs/store/gallery" / name

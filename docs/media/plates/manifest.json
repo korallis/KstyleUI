@@ -64,15 +64,15 @@
     "source_sha256": "7e27a74274e50426b1f0e41f684bbaa240960359f86a96c37a216fd1791b6ead",
     "crop": [
       0,
-      768,
+      752,
       1600,
-      1218
+      1202
     ],
     "size": [
       5120,
       1440
     ],
-    "sha256": "0ce4afdbfe89f5f2e02ddf1f187147e66a2e6580dbda3d1c1e3c18dc17a76ea3"
+    "sha256": "c284ba0debe257242f7d42c281b9d2663090853dfe4164fa061240eb0cb850e8"
   },
   "town-mac.jpg": {
     "source": "game_03.png",

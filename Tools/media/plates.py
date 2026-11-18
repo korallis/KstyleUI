@@ -12,12 +12,27 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "docs/media/plates"
+UI_REGIONS = {
+    "game_03.png": {
+        "chat": (16, 1210, 464, 1440),
+        "active targets and items": (1680, 800, 1840, 960),
+        "world labels": (1900, 400, 4640, 1000),
+        "central HUD": (1840, 1000, 3380, 1440),
+        "right rail": (4640, 0, 5120, 1440),
+    },
+    "game_09.png": {
+        "chat": (16, 1180, 660, 1440),
+        "central HUD": (1500, 1180, 3400, 1440),
+        "world labels and waypoint": (2100, 200, 2850, 900),
+        "right rail": (4380, 0, 5120, 1440),
+    },
+}
 SPECS = {
     "forest-1080.jpg": ("game_09.png", (0, 300, 1520, 1155), (1920, 1080)),
     "forest-ultrawide.jpg": ("game_09.png", (0, 300, 2048, 876), (5120, 1440)),
     "forest-mac.jpg": ("game_09.png", (0, 300, 1296, 1138), (3456, 2234)),
     "town-1080.jpg": ("game_03.png", (0, 400, 1440, 1210), (1920, 1080)),
-    "town-ultrawide.jpg": ("game_03.png", (0, 768, 1600, 1218), (5120, 1440)),
+    "town-ultrawide.jpg": ("game_03.png", (0, 752, 1600, 1202), (5120, 1440)),
     "town-mac.jpg": ("game_03.png", (0, 400, 1248, 1207), (3456, 2234)),
     "minimap.png": ("game_09.png", (4910, 70, 5038, 198), (256, 256)),
 }

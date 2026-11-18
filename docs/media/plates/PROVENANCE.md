@@ -13,7 +13,7 @@ right and bottom are exclusive.
 | forest-ultrawide.jpg | game_09.png, current build | 0, 300, 2048, 876 | 5120x1440 |
 | forest-mac.jpg | game_09.png, current build | 0, 300, 1296, 1138 | 3456x2234 |
 | town-1080.jpg | game_03.png, older build, scenery only | 0, 400, 1440, 1210 | 1920x1080 |
-| town-ultrawide.jpg | game_03.png, older build, scenery only | 0, 768, 1600, 1218 | 5120x1440 |
+| town-ultrawide.jpg | game_03.png, older build, scenery only | 0, 752, 1600, 1202 | 5120x1440 |
 | town-mac.jpg | game_03.png, older build, scenery only | 0, 400, 1248, 1207 | 3456x2234 |
 | minimap.png | game_09.png, current build | 4910, 70, 5038, 198 | 256x256 |
 
@@ -22,6 +22,26 @@ the town crops show bright grass and a cobbled road. Each scenery crop excludes
 all UI, names and the player's Medallions. The minimap is separately a real map
 stand-in, including the game's player arrow, not a UI-free scenery plate.
 The Mac crops have less than 0.04% aspect adjustment when resized.
+
+The following conservative UI exclusion boxes are recorded in
+`Tools/media/plates.py`. The plate test rejects scenery crops that intersect any
+box for their source. The minimap stand-in above intentionally captures map UI
+and is excluded from this scenery-only check. The town ultrawide crop ends at
+y=1202, above the old chat frame; its previous bottom edge at y=1218 included
+the chat header. Moving the crop upward 16 pixels removes it without painting
+or reducing the crop's width.
+
+| Source | UI region | Exclusion box |
+| --- | --- | --- |
+| game_03.png | Chat | 16, 1210, 464, 1440 |
+| game_03.png | Active targets and items | 1680, 800, 1840, 960 |
+| game_03.png | World labels | 1900, 400, 4640, 1000 |
+| game_03.png | Central HUD | 1840, 1000, 3380, 1440 |
+| game_03.png | Right rail | 4640, 0, 5120, 1440 |
+| game_09.png | Chat | 16, 1180, 660, 1440 |
+| game_09.png | Central HUD | 1500, 1180, 3400, 1440 |
+| game_09.png | World labels and waypoint | 2100, 200, 2850, 900 |
+| game_09.png | Right rail | 4380, 0, 5120, 1440 |
 
 No source offers a UI-free full 5120-pixel width at 32:9. The honest ultrawide
 crops above are 2048x576 and 1600x450, enlarged to 5120x1440 without extending
