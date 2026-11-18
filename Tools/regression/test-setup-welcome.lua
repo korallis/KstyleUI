@@ -47,7 +47,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 		for _, item in ipairs(scene.items) do
 			if item.path == K.Tokens.Texture("logoLarge") then logo = true end
 			if item.file and item.file:match("HudStyle.*%.png$") then
-				assert(item.path:match("%.tga$"), "HUD previews load as TGA in the client and PNG companions in Chrome")
+				assert(item.path:match("%.tga$"), "HUD preview tokens select TGA and Chrome uses PNG companions")
 				pictures = pictures + 1
 			end
 			assert(item.kind ~= "text" or not item.text:find("@project-version@", 1, true), "hide the unpackaged version marker in a checkout")
