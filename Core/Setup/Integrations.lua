@@ -30,7 +30,7 @@ function Integration.Note(module, standard)
 end
 
 local LANES = {
-	{ key = "timerLane", label = L["Boss timers"], width = 360, height = 120, y = 330 },
+	{ key = "timerLane", label = L["Boss timers"], width = 360, height = 120, x = -500, y = 330 },
 	{ key = "announcementLane", label = L["Boss announcements"], width = 520, height = 48, y = 420 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 1"], name = "KstyleUI_WeakAuras1", width = 180, height = 48, x = -300, y = 180 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },

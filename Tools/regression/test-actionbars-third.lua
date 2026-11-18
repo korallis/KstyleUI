@@ -42,6 +42,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local bar, slab = ns.bars.bar3, ns.Slab
 			assert(bar.count == count and bar.buttons[count]:IsShown() and (count == 12 or not bar.buttons[count + 1]:IsShown()))
 			local rect = Rect(bar.holder)
+			assert(#K.Setup.Integrations.frames == 4, "Default-on integrations create both lanes and both named anchors")
+			for _, lane in ipairs(K.Setup.Integrations.frames) do
+				assert(Apart(rect, Rect(lane)), style .. " " .. count .. ": bar 3 overlaps an enabled other-addon lane")
+			end
 			for _, other in ipairs({ "bar1", "bar2", "pet", "stance" }) do
 				assert(Apart(rect, Rect(ns.bars[other].holder)), style .. ": bar 3 overlaps " .. other)
 			end
