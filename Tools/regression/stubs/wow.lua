@@ -523,14 +523,21 @@ function Object:GetAlpha()
 	return self._alpha
 end
 
-function Object:SetVertexColor(...)
-	local a = select(4, ...)
-	self._state.VertexColor = pack(...)
-	self._alpha = a == nil and 1 or a
+for _, field in ipairs({ "VertexColor", "ColorTexture", "TextColor" }) do
+	Object["Set" .. field] = function(self, ...)
+		local a = select(4, ...)
+		self._state[field] = pack(...)
+		self._alpha = a == nil and 1 or a
+	end
 end
 
 function Object:GetVertexColor()
 	local color = self._state.VertexColor or { 1, 1, 1 }
+	return color[1], color[2], color[3], self:GetAlpha()
+end
+
+function Object:GetTextColor()
+	local color = self._state.TextColor or { 1, 1, 1 }
 	return color[1], color[2], color[3], self:GetAlpha()
 end
 
@@ -854,8 +861,7 @@ function Object:IsMouseEnabled() return self._mouse == true end
 function Object:SetIgnoreParentAlpha(ignore) self._ignoreParentAlpha = not not ignore end
 function Object:IsIgnoringParentAlpha() return self._ignoreParentAlpha == true end
 function Object:GetEffectiveAlpha()
-	local own = self._state.Alpha
-	local alpha = own and own[1] or 1
+	local alpha = self:GetAlpha()
 	if self._ignoreParentAlpha or not self._parent then
 		return alpha
 	end
@@ -870,7 +876,7 @@ local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
 	return setmetatable({
-		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
+		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {},
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
 		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and originFile(),
 	}, ObjectMeta)
@@ -1107,11 +1113,13 @@ end
 local Quiet = {}
 
 local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBoolean")
-local setVertexColor = quietSetter("VertexColor")
-function Quiet:SetVertexColor(...)
-	setVertexColor(self, ...)
-	local a = select(4, ...)
-	self._alpha = a == nil and 1 or a
+for _, field in ipairs({ "VertexColor", "ColorTexture", "TextColor" }) do
+	local set = quietSetter(field)
+	Quiet["Set" .. field] = function(self, ...)
+		set(self, ...)
+		local a = select(4, ...)
+		self._alpha = a == nil and 1 or a
+	end
 end
 
 function Quiet:SetAlpha(alpha)
@@ -1229,9 +1237,6 @@ ObjectMeta.__index = function(object, key)
 		end
 		local call = { method = key, args = pack(...) }
 		self._calls[#self._calls + 1] = call
-		if key == "SetAlpha" or key == "SetAlphaFromBoolean" or key == "SetVertexColor" then
-			self._lastAlpha = call
-		end
 		if not READERS[key] then
 			local env = self._env
 			if env then

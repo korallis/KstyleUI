@@ -1352,7 +1352,7 @@ local function PaintSample(f, sample)
 	local dispel = a.dispelHighlight and sample.dispel
 	if dispel then
 		local r, g, b = Tokens.Color("rare")
-		Widgets.ColorSlice(f.sampleDispelWash, r, g, b, 1)
+		Widgets.ColorSlice(f.sampleDispelWash, r, g, b, WASH_ALPHA)
 		Style.ColorRing(f.sampleDispelRing, r, g, b, 1)
 	end
 	f.sampleDispel:SetShown(dispel and true or false)

@@ -21,11 +21,11 @@ capture or measurement. Harness renders do not complete this checklist.
   25, three skinned windows, Options and setup, each over dark and bright ground.
   Retake the three effect GIFs at 60 fps. Save the originals and the capture
   settings together.
-- [ ] **Z1/A7: real dispel before the README retake.** After A7 lands, check a
+- [ ] **Z1/A7: real dispel.** Check a
   real Magic dispel in game: its wash must leave the name and health figure
-  readable, matching the Options sample's intended 16% wash. Only then retake
-  `docs/media/readme/frame_raid.jpg`; the harness correction alone is not proof
-  of the engine's restricted aura path.
+  readable, matching the Options sample's corrected 16% wash. The corrected
+  gallery currently exposes a separate opaque live-aura wash; fix and verify
+  that path before replacing `docs/media/readme/frame_raid.jpg`.
 - [ ] **Z5: repeat the three-family audit.** Give the current in-game capture
   set to all three model families, retain their reports, fix what they find and
   repeat against fresh captures until no model asks for a change.

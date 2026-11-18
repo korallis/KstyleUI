@@ -374,39 +374,9 @@ local function animationState(frame, now)
 	return dx, dy, alpha, absolute, sx, sy
 end
 
--- findOwnAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
--- the on or off alpha from a boolean the addon may not read, so the secret is revealed here, as the engine would.
--- The stubs keep that last call in node._lastAlpha (false while there has been none), so a node with a long call
--- log is not scanned on every build; a node without the field is scanned.
-local function lastAlphaCall(node)
-	local last = node._lastAlpha
-	if last ~= nil and (not last or last.method ~= "SetVertexColor") then
-		return last or nil
-	end
-	local calls = node._calls
-	for i = #(calls or {}), 1, -1 do
-		local call = calls[i]
-		if call.method == "SetAlpha" or call.method == "SetAlphaFromBoolean" then
-			return call
-		end
-	end
-	return nil
-end
-
+-- The stub keeps the shared Alpha aspect after every colour/alpha setter, including boolean and secret writes.
 local function findOwnAlpha(node)
-	local call = lastAlphaCall(node)
-	if call and call.method == "SetAlphaFromBoolean" then
-		local value = reveal(node._env, call.args[1])
-		if type(value) == "boolean" then
-			local on, off = call.args[2], call.args[3]
-			if value then
-				return type(on) == "number" and on or 1
-			end
-			return type(off) == "number" and off or 0
-		end
-	end
-	local own = node._state.Alpha
-	local value = own and reveal(node._env, own[1])
+	local value = reveal(node._env, node._alpha)
 	return type(value) == "number" and value or 1
 end
 
@@ -1206,11 +1176,13 @@ function Scene.Build(env, opts)
 				item.pendingLog = "atlas " .. tostring(atlas) .. " is drawn as a grey box: the client's atlas tables have no such name, or the atlas cache is not built (python3 Tools/render/atlas.py build --scan)"
 			end
 		end
-		local colour = color4(region._state.ColorTexture)
+		local colour = color4(region._state.ColorTexture, nil, env)
 		if colour and (item.file == nil or colourWins(region)) then
 			item.color = colour
+			item.color[4] = 1
 		end
 		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 }, env)
+		item.vertex[4] = 1
 		if region._barOwner and region._barOwner._state.StatusBarColor then
 			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex, env)
 		end
@@ -1304,6 +1276,7 @@ function Scene.Build(env, opts)
 			justifyH = state(region, "JustifyH") or "CENTER",
 			justifyV = state(region, "JustifyV") or "MIDDLE",
 		}
+		item.color[4] = 1
 		if not item.font.file then
 			logLine("no local font for " .. tostring(path) .. "; the page falls back to Source Sans")
 		end

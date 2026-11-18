@@ -70,11 +70,56 @@ for the page, scripts, asset base and backdrop; no browser shim is needed.
 Both `/c/Users/.../ground.png` and `C:/Users/.../ground.png` backdrops work,
 including spaces and URL punctuation in paths.
 
-Region opacity and vertex-colour opacity multiply, independently of setter
-order; colour-texture and gradient alpha remain additional factors. This can
-change existing harness pictures even when addon code is unchanged. Keep
-`docs/media/readme/frame_raid.jpg` until A7 lands and a real Magic dispel has
-been checked in game; then retake it through the normal README workflow.
+### Alpha model and Forever evidence
+
+The stub owns each object's current alpha; the scene reads that value and
+applies ancestor alpha once. Colour fields in scene items carry RGB and an
+alpha of 1, so the canvas does not multiply an old colour alpha back in.
+
+| Object | Model |
+| --- | --- |
+| Texture (including mask textures and lines) | `SetAlpha`, `SetAlphaFromBoolean`, `SetVertexColor` and `SetColorTexture` write one alpha: the last write wins. Omitted colour alpha is 1. `GetAlpha` and the fourth `GetVertexColor` return agree. File pixels, masks and gradient stops retain their own coverage. |
+| FontString | `SetTextColor` writes the same Alpha aspect as `SetAlpha`/`SetAlphaFromBoolean`; the last write wins, with omitted text alpha defaulting to 1. `GetTextColor` reports the current alpha. |
+| Frame | Its own `SetAlpha`/`SetAlphaFromBoolean` value multiplies down the parent chain, stopping at `SetIgnoreParentAlpha`. Colour writes on a child region do not change the frame. |
+
+Evidence is from [Gethe/wow-ui-source at `9dc84f0`](https://github.com/Gethe/wow-ui-source/tree/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns), Forever build 1.60.1.70862:
+
+- `Blizzard_APIDocumentationGenerated/SimpleRegionAPIDocumentation.lua`:
+  `SetAlpha` (123) writes `SecretAspect.Alpha`; `SetVertexColor` (191) writes
+  both `VertexColor` and `Alpha`; `GetAlpha` (10) and `GetVertexColor` (66)
+  return that same Alpha aspect. Colour alpha is optional.
+- `Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua`:
+  `SetColorTexture` (403) takes RGB and optional alpha. The generated signatures
+  alone do not specify setter ordering; the region aspect contract and the
+  client regression below establish the shared value.
+- `Blizzard_ChatFrameBase/Mainline/FloatingChatFrame.lua`: temporary chat
+  windows read background opacity through `GetVertexColor` (455), while
+  `FCF_SetWindowAlpha` writes those background textures with `SetAlpha` (1056).
+  This relies on the two methods accessing the same value.
+- `Blizzard_APIDocumentationGenerated/SimpleFontStringAPIDocumentation.lua`:
+  `SetTextColor` (675) writes `VertexColor` and `Alpha`, and `GetTextColor`
+  (367) returns both; its inherited region alpha API is the file above.
+- `Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua`:
+  `GetAlpha` (276), `SetAlpha` (1134) and `SetAlphaFromBoolean` (1145) use the
+  frame's Alpha aspect. `Blizzard_ChatFrameBase/Mainline/FloatingChatFrame.lua`
+  (1214) fades the scrollbar frame from its current `GetAlpha` value.
+
+The client observation is also recorded in `CHANGELOG.md`, v0.2.2: retinting
+the Medallions hub with three-component `SetVertexColor` revived its hidden
+shock ring and flash. Retinting now preserves the current alpha in addon code;
+the harness must therefore leave those effects absent at rest. The Options
+dispel sample explicitly passes `WASH_ALPHA` (0.16) to `ColorSlice`, because
+the vertex write replaces the wash's initial alpha.
+
+The corrected `gallery_groupframes` render exposes a separate live-aura issue:
+the fixture writes alpha 1 to every dispel texture, so Ilyra's raid row becomes
+an opaque blue tile. This matches the source path in
+`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (533): `PreserveAsset`
+calls `AuraUtil.SetAuraBorderColor`, which calls `SetVertexColor` with the
+dispel colour's RGBA in `Blizzard_FrameXMLUtil/AuraUtil.lua` (614). The Options
+sample fix does not change that restricted aura path. Keep the existing
+`frame_raid.jpg` until that separate issue is fixed and checked in game, then
+retake through `readme.py`; do not repaint the fixture to hide it.
 
 ### Native context-menu fixtures
 

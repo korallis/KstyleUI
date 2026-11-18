@@ -28,4 +28,3 @@ for _, quiet in ipairs({ false, true }) do
 	assert(label:GetAlpha() == 1, "omitted text alpha defaults to one")
 end
 print("vertex alpha contract passed")
-
