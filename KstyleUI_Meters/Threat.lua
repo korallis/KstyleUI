@@ -232,8 +232,11 @@ local function DockGuide()
 	end
 	local on = guide and guide:IsVisible() and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
+		local foot = side.storyGuideBottom or guide
+		local top, bottom = Logic.Plain(guide:GetBottom()), Logic.Plain(foot:GetBottom())
+		local gap = top and bottom and math.max(0, top * K.Widgets.ScaleFactor(guide) - bottom * K.Widgets.ScaleFactor(foot)) or 0
 		holder:ClearAllPoints()
-		K.Widgets.Point(holder, "TOPRIGHT", side.storyGuideBottom or guide, "BOTTOMRIGHT", 0, -16)
+		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -(16 + gap) / K.Widgets.ScaleFactor(holder))
 		Threat.docked = true
 	elseif Threat.docked then
 		holder:ClearAllPoints()

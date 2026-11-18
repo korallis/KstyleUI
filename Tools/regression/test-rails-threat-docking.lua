@@ -11,7 +11,7 @@ R.settle()
 local threat = R.env._addons.KstyleUI_Meters.Threat
 local point, relative, on, x, y = threat.holder:GetPoint(1)
 local side = R.K.Safe.Side(R.K.Scale.Root())
-assert(point == "TOPRIGHT" and relative == side.storyGuideBottom and on == "BOTTOMRIGHT" and x == 0 and y == -R.K.Widgets.Snap(threat.holder, 16),
+assert(point == "TOPRIGHT" and relative == side.storyGuide and on == "BOTTOMRIGHT" and x == 0 and y < -R.K.Widgets.Snap(threat.holder, 16),
 	"anchor the default threat card sixteen units below the guide and its docked controls")
 R.rxp.activeItemFrame:Hide()
 R.rxp.targeting.activeTargetFrame:Hide()
