@@ -53,7 +53,8 @@ local function ReadRole()
 end
 
 function Service.Role()
-	return role or ReadRole()
+	role = role or ReadRole()
+	return role
 end
 
 function Service.Choices()
