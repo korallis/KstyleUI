@@ -69,7 +69,7 @@ local function Placed(self)
 		Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
 	end
 	if Widgets.Readability("sectionHeadings") then
-		local below = -Widgets.TextHeight(self.label, 0) / 2 - Widgets.Snap(self, 2) - Widgets.Border(self) / 2
+		local below = -Widgets.TextHeight(self.label, Widgets.LineHeight(self.label)) / 2 - Widgets.Snap(self, 2) - Widgets.Border(self) / 2
 		local left = Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM)
 		self.rule:ClearAllPoints()
 		Widgets.Point(self.rule, "LEFT", self, "LEFT", left, below)

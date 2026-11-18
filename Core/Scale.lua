@@ -174,7 +174,7 @@ local function Limit(width, height, screen, user, auto)
 		for i, element in ipairs(layouts.ELEMENTS) do
 			flags[i] = enabled[element.key] and "1" or "0"
 		end
-		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text" }, ":")
+		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text-v2" }, ":")
 		local requested = string.format("%.17g", user)
 		for i, saved in ipairs(cache.entries) do
 			local maximum = type(saved) == "table" and type(saved.maximum) == "string" and tonumber(saved.maximum)
@@ -401,7 +401,7 @@ function Scale.Pixel(n)
 end
 
 function Scale.TextFloor()
-	if not ns.Appearance or ns.Appearance.Readability("textFloor") then
+	if state.height > 1440 and (not ns.Appearance or ns.Appearance.Readability("textFloor")) then
 		return max(1, floor(TEXT_FLOOR / state.pixel + 0.5))
 	end
 	if state.height < REFERENCE_HEIGHT then

@@ -14,6 +14,16 @@ local function New(saved, version, screen)
 end
 local env, K, calls = New()
 assert(calls() > 0, "a cold login must really run the scale search")
+do
+	local oldEnv, current = New()
+	local expected = string.format("%.17g", current.Scale.AppliedUserScale())
+	for _, entry in ipairs(oldEnv.KstyleUIDB.scaleCache.entries) do
+		entry.key = entry.key:gsub("scaled%-text%-v2", "scaled-text")
+		entry.maximum = "0.6"
+	end
+	local _, upgraded, misses = New(oldEnv.KstyleUIDB)
+	assert(misses() > 0 and string.format("%.17g", upgraded.Scale.AppliedUserScale()) == expected, "discard saved answers from the superseded text-floor policy")
+end
 local profile = K.Store.Profile()
 for _, element in ipairs(K.Setup.Layouts.ELEMENTS) do
 	profile[element.module] = profile[element.module] or {}

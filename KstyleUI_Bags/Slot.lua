@@ -231,7 +231,7 @@ function Slot.Update(slot, record, level, match, packed)
 	end
 	if level and Settings.Get("showItemLevel") then
 		slot.level:SetText(tostring(level))
-		slot.level:SetTextColor(Theme.QualityColor(quality))
+		slot.level:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
 		slot.level:Show()
 	else
 		slot.level:Hide()

@@ -1,7 +1,15 @@
--- test-type-voice.lua: the audit's stable slab face, scale-aware minimum and single level, including their original-look switches.
+-- test-type-voice.lua: stable slab face, high-density text minimum and single level, including their original-look switches.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local function near(a, b) return math.abs(a - b) < 1e-6 end
+
+for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+		local _, K = U.New({ width = screen[1], height = screen[2] })
+		K.Options.Write("HudStyle", "style", style)
+		assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "retain the ordinary-screen reading floor in every HUD style")
+	end
+end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 	for _, locale in ipairs({ "enUS", "deDE", "zhCN" }) do
@@ -30,7 +38,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 			assert(view.name:GetFont() == K.Tokens.Font("body"), "C1 off: restore the long-name body face")
 		end
 		local pixel = K.Scale.Pixel(1)
-		assert(near(K.Scale.TextFloor(), math.max(1, math.floor(11 / pixel + 0.5))), "C1: compute TextFloor from the effective root scale")
+		local minimum = screen[2] <= 1440 and math.floor(11 * screen[2] / 1080 + 0.5) or math.max(1, math.floor(11 / pixel + 0.5))
+		assert(near(K.Scale.TextFloor(), minimum), "C1: retain ordinary-screen floors and use the effective scale at high density")
 		K.Options.Write("Appearance", "textFloor", false)
 		assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "C1 off: restore the screen-height floor")
 		assert(#env._errors == 0, tostring(env._errors[1]))

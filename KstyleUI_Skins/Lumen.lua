@@ -192,7 +192,7 @@ function Cap:Restyle()
 	local ruleHeight = math.max(Widgets.Border(row), Widgets.Snap(row, Lumen.Size(row, RULE_UNITS)))
 	self.rule:SetHeight(ruleHeight)
 	if headings then
-		local below = y - Widgets.TextHeight(self.title, 0) / 2 - Widgets.Snap(row, Lumen.Size(row, 2)) - ruleHeight / 2
+		local below = y - Widgets.TextHeight(self.title, Widgets.LineHeight(self.title)) / 2 - Widgets.Snap(row, Lumen.Size(row, 2)) - ruleHeight / 2
 		self.rule:ClearAllPoints()
 		Widgets.Point(self.rule, "LEFT", row, "LEFT", left + Lumen.CapColumn(row), below)
 		Widgets.Point(self.rule, "RIGHT", row, "RIGHT", -Widgets.Snap(row, Units(opts.right, row)), below)

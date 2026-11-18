@@ -8,7 +8,7 @@ assert(S.Get("iconSize") == 44, "C4: the icon is 44 units")
 assert(ns.Style.FontSpec("title") == K.Tokens.Font("heading"), "C4: item and quest titles use the heading face")
 assert(ns.Style.FontSpec("title", "names") == K.Tokens.Font("names"), "C4: units and spells use the names face")
 for quality, token in pairs({ [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" }) do
-	local r, g, b = K.Theme.QualityColor(quality)
+	local r, g, b = K.Theme.QualityColor(quality, true)
 	local tr, tg, tb = K.Tokens.Color(token)
 	assert(T.Near(r, tr) and T.Near(g, tg) and T.Near(b, tb), "C4: use named item quality tokens")
 end

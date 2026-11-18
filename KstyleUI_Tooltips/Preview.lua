@@ -114,8 +114,6 @@ local function FitPair(row, available, gap)
 		return
 	end
 	local originalLeft, originalRight = leftSize, rightSize
-	Widgets.Fitted(row.left, Settings.Get("hierarchy"))
-	Widgets.Fitted(row.right, Settings.Get("hierarchy"))
 	local pixel = Widgets.FontSize(row.left, 0)
 	local minimum = Widgets.FontSize(row.left, PAIR_MIN_SIZE * Theme.FontScale())
 	local function Restore()
@@ -172,19 +170,26 @@ local function LayoutSample(glass)
 			row.right:SetShown(visible)
 		end
 		if visible then
+			if row.right then
+				Widgets.Fitted(row.left, Settings.Get("hierarchy"))
+				Widgets.Fitted(row.right, Settings.Get("hierarchy"))
+			end
 			Style.StyleFont(row.left, role, nil, line.kit)
 			row.left:SetTextColor(LineColor(line.color))
 			if role == "small" and Settings.Get("hierarchy") then row.left:SetTextColor(Tokens.Color("medTextMuted")) end
 			row.left:ClearAllPoints()
-			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
-			row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
+			if Settings.Get("hierarchy") then Widgets.Point(row.left, "TOPLEFT", glass, "TOPLEFT", x, -y)
+			else row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y) end
+			if Settings.Get("hierarchy") then Widgets.Point(row.left, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+			else row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0) end
 			local _, size = Style.FontSpec(role)
 			local height = Widgets.TextHeight(row.left, size)
 			if row.right then
 				Style.StyleFont(row.right, role)
 				row.right:SetTextColor(LineColor(line.rightColor or line.color))
 				row.right:ClearAllPoints()
-				row.right:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+				if Settings.Get("hierarchy") then Widgets.Point(row.right, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+				else row.right:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -pad, -y) end
 				FitPair(row, width - x - pad, Widgets.Snap(glass, Tokens.Size("gapSmall")))
 			end
 			y = y + height + gap
@@ -209,6 +214,7 @@ local function LayoutSample(glass)
 		glass.gem:Hide()
 	end
 	glass.chrome:Restyle()
+	return width
 end
 
 local function Edge(glass, on, r, g, b)
@@ -275,9 +281,15 @@ end
 
 local function Refresh(frame)
 	frame.item.indent = (Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0) + Room(frame.item)
-	LayoutSample(frame.item)
+	if Settings.Get("hierarchy") then frame.item.indent = Widgets.Snap(frame.item, frame.item.indent) end
+	local width = LayoutSample(frame.item)
 	frame.item:ClearAllPoints()
-	Widgets.Point(frame.item, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
+	local available = frame:GetWidth()
+	if Settings.Get("hierarchy") and Logic.IsNumber(available) and available > 0 and available < math.huge then
+		Widgets.Point(frame.item, "TOPLEFT", frame, "TOPLEFT", Widgets.Snap(frame, (available - width) / 2), -Tokens.Size("gapLarge"))
+	else
+		Widgets.Point(frame.item, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
+	end
 	frame.unit.indent = Room(frame.unit)
 	frame.unit.reserve = BarReserve()
 	LayoutSample(frame.unit)

@@ -357,12 +357,7 @@ function Theme.QualityColor(quality, refined)
 		return Rgb("text")
 	end
 	local enum = Enum and Enum.ItemQuality
-	if refined == nil and ns.Store and ns.Store.IsLoaded() then
-		local profile = ns.Store.Profile()
-		local tooltips, bags = profile.Tooltips, profile.Bags
-		refined = (not tooltips or tooltips.qualityColors ~= false) and (not bags or bags.qualityColors ~= false)
-	end
-	if refined ~= false then
+	if refined == true then
 		local token = ({ [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" })[quality]
 		if token then return Rgb(token) end
 	end

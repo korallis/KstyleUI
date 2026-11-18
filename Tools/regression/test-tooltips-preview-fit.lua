@@ -17,6 +17,7 @@ local function New(width, height, locale, custom, set)
 		K.Options.Write("Tooltips", "body.outline", "THICKOUTLINE")
 	end
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 0, 0)
 	parent:SetSize(260, 430)
 	local frame = ns.Preview.Build(parent)
 	return env, K, ns, frame
@@ -26,6 +27,9 @@ local function Check(width, height, locale, custom, set)
 	local env, K, ns, frame = New(width, height, locale, custom, set)
 	local W = K.Widgets
 	local sample = frame.item
+	local sampleX = Scene.Rect(env, sample)
+	local physicalX = sampleX * height / 1080
+	assert(T.Near(physicalX, math.floor(physicalX + 0.5)), "the preview starts on a physical pixel even when its centered width is odd")
 	local row = sample.rows[5]
 	local path, size, flags = row.left:GetFont()
 	local rightPath, rightSize, rightFlags = row.right:GetFont()
@@ -54,13 +58,13 @@ local function Check(width, height, locale, custom, set)
 	local leftAnchor, _, _, x = row.left:GetPoint(1)
 	local leftRightAnchor = row.left:GetPoint(2)
 	local rightAnchor = row.right:GetPoint(1)
-	assert(leftAnchor == "TOPLEFT" and T.Near(x, pad + sample.indent) and leftRightAnchor == "RIGHT" and rightAnchor == "TOPRIGHT", "the existing left and right anchors do not change")
+	assert(leftAnchor == "TOPLEFT" and T.Near(x, pad + sample.indent) and leftRightAnchor == "TOPRIGHT" and rightAnchor == "TOPRIGHT", "paired preview labels share the same top edge and keep their available width")
 	local _, _, _, _, nextY = sample.rows[6].left:GetPoint(1)
 	local _, _, _, _, rowY = row.left:GetPoint(1)
-	assert(T.Near(rowY - nextY, full * 1.2 + W.Snap(sample, 2)), "the following row keeps its original pitch while the paired ink fits inside it")
+	assert(math.abs(rowY - nextY - (full * 1.2 + W.Snap(sample, 2))) <= pixel + 1e-6, "the following row keeps its pitch within one snapped pixel while paired ink fits inside it")
 	assert(ns.Settings.Get("body.size") == (custom and 20 or 12), "fitting never writes the global/module font setting")
 	local _, singleSize = sample.rows[3].left:GetFont()
-	assert(T.Near(singleSize, full), "single-column sample lines are not fitted")
+	assert(not W.IsFitted(sample.rows[3].left) and T.Near(singleSize, W.FontSize(sample.rows[3].left, configuredSize)), "single-column sample lines retain the configured size and reading floor")
 	frame:Refresh()
 	assert(T.Near(select(2, row.left:GetFont()), size), "refresh is stable and does not repeatedly shrink")
 	if custom then
@@ -79,6 +83,7 @@ Check(1280, 720, "frFR")
 Check(1366, 768, "frFR")
 Check(1280, 720, "enUS")
 Check(1920, 1080, "enUS")
+Check(5120, 1440, "enUS")
 Check(1280, 720, "frFR", false, "Lumen")
 Check(1280, 720, "frFR", true)
 
