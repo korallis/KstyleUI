@@ -120,8 +120,8 @@ for _, anchor in ipairs(cap.rule._points) do
 		rule = anchor
 	end
 end
-assert(rule and rule[2] == cap.label, "the rule starts at the head")
-assert(math.abs(rule[#rule - 1] + Widgets.TrackPad(cap.label) - Widgets.Snap(cap, 10)) <= 2 * px, "one gap after the last letter's ink, not after its pad")
+assert(rule and rule[2] == cap and rule[3] == "LEFT", "the section rule starts under the head")
+assert(rule[#rule] < 0, "the section rule sits below the head's centre")
 
 for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES" }) do
 	local _, localeK = Boot(locale)

@@ -169,6 +169,7 @@ local function PlacePlate(view, s)
 	local plate, text = view.plate, view.text
 	local onLine = (TEXT_POINTS[s.textPosition] or TEXT_POINTS.CENTER) == TEXT_POINTS.CENTER and s.orientation ~= "VERTICAL"
 	local captionColor = view.def.id == "xp" and "text" or Bars.TOKENS.muted
+	if view.def.id == "xp" and s.medal and s.instrumentText ~= false then captionColor = "medTextMuted" end
 	Widgets.TextColor(text, onLine and "textEmphasis" or captionColor)
 	onLine = onLine and text:IsShown()
 	plate:SetShown(onLine)
@@ -277,6 +278,9 @@ local function Style(view, s)
 	end
 	LayoutTicks(view, s)
 	Font.Apply(view.text, s.font, s.fontSize, s.outline, "prose")
+	if view.def.id == "xp" and s.medal and s.instrumentText ~= false then
+		Font.Apply(view.text, s.font, 11, s.outline, "caps")
+	end
 	PlaceText(view, s.textPosition, s.medal)
 	if view.def.id == "xp" and s.medal and not view.lowered then
 		view.lowered = view.holder:GetFrameStrata()

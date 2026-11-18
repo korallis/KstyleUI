@@ -31,6 +31,7 @@ Appearance.defaults = {
 	uiScaleAuto = true,
 	motion = "full",
 	readableBars = true, worldText = true, chatTabs = true, barColors = true,
+	textFloor = true, sectionHeadings = true,
 }
 for _, role in ipairs(ROLES) do
 	Appearance.defaults[ROLE_KEY[role]] = ""
@@ -96,14 +97,14 @@ for _, role in ipairs(ROLES) do
 	CLEAN[ROLE_KEY[role]] = CleanRoleFont
 end
 
-local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true }
+local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, textFloor = true, sectionHeadings = true }
 for key in pairs(READABILITY) do
 	CLEAN[key] = function(value)
 		if type(value) == "boolean" then return value end
 	end
 end
 
-local readability = { readableBars = true, worldText = true, chatTabs = true, barColors = true }
+local readability = { readableBars = true, worldText = true, chatTabs = true, barColors = true, textFloor = true, sectionHeadings = true }
 function Appearance.Readability(key)
 	return readability[key] ~= false
 end
@@ -262,6 +263,10 @@ Appearance.schema = {
 		end,
 	},
 	{ type = "header", label = L["Readability"] },
+	{ type = "toggle", key = "textFloor", label = L["Text follows interface size"],
+		help = L["Size small text with your interface. Off uses the original screen-height minimum."] },
+	{ type = "toggle", key = "sectionHeadings", label = L["Consistent section headings"],
+		help = L["Gold section caps and tabs, with smaller option help. Off restores the original headings."] },
 	{ type = "toggle", key = "readableBars", label = L["Readable text on bars"],
 		help = L["Clearer bar ink, outside skin captions and spaced casts. Off restores the original look."] },
 	{ type = "toggle", key = "worldText", label = L["Backing for text over the world"],

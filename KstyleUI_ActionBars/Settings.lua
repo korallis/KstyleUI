@@ -60,6 +60,7 @@ local function BarDefaults(def)
 end
 
 local defaults = {
+	hubNumber = true,
 	editBar = "bar1",
 	accent = "quiet",
 	accentColor = Color("accentDefault"),
@@ -206,6 +207,8 @@ function ns.Schema()
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },
 		{ type = "toggle", key = "seatedCrest", label = L["Seat the crest"], help = L["Fits the Medallions crest inside its opening with a small metal lip. Off restores the larger crest."] },
+		{ type = "toggle", key = "hubNumber", label = L["Clear hub level"],
+			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."] },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
 		{ type = "header", label = L["Bars"] },
 		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },

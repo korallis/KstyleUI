@@ -44,6 +44,7 @@ local state = {
 	applied = {},
 	waiting = false,
 	dirty = true,
+	textFloor = true,
 }
 
 local function Fire(event, ...)
@@ -173,7 +174,7 @@ local function Limit(width, height, screen, user, auto)
 		for i, element in ipairs(layouts.ELEMENTS) do
 			flags[i] = enabled[element.key] and "1" or "0"
 		end
-		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags) }, ":")
+		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text" }, ":")
 		local requested = string.format("%.17g", user)
 		for i, saved in ipairs(cache.entries) do
 			local maximum = type(saved) == "table" and type(saved.maximum) == "string" and tonumber(saved.maximum)
@@ -400,6 +401,9 @@ function Scale.Pixel(n)
 end
 
 function Scale.TextFloor()
+	if not ns.Appearance or ns.Appearance.Readability("textFloor") then
+		return max(1, floor(TEXT_FLOOR / state.pixel + 0.5))
+	end
 	if state.height < REFERENCE_HEIGHT then
 		return 1
 	end
@@ -474,6 +478,13 @@ end)
 ns.Callbacks.Register("HudStyleChanged", "Scale", function()
 	state.dirty = true
 	Request("the HUD style")
+end)
+ns.Callbacks.Register("ReadabilityChanged", "Scale", function()
+	local textFloor = ns.Appearance.Readability("textFloor")
+	if state.textFloor ~= textFloor then
+		state.textFloor, state.dirty = textFloor, true
+		Request("the text minimum")
+	end
 end)
 ns.Callbacks.Register("ModuleChanged", "Scale", function()
 	state.dirty = true

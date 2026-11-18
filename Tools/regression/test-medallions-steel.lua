@@ -57,7 +57,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 	assert(math.abs(chrome:Radius() - 4) < 1e-9, "cards round to 4 units")
 	local top = chrome.bevel[1]
 	assert(top:GetHeight() > 0 and math.abs(top:GetHeight() / pixel - math.floor(top:GetHeight() / pixel + 0.5)) < 1e-6, "the ramp is whole device pixels")
-	assert(panel.cap.rule._state.ColorTexture[4] == 0, "the caps rule gives way to the header band")
+	assert(panel.cap.rule._state.ColorTexture[4] == 0.5, "C5: the shared gold section rule stays visible over the header band")
 	assert(not chrome.materialFrame[1]:IsShown() and not chrome.materialBrackets[1]:IsShown(), "no forged frame or gilt brackets")
 	for _, tick in ipairs(chrome.gilt) do
 		assert(not tick:IsShown(), "no gilt ticks")
@@ -67,8 +67,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
 	local fill = chrome.fill[5]._state.VertexColor
 	assert(Same({ fill[1], fill[2], fill[3] }, { fr, fg, fb }), "the card fill is dark steel")
 	local gem = panel.cap.gem._state.VertexColor
-	local ar, ag, ab = K.Tokens.Color("accent")
-	assert(math.abs(gem[1] - ar) < 0.000001 and math.abs(gem[2] - ag) < 0.000001 and math.abs(gem[3] - ab) < 0.000001, "the caps pip takes the accent")
+	local ar, ag, ab = K.Tokens.Color("capsGold")
+	assert(math.abs(gem[1] - ar) < 0.000001 and math.abs(gem[2] - ag) < 0.000001 and math.abs(gem[3] - ab) < 0.000001, "C5: section caps keep the shared gold pip")
 	local ring = panel.closeButton.closeRing
 	assert(ring and ring.chrome.fill[5]:IsShown(), "the close button sits in a round steel ring")
 	local side = math.min(panel.closeButton:GetWidth(), panel.closeButton:GetHeight())

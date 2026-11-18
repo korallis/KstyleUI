@@ -58,6 +58,7 @@ ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
 	fitCards = true,
+	instrumentNames = true,
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
 	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT), {
@@ -243,6 +244,8 @@ end
 
 local schema = {
 	{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
+	{ type = "toggle", key = "instrumentNames", label = L["Instrument row names"],
+		help = L["Use compact sans capitals for Medallions meter names. Off restores the original face."] },
 	{ type = "header", label = L["Accent"] },
 	{
 		type = "dropdown", key = "accent", label = L["Accent colour"],

@@ -53,9 +53,10 @@ end
 
 local function LineColor(kind)
 	if kind == "quality" then
-		return Theme.QualityColor(SAMPLE_QUALITY)
+		return Theme.QualityColor(SAMPLE_QUALITY, Settings.Get("qualityColors"))
 	elseif kind == "class" then
 		if Settings.Get("classNames") then
+			if Settings.Get("qualityColors") then return Tokens.Color("friendly") end
 			return ClassColor()
 		end
 		kind = "highlight"
@@ -171,6 +172,7 @@ local function LayoutSample(glass)
 		if visible then
 			Style.StyleFont(row.left, role, nil, line.kit)
 			row.left:SetTextColor(LineColor(line.color))
+			if role == "small" and Settings.Get("hierarchy") then row.left:SetTextColor(Tokens.Color("medTextMuted")) end
 			row.left:ClearAllPoints()
 			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
 			row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
@@ -277,7 +279,7 @@ local function Refresh(frame)
 	frame.unit.indent = Room(frame.unit)
 	frame.unit.reserve = BarReserve()
 	LayoutSample(frame.unit)
-	local qr, qg, qb = Theme.QualityColor(SAMPLE_QUALITY)
+	local qr, qg, qb = Theme.QualityColor(SAMPLE_QUALITY, Settings.Get("qualityColors"))
 	Edge(frame.item, Settings.Get("qualityEdge"), qr, qg, qb)
 	local cr, cg, cb = ClassColor()
 	Edge(frame.unit, Settings.Get("unitEdge"), cr, cg, cb)

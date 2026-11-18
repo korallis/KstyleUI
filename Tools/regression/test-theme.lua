@@ -221,14 +221,15 @@ do
 	assertColor("rare from Tokens", { rr, rg, rb }, ns.Theme.QualityColor(3))
 	local er, eg, eb = ns.Tokens.Color("epic")
 	assertColor("epic from Tokens", { er, eg, eb }, ns.Theme.QualityColor(4))
-	assertColor("uncommon from the game", QUALITY[2], ns.Theme.QualityColor(2))
+	assertColor("uncommon from the named token", { ns.Tokens.Color("uncommon") }, ns.Theme.QualityColor(2))
+	assertColor("original uncommon on request", QUALITY[2], ns.Theme.QualityColor(2, false))
 	local dr, dg, db = ns.Theme.QualityColor(7)
 	local lum = 0.2126 * dr + 0.7152 * dg + 0.0722 * db
 	assert(lum >= ns.Theme.MIN_LUMINANCE - 1e-9 and db > dr, "a dark quality colour is brightened for the glass, keeping its hue")
 	assertColor("unknown quality", { tr, tg, tb }, ns.Theme.QualityColor(99))
 	env.C_Item = nil
 	env.ITEM_QUALITY_COLORS = { [5] = colorObject(QUALITY[5]) }
-	assertColor("ITEM_QUALITY_COLORS fallback", QUALITY[5], ns.Theme.QualityColor(5))
+	assertColor("ITEM_QUALITY_COLORS fallback", QUALITY[5], ns.Theme.QualityColor(5, false))
 
 	local function token(name)
 		local a, b2, c = ns.Tokens.Color(name)

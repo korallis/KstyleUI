@@ -35,10 +35,20 @@ local function OnTabClick(tab)
 end
 
 local function SetLabel(tab, label)
+	local headings = Widgets.Readability("sectionHeadings")
+	if headings or tab.headings == true then
+		Widgets.StyleText(tab.label, headings and "caps" or "body")
+		if headings then Widgets.CapsSize(tab.label) end
+	end
+	tab.headings = headings
 	if Widgets.IsSecret(label) or type(label) ~= "string" then
 		Widgets.SetText(tab.label, label)
 	else
-		tab.label:SetText(ns.Locale.Upper(label))
+		label = ns.Locale.Upper(label)
+		if headings and ns.Locale.TrackMode((tab.label:GetFont())) == "space" then
+			label = label:gsub("([%z\1-\127\194-\244][\128-\191]*)", "%1\226\128\137"):sub(1, -4)
+		end
+		Widgets.SetText(tab.label, label)
 	end
 end
 
@@ -166,6 +176,7 @@ function Tabs:SetTabs(items, value)
 			self.buttons[i] = tab
 		end
 		tab.value = item.value
+		tab.text = item.label
 		SetLabel(tab, item.label)
 		tab:SetEnabled(not item.disabled)
 		tab:Show()
@@ -183,6 +194,9 @@ function Tabs:SetTabs(items, value)
 end
 
 function Tabs:Restyle()
+	for _, tab in ipairs(self.buttons) do
+		if tab.text then SetLabel(tab, tab.text) end
+	end
 	self:Layout()
 	self:Paint()
 end

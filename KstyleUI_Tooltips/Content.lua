@@ -65,7 +65,7 @@ end
 local function Item(tooltip, data)
 	local quality = ItemQuality(data)
 	if Settings.Get("qualityEdge") and Logic.EdgeQuality(quality) then
-		Style.SetEdge(tooltip, K.Theme.QualityColor(quality))
+		Style.SetEdge(tooltip, K.Theme.QualityColor(quality, Settings.Get("qualityColors")))
 	end
 	Style.Title(tooltip, quality, ItemLevel(data))
 	local id = data.id

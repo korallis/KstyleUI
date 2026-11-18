@@ -490,6 +490,7 @@ end
 
 local function PlaceText(row, item, control, width)
 	local gap, tiny = Gap(row), Snap(row, Tokens.Size("gapTiny"))
+	if Widgets.Readability("sectionHeadings") then tiny = Snap(row, 2) end
 	local full = width - 2 * gap
 	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
 	local column = full - reserve
@@ -536,7 +537,7 @@ end
 
 local function ShowHeader(row, item, width)
 	local gap = Gap(row)
-	if (item.level or 1) == 1 then
+	if (item.level or 1) == 1 or Widgets.Readability("sectionHeadings") then
 		row.caption:ClearAllPoints()
 		Widgets.Point(row.caption, "BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
 		Widgets.Point(row.caption, "BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
@@ -586,6 +587,13 @@ end
 
 local function Layout(row, item, width)
 	local kind = item.kind
+	Widgets.StyleText(row.label, "body")
+	Widgets.StyleText(row.help, "body")
+	if Widgets.Readability("sectionHeadings") then
+		local path, _, flags = Tokens.Font("body")
+		Widgets.ApplyFont(row.label, path, 12 * K.Theme.FontScale(), flags)
+		Widgets.ApplyFont(row.help, path, 11 * K.Theme.FontScale(), flags)
+	end
 	for controlKind, control in pairs(row.controls) do
 		if controlKind ~= kind then
 			control:Hide()
@@ -641,7 +649,7 @@ function Rows.Update(row, item, _, list)
 	if kind ~= "header" and kind ~= "note" then
 		local disabled = Model.IsDisabled(item)
 		Widgets.TextColor(row.label, disabled and "textDisabled" or "textEmphasis")
-		Widgets.TextColor(row.help, disabled and "textDisabled" or "text")
+		Widgets.TextColor(row.help, disabled and "textDisabled" or Widgets.Readability("sectionHeadings") and "muted" or "text")
 		row.label:Show()
 		row.help:Show()
 		if control then

@@ -109,7 +109,7 @@ assert(U.Shown(env, target.caption) == "PALADIN", "a player target's slab names 
 local fr, fg, fb = K.Theme.ReactionColor(5)
 local br, bg, bb = target.health:GetStatusBarColor()
 assert(near(br, fr) and near(bg, fg) and near(bb, fb), "under hud colours only your own bar takes the class colour; a friendly player target keeps the reaction colour")
-assert(U.Shown(env, target.slabLevel) == "12" and target.slabLevel:IsShown(), "the level follows the name")
+assert(U.Shown(env, target.slabLevel) == "12" and not target.slabLevel:IsShown(), "the plaque is the only level")
 noErrors("target")
 
 local tinted = #U.W.Calls(tm.enamel, "SetVertexColor")

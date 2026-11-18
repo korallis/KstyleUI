@@ -25,6 +25,8 @@ local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
 local function KitRole(role, semantic)
 	if role == "title" then
+		if not Settings.Get("hierarchy") and semantic ~= "names" and Theme.TypeSet() == "Folio" then return "body" end
+		if Settings.Get("hierarchy") and semantic == "names" then return "names" end
 		return Tokens.TypeDefault(semantic == "names" and "tooltipName" or "tooltipTitle")
 	end
 	return KIT_ROLES[role]
@@ -503,7 +505,7 @@ function Style.PaintIcon(icon, quality, spell)
 	local lit = Logic.EdgeQuality(quality)
 	local r, g, b, a
 	if lit then
-		r, g, b = Theme.QualityColor(quality)
+		r, g, b = Theme.QualityColor(quality, Settings.Get("qualityColors"))
 		a = 1
 		icon.glow:SetColorRGB(r, g, b)
 	elseif spell then
@@ -621,12 +623,12 @@ function Style.Title(tooltip, quality, level)
 		return
 	end
 	if Logic.EdgeQuality(quality) then
-		title:SetTextColor(Theme.QualityColor(quality))
+		title:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
 	end
 	local label = glass.caption
 	CaptionFont(label)
 	label:SetText(caption)
-	Widgets.TextColor(label, "text")
+	Widgets.TextColor(label, Settings.Get("hierarchy") and "medTextMuted" or "text")
 	label:ClearAllPoints()
 	label:SetPoint("BOTTOMLEFT", title, "BOTTOMLEFT", 0, 0)
 	label:Show()
@@ -705,6 +707,7 @@ function Style.Lines(tooltip, item)
 	end
 	if stats and Settings.Get("softColors") then
 		local r, g, b = Settings.Accent()
+		if Settings.Get("qualityColors") then r, g, b = Tokens.Color("textEmphasis") end
 		local tr, tg, tb = Tokens.Color("text")
 		for i = stats, (footer or count + 1) - 1 do
 			local line = Style.Line(tooltip, "left", i)

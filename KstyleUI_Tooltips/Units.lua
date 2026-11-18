@@ -144,6 +144,12 @@ function Units.Decorate(tooltip, data)
 		return
 	end
 	local r, g, b = Units.NameColor(unit)
+	if Settings.Get("qualityColors") and type(UnitReaction) == "function" then
+		local reaction = UnitReaction(unit, "player")
+		if Logic.IsNumber(reaction) then
+			r, g, b = Tokens.Color(reaction <= 3 and "nameHostile" or reaction == 4 and "neutral" or "friendly")
+		end
+	end
 	if r and Settings.Get("classNames") then
 		local name = Style.Line(tooltip, "left", 1)
 		if name then

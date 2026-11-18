@@ -557,11 +557,22 @@ local function Loops()
 	return { hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.sheen.run }
 end
 
+local function SizeBadge(hub)
+	local numbered = ns.Config("hubNumber") ~= false
+	local scale = hub:GetScale()
+	if not numbered then hub:SetScale(1) end
+	Widgets.Size(hub.plaque, numbered and 20 or BADGE, numbered and 20 or BADGE)
+	local path, size, flags = Tokens.Font(numbered and "number" or "caption")
+	Widgets.ApplyFont(hub.level, path, numbered and 10 * K.Theme.FontScale() or size, flags)
+	if not numbered then hub:SetScale(scale) end
+end
+
 function Slab.PaintPlaque(gold)
 	local hub = Slab.hub
 	if not hub then
 		return
 	end
+	SizeBadge(hub)
 	if gold then
 		Widgets.Tint(hub.plaque, "capsGold")
 		hub.level:SetTextColor(Tokens.Color("capsGold"))
@@ -771,6 +782,7 @@ function Slab.Refresh()
 	Paint()
 	SizeCrest(hub)
 	PaintLevel()
+	SizeBadge(hub)
 	slab:Show()
 	hub:Show()
 	if K.Effects and K.Effects.Ambient then
@@ -1054,6 +1066,7 @@ end
 
 local function OnMotion()
 	if state.built and Slab.hub:IsShown() then
+		SizeBadge(Slab.hub)
 		Animate()
 	end
 end

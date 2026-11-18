@@ -46,6 +46,7 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	for _, creature in ipairs(env._creatureTypes) do
 		for _, name in ipairs({ "Ash", "Riverglade Crocolisk", string.rep("Everlasting ", 12) }) do
 			target(name, creature)
+			check(view.name:GetFont() == path, tag .. ": C1 keeps the slab face for every name and creature caption")
 			clearRow(name .. "/" .. creature)
 			check(pixels(view.name) >= floorPixels - 1e-6, tag .. ": even a truncated fallback must keep the 9-unit reading floor")
 		end

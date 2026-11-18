@@ -85,6 +85,7 @@ end
 
 do
 	local env, K, ns = S.New({ setup = WithColors })
+	K.Options.Write("Appearance", "sectionHeadings", false)
 	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	K.Modules.Enable("Skins")
 	local Lumen, Style = ns.Lumen, ns.Style

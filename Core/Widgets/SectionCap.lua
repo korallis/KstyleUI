@@ -22,7 +22,8 @@ Widgets.SECTION_CAP_CHROME = GEM_CENTRE + TEXT_FROM_GEM + GEM_GAP + COUNT_GAP
 function Widgets.CapsSize(text, plain)
 	Widgets.CapsSized[text] = plain or false
 	local path, floor, flags = Tokens.Font("caps")
-	Widgets.ApplyFont(text, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags, plain)
+	local size = Widgets.Readability("sectionHeadings") and 10 * ns.Theme.FontScale() or math.max(floor, CAP_SIZE * ns.Theme.FontScale())
+	Widgets.ApplyFont(text, path, size, flags, plain)
 end
 
 function Widgets.PaintCapRule(rule, alpha)
@@ -66,6 +67,13 @@ local function Placed(self)
 		Widgets.Point(self.rule, "RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
 	else
 		Widgets.Point(self.rule, "RIGHT", self, "RIGHT")
+	end
+	if Widgets.Readability("sectionHeadings") then
+		local below = -Widgets.TextHeight(self.label, 0) / 2 - Widgets.Snap(self, 2) - self.rule:GetHeight() / 2
+		local left = Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM)
+		self.rule:ClearAllPoints()
+		Widgets.Point(self.rule, "LEFT", self, "LEFT", left, below)
+		Widgets.Point(self.rule, "RIGHT", self, "RIGHT", 0, below)
 	end
 	self.count:SetShown(count)
 end
@@ -120,6 +128,11 @@ function Cap:Paint()
 	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)
 	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")
+	if Widgets.Readability("sectionHeadings") then
+		self.label:SetTextColor(Tokens.Color("capsGold"))
+		self.gem:SetVertexColor(Tokens.Color("capsGold"))
+		self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
+	end
 end
 
 function Cap:Restyle()
@@ -130,6 +143,13 @@ function Cap:Restyle()
 	self.gem:ClearAllPoints()
 	Widgets.Point(self.gem, "CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
 	Widgets.CapsSize(self.label)
+	local figures = Widgets.Readability("sectionHeadings")
+	if figures or self.figures then Widgets.StyleText(self.count, "number") end
+	if figures then
+		local _, size, flags = self.count:GetFont()
+		Widgets.ApplyFont(self.count, Tokens.FontPath("PTSerifBold"), size, flags)
+	end
+	self.figures = figures
 	self.label:ClearAllPoints()
 	Widgets.Point(self.label, "LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))

@@ -155,6 +155,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 end
 
 Settings.defaults = {
+	stableSlabNames = true,
+	singleSlabLevel = true,
 	hideBlizzard = true,
 	accent = "class",
 	accentColor = Color("accentDefault"),
@@ -873,6 +875,10 @@ end
 function Settings.Schema()
 	local schema = {
 		{ type = "header", label = L["Unit frames"] },
+		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
+			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
+		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],
+			help = L["Keep the portrait level and leave room for names. Off repeats the level beside the name."] },
 		{
 			type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's unit frames"],
 			help = L["Hides Blizzard's player, target, focus, pet and boss frames that KstyleUI replaces."],

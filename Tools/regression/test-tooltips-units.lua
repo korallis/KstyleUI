@@ -127,7 +127,7 @@ do
 	local tip = env.GameTooltip
 	local glass = ns.Style.Glass(tip)
 	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle", "Level 38 Night Elf Hunter (Player)" })
-	assert(Colored(tip:GetLeftLine(1), K.Theme.ClassColor("HUNTER")), "a player's name is class-coloured")
+	assert(Colored(tip:GetLeftLine(1), K.Tokens.Color("friendly")), "a friendly title uses the readable friendly token")
 	assert(tip:GetLeftLine(2):GetText() == "<Kstyle>", "the guild line wears angle brackets, got " .. tostring(tip:GetLeftLine(2):GetText()))
 	assert(Colored(tip:GetLeftLine(2), K.Tokens.Color("textEmphasis")), "another guild is emphasis white")
 	local lines = T.Lines(tip)
@@ -143,7 +143,7 @@ do
 	assert(Colored(tip:GetLeftLine(2), K.Tokens.Color("friendly")), "your own guild is friendly green")
 
 	ShowUnit(env, tip, "nameplate1", { "Riverglade Crocolisk", "Level 38 Beast" })
-	assert(Colored(tip:GetLeftLine(1), K.Theme.ReactionColor(2)), "an NPC's name takes its reaction colour")
+	assert(Colored(tip:GetLeftLine(1), K.Tokens.Color("nameHostile")), "an NPC's hostile title uses the readable hostile token")
 	lines = T.Lines(tip)
 	assert(lines[#lines][1] == "Target" and lines[#lines][2] == "Thargor", "the NPC's target is named")
 	assert(Colored(tip:GetRightLine(#lines), K.Theme.ClassColor("WARRIOR")), "in its class colour")
@@ -162,7 +162,11 @@ do
 	K.Options.Write("Tooltips", "unitEdge", true)
 	ShowUnit(env, tip, "nameplate1", { "Riverglade Crocolisk" })
 	e = glass.chrome.edge
-	assert(SameRGB(e[1], e[2], e[3], K.Theme.ReactionColor(2)), "the unit edge takes the name's colour")
+	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("nameHostile")), "the unit edge takes the name's colour")
+	K.Options.Write("Tooltips", "qualityColors", false)
+	ShowUnit(env, tip, "nameplate1", { "Riverglade Crocolisk" })
+	assert(Colored(tip:GetLeftLine(1), K.Theme.ReactionColor(2)), "C4 off: restore the original hostile title colour")
+	K.Options.Write("Tooltips", "qualityColors", true)
 
 	K.Options.Write("Tooltips", "classNames", false)
 	K.Options.Write("Tooltips", "guildLine", false)
@@ -356,7 +360,7 @@ do
 	assert(glow.holder:IsShown() and SameRGB(glow.colorRGB[1], glow.colorRGB[2], glow.colorRGB[3], K.Tokens.Color("rare")), "and it glows in it")
 	assert(title:GetText() == "Ranger's Long Bow\n ", "the name in title case, as the heading face sets its own capitals, with a line kept for the caption")
 	assert(Colored(title, K.Tokens.Color("rare")), "in the kit's rare colour")
-	assert(caption:IsShown() and caption:GetText() == "Item level 60 \194\183 Rare" and Colored(caption, K.Tokens.Color("text")), "the item level and rarity as a muted caption")
+	assert(caption:IsShown() and caption:GetText() == "Item level 60 \194\183 Rare" and Colored(caption, K.Tokens.Color("medTextMuted")), "the item level and rarity as a muted caption")
 	point, relative, relativePoint = caption:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
 	assert(select(2, caption:GetFont()) == K.Widgets.FontSize(caption, select(2, ns.Style.FontSpec("small"))), "in the small line size, or on the text floor")
@@ -367,7 +371,7 @@ do
 	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 0, 0.44, 0.87 }, { "Item Level 60", 1, 0.82, 0 }, { "Two-Hand", 1, 1, 1 } })
 	assert(caption:GetText() == "Rare", "when Blizzard's tooltip already carries an Item Level line, the caption reads the rarity alone, so the level never shows twice")
 	Show(env, tip, Item, 2589, { { "Linen Cloth", 1, 1, 1 }, { "Crafting Reagent", 0.4, 0.7, 1 } })
-	assert(caption:GetText() == "Common" and Colored(caption, K.Tokens.Color("text")), "a common item with no item level reads its rarity alone, body grey")
+	assert(caption:GetText() == "Common" and Colored(caption, K.Tokens.Color("medTextMuted")), "a common item with no item level reads its rarity alone, muted")
 	assert(not glow.holder:IsShown(), "and its icon does not glow")
 
 	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle" })

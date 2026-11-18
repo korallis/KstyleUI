@@ -418,7 +418,7 @@ local function SetName(view, name)
 			if not Number(width) then break end
 		end
 	end
-	if Number(width) and Number(room) and room > 0 and width > room then
+	if Number(width) and Number(room) and room > 0 and width > room and not (view.form == "slab" and ns.Settings.Module().stableSlabNames ~= false) then
 		local limit = math.max(nameFloor or 0, math.min(bodySize, full))
 		if view.form == "slab" then
 			local _, size = text:GetFont()

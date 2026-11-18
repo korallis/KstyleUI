@@ -2,6 +2,7 @@
 local W = dofile("Tools/regression/widget_env.lua")
 
 local env, K = W.New()
+K.Options.Write("Appearance", "sectionHeadings", false)
 local Widgets, Tokens, Scale = K.Widgets, K.Tokens, K.Scale
 local root = Scale.Root()
 

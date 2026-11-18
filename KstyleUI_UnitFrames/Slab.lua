@@ -68,8 +68,18 @@ end
 
 local function NameLine(view, g)
 	local name, level, rect = view.name, view.slabLevel, g.name
-	if not (rect and g.medal) then
+	local single = Settings.Module().singleSlabLevel ~= false
+	local plaque = g.medal and g.medalSide
+	if not rect or single and (plaque or not view.s.level) or not single and not g.medal then
 		level:Hide()
+		if rect and single then
+			local room = g.nameRoom or rect.w
+			name:ClearAllPoints()
+			name:SetPoint(g.mirror and "RIGHT" or "LEFT", view.parent, "TOPLEFT", Widgets.Snap(view.parent, rect.x + (g.mirror and rect.w or 0)), -Widgets.Snap(view.parent, rect.y + rect.h / 2))
+			name:SetHeight(Widgets.Snap(view.parent, rect.h))
+			name:SetWidth(view.nameBound and math.max(Widgets.Border(name), Widgets.Snap(view.parent, room)) or 0)
+			name:SetShown(room > 0)
+		end
 		name:SetJustifyH(g.medal and (g.mirror and "RIGHT" or "LEFT") or "CENTER")
 		return
 	end
@@ -143,6 +153,7 @@ function Slab.Caption(view)
 	local size = Settings.FontSize(view.kind, "level")
 	local levelWidth = Widgets.TextWidth(view.slabLevel, math.ceil(ns.Geometry.SLAB_PAD.levelEm * size))
 	local levelRoom = g.name and math.ceil(levelWidth) + g.levelGap or 0
+	if Settings.Module().singleSlabLevel ~= false and (g.medal and g.medalSide or not view.s.level) then levelRoom = 0 end
 	local gap = g.name and TEXT_GAP or 0
 	rect.w = math.min(CaptionWidth(view) + 2 * Widgets.Border(view.parent), math.max(0, bar.w - levelRoom - gap))
 	if g.name then
@@ -295,7 +306,7 @@ function Slab.Portrait(view, unit)
 end
 
 function Slab.Level(view, unit)
-	if not Active(view) then
+	if view.form ~= "slab" or not view.slabLevel then
 		return
 	end
 	local level = UnitLevel(unit)
@@ -303,7 +314,7 @@ function Slab.Level(view, unit)
 	if not (IsSecret(level) or IsSecret(classification)) and (classification == "worldboss" or type(level) ~= "number" or level <= 0) then
 		level = UNKNOWN_LEVEL
 	end
-	view.medallion:SetLevel(level)
+	if Active(view) then view.medallion:SetLevel(level) end
 	if not IsSecret(level) then level = tostring(level) end
 	view.slabLevel:SetText(level)
 end

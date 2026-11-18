@@ -71,6 +71,7 @@ defaults.xp.textPosition = "BOTTOM"
 defaults.xp.outline = Font.WORLD
 defaults.xp.segments = XP_SEGMENTS
 defaults.xp.fontSize = XP_FONT_SIZE
+defaults.xp.instrumentText = true
 defaults.xp.rested = true
 defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
@@ -147,6 +148,7 @@ local function BarRows(id, title, sources)
 		rows[2].help = L["Fill the bar with the class colour, your standing's colour or your own colour."]
 	end
 	if id == "xp" then
+		rows[#rows + 1] = { type = "toggle", key = "xp.instrumentText", label = L["Instrument experience text"], help = L["Use small muted capitals under the Medallions sockets. Off restores the original face."] }
 		rows[#rows + 1] = { type = "toggle", key = "xp.rested", label = L["Rested overlay"], help = L["Shows how far your rested experience reaches past your current experience."] }
 		rows[#rows + 1] = { type = "color", key = "xp.restedColor", label = L["Rested colour"], help = L["The colour of the rested overlay."], hasAlpha = true, showWhen = function(settings)
 			return Get(settings, "xp").rested == true

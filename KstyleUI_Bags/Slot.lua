@@ -49,12 +49,13 @@ end
 local function EdgeColor(slot)
 	local state = slot.state
 	if state.coloured then
-		local r, g, b = Theme.QualityColor(state.quality)
+		local r, g, b = Theme.QualityColor(state.quality, Settings.Get("qualityColors"))
 		return r, g, b, 1
 	end
 	if state.empty then
 		return Widgets.Rgba("edgeInner")
 	end
+	if Settings.Get("qualityColors") then return Tokens.Color("slotRim") end
 	return Widgets.IconRim(Accent())
 end
 

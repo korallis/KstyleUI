@@ -400,7 +400,7 @@ do
 	local title = window.TitleContainer.TitleText
 	for _, scale in ipairs({ 0.8, 1.3 }) do
 		assert(K.Theme.SetFontScale(scale))
-		local requested = math.max(K.Tokens.Size("caps"), K.Widgets.CAPS_SIZE * scale)
+		local requested = 10 * scale
 		assert(math.abs(select(2, title:GetFont()) - K.Widgets.FontSize(title, requested)) < 1e-8, "the native title keeps its caption size after a font-scale change")
 	end
 	assert(K.Theme.SetFontFace("InterSemiBold"))

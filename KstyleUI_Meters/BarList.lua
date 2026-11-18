@@ -500,6 +500,10 @@ function StyleRow(list, row)
 	local medallions = Widgets.Medallions()
 	local figures = (list.block or medallions) and "number" or nil
 	ns.ApplyFont(row.name, section, nil, medallions and "unit" or nil)
+	if medallions and ns.Get("instrumentNames") then
+		local path = K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section)
+		Widgets.ApplyFont(row.name, path, 11 * K.Theme.FontScale(), select(3, row.name:GetFont()))
+	end
 	ns.ApplyFont(row.value, section, nil, figures)
 	ns.ApplyFont(row.percent, section, nil, figures)
 	if row.dot then

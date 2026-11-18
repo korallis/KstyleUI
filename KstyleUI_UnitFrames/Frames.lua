@@ -731,6 +731,12 @@ local function OnSettingChanged(_, module, key)
 	end
 	if kind == "resource" then
 		ns.Resource.Restyle()
+	elseif key == "stableSlabNames" or key == "singleSlabLevel" then
+		K.Combat.Queue(function()
+			ForEach(function(each)
+				if each.active then Frames.Restyle(each) end
+			end)
+		end)
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
 	elseif key == "orbCastRoom" then

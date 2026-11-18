@@ -24,7 +24,7 @@ do
 	assert(K.Tokens.TypeDefault("tooltipTitle") == "heading" and K.Tokens.TypeDefault("tooltipName") == "heading", "Lumen's tooltip titles keep the heading role")
 	assert(K.Theme.SetTypeSet("Folio"))
 	assert(K.Tokens.TypeDefault("noteSize") == 10)
-	assert(K.Tokens.TypeDefault("tooltipTitle") == "body" and K.Tokens.TypeDefault("tooltipName") == "names", "Folio's tooltip titles are body, its names the names role")
+	assert(K.Tokens.TypeDefault("tooltipTitle") == "heading" and K.Tokens.TypeDefault("tooltipName") == "names", "Folio's tooltip titles are headings, its names the names role")
 	Raises(function() K.Tokens.TypeDefault("nothing") end, "unknown name")
 end
 

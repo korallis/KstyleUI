@@ -167,6 +167,15 @@ function Panel:Restyle()
 		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
 		Widgets.PaintCapMaterial(cap.gem, cap.rule, RULE_ALPHA)
 		Widgets.TextColor(cap.label, "capsGold")
+		if Widgets.Readability("sectionHeadings") then
+			cap.label:SetTextColor(Tokens.Color("capsGold"))
+			cap.gem:SetVertexColor(Tokens.Color("capsGold"))
+			cap.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
+			local below = -Widgets.TextHeight(cap.label, 0) / 2 - Widgets.Snap(self, 2) - cap.rule:GetHeight() / 2
+			cap.rule:ClearAllPoints()
+			Widgets.Point(cap.rule, "LEFT", cap, "LEFT", Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM), below)
+			Widgets.Point(cap.rule, "RIGHT", cap, "RIGHT", 0, below)
+		end
 		cap:SetHeight(heading)
 		self.cap:ClearAllPoints()
 		Widgets.Point(self.cap, "LEFT", self, "TOPLEFT", pad, -(pad + heading / 2))

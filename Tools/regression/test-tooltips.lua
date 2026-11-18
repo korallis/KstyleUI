@@ -95,11 +95,11 @@ do
 	local face = K.Tokens.FontPath(K.Tokens.DEFAULT_FONT_FACE)
 	local scale = K.Theme.FontScale()
 	local path, size, flags = Font(env.GameTooltipHeaderText)
-	assert(path == (K.Tokens.Font("body")) and Near(size, 11 * scale) and flags == "", "item titles: KstyleUI's body face at 11 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == (K.Tokens.Font("heading")) and Near(size, 13 * scale) and flags == "", "item titles: KstyleUI's heading face at 13 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
 	path, size = Font(env.GameTooltipText)
-	assert(path == face and Near(size, 11 * scale), "body lines at 11 units")
+	assert(path == face and Near(size, 12 * scale), "body lines at 12 units")
 	path, size = Font(env.GameTooltipTextSmall)
-	assert(path == (K.Tokens.Font("caption")) and Near(size, math.max(9 * scale, K.Scale.TextFloor() * K.Scale.Pixel(1))), "small lines at 9 units in the caption role's face, or on the text floor")
+	assert(path == (K.Tokens.Font("caption")) and Near(size, math.max(11 * scale, K.Scale.TextFloor() * K.Scale.Pixel(1))), "small lines at 11 units in the caption role's face, or on the text floor")
 	local ox, oy = env.GameTooltipText:GetShadowOffset()
 	local offset = K.Tokens.Size("textShadowOffset")
 	assert(Near(ox, offset) and Near(oy, -offset), "text without an outline gets KstyleUI's soft shadow")
@@ -162,7 +162,7 @@ do
 	assert(K.Store.CreateProfile("Other"))
 	K.Store.SetProfile("Other")
 	K.Modules.Enable("Tooltips")
-	assert(select(2, env.GameTooltipText:GetFont()) == 11 * K.Theme.FontScale(), "the other profile's default size")
+	assert(select(2, env.GameTooltipText:GetFont()) == 12 * K.Theme.FontScale(), "the other profile's default size")
 	K.Store.SetProfile("Default")
 	assert(K.Modules.IsRunning("Tooltips"), "the module stays on")
 	assert(select(2, env.GameTooltipText:GetFont()) == 20 * K.Theme.FontScale(), "switching back applies the first profile's size")
@@ -176,7 +176,7 @@ do
 	local saved = K.Store.Module("Tooltips")
 	saved.body.size = 400
 	saved.anchor = "nowhere"
-	assert(ns.Settings.Get("body.size") == 11, "an out-of-range size gives the default")
+	assert(ns.Settings.Get("body.size") == 12, "an out-of-range size gives the default")
 	assert(ns.Settings.Get("anchor") == "cursorOutOfCombat", "an unknown anchor gives the default")
 	local logged = false
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do
@@ -271,7 +271,7 @@ do
 	for name in pairs(T.TOOLTIPS) do
 		assert(env[name]._lineSpacing == 0.5, name .. ": lines sit half a unit apart")
 	end
-	assert(ns.Settings.Get("iconSize") == 50, "the icon tile is the design's 50 units")
+	assert(ns.Settings.Get("iconSize") == 44, "the icon tile is the design's 44 units")
 	local chrome = ns.Style.Glass(env.GameTooltip).chrome
 	assert(chrome.shapeName == "window", "the glass is the window grade, the Lumen card with gilt tips")
 	assert(chrome:Chamfer() == 6 * K.Widgets.Border(chrome.owner), "at the card grade's six border lines (the owner's picture, 2026-11-09)")
@@ -324,8 +324,8 @@ do
 	r, g, b = tip:GetLeftLine(2):GetTextColor()
 	assert(Near(r, tr) and Near(g, tg) and Near(b, tb), "white lines soften to the same body grey")
 	r, g, b = tip:GetLeftLine(5):GetTextColor()
-	local ar, ag, ab = K.Theme.Accent()
-	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "stat lines take the accent")
+	local ar, ag, ab = K.Tokens.Color("textEmphasis")
+	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "stat lines take emphasis ink")
 	r, g, b = tip:GetLeftLine(4):GetTextColor()
 	assert(Near(r, 0.4) and Near(g, 0.7) and Near(b, 1), "coloured lines keep their colour")
 	r, g, b = tip:GetLeftLine(7):GetTextColor()
@@ -431,7 +431,7 @@ do
 	assert(type(frame) == "table" and frame:GetParent() == parent and type(frame.Refresh) == "function", "the preview builds a frame with Refresh")
 	frame:Refresh()
 	local _, size = frame.title:GetFont()
-	assert(Near(size, 11 * K.Theme.FontScale()), "the sample title uses the title size")
+	assert(Near(size, 13 * K.Theme.FontScale()), "the sample title uses the title size")
 	K.Options.Write("Tooltips", "title.size", 20)
 	frame:Refresh()
 	_, size = frame.title:GetFont()

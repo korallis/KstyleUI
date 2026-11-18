@@ -145,6 +145,7 @@ end
 
 -- A row whose help is long grows past the standard row height; a short one keeps it.
 do
+	K.Theme.SetFontScale(1.1)
 	K.Options.Open("UnitFrames")
 	settle()
 	resize(880, 520)
@@ -161,6 +162,7 @@ do
 	end
 	assert(tall and tall > ns.Rows.HEIGHT, "the long help's row grows, got " .. tostring(tall))
 	assert(short == ns.Rows.HEIGHT, "a one-line help keeps the standard row, got " .. tostring(short))
+	K.Theme.SetFontScale(1)
 end
 
 -- The Widgets ornament level is a segmented row: one tab per level, a click writes it, and a write from anywhere

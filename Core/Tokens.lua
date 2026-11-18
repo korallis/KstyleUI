@@ -64,6 +64,10 @@ local COLORS = {
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
+	uncommon = { "6fdc5a", 1 },
+	poor = { "8f98a4", 1 },
+	common = { "c8d1da", 1 },
+	legendary = { "ff9d3d", 1 },
 	hostile = { "e2524f", 1 },
 	healthHostile = { "e03b3f", 1 },
 	neutral = { "e8c14f", 1 },
@@ -275,7 +279,7 @@ local FONT_ROLES = {
 }
 
 local TYPE_SET_VALUES = {
-	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10, tooltipTitle = "body", tooltipName = "names" },
+	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10, tooltipTitle = "heading", tooltipName = "names" },
 	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12, tooltipTitle = "heading", tooltipName = "heading" },
 }
 

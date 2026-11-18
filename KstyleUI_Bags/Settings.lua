@@ -42,6 +42,7 @@ Settings.defaults = {
 	separateFigures = true,
 	readableHeaders = true,
 	showQuality = true,
+	qualityColors = true,
 	qualityMin = QUALITY.UNCOMMON,
 	showNewGlow = true,
 	showJunk = true,
@@ -180,6 +181,7 @@ Settings.schema = {
 	},
 	{ type = "header", label = L["Markers"] },
 	{ type = "toggle", key = "showQuality", label = L["Quality borders"], help = L["Colour each slot's border by the item's quality."], disableWhen = isOff },
+	{ type = "toggle", key = "qualityColors", label = L["Refined item colours"], help = L["Softer quality colours and quiet common-item rims. Off restores the original colours."], disableWhen = isOff },
 	{
 		type = "dropdown", key = "qualityMin", label = L["Coloured from"], help = L["The lowest quality whose border is coloured."],
 		options = QUALITY_OPTIONS, showWhen = qualityOn, disableWhen = isOff,

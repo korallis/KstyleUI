@@ -352,11 +352,19 @@ function Theme.ThreatColor(status)
 	return nil
 end
 
-function Theme.QualityColor(quality)
+function Theme.QualityColor(quality, refined)
 	if not IsPlainNumber(quality) then
 		return Rgb("text")
 	end
 	local enum = Enum and Enum.ItemQuality
+	if refined == nil and ns.Store and ns.Store.IsLoaded() then
+		local tooltips = ns.Store.Profile().Tooltips
+		refined = not tooltips or tooltips.qualityColors ~= false
+	end
+	if refined ~= false then
+		local token = ({ [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" })[quality]
+		if token then return Rgb(token) end
+	end
 	if quality == (enum and enum.Rare or QUALITY_RARE) then
 		return Rgb("rare")
 	elseif quality == (enum and enum.Epic or QUALITY_EPIC) then
