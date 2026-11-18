@@ -48,7 +48,7 @@ assert(defaults.player.healthText == "both" and defaults.target.healthText == "b
 assert(defaults.focus.healthText == "both" and defaults.boss.healthText == "both", "so do the other full frames")
 assert(defaults.targettarget.healthText == "percent" and defaults.pet.healthText == "percent", "the small frames show a percentage inside the bar")
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
-	assert(defaults[kind].powerText == "none", kind .. ": no power numbers, as on the kit sheet; power shows as the thin bar alone")
+	assert(defaults[kind].powerText == (kind == "player" and "auto" or "none"), kind .. ": the player's power has an automatic readout; other frames keep optional numbers")
 end
 -- The Lumen mockup's type (arena2/parent/index.html, one unit per pixel): the vitals name 17 over a 15-unit value
 -- and a 12-unit level disc; the sigil's name 17 over its 13-unit level line (round 2, Astra #4: the mockup's 20 drowned
@@ -58,7 +58,7 @@ end
 -- vitals line and sigil keep their 17 in profiles that choose them (test-unitframes-lumen.lua pins those).
 for kind, sizes in pairs({ player = { 22, 15, 10, 14 }, target = { 22, 15, 10, 14.5 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
-	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
+	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == (kind == "pet" and sizes[3] or 12) and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
 end
 assert(defaults.player.iconSize == 12 and defaults.target.iconSize == 12, "the status icons on the 70-unit frames are 12 units")

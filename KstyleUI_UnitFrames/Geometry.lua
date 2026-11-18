@@ -712,6 +712,18 @@ local function Marker(out, s)
 	out.markerCentred = centred
 end
 
+local function PowerLane(out, s)
+	if not (s.power and out.power) or (s.powerText or "none") == "none" then return end
+	local bar, name, power = out.health, out.name, out.power
+	if out.form ~= "slab" then
+		out.powerText = Rect(power.x + TEXT_GAP, power.y, max(0, power.w - 2 * TEXT_GAP), power.h)
+		return
+	end
+	local bottom = max(bar.y + bar.h, power.y + power.h, name and name.y + name.h or 0)
+	out.powerText = Rect(bar.x, bottom + 4, bar.w, 18)
+	out.powerReserve = 22
+end
+
 function Geometry.Frame(s, width, height, fontScale)
 	local scale = fontScale or 1
 	local lumen = LUMEN[s.form]
@@ -720,6 +732,7 @@ function Geometry.Frame(s, width, height, fontScale)
 		out.glass = Rect(0, 0, width, height)
 		out.panel = Rect(0, 0, width, height)
 		lumen(out, s, width, height, scale)
+		PowerLane(out, s)
 		Marker(out, s)
 		return out
 	end

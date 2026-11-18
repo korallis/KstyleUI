@@ -136,11 +136,11 @@ function Unit.PowerColor(view, unit)
 	local source = s.powerColor
 	if source == "custom" then
 		local c = s.powerCustom
-		SetColor(view.power, c.r, c.g, c.b)
+		ns.Style.PowerTint(view, c.r, c.g, c.b)
 	elseif source == "power" then
-		SetColor(view.power, PowerTypeColor(unit, s.form == "column"))
+		ns.Style.PowerTint(view, PowerTypeColor(unit, s.form == "column"))
 	else
-		SetColor(view.power, UnitColor(unit, source))
+		ns.Style.PowerTint(view, UnitColor(unit, source))
 	end
 end
 

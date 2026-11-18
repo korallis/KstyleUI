@@ -52,6 +52,8 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 
 Numbers on frames start at the frame's centre or just above it (`framePoint`) and travel `distance` units. They live in the module's own layer on `KstyleUI_Root` and are only anchored to the frame, so KstyleUI never parents anything to a secure or Blizzard frame.
 
+Under Medallions the player's default field starts 12 units above the cast stack, centred above it. Its 80-unit height clears the pet stack and keeps the full 40-unit rise. Target-frame numbers stay above a 60-unit clear area for target debuffs, including their critical size, pop and the arc's downward travel. This leaves amounts secret and uses only the public unit token to select the lane. Saved field moves still apply. `test-combattext-safe-lane.lua` checks the clearance; `combat_readability_hud` renders the real unit frames, auras and scrolling numbers together.
+
 ## Blizzard's combat text
 
 The game draws its own combat text, so without this the player sees two sets of numbers. Both settings default to Hide while the module runs. A saved explicit Keep remains Keep; changing the default does not overwrite it. `Blizzard.lua` writes `0` into these CVars while the corresponding setting is Hide:

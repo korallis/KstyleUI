@@ -106,11 +106,11 @@ do
 	local W, H = element.width, element.height
 	local snapshot = ns.Settings.Snapshot("player")
 	local KIT_FONTS = { name = { size = 12 }, health = { size = 12 }, power = { size = 10 }, level = { size = 13 } }
-	snapshot.portraitShape, snapshot.form, snapshot.fonts = "chamfered", "plate", KIT_FONTS
+	snapshot.portraitShape, snapshot.form, snapshot.fonts, snapshot.powerText = "chamfered", "plate", KIT_FONTS, "none"
 	local d = Geometry.Frame(snapshot, W, H, 1)
 	local where = "the default " .. W .. " x " .. H .. " classic plate: "
 	local roundSnapshot = ns.Settings.Snapshot("player")
-	roundSnapshot.form, roundSnapshot.fonts = "plate", KIT_FONTS
+	roundSnapshot.form, roundSnapshot.fonts, roundSnapshot.powerText = "plate", KIT_FONTS, "none"
 	local roundDefault = Geometry.Frame(roundSnapshot, W, H, 1)
 	assert(roundDefault.health.x - (roundDefault.portrait.x + roundDefault.portrait.w) > 0.08 * H, where .. "under the round portrait the track starts the mockup's 0.085 H past the ring")
 	assert(roundDefault.glass.x + roundDefault.glass.w - (roundDefault.healthText.x + roundDefault.healthText.w) > 0.14 * H, where .. "and the percentage ends the mockup's 0.15 H before the glass's far end")

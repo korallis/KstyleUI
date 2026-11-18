@@ -45,7 +45,7 @@ end
 
 local function OpenColor()
 	local interrupt = ns.Interrupt
-	if interrupt and interrupt.ready == false then
+	if not interrupt or interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
 		return c.r, c.g, c.b
 	end
@@ -67,7 +67,7 @@ local function ColorObjects()
 	end
 	local interrupt = ns.Interrupt
 	local open
-	if interrupt and interrupt.ready == false then
+	if not interrupt or interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
 		open = ColorObject(colors.wait, c.r, c.g, c.b)
 	else
@@ -125,6 +125,7 @@ local function Shade(plate, alpha)
 	end
 	plate.castShade = alpha
 	plate.castShield:SetAlpha(alpha)
+	plate.castGlyph:SetAlpha(alpha > 0 and 1 or 0)
 end
 
 local function Paint(plate, openR, openG, openB)
@@ -150,6 +151,9 @@ local function Paint(plate, openR, openG, openB)
 		if plate.castShield.SetAlphaFromBoolean then
 			plate.castShade = nil
 			plate.castShield:SetAlphaFromBoolean(flag, SHIELD_ALPHA, 0)
+		end
+		if plate.castGlyph.SetAlphaFromBoolean then
+			plate.castGlyph:SetAlphaFromBoolean(flag, 1, 0)
 		end
 	elseif flag == true then
 		Fill(plate, ShieldColor())
@@ -345,6 +349,10 @@ function Cast.Gate(plate, isTarget, sigilCasts)
 	end
 end
 
+function Cast.Selection(plate, isTarget, isFocus)
+	plate.castName:SetShown(Settings.Get("cast.showName") and (not Settings.Get("cast.nameSelectedOnly") or isTarget or isFocus) and true or false)
+end
+
 function Component.Build(plate)
 	local gate = CreateFrame("Frame", nil, plate)
 	plate.castGate = gate
@@ -368,6 +376,11 @@ function Component.Build(plate)
 	shield:AddMaskTexture(mask)
 	shield:SetAlpha(0)
 	plate.castShield = shield
+	local glyph = cast:CreateTexture(nil, "OVERLAY")
+	glyph:SetTexture((Tokens.Texture("medCastShield")))
+	glyph:SetVertexColor(Tokens.Color("steelLit"))
+	glyph:SetAlpha(0)
+	plate.castGlyph = glyph
 	local name = Widgets.FontString(bar, "OVERLAY")
 	name:SetJustifyH("LEFT")
 	name:SetWordWrap(false)
@@ -382,7 +395,8 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2
+	local label = Settings.Get("cast.showName") and Settings.Get("cast.textSize") + GAP or 0
+	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2 + label
 end
 
 function Cast.Gap(plate)
@@ -421,10 +435,12 @@ function Component.Restyle(plate)
 	bar:Restyle()
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime, "time")
+	local glyph = plate.castGlyph
+	Widgets.Size(glyph, h, h)
+	glyph:ClearAllPoints()
+	glyph:SetPoint("LEFT", bar, "LEFT")
 	plate.castName:ClearAllPoints()
-	ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
-	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
-	plate.castName:SetShown(Settings.Get("cast.showName"))
+	ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))
 	plate.castTime:ClearAllPoints()
 	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 end

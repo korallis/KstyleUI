@@ -529,7 +529,7 @@ function Layouts.Footprint(name, key)
 	end
 	local size = SIZES[name][key] or element.reserve
 	if size then
-		return size[1], size[2], size[3]
+		return size[1], size[2], size[3], size[4]
 	end
 	return element.width, element.height
 end
@@ -556,7 +556,7 @@ function Layouts.Reserves()
 	for _, element in ipairs(ELEMENTS) do
 		local reserve = element.reserve
 		if reserve then
-			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2], offsetX = reserve[3] }
+			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2], offsetX = reserve[3], offsetY = reserve[4] }
 		end
 	end
 	return out
@@ -846,7 +846,7 @@ Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
 Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33, [ASPECTS[1]] = 33.5 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 12 }
 Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
-Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 15, castStack = 9 }
+Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 14, reach = 12, medal = 41, outboard = 12, stack = 46, castGap = 15, castStack = 9, powerReserve = 22 }
 Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["unitframes.target"] = { side = 1, d = 86 }, ["unitframes.pet"] = { side = -1, d = 56 } }
 
 function Layouts.MedallionsGroup(class)
@@ -921,6 +921,7 @@ function Layouts.BuildMedallions()
 			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
 			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
 			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
+			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + 12, { 160, 80 }),
 			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
@@ -1132,7 +1133,7 @@ function Layouts.Rect(element, position, rootWidth, rootHeight)
 	local point = OFFSETS[position.anchor] or OFFSETS.CENTER
 	local fx, fy = point[1], point[2]
 	local left = rootWidth * fx + position.x - element.width * fx + (element.offsetX or 0)
-	local bottom = rootHeight * fy + position.y - element.height * fy
+	local bottom = rootHeight * fy + position.y - element.height * fy + (element.offsetY or 0)
 	return left, bottom, left + element.width, bottom + element.height
 end
 
@@ -1194,7 +1195,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
-		local width, height, offsetX = Layouts.Footprint(name, key)
+		local width, height, offsetX, offsetY = Layouts.Footprint(name, key)
 		if search then
 			local position = layout[key]
 			state.span = math.max(state.span, math.abs(position.x) + width, math.abs(position.y) + height)
@@ -1206,13 +1207,16 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		end
 		local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
 		if styled and styled.width then
-			width, height, offsetX = styled.width, styled.height, nil
+			width, height, offsetX, offsetY = styled.width, styled.height, nil, nil
 		end
 		local grouped, groupHeight = Layouts.StyleSize(style, class, key)
 		if grouped then
-			width, height, offsetX = grouped, groupHeight, nil
+			width, height, offsetX, offsetY = grouped, groupHeight, nil, nil
 		end
-		state.sizes[i] = { width, height, offsetX }
+		if style == "medallions" and key == "unitframes.player" then
+			height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
+		end
+		state.sizes[i] = { width, height, offsetX, offsetY }
 		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
 	end
 	local rectCount = #ELEMENTS + 2
@@ -1254,11 +1258,11 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local rects, count = state.rects, 0
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
 	for i = 1, #ELEMENTS + 2 do
-		local key, width, height, position, offsetX
+		local key, width, height, position, offsetX, offsetY
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
 			local size = state.sizes[i]
-			width, height, offsetX = size[1], size[2], size[3]
+			width, height, offsetX, offsetY = size[1], size[2], size[3], size[4]
 			position = layout[key]
 		else
 			position = i == #ELEMENTS + 1 and story.guide or story.quests
@@ -1272,7 +1276,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local h = max(1, floor(height * pixelScale + 0.5))
 			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
-			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
+			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5) + (offsetY or 0) * pixelScale
 			local boxes = state.boxes
 			local box = boxes[1]
 			box[1], box[2], box[3], box[4], box.key = left, bottom, left + w, bottom + h, key
@@ -1280,7 +1284,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			if medal then
 				local d = floor(medal.d * pixelScale + 0.5)
 				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
-				local cy = bottom + h / 2
+				local cy = bottom + h / 2 - (offsetY or 0) * pixelScale / 2
 				box = boxes[2]
 				box[1], box[2], box[3], box[4], box.key = floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key
 			end

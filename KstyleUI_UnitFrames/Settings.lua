@@ -109,6 +109,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
 		powerText = "none",
+		powerSeparate = false,
 		raidMarker = true,
 		leader = full,
 		role = full,
@@ -140,7 +141,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		fonts = {
 			name = TextStyle(text[1]),
 			health = TextStyle(text[2]),
-			power = TextStyle(text[3]),
+			power = { font = THEME_FONT, size = full and 12 or text[3], outline = "OUTLINE" },
 			level = TextStyle(text[4]),
 			cast = TextStyle(castFont or 10),
 			aura = { font = THEME_FONT, size = 8, outline = "OUTLINE" },
@@ -161,6 +162,7 @@ Settings.defaults = {
 	orbCastRoom = true,
 	edit = "player",
 	player = Kind(true, {
+		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
@@ -203,6 +205,11 @@ local function Options(list)
 end
 
 Settings.CHOICES = {
+	powerText = Options({
+		{ "auto", L["Automatic: mana percent, other resources current"] },
+		{ "percent", L["Percentage"] }, { "current", L["Current"] }, { "currentMax", L["Current and max"] },
+		{ "both", L["Current, max and percentage"] }, { "none", L["None"] },
+	}),
 	style = Options({ { "column", L["Column"] }, { "lumen", L["Vitals line"] }, { "plate", L["Plate"] } }),
 	styleLumen = Options({ { "lumen", L["Standard"] }, { "plate", L["Plate"] } }),
 	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Sigil"] }, { "plate", L["Plate"] } }),
@@ -237,7 +244,7 @@ local CHOICE_OF = {
 	healthOrientation = "orientation",
 	powerOrientation = "orientation",
 	healthText = "text",
-	powerText = "text",
+	powerText = "powerText",
 	castbarColor = "castbarColor",
 	castbarOrientation = "orientation",
 	auraFilter = "auraFilter",
@@ -374,8 +381,8 @@ local function OutlineFlags(outline)
 	return ""
 end
 
-local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
-local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 9, role = "number" }, level = { 10, "InterSemiBold" }, aura = { 10 } }
+local LUMEN_ROLES = { name = "names", health = "number", power = "number", level = "number", aura = "timer" }
+local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 12, role = "number" }, level = { 10, "InterSemiBold" }, aura = { 10 } }
 local SLAB_MINI_NAME = 9
 local SLAB_MINI = { targettarget = true, focustarget = true }
 
@@ -530,7 +537,7 @@ local function BarRows(schema, kind, bar)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = bar .. "Text", label = L["Text"],
 		help = bar == "health" and L["How the health text reads."] or L["How the power text reads."],
-		options = CHOICES.text,
+		options = bar == "power" and CHOICES.powerText or CHOICES.text,
 	}, on)
 end
 
@@ -835,6 +842,10 @@ local function KindRows(schema, kind)
 		return s.power ~= false and s.style ~= "column"
 	end)
 	BarRows(schema, kind, "power")
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "powerSeparate", label = L["Separate similar health and power colours"],
+		help = L["When the colours are close, draws power in steel with a thin line of its original colour."],
+	}, function(s) return s.power ~= false end)
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)

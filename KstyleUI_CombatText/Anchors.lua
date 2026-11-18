@@ -97,6 +97,7 @@ local function Emitter(frame, kind, pool)
 end
 
 local function Add(unit, emitter)
+	emitter.unit = unit
 	local list = byUnit[unit]
 	if not list then
 		list = {}

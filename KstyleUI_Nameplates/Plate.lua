@@ -819,6 +819,7 @@ function Plate:UpdateHighlight(sigilCasts)
 		isFocus = ns.Plates.IsUnit(self, "focus")
 	end
 	ns.Cast.Gate(self, isTarget, sigilCasts)
+	ns.Cast.Selection(self, isTarget, isFocus)
 	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
 	self:ShowBrackets(framed)
 	local health = self.health

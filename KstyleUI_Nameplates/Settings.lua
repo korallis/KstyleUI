@@ -22,7 +22,7 @@ Settings.defaults = {
 	offsetY = 0,
 	shrinkDistant = false,
 	font = "",
-	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
+	health = { width = 156.75, height = 11.875, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("plateHostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
 	types = {
@@ -34,9 +34,9 @@ Settings.defaults = {
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent" },
 	cast = {
 		enabled = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
-		colorSource = "custom", color = Color("gilt"), shieldColor = Color("textDisabled"),
-		waitColor = Color("gilt"), interruptSpell = "", hideOnTarget = false,
-		showIcon = false, showName = false, showTime = false, textSize = 13, outline = "OUTLINE",
+		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
+		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
+		showIcon = false, showName = true, nameSelectedOnly = true, showTime = false, textSize = 11, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
@@ -182,6 +182,14 @@ local schema = {
 		help = L["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."],
 	},
 	{ type = "header", label = L["Health bar"] },
+	{
+		type = "slider", key = "health.width", label = L["Width"],
+		help = L["The width of the health bar, in interface units."], min = 80, max = 240, step = 1,
+	},
+	{
+		type = "slider", key = "health.height", label = L["Height"],
+		help = L["The height of the health bar, in interface units."], min = 6, max = 24, step = 1,
+	},
 	{
 		type = "texture", key = "health.texture", label = L["Texture"],
 		help = L["The texture that fills the health bar."],
@@ -342,8 +350,13 @@ local rest = {
 	},
 	{
 		type = "toggle", key = "cast.showName", label = L["Spell name"],
-		help = L["Shows the spell's name on the cast bar."],
+		help = L["Shows the spell's name below the cast bar."],
 		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.nameSelectedOnly", label = L["Spell names on target and focus only"],
+		help = L["Keeps other plates quiet while showing the spell your target or focus is casting."],
+		disableWhen = Off("cast.showName"),
 	},
 	{
 		type = "toggle", key = "cast.showTime", label = L["Time left"],

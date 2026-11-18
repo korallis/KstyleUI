@@ -10,7 +10,8 @@ local Presets = { applying = false }
 ns.Presets = Presets
 
 Presets.LIST = {
-	{ value = "lumen", label = L["Standard: the defaults"] },
+	{ value = "lumen", label = L["Minimal: the defaults"] },
+	{ value = "dungeon", label = L["Dungeon: fuller plates"] },
 	{ value = "compact", label = L["Compact: a dense pull"] },
 	{ value = "tank", label = L["Tank: threat on the bar"] },
 	{ value = "healer", label = L["Healer: friendly bars with health"] },
@@ -19,6 +20,11 @@ Presets.LIST = {
 
 Presets.VALUES = {
 	lumen = {},
+	dungeon = {
+		["health.width"] = 120, ["health.height"] = 12,
+		["healthText.show"] = true, ["healthText.size"] = 11, ["healthText.format"] = "percent",
+		["debuffs.size"] = 12,
+	},
 	compact = {
 		["name.size"] = 13, ["healthText.show"] = false,
 		["debuffs.size"] = 24,

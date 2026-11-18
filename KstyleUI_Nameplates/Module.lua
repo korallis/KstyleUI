@@ -45,6 +45,7 @@ local function OnSetting(_, module, key)
 	elseif key == "cast.interruptSpell" and Plates.running then
 		ns.Interrupt.Resolve()
 	end
+	Plates.ReadSize()
 	Plates.RestyleAll()
 	Stacking.Schedule()
 end

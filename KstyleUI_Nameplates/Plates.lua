@@ -404,14 +404,14 @@ Plates.LAYOUT_KEY = "nameplates.plate"
 
 function Plates.ReadSize()
 	local state = ns.state
-	local w, h = Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT
+	local w, h = Settings.Get("health.width"), Settings.Get("health.height")
 	local Layout = K.Layout
 	local settings = Layout and Layout.Get and Layout.Get(Plates.LAYOUT_KEY)
 	if type(settings) == "table" then
-		if type(settings.width) == "number" and settings.width > 0 then
+		if type(settings.width) == "number" and settings.width > 0 and settings.width ~= Plate.DEFAULT_WIDTH then
 			w = settings.width
 		end
-		if type(settings.height) == "number" and settings.height > 0 then
+		if type(settings.height) == "number" and settings.height > 0 and settings.height ~= Plate.DEFAULT_HEIGHT then
 			h = settings.height
 		end
 	end

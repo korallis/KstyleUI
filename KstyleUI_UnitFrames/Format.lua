@@ -9,7 +9,7 @@ ns.Format = Format
 
 local ceil = math.ceil
 
-local COLUMN = { none = 0, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
+local COLUMN = { none = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
 local PERCENT = "%.0f%%"
 local CURRENT_MAX = "%s / %s"
 local BOTH = "%s / %s  %.0f%%"
@@ -161,7 +161,16 @@ function Format.SampleMax(text, max)
 	text:SetFormattedText(MAX, max)
 end
 
+function Format.PowerMode(unit, format, powerType)
+	if format ~= "auto" then return format end
+	if issecretvalue and issecretvalue(powerType) then return "current" end
+	if powerType == nil and UnitPowerType then powerType = UnitPowerType(unit) end
+	if issecretvalue and issecretvalue(powerType) then return "current" end
+	return powerType == 0 and "percent" or "current"
+end
+
 function Format.Power(text, unit, format, powerType)
+	format = Format.PowerMode(unit, format, powerType)
 	if format == "none" then
 		text:SetText("")
 		return
@@ -190,6 +199,7 @@ function Format.SampleDetail(text, format, current, max)
 end
 
 function Format.Sample(text, format, current, max)
+	if format == "auto" then format = "percent" end
 	if format == "none" then
 		text:SetText("")
 		return

@@ -7,7 +7,7 @@ local IsSecret = Logic.IsSecret
 local LogOnce = ns.LogOnce
 local MODULE = Settings.MODULE
 
-local Interrupt = { spell = nil, ready = true, running = false }
+local Interrupt = { spell = nil, ready = nil, running = false }
 ns.Interrupt = Interrupt
 
 local function Known(id)
@@ -70,16 +70,15 @@ local function Repaint()
 end
 
 function Interrupt.Update(fromCooldownEvent)
-	local ready = true
+	local ready
 	local spell = Interrupt.spell
 	local api = C_Spell
 	if spell and api and type(api.GetSpellCooldown) == "function" then
 		local ok, info = pcall(api.GetSpellCooldown, spell)
 		if ok then
 			local state = Logic.InterruptReady(info, fromCooldownEvent == true)
-			if state == false then
-				ready = false
-			elseif state == nil then
+			ready = state
+			if state == nil then
 				LogOnce("interrupt-secret", "the interrupt's cooldown came back secret or empty; its casts read as interruptible")
 			end
 		else
@@ -115,5 +114,5 @@ end
 
 function Interrupt.Stop()
 	Interrupt.running = false
-	Interrupt.ready = true
+	Interrupt.ready = nil
 end

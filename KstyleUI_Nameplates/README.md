@@ -2,6 +2,12 @@
 
 A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
+Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon offers a 120 by 12 bar, 12-unit debuffs and an optional 11-unit health percent. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+
+Target and focus plates show an 11-unit spell name below the cast track. The selected-only toggle can show names on every plate. Known interrupt readiness uses `gilt`; recharge, unknown readiness and no known interrupt use `giltDim`. Uninterruptible casts use `steelDim` and a shield glyph at the track's start even when spell icons are off. Secret interruptibility controls the glyph and colour through engine setters.
+
+Target and focus swaps paint only their old and new plates and read the unit-frame cast settings once. Acquiring or clearing a target still refreshes other plates when their optional dimming must change. `test-nameplates-target-cost.lua` pins this cost; `test-nameplates-readability.lua` pins the cast cues and presets. `combat_readability_plates` renders ready, waiting and unknown readiness in three rows, with `RENDER_PLATE_PRESET=Dungeon` selecting the fuller preset.
+
 | Field | Value |
 | --- | --- |
 | Module name | `Nameplates`: its switch in `Core/Features.lua` and the `name` it registers with `KstyleUI.Modules.Register` |

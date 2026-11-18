@@ -31,8 +31,8 @@ do
 	assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills as time passes")
 	assert(Last(plate.castName, "SetText")[1] == "Molten Pulse", "the spell's name shows")
 	assert(Last(plate.castIcon, "SetTexture")[1] == 135808, "the spell's icon shows")
-	local ar, ag, ab = token(K, "gilt")
-	assert(SameColor(ar, ag, ab, barColor(bar)), "an interruptible cast takes the tan colour")
+	local ar, ag, ab = token(K, "giltDim")
+	assert(SameColor(ar, ag, ab, barColor(bar)), "without a known interrupt an interruptible cast takes the wait colour")
 	assert(plate.castShield:GetAlpha() == 0, "no shield over the icon")
 
 	-- The time text counts down while the bar shows.
@@ -43,7 +43,7 @@ do
 	assert(time and env.issecretvalue(time[2]) and env.Reveal(time[2]) == 1.5, "the time text formats the remaining time")
 
 	env.FireEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "nameplate1")
-	local sr, sg, sb = token(K, "textDisabled")
+	local sr, sg, sb = token(K, "steelDim")
 	assert(SameColor(sr, sg, sb, barColor(bar)), "an uninterruptible cast is grey")
 	assert(plate.castShield:GetAlpha() > 0, "and its icon dims")
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTIBLE", "nameplate1")
@@ -250,7 +250,7 @@ end
 -- Settings ----------------------------------------------------------------------------------------------
 
 do
-	local env, K, ns = N.New()
+	local env, K, ns = N.New({ playerClass = "WARRIOR", known = { [6552] = true } })
 	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
