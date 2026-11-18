@@ -70,7 +70,6 @@ local dangerCurve
 local function DangerCurve()
 	if not dangerCurve and C_CurveUtil and type(C_CurveUtil.CreateCurve) == "function" and UnitHealthPercent then
 		dangerCurve = C_CurveUtil.CreateCurve()
-		if dangerCurve.SetType and Enum and Enum.LuaCurveType then dangerCurve:SetType(Enum.LuaCurveType.Linear) end
 		dangerCurve:AddPoint(0, 0.7)
 		dangerCurve:AddPoint(0.15, 0.7)
 		dangerCurve:AddPoint(0.4, 0)
@@ -139,7 +138,7 @@ function Widgets.Medallion(parent)
 end
 
 function Medallion:Layout(size, plaqueSide)
-	self.size = size
+	self.size, self.plaqueSide = size, plaqueSide
 	local level = self:GetFrameLevel()
 	self.lowFrame:SetFrameLevel(math.max(0, level + (self.cleanLow and -1 or LEVEL_RING)))
 	self.plaque:SetFrameLevel(level + LEVEL_PLAQUE)
@@ -196,33 +195,26 @@ function Medallion:SetDead(dead)
 	self.portrait:SetVertexColor(shade, shade, shade, 1)
 end
 
-function Medallion:LowHealth(unit, enemy, clean)
+function Medallion:LowHealthStyle(unit, enemy, clean)
 	clean = clean ~= false
+	local player = SHOW_LOW[unit]
 	if self.cleanLow ~= clean then
 		self.cleanLow = clean
-		self.lowFrame:SetFrameLevel(math.max(0, self:GetFrameLevel() + (clean and -1 or LEVEL_RING)))
-		local spread = Snap(self, self.size * (clean and LOW_SPREAD or OLD_LOW_SPREAD))
-		self.lowFrame:SetSize(spread, spread)
+		self:Layout(self.size, self.plaqueSide)
 		self.low:SetBlendMode(clean and "BLEND" or "ADD")
 		self.low:SetVertexColor(Tokens.Color(clean and "healthLow" or "white"))
 		if self.dangerPulse then ns.Effects.Vignette.Breath(clean and self.lowFrame or nil, self.dangerPulse) end
 	end
+	self.low:SetTexture((Tokens.Texture(clean and (player and "dangerAnnulus" or "dangerRim") or "medLowHealthRing")))
+	self.lowCurve = clean and player and DangerCurve() or (not clean or enemy) and UnitHealthPercent and Widgets.LowHealthCurve()
 	if clean then
 		self.pulse:Stop()
-		local player = unit and SHOW_LOW[unit]
-		local curve = player and DangerCurve()
-		self.low:SetTexture((Tokens.Texture(player and "dangerAnnulus" or "dangerRim")))
-		self.lowFrame:SetShown(unit ~= nil and (curve ~= nil or enemy == true))
-		if curve then
-			self.low:SetAlpha(UnitHealthPercent(unit, true, curve))
-			if not self.dangerPulse then self.dangerPulse = ns.Effects.Vignette.Breath(self.lowFrame) end
-		else
-			self.low:SetAlpha(1)
-		end
-		return
+		if player and not self.dangerPulse then self.dangerPulse = ns.Effects.Vignette.Breath(self.lowFrame) end
 	end
-	self.low:SetTexture((Tokens.Texture("medLowHealthRing")))
-	local curve = unit and UnitHealthPercent and Widgets.LowHealthCurve()
+end
+
+function Medallion:LowHealth(unit)
+	local curve = unit and self.lowCurve
 	if not curve then
 		self.pulse:Stop()
 		self.lowFrame:Hide()
@@ -230,6 +222,7 @@ function Medallion:LowHealth(unit, enemy, clean)
 	end
 	self.low:SetAlpha(UnitHealthPercent(unit, true, curve))
 	self.lowFrame:Show()
+	if self.cleanLow then return end
 	if not Allows("pulse") then
 		self.pulse:Stop()
 	elseif not self.pulse:IsPlaying() then

@@ -40,8 +40,21 @@ assert(m.lowFrame:GetFrameLevel() < m:GetFrameLevel(), "draw the clean annulus b
 assert(near(m.lowFrame:GetWidth(), K.Widgets.Snap(m, m.size * 1.12)), "use LOW_SPREAD 1.12")
 assert(enemy.lowFrame:IsShown() and not enemy.pulse:IsPlaying() and alpha(enemy.low) == 1, "enemies get a static rim, never a low-health pulse")
 assert(enemy.low:GetTexture() == K.Tokens.Texture("dangerRim"), "the enemy rim is a clean 2-unit ring")
-env._units.target.canAttack, env._units.target.reaction = false, 5
+env._units.target.health = 100
 env.FireEvent("UNIT_HEALTH", "target")
+assert(alpha(enemy.low) == 0, "a hostile target at full health has no visible danger rim")
+env._units.target.health = 8
+env.FireEvent("UNIT_HEALTH", "target")
+assert(alpha(enemy.low) == 1 and not enemy.pulse:IsPlaying(), "low-health enemies get the static rim")
+local calls, reaction, module, texture = 0, env.UnitReaction, K.Store.Module, enemy.low.SetTexture
+env.UnitReaction = function(...) calls = calls + 1; return reaction(...) end
+K.Store.Module = function(...) calls = calls + 1; return module(...) end
+enemy.low.SetTexture = function(...) calls = calls + 1; return texture(...) end
+env.FireEvent("UNIT_HEALTH", "target")
+assert(calls == 0, "configure danger texture, reaction and setting on identity/setting changes, never UNIT_HEALTH")
+env.UnitReaction, K.Store.Module, enemy.low.SetTexture = reaction, module, texture
+env._units.target.canAttack, env._units.target.reaction = false, 5
+env.FireEvent("UNIT_FACTION", "target")
 assert(not enemy.lowFrame:IsShown(), "friendly units never get the danger rim")
 env._units.target.canAttack, env._units.target.reaction = true, 2
 K.Options.Write("UnitFrames", "cleanLowRing", false)

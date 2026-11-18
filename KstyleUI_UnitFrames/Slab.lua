@@ -274,7 +274,8 @@ function Slab.Colors(view, unit)
 		return
 	end
 	local known, file = ClassFile(unit)
-	if Hostile(unit) then
+	local hostile = Hostile(unit)
+	if hostile then
 		view.name:SetTextColor(Tokens.Color("nameHostile"))
 	elseif unit ~= "player" and known and IsPlayer(unit) then
 		view.name:SetTextColor(Theme.ClassColorForWidget(file))
@@ -282,6 +283,7 @@ function Slab.Colors(view, unit)
 		view.name:SetTextColor(Tokens.Color("textEmphasis"))
 	end
 	if Active(view) then
+		view.medallion:LowHealthStyle(unit, hostile, Settings.Module().cleanLowRing ~= false)
 		view.medallion:SetRingColor(RingColor(view, unit))
 	end
 end
@@ -296,7 +298,7 @@ function Slab.Health(view, unit)
 		m:SetDead(dead)
 		m:SetRingColor(RingColor(view, unit))
 	end
-	m:LowHealth(not dead and unit or nil, Hostile(unit), K.Store.Module("UnitFrames").cleanLowRing ~= false)
+	m:LowHealth(not dead and unit or nil)
 end
 
 function Slab.Portrait(view, unit)

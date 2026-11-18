@@ -11,6 +11,7 @@ Vignette.FULL, Vignette.CLEAR = 0.12, 0.4
 Vignette.LOW = 0.6
 Vignette.EDGE = 0.22
 local EDGE_ALPHA = 0.45
+local SLICES = { { 1, 1 }, { 2, 1 }, { 3, 1 }, { 1, 2 }, { 3, 2 }, { 1, 3 }, { 2, 3 }, { 3, 3 } }
 
 local frame, curve, logged
 
@@ -56,6 +57,17 @@ local function Edge(point, relative, horizontal, from, to)
 	return t
 end
 
+local function Breath(target, animation)
+	frame.breath:Stop()
+	animation = animation or frame.breath:CreateAnimation("Alpha")
+	animation:SetTarget(target or frame.layer)
+	animation:SetFromAlpha(1)
+	animation:SetToAlpha(Vignette.LOW)
+	animation:SetDuration(ns.Tokens.Duration("dangerBreath"))
+	animation:SetSmoothing("IN_OUT")
+	return animation
+end
+
 local function Build()
 	local parent = WorldFrame or UIParent
 	frame = CreateFrame("Frame", nil, parent)
@@ -79,12 +91,8 @@ local function Build()
 	frame.fallback = not own
 	local breath = frame.layer:CreateAnimationGroup()
 	breath:SetLooping("BOUNCE")
-	local alpha = breath:CreateAnimation("Alpha")
-	alpha:SetFromAlpha(1)
-	alpha:SetToAlpha(Vignette.LOW)
-	alpha:SetDuration(ns.Tokens.Duration("dangerBreath"))
-	alpha:SetSmoothing("IN_OUT")
 	frame.breath = breath
+	Breath(frame.layer)
 	frame:HookScript("OnHide", function()
 		breath:Stop()
 	end)
@@ -95,35 +103,26 @@ end
 local function Layer(color, opacity, blend)
 	local textures = {}
 	local coords = { 0, 0.25, 0.75, 1 }
-	for y = 1, 3 do
-		for x = 1, 3 do
-			if x ~= 2 or y ~= 2 then
-				local t = frame.layer:CreateTexture(nil, "BACKGROUND")
-				t:SetTexture((ns.Tokens.Texture("dangerEdge")))
-				t:SetTexCoord(coords[x], coords[x + 1], coords[y], coords[y + 1])
-				t:SetVertexColor(ns.Tokens.Color(color))
-				t:SetAlpha(opacity)
-				t:SetBlendMode(blend)
-				textures[#textures + 1] = t
-			end
-		end
+	for i, slice in ipairs(SLICES) do
+		local x, y = slice[1], slice[2]
+		local t = frame.layer:CreateTexture(nil, "BACKGROUND")
+		t:SetTexture((ns.Tokens.Texture("dangerEdge")))
+		t:SetTexCoord(coords[x], coords[x + 1], coords[y], coords[y + 1])
+		t:SetVertexColor(ns.Tokens.Color(color))
+		t:SetAlpha(opacity)
+		t:SetBlendMode(blend)
+		textures[i] = t
 	end
 	return textures
 end
 
 local function LayoutLayer(textures, width, height, band)
 	local xs, ys = { 0, band, width - band, width }, { 0, band, height - band, height }
-	local i = 0
-	for y = 1, 3 do
-		for x = 1, 3 do
-			if x ~= 2 or y ~= 2 then
-				i = i + 1
-				local t = textures[i]
-				t:ClearAllPoints()
-				t:SetPoint("TOPLEFT", frame.layer, "TOPLEFT", xs[x], -ys[y])
-				t:SetSize(xs[x + 1] - xs[x], ys[y + 1] - ys[y])
-			end
-		end
+	for i, slice in ipairs(SLICES) do
+		local x, y, t = slice[1], slice[2], textures[i]
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", frame.layer, "TOPLEFT", xs[x], -ys[y])
+		t:SetSize(xs[x + 1] - xs[x], ys[y + 1] - ys[y])
 	end
 end
 
@@ -151,13 +150,7 @@ end
 
 function Vignette.Breath(target, animation)
 	if not frame then Build() end
-	frame.breath:Stop()
-	animation = animation or frame.breath:CreateAnimation("Alpha")
-	animation:SetTarget(target or frame.layer)
-	animation:SetFromAlpha(1)
-	animation:SetToAlpha(Vignette.LOW)
-	animation:SetDuration(ns.Tokens.Duration("dangerBreath"))
-	animation:SetSmoothing("IN_OUT")
+	animation = Breath(target, animation)
 	Vignette.Update()
 	return animation
 end
