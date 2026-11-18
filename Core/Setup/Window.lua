@@ -191,8 +191,13 @@ local function Refresh()
 		local head = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
 			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
-		local count = head .. string.format(L["Modules on: %d of %d."], #on, #on + #off)
+		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
+		local count = head .. modules
 		panel.summaryTexts = { head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail, count .. tail, count }
+		if ns.Store.Module("Setup").readableNotes then
+			panel.summaryTexts[4] = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+				.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, "") .. "\n\n" .. modules
+		end
 		panel.summary:SetText(panel.summaryTexts[1])
 		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
 		panel.summaryHelp:SetText(applied
