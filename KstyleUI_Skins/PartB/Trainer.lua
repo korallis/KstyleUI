@@ -132,5 +132,6 @@ ns.Skins.Add({
 	help = L["Restyles the class and profession trainer window."],
 	addon = "Blizzard_TrainerUI",
 	frame = "ClassTrainerFrame",
+	metrics = true,
 	Apply = Apply,
 })
