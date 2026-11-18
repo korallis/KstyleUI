@@ -114,5 +114,6 @@ Skins.Add({
 	help = L["Restyles the guild and communities window: lists, chat, tabs and buttons."],
 	addon = "Blizzard_Communities",
 	frame = "CommunitiesFrame",
+	metrics = true,
 	Apply = Apply,
 })
