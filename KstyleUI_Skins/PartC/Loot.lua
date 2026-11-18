@@ -107,6 +107,7 @@ Skins.Add({
 	frame = "LootFrame",
 	defaults = Kit.QualityDefaults(),
 	rows = Kit.QualityRows(L["Colours each loot icon's border by its item's quality."]),
+	metrics = true,
 	Apply = Apply,
 	OnSetting = OnSetting,
 })
