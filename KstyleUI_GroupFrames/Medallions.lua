@@ -156,7 +156,7 @@ local function TidyParts(out, kind, o)
 	local width = count > 0 and count * size + (count - 1) * 1 or 0
 	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
 	if out.tile then
-		out.tile.right, out.tile.gap = right, gap
+		out.tile.percentRight, out.tile.gap = right, gap
 	else
 		out.healthText.right, out.healthText.markedRight = right, right
 	end
@@ -383,7 +383,7 @@ local function TileText(f)
 	local parts, k = f.parts, Settings.current[f.kind]
 	local health, tile, block = parts.health, parts.tile, parts.block
 	local left = Widgets.Snap(f, health.left + tile.inset)
-	local right = Widgets.Snap(f, tile.right)
+	local right = Widgets.Snap(f, tile.percentRight or tile.right)
 	local gap = Widgets.Snap(f, tile.gap)
 	local reserve = TextReserve(f, k)
 	local lines = 1.2 * (Widgets.FontSize(f.name, 12) + Widgets.FontSize(f.healthText, k.healthTextSize))

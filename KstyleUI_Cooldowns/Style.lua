@@ -160,8 +160,7 @@ end
 
 local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
-	icon.realCooldown = icon.onCooldown == true
-	icon:StyleCooldown()
+	icon:StyleCooldown(icon.onCooldown == true)
 	if usable and icon.onCooldown and (icon.opts.quietCooldown or icon.greyWhileCooling) then
 		local tint = icon.tint
 		local brightness = icon.opts.quietCooldown and 0.65 or 1

@@ -215,10 +215,11 @@ function Widgets.ShadeIcon(texture, r, g, b, desaturated)
 	texture:SetVertexColor(r, g, b, select(4, texture:GetVertexColor()))
 end
 
-function IconButton:StyleCooldown()
+function IconButton:StyleCooldown(real)
 	local quiet, cooldown = self.opts.quietCooldown, self.cooldown
-	cooldown:SetDrawEdge(quiet and self.realCooldown == true or not quiet and self.slotEdge == true)
-	cooldown:SetSwipeColor(Widgets.Rgba("black", quiet and not self.realCooldown and 0.4 or SWIPE_ALPHA))
+	if real == nil then real = self.realCooldown end
+	cooldown:SetDrawEdge(quiet and real == true or not quiet and self.slotEdge == true)
+	cooldown:SetSwipeColor(Widgets.Rgba("black", quiet and not real and 0.4 or SWIPE_ALPHA))
 	if type(cooldown.SetEdgeColor) == "function" then
 		cooldown:SetEdgeColor(Tokens.Color(quiet and "slotEdge" or "slotEdgeLegacy"))
 	end
@@ -265,8 +266,13 @@ function Widgets.MedallionsFrame(button, on, overlay)
 end
 
 function Widgets.MedallionsIcon(button, on)
+	if not on and not button.medIconFrame then return end
+	if not button.medIconShown then
+		button.medIconShown = {}
+		for _, region in ipairs({ button.well, button.bevelTop, button.bevelBottom }) do button.medIconShown[region] = region:IsShown() end
+	end
 	Widgets.MedallionsFrame(button, on)
-	for _, region in ipairs({ button.well, button.bevelTop, button.bevelBottom }) do region:SetShown(not on) end
+	for region, shown in pairs(button.medIconShown) do region:SetShown(not on and shown) end
 	Widgets.ShowSlice(button.innerLine, not on)
 	button.mask:SetTexture((Tokens.Texture(on and "medSlotMask" or "iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	button.opts.iconInset = on and 3 or nil

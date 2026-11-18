@@ -5,6 +5,13 @@ C.Enable(env, K)
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local icon = ns.Mirror.Row("essential").icons[1]
+env._cdm.cooldown[1001] = { active = true, gcd = false }
+env.FireEvent("SPELL_UPDATE_COOLDOWN")
+assert(icon.realCooldown == nil, "mirror styling must not write the shared button's cooldown state")
+assert(math.abs(icon.icon:GetVertexColor() - 0.65) < 1e-6, "quieter real cooldowns keep mirror icons readable")
+K.Options.Write("Cooldowns", "quietCooldown", false)
+assert(math.abs(icon.icon:GetVertexColor() - 1) < 1e-6, "quiet cooldown off restores the mirror's earlier icon brightness")
+K.Options.Write("Cooldowns", "quietCooldown", true)
 assert(icon.medIconFrame and icon.medIconFrame:IsShown() and not icon.chrome.visible, "Medallions mirror uses a single painted frame")
 assert(icon.medIconFrame:GetTexture() == K.Tokens.Texture("medSlot") and icon.medIconWell:GetTexture() == K.Tokens.Texture("medSlotSocket"), "reuse the slab's frame and well")
 local buff = env._viewers.BuffIconCooldownViewer._items[1]
