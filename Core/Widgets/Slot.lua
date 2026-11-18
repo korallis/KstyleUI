@@ -459,11 +459,6 @@ function Widgets.Slot(parent, opts)
 	glow.body:SetAllPoints(glow)
 	b.procHalo = Halo(b, glow.body)
 	Widgets.ProcMotion(glow, glow.body)
-	if not opts.procTransitions then
-		local a = glow.breathAlpha
-		a:SetToAlpha(BREATH_LOW)
-		a:SetDuration(Tokens.Duration("procPulse"))
-	end
 	b.lumenGlow = glow
 	glow:HookScript("OnShow", function()
 		Breathe(b)

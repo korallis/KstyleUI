@@ -3,6 +3,38 @@ local AB = dofile("Tools/regression/actionbars_env.lua")
 local W = AB.W
 local mode = arg and arg[1]
 
+if not mode or mode == "refresh" then
+    local env, K, ns = AB.New({ class = "WARLOCK" })
+    AB.Enable(env, K)
+    K.Options.Write("HudStyle", "style", "medallions")
+    env.RunTimers()
+    AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+    env._game.procs[100] = true
+    env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+    local b, hub = AB.Button(ns, "bar1", 1), ns.Slab.hub
+    for _, polished in ipairs({ false, true }) do
+        K.Options.Write("ActionBars", "procTransitions", polished)
+        b.medProcStart.anim:Stop()
+        hub.crest.pulse:Stop()
+        hub.glyphs.flash:Stop()
+        local proc, calls = ns.SlabEffects.Proc, 0
+        ns.SlabEffects.Proc = function(...) calls = calls + 1; return proc(...) end
+        K.Options.Write("ActionBars", "quietCooldown", not ns.Config("quietCooldown"))
+        assert(not b.medProcStart.anim:IsPlaying() and not hub.crest.pulse:IsPlaying() and not hub.glyphs.flash:IsPlaying() and calls == 0, "F3: unrelated settings must not replay the proc start, hub pulse or model")
+        K.Options.Write("Medallions", "motion", "calm")
+        assert(not b.medProc.anim:IsPlaying(), "F3: effect-level changes still stop the proc loop")
+        K.Options.Write("Medallions", "motion", "full")
+        assert(b.medProc.anim:IsPlaying(), "F3: Full resumes the proc loop")
+        assert(not b.medProcStart.anim:IsPlaying() and not hub.crest.pulse:IsPlaying() and not hub.glyphs.flash:IsPlaying() and calls == 0, "F3: effect-level changes must refresh the loop without replaying one-shot effects")
+        ns.SlabEffects.Proc = proc
+    end
+    K.Options.Write("Medallions", "motion", "calm")
+    K.Options.Write("ActionBars", "procTransitions", false)
+    local left, right, top, bottom = b.medProc:GetTexCoord()
+    assert(left == 0 and right == 1 and top == 0 and bottom == 1, "F3: switching off transitions must reset the held sprite cell to the legacy full texture")
+    assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 if not mode or mode == "input" then
     local env, K, ns = AB.New()
     AB.Enable(env, K)

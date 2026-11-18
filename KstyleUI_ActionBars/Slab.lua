@@ -921,6 +921,7 @@ local function ProcLoop(loop)
 	end
 	loop.path, loop.polished = path, polished
 	loop:SetTexture(path)
+	loop:SetTexCoord(0, 1, 0, 1)
 	if loop.anim then
 		loop.anim:Stop()
 	end
@@ -933,7 +934,7 @@ local function ProcLoop(loop)
 	end
 end
 
-function Slab.SetProc(b, on)
+function Slab.SetProc(b, on, refresh)
 	if b.kind ~= "action" then
 		return
 	end
@@ -988,7 +989,7 @@ function Slab.SetProc(b, on)
 			loop:SetTexCoord(0, 1 / cells.columns, 0, 1 / cells.rows)
 		end
 	end
-	if fresh or not polished then
+	if not refresh and (fresh or not polished) then
 		Play(start.anim)
 		local holder = K.Effects.Holder and K.Effects.Holder("hub")
 		if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
@@ -1117,14 +1118,15 @@ end
 
 local function OnMotion(_, module, key)
 	local restyle = module == "ActionBars" and (key == "procTransitions" or key == "inputContinuity")
-	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
-		for _, b in ipairs(list or {}) do
-			local changed = b.opts.procTransitions ~= ns.Config("procTransitions") or b.opts.inputContinuity ~= ns.Config("inputContinuity")
-			b.opts.procTransitions = ns.Config("procTransitions") == true
-			b.opts.inputContinuity = ns.Config("inputContinuity") == true
-			if changed or restyle then b:Restyle() end
-			Slab.Dress(b)
-			Slab.SetProc(b, b.proc == true)
+	if restyle or module == nil then
+		for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+			for _, b in ipairs(list or {}) do
+				b.opts.procTransitions = ns.Config("procTransitions") == true
+				b.opts.inputContinuity = ns.Config("inputContinuity") == true
+				if restyle then b:Restyle() end
+				Slab.Dress(b)
+				Slab.SetProc(b, b.proc == true, true)
+			end
 		end
 	end
 	if state.built and Slab.hub:IsShown() then
@@ -1142,7 +1144,7 @@ function Slab.Enable()
 	K.Callbacks.Register("HudStyleChanged", OWNER, OnStyle)
 	K.Callbacks.Register("SettingChanged", OWNER, OnMotion)
 	if K.Effects then
-		K.Callbacks.Register("EffectsLevelChanged", OWNER, OnMotion)
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, function() OnMotion() end)
 	end
 	OnStyle()
 end
