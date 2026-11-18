@@ -2,6 +2,7 @@
 local Audit = {}
 function Audit.Apply(K)
 	if os.getenv("RENDER_NEEDS_OFF") ~= "1" then return end
+	if not K.Options.Row("ActionBars", "bindingHints") then K.Store.Module("ActionBars").bindingHints = false end
 	if K.Setup.Layouts.ThirdBarFinished and not K.Options.Row("ActionBars", "bar3.finished") then
 		local cfg = K.Store.Module("ActionBars")
 		cfg.bar3 = cfg.bar3 or {}
