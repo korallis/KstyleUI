@@ -218,6 +218,9 @@ end
 function IconButton:StyleCooldown(real)
 	local quiet, cooldown = self.opts.quietCooldown, self.cooldown
 	if real == nil then real = self.realCooldown end
+	local key = quiet and (real == true and 2 or 1) or (self.slotEdge == true and 4 or 3)
+	if self.cooldownStyleKey == key and self.cooldownStyleCharge == self.chargeCooldown then return end
+	self.cooldownStyleKey, self.cooldownStyleCharge = key, self.chargeCooldown
 	cooldown:SetDrawEdge(quiet and real == true or not quiet and self.slotEdge == true)
 	cooldown:SetSwipeColor(Widgets.Rgba("black", quiet and not real and 0.4 or SWIPE_ALPHA))
 	if type(cooldown.SetEdgeColor) == "function" then

@@ -595,21 +595,17 @@ local function Crest()
 	return Slab.Texture("medCrest"), nil
 end
 
-local function PaintParticles(r, g, b)
+local function PaintParticles(r, g, b, fullAlpha)
 	local path = ClassTexture("medParticle")
 	local cells = ClassName() and Known("medParticle" .. ClassName()) and Cells("medParticle" .. ClassName(), PARTICLE_CELLS)
+	if cells then r, g, b = Tokens.Color("white") end
 	for _, p in ipairs(Slab.hub.particles) do
 		p:SetTexture(path)
 		if cells then
 			local col, row = p.cell % cells.columns, floor(p.cell / cells.columns) % cells.rows
 			p:SetTexCoord(col / cells.columns, (col + 1) / cells.columns, row / cells.rows, (row + 1) / cells.rows)
 		end
-		if cells then
-			local wr, wg, wb = Tokens.Color("white")
-			p:SetVertexColor(wr, wg, wb, ns.Config("hubAlpha") and 1 or p:GetAlpha())
-		else
-			p:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or p:GetAlpha())
-		end
+		p:SetVertexColor(r, g, b, fullAlpha and 1 or p:GetAlpha())
 	end
 end
 
@@ -621,13 +617,14 @@ local function Paint()
 	hub.crestPath = crest
 	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
 	local r, g, b = ClassRGB()
+	local fullAlpha = ns.Config("hubAlpha")
 	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }) do
-		region:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or region:GetAlpha())
+		region:SetVertexColor(r, g, b, fullAlpha and 1 or region:GetAlpha())
 	end
 	for _, sweep in ipairs(Slab.frame.sweeps) do
-		sweep:SetVertexColor(r, g, b, ns.Config("hubAlpha") and 1 or sweep:GetAlpha())
+		sweep:SetVertexColor(r, g, b, fullAlpha and 1 or sweep:GetAlpha())
 	end
-	PaintParticles(r, g, b)
+	PaintParticles(r, g, b, fullAlpha)
 end
 
 local function Motionless()

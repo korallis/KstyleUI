@@ -458,7 +458,6 @@ function ns.StyleTextsFor(b, barKey)
 	b.opts.readableCountdown = ns.Config("readableCountdown") == true
 	if readable ~= b.opts.readableCountdown then b:Restyle() end
 	b:StyleCooldown()
-	ns.Socket.Place(b)
 	local text = ns.Config("text")
 	local scale = K.Theme.FontScale()
 	for _, spec in ipairs(ns.TEXTS) do
@@ -616,6 +615,8 @@ function Button.New(bar, index)
 		name = "KstyleUI_" .. def.name .. "Button" .. index,
 		template = "SecureActionButtonTemplate",
 		size = cfg.size,
+		quietCooldown = ns.Config("quietCooldown") == true,
+		readableCountdown = ns.Config("readableCountdown") == true,
 		silent = true,
 		primary = true,
 	})
