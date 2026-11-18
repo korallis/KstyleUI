@@ -369,6 +369,10 @@ do
 	assert(#oenv._errors == 0, tostring(oenv._errors[1]))
 end
 
+-- The raw Get tables retain the previous layout; attached overlays are checked through Positions/Fits above.
+K.Store.Module("Cooldowns").attached = false
+K.Store.Module("Meters").swing = { attached = false }
+
 -- A reserve is room kept around an element, never less than the element ------------------------------------------
 for _, name in ipairs(Layouts.Names()) do
 	for _, element in ipairs(Layouts.ELEMENTS) do

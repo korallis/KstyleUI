@@ -453,7 +453,7 @@ function Panel.Place()
 	end
 	local g = Panel.Geometry(chat)
 	if type(chat.SetResizeBounds) == "function" then
-		chat:SetResizeBounds(1, 1, (MAX_WIDTH - g.left - g.right) / g.k, (MAX_HEIGHT - g.top - g.bottom) / g.k)
+		chat:SetResizeBounds(max(1, (MIN_WIDTH - g.left - g.right) / g.k), max(1, (MIN_HEIGHT - g.top - g.bottom) / g.k), (MAX_WIDTH - g.left - g.right) / g.k, (MAX_HEIGHT - g.top - g.bottom) / g.k)
 	end
 	if g.spacing and type(chat.SetSpacing) == "function" and Number(chat:GetSpacing(), 0) ~= g.spacing then
 		chat:SetSpacing(g.spacing)

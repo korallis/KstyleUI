@@ -19,6 +19,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3
 			local k = chat:GetEffectiveScale() / root:GetEffectiveScale()
 			local minW, minH = chat:GetResizeBounds()
 			local label = screen[1] .. "x" .. screen[2] .. " " .. style
+			assert(minW*k + ns.Panel.Geometry(chat).left + ns.Panel.Geometry(chat).right >= 260 - 0.01 and minH*k + ns.Panel.Geometry(chat).top + ns.Panel.Geometry(chat).bottom >= 120 - 0.01, "native resizing must retain the card's sensible 260 by 120 minimum")
 			assert((message.right-message.left)/k >= minW and (message.top-message.bottom)/k >= minH,
 				label .. ": lower Blizzard's resize bounds while the card controls the message frame")
 			C.Dock(env, function(text, size) return #text * size / 2 end)

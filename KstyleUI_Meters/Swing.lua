@@ -201,12 +201,17 @@ local function Arrange()
 			end
 			bar:Show()
 			if across then
+				for _, text in ipairs({ bar.label, bar.time }) do
+					local path, fontSize, flags = text:GetFont()
+					Widgets.ApplyFont(text, path, math.min(fontSize, bar.opts.height - 4), flags)
+					text:SetWordWrap(false)
+				end
 				local pad = Widgets.Snap(bar, 1)
 				local textHeight = Widgets.Snap(bar, math.max(1, bar.opts.height - 2))
-				Widgets.Size(bar.time, 34, textHeight)
+				Widgets.Size(bar.time, 26, textHeight)
 				bar.time:ClearAllPoints()
 				bar.time:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -pad, -pad)
-				Widgets.Size(bar.label, math.max(1, bar.opts.width - 34 - 3 * pad), textHeight)
+				Widgets.Size(bar.label, math.max(1, bar.opts.width - 26 - 3 * pad), textHeight)
 				bar.label:ClearAllPoints()
 				bar.label:SetPoint("TOPLEFT", bar, "TOPLEFT", pad, -pad)
 			end
@@ -442,7 +447,7 @@ local function Style()
 		bar:SetInnerEdge(attached, "castEdge")
 		bar:SetTrackBacking(attached)
 		if attached then bar:SetBarTexture("Flat") end
-		ns.ApplyFont(bar.time, "swing")
+		ns.ApplyFont(bar.time, "swing", nil, attached and "time" or nil)
 		bar.time:ClearAllPoints()
 		if bar.vertical then
 			bar.time:SetPoint("BOTTOM", bar, "TOP", 0, Widgets.Snap(bar, Tokens.Size("gapTiny")))
@@ -453,7 +458,7 @@ local function Style()
 		if not showTime then
 			bar.time:SetText("")
 		end
-		ns.ApplyFont(bar.label, "swing")
+		ns.ApplyFont(bar.label, "swing", nil, attached and "caps" or nil)
 		Widgets.TextColor(bar.label, "text")
 		bar.label:ClearAllPoints()
 		bar.label:SetPoint("RIGHT", bar.time, "LEFT", -Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)

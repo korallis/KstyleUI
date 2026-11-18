@@ -21,6 +21,18 @@ if not pick or pick == "grid" then
 			end
 		end
 	end
+	for _, attached in ipairs({true, false}) do
+		K.Store.Module("Cooldowns").attached = attached
+		for _, group in ipairs({"essential", "utility"}) do
+			K.Store.Module("Cooldowns")[group] = {size=41.3, spacing=6.2, columns=5, rows=3}
+		end
+		ns.Settings.Read()
+		for _, group in ipairs({"essential", "utility"}) do
+			local width,height=ns.Grid.Size(ns.Settings.current[group])
+			local w,h=K.Setup.Layouts.Footprint("DPS","cooldowns."..group)
+			assert(math.abs(w-width)<0.01 and math.abs(h-height)<0.01,"explicit grid settings must have the same footprint with either placement option")
+		end
+	end
 	print("review grid: declared and fitted bounds equal both live grids in every style")
 end
 

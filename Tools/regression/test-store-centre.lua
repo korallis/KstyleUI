@@ -94,12 +94,12 @@ CoreEnv.Boot(env10)
 assert(env10.KstyleUIDB.version == K.Store.DB_VERSION and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
 assert(K10.Store.Layout()["unitframes.player"].y == now["unitframes.player"].y, "version 10 receives the new player position")
 assert(K10.Store.Layout()["chat.main"].width == nil and K10.Store.Layout()["chat.main"].height == nil, "the centre migration preserves the migrated chat dimensions, version 16 takes the picture's 186 height, and version 34 lets that old 393 by 186 default take the new one")
-assert(db.layouts.Old["unitframes.resource"] == nil, "the old class resource default follows the attached HUD placement after migration 36")
+assert(db.layouts.Old["unitframes.resource"].y == now["unitframes.resource"].y, "migration 36 preserves class-resource positions")
 assert(db.layouts.Old["actionbars.bar3"].y == now["actionbars.bar3"].y, "the old spare bar position migrates above both the loot feed and player cast")
 for key in pairs(old) do
 	local entry, place = db.layouts.Old[key], now[key]
 	if entry == nil then
-		assert(key:match("^cooldowns%.") or key == "unitframes.resource" or key == "meters.swing", key .. ": only attached HUD defaults are cleared")
+		assert(key:match("^cooldowns%.") or key == "meters.swing", key .. ": only attached HUD defaults are cleared")
 	else
 	assert(entry.anchor == place.anchor and entry.x == place.x and entry.y == place.y, key .. " moves to the new reference: " .. tostring(entry.anchor) .. "," .. tostring(entry.x) .. "," .. tostring(entry.y) .. " expected " .. tostring(place.anchor) .. "," .. tostring(place.x) .. "," .. tostring(place.y))
 	assert(entry.width == nil and entry.height == nil, key .. " drops only the old default dimensions")

@@ -394,10 +394,8 @@ function Settings.Read()
 		ReadIcons(current[group], saved[group], defaults[group], group)
 		if COOLDOWN_GROUPS[group] then
 			local attached = saved.attached ~= false
-			local stacked = attached and K.HudStyle.Current() ~= "frames"
-			local explicit = type(saved[group]) == "table" and saved[group] or defaults[group]
-			if explicit.columns == 0 then current[group].columns = stacked and 6 or (group == "essential" and (attached and 12 or 6) or UTILITY_COLUMNS) end
-			if explicit.rows == 0 then current[group].rows = stacked and 2 or (group == "essential" and 1 or (attached and 3 or 1)) end
+			local _, _, columns, rows = Layouts.CooldownGrid(K.HudStyle.Current(), "cooldowns." .. group)
+			current[group].columns, current[group].rows = columns, rows
 			if current[group].wrap == "auto" then current[group].wrap = attached and "up" or "down" end
 		end
 	end

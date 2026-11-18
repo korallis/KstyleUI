@@ -906,7 +906,7 @@ Store.migrations[36] = function(data)
 			local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
 			local preset = type(profile.Layout) == "table" and profile.Layout.preset or "DPS"
 			if not layouts.Get(preset) then preset = "DPS" end
-			for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars", "meters.swing", "unitframes.resource" }) do
+			for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars", "meters.swing" }) do
 				for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 					local stored = style == "frames" and key or style .. ":" .. key
 					local entry = layout[stored]

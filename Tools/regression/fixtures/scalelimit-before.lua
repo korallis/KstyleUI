@@ -1182,7 +1182,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
-			width, height, offsetX = Layouts.Footprint(name, key)
+			width, height, offsetX = Layouts.Footprint(name, key, style)
 			local styled = style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
 			if styled and styled.width then
 				width, height, offsetX = styled.width, styled.height, nil

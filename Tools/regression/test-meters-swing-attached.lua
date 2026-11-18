@@ -12,6 +12,7 @@ for _, style in ipairs({"frames", "orbs", "medallions"}) do
 	assert(not swing.content:IsShown(), "idle swings stay hidden")
 	env.SetTime(100)
 	env.FireEvent("PLAYER_SWING", 2.6, M.SWING.MainHand)
+	assert(main.label:GetFont() == K.Tokens.Font("caps") and main.time:GetFont() == K.Tokens.Font("time"), "attached swing text follows the neighboring cast faces")
 	assert(main.innerEdgeOn and main.backingOn, "use the cast bar's rim and track backing")
 	assert(main.time:IsShown() and main.label:IsShown(), "text fits in the main-hand bar")
 	assert(main.reset:GetAlpha() > 0, "a swing flashes the bar subtly")

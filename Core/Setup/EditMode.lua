@@ -353,8 +353,7 @@ local function RowRect(point, slot, n, lines, item, pad)
 end
 
 local function RowFit(row, slot, n, k, others, rw, rh)
-	local height = slot.t - slot.b
-	local gap = (slot.r - slot.l - row.fallback * height) / (row.fallback - 1)
+	local height, gap = Layouts.CooldownGrid(ns.HudStyle.Current(), row.key)
 	for lines = 1, ROW_LINES do
 		for _, point in ipairs(row.spots) do
 			for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
