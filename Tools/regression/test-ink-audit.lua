@@ -43,7 +43,7 @@ for _, event in ipairs({ "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED" }
 	env._units.player.cast = nil
 	env.FireEvent(event, "player", "Cast-Ink", 188196)
 	local ended = W.LastCall(cb.text, "SetTextColor")
-	assert(cb.inkEmpty and near(ended[1], tr) and select(3, cb.text:GetFont()) == "OUTLINE", "empty interrupted and failed tracks take light outlined ink")
+	assert(not cb.inkEmpty and near(ended[1], dr) and near(ended[2], dg) and near(ended[3], db) and select(3, cb.text:GetFont()) == "", "full hostile interrupted and failed bars keep readable dark ink")
 end
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("ink audit rules passed")

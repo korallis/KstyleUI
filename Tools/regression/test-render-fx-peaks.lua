@@ -39,7 +39,7 @@ for _, effect in ipairs({ "cast", "stopped", "ready", "burst" }) do
 		end
 		local cb = holder and holder.cb
 		assert(cb and cb.active == false and cb.landed == (effect == "cast"), effect .. ": drive the real spellcast outcome, including its fill, tint, text and flash")
-		assert(Scene.BarFraction(env, cb.bar, env._time) == (effect == "cast" and 1 or 0), effect .. ": model CreateDuration/SetTimeSpan so EndTimer replaces the old running fill")
+		assert(Scene.BarFraction(env, cb.bar, env._time) == 1, effect .. ": model CreateDuration/SetTimeSpan so EndTimer holds a full outcome fill")
 	end
 	local item = find(scene, texture)
 	local peak = group._parent == texture and 1 or texture:GetAlpha()
