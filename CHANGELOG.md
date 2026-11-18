@@ -1,8 +1,8 @@
 # KstyleUI changelog
 
-## v0.2.6 (unreleased)
+## v0.2.6 (2026-11-18)
 
-Clearer combat and finished HUD styles: tooltips that follow your mouse out of combat, readable casts and power numbers, Orbs and Frames finished with their own switches, a branded welcome page, and a long list of alignment and readability fixes.
+Clearer combat and finished HUD styles: tooltips that follow your mouse out of combat, readable casts and their outcomes, one danger signal at the screen edge, colour-vision and readability choices, Orbs and Frames finished with their own switches, Options that opens on common tasks, a branded welcome page, and a long list of alignment and readability fixes.
 
 ### Added
 
@@ -13,6 +13,12 @@ Clearer combat and finished HUD styles: tooltips that follow your mouse out of c
 - Orbs and Frames finish with switches, all on by default. Under Options > Unit Frames > Orbs: Sharp orb glass, Ledge under bar 2 and Room for long spell names. Under Frames: Spell name inside the bar (Options > Unit Frames > Player and Target) and Tray on the centre column (Options > Action Bars).
 - When you learn a new spell, KstyleUI offers to add it to your action bars, beside the offer to update a spell to its new rank.
 - A setting to wait until you stop resizing the game window before the HUD resizes with it, on by default.
+- Colour vision choices, role and threat shapes, interrupt shields, and debuff letters classified by the game, so important signals do not rely on colour alone.
+- Readable and Healer presets, target range cues, tank threat alarms, and resurrection, summon and AFK indicators.
+- Bind keys buttons in Options, typed slider values, diamonds on settings you have changed, quick resets, and searchable elements in Layout Mode.
+- Scoped profile sharing with an import review, plus recovery backups you can restore in one click.
+- Separate options to restore the previous low-health screen glow and the smoky portrait pulses.
+- Options opens on common tasks, with search in player words and ornament samples you can see before you choose.
 
 ### Changed
 
@@ -28,6 +34,13 @@ Clearer combat and finished HUD styles: tooltips that follow your mouse out of c
 - Empty Medallions action sockets fade until you drag a spell, bind keys or edit the layout. Cooldown edges are quieter, countdowns are clearer and the seated crest is smaller, each with its own switch, and Medallions icon frames match, with separate text and indicator lanes on party and raid frames.
 - The Cooldown Manager's icons sit with the action bars instead of floating in the middle of the screen; switch them back in Options. The swing timer matches the rest of the HUD and sits with the cast bars.
 - KstyleUI skips repeated background HUD, border and layout work that could not change anything on screen. Nothing looks or times differently.
+- Setup names addons that overlap with KstyleUI and offers timer and announcement lanes and named WeakAuras anchors; raid tools remain available. Every new accessibility feature has an Options control and is on by default, and Standard and Compact remain the named preset defaults. Closing setup now applies the default setup; "Do nothing, ask again later" leaves your interface unchanged.
+- General offers the same Full, Calm and Off motion choices for Frames, Orbs and Medallions.
+- Proc glows fade in gently, stay inside a smaller halo and hold still when their loop is off. Hover highlights finish rising before they fade, held buttons keep a small lit rim, and hub models sit behind the crest, fade when replaced and play at most once every 2.5 seconds while the 2D celebration still plays.
+- Settings search results appear at once, page transitions are shorter and preview changes are smooth. Combat numbers spread across five lanes, combine nearby ordinary hits and fade when making room.
+- Failed and interrupted casts stay readable, and a completed channel gets a soft acknowledgement. Target ticks are clearer, threat reads as a coloured edge, nameplates dim smoothly, and a Medallions target fades when lost or replaced and turns grey on death.
+- Low-health danger stays at the screen edges, with a smooth ring around your portrait and a still red rim on low-health enemies.
+- Setup shows each role in the HUD style you chose, with clearer wrapping notes and slimmer switches.
 
 ### Fixed
 
@@ -44,22 +57,16 @@ Clearer combat and finished HUD styles: tooltips that follow your mouse out of c
 - Long cooldown countdowns no longer cross stack counts, and key labels stay inside their action buttons in Frames, Orbs and Medallions.
 - The dispel colour in the Options raid preview is a light wash again instead of a solid tile.
 - The damage meter goes back to its normal heading once combat data can be read again.
+- Six- and twelve-button third action bars fit Frames, Orbs and Medallions, with matching slab and socket treatment under Medallions.
+- Calm motion keeps brief fades and flashes while windows, tabs, switches, lists, the loot feed, group cards and bag icons stop moving.
+- Changing a setting no longer restarts a lit proc's entrance or crest flash, and the previous glow restores its full texture. A proc cannot interrupt a level-up celebration, and returning to the world does not replay a proc that was already lit.
+- Real aura timers show a positive last second and plate debuffs end without a flash, and settings windows still open and close at once in combat and with reduced motion.
+- Target cast labels stay clear after target and HUD style changes, and a new nameplate no longer inherits the previous enemy's fading.
+- RestedXP guide borders and chat tab underlines stay crisp at fractional interface scales.
+- Healthy hostile targets no longer show a danger rim.
+- Settings labels stay readable when you shrink the window, and small previews start at the top.
 
 An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
-
-### Draft: still to add before tagging (delete this list at tag time)
-
-Add each line below from that PR's own `## Changelog` section when it merges, then set the release date above.
-
-- [#460](https://github.com/korallis/KstyleUI/pull/460) feat(accessibility): finish setup, options and the third action bar
-- Audit batch E-a: no PR number yet
-- Audit batch E-b: no PR number yet
-- Audit batch F-a: no PR number yet
-- Audit batch F-b: no PR number yet
-- Audit batch F-c: no PR number yet
-- Audit batch G8: no PR number yet
-- Audit batch G-b: no PR number yet
-- Also open against `staging` when this draft was written: [#475](https://github.com/korallis/KstyleUI/pull/475), [#476](https://github.com/korallis/KstyleUI/pull/476), [#477](https://github.com/korallis/KstyleUI/pull/477), [#478](https://github.com/korallis/KstyleUI/pull/478). Confirm whether any of these are the audit batches above before tagging.
 
 ## v0.2.5 (2026-11-18)
 
