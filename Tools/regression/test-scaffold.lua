@@ -9,7 +9,7 @@ local SPEC_MODULES = {
 }
 local ON_DEMAND = { Options = true }
 
--- The core service files and area XML files, in the order Core.xml loads them.
+-- The core service files and area XML files, in TOC/XML load order.
 local CORE_FILES = {
 	"Init.lua", "Locale.lua", "Callbacks.lua", "Events.lua", "Tokens.lua", "Theme.lua", "Scale.lua",
 	"Motion.lua", "Features.lua", "Store.lua", "Modules.lua", "Combat.lua", "Safe.lua", "DevTest.lua",
@@ -172,8 +172,8 @@ end
 
 -- The core loads every service file, Init.lua first.
 local core = TocFiles("^Core/")
-if core[1] ~= "Core/Core.xml" or core[2] ~= "Core/Init.lua" then
-	problem("Core/Core.xml must load Core/Init.lua first, got " .. tostring(core[2]))
+if core[1] ~= "Core/Init.lua" or core[2] ~= "Core/Locale.lua" then
+	problem("KstyleUI.toc must load Core/Init.lua then Core/Locale.lua before translations and Core/Core.xml")
 end
 local coreLoaded = {}
 for _, path in ipairs(core) do
@@ -181,7 +181,7 @@ for _, path in ipairs(core) do
 end
 for _, file in ipairs(CORE_FILES) do
 	if not coreLoaded["Core/" .. file] then
-		problem("Core/Core.xml does not load Core/" .. file)
+		problem("KstyleUI.toc and Core/Core.xml do not load Core/" .. file)
 	end
 end
 
