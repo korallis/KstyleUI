@@ -419,7 +419,7 @@ local function SizeCrest(hub)
 	Widgets.Size(hub.bloom, bloom, bloom)
 	if hub.seat then
 		hub.seat:SetShown(ns.Config("seatedCrest") == true)
-		hub.seatWell:SetShown(ns.Config("seatedCrest") == true)
+		Widgets.ShowSlice(hub.seatRing, ns.Config("seatedCrest") == true)
 	end
 end
 
@@ -431,15 +431,13 @@ local function BuildCrest(hub)
 		Widgets.Tint(socket, "deep")
 	end
 	hub.socket = socket
-	local seat = Region(hub, "ARTWORK", -3, Slab.Texture("orbMask"))
+	local seat = Region(hub, "ARTWORK", -3)
 	Widgets.Size(seat, OPENING, OPENING)
 	seat:SetPoint("CENTER", hub, "CENTER", 0, 0)
-	Widgets.Tint(seat, "medSocketLip")
 	hub.seat = seat
-	local well = Region(hub, "ARTWORK", -2, Slab.Texture("medHubSocket"))
-	Widgets.Size(well, OPENING - 4, OPENING - 4)
-	well:SetPoint("CENTER", hub, "CENTER", 0, 0)
-	hub.seatWell = well
+	hub.seatRing = Widgets.NineSlice(hub, "ringLine32", "ARTWORK", -3)
+	Widgets.ColorSlice(hub.seatRing, Tokens.Color("medSocketLip"))
+	Widgets.LayoutSlice(hub.seatRing, seat, OPENING / 2, 0)
 
 	local mask = OpeningMask(hub, hub)
 	local crest = Region(hub, "ARTWORK", 0)
