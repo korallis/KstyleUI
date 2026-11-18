@@ -471,7 +471,7 @@ function Style.MetricText(text, title)
 		end)
 	end
 	if type(text.SetSpacing) == "function" then
-		text:SetSpacing(math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - select(2, text:GetFont())))
+		text:SetSpacing(math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - Widgets.LineHeight(text)))
 	end
 end
 
