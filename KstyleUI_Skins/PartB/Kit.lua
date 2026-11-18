@@ -524,9 +524,9 @@ local function RankBar(frame)
 	K.Skin.Strip(frame, { children = { "Background", "Fill", "Flare", "Border" } })
 	local fill = K.Widgets.StatusBar(frame, { texture = ns.Style.BarTexture(), border = true, min = 0, max = 1, value = 0 })
 	fill:ClearAllPoints()
-	fill:SetPoint("LEFT", frame, "LEFT")
-	fill:SetPoint("RIGHT", frame, "RIGHT")
 	fill:SetHeight(K.Widgets.Snap(frame, 6))
+	K.Widgets.Point(fill, "LEFT", frame, "LEFT")
+	K.Widgets.Point(fill, "RIGHT", frame, "RIGHT")
 	local rank = frame.Rank
 	if type(rank) == "table" and type(rank.GetFrameLevel) == "function" then
 		fill:SetFrameLevel(max(0, rank:GetFrameLevel() - 1))

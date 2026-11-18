@@ -109,7 +109,10 @@ end
 
 -- Glyphs(object) -> x, y: whether an axis has a point anchored to a font string's side that its glyphs place (any
 -- side but its left or top, or a side neither its own points nor an explicit box fix), so the font places that axis.
-local function Glyphs(object)
+local function Glyphs(object, seen)
+	seen = seen or {}
+	if seen[object] then return false, false end
+	seen[object] = true
 	local x, y = false, false
 	for _, pack in ipairs(object._points or {}) do
 		local relative = Relative(object, pack)
@@ -117,8 +120,12 @@ local function Glyphs(object)
 			local share = SHARE[type(pack[3]) == "string" and pack[3] or pack[1]]
 			x = x or share == nil or share[1] ~= 0 or not (Pinned(relative, 1, share[1]) or Boxed(relative, 1))
 			y = y or share == nil or share[2] ~= 1 or not (Pinned(relative, 2, share[2]) or Boxed(relative, 2))
+		elseif relative and relative._type == "Texture" then
+			local rx, ry = Glyphs(relative, seen)
+			x, y = x or rx, y or ry
 		end
 	end
+	seen[object] = nil
 	return x, y
 end
 

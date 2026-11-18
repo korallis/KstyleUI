@@ -488,8 +488,7 @@ function List:Top(pad)
 end
 
 local function Recolor(list, row)
-	local full = list.section == "threat" and row.threat and row.threat >= ns.Get("threat.warnAt")
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block, full)
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
@@ -861,7 +860,6 @@ function FillRow(list, row, name, classFile, reaction, value, maxValue, valueTex
 		row.percent:SetShown(list.percentWidth > 0)
 	end
 	row.class, row.reaction, row.school = classFile, reaction, schoolToken
-	row.threat = list.section == "threat" and Logic.Plain(value) or nil
 	Recolor(list, row)
 end
 

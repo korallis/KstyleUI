@@ -224,7 +224,7 @@ local function StopTimer(cb)
 end
 
 local function EndTimer(cb, value)
-	cb.inkEmpty, cb.pr = value == 0, nil
+	cb.inkEmpty = value == 0
 	StopTimer(cb)
 	cb.duration = nil
 	cb.timer:SetText("")
@@ -692,17 +692,19 @@ local function BarColor(cb)
 end
 
 local function Paint(cb, r, g, b, a)
-	if cb.pr == r and cb.pg == g and cb.pb == b and cb.pa == a then
-		return
-	end
-	cb.pr, cb.pg, cb.pb, cb.pa = r, g, b, a
-	if cb.medal then
+	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
+	if cb.medal and (changed or cb.inkPaint ~= cb.inkEmpty) then
+		cb.inkPaint = cb.inkEmpty
 		if cb.inkEmpty then
 			Widgets.InkText(cb.text, Tokens.Color(TRACK))
 		else
 			Widgets.InkText(cb.text, r, g, b)
 		end
 	end
+	if not changed then
+		return
+	end
+	cb.pr, cb.pg, cb.pb, cb.pa = r, g, b, a
 	if a == nil then
 		cb.bar:SetBarColor(r, g, b)
 	else
@@ -897,7 +899,7 @@ local function Start(cb, channel)
 		return
 	end
 	cb.active, cb.landed, cb.channel = true, false, channel
-	cb.inkEmpty, cb.pr = nil, nil
+	cb.inkEmpty = false
 	StopFlash(cb)
 	cb.castBarID, cb.spellID = nil, nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then

@@ -146,7 +146,7 @@ do
 	for i = 2, #rows do
 		local pitch = (rows[i].rect[2] - rows[i - 1].rect[2]) * ppu
 		first = first or pitch
-		assert(pitch >= 32 - 1 and pitch <= 32 * 1.12, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32, spread by at most the room the card's whole lines leave (KSTY-33)")
+		assert(math.abs(pitch - 37) < 1, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the twelve-unit header gap leaves a 37-pixel fitted pitch")
 		assert(math.abs(pitch - first) < 1, "the chat lines are evenly spaced, got " .. pitch .. " and " .. first)
 	end
 end

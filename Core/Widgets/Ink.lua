@@ -37,6 +37,9 @@ function Widgets.TextScrim(text, shown)
 	if not slice and shown then
 		slice = Widgets.NineSlice(text:GetParent(), "shadow", "BACKGROUND", -1)
 		text.inkScrim = slice
+		for _, texture in ipairs(slice) do
+			texture.inkTextScrim = true
+		end
 		Widgets.ColorSlice(slice, Widgets.Rgba("black", 0.45))
 	end
 	if slice then

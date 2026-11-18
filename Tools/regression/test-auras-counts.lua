@@ -130,13 +130,14 @@ do
 	local Widgets = K.Widgets
 	local entry = desc.buttons[1]
 	local ruler = Widgets.FontString(desc.host, "OVERLAY")
-	Widgets.ApplyFont(ruler, (K.Tokens.Font("body")), 11, "")
+	Widgets.ApplyFont(ruler, (K.Tokens.Font("body")), 11, "OUTLINE")
 	local _, want = ruler:GetFont()
 	local wx, wy = ruler:GetShadowOffset()
-	local _, timerSize = entry.timer:GetFont()
+	local _, timerSize, flags = entry.timer:GetFont()
 	local sx, sy = entry.timer:GetShadowOffset()
 	check(near(want, Widgets.FontSize(entry.timer, 11), 1e-6) and not near(want, 11, 1e-6), "the snapped size differs from the raw 11 on this screen: " .. tostring(want))
 	check(near(timerSize, want, 1e-6), "the timer takes the snapped size, got " .. tostring(timerSize) .. " for " .. tostring(want))
+	check(flags == "OUTLINE", "the default timer keeps its thin outline on the world")
 	check(near(sx, wx, 1e-6) and near(sy, wy, 1e-6), "and the one-pixel shadow, got " .. tostring(sx) .. ", " .. tostring(sy) .. " for " .. tostring(wx) .. ", " .. tostring(wy))
 	local _, countSize = entry.count:GetFont()
 	check(near(countSize, Widgets.FontSize(entry.count, 10), 1e-6), "the count snaps too, got " .. tostring(countSize))

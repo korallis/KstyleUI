@@ -43,7 +43,7 @@ assert(Logic.Abbreviate(nil) == "", "nothing reads as empty text")
 assert(Logic.Abbreviate(0 / 0) == "", "NaN reads as empty text")
 assert(Logic.FormatRate(S(38.4), "dps") ~= "" and env.Reveal(Logic.FormatRate(S(38.4), "dps")) == "38 dps", "a secret rate is whole and keeps its unit")
 assert(env.Reveal(Logic.FormatRate(S(12400), "dps")) == "12K dps", "a large secret rate is abbreviated")
-assert(Logic.FormatRate(12400, "dps") == "12K dps" and Logic.FormatRate(38.4, "dps") == "38.4 dps", "a plain rate keeps one decimal below 100")
+assert(Logic.FormatRate(12400, "dps") == "12K dps" and Logic.FormatRate(38.4, "dps") == "38.4 dps", "a plain rate keeps one decimal under 1000")
 
 -- A client that refuses the breakpoints keeps the game's own abbreviation for a secret, and a client without
 -- AbbreviateLargeNumbers shows nothing for it. A plain number never needs the game.

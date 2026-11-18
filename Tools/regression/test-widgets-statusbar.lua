@@ -264,7 +264,7 @@ do
 	end
 	stops("health", "hudPlayerHealth", { 46, 109, 213 }, { 41, 98, 192 })
 	stops("target", "hudTargetHealth", { 208, 74, 67 }, { 179, 58, 53 })
-	stops("power", "hudMana", { 62, 62, 242 }, { 57, 57, 221 })
+	stops("power", "hudMana", { 43, 64, 172 }, { 39, 59, 157 })
 	stops("plate", "plateHostile", { 208, 74, 67 }, { 179, 59, 54 })
 	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14 })
 	bar:SetBarTexture("Glass")

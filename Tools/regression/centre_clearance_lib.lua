@@ -44,7 +44,7 @@ local function Collect(scene, roots, groups, painted, scale, label)
 	for _, item in ipairs(scene.items) do
 		local r = item.rect
 		local light = item.blend == "ADD" and item.file and item.file:find("Glow.png", 1, true)
-		if r[3] > 0 and r[4] > 0 and not light then
+		if r[3] > 0 and r[4] > 0 and not light and not item.object.inkTextScrim then
 			local object, group = item.object
 			while object do
 				painted[object] = true

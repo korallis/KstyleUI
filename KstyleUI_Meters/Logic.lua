@@ -124,7 +124,7 @@ function Logic.FormatRate(value, unit)
 	if value >= RATE_ABBREVIATE_FROM then
 		return Logic.Abbreviate(value) .. " " .. unit
 	end
-	return format(value < 100 and "%.1f %s" or "%d %s", value, unit)
+	return format("%.1f %s", value, unit)
 end
 
 function Logic.SchoolToken(spellID)
