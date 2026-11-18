@@ -644,9 +644,20 @@ local function PlaceMetrics(state)
 	local inset = frame.Inset
 	if type(inset) == "table" and Widgets.MayMove(inset) then
 		local contentTop = 44
+		local top = frame:GetTop()
+		for _, key in ipairs({ "FilterDropdown", "Dropdown", "SearchBox" }) do
+			local control = frame[key]
+			if type(control) == "table" and Widgets.MayMove(control) then
+				control:SetHeight(Widgets.Snap(control, 28))
+				local bottom = control:GetBottom()
+				if Plain(top) and Plain(bottom) then
+					contentTop = math.max(contentTop, top - bottom + 12)
+				end
+			end
+		end
 		local header = frame.FriendsTabHeader
 		local broadcast = type(header) == "table" and header.BattlenetFrame
-		local top, broadcastBottom = frame:GetTop(), broadcast and broadcast:GetBottom()
+		local broadcastBottom = broadcast and broadcast:GetBottom()
 		if Plain(top) and Plain(broadcastBottom) then
 			contentTop = math.max(contentTop, top - broadcastBottom + 12)
 		end

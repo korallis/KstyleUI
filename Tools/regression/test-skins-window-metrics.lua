@@ -34,12 +34,19 @@ for _, spec in ipairs(Windows.LIST) do
 	end
 	assert(count > 0, spec.key .. ": opt this window family into the shared native window measures")
 	if spec.key == "merchant" then
+		assert(env.MerchantItem1:GetTop() < env.MerchantFrame.FilterDropdown:GetBottom(), "merchant goods begin below the filter control")
 		for i = 1, 10 do
 			local slot = env["MerchantItem" .. i]
 			assert(select(2, slot.MoneyFrame:GetFont()) == K.Widgets.FontSize(slot.MoneyFrame, 12), "merchant prices use the secondary text lane")
 			local _, parent, _, _, y = slot.MoneyFrame:GetPoint(1)
 			assert(parent == slot and math.abs(y) < 0.5, "merchant prices sit below two-line names at the row's lower edge")
 		end
+	end
+	if spec.key == "trainer" then
+		assert(env.ClassTrainerFrame.ScrollBox:GetTop() < env.ClassTrainerFrame.FilterDropdown:GetBottom(), "trainer rows begin below the filter and rank header")
+	end
+	if spec.key == "addonlist" then
+		assert(env.AddonList.ScrollBox:GetTop() < env.AddonList.SearchBox:GetBottom(), "addon rows begin below the search control")
 	end
 	if spec.key == "friends" then
 		assert(env.FriendsListFrame.ScrollBox:GetTop() < env.FriendsFrame.FriendsTabHeader.BattlenetFrame:GetBottom(), "the friends list begins below its broadcast header")
