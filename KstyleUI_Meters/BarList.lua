@@ -1037,7 +1037,7 @@ function List:ShowSwitch()
 end
 
 function List:SetRest(text)
-	if not Logic.IsSecret(text) and self.rest == text then
+	if not Logic.IsSecret(text) and not Logic.IsSecret(self.rest) and self.rest == text then
 		return
 	end
 	self.rest = text
