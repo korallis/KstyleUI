@@ -25,5 +25,6 @@ Skins.Add({
 	label = L["Ready check"],
 	help = L["Restyles the ready check question and its two buttons."],
 	frame = "ReadyCheckFrame",
+	metrics = { "ReadyCheckListenerFrame" },
 	Apply = Apply,
 })
