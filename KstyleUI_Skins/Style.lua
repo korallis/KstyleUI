@@ -455,6 +455,25 @@ function Style.IsSwept(text)
 	return swept[text] ~= nil
 end
 
+function Style.MetricText(text, title)
+	local role = roles[text]
+	if not title and (sizes[text] ~= nil or role == "number" or role == "caps" or role == "display") then
+		return
+	end
+	local units = title and 16 or role == "caption" and 12 or 13
+	local size = units * K.Theme.FontScale() * Style.Setting("text", "size")
+	local entry = swept[text]
+	if entry then
+		entry.size = units * K.Theme.FontScale()
+		PaintSwept(text, entry)
+	else
+		Style.Text(text, role or "body", nil, size)
+	end
+	if type(text.SetSpacing) == "function" then
+		text:SetSpacing(math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - select(2, text:GetFont())))
+	end
+end
+
 function Style.RestyleAll()
 	for text in pairs(roles) do
 		K.Call(Style.Text, text)

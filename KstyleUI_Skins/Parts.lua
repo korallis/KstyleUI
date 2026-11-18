@@ -561,6 +561,72 @@ function Parts.TitleCap(frame, title, close)
 	return cap
 end
 
+local metricWindows = setmetatable({}, WEAK)
+
+local function MetricChildren(frame, depth)
+	if depth > 8 or Widgets.Restricted(frame) or type(frame.GetRegions) ~= "function" then
+		return
+	end
+	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "StatusBar" then
+		return
+	end
+	local parts = Skin.Parts(frame)
+	if parts and (parts.kinds.Button or parts.kinds.EditBox) and Widgets.MayMove(frame) then
+		frame:SetHeight(Widgets.Snap(frame, 28))
+	end
+	for _, text in ipairs({ frame:GetRegions() }) do
+		if type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
+			ns.Style.MetricText(text)
+		end
+	end
+	if type(frame.GetChildren) == "function" then
+		for _, child in ipairs({ frame:GetChildren() }) do
+			MetricChildren(child, depth + 1)
+		end
+	end
+end
+
+local function PlaceMetrics(state)
+	local frame, title = state.frame, state.title
+	if InCombatLockdown() or not Widgets.MayMove(frame) then
+		return
+	end
+	MetricChildren(frame, 1)
+	if title then
+		ns.Style.MetricText(title, true)
+		title:ClearAllPoints()
+		Widgets.Point(title, "LEFT", frame, "TOPLEFT", 12 + CAP_GEM + CAP_GEM_GAP, -16)
+		Widgets.Point(title, "RIGHT", frame, "TOPRIGHT", -40, -16)
+		Parts.Realign(title)
+	end
+	local inset = frame.Inset
+	if type(inset) == "table" and Widgets.MayMove(inset) then
+		local _, _, _, _, bottom = inset:GetPoint(inset:GetNumPoints())
+		inset:ClearAllPoints()
+		Widgets.Point(inset, "TOPLEFT", frame, "TOPLEFT", 12, -44)
+		Widgets.Point(inset, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, type(bottom) == "number" and not IsSecret(bottom) and math.max(12, bottom) or 12)
+	end
+	local parts = Skin.Parts(frame)
+	if parts and parts.backdrop then
+		parts.backdrop.chrome:SetHeader(32)
+	end
+end
+
+function Parts.WindowMetrics(frame)
+	if type(frame) ~= "table" or metricWindows[frame] then
+		return
+	end
+	local container = frame.TitleContainer or type(frame.BorderFrame) == "table" and frame.BorderFrame.TitleContainer
+	local title = type(container) == "table" and container.TitleText or type(frame.Header) == "table" and frame.Header.Text or nil
+	local state = { frame = frame, title = title, Restyle = PlaceMetrics }
+	metricWindows[frame] = state
+	frame:HookScript("OnShow", function() PlaceMetrics(state) end)
+	Widgets.Track(state)
+	ns.Style.Track(state)
+	PlaceMetrics(state)
+	return state
+end
+
 local headings = setmetatable({}, WEAK)
 
 local function PlaceHeading(h)

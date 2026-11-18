@@ -160,6 +160,11 @@ local function Run(def)
 	switched[def.key] = true
 	if K.Call(def.Apply, def) then
 		K.Call(Sweep, def)
+		if def.metrics then
+			for _, name in ipairs(type(def.metrics) == "table" and def.metrics or { def.frame }) do
+				K.Call(ns.Parts.WindowMetrics, _G[name])
+			end
+		end
 		Log(def.key .. ": applied")
 	else
 		failed[def.key] = true
