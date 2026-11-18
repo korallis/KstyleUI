@@ -863,8 +863,7 @@ Pages.TASKS = {
 local function TasksItems()
 	local items = {}
 	for _, task in ipairs(Pages.TASKS) do
-		local target = task
-		items[#items + 1] = { kind = "task", label = task.label, page = "Tasks", onClick = function() ns.Window.Jump(target) end }
+		items[#items + 1] = { kind = "task", label = task.label, page = "Tasks", onClick = function() ns.Window.Jump(task) end }
 	end
 	return items
 end

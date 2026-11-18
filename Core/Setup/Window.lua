@@ -188,15 +188,14 @@ local function Refresh()
 				style = entry.label
 			end
 		end
-		local head = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
-			.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
+		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+		local head = lead .. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
 		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
 		local count = head .. modules
 		panel.summaryTexts = { head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail, count .. tail, count }
 		if ns.Store.Module("Setup").readableNotes then
-			panel.summaryTexts[4] = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
-				.. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, "") .. "\n\n" .. modules
+			panel.summaryTexts[4] = lead .. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, "") .. "\n\n" .. modules
 		end
 		panel.summary:SetText(panel.summaryTexts[1])
 		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
@@ -789,10 +788,6 @@ local function BuildModules(page, width)
 		Widgets.Track(note)
 		NoteStyle(note)
 		note:SetJustifyH("LEFT")
-		note:SetWordWrap(false)
-		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
-		Widgets.Point(note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
-		note:SetWidth(width / 2 - indent - gap("gapLarge"))
 		toggle.note = note
 		panel.toggles[name] = toggle
 	end
