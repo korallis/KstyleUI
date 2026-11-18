@@ -35,6 +35,10 @@ wash:SetVertexColor(1, 1, 1, 0.5)
 wash:SetAlpha(0.2)
 item = find(wash)
 near(item.alpha * item.vertex[4], 0.5 * 0.2 * 0.5, "alpha multiplication is independent of setter order")
+wash:SetAlpha(1)
+wash:SetVertexColor(1, 1, 1, 0)
+assert(not find(wash), "zero vertex alpha draws nothing: omit it from pixel-grid accounting, as the canvas does")
+wash:SetVertexColor(1, 1, 1, 0.5)
 
 env._now = 10
 wash:SetAlpha(0)

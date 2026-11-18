@@ -1211,6 +1211,10 @@ function Scene.Build(env, opts)
 		if region._barOwner and region._barOwner._state.StatusBarColor then
 			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex, env)
 		end
+		if item.vertex[4] <= 0 then
+			skipped.transparent = skipped.transparent + 1
+			return nil
+		end
 		local coords = region._state.TexCoord
 		if coords and coords.n >= 4 and not item.texCoord then
 			local list = {}
