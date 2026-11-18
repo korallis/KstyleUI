@@ -537,7 +537,7 @@ function Guard.Check(scene)
 		for _, copy in ipairs(texts) do
 			local a, b = part.item, copy.item
 			local af, bf = a.font or {}, b.font or {}
-			if not copy.hidden and b ~= a and Scene.PlainText(a.text) == Scene.PlainText(b.text)
+			if not copy.hidden and not copy.cover and b ~= a and Scene.PlainText(a.text) == Scene.PlainText(b.text)
 				and af.path == bf.path and af.size == bf.size and a.justifyH == b.justifyH and a.justifyV == b.justifyV
 				and a.wordWrap == b.wordWrap and a.spacing == b.spacing and a.grow == b.grow then
 				local same = true
