@@ -1,4 +1,4 @@
--- Anchor.lua: the tooltip anchor element that Layout places and scales, and the hook that puts GameTooltip at it, lifted over a shown threat card or target of target in its column, or at the cursor.
+-- Anchor.lua: the placed tooltip anchor, Blizzard cursor positioning and shared minimap placement for Blizzard and kit tooltips.
 local _, ns = ...
 
 local K = KstyleUI
@@ -102,7 +102,7 @@ end
 
 local function PlaceMinimap(tooltip, owner)
 	local map = Minimap
-	if not ns.active or tooltip ~= GameTooltip or not map or not Settings.Get("minimapAnchor") then
+	if not ns.active or not map or not Settings.Get("minimapAnchor") then
 		return false
 	end
 	local element = K.Layout and K.Layout.Element and K.Layout.Element("minimap.main")
@@ -116,7 +116,7 @@ local function PlaceMinimap(tooltip, owner)
 		end
 		owner = type(owner.GetParent) == "function" and owner:GetParent() or nil
 	end
-	if not found or type(tooltip.SetAnchorType) ~= "function" then
+	if not found or (tooltip == GameTooltip and type(tooltip.SetAnchorType) ~= "function") then
 		return false
 	end
 	local x = type(map.GetCenter) == "function" and map:GetCenter()
@@ -131,7 +131,9 @@ local function PlaceMinimap(tooltip, owner)
 	if Logic.IsNumber(root) and Logic.IsNumber(own) and own > 0 then
 		gap = K.Tokens.Size("gapMedium") * root / own
 	end
-	tooltip:SetAnchorType("ANCHOR_NONE")
+	if tooltip == GameTooltip then
+		tooltip:SetAnchorType("ANCHOR_NONE")
+	end
 	tooltip:ClearAllPoints()
 	tooltip:SetPoint(right and "TOPRIGHT" or "TOPLEFT", map, right and "TOPLEFT" or "TOPRIGHT", right and -gap or gap, 0)
 	return true
@@ -185,6 +187,16 @@ function Anchor.Hook()
 		return false
 	end
 	hooked = true
+	local createTooltip, widgetHooked = K.Widgets.Tooltip, false
+	hooksecurefunc(K.Widgets, "Tooltip", function()
+		if not widgetHooked then
+			widgetHooked = true
+			local tooltip = createTooltip()
+			hooksecurefunc(tooltip, "Show", function(widget)
+				K.Call(PlaceMinimap, widget, widget.owner)
+			end)
+		end
+	end)
 	hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
 		K.Call(Place, tooltip, parent)
 	end)
