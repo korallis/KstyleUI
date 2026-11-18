@@ -756,11 +756,9 @@ function Card.Build(root)
 	shade:SetHeight(Snap(12))
 	fade = shade:CreateTexture(nil, "OVERLAY")
 	fade:SetAllPoints(shade)
-	local r, g, b = Tokens.Color("medFillBottom")
-	fade:SetColorTexture(r, g, b, 1)
-	if type(fade.SetGradient) == "function" and type(CreateColor) == "function" then
-		fade:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
-	end
+	fade:SetTexture((Tokens.Texture("ruleFade")))
+	fade:SetTexCoord(1, 0, 0, 0, 1, 1, 0, 1)
+	Widgets.Tint(fade, "medFillBottom")
 	for i = 1, MAX_SHOWN + 1 do
 		rows[i] = NewRow(i)
 	end
