@@ -5,7 +5,7 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 local Measure = dofile("Tools/regression/databars_env.lua")
 
-local HOOKED = { SetAlpha = true, SetVertexColor = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true, SetScale = true, StopMovingOrSizing = true }
+local HOOKED = { SetAlpha = true, SetVertexColor = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true, SetScale = true, StopMovingOrSizing = true, SetTexture = true, SetRotation = true, SetTexCoord = true }
 local SCREENS = { { 1920, 1080, 1 }, { 3456, 2234, 768 / 1080 }, { 5120, 1440, 1 }, { 2383, 1540, 768 / 1080 } }
 local LEE = {
 	activeItemFrame = { "BOTTOMRIGHT", nil, "BOTTOMRIGHT", -47.74521255493164, 242.4930267333984 },
