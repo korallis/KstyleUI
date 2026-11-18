@@ -15,17 +15,22 @@ function Fan.Wanted(view)
 	return view.kind == "target" and K.HudStyle.Current() == "medallions" and Settings.Value("target", "crestDebuffs")
 end
 
-local function Style(entry)
-	entry.button:SetSize(SIZE, SIZE)
-	ns.Auras.LayoutTile(entry)
+local function TextStyle(fan)
 	local path, size, flags = Settings.Font("target", "aura")
+	local r, g, b, a = Tokens.Color("textEmphasis")
+	return { path, math.min(12, math.max(10, size)), flags or "", 2 * Widgets.Border(fan.holder), r, g, b, a }
+end
+
+local function Style(entry, style)
+	ns.Auras.LayoutTile(entry, true, style[4])
 	for _, text in ipairs({ entry.timer, entry.count }) do
-		Widgets.ApplyFont(text, path, math.min(12, math.max(10, size)), flags)
-		text:SetTextColor(Tokens.Color("textEmphasis"))
+		Widgets.ApplyFont(text, style[1], style[2], style[3])
+		text:SetTextColor(style[5], style[6], style[7], style[8])
 	end
 end
 
-local function Dress(button, entries, chrome)
+local function Dress(button, fan, chrome)
+	button:SetSize(SIZE, SIZE)
 	local entry = ns.Auras.NewTile(button, chrome)
 	entry.button = button
 	entry.skin:SetAllPoints(button)
@@ -53,13 +58,13 @@ local function Dress(button, entries, chrome)
 	if type(button.AddPandemicRegion) == "function" then
 		button:AddPandemicRegion(cue)
 	end
-	Style(entry)
+	Style(entry, fan.textStyle)
 	button:SetIcon(entry.icon)
 	button:SetDurationCooldown(cooldown)
 	button:SetDurationText(entry.timer)
 	button:SetApplicationCount(entry.count)
 	entry.cooldown, entry.pandemic = cooldown, cue
-	entries[#entries + 1] = entry
+	fan.buttons[#fan.buttons + 1] = entry
 end
 
 local function DefaultPosition()
@@ -88,8 +93,9 @@ local function Build(view)
 	local content = CreateFrame("Frame", nil, holder)
 	content:Hide()
 	content:SetAllPoints(holder)
-	local fan = { holder = holder, content = content, windows = {}, containers = {}, buttons = {} }
+	local fan = { holder = holder, content = content, windows = {}, containers = {}, buttons = {}, chromes = {} }
 	view.auras.fan = fan
+	fan.textStyle = TextStyle(fan)
 	for rank, degrees in ipairs(ANGLES) do
 		local window = CreateFrame("Frame", nil, content, TEMPLATE)
 		window:SetClipsChildren(true)
@@ -101,12 +107,14 @@ local function Build(view)
 		container:SetUnit("target")
 		container:SetEnabled(false)
 		local chrome = Rim(window, container)
+		chrome:SetRimAccent(Settings.Accent())
+		fan.chromes[rank] = chrome
 		container:AddAuraGroup("debuffs", FILTER, {
 			maxFrameCount = rank,
 			sortMethod = AuraContainerSortMethod.ExpirationOnly,
 			sortDirection = AuraContainerSortDirection.Normal,
 			layout = { elementWidth = SIZE, elementHeight = SIZE, elementSpacing = PITCH - SIZE, lineSpacing = 0 },
-			initializeFrame = function(button) Dress(button, fan.buttons, chrome) end,
+			initializeFrame = function(button) Dress(button, fan, chrome) end,
 		})
 		container:SetFlowLayoutAnchorPoint("TOPLEFT")
 		container:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
@@ -133,8 +141,13 @@ end
 function Fan.Restyle(view)
 	local fan = view.auras and view.auras.fan
 	if fan and fan.enabled and ns.Auras.Open() then
+		fan.textStyle = TextStyle(fan)
+		for _, chrome in ipairs(fan.chromes) do
+			chrome:Restyle()
+			chrome:SetRimAccent(Settings.Accent())
+		end
 		for _, entry in ipairs(fan.buttons) do
-			Style(entry)
+			Style(entry, fan.textStyle)
 		end
 		if fan.overflow then ns.Overflow.Apply(fan.overflow, fan.overflowOptions) end
 	end

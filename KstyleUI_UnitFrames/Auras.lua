@@ -98,13 +98,15 @@ local function TextSize(kind, size)
 	return math.max(size, math.min(TEXT_FLOOR, room))
 end
 
-local function StyleText(text, view)
+local function StyleTexts(view, count, timer)
 	local path, size, flags = Settings.Font(view.kind, "aura")
 	size = TextSize(view.kind, size)
-	if not Widgets.ApplyFont(text, path, size, flags) then
-		Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
+	for _, text in ipairs({ count, timer }) do
+		if not Widgets.ApplyFont(text, path, size, flags) then
+			Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
+		end
+		pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
 	end
-	pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
 end
 
 local function Snap(view, units)
@@ -130,8 +132,7 @@ function Auras.StyleSample(tile, kind)
 	local inset = Widgets.Snap(tile.skin, COUNT_INSET)
 	tile.count:ClearAllPoints()
 	tile.count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", inset, inset)
-	StyleText(tile.count, view)
-	StyleText(tile.timer, view)
+	StyleTexts(view, tile.count, tile.timer)
 	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge)
 end
 
@@ -147,7 +148,7 @@ function Auras.NewTile(parent, chrome)
 	return { skin = skin, chrome = chrome, restyleChrome = chrome.Restyle, icon = icon, mask = mask }
 end
 
-function Auras.LayoutTile(tile)
+function Auras.LayoutTile(tile, skipChrome, sharedInset)
 	local skin = tile.skin
 	if tile.slab then
 		Widgets.LayoutSlice(tile.slab, skin, select(3, Tokens.Texture("medAuraBorder")))
@@ -158,9 +159,11 @@ function Auras.LayoutTile(tile)
 		tile.underline:SetHeight(math.max(Widgets.Border(skin), Widgets.Snap(skin, SLAB_UNDERLINE)))
 		return
 	end
-	tile.restyleChrome(tile.chrome)
-	tile.chrome:SetRimAccent(Settings.Accent())
-	local inset = Widgets.Border(skin) * ICON_INSET_LINES
+	if not skipChrome then
+		tile.restyleChrome(tile.chrome)
+		tile.chrome:SetRimAccent(Settings.Accent())
+	end
+	local inset = sharedInset or Widgets.Border(skin) * ICON_INSET_LINES
 	tile.icon:ClearAllPoints()
 	tile.icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	tile.icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
@@ -234,8 +237,7 @@ local function StyleButton(view, entry)
 	local inset = Widgets.Snap(entry.skin, COUNT_INSET)
 	entry.count:ClearAllPoints()
 	entry.count:SetPoint("TOPRIGHT", entry.skin, "TOPRIGHT", inset, inset)
-	StyleText(entry.count, view)
-	StyleText(entry.timer, view)
+	StyleTexts(view, entry.count, entry.timer)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)
 	entry.timer:SetShown(Value(view, "auraTimer"))
 	entry.badge:SetShown(not TimerBelow(view.kind) and Value(view, "auraTimer") == true)
