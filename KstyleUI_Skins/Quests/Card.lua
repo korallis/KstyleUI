@@ -717,6 +717,7 @@ local function Restyle()
 	Widgets.Point(track, "BOTTOMRIGHT", view, "BOTTOMRIGHT", Snap(BAR_WIDTH + BAR_GAP), 0)
 	thumb:SetColorTexture(Widgets.Rgba("text", THUMB_ALPHA))
 	thumb:SetWidth(Snap(BAR_WIDTH))
+	PaintRest()
 	Card.Render()
 end
 

@@ -436,6 +436,10 @@ local function HushText(text)
 	hushed[text] = { busy = false }
 	text:SetAlpha(0)
 	hooksecurefunc(text, "SetAlpha", Rehush)
+	if IsTexture(text) then
+		hooksecurefunc(text, "SetVertexColor", Rehush)
+		hooksecurefunc(text, "SetColorTexture", Rehush)
+	end
 end
 
 local function PlainText(value)
@@ -1994,6 +1998,11 @@ local function Option(widget)
 	local checkbg = widget.checkbg
 	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" then
 		return
+	end
+	for _, texture in pairs({ row.configuratorBackground, checkbg.configuratorBackground, widget.checkShort, widget.checkLong }) do
+		if IsTexture(texture) then
+			HushText(texture)
+		end
 	end
 	local previous = Lumen.RingOf(checkbg)
 	if previous then
