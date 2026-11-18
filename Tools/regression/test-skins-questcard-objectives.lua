@@ -25,7 +25,6 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 			assert(point == "BOTTOM" and relative == ns.Quests.Card(), "the hint's bottom is anchored inside its card")
 			local hintBottom = cardBounds.bottom + foot * K.Widgets.ScaleFactor(parts.more)
 			assert(hintBottom - cardBounds.bottom >= K.Scale.Pixel(1) + 4 - 1e-6, "the hint's descenders and shadow must clear the bottom border; increase compact footer padding")
-			local first = ns.Quests.Rows()[1].questID
 			local compact = parts.more:GetText():find("Quests 8:", 1, true) ~= nil
 			if compact then
 				assert(not parts.cap.row:IsShown() and not parts.cap.rule:IsVisible(), "compact pages must hide the section cap and its rule independently of the measured cap state")
