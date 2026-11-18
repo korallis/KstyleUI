@@ -111,6 +111,10 @@ local function Apply()
 		return false
 	end
 	Kit.Window(frame)
+	if type(MailItem1) == "table" and K.Widgets.MayMove(MailItem1) then
+		MailItem1:ClearAllPoints()
+		K.Widgets.Point(MailItem1, "TOPLEFT", frame, "TOPLEFT", 12, -44)
+	end
 	Inbox(InboxFrame)
 	SendForm(SendMailFrame)
 	Letter(OpenMailFrame)
