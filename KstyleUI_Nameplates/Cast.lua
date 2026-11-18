@@ -71,9 +71,9 @@ local function ColorObjects()
 	local open
 	if Settings.Get("cast.combatCues") and interrupt and interrupt.spell and interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
-		open = ColorObject(colors.wait, c.r, c.g, c.b)
+		open = ColorObject(colors.wait, K.ColorVision.Color(3, c.r, c.g, c.b))
 	else
-		open = ColorObject(colors.open, CastColor())
+		open = ColorObject(colors.open, K.ColorVision.Color(1, CastColor()))
 	end
 	return open, ColorObject(colors.shield, ShieldColor())
 end

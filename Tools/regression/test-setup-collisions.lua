@@ -556,7 +556,11 @@ for _, name in ipairs(Layouts.Names()) do
 				local w, h = Layouts.Footprint(name, element.key)
 				local r = { Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT) }
 				local where = string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f)", name, aspect[1], element.key, r[1], r[2], r[3], r[4])
-				assert(not (overlap(r, column) and r[4] > sigilTop), where .. " stands in the centre column above the sigil's top " .. sigilTop)
+				if element.key == "actionbars.bar3" then
+					assert(math.abs(r[4] - (HEIGHT - 20)) < 1e-6 and math.abs((r[1] + r[3]) / 2 - width / 2) < 1e-6, where .. " keeps its separate upper slot")
+				else
+					assert(not (overlap(r, column) and r[4] > sigilTop), where .. " stands in the centre column above the sigil's top " .. sigilTop)
+				end
 				assert(not overlap(r, band), where .. " lies in the screen's central 40% band")
 				bars = bars + 1
 			end

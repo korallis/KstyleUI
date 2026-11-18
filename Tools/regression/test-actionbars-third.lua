@@ -1,4 +1,5 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
+local CoreEnv = dofile("Tools/regression/core_env.lua")
 local function Rect(frame)
 	return { frame:GetLeft(), frame:GetBottom(), frame:GetRight(), frame:GetTop() }
 end
@@ -10,9 +11,13 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 		AB.Enable(env, K)
 		K.Options.Write("HudStyle", "style", style)
-		local maximum, fits = K.Setup.Layouts.ScaleLimit(K.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
-		local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
-		assert(K.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")
+		do
+			local fitEnv, fitK = CoreEnv.New({ width = screen[1], height = screen[2], fit = true, size = "auto" })
+			CoreEnv.Boot(fitEnv)
+			local maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
+			local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
+			assert(fitK.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")
+		end
 		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true }, hudStyle = style }))
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		AB.Slot(env, 1, { texture = 135813, type = "spell", id = 133 })
@@ -34,7 +39,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			end
 			local positions = K.Setup.Layouts.Positions("DPS", style, K.Scale.Aspect(), K.Scale.Band())
 			local rw, rh = K.Layout.RootSize()
-			for _, key in ipairs({ "unitframes.player", "unitframes.target", "unitframes.focus", "cooldowns.essential", "cooldowns.utility", "chat.main" }) do
+			for _, key in ipairs({ "unitframes.player", "unitframes.target", "unitframes.focus", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "chat.main" }) do
 				local place = positions[key]
 				local w, h = K.Setup.Layouts.StyleSize(style, K.Scale.Aspect(), key)
 				if not w then w, h = K.Setup.Layouts.Footprint("DPS", key) end

@@ -31,7 +31,7 @@ return Common.Run(function()
 			local Load = dofile("Tools/regression/load_files.lua")
 			local O = dofile("Tools/regression/options_env.lua")
 			env.C_AddOns = { LoadAddOn = function() Load(O.Files(), env); return true end }
-			local page = need == "bars" and "ActionBars" or need == "profiles" and "Profiles" or "General"
+			local page = (need == "bars" or need == "numeric") and "ActionBars" or (need == "profiles" or need == "import") and "Profiles" or "General"
 			K.Options.Open(page)
 			if need == "general" and K.Profiles then
 				K.Profiles.Readable("Readable")
@@ -39,8 +39,25 @@ return Common.Run(function()
 				K.Options.Write("Integrations", "timerLane", true)
 				K.Options.Write("Integrations", "announcementLane", true)
 			end
+			if need == "readable" and K.Profiles then K.Profiles.Readable("Readable") end
+			if need == "numeric" then K.Options.Write("ActionBars", "bar1.size", 40) end
 			env.RunTimers()
 			local ns = env._addons.KstyleUI_Options
+			if need == "numeric" then
+				for i, item in ipairs(ns.Window.State().items) do
+					if item.key == "bar1.size" then ns.Window.Parts().content:ScrollToIndex(i, true); break end
+				end
+				env.RunTimers()
+				W.Settle(env)
+				for _, row in ipairs(ns.Window.Parts().content.rows) do
+					if row.item and row.item.key == "bar1.size" and row.controls.slider.valueButton then W.Click(row.controls.slider.valueButton) end
+				end
+			elseif need == "import" and K.Profiles then
+				K.Options.Write("ActionBars", "bar1.buttons", 6)
+				local text = assert(K.Profiles.Export("ActionBars"))
+				K.Options.Write("ActionBars", "bar1.buttons", 12)
+				ns.Pages.ReviewImport(text)
+			end
 			if need == "general" or need == "profiles" then
 				local wanted = need == "profiles" and "Share" or "Colour vision"
 				for i, item in ipairs(ns.Window.State().items) do

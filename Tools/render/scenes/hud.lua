@@ -563,6 +563,13 @@ function modules.actionbars(opts)
 				env._game.bindings["ACTIONBUTTON" .. i] = { keys[i] }
 				env._game.bindings["MULTIACTIONBAR1BUTTON" .. i] = { keys2[i] }
 			end
+			if os.getenv("RENDER_BOUND_ACTIONS") == "1" then
+				local commands = { [3] = "MULTIACTIONBAR3BUTTON", [4] = "MULTIACTIONBAR4BUTTON", [5] = "MULTIACTIONBAR2BUTTON" }
+				for slot in pairs(opts.slots or {}) do
+					local page, index = math.floor((slot - 1) / 12) + 1, (slot - 1) % 12 + 1
+					if commands[page] then env._game.bindings[commands[page] .. index] = { "SHIFT-" .. index } end
+				end
+			end
 			env.GetBindingText = function(key)
 				return key
 			end

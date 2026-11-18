@@ -418,7 +418,7 @@ local ORBS = {
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X, y = ORBS_TRACKED_Y },
 	["actionbars.pet"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY },
 	["actionbars.stance"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR, y = ORBS_FIT.cornerY },
-	["actionbars.bar3"] = { anchor = "TOP", x = 0, y = -160 },
+	["actionbars.bar3"] = { anchor = "TOP", x = 0, y = -230 },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ORBS_FIT.tieX, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX, y = 52 },
 	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },

@@ -365,14 +365,15 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 431.5 + LIFT) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
-				assert(r.bottom - feed.top >= 16 and same(r.bottom - rect("unitframes.castbar.player").top, 16), label .. ": bar 3 clears the feed's full reserve and the player cast by at least 16")
-				assert(r.right <= width * 0.3 or r.left >= width * 0.7, label .. ": LEE-20 bar 3 stays outside the central 40% band")
+				assert(centred(r) and same(r.top, HEIGHT - 20) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has its own centred upper slot")
+				assert(r.bottom > rect("unitframes.focus").top and r.bottom > rect("unitframes.castbar.player").top, label .. ": bar 3 clears the complete HUD below")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
-			if EDGE_RIGHT[key] and not onRail then
+			if key == "actionbars.bar3" then
+				assert(r.bottom >= HEIGHT * 0.7, label .. ": bar 3 stays above the central play field")
+			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 4, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
