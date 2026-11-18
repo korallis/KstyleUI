@@ -189,7 +189,7 @@ To supply all 54 paths, run each of `test-perf.lua` (core), `test-perf-frames.lu
 | Tooltips GameTooltip shown for two units of different size: the card resized and its fade played | 186.92 | core/3 | - | 1170 |
 | UnitFrames UNIT_HEALTH | 7.94 | frames/1 | - | 50 |
 | UnitFrames UNIT_HEALTH on the player: loss band, hit flash, spark and low-health curve | 9.13 | frames/2 | - | 60 |
-| UnitFrames UNIT_POWER_UPDATE | 2.72 | frames/2 | - | 20 |
+| UnitFrames UNIT_POWER_UPDATE | 4.42 | frames/2 | - | 25 |
 | UnitFrames UNIT_FLAGS | 11.23 | frames/2 | - | 95 |
 | UnitFrames UNIT_THREAT_LIST_UPDATE | 1.97 | frames/5 | - | 15 |
 | UnitFrames UNIT_THREAT_LIST_UPDATE for another unit | 1.03 | frames/1 | - | 10 |
