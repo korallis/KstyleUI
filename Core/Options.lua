@@ -336,6 +336,8 @@ local function Equal(a, b)
 	return true
 end
 
+Options.Copy, Options.Equal = copy, Equal
+
 function Options.IsChanged(module, key)
 	return not Equal(Options.Read(module, key), Options.Default(module, key))
 end

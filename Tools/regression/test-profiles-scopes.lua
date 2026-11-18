@@ -3,6 +3,13 @@ local env, K = W.New({ boot = false })
 K.Modules.Register(W.CoreEnv.Module("Chat", { defaults = { size = 12 } }))
 K.Modules.Register(W.CoreEnv.Module("ActionBars", { defaults = { count = 12 } }))
 W.CoreEnv.Boot(env)
+K.Store.RegisterDefaults("LateProfile", { value = 2 })
+K.Store.Module("LateProfile").value = 3
+local payload = assert(K.Store.Decode(K.Store.Export()))
+for module in pairs(payload.settings) do assert(K.Store.Profile()[module], "Every accepted payload section is present in the active profile") end
+assert(payload.settings.LateProfile.value == 3, "late defaults populate the active profile before export")
+payload.settings.UnknownProfileSection = {}
+assert(not K.Store.Decode(W.CoreEnv.CraftLua(payload)), "Decode rejects sections outside registered defaults and module switches")
 K.Options.Write("Chat", "size", 16)
 K.Store.Layout().sample = { x = 80 }
 local shared = assert(K.Profiles.Export("Chat"))

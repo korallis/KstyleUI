@@ -121,21 +121,20 @@ function MAKERS.slider(row)
 	end)
 	slider:HookScript("OnHide", function()
 		Flush(row)
-		if slider.edit then slider.edit:Hide(); slider.edit:ClearFocus() end
+		slider.edit:Hide()
 	end)
 	slider.edit = Widgets.EditBox(slider, { width = 56, onEnter = function(text, box)
 		local value = tonumber(text)
 		if value then slider:SetValue(value) end
-		slider.readout:Show()
 		box:Hide()
-	end, onEscape = function(box) slider.readout:Show(); box:Hide() end })
+	end, onEscape = function(box) box:Hide() end })
 	Widgets.Point(slider.edit, "CENTER", slider.readout, "CENTER")
 	slider.edit:Hide()
-	slider.edit:HookScript("OnHide", function() slider.readout:Show(); slider.edit:ClearFocus() end)
+	slider.edit:HookScript("OnHide", function() slider.readout:Show() end)
 	slider.valueButton = CreateFrame("Button", nil, slider)
 	slider.valueButton:SetAllPoints(slider.readout)
 	slider.valueButton:SetScript("OnClick", function()
-		if slider:IsEnabled() and K.Store.Module("OptionControls").numericInput then
+		if slider:IsEnabled() then
 			slider.edit:SetText(tostring(slider:GetValue()))
 			slider.readout:Hide()
 			slider.edit:Show()
@@ -661,19 +660,15 @@ function Rows.Update(row, item, _, list)
 	local kind = item.kind
 	local keep = SameSetting(row.item, item)
 	row.updating = true
-	if not keep then
-		row.pending = nil
-		local slider = row.controls.slider
-		if slider and slider.edit then slider.edit:Hide(); slider.edit:ClearFocus() end
-	end
+	if not keep then row.pending = nil end
 	row.item = item
 	row.list = list or row.list
 	local _, control = Layout(row, item, RowWidth(row.list))
-	if row.controls.slider and row.controls.slider.valueButton then
-		local slider = row.controls.slider
+	local slider = row.controls.slider
+	if slider then
 		local numeric = K.Store.Module("OptionControls").numericInput
 		slider.valueButton:SetShown(numeric)
-		if not numeric then slider.edit:Hide(); slider.edit:ClearFocus() end
+		if not keep or not numeric then slider.edit:Hide() end
 	end
 	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
 	if kind ~= "header" and kind ~= "note" then
@@ -754,7 +749,6 @@ function Rows.Create(list)
 	row.mark:SetColorTexture(Tokens.Color("white"))
 	row.changed = row:CreateTexture(nil, "OVERLAY")
 	row.changed:SetTexture((Tokens.Texture("diamond")))
-	row.changed:SetVertexColor(Widgets.Rgba("accent"))
 	Widgets.Size(row.changed, 4, 4)
 	Widgets.Point(row.changed, "RIGHT", row.label, "LEFT", -2, 0)
 	row.changed:Hide()

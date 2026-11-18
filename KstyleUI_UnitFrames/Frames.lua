@@ -52,11 +52,15 @@ local function Owner(unit)
 	return MODULE .. ":" .. unit
 end
 
+local function Settle(region)
+	if region.rangeTween then K.Motion.Stop(region.rangeTween); region.rangeTween = nil end
+end
+
 function Frames.Range(view)
 	if view.kind ~= "target" or type(UnitInRange) ~= "function" then return end
 	if not Settings.Value("target", "rangeFade") then
 		for _, region in ipairs({ view.name, view.portrait }) do
-			if region.rangeTween then K.Motion.Stop(region.rangeTween); region.rangeTween = nil end
+			Settle(region)
 			region:SetAlpha(1)
 		end
 		view.rangeAlpha = 1
@@ -64,14 +68,17 @@ function Frames.Range(view)
 	end
 	local inRange, checked = UnitInRange(view.unit)
 	local alpha
-	if not issecretvalue(inRange) and not issecretvalue(checked) then alpha = checked == true and inRange == false and 0.55 or 1 end
+	if not issecretvalue(inRange) and not issecretvalue(checked) then
+		alpha = 1
+		if checked == true and inRange == false then alpha = 0.55 end
+	end
 	for _, region in ipairs({ view.name, view.portrait }) do
 		if region.SetAlphaFromBoolean then
 			if issecretvalue(inRange) or issecretvalue(checked) then
-				if region.rangeTween then K.Motion.Stop(region.rangeTween); region.rangeTween = nil end
+				Settle(region)
 				region:SetAlphaFromBoolean(inRange, 1, 0.55)
 				region:SetAlphaFromBoolean(checked, region:GetAlpha(), 1)
-			elseif not issecretvalue(alpha) and view.rangeAlpha ~= alpha then
+			elseif view.rangeAlpha ~= alpha then
 				region:SetAlphaFromBoolean(inRange == true or checked ~= true, 1, 0.55)
 				region.rangeTween = K.Motion.Tween(region, "SetAlpha", view.rangeAlpha or 1, alpha, 0.15)
 			end

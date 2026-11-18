@@ -568,13 +568,7 @@ function Pages.ExportProfile()
 end
 
 function Pages.ImportProfile(text)
-	local incoming = text
-	if K.Store.Module("ProfileTools").review then
-		local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything")
-		if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
-		incoming = preview.text
-	end
-	local ok, result = K.Store.Import(incoming)
+	local ok, result = K.Store.Import(text)
 	ns.Changed()
 	if ok then
 		Notify(L["Profile imported"], format(L["Imported the profile as %s. This character now uses it."], tostring(result)))
@@ -590,7 +584,7 @@ function Pages.ReviewImport(text)
 	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
 	K.Widgets.Confirm({ title = L["Review import"], text = format(message, preview.summary),
-		acceptLabel = L["Apply"], onAccept = function() Pages.ImportProfile(text) end })
+		acceptLabel = L["Apply"], onAccept = function() Pages.ImportProfile(preview.text) end })
 	return true, preview
 end
 

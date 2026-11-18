@@ -221,7 +221,6 @@ function ns.NewPlate(parent, sample)
 	plate.healthOpts = health.opts
 	plate.health = health
 	plate.threatShape = plate:CreateTexture(nil, "OVERLAY")
-	plate.threatShape:SetPoint("LEFT", health, "RIGHT", 6, 0)
 	plate.threatShape:Hide()
 	plate.healthText = NewText(health, "RIGHT")
 

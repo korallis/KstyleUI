@@ -28,6 +28,7 @@ assert(slider.edit:IsShown() and W.LastCall(slider.edit, "SetFocus"), "clicking 
 assert(not slider.readout:IsShown(), "the old readout must not double-print behind the editor")
 slider.edit:SetText("29")
 slider.edit:GetScript("OnEnterPressed")(slider.edit)
+slider.edit:GetScript("OnHide")(slider.edit)
 env.RunTimers()
 W.Settle(env)
 assert(slider.readout:IsShown(), "closing the editor restores the readout")
@@ -82,7 +83,6 @@ W.Settle(env)
 for _, candidate in ipairs(ns.Window.Parts().content.rows) do if candidate.item and candidate.item.key == "size" then row = candidate end end
 slider = row.controls.slider
 assert(not slider.valueButton:IsShown() and not row.changed:IsShown(), "Settings helpers off restores the old value and label")
-W.Click(slider.valueButton)
 assert(not slider.edit:IsShown())
 row:GetScript("OnMouseUp")(row, "RightButton")
 assert(K.Options.Read("ActionBars", "size") == 30, "Quick reset off restores the previous right-click behaviour")
@@ -93,4 +93,15 @@ local items = ns.Model.PageItems(page)
 assert(not O.Find(items, function(item) return item.label == "Share scope" or item.label == "Restore backup" end), "Profile helpers off restores the previous share controls")
 assert(#env._errors == 0, tostring(env._errors[1]))
 
+K.Options.Write("ProfileTools", "review", true)
+local shared = assert(K.Profiles.Export("ActionBars"))
+K.Options.Write("ActionBars", "size", 22)
+assert(ns.Pages.ReviewImport(shared))
+local previewImport = K.Profiles.Preview
+K.Profiles.Preview = function() error("Apply must use the approved preview without decoding it again") end
+local host = K.Widgets.DialogHost()
+W.Click(host.visibleButtons[#host.visibleButtons])
+K.Profiles.Preview = previewImport
+assert(K.Options.Read("ActionBars", "size") == 30, "Apply imports the approved scoped payload")
+assert(#env._errors == 0, tostring(env._errors[1]))
 print("options needs ok")

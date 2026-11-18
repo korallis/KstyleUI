@@ -10,12 +10,7 @@ K.Options.Register("ProfileTools", {
 	{ type = "toggle", key = "backups", label = L["Recovery backups"], help = L["Saves a restore point before setup, import or reset. Off keeps the previous direct changes."] },
 })
 
-local function Copy(value)
-	if type(value) ~= "table" then return value end
-	local out = {}
-	for key, child in pairs(value) do out[key] = Copy(child) end
-	return out
-end
+local Copy, Equal = K.Options.Copy, K.Options.Equal
 
 local function Encode(payload)
 	local body = Codec.Serialize(payload)
@@ -80,13 +75,6 @@ local function Decode(text)
 	return Store.Decode(text)
 end
 
-local function Equal(a, b)
-	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
-	for key, value in pairs(a) do if not Equal(value, b[key]) then return false end end
-	for key in pairs(b) do if a[key] == nil then return false end end
-	return true
-end
-
 local function Merge(base, values)
 	local out = Copy(base or {})
 	for key, value in pairs(values or {}) do
@@ -106,17 +94,10 @@ function Profiles.Preview(text, scope)
 	if scope ~= "everything" and scope ~= "layout" and not payload.settings[scope] then return nil, L["This profile has no settings for that module."] end
 	local changes, settings, layout = {}, Copy(Store.Profile()), Copy(Store.Layout())
 	if scope ~= "layout" then
-		if scope == "everything" then
-			for module in pairs(settings) do
+		for module in pairs(settings) do
+			if scope == "everything" or scope == module then
 				local future = Merge(Store.Defaults(module), payload.settings[module])
 				if not Equal(settings[module], future) then changes[#changes + 1] = module end
-				settings[module] = future
-			end
-		end
-		for module, values in pairs(payload.settings) do
-			if scope == "everything" or scope == module then
-				local future = Merge(Store.Defaults(module), values)
-				if scope ~= "everything" and not Equal(settings[module], future) then changes[#changes + 1] = module end
 				settings[module] = future
 			end
 		end
@@ -170,10 +151,7 @@ end)
 K.Callbacks.Register("SettingChanged", "Readability", function(_, module) if module == "Readability" then ReadPreset() end end)
 K.Events.Register("Readability", "PLAYER_LOGIN", ReadPreset)
 function Profiles.TextSize(role, standard)
-	if readable then
-		return Profiles.READABLE[role] or standard
-	end
-	return standard
+	return readable and Profiles.READABLE[role] or standard
 end
 
 function Profiles.Readable(value)

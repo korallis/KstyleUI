@@ -73,8 +73,6 @@ local function Build(f)
 	f.statusIcons = {}
 	for _, name in ipairs({ "afk", "summon", "resurrection" }) do
 		local icon = f.readyLayer:CreateTexture(nil, "ARTWORK")
-		icon:SetSize(14, 14)
-		icon:SetPoint("CENTER", f.ready, "CENTER")
 		icon:SetAlpha(0)
 		f.statusIcons[name] = icon
 	end
