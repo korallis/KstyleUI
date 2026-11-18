@@ -357,7 +357,7 @@ function Cast.Selection(plate, isTarget, isFocus)
 	local below = shown and Settings.Get("cast.nameBelow") and true or false
 	if below == (plate.castNameBelow == true) then return end
 	plate.castNameBelow = below
-	if not plate.sample then plate:PlaceOnBase(ns.state.width, ns.state.height) end
+	if not plate.sample then ns.Stacking.Bound(plate, plate.rise or 0) end
 	if Settings.Get("debuffs.growthY") == "DOWN" then ns.Auras.Reanchor(plate) end
 end
 
@@ -399,11 +399,11 @@ function Component.Build(plate)
 	plate.castTime = time
 end
 
-function Component.Room(plate)
+function Component.Room(plate, anchor)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	local label = plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
+	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
 	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2 + label
 end
 

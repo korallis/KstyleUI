@@ -45,6 +45,7 @@ local function boot(case, saved)
 		K.Scale.SetUserScale(case.scale)
 		env.RunTimers()
 	end
+	K.Options.Write("Nameplates", "cast.nameSelectedOnly", false)
 	for key, value in pairs(case.settings or {}) do
 		K.Options.Write("Nameplates", key, value)
 	end

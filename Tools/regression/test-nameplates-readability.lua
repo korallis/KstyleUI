@@ -1,6 +1,6 @@
 -- test-nameplates-readability.lua: selected cast names, distinct readiness ink, an uninterruptible shape, and the opt-in Dungeon plate preset.
 local N = dofile("Tools/regression/nameplates_env.lua")
-local env, K, ns = N.New({ playerClass = "WARRIOR", known = { [6552] = true } })
+local env, K, ns = N.New({ playerClass = "WARRIOR", known = { [6552] = true }, stackingBounds = true, nameplateSize = 1 })
 for i = 1, 3 do
 	N.Add(env, "nameplate" .. i)
 	N.Cast(env, "nameplate" .. i, { name = "Molten Pulse", text = "Molten Pulse", texture = 136197, notInterruptible = false })
@@ -16,8 +16,12 @@ local function room(plate)
 	end
 end
 assert(room(target) - room(other) == ns.Settings.Get("cast.textSize") + K.Tokens.Size("gapTiny"), "only selected plates reserve the spell-name lane")
-local selectedRise, quietRise = target.rise, other.rise
-assert(selectedRise > quietRise, "the selected plate reserves its label below the bar")
+local rise = target.rise
+assert(rise == other.rise, "spell-name room must not move the health bar")
+local selectedHeight, quietHeight = target.stackBounds:GetHeight(), other.stackBounds:GetHeight()
+assert(selectedHeight > quietHeight, "the selected label grows only its stacking bounds")
+ns.Plates.RestyleAll()
+assert(target.stackBounds:GetHeight() == selectedHeight and other.stackBounds:GetHeight() == quietHeight, "selected and quiet footprints survive restyling")
 assert(select(2, target.castName:GetFont()) == 11, "the selected spell name is 11 units")
 local ready, wait = ns.Settings.Get("cast.color"), ns.Settings.Get("cast.waitColor")
 assert(not N.SameColor(ready.r, ready.g, ready.b, wait.r, wait.g, wait.b), "H1: readiness and recharge need different colours")
@@ -35,7 +39,9 @@ env.FireEvent("UNIT_SPELLCAST_INTERRUPTIBLE", "nameplate1")
 assert(target.castGlyph:GetAlpha() == 0, "interruptible casts clear the shield")
 N.Target(env, "nameplate3")
 assert(other.castName:IsShown() and not target.castName:IsShown(), "the name follows target changes")
-assert(target.rise == quietRise and other.rise == selectedRise, "only the old and new target footprints follow the name")
+assert(target.rise == rise and other.rise == rise, "target changes leave the health bars in place")
+assert(room(other) > room(target), "only the old and new target footprints follow the name")
+assert(target.stackBounds:GetHeight() == quietHeight and other.stackBounds:GetHeight() == selectedHeight, "the two stacking bounds follow the selected name")
 K.Options.Write("Nameplates", "debuffs.growthY", "DOWN")
 local _, _, _, _, quietAuraY = target.auras:GetPoint(1)
 local _, _, _, _, selectedAuraY = other.auras:GetPoint(1)

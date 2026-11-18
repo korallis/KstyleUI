@@ -26,7 +26,7 @@ local function BottomRoom(plate)
 	for i = 1, #Components do
 		local fn = Components[i].Room
 		if fn then
-			room = room + fn(plate)
+			room = room + fn(plate, true)
 		end
 	end
 	return room

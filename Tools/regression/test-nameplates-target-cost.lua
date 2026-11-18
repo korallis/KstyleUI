@@ -1,7 +1,7 @@
 -- test-nameplates-target-cost.lua: target and focus swaps update only their old and new plates, while target acquisition/loss still updates optional dimming.
 local N = dofile("Tools/regression/nameplates_env.lua")
-local env, K, ns = N.New()
-local touched, reads = {}, 0
+local env, K, ns = N.New({ stackingBounds = true, nameplateSize = 1 })
+local touched, bounds, reads = {}, {}, 0
 for i = 1, 40 do
 	local token = "nameplate" .. i
 	N.Add(env, token)
@@ -11,6 +11,11 @@ for i = 1, 40 do
 		touched[self] = (touched[self] or 0) + 1
 		return update(self, ...)
 	end
+	local size = plate.stackBounds.SetSize
+	plate.stackBounds.SetSize = function(self, ...)
+		bounds[plate] = (bounds[plate] or 0) + 1
+		return size(self, ...)
+	end
 end
 local running = K.Modules.IsRunning
 K.Modules.IsRunning = function(name)
@@ -19,7 +24,7 @@ K.Modules.IsRunning = function(name)
 end
 K.Options.Write("Nameplates", "cast.hideOnTarget", true)
 local function reset()
-	touched, reads = {}, 0
+	touched, bounds, reads = {}, {}, 0
 end
 local function count()
 	local total = 0
@@ -32,6 +37,9 @@ N.Target(env, "nameplate2")
 assert(count() == 2, "P7: update only the old and new target plates, got " .. count())
 assert(reads <= 1, "P7: read SigilCasts once per highlight event, got " .. reads)
 assert(touched[ns.Plates.Get("nameplate1")] == 1 and touched[ns.Plates.Get("nameplate2")] == 1, "both changed plates update once")
+local boundCount = 0
+for _, n in pairs(bounds) do boundCount = boundCount + n end
+assert(boundCount == 2 and bounds[ns.Plates.Get("nameplate1")] == 1 and bounds[ns.Plates.Get("nameplate2")] == 1, "only the old and new name lanes update stacking bounds")
 reset()
 N.Target(env, "nameplate2")
 assert(count() == 0, "the same target changes no plate")
