@@ -1348,7 +1348,7 @@ function modules.tooltips(opts)
 	local env, K, ns = T.New({
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
-		saved = saved(opts, "Tooltips"),
+		saved = saved(opts, "Tooltips", { anchor = "fixed" }),
 		setup = function(env)
 			shared(env, opts)
 		end,
