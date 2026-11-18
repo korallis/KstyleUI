@@ -70,8 +70,8 @@ do
 			assert(near(tot.x - tot.width / 2, target.x + target.width / 2 + 41 + 12) and near(tot.y + tot.height / 2, target.y + target.height / 2), label .. ": at 21:9 and wider the target of target stands 12 outboard of the target medallion, centred on the slab")
 		end
 		local cast, targetCast = Place("unitframes.castbar.player"), Place("unitframes.castbar.target")
-		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 10), label .. ": the player's cast bar is 300 by 20, centred 10 over the hub")
-		assert(targetCast.x == 0 and near(targetCast.width, 300) and near(targetCast.height, 20) and near(targetCast.y - (cast.y + cast.height), 6), label .. ": the target cast must be 300 by 20 with a six-unit gap above the player cast")
+		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 15), label .. ": the player's cast bar is 300 by 20, centred 15 over the hub")
+		assert(targetCast.x == 0 and near(targetCast.width, 300) and near(targetCast.height, 20) and near(targetCast.y - (cast.y + cast.height), 9), label .. ": the target cast must be 300 by 20 with a nine-unit gap above the player cast")
 	end
 	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")
 	assert(near(boss.width, 280 * mock) and near(boss.height, 324 * mock), "the boss column is 280 wide and five 60-tall rows and four 6-unit gaps tall")

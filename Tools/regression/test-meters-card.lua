@@ -111,9 +111,9 @@ for i, spell in ipairs(SPELLS) do
 	assert(Text(row.value) == tostring(spell[3]), i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
 	assert(row.dot and row.dot:IsShown() and Text(row.dot) == "\194\183", i .. ": the middle dot is its own piece")
-	local cr, cg, cb = K.Tokens.Color(spell[4])
+	local cr, cg, cb = ns.BarColor("damage", nil, nil, spell[4])
 	local br, bg, bb = Color(row.bar)
-	assert(br == cr and bg == cg and bb == cb, i .. ": the bar is the spell's school colour (" .. spell[4] .. ")")
+	assert(br == cr and bg == cg and bb == cb, i .. ": the bar is the toned spell school colour (" .. spell[4] .. ")")
 	local range = M.Last(row.bar, "SetMinMaxValues")
 	assert(range[2] == 412 and M.Last(row.bar, "SetValue")[1] == spell[3], i .. ": the fill is the spell's share of the top spell")
 end
@@ -256,9 +256,8 @@ M.Write(env, K, "damage.percent", true)
 
 -- The old default stays a setting: the colour source "class" brings the class colour back on spells.
 M.Write(env, K, "damage.colorSource", "class")
-local cr, cg, cb = K.Theme.ClassColor("SHAMAN")
+local cr, cg, cb = ns.BarColor("damage", "SHAMAN", nil, nil, true)
 local br, bg, bb = Color(list.rows[1].bar)
-cr, cg, cb = cr * ns.DAMAGE_CLASS_TONE, cg * ns.DAMAGE_CLASS_TONE, cb * ns.DAMAGE_CLASS_TONE
 assert(br == cr and bg == cg and bb == cb, "the class colour source colours a spell by class")
 M.Write(env, K, "damage.colorSource", "school")
 assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 18, "the picture's look is the default")
@@ -272,9 +271,8 @@ do
 	local group = nsG.Damage.list
 	assert(Plain(Text(group.title)) == "DAMAGE  HEALING" and group.count == 1, "in a group the card lists the sources under the meter's name")
 	assert(Text(group.column) == "38.4 dps", "the cap shows the local player's rate: " .. tostring(Text(group.column)))
-	local ar, ag, ab = KG.Theme.ClassColor("SHAMAN")
+	local ar, ag, ab = nsG.BarColor("damage", "SHAMAN", nil, nil, true)
 	local sr, sg, sb = Color(group.rows[1].bar)
-	ar, ag, ab = ar * nsG.DAMAGE_CLASS_TONE, ag * nsG.DAMAGE_CLASS_TONE, ab * nsG.DAMAGE_CLASS_TONE
 	assert(sr == ar and sg == ag and sb == ab, "a source's bar is its class colour")
 	-- The player's own row opens the card the player sees alone: titled by the meter with their rate, the same cap
 	-- as the DPS card (KSTY-60 item 24, the Tank preset's card read "KORALLIS" with no total).
@@ -345,7 +343,7 @@ do
 	Cap.SetAside = setAside
 	assert(envS.issecretvalue(Text(card.rows[1].value)), "a secret amount is abbreviated by the game")
 	assert(Text(card.rows[1].percent) == "" and not card.rows[1].percent:IsShown(), "no share is worked out from secret values")
-	local nr, ng, nb = KS.Tokens.Color("meterNature")
+	local nr, ng, nb = nsS.BarColor("damage", nil, nil, "meterNature")
 	local fr, fg, fb = Color(card.rows[1].bar)
 	assert(fr == nr and fg == ng and fb == nb, "a secret amount still gets its school colour: the school comes from the spell ID")
 end

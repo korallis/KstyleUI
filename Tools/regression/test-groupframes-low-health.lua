@@ -35,7 +35,7 @@ local function content(unit)
 	end
 end
 
-local lr, lg, lb = K.Tokens.Color("healthLow")
+local lr, lg, lb = K.Tokens.Color("healthLowText")
 local wr, wg, wb = K.Tokens.Color("textEmphasis")
 local function textColor(f)
 	local args = assert(last(f.healthText, "SetTextColor"), "the percentage is coloured")
@@ -45,7 +45,7 @@ end
 local low = assert(content("party2"), "the 38% member has a frame")
 assert(near(env.Reveal(low.health.lowFill:GetAlpha()), 1), "the 38% member's bar shows the red low-health fill")
 local r, g, b = textColor(low)
-assert(near(r, lr) and near(g, lg) and near(b, lb), "and its percentage turns red")
+assert(near(r, lr) and near(g, lg) and near(b, lb), "and its percentage takes the light low-health ink")
 local args = last(low.healthText, "SetTextColor")
 assert(env.issecretvalue(args[1]), "the colour reaches SetTextColor as the curve's secret, never read in Lua")
 

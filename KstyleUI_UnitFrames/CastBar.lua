@@ -224,6 +224,7 @@ local function StopTimer(cb)
 end
 
 local function EndTimer(cb, value)
+	cb.inkEmpty, cb.pr = value == 0, nil
 	StopTimer(cb)
 	cb.duration = nil
 	cb.timer:SetText("")
@@ -695,6 +696,13 @@ local function Paint(cb, r, g, b, a)
 		return
 	end
 	cb.pr, cb.pg, cb.pb, cb.pa = r, g, b, a
+	if cb.medal then
+		if cb.inkEmpty then
+			Widgets.InkText(cb.text, Tokens.Color(TRACK))
+		else
+			Widgets.InkText(cb.text, r, g, b)
+		end
+	end
 	if a == nil then
 		cb.bar:SetBarColor(r, g, b)
 	else
@@ -734,6 +742,10 @@ function CastBars.Restyle(cb)
 	if caption and Settings.ThemeFont(cb.kind, "cast") then
 		textPath, timerPath = (Tokens.Font("caps")), Lumen.Font("time")
 	end
+	if cb.medal then
+		textPath = Settings.Font(cb.kind, "name")
+		timerPath = Tokens.Font("number")
+	end
 	cb.textPath = textPath
 	StyleText(cb.text, textPath, size, flags)
 	if caption and flags == "" then
@@ -741,7 +753,7 @@ function CastBars.Restyle(cb)
 		cb.text:SetShadowColor(Tokens.Color("textShadow"))
 		cb.text:SetShadowOffset(border, -border)
 	end
-	StyleText(cb.timer, timerPath, size, flags)
+	StyleText(cb.timer, timerPath, size, cb.medal and "OUTLINE" or flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)
 	cb.label:SetTextColor(Lumen.Color("muted"))
@@ -885,6 +897,7 @@ local function Start(cb, channel)
 		return
 	end
 	cb.active, cb.landed, cb.channel = true, false, channel
+	cb.inkEmpty, cb.pr = nil, nil
 	StopFlash(cb)
 	cb.castBarID, cb.spellID = nil, nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then

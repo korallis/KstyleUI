@@ -68,6 +68,11 @@ assert(healed, "a sample shows incoming heals")
 eq(tank.sampleAuras[1]:IsShown(), true, "the sample tank shows debuff icons")
 eq(tank.sampleAuras[3]:IsShown(), false, "only as many as it has")
 eq(preview.partyFrames[2].sampleDispel:IsShown(), true, "a sample shows the dispel highlight")
+for _, piece in ipairs(preview.partyFrames[2].sampleDispelWash) do
+	local region = piece._state.Alpha
+	local vertex = piece._state.VertexColor
+	eq(region[1] * vertex[4], 0.16, "the Options dispel wash keeps its intended 16% effective alpha")
+end
 eq(tank.auras, nil, "samples never make an AuraContainer")
 
 -- A setting change shows on the next Refresh.

@@ -55,11 +55,12 @@ local TEXTS = {
 	healthSub = { element = "health", justify = "RIGHT", color = "textEmphasis", share = Geometry.DETAIL_SHARE },
 	powerText = { element = "power", justify = "LEFT", color = "text" },
 	levelText = { element = "level", justify = "CENTER", color = "textEmphasis" },
-	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption", lumenColor = "subLabel" },
+	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption" },
 	capLabel = { element = "level", justify = "LEFT", color = "textEmphasis", lumen = "cap", lumenColor = "goldLit" },
 }
 local TEXT_KEYS = { "name", "healthText", "healthSub", "powerText", "levelText", "caption", "capLabel" }
-TEXTS.healthSub.lumen, TEXTS.healthSub.lumenColor, TEXTS.healthSub.lumenShare = "caption", "subLabel", 1
+TEXTS.healthSub.lumen, TEXTS.healthSub.lumenShare = "caption", 1
+TEXTS.healthSub.color = "text"
 
 local function NewText(owner, key)
 	local text = Widgets.FontString(owner, "OVERLAY")
@@ -554,9 +555,15 @@ function Style.Layout(view, s, width, height)
 	if g.form ~= "plate" then
 		LayoutLumen(view, g, s)
 		ns.Slab.Layout(view, g)
+		for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "capLabel" }) do
+			Widgets.TextScrim(view[key], g.form ~= "slab" and view[key]:IsShown())
+		end
 		return g
 	end
 	ns.Slab.Layout(view, g)
+	for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "capLabel" }) do
+		Widgets.TextScrim(view[key], false)
+	end
 	HideLumen(view)
 	Place(view, view.panel, g.glass)
 	view.chrome:Restyle()

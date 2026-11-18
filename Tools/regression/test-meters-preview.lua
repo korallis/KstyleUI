@@ -33,9 +33,9 @@ assert(frame.swing.barEdge and frame.swing.chrome == nil, "the sample swing bar 
 -- Settings show in the preview.
 K.Options.Write("Meters", "damage.colorSource", "custom")
 frame:Refresh()
-local custom = ns.Get("damage.color")
+local cr, cg, cb = ns.BarColor("damage")
 local colour = M.Last(frame.damage.rows[1].bar, "SetStatusBarColor")
-assert(colour[1] == custom.r and colour[2] == custom.g and colour[3] == custom.b, "a custom bar colour shows")
+assert(colour[1] == cr and colour[2] == cg and colour[3] == cb, "a custom bar colour shows")
 K.Options.Write("Meters", "threat.warnAt", 90)
 frame:Refresh()
 assert(frame.threat.warning == 0, "a higher warning threshold clears the sample warning")

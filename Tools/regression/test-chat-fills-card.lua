@@ -22,7 +22,7 @@ local function Check(env, K, ns, label)
 	local want = {
 		left = card.left + pad,
 		right = card.right - pad,
-		top = card.top - math.max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON / 2),
+		top = card.top - math.max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON / 2) - K.Scale.Snap(12),
 		bottom = card.bottom + pad,
 	}
 	if K.Store.Module("Chat").editBox == "always" then

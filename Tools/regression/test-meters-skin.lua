@@ -244,8 +244,7 @@ entry.StatusBar:SetValue(secret)
 assert(M.Last(pill, "SetValue")[1] == secret, "a secret value reaches the pill untouched")
 
 -- Colours: the class colour toned as the card's, at full alpha.
-local r, g, b = K.Theme.ClassColor("WARRIOR")
-r, g, b = r * ns.DAMAGE_CLASS_TONE, g * ns.DAMAGE_CLASS_TONE, b * ns.DAMAGE_CLASS_TONE
+local r, g, b = ns.BarColor("damage", "WARRIOR", nil, nil, true)
 window:Refresh()
 local colour = pill.colorRGBA
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "after Blizzard colours the bar, the class colour wins on the pill")
@@ -254,7 +253,7 @@ entry:UpdateStatusBarColor()
 colour = pill.colorRGBA
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "a colour update outside a refresh keeps the class colour")
 local creaturePill = Pill(window.entries[2])
-local hr, hg, hb = K.Tokens.Color("hostile")
+local hr, hg, hb = ns.BarColor("damage", nil, "hostile")
 colour = creaturePill.colorRGBA
 assert(colour[1] == hr and colour[2] == hg and colour[3] == hb, "an enemy without a class takes the hostile colour")
 assert(Pill(window.own), "the player's pinned entry is restyled")
@@ -301,8 +300,7 @@ do
 	assert(glass and glass.chrome.shapeName == "panel", "the spell window wears the glass panel")
 	local spellPill = Pill(source.entries[1])
 	assert(spellPill and spellPill.backgroundName == "buttonFill", "a spell row gets the own meter's pill")
-	local sr, sg, sb = K.Theme.ClassColor("WARRIOR")
-	sr, sg, sb = sr * ns.DAMAGE_CLASS_TONE, sg * ns.DAMAGE_CLASS_TONE, sb * ns.DAMAGE_CLASS_TONE
+	local sr, sg, sb = ns.BarColor("damage", "WARRIOR", nil, nil, true)
 	local c = spellPill.colorRGBA
 	assert(c[1] == sr and c[2] == sg and c[3] == sb, "a spell row takes its source's class colour")
 	local later = Entry(env, source, "WARRIOR", 1)
@@ -330,9 +328,9 @@ assert(Pill(late) and Pill(late).textureKey == ns.Get("damage.texture"), "a row 
 
 -- A setting change restyles every entry.
 M.Write(env, K, "damage.colorSource", "custom")
-local custom = ns.Get("damage.color")
+local cr, cg, cb = ns.BarColor("damage")
 colour = pill.colorRGBA
-assert(colour[1] == custom.r and colour[2] == custom.g and colour[3] == custom.b, "the custom colour reaches the pills")
+assert(colour[1] == cr and colour[2] == cg and colour[3] == cb, "the custom colour reaches the pills")
 
 -- Windows Blizzard opens later are restyled too.
 owner:SetupSessionWindow(2)

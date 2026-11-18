@@ -141,13 +141,13 @@ do
 	U.SetUnit(env, "target", TARGET)
 	env.SetTarget(true)
 	local view = ns.Frames.Get("target").views[1]
-	local sr, sg, sb = ns.Lumen.Color("subLabel")
+	local sr, sg, sb = K.Tokens.Color("text")
 	for _, key in ipairs({ "caption", "healthSub" }) do
 		local r, g, b = view[key]:GetTextColor()
-		assert(near(r, sr, 1e-6) and near(g, sg, 1e-6) and near(b, sb, 1e-6), key .. " takes the sub-label colour")
+		assert(near(r, sr, 1e-6) and near(g, sg, 1e-6) and near(b, sb, 1e-6), key .. " takes the readable text token")
 	end
 	assert(luminance(sr, sg, sb) > luminance(K.Tokens.Color("muted")) + 0.05, "it reads stronger than the old muted grey")
-	assert(sr >= sb, "and it is warm, not blue-grey, as the mock-up's")
+	assert(sr <= sb, "the caption follows the shared cool text token")
 	noErrors(env, K, "sub-label")
 end
 

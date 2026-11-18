@@ -79,7 +79,7 @@ end
 FLAT_TEXTURE = FLAT_TEXTURE or BAR_TEXTURE
 
 local function TextStyle(size)
-	return { font = THEME_FONT, size = size, outline = "NONE" }
+	return { font = THEME_FONT, size = size, outline = "OUTLINE" }
 end
 
 local COMPACT_TEXT = { 12, 12, 9, 10 }

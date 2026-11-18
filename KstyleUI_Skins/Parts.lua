@@ -11,7 +11,7 @@ local RIM_UNITS = 2
 local RIM_SUBLEVEL = -6
 local LEVEL_BELOW = 1
 local LINE_UNITS = 2
-local BAR_UNITS = 10
+local BAR_UNITS = 6
 local GLYPH_UNITS = 10
 local CHEVRON_UNITS = 8
 local STANDING_AMBER = 0.6
@@ -868,7 +868,12 @@ local function RestyleFill(state)
 	track.edge:Restyle()
 	PaintFill(state)
 	if bar.Text then
-		ns.Style.Text(bar.Text, "caption", "textEmphasis")
+		ns.Style.Text(bar.Text, "caption", "muted", 11)
+		if Widgets.MayMove(bar) then
+			bar.Text:ClearAllPoints()
+			bar.Text:SetPoint("BOTTOMRIGHT", area, "TOPRIGHT", 0, Widgets.Snap(bar, 2))
+			bar.Text:SetJustifyH("RIGHT")
+		end
 	end
 end
 

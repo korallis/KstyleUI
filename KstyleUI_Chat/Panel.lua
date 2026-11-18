@@ -118,7 +118,8 @@ function Panel.Geometry(chat)
 		local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
 		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
-	local top = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
+	local divider = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
+	local top = divider + snap(12)
 	local _, size = chat:GetFont()
 	local height = state.holder and state.holder:GetHeight()
 	local spacing
@@ -149,7 +150,7 @@ function Panel.Geometry(chat)
 		top = top,
 		right = pad,
 		bottom = foot,
-		divider = top,
+		divider = divider,
 		spacing = spacing,
 	}
 end
@@ -234,7 +235,8 @@ local function TrimDock()
 	local stop, last = glass.dockEnd, settings and settings.copyButton == true and glass.copy or glass.plus
 	stop:ClearAllPoints()
 	stop:SetPoint("TOPRIGHT", last, "TOPLEFT", -Widgets.Snap(stop, Tokens.Size("gapTiny")), 0)
-	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, 0)
+	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, Scale.Snap(12))
+	dock:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, Scale.Snap(12) / Ratio(dock, state.holder))
 	dock:SetPoint("BOTTOMRIGHT", stop, "BOTTOMRIGHT", 0, 0)
 	RelayTabs(dock)
 	if ns.Frames and ns.Frames.FitTabs then
@@ -246,6 +248,7 @@ end
 local function RestoreDock()
 	local dock, background = Dock()
 	if dock and state.trimmed then
+		dock:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, 0)
 		dock:SetPoint("BOTTOMRIGHT", background, "TOPRIGHT", 0, 0)
 		RelayTabs(dock)
 	end
@@ -574,7 +577,8 @@ local function Paint(settings)
 	end
 end
 
-local function FollowTab(_, alpha)
+local function FollowTab(tab, alpha)
+	alpha = type(tab.GetAlpha) == "function" and tab:GetAlpha() or alpha
 	local glass = state.glass
 	if state.active and glass then
 		glass.copy:SetAlpha(Number(alpha, 1))

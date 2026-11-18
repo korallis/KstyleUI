@@ -524,13 +524,16 @@ local function RankBar(frame)
 	K.Skin.Strip(frame, { children = { "Background", "Fill", "Flare", "Border" } })
 	local fill = K.Widgets.StatusBar(frame, { texture = ns.Style.BarTexture(), border = true, min = 0, max = 1, value = 0 })
 	fill:ClearAllPoints()
-	fill:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-	fill:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+	fill:SetPoint("LEFT", frame, "LEFT")
+	fill:SetPoint("RIGHT", frame, "RIGHT")
+	fill:SetHeight(K.Widgets.Snap(frame, 6))
 	local rank = frame.Rank
 	if type(rank) == "table" and type(rank.GetFrameLevel) == "function" then
 		fill:SetFrameLevel(max(0, rank:GetFrameLevel() - 1))
 		if type(rank.Text) == "table" then
-			ns.Style.Text(rank.Text, "number", "textEmphasis")
+			ns.Style.Text(rank.Text, "caption", "muted", 11)
+			rank.Text:ClearAllPoints()
+			rank.Text:SetPoint("BOTTOMRIGHT", fill, "TOPRIGHT", 0, K.Widgets.Snap(frame, 2))
 		end
 	end
 	local bar = { frame = frame, fill = fill, Paint = PaintRankBar, Restyle = PaintRankBar }
@@ -591,11 +594,11 @@ local function PlaceBarTexts(bar)
 	end
 	if label then
 		label:ClearAllPoints()
-		label:SetPoint("LEFT", frame, "LEFT", inset, 0)
+		label:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, K.Widgets.Snap(frame, 2))
 		if type(rank) == "table" and not bar.rankOutside then
 			label:SetPoint("RIGHT", rank, "LEFT", -gap, 0)
 		else
-			label:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+			label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -inset, K.Widgets.Snap(frame, 2))
 		end
 		FitBarLabel(bar)
 	end
@@ -627,22 +630,25 @@ local function Bar(frame, opts)
 	if IsTexture(fill) then
 		keep[fill] = true
 	end
-	local bar = { frame = frame, rankOutside = opts.rankOutside == true, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
+	local bar = { frame = frame, rankOutside = true, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
 	bar.edge = K.Widgets.BarEdge(frame)
 	for region in pairs(bar.edge.regions) do
 		keep[region] = true
 	end
 	K.Skin.Strip(frame, { keep = keep })
 	ns.Style.StatusBar(frame, { accent = opts.accent == true })
+	if K.Widgets.MayMove(frame) then
+		frame:SetHeight(K.Widgets.Snap(frame, 6))
+	end
 	if type(frame.rankText) == "table" then
-		ns.Style.Text(frame.rankText, "number", "textEmphasis")
+		ns.Style.Text(frame.rankText, "caption", "muted", 11)
 	end
 	if opts.label then
 		local overlay = CreateFrame("Frame", nil, frame)
 		overlay:SetAllPoints(frame)
 		overlay:SetFrameLevel(frame:GetFrameLevel() + 1)
 		bar.label = K.Widgets.FontString(overlay, "OVERLAY")
-		ns.Style.Text(bar.label, "body", "textEmphasis")
+		ns.Style.Text(bar.label, "caption", "muted", 11)
 		bar.label:SetJustifyH("LEFT")
 		bar.label:SetWordWrap(false)
 		SetBarLabel(bar, opts.label)

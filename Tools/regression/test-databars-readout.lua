@@ -56,7 +56,7 @@ eq(item(ns, "gold").label:GetText(), "", "money carries its own units")
 local lp = fps.label._points[1]
 assert(lp[1] == "LEFT" and lp[2] == fps.value and lp[3] == "RIGHT", "the unit follows the value on the same line")
 assert(near(lp[4], ns.Strip.UNIT_GAP), "one unit gap after the value")
-local tr, tg, tb = K.Tokens.Color("text")
+local tr, tg, tb = K.Tokens.Color("labelMuted")
 local lr, lg, lb = fps.label:GetTextColor()
 assert(near(lr, tr) and near(lg, tg) and near(lb, tb), "the unit is muted")
 local er, eg, eb = K.Tokens.Color("textEmphasis")

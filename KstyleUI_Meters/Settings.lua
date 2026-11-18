@@ -451,7 +451,7 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction, schoolToken, muted)
+local function BarColor(section, classFile, reaction, schoolToken, muted)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
@@ -467,6 +467,21 @@ function ns.BarColor(section, classFile, reaction, schoolToken, muted)
 		return r, g, b
 	end
 	return Tokens.Color(reaction or "friendly")
+end
+
+local function ToneChannel(channel, luminance)
+	local linear = channel <= 0.04045 and channel / 12.92 or ((channel + 0.055) / 1.055) ^ 2.4
+	linear = linear * 0.15 / luminance
+	return linear <= 0.0031308 and linear * 12.92 or 1.055 * linear ^ (1 / 2.4) - 0.055
+end
+
+function ns.BarColor(section, classFile, reaction, schoolToken, muted, full)
+	local r, g, b = BarColor(section, classFile, reaction, schoolToken, muted)
+	local luminance = K.Widgets.InkLuminance(r, g, b)
+	if not full and luminance and luminance > 0.15 then
+		return ToneChannel(r, luminance), ToneChannel(g, luminance), ToneChannel(b, luminance)
+	end
+	return r, g, b
 end
 
 function ns.FontPath(section, role)

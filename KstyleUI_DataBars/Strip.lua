@@ -192,7 +192,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens("labelMuted", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
@@ -575,6 +575,10 @@ function Strip.Paint(view, s, values)
 	SetValues(view, s, values, nil, true)
 	Strip.DockMenus(view, s)
 	PlaceItems(view, s)
+	for _, item in pairs(view.items) do
+		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
+		Widgets.TextScrim(item.value, view.bare and item.button:IsShown())
+	end
 end
 
 local DOCK = {

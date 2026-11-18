@@ -271,6 +271,8 @@ do
 	local bar = p.entry.Content.ReputationBar
 	assert(Alpha(p.entryBarArt) == 0 and Alpha(bar.Fill) == 1, "a reputation bar keeps only its fill")
 	assert(bar.Fill:GetNumMaskTextures() == 0, "the fill loses Blizzard's rounded mask")
+	assert(W.Near(bar.Fill:GetHeight(), K.Widgets.Snap(bar, 6)), "reputation fills are six units tall")
+	assert(select(3, bar.Text:GetPoint(1)) == "TOPRIGHT", "standing and values sit above the reputation fill")
 	assert(W.LastCall(bar.Fill, "SetTexture")[1] == Style.BarTexture(), "the fill uses the bar texture")
 	-- Blizzard's FACTION_BAR_COLORS (SharedColorConstants.lua:3) become the bible's state colours (3.7), lifted for
 	-- the glass: green standings are friend, yellow neutral is quest, red and orange are hostile (KSTY-60 item 26).

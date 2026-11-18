@@ -205,6 +205,7 @@ local function UpdateText(view, s, info)
 	local shown = value ~= nil and (not s.textHover or view.hovered == true)
 	view.text:SetShown(shown)
 	PlacePlate(view, s)
+	Widgets.TextScrim(view.text, shown and not view.plate:IsShown())
 end
 
 local function Values(view, s, info, instant)

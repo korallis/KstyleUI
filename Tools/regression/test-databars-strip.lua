@@ -137,7 +137,7 @@ do
 		assert(sameText(it.value, K.Tokens.Color("text")), it.id .. "'s value is the picture's soft grey-white")
 		assert(sameText(it.dot, K.Tokens.Color("text")), it.id .. "'s dot is the same")
 	end
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "the unit reads like its value, the whole line in one colour")
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("labelMuted")), "the unit is a muted caption beside its value")
 	local _, valueSize = item(ns, "fps").value:GetFont()
 	local _, unitSize = item(ns, "fps").label:GetFont()
 	local _, dotSize = item(ns, "latency").dot:GetFont()
@@ -237,7 +237,7 @@ do
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
 	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "highlight: a high frame rate reads in the accent")
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey in the cells")
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("labelMuted")), "labels read as muted captions in the cells")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the cells sit on glass")
 	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the card's size")
 	eq(ns.Strip.view.chrome:Chamfer(), math.min(6 * K.Widgets.Border(ns.Strip.view.frame), 42 / 2), "the strip's corners round six border lines, the card grade (the owner's picture, 2026-11-09), never more than half its height")

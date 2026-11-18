@@ -155,7 +155,7 @@ Check(function()
 	local rank, label = Text(scene, "186/300"), Text(scene, "Polearms")
 	local fill, track
 	for _, item in ipairs(scene.items) do
-		if item.bar and math.abs(Middle(item.rect) - Middle(label.rect)) < 3 then
+		if item.bar and item.rect[2] >= label.rect[2] + label.rect[4] - 1 and math.abs(Middle(item.rect) - Middle(rank.rect)) < 3 then
 			fill = item
 		end
 	end
@@ -165,7 +165,7 @@ Check(function()
 			track = item
 		end
 	end
-	assert(track and rank.rect[1] >= track.rect[1] + track.rect[3], "the rank stands to the right of the skill bar's square track")
+	assert(track and rank.rect[1] >= track.rect[1] + track.rect[3] and label.rect[2] + label.rect[4] <= fill.rect[2] + 1, "the rank stands beside the six-unit track and the skill caption clears its fill")
 end)
 
 -- Reputation (item 26): fills wear the bible's state colours, not Blizzard's pure faction colours.

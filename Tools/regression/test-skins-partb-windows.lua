@@ -519,6 +519,8 @@ do
 	-- list update refreshes the label from the first service's skill line.
 	local bar = K.Safe.Side(made.bar).partBBar
 	assert(bar and bar.label and bar.label:GetText() == "Skill", "the bar's label falls back to Skill, got " .. tostring(bar.label:GetText()))
+	assert(W.Near(made.bar:GetHeight(), K.Widgets.Snap(made.bar, 6)), "trainer fills are six units tall")
+	assert(select(3, bar.label:GetPoint(1)) == "TOPLEFT", "the skill caption sits above its fill")
 	env.GetNumTrainerServices = function()
 		return 1
 	end

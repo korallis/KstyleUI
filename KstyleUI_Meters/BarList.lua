@@ -488,7 +488,8 @@ function List:Top(pad)
 end
 
 local function Recolor(list, row)
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block)
+	local full = list.section == "threat" and row.threat and row.threat >= ns.Get("threat.warnAt")
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block, full)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
@@ -504,6 +505,12 @@ function StyleRow(list, row)
 	ns.ApplyFont(row.percent, section, nil, figures)
 	if row.dot then
 		ns.ApplyFont(row.dot, section, nil, figures)
+	end
+	for _, text in ipairs({ row.name, row.value, row.percent }) do
+		local r, g, b = Tokens.Color("textShadow")
+		text:SetShadowColor(r, g, b, 0.8)
+		local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(text)
+		text:SetShadowOffset(pixel, -pixel)
 	end
 	local texture, reverse = ns.Get(section .. ".texture"), ns.Get(section .. ".fill") == "right"
 	row.bar:SetBarTexture(texture)
@@ -854,6 +861,7 @@ function FillRow(list, row, name, classFile, reaction, value, maxValue, valueTex
 		row.percent:SetShown(list.percentWidth > 0)
 	end
 	row.class, row.reaction, row.school = classFile, reaction, schoolToken
+	row.threat = list.section == "threat" and Logic.Plain(value) or nil
 	Recolor(list, row)
 end
 

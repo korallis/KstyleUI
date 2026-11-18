@@ -70,7 +70,7 @@ do
 	env.ChatFrame1Tab:SetAlpha(0.4)
 	K.Options.Write("Chat", "copyButton", true)
 	env.ChatFrame1Tab:SetAlpha(0.4)
-	assert(math.abs(button:GetAlpha() - 0.4) < 1e-6, "it fades with the tabs")
+	assert(math.abs(button:GetAlpha() - env.ChatFrame1Tab:GetAlpha()) < 1e-6, "it follows the pinned tab alpha")
 end
 
 -- The chat tab's right-click menu offers Copy chat for that tab's window.

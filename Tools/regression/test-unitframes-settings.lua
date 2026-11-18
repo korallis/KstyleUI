@@ -219,7 +219,7 @@ local path, size, flags = Settings.Font("player", "health")
 local themePath = K.Tokens.Font("number")
 assert(path == themePath, "the theme font follows Appearance's font, in the health text's Lumen role")
 assert(size == defaults.player.fonts.health.size, "the size is the setting at a text size of 1")
-assert(flags == "", "no outline by default: text gets the soft shadow")
+assert(flags == "OUTLINE", "bare text defaults to the thin outline; NONE remains a saved choice")
 K.Store.Module("UnitFrames").player.fonts.health.outline = "OUTLINE"
 K.Store.Module("UnitFrames").player.fonts.health.font = K.Tokens.FontPath("InterSemiBold")
 local chosen, _, chosenFlags = Settings.Font("player", "health")

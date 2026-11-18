@@ -164,9 +164,9 @@ end
 function Frames.TabLook(style, selected)
 	local text
 	if style == "plain" then
-		text = selected and "capsGold" or "muted"
+		text = selected and "capsGold" or "labelMuted"
 	elseif style == "underline" then
-		text = selected and "capsGold" or "dim"
+		text = selected and "capsGold" or "labelMuted"
 	end
 	return text, selected and style == "underline", selected and style == "filled"
 end
@@ -188,6 +188,7 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
+	parts.frame:SetAlpha(selected and 1 or 0.8)
 	local textColor, underlined, filled = Frames.TabLook(style, selected)
 	Frames.PaintUnderline(parts.underline, parts.chatGlow, underlined)
 	local fill = parts.backdrop
@@ -248,8 +249,10 @@ end
 local function LayoutTab(parts)
 	local line, tab, glow = parts.underline, parts.frame, parts.chatGlow
 	line:ClearAllPoints()
-	line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
-	line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+	local text = parts.text or tab
+	local pad = Widgets.Snap(tab, 2)
+	line:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", -pad, -Widgets.Border(tab))
+	line:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -Widgets.Border(tab))
 	line:SetHeight(Widgets.Snap(line, UNDERLINE_UNITS))
 	Frames.PlaceGlow(glow, line)
 end
@@ -267,6 +270,18 @@ local function StyleTab(frame, tab)
 	if not parts.chatPaint then
 		local paint, layout = parts.Paint, parts.Layout
 		parts.chatPaint = true
+		local pinning = false
+		hooksecurefunc(tab, "SetAlpha", function(self, alpha)
+			if not state.active or pinning or IsSecret(alpha) or type(alpha) ~= "number" then
+				return
+			end
+			local wanted = parts.selected and 1 or max(0.8, alpha)
+			if alpha ~= wanted then
+				pinning = true
+				self:SetAlpha(wanted)
+				pinning = false
+			end
+		end)
 		parts.chatGlow = parts.underline:GetParent():CreateTexture(nil, "OVERLAY", nil, -1)
 		parts.Paint = function(self)
 			paint(self)

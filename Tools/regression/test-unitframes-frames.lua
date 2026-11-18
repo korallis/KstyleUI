@@ -223,7 +223,7 @@ assert(player.portraitFrame:IsShown() == true, "the portrait shows again")
 -- Fonts follow their settings.
 K.Options.Write("UnitFrames", "player.fonts.name.size", 15)
 local font = W.LastCall(player.name, "SetFont")
-assert(font[2] == 15 and font[3] == "", "the name font takes the new size")
+assert(font[2] == 15 and font[3] == "OUTLINE", "the name font takes the new size")
 K.Options.Write("UnitFrames", "player.fonts.name.outline", "OUTLINE")
 assert(W.LastCall(player.name, "SetFont")[3] == "OUTLINE", "the name takes the outline")
 

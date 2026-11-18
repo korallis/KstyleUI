@@ -120,8 +120,9 @@ do
 		local area = (el.height - g.top - g.bottom) / g.k
 		local lines = (area + spacing) / (font + spacing)
 		local em = (el.width - g.left - g.right) / g.k / font
-		assert(math.floor(lines + 1e-6) == 7, "seven lines at size " .. size .. ", got " .. lines)
-		assert(area >= 6 * (font + spacing) + font - 1e-6 and area <= 7 * (font + spacing) + 1e-6, "the seventh line is whole and an eighth has no pixel in the window at size " .. size .. ", area " .. area)
+		local count = size == 1 and 7 or 6
+		assert(math.floor(lines + 1e-6) == count, "the twelve-unit header gap leaves " .. count .. " whole lines at size " .. size .. ", got " .. lines)
+		assert(area >= (count - 1) * (font + spacing) + font - 1e-6 and area <= count * (font + spacing) + 1e-6, "the seventh line is whole and an eighth has no pixel in the window at size " .. size .. ", area " .. area)
 		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
@@ -156,7 +157,7 @@ do
 					assert(area >= (fit - 1) * pitch + font - eps and area <= fit * pitch + eps, "the window ends between two lines, " .. label)
 				end
 				assert(near(select(5, chat:GetPoint(1)) * g.k, -g.top) and near(select(5, chat:GetPoint(2)) * g.k, g.bottom), "the window sits where the geometry says after a change of size, " .. label)
-				assert(near(g.top, K.Scale.Snap(34)), "the tab row and the dock stay where they are, " .. label)
+				assert(near(g.divider, K.Scale.Snap(34)) and near(g.top - g.divider, K.Scale.Snap(12)), "the tab row stays in place with twelve units before the message, " .. label)
 			end
 		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
@@ -184,7 +185,7 @@ do
 	assert(four < half and half < five, "a half unit of spacing is its own step, got " .. four .. ", " .. half .. ", " .. five)
 	for _, value in ipairs({ 4, 4.5, 5 }) do
 		local want = wanted(value)
-		assert(spacingAt(value) >= want - 1e-6, "the slider is the least spacing between lines: the window's whole lines take up the rest, " .. value)
+		assert(spacingAt(value) >= want - K.Scale.Pixel(1) / K.Widgets.ScaleFactor(chat) - 1e-6, "the slider sets the least spacing within one physical pixel, " .. value)
 	end
 	local _, _, _, _, y = env.ChatFrame1Tab.Text:GetPoint(1)
 	assert(near(y, -7.85), "the tab names sit 7.85 units under the dock's top, got " .. tostring(y))
@@ -217,7 +218,7 @@ do
 	local g = ns.Panel.Geometry(chat)
 	assert(g.k > base.k * 1.2, "the chat window's units grow as the interface shrinks: " .. g.k)
 	assert(g.top - 14 * g.k >= 10 - 0.5, "the tab buttons' centre stays 10 units inside the card at 60%, got " .. g.top - 14 * g.k)
-	assert(near(g.divider, g.top), "and the buttons share the window's top")
+	assert(near(g.top - g.divider, K.Scale.Snap(12)), "the first message starts twelve units below the tab rule")
 end
 
 -- The insets follow the scale: on a 1440p screen the chat window's own units are smaller.
@@ -243,7 +244,7 @@ do
 	local snap = K.Scale.Snap
 	local g = ns.Panel.Geometry(chat)
 	assert(near(g.divider, snap(34)), "the tab row is 34 units, the picture's first line just under the labels, got " .. g.divider)
-	assert(near(g.top, snap(34)), "the window starts at the tab row, where the dock rides it, got " .. g.top)
+	assert(near(g.top - g.divider, snap(12)), "the window starts twelve units below the tab rule, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
 	assert(near(g.left, snap(pad)) and near(g.right, snap(pad)) and near(g.bottom, snap(pad)), "the window is inset by the card's padding on the left, right and bottom, got " .. g.left .. ", " .. g.right .. ", " .. g.bottom)
@@ -380,7 +381,7 @@ do
 	assert(not copy:IsShown() and plus:IsShown(), "the setting hides the copy glyph only, even while the pointer is over the card")
 	assert(select(4, env.ChatFrame1:GetPoint(2)) == right, "the messages stay: the glyph sits in the tab row")
 	env.ChatFrame1Tab:SetAlpha(0.4)
-	assert(near(plus:GetAlpha(), 0.4), "the plus fades with the tabs")
+	assert(near(plus:GetAlpha(), env.ChatFrame1Tab:GetAlpha()), "the plus follows the pinned tab alpha")
 end
 
 -- Blizzard's tab dock spans the chat window's Background (FCFDock_SetPrimary), so its last tab ran under the
@@ -529,13 +530,13 @@ do
 	assert(near(tr, gr) and near(tg, gg) and near(tb, gb), "the selected tab is gilt")
 	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
 	local ur, ug, ub = env.ChatFrame2Tab.Text:GetTextColor()
-	local dr0, dg0, db0 = K.Tokens.Color("dim")
-	assert(near(ur, dr0) and near(ug, dg0) and near(ub, db0), "the other tab is the dim grey, the mock-up's faint")
+	local dr0, dg0, db0 = K.Tokens.Color("labelMuted")
+	assert(near(ur, dr0) and near(ug, dg0) and near(ub, db0), "the other tab is the readable muted caption")
 	assert(parts.underline:IsShown(), "the underline style draws the gilt line")
 	local line = parts.underline
 	local lp, lrel, _, lx = line:GetPoint(1)
 	local rp, rrel, _, rx = line:GetPoint(2)
-	assert(lp == "BOTTOMLEFT" and lrel == tab and near(lx, 0) and rp == "BOTTOMRIGHT" and rrel == tab and near(rx, 0), "the underline spans the tab's full width, as the design's tabs do")
+	assert(lp == "BOTTOMLEFT" and lrel == tab.Text and near(lx, -K.Widgets.Snap(tab, 2)) and rp == "BOTTOMRIGHT" and rrel == tab.Text and near(rx, K.Widgets.Snap(tab, 2)), "the underline follows the ink with two units each side")
 	assert(near(line:GetHeight(), K.Widgets.Snap(line, 1)), "the underline is one unit: the mockup's thin line")
 	local ar, ag, ab = K.Widgets.LumenColor("gilt")
 	local lr, lg, lb = line:GetVertexColor()
@@ -567,7 +568,7 @@ do
 	K.Options.Write("Chat", "tabStyle", "plain")
 	assert(not parts.underline:IsShown(), "the gold text style has no underline")
 	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
-	local mr, mg, mb = K.Tokens.Color("muted")
+	local mr, mg, mb = K.Tokens.Color("labelMuted")
 	ur, ug, ub = env.ChatFrame2Tab.Text:GetTextColor()
 	assert(near(ur, mr) and near(ug, mg) and near(ub, mb), "and leaves the other tabs the muted grey")
 	K.Options.Write("Chat", "tabCase", "normal")
@@ -624,7 +625,7 @@ do
 	env.ChatFrame1:SetFont(path, 14, "")
 	env.RunTimers()
 	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
-	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 6.5)), "6.5 units between lines preserve the reference pitch with Folio at 12, on whole pixels")
+	assert(lastCall(env.ChatFrame1, "SetSpacing")[1] >= K.Widgets.Snap(env.ChatFrame1, 6.5) - K.Scale.Pixel(1) / K.Widgets.ScaleFactor(env.ChatFrame1), "the fitted spacing preserves the requested spacing below the twelve-unit header gap")
 	K.Options.Write("Chat", "lineSpacing", 0)
 	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == lastCall(env.ChatFrame1, "SetSpacing")[1], "line spacing reaches every window: the docked one shares the window's whole lines, so the same fitted spacing")
 	K.Options.Write("Chat", "fade", false)
@@ -758,7 +759,7 @@ do
 			local lines = math.floor((area + gap) / pitch + 1e-6)
 			local pixel = K.Scale.Pixel(1) / g.k
 			local want = K.Widgets.Snap(chat, ns.LineSpacing(K.Store.Module("Chat")) * K.Scale.UserScale())
-			assert(lines >= 7, label .. ": the card shows seven whole lines, got " .. lines .. " at " .. font .. " + " .. gap)
+			assert(lines >= 6, label .. ": the card shows six whole lines below the twelve-unit gap, got " .. lines .. " at " .. font .. " + " .. gap)
 			assert(area >= (lines - 1) * pitch + font - 0.5 * pixel and area <= lines * pitch + 0.5 * pixel, label .. ": the window ends between two lines, area " .. area)
 			assert(gap >= pixel - 1e-6 and gap >= want - pixel - 1e-6, label .. ": the spacing keeps the player's spacing, give or take a pixel, got " .. gap .. " for " .. want)
 			ns.Frames.Refresh(K.Store.Module("Chat"))

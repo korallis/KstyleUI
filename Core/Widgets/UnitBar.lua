@@ -80,7 +80,7 @@ local function TextCurves(token)
 	if curves ~= nil or not LowCurve() then
 		return curves or nil
 	end
-	local low, high = { Tokens.Color("healthLow") }, { Tokens.Color(token) }
+	local low, high = { Tokens.Color("healthLowText") }, { Tokens.Color(token) }
 	curves = {}
 	for i = 1, 3 do
 		local curve = C_CurveUtil.CreateCurve()
@@ -140,6 +140,19 @@ function Bar:SetBarColor(...)
 	c[1], c[2], c[3], c[4] = ...
 	self.ownColor = true
 	self:SetStatusBarColor(...)
+	local r, g, b = c[1], c[2], c[3]
+	if not (Widgets.IsSecret(r) or Widgets.IsSecret(g) or Widgets.IsSecret(b))
+		and type(r) == "number" and type(g) == "number" and type(b) == "number" and type(CreateColor) == "function" then
+		local gradient = self.gradients
+		if gradient.lossR == r and gradient.lossG == g and gradient.lossB == b then
+			return
+		end
+		gradient.lossR, gradient.lossG, gradient.lossB = r, g, b
+		gradient.lossBottom = CreateColor(r + (1 - r) * 0.35, g + (1 - g) * 0.35, b + (1 - b) * 0.35, 0.75)
+		gradient.lossTop = CreateColor(r + (1 - r) * 0.5, g + (1 - g) * 0.5, b + (1 - b) * 0.5, 0.75)
+		Gradient(self.under:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
+		Gradient(self.recent:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
+	end
 end
 
 function Bar:SetBarValue(value)
