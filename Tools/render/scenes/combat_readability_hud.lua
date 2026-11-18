@@ -26,6 +26,13 @@ return Common.Run(function()
 	env.RunTimers()
 	assert(K.Setup.Apply({ layout = "DPS", modules = { UnitFrames = true, CombatText = true } }))
 	env.RunTimers()
+	if os.getenv("RENDER_COMBAT_LEGACY") == "1" then
+		K.Options.Write("UnitFrames", "player.powerText", "legacy")
+		K.Options.Write("UnitFrames", "target.percentLead", false)
+		K.Options.Write("UnitFrames", "player.powerSeparate", true)
+		K.Options.Write("UnitFrames", "player.powerSeparate", false)
+		K.Options.Write("CombatText", "clearLanes", false)
+	end
 	env.SetTarget(true)
 	env._time = 10
 	for _, unit in ipairs({ "player", "target" }) do env.FireEvent("UNIT_SPELLCAST_START", unit, "Cast-1") end
