@@ -13,6 +13,7 @@ local HOLD = 0.6
 local function Outcomes()
 	return K.Store.Module(MODULE).castOutcomes ~= false
 end
+CastBars.Outcomes = Outcomes
 local TIMER_STEP = 0.05
 local GAP_SHARE = 0.21
 local GAP_MIN = 2
@@ -1189,7 +1190,7 @@ end
 
 function CastBars.Attach(view)
 	local kind = view.kind
-	local cb = New(kind == "target" and view.button or view.body or view.button, kind, view.unit)
+	local cb = New(view.body or view.button, kind, view.unit)
 	cb.attached = true
 	view.castbar = cb
 	local block = view.health and view.health.ornament

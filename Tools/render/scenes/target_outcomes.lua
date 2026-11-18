@@ -34,10 +34,10 @@ return Common.Run(function()
 			U.SetUnit(env, "target", { name = "Bandit Highwayman", level = 9, health = 48, healthMax = 100, reaction = 2, canAttack = true })
 			env.SetTarget(true)
 			if portrait then view.medallion.portrait:SetTexture(portrait) end
-			U.W.Tick(env, 0.12)
+			U.W.Tick(env, 0.06)
+			U.W.Tick(env, 0.06)
 		end
 		view.medallion.flip:Stop()
-		if view.targetGhost then view.targetGhost.medallion.flip:Stop() end
 		local label = K.Widgets.FontString(K.Scale.Root(), "OVERLAY")
 		K.Widgets.StyleText(label, "body")
 		label:SetPoint("CENTER", K.Scale.Root(), "CENTER", -320, 260 - (row - 1) * 240)

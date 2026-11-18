@@ -258,6 +258,7 @@ local function TargetLoss(view)
 	view.targetLoss = (view.targetLoss or 0) + 1
 	local token = view.targetLoss
 	if TargetTransitions(view) then
+		K.Motion.Tween(body, "SetAlpha", body:GetAlpha(), body:GetAlpha(), 0)
 		local function Fade()
 			if view.targetLoss == token and not view.targetSeen then
 				K.Motion.Tween(body, "SetAlpha", body:GetAlpha(), 0, 0.15, function(t) return t * t end, HideBody)
@@ -271,7 +272,6 @@ local function TargetLoss(view)
 	else
 		K.Motion.Tween(body, "SetAlpha", 1, 0, 0, nil, HideBody)
 	end
-	if view.targetGhost then HideBody(view.targetGhost.parent) end
 end
 
 local function OnButtonShow(button)
@@ -709,52 +709,33 @@ local function PrepareTarget(view)
 		view.deathTween = nil
 		view.medallion:SetDead(view.slabDead == true)
 	end
-	local ghost = view.targetGhost
-	if TargetTransitions(view) and (ghost or UnitExists("target")) then
-		if not ghost then
-			local body = CreateFrame("Frame", nil, view.uf.holder)
-			body:SetFrameLevel(view.body:GetFrameLevel())
-			body:SetAllPoints(view.button)
-			ghost = Style.New(body, "target")
-			ghost.body = body
-			view.targetGhost = ghost
-		end
-		ghost.s = view.s
-		Style.Restyle(ghost, "target")
-		Style.Layout(ghost, view.s, view.button:GetSize())
-		view.targetKeys = {}
-		for key in pairs(ghost) do view.targetKeys[#view.targetKeys + 1] = key end
-	end
-	if ghost then K.Motion.Tween(ghost.parent, "SetAlpha", 1, 0, 0, nil, HideBody) end
 	K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
 	view.body:SetShown(view.button:IsShown())
 	view.targetSeen = UnitExists("target") and true or false
 end
 
 local function TargetChange(view)
-	if not view or not view.body then return end
-	if not UnitExists("target") then return end
-	local on = TargetTransitions(view)
-	if on and view.targetSeen and not view.targetGhost then PrepareTarget(view) end
-	if on and view.targetSeen and view.targetGhost then
+	local exists = view and view.body and UnitExists("target")
+	if exists then
+		local on, seen = TargetTransitions(view), view.targetSeen
+		view.targetSeen = true
 		if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
-		local ghost = view.targetGhost
-		Style.Layout(ghost, view.s, view.button:GetSize())
-		for _, key in ipairs(view.targetKeys) do view[key], ghost[key] = ghost[key], view[key] end
-		ghost.health:SetHealthUnit(nil)
-		ghost.medallion:LowHealth(nil)
-		K.Motion.Tween(ghost.parent, "SetAlpha", ghost.parent:GetAlpha(), 0, 0.12, "inOutSine", HideBody)
-		view.medallion:SetDead(false)
-		view.slabDead = false
-		view.rangeAlpha = nil
-		K.Motion.FadeIn(view.body, 0.12)
-	elseif on then
-		K.Motion.FadeIn(view.body, 0.12)
-	else
-		K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
-		view.body:Show()
+		if on and seen then
+			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", function()
+				RefreshKind("target", true)
+				ns.Slab.FlipIn(view)
+				K.Motion.FadeIn(view.body, 0.06)
+			end)
+			return
+		elseif on then
+			K.Motion.FadeIn(view.body, 0.12)
+		else
+			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
+			view.body:Show()
+		end
 	end
-	view.targetSeen = true
+	RefreshKind("target", true)
+	if exists then ns.Slab.FlipIn(view) end
 end
 
 function Frames.Restyle(uf)
@@ -955,10 +936,6 @@ local function RegisterEvents()
 	local Events = K.Events
 	Events.Register(MODULE, "PLAYER_TARGET_CHANGED", function()
 		TargetChange(frames.target and frames.target.views[1])
-		RefreshKind("target", true)
-		if frames.target and UnitExists("target") then
-			ns.Slab.FlipIn(frames.target.views[1])
-		end
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
 	end)

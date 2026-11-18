@@ -172,6 +172,10 @@ local function Rgb(color)
 	return color.r, color.g, color.b
 end
 
+local function ThreatColor(state)
+	return K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
+end
+
 local function TargetColor()
 	if Settings.Get("target.colorSource") == "custom" then
 		return Rgb(Settings.Get("target.color"))
@@ -222,9 +226,7 @@ function ns.NewPlate(parent, sample)
 	plate.health = health
 	plate.threatShape = plate:CreateTexture(nil, "OVERLAY")
 	plate.threatShape:Hide()
-	health.rim = { Tokens.Color("black") }
 	function health:SetRimColor(r, g, b, a)
-		self.rim[1], self.rim[2], self.rim[3], self.rim[4] = r, g, b, a or 1
 		self.under.edgeHard:SetColorTexture(r, g, b, a or 1)
 	end
 	plate.healthText = NewText(health, "RIGHT")
@@ -527,6 +529,7 @@ function Plate:ClearUnit()
 	self.threatState = nil
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
 	self.alphaGoal = nil
+	self:SetAlpha(1)
 	Each("Clear", self)
 	self:Hide()
 end
@@ -813,19 +816,19 @@ function Plate:UpdateThreat()
 		Widgets.Size(shape, state == "safe" and 2 or 8, 8)
 		shape:ClearAllPoints()
 		Widgets.Point(shape, "TOPLEFT", self.health, "TOPRIGHT", 6, 0)
-		shape:SetVertexColor(K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state]))))
+		shape:SetVertexColor(ThreatColor(state))
 	end
 	local glow = self.threatGlow
 	local keyline = Settings.Get("threat.keyline") and display == "glow"
 	if not self.focusRim then
 		if keyline and state then
-			self.health:SetRimColor(K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state]))))
+			self.health:SetRimColor(ThreatColor(state))
 		else
 			self.health:SetRimColor(Tokens.Color("black"))
 		end
 	end
 	if state and display == "glow" and not keyline then
-		local r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
+		local r, g, b = ThreatColor(state)
 		Widgets.ColorSlice(glow, r, g, b, THREAT_GLOW_ALPHA)
 		Widgets.ShowSlice(glow, true)
 	else
@@ -855,8 +858,7 @@ function Plate:UpdateHighlight(sigilCasts)
 		local r, g, b = Rgb(Settings.Get("focus.color"))
 		health:SetRimColor(r, g, b, 1)
 	elseif Settings.Get("threat.keyline") and Settings.Get("threat.display") == "glow" and self.threatState then
-		local threat = self.threatState
-		health:SetRimColor(K.ColorVision.Color(threat == "danger" and 2 or threat == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[threat]))))
+		health:SetRimColor(ThreatColor(self.threatState))
 	else
 		health:SetRimColor(Tokens.Color("black"))
 	end

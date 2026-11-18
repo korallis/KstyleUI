@@ -48,7 +48,7 @@ local function Streak(cb)
 	fall:SetDuration(STREAK_RUN / 2)
 	group:SetScript("OnFinished", function()
 		streak:SetAlpha(0)
-		if K.Store.Module("UnitFrames").castOutcomes ~= false then cb.flash:Hide() end
+		if ns.CastBars.Outcomes() then cb.flash:Hide() end
 	end)
 	holder.streak, holder.anim, holder.move, holder.rise, holder.fall = streak, group, move, rise, fall
 	cb.medStreak = holder
@@ -70,7 +70,7 @@ function CastEffects.Flash(cb, colorName, alpha)
 		return true
 	end
 	local holder = Streak(cb)
-	local on = K.Store.Module("UnitFrames").castOutcomes ~= false
+	local on = ns.CastBars.Outcomes()
 	local seconds = on and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash")
 	local run = on and 0.35 or STREAK_RUN
 	holder.move:SetDuration(run)

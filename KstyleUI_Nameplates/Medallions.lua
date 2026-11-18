@@ -266,7 +266,7 @@ local function LevelColor(plate, level)
 		return Tokens.Color("medText")
 	end
 	if level == SKULL_LEVEL then
-		return Tokens.Color(Settings.Get("target.readableTicks") and "nameHostile" or "hostile")
+		return Tokens.Color("hostile")
 	end
 	if plate.kind == "enemy" and level > 0 and type(GetCreatureDifficultyColor) == "function" then
 		local c = GetCreatureDifficultyColor(level)
