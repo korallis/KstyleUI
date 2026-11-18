@@ -646,9 +646,9 @@ local function PlaceMetrics(state)
 		local contentTop = 44
 		local header = frame.FriendsTabHeader
 		local broadcast = type(header) == "table" and header.BattlenetFrame
-		local top, bottom = frame:GetTop(), broadcast and broadcast:GetBottom()
-		if Plain(top) and Plain(bottom) then
-			contentTop = math.max(contentTop, top - bottom + 12)
+		local top, broadcastBottom = frame:GetTop(), broadcast and broadcast:GetBottom()
+		if Plain(top) and Plain(broadcastBottom) then
+			contentTop = math.max(contentTop, top - broadcastBottom + 12)
 		end
 		local _, _, _, _, bottom = inset:GetPoint(inset:GetNumPoints())
 		inset:ClearAllPoints()
