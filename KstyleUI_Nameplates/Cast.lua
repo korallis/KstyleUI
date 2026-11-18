@@ -281,7 +281,11 @@ function Cast.Stop(plate, interrupted, failed)
 			plate.castFade = Motion.FadeOut(cast, INTERRUPT_FADE)
 		end
 	else
-		plate.castFade = Motion.FadeOut(cast, Tokens.Duration("fade"))
+		if Settings.Get("cast.outcomes") then
+			plate.castFade = Motion.Tween(cast, "SetAlpha", cast:GetAlpha(), 0, Tokens.Duration("fade"), function(t) return t * t end, function() cast:Hide() end)
+		else
+			plate.castFade = Motion.FadeOut(cast, Tokens.Duration("fade"))
+		end
 	end
 end
 
