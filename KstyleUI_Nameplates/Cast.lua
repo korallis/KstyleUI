@@ -47,7 +47,7 @@ end
 local function OpenColor()
 	if not Settings.Get("cast.combatCues") then return CastColor() end
 	local interrupt = ns.Interrupt
-	if not interrupt or interrupt.ready ~= true then
+	if interrupt and interrupt.spell and interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
 		return c.r, c.g, c.b
 	end
@@ -69,7 +69,7 @@ local function ColorObjects()
 	end
 	local interrupt = ns.Interrupt
 	local open
-	if Settings.Get("cast.combatCues") and (not interrupt or interrupt.ready ~= true) then
+	if Settings.Get("cast.combatCues") and interrupt and interrupt.spell and interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
 		open = ColorObject(colors.wait, c.r, c.g, c.b)
 	else
@@ -352,7 +352,13 @@ function Cast.Gate(plate, isTarget, sigilCasts)
 end
 
 function Cast.Selection(plate, isTarget, isFocus)
-	plate.castName:SetShown(Settings.Get("cast.showName") and (not Settings.Get("cast.nameSelectedOnly") or isTarget or isFocus) and true or false)
+	local shown = Settings.Get("cast.showName") and (not Settings.Get("cast.nameSelectedOnly") or isTarget or isFocus) and true or false
+	plate.castName:SetShown(shown)
+	local below = shown and Settings.Get("cast.nameBelow") and true or false
+	if below == (plate.castNameBelow == true) then return end
+	plate.castNameBelow = below
+	if not plate.sample then plate:PlaceOnBase(ns.state.width, ns.state.height) end
+	if Settings.Get("debuffs.growthY") == "DOWN" then ns.Auras.Reanchor(plate) end
 end
 
 function Component.Build(plate)
@@ -379,7 +385,7 @@ function Component.Build(plate)
 	shield:SetAlpha(0)
 	plate.castShield = shield
 	local glyph = bar:CreateTexture(nil, "OVERLAY")
-	glyph:SetTexture((Tokens.Texture("medCastShield")))
+	glyph:SetTexture((Tokens.Texture("medCastShieldGlyph")))
 	glyph:SetVertexColor(Tokens.Color("steelLit"))
 	glyph:SetAlpha(0)
 	plate.castGlyph = glyph
@@ -397,7 +403,7 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	local label = Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
+	local label = plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
 	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2 + label
 end
 

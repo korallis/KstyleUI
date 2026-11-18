@@ -29,6 +29,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_POWER_SEPARATE") then
 		K.Options.Write("UnitFrames", "player.powerSeparate", os.getenv("RENDER_POWER_SEPARATE") ~= "0")
 	end
+	if os.getenv("RENDER_POWER_FULL") == "1" then
+		env._units.player.power = env._units.player.powerMax
+		env.FireEvent("UNIT_POWER_UPDATE", "player")
+	end
 	if os.getenv("RENDER_COMBAT_LEGACY") == "1" then
 		K.Options.Write("UnitFrames", "player.powerText", "legacy")
 		K.Options.Write("UnitFrames", "target.percentLead", false)

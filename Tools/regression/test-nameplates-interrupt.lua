@@ -151,8 +151,8 @@ do
 	N.Cast(env, "nameplate1", CAST)
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	local ar, ag, ab = K.Tokens.Color("giltDim")
-	assert(barIs(ns.Plates.Get("nameplate1").castBar, ar, ag, ab), "without an interrupt, interruptible casts take the wait colour")
+	local ar, ag, ab = K.Tokens.Color("gilt")
+	assert(barIs(ns.Plates.Get("nameplate1").castBar, ar, ag, ab), "without an interrupt, interruptible casts keep their normal colour")
 end
 
 print("nameplates interrupt ok")

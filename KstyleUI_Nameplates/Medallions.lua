@@ -63,8 +63,9 @@ local readSize = Plates.ReadSize
 function Plates.ReadSize()
 	readSize()
 	local state = ns.state
-	if Medallions.Active() and state.width == Plate.DEFAULT_WIDTH and state.height == Plate.DEFAULT_HEIGHT then
-		state.width, state.height = WIDTH, HEIGHT
+	if Medallions.Active() and state.width == Plate.DEFAULT_WIDTH then
+		state.width = WIDTH
+		if state.height == Plate.DEFAULT_HEIGHT then state.height = HEIGHT end
 	end
 end
 

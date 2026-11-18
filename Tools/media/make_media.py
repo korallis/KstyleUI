@@ -959,6 +959,10 @@ def draw_med_cast_shield(width, height):
     return white(sample(width, height, lambda x, y: 1.0 if (x + y) % period < stripe else 0.0))
 
 
+def draw_cast_shield_glyph():
+    points = ((6, 5), (26, 5), (25, 18), (22, 23), (16, 28), (10, 23), (7, 18), (6, 5))
+    return draw_strokes(32, tuple(zip(points, points[1:])), 4)
+
 
 def _medallions(name, width, height, draw, about, slice_=None):
     return Asset(f"{MEDALLIONS}/{name}.png", width, height, draw, about, slice=slice_, drawn=MEDALLIONS_DRAWN)
@@ -1054,6 +1058,9 @@ for picture_name, about in (
 ASSETS += [
     _medallions("CastShield", 64, 16, lambda: draw_med_cast_shield(64, 16),
                 "Uninterruptible-cast hatch: white 45-degree stripes 3 texels wide every 8, tiling both ways. Tinted over the cast bar."),
+    Asset(f"{MEDALLIONS}/CastShieldGlyph.png", 32, 32, draw_cast_shield_glyph,
+          "Small hollow shield for uninterruptible nameplate casts; a flat top, tapered sides and pointed foot.",
+          "4x4 supersampled; 4-texel outline", drawn="2026-11-18"),
     _medallions("MapMask", 256, 256, lambda: draw_disc(256), "Round minimap mask for the Medallions map: a white disc touching the edges."),
 ]
 

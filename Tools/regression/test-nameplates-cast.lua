@@ -31,8 +31,8 @@ do
 	assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills as time passes")
 	assert(Last(plate.castName, "SetText")[1] == "Molten Pulse", "the spell's name shows")
 	assert(Last(plate.castIcon, "SetTexture")[1] == 135808, "the spell's icon shows")
-	local ar, ag, ab = token(K, "giltDim")
-	assert(SameColor(ar, ag, ab, barColor(bar)), "without a known interrupt an interruptible cast takes the wait colour")
+	local ar, ag, ab = token(K, "gilt")
+	assert(SameColor(ar, ag, ab, barColor(bar)), "without a known interrupt an interruptible cast keeps its normal colour")
 	assert(plate.castShield:GetAlpha() == 0, "no shield over the icon")
 
 	-- The time text counts down while the bar shows.

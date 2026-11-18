@@ -1,4 +1,4 @@
--- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 17-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
+-- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 22-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 local function eq(got, want, what)
@@ -122,7 +122,7 @@ eq(trel, enemy.health, "beside the bar")
 eq(trp, "LEFT", "off the bar's left end")
 assert(tx < 0, "clear of the bar")
 
--- Debuffs: 17 units with 10-unit counts, read through the module's settings.
+-- Debuffs: 22 units with 11-unit counts, read through the module's settings.
 eq(ns.Settings.Get("debuffs.size"), 22, "debuffs are 22 units")
 eq(ns.Settings.Get("debuffs.textSize"), 11, "their timers are 11 units")
 

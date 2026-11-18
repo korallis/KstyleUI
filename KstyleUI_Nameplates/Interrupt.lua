@@ -55,21 +55,22 @@ function Interrupt.Resolve()
 		local class = PlayerClass()
 		spell = Logic.InterruptSpell(class, Known)
 		if not spell and class and not Logic.INTERRUPTS[class] then
-			LogOnce("interrupt-class", "no interrupt is listed for " .. class .. "; cast bars show interruptible and not")
+			LogOnce("interrupt-class", "no interrupt is listed for " .. class .. "; interruptible casts keep their normal colour")
 		end
 	end
-	if spell ~= Interrupt.spell then
+	local changed = spell ~= Interrupt.spell
+	if changed then
 		Interrupt.spell = spell
-		K.DevTest.Log(MODULE, spell and ("the interrupt is spell " .. tostring(spell)) or "no interrupt spell is known; cast bars show interruptible and not")
+		K.DevTest.Log(MODULE, spell and ("the interrupt is spell " .. tostring(spell)) or "no interrupt spell is known; interruptible casts keep their normal colour")
 	end
-	Interrupt.Update()
+	Interrupt.Update(false, changed)
 end
 
 local function Repaint()
 	ns.Cast.RepaintAll()
 end
 
-function Interrupt.Update(fromCooldownEvent)
+function Interrupt.Update(fromCooldownEvent, spellChanged)
 	local ready
 	local spell = Interrupt.spell
 	local api = C_Spell
@@ -79,13 +80,13 @@ function Interrupt.Update(fromCooldownEvent)
 			local state = Logic.InterruptReady(info, fromCooldownEvent == true)
 			ready = state
 			if state == nil then
-				LogOnce("interrupt-secret", "the interrupt's cooldown came back secret or empty; its casts read as interruptible")
+				LogOnce("interrupt-secret", "the interrupt's cooldown came back secret or empty; interruptible casts use the wait colour")
 			end
 		else
 			LogOnce("interrupt-cooldown", "GetSpellCooldown refused the interrupt spell: " .. tostring(info))
 		end
 	end
-	if ready ~= Interrupt.ready then
+	if ready ~= Interrupt.ready or spellChanged then
 		Interrupt.ready = ready
 		if Interrupt.running then
 			Repaint()

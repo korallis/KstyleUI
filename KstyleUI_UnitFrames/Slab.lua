@@ -276,10 +276,6 @@ function Slab.Colors(view, unit)
 end
 
 function Slab.Health(view, unit)
-	if view.form == "slab" and view.kind == "target" and view.s.percentLead and view.s.healthText == "both" then
-		ns.Format.Health(view.healthText, unit, "percent")
-		ns.Format.HealthDetail(view.healthSub, unit, "both")
-	end
 	if not Active(view) then
 		return
 	end

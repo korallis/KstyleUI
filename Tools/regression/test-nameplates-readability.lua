@@ -10,6 +10,14 @@ N.Focus(env, "nameplate2")
 local target, focus, other = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2"), ns.Plates.Get("nameplate3")
 assert(target.castName:IsShown() and focus.castName:IsShown(), "H1: show spell names on target and focus plates")
 assert(not other.castName:IsShown(), "Minimal keeps other cast names quiet")
+local function room(plate)
+	for _, component in ipairs(ns.Components) do
+		if component.Build and component.Room and component.events.UNIT_SPELLCAST_START then return component.Room(plate) end
+	end
+end
+assert(room(target) - room(other) == ns.Settings.Get("cast.textSize") + K.Tokens.Size("gapTiny"), "only selected plates reserve the spell-name lane")
+local selectedRise, quietRise = target.rise, other.rise
+assert(selectedRise > quietRise, "the selected plate reserves its label below the bar")
 assert(select(2, target.castName:GetFont()) == 11, "the selected spell name is 11 units")
 local ready, wait = ns.Settings.Get("cast.color"), ns.Settings.Get("cast.waitColor")
 assert(not N.SameColor(ready.r, ready.g, ready.b, wait.r, wait.g, wait.b), "H1: readiness and recharge need different colours")
@@ -19,7 +27,7 @@ assert(ns.Interrupt.ready == nil, "a secret cooldown must never claim the interr
 local r, g, b = target.castBar:GetStatusBarColor()
 assert(N.SameColor(r, g, b, wait.r, wait.g, wait.b), "unknown readiness uses the wait colour")
 env.FireEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "nameplate1")
-assert(target.castGlyph and target.castGlyph:GetTexture() == K.Tokens.Texture("medCastShield"), "the cast has the shield glyph")
+assert(target.castGlyph and target.castGlyph:GetTexture() == K.Tokens.Texture("medCastShieldGlyph"), "the cast has a shield silhouette, separate from the cast-track hatch")
 assert(target.castGlyph:IsShown() and target.castGlyph:GetAlpha() > 0, "the shield reads even with spell icons off")
 assert(target.castGlyph:GetParent():GetFrameLevel() >= target.castBar:GetFrameLevel(), "the cast fill must not cover its shield")
 assert(env.Look(target.castGlyph:GetWidth()) >= 11, "the shield stays readable on a six-unit cast track")
@@ -27,6 +35,13 @@ env.FireEvent("UNIT_SPELLCAST_INTERRUPTIBLE", "nameplate1")
 assert(target.castGlyph:GetAlpha() == 0, "interruptible casts clear the shield")
 N.Target(env, "nameplate3")
 assert(other.castName:IsShown() and not target.castName:IsShown(), "the name follows target changes")
+assert(target.rise == quietRise and other.rise == selectedRise, "only the old and new target footprints follow the name")
+K.Options.Write("Nameplates", "debuffs.growthY", "DOWN")
+local _, _, _, _, quietAuraY = target.auras:GetPoint(1)
+local _, _, _, _, selectedAuraY = other.auras:GetPoint(1)
+assert(quietAuraY > selectedAuraY, "downward debuffs clear only the names that are shown")
+N.Target(env, "nameplate1")
+assert(select(5, target.auras:GetPoint(1)) == selectedAuraY and select(5, other.auras:GetPoint(1)) == quietAuraY, "selection updates downward aura anchors too")
 K.Options.Write("Nameplates", "cast.nameSelectedOnly", false)
 assert(target.castName:IsShown(), "the player can show all cast names")
 
@@ -40,6 +55,13 @@ K.Options.Write("Nameplates", "healthText.show", false)
 assert(ns.state.height == 12 and not target.healthText:IsShown(), "the percent is optional and keeps the fuller plate")
 K.Options.Write("Nameplates", "preset", "lumen")
 assert(ns.state.width == 120 and ns.state.height == 9, "Minimal restores the slim default")
+for _, style in ipairs({ "frames", "orbs" }) do
+	K.Options.Write("HudStyle", "style", style)
+	local width = ns.state.width
+	K.Options.Write("Nameplates", "preset", "dungeon")
+	assert(ns.state.width == width and width == ns.Plate.DEFAULT_WIDTH and ns.state.height == 12, "Dungeon preserves the " .. style .. " plate width")
+	K.Options.Write("Nameplates", "preset", "lumen")
+end
 K.Options.Write("Nameplates", "cast.combatCues", false)
 env._units.nameplate1.cast.notInterruptible = true
 env.FireEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "nameplate1")

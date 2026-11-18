@@ -724,10 +724,11 @@ function Style.PowerTint(view, r, g, b)
 	view.powerTypeLine:SetShown(separate)
 	if separate then
 		view.powerTypeLine:SetColorTexture(r, g, b, 1)
-		view.power:SetBarColor(Tokens.Color("steelLit"))
-	else
-		view.power:SetBarColor(r, g, b)
+		r, g, b = Tokens.Color("steelLit")
 	end
+	view.power:SetBarColor(r, g, b)
+	local geometry = view.geometry
+	if geometry and geometry.form ~= "plate" and geometry.powerText and not geometry.powerReserve then Widgets.InkText(view.powerText, r, g, b) end
 end
 
 function Style.Accent(view)

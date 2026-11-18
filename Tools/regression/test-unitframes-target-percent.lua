@@ -13,7 +13,18 @@ K.Options.Write("UnitFrames", "target.percentLead", false)
 assert(U.Shown(env, view.healthText) == "118 / 236" and U.Shown(env, view.healthSub) == "50%", "off restores the original current-first slab")
 K.Options.Write("UnitFrames", "target.percentLead", true)
 env._restricted = true
+local writes = {}
+for _, text in ipairs({ view.healthText, view.healthSub }) do
+	for _, method in ipairs({ "SetText", "SetFormattedText" }) do
+		local set = text[method]
+		text[method] = function(self, ...)
+			writes[self] = (writes[self] or 0) + 1
+			return set(self, ...)
+		end
+	end
+end
 env.FireEvent("UNIT_HEALTH", "target")
+assert(writes[view.healthText] == 1 and writes[view.healthSub] == 1, "format each slab health string once per health update")
 assert(U.Shown(env, view.healthText) == "50%" and U.Shown(env, view.healthSub) == "118 / 236", "restricted health never enters Lua arithmetic")
 env._units.target.dead = true
 env.FireEvent("UNIT_HEALTH", "target")

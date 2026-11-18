@@ -262,10 +262,15 @@ local function LumenHealth(view, unit, form, format)
 	elseif form == "card" then
 		Format.Health(view.healthText, unit, Format.Main(format))
 	elseif form == "slab" then
-		Format.Health(view.healthText, unit, format == "both" and "currentMax" or format)
+		local percent = view.kind == "target" and view.s.percentLead and format == "both"
+		Format.Health(view.healthText, unit, percent and "percent" or format == "both" and "currentMax" or format)
 		local dead = UnitIsDeadOrGhost and UnitIsDeadOrGhost(unit)
 		local gone = not IsSecret(dead) and dead == true
-		Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none")
+		if percent then
+			Format.HealthDetail(view.healthSub, unit, gone and "none" or "both")
+		else
+			Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none")
+		end
 	elseif form == "row" then
 		Format.Health(view.healthText, unit, format)
 	end

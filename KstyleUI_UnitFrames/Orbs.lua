@@ -26,7 +26,7 @@ local DIAMOND_TONES = { { "black", 1 }, { "gilt", 0.8 }, { "black", 1 }, { "mate
 local VALUE_SIZE = 17
 local VALUE_DROP = 0.22
 local VALUE_FLAGS = "OUTLINE"
-local HEALTH_FORMAT, POWER_FORMAT = "currentMax", "auto"
+local HEALTH_FORMAT, POWER_FORMAT = "currentMax", "percent"
 local STRATA = "LOW"
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local DEPTH_LOSS, DEPTH_RECENT, DEPTH_FILL, DEPTH_GLASS = 1, 2, 3, 4
@@ -155,7 +155,7 @@ local function NewOrb(kind)
 	orb.ring:SetTexture(Texture("orbRing"))
 	orb.ring:SetAllPoints(orb)
 	orb.value = K.Widgets.FontString(top, "OVERLAY")
-	orb.value:SetJustifyH(kind == "power" and "RIGHT" or "CENTER")
+	orb.value:SetJustifyH("CENTER")
 	orb.value:SetJustifyV("MIDDLE")
 	orb.value:SetWordWrap(false)
 	return orb
@@ -470,9 +470,7 @@ local function Power(eased)
 	local orb = orbs.power
 	orb.bar:SetMinMaxValues(0, UnitPowerMax("player"))
 	SetBarValue(orb.bar, UnitPower("player"), eased)
-	local mode = Settings.Value("player", "powerText")
-	orb.value:SetJustifyH(mode == "legacy" and "CENTER" or "RIGHT")
-	Format.Power(orb.value, "player", mode == "legacy" and "percent" or mode or POWER_FORMAT)
+	Format.Power(orb.value, "player", POWER_FORMAT)
 end
 
 local function Refresh()

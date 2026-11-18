@@ -478,6 +478,17 @@ local function BuildSamples(plate)
 	end
 end
 
+function Auras.Reanchor(plate)
+	if plate.sample then
+		LayoutSamples(plate)
+	elseif plate.auras then
+		local size, spacing, columns = Grid(plate)
+		local anchor = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
+		Anchor(plate, plate.auras, anchor)
+		LayoutChip(plate, anchor, size, spacing, columns)
+	end
+end
+
 local Component = { events = {} }
 ns.Components[#ns.Components + 1] = Component
 
