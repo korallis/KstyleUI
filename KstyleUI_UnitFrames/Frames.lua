@@ -745,6 +745,7 @@ local function TargetChange(view)
 		K.Motion.Tween(ghost.parent, "SetAlpha", ghost.parent:GetAlpha(), 0, 0.12, "inOutSine", HideBody)
 		view.medallion:SetDead(false)
 		view.slabDead = false
+		view.rangeAlpha = nil
 		K.Motion.FadeIn(view.body, 0.12)
 	elseif on then
 		K.Motion.FadeIn(view.body, 0.12)

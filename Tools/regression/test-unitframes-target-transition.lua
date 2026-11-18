@@ -110,6 +110,13 @@ do
 	U.SetUnit(e, "target", { name = "Boar", level = 10, health = 60, healthMax = 100, reaction = 2 })
 	e.SetTarget(true)
 	assert(targetView.body ~= previous, "E5: crossfade the first replacement when the addon starts with an existing target")
+	e.UnitInRange = function() return false, true end
+	e.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
+	W.Tick(e, 0.2)
+	U.SetUnit(e, "target", { name = "Fox", level = 10, health = 50, healthMax = 100, reaction = 2 })
+	e.SetTarget(true)
+	W.Tick(e, 0.2)
+	assert(targetView.name:GetAlpha() == 0.55, "E5: a replacement slab preserves the target's range fade")
 	assert(#e._errors == 0 and kit.ErrorCount() == 0, tostring(e._errors[1]))
 end
 print("target transition ok")

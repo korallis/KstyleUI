@@ -30,6 +30,11 @@ K.Options.Write("Nameplates", "threat.role", "tank")
 env._units.nameplate1.threat = 3
 plate:UpdateThreat()
 rim("friendly")
+local mode = K.Options.Read("ColorVision", "mode")
+K.Options.Write("ColorVision", "mode", "redGreen")
+local pr, pg, pb = K.Tokens.Color("visionRGCalm")
+assert(plate.health.rim[1] == pr and plate.health.rim[2] == pg and plate.health.rim[3] == pb, "E4: threat edges preserve the selected colour-vision palette")
+K.Options.Write("ColorVision", "mode", mode)
 N.Focus(env, "nameplate2")
 env._units.nameplate2.threat = 1
 other:UpdateThreat()
