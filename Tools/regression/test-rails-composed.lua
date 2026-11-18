@@ -31,6 +31,22 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 end
 print("composed story rail ok")
 
+do
+	local R = Boot({ width = 1920, height = 1080 })
+	local chrome = R.ns.RestedXP.Chrome
+	local refit, calls = chrome.Refit, 0
+	chrome.Refit = function(...)
+		calls = calls + 1
+		return refit(...)
+	end
+	R.env.SetCombat(true)
+	R.K.Options.Write("Skins", "restedXP.compose", false)
+	assert(calls == 0, "story alignment changes must defer guide movement during combat")
+	R.env.SetCombat(false)
+	R.settle()
+	assert(calls > 0, "story alignment applies when combat ends")
+end
+
 for _, count in ipairs({ 1, 4, 8 }) do
 	local R = Boot({ width = 1920, height = 1080 })
 	for i = 8, count + 1, -1 do R.log.Untrack(R.quests[i].id) end

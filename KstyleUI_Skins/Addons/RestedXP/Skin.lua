@@ -44,10 +44,12 @@ ns.Skins.Add({
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
 		elseif field == "compose" then
-			local rxp = RestedXP.Addon()
-			if rxp then RestedXP.Chrome.Refit(rxp.RXPFrame) end
-			if ns.Quests and ns.Quests.Replace then ns.Quests.Replace() end
-			RestedXP.Rail.Schedule()
+			K.Combat.Queue(function()
+				local rxp = RestedXP.Addon()
+				if rxp then RestedXP.Chrome.Refit(rxp.RXPFrame) end
+				if ns.Quests and ns.Quests.Replace then ns.Quests.Replace() end
+				RestedXP.Rail.Schedule()
+			end)
 		elseif field == "boxes" then
 			RestedXP.Rail.Schedule()
 		end
