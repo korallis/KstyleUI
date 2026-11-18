@@ -62,6 +62,12 @@ for _, spec in ipairs(Windows.LIST) do
 		end
 	end
 	if spec.key == "trainer" then
+		local bar = K.Safe.Side(env.ClassTrainerStatusBar).partBBar
+		assert(math.abs(select(5, bar.frame:GetPoint(1)) + 48) < 1, "the trainer skill caption must clear the complete title band")
+		K.Options.Write("Appearance", "readableBars", false)
+		assert(math.abs(select(5, bar.frame:GetPoint(1)) + 35) < 1, "inside-bar text restores the native trainer bar position")
+		K.Options.Write("Appearance", "readableBars", true)
+		assert(math.abs(select(5, bar.frame:GetPoint(1)) + 48) < 1, "switching captions back on keeps them below the trainer title")
 		assert(env.ClassTrainerFrame.ScrollBox:GetTop() < env.ClassTrainerFrame.FilterDropdown:GetBottom(), "trainer rows begin below the filter and rank header")
 	end
 	if spec.key == "addonlist" then
@@ -76,6 +82,9 @@ for _, spec in ipairs(Windows.LIST) do
 	K.Options.Write("Skins", "windowMetrics", false)
 	assert(prompts == 1, "changing native window metrics uses the existing reload choice")
 	local oldEnv, oldK, oldNs = Boot(spec, false)
+	if spec.key == "trainer" then
+		assert(select(5, oldEnv.ClassTrainerStatusBar:GetPoint(1)) == -35, "metrics off restores the trainer's native status-bar anchor")
+	end
 	for _, key in ipairs(spec.skins) do
 		local def = oldNs.Skins.Get(key)
 		if def.metrics then

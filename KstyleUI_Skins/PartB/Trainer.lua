@@ -89,6 +89,18 @@ local function Row(row)
 	end
 end
 
+local function MetricBar(bar)
+	local restyle = bar.Restyle
+	bar.Restyle = function(self)
+		restyle(self)
+		if ns.Style.MetricsEnabled() and K.Widgets.MayMove(self.frame) then
+			self.frame:ClearAllPoints()
+			K.Widgets.Point(self.frame, "TOPLEFT", ClassTrainerFrame, "TOPLEFT", 64, K.Widgets.Readability("readableBars") and -48 or -35)
+		end
+	end
+	bar:Restyle()
+end
+
 local function Apply()
 	local frame = ClassTrainerFrame
 	if not Kit.Have(frame, "ClassTrainerFrame") then
@@ -96,6 +108,7 @@ local function Apply()
 	end
 	Kit.Window(frame, { titleRole = "names" })
 	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine(), rankOutside = true })
+	if bar then MetricBar(bar) end
 	if bar and type(ClassTrainerFrame_Update) == "function" then
 		hooksecurefunc("ClassTrainerFrame_Update", function()
 			bar:SetLabel(SkillLine())
