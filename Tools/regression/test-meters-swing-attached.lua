@@ -1,0 +1,37 @@
+-- test-meters-swing-attached.lua: the default swing timer has the cast-bar finish, readable separate hands and a reset flash that respects Motion.
+local M = dofile("Tools/regression/meters_env.lua")
+local G = dofile("Tools/regression/geometry.lua")
+local env, K, ns = M.New()
+M.Enable(env, K)
+local swing = ns.Swing
+local main, off = swing.bars[M.SWING.MainHand], swing.bars[M.SWING.OffHand]
+assert(K.Store.Module("Meters").swing.attached, "the HUD swing look starts on")
+for _, style in ipairs({"frames", "orbs", "medallions"}) do
+	K.Options.Write("HudStyle", "style", style)
+	M.Write(env, K, "swing.hideIdle", true)
+	assert(not swing.content:IsShown(), "idle swings stay hidden")
+	env.SetTime(100)
+	env.FireEvent("PLAYER_SWING", 2.6, M.SWING.MainHand)
+	assert(main.innerEdgeOn and main.backingOn, "use the cast bar's rim and track backing")
+	assert(main.time:IsShown() and main.label:IsShown(), "text fits in the main-hand bar")
+	assert(main.reset:GetAlpha() > 0, "a swing flashes the bar subtly")
+	env._speeds[2] = 2.4
+	env.FireEvent("PLAYER_SWING", 2.4, M.SWING.OffHand)
+	local a = assert(G.ScaledRect(main, env.UIParent, K.Scale.Root()))
+	local b = assert(G.ScaledRect(off, env.UIParent, K.Scale.Root()))
+	assert(a.right < b.left and math.abs(a.top-b.top) < 1, "dual wield keeps two readable bars side by side")
+	assert(main.label:GetText() == K.L["Main hand"] and off.label:GetText() == K.L["Off hand"], "name both hands")
+	env.SetTime(105)
+	M.Tick(env)
+	env.SetTime(108)
+	M.Tick(env)
+end
+K.Motion.SetLevel("off")
+env.FireEvent("PLAYER_SWING", 2.6, M.SWING.MainHand)
+assert(main.reset:GetAlpha() == 0, "Motion off suppresses reset flashes")
+M.Write(env, K, "swing.attached", false)
+assert(not main.innerEdgeOn and not main.backingOn, "off restores the previous finish")
+M.Disable(env, K)
+assert(swing.driver:GetScript("OnUpdate") == nil, "disable stops the swing driver")
+assert(#env._errors == 0, tostring(env._errors[1]))
+print("swing finish, separate hands, legacy option and Motion off ok")
