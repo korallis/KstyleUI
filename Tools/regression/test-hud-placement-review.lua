@@ -20,6 +20,12 @@ if not pick or pick == "grid" then
 				if element.key == key then assert(math.abs(fit.sizes[i][1]-width)<0.01 and math.abs(fit.sizes[i][2]-height)<0.01, "Fits must measure the full mirror grid") end
 			end
 		end
+		if style == "orbs" then
+			local utility=K.Setup.Layouts.Place("DPS",style,K.Scale.Aspect(),"cooldowns.utility")
+			local swing=K.Setup.Layouts.Place("DPS",style,K.Scale.Aspect(),"meters.swing")
+			local _,height=K.Setup.Layouts.Footprint("DPS","meters.swing",style)
+			assert(utility.x==0 and utility.y>=swing.y+height+8,"Orbs utility grid must sit above the central swing strip, clear of the focus and threat lanes")
+		end
 	end
 	for _, attached in ipairs({true, false}) do
 		K.Store.Module("Cooldowns").attached = attached

@@ -1026,8 +1026,7 @@ function Layouts.Attached(style, name, key, class)
 		if key == "cooldowns.buffs" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + 182.6) / 2 - 8 end
 		if key == "cooldowns.bars" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + TRACKED) / 2 - 182.6 - 64 end
 		if key == "cooldowns.utility" and style == "orbs" then
-			x = (260 + 6 * BUTTON + 5 * PITCH) / 2 + 8
-			y = places["unitframes.resource"].y + 8
+			x, y = 0, places["unitframes.resource"].y + 14 + 8 + 14 + 8
 		end
 		if swing then
 			y = layouts[name]["unitframes.resource"].y + 14 + 8
