@@ -164,9 +164,9 @@ end
 function Frames.TabLook(style, selected)
 	local text
 	if style == "plain" then
-		text = selected and "capsGold" or "labelMuted"
+		text = selected and "capsGold" or (Widgets.Readability("chatTabs") and "labelMuted" or "muted")
 	elseif style == "underline" then
-		text = selected and "capsGold" or "labelMuted"
+		text = selected and "capsGold" or (Widgets.Readability("chatTabs") and "labelMuted" or "dim")
 	end
 	return text, selected and style == "underline", selected and style == "filled"
 end
@@ -188,7 +188,13 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
-	parts.frame:SetAlpha(selected and 1 or 0.8)
+	if Widgets.Readability("chatTabs") then
+		parts.chatPinning = true
+		parts.frame:SetAlpha(selected and 1 or 0.8)
+		parts.chatPinning = nil
+	elseif parts.baseAlpha then
+		parts.frame:SetAlpha(parts.baseAlpha)
+	end
 	local textColor, underlined, filled = Frames.TabLook(style, selected)
 	Frames.PaintUnderline(parts.underline, parts.chatGlow, underlined)
 	local fill = parts.backdrop
@@ -249,10 +255,15 @@ end
 local function LayoutTab(parts)
 	local line, tab, glow = parts.underline, parts.frame, parts.chatGlow
 	line:ClearAllPoints()
-	local text = parts.text or tab
-	local pad = Widgets.Snap(tab, 2)
-	line:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", -pad, -Widgets.Border(tab))
-	line:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -Widgets.Border(tab))
+	if Widgets.Readability("chatTabs") then
+		local text = parts.text or tab
+		local pad = Widgets.Snap(tab, 2)
+		line:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", -pad, -Widgets.Border(tab))
+		line:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -Widgets.Border(tab))
+	else
+		line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+		line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+	end
 	line:SetHeight(Widgets.Snap(line, UNDERLINE_UNITS))
 	Frames.PlaceGlow(glow, line)
 end
@@ -271,8 +282,11 @@ local function StyleTab(frame, tab)
 		local paint, layout = parts.Paint, parts.Layout
 		parts.chatPaint = true
 		local pinning = false
+		local originalAlpha = tab:GetAlpha()
+		if not IsSecret(originalAlpha) and type(originalAlpha) == "number" then parts.baseAlpha = originalAlpha end
 		hooksecurefunc(tab, "SetAlpha", function(self, alpha)
-			if not state.active or pinning or IsSecret(alpha) or type(alpha) ~= "number" then
+			if not pinning and not parts.chatPinning and not IsSecret(alpha) and type(alpha) == "number" then parts.baseAlpha = alpha end
+			if not state.active or not Widgets.Readability("chatTabs") or pinning or parts.chatPinning or IsSecret(alpha) or type(alpha) ~= "number" then
 				return
 			end
 			local wanted = parts.selected and 1 or max(0.8, alpha)

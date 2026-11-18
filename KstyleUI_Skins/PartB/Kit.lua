@@ -507,6 +507,17 @@ local function Value(value)
 	return nil
 end
 
+local function KeepPoints(region)
+	local points = {}
+	for i = 1, region:GetNumPoints() do points[i] = { region:GetPoint(i) } end
+	return points
+end
+
+local function RestorePoints(region, points)
+	region:ClearAllPoints()
+	for _, point in ipairs(points) do region:SetPoint(unpack(point)) end
+end
+
 local function PaintRankBar(bar)
 	local Style = ns.Style
 	local fill = bar.fill
@@ -514,6 +525,26 @@ local function PaintRankBar(bar)
 	fill:SetReverseFill(Style.ReverseFill())
 	local r, g, b = Style.Accent()
 	fill:SetBarColor(Style.BarColor(r, g, b, 1))
+	local frame, rank = bar.frame, bar.frame.Rank
+	local readable = K.Widgets.Readability("readableBars")
+	fill:ClearAllPoints()
+	if readable then
+		fill:SetHeight(K.Widgets.Snap(frame, 6))
+		K.Widgets.Point(fill, "LEFT", frame, "LEFT")
+		K.Widgets.Point(fill, "RIGHT", frame, "RIGHT")
+	else
+		fill:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		fill:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+	end
+	if type(rank) == "table" and type(rank.Text) == "table" then
+		ns.Style.Text(rank.Text, readable and "caption" or "number", readable and "muted" or "textEmphasis", readable and 11 or nil)
+		if readable then
+			rank.Text:ClearAllPoints()
+			rank.Text:SetPoint("BOTTOMRIGHT", fill, "TOPRIGHT", 0, K.Widgets.Snap(frame, 2))
+		else
+			RestorePoints(rank.Text, bar.rankPoints)
+		end
+	end
 end
 
 local function RankBar(frame)
@@ -524,19 +555,12 @@ local function RankBar(frame)
 	K.Skin.Strip(frame, { children = { "Background", "Fill", "Flare", "Border" } })
 	local fill = K.Widgets.StatusBar(frame, { texture = ns.Style.BarTexture(), border = true, min = 0, max = 1, value = 0 })
 	fill:ClearAllPoints()
-	fill:SetHeight(K.Widgets.Snap(frame, 6))
-	K.Widgets.Point(fill, "LEFT", frame, "LEFT")
-	K.Widgets.Point(fill, "RIGHT", frame, "RIGHT")
 	local rank = frame.Rank
 	if type(rank) == "table" and type(rank.GetFrameLevel) == "function" then
 		fill:SetFrameLevel(max(0, rank:GetFrameLevel() - 1))
-		if type(rank.Text) == "table" then
-			ns.Style.Text(rank.Text, "caption", "muted", 11)
-			rank.Text:ClearAllPoints()
-			rank.Text:SetPoint("BOTTOMRIGHT", fill, "TOPRIGHT", 0, K.Widgets.Snap(frame, 2))
-		end
 	end
-	local bar = { frame = frame, fill = fill, Paint = PaintRankBar, Restyle = PaintRankBar }
+	local bar = { frame = frame, fill = fill, Paint = PaintRankBar, Restyle = PaintRankBar,
+		rankPoints = type(rank) == "table" and type(rank.Text) == "table" and KeepPoints(rank.Text) or {} }
 	local ratio = frame.ratio
 	if IsSecret(ratio) or type(ratio) == "number" then
 		fill:SetBarValue(ratio)
@@ -580,6 +604,11 @@ end
 
 local function PlaceBarTexts(bar)
 	local frame, label, rank = bar.frame, bar.label, bar.frame.rankText
+	local readable = K.Widgets.Readability("readableBars")
+	bar.rankOutside = readable or bar.originalRankOutside
+	if K.Widgets.MayMove(frame) then frame:SetHeight(readable and K.Widgets.Snap(frame, 6) or bar.height) end
+	if type(rank) == "table" then ns.Style.Text(rank, readable and "caption" or "number", readable and "muted" or "textEmphasis", readable and 11 or nil) end
+	if label then ns.Style.Text(label, readable and "caption" or "body", readable and "muted" or "textEmphasis", readable and 11 or nil) end
 	local inset = K.Widgets.Snap(frame, K.Tokens.Size("gapMedium"))
 	local gap = K.Widgets.Snap(frame, K.Tokens.Size("gapSmall"))
 	if type(rank) == "table" then
@@ -594,11 +623,11 @@ local function PlaceBarTexts(bar)
 	end
 	if label then
 		label:ClearAllPoints()
-		label:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, K.Widgets.Snap(frame, 2))
+		label:SetPoint(readable and "BOTTOMLEFT" or "LEFT", frame, readable and "TOPLEFT" or "LEFT", readable and 0 or inset, readable and K.Widgets.Snap(frame, 2) or 0)
 		if type(rank) == "table" and not bar.rankOutside then
 			label:SetPoint("RIGHT", rank, "LEFT", -gap, 0)
 		else
-			label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -inset, K.Widgets.Snap(frame, 2))
+			label:SetPoint(readable and "BOTTOMRIGHT" or "RIGHT", frame, readable and "TOPRIGHT" or "RIGHT", -inset, readable and K.Widgets.Snap(frame, 2) or 0)
 		end
 		FitBarLabel(bar)
 	end
@@ -630,16 +659,13 @@ local function Bar(frame, opts)
 	if IsTexture(fill) then
 		keep[fill] = true
 	end
-	local bar = { frame = frame, rankOutside = true, SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
+	local bar = { frame = frame, rankOutside = opts.rankOutside == true, originalRankOutside = opts.rankOutside == true, height = frame:GetHeight(), SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
 	bar.edge = K.Widgets.BarEdge(frame)
 	for region in pairs(bar.edge.regions) do
 		keep[region] = true
 	end
 	K.Skin.Strip(frame, { keep = keep })
 	ns.Style.StatusBar(frame, { accent = opts.accent == true })
-	if K.Widgets.MayMove(frame) then
-		frame:SetHeight(K.Widgets.Snap(frame, 6))
-	end
 	if type(frame.rankText) == "table" then
 		ns.Style.Text(frame.rankText, "caption", "muted", 11)
 	end

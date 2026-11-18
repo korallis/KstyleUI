@@ -30,6 +30,7 @@ Appearance.defaults = {
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	uiScaleAuto = true,
 	motion = "full",
+	readableBars = true, worldText = true, chatTabs = true, barColors = true,
 }
 for _, role in ipairs(ROLES) do
 	Appearance.defaults[ROLE_KEY[role]] = ""
@@ -95,6 +96,32 @@ for _, role in ipairs(ROLES) do
 	CLEAN[ROLE_KEY[role]] = CleanRoleFont
 end
 
+local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true }
+for key in pairs(READABILITY) do
+	CLEAN[key] = function(value)
+		if type(value) == "boolean" then return value end
+	end
+end
+
+local readability = { readableBars = true, worldText = true, chatTabs = true, barColors = true }
+function Appearance.Readability(key)
+	return readability[key] ~= false
+end
+
+local readabilityPending
+local function ApplyReadability()
+	if readabilityPending then return end
+	readabilityPending = true
+	ns.Combat.Queue(function()
+		readabilityPending = nil
+		for key in pairs(READABILITY) do readability[key] = Appearance.Get(key) end
+		local layouts = ns.Setup and ns.Setup.Layouts
+		if layouts and layouts.BuildMedallions then layouts.BuildMedallions() end
+		ns.Callbacks.Fire("ReadabilityChanged")
+		ns.Callbacks.Fire("ThemeChanged")
+	end)
+end
+
 local function ApplyRoleFonts()
 	local choices = {}
 	for _, role in ipairs(ROLES) do
@@ -118,6 +145,7 @@ local APPLY = {
 for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
+for key in pairs(READABILITY) do APPLY[key] = ApplyReadability end
 local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleAuto", "uiScale", "motion" }
 
 function Appearance.Get(key)
@@ -145,6 +173,7 @@ function Appearance.Apply()
 		ApplyKey(key)
 	end
 	ApplyRoleFonts()
+	ApplyReadability()
 end
 
 local function PathKey(path)
@@ -226,6 +255,15 @@ Appearance.schema = {
 			return settings.uiScaleAuto == false
 		end,
 	},
+	{ type = "header", label = L["Readability"] },
+	{ type = "toggle", key = "readableBars", label = L["Readable text on bars"],
+		help = L["Clearer bar ink, outside skin captions and spaced casts. Off restores the original look."] },
+	{ type = "toggle", key = "worldText", label = L["Backing for text over the world"],
+		help = L["Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text."] },
+	{ type = "toggle", key = "chatTabs", label = L["Chat tabs always readable"],
+		help = L["Keep chat tabs visible, underline their names and leave room above the first message."] },
+	{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],
+		help = L["Tint lost health from its bar and make mana a darker step below health."] },
 	{ type = "header", label = L["Motion"] },
 	{
 		type = "dropdown", key = "motion", label = L["Motion"],

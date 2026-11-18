@@ -439,7 +439,19 @@ local function unknown(kind, name)
 	error("KstyleUI.Tokens." .. kind .. ": unknown name " .. tostring(name), 3)
 end
 
+local LEGACY_COLOR = {
+	barLoss = { 241 / 255, 185 / 255, 138 / 255, 0.85 },
+	barLossLit = { 1, 233 / 255, 201 / 255, 0.85 },
+	hudMana = { 61 / 255, 61 / 255, 236 / 255, 1 },
+	healthLowText = { 197 / 255, 68 / 255, 62 / 255, 1 },
+}
+
 function Tokens.Color(name)
+	local key = name == "healthLowText" and "readableBars" or "barColors"
+	local legacy = LEGACY_COLOR[name]
+	if legacy and ns.Appearance and not ns.Appearance.Readability(key) then
+		return legacy[1], legacy[2], legacy[3], legacy[4]
+	end
 	if name == "accent" then
 		local theme = ns.Theme
 		if theme and theme.Accent then
@@ -554,7 +566,11 @@ function Tokens.FaceTracking(path)
 	return FACE_TRACKING[path] or 0
 end
 
+local LEGACY_NAME_SHADOW = { x = 1, y = 1, alpha = 0.5 }
 function Tokens.FaceShadow(path)
+	if ns.Appearance and not ns.Appearance.Readability("worldText") and (path == Tokens.FontPath("FolioNames") or path == Tokens.FontPath("FolioUnit")) then
+		return LEGACY_NAME_SHADOW
+	end
 	local shadow = FACE_SHADOW[path]
 	if shadow == nil then
 		return true

@@ -2,6 +2,10 @@
 local _, ns = ...
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 
+function Widgets.Readability(key)
+	return not ns.Appearance or ns.Appearance.Readability(key)
+end
+
 local function Linear(value)
 	return value <= 0.04045 and value / 12.92 or ((value + 0.055) / 1.055) ^ 2.4
 end
@@ -33,6 +37,7 @@ function Widgets.InkText(text, r, g, b)
 end
 
 function Widgets.TextScrim(text, shown)
+	shown = shown and Widgets.Readability("worldText")
 	local slice = text.inkScrim
 	if not slice and shown then
 		slice = Widgets.NineSlice(text:GetParent(), "shadow", "BACKGROUND", -1)

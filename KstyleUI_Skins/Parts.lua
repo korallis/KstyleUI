@@ -11,7 +11,7 @@ local RIM_UNITS = 2
 local RIM_SUBLEVEL = -6
 local LEVEL_BELOW = 1
 local LINE_UNITS = 2
-local BAR_UNITS = 6
+local BAR_UNITS = 10
 local GLYPH_UNITS = 10
 local CHEVRON_UNITS = 8
 local STANDING_AMBER = 0.6
@@ -853,7 +853,8 @@ end
 
 local function RestyleFill(state)
 	local bar, fill, area, track = state.bar, state.fill, state.area, state.track
-	local height = Widgets.Snap(bar, BAR_UNITS)
+	local readable = Widgets.Readability("readableBars")
+	local height = Widgets.Snap(bar, readable and 6 or BAR_UNITS)
 	fill:SetTexture(ns.Style.BarTexture())
 	if Widgets.MayMove(bar) then
 		fill:SetHeight(height)
@@ -868,11 +869,16 @@ local function RestyleFill(state)
 	track.edge:Restyle()
 	PaintFill(state)
 	if bar.Text then
-		ns.Style.Text(bar.Text, "caption", "muted", 11)
+		ns.Style.Text(bar.Text, "caption", readable and "muted" or "textEmphasis", readable and 11 or nil)
 		if Widgets.MayMove(bar) then
 			bar.Text:ClearAllPoints()
-			bar.Text:SetPoint("BOTTOMRIGHT", area, "TOPRIGHT", 0, Widgets.Snap(bar, 2))
-			bar.Text:SetJustifyH("RIGHT")
+			if readable then
+				bar.Text:SetPoint("BOTTOMRIGHT", area, "TOPRIGHT", 0, Widgets.Snap(bar, 2))
+				bar.Text:SetJustifyH("RIGHT")
+			else
+				for _, point in ipairs(state.textPoints) do bar.Text:SetPoint(unpack(point)) end
+				bar.Text:SetJustifyH(state.textJustify)
+			end
 		end
 	end
 end
@@ -894,6 +900,11 @@ function Parts.FillBar(bar, opts)
 	track:SetFrameLevel(math.max(0, bar:GetFrameLevel() - LEVEL_BELOW))
 	track.edge = Widgets.BarEdge(track)
 	local state = { bar = bar, fill = fill, track = track, area = bar.FillArea or bar, tone = opts and opts.tone }
+	state.textPoints = {}
+	if bar.Text then
+		for i = 1, bar.Text:GetNumPoints() do state.textPoints[i] = { bar.Text:GetPoint(i) } end
+		state.textJustify = bar.Text:GetJustifyH()
+	end
 	state.r, state.g, state.b, state.a = fill:GetVertexColor()
 	state.Restyle = RestyleFill
 	hooksecurefunc(fill, "SetVertexColor", function(_, r, g, b, a)

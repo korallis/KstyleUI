@@ -693,7 +693,7 @@ end
 
 local function Paint(cb, r, g, b, a)
 	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
-	if cb.medal and (changed or cb.inkPaint ~= cb.inkEmpty) then
+	if cb.medal and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
 		cb.inkPaint = cb.inkEmpty
 		if cb.inkEmpty then
 			Widgets.InkText(cb.text, Tokens.Color(TRACK))
@@ -744,7 +744,7 @@ function CastBars.Restyle(cb)
 	if caption and Settings.ThemeFont(cb.kind, "cast") then
 		textPath, timerPath = (Tokens.Font("caps")), Lumen.Font("time")
 	end
-	if cb.medal then
+	if cb.medal and Widgets.Readability("readableBars") then
 		textPath = Settings.Font(cb.kind, "name")
 		timerPath = Tokens.Font("number")
 	end
@@ -755,7 +755,7 @@ function CastBars.Restyle(cb)
 		cb.text:SetShadowColor(Tokens.Color("textShadow"))
 		cb.text:SetShadowOffset(border, -border)
 	end
-	StyleText(cb.timer, timerPath, size, cb.medal and "OUTLINE" or flags)
+	StyleText(cb.timer, timerPath, size, cb.medal and Widgets.Readability("readableBars") and "OUTLINE" or flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)
 	cb.label:SetTextColor(Lumen.Color("muted"))

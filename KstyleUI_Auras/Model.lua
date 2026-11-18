@@ -42,7 +42,7 @@ Model.defaults = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = "", size = 11, outline = "OUTLINE", expiring = 5 },
+	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },
 	count = { font = "", size = 10, outline = "OUTLINE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
@@ -77,6 +77,7 @@ Model.TIMER_POSITIONS = {
 	{ value = "inside", label = L["On the icon"] },
 }
 Model.OUTLINES = {
+	{ value = "INHERIT", label = L["Use readability setting"] },
 	{ value = "NONE", label = L["Soft shadow"] },
 	{ value = "OUTLINE", label = L["Thin outline"] },
 	{ value = "THICKOUTLINE", label = L["Thick outline"] },
@@ -95,7 +96,7 @@ local GROWTH = {
 local HANG = { TOPRIGHT = "TOPRIGHT", BOTTOMRIGHT = "BOTTOMRIGHT", TOPLEFT = "TOPRIGHT", BOTTOMLEFT = "BOTTOMRIGHT" }
 local LAST_CELL = { TOPRIGHT = "BOTTOMLEFT", BOTTOMRIGHT = "TOPLEFT", TOPLEFT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPRIGHT" }
 local SORT = { use = "Expiration", time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
-local FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local FLAGS = { INHERIT = "", NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
 local function allowed(options)
 	local set = {}
@@ -175,12 +176,14 @@ end
 
 function Model.Timer(settings)
 	local base, s = defaults.timer, section(settings, "timer")
+	local outline = choice(s.outline, FLAGS, base.outline)
+	if outline == "INHERIT" then outline = K.Widgets.Readability("worldText") and "OUTLINE" or "NONE" end
 	return {
 		format = choice(s.format, TIMER_FORMAT_SET, base.format),
 		position = choice(s.position, TIMER_POSITION_SET, base.position),
 		font = font(s.font, (Tokens.Font("timer"))),
 		size = number(s.size, base.size, LIMITS.timerSize),
-		outline = choice(s.outline, FLAGS, base.outline),
+		outline = outline,
 		expiring = number(s.expiring, base.expiring, LIMITS.expiring),
 	}
 end
@@ -204,6 +207,7 @@ function Model.TextScale()
 end
 
 function Model.Flags(outline)
+	if outline == "INHERIT" then return K.Widgets.Readability("worldText") and "OUTLINE" or "" end
 	return FLAGS[outline] or ""
 end
 

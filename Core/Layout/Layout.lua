@@ -1547,6 +1547,8 @@ local function Restyle()
 	end
 end
 
+ns.Callbacks.Register("ReadabilityChanged", SECTION, Restyle)
+
 ns.Callbacks.Register("HudStyleChanged", SECTION, function()
 	Restyle()
 	if state.active then

@@ -192,7 +192,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens("labelMuted", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens(Widgets.Readability("worldText") and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)

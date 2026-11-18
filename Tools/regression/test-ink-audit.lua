@@ -17,13 +17,13 @@ bar:SetBarColor(0.2, 0.4, 0.6)
 assert(near(bar.gradients.lossBottom.r, 0.48) and near(bar.gradients.lossTop.r, 0.6), "tint loss bands from their fill by 35% and 50%")
 assert(bar.gradients.lossBottom.a == 0.75 and bar.gradients.lossTop.a == 0.75, "both loss stops use 75% alpha")
 bar:SetBarColor(env.Secret(0.2), 0.4, 0.6)
-assert(near(bar.gradients.lossBottom.r, 0.48), "secret bar colours never enter loss-band arithmetic")
+assert(near(bar.gradients.lossBottom.r, 1) and near(bar.gradients.lossBottom.a, 0.32), "a secret colour resets the previous tint to the white fallback")
 env._units.player.health, env._units.player.healthMax = 20, 100
 local text = Widgets.FontString(K.Scale.Root(), "OVERLAY")
 Widgets.LowHealthText(text, "player", "textEmphasis")
 local ink = W.LastCall(text, "SetTextColor")
 assert(near(env.Reveal(ink[1]), Tokens.Color("healthLowText")), "low-health text uses healthLowText, leaving bar red alone")
-assert(ns.Settings.defaults.player.fonts.name.outline == "OUTLINE", "bare unit text defaults to a thin outline")
+assert(select(3, ns.Settings.Font("player", "name")) == "OUTLINE", "bare unit text defaults to a thin outline")
 K.Options.Write("HudStyle", "style", "medallions")
 local cb = ns.CastBars.Get("player")[1]
 env._units.player.cast = { name = "Terrifying Screech", texture = 136048, start = 0, finish = 3500, spellID = 188196 }

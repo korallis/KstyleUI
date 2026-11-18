@@ -876,6 +876,8 @@ function Layouts.StyleSize(style, class, key)
 end
 
 function Layouts.BuildMedallions()
+	Layouts.MEDALLIONS_UNITS.castGap = ns.Appearance.Readability("readableBars") and 15 or 10
+	Layouts.MEDALLIONS_UNITS.castStack = ns.Appearance.Readability("readableBars") and 9 or 6
 	local hub, slab = Layouts.MEDALLIONS_HUB_GAP, Layouts.MEDALLIONS_SLAB
 	local unit = Layouts.MEDALLIONS_UNITS
 	local sets = {}
@@ -939,7 +941,6 @@ function Layouts.BuildMedallions()
 	end
 end
 Layouts.BuildMedallions()
-Layouts.BuildMedallions = nil
 
 function Layouts.Aspect(class, style, name, key)
 	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil

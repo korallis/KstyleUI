@@ -79,7 +79,7 @@ end
 FLAT_TEXTURE = FLAT_TEXTURE or BAR_TEXTURE
 
 local function TextStyle(size)
-	return { font = THEME_FONT, size = size, outline = "OUTLINE" }
+	return { font = THEME_FONT, size = size, outline = "INHERIT" }
 end
 
 local COMPACT_TEXT = { 12, 12, 9, 10 }
@@ -212,7 +212,7 @@ Settings.CHOICES = {
 		{ "percent", L["Percentage"] }, { "current", L["Current"] }, { "currentMax", L["Current and max"] },
 		{ "both", L["Current, max and percentage"] }, { "none", L["None"] },
 	}),
-	outline = Options({ { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
+	outline = Options({ { "INHERIT", L["Use readability setting"] }, { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
 	accent = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 	manaColor = Options({ { "power", L["Power type"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 	castbarColor = Options({ { "class", L["Class colour"] }, { "gold", L["Gilt"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
@@ -414,7 +414,7 @@ function Settings.Font(kind, element)
 			path = Tokens.Font(slab.role)
 		end
 	end
-	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline)
+	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline)
 end
 
 function Settings.ThemeFont(kind, element)

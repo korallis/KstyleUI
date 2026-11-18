@@ -132,7 +132,12 @@ function T.Run(screens, file)
 				local clip = f.parts.block and { Scene.Rect(env, f.auraClip) }
 				if clip then
 					assert(clip[1], who .. ": the debuff block resolves")
-					assert(not shown:find("...", 1, true), who .. ": trim tile names without ellipses while pips overlay the fill")
+					if not K.Widgets.Readability or K.Widgets.Readability("readableBars") then
+						assert(not shown:find("...", 1, true), who .. ": trim tile names without ellipses while pips overlay the fill")
+					end
+					if not tile.stacked and not f.status then
+						assert(apart(name, clip), who .. ": short tile names clear debuff pips")
+					end
 					if f.status then
 						eq(f.auraClip:GetAlpha(), 0, who .. ": the debuffs give way to " .. f.status)
 					elseif percentOn then

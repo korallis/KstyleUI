@@ -119,7 +119,7 @@ function Panel.Geometry(chat)
 		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
 	local divider = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
-	local top = divider + snap(12)
+	local top = divider + (Widgets.Readability("chatTabs") and snap(12) or 0)
 	local _, size = chat:GetFont()
 	local height = state.holder and state.holder:GetHeight()
 	local spacing
@@ -235,8 +235,9 @@ local function TrimDock()
 	local stop, last = glass.dockEnd, settings and settings.copyButton == true and glass.copy or glass.plus
 	stop:ClearAllPoints()
 	stop:SetPoint("TOPRIGHT", last, "TOPLEFT", -Widgets.Snap(stop, Tokens.Size("gapTiny")), 0)
-	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, Scale.Snap(12))
-	dock:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, Scale.Snap(12) / Ratio(dock, state.holder))
+	local lift = Widgets.Readability("chatTabs") and Scale.Snap(12) or 0
+	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, lift)
+	dock:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, lift / Ratio(dock, state.holder))
 	dock:SetPoint("BOTTOMRIGHT", stop, "BOTTOMRIGHT", 0, 0)
 	RelayTabs(dock)
 	if ns.Frames and ns.Frames.FitTabs then
@@ -578,7 +579,7 @@ local function Paint(settings)
 end
 
 local function FollowTab(tab, alpha)
-	alpha = type(tab.GetAlpha) == "function" and tab:GetAlpha() or alpha
+	alpha = Widgets.Readability("chatTabs") and type(tab.GetAlpha) == "function" and tab:GetAlpha() or alpha
 	local glass = state.glass
 	if state.active and glass then
 		glass.copy:SetAlpha(Number(alpha, 1))

@@ -505,7 +505,7 @@ function StyleRow(list, row)
 	if row.dot then
 		ns.ApplyFont(row.dot, section, nil, figures)
 	end
-	for _, text in ipairs({ row.name, row.value, row.percent }) do
+	for _, text in ipairs(Widgets.Readability("readableBars") and { row.name, row.value, row.percent } or {}) do
 		local r, g, b = Tokens.Color("textShadow")
 		text:SetShadowColor(r, g, b, 0.8)
 		local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(text)

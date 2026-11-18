@@ -57,23 +57,24 @@ local function Clashes(head, tail, own, others)
 	return false
 end
 
-function Names.Short(name, fits, others)
+function Names.Short(name, fits, others, marker)
+	marker = marker == nil and ELLIPSIS or marker
 	if fits(name) then
 		return name
 	end
 	local chars = Chars(name)
 	local n = #chars - 1
-	while n > 1 and not fits(Prefix(chars, n) .. ELLIPSIS) do
+	while n > 1 and not fits(Prefix(chars, n) .. marker) do
 		n = n - 1
 	end
 	local head = Prefix(chars, n)
 	if not Clashes(head, "", name, others) then
-		return head .. ELLIPSIS
+		return head .. marker
 	end
-	for tail = 1, MAX_TAIL do
+	for tail = 1, marker == "" and #chars - 1 or MAX_TAIL do
 		local keep = n - tail
 		local last = Tail(chars, tail)
-		while keep >= 1 and not fits(Prefix(chars, keep) .. ELLIPSIS .. last) do
+		while keep >= 1 and not fits(Prefix(chars, keep) .. marker .. last) do
 			keep = keep - 1
 		end
 		if keep < 1 then
@@ -81,10 +82,10 @@ function Names.Short(name, fits, others)
 		end
 		local first = Prefix(chars, keep)
 		if not Clashes(first, last, name, others) then
-			return first .. ELLIPSIS .. last
+			return first .. marker .. last
 		end
 	end
-	return head .. ELLIPSIS
+	return head .. marker
 end
 
 local function Others(f)
@@ -130,9 +131,9 @@ local function Apply(f)
 	local _, size = text:GetFont()
 	size = type(size) == "number" and not Unit.IsSecret(size) and size or 10
 	local function fits(candidate)
-		return Width(text, candidate, size) <= width
+		return Width(text, candidate, size) <= width + (fit and f.nameLetterCut and fit.slack or 0)
 	end
-	text:SetText(Names.Short(name, fits, f.others or Others(f)))
+	text:SetText(Names.Short(name, fits, f.others or Others(f), f.nameLetterCut and "" or nil))
 end
 
 function Names.Party(f)

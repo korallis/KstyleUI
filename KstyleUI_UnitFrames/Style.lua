@@ -60,7 +60,6 @@ local TEXTS = {
 }
 local TEXT_KEYS = { "name", "healthText", "healthSub", "powerText", "levelText", "caption", "capLabel" }
 TEXTS.healthSub.lumen, TEXTS.healthSub.lumenShare = "caption", 1
-TEXTS.healthSub.color = "text"
 
 local function NewText(owner, key)
 	local text = Widgets.FontString(owner, "OVERLAY")
@@ -646,7 +645,11 @@ function Style.Restyle(view, kind)
 			end
 		end
 		ApplyFont(view[key], path, size * share, flags)
-		if lumen and spec.lumenColor then
+		if lumen and not Widgets.Readability("worldText") and (key == "caption" or key == "healthSub") then
+			view[key]:SetTextColor(Lumen.Color("subLabel"))
+		elseif key == "healthSub" and Widgets.Readability("worldText") then
+			view[key]:SetTextColor(Tokens.Color("text"))
+		elseif lumen and spec.lumenColor then
 			view[key]:SetTextColor(Lumen.Color(spec.lumenColor))
 		else
 			view[key]:SetTextColor(Tokens.Color(spec.color))
