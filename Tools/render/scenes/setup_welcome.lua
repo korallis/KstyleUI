@@ -24,5 +24,9 @@ return Common.Run(function()
 	Gallery.Ticks(W, env, 40)
 	local err = Common.Errors(env, K)
 	assert(not err, tostring(err))
-	return dofile("Tools/render/scenes/_welcome.lua")(Gallery.Build(env))
+	if os.getenv("RENDER_WELCOME_SCROLL") == "bottom" then
+		local scroll = K.Setup.window.pages[1].scroll
+		for _ = 1, 30 do scroll:GetScript("OnMouseWheel")(scroll, -1) end
+	end
+	return Gallery.Build(env)
 end)

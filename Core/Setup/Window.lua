@@ -279,7 +279,7 @@ local function BuildBrandedWelcome(page)
 	title:SetText("KstyleUI")
 	local version = Widgets.Text(hero, "caption", "text")
 	Widgets.Point(version, "TOPRIGHT", hero, "TOPRIGHT", -pad, -pad)
-	version:SetText(ns.VERSION)
+	version:SetText(type(ns.VERSION) == "string" and not ns.VERSION:find("@", 1, true) and ns.VERSION or "")
 	local body = Paragraph(hero, "body", "text", width - 112)
 	Widgets.Point(body, "TOPLEFT", title, "BOTTOMLEFT", 0, -gutter)
 	body:SetText(L["Dark forged chrome for the whole game."] .. "\n" .. L["Three HUDs. One setup. Every screen."])
@@ -309,7 +309,7 @@ local function BuildBrandedWelcome(page)
 		.. L["/kb: bind keys by hovering over a button."] .. "\n"
 		.. L["Layout Mode and shareable profiles."] .. "\n"
 		.. L["Every module optional. Make it yours."])
-	features:SetSpacing(Widgets.Snap(page, 5))
+	features:SetSpacing(Widgets.Snap(page, 3))
 	local caption = Widgets.Text(page, "caps", "capsGold")
 	Widgets.CapsSize(caption)
 	Widgets.Point(caption, "TOPLEFT", pictures, "BOTTOMLEFT", width * 0.53, -gap("gapLarge"))
@@ -321,7 +321,7 @@ local function BuildBrandedWelcome(page)
 	Widgets.Point(note, "BOTTOMLEFT", page, "BOTTOMLEFT", pad, gutter)
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
 	page.hero, page.pictures, page.features, page.caption, page.list = hero, pictures, features, caption, list
-	page.title, page.note, page.body = title, note, body
+	page.title, page.note, page.body, page.version = title, note, body, version
 	return title, note
 end
 
@@ -337,15 +337,19 @@ local function BuildWelcome(page)
 	Widgets.Size(branded, WIDTH - 2 * Widgets.WindowInset(panel), 400)
 	scroll:SetScrollChild(branded)
 	BuildBrandedWelcome(branded)
-	local thumb = scroll:CreateTexture(nil, "OVERLAY")
+	local bar = CreateFrame("Frame", nil, page)
+	Widgets.Point(bar, "TOPLEFT", scroll, "TOPRIGHT", gap("gapTiny"), 0)
+	bar:SetFrameLevel(scroll:GetFrameLevel() + 10)
+	local thumb = bar:CreateTexture(nil, "OVERLAY")
 	local function ScrollTo(offset)
 		local height, view = branded:GetHeight(), scroll:GetHeight()
-		offset = max(0, min(max(0, height - view), offset))
+		offset = Widgets.Snap(scroll, max(0, min(max(0, height - view), offset)))
 		scroll:SetVerticalScroll(offset)
+		Widgets.Size(bar, 2, view)
 		thumb:ClearAllPoints()
-		Widgets.Point(thumb, "TOPRIGHT", scroll, "TOPRIGHT", 0, -offset * view / height)
+		Widgets.Point(thumb, "TOPLEFT", bar, "TOPLEFT", 0, -offset * view / height)
 		Widgets.Size(thumb, 2, view * view / height)
-		thumb:SetShown(height > view)
+		bar:SetShown(scroll:IsShown() and height > view)
 	end
 	scroll:SetScript("OnMouseWheel", function(_, delta)
 		ScrollTo(scroll:GetVerticalScroll() - delta * Widgets.LineHeight(branded.features) * 3)
@@ -357,22 +361,26 @@ local function BuildWelcome(page)
 		scroll:SetShown(shown)
 		local active = shown and branded or classic
 		panel.welcomeTitle, panel.welcomeNote = active.title, active.note
-		classic.note:SetShown(Setup.IsFirstRun())
-		branded.note:SetShown(Setup.IsFirstRun())
+		classic.note:SetShown(self.firstRun)
+		branded.note:SetShown(self.firstRun)
 		local pad, gutter = gap("gapLarge"), gap("gapSmall")
 		local cap = Widgets.LineHeight(branded.caption)
-		branded.hero:SetHeight(max(92, pad * 2 + Widgets.LineHeight(branded.title) + gutter + Widgets.WrappedHeight(branded.body, branded.body:GetWidth())))
+		Widgets.Size(branded.hero, branded.hero:GetWidth(), max(92, pad * 2 + Widgets.LineHeight(branded.title) + gutter + Widgets.WrappedHeight(branded.body, branded.body:GetWidth())))
 		local lower = max(Widgets.WrappedHeight(branded.features, branded.features:GetWidth()), cap + gutter + Widgets.WrappedHeight(branded.list, branded.list:GetWidth()))
 		local height = branded.hero:GetHeight() + gutter + branded.pictures:GetHeight() + pad + lower + pad
 		if branded.note:IsShown() then
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
-		branded:SetHeight(max(scroll:GetHeight(), height))
+		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
 		ScrollTo(0)
 	end
-	page.scroll, page.branded, page.classic = scroll, branded, classic
-	page:HookScript("OnShow", page.Restyle)
+	page.scroll, page.branded, page.classic, page.bar, page.thumb = scroll, branded, classic, bar, thumb
+	page:HookScript("OnShow", function(self)
+		self.firstRun = Setup.IsFirstRun()
+		self:Restyle()
+	end)
 	Widgets.Track(page)
+	page.firstRun = Setup.IsFirstRun()
 	page:Restyle()
 end
 

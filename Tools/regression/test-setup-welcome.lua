@@ -4,8 +4,9 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
 local Guard = dofile("Tools/render/guard.lua")
+local Audit = dofile("Tools/regression/pixel_audit_lib.lua")
 
-local function boot(screen, style, locale, size)
+local function boot(screen, style, locale, size, version)
 	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = size or "auto" })
 	rawset(_G, "RENDER_HUD_STYLE", style)
 	rawset(_G, "RENDER_LOCALE", locale)
@@ -20,6 +21,7 @@ local function boot(screen, style, locale, size)
 		end,
 	}))
 	W.CoreEnv.Boot(env)
+	if version then K.VERSION = version end
 	assert(K.Setup.Open(true))
 	W.Settle(env)
 	return env, K, K.Setup.window.pages[1]
@@ -37,20 +39,21 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 	for _, style in ipairs({ "Frames", "Orbs", "Medallions" }) do
 		local env, K, page = boot(screen, style, "enUS")
 		assert(K.Options.Read("Widgets", "general.brandedWelcome") == true, "branding is on by default")
-		assert(K.Tokens.Texture("logoLarge"):match("%.tga$"), "use the client's TGA logo texture, not an unproven PNG path")
+		assert(K.Tokens.Texture("logoLarge"):match("%.tga$"), "the selected logo export is TGA; keep its token and asset format in sync")
 		assert(page.scroll:IsShown() and not page.classic:IsShown(), "the branded page opens")
 		assert(page.branded:GetHeight() <= page.scroll:GetHeight() + 1, "all English welcome content fits without scrolling at Auto")
 		local scene = clean(env)
-		local logo, pictures, version = false, 0, false
+		local logo, pictures = false, 0
 		for _, item in ipairs(scene.items) do
 			if item.path == K.Tokens.Texture("logoLarge") then logo = true end
 			if item.file and item.file:match("HudStyle.*%.png$") then
 				assert(item.path:match("%.tga$"), "HUD previews load as TGA in the client and PNG companions in Chrome")
 				pictures = pictures + 1
 			end
-			if item.kind == "text" and item.text == K.VERSION then version = true end
+			assert(item.kind ~= "text" or not item.text:find("@project-version@", 1, true), "hide the unpackaged version marker in a checkout")
 		end
-		assert(logo and pictures == 3 and version, "welcome shows the logo, three HUD pictures and addon version")
+		assert(logo and pictures == 3, "welcome shows the logo and three HUD pictures")
+		assert(page.branded.version:GetText() == "", "a checkout hides the unpackaged version marker")
 		K.Options.Write("Widgets", "general.brandedWelcome", false)
 		assert(page.classic:IsShown() and not page.scroll:IsShown(), "turning branding off immediately restores the original page")
 		assert(K.Setup.window.welcomeTitle:GetText() == K.L["Welcome to KstyleUI"], "the original welcome copy returns")
@@ -59,8 +62,16 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 		clean(env)
 		K.Options.Write("Widgets", "general.brandedWelcome", false)
 		assert(Scene.ToJSON(clean(env)) == classic, "turning branding off again restores identical original pixels and text")
+		K.Setup.Keep()
+		K.Setup.window:Close()
+		assert(page.classic.note:IsShown(), "retain the original close note during the first-run closing fade")
 		collectgarbage("collect")
 	end
+end
+
+do
+	local _, _, page = boot({ 1920, 1080 }, "Frames", "enUS", nil, "v0.2.6")
+	assert(page.branded.version:GetText() == "v0.2.6", "packaged builds show their addon version")
 end
 
 do
@@ -78,16 +89,25 @@ do
 end
 
 for _, locale in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
-	do
-		local env, _, page = boot({ 1920, 1080 }, "Frames", locale)
+	for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
+		local env, _, page = boot(screen, "Frames", locale)
 		clean(env)
-		assert(page.branded:GetHeight() <= page.scroll:GetHeight() + 1, locale .. ": the whole welcome fits at Auto")
+		assert(page.branded:GetHeight() <= page.scroll:GetHeight() + 1, string.format("%s at %dx%d: fit the whole welcome at Auto (content %.2f, view %.2f)", locale, screen[1], screen[2], page.branded:GetHeight(), page.scroll:GetHeight()))
+		collectgarbage("collect")
 	end
 	local env, K, page = boot({ 1920, 1080 }, "Frames", locale, 0.6)
 	clean(env, page)
 	local scroll = page.scroll
+	scroll:GetScript("OnMouseWheel")(scroll, -1)
+	local offset = scroll:GetVerticalScroll() / K.Widgets.Snap(scroll, K.Scale.Pixel(1))
+	assert(math.abs(offset - math.floor(offset + 0.5)) < 0.01, "snap welcome scrolling to whole physical pixels")
+	local offenders = Audit.Check(clean(env, page), 1080)
+	assert(#offenders == 0, "keep the scrolled welcome on the pixel grid: " .. table.concat(Audit.Lines("welcome", offenders), "\n"))
+	local viewX, _, viewWidth = Scene.Rect(env, scroll)
+	local thumbX = Scene.Rect(env, page.bar)
+	assert(page.bar:IsShown() and thumbX > viewX + viewWidth, "show the scroll thumb beside the content, where the banner cannot cover it")
 	for _ = 1, 30 do scroll:GetScript("OnMouseWheel")(scroll, -1) end
-	assert(scroll:GetVerticalScroll() == math.max(0, page.branded:GetHeight() - scroll:GetHeight()), "the smallest interface size can reach all welcome content")
+	assert(math.abs(scroll:GetVerticalScroll() - math.max(0, page.branded:GetHeight() - scroll:GetHeight())) < 1, "the smallest interface size can reach all welcome content")
 	clean(env, page)
 	local _, noteY, _, noteHeight = Scene.Rect(env, K.Setup.window.welcomeNote)
 	local _, viewY, _, viewHeight = Scene.Rect(env, scroll)
@@ -99,8 +119,8 @@ local f = assert(io.open("Media/Logo/Logo256.tga", "rb"))
 local header = f:read(18)
 f:close()
 assert(header:byte(3) == 2 and header:byte(13) == 0 and header:byte(14) == 1 and header:byte(15) == 0 and header:byte(16) == 1 and header:byte(17) == 32,
-	"ship the welcome logo as a 256x256 RGBA TGA, a texture format proven in Forever's Camelot/FriendsFrame.lua")
+	"the selected welcome logo export must be a 256x256 RGBA TGA matching its PNG companion")
 rawset(_G, "RENDER_SCREEN", nil)
 rawset(_G, "RENDER_HUD_STYLE", nil)
 rawset(_G, "RENDER_LOCALE", nil)
-print("setup welcome: screens, HUD styles, locales, text floor, original-page toggle and client logo format OK")
+print("setup welcome: screens, HUD styles, locales, text floor, original-page toggle and logo export format OK")

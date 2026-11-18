@@ -136,7 +136,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Logo/Logo64.png` | 64x64 | KstyleUI logo, the chamfered diamond, at 64 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
-| `Media/Logo/Logo256.tga` | 256x256 | Welcome logo in the client's TGA texture format; identical pixels to Logo256.png. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Logo/Logo256.tga` | 256x256 | Welcome logo exported as uncompressed RGBA TGA; identical pixels to Logo256.png. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-18 |
 | `Media/Textures/MaterialSlate.png` | 256x256 | Prepared slate grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
 | `Media/Textures/MaterialForged.png` | 256x256 | Prepared forged grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
 | `Media/Textures/ForgedFrame1.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 8 texels | 2026-11-10 |
@@ -169,7 +169,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 <!-- END make_media -->
 
 
-The welcome page uses the 256x256 RGBA TGA logo. At Forever UI source commit `9dc84f0` (1.60.1.70862), `Interface/AddOns/Blizzard_FriendsFrame/Camelot/FriendsFrame.lua:567,580` explicitly loads `.tga` textures. The `.png` occurrences found in the UI source are texture names or packaged resource listings, not proof of loose addon PNG loading. The procedural TGA and PNG contain identical pixels (`python Tools/media/make_media.py --only Logo256 --check`); welcome render scenes use the PNG companion because Chrome does not decode TGA. Existing HUD-style preview art is reused without generating new artwork.
+The welcome logo is available as pixel-identical 256x256 RGBA PNG and uncompressed TGA exports. The in-game captures show that this client's loose RGBA PNG addon textures load; the original welcome page's empty lower area was a layout issue, not evidence of a logo-format failure. TGA is retained as a classic WoW texture export, with its live-client check still listed in the PR. Forever source `9dc84f0` uses TGA image escapes in `Blizzard_FriendsFrame/Camelot/FriendsFrame.lua:567,580` and PNG file attributes in `Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml`; those built-in resources do not independently prove loose addon texture loading for either format. `python Tools/media/make_media.py --only Logo256 --check` verifies both logo exports. Chrome uses PNG companions because it cannot decode TGA.
 
 ## Card materials (study sources, 2026-11-10)
 
@@ -454,7 +454,7 @@ The background is a real owner screenshot, `~/.cache/kstyleui-backdrops/game_09.
 | Orbs | 416, 536, 1504, 1080 | 1024x512 |
 | Medallions | 440, 560, 1480, 1080 | 1024x512 |
 
-Reproduce with `python Tools/media/hud_pictures.py --plate PATH_TO_GAME_09_PNG --work SCRATCH_FOLDER`, then the `make_media.py --only` command above. The crop tool's docstring documents the environment requirements. TGA loading is proven by Forever source commit `9dc84f0`, `Interface/AddOns/Blizzard_FriendsFrame/Camelot/FriendsFrame.lua:567,580`, as for the welcome logo above. Rerun the capture after a HUD layout changes.
+Reproduce with `python Tools/media/hud_pictures.py --plate PATH_TO_GAME_09_PNG --work SCRATCH_FOLDER`, then the `make_media.py --only` command above. The crop tool's docstring documents the environment requirements. TGA is the selected classic WoW export; the client already draws the addon's RGBA PNG assets in recorded in-game captures, so this choice does not diagnose a PNG loading failure. Rerun the capture after a HUD layout changes.
 
 
 ## Medallions style kit and effects (KSTY-90, 2026-11-15)
