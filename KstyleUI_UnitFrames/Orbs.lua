@@ -155,7 +155,7 @@ local function NewOrb(kind)
 	orb.ring:SetTexture(Texture("orbRing"))
 	orb.ring:SetAllPoints(orb)
 	orb.value = K.Widgets.FontString(top, "OVERLAY")
-	orb.value:SetJustifyH("CENTER")
+	orb.value:SetJustifyH(kind == "power" and "RIGHT" or "CENTER")
 	orb.value:SetJustifyV("MIDDLE")
 	orb.value:SetWordWrap(false)
 	return orb

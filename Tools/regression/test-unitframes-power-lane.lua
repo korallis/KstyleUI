@@ -41,6 +41,7 @@ do
 	local env, K, ns = U.New()
 	K.Options.Write("HudStyle", "style", "orbs")
 	local power = ns.Orbs.Get("power")
+	assert(power.value:GetJustifyH() == "RIGHT", "the resource number is right-aligned in its existing text box")
 	assert(U.Shown(env, power.value) == "50%", "Orbs keeps mana in its existing resource orb")
 	local player = env._units.player
 	player.powerType, player.powerToken, player.power, player.powerMax = 3, "ENERGY", 37, 100
