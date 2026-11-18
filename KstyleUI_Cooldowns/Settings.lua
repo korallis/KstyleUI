@@ -393,10 +393,9 @@ function Settings.Read()
 	for _, group in ipairs(ICON_GROUPS) do
 		ReadIcons(current[group], saved[group], defaults[group], group)
 		if COOLDOWN_GROUPS[group] then
-			local attached = saved.attached ~= false
 			local _, _, columns, rows = Layouts.CooldownGrid(K.HudStyle.Current(), "cooldowns." .. group)
 			current[group].columns, current[group].rows = columns, rows
-			if current[group].wrap == "auto" then current[group].wrap = attached and "up" or "down" end
+			if current[group].wrap == "auto" then current[group].wrap = saved.attached ~= false and "up" or "down" end
 		end
 	end
 	ReadBars(current.bars, saved.bars, defaults.bars)

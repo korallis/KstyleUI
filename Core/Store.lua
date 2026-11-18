@@ -911,15 +911,13 @@ Store.migrations[36] = function(data)
 					local stored = style == "frames" and key or style .. ":" .. key
 					local entry = layout[stored]
 					if type(entry) == "table" then
-						local positioned = entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil
 						for _, class in ipairs(layouts.ASPECTS) do
 							local old = layouts.Previous(style, preset, key, class)
-							if positioned and (entry.anchor or old.anchor) == old.anchor and (entry.x == nil or near(entry.x, old.x)) and (entry.y == nil or near(entry.y, old.y)) then
+							if (entry.anchor or old.anchor) == old.anchor and (entry.x == nil or near(entry.x, old.x)) and (entry.y == nil or near(entry.y, old.y)) then
 								entry.anchor, entry.x, entry.y = nil, nil, nil
-								positioned = false
 							end
 						end
-						if positioned then
+						if entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil then
 							local old = layouts.Previous(style, preset, key, layouts.ASPECTS[1])
 							entry.anchor, entry.x, entry.y = entry.anchor or old.anchor, entry.x or old.x, entry.y or old.y
 						end

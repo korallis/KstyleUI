@@ -549,7 +549,7 @@ function Layouts.Footprint(name, key, style)
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
 	local size, gap, columns, rows = Layouts.CooldownGrid(style, key)
 	if size then return columns * size + (columns - 1) * gap, rows * size + (rows - 1) * gap end
-	local place = Layouts.Attached and Layouts.Attached(style, name, key, ns.Scale.Aspect())
+	local place = Layouts.Attached(style, name, key, ns.Scale.Aspect())
 	if place and place.width then return place.width, place.height end
 	local reserve = SIZES[name][key] or element.reserve
 	if reserve then
@@ -857,11 +857,11 @@ function Layouts.Style(style, name, key)
 		return
 	end
 	if not STYLES[style] then return nil end
-	local attached = Layouts.Attached and Layouts.Attached(style, name, key, ns.Scale.Aspect())
+	local attached = Layouts.Attached(style, name, key, ns.Scale.Aspect())
 	if attached then
 		return attached
 	end
-	local set = STYLES[style] and STYLES[style][name]
+	local set = STYLES[style][name]
 	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
 	if position then
 		return { anchor = position.anchor, x = position.x, y = position.y, scale = position.scale, width = position.width, height = position.height }
@@ -978,7 +978,7 @@ end
 Layouts.BuildMedallions()
 
 function Layouts.Aspect(class, style, name, key)
-	local attached = Layouts.Attached and Layouts.Attached(style, name, key, class)
+	local attached = Layouts.Attached(style, name, key, class)
 	if attached then
 		return attached
 	end
@@ -1008,7 +1008,7 @@ function Layouts.Attached(style, name, key, class)
 		return Layouts.Previous(style, name, key, class)
 	end
 	local places = STYLES[style] and STYLES[style][name] or layouts[name]
-	local cast = PLACES[class] and PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
+	local cast = PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
 	local y = cast.y + (cast.height or 30) + 8
 	local x = 0
 	if style == "medallions" then
@@ -1041,7 +1041,7 @@ function Layouts.Attached(style, name, key, class)
 end
 
 function Layouts.Previous(style, name, key, class)
-	local specific = PLACES[class] and PLACES[class][style] and PLACES[class][style][key]
+	local specific = PLACES[class][style] and PLACES[class][style][key]
 	local themed = STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
 	local place = specific or themed or layouts[name][key]
 	return { anchor = place.anchor, x = place.x, y = place.y, width = place.width, height = place.height }

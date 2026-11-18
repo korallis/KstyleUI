@@ -427,17 +427,17 @@ local function Style()
 	local orientation = ns.Get("swing.orientation")
 	local reverse = ns.Get("swing.reverse")
 	local showTime = ns.Get("swing.time")
+	local attached = ns.Get("swing.attached")
 	Swing.showTime = showTime
 	Swing.dirty = true
 	local r, g, b = ns.BarColor("swing", Theme.Class(), "friendly")
 	for _, slot in ipairs(SLOTS) do
 		local bar = Swing.bars[slot.type]
-		bar:SetBarTexture(ns.Get("swing.texture"))
+		bar:SetBarTexture(attached and "Flat" or ns.Get("swing.texture"))
 		bar:SetOrientation(orientation)
 		bar.vertical = orientation == "VERTICAL"
 		bar:SetReverseFill(reverse)
 		bar:SetBarColor(r, g, b)
-		local attached = ns.Get("swing.attached")
 		if not attached then
 			K.Motion.Stop(bar.resetMotion)
 			bar.reset:SetAlpha(0)
@@ -446,7 +446,6 @@ local function Style()
 		end
 		bar:SetInnerEdge(attached, "castEdge")
 		bar:SetTrackBacking(attached)
-		if attached then bar:SetBarTexture("Flat") end
 		ns.ApplyFont(bar.time, "swing", nil, attached and "time" or nil)
 		bar.time:ClearAllPoints()
 		if bar.vertical then
@@ -463,13 +462,7 @@ local function Style()
 		bar.label:ClearAllPoints()
 		bar.label:SetPoint("RIGHT", bar.time, "LEFT", -Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
 		bar.label:SetShown(showTime and not bar.vertical)
-		if attached then
-			bar.label:ClearAllPoints()
-			bar.label:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
-			bar.label:SetJustifyH("LEFT")
-		else
-			bar.label:SetJustifyH("RIGHT")
-		end
+		bar.label:SetJustifyH(attached and "LEFT" or "RIGHT")
 	end
 end
 
