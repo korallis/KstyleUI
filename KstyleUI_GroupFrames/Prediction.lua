@@ -166,8 +166,29 @@ local function Shield(f)
 	end
 end
 
+local function Ranges(f)
+	local cfg = Settings.current.prediction
+	local maximum = UnitHealthMax(f.unit)
+	if cfg.shield then
+		f.shield:SetBarRange(0, maximum)
+	end
+	if cfg.healAbsorbs then
+		f.healAbsorbs:SetBarRange(0, maximum)
+	end
+	if cfg.heals then
+		f.heals:SetBarRange(0, maximum)
+	end
+	if cfg.absorbs then
+		f.absorbs:SetBarRange(0, maximum)
+	end
+	f.predictionRangeDirty = false
+end
+
 local function Update(f)
 	local cfg = Settings.current.prediction
+	if f.predictionRangeDirty ~= false then
+		Ranges(f)
+	end
 	Shield(f)
 	if not cfg.heals and not cfg.absorbs and not cfg.healAbsorbs then
 		return
@@ -192,21 +213,12 @@ local function Update(f)
 		f.absorbs:SetBarValue(absorbs)
 	end
 end
+local function Invalidate(f)
+	f.predictionRangeDirty = true
+end
+
 local function Refresh(f)
-	local cfg = Settings.current.prediction
-	local maximum = UnitHealthMax(f.unit)
-	if cfg.shield then
-		f.shield:SetBarRange(0, maximum)
-	end
-	if cfg.healAbsorbs then
-		f.healAbsorbs:SetBarRange(0, maximum)
-	end
-	if cfg.heals then
-		f.heals:SetBarRange(0, maximum)
-	end
-	if cfg.absorbs then
-		f.absorbs:SetBarRange(0, maximum)
-	end
+	Invalidate(f)
 	Update(f)
 end
 Prediction.Update = Refresh
@@ -224,6 +236,14 @@ local function PaintSample(f, sample)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 
+local settingsRefresh = Settings.Refresh
+function Settings.Refresh()
+	local cfg = settingsRefresh()
+	Unit.ForEach(Invalidate)
+	return cfg
+end
+
+Unit.changed[#Unit.changed + 1] = Invalidate
 Unit.extra[#Unit.extra + 1] = Refresh
 Unit.Chain("UNIT_HEAL_PREDICTION", Update)
 Unit.Chain("UNIT_ABSORB_AMOUNT_CHANGED", Update)

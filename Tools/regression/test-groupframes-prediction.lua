@@ -15,13 +15,7 @@ local function Check(env, f, member, what, maximum)
 	for _, key in ipairs(KEYS) do
 		local bar = f[key]
 		local range = assert(W.LastCall(bar, "SetMinMaxValues"), what .. " " .. key .. " needs a range")
-		local high, value = range[2], W.LastCall(bar, "SetValue")[1]
-		if env.issecretvalue(high) then
-			high = env.Reveal(high)
-		end
-		if env.issecretvalue(value) then
-			value = env.Reveal(value)
-		end
+		local high, value = env.Look(range[2]), env.Look(W.LastCall(bar, "SetValue")[1])
 		eq(range[1], 0, what .. " " .. key .. " minimum")
 		eq(high, maximum or member.maxHealth, what .. " " .. key .. " maximum")
 		eq(value, (key == "shield" and maximum and member.shield) or member[FIELDS[key]] or 0, what .. " " .. key .. " amount")
@@ -126,4 +120,74 @@ for _, kind in ipairs({ "party", "raid" }) do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
+local failures = {}
+local function Verify(fn, ...)
+	local ok, err = pcall(fn, ...)
+	if not ok then
+		failures[#failures + 1] = err
+	end
+end
+
+for _, kind in ipairs({ "party", "raid" }) do
+	local env, K, ns = G.New({ saved = {
+		version = 2,
+		profiles = {
+			Default = { GroupFrames = { enabled = true, prediction = { heals = false } } },
+			PredictionOn = { GroupFrames = { enabled = true } },
+		},
+		characters = {},
+	} })
+	local member = { name = "Tank", class = "WARRIOR", health = 500, maxHealth = 1000, incoming = 200, absorb = 100, healAbsorb = 50 }
+	G.SetRoster(env, kind, { member })
+	env.RunTimers()
+	local unit, f = kind .. "1"
+	for _, frame in ipairs(ns.Unit.frames) do
+		if frame.unit == unit then
+			f = frame
+		end
+	end
+	assert(f and not W.LastCall(f.heals, "SetMinMaxValues"), "disabled incoming heals starts without a range")
+	env.SetCombat(true)
+	env.RunTimers()
+	K.Options.Write("GroupFrames", "prediction.heals", true)
+	local before = Ranges(f)
+	env.FireEvent("UNIT_HEALTH", unit)
+	Verify(Check, env, f, member, kind .. " option enabled in combat")
+	Verify(eq, Ranges(f), before + 4, "the first event after a deferred settings refresh repairs ranges once")
+	before = Ranges(f)
+	env.FireEvent("UNIT_HEAL_PREDICTION", unit)
+	Verify(Check, env, f, member, kind .. " next prediction after option enabled")
+	Verify(eq, Ranges(f), before, "subsequent amount events keep their ranges")
+	for _, key in ipairs(KEYS) do
+		K.Options.Write("GroupFrames", "prediction." .. key, false)
+		member.maxHealth = member.maxHealth + 1000
+		env.FireEvent("UNIT_MAXHEALTH", unit)
+		K.Options.Write("GroupFrames", "prediction." .. key, true)
+		before = Ranges(f)
+		env.FireEvent("UNIT_HEALTH", unit)
+		Verify(Check, env, f, member, kind .. " " .. key .. " re-enabled in combat after maximum changed")
+		Verify(eq, Ranges(f), before + 4, "a re-enabled option repairs its stale range once")
+	end
+	for _, key in ipairs(KEYS) do
+		K.Options.Write("GroupFrames", "prediction." .. key, false)
+	end
+	member.maxHealth = 2000
+	env.FireEvent("UNIT_MAXHEALTH", unit)
+	assert(K.Store.SetProfile("PredictionOn"))
+	before = Ranges(f)
+	env.FireEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
+	Verify(Check, env, f, member, kind .. " profile switched in combat after maximum changed")
+	Verify(eq, Ranges(f), before + 4, "the first event after a deferred profile refresh repairs ranges once")
+	before = Ranges(f)
+	env.FireEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
+	Verify(Check, env, f, member, kind .. " next prediction after profile switched")
+	Verify(eq, Ranges(f), before, "subsequent events after a profile switch keep their ranges")
+	env.SetCombat(false)
+	env.RunTimers()
+	Verify(Check, env, f, member, kind .. " combat-end refresh")
+	eq(#env._blocked, 0, "combat settings and profile changes make no protected calls")
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+assert(#failures == 0, table.concat(failures, "\n"))
 print("groupframes prediction amounts, ranges and refresh paths ok")
