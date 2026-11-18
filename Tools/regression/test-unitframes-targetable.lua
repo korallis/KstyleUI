@@ -60,6 +60,9 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 			assert(state() == actual, style .. ": targetability keeps the unchanged encounter-refresh result")
 		end
 	end
+	refreshes, marks = 0, 0
+	env.FireEvent("UNIT_TARGETABLE_CHANGED")
+	assert(refreshes == #views and marks == 1, style .. ": a missing unit keeps the old refresh instead of raising")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, style .. ": no event errors")
 end
 

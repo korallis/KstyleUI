@@ -811,7 +811,7 @@ local function RegisterEvents()
 		Frames.MarkTargets()
 	end)
 	Events.Register(MODULE, "UNIT_TARGETABLE_CHANGED", function(_, unit)
-		if not unit:match("^boss[1-8]$") then
+		if type(unit) == "string" and not (issecretvalue and issecretvalue(unit)) and not unit:match("^boss[1-8]$") then
 			return
 		end
 		RefreshKind("boss", true)
