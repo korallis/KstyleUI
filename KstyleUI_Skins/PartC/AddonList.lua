@@ -99,5 +99,6 @@ Skins.Add({
 	help = L["Restyles the addon list: its rows, check boxes, search and buttons."],
 	addon = "Blizzard_AddOnList",
 	frame = "AddonList",
+	metrics = true,
 	Apply = Apply,
 })
