@@ -31,8 +31,22 @@ b:ClearCooldown()
 assert(b.hotkey:GetAlpha() == 1, "clearing the cooldown restores the keybind")
 local _, keySize = b.hotkey:GetFont()
 assert(keySize >= K.Scale.TEXT_FLOOR, "Medallions keybind respects the 11-unit floor")
+for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
+	env.RunTimers()
+	local point = b.hotkey._points[1]
+	assert(point[1] == "TOPLEFT" and point[4] > 0 and point[5] < 0, style .. ": keep the readable keybind inside the icon border")
+end
 local _, numberSize, flags = b.countdown:GetFont()
 assert(math.abs(numberSize - b.opts.size * 0.42) < 1 and flags == "OUTLINE", "outline a countdown at 42 percent of the slot")
+local savedSize = ns.Config("bar1").size
+K.Options.Write("ActionBars", "bar1.size", savedSize * 26.6 / b.opts.size)
+assert(K.Widgets.IsFitted(b.countdown) and K.Widgets.IsFitted(b.count), "fit compact countdown and stack text to their socket")
+assert(not K.Widgets.IsFitted(b.hotkey), "compact keybinds keep the text floor")
+K.Options.Write("ActionBars", "readableCountdown", false)
+assert(not K.Widgets.IsFitted(b.countdown) and not K.Widgets.IsFitted(b.count), "turning readability off restores the previous text floor")
+K.Options.Write("ActionBars", "bar1.size", savedSize)
+K.Options.Write("ActionBars", "readableCountdown", true)
 assert(math.abs(ns.Slab.hub.crest:GetWidth() - 123) < 1, "seat the crest at 123 units")
 K.Options.Write("ActionBars", "seatedCrest", false)
 assert(math.abs(ns.Slab.hub.crest:GetWidth() - 150) < 1, "crest seating off restores the 150-unit canvas")

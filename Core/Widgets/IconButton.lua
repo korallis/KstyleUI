@@ -243,6 +243,7 @@ function Widgets.CountdownFormat(cooldown)
 			local made = util.CreateNumericRuleFormatter()
 			made:AddBreakpoint({ threshold = 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
 			made:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1, rounding = rounding.Up } } })
+			made:AddBreakpoint({ threshold = 3600, max = 32400, format = "%dh", components = { { div = 3600, step = 1, rounding = rounding.Up } } })
 			return made
 		end)
 		countdownFormatter = ok and formatter or false

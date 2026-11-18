@@ -21,7 +21,11 @@ K.Options.Write("Cooldowns", "medallionsIcons", false)
 assert(not icon.medIconFrame:IsShown() and icon.chrome.visible, "off restores the mirror's original chrome")
 assert(not backdrop.medIconFrame:IsShown() and backdrop.chrome.visible, "off restores native tracked buff chrome")
 local formatter = C.W.LastCall(icon.cooldown, "SetCountdownFormatter")[1]
-assert(formatter:FormatNumber(4) == "4" and formatter:FormatNumber(120) == "2m" and formatter:FormatNumber(6000) == "100m", "one engine formatter supplies bare seconds and minutes")
+assert(formatter:FormatNumber(4) == "4" and formatter:FormatNumber(120) == "2m" and formatter:FormatNumber(6000) == "2h", "shorten a three-digit minute countdown to hours")
+for _, case in ipairs({ { 5999, "2h" }, { 3599, "60m" }, { 3600, "1h" }, { 32400, "9h" }, { 60000, "9h" }, { 360000, "9h" }, { 1e12, "9h" } }) do
+	assert(formatter:FormatNumber(case[1]) == case[2], "cap hour labels at 9h so long countdowns stay within two characters")
+	assert(env.issecretvalue(formatter:FormatNumber(env.Secret(case[1]))), "keep long countdowns secret in the engine formatter")
+end
 assert(env.issecretvalue(formatter:FormatNumber(env.Secret(4))), "secret countdowns remain secret through the engine formatter")
 K.Options.Write("Cooldowns", "readableCountdown", false)
 local row = ns.Row.New(env.UIParent, "utility", ns.Settings.current.utility)

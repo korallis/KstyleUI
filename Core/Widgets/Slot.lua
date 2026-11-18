@@ -273,7 +273,7 @@ local function PlaceLayers(self)
 	PlaceStates(self)
 	local inset = Widgets.Snap(self, self.opts.readableCountdown and 2 or TEXT_INSET)
 	self.hotkey:ClearAllPoints()
-	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, self.opts.readableCountdown and inset or -inset)
+	self.hotkey:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset)
 	self.hotkey:SetJustifyH("LEFT")
 	local countdown = self.countdown
 	if countdown then

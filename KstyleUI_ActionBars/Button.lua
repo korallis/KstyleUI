@@ -464,6 +464,7 @@ function ns.StyleTextsFor(b, barKey)
 		local fs = TextFor(b, spec.key)
 		local style = text[spec.key]
 		if fs and style then
+			Widgets.Fitted(fs, b.opts.readableCountdown and b.opts.size < 30 and (spec.key == "cooldown" or spec.key == "count"))
 			local rolePath, roleSize = Tokens.Font(spec.role)
 			local path = style.font ~= "" and style.font or rolePath
 			local size = ns.Slab.TextSize(barKey, cfg, (type(style.size) == "number" and style.size or roleSize) * scale, spec.key)

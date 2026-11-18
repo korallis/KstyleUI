@@ -524,12 +524,14 @@ function Object:GetAlpha()
 end
 
 function Object:SetVertexColor(...)
+	local a = select(4, ...)
 	self._state.VertexColor = pack(...)
+	self._alpha = a == nil and 1 or a
 end
 
 function Object:GetVertexColor()
 	local color = self._state.VertexColor or { 1, 1, 1 }
-	return color[1], color[2], color[3], color[4] == nil and 1 or color[4]
+	return color[1], color[2], color[3], self:GetAlpha()
 end
 
 -- A frame made from a Secure template is protected. The game refuses to anchor a protected frame to a
@@ -1108,6 +1110,8 @@ local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBo
 local setVertexColor = quietSetter("VertexColor")
 function Quiet:SetVertexColor(...)
 	setVertexColor(self, ...)
+	local a = select(4, ...)
+	self._alpha = a == nil and 1 or a
 end
 
 function Quiet:SetAlpha(alpha)

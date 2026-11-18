@@ -48,7 +48,6 @@ for _, group in ipairs({ "essential", "utility" }) do
 	end
 end
 
--- The centre cluster shares the action slots' bare seconds and minute suffix.
 assert(texts["4"] and texts["2m"], "the cooldown rows show bare seconds (4) and minutes (2m)")
 
 -- The quest tracker is the shared stand-in with the skin's one caption header and numbered discs.

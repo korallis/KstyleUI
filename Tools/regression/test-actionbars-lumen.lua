@@ -66,7 +66,7 @@ do
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1, count = "3" })
 	local b = AB.Button(ns, "bar1", 1)
 	local hp = b.hotkey._points[1]
-	assert(hp and hp[1] == "TOPLEFT" and hp[2] == b and hp[3] == "TOPLEFT" and hp[4] > 0 and hp[5] > 0, "the keybind sits at the top-left lip, clear of the countdown")
+	assert(hp and hp[1] == "TOPLEFT" and hp[2] == b and hp[3] == "TOPLEFT" and hp[4] > 0 and hp[5] < 0, "keep the keybind inside the top-left corner")
 	assert(W.LastCall(b.hotkey, "SetJustifyH")[1] == "LEFT", "the keybind reads from the left")
 	local cp = b.count._points[1]
 	assert(cp and cp[1] == "BOTTOMRIGHT" and cp[3] == "BOTTOMRIGHT", "the count sits at the bottom right")

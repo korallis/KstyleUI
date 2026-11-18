@@ -149,7 +149,7 @@ function Common.ForceScreen(env, completePreset)
 	if os.getenv("RENDER_SLAB_FINISH") == "off" and type(db) == "table" and type(db.profiles) == "table" then
 		for _, profile in pairs(db.profiles) do
 			profile.ActionBars = profile.ActionBars or {}
-			for _, key in ipairs({ "quietSockets", "quietCooldown", "readableCountdown", "seatedCrest", "hubAlpha" }) do profile.ActionBars[key] = false end
+			for _, key in ipairs({ "quietSockets", "quietCooldown", "readableCountdown", "seatedCrest" }) do profile.ActionBars[key] = false end
 			profile.Cooldowns = profile.Cooldowns or {}
 			for _, key in ipairs({ "quietCooldown", "readableCountdown", "medallionsIcons" }) do profile.Cooldowns[key] = false end
 			profile.Auras = profile.Auras or {}
