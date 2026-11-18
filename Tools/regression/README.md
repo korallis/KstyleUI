@@ -61,6 +61,12 @@ Each slot is a lock file, `~/.cache/kstyleui/worker-slot-N.lock` (`KSTYLEUI_SLOT
 
 Each completed file prints `progress: N/T test files done`. Each file also prints `usage: NAME cpu=SECONDS wall=SECONDS peak_mb=MB`, including passing files, so CI logs contain calibration data. Load averages print `n/a` where the OS does not provide them. The summary reports slot waiting separately from test wall time.
 
+### Python test subprocesses
+
+Python tests that bound a command use `Tools.tests.subprocess_budget.run(..., cpu_budget=N)` instead of `subprocess.run(..., timeout=N)`. Their existing limits are CPU seconds, with a separate wall-clock hang guard of `max(120, 5 * N)` seconds. Child accounting reuses `runner_platform.wait`: `wait4` on POSIX and `GetProcessTimes` on Windows. Windows accounts for the direct child; POSIX also includes descendants that child waited for. Shell-launcher tests retain the hang guard on both platforms. Captured input and output use temporary files so pipe buffers cannot deadlock the accounting wait.
+
+Every command prints measured CPU and wall time. Failed commands include those measurements with their captured output; `CPU budget exceeded` says to make the test cheaper, while `hang guard` identifies the independent wall limit. CPU overruns fail on Mac CI and warn elsewhere, as in the Lua runner; missing CPU accounting fails on Mac CI rather than substituting wall time. LuaJIT reports `not budgeted` and still has the 120-second hang guard. `test_subprocess_budget.py` exercises an actual hung child with a shortened guard, checks the production floor and multiplier separately, and rejects fixed `subprocess.run` timeouts in Python tests with the replacement command in its failure message.
+
 ### Margins
 
 `bash Tools/regression/run-all.sh --margins` runs files serially and lists those using at least 80% of their CPU or peak memory budget. Wall time does not determine this list. Runs without a CPU budget still report peak-memory margins. Allowance removal is a dedicated serial `--margins` calibration review: propose deleting a line only when the file is below 16 CPU seconds on every sampled Mac. Normal shard runs never expire an allowance from a single fast sample. LEE-5827 owns reducing these files and removing the lines; the list may only shrink.

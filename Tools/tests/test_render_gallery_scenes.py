@@ -1,9 +1,10 @@
 import os
 import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+from Tools.tests.subprocess_budget import run as budgeted_run
 
 ROOT = Path(__file__).resolve().parents[2]
 LUA = shutil.which("lua5.1") or shutil.which("luajit")
@@ -14,7 +15,7 @@ class GalleryScenes(unittest.TestCase):
     def test_galleries_under_medallions(self):
         for scene in ("gallery_options", "gallery_unitframes", "gallery_auras_counts"):
             with self.subTest(scene=scene):
-                result = subprocess.run(
+                result = budgeted_run(
                     [LUA, "-"], cwd=ROOT,
                     env={**os.environ, "RENDER_HUD_STYLE": "Medallions", "RENDER_SCREEN": "5120x1440", "RENDER_SIZE": "auto"},
                     input=f'''
@@ -29,7 +30,7 @@ local findings = Guard.Check(scene)
 for _, f in ipairs(findings) do print(f.kind, f.subject, f.detail) end
 assert(#findings == 0, "gallery has " .. #findings .. " render guard findings")
 print("{scene}: no errors, unresolved anchors or guard findings")
-''', text=True, capture_output=True, timeout=60,
+''', text=True, capture_output=True, cpu_budget=60,
                 )
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -37,7 +38,7 @@ print("{scene}: no errors, unresolved anchors or guard findings")
 @unittest.skipUnless(shutil.which("node"), "Node is required")
 class TexturePaths(unittest.TestCase):
     def test_cached_windows_textures_are_loaded_as_file_urls(self):
-        result = subprocess.run(
+        result = budgeted_run(
             ["node", "-"], cwd=ROOT, input=r'''
 const assert = require("node:assert/strict");
 const requested = [];
@@ -57,7 +58,7 @@ window.renderScene({ screen: { width: 100, height: 100 }, items: files.map(file 
     assert.deepEqual(requested, ["file:///C:/Users/owner/cache/raid.png", "file:///D:/cache/raid.png",
         "file:///tmp/raid.png", "file:///repo/Media/raid.png"]);
 }).catch(error => { console.error(error); process.exitCode = 1; });
-''', text=True, capture_output=True, timeout=10,
+''', text=True, capture_output=True, cpu_budget=10,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -75,9 +76,9 @@ end)
 ''')
         path = Path(script.name)
         try:
-            result = subprocess.run(
+            result = budgeted_run(
                 ["bash", "Tools/render/shoot.sh", path.stem, "--json-only", "--no-standins", "--strict"],
-                cwd=ROOT, env={**os.environ, "LUA": LUA}, text=True, capture_output=True, timeout=15,
+                cwd=ROOT, env={**os.environ, "LUA": LUA}, text=True, capture_output=True, cpu_budget=15,
             )
             self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
             self.assertIn("guard: texture Interface/absent is drawn as a grey box", result.stderr)

@@ -2,9 +2,10 @@
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import tempfile
 import unittest
+
+from Tools.tests.subprocess_budget import run as budgeted_run
 
 ROOT = Path(__file__).resolve().parents[2]
 BASH = os.environ.get("TEST_BASH", "bash")
@@ -45,9 +46,9 @@ echo '<title>rendered</title>'
                     args_file.write_text("")
                     env = dict(os.environ, LUA=lua.as_posix(), CHROME=chrome.as_posix(),
                                CHROME_ARGS=args_file.as_posix())
-                    result = subprocess.run([BASH, str(render / "shoot.sh"), "smoke", "--no-standins",
+                    result = budgeted_run([BASH, str(render / "shoot.sh"), "smoke", "--no-standins",
                                              "--backdrop", form, "--strict"],
-                                            env=env, text=True, capture_output=True, timeout=30)
+                                            env=env, text=True, capture_output=True, cpu_budget=30)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     page = (render / "out/smoke.html").read_text()
                     self.assertIn('base:"' + root.as_uri() + '/"', page)

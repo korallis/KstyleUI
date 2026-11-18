@@ -1,8 +1,9 @@
 """The canvas draws the serialized cooldown controls independently."""
 from pathlib import Path
 import shutil
-import subprocess
 import unittest
+
+from Tools.tests.subprocess_budget import run as budgeted_run
 
 ROOT = Path(__file__).resolve().parents[2]
 NODE = shutil.which("node")
@@ -11,7 +12,7 @@ NODE = shutil.which("node")
 @unittest.skipUnless(NODE, "Node is required to exercise the canvas driver")
 class CooldownCanvas(unittest.TestCase):
     def test_edge_without_swipe_and_edge_scale_and_alpha(self):
-        result = subprocess.run([NODE, "-e", r'''
+        result = budgeted_run([NODE, "-e", r'''
 const assert = require("node:assert/strict");
 global.window = {};
 let calls = [];
@@ -44,7 +45,7 @@ require("./Tools/render/render.js");
     assert.equal(calls.filter(c => c[0] === "fill").length, 1, "the enabled swipe draws");
     assert.equal(calls.filter(c => c[0] === "stroke").length, 0, "DrawEdge(false) leaves no lit hand");
 })().catch(e => { console.error(e); process.exitCode = 1; });
-'''], cwd=ROOT, capture_output=True, text=True, timeout=10)
+'''], cwd=ROOT, capture_output=True, text=True, cpu_budget=10)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 

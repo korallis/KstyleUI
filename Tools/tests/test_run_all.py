@@ -20,6 +20,8 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
+from Tools.tests.subprocess_budget import run as budgeted_run
+
 REGRESSION = Path(__file__).resolve().parents[1] / "regression"
 BASH = shutil.which("bash")
 sys.path.insert(0, str(REGRESSION))
@@ -424,7 +426,7 @@ class RunAllTest(unittest.TestCase):
         with open(os.devnull, "wb") as out:
             child = children.start([sys.executable, "-c", "import time; time.sleep(30)"], out)
         children.stop_all()
-        child.wait(timeout=5)
+        child.wait(timeout=120)
         self.assertNotEqual(child.returncode, 0)
         with self.assertRaises(KeyboardInterrupt):
             children.start([], None)
@@ -467,11 +469,11 @@ try:
 finally:
     if child is not None and child.returncode is None:
         runner_platform.kill(child)
-        child.wait(timeout=5)
+        child.wait(timeout=120)
 '''
         env = dict(os.environ, LUA=f'"{sys.executable}"', KSTYLEUI_SLOTS="0", JOBS="1")
-        result = subprocess.run([sys.executable, "-c", source], cwd=self.tmp, env=env,
-                                capture_output=True, text=True, timeout=20)
+        result = budgeted_run([sys.executable, "-c", source], cwd=self.tmp, env=env,
+                              capture_output=True, text=True, cpu_budget=20)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_the_default_cpu_budget_is_20_s_on_local_and_ci(self):

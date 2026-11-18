@@ -1,8 +1,9 @@
 import os
 import shutil
-import subprocess
 import unittest
 from pathlib import Path
+
+from Tools.tests.subprocess_budget import run as budgeted_run
 
 ROOT = Path(__file__).resolve().parents[2]
 LUA = shutil.which("lua5.1") or shutil.which("luajit")
@@ -11,7 +12,7 @@ LUA = shutil.which("lua5.1") or shutil.which("luajit")
 @unittest.skipUnless(LUA, "Lua 5.1 or LuaJIT is required")
 class AutoSize(unittest.TestCase):
     def test_auto_counts_the_enabled_third_bar_in_every_hud_environment(self):
-        result = subprocess.run(
+        result = budgeted_run(
             [LUA, "-"], cwd=ROOT, env={**os.environ, "RENDER_SIZE": "auto", "RENDER_BAR3": "1"},
             input='''
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -39,12 +40,12 @@ for _, case in ipairs({ {"Orbs", 1920, 1080}, {"Frames", 3456, 2234}, {"Orbs", 5
         assert(math.abs(actual - expected) < 1e-8, "RENDER_BAR3=1 must be included in the addon's fit in every HUD environment")
     end
 end
-''', text=True, capture_output=True, timeout=90,
+''', text=True, capture_output=True, cpu_budget=90,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_standalone_gallery_keeps_its_enabled_module_fit(self):
-        result = subprocess.run(
+        result = budgeted_run(
             [LUA, "-"], cwd=ROOT,
             env={**os.environ, "RENDER_SIZE": "auto", "RENDER_HUD_STYLE": "Medallions", "RENDER_SCREEN": "3456x2234"},
             input='''
@@ -59,12 +60,12 @@ local maximum, fits = game.Setup.Layouts.ScaleLimit(3456, 2234, "DPS", enabled, 
 local expected = game.Scale.Auto(2234, maximum, fits)
 assert(math.abs(K.Scale.AppliedUserScale() - expected) < 1e-8,
     "standalone galleries must retain the game's fit for their enabled modules")
-''', text=True, capture_output=True, timeout=30,
+''', text=True, capture_output=True, cpu_budget=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_auto_uses_the_complete_presets_game_fit(self):
-        result = subprocess.run(
+        result = budgeted_run(
             [LUA, "-"], cwd=ROOT, env={**os.environ, "RENDER_SIZE": "auto", "RENDER_HUD_STYLE": "Medallions"},
             input='''
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -86,7 +87,7 @@ for _, screen in ipairs({ {3456, 2234}, {5120, 1440}, {1920, 1080} }) do
         assert(math.abs(actual - expected) < 1e-8, "RENDER_SIZE=auto must use the complete preset's game fit")
     end
 end
-''', text=True, capture_output=True, timeout=60,
+''', text=True, capture_output=True, cpu_budget=60,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
