@@ -130,11 +130,13 @@ local function Layout(f, parts, k)
 	f.ready:ClearAllPoints()
 	f.ready:SetSize(ready, ready)
 	f.ready:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, health.left + health.width / 2), -Widgets.Snap(f, health.top + health.height / 2))
+	local statusLeft, statusTop = health.left + health.width / 2 - 7, health.top + health.height / 2 - 7
 	if parts.tidyLanes then
 		local laneSize = f.kind == "party" and 14 or 10
 		local portrait = parts.portrait
 		local left = portrait and portrait.left or health.left
 		local top = portrait and portrait.top + portrait.height - laneSize or health.top + health.height - laneSize
+		statusLeft, statusTop = left + (laneSize - 14) / 2, top + (laneSize - 14) / 2
 		local rect = { left = left, top = top }
 		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, laneSize))
 		rect.left = left + laneSize + 4
@@ -147,7 +149,7 @@ local function Layout(f, parts, k)
 	for _, icon in pairs(f.statusIcons) do
 		Widgets.Size(icon, 14, 14)
 		icon:ClearAllPoints()
-		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", health.left + health.width / 2 - 7, -health.top - health.height / 2 + 7)
+		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", statusLeft, -statusTop)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Layout
@@ -168,7 +170,10 @@ local function ShowPip(f, role)
 		local token = PIP_COLORS[role]
 		f.pipEdge:SetShown(token ~= nil)
 		f.pipFill:SetShown(token ~= nil)
-		if token then f.pipFill:SetVertexColor(Tokens.Color(token)) end
+		if token then
+			if f.parts and f.parts.tidyLanes then token = "steelLit" end
+			f.pipFill:SetVertexColor(Tokens.Color(token))
+		end
 		return
 	end
 	f.pipEdge:Hide()
