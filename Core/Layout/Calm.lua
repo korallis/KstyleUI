@@ -44,10 +44,6 @@ local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
 end
 
-local function Duration(seconds)
-	return Motion.FadeDuration(seconds)
-end
-
 local function Accessible(frame)
 	local check = frame.CanBeAccessedInContext
 	if type(check) ~= "function" then
@@ -155,7 +151,7 @@ local function Poll()
 	if not calm then
 		return
 	end
-	local duration = Duration(Calm.HOVER)
+	local duration = Motion.FadeDuration(Calm.HOVER)
 	for _, key in ipairs(Calm.CARDS) do
 		local el = Layout.Element(key)
 		local over = el ~= nil and Layout.Live(key) and IsOver(el.frame)
@@ -202,7 +198,7 @@ local function Wake()
 	end
 	calm = false
 	hovered = {}
-	Apply(Duration(Calm.RISE))
+	Apply(Motion.FadeDuration(Calm.RISE))
 end
 
 local function Count(_, elapsed)
@@ -226,7 +222,7 @@ local function Fall()
 		return
 	end
 	calm = true
-	Apply(Duration(Calm.FALL))
+	Apply(Motion.FadeDuration(Calm.FALL))
 	StartPoll()
 end
 

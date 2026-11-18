@@ -141,7 +141,7 @@ local function Refit()
 	end
 	local w, h = backdrop:GetSize()
 	backdrop.from, backdrop.to = { w, h }, { width, height }
-	backdrop.fit = Motion.Tween(backdrop, Fit, 0, 1, Tokens.Duration("fade"), Tokens.Easing("fade"))
+	backdrop.fit = Motion.Tween(backdrop, Fit, 0, 1, Motion.Slides() and Tokens.Duration("fade") or 0, Tokens.Easing("fade"))
 end
 
 local function Paint(line)
@@ -227,7 +227,7 @@ local function Leave(line)
 	end
 	line.token = line.token + 1
 	local duration, easing = Tokens.Duration("panelClose"), Tokens.Easing("panelClose")
-	Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), duration, easing)
+	Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), Motion.Slides() and duration or 0, easing)
 	Motion.Tween(line, "SetAlpha", line:GetAlpha(), 0, duration, easing, Retire)
 	if #Feed.lines == 0 then
 		backdrop.leaving = true
@@ -235,7 +235,7 @@ local function Leave(line)
 		return
 	end
 	for index, live in ipairs(Feed.lines) do
-		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index), Tokens.Duration("fade"), Tokens.Easing("fade"))
+		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index), Motion.Slides() and Tokens.Duration("fade") or 0, Tokens.Easing("fade"))
 	end
 	Refit()
 end
@@ -284,7 +284,7 @@ local function Add(entry)
 		Leave(Feed.lines[1])
 	end
 	for index, live in ipairs(Feed.lines) do
-		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index + 1), Tokens.Duration("fade"), Tokens.Easing("fade"))
+		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index + 1), Motion.Slides() and Tokens.Duration("fade") or 0, Tokens.Easing("fade"))
 	end
 	local line = table.remove(Feed.free) or NewLine()
 	line.entry, line.token = entry, line.token + 1
@@ -294,7 +294,7 @@ local function Add(entry)
 	Place(line, Rest(0) - Tokens.Size("gapMedium"))
 	Refit()
 	Motion.FadeIn(line, Tokens.Duration("panelOpen"))
-	Motion.Tween(line, Place, line.y, Rest(0), Tokens.Duration("panelOpen"), Tokens.Easing("panelOpen"))
+	Motion.Tween(line, Place, line.y, Rest(0), Motion.Slides() and Tokens.Duration("panelOpen") or 0, Tokens.Easing("panelOpen"))
 	Expire(line)
 end
 

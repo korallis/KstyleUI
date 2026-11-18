@@ -191,7 +191,7 @@ local function Pulse(owner, low, high, duration)
 	alpha:SetFromAlpha(low)
 	alpha:SetToAlpha(high)
 	alpha:SetDuration(duration)
-	alpha:SetSmoothing("IN_OUT")
+	alpha:SetSmoothing(Tokens.Smoothing.loop)
 	return group
 end
 
@@ -250,10 +250,9 @@ function Widgets.Glow(frame, opts)
 		grow:SetScaleFrom(1, 1)
 		grow:SetScaleTo(SPARK_SCALE, SPARK_SCALE)
 		grow:SetDuration(Tokens.Duration("procPulse") / 2)
-		grow:SetSmoothing("IN_OUT")
+		grow:SetSmoothing(Tokens.Smoothing.loop)
 		handle.sparkPulse = sparkPulse
-		Motion.TrackGroup(handle.pulse, function() StopAnimations(handle); holder:SetAlpha(handle.alpha) end)
-		Motion.TrackGroup(sparkPulse, function() StopAnimations(handle) end)
+		Motion.TrackGroup(handle.pulse, function() StopAnimations(handle) end)
 	elseif type(opts.core) == "number" and opts.core > 0 then
 		local top = CreateFrame("Frame", nil, holder)
 		top:SetAllPoints(frame)

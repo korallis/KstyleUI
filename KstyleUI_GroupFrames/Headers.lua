@@ -264,7 +264,7 @@ local function Fit(card, holder, width, height, now, vertical)
 	end
 	local from = vertical and frame:GetHeight() or frame:GetWidth()
 	local to = vertical and height or width
-	if now or type(from) ~= "number" or from <= 1 or from == to then
+	if now or not K.Motion.Slides() or type(from) ~= "number" or from <= 1 or from == to then
 		SetCardSize(frame, width, height)
 		return
 	end

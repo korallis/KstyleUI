@@ -224,4 +224,7 @@ do
 	assert(lead and lead.tileless and not lead.chrome.fill[5]:IsShown(), "a raid row wears no tile: the card is the glass")
 	eq(#renv._errors, 0, tostring(renv._errors[1]))
 end
+K.Motion.SetLevel("reduced")
+Headers.FitParty(2)
+assert(not K.Motion.IsPlaying(card.tween), "Calm snaps a group card to its new size")
 print("groupframes card ok")

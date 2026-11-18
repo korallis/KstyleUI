@@ -234,7 +234,7 @@ function Medallion:Sheen(on)
 end
 
 function Medallion:FlipIn()
-	if not Allows("flare") then
+	if not Motion.Slides() or not Allows("flare") then
 		return
 	end
 	local effects = ns.Effects
@@ -294,7 +294,7 @@ end
 
 function Medallion:Burst(class)
 	local effects = ns.Effects
-	if not (effects and effects.Burst and self:IsVisible()) then
+	if not (Motion.Slides() and effects and effects.Burst and self:IsVisible()) then
 		return false
 	end
 	local burst = BurstParts(self)

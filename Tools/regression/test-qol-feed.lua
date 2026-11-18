@@ -409,4 +409,17 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+do
+	local env, K, ns = New()
+	K.Motion.SetLevel("reduced")
+	env.FireEvent("CHAT_MSG_LOOT", "You receive loot: " .. BUG_EYE)
+	local first = assert(ns.Feed.lines[1])
+	assert(first.y == 0, "Calm places the feed line at once")
+	assert(ns.Feed.Backdrop():GetAlpha() == 0, "Calm keeps the feed card fade")
+	env.FireEvent("CHAT_MSG_LOOT", "You receive loot: " .. VEST)
+	assert(first.y == K.Tokens.Size("lootTile") + K.Tokens.Size("gapSmall"), "Calm repositions existing feed lines at once")
+	Q.W.Tick(env, 0.15)
+	assert(ns.Feed.Backdrop():GetAlpha() == 1, "the feed fade ends within 150 ms")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
 print("qol feed ok")

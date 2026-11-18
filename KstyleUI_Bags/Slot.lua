@@ -312,14 +312,14 @@ end
 local function OnMouseDown(button)
 	local slot = bySlotButton[button]
 	if slot then
-		Motion.Tween(slot, SetPress, slot.pressT or 0, 1, Tokens.Duration("hover"), Tokens.Easing("hover"))
+		Motion.Tween(slot, SetPress, slot.pressT or 0, 1, Motion.Slides() and Tokens.Duration("hover") or 0, Tokens.Easing("hover"))
 	end
 end
 
 local function OnMouseUp(button)
 	local slot = bySlotButton[button]
 	if slot then
-		Motion.Tween(slot, SetPress, slot.pressT or 0, 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+		Motion.Tween(slot, SetPress, slot.pressT or 0, 0, Motion.Slides() and Tokens.Duration("hover") or 0, Tokens.Easing("hover"))
 	end
 end
 

@@ -53,6 +53,11 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	assert(list:GetOffset() == 48, "Calm scrolls a list at once")
 	W.Tick(env, 0.15)
 	for _, row in ipairs(list.rows) do assert(row:GetAlpha() == 1, "Calm finishes all row fades within 150 ms") end
+	local medal = K.Widgets.Medallion(nil)
+	medal:Layout(86)
+	medal:FlipIn()
+	assert(not medal.flip:IsPlaying(), "Calm suppresses the medallion scale-in")
+	assert(not medal:Burst("SHAMAN") and not medal.burst, "Calm suppresses a medallion burst's scale animation")
 	local button = K.Widgets.IconButton(nil)
 	button:FlashReady()
 	assert(button.readyFlash:IsPlaying() and duration(button.readyFade) <= 0.15, "Calm keeps a short ready flash")

@@ -1,7 +1,7 @@
 -- Rest.lua: the Medallions leave-combat fade: three seconds after combat ends the secondary unit frames (target of target, focus, its target and the pet) dim to 60% over 0.6 s and return the moment combat starts; alpha only, through Layout, only where the player kept full alpha, and only under the Medallions style.
 local _, ns = ...
 
-local Layout, Effects, Tokens, Motion = ns.Layout, ns.Effects, ns.Tokens, ns.Motion
+local Layout, Effects, Tokens = ns.Layout, ns.Effects, ns.Tokens
 
 local Rest = {}
 Layout.Rest = Rest
@@ -30,7 +30,7 @@ function Rest.Level(key)
 end
 
 local function Apply(seconds)
-	local duration = Effects.Allows("flare") and Motion.FadeDuration(seconds) or 0
+	local duration = Effects.Allows("flare") and seconds or 0
 	if Effects.Level() == "calm" then duration = math.min(duration, Tokens.Duration("panelClose")) end
 	for _, key in ipairs(Rest.KEYS) do
 		Layout.RefreshAlpha(key, duration)

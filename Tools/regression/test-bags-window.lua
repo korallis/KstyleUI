@@ -634,4 +634,15 @@ do
 	assert(ns2.Inventory.Slot(2, 1), "the new bag's slots are made when combat ends")
 end
 
+do
+	local env, K, ns = B.New({ bags = Bags() })
+	Open(env)
+	K.Motion.SetLevel("reduced")
+	local slot = ns.Inventory.Slot(0, 1)
+	W.Down(slot.button)
+	assert(slot.pressT == 1, "Calm places a pressed bag icon at once")
+	W.Up(slot.button)
+	assert(slot.pressT == 0, "Calm releases a bag icon at once")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
 print("bags window ok")
