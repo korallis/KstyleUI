@@ -9,6 +9,12 @@ return Common.Run(function()
 	local R = Boot(Common.SCREEN)
 	local env, K = R.env, R.K
 	M.Game(env, {})
+	env._group = { raid = false, size = 2 }
+	env._units.player = { name = "Korallis", class = "WARLOCK", guid = "Player-1" }
+	env._units.party1 = { name = "Thargor", class = "WARRIOR", guid = "Player-2" }
+	env._units.target = { name = "Shadowgale Poacher", hostile = true }
+	env._threat.player = { tanking = false, status = 1, scaled = 60, raw = 60, threat = 120 }
+	env._threat.party1 = { tanking = true, status = 3, scaled = 100, raw = 100, threat = 200 }
 	D.Game(env, { fps = 162, latencyHome = 15, latencyWorld = 15, money = 2616, faction = false, level = 60 })
 	D.Blizzard(env)
 	D.Menus(env, { backpack = 133633 })
