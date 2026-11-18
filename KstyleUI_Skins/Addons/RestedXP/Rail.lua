@@ -670,6 +670,18 @@ function Rail.Place()
 	local side = K.Safe.Side(K.Scale.Root())
 	local skin = K.Skin.Parts(f)
 	side.storyGuide = skin and skin.backdrop
+	side.storyGuideBottom = side.storyGuide
+	local bottom = side.storyGuide and side.storyGuide:GetBottom()
+	bottom = Plain(bottom) and bottom * Widgets.ScaleFactor(side.storyGuide) or nil
+	for _, box in ipairs(Boxes()) do
+		local parts = K.Skin.Parts(box)
+		local glass = parts and parts.backdrop
+		local foot = glass and glass:GetBottom()
+		foot = Plain(foot) and foot * Widgets.ScaleFactor(glass) or nil
+		if foot and bottom and foot < bottom then
+			side.storyGuideBottom, bottom = glass, foot
+		end
+	end
 	if side.dockThreat then
 		K.Call(side.dockThreat)
 	end

@@ -10,8 +10,13 @@ R.K.Options.Write("Meters", "threat.shown", true)
 R.settle()
 local threat = R.env._addons.KstyleUI_Meters.Threat
 local point, relative, on, x, y = threat.holder:GetPoint(1)
-assert(point == "TOPRIGHT" and relative == R.K.Skin.Parts(R.rxp.RXPFrame).backdrop and on == "BOTTOMRIGHT" and x == 0 and y == -R.K.Widgets.Snap(threat.holder, 16),
-	"anchor the default threat card sixteen units below the guide")
+local side = R.K.Safe.Side(R.K.Scale.Root())
+assert(point == "TOPRIGHT" and relative == side.storyGuideBottom and on == "BOTTOMRIGHT" and x == 0 and y == -R.K.Widgets.Snap(threat.holder, 16),
+	"anchor the default threat card sixteen units below the guide and its docked controls")
+R.rxp.activeItemFrame:Hide()
+R.rxp.targeting.activeTargetFrame:Hide()
+R.ns.RestedXP.Rail.Place()
+assert(select(2, threat.holder:GetPoint(1)) == R.K.Skin.Parts(R.rxp.RXPFrame).backdrop, "without docked controls the threat card follows the guide's own foot")
 R.K.Layout.Update("meters.threat", { x = -900 })
 R.ns.RestedXP.Rail.Place()
 assert(select(2, threat.holder:GetPoint(1)) == R.K.Scale.Root(), "a custom threat position stays independent of the guide")
