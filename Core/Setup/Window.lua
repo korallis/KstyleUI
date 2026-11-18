@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, six steps built from the widget kit: welcome, HUD style (a card per offered style), layout, modules, ornaments and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
+-- Window.lua: the six-step setup, with HUD and role pictures, module choices, ornaments and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -20,6 +20,9 @@ local LABEL_ROOM = 2
 local LABEL_FLOOR = 8
 local PREVIEW_FALLBACK, LEGEND_WIDTH = 260, 240
 local ROW_HEIGHT = 44
+local NOTE_SIZE = 11
+local LAYOUT_PICTURE_WIDTH, LAYOUT_PICTURE_HEIGHT = 180, 90
+local LAYOUT_PICTURE_PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Layout"
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
 local ELEMENT_ALPHA, ROLE_ALPHA = 0.22, 0.5
@@ -143,7 +146,16 @@ local function Select(cards, value)
 	end
 end
 
-local FitStyles, PlaceSummary
+local FitStyles, PlaceSummary, PlaceLayouts, PlaceModules
+
+function Setup.RestyleText(frame, skip)
+	if frame == skip then return end
+	if frame:GetObjectType() == "EditBox" then Widgets.StyleText(frame, "body") end
+	for _, text in ipairs({ frame:GetRegions() }) do
+		if text:GetObjectType() == "FontString" then Widgets.StyleText(text) end
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do Setup.RestyleText(child, skip) end
+end
 
 local function Refresh()
 	local choice = Setup.Choice()
@@ -157,6 +169,7 @@ local function Refresh()
 	Select(panel.ornamentCards, choice.ornaments)
 	Select(panel.styleCards, choice.hudStyle)
 	FitStyles()
+	PlaceLayouts()
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
 	end
@@ -227,12 +240,23 @@ function Setup.Step()
 end
 
 local function NoteStyle(text)
-	Widgets.ApplyFont(text, Tokens.NoteFont())
+	local readable = ns.Store.Module("Setup").readableNotes
+	Widgets.Fitted(text, not readable and not text.bodyNote)
+	text:SetWordWrap(readable or text.bodyNote == true)
+	if readable then
+		local path, _, flags = Tokens.Font("body")
+		Widgets.ApplyFont(text, path, NOTE_SIZE * ns.Theme.FontScale(), flags)
+	elseif text.bodyNote then
+		Widgets.StyleText(text, "body")
+	else
+		Widgets.ApplyFont(text, Tokens.NoteFont())
+	end
 end
 
 local function Paragraph(parent, role, color, width, small)
 	local text = small and Widgets.FontString(parent) or Widgets.Text(parent, role, color)
 	if small then
+		text.bodyNote = small == "body"
 		text.Restyle = NoteStyle
 		Widgets.Track(text)
 		NoteStyle(text)
@@ -416,7 +440,8 @@ end
 function Card:Restyle()
 	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
 	self.title:ClearAllPoints()
-	Widgets.Point(self.title, "TOPLEFT", self, "TOPLEFT", pad, -pad)
+	local picture = self.layout and ns.Store.Module("Setup").layoutPictures and LAYOUT_PICTURE_HEIGHT + Widgets.Snap(self, Tokens.Size("gapSmall")) or 0
+	Widgets.Point(self.title, "TOPLEFT", self, "TOPLEFT", pad, -(pad + picture))
 	self.note:ClearAllPoints()
 	Widgets.Point(self.note, "TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self, Tokens.Size("gapSmall")))
 	self.note:SetWidth(max(1, self:GetWidth() - pad * 2))
@@ -619,7 +644,7 @@ local function NewCard(page, width, height, title, note, pick)
 	card.title = Widgets.Text(card, "caps", "capsGold")
 	Widgets.CapsSize(card.title)
 	card.title:SetText(title)
-	card.note = Paragraph(card, "body", "text", width)
+	card.note = Paragraph(card, "body", "text", width, "body")
 	card.note:SetText(note)
 	card.onClick = function()
 		pick()
@@ -671,6 +696,9 @@ local function BuildLayouts(page, width)
 		end)
 		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.cards[name] = card
+		card.picture = card:CreateTexture(nil, "ARTWORK")
+		Widgets.Size(card.picture, LAYOUT_PICTURE_WIDTH, LAYOUT_PICTURE_HEIGHT)
+		Widgets.Point(card.picture, "TOP", card, "TOP", 0, -gap("gapLarge"))
 	end
 	local preview = NewPreview(page)
 	preview.page, preview.pageWidth = page, width
@@ -680,12 +708,40 @@ local function BuildLayouts(page, width)
 	Widgets.Point(shown, "TOPLEFT", preview, "TOPRIGHT", spacing, 0)
 	preview.nameText = shown
 	panel.previewName = shown
-	local hint = Paragraph(page, "body", "text", width / 2)
+	local hint = Paragraph(page, "body", "text", width / 2, "body")
 	Widgets.Point(hint, "TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
 	hint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
 		.. "\n\n" .. L["Point at a layout to preview it."]
 		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint
+end
+
+PlaceLayouts = function()
+	local pictures = ns.Store.Module("Setup").layoutPictures
+	local style = Setup.Choice().hudStyle
+	local pad, spacing = gap("gapLarge"), gap("gapSmall")
+	local height = CARD_HEIGHT
+	for name, card in pairs(panel.cards) do
+		card.picture:SetShown(pictures)
+		card.picture:SetTexture(LAYOUT_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga")
+		card.title:ClearAllPoints()
+		Widgets.Point(card.title, "TOPLEFT", card, "TOPLEFT", pad, -(pictures and pad + LAYOUT_PICTURE_HEIGHT + spacing or pad))
+		height = max(height, (pictures and LAYOUT_PICTURE_HEIGHT + spacing or 0) + 2 * pad + Widgets.LineHeight(card.title) + spacing + Widgets.WrappedHeight(card.note, card:GetWidth() - 2 * pad))
+	end
+	for _, card in pairs(panel.cards) do Widgets.Size(card, card:GetWidth(), height) end
+	panel.preview:SetShown(not pictures)
+	panel.previewName:SetShown(not pictures)
+	panel.layoutHint:ClearAllPoints()
+	if pictures then
+		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.pages[3], "TOPLEFT", 0, -(height + gap("gapLarge")))
+		panel.layoutHint:SetWidth(panel.preview.pageWidth)
+		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. Each picture shows your chosen HUD style; you can move and resize everything later in Layout Mode."])
+	else
+		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
+		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
+			.. "\n\n" .. L["Point at a layout to preview it."] .. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
+	end
+	panel.layoutHeight = height
 end
 
 local function SetAll(value)
@@ -698,7 +754,7 @@ local function SetAll(value)
 end
 
 local function BuildModules(page, width)
-	local header = Paragraph(page, "body", "text", width / 2)
+	local header = Paragraph(page, "body", "text", width / 2, "body")
 	Widgets.Point(header, "TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
 	panel.moduleNote = header
 	local allOff = Widgets.Button(page, { text = L["All off"], onClick = function() SetAll(false) end })
@@ -707,20 +763,31 @@ local function BuildModules(page, width)
 	Widgets.Point(allOn, "RIGHT", allOff, "LEFT", -gap("gapSmall"), 0)
 	local column = Widgets.Snap(page, width / 2)
 	local top = Widgets.Snap(page, HEADER_HEIGHT) + gap("gapMedium")
+	local scroll = CreateFrame("ScrollFrame", nil, page)
+	Widgets.Fill(scroll, page, 0, top, 0, 0)
+	scroll:SetClipsChildren(true)
+	scroll:EnableMouseWheel(true)
+	local body = CreateFrame("Frame", nil, scroll)
+	Widgets.Size(body, width, 1)
+	scroll:SetScrollChild(body)
+	scroll:SetScript("OnMouseWheel", function(_, delta)
+		scroll:SetVerticalScroll(max(0, min(max(0, body:GetHeight() - scroll:GetHeight()), (scroll:GetVerticalScroll() or 0) - delta * ROW_HEIGHT)))
+	end)
+	panel.moduleScroll, panel.moduleBody = scroll, body
 	panel.toggles = {}
 	for i, entry in ipairs(Setup.PICKER) do
 		local col = i <= ROWS_PER_COLUMN and 0 or 1
 		local row = (i - 1) % ROWS_PER_COLUMN
 		local name = entry.name
-		local toggle = Widgets.Toggle(page, {
+		local toggle = Widgets.Toggle(body, {
 			label = entry.label,
 			onChange = function(value)
 				Setup.Choice().modules[name] = value
 				Changed()
 			end,
 		})
-		Widgets.Point(toggle, "TOPLEFT", page, "TOPLEFT", col * column, -(top + row * Widgets.Snap(page, ROW_HEIGHT)))
-		local note = Widgets.Fitted(Widgets.FontString(page))
+		Widgets.Point(toggle, "TOPLEFT", body, "TOPLEFT", col * column, -row * Widgets.Snap(page, ROW_HEIGHT))
+		local note = Widgets.FontString(body)
 		note.Restyle = NoteStyle
 		Widgets.Track(note)
 		NoteStyle(note)
@@ -732,6 +799,28 @@ local function BuildModules(page, width)
 		toggle.note = note
 		panel.toggles[name] = toggle
 	end
+end
+
+PlaceModules = function()
+	local column = panel.moduleBody:GetWidth() / 2
+	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
+	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
+	local heights = { 0, 0 }
+	for i, entry in ipairs(Setup.PICKER) do
+		local col = i <= ROWS_PER_COLUMN and 1 or 2
+		local toggle = panel.toggles[entry.name]
+		NoteStyle(toggle.note)
+		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
+		toggle:ClearAllPoints()
+		Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
+		toggle.note:ClearAllPoints()
+		Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
+		toggle.note:SetWidth(column - indent - gap("gapLarge"))
+		local height = ns.Store.Module("Setup").readableNotes and max(ROW_HEIGHT, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
+		heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+	end
+	panel.moduleBody:SetHeight(max(heights[1], heights[2]))
+	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
 end
 
 local function BuildStyles(page, width)
@@ -755,7 +844,7 @@ local function BuildStyles(page, width)
 		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.styleCards[value] = card
 	end
-	local hint = Paragraph(page, "body", "text", width)
+	local hint = Paragraph(page, "body", "text", width, "body")
 	hint:SetText(L["Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
 	panel.styleHint = hint
 	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
@@ -788,7 +877,7 @@ local function BuildOrnaments(page, width)
 		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", 0, -(i - 1) * (height + spacing))
 		panel.ornamentCards[value] = card
 	end
-	local hint = Paragraph(page, "body", "text", width)
+	local hint = Paragraph(page, "body", "text", width, "body")
 	Widgets.Point(hint, "TOPLEFT", page, "TOPLEFT", 0, -#Setup.ORNAMENTS * (height + spacing))
 	hint:SetText(L["Ornaments add forged trim around the HUD without moving anything. They show on every card material but Glass."]
 		.. "\n\n" .. L["Change them at any time in the settings window, on the General page."])
@@ -875,7 +964,7 @@ local function BuildSummary(page, width)
 	local choices = SummaryCard(page, L["Your choices"])
 	local layout = SummaryCard(page, L["Layout"])
 	local status = SummaryCard(page, L["Ready to apply"])
-	local summary = Paragraph(choices, "body", "textEmphasis", width)
+	local summary = Paragraph(choices, "body", "textEmphasis", width, "body")
 	local preview = NewPreview(layout)
 	local editMode = Paragraph(status, "body", "text", width, true)
 	editMode:Hide()
@@ -932,6 +1021,7 @@ local function SyncChoice()
 		end
 		Widgets.TextColor(toggle.note, available and "text" or "textDisabled")
 	end
+	PlaceModules()
 end
 
 local function OnClose()
@@ -1040,5 +1130,23 @@ function Setup.IsShown()
 end
 
 ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
-	if panel and (module == "Setup" or module == "ProfileTools") then panel.pages[1]:Restyle() end
+	if panel and (module == "Setup" or module == "ProfileTools" or module == "OptionsPresentation") then
+		Widgets.RestyleUnder({ [panel] = true })
+		panel.pages[1]:Restyle()
+		PlaceLayouts()
+		PlaceModules()
+	end
+end)
+
+ns.Callbacks.Register("LayoutChanged", "SetupWindow", function(_, key)
+	if panel and key == WINDOW_KEY and ns.Store.Module("Setup").readableNotes then
+		Setup.RestyleText(panel)
+		Widgets.RestyleUnder({ [panel] = true })
+		PlaceLayouts()
+		PlaceModules()
+	end
+end)
+
+ns.Callbacks.Register("ThemeChanged", "SetupWindow", function()
+	if panel then Refresh(); PlaceModules() end
 end)

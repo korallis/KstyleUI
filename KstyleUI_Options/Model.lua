@@ -158,6 +158,28 @@ end
 
 local MAX_LEVEL = 3
 
+local SYNONYMS = {
+	{ "HudStyle", "style", K.L["change hud look style orbs frames portraits"] },
+	{ "Readability", "preset", K.L["readable text bigger letters tiny small hard to read"] },
+	{ "Appearance", "fontScale", K.L["readable text bigger letters tiny small hard to read"] },
+	{ "GroupFrames", "auto.role", K.L["choose role tank healer dps damage"] },
+	{ "GroupFrames", "clickCast.hint", K.L["healing clicks heal mouse click casting spells"] },
+	{ "ActionBars", "bindingHints", K.L["bind keys keybind hotkeys keyboard shortcuts"] },
+	{ "Integrations", "notices", K.L["existing addons other addons elvui bartender plater bigwigs dbm weakauras"] },
+	{ "Nameplates", "cast.", K.L["make kicks obvious interrupt kick enemy spell casts"] },
+}
+
+local function Synonyms(item)
+	if not K.Store.Module("OptionsPresentation").synonyms then return "" end
+	local words = ""
+	for _, entry in ipairs(SYNONYMS) do
+		if item.module == entry[1] and type(item.key) == "string" and item.key:sub(1, #entry[2]) == entry[2] then
+			words = words .. "\n" .. entry[3]
+		end
+	end
+	return words
+end
+
 local function SectionText(sections)
 	local parts = {}
 	for level = 1, MAX_LEVEL do
@@ -177,7 +199,7 @@ function Model.Search(pages, query)
 	for _, page in ipairs(pages) do
 		local sections = {}
 		local pageShown, lastSection
-		for _, item in ipairs(Model.Visible(Model.PageItems(page), true)) do
+		for _, item in ipairs(page.id ~= "Tasks" and Model.Visible(Model.PageItems(page), true) or {}) do
 			local level = Level(item)
 			if level then
 				sections[level] = item.label
@@ -186,7 +208,7 @@ function Model.Search(pages, query)
 				end
 			else
 				local section = SectionText(sections)
-				local text = page.label .. "\n" .. section .. "\n" .. tostring(item.label) .. "\n" .. tostring(item.help or "")
+				local text = page.label .. "\n" .. section .. "\n" .. tostring(item.label) .. "\n" .. tostring(item.help or "") .. Synonyms(item)
 				if Model.Matches(text, terms) then
 					if not pageShown then
 						pageShown = true

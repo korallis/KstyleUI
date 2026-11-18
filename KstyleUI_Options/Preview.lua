@@ -13,9 +13,13 @@ local SAMPLE_BAR = 0.7
 local SAMPLE_SLIDER = 68
 local SNUG_MARGIN = 4
 local SCALE_SAME = 0.0001
-Preview.MAX_SCALE = 1.25
+Preview.MAX_SCALE = 1.6
 Preview.SCALE_STEP = 0.01
 Preview.MIN_GAIN = 0.05
+
+local function MaxScale()
+	return K.Store.Module("OptionsPresentation").preview and Preview.MAX_SCALE or 1.25
+end
 
 function Preview.Sample(parent)
 	local frame = CreateFrame("Frame", nil, parent)
@@ -125,11 +129,12 @@ function Fit(pane, frame)
 	if frame.sized then
 		local width, height = frame:GetWidth(), frame:GetHeight()
 		if Known(width) and Known(height) then
-			scale = math.min(Preview.MAX_SCALE, roomW / width, roomH / height)
+			scale = math.min(MaxScale(), roomW / width, roomH / height)
 		end
 		Rescale(frame, scale)
 		frame:ClearAllPoints()
-		Widgets.Point(frame, "CENTER", pane.holder, "CENTER", 0, 0)
+		local anchor = K.Store.Module("OptionsPresentation").preview and "TOP" or "CENTER"
+		Widgets.Point(frame, anchor, pane.holder, anchor, 0, 0)
 		return
 	end
 	local own = frame:GetScale()
@@ -145,7 +150,7 @@ function Fit(pane, frame)
 		end
 		return
 	end
-	scale = math.max(1, math.min(Preview.MAX_SCALE, roomW * own / width, roomH * own / height))
+	scale = math.max(1, math.min(MaxScale(), roomW * own / width, roomH * own / height))
 	local key = roomW .. "x" .. roomH
 	if frame.selfFits == key then
 		scale = 1
@@ -288,19 +293,19 @@ local function Choose(pane, frame)
 	end
 	for i = 1, frame.choices do
 		frame:Choose(i)
-		local lo = Preview.MAX_SCALE
+		local lo = MaxScale()
 		for _ = 1, 4 do
 			Rescale(frame, lo)
 			local size = drawn(i)
 			if not size then
 				return
 			end
-			if size >= floor and lo < Preview.MAX_SCALE then
+			if size >= floor and lo < MaxScale() then
 				break
 			end
 			lo = lo * floor / size * (size >= floor and 1 or 1.001)
 		end
-		local hi = math.max(Preview.MAX_SCALE, lo)
+		local hi = math.max(MaxScale(), lo)
 		local ok = good(i, hi)
 		if not ok and good(i, lo) then
 			for _ = 1, 6 do
@@ -339,8 +344,21 @@ local function FitLabels(frame)
 	end
 end
 
+local function MovePreview(frame, offset)
+	local points = {}
+	for i = 1, frame:GetNumPoints() do points[i] = { frame:GetPoint(i) } end
+	frame:ClearAllPoints()
+	for _, point in ipairs(points) do
+		Widgets.Point(frame, point[1], point[2], point[3], point[4] or 0, (point[5] or 0) + offset)
+	end
+end
+
 local function Settle(pane)
 	local frame = pane.current
+	if frame.previewOffset then
+		MovePreview(frame, -frame.previewOffset)
+		frame.previewOffset = nil
+	end
 	local wide = frame.Choose ~= nil and Widgets.Setting("ornaments") ~= "Off" and Widgets.Setting("cardMaterial") ~= "Glass"
 	if (pane.wide or false) ~= wide then
 		pane.wide = wide
@@ -360,13 +378,27 @@ local function Settle(pane)
 		Reserve(pane, frame)
 	end
 	if frame.Reserve then FitLabels(frame) end
+	if not frame.sized and K.Store.Module("OptionsPresentation").preview then
+		local _, _, top = Bounds(frame)
+		local _, _, ornamentTop = Widgets.OrnamentExtent({ [frame] = true })
+		local root = Edge(K.Scale.Root():GetEffectiveScale())
+		if top and ornamentTop and Known(root) then top = math.max(top, ornamentTop * root) end
+		local holderTop, eff = Edge(pane.holder:GetTop()), Edge(pane.holder:GetEffectiveScale())
+		local own = Edge(frame:GetEffectiveScale())
+		if top and holderTop and Known(eff) and Known(own) then
+			frame.previewOffset = (holderTop * eff - top) / own
+			MovePreview(frame, frame.previewOffset)
+			Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
+		end
+	end
 end
 
 local function Span(pane, frame)
 	local _, _, top, bottom = Bounds(frame)
 	local _, _, ornamentTop, ornamentBottom = Widgets.OrnamentExtent({ [frame] = true })
-	if ornamentTop and top then
-		top, bottom = math.max(top, ornamentTop), math.min(bottom, ornamentBottom)
+	local root = K.Store.Module("OptionsPresentation").preview and Edge(K.Scale.Root():GetEffectiveScale()) or 1
+	if ornamentTop and top and Known(root) then
+		top, bottom = math.max(top, ornamentTop * root), math.min(bottom, ornamentBottom * root)
 	end
 	local eff = Edge(pane.holder:GetEffectiveScale())
 	local holderTop, holderBottom = Edge(pane.holder:GetTop()), Edge(pane.holder:GetBottom())
@@ -431,10 +463,15 @@ local function Holds(pane, frame, height)
 		return false
 	end
 	if not height then
+		if K.Store.Module("OptionsPresentation").preview then
+			local slack = K.Scale.Pixel(1)
+			return top <= holderTop + slack and bottom >= holderBottom - slack
+		end
 		return Widgets.Snap(pane, top - bottom + 2 * SNUG_MARGIN) >= pane.holder:GetHeight()
 	end
 	local slack = K.Scale.Pixel(1)
-	return top <= holderTop + slack and bottom >= holderBottom - slack and bottom - holderBottom <= SNUG_MARGIN + 2 * Widgets.Border(pane) + slack
+	local margin = SNUG_MARGIN * (K.Store.Module("OptionsPresentation").preview and 2 or 1)
+	return top <= holderTop + slack and bottom >= holderBottom - slack and bottom - holderBottom <= margin + 2 * Widgets.Border(pane) + slack
 end
 
 function RefreshCurrent(pane)

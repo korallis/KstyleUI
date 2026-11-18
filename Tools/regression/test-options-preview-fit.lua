@@ -98,7 +98,7 @@ assert(builds.rooms and builds.rooms[#builds.rooms] == holderW, "the preview rea
 inside(rect(current.strip), rect(pane), "the strip sized from the holder")
 assert(rect(current.strip).right - rect(current.strip).left < FALLBACK, "the strip did not fall back to its full width")
 
--- A sized, unanchored preview is centred in the holder and scaled down to fit it -----------------------
+-- A sized, unanchored preview starts at the top and scales down to fit the holder.
 
 K.Options.Open("Cooldowns")
 settle(env)
@@ -115,8 +115,13 @@ local shown = rect(current)
 inside(shown, rect(pane), "the scaled preview")
 local hold = rect(holder)
 local dx = (shown.left + shown.right) / 2 - (hold.left + hold.right) / 2
-local dy = (shown.top + shown.bottom) / 2 - (hold.top + hold.bottom) / 2
-assert(math.abs(dx) < 1 and math.abs(dy) < 1, string.format("the preview is centred in the holder (off by %.1f, %.1f)", dx, dy))
+assert(math.abs(dx) < 1 and math.abs(shown.top - hold.top) < 1, "G4: the preview is top-aligned and horizontally centred")
+K.Options.Write("OptionsPresentation", "preview", false)
+settle(env)
+assert(select(1, current:GetPoint(1)) == "CENTER", "G4: Off restores the centred preview")
+K.Options.Write("OptionsPresentation", "preview", true)
+settle(env)
+assert(select(1, current:GetPoint(1)) == "TOP", "G4: switching back restores the top anchor")
 
 -- The host refits when the window changes size -----------------------------------------------------------
 

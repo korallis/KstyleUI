@@ -23,6 +23,8 @@ local DROPDOWN_GAPS = 3
 local DROPDOWN_SAFETY = 1
 local DROPDOWN_RESERVE = DROPDOWN_GAPS * Tokens.Size("gapMedium") + DROPDOWN_CHEVRON + DROPDOWN_SAFETY
 local PICTURE_COUNT, PICTURE_GAP, PICTURE_INSET, PICTURE_LABEL, PICTURE_MAX, PICTURE_MIN = 3, 12, 4, 24, 280, 200
+local TASK_HEIGHT = 36
+local SAMPLE_WIDTH, SAMPLE_HEIGHT = 180, 90
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
@@ -75,6 +77,12 @@ local function NumberOr(value, fallback)
 end
 
 local MAKERS = {}
+
+function MAKERS.task(row)
+	return Widgets.Button(row, { height = TASK_HEIGHT, onClick = function()
+		if row.item and row.item.onClick then K.Call(row.item.onClick) end
+	end })
+end
 
 function MAKERS.toggle(row)
 	return Widgets.Toggle(row, {
@@ -295,6 +303,58 @@ function MAKERS.pictures(row)
 	return holder
 end
 
+local function OrnamentArt(parent, name, point, relative, anchor, x, y, width, mirror)
+	local spec = Widgets.OrnamentAssets[name]
+	local art = parent:CreateTexture(nil, "OVERLAY")
+	art:SetTexture("Interface\\AddOns\\KstyleUI\\Media\\Textures\\ForgedOrnaments\\" .. name .. ".tga")
+	local u = spec[1] / spec[3]
+	art:SetTexCoord(mirror and u or 0, mirror and 0 or u, 0, spec[2] / spec[4])
+	Widgets.Size(art, width or spec[1], spec[2])
+	Widgets.Point(art, point, relative, anchor, x, y)
+	return art
+end
+
+function MAKERS.ornaments(row)
+	local holder = MAKERS.pictures(row)
+	for i, card in ipairs(holder.cards) do
+		card.picture:Hide()
+		local sample = CreateFrame("Frame", nil, card)
+		Widgets.Size(sample, SAMPLE_WIDTH, SAMPLE_HEIGHT)
+		Widgets.Point(sample, "TOPLEFT", card, "TOPLEFT", PICTURE_INSET, -PICTURE_INSET)
+		card.sample = sample
+		local bar = CreateFrame("Frame", nil, sample)
+		Widgets.Size(bar, 124, 12)
+		Widgets.Point(bar, "CENTER", sample, "CENTER", 0, -12)
+		bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "buttonFill", shadow = false })
+		local text = Widgets.Text(sample, "body", "text")
+		Widgets.Point(text, "BOTTOM", bar, "TOP", 0, 26)
+		Widgets.SetText(text, K.L["Sample panel"])
+		if i > 1 then
+			local full = i == 3
+			OrnamentArt(sample, full and "EndClawed12" or "EndPointed12", "RIGHT", bar, "LEFT", 4, 0)
+			OrnamentArt(sample, full and "EndClawed12" or "EndPointed12", "LEFT", bar, "RIGHT", -4, 0, nil, true)
+			OrnamentArt(sample, full and "Rail3" or "Rail1", "BOTTOM", bar, "TOP", 0, 0, 120)
+			OrnamentArt(sample, full and "Rail3" or "Rail1", "TOP", bar, "BOTTOM", 0, 0, 120)
+			if full then OrnamentArt(sample, "Crest20", "BOTTOM", bar, "TOP", 0, 0) end
+		end
+	end
+	function holder:Fit(width)
+		local w = SAMPLE_WIDTH + 2 * PICTURE_INSET
+		local h = SAMPLE_HEIGHT + PICTURE_INSET + max(PICTURE_LABEL, Widgets.LineHeight(self.cards[1].label))
+		local columns = max(1, min(PICTURE_COUNT, floor((width + PICTURE_GAP) / (w + PICTURE_GAP))))
+		for i, card in ipairs(self.cards) do
+			Widgets.Size(card, w, h)
+			card:ClearAllPoints()
+			Widgets.Point(card, "TOPLEFT", self, "TOPLEFT", ((i - 1) % columns) * (w + PICTURE_GAP), -floor((i - 1) / columns) * (h + PICTURE_GAP))
+			card.label:ClearAllPoints()
+			Widgets.Point(card.label, "TOPLEFT", card.sample, "BOTTOMLEFT", 0, 0)
+			Widgets.Size(card.label, SAMPLE_WIDTH, h - SAMPLE_HEIGHT - PICTURE_INSET)
+		end
+		Widgets.Size(self, columns * w + (columns - 1) * PICTURE_GAP, math.ceil(PICTURE_COUNT / columns) * (h + PICTURE_GAP) - PICTURE_GAP)
+	end
+	return holder
+end
+
 local function Control(row, kind)
 	local control = row.controls[kind]
 	if not control and MAKERS[kind] then
@@ -451,6 +511,12 @@ function FILL.pictures(control, item, value)
 	SetEnabled(control, not disabled)
 end
 
+FILL.ornaments = FILL.pictures
+
+function FILL.task(control, item)
+	control:SetText(item.label)
+end
+
 local function Value(item)
 	if not item.get then
 		return nil
@@ -514,7 +580,7 @@ local function PlaceText(row, item, control, width)
 	local full = width - 2 * gap
 	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
 	local column = full - reserve
-	local stacked = control ~= nil and (item.kind == "pictures" or Widgets.TextWidth(row.label, 0) > column)
+	local stacked = control ~= nil and (item.kind == "pictures" or item.kind == "ornaments" or Widgets.TextWidth(row.label, 0) > column)
 	if stacked and control.Fit then
 		control.count = item.options and #item.options or nil
 		control:Fit(full)
@@ -628,6 +694,14 @@ local function Layout(row, item, width)
 		return ShowHeader(row, item, width), nil
 	elseif kind == "note" then
 		return ShowNote(row, item, width), nil
+	elseif kind == "task" then
+		local control = Control(row, kind)
+		control.opts.width = max(1, width - 2 * Gap(row))
+		control:SetText(item.label)
+		control:Restyle()
+		control:ClearAllPoints()
+		Widgets.Point(control, "TOPLEFT", row, "TOPLEFT", Gap(row), 0)
+		return Snap(row, TASK_HEIGHT), control
 	end
 	local control = Control(row, kind)
 	Widgets.SetText(row.label, item.label)
@@ -671,7 +745,10 @@ function Rows.Update(row, item, _, list)
 		if not keep or not numeric then slider.edit:Hide() end
 	end
 	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
-	if kind ~= "header" and kind ~= "note" then
+	if kind == "task" then
+		FILL.task(control, item)
+		control:Show()
+	elseif kind ~= "header" and kind ~= "note" then
 		local disabled = Model.IsDisabled(item)
 		Widgets.TextColor(row.label, disabled and "textDisabled" or "textEmphasis")
 		Widgets.TextColor(row.help, disabled and "textDisabled" or Widgets.Readability("sectionHeadings") and "muted" or "text")

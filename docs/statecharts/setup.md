@@ -17,7 +17,7 @@ stateDiagram-v2
     state Open {
         [*] --> Welcome
         Welcome --> HudStyle : Next
-        HudStyle --> Layout : Next
+        HudStyle --> Layout : Next, role pictures follow the chosen HUD
         Layout --> Modules : Next
         Modules --> Ornaments : Next
         Ornaments --> Summary : Next
@@ -48,6 +48,7 @@ stateDiagram-v2
 | Delayed | `C_Timer.After(OPEN_DELAY)`, 2 s, so the game's own frames settle first. | same |
 | Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, every installed module on, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
 | Steps | Next and Back call `Setup.Go` one step on; a step tab calls `Setup.Go(value)` for any step up to the furthest reached, and `Go` clamps to 1 to 6. Keep my UI shows only on step 1. | `Setup.Go`, `Refresh` |
+| Layout pictures | General > Layout pictures in setup defaults on: each role card shows its rendered Frames, Orbs or Medallions layout, following the HUD style chosen on the previous step. Off restores the hovered footprint diagram and story-rail legend. The picture never applies settings. | `PlaceLayouts`, `BuildLayouts`; `test-setup-polish` |
 | NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking any card (HUD style, layout, ornaments) or module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |
 | Closing | Close, Escape and Later call `Setup.Closed(applied)`. By default an unapplied first-run close applies the picked setup, as before. General > Closing the setup window > Do nothing, ask again later leaves settings, modules, positions and setupSeen alone, so next login asks again. Keep my UI and an applied setup mark setupSeen. | `OnClose`, `Setup.Closed`, `Setup.MarkSeen` |
 
@@ -56,6 +57,8 @@ stateDiagram-v2
 When all five account Edit Mode layouts are occupied, the summary offers **Replace this one** while General > Choose an Edit Mode replacement is on (default). Off retains the previous full-list refusal. Apply replaces only the chosen account layout; leaving the picker empty preserves every layout and reports the refusal. With Recovery backups on, the previous Edit Mode layouts are included in the setup backup and restored with the profile's **Restore backup** action, queued out of combat.
 
 ## Edit Mode write
+
+General > Readable setup notes defaults on. Notes use the body face at 11 units, obey the reading floor when the setup window is scaled, and wrap. The module list scrolls when the notes need more room; Off restores the previous small single-line notes. `test-setup-polish` covers the 0.65 scale and both choices.
 
 Setup Apply also queues `nameplateShowSelf = 0` out of combat. Keep my UI does not write it. After setup, only a deliberate change to Nameplates > Personal resource display writes that CVar; login, presets and profile refreshes preserve later choices in Blizzard's settings. `test-personal-resource-display` checks those transitions and combat deferral.
 

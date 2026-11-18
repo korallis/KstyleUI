@@ -10,7 +10,7 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls" }
+Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
 local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true }
@@ -365,6 +365,9 @@ local function GeneralItems()
 		end
 	end
 	for _, item in ipairs(items) do
+		if item.module == "Widgets" and item.key == "ornaments" and K.Store.Module("OptionsPresentation").samples then
+			item.kind = "ornaments"
+		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
 		end
@@ -848,6 +851,24 @@ local function GeneralPreview()
 	return ns.Preview and ns.Preview.Sample
 end
 
+Pages.TASKS = {
+	{ label = L["Change HUD"], page = "General", module = "HudStyle", key = "style" },
+	{ label = L["Choose role"], page = "About", labelTarget = L["First-run setup"] },
+	{ label = L["Readable text"], page = "General", module = "Readability", key = "preset" },
+	{ label = L["Bind keys"], page = "ActionBars", labelTarget = L["Bind keys"] },
+	{ label = L["Healing clicks"], page = "GroupFrames", module = "GroupFrames", key = "clickCast.hint" },
+	{ label = L["Existing addons"], page = "General", module = "Integrations", key = "notices" },
+}
+
+local function TasksItems()
+	local items = {}
+	for _, task in ipairs(Pages.TASKS) do
+		local target = task
+		items[#items + 1] = { kind = "task", label = task.label, page = "Tasks", onClick = function() ns.Window.Jump(target) end }
+	end
+	return items
+end
+
 function Pages.List()
 	local pages = {
 		{ id = "General", label = L["General"], Items = GeneralItems, reset = ResetGeneral, builtinPreview = GeneralPreview },
@@ -858,6 +879,9 @@ function Pages.List()
 			end,
 		},
 	}
+	if K.Store.Module("OptionsPresentation").tasks then
+		table.insert(pages, 1, { id = "Tasks", label = L["Tasks"], Items = TasksItems })
+	end
 	for _, module in ipairs(ModuleNames()) do
 		pages[#pages + 1] = { id = module, module = module, label = Pages.ModuleLabel(module), Items = ModuleItems, reset = ResetModule }
 	end

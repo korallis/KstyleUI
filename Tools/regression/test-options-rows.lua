@@ -168,6 +168,7 @@ end
 -- The Widgets ornament level is a segmented row: one tab per level, a click writes it, and a write from anywhere
 -- else (the first-run setup) moves the selection (KSTY-23).
 do
+	K.Options.Write("OptionsPresentation", "samples", false)
 	K.Options.Open("General")
 	settle()
 	resize(1040, 680)

@@ -26,7 +26,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the first time, and `Window.lua` hands it `Window.Show` through `Options.SetWindow`. `/kstyle`, the KstyleUI category in Blizzard's Settings panel and the addon compartment all call `Options.Open` (see `Core/OptionsEntry.lua` and `docs/core-services.md`).
 
-- `Show(page)` builds the window on first use, opens it on `page`, or on the last page this session, and raises it. `page` is a page id: `General`, `Elements`, `Profiles`, `About` or a module name, in any letter case. `Appearance` and `Widgets`, the two sections of the General page, open General.
+- `Show(page)` builds the window on first use, opens it on `page`, and raises it. With no page, a closed window opens on Tasks: six 36-unit links to Change HUD, Choose role (the existing setup entry), Readable text, Bind keys, Healing clicks and Existing addons. General > Start with tasks restores the previous last-page opening when off. Page ids include `Tasks`, `General`, `Elements`, `Profiles`, `About` and module names, in any letter case. General section names also open General.
 - `Show()` with no page closes an open window, so `/kstyle` toggles it.
 - The window plays the kit panel's open motion: alpha 0 to 1 over `panelOpen` while it rises `panelRise` with a `panelOvershoot` overshoot. It closes with a `panelClose` fade.
 - Escape closes it through `Widgets.EscapeCloses`, its own key handler. It never touches `UISpecialFrames`. Escape in the search field only clears the field's focus.
@@ -34,6 +34,8 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 - It registers with Layout as `Options.Window` (module `Options`, label "Settings window"), resizable from 880 by 520 to 1800 by 1040 units and scalable. Dragging the header saves a `CENTER` position through `Layout.Set`. When its own scale changes, `LayoutChanged` makes the kit restyle so borders stay whole pixels.
 
 ## Layout of the window
+
+General > Settings window contains the presentation choices, all on by default: player-word search, readable settings text, larger top-aligned previews (maximum 1.6), slim bright switches (20 units, 65% accent mix), aligned headings and 180x90 ornament samples. Turning each off restores its previous presentation. The reading floor is reapplied when a window opens at a saved scale or changes scale; `test-options-polish` reproduces the old 7.8 px label at 0.65 and checks the fix. Search synonyms are translated along with labels and help.
 
 | Part | What it is |
 | --- | --- |

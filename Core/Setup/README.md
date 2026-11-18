@@ -21,6 +21,8 @@ Tests: `Tools/regression/test-setup.lua`, `test-setup-editmode.lua` and `test-se
 
 ## The steps
 
+General > Layout pictures in setup defaults on: DPS, Tank and Healer cards show 512x256 HUD renders at 180x90, following the selected HUD style. Off restores the footprint diagram and hover legend. General > Readable setup notes defaults on: 11-unit body notes wrap and respect the reading floor; the module list scrolls when it needs more room. Off restores the previous small single-line module notes. `test-setup-polish` checks both choices, the 0.65 window scale and picture placement after a text-size change.
+
 The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows the six steps. A step the player has not reached is disabled, and each page fades in over `fade`.
 
 1. **Welcome.** The logo, a short welcome, the five steps ahead, on the first run the note that closing applies the DPS layout with every module on and Full ornaments, **Keep my UI** and **Next**.

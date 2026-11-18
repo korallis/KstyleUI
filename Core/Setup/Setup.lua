@@ -4,9 +4,22 @@ local _, ns = ...
 local Setup = ns.Setup
 local Layouts = Setup.Layouts
 local L = ns.L
-ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true })
+ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, samples = true, columns = true, readableText = true })
+ns.Options.Register("OptionsPresentation", {
+	{ type = "header", label = L["Settings window"] },
+	{ type = "toggle", key = "tasks", label = L["Start with tasks"], help = L["Open settings on six common tasks. Off opens the last module page, as before."] },
+	{ type = "toggle", key = "synonyms", label = L["Search in player words"], help = L["Find settings with words like kicks, bigger text and healing clicks. Off matches labels and help."] },
+	{ type = "toggle", key = "readableText", label = L["Keep settings text readable"], help = L["Keep text above the reading floor when shrinking this window. Off keeps the previous scaling."] },
+	{ type = "toggle", key = "preview", label = L["Larger top-aligned previews"], help = L["Grow small previews up to 160% and place them at the top. Off keeps centred previews at 125%."] },
+	{ type = "toggle", key = "switches", label = L["Slim bright switches"], help = L["Use slimmer switches with a clearer On colour. Off restores the taller, dimmer switches."] },
+	{ type = "toggle", key = "columns", label = L["Aligned settings headings"], help = L["Line up the category, page and preview headings. Off restores the previous column layout."] },
+	{ type = "toggle", key = "samples", label = L["Show ornament samples"], help = L["Compare Off, Subtle and Full before choosing. Off keeps the text-only ornament picker."] },
+})
+ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
 ns.Options.Register("Setup", {
 	{ type = "header", label = L["Setup"] },
+	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] },
+	{ type = "toggle", key = "readableNotes", label = L["Readable setup notes"], help = L["Use wrapping 11-unit notes in setup. Off restores the smaller, single-line module notes."] },
 	{ type = "dropdown", key = "closeBehaviour", label = L["Closing the setup window"], help = L["Choose whether first-run Close or Escape leaves your UI alone or applies the setup."], options = {
 		{ value = "apply", label = L["Apply the default setup"] },
 		{ value = "later", label = L["Do nothing, ask again later"] },

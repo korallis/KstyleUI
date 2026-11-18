@@ -21,8 +21,8 @@ do
 	assert(W.LastCall(toggle.knob, "SetTexture")[1] == Tokens.Texture("dot"), "a round knob")
 	assert(toggle.label:GetText() == "Show portraits")
 	local Snap = K.Scale.Snap
-	assert(W.Near(toggle.trackBox:GetWidth(), Snap(58)) and W.Near(toggle.trackBox:GetHeight(), Snap(28)), "the design's 58 by 28 pill")
-	assert(W.Near(toggle.knob:GetWidth(), Snap(18)), "an 18-unit knob")
+	assert(W.Near(toggle.trackBox:GetWidth(), Snap(58)) and W.Near(toggle.trackBox:GetHeight(), Snap(20)), "the design's 58 by 20 pill")
+	assert(W.Near(toggle.knob:GetWidth(), Snap(10)), "a 10-unit knob")
 	local offX = toggle.knob._points[1][4]
 	assert(W.Near(offX, Snap(5)), "inset 5 units from the left when off")
 	assert(W.SameColor(toggle.track[2], K.Widgets.Rgba("white", 0.4)), "off: a white 40% edge")
@@ -31,9 +31,9 @@ do
 	W.Settle(env)
 	local onX = toggle.knob._points[1][4]
 	assert(onX > offX, "the knob slides right")
-	assert(W.Near(onX, Snap(58 - 5 - 18)), "to 5 units from the right")
+	assert(W.Near(onX, Snap(58 - 5 - 10)), "to 5 units from the right")
 	assert(W.SameRGB(toggle.track[2], Tokens.Color("accent")), "the border lights with the accent")
-	assert(W.SameColor(toggle.fill[2], K.Widgets.MixTokens("surface", 1, "accent", 1, 0.3)), "on: the accent at 30% over the surface")
+	assert(W.SameColor(toggle.fill[2], K.Widgets.MixTokens("surface", 1, "accent", 1, 0.65)), "on: the accent at 65% over the surface")
 	assert(W.SameRGB(toggle.knob, Tokens.Color("textHover")), "the knob is white when on")
 	toggle:SetValue(false, true)
 	W.Settle(env)

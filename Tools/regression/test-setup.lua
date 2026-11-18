@@ -31,6 +31,8 @@ local function Boot(opts)
 		K.Modules.Register(CoreEnv.Module(name, { defaults = opts.defaults and opts.defaults[name] or {} }))
 	end
 	CoreEnv.Boot(env)
+	K.Options.Write("Setup", "layoutPictures", false)
+	K.Options.Write("Setup", "readableNotes", false)
 	return env, K
 end
 

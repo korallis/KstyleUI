@@ -1,6 +1,6 @@
 -- test-options-preview-fill.lua: the settings window's preview host scales a preview up as well as down, so a sized
 -- preview smaller than the pane and an unsized preview whose drawn content is smaller than the pane both grow toward
--- the pane's width, capped at 1.25, and stay inside it; content that already fills the pane keeps scale 1 (round 5:
+-- the pane's width, capped at 1.6, and stay inside it; content that already fills the pane keeps scale 1 (round 5:
 -- Opus #4, Fable #5: the Unit Frames preview filled a fifth of its pane).
 local O = dofile("Tools/regression/options_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -9,8 +9,8 @@ local Module = W.CoreEnv.Module
 
 local SMALL_W, SMALL_H = 100, 60
 local NEAR = 1.1
-local STRIP_W, STRIP_H = 160, 40
-local GLOW_PAD = 60
+local STRIP_W, STRIP_H = 120, 40
+local GLOW_PAD = 80
 local SELF_FIT = 0.8
 local SLACK = 0.5
 local EPS = 0.001
@@ -137,19 +137,19 @@ local holder = pane.holder
 -- pane's full height.
 local holderW, holderH = holder:GetWidth(), pane.room - (pane:GetHeight() - holder:GetHeight())
 assert(pane.current and pane.current.strip, "the UnitFrames preview is current first")
-assert(near(pane.current:GetScale(), 1.25), "the unsized preview is magnified on its first show, got " .. tostring(pane.current:GetScale()))
+assert(near(pane.current:GetScale(), 1.6), "the unsized preview is magnified on its first show, got " .. tostring(pane.current:GetScale()))
 
 -- A sized preview far smaller than the pane grows to the cap, centred.
 K.Options.Open("Cooldowns")
 settle()
-assert(holderW > SMALL_W * 1.25 and holderH > SMALL_H * 1.25, "the pane has room to magnify the small preview")
+assert(holderW > SMALL_W * 1.6 and holderH > SMALL_H * 1.6, "the pane has room to magnify the small preview")
 local current = pane.current
 assert(current and current.fill, "the Cooldowns preview is current")
 assert(holderW == holder:GetWidth(), "the holder keeps its size from page to page")
-assert(near(current:GetScale(), ns.Preview.MAX_SCALE) and near(ns.Preview.MAX_SCALE, 1.25), "a small sized preview grows to the 1.25 cap, got " .. tostring(current:GetScale()))
+assert(near(current:GetScale(), ns.Preview.MAX_SCALE) and near(ns.Preview.MAX_SCALE, 1.6), "a small sized preview grows to the 1.6 cap, got " .. tostring(current:GetScale()))
 local shown = rect(current)
 inside(shown, rect(pane), "the magnified preview")
-assert(near(shown.right - shown.left, SMALL_W * 1.25), "it draws at 1.25 times its size")
+assert(near(shown.right - shown.left, SMALL_W * 1.6), "it draws at 1.6 times its size")
 
 -- A sized preview a little narrower than the pane grows to the pane's width.
 K.Options.Open("Meters")
@@ -166,11 +166,12 @@ settle()
 current = pane.current
 assert(current and current.strip, "the UnitFrames preview is current")
 assert(STRIP_W + 2 * GLOW_PAD > holderW, "the glow is wider than the pane, so only decor exclusion lets the strip grow")
-assert(near(current:GetScale(), 1.25), "an unsized preview with small content is magnified to the cap, got " .. tostring(current:GetScale()))
-assert(refreshes[#refreshes] and near(refreshes[#refreshes], holderW / 1.25), "the preview was refreshed in its magnified room: " .. tostring(refreshes[#refreshes]) .. " against " .. holderW / 1.25)
+assert(near(current:GetScale(), 1.6), "an unsized preview with small content is magnified to the cap, got " .. tostring(current:GetScale()))
+assert(refreshes[#refreshes] and near(refreshes[#refreshes], holderW / 1.6), "the preview was refreshed in its magnified room: " .. tostring(refreshes[#refreshes]) .. " against " .. holderW / 1.6)
 local strip = rect(current.strip)
 inside(strip, rect(pane), "the magnified strip")
-assert(near(strip.right - strip.left, STRIP_W * 1.25), "the strip draws at 1.25 times its size, got " .. (strip.right - strip.left))
+assert(math.abs(strip.top - rect(holder).top) < 1, "G4: unsized preview content starts at the top of its holder")
+assert(near(strip.right - strip.left, STRIP_W * 1.6), "the strip draws at 1.6 times its size, got " .. (strip.right - strip.left))
 
 -- An unsized preview whose content spans the pane keeps scale 1.
 K.Options.Open("GroupFrames")
@@ -184,10 +185,10 @@ inside(rect(current.band), rect(pane), "the full-width band")
 K.Options.Open("UnitFrames")
 settle()
 current = pane.current
-assert(near(current:GetScale(), 1.25), "re-showing keeps the cap, got " .. tostring(current:GetScale()))
+assert(near(current:GetScale(), 1.6), "re-showing keeps the cap, got " .. tostring(current:GetScale()))
 ns.Preview.Refresh(pane, "UnitFrames")
 settle()
-assert(near(current:GetScale(), 1.25), "a refresh keeps the cap, got " .. tostring(current:GetScale()))
+assert(near(current:GetScale(), 1.6), "a refresh keeps the cap, got " .. tostring(current:GetScale()))
 inside(rect(current.strip), rect(pane), "the strip after a refresh")
 
 -- A preview that fits itself to its room gains nothing from magnification: the host tries once, sees the drawn
@@ -204,6 +205,11 @@ ns.Preview.Refresh(pane, "Chat")
 settle()
 assert(refreshes.chat == tried + 1, "a later refresh refreshes once, without another magnification trial: " .. tostring(refreshes.chat - tried))
 assert(near(current:GetScale(), 1), "and keeps scale 1")
+
+K.Options.Write("OptionsPresentation", "preview", false)
+K.Options.Open("Cooldowns")
+settle()
+assert(near(pane.current:GetScale(), 1.25), "G4: Off restores the previous 1.25 preview cap")
 
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
 print("options preview fill ok")

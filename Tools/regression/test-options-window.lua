@@ -58,6 +58,7 @@ local function boot(withLayout)
 			}
 		end,
 		before = function(env, K)
+			K.Options.Write("OptionsPresentation", "tasks", false)
 			if withLayout then
 				K.Layout = FakeLayout(env)
 			else

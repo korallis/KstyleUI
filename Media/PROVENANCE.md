@@ -934,3 +934,19 @@ Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt
 | `Media/Textures/Danger/Edge.png` | 256x256 | White RGB; at each pixel centre, alpha is `max(0, 1 - d/64)^2`, where `d` is distance to the nearest square edge. Eight slices at texture coordinates 0, 0.25, 0.75, 1 omit the transparent centre. Layout assigns the corners and strips equal depths of 18% (body) or 8% (ember) of the screen's short side, avoiding overlaps and aspect stretching. BLEND tinted `dangerBody` at 0.6, then ADD tinted `hostile` at 0.22. |
 | `Media/Textures/Danger/Annulus.png` | 256x256 | White RGB, circle radius 43 on a 96.32-unit square (86 x 1.12). Alpha 1 within 0.75 units of the circumference, then `max(0, 1 - (distance - 0.75)/4)^2`: 1.5-unit core and 4-unit soft falloff. Drawn at 1024x1024 and Lanczos-downsampled to 256x256. BLEND tinted `healthLow`, under the bezel. |
 | `Media/Textures/Danger/Rim.png` | 256x256 | Same circle and sampling as the annulus; opaque within 1 unit of its circumference, transparent elsewhere: a static 2-unit enemy rim. BLEND tinted `healthLow`, under the bezel. |
+
+### Setup layout pictures (G4)
+
+These nine 512x256 pictures are captures of `hud_reference` at 1920x1080, 1 px/unit, Auto size, the named role, Centred arrangement and Full ornaments. The backdrop is the UI-free `(0, 300, 1200, 975)` crop of the owner's `game_09.png`, resized to the screen and darkened to 65% brightness; no generated scenery is used. The full HUD capture is scaled proportionally with Lanczos and padded to 2:1 into each opaque PNG and its pixel-identical TGA companion. Frames and Orbs retain two action rows; Medallions retains one row on either side of the crest. To recapture, run `Tools/render/shoot.sh hud_reference --ppu 1 --no-standins --strict --backdrop <darkened-plate> --out <capture>` with `RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_LAYOUT=<role> RENDER_HUD_STYLE=<style> RENDER_ORNAMENTS=Full RENDER_ARRANGEMENT=centred RENDER_BAR3=0`; use `RENDER_MEDALLIONS_STATE=calm` for Medallions, then scale the full capture proportionally and pad it to 512x256.
+
+| Files | Size | Source | Date |
+| --- | --- | --- | --- |
+| `Media/Textures/LayoutFramesDPS.png`, `Media/Textures/LayoutFramesDPS.tga` | 512x256 | KstyleUI Frames DPS HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutFramesTank.png`, `Media/Textures/LayoutFramesTank.tga` | 512x256 | KstyleUI Frames Tank HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutFramesHealer.png`, `Media/Textures/LayoutFramesHealer.tga` | 512x256 | KstyleUI Frames Healer HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutOrbsDPS.png`, `Media/Textures/LayoutOrbsDPS.tga` | 512x256 | KstyleUI Orbs DPS HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutOrbsTank.png`, `Media/Textures/LayoutOrbsTank.tga` | 512x256 | KstyleUI Orbs Tank HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutOrbsHealer.png`, `Media/Textures/LayoutOrbsHealer.tga` | 512x256 | KstyleUI Orbs Healer HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutMedallionsDPS.png`, `Media/Textures/LayoutMedallionsDPS.tga` | 512x256 | KstyleUI Medallions DPS HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutMedallionsTank.png`, `Media/Textures/LayoutMedallionsTank.tga` | 512x256 | KstyleUI Medallions Tank HUD and owner's screenshot | 2026-11-18 |
+| `Media/Textures/LayoutMedallionsHealer.png`, `Media/Textures/LayoutMedallionsHealer.tga` | 512x256 | KstyleUI Medallions Healer HUD and owner's screenshot | 2026-11-18 |

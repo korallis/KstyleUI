@@ -5,13 +5,21 @@ local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 
 local TRACK_WIDTH = 58
-local TRACK_HEIGHT = 28
+local TRACK_HEIGHT = 20
 local KNOB_GAP = 5
-local ON_FILL_MIX = 0.3
+local ON_FILL_MIX = 0.65
+local OLD_HEIGHT, OLD_MIX = 28, 0.3
 local OFF_KNOB_LIFT = 0.63
 local OFF_EDGE_ALPHA, OFF_EDGE_HOVER_ALPHA = 0.4, 0.7
 
 local Toggle = {}
+
+local function Metrics()
+	if ns.Store.IsLoaded() and ns.Store.Module("OptionsPresentation").switches == false then
+		return OLD_HEIGHT, OLD_MIX
+	end
+	return TRACK_HEIGHT, ON_FILL_MIX
+end
 
 local function SetOn(self, t)
 	self.onT = t
@@ -39,16 +47,17 @@ function Toggle:SetValue(value, silent)
 end
 
 function Toggle:Paint()
+	local height, mix = Metrics()
 	local on, hover = self.onT or 0, self.hoverT or 0
 	local enabled = self:IsEnabled() ~= false
 	local er, eg, eb, ea = Widgets.MixTokens("white", OFF_EDGE_ALPHA, "white", OFF_EDGE_HOVER_ALPHA, enabled and hover or 0)
 	local ar, ag, ab, aa = Widgets.Rgba("accent")
 	Widgets.ColorSlice(self.track, Widgets.Mix(er, eg, eb, ea, ar, ag, ab, aa, on))
-	Widgets.ColorSlice(self.fill, Widgets.MixTokens("surface", 1, "accent", 1, ON_FILL_MIX * on))
+	Widgets.ColorSlice(self.fill, Widgets.MixTokens("surface", 1, "accent", 1, mix * on))
 	self.knob:SetVertexColor(Widgets.MixTokens("text", 1, "textHover", 1, OFF_KNOB_LIFT + (1 - OFF_KNOB_LIFT) * on))
 	local width = Widgets.Snap(self, TRACK_WIDTH)
 	local gap = Widgets.Snap(self, KNOB_GAP)
-	local knob = Widgets.Snap(self, TRACK_HEIGHT - 2 * KNOB_GAP)
+	local knob = Widgets.Snap(self, height - 2 * KNOB_GAP)
 	local x = Widgets.Snap(self, gap + (width - knob - 2 * gap) * on)
 	Widgets.Point(self.knob, "LEFT", self.trackBox, "LEFT", x, 0)
 	if not enabled then
@@ -59,7 +68,8 @@ function Toggle:Paint()
 end
 
 function Toggle:Restyle()
-	local width, height = TRACK_WIDTH, TRACK_HEIGHT
+	local height = Metrics()
+	local width = TRACK_WIDTH
 	Widgets.Size(self.trackBox, width, height)
 	local h = Widgets.Snap(self, height)
 	local border = Widgets.Border(self)
@@ -68,7 +78,7 @@ function Toggle:Restyle()
 	Widgets.Point(self.fillBox, "TOPLEFT", self.trackBox, "TOPLEFT", border, -border)
 	Widgets.Point(self.fillBox, "BOTTOMRIGHT", self.trackBox, "BOTTOMRIGHT", -border, border)
 	Widgets.LayoutPill(self.fill, h - 2 * border)
-	Widgets.Size(self.knob, TRACK_HEIGHT - 2 * KNOB_GAP, TRACK_HEIGHT - 2 * KNOB_GAP)
+	Widgets.Size(self.knob, height - 2 * KNOB_GAP, height - 2 * KNOB_GAP)
 	local labelWidth = self.label:GetText() ~= "" and (Widgets.TextWidth(self.label, 0) + Tokens.Size("gapMedium")) or 0
 	Widgets.Size(self, width + labelWidth, height)
 	self:Paint()
@@ -103,3 +113,7 @@ function Widgets.Toggle(parent, opts)
 	toggle:Restyle()
 	return Widgets.Track(toggle)
 end
+
+ns.Callbacks.Register("SettingChanged", "Toggle.Presentation", function(_, module, key)
+	if module == "OptionsPresentation" and key == "switches" then Widgets.RestyleAll() end
+end)
