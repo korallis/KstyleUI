@@ -142,6 +142,7 @@ Skins.Add({
 	addon = ADDON,
 	frame = FRAME,
 	sweepSkip = { "ScrollContainer", "QuestLog.DetailsFrame" },
+	metrics = true,
 	Apply = ApplyMap,
 })
 
@@ -151,5 +152,6 @@ Skins.Add({
 	help = L["Restyles the quest list and quest details beside the world map."],
 	frame = "QuestMapFrame",
 	sweepSkip = { "DetailsFrame" },
+	metrics = true,
 	Apply = ApplyQuestLog,
 })
