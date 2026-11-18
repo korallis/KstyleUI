@@ -107,6 +107,7 @@ do
 	frame:SetFrameLevel(10)
 	local snap = B.snapshot()
 	local panel = K.Skin.Backdrop(frame, { inset = 4 })
+	env.RunTimers()
 	assert(panel and panel:GetParent() == frame and panel:GetFrameLevel() == 9, "behind the frame")
 	assert(panel.chrome and #panel.chrome.fill == 9 and panel.chrome.shadowOn and not panel.chrome.shadow[1]:IsShown(), "panel chrome whose shadow waits for the Panel shadows setting, off by default as the owner's picture casts none")
 	local p = panel._points[1]

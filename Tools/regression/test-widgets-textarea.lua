@@ -23,6 +23,7 @@ end
 do
 	local env, K = W.New()
 	local area = newArea(K, { width = 300, height = 120, text = "line one\nline two" })
+	env.RunTimers()
 	assert(area.chrome and #area.chrome.fill == 9, "a chamfered raised tile")
 	assert(W.LastCall(area.box, "SetMultiLine")[1] == true, "a multi-line box")
 	assert(W.LastCall(area.box, "SetAutoFocus")[1] == false, "it never takes focus by itself")

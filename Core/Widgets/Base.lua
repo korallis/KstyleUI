@@ -1497,6 +1497,7 @@ end
 
 local Chrome = {}
 Chrome.__index = Chrome
+local CHROME_SLICES = { "shadow", "fill", "rim", "line" }
 
 local function NewTicks(owner)
 	local ticks = {}
@@ -1535,6 +1536,7 @@ function Widgets.Chrome(owner, opts)
 		visible = true,
 		ticksShown = false,
 	}, Chrome)
+	c.drawRun = function() c:DrawSlices() end
 	c.giltOn = shape.card and opts.gilt ~= false
 	if shape.card then
 		Widgets.Cards[c] = true
@@ -1558,7 +1560,10 @@ function Widgets.Chrome(owner, opts)
 			if not c.fill then
 				c:Restyle()
 			end
-			c:DrawSlices()
+			if not c.drawReady and not c.drawQueued then
+				c.drawQueued = true
+				C_Timer.After(0, c.drawRun)
+			end
 		end)
 		owner:HookScript("OnSizeChanged", function()
 			c:OnSizeChanged()
@@ -1602,7 +1607,7 @@ function Chrome:DrawSlices()
 		local shown = self.owner:IsVisible()
 		visible = IsSecret(shown) or shown ~= false
 	end
-	for _, key in ipairs({ "shadow", "fill", "rim", "line" }) do
+	for _, key in ipairs(CHROME_SLICES) do
 		local slice = self[key]
 		if slice then
 			slice.preparing = false
@@ -1610,6 +1615,9 @@ function Chrome:DrawSlices()
 				MaterializeSlice(slice)
 			end
 		end
+	end
+	if self.fill and not self.fill.pending then
+		self.drawReady = true
 	end
 end
 
@@ -2327,7 +2335,7 @@ function Chrome:Restyle()
 				self:DrawSlices()
 			else
 				self.drawQueued = true
-				C_Timer.After(0, function() self:DrawSlices() end)
+				C_Timer.After(0, self.drawRun)
 			end
 		end
 	end

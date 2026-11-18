@@ -107,6 +107,7 @@ for _, screen in ipairs(SCREENS) do
 		for _, material in ipairs(MATERIALS) do
 			w.K.Store.Module("Widgets").cardMaterial = material
 			w.K.Widgets.RestyleAll()
+			w.env.RunTimers()
 			local calls = 0
 			for _, o in ipairs(w.owners) do
 				for _, name in ipairs({ "Paint", "Restyle", "Layout", "OnSizeChanged" }) do

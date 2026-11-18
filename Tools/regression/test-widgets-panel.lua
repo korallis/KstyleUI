@@ -10,6 +10,7 @@ end
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
 	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	env.RunTimers()
 	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
 	assert(W.Near(panel:GetWidth(), Scale.Snap(300.3)) and W.Near(panel:GetHeight(), Scale.Snap(180)), "the size is snapped to whole pixels")

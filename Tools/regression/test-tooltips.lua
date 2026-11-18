@@ -10,6 +10,7 @@ local function Enabled(opts)
 	local snap = T.Snapshot(env)
 	assert(K.Modules.Enable("Tooltips"), "the switch turns on")
 	assert(K.Modules.IsRunning("Tooltips"), "Enable ran without an error: " .. tostring(env._errors[1]))
+	env.RunTimers()
 	return env, K, ns, snap
 end
 

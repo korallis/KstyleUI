@@ -35,6 +35,7 @@ local function Build(shape, width, height)
 	local frame = env.CreateFrame("Frame", nil, root)
 	frame:SetSize(width or 300, height or 200)
 	local chrome = Widgets.Chrome(frame, { shape = shape })
+	env.RunTimers()
 	return frame, chrome, Textures(frame)
 end
 
@@ -55,7 +56,7 @@ for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
 	for _, name in ipairs({ "CardShape.png", "RingLine6.png", "RingLine5.png" }) do
 		assert(Shown(textures, name), shape .. " draws " .. name)
 	end
-	assert(textures["LumenShadow.png"] and not Shown(textures, "LumenShadow.png"), shape .. ": the shadow is drawn but hidden, as the picture casts none")
+	assert(not Shown(textures, "LumenShadow.png"), shape .. ": the disabled shadow is not drawn")
 	for _, name in ipairs({ "LumenFrost.png", "LumenRim.png", "LumenGilt.png", "Noise.png" }) do
 		assert(not textures[name], shape .. " draws no " .. name)
 	end

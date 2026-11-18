@@ -196,7 +196,8 @@ do
 	local Scale, Tokens = K.Scale, K.Tokens
 	local line = Scale.Border()
 	local _, c = chrome(env, K, "panel")
-	assert(#c.fill == 9 and #c.shadow == 9 and #c.rim == 9 and #c.line == 9, "nine pieces each for the shadow, fill, rim and outer line")
+	env.RunTimers()
+	assert(#c.fill == 9 and #c.shadow == 0 and #c.rim == 9 and #c.line == 9, "nine pieces for each drawn slice; the disabled shadow stays unbuilt")
 	assert(c.frost == nil and c.noise == nil, "no frost and no grain")
 	assert(W.LastCall(c.fill[1], "SetTexture")[1] == Tokens.Texture("cardShape"), "the fill is the card shape")
 	assert(W.LastCall(c.line[1], "SetTexture")[1] == Tokens.Texture("ringLine6"), "the outer line is the six-line ring")
@@ -290,6 +291,7 @@ do
 	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 	frame:SetSize(180, 18)
 	local c = K.Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false })
+	env.RunTimers()
 	local er, eg, eb, ea = K.Tokens.Color("edgeBar")
 	assert(#c.fill == 9 and #c.rim == 9, "a nine-sliced capsule for the track and its rim")
 	assert(W.LastCall(c.rim[1], "SetTexture")[1] == K.Tokens.Texture("lumenOutline"), "the rim is even all round")

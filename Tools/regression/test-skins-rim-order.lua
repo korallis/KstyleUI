@@ -11,6 +11,7 @@ for _, hidden in ipairs({ false, true }) do
 	holder:SetRimColor(0.2, 0.4, 0.8, 1)
 	if hidden then assert(not holder.chrome.fill, "a hidden item must retain deferred chrome") end
 	window:Show()
+	env.RunTimers()
 	local role, regions, order = {}, {}, {}
 	for _, region in ipairs(holder.chrome.fill) do role[region] = "fill" end
 	for _, region in ipairs(holder.rim) do role[region] = "rim" end

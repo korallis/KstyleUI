@@ -22,6 +22,7 @@ end
 
 -- Pieces(frame, name) -> how many of the frame's textures draw the named kit texture, and how many of those show.
 local function pieces(frame, name)
+	env.RunTimers()
 	local path = (Tokens.Texture(name))
 	local total, shown = 0, 0
 	for _, region in ipairs(W.Regions(frame, "Texture")) do

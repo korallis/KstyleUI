@@ -12,6 +12,7 @@ do
 			clicks[#clicks + 1] = { b, mouse }
 		end,
 	})
+	env.RunTimers()
 	assert(button:GetObjectType() == "Button" and button.chrome and #button.chrome.fill == 9)
 	local line = K.Widgets.Border(button)
 	assert(W.Near(button.chrome.line[1]:GetWidth(), button.chrome:Radius()) and W.Near(button.chrome:Radius(), math.min(3 * line, button:GetHeight() / 2)), "a tile: corners three border lines round, the picture's socket")

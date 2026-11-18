@@ -466,6 +466,20 @@ end
 
 local function GateChrome(chrome, f, p)
 	local restyle = chrome.Restyle
+	local draw = chrome.DrawSlices
+	if draw then
+		chrome.DrawSlices = function(self)
+			if AurasSecret() then
+				self.drawQueued = false
+				if f then
+					f.auraInputsDirty = true
+					Defer(f)
+				end
+				return
+			end
+			return draw(self)
+		end
+	end
 	chrome.Restyle = function(self)
 		if AurasSecret() then
 			if p then

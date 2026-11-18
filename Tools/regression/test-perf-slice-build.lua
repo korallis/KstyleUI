@@ -8,6 +8,7 @@ owner:Hide()
 env.RunTimers()
 assert(#owner._regions == 0, "P3: defer each chrome nine-slice until drawn; hiding a newly built owner must not leave 36 unused regions")
 owner:Show()
+env.RunTimers()
 assert(#owner._regions == 27 and #chrome.shadow == 0, "P3: first show builds fill, rim and line in their existing sublevels, keeping the disabled shadow unbuilt")
 local before = #owner._regions
 chrome:SetProc(true)

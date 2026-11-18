@@ -99,7 +99,7 @@ do
 		container:SetSize(across * size + (across - 1) * spacing, rows * size + (rows - 1) * line)
 		local out = {}
 		for i = 1, n do
-			local button = group.frames[i]
+			local button = group.active[i]
 			local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
 			button:ClearAllPoints()
 			button:SetSize(size, size)

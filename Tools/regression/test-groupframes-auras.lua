@@ -76,6 +76,7 @@ end
 
 -- Each aura button: icon, swipe and stack count bound to the engine, clicks passing through to the unit.
 A.Assign(env, container, "debuffs", 1)
+env.RunTimers()
 local button = group.active[1]
 assert(button._aura.icon, "the icon is bound")
 assert(button._aura.cooldown, "the duration swipe is bound")
