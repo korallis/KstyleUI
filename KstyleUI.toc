@@ -15,11 +15,4 @@
 ## IconTexture: Interface\AddOns\KstyleUI\Media\Logo\Logo64
 ## AddonCompartmentFunc: KstyleUI_OnAddonCompartmentClick
 
-Core\Init.lua
-Core\Locale.lua
-Core\Locales\deDE.lua [AllowLoadTextLocale deDE]
-Core\Locales\frFR.lua [AllowLoadTextLocale frFR]
-Core\Locales\esES.lua [AllowLoadTextLocale esES]
-Core\Locales\esES.lua [AllowLoadTextLocale esMX]
-Core\Locales\zhCN.lua [AllowLoadTextLocale zhCN]
 Core\Core.xml

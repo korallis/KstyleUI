@@ -1,4 +1,4 @@
--- test-perf-health.lua: health updates keep secret ranges until maximum or identity changes, and leave running animations alone.
+-- test-perf-health.lua: health updates keep secret ranges until maximum or identity changes while retaining burst-hit animation timing.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
 local view = ns.Frames.Get("player").views[1]
@@ -26,8 +26,13 @@ for method, count in pairs({ Stop = function() stop = stop + 1 end, Play = funct
 	end
 end
 env.FireEvent("UNIT_HEALTH", "player")
+local first = view.health.lossAnim._playedAt
+env._now = first + 0.3
 env.FireEvent("UNIT_HEALTH", "player")
-assert(stop == 0 and play == 0, "P8: leave a running loss animation alone")
+assert(stop == 2 and play == 2, "restart loss animation on every hit to preserve the hold after the last hit")
+for _, animation in ipairs({ view.health.lossAnim, view.health.recentAnim, view.health.sparkAnim }) do
+	assert(animation._playedAt == first + 0.3, "restart every hit flash and spark so a burst preserves their original timing")
+end
 local uf = ns.Frames.Get("targettarget")
 assert(not uf.holder:GetScript("OnUpdate"), "P8: poll target-of-target with a ticker, not every rendered frame")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "health performance changes must keep the secret path working")

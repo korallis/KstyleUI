@@ -78,8 +78,6 @@ local function walkToc(prefix, rel, out)
 	for raw in (text .. "\n"):gmatch("([^\n]*)\n") do
 		local line = raw:gsub("\r$", ""):match("^%s*(.-)%s*$")
 		if line ~= "" and line:sub(1, 1) ~= "#" then
-			line = line:gsub("^%[AllowLoad[^%]]*%]%s*", ""):gsub("^%[ExcludeLoad[^%]]*%]%s*", "")
-			line = line:gsub("%s+%[AllowLoad.*$", ""):gsub("%s+%[ExcludeLoad.*$", "")
 			add(prefix, join(dir, line), out, {})
 		end
 	end

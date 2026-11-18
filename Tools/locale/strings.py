@@ -129,11 +129,11 @@ def render(code, table):
     """Return the CRLF Lua file for one locale's table."""
     lines = [
         "-- %s.lua: %s strings for KstyleUI.L, written by Tools/locale/strings.py from Tools/locale/%s.json." % (code, NAMES[code], code),
-        "local _, ns = ...",
-        "",
-        'if not ns.Locale.Uses("%s") then' % code,
+        'if not GetLocale or GetLocale() ~= "%s"%s then' % (code, ' and GetLocale() ~= "esMX"' if code == "esES" else ""),
         "\treturn",
         "end",
+        "",
+        "local _, ns = ...",
         "",
         "ns.Locale.Add({",
     ]

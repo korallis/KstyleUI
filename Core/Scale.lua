@@ -15,6 +15,7 @@ local STEPS_PER_PIXEL = 16
 local MOCKUP_SIZE = 1
 local TEXT_FLOOR = 11
 local CACHE_KEYS = 6
+local DEVELOPMENT_VERSION = "@" .. "project-version@"
 local CANVAS = { ["21:9"] = 12 / 5, ["16:9"] = 16 / 9, full = false }
 local DEFAULT_CANVAS = "21:9"
 local ARRANGEMENT = { centred = true, spread = true }
@@ -151,7 +152,7 @@ local function Limit(width, height, screen, user, auto)
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
 	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
 	local cache, key, entry
-	if store and store.IsLoaded() then
+	if store and store.IsLoaded() and ns.VERSION ~= DEVELOPMENT_VERSION then
 		cache = KstyleUIDB.scaleCache
 		if type(cache) ~= "table" or cache.version ~= ns.VERSION or type(cache.entries) ~= "table" then
 			cache = { version = ns.VERSION, entries = {} }
@@ -162,21 +163,24 @@ local function Limit(width, height, screen, user, auto)
 			flags[i] = enabled[element.key] and "1" or "0"
 		end
 		key = table.concat({ preset, screen, height, style or "frames", ArrangementSetting(), CanvasSetting(), table.concat(flags) }, ":")
+		local requested = string.format("%.17g", user)
 		for i, saved in ipairs(cache.entries) do
-			if type(saved) == "table" and saved.key == key and IsPositive(saved.maximum) and saved.maximum <= MAX_USER_SCALE then
+			local maximum = type(saved) == "table" and type(saved.maximum) == "string" and tonumber(saved.maximum)
+			if type(saved) == "table" and saved.key == key and IsPositive(maximum) and maximum <= MAX_USER_SCALE then
 				entry = saved
 				local answer
 				if auto then
 					answer = saved.auto
-				elseif saved.user == user then
+				elseif saved.user == requested then
 					answer = saved.nearest
-				elseif saved.previousUser == user then
+				elseif saved.previousUser == requested then
 					answer = saved.previousNearest
 				end
-				if IsPositive(answer) and answer >= MIN_USER_SCALE and answer <= saved.maximum then
+				answer = type(answer) == "string" and tonumber(answer)
+				if IsPositive(answer) and answer >= MIN_USER_SCALE and answer <= maximum then
 					table.remove(cache.entries, i)
 					table.insert(cache.entries, 1, saved)
-					return saved.maximum, enabled, answer
+					return maximum, enabled, answer
 				end
 				break
 			end
@@ -192,14 +196,15 @@ local function Limit(width, height, screen, user, auto)
 				cache.entries[#cache.entries] = nil
 			end
 		end
-		entry.maximum = maximum
+		entry.maximum = string.format("%.17g", maximum)
 		if auto then
-			entry.auto = effective
+			entry.auto = string.format("%.17g", effective)
 		else
-			if entry.user ~= user then
+			local requested = string.format("%.17g", user)
+			if entry.user ~= requested then
 				entry.previousUser, entry.previousNearest = entry.user, entry.nearest
 			end
-			entry.user, entry.nearest = user, effective
+			entry.user, entry.nearest = requested, string.format("%.17g", effective)
 		end
 	end
 	return maximum, enabled, effective

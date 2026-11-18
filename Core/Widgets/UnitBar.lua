@@ -111,9 +111,8 @@ function Widgets.LowHealthText(text, unit, token)
 end
 
 local function Restart(group)
-	if not group:IsPlaying() then
-		group:Play()
-	end
+	group:Stop()
+	group:Play()
 end
 
 local Bar = {}

@@ -52,8 +52,6 @@ def _walk_toc(root, rel, out):
     for line in (_read(root, rel) or "").splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
-            line = re.sub(r"^\[(?:AllowLoad|ExcludeLoad)[^]]*\]\s*", "", line)
-            line = re.sub(r"\s+\[(?:AllowLoad|ExcludeLoad)[^]]*\].*$", "", line)
             _add(root, _join(directory, line), out, set())
 
 

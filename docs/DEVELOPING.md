@@ -93,5 +93,7 @@ replaces Cinzel. A font you pick from another addon stays your choice.
 
 To add a new language, add its code and name to `LOCALES` and `NAMES` in `Tools/locale/strings.py`,
 create `Tools/locale/<locale>.json` and run `sync`; it adds the file to `Core/Locales/Locales.xml`.
+That manifest is loaded by `Core/Core.xml`. Generated files return before reading the namespace
+unless `GetLocale()` matches (esMX shares esES); do not use TOC locale conditions for addon files.
 A language whose script the bundled faces lack also needs a line in `GAME_FONTS` in
 `Core/Locale.lua` and in `GAME_FONT_LOCALES` in the script.

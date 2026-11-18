@@ -1,9 +1,9 @@
 -- frFR.lua: French strings for KstyleUI.L, written by Tools/locale/strings.py from Tools/locale/frFR.json.
-local _, ns = ...
-
-if not ns.Locale.Uses("frFR") then
+if not GetLocale or GetLocale() ~= "frFR" then
 	return
 end
+
+local _, ns = ...
 
 ns.Locale.Add({
 	["%.1f KB/s in, %.1f KB/s out"] = "%.1f Ko/s re\195\167us, %.1f Ko/s envoy\195\169s",

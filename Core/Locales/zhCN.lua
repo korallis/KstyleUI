@@ -1,9 +1,9 @@
 -- zhCN.lua: Simplified Chinese strings for KstyleUI.L, written by Tools/locale/strings.py from Tools/locale/zhCN.json.
-local _, ns = ...
-
-if not ns.Locale.Uses("zhCN") then
+if not GetLocale or GetLocale() ~= "zhCN" then
 	return
 end
+
+local _, ns = ...
 
 ns.Locale.Add({
 	["%.1f KB/s in, %.1f KB/s out"] = "\228\184\139\232\161\140 %.1f KB/s\239\188\140\228\184\138\232\161\140 %.1f KB/s",

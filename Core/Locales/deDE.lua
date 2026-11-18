@@ -1,9 +1,9 @@
 -- deDE.lua: German strings for KstyleUI.L, written by Tools/locale/strings.py from Tools/locale/deDE.json.
-local _, ns = ...
-
-if not ns.Locale.Uses("deDE") then
+if not GetLocale or GetLocale() ~= "deDE" then
 	return
 end
+
+local _, ns = ...
 
 ns.Locale.Add({
 	["%.1f KB/s in, %.1f KB/s out"] = "%.1f KB/s ein, %.1f KB/s aus",

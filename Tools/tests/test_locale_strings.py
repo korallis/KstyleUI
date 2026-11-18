@@ -47,6 +47,17 @@ class RepositoryTablesTest(unittest.TestCase):
             self.assertGreater(files.index("Core/Locales/%s.lua" % code), at, code)
             self.assertLess(files.index("Core/Locales/%s.lua" % code), files.index("Core/Tokens.lua"), code)
 
+    def test_generated_locale_manifest_is_actually_loaded(self):
+        files = [Path(p).resolve().relative_to(REPO).as_posix() for p in strings.toc_files(REPO)]
+        self.assertIn("Core/Locales/Locales.xml", files, "sync's generated manifest must be part of the addon load path")
+        self.assertNotIn("AllowLoadTextLocale", (REPO / "KstyleUI.toc").read_text(encoding="ascii"))
+
+    def test_generated_locale_returns_before_reading_the_namespace(self):
+        for code in strings.LOCALES:
+            text = strings.render(code, {})
+            self.assertLess(text.index("GetLocale()"), text.index("local _, ns"))
+        self.assertIn('GetLocale() ~= "esMX"', strings.render("esES", {}))
+
 
 class EscapeTest(unittest.TestCase):
     def test_json_writer_preserves_unicode_and_lf(self):

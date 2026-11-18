@@ -21,7 +21,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 
 ## Locale
 
-`Core/Locale.lua` loads right after `Init.lua`, then `Core/Locales/Locales.xml` loads one generated table per shipped language. Only the client's own table runs; the others return on their first line. Every shipped table holds every key of the English base (`Tools/locale/enUS.json`), so no string falls back to English on a shipped locale by omission: `python3 Tools/locale/strings.py check` and `Tools/regression/test-locale.lua` both fail on a missing key. The tables are machine-translated and not yet reviewed by native speakers; `docs/RELEASE_NOTES.md` says so until they are. Test: `Tools/regression/test-locale.lua`.
+`Core/Locale.lua` loads right after `Init.lua`, then `Core/Locales/Locales.xml` loads one generated table per shipped language. Each file checks `GetLocale()` before reading the addon namespace or constructing its translation table; Spanish also accepts esMX. All locale files still compile, so the early return saves execution only, not compilation or bytecode memory. Every shipped table holds every key of the English base (`Tools/locale/enUS.json`), so no string falls back to English on a shipped locale by omission: `python3 Tools/locale/strings.py check` and `Tools/regression/test-locale.lua` both fail on a missing key. The tables are machine-translated and not yet reviewed by native speakers; `docs/RELEASE_NOTES.md` says so until they are. Test: `Tools/regression/test-locale.lua`.
 
 | Name | Behaviour |
 | --- | --- |

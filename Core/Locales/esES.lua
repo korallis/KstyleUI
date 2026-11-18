@@ -1,9 +1,9 @@
 -- esES.lua: Spanish strings for KstyleUI.L, written by Tools/locale/strings.py from Tools/locale/esES.json.
-local _, ns = ...
-
-if not ns.Locale.Uses("esES") then
+if not GetLocale or GetLocale() ~= "esES" and GetLocale() ~= "esMX" then
 	return
 end
+
+local _, ns = ...
 
 ns.Locale.Add({
 	["%.1f KB/s in, %.1f KB/s out"] = "%.1f KB/s de entrada, %.1f KB/s de salida",

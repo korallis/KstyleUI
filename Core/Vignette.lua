@@ -84,6 +84,7 @@ local function Build()
 	frame:HookScript("OnHide", function()
 		breath:Stop()
 	end)
+	frame:HookScript("OnShow", Vignette.Update)
 	Vignette.frame = frame
 end
 
@@ -125,7 +126,7 @@ function Vignette.Update()
 	end
 	frame:SetAlpha(UnitHealthPercent("player", true, c))
 	frame:Show()
-	local visible = UIParent:IsVisible()
+	local visible = frame:IsVisible()
 	if IsSecret(visible) then
 		visible = true
 	end
@@ -172,9 +173,3 @@ ns.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Listen)
 ns.Callbacks.Register("HudStyleChanged", OWNER, Listen)
 ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
-UIParent:HookScript("OnHide", function()
-	if frame then
-		frame.breath:Stop()
-	end
-end)
-UIParent:HookScript("OnShow", Vignette.Update)
