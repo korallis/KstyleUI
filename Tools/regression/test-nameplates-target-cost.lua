@@ -1,6 +1,7 @@
 -- test-nameplates-target-cost.lua: target and focus swaps update only their old and new plates, while target acquisition/loss still updates optional dimming.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local env, K, ns = N.New({ stackingBounds = true, nameplateSize = 1 })
+K.Options.Write("Nameplates", "target.smoothOpacity", false)
 local touched, bounds, reads = {}, {}, 0
 for i = 1, 40 do
 	local token = "nameplate" .. i

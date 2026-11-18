@@ -34,7 +34,7 @@ Settings.defaults = {
 	level = { show = true, size = 13, outline = "NONE" },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent" },
 	cast = {
-		enabled = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
 		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
@@ -44,10 +44,10 @@ Settings.defaults = {
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
-		display = "glow", shapes = true, role = "auto", groupOnly = true,
+		display = "glow", keyline = true, shapes = true, role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
-	target = { highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
+	target = { readableTicks = true, smoothOpacity = true, highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
 	focus = { highlight = true, color = Color("rare") },
 	markers = { classification = true, raid = true, raidSize = 16 },
 	stacking = { footprint = "plate" },
@@ -389,6 +389,10 @@ local rest = {
 		help = L["An outline keeps text readable over the game world."],
 		options = OUTLINES, disableWhen = Off("cast.enabled"),
 	},
+	{
+		type = "toggle", key = "cast.outcomes", label = L["Readable cast outcomes"],
+		help = L["Holds failed casts before fading. Off restores the original cast effects."],
+	},
 	{ type = "header", label = L["Debuffs"] },
 	{
 		type = "toggle", key = "debuffs.enabled", label = L["Show my debuffs"],
@@ -466,6 +470,8 @@ local rest = {
 	},
 	{ type = "header", label = L["Threat"] },
 	{ type = "toggle", key = "threat.shapes", label = L["Threat shapes"], help = L["Adds a tick, triangle or square beside threat colours. Off keeps the colours alone."] },
+	{ type = "toggle", key = "threat.keyline", label = L["Threat as an edge"],
+		help = L["Colours the bar edge instead of glowing around it. Off restores the threat glow."] },
 	{
 		type = "dropdown", key = "threat.display", label = L["Threat display"],
 		help = L["How a plate shows that its unit is attacking you or about to."],
@@ -497,6 +503,10 @@ local rest = {
 		disableWhen = Is("threat.display", "off"),
 	},
 	{ type = "header", label = L["Target and focus"] },
+	{ type = "toggle", key = "target.readableTicks", label = L["Bright target ticks"],
+		help = L["Medallions: bright, outlined ticks settle beside your target. Off restores the dark ticks."] },
+	{ type = "toggle", key = "target.smoothOpacity", label = L["Smooth plate opacity"],
+		help = L["Fades other plates smoothly when your target changes. Off changes their opacity immediately."] },
 	{
 		type = "toggle", key = "target.highlight", label = L["Highlight the target"],
 		help = L["Draws a glow and an edge around your target's plate."],

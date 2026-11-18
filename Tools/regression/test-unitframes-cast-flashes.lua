@@ -3,6 +3,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New({ plate = true })
+K.Options.Write("UnitFrames", "castOutcomes", false)
 local player = ns.CastBars.Get("player")[1]
 local flash = assert(player.flash, "the cast bar has a flash layer")
 assert(W.LastCall(flash.wash, "SetBlendMode")[1] == "ADD" and not flash:IsShown(), "an additive wash, hidden at rest")

@@ -218,6 +218,7 @@ do
 	assert(Last(plate.castName, "SetText")[1] == K.L["Interrupted"], "and says so")
 	local hr, hg, hb = token(K, "hostile")
 	assert(SameColor(hr, hg, hb, barColor(plate.castBar)), "in the hostile colour")
+	env.RunTimers()
 	N.Settle(env)
 	assert(not plate.cast:IsShown(), "then fades out")
 	N.Cast(env, "nameplate1", CAST)

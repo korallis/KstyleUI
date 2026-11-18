@@ -1,0 +1,92 @@
+-- test-unitframes-target-transition.lua: target visuals outlive the secure unit watch, crossfade on changes and settle to grey on death.
+local U = dofile("Tools/regression/unitframes_env.lua")
+local W = U.W
+local env, K, ns = U.New()
+K.Options.Write("HudStyle", "style", "medallions")
+local view = ns.Frames.Get("target").views[1]
+local function target(name)
+	U.SetUnit(env, "target", { name = name, level = 10, health = 80, healthMax = 100, reaction = 2, canAttack = true })
+	env.SetTarget(true)
+end
+target("Wolf")
+W.Tick(env, 0.2)
+local body = view.body
+env._units.target = nil
+env.SetTarget(false)
+assert(body and body:IsShown() and not view.button:IsShown(), "E5: target visuals must survive the secure unit watch on loss")
+W.Tick(env, 0.075)
+assert(body:GetAlpha() > 0 and body:GetAlpha() < 1, "E5: target loss fades over 150 ms")
+W.Tick(env, 0.075)
+assert(not body:IsShown(), "E5: target loss finishes and hides the visual body")
+target("Wolf")
+W.Tick(env, 0.2)
+local old = view.body
+local oldName = view.name
+target("Boar")
+assert(view.body ~= old and old:IsShown(), "E5: a target change keeps the outgoing slab while the new slab enters")
+assert(U.Shown(env, oldName) == "WOLF" and U.Shown(env, view.name) == "BOAR", "E5: crossfade retains the previous target's own name")
+W.Tick(env, 0.06)
+assert(old:GetAlpha() > 0 and old:GetAlpha() < 1 and view.body:GetAlpha() > 0 and view.body:GetAlpha() < 1, "E5: both slabs crossfade over 120 ms")
+W.Tick(env, 0.06)
+assert(not old:IsShown() and view.body:GetAlpha() == 1, "E5: crossfade settles without an old slab")
+env._units.target.dead = true
+env.FireEvent("UNIT_HEALTH", "target")
+W.Tick(env, 0.1)
+local portrait = view.medallion.portrait
+local desaturation = W.LastCall(portrait, "SetDesaturation")
+assert(desaturation and desaturation[1] > 0 and desaturation[1] < 1, "E5: death desaturates over 200 ms")
+W.Tick(env, 0.1)
+local r, g, b = K.Tokens.Color("medDead")
+local c = W.LastCall(view.health, "SetStatusBarColor")
+assert(c[1] == r and c[2] == g and c[3] == b, "E5: the dead target's bar settles to grey")
+env.FireEvent("UNIT_FLAGS", "target")
+c = W.LastCall(view.health, "SetStatusBarColor")
+assert(c[1] == r and c[2] == g and c[3] == b, "E5: a later flags event keeps the dead bar grey")
+target("Wolf")
+W.Tick(env, 0.2)
+local pending = {}
+env.C_Timer.After = function(seconds, fn) pending[#pending + 1] = { seconds, fn } end
+env._units.target.dead = true
+env.FireEvent("UNIT_HEALTH", "target")
+local dying = view.body
+env._units.target = nil
+env.SetTarget(false)
+assert(pending[#pending][1] == 0.2 and dying:GetAlpha() == 1, "E5: death finishes its 200 ms grey transition before target loss fades")
+W.Tick(env, 0.2)
+pending[#pending][2]()
+W.Tick(env, 0.15)
+assert(not dying:IsShown(), "E5: the dying target leaves after its grey transition and loss fade")
+target("Wolf")
+W.Tick(env, 0.2)
+local t = env._time
+view.targetFlipAt = t
+local flip = view.medallion.FlipIn
+local flips = 0
+view.medallion.FlipIn = function() flips = flips + 1 end
+ns.Slab.FlipIn(view)
+assert(flips == 0, "E5: do not replay a flip before its halfway point")
+env._time = t + 0.1
+ns.Slab.FlipIn(view)
+assert(flips == 1, "E5: a flip may replay after its halfway point")
+view.medallion.FlipIn = flip
+K.Options.Write("UnitFrames", "target.transitions", false)
+env._units.target = nil
+env.SetTarget(false)
+assert(not view.body:IsShown(), "E5: off restores immediate target loss")
+target("Wolf")
+local same = view.body
+target("Boar")
+assert(view.body == same and same:GetAlpha() == 1, "E5: off restores immediate target changes")
+local before = { view.health:GetStatusBarColor() }
+env._units.target.dead = true
+env.FireEvent("UNIT_HEALTH", "target")
+c = W.LastCall(view.health, "SetStatusBarColor")
+assert(c[1] == before[1] and c[2] == before[2] and c[3] == before[3], "E5: off preserves the original bar colour on death")
+assert(W.LastCall(view.medallion.portrait, "SetDesaturated")[1], "E5: off restores immediate portrait desaturation")
+K.Motion.SetLevel("off")
+K.Options.Write("UnitFrames", "target.transitions", true)
+target("Wolf")
+target("Boar")
+assert(view.body:IsShown() and view.body:GetAlpha() == 1 and not view.targetGhost.parent:IsShown(), "E5: Motion Off settles target changes immediately")
+assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+print("target transition ok")

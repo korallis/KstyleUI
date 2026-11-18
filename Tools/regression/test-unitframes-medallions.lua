@@ -2,6 +2,7 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 
 local env, K, ns = U.New()
+K.Options.Write("UnitFrames", "target.transitions", false)
 local Settings, Frames, Medallions = ns.Settings, ns.Frames, K.Medallions
 
 local function noErrors(where)

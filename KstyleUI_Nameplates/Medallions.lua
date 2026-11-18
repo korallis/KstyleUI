@@ -195,7 +195,7 @@ function Plate:LayoutDiamond()
 		return
 	end
 	self.levelText:ClearAllPoints()
-	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP), 0, nil, nil, self.barW, self.barH)
+	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)), 0, nil, nil, self.barW, self.barH)
 end
 
 local layoutBrackets = Plate.LayoutBrackets
@@ -203,6 +203,7 @@ function Plate:LayoutBrackets()
 	layoutBrackets(self)
 	local on = Medallions.Active()
 	for _, frame in ipairs(self.brackets.sides) do
+		if frame.keyline then frame.keyline:SetShown(on and Settings.Get("target.readableTicks")) end
 		frame.top:SetShown(not on)
 		frame.bottom:SetShown(not on)
 	end
@@ -218,8 +219,25 @@ function Plate:LayoutBrackets()
 		frame:ClearAllPoints()
 		Plate.Place(frame, left and "RIGHT" or "LEFT", self.health, left and "LEFT" or "RIGHT", (left and -1 or 1) * gap, 0, width, height, self.barW, self.barH)
 		frame.stroke:SetWidth(width)
-		frame.open:SetOffset(0, 0)
-		frame.close:SetOffset(0, 0)
+		local readable = Settings.Get("target.readableTicks")
+		local travel = readable and Widgets.Snap(self, 3) or 0
+		frame.open:SetOffset((left and -1 or 1) * travel, 0)
+		frame.close:SetOffset((left and 1 or -1) * travel, 0)
+		if not frame.keyline then
+			frame.keyline = Widgets.Crisp(frame:CreateTexture(nil, "BACKGROUND"))
+			frame.keyline:SetColorTexture(Tokens.Color("black"))
+			frame.reveal = frame.group:CreateAnimation("Alpha")
+			frame.reveal:SetOrder(2)
+			frame.reveal:SetFromAlpha(0)
+			frame.reveal:SetToAlpha(1)
+			frame.reveal:SetSmoothing("OUT")
+		end
+		frame.reveal:SetDuration(readable and 0.12 or 0)
+		local px = Plate.Pixel(self)
+		frame.keyline:ClearAllPoints()
+		frame.keyline:SetPoint("TOPLEFT", frame, "TOPLEFT", -px, px)
+		frame.keyline:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", px, -px)
+		frame.keyline:SetShown(readable)
 	end
 end
 
@@ -230,11 +248,16 @@ function Plate:PaintBrackets()
 		return
 	end
 	for _, frame in ipairs(self.brackets.sides) do
-		frame.stroke:SetVertexColor(GUNMETAL[1], GUNMETAL[2], GUNMETAL[3], 1)
+		if Settings.Get("target.readableTicks") then
+			frame.stroke:SetVertexColor(Tokens.Color("medText"))
+		else
+			frame.stroke:SetVertexColor(GUNMETAL[1], GUNMETAL[2], GUNMETAL[3], 1)
+		end
 	end
 end
 
 local function LevelColor(plate, level)
+	if Settings.Get("target.readableTicks") and not IsSecret(level) and level == SKULL_LEVEL then return Tokens.Color("nameHostile") end
 	local mark = Settings.Get("markers.classification") and Logic.MarkerColor(plate:Is("classification", UnitClassification, plate.unit))
 	if mark then
 		return Tokens.Color(mark)
@@ -243,7 +266,7 @@ local function LevelColor(plate, level)
 		return Tokens.Color("medText")
 	end
 	if level == SKULL_LEVEL then
-		return Tokens.Color("hostile")
+		return Tokens.Color(Settings.Get("target.readableTicks") and "nameHostile" or "hostile")
 	end
 	if plate.kind == "enemy" and level > 0 and type(GetCreatureDifficultyColor) == "function" then
 		local c = GetCreatureDifficultyColor(level)

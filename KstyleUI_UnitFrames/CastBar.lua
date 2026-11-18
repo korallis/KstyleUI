@@ -10,6 +10,9 @@ ns.CastBars = CastBars
 
 local MODULE = Settings.MODULE
 local HOLD = 0.6
+local function Outcomes()
+	return K.Store.Module(MODULE).castOutcomes ~= false
+end
 local TIMER_STEP = 0.05
 local GAP_SHARE = 0.21
 local GAP_MIN = 2
@@ -52,7 +55,7 @@ local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
 	UNIT_SPELLCAST_CHANNEL_START = "Channel",
-	UNIT_SPELLCAST_DELAYED = "Cast",
+	UNIT_SPELLCAST_DELAYED = "Delayed",
 	UNIT_SPELLCAST_CHANNEL_UPDATE = "Channel",
 	UNIT_SPELLCAST_STOP = "Stop",
 	UNIT_SPELLCAST_CHANNEL_STOP = "Stop",
@@ -181,13 +184,19 @@ local function StopFlash(cb)
 end
 
 local function Flash(cb, colorName, alpha)
+	local on = Outcomes()
+	cb.flash.wash:SetBlendMode(on and "BLEND" or "ADD")
+	cb.flash.wash:Show()
+	cb.flash.down:SetDuration(on and Tokens.Duration("castFlash") or Tokens.Duration("readyFlash"))
+	cb.flash.down:SetSmoothing(on and "OUT" or "IN")
+	if on then alpha = colorName == "hostile" and 0.35 or 0.22 end
 	if ns.CastEffects.Flash(cb, colorName, alpha) then
 		return
 	end
 	if Motion.Level() == "off" or not cb.frame:IsShown() then
 		return
 	end
-	cb.flash.wash:SetVertexColor(Widgets.Rgba(colorName, alpha))
+	cb.flash.wash:SetVertexColor(Widgets.Rgba(on and colorName ~= "hostile" and "white" or colorName, alpha))
 	cb.flash:Show()
 	cb.flash.group:Stop()
 	cb.flash.group:Play()
@@ -217,9 +226,13 @@ local function NewFlash(cb)
 	down:SetStartDelay(rise)
 	down:SetSmoothing("IN")
 	group:SetScript("OnFinished", function()
-		flash:Hide()
+		if Outcomes() and cb.medStreak and cb.medStreak.anim:IsPlaying() then
+			wash:Hide()
+		else
+			flash:Hide()
+		end
 	end)
-	flash.group = group
+	flash.group, flash.down = group, down
 	cb.flash = flash
 end
 
@@ -279,7 +292,14 @@ local function Hide(cb, instant)
 		cb.frame:Hide()
 		return
 	end
-	Motion.FadeOut(cb.frame, Tokens.Duration("fade"))
+	if Outcomes() then
+		Motion.Tween(cb.frame, "SetAlpha", cb.frame:GetAlpha(), 0, cb.error and 0.25 or Tokens.Duration("fade"), cb.error and "inOutSine" or function(t) return t * t end, function(frame)
+			frame:Hide()
+			frame:SetAlpha(1)
+		end)
+	else
+		Motion.FadeOut(cb.frame, Tokens.Duration("fade"))
+	end
 end
 
 local function New(parent, kind, unit)
@@ -918,7 +938,7 @@ local function RunTimes(cb, channel, startMs, endMs)
 	return false
 end
 
-local function Start(cb, channel)
+local function Start(cb, channel, update)
 	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, spellID, castBarID
 	if channel then
 		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, _, _, _, castBarID = UnitChannelInfo(cb.unit)
@@ -929,7 +949,7 @@ local function Start(cb, channel)
 		Hide(cb, true)
 		return
 	end
-	cb.active, cb.landed, cb.channel = true, false, channel
+	cb.active, cb.landed, cb.channel, cb.error = true, false, channel, false
 	cb.inkEmpty = false
 	StopFlash(cb)
 	cb.castBarID, cb.spellID = nil, nil
@@ -941,7 +961,7 @@ local function Start(cb, channel)
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
-	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
+	if not update or not Outcomes() then Motion.FadeIn(cb.frame, Outcomes() and 0.08 or Tokens.Duration("fade")) end
 	Notify(cb)
 	CastBars.SetName(cb, text)
 	Icon(cb, texture)
@@ -962,7 +982,7 @@ local function Start(cb, channel)
 	else
 		StopTimer(cb)
 	end
-	if not cb.bar.vertical and not cb.line and not cb.mode and not cb.medal then
+	if not (update and Outcomes()) and not cb.bar.vertical and not cb.line and not cb.mode and not cb.medal then
 		cb.bar:PlaySheen(false)
 	end
 end
@@ -971,21 +991,21 @@ local function Finish(cb, message)
 	if not (cb.active or cb.landed) then
 		return
 	end
-	cb.active, cb.landed = false, false
-	EndTimer(cb, 0)
+	cb.active, cb.landed, cb.error = false, false, true
+	EndTimer(cb, Outcomes() and 1 or 0)
 	cb.locked = false
 	ShowLock(cb)
 	CastBars.SetName(cb, message)
 	Paint(cb, Tokens.Color("hostile"))
 	Flash(cb, "hostile", STOPPED_ALPHA)
-	HoldThen(cb, HOLD)
+	HoldThen(cb, Outcomes() and Tokens.Duration("castErrorHold") or HOLD)
 end
 
 local function Land(cb)
 	cb.active, cb.landed = false, true
 	EndTimer(cb, 1)
 	Flash(cb, "giltLit", LANDED_ALPHA)
-	HoldThen(cb, Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
+	HoldThen(cb, Outcomes() and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
 end
 
 local function Casting(unit)
@@ -1015,6 +1035,9 @@ local HANDLERS = {
 	Cast = function(cb)
 		Start(cb, false)
 	end,
+	Delayed = function(cb)
+		if cb.active then Start(cb, false, true) end
+	end,
 	Channel = function(cb)
 		Start(cb, true)
 	end,
@@ -1027,6 +1050,8 @@ local HANDLERS = {
 			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
 			if not issecretvalue(by) and type(by) == "string" and by ~= "" then
 				Finish(cb, L["Interrupted"])
+			elseif Outcomes() then
+				Land(cb)
 			else
 				Hide(cb)
 			end

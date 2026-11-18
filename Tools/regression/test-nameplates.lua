@@ -288,6 +288,7 @@ do
 	env.FireEvent("GROUP_ROSTER_UPDATE")
 	N.Add(env, "nameplate1", { threat = 3 })
 	local plate = ns.Plates.Get("nameplate1")
+	K.Options.Write("Nameplates", "threat.keyline", false)
 	local glow = plate.threatGlow
 	assert(glow[1]:IsShown(), "a mob attacking a damage dealer shows the threat glow")
 	local dr, dg, db = token(K, "hostile")
@@ -336,6 +337,7 @@ do
 	assert(SameColor(kr, kg, kb, edgeColor(one.health)), "the target's bar keeps its black edge")
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "other plates stay opaque by default")
 
+	K.Options.Write("Nameplates", "target.smoothOpacity", false)
 	K.Options.Write("Nameplates", "target.dimOthers", 0.5)
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 0.5, "other plates dim while there is a target")
 	N.Target(env, nil)

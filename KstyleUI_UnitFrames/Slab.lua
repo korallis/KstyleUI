@@ -288,6 +288,19 @@ function Slab.Colors(view, unit)
 	end
 end
 
+local function DeathBlend(view, progress)
+	local m = view.medallion
+	if type(m.portrait.SetDesaturation) == "function" then
+		m.portrait:SetDesaturation(progress)
+	end
+	if progress == 1 then m:SetDead(true) end
+	local shade = 1 - 0.55 * progress
+	m.portrait:SetVertexColor(shade, shade, shade, 1)
+	local c = view.deathColor
+	local r, g, b = Tokens.Color("medDead")
+	view.health:SetBarColor(c[1] + (r - c[1]) * progress, c[2] + (g - c[2]) * progress, c[3] + (b - c[3]) * progress)
+end
+
 function Slab.Health(view, unit)
 	if not Active(view) then
 		return
@@ -295,8 +308,25 @@ function Slab.Health(view, unit)
 	local m, dead = view.medallion, Dead(unit)
 	if dead ~= (view.slabDead == true) then
 		view.slabDead = dead
-		m:SetDead(dead)
+		if view.kind == "target" and Settings.Value("target", "transitions") and dead then
+			local c = view.health.colorRGBA
+			if not (IsSecret(c[1]) or IsSecret(c[2]) or IsSecret(c[3])) then
+				view.deathColor = { c[1], c[2], c[3] }
+				view.health:SetHealthUnit(nil)
+				view.deathAt = GetTime()
+				view.deathTween = K.Motion.Tween(view, DeathBlend, 0, 1, 0.2, "outQuad")
+			else
+				m:SetDead(true)
+			end
+		else
+			if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
+			m:SetDead(dead)
+		end
 		m:SetRingColor(RingColor(view, unit))
+	end
+	if dead and view.kind == "target" and Settings.Value("target", "transitions") and not K.Motion.IsPlaying(view.deathTween) then
+		view.health:SetHealthUnit(nil)
+		view.health:SetBarColor(Tokens.Color("medDead"))
 	end
 	m:LowHealth(not dead and unit or nil)
 end
@@ -332,6 +362,9 @@ end
 
 function Slab.FlipIn(view)
 	if view and Active(view) then
+		local now = GetTime()
+		if view.kind == "target" and Settings.Value("target", "transitions") and view.targetFlipAt and now - view.targetFlipAt < 0.09 then return end
+		view.targetFlipAt = now
 		view.medallion:FlipIn()
 	end
 end

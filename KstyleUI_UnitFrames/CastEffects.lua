@@ -48,8 +48,9 @@ local function Streak(cb)
 	fall:SetDuration(STREAK_RUN / 2)
 	group:SetScript("OnFinished", function()
 		streak:SetAlpha(0)
+		if K.Store.Module("UnitFrames").castOutcomes ~= false then cb.flash:Hide() end
 	end)
-	holder.streak, holder.anim, holder.move = streak, group, move
+	holder.streak, holder.anim, holder.move, holder.rise, holder.fall = streak, group, move, rise, fall
 	cb.medStreak = holder
 	cb.medStop = function()
 		group:Stop()
@@ -69,7 +70,13 @@ function CastEffects.Flash(cb, colorName, alpha)
 		return true
 	end
 	local holder = Streak(cb)
-	local seconds = Tokens.Duration("pressIn") + Tokens.Duration("readyFlash")
+	local on = K.Store.Module("UnitFrames").castOutcomes ~= false
+	local seconds = on and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash")
+	local run = on and 0.35 or STREAK_RUN
+	holder.move:SetDuration(run)
+	holder.rise:SetDuration(run / 2)
+	holder.fall:SetStartDelay(run / 2)
+	holder.fall:SetDuration(run / 2)
 	if not effects.ClaimFor(cb, effects.PRIORITY.cast, seconds, cb.medStop) then
 		return true
 	end
@@ -77,7 +84,7 @@ function CastEffects.Flash(cb, colorName, alpha)
 	if colorName == "hostile" then
 		r, g, b = Tokens.Color("hostile")
 	else
-		r, g, b = Color("steelLit", "textEmphasis")
+		r, g, b = Color(on and "white" or "steelLit", "textEmphasis")
 	end
 	cb.flash.wash:SetVertexColor(r, g, b, alpha)
 	cb.flash:Show()
@@ -88,7 +95,7 @@ function CastEffects.Flash(cb, colorName, alpha)
 		return true
 	end
 	local streak, length = holder.streak, width * STREAK_SHARE
-	streak:SetVertexColor(r, g, b, 1)
+	streak:SetVertexColor(r, g, b, on and 0.6 or 1)
 	streak:SetSize(length, height)
 	streak:ClearAllPoints()
 	streak:SetPoint("RIGHT", holder, "LEFT", 0, 0)

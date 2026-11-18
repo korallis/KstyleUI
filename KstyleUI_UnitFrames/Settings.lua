@@ -158,6 +158,7 @@ Settings.defaults = {
 	stableSlabNames = true,
 	singleSlabLevel = true,
 	hideBlizzard = true,
+	castOutcomes = true,
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	dangerEdge = true,
@@ -172,7 +173,7 @@ Settings.defaults = {
 		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
-		crestDebuffs = true,
+		crestDebuffs = true, transitions = true,
 		style = "column", rangeFade = true, portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
 		power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
@@ -843,6 +844,10 @@ local function KindRows(schema, kind)
 	BarRows(schema, kind, "health")
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
+			type = "toggle", key = "transitions", label = L["Gentle target changes"],
+			help = L["Medallions: fades target loss and changes, and greys a dead target. Off changes it immediately."],
+		})
+		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "percentLead", label = L["Lead with target percent"],
 			help = L["In Medallions, shows percent first and smaller current and maximum health at the far end."],
 		})
@@ -886,6 +891,8 @@ end
 
 function Settings.Schema()
 	local schema = {
+		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
+			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },
 		{ type = "header", label = L["Unit frames"] },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },

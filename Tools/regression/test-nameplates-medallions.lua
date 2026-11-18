@@ -87,7 +87,7 @@ local point, relative, relativePoint, x = enemy.levelText:GetPoint(1)
 eq(point, "RIGHT", "the level hangs from its right")
 eq(relative, enemy.health, "beside the bar")
 eq(relativePoint, "LEFT", "on the bar's left")
-assert(x <= -6 and x > -9, "clear of the target tick, a few units off the bar: " .. tostring(x))
+assert(x <= -8 and x > -11, "clear of the target tick, a few units off the bar: " .. tostring(x))
 for _, layer in ipairs(enemy.level.layers) do
 	assert(not layer:IsShown(), "the diamond's layers are gone")
 end
@@ -100,12 +100,11 @@ r, g, b = low.levelText:GetTextColor()
 dr, dg, db = K.Theme.Brighten(0.25, 0.75, 0.25)
 assert(near(r, dr) and near(g, dg) and near(b, db), "a level 6 enemy reads in its own difficulty colour")
 r, g, b = boss.levelText:GetTextColor()
-local mark = ns.Logic.MarkerColor("worldboss")
-local mr, mg, mb = K.Tokens.Color(mark)
+local mr, mg, mb = K.Tokens.Color("nameHostile")
 assert(near(r, mr) and near(g, mg) and near(b, mb), "the world boss's skull reads in its marker colour")
 
 -- The target: two 2-unit gunmetal ticks a few units off each end of the bar, no arms and no glow.
-local gun = ns.Medallions.GUNMETAL
+local gun = { K.Tokens.Color("medText") }
 for _, side in ipairs(enemy.brackets.sides) do
 	local w, h = unpack(N.Last(side, "SetSize"))
 	assert(near(w, 2, 0.6), side.side .. " tick is 2 units wide: " .. tostring(w))
@@ -114,7 +113,7 @@ for _, side in ipairs(enemy.brackets.sides) do
 	assert(tinted(side.stroke, gun[1], gun[2], gun[3]), side.side .. " tick is gunmetal")
 	eq(side.glow, nil, side.side .. " tick has no glow")
 	local ox = side.open._state.Offset
-	assert(ox and ox[1] == 0 and ox[2] == 0, side.side .. " tick appears in place, with no slide")
+	assert(ox and math.abs(ox[1]) == K.Widgets.Snap(enemy, 3) and ox[2] == 0, side.side .. " tick appears in place, with no slide")
 end
 local tp, trel, trp, tx = enemy.brackets.sides[1]:GetPoint(1)
 eq(tp, "RIGHT", "the left tick hangs from its right")

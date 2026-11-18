@@ -4,6 +4,7 @@ local N = dofile("Tools/regression/nameplates_env.lua")
 for _, threat in ipairs({ 3, 2 }) do
 	local env, K, ns = N.New()
 	K.Options.Write("Nameplates", "threat.groupOnly", false)
+	K.Options.Write("Nameplates", "threat.keyline", false)
 	N.Add(env, "nameplate1", { name = "Galestrider", health = 1307, maxHealth = 1698, level = 6, reaction = 2, canAttack = true, threat = threat })
 	N.Target(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")

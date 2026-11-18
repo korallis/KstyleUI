@@ -3,6 +3,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New()
+K.Options.Write("UnitFrames", "castOutcomes", false)
 local E = K.Effects
 
 local function noErrors(where)

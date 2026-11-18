@@ -310,7 +310,7 @@ K.Options.Write("UnitFrames", "target.auraRows", 1)
 env._units.target.cast = { name = "Terrifying Screech", texture = 132127, start = 1000, finish = 3500, spellID = 5000 }
 env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 5000)
 local tinline = CastBars.Inline("target")[1]
-assert(tinline.frame:IsShown() and tinline.frame:GetParent() == target.button, "the target's cast line shows inside the sigil")
+assert(tinline.frame:IsShown() and tinline.frame:GetParent() == (target.body or target.button), "the target's cast line shows inside the sigil")
 assert(not CastBars.Get("target")[1].frame:IsShown(), "the classic target cast bar stays hidden")
 local gr2, gg2, gb2 = ns.Lumen.Color("cast")
 local tcol = tinline.bar.colorRGBA
