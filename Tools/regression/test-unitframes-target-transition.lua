@@ -92,4 +92,16 @@ target("Wolf")
 target("Boar")
 assert(view.body:IsShown() and view.body:GetAlpha() == 1 and not view.targetGhost.parent:IsShown(), "E5: Motion Off settles target changes immediately")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+do
+	local e, kit, frames = U.New({ setup = function(client)
+		U.SetUnit(client, "target", { name = "Wolf", level = 10, health = 80, healthMax = 100, reaction = 2 })
+	end })
+	kit.Options.Write("HudStyle", "style", "medallions")
+	local targetView = frames.Frames.Get("target").views[1]
+	local previous = targetView.body
+	U.SetUnit(e, "target", { name = "Boar", level = 10, health = 60, healthMax = 100, reaction = 2 })
+	e.SetTarget(true)
+	assert(targetView.body ~= previous, "E5: crossfade the first replacement when the addon starts with an existing target")
+	assert(#e._errors == 0 and kit.ErrorCount() == 0, tostring(e._errors[1]))
+end
 print("target transition ok")

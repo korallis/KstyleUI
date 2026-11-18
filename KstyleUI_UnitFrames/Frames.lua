@@ -723,6 +723,7 @@ local function PrepareTarget(view)
 	if ghost then K.Motion.Tween(ghost.parent, "SetAlpha", 1, 0, 0, nil, HideBody) end
 	K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
 	view.body:SetShown(view.button:IsShown())
+	view.targetSeen = UnitExists("target") and true or false
 end
 
 local function TargetChange(view)
