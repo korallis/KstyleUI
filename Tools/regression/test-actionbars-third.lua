@@ -17,6 +17,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
 			local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
 			assert(fitK.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")
+			local enabled = fitK.Setup.Layouts.Enabled("DPS")
+			enabled["actionbars.bar3"] = true
+			maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", enabled, style)
+			local withBar = fitK.Scale.Auto(screen[2], maximum, fits)
+			assert(withBar == baseScale, "bar 3 on fits without shrinking the default HUD")
+			print(style, screen[1], "bar 3 off/on", baseScale, withBar)
 		end
 		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true }, hudStyle = style }))
 		K.Options.Write("ActionBars", "bar3.enabled", true)
