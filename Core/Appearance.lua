@@ -114,7 +114,13 @@ local function ApplyReadability()
 	readabilityPending = true
 	ns.Combat.Queue(function()
 		readabilityPending = nil
-		for key in pairs(READABILITY) do readability[key] = Appearance.Get(key) end
+		local changed
+		for key in pairs(READABILITY) do
+			local value = Appearance.Get(key)
+			changed = changed or readability[key] ~= value
+			readability[key] = value
+		end
+		if not changed then return end
 		local layouts = ns.Setup and ns.Setup.Layouts
 		if layouts and layouts.BuildMedallions then layouts.BuildMedallions() end
 		ns.Callbacks.Fire("ReadabilityChanged")
