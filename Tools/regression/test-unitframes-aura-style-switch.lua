@@ -8,7 +8,7 @@ local function New(style)
 	} } } })
 	U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2 })
 	env.SetTarget(true)
-	return env, K, ns.Frames.Get("target").views[1]
+	return env, K, ns.Frames.Get("target").views[1], ns
 end
 
 local function Entry(view, group)
@@ -183,7 +183,7 @@ for _, pair in ipairs({
 			assert(Signature(Entry(view, group)) == Signature(Entry(Control(third), group)), label .. " " .. group .. ": tiles rebuilt after combat match tiles born in the target style")
 		end
 	end
-	assert(#env._errors == 0 and K.ErrorCount() == 0, "aura style switches must stay error-free")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "aura style switches must stay error-free: " .. table.concat(env._errors, "\n"))
 end
 for style, control in pairs(controls) do
 	assert(#control.env._errors == 0 and control.K.ErrorCount() == 0, "the " .. style .. " control must stay error-free")
@@ -201,4 +201,23 @@ do
 	assert(view.auras.container ~= old, "the queued rebuild uses the current style when restriction ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a deferred style rebuild must stay error-free")
 end
+do
+	local env, K, view, ns = New("medallions")
+	local focus = ns.Frames.Get("focus").views[1]
+	local restyle, nested = ns.Fan.Restyle, false
+	ns.Fan.Restyle = function(current)
+		if current == view and not nested then
+			nested = true
+			ns.Auras.Apply(focus)
+		end
+		return restyle(current)
+	end
+	env._restricted = true
+	ns.Auras.Apply(view)
+	env._restricted = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(nested and #env._errors == 0 and K.ErrorCount() == 0,
+		"drain a snapshot of pending aura restyles so a nested Apply cannot invalidate its iterator: " .. table.concat(env._errors, "\n"))
+end
+
 print("ok aura style switches match fresh tiles and keep icons above dispel tint")

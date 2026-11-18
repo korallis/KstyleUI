@@ -245,8 +245,9 @@ local function Flush()
 	if not Auras.Open() then
 		return false
 	end
-	for view in pairs(pending) do
-		pending[view] = nil
+	local work = pending
+	pending = {}
+	for view in pairs(work) do
 		if not view.auras or view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
