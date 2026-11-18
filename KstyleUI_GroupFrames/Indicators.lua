@@ -88,6 +88,9 @@ local function Build(f)
 	f.threatGlow.slice[CENTRE_PIECE]:Hide()
 	f.threatGlow:SetIntensity(1)
 	f.threat:Hide()
+	f.threatShape = layer:CreateTexture(nil, "OVERLAY")
+	f.threatShape:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 2, 2)
+	f.threatShape:Hide()
 	f.roleElements = { roleIcon = f.role, unit = nil, optionTable = ROLE_OPTIONS }
 end
 Button.built[#Button.built + 1] = Build
@@ -286,6 +289,7 @@ local function Ready(f)
 end
 
 local function Threat(f)
+	f.threatShape:Hide()
 	if not Settings.current.threat.enabled or not UnitThreatSituation then
 		f.threat:Hide()
 		return
@@ -301,6 +305,16 @@ local function Threat(f)
 		return
 	end
 	f.threatGlow:SetColorRGB(r, g, b)
+	if status == 2 then
+		f.threatShape:SetTexture((Tokens.Texture("diamond")))
+		f.threatShape:SetTexCoord(0, 1, 0, 0.5)
+	else
+		f.threatShape:SetColorTexture(Tokens.Color("white"))
+		f.threatShape:SetTexCoord(0, 1, 0, 1)
+	end
+	f.threatShape:SetSize(status == 1 and 2 or 8, 8)
+	f.threatShape:SetVertexColor(r, g, b)
+	f.threatShape:Show()
 	f.threat:Show()
 end
 

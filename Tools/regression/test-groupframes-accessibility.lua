@@ -17,6 +17,16 @@ env.UnitIsAFK = function() return env.Secret(true) end
 env.C_IncomingSummon.HasIncomingSummon = function() return env.Secret(true) end
 env.FireEvent("INCOMING_SUMMON_CHANGED", "party1")
 assert(env.Reveal(status.afk:GetAlpha()) == 0 and env.Reveal(status.summon:GetAlpha()) == 0, "resurrection wins the status slot without comparing secret flags")
+local A = dofile("Tools/regression/auras_env.lua")
+A.Assign(env, found.auras, "debuffs", 1)
+local button = found.auras._groups.debuffs.frames[1]
+local letter
+for _, entry in ipairs(button._aura.dispel) do if entry.options.customDispelAssetMap then letter = entry.texture end end
+assert(letter, "the aura engine owns the dispel classification map")
+A.Dispel(button, "Magic")
+assert(letter:IsShown() and letter:GetTexture() == (K.Tokens.Texture("dispelM")), "the engine selects M for Magic")
+A.Dispel(button, nil)
+assert(not letter:IsShown(), "an unclassified aura has no guessed type letter")
 env.FireEvent("READY_CHECK")
 assert(status.resurrection:GetAlpha() == 0, "the ready check owns the shared slot while active")
 K.Options.Write("GroupFrames", "presets.raid", "Healer")
