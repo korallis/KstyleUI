@@ -11,8 +11,6 @@ local WIDTH, HEIGHT = 760, 540
 local STEPS = 6
 local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
-local LOGO_SIZE = 128
-local TEXT_WIDTH = 520
 local CARD_HEIGHT = 120
 local ORNAMENT_CARD_HEIGHT = 64
 local STYLE_PICTURE_SHARE = 0.5
@@ -241,28 +239,141 @@ local function Paragraph(parent, role, color, width, small)
 	return text
 end
 
-local function BuildWelcome(page)
+local function BuildClassicWelcome(page)
 	local pad = gap("gapLarge")
 	local logo = page:CreateTexture(nil, "ARTWORK")
 	logo:SetTexture((Tokens.Texture("logoLarge")))
-	logo:SetSize(Widgets.Snap(page, LOGO_SIZE), Widgets.Snap(page, LOGO_SIZE))
+	logo:SetSize(Widgets.Snap(page, 128), Widgets.Snap(page, 128))
 	Widgets.Point(logo, "TOPLEFT", page, "TOPLEFT", pad, -pad)
 	local title = Widgets.Text(page, "display", "textEmphasis")
 	Widgets.Point(title, "TOPLEFT", logo, "TOPRIGHT", gap("gapHuge") * 2, 0)
 	title:SetText(L["Welcome to KstyleUI"])
-	local body = Paragraph(page, "body", "text", TEXT_WIDTH)
+	local body = Paragraph(page, "body", "text", 520)
 	Widgets.Point(body, "TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
 	body:SetText(L["This short setup picks a layout and the parts of the interface KstyleUI replaces. You can change everything later in the settings window, and move or resize any element in Layout Mode."])
 	local caption = Widgets.Text(page, "caption", "text")
 	Widgets.Point(caption, "TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	Widgets.SetText(caption, L["Five steps"])
-	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
+	local list = Paragraph(page, "body", "textEmphasis", 520)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
 	list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."]) .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
-	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
+	local note = Paragraph(page, "body", "text", 520)
 	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
-	panel.welcomeTitle, panel.welcomeNote = title, note
+	return title, note
+end
+
+local function BuildBrandedWelcome(page)
+	local pad, gutter = gap("gapLarge"), gap("gapSmall")
+	local width = WIDTH - 2 * Widgets.WindowInset(panel)
+	local hero = CreateFrame("Frame", nil, page)
+	Widgets.Point(hero, "TOPLEFT", page, "TOPLEFT", 0, 0)
+	Widgets.Size(hero, width, 92)
+	hero.chrome = Widgets.Chrome(hero, { shape = "tile", fill = "buttonFill", shadow = false })
+	local logo = hero:CreateTexture(nil, "ARTWORK")
+	logo:SetTexture((Tokens.Texture("logoLarge")))
+	Widgets.Size(logo, 72, 72)
+	Widgets.Point(logo, "LEFT", hero, "LEFT", pad, 0)
+	local title = Widgets.Text(hero, "display", "textEmphasis")
+	Widgets.Point(title, "TOPLEFT", hero, "TOPLEFT", 100, -pad)
+	title:SetText("KstyleUI")
+	local version = Widgets.Text(hero, "caption", "text")
+	Widgets.Point(version, "TOPRIGHT", hero, "TOPRIGHT", -pad, -pad)
+	version:SetText(ns.VERSION)
+	local body = Paragraph(hero, "body", "text", width - 112)
+	Widgets.Point(body, "TOPLEFT", title, "BOTTOMLEFT", 0, -gutter)
+	body:SetText(L["Dark forged chrome for the whole game."] .. "\n" .. L["Three HUDs. One setup. Every screen."])
+	local pictures = CreateFrame("Frame", nil, page)
+	Widgets.Point(pictures, "TOPLEFT", hero, "BOTTOMLEFT", 0, -gutter)
+	Widgets.Size(pictures, width, 104)
+	for i, style in ipairs(STYLES) do
+		local card = CreateFrame("Frame", nil, pictures)
+		local cardWidth = (width - gutter * (#STYLES - 1)) / #STYLES
+		Widgets.Size(card, cardWidth, 104)
+		Widgets.Point(card, "TOPLEFT", pictures, "TOPLEFT", (i - 1) * (cardWidth + gutter), 0)
+		card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
+		local picture = card:CreateTexture(nil, "ARTWORK")
+		picture:SetTexture((Tokens.Texture(style.picture)))
+		Widgets.Size(picture, 152, 76)
+		Widgets.Point(picture, "TOP", card, "TOP", 0, -2)
+		local label = Widgets.Text(card, "caps", "capsGold")
+		Widgets.CapsSize(label)
+		Widgets.Point(label, "BOTTOM", card, "BOTTOM", 0, gutter)
+		Widgets.SetText(label, style.label)
+	end
+	local features = Paragraph(page, "body", "text", width * 0.51 - pad)
+	Widgets.Point(features, "TOPLEFT", pictures, "BOTTOMLEFT", pad, -gap("gapLarge"))
+	features:SetText(L["Pixel-perfect from laptop to ultrawide."] .. "\n"
+		.. L["Three HUDs. DPS, Tank and Healer layouts."] .. "\n"
+		.. L["Unit frames, nameplates, raids, bags, tooltips, meter and skins."] .. "\n"
+		.. L["/kb: bind keys by hovering over a button."] .. "\n"
+		.. L["Layout Mode and shareable profiles."] .. "\n"
+		.. L["Every module optional. Make it yours."])
+	features:SetSpacing(Widgets.Snap(page, 5))
+	local caption = Widgets.Text(page, "caps", "capsGold")
+	Widgets.CapsSize(caption)
+	Widgets.Point(caption, "TOPLEFT", pictures, "BOTTOMLEFT", width * 0.53, -gap("gapLarge"))
+	Widgets.SetText(caption, L["Five steps"])
+	local list = Paragraph(page, "body", "textEmphasis", width * 0.47 - pad)
+	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gutter)
+	list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."]) .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
+	local note = Paragraph(page, "body", "text", width - pad * 2)
+	Widgets.Point(note, "BOTTOMLEFT", page, "BOTTOMLEFT", pad, gutter)
+	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
+	page.hero, page.pictures, page.features, page.caption, page.list = hero, pictures, features, caption, list
+	page.title, page.note, page.body = title, note, body
+	return title, note
+end
+
+local function BuildWelcome(page)
+	local classic = CreateFrame("Frame", nil, page)
+	Widgets.Fill(classic, page, 0, 0, 0, 0)
+	classic.title, classic.note = BuildClassicWelcome(classic)
+	local scroll = CreateFrame("ScrollFrame", nil, page)
+	Widgets.Fill(scroll, page, 0, 0, 0, 0)
+	scroll:SetClipsChildren(true)
+	scroll:EnableMouseWheel(true)
+	local branded = CreateFrame("Frame", nil, scroll)
+	Widgets.Size(branded, WIDTH - 2 * Widgets.WindowInset(panel), 400)
+	scroll:SetScrollChild(branded)
+	BuildBrandedWelcome(branded)
+	local thumb = scroll:CreateTexture(nil, "OVERLAY")
+	local function ScrollTo(offset)
+		local height, view = branded:GetHeight(), scroll:GetHeight()
+		offset = max(0, min(max(0, height - view), offset))
+		scroll:SetVerticalScroll(offset)
+		thumb:ClearAllPoints()
+		Widgets.Point(thumb, "TOPRIGHT", scroll, "TOPRIGHT", 0, -offset * view / height)
+		Widgets.Size(thumb, 2, view * view / height)
+		thumb:SetShown(height > view)
+	end
+	scroll:SetScript("OnMouseWheel", function(_, delta)
+		ScrollTo(scroll:GetVerticalScroll() - delta * Widgets.LineHeight(branded.features) * 3)
+	end)
+	function page:Restyle()
+		thumb:SetColorTexture(Widgets.Rgba("accent", 0.6))
+		local shown = ns.Options.Read("Widgets", "general.brandedWelcome") ~= false
+		classic:SetShown(not shown)
+		scroll:SetShown(shown)
+		local active = shown and branded or classic
+		panel.welcomeTitle, panel.welcomeNote = active.title, active.note
+		classic.note:SetShown(Setup.IsFirstRun())
+		branded.note:SetShown(Setup.IsFirstRun())
+		local pad, gutter = gap("gapLarge"), gap("gapSmall")
+		local cap = Widgets.LineHeight(branded.caption)
+		branded.hero:SetHeight(max(92, pad * 2 + Widgets.LineHeight(branded.title) + gutter + Widgets.WrappedHeight(branded.body, branded.body:GetWidth())))
+		local lower = max(Widgets.WrappedHeight(branded.features, branded.features:GetWidth()), cap + gutter + Widgets.WrappedHeight(branded.list, branded.list:GetWidth()))
+		local height = branded.hero:GetHeight() + gutter + branded.pictures:GetHeight() + pad + lower + pad
+		if branded.note:IsShown() then
+			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
+		end
+		branded:SetHeight(max(scroll:GetHeight(), height))
+		ScrollTo(0)
+	end
+	page.scroll, page.branded, page.classic = scroll, branded, classic
+	page:HookScript("OnShow", page.Restyle)
+	Widgets.Track(page)
+	page:Restyle()
 end
 
 local Card = {}

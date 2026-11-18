@@ -54,7 +54,7 @@ One row per player-facing feature, in the names the README and the v0.1.0 change
 
 | Feature | Where | Code | Tests | Render |
 | --- | --- | --- | --- | --- |
-| First-run setup | opens on first login; `/kstyle setup` | `Core/Setup/Setup.lua`, `Window.lua` | `test-setup`, `test-setup-summary`, `test-setup-warnings` | `gallery_setup` (welcome, layouts, modules, summary), `setup_ornaments` with `RENDER_SUBJECT=setup`; statechart [setup.md](statecharts/setup.md) |
+| First-run setup | opens on first login; `/kstyle setup`; General > Branded welcome page (on by default) | `Core/Setup/Setup.lua`, `Window.lua` | `test-setup`, `test-setup-summary`, `test-setup-warnings`, `test-setup-welcome` | `setup_welcome` (hero, HUD pictures, features and version; `RENDER_WELCOME=classic` for the original), `gallery_setup` (welcome, layouts, modules, summary), `setup_ornaments` with `RENDER_SUBJECT=setup`; statechart [setup.md](statecharts/setup.md) |
 | Edit Mode layout written by Apply | setup summary, Try again | `Core/Setup/EditMode.lua` | `test-setup-editmode*` (`test-setup-editmode-medallions` for the Medallions sizes), `test-skins-tracker-editmode` | `gallery_setup_tracked`, `gallery_tracked` |
 | Settings window with search and live preview | `/kstyle`; Esc > Options > AddOns | `KstyleUI_Options/`, `Core/Options.lua` | `test-options-*` | `gallery_options`, `gallery_options_modules` |
 | Profiles, export and import | Profiles; `/kstyle profile ...` | `Core/Store.lua`, `Core/Codec.lua`, `Core/Slash.lua` | `test-store*` | none |
