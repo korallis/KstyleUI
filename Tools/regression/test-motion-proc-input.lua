@@ -55,6 +55,9 @@ if not mode or mode == "proc" then
     assert(W.Near(b.stateProcSpread, K.Widgets.Snap(b, 5.6)), "F3: proc halo spreads 5.6 units")
     ns.Button.SetProc(b, false)
     assert(b.lumenGlow.leave:IsPlaying() and b.lumenGlow:IsShown(), "F3: proc glow leaves instead of snapping off")
+    b:FlashReady()
+    assert(b.readyAttack:GetDuration() == 0.06 and b.readyFade:GetDuration() == 0.18, "F3: ready attacks in 60 ms and decays in 180 ms")
+    assert(W.LastCall(b.readyWash, "SetColorTexture")[4] == 0.45, "F3: the steel ready wash peaks at 0.45")
     b.lumenGlow.leave:Finish()
     b.lumenGlow.leave:GetScript("OnFinished")()
     assert(not b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "F3: the hidden proc stops breathing")
@@ -72,11 +75,17 @@ if not mode or mode == "proc" then
     local rows, columns = K.Tokens.Flipbook("medProcWarlock")
     assert(l == 0 and r == 1 / columns and t == 0 and bottom == 1 / rows, "F3: Calm holds the first sprite cell: " .. tostring(r) .. "," .. tostring(bottom))
     assert(K.Effects.PRIORITY.levelUp < K.Effects.PRIORITY.proc, "F3: level-up outranks proc")
+    env._game.procs[100] = false
     ns.Button.SetProc(b, false)
     K.Options.Write("ActionBars", "procTransitions", false)
     ns.Button.SetProc(b, true)
     ns.Button.SetProc(b, false)
     assert(not b.medProc:IsShown(), "F3: disabling transitions restores the immediate proc exit")
+    b:FlashReady()
+    assert(W.Near(b.medReady:GetWidth(), K.Widgets.Snap(b.medReady, b:GetWidth() / 0.7)), "F3: disabling transitions restores the previous ready footprint")
+    K.Options.Write("ActionBars", "procTransitions", true)
+    b:FlashReady()
+    assert(b.medReady:GetWidth() <= b:GetWidth() * 1.15 and b.medReady:GetWidth() >= b:GetWidth(), "F3: the polished ready flash is at most 1.15 times the slot")
     assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

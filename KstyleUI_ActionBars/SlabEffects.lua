@@ -73,6 +73,10 @@ local function ReadyParts(b)
 	flash.rise:SetDuration(polished and 0.06 or READY * READY_RISE)
 	flash.fall:SetDuration(polished and 0.18 or READY * (1 - READY_RISE))
 	local side = SlotSize(b) * (polished and 1.15 or READY_SHARE)
+	if polished then
+		local snapped = Widgets.Snap(flash, side)
+		side = snapped > side and snapped - Widgets.Border(flash) or snapped
+	end
 	Widgets.Size(flash, side, side)
 	return flash
 end

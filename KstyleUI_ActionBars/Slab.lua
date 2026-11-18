@@ -543,7 +543,9 @@ local function Build()
 	hub:Hide()
 	hub.top = CreateFrame("Frame", nil, hub)
 	hub.top:SetAllPoints(hub)
-	hub:HookScript("OnHide", function() K.Effects.StopModels("hub") end)
+	hub:HookScript("OnHide", function()
+		if K.Effects.StopModels then K.Effects.StopModels("hub") end
+	end)
 	BuildRing(hub)
 	BuildCrest(hub)
 	hub.particles = BuildParticles(hub)
@@ -947,7 +949,7 @@ function Slab.SetProc(b, on)
 	end
 	if not (on and Slab.Active()) then
 		if b.medProc then
-			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions"), false)
+			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions") and Slab.Active(), false)
 			if not b.medProcFrame.leave:IsPlaying() then
 				b.medProc.anim:Stop()
 				b.medProc:Hide()
@@ -988,7 +990,7 @@ function Slab.SetProc(b, on)
 	end
 	if fresh or not polished then
 		Play(start.anim)
-		local holder = K.Effects.Holder("hub")
+		local holder = K.Effects.Holder and K.Effects.Holder("hub")
 		if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
 		ns.SlabEffects.Proc(Slab.hub)
 	end
@@ -1070,6 +1072,7 @@ function Slab.Dress(b)
 			b.medHover:SetBlendMode("ADD")
 		end
 		b.medPushed = SlotLayer(b, "OVERLAY", 3, "medSlotPushed", b)
+		b.medPushed:Hide()
 		b.medPushed.release = Group(b.medPushed)
 		Fade(b.medPushed.release, 0.6, 0, 0.1):SetSmoothing("IN")
 		b.medPushed.release:SetScript("OnFinished", function() b.medPushed:Hide() end)
@@ -1094,7 +1097,7 @@ function Slab.Dress(b)
 		b.medPushed.release:Stop()
 		b.medPushed:SetAlpha(ns.Config("inputContinuity") and 0.6 or 1)
 		b.medPushed:Show()
-	elseif on and ns.Config("inputContinuity") and b.medPushed:IsShown() then
+	elseif on and ns.Config("inputContinuity") and Moving() and b.medPushed:IsShown() then
 		if not b.medPushed.release:IsPlaying() then b.medPushed.release:Play() end
 	else
 		b.medPushed:Hide()
