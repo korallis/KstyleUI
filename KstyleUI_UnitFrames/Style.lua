@@ -188,11 +188,12 @@ function Style.New(parent, kind)
 	view.powerFillText:SetAllPoints(view.powerText)
 	view.powerFillText:SetJustifyH("RIGHT")
 	clip:Hide()
+	local powerFillText = view.powerFillText
 	for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 		local write = view.powerText[method]
 		view.powerText[method] = function(self, ...)
 			write(self, ...)
-			write(view.powerFillText, ...)
+			write(powerFillText, ...)
 		end
 	end
 	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }

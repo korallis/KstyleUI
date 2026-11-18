@@ -22,7 +22,10 @@ target("Wolf")
 W.Tick(env, 0.2)
 local old = view.body
 local oldName = view.name
+view.powerText:SetText("old power")
 target("Boar")
+view.powerText:SetText("new power")
+assert(U.Shown(env, view.powerFillText) == "new power" and U.Shown(env, view.targetGhost.powerFillText) == "old power", "E5: each crossfading slab keeps its own mirrored power text")
 assert(view.body ~= old and old:IsShown(), "E5: a target change keeps the outgoing slab while the new slab enters")
 assert(U.Shown(env, oldName) == "WOLF" and U.Shown(env, view.name) == "BOAR", "E5: crossfade retains the previous target's own name")
 W.Tick(env, 0.06)
