@@ -93,6 +93,15 @@ do
 	env._units.nameplate1.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "nameplate1")
 	assert(not plate.cast:IsShown(), "E3: off restores the original Motion Off plate exit")
+	K.Motion.SetLevel("full")
+	K.Options.Write("Nameplates", "cast.outcomes", true)
+	start()
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1")
+	W.Tick(env, 0.1)
+	assert(math.abs(plate.cast:GetAlpha() - 0.75) < 1e-6, "E3: normal plate casts leave with an inQuad fade")
+	W.Tick(env, 0.1)
+	assert(not plate.cast:IsShown(), "E3: the normal plate exit finishes after 200 ms")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("cast outcomes ok")

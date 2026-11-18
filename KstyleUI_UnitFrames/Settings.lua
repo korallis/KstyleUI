@@ -891,9 +891,9 @@ end
 
 function Settings.Schema()
 	local schema = {
+		{ type = "header", label = L["Unit frames"] },
 		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
 			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },
-		{ type = "header", label = L["Unit frames"] },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
 		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],
