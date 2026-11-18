@@ -633,13 +633,13 @@ local function PlaceHead(path)
 	rise = Widgets.Snap(holder, rise)
 	path.capHeight = full - rise
 	holder:ClearAllPoints()
-	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
-	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
 	holder:SetHeight(full)
 	if Skins.Setting(KEY, "rail") and Widgets.Readability("snapEdges") then
-		holder:ClearAllPoints()
 		Widgets.Point(holder, "BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise, true)
 		Widgets.Point(holder, "BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise, true)
+	else
+		holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
+		holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
 	end
 	PlaceCard(path)
 	if path.OnHead then

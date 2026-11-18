@@ -1021,12 +1021,10 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y, hard)
 	local record = Record(region)
 	local entry = record.points[point]
 	if entry then
-		entry[1], entry[2], entry[3], entry[4], entry[5], entry[6] = relative, relativePoint, x, y, dx * px, dy * px
+		entry[1], entry[2], entry[3], entry[4], entry[5], entry[6], entry[7] = relative, relativePoint, x, y, dx * px, dy * px, hard
 	else
-		entry = { relative, relativePoint, x, y, dx * px, dy * px }
-		record.points[point] = entry
+		record.points[point] = { relative, relativePoint, x, y, dx * px, dy * px, hard }
 	end
-	entry[7] = hard
 	if (own[1] ~= 0 or own[2] ~= 1) and not region.kstyleOwnHooked and type(region.HookScript) == "function" and IsFrame(region) then
 		region.kstyleOwnHooked = region:HookScript("OnSizeChanged", Reown) ~= false
 	end
