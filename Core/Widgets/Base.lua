@@ -2219,7 +2219,7 @@ function Chrome:SetShown(shown)
 	end
 	if not self.fill then
 		if shown then
-			self:Restyle()
+			Chrome.Restyle(self)
 		end
 		if not self.fill then
 			return
