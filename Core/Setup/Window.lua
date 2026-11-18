@@ -710,9 +710,6 @@ local function BuildLayouts(page, width)
 	panel.previewName = shown
 	local hint = Paragraph(page, "body", "text", width / 2, "body")
 	Widgets.Point(hint, "TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
-	hint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
-		.. "\n\n" .. L["Point at a layout to preview it."]
-		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint
 end
 
@@ -741,7 +738,6 @@ PlaceLayouts = function()
 		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
 			.. "\n\n" .. L["Point at a layout to preview it."] .. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	end
-	panel.layoutHeight = height
 end
 
 local function SetAll(value)
@@ -761,7 +757,6 @@ local function BuildModules(page, width)
 	Widgets.Point(allOff, "TOPRIGHT", page, "TOPRIGHT", 0, 0)
 	local allOn = Widgets.Button(page, { text = L["All on"], onClick = function() SetAll(true) end })
 	Widgets.Point(allOn, "RIGHT", allOff, "LEFT", -gap("gapSmall"), 0)
-	local column = Widgets.Snap(page, width / 2)
 	local top = Widgets.Snap(page, HEADER_HEIGHT) + gap("gapMedium")
 	local scroll = CreateFrame("ScrollFrame", nil, page)
 	Widgets.Fill(scroll, page, 0, top, 0, 0)
@@ -775,9 +770,7 @@ local function BuildModules(page, width)
 	end)
 	panel.moduleScroll, panel.moduleBody = scroll, body
 	panel.toggles = {}
-	for i, entry in ipairs(Setup.PICKER) do
-		local col = i <= ROWS_PER_COLUMN and 0 or 1
-		local row = (i - 1) % ROWS_PER_COLUMN
+	for _, entry in ipairs(Setup.PICKER) do
 		local name = entry.name
 		local toggle = Widgets.Toggle(body, {
 			label = entry.label,
@@ -786,7 +779,6 @@ local function BuildModules(page, width)
 				Changed()
 			end,
 		})
-		Widgets.Point(toggle, "TOPLEFT", body, "TOPLEFT", col * column, -row * Widgets.Snap(page, ROW_HEIGHT))
 		local note = Widgets.FontString(body)
 		note.Restyle = NoteStyle
 		Widgets.Track(note)
@@ -795,7 +787,7 @@ local function BuildModules(page, width)
 		note:SetWordWrap(false)
 		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
 		Widgets.Point(note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
-		note:SetWidth(column - indent - gap("gapLarge"))
+		note:SetWidth(width / 2 - indent - gap("gapLarge"))
 		toggle.note = note
 		panel.toggles[name] = toggle
 	end

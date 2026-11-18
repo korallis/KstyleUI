@@ -393,7 +393,6 @@ local function Build()
 	win:HookScript("OnSizeChanged", Relayout)
 	Relayout()
 
-	state.scale = win:GetScale()
 	Widgets.Place(win, Pages.WINDOW_KEY, DEFAULT_POSITION, {
 		label = L["Settings window"], module = "Options", window = true,
 		resizable = true, scalable = true,

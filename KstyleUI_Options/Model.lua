@@ -171,13 +171,12 @@ local SYNONYMS = {
 
 local function Synonyms(item)
 	if not K.Store.Module("OptionsPresentation").synonyms then return "" end
-	local words = ""
 	for _, entry in ipairs(SYNONYMS) do
 		if item.module == entry[1] and type(item.key) == "string" and item.key:sub(1, #entry[2]) == entry[2] then
-			words = words .. "\n" .. entry[3]
+			return "\n" .. entry[3]
 		end
 	end
-	return words
+	return ""
 end
 
 local function SectionText(sections)

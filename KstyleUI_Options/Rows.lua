@@ -311,7 +311,6 @@ local function OrnamentArt(parent, name, point, relative, anchor, x, y, width, m
 	art:SetTexCoord(mirror and u or 0, mirror and 0 or u, 0, spec[2] / spec[4])
 	Widgets.Size(art, width or spec[1], spec[2])
 	Widgets.Point(art, point, relative, anchor, x, y)
-	return art
 end
 
 function MAKERS.ornaments(row)
@@ -512,10 +511,6 @@ function FILL.pictures(control, item, value)
 end
 
 FILL.ornaments = FILL.pictures
-
-function FILL.task(control, item)
-	control:SetText(item.label)
-end
 
 local function Value(item)
 	if not item.get then
@@ -746,7 +741,6 @@ function Rows.Update(row, item, _, list)
 	end
 	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
 	if kind == "task" then
-		FILL.task(control, item)
 		control:Show()
 	elseif kind ~= "header" and kind ~= "note" then
 		local disabled = Model.IsDisabled(item)
