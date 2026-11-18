@@ -18,7 +18,7 @@ local ALLOWS = {
 
 Effects.SECTION = SECTION
 Effects.PRIORITY = {
-	lowHealth = 1, proc = 2, levelUp = 2, burst = 2, ready = 3, cast = 3, cap = 4, target = 4, combat = 5, rest = 6, ambient = 9,
+	lowHealth = 1, proc = 2, levelUp = 1.5, burst = 2, ready = 3, cast = 3, cap = 4, target = 4, combat = 5, rest = 6, ambient = 9,
 }
 Effects.defaults = { motion = "full" }
 

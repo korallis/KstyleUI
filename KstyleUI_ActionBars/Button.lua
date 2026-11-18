@@ -454,6 +454,8 @@ end
 
 function ns.StyleTextsFor(b, barKey)
 	local cfg = ns.Config(barKey)
+	b.opts.procTransitions = ns.Config("procTransitions") == true
+	b.opts.inputContinuity = ns.Config("inputContinuity") == true
 	local readable = b.opts.readableCountdown
 	b.opts.quietCooldown = ns.Config("quietCooldown") == true
 	b.opts.readableCountdown = ns.Config("readableCountdown") == true
@@ -619,6 +621,8 @@ function Button.New(bar, index)
 		size = cfg.size,
 		quietCooldown = ns.Config("quietCooldown") == true,
 		readableCountdown = ns.Config("readableCountdown") == true,
+		procTransitions = ns.Config("procTransitions") == true,
+		inputContinuity = ns.Config("inputContinuity") == true,
 		silent = true,
 		primary = true,
 	})

@@ -30,6 +30,11 @@ Effects.MODELS = {
 local pool = {}
 local failed, misses = {}, {}
 local clock = 0
+local hubAt
+
+local function Bezel(place)
+	return place == "hub" and ns.Store.IsLoaded() and ns.Store.Defaults("ActionBars") and ns.Store.Module("ActionBars").bezelModels == true
+end
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -38,6 +43,7 @@ end
 local function Idle(scene)
 	scene.busy, scene.priority, scene.fallback, scene.place = false, nil, nil, nil
 	scene.fade:Stop()
+	scene.preempt:Stop()
 	scene.actor:ClearModel()
 	scene:SetPaused(true)
 	scene:Hide()
@@ -45,7 +51,7 @@ end
 
 local function Check(scene)
 	scene.waiting = scene.waiting - 1
-	if scene.waiting > 0 or not scene.busy then
+	if scene.waiting > 0 or not scene.busy or scene.preempt:IsPlaying() then
 		return
 	end
 	local loaded = scene.actor:IsLoaded()
@@ -102,6 +108,13 @@ local function NewScene()
 		Idle(scene)
 	end)
 	scene.fade = fade
+	scene.preempt = scene:CreateAnimationGroup()
+	local exit = scene.preempt:CreateAnimation("Alpha")
+	exit:SetFromAlpha(1)
+	exit:SetToAlpha(0)
+	exit:SetDuration(0.15)
+	exit:SetSmoothing("IN")
+	scene.preempt:SetScript("OnFinished", function() Idle(scene) end)
 	scene.waiting = 0
 	scene.check = function()
 		Check(scene)
@@ -160,6 +173,9 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 	if not (file and not failed[file] and Effects.Allows("model") and anchor and anchor:IsVisible()) then
 		return false
 	end
+	local bezel = Bezel(place)
+	local now = type(GetTime) == "function" and GetTime() or 0
+	if bezel and hubAt and now - hubAt < 2.5 then return false end
 	local scene = Pick(priority)
 	if not scene then
 		return false
@@ -169,13 +185,15 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 		failed[file] = true
 		return false
 	end
+	if bezel then hubAt = now end
 	clock = clock + 1
 	scene.busy, scene.priority, scene.started, scene.file, scene.seconds = true, priority, clock, file, seconds
 	scene.fallback, scene.place = fallback, place
 	local side = size * MARGIN
-	scene:SetParent(anchor)
+	scene:SetParent(bezel and anchor:GetParent() or anchor)
+	scene:SetScale(bezel and anchor:GetScale() or 1)
 	scene:SetFrameStrata(anchor:GetFrameStrata())
-	scene:SetFrameLevel(anchor:GetFrameLevel() + PAD)
+	scene:SetFrameLevel(math.max(0, anchor:GetFrameLevel() + (bezel and -1 or PAD)))
 	scene:ClearAllPoints()
 	scene:SetPoint("CENTER", anchor, "CENTER", 0, 0)
 	scene:SetSize(side, side)
@@ -190,12 +208,17 @@ function Effects.Model(anchor, key, size, seconds, priority, fallback, place)
 	return true
 end
 
-function Effects.StopModels(place, twins)
+function Effects.StopModels(place, twins, preempt)
 	for i = 1, #pool do
 		local scene = pool[i]
 		if scene.busy and (place == nil or scene.place == place) then
 			local fallback = scene.fallback
-			Idle(scene)
+			if preempt and Bezel(place) then
+				scene.fade:Stop()
+				if not scene.preempt:IsPlaying() then scene.preempt:Play() end
+			else
+				Idle(scene)
+			end
 			if twins and fallback then
 				fallback()
 			end
@@ -203,13 +226,30 @@ function Effects.StopModels(place, twins)
 	end
 end
 
+function Effects.PrewarmModels()
+	if not (Bezel("hub") and Effects.Allows("model")) then return end
+	local _, class = UnitClass("player")
+	if IsSecret(class) then return end
+	for i, key in ipairs({ class, "levelUp" }) do
+		local scene = pool[i]
+		if not scene then scene = NewScene(); pool[i] = scene end
+		if scene and not scene.busy and Effects.MODELS[key] then
+			scene.actor:SetModelByFileID(Effects.MODELS[key])
+			scene:SetPaused(true)
+			scene:Hide()
+		end
+	end
+end
+
+ns.Events.Register("EffectModels", "PLAYER_ENTERING_WORLD", Effects.PrewarmModels)
+
 local stoppers, stop2Ds = {}, {}
 
 function Effects.Stopper(place)
 	local stop = stoppers[place]
 	if not stop then
 		stop = function()
-			Effects.StopModels(place)
+			Effects.StopModels(place, nil, true)
 			local own = stop2Ds[place]
 			if own then
 				own()
@@ -220,7 +260,7 @@ function Effects.Stopper(place)
 	return stop
 end
 
-function Effects.Burst(place, priority, anchor, key, size, seconds, play2D, stop2D)
+function Effects.Burst(place, priority, anchor, key, size, seconds, play2D, stop2D, always2D)
 	if not Effects.Allows("flare") then
 		return false
 	end
@@ -228,6 +268,10 @@ function Effects.Burst(place, priority, anchor, key, size, seconds, play2D, stop
 		return false
 	end
 	stop2Ds[place] = stop2D
+	if always2D and play2D then
+		play2D()
+		play2D = nil
+	end
 	if Effects.Model(anchor, key, size, seconds, priority, play2D, place) then
 		return "model"
 	end

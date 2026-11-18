@@ -76,6 +76,9 @@ local defaults = {
 	quietCooldown = true,
 	readableCountdown = true,
 	seatedCrest = true,
+	procTransitions = true,
+	inputContinuity = true,
+	bezelModels = true,
 	text = {
 		hotkey = { font = "", size = HOTKEY_TEXT, outline = "NONE" },
 		count = { font = "", size = Tokens.Size("number"), outline = "NONE" },
@@ -233,6 +236,10 @@ function ns.Schema()
 		return settings.accent ~= "custom"
 	end
 	local list = {
+		{ type = "header", label = L["Motion"] },
+		{ type = "toggle", key = "procTransitions", label = L["Soft proc and ready glow"], help = L["Fade and soften proc glows and ready flashes. Turn off for the previous glow."] },
+		{ type = "toggle", key = "inputContinuity", label = L["Smooth hover and held press"], help = L["Finish hover fades and light held buttons. Turn off for the previous response."] },
+		{ type = "toggle", key = "bezelModels", label = L["Models behind the crest"], help = L["Space 3D flashes behind the crest and fade replacements. Turn off for the previous effects."] },
 		{ type = "header", label = L["Colours"] },
 		{
 			type = "dropdown", key = "accent", label = L["Accent"], help = L["The colour of the button edges and proc glows."],

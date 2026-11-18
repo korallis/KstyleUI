@@ -543,6 +543,7 @@ local function Build()
 	hub:Hide()
 	hub.top = CreateFrame("Frame", nil, hub)
 	hub.top:SetAllPoints(hub)
+	hub:HookScript("OnHide", function() K.Effects.StopModels("hub") end)
 	BuildRing(hub)
 	BuildCrest(hub)
 	hub.particles = BuildParticles(hub)
@@ -880,7 +881,13 @@ local function ProcParts(b)
 		local mask = b.overlay:CreateMaskTexture()
 		mask:SetTexture(SocketMask(), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 		mask:SetAllPoints(b.icon)
-		local loop = Region(b.overlay, "OVERLAY", 6, nil, true)
+		local frame = CreateFrame("Frame", nil, b.overlay)
+		frame:SetAllPoints(b)
+		frame.body = CreateFrame("Frame", nil, frame)
+		frame.body:SetAllPoints(frame)
+		Widgets.ProcMotion(frame, frame.body)
+		b.medProcFrame = frame
+		local loop = Region(frame.body, "OVERLAY", 6, nil, true)
 		loop:SetAllPoints(b.icon)
 		loop:AddMaskTexture(mask)
 		loop:Hide()
@@ -891,27 +898,33 @@ local function ProcParts(b)
 		start.anim = Group(start)
 		Grow(start.anim, 0.7, 1.1, PROC_START)
 		Fade(start.anim, 1, 0, PROC_START)
-		local edge = Region(b.overlay, "OVERLAY", 7, Slab.Texture("medSlotChecked"), true)
+		local edge = Region(b.medProcFrame.body, "OVERLAY", 7, Slab.Texture("medSlotChecked"), true)
 		edge:SetAllPoints(b)
 		edge:Hide()
 		b.medProc, b.medProcStart, b.medProcEdge = loop, start, edge
+		b.medProcFrame.onProcHidden = function()
+			loop.anim:Stop()
+			loop:Hide()
+			edge:Hide()
+		end
 	end
 	return b.medProc, b.medProcStart, b.medProcEdge
 end
 
 local function ProcLoop(loop)
 	local path = ClassTexture("medProc")
-	if loop.path == path then
+	local polished = ns.Config("procTransitions") == true
+	if loop.path == path and loop.polished == polished then
 		return
 	end
-	loop.path = path
+	loop.path, loop.polished = path, polished
 	loop:SetTexture(path)
 	if loop.anim then
 		loop.anim:Stop()
 	end
 	loop.anim = Group(loop, "REPEAT")
 	if ClassName() and path ~= Slab.Texture("medProc") then
-		Flipbook(loop.anim, Cells("medProc" .. ClassName(), FLIP))
+		Flipbook(loop.anim, Cells("medProc" .. ClassName(), FLIP), ns.Config("procTransitions") and 2 * Tokens.Duration("glowBreath") or nil)
 	else
 		Fade(loop.anim, 0.5, 1, FLIP.seconds / 2)
 		Fade(loop.anim, 1, 0.5, FLIP.seconds / 2, 2)
@@ -924,15 +937,24 @@ function Slab.SetProc(b, on)
 	end
 	ns.SlabEffects.SlotProc(b, on and Slab.Active())
 	if b.lumenGlow then
-		b.lumenGlow:SetShown(b.proc == true and not Slab.Active())
+		b.slabProc = Slab.Active()
+		if b.opts.procTransitions then
+			Widgets.ShowProc(b.lumenGlow, b.proc == true and not Slab.Active(), true, not K.Motion.ReducedMotion())
+			if Slab.Active() then b.lumenGlow:Hide() end
+		else
+			b.lumenGlow:SetShown(b.proc == true and not Slab.Active())
+		end
 	end
 	if not (on and Slab.Active()) then
 		if b.medProc then
-			b.medProc.anim:Stop()
-			b.medProc:Hide()
+			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions"), false)
+			if not b.medProcFrame.leave:IsPlaying() then
+				b.medProc.anim:Stop()
+				b.medProc:Hide()
+			end
 			b.medProcStart.anim:Stop()
 			b.medProcStart:SetAlpha(0)
-			b.medProcEdge:Hide()
+			if not b.medProcFrame.leave:IsPlaying() then b.medProcEdge:Hide() end
 		end
 		return
 	end
@@ -952,12 +974,24 @@ function Slab.SetProc(b, on)
 	edge:SetVertexColor(r, g, bl, 1)
 	edge:Show()
 	loop:Show()
+	local polished = ns.Config("procTransitions") == true
+	local fresh = not b.medProcFrame.procShown
+	Widgets.ShowProc(b.medProcFrame, true, polished, Slab.Allows("pulse"))
 	if Slab.Allows("pulse") then
-		loop.anim:Play()
+		if not loop.anim:IsPlaying() then loop.anim:Play() end
+	else
+		loop.anim:Stop()
+		if polished and loop.path ~= Slab.Texture("medProc") then
+			local cells = Cells("medProc" .. ClassName(), FLIP)
+			loop:SetTexCoord(0, 1 / cells.columns, 0, 1 / cells.rows)
+		end
 	end
-	Play(start.anim)
-	Slab.Pulse()
-	ns.SlabEffects.Proc(Slab.hub)
+	if fresh or not polished then
+		Play(start.anim)
+		local holder = K.Effects.Holder("hub")
+		if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
+		ns.SlabEffects.Proc(Slab.hub)
+	end
 end
 
 local function OnCombat(event)
@@ -1036,6 +1070,9 @@ function Slab.Dress(b)
 			b.medHover:SetBlendMode("ADD")
 		end
 		b.medPushed = SlotLayer(b, "OVERLAY", 3, "medSlotPushed", b)
+		b.medPushed.release = Group(b.medPushed)
+		Fade(b.medPushed.release, 0.6, 0, 0.1):SetSmoothing("IN")
+		b.medPushed.release:SetScript("OnFinished", function() b.medPushed:Hide() end)
 		if type(hooksecurefunc) == "function" then
 			for _, method in ipairs({ "SetSelected", "AnimatePress" }) do
 				if type(b[method]) == "function" then
@@ -1044,14 +1081,24 @@ function Slab.Dress(b)
 			end
 		end
 	end
+	if b.SetSlabDress then b:SetSlabDress(on) end
 	Socket(b, on)
+	b.chrome:SetShown(not on)
 	b.medFrame:SetShown(on)
 	b.medWell:SetShown(on)
 	b.medChecked:SetShown(on and b.selected == true)
 	if b.medHover then
 		b.medHover:SetShown(on)
 	end
-	b.medPushed:SetShown(on and b.pressHeld == true)
+	if on and b.pressHeld then
+		b.medPushed.release:Stop()
+		b.medPushed:SetAlpha(ns.Config("inputContinuity") and 0.6 or 1)
+		b.medPushed:Show()
+	elseif on and ns.Config("inputContinuity") and b.medPushed:IsShown() then
+		if not b.medPushed.release:IsPlaying() then b.medPushed.release:Play() end
+	else
+		b.medPushed:Hide()
+	end
 	Slab.Keybind(b)
 end
 
@@ -1065,7 +1112,18 @@ local function OnStyle()
 	end
 end
 
-local function OnMotion()
+local function OnMotion(_, module, key)
+	local restyle = module == "ActionBars" and (key == "procTransitions" or key == "inputContinuity")
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+		for _, b in ipairs(list or {}) do
+			local changed = b.opts.procTransitions ~= ns.Config("procTransitions") or b.opts.inputContinuity ~= ns.Config("inputContinuity")
+			b.opts.procTransitions = ns.Config("procTransitions") == true
+			b.opts.inputContinuity = ns.Config("inputContinuity") == true
+			if changed or restyle then b:Restyle() end
+			Slab.Dress(b)
+			Slab.SetProc(b, b.proc == true)
+		end
+	end
 	if state.built and Slab.hub:IsShown() then
 		SizeBadge(Slab.hub)
 		Animate()

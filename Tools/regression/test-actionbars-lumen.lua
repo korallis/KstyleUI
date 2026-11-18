@@ -122,7 +122,7 @@ do
 	assert(breath and breath:IsPlaying(), "the glow breathes")
 	assert(W.LastCall(breath, "SetLooping")[1] == "BOUNCE", "in and out")
 	local alpha = breath._anims[1]
-	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], 0.7), "at 0.7 seconds a breath")
+	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], K.Tokens.Duration("glowBreath")), "at glowBreath seconds per leg")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
 	assert(not b.proc and not breath:IsPlaying(), "the hide event stops the breath")
 	assert(not b.chrome.proc and W.SameColor(b.chrome.line[1], K.Tokens.Color("socketEdge")), "ending the proc restores the black outer socket edge")

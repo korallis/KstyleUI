@@ -228,12 +228,10 @@ do
 		end
 	end
 	E.ClaimFor("hub", P.levelUp, 1.2, Stop("levelup"))
-	E.ClaimFor("hub", P.proc, 0.9, Stop("proc"))
-	assert(stops[1] == "levelup", "the proc replaces the level-up and stops it")
-	Fire(2)
-	assert(E.Holder("hub") == nil and stops[2] == "proc", "the proc's own timer frees the hub and runs its stop, though the level-up's timer is still pending")
+	assert(not E.ClaimFor("hub", P.proc, 0.9, Stop("proc")), "a proc cannot displace level-up")
+	assert(#stops == 0 and E.Holder("hub") == P.levelUp, "level-up keeps the hub")
 	Fire(1)
-	assert(#stops == 2 and E.Holder("hub") == nil, "the replaced claim's timer does nothing")
+	assert(#stops == 1 and stops[1] == "levelup" and E.Holder("hub") == nil, "the level-up's own timer frees the hub")
 	E.ClaimFor("hub", P.proc, 0.9, Stop("a"))
 	local held = E.Claim("hub", P.lowHealth, Stop("b"))
 	Fire(1)

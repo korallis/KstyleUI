@@ -173,6 +173,8 @@ function Slot:AnimateHover(on)
 			layer:SetAlpha(1)
 			layer:Show()
 		end
+	elseif self.opts.inputContinuity and Animated() and self.hoverIn:IsPlaying() then
+		return
 	elseif Animated() and layer:IsShown() and not self.hoverIn:IsPlaying() then
 		Replay(self.hoverOut)
 	else
@@ -185,13 +187,33 @@ function Slot:AnimatePress(down)
 	down = down == true
 	local held = self.pressHeld
 	self.pressHeld = down
+	if self.opts.inputContinuity and not self.slabDressed and (down or self.heldLayer) then
+		if not self.heldLayer then
+			local heldLayer = Layer(self)
+			self.heldLayer, self.heldRim = heldLayer, Ring(heldLayer, "OVERLAY", 1)
+			PlaceRing(self.heldRim, self, self.stateLine, self.stateLine)
+			ColorRing(self.heldRim, Tokens.Color("slotPress"))
+			self.heldRelease = heldLayer:CreateAnimationGroup()
+			Fade(self.heldRelease, 0.6, 0, 0.1, "IN")
+			self.heldRelease:SetScript("OnFinished", function() heldLayer:Hide() end)
+		end
+		self.heldRelease:Stop()
+		if down then
+			self.heldLayer:SetAlpha(0.6)
+			self.heldLayer:Show()
+		elseif Animated() then
+			self.heldRelease:Play()
+		else
+			self.heldLayer:Hide()
+		end
+	end
 	if down and not held then
 		self:Flash()
 	end
 end
 
 function Slot:Flash()
-	if not Animated() then
+	if not Animated() or self.slabDressed then
 		return
 	end
 	self:BuildState("press")
@@ -201,6 +223,13 @@ function Slot:Flash()
 end
 
 local function Breathe(self)
+	if self.opts.procTransitions then
+		Widgets.ShowProc(self.lumenGlow, self.proc == true and not self.slabProc, true, not Motion.ReducedMotion())
+		return
+	end
+	if self.lumenGlow.procPolished then
+		Widgets.ShowProc(self.lumenGlow, self.proc == true and not self.slabProc, false, false)
+	end
 	local breath = self.lumenGlow.breath
 	local visible = self.lumenGlow:IsVisible()
 	if Widgets.IsSecret(visible) then
@@ -224,9 +253,13 @@ function Slot:SetProc(on)
 	self.proc = on
 	if on then
 		self:BuildState("proc")
+		if self.opts.procTransitions then
+			self.readyFlash:Stop()
+			self.readyWash:Hide()
+		end
 	end
 	self.chrome:SetProc(on)
-	self.lumenGlow:SetShown(on)
+	if not self.opts.procTransitions then self.lumenGlow:SetShown(on) end
 	self:Paint()
 end
 
@@ -243,6 +276,7 @@ local function PlaceStates(self)
 	if not line then
 		return
 	end
+	if self.heldRim then PlaceRing(self.heldRim, self, line, line) end
 	if self.hoverRim then
 		PlaceRing(self.hoverRim, self, -line, line)
 	end
@@ -258,7 +292,7 @@ end
 local function PlaceLayers(self)
 	local line = Widgets.Border(self)
 	self.stateLine, self.stateInset = line, 3 * line
-	self.statePressSpread, self.stateProcSpread = Widgets.Snap(self, PRESS_SPREAD), Widgets.Snap(self, PROC_SPREAD)
+	self.statePressSpread, self.stateProcSpread = Widgets.Snap(self, self.opts.inputContinuity and 4 or PRESS_SPREAD), Widgets.Snap(self, self.opts.procTransitions and 5.6 or PROC_SPREAD)
 	local size = Height(self)
 	PlaceRing(self.innerLine, self.icon, 0, line)
 	local top, bottom = self.bevelTop, self.bevelBottom
@@ -310,7 +344,7 @@ local function PaintLayers(self)
 	StoreColor(self, "hoverRimColor", Widgets.Rgba("textHover", HOVER_RIM))
 	StoreColor(self, "pressRimColor", Tokens.Color("slotPress"))
 	StoreColor(self, "pressHaloColor", Widgets.Rgba("slotPress", PRESS_HALO))
-	StoreColor(self, "procGlowColor", Widgets.Rgba("giltLit", PROC_GLOW))
+	StoreColor(self, "procGlowColor", Widgets.Rgba("giltLit", self.opts.procTransitions and 0.25 or PROC_GLOW))
 	StoreColor(self, "procHaloColor", Widgets.Rgba("giltLit", PROC_HALO))
 	ColorRing(self.innerLine, Widgets.Rgba("black", INNER_ALPHA))
 	if type(self.bevelTop.SetGradient) == "function" and type(CreateColor) == "function" then
@@ -325,7 +359,7 @@ local function PaintLayers(self)
 	end
 	self.well:SetVertexColor(Tokens.Color("slotWell"))
 	PaintStates(self)
-	self.readyWash:SetColorTexture(Widgets.Rgba("giltLit"))
+	self.readyWash:SetColorTexture(Widgets.Rgba(self.opts.procTransitions and "steelLit" or "giltLit", self.opts.procTransitions and 0.45 or 1))
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
 	end
@@ -340,14 +374,14 @@ end
 function Slot:BuildState(kind)
 	if kind == "hover" and not self.hoverRim then
 		self.hoverRim = Ring(self.hoverLayer, "OVERLAY", 1)
-		Wash(self, self.hoverLayer, "white", HOVER_WASH)
+		self.hoverWash = Wash(self, self.hoverLayer, "white", HOVER_WASH)
 	elseif kind == "press" and not self.pressRim then
 		BuildHalo(self.pressHalo)
 		self.pressRim = Ring(self.pressLayer, "OVERLAY", 1)
 		Wash(self, self.pressLayer, "white", PRESS_WASH)
 	elseif kind == "proc" and not self.lumenGlow.texture then
 		local glow = self.lumenGlow
-		local texture = glow:CreateTexture(nil, "OVERLAY")
+		local texture = glow.body:CreateTexture(nil, "OVERLAY")
 		texture:SetTexture((Tokens.Texture("glow")))
 		texture:SetBlendMode("ADD")
 		texture:SetAllPoints(glow)
@@ -358,12 +392,28 @@ function Slot:BuildState(kind)
 	end
 	PlaceStates(self)
 	PaintStates(self)
+	self:SetSlabDress(self.slabProc)
+end
+
+function Slot:SetSlabDress(on)
+	self.slabProc = on == true
+	self.slabDressed = on == true and self.opts.inputContinuity == true
+	if self.hoverWash then self.hoverWash:SetShown(not self.slabDressed) end
+	for _, rim in ipairs(self.hoverRim or {}) do rim:SetShown(not self.slabDressed) end
+	if self.slabDressed then
+		self.pressLayer:Hide()
+	end
+	if self.heldLayer and (self.slabDressed or not self.opts.inputContinuity) then self.heldLayer:Hide() end
 end
 
 function Widgets.Slot(parent, opts)
 	opts = opts or {}
 	opts.fill = opts.fill or "slotFill"
 	local b = Widgets.IconButton(parent, opts)
+	local flashReady = b.FlashReady
+	b.FlashReady = function(self)
+		if not (self.opts.procTransitions and self.proc) then flashReady(self) end
+	end
 	for k, fn in pairs(Slot) do
 		b[k] = fn
 	end
@@ -384,7 +434,10 @@ function Widgets.Slot(parent, opts)
 	Fade(b.hoverIn, 0, 1, Tokens.Duration("hover"), "OUT")
 	b.hoverOut = hover:CreateAnimationGroup()
 	b.hoverOut:SetToFinalAlpha(true)
-	Fade(b.hoverOut, 1, 0, Tokens.Duration("hover"), "OUT")
+	b.hoverOutFade = Fade(b.hoverOut, 1, 0, opts.inputContinuity and 0.1 or Tokens.Duration("hover"), opts.inputContinuity and "IN" or "OUT")
+	b.hoverIn:SetScript("OnFinished", function()
+		if opts.inputContinuity and not b.hovered then Replay(b.hoverOut) end
+	end)
 	b.hoverOut:SetScript("OnFinished", function()
 		if not b.hovered then
 			hover:Hide()
@@ -401,10 +454,15 @@ function Widgets.Slot(parent, opts)
 		press:Hide()
 	end)
 	local glow = Layer(b, b.icon)
-	b.procHalo = Halo(b, glow)
-	glow.breath = glow:CreateAnimationGroup()
-	glow.breath:SetLooping("BOUNCE")
-	Fade(glow.breath, BREATH_HIGH, BREATH_LOW, Tokens.Duration("procPulse"), "IN_OUT")
+	glow.body = CreateFrame("Frame", nil, glow)
+	glow.body:SetAllPoints(glow)
+	b.procHalo = Halo(b, glow.body)
+	Widgets.ProcMotion(glow, glow.body)
+	if not opts.procTransitions then
+		local a = glow.breathAlpha
+		a:SetToAlpha(BREATH_LOW)
+		a:SetDuration(Tokens.Duration("procPulse"))
+	end
 	b.lumenGlow = glow
 	glow:HookScript("OnShow", function()
 		Breathe(b)
@@ -414,6 +472,10 @@ function Widgets.Slot(parent, opts)
 	end)
 	b.readyFade:SetFromAlpha(READY_ALPHA)
 	b.readyFade:SetDuration(Tokens.Duration("readyFlash"))
+	b.readyAttack = b.readyFlash:CreateAnimation("Alpha")
+	b.readyAttack:SetFromAlpha(0)
+	b.readyAttack:SetToAlpha(1)
+	b.readyAttack:SetOrder(1)
 	b.rimToken = opts.rim or "slotRim"
 	b:HookScript("OnClick", function(self, _, down)
 		self:AnimatePress(down)
@@ -431,6 +493,17 @@ function Widgets.Slot(parent, opts)
 		if Widgets.MayMove(self) then
 			PlaceLayers(self)
 		end
+		self.hoverOutFade:SetDuration(self.opts.inputContinuity and 0.1 or Tokens.Duration("hover"))
+		self.hoverOutFade:SetSmoothing(self.opts.inputContinuity and "IN" or "OUT")
+		local a = self.lumenGlow.breathAlpha
+		a:SetToAlpha(self.opts.procTransitions and 0.55 or BREATH_LOW)
+		a:SetDuration(Tokens.Duration(self.opts.procTransitions and "glowBreath" or "procPulse"))
+		self:SetSlabDress(self.slabProc)
+		self.readyAttack:SetDuration(self.opts.procTransitions and 0.06 or 0)
+		self.readyFade:SetOrder(2)
+		self.readyAttack:SetToAlpha(self.opts.procTransitions and 1 or READY_ALPHA)
+		self.readyFade:SetFromAlpha(self.opts.procTransitions and 1 or READY_ALPHA)
+		self.readyFade:SetDuration(self.opts.procTransitions and 0.18 or Tokens.Duration("readyFlash"))
 		PaintLayers(self)
 	end
 	b:Restyle()

@@ -57,8 +57,8 @@ local function ReadyParts(b)
 		flash:SetPoint("CENTER", b, "CENTER", 0, 0)
 		flash:SetAlpha(0)
 		local group = flash:CreateAnimationGroup()
-		Fade(group, 0, 1, READY * READY_RISE, 1)
-		Fade(group, 1, 0, READY * (1 - READY_RISE), 2)
+		flash.rise = Fade(group, 0, 1, READY * READY_RISE, 1)
+		flash.fall = Fade(group, 1, 0, READY * (1 - READY_RISE), 2)
 		group:SetScript("OnFinished", function()
 			flash:SetAlpha(0)
 		end)
@@ -69,7 +69,10 @@ local function ReadyParts(b)
 		end
 		b.medReady = flash
 	end
-	local side = SlotSize(b) * READY_SHARE
+	local polished = ns.Config("procTransitions") == true
+	flash.rise:SetDuration(polished and 0.06 or READY * READY_RISE)
+	flash.fall:SetDuration(polished and 0.18 or READY * (1 - READY_RISE))
+	local side = SlotSize(b) * (polished and 1.15 or READY_SHARE)
 	Widgets.Size(flash, side, side)
 	return flash
 end
@@ -85,7 +88,8 @@ function Fx.Ready(b)
 	if not Effects.ClaimFor(b, P.ready, READY, flash.stop) then
 		return true
 	end
-	flash:SetVertexColor(Color("steelLit", "textEmphasis"))
+	local r, g, bl = Color("steelLit", "textEmphasis")
+	flash:SetVertexColor(r, g, bl, ns.Config("procTransitions") and 0.45 or 1)
 	flash.anim:Stop()
 	flash.anim:Play()
 	return true
@@ -243,10 +247,8 @@ function Fx.LevelUp(hub, play2D, stop2D)
 		end
 		return false
 	end
-	if play2D and Effects.Allows("flare") then
-		play2D()
-	end
-	return Effects.Burst("hub", P.levelUp, hub, "levelUp", (ns.Slab.RING or hub:GetWidth()) * LEVEL_SHARE, LEVEL_SECONDS, nil, stop2D)
+	local priority = ns.Config("procTransitions") and P.levelUp or P.proc
+	return Effects.Burst("hub", priority, hub, "levelUp", (ns.Slab.RING or hub:GetWidth()) * LEVEL_SHARE, LEVEL_SECONDS, play2D, stop2D, true)
 end
 
 local listening = false

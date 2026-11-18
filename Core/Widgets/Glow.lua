@@ -5,7 +5,7 @@ local Widgets = ns.Widgets
 local Tokens, Motion, Scale = ns.Tokens, ns.Motion, ns.Scale
 local max = math.max
 
-local PULSE_LOW, PULSE_HIGH = 0.45, 1
+local PULSE_LOW, PULSE_HIGH = 0.55, 1
 local SPARK_SCALE = 1.35
 local SPARK_LONG, SPARK_THIN = 6, 1
 local SPARK_INSET_X, SPARK_INSET_Y = 3, 2.5
@@ -192,7 +192,54 @@ local function Pulse(owner, low, high, duration)
 	alpha:SetToAlpha(high)
 	alpha:SetDuration(duration)
 	alpha:SetSmoothing(Tokens.Smoothing.loop)
-	return group
+	return group, alpha
+end
+
+function Widgets.ProcMotion(frame, body)
+	local function Fade(from, to, duration, smoothing)
+		local group = frame:CreateAnimationGroup()
+		group:SetToFinalAlpha(true)
+		local a = group:CreateAnimation("Alpha")
+		a:SetFromAlpha(from)
+		a:SetToAlpha(to)
+		a:SetDuration(duration)
+		a:SetSmoothing(smoothing)
+		return group
+	end
+	frame.enter = Fade(0, 1, Tokens.Duration("procIn"), "OUT")
+	frame.leave = Fade(1, 0, Tokens.Duration("procOut"), "IN")
+	frame.leave:SetScript("OnFinished", function()
+		if not frame.procShown then
+			frame:Hide()
+			frame.breath:Stop()
+			if frame.onProcHidden then frame.onProcHidden() end
+		end
+	end)
+	frame.breath, frame.breathAlpha = Pulse(body, 1, 0.55, Tokens.Duration("glowBreath"))
+end
+
+function Widgets.ShowProc(frame, on, polished, loops)
+	local changed = frame.procShown ~= on or frame.procPolished ~= polished
+	frame.procShown, frame.procPolished = on, polished
+	if changed then
+		frame.enter:Stop()
+		frame.leave:Stop()
+		if polished and Motion.Level() ~= "off" then
+			frame:SetAlpha(on and 0 or 1)
+			frame:Show()
+			if on then frame.enter:Play() else frame.leave:Play() end
+		else
+			frame:SetAlpha(1)
+			frame:SetShown(on)
+		end
+	end
+	local visible = frame:IsVisible()
+	if Widgets.IsSecret(visible) then visible = false end
+	if on and polished and loops and visible then
+		if not frame.breath:IsPlaying() then frame.breath:Play() end
+	else
+		frame.breath:Stop()
+	end
 end
 
 function Widgets.Glow(frame, opts)
@@ -231,7 +278,7 @@ function Widgets.Glow(frame, opts)
 	if kind == "proc" then
 		body = CreateFrame("Frame", nil, holder)
 		body:SetAllPoints(holder)
-		handle.pulse = Pulse(body, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
+		handle.pulse = Pulse(body, PULSE_LOW, PULSE_HIGH, Tokens.Duration("glowBreath"))
 		local top = CreateFrame("Frame", nil, frame)
 		top:SetAllPoints(frame)
 		top:SetFrameLevel(frame:GetFrameLevel() + SPARK_LEVEL)
@@ -245,11 +292,11 @@ function Widgets.Glow(frame, opts)
 		end
 		Core(top)
 		handle.coreAlpha = CORE_ALPHA
-		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
+		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("glowBreath"))
 		local grow = sparkPulse:CreateAnimation("Scale")
 		grow:SetScaleFrom(1, 1)
 		grow:SetScaleTo(SPARK_SCALE, SPARK_SCALE)
-		grow:SetDuration(Tokens.Duration("procPulse") / 2)
+		grow:SetDuration(Tokens.Duration("glowBreath"))
 		grow:SetSmoothing(Tokens.Smoothing.loop)
 		handle.sparkPulse = sparkPulse
 		Motion.TrackGroup(handle.pulse, function() StopAnimations(handle) end)
