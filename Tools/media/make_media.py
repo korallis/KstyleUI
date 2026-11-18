@@ -943,6 +943,8 @@ ASSETS = [
     Asset("Media/Logo/Logo64.tga", 64, 64, lambda: draw_logo(64),
           "Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension."),
     Asset("Media/Logo/Logo256.png", 256, 256, lambda: draw_logo(256), "KstyleUI logo, the chamfered diamond, at 256 px."),
+    Asset("Media/Logo/Logo256.tga", 256, 256, lambda: draw_logo(256),
+          "Welcome logo in the client's TGA texture format; identical pixels to Logo256.png."),
 ]
 
 

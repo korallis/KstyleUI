@@ -136,6 +136,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Logo/Logo64.png` | 64x64 | KstyleUI logo, the chamfered diamond, at 64 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Logo/Logo256.tga` | 256x256 | Welcome logo in the client's TGA texture format; identical pixels to Logo256.png. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/MaterialSlate.png` | 256x256 | Prepared slate grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
 | `Media/Textures/MaterialForged.png` | 256x256 | Prepared forged grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
 | `Media/Textures/ForgedFrame1.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 8 texels | 2026-11-10 |
@@ -163,6 +164,9 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Textures/Medallions/CastShield.png` | 64x16 | Uninterruptible-cast hatch: white 45-degree stripes 3 texels wide every 8, tiling both ways. Tinted over the cast bar. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-15 |
 | `Media/Textures/Medallions/MapMask.png` | 256x256 | Round minimap mask for the Medallions map: a white disc touching the edges. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-15 |
 <!-- END make_media -->
+
+
+The welcome page uses the 256x256 RGBA TGA logo. At Forever UI source commit `9dc84f0` (1.60.1.70862), `Interface/AddOns/Blizzard_FriendsFrame/Camelot/FriendsFrame.lua:567,580` explicitly loads `.tga` textures. The `.png` occurrences found in the UI source are texture names or packaged resource listings, not proof of loose addon PNG loading. The procedural TGA and PNG contain identical pixels (`python Tools/media/make_media.py --only Logo256 --check`); welcome render scenes use the PNG companion because Chrome does not decode TGA. Existing HUD-style preview art is reused without generating new artwork.
 
 ## Card materials (study sources, 2026-11-10)
 
