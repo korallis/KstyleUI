@@ -172,10 +172,7 @@ function Panel:Restyle()
 			cap.gem:SetVertexColor(Tokens.Color("capsGold"))
 			local r, g, b = Tokens.Color("capsGold")
 			cap.rule:SetColorTexture(r, g, b, RULE_ALPHA)
-			local below = -Widgets.TextHeight(cap.label, Widgets.LineHeight(cap.label)) / 2 - Widgets.Snap(self, 2) - Widgets.Border(self) / 2
-			cap.rule:ClearAllPoints()
-			Widgets.Point(cap.rule, "LEFT", cap, "LEFT", Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM), below)
-			Widgets.Point(cap.rule, "RIGHT", cap, "RIGHT", 0, below)
+			Widgets.RuleBelow(cap.rule, cap, cap.label, Widgets.Snap(self, GEM_CENTRE + TEXT_FROM_GEM))
 		end
 		cap:SetHeight(heading)
 		self.cap:ClearAllPoints()

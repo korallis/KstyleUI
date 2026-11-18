@@ -14,6 +14,7 @@ local REACTION_NEUTRAL = 4
 local THREAT_LOW, THREAT_INSECURE, THREAT_SECURE = 1, 2, 3
 local THREAT_MIX = 0.5
 local QUALITY_RARE, QUALITY_EPIC = 3, 4
+local QUALITY_TOKENS = { [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" }
 
 local SOURCES = { class = true, custom = true }
 local STYLE_FACES = {
@@ -357,10 +358,8 @@ function Theme.QualityColor(quality, refined)
 		return Rgb("text")
 	end
 	local enum = Enum and Enum.ItemQuality
-	if refined == true then
-		local token = ({ [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" })[quality]
-		if token then return Rgb(token) end
-	end
+	local token = refined == true and QUALITY_TOKENS[quality]
+	if token then return Rgb(token) end
 	if quality == (enum and enum.Rare or QUALITY_RARE) then
 		return Rgb("rare")
 	elseif quality == (enum and enum.Epic or QUALITY_EPIC) then

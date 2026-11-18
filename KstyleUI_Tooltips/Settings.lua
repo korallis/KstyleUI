@@ -15,6 +15,7 @@ local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, 6
 local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 44
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 13, 12, 11
+local LEGACY_SIZES = { ["title.size"] = 11, ["body.size"] = 11, ["small.size"] = 9, iconSize = 50 }
 
 local FACE = "theme"
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
@@ -361,10 +362,7 @@ function Settings.Get(key)
 		value = nil
 	end
 	if row and value ~= nil and VALID[row.type](row, value) then
-		if key ~= "hierarchy" and Settings.Get("hierarchy") == false then
-			local legacy = { ["title.size"] = 11, ["body.size"] = 11, ["small.size"] = 9, iconSize = 50 }
-			if legacy[key] and value == default then return legacy[key] end
-		end
+		if key ~= "hierarchy" and Settings.Get("hierarchy") == false and LEGACY_SIZES[key] and value == default then return LEGACY_SIZES[key] end
 		return value
 	end
 	if not row and type(value) == type(default) then

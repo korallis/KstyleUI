@@ -154,6 +154,7 @@ local function Room(glass)
 end
 
 local function LayoutSample(glass)
+	local hierarchy = Settings.Get("hierarchy")
 	local pad = Widgets.Snap(glass, Tokens.Size("gapMedium"))
 	local gap = Widgets.Snap(glass, LINE_GAP)
 	local headed = Headed(glass)
@@ -171,24 +172,27 @@ local function LayoutSample(glass)
 		end
 		if visible then
 			if row.right then
-				Widgets.Fitted(row.left, Settings.Get("hierarchy"))
-				Widgets.Fitted(row.right, Settings.Get("hierarchy"))
+				Widgets.Fitted(row.left, hierarchy)
+				Widgets.Fitted(row.right, hierarchy)
 			end
 			Style.StyleFont(row.left, role, nil, line.kit)
 			row.left:SetTextColor(LineColor(line.color))
-			if role == "small" and Settings.Get("hierarchy") then row.left:SetTextColor(Tokens.Color("medTextMuted")) end
+			if role == "small" and hierarchy then row.left:SetTextColor(Tokens.Color("medTextMuted")) end
 			row.left:ClearAllPoints()
-			if Settings.Get("hierarchy") then Widgets.Point(row.left, "TOPLEFT", glass, "TOPLEFT", x, -y)
-			else row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y) end
-			if Settings.Get("hierarchy") then Widgets.Point(row.left, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
-			else row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0) end
+			if hierarchy then
+				Widgets.Point(row.left, "TOPLEFT", glass, "TOPLEFT", x, -y)
+				Widgets.Point(row.left, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+			else
+				row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
+				row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
+			end
 			local _, size = Style.FontSpec(role)
 			local height = Widgets.TextHeight(row.left, size)
 			if row.right then
 				Style.StyleFont(row.right, role)
 				row.right:SetTextColor(LineColor(line.rightColor or line.color))
 				row.right:ClearAllPoints()
-				if Settings.Get("hierarchy") then Widgets.Point(row.right, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+				if hierarchy then Widgets.Point(row.right, "TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
 				else row.right:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -pad, -y) end
 				FitPair(row, width - x - pad, Widgets.Snap(glass, Tokens.Size("gapSmall")))
 			end

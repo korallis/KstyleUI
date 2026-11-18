@@ -104,7 +104,7 @@ for key in pairs(READABILITY) do
 	end
 end
 
-local readability = { readableBars = true, worldText = true, chatTabs = true, barColors = true, textFloor = true, sectionHeadings = true }
+local readability = {}
 function Appearance.Readability(key)
 	return readability[key] ~= false
 end
@@ -118,7 +118,7 @@ local function ApplyReadability()
 		local changed
 		for key in pairs(READABILITY) do
 			local value = Appearance.Get(key)
-			changed = changed or readability[key] ~= value
+			changed = changed or Appearance.Readability(key) ~= value
 			readability[key] = value
 		end
 		if not changed then return end

@@ -36,11 +36,8 @@ end
 
 local function SetLabel(tab, label)
 	local headings = Widgets.Readability("sectionHeadings")
-	if headings or tab.headings == true then
-		Widgets.StyleText(tab.label, headings and "caps" or "body")
-		if headings then Widgets.CapsSize(tab.label) end
-	end
-	tab.headings = headings
+	Widgets.StyleText(tab.label, headings and "caps" or "body")
+	if headings then Widgets.CapsSize(tab.label) end
 	if Widgets.IsSecret(label) or type(label) ~= "string" then
 		Widgets.SetText(tab.label, label)
 	else
