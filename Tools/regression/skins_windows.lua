@@ -1410,7 +1410,7 @@ function build.addonlist(env, B)
 	f.SearchBox = EditBox(B, f, "Search", 160)
 	Anchor(f.SearchBox, f, "TOPRIGHT", -14, -32)
 	-- InputBoxTemplates.xml (SearchBoxTemplate): the magnifying glass atlas, 10 square, 1 in from the left.
-	f.SearchBox.searchIcon = B.texture(f.SearchBox, "OVERLAY")
+	f.SearchBox.searchIcon = B.add(f.SearchBox:CreateTexture(nil, "OVERLAY"))
 	f.SearchBox.searchIcon:SetAtlas("common-search-magnifyingglass")
 	Anchor(f.SearchBox.searchIcon, f.SearchBox, "LEFT", 1, -1)
 	f.SearchBox.searchIcon:SetSize(10, 10)
