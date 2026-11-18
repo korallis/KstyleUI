@@ -1,9 +1,16 @@
 -- test-skins-restedxp-arrow.lua: the waypoint's bright silhouette and dark edge survive dark art, accent changes and RestedXP's own updates without taking over its geometry or visibility.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
+local Geometry = dofile("Tools/regression/geometry.lua")
 local W = S.W
 local rxp
-local env, K, ns = S.New({ setup = function(e) rxp = Fake.Install(e, { activeTheme = "DarkMode" }) end })
+local env, K, ns = S.New({ setup = function(e)
+	rxp = Fake.Install(e, { activeTheme = "DarkMode" })
+	rxp.fake.trust(function()
+		rxp.arrowFrame.texture:SetRotation(0.4)
+		rxp.arrowFrame.texture:SetTexCoord(0.15, 0.85, 0.2, 0.8)
+	end)()
+end })
 K.Modules.Enable("Skins")
 env.RunTimers()
 local arrow, texture = rxp.arrowFrame, rxp.arrowFrame.texture
@@ -21,20 +28,48 @@ for _, region in ipairs({ arrow:GetRegions() }) do
 end
 assert(#layers == 2, "RestedXP arrow needs a bright alpha silhouette and a dark contrast layer: tinting DarkMode's black artwork cannot brighten it")
 local edge, fill = layers[1], layers[2]
+local regions = { arrow:GetRegions() }
+
+local function Reused()
+	local current = { arrow:GetRegions() }
+	assert(#current == #regions, "reuse the arrow's existing layers and masks after every repaint; do not create more regions")
+	for i, region in ipairs(regions) do assert(current[i] == region, "repaints must retain the original arrow regions") end
+end
+
+local function MasksFollow()
+	local coords = { texture:GetTexCoord() }
+	for _, layer in ipairs(layers) do
+		local mask = layer._masks[1]
+		assert(#layer._masks == 1 and mask:GetTexture() == texture:GetTexture(), "copy the current source artwork into each existing mask")
+		assert(W.Near(mask:GetRotation(), texture:GetRotation()), "preserve the source rotation when the arrow is repainted")
+		local actual = { mask:GetTexCoord() }
+		assert(#actual == #coords, "preserve the source UV coordinate count")
+		for i, value in ipairs(coords) do assert(W.Near(actual[i], value), "copy the source UV coordinates on initial paint and repaint") end
+		local bounds, wanted = assert(Geometry.Rect(mask, arrow)), assert(Geometry.Rect(layer, arrow))
+		for side, value in pairs(wanted) do assert(W.Near(bounds[side], value), "anchor each mask to its own layer, including the padded edge") end
+	end
+	Reused()
+end
+MasksFollow()
 
 local function Visible()
 	local c = W.LastCall(fill, "SetColorTexture")
 	assert(c and Luminance(unpack(c)) >= 0.8, "keep the waypoint silhouette luminance >= 0.8 for dark zones, independent of the accent")
 	c = W.LastCall(edge, "SetColorTexture")
 	assert(c and Luminance(unpack(c)) <= 0.02 and c[4] == 1, "keep an opaque dark contrast layer for snow and desert")
-	assert(edge:GetDrawLayer() == "BACKGROUND" and fill:GetDrawLayer() == "ARTWORK", "the edge stays behind the arrow and the label stays above it")
+	local layer, sublevel = fill:GetDrawLayer()
+	assert(edge:GetDrawLayer() == "BACKGROUND" and texture:GetDrawLayer() == "ARTWORK" and layer == "ARTWORK" and sublevel == 1 and arrow.text:GetDrawLayer() == "OVERLAY", "draw the edge behind the source, its bright fill above it, and the label above both")
+	assert(W.SameColor(texture, K.Tokens.Color("textEmphasis")), "keep the source texture bright beneath the silhouette")
 	assert(edge:GetWidth() > texture:GetWidth() and edge:GetHeight() > texture:GetHeight(), "the dark silhouette extends beyond the bright arrow")
-	assert(fill:GetWidth() == texture:GetWidth() and fill:GetHeight() == texture:GetHeight(), "the bright silhouette preserves the arrow size")
+	local halfPixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(fill) / 2 + 1e-6
+	assert(W.Near(fill:GetWidth(), texture:GetWidth(), halfPixel) and W.Near(fill:GetHeight(), texture:GetHeight(), halfPixel), "the bright silhouette follows the source size within pixel snapping")
 	assert(Luminance(arrow.text:GetTextColor()) >= 0.8, "the distance remains bright")
 	local shadow = W.LastCall(arrow.text, "SetShadowColor")
 	assert(shadow and Luminance(unpack(shadow)) <= 0.02 and shadow[4] >= 0.85, "the distance needs a dark shadow on bright ground")
 	local _, _, flags = arrow.text:GetFont()
 	assert(flags and flags:find("OUTLINE", 1, true), "keep the distance outline after the skin applies its number font")
+	local x, y = arrow.text:GetShadowOffset()
+	assert(x > 0 and y < 0, "offset the distance shadow below and to the right so it stays visible")
 end
 
 for _, source in ipairs({ "appearance", "class", "custom" }) do
@@ -70,7 +105,9 @@ env.RunTimers()
 Visible()
 
 rxp.fake.arrow("Tirisfal Glades", 126, 1.25)
-local original = { texture:GetPoint(1) }
+MasksFollow()
+rxp.fake.trust(function() texture:SetTexture("Interface/AddOns/RXPGuides/Textures/Green/rxp_navigation_arrow-1") end)()
+MasksFollow()
 for _, layer in ipairs(layers) do
 	assert(W.Near(layer._masks[1]:GetRotation(), 1.25), "contrast layers rotate with RestedXP's DrawArrow")
 end
@@ -80,30 +117,49 @@ rxp.fake.trust(function()
 	texture:SetPoint("CENTER", arrow, "CENTER", 0, 0)
 	texture:SetSize(48, 40)
 end)()
+MasksFollow()
 for _, layer in ipairs(layers) do
 	local a, b, c, d = layer._masks[1]:GetTexCoord()
 	assert(a == 0.1 and b == 0.9 and c == 0.2 and d == 0.8, "copy, never replace, RestedXP's texture coordinates")
 end
 assert(texture:GetWidth() == 48 and texture:GetHeight() == 40 and fill:GetWidth() == 48 and fill:GetHeight() == 40, "both silhouettes follow a size RestedXP chooses")
+assert(edge:GetWidth() > 48 and edge:GetHeight() > 40, "keep the dark edge padded after the source is resized")
 local current = { texture:GetPoint(1) }
-rxp.SetupArrow()
+for _ = 1, 5 do
+	rxp.SetupArrow()
+	MasksFollow()
+	arrow:UpdateVisuals()
+	MasksFollow()
+	ns.Style.RestyleAll()
+	MasksFollow()
+end
 local after = { texture:GetPoint(1) }
-for i = 1, #current do assert(after[i] == current[i], "the skin must not move the source arrow") end
-assert(original[1] == "TOPLEFT", "RestedXP originally anchors its texture to its frame")
+assert(texture:GetNumPoints() == 1, "the skin must retain the source's single centre anchor")
+for i = 1, 5 do assert(after[i] == current[i], "the skin must not move or re-anchor the source arrow") end
+rxp.fake.trust(function()
+	arrow.text:SetTextColor(0.01, 0.01, 0.01)
+	arrow.text:SetShadowColor(1, 1, 1, 0)
+	arrow.text:SetShadowOffset(0, 0)
+end)()
+arrow:UpdateVisuals()
+Visible()
 rxp.fake.trust(function() arrow:Hide() end)()
 assert(not fill:IsVisible() and not edge:IsVisible(), "both layers hide with RestedXP")
 rxp.fake.trust(function() arrow:Show(); arrow:SetAlpha(0.25) end)()
 assert(fill:IsVisible() and edge:IsVisible() and arrow:GetAlpha() == 0.25, "RestedXP owns fading and showing")
-local count = #layers
 rxp.SetupArrow()
-assert(#edge._masks == 1 and #fill._masks == 1 and count == 2, "repeated setup reuses the contrast layers")
+MasksFollow()
 assert(#env._errors == 0, tostring(env._errors[1]))
+rxp.settings.profile.enableThemeLiveReload = false
+local setups = rxp.arrows
 K.Options.Write("Skins", "restedXP.enabled", false)
 env.RunTimers()
+assert(rxp.arrows == setups, "exercise switching the skin off without a RestedXP redraw")
 assert(not fill:IsShown() and not edge:IsShown(), "switching off the skin removes its contrast layers")
 K.Options.Write("Skins", "restedXP.enabled", true)
 env.RunTimers()
 assert(fill:IsShown() and edge:IsShown(), "switching back on reuses both layers")
+Reused()
 rawset(_G, "RENDER_SCENE_LIB", true)
 local scene = dofile("Tools/render/scenes/restedxp_arrow.lua")()
 assert(#scene.items == 4, "the focused arrow scene contains only the source, two contrast layers and distance")

@@ -302,14 +302,14 @@ Needs RestedXP Guides installed and on. Before you start, note your RestedXP the
 - [ ] Hover a step in the list: it lights in your class colour. The step list's scroll bar is KstyleUI's thin bar.
 - [ ] The current step box above or below the header sits on glass, its number on a dark tile, and its check boxes are KstyleUI check boxes. Tick one.
 - [ ] Click the cog or right-click the guide's name: the guide menu sits on glass in KstyleUI's font, and so do its submenus. Close it, then open another addon's dropdown menu if you have one: that menu keeps its own look.
-- [ ] Map pins, route lines and the navigation arrow are in your class colour.
+- [ ] Map pins and route lines are in your class colour. The navigation arrow stays bright white with a dark edge; its destination and distance have an outline and shadow. Check it on dark ground and bright snow, and turn to confirm the arrow still rotates normally.
 - [ ] The **Active Items** and **Active Targets** frames sit on glass with a dark title tile in your class colour; their buttons sit on KstyleUI rims and light in your class colour under the mouse. In RestedXP's settings, turn on the option that hides the active targets background: the glass goes too. Turn it off again.
 - [ ] Open the character sheet, then the RestedXP menu's **Leveling report**: the report beside the character sheet sits on glass with a KstyleUI close button, scroll bar and level button.
 - [ ] Turn on level splits in RestedXP's settings: the splits window sits on glass with a dark title tile.
 - [ ] Run the guide configurator (RestedXP menu, **Run Guide Configurator**) and the guide importer (`/rxp import`): both sit on glass, their buttons are KstyleUI buttons, the importer's text box is a KstyleUI edit box, and its close button is KstyleUI's cross.
 - [ ] Open the feedback form (`/rxp bug`): it sits on glass with a title in your class colour. Close it.
 - [ ] Open the quest log: RestedXP's clean-up button under it is a KstyleUI button.
-- [ ] Change the accent (General > Appearance, or Skins > Accent colour): the RestedXP titles, highlights, pins and arrow change at once. Change the font: RestedXP's text changes.
+- [ ] Change the accent (General > Appearance, or Skins > Accent colour): the RestedXP titles, highlights and pins change at once, while the arrow stays white with its dark edge, including with a near-black custom accent. Change the font: RestedXP's text changes and the arrow's distance keeps its outline and shadow.
 - [ ] Switch **RestedXP** off in the Skins settings: RestedXP's **Choose Theme** shows the theme you noted, and RestedXP redraws with it. A reload prompt says RestedXP keeps its KstyleUI look until you reload, for the glass and buttons.
 - [ ] Switch it on again, then pick another theme in RestedXP and switch **RestedXP** off: your pick stays. Switch it on again.
 - [ ] Turn the Skins module off: RestedXP's theme goes back to yours.

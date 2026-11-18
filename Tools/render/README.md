@@ -51,11 +51,14 @@ Tools/render/shoot.sh smoke --json-only                                         
 Tools/render/shoot.sh nameplate                                                 # the target's plate on a base the game scaled to 0.58
 Tools/render/shoot.sh databars                                                  # the experience bar and the data strip in the mockup's state
 Tools/render/shoot.sh restedxp --backdrop                                       # the RestedXP windows the skin tests' fake builds, skinned, laid out as RestedXP lays them out (scenes/_restedxp.lua)
+Tools/render/shoot.sh restedxp_arrow --backdrop /tmp/dark-ground.png --strict   # the waypoint arrow and its destination/distance over a chosen backdrop
 RENDER_BUFFS=16 Tools/render/shoot.sh auras_tracker --backdrop                  # the minimap, the aura rows beside it at 16 buffs and 3 debuffs, and the tracker at Edit Mode's preset
 Tools/render/shoot.sh gallery_skins_mail --backdrop                             # one skinned Blizzard window (gallery_skins_<window>.lua, 19 of them); see Gallery below
 ```
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.
+
+`restedxp_arrow` isolates the RestedXP waypoint for dark/bright ground comparisons. Set `RENDER_RXP_ARROW_TEXTURE` to the path of a PNG decoded from the installed RestedXP arrow BLP (including its alpha); without it the scene logs that it uses the kit chevron as a stand-in. Pair `RENDER_SCREEN=1920x1080` with `--ppu 1`, or `RENDER_SCREEN=5120x1440` with `--ppu 1.3333333333`, and use `--backdrop PNG` for the ground. The scene keeps rotation at zero because the renderer does not model mask rotation; `test-skins-restedxp-arrow.lua` checks rotation and coordinate updates through the live skin hooks. Save proof PNGs outside the repository.
 
 `shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas or a path texture the texture cache lacks (drawn as a grey box). Read the log before you trust a render. `Tools/render/out/` is ignored by git.
 
