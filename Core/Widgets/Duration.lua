@@ -44,7 +44,7 @@ local function Engine()
 	return nil
 end
 
-local function Build(kind)
+local function Build(kind, roundUp)
 	local util, E = C_StringUtil, Enum
 	if not (util and type(util.CreateSecondsFormatter) == "function" and E and E.SecondsFormatterAbbreviation and E.SecondsFormatterRounding and E.SecondsFormatterInterval) then
 		return nil
@@ -52,9 +52,14 @@ local function Build(kind)
 	local ok, formatter = pcall(function()
 		local f = util.CreateSecondsFormatter()
 		f:SetDefaultAbbreviation(E.SecondsFormatterAbbreviation.OneLetter)
-		f:SetRounding(E.SecondsFormatterRounding.Truncate)
+		f:SetRounding(roundUp and E.SecondsFormatterRounding.RoundUp or E.SecondsFormatterRounding.Truncate)
 		f:SetCanRoundUpLastUnit(true)
 		f:SetMinInterval(E.SecondsFormatterInterval.Seconds)
+		if kind == "short" then
+			local engine = Engine()
+			local curve = engine and type(engine.GetMaxIntervalCurve) == "function" and engine:GetMaxIntervalCurve()
+			if curve and type(f.SetMaxIntervalCurve) == "function" then f:SetMaxIntervalCurve(curve) end
+		end
 		if kind == "long" then
 			f:SetDesiredUnitCount(2)
 		else
@@ -68,13 +73,14 @@ local function Build(kind)
 	return ok and formatter or nil
 end
 
-function Duration.Formatter(kind)
+function Duration.Formatter(kind, roundUp)
 	kind = kind or "short"
-	if made[kind] == nil then
-		local formatter = kind == "short" and Engine() or nil
-		made[kind] = formatter or Build(kind) or false
+	local key = kind .. (roundUp and ":roundUp" or "")
+	if made[key] == nil then
+		local formatter = kind == "short" and not roundUp and Engine() or nil
+		made[key] = formatter or Build(kind, roundUp) or false
 	end
-	return made[kind] or nil
+	return made[key] or nil
 end
 
 local function Short(seconds)
@@ -100,17 +106,11 @@ local function Long(seconds)
 	return format("%dd %dh", floor(seconds / DAY), floor(seconds % DAY / HOUR))
 end
 
-function Duration.Format(seconds, kind, cleanEndings)
+function Duration.Format(seconds, kind)
 	if kind == "none" or (issecretvalue and issecretvalue(seconds)) or type(seconds) ~= "number" or seconds ~= seconds then
 		return ""
 	end
 	seconds = max(0, seconds)
-	if cleanEndings and seconds > 0 and seconds < 1 then
-		if kind == "decimal" then
-			return format("%.1f", ceil(seconds * 10) / 10)
-		end
-		seconds = 1
-	end
 	if kind == "long" then
 		return Long(seconds)
 	elseif kind == "decimal" and seconds < Duration.DECIMAL_BELOW then

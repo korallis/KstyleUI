@@ -16,6 +16,15 @@ local Load = dofile("Tools/regression/load_files.lua")
 
 local A = { W = W }
 
+function A.Remaining(env, button, seconds)
+	local aura = button._aura
+	aura.remaining = { seconds }
+	if aura.timer then
+		local formatter = aura.timerOptions.textFormatter or env.AuraContainerInbound.GetDefaultAuraDurationFormatter()
+		aura.timer:SetText(formatter:Format(seconds))
+	end
+end
+
 local BATCH = 10
 local FILTER_WORDS = { HELPFUL = true, HARMFUL = true, PLAYER = true, RAID = true, CANCELABLE = true }
 -- The rest of AuraUtil.AuraFilters, which nameplate debuff groups use.
@@ -128,6 +137,7 @@ local function newButton(env, container)
 		guard("SetDurationText")
 		element(text, "FontString")
 		aura.timer, aura.timerOptions = text, options or {}
+		if aura.remaining then A.Remaining(env, button, aura.remaining[1]) end
 	end
 	function button.SetDurationCooldown(_, cooldown)
 		guard("SetDurationCooldown")
@@ -357,11 +367,19 @@ local function installContainer(env, container)
 end
 
 local function fakeFormatter(env, name)
-	local f = { name = name, calls = {} }
+	local f = { name = name, calls = {}, settings = {} }
+	function f:Format(seconds)
+		local secret = env.issecretvalue(seconds)
+		if secret then seconds = env.Reveal(seconds) end
+		local value = self.settings.SetRounding == env.Enum.SecondsFormatterRounding.RoundUp and math.ceil(seconds) or math.floor(seconds)
+		local text = string.format("%ds", value)
+		return secret and env.Secret(text) or text
+	end
 	local mt = {
 		__index = function(_, method)
 			return function(_, ...)
 				f.calls[#f.calls + 1] = { method = method, args = { ... } }
+				f.settings[method] = ...
 			end
 		end,
 	}

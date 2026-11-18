@@ -88,8 +88,6 @@ schema[#schema + 1] = {
 
 local rest = {
 	{ type = "header", label = L["Timers"] },
-	{ type = "toggle", key = "timer.cleanEndings", label = L["Round up the last second"],
-		help = L["Keeps a remaining fraction of a second visible. Off restores the original timer rounding."] },
 	{
 		type = "dropdown", key = "timer.format", label = L["Timer format"], options = Model.TIMER_FORMATS,
 		help = L["How the time left on each aura is written."],

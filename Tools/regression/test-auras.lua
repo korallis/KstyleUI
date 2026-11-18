@@ -207,6 +207,8 @@ do
 	K.Options.Write("Auras", "timer.expiring", 0)
 	check(groupButtons(dg)[1]._aura.timerOptions.textColor == nil, "the red warning can be turned off")
 	K.Options.Write("Auras", "timer.format", "short")
+	check(groupButtons(dg)[1]._aura.timerOptions.textFormatter ~= nil, "shared endings bind a rounded short formatter")
+	K.Options.Write("Appearance", "auraEndings", false)
 	check(groupButtons(dg)[1]._aura.timerOptions.textFormatter == nil, "the short format is the engine's default formatter")
 
 	K.Options.Write("Auras", "timer.size", 12)

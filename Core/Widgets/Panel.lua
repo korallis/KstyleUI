@@ -95,12 +95,12 @@ function Panel:SetTitle(text)
 end
 
 function Panel:Open()
-	if self.opts.calmMotion and self.opts.calmMotion() then
+	if self.opts.calmMotion and self.opts.calmMotion() and Animated() then
 		local reopening = self.closing
 		self.closing = false
 		self.fadeOut:Stop()
 		Motion.FadeIn(self)
-		if not reopening and Animated() then
+		if not reopening then
 			self.rise:Stop()
 			self.rise:Play()
 		end
@@ -128,7 +128,7 @@ function Panel:Close()
 	self.fadeIn:Stop()
 	local shown = self:IsShown()
 	if not IsSecret(shown) and shown then
-		if self.opts.calmMotion and self.opts.calmMotion() then
+		if self.opts.calmMotion and self.opts.calmMotion() and Animated() then
 			self.closing = true
 			Motion.FadeOut(self)
 		elseif Animated() then

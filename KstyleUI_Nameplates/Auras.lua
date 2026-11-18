@@ -137,8 +137,9 @@ local function StyleButton(button)
 		return
 	end
 	local size = Grid(p.skin)
+	local endings = K.Appearance.Get("auraEndings")
 	if p.cooldown and type(p.cooldown.SetDrawBling) == "function" then
-		p.cooldown:SetDrawBling(not Settings.Get("debuffs.cleanEndings"))
+		p.cooldown:SetDrawBling(not endings)
 	end
 	button:SetSize(size, size)
 	LayoutTile(p)
@@ -150,7 +151,10 @@ local function StyleButton(button)
 	p.time:SetPoint("TOP", p.timeHolder, "BOTTOM", Widgets.Snap(p.skin, size / 2) - size / 2, -Widgets.Snap(p.skin, TIMER_GAP))
 	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
 	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
-	button:SetDurationText(p.time, { textColor = Widgets.Duration.ExpiringColor(Settings.Get("debuffs.expiring")) })
+	button:SetDurationText(p.time, {
+		textFormatter = endings and Widgets.Duration.Formatter("short", true) or nil,
+		textColor = Widgets.Duration.ExpiringColor(Settings.Get("debuffs.expiring")),
+	})
 end
 
 local function BuildButton(button)

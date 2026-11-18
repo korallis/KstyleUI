@@ -87,9 +87,7 @@ local function Render(keepOffset, reselect, pageChanged)
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
 	content.revealLimit = calm and 0.45 or nil
-	local cascade
-	if calm then cascade = pageChanged == true and not state.query end
-	content:SetData(items, keepOffset, cascade)
+	content:SetData(items, keepOffset, not calm or pageChanged == true)
 	if reselect then
 		rail:Select(state.query and "" or state.page, state.sections)
 	else

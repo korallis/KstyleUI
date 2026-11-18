@@ -183,10 +183,11 @@ function Panel.Wait()
 end
 
 local function Formatter(timerFormat)
-	if timerFormat == "short" then
+	local endings = K.Appearance.Get("auraEndings")
+	if timerFormat == "short" and not endings then
 		return nil
 	end
-	local formatter = Widgets.Duration.Formatter(timerFormat)
+	local formatter = Widgets.Duration.Formatter(timerFormat, endings)
 	if formatter then
 		LogOnce("formatter:" .. timerFormat, "the " .. timerFormat .. " timer format uses the kit's seconds formatter")
 	else

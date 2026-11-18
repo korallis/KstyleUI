@@ -41,7 +41,7 @@ Settings.defaults = {
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
-		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5, cleanEndings = true,
+		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
 		display = "glow", shapes = true, role = "auto", groupOnly = true,
@@ -454,8 +454,6 @@ local rest = {
 		help = L["Colours a debuff timer red below this many seconds. Set to zero to keep one colour."],
 		min = 0, max = 20, step = 1, disableWhen = Off("debuffs.enabled"),
 	},
-	{ type = "toggle", key = "debuffs.cleanEndings", label = L["Quiet debuff endings"],
-		help = L["Hides the finishing flash on debuff swipes. Off restores the original flash."] },
 	{
 		type = "slider", key = "debuffs.textSize", label = L["Text size"],
 		help = L["The size of the debuffs' text, in interface units."],
