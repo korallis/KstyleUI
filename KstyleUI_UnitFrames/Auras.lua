@@ -98,9 +98,13 @@ local function TextSize(kind, size)
 	return math.max(size, math.min(TEXT_FLOOR, room))
 end
 
-local function StyleTexts(view, count, timer)
+local function TextStyle(view)
 	local path, size, flags = Settings.Font(view.kind, "aura")
-	size = TextSize(view.kind, size)
+	return { path, TextSize(view.kind, size), flags }
+end
+
+local function StyleTexts(view, count, timer, style)
+	local path, size, flags = unpack(style or TextStyle(view))
 	for _, text in ipairs({ count, timer }) do
 		if not Widgets.ApplyFont(text, path, size, flags) then
 			Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
@@ -230,14 +234,14 @@ function Auras.Badge(parent, text)
 	return badge
 end
 
-local function StyleButton(view, entry)
+local function StyleButton(view, entry, style)
 	local size = Snap(view, Value(view, "auraSize"))
 	entry.button:SetSize(size, size)
 	Auras.LayoutTile(entry)
 	local inset = Widgets.Snap(entry.skin, COUNT_INSET)
 	entry.count:ClearAllPoints()
 	entry.count:SetPoint("TOPRIGHT", entry.skin, "TOPRIGHT", inset, inset)
-	StyleTexts(view, entry.count, entry.timer)
+	StyleTexts(view, entry.count, entry.timer, style)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)
 	entry.timer:SetShown(Value(view, "auraTimer"))
 	entry.badge:SetShown(not TimerBelow(view.kind) and Value(view, "auraTimer") == true)
@@ -253,8 +257,9 @@ local function Flush()
 		if not view.auras or view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
+			local style = TextStyle(view)
 			for _, entry in ipairs(view.auras.buttons) do
-				K.Call(StyleButton, view, entry)
+				K.Call(StyleButton, view, entry, style)
 			end
 			ns.Fan.Restyle(view)
 		end
