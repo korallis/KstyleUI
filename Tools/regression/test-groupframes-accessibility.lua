@@ -21,6 +21,7 @@ assert(found and found.role:IsShown() and not found.pipFill:IsShown(), "roles ne
 K.Options.Write("GroupFrames", "icons.roleShapes", false)
 env.RunTimers()
 assert(found.pipFill:IsShown() and not found.role:IsShown(), "Role shapes off restores the coloured pip")
+assert(found.parts.icons.role.width == 13, "Role shapes off restores the previous pip footprint")
 K.Options.Write("GroupFrames", "icons.roleShapes", true)
 env.RunTimers()
 assert(found.role:IsShown() and not found.pipFill:IsShown(), "Role shapes can be re-enabled")

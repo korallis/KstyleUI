@@ -504,7 +504,7 @@ function Overlay(w, h, o)
 	local iconSize = Whole(max(MIN_PART, min(o.iconSize or 0, nameHeight)), o.pixel)
 	local icons = { size = iconSize, badge = true, pip = true }
 	out.icons = icons
-	local pip = Whole(max(MIN_PART, min(iconSize, nameHeight)), o.pixel)
+	local pip = Whole(max(MIN_PART, min(o.roleShapes and iconSize or o.pip or iconSize, nameHeight)), o.pixel)
 	icons.role = Rect(EDGE, Whole((nameHeight - pip) / 2, o.pixel), pip, pip)
 	local badge = max(MIN_PART, floor(iconSize * BADGE_SHARE))
 	icons.leader = Rect(0, 0, badge, badge)

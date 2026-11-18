@@ -493,6 +493,7 @@ function Style.Apply(f, width, height)
 		nameHeight = k.nameSize + NAME_LINE_EXTRA,
 		iconSize = k.iconSize,
 		role = cfg.icons.role,
+		roleShapes = cfg.icons.roleShapes,
 		leader = cfg.icons.leader,
 		marker = cfg.icons.marker,
 		pill = f.kind == "party" and health_orientation(cfg) and PILL_HEIGHT or nil,
