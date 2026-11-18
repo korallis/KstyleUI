@@ -41,6 +41,9 @@ for _, spec in ipairs(Windows.LIST) do
 			assert(parent == slot and math.abs(y) < 0.5, "merchant prices sit below two-line names at the row's lower edge")
 		end
 	end
+	if spec.key == "friends" then
+		assert(env.FriendsListFrame.ScrollBox:GetTop() < env.FriendsFrame.FriendsTabHeader.BattlenetFrame:GetBottom(), "the friends list begins below its broadcast header")
+	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, spec.key .. ": " .. tostring(env._errors[1]))
 end
 

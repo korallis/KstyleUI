@@ -648,9 +648,16 @@ local function PlaceMetrics(state)
 	end
 	local inset = frame.Inset
 	if type(inset) == "table" and Widgets.MayMove(inset) then
+		local contentTop = 44
+		local header = frame.FriendsTabHeader
+		local broadcast = type(header) == "table" and header.BattlenetFrame
+		local top, bottom = frame:GetTop(), broadcast and broadcast:GetBottom()
+		if Plain(top) and Plain(bottom) then
+			contentTop = math.max(contentTop, top - bottom + 12)
+		end
 		local _, _, _, _, bottom = inset:GetPoint(inset:GetNumPoints())
 		inset:ClearAllPoints()
-		inset:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(inset, 12), -Widgets.Snap(inset, 44))
+		inset:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(inset, 12), -Widgets.Snap(inset, contentTop))
 		inset:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -Widgets.Snap(inset, 12), Widgets.Snap(inset, type(bottom) == "number" and not IsSecret(bottom) and math.max(12, bottom) or 12))
 	end
 	local parts = Skin.Parts(frame)
