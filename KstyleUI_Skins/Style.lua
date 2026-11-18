@@ -461,7 +461,6 @@ function Style.MetricText(text, title)
 		return
 	end
 	local units = title and 16 or role == "caption" and 12 or 13
-	local size = units * K.Theme.FontScale() * Style.Setting("text", "size")
 	local entry = swept[text]
 	if entry then
 		entry.size = units * K.Theme.FontScale()

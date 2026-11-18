@@ -650,8 +650,8 @@ local function PlaceMetrics(state)
 	if type(inset) == "table" and Widgets.MayMove(inset) then
 		local _, _, _, _, bottom = inset:GetPoint(inset:GetNumPoints())
 		inset:ClearAllPoints()
-		Widgets.Point(inset, "TOPLEFT", frame, "TOPLEFT", 12, -44)
-		Widgets.Point(inset, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, type(bottom) == "number" and not IsSecret(bottom) and math.max(12, bottom) or 12)
+		inset:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(inset, 12), -Widgets.Snap(inset, 44))
+		inset:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -Widgets.Snap(inset, 12), Widgets.Snap(inset, type(bottom) == "number" and not IsSecret(bottom) and math.max(12, bottom) or 12))
 	end
 	local parts = Skin.Parts(frame)
 	if parts and parts.backdrop then
