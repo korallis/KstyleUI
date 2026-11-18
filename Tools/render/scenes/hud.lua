@@ -151,6 +151,7 @@ local function saved(opts, module, settings, more)
 		profile[name] = { enabled = true }
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
+	Common.FinishSettings(profile)
 	return {
 		version = 2,
 		profiles = { Default = profile },
@@ -1787,7 +1788,7 @@ function Hud.PresetSettings(layout)
 		end
 		node[parts[#parts]] = entry.value
 	end
-	return Common.FinishSettings(settings)
+	return settings
 end
 
 -- Options(opts) -> opts for a whole-HUD scene: one that names a layout and no settings takes the layout's preset,
