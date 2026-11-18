@@ -16,6 +16,7 @@
 --   clipped   a text whose rect reaches more than SLACK units past the nearest frame that clips its children, so
 --             the player reads a fragment ("ing Frostbolt"). A scroll view (a ScrollFrame, or a clipping frame that
 --             takes the mouse wheel, or whose parent does) cuts its rows by design and is never a finding;
+--             an identical, fully visible text may supply the complete label under a clipped alternate ink layer;
 --   overlap   two texts whose glyphs cross by more than OVERLAP units on both axes, or a text whose glyphs an
 --             opaque texture (effective alpha at least COVER_ALPHA) from another frame draws over, drawn after the
 --             text; both inside one card, or both in one top-level element when no card holds them, named
@@ -446,7 +447,7 @@ function Guard.Check(scene)
 		findings[#findings + 1] = { kind = kind, subject = subject, card = card and keyPath(card.frame), detail = detail, key = key, object = item.object }
 	end
 	local cards = Guard.Cards(scene)
-	local texts, drawn = {}, {}
+	local texts, drawn, clippedTexts = {}, {}, {}
 	for _, inner in ipairs(cards) do
 		local outer = Guard.Holder(cards, inner)
 		if outer then
@@ -483,7 +484,7 @@ function Guard.Check(scene)
 						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
 						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
 						if cut > slack then
-							add("clipped", item, card, string.format("%.1f units past the frame that clips it", cut))
+							clippedTexts[#clippedTexts + 1] = { item = item, card = card, whole = whole, cut = cut }
 						end
 					end
 					if ink[3] > 0 and ink[4] > 0 then
@@ -529,6 +530,25 @@ function Guard.Check(scene)
 					end
 				end
 			end
+		end
+	end
+	for _, part in ipairs(clippedTexts) do
+		local complete = false
+		for _, copy in ipairs(texts) do
+			local a, b = part.item, copy.item
+			local af, bf = a.font or {}, b.font or {}
+			if not copy.hidden and b ~= a and Scene.PlainText(a.text) == Scene.PlainText(b.text)
+				and af.path == bf.path and af.size == bf.size and a.justifyH == b.justifyH and a.justifyV == b.justifyV
+				and a.wordWrap == b.wordWrap and a.spacing == b.spacing and a.grow == b.grow then
+				local same = true
+				for i = 1, 4 do
+					if math.abs(a.rect[i] - b.rect[i]) > 0.01 or math.abs(part.whole[i] - copy.ink[i]) > 0.01 then same = false end
+				end
+				if same then complete = true; break end
+			end
+		end
+		if not complete then
+			add("clipped", part.item, part.card, string.format("%.1f units past the frame that clips it", part.cut))
 		end
 	end
 	for i, text in ipairs(texts) do

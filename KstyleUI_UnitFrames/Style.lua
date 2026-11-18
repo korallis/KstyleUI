@@ -177,6 +177,24 @@ function Style.New(parent, kind)
 	for _, key in ipairs(TEXT_KEYS) do
 		view[key] = NewText(top, key)
 	end
+	local clip = CreateFrame("Frame", nil, top)
+	clip:SetFrameLevel(top:GetFrameLevel() + 1)
+	clip:SetClipsChildren(true)
+	local fill = view.power:GetStatusBarTexture()
+	clip:SetPoint("TOPLEFT", fill, "TOPLEFT")
+	clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+	view.powerFillClip = clip
+	view.powerFillText = NewText(clip, "powerText")
+	view.powerFillText:SetAllPoints(view.powerText)
+	view.powerFillText:SetJustifyH("RIGHT")
+	clip:Hide()
+	for _, method in ipairs({ "SetText", "SetFormattedText" }) do
+		local write = view.powerText[method]
+		view.powerText[method] = function(self, ...)
+			write(self, ...)
+			write(view.powerFillText, ...)
+		end
+	end
 	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
 	Widgets.RecordAll(unpack(view.health.ornament.texts))
 	view.capGem = Lumen.Gem(top)
@@ -728,7 +746,14 @@ function Style.PowerTint(view, r, g, b)
 	end
 	view.power:SetBarColor(r, g, b)
 	local geometry = view.geometry
-	if geometry and geometry.form ~= "plate" and geometry.powerText and not geometry.powerReserve then Widgets.InkText(view.powerText, r, g, b) end
+	local inside = geometry and geometry.form ~= "plate" and geometry.powerText and not geometry.powerReserve
+	view.powerFillClip:SetShown(inside == true)
+	if inside then
+		Widgets.InkText(view.powerText, Tokens.Color(TRACK))
+		local path, size = view.powerText:GetFont()
+		Widgets.ApplyFont(view.powerFillText, path, size)
+		Widgets.InkText(view.powerFillText, r, g, b)
+	end
 end
 
 function Style.Accent(view)
