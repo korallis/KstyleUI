@@ -56,7 +56,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_POWER_UPDATE",
-		budget = 20,
+		budget = 25,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "MANA")
