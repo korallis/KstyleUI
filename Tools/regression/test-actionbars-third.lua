@@ -10,6 +10,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 		AB.Enable(env, K)
 		K.Options.Write("HudStyle", "style", style)
+		local maximum, fits = K.Setup.Layouts.ScaleLimit(K.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
+		local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
+		assert(K.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")
 		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true }, hudStyle = style }))
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		AB.Slot(env, 1, { texture = 135813, type = "spell", id = 133 })

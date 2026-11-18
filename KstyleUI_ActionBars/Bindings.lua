@@ -39,7 +39,7 @@ end
 function ns.UpdateHotkey(b)
 	local def = b.kbar.def
 	local text = ns.ShortKey(ns.FirstKey(def.binding .. b.index), BindingText)
-	local unbound = text == "" and b.hasAction ~= false
+	local unbound = text == "" and b.kind == "action" and b.hasAction ~= false
 	b.keyHasAction = b.hasAction
 	b:SetHotkey(unbound and "-" or text)
 	b.hotkey:SetAlpha(unbound and 0.4 or 1)
