@@ -76,7 +76,7 @@ local cases = {
 			local R = New()
 			local previous = {}
 			for _, row in ipairs(R.ns.Quests.Rows()) do
-				previous[row.questID] = { title = row.title:GetText(), progress = row.lines[1].count:GetText() }
+				if row.questID then previous[row.questID] = { title = row.title:GetText(), progress = row.lines[1].count:GetText() } end
 			end
 			local abandoned = R.quests[3].id
 			if combat then R.env.SetCombat(true) end
@@ -98,7 +98,7 @@ local cases = {
 			local R = New()
 			local previous = {}
 			for i, row in ipairs(R.ns.Quests.Rows()) do
-				previous[i] = { id = row.questID, title = row.title:GetText(), progress = row.lines[1].count:GetText() }
+				if row.questID then previous[i] = { id = row.questID, title = row.title:GetText(), progress = row.lines[1].count:GetText() } end
 			end
 			local watch = R.env.C_QuestLog.GetQuestIDForQuestWatchIndex
 			R.env.C_QuestLog.GetQuestIDForQuestWatchIndex = function(i)

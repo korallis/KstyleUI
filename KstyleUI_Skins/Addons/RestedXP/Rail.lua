@@ -263,6 +263,11 @@ function Rail.Band()
 	end
 	local _, reserve = Plan(band)
 	if not story.stacked then
+		local quest = ns.QuestCard and ns.QuestCard.Frame()
+		if quest and quest:IsShown() then
+			local shift = story.tracker.left < band.left and -8 or 8
+			band.left, band.right = band.left + shift, band.right + shift
+		end
 		band.bottom = band.bottom + math.min(reserve, math.max(0, band.top - band.bottom - Need()))
 		return band
 	end
@@ -644,12 +649,30 @@ function Rail.Place()
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
+	local story = Rail.Story()
+	local quest = ns.QuestCard and ns.QuestCard.Frame()
+	if story and not story.stacked and quest and quest:IsShown() and path and path.card and not InCombatLockdown() then
+		local card = path.card
+		local questScale = Widgets.ScaleFactor(quest)
+		local height = math.max(Height(card) * scale, shape.span * scale, Height(quest) * questScale)
+		card:ClearAllPoints()
+		card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
+		card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
+		card:SetHeight(Widgets.Snap(card, height / scale))
+		quest:SetHeight(Widgets.Snap(quest, height / questScale))
+	end
 	if Docking() then
 		Dock(f, path, band)
 	else
 		ReleaseBoxes(true)
 	end
 	Refresh(f)
+	local side = K.Safe.Side(K.Scale.Root())
+	local skin = K.Skin.Parts(f)
+	side.storyGuide = skin and skin.backdrop
+	if side.dockThreat then
+		K.Call(side.dockThreat)
+	end
 	if shape.height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
 	end

@@ -817,11 +817,19 @@ function List:Fit()
 	local _, holderHeight = Size(self.holder, self.width, self.height)
 	local capacity, count = self.capacity or 0, self.count or 0
 	local height = holderHeight
-	if not self.block and (capacity < 1 or count < capacity) then
-		local rows, spacing = max(1, min(count, capacity)), Spacing(self)
+	if capacity < 1 or count < capacity then
+		local rows, spacing = max(self.block and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
 	self.panel:SetHeight(max(1, min(height, holderHeight)))
+	if self.key then
+		local side = K.Safe.Side(K.Scale.Root())
+		side.meterCards = side.meterCards or {}
+		side.meterCards[self.key] = self
+		if self.key == "meters.damage" and side.dockDataStrip then
+			K.Call(side.dockDataStrip)
+		end
+	end
 end
 
 function List:Row(i)

@@ -10,7 +10,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		local ns, env, K = R.ns, R.env, R.K
 		if screen.width == 5120 and style ~= "orbs" then
 			assert(ns.Quests.Parts().cap.row:IsShown(), "a complete first quest fits with QUESTS 8 at 5120x1440, as on staging")
-			assert(ns.Quests.Rows()[1].questID == 301 and not ns.Quests.Rows()[2]:IsShown(), "5120x1440 preserves staging's one visible quest")
+			assert(ns.Quests.Rows()[1].questID == 301 and ns.Quests.Rows()[2]:IsShown() and ns.Quests.Rows()[2].clipped, "5120x1440 binds one more quest under the fade")
 			assert(ns.Quests.Parts().more:GetText() == "7 more, scroll down", "a full card keeps staging's scroll hint")
 		end
 		local hiddenSteps = ns.RestedXP.Rail.Hidden()
@@ -43,7 +43,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 			end
 			for _, row in ipairs(ns.Quests.Rows()) do
 				if row:IsShown() then
-					seen[row.questID] = true
+					seen[row.questID] = seen[row.questID] or not row.clipped or row == ns.Quests.Rows()[1]
 					local entry
 					for i = 1, ns.QuestData.Count() do
 						if ns.QuestData.Get(i).id == row.questID then entry = ns.QuestData.Get(i) end
@@ -53,7 +53,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 						local what = style .. " " .. screen.width .. "x" .. screen.height .. " quest " .. row.questID .. " objective " .. i
 						assert(line.text:IsVisible(), what .. ": scrolling must show objectives with their quest title")
 						local rect = assert(Geometry.ScaledRect(line.text, env.UIParent, K.Scale.Root()))
-						assert(rect.top <= view.top + K.Scale.Pixel(1) and rect.bottom >= view.bottom - K.Scale.Pixel(1), what .. ": the whole objective fits inside the clipped view")
+						assert(row.clipped and parts.fade:IsShown() or rect.top <= view.top + K.Scale.Pixel(1) and rect.bottom >= view.bottom - K.Scale.Pixel(1), what .. ": a partial last quest runs only under the lower fade (clipped=" .. tostring(row.clipped) .. ", fade=" .. tostring(parts.fade:IsShown()) .. ", bottom=" .. rect.bottom .. ", view=" .. view.bottom .. ")")
 						if entry.objectives[i].count then
 							assert(line.count:IsVisible() and line.count:GetText() == entry.objectives[i].count, what .. ": progress is visible")
 						end

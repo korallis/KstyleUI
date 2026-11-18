@@ -1,0 +1,19 @@
+-- test-rails-threat-docking.lua: the default threat card follows the guide's foot with a sixteen-unit gap and custom positions win.
+local Boot = dofile("Tools/regression/questcard_guide_env.lua")
+local M = dofile("Tools/regression/meters_env.lua")
+local Load = dofile("Tools/regression/load_files.lua")
+local R = Boot({ width = 1920, height = 1080 })
+M.Game(R.env, {})
+Load(M.Files(), R.env)
+M.Enable(R.env, R.K)
+R.K.Options.Write("Meters", "threat.shown", true)
+R.settle()
+local threat = R.env._addons.KstyleUI_Meters.Threat
+local point, relative, on, x, y = threat.holder:GetPoint(1)
+assert(point == "TOPRIGHT" and relative == R.K.Skin.Parts(R.rxp.RXPFrame).backdrop and on == "BOTTOMRIGHT" and x == 0 and y == -R.K.Widgets.Snap(threat.holder, 16),
+	"anchor the default threat card sixteen units below the guide")
+R.K.Layout.Update("meters.threat", { x = -900 })
+R.ns.RestedXP.Rail.Place()
+assert(select(2, threat.holder:GetPoint(1)) == R.K.Scale.Root(), "a custom threat position stays independent of the guide")
+assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
+print("threat guide docking ok")

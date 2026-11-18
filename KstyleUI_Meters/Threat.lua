@@ -221,6 +221,27 @@ local function Schedule()
 	C_Timer.After(UPDATE_DELAY, Update)
 end
 
+local function DockGuide()
+	local holder = Threat.holder
+	local side = K.Safe.Side(K.Scale.Root())
+	local guide = side.storyGuide
+	local element = K.Layout.Element(KEY)
+	local layout, default = element and element.settings, element and element.default
+	if not holder or not layout or InCombatLockdown() then
+		return
+	end
+	local on = guide and guide:IsVisible() and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	if on then
+		holder:ClearAllPoints()
+		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -16)
+		Threat.docked = true
+	elseif Threat.docked then
+		holder:ClearAllPoints()
+		holder:SetPoint(layout.anchor, K.Scale.Root(), layout.anchor, layout.x, layout.y)
+		Threat.docked = false
+	end
+end
+
 function Threat:OnEvent(event, unit)
 	if event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" or event == "PLAYER_ENTERING_WORLD" then
 		BuildRoster()
@@ -240,6 +261,7 @@ local function Build()
 	Threat.countText = ""
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
+	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide
 end
 
 function Threat:Resized()
@@ -266,6 +288,7 @@ function Threat:Apply()
 		return
 	end
 	self.holder:Show()
+	DockGuide()
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
 	end

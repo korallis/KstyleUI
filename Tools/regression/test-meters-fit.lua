@@ -124,7 +124,8 @@ local title = { list.title:GetPoint(1) }
 -- One source: the card keeps the holder's whole height, as the picture's 158-unit card does under its rows.
 assert(list.count == 1, "one source shows")
 assert(TopAnchored(list), "the card hangs from the holder's top, so the title never moves")
-assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "one row: the card keeps the holder's height, got " .. tostring(list.panel:GetHeight()))
+local minimum = list.panel:GetHeight()
+assert(minimum < list.holder:GetHeight() and RowsBottom(list) <= minimum - list.pad, "one source leaves a three-row card with padding")
 
 -- Full capacity fills the card with rows 18 units tall, 3 apart.
 Show(env, list.capacity + 3)
@@ -136,14 +137,14 @@ assert(same[2] == title[2] and W.Near(same[4], title[4]) and W.Near(same[5], tit
 
 -- A shrinking session leaves the card as it was; the rows past the session hide.
 Show(env, 2)
-assert(list.count == 2 and W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "two rows after a full list: the card keeps its height")
+assert(list.count == 2 and W.Near(list.panel:GetHeight(), minimum), "two rows after a full list return to the three-row minimum")
 assert(not list.rows[3].frame:IsShown(), "rows past the session hide")
 assert(TopAnchored(list), "still hung from the top")
 
 -- No source: the note sits inside the card.
 Show(env, 0)
 assert(list.count == 0 and list.note:IsShown(), "an empty session shows its note")
-assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "no source: the card keeps its height")
+assert(W.Near(list.panel:GetHeight(), minimum), "an empty meter keeps the three-row minimum")
 
 -- A holder too short for one row: the card never spills past it.
 local fullHeight = list.holder:GetHeight()

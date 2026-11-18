@@ -192,12 +192,14 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens(Widgets.Readability("worldText") and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens((item.view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
 	local mode = s.valueColor
-	if mode == "accent" then
+	if item.view.docked then
+		Widgets.TextColor(item.value, "labelMuted")
+	elseif mode == "accent" then
 		item.value:SetTextColor(ns.Accent())
 	elseif mode == "threshold" and grade then
 		Widgets.TextColor(item.value, GRADE_TOKEN[grade])
@@ -865,6 +867,42 @@ function Strip.Tick()
 	Strip.Update(true)
 end
 
+local function DockMeter(view, s)
+	local side = K.Safe.Side(K.Scale.Root())
+	local meter = side.meterCards and side.meterCards["meters.damage"]
+	local layout = K.Layout.Get(KEY)
+	local element = K.Layout.Element(KEY)
+	local default = element and element.default
+	local on = LineMode(s) and meter and meter.holder:IsVisible() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	if on then
+		meter.titleNarrow = true
+		meter:PaintTitleSwitch()
+		meter.column:SetAlpha(0)
+		view.frame:ClearAllPoints()
+		Widgets.Point(view.frame, "RIGHT", meter.cap.frame, "RIGHT")
+		view.frame:SetSize(math.max(1, meter.barWidth - Widgets.TextWidth(meter.title, 80) - Widgets.Snap(view.frame, 28)), Widgets.Snap(view.frame, LINE))
+		view.docked = meter
+	elseif view.docked then
+		view.docked.column:SetAlpha(1)
+		view.docked.titleNarrow = nil
+		view.docked:PaintTitleSwitch()
+		view.docked = nil
+		view.frame:ClearAllPoints()
+		view.frame:SetPoint(layout.anchor, K.Scale.Root(), layout.anchor, layout.x, layout.y)
+		view.frame:SetSize(layout.width, layout.height)
+	end
+end
+
+local function DockInk(view)
+	if view.docked then
+		for _, item in pairs(view.items) do
+			Widgets.TextColor(item.label, "labelMuted")
+			Widgets.TextColor(item.value, "labelMuted")
+			Widgets.TextColor(item.dot, "labelMuted")
+		end
+	end
+end
+
 function Strip.Refresh()
 	local view = Strip.view
 	if not view or not running then
@@ -873,7 +911,9 @@ function Strip.Refresh()
 	local s = ns.Settings().strip
 	view.order = Order(s)
 	Strip.order = view.order
+	DockMeter(view, s)
 	Strip.Paint(view, s, Read(view, s))
+	DockInk(view)
 end
 
 local function NeedsTicker(s)
@@ -942,6 +982,7 @@ local function Build()
 		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = MAX_WIDTH, maxHeight = MAX_HEIGHT,
 	})
 	Strip.view = view
+	K.Safe.Side(K.Scale.Root()).dockDataStrip = Strip.Refresh
 	return view
 end
 
@@ -990,6 +1031,7 @@ function Strip.Disable()
 	StopTicker()
 	ns.Click.Detach()
 	if Strip.view then
+		DockMeter(Strip.view, { line = false, orientation = "VERTICAL" })
 		for _, item in pairs(Strip.view.items) do
 			Strip.HideTooltip(item)
 		end
@@ -1020,7 +1062,13 @@ ns.Listen("PLAYER_EQUIPMENT_CHANGED", Strip.Update)
 ns.Listen("PLAYER_ENTERING_WORLD", Strip.Update)
 
 ns.Subscribe("LayoutChanged", function(key)
-	if key == KEY and running then
+	if (key == KEY or key == "meters.damage") and running then
+		Strip.Refresh()
+	end
+end)
+
+ns.Subscribe("ModuleChanged", function(module)
+	if module == "Meters" and running then
 		Strip.Refresh()
 	end
 end)

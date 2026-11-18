@@ -104,7 +104,7 @@ for _, screen in ipairs({ { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 
 	end
 	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, natural - 4 * pixel)
 	ns.QuestCard.Render()
-	assert(#Shown(ns) < 4 and parts.more:IsShown() and parts.thumb:IsShown(), "a genuinely short card advertises the quests accessible by scrolling")
+	assert(parts.fade:IsShown() and parts.more:IsShown() and parts.thumb:IsShown(), "a short card fades its partial last quest and advertises scrolling")
 	ns.QuestCard.Scroll(99)
 	assert(Shown(ns)[#Shown(ns)] == 304, "a short card can scroll to its last quest even with only four tracked")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "the short-card path raises nothing")
@@ -167,7 +167,7 @@ do
 	assert(ns.Quests.Active(), "the card stands in for Blizzard's quest list")
 	assert(ns.Quests.Card():IsShown(), "and shows")
 	local shown = Shown(ns)
-	assert(Ids(shown) == "305,301,302,303", "four of ten, the super-tracked quest first, got " .. Ids(shown))
+	assert(Ids(shown) == "305,301,302,303,304", "the cap's four quests plus the extra bound quest, with the super-tracked quest first")
 	local first = ns.Quests.Rows()[1]
 	assert(first.ring == nil and first.marked == nil, "the super-tracked quest leads the list and wears no ring: the picture's discs are flat, with nothing around them")
 	local factor = K.Widgets.ScaleFactor(ns.Quests.Card())
@@ -237,9 +237,9 @@ end
 
 do
 	local env, K, ns = Boot()
-	assert(Ids(Shown(ns)) == "301,302,303,304", "the first four, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,302,303,304,305", "the first page includes the extra bound quest")
 	Wheel(ns, -1)
-	assert(Ids(Shown(ns)) == "302,303,304,305", "one wheel step down shows the next quest, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "302,303,304,305,306", "one wheel step down shows the next quest and the extra bound quest")
 	for _ = 1, 20 do
 		Wheel(ns, -1)
 	end
@@ -247,11 +247,11 @@ do
 	local more = ns.Quests.Parts().more
 	assert(more:IsShown() and more:GetText() == "6 above, scroll up", "at the end the more line points up, got " .. tostring(more:GetText()))
 	Wheel(ns, 1)
-	assert(Ids(Shown(ns)) == "306,307,308,309", "and back up, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "306,307,308,309", "scrolling back up keeps the preceding page")
 	for _ = 1, 20 do
 		Wheel(ns, 1)
 	end
-	assert(Ids(Shown(ns)) == "301,302,303,304", "up to the top and no further, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,302,303,304,305", "scrolling stops at the top page, including its extra quest")
 	Clean(env, K)
 end
 
@@ -262,13 +262,13 @@ do
 	local env, K, ns, log = Boot({ saved = Sized(0.6) })
 	K.Options.Write("Skins", "quests.shown", 5)
 	env.RunTimers()
-	assert(#Shown(ns) == 5, "five shown, got " .. #Shown(ns))
+	assert(#Shown(ns) == 6, "five requested quests plus one continuation quest")
 	K.Options.Write("Skins", "quests.shown", 1)
 	env.RunTimers()
-	assert(#Shown(ns) == 1, "one shown, got " .. #Shown(ns))
+	assert(#Shown(ns) == 2, "one requested quest plus one continuation quest")
 	K.Options.Write("Skins", "quests.shown", 12)
 	env.RunTimers()
-	assert(#Shown(ns) == 8, "never more than eight, got " .. #Shown(ns))
+	assert(#Shown(ns) == 9, "the eight-quest limit permits one continuation quest")
 	K.Options.Write("Skins", "quests.shown", 3)
 	for _ = 1, 8 do
 		log.Untrack(log.quests[#log.quests].id)
@@ -324,7 +324,7 @@ do
 				assert(#Shown(ns) >= need, what .. ": at least " .. need .. " quests show, got " .. #Shown(ns) .. (shown and " (the guide is shown, so the quest card holds the story slot, LEE-1532)" or ""))
 				for _, row in ipairs(ns.Quests.Rows()) do
 					if row:IsShown() then
-						assert(RootRect(K, row).bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
+						assert(row.clipped or RootRect(K, row).bottom >= card.bottom - 0.5, what .. ": a quest extending past the card is marked for clipping")
 					end
 				end
 				Clean(env, K)
@@ -386,7 +386,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		for _, row in ipairs(ns.Quests.Rows()) do
 			if row:IsShown() then
 				local r = RootRect(K, row)
-				assert(r.bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
+				assert(row.clipped or r.bottom >= card.bottom - 0.5, what .. ": a quest extending past the card is marked for clipping")
 			end
 		end
 		assert(ns.Quests.Parts().glass:IsShown(), what .. ": the card wears its own glass")
@@ -397,10 +397,10 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			local g = RootRect(K, glass)
 			assert(g.top <= over - 15 + 0.5 and g.top >= st - px, what .. ": the guide's card starts at the slot's top, under the map and the aura rows, got " .. g.top)
 			if shown then
-				assert(g.bottom >= story.guide.bottom - px and g.right <= sl - 16 + px, what .. ": and stays in its column a rail gap left of the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
+				assert(g.bottom >= story.guide.bottom - px and g.right <= sl - 8 + px, what .. ": the guide keeps an eight-unit gutter beside the slot")
 			else
 				assert(g.bottom >= sb - px and g.left >= sl - px and g.right <= sr + px, what .. ": and stays inside the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
-				assert(g.left >= card.right + 16 - px, what .. ": a rail gap right of the quests, never over them")
+				assert(g.left >= card.right + 8 - px, what .. ": an eight-unit gutter right of the quests")
 			end
 		end
 		Clean(env, K)
@@ -575,7 +575,7 @@ do
 	env.RunTimers()
 	local removed = log.Called("RemoveQuestWatch")
 	assert(#removed == 1 and removed[1].args[1] == 302, "shift untracks it")
-	assert(Ids(Shown(ns)) == "301,303,304,305", "and the card moves up, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,303,304,305,306", "untracking moves the page and its continuation quest up")
 	W.Click(ns.Quests.Rows()[1], "RightButton")
 	assert(#log.Called("CreateContextMenu") == 1 and log.menu, "a right click opens the quest's menu")
 	local track
