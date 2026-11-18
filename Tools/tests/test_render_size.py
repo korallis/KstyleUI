@@ -27,7 +27,7 @@ for _, case in ipairs({ {"Orbs", 1920, 1080}, {"Frames", 3456, 2234}, {"Orbs", 5
     local maximum, fits = game.Setup.Layouts.ScaleLimit(width, case[3], "DPS", enabled, case[1]:lower())
     local expected = game.Scale.Auto(case[3], maximum, fits)
     if case[1] == "Orbs" and case[2] == 1920 then
-        assert(math.abs(expected - 0.875) < 1e-8, "the game's Orbs fit with bar 3 changed")
+        assert(math.abs(expected - 0.9375) < 1e-8, "bar 3's clear upper band keeps the Orbs Auto fit at 0.9375")
     end
     for _, module in ipairs({ "actionbars", "unitframes", "minimap" }) do
         local scene = Hud.Module(module, { layout = "DPS", applyPreset = true })

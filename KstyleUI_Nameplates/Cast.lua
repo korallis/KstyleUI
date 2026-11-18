@@ -429,7 +429,7 @@ function Component.Restyle(plate)
 	local h = Settings.Get("cast.height")
 	local showIcon = Settings.Get("cast.showIcon")
 	local badge = math.max(11, h)
-	local iconRoom = showIcon and h + GAP or badge + GAP
+	local iconRoom = showIcon and h + GAP or 0
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
 	Cast.Place(plate)
@@ -440,7 +440,7 @@ function Component.Restyle(plate)
 	plate.castShield:SetShown(showIcon)
 	plate.castBadge:SetSize(badge, badge)
 	plate.castBadge:ClearAllPoints()
-	plate.castBadge:SetPoint("LEFT", cast, "LEFT")
+	plate.castBadge:SetPoint("RIGHT", cast, "LEFT", -GAP, 0)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
 	bar:ClearAllPoints()
