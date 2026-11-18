@@ -42,6 +42,13 @@ local function CaptionX()
 	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
 end
 
+local function RowCenter(face)
+	if Face.Round() then
+		return max(Format.ROW_CENTER, face.mapSize * (1 / RING_OUTER - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)
+	end
+	return Format.ROW_CENTER
+end
+
 function Face.MaskPath()
 	if Face.Round() then
 		return (Tokens.Texture((Widgets.TextureName("medMinimapMask"))))
@@ -314,6 +321,14 @@ function Face:PlaceZone()
 	local mark = max(self.plate.diamond.black:GetHeight(), Extent(self.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
+	if Face.Round() then
+		local _, _, top = Widgets.Edges(card)
+		local _, _, screen = Widgets.Edges(Scale.Root())
+		local factor = Widgets.ScaleFactor(card)
+		if Plain(top) and Plain(screen) and Plain(factor) and factor > 0 then
+			y = min(y, Snap(card, (screen - top * factor - 17) / factor - PLAQUE_HEIGHT / 2))
+		end
+	end
 	self.zoneX, self.zoneY = Snap(card, CaptionX()), y
 	zone:ClearAllPoints()
 	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX, self.zoneY)
@@ -473,7 +488,7 @@ function Face:PlaceRound(round)
 	zone:ClearAllPoints()
 	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX - Snap(card, PLAQUE_PAD), self.zoneY)
 	row:ClearAllPoints()
-	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, Format.ROW_CENTER))
+	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, RowCenter(self)))
 	self:SyncPlaques()
 end
 
@@ -619,9 +634,13 @@ function Face:Layout()
 	end
 	Widgets.Point(self.north, "CENTER", self.plate, "CENTER")
 
-	local x, rowY = Snap(card, CaptionX()), Snap(card, Format.ROW_CENTER)
+	local x, rowY = Snap(card, CaptionX()), Snap(card, RowCenter(self))
 	local coords = self.coords
 	self:PlaceZone()
+	if round then
+		self.plate:ClearAllPoints()
+		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PLAQUE_HEIGHT / 2 + BADGE / 2 + 2))
+	end
 	self:PlaceRound(round)
 	coords:ClearAllPoints()
 	Widgets.Point(coords, "LEFT", card, "BOTTOMLEFT", x, -rowY)
