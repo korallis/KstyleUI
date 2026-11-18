@@ -467,7 +467,9 @@ function Style.MetricText(text, title)
 		entry.size = units * K.Theme.FontScale()
 		PaintSwept(text, entry)
 	else
-		Style.Text(text, role or "body", nil, size)
+		Style.Text(text, role or "body", nil, function()
+			return units * K.Theme.FontScale() * Style.Setting("text", "size")
+		end)
 	end
 	if type(text.SetSpacing) == "function" then
 		text:SetSpacing(math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - select(2, text:GetFont())))

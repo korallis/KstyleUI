@@ -563,6 +563,31 @@ end
 
 local metricWindows = setmetatable({}, WEAK)
 
+local function MetricButtonGaps(frame)
+	local buttons = {}
+	for _, child in ipairs({ frame:GetChildren() }) do
+		local parts = Skin.Parts(child)
+		local left, right, top = Widgets.Edges(child)
+		if parts and parts.kinds.Button and Plain(left) and Plain(right) and Plain(top) and Widgets.MayMove(child) then
+			buttons[#buttons + 1] = { frame = child, left = left, top = top }
+		end
+	end
+	table.sort(buttons, function(a, b) return a.left < b.left end)
+	for i = 2, #buttons do
+		local before, after = buttons[i - 1], buttons[i]
+		if math.abs(before.top - after.top) < 1 then
+			local left = after.frame:GetLeft()
+			local right = before.frame:GetRight()
+			if Plain(left) and Plain(right) then
+				local gap = left - right
+				if gap >= 0 and gap <= 16 then
+					after.frame:AdjustPointsOffset(Widgets.Snap(after.frame, 8 - gap), 0)
+				end
+			end
+		end
+	end
+end
+
 local function MetricChildren(frame, depth)
 	if depth > 8 or Widgets.Restricted(frame) or type(frame.GetRegions) ~= "function" then
 		return
@@ -583,6 +608,7 @@ local function MetricChildren(frame, depth)
 		for _, child in ipairs({ frame:GetChildren() }) do
 			MetricChildren(child, depth + 1)
 		end
+		MetricButtonGaps(frame)
 	end
 end
 
