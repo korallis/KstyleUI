@@ -426,6 +426,10 @@ do
 			slot.ItemButton = P.Item(B, slot)
 			slot.Name = B.text(slot)
 			slot.Name:SetPoint("LEFT", slot.SlotTexture, "RIGHT", -5, 7)
+			local money = B.frame("Frame", slot, "MerchantItem" .. i .. "MoneyFrame")
+			money.GoldButton = B.frame("Button", money)
+			money.GoldButton.Text = B.text(money.GoldButton)
+			money:SetPoint("BOTTOMLEFT", slot, "BOTTOMLEFT", 46, 4)
 			slots[i] = slot
 		end
 		local buyback = B.frame("Frame", merchant, "MerchantBuyBackItem")
@@ -452,6 +456,10 @@ do
 		assert(right, "the name has a right anchor on its tile")
 		assert(right[4] <= -K.Tokens.Size("gapMedium"), "a gap in from the tile's edge, got " .. tostring(right[4]))
 		assert(W.LastCall(slot.Name, "SetWordWrap") == nil or W.LastCall(slot.Name, "SetWordWrap")[1] == true, "a long name may wrap to its second line")
+		local money = env[slot:GetName() .. "MoneyFrame"]
+		assert(select(2, money.GoldButton.Text:GetFont()) == K.Widgets.FontSize(money.GoldButton.Text, 12), "native coin amounts use secondary text without a MoneyFrame parentKey")
+		local point, parent, _, _, y = money:GetPoint(1)
+		assert(point == "BOTTOMLEFT" and parent == slot and math.abs(y) < 0.5, "native prices clear two-line item names")
 	end
 	assert(K.Safe.Side(made.buyback.ItemButton).partBItem, "the buyback item too")
 	assert(Hidden(made.repair.slot) and not Hidden(made.repair.Icon), "the repair button keeps its icon on a tile")

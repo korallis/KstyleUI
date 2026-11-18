@@ -33,6 +33,14 @@ for _, spec in ipairs(Windows.LIST) do
 		end
 	end
 	assert(count > 0, spec.key .. ": opt this window family into the shared native window measures")
+	if spec.key == "merchant" then
+		for i = 1, 10 do
+			local slot = env["MerchantItem" .. i]
+			assert(select(2, slot.MoneyFrame:GetFont()) == K.Widgets.FontSize(slot.MoneyFrame, 12), "merchant prices use the secondary text lane")
+			local _, parent, _, _, y = slot.MoneyFrame:GetPoint(1)
+			assert(parent == slot and math.abs(y) < 0.5, "merchant prices sit below two-line names at the row's lower edge")
+		end
+	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, spec.key .. ": " .. tostring(env._errors[1]))
 end
 

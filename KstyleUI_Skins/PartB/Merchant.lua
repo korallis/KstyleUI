@@ -18,10 +18,41 @@ local function NameSize()
 	return size * ns.Style.Setting("text", "size")
 end
 
+local function PriceText(frame)
+	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "FontString" then
+		ns.Style.Text(frame, "caption")
+	elseif type(frame.GetRegions) == "function" then
+		for _, text in ipairs({ frame:GetRegions() }) do
+			if type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
+				ns.Style.Text(text, "caption")
+			end
+		end
+		for _, child in ipairs({ frame:GetChildren() }) do
+			PriceText(child)
+		end
+	end
+end
+
+local function Prices(slot)
+	local name = type(slot.GetName) == "function" and slot:GetName()
+	if issecretvalue and issecretvalue(name) then
+		name = nil
+	end
+	for _, key in ipairs({ "MoneyFrame", "AltCurrencyFrame" }) do
+		local frame = slot[key] or type(name) == "string" and _G[name .. key]
+		if type(frame) == "table" and K.Widgets.MayMove(frame) then
+			frame:ClearAllPoints()
+			frame:SetPoint("BOTTOMLEFT", slot, "BOTTOMLEFT", K.Widgets.Snap(frame, 46), 0)
+			PriceText(frame)
+		end
+	end
+end
+
 local function Slot(slot)
 	Skin.Strip(slot)
 	Skin.Backdrop(slot, { shape = "tile", fill = "surface", shadow = false })
 	Item(slot.ItemButton)
+	Prices(slot)
 	local name = slot.Name
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return
