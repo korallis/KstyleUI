@@ -45,7 +45,7 @@ return Common.Run(function()
 			local ns = env._addons.KstyleUI_Options
 			if need == "numeric" then
 				for i, item in ipairs(ns.Window.State().items) do
-					if item.key == "bar1.size" then ns.Window.Parts().content:ScrollToIndex(i, true); break end
+					if item.key == "bar1.size" then ns.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
 				end
 				env.RunTimers()
 				W.Settle(env)
@@ -58,10 +58,10 @@ return Common.Run(function()
 				K.Options.Write("ActionBars", "bar1.buttons", 12)
 				ns.Pages.ReviewImport(text)
 			end
-			if need == "general" or need == "profiles" then
-				local wanted = need == "profiles" and "Share" or "Colour vision"
+			if need == "general" or need == "profiles" or need == "readable" then
+				local wanted = need == "profiles" and "Share" or need == "readable" and "Readability" or "Colour vision"
 				for i, item in ipairs(ns.Window.State().items) do
-					if item.label == wanted then ns.Window.Parts().content:ScrollToIndex(i, true); break end
+					if item.label == wanted then ns.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
 				end
 			end
 		end

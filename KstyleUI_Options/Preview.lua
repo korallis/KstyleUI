@@ -458,6 +458,7 @@ function RefreshCurrent(pane)
 end
 
 function Preview.Show(pane, page)
+	pane.page = page
 	local frame
 	if page then
 		local builder = page.module and K.Options.Preview(page.module)
@@ -466,7 +467,7 @@ function Preview.Show(pane, page)
 		elseif page.builtinPreview then
 			local sample = page.builtinPreview()
 			if sample then
-				frame = Build(pane, page.id, sample)
+				frame = Build(pane, sample, sample)
 			end
 		end
 	end
@@ -487,7 +488,9 @@ function Preview.Show(pane, page)
 end
 
 function Preview.Refresh(pane, module)
-	if module == nil or module == pane.module then
+	if pane.page and pane.page.builtinPreview then
+		Preview.Show(pane, pane.page)
+	elseif module == nil or module == pane.module then
 		RefreshCurrent(pane)
 	end
 end
