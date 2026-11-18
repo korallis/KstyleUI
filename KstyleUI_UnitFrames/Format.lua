@@ -166,7 +166,6 @@ function Format.PowerMode(unit, format, powerType)
 	if format ~= "auto" then return format end
 	if issecretvalue and issecretvalue(powerType) then return "current" end
 	if powerType == nil and UnitPowerType then powerType = UnitPowerType(unit) end
-	if issecretvalue and issecretvalue(powerType) then return "current" end
 	return powerType == 0 and "percent" or "current"
 end
 

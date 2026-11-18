@@ -153,8 +153,6 @@ local function Paint(plate, openR, openG, openB)
 		if plate.castShield.SetAlphaFromBoolean then
 			plate.castShade = nil
 			plate.castShield:SetAlphaFromBoolean(flag, SHIELD_ALPHA, 0)
-		end
-		if plate.castGlyph.SetAlphaFromBoolean then
 			plate.castGlyph:SetAlphaFromBoolean(flag, Settings.Get("cast.combatCues") and 1 or 0, 0)
 		end
 	elseif flag == true then
