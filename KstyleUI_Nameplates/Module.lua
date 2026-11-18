@@ -14,8 +14,9 @@ end
 
 local function Rehighlight()
 	if Plates.running then
+		local sigilCasts = ns.Cast.SigilCasts()
 		Plates.Each(function(plate)
-			plate:UpdateHighlight()
+			plate:UpdateHighlight(sigilCasts)
 		end)
 	end
 end

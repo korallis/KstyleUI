@@ -95,6 +95,12 @@ local function NameLine(view, g)
 	level:Show()
 end
 
+local function MeasureCaption(ruler, label)
+	ruler:SetText(ns.Unit.Tracked(label, (ruler:GetFont())))
+	local width = ruler:GetUnboundedStringWidth()
+	return Plain(width, "number") and width or 0
+end
+
 local function CaptionWidth(view)
 	local text = view.caption
 	local ruler = view.captionRuler
@@ -106,20 +112,15 @@ local function CaptionWidth(view)
 		view.captionRuler = ruler
 	end
 	Widgets.ApplyFont(ruler, text:GetFont())
-	local function Measure(label)
-		ruler:SetText(ns.Unit.Tracked(label, (ruler:GetFont())))
-		local width = ruler:GetUnboundedStringWidth()
-		return Plain(width, "number") and width or 0
-	end
 	if view.plainCaption then
-		return Measure(view.plainCaption)
+		return MeasureCaption(ruler, view.plainCaption)
 	end
 	local api, width = C_CreatureInfo, 0
 	if api and api.GetCreatureTypeIDs and api.GetCreatureTypeInfo then
 		for _, id in ipairs(api.GetCreatureTypeIDs()) do
 			local info = api.GetCreatureTypeInfo(id)
 			if info and Plain(info.name, "string") then
-				width = math.max(width, Measure(info.name))
+				width = math.max(width, MeasureCaption(ruler, info.name))
 			end
 		end
 	end

@@ -809,7 +809,7 @@ function Plate:UpdateThreat()
 	end
 end
 
-function Plate:UpdateHighlight()
+function Plate:UpdateHighlight(sigilCasts)
 	local state = ns.state
 	local isTarget, isFocus
 	if self.sample then
@@ -818,7 +818,7 @@ function Plate:UpdateHighlight()
 		isTarget = ns.Plates.IsUnit(self, "target")
 		isFocus = ns.Plates.IsUnit(self, "focus")
 	end
-	ns.Cast.Gate(self, isTarget)
+	ns.Cast.Gate(self, isTarget, sigilCasts)
 	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
 	self:ShowBrackets(framed)
 	local health = self.health

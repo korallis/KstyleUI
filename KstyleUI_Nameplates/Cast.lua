@@ -335,11 +335,13 @@ local function SigilCasts()
 	return true
 end
 Cast.SIGIL_MODULE, Cast.SIGIL_KEYS = SIGIL_MODULE, SIGIL_KEYS
+Cast.SigilCasts = SigilCasts
 
-function Cast.Gate(plate, isTarget)
+function Cast.Gate(plate, isTarget, sigilCasts)
 	local gate = plate.castGate
 	if gate then
-		gate:SetShown(not (isTarget and not plate.sample and Settings.Get("cast.hideOnTarget") and SigilCasts()))
+		if sigilCasts == nil then sigilCasts = SigilCasts() end
+		gate:SetShown(not (isTarget and not plate.sample and Settings.Get("cast.hideOnTarget") and sigilCasts))
 	end
 end
 
