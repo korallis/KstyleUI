@@ -98,6 +98,11 @@ function Style.Setting(group, key)
 	return Style.defaults[group][key]
 end
 
+function Style.MetricsEnabled()
+	if Style.metricsChoice ~= nil then return Style.metricsChoice end
+	return not K.Store.IsLoaded() or K.Store.Module(MODULE).windowMetrics ~= false
+end
+
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
 end

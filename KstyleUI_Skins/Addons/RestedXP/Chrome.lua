@@ -747,7 +747,7 @@ function Chrome.Rest(f, on, folded)
 	RestMouse(footer, on)
 	RestMouse(f, on)
 	local path = Chrome.Path(f)
-	if path then
+	if path and (ns.Skins.Setting("restedXP", "compose") or path.rest ~= (on and folded == true)) then
 		path.rest = on and folded == true
 		PlaceCard(path)
 	end

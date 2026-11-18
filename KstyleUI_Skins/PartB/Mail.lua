@@ -81,7 +81,7 @@ local function Body(body)
 		return
 	end
 	if body:GetObjectType() == "SimpleHTML" then
-		ns.Style.Html(body, "body", "textEmphasis", 13)
+		ns.Style.Html(body, "body", "textEmphasis", ns.Style.MetricsEnabled() and 13 or nil)
 		return
 	end
 	Kit.Text(body, "body", "textEmphasis")
@@ -111,7 +111,7 @@ local function Apply()
 		return false
 	end
 	Kit.Window(frame)
-	if type(MailItem1) == "table" and K.Widgets.MayMove(MailItem1) then
+	if ns.Style.MetricsEnabled() and type(MailItem1) == "table" and K.Widgets.MayMove(MailItem1) then
 		MailItem1:ClearAllPoints()
 		K.Widgets.Point(MailItem1, "TOPLEFT", frame, "TOPLEFT", 12, -44)
 	end

@@ -132,9 +132,9 @@ local function PaintButton(parts)
 	local chrome = parts.backdrop and parts.backdrop.chrome
 	if chrome then
 		if enabled then
-			chrome:SetEdgeRGBA(MixAccent("medGunLit", 1, hover))
+			chrome:SetEdgeRGBA(MixAccent(K.Skin.buttonMaterial == false and "edgeInner" or "medGunLit", 1, hover))
 		else
-			chrome:SetEdge("medRimLit")
+			chrome:SetEdge(K.Skin.buttonMaterial == false and "edgeInner" or "medRimLit")
 		end
 	end
 	if parts.PaintMaterial then

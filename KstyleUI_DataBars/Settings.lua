@@ -77,6 +77,7 @@ defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
+	dockMeter = true,
 	line = true, labels = "inline", menus = false, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
@@ -223,6 +224,7 @@ local TIME_SOURCES = {
 }
 
 local stripRows = { { type = "header", label = L["Data strip"] } }
+stripRows[#stripRows + 1] = { type = "toggle", key = "strip.dockMeter", label = L["Dock readouts to the meter"], help = L["Place the data strip beside the damage meter title. Off returns it to its own position."] }
 for i = 1, Strip.SLOTS do
 	stripRows[#stripRows + 1] = {
 		type = "dropdown", key = "strip.slot" .. i, label = string.format(L["Place %d"], i),

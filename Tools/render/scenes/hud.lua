@@ -1787,7 +1787,7 @@ function Hud.PresetSettings(layout)
 		end
 		node[parts[#parts]] = entry.value
 	end
-	return settings
+	return Common.FinishSettings(settings)
 end
 
 -- Options(opts) -> opts for a whole-HUD scene: one that names a layout and no settings takes the layout's preset,

@@ -9,6 +9,33 @@ local Common = {}
 
 Common.Scene = dofile("Tools/render/scene.lua")
 
+function Common.PreviousFinish()
+	return os.getenv("RENDER_FINISH") == "previous"
+end
+
+function Common.FinishSettings(profile)
+	if not Common.PreviousFinish() then return profile end
+	local previous = {
+		Skins = { steelButtons = false, windowMetrics = false, quests = { continuation = false }, restedXP = { compose = false } },
+		Meters = { fitCards = false, threat = { followGuide = false } },
+		DataBars = { strip = { dockMeter = false } },
+		Minimap = { clearPlaques = false },
+		Bags = { separateFigures = false, readableHeaders = false },
+	}
+	local function merge(target, values)
+		for key, value in pairs(values) do
+			if type(value) == "table" then
+				target[key] = target[key] or {}
+				merge(target[key], value)
+			else
+				target[key] = value
+			end
+		end
+	end
+	merge(profile, previous)
+	return profile
+end
+
 -- The owner's Mac: the game renders 2383 by 1540, so one screen unit is 1540 / 1080 = 1.426 pixels. The UI
 -- scale is WoW's default, 768 / 1080, so UIParent is 1080 units tall too and Blizzard's frames share the
 -- root's units.

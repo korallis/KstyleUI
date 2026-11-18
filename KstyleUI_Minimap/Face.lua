@@ -43,7 +43,7 @@ local function CaptionX()
 end
 
 local function RowCenter(face)
-	if Face.Round() then
+	if Face.Round() and Settings.Get("clearPlaques") then
 		return max(Format.ROW_CENTER, face.mapSize * (1 / RING_OUTER - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)
 	end
 	return Format.ROW_CENTER
@@ -321,7 +321,7 @@ function Face:PlaceZone()
 	local mark = max(self.plate.diamond.black:GetHeight(), Extent(self.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
-	if Face.Round() then
+	if Face.Round() and Settings.Get("clearPlaques") then
 		local _, _, top = Widgets.Edges(card)
 		local _, _, screen = Widgets.Edges(Scale.Root())
 		local factor = Widgets.ScaleFactor(card)
@@ -637,7 +637,7 @@ function Face:Layout()
 	local x, rowY = Snap(card, CaptionX()), Snap(card, RowCenter(self))
 	local coords = self.coords
 	self:PlaceZone()
-	if round then
+	if round and Settings.Get("clearPlaques") then
 		self.plate:ClearAllPoints()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PLAQUE_HEIGHT / 2 + BADGE / 2 + 2))
 	end

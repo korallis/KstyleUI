@@ -12,6 +12,12 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local pixel = K.Scale.Pixel(1) + 0.01
 	assert(math.abs(q.bottom - g.bottom) <= pixel, "side-by-side story cards share the taller card's foot")
 	assert(math.abs(q.left - g.right - 8) <= pixel, "side-by-side story cards share one eight-unit gutter: " .. q.left .. " - " .. g.right)
+	K.Options.Write("Skins", "restedXP.compose", false)
+	R.settle()
+	local oldQuest, oldGuide = Rect(quest), Rect(guide)
+	assert(math.abs(oldQuest.left - oldGuide.right - K.Setup.Layouts.STORY_GAP) <= pixel, "turning story alignment off restores the previous gutter")
+	K.Options.Write("Skins", "restedXP.compose", true)
+	R.settle()
 	ns.QuestCard.Place(root, q.left, q.top, q.right - q.left, 125)
 	ns.QuestCard.Render()
 	local parts = ns.QuestCard.Parts()
@@ -19,6 +25,8 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	for _, row in ipairs(ns.QuestCard.Rows()) do clipped = clipped or row:IsShown() and row.clipped end
 	assert(clipped and parts.fade:IsShown() and parts.cap.row:IsShown(), "keep the cap and bind the partial quest under the lower fade")
 	assert(parts.more:GetText():find("more, scroll down", 1, true), "the footer explains how to read the remaining quests")
+	K.Options.Write("Skins", "quests.continuation", false)
+	assert(not parts.fade:IsShown(), "turning quest continuation off restores complete-row pages without a fade")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("composed story rail ok")

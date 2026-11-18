@@ -21,6 +21,7 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
 Settings.defaults = {
 	enabled = false,
+	clearPlaques = true,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
@@ -114,6 +115,7 @@ end
 
 local schema = {
 	{ type = "header", label = L["Frame"] },
+	{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
 	{
 		type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
 		help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],

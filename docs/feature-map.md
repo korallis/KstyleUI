@@ -1,5 +1,7 @@
 # Feature map
 
+The G1/G3/G7/G10/G11 finish controls default on in their matching module pages. `RENDER_FINISH=previous` switches them off for parity captures, including loading native windows with the previous spacing choice after a reload. [Window finish options](statecharts/window-finish.md) charts the reload flow.
+
 One row per player-facing feature, in the names the README and the v0.1.0 changelog use. Briefs, tickets and PRs use these names. A PR that adds, renames or removes a feature updates its row.
 
 - **Where** is the settings window page (`/kstyle`) or the slash command where the player finds it. A module page carries the module's name; General holds the HUD style, Appearance and Widgets sections; Elements holds the Layout section.

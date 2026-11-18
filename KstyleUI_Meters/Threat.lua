@@ -230,7 +230,7 @@ local function DockGuide()
 	if not holder or not layout or InCombatLockdown() then
 		return
 	end
-	local on = guide and guide:IsVisible() and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = ns.Get("threat.followGuide") and guide and guide:IsVisible() and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		local foot = side.storyGuideBottom or guide
 		local top, bottom = Logic.Plain(guide:GetBottom()), Logic.Plain(foot:GetBottom())

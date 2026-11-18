@@ -503,7 +503,11 @@ local function PlaceCap(cap)
 		return
 	end
 	local gap = Widgets.Snap(holder, CAP_RULE_GAP)
-	Widgets.Point(rule, "LEFT", title, "LEFT", width + gap, 0)
+	if ns.Style.MetricsEnabled() then
+		Widgets.Point(rule, "LEFT", title, "LEFT", width + gap, 0)
+	else
+		rule:SetPoint("LEFT", title, "LEFT", width + gap, 0)
+	end
 	local close = cap.close
 	if close then
 		rule:SetPoint("RIGHT", close, "LEFT", -gap, 0)
@@ -681,7 +685,7 @@ local function PlaceMetrics(state)
 end
 
 function Parts.WindowMetrics(frame)
-	if type(frame) ~= "table" or metricWindows[frame] then
+	if not ns.Style.MetricsEnabled() or type(frame) ~= "table" or metricWindows[frame] then
 		return
 	end
 	local container = frame.TitleContainer or type(frame.BorderFrame) == "table" and frame.BorderFrame.TitleContainer

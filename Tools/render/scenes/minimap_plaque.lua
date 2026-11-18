@@ -6,6 +6,7 @@ local M = dofile("Tools/regression/minimap_env.lua")
 return Common.Run(function()
 	local env, K = M.New(Common.ScreenOpts({
 		enabled = true, zone = "Riverglades",
+		settings = { clearPlaques = not Common.PreviousFinish() },
 		setup = function(e) Common.ForceScreen(e) end,
 	}))
 	K.Options.Write("HudStyle", "style", "medallions")

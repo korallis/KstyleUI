@@ -535,17 +535,18 @@ function Card.Render()
 	local fit = FitFromEnd(total, n, viewHeight, gap)
 	offset = math.max(1, math.min(offset, total - fit + 1))
 	local y, k, cut = 0, 0, 0
-	while k < n + (compact and 0 or 1) and offset + k <= total and y < viewHeight do
+	local continuation = ns.Skins.Setting("quests", "continuation")
+	while k < n + (continuation and not compact and 1 or 0) and offset + k <= total and y < viewHeight do
 		local h = heights[offset + k]
-		if k > 0 and y >= viewHeight then
+		if k > 0 and (y >= viewHeight or not continuation and not Fits(y + h, viewHeight)) then
 			break
 		end
 		k = k + 1
 		local row = rows[k]
-		local limit = compact and not Fits(h, viewHeight) and viewHeight or nil
+		local limit = (compact or not continuation) and not Fits(h, viewHeight) and viewHeight or nil
 		cut = Bind(row, Data.Get(offset + k - 1), offset + k - 1, y, h, right, limit)
 		row.clipped = not Fits(y + h, viewHeight)
-		row.itemClipped = not Fits(y + Snap(SOCKET), viewHeight)
+		row.itemClipped = continuation and not Fits(y + Snap(SOCKET), viewHeight)
 		y = y + h + gap
 	end
 	for i = k + 1, #rows do
@@ -560,8 +561,8 @@ function Card.Render()
 	Widgets.Point(view, "TOPLEFT", card, "TOPLEFT", inset, -(top + capHeight + capGap))
 	Widgets.Point(view, "TOPRIGHT", card, "TOPRIGHT", -inset, -(top + capHeight + capGap))
 	view:SetHeight(viewHeight)
-	fade:SetShown(not compact and y - gap > viewHeight)
-	local complete = k - (rows[k] and rows[k].clipped and 1 or 0)
+	fade:SetShown(continuation and not compact and y - gap > viewHeight)
+	local complete = k - (continuation and rows[k] and rows[k].clipped and 1 or 0)
 	Bar(total, offset, math.max(1, complete), viewHeight)
 	local above, below = offset - 1, total - (offset + complete - 1)
 	if compact then

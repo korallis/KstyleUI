@@ -20,6 +20,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 3456, 2234 } }) do
 	local panel = ns.Inventory.window.panel
 	assert(panel.chrome.headerUnits == panel.titleBar:GetHeight(), "size the bag header band from the title bar height")
 	assert(select(2, panel.titleText:GetFont()) == K.Widgets.FontSize(panel.titleText, 14), "the bag window title uses 14 units")
+	K.Options.Write("Bags", "separateFigures", false)
+	assert(slot.level:GetPoint(1) == "BOTTOMLEFT", "turning separate figures off restores the previous item-level corner")
+	K.Options.Write("Bags", "readableHeaders", false)
+	assert(panel.chrome.headerUnits == ns.Inventory.window.originalHeader, "turning readable headings off restores the previous header band")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

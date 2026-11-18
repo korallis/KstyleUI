@@ -11,5 +11,11 @@ for _, count in ipairs({ 1, 3, 5, 20 }) do
 	local expected = K.Widgets.Snap(list.panel, list:Top()) + rows * (list.rowHeight + list.spacing) - list.spacing + list.pad
 	assert(math.abs(list.panel:GetHeight() - expected) <= K.Scale.Pixel(1), "fit the meter card to its rows plus padding, with at least three rows")
 end
+K.Options.Write("Meters", "fitCards", false)
+list:Finish(3)
+assert(list.panel:GetHeight() == list.holder:GetHeight(), "turning card fitting off restores the previous full-height glass")
+K.Options.Write("Meters", "fitCards", true)
+list:Finish(3)
+assert(list.panel:GetHeight() < list.holder:GetHeight(), "card fitting can be enabled again")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("meter card fit ok")

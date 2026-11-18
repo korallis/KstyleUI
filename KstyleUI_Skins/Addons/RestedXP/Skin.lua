@@ -10,8 +10,9 @@ ns.Skins.Add({
 	label = L["RestedXP"],
 	help = L["Gives RestedXP Guides the KstyleUI theme and restyles its windows."],
 	addon = "RXPGuides",
-	defaults = { rail = true, boxes = true },
+	defaults = { rail = true, boxes = true, compose = true },
 	rows = {
+		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Give story cards a shared lower edge and gutter. Off restores their previous sizes."] },
 		{
 			type = "toggle", key = "rail", label = L["Story rail"],
 			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],
@@ -42,6 +43,11 @@ ns.Skins.Add({
 	OnSetting = function(_, field)
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
+		elseif field == "compose" then
+			local rxp = RestedXP.Addon()
+			if rxp then RestedXP.Chrome.Refit(rxp.RXPFrame) end
+			if ns.Quests and ns.Quests.Replace then ns.Quests.Replace() end
+			RestedXP.Rail.Schedule()
 		elseif field == "boxes" then
 			RestedXP.Rail.Schedule()
 		end

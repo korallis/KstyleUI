@@ -52,7 +52,7 @@ local function Slot(slot)
 	Skin.Strip(slot)
 	Skin.Backdrop(slot, { shape = "tile", fill = "surface", shadow = false })
 	Item(slot.ItemButton)
-	Prices(slot)
+	if ns.Style.MetricsEnabled() then Prices(slot) end
 	local name = slot.Name
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return

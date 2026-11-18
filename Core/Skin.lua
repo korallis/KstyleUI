@@ -624,10 +624,11 @@ local function PaintButton(parts)
 	local Widgets = W()
 	local enabled = Enabled(parts.frame)
 	local hover = parts.hoverT or 0
+	local edge = Skin.buttonMaterial == false and "edgeInner" or "medGunLit"
 	if enabled then
-		parts.backdrop.chrome:SetEdgeRGBA(Widgets.MixTokens("medGunLit", 1, "accent", 1, hover))
+		parts.backdrop.chrome:SetEdgeRGBA(Widgets.MixTokens(edge, 1, "accent", 1, hover))
 	else
-		parts.backdrop.chrome:SetEdge("medRimLit")
+		parts.backdrop.chrome:SetEdge(Skin.buttonMaterial == false and "edgeInner" or "medRimLit")
 	end
 	parts:PaintMaterial()
 	local text = parts.text
@@ -641,6 +642,10 @@ local function PaintButton(parts)
 end
 
 local function PaintButtonMaterial(parts)
+	local shown = Skin.buttonMaterial ~= false
+	parts.material:SetShown(shown)
+	parts.topLine:SetShown(shown)
+	if not shown then return end
 	local low = Enabled(parts.frame) and parts.pressed and "slotFill" or "medCardHeaderBottom"
 	local high = Enabled(parts.frame) and parts.pressed and "slotFill" or "medCardHeaderTop"
 	local r, g, b, a = Tokens.Color(low)
@@ -650,6 +655,14 @@ local function PaintButtonMaterial(parts)
 		parts.material:SetGradient("VERTICAL", CreateColor(Tokens.Color(low)), CreateColor(Tokens.Color(high)))
 	end
 	W().Tint(parts.topLine, "medTopLine")
+end
+
+function Skin.SetButtonMaterial(on)
+	Skin.buttonMaterial = W().IsSecret(on) or on ~= false
+	for frame in pairs(watched) do
+		local parts = ns.Safe.Side(frame).skin
+		if parts and parts.kinds.Button then Restyle(parts) end
+	end
 end
 
 local function LayoutButton(parts)

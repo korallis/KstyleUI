@@ -638,7 +638,7 @@ function RestedXP.Build()
 	local env, K, ns = S.New(Common.ScreenOpts({
 		saved = {
 			version = 2,
-			profiles = { Default = { Skins = { enabled = true, restedXP = { rail = rail } }, Layout = rail and { preset = RestedXP.PRESET } or nil, HudStyle = rail and style and style ~= "" and { style = style:lower() } or nil } },
+			profiles = { Default = Common.FinishSettings({ Skins = { enabled = true, restedXP = { rail = rail } }, Layout = rail and { preset = RestedXP.PRESET } or nil, HudStyle = rail and style and style ~= "" and { style = style:lower() } or nil }) },
 			characters = {},
 			layouts = {},
 			account = { setupSeen = true },

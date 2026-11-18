@@ -3,7 +3,7 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 
 return Common.Run(function()
-	local R = Boot(Common.SCREEN, os.getenv("RENDER_QUEST_ITEM") == "1")
+	local R = Boot(Common.SCREEN, os.getenv("RENDER_QUEST_ITEM") == "1", Common.PreviousFinish())
 	local style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower()
 	R.K.Options.Write("HudStyle", "style", style)
 	R.settle()

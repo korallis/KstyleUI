@@ -316,7 +316,7 @@ local function OnSwitch(_, on)
 end
 
 local function OnSetting(_, field)
-	if field == nil or field == "shown" then
+	if field == nil or field == "shown" or field == "continuation" then
 		Card.SetShownCount(Shown())
 		if state.active then
 			Card.Render()
@@ -379,8 +379,9 @@ Skins.Add({
 	help = L["Shows your tracked quests in the story rail, a few at a time; the wheel scrolls to the rest."],
 	addon = "Blizzard_ObjectiveTracker",
 	live = true,
-	defaults = { shown = DEFAULT_SHOWN },
+	defaults = { shown = DEFAULT_SHOWN, continuation = true },
 	rows = {
+		{ type = "toggle", key = "continuation", label = L["Show the next quest"], help = L["Let the next quest continue under a soft fade. Off shows only complete quest rows."] },
 		{
 			type = "slider", key = "shown", label = L["Quests shown"],
 			help = L["How many quests the card shows at once."],

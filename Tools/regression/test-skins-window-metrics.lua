@@ -2,9 +2,12 @@
 local Windows = dofile("Tools/regression/skins_windows.lua")
 local S = Windows.S
 
-for _, spec in ipairs(Windows.LIST) do
+local function Boot(spec, metrics)
 	local B, parts
-	local env, K, ns = S.New({ before = function(e)
+	local env, K, ns = S.New({ saved = {
+		version = 12, profiles = { Default = { Skins = { windowMetrics = metrics } } },
+		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
+	}, before = function(e)
 		B = S.Blizzard(e)
 		parts = select(2, Windows.Build(spec.key, e, B))
 	end })
@@ -13,6 +16,11 @@ for _, spec in ipairs(Windows.LIST) do
 	for _, frame in ipairs(parts.show) do S.Show(frame) end
 	env.RunTimers()
 	S.W.Settle(env)
+	return env, K, ns, parts
+end
+
+for _, spec in ipairs(Windows.LIST) do
+	local env, K, ns = Boot(spec, true)
 	local count = 0
 	for _, key in ipairs(spec.skins) do
 		local def = ns.Skins.Get(key)
@@ -52,6 +60,22 @@ for _, spec in ipairs(Windows.LIST) do
 		assert(env.FriendsListFrame.ScrollBox:GetTop() < env.FriendsFrame.FriendsTabHeader.BattlenetFrame:GetBottom(), "the friends list begins below its broadcast header")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, spec.key .. ": " .. tostring(env._errors[1]))
+	local prompts = 0
+	K.Widgets.ReloadPrompt = function() prompts = prompts + 1 end
+	K.Options.Write("Skins", "windowMetrics", false)
+	assert(prompts == 1, "changing native window metrics uses the existing reload choice")
+	local oldEnv, oldK, oldNs = Boot(spec, false)
+	for _, key in ipairs(spec.skins) do
+		local def = oldNs.Skins.Get(key)
+		if def.metrics then
+			for _, name in ipairs(type(def.metrics) == "table" and def.metrics or { def.frame }) do
+				local frame = oldEnv[name]
+				local skin = frame and oldK.Skin.Parts(frame)
+				assert(not skin or not skin.backdrop or skin.backdrop.chrome.headerUnits ~= 32, spec.key .. ": reloading with metrics off restores the previous title band")
+			end
+		end
+	end
+	assert(#oldEnv._errors == 0 and oldK.ErrorCount() == 0, spec.key .. ": previous metrics reloads without errors")
 end
 
 print("skins window metrics ok")

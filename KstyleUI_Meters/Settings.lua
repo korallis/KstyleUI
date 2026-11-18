@@ -57,6 +57,7 @@ local DAMAGE_CLASS_TONE = 0.62
 ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
+	fitCards = true,
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
 	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT), {
@@ -73,6 +74,7 @@ ns.defaults = {
 		icons = true,
 	}),
 	threat = Merge(Bars("left"), Text(ROW_TEXT), {
+		followGuide = true,
 		shown = true,
 		group = true,
 		pets = true,
@@ -240,6 +242,7 @@ local function ListRows(section, rows)
 end
 
 local schema = {
+	{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
 	{ type = "header", label = L["Accent"] },
 	{
 		type = "dropdown", key = "accent", label = L["Accent colour"],
@@ -281,6 +284,7 @@ local schema = {
 ListRows("damage", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
+schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
 schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], help = L["Shows your group's threat on your target."] }
 schema[#schema + 1] = {
 	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),

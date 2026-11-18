@@ -45,7 +45,7 @@ function Gallery.Saved(modules, extra)
 		end
 		profile[name] = section
 	end
-	local saved = { version = 2, profiles = { Default = profile }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 2, profiles = { Default = Common.FinishSettings(profile) }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	for k, v in pairs(extra or {}) do
 		saved[k] = v
 	end

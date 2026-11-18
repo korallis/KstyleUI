@@ -4,7 +4,7 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-return function(screen, item)
+return function(screen, item, previous)
 	local rxp, log
 	local quests = Quests.List(8, 1)
 	quests[1].title = "A Putrid Task"
@@ -13,7 +13,7 @@ return function(screen, item)
 	local env, K, ns = S.New({
 		width = screen.width, height = screen.height, uiScale = screen.uiScale,
 		saved = {
-			version = 12, profiles = { Default = { HudStyle = { style = "medallions" } } },
+			version = 12, profiles = { Default = { HudStyle = { style = "medallions" }, Skins = previous and { quests = { continuation = false }, restedXP = { compose = false }, steelButtons = false, windowMetrics = false } or nil } },
 			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 		},
 		setup = function(e)

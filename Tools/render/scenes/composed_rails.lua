@@ -6,7 +6,7 @@ local D = dofile("Tools/regression/databars_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 
 return Common.Run(function()
-	local R = Boot(Common.SCREEN)
+	local R = Boot(Common.SCREEN, nil, Common.PreviousFinish())
 	local env, K = R.env, R.K
 	M.Game(env, {})
 	env._group = { raid = false, size = 2 }
@@ -20,6 +20,11 @@ return Common.Run(function()
 	D.Menus(env, { backpack = 133633 })
 	Load(D.Files(), env)
 	Load(M.Files(), env)
+	if Common.PreviousFinish() then
+		K.Options.Write("DataBars", "strip.dockMeter", false)
+		K.Options.Write("Meters", "fitCards", false)
+		K.Options.Write("Meters", "threat.followGuide", false)
+	end
 	local style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower()
 	K.Options.Write("HudStyle", "style", style)
 	K.Modules.Enable("DataBars")

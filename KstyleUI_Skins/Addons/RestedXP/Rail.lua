@@ -264,7 +264,7 @@ function Rail.Band()
 	local _, reserve = Plan(band)
 	if not story.stacked then
 		local quest = ns.QuestCard and ns.QuestCard.Frame()
-		if quest and quest:IsShown() then
+		if ns.Skins.Setting(KEY, "compose") and quest and quest:IsShown() then
 			local shift = story.tracker.left < band.left and -8 or 8
 			band.left, band.right = band.left + shift, band.right + shift
 		end
@@ -651,7 +651,7 @@ function Rail.Place()
 	end
 	local story = Rail.Story()
 	local quest = ns.QuestCard and ns.QuestCard.Frame()
-	if story and not story.stacked and quest and quest:IsShown() and path and path.card and not InCombatLockdown() then
+	if ns.Skins.Setting(KEY, "compose") and story and not story.stacked and quest and quest:IsShown() and path and path.card and not InCombatLockdown() then
 		local card = path.card
 		local questScale = Widgets.ScaleFactor(quest)
 		local height = math.max(Height(card) * scale, shape.span * scale, Height(quest) * questScale)

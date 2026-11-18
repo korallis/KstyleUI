@@ -873,7 +873,7 @@ local function DockMeter(view, s)
 	local layout = K.Layout.Get(KEY)
 	local element = K.Layout.Element(KEY)
 	local default = element and element.default
-	local on = LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		meter.titleNarrow = true
 		meter:PaintTitleSwitch()

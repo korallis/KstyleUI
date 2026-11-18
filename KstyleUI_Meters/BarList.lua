@@ -817,8 +817,9 @@ function List:Fit()
 	local _, holderHeight = Size(self.holder, self.width, self.height)
 	local capacity, count = self.capacity or 0, self.count or 0
 	local height = holderHeight
-	if capacity < 1 or count < capacity then
-		local rows, spacing = max(self.block and 3 or 1, min(count, capacity)), Spacing(self)
+	local fit = ns.Get("fitCards")
+	if (not self.block or fit) and (capacity < 1 or count < capacity) then
+		local rows, spacing = max(self.block and fit and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
 	self.panel:SetHeight(max(1, min(height, holderHeight)))
