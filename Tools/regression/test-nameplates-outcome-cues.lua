@@ -30,6 +30,12 @@ K.Options.Write("Nameplates", "threat.role", "tank")
 env._units.nameplate1.threat = 3
 plate:UpdateThreat()
 rim("friendly")
+N.Focus(env, "nameplate2")
+env._units.nameplate2.threat = 1
+other:UpdateThreat()
+local focus = ns.Settings.Get("focus.color")
+assert(other.health.rim[1] == focus.r and other.health.rim[2] == focus.g and other.health.rim[3] == focus.b, "E4: a threat refresh preserves the focus marker")
+N.Focus(env, nil)
 K.Options.Write("Nameplates", "target.dimOthers", 0.4)
 W.Tick(env, 0.2)
 assert(other:GetAlpha() == 0.4, "E4: other plates settle at the chosen opacity")

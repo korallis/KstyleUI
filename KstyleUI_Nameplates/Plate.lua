@@ -817,10 +817,12 @@ function Plate:UpdateThreat()
 	end
 	local glow = self.threatGlow
 	local keyline = Settings.Get("threat.keyline") and display == "glow"
-	if keyline and state then
-		self.health:SetRimColor(Rgb(Settings.Get(THREAT_KEYS[state])))
-	else
-		self.health:SetRimColor(Tokens.Color("black"))
+	if not self.focusRim then
+		if keyline and state then
+			self.health:SetRimColor(Rgb(Settings.Get(THREAT_KEYS[state])))
+		else
+			self.health:SetRimColor(Tokens.Color("black"))
+		end
 	end
 	if state and display == "glow" and not keyline then
 		local r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
@@ -848,7 +850,8 @@ function Plate:UpdateHighlight(sigilCasts)
 	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
 	self:ShowBrackets(framed)
 	local health = self.health
-	if isFocus and Settings.Get("focus.highlight") and not framed then
+	self.focusRim = isFocus and Settings.Get("focus.highlight") and not framed
+	if self.focusRim then
 		local r, g, b = Rgb(Settings.Get("focus.color"))
 		health:SetRimColor(r, g, b, 1)
 	elseif Settings.Get("threat.keyline") and Settings.Get("threat.display") == "glow" and self.threatState then

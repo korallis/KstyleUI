@@ -46,6 +46,25 @@ for _, level in ipairs({ "full", "reduced", "off" }) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
+for _, level in ipairs({ "full", "calm", "off" }) do
+	local env, K, ns = U.New()
+	K.Options.Write("HudStyle", "style", "medallions")
+	K.Options.Write("Medallions", "motion", level)
+	local cb = ns.CastBars.Get("player")[1]
+	env._units.player.cast = { name = "Fear", texture = 136183, start = 1000, finish = 4000, spellID = 5782 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player")
+	local seconds
+	env.C_Timer.After = function(delay) seconds = delay end
+	env._units.player.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
+	assert(seconds == 0.9 and cb.frame:IsShown() and W.LastCall(cb.bar, "SetValue")[1] == 1, "E3: Medallions keeps the full error bar at " .. level)
+	if level ~= "off" then
+		assert(cb.medStreak.move._state.Duration[1] == 0.35, "E3: the outcome streak travels for 350 ms")
+		assert(W.LastCall(cb.medStreak.streak, "SetVertexColor")[4] == 0.6, "E3: the streak is capped at 60 percent")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
 do
 	local env, K, ns = N.New()
 	K.Motion.SetLevel("off")
