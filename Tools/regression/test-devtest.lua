@@ -168,7 +168,7 @@ do
 	assert(Printed(env, "active"), "a failed profile command prints the reason")
 	slash("profile use Default")
 	slash("profile delete Raid")
-	assert(#K.Store.ListProfiles() == 1)
+	assert(#K.Store.ListProfiles() == 2 and K.Store.Account().restoreProfile == "Before reset", "reset keeps the recovery profile")
 
 	env._printed = {}
 	slash("dance")

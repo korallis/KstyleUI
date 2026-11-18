@@ -91,7 +91,7 @@ for _, call in ipairs(button._calls) do
 	end
 end
 assert(passes, "debuff icons let clicks through to the unit button")
-eq(#button._aura.dispel, 9, "the chamfered tile behind the icon, nine slices, takes the debuff type colour")
+eq(#button._aura.dispel, 10, "nine coloured slices and one engine-classified type letter")
 do
 	local skin = (button:GetChildren())
 	local fr, fg, fb = K.Tokens.Color("buttonFill")

@@ -89,7 +89,7 @@ for _, size in ipairs(SIZES) do
 	assert(math.abs(bar[1] - (frame[1] + edge)) <= px and math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - edge)) <= px, what .. ": the bar spans the row " .. describe(bar))
 	-- The name line sits over the bar: the pip, the name and the percent.
 	local scene = Scene.Build(env)
-	local pip, name = find(scene, f.pipEdge), find(scene, f.name)
+	local pip, name = find(scene, f.role), find(scene, f.name)
 	assert(pip and name, what .. ": the pip and the name draw")
 	for _, item in ipairs({ pip, name }) do
 		assert(item.rect[2] + item.rect[4] <= bar[2] + 0.01, what .. ": " .. describe(item.rect) .. " sits on the name line over the bar")
@@ -230,11 +230,11 @@ do
 	local frame = { Scene.Rect(env, tank) }
 	assert(heals[1] + heals[3] <= frame[1] + frame[3] + 0.01, "party tank: inside the row")
 	local scene = Scene.Build(env)
-	for _, region in ipairs({ tank.name, tank.healthText, tank.pipEdge }) do
+	for _, region in ipairs({ tank.name, tank.healthText, tank.role }) do
 		local item = find(scene, region)
 		assert(item and not intersects(item.rect, heals), "party tank: the name line's " .. describe(item.rect) .. " keeps clear of your heals")
 	end
-	assert(not tank.role:IsShown(), "party tank: the pip carries the role, so no role atlas sits on the name line")
+	assert(tank.role:IsShown() and not tank.pipFill:IsShown(), "party tank: the shield shape carries the role")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 

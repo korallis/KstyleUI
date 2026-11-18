@@ -96,9 +96,8 @@ do
 			local row = 12 * 38 * 19 / 16 + 11 * 3 * 19 / 16
 			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, row) and near(bar1.r - bar1.l, row), label .. ": the two enabled rows share the KSTY-44 tray's column")
 			assert(near(bar1.b, Layouts.TRAY_BOTTOM + Layouts.TRAY_PAD) and near(bar2.t + Layouts.TRAY_PAD, Layouts.TRAY_TOP) and near(bar2.b - bar1.t, 3 * 19 / 16), label .. ": the action rows stand inside the tray at its gap")
-			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 431.5 + Layouts.TRAY_LIFT) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
-			assert(bar3.b - rect("qol.lootfeed").t >= 16 and near(bar3.b - rect("unitframes.castbar.player").t, 16), label .. ": spare bar 3 clears both the loot feed's full reserve and the player cast by at least 16")
-			assert(bar3.r <= width * 0.3 or bar3.l >= width * 0.7, label .. ": LEE-20 spare bar 3 stays outside the central 40% band")
+			assert(layout["actionbars.bar3"].anchor == "TOP" and near((bar3.l + bar3.r) / 2, width / 2) and near(bar3.t, HEIGHT - 20) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own upper slot")
+			assert(bar3.b >= HEIGHT * 0.7 and bar3.b > rect("unitframes.castbar.player").t, label .. ": bar 3 clears the cast lane and central play field")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
 			assert(near(player.b, 138 + Layouts.TRAY_LIFT) and player.b - bar2.t - Layouts.TRAY_PAD >= 6 and near(target.b - player.t, 2), label .. ": player and target stack directly over the tray card, at least 6 clear of it")
 			local centre = (bar1.l + bar1.r) / 2

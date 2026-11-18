@@ -438,9 +438,9 @@ function Component.Restyle(plate)
 	icon:SetPoint("TOPLEFT", cast, "TOPLEFT")
 	icon:SetShown(showIcon)
 	plate.castShield:SetShown(showIcon)
-	plate.castBadge:SetSize(badge, badge)
+	Widgets.Size(plate.castBadge, badge, badge)
 	plate.castBadge:ClearAllPoints()
-	plate.castBadge:SetPoint("RIGHT", cast, "LEFT", -GAP, 0)
+	Widgets.Point(plate.castBadge, "TOPLEFT", cast, "TOPLEFT", -badge - GAP, (badge - h) / 2)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
 	bar:ClearAllPoints()

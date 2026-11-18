@@ -241,7 +241,7 @@ local function Update()
 	list:SetWarning(level)
 	local role
 	if type(UnitGroupRolesAssigned) == "function" then role = UnitGroupRolesAssigned("player") end
-	local tankRole = not IsSecret(role) and role == "TANK" or K.Layout and K.Layout.Setting("preset") == "Tank"
+	local tankRole = not IsSecret(role) and role == "TANK" or K.Store.Module("Layout").preset == "Tank"
 	Alarm(ns.Get("threat.warnings") and Threat.AlarmWanted(Threat.rows, count, tankRole))
 end
 

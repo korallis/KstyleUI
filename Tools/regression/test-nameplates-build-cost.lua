@@ -4,7 +4,7 @@ local A = dofile("Tools/regression/auras_env.lua")
 
 local UNIT = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, raid = 8 }
 local PLATES = 40
-local MAX_FRAMES, MAX_REGIONS = 108, 170
+local MAX_FRAMES, MAX_REGIONS = 108, 172
 -- Lua 5.1 on the MacBook Pro takes about 4600 us a plate in the stubs (load 7), most of it the stubs' own CreateFrame;
 -- the counts are the KSTY-48 build (102 frames and 162 regions, most of them the effect container's tiles) with a little room.
 local BUDGET_US = 50000

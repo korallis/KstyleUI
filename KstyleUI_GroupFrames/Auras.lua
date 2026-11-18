@@ -549,7 +549,8 @@ local function BuildIcon(button, key)
 	if not p.buff and types and types.CustomAsset ~= nil and K.ColorVision and type(button.AddDispelTypeTexture) == "function" then
 		p.dispelLetter = textFrame:CreateTexture(nil, "OVERLAY")
 		p.dispelLetter:SetPoint("TOPRIGHT", p.skin, "TOPRIGHT")
-		p.dispelLetter:SetSize(14, 14)
+		Widgets.Size(p.dispelLetter, 14, 14)
+		p.dispelLetter:Hide()
 		button:AddDispelTypeTexture(p.dispelLetter, { style = types.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
 	end
 end

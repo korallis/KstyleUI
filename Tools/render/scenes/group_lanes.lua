@@ -5,6 +5,7 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
+Scene.ATLAS_DIR = os.getenv("RENDER_ATLAS_CACHE") or Scene.ATLAS_DIR
 
 local NAMES = {
 	"Thessaly", "Brannoc", "Ilyra", "Dunmar", "Kerrith", "Vosk", "Aelwyn", "Morrow", "Tamsin", "Hadric",
@@ -123,8 +124,6 @@ return Common.Run(function()
 	end
 	local scene = Scene.Build(env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(env, K)
-	if err then
-		scene.log[#scene.log + 1] = "group_lanes error: " .. err
-	end
+	assert(not err, tostring(err))
 	return scene
 end)

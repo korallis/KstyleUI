@@ -45,11 +45,11 @@ eq(preview.raidFrames[1]:GetWidth(), 116, "raid samples use the raid width")
 
 -- Samples show the status icons, the threat border and incoming heals.
 local tank = preview.partyFrames[1]
-eq(tank.pipFill:IsShown(), true, "the sample tank shows its role pip (KSTY-57)")
-local pr, pg, pb = tank.pipFill:GetVertexColor()
-local tr, tg, tb = K.Tokens.Color("rare")
-assert(pr == tr and pg == tg and pb == tb, "in the tank's blue")
-eq(tank.role:IsShown(), false, "so no role atlas shows")
+eq(tank.pipFill:IsShown(), false, "the role shape replaces the colour-only pip")
+local pr, pg, pb = tank.role:GetVertexColor()
+local tr, tg, tb = K.Tokens.Color("steelLit")
+assert(pr == tr and pg == tg and pb == tb, "in the neutral metal tone")
+eq(tank.role:IsShown(), true, "the shield role atlas shows")
 eq(tank.threat:IsShown(), true, "the sample tank has aggro")
 local glow = tank.threatGlow.slice[1]._state.VertexColor
 local hr, hg, hb = K.Theme.ThreatColor(3)

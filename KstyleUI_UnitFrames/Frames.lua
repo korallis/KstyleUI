@@ -55,20 +55,21 @@ end
 function Frames.Range(view)
 	if view.kind ~= "target" or type(UnitInRange) ~= "function" then return end
 	local inRange, checked = UnitInRange(view.unit)
-	local secret = issecretvalue and (issecretvalue(inRange) or issecretvalue(checked))
-	local alpha = not secret and checked == true and inRange == false and 0.55 or 1
+	local alpha
+	if not issecretvalue(inRange) and not issecretvalue(checked) then alpha = checked == true and inRange == false and 0.55 or 1 end
 	for _, region in ipairs({ view.name, view.portrait }) do
 		if region.SetAlphaFromBoolean then
-			if secret then
+			if issecretvalue(inRange) or issecretvalue(checked) then
+				if region.rangeTween then K.Motion.Stop(region.rangeTween); region.rangeTween = nil end
 				region:SetAlphaFromBoolean(inRange, 1, 0.55)
 				region:SetAlphaFromBoolean(checked, region:GetAlpha(), 1)
-			elseif view.rangeAlpha ~= alpha then
+			elseif not issecretvalue(alpha) and view.rangeAlpha ~= alpha then
 				region:SetAlphaFromBoolean(inRange == true or checked ~= true, 1, 0.55)
-				K.Motion.Tween(region, "SetAlpha", view.rangeAlpha or 1, alpha, 0.15)
+				region.rangeTween = K.Motion.Tween(region, "SetAlpha", view.rangeAlpha or 1, alpha, 0.15)
 			end
 		end
 	end
-	view.rangeAlpha = not secret and alpha or nil
+	view.rangeAlpha = alpha
 end
 
 local HANDLERS = {

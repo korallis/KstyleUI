@@ -156,8 +156,9 @@ local function ReadPreset()
 	readable = Store.IsLoaded() and Store.Module("Readability").preset == "Readable"
 end
 K.Callbacks.Register("ProfileChanged", "Readability", function()
+	local before = readable
 	ReadPreset()
-	K.Callbacks.Fire("ThemeChanged")
+	if before ~= readable then K.Callbacks.Fire("ThemeChanged") end
 end)
 K.Callbacks.Register("SettingChanged", "Readability", function(_, module) if module == "Readability" then ReadPreset() end end)
 K.Events.Register("Readability", "PLAYER_LOGIN", ReadPreset)

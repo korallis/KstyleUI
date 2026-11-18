@@ -84,7 +84,7 @@ for _, size in ipairs(SIZES) do
 			list = { "leader", "marker", "healthText" }
 		end
 		for _, name in ipairs(list) do
-			local region = (name == "role" and f.pipped) and f.pipEdge or f[name]
+			local region = f[name]
 			assert(region:IsShown(), what .. ": the " .. name .. " shows")
 			local item = find(scene, region)
 			assert(item, what .. ": the renderer draws the " .. name)

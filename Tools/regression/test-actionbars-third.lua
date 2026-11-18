@@ -66,3 +66,20 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	end
 end
 print("third action bar ok")
+
+for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	local key = style .. ":actionbars.bar3"
+	local env, K = CoreEnv.New({ saved = { version = 35, profiles = { Default = { HudStyle = { style = style } }, Custom = {} }, layouts = {
+		Default = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 }, [key] = { anchor = "BOTTOMLEFT", x = 17, y = style == "orbs" and 475 or 462.5 } },
+		Custom = { [key] = { anchor = "BOTTOMLEFT", x = 19, y = 462.5 } },
+	} } })
+	CoreEnv.Boot(env)
+	local layout = K.Store.Layout()
+	assert(layout["actionbars.bar3"] == nil and layout[key] == nil, "the old default follows the new style position")
+	assert(K.Store.SetProfile("Custom"))
+	assert(K.Store.Layout()[key].x == 19, "a custom style position survives migration")
+	assert(K.Store.CreateProfile("Fresh") and K.Store.SetProfile("Fresh"))
+	assert(K.Store.Layout()[key] == nil, "a fresh profile inherits the new style default")
+	local position = K.Setup.Layouts.Positions("DPS", style, "16:9")["actionbars.bar3"]
+	assert(position.anchor == (style == "medallions" and "BOTTOM" or "TOP") and position.x == 0)
+end

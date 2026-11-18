@@ -40,7 +40,7 @@ local function LayOutToolbar(env, K, panel)
 	local content = panel.content
 	local gap = Tokens.Size("gapMedium")
 	local x, tallest = 0, 0
-	for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.done }) do
+	for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.search, panel.elements, panel.done }) do
 		local width = item:GetWidth() or 0
 		if item.trackBox and item.label then
 			local path, size = Scene.Font(env, item.label)

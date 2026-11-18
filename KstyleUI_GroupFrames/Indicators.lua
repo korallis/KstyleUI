@@ -89,7 +89,7 @@ local function Build(f)
 	f.threatGlow:SetIntensity(1)
 	f.threat:Hide()
 	f.threatShape = layer:CreateTexture(nil, "OVERLAY")
-	f.threatShape:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 2, 2)
+	Widgets.Point(f.threatShape, "BOTTOMLEFT", f, "BOTTOMLEFT", 2, 2)
 	f.threatShape:Hide()
 	f.roleElements = { roleIcon = f.role, unit = nil, optionTable = ROLE_OPTIONS }
 end
@@ -143,6 +143,11 @@ local function Layout(f, parts, k)
 			rect.left = left + 2 * (laneSize + 4)
 			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize))
 		end
+	end
+	for _, icon in pairs(f.statusIcons) do
+		Widgets.Size(icon, 14, 14)
+		icon:ClearAllPoints()
+		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", health.left + health.width / 2 - 7, -health.top - health.height / 2 + 7)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Layout
@@ -312,7 +317,7 @@ local function Threat(f)
 		f.threatShape:SetColorTexture(Tokens.Color("white"))
 		f.threatShape:SetTexCoord(0, 1, 0, 1)
 	end
-	f.threatShape:SetSize(status == 1 and 2 or 8, 8)
+	Widgets.Size(f.threatShape, status == 1 and 2 or 8, 8)
 	f.threatShape:SetVertexColor(r, g, b)
 	f.threatShape:Show()
 	f.threat:Show()

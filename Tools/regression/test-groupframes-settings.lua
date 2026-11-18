@@ -65,7 +65,7 @@ local function walk(node, prefix)
 		local path = prefix and (prefix .. "." .. key) or key
 		if type(value) == "table" and value.r == nil then
 			walk(value, path)
-		elseif path ~= "enabled" then
+		elseif path ~= "enabled" and path ~= "blizzard.manager" then
 			assert(rows[path], "the setting " .. path .. " has no schema row")
 		end
 	end

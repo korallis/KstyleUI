@@ -19,5 +19,11 @@ env.UnitInRange = function() return false, false end
 env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
 U.W.Settle(env)
 assert(view.name:GetAlpha() == 1, "an unchecked range never dims the target")
+env.UnitInRange = function() return false, true end
+env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
+env.UnitInRange = function() return env.Secret(true), env.Secret(true) end
+env.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
+U.W.Settle(env)
+assert(env.Reveal(view.name:GetAlpha()) == 1 and env.Reveal(view.portrait:GetAlpha()) == 1, "a secret update cancels the old plain range tween")
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("unit frame range ok")

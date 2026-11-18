@@ -11,7 +11,6 @@ local CASES = {
 	{ kind = "raid", members = 40, bar = 9 },
 }
 local ROLES = { "TANK", "HEALER", "DAMAGER", "DAMAGER", "DAMAGER" }
-local PIP = { TANK = "rare", HEALER = "friendly", DAMAGER = "hostile" }
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
@@ -96,10 +95,10 @@ for _, screen in ipairs(SCREENS) do
 		assert(math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - ns.Geometry.EDGE * k)) <= px * k, what .. ": the bar runs to the row's end")
 		-- The name line: the pip in the role's colour, then the name, then the percent ending at the bar's end, all over
 		-- the bar.
-		local pip, name = find(scene, f.pipEdge), find(scene, f.name)
+		local pip, name = find(scene, f.role), find(scene, f.name)
 		assert(pip and name, what .. ": the pip and the name draw")
-		local r, g, b = f.pipFill:GetVertexColor()
-		local wr, wg, wb = K.Tokens.Color(PIP[env._member(f.unit).role])
+		local r, g, b = f.role:GetVertexColor()
+		local wr, wg, wb = K.Tokens.Color("steelLit")
 		assert(r == wr and g == wg and b == wb, what .. ": the pip wears the role's colour")
 		assert(pip.rect[1] + pip.rect[3] <= name.rect[1] + 0.01, what .. ": the pip comes before the name")
 		for _, item in ipairs({ pip, name }) do

@@ -123,7 +123,7 @@ local function PlacePlate(plate, frame, w, h)
 	plate:ClearAllPoints()
 	Widgets.Point(plate, "CENTER", frame, "CENTER")
 	Widgets.Point(plate.label, "TOPLEFT", plate, "TOPLEFT", 4, -2)
-	Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
+	Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
 end
 
 local function RefreshPlate(key)

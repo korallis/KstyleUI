@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 36
+Store.DB_VERSION = 37
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -650,6 +650,7 @@ Store.migrations[26] = function(data)
 		local profile = type(data.profiles) == "table" and type(data.profiles[name]) == "table" and data.profiles[name] or {}
 		local section = type(profile.Layout) == "table" and profile.Layout or {}
 		local old = moves and (layouts.TrayMoves(section.preset or "DPS") or layouts.TrayMoves("DPS")) or {}
+		old["actionbars.bar3"] = { "BOTTOMLEFT", 17, 431.5 }
 		for key in pairs(type(layout) == "table" and old or {}) do
 			local entry = layout[key]
 			if type(entry) == "table" then
@@ -930,6 +931,21 @@ Store.migrations[36] = function(data)
 					for field, value in pairs(entry) do copy[field] = value end
 					layout["medallions:" .. key] = copy
 				end
+			end
+		end
+	end
+end
+
+Store.migrations[37] = function(data)
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local shared = type(layout) == "table" and layout["actionbars.bar3"]
+		local copied = type(shared) == "table" and shared.anchor == "BOTTOMLEFT" and shared.x == 17 and shared.y == 462.5
+		for _, key in ipairs({ "orbs:actionbars.bar3", "actionbars.bar3", "frames:actionbars.bar3", "medallions:actionbars.bar3" }) do
+			local entry = type(layout) == "table" and layout[key]
+			local oldY = key == "orbs:actionbars.bar3" and 475 or 462.5
+			if type(entry) == "table" and entry.anchor == "BOTTOMLEFT" and entry.x == 17 and (entry.y == oldY or key == "orbs:actionbars.bar3" and copied and entry.y == 462.5) then
+				entry.anchor, entry.x, entry.y = nil, nil, nil
+				if next(entry) == nil then layout[key] = nil end
 			end
 		end
 	end

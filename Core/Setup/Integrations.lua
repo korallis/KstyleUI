@@ -75,13 +75,19 @@ function Integration.Preview(parent)
 		lane.chrome = Widgets.Chrome(lane, { shape = "tile", fill = "deep", shadow = false })
 		lane:SetSize(spec.width, spec.height)
 		lane:SetPoint("TOP", frame, "TOP", 0, i == 1 and 0 or -132)
-		lane.label = Widgets.Text(lane, "caption", "textEmphasis")
+		lane.text = CreateFrame("Frame", nil, lane)
+		lane.text:SetSize(1, 1)
+		lane.text:SetPoint("CENTER")
+		lane.label = Widgets.Text(lane.text, "caption", "textEmphasis")
 		lane.label:SetPoint("CENTER")
 		lane.label:SetText(spec.label)
 		lanes[i] = lane
 	end
 	function frame:Refresh()
-		for i, lane in ipairs(lanes) do lane:SetShown(Store.Module("Integrations")[LANES[i].key]) end
+		for i, lane in ipairs(lanes) do
+			lane:SetShown(Store.Module("Integrations")[LANES[i].key])
+			lane.text:SetScale(1 / self:GetScale())
+		end
 	end
 	frame:Refresh()
 	return frame
