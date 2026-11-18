@@ -107,16 +107,10 @@ gallery_restedxp	3840x2160	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	10
 gallery_restedxp	5120x1440	Core/Skin.lua	15
 gallery_restedxp	5120x1440	KstyleUI_Skins/Addons/RestedXP/Chrome.lua	33
 gallery_setup	1280x720	Core/Widgets/Base.lua	8
-gallery_setup	1920x1080	Core/Setup/Window.lua	1
 gallery_setup	1920x1080	Core/Widgets/Base.lua	6
-gallery_setup	2560x1440	Core/Setup/Window.lua	1
 gallery_setup	2560x1440	Core/Widgets/Base.lua	8
-gallery_setup	3440x1440	Core/Setup/Window.lua	1
 gallery_setup	3440x1440	Core/Widgets/Base.lua	8
-gallery_setup	3840x1080	Core/Setup/Window.lua	1
 gallery_setup	3840x1080	Core/Widgets/Base.lua	6
-gallery_setup	3840x2160	Core/Setup/Window.lua	1
-gallery_setup	5120x1440	Core/Setup/Window.lua	1
 gallery_setup	5120x1440	Core/Widgets/Base.lua	8
 gallery_skins_addonlist	1280x720	Core/Skin.lua	198
 gallery_skins_addonlist	1280x720	KstyleUI_Skins/Parts.lua	3
