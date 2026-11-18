@@ -150,7 +150,7 @@ local function Listen()
 	Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 end
 
-Frames.events = {}
+Frames.events = { { event = "PLAYER_ROLES_ASSIGNED", fn = Unit.RolesChanged } }
 
 local function Start()
 	Headers.Show()

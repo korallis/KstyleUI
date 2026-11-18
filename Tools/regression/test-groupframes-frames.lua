@@ -260,7 +260,7 @@ do
 	assert(near(hovered.chrome.edge[1], ir) and near(hovered.chrome.edge[4], ia), "leaving eases back")
 end
 
--- GROUP_ROSTER_UPDATE comes in bursts in a raid. A burst refreshes each frame once, on the next frame.
+-- Roster events repaint in the same frame, including unchanged unit tokens whose members changed.
 local function paints(frame)
 	local n = 0
 	for _, call in ipairs(frame.health._calls) do
@@ -276,9 +276,9 @@ local painted = paints(first)
 env.FireEvent("GROUP_ROSTER_UPDATE")
 env.FireEvent("GROUP_ROSTER_UPDATE")
 env.FireEvent("GROUP_ROSTER_UPDATE")
-eq(paints(first), painted, "roster updates wait for the next frame")
+eq(paints(first), painted + 3, "each roster update paints immediately")
 env.RunTimers()
-eq(paints(first), painted + 1, "a burst of roster updates refreshes each frame once")
+eq(paints(first), painted + 3, "roster updates leave no delayed paint")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- The level disc on a party portrait is the button body with the edge line the other badges wear: a ring in the

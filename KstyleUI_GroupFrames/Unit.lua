@@ -547,25 +547,19 @@ function Unit.RefreshAll()
 	PartyCount()
 end
 
-local rosterPending = false
-
-local function FlushRoster()
-	rosterPending = false
+function Unit.RosterChanged()
 	if Unit.running then
 		Unit.RefreshAll()
 	end
 end
 
-function Unit.RosterChanged()
-	if rosterPending then
-		return
+function Unit.RolesChanged()
+	for i = 1, #frames do
+		local f = frames[i]
+		if f.unit then
+			RoleLetter(f)
+		end
 	end
-	if not (C_Timer and C_Timer.After) then
-		Unit.RefreshAll()
-		return
-	end
-	rosterPending = true
-	C_Timer.After(0, FlushRoster)
 end
 
 function Unit.TargetAll()
