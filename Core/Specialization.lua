@@ -161,12 +161,8 @@ function Service.Assign(key, name)
 	end
 	for _, choice in ipairs(Service.Choices()) do
 		if key == choice.key then
-			for _, initial in ipairs(Service.Choices()) do
-				if config.profiles[initial.key] == nil then
-					config.profiles[initial.key] = ns.Store.ProfileName()
-				end
-			end
 			config.profiles[key] = name
+			Config()
 			requested = requested or key == appliedKey
 			Service.Check()
 			return true

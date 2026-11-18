@@ -182,9 +182,8 @@ end
 
 local function Off(section)
 	return function(settings)
-		if section ~= "swing" and settings.followRole ~= false then
-			local choice = settings.roles and settings.roles[K.Specialization.Role()]
-			return choice ~= "both" and choice ~= section
+		if section ~= "swing" then
+			return not ns.MeterShown(section)
 		end
 		return type(settings[section]) == "table" and settings[section].shown == false
 	end
