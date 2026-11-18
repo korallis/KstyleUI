@@ -27,6 +27,11 @@ for _, style in ipairs({ "rise", "arc", "pop" }) do
 	local low = y * scale + math.min(0, (move.offsetY + fall.offsetY) * scale) - half
 	assert(point == "TOP" and low >= 60, "H10: " .. style .. " must clear the target's 60-unit debuff lane, bottom " .. low)
 end
+K.Options.Write("CombatText", "clearLanes", false)
+CT.Hit(env, "target", "WOUND", "", 20, 1)
+local old = CT.On(ns, target)
+assert(select(3, old[#old].frame:GetPoint(1)) == "CENTER", "off restores the original target anchor")
+assert(layouts.Style("medallions", "DPS", "combattext.player") == nil, "off restores the original inherited player-field position")
 K.Options.Write("HudStyle", "style", "frames")
 CT.Hit(env, "target", "WOUND", "", 20, 1)
 local numbers = CT.On(ns, target)

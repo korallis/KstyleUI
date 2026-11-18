@@ -36,6 +36,9 @@ local function OnSetting(_, module, key)
 		return
 	end
 	Settings.Invalidate()
+	if key == "personalResource" then
+		return
+	end
 	if type(key) == "string" and key:find("^cvars%.") then
 		CVars.Schedule()
 		return

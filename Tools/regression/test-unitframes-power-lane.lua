@@ -50,6 +50,8 @@ do
 	env._restricted = true
 	env.FireEvent("UNIT_POWER_UPDATE", "player")
 	assert(U.Shown(env, power.value) == "37", "the orb passes restricted resource values to its number")
+	K.Options.Write("UnitFrames", "player.powerText", "none")
+	assert(power.value:GetJustifyH() == "CENTER" and U.Shown(env, power.value) == "37%", "None restores the original centred percent in Orbs")
 end
 
 local env, K, ns = U.New()

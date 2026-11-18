@@ -9,6 +9,9 @@ assert(U.Shown(env, view.healthText) == "50%", "H3: the target slab leads with t
 assert(U.Shown(env, view.healthSub) == "118 / 236" and view.healthSub:IsShown(), "current and max remain visible")
 assert(select(2, view.healthText:GetFont()) == 15 and select(2, view.healthSub:GetFont()) == math.max(10, K.Scale.TextFloor()), "percent 15, detail 10 subject to the reading floor")
 assert((view.healthSub:GetFont()) == K.Tokens.Font("number"), "both use the number role")
+K.Options.Write("UnitFrames", "target.percentLead", false)
+assert(U.Shown(env, view.healthText) == "118 / 236" and U.Shown(env, view.healthSub) == "50%", "off restores the original current-first slab")
+K.Options.Write("UnitFrames", "target.percentLead", true)
 env._restricted = true
 env.FireEvent("UNIT_HEALTH", "target")
 assert(U.Shown(env, view.healthText) == "50%" and U.Shown(env, view.healthSub) == "118 / 236", "restricted health never enters Lua arithmetic")

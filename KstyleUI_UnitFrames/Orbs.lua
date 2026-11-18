@@ -470,7 +470,9 @@ local function Power(eased)
 	local orb = orbs.power
 	orb.bar:SetMinMaxValues(0, UnitPowerMax("player"))
 	SetBarValue(orb.bar, UnitPower("player"), eased)
-	Format.Power(orb.value, "player", POWER_FORMAT)
+	local mode = Settings.Value("player", "powerText")
+	orb.value:SetJustifyH(mode == "none" and "CENTER" or "RIGHT")
+	Format.Power(orb.value, "player", mode == "none" and "percent" or mode or POWER_FORMAT)
 end
 
 local function Refresh()

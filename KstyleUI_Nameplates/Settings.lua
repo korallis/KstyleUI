@@ -19,6 +19,7 @@ local BAR_TEXTURE = Tokens.Texture("barFlat")
 
 Settings.defaults = {
 	preset = "lumen",
+	personalResource = false,
 	offsetY = 0,
 	shrinkDistant = false,
 	font = "",
@@ -33,10 +34,10 @@ Settings.defaults = {
 	level = { show = true, size = 13, outline = "NONE" },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent" },
 	cast = {
-		enabled = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		enabled = true, combatCues = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
-		showIcon = false, showName = true, nameSelectedOnly = true, showTime = false, textSize = 11, outline = "OUTLINE",
+		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
@@ -168,6 +169,11 @@ local schema = {
 	},
 	{ type = "header", label = L["Plates"] },
 	{
+		type = "toggle", key = "personalResource", label = L["Personal resource display"],
+		help = L["Changes Blizzard's bars near your character out of combat. Later Blizzard setting changes are kept."],
+		showWhen = HasCVar("nameplateShowSelf"),
+	},
+	{
 		type = "slider", key = "offsetY", label = L["Height above the unit"],
 		help = L["Moves every plate up or down from where the game places it."],
 		min = -40, max = 40, step = 1,
@@ -290,6 +296,10 @@ schema[#schema + 1] = {
 local rest = {
 	{ type = "header", label = L["Cast bar"] },
 	{
+		type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
+		help = L["Dims casts while your interrupt is unavailable and marks uninterruptible casts with a shield."],
+	},
+	{
 		type = "toggle", key = "cast.enabled", label = L["Show cast bars"],
 		help = L["Shows the spell a unit is casting under its health bar."],
 	},
@@ -350,12 +360,17 @@ local rest = {
 	},
 	{
 		type = "toggle", key = "cast.showName", label = L["Spell name"],
-		help = L["Shows the spell's name below the cast bar."],
+		help = L["Shows the name of the spell being cast."],
 		disableWhen = Off("cast.enabled"),
 	},
 	{
 		type = "toggle", key = "cast.nameSelectedOnly", label = L["Spell names on target and focus only"],
 		help = L["Keeps other plates quiet while showing the spell your target or focus is casting."],
+		disableWhen = Off("cast.showName"),
+	},
+	{
+		type = "toggle", key = "cast.nameBelow", label = L["Spell names below the cast bar"],
+		help = L["Gives the spell name its own line. Off puts it inside the cast bar."],
 		disableWhen = Off("cast.showName"),
 	},
 	{

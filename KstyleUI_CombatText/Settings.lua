@@ -44,6 +44,7 @@ local defaults = {
 	critColor = true,
 	critTint = TokenColor("neutral"),
 	playerPlacement = "field",
+	clearLanes = true,
 	framePoint = "CENTER",
 	distance = 40,
 	groupSize = 14,
@@ -149,6 +150,10 @@ Settings.schema = {
 		showWhen = WorldFontOn,
 	},
 	{ type = "header", label = L["Numbers"] },
+	{
+		type = "toggle", key = "clearLanes", label = L["Keep combat text clear"],
+		help = L["In Medallions, places your numbers above the cast bars and target numbers above the debuffs."],
+	},
 	{
 		type = "dropdown", key = "style", label = L["Animation"],
 		help = L["Numbers rise straight up, arc to one side, or pop in and drift."],
@@ -379,6 +384,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.critColor = Bool(values.critColor, d.critColor)
 	cfg.critR, cfg.critG, cfg.critB = Color(Styled(values, "critTint", medallions), d.critTint)
 	cfg.playerPlacement = Choice(values.playerPlacement, PLACEMENTS, d.playerPlacement)
+	cfg.clearLanes = Bool(values.clearLanes, d.clearLanes)
 	cfg.framePoint = Choice(values.framePoint, POINTS, d.framePoint)
 	cfg.distance = Number(values.distance, DISTANCE_MIN, DISTANCE_MAX, d.distance)
 	cfg.groupSize = Number(values.groupSize, SIZE_MIN, SIZE_MAX, d.groupSize)

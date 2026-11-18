@@ -183,7 +183,7 @@ function Slab.Layout(view, g)
 	view.healthText:SetJustifyH(g.mirror and "LEFT" or "RIGHT")
 	local opposite = g.mirror and "LEFT" or "RIGHT"
 	Extra(view, view.healthSub, g.healthSub, opposite)
-	if view.kind == "target" and view.s.healthText == "both" and g.healthText then
+	if view.kind == "target" and view.s.percentLead and view.s.healthText == "both" and g.healthText then
 		local bar, pad = g.health, ns.Geometry.SLAB_PAD.valuePad
 		Extra(view, view.healthSub, { x = bar.x + bar.w / 2, y = bar.y, w = bar.w / 2 - pad, h = bar.h }, "RIGHT")
 		view.healthText:SetWidth(Widgets.Snap(view.parent, math.max(0, bar.w / 2 - pad)))
@@ -205,7 +205,7 @@ function Slab.Restyle(view, form)
 	view.health:SetBarTexture("Flat")
 	view.power:SetBarTexture("Flat")
 	Muted(view, view.healthSub)
-	if view.kind == "target" then
+	if view.kind == "target" and view.s.percentLead then
 		Widgets.ApplyFont(view.healthSub, (Tokens.Font("number")), 10 * K.Theme.FontScale(), "OUTLINE")
 	end
 	Muted(view, view.caption)
@@ -276,7 +276,7 @@ function Slab.Colors(view, unit)
 end
 
 function Slab.Health(view, unit)
-	if view.form == "slab" and view.kind == "target" and view.s.healthText == "both" then
+	if view.form == "slab" and view.kind == "target" and view.s.percentLead and view.s.healthText == "both" then
 		ns.Format.Health(view.healthText, unit, "percent")
 		ns.Format.HealthDetail(view.healthSub, unit, "both")
 	end

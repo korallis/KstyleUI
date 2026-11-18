@@ -49,6 +49,7 @@ N.CLASS = {
 }
 
 N.CVAR_DEFAULTS = {
+	nameplateShowSelf = "1",
 	nameplateMaxDistance = "60",
 	nameplateMaxVerticalDistance = "0",
 	nameplateSelectedScale = "1.2",

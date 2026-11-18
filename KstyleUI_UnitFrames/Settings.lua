@@ -110,6 +110,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		powerOrientation = "RIGHT",
 		powerText = "none",
 		powerSeparate = false,
+		percentLead = true,
 		raidMarker = true,
 		leader = full,
 		role = full,
@@ -825,6 +826,12 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Header(kind, L["health bar"])
 	BarRows(schema, kind, "health")
+	if kind == "target" then
+		schema[#schema + 1] = Row(kind, {
+			type = "toggle", key = "percentLead", label = L["Lead with target percent"],
+			help = L["In Medallions, shows percent first and smaller current and maximum health at the far end."],
+		})
+	end
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "healPrediction", label = L["Incoming heals"],
 		help = L["Shows incoming heals and absorb shields on the health bar."],

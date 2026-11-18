@@ -32,6 +32,7 @@ end
 
 local function Refresh()
 	Settings.Snapshot(Settings.Values(), Module.cfg)
+	if Module.field and K.Layout and K.Layout.Update then K.Layout.Update(FIELD_KEY, {}) end
 	Anchors.Rebuild(Module.cfg)
 end
 

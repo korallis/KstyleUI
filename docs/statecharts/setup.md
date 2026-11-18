@@ -56,6 +56,8 @@ stateDiagram-v2
 
 ## Edit Mode write
 
+Setup Apply also queues `nameplateShowSelf = 0` out of combat. Keep my UI does not write it. After setup, only a deliberate change to Nameplates > Personal resource display writes that CVar; login, presets and profile refreshes preserve later choices in Blizzard's settings. `test-personal-resource-display` checks those transitions and combat deferral.
+
 ```mermaid
 stateDiagram-v2
     [*] --> None

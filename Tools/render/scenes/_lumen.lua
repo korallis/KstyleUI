@@ -155,7 +155,7 @@ function Lumen.Build(state, opts)
 	local base = {
 		class = opts.class,
 		layout = layout,
-		settings = not opts.applyPreset and settings or nil,
+		settings = opts.settings or not opts.applyPreset and settings or nil,
 		applyPreset = opts.applyPreset,
 		combat = state == "combat",
 		party = Lumen.PARTY[state],

@@ -83,3 +83,11 @@ function CVars.Schedule()
 		CVars.Sync()
 	end)
 end
+
+K.Callbacks.Register("SettingChanged", "Nameplates:personalResource", function(_, module, key, value)
+	if module == Settings.MODULE and key == "personalResource" then
+		K.Combat.Queue(function()
+			Set("nameplateShowSelf", value and "1" or "0")
+		end)
+	end
+end)

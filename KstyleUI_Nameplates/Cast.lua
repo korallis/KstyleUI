@@ -39,11 +39,13 @@ local function CastColor()
 end
 
 local function ShieldColor()
+	if not Settings.Get("cast.combatCues") then return Tokens.Color("textDisabled") end
 	local c = Settings.Get("cast.shieldColor")
 	return c.r, c.g, c.b
 end
 
 local function OpenColor()
+	if not Settings.Get("cast.combatCues") then return CastColor() end
 	local interrupt = ns.Interrupt
 	if not interrupt or interrupt.ready ~= true then
 		local c = Settings.Get("cast.waitColor")
@@ -67,7 +69,7 @@ local function ColorObjects()
 	end
 	local interrupt = ns.Interrupt
 	local open
-	if not interrupt or interrupt.ready ~= true then
+	if Settings.Get("cast.combatCues") and (not interrupt or interrupt.ready ~= true) then
 		local c = Settings.Get("cast.waitColor")
 		open = ColorObject(colors.wait, c.r, c.g, c.b)
 	else
@@ -125,7 +127,7 @@ local function Shade(plate, alpha)
 	end
 	plate.castShade = alpha
 	plate.castShield:SetAlpha(alpha)
-	plate.castGlyph:SetAlpha(alpha > 0 and 1 or 0)
+	plate.castGlyph:SetAlpha(Settings.Get("cast.combatCues") and alpha > 0 and 1 or 0)
 end
 
 local function Paint(plate, openR, openG, openB)
@@ -153,7 +155,7 @@ local function Paint(plate, openR, openG, openB)
 			plate.castShield:SetAlphaFromBoolean(flag, SHIELD_ALPHA, 0)
 		end
 		if plate.castGlyph.SetAlphaFromBoolean then
-			plate.castGlyph:SetAlphaFromBoolean(flag, 1, 0)
+			plate.castGlyph:SetAlphaFromBoolean(flag, Settings.Get("cast.combatCues") and 1 or 0, 0)
 		end
 	elseif flag == true then
 		Fill(plate, ShieldColor())
@@ -395,7 +397,7 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	local label = Settings.Get("cast.showName") and Settings.Get("cast.textSize") + GAP or 0
+	local label = Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
 	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2 + label
 end
 
@@ -436,12 +438,18 @@ function Component.Restyle(plate)
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime, "time")
 	local glyph = plate.castGlyph
+	glyph:SetShown(Settings.Get("cast.combatCues"))
 	local glyphSize = math.max(h, 11)
 	Widgets.Size(glyph, glyphSize, glyphSize)
 	glyph:ClearAllPoints()
 	glyph:SetPoint("LEFT", bar, "LEFT")
 	plate.castName:ClearAllPoints()
-	ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))
+	if Settings.Get("cast.nameBelow") then
+		ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))
+	else
+		ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
+		plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
+	end
 	plate.castTime:ClearAllPoints()
 	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 end

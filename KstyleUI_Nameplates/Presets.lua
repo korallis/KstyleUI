@@ -84,7 +84,7 @@ function Presets.Apply(name)
 	end
 	if name == "lumen" then
 		for key in pairs(Settings.rows) do
-			if key ~= "preset" and not touched[key] and not key:find("^cvars%.") then
+			if key ~= "preset" and key ~= "personalResource" and not touched[key] and not key:find("^cvars%.") then
 				Write(key, lookup(Settings.defaults, key))
 			end
 		end
@@ -104,7 +104,7 @@ function Presets.OnSetting(_, module, key)
 		if name ~= "custom" then
 			Presets.Apply(name)
 		end
-	elseif key ~= "enabled" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom" then
+	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom" then
 		K.Options.Write(MODULE, "preset", "custom")
 	end
 	Settings.Invalidate()
