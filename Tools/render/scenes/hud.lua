@@ -1682,6 +1682,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local state = { saved = {}, active = 1 }
 	local env, K = CoreEnv.New(Common.ScreenOpts({
+		saved = os.getenv("RENDER_NEEDS_OFF") == "1" and { version = 2, profiles = { Default = Common.FinishSettings({}) }, account = { setupSeen = true } } or nil,
 		setup = function(env)
 			Common.ForceScreen(env, true)
 			EditModeFake.Install(env, state)
