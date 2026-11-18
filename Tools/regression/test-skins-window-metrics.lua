@@ -23,6 +23,11 @@ for _, spec in ipairs(Windows.LIST) do
 				if skin and skin.backdrop then
 					count = count + 1
 					assert(skin.backdrop.chrome.headerUnits == 32, spec.key .. ": use the 32-unit window title band")
+					local container = frame.TitleContainer or type(frame.BorderFrame) == "table" and frame.BorderFrame.TitleContainer
+					local title = container and container.TitleText or frame.Header and frame.Header.Text
+					if title then
+						assert(select(2, title:GetFont()) == K.Widgets.FontSize(title, 16), spec.key .. ": the window title reads at 16 units")
+					end
 				end
 			end
 		end
