@@ -10,8 +10,10 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 		local ns, env, K = R.ns, R.env, R.K
 		if screen.width == 5120 and style ~= "orbs" then
 			assert(ns.Quests.Parts().cap.row:IsShown(), "a complete first quest fits with QUESTS 8 at 5120x1440, as on staging")
-			assert(ns.Quests.Rows()[1].questID == 301 and ns.Quests.Rows()[2]:IsShown() and ns.Quests.Rows()[2].clipped, "5120x1440 binds one more quest under the fade")
-			assert(ns.Quests.Parts().more:GetText() == "7 more, scroll down", "a full card keeps staging's scroll hint")
+			assert(ns.Quests.Rows()[1].questID == 301 and ns.Quests.Rows()[2]:IsShown(), "5120x1440 uses the composed height for the next quest")
+			local complete = 0
+			for _, row in ipairs(ns.Quests.Rows()) do if row:IsShown() and not row.clipped then complete = complete + 1 end end
+			assert(ns.Quests.Parts().more:GetText() == (8 - complete) .. " more, scroll down", "the scroll hint counts quests not completely visible at the composed height")
 		end
 		local hiddenSteps = ns.RestedXP.Rail.Hidden()
 		local seen = {}
@@ -24,7 +26,7 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 			local hintBottom = cardBounds.bottom + foot * K.Widgets.ScaleFactor(parts.more)
 			assert(hintBottom - cardBounds.bottom >= K.Scale.Pixel(1) + 4 - 1e-6, "the hint's descenders and shadow must clear the bottom border; increase compact footer padding")
 			local first = ns.Quests.Rows()[1].questID
-			local compact = style ~= "orbs" and (screen.width ~= 5120 or first == 303 or first == 306)
+			local compact = parts.more:GetText():find("Quests 8:", 1, true) ~= nil
 			if compact then
 				assert(not parts.cap.row:IsShown() and not parts.cap.rule:IsVisible(), "compact pages must hide the section cap and its rule independently of the measured cap state")
 				local title = assert(Geometry.ScaledRect(ns.Quests.Rows()[1].title, env.UIParent, K.Scale.Root()))

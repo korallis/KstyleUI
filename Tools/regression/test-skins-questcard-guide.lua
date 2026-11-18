@@ -3,7 +3,7 @@ local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 
 for _, screen in ipairs({ { width = 5120, height = 1440 }, { width = 3456, height = 2234 }, { width = 1920, height = 1080 } }) do
 	for _, item in ipairs({ false, true }) do
-		local R = Boot(screen, item)
+		local R = Boot(screen, item, nil, true)
 		local env, K, ns, rxp = R.env, R.K, R.ns, R.rxp
 		local function Check()
 			assert(rxp.RXPFrame:IsShown() and ns.RestedXP.Rail.Placed(), "the guide is open on its rail")

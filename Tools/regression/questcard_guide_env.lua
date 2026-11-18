@@ -4,7 +4,7 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-return function(screen, item, previous)
+return function(screen, item, previous, nativeRects)
 	local rxp, log
 	local quests = Quests.List(8, 1)
 	quests[1].title = "A Putrid Task"
@@ -17,6 +17,7 @@ return function(screen, item, previous)
 			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 		},
 		setup = function(e)
+			if nativeRects then e._resolveRects = true end
 			e._size, e._fitScale = screen.size or "auto", true
 			e.UnitClass = function() return "Warlock", "WARLOCK", 9 end
 			log = Quests.Install(e, quests)
