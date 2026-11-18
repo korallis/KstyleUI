@@ -205,6 +205,10 @@ ns.Preview.Refresh(pane, "Chat")
 settle()
 assert(refreshes.chat == tried + 1, "a later refresh refreshes once, without another magnification trial: " .. tostring(refreshes.chat - tried))
 assert(near(current:GetScale(), 1), "and keeps scale 1")
+local beforeRows = refreshes.chat
+ns.Window.Refresh()
+settle()
+assert(refreshes.chat == beforeRows, "G4: refreshing setting rows must not refit the preview and change its scale")
 
 K.Options.Write("OptionsPresentation", "preview", false)
 K.Options.Open("Cooldowns")

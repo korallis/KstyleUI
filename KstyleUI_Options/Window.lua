@@ -115,7 +115,6 @@ end
 
 function Window.Refresh()
 	if win and win:IsShown() then
-		Relayout()
 		Render(true)
 	end
 end
@@ -412,6 +411,7 @@ local function Build()
 			preview.held = {}
 			ReloadPages()
 			Preview.Refresh(preview)
+			Relayout()
 		else
 			Preview.Refresh(preview, module)
 		end
