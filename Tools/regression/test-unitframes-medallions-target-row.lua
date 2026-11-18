@@ -42,6 +42,8 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	local function target(name, creature, secretName, secretCreature)
 		U.SetUnit(env, "target", { name = name, creature = creature, secretName = secretName, secretCreature = secretCreature, level = 39, health = 90, healthMax = 100, marker = 8, reaction = 2 })
 		env.SetTarget(true)
+		U.W.Tick(env, 0.06)
+		U.W.Tick(env, 0.06)
 	end
 	for _, creature in ipairs(env._creatureTypes) do
 		for _, name in ipairs({ "Ash", "Riverglade Crocolisk", string.rep("Everlasting ", 12) }) do

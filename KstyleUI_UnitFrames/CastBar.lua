@@ -1190,7 +1190,7 @@ end
 
 function CastBars.Attach(view)
 	local kind = view.kind
-	local cb = New(view.body or view.button, kind, view.unit)
+	local cb = New(kind == "target" and view.button or view.body or view.button, kind, view.unit)
 	cb.attached = true
 	view.castbar = cb
 	local block = view.health and view.health.ornament
