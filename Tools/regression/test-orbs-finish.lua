@@ -43,4 +43,15 @@ local timer = target.timer:GetWidth()
 local holder = ns.CastBars.Holder("target"):GetWidth()
 assert(target.text:GetWidth() < wide and near(target.text:GetWidth() + timer + 4, holder, 1), "off: the label keeps the holder's width as before")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+for _, screen in ipairs({ { 3456, 2234 }, { 5120, 1440 } }) do
+	local wideEnv, wideK, wideNs = U.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080, size = "auto" })
+	wideK.Options.Write("HudStyle", "style", "orbs")
+	wideEnv._time = 2
+	U.SetUnit(wideEnv, "target", { name = "Bloodtalon Matriarch", level = 12, health = 50, healthMax = 100, reaction = 2,
+		cast = { name = "Terrifying Screech", texture = 136197, start = 1000, finish = 4500, spellID = 686 } })
+	wideEnv.SetTarget(true)
+	local label = wideNs.CastBars.Get("target")[1].text:GetWidth()
+	assert(label >= 180, "G5: at least 180 units after pixel snapping at " .. screen[1] .. "x" .. screen[2] .. ", got " .. label)
+	assert(#wideEnv._errors == 0 and wideK.ErrorCount() == 0, tostring(wideEnv._errors[1]))
+end
 print("orbs finish ok")

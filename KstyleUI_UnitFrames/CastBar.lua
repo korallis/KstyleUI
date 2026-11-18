@@ -332,6 +332,11 @@ local function Snap(cb, units)
 	return Widgets.Snap(cb.frame, units)
 end
 
+local function Ceil(cb, units)
+	local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(cb.frame)
+	return math.ceil(units / pixel - 1e-6) * pixel
+end
+
 local function Rect(x, y, w, h)
 	return { x = x, y = y, w = math.max(0, w), h = math.max(0, h) }
 end
@@ -539,9 +544,9 @@ local function LayoutCaption(cb, width, height)
 	local barH = math.min(CAPTION_BAR[mode], labelOn and not inside and spare or height - barOffset)
 	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
 	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[Elapsed(cb) and "elapsed" or "remaining"] * size), math.floor(width / 2)) or 0
-	local reach = 0
-	if above and Roomy(cb) then
-		reach = Snap(cb, math.max(0, CAPTION_ROOM + timerW + (timerOn and TEXT_PAD or 0) - width) / 2)
+	local reach, roomy = 0, above and Roomy(cb)
+	if roomy then
+		reach = Ceil(cb, math.max(0, CAPTION_ROOM + timerW + (timerOn and TEXT_PAD or 0) - width) / 2)
 		width, lead = width + 2 * reach, lead - reach
 	end
 	local bar = cb.bar
@@ -568,7 +573,8 @@ local function LayoutCaption(cb, width, height)
 	else
 		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
 	end
-	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0))))
+	local textW = math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0))
+	cb.text:SetWidth(roomy and Ceil(cb, textW) or Snap(cb, textW))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
 	if inside then
@@ -715,7 +721,7 @@ end
 
 local function Paint(cb, r, g, b, a)
 	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
-	if cb.medal and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
+	if (cb.medal or cb.mode == "inside") and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
 		cb.inkPaint = cb.inkEmpty
 		if cb.inkEmpty then
 			Widgets.InkText(cb.text, Tokens.Color(TRACK))

@@ -86,8 +86,6 @@ ORB_GLINTS = (
 ORB_LIQUID_EDGE = 0.55
 # The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
 ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
-# The sharp glass (the Orbs default since the finish plan's G5): the upper-left glint gets a hard core and the foot
-# shade ends at 0.22, drawn at 256 texels; the soft glass above stays for the "Sharp orb glass" option turned off.
 ORB_GLINTS_SHARP = (ORB_GLINTS[0], (0.29, 0.24, 0.20, 0.20, ((0.0, 0.85), (0.12, 0.82), (0.18, 0.28), (0.35, 0.18), (1.0, 0.0))), *ORB_GLINTS[2:])
 ORB_FOOT_STOPS_SHARP = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.22))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and

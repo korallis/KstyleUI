@@ -1,6 +1,7 @@
 -- test-frames-finish.lua: the Frames tray on the 491-unit centre column and the spell name inside both cast bars, each with an Options switch that brings back the old look.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
+local W = U.W
 
 local function near(a, b, eps)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (eps or 1e-6)
@@ -53,7 +54,21 @@ do
 	local point, relative = player.text:GetPoint(1)
 	assert(point == "LEFT" and relative == player.bar, "the spell name rides the bar")
 	assert(near(player.bar.opts.height, 14), "the bar is 14 units tall")
-	assert(select(3, player.text:GetFont()) == "OUTLINE", "on the gilt fill the name takes a thin outline")
+	local function inked(cb, r, g, b)
+		local ink, want = W.LastCall(cb.text, "SetTextColor"), { K.Widgets.InkFor(r, g, b) }
+		return near(ink[1], want[1]) and near(ink[2], want[2]) and near(ink[3], want[3]) and select(3, cb.text:GetFont()) == want[5]
+	end
+	assert(inked(player, player.pr, player.pg, player.pb), "with Readable text on bars, the name takes the ink for the gilt under it")
+	env._units.player.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-1", 188196)
+	assert(player.inkEmpty and inked(player, K.Tokens.Color("buttonFill")), "an interrupted cast empties the bar, so the name takes light outlined ink")
+	K.Options.Write("Appearance", "readableBars", false)
+	env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-3", 188196)
+	local light = { K.Tokens.Color("textEmphasis") }
+	local ink = W.LastCall(player.text, "SetTextColor")
+	assert(near(ink[1], light[1]) and select(3, player.text:GetFont()) == "OUTLINE", "Readable text on bars off: light ink with a thin outline")
+	K.Options.Write("Appearance", "readableBars", true)
 	U.SetUnit(env, "target", { name = "Shadowgale Poacher", level = 12, health = 50, healthMax = 100, reaction = 2,
 		cast = { name = "Shadow Bolt", texture = 136197, start = 1000, finish = 3800, spellID = 686 } })
 	env._time = 3
