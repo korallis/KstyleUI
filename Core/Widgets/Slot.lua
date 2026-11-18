@@ -359,7 +359,7 @@ local function PaintLayers(self)
 	end
 	self.well:SetVertexColor(Tokens.Color("slotWell"))
 	PaintStates(self)
-	self.readyWash:SetColorTexture(Widgets.Rgba(self.opts.procTransitions and "steelLit" or "giltLit", self.opts.procTransitions and 0.45 or 1))
+	self.readyWash:SetColorTexture(Widgets.Rgba(self.opts.procTransitions and "steelLit" or "giltLit"))
 	if self.countdown then
 		Widgets.TextColor(self.countdown, "slotNumber")
 	end
@@ -501,8 +501,8 @@ function Widgets.Slot(parent, opts)
 		self:SetSlabDress(self.slabProc)
 		self.readyAttack:SetDuration(self.opts.procTransitions and 0.06 or 0)
 		self.readyFade:SetOrder(2)
-		self.readyAttack:SetToAlpha(self.opts.procTransitions and 1 or READY_ALPHA)
-		self.readyFade:SetFromAlpha(self.opts.procTransitions and 1 or READY_ALPHA)
+		self.readyAttack:SetToAlpha(self.opts.procTransitions and 0.45 or READY_ALPHA)
+		self.readyFade:SetFromAlpha(self.opts.procTransitions and 0.45 or READY_ALPHA)
 		self.readyFade:SetDuration(self.opts.procTransitions and 0.18 or Tokens.Duration("readyFlash"))
 		PaintLayers(self)
 	end

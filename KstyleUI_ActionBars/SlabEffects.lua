@@ -72,6 +72,8 @@ local function ReadyParts(b)
 	local polished = ns.Config("procTransitions") == true
 	flash.rise:SetDuration(polished and 0.06 or READY * READY_RISE)
 	flash.fall:SetDuration(polished and 0.18 or READY * (1 - READY_RISE))
+	flash.rise:SetToAlpha(polished and 0.45 or 1)
+	flash.fall:SetFromAlpha(polished and 0.45 or 1)
 	local side = SlotSize(b) * (polished and 1.15 or READY_SHARE)
 	if polished then
 		local snapped = Widgets.Snap(flash, side)
@@ -93,7 +95,7 @@ function Fx.Ready(b)
 		return true
 	end
 	local r, g, bl = Color("steelLit", "textEmphasis")
-	flash:SetVertexColor(r, g, bl, ns.Config("procTransitions") and 0.45 or 1)
+	flash:SetVertexColor(r, g, bl, 1)
 	flash.anim:Stop()
 	flash.anim:Play()
 	return true

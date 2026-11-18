@@ -57,7 +57,7 @@ if not mode or mode == "proc" then
     assert(b.lumenGlow.leave:IsPlaying() and b.lumenGlow:IsShown(), "F3: proc glow leaves instead of snapping off")
     b:FlashReady()
     assert(b.readyAttack:GetDuration() == 0.06 and b.readyFade:GetDuration() == 0.18, "F3: ready attacks in 60 ms and decays in 180 ms")
-    assert(W.LastCall(b.readyWash, "SetColorTexture")[4] == 0.45, "F3: the steel ready wash peaks at 0.45")
+    assert(b.readyAttack:GetToAlpha() == 0.45 and b.readyFade:GetFromAlpha() == 0.45, "F3: the steel ready wash peaks at 0.45")
     b.lumenGlow.leave:Finish()
     b.lumenGlow.leave:GetScript("OnFinished")()
     assert(not b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "F3: the hidden proc stops breathing")
