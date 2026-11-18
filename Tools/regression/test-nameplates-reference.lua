@@ -111,7 +111,7 @@ do
 	local _ = default
 	local get = ns.Settings.Get
 	assert(get("name.size") == 16 and get("level.show") == true and get("level.size") == 13 and get("level.outline") == "NONE", "settings still at the old picture's defaults follow the bible")
-	assert(get("debuffs.size") == 29 and get("debuffs.growthX") == "LEFT" and get("debuffs.showTime") == false and get("debuffs.textSize") == 13, "and so do the old effect defaults")
+	assert(get("debuffs.size") == 29 and get("debuffs.growthX") == "LEFT" and get("debuffs.showTime") == true and get("debuffs.textSize") == 13, "unconfigured debuffs keep their size and gain readable time")
 	local tr, tg, tb = K.Tokens.Color("giltLit")
 	local target = get("target.color")
 	assert(N.SameColor(target.r, target.g, target.b, tr, tg, tb), "an empty saved target colour reads the new default")
