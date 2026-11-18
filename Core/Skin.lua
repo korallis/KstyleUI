@@ -625,10 +625,11 @@ local function PaintButton(parts)
 	local enabled = Enabled(parts.frame)
 	local hover = parts.hoverT or 0
 	if enabled then
-		parts.backdrop.chrome:SetEdgeRGBA(Widgets.MixTokens("edgeInner", 1, "accent", 1, hover))
+		parts.backdrop.chrome:SetEdgeRGBA(Widgets.MixTokens("medGunLit", 1, "accent", 1, hover))
 	else
-		parts.backdrop.chrome:SetEdge("edgeInner")
+		parts.backdrop.chrome:SetEdge("medRimLit")
 	end
+	parts:PaintMaterial()
 	local text = parts.text
 	if text then
 		if enabled then
@@ -639,6 +640,22 @@ local function PaintButton(parts)
 	end
 end
 
+local function PaintButtonMaterial(parts)
+	local low = Enabled(parts.frame) and parts.pressed and "slotFill" or "medCardHeaderBottom"
+	local high = Enabled(parts.frame) and parts.pressed and "slotFill" or "medCardHeaderTop"
+	local r, g, b, a = Tokens.Color(low)
+	parts.material:SetColorTexture(r, g, b, a)
+	parts.material:SetVertexColor(Tokens.Color("white"))
+	if type(parts.material.SetGradient) == "function" and type(CreateColor) == "function" then
+		parts.material:SetGradient("VERTICAL", CreateColor(Tokens.Color(low)), CreateColor(Tokens.Color(high)))
+	end
+	W().Tint(parts.topLine, "medTopLine")
+end
+
+local function LayoutButton(parts)
+	parts.topLine:SetHeight(ns.Scale.Pixel(1) / W().ScaleFactor(parts.backdrop))
+end
+
 local function Button(button, opts)
 	opts = opts or {}
 	local parts = Parts(button)
@@ -647,6 +664,13 @@ local function Button(button, opts)
 	end
 	StripFrame(button)
 	Backdrop(button, { shape = "tile", fill = "buttonFill", shadow = false, inset = opts.inset })
+	parts.material = parts.backdrop:CreateTexture(nil, "BACKGROUND", nil, 0)
+	W().Fill(parts.material, parts.backdrop, 1, 1, 1, 1)
+	parts.topLine = parts.backdrop:CreateTexture(nil, "OVERLAY")
+	W().Point(parts.topLine, "TOPLEFT", parts.backdrop, "TOPLEFT", 1, -1)
+	W().Point(parts.topLine, "TOPRIGHT", parts.backdrop, "TOPRIGHT", -1, -1)
+	parts.topLine:SetColorTexture(Tokens.Color("white"))
+	parts.PaintMaterial, parts.Layout = PaintButtonMaterial, LayoutButton
 	parts.text = type(button.GetFontString) == "function" and button:GetFontString() or nil
 	if parts.text and opts.font then
 		W().StyleText(parts.text, opts.font)
@@ -654,6 +678,14 @@ local function Button(button, opts)
 	parts.Paint, parts.Restyle = PaintButton, Restyle
 	parts.kinds.Button = true
 	HookPointer(button, parts)
+	button:HookScript("OnMouseDown", function()
+		parts.pressed = true
+		parts:Paint()
+	end)
+	button:HookScript("OnMouseUp", function()
+		parts.pressed = false
+		parts:Paint()
+	end)
 	button:HookScript("OnShow", OnState)
 	Restyle(parts)
 	Track(parts)
