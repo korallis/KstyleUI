@@ -12,6 +12,11 @@ return Common.Run(function()
 			for _, view in ipairs(ns.Frames.Get(kind).views) do view.button:Hide() end
 		end
 		K.Layout.Update("unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 240 - (row - 1) * 240 })
+		env.C_DurationUtil = { CreateDuration = function()
+			return { SetTimeSpan = function(duration, start, finish)
+				duration.start, duration.finish = start, finish
+			end }
+		end }
 		local channel = state == "channel"
 		env._time = 2
 		env._units.player[channel and "channel" or "cast"] = { name = "Terrifying Screech", texture = 136048, start = 1000, finish = 4000, spellID = 188196 }
