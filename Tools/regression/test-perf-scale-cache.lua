@@ -19,7 +19,7 @@ do
 	local expected = string.format("%.17g", current.Scale.AppliedUserScale())
 	for _, entry in ipairs(oldEnv.KstyleUIDB.scaleCache.entries) do
 		entry.key = entry.key:gsub("scaled%-text%-v2", "scaled-text")
-		entry.maximum = "0.6"
+		entry.maximum, entry.auto, entry.nearest, entry.previousNearest = "0.6", "0.6", "0.6", "0.6"
 	end
 	local _, upgraded, misses = New(oldEnv.KstyleUIDB)
 	assert(misses() > 0 and string.format("%.17g", upgraded.Scale.AppliedUserScale()) == expected, "discard saved answers from the superseded text-floor policy")
