@@ -79,10 +79,16 @@ return Common.Run(function()
 	local selected = ns.Settings.Get("cvars.selectedScale")
 	local all, casters = {}, {}
 	local y = FLOOR
+	local columnWidth = ns.Stacking.Extent()
+	local columns = math.ceil((#STACK + selected - 1) * pitch / (FLOOR - 48))
+	local x = POINT_X - (columns - 1) * (columnWidth + 24) / 2
 	for _, spec in ipairs(STACK) do
 		local scale = spec.target and selected or 1
+		if y - pitch * scale < 48 then
+			x, y = x + columnWidth + 24, FLOOR
+		end
 		local base = N.Add(env, spec.token, spec.unit, { scale = scale })
-		place(env, base, POINT_X, y)
+		place(env, base, x, y)
 		y = y - pitch * scale
 		all[#all + 1] = spec.token
 	end

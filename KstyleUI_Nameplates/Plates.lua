@@ -266,7 +266,7 @@ local function Attach(unit)
 	end
 	byUnit[unit] = plate
 	plate:SetUnit(unit)
-	for _, which in ipairs({ "target", "focus" }) do
+	for which in pairs(plateForWorks) do
 		if Plates.IsUnit(plate, which) then highlighted[which] = plate end
 	end
 	local unitFrame = base.UnitFrame

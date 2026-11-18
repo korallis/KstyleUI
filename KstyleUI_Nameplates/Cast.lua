@@ -443,7 +443,7 @@ function Component.Restyle(plate)
 	local glyphSize = math.max(h, 11)
 	Widgets.Size(glyph, glyphSize, glyphSize)
 	glyph:ClearAllPoints()
-	glyph:SetPoint("LEFT", bar, "LEFT")
+	glyph:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, Widgets.Snap(plate, (Widgets.Snap(plate, glyphSize) - Widgets.Snap(plate, h)) / 2))
 	plate.castName:ClearAllPoints()
 	if Settings.Get("cast.nameBelow") then
 		ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))

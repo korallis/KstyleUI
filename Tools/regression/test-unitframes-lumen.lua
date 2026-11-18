@@ -3,6 +3,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New({ lumen = true })
+K.Options.Write("UnitFrames", "player.powerSeparate", false)
 local Settings, Geometry, Frames, CastBars = ns.Settings, ns.Geometry, ns.Frames, ns.CastBars
 local Tokens = K.Tokens
 

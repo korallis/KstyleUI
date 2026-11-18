@@ -14,6 +14,8 @@ local timer = button._aura.timer
 local face, size, flags = timer:GetFont()
 assert(face == K.Tokens.Font("number") and size >= 11 and flags == "OUTLINE", "the remaining time uses outlined number ink")
 assert(timer:GetPoint(1) == "TOP" and timer:GetJustifyH() == "CENTER", "time is centred under its icon")
+local half = K.Widgets.Snap(button, ns.Settings.Get("debuffs.size")) / 2
+assert(select(4, timer:GetPoint(1)) == K.Widgets.Snap(button, half) - half, "snap the timer centre when its tile has an odd pixel width")
 assert(button._aura.count:GetPoint(1) == "TOPRIGHT", "stacks keep their corner")
 local color = button._aura.timerOptions.textColor
 assert(color and color.property == env.Enum.DurationTextBindingProperty.RemainingDuration, "the engine samples the remaining duration")

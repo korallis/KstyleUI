@@ -29,7 +29,7 @@ assert(#Classes.ORDER == 9, "nine classes")
 for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
 	local tag = "hud." .. class
-	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class })))
+	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class, settings = { UnitFrames = { player = { powerSeparate = false } } } })))
 	local Kuf = Hud.envs[uf].KstyleUI
 	local healthColour = { Kuf.Tokens.Color("hudPlayerHealth") }
 	local manaColour = { Kuf.Tokens.Color("hudMana") }

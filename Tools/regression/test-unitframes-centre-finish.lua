@@ -2,6 +2,7 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
+K.Options.Write("UnitFrames", "player.powerSeparate", false)
 local paths = {}
 for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
 	paths[item.key] = item.path
