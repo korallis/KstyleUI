@@ -73,13 +73,14 @@ including spaces and URL punctuation in paths.
 ### Alpha model and Forever evidence
 
 The stub owns each object's current alpha; the scene reads that value and
-applies ancestor alpha once. Colour fields in scene items carry RGB and an
-alpha of 1, so the canvas does not multiply an old colour alpha back in.
+applies ancestor alpha once. Texture colour fields in scene items carry RGB
+and an alpha of 1, so the canvas does not multiply an old texture colour alpha
+back in. FontStrings retain the previous independent region/text opacity model.
 
 | Object | Model |
 | --- | --- |
 | Texture (including mask textures and lines) | `SetAlpha`, `SetAlphaFromBoolean`, `SetVertexColor` and `SetColorTexture` write one alpha: the last write wins. Omitted colour alpha is 1. `GetAlpha` and the fourth `GetVertexColor` return agree. File pixels, masks and gradient stops retain their own coverage. |
-| FontString | `SetTextColor` writes the same Alpha aspect as `SetAlpha`/`SetAlphaFromBoolean`; the last write wins, with omitted text alpha defaulting to 1. `GetTextColor` reports the current alpha. |
+| FontString | Preserve the existing model: `SetTextColor` stores text colour/opacity independently of `SetAlpha`/`SetAlphaFromBoolean`, and the renderer multiplies those opacities. The generated secret-aspect flags do not prove shared storage; stronger client evidence would be required to change this model. |
 | Frame | Its own `SetAlpha`/`SetAlphaFromBoolean` value multiplies down the parent chain, stopping at `SetIgnoreParentAlpha`. Colour writes on a child region do not change the frame. |
 
 Evidence is from [Gethe/wow-ui-source at `9dc84f0`](https://github.com/Gethe/wow-ui-source/tree/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns), Forever build 1.60.1.70862:
@@ -87,18 +88,20 @@ Evidence is from [Gethe/wow-ui-source at `9dc84f0`](https://github.com/Gethe/wow
 - `Blizzard_APIDocumentationGenerated/SimpleRegionAPIDocumentation.lua`:
   `SetAlpha` (123) writes `SecretAspect.Alpha`; `SetVertexColor` (191) writes
   both `VertexColor` and `Alpha`; `GetAlpha` (10) and `GetVertexColor` (66)
-  return that same Alpha aspect. Colour alpha is optional.
+  are marked with that secret aspect. Colour alpha is optional; secret-aspect
+  flags describe information restrictions, not the underlying storage.
 - `Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua`:
   `SetColorTexture` (403) takes RGB and optional alpha. The generated signatures
-  alone do not specify setter ordering; the region aspect contract and the
-  client regression below establish the shared value.
+  alone do not specify setter ordering. The client regression below and the
+  chat-window code establish the Texture model.
 - `Blizzard_ChatFrameBase/Mainline/FloatingChatFrame.lua`: temporary chat
   windows read background opacity through `GetVertexColor` (455), while
   `FCF_SetWindowAlpha` writes those background textures with `SetAlpha` (1056).
   This relies on the two methods accessing the same value.
 - `Blizzard_APIDocumentationGenerated/SimpleFontStringAPIDocumentation.lua`:
-  `SetTextColor` (675) writes `VertexColor` and `Alpha`, and `GetTextColor`
-  (367) returns both; its inherited region alpha API is the file above.
+  `SetTextColor` (675) and `GetTextColor` (367) carry the `VertexColor` and
+  `Alpha` secret-aspect flags; its inherited region alpha API is the file
+  above. These flags alone do not establish a last-write-wins FontString model.
 - `Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua`:
   `GetAlpha` (276), `SetAlpha` (1134) and `SetAlphaFromBoolean` (1145) use the
   frame's Alpha aspect. `Blizzard_ChatFrameBase/Mainline/FloatingChatFrame.lua`

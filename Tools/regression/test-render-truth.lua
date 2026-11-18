@@ -1,4 +1,4 @@
--- test-render-truth.lua: region colour and alpha share one value, animation orders sample the addon's envelopes, and cooldown controls remain independent.
+-- test-render-truth.lua: Texture colour and alpha share one value, FontString opacity stays independent, ordered animation peaks and cooldown controls remain intact.
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env = Stubs.NewEnv({ width = 1920, height = 1080 })
@@ -54,8 +54,10 @@ label:SetText("Alpha")
 label:SetAlpha(0)
 label:SetTextColor(1, 1, 1, 0.4)
 item = find(label)
-assert(item, "SetTextColor writes the FontString's Alpha aspect too")
-near(item.alpha * item.color[4], 0.5 * 0.4, "FontString text alpha is applied once")
+assert(not item, "FontString retinting retains its hidden region alpha")
+label:SetAlpha(0.25)
+item = find(label)
+near(item.alpha * item.color[4], 0.5 * 0.25 * 0.4, "retain the previous independent FontString opacity model")
 label:SetAlpha(0)
 assert(not find(label), "SetAlpha after SetTextColor hides a FontString")
 

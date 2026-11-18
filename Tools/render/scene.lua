@@ -374,7 +374,7 @@ local function animationState(frame, now)
 	return dx, dy, alpha, absolute, sx, sy
 end
 
--- The stub keeps the shared Alpha aspect after every colour/alpha setter, including boolean and secret writes.
+-- The stub keeps current opacity, including Texture colour writes and boolean/secret alpha writes.
 local function findOwnAlpha(node)
 	local value = reveal(node._env, node._alpha)
 	return type(value) == "number" and value or 1
@@ -1276,7 +1276,6 @@ function Scene.Build(env, opts)
 			justifyH = state(region, "JustifyH") or "CENTER",
 			justifyV = state(region, "JustifyV") or "MIDDLE",
 		}
-		item.color[4] = 1
 		if not item.font.file then
 			logLine("no local font for " .. tostring(path) .. "; the page falls back to Source Sans")
 		end

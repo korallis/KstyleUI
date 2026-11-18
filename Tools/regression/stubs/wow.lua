@@ -524,7 +524,7 @@ function Object:GetAlpha()
 	return self._alpha
 end
 
-for _, field in ipairs({ "VertexColor", "ColorTexture", "TextColor" }) do
+for _, field in ipairs({ "VertexColor", "ColorTexture" }) do
 	Object["Set" .. field] = function(self, ...)
 		local a = select(4, ...)
 		self._state[field] = pack(...)
@@ -534,11 +534,6 @@ end
 
 function Object:GetVertexColor()
 	local color = self._state.VertexColor or { 1, 1, 1 }
-	return color[1], color[2], color[3], self:GetAlpha()
-end
-
-function Object:GetTextColor()
-	local color = self._state.TextColor or { 1, 1, 1 }
 	return color[1], color[2], color[3], self:GetAlpha()
 end
 
@@ -1114,7 +1109,7 @@ end
 local Quiet = {}
 
 local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBoolean")
-for _, field in ipairs({ "VertexColor", "ColorTexture", "TextColor" }) do
+for _, field in ipairs({ "VertexColor", "ColorTexture" }) do
 	local set = quietSetter(field)
 	Quiet["Set" .. field] = function(self, ...)
 		set(self, ...)

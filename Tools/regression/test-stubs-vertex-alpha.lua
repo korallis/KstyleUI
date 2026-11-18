@@ -25,10 +25,10 @@ for _, quiet in ipairs({ false, true }) do
 	local label = env.CreateFrame("Frame"):CreateFontString()
 	label:SetAlpha(0)
 	label:SetTextColor(0.2, 0.3, 0.4, 0.6)
-	assert(label:GetAlpha() == 0.6 and select(4, label:GetTextColor()) == 0.6, "FontString colour writes its Alpha aspect")
+	assert(label:GetAlpha() == 0 and select(4, label:GetTextColor()) == 0.6, "retain independent FontString region and text opacity")
 	label:SetAlpha(0.25)
-	assert(select(4, label:GetTextColor()) == 0.25, "FontString alpha is shared with GetTextColor")
+	assert(select(4, label:GetTextColor()) == 0.6, "FontString SetAlpha does not overwrite stored text colour")
 	label:SetTextColor(1, 1, 1)
-	assert(label:GetAlpha() == 1, "omitted text alpha defaults to one")
+	assert(label:GetAlpha() == 0.25, "FontString retinting leaves its region alpha unchanged")
 end
 print("vertex alpha contract passed")
