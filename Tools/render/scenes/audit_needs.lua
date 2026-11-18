@@ -13,6 +13,7 @@ return Common.Run(function()
 		end }))
 		for _, entry in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(entry.name)) end
 		W.CoreEnv.Boot(env)
+		dofile("Tools/render/scenes/_audit.lua").Apply(K)
 		if os.getenv("RENDER_CLOSE") == "later" and K.Options.Row("Setup", "closeBehaviour") then K.Options.Write("Setup", "closeBehaviour", "later") end
 		if need == "summary" then
 			local Fake = dofile("Tools/regression/editmode_fake.lua")

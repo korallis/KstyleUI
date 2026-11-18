@@ -676,6 +676,7 @@ ns.Locale.Add({
 	["Every empty slot"] = "Jeder leere Platz",
 	["Every hit a nameplate's unit takes, from any player. Needs KstyleUI's Nameplates."] = "Jeder Treffer, den die Einheit einer Namensplakette von irgendeinem Spieler erleidet. Braucht KstyleUIs Namensplaketten.",
 	["Every module optional. Make it yours."] = "Jedes Modul ist optional. Gestaltet Eure Oberfl\195\164che.",
+	["Every module starts on. Turn off any you do not want."] = "Jedes Modul startet eingeschaltet. Schaltet alle aus, die Ihr nicht wollt.",
 	["Everything"] = "Alles",
 	["Exalted"] = "Ehrf\195\188rchtig",
 	["Existing addons"] = "Vorhandene Addons",

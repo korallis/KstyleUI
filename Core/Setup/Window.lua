@@ -690,7 +690,7 @@ end
 local function BuildModules(page, width)
 	local header = Paragraph(page, "body", "text", width / 2)
 	Widgets.Point(header, "TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
-	header:SetText(L["On uses KstyleUI; Off keeps your other addon for that feature."])
+	panel.moduleNote = header
 	local allOff = Widgets.Button(page, { text = L["All off"], onClick = function() SetAll(false) end })
 	Widgets.Point(allOff, "TOPRIGHT", page, "TOPRIGHT", 0, 0)
 	local allOn = Widgets.Button(page, { text = L["All on"], onClick = function() SetAll(true) end })
@@ -907,6 +907,9 @@ end
 
 local function SyncChoice()
 	local choice = Setup.Choice()
+	panel.moduleNote:SetText(ns.Store.Module("Integrations").notices
+		and L["On uses KstyleUI; Off keeps your other addon for that feature."]
+		or L["Every module starts on. Turn off any you do not want."])
 	for _, entry in ipairs(Setup.PICKER) do
 		local toggle = panel.toggles[entry.name]
 		local available = Setup.Available(entry.name)

@@ -126,7 +126,11 @@ end
 -- root units from the root's bottom left, as Layout.Rect gives them, for scenes/_reference.lua's measurements.
 function Lumen.Elements(built)
 	local out = {}
-	for name, b in pairs(built) do
+	local names = {}
+	for name in pairs(built) do names[#names + 1] = name end
+	table.sort(names)
+	for _, name in ipairs(names) do
+		local b = built[name]
 		local env = b.scene and Hud.envs[b.scene]
 		local K = env and env.KstyleUI
 		if K and K.Layout and K.Layout.Elements then
