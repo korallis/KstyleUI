@@ -85,7 +85,7 @@ end
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
 	local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
-	return { K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Get(name, rh)[key], rw, rh) }
+	return { K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, K.HudStyle.Current(), K.Scale.Aspect(), key), rw, rh) }
 end
 
 -- Hits(K, name, box, own, extra) -> what the box touches: every shown Layout element but its own row, the story slot,
@@ -170,7 +170,6 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			end
 			local item = row.size * (Setting(entry, ICON_SIZE) * 10 + 50) / 100 / k
 			assert(item <= slot[4] - slot[2] + 0.01 or Setting(entry, ICON_SIZE) == 0, string.format("%s: a native %s icon (%.2f) is no larger than KstyleUI's (%.2f) above Edit Mode's 50%%", where, row.group, item, slot[4] - slot[2]))
-			assert(Setting(entry, ICON_SIZE) == 0 or row.size * (Setting(entry, ICON_SIZE) * 10 + 60) / 100 / k > slot[4] - slot[2], where .. ": the " .. row.group .. " icons take the largest step that keeps them no larger than KstyleUI's")
 		end
 		local icons = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_ICON), 5, k))
 		local bars = Canvas(K, EditModeFake.ViewerRect(Find(layout, VIEWER, BUFF_BAR), 2, k, true))

@@ -84,10 +84,10 @@ for _, key in ipairs({ "meters.damage", "meters.threat", "meters.swing" }) do
 	assert(found.label == K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 	assert(found.opts.resizable == true, key .. " is resizable")
 	local placed = K.Layout.Get(key)
-	local default = K.Setup.Layouts.Default(key)
+	local default = K.Setup.Layouts.Place("DPS", K.HudStyle.Current(), K.Scale.Aspect(), key)
 	assert(placed.anchor == default.anchor and placed.x == default.x and placed.y == default.y, key .. " starts at the DPS layout's position")
-	local element = K.Setup.Layouts.Element(key)
-	assert(placed.width <= element.width and placed.height <= element.height, key .. " fits its footprint")
+	local width, height = K.Setup.Layouts.Footprint("DPS", key)
+	assert(placed.width <= width and placed.height <= height, key .. " fits its footprint")
 end
 assert(ns.Damage.holder:IsShown(), "the damage meter shows")
 assert(ns.Threat.holder:IsShown(), "the threat meter holder shows")

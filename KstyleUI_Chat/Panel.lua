@@ -146,7 +146,7 @@ function Panel.Geometry(chat)
 	end
 	return {
 		k = k,
-		left = pad,
+		left = pad + (state.settings and state.settings.buttons and 35 * k or 0),
 		top = top,
 		right = pad,
 		bottom = foot,
@@ -226,7 +226,7 @@ local function RelayTabs(dock)
 end
 
 local function TrimDock()
-	local dock, background = Dock()
+	local dock = Dock()
 	local glass = state.glass
 	if not dock or not glass then
 		return
@@ -235,9 +235,10 @@ local function TrimDock()
 	local stop, last = glass.dockEnd, settings and settings.copyButton == true and glass.copy or glass.plus
 	stop:ClearAllPoints()
 	stop:SetPoint("TOPRIGHT", last, "TOPLEFT", -Widgets.Snap(stop, Tokens.Size("gapTiny")), 0)
-	local lift = Widgets.Readability("chatTabs") and Scale.Snap(12) or 0
-	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, lift)
-	dock:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, lift / Ratio(dock, state.holder))
+	local g, k = Panel.Geometry(state.chat), Ratio(dock, state.holder)
+	local x, y = g.left - 2 * k, -g.divider / 2 - 8.15 * k
+	stop:SetPoint("BOTTOMLEFT", state.holder, "TOPLEFT", x, y)
+	dock:SetPoint("BOTTOMLEFT", state.holder, "TOPLEFT", x / k, y / k)
 	dock:SetPoint("BOTTOMRIGHT", stop, "BOTTOMRIGHT", 0, 0)
 	RelayTabs(dock)
 	if ns.Frames and ns.Frames.FitTabs then
@@ -406,7 +407,7 @@ local function PlaceDivider(g)
 	Panel.PaintRule(divider)
 	state.headerUnits = g.divider + Widgets.Border(glass)
 	SyncHeader()
-	local y = -(g.divider - TAB_TEXT_RISE * g.k)
+	local y = -g.divider / 2
 	glass.plus:ClearAllPoints()
 	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
 	glass.copy:ClearAllPoints()
@@ -451,6 +452,9 @@ function Panel.Place()
 		return false
 	end
 	local g = Panel.Geometry(chat)
+	if type(chat.SetResizeBounds) == "function" then
+		chat:SetResizeBounds(1, 1, (MAX_WIDTH - g.left - g.right) / g.k, (MAX_HEIGHT - g.top - g.bottom) / g.k)
+	end
 	if g.spacing and type(chat.SetSpacing) == "function" and Number(chat:GetSpacing(), 0) ~= g.spacing then
 		chat:SetSpacing(g.spacing)
 	end
@@ -462,6 +466,18 @@ function Panel.Place()
 	setPoint(chat, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.right / g.k, g.bottom / g.k)
 	state.placing = false
 	state.waiting = false
+	if state.settings.buttons and type(chat.buttonFrame) == "table" then
+		local column = chat.buttonFrame
+		column:ClearAllPoints()
+		column:SetPoint("TOPLEFT", holder, "TOPLEFT", Scale.Snap(Pad()) / g.k, -g.top / g.k)
+		column:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", Scale.Snap(Pad()) / g.k, g.bottom / g.k)
+		for _, frame in ipairs({ ChatAlertFrame, QuickJoinToastButton }) do
+			if type(frame) == "table" then
+				frame:ClearAllPoints()
+				frame:SetPoint("TOPLEFT", column, "TOPLEFT", 0, 0)
+			end
+		end
+	end
 	for _, frame in ipairs(Windows.List()) do
 		local name = frame:GetName()
 		HookHover(IsText(name) and _G[name .. "Tab"] or nil)
@@ -773,8 +789,24 @@ local function Watch(chat)
 	end
 	state.hooked = true
 	hooksecurefunc(chat, "SetPoint", Schedule)
+	chat:HookScript("OnSizeChanged", Schedule)
+	state.holder:HookScript("OnSizeChanged", Schedule)
 	if type(FCFDock_SetPrimary) == "function" then
 		hooksecurefunc("FCFDock_SetPrimary", Schedule)
+	end
+	if type(FCF_SavePositionAndDimensions) == "function" then
+		hooksecurefunc("FCF_SavePositionAndDimensions", function(frame)
+			if not state.active or frame ~= state.chat or state.placing or EditModeActive() then return end
+			local root, g = Scale.Root(), Panel.Geometry(frame)
+			local left, bottom, width, height = frame:GetRect()
+			if IsSecret(left) or IsSecret(bottom) or IsSecret(width) or IsSecret(height) then return end
+			if type(left) ~= "number" or type(bottom) ~= "number" or not Number(width, nil) or not Number(height, nil) then return end
+			K.Layout.Update(KEY, {
+				anchor = "BOTTOMLEFT", x = left * g.k - root:GetLeft() - g.left,
+				y = bottom * g.k - root:GetBottom() - g.bottom,
+				width = width * g.k + g.left + g.right, height = height * g.k + g.top + g.bottom,
+			}, true)
+		end)
 	end
 	local name = chat:GetName()
 	local tab = IsText(name) and _G[name .. "Tab"] or nil
@@ -798,6 +830,19 @@ function Panel.Start(settings)
 		return
 	end
 	state.chat = chat
+	if not state.buttonPoints then
+		state.buttonPoints = {}
+		for _, frame in ipairs({ chat.buttonFrame, ChatAlertFrame, QuickJoinToastButton }) do
+			if type(frame) == "table" then
+				local points = { frame = frame }
+				for i = 1, frame:GetNumPoints() do points[i] = { frame:GetPoint(i) } end
+				state.buttonPoints[#state.buttonPoints + 1] = points
+			end
+		end
+	end
+	if not state.bounds and type(chat.GetResizeBounds) == "function" then
+		state.bounds = { chat:GetResizeBounds() }
+	end
 	Watch(chat)
 	HookHover(chat)
 	K.Callbacks.Register(LAYOUT_CHANGED, Panel, OnLayoutChanged)
@@ -817,7 +862,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" then
+	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" or key == "buttons" then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then
@@ -827,6 +872,15 @@ end
 
 function Panel.Stop()
 	state.active = false
+	for _, points in ipairs(state.buttonPoints or {}) do
+		points.frame:ClearAllPoints()
+		for _, point in ipairs(points) do points.frame:SetPoint(unpack(point)) end
+	end
+	state.buttonPoints = nil
+	if state.bounds and state.chat then
+		state.chat:SetResizeBounds(unpack(state.bounds))
+		state.bounds = nil
+	end
 	local registry = EventRegistry
 	if state.editMode and type(registry) == "table" and type(registry.UnregisterCallback) == "function" then
 		registry:UnregisterCallback(EDIT_MODE_EXIT, Panel)

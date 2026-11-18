@@ -4,6 +4,8 @@ local Raises = CoreEnv.Raises
 
 local env, K = CoreEnv.New()
 CoreEnv.Boot(env)
+K.Store.Module("Cooldowns").attached = false
+K.Store.Module("Meters").swing = { attached = false }
 local Layouts = K.Setup and K.Setup.Layouts
 local LIFT, TRAY_PAD, TRAY_BOTTOM = Layouts.TRAY_LIFT, Layouts.TRAY_PAD, Layouts.TRAY_BOTTOM
 local TRAY_TILE, TRAY_GAP = 38 * 19 / 16, 3 * 19 / 16

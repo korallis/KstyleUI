@@ -11,7 +11,9 @@ local function New(opts)
 			setup(env)
 		end
 	end
-	return C.New(opts)
+	local env, K, ns = C.New(opts)
+	K.Options.Write("Cooldowns", "attached", false)
+	return env, K, ns
 end
 
 local function LastArg(frame, method)

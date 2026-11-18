@@ -5,6 +5,7 @@ local G = dofile("Tools/regression/geometry.lua")
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3840,2160}, {5120,1440} }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local env, K, ns = C.New({ width = screen[1], height = screen[2], setup = function(e)
+			e._size, e._fitScale = "auto", true
 			e.ChatFrame1.SetResizeBounds = function(self, ...) self._bounds = {...} end
 			e.ChatFrame1.GetResizeBounds = function(self) return unpack(self._bounds) end
 			e.ChatFrame1:SetResizeBounds(250, 120, 800, 800)
@@ -39,6 +40,15 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3
 		K.Options.Write("Chat", "buttons", true)
 		K.Layout.Update("chat.main", {width=300, height=240, x=70, y=45}, true)
 		env.RunTimers()
+		check()
+		env.ChatFrame1:ClearAllPointsBase()
+		env.ChatFrame1:SetPointBase("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 100, 150)
+		env.ChatFrame1:SetSize(280, 160)
+		env.ChatFrame1._rect = {100, 150, 280, 160}
+		env.FCF_SavePositionAndDimensions(env.ChatFrame1)
+		env.ChatFrame1._rect = nil
+		env.RunTimers()
+		assert(K.Layout.Get("chat.main").x ~= 70, "a native chat move updates the card's saved position")
 		check()
 		K.Modules.Disable("Chat")
 		assert(select(2, env.ChatFrame1:GetResizeBounds()) == 120, "restore Blizzard's minimum when Chat is disabled")

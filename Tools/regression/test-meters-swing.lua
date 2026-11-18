@@ -8,6 +8,7 @@ local blizzMain, blizzOff = env.SwingTimerMainHandFrame, env.SwingTimerOffHandFr
 blizzOff:SetAlpha(0.5)
 
 M.Enable(env, K)
+M.Write(env, K, "swing.attached", false)
 local Swing = ns.Swing
 local main, off, ranged = Swing.bars[MAIN], Swing.bars[OFF], Swing.bars[RANGED]
 

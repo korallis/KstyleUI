@@ -63,10 +63,10 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 	local out = {
 		size = size,
 		spacing = spacing or GAP,
-		columns = columns or 6,
-		rows = 1,
+		columns = cooldown and 0 or (columns or 6),
+		rows = cooldown and 0 or 1,
 		growth = "center",
-		wrap = cooldown and "down" or "up",
+		wrap = cooldown and "auto" or "up",
 		timer = true,
 		timerSize = timerSize,
 		countSize = countSize,
@@ -87,6 +87,7 @@ Settings.defaults = {
 	quietCooldown = true,
 	readableCountdown = true,
 	medallionsIcons = true,
+	attached = true,
 	path = "auto",
 	accent = "quiet",
 	accentColor = { r = accentR, g = accentG, b = accentB },
@@ -150,6 +151,7 @@ local GROWTH_OPTIONS = {
 	{ value = "rightAligned", label = L["Left to right, aligned right"] },
 }
 local WRAP_OPTIONS = {
+	{ value = "auto", label = L["Automatic"] },
 	{ value = "down", label = L["New rows below"] },
 	{ value = "up", label = L["New rows above"] },
 }
@@ -182,7 +184,11 @@ end
 
 local function Slider(group, key, label, help, range)
 	range = group == "essential" and key == "timerSize" and ESSENTIAL_TIMER_RANGE or range[key]
-	return { type = "slider", key = group .. "." .. key, label = label, help = help, min = range[1], max = range[2], step = range[3] }
+	local row = { type = "slider", key = group .. "." .. key, label = label, help = help, min = range[1], max = range[2], step = range[3] }
+	if COOLDOWN_GROUPS[group] and (key == "columns" or key == "rows") then
+		row.shown = function(value) return value == 0 and Settings.Read()[group][key] or value end
+	end
+	return row
 end
 
 local function Toggle(group, key, label, help)
@@ -267,6 +273,7 @@ IconRows(schema, "essential", L["Essential cooldowns"])
 IconRows(schema, "utility", L["Utility cooldowns"])
 IconRows(schema, "buffs", L["Tracked buff icons"])
 BarRows(schema)
+table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
 Settings.schema = schema
 
 local function Section()
@@ -385,6 +392,14 @@ function Settings.Read()
 	end
 	for _, group in ipairs(ICON_GROUPS) do
 		ReadIcons(current[group], saved[group], defaults[group], group)
+		if COOLDOWN_GROUPS[group] then
+			local attached = saved.attached ~= false
+			local stacked = attached and K.HudStyle.Current() ~= "frames"
+			local explicit = type(saved[group]) == "table" and saved[group] or defaults[group]
+			if explicit.columns == 0 then current[group].columns = stacked and 6 or (group == "essential" and (attached and 12 or 6) or UTILITY_COLUMNS) end
+			if explicit.rows == 0 then current[group].rows = stacked and 2 or (group == "essential" and 1 or (attached and 3 or 1)) end
+			if current[group].wrap == "auto" then current[group].wrap = attached and "up" or "down" end
+		end
 	end
 	ReadBars(current.bars, saved.bars, defaults.bars)
 	return current

@@ -28,6 +28,8 @@ for _, slot in ipairs(SLOTS) do
 end
 
 local Swing = { section = "swing", key = KEY, bars = {}, state = {}, weapons = {}, count = 0, dirty = true }
+ns.defaults.swing.attached = true
+table.insert(ns.schema, { type = "toggle", key = "swing.attached", label = K.L["Swing timer matches the HUD"], help = K.L["Use the HUD's bar finish and placement. Turn off for the previous swing timer."] })
 Swing.LINGER = LINGER
 ns.Swing = Swing
 
@@ -179,23 +181,38 @@ local function Arrange()
 	for _, slot in ipairs(SLOTS) do
 		Swing.bars[slot.type].label:SetText(count > 1 and slot.name or K.L["Swing timer"])
 	end
-	local size = Logic.Split(vertical and width or height, count, gap)
+	local attached = ns.Get("swing.attached")
+	local across = attached and not vertical
+	local size = Logic.Split((vertical or across) and width or height, count, gap)
 	local index = 0
 	for _, slot in ipairs(SLOTS) do
 		local bar = Swing.bars[slot.type]
 		if Visible(slot, now) then
 			local offset = Widgets.Snap(holder, index * (size + gap))
 			index = index + 1
-			bar.opts.width = vertical and size or width
-			bar.opts.height = vertical and height or size
+			bar.opts.width = (vertical or across) and size or width
+			bar.opts.height = (vertical or across) and height or size
 			bar:Restyle()
 			bar:ClearAllPoints()
-			if vertical then
+			if vertical or across then
 				bar:SetPoint("BOTTOMLEFT", Swing.content, "BOTTOMLEFT", offset, 0)
 			else
 				bar:SetPoint("TOPLEFT", Swing.content, "TOPLEFT", 0, -offset)
 			end
 			bar:Show()
+			if across then
+				local pad = Widgets.Snap(bar, 1)
+				local textHeight = Widgets.Snap(bar, math.max(1, bar.opts.height - 2))
+				Widgets.Size(bar.time, 34, textHeight)
+				bar.time:ClearAllPoints()
+				bar.time:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -pad, -pad)
+				Widgets.Size(bar.label, math.max(1, bar.opts.width - 34 - 3 * pad), textHeight)
+				bar.label:ClearAllPoints()
+				bar.label:SetPoint("TOPLEFT", bar, "TOPLEFT", pad, -pad)
+			end
+			local fits = not attached or (not vertical and bar.opts.height >= 10 and bar.opts.width >= 90)
+			bar.time:SetShown(Swing.showTime and fits)
+			bar.label:SetShown((Swing.showTime or attached) and fits and not vertical)
 		else
 			bar:Hide()
 		end
@@ -295,6 +312,12 @@ local function OnSwing(duration, swingType)
 	end
 	local st = Swing.state[slot.type]
 	st.outOfRange, st.idleAt = false, nil
+	local bar = Swing.bars[slot.type]
+	if ns.Get("swing.attached") and K.Motion.Level() ~= "off" then
+		K.Motion.Stop(bar.resetMotion)
+		bar.reset:SetAlpha(0.24)
+		bar.resetMotion = K.Motion.Tween(bar.reset, "SetAlpha", 0.24, 0, Tokens.Duration("hover"), "outQuad")
+	end
 	if Logic.IsSecret(duration) then
 		StartEngine(slot, duration)
 		Refresh()
@@ -304,7 +327,6 @@ local function OnSwing(duration, swingType)
 	if not duration or duration <= 0 then
 		return
 	end
-	local bar = Swing.bars[slot.type]
 	st.start, st.duration, st.running, st.engine = GetTime(), duration, true, false
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(0)
@@ -410,6 +432,16 @@ local function Style()
 		bar.vertical = orientation == "VERTICAL"
 		bar:SetReverseFill(reverse)
 		bar:SetBarColor(r, g, b)
+		local attached = ns.Get("swing.attached")
+		if not attached then
+			K.Motion.Stop(bar.resetMotion)
+			bar.reset:SetAlpha(0)
+			bar.time:SetSize(0, 0)
+			bar.label:SetSize(0, 0)
+		end
+		bar:SetInnerEdge(attached, "castEdge")
+		bar:SetTrackBacking(attached)
+		if attached then bar:SetBarTexture("Flat") end
 		ns.ApplyFont(bar.time, "swing")
 		bar.time:ClearAllPoints()
 		if bar.vertical then
@@ -426,6 +458,13 @@ local function Style()
 		bar.label:ClearAllPoints()
 		bar.label:SetPoint("RIGHT", bar.time, "LEFT", -Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
 		bar.label:SetShown(showTime and not bar.vertical)
+		if attached then
+			bar.label:ClearAllPoints()
+			bar.label:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
+			bar.label:SetJustifyH("LEFT")
+		else
+			bar.label:SetJustifyH("RIGHT")
+		end
 	end
 end
 
@@ -448,6 +487,10 @@ local function Build()
 		bar.label = Widgets.FontString(bar, "OVERLAY")
 		bar.label:SetJustifyH("RIGHT")
 		bar.label:SetText(K.L["Swing timer"])
+		bar.reset = bar:CreateTexture(nil, "OVERLAY")
+		bar.reset:SetAllPoints(bar)
+		bar.reset:SetColorTexture(Tokens.Color("textEmphasis"))
+		bar.reset:SetAlpha(0)
 		bar:Hide()
 		Swing.bars[slot.type] = bar
 		Swing.state[slot.type] = { running = false, engine = false, outOfRange = false }
@@ -474,6 +517,11 @@ end
 function Swing:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
+	end
+	local el = K.Layout.Element(KEY)
+	if el then
+		self.holder:SetHeight(ns.Get("swing.attached") and 14 or 8)
+		K.Layout.Register(el.frame, KEY, el.base, el.opts)
 	end
 	ns.SetLive(KEY, ns.Get("swing.shown"))
 	if not ns.Get("swing.shown") then
@@ -507,6 +555,8 @@ function Swing:Stop()
 	self.driver:SetScript("OnUpdate", nil)
 	for _, slot in ipairs(SLOTS) do
 		Clear(slot)
+		K.Motion.Stop(self.bars[slot.type].resetMotion)
+		self.bars[slot.type].reset:SetAlpha(0)
 	end
 	self.content:Hide()
 	self.holder:Hide()

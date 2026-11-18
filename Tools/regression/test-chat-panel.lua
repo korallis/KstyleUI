@@ -346,7 +346,7 @@ do
 	local g = ns.Panel.Geometry(env.ChatFrame1)
 	local p, rel, relp, x, y = plus:GetPoint(1)
 	assert(p == "CENTER" and rel == glass and relp == "TOPRIGHT", "the plus sits in the row's right end")
-	assert(near(x, -K.Widgets.Snap(plus, 22)) and near(y, -K.Widgets.Snap(plus, g.divider - 14 * g.k)), "22 units in from the right, level with the tab names, on the pixel grid, got " .. x .. ", " .. y)
+	assert(near(x, -K.Widgets.Snap(plus, 22)) and near(y, -K.Widgets.Snap(plus, g.divider / 2)), "22 units in from the right, level with the tab names, on the pixel grid, got " .. x .. ", " .. y)
 	local cp, crel, crelp, cx, cy = copy:GetPoint(1)
 	assert(cp == "CENTER" and crel == glass and crelp == "TOPRIGHT" and near(cx, -(22 + 20 + K.Tokens.Size("gapTiny"))) and near(cy, y), "the copy glyph sits one button and a tiny gap left of the plus, got " .. cx)
 	for _, button in ipairs({ plus, copy }) do
@@ -399,7 +399,7 @@ do
 	local sp, srel, srelp, sx = stop:GetPoint(1)
 	assert(sp == "TOPRIGHT" and srel == copy and srelp == "TOPLEFT" and near(sx, -K.Tokens.Size("gapTiny")), "the spacer ends a tiny gap left of the copy glyph")
 	local bp, brel, brelp = stop:GetPoint(2)
-	assert(bp == "BOTTOMLEFT" and brel == env.ChatFrame1.Background and brelp == "TOPLEFT", "and its bottom is the Background's top, where the dock sits")
+	assert(bp == "BOTTOMLEFT" and brel == ns.Panel.Holder() and brelp == "TOPLEFT", "the card owns the tab header instead of Blizzard's background")
 	assert(env._dockResized >= 1, "Blizzard relays the tabs for the narrower dock")
 	local resized = env._dockResized
 	K.Options.Write("Chat", "copyButton", false)

@@ -113,7 +113,7 @@ end
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
 	local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
-	return K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
+	return K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, K.HudStyle.Current(), K.Scale.Aspect(), key), rw, rh)
 end
 
 local function Viewers(K, env, state, name, icons, bars)

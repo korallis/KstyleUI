@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 35
+Store.DB_VERSION = 36
 Store.migrations = {}
 
 Store.migrations[18] = function(data)
@@ -895,6 +895,44 @@ Store.migrations[35] = function(data)
 		local entry = type(layout) == "table" and layout["actionbars.bar3"]
 		if type(entry) == "table" and type(entry.anchor) == "string" and type(entry.x) == "number" and type(entry.y) == "number" and layout["orbs:actionbars.bar3"] == nil then
 			layout["orbs:actionbars.bar3"] = { anchor = entry.anchor, x = entry.x, y = entry.y }
+		end
+	end
+end
+
+Store.migrations[36] = function(data)
+	local layouts = ns.Setup.Layouts
+	for name, layout in pairs(data.layouts) do
+		if type(layout) == "table" then
+			local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+			local preset = type(profile.Layout) == "table" and profile.Layout.preset or "DPS"
+			if not layouts.Get(preset) then preset = "DPS" end
+			for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars", "meters.swing", "unitframes.resource" }) do
+				for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+					local stored = style == "frames" and key or style .. ":" .. key
+					local entry = layout[stored]
+					if type(entry) == "table" then
+						local positioned = entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil
+						for _, class in ipairs(layouts.ASPECTS) do
+							local old = layouts.Previous(style, preset, key, class)
+							if positioned and (entry.anchor or old.anchor) == old.anchor and (entry.x == nil or near(entry.x, old.x)) and (entry.y == nil or near(entry.y, old.y)) then
+								entry.anchor, entry.x, entry.y = nil, nil, nil
+								positioned = false
+							end
+						end
+						if positioned then
+							local old = layouts.Previous(style, preset, key, layouts.ASPECTS[1])
+							entry.anchor, entry.x, entry.y = entry.anchor or old.anchor, entry.x or old.x, entry.y or old.y
+						end
+						if next(entry) == nil then layout[stored] = nil end
+					end
+				end
+				local entry = layout[key]
+				if type(entry) == "table" and layout["medallions:" .. key] == nil then
+					local copy = {}
+					for field, value in pairs(entry) do copy[field] = value end
+					layout["medallions:" .. key] = copy
+				end
+			end
 		end
 	end
 end

@@ -989,6 +989,7 @@ function Mirror.Start()
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("HudStyleChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnTheme)
+	K.Callbacks.Register("HudStyleChanged", MODULE, OnTheme)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	RebuildAll()
 	return true

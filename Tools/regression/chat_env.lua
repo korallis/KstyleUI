@@ -526,6 +526,7 @@ function C.Install(env, opts)
 	function env.FCF_SetWindowName(frame, name)
 		env[frame:GetName() .. "Tab"]:SetText(name)
 	end
+	function env.FCF_SavePositionAndDimensions() end
 	function env.FCF_DockFrame(frame)
 		frame.isDocked = 1
 	end

@@ -527,6 +527,8 @@ function Layouts.Footprint(name, key)
 	if not element or not layouts[name] then
 		return nil
 	end
+	local place = Layouts.Attached and Layouts.Attached(ns.HudStyle and ns.HudStyle.Current() or "frames", name, key, ns.Scale.Aspect())
+	if place and place.width then return place.width, place.height end
 	local size = SIZES[name][key] or element.reserve
 	if size then
 		return size[1], size[2], size[3], size[4]
@@ -832,6 +834,11 @@ function Layouts.Style(style, name, key)
 		and ns.Store.Module("CombatText").clearLanes == false then
 		return
 	end
+	if not STYLES[style] then return nil end
+	local attached = Layouts.Attached and Layouts.Attached(style, name, key, ns.Scale.Aspect())
+	if attached then
+		return attached
+	end
 	local set = STYLES[style] and STYLES[style][name]
 	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
 	if position then
@@ -949,6 +956,10 @@ end
 Layouts.BuildMedallions()
 
 function Layouts.Aspect(class, style, name, key)
+	local attached = Layouts.Attached and Layouts.Attached(style, name, key, class)
+	if attached then
+		return attached
+	end
 	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
 	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
 	local position = set and set[key]
@@ -958,6 +969,76 @@ function Layouts.Aspect(class, style, name, key)
 		return place
 	end
 end
+
+function Layouts.Attached(style, name, key, class)
+	if not layouts[name] or not byKey[key] or not (style == "frames" or STYLES[style]) then return nil end
+	local cooldown = key:match("^cooldowns%.") ~= nil
+	local swing = key == "meters.swing"
+	local resource = key == "unitframes.resource"
+	if not (cooldown or swing or resource) then return nil end
+	local store = ns.Store
+	local on = not (store and store.IsLoaded()) or store.Module(cooldown and "Cooldowns" or "Meters")[cooldown and "attached" or "swing"]
+	if not cooldown and type(on) == "table" then on = on.attached end
+	if on == false then
+		local old = Layouts.Previous(style, name, key, class)
+		return { anchor = old.anchor, x = old.x, y = old.y, width = swing and 260 or nil, height = swing and 8 or nil }
+	end
+	if (key == "cooldowns.bars" or key == "cooldowns.buffs") and style == "orbs" then
+		return Layouts.Previous(style, name, key, class)
+	end
+	local places = STYLES[style] and STYLES[style][name] or layouts[name]
+	local cast = PLACES[class] and PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
+	local y = cast.y + (cast.height or 30) + 8
+	local x = 0
+	if style == "medallions" then
+		local player = PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
+		y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
+		x = (key == "cooldowns.essential" or key == "cooldowns.buffs") and -300 or 300
+		if key == "cooldowns.buffs" or key == "cooldowns.bars" then y = y + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
+		if swing or resource then
+			local bar = PLACES[class] and PLACES[class][style]["actionbars.bar1"] or places["actionbars.bar1"]
+			local _, _, _, h = Layouts.MedallionsGroup(class)
+			y, x = bar.y + h + 2, swing and -200 or 200
+		end
+	else
+		if style == "frames" then y = cast.y - CENTRE_BUTTON - 12 end
+		if key == "cooldowns.utility" then x = (12 * CENTRE_BUTTON + 11 * CENTRE_GAP + UTILITY) / 2 + 8 end
+		if key == "cooldowns.buffs" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + 182.6) / 2 - 8 end
+		if key == "cooldowns.bars" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + TRACKED) / 2 - 182.6 - 64 end
+		if key == "cooldowns.utility" and style == "orbs" then x, y = 0, y + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
+		if swing or resource then
+			y = cast.y + (cast.height or 30) + 8 + (style == "orbs" and 4 * (CENTRE_BUTTON + CENTRE_GAP) + 16 or 0) + (swing and 20 or 0)
+		end
+	end
+	local width, height
+	if swing then
+		width, height = style == "medallions" and 220 or 260, 14
+	end
+	return { anchor = "BOTTOM", x = x, y = y, width = width, height = height }
+end
+
+function Layouts.Previous(style, name, key, class)
+	local specific = PLACES[class] and PLACES[class][style] and PLACES[class][style][key]
+	local themed = STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
+	local place = specific or themed or layouts[name][key]
+	return { anchor = place.anchor, x = place.x, y = place.y, width = place.width, height = place.height }
+end
+
+ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
+	if not (module == "Cooldowns" and key == "attached" or module == "Meters" and key == "swing.attached") then return end
+	ns.Combat.Queue(function()
+		for _, element in ipairs(ELEMENTS) do
+			if element.key:match("^cooldowns%.") or element.key == "meters.swing" or element.key == "unitframes.resource" then
+				local el = ns.Layout.Element(element.key)
+				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
+			end
+		end
+		local name = ns.Layout.Setting("preset")
+		if Setup.EditMode and Setup.EditMode.ActiveName() == name then
+			Setup.EditMode.Restyle(name, Setup.Story(name, Setup.GuideLoaded()))
+		end
+	end)
+end)
 
 do
 local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true }
