@@ -1,4 +1,4 @@
--- test-groupframes-preview-font.lua: opening and measuring Options never styles group samples at an unresolved or collapsed size (#444).
+-- test-groupframes-preview-font.lua: opening and measuring Options safely refits group samples after their size resolves (#444).
 local G = dofile("Tools/regression/group_env.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
@@ -47,10 +47,13 @@ for _, style in ipairs({ "Medallions", "Frames", "Orbs" }) do
 	assert(reentrant == 0, "defer group preview styling out of GetLeft/header measurement")
 	owner.GetLeft = left
 	env.RunTimers()
-	assert(applied == 0, "skip styling when fixed preview sections leave no room for the party")
+	assert(applied > 0, "refit the samples after the small pane resolves")
+	assert(not preview.clickCast:IsShown(), "leave room for samples when the click casting panel cannot fit")
+	local resized = applied
 	pane.holder:SetSize(width, height)
 	env.RunTimers()
-	assert(applied > 0, "the next resolved resize styles the samples")
+	assert(applied > resized, "the next resolved resize styles the samples again")
+	assert(preview.clickCast:IsShown(), "restore click casting when the pane has room")
 	local before = applied
 	local getWidth, getHeight = preview.GetWidth, preview.GetHeight
 	for _, invalid in ipairs({ 0, -1, 0 / 0, math.huge, -math.huge, env.Secret(280) }) do

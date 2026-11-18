@@ -199,17 +199,22 @@ local function Layout(preview)
 	end
 	preview.canvas:SetSize(pw, ph)
 	preview.raidCanvas:SetSize(rw, rh)
-	local top = Tokens.Size("gapTiny")
+	local top = math.min(Tokens.Size("gapTiny"), availH / 4)
+	local gap = math.min(SECTION_GAP, availH / 4)
+	local showClick = availH > top + ns.ClickCast.HEIGHT + 2 * gap
+	local room = availH - top - gap - (showClick and ns.ClickCast.HEIGHT + gap or 0)
 	local raidScale = math.min(1, availW / rw)
-	availH = availH - top - ns.ClickCast.HEIGHT - 2 * SECTION_GAP - rh * raidScale
-	if not Sized(availH) then
-		return
+	local scale = math.min(1, availW / pw)
+	if room <= rh * raidScale then
+		local fit = room / (ph * scale + rh * raidScale)
+		scale, raidScale = scale * fit, raidScale * fit
+	else
+		scale = math.min(scale, (room - rh * raidScale) / ph)
 	end
-	local scale = math.min(1, availW / pw, availH / ph)
 	preview.canvas:SetScale(scale)
 	preview.canvas:ClearAllPoints()
 	preview.canvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -top / scale)
-	local raidTop = top + ph * scale + SECTION_GAP
+	local raidTop = top + ph * scale + gap
 	preview.raidCanvas:SetScale(raidScale)
 	preview.raidCanvas:ClearAllPoints()
 	preview.raidCanvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -raidTop / raidScale)
@@ -224,9 +229,10 @@ local function Layout(preview)
 	end
 	local height = raidTop + rh * raidScale
 	preview.clickCast:ClearAllPoints()
-	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + SECTION_GAP))
+	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + gap))
 	preview.clickCast:SetPoint("RIGHT", preview, "RIGHT", 0, 0)
 	preview.clickCast:SetHeight(ns.ClickCast.HEIGHT)
+	preview.clickCast:SetShown(showClick)
 	preview.clickCast:Refresh()
 end
 
