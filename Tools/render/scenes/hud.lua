@@ -241,10 +241,6 @@ end
 -- slow cards.
 local function build(env, opts, extra, beforeDraw)
 	local K = env.KstyleUI
-	if not opts.dataBar and not K.Modules.IsRunning("DataBars") and K.Store.Module("DataBars").enabled then
-		K.Store.Module("DataBars").enabled = false
-		K.Callbacks.Fire("ModuleChanged", "DataBars", false)
-	end
 	applyPreset(env, opts)
 	dofile("Tools/render/scenes/_audit.lua").Apply(K)
 	local artwork = os.getenv("RENDER_DATABAR_ARTWORK")

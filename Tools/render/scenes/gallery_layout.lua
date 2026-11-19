@@ -59,10 +59,7 @@ local function LayOutToolbar(env, K, panel)
 end
 
 local function NewEnv(W)
-	local env, K = W.New(Common.ScreenOpts({ saved = Gallery.Saved({}), setup = Gallery.Setup }))
-	K.Store.Module("DataBars").enabled = false
-	K.Callbacks.Fire("ModuleChanged", "DataBars")
-	return env, K
+	return W.New(Common.ScreenOpts({ saved = Gallery.Saved({}), setup = Gallery.Setup }))
 end
 
 return Common.Run(function()

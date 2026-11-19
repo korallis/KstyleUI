@@ -584,7 +584,6 @@ function Strip.Paint(view, s, values)
 	for _, id in ipairs(order) do
 		inOrder[id] = true
 	end
-	view.artwork = s.artwork
 	local forged = view.topBar and s.artwork ~= "plain"
 	view.chrome:SetShown(view.topBar or s.backdrop ~= false)
 	if view.art then
