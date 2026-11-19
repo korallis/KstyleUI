@@ -18,7 +18,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(view.items.fps.button._points[1][2] == view.zones.right)
 	local Scene = dofile("Tools/render/scene.lua")
 	for _, id in ipairs(ns.Strip.order) do
-		local x, y, w, h = Scene.Rect(env, view.items[id].value)
+		local x, y, w, h = Scene.Rect(env, view.items[id].button)
 		assert(x and y and w > 0 and h > 0, "the zone anchor must resolve the " .. id .. " text rectangle")
 	end
 	for _, artwork in ipairs({ "forged", "plain" }) do
