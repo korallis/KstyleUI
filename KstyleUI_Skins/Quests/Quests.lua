@@ -376,17 +376,20 @@ local function Apply()
 	end
 	Build()
 	state.on = Skins.IsOn(KEY)
+	ns.QuestParty.Sync(state.on)
 	SyncQuestie()
 	Evaluate()
 end
 
 local function OnSwitch(_, on)
 	state.on = on == true
+	ns.QuestParty.Sync(state.on)
 	if state.built then SyncQuestie() end
 	Evaluate()
 end
 
 local function OnSetting(_, field)
+	if field == nil or field == "partyProgress" then ns.QuestParty.Sync(state.on) end
 	if field == nil or field == "shown" or field == "continuation" then
 		Card.SetShownCount(Shown())
 		if state.active then
@@ -450,8 +453,9 @@ Skins.Add({
 	help = L["Shows your tracked quests in the story rail, a few at a time; the wheel scrolls to the rest."],
 	addon = "Blizzard_ObjectiveTracker",
 	live = true,
-	defaults = { shown = DEFAULT_SHOWN, continuation = true },
+	defaults = { shown = DEFAULT_SHOWN, continuation = true, partyProgress = true },
 	rows = {
+		{ type = "toggle", key = "partyProgress", label = L["Show party progress on quests"], help = L["Show party members' objectives when you hover a quest."] },
 		{ type = "toggle", key = "continuation", label = L["Show the next quest"], help = L["Let the next quest continue under a soft fade. Off shows only complete quest rows."] },
 		{
 			type = "slider", key = "shown", label = L["Quests shown"],

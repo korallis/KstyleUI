@@ -26,6 +26,16 @@ return Common.Run(function()
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 	end
+	if os.getenv("RENDER_QUEST_PARTY") then
+		local Party = dofile("Tools/regression/party_quests_fake.lua")
+		local p = Party.Install(R.env, R.log)
+		R.quests[1].title = "Bloodscalp Headhunters"
+		R.quests[1].objectives = { { text = "Bloodscalp Headhunters: 1/8" }, { text = "Canvas Scraps: 0/3" } }
+		R.log.Fire("QUEST_LOG_UPDATE")
+		R.settle()
+		p.Hover(R.ns, os.getenv("RENDER_QUEST_PARTY") == "before")
+		R.settle()
+	end
 	local scene = Common.Scene.Build(R.env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(R.env, R.K)
 	assert(not err, err)

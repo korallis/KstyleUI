@@ -221,12 +221,15 @@ local function NewRow(index)
 		self.hover = true
 		PaintTitle(self)
 		Peek()
+		ns.QuestParty.Show(self, self.questID)
 	end)
 	row:SetScript("OnLeave", function(self)
 		self.hover = false
 		PaintTitle(self)
 		Peek()
+		ns.QuestParty.Hide(self)
 	end)
+	row:HookScript("OnHide", function(self) ns.QuestParty.Hide(self) end)
 	row.wash = row:CreateTexture(nil, "BACKGROUND")
 	row.wash:SetColorTexture(Tokens.Color("white"))
 	row.wash:SetAllPoints(row)
@@ -342,6 +345,7 @@ local function Words(row, entry, limit)
 end
 
 local function Bind(row, entry, position, y, height, right, limit)
+	if row.questID ~= entry.id then ns.QuestParty.Hide(row) end
 	row:ClearAllPoints()
 	Widgets.Point(row, "TOPLEFT", view, "TOPLEFT", 0, -y)
 	Widgets.Point(row, "TOPRIGHT", view, "TOPRIGHT", -right, -y)

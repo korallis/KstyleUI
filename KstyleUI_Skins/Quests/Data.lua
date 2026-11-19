@@ -251,3 +251,244 @@ function Data.Get(i)
 	end
 	return entries[i]
 end
+
+do
+	local K = KstyleUI
+	local Party = {}
+	ns.QuestParty = Party
+	local OWNER, PREFIX, LIMIT = "Skins.Quests.Party", "KstyleQuest1", 240
+	local enabled, registered, pending, generation = false, false, false, 0
+	local peers, sent = {}, {}
+	local tip, hovered
+
+	local function Grouped()
+		if not enabled or not Fn(_G, "GetNumGroupMembers") or not Fn(_G, "IsInRaid") then return false end
+		local raid, count = IsInRaid(), Number(GetNumGroupMembers())
+		return not IsSecret(raid) and raid == false and count ~= nil and count > 1 and count <= 5
+	end
+
+	local function Name(unit)
+		if not Fn(_G, "UnitFullName") then return end
+		local name, realm = UnitFullName(unit)
+		name, realm = Text(name), Text(realm)
+		if not name or not realm then return end
+		if realm == "" and Fn(_G, "GetNormalizedRealmName") then realm = Text(GetNormalizedRealmName()) end
+		if not realm or realm == "" then return end
+		return name .. "-" .. realm, name
+	end
+
+	local function Integer(value)
+		value = Number(value)
+		return value and value >= 0 and value <= 10000000 and value == math.floor(value) and value or nil
+	end
+
+	function Party.Encode(id, complete, objectives)
+		if not Integer(id) or id == 0 or IsSecret(complete) or IsSecret(objectives) or type(objectives) ~= "table" then return end
+		local parts = {}
+		for i = 1, math.min(#objectives, MAX_OBJECTIVES) do
+			local o = objectives[i]
+			if IsSecret(o) or type(o) ~= "table" then return end
+			local have, need = Integer(o.numFulfilled), Integer(o.numRequired)
+			if not have or not need or IsSecret(o.finished) then return end
+			parts[i] = have .. "/" .. need .. "/" .. (Yes(o.finished) and "1" or "0")
+		end
+		local record = id .. ":" .. (Yes(complete) and "1" or "0") .. ":" .. table.concat(parts, ",")
+		return #record <= LIMIT - 3 and record or nil
+	end
+
+	function Party.Decode(message)
+		message = Text(message)
+		if not message or #message > LIMIT or message:sub(1, 2) ~= "1;" then return end
+		local result, used = {}, 2
+		for record in message:sub(3):gmatch("([^;]+);") do
+			used = used + #record + 1
+			local id, flag, body = record:match("^(%d+):([01]):(.*)$")
+			local removed = record:match("^(%d+):%-$")
+			id = Integer(tonumber(id or removed))
+			if not id or id == 0 or result[id] ~= nil then return end
+			if removed then
+				result[id] = false
+			else
+				local objectives, length = {}, 0
+				for piece in (body .. ","):gmatch("([^,]+),") do
+					local have, need, done = piece:match("^(%d+)/(%d+)/([01])$")
+					have, need = Integer(tonumber(have)), Integer(tonumber(need))
+					if not have or not need or #objectives >= MAX_OBJECTIVES then return end
+					objectives[#objectives + 1] = { numFulfilled = have, numRequired = need, finished = done == "1" }
+					length = length + #piece + 1
+				end
+				if body ~= "" and length ~= #body + 1 then return end
+				result[id] = { complete = flag == "1", objectives = objectives }
+			end
+		end
+		if used ~= #message then return end
+		return result
+	end
+
+	local function Snapshot()
+		local log, out = C_QuestLog, {}
+		if not (Fn(log, "GetNumQuestLogEntries") and Fn(log, "GetInfo") and Fn(log, "GetQuestObjectives") and Fn(log, "IsComplete")) then return end
+		local count = Integer(log.GetNumQuestLogEntries())
+		if not count or count > 200 then return end
+		for i = 1, count do
+			local info = log.GetInfo(i)
+			local id = not IsSecret(info) and type(info) == "table" and Integer(info.questID)
+			if id and id > 0 then
+				local record = Party.Encode(id, log.IsComplete(id), log.GetQuestObjectives(id))
+				if record then out[id] = record end
+			end
+		end
+		return out
+	end
+
+	local Flush
+	local function Schedule()
+		if pending or not Grouped() then return end
+		if not Fn(C_ChatInfo, "SendAddonMessage") or not Fn(C_ChatInfo, "RegisterAddonMessagePrefix") then return end
+		if not registered then
+			local status = C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+			if IsSecret(status) or (status ~= 0 and status ~= 1) then return end
+			registered = true
+		end
+		pending = true
+		local token = generation
+		C_Timer.After(2, function()
+			if token ~= generation then return end
+			pending = false
+			Flush()
+		end)
+	end
+
+	function Flush()
+		if not Grouped() or not Fn(C_ChatInfo, "SendAddonMessage") then return end
+		local current = Snapshot()
+		if not current then return end
+		local packet, updates = "1;", {}
+		for id, record in pairs(current) do
+			if record ~= sent[id] and #packet + #record + 1 <= LIMIT then
+				packet, updates[id] = packet .. record .. ";", record
+			end
+		end
+		for id in pairs(sent) do
+			local record = id .. ":-;"
+			if not current[id] and #packet + #record <= LIMIT then packet, updates[id] = packet .. record, false end
+		end
+		if packet == "1;" then return end
+		local status = C_ChatInfo.SendAddonMessage(PREFIX, packet, "PARTY")
+		if not IsSecret(status) and status == 0 then
+			for id, record in pairs(updates) do sent[id] = record or nil end
+		end
+		if not IsSecret(status) and (status == 0 or status == 3 or status == 8) then Schedule() end
+	end
+
+	local function Receive(_, prefix, message, channel, sender)
+		if not Grouped() or IsSecret(prefix) or IsSecret(channel) or prefix ~= PREFIX or channel ~= "PARTY" then return end
+		sender = Text(sender)
+		if not sender then return end
+		for i = 1, 4 do
+			local full, short = Name("party" .. i)
+			local realm = Fn(_G, "GetNormalizedRealmName") and Text(GetNormalizedRealmName()) or ""
+			if full and (sender == full or sender == short and full == short .. "-" .. realm) then
+				local data = Party.Decode(message)
+				if not data then return end
+				local cache = peers[full] or {}
+				for id, entry in pairs(data) do cache[id] = entry or nil end
+				local count = 0
+				for _ in pairs(cache) do count = count + 1 end
+				if count <= 100 then peers[full] = cache else peers[full] = nil end
+				return
+			end
+		end
+	end
+
+	local function Questie(id, full, short)
+		local loader = rawget(_G, "QuestieLoader")
+		if not Fn(loader, "ImportModule") then return end
+		local ok, comms = pcall(loader.ImportModule, loader, "QuestieComms")
+		local logs = ok and not IsSecret(comms) and type(comms) == "table" and comms.remoteQuestLogs
+		local players = not IsSecret(logs) and type(logs) == "table" and logs[id]
+		if IsSecret(players) or type(players) ~= "table" then return end
+		local objectives = players[full]
+		if IsSecret(objectives) then return end
+		if objectives == nil and full == short .. "-" .. (Fn(_G, "GetNormalizedRealmName") and Text(GetNormalizedRealmName()) or "") then objectives = players[short] end
+		if IsSecret(objectives) or type(objectives) ~= "table" then return end
+		local out, complete = {}, #objectives > 0
+		for i = 1, math.min(#objectives, MAX_OBJECTIVES) do
+			local o = objectives[i]
+			if IsSecret(o) or type(o) ~= "table" then return end
+			local have, need = Integer(o.fulfilled), Integer(o.required)
+			if not have or not need or IsSecret(o.finished) then return end
+			out[i] = { numFulfilled = have, numRequired = need, finished = Yes(o.finished) }
+			complete = complete and out[i].finished
+		end
+		return { complete = complete, objectives = out }
+	end
+
+	function Party.Hide(owner)
+		if tip and tip:IsOwned(owner or hovered) then tip:Hide() end
+		if owner == nil or owner == hovered then hovered = nil end
+	end
+
+	function Party.Show(owner, id)
+		Party.Hide(owner)
+		if not Grouped() or not Integer(id) or not Fn(C_QuestLog, "IsUnitOnQuest") or not Fn(C_QuestLog, "GetQuestObjectives") then return end
+		local labels, shown = C_QuestLog.GetQuestObjectives(id), false
+		if IsSecret(labels) or type(labels) ~= "table" then labels = {} end
+		for i = 0, 4 do
+			local unit = i == 0 and "player" or "party" .. i
+			local full, short = Name(unit)
+			if full and Yes(C_QuestLog.IsUnitOnQuest(unit, id)) then
+				if not shown then
+					tip = K.Widgets.Tooltip()
+					tip:SetOwner(owner, "ANCHOR_LEFT")
+					hovered = owner
+					local title = Fn(C_QuestLog, "GetTitleForQuestID") and Text(C_QuestLog.GetTitleForQuestID(id))
+					if title then tip:AddTitle(title) end
+					tip:AddRule()
+					tip:AddCaption(K.L["Party"])
+					shown = true
+				end
+				local data = i == 0 and { complete = Fn(C_QuestLog, "IsComplete") and Yes(C_QuestLog.IsComplete(id)), objectives = labels }
+					or peers[full] and peers[full][id] or Questie(id, full, short)
+				local class
+				if Fn(_G, "UnitClass") then class = select(2, UnitClass(unit)) end
+				local r, g, b = K.Theme.ClassColor(Text(class))
+				tip:AddLine(short, r, g, b)
+				if data and data.complete then
+					tip:AddLine(K.L["done"], "friend")
+				elseif data and #data.objectives > 0 then
+					for n, o in ipairs(data.objectives) do
+						if IsSecret(o) or type(o) ~= "table" then break end
+						local label = labels[n]
+						local text = not IsSecret(label) and type(label) == "table" and Text(label.text)
+						text = text and Split(text) or string.format(K.L["Objective %d"], n)
+						local have, need = Integer(o.numFulfilled), Integer(o.numRequired)
+						local count = have and need and need > 0 and have .. "/" .. need
+						tip:AddLine(text .. (count and ": " .. count or "") .. (Yes(o.finished) and " (" .. K.L["done"] .. ")" or ""), "text")
+					end
+				else
+					tip:AddLine(K.L["on this quest"], "textDisabled")
+				end
+			end
+		end
+		if shown then tip:Show() end
+	end
+
+	function Party.Sync(on)
+		on = on == true and ns.Skins.Setting("quests", "partyProgress") == true
+		if enabled == on then return end
+		enabled, pending, generation = on, false, generation + 1
+		peers, sent = {}, {}
+		Party.Hide()
+		K.Events.UnregisterAll(OWNER)
+		if not on then return end
+		K.Events.Register(OWNER, "QUEST_LOG_UPDATE", Schedule)
+		K.Events.Register(OWNER, "UNIT_QUEST_LOG_CHANGED", Schedule)
+		K.Events.Register(OWNER, "GROUP_ROSTER_UPDATE", function()
+			peers, sent = {}, {}
+			Party.Hide()
+			Schedule()
+		end)
+		K.Events.Register(OWNER, "CHAT_MSG_ADDON", Receive)
+	end
+end
