@@ -495,7 +495,7 @@ end
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
-	left, bottom = Layout.Clamp(el.key, left, bottom, w, h)
+	if el.opts.clamp then left, bottom = Layout.Clamp(el.key, left, bottom, w, h) end
 	left, bottom = G.Align(left, pixel), G.Align(bottom, pixel)
 	local _, ax, ay = G.Position(left, bottom, w, h, rw, rh, anchor)
 	local frame = el.frame
@@ -1344,7 +1344,7 @@ function Layout.Rect(key)
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
 	local left, bottom = G.Rect(s.anchor, s.x, s.y, w, h, rw, rh)
-	left, bottom = Layout.Clamp(key, left, bottom, w, h)
+	if el.opts.clamp then left, bottom = Layout.Clamp(key, left, bottom, w, h) end
 	return G.Align(left, pixel), G.Align(bottom, pixel), w, h
 end
 
@@ -1362,7 +1362,7 @@ function Layout.Preview(key, left, bottom, w, h, scale)
 		frame:SetSize(w / f, h / f)
 	end
 	local rw, rh = Layout.RootSize()
-	left, bottom = Layout.Clamp(key, left, bottom, w, h)
+	if el.opts.clamp then left, bottom = Layout.Clamp(key, left, bottom, w, h) end
 	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
 	frame:ClearAllPoints()
 	frame:SetPoint(anchor, Scale.Root(), anchor, x / f, y / f)

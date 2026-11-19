@@ -391,8 +391,9 @@ function Map.Refresh()
 	if not (running and face) then
 		return
 	end
-	face:Refresh()
-	K.Layout.Restore(KEY)
+	face:Paint()
+	if Face.Round() then K.Layout.Restore(KEY) end
+	face:Layout()
 	ApplyMask()
 	MaskHybrid()
 	Fit()
@@ -409,7 +410,7 @@ function Map.Refresh()
 end
 
 local function Relayout()
-	if running and Map.face then
+	if running and Map.face and Map.face.zoneSize then
 		Map.face.layoutWidth = nil
 		Map.face:Layout()
 		Fit()
@@ -450,7 +451,12 @@ local function Build()
 		HookHover(button)
 	end
 	holder:HookScript("OnSizeChanged", Relayout)
-	hooksecurefunc(holder, "SetPoint", Relayout)
+	hooksecurefunc(holder, "SetPoint", function(_, point, _, _, x, y)
+		if face.positionPoint ~= point or face.positionX ~= x or face.positionY ~= y then
+			face.positionPoint, face.positionX, face.positionY = point, x, y
+			if Face.Round() then Relayout() end
+		end
+	end)
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {
 		label = element.label,
 		module = MODULE,

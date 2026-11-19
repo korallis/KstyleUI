@@ -320,10 +320,11 @@ local function ZoneCenter(face, side)
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
+	if not Face.Round() then return left, bottom end
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
-	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or Format.FRAME
-	local half = Face.Round() and PLAQUE_HEIGHT / 2 or 0
+	local overhang = side * (1 / RING_OUTER - 1) / 2
+	local half = PLAQUE_HEIGHT / 2
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
 	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
