@@ -94,16 +94,18 @@ local function Folded(viewer, slots, label)
 	end
 end
 
--- InSlot(env, viewer, chip, slot): the chip covers that slot: its top left corner on the slot's, and its far edges at
--- or up to one physical pixel past the slot's, as the chip takes the slot's size rounded up to whole pixels where
--- Blizzard's scale makes it fractional, so the native icon never shows past the chip's chrome.
+-- The overflow chip fills the native slot rounded to the viewer's pixel grid, including native item scale.
 local function InSlot(env, viewer, chip, slot)
-	local c = assert(Geometry.Rect(chip, env.UIParent))
-	local s = assert(Geometry.Rect(viewer._items[slot], env.UIParent))
+	local c = assert(Geometry.ScaledRect(chip, env.UIParent, env.UIParent))
+	local s = assert(Geometry.ScaledRect(viewer._items[slot], env.UIParent, env.UIParent))
+	local v = assert(Geometry.ScaledRect(viewer, env.UIParent, env.UIParent))
 	local _, height = env.GetPhysicalScreenSize()
 	local pixel = env.UIParent:GetHeight() / height
-	local outRight, outDown = c.right - s.right, s.bottom - c.bottom
-	return W.Near(c.left, s.left) and W.Near(c.top, s.top) and outRight > -1e-6 and outRight <= pixel + 1e-6 and outDown > -1e-6 and outDown <= pixel + 1e-6
+	local left = v.left + math.floor((s.left-v.left)/pixel+0.5)*pixel
+	local top = v.top - math.floor((v.top-s.top)/pixel+0.5)*pixel
+	local width = math.ceil((s.right-s.left)/pixel-1e-6)*pixel
+	local tall = math.ceil((s.top-s.bottom)/pixel-1e-6)*pixel
+	return W.Near(c.left,left) and W.Near(c.top,top) and W.Near(c.right-c.left,width) and W.Near(c.top-c.bottom,tall)
 end
 
 -- Hover(env, ns) -> the chip tooltip's lines, after pointing at it.
