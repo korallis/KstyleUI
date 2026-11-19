@@ -182,4 +182,21 @@ do
 	assert(K.ErrorCount() == 0 and #env._errors == 0)
 end
 
+do
+	local log
+	local env, K, ns = S.New({ setup = function(e)
+		log = Quests.Install(e, Quests.List(3))
+		Party.Install(e, log)
+		local full = e.UnitFullName
+		e.UnitFullName = function(unit) local n, r = full(unit); if unit ~= "player" then r = nil end; return n, r end
+	end, before = function(e) Quests.Tracker(e, S.Blizzard(e)) end })
+	K.Modules.Enable("Skins"); S.LoadAddOn(env, "Blizzard_ObjectiveTracker"); env.RunTimers(); S.W.Settle(env)
+	local row = ns.Quests.Rows()[1]
+	row:GetScript("OnEnter")(row)
+	local text = {}
+	for _, line in ipairs(K.Widgets.Tooltip().used) do text[#text + 1] = line.left:GetText() or "" end
+	text = table.concat(text, "|")
+	assert(text:find("Lycia", 1, true), "a same-realm party member (UnitFullName realm nil) still shows: treat a nil realm like an empty one")
+end
+
 print("quest card party progress ok: codec, throttle, membership, Questie, secrets, off, solo and four screens")

@@ -270,8 +270,8 @@ do
 	local function Name(unit)
 		if not Fn(_G, "UnitFullName") then return end
 		local name, realm = UnitFullName(unit)
-		name, realm = Text(name), Text(realm)
-		if not name or not realm then return end
+		name, realm = Text(name), Text(realm) or ""
+		if not name then return end
 		if realm == "" and Fn(_G, "GetNormalizedRealmName") then realm = Text(GetNormalizedRealmName()) end
 		if not realm or realm == "" then return end
 		return name .. "-" .. realm, name
@@ -382,7 +382,7 @@ do
 	end
 
 	local function Receive(_, prefix, message, channel, sender)
-		if not Grouped() or IsSecret(prefix) or IsSecret(channel) or prefix ~= PREFIX or channel ~= "PARTY" then return end
+		if IsSecret(prefix) or prefix ~= PREFIX or IsSecret(channel) or channel ~= "PARTY" or not Grouped() then return end
 		sender = Text(sender)
 		if not sender then return end
 		for i = 1, 4 do
