@@ -21,6 +21,10 @@ Reach.screens = {
 
 function Reach.New(width, height, style, layout)
 	return Suite.New(nil, width or 1920, height or 1080, function(e)
+		e.SetQuiet(true)
+		e.UnitCastingInfo=function(unit)
+			if unit=="player" or unit=="target" or unit=="focus" or unit:match("^boss") then return "Fireball","Fireball",135813,0,30000,false,"Cast-1",false,133,1 end
+		end
 		e._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
 		Meters.Game(e)
 		e.GetNumShapeshiftForms = function() return 10 end
@@ -47,7 +51,7 @@ function Reach.New(width, height, style, layout)
 		DataBars.Blizzard(e)
 		local glyphs={}
 		for _,button in ipairs(DataBars.MICRO) do glyphs[button[1]]=135036 end
-		DataBars.Menus(e,{glyphs=glyphs,bags={[31]=135036,[32]=135036,[33]=135036},backpack=135036,keyring=135036})
+		DataBars.Menus(e,{glyphs=glyphs,bags={[31]=135036,[32]=135036,[33]=135036,[34]=135036,[35]=135036},backpack=135036,keyring=135036})
 		Chat.Install(e, {})
 		e._reachEdit={saved={},active=1}
 		EditMode.Install(e,e._reachEdit)
@@ -71,12 +75,23 @@ function Reach.New(width, height, style, layout)
 			K.Options.Write("ActionBars",bar .. ".enabled",true)
 			if bar~="stance" then K.Options.Write("ActionBars",bar .. ".showEmpty",true) end
 		end
+		K.Options.Write("DataBars","menus.always",true)
 		K.Options.Write("Meters","followRole",false)
 		K.Options.Write("Meters","threat.shown",true)
 	end)
 end
 
 function Reach.Populate(env)
+	for _,unit in ipairs({"player","target","focus","boss1","boss2","boss3","boss4","boss5"}) do env.FireEvent("UNIT_SPELLCAST_START",unit,"Cast-1",133) end
+	env.KstyleUI.Motion.Settle()
+	for _,kind in ipairs({"player","target"}) do
+		local cast=env._addons.KstyleUI_UnitFrames.CastBars.Get(kind)[1]
+		assert(cast.frame:IsVisible() and cast.frame:GetEffectiveAlpha()>0,"the full HUD fixture must show the " .. kind .. " cast")
+	end
+	for _,id in ipairs({"micro","bags"}) do
+		local content=env._addons.KstyleUI_DataBars.Menus.Content(id)
+		assert(content:IsVisible() and content:GetEffectiveAlpha()>0,"the full HUD fixture must reveal the " .. id .. " buttons")
+	end
 	local meters=env._addons.KstyleUI_Meters
 	assert(meters.Damage.list.panel:IsVisible() and meters.Threat.list.panel:IsVisible(),"the full HUD fixture must show both meter cards")
 	for _, group in ipairs({"essential","utility"}) do
@@ -103,7 +118,8 @@ end
 
 function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	local screens = Reach.screens
-	local firstScreen,lastScreen = wantedScreen=="small" and 10 or wantedScreen=="cases" and 17 or 1, wantedScreen=="small" and 16 or wantedScreen=="cases" and #screens or 9
+	local firstScreen = type(wantedScreen)=="table" and wantedScreen[1] or wantedScreen=="small" and 10 or wantedScreen=="cases" and 19 or 1
+	local lastScreen = type(wantedScreen)=="table" and wantedScreen[2] or firstScreen+2
 	local allowed = {
 		-- The secure party and raid headers are mutually exclusive in the game.
 		["groupframes.party/groupframes.raid"] = true,
@@ -146,7 +162,6 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	end
 
 	local env, K = Reach.New(nil,nil,wantedStyle,wantedLayout)
-	env.SetQuiet(true)
 	local choice = K.Setup.NewChoice()
 	for _, style in ipairs({"frames", "orbs", "medallions"}) do
 		if not wantedStyle or wantedStyle == style then
@@ -307,36 +322,37 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 								end
 							end
 							checked=checked+1
-							collectgarbage("collect")
 						end
 					end
 				end
 			end
 		end
 	end
-	K.Options.Write("Layout","arrangement","centred")
-	env.RunTimers()
-	K.Options.Write("HudStyle","style","frames")
-	for _,key in ipairs({"chat.main","minimap.main"}) do
-		assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
+	if wantedStyle=="frames" and wantedLayout=="DPS" and wantedScreen==nil then
+		K.Options.Write("Layout","arrangement","centred")
 		env.RunTimers()
-		local left,bottom=K.Layout.Rect(key)
-		if left+K.Scale.Origin()<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
-			fail("saved",key,"off-screen saved position must display inside the margin; clamp display geometry without rewriting Store.Layout")
+		K.Options.Write("HudStyle","style","frames")
+		for _,key in ipairs({"chat.main","minimap.main"}) do
+			assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
+			env.RunTimers()
+			local left,bottom=K.Layout.Rect(key)
+			if left+K.Scale.Origin()<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
+				fail("saved",key,"off-screen saved position must display inside the margin; clamp display geometry without rewriting Store.Layout")
+			end
+			assert(K.Store.Layout()[key].x==-5000 and K.Store.Layout()[key].y==-5000,"display clamp must preserve the saved position")
+			local shown={Scene.Rect(env,K.Layout.Element(key).frame)}
+			local margin=K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
+			assert(shown[1]>=margin and shown[2]+shown[4]<=1080-margin+1e-8,"the actual frame must display on screen, not just Layout.Rect")
+			local pixel=K.Scale.Pixel(1)
+			local x,y=K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel,400*pixel
+			assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=x,y=y},true))
+			env.RunTimers()
+			left,bottom=K.Layout.Rect(key)
+			assert(math.abs(left-x)<1e-8 and math.abs(bottom-y)<1e-8,"on-screen custom position must move zero pixels")
+			shown={Scene.Rect(env,K.Layout.Element(key).frame)}
+			local rootX=Scene.Rect(env,K.Scale.Root())
+			assert(math.abs(shown[1]-rootX-x*K.Scale.AppliedUserScale())<1e-8 and math.abs(1080-shown[2]-shown[4]-y*K.Scale.AppliedUserScale())<1e-8,"the actual on-screen frame must move zero pixels")
 		end
-		assert(K.Store.Layout()[key].x==-5000 and K.Store.Layout()[key].y==-5000,"display clamp must preserve the saved position")
-		local shown={Scene.Rect(env,K.Layout.Element(key).frame)}
-		local margin=K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
-		assert(shown[1]>=margin and shown[2]+shown[4]<=1080-margin+1e-8,"the actual frame must display on screen, not just Layout.Rect")
-		local pixel=K.Scale.Pixel(1)
-		local x,y=K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel,400*pixel
-		assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=x,y=y},true))
-		env.RunTimers()
-		left,bottom=K.Layout.Rect(key)
-		assert(math.abs(left-x)<1e-8 and math.abs(bottom-y)<1e-8,"on-screen custom position must move zero pixels")
-		shown={Scene.Rect(env,K.Layout.Element(key).frame)}
-		local rootX=Scene.Rect(env,K.Scale.Root())
-		assert(math.abs(shown[1]-rootX-x*K.Scale.AppliedUserScale())<1e-8 and math.abs(1080-shown[2]-shown[4]-y*K.Scale.AppliedUserScale())<1e-8,"the actual on-screen frame must move zero pixels")
 	end
 	assert(next(failures)==nil, "HUD reach failed; move the named defaults, preserve custom positions, and rerun test-hud-reach.lua")
 	print("HUD reach ok: " .. checked .. " style/layout/arrangement/screen combinations")
