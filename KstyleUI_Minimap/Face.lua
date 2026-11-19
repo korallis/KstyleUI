@@ -42,13 +42,6 @@ local function CaptionX()
 	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
 end
 
-local function RowCenter(face, side)
-	if Face.Round() and Settings.Get("clearPlaques") then
-		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RING_OUTER - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)
-	end
-	return Format.ROW_CENTER
-end
-
 function Face.MaskPath()
 	if Face.Round() then
 		return (Tokens.Texture((Widgets.TextureName("medMinimapMask"))))
@@ -311,6 +304,17 @@ local function Extent(text)
 	return Plain(size) and size or 0
 end
 
+local function PlaqueHeight(face)
+	return max(PLAQUE_HEIGHT, max(Extent(face.zone), Extent(face.clock), Extent(face.coords)) + 2 * Widgets.Border(face.card))
+end
+
+local function RowCenter(face, side)
+	if Face.Round() and Settings.Get("clearPlaques") then
+		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RING_OUTER - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)
+	end
+	return Format.ROW_CENTER
+end
+
 local function ZoneCenter(face, side)
 	local card = face.card
 	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
@@ -323,7 +327,7 @@ function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
 	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or 0
-	local half = max(PLAQUE_HEIGHT / 2, max(Extent(self.zone), Extent(self.clock), Extent(self.coords)) / 2 + Widgets.Border(self.card))
+	local half = PlaqueHeight(self) / 2
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
 	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
@@ -497,7 +501,7 @@ function Face:PlaceRound(round)
 	ring:ClearAllPoints()
 	Widgets.Point(ring, "CENTER", self.mapArea, "CENTER")
 	ring:Show()
-	local height = Snap(card, max(PLAQUE_HEIGHT, max(Extent(self.zone), Extent(self.clock), Extent(self.coords)) + 2 * Widgets.Border(card)))
+	local height = Snap(card, PlaqueHeight(self))
 	local width = Snap(card, side + 2 * Format.FRAME)
 	local zone, row = plaques[1], plaques[2]
 	for _, plaque in ipairs(plaques) do
@@ -657,7 +661,7 @@ function Face:Layout()
 	self:PlaceZone()
 	if round and Settings.Get("clearPlaques") then
 		self.plate:ClearAllPoints()
-		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PLAQUE_HEIGHT / 2 + BADGE / 2 + 2))
+		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
 	self:PlaceRound(round)
 	coords:ClearAllPoints()

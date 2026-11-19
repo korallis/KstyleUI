@@ -1040,7 +1040,7 @@ function Layouts.BuildMedallions()
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
-			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
+			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -(DEBUFFS_Y + TIGHT) },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -676, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },

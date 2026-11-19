@@ -58,6 +58,8 @@ function Reach.New(width, height, style, layout)
 end
 
 function Reach.Populate(env)
+	local meters=env._addons.KstyleUI_Meters
+	assert(meters.Damage.list.panel:IsVisible() and meters.Threat.list.panel:IsVisible(),"the full HUD fixture must show both meter cards")
 	for _, group in ipairs({"essential","utility"}) do
 		env._addons.KstyleUI_Cooldowns.Mirror.Row(group):SetCount(12)
 	end
@@ -187,6 +189,17 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 								if key and not (style=="orbs" and key=="unitframes.player") and not file:find("Shadow",1,true) and not file:find("Glow.png",1,true) and not file:find("PortraitSheen.png",1,true) then add(key,item) end
 							end
 							local solver, clicks = Scene.RectSolver(env), {}
+							if style=="medallions" then
+								local face=env._addons.KstyleUI_Minimap.Map.face
+								for _,part in ipairs({{face.zone,1},{face.clock,2},{face.meridiem,2},{face.coords,2}}) do
+									if part[1]:IsVisible() then
+										local text,plate={Scene.RectIn(solver,part[1])},{Scene.RectIn(solver,face.plaques[part[2]])}
+										if text[1]<plate[1]-pixel or text[2]<plate[2]-pixel or text[1]+text[3]>plate[1]+plate[3]+pixel or text[2]+text[4]>plate[2]+plate[4]+pixel then
+											fail(label,"minimap.main", "caption spills outside its plaque; size the plaque to the minimum font height")
+										end
+									end
+								end
+							end
 							if style=="orbs" then
 								for _,kind in ipairs({"health","power"}) do
 									local rect={Scene.RectIn(solver,env._addons.KstyleUI_UnitFrames.Orbs.Get(kind))}
