@@ -36,38 +36,45 @@ local function Point(breakpoint, abbreviation, significand, fraction)
 	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
 end
 
-local function Points(unit)
-	return {
+local function Points(unit, legacy)
+	local points = {
 		Point(1000000000 * unit, "B", 100000000 * unit, 10),
 		Point(1000000 * unit, "M", 100000 * unit, 10),
 		Point(1000 * unit, "K", 100 * unit, 10),
 		Point(1, "", unit, 1),
 	}
+	if legacy then
+		table.insert(points, 1, Point(10000000000 * unit, "B", 1000000000 * unit, 1))
+		table.insert(points, 3, Point(10000000 * unit, "M", 1000000 * unit, 1))
+		table.insert(points, 5, Point(10000 * unit, "K", 1000 * unit, 1))
+	end
+	return points
 end
 
 local POINTS = { [1] = Points(1), [THREAT_UNITS] = Points(THREAT_UNITS) }
+local LEGACY_POINTS = { [1] = Points(1, true), [THREAT_UNITS] = Points(THREAT_UNITS, true) }
 local PROBES = { { 0.5, "0" }, { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12.4K" }, { 1240000, "1.2M" } }
 local secretOptions = {}
 
 local function SecretOptions(unit)
-	if secretOptions[unit] ~= nil then
-		return secretOptions[unit] or nil
-	end
-	secretOptions[unit] = false
+	local legacy = ns.Get and not ns.Get("nameplateRows")
+	local key = legacy and -unit or unit
+	if secretOptions[key] ~= nil then return secretOptions[key] or nil end
+	secretOptions[key] = false
 	if type(AbbreviateNumbers) ~= "function" then
 		return nil
 	end
-	local options = { breakpointData = POINTS[unit] }
+	local options = { breakpointData = (legacy and LEGACY_POINTS or POINTS)[unit] }
 	for i = 1, #PROBES do
 		local value = PROBES[i][1] * unit
 		if value >= 1 then
 			local ok, text = pcall(AbbreviateNumbers, value, options)
-			if not ok or text ~= PROBES[i][2] then
+			if not ok or text ~= (legacy and PROBES[i][1] == 12400 and "12K" or PROBES[i][2]) then
 				return nil
 			end
 		end
 	end
-	secretOptions[unit] = options
+	secretOptions[key] = options
 	return options
 end
 
@@ -109,7 +116,7 @@ function Logic.Abbreviate(value, unit)
 	if not value then
 		return ""
 	end
-	local points = POINTS[unit]
+	local points = (ns.Get and not ns.Get("nameplateRows") and LEGACY_POINTS or POINTS)[unit]
 	for i = 1, #points do
 		local point = points[i]
 		if value >= point.breakpoint then

@@ -30,9 +30,9 @@ Settings.defaults = {
 		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
 	},
-	name = { show = true, size = Tokens.Size("plateNameSize"), outline = "NONE", upper = true, classColor = false },
-	level = { show = true, size = Tokens.Size("number"), outline = "NONE" },
-	healthText = { show = false, size = Tokens.Size("number"), outline = "OUTLINE", format = "percent" },
+	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false },
+	level = { show = true, size = 13, outline = "NONE" },
+	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),

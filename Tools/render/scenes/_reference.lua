@@ -326,7 +326,7 @@ function Reference.Build(opts)
 				UnitFrames = { player = { powerText = "legacy", powerSeparate = false }, target = { percentLead = false } },
 				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 }, debuffs = { size = style == "Medallions" and 17 or 29, textSize = style == "Medallions" and 10 or 13, showTime = false, readableText = false, expiring = 0 } },
 				CombatText = { clearLanes = false },
-			} or opts.meterChoice and { Meters = { roles = { DAMAGER = opts.meterChoice } } } or nil,
+			} or opts.meterChoice and { Meters = { roles = { DAMAGER = opts.meterChoice }, nameplateRows = os.getenv("RENDER_METER_ROWS") ~= "legacy" } } or nil,
 			layout = layout,
 			applyPreset = true,
 			state = state,

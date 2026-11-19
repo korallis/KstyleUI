@@ -42,7 +42,7 @@ local function EntryColor(entry)
 	if Logic.IsSecret(class) or type(class) ~= "string" or class == "" then
 		class = entry.unitClassFilename
 	end
-	return ns.BarColor("damage", class, reaction)
+	return ns.BarColor("damage", class, reaction, nil, true)
 end
 
 local function Present(value)
@@ -63,16 +63,23 @@ end
 
 local function PlacePill(pill)
 	local bar, holder = pill.bar, pill.holder
-	bar.opts.height = Widgets.Snap(bar, Tokens.Size("barHeight"))
+	local styled = ns.Get("nameplateRows")
+	bar.opts.height = styled and Widgets.Snap(bar, Tokens.Size("barHeight")) or math.max(1, Logic.Plain(holder:GetHeight()) or 4)
 	bar:Restyle()
 	bar:ClearAllPoints()
 	Widgets.Point(bar, "TOPLEFT", holder, "TOPLEFT", 0, 0)
-	Widgets.Point(bar, "TOPRIGHT", holder, "TOPRIGHT", 0, 0)
+	Widgets.Point(bar, styled and "TOPRIGHT" or "BOTTOMRIGHT", holder, styled and "TOPRIGHT" or "BOTTOMRIGHT", 0, 0)
 	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 
 local function StylePill(pill)
 	local bar = pill.bar
+	local styled = ns.Get("nameplateRows")
+	bar.barEdge = bar.barEdge or Widgets.BarEdge(bar)
+	bar.barEdge:SetShown(styled)
+	bar.keyline:Hide()
+	bar.backgroundName = styled and "barTrack" or "buttonFill"
+	bar:SetLitShade(not styled and 0.6 or nil, not styled and 0.45 or nil)
 	bar:SetBarTexture(ns.Get("damage.texture"))
 	bar:SetReverseFill(ns.Get("damage.fill") == "right")
 	PlacePill(pill)
@@ -85,7 +92,6 @@ local function NewPill(entry, source)
 	local bar = Widgets.StatusBar(holder, {
 		texture = ns.Get("damage.texture"),
 		background = "barTrack",
-		border = true,
 		smooth = true,
 		min = 0,
 		max = 1,
@@ -163,7 +169,7 @@ local function StyleEntry(entry)
 			StylePill(pill)
 		end
 		if bar.Name then
-			ns.BarList.StyleName(bar.Name, "damage")
+			if ns.Get("nameplateRows") then ns.BarList.StyleName(bar.Name, "damage") else ns.ApplyFont(bar.Name, "damage") end
 			Widgets.TextColor(bar.Name, "textEmphasis")
 		end
 		if bar.Value then

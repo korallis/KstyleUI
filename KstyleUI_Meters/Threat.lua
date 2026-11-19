@@ -24,6 +24,7 @@ for i = 1, MAX_PARTY do
 	PARTY[i], PARTY_PET[i] = "party" .. i, "partypet" .. i
 end
 
+local DockGuide
 local Threat = { section = "threat", key = KEY, roster = {}, size = 0, rows = {}, order = {}, count = 0 }
 ns.Threat = Threat
 
@@ -178,8 +179,13 @@ end
 local function Alarm(on)
 	local list = Threat.list
 	if not list then return end
+	local entering, leaving = on and not Threat.alarm, not on and Threat.alarm
 	Threat.alarm = on
-	if on then list:SetWarning(Logic.DANGER) end
+	if not on and not leaving then return end
+	if not on and list.alarmFlash then list.alarmFlash:Stop() end
+	list.panel.chrome:SetEdge(on and "hostile" or "edgeInner", 1)
+	K.Widgets.TextColor(list.title, on and "hostile" or "capsGold")
+	if entering and list.alarmFlash then list.alarmFlash:Play() end
 end
 
 local function Update()
@@ -190,6 +196,10 @@ local function Update()
 	end
 	local visible = Visible()
 	list.panel:SetShown(visible)
+	if Threat.visible ~= visible then
+		Threat.visible = visible
+		DockGuide()
+	end
 	if not visible then
 		Alarm(false)
 		list:SetWarning(Logic.NO_WARNING)
@@ -219,7 +229,7 @@ local function Update()
 	for i = 1, shown do
 		local row = Threat.rows[Threat.order[i]]
 		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, Logic.ThreatText(row.threat), PercentText(row))
-		ns.SetClassIcon(list, i, row.class)
+		if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, row.class) end
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)
@@ -247,7 +257,7 @@ local function Schedule()
 	C_Timer.After(UPDATE_DELAY, Update)
 end
 
-local function DockGuide()
+function DockGuide()
 	local holder = Threat.holder
 	local side = K.Safe.Side(K.Scale.Root())
 	local guide = side.storyGuide
@@ -258,16 +268,20 @@ local function DockGuide()
 	end
 	local atDefault = layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	local damage = ns.Damage.holder
-	local both = atDefault and ns.MeterShown("threat") and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and damage:IsShown()
+	local both = atDefault and Visible() and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and ns.Damage.list.panel:IsShown()
+	Threat.paired = both == true
 	if Threat.soloWidth and not both then
-		holder:SetWidth(Threat.soloWidth)
-		Threat.soloWidth = nil
+		holder:SetSize(Threat.soloWidth, Threat.soloHeight)
+		Threat.soloWidth, Threat.soloHeight = nil, nil
 	end
 	if both then
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
+		Threat.soloHeight = Threat.soloHeight or holder:GetHeight()
+		if holder:GetHeight() ~= damage:GetHeight() then holder:SetHeight(damage:GetHeight()) end
 		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -16 / K.Widgets.ScaleFactor(holder), 0, true)
+		ns.Damage.list:Fit()
 		Threat.docked = true
 	elseif atDefault and ns.Get("threat.followGuide") and guide and guide:IsVisible() then
 		local foot = side.storyGuideBottom or guide
@@ -275,6 +289,7 @@ local function DockGuide()
 		local gap = top and bottom and math.max(0, top * K.Widgets.ScaleFactor(guide) - bottom * K.Widgets.ScaleFactor(foot)) or 0
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -(16 + gap) / K.Widgets.ScaleFactor(holder), true)
+		ns.Damage.list:Fit()
 		Threat.docked = true
 	elseif Threat.docked then
 		holder:ClearAllPoints()
@@ -287,6 +302,7 @@ function Threat:OnEvent(event, unit)
 	if event == "PLAYER_REGEN_ENABLED" then DockGuide() end
 	if event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" or event == "PLAYER_ENTERING_WORLD" then
 		BuildRoster()
+		Threat.visible = nil
 	elseif event == "UNIT_TARGET" and unit ~= "target" then
 		return
 	end
@@ -302,6 +318,16 @@ local function Build()
 	Threat.list:SetTitle(L["Threat"])
 	Threat.list:SetColumn("")
 	Threat.countText = ""
+	local flash = Threat.list.panel:CreateTexture(nil, "OVERLAY")
+	flash:SetAllPoints(Threat.list.panel)
+	flash:SetColorTexture(K.Widgets.Rgba("hostile", 0.2))
+	flash:SetAlpha(0)
+	local group = flash:CreateAnimationGroup()
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetFromAlpha(1)
+	alpha:SetToAlpha(0)
+	alpha:SetDuration(0.2)
+	Threat.list.alarmFlash = group
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
 	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide

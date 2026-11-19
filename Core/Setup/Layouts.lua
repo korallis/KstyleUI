@@ -1372,6 +1372,7 @@ function Layouts.Enabled(name, profile)
 				else
 					on = Layouts.Shown(name, key) ~= false
 				end
+				if element.module == "Meters" and id == "damage" and type(entry) == "table" and entry.mode == "skin" then on = false end
 			end
 		end
 		enabled[key] = on
@@ -1398,7 +1399,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	end
 	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
 		local damage = layout["meters.damage"]
-		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y + DAMAGE_H - THREAT_H }
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	for i, element in ipairs(ELEMENTS) do
@@ -1420,6 +1421,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		if style == "medallions" and key == "unitframes.player" then
 			height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 		end
+		if key == "meters.threat" and enabled["meters.damage"] ~= false then height = DAMAGE_H end
 		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER }
 		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
 	end

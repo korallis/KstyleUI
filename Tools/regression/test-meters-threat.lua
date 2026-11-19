@@ -21,6 +21,7 @@ end
 
 Party()
 M.Enable(env, K)
+M.Write(env, K, "damage.shown", false)
 local Threat = ns.Threat
 local list = Threat.list
 -- This roster test needs room for five readable nameplate-style rows.
@@ -92,10 +93,10 @@ env._threat.player = { true, 3, 100, 100, 1000000 }
 env._threat.party1 = { false, 2, 92, 90, 920000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
-assert(list.warning == 2, "a tank alarm uses the shared danger accent at another member's 92%")
-assert(countIs("92%", "hostile"), "a tank's count is the closest member's threat: " .. tostring(Text(list.column)))
-assert(Threat.alarm and rimIs("edgeInner"), "the tank alarm preserves the same card frame")
-assert(list.alarmFlash == nil, "the alarm uses the shared count accent without separate flash art")
+assert(list.warning == 1, "a tank is warned at another member's 92%")
+assert(countIs("92%", "neutral"), "a tank's count is the closest member's threat: " .. tostring(Text(list.column)))
+assert(Threat.alarm and rimIs("hostile"), "another player passing 90% turns the tank card's edge hostile")
+assert(list.alarmFlash and list.alarmFlash:IsPlaying(), "entering the alarm plays its 200 ms flash")
 
 -- Secret threat values reach only widget setters and never warn or sort.
 local secretScaled = S(70)

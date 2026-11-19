@@ -91,6 +91,7 @@ local function FillThreat(list)
 		local sample = SAMPLE[i]
 		list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.threat, PERCENT_MAX,
 			Logic.ThreatText(sample.raw), Logic.FormatPercent(sample.threat))
+		if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, sample.class) end
 		rows[i] = { isPlayer = sample.player == true, tanking = i == 1, scaled = sample.threat }
 	end
 	list:Finish(count)
@@ -162,7 +163,7 @@ function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	Widgets.Fill(frame, parent, 0, 0, 0, 0)
 	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
-	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
+	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat"), icons = Icons })
 	frame.swing = Widgets.StatusBar(frame, {
 		texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,
 		width = FALLBACK_WIDTH, height = SWING_HEIGHT,

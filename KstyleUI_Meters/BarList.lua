@@ -8,6 +8,9 @@ local max, min, floor, abs = math.max, math.min, math.floor, math.abs
 
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
+local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
+local PILL_HEIGHT, PILL_GAP = 4, 3
+local BLOCK_PAD, BLOCK_CAP_LEFT, BLOCK_CAP_TOP, BLOCK_TOP = 16, 12, 14.5, 35.5
 local TEXT_AIR = 2
 local ICON_CROP = 0.08
 local MORE_GLYPH = 10
@@ -125,7 +128,6 @@ local function NewRow(list, index, parent, passive)
 	local bar = Widgets.StatusBar(frame, {
 		texture = ns.Get(section .. ".texture"),
 		background = "barTrack",
-		border = true,
 		smooth = true,
 		min = 0,
 		max = 1,
@@ -136,18 +138,12 @@ local function NewRow(list, index, parent, passive)
 	local icon = frame:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	icon:Hide()
-	local back
-	if list.block then
-		back = frame:CreateTexture(nil, "BACKGROUND")
-		back:SetColorTexture(Tokens.Color("black"))
-		back:Hide()
-	end
-	local ink = frame
-	if list.block then
-		ink = CreateFrame("Frame", nil, frame)
-		ink:SetAllPoints(frame)
-		ink:SetFrameLevel(bar:GetFrameLevel() + 1)
-	end
+	local back = frame:CreateTexture(nil, "BACKGROUND")
+	back:SetColorTexture(Tokens.Color("black"))
+	back:Hide()
+	local ink = CreateFrame("Frame", nil, frame)
+	ink:SetAllPoints(frame)
+	ink:SetFrameLevel(bar:GetFrameLevel() + 1)
 	local wash = frame:CreateTexture(nil, "HIGHLIGHT")
 	wash:SetAllPoints(frame)
 	wash:SetColorTexture(Widgets.Rgba("white", Tokens.Share("rowHover")))
@@ -175,8 +171,7 @@ local function NewRow(list, index, parent, passive)
 		more:Hide()
 		row.more = more
 	end
-	if not passive then
-		frame:EnableMouse(true)
+	if (list.rowSplit or list.rowTooltip or list.tooltip) and not passive then
 		frame:HookScript("OnEnter", function()
 			RowEnter(list, row)
 		end)
@@ -187,7 +182,7 @@ local function NewRow(list, index, parent, passive)
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
 	row.percent:SetTextColor(Tokens.Color(list.block and "textEmphasis" or "text"))
-	if list.block then
+	do
 		row.dot = Text(ink, "RIGHT")
 		row.dot:SetText(DOT)
 		row.dot:SetTextColor(Tokens.Color("textEmphasis"))
@@ -273,7 +268,7 @@ local function LayoutSplit(list, split, shown, note)
 	split.note:SetShown(note)
 	if note then
 		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, BLOCK_ICON_GAP) or 0
-		local inset = Widgets.Snap(list.panel, BLOCK_TEXT_INSET)
+		local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
 		split.note:ClearAllPoints()
 		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", slot + inset, -y)
 		split.note:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -inset, -y)
@@ -401,7 +396,7 @@ function HideSplit(list)
 end
 
 function RowEnter(list, row)
-	row.wash:Show()
+	if list.plate then row.wash:Show() end
 	local frame = row.frame
 	local splits = list.rowSplits ~= nil and list.rowSplits(list, row.index) == true
 	if row.more then
@@ -447,8 +442,10 @@ end
 
 local function RowUnits(list)
 	local section = list.section
-	local em = max(NameSize(section), ns.Get(section .. ".fontSize") * K.Theme.FontScale())
-	local text = em + TEXT_AIR + Tokens.Size("barHeight")
+	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	local text = em + TEXT_AIR
+	if list.plate then text = max(NameSize(section), em) + TEXT_AIR + Tokens.Size("barHeight")
+	elseif not list.block then text = text + PILL_GAP + PILL_HEIGHT end
 	return max(ns.Get(section .. ".rowHeight"), text)
 end
 
@@ -468,7 +465,7 @@ local function HeightUnits(list)
 end
 
 function List:Capacity()
-	local pad = self.panel.chrome:InsetUnits()
+	local pad = not self.plate and self.block and BLOCK_PAD or self.panel.chrome:InsetUnits()
 	return Logic.FitRows(HeightUnits(self) - self:Top(pad) - pad, RowUnits(self), ns.Get(self.section .. ".spacing"))
 end
 
@@ -477,11 +474,12 @@ function List:Top(pad)
 	if not ns.Get(self.section .. ".title") then
 		return pad
 	end
+	if self.block and not self.plate then return BLOCK_TOP end
 	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP)
 end
 
 local function Recolor(list, row)
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school)
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school, list.block)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
@@ -500,8 +498,23 @@ end
 
 function StyleRow(list, row)
 	local section = list.section
-	local figures = "number"
-	BarList.StyleName(row.name, section)
+	local figures = (list.block or Widgets.Medallions()) and "number" or nil
+	if list.plate then
+		BarList.StyleName(row.name, section)
+	else
+		ns.ApplyFont(row.name, section, nil, Widgets.Medallions() and "unit" or nil)
+		if Widgets.Medallions() and ns.Get("instrumentNames") then
+			Widgets.ApplyFont(row.name, K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section), 11 * K.Theme.FontScale(), select(3, row.name:GetFont()))
+		end
+	end
+	row.bar.barEdge = row.bar.barEdge or Widgets.BarEdge(row.bar)
+	row.bar.barEdge:SetShown(list.plate)
+	row.bar.keyline:SetShown(not list.plate and not list.block)
+	row.bar.backgroundName = list.plate and "barTrack" or "buttonFill"
+	row.bar:SetLitShade(not list.plate and list.block and LIT_ALPHA or nil, not list.plate and list.block and SHADE_ALPHA or nil)
+	row.back:SetShown(false)
+	row.dot:SetShown(false)
+	row.wash:Hide()
 	ns.ApplyFont(row.value, section, nil, figures)
 	ns.ApplyFont(row.percent, section, nil, figures)
 	if row.dot then
@@ -557,11 +570,11 @@ local function PlaceBlockText(list, row)
 	end
 	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
 	local frame = row.frame
-	local inset = Widgets.Snap(list.panel, BLOCK_TEXT_INSET)
-	local rowHeight = list.rowHeight - Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR)
+	local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
+	local rowHeight = list.rowHeight - (list.plate and Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR) or 0)
 	local joined = list.percentWidth > 0 and row.joined == true
 	row.percent:ClearAllPoints()
-	Widgets.Point(row.percent, "TOPRIGHT", frame, "TOPRIGHT", -inset, 0)
+	Widgets.Point(row.percent, list.plate and "TOPRIGHT" or "RIGHT", frame, list.plate and "TOPRIGHT" or "RIGHT", -inset, 0)
 	row.percent:SetHeight(rowHeight)
 	row.percent:SetWidth(0)
 	row.percent:SetShown(joined)
@@ -585,12 +598,12 @@ local function PlaceBlockText(list, row)
 		dot:Show()
 		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
-		Widgets.Point(row.value, "TOPRIGHT", frame, "TOPRIGHT", -inset, 0)
+		Widgets.Point(row.value, list.plate and "TOPRIGHT" or "RIGHT", frame, list.plate and "TOPRIGHT" or "RIGHT", -inset, 0)
 	end
 	row.name:ClearAllPoints()
-	Widgets.Point(row.name, "TOPLEFT", frame, "TOPLEFT", row.nameInset or 0, 0)
+	Widgets.Point(row.name, list.plate and "TOPLEFT" or "LEFT", list.plate and frame or row.bar, list.plate and "TOPLEFT" or "LEFT", list.plate and (row.nameInset or 0) or inset, 0)
 	if list.valueWidth > 0 then
-		row.name:SetPoint("RIGHT", row.value, "LEFT", -Widgets.Border(row.frame), 0)
+		row.name:SetPoint("RIGHT", row.value, "LEFT", -(list.plate and Widgets.Border(row.frame) or list.gap), 0)
 	else
 		row.name:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 	end
@@ -602,14 +615,14 @@ function PlaceBlockRow(list, row, y, parent, x)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", parent or panel, "TOPLEFT", x or list.pad, -y)
 	frame:SetSize(max(1, list.barWidth), list.rowHeight)
-	local slot = list.blockIcons and list.rowHeight - Widgets.Snap(panel, Tokens.Size("barHeight") + TEXT_AIR) or 0
-	local reach = slot > 0 and slot + Widgets.Snap(panel, BLOCK_ICON_GAP) or 0
+	local slot = list.blockIcons and (list.rowHeight - (list.plate and Widgets.Snap(panel, Tokens.Size("barHeight") + TEXT_AIR) or 0)) or 0
+	local reach = slot > 0 and slot + Widgets.Snap(panel, list.plate and BLOCK_ICON_GAP or 2) or 0
 	row.nameInset = reach
-	bar.opts.width = max(1, list.barWidth)
-	bar.opts.height = Widgets.Snap(panel, Tokens.Size("barHeight"))
+	bar.opts.width = max(1, list.barWidth - (list.plate and 0 or reach))
+	bar.opts.height = list.plate and Widgets.Snap(panel, Tokens.Size("barHeight")) or list.rowHeight
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+	bar:SetPoint(list.plate and "BOTTOMLEFT" or "TOPLEFT", frame, list.plate and "BOTTOMLEFT" or "TOPLEFT", list.plate and 0 or reach, 0)
 	bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 	local back, icon = row.back, row.icon
 	back:ClearAllPoints()
@@ -626,8 +639,58 @@ function PlaceBlockRow(list, row, y, parent, x)
 end
 
 local function PlaceRow(list, row, i)
-	local y = Widgets.Snap(list.panel, list:Top()) + (i - 1) * (list.rowHeight + Spacing(list))
-	PlaceBlockRow(list, row, y)
+	row.dot:Hide()
+	row.back:Hide()
+	local rowHeight = list.rowHeight
+	local spacing = Spacing(list)
+	local pad, gap = list.pad, list.gap
+	local panel = list.panel
+	local y = Widgets.Snap(panel, list:Top()) + (i - 1) * (rowHeight + spacing)
+	if list.block then
+		PlaceBlockRow(list, row, y)
+		return
+	end
+	local frame, bar = row.frame, row.bar
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -y)
+	frame:SetSize(max(1, list.barWidth), rowHeight)
+	local pill = Widgets.Snap(panel, PILL_HEIGHT)
+	bar.opts.width = max(1, list.barWidth)
+	bar.opts.height = pill
+	bar:Restyle()
+	bar:ClearAllPoints()
+	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+	local line = rowHeight - pill - Widgets.Snap(panel, PILL_GAP)
+	row.percent:ClearAllPoints()
+	row.percent:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	row.percent:SetSize(list.percentWidth, line)
+	row.value:ClearAllPoints()
+	if list.percentWidth > 0 then
+		row.value:SetPoint("RIGHT", row.percent, "LEFT", -gap, 0)
+	else
+		row.value:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	end
+	row.value:SetSize(list.valueWidth, line)
+	row.value:SetShown(list.valueWidth > 0)
+	row.percent:SetShown(list.percentWidth > 0)
+	local stop = list.valueWidth > 0 and row.value or list.percentWidth > 0 and row.percent or nil
+	row.name:ClearAllPoints()
+	row.icon:ClearAllPoints()
+	if list.icons then
+		row.icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		row.icon:SetSize(line, line)
+		row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", gap, 0)
+	else
+		row.icon:Hide()
+		row.name:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	end
+	row.name:SetHeight(line)
+	if stop then
+		row.name:SetPoint("RIGHT", stop, "LEFT", -gap, 0)
+	else
+		row.name:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+	end
+	PlaceMore(list, row)
 end
 
 local function Floor(list, units)
@@ -731,7 +794,9 @@ end
 function List:Restyle()
 	self.textLayout = (self.textLayout or 0) + 1
 	local section = self.section
-	self.pad = Widgets.Snap(self.panel, self.panel.chrome:InsetUnits())
+	self.plate = ns.Get("nameplateRows")
+	self.block = self.plate or self.originalBlock
+	self.pad = Widgets.Snap(self.panel, not self.plate and self.block and BLOCK_PAD or self.panel.chrome:InsetUnits())
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
 	local em = Widgets.FontSize(self.title, ns.Get(section .. ".fontSize") * K.Theme.FontScale())
@@ -745,13 +810,13 @@ function List:Restyle()
 	local cap = self.cap
 	cap.frame:SetShown(titled)
 	cap.frame:ClearAllPoints()
-	local capLeft = self.pad
-	local capTop = self.pad
+	local capLeft = not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad
+	local capTop = not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
 	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -capTop)
 	cap:Restyle()
 	if self.block then
-		Widgets.TextColor(self.title, "capsGold")
+		Widgets.TextColor(self.title, section == "threat" and ns.Threat.alarm and "hostile" or "capsGold")
 	end
 	if self.switchWords then
 		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
@@ -789,6 +854,7 @@ function List:Fit()
 		local rows, spacing = max(self.block and fit and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
+	if self.key and ns.Threat.paired then height = holderHeight end
 	self.panel:SetHeight(max(1, min(height, holderHeight)))
 	if self.key then
 		local side = K.Safe.Side(K.Scale.Root())
@@ -1063,7 +1129,9 @@ function BarList.New(parent, section, opts)
 	list.rowTooltip = opts.rowTooltip
 	list.rowSplits = opts.rowSplits
 	list.rowSplit = opts.rowSplit
-	list.block = true
+	list.originalBlock = opts.block == true
+	list.plate = ns.Get("nameplateRows")
+	list.block = list.plate or list.originalBlock
 	list.iconsOn = opts.icons
 	list.key = opts.key
 	list.icons = false

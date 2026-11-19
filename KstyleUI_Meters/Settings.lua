@@ -12,6 +12,7 @@ local MAX_SPACING = 12
 local MIN_WARN, MAX_WARN, WARN_STEP = 50, 100, 5
 local NO_OUTLINE = ""
 local CHANNELS = { "r", "g", "b" }
+local LEGACY_DAMAGE = { ["damage.rowHeight"] = 18, ["damage.outline"] = "" }
 local SHARED_ROWS = {}
 for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "title", "titleSize" }) do
 	SHARED_ROWS["threat." .. key] = "damage." .. key
@@ -50,6 +51,7 @@ local ROW, ROW_TEXT = 27, Tokens.Size("number")
 local DAMAGE_SPACING = 3
 
 ns.defaults = {
+	nameplateRows = true,
 	followRole = true,
 	roles = { TANK = "threat", HEALER = "damage", DAMAGER = "damage" },
 	fitCards = true,
@@ -69,14 +71,14 @@ ns.defaults = {
 		percent = true,
 		icons = true,
 	}),
-	threat = Merge(Bars("left", Tokens.Texture("barFlat")), Text(ROW_TEXT, "OUTLINE"), {
+	threat = Merge(Bars("left"), Text(12), {
 		followGuide = true,
 		shown = true,
 		group = true,
 		pets = true,
 		value = "both",
-		rowHeight = ROW,
-		spacing = DAMAGE_SPACING,
+		rowHeight = 18,
+		spacing = 2,
 		title = true,
 		titleSize = CAPTION,
 		warnings = true,
@@ -217,6 +219,7 @@ local function BarRows(section, rows)
 end
 
 local function ListRows(section, rows)
+	local first = #rows + 1
 	local off = Off(section)
 	BarRows(section, rows)
 	rows[#rows + 1] = {
@@ -240,9 +243,17 @@ local function ListRows(section, rows)
 		help = L["How large the title and column heading are."], min = MIN_TEXT, max = MAX_TEXT, step = 1,
 	}
 	TextRows(section, rows)
+	if section == "threat" then
+		for i = first, #rows do
+			local previous = rows[i].showWhen
+			rows[i].showWhen = function(settings) return settings.nameplateRows == false and (not previous or previous(settings)) end
+		end
+	end
 end
 
 local schema = {
+	{ type = "toggle", key = "nameplateRows", label = L["Nameplate-style meter rows"],
+		help = L["Match meter rows to nameplates. Off restores the previous rows and separate threat appearance."] },
 	{
 		type = "toggle", key = "followRole", label = L["Show the meter for my role"],
 		help = L["Follows your group role, then spec role, after combat. Off restores the manual show switches."],
@@ -307,7 +318,7 @@ ListRows("damage", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
-schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Marks the card when a player passes 90 percent of your threat. Off keeps usual warnings."] }
+schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
 schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
 schema[#schema + 1] = {
 	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),
@@ -332,8 +343,10 @@ schema[#schema + 1] = {
 }
 schema[#schema + 1] = {
 	type = "slider", key = "threat.dangerAt", label = L["Danger at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
-	help = L["The threat percentage that marks the card with the danger accent."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
+	help = L["The threat percentage that turns the meter red and makes it pulse."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
 }
+
+ListRows("threat", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Swing timer"] }
 schema[#schema + 1] = {
@@ -435,7 +448,9 @@ end
 local warned = {}
 
 function ns.Get(key)
-	key = SHARED_ROWS[key] or key
+	local settings = K.Store.IsLoaded() and K.Store.Module(ns.MODULE)
+	local styled = not settings or settings.nameplateRows ~= false
+	if styled then key = SHARED_ROWS[key] or key end
 	local default = Lookup(ns.defaults, key)
 	if default == nil then
 		error("KstyleUI_Meters: unknown setting " .. tostring(key), 2)
@@ -443,7 +458,8 @@ function ns.Get(key)
 	if not K.Store.IsLoaded() then
 		return default
 	end
-	local value = Lookup(K.Store.Module(ns.MODULE), key)
+	local value = Lookup(settings, key)
+	if not styled and LEGACY_DAMAGE[key] ~= nil and value == default then return LEGACY_DAMAGE[key] end
 	local row = rows[key]
 	if value == nil or (row and not Allowed(row, value)) or (not row and type(value) ~= type(default)) then
 		if value ~= nil and not warned[key] then
@@ -486,7 +502,7 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction, schoolToken)
+function ns.BarColor(section, classFile, reaction, schoolToken, muted)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
@@ -495,7 +511,9 @@ function ns.BarColor(section, classFile, reaction, schoolToken)
 		return Tokens.Color(schoolToken)
 	end
 	if source ~= "reaction" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
-		return Theme.ClassColor(classFile)
+		local r, g, b = Theme.ClassColor(classFile)
+		if muted and not ns.Get("nameplateRows") then return r * 0.62, g * 0.62, b * 0.62 end
+		return r, g, b
 	end
 	return Tokens.Color(reaction or "friendly")
 end

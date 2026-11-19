@@ -21,7 +21,7 @@ Presets.LIST = {
 Presets.VALUES = {
 	lumen = {},
 	dungeon = {
-		["health.height"] = K.Tokens.Size("barHeight"),
+		["health.height"] = 12,
 		["healthText.show"] = true, ["healthText.size"] = 11, ["healthText.format"] = "percent",
 	},
 	compact = {

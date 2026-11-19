@@ -53,7 +53,7 @@ assert(target.castName:IsShown(), "the player can show all cast names")
 
 K.Options.Write("Nameplates", "preset", "lumen")
 K.Options.Write("HudStyle", "style", "medallions")
-assert(ns.state.width == 120 and ns.state.height == K.Tokens.Size("barHeight"), "Minimal keeps the existing 120 by 9 Medallions plate")
+assert(ns.state.width == 120 and ns.state.height == 9, "Minimal keeps the existing 120 by 9 Medallions plate")
 K.Options.Write("Nameplates", "preset", "dungeon")
 assert(ns.state.width == 120 and ns.state.height == 12, "H4 Recipe A: Dungeon is 120 by 12")
 assert(ns.Settings.Get("debuffs.size") == 22, "Dungeon keeps the readable debuff size")
@@ -61,7 +61,7 @@ assert(ns.Settings.Get("healthText.show") and ns.Settings.Get("healthText.size")
 K.Options.Write("Nameplates", "healthText.show", false)
 assert(ns.state.height == 12 and not target.healthText:IsShown(), "the percent is optional and keeps the fuller plate")
 K.Options.Write("Nameplates", "preset", "lumen")
-assert(ns.state.width == 120 and ns.state.height == K.Tokens.Size("barHeight"), "Minimal restores the slim default")
+assert(ns.state.width == 120 and ns.state.height == 9, "Minimal restores the slim default")
 for _, style in ipairs({ "frames", "orbs" }) do
 	K.Options.Write("HudStyle", "style", style)
 	local width = ns.state.width
