@@ -17,6 +17,7 @@ end
 
 local function LineHeight(frame)
 	local _, size = ns.Style.Font("body")
+	if ns.Style.MetricsEnabled() then size = math.max(size, 13 * K.Theme.FontScale() * ns.Style.Setting("text", "size")) end
 	return math.max(K.Widgets.FontSize(frame, size) * 1.2, K.Widgets.Snap(frame, 16 * K.Theme.FontScale()))
 end
 
@@ -131,19 +132,23 @@ local function Layout()
 		local frame = ClassTrainerFrame
 		local box = frame.ScrollBox
 		if not box or not K.Widgets.MayMove(frame) then return end
+		local width, height = frame:GetSize()
+		if IsSecret(width) or IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then return end
 		if frame.TrainButton then
 			frame.TrainButton:ClearAllPoints()
-			K.Widgets.Point(frame.TrainButton, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 12)
+			frame.TrainButton:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(frame.TrainButton, width - 12), -K.Widgets.Snap(frame.TrainButton, height - 12))
 		end
 		if frame.money then
 			frame.money:ClearAllPoints()
-			K.Widgets.Point(frame.money, "BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 18)
+			frame.money:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", K.Widgets.Snap(frame.money, 12), -K.Widgets.Snap(frame.money, height - 18))
 		end
-		box:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, K.Widgets.Snap(box, 52))
+		local point, relative, on, x, y = box:GetPoint(1)
+		if point == "TOPLEFT" then K.Widgets.Point(box, point, relative, on, x, y) end
+		box:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(box, width - 24), -K.Widgets.Snap(box, height - 52))
 		local view = type(box.GetView) == "function" and box:GetView()
 		if view and type(view.SetElementExtentCalculator) == "function" then
 			view:SetElementExtentCalculator(function(_, node)
-				return node:GetData().categoryInfo and 25 or 3 * LineHeight(box) + K.Widgets.Snap(box, 12)
+				return node:GetData().categoryInfo and 25 or K.Widgets.Snap(box, 3 * LineHeight(box) + 12)
 			end)
 			if type(box.FullUpdate) == "function" then box:FullUpdate() end
 		end

@@ -1391,6 +1391,10 @@ function build.trainer(env, B)
 	trainer.ScrollBar = ScrollBar(B, trainer)
 	trainer.ScrollBox = ScrollBox(B, trainer)
 	At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
+	function trainer.ScrollBox:GetWidth()
+		local left, right = self:GetLeft(), self:GetRight()
+		return left and right and right - left or self._width
+	end
 	trainer.ScrollBox:SetClipsChildren(true)
 	trainer.ScrollBox:EnableMouseWheel(true)
 	trainer.ScrollBar:ClearAllPoints()

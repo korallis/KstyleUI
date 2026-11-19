@@ -24,4 +24,14 @@ return {
 			["MailItem1:ClearAllPoints"] = 1,
 		},
 	},
+	["KstyleUI_Skins/PartB/Trainer.lua"] = {
+		why = "Blizzard_TrainerUI.xml defines the trainer's ScrollBox and money as ordinary frames and TrainButton as a MagicButtonTemplate, with no secure actions. The skin reserves a footer by moving these regions only through Combat.Queue and Widgets.MayMove, without changing their scripts or training actions.",
+		calls = {
+			["ClassTrainerFrame.ScrollBox:SetPoint"] = 1,
+			["ClassTrainerFrame.TrainButton:ClearAllPoints"] = 1,
+			["ClassTrainerFrame.TrainButton:SetPoint"] = 1,
+			["ClassTrainerFrame.money:ClearAllPoints"] = 1,
+			["ClassTrainerFrame.money:SetPoint"] = 1,
+		},
+	},
 }
