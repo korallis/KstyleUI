@@ -51,7 +51,7 @@ def title_passes(title):
 
 class WorkflowsTest(unittest.TestCase):
     def test_has_the_planned_workflows(self):
-        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-rules.yml", "release.yml"])
+        self.assertEqual([p.name for p in workflows()], ["checks.yml", "hosted-lua-measure.yml", "pr-rules.yml", "release.yml"])
 
     def test_every_action_is_pinned_by_full_sha_with_its_version(self):
         uses = [(path.name, m) for path in workflows() for m in USES.finditer(path.read_text(encoding="utf-8"))]
@@ -368,6 +368,8 @@ class WorkflowsTest(unittest.TestCase):
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
                 runner = "runs-on: ubuntu-latest" if job in ("python-package", "pr-rules") else RUNNERS
+                if path.name == "hosted-lua-measure.yml":
+                    runner = "runs-on: ${{ matrix.runner }}"
                 self.assertIn("\n    " + runner + "\n", body, f"{path.name}: {job}")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
