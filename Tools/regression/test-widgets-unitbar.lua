@@ -141,6 +141,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local where = screen[1] .. "x" .. screen[2]
 	assert(unit.under.edgeSoft == edge.soft and unit.under.edgeHard == edge.hard and unit.under.track == edge.track,
 		where .. ": UnitBar must reuse Widgets.BarEdge for its under-edge")
+	assert(edge.target == unit, where .. ": the under-edge measures the visual bar directly")
 	for _, finishName in ipairs({ "medallions", "frames" }) do
 		unit:SetFinish(finishName)
 		widgets.RestyleAll()

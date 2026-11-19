@@ -330,15 +330,9 @@ local function PlaceUnder(self)
 	local under = self.under
 	under.barEdge:Restyle()
 	under.edgeSoft:SetShown(self.finish ~= "medallions")
-	under.edgeHard:SetVertexColor(Tokens.Color("white"))
-	under.edgeHard:SetColorTexture(Tokens.Color("black"))
 	if self.finish == "medallions" then Widgets.Tint(under.track, "medFillBottom") end
-	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:GetStatusBarTexture():SetShown(self.lossOn)
-	self.recent:SetStatusBarColor(Widgets.Rgba("white"))
 	self.recent:GetStatusBarTexture():SetShown(self.lossOn)
-	self.flash:SetColorTexture(Widgets.Rgba("white"))
-	self.recentFlash:SetColorTexture(Widgets.Rgba("white"))
 end
 
 local function Paint(self)
@@ -431,9 +425,12 @@ local function Under(bar, parent)
 	local under = CreateFrame("StatusBar", nil, parent)
 	under:SetAllPoints(bar)
 	under:SetStatusBarTexture((Tokens.Texture("barFlat")))
+	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL")
 	under:SetReverseFill(Reversed(bar))
 	local edge = Widgets.BarEdge(under, true)
+	edge.target = bar
+	edge.hard.SetVertexColor = edge.hard.SetColorTexture
 	under.barEdge = edge
 	under.edgeSoft, under.edgeHard, under.track = edge.soft, edge.hard, edge.track
 	under:SetMinMaxValues(0, 1)
@@ -441,6 +438,7 @@ local function Under(bar, parent)
 	local recent = CreateFrame("StatusBar", nil, under)
 	recent:SetAllPoints(under)
 	recent:SetStatusBarTexture((Tokens.Texture("barFlat")))
+	recent:SetStatusBarColor(Widgets.Rgba("white"))
 	recent:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL")
 	recent:SetReverseFill(Reversed(bar))
 	recent:SetMinMaxValues(0, 1)
@@ -453,6 +451,7 @@ end
 local function Flash(bar)
 	bar.underClip = Clip(bar.under, bar.under:GetStatusBarTexture())
 	local flash = bar.underClip:CreateTexture(nil, "ARTWORK", nil, 1)
+	flash:SetColorTexture(Widgets.Rgba("white"))
 	flash:SetAllPoints(bar.under)
 	flash:Hide()
 	local group = flash:CreateAnimationGroup()
@@ -473,6 +472,7 @@ local function Flash(bar)
 	bar.flash, bar.lossAnim = flash, group
 	bar.recentClip = Clip(bar.recent, bar.recent:GetStatusBarTexture())
 	local recentFlash = bar.recentClip:CreateTexture(nil, "ARTWORK", nil, 1)
+	recentFlash:SetColorTexture(Widgets.Rgba("white"))
 	recentFlash:SetAllPoints(bar.recent)
 	recentFlash:Hide()
 	local recentGroup = recentFlash:CreateAnimationGroup()
