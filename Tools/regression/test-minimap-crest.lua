@@ -3,6 +3,33 @@ local M = dofile("Tools/regression/minimap_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 local W = M.W
 
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K = M.New({ enabled = false, settings = {}, width = screen[1], height = screen[2], size = "auto",
+		setup = function(e) e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" } end })
+	local layouts, section = K.Setup.Layouts, K.Store.Module("Minimap")
+	local rw, rh = K.Layout.RootSize()
+	section.frame = "classic"
+	local base = layouts.Positions("DPS", "medallions", K.Scale.Aspect(), K.Scale.Band())
+	local story = layouts.Story("DPS", rh, true, "medallions", rw)
+	for _, frame in ipairs({ "classic", "ring", "medallion" }) do
+		section.frame = frame
+		assert(not layouts.MinimapCrest(), "a disabled Minimap must not reserve crest growth")
+		local positions = layouts.Positions("DPS", "medallions", K.Scale.Aspect(), K.Scale.Band())
+		for _, key in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs" }) do
+			for field, value in pairs(base[key]) do
+				assert(positions[key][field] == value, "a disabled Minimap must preserve Classic geometry: " .. key .. "." .. field)
+			end
+		end
+		local cards = layouts.Story("DPS", rh, true, "medallions", rw)
+		for _, key in ipairs({ "guide", "quests" }) do
+			for field, value in pairs(story[key]) do
+				assert(cards[key][field] == value, "a disabled Minimap must preserve story geometry: " .. key .. "." .. field)
+			end
+		end
+	end
+	assert(#env._errors == 0)
+end
+
 for _, name in ipairs({ "Ring256", "Enamel256" }) do
 	local file = assert(io.open("Media/Textures/Medallions/" .. name .. ".png", "rb"))
 	local header = file:read(24)
