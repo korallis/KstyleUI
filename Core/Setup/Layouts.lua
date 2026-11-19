@@ -1532,7 +1532,8 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local layout = state.layout
 	local pixelScale = physicalHeight / rootHeight
 	local rects, boxes, count = state.rects, state.boxes, 0
-	local elements = #ELEMENTS
+	local elements, replaced = #ELEMENTS, REPLACED[style]
+	local medals = style == "medallions" and Layouts.MEDALLIONS_MEDALS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
 	for i = 1, elements + 2 do
 		local key, width, height, position, offsetX, offsetY, point
@@ -1547,7 +1548,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			key, width, height = position.key, position.width, position.height
 			point = OFFSETS[position.anchor] or OFFSETS.CENTER
 		end
-		if enabled[key] ~= false and not (REPLACED[style] and REPLACED[style][key]) then
+		if enabled[key] ~= false and not (replaced and replaced[key]) then
 			if width <= 0 or height < STORY_FLOOR and position.key or height <= 0 then
 				return false
 			end
@@ -1556,14 +1557,14 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5) + (offsetY or 0) * pixelScale
 			local box = boxes[1]
-			box[1], box[2], box[3], box[4], box.key = left, bottom, left + w, bottom + h, key
-			local medal = style == "medallions" and Layouts.MEDALLIONS_MEDALS[key]
+			box[1], box[2], box[3], box[4] = left, bottom, left + w, bottom + h
+			local medal = medals and medals[key]
 			if medal then
 				local d = floor(medal.d * pixelScale + 0.5)
 				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
 				local cy = bottom + h / 2 - (offsetY or 0) * pixelScale / 2
 				box = boxes[2]
-				box[1], box[2], box[3], box[4], box.key = floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key
+				box[1], box[2], box[3], box[4] = floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d
 			end
 			local neighbours = count
 			for j = 1, medal and 2 or 1 do
@@ -1574,7 +1575,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				end
 				for index = 1, neighbours do
 					local rect = rects[index]
-					if l < rect[3] and rect[1] < r and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
+					if rect[1] < r and l < rect[3] and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
 						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
 							return false
