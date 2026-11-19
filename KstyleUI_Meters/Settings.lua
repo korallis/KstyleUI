@@ -22,18 +22,9 @@ local function Rgb(name)
 	return { r = r, g = g, b = b }
 end
 
-local function DefaultTexture(key)
-	for _, item in ipairs(Tokens.MediaList("statusbar")) do
-		if item.key == key then
-			return item.path
-		end
-	end
-	return (Tokens.Texture("barGlass"))
-end
-
 local function Bars(fill, texture, colorSource)
 	return {
-		texture = DefaultTexture(texture or "Glass"),
+		texture = texture or Tokens.Texture("barGlass"),
 		colorSource = colorSource or "class",
 		color = Rgb("accentDefault"),
 		fill = fill,
@@ -65,7 +56,7 @@ ns.defaults = {
 	instrumentNames = true,
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
-	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT, "OUTLINE"), {
+	damage = Merge(Bars("left", Tokens.Texture("barFlat"), "school"), Text(ROW_TEXT, "OUTLINE"), {
 		shown = true,
 		group = false,
 		mode = "auto",
@@ -78,7 +69,7 @@ ns.defaults = {
 		percent = true,
 		icons = true,
 	}),
-	threat = Merge(Bars("left", "Flat"), Text(ROW_TEXT, "OUTLINE"), {
+	threat = Merge(Bars("left", Tokens.Texture("barFlat")), Text(ROW_TEXT, "OUTLINE"), {
 		followGuide = true,
 		shown = true,
 		group = true,
