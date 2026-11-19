@@ -1017,13 +1017,11 @@ function Layouts.BuildMedallions()
 		local side = Layouts.MEDALLIONS_SIDE
 		local ends = hub / 2 + width + slab.pad + side.clear + side.pad
 		local _, petW = Layouts.MedallionsSide(class, "actionbars.pet")
-		local _, stanceW = Layouts.MedallionsSide(class, "actionbars.stance")
 		local sideY = strip - slab.bottom + side.pad - 2 * TIGHT
 		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
-		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
+		local stanceBar = { anchor = "BOTTOM", x = -580, y = 220 + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad }
 		if class == ASPECTS[1] then
-			petBar = { anchor = "BOTTOM", x = ends + petW / 2, y = sideY }
-			stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad }
+			petBar = { anchor = "BOTTOM", x = -570, y = 220 }
 		end
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
@@ -1042,7 +1040,7 @@ function Layouts.BuildMedallions()
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
 			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
-			["actionbars.bar3"] = { anchor = "BOTTOM", x = -680, y = 374 },
+			["actionbars.bar3"] = { anchor = "BOTTOM", x = -692, y = 378 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = petBar,
@@ -1411,7 +1409,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	end
 	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
 		local damage = layout["meters.damage"]
-		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - (style == "medallions" and TIGHT or GAP), y = damage.y }
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	for i, element in ipairs(ELEMENTS) do

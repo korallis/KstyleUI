@@ -281,7 +281,7 @@ function DockGuide()
 		if holder:GetHeight() ~= damage:GetHeight() then holder:SetHeight(damage:GetHeight()) end
 		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
 		holder:ClearAllPoints()
-		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -16 / K.Widgets.ScaleFactor(holder), 0, true)
+		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -(K.HudStyle.Current() == "medallions" and 4 or 16) / K.Widgets.ScaleFactor(holder), 0, true)
 		ns.Damage.list:Fit()
 		Threat.docked = true
 	elseif atDefault and ns.Get("threat.followGuide") and guide and guide:IsVisible() then
