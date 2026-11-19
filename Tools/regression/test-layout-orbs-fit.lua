@@ -66,7 +66,9 @@ do
 			local class = Scale.AspectClass(physical, height)
 			for _, name in ipairs(Layouts.Names()) do
 				local on = Layouts.Enabled(name)
-				local size = Scale.Auto(height, Layouts.ScaleLimit(physical, height, name, on, "orbs"))
+				on["meters.damage"], on["meters.threat"] = name ~= "Tank", name == "Tank"
+				local cap, fits = Layouts.ScaleLimit(physical, height, name, on, "orbs")
+				local size = Scale.Auto(height, cap, fits)
 				assert(Layouts.Fits(name, physical, height, size, on, nil, "orbs"), name .. " " .. width .. "x" .. height .. ": the automatic size fits")
 				local what = string.format("%s %dx%d on %d at %.4f", name, width, height, physical, size)
 				local rh = 1080 / size

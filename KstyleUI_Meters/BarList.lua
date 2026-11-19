@@ -538,7 +538,7 @@ local function PlaceMore(list, row)
 	end
 	more:ClearAllPoints()
 	more:SetSize(glyph, glyph)
-	more:SetPoint("LEFT", row.name, "LEFT", reach + list.gap, 0)
+	Widgets.Point(more, "LEFT", row.name, "LEFT", reach + list.gap, 0, true)
 	Widgets.Tint(more, "muted")
 end
 
@@ -1082,7 +1082,7 @@ function BarList.New(parent, section, opts)
 	list.title:SetWordWrap(false)
 	list.note = Text(panel, "CENTER")
 	list.note:SetTextColor(Tokens.Color("textDisabled"))
-	list.note:SetPoint("CENTER", panel, "CENTER", 0, -floor(Tokens.Size("gapMedium") / 2))
+	Widgets.Point(list.note, "CENTER", panel, "CENTER", 0, -floor(Tokens.Size("gapMedium") / 2), true)
 	list.note:Hide()
 	if opts.onClick then
 		panel:EnableMouse(true)

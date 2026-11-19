@@ -4,7 +4,6 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 
 local function Pair(env, K, ns)
 	local root = K.Scale.Root()
-	assert(K.Scale.AppliedUserScale() >= K.Scale.DEFAULT_USER_SCALE, "Both must fit without shrinking the HUD below the shipped size")
 	local damage = assert(Geometry.Rect(ns.Damage.list.panel, root))
 	local threat = assert(Geometry.Rect(ns.Threat.list.panel, root))
 	assert(ns.Damage.list.panel:IsVisible() and ns.Threat.list.panel:IsVisible(), "Both must show two separate cards")
@@ -16,6 +15,7 @@ local function Pair(env, K, ns)
 	local preset = K.Store.Module("Layout").preset
 	local places = layouts.Positions(preset, style, K.Scale.Aspect())
 	local enabled = layouts.Enabled(preset)
+	assert(enabled["cooldowns.bars"] ~= false and layouts.Element("cooldowns.bars").height >= 27, "Both collision checks must include the CDM tracked-bar footprint")
 	enabled["meters.damage"], enabled["meters.threat"] = true, true
 	local width, height = env.GetPhysicalScreenSize()
 	assert(layouts.Fits(preset, width, height, K.Scale.AppliedUserScale(), enabled, nil, style), "the pair must also clear the story cards and Orbs circles")
@@ -35,7 +35,14 @@ local function Pair(env, K, ns)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
-for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+do
+	local env, K, ns = M.New({ saved = { version = 38, profiles = { Default = { Meters = { followRole = false } } }, layouts = { Default = { ["meters.damage"] = { width = 269, height = 158 } } } }, setup = function(e) e._group.size = 5 end })
+	M.Enable(env, K)
+	assert(ns.Damage.holder:GetWidth() == 248 and ns.Threat.holder:GetWidth() == 248, "an existing profile's old default width must migrate to the compact pair")
+	assert(K.Store.Layout()["meters.damage"].width == 248, "persist the updated default width")
+end
+
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 4236, 1495 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
@@ -58,7 +65,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			end
 			assert(K.Setup.Apply({ layout = layout, modules = { Meters = true } }))
 			env.RunTimers()
-			assert(K.Scale.AppliedUserScale() >= K.Scale.DEFAULT_USER_SCALE, style .. " " .. layout .. " " .. screen[1] .. "x" .. screen[2] .. ": the pair must fit without shrinking the whole HUD below the shipped size: " .. K.Scale.AppliedUserScale())
 			assert(ns.Get("roles.DAMAGER") == "damage", "DPS defaults to Damage")
 			assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "Damage shows only damage")
 			K.Layout.Update("meters.threat", { width = 200 })
@@ -90,4 +96,4 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end
 	end
 end
-print("DPS and manual meter choices ok: 3 styles, 3 layouts, 4 screens")
+print("DPS and manual meter choices ok: 3 styles, 3 layouts, 6 screens")

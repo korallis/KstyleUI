@@ -197,6 +197,8 @@ local SCREENS = {
 	{ label = "the owner's 2383 x 1540", width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" },
 	{ label = "2383 x 1540 at UI scale 1", width = 2383, height = 1540, uiScale = 1 },
 	{ label = "16:9", width = 1920, height = 1080 },
+	{ label = "2560 x 1440", width = 2560, height = 1440, size = "auto" },
+	{ label = "3840 x 2160", width = 3840, height = 2160, size = "auto" },
 	{ label = "16:9 at UI scale 0.64", width = 1920, height = 1080, uiScale = 0.64 },
 	{ label = "16:10", width = 1920, height = 1200 },
 	{ label = "21:9", width = 2560, height = 1080 },

@@ -43,7 +43,7 @@ local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
-	local positions = Layouts.Positions(name, "frames", K.Scale.AspectClass(width, height))
+	local positions = Layouts.PrepareFits(name, width, height, enabled or Layouts.Enabled(name), nil, "frames").layout
 	local rects, keys = {}, {}
 	local function add(key, w, h, position, offsetX)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5

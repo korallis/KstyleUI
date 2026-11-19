@@ -267,18 +267,18 @@ local function DockGuide()
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
 		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
 		holder:ClearAllPoints()
-		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -16 / K.Widgets.ScaleFactor(holder), 0)
+		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -16 / K.Widgets.ScaleFactor(holder), 0, true)
 		Threat.docked = true
 	elseif atDefault and ns.Get("threat.followGuide") and guide and guide:IsVisible() then
 		local foot = side.storyGuideBottom or guide
 		local top, bottom = Logic.Plain(guide:GetBottom()), Logic.Plain(foot:GetBottom())
 		local gap = top and bottom and math.max(0, top * K.Widgets.ScaleFactor(guide) - bottom * K.Widgets.ScaleFactor(foot)) or 0
 		holder:ClearAllPoints()
-		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -(16 + gap) / K.Widgets.ScaleFactor(holder))
+		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -(16 + gap) / K.Widgets.ScaleFactor(holder), true)
 		Threat.docked = true
 	elseif Threat.docked then
 		holder:ClearAllPoints()
-		holder:SetPoint(layout.anchor, K.Scale.Root(), layout.anchor, layout.x, layout.y)
+		K.Widgets.Point(holder, layout.anchor, K.Scale.Root(), layout.anchor, layout.x, layout.y, true)
 		Threat.docked = false
 	end
 end

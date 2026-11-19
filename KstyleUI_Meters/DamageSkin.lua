@@ -66,8 +66,8 @@ local function PlacePill(pill)
 	bar.opts.height = Widgets.Snap(bar, Tokens.Size("barHeight"))
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("LEFT", holder, "LEFT")
-	bar:SetPoint("RIGHT", holder, "RIGHT")
+	Widgets.Point(bar, "TOPLEFT", holder, "TOPLEFT", 0, 0)
+	Widgets.Point(bar, "TOPRIGHT", holder, "TOPRIGHT", 0, 0)
 	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 

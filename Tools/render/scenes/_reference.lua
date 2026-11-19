@@ -239,6 +239,10 @@ function Reference.SeatTank(built, plates, rect)
 	if not x then
 		return nil
 	end
+	local dx, dy, dw, dh = rect("meters", ns.Damage.holder)
+	if ns.Damage.holder:IsShown() and dx then
+		x, y, w, h = math.min(x, dx), math.min(y, dy), math.max(x + w, dx + dw) - math.min(x, dx), math.max(y + h, dy + dh) - math.min(y, dy)
+	end
 	return Reference.SeatAround(plates, x, x + w, y - 16, y + h + 16)
 end
 
@@ -310,6 +314,11 @@ function Reference.Build(opts)
 		end
 		if opts.meterChoice then
 			state.followRole, state.role = true, "DAMAGER"
+			if opts.meterChoice == "both" then
+				state.spec = {}
+				for key, value in pairs(Reference.STATE.spec) do state.spec[key] = value end
+				state.spec.bars = { { "Lightning Shield", 136048, { 600, 420 } }, { "Strength of Earth Totem", 136023, { 120, 80 } } }
+			end
 		end
 		return Lumen.Build("questing", {
 			class = "SHAMAN",

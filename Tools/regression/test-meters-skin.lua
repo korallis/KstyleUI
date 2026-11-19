@@ -200,7 +200,7 @@ for _, call in ipairs(pill._calls) do
 		points[call.args[1]] = call.args[2]
 	end
 end
-assert(points.LEFT == holder and points.RIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width and shares the nameplate health height")
+assert(points.TOPLEFT == holder and points.TOPRIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width and shares the nameplate health height")
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")

@@ -268,7 +268,7 @@ do
 	KR.Layout.Update("meters.damage", { height = 208 })
 	envR.RunTimers()
 	local raid = nsR.Damage.list
-	assert(raid.capacity == 5, "the default card holds five rows: " .. tostring(raid.capacity))
+	assert(raid.capacity == 5, "the resized card holds five rows: " .. tostring(raid.capacity))
 	local function Names()
 		local out = {}
 		for i = 1, raid.count do

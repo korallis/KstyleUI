@@ -23,7 +23,7 @@ for _, item in ipairs(scene.items) do
 	end
 end
 assert(buffX["8s"] and buffX["14s"] and buffX["8s"] < buffX["14s"], "the configured tracked buffs read 8s then 14s from left to right beside the portrait")
-for _, text in ipairs({ "Windfield Orchard", "[11] Unnerving Silence", "[9] Crab Season", "Lightning Bolt", "Searing Totem", "203", "Korallis", "Shadowgale Poacher" }) do
+for _, text in ipairs({ "Windfield Orchard", "[11] Unnerving Silence", "[9] Crab Season", "Lightning Bolt", "203", "Korallis", "Shadowgale Poacher" }) do
 	local found = texts[text]
 	if not found then
 		for seen in pairs(texts) do

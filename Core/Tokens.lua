@@ -145,7 +145,6 @@ local COLORS = {
 }
 
 local SIZES = {
-	barHeight = 12,
 	plateNameSize = 16,
 	medallionsPlateNameSize = 11,
 	radius = 14,

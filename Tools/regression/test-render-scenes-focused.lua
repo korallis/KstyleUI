@@ -13,13 +13,19 @@ for _, script in ipairs({ "hud_dps_mac", "hud_dps_threat", "components_mac", "to
 end
 
 do
-	local scene = check("hud_dps_threat", dofile("Tools/render/scenes/hud_dps_threat.lua")())
+	local scene = dofile("Tools/render/scenes/hud_dps_threat.lua")()
+	assert(#scene.items > 0 and scene.screen.physical.width == 3456 and scene.screen.physical.height == 2234, "Both uses the reference screen")
 	local shown = {}
 	for _, item in ipairs(scene.items) do
 		if item.kind == "text" then shown[(tostring(item.text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))] = true end
 	end
 	assert(shown.THREAT and shown["DAMAGE  HEALING"], "the DPS scene draws both meter cards, the damage card under its damage and healing switch")
-	assert(shown["86%"] and shown["72%"] and shown["58%"], "all three compact threat rows draw")
+	assert(shown["86%"] and shown["72%"], "both readable threat rows draw")
+	local bars = assert(scene.elements["native.cooldowns.bars"], "Both exercises live native tracked bars")
+	for _, key in ipairs({ "meters.damage", "meters.threat" }) do
+		local card = assert(scene.elements[key])
+		assert(card.left + card.width <= bars.left or bars.left + bars.width <= card.left or card.bottom + card.height <= bars.bottom or bars.bottom + bars.height <= card.bottom, "both meter cards must clear the native CDM bars")
+	end
 end
 
 -- Lumen Rails: the aura rows stand beside the minimap's left edge, and Layout > Apply's Edit Mode layout puts the

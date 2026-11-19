@@ -52,7 +52,7 @@ local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 208, 22, 14, 3
 local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.6, 3.5, 10, 14, 8, 11.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
-local DAMAGE_W, DAMAGE_H = 269, 158
+local DAMAGE_W, DAMAGE_H = 248, 158
 local THREAT_W, THREAT_H = DAMAGE_W, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
@@ -168,8 +168,8 @@ local DPS = {
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME), y = -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = STORY_BOTTOM - DAMAGE_H - GAP },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = STORY_BOTTOM - THREAT_H - GAP },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + STORY_W + GAP), y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -438,8 +438,8 @@ local ORBS = {
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(784 + DAMAGE_W + GAP), y = 720 + DAMAGE_H - THREAT_H },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -784, y = 720 },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 }
 local STORY_STYLES = {
 	orbs = {
@@ -1031,8 +1031,8 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
-			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = CLUSTER_TOP - THREAT_H },
-			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = CLUSTER_TOP - THREAT_H },
+			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -592, y = 432 },
+			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(592 + DAMAGE_W + GAP), y = 432 + DAMAGE_H - THREAT_H },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
@@ -1396,6 +1396,10 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	local layout = positions or Layouts.Positions(name, style or "frames", class)
 	if not layout then
 		return nil
+	end
+	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
+		local damage = layout["meters.damage"]
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y + DAMAGE_H - THREAT_H }
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	for i, element in ipairs(ELEMENTS) do

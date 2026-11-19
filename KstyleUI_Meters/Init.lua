@@ -27,7 +27,11 @@ function ns.Place(frame, key, limits)
 		ns.LogOnce("noLayout:" .. key, key .. " stays where it was built: the Layout service is missing")
 		return
 	end
-	local _, _, label = ns.Footprint(key)
+	local width, _, label = ns.Footprint(key)
+	local saved = K.Store.Layout()[key]
+	if key == "meters.damage" and saved and saved.width == 269 and saved.height == 158 and not (saved.anchor or saved.x or saved.y) then
+		saved.width = width
+	end
 	K.Layout.Register(frame, key, layouts.Default(key), {
 		label = label or key,
 		module = ns.MODULE,

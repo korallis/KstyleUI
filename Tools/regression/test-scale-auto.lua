@@ -22,6 +22,7 @@ local function New(width, height, opts)
 		profile[element.module] = profile[element.module] or {}
 		profile[element.module].enabled = true
 	end
+	profile.Meters.followRole = true
 	K.Callbacks.Fire("ModuleChanged")
 	return env, K
 end
@@ -41,7 +42,6 @@ end
 -- Auto picks, per screen, the sixteenth-of-a-pixel step nearest the KSTY-44 mock-ups' size (one unit per mock-up pixel at
 -- 1080 lines, Scale.MOCKUP_SIZE) that fits the active HUD style (KSTY-60 item 2, the Captain's ruling of 2026-11-13).
 -- In Frames the boss column caps every screen at 0.995, so 1080 lines take 15/16 and 2160 lines 31/16.
--- The paired meter area reserves more space under the story on 3:2 screens.
 -- Orbs reaches at least Frames' step on the seven screens of the matrix and on 1366x768 (KSTY-60 item 2, the Captain's
 -- ruling of 2026-11-13), and on 3840x1080 one step more, the mock-ups' own size; on 3:2 screens the left aura row meets
 -- the loot feed a step earlier (three in Healer, where its raid meets the target), a recorded limit.
@@ -49,7 +49,7 @@ local SAME = { "5120x1440", "3440x1440", "3840x1080", "2560x1440", "1920x1080", 
 local WANT = {
 	frames = {
 		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 15 / 16, ["1920x1080"] = 15 / 16,
-		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 19 / 16, ["3456x2234"] = 28 / 16,
+		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 21 / 16, ["3456x2234"] = 30 / 16,
 	},
 	orbs = {
 		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 16 / 16, ["1920x1080"] = 15 / 16,

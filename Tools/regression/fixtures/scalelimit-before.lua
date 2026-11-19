@@ -168,7 +168,7 @@ local DPS = {
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = STORY_BOTTOM - THREAT_H - GAP },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + STORY_W + GAP), y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -1177,6 +1177,10 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	end
 	local pixelScale = physicalHeight / rootHeight
 	enabled = enabled or Layouts.Enabled(name)
+	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
+		local damage = layout["meters.damage"]
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - 248 - GAP, y = damage.y + 158 - 112 }
+	end
 	local rects = {}
 	local story = Layouts.Story(name, rootHeight, true, style, physicalWidth / pixelScale)
 	local cards = { story.guide, story.quests }

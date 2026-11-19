@@ -8,7 +8,7 @@ Options > Profiles also enables **Use a profile per specialization** by default.
 
 Regression evidence: `test-meters-role.lua` and `test-specialization.lua`. `meters_role` renders the real party meter; `RENDER_ROLE=TANK` shows threat and `RENDER_ROLE=DAMAGER` shows damage.
 
-**Meter while dealing damage** defaults to Damage. Both puts threat next to damage at the same width, with full class colours; the manual Show switches produce the same pair. A custom threat position stays independent. The Frames and Medallions meter areas sit below the story cards and clear of the right-side buttons. Orbs places the pair below the target header, clear of the cooldowns and group frames. `test-meters-both.lua` covers every style and layout at 1920x1080, 2560x1440, 5120x1440 Spread and 3840x2160; `hud_dps_threat` renders that state.
+**Meter while dealing damage** defaults to Damage. Both puts threat next to damage at the same width, with full class colours; the manual Show switches produce the same pair. A custom threat position stays independent. Default cards are 248 units wide so the pair clears the stance and orb areas. Frames and Orbs keep the pair at the right rail foot; Medallions seats it left of the story cards. The 248-unit default width leaves the stance and orb areas clear. Existing untouched 269-by-158 default damage sizes follow the new width; custom positions and sizes remain independent. `test-meters-both.lua` covers every style and layout at 1920x1080, 2560x1440, 5120x1440 Spread and 3840x2160; `hud_dps_threat` renders that state.
 
 | Field | Value |
 | --- | --- |
@@ -45,7 +45,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Threat.lua` | The threat meter |
 | `DamageSkin.lua` | The restyle of Blizzard's Damage Meter windows and their spell breakdown windows |
 | `Damage.lua` | The damage meter window, its fight segments and spell lists, and the choice between it and the restyle |
-| `Preview.lua` | The settings window's live preview; in a pane too narrow for two meters side by side (under 240 units each) the damage sample sits over the threat sample |
+| `Preview.lua` | The settings window's live preview; in a pane too narrow for two meters side by side (under 248 units each) the damage sample sits over the threat sample |
 | `Meters.lua` | The module's registration, `Enable` and `Disable`, and one event dispatcher the three parts share |
 
 Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test-meters-swing.lua`, `test-meters-swing-truth.lua` (each client event sequence against Blizzard's own timer), `test-meters-threat.lua`, `test-meters-threat-truth.lua`, `test-meters-damage.lua`, `test-meters-skin.lua`, `test-meters-drill.lua`, `test-meters-fights.lua`, `test-meters-fit.lua`, `test-meters-hover-side.lua`, `test-meters-card.lua` (the picture's card), `test-meters-group.lua` (a party of five and a raid of twenty) `test-meters-preview.lua` and `test-meters-preview-pane.lua` (the sample in the settings window's own pane draws no text truncated, at 1080, 1440 and 2160 lines). `Tools/tests/test_spell_schools.py` checks that the school table is current. `Tools/regression/meters_env.lua` loads the core and the module with stand-ins for the swing, threat and Damage Meter APIs.
@@ -54,8 +54,8 @@ Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test
 
 | Key | Element | Footprint | Size limits |
 | --- | --- | --- | --- |
-| `meters.damage` | Damage meter | 269 x 158 | 120 to 600 wide, 40 to 800 tall |
-| `meters.threat` | Threat meter | 269 x 112 | 120 to 600 wide, 40 to 800 tall |
+| `meters.damage` | Damage meter | 248 x 158 | 120 to 600 wide, 40 to 800 tall |
+| `meters.threat` | Threat meter | 248 x 112 | 120 to 600 wide, 40 to 800 tall |
 | `meters.swing` | Swing timer | 260 x 8 | 40 to 800 wide, 2 to 64 tall |
 
 Each element is a holder frame that Layout places, sizes and shows. The meter draws inside it on a child frame, so Layout and the module never show or hide the same frame. A meter switched off in the settings hides its holder too. The rows that fit follow the holder's height: a taller meter shows more rows. A row is never shorter than its text needs, and the rows counted and the rows drawn use the same snapped height.
@@ -93,7 +93,7 @@ Proved from the 70862 source (`~/.capy/work/wow-ui-source-70862`, the `forever` 
 
 The owner ruled on 2026-11-09 that where the picture contradicts an earlier decision the picture wins ("let the picture win its what i want", LEE-20). This replaces the spell list's look from #204 and #211 (the glass card titled by the source, a spell icon and a thin class-blue line under each row, and the Now Last All switch at rest). The settings stay; only their defaults changed.
 
-- **The card** is 269 by 158 units (the `meters.damage` element) in the kit's card chrome, which the Card material work restyles; the card never redraws its own corners, rim or shadow. It keeps the holder's whole height whatever the rows: a rail-foot card that hugged its rows would float off the screen margin.
+- **The card** is 248 by 158 units (the `meters.damage` element) in the kit's card chrome, which the Card material work restyles; the card never redraws its own corners, rim or shadow. It keeps the holder's whole height whatever the rows: a rail-foot card that hugged its rows would float off the screen margin.
 - **The cap** is the kit's section cap (`Widgets.RailCap`, the pattern the story card's `QUESTS` uses): a gem, the meter's name in the kit's `caps` role (Folio Caps in Folio, Cinzel Caps in Lumen; uppercase, the tracking built into the font, never thin spaces; `Widgets.SectionCap` sets it up) (`DAMAGE` for Damage done and Damage per second; the other meters keep their names), a gilt rule and the rate at the right end in the bold figure face in `textEmphasis` (`38.4 dps`; `hps` for the healing meters; nothing for the others). The caption is `capsGold`, the picture's card-caption gold. The cap follows the shared chrome inset and section-cap height. At rest the cap names the meter, never the source (alone, the card is your spell list; opened on a source in a group it is titled by that source).
 - **The fight switch** does not show at rest. It lives under the cap's right 120 units: hovering there shows `Now  Last  All`, a click steps to the next fight, and the `damage.session` setting and the right-click on the title are as before.
 - **The share** follows the amount with the middle dot as its own piece. The ink gap is 5/21 of the font (5 px against the 21 px the 12-unit number face draws on the 3456 by 2234 reference screen), snapped to the panel's pixel and never under one pixel, so a larger font and a smaller screen keep the proportion. The drawn face's side bearings are taken out of that gap, so a trailing 1 does not open a wider hole than a trailing 4. They come from the font files: `Tools/media/make_bearings.py` writes `Bearings.lua` for every face in `Media/Fonts`, and `Tools/tests/test_make_bearings.py` fails when a rebuilt font leaves it stale. Folio's PT Serif Bold, Lumen's Alegreya Sans ExtraBold, a face picked for the `number` role and a bundled face chosen for the meter each use their own. A face KstyleUI does not ship (a LibSharedMedia font) has no table and uses the default bearing. A path the client hands back in another spelling finds the same file. A share that cannot be worked out leaves no dot.

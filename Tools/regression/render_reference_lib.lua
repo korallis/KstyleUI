@@ -71,7 +71,7 @@ return function(preset, built)
 		end
 	end
 	assert(counts == 3, preset .. " checks all three objective counts")
-	for _, text in ipairs({ "45s", "7s", "9s", "8s", "14s", "Lightning Bolt", "Searing Totem", "203", "Korallis", "Shadowgale Poacher", "[11] Unnerving Silence", "[9] Crab Season", "You receive loot:" }) do
+	for _, text in ipairs({ "45s", "7s", "9s", "8s", "14s", "Lightning Bolt", "203", "Korallis", "Shadowgale Poacher", "[11] Unnerving Silence", "[9] Crab Season", "You receive loot:" }) do
 		local found = false
 		for drawn in pairs(seen) do
 			found = found or drawn:lower():find(text:lower(), 1, true) ~= nil
