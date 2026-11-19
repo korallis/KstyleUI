@@ -641,7 +641,7 @@ CastRows = function(schema, kind)
 		end,
 	})
 	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = "castbarOrientation", label = L["Cast bar fill direction"],
+		type = "dropdown", key = "castbarOrientation", label = L["Fill direction"],
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
@@ -748,7 +748,7 @@ ResourceRows = function(schema)
 		end,
 	})
 	schema[#schema + 1] = {
-		type = "dropdown", key = "resource.manaOrientation", label = L["Mana bar fill direction"], showWhen = shows(on),
+		type = "dropdown", key = "resource.manaOrientation", label = L["Fill direction"], showWhen = shows(on),
 		help = L["Which way the druid mana bar fills."], options = CHOICES.orientation,
 	}
 	for i = first, #schema do

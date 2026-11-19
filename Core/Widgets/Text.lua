@@ -30,6 +30,7 @@ end
 
 function W.BarRows(schema, key, opts)
 	local function add(row)
+		row.help = opts.help and opts.help[row.key] or row.help
 		row.key = (key ~= "" and key .. "." or "") .. (opts.keys and opts.keys[row.key] or row.key)
 		row.disableWhen = opts.disableWhen
 		schema[#schema + 1] = opts.row and opts.row(row) or row
@@ -46,7 +47,7 @@ function W.BarRows(schema, key, opts)
 	local h = opts.height
 	if h then
 		add({ type = "slider", key = h.key or "height", label = L["Bar height"], min = h[1], max = h[2], step = h[3],
-			showWhen = h.showWhen, help = L["The height of each bar."] })
+			help = L["The height of each bar, in interface units."] })
 	end
 end
 

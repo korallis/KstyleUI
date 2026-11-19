@@ -284,6 +284,7 @@ function Settings.Schema()
 	}
 	append(rest)
 	K.Widgets.BarRows(schema, "cast", { options = ACCENT_SOURCES, custom = Is("cast.colorSource", "custom"),
+		help = { color = L["The colour of casts you can interrupt."] },
 		disableWhen = Off("cast.enabled"), height = { 6, 24, 1 } })
 	rest = {
 		{

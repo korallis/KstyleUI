@@ -21,7 +21,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local key = spec[i]
 			local row = assert(K.Options.Row(spec[1], key), "keep the existing bar key " .. key)
 			local labels = { "Bar texture", "Bar colour", "Custom bar colour", "Bar height" }
-			assert(row.label == K.L[labels[i - 2]], "use the same bar labels in every module")
+			local label = spec[1] == "GroupFrames" and i == 6 and "Power bar height" or labels[i - 2]
+			assert(row.label == K.L[label], "use the same bar labels unless the section needs the bar named")
 			assert(K.Options.Equal(K.Options.Read(spec[1], key), K.Options.Default(spec[1], key)), "absent keys retain today's default")
 			local value = i == 3 and K.Tokens.Texture("barGlass") or i == 4 and "custom"
 				or i == 5 and { r = 0.2, g = 0.4, b = 0.6 } or row.max
@@ -34,9 +35,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		K.Options.Write(spec[1], spec[4], source.options[1].value)
 		assert(not custom.showWhen(K.Store.Module(spec[1])), "hide the colour picker for another colour source")
 		if spec[1] == "Nameplates" then
+			assert(custom.help == K.L["The colour of casts you can interrupt."], "cast colour help must identify interruptible casts")
 			K.Options.Write(spec[1], "cast.enabled", false)
 			assert(source.disableWhen(K.Store.Module(spec[1])), "off disables the plate's cast bar options")
 		elseif spec[1] == "GroupFrames" then
+			assert(K.Options.Row(spec[1], "health.texture").help == K.L["The texture of the health and power bars."], "group texture help must name both bars it paints")
 			K.Options.Write(spec[1], "party.power", false)
 			assert(not K.Options.Row(spec[1], "party.powerHeight").showWhen(K.Store.Module(spec[1])), "off hides power height")
 		elseif spec[1] == "UnitFrames" then
