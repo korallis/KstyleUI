@@ -19,6 +19,7 @@ local VALUE_TYPES = {
 	texture = "string",
 	text = "string",
 	pictures = "choice",
+	order = "table",
 }
 local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen = true, scope = true }
 local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
@@ -31,6 +32,7 @@ local EXTRA_FIELDS = {
 	color = { hasAlpha = true },
 	text = { maxLetters = true },
 	pictures = { options = true },
+	order = { options = true },
 }
 
 local schemas, index, order = {}, {}, {}
@@ -121,6 +123,33 @@ local function checkScope(module, scope, defaults)
 	end
 end
 
+local function checkOrder(row, value)
+	if type(row.options) ~= "table" or #row.options == 0 then
+		return "an order row needs options: a list of { value, label, rows }"
+	end
+	local ids = {}
+	for _, option in ipairs(row.options) do
+		if type(option) ~= "table" or type(option.value) ~= "string" or option.value == "" or ids[option.value]
+			or type(option.label) ~= "string" or option.label == "" then
+			return "order options need unique string values and labels"
+		end
+		ids[option.value] = true
+		if option.rows ~= nil and type(option.rows) ~= "table" then return "order option rows must be a list of rows" end
+	end
+	if type(value) ~= "table" then return "an order value must be a list of { id, shown, zone }" end
+	local count = 0
+	for _ in pairs(value) do count = count + 1 end
+	if count ~= #row.options then return "an order value must include every option once" end
+	for _, entry in ipairs(value) do
+		if type(entry) ~= "table" or not ids[entry.id] or type(entry.shown) ~= "boolean"
+			or (entry.zone ~= "left" and entry.zone ~= "centre" and entry.zone ~= "right") then
+			return "order entries need a unique option id, boolean shown and zone left, centre or right"
+		end
+		ids[entry.id] = nil
+	end
+	if next(ids) then return "an order value must be a list with no gaps" end
+end
+
 local function checkRow(module, row, defaults)
 	if type(row) ~= "table" then
 		return "is not a table"
@@ -200,6 +229,8 @@ local function checkRow(module, row, defaults)
 		if painted < row.min or painted > row.max then
 			return (row.shown and "the painted default " or "the default ") .. painted .. " is outside the slider's range"
 		end
+	elseif rowType == "order" then
+		return checkOrder(row, default)
 	elseif rowType == "dropdown" then
 		return checkDropdown(row, default)
 	elseif rowType == "segmented" then
@@ -229,17 +260,7 @@ local function checkRow(module, row, defaults)
 	end
 end
 
-function Options.Register(module, schema)
-	if type(module) ~= "string" or module == "" then
-		error("KstyleUI.Options.Register: module must be a name, got " .. tostring(module), 2)
-	end
-	if schemas[module] then
-		error("KstyleUI.Options.Register: " .. module .. " is already registered", 2)
-	end
-	local defaults = ns.Store.Defaults(module)
-	if not defaults then
-		error("KstyleUI.Options.Register: register " .. module .. "'s defaults first, with Modules.Register or Store.RegisterDefaults", 2)
-	end
+local function checkSchema(module, schema, defaults)
 	if type(schema) ~= "table" then
 		error("KstyleUI.Options.Register(" .. module .. "): the schema must be a list of rows", 2)
 	end
@@ -257,7 +278,7 @@ function Options.Register(module, schema)
 		error("KstyleUI.Options.Register(" .. module .. "): the schema must be a list of rows with no gaps", 2)
 	end
 	local byKey = {}
-	for i, row in ipairs(schema) do
+	local function registerRow(row, i)
 		local problem = checkRow(module, row, defaults)
 		if not problem and row.type ~= "header" and row.type ~= "note" then
 			if byKey[row.key] then
@@ -270,22 +291,51 @@ function Options.Register(module, schema)
 			local key = type(row) == "table" and type(row.key) == "string" and (" (" .. row.key .. ")") or ""
 			error(format("KstyleUI.Options.Register(%s): row %d%s: %s", module, i, key, problem), 2)
 		end
+		if row.type == "order" then
+			for _, option in ipairs(row.options) do
+				for _, child in ipairs(option.rows or {}) do registerRow(child, i) end
+			end
+		end
+	end
+	for i, row in ipairs(schema) do registerRow(row, i) end
+	return byKey
+end
+
+function Options.Register(module, schema)
+	if type(module) ~= "string" or module == "" then
+		error("KstyleUI.Options.Register: module must be a name, got " .. tostring(module), 2)
+	end
+	if schemas[module] then
+		error("KstyleUI.Options.Register: " .. module .. " is already registered", 2)
+	end
+	local defaults = ns.Store.Defaults(module)
+	if not defaults then
+		error("KstyleUI.Options.Register: register " .. module .. "'s defaults first, with Modules.Register or Store.RegisterDefaults", 2)
+	end
+	if type(schema) ~= "function" then
+		index[module] = checkSchema(module, schema, defaults)
 	end
 	schemas[module] = schema
-	index[module] = byKey
 	order[#order + 1] = module
 end
 
 function Options.Get(module)
-	return schemas[module]
+	local schema = schemas[module]
+	if type(schema) == "function" then
+		schema = schema()
+		index[module] = checkSchema(module, schema, ns.Store.Defaults(module))
+		schemas[module] = schema
+	end
+	return schema
 end
 
 function Options.Preview(module)
-	local schema = schemas[module]
+	local schema = Options.Get(module)
 	return schema and schema.preview
 end
 
 function Options.Row(module, key)
+	Options.Get(module)
 	local rows = index[module]
 	return rows and rows[key]
 end
@@ -353,6 +403,11 @@ function Options.Write(module, key, value)
 	local parts, default = locate("Write", module, key)
 	if type(value) ~= type(default) then
 		error("KstyleUI.Options.Write: " .. module .. "." .. key .. " must be a " .. type(default) .. ", got " .. type(value), 2)
+	end
+	local row = Options.Row(module, key)
+	if row and row.type == "order" then
+		local problem = checkOrder(row, value)
+		if problem then error("KstyleUI.Options.Write: " .. problem, 2) end
 	end
 	if key == "enabled" and ns.Features.modules[module] ~= nil then
 		if value then

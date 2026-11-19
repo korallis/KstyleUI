@@ -251,12 +251,61 @@ Model.Copy = Copy
 
 local FIELDS = { "min", "max", "step", "shown", "options", "hasAlpha", "maxLetters", "scope" }
 
+local function OrderItems(item, row)
+	local out, options = {}, {}
+	for _, option in ipairs(row.options) do options[option.value] = option end
+	for _, value in ipairs(item.get() or {}) do
+		local id, option = value.id, options[value.id]
+		if option then
+			local entry = {}
+			for field, current in pairs(item) do entry[field] = current end
+			entry.label, entry.help, entry.entry = option.label, nil, id
+			local function locate(list)
+				for i, current in ipairs(list) do if current.id == id then return i end end
+			end
+			entry.get = function()
+				local list = item.get()
+				local at = locate(list)
+				return at and list[at]
+			end
+			entry.set = function(patch)
+				local list = Copy(item.get())
+				local at = locate(list)
+				if not at then return end
+				for field, changed in pairs(patch) do list[at][field] = changed end
+				item.set(list)
+			end
+			entry.position = function()
+				local list = item.get()
+				return locate(list), #list
+			end
+			entry.move = function(delta)
+				local list = Copy(item.get())
+				local at = locate(list)
+				if not at or at + delta < 1 or at + delta > #list then return end
+				list[at], list[at + delta] = list[at + delta], list[at]
+				item.set(list)
+			end
+			out[#out + 1] = entry
+			for _, child in ipairs(Model.SchemaItems(item.module, option.rows, item.page)) do
+				local showWhen = child.showWhen
+				child.showWhen = function(settings)
+					local current = entry.get()
+					return Model.IsShown(entry) and current and current.shown and (not showWhen or showWhen(settings))
+				end
+				out[#out + 1] = child
+			end
+		end
+	end
+	return out
+end
+
 function Model.SchemaItems(module, schema, page)
 	local items = {}
 	local function settings()
 		return K.Store.Module(module)
 	end
-	for i, row in ipairs(schema or {}) do
+	for _, row in ipairs(schema or {}) do
 		local item = {
 			kind = row.type, label = row.label, help = row.help, page = page, module = module, key = row.key,
 			showWhen = row.showWhen, disableWhen = row.disableWhen, settings = settings,
@@ -273,7 +322,11 @@ function Model.SchemaItems(module, schema, page)
 				K.Options.Write(module, key, value)
 			end
 		end
-		items[i] = item
+		if row.type == "order" then
+			for _, entry in ipairs(OrderItems(item, row)) do items[#items + 1] = entry end
+		else
+			items[#items + 1] = item
+		end
 	end
 	return items
 end
@@ -285,6 +338,9 @@ function Model.ResetSchema(module, schema)
 	end
 	local count = 0
 	for _, row in ipairs(schema or {}) do
+		if row.type == "order" then
+			for _, option in ipairs(row.options) do count = count + Model.ResetSchema(module, option.rows) end
+		end
 		if row.key and row.key ~= "enabled" then
 			local default = Model.Lookup(defaults, row.key)
 			if default ~= nil then

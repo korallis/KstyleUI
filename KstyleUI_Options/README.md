@@ -63,7 +63,7 @@ Every element gets the same rows, with no module code: **Shown** (from `Layout.S
 
 ### Schema rows
 
-Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so every change fires `SettingChanged`.
+Each schema row becomes a row bound to `Options.Read` and `Options.Write`, so every change fires `SettingChanged`. An `order` row expands into one row per entry.
 
 | Row | Control |
 | --- | --- |
@@ -71,6 +71,7 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 | `toggle` | `Widgets.Toggle` |
 | `slider` | `Widgets.Slider` with the row's `min`, `max` and `step`; a row with `shown` paints `shown(stored)` instead of the stored value |
 | `dropdown` | `Widgets.Dropdown`. A stored value that no option holds is listed under its raw value, so it still shows. |
+| `order` | One row per ordered entry, with a toggle, Left / Centre / Right dropdown and up/down buttons built from the kit. The end buttons are disabled; moving past either end does nothing. |
 | `segmented` | `Widgets.Tabs` at the control width: one tab per option, the stored value's tab underlined. For a short list of choices that should all show at once, such as the Widgets **Ornaments** level (Off, Subtle, Full). A disabled row disables every tab. |
 | `pictures` | Up to three picture cards, as many to a row as keep each picture 200 units wide and the rest on a second row, at the control width on the button body, each its option's `picture` (a 2:1 texture) over its label; the stored value's card has the `accent` edge and its label in `textEmphasis`, a click saves that option. For a choice that reads best as a picture, such as the **HUD style** at the top of General (Frames or Orbs). A disabled row disables both cards. |
 | `color` | `Widgets.ColorSwatch` and the colour as `#RRGGBB`. Rows with `hasAlpha` keep the alpha. |
@@ -78,6 +79,10 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 | `text` | `Widgets.EditBox`. Enter saves; `maxLetters` limits the length. |
 
 `showWhen(settings)` and `disableWhen(settings)` get `Store.Module(module)`. A row whose `showWhen` is false is left out. A header whose `showWhen` is false hides its whole section, up to the next header of the same or a higher level. A header with no visible row under it is left out. A condition that raises an error counts as shown and enabled, and is logged once. Disabled rows grey their label, help and control.
+
+An `order` row's default and stored value are a complete ordered list of `{ id = "clock", shown = true, zone = "centre" }` records. Zones are `left`, `centre` and `right`. Its `options` list declares each id as `{ value = "clock", label = L["Clock"], rows = { ... } }`; values must be unique and each must appear once in the stored list. Optional `rows` are ordinary schema rows, with their own keys, help and conditions. They follow their entry as it moves and show only while it is switched on, with `showWhen` filtering them further. Reset includes these child settings. Entry names remain searchable while switched off, and the expanded rows use the same virtual list as other controls. Right-click resets the whole ordered setting, including order, visibility and zones.
+
+`Tools/render/scenes/options_order.lua` shows sample modules without changing the live DataBars schema. Render it through `Tools/render/shoot.sh options_order`; `RENDER_ORDER_BEFORE=1` shows the existing DataBars page for comparison.
 
 ### Search
 

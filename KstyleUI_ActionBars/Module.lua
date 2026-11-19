@@ -495,11 +495,13 @@ ns.Enable, ns.Disable = Enable, Disable
 
 K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
 
-local schema = ns.Schema()
-schema.preview = function(parent)
-	return ns.Preview(parent)
-end
-K.Options.Register(MODULE, schema)
+K.Options.Register(MODULE, function()
+	local schema = ns.Schema()
+	schema.preview = function(parent)
+		return ns.Preview(parent)
+	end
+	return schema
+end)
 
 K.DevTest.AddCheck("actionbars", function()
 	if not K.Modules.IsRunning(MODULE) then
