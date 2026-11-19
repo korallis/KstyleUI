@@ -4,7 +4,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
-for _, screen in ipairs({ { 5120, 1440 }, { 1920, 1080 }, { 3456, 2234 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 3456, 2234 } }) do
 	local rxp
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2],
