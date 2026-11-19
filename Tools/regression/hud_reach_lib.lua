@@ -19,8 +19,8 @@ Reach.screens = {
     {1920,1200}, {2043,855}, {4236,1495}, {2266,1000}, {3247,1359},
 }
 
-function Reach.New(width, height, style, layout)
-	return Suite.New(nil, width or 1920, height or 1080, function(e)
+function Reach.New(width, height, style, layout, saved)
+	return Suite.New(saved, width or 1920, height or 1080, function(e)
 		e.SetQuiet(true)
 		e.UnitCastingInfo=function(unit)
 			if unit=="player" or unit=="target" or unit=="focus" or unit:match("^boss") then return "Fireball","Fireball",135813,0,30000,false,"Cast-1",false,133,1 end
@@ -59,6 +59,8 @@ function Reach.New(width, height, style, layout)
 			e._units[unit] = {name=unit=="focustarget" and "ToF" or unit=="targettarget" and "ToT" or unit, class="WARRIOR", reaction=2, hostile=true, exists=true, health=3000, maxHealth=4000, power=60, maxPower=100, level=60}
 		end
 		Group.SetRoster(e,"raid",Group.Members(40,function(i,m) m.name="M" .. i end),{name="Tester",class="HUNTER",health=3000,maxHealth=4000,power=60,maxPower=100,level=60},true)
+		e._units.target.auras = {}
+		for i=1,7 do e._units.target.auras[i]={id=i,icon=135813,left=i*3,harmful=true,mine=true} end
 		e._target = true
 		e._threat.player = {false,1,60,50,600000}
 		for i=1,5 do
@@ -67,6 +69,7 @@ function Reach.New(width, height, style, layout)
 		end
 		e._session.maxAmount,e._session.totalAmount,e._session.durationSeconds=3000,14000,30
 	end, function(_, K)
+		if saved then return end
 		K.Setup.EditMode.CountTracked(function(group) return group=="buffs" and 6 or group=="bars" and 2 or 12 end)
 		local choice=K.Setup.NewChoice()
 		choice.hudStyle,choice.layout=style or "frames",layout or "DPS"
@@ -82,6 +85,15 @@ function Reach.New(width, height, style, layout)
 end
 
 function Reach.Populate(env)
+	local fan=env._addons.KstyleUI_UnitFrames.Frames.Get("target").views[1].auras.fan
+	if fan and fan.enabled then
+		for _,container in ipairs(fan.containers) do
+			Auras.Assign(env,container,"debuffs",7)
+			local group=container._groups.debuffs
+			Hud.PlaceAuras(container,group,group.active,7)
+			for i,button in ipairs(group.active) do button._aura.icon:SetTexture(env.Secret(135813)); button._aura.timer:SetText(i*3 .. "s") end
+		end
+	end
 	for _,unit in ipairs({"player","target","focus","boss1","boss2","boss3","boss4","boss5"}) do env.FireEvent("UNIT_SPELLCAST_START",unit,"Cast-1",133) end
 	env.KstyleUI.Motion.Settle()
 	for _,kind in ipairs({"player","target"}) do
@@ -187,7 +199,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							assert(#env._errors == 0 and K.ErrorCount() == 0, label .. ": fixture errors: " .. tostring(env._errors[1]))
 							local owners, groups = {}, {}
 							for _, element in ipairs(K.Layout.Elements()) do
-								if K.Setup.Layouts.Element(element.key) or element.key=="skins.guide" or element.key=="skins.quests" then
+								if K.Setup.Layouts.Element(element.key) or element.key=="skins.guide" or element.key=="skins.quests" or element.key=="unitframes.crestDebuffs" then
 									owners[K.Layout.Element(element.key).frame] = element.key
 								end
 							end
@@ -333,7 +345,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 		K.Options.Write("Layout","arrangement","centred")
 		env.RunTimers()
 		K.Options.Write("HudStyle","style","frames")
-		for _,key in ipairs({"chat.main","minimap.main"}) do
+		for _,key in ipairs({"chat.main","minimap.main","unitframes.player","unitframes.target"}) do
 			assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
 			env.RunTimers()
 			local left,bottom=K.Layout.Rect(key)
@@ -357,6 +369,64 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	end
 	assert(next(failures)==nil, "HUD reach failed; move the named defaults, preserve custom positions, and rerun test-hud-reach.lua")
 	print("HUD reach ok: " .. checked .. " style/layout/arrangement/screen combinations")
+end
+
+function Reach.SavedColumns(style, index, arrangement)
+	local Core = dofile("Tools/regression/core_env.lua")
+	local screen = Reach.screens[index]
+	local env, K = Reach.New(screen[1], screen[2], style, "DPS")
+	K.Options.Write("Layout", "arrangement", arrangement or "centred")
+	K.Options.Write("Appearance", "uiScale", 0.6)
+	for _, key in ipairs({"unitframes.player", "unitframes.target"}) do
+		assert(K.Layout.Update(key, {anchor="BOTTOMLEFT", x=-5000, y=-5000}, true))
+	end
+	env.RunTimers()
+	env.FireEvent("PLAYER_LOGOUT")
+	local saved = Core.DeepCopy(env.KstyleUIDB)
+	local before = Core.DeepCopy(K.Store.Layout())
+	env, K = Reach.New(screen[1], screen[2], style, "DPS", saved)
+	assert(Core.DeepEqual(K.Store.Layout(), before), "loading off-screen columns must not rewrite saved positions")
+	K.Setup.EditMode.Write("DPS", K.Setup.Story("DPS", false), true)
+	Reach.Populate(env)
+	local scene = Scene.Build(env, {paths=function(path) return type(path)=="string" and path or nil end})
+	local frames = {}
+	for _, key in ipairs({"unitframes.player", "unitframes.target"}) do frames[K.Layout.Element(key).frame]=key end
+	if style=="orbs" then for _,kind in ipairs({"health","power"}) do frames[env._addons.KstyleUI_UnitFrames.Orbs.Get(kind)]="unitframes.player" end end
+	local columns = { ["unitframes.player"]={items={},screen=scene.screen}, ["unitframes.target"]={items={},screen=scene.screen} }
+	local scale, pixel = K.Scale.AppliedUserScale(), 1080 / screen[2]
+	local margin, width = K.Tokens.Size("screenMargin") * scale, screen[1] * 1080 / screen[2]
+	for _, item in ipairs(scene.items) do
+		local object = item.object
+		while object and not frames[object] do object=object._parent end
+		if object then table.insert(columns[frames[object]].items,item) end
+		local file = item.file or item.path or ""
+		if object and not file:find("Shadow",1,true) and not file:find("Glow.png",1,true) and not file:find("PortraitSheen.png",1,true) then
+			local r=item.rect
+			assert(r[1]>=margin-pixel and r[2]>=margin-pixel and r[1]+r[3]<=width-margin+pixel and r[2]+r[4]<=1080-margin+pixel, style .. ": clamp full column art inside the physical screen margin without changing Store: " .. (item.text or item.file or item.kind) .. " " .. table.concat(r,","))
+		end
+	end
+	for _,column in pairs(columns) do
+		local findings=Guard.Check(column)
+		assert(#findings==0, "saved columns must still pass the render guard: " .. table.concat(Guard.Lines(findings,{},{},"strict"),"\n"))
+	end
+	assert(Core.DeepEqual(K.Store.Layout(), before), "relayout must leave saved column positions unchanged")
+	pixel = K.Scale.Pixel(1)
+	local x = K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel
+	local y = 400*pixel
+	for _,key in ipairs({"unitframes.player","unitframes.target"}) do assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=x,y=y},true)) end
+	env.RunTimers()
+	env.FireEvent("PLAYER_LOGOUT")
+	saved, before = Core.DeepCopy(env.KstyleUIDB), Core.DeepCopy(K.Store.Layout())
+	env, K = Reach.New(screen[1],screen[2],style,"DPS",saved)
+	assert(Core.DeepEqual(K.Store.Layout(),before),"loading valid saved columns must preserve Store")
+	for _,key in ipairs({"unitframes.player","unitframes.target"}) do
+		local left,bottom=K.Layout.Rect(key)
+		assert(math.abs(left-x)<1e-8 and math.abs(bottom-y)<1e-8,"valid saved columns must move zero pixels after load")
+		local rect={Scene.Rect(env,K.Layout.Element(key).frame)}
+		local rootX=Scene.Rect(env,K.Scale.Root())
+		assert(math.abs(rect[1]-rootX-x*K.Scale.AppliedUserScale())<1e-8 and math.abs(1080-rect[2]-rect[4]-y*K.Scale.AppliedUserScale())<1e-8,"valid saved columns must draw at exactly their stored position")
+	end
+	print("saved columns ok: " .. style .. " " .. screen[1] .. "x" .. screen[2] .. " " .. (arrangement or "centred"))
 end
 
 return Reach

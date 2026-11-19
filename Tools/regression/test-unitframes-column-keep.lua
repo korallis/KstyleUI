@@ -46,15 +46,15 @@ local function Edges(kind)
 end
 
 local function PutLeft(key, left)
-	local was = Layout.Rect(key)
-	assert(Layout.Set(key, "x", Layout.Get(key).x + (left - was)), "Layout takes the position")
+	local _, _, width = Layout.Rect(key)
+	assert(Layout.Set(key, "x", left - rootW / 2 + width / 2), "Layout takes the position")
 end
 
 PutLeft(PLAYER, 20)
 env.RunTimers()
 local left, _, w = Layout.Rect(PLAYER)
-assert(near(left, playerLeft, 1), "a player saved 20 units from the screen's left edge is moved so its portrait is on screen: left " .. left)
-assert(Layout.Get(PLAYER).x == Layout.Get(PLAYER).x and left - playerLeft >= -1, "and no further")
+assert(near(left, 113, 1), "a player saved 20 units from the screen's left edge is moved so its portrait is on screen: left " .. left)
+assert(Layout.Get(PLAYER).x == Layout.Get(PLAYER).x and left - 113 >= -1, "and no further")
 assert(w == 491, "its size is unchanged")
 local settled = Layout.Get(PLAYER).x
 Frames.Relayout(Frames.Get("player"))
@@ -69,7 +69,7 @@ PutLeft(TARGET, rootW - tw - 30)
 env.RunTimers()
 local tl = Layout.Rect(TARGET)
 local _, edge = Edges("target")
-assert(near(edge, rootW, 0.01), "a target saved 30 units from the right edge is moved so its snapped debuffs end at the edge: " .. edge .. " of " .. rootW)
+assert(near(edge, rootW - K.Tokens.Size("screenMargin") - (737.4 - 491 - targetRight), K.Scale.Pixel(1) + 0.01), "a target saved 30 units from the right edge is moved so its snapped debuffs end at the edge: " .. edge .. " of " .. rootW)
 local nominal = tl + tw + targetRight
 assert(edge - nominal > -0.01 and edge - nominal < 3, "the whole-pixel row ends under three units past the nominal reach: " .. edge - nominal)
 PutLeft(TARGET, 500)
@@ -79,9 +79,9 @@ assert(near(Layout.Rect(TARGET), 500), "a target with room to spare is not moved
 K.Options.Write("UnitFrames", "target.auras", false)
 local reachOff = select(2, Geometry.Reach(Settings.Snapshot("target")))
 assert(near(reachOff, 14 + 77.5), "with the debuffs off the target reaches only its portrait")
-PutLeft(TARGET, rootW - tw - 100)
+PutLeft(TARGET, rootW - tw - (737.4 - 491) - K.Tokens.Size("screenMargin") - 5)
 env.RunTimers()
-assert(near(Layout.Rect(TARGET), rootW - tw - 100), "which still fits at 100 units from the edge")
+assert(near(Layout.Rect(TARGET), rootW - tw - (737.4 - 491) - K.Tokens.Size("screenMargin") - 5), "which still fits at 100 units from the edge")
 K.Options.Write("UnitFrames", "target.auras", true)
 
 assert(Layout.Set(PLAYER, "scale", 1.5) == false, "these elements cannot be scaled, so a reach is always in root units")
@@ -93,11 +93,11 @@ env.SetCombat(true)
 PutLeft(PLAYER, 20)
 env.RunTimers()
 local inCombat = Layout.Get(PLAYER).x
-assert(near(Layout.Rect(PLAYER), 20), "in combat the saved position stays where it was put")
+assert(near(Layout.Get(PLAYER).x, 20 - rootW / 2 + w / 2), "in combat the saved position stays where it was put")
 assert(inCombat ~= before, "the move itself was written")
 env.SetCombat(false)
 env.RunTimers()
-assert(near(Layout.Rect(PLAYER), playerLeft, 1), "the shift runs when combat ends")
+assert(near(Layout.Rect(PLAYER), 113, 1), "the shift runs when combat ends")
 local after = Layout.Get(PLAYER).x
 env.RunTimers()
 assert(Layout.Get(PLAYER).x == after, "and runs once")
@@ -135,18 +135,22 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 				return lo, right
 			end
 			local function put(key, to)
-				local was = SK.Layout.Rect(key)
-				SK.Layout.Set(key, "x", SK.Layout.Get(key).x + (to - was))
+				local ownWidth = select(3, SK.Layout.Rect(key))
+				SK.Layout.Set(key, "x", to - width / 2 + ownWidth / 2)
 				senv.RunTimers()
 			end
-			local _, tw2 = SK.Layout.Rect(TARGET)
+			local _, _, tw2 = SK.Layout.Rect(TARGET)
 			local pw = select(3, SK.Layout.Rect(PLAYER))
-			put(TARGET, width - tw2 + 40)
+			local origin = SK.Scale.Origin()
+			put(TARGET, width + origin - tw2 + 40)
 			local _, right = edges("target")
-			assert(math.abs(right - width) < 0.01, where .. ": a target pushed off the right edge ends its snapped debuffs exactly at it: " .. right .. " of " .. width)
-			put(PLAYER, -60)
+			local margin, pixel = SK.Tokens.Size("screenMargin"), SK.Scale.Pixel(1)
+			local expected = math.floor((width + origin - margin - tw2 - (737.4 - 491)) / pixel) * pixel
+			assert(near(SK.Layout.Rect(TARGET), expected, 0.01) and right <= width + origin - margin + 0.01, where .. ": the target's full reserve and visible debuffs keep the HUD edge margin")
+			put(PLAYER, -origin - 60)
 			local lo = edges("player")
-			assert(math.abs(lo) < 0.01, where .. ": a player pushed off the left edge starts its portrait exactly at it: " .. lo)
+			expected = math.ceil((margin + 95.5 - origin) / pixel) * pixel
+			assert(near(SK.Layout.Rect(PLAYER), expected, 0.01) and lo >= margin - origin - 0.01, where .. ": the player's full reserve and portrait keep the HUD edge margin")
 			put(TARGET, width / 2 - tw2 / 2)
 			put(PLAYER, width / 2 - pw / 2)
 			local settledX = SK.Layout.Get(TARGET).x

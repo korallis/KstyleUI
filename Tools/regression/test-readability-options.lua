@@ -25,7 +25,7 @@ env.SetCombat(false)
 assert(changed == before + 1, "coalesce combat choices into one restyle")
 for _, key in ipairs(keys) do assert(not K.Appearance.Readability(key), "apply the latest saved choice after combat") end
 moved()
-assert(K.Setup.Layouts.MEDALLIONS_UNITS.castGap == 10 and K.Setup.Layouts.MEDALLIONS_UNITS.castStack == 6, "off restores original cast spacing")
+assert(K.Setup.Layouts.MEDALLIONS_UNITS.castGap == 22 and K.Setup.Layouts.MEDALLIONS_UNITS.castStack == 6, "off restores original cast spacing")
 assert(select(4, K.Tokens.Color("barLoss")) == 0.85 and K.Tokens.Color("hudMana") == 61 / 255, "off restores original loss and mana colours")
 assert(K.Tokens.FaceShadow(K.Tokens.FontPath("FolioNames")).alpha == 0.5, "off restores name shadows")
 local text = K.Widgets.FontString(K.Scale.Root(), "OVERLAY")

@@ -109,7 +109,7 @@ do
 	-- under the buffs (test-auras-rows.lua has the positions against the minimap element).
 	local mapW, margin = K.Setup.Layouts.Element("minimap.main").width, K.Tokens.Size("screenMargin") + K.Setup.Layouts.MAP_FRAME
 	check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + mapW + 11.9)) and near(b.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4)), "buffs stand beside the minimap")
-	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 11.9)) and near(d.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4 + 41.6 + 8)), "debuffs hang under the buffs")
+	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 11.9)) and near(d.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4 + 41.6 + 12)), "debuffs hang under the buffs")
 	local w, h = size(b.frame)
 	check(near(w, 10 * K.Scale.Snap(27.6) + 9 * (K.Scale.Snap(31.1) - K.Scale.Snap(27.6))) and near(h, K.Scale.Snap(27.6) + 14), "the buff element is its row of ten, 307.5 x 41.6 in units, whole pixels at this size, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)

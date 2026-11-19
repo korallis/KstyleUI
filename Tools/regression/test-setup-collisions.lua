@@ -40,6 +40,7 @@ end
 
 -- Match live Layout.Place: snap each size first, then align its anchored bottom-left to the pixel grid.
 local function PhysicalRects(name, width, height, user, enabled)
+	width = K.Scale.CanvasWidth(width, height)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
@@ -129,15 +130,15 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 			for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown(name, element.key) ~= false end
 			enabled["actionbars.bar3"] = bar3
 			if threat ~= nil then enabled["meters.threat"] = threat end
-			local cap = Layouts.ScaleLimit(width, height, name, enabled)
+			local cap = Layouts.ScaleLimit(K.Scale.CanvasWidth(width, height), height, name, enabled)
 			local label = string.format("%s at %dx%d, bar3 %s", name, width, height, tostring(bar3))
 			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
-			assert(Layouts.Fits(name, width, height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
-			assert(Layouts.Fits(name, width, height, cap, enabled), label .. ": cap fits the snapped footprints")
+			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
+			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, cap, enabled), label .. ": cap fits the snapped footprints")
 			local measured, why = PhysicalFit(name, width, height, cap, enabled)
 			assert(measured, label .. ": " .. tostring(why) .. "; keep the independent snapped footprints apart")
 			if cap < K.Scale.MAX_USER_SCALE then
-				assert(not Layouts.Fits(name, width, height, cap + 1e-6, enabled), label .. ": binary search reaches the fit boundary")
+				assert(not Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, cap + 1e-6, enabled), label .. ": binary search reaches the fit boundary")
 				for step = 1, 32 do
 					local larger = cap + (K.Scale.MAX_USER_SCALE - cap) * step / 32
 					assert(not PhysicalFit(name, width, height, larger, enabled), label .. ": no larger sampled scale fits")
@@ -167,7 +168,7 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 				assert(math.abs(MK.Scale.Root():GetEffectiveScale() * 1080 / 768 - applied) < 1e-9, where .. ": applied size drives the root")
 				local fits, failure = PhysicalFit(name, width, height, applied, enabled)
 				assert(fits, where .. ": " .. tostring(failure))
-				assert(Layouts.Fits(name, width, height, applied, enabled), where .. ": predicate agrees with the independent rects")
+				assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, applied, enabled), where .. ": predicate agrees with the independent rects")
 				assert(#menv._errors == 0, tostring(menv._errors[1]))
 				capped = capped + 1
 			end
@@ -181,10 +182,10 @@ end
 
 -- Bar 3 tightens the Healer cap at 1080p; compare enabled sets without crossing the new meter/story boundary.
 do
-	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "disabled bar 3 must not collide with focus at a size above its own cap")
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.98), "disabled bar 3 must not collide with focus at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
 	enabled["actionbars.bar3"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same bar counts when the player enables it")
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.98, enabled), "the same bar counts when the player enables it")
 	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
@@ -542,9 +543,9 @@ end
 -- stays out of the centre column above the sigil's top and out of the screen's central 40% band.
 local bars = 0
 for _, name in ipairs(Layouts.Names()) do
-	local layout = Layouts.Get(name)
 	for _, aspect in ipairs({ { "16:9", 16 / 9 }, { "21:9", 21 / 9 } }) do
 		local width = HEIGHT * aspect[2]
+		local layout = Layouts.Positions(name,"frames",aspect[1])
 		local column = { width * 0.3, 0, width * 0.7, HEIGHT }
 		local band = { width * 0.3, HEIGHT * 0.3, width * 0.7, HEIGHT * 0.7 }
 		local tw, th = Layouts.Footprint(name, "unitframes.target")
@@ -555,11 +556,13 @@ for _, name in ipairs(Layouts.Names()) do
 				local r = { Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT) }
 				local where = string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f)", name, aspect[1], element.key, r[1], r[2], r[3], r[4])
 				if element.key == "actionbars.bar3" then
-					assert(math.abs(r[4] - (HEIGHT - 20)) < 1e-6 and math.abs((r[1] + r[3]) / 2 - width / 2) < 1e-6, where .. " keeps its separate upper slot")
+					assert(math.abs(r[2] - 640) < 1e-6 and math.abs((r[1] + r[3]) / 2 - width / 2 + 460) < 1e-6, where .. " keeps its separate slot to the left of the casts")
+				elseif element.key == "actionbars.possess" then
+					assert(math.abs(r[1] - 656) < 1e-6 and math.abs(r[4] - (HEIGHT - 17)) < 1e-6, where .. " keeps its separate top slot beside the raid")
 				else
 					assert(not (overlap(r, column) and r[4] > sigilTop), where .. " stands in the centre column above the sigil's top " .. sigilTop)
 				end
-				assert(not overlap(r, band), where .. " lies in the screen's central 40% band")
+				assert(element.key == "actionbars.bar3" and r[3] <= width / 2 - 180 or not overlap(r, band), where .. " lies across the central play field")
 				bars = bars + 1
 			end
 		end

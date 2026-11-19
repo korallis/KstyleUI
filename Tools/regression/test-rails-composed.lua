@@ -4,6 +4,9 @@ local G = dofile("Tools/regression/geometry.lua")
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, height = 1440 }, { width = 3456, height = 2234 } }) do
 	local R = Boot(screen)
 	local env, K, ns = R.env, R.K, R.ns
+	R.quests[2].objectives[1].text = string.rep("Find the lost travelers near the lake. ", 2)
+	R.log.Fire("QUEST_LOG_UPDATE")
+	R.settle()
 	local root = K.Scale.Root()
 	local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, root)) end
 	local quest = ns.QuestCard.Frame()

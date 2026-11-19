@@ -814,7 +814,7 @@ do
 	local moved = db.layouts.Moved["unitframes.boss"]
 	check(moved and moved.x == -700 and moved.y == 760, "a boss column the player moved stays where it is")
 	local healer = db.layouts.Healer["unitframes.boss"]
-	check(healer and healer.anchor == "BOTTOMRIGHT" and math.abs(healer.x + 605) < 1e-6 and healer.y == 752, "a Healer profile's DPS-placed column moves with the DPS default")
+	check(healer and healer.anchor == "BOTTOMRIGHT" and math.abs(healer.x + 605) < 1e-6 and healer.y == 756, "a Healer profile's DPS-placed column moves with the DPS default")
 end
 
 

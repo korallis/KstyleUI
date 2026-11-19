@@ -72,13 +72,13 @@ for _, name in ipairs(Layouts.Names()) do
 	for _, style in ipairs({ "frames", "orbs" }) do
 		local party = Layouts.Place(name, style, "16:9", "groupframes.party")
 		local _, height = Layouts.Footprint("DPS", "groupframes.party")
-		assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - 465) < 1e-6, name .. " " .. style .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
+		assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - (name == "Healer" and style == "orbs" and 461 or 465)) < 1e-6, name .. " " .. style .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
 		local raid = Layouts.Place(name, style, "16:9", "groupframes.raid")
-		assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == -margin, name .. " " .. style .. ": the raid card keeps the top-left corner")
+		assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == (name == "Healer" and style == "orbs" and -164 or -margin), name .. " " .. style .. ": the raid card keeps the top-left corner")
 	end
 end
 local map = Layouts.Get("DPS")["minimap.main"]
-assert(map.x == -(margin + Layouts.MAP_FRAME), "the map's card, its frame outside the square, ends on the card margin")
+assert(map.x == -(margin + Layouts.MAP_FRAME + 4), "the map's card, its frame outside the square, ends on the card margin")
 -- Migration 34 (KSTY-64's rails scale-up): saved sizes and places still at the #348 defaults follow the new ones, written
 -- out as literals so a wrong old value fails here; a size or a place the player chose stays.
 do

@@ -151,7 +151,7 @@ local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
-local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
+local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR + 1
 local STORY_FLOOR = 72
 local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
 local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP

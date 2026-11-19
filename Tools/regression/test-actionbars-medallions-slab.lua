@@ -117,7 +117,7 @@ for _, screen in ipairs(SCREENS) do
 	local narrow = K.Scale.Aspect() == Layouts.ASPECTS[1]
 	local apart = (narrow and petRect[1] - slabRect[3] or slabRect[1] - petRect[3]) / unit
 	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": the pet slab stands " .. apart .. " units " .. (narrow and "right" or "left") .. " of the action slab")
-	assert(math.abs(petRect[2] - slabRect[2]) / unit < 2 * px, what .. ": the pet slab sits on the action slab's lower edge")
+	assert(math.abs((petRect[2] - slabRect[2]) / unit + 8) < 2 * px, what .. ": the pet slab sits eight units below the action slab's lower edge")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1
 end

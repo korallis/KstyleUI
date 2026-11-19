@@ -12,7 +12,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## HUD reach gate
 
-`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh` and Mac CI.
+`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. `test-hud-saved-columns*.lua` also reloads off-screen and valid player/target positions in every style at the four required sizes, including ultrawide Centred and Spread at scale 0.6, and asserts Store is unchanged. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh` and Mac CI.
 
 ## Modes
 

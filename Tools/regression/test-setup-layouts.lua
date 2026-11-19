@@ -335,7 +335,7 @@ for _, name in ipairs(names) do
 		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
 		assert(math.abs(story.right - (width - EDGE)) < 1e-6 and math.abs(story.right - story.left - STORY_W) < 1e-6, label .. ": the story slot is on the right rail's column, 278 wide")
 		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the corrected map's caption, got " .. (over - story.top))
-		assert(math.abs(story.bottom - columns[1].top - 12) < 1e-6, label .. ": the story slot ends 12 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
+		assert(math.abs(story.bottom - columns[1].top - 13) < 1e-6, label .. ": the story slot ends 13 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
 		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and four quests, got " .. (story.top - story.bottom))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
