@@ -233,34 +233,20 @@ local function NewItem(view, id)
 	return item
 end
 
-function Strip.NewView(parent)
-	local frame = CreateFrame("Frame", nil, parent)
-	local card = CreateFrame("Frame", nil, frame)
-	card:SetFrameLevel(frame:GetFrameLevel())
-	Widgets.Point(card, "TOPLEFT", frame, "TOPLEFT")
-	Widgets.Point(card, "TOPRIGHT", frame, "TOPRIGHT")
-	Widgets.Point(card, "BOTTOM", frame, "BOTTOM", 0, 0)
-	local view = { frame = frame, card = card, items = {}, order = {}, values = {} }
+local function TopBar(view)
+	if view.zones then return end
+	local frame = view.frame
 	view.zones = {}
 	for i, zone in ipairs({ "left", "centre", "right" }) do
 		local holder = CreateFrame("Frame", nil, frame)
 		local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
 		holder:SetPoint(anchor, frame, anchor)
+		Widgets.Size(holder, frame:GetWidth() / 3, frame:GetHeight())
 		view.zones[zone] = holder
 	end
 	frame:HookScript("OnSizeChanged", function()
-		for _, holder in pairs(view.zones) do holder:SetSize(frame:GetWidth() / 3, frame:GetHeight()) end
+		for _, holder in pairs(view.zones) do Widgets.Size(holder, frame:GetWidth() / 3, frame:GetHeight()) end
 	end)
-	frame.kView = view
-	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
-	local material = view.chrome.Material
-	view.chrome.Material = function(self)
-		if view.topBar then
-			if view.artwork == "plain" then return nil end
-			return Tokens.Material("ForgedBrackets")
-		end
-		return material(self)
-	end
 	view.art = {}
 	for _, piece in ipairs({
 		{ "medLevelPlaque", "CENTER", "BOTTOM", 0, 0, 18, "giltLit" },
@@ -276,6 +262,23 @@ function Strip.NewView(parent)
 		Widgets.Tint(texture, piece[7])
 		texture:Hide()
 		view.art[#view.art + 1] = texture
+	end
+end
+
+function Strip.NewView(parent)
+	local frame = CreateFrame("Frame", nil, parent)
+	local card = CreateFrame("Frame", nil, frame)
+	card:SetFrameLevel(frame:GetFrameLevel())
+	Widgets.Point(card, "TOPLEFT", frame, "TOPLEFT")
+	Widgets.Point(card, "TOPRIGHT", frame, "TOPRIGHT")
+	Widgets.Point(card, "BOTTOM", frame, "BOTTOM", 0, 0)
+	local view = { frame = frame, card = card, items = {}, order = {}, values = {} }
+	frame.kView = view
+	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
+	local material = view.chrome.Material
+	view.chrome.Material = function(self)
+		if view.topBar and view.artwork == "plain" then return nil end
+		return material(self)
 	end
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
@@ -583,6 +586,7 @@ function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order = order
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
+	if view.topBar then TopBar(view) end
 	view.lineMode = view.topBar or LineMode(s)
 	view.bare = not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
@@ -592,7 +596,9 @@ function Strip.Paint(view, s, values)
 	view.artwork = s.artwork
 	local forged = view.topBar and s.artwork ~= "plain"
 	view.chrome:SetShown(view.topBar or s.backdrop ~= false)
-	for _, texture in ipairs(view.art) do texture:SetShown(forged) end
+	if view.art then
+		for _, texture in ipairs(view.art) do texture:SetShown(forged) end
+	end
 	if view.topBar then
 		local r, g, b = Tokens.Color("surface")
 		view.chrome:SetFillRGBA(r, g, b, (s.background or 85) / 100)
@@ -1135,6 +1141,8 @@ ns.Subscribe("LayoutChanged", function(key)
 		Strip.Refresh()
 	end
 end)
+
+ns.Subscribe("HudStyleChanged", Strip.Refresh)
 
 ns.Subscribe("ModuleChanged", function(module)
 	if module == "Meters" and running then

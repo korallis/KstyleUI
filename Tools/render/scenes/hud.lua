@@ -240,8 +240,12 @@ end
 -- With opts.combat the environment enters combat first and runs half a second, so the combat calm has faded the
 -- slow cards.
 local function build(env, opts, extra, beforeDraw)
-	applyPreset(env, opts)
 	local K = env.KstyleUI
+	if not opts.dataBar and not K.Modules.IsRunning("DataBars") and K.Store.Module("DataBars").enabled then
+		K.Store.Module("DataBars").enabled = false
+		K.Callbacks.Fire("ModuleChanged", "DataBars", false)
+	end
+	applyPreset(env, opts)
 	dofile("Tools/render/scenes/_audit.lua").Apply(K)
 	local artwork = os.getenv("RENDER_DATABAR_ARTWORK")
 	if artwork and K.Options.Row("DataBars", "strip.artwork") then K.Options.Write("DataBars", "strip.artwork", artwork) end

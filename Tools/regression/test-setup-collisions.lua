@@ -3,6 +3,7 @@ local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New({ fit = true })
 CoreEnv.Boot(env)
+K.Store.Module("DataBars").strip = { placement = "rail" }
 local Layouts = K.Setup.Layouts
 
 local HEIGHT = Layouts.HEIGHT
@@ -116,6 +117,7 @@ local function Profile(name, requested, bar3, threat)
 	profile.UnitFrames.player = { enabled = true, style = "column", castbar = true }
 	profile.UnitFrames.target = { enabled = true, style = "column", castbar = true }
 	profile.ActionBars.consumables = { enabled = false }
+	profile.DataBars.strip = { placement = "rail" }
 	profile.ActionBars.bar3.enabled = bar3 == true
 	if threat ~= nil then profile.Meters.threat.shown = threat end
 	return profile

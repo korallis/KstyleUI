@@ -704,19 +704,27 @@ end
 
 local function RegisterCallbacks()
 	local Callbacks = K.Callbacks
+	local function ClockChanged()
+		local shown = Settings.Get("clock.shown")
+		if Map.face and Map.face.clock:IsShown() ~= shown then
+			Map.Refresh()
+		end
+	end
 	Callbacks.Register("ThemeChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ClassChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ScaleChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ProfileChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ModuleChanged", MODULE, function(_, module)
-		if module == "DataBars" then Map.Refresh() end
+		if module == "DataBars" then ClockChanged() end
 	end)
 	Callbacks.Register("LayoutChanged", MODULE, function(_, key)
-		if key == "databars.strip" then Map.Refresh() end
+		if key == "databars.strip" then ClockChanged() end
 	end)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module)
-		if module == MODULE or module == "DataBars" then
+		if module == MODULE then
 			Map.Refresh()
+		elseif module == "DataBars" then
+			ClockChanged()
 		end
 	end)
 end

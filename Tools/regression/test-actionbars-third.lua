@@ -27,6 +27,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		do
 			local fitEnv, fitK = CoreEnv.New({ width = screen[1], height = screen[2], fit = true, size = "auto" })
 			CoreEnv.Boot(fitEnv)
+			fitK.Store.Module("DataBars").strip = { placement = "rail" }
 			local maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
 			local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
 			assert(fitK.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")

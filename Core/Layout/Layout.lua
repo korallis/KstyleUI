@@ -615,8 +615,7 @@ end
 
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
-	local setup = ns.Setup and ns.Setup.Layouts
-	y = y - (setup and setup.TopInset(el.key, anchor) or 0)
+	if state.topInset and state.topInset ~= 0 and el.key ~= "databars.strip" and anchor:match("^TOP") then y = y - state.topInset end
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
 	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
 	left, bottom = linkedLeft or left, linkedBottom or bottom
@@ -1005,6 +1004,8 @@ local function ResolveAll()
 end
 
 local function ApplyAll(instant)
+	local setup = ns.Setup and ns.Setup.Layouts
+	state.topInset = setup and setup.TopInset("", "TOP") or 0
 	for i = 1, #order do
 		ns.Call(Apply, elements[order[i]], instant)
 	end
@@ -1098,8 +1099,13 @@ local function Changed(el)
 	UpdateEvents()
 	Apply(el)
 	if el.key == "databars.strip" then
-		for _, key in ipairs(order) do
-			if key ~= el.key then Apply(elements[key]) end
+		local setup = ns.Setup and ns.Setup.Layouts
+		local inset = setup and setup.TopInset("", "TOP") or 0
+		if inset ~= state.topInset then
+			state.topInset = inset
+			for _, key in ipairs(order) do
+				if key ~= el.key then Apply(elements[key]) end
+			end
 		end
 	end
 	ns.Callbacks.Fire("LayoutChanged", el.key)
@@ -1521,8 +1527,7 @@ function Layout.Rect(key)
 	local rw, rh = Layout.RootSize()
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
-	local setup = ns.Setup and ns.Setup.Layouts
-	local inset = setup and setup.TopInset(key, s.anchor) or 0
+	local inset = state.topInset and key ~= "databars.strip" and s.anchor:match("^TOP") and state.topInset or 0
 	local left, bottom = G.Rect(s.anchor, s.x, s.y - inset, w, h, rw, rh)
 	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
 	left, bottom = linkedLeft or left, linkedBottom or bottom
@@ -1810,7 +1815,10 @@ ns.Callbacks.Register("HudStyleChanged", SECTION, function()
 end)
 
 ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
-	if name == "DataBars" then ApplyAll(true) end
+	if name == "DataBars" then
+		local setup = ns.Setup and ns.Setup.Layouts
+		if setup and setup.TopInset("", "TOP") ~= state.topInset then ApplyAll(true) end
+	end
 	for i = 1, #order do
 		local el = elements[order[i]]
 		if el.module == name then

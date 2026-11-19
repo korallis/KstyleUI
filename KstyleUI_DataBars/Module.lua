@@ -39,7 +39,7 @@ ns.Subscribe("SettingChanged", function(module, key)
 	end
 end)
 
-for _, callback in ipairs({ "ProfileChanged", "ThemeChanged", "ScaleChanged", "HudStyleChanged" }) do
+for _, callback in ipairs({ "ProfileChanged", "ThemeChanged", "ScaleChanged" }) do
 	ns.Subscribe(callback, function()
 		if ns.running then
 			Each("Refresh")

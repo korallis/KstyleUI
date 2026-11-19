@@ -21,9 +21,9 @@ Lib.ACCENTS = {}
 
 -- The party stands bare on the world since KSTY-57, so no preset draws a party card.
 Lib.ROLES = {
-	DPS = { "story", "actionbars.tray", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
-	Tank = { "story", "actionbars.tray", "skins.quests", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed" },
-	Healer = { "story", "actionbars.tray", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
+	DPS = { "story", "actionbars.tray", "databars.strip", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
+	Tank = { "story", "actionbars.tray", "databars.strip", "skins.quests", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed" },
+	Healer = { "story", "actionbars.tray", "databars.strip", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" },
 }
 
 local CARD_FILE = "CardShape.png"
@@ -102,6 +102,8 @@ local function role(scene, chrome, card)
 	if owner._name == "RXPFrame" or (owner._parent and owner._parent._name == "RXPFrame") then
 		return "story"
 	end
+	local data = owner._env._addons and owner._env._addons.KstyleUI_DataBars
+	if data and data.Strip.view and data.Strip.view.card == owner then return "databars.strip" end
 	local bars = owner._env._addons and owner._env._addons.KstyleUI_ActionBars
 	if bars and bars.Tray and bars.Tray.card == owner then
 		return "actionbars.tray"
