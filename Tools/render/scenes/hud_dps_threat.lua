@@ -1,4 +1,4 @@
--- hud_dps_threat.lua: the DPS HUD with the optional compact threat card enabled alongside the damage card.
+-- hud_dps_threat.lua: the DPS HUD with separate, equal-width damage and threat cards in Both.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 

@@ -86,6 +86,7 @@ SHOWCASES = [
     ("show_frame_raid.jpg", "frame_raid.jpg"),
     ("show_crop_nameplates.jpg", "crop_nameplates.jpg"),
     ("show_crop_meter.jpg", "crop_meter.jpg"),
+    ("show_crop_meters_both.jpg", "crop_meters_both.jpg"),
     ("show_crop_rail.jpg", "crop_rail.jpg"),
     ("show_frame_skins.jpg", "frame_skins.jpg"),
 ]

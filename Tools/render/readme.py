@@ -65,6 +65,7 @@ for _arrangement in ("centred", "spread"):
     RENDERS["healer_" + _arrangement] = ("hud_reference", 1440 / 1080, dict(
         ULTRAWIDE, **dict(style_env("Frames"), RENDER_LAYOUT="Healer", RENDER_ARRANGEMENT=_arrangement)), "--strict")
 RENDERS["meter_party"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party")), "--strict")
+RENDERS["meter_both_2x"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both")), "--strict")
 RENDERS["plates"] = ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict")
 
 GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
@@ -79,8 +80,9 @@ IMAGES = [
     ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
     ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
-    ("crop_meter", "render:meter_party", "540x300+3290+1820", 540),
-    ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
+    ("crop_meter", "render:meter_party", "560x360+3010+840", 540),
+    ("crop_meters_both", "render:meter_both_2x", "1080x360+2490+840", 1120),
+    ("crop_rail", "render:frames_1080_2x", "1100x820+2720+20", 660),
     ("ultrawide_centred", "render:healer_centred", None, 1600),
     ("ultrawide_spread", "render:healer_spread", None, 1600),
     ("frame_setup", "frame:setup_layouts", None, 720),

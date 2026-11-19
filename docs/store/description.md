@@ -140,7 +140,7 @@ Tank adds a threat card in the combat cluster. Healer gives party and raid frame
 
 *KstyleUI test render over an in-game screenshot: the raid frames. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kb` or `/kstyle kb` binds your action buttons: hover a button, press a key, then save. `/kstyle layout` moves, resizes or scales any element. Profiles copy between characters, and export and import as one string.
+`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kb` or `/kstyle kb` binds your action buttons: hover a button, press a key, then save. `/kstyle layout` moves, resizes or scales any element. Keep a profile per specialization, switching automatically after combat. Profiles copy between characters, and export and import as one string.
 
 ![KstyleUI section: The rest of your UI - nameplates, meter, bags, tooltips and window skins](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-rest-of-your-ui.jpg)
 
@@ -158,7 +158,13 @@ Plain flat bars under tracked capital names, with your own debuffs on top. Your 
 
 *KstyleUI test render over an in-game screenshot: the damage meter in a party of five. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-One card, a class-coloured bar per player. Switch between this fight, the last fight and the whole session; point at a row for that player's spell split. The threat card beside it follows the same design.
+The meter follows your role: threat when you tank, damage otherwise. As DPS you can show Damage, Threat or Both in **Options, Meters, Meter while dealing damage**; Both places matching cards side by side, and Damage stays the default.
+
+![KstyleUI test render over an in-game screenshot of the Both meter choice: separate, equally wide threat and damage cards side by side](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_meters_both.jpg)
+
+*KstyleUI test render over an in-game screenshot: Both shows threat next to damage. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
+One class-coloured bar per player. Switch between this fight, the last fight and the whole session; point at a damage row for that player's spell split.
 
 ### Quests, guide and map on the right
 
