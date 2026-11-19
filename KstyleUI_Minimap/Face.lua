@@ -341,7 +341,7 @@ function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
 	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
-	local margin, origin = Tokens.Size("screenMargin"), Scale.Origin()
+	local margin, origin = Tokens.Size("screenMargin") + (Face.Frame() ~= "classic" and Scale.Pixel(1) or 0), Scale.Origin()
 	return max(margin + x - origin, min(left, rootWidth + origin - margin - x - width)), max(margin + lower, min(bottom, rootHeight - margin - top - height))
 end
 

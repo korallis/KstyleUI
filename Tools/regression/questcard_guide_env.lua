@@ -13,7 +13,7 @@ return function(screen, item, previous, nativeRects, questie)
 	local env, K, ns = S.New({
 		width = screen.width, height = screen.height, uiScale = screen.uiScale,
 		saved = {
-			version = 12, profiles = { Default = { HudStyle = { style = "medallions" }, Minimap = { frame = screen.frame }, Skins = previous and { quests = { continuation = false }, restedXP = { compose = false }, steelButtons = false, windowMetrics = false } or nil } },
+			version = 12, profiles = { Default = { HudStyle = { style = "medallions" }, Minimap = { enabled = true, frame = screen.frame }, Skins = previous and { quests = { continuation = false }, restedXP = { compose = false }, steelButtons = false, windowMetrics = false } or nil } },
 			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 		},
 		setup = function(e)
