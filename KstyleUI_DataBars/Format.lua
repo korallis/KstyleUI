@@ -73,14 +73,14 @@ function Format.Short(n)
 	return tostring(Whole(n))
 end
 
-function Format.Percent(current, max)
+function Format.Percent(current, max, over)
 	if max <= 0 then
 		return 0
 	end
 	local percent = floor(current / max * 100)
 	if percent < 0 then
 		return 0
-	elseif percent > 100 then
+	elseif percent > 100 and not over then
 		return 100
 	end
 	return percent
@@ -99,7 +99,7 @@ end
 
 local function Rested(rested, max)
 	if type(rested) == "number" and rested > 0 then
-		return DOT .. format(L["rested %d%%"], Format.Percent(rested, max))
+		return DOT .. format(L["rested %d%%"], Format.Percent(rested, max, true))
 	end
 	return ""
 end

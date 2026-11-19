@@ -327,7 +327,7 @@ local function AddTooltip(view, tip)
 	tip:AddDoubleLine(L["Progress"], Format.BarText("valuePercent", info.current, info.max))
 	tip:AddDoubleLine(L["Remaining"], Format.Number(info.max - info.current))
 	if id == "xp" and info.rested > 0 then
-		tip:AddDoubleLine(info.restName or L["Rested"], Format.Number(info.rested) .. " (" .. Format.Percent(info.rested, info.max) .. "%)")
+		tip:AddDoubleLine(info.restName or L["Rested"], Format.Number(info.rested) .. " (" .. Format.Percent(info.rested, info.max, true) .. "%)")
 	elseif id == "rep" and info.rewardPending then
 		tip:AddLine(L["A paragon reward is waiting for you."], "friendly")
 	elseif id == "honor" and info.kind == "rank" then
