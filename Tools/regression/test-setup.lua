@@ -46,6 +46,40 @@ local function Seen(K)
 	return K.Store.Account().setupSeen == true
 end
 
+-- G5: every detected same-job addon starts its module off; required overlaps must be detectable.
+do
+	local env, K = Boot({ modules = {
+		"UnitFrames", "ActionBars", "Cooldowns", "GroupFrames", "Auras", "Nameplates", "CombatText", "Minimap",
+		"Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
+	} })
+	for _, entry in ipairs(K.Setup.PICKER) do
+		local names = {}
+		env.C_AddOns.IsAddOnLoaded = function(name) names[#names + 1] = name; return false end
+		K.Setup.Integrations.Detected(entry.name)
+		if names[1] then
+			local addon = names[1]
+			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
+			assert(K.Setup.NewChoice().modules[entry.name] == false,
+				"setup turns " .. entry.name .. " on while " .. addon .. " is loaded; start it off when Integrations.Detected(" .. entry.name .. ") is not empty.")
+		end
+	end
+	for module, addons in pairs({ ActionBars = { "Bartender4", "Dominos" }, DataBars = { "Bartender4", "Dominos" },
+		Meters = { "Details" }, Bags = { "Baganator" }, Chat = { "Chattynator" } }) do
+		for _, addon in ipairs(addons) do
+			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
+			local detected = K.Setup.Integrations.Detected(module)
+			assert(detected[1] == addon, "OVERLAPS." .. module .. " must list " .. addon .. ".")
+			local choice = K.Setup.NewChoice()
+			assert(choice.modules[module] == false, "setup turns " .. module .. " on while " .. addon .. " is loaded; start it off when Integrations.Detected(" .. module .. ") is not empty.")
+			assert(choice.modules.Cooldowns == true, "an unrelated module stays selected")
+		end
+	end
+	env.C_AddOns.IsAddOnLoaded = nil
+	for _, entry in ipairs(K.Setup.PICKER) do
+		assert(K.Setup.NewChoice().modules[entry.name] == true, "missing detection leaves " .. entry.name .. " available")
+	end
+end
+
 -- The account flag and the slash command ------------------------------------------------------------
 
 do
