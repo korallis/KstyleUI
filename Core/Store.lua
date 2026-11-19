@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 38
+Store.DB_VERSION = 39
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -956,6 +956,22 @@ Store.migrations[37] = function(data)
 				entry.anchor, entry.x, entry.y = nil, nil, nil
 				if next(entry) == nil then layout[key] = nil end
 			end
+		end
+	end
+end
+
+Store.migrations[39] = function(data)
+	for _, layout in pairs(data.layouts) do
+		for _, key in ipairs({ "minimap.main", "frames:minimap.main", "orbs:minimap.main", "medallions:minimap.main" }) do
+			local entry = type(layout) == "table" and layout[key]
+			if type(entry) == "table" then
+				railEntry(entry, key, { "TOPRIGHT", -20, -38 }, { [key] = { "TOPRIGHT", -20, -38 } })
+				if next(entry) == nil then layout[key] = nil end
+			end
+		end
+		local shared = type(layout) == "table" and layout["minimap.main"]
+		if type(shared) == "table" and shared.anchor ~= nil and layout["medallions:minimap.main"] == nil then
+			layout["medallions:minimap.main"] = { anchor = shared.anchor, x = shared.x, y = shared.y }
 		end
 	end
 end

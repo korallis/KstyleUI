@@ -322,12 +322,7 @@ function Face:PlaceZone()
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
 	if Face.Round() and Settings.Get("clearPlaques") then
-		local _, _, top = Widgets.Edges(card)
-		local _, _, screen = Widgets.Edges(Scale.Root())
-		local factor = Widgets.ScaleFactor(card)
-		if Plain(top) and Plain(screen) and Plain(factor) and factor > 0 then
-			y = min(y, Snap(card, (screen - top * factor - 17) / factor - PLAQUE_HEIGHT / 2))
-		end
+		y = max(y, Snap(card, RowCenter(self)))
 	end
 	self.zoneX, self.zoneY = Snap(card, CaptionX()), y
 	zone:ClearAllPoints()

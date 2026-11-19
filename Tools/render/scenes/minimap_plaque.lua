@@ -6,10 +6,11 @@ local M = dofile("Tools/regression/minimap_env.lua")
 return Common.Run(function()
 	local env, K = M.New(Common.ScreenOpts({
 		enabled = true, zone = "Tirisfal Glades", position = { 0.616, 0.579 },
-		settings = { clearPlaques = not Common.PreviousFinish() },
-		setup = function(e) Common.ForceScreen(e) end,
+		setup = function(e)
+			e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" }
+			Common.ForceScreen(e)
+		end,
 	}))
-	K.Options.Write("HudStyle", "style", "medallions")
 	M.Settle(env)
 	local _, note = Hud.Terrain(env)
 	local scene = Common.Scene.Build(env)

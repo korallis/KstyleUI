@@ -18,7 +18,7 @@ return Common.Run(function()
 	assert(state == "rest" or state == "hover" or state == "open", "RENDER_STATE must be rest, hover or open, not " .. state)
 	local M = dofile("Tools/regression/minimap_env.lua")
 	local lib
-	local env, K, ns = M.New({
+	local env, K, ns = M.New(Common.ScreenOpts({
 		enabled = true,
 		zone = "Riverglades",
 		setup = function(env)
@@ -32,7 +32,7 @@ return Common.Run(function()
 				button.icon:SetPoint("CENTER", button, "CENTER")
 			end
 		end,
-	})
+	}))
 	M.Settle(env)
 	local _, note = Hud.Terrain(env)
 	if state ~= "rest" then

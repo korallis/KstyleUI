@@ -30,4 +30,27 @@ for _, screen in ipairs(screens) do
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
 end
+do
+	local _, K = M.New()
+	for _, key in ipairs({ "minimap.main", "frames:minimap.main", "orbs:minimap.main", "medallions:minimap.main" }) do
+		for _, entry in ipairs({ {}, { anchor = "TOPRIGHT", x = -20, y = -38 }, { width = 260, height = 260 },
+			{ x = -80 }, { anchor = "CENTER", x = 100, y = 50 } }) do
+			local custom = entry.x == -80 or entry.anchor == "CENTER"
+			local data = { layouts = { Default = { [key] = entry } } }
+			K.Store.migrations[39](data)
+			if custom then
+				assert(entry.x == -80 and entry.y == -38 and entry.anchor == "TOPRIGHT"
+					or entry.x == 100 and entry.y == 50 and entry.anchor == "CENTER", "preserve complete and partial custom minimap positions")
+			else
+				assert(entry.anchor == nil and entry.x == nil and entry.y == nil, "release only the previous default minimap position")
+			end
+			if entry.width then assert(entry.width == 260 and entry.height == 260, "preserve custom minimap size") end
+			if custom and key == "minimap.main" then
+				local medal = data.layouts.Default["medallions:minimap.main"]
+				assert(medal and medal.anchor == entry.anchor and medal.x == entry.x and medal.y == entry.y,
+					"carry the previously shared custom position into the new Medallions placement")
+			end
+		end
+	end
+end
 print("minimap screen bounds ok: " .. #screens .. " screens, both arrangements")
