@@ -78,7 +78,7 @@ local function Game(env)
 	env.print = function() end
 end
 
-local function Start(saved, W, H, setup)
+local function Start(saved, W, H, setup, beforeLogin)
 	local env = Stubs.NewEnv({ width = W, height = H, uiScale = 768 / 1080, size = "auto", fit = true })
 	env.KstyleUIDB = saved
 	Game(env)
@@ -96,6 +96,7 @@ local function Start(saved, W, H, setup)
 			env.FireEvent("ADDON_LOADED", addon, false)
 		end
 	end
+	if beforeLogin then beforeLogin(env, env.KstyleUI) end
 	env.FireEvent("PLAYER_LOGIN")
 	env.RunTimers()
 	return env, env.KstyleUI
