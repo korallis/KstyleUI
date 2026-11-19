@@ -38,6 +38,72 @@ local EXTRA_FIELDS = {
 local schemas, index, order = {}, {}, {}
 local window
 
+function Options.AuraFilterRows(schema, key, opts)
+	opts = opts or {}
+	local function add(row)
+		row.key = key .. "." .. row.key
+		row.disableWhen = opts.disableWhen
+		schema[#schema + 1] = row
+	end
+	add({ type = "toggle", key = "onlyMine", label = L["Only yours"], help = L["Shows only auras you cast."] })
+	if opts.dispellable ~= false then add({ type = "toggle", key = "dispellable", label = L["Dispellable by you"], help = L["Shows only debuffs you can dispel; for buffs, only ones you can apply."] }) end
+	if opts.spellIDs then
+		add({ type = "text", key = "allowSpells", label = L["Allow spell IDs"], maxLetters = 240,
+			help = L["On nameplates, only these spell IDs, separated by commas or spaces. Blank allows any spell."] })
+		add({ type = "text", key = "blockSpells", label = L["Block spell IDs"], maxLetters = 240,
+			help = L["On nameplates, hides these spell IDs, separated by commas or spaces. Blocking wins."] })
+	end
+	if opts.sort == false then return end
+	add({ type = "dropdown", key = opts.sortKey or "sort", label = L["Sort by"], options = opts.sortOptions or {
+		{ value = "", label = L["Current style"] }, { value = "time", label = L["Time left"] },
+		{ value = "name", label = L["Name"] }, { value = "applied", label = L["Order applied"] },
+	}, help = L["The order the icons are shown in."] })
+end
+
+function Options.AuraFilterString(settings, filter)
+	if settings.onlyMine == true then filter = filter .. "|PLAYER" end
+	if settings.dispellable == true and not ("|" .. filter .. "|"):find("|RAID|", 1, true) then
+		filter = filter .. "|RAID"
+	end
+	return filter
+end
+
+local spellLists = {}
+local function SpellList(value)
+	if ns.Widgets.IsSecret(value) or type(value) ~= "string" or value == "" then return nil end
+	if spellLists[value] ~= nil then return spellLists[value] or nil end
+	local ids = {}
+	for token in value:gmatch("[^,%s]+") do
+		if token:match("^%d+$") then
+			local id = tonumber(token)
+			if id > 0 and id < math.huge then ids[id] = true end
+		end
+	end
+	spellLists[value] = next(ids) and ids or false
+	return spellLists[value] or nil
+end
+
+function Options.AuraCandidates(settings, base)
+	local allow, block = SpellList(settings.allowSpells), SpellList(settings.blockSpells)
+	if not allow and not block then return base end
+	local candidates = {}
+	for key, value in pairs(base or {}) do candidates[key] = value end
+	if allow then candidates.includeSpellIDs = allow end
+	if block then
+		local exclude = {}
+		for id in pairs(candidates.excludeSpellIDs or {}) do exclude[id] = true end
+		for id in pairs(block) do exclude[id] = true end
+		candidates.excludeSpellIDs = exclude
+	end
+	return candidates
+end
+
+local AURA_SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly" }
+function Options.AuraSort(sort, method, direction)
+	local enums = AuraContainerSortMethod
+	return enums and enums[AURA_SORT[sort]] or method, direction
+end
+
 local function splitKey(key)
 	if type(key) ~= "string" or key == "" then
 		return nil

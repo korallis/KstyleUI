@@ -90,7 +90,13 @@ local function GroupLayout(plate)
 end
 
 local function Filter()
-	return Logic.AuraFilter(Settings.Get("debuffs.includePlateOnly"))
+	local filter = Settings.Get("debuffs.onlyMine") and "HARMFUL|PLAYER" or "HARMFUL"
+	if Settings.Get("debuffs.includePlateOnly") then filter = filter .. "|INCLUDE_NAME_PLATE_ONLY" end
+	return K.Options.AuraFilterString({ dispellable = Settings.Get("debuffs.dispellable") }, filter)
+end
+
+local function Candidates()
+	return K.Options.AuraCandidates({ allowSpells = Settings.Get("debuffs.allowSpells"), blockSpells = Settings.Get("debuffs.blockSpells") })
 end
 
 local function StyleText(text, size)
@@ -209,6 +215,7 @@ local function GroupOptions(plate)
 		maxFrameCount = columns * rows,
 		initializeFrame = InitButton,
 		layout = GroupLayout(plate),
+		candidateFilters = Candidates(),
 	}
 	options.sortMethod, options.sortDirection = SortOptions()
 	return options
@@ -391,7 +398,7 @@ function LayoutChip(plate, anchor, size, spacing, columns)
 	local relPoint, y = AnchorTo(plate, anchor)
 	local sign = Settings.Get("debuffs.growthX") == "LEFT" and -1 or 1
 	Overflow.Apply(chip, {
-		enabled = Shows(plate), filter = Filter(), cap = columns * rows, cell = size, after = true,
+		enabled = Shows(plate), groups = { { filter = Filter(), candidates = Candidates() } }, cap = columns * rows, cell = size, after = true,
 		point = anchor, rel = plate.health, relPoint = relPoint, x = sign * (Logic.AuraLineSize(columns, size, spacing) + spacing), y = y,
 		level = plate.auras:GetFrameLevel() + 2, style = StyleChipText,
 	})
@@ -427,6 +434,9 @@ function LayoutContainer(plate)
 	container:SetAuraGroupLayout(GROUP, GroupLayout(plate))
 	container:SetAuraGroupMaxFrameCount(GROUP, columns * rows)
 	container:SetAuraGroupFilterString(GROUP, Filter())
+	if type(container.SetAuraGroupCandidateFilters) == "function" then
+		container:SetAuraGroupCandidateFilters(GROUP, Candidates())
+	end
 	local method, order = SortOptions()
 	if method ~= nil then
 		container:SetAuraGroupSortMethod(GROUP, method, order)

@@ -59,7 +59,7 @@ Settings.defaults = {
 	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true, shapes = true },
 	auras = {
-		enabled = true, typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		enabled = true, onlyMine = false, sort = "", typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true },
@@ -294,6 +294,7 @@ function Settings.Schema()
 		add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
 		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
+		K.Options.AuraFilterRows(schema, "auras", { dispellable = false, disableWhen = Is("auras.enabled", false) })
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 		add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
 		add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))

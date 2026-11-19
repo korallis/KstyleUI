@@ -226,3 +226,11 @@ Under the Medallions HUD style (`KstyleUI.HudStyle.Current() == "medallions"`, K
 - **Automatic layout out of combat.** The raid size bracket and the player's assigned role are read when the module starts and on roster and role events; a change waits for combat to end, then applies as an overlay on the saved settings.
 - **Click casting from the settings page.** The preview pane lists the game's Click Casting bindings (`C_ClickBindings.GetProfileInfo`), removes one, and binds a spell or macro dropped on its slot to the mouse button and modifiers of the next click on it (`MakeModifiers`), through `SetProfileByInfo`, out of combat only. If any binding comes back with a field the client keeps secret, the panel changes nothing and points to the game's window, so a write never drops a binding it could not read. Its help and status lines are sentences in the `body` role. A button opens the game's own window (`ToggleClickBindingFrame`).
 - **Clicks pass through debuff icons.** `SetMouseClickEnabled(false)` keeps the debuff tooltip on hover while a click on an icon still targets the member.
+
+## Aura filters
+
+Only yours and Sort by share the aura filter builder. Which debuffs retains the existing Dispellable choice; there is no duplicate toggle. Spell-ID allow and block lists are offered only on nameplates, where the engine can honour them. Overflow counters use the same filters as the visible icons.
+
+Missing settings preserve the existing Which debuffs filter, priority lanes and ordering. The shared filters apply to every debuff lane and the boss slot; they leave dispel highlights, glow alerts, heal icons and indicator slots independent. Current style restores the existing ordering within each priority lane. No saved settings are migrated.
+
+`Tools/regression/test-aura-filters.lua` covers defaults, enabled filters and off at 1920x1080, 2560x1440, 5120x1440 and 3840x2160. `Tools/render/scenes/options_aura_filters.lua` renders the real controls; set `RENDER_AURA_MODULE` to `GroupFrames`.

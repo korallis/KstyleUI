@@ -43,6 +43,7 @@ local function BuildSchema()
 				help = L["Flips the sort order, so the last icon comes first."],
 			},
 		}
+		K.Options.AuraFilterRows(schema, name, { sort = false })
 		for _, row in ipairs(rows) do
 			schema[#schema + 1] = row
 		end

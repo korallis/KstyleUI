@@ -99,3 +99,11 @@ Each tile is a square icon one border inside a one-pixel dark square plate (`bla
 - **Sizes are elements, not frames.** The flow layout reads `elementWidth` and `elementHeight` from the group layout, so the container lays out correctly even while a button restyle waits behind the gate. Columns become the maximum line size, rows become `maxFrameCount`, and both are snapped to whole pixels in the host's scale.
 - **The gamepad needs Blizzard's frames.** Forever's gamepad **View buffs** shortcut (`Blizzard_GamepadActionBars`, `ShortcutsActionBar.lua`) and radial segment (`Blizzard_Gamepad`, `GamepadRadial.lua`) call `BuffFrame:SetGamepadFocus()` and then `DebuffFrame:SetGamepadFocus()`. That check passes on a frame under `Safe`'s hidden parent, because `IsShown()` stays true, so the controller would walk invisible aura buttons. The module reads the style from `InputUtil.IsGamepadUIEnabled`, then `C_InputInterfaceStyle.GetCurrentStyle`; if neither answers, or the answer is secret, it takes the keyboard and mouse path and logs it once.
 - **Fallbacks.** Without the AuraContainer engine, or if it refuses a group, that row is not built, Blizzard's frame stays, and the devlog and `/kstyle test` say so. Missing formatters, colour curves, the dispel style enum, `SetApplicationBar` or the Cooldown Manager API fall back to the engine's defaults, a hidden badge or an unfiltered row, with one devlog line each.
+
+## Aura filters
+
+Buffs and debuffs use Only yours and Dispellable by you. Sort by stays beside Reverse order. Spell-ID allow and block lists are offered only on nameplates, where the engine can honour them. Overflow counters use the same filters as the visible icons.
+
+Buffs and debuffs have independent filters. Missing settings preserve all player buffs and debuffs, the existing sort and the Cooldown Manager exclusion. Weapon enchantments remain separate from spell filters. No saved settings are migrated.
+
+`Tools/regression/test-aura-filters.lua` covers defaults, enabled filters and off at 1920x1080, 2560x1440, 5120x1440 and 3840x2160. `Tools/render/scenes/options_aura_filters.lua` renders the real controls; set `RENDER_AURA_MODULE` to `Auras`.
