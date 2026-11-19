@@ -1,10 +1,10 @@
 # KstyleUI_DataBars
 
-XP, reputation and honour bars, micro menu, bag bar, and a data bar. Frames and Orbs default to a full-width top bar; Medallions keeps the original rail readout. The five existing slots stay in their existing order in the right zone; left and centre are reserved for later additions. The default slots remain FPS, latency and gold, with durability and time available in the remaining slots.
+XP, reputation and honour bars, micro menu, bag bar, and a data bar. Frames and Orbs default to a full-width top bar; Medallions keeps the original rail readout. The five existing slots stay in their existing order in the right zone; left and centre are reserved for later additions. FPS, latency, gold, durability and time are all on by default.
 
 Under **Data bar** in Options, choose Top or Right rail, set height (12–32, default 20) and background opacity (0–100%, default 85%), choose Data bar artwork (Forged by default, with the existing gilt brackets and Medallions crest gem, or Plain glass), or turn the bar off. Both placements remain movable and resizable in Layout Mode; saved positions survive screen changes. The top bar spans the HUD root: the centred HUD band on ultrawide, or the whole screen under Spread. Its chrome uses the same card builder as the other cards, with the top and ends outside the screen at the default position.
 
-At the default top position, top-anchored elements reserve `max(0, height + 6 - 16)` units, including custom saved top anchors. Moving the bar away or turning it off releases that space; returning it to the top restores it. Layout placement, rectangle queries and the overlap guard use the same inset. Store migration 41 turns the bar on in existing profiles. While a visible bar includes the time slot, the minimap foot hides its clock; disabling that slot, the bar or DataBars returns it.
+At the default top position, top-anchored elements reserve `max(0, height + 6 - 16)` units, including custom saved top anchors. Moving the bar away or turning it off releases that space; returning it to the top restores it. Layout placement, rectangle queries and the overlap guard use the same inset. Store migration 41 turns the bar on in existing profiles while preserving a disabled DataBars module. It resets old Frames/Orbs rail geometry to the default top placement, keeps the Medallions rail, and announces a moved readout once in chat. While a visible bar includes the time slot, the minimap foot hides its clock and its Clock toggle reads OFF and disabled; disabling that slot, the bar or DataBars returns it.
 
 | Field | Value |
 | --- | --- |
@@ -108,7 +108,7 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 
 | Key | Default | Row |
 | --- | --- | --- |
-| `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `none`, `none` | What each place shows, or `none`, counted from the left of the line. An item in two places shows once, at the first. The picture's line has no durability, so `durability` leaves the default but stays a choice (it reads "96% armour"); the clock (`time`) is off by default because the minimap card shows it. |
+| `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. All five readouts default on; the minimap clock yields while the visible data bar shows time. |
 | `strip.line` | `true` | One right-aligned line joined by middle dots (the picture), or the cells. A column is always rows. In the line the `full` and `short` labels use the inline units. |
 | `strip.labels` | `inline` | `inline` units after each value (179 fps, 34 ms, 96% armour, as the Lumen mockup's readout), `full` captions over the values (Frame rate, Latency, Gold, Durability, Time), `short` (FPS, MS, DUR, as in the dungeon mockup) or `none` |
 | `strip.valueColor` | `plain` (was `highlight`) | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
