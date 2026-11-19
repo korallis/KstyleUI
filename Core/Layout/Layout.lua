@@ -885,6 +885,7 @@ local function OnGroup()
 		group = SecureCmdOptionParse("[group:raid] raid; [group:party] party; solo")
 	end
 	if IsSecret(group) then group = nil end
+	if group == state.group then return end
 	state.group = group
 	RefreshDynamic()
 end
@@ -917,7 +918,7 @@ local function UpdateEvents()
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
 		target = target or Rules.NeedsTarget(s.shown)
 		hover = hover or s.shown == "mouseover"
-		group = group or (s.shown ~= "always" and Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
+		group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
 	end
 	UpdatePoll(hover)
 	if group ~= state.groupEvents then
