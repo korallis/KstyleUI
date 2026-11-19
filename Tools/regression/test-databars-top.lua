@@ -11,6 +11,13 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = M.Blizzard })
 	local Layout, Layouts = K.Layout, K.Setup.Layouts
 	local view = ns.Strip.view
+	local Scene = dofile("Tools/render/scene.lua")
+	local x, y, w, h = Scene.Rect(env, view.frame)
+	local cx, cy, cw, ch = Scene.Rect(env, view.card)
+	near(cx, x)
+	near(cy, y)
+	near(cw, w)
+	near(ch, h)
 	assert(view.zones.left and view.zones.centre and view.zones.right)
 	assert(view.topBar and view.lineMode)
 	assert(table.concat(ns.Strip.order, ",") == "fps,latency,gold,durability,time", "all five readouts default to the right zone")

@@ -241,6 +241,7 @@ Property.Check({
 	show = Show,
 	property = Holds,
 	regressions = {
+		{ seed = 20261114, case = 1, issue = "PR-512" },
 		{ seed = 20261114, case = 52, issue = "LEE-1459" }, { seed = 20261114, case = 113, issue = "LEE-1459" },
 		{ seed = 20261114, case = 225, issue = "LEE-1459" }, { seed = 99, case = 22, issue = "LEE-1459" }, { seed = 99, case = 694, issue = "LEE-1459" },
 		{ seed = 20261114, case = 18, issue = "LEE-1460" },
