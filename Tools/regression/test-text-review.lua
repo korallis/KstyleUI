@@ -20,6 +20,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Widgets.TagText = function(...) calls = calls + 1; return paint(...) end
 	env.FireEvent("UNIT_HEALTH", "player")
 	check(calls == 1, "paint: unit health events must paint each custom slot once")
+	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "literal [pp]")
+	env.RunTimers()
+	local view = ns.Frames.Get("player").views[1]
+	local before = U.Shown(env, view.healthText)
+	env.FireEvent("UNIT_HEALTH", "player")
+	check(U.Shown(env, view.healthText) == before, "paint: unrelated health updates must preserve custom power text")
 	local lists, iterate = {}, env.ipairs
 	env.ipairs = function(t)
 		if t[1] == "name" and t[2] == "health" then lists[t] = true end
