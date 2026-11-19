@@ -50,18 +50,22 @@ local PROBES = { { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000
 local secretOptions = {}
 
 local function SecretOptions(unit)
-	if secretOptions[unit] == nil then
-		local options = type(AbbreviateNumbers) == "function" and { breakpointData = POINTS[unit] }
-		for i = 1, options and #PROBES or 0 do
-			local ok, text = pcall(AbbreviateNumbers, PROBES[i][1] * unit, options)
-			if not ok or text ~= PROBES[i][2] then
-				options = false
-				break
-			end
-		end
-		secretOptions[unit] = options or false
+	if secretOptions[unit] ~= nil then
+		return secretOptions[unit] or nil
 	end
-	return secretOptions[unit] or nil
+	secretOptions[unit] = false
+	if type(AbbreviateNumbers) ~= "function" then
+		return nil
+	end
+	local options = { breakpointData = POINTS[unit] }
+	for i = 1, #PROBES do
+		local ok, text = pcall(AbbreviateNumbers, PROBES[i][1] * unit, options)
+		if not ok or text ~= PROBES[i][2] then
+			return nil
+		end
+	end
+	secretOptions[unit] = options
+	return options
 end
 
 function Logic.Percent(part, total)
