@@ -80,7 +80,7 @@ local function Apply()
 			for i = 1, bar.count do
 				local name = bar.buttons[i]:GetName()
 				EachKey(function(key)
-					SetOverrideBindingClick(owner, false, key, name, "LeftButton")
+					SetOverrideBindingClick(owner, false, key, name, "Keybind")
 					bound = bound + 1
 				end, GetBindingKey(def.binding .. i))
 			end

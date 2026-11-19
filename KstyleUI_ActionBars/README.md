@@ -79,7 +79,7 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 
 | Kind | Attributes | Clicks |
 | --- | --- | --- |
-| Action | `type = "action"`, the button's ID 1 to 12, `useparent-actionpage`, `checkselfcast`, `checkfocuscast`, `checkmouseovercast` | `AnyUp` and `AnyDown`, so `ActionButtonUseKeyDown` decides when a press acts |
+| Action | `type = "action"`, the button's ID 1 to 12, `useparent-actionpage`, `checkselfcast`, `checkfocuscast`, `checkmouseovercast` | `AnyUp` and `AnyDown`; mouse clicks act on release, bindings follow `ActionButtonUseKeyDown` |
 | Pet | `type = "pet"`, `action` = the slot, `type2 = "click"`, `clickbutton` = `PetActionBar.actionButtons[slot]` | Right-click forwards to Blizzard's pet button through `SECURE_ACTIONS.click`, never by calling an autocast toggle |
 | Stance | `type = "click"`, `clickbutton` = `StanceBar.actionButtons[slot]`; the spell ID is retained for change detection | Blizzard's secure stance click selects or cancels the form, including stealth |
 
@@ -142,8 +142,8 @@ Bar 1's header runs a state driver on `page`. `PagingDriver` builds it from the 
 
 A flyout action (portals, teleports, pet calls) must not reach Blizzard's `SpellFlyout`: its `Toggle` calls `GetPopupDirection` and `TogglePopup` on the clicked button, which KstyleUI's buttons do not have, and giving them those methods would run KstyleUI's code inside Blizzard's secure flyout path. So every action button's `OnClick` is wrapped with `SecureHandlerWrapScript` on KstyleUI's own flyout frame, a `SecureHandlerBaseTemplate` frame with 12 secure spell buttons:
 
-- The wrap reads the clicked slot with the restricted `GetActionInfo`. Anything but a flyout clicks as usual.
-- For a flyout, the key-down (or mouse-down) half of the click lays out one button per spell beside the owner, in the bar's `flyoutDirection` (up from a bottom bar, down from a top one, inward from a side column), shows the frame and returns `false`, so the action never reaches Blizzard's code. The release half is swallowed. A second click on the owner closes it, and it closes itself once the pointer has been away for a second (`RegisterAutoHide`).
+- Every action, pet and stance button uses the wrap to distinguish the synthetic `Keybind` click from pointer clicks. With `Safe dragging` on (the default), pointer clicks set `useOnKeyDown` to false; binding clicks clear it so the game CVar still decides their timing, then forward as `LeftButton` for native delegates. The wrap reads action slots with restricted `GetActionInfo`; ordinary actions continue to the secure template.
+- For a flyout, key down or mouse release lays out one button per spell beside the owner, in the bar's `flyoutDirection` (up from a bottom bar, down from a top one, inward from a side column), shows the frame and returns `false`, so the action never reaches Blizzard's code. The other half is swallowed. A second click on the owner closes it, and it closes itself once the pointer has been away for a second (`RegisterAutoHide`).
 - Each flyout button casts its spell (`type = "spell"`) and closes the flyout on release.
 - `Flyout.Refresh` stores each flyout's known spells on the frame as attributes, out of combat: the flyouts from `C_Flyout.GetNumFlyouts` and `GetFlyoutID`, and any flyout on an action slot. Like Blizzard's action-bar flyouts it keeps only the highest known rank of each spell. It runs at Enable, on `SPELLS_CHANGED`, `LEARNED_SPELL_IN_SKILL_LINE` and `SPELL_FLYOUT_UPDATE`, and when a slot gains a flyout it does not know. Slots cannot change in combat, so every flyout bar 1 can page to is known before combat starts.
 
@@ -195,7 +195,7 @@ Shared rows: the font, size and outline of each of the four texts (the size is m
 - **A holder and a header.** Layout shows, hides, fades and moves the holder; the module shows, hides and fades the header. Neither ever undoes the other.
 - **Alpha for empty buttons.** A protected button cannot be shown or hidden in combat, but its alpha can change, so a page change in combat can still hide empty slots.
 - **Fonts on the module, toggles on each bar.** One font change restyles every bar, which is what a player changing the keybind font wants; each bar still chooses which texts it shows.
-- **Mouse clicks act on key down.** `SecureActionButtonTemplate` cannot tell an addon's mouse click from a key press, so both follow `ActionButtonUseKeyDown`, as other addon bars on this template do.
+- **Safe dragging is on by default.** Mouse clicks act on release so a drag starts before any action can cast. Keys retain `ActionButtonUseKeyDown`. Action Bars > Bars > Safe dragging restores the old mouse timing when switched off. Action and pet pickups retain the lock modifier and combat guards; stance buttons remain non-draggable and keep their native form selector.
 - **A flyout of our own.** Blizzard's spell flyout expects Blizzard's button mixins and runs secure code on the button it opens from. A secure wrap and a small flyout frame of KstyleUI's own keep flyouts working in combat without KstyleUI code ever running inside Blizzard's flyout.
 - **Bars 3 and 6 start off; bars 4 and 5 start on.** The owner's picture (2026-11-09, LEE-20: "let the picture win") draws bars 4 and 5 as two columns of twelve in the right rail with every slot shown. Bars 3 and 6 are one switch away, and their Blizzard keybinds keep working on Blizzard's hidden buttons until the player turns them on.
 

@@ -284,6 +284,7 @@ function Bar:Layout()
 			b:SetAttribute("clickbutton", delegate)
 			b:SetAttribute("spell", spell)
 		end
+		b:SetAttribute("safeDragging", ns.Config("safeDragging") == true)
 	end
 end
 

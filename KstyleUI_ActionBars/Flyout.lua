@@ -12,12 +12,20 @@ local AUTO_HIDE = 1
 local MAX_SLOT = ns.MAX_SLOT
 
 local OWNER_SNIPPET = ([[
+	local mouseUp = self:GetAttribute("safeDragging") and button ~= "Keybind"
+	if mouseUp then
+		self:SetAttribute("useOnKeyDown", false)
+	else
+		self:SetAttribute("useOnKeyDown", nil)
+	end
+	if button == "Keybind" then button = "LeftButton" end
+	if self:GetAttribute("type") ~= "action" then return button end
 	local page = self:GetParent():GetAttribute("actionpage") or 1
 	local kind, id = GetActionInfo(self:GetID() + (page - 1) * 12)
 	if kind ~= "flyout" then
-		return
+		return button
 	end
-	if not down then
+	if down == mouseUp then
 		return false
 	end
 	if control:IsShown() and control:GetAttribute("owner") == self:GetName() then

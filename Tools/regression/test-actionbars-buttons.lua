@@ -464,6 +464,8 @@ do
 	env.SetCombat(true)
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	AB.Click(env, owner, "LeftButton", true)
+	assert(not flyout.frame:IsShown(), "mouse down before a drag must not open the flyout")
+	AB.Click(env, owner, "LeftButton", false)
 	assert(AB.Used(env) == nil, "the click does not use the flyout action through Blizzard's SpellFlyout")
 	assert(flyout.frame:IsShown(), "the click opens KstyleUI's flyout")
 	local first, second, third = flyout.buttons[1], flyout.buttons[2], flyout.buttons[3]
@@ -471,8 +473,6 @@ do
 	assert(first:GetAttribute("type") == "spell" and first:GetAttribute("spell") == 10059 and second:GetAttribute("spell") == 3562,
 		"the highest known rank of each spell")
 	assert(W.LastCall(first.icon, "SetTexture")[1] == 1020059, "flyout icons use the override while the secure button casts the base spell")
-	AB.Click(env, owner, "LeftButton", false)
-	assert(flyout.frame:IsShown(), "the release of the same click does not close it")
 	-- The flyout tells its buttons when a spell's cooldown is only the global cooldown, as the action buttons do.
 	local gcd, running = true, {}
 	env.C_Spell.GetSpellCooldown = function()
@@ -507,9 +507,12 @@ do
 	AB.Click(env, first, "LeftButton", false)
 	assert(not flyout.frame:IsShown(), "and the flyout closes")
 	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
 	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
 	assert(not flyout.frame:IsShown(), "clicking the owner again closes it")
 	AB.Click(env, plain, "LeftButton", true)
+	AB.Click(env, plain, "LeftButton", false)
 	assert(AB.Used(env) == 2, "an ordinary action still casts")
 	assert(#env._blocked == 0, "the flyout makes no protected call in combat: " .. table.concat(env._blocked, ", "))
 	env.SetCombat(false)

@@ -674,8 +674,8 @@ function Button.New(bar, index)
 		Widgets.Tint(arrow, "textEmphasis")
 		arrow:Hide()
 		b.flyoutArrow = arrow
-		ns.Flyout.Wrap(b)
 	end
+	ns.Flyout.Wrap(b)
 	if def.kind == "pet" then
 		local mark = b.overlay:CreateTexture(nil, "OVERLAY")
 		mark:SetTexture((Tokens.Texture("dot")))

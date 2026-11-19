@@ -60,6 +60,7 @@ local function BarDefaults(def)
 end
 
 local defaults = {
+	safeDragging = true,
 	hubNumber = true,
 	editBar = "bar1",
 	bindingHints = true,
@@ -219,6 +220,7 @@ function ns.Schema()
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."] },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
 		{ type = "header", label = L["Bars"] },
+		{ type = "toggle", key = "safeDragging", label = L["Safe dragging"], help = L["Clicks cast on release; keys keep their timing. Off makes clicks follow the key setting."] },
 		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },
 		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 	}

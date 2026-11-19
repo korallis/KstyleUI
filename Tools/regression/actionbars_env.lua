@@ -395,6 +395,7 @@ local function InstallGame(env, opts)
 	env.PickupAction = function(n)
 		Block(env, "PickupAction")
 		g.picked[#g.picked + 1] = n
+		g.cursor, g.slots[n] = g.slots[n], g.cursor
 	end
 	env.PlaceAction = function(n)
 		Block(env, "PlaceAction")
@@ -406,6 +407,7 @@ local function InstallGame(env, opts)
 	env.PickupPetAction = function(n)
 		Block(env, "PickupPetAction")
 		g.picked[#g.picked + 1] = "pet" .. n
+		g.cursor = { type = "petaction", index = n }
 	end
 	env.GetCursorInfo = function()
 		if type(g.cursor) == "table" and g.cursor.type == "spell" then
@@ -713,9 +715,8 @@ function AB.Click(env, button, mouse, down)
 	local useOnKeyDown = button:GetAttribute("useOnKeyDown")
 	if useOnKeyDown == nil then useOnKeyDown = env.GetCVarBool("ActionButtonUseKeyDown") end
 	local acts = (down == true) == (useOnKeyDown == true)
-	if not acts then
-		-- The template still runs visual hooks on the other half of the click.
-	elseif kind == "action" then
+	if not acts then kind = nil end
+	if kind == "action" then
 		local page = button:GetAttribute("actionpage")
 		if page == nil and button:GetAttribute("useparent-actionpage") then
 			page = button:GetParent():GetAttribute("actionpage")
@@ -744,16 +745,16 @@ function AB.Click(env, button, mouse, down)
 	end
 end
 
--- PressKey(env, key) clicks the button an override binding points the key at, key down then key up.
+-- PressKey(env, key, down) sends a full key press, or just the requested edge when down is supplied.
 -- It returns false when no override binding holds the key.
-function AB.PressKey(env, key)
+function AB.PressKey(env, key, down)
 	for _, bindings in pairs(env._game.overrides) do
 		local binding = bindings[key]
 		if binding then
 			local button = env[binding.name]
 			assert(button, "the override binding names a button that does not exist: " .. tostring(binding.name))
-			AB.Click(env, button, binding.mouse, true)
-			AB.Click(env, button, binding.mouse, false)
+			if down == nil or down then AB.Click(env, button, binding.mouse, true) end
+			if down == nil or not down then AB.Click(env, button, binding.mouse, false) end
 			return true
 		end
 	end
