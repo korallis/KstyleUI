@@ -1530,14 +1530,23 @@ local aspect, band = Scale.Aspect(), Scale.Band()
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
 	local resolve = Scale.Aspect() ~= aspect or Scale.Band() ~= band
 	aspect, band = Scale.Aspect(), Scale.Band()
+	local changed = {}
 	if resolve then
 		Log("the " .. aspect .. " layout applies to elements at their defaults")
-		ResolveAll()
+		for i = 1, #order do
+			local el = elements[order[i]]
+			local s = el.settings
+			local anchor, x, y, width, height, scale = s.anchor, s.x, s.y, s.width, s.height, s.scale
+			Resolve(el)
+			if s.anchor ~= anchor or s.x ~= x or s.y ~= y or s.width ~= width or s.height ~= height or s.scale ~= scale then
+				changed[#changed + 1] = el.key
+			end
+		end
 		UpdateEvents()
 	end
 	ApplyAll(true)
-	for i = 1, resolve and #order or 0 do
-		ns.Callbacks.Fire("LayoutChanged", order[i])
+	for i = 1, #changed do
+		ns.Callbacks.Fire("LayoutChanged", changed[i], "scale")
 	end
 	if state.active then
 		Mode("Refresh")

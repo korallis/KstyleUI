@@ -42,6 +42,7 @@ local state = {
 	band = 0,
 	aspect = ASPECTS[1],
 	applied = {},
+	answers = {},
 	waiting = false,
 	dirty = true,
 	textFloor = true,
@@ -259,8 +260,20 @@ local function Apply()
 	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band then
 		return
 	end
+	if state.dirty then state.answers = {} end
 	state.dirty = false
-	local maximum, enabled, effectiveUser = Limit(width, height, screen, user, auto)
+	local maximum, enabled, effectiveUser
+	for _, answer in ipairs(state.answers) do
+		if answer[1] == width and answer[2] == height and answer[3] == screen and answer[4] == user and answer[5] == auto then
+			maximum, enabled, effectiveUser = answer[6], answer[7], answer[8]
+			break
+		end
+	end
+	if not maximum then
+		maximum, enabled, effectiveUser = Limit(width, height, screen, user, auto)
+		table.insert(state.answers, 1, { width, height, screen, user, auto, maximum, enabled, effectiveUser })
+		if #state.answers > CACHE_KEYS then state.answers[#state.answers] = nil end
+	end
 	local added = false
 	if state.enabled and enabled then
 		for _, element in ipairs(ns.Setup.Layouts.ELEMENTS) do
@@ -339,14 +352,17 @@ local function Request(reason)
 	end
 end
 
-local function Recheck()
+local function RequestDisplay(reason)
 	Invalidate()
-	Request("a late display change")
-end
-
-local function RecheckDisplay()
-	Invalidate()
-	Request("DISPLAY_SIZE_CHANGED")
+	if InCombatLockdown() then
+		Request(reason)
+	elseif not state.displayPending then
+		state.displayPending = true
+		C_Timer.After(0, function()
+			state.displayPending = false
+			Request(reason)
+		end)
+	end
 end
 
 local UI_SCALE_CVARS = { uiscale = true, useuiscale = true }
@@ -363,14 +379,11 @@ events:SetScript("OnEvent", function(_, event, name)
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		ApplyWaiting()
 	elseif event ~= "CVAR_UPDATE" or type(name) == "string" and UI_SCALE_CVARS[name:lower()] then
-		Invalidate()
-		Request(event)
-		C_Timer.After(0, event == "DISPLAY_SIZE_CHANGED" and RecheckDisplay or Recheck)
+		RequestDisplay(event)
 	end
 end)
 root:SetScript("OnSizeChanged", function()
-	Invalidate()
-	Request("the window size")
+	RequestDisplay("the window size")
 end)
 
 function Scale.Root()

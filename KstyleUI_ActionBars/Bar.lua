@@ -296,7 +296,7 @@ function Bar:Register()
 	K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
 end
 
-function Bar:Apply()
+function Bar:Apply(geometryOnly)
 	if InCombatLockdown() and not ns.enabling then
 		ns.QueueApply()
 		return
@@ -315,22 +315,24 @@ function Bar:Apply()
 	self.groupedWidth = groupedWidth
 	self:UpdateLive()
 	local header, def = self.header, self.def
-	if type(RegisterStateDriver) == "function" then
-		RegisterStateDriver(header, "visibility", self:Visibility())
-		if def.kind == "action" then
-			local driver = self:Shown() and self:Driver() or nil
-			if driver then
-				RegisterStateDriver(header, "page", driver)
-			else
-				if type(UnregisterStateDriver) == "function" then
-					UnregisterStateDriver(header, "page")
+	if not geometryOnly then
+		if type(RegisterStateDriver) == "function" then
+			RegisterStateDriver(header, "visibility", self:Visibility())
+			if def.kind == "action" then
+				local driver = self:Shown() and self:Driver() or nil
+				if driver then
+					RegisterStateDriver(header, "page", driver)
+				else
+					if type(UnregisterStateDriver) == "function" then
+						UnregisterStateDriver(header, "page")
+					end
+					header:SetAttribute("actionpage", def.page)
 				end
-				header:SetAttribute("actionpage", def.page)
 			end
+		else
+			ns.LogOnce("noDriver", "RegisterStateDriver is missing; bars show without paging")
+			header:SetShown(self:Shown())
 		end
-	else
-		ns.LogOnce("noDriver", "RegisterStateDriver is missing; bars show without paging")
-		header:SetShown(self:Shown())
 	end
 	if self.registered and type(K.Layout.Restore) == "function" then
 		K.Layout.Restore(def.element)
@@ -343,8 +345,13 @@ function Bar:Apply()
 			ns.Button.PlaceArrow(b, direction)
 		end
 	end
-	self:UpdateSlots()
-	self:Refresh()
+	if geometryOnly then
+		for _, button in ipairs(self.buttons) do ns.Button.StyleTexts(button) end
+		self:RefreshTray(true)
+	else
+		self:UpdateSlots()
+		self:Refresh()
+	end
 end
 
 function Bar:UpdateSlots()

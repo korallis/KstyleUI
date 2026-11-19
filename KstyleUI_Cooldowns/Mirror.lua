@@ -935,6 +935,16 @@ local function OnTheme()
 	end
 end
 
+local function OnScale()
+	if running then
+		for _, group in ipairs(GROUPS) do
+			local row = rows[group]
+			if row then row:Apply() end
+		end
+		Reskin.Refresh()
+	end
+end
+
 local function OnProfile()
 	if running then
 		Mirror.Stop()
@@ -988,7 +998,7 @@ function Mirror.Start()
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("HudStyleChanged", MODULE, OnTheme)
-	K.Callbacks.Register("ScaleChanged", MODULE, OnTheme)
+	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	RebuildAll()
 	return true

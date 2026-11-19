@@ -26,8 +26,9 @@ local changes = 0
 K.Callbacks.Register("ScaleChanged", "resize-test", function() changes = changes + 1 end)
 width, height = 2560, 1440
 env.FireEvent("DISPLAY_SIZE_CHANGED")
-assert(changes == 1, "P5b: a display change must still apply immediately when the option is off")
+assert(changes == 0, "resize bursts wait until the next frame even with the optional delay off")
 advance(0)
+assert(changes == 1, "a display change applies on the next frame when the optional delay is off")
 K.Options.Write("Widgets", "resizeDebounce", true)
 width, height = 3456, 2234
 env.FireEvent("DISPLAY_SIZE_CHANGED")
@@ -60,8 +61,10 @@ local stable = root:GetEffectiveScale()
 for _, event in ipairs({ "UI_SCALE_CHANGED", "CVAR_UPDATE" }) do
 	env.UIParent._scale = env.UIParent._scale * 1.1
 	env.FireEvent(event, "uiScale")
-	assert(math.abs(root:GetEffectiveScale() - stable) < 1e-9, "P5b: the resize option must not delay UI-scale events")
+	advance(0)
+	assert(math.abs(root:GetEffectiveScale() - stable) < 1e-9, "UI-scale events apply next frame without the optional window-resize delay")
 	env.UIParent._scale = env.UIParent._scale * 1.2
+	env.FireEvent(event, "uiScale")
 	advance(0)
 	assert(math.abs(root:GetEffectiveScale() - stable) < 1e-9, "P5b: the late UI-scale recheck must stay immediate rather than wait for a window resize")
 end

@@ -55,7 +55,7 @@ A module that fades or shows and hides its own frame, such as a cast bar, a unit
 
 Every element has these settings, saved per profile in `KstyleUIDB.layouts[profile][key]`. Only the fields that differ from the defaults are saved, with one exception: a place is saved whole. Once any of `anchor`, `x` and `y` differs from the default, all three are saved, so a layout class (`Scale.Aspect()`, whose places can differ) never moves an element the player placed; when all three are back at the default, none is saved and the element follows its class again. Store migration 30 made older partial places whole against the defaults they were saved against.
 
-The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Orbs or Medallions, the style's place and the class's place for that style (Medallions has one for the 21:9 and 32:9 classes, where the slab is one row). A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged` for every element.
+The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Orbs or Medallions, the style's place and the class's place for that style (Medallions has one for the 21:9 and 32:9 classes, where the slab is one row). A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged(key, "scale")` for elements whose resolved geometry changed. Modules already handling `ScaleChanged` can skip that geometry notification.
 
 | Field | Values | Default |
 | --- | --- | --- |

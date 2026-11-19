@@ -81,29 +81,29 @@ local function HoldTray(fn)
 	end
 end
 
-local function ApplyBars()
+local function ApplyBars(geometryOnly)
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
-			bar:Apply()
+			bar:Apply(geometryOnly)
 		elseif ns.running and ns.Config(def.key).enabled then
 			Build(def)
 		end
 	end
 end
 
-local function ApplyAll()
+local function ApplyAll(geometryOnly)
 	applyQueued = false
 	if InCombatLockdown() and not ns.enabling then
 		ns.QueueApply()
 		return
 	end
-	HoldTray(ApplyBars)
+	HoldTray(function() ApplyBars(geometryOnly) end)
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
 		frame:SetAttribute("gap", K.Widgets.Snap(frame, K.Tokens.Size("actionGap")))
 	end
-	ns.ApplyBindings()
+	if not geometryOnly then ns.ApplyBindings() end
 	ns.Vehicle.Update()
 end
 
@@ -372,7 +372,8 @@ local function OnProfile()
 	RefreshVisuals()
 end
 
-local function OnLayout(_, key)
+local function OnLayout(_, key, reason)
+	if reason == "scale" then return end
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar and def.element == key then
@@ -454,7 +455,7 @@ local function Enable()
 	K.Callbacks.Register("ThemeChanged", MODULE, RefreshVisuals)
 	K.Callbacks.Register("ClassChanged", MODULE, ApplyAccent)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
-	K.Callbacks.Register("ScaleChanged", MODULE, ApplyAll)
+	K.Callbacks.Register("ScaleChanged", MODULE, function() ApplyAll(true) end)
 	HookLayoutMode()
 	OnLayoutMode()
 	ns.Flyout.Build()

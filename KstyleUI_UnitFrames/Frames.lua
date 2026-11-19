@@ -897,7 +897,8 @@ local function OnProfileChanged()
 	ns.Blizzard.Apply(running)
 end
 
-local function OnLayoutChanged(_, key)
+local function OnLayoutChanged(_, key, reason)
+	if reason == "scale" then return end
 	if key == ns.Fan.KEY and frames.target and frames.target.views[1].auras then
 		ns.Auras.Apply(frames.target.views[1])
 	end

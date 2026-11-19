@@ -157,6 +157,7 @@ do
 	assert(near(perUnit(env, K), 21 / 16), "the game's UI scale CVar rescales the root to stay pixel perfect")
 	env.UIParent._scale = 0.8
 	env.FireEvent("UI_SCALE_CHANGED")
+	env.RunTimers()
 	assert(near(perUnit(env, K), 21 / 16), "UI_SCALE_CHANGED rescales the root")
 	env._physical = { 1920, 1080 }
 	root._scripts.OnSizeChanged(root)

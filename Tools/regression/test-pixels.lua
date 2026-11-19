@@ -239,11 +239,13 @@ do
 	-- The UI scale changes: the root compensates and stays 1080 units tall.
 	env.UIParent:SetScale(0.8)
 	env.FireEvent("UI_SCALE_CHANGED")
+	env.RunTimers()
 	assert(math.abs(UI_HEIGHT / Scale.Root():GetEffectiveScale() - 1080) < 1e-6, "the root stays 1080 units tall after a UI scale change")
 	assert(count(fired, "ScaleChanged") == before + 2, "a UI scale change fires ScaleChanged")
 
 	-- The engine settles the UI scale a frame late: the recheck catches it.
 	env.UIParent:SetScale(0.9)
+	env.FireEvent("UI_SCALE_CHANGED")
 	env.RunTimers()
 	assert(math.abs(UI_HEIGHT / Scale.Root():GetEffectiveScale() - 1080) < 1e-6, "the recheck applies a late UI scale")
 end
