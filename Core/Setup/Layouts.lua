@@ -1495,7 +1495,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 			height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 		end
 		if key == "meters.threat" and enabled["meters.damage"] ~= false then height = DAMAGE_H end
-		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER }
+		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER, key }
 		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
 	end
 	local rectCount = #ELEMENTS + 2
@@ -1542,8 +1542,8 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	for i = 1, elements + 2 do
 		local key, width, height, position, offsetX, offsetY, point
 		if i <= elements then
-			key = ELEMENTS[i].key
 			local size = state.sizes[i]
+			key = size[6]
 			width, height, offsetX, offsetY = size[1], size[2], size[3], size[4]
 			point = size[5]
 			position = layout[key]
@@ -1580,7 +1580,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				end
 				for index = 1, neighbours do
 					local rect = rects[index]
-					if rect[1] < r and l < rect[3] and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
+					if rect[1] < r and l < rect[3] and rect[2] < t and b < rect[4] and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
 						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
 							return false
