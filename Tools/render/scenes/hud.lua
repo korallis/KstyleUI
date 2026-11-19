@@ -152,7 +152,7 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
-	profile.Minimap = profile.Minimap or {}
+	profile.Minimap = profile.Minimap or { enabled = true }
 	profile.Minimap.frame = os.getenv("RENDER_MINIMAP_FRAME")
 	return {
 		version = 2,
@@ -1748,6 +1748,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 			return group == "essential" or group == "utility"
 		end)
 	end
+	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
 	local style = Hud.Style()
 	if style then

@@ -253,7 +253,7 @@ class ChromeTest(unittest.TestCase):
     def test_the_kit_is_the_spec_list(self):
         spec = {"UnitSlab", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
                 "HubSocket", "CardEdge", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
-                "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket"}
+                "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket", "MinimapCrestRing", "MinimapCrestEnamel"}
         self.assertEqual({c.name for c in kit.CHROME}, spec)
 
     def test_geometry_is_the_spec(self):

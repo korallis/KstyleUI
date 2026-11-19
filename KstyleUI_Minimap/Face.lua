@@ -318,8 +318,9 @@ local function PlaqueHeight(face)
 end
 
 local function RowCenter(face, side)
+	if Face.Frame() == "medallion" then return (side or face.mapSize) * (1 / RingOuter() - 1) / 2 - Format.FRAME end
 	if Face.Round() and Settings.Get("clearPlaques") then
-		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RING_OUTER - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)
+		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)
 	end
 	return Format.ROW_CENTER
 end
@@ -329,7 +330,7 @@ local function ZoneCenter(face, side)
 	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(face.zone) / 2))
-	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)) or y
+	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)) or y
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
@@ -481,6 +482,7 @@ end
 
 function Face:PlaceRound(round)
 	local ring, plaques = self.ring, self.plaques
+	self.clockAnchor = nil
 	if not round then
 		if self.gem then self.gem:Hide() end
 		for _, layer in pairs(self.plate.diamond) do layer:Show() end
@@ -507,12 +509,12 @@ function Face:PlaceRound(round)
 	end
 	local crest = Face.Frame() ~= "classic"
 	local name, standin = Widgets.TextureName("medMinimapRing")
-	local path = crest and Tokens.Texture("medRingLarge") or Tokens.Texture(name)
+	local path = crest and Tokens.Texture("medMinimapCrestRing") or Tokens.Texture(name)
 	ring:SetTexture(path)
 	ring:SetVertexColor(Widgets.Rgba(not crest and standin and "steel" or "white"))
 	if crest and not self.enamel then
 		self.enamel = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL + 1)
-		self.enamel:SetTexture((Tokens.Texture("medEnamelLarge")))
+		self.enamel:SetTexture((Tokens.Texture("medMinimapCrestEnamel")))
 		self.enamel:SetAllPoints(ring)
 		self.runes = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL + 2)
 		self.runes:SetTexture((Tokens.Texture("medRuneGlyphs")))
@@ -542,6 +544,7 @@ function Face:PlaceRound(round)
 	row:ClearAllPoints()
 	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, RowCenter(self)))
 	local seated = Face.Frame() == "medallion"
+	self.clockAnchor = seated and row or nil
 	local rowWidth = width
 	if seated then
 		rowWidth = Snap(card, min(width, max(side * 0.6, (self.coords:GetStringWidth() or 0) + (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0) + 2 * PLAQUE_PAD + 12)))
@@ -550,6 +553,8 @@ function Face:PlaceRound(round)
 	if seated then
 		row:ClearAllPoints()
 		Widgets.Point(row, "CENTER", ring, "BOTTOM")
+		self.plate:ClearAllPoints()
+		Widgets.Point(self.plate, "CENTER", self.mapArea, "TOP", 0, Snap(self.mapArea, side * (1 / RingOuter() - 1) / 4))
 	end
 	if seated and not self.gem then
 		self.gem = self.plate:CreateTexture(nil, "ARTWORK", nil, 1)
@@ -712,12 +717,7 @@ function Face:Layout()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
 	self:PlaceRound(round)
-	if Face.Frame() == "medallion" then
-		self.plate:ClearAllPoints()
-		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, Snap(area, side * (1 / RingOuter() - 1) / 4))
-	end
-	local seated = Face.Frame() == "medallion"
-	self.clockAnchor = seated and self.plaques[2] or nil
+	local seated = self.clockAnchor ~= nil
 	coords:ClearAllPoints()
 	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x, seated and 0 or -rowY)
 	local w, h = (self.clockAnchor or card):GetSize()

@@ -30,7 +30,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(#env._errors == 0)
 end
 
-for _, name in ipairs({ "Ring256", "Enamel256" }) do
+for _, name in ipairs({ "MinimapCrestRing", "MinimapCrestEnamel" }) do
 	local file = assert(io.open("Media/Textures/Medallions/" .. name .. ".png", "rb"))
 	local header = file:read(24)
 	file:close()
@@ -94,7 +94,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			assert(face.enamel:IsShown() == crest and face.runes:IsShown() == crest, "Classic restores the previous ring")
 			assert(face.gem:IsShown() == (frame == "medallion"), "only the medallion uses the gem")
 			local path = W.LastCall(face.ring, "SetTexture")[1]
-			assert(path:find(crest and "Ring256.png" or "MinimapRing.png", 1, true), "use native source exports for the crest")
+			assert(path:find(crest and "MinimapCrestRing.png" or "MinimapRing.png", 1, true), "use native source exports for the crest")
 			assert(W.LastCall(face.runes, "SetBlendMode")[1] == "ADD", "the engraved runes are additive")
 			assert(W.Near(face.enamel:GetAlpha(), 0.35) and W.Near(face.runes:GetAlpha(), 0.25), "class tint preserves the hub layer opacities")
 			assert(face.ring:GetWidth() * (crest and 118 / 150 or 0.9189) >= width - K.Scale.Pixel(1), "the opening preserves today's map")

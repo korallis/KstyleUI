@@ -75,18 +75,21 @@ function Lumen.Preset(layout)
 	local Layouts = K.Setup.Layouts
 	local settings = Hud.PresetSettings(layout)
 	local rootHeight = Layouts.HEIGHT
-	local style = Hud.Style() and Hud.Style():lower() == "medallions" and "medallions" or nil
-	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
-	local story = Layouts.Story(layout, rootHeight, true, style, rootHeight * K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height) / Common.SCREEN.height)
-	local slot = story.guide
-	local k = HEIGHT / rootHeight
 	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
+	local style = Hud.Style() and Hud.Style():lower() == "medallions" and "medallions" or nil
+	K.Store.Module("Minimap").enabled = true
+	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
+	local story = Layouts.Story(layout, rootHeight, true, style, rootHeight * width / Common.SCREEN.height)
+	local crest = style == "medallions" and Layouts.MinimapCrest()
+	local slot = crest and story.guide or Layouts.Slot(layout, rootHeight)
+	local column = crest and story.quests or Layouts.Story(layout, rootHeight, true, nil, rootHeight * width / Common.SCREEN.height).quests
+	local k = HEIGHT / rootHeight
 	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
 	local function Screen(spec)
 		local l, _, r, t = Layouts.Rect(spec, spec, rootHeight * width / Common.SCREEN.height, rootHeight)
 		return { left = origin + l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = spec.height * k }
 	end
-	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(story.quests)
+	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(column)
 end
 
 -- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,

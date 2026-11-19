@@ -610,10 +610,13 @@ function Layouts.CooldownGrid(style, key)
 	return Number(cfg.size, 16, 64, 0.1, essential and CENTRE_BUTTON or BUTTON), Number(cfg.spacing, 0, 12, 0.1, essential and CENTRE_GAP or PITCH), columns, rows
 end
 
+Layouts.CREST_GROW = MAP * (150 / 118 - 1)
+
 function Layouts.MinimapCrest()
 	local section = ns.Store.IsLoaded() and ns.Store.Profile().Minimap
-	local frame = type(section) == "table" and section.frame
-	return issecretvalue and issecretvalue(frame) or frame ~= "classic"
+	if type(section) ~= "table" or section.enabled ~= true then return false end
+	local frame = section.frame
+	return not (issecretvalue and issecretvalue(frame)) and (frame == nil or frame == "medallion" or frame == "ring")
 end
 
 function Layouts.Footprint(name, key, style, class)
@@ -623,7 +626,7 @@ function Layouts.Footprint(name, key, style, class)
 	end
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
 	if style == "medallions" and key == "minimap.main" and Layouts.MinimapCrest() then
-		local overhang = MAP * (150 / 118 - 1) / 2
+		local overhang = Layouts.CREST_GROW / 2
 		return MAP + 2 * overhang, MAP + 2 * overhang + 40, overhang, overhang + 20
 	end
 	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class or ns.Scale.Aspect(), key) end
@@ -707,12 +710,12 @@ local function Card(out, key, x, height, place, slot, inset)
 	return out
 end
 
-function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, out, targetWidth)
+function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, out, targetWidth, crest)
 	local slot = slots[name]
 	if not slot then
 		return nil
 	end
-	local crest = style == "medallions" and Layouts.MinimapCrest() and 52 or 0
+	crest = style == "medallions" and (crest or crest == nil and Layouts.MinimapCrest()) and 52 or 0
 	local inset = style == "medallions" and GAP + crest or 0
 	local slotHeight = slot.height - Lift(rootHeight) - inset
 	out = out or {}
@@ -950,7 +953,7 @@ function Layouts.Style(style, name, key)
 		return layouts[name] and layouts[name][key]
 	end
 	if style == "medallions" and key == "minimap.main" and Layouts.MinimapCrest() then
-		local overhang = MAP * (150 / 118 - 1) / 2
+		local overhang = Layouts.CREST_GROW / 2
 		return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) }
 	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
@@ -1120,7 +1123,7 @@ function Layouts.Aspect(class, style, name, key)
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
 		if key == "auras.buffs" or key == "auras.debuffs" then
 			local base = layouts[name][key]
-			return { anchor = base.anchor, x = base.x - math.ceil(MAP * (150 / 118 - 1) - AURA_MAP_GAP), y = base.y }
+			return { anchor = base.anchor, x = base.x - math.ceil(Layouts.CREST_GROW - AURA_MAP_GAP), y = base.y }
 		end
 		if style == "frames" and (key == STORY_KEYS.quests or key == STORY_KEYS.guide) then
 			local element = ns.Layout.Element(key)
@@ -1201,7 +1204,7 @@ function Layouts.Previous(style, name, key, class)
 end
 
 ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
-	if not (module == "Cooldowns" and key == "attached" or module == "Meters" and key == "swing.attached" or module == "Minimap" and key == "frame") then return end
+	if not (module == "Cooldowns" and key == "attached" or module == "Meters" and key == "swing.attached" or module == "Minimap" and (key == "frame" or key == "enabled")) then return end
 	ns.Combat.Queue(function()
 		for _, element in ipairs(ELEMENTS) do
 			if element.key:match("^cooldowns%.") or element.key == "meters.swing" then
@@ -1471,6 +1474,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
+	state.crest = style == "medallions" and Layouts.MinimapCrest()
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
 		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, style, class)
@@ -1512,7 +1516,7 @@ function Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, styl
 	local rootWidth = physicalWidth / (physicalHeight / rootHeight)
 	local memo = state.story
 	if memo.rootHeight ~= rootHeight or memo.rootWidth ~= rootWidth then
-		memo.value = Layouts.Story(name, rootHeight, true, style, rootWidth, nil, memo.value, state.targetWidth)
+		memo.value = Layouts.Story(name, rootHeight, true, style, rootWidth, nil, memo.value, state.targetWidth, state.crest)
 		memo.rootHeight, memo.rootWidth = rootHeight, rootWidth
 	end
 	return memo.value
@@ -1561,6 +1565,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local medal = medals and medals[key]
 			if medal then
 				local d = floor(medal.d * pixelScale + 0.5)
+				if d <= 0 then return false end
 				local cx = medal.side < 0 and left + 2 * pixelScale or left + w - 2 * pixelScale
 				local cy = bottom + h / 2 - (offsetY or 0) * pixelScale / 2
 				box = boxes[2]
@@ -1570,7 +1575,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			for j = 1, medal and 2 or 1 do
 				box = boxes[j]
 				local l, b, r, t = box[1], box[2], box[3], box[4]
-				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight or r <= l or t <= b then
+				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight then
 					return false
 				end
 				for index = 1, neighbours do
