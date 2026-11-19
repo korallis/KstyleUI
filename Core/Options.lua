@@ -138,13 +138,7 @@ local function checkOrder(row, value)
 	end
 	if type(value) ~= "table" then return "an order value must be a list of { id, shown, zone }" end
 	local count = 0
-	for key in pairs(value) do
-		if type(key) ~= "number" or key < 1 or key > #value or key ~= math.floor(key) then
-			return "an order value must be a list with no gaps"
-		end
-		count = count + 1
-	end
-	if count ~= #value then return "an order value must be a list with no gaps" end
+	for _ in pairs(value) do count = count + 1 end
 	if count ~= #row.options then return "an order value must include every option once" end
 	for _, entry in ipairs(value) do
 		if type(entry) ~= "table" or not ids[entry.id] or type(entry.shown) ~= "boolean"
@@ -153,6 +147,7 @@ local function checkOrder(row, value)
 		end
 		ids[entry.id] = nil
 	end
+	if next(ids) then return "an order value must be a list with no gaps" end
 end
 
 local function checkRow(module, row, defaults)

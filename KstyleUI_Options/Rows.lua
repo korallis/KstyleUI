@@ -205,10 +205,10 @@ function MAKERS.order(row)
 		button:Paint()
 		holder[direction] = button
 	end
-	Widgets.Point(holder.down, "RIGHT", holder, "RIGHT")
+	Widgets.Point(holder.toggle, "RIGHT", holder, "RIGHT")
+	Widgets.Point(holder.down, "RIGHT", holder.toggle, "LEFT", -Gap(holder), 0)
 	Widgets.Point(holder.up, "RIGHT", holder.down, "LEFT", -Gap(holder, "gapTiny"), 0)
 	Widgets.Point(holder.zone, "RIGHT", holder.up, "LEFT", -Gap(holder, "gapSmall"), 0)
-	Widgets.Point(holder.toggle, "RIGHT", holder.zone, "LEFT", -Gap(holder), 0)
 	return holder
 end
 
@@ -877,7 +877,8 @@ function Rows.Create(list)
 	row:SetScript("OnMouseUp", function(self, button)
 		local item = self.item
 		if K.Store.Module("OptionControls").changedSettings and button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
-			Apply(self, K.Options.Default(item.module, item.key))
+			K.Options.Write(item.module, item.key, K.Options.Default(item.module, item.key))
+			ns.Changed()
 		end
 	end)
 	row.Restyle = Rows.Restyle
