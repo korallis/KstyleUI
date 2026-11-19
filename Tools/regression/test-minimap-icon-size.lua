@@ -40,6 +40,14 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 		assert(W.Near(map:GetWidth() * map:GetEffectiveScale(), area:GetWidth() * area:GetEffectiveScale()), "preserving icon scale must still fit terrain to the map card")
 	end
 	Readable()
+	for _, control in ipairs({ { "column.size", tracking.icon }, { "drawer.size", button.icon } }) do
+		local width = control[2]:GetWidth()
+		for _, row in ipairs(ns.Settings.schema) do
+			if row.key == control[1] then K.Options.Write("Minimap", control[1], row.max) end
+		end
+		assert(control[2]:GetWidth() > width, "raise minimap icon size slider maxima above the native-size floor so icons can still be enlarged")
+		K.Options.Write("Minimap", control[1], K.Options.Default("Minimap", control[1]))
+	end
 	local getScale = button.GetScale
 	button.GetScale = function() return env.Secret(1) end
 	assert(pcall(ns.Map.drawer.Place, ns.Map.drawer, button), "a secret addon-button scale must not be used in arithmetic")
