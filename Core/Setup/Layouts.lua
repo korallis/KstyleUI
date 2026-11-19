@@ -467,6 +467,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 end
 STYLES.orbs.Healer["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + TIGHT) }
 STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = DPS["groupframes.party"].y + TIGHT }
+for _, key in ipairs({ "auras.buffs", "auras.debuffs" }) do
+	STYLES.orbs.Healer[key] = { anchor = ORBS[key].anchor, x = ORBS[key].x, y = ORBS[key].y - 4 }
+end
 STYLES.orbs.Healer["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT - 7 }
 STYLES.orbs.Healer["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X + 160 + NEAR, y = ORBS_TRACKED_Y + AURA_H + NEAR - 22 - 2 * TIGHT }
 

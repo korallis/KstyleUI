@@ -41,6 +41,17 @@ for _, role in ipairs({ "story", "skins.quests", "meters.damage", "chat.main", "
 	end, "its own fill colour", role)
 end
 
+for _, card in ipairs(cards) do
+	if card.role == "databars.strip" then
+		local grain = card.drawn.grain[1].rect
+		local width = grain[3]
+		grain[3] = width / 2
+		local ok, message = pcall(Lib.AuditCard, card, "ForgedBrackets")
+		grain[3] = width
+		assert(not ok and tostring(message):find("grain covers a fraction of the card", 1, true), "a cropped top-bar grain must fail the material audit")
+	end
+end
+
 local chrome = cards[1].chrome
 local ok, message = pcall(function()
 	Lib.OPT_OUTS[cards[1].role] = "too short"

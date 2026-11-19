@@ -256,9 +256,7 @@ function Lib.AuditCard(card, material)
 		assert(not card.drawn.gilt, label .. " draws gilt ticks under its brackets")
 	else
 		assert(not brackets, label .. " draws brackets the " .. material .. " material lacks")
-		if chrome.gilt then
-			assert(card.drawn.gilt and #card.drawn.gilt > 0, label .. " draws no gilt ticks under " .. material)
-		end
+		assert((card.drawn.gilt ~= nil) == (chrome.gilt ~= nil and chrome.ticksShown == true), label .. " gilt ticks differ from the shared chrome size rule under " .. material)
 	end
 end
 

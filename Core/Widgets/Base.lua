@@ -2223,6 +2223,7 @@ function Chrome:PaintMaterial()
 	end
 	local inset = Widgets.Snap(owner, self:Radius())
 	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(owner)
+	local insetY = h < 10 * inset and w > 10 * inset and pixel or inset
 	if framed then
 		local pixels = min(3, max(1, floor(Widgets.Border(owner) / pixel + 0.5)))
 		local name = "forgedFrame" .. pixels
@@ -2290,7 +2291,7 @@ function Chrome:PaintMaterial()
 		end
 		self:SyncMaterialFrame()
 	end
-	if w <= 2 * inset or h <= 2 * inset or pixel <= 0 then
+	if w <= 2 * inset or h <= 2 * insetY or pixel <= 0 then
 		if self.grain then
 			self.grain:Hide()
 		end
@@ -2301,13 +2302,13 @@ function Chrome:PaintMaterial()
 		self.grain:SetBlendMode("BLEND")
 	end
 	self.grain:ClearAllPoints()
-	self.grain:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
-	self.grain:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
+	self.grain:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -insetY)
+	self.grain:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, insetY)
 	if self.grain:SetTexture(Tokens.Texture((Widgets.TextureName(material.texture))), "REPEAT", "REPEAT") == false then
 		self.grain:Hide()
 		return
 	end
-	self.grain:SetTexCoord(0, (w - 2 * inset) / pixel / material.texels, 0, (h - 2 * inset) / pixel / material.texels)
+	self.grain:SetTexCoord(0, (w - 2 * inset) / pixel / material.texels, 0, (h - 2 * insetY) / pixel / material.texels)
 	self.grain:SetVertexColor(Widgets.Rgba("white", min(1, material.grain * self:MaterialOpacity())))
 	self.grain:SetShown(self.visible)
 end
