@@ -455,6 +455,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(b.info._points[1][3] == "BOTTOMLEFT", "coordinates use the shared plate placement")
 	assert(Layout.Set(b.key, "x", 302) and b.info:GetText():find("302", 1, true), "coordinates follow a changed position")
 	assert(Layout.Set(b.key, "x", 301))
+	Element(env, K, "Test.Thin", { anchor = "BOTTOMLEFT", x = 1000, y = 600 }, 120, 22)
+	Mode.Refresh()
+	local thin = Mode.Plate("Test.Thin")
+	assert(#thin.info._points == 2 and thin.info._points[1][2] == thin and thin.info._points[2][2] == thin and not thin.label:IsShown(),
+		"a thin plate's coordinates take one line across the plate")
+	assert(thin.info:GetText() == "BOTTOMLEFT  1000, 600", "thin plates show the short coordinates")
 	K.Options.Write("Layout", "showCoordinates", false)
 	assert(a.info:GetText() ~= "" and b.info:GetText() == "", "turning off restores selection-only coordinates")
 	assert(Layout.Setting("showCoordinates") == false)
@@ -477,6 +483,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	env._modifiers.alt = false
 	a:GetScript("OnMouseWheel")(a, 1)
 	assert(near(Layout.Get(a.key).scale, 1.05), "unmodified wheel still scales")
+	assert(Layout.Set(a.key, "scale", 1))
+	Cursor(env, K, 400, 320)
+	a:GetScript("OnDragStart")(a)
+	a:GetScript("OnMouseWheel")(a, 1)
+	assert(near(Layout.Get(a.key).scale, 1.05), "the wheel still scales while the plate is dragged")
+	a:GetScript("OnDragStop")(a)
 	assert(Layout.Set(a.key, "scale", 1))
 
 	K.Options.Write("Layout", "grid", true)

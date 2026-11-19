@@ -70,10 +70,13 @@ local function Cursor()
 	return x / s - Scale.Origin(), y / s
 end
 
-local function Describe(key)
+local function Describe(key, short)
 	local s = Layout.Element(key).settings
 	local el = Layout.Element(key)
 	local text = format("%s  %d, %d", s.anchor, floor(s.x + 0.5), floor(s.y + 0.5))
+	if short then
+		return text
+	end
 	if s.attachTo ~= "" then
 		local side = ({ above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] })[s.side]
 		local target = Layout.Element(s.attachTo)
@@ -97,7 +100,7 @@ local function PaintPlate(plate)
 	local r, g, b = Tokens.Color(clear and "deep" or "buttonFill")
 	plate.chrome:SetFillRGBA(r, g, b, clear and 0.35 or fill)
 	plate.chrome:SetEdgeRGBA(Widgets.Rgba("accent", clear and 1 or (active or plate.hover) and EDGE_ACTIVE or EDGE_REST))
-	Widgets.SetText(plate.info, (active or Layout.Setting("showCoordinates")) and Describe(plate.key) or "")
+	Widgets.SetText(plate.info, (active or Layout.Setting("showCoordinates")) and Describe(plate.key, plate.thin) or "")
 end
 
 local function PaintHandle(handle)
@@ -140,19 +143,29 @@ local function PlacePlate(plate, frame, w, h)
 	plate.label:ClearAllPoints()
 	plate.info:ClearAllPoints()
 	local attached = Layout.Element(plate.key).settings.attachTo ~= ""
+	local coordinates = Layout.Setting("showCoordinates")
+	plate.thin = not attached and coordinates and h < Tokens.Size("caption") * 2 + 8
 	if clear then
 		Widgets.Point(plate.label, "TOPLEFT", plate, "TOPLEFT", 4, -2)
 	else
 		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
 	end
-	if attached or Layout.Setting("showCoordinates") and h < Tokens.Size("caption") * 2 + 8 then
+	if attached then
 		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
+	elseif plate.thin then
+		Widgets.Point(plate.info, "LEFT", plate, "LEFT", 4, 0)
+		Widgets.Point(plate.info, "RIGHT", plate, "RIGHT", -4, 0)
+	elseif clear and coordinates then
+		Widgets.Point(plate.info, "TOPLEFT", plate.label, "BOTTOMLEFT", 0, -2)
 	elseif clear then
 		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
 	else
 		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 	end
-	plate.tag:SetShown(clear)
+	plate.info:SetWordWrap(not plate.thin)
+	plate.info:SetJustifyH(plate.thin and "LEFT" or "CENTER")
+	plate.label:SetShown(not plate.thin)
+	plate.tag:SetShown(clear and not plate.thin)
 end
 
 local function RefreshPlate(key)
@@ -244,7 +257,6 @@ local function UpdateDrag()
 			d.axis = math.abs(dx) >= math.abs(dy) and "x" or "y"
 		end
 		local axis = KeyDown(IsShiftKeyDown) and d.axis
-		if axis == "x" then dy = 0 elseif axis == "y" then dx = 0 end
 		l, b = G.ClampToRoot(l + dx, b + dy, w, h, rw, rh)
 		if Layout.Setting("snap") then
 			l, b, gx, gy = G.SnapMove(l, b, w, h, d.targets, Layout.Setting("snapDistance"), d.grid)
@@ -420,7 +432,7 @@ local function PlateDragStart(plate)
 end
 
 local function PlateWheel(plate, delta)
-	if not Layout.IsActive() or InCombatLockdown() or drag or not IsNumber(delta) or delta == 0 then return end
+	if not Layout.IsActive() or InCombatLockdown() or not IsNumber(delta) or delta == 0 then return end
 	if KeyDown(IsAltKeyDown) then
 		local x, y = Cursor()
 		if not x then return end
