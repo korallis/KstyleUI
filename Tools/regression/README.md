@@ -12,7 +12,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` for pull requests as six `--shard I/6` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU overruns and per-path CPU headroom warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU overruns and per-path CPU headroom warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |

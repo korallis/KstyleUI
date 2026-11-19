@@ -160,6 +160,7 @@ class PortableRunnerTest(unittest.TestCase):
                         mock.patch.object(self.runner.sys, "platform", platform), \
                         mock.patch.object(Path, "glob", return_value=[Path("test-measured.lua")]), \
                         mock.patch.object(self.runner, "run_one", return_value=result) as run, \
+                        mock.patch("builtins.open", mock.mock_open()), \
                         contextlib.redirect_stdout(output):
                     self.assertEqual(self.runner.main(["--margins"]), expected)
                 self.assertEqual(run.call_args.args[3], max(120, 5 * (allowance or 20) * factor))
@@ -306,6 +307,16 @@ class RunAllTest(unittest.TestCase):
         result = self.run_all()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
+
+    def test_passing_file_warnings_remain_visible_on_hosted_ci(self):
+        warning = "WARN headroom: budget is below five times the measured CPU time"
+        (self.regression / "test-warn.lua").write_text(
+            f"print({warning!r})\n" + "print('ordinary test output')\n" * 7)
+        result = self.run_all(CI="true", RUNNER_ENVIRONMENT="github-hosted")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn(warning, result.stdout, "Forward WARN lines from passing test logs so CI warnings stay visible")
+        self.assertNotIn("ordinary test output", result.stdout)
+        self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 0"))
 
     def test_runs_from_the_repository_root(self):
         (self.regression / "test-cwd.lua").write_text("from pathlib import Path; assert Path('Tools/regression').is_dir()\n")
@@ -501,6 +512,7 @@ finally:
                 mock.patch.object(run_all, "make_slots", return_value=(None, "slots off")), \
                 mock.patch.object(Path, "glob", return_value=paths), \
                 mock.patch.object(run_all, "run_one", side_effect=lambda command, path, *args: results[path]), \
+                mock.patch("builtins.open", mock.mock_open()), \
                 contextlib.redirect_stdout(output):
             self.assertEqual(run_all.main([]), 0)
         lines = output.getvalue().splitlines()

@@ -162,7 +162,7 @@ class PushProofTest(unittest.TestCase):
                                                 "status": status, "conclusion": conclusion})[0], "run=true\n")
 
     def test_lua_never_reuses_hosted_proof_on_staging(self):
-        for total in (2, 6):
+        for total in (2, 6, 8):
             marker = {"name": "green-" + "a" * 40 + f"-lua-1-of-{total}"}
             output, log, calls = self.scope(area="lua", artifacts=[marker])
             self.assertEqual(output, "run=true\n")

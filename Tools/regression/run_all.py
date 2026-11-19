@@ -494,6 +494,10 @@ def main(argv):
             for line in lines:
                 print(line)
             if result["ok"] and not any(line.startswith("FAIL ") for line in lines):
+                with open(os.path.join(logs, name + ".out"), encoding="utf-8", errors="replace") as log:
+                    for line in log:
+                        if line.startswith("WARN "):
+                            print(line.rstrip())
                 passed += 1
                 continue
             failed += 1

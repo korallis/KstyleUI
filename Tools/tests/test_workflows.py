@@ -258,9 +258,9 @@ class WorkflowsTest(unittest.TestCase):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
         self.assertRegex(job, r"(?m)^    timeout-minutes: 15$")
 
-    def test_lua_uses_six_hosted_pr_shards_and_two_mac_staging_or_manual_shards(self):
+    def test_lua_uses_eight_hosted_pr_shards_and_two_mac_staging_or_manual_shards(self):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
-        self.assertIn("shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6]' || '[1, 2]') }}", job)
+        self.assertIn("shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6, 7, 8]' || '[1, 2]') }}", job)
         self.assertIn('name: lua ${{ matrix.shard }}/${{ strategy.job-total }}', job)
         self.assertIn('SHARD_TOTAL: ${{ strategy.job-total }}', job)
         self.assertIn('--shard "$SHARD/$SHARD_TOTAL"', job)
