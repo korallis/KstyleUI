@@ -248,10 +248,14 @@ function Kit.TabSystem(system)
 end
 
 local function TintWash(wash)
-	Style.TintAccent(wash, wash.alpha)
+	if wash.color then
+		wash:SetVertexColor(Widgets.Rgba(wash.color, wash.alpha))
+	else
+		Style.TintAccent(wash, wash.alpha)
+	end
 end
 
-function Kit.Wash(texture, alpha)
+function Kit.Wash(texture, alpha, color)
 	if not Parts.IsTexture(texture) then
 		return nil
 	end
@@ -265,6 +269,7 @@ function Kit.Wash(texture, alpha)
 	wash:SetAllPoints(texture)
 	wash:SetColorTexture(Tokens.Color("white"))
 	wash.alpha = alpha or WASH_ALPHA
+	wash.color = color
 	wash.Restyle = TintWash
 	TintWash(wash)
 	Style.Track(wash)

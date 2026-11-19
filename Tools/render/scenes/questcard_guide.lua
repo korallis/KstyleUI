@@ -6,6 +6,8 @@ return Common.Run(function()
 	local R = Boot(Common.SCREEN, os.getenv("RENDER_QUEST_ITEM") == "1", Common.PreviousFinish())
 	local style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower()
 	R.K.Options.Write("HudStyle", "style", style)
+	local guideScale = tonumber(os.getenv("RENDER_GUIDE_SCALE"))
+	if guideScale then R.rxp.RXPFrame:SetScale(R.rxp.RXPFrame:GetScale() * guideScale) end
 	R.settle()
 	for _ = 1, tonumber(os.getenv("RENDER_QUEST_SCROLL")) or 0 do
 		local card = R.ns.Quests.Card()

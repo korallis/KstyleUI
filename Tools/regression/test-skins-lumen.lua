@@ -75,15 +75,39 @@ end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = S.New({ width = screen[1], height = screen[2], setup = WithColors })
 	local Lumen, Widgets = ns.Lumen, K.Widgets
-	assert(Lumen.SectionCap == Widgets.SectionCap, "skins must delegate caps to Widgets.SectionCap")
+	K.Modules.Enable("Skins")
+	local shared, delegated = Widgets.SectionCap, 0
+	Widgets.SectionCap = function(...)
+		delegated = delegated + 1
+		return shared(...)
+	end
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(300, 24)
-	for _, scale in ipairs({ 0.8, 1, 1.2 }) do
+	for _, scale in ipairs({ 0.8, 1.1875, 1.40625 }) do
 		parent:SetScale(scale)
 		assert(Lumen.Inset(parent) == Widgets.Inset(parent, K.Tokens.Size("radius")), "skins must use the card inset at every scale")
+		local before = delegated
 		local cap = Lumen.SectionCap(parent, { text = "Quests", count = 15 })
+		assert(delegated == before + 1, "skins must delegate caps to Widgets.SectionCap")
+		local peer = shared(K.Scale.Root(), { text = "Quests", count = 15 })
 		assert(cap:GetParent() == parent and Plain(cap.label) == "QUESTS" and tostring(cap.count:GetText()) == "15")
+		for _, size in ipairs({ 1, 1.5, 1 }) do
+			K.Options.Write("Skins", "text.size", size)
+			env.RunTimers()
+			peer.opts.textScale = function() return size end
+			peer:Restyle()
+			local factor = Widgets.ScaleFactor(cap)
+			local pixel = K.Scale.Pixel(1)
+			for _, pair in ipairs({ { cap.label, peer.label }, { cap.count, peer.count } }) do
+				local actual = select(2, pair[1]:GetFont()) * factor
+				local wanted = select(2, pair[2]:GetFont())
+				assert(math.abs(actual - wanted) <= pixel, "scaled caps keep the shared on-screen fonts and follow Skins text.size: " .. actual .. " vs " .. wanted .. " at " .. scale .. "/" .. size)
+			end
+			assert(math.abs(cap.gem:GetWidth() * factor - peer.gem:GetWidth()) <= pixel, "scaled caps keep the shared on-screen gem")
+			assert(math.abs(Lumen.CapColumn(cap) * factor - Widgets.CapColumn(peer)) <= 2 * pixel, "scaled caps keep the shared on-screen text column")
+		end
 	end
+	Widgets.SectionCap = shared
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

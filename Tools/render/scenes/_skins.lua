@@ -195,6 +195,9 @@ function Skins.Scene(key)
 			modelNote = "the character model is a flat stand-in; put a full-body warrior.png in the models folder and run Tools/render/standins.py"
 		end
 	end
+	if key == "loot" and os.getenv("RENDER_ROW_HOVER") == "1" then
+		env.LootFrame.ScrollBox._rows[1].HighlightNameFrame:Show()
+	end
 	local scene = Gallery.Build(env)
 	if portraitNote then
 		scene.log[#scene.log + 1] = portraitNote

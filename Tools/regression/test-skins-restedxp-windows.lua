@@ -168,7 +168,7 @@ do
 	assert(path.height < 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	assert(FontSize(K, path.cap.label, select(2, path.cap.label:GetFont()), 10 * K.Theme.FontScale()), "the cap uses the shared heading size independently of the Skins body size")
+	assert(FontSize(K, path.cap.label, select(2, path.cap.label:GetFont()), 10 * 1.5 * K.Theme.FontScale() / K.Widgets.ScaleFactor(path.cap)), "the cap keeps its on-screen heading size and follows the Skins text size")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
 	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
@@ -194,7 +194,7 @@ do
 	assert(W.Near(tl[5], 0) and W.Near(br[5], 0), "the glass keeps the card's top and bottom")
 	-- The cap's gem sits where the Quests cap's does: one content inset in from the glass edge.
 	local gem = path.cap.gem._points[1]
-	assert(gem[1] == "CENTER" and gem[2] == path.cap and math.abs(gem[4] - K.Widgets.Snap(path.cap, 7.4)) <= K.Widgets.Border(path.cap), "the gem uses the shared cap centre inside the card inset, got " .. tostring(gem[4]))
+	assert(gem[1] == "CENTER" and gem[2] == path.cap and math.abs(gem[4] - K.Widgets.Snap(path.cap, 7.4 / K.Widgets.ScaleFactor(path.cap))) <= K.Widgets.Border(path.cap), "the gem uses the shared cap centre inside the card inset, got " .. tostring(gem[4]))
 
 	-- The step list's view ends wherever RestedXP's frame height lands, mid-row more often than not, so a fade on
 	-- KstyleUI's own frame softens the cut line while there is more to scroll, and lifts at the end (round 1, Fable and Opus).

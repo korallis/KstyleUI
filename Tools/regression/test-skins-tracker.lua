@@ -445,7 +445,7 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
-	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), 10 * K.Theme.FontScale()), "in the caps face at the shared heading size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), 10 * K.Theme.FontScale() / K.Widgets.ScaleFactor(caption)), "in the caps face at the shared heading size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	local wr, wg, wb = K.Tokens.Color("capsGold")
 	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")

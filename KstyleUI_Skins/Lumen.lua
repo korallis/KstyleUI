@@ -92,8 +92,21 @@ function Lumen.Gem(owner, layer, sublevel)
 	return gem
 end
 
-Lumen.CapColumn = Widgets.CapColumn
-Lumen.SectionCap = Widgets.SectionCap
+local function TextScale()
+	return Style.Setting("text", "size")
+end
+
+function Lumen.CapColumn(frame)
+	return Widgets.CapColumn(frame, TextScale())
+end
+
+function Lumen.SectionCap(parent, opts)
+	opts = opts or {}
+	opts.textScale = TextScale
+	local cap = Widgets.SectionCap(parent, opts)
+	Style.Track(cap)
+	return cap
+end
 
 local function Enabled(frame)
 	return type(frame.IsEnabled) ~= "function" or frame:IsEnabled() ~= false

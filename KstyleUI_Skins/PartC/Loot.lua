@@ -49,7 +49,7 @@ local function Row(row, elementData)
 		for _, key in ipairs(ROW_ART) do
 			Parts.Hush(row[key])
 		end
-		Kit.Wash(row.HighlightNameFrame)
+		Kit.Wash(row.HighlightNameFrame, K.Tokens.Share("rowHover"), "white")
 		Kit.Below(Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false }), row, TILE_BELOW)
 		state.rim = Kit.Item(row.Item)
 	end
