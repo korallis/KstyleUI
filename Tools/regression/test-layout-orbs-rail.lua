@@ -51,7 +51,7 @@ do
 					local mapPlace = Layouts.Place(name, "orbs", class, "minimap.main")
 					local mw, mh = Layouts.Footprint(name, "minimap.main")
 					local _, mb, mr = Layouts.Rect({ width = mw, height = mh }, mapPlace, rw, rh)
-					assert(qt < mb and math.abs(qr - (mr + Layouts.MAP_FRAME)) <= 1 + px, what .. ": the column hangs under the minimap, on its card's right edge (the card stands its frame outside the square, KSTY-60 item 28)")
+					assert(qt < mb and math.abs(qr - (mr + Layouts.MAP_FRAME + 4)) <= 1 + px, what .. ": the column hangs under the minimap, whose caption reserves four extra units inside the right margin")
 					local guideH = Layouts.Slot(name, rh).height
 					assert(q.height >= g.height - 1e-6 and (math.abs(g.height - guideH) < 1e-6 or math.abs(q.height - g.height) < 1e-6) and g.height >= Layouts.STORY_FLOOR, what .. ": the quest card takes the column but for the guide's Frames height, or half when that is more (KSTY-64), both over the story floor, got " .. q.height .. " and " .. g.height)
 					local positions = Layouts.Positions(name, "orbs", class)

@@ -37,7 +37,7 @@ function Reach.New(width, height, style, layout)
 		e._reachEdit={saved={},active=1}
 		EditMode.Install(e,e._reachEdit)
 		for _, unit in ipairs({"target", "focus", "focustarget", "targettarget", "pet", "boss1", "boss2", "boss3", "boss4", "boss5"}) do
-			e._units[unit] = {name=unit, class="WARRIOR", reaction=2, hostile=true, exists=true, health=3000, maxHealth=4000, power=60, maxPower=100, level=60}
+			e._units[unit] = {name=unit=="focustarget" and "ToF" or unit=="targettarget" and "ToT" or unit, class="WARRIOR", reaction=2, hostile=true, exists=true, health=3000, maxHealth=4000, power=60, maxPower=100, level=60}
 		end
 		Group.SetRoster(e,"raid",Group.Members(40,function(i,m) m.name="M" .. i end),{name="Tester",class="HUNTER",health=3000,maxHealth=4000,power=60,maxPower=100,level=60},true)
 		e._target = true

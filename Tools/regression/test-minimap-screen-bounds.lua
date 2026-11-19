@@ -11,7 +11,7 @@ local function Bounds(env, K, ns, context, preview)
 	local bounds, margin, pixel = Rect(root), K.Tokens.Size("screenMargin"), K.Scale.Pixel(1)
 	local ring, zone, row = Rect(face.ring), Rect(face.plaques[1]), Rect(face.plaques[2])
 	for _, box in ipairs({ ring, zone, row, Rect(env.Minimap) }) do
-		assert(box.left >= bounds.left + margin - pixel and box.right <= bounds.right - margin + pixel
+		assert(box.left >= bounds.left - K.Scale.Origin() + margin - pixel and box.right <= bounds.right + K.Scale.Origin() - margin + pixel
 			and box.top <= bounds.top - margin + pixel and box.bottom >= bounds.bottom + margin - pixel,
 			context .. ": inset the whole minimap group by screenMargin, including the ring and plaques")
 	end

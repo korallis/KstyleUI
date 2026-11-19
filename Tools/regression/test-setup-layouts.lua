@@ -287,8 +287,8 @@ for _, name in ipairs(names) do
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-		assert(map.top == HEIGHT - (EDGE + 6 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
-		assert(math.abs(auraBuffs.right - (map.left - 7.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET + 6)) < 1e-6, label .. ": the buff row stands 7.9 left of the map while the zone heading keeps its edge margin")
+		assert(map.top == HEIGHT - (EDGE + 10 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
+		assert(math.abs(auraBuffs.right - (map.left - 7.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET + 10)) < 1e-6, label .. ": the buff row stands 7.9 left of the map while the zone heading keeps its edge margin")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 12 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 12 under the buffs, right-aligned")
 		assert(same(auraBuffs.w, 307.5) and same(auraBuffs.h, 41.6) and same(auraDebuffs.w, 307.5) and same(auraDebuffs.h, 41.6), label .. ": each aura row is ten 27.6-unit icons 3.5 apart, 307.5 x 41.6")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
@@ -367,7 +367,7 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(centred(r) and same(r.bottom, 702) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has its own centred slot above the casts")
+				assert(centred(r) and same(r.bottom, 698) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has its own centred slot above the casts")
 				assert(r.bottom > rect("unitframes.focus").top and r.bottom > rect("unitframes.castbar.player").top, label .. ": bar 3 clears the complete HUD below")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
@@ -448,7 +448,7 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
-		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 632 + LIFT) and same(targetCast.top, 664 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
+		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 628 + LIFT) and same(targetCast.top, 660 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
@@ -463,7 +463,7 @@ for _, name in ipairs(names) do
 			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
 			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
 			assert(boss.bottom == 756 and boss.bottom > text.top, label .. ": the boss column keeps its foot at 756, clear of the spare bar, over your combat text, which stands beside the cast, got " .. boss.bottom)
-			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 16, label .. ": your combat text stands right of the cast, a rail gap off the target of target, the swing timer and the target's cast, so it leaves the quest card's column")
+			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 12, label .. ": your combat text clears the target cast by 12, and the target of target and swing timer by a rail gap")
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
 			for _, entry in ipairs(Layouts.Settings(name)) do
@@ -639,7 +639,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME + 4) and minimap.y == -(EDGE + 6 + MAP_HEADING), "the map reserves its forged card and caption inside the screen margin, under its zone heading")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME + 4) and minimap.y == -(EDGE + 10 + MAP_HEADING), "the map reserves its forged card and caption inside the screen margin, under its zone heading")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

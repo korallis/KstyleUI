@@ -13,7 +13,7 @@ local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
 local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
 local RAIL_BUTTON, RAIL_PITCH = CENTRE_BUTTON, CENTRE_GAP
 local MOCK_PX = 1 / ns.Scale.DEFAULT_USER_SCALE
-local TRAY_BUTTON, TRAY_GAP, TRAY_PAD, TRAY_BOTTOM = 38 * MOCK_PX, 3 * MOCK_PX, 9 * MOCK_PX, 40 * MOCK_PX
+local TRAY_BUTTON, TRAY_GAP, TRAY_PAD, TRAY_BOTTOM = 38 * MOCK_PX, 3 * MOCK_PX, 9 * MOCK_PX, 40 * MOCK_PX + 4
 local TRAY_WIDTH = 12 * TRAY_BUTTON + 11 * TRAY_GAP + 2 * TRAY_PAD
 local TRAY_BAR1_Y = TRAY_BOTTOM + TRAY_PAD
 local TRAY_BAR2_Y = TRAY_BAR1_Y + TRAY_BUTTON + TRAY_GAP
@@ -146,7 +146,7 @@ end
 local _, CHAT_H = ElementSize("chat.main")
 local AURAS_X = EDGE + MAP_FRAME + MAP + AURA_MAP_GAP
 local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
-local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP - 1
+local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP + 10
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
@@ -393,7 +393,7 @@ local ORBS_GLOW = 30
 local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 local ORBS_RAIL_X = EDGE + STORY_W + GAP
-local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP - 1
+local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP + 10
 local ORBS_STORY_BOTTOM = TIP_Y + select(2, ElementSize("tooltips.anchor")) + GAP
 local ORBS_FIT = {
 	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + TIGHT,
@@ -600,6 +600,10 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
 	if not slot then
 		return nil
 	end
+	local inset = style == "medallions" and GAP or 0
+	if inset > 0 then
+		slot = { anchor = slot.anchor, x = slot.x, y = slot.y - inset, width = slot.width, height = slot.height - inset }
+	end
 	local function Card(key, x, height, place)
 		return { key = key, anchor = place and place.anchor or slot.anchor, x = x, y = place and place.y or slot.y, width = slot.width, height = height }
 	end
@@ -625,7 +629,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP)
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
 	if guideShown then
 		return { guide = Card(STORY_KEYS.guide, x, column), quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end

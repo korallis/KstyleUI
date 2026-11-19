@@ -147,7 +147,7 @@ end
 local _, CHAT_H = ElementSize("chat.main")
 local AURAS_X = EDGE + MAP_FRAME + MAP + AURA_MAP_GAP
 local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
-local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP + 6
+local STORY_TOP = math.max(EDGE + MAP_HEADING + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP + 10
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
@@ -165,7 +165,7 @@ local DPS = {
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME + 4), y = -(EDGE + 6 + MAP_HEADING) },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME + 4), y = -(EDGE + 10 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
@@ -178,7 +178,7 @@ local DPS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 1 },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR1_Y },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR2_Y },
-	["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = TEXT_TOP - BUTTON },
+	["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = TEXT_TOP - BUTTON - TIGHT },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
 	["actionbars.possess"] = { anchor = "BOTTOM", x = 480, y = 0 },
@@ -195,7 +195,7 @@ local DPS = {
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
 	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_CAST_Y },
-	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 },
+	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 - TIGHT },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = SIDE - 80 - GAP, y = 421 + 14 + 8 + LIFT + 8 + GAP },
 	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -RAIL_EDGE, y = RAIL_BARS_Y },
@@ -395,7 +395,7 @@ local ORBS_GLOW = 30
 local ORBS_TARGET_W, ORBS_TARGET_H = 520 * MOCK_PX, 120
 local ORBS_TOT_W = ElementSize("unitframes.targettarget")
 local ORBS_RAIL_X = EDGE + STORY_W + GAP
-local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP + 6
+local ORBS_STORY_TOP = EDGE + MAP_HEADING + MAP + MAP_CAPTION + GAP + 10
 local ORBS_STORY_BOTTOM = TIP_Y + select(2, ElementSize("tooltips.anchor")) + GAP
 local ORBS_FIT = {
 	cornerY = DPS["qol.lootfeed"].y + select(2, ElementSize("qol.lootfeed")) + TIGHT,
@@ -423,7 +423,7 @@ local ORBS = {
 	["actionbars.bar3"] = { anchor = "TOP", x = 0, y = -230 },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ORBS_FIT.tieX + GAP, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ORBS_FIT.tieX - GAP, y = 52 },
-	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW, y = ORBS_FIT.cornerY },
+	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW + GAP, y = ORBS_FIT.cornerY },
 	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -ORBS_FIT.bossX, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = CLUSTER_TOP + GAP },
 	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
@@ -462,6 +462,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 end
 STYLES.orbs.Healer["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) }
 STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = DPS["groupframes.party"].y + TIGHT }
+STYLES.orbs.Healer["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT }
+STYLES.orbs.Healer["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X + 160 + TIGHT, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT }
 
 Layouts.ELEMENTS = ELEMENTS
 Layouts.FEED_LINES = FEED_LINES
@@ -1027,7 +1029,7 @@ function Layouts.BuildMedallions()
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
-		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + math.max(select(2, ElementSize("cooldowns.bars")), select(2, ElementSize("cooldowns.buffs"))) + NEAR + 2 * TIGHT + tot[2])
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + math.max(select(2, ElementSize("cooldowns.bars")), select(2, ElementSize("cooldowns.buffs"))) + NEAR + 3 * TIGHT + tot[2])
 		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
 		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
 		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
