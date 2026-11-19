@@ -19,6 +19,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(menu:IsShown(), "render the open flyout")
 		local rect = { Scene.Rect(env, menu) }
 		local what = mode .. " at " .. screen[1] .. "x" .. screen[2]
+		for _, group in pairs(ns.Travel.groups) do
+			assert(group.cap.label._state.WordWrap[1] == false and group.head == 20, what .. ": keep narrow travel section headers on one line")
+			local label = group.cap.label
+			assert(label:GetWidth() == 0 or env.KstyleUI.Widgets.TextWidth(label, 0) <= label:GetWidth(), what .. ": do not truncate travel headings")
+		end
 		assert(rect[1] >= 0 and rect[2] >= 0 and rect[1] + rect[3] <= 1080 * screen[1] / screen[2] and rect[2] + rect[4] <= 1080, what .. ": menu must stay on screen")
 		local units = Hud.Module("unitframes", opts)
 		local unitEnv = Hud.envs[units]
