@@ -201,7 +201,6 @@ function SyncQuestie()
 	state.questieQueued = true
 	K.Combat.Queue(function()
 		state.questieQueued = false
-		if state.questieSync then return end
 		local profile, loader = QuestieProfile(), rawget(_G, "QuestieLoader")
 		if not profile or IsSecret(profile.trackerEnabled) or type(loader) ~= "table" or type(loader.ImportModule) ~= "function" then return end
 		local ok, addon = pcall(loader.ImportModule, loader, "QuestieTracker")
@@ -219,11 +218,14 @@ function SyncQuestie()
 		end
 		local enabled = not IsSecret(profile.trackerEnabled) and profile.trackerEnabled == true
 		if state.on and enabled ~= UseQuestie() then
-			if enabled and addon.started == true then
+			if enabled and (addon.started == true or state.questieReload) then
 				if K.Call(Data.ImportQuestie, addon) then K.Call(addon.Toggle, addon) end
+				state.questieReload = nil
 			elseif not enabled then
-				if addon.started == true then K.Call(addon.Toggle, addon)
-				elseif type(addon.Enable) == "function" then K.Call(addon.Enable, addon) end
+				if K.Call(addon.Toggle, addon) and addon.started ~= true then
+					state.questieReload = true
+					K.Widgets.ReloadPrompt(L["Reload the interface to finish. Modules that replace Blizzard's frames need it."])
+				end
 			end
 		end
 		local hasCompat, compat = pcall(loader.ImportModule, loader, "QuestieCompat")

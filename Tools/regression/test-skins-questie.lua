@@ -2,6 +2,7 @@
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local Questie = dofile("Tools/regression/questie_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
+local W = dofile("Tools/regression/widget_env.lua")
 
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, height = 1440 }, { width = 5120, height = 1440 }, { width = 3840, height = 2160 } }) do
 	local R = Boot(screen, nil, nil, true, Questie.Install)
@@ -85,7 +86,25 @@ do
 	local R = Boot({ width = 1920, height = 1080 }, nil, nil, true, function(env, log) return Questie.Install(env, log, false, false) end)
 	R.K.Options.Write("Integrations", "questTracker", "questie")
 	R.settle()
-	assert(R.questie.reloaded and not R.ns.Quests.Card():IsVisible(), "Questie's own Enable API initializes a previously disabled tracker with its required reload")
+	assert(not R.questie.reloaded and R.env.Questie.db.profile.trackerEnabled, "choosing Questie saves its option through Toggle without calling the immediately reloading Enable API")
+	local host = R.K.Widgets.DialogHost()
+	assert(host:IsShown() and host.visibleButtons[2].isReload, "a never-initialized tracker asks through the existing secure reload confirm")
+	W.Enter(host.visibleButtons[2])
+	local reload
+	for _, frame in ipairs(R.env._frames) do
+		if frame:GetAttribute("macrotext") == "/reload" then reload = frame end
+	end
+	assert(reload and reload:IsShown(), "Reload now offers the shared secure /reload action")
+	W.Click(host.visibleButtons[1])
+	R.settle()
+	assert(not host:IsShown() and not R.questie.reloaded, "Later dismisses the confirmation without reloading")
+	R.questie:Update()
+	R.settle()
+	assert(not host:IsShown(), "ordinary Questie updates do not reopen a deferred reload prompt")
+	R.K.Options.Write("Integrations", "questTracker", "kstyleui")
+	R.settle()
+	assert(R.ns.Quests.Card():IsVisible() and not R.env.Questie.db.profile.trackerEnabled, "a deferred switch can return to KstyleUI without a reload")
+	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
 end
 
 print("test-skins-questie: ok")
