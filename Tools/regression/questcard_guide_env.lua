@@ -4,8 +4,8 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-return function(screen, item, previous, nativeRects)
-	local rxp, log
+return function(screen, item, previous, nativeRects, questie)
+	local rxp, log, other
 	local quests = Quests.List(8, 1)
 	quests[1].title = "A Putrid Task"
 	quests[1].objectives = { { text = "Putrid Claw: 0/7", finished = false } }
@@ -25,7 +25,10 @@ return function(screen, item, previous, nativeRects)
 			rxp.currentGuide = { name = "1-6 Tirisfal Glades", subgroup = "Horde Undead" }
 			e._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
 		end,
-		before = function(e) Quests.Tracker(e, S.Blizzard(e)) end,
+		before = function(e)
+			Quests.Tracker(e, S.Blizzard(e))
+			if questie then other = questie(e, log) end
+		end,
 	})
 	K.Modules.Enable("Skins")
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
@@ -44,5 +47,5 @@ return function(screen, item, previous, nativeRects)
 		env.RunTimers()
 	end
 	Settle()
-	return { env = env, K = K, ns = ns, rxp = rxp, log = log, quests = quests, settle = Settle }
+	return { env = env, K = K, ns = ns, rxp = rxp, log = log, quests = quests, settle = Settle, questie = other }
 end
