@@ -88,7 +88,7 @@ assert(Logic.Split(8, 2, 1) == 3.5, "two bars share the height around one gap")
 assert(Logic.Split(8, 0, 1) == 0, "no bars take no room")
 
 -- ThreatText: Blizzard's threat values are a hundred times the threat points, secret or not, under one point too.
-for _, case in ipairs({ { 3240000, "32K" }, { 1234500, "12K" }, { 100, "1" }, { 99, "0" }, { 50, "0" }, { 1, "0" } }) do
+for _, case in ipairs({ { 3240000, "32.4K" }, { 1234500, "12.3K" }, { 100, "1" }, { 99, "0" }, { 50, "0" }, { 1, "0" } }) do
 	local open, hidden = Logic.ThreatText(case[1]), env.Reveal(Logic.ThreatText(S(case[1])))
 	assert(open == case[2] and hidden == case[2], "raw threat " .. case[1] .. " reads " .. case[2] .. ": open " .. open .. ", secret " .. hidden)
 end

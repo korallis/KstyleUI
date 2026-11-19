@@ -37,7 +37,7 @@ local function Row(name)
 end
 
 local openValue, openPercent = Row("Tester")
-assert(openValue == "12K" and openPercent == "100%", "in the open 1,234,500 raw threat at 99.6% reads 12K and 100%: " .. tostring(openValue) .. ", " .. tostring(openPercent))
+assert(openValue == "12.3K" and openPercent == "100%", "in the open 1,234,500 raw threat at 99.6% reads 12.3K and 100%: " .. tostring(openValue) .. ", " .. tostring(openPercent))
 
 -- The same threat against a boss (UnitDetailedThreatSituation: SecretWhenUnitThreatValuesRestricted).
 env._threat.player = { S(false), S(1), S(99.6), S(90), S(1234500) }
