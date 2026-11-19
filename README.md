@@ -217,8 +217,11 @@ On 21:9 and 32:9 screens KstyleUI keeps everything in a centred band by default.
 **How do I get an action bar into the slab?**
 In Medallions the slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. In Frames and Orbs the first two bars sit in the main tray. You can move any bar with Layout Mode (below).
 
-**How do I move a bar, like a bar of consumables?**
-Type `/kstyle layout` (or click **Layout Mode** in Options). Every piece of the interface shows a plate with its name: drag a plate to move it, scroll over an action bar's plate to make it bigger or smaller, right-click a plate to put it back, and click **Done**. Layout Mode closes if you enter combat. If the bar belongs to another addon, use that addon's own unlock or move option.
+**What is the bar of items like Healthstones that shows up?**
+That is RestedXP's **Active Items** box: RestedXP shows the items your current guide step uses, such as Healthstones, quest items or your hearthstone. KstyleUI docks it under the RestedXP guide card. If you drag it away it stays where you put it; to change what it shows, use RestedXP's own settings.
+
+**How do I move a bar or any other piece?**
+Type `/kstyle layout` (or click **Layout Mode** in Options). Every piece of the interface shows a plate with its name: drag a plate to move it, scroll over an action bar's plate to make it bigger or smaller, right-click a plate to put it back, and click **Done**. Layout Mode closes if you enter combat. A bar or box from another addon, like RestedXP's, moves with that addon's own drag or unlock.
 
 **Can I keep parts of the default UI?**
 Yes. Every feature is a module you can switch off, and **Keep my UI** in the setup leaves the game's interface as it is.
