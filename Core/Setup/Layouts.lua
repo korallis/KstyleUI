@@ -438,8 +438,8 @@ local ORBS = {
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(784 + DAMAGE_W + GAP), y = 736 + DAMAGE_H - THREAT_H },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -784, y = 736 },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(784 + DAMAGE_W + GAP), y = 720 + DAMAGE_H - THREAT_H },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -784, y = 720 },
 }
 local STORY_STYLES = {
 	orbs = {

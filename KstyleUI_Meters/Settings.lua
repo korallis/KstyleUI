@@ -13,7 +13,7 @@ local MIN_WARN, MAX_WARN, WARN_STEP = 50, 100, 5
 local NO_OUTLINE = ""
 local CHANNELS = { "r", "g", "b" }
 local SHARED_ROWS = {}
-for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "titleSize" }) do
+for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "title", "titleSize" }) do
 	SHARED_ROWS["threat." .. key] = "damage." .. key
 end
 

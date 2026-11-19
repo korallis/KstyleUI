@@ -258,7 +258,7 @@ local function DockGuide()
 	end
 	local atDefault = layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	local damage = ns.Damage.holder
-	local both = atDefault and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and damage:IsShown()
+	local both = atDefault and ns.MeterShown("threat") and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and damage:IsShown()
 	if Threat.soloWidth and not both then
 		holder:SetWidth(Threat.soloWidth)
 		Threat.soloWidth = nil

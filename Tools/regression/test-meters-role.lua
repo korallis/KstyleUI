@@ -17,6 +17,12 @@ assert(ns.Threat.holder:IsShown() and ns.Threat.list.panel:IsShown(), "tanks see
 Fit(false, true)
 assert(not ns.Damage.holder:IsShown() and not K.Layout.Live("meters.damage"), "tanks hide damage and its mover")
 assert(not env.DamageMeter:IsVisible(), "tanks also hide Blizzard's damage window")
+local fitCalls = 0
+local limit = K.Setup.Layouts.ScaleLimit
+K.Setup.Layouts.ScaleLimit = function(...)
+	fitCalls = fitCalls + 1
+	return limit(...)
+end
 local previewParent = env.CreateFrame("Frame", nil, K.Scale.Root())
 previewParent:SetSize(600, 400)
 local preview = ns.Preview.Build(previewParent)
@@ -31,6 +37,7 @@ env.SetCombat(false)
 env.RunTimers()
 assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "combat end shows damage for DPS")
 Fit(true, false)
+assert(fitCalls > 0, "a settled role change must recalculate the HUD fit without a profile switch")
 M.Write(env, K, "roles.DAMAGER", "both")
 assert(ns.Damage.holder:IsShown() and ns.Threat.holder:IsShown(), "each role can show both")
 Fit(true, true)

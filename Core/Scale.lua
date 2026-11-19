@@ -486,6 +486,10 @@ ns.Callbacks.Register("ReadabilityChanged", "Scale", function()
 		Request("the text minimum")
 	end
 end)
+ns.Callbacks.Register("PlayerRoleChanged", "Scale", function()
+	state.dirty = true
+	Request("the player role")
+end)
 ns.Callbacks.Register("ModuleChanged", "Scale", function()
 	state.dirty = true
 	Request("a module switch")

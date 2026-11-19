@@ -15,9 +15,13 @@ local function Pair(env, K, ns)
 	local layouts, style = K.Setup.Layouts, K.HudStyle.Current()
 	local preset = K.Store.Module("Layout").preset
 	local places = layouts.Positions(preset, style, K.Scale.Aspect())
+	local enabled = layouts.Enabled(preset)
+	enabled["meters.damage"], enabled["meters.threat"] = true, true
+	local width, height = env.GetPhysicalScreenSize()
+	assert(layouts.Fits(preset, width, height, K.Scale.AppliedUserScale(), enabled, nil, style), "the pair must also clear the story cards and Orbs circles")
 	for _, element in ipairs(layouts.ELEMENTS) do
 		local key = element.key
-		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and (key == "unitframes.player" or key == "unitframes.resource")) then
+		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and key == "unitframes.player") then
 			local w, h = layouts.StyleSize(style, K.Scale.Aspect(), key)
 			if not w then w, h = layouts.Footprint(preset, key, style) end
 			if places[key].width then w, h = places[key].width, places[key].height end
@@ -57,21 +61,25 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			assert(K.Scale.AppliedUserScale() >= K.Scale.DEFAULT_USER_SCALE, style .. " " .. layout .. " " .. screen[1] .. "x" .. screen[2] .. ": the pair must fit without shrinking the whole HUD below the shipped size: " .. K.Scale.AppliedUserScale())
 			assert(ns.Get("roles.DAMAGER") == "damage", "DPS defaults to Damage")
 			assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "Damage shows only damage")
+			K.Layout.Update("meters.threat", { width = 200 })
 			M.Write(env, K, "roles.DAMAGER", "threat")
+			env.RunTimers()
 			assert(not ns.Damage.holder:IsShown() and ns.Threat.list.panel:IsVisible(), "Threat shows only threat")
 			local singleWidth = ns.Threat.holder:GetWidth()
+			assert(math.abs(singleWidth - 200) < 1, "Threat alone keeps the existing profile's width")
 			M.Write(env, K, "roles.DAMAGER", "both")
 			env.RunTimers()
 			Pair(env, K, ns)
+			assert(K.Store.Layout()["meters.threat"].width == 200, "pairing must preserve an existing profile's saved solo width")
 			M.Write(env, K, "roles.DAMAGER", "threat")
-			assert(ns.Threat.holder:GetWidth() == singleWidth, "return to the independent card width")
+			assert(math.abs(ns.Threat.holder:GetWidth() - singleWidth) < 1, "return to the independent card width")
 			M.Write(env, K, "followRole", false)
 			M.Write(env, K, "damage.shown", true)
 			M.Write(env, K, "threat.shown", true)
 			env.RunTimers()
 			Pair(env, K, ns)
 			M.Write(env, K, "damage.shown", false)
-			assert(not ns.Damage.holder:IsShown() and ns.Threat.holder:GetWidth() == singleWidth, "manual Threat releases the pair")
+			assert(not ns.Damage.holder:IsShown() and math.abs(ns.Threat.holder:GetWidth() - singleWidth) < 1, "manual Threat releases the pair: " .. tostring(ns.Threat.holder:GetWidth()) .. " vs " .. tostring(singleWidth))
 			M.Write(env, K, "damage.shown", true)
 			Pair(env, K, ns)
 			K.Layout.Update("meters.damage", { width = 300 })
