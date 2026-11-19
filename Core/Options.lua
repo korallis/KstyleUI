@@ -260,17 +260,7 @@ local function checkRow(module, row, defaults)
 	end
 end
 
-function Options.Register(module, schema)
-	if type(module) ~= "string" or module == "" then
-		error("KstyleUI.Options.Register: module must be a name, got " .. tostring(module), 2)
-	end
-	if schemas[module] then
-		error("KstyleUI.Options.Register: " .. module .. " is already registered", 2)
-	end
-	local defaults = ns.Store.Defaults(module)
-	if not defaults then
-		error("KstyleUI.Options.Register: register " .. module .. "'s defaults first, with Modules.Register or Store.RegisterDefaults", 2)
-	end
+local function checkSchema(module, schema, defaults)
 	if type(schema) ~= "table" then
 		error("KstyleUI.Options.Register(" .. module .. "): the schema must be a list of rows", 2)
 	end
@@ -308,21 +298,44 @@ function Options.Register(module, schema)
 		end
 	end
 	for i, row in ipairs(schema) do registerRow(row, i) end
+	return byKey
+end
+
+function Options.Register(module, schema)
+	if type(module) ~= "string" or module == "" then
+		error("KstyleUI.Options.Register: module must be a name, got " .. tostring(module), 2)
+	end
+	if schemas[module] then
+		error("KstyleUI.Options.Register: " .. module .. " is already registered", 2)
+	end
+	local defaults = ns.Store.Defaults(module)
+	if not defaults then
+		error("KstyleUI.Options.Register: register " .. module .. "'s defaults first, with Modules.Register or Store.RegisterDefaults", 2)
+	end
+	if type(schema) ~= "function" then
+		index[module] = checkSchema(module, schema, defaults)
+	end
 	schemas[module] = schema
-	index[module] = byKey
 	order[#order + 1] = module
 end
 
 function Options.Get(module)
-	return schemas[module]
+	local schema = schemas[module]
+	if type(schema) == "function" then
+		schema = schema()
+		index[module] = checkSchema(module, schema, ns.Store.Defaults(module))
+		schemas[module] = schema
+	end
+	return schema
 end
 
 function Options.Preview(module)
-	local schema = schemas[module]
+	local schema = Options.Get(module)
 	return schema and schema.preview
 end
 
 function Options.Row(module, key)
+	Options.Get(module)
 	local rows = index[module]
 	return rows and rows[key]
 end
