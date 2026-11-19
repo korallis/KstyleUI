@@ -393,7 +393,7 @@ local function TextTags(event)
 	if not healthText then return end
 	local text = orbs.health.value
 	local format = healthText.textFormat or ""
-	if healthOff then
+	if healthOff and format ~= "" then
 		text:SetText("")
 	elseif format ~= "" and (not event or K.Widgets.ParseText(format).events[event]) then
 		K.Widgets.TagText(text, format, "player")

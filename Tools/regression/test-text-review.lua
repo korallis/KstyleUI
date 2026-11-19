@@ -26,6 +26,16 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local before = U.Shown(env, view.healthText)
 	env.FireEvent("UNIT_HEALTH", "player")
 	check(U.Shown(env, view.healthText) == before, "paint: unrelated health updates must preserve custom power text")
+	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "[hp:max]")
+	env.RunTimers()
+	env._units.player.healthMax = 8000
+	env.FireEvent("UNIT_MAXHEALTH", "player")
+	check(U.Shown(env, view.healthText) == "8000", "paint: maximum health events must refresh health tags")
+	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "[pp:max]")
+	env.RunTimers()
+	env._units.player.powerMax = 120
+	env.FireEvent("UNIT_DISPLAYPOWER", "player")
+	check(U.Shown(env, view.healthText) == "120", "paint: power type events must refresh power tags")
 	local lists, iterate = {}, env.ipairs
 	env.ipairs = function(t)
 		if t[1] == "name" and t[2] == "health" then lists[t] = true end
@@ -36,6 +46,14 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local count = 0
 	for _ in pairs(lists) do count = count + 1 end
 	check(count == 1, "allocation: reuse the unit tag element list across events")
+	U.SetUnit(env, "targettarget", { health = 3000, healthMax = 6000 })
+	K.Options.Write("UnitFrames", "targettarget.fonts.health.textFormat", "[hp:abr]")
+	env.FireEvent("UNIT_TARGET", "target")
+	env.RunTimers()
+	env._units.targettarget.health = 1500
+	env.RunTickers()
+	check(U.Shown(env, ns.Frames.Get("targettarget").views[1].healthText) == "1.5K",
+		"paint: the existing target-of-target poll must refresh custom text")
 
 	local e, P, n = N.New({ width = screen[1], height = screen[2] })
 	N.Add(e, "nameplate1", { name = "Kobold", health = 100, maxHealth = 200, level = 10 })
@@ -90,6 +108,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local wrote = pcall(P.Options.Write, "Nameplates", "level.font", path)
 	e.RunTimers()
 	check(wrote and U.W.LastCall(plate.levelText, "SetFont")[1] == path, "level: the shared Font row must apply live")
+	P.Options.Write("Nameplates", "healthText.textFormat", "[pp]")
+	e.RunTimers()
 	N.Remove(e, "nameplate1")
 	for _, event in ipairs(events) do check(not registered(event), "events: detached plates must unregister optional events") end
 	check(#env._errors == 0 and #e._errors == 0, "review checks must exercise successful event paths")

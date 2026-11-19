@@ -31,7 +31,7 @@ Settings.defaults = {
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
 	},
 	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
-	level = { show = true, size = 13, outline = "NONE" },
+	level = { show = true, size = 13, outline = "NONE", font = "" },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent", font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
@@ -116,52 +116,6 @@ local FOOTPRINTS = {
 
 local TEXT_MIN, TEXT_MAX = 6, 20
 
-local rows
-local rules = {
-	["offsetY"] = { type = "slider", min = -40, max = 40 },
-	["health.width"] = { type = "slider", min = 80, max = 240 },
-	["health.height"] = { type = "slider", min = 6, max = 24 },
-	["health.orientation"] = { type = "dropdown", options = ORIENTATIONS },
-	["enemy.colorSource"] = { type = "dropdown", options = COLOR_SOURCES },
-	["friendly.colorSource"] = { type = "dropdown", options = COLOR_SOURCES },
-	["healthText.format"] = { type = "dropdown", options = HEALTH_FORMATS },
-	["cast.height"] = { type = "slider", min = 6, max = 24 },
-	["cast.orientation"] = { type = "dropdown", options = ORIENTATIONS },
-	["cast.colorSource"] = { type = "dropdown", options = ACCENT_SOURCES },
-	["cast.textSize"] = { type = "slider", min = TEXT_MIN, max = TEXT_MAX },
-	["cast.outline"] = { type = "dropdown", options = OUTLINES },
-	["debuffs.size"] = { type = "slider", min = 10, max = 40 },
-	["debuffs.spacing"] = { type = "slider", min = 0, max = 10 },
-	["debuffs.columns"] = { type = "slider", min = 1, max = 10 },
-	["debuffs.rows"] = { type = "slider", min = 1, max = 4 },
-	["debuffs.order"] = { type = "dropdown", options = ORDERS },
-	["debuffs.growthX"] = { type = "dropdown", options = GROWTH_X },
-	["debuffs.growthY"] = { type = "dropdown", options = GROWTH_Y },
-	["debuffs.expiring"] = { type = "slider", min = 0, max = 20 },
-	["debuffs.textSize"] = { type = "slider", min = TEXT_MIN, max = TEXT_MAX },
-	["debuffs.outline"] = { type = "dropdown", options = OUTLINES },
-	["threat.display"] = { type = "dropdown", options = THREAT_DISPLAYS },
-	["threat.role"] = { type = "dropdown", options = THREAT_ROLES },
-	["target.colorSource"] = { type = "dropdown", options = ACCENT_SOURCES },
-	["target.dimOthers"] = { type = "slider", min = 0.2, max = 1 },
-	["markers.raidSize"] = { type = "slider", min = 8, max = 32 },
-	["stacking.footprint"] = { type = "dropdown", options = FOOTPRINTS },
-	["cvars.maxDistance"] = { type = "slider", min = 10, max = 60 },
-	["cvars.verticalDistance"] = { type = "slider", min = 0, max = 100 },
-	["cvars.stacking"] = { type = "dropdown", options = STACKING },
-	["cvars.selectedScale"] = { type = "slider", min = 1, max = 1.6 },
-	["cvars.minScale"] = { type = "slider", min = 0.5, max = 1 },
-	["cvars.clickSize"] = { type = "slider", min = 1, max = 5 },
-	["preset"] = { type = "dropdown", options = function() return ns.Presets.LIST end },
-	["name.size"] = { type = "slider", min = TEXT_MIN, max = TEXT_MAX },
-	["name.outline"] = { type = "dropdown", options = OUTLINES },
-	["healthText.size"] = { type = "slider", min = TEXT_MIN, max = TEXT_MAX },
-	["healthText.outline"] = { type = "dropdown", options = OUTLINES },
-	["level.size"] = { type = "slider", min = TEXT_MIN, max = TEXT_MAX },
-	["level.outline"] = { type = "dropdown", options = OUTLINES },
-}
-
-function Settings.Schema()
 local function Is(key, value)
 	return function(s)
 		local node = s
@@ -186,28 +140,10 @@ local function HasCVar(name)
 	end
 end
 
-local function TextRows(schema, key, label)
-	schema[#schema + 1] = { type = "header", label = label }
-	schema[#schema + 1] = {
-		type = "toggle", key = key .. ".show", label = L["Show"],
-		help = L["Shows this text on every plate."],
-	}
-	schema[#schema + 1] = {
-		type = "slider", key = key .. ".size", label = L["Text size"],
-		help = L["The size of this text, in interface units."],
-		min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off(key .. ".show"),
-	}
-	schema[#schema + 1] = {
-		type = "dropdown", key = key .. ".outline", label = L["Outline"],
-		help = L["An outline keeps text readable over the game world."],
-		options = OUTLINES, disableWhen = Off(key .. ".show"),
-	}
-end
-
 local function SharedTextRows(schema, key, label)
 	schema[#schema + 1] = { type = "header", label = label }
 	schema[#schema + 1] = { type = "toggle", key = key .. ".show", label = L["Show"], help = L["Shows this text on every plate."] }
-	K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = true,
+	K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = key ~= "level",
 		disableWhen = Off(key .. ".show"), custom = Is(key .. ".colorMode", "custom") })
 end
 
@@ -338,7 +274,7 @@ schema[#schema + 1] = {
 	help = L["Colours players' names with their class colour."],
 	disableWhen = Off("name.show"),
 }
-TextRows(schema, "level", L["Level"])
+SharedTextRows(schema, "level", L["Level"])
 SharedTextRows(schema, "healthText", L["Health text"])
 schema[#schema + 1] = {
 	type = "dropdown", key = "healthText.format", label = L["Format"],
@@ -650,16 +586,13 @@ end
 
 Settings.schema = schema
 
-rows = {}
+local rows = {}
 for _, row in ipairs(schema) do
 	if row.key then
 		rows[row.key] = row
 	end
 end
 Settings.rows = rows
-
-return schema
-end
 
 local function Lookup(root, key)
 	local node = root
@@ -715,7 +648,7 @@ local cache = {}
 local logged = {}
 
 local function Read(key)
-	local row = (rows and rows[key]) or rules[key]
+	local row = rows[key]
 	local default = Lookup(Settings.defaults, key)
 	if not row and default == nil then
 		error("KstyleUI_Nameplates: unknown setting " .. tostring(key), 3)
@@ -759,6 +692,5 @@ function Settings.Invalidate()
 end
 
 function Settings.Row(key)
-	K.Options.Get(MODULE)
 	return rows[key]
 end

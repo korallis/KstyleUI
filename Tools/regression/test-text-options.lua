@@ -1,4 +1,4 @@
--- test-text-options.lua: shared text rows stay lazy, follow the role fonts, paint secrets and refresh tags on existing unit events.
+-- test-text-options.lua: unit-frame schemas stay lazy; shared text rows follow role fonts, paint secrets and refresh on unit events.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local N = dofile("Tools/regression/nameplates_env.lua")
 local W = U.W
@@ -13,7 +13,7 @@ do
 	local page = K.Options.Get("UnitFrames")
 	assert(builds == 1 and K.Options.Get("UnitFrames") == page, "build and validate a schema once")
 	local other, plates, settings = N.New({ enable = false })
-	assert(settings.Settings.rows == nil, "defer nameplate schemas until the page opens")
+	assert(settings.Settings.rows, "share nameplate validation and schema rows")
 	plates.Options.Get("Nameplates")
 	assert(settings.Settings.rows, "opening the page builds nameplate rows")
 	assert(#env._errors == 0 and #other._errors == 0)

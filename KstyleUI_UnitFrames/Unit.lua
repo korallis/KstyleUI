@@ -289,20 +289,19 @@ function Unit.Health(view, unit, instant)
 	bar:SetHealth(UnitHealth(unit), instant)
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
-	if form ~= "plate" then
+	if view.s.fonts.health.textFormat ~= "" and format ~= "none" then
+		view.healthSub:SetText("")
+	elseif form ~= "plate" then
 		LumenHealth(view, unit, form, format)
-		Unit.Glow(view, unit)
-		ns.Slab.Health(view, unit)
 	elseif view.geometry and view.geometry.healthSub then
 		Format.Health(view.healthText, unit, Format.Main(format))
 		Format.HealthDetail(view.healthSub, unit, format)
 	else
 		Format.Health(view.healthText, unit, format)
 	end
-	local text = view.s.fonts.health
-	if text.textFormat ~= "" and format ~= "none" then
-		K.Widgets.TagText(view.healthText, text.textFormat, unit)
-		view.healthSub:SetText("")
+	if form ~= "plate" then
+		Unit.Glow(view, unit)
+		ns.Slab.Health(view, unit)
 	end
 	Unit.Prediction(view, unit)
 end
@@ -340,7 +339,6 @@ function Unit.Name(view, unit)
 			view.name:SetWidth(K.Widgets.Snap(view.name, g.nameRoom))
 			view.nameBound = true
 		end
-		K.Widgets.TagText(view.name, view.s.fonts.name.textFormat, unit)
 		return
 	end
 	local name = UnitName(unit)
@@ -700,9 +698,11 @@ function Unit.Portrait(view, unit)
 	end
 end
 
+local TEXT_ELEMENTS = { "name", "health" }
 function Unit.TextTags(view, unit, event, sample)
 	if not view.s.textOptions then return end
-	for _, element in ipairs({ "name", "health" }) do
+	event = event == "MaxHealth" and "Health" or event == "PowerType" and "Power" or event
+	for _, element in ipairs(TEXT_ELEMENTS) do
 		local style = view.s.fonts[element]
 		local text = element == "name" and view.name or view.healthText
 		local format = style.textFormat

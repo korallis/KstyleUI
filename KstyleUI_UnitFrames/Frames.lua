@@ -211,6 +211,7 @@ local function Poll(uf)
 	if Active(view) and UnitExists(view.unit) then
 		Unit.Health(view, view.unit, true)
 		Unit.Power(view, view.unit, true)
+		Unit.TextTags(view, view.unit)
 	end
 end
 

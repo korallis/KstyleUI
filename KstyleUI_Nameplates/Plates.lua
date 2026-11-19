@@ -321,10 +321,6 @@ local UNIT_EVENTS = {
 	UNIT_MAXHEALTH = Method("UpdateHealth"),
 	UNIT_NAME_UPDATE = Method("UpdateName"),
 	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:UpdateTags("Level") end,
-	UNIT_POWER_UPDATE = function(plate) plate:UpdateTags("Power") end,
-	UNIT_MAXPOWER = function(plate) plate:UpdateTags("Power") end,
-	UNIT_ABSORB_AMOUNT_CHANGED = function(plate) plate:UpdateTags("Prediction") end,
-	UNIT_TARGET = function(plate) plate:UpdateTags("Target") end,
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
 		plate:UpdateMarker()
 		plate:RefreshType()
