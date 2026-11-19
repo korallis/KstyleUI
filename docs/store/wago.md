@@ -245,12 +245,13 @@ Yes. Every feature is a module you can switch off, and **Keep my UI** in the set
 English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string as an issue.
 
 **How do I report a bug?**
-Open an issue at the link below. Say what you were doing, what you expected and what happened instead, and add a screenshot and your KstyleUI version if you can.
+Open an issue at the link below, or post in #bug-reports on the KstyleUI Discord. Say what you were doing, what you expected and what happened instead, and add a screenshot and your KstyleUI version if you can.
 
 ## Links
 
 - Source code: https://github.com/korallis/KstyleUI
 - Issues: https://github.com/korallis/KstyleUI/issues
+- Discord: https://discord.gg/A5qqGZEXyN
 
 ## Credits
 
