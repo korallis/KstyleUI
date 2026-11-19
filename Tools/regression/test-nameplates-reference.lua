@@ -180,7 +180,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local e, k, n = N.New({ width = screen[1], height = screen[2], size = "auto", saved = K.Store.Data() })
 	assert(n.state.height == 12, "Dungeon's chosen default-sized height survives a reload")
 	k.Options.Write("Nameplates", "preset", "lumen")
-	assert(n.state.height == 9, "Minimal restores Medallions' slim default")
+	assert(n.state.height == k.Tokens.Size("barHeight"), "Minimal restores the shared 12-unit bar height")
 	k.Options.Write("Nameplates", "health.height", 12)
 	assert(n.state.height == 12, "an explicit 12-unit height wins over Medallions' default")
 	assert(#env._errors == 0 and #e._errors == 0, tostring(e._errors[1]))
