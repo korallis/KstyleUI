@@ -7,7 +7,7 @@ KstyleUI's repainted ability and item icons ship as a texture pack the game clie
 1. Download `KstyleUI-Icons-<version>.zip` from the [GitHub release](https://github.com/korallis/KstyleUI/releases). It is a separate download from the addon zip: CurseForge and Wago install addons only, and this pack does not go into `AddOns`.
 2. Quit World of Warcraft completely. Loose textures load only at a full start, never after `/reload`.
 3. Unzip it. You get one folder, `Interface`, with an `Icons` folder inside it.
-4. Copy that `Interface` folder into your Forever flavour folder, so the files land in `World of Warcraft/_forever_/Interface/Icons/`. On a Mac the flavour folder is `/Applications/World of Warcraft/_forever_`. Your `Interface/AddOns` folder is untouched: `Icons` sits beside it.
+4. Copy the `Icons` folder from inside that `Interface` folder into your Forever flavour folder's `Interface` folder, so the files land in `World of Warcraft/_forever_/Interface/Icons/`. On Windows that is usually `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\`; on a Mac, `/Applications/World of Warcraft/_forever_/Interface/`. Copy `Icons`, not `Interface`: on a Mac, Finder replaces a folder of the same name, which would delete your `AddOns`. Your `Interface/AddOns` folder is untouched: `Icons` sits beside it.
 5. Start the game.
 
 A file in `Interface/Icons` is a loose texture. When the client needs `Interface/Icons/<Name>`, it uses the file on disk instead of the texture inside its own data. The pack's files are named exactly like Blizzard's icons (`Ability_Warrior_Charge.tga`), so the client picks them up for every spell, item, buff and debuff that uses that icon, in every window.

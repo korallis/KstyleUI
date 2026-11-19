@@ -155,8 +155,9 @@ class MasterDescription(unittest.TestCase):
         paragraph = ("An optional icon pack repaints ability and item icons everywhere, including buffs. "
                      "The icons were made with AI image tools. The pack is not an addon and is not part of "
                      "this download: it is available from this project's GitHub page. Quit the game, copy "
-                     "its Interface folder into your Forever folder so the files land in Interface/Icons, "
-                     "then start the game again.")
+                     "the Icons folder from inside its Interface folder into your game's _forever_/Interface "
+                     "folder, then start the game again. The KstyleUI Icons section above has the Windows "
+                     "and Mac steps.")
         master = MASTER.read_text(encoding="utf-8")
         self.assertIn(paragraph, master)
         self.assertLess(master.index("4. Type `/kstyle`"), master.index(paragraph))

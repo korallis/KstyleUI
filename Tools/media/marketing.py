@@ -331,7 +331,6 @@ def make_icons_compare():
         draw.text((x, y), label, font=font(BODY_BOLD, 40), fill=GILT_LIT)
         y += 56
         rounded_paste(img, row, (64, y))
-        draw = ImageDraw.Draw(img)
         y += row.height
     source_label(draw, (x, y + 28), "hud_frames_1080.jpg")
     return save(img, COMPARE[0], quality=84)

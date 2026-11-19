@@ -58,11 +58,13 @@ The addon repaints the frames; **KstyleUI Icons** repaints the icons inside them
 
 1. Download `KstyleUI-Icons-<version>.zip` from the releases page above.
 2. Quit the game fully.
-3. Unzip it. You get one folder, `Interface`.
-4. Copy that `Interface` folder into `World of Warcraft/_forever_/`, so the files land in `_forever_/Interface/Icons/`. On a Mac the folder is `/Applications/World of Warcraft/_forever_`.
+3. Unzip it: on **Windows** right-click the zip and choose **Extract All**; on a **Mac** double-click it. Inside you find `Interface`, and inside that an `Icons` folder.
+4. Copy that **`Icons`** folder into your game's `_forever_/Interface/` folder, so the files land in `_forever_/Interface/Icons/`. Copy `Icons` itself, not `Interface`: on a Mac, replacing the `Interface` folder would delete your addons.
+   - **Windows:** `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\` (in the Battle.net app, the gear next to **Play** has **Show in Explorer**).
+   - **Mac:** `/Applications/World of Warcraft/_forever_/Interface/` (in Finder, **Go > Go to Folder**, then paste the path; the Battle.net gear has **Show in Finder**).
 5. Start the game.
 
-To remove it, delete its files from `Interface/Icons` (or the whole `Icons` folder) and start the game again. Blizzard's icons come back.
+To remove it, delete its files from `Interface/Icons` (or the whole `Icons` folder, if nothing else is in it) and start the game again. Blizzard's icons come back.
 
 Good to know: the pack works with or without the KstyleUI addon. It loads only at a full restart, never after `/reload`. A few store and event icons stay Blizzard's - the client encrypts them, so no pack can replace them.
 
@@ -254,7 +256,7 @@ KstyleUI runs on the World of Warcraft: Forever client.
 3. Log in. The setup opens: pick your HUD style, layout and modules, then click **Apply** and **Reload**.
 4. Type `/kstyle` for the settings, or `/kstyle layout` to move things.
 
-An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
+An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy the Icons folder from inside its Interface folder into your game's _forever_/Interface folder, then start the game again. The KstyleUI Icons section above has the Windows and Mac steps.
 
 ## FAQ
 
@@ -291,8 +293,10 @@ English, German, French, Spanish and Simplified Chinese, using the game's own te
 
 1. Download `KstyleUI-Icons-<version>.zip` from the [GitHub releases page](https://github.com/korallis/KstyleUI/releases/latest).
 2. Quit the game fully.
-3. Unzip it. You get one folder, `Interface`.
-4. Copy that `Interface` folder into `World of Warcraft/_forever_/`, so the files land in `_forever_/Interface/Icons/`. On a Mac the folder is `/Applications/World of Warcraft/_forever_`.
+3. Unzip it: on **Windows** right-click the zip and choose **Extract All**; on a **Mac** double-click it. Inside you find `Interface`, and inside that an `Icons` folder.
+4. Copy that **`Icons`** folder into your game's `_forever_/Interface/` folder, so the files land in `_forever_/Interface/Icons/`. Copy `Icons` itself, not `Interface`: on a Mac, replacing the `Interface` folder would delete your addons.
+   - **Windows:** `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\` (in the Battle.net app, the gear next to **Play** has **Show in Explorer**).
+   - **Mac:** `/Applications/World of Warcraft/_forever_/Interface/` (in Finder, **Go > Go to Folder**, then paste the path; the Battle.net gear has **Show in Finder**).
 5. Start the game. A `/reload` is not enough.
 
 **How do I report a bug?**
