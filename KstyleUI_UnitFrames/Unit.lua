@@ -299,6 +299,11 @@ function Unit.Health(view, unit, instant)
 	else
 		Format.Health(view.healthText, unit, format)
 	end
+	local text = view.s.fonts.health
+	if text.textFormat ~= "" and format ~= "none" then
+		K.Widgets.TagText(view.healthText, text.textFormat, unit)
+		view.healthSub:SetText("")
+	end
 	Unit.Prediction(view, unit)
 end
 
@@ -328,6 +333,16 @@ function Unit.Power(view, unit, instant)
 end
 
 function Unit.Name(view, unit)
+	if view.s.fonts.name.textFormat ~= "" then
+		view.plainName = nil
+		local g = view.geometry
+		if g and g.nameAuto and g.nameRoom then
+			view.name:SetWidth(K.Widgets.Snap(view.name, g.nameRoom))
+			view.nameBound = true
+		end
+		K.Widgets.TagText(view.name, view.s.fonts.name.textFormat, unit)
+		return
+	end
 	local name = UnitName(unit)
 	if IsSecret(name) then
 		Unit.SetName(view, name)
@@ -685,6 +700,26 @@ function Unit.Portrait(view, unit)
 	end
 end
 
+function Unit.TextTags(view, unit, event, sample)
+	if not view.s.textOptions then return end
+	for _, element in ipairs({ "name", "health" }) do
+		local style = view.s.fonts[element]
+		local text = element == "name" and view.name or view.healthText
+		local format = style.textFormat
+		if format ~= "" and (element ~= "health" or view.s.healthText ~= "none")
+			and (not event or K.Widgets.ParseText(format).events[event]) then
+			K.Widgets.TagText(text, format, unit, sample)
+			if element == "name" and view.chip then K.Widgets.TagText(view.chip.name, format, unit, sample) end
+			if element == "health" then view.healthSub:SetText("") end
+		end
+		if style.colorMode ~= "" then
+			K.Widgets.TextTint(text, style.colorMode, style.color, unit, sample)
+			if element == "name" and view.chip then K.Widgets.TextTint(view.chip.name, style.colorMode, style.color, unit, sample) end
+			if element == "health" then K.Widgets.TextTint(view.healthSub, style.colorMode, style.color, unit, sample) end
+		end
+	end
+end
+
 function Unit.All(view, unit, instant)
 	if not (view.s and UnitExists(unit)) then
 		return
@@ -697,4 +732,5 @@ function Unit.All(view, unit, instant)
 	Unit.Level(view, unit)
 	Unit.Portrait(view, unit)
 	Indicators.Update(view, unit)
+	Unit.TextTags(view, unit)
 end

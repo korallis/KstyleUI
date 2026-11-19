@@ -144,6 +144,7 @@ local function Paint(view, kind)
 		ns.Slab.SetCaption(view, sample.creature or sample.class or "")
 		ns.Unit.Refit(view)
 	end
+	ns.Unit.TextTags(view, nil, nil, sample)
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		view.portrait:SetAtlas(GetClassAtlas(Theme.Class()))
 	elseif SetPortraitTexture then

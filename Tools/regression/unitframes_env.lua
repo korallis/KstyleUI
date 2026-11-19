@@ -212,6 +212,10 @@ function U.Install(env)
 		local u = unitOf(token)
 		return env.Secret(u and u.health or 0)
 	end
+	function env.UnitGetTotalAbsorbs(token)
+		local u = unitOf(token)
+		return env.Secret(u and u.absorb or 0)
+	end
 	function env.UnitHealthMax(token)
 		local u = unitOf(token)
 		return secretWhen(env._restricted, u and u.healthMax or 0)

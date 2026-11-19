@@ -194,7 +194,7 @@ function Slab.Layout(view, g)
 	view.healthText:SetJustifyH(g.mirror and "LEFT" or "RIGHT")
 	local opposite = g.mirror and "LEFT" or "RIGHT"
 	Extra(view, view.healthSub, g.healthSub, opposite)
-	if view.kind == "target" and view.s.percentLead and view.s.healthText == "both" and g.healthText then
+	if view.kind == "target" and view.s.percentLead and view.s.healthText == "both" and view.s.fonts.health.textFormat == "" and g.healthText then
 		local bar, pad = g.health, ns.Geometry.SLAB_PAD.valuePad
 		Extra(view, view.healthSub, { x = bar.x + bar.w / 2, y = bar.y, w = bar.w / 2 - pad, h = bar.h }, "RIGHT")
 		view.healthText:SetWidth(Widgets.Snap(view.parent, math.max(0, bar.w / 2 - pad)))
@@ -223,8 +223,8 @@ function Slab.Restyle(view, form)
 	if view.slabLevel then
 		Muted(view, view.slabLevel)
 	end
-	local path, size = Settings.Font(view.kind, "health")
-	Widgets.ApplyFont(view.healthText, path, size, "OUTLINE")
+	local path, size, flags, outline = Settings.Font(view.kind, "health")
+	Widgets.ApplyFont(view.healthText, path, size, outline == "INHERIT" and "OUTLINE" or flags)
 	view.healthText:SetTextColor(Tokens.Color("textEmphasis"))
 end
 

@@ -30,6 +30,7 @@ local UNIT_EVENTS = {
 	UNIT_MAXPOWER = "Power",
 	UNIT_DISPLAYPOWER = "PowerType",
 	UNIT_NAME_UPDATE = "Name",
+	UNIT_TARGET = "Target",
 	UNIT_LEVEL = "Level",
 	UNIT_CLASSIFICATION_CHANGED = "Level",
 	UNIT_PORTRAIT_UPDATE = "Portrait",
@@ -88,6 +89,7 @@ function Frames.Range(view)
 end
 
 local HANDLERS = {
+	Target = function() end,
 	Range = Frames.Range,
 	Health = function(view, unit)
 		Unit.Health(view, unit)
@@ -367,6 +369,12 @@ local function ChipText(view)
 		return
 	end
 	ChipFont(text, font[1], font[2], font[3])
+	local style = view.s.fonts.name
+	if style.colorMode ~= "" then K.Widgets.TextTint(text, style.colorMode, style.color, view.unit) end
+	if style.textFormat ~= "" then
+		K.Widgets.TagText(text, style.textFormat, view.unit)
+		return
+	end
 	if issecretvalue and issecretvalue(name) then
 		text:SetText(name)
 		return
@@ -763,6 +771,7 @@ local function RegisterUnitEvents(view)
 			local name = UNIT_EVENTS[event]
 			if name and Active(view) then
 				HANDLERS[name](view, view.unit)
+				Unit.TextTags(view, view.unit, name)
 			end
 		end
 		view.handler = handler
@@ -966,6 +975,7 @@ local function RegisterEvents()
 	for _, event in ipairs({ "PARTY_LEADER_CHANGED", "GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED" }) do
 		Events.Register(MODULE, event, function()
 			EachShown(Indicators.Status)
+			EachShown(function(view, unit) Unit.TextTags(view, unit, "Group") end)
 		end)
 	end
 	Events.Register(MODULE, "ADDON_RESTRICTION_STATE_CHANGED", OnRestriction)

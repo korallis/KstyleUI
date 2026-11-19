@@ -141,6 +141,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 			aura = { font = THEME_FONT, size = 8, outline = "OUTLINE" },
 		},
 	}
+	for _, element in ipairs({ "name", "health" }) do
+		local style = d.fonts[element]
+		style.colorMode, style.color, style.textFormat = "", Color("textEmphasis"), ""
+	end
 	for key, value in pairs(overrides or {}) do
 		d[key] = value
 	end
@@ -426,7 +430,7 @@ function Settings.Font(kind, element)
 			path = Tokens.Font(slab.role)
 		end
 	end
-	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline)
+	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline), style.outline
 end
 
 function Settings.ThemeFont(kind, element)
@@ -472,11 +476,16 @@ end
 function Settings.Snapshot(kind)
 	local fonts = {}
 	for _, element in ipairs(Settings.TEXTS) do
-		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale() }
+		local own, d = Kinds(kind)
+		local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
+		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale(),
+			colorMode = style.colorMode or "", color = style.color or d.fonts[element].color,
+			textFormat = type(style.textFormat) == "string" and style.textFormat or "" }
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
 	local s = { fonts = fonts, form = form, kind = kind, inlineCast = form == "column" and kind ~= "player" }
+	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
 			s[key] = Settings.Value(kind, key)
@@ -552,20 +561,17 @@ local TEXT_LABELS = {
 }
 
 local function TextRows(schema, kind, element)
-	local prefix = "fonts." .. element .. "."
-	local label = TEXT_LABELS[element]
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = prefix .. "font", label = label .. ": " .. L["font"],
-		help = L["The font of this text. KstyleUI font follows the Appearance page."], options = FontOptions,
-	})
-	schema[#schema + 1] = Row(kind, {
-		type = "slider", key = prefix .. "size", label = label .. ": " .. L["size"],
-		help = L["The text size in units at the 1080 reference."],
-		min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = kind == "target" and element == "level" and 0.5 or FONT_SIZE_STEP,
-	})
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = prefix .. "outline", label = label .. ": " .. L["outline"],
-		help = L["A soft shadow, or an outline for text over busy scenes."], options = CHOICES.outline,
+	local prefix = "fonts." .. element
+	K.Widgets.TextRows(schema, prefix, {
+		fontType = "dropdown", fonts = FontOptions, outlines = CHOICES.outline,
+		step = kind == "target" and element == "level" and 0.5 or FONT_SIZE_STEP,
+		tags = element == "name" or element == "health",
+		row = function(row)
+			row.label = TEXT_LABELS[element] .. ": " .. row.label
+			return Row(kind, row, row.type == "color" and function(s)
+				return s.fonts[element].colorMode == "custom"
+			end or nil)
+		end,
 	})
 end
 
