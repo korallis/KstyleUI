@@ -286,7 +286,7 @@ local schema = {
 		help = L["The accent colour the meters use when the accent is custom."],
 	},
 	{ type = "header", label = L["Damage meter"] },
-	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], disableWhen = Is("followRole", true), help = L["Shows the Damage Meter in KstyleUI's style when role-based meters are off."] },
+	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], disableWhen = function(settings) return settings.followRole and #K.Setup.Integrations.Detected(ns.MODULE) == 0 end, help = L["Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details."] },
 	{
 		type = "dropdown", key = "damage.mode", label = L["Style"], disableWhen = Off("damage"),
 		help = L["Automatic picks once, at login, the window that shows numbers in combat on this client."],
@@ -474,7 +474,7 @@ function ns.Log(message)
 end
 
 function ns.MeterShown(section)
-	if section == "damage" and #K.Setup.Integrations.Detected(ns.MODULE) > 0 then return false end
+	if section == "damage" and #K.Setup.Integrations.Detected(ns.MODULE) > 0 then return ns.Get("damage.shown") end
 	if not ns.Get("followRole") then
 		return ns.Get(section .. ".shown")
 	end

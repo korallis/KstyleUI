@@ -49,14 +49,14 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 		end })
 		dEnv.RunTimers()
 		for _, id in ipairs({ "micro", "bags" }) do
-			assert(d.Menus.Content(id) == nil, "DataBars must not build " .. id .. " beside " .. addon)
+			assert(not d.Menus.Visible(id), "DataBars must not show " .. id .. " beside " .. addon)
 			assert(not dK.Safe.IsHidden(dEnv[d.Menus.GROUPS[id].hide]), "leave the other addon's menu container alone")
 		end
 		assert(dK.Modules.IsRunning("DataBars") and d.Bars.views.xp, "XP and the rest of DataBars keep running")
 		dK.Options.Write("DataBars", "micro.enabled", true)
 		dEnv.FireEvent("PLAYER_ENTERING_WORLD")
 		dEnv.RunTimers()
-		assert(d.Menus.Content("micro") == nil and #dEnv._errors == 0, "settings and world events cannot reclaim the menus")
+		assert(d.Menus.Visible("micro") and not d.Menus.Visible("bags") and #dEnv._errors == 0, "the explicit micro-menu choice leaves the bag bar yielding")
 	end
 	for _, mode in ipairs({ "window", "skin" }) do
 		local env, K, ns = M.New({ width = screen[1], height = screen[2], setup = Loaded("Details") })

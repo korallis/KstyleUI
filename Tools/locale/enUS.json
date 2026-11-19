@@ -1807,7 +1807,7 @@
 	"Shows slots with no action as empty tiles.",
 	"Shows tab names in capitals or as you typed them.",
 	"Shows temporary weapon enchantments, such as poisons and oils, before your buffs.",
-	"Shows the Damage Meter in KstyleUI's style when role-based meters are off.",
+	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.",
 	"Shows the damage and healing you take.",
 	"Shows the damage you take.",
 	"Shows the debuffs you put on each unit.",

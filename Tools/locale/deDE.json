@@ -1807,7 +1807,7 @@
 	"Shows slots with no action as empty tiles.": "Zeigt Plätze ohne Aktion als leere Kacheln.",
 	"Shows tab names in capitals or as you typed them.": "Zeigt Reiternamen in Großbuchstaben oder so, wie Ihr sie eingegeben habt.",
 	"Shows temporary weapon enchantments, such as poisons and oils, before your buffs.": "Zeigt vorübergehende Waffenverzauberungen wie Gifte und Öle vor Euren Stärkungszaubern.",
-	"Shows the Damage Meter in KstyleUI's style when role-based meters are off.": "Zeigt die Schadensanzeige im KstyleUI-Stil, wenn die Rollenautomatik aus ist.",
+	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.": "Zeigt die Schadensanzeige im Stil von KstyleUI, wenn rollenbasierte Anzeigen aus sind, oder hat Vorrang vor Details.",
 	"Shows the damage and healing you take.": "Zeigt den Schaden und die Heilung, die Ihr erhaltet.",
 	"Shows the damage you take.": "Zeigt den Schaden, den Ihr erleidet.",
 	"Shows the debuffs you put on each unit.": "Zeigt die Schwächungszauber, die Ihr auf jede Einheit wirkt.",

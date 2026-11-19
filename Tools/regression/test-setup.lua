@@ -46,7 +46,7 @@ local function Seen(K)
 	return K.Store.Account().setupSeen == true
 end
 
--- G5: every detected same-job addon starts its module off; required overlaps must be detectable.
+-- G5: whole-module overlaps start off; partial overlaps leave unrelated parts available.
 do
 	local env, K = Boot({ modules = {
 		"UnitFrames", "ActionBars", "Cooldowns", "GroupFrames", "Auras", "Nameplates", "CombatText", "Minimap",
@@ -59,8 +59,8 @@ do
 		if names[1] then
 			local addon = names[1]
 			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
-			assert(K.Setup.NewChoice().modules[entry.name] == false,
-				"setup turns " .. entry.name .. " on while " .. addon .. " is loaded; start it off when Integrations.Detected(" .. entry.name .. ") is not empty.")
+			assert(K.Setup.NewChoice().modules[entry.name] == (entry.name == "DataBars" or entry.name == "Meters"),
+				"setup must turn whole-module overlaps off and keep DataBars/Meters selected beside " .. addon)
 		end
 	end
 	for module, addons in pairs({ ActionBars = { "Bartender4", "Dominos" }, DataBars = { "Bartender4", "Dominos" },
@@ -70,7 +70,7 @@ do
 			local detected = K.Setup.Integrations.Detected(module)
 			assert(detected[1] == addon, "OVERLAPS." .. module .. " must list " .. addon .. ".")
 			local choice = K.Setup.NewChoice()
-			assert(choice.modules[module] == false, "setup turns " .. module .. " on while " .. addon .. " is loaded; start it off when Integrations.Detected(" .. module .. ") is not empty.")
+			assert(choice.modules[module] == (module == "DataBars" or module == "Meters"), "only whole-module overlaps should start " .. module .. " off beside " .. addon)
 			assert(choice.modules.Cooldowns == true, "an unrelated module stays selected")
 		end
 	end

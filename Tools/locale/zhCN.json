@@ -1807,7 +1807,7 @@
 	"Shows slots with no action as empty tiles.": "把没有动作的栏位显示为空方块。",
 	"Shows tab names in capitals or as you typed them.": "标签名称以大写或你输入的原样显示。",
 	"Shows temporary weapon enchantments, such as poisons and oils, before your buffs.": "在增益效果前显示临时武器附魔，例如毒药和油。",
-	"Shows the Damage Meter in KstyleUI's style when role-based meters are off.": "关闭按职责显示时，以KstyleUI样式显示伤害统计。",
+	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.": "关闭职责统计时以 KstyleUI 风格显示伤害统计，或者取代 Details。",
 	"Shows the damage and healing you take.": "显示你受到的伤害和治疗。",
 	"Shows the damage you take.": "显示你受到的伤害。",
 	"Shows the debuffs you put on each unit.": "显示你在每个单位上施加的负面效果。",

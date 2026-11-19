@@ -18,7 +18,7 @@ stateDiagram-v2
         [*] --> Welcome
         Welcome --> HudStyle : Next
         HudStyle --> Layout : Next, role pictures follow the chosen HUD
-        Layout --> Modules : Next, detected same-job modules start off
+        Layout --> Modules : Next, whole-module overlaps start off
         Modules --> Ornaments : Next
         Ornaments --> Summary : Next
         Summary --> Ornaments : Back
@@ -46,7 +46,7 @@ stateDiagram-v2
 | --- | --- | --- |
 | LoggedIn | `PLAYER_LOGIN` fired once; the handler unregisters itself. | `Setup.lua`, the `PLAYER_LOGIN` handler |
 | Delayed | `C_Timer.After(OPEN_DELAY)`, 2 s, so the game's own frames settle first. | same |
-| Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, installed modules on unless `Integrations.Detected` finds a same-job addon, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
+| Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, installed modules on unless `Integrations.Detected` finds a whole-module overlap, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. DataBars and Meters stay selected: only their overlapping parts yield. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
 | Steps | Next and Back call `Setup.Go` one step on; a step tab calls `Setup.Go(value)` for any step up to the furthest reached, and `Go` clamps to 1 to 6. Keep my UI shows only on step 1. | `Setup.Go`, `Refresh` |
 | Layout pictures | General > Layout pictures in setup defaults on: each role card shows its rendered Frames, Orbs or Medallions layout, following the HUD style chosen on the previous step. Off restores the hovered footprint diagram and story-rail legend. The picture never applies settings. | `PlaceLayouts`, `BuildLayouts`; `test-setup-polish` |
 | NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking any card (HUD style, layout, ornaments) or module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |
@@ -55,6 +55,8 @@ stateDiagram-v2
 `Setup.Apply(picked)` refuses when the Store is not loaded or the layout is unknown. With Profiles > Recovery backups on (default), it first saves a named **Before setup** recovery profile, then writes module switches, layout positions, module settings, ornaments and the chosen HUD style, queues the Edit Mode write, and marks setup seen. Closing calls Apply in the default **Apply the default setup** mode; the **Do nothing, ask again later** choice does not apply. Timer/announcement lanes and named WeakAuras anchors default on and can be switched off in General. With General > Other-addon notices on (default), the Modules step names detected overlapping addons; its feature toggles choose which KstyleUI modules Apply enables, without rewriting another addon's settings.
 
 When all five account Edit Mode layouts are occupied, the summary offers **Replace this one** while General > Choose an Edit Mode replacement is on (default). Off retains the previous full-list refusal. Apply replaces only the chosen account layout; leaving the picker empty preserves every layout and reports the refusal. With Recovery backups on, the previous Edit Mode layouts are included in the setup backup and restored with the profile's **Restore backup** action, queued out of combat.
+
+DataBars stays on beside Bartender4 or Dominos. On the profile's first detected overlap, only **Micro menu > Replace Blizzard's** and **Bag bar > Replace Blizzard's** start off; the data strip and XP bars keep running. Meters stays on beside Details: only **Show the damage meter** starts off, leaving threat and swing available. Turning those part switches back on overrides the yield and survives reload; the damage switch remains available beside Details even with role-based meters on. ActionBars posts its bindings notice after the setting change finishes, only while bindings still yield and **Other-addon notices** is on.
 
 ## Edit Mode write
 

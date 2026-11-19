@@ -975,11 +975,16 @@ local function InstallHooks()
 	end
 end
 
-function Menus.Enable()
-	if #K.Setup.Integrations.Detected(ns.MODULE) > 0 then
-		ns.LogOnce("menus-overlap", "another action bar addon owns the micro menu and bag bar; KstyleUI leaves them alone")
-		return
+local function YieldMenus()
+	local settings = ns.Settings()
+	if not settings.overlapMenus and #K.Setup.Integrations.Detected(ns.MODULE) > 0 then
+		settings.micro.enabled, settings.bags.enabled = false, false
+		settings.overlapMenus = true
 	end
+end
+
+function Menus.Enable()
+	YieldMenus()
 	running = true
 	enabling = true
 	InstallHooks()
@@ -1094,6 +1099,7 @@ ns.AddPart({
 	Disable = Menus.Disable,
 	Setting = Menus.Setting,
 	Refresh = function()
+		YieldMenus()
 		for _, id in ipairs(ORDER) do
 			Sync(bars[id])
 			SyncBlizzard(id)

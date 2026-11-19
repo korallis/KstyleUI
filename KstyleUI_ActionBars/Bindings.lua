@@ -76,9 +76,12 @@ local function Apply()
 	end
 	local detected = K.Setup.Integrations.Detected("ActionBars")
 	if #detected > 0 and not ns.Config("overlapBindings") then
-		if not noticed then
-			noticed = true
-			K.Print(string.format(K.L["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."], table.concat(detected, ", ")))
+		if not noticed and type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+			C_Timer.After(0, function()
+				if noticed or not ns.running or ns.Config("overlapBindings") or not K.Store.Module("Integrations").notices then return end
+				noticed = true
+				K.Print(string.format(K.L["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."], table.concat(detected, ", ")))
+			end)
 		end
 		ns.UpdateHotkeys()
 		return

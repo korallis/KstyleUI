@@ -1814,7 +1814,7 @@ ns.Locale.Add({
 	["Shows slots with no action as empty tiles."] = "Muestra los huecos sin acci\195\179n como casillas vac\195\173as.",
 	["Shows tab names in capitals or as you typed them."] = "Muestra los nombres de las pesta\195\177as en may\195\186sculas o tal como los escribiste.",
 	["Shows temporary weapon enchantments, such as poisons and oils, before your buffs."] = "Muestra los encantamientos de arma temporales, como venenos y aceites, antes de tus beneficios.",
-	["Shows the Damage Meter in KstyleUI's style when role-based meters are off."] = "Muestra el medidor de da\195\177o con el estilo KstyleUI cuando el modo por rol est\195\161 desactivado.",
+	["Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details."] = "Muestra el medidor de da\195\177o con el estilo de KstyleUI cuando los medidores por rol est\195\161n desactivados, o tiene prioridad sobre Details.",
 	["Shows the damage and healing you take."] = "Muestra el da\195\177o y la sanaci\195\179n que recibes.",
 	["Shows the damage you take."] = "Muestra el da\195\177o que recibes.",
 	["Shows the debuffs you put on each unit."] = "Muestra los perjuicios que pones en cada unidad.",

@@ -85,7 +85,16 @@ function ns.IsRunning()
 	return running
 end
 
+local function YieldDamage()
+	local settings = K.Store.Module(MODULE)
+	if not settings.overlapDamage and #K.Setup.Integrations.Detected(MODULE) > 0 then
+		settings.damage.shown = false
+		settings.overlapDamage = true
+	end
+end
+
 local function ApplyAll()
+	YieldDamage()
 	for _, part in ipairs(parts) do
 		K.Call(part.Apply, part)
 	end
@@ -116,6 +125,7 @@ local function OnLayout(_, key)
 end
 
 local function Enable()
+	YieldDamage()
 	running = true
 	for _, part in ipairs(parts) do
 		K.Call(part.Start, part)
