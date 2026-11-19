@@ -173,6 +173,45 @@ function MAKERS.dropdown(row)
 	return Dropdown(row, Widgets.Dropdown)
 end
 
+function MAKERS.order(row)
+	local holder = CreateFrame("Frame", nil, row)
+	Widgets.Size(holder, Rows.CONTROL_WIDTH, Tokens.Size("rowHeight") + Tokens.Size("gapSmall"))
+	holder.toggle = Widgets.Toggle(holder, { onChange = function(value)
+		Apply(row, { shown = value })
+	end })
+	holder.zone = Widgets.Dropdown(holder, { width = 90, options = {
+		{ value = "left", label = K.L["Left"] },
+		{ value = "centre", label = K.L["Centre"] },
+		{ value = "right", label = K.L["Right"] },
+	}, onChange = function(value) Apply(row, { zone = value }) end })
+	for _, direction in ipairs({ "up", "down" }) do
+		local delta = direction == "up" and -1 or 1
+		local button = Widgets.Button(holder, { width = 24, tooltip = direction == "up" and K.L["Move up"] or K.L["Move down"], onClick = function()
+			if not row.updating and row.item and row.item.move then
+				K.Call(row.item.move, delta)
+				ns.Changed()
+			end
+		end })
+		local glyph = button:CreateTexture(nil, "ARTWORK")
+		glyph:SetTexture((Tokens.Texture("glyphChevron")))
+		if delta == -1 then glyph:SetTexCoord(0, 1, 1, 0) end
+		Widgets.Size(glyph, DROPDOWN_CHEVRON, DROPDOWN_CHEVRON)
+		Widgets.Point(glyph, "CENTER", button, "CENTER")
+		local paint = button.Paint
+		function button:Paint()
+			paint(self)
+			glyph:SetVertexColor(self.label:GetTextColor())
+		end
+		button:Paint()
+		holder[direction] = button
+	end
+	Widgets.Point(holder.down, "RIGHT", holder, "RIGHT")
+	Widgets.Point(holder.up, "RIGHT", holder.down, "LEFT", -Gap(holder, "gapTiny"), 0)
+	Widgets.Point(holder.zone, "RIGHT", holder.up, "LEFT", -Gap(holder, "gapSmall"), 0)
+	Widgets.Point(holder.toggle, "RIGHT", holder.zone, "LEFT", -Gap(holder), 0)
+	return holder
+end
+
 function MAKERS.segmented(row)
 	return Widgets.Tabs(row, {
 		width = Rows.CONTROL_WIDTH,
@@ -404,6 +443,18 @@ local FILL = {}
 function FILL.toggle(control, item, value)
 	control:SetValue(value == true, true)
 	SetEnabled(control, not Model.IsDisabled(item))
+end
+
+function FILL.order(control, item, value)
+	value = value or {}
+	local enabled = not Model.IsDisabled(item)
+	control.toggle:SetValue(value.shown == true, true)
+	control.zone:SetValue(value.zone, true)
+	control.toggle:SetEnabled(enabled)
+	control.zone:SetEnabled(enabled)
+	local at, count = item.position()
+	control.up:SetEnabled(enabled and at ~= nil and at > 1)
+	control.down:SetEnabled(enabled and at ~= nil and at < count)
 end
 
 function FILL.slider(control, item, value)
@@ -663,7 +714,7 @@ end
 
 local function SameSetting(a, b)
 	return a ~= nil and b ~= nil and a.kind == b.kind and a.label == b.label
-		and a.page == b.page and a.module == b.module and a.key == b.key and a.element == b.element
+		and a.page == b.page and a.module == b.module and a.key == b.key and a.element == b.element and a.entry == b.entry
 end
 
 local function Layout(row, item, width)
@@ -826,7 +877,8 @@ function Rows.Create(list)
 	row:SetScript("OnMouseUp", function(self, button)
 		local item = self.item
 		if K.Store.Module("OptionControls").changedSettings and button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
-			Apply(self, K.Options.Default(item.module, item.key))
+			K.Options.Write(item.module, item.key, K.Options.Default(item.module, item.key))
+			ns.Changed()
 		end
 	end)
 	row.Restyle = Rows.Restyle
