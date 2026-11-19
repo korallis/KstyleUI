@@ -13,7 +13,7 @@ ns.MODULE = MODULE
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 32, 1
 local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, 6
 local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 44
-local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
+local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = 16, 64, 1
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 13, 12, 11
 local LEGACY_SIZES = { ["title.size"] = 11, ["body.size"] = 11, ["small.size"] = 9, iconSize = 50 }
 
@@ -31,8 +31,8 @@ Settings.defaults = {
 	qualityColors = true,
 	anchor = "cursorOutOfCombat",
 	minimapAnchor = true,
-	cursorX = 0,
-	cursorY = 0,
+	cursorX = 16,
+	cursorY = 16,
 	followFont = true,
 	title = Text(TITLE_SIZE),
 	body = Text(BODY_SIZE),

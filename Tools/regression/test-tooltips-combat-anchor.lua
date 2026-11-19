@@ -40,16 +40,16 @@ do
 			assert(rows[key].showWhen({ anchor = mode }) == (mode ~= "fixed"), "both cursor choices expose the offset sliders")
 		end
 	end
-	K.Options.Write("Tooltips", "cursorX", 12)
-	K.Options.Write("Tooltips", "cursorY", -4)
+	K.Options.Write("Tooltips", "cursorX", 24)
+	K.Options.Write("Tooltips", "cursorY", 32)
 	Place(env)
-	Cursor(env, 12, -4)
+	Cursor(env, 24, 32)
 	env.SetCombat(true)
 	Place(env)
 	Fixed(env, ns)
 	env.SetCombat(false)
 	Place(env)
-	Cursor(env, 12, -4)
+	Cursor(env, 24, 32)
 	for _, combat in ipairs({ false, true }) do
 		env.SetCombat(combat)
 		K.Options.Write("Tooltips", "anchor", "fixed")
@@ -57,7 +57,7 @@ do
 		Fixed(env, ns)
 		K.Options.Write("Tooltips", "anchor", "cursor")
 		Place(env)
-		Cursor(env, 12, -4)
+		Cursor(env, 24, 32)
 	end
 	env.SetCombat(false)
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -71,7 +71,7 @@ do
 		Cursor = { Tooltips = { anchor = "cursor" } },
 	} }
 	local env, K, ns = Enabled({ saved = saved })
-	assert(ns.Settings.Get("anchor") == MODE and ns.Settings.Get("cursorX") == 7, "an existing profile without a saved anchor inherits the new default")
+	assert(ns.Settings.Get("anchor") == MODE and ns.Settings.Get("cursorX") == 16, "an existing profile inherits the default and a safe cursor gap")
 	for name, mode in pairs({ Fixed = "fixed", Cursor = "cursor" }) do
 		assert(K.Store.SetProfile(name))
 		assert(ns.Settings.Get("anchor") == mode, "an explicitly saved position is preserved")

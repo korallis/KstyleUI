@@ -215,10 +215,10 @@ do
 	assert(point == "TOPLEFT" and relative == holder, "near the top left it grows down and right")
 
 	K.Options.Write("Tooltips", "anchor", "cursor")
-	K.Options.Write("Tooltips", "cursorX", 12)
-	K.Options.Write("Tooltips", "cursorY", -4)
+	K.Options.Write("Tooltips", "cursorX", 24)
+	K.Options.Write("Tooltips", "cursorY", 32)
 	env.GameTooltip_SetDefaultAnchor(tip, env.UIParent)
-	assert(tip._anchor[1] == "ANCHOR_CURSOR_RIGHT" and tip._anchor[2] == 12 and tip._anchor[3] == -4, "the cursor setting follows the pointer with its offsets")
+	assert(tip._anchor[1] == "ANCHOR_CURSOR_RIGHT" and tip._anchor[2] == 24 and tip._anchor[3] == 32, "the cursor setting follows the pointer with its offsets")
 	assert(tip:GetOwner() == env.UIParent, "the owner stays the caller's")
 
 	local other = env.ShoppingTooltip1

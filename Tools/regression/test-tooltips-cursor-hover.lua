@@ -46,6 +46,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			end
 		end
 	end
+	assert(not failures.overlap, "cursor tooltip overlaps the cursor point: use positive cursor offsets")
+	assert(not failures.mouse, "cursor tooltip is mouse-enabled: disable GameTooltip mouse input")
+	assert(not failures.blink, "list tooltip repeatedly leaves and re-enters the hovered row")
 	-- Forever's auction item display also calls SetOwner directly (SharedTemplates.lua:112-134).
 	-- This native button-relative path must stay mouse transparent without moving or clearing its item.
 	tip:EnableMouse(true)
@@ -54,10 +57,14 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	T.BlizzardShow(tip, true)
 	assert(not tip:IsMouseEnabled(), "auction item tooltips must not steal hover input")
 	assert(tip._anchor[1] == "ANCHOR_RIGHT" and tip:GetLeftLine(1):GetText() == "Auction item", "native item anchoring and content stay intact")
-	assert(not failures.overlap, "cursor tooltip overlaps the cursor point: use positive cursor offsets")
-	assert(not failures.mouse, "cursor tooltip is mouse-enabled: disable GameTooltip mouse input")
-	assert(not failures.blink, "list tooltip repeatedly leaves and re-enters the hovered row")
 	assert(ns.Settings.Get("anchor") == "cursor", "the cursor choice remains enabled")
+	env.ItemRefTooltip:EnableMouse(true)
+	env.ItemRefTooltip:SetOwner(env.UIParent, "ANCHOR_NONE")
+	assert(env.ItemRefTooltip:IsMouseEnabled(), "clickable chat-link windows keep mouse input")
+	K.Modules.Disable("Tooltips")
+	tip:EnableMouse(true)
+	tip:SetOwner(env.UIParent, "ANCHOR_NONE")
+	assert(tip:IsMouseEnabled(), "disabled Tooltips leaves mouse input alone")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	print("cursor hover stable at " .. screen[1] .. "x" .. screen[2])
 end

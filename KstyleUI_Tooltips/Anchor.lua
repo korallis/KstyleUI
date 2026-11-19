@@ -202,6 +202,9 @@ function Anchor.Hook()
 	end)
 	if GameTooltip and type(GameTooltip.SetOwner) == "function" then
 		hooksecurefunc(GameTooltip, "SetOwner", function(tooltip, owner)
+			if ns.active and type(tooltip.EnableMouse) == "function" then
+				tooltip:EnableMouse(false)
+			end
 			K.Call(PlaceMinimap, tooltip, owner)
 		end)
 		GameTooltip:HookScript("OnShow", function(tooltip)
