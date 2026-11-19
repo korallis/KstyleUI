@@ -3,6 +3,7 @@ local Measure = dofile("Tools/regression/measure.lua")
 local fs = dofile("Tools/regression/fs.lua")
 
 local ATTEMPTS = 3
+local HOSTED = os.getenv("CI") == "true" and os.getenv("RUNNER_ENVIRONMENT") == "github-hosted"
 local GROUPS = {
 	core = { "Core.lua", "KstyleUI_ActionBars.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua", "KstyleUI_Tooltips.lua" },
 	frames = { "KstyleUI_Nameplates.lua", "KstyleUI_UnitFrames.lua" },
@@ -193,7 +194,7 @@ local function Fastest(entry, run, checkHeadroom)
 	local kept, order = {}, {}
 	for attempt = 1, ATTEMPTS do
 		local problems, r, tight = Attempt(entry, run, checkHeadroom)
-		local slow = tight and true or false
+		local slow = tight and not HOSTED or false
 		local timed = {}
 		for _, problem in ipairs(problems) do
 			if IsTimeProblem(problem) then
@@ -303,7 +304,7 @@ for _, entry in ipairs(paths) do
 				Fail(problem)
 			end
 			if tight then
-				if os.getenv("CI") == "true" and os.getenv("RUNNER_ENVIRONMENT") == "github-hosted" then
+				if HOSTED then
 					print("WARN " .. tight)
 				else
 					Fail(tight)
