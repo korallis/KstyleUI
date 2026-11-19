@@ -254,6 +254,30 @@ function Pages.ElementItems(element, page, level)
 			get = get("shown", FALLBACK.shown), set = set("shown"),
 		})
 	end
+	if has("attachTo") then
+		add({ kind = "dropdown", label = L["Attach to"], help = L["Follows another element. An unavailable element uses your saved place."],
+			options = function()
+				local choices = { { value = "", label = L["Not attached"] } }
+				local can = LayoutFn("CanAttach")
+				for _, target in ipairs(Pages.Elements()) do
+					if target.key ~= key and (not can or can(key, target.key)) then
+						choices[#choices + 1] = { value = target.key, label = target.label or target.key }
+					end
+				end
+				return choices
+			end, get = get("attachTo", ""), set = set("attachTo"),
+		})
+		add({ kind = "dropdown", label = L["Side"], options = {
+			{ value = "above", label = L["Above"] }, { value = "below", label = L["Below"] },
+			{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
+		}, get = get("side", "above"), set = set("side") })
+		add({ kind = "slider", label = L["Offset"], help = L["The gap from the attached element, in interface units."],
+			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset") })
+		if opts.resizable then
+			add({ kind = "toggle", label = L["Match width"], help = L["Uses the other element's width within this element's size limits."],
+				get = get("matchWidth", false), set = set("matchWidth") })
+		end
+	end
 	if has("anchor") then
 		add({
 			kind = "dropdown", label = L["Anchor"], help = L["The point of the screen the element is placed from."], options = Choices("ANCHOR_OPTIONS", ANCHORS),

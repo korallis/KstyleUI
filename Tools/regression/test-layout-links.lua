@@ -1,0 +1,146 @@
+-- test-layout-links.lua: optional four-side links keep fallback places, follow size and movement, reject cycles and queue protected changes.
+local W = dofile("Tools/regression/widget_env.lua")
+local O = dofile("Tools/regression/options_env.lua")
+local function near(a, b) return math.abs(a - b) < 1.1 end
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K = W.New({ width = screen[1], height = screen[2], size = "auto", uiScale = 768 / 1080 })
+	local L = K.Layout
+	local function element(key, width, height, opts)
+		local f = env.CreateFrame("Frame", nil, K.Scale.Root())
+		f:SetSize(width, height)
+		L.Register(f, key, { anchor = "BOTTOMLEFT", x = 200, y = 300 }, opts or { resizable = true, scalable = true })
+		return f
+	end
+	element("Link.Target", 300, 80)
+	local child = element("Link.Child", 100, 20)
+	local fallbackL, fallbackB = L.Rect("Link.Child")
+	assert(L.Get("Link.Child").attachTo == "" and not L.Get("Link.Child").matchWidth)
+	assert(K.Store.Layout()["Link.Child"] == nil, "absent links save nothing")
+	assert(L.Update("Link.Child", { attachTo = "Link.Target", offset = 12 }))
+	for side, expected in pairs({ above = { 300, 392 }, below = { 300, 268 }, left = { 88, 330 }, right = { 512, 330 } }) do
+		assert(L.Set("Link.Child", "side", side))
+		local l, b = L.Rect("Link.Child")
+		assert(near(l, expected[1]) and near(b, expected[2]), "four sides: " .. side .. " got " .. l .. "," .. b)
+	end
+	assert(not L.Set("Link.Target", "attachTo", "Link.Child"), "reject two-element cycle")
+	assert(not L.Set("Link.Child", "attachTo", "Link.Child"), "reject self cycle")
+	assert(not L.Set("Link.Child", "side", "TOPLEFT"))
+	assert(not L.Set("Link.Child", "offset", 0/0))
+	assert(not L.Set("Link.Child", "matchWidth", "yes"))
+	assert(L.Update("Link.Child", { side = "above", matchWidth = true, scale = 0.5 }))
+	local _, _, w = L.Rect("Link.Child")
+	local _, _, targetWidth = L.Rect("Link.Target")
+	assert(math.abs(w - targetWidth) < 0.000001, "matched edges share the same physical pixels")
+	assert(near(w, 300) and near(child:GetWidth(), 600), "match physical width across scales")
+	assert(L.Update("Link.Target", { x = 240, width = 360 }))
+	local l, b = L.Rect("Link.Child")
+	assert(near(l, 240) and near(b, 392) and near(child:GetWidth(), 720), "move and width follow")
+	assert(L.Get("Link.Child").width == 100, "matching never rewrites saved width")
+	L.SetLive("Link.Target", false)
+	l, b, w = L.Rect("Link.Child")
+	assert(near(l, fallbackL) and near(b, fallbackB) and near(w, 50), "disabled target restores fallback and width")
+	L.SetLive("Link.Target", true)
+	assert(near(child:GetWidth(), 720))
+	assert(L.Set("Link.Child", "matchWidth", false))
+	assert(near(child:GetWidth(), 100), "turning matching off restores own width")
+	assert(L.Set("Link.Child", "matchWidth", true))
+	assert(L.Set("Link.Target", "shown", "never"))
+	assert(near(child:GetWidth(), 100), "never-shown target falls back")
+	assert(L.Set("Link.Target", "shown", nil))
+	assert(L.Set("Link.Child", "attachTo", "Link.Missing"))
+	assert(near(child:GetWidth(), 100), "missing target falls back")
+	element("Link.Missing", 240, 40)
+	assert(near(child:GetWidth(), 480), "late registration restores link")
+	assert(L.Set("Link.Child", "attachTo", "Link.Target"))
+	K.Modules.Register(W.CoreEnv.Module("Bags"))
+	K.Modules.Enable("Bags")
+	element("Link.Module", 280, 40, { module = "Bags" })
+	assert(L.Set("Link.Child", "attachTo", "Link.Module"))
+	assert(near(child:GetWidth(), 560))
+	K.Modules.Disable("Bags")
+	assert(near(child:GetWidth(), 100), "a disabled module restores the fallback width")
+	K.Modules.Enable("Bags")
+	assert(near(child:GetWidth(), 560), "a re-enabled module restores the link")
+	assert(L.Set("Link.Child", "attachTo", "Link.Target"))
+	local dynamic = element("Link.Dynamic", 240, 30, {})
+	assert(L.Set("Link.Child", "attachTo", "Link.Dynamic"))
+	dynamic:SetWidth(320)
+	assert(near(child:GetWidth(), 640), "a module-owned target width follows its size hook")
+	assert(not L.Set("Link.Dynamic", "matchWidth", true), "a module-owned size is not overwritten")
+	assert(L.Set("Link.Child", "attachTo", "Link.Target"))
+	local grand = element("Link.Grand", 80, 10)
+	assert(L.Update("Link.Grand", { attachTo = "Link.Child", matchWidth = true }))
+	assert(not L.Set("Link.Target", "attachTo", "Link.Grand"), "reject longer cycle")
+	L.Preview("Link.Target", 400, 400, 400, 80)
+	l, b = L.Rect("Link.Child")
+	assert(near(l, 400) and near(b, 492) and near(grand:GetWidth(), 400), "drag preview follows through chain")
+	L.Restore("Link.Target")
+	local moves = L.Movement("Link.Child", 240, 412, 360, 10)
+	assert(near(moves.offset, 32) and moves.x == nil and moves.anchor == nil, "linked drag changes only gap")
+	child.IsProtected = function() return true end
+	local blocked = 0
+	for _, method in ipairs({ "ClearAllPoints", "SetPoint", "SetSize", "SetScale" }) do
+		local original = child[method]
+		child[method] = function(self, ...)
+			if env._combat then blocked = blocked + 1 end
+			return original(self, ...)
+		end
+	end
+	env.SetCombat(true)
+	assert(L.Set("Link.Target", "width", 420))
+	assert(L.Set("Link.Child", "offset", 18))
+	assert(blocked == 0 and near(child:GetWidth(), 720), "protected link moves wait")
+	env.SetCombat(false)
+	assert(near(child:GetWidth(), 840) and blocked == 0, "queue applies newest link after combat")
+	local secureTarget = L.Element("Link.Target").frame
+	secureTarget.IsProtected = function() return true end
+	local priorL, priorB = L.Rect("Link.Grand")
+	env.SetCombat(true)
+	assert(L.Set("Link.Target", "y", 500))
+	l, b = L.Rect("Link.Grand")
+	assert(near(l, priorL) and near(b, priorB), "unprotected descendants wait for a protected target's real movement")
+	env.SetCombat(false)
+	local _, movedB = L.Rect("Link.Grand")
+	assert(near(movedB - priorB, 200), "descendants follow the combat flush")
+	assert(L.Enter())
+	assert(L.Set("Link.Child", "attachTo", ""))
+	assert(L.Undo() and L.Get("Link.Child").attachTo == "Link.Target")
+	assert(L.Redo() and L.Get("Link.Child").attachTo == "")
+	L.Exit(false)
+	assert(L.Get("Link.Child").attachTo == "Link.Target", "cancel restores link")
+	assert(L.Enter())
+	L.Mode.Select("Link.Child")
+	assert(L.Mode.Plate("Link.Child").info:GetText():lower():find("link.target", 1, true), "selected mover describes link")
+	assert(L.Mode.Plate("Link.Child").info._points[1][3] == "BOTTOMLEFT", "link details sit below thin movers")
+	L.Exit(true)
+	assert(L.Update("Link.Child", { anchor = "TOPLEFT", x = 150, y = -120 }))
+	local savedPlace = K.Store.Layout()["Link.Child"]
+	assert(L.Set("Link.Child", "attachTo", ""))
+	assert(savedPlace.anchor == "TOPLEFT" and savedPlace.x == 150 and savedPlace.y == -120, "detach preserves a custom fallback")
+	local entry = K.Store.Layout()["Link.Child"]
+	entry.attachTo, K.Store.Layout()["Link.Target"] = "Link.Target", { attachTo = "Link.Child" }
+	K.Callbacks.Fire("ProfileChanged")
+	assert(near(child:GetWidth(), 100), "imported cycles use fallback without recursion")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, table.concat(env._errors, "\n"))
+end
+local env, K, ns = O.New({ before = function(e, k)
+	for _, key in ipairs({ "Link.Target", "Link.Child" }) do
+		local f = e.CreateFrame("Frame", nil, k.Scale.Root())
+		f:SetSize(220, 40)
+		k.Layout.Register(f, key, { anchor = "CENTER" }, { resizable = true })
+	end
+end })
+K.Options.Open("Elements")
+local rows = {}
+for _, row in ipairs(ns.Window.State().items) do
+	if row.element == "Link.Child" then rows[row.label] = row end
+end
+for _, label in ipairs({ "Attach to", "Side", "Offset", "Match width" }) do assert(rows[label], label) end
+rows["Attach to"].set("Link.Target")
+rows.Side.set("below")
+rows.Offset.set(16)
+rows["Match width"].set(true)
+assert(K.Layout.Get("Link.Child").side == "below" and K.Layout.Get("Link.Child").matchWidth)
+assert(K.Store.Layout()["Link.Child"].x == nil, "Options never rewrites fallback place")
+assert(#env._errors == 0)
+print("layout links ok: four screens, four sides, scales, fallbacks, cycles, preview, combat, undo and Options")

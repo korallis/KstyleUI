@@ -74,6 +74,13 @@ local function Describe(key)
 	local s = Layout.Element(key).settings
 	local el = Layout.Element(key)
 	local text = format("%s  %d, %d", s.anchor, floor(s.x + 0.5), floor(s.y + 0.5))
+	if s.attachTo ~= "" then
+		local side = ({ above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] })[s.side]
+		local target = Layout.Element(s.attachTo)
+		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
+		if s.matchWidth then text = text .. " / " .. L["Match width"] end
+		return text
+	end
 	if el.opts.resizable then
 		text = text .. format("  %d x %d", floor(s.width + 0.5), floor(s.height + 0.5))
 	end
@@ -138,6 +145,10 @@ local function PlacePlate(plate, frame, w, h)
 	else
 		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
 		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
+	end
+	if Layout.Element(plate.key).settings.attachTo ~= "" then
+		plate.info:ClearAllPoints()
+		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
 	end
 	plate.tag:SetShown(clear)
 end
@@ -294,9 +305,11 @@ local function EndDrag(commit)
 	guideY:Hide()
 	local ok = false
 	if commit and d.moved then
-		local rw, rh = Layout.RootSize()
-		local anchor, x, y = G.Position(d.l, d.b, d.w, d.h, rw, rh)
-		local values = { anchor = anchor, x = x, y = y }
+		local values = Layout.Movement(d.key, d.l, d.b, d.w, d.h)
+		if values.offset == nil then
+			local rw, rh = Layout.RootSize()
+			values.anchor, values.x, values.y = G.Position(d.l, d.b, d.w, d.h, rw, rh)
+		end
 		if d.kind == "resize" then
 			values.width, values.height = d.w / d.factor, d.h / d.factor
 		elseif d.kind == "scale" then
@@ -327,8 +340,7 @@ local function Nudge(dx, dy)
 	local rw, rh = Layout.RootSize()
 	l, b = G.ClampToRoot(l + dx * step, b + dy * step, w, h, rw, rh)
 	l, b = Layout.Clamp(key, l, b, w, h)
-	local _, x, y = G.Position(l, b, w, h, rw, rh, Layout.Element(key).settings.anchor)
-	Layout.Update(key, { x = x, y = y }, "nudge:" .. key)
+	Layout.Update(key, Layout.Movement(key, l, b, w, h), "nudge:" .. key)
 end
 
 local function OnKeyDown(self, key)

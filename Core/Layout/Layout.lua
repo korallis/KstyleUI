@@ -25,7 +25,7 @@ local FALLBACK_ROOT_W, FALLBACK_ROOT_H = 1920, 1080
 
 Layout.SCALE_MIN, Layout.SCALE_MAX, Layout.SCALE_STEP = SCALE_MIN, SCALE_MAX, SCALE_STEP
 
-local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata" }
+local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata", "attachTo", "side", "offset", "matchWidth" }
 local IS_FIELD = {}
 for _, field in ipairs(FIELDS) do
 	IS_FIELD[field] = true
@@ -285,6 +285,8 @@ local function ModuleRunning(el)
 end
 
 local elements, order = {}, {}
+local links = {}
+local RefreshLinks
 local byFrame = setmetatable({}, { __mode = "k" })
 local showHooked = setmetatable({}, { __mode = "k" })
 local hoverOwner = setmetatable({}, { __mode = "k" })
@@ -341,6 +343,20 @@ local function CheckAlpha(_, v)
 end
 
 local CHECK = {
+	attachTo = function(el, v)
+		if not IsSecret(v) and type(v) == "string" and #v <= MAX_KEY and Layout.CanAttach(el.key, v) then return v end
+		return nil, L["an element without a circular link"]
+	end,
+	side = function(_, v)
+		if IsSecret(v) then return nil, L["above, below, left or right"] end
+		if v == "above" or v == "below" or v == "left" or v == "right" then return v end
+		return nil, L["above, below, left or right"]
+	end,
+	offset = CheckOffset,
+	matchWidth = function(el, v)
+		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
+		return nil, L["a resizable element"]
+	end,
 	anchor = function(_, v)
 		if G.IsAnchor(v) then
 			return v
@@ -427,6 +443,38 @@ local function SetEntry(key, entry)
 	else
 		layout[key] = entry
 	end
+end
+
+function Layout.CanAttach(key, target)
+	local seen = { [key] = true }
+	while target and target ~= "" do
+		if seen[target] then return false end
+		seen[target] = true
+		local entry = Entry(target)
+		target = entry and entry.attachTo
+		if IsSecret(target) or type(target) ~= "string" then return true end
+	end
+	return true
+end
+
+local function LinkTarget(el)
+	local key = el.settings.attachTo
+	local target = key ~= "" and elements[key]
+	if target and Layout.Live(key) and target.settings.shown ~= "never" and Layout.CanAttach(el.key, key) then
+		return target
+	end
+end
+
+local function LinkedRect(el, w, h, offset)
+	local target = LinkTarget(el)
+	if not target then return end
+	local l, b, tw, th = Layout.Rect(target.key)
+	local side = el.settings.side
+	offset = offset or el.settings.offset
+	if side == "above" then return l + (tw - w) / 2, b + th + offset end
+	if side == "below" then return l + (tw - w) / 2, b - h - offset end
+	if side == "left" then return l - w - offset, b + (th - h) / 2 end
+	return l + tw + offset, b + (th - h) / 2
 end
 
 local function Style()
@@ -518,6 +566,7 @@ local function Resolve(el)
 	else
 		s.width, s.height = FrameSize(el.frame)
 	end
+	links[el.key] = s.attachTo ~= "" and el or nil
 	return s
 end
 
@@ -546,8 +595,11 @@ end
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
+	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
+	left, bottom = linkedLeft or left, linkedBottom or bottom
 	left, bottom = Layout.Clamp(el.key, left, bottom, w, h)
 	left, bottom = G.Align(left, pixel), G.Align(bottom, pixel)
+	el.left, el.bottom = left, bottom
 	local _, ax, ay = G.Position(left, bottom, w, h, rw, rh, anchor)
 	local frame = el.frame
 	frame:ClearAllPoints()
@@ -579,6 +631,7 @@ local function ApplyGeometry(el, quiet)
 		LogOnce(el.key .. ":unplaceable", format("%s has no anchor, offset or size to place it by; it stays where it is", el.key))
 		return
 	end
+	el.placing, el.preview = true, nil
 	local oldWidth, oldHeight = FrameSize(frame)
 	local restyle = false
 	if el.opts.scalable and IsFinite(s.scale) and s.scale > 0 then
@@ -590,7 +643,14 @@ local function ApplyGeometry(el, quiet)
 	local pixel = Scale.Pixel(1)
 	local w, h
 	if el.opts.resizable then
-		w, h = G.SnapSize(s.width, f, pixel), G.SnapSize(s.height, f, pixel)
+		local width, height = s.width, s.height
+		local target = s.matchWidth and LinkTarget(el)
+		if target then
+			local _, _, tw = Layout.Rect(target.key)
+			width = Clamp(tw / f, el.limits.minWidth, el.limits.maxWidth)
+			if el.aspect then width, height = AspectFit(el, width) end
+		end
+		w, h = G.SnapSize(width, f, pixel), G.SnapSize(height, f, pixel)
 		frame:SetSize(w, h)
 	else
 		w, h = FrameSize(frame)
@@ -609,6 +669,7 @@ local function ApplyGeometry(el, quiet)
 		el.strataSet = true
 		frame:SetFrameStrata(s.strata)
 	end
+	el.placing = false
 end
 
 local function LogDriver(el, driver)
@@ -867,7 +928,9 @@ end
 
 local function OnElementSize(frame)
 	local el = byFrame[frame]
-	if not el or el.opts.resizable then
+	if not el or el.placing then return end
+	RefreshLinks(el.key)
+	if el.opts.resizable then
 		return
 	end
 	local f, pixel = Factor(frame), Scale.Pixel(1)
@@ -900,6 +963,16 @@ local function Apply(el, instant)
 		Queue(el)
 	end
 	ApplyAlpha(el, instant)
+	RefreshLinks(el.key)
+end
+
+function RefreshLinks(key)
+	for _, el in pairs(links) do
+		if el.settings.attachTo == key and Layout.CanAttach(el.key, key) then
+			Apply(el)
+			if state.active then Mode("Changed", el.key) end
+		end
+	end
 end
 
 local function ResolveAll()
@@ -1088,6 +1161,7 @@ end
 local ELEMENT_FIELDS = {
 	shown = true, anchor = true, x = true, y = true, width = true, height = true, scale = true,
 	alphaCombat = true, alphaIdle = true, strata = true,
+	attachTo = true, side = true, offset = true, matchWidth = true,
 }
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
@@ -1197,6 +1271,7 @@ local function Defaults(el, frame, position, opts)
 		anchor = position.anchor, x = position.x or 0, y = position.y or 0,
 		width = w, height = h, scale = scale,
 		shown = "always", alphaCombat = 1, alphaIdle = 1, strata = strata,
+		attachTo = "", side = "above", offset = 0, matchWidth = false,
 	}
 end
 
@@ -1310,6 +1385,7 @@ function Layout.SetLive(key, live)
 		return true
 	end
 	el.live = live
+	RefreshLinks(key)
 	if state.active then
 		Mode("Changed", key)
 	end
@@ -1411,13 +1487,30 @@ function Layout.Rect(key)
 	if not el then
 		return nil
 	end
+	if el.preview then return unpack(el.preview) end
 	local w, h = OnRootSize(el)
+	if el.queued and el.left then return el.left, el.bottom, w, h end
 	local rw, rh = Layout.RootSize()
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
 	local left, bottom = G.Rect(s.anchor, s.x, s.y, w, h, rw, rh)
+	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
+	left, bottom = linkedLeft or left, linkedBottom or bottom
 	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	return G.Align(left, pixel), G.Align(bottom, pixel), w, h
+end
+
+function Layout.Movement(key, left, bottom, w, h)
+	local el = elements[key]
+	local l, b = LinkedRect(el, w, h, 0)
+	if l then
+		local side = el.settings.side
+		local offset = side == "above" and bottom - b or side == "below" and b - bottom or side == "left" and l - left or left - l
+		return { offset = offset }
+	end
+	local rw, rh = Layout.RootSize()
+	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
+	return { anchor = anchor, x = x, y = y }
 end
 
 function Layout.Preview(key, left, bottom, w, h, scale)
@@ -1434,10 +1527,14 @@ function Layout.Preview(key, left, bottom, w, h, scale)
 		frame:SetSize(w / f, h / f)
 	end
 	local rw, rh = Layout.RootSize()
+	local move = Layout.Movement(key, left, bottom, w, h)
+	if move.offset then left, bottom = LinkedRect(el, w, h, move.offset) end
 	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
 	frame:ClearAllPoints()
 	frame:SetPoint(anchor, Scale.Root(), anchor, x / f, y / f)
+	el.preview = { left, bottom, w, h }
+	RefreshLinks(key)
 end
 
 function Layout.Restore(key)

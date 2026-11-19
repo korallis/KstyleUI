@@ -35,7 +35,7 @@ KstyleUI.Layout.Register(frame, key, defaultPosition, opts)
 | `defaultPosition` | A function returning `{ anchor, x, y }`, or nil to keep the registered position. Layout calls it when resolving defaults, including display/aspect changes; saved player positions and scale still take precedence. |
 | `plate` | `false` draws no mover plate, for a frame that moves itself in Layout Mode, such as the Layout toolbar. |
 | `window` | `true` for a core window the player needs to get back to: the settings window, the dialog host, the Layout Mode toolbar and the first-run setup. The settings window shows no Shown row for it, and its opacity sliders stop at 25%. |
-| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle` and `strata`. The settings window builds only those rows. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
+| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle`, `strata`, `attachTo`, `side`, `offset` and `matchWidth`. The settings window builds only those rows; `attachTo` includes the companion link controls. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
 
 `Register` raises an error for a bad argument. Registering a key again updates its frame, default and options. `Widgets.Place(frame, key, position, opts)` positions a frame and registers it in one call.
 
@@ -61,6 +61,10 @@ The defaults themselves are layered: the element's registered position, then the
 | --- | --- | --- |
 | `anchor` | One of the nine anchors | `defaultPosition.anchor` |
 | `x`, `y` | Root units from the anchor | `defaultPosition.x` and `.y`, or 0 |
+| `attachTo` | Another element's key, or `""` for the saved root position | `""` |
+| `side` | `above`, `below`, `left`, `right`; centres the other axis | `above` |
+| `offset` | Gap from the linked element in root units; negative overlaps | 0 |
+| `matchWidth` | Matches the target's visible width across scales, within this element's size limits; resizable elements only | `false` |
 | `width`, `height` | Frame units, within the limits. For an element that is not resizable, the frame's current size, read only | The frame's size |
 | `scale` | 0.5 to 2, read only unless `scalable` | The frame's scale |
 | `shown` | `always`, `combat`, `noCombat`, `target`, `mouseover`, `never`, `party`, `raid`, `solo`, `noParty`, `noRaid`, `noSolo` | `always` |
@@ -70,6 +74,14 @@ The defaults themselves are layered: the element's registered position, then the
 `Layout.SHOWN_OPTIONS`, `Layout.STRATA_OPTIONS` and `Layout.ANCHOR_OPTIONS` are `{ { value, label }, ... }` lists for the settings window's dropdowns. `Layout.SCALE_MIN`, `SCALE_MAX` and `SCALE_STEP` give the scale slider.
 
 A saved value that is not allowed, such as from a damaged or hand-edited profile, gives the default and one devlog line.
+
+### Attaching elements
+
+On an element's Options rows, **Attach to** chooses a target, **Side** chooses one of four sides, **Offset** sets the gap and **Match width** follows its width. These rows use the same controls as every other element setting and build when the page opens. An absent link leaves today's layout unchanged; choosing or clearing a link never rewrites `anchor`, `x`, `y` or the element's own saved width. A missing target, a module switched off, `SetLive(false)` or `shown = "never"` restores that saved place and size, and the link returns when the target does. Temporary visibility rules leave the attachment in place.
+
+The selected Layout Mode plate describes its link. Dragging or nudging an attached element adjusts the gap along its chosen side; moving or resizing the target updates its dependants, including during a drag preview. Undo, redo, reset, profile changes and combat cancellation include links. Circular links are refused, and circular data imported in a profile uses the root fallback. Protected frames move and resize through `Combat.Queue` after combat. Aspect-locked elements retain their proportions; width matching respects their size limits.
+
+`Layout.CanAttach(key, target)` checks a prospective chain. `Layout.Movement(key, left, bottom, width, height)` returns a gap patch for an active link, or a root-position patch for an unattached element or unavailable target.
 
 ## Functions
 
