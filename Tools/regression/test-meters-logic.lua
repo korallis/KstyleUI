@@ -87,9 +87,9 @@ assert(Logic.Split(8, 1, 1) == 8, "one bar takes the whole height")
 assert(Logic.Split(8, 2, 1) == 3.5, "two bars share the height around one gap")
 assert(Logic.Split(8, 0, 1) == 0, "no bars take no room")
 
--- ThreatAmount: Blizzard's threat values are a hundred times the threat points.
-assert(Logic.ThreatAmount(3240000) == 32400, "raw threat reads in threat points")
-assert(Logic.ThreatAmount(S(5)) == nil, "secret threat has no Lua amount")
+-- ThreatText: Blizzard's threat values are a hundred times the threat points, secret or not.
+assert(Logic.ThreatText(3240000) == "32K" and Logic.ThreatText(99) == "0", "raw threat reads in threat points")
+assert(env.Reveal(Logic.ThreatText(S(3240000))) == "32K", "and a secret one does too")
 
 -- SortRows(rows, order, count, field) sorts order by the field, highest first, keeping ties in place.
 local rows = {

@@ -36,32 +36,32 @@ local function Point(breakpoint, abbreviation, significand, fraction)
 	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
 end
 
-local POINTS = {
-	Point(10000000000, "B", 1000000000, 1), Point(1000000000, "B", 100000000, 10),
-	Point(10000000, "M", 1000000, 1), Point(1000000, "M", 100000, 10),
-	Point(10000, "K", 1000, 1), Point(1000, "K", 100, 10),
-	Point(1, "", 1, 1),
-}
-local PROBES = { { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
-local secretOptions
+local function Points(unit)
+	return {
+		Point(10000000000 * unit, "B", 1000000000 * unit, 1), Point(1000000000 * unit, "B", 100000000 * unit, 10),
+		Point(10000000 * unit, "M", 1000000 * unit, 1), Point(1000000 * unit, "M", 100000 * unit, 10),
+		Point(10000 * unit, "K", 1000 * unit, 1), Point(1000 * unit, "K", 100 * unit, 10),
+		Point(unit, "", unit, 1),
+	}
+end
 
-local function SecretOptions()
-	if secretOptions ~= nil then
-		return secretOptions or nil
-	end
-	secretOptions = false
-	if type(AbbreviateNumbers) ~= "function" then
-		return nil
-	end
-	local options = { breakpointData = POINTS }
-	for i = 1, #PROBES do
-		local ok, text = pcall(AbbreviateNumbers, PROBES[i][1], options)
-		if not ok or text ~= PROBES[i][2] then
-			return nil
+local POINTS = { [1] = Points(1), [THREAT_UNITS] = Points(THREAT_UNITS) }
+local PROBES = { { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
+local secretOptions = {}
+
+local function SecretOptions(unit)
+	if secretOptions[unit] == nil then
+		local options = type(AbbreviateNumbers) == "function" and { breakpointData = POINTS[unit] }
+		for i = 1, options and #PROBES or 0 do
+			local ok, text = pcall(AbbreviateNumbers, PROBES[i][1] * unit, options)
+			if not ok or text ~= PROBES[i][2] then
+				options = false
+				break
+			end
 		end
+		secretOptions[unit] = options or false
 	end
-	secretOptions = options
-	return options
+	return secretOptions[unit] or nil
 end
 
 function Logic.Percent(part, total)
@@ -86,13 +86,14 @@ function Logic.FormatSeconds(seconds)
 	return format("%.1f", seconds)
 end
 
-function Logic.Abbreviate(value)
+function Logic.Abbreviate(value, unit)
+	unit = unit or 1
 	if IsSecret(value) then
-		local options = SecretOptions()
+		local options = SecretOptions(unit)
 		if options then
 			return AbbreviateNumbers(value, options)
 		end
-		if type(AbbreviateLargeNumbers) == "function" then
+		if unit == 1 and type(AbbreviateLargeNumbers) == "function" then
 			return AbbreviateLargeNumbers(value)
 		end
 		return ""
@@ -101,8 +102,9 @@ function Logic.Abbreviate(value)
 	if not value then
 		return ""
 	end
-	for i = 1, #POINTS do
-		local point = POINTS[i]
+	local points = POINTS[unit]
+	for i = 1, #points do
+		local point = points[i]
 		if value >= point.breakpoint then
 			return (floor(value / point.significandDivisor) / point.fractionDivisor) .. point.abbreviation
 		end
@@ -110,9 +112,20 @@ function Logic.Abbreviate(value)
 	return "0"
 end
 
+local round
+
+function Logic.Whole(secret)
+	if round == nil then
+		local fn = C_StringUtil and C_StringUtil.RoundToNearestString
+		local ok, text = pcall(fn, 99.6)
+		round = ok and text == "100" and fn or Logic.Abbreviate
+	end
+	return round(secret)
+end
+
 function Logic.FormatRate(value, unit)
 	if IsSecret(value) then
-		if not SecretOptions() and type(AbbreviateLargeNumbers) ~= "function" then
+		if not SecretOptions(1) and type(AbbreviateLargeNumbers) ~= "function" then
 			return ""
 		end
 		return Logic.Abbreviate(value) .. " " .. unit
@@ -170,12 +183,8 @@ function Logic.Split(total, count, gap)
 	return max(0, (total - (count - 1) * gap) / count)
 end
 
-function Logic.ThreatAmount(raw)
-	raw = Plain(raw)
-	if not raw then
-		return nil
-	end
-	return raw / THREAT_UNITS
+function Logic.ThreatText(raw)
+	return Logic.Abbreviate(raw, THREAT_UNITS)
 end
 
 local function Before(a, b)

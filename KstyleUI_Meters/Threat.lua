@@ -125,13 +125,13 @@ local function Collect(mob)
 end
 
 local function ValueText(row)
-	return Logic.Abbreviate(Logic.ThreatAmount(row.threat) or row.threat)
+	return Logic.ThreatText(row.threat)
 end
 
 local function PercentText(row)
 	local scaled = row.scaled
 	if IsSecret(scaled) then
-		return Logic.Abbreviate(scaled) .. "%"
+		return Logic.Whole(scaled) .. "%"
 	end
 	scaled = Logic.Plain(scaled)
 	if not scaled then

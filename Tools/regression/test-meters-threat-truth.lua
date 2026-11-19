@@ -7,8 +7,9 @@ local S = env.Secret
 -- C_StringUtil.RoundToNearestString (StringUtilDocumentation.lua: SecretArguments = "AllowedWhenTainted").
 env.C_StringUtil = env.C_StringUtil or {}
 env.C_StringUtil.RoundToNearestString = function(value)
-	local text = string.format("%.0f", math.floor(env.Reveal(value) + 0.5))
-	return env.issecretvalue(value) and S(text) or text
+	local secret = env.issecretvalue(value)
+	local text = string.format("%.0f", math.floor((secret and env.Reveal(value) or value) + 0.5))
+	return secret and S(text) or text
 end
 
 local function Text(fontString)

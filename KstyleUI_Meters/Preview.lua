@@ -90,7 +90,7 @@ local function FillThreat(list)
 	for i = 1, count do
 		local sample = SAMPLE[i]
 		list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.threat, PERCENT_MAX,
-			Logic.Abbreviate(Logic.ThreatAmount(sample.raw)), Logic.FormatPercent(sample.threat))
+			Logic.ThreatText(sample.raw), Logic.FormatPercent(sample.threat))
 		rows[i] = { isPlayer = sample.player == true, tanking = i == 1, scaled = sample.threat }
 	end
 	list:Finish(count)
