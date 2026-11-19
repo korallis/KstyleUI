@@ -100,7 +100,7 @@ local function EdgeTexture(target, sublevel)
 	return texture
 end
 
-function Widgets.BarEdge(target)
+function Widgets.BarEdge(target, noTrack)
 	local edge = barEdges[target]
 	if edge then
 		edge:Restyle()
@@ -114,6 +114,7 @@ function Widgets.BarEdge(target)
 	}, Edge)
 	edge.regions = { [edge.soft] = true, [edge.hard] = true, [edge.track] = true }
 	barEdges[target] = edge
+	if noTrack then return edge end
 	edge:Restyle()
 	target:HookScript("OnSizeChanged", function()
 		edge:Restyle()

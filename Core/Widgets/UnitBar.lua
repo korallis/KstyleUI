@@ -328,7 +328,11 @@ end
 
 local function PlaceUnder(self)
 	local under = self.under
-	Widgets.BarEdge(under)
+	under.barEdge:Restyle()
+	under.edgeSoft:SetShown(self.finish ~= "medallions")
+	under.edgeHard:SetVertexColor(Tokens.Color("white"))
+	under.edgeHard:SetColorTexture(Tokens.Color("black"))
+	if self.finish == "medallions" then Widgets.Tint(under.track, "medFillBottom") end
 	under:SetStatusBarColor(Widgets.Rgba("white"))
 	under:GetStatusBarTexture():SetShown(self.lossOn)
 	self.recent:SetStatusBarColor(Widgets.Rgba("white"))
@@ -429,17 +433,9 @@ local function Under(bar, parent)
 	under:SetStatusBarTexture((Tokens.Texture("barFlat")))
 	under:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL")
 	under:SetReverseFill(Reversed(bar))
-	local edge = Widgets.BarEdge(under)
-	edge.bar = bar
+	local edge = Widgets.BarEdge(under, true)
+	under.barEdge = edge
 	under.edgeSoft, under.edgeHard, under.track = edge.soft, edge.hard, edge.track
-	local restyle = edge.Restyle
-	edge.Restyle = function(self)
-		restyle(self)
-		self.soft:SetShown(bar.finish ~= "medallions")
-		self.hard:SetVertexColor(Widgets.Rgba("white"))
-		self.hard:SetColorTexture(Widgets.Rgba("black"))
-		Widgets.Tint(self.track, bar.finish == "medallions" and "medFillBottom" or "barTrack")
-	end
 	under:SetMinMaxValues(0, 1)
 	under:SetValue(0)
 	local recent = CreateFrame("StatusBar", nil, under)
