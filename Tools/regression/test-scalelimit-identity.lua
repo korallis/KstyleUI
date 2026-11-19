@@ -6,6 +6,8 @@ local previous = { L = K.L, Scale = K.Scale, Tokens = K.Tokens }
 assert(loadfile("Tools/regression/fixtures/scalelimit-before.lua"))("KstyleUI", previous)
 local Before = previous.Setup.Layouts
 Before.Positions, Before.Style, Before.Aspect, Before.Footprint = Layouts.Positions, Layouts.Style, Layouts.Aspect, Layouts.Footprint
+Before.MedallionsGroup, Before.StyleSize = Layouts.MedallionsGroup, Layouts.StyleSize
+Before.MEDALLIONS_UNITS, Before.MEDALLIONS_MEDALS = Layouts.MEDALLIONS_UNITS, Layouts.MEDALLIONS_MEDALS
 local screens = { { 5120, 1440 }, { 3440, 1440 }, { 3456, 2234 }, { 2560, 1440 }, { 1920, 1080 } }
 local cases = 0
 

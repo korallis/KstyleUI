@@ -1183,7 +1183,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	enabled = enabled or Layouts.Enabled(name)
 	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
 		local damage = layout["meters.damage"]
-		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - 248 - (style == "medallions" and TIGHT or GAP), y = damage.y + 158 - 112 }
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - 248 - GAP, y = damage.y }
 	end
 	local rects = {}
 	local story = Layouts.Story(name, rootHeight, true, style, physicalWidth / pixelScale)
@@ -1204,6 +1204,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			if style == "medallions" and key == "unitframes.player" then
 				height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 			end
+			if key == "meters.threat" and enabled["meters.damage"] ~= false then height = 158 end
 			position = layout[key]
 		else
 			position = cards[i - #ELEMENTS]
