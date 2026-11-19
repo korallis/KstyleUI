@@ -46,21 +46,18 @@ def main():
     if not webhook and not args.dry_run:
         print("::notice::Discord release post skipped: webhook is not set.")
         return
-    try:
-        changelog = Path(__file__).resolve().parents[2] / "CHANGELOG.md"
-        for index, message in enumerate(release_messages(changelog.read_text(encoding="utf-8"), args.tag)):
-            if args.dry_run:
-                print(f"--- Message {index + 1} ({len(message)} characters) ---\n{message}")
-                continue
-            if index:
-                time.sleep(1)
-            payload = json.dumps({"content": message, "flags": 4, "allowed_mentions": {"parse": []}}).encode()
-            request = urllib.request.Request(webhook, data=payload,
-                                             headers={"Content-Type": "application/json", "User-Agent": "KstyleUI-release"})
-            with urllib.request.urlopen(request, timeout=30):
-                pass
-    except (OSError, ValueError):
-        print("::warning::Discord release post failed; release uploads are unaffected.")
+    changelog = Path(__file__).resolve().parents[2] / "CHANGELOG.md"
+    for index, message in enumerate(release_messages(changelog.read_text(encoding="utf-8"), args.tag)):
+        if args.dry_run:
+            print(f"--- Message {index + 1} ({len(message)} characters) ---\n{message}")
+            continue
+        if index:
+            time.sleep(1)
+        payload = json.dumps({"content": message, "flags": 4, "allowed_mentions": {"parse": []}}).encode()
+        request = urllib.request.Request(webhook, data=payload,
+                                         headers={"Content-Type": "application/json", "User-Agent": "KstyleUI-release"})
+        with urllib.request.urlopen(request, timeout=30):
+            pass
 
 
 if __name__ == "__main__":
