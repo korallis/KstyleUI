@@ -207,7 +207,7 @@ function Lumen.Build(state, opts)
 	-- RestedXP is loaded, so the guide's card holds the story slot and the quests stand in their own column beside
 	-- it (KSTY-33): the two cards render in separate environments and need nothing from each other.
 	base.withGuide = true
-	local names = { "databars", "chat", "minimap", "auras", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
+	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
 	else
@@ -220,7 +220,6 @@ function Lumen.Build(state, opts)
 	local built, at = {}, {}
 	for _, name in ipairs(names) do
 		local scene, ns, extra = Hud.Module(name, base)
-		if name == "databars" then base.dataBar.strip = ns.Settings().strip end
 		scenes[#scenes + 1] = scene
 		built[name] = { scene = scene, ns = ns, extra = extra }
 		at[name] = #scenes

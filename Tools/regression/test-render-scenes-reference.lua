@@ -16,6 +16,7 @@ assert(rawget(_G, "RENDER_SCREEN") == nil, "the build gives the global screen ba
 assert(L.Common.SCREEN.width == 2383 and L.Common.SCREEN.height == 1540, "later scenes draw the Mac window again")
 
 local texts = L.collect(scene)
+assert(texts["14:32"] and not texts["9:20"], "load the real DataBars alongside Minimap so only the bar clock draws")
 local buffX = {}
 for _, item in ipairs(scene.items) do
 	if item.kind == "text" and (item.text == "8s" or item.text == "14s") then

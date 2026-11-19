@@ -1057,6 +1057,8 @@ function modules.minimap(opts)
 	-- zone, the clock and the player's map position the module reads.
 	local env, K, ns = M.New({
 		enabled = true,
+		boot = not opts.dataBar,
+		saved = opts.dataBar and saved(opts, "Minimap", Common.PreviousFinish() and { clearPlaques = false } or nil) or nil,
 		settings = { frame = os.getenv("RENDER_MINIMAP_FRAME"), clearPlaques = not Common.PreviousFinish() },
 		zone = opts.zone or "Riverglades",
 		position = opts.position,
@@ -1069,11 +1071,16 @@ function modules.minimap(opts)
 			end
 		end,
 	})
+	if opts.dataBar then
+		local D = dofile("Tools/regression/databars_env.lua")
+		dofile("Tools/regression/load_files.lua")(D.Files(), env)
+		M.CoreEnv.Boot(env)
+	end
 	M.Settle(env)
 	-- The Minimap frame draws the world in the game; the mockup's map, or a flat tone, stands in, clipped as the
 	-- game clips the frame.
 	local _, note = Hud.Terrain(env)
-	local scene = build(env, opts)
+	local scene = build(env, opts, { roots = { ns.Map.holder } })
 	scene.log[#scene.log + 1] = note
 	return finish(env, K, scene, "minimap"), ns
 end
