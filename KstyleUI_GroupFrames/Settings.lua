@@ -240,6 +240,16 @@ local MISFITS = {
 	{ "raid", L["No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off."] },
 }
 
+local function FontOptions()
+	local choices = { { value = THEME_FONT, label = L["KstyleUI font"] } }
+	for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
+		if choice.value ~= THEME_FONT then
+			choices[#choices + 1] = choice
+		end
+	end
+	return choices
+end
+
 local function BuildSchema()
 	local schema = {}
 	local function add(row)
@@ -262,22 +272,11 @@ local function BuildSchema()
 	add(Dropdown("power.colorSource", L["Power colour"], L["Colours the power bar by power type, by class or in one colour."], POWER_COLOR))
 	add({ type = "color", key = "power.color", label = L["Custom power colour"], help = L["The power bar's colour when it uses a custom colour."], showWhen = Is("power.colorSource", "custom") })
 	add({ type = "header", label = L["Text"] })
-	add({
-		type = "font", key = "text.nameFont", label = L["Name font"], help = L["The font of the names."],
-		options = function()
-			local choices = { { value = THEME_FONT, label = L["KstyleUI font"] } }
-			for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
-				if choice.value ~= THEME_FONT then
-					choices[#choices + 1] = choice
-				end
-			end
-			return choices
-		end,
-	})
+	add({ type = "font", key = "text.nameFont", label = L["Name font"], help = L["The font of the names."], options = FontOptions })
 	add(Dropdown("text.nameOutline", L["Name outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
 	add(Dropdown("text.nameColorSource", L["Name colour"], L["Colours names in the text colour, by class or in one colour."], NAME_COLOR))
 	add({ type = "color", key = "text.nameColor", label = L["Custom name colour"], help = L["The names' colour when they use a custom colour."], showWhen = Is("text.nameColorSource", "custom") })
-	add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."] })
+	add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."], options = FontOptions })
 	add(Dropdown("text.healthOutline", L["Health text outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
 	add({ type = "header", label = L["Status icons"] })
 	add(Toggle("layout.tidyLanes", L["Tidy Medallions lanes"], L["Separates names, indicators and percentages, with metal role pips. Off restores the earlier layout."]))

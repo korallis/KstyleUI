@@ -56,7 +56,7 @@ do
 	eq(font(tank), legacy, "captioned party lanes deliberately keep the compact face")
 	local originalSize = uniform(ns, legacy, "short party")
 	for _, row in ipairs(K.Options.Get("GroupFrames")) do
-		if row.key == "text.nameFont" then
+		if row.key == "text.nameFont" or row.key == "text.healthFont" then
 			local choices = row.options()
 			eq(choices[1].value, ns.Settings.THEME_FONT, "the picker can reselect the semantic default")
 			eq(choices[1].value, "theme", "the default choice saves a sentinel, not a captured face")
