@@ -1020,16 +1020,17 @@ end
 local DRESSED = { action = true, pet = true, stance = true, travel = true }
 
 function Slab.Keybind(b, wanted)
+	local cfg = K.Store.Module("ActionBars")
 	if wanted == nil then
-		wanted = b.kbar and ns.Config(b.kbar.def.key).hotkey == true or false
+		wanted = b.kbar and cfg[b.kbar.def.key].hotkey == true or false
 	end
 	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
-	b.hotkey:SetAlpha(ns.Config("readableCountdown") and b.realCooldown and 0.6 or 1)
+	b.hotkey:SetAlpha(cfg.readableCountdown and b.realCooldown and 0.6 or 1)
 end
 
 local function Inset(b)
 	local slot = Layouts().MEDALLIONS_SLOT
-	if slot and b.kbar and (b.kbar.def.key == "bar4" or b.kbar.def.key == "bar5") and ns.Config("extraBarsApplied") ~= "off" then
+	if state.extra and slot and b.kbar and (b.kbar.def.key == "bar4" or b.kbar.def.key == "bar5") then
 		return ICON_INSET * b.opts.size / slot.size
 	end
 	if not (slot and b.kbar and Grouped(b.kbar.def)) then
