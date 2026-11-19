@@ -722,7 +722,7 @@ function Layouts.Slot(name, rootHeight)
 	for k, v in pairs(slot) do
 		out[k] = v
 	end
-	out.height = slot.height - Lift(rootHeight) - Layouts.TopInset("", "TOP")
+	out.height = slot.height - Lift(rootHeight) - Layouts.TopInset()
 	return out
 end
 
@@ -739,7 +739,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return nil
 	end
 	crest = style == "medallions" and (crest or crest == nil and Layouts.MinimapCrest()) and 52 or 0
-	inset = (style == "medallions" and GAP + crest or 0) + (inset or Layouts.TopInset("", "TOP", style))
+	inset = (style == "medallions" and GAP + crest or 0) + (inset or Layouts.TopInset(style))
 	local slotHeight = slot.height - Lift(rootHeight) - inset
 	out = out or {}
 	out.stacked = nil
@@ -1524,8 +1524,7 @@ function Layouts.DataBarPosition(style)
 	return position
 end
 
-function Layouts.TopInset(key, anchor, style, enabled, position)
-	if key == "databars.strip" or not anchor:match("^TOP") then return 0 end
+function Layouts.TopInset(style, enabled, position)
 	local height = Layouts.DataBarHeight(style)
 	if not height then return 0 end
 	local bars = ns.Store.IsLoaded() and ns.Store.Module("DataBars") or {}
@@ -1547,7 +1546,8 @@ function Layouts.Rect(element, position, rootWidth, rootHeight, style)
 		width, height = position.width or rootWidth, position.height or Layouts.DataBarHeight(style)
 	end
 	local left = rootWidth * fx + position.x - width * fx + (element.offsetX or 0)
-	local bottom = rootHeight * fy + position.y - Layouts.TopInset(element.key, position.anchor, style) - height * fy + (element.offsetY or 0)
+	local inset = element.key ~= "databars.strip" and position.anchor:match("^TOP") and Layouts.TopInset(style) or 0
+	local bottom = rootHeight * fy + position.y - inset - height * fy + (element.offsetY or 0)
 	return left, bottom, left + width, bottom + height
 end
 
@@ -1617,7 +1617,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
 	end
 	local state = { layout = layout, sizes = {}, positions = layout, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
-	state.inset = Layouts.TopInset("", "TOP", style, enabled, layout["databars.strip"])
+	state.inset = Layouts.TopInset(style, enabled, layout["databars.strip"])
 	state.stripHeight = enabled["databars.strip"] ~= false and Layouts.DataBarHeight(style) or nil
 	if state.inset ~= 0 then
 		state.positions = {}

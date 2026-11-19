@@ -3,6 +3,8 @@ local D = dofile("Tools/regression/databars_env.lua")
 local function Rail(opts)
 	local env, K, ns, game = D.New(opts)
 	K.Options.Write("DataBars", "strip.placement", "rail")
+	K.Options.Write("DataBars", "strip.slot4", "none")
+	K.Options.Write("DataBars", "strip.slot5", "none")
 	return env, K, ns, game
 end
 
@@ -88,8 +90,8 @@ do
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
 	local s = ns.Settings().strip
 	eq(shown(ns), "fps,latency,gold", "the default line: frame rate, latency, gold, and neither durability nor the clock")
-	eq(ns.defaults.strip.slot4, "none", "durability leaves the default line")
-	eq(ns.defaults.strip.slot5, "none", "the fifth slot starts empty")
+	eq(ns.defaults.strip.slot4, "durability", "durability defaults on")
+	eq(ns.defaults.strip.slot5, "time", "the clock defaults on")
 	eq(s.line, true, "the readout is one line by default")
 	eq(s.backdrop, false, "with no card behind it")
 	eq(s.labels, "inline", "units follow their values")

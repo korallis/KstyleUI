@@ -600,6 +600,9 @@ function Layout.Clamp(key, left, bottom, w, h)
 	end
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local element = layouts and layouts.Element(key)
+	if el and key == "databars.strip" and layouts.DataBarHeight() then
+		return Clamp(left, 0, max(0, rw - w)), Clamp(bottom, 0, max(0, rh - h))
+	end
 	if el and element then
 		local f, margin, origin = Factor(el.frame), Tokens.Size("screenMargin"), Scale.Origin()
 		local l, r, b, t = layouts.DisplayInsets(key, h / f, el.default.anchor)
@@ -1003,9 +1006,13 @@ local function ResolveAll()
 	end
 end
 
-local function ApplyAll(instant)
+local function TopInset()
 	local setup = ns.Setup and ns.Setup.Layouts
-	state.topInset = setup and setup.TopInset("", "TOP") or 0
+	return setup and setup.TopInset() or 0
+end
+
+local function ApplyAll(instant)
+	state.topInset = TopInset()
 	for i = 1, #order do
 		ns.Call(Apply, elements[order[i]], instant)
 	end
@@ -1098,16 +1105,7 @@ local function Changed(el)
 	Resolve(el)
 	UpdateEvents()
 	Apply(el)
-	if el.key == "databars.strip" then
-		local setup = ns.Setup and ns.Setup.Layouts
-		local inset = setup and setup.TopInset("", "TOP") or 0
-		if inset ~= state.topInset then
-			state.topInset = inset
-			for _, key in ipairs(order) do
-				if key ~= el.key then Apply(elements[key]) end
-			end
-		end
-	end
+	if el.key == "databars.strip" and TopInset() ~= state.topInset then ApplyAll() end
 	ns.Callbacks.Fire("LayoutChanged", el.key)
 	if state.active then
 		Mode("Changed", el.key)
@@ -1816,8 +1814,7 @@ end)
 
 ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 	if name == "DataBars" then
-		local setup = ns.Setup and ns.Setup.Layouts
-		if setup and setup.TopInset("", "TOP") ~= state.topInset then ApplyAll(true) end
+		if TopInset() ~= state.topInset then ApplyAll(true) end
 	end
 	for i = 1, #order do
 		local el = elements[order[i]]

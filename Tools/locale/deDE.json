@@ -930,6 +930,7 @@
 	"Here as well": "Auch hier",
 	"Hidden": "Verborgen",
 	"Hidden in combat": "Im Kampf verborgen",
+	"Hidden while the data bar shows the clock.": "Ausgeblendet, solange die Datenleiste die Uhr zeigt.",
 	"Hide": "Ausblenden",
 	"Hide Blizzard party frames": "Blizzards Gruppenrahmen ausblenden",
 	"Hide Blizzard raid frames": "Blizzards Schlachtzugsfenster ausblenden",
@@ -1900,7 +1901,6 @@
 	"Shows the time left on each aura.": "Zeigt die Restzeit jeder Aura.",
 	"Shows the time left on each cooldown.": "Zeigt die Restzeit jeder Abklingzeit.",
 	"Shows the time left under each debuff.": "Zeigt die Restzeit unter jedem Schwächungszauber.",
-	"Shows the time under the map's right edge.": "Zeigt die Uhrzeit unter dem rechten Kartenrand.",
 	"Shows the tracking, calendar and addon buttons only while the pointer is over the map.": "Zeigt die Knöpfe für Aufspüren, Kalender und Addons nur, solange der Zeiger über der Karte ist.",
 	"Shows the unit's buffs and debuffs beside the frame.": "Zeigt die Stärkungs- und Schwächungszauber der Einheit neben dem Rahmen.",
 	"Shows the unit's casts and channels.": "Zeigt die gewirkten und kanalisierten Zauber der Einheit.",
@@ -2615,6 +2615,7 @@
 	"size": "Größe",
 	"switch this character to a profile, creating it if needed": "diesen Charakter auf ein Profil wechseln und es bei Bedarf erstellen",
 	"text": "Text",
+	"the data strip is now a top bar; move it in Layout Mode.": "die Datenanzeige ist jetzt eine obere Leiste; verschiebe sie im Layoutmodus.",
 	"the font %s shows after you type /reload.": "die Schrift %s wird verwendet, nachdem Ihr /reload eingegeben habt.",
 	"zone name": "den Zonennamen"
 }

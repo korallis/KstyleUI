@@ -31,7 +31,7 @@ local MS_GOOD, MS_OK = 150, 300
 local DURABILITY_GOOD, DURABILITY_OK = 50, 25
 
 Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
-Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "none", "none" }
+Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "durability", "time" }
 Strip.SLOTS = SLOTS
 
 local LABELS = {
@@ -241,12 +241,8 @@ local function TopBar(view)
 		local holder = CreateFrame("Frame", nil, frame)
 		local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
 		holder:SetPoint(anchor, frame, anchor)
-		Widgets.Size(holder, frame:GetWidth() / 3, frame:GetHeight())
 		view.zones[zone] = holder
 	end
-	frame:HookScript("OnSizeChanged", function()
-		for _, holder in pairs(view.zones) do Widgets.Size(holder, frame:GetWidth() / 3, frame:GetHeight()) end
-	end)
 	view.art = {}
 	for _, piece in ipairs({
 		{ "medLevelPlaque", "CENTER", "BOTTOM", 0, 0, 18, "giltLit" },
@@ -275,11 +271,6 @@ function Strip.NewView(parent)
 	local view = { frame = frame, card = card, items = {}, order = {}, values = {} }
 	frame.kView = view
 	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
-	local material = view.chrome.Material
-	view.chrome.Material = function(self)
-		if view.topBar and view.artwork == "plain" then return nil end
-		return material(self)
-	end
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)
@@ -586,6 +577,7 @@ function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order = order
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
+	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
 	if view.topBar then TopBar(view) end
 	view.lineMode = view.topBar or LineMode(s)
 	view.bare = not view.topBar and view.lineMode and s.backdrop == false

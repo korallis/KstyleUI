@@ -13,7 +13,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local view = ns.Strip.view
 	assert(view.zones.left and view.zones.centre and view.zones.right)
 	assert(view.topBar and view.lineMode)
-	assert(table.concat(ns.Strip.order, ",") == "fps,latency,gold", "the existing readout order stays in the right zone")
+	assert(table.concat(ns.Strip.order, ",") == "fps,latency,gold,durability,time", "all five readouts default to the right zone")
 	near(Layout.Get("databars.strip").width, Layout.RootSize())
 	assert(view.items.fps.button._points[1][2] == view.zones.right)
 	for _, artwork in ipairs({ "forged", "plain" }) do
@@ -37,7 +37,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	Layout.Register(frame, "minimap.main", { anchor = "TOPRIGHT", x = -17, y = -40 })
 	assert(Layout.Update("minimap.main", { anchor = "TOPRIGHT", x = -33, y = -55 }))
 	local function inset(want)
-		near(Layouts.TopInset("minimap.main", "TOPRIGHT"), want)
+		near(Layouts.TopInset(), want)
 		local _, _, _, _, drawnY = frame:GetPoint()
 		near(drawnY, K.Scale.Snap(-55 - want), K.Scale.Pixel(1))
 		local _, bottom, _, h = Layout.Rect("minimap.main")
@@ -75,7 +75,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "strip.height", 20)
 	K.Options.Write("HudStyle", "style", "medallions")
 	assert(not view.topBar and Layout.Get("databars.strip").anchor == "BOTTOMRIGHT", "Medallions retains the rail")
-	near(Layouts.TopInset("minimap.main", "TOPRIGHT"), 0)
+	near(Layouts.TopInset(), 0)
 	K.Options.Write("HudStyle", "style", "frames")
 	assert(view.topBar and Layout.Get("databars.strip").anchor == "TOP")
 	inset(10)
@@ -84,15 +84,32 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	saved.layouts.Default["databars.strip"] = { anchor = "BOTTOM", x = 0, y = 80 }
 	local _, reloaded = D.New({ width = screen[1], height = screen[2], saved = saved })
 	assert(reloaded.Layout.Get("databars.strip").anchor == "BOTTOM" and reloaded.Layout.Get("databars.strip").y == 80, "a saved moved bar survives login")
-	near(reloaded.Setup.Layouts.TopInset("minimap.main", "TOPRIGHT"), 0)
+	near(reloaded.Setup.Layouts.TopInset(), 0)
 	Load(M.Files(), env)
 	K.Modules.Enable("Minimap")
 	local clock = env._addons.KstyleUI_Minimap.Map.face.clock
-	assert(clock:IsShown())
+	assert(not clock:IsShown(), "the default bar clock hides the minimap clock")
+	local row = K.Options.Row("Minimap", "clock.shown")
+	assert(row.disableWhen() and not row.shown(true))
+	assert(row.help == "Hidden while the data bar shows the clock.")
+	local O = dofile("Tools/regression/options_env.lua")
+	Load(O.Files(), env)
+	local options = env._addons.KstyleUI_Options
+	local items = options.Model.SchemaItems("Minimap", { row }, "Minimap")
+	local list = env.CreateFrame("Frame", nil, K.Scale.Root())
+	list:SetSize(700, 300)
+	list.view = list
+	list.GetViewWidth = function() return 700 end
+	local clockRow = options.Rows.Create(list)
+	clockRow:SetSize(700, 48)
+	options.Rows.Update(clockRow, items[1], nil, list)
+	assert(not clockRow.controls.toggle:GetValue() and not clockRow.controls.toggle:IsEnabled(), "the hidden minimap clock paints OFF and disabled")
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	assert(not clock:IsShown(), "the minimap foot yields to the bar's clock")
 	K.Options.Write("DataBars", "strip.enabled", false)
 	assert(clock:IsShown(), "turning the bar off returns the minimap clock")
+	options.Rows.Update(clockRow, items[1], nil, list)
+	assert(clockRow.controls.toggle:GetValue() and clockRow.controls.toggle:IsEnabled(), "the minimap clock row restores its saved value when the bar is off")
 	K.Options.Write("DataBars", "strip.enabled", true)
 	assert(not clock:IsShown())
 	K.Options.Write("DataBars", "strip.slot5", "none")
@@ -118,12 +135,12 @@ end
 
 do
 	local env, K = D.New({ saved = { version = 40, profiles = { Default = { DataBars = { enabled = false, strip = { enabled = false, placement = "rail" } } } } } })
-	assert(K.Store.Module("DataBars").enabled and K.Store.Module("DataBars").strip.enabled)
+	assert(not K.Store.Module("DataBars").enabled and K.Store.Module("DataBars").strip.enabled)
 	assert(K.Store.Module("DataBars").strip.placement == "top")
 	assert(env.KstyleUIDB.version == K.Store.DB_VERSION)
 	local data = { profiles = { Default = {} }, layouts = { Default = { ["databars.strip"] = { anchor = "BOTTOM", x = 37, y = 80, width = 500, height = 22 } } } }
 	K.Store.migrations[K.Store.DB_VERSION](data)
-	assert(data.layouts.Default["databars.strip"].x == 37 and data.layouts.Default["databars.strip"].width == 500, "migration preserves a player's custom position and size")
+	assert(data.layouts.Default["databars.strip"] == nil, "migration resets the old rail geometry to the top bar")
 	assert(data.layouts.Default["medallions:databars.strip"].x == 37, "the Medallions rail keeps its saved position")
 end
 
@@ -146,7 +163,7 @@ do
 					positions["minimap.main"] = { anchor = "TOPRIGHT", x = -20, y = -38 }
 					assert(Layouts.Fits(preset, width, height, scale, on, positions, style), "saved top anchors use the same inset in Fits")
 					positions["databars.strip"] = { anchor = "BOTTOM", x = 0, y = 500, width = 100, height = 20 }
-					near(Layouts.TopInset("minimap.main", "TOPRIGHT", style, on, positions["databars.strip"]), 0)
+					near(Layouts.TopInset(style, on, positions["databars.strip"]), 0)
 				end
 			end
 		end

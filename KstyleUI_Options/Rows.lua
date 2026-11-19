@@ -441,6 +441,10 @@ end
 local FILL = {}
 
 function FILL.toggle(control, item, value)
+	if item.shown then
+		local ok, painted = K.Call(item.shown, value)
+		value = ok and painted
+	end
 	control:SetValue(value == true, true)
 	SetEnabled(control, not Model.IsDisabled(item))
 end

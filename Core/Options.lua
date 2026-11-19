@@ -25,6 +25,7 @@ local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen 
 local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
 local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
+	toggle = { shown = true },
 	slider = { min = true, max = true, step = true, shown = true },
 	dropdown = { options = true },
 	segmented = { options = true },
@@ -270,6 +271,13 @@ local function checkRow(module, row, defaults)
 	local problem = checkValueType(row, default)
 	if problem then
 		return problem
+	end
+	if rowType == "toggle" and row.shown ~= nil then
+		if type(row.shown) ~= "function" then return "shown must be a function" end
+		local ok, painted = pcall(row.shown, default)
+		if not ok or type(painted) ~= "boolean" then
+			return "shown(default) must return a boolean"
+		end
 	end
 	if rowType == "slider" then
 		if type(row.min) ~= "number" or type(row.max) ~= "number" then

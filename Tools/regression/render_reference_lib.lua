@@ -66,7 +66,6 @@ return function(preset, built)
 	local inset = K.Widgets.Inset(K.Scale.Root(), K.Tokens.Size("radius")) + K.Widgets.Snap(K.Scale.Root(), 1)
 	column = column - inset * 2234 / rh
 	local counts = 0
-	local topInset = Layouts.TopInset("", "TOP")
 	for _, item in ipairs(built.items) do
 		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 then
 			local right = (item.rect[1] + item.rect[3]) * 2.0685

@@ -35,6 +35,21 @@ Settings.defaults = {
 
 local rows
 
+function Settings.BarClock()
+	if K.Store.IsLoaded() and K.Modules.IsEnabled("DataBars") then
+		local strip = K.Store.Module("DataBars").strip or {}
+		if strip.enabled ~= false then
+			for i = 1, 5 do
+				if strip["slot" .. i] == "time" then
+					local element = K.Layout.Get("databars.strip")
+					if not element or element.shown ~= "never" then return true end
+				end
+			end
+		end
+	end
+	return false
+end
+
 function Settings.Schema()
 	if Settings.schema then return Settings.schema end
 	local FRAME_OPTIONS = {
@@ -257,7 +272,9 @@ function Settings.Schema()
 	end
 	schema[#schema + 1] = {
 		type = "toggle", key = "clock.shown", label = L["Clock"],
-		help = L["Shows the time under the map's right edge."],
+		help = L["Hidden while the data bar shows the clock."],
+		disableWhen = Settings.BarClock,
+		shown = function(value) return value and not Settings.BarClock() end,
 	}
 	schema[#schema + 1] = {
 		type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
@@ -369,17 +386,7 @@ function Settings.Get(key)
 	if not Store.IsLoaded() then
 		return default
 	end
-	if key == "clock.shown" and K.Modules.IsEnabled("DataBars") then
-		local strip = Store.Module("DataBars").strip or {}
-		if strip.enabled ~= false then
-			for i = 1, 5 do
-				if strip["slot" .. i] == "time" then
-					local element = K.Layout.Get("databars.strip")
-					if not element or element.shown ~= "never" then return false end
-				end
-			end
-		end
-	end
+	if key == "clock.shown" and Settings.BarClock() then return false end
 	local value = Lookup(Store.Module(MODULE), key)
 	if not IsSecret(value) and value == default then return value end
 	if not rows then Settings.Schema() end
