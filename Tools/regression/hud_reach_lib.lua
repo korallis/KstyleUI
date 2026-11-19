@@ -26,6 +26,18 @@ function Reach.New(width, height, style, layout)
 		e.GetNumShapeshiftForms = function() return 10 end
 		e.GetShapeshiftFormInfo = function(i) return 135036, false, true, 15473+i end
 		e.GetPetActionInfo = function(i) return "Pet action " .. i, 135809, false, false, false, false, 8000+i end
+		local possess=e.CreateFrame("Frame","PossessActionBar",e.UIParent)
+		possess:SetSize(64,30)
+		possess.actionButtons={}
+		for i=1,2 do
+			local button=e.CreateFrame("CheckButton",nil,possess)
+			button:SetSize(30,30)
+			button:SetPoint("LEFT",possess,"LEFT",(i-1)*34,0)
+			button.icon=button:CreateTexture(nil,"ARTWORK")
+			button.icon:SetAllPoints(button)
+			button.icon:SetTexture(135036)
+			possess.actionButtons[i]=button
+		end
 		Group.Install(e)
 		e.UnitReaction = function() return 2 end
 		Minimap.Blizzard(e, {})
@@ -33,6 +45,9 @@ function Reach.New(width, height, style, layout)
 		Cooldowns.Viewers(e)
 		DataBars.Game(e)
 		DataBars.Blizzard(e)
+		local glyphs={}
+		for _,button in ipairs(DataBars.MICRO) do glyphs[button[1]]=135036 end
+		DataBars.Menus(e,{glyphs=glyphs,bags={[31]=135036,[32]=135036,[33]=135036},backpack=135036,keyring=135036})
 		Chat.Install(e, {})
 		e._reachEdit={saved={},active=1}
 		EditMode.Install(e,e._reachEdit)

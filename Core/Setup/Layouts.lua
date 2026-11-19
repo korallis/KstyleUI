@@ -181,7 +181,7 @@ local DPS = {
 	["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = TEXT_TOP - BUTTON - TIGHT },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
-	["actionbars.possess"] = { anchor = "BOTTOM", x = 480, y = 0 },
+	["actionbars.possess"] = { anchor = "TOPLEFT", x = MARGIN + 623 + GAP, y = -MARGIN },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
 	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 421 + LIFT },
@@ -388,7 +388,7 @@ local ORBS_AURA_Y = ORBS_TOP + NEAR
 local ORBS_AURA_HALF = (ORBS_AURA_ICONS * AURA_ICON + (ORBS_AURA_ICONS - 1) * AURA_GAP) / 2
 local ORBS_AURA_SHIFT = ORBS_AURA_HALF - AURA_W / 2
 local ORBS_TRACKED_W = ElementSize("cooldowns.buffs")
-local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + GAP
+local ORBS_TRACKED_Y = ORBS_AURA_Y + AURA_H + GAP + NEAR
 local ORBS_PET_W = GridSize("actionbars.pet")
 local ORBS_STANCE_W = GridSize("actionbars.stance")
 local ORBS_GLOW = 30
@@ -406,6 +406,7 @@ local ORBS_FIT = {
 }
 
 local ORBS = {
+	["actionbars.possess"] = { anchor = "TOPLEFT", x = MARGIN + ElementSize("groupframes.raid") + GAP, y = -MARGIN },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = ORBS_CENTRE - ORBS_BAR1_H / 2 },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = ORBS_XP_Y },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = ORBS_BAR2_Y, scale = ORBS_BAR2_SCALE },
@@ -460,10 +461,10 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 	STYLES.orbs[name] = style
 end
-STYLES.orbs.Healer["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) }
+STYLES.orbs.Healer["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + TIGHT) }
 STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = DPS["groupframes.party"].y + TIGHT }
 STYLES.orbs.Healer["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT }
-STYLES.orbs.Healer["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X + 160 + TIGHT, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT }
+STYLES.orbs.Healer["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X + 160 + NEAR, y = ORBS_TRACKED_Y + AURA_H + NEAR - 22 - 2 * TIGHT }
 
 Layouts.ELEMENTS = ELEMENTS
 Layouts.FEED_LINES = FEED_LINES
@@ -1169,7 +1170,7 @@ ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
 end)
 
 do
-local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true }
+local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true, ["actionbars.possess"] = true }
 local SIDES = { TOPLEFT = 1, LEFT = 1, BOTTOMLEFT = 1, TOPRIGHT = -1, RIGHT = -1, BOTTOMRIGHT = -1 }
 
 function Layouts.Band(key, anchor, x, band)
