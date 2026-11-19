@@ -114,7 +114,7 @@ function Skins.Scene(key)
 		modules[#modules + 1] = "Tooltips"
 	end
 	local env, K, ns = S.New(Common.ScreenOpts({
-		saved = Gallery.Saved(key == "trainer" and { Skins = { text = { size = 1.2 } } } or modules),
+		saved = Gallery.Saved(modules),
 		setup = function(env)
 			Gallery.Setup(env)
 			if entry.tooltip then

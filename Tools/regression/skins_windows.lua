@@ -1401,8 +1401,9 @@ function build.trainer(env, B)
 	trainer.ScrollBar:SetPoint("TOPLEFT", trainer.ScrollBox, "TOPRIGHT", 5, -2)
 	trainer.ScrollBar:SetPoint("BOTTOMLEFT", trainer.ScrollBox, "BOTTOMRIGHT", 5, -2)
 	local rows = {}
-	local function Skill(name, requires, cost, id)
-		local row = Row(B, trainer.ScrollBox, 47)
+	local function Skill(name, requires, cost, id, upgrade)
+		local row = upgrade and B.frame("Button", trainer) or Row(B, trainer.ScrollBox, 47)
+		if upgrade then At(row, trainer.Inset, 6, 5, 316, 40) end
 		row.icon = Icon(B, row, id)
 		row.icon:ClearAllPoints()
 		row.icon:SetPoint("LEFT", row, "LEFT", 6, 0)
@@ -1421,8 +1422,11 @@ function build.trainer(env, B)
 		row.money:SetSize(28, 14)
 		Anchor(row.money, row, "TOPRIGHT", 5, -7)
 		Text(B.text(row.money), cost, "RIGHT", row.money)
-		rows[#rows + 1] = row
-		trainer.ScrollBox.AddRow(row, { skillIndex = #rows })
+		if not upgrade then
+			rows[#rows + 1] = row
+			trainer.ScrollBox.AddRow(row, { skillIndex = #rows })
+		end
+		return row
 	end
 	Skill("Demon Skin (Rank 2)", "Requires: Level 10, Demon Skin (Rank 1)", "3s", 136185)
 	Skill("Drain Soul (Rank 1)", "Requires: Level 10", "3s", 136163)
@@ -1431,6 +1435,8 @@ function build.trainer(env, B)
 	Skill("Curse of Weakness (Rank 2)", "Requires: Level 12, Curse of Weakness (Rank 1)", "8s", 136138)
 	Skill("Health Funnel (Rank 1)", "Requires: Level 12", "8s", 136168)
 	Skill("Shadow Bolt (Rank 3)", "Requires: Level 12, Shadow Bolt (Rank 2)", "8s", 136197)
+	trainer.skillStepButton = Skill("Expert Tailoring", "Requires: Level 20, Journeyman Tailoring (125)", "5g", 136249, true)
+	trainer.skillStepButton:Hide()
 	local view = {}
 	function view:SetElementExtentCalculator(calculator) self.calculator = calculator end
 	function trainer.ScrollBox:GetView() return view end
@@ -1457,8 +1463,14 @@ function build.trainer(env, B)
 	trainer.bottomInset.Bg = B.texture(trainer.bottomInset, "BACKGROUND")
 	trainer.bottomInset:Hide()
 	env.ClassTrainerFrame_Update = function()
-		At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
+		local upgrade = trainer.skillStepButton:IsShown()
+		At(trainer.ScrollBox, trainer.Inset, 5, upgrade and 55 or 5, 302, upgrade and 278 or 330)
 		trainer.ScrollBox:FullUpdate()
+	end
+	trainer:SetScript("OnShow", function() env.ClassTrainerFrame_Update() end)
+	if os.getenv("RENDER_TRAINER_PROFESSION") == "1" then
+		trainer.skillStepButton:Show()
+		env.ClassTrainerFrame_Update()
 	end
 	env.ClassTrainerFrame_InitCategoryButton = function() end
 	env.ClassTrainerFrame_SetTrainButtonEnabled = function() end

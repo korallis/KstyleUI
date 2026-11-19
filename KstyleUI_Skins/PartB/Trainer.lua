@@ -15,20 +15,22 @@ local function Texture(button, getter)
 	end
 end
 
-local function LineHeight(frame)
-	local _, size = ns.Style.Font("body")
-	if ns.Style.MetricsEnabled() then size = math.max(size, 13 * K.Theme.FontScale() * ns.Style.Setting("text", "size")) end
-	return math.max(K.Widgets.FontSize(frame, size) * 1.2, K.Widgets.Snap(frame, 16 * K.Theme.FontScale()))
+local function LineHeight(text)
+	return K.Widgets.LineHeight(text) + (text:GetSpacing() or 0)
 end
 
-local function SkillRow(row, fit)
+local function SkillRow(row)
 	Kit.Hush(row, Texture(row, "GetNormalTexture"), Texture(row, "GetHighlightTexture"), row.selectedTex)
 	Kit.CropIcon(row.icon)
 	Kit.Select(row, row.selectedTex)
-	if fit and row.name and row.subText and K.Widgets.MayMove(row) then
+	if ns.Style.MetricsEnabled() and row.name and row.subText and K.Widgets.MayMove(row) then
 		local width = row:GetWidth()
 		if IsSecret(width) or type(width) ~= "number" then return end
-		local line, pad = LineHeight(row), K.Widgets.Snap(row, 6)
+		ns.Style.Sweep(row)
+		ns.Style.MetricText(row.name)
+		ns.Style.MetricText(row.subText)
+		local line, pad = LineHeight(row.subText), K.Widgets.Snap(row, 6)
+		row:SetHeight(K.Widgets.Snap(row, 3 * line + 12))
 		row.name:ClearAllPoints()
 		row.name:SetPoint("TOPLEFT", row, "TOPLEFT", 48, -pad)
 		row.name:SetHeight(line)
@@ -109,7 +111,7 @@ end
 
 local function Row(row)
 	if row.icon ~= nil then
-		SkillRow(row, true)
+		SkillRow(row)
 	elseif row.LeftPiece ~= nil then
 		CategoryRow(row)
 	end
@@ -128,12 +130,15 @@ local function MetricBar(bar)
 end
 
 local function Layout()
+	if not ns.Style.MetricsEnabled() then return end
 	K.Combat.Queue(function()
 		local frame = ClassTrainerFrame
 		local box = frame.ScrollBox
 		if not box or not K.Widgets.MayMove(frame) then return end
 		local width, height = frame:GetSize()
 		if IsSecret(width) or IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then return end
+		local measure = K.Safe.Side(frame).trainerLayout.measure
+		ns.Style.MetricText(measure)
 		if frame.TrainButton then
 			frame.TrainButton:ClearAllPoints()
 			frame.TrainButton:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(frame.TrainButton, width - 12), -K.Widgets.Snap(frame.TrainButton, height - 12))
@@ -142,13 +147,18 @@ local function Layout()
 			frame.money:ClearAllPoints()
 			frame.money:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", K.Widgets.Snap(frame.money, 12), -K.Widgets.Snap(frame.money, height - 18))
 		end
-		local point, relative, on, x, y = box:GetPoint(1)
-		if point == "TOPLEFT" then K.Widgets.Point(box, point, relative, on, x, y) end
+		if frame.skillStepButton and frame.skillStepButton:IsShown() then
+			SkillRow(frame.skillStepButton)
+			K.Widgets.Point(box, "TOPLEFT", frame.skillStepButton, "BOTTOMLEFT", 0, -6)
+		else
+			local point, relative, on, x, y = box:GetPoint(1)
+			if point == "TOPLEFT" then K.Widgets.Point(box, point, relative, on, x, y) end
+		end
 		box:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(box, width - 24), -K.Widgets.Snap(box, height - 52))
 		local view = type(box.GetView) == "function" and box:GetView()
 		if view and type(view.SetElementExtentCalculator) == "function" then
 			view:SetElementExtentCalculator(function(_, node)
-				return node:GetData().categoryInfo and 25 or K.Widgets.Snap(box, 3 * LineHeight(box) + 12)
+				return node:GetData().categoryInfo and 25 or K.Widgets.Snap(box, 3 * LineHeight(measure) + 12)
 			end)
 			if type(box.FullUpdate) == "function" then box:FullUpdate() end
 		end
@@ -164,9 +174,10 @@ local function Apply()
 	Kit.Window(frame, { titleRole = "names" })
 	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine(), rankOutside = true })
 	if bar then MetricBar(bar) end
-	if bar and type(ClassTrainerFrame_Update) == "function" then
+	if type(ClassTrainerFrame_Update) == "function" then
 		hooksecurefunc("ClassTrainerFrame_Update", function()
-			bar:SetLabel(SkillLine())
+			if bar then bar:SetLabel(SkillLine()) end
+			Layout()
 		end)
 	elseif bar then
 		Kit.LogOnce("trainer.update", "ClassTrainerFrame_Update is missing; the skill bar's label is set at skin time only")
@@ -183,10 +194,13 @@ local function Apply()
 	if frame.ScrollBox then
 		Kit.Rows(frame.ScrollBox, Row)
 	end
+	local layout = { Restyle = Layout }
+	if ns.Style.MetricsEnabled() then
+		layout.measure = K.Widgets.FontString(frame, "OVERLAY")
+		layout.measure:Hide()
+	end
+	K.Safe.Side(frame).trainerLayout = ns.Style.Track(layout)
 	Layout()
-	frame:HookScript("OnShow", Layout)
-	K.Safe.Side(frame).trainerLayout = ns.Style.Track({ Restyle = Layout })
-	if type(ClassTrainerFrame_Update) == "function" then hooksecurefunc("ClassTrainerFrame_Update", Layout) end
 	if type(ClassTrainerFrame_InitCategoryButton) == "function" then
 		hooksecurefunc("ClassTrainerFrame_InitCategoryButton", CategoryInit)
 	else
