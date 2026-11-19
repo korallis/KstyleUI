@@ -496,13 +496,15 @@ function Layout.Clamp(key, left, bottom, w, h)
 		local preset = Layout.Setting("preset")
 		local place = layouts.Aspect(Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
 		local f, margin, origin = Factor(el.frame), Tokens.Size("screenMargin"), Scale.Origin()
-		local fx, fy = G.Fraction(el.settings.anchor)
+		local fx, fy = G.Fraction(el.default.anchor)
 		local reserve = not (place and place.width) and element.reserve
 		local extraW, extraH = reserve and max(0, (reserve[1] - element.width) * f) or 0, reserve and max(0, (reserve[2] - element.height) * f) or 0
 		local dx, dy = reserve and (reserve[3] or 0) * f or 0, reserve and (reserve[4] or 0) * f or 0
 		local l, r = max(0, extraW * fx - dx), max(0, extraW * (1 - fx) + dx)
 		local b, t = max(0, extraH * fy - dy), max(0, extraH * (1 - fy) + dy)
+		if key:match("^unitframes%.") then l, r, b, t = max(l, 2 * f), max(r, 2 * f), max(b, 2 * f), max(t, 2 * f) end
 		if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then b = max(b, 24 * f) end
+		if style == "orbs" and key == "unitframes.target" then l = max(l, 70 * f) end
 		local medal = style == "medallions" and layouts.MEDALLIONS_MEDALS[key]
 		if medal then
 			if medal.side < 0 then l = max(l, (medal.d + 8) * f) else r = max(r, (medal.d + 8) * f) end

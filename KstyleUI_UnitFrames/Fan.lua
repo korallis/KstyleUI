@@ -71,7 +71,7 @@ local function DefaultPosition()
 	local layouts = K.Setup.Layouts
 	local place = layouts.Aspect(K.Scale.Aspect(), "medallions", K.Layout.Setting("preset"), "actionbars.bar1")
 	local _, _, _, height = layouts.MedallionsGroup(K.Scale.Aspect())
-	return { anchor = "BOTTOM", x = 0, y = (place and place.y or 55) + height + 145 }
+	return { anchor = "BOTTOM", x = 0, y = (place and place.y or 55) + height + 163 }
 end
 
 local function Rim(window, container)

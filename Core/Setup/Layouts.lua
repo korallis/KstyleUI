@@ -152,7 +152,7 @@ local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
-local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
+local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR + 1
 local STORY_FLOOR = 72
 local STORY_KEYS = { guide = "skins.guide", quests = "skins.quests" }
 local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
@@ -690,9 +690,9 @@ function Layouts.Slot(name, rootHeight)
 end
 
 do
-local function Card(out, key, x, height, place, slot)
+local function Card(out, key, x, height, place, slot, inset)
 	out = out or {}
-	out.key, out.anchor, out.x, out.y, out.width, out.height = key, place and place.anchor or slot.anchor, x, place and place.y or slot.y, slot.width, height
+	out.key, out.anchor, out.x, out.y, out.width, out.height = key, place and place.anchor or slot.anchor, x, place and place.y or slot.y - (inset or 0), slot.width, height
 	return out
 end
 
@@ -702,10 +702,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return nil
 	end
 	local inset = style == "medallions" and GAP or 0
-	if inset > 0 then
-		slot = { anchor = slot.anchor, x = slot.x, y = slot.y - inset, width = slot.width, height = slot.height - inset }
-	end
-	local slotHeight = slot.height - Lift(rootHeight)
+	local slotHeight = slot.height - Lift(rootHeight) - inset
 	out = out or {}
 	out.stacked = nil
 	local stack = STORY_STYLES[style]
@@ -724,7 +721,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return out
 	end
 	if not guide then
-		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot)
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
 		out.guide = nil
 		return out
 	end
@@ -740,12 +737,12 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
 	if guideShown then
-		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot)
-		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot)
+		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, inset)
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
 		return out
 	end
-	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot)
-	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot)
+	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, inset)
+	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot, inset)
 	return out
 end
 end
@@ -802,7 +799,7 @@ local PLACES_V30 = {
 	["minimap.main"] = { "TOPRIGHT", -(EDGE - 1), -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -RAIL_EDGE },
 	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -67.9 },
-	["databars.xp"] = { "BOTTOM", 0, TRAY_BOTTOM - TRAY_STRIP_GAP - 5, COLUMN, 5 },
+	["databars.xp"] = { "BOTTOM", 0, 40 * MOCK_PX - TRAY_STRIP_GAP - 5, COLUMN, 5 },
 	["orbs:databars.xp"] = { "BOTTOM", 0, ORBS_XP_Y + XP_H - 5 },
 }
 
@@ -871,7 +868,7 @@ function Layouts.TrayMoves(name)
 		local now = layout[key]
 		local was = moved[key]
 		if was then
-			out[key] = { was[1], was[2], was[3] - LIFT }
+			out[key] = { was[1], was[2], was[3] - 31 }
 		elseif now then
 			out[key] = { now.anchor, now.x, now.y - LIFT }
 		end
@@ -963,6 +960,7 @@ local ASPECTS = ns.Scale.ASPECTS
 local PLACES = {}
 for _, class in ipairs(ASPECTS) do
 	PLACES[class] = { frames = {}, orbs = {}, medallions = {} }
+	PLACES[class].frames["actionbars.bar3"] = { anchor = "BOTTOM", x = -460, y = 640 }
 end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
@@ -1057,7 +1055,7 @@ function Layouts.BuildMedallions()
 			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
 			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
 			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
-			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + 12, { 160, 80 }),
+			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + 120, { 160, 80 }),
 			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
