@@ -64,7 +64,6 @@ local env, K, ns = M.New({ game = function(e) Fight(e) end })
 M.Enable(env, K)
 K.Layout.Update("meters.damage", { height = 208 })
 env.RunTimers()
-env.RunTimers()
 local list = ns.Damage.list
 assert(list.block, "the damage card draws full-height bars")
 assert(list.count == 5, "the player's five spells show: " .. tostring(list.count))
@@ -269,8 +268,7 @@ assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing
 do
 	local envG, KG, nsG = M.New({ game = function(e) Fight(e, { raid = false, size = 2 }) end })
 	M.Enable(envG, KG)
-KG.Layout.Update("meters.damage", { height = 208 })
-envG.RunTimers()
+	KG.Layout.Update("meters.damage", { height = 208 })
 	envG.RunTimers()
 	local group = nsG.Damage.list
 	assert(Plain(Text(group.title)) == "DAMAGE  HEALING" and group.count == 1, "in a group the card lists the sources under the meter's name")
@@ -320,8 +318,7 @@ end
 do
 	local envS, KS, nsS = M.New({ game = function(e) Fight(e) end })
 	M.Enable(envS, KS)
-KS.Layout.Update("meters.damage", { height = 208 })
-envS.RunTimers()
+	KS.Layout.Update("meters.damage", { height = 208 })
 	envS.RunTimers()
 	local card = nsS.Damage.list
 	local S = envS.Secret
@@ -358,8 +355,7 @@ end
 do
 	local envP, KP, nsP = M.New({ game = function(e) Fight(e) end })
 	M.Enable(envP, KP)
-KP.Layout.Update("meters.damage", { height = 208 })
-envP.RunTimers()
+	KP.Layout.Update("meters.damage", { height = 208 })
 	envP.RunTimers()
 	local card = nsP.Damage.list
 	assert(Text(card.column) == "38.4 dps", "Now shows the rate")
@@ -403,8 +399,7 @@ local screens = {
 for _, screen in ipairs(screens) do
 	local envS, KS, nsS = M.New({ width = screen[1], height = screen[2], game = function(e) Fight(e) end })
 	M.Enable(envS, KS)
-KS.Layout.Update("meters.damage", { height = 208 })
-envS.RunTimers()
+	KS.Layout.Update("meters.damage", { height = 208 })
 	envS.RunTimers()
 	local label = screen[1] .. "x" .. screen[2]
 	if screen[1] == 3456 and screen[2] == 2234 then

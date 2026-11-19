@@ -102,7 +102,6 @@ local env, K, ns = New({ raid = false, size = 5 }, Party)
 M.Enable(env, K)
 K.Layout.Update("meters.damage", { height = 208 })
 env.RunTimers()
-env.RunTimers()
 local list = ns.Damage.list
 local order = { "Kragar", "Brannoc", "Tester", "Ilyra", "Sylaen" }
 local amounts = { "3K", "2.6K", "2K", "1.5K", "900" }
@@ -219,8 +218,7 @@ do
 		e.CLASS_ICON_TCOORDS = { WARRIOR = { 0, 0.25, 0, 0.25 }, ROGUE = { 0.5, 0.75, 0, 0.25 }, HUNTER = { 0, 0.25, 0.25, 0.5 }, MAGE = { 0.25, 0.5, 0, 0.25 }, PRIEST = { 0.5, 0.75, 0.25, 0.5 } }
 	end)
 	M.Enable(envF, KF)
-KF.Layout.Update("meters.damage", { height = 208 })
-envF.RunTimers()
+	KF.Layout.Update("meters.damage", { height = 208 })
 	envF.RunTimers()
 	local row = nsF.Damage.list.rows[1]
 	assert(row.icon:IsShown() and M.Last(row.icon, "SetTexCoord")[2] == 0.25, "the fallback crops the class texture")
@@ -233,8 +231,7 @@ end
 do
 	local envS, KS, nsS = New({ raid = false, size = 5 }, Party)
 	M.Enable(envS, KS)
-KS.Layout.Update("meters.damage", { height = 208 })
-envS.RunTimers()
+	KS.Layout.Update("meters.damage", { height = 208 })
 	envS.RunTimers()
 	local card = nsS.Damage.list
 	local S = envS.Secret
@@ -268,8 +265,7 @@ end
 do
 	local envR, KR, nsR = New({ raid = true, size = 20 }, Raid)
 	M.Enable(envR, KR)
-KR.Layout.Update("meters.damage", { height = 208 })
-envR.RunTimers()
+	KR.Layout.Update("meters.damage", { height = 208 })
 	envR.RunTimers()
 	local raid = nsR.Damage.list
 	assert(raid.capacity == 5, "the default card holds five rows: " .. tostring(raid.capacity))
@@ -359,8 +355,7 @@ do
 		e._session = { combatSources = { Source("Tester", "HUNTER", 1300, 130, "Player-3", true) }, maxAmount = 1300, totalAmount = 1300 }
 	end)
 	M.Enable(envA, KA)
-KA.Layout.Update("meters.damage", { height = 208 })
-envA.RunTimers()
+	KA.Layout.Update("meters.damage", { height = 208 })
 	envA.RunTimers()
 	local solo = nsA.Damage.list
 	assert(solo.count == 2 and Text(solo.rows[1].name) == "Spell 1", "alone, the card lists the player's spells")

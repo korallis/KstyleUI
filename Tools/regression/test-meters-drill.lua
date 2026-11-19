@@ -338,8 +338,6 @@ assert(Damage.Mode() == "window", "auto stays KstyleUI's window under secret res
 -- A client without C_DamageMeter: auto is Blizzard's window, restyled, named in the settings.
 local envR, KR, nsR = M.New({ noMeter = true })
 M.Enable(envR, KR)
-KR.Layout.Update("meters.damage", { height = 230 })
-envR.RunTimers()
 local blizzard = envR.DamageMeter
 assert(nsR.Damage.Mode() == "skin", "no C_DamageMeter: Blizzard's window restyled")
 local style = Row(nsR.schema, "damage.mode")
