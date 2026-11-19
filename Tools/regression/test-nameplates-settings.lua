@@ -194,8 +194,8 @@ end
 do
 	local env, K, ns = N.New()
 	for _, write in ipairs(env._cvarWrites) do
-		assert(write.name == "nameplateMinScale" or write.name == "nameplateMaxScale" or write.name == "nameplateSelectedScale",
-			"by default the module writes only the plate scale CVars it holds at 1, got " .. tostring(write.name))
+		assert(write.name == "nameplateMinScale" or write.name == "nameplateMaxScale" or write.name == "nameplateSelectedScale"
+			or write.name == "nameplateShowSelf", "by default the module writes only personal resource and held scale CVars, got " .. tostring(write.name))
 	end
 	K.Options.Write("Nameplates", "cvars.enabled", true)
 	assert(env._cvars.nameplateMaxDistance == tostring(ns.Settings.Get("cvars.maxDistance")), "turning CVars on applies the distance")

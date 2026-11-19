@@ -47,7 +47,7 @@ LEE-94 retains the name's core-matched 3.5-unit lift and size 12: acceptance-2's
 
 ## Rules
 
-Personal resource display controls Blizzard's separate health and power display near the character (`nameplateShowSelf`). It defaults off; setup Apply turns it off out of combat, while Keep my UI leaves it untouched. Only changing this option writes the CVar afterwards, including with the skin off. Presets, login and profile refreshes never reapply it. The player's own nameplate is not skinned, and a caster druid has no UnitFrames class-resource bars. `test-personal-resource-display` covers the boundary.
+Personal resource display controls Blizzard's separate health and power display near the character (`nameplateShowSelf`). It defaults off; enabling the module applies the saved choice out of combat, and setup Apply turns it off only when the Nameplates addon is loaded. Keep my UI leaves it untouched. Changing this option writes the CVar too, including with the skin off. Presets and profile refreshes never reapply it. The player's own nameplate is not skinned, and a caster druid has no UnitFrames class-resource bars. `test-personal-resource-display` covers the boundary.
 
 Combat cast cues can return to the previous single cast colour and no shield glyph. Spell name, selection-only names and names below the track are separate choices. UnitFrames > Player > Power bar > Text > Previous display restores hidden power figures in Frames/Medallions and the old centred percent in Orbs; None hides the readout. UnitFrames > Target > Lead with target percent restores current/max first when off. CombatText > Keep combat text clear restores the inherited player field and the ordinary target anchor when off.
 

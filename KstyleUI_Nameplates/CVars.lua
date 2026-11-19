@@ -41,12 +41,7 @@ local function Set(name, value, index)
 	if not records or not current then return false end
 	local record = records[name]
 	local original = type(record) == "table" and record.written == current and record.original or current
-	local done
-	if index then
-		done = K.CVars.SetBitfield(name, index, value)
-	else
-		done = K.CVars.Set(name, value)
-	end
+	local done = index and K.CVars.SetBitfield(name, index, value) or not index and K.CVars.Set(name, value)
 	if not done then
 		LogOnce("cvar-fail:" .. name, "the game refused CVar " .. name)
 		return false
@@ -115,10 +110,14 @@ function CVars.Schedule()
 	end)
 end
 
+function CVars.PersonalResource(value)
+	K.Combat.Queue(function()
+		Set("nameplateShowSelf", value and "1" or "0")
+	end)
+end
+
 K.Callbacks.Register("SettingChanged", "Nameplates:personalResource", function(_, module, key, value)
 	if module == Settings.MODULE and key == "personalResource" then
-		K.Combat.Queue(function()
-			Set("nameplateShowSelf", value and "1" or "0")
-		end)
+		CVars.PersonalResource(value)
 	end
 end)

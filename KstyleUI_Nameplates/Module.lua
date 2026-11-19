@@ -92,6 +92,7 @@ end
 
 local function Enable()
 	Plates.Start()
+	CVars.PersonalResource(Settings.Get("personalResource"))
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ThemeChanged", MODULE, Plates.RestyleAll)
