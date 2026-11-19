@@ -87,9 +87,28 @@ assert(Logic.Split(8, 1, 1) == 8, "one bar takes the whole height")
 assert(Logic.Split(8, 2, 1) == 3.5, "two bars share the height around one gap")
 assert(Logic.Split(8, 0, 1) == 0, "no bars take no room")
 
--- ThreatText: Blizzard's threat values are a hundred times the threat points, secret or not.
-assert(Logic.ThreatText(3240000) == "32K" and Logic.ThreatText(99) == "0", "raw threat reads in threat points")
-assert(env.Reveal(Logic.ThreatText(S(3240000))) == "32K", "and a secret one does too")
+-- ThreatText: Blizzard's threat values are a hundred times the threat points, secret or not, under one point too.
+for _, case in ipairs({ { 3240000, "32K" }, { 1234500, "12K" }, { 100, "1" }, { 99, "0" }, { 50, "0" }, { 1, "0" } }) do
+	local open, hidden = Logic.ThreatText(case[1]), env.Reveal(Logic.ThreatText(S(case[1])))
+	assert(open == case[2] and hidden == case[2], "raw threat " .. case[1] .. " reads " .. case[2] .. ": open " .. open .. ", secret " .. hidden)
+end
+-- A client that leaves a value under the divisor undivided cannot give a secret in threat points: no figure.
+do
+	local lax, _, laxNs = M.New({
+		game = function(e)
+			local game = e.AbbreviateNumbers
+			e.AbbreviateNumbers = function(value, options)
+				local number = e.issecretvalue(value) and e.Reveal(value) or value
+				if options and number < 100 then
+					return tostring(number)
+				end
+				return game(value, options)
+			end
+		end,
+	})
+	assert(laxNs.Logic.ThreatText(lax.Secret(1234500)) == "", "no threat figure from a client that cannot scale the lowest values")
+	assert(lax.Reveal(laxNs.Logic.Abbreviate(lax.Secret(2840))) == "2.8K", "and the unscaled figures are untouched")
+end
 
 -- SortRows(rows, order, count, field) sorts order by the field, highest first, keeping ties in place.
 local rows = {
