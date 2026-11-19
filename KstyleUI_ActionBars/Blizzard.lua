@@ -10,6 +10,9 @@ function ns.StylePossess()
 		if not ns.running then return end
 		if not K.Layout.Element("actionbars.possess") then
 			K.Layout.Register(frame, "actionbars.possess", K.Setup.Layouts.Default("actionbars.possess"), { label = K.L["Possess"], module = "ActionBars", fields = { "anchor", "x", "y" } })
+			local function Visibility() K.Callbacks.Fire("ModuleChanged", "ActionBars") end
+			frame:HookScript("OnShow", Visibility)
+			frame:HookScript("OnHide", Visibility)
 		end
 		for _, button in ipairs(frame.actionButtons) do
 			if button.icon then

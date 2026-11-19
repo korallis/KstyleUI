@@ -6,6 +6,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local frame = env.PossessActionBar
 	assert(K.Layout.Element("actionbars.possess").frame == frame, "move the native frame, retaining native buttons and cancellation")
 	assert(not frame:IsShown(), "native possess visibility stays native")
+	assert(not K.Setup.Layouts.Enabled("DPS", K.Store.Profile())["actionbars.possess"], "the hidden native bar does not reserve space")
+	frame:Show()
+	assert(K.Setup.Layouts.Enabled("DPS", K.Store.Profile())["actionbars.possess"], "possession visibility enables its setup footprint")
+	frame:Hide()
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		K.Options.Write("HudStyle", "style", style)
 		local width, height = K.Setup.Layouts.Footprint("DPS", "actionbars.possess", style)

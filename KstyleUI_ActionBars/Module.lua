@@ -345,7 +345,7 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "trayColumn" or key == "tray" or key == "useTray" or key == "slab" or key == "safeDragging" then
+	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then

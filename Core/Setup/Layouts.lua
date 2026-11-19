@@ -651,7 +651,7 @@ function Layouts.Reserves()
 end
 
 function Layouts.Shown(name, key)
-	if key == "actionbars.possess" and not PossessActionBar then return false end
+	if key == "actionbars.possess" then return PossessActionBar ~= nil and PossessActionBar:IsShown() end
 	local off = shown[name]
 	if not off or not byKey[key] then
 		return nil
