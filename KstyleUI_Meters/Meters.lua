@@ -96,7 +96,7 @@ local function OnSetting(_, module, key)
 		return
 	end
 	local section = type(key) == "string" and key:match("^(%w+)%.") or nil
-	if section == "roles" then
+	if section == "roles" or key == "damage.shown" or key == "damage.mode" then
 		section = nil
 	end
 	for _, part in ipairs(parts) do
@@ -112,6 +112,7 @@ local function OnLayout(_, key)
 			K.Call(part.Resized, part)
 		end
 	end
+	if key == "meters.damage" then ns.Threat:Resized() end
 end
 
 local function Enable()

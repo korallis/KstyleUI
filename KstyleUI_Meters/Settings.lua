@@ -53,8 +53,6 @@ end
 local CAPTION = Tokens.Size("caption")
 local ROW, SPACING, ROW_TEXT = 18, 2, 12
 local DAMAGE_SPACING = 3
-local DAMAGE_CLASS_TONE = 0.62
-ns.DAMAGE_CLASS_TONE = DAMAGE_CLASS_TONE
 
 ns.defaults = {
 	followRole = true,
@@ -264,8 +262,8 @@ local schema = {
 		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
 	},
 	{
-		type = "dropdown", key = "roles.DAMAGER", label = L["Damage"],
-		help = L["The meter to show while dealing damage. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+		type = "dropdown", key = "roles.DAMAGER", label = L["Meter while dealing damage"],
+		help = L["Both shows a threat card next to the damage meter."], disableWhen = Is("followRole", false),
 		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
 	},
 	{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
@@ -492,7 +490,7 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction, schoolToken, muted)
+function ns.BarColor(section, classFile, reaction, schoolToken)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
@@ -501,11 +499,7 @@ function ns.BarColor(section, classFile, reaction, schoolToken, muted)
 		return Tokens.Color(schoolToken)
 	end
 	if source ~= "reaction" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
-		local r, g, b = Theme.ClassColor(classFile)
-		if muted then
-			return r * DAMAGE_CLASS_TONE, g * DAMAGE_CLASS_TONE, b * DAMAGE_CLASS_TONE
-		end
-		return r, g, b
+		return Theme.ClassColor(classFile)
 	end
 	return Tokens.Color(reaction or "friendly")
 end

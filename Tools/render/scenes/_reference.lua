@@ -239,7 +239,7 @@ function Reference.SeatTank(built, plates, rect)
 	if not x then
 		return nil
 	end
-	return Reference.SeatAround(plates, x, x + w, y, y + h)
+	return Reference.SeatAround(plates, x, x + w, y - 16, y + h + 16)
 end
 
 -- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer,
@@ -307,19 +307,22 @@ function Reference.Build(opts)
 			state.damage = Reference.GROUP_DAMAGE[opts.meterGroup]
 			state.meterMe = opts.meterGroup == "raid" and 14 or 1
 		end
+		if opts.meterChoice then
+			state.followRole, state.role = true, "DAMAGER"
+		end
 		return Lumen.Build("questing", {
 			class = "SHAMAN",
 			settings = os.getenv("RENDER_COMBAT_LEGACY") == "1" and {
 				UnitFrames = { player = { powerText = "legacy", powerSeparate = false }, target = { percentLead = false } },
 				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 }, debuffs = { size = style == "Medallions" and 17 or 29, textSize = style == "Medallions" and 10 or 13, showTime = false, readableText = false, expiring = 0 } },
 				CombatText = { clearLanes = false },
-			} or nil,
+			} or opts.meterChoice and { Meters = { roles = { DAMAGER = opts.meterChoice } } } or nil,
 			layout = layout,
 			applyPreset = true,
 			state = state,
 			elements = true,
 			modules = opts.modules or modules,
-			seat = layout == "Tank" and Reference.SeatTank or nil,
+			seat = (layout == "Tank" or opts.meterChoice == "both") and Reference.SeatTank or nil,
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)

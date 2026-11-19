@@ -260,8 +260,20 @@ local function DockGuide()
 	if not holder or not layout or InCombatLockdown() then
 		return
 	end
-	local on = ns.Get("threat.followGuide") and guide and guide:IsVisible() and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
-	if on then
+	local atDefault = layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local damage = ns.Damage.holder
+	local both = atDefault and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and damage:IsShown()
+	if Threat.soloWidth and not both then
+		holder:SetWidth(Threat.soloWidth)
+		Threat.soloWidth = nil
+	end
+	if both then
+		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
+		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
+		holder:ClearAllPoints()
+		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -16 / K.Widgets.ScaleFactor(holder), 0)
+		Threat.docked = true
+	elseif atDefault and ns.Get("threat.followGuide") and guide and guide:IsVisible() then
 		local foot = side.storyGuideBottom or guide
 		local top, bottom = Logic.Plain(guide:GetBottom()), Logic.Plain(foot:GetBottom())
 		local gap = top and bottom and math.max(0, top * K.Widgets.ScaleFactor(guide) - bottom * K.Widgets.ScaleFactor(foot)) or 0
@@ -276,6 +288,7 @@ local function DockGuide()
 end
 
 function Threat:OnEvent(event, unit)
+	if event == "PLAYER_REGEN_ENABLED" then DockGuide() end
 	if event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" or event == "PLAYER_ENTERING_WORLD" then
 		BuildRoster()
 	elseif event == "UNIT_TARGET" and unit ~= "target" then
@@ -303,12 +316,14 @@ local function Build()
 	alpha:SetDuration(0.2)
 	Threat.list.alarmFlash = group
 	Threat.holder = Threat.list.holder
+	hooksecurefunc(Threat.list, "Paint", function() Alarm(Threat.alarm) end)
 	ns.Place(Threat.holder, KEY, LIMITS)
 	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide
 end
 
 function Threat:Resized()
 	if self.list then
+		DockGuide()
 		self.list:Restyle()
 		Schedule()
 	end

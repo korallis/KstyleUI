@@ -25,6 +25,10 @@ assert(ns.Threat.alarm, "the real threat event path raises the tank alarm")
 local want = { K.Tokens.Color("hostile") }
 local title = M.Last(ns.Threat.list.title, "SetTextColor")
 assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "the alarm colours the card title hostile")
+K.Layout.Update("meters.damage", { width = 300 })
+env.RunTimers()
+title = M.Last(ns.Threat.list.title, "SetTextColor")
+assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "resizing the paired cards must preserve the tank alarm")
 assert(ns.Threat.list.alarmFlash:IsPlaying(), "the alarm starts its flash")
 local alpha = ns.Threat.list.alarmFlash._anims[1]
 assert(alpha:GetDuration() == 0.2, "the alarm flash lasts 200 ms")

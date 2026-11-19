@@ -1030,6 +1030,8 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
+			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y + 24 + GAP },
+			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = TIP_Y + 24 + GAP },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },

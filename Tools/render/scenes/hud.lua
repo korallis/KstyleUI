@@ -1531,6 +1531,7 @@ function modules.meters(opts)
 		K.Modules.Enable("Meters")
 	end
 	env.RunTimers()
+	applyPreset(env, opts)
 	if opts.meterSecret then
 		env.SetCombat(true)
 		env.FireEvent("PLAYER_REGEN_DISABLED")

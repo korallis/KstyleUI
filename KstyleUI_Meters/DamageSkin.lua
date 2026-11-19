@@ -42,7 +42,7 @@ local function EntryColor(entry)
 	if Logic.IsSecret(class) or type(class) ~= "string" or class == "" then
 		class = entry.unitClassFilename
 	end
-	return ns.BarColor("damage", class, reaction, nil, true)
+	return ns.BarColor("damage", class, reaction)
 end
 
 local function Present(value)
