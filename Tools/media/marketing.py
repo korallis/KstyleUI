@@ -316,7 +316,7 @@ def make_icons_compare():
         row = Image.open(path).convert("RGB")
         rows.append(row.resize((width - 128, round(row.height * (width - 128) / row.width)), Image.LANCZOS))
     height = 64 + 120 + sum(56 + row.height for row in rows) + 128
-    img = gradient(width, height, (13, 15, 18), FORGED)
+    img = darken(cover(Image.open(PLATES / "forest-1080.jpg").convert("RGB"), width, height), 0.35)
     draw = ImageDraw.Draw(img)
     gold_rule(draw, width, 0, 3)
     gold_rule(draw, width, height - 5, 3)
