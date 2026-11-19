@@ -7,10 +7,11 @@ local screens = {
 }
 for _, screen in ipairs(screens) do
 	for _, arrangement in ipairs({ "centred", "spread" }) do
+		for _, position in ipairs({ false, { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } }) do
 		local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = {
-			version = 38, profiles = { Default = {
+			version = 37, profiles = { Default = {
 				HudStyle = { style = "medallions" }, Layout = { arrangement = arrangement }, Minimap = { enabled = true },
-			} }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
+			} }, characters = {}, layouts = { Default = { ["minimap.main"] = position or nil } }, account = { setupSeen = true }, devlog = {},
 		} })
 		M.Settle(env)
 		local root, face = K.Scale.Root(), ns.Map.face
@@ -28,6 +29,7 @@ for _, screen in ipairs(screens) do
 		assert(math.abs(zone.left - row.left) <= pixel and math.abs(zone.right - row.right) <= pixel,
 			context .. "align both plaques")
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+		end
 	end
 end
 do
