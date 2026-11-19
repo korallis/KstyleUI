@@ -928,6 +928,9 @@ end
 Layouts.STYLES = { "orbs", "medallions" }
 
 function Layouts.Style(style, name, key)
+	if style == "medallions" and key == "meters.damage" and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
+		return layouts[name] and layouts[name][key]
+	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
 	if bar then return bar end
 	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
@@ -1030,7 +1033,6 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
-			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -592, y = 472 },
 			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(592 + DAMAGE_W + GAP), y = 472 + DAMAGE_H - THREAT_H },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
@@ -1603,6 +1605,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }
 		return high, fits
 	end
+	if not fits(low) then low = low / 2 end
 	local step = 1080 / (physicalHeight * 2 * state.span)
 	while high > low do
 		local candidate = math.max(low, high - step)
