@@ -613,8 +613,7 @@ local function PlaceCard(path, resize)
 	if path.rest and not below then
 		offset = Widgets.Snap(card, REST_FOOT)
 	end
-	local rail = RestedXP.Rail
-	local height = rail and rail.CardHeight and rail.CardHeight(path, resize)
+	local height = RestedXP.Rail.CardHeight(path, resize)
 	height = height and Widgets.Snap(card, height)
 	if path.cardBottom == bottom and path.cardOffset == offset and path.cardHeight == height then
 		return

@@ -353,13 +353,16 @@ local function Around(f, path)
 end
 
 function Rail.CardHeight(path, resize)
-	local story = On() and Rail.Story()
 	local quest = ns.QuestCard and ns.QuestCard.Frame()
-	if not (ns.Skins.Setting(KEY, "compose") and story and not story.stacked and quest and quest:IsShown()) then
+	if not (On() and ns.Skins.Setting(KEY, "compose") and quest and quest:IsShown()) then
 		return nil
 	end
 	if not resize or InCombatLockdown() then
 		return path.cardHeight
+	end
+	local story = Rail.Story()
+	if not story or story.stacked then
+		return nil
 	end
 	local f = path.frame
 	local scale = Widgets.ScaleFactor(f)

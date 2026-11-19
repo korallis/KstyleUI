@@ -22,6 +22,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	S.W.Settle(env)
 	env.RunTimers()
 	local f = rxp.RXPFrame
+	local storyCalls, story = 0, ns.RestedXP.Rail.Story
+	ns.RestedXP.Rail.Story = function(...)
+		storyCalls = storyCalls + 1
+		return story(...)
+	end
 	local card = ns.RestedXP.Chrome.Card(f)
 	local glass = K.Skin.Parts(f).backdrop
 	local counts, calls = {}, {}
@@ -79,7 +84,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local before = Rect()
 		counts, calls = {}, {}
 		for _ = 1, 10 do
+			local previous = storyCalls
 			refresh[2]()
+			assert(refresh[1] ~= "UpdateText" or storyCalls - previous <= 1, "unchanged text refresh repeats Story work; return the cached card height before Rail.Story")
 			Same(before, refresh[1])
 			env.RunTimers()
 			Same(before, refresh[1] .. " timers")
