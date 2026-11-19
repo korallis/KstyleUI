@@ -4,10 +4,13 @@ return {
 		why = "Minimap is the one minimap renderer the game has: an addon cannot build a replacement, so KstyleUI hosts it. "
 			.. "It is not a protected frame and no Blizzard code moves, sizes or reparents it on Forever, only sets its mask. "
 			.. "Adopt moves it into KstyleUI's frame once, out of Edit Mode; Fit gives it one CENTER point on the map square and "
-			.. "an explicit SetSize equal to it (on adopt, refresh and resize, out of combat or queued), because the engine "
+			.. "an explicit SetSize adjusted for its scale (on adopt, refresh and resize, out of combat or queued), because the engine "
 			.. "renders the terrain at the size SetSize gave, not the anchored rect: anchors alone left Blizzard's 198 render "
 			.. "in the 217 square (ingame-18). Release puts it back in MinimapContainer with its saved points and size when the "
 			.. "module turns off. The rest of the cluster is hidden through Safe.HideBlizzard. "
+			.. "Fit uses SetScale to keep map pins at least their native size unless compact icons are chosen, and Release "
+			.. "restores the saved scale; both check Widgets.MayMove and queue through Combat before any protected change "
+			.. "(SimpleFrameAPIDocumentation.lua: SetScale; test-minimap-icon-size.lua covers the combat deferral). "
 			.. "QueueStatusButton is faded with alpha, not hidden, because its own context menu closes when its owner is "
 			.. "not visible (Blizzard_Menu/Menu.lua). It sits on KstyleUI's map by its Edit Mode anchor to Minimap, so its "
 			.. "mouse is turned off while it is faded and back on when the column's queue button is off. It is not protected.",
@@ -17,6 +20,7 @@ return {
 			["Minimap:ClearAllPoints"] = 2,
 			["Minimap:SetPoint"] = 2,
 			["Minimap:SetSize"] = 2,
+			["Minimap:SetScale"] = 2,
 		},
 	},
 	["KstyleUI_Minimap/Column.lua"] = {
