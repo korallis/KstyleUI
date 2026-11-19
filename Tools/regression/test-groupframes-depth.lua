@@ -260,7 +260,6 @@ do
 	eq(Short(12400), "12.4K", "party: shared thousands")
 	eq(Short(124000), "124K", "party: whole thousands from 100k")
 	eq(Short(1240000), "1.2M", "party: millions")
-	eq(Short(12400), "12.4K", "raid: shared thousands")
 	eq(Short(1240), "1.2K", "raid: one decimal under 10k")
 	eq(Short(840), "840", "under a thousand in full")
 	assert(env.issecretvalue(Short(env.Secret(12400))), "a secret goes through whole")
