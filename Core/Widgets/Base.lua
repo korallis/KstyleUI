@@ -2291,7 +2291,7 @@ function Chrome:PaintMaterial()
 		end
 		self:SyncMaterialFrame()
 	end
-	if w <= 2 * inset or h <= 2 * insetY or pixel <= 0 then
+	if w <= 2 * inset or h <= 2 * inset or pixel <= 0 then
 		if self.grain then
 			self.grain:Hide()
 		end
