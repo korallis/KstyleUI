@@ -537,9 +537,7 @@ function C.Native(env, name, entry, items, format)
 	end
 	local scale = (setting(3) * 10 + 50) / 100
 	local pad = setting(4) - (bars and 2 or 4)
-	if ROW_SIZES[name] then
-		pad = pad * scale
-	end
+	pad = pad * scale
 	local n = math.max(2, #items)
 	while #viewer._items < n do
 		C.Item(env, viewer, #viewer._items + 1)

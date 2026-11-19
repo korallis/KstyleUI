@@ -331,8 +331,8 @@ function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
 	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
-	local margin = Tokens.Size("screenMargin")
-	return max(margin + x, min(left, rootWidth - margin - x - width)), max(margin + lower, min(bottom, rootHeight - margin - top - height))
+	local margin, origin = Tokens.Size("screenMargin"), Scale.Origin()
+	return max(margin + x - origin, min(left, rootWidth + origin - margin - x - width)), max(margin + lower, min(bottom, rootHeight - margin - top - height))
 end
 
 function Face:PlaceZone()
@@ -670,7 +670,7 @@ function Face:Layout()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
 	self.clockBottom = Plain(h) and h / pixel or 0
-	self.clockInset, self.clockGap = Snap(card, CaptionX()) + 2 * Widgets.Border(card), Snap(card, MERIDIEM_GAP)
+	self.clockInset, self.clockGap = Snap(card, CaptionX()), Snap(card, MERIDIEM_GAP)
 	self.clockRow = rowY
 	self:PlaceClock()
 

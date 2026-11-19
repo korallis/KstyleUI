@@ -491,7 +491,7 @@ function Layout.Clamp(key, left, bottom, w, h)
 	end
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local element = layouts and layouts.Element(key)
-	if element then
+	if el and element then
 		local style = ns.HudStyle.Current()
 		local preset = Layout.Setting("preset")
 		local place = layouts.Aspect(Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)

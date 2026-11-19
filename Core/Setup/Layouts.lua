@@ -49,7 +49,7 @@ local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 local EDGE = ns.Tokens.Size("screenMargin")
 local RAIL_EDGE = EDGE + 1.4
 local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 208, 22, 14, 3
-local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.6, 3.5, 10, 14, 8, 11.9
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.6, 3.5, 10, 14, 12, 11.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
 local DAMAGE_W, DAMAGE_H = 248, 158
@@ -1027,7 +1027,7 @@ function Layouts.BuildMedallions()
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
-		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + 2 * TIGHT + tot[2])
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + math.max(select(2, ElementSize("cooldowns.bars")), select(2, ElementSize("cooldowns.buffs"))) + NEAR + 2 * TIGHT + tot[2])
 		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
 		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
 		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
@@ -1040,7 +1040,7 @@ function Layouts.BuildMedallions()
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
-			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -(DEBUFFS_Y + TIGHT) },
+			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -680, y = 374 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },

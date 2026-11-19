@@ -99,7 +99,7 @@ do
 	local root = K.Scale.Root()
 	local cardBox = assert(Geometry.ScaledRect(card, env.UIParent, root))
 	local rootBox = assert(Geometry.ScaledRect(root, env.UIParent, root))
-	assert(W.Near(rootBox.right - cardBox.right, K.Tokens.Size("screenMargin"), 0.5), "the card ends on the card margin with the cards under it, got " .. tostring(rootBox.right - cardBox.right))
+	assert(W.Near(rootBox.right - cardBox.right, K.Tokens.Size("screenMargin") + 4, 0.5), "the card reserves four units inside the margin for the caption, got " .. tostring(rootBox.right - cardBox.right))
 end
 assert(W.SameRGB(face.fill, K.Tokens.Color("materialForged")) and face.fill:IsShown(), "its fill is the forged iron")
 local pixel = K.Widgets.Border(face.mapArea)

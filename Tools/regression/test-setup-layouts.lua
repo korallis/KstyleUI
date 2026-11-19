@@ -283,13 +283,13 @@ for _, name in ipairs(names) do
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME or key == "databars.strip" and EDGE + 4 or EDGE
+			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME + 4 or key == "databars.strip" and EDGE + 4 or EDGE
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
 		assert(map.top == HEIGHT - (EDGE + 6 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
-		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET + 6)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the map while the zone heading keeps its edge margin")
-		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
+		assert(math.abs(auraBuffs.right - (map.left - 7.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET + 6)) < 1e-6, label .. ": the buff row stands 7.9 left of the map while the zone heading keeps its edge margin")
+		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 12 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 12 under the buffs, right-aligned")
 		assert(same(auraBuffs.w, 307.5) and same(auraBuffs.h, 41.6) and same(auraDebuffs.w, 307.5) and same(auraDebuffs.h, 41.6), label .. ": each aura row is ten 27.6-unit icons 3.5 apart, 307.5 x 41.6")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
 		assert(meter.w == 248 and meter.h == 158, label .. ": the damage card retains its 248 by 158 footprint")
@@ -639,7 +639,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME) and minimap.y == -(EDGE + 6 + MAP_HEADING), "the map's forged card, drawn its frame outside the square, ends on the card margin with the cards under it (KSTY-60 item 28), under its 22-unit zone heading")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME + 4) and minimap.y == -(EDGE + 6 + MAP_HEADING), "the map reserves its forged card and caption inside the screen margin, under its zone heading")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

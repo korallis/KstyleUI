@@ -102,6 +102,15 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 		["actionbars.hub/databars.xp"] = wantedStyle=="medallions" or nil,
 	}
 	local failures, checked = {}, 0
+	local strata={WORLD=0,BACKGROUND=1,LOW=2,MEDIUM=3,HIGH=4,DIALOG=5,FULLSCREEN=6,FULLSCREEN_DIALOG=7,TOOLTIP=8}
+	local function stratum(frame)
+		while frame do
+			local value=frame._state.FrameStrata
+			if value then return strata[value[1]] end
+			frame=frame._parent
+		end
+		return strata.MEDIUM
+	end
 	local function fail(label, key, why)
 		local line = label .. ": " .. key .. ": " .. why
 		if not failures[line] then failures[line] = true; print(line) end
@@ -259,7 +268,9 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 								for key,items in pairs(groups) do
 									if key~=a.key and allowed[pair(a.key,key)] and pair(a.key,key)~="groupframes.party/groupframes.raid" then
 										for _,item in ipairs(items) do
-											if item.object and Guard.Hides(item) and item.object._parent:GetFrameLevel()>a.object:GetFrameLevel() and overlap(a.rect,item.rect,pixel*0.01) then
+											local frame=item.object and item.object._parent
+											local above=frame and (stratum(frame)>stratum(a.object) or stratum(frame)==stratum(a.object) and frame:GetFrameLevel()>a.object:GetFrameLevel())
+											if above and Guard.Hides(item) and overlap(a.rect,item.rect,pixel*0.01) then
 												fail(label,pair(a.key,key),"opaque art covers a mouse target; keep the shared tray below its buttons")
 											end
 										end
@@ -291,25 +302,27 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	K.Options.Write("Layout","arrangement","centred")
 	env.RunTimers()
 	K.Options.Write("HudStyle","style","frames")
-	assert(K.Layout.Update("chat.main",{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
-	env.RunTimers()
-	local left,bottom=K.Layout.Rect("chat.main")
-	if left+K.Scale.Origin()<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
-		fail("saved","chat.main","off-screen saved position must display inside the margin; clamp display geometry without rewriting Store.Layout")
+	for _,key in ipairs({"chat.main","minimap.main"}) do
+		assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
+		env.RunTimers()
+		local left,bottom=K.Layout.Rect(key)
+		if left+K.Scale.Origin()<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
+			fail("saved",key,"off-screen saved position must display inside the margin; clamp display geometry without rewriting Store.Layout")
+		end
+		assert(K.Store.Layout()[key].x==-5000 and K.Store.Layout()[key].y==-5000,"display clamp must preserve the saved position")
+		local shown={Scene.Rect(env,K.Layout.Element(key).frame)}
+		local margin=K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
+		assert(shown[1]>=margin and shown[2]+shown[4]<=1080-margin+1e-8,"the actual frame must display on screen, not just Layout.Rect")
+		local pixel=K.Scale.Pixel(1)
+		local x,y=K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel,400*pixel
+		assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=x,y=y},true))
+		env.RunTimers()
+		left,bottom=K.Layout.Rect(key)
+		assert(math.abs(left-x)<1e-8 and math.abs(bottom-y)<1e-8,"on-screen custom position must move zero pixels")
+		shown={Scene.Rect(env,K.Layout.Element(key).frame)}
+		local rootX=Scene.Rect(env,K.Scale.Root())
+		assert(math.abs(shown[1]-rootX-x*K.Scale.AppliedUserScale())<1e-8 and math.abs(1080-shown[2]-shown[4]-y*K.Scale.AppliedUserScale())<1e-8,"the actual on-screen frame must move zero pixels")
 	end
-	assert(K.Store.Layout()["chat.main"].x==-5000 and K.Store.Layout()["chat.main"].y==-5000,"display clamp must preserve the saved position")
-	local shown={Scene.Rect(env,K.Layout.Element("chat.main").frame)}
-	local margin=K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
-	assert(shown[1]>=margin and shown[2]+shown[4]<=1080-margin+1e-8,"the actual frame must display on screen, not just Layout.Rect")
-	local pixel=K.Scale.Pixel(1)
-	local x,y=K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel,400*pixel
-	assert(K.Layout.Update("chat.main",{anchor="BOTTOMLEFT",x=x,y=y},true))
-	env.RunTimers()
-	left,bottom=K.Layout.Rect("chat.main")
-	assert(math.abs(left-x)<1e-8 and math.abs(bottom-y)<1e-8,"on-screen custom position must move zero pixels")
-	shown={Scene.Rect(env,K.Layout.Element("chat.main").frame)}
-	local rootX=Scene.Rect(env,K.Scale.Root())
-	assert(math.abs(shown[1]-rootX-x*K.Scale.AppliedUserScale())<1e-8 and math.abs(1080-shown[2]-shown[4]-y*K.Scale.AppliedUserScale())<1e-8,"the actual on-screen frame must move zero pixels")
 	assert(next(failures)==nil, "HUD reach failed; move the named defaults, preserve custom positions, and rerun test-hud-reach.lua")
 	print("HUD reach ok: " .. checked .. " style/layout/arrangement/screen combinations")
 end
