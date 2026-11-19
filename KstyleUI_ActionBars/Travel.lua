@@ -72,7 +72,7 @@ local function NewGroup(menu, index)
 	group.pages, group.buttons = {}, {}
 	local title = Widgets.SectionCap(group, { text = TITLES[index], width = WIDTH - PAD * 2 })
 	title:SetPoint("TOPLEFT", group, "TOPLEFT", 0, 0)
-	group.head = math.max(HEAD, title:SetWrapWidth(WIDTH - PAD * 2) + GAP)
+	group.cap = title
 	local nextPage = Widgets.Button(group, { template = "SecureActionButtonTemplate", text = L["Next travel page"], width = WIDTH - PAD * 2, height = HEAD, silent = true })
 	nextPage:SetPoint("BOTTOMRIGHT", group, "BOTTOMRIGHT", 0, 0)
 	nextPage:RegisterForClicks("AnyUp")
@@ -100,6 +100,7 @@ end
 local function FillGroup(group, list, y)
 	group:Hide()
 	if #list == 0 then return y end
+	group.head = math.max(HEAD, group.cap:SetWrapWidth(WIDTH - PAD * 2) + GAP)
 	local pages = math.ceil(#list / PAGE)
 	group:SetAttribute("page", 1)
 	group:SetAttribute("pages", pages)
@@ -117,6 +118,7 @@ local function FillGroup(group, list, y)
 		end
 		local b = group.buttons[i] or Button(page)
 		group.buttons[i], b.travel = b, entry
+		b.opts.inputContinuity = ns.Config("inputContinuity")
 		b:SetAttribute("type", entry.kind)
 		b:SetAttribute("item", entry.kind == "item" and "item:" .. entry.id or nil)
 		b:SetAttribute("spell", entry.kind == "spell" and entry.id or nil)
@@ -196,6 +198,7 @@ function Travel.Enable()
 	K.Callbacks.Register("ProfileChanged", OWNER, Travel.Refresh)
 	K.Callbacks.Register("LayoutChanged", OWNER, Travel.Refresh)
 	K.Callbacks.Register("ReadabilityChanged", OWNER, Travel.Refresh)
+	K.Callbacks.Register("ThemeChanged", OWNER, Travel.Refresh)
 	K.Callbacks.Register("ModuleChanged", OWNER, function(_, module) if module == "UnitFrames" then Travel.Refresh() end end)
 	Travel.Refresh()
 end
@@ -206,6 +209,7 @@ function Travel.Disable()
 	K.Callbacks.Unregister("ProfileChanged", OWNER)
 	K.Callbacks.Unregister("LayoutChanged", OWNER)
 	K.Callbacks.Unregister("ReadabilityChanged", OWNER)
+	K.Callbacks.Unregister("ThemeChanged", OWNER)
 	K.Callbacks.Unregister("ModuleChanged", OWNER)
 	Travel.Refresh()
 end
