@@ -1389,8 +1389,6 @@ function build.trainer(env, B)
 	trainer.FilterDropdown = Dropdown(B, trainer, "Available", 100)
 	Anchor(trainer.FilterDropdown, trainer, "TOPRIGHT", -12, -60)
 	trainer.ScrollBar = ScrollBar(B, trainer)
-	Anchor(trainer.ScrollBar, trainer.Inset, "TOPRIGHT", -4, -4)
-	trainer.ScrollBar:SetHeight(260)
 	trainer.ScrollBox = ScrollBox(B, trainer)
 	At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
 	trainer.ScrollBox:SetClipsChildren(true)
@@ -1437,7 +1435,6 @@ function build.trainer(env, B)
 			if view.calculator then
 				row:SetHeight(view.calculator(i, { GetData = function() return row._data end }))
 			end
-			self.Init(row, row._data)
 		end
 		Stack(rows, self, 1, 0)
 	end
@@ -1456,7 +1453,6 @@ function build.trainer(env, B)
 	trainer.bottomInset.Bg = B.texture(trainer.bottomInset, "BACKGROUND")
 	trainer.bottomInset:Hide()
 	env.ClassTrainerFrame_Update = function()
-		trainer.ScrollBox:ClearAllPoints()
 		At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
 		trainer.ScrollBox:FullUpdate()
 	end
