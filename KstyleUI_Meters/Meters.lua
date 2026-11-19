@@ -87,7 +87,8 @@ end
 
 local function YieldDamage()
 	local settings = K.Store.Module(MODULE)
-	if not settings.overlapDamage and #K.Setup.Integrations.Detected(MODULE) > 0 then
+	ns.damageOverlap = #K.Setup.Integrations.Detected(MODULE) > 0
+	if not settings.overlapDamage and ns.damageOverlap then
 		settings.damage.shown = false
 		settings.overlapDamage = true
 	end
