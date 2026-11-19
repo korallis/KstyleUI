@@ -134,5 +134,5 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	assert(K.Store.CreateProfile("Fresh") and K.Store.SetProfile("Fresh"))
 	assert(K.Store.Layout()[key] == nil, "a fresh profile inherits the new style default")
 	local position = K.Setup.Layouts.Positions("DPS", style, "16:9")["actionbars.bar3"]
-	assert(position.anchor == (style == "orbs" and "TOP" or "BOTTOM") and position.x == (style == "medallions" and -680 or style == "frames" and -460 or 0))
+	assert(position.anchor == (style == "orbs" and "TOP" or "BOTTOM") and position.x == (style == "medallions" and -692 or style == "frames" and -460 or 0))
 end

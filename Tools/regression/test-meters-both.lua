@@ -25,8 +25,9 @@ local function Pair(env, K, ns)
 		local key = element.key
 		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and key == "unitframes.player") then
 			local w, h = layouts.StyleSize(style, K.Scale.Aspect(), key)
-			if not w then w, h = layouts.Footprint(preset, key, style) end
-			if places[key].width then w, h = places[key].width, places[key].height end
+			if not w then w, h = layouts.Footprint(preset, key, style, K.Scale.Aspect()) end
+			local styled = layouts.Aspect(K.Scale.Aspect(),style,preset,key) or layouts.Style(style,preset,key)
+			if styled and styled.width then w, h = styled.width, styled.height end
 			local left, bottom, right, top = layouts.Rect({ width = w, height = h }, places[key], root:GetWidth(), root:GetHeight())
 			for _, card in ipairs({ damage, threat }) do
 				assert(card.right <= left + 1 or right <= card.left + 1 or card.top <= bottom + 1 or top <= card.bottom + 1,
