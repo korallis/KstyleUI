@@ -2472,6 +2472,7 @@
 	"Which layer the element draws in, from back to front.",
 	"Which side of the bars the portrait sits on.",
 	"Which side of the frame the auras sit on.",
+	"Which side of the other element this one sits on.",
 	"Which way a new row of debuff icons goes.",
 	"Which way a row of debuffs grows.",
 	"Which way new aura icons are added.",

@@ -2479,6 +2479,7 @@ ns.Locale.Add({
 	["Which layer the element draws in, from back to front."] = "Auf welcher Ebene das Element gezeichnet wird, von hinten nach vorn.",
 	["Which side of the bars the portrait sits on."] = "Auf welcher Seite der Leisten das Portr\195\164t sitzt.",
 	["Which side of the frame the auras sit on."] = "Auf welcher Seite des Rahmens die Auren sitzen.",
+	["Which side of the other element this one sits on."] = "Auf welcher Seite des anderen Elements dieses sitzt.",
 	["Which way a new row of debuff icons goes."] = "In welche Richtung eine neue Reihe Schw\195\164chungssymbole geht.",
 	["Which way a row of debuffs grows."] = "In welche Richtung eine Reihe Schw\195\164chungszauber w\195\164chst.",
 	["Which way new aura icons are added."] = "In welche Richtung neue Aura-Symbole hinzukommen.",

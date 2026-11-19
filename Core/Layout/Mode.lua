@@ -139,16 +139,18 @@ local function PlacePlate(plate, frame, w, h)
 	local clear = ns.Store.Module("LayoutControls").clearMovers
 	plate.label:ClearAllPoints()
 	plate.info:ClearAllPoints()
+	local attached = Layout.Element(plate.key).settings.attachTo ~= ""
 	if clear then
 		Widgets.Point(plate.label, "TOPLEFT", plate, "TOPLEFT", 4, -2)
-		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
 	else
 		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
-		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 	end
-	if Layout.Element(plate.key).settings.attachTo ~= "" then
-		plate.info:ClearAllPoints()
+	if attached then
 		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
+	elseif clear then
+		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
+	else
+		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 	end
 	plate.tag:SetShown(clear)
 end

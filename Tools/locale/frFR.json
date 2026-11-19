@@ -2472,6 +2472,7 @@
 	"Which layer the element draws in, from back to front.": "Sur quelle strate l'élément se dessine, de l'arrière vers l'avant.",
 	"Which side of the bars the portrait sits on.": "De quel côté des barres se place le portrait.",
 	"Which side of the frame the auras sit on.": "De quel côté du cadre se placent les auras.",
+	"Which side of the other element this one sits on.": "De quel côté de l’autre élément celui-ci se place.",
 	"Which way a new row of debuff icons goes.": "Dans quel sens va une nouvelle rangée d'icônes d'affaiblissements.",
 	"Which way a row of debuffs grows.": "Dans quel sens croît une rangée d'affaiblissements.",
 	"Which way new aura icons are added.": "Dans quel sens s'ajoutent les nouvelles icônes d'auras.",

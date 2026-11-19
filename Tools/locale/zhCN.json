@@ -2472,6 +2472,7 @@
 	"Which layer the element draws in, from back to front.": "元素绘制在哪一层，从后到前。",
 	"Which side of the bars the portrait sits on.": "头像位于条的哪一侧。",
 	"Which side of the frame the auras sit on.": "光环位于框体的哪一侧。",
+	"Which side of the other element this one sits on.": "此元素位于另一元素的哪一侧。",
 	"Which way a new row of debuff icons goes.": "新一行负面效果图标的方向。",
 	"Which way a row of debuffs grows.": "一行负面效果的增长方向。",
 	"Which way new aura icons are added.": "新光环图标的添加方向。",

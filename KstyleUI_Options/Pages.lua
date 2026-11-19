@@ -267,7 +267,7 @@ function Pages.ElementItems(element, page, level)
 				return choices
 			end, get = get("attachTo", ""), set = set("attachTo"),
 		})
-		add({ kind = "dropdown", label = L["Side"], options = {
+		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."], options = {
 			{ value = "above", label = L["Above"] }, { value = "below", label = L["Below"] },
 			{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
 		}, get = get("side", "above"), set = set("side") })

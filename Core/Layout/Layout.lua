@@ -348,8 +348,7 @@ local CHECK = {
 		return nil, L["an element without a circular link"]
 	end,
 	side = function(_, v)
-		if IsSecret(v) then return nil, L["above, below, left or right"] end
-		if v == "above" or v == "below" or v == "left" or v == "right" then return v end
+		if not IsSecret(v) and (v == "above" or v == "below" or v == "left" or v == "right") then return v end
 		return nil, L["above, below, left or right"]
 	end,
 	offset = CheckOffset,
