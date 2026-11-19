@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   lua:
-    name: lua ${{ matrix.shard }}/2
+    name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, mac-ci, KstyleUI]
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "mac-ci", "KstyleUI"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6]' || '[1, 2]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,6 +56,17 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 7
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'
+        with:
+          path: ~/.cache/lua51/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-lua515
+      - name: Install hosted Lua 5.1
+        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'
+        run: |
+          mkdir -p "$HOME/.cache/lua51/partial"
+          sudo apt-get update -qq
+          sudo apt-get -o Dir::Cache::archives="$HOME/.cache/lua51" install -y lua5.1
       - name: Check the runner's Lua is 5.1.5
         if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
@@ -63,7 +74,8 @@ jobs:
         if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         env:
           SHARD: ${{ matrix.shard }}
-        run: bash scripts/gate.sh lua --shard "$SHARD/2"
+          SHARD_TOTAL: ${{ strategy.job-total }}
+        run: bash scripts/gate.sh lua --shard "$SHARD/$SHARD_TOTAL"
       - name: Record the Lua shard result
         if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

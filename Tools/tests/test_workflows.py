@@ -258,13 +258,17 @@ class WorkflowsTest(unittest.TestCase):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
         self.assertRegex(job, r"(?m)^    timeout-minutes: 15$")
 
-    def test_the_lua_matrix_matches_the_shard_count_the_runner_gets(self):
-        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
-        job = text.split("\n  lua:\n", 1)[1].split("\n\n  ", 1)[0]
-        shards = re.search(r"shard: \[([\d, ]+)\]", job).group(1).split(", ")
-        self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
-        self.assertIn('--shard "$SHARD/{0}"'.format(len(shards)), job)
-        self.assertIn("lua ${{ matrix.shard }}/" + str(len(shards)), job)
+    def test_lua_uses_six_hosted_pr_shards_and_two_mac_staging_or_manual_shards(self):
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
+        self.assertIn("shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6]' || '[1, 2]') }}", job)
+        self.assertIn('name: lua ${{ matrix.shard }}/${{ strategy.job-total }}', job)
+        self.assertIn('SHARD_TOTAL: ${{ strategy.job-total }}', job)
+        self.assertIn('--shard "$SHARD/$SHARD_TOTAL"', job)
+        self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", job)
+        install = next(step for step in job.split("\n      - ") if "name: Install hosted Lua" in step)
+        self.assertIn("if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'", install)
+        self.assertIn('install -y lua5.1', install)
+        self.assertIn('path: ~/.cache/lua51/*.deb', job)
 
     def test_markers_record_each_pr_area_even_after_failure_or_cancellation(self):
         jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
@@ -368,6 +372,11 @@ class WorkflowsTest(unittest.TestCase):
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
                 runner = "runs-on: ubuntu-latest" if job in ("python-package", "pr-rules") else RUNNERS
+                if path.name == "checks.yml" and job == "lua":
+                    for step in body.split("\n      - "):
+                        if re.search(r"\bsudo\b|apt(-get)?\s+(update|install)", step):
+                            self.assertIn("if: github.event_name == 'pull_request' &&", step, "Mac jobs must never run sudo or apt")
+                    runner = "runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}"
                 self.assertIn("\n    " + runner + "\n", body, f"{path.name}: {job}")
                 if runner == RUNNERS:
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")

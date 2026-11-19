@@ -122,16 +122,13 @@ def github_json(path):
 
 
 def push_decision(area):
+    if area == "lua":
+        return True, "staging always checks Mac CPU and cumulative instruction budgets"
     try:
         if os.environ.get("GITHUB_REF") != "refs/heads/staging":
             return True, "staging moved or no proof: running"
         tree = current_tree()
         marker_area = area
-        if area == "lua":
-            shard, total = int(os.environ["SHARD"]), int(os.environ["SHARD_TOTAL"])
-            if not 1 <= shard <= total:
-                return True, "staging moved or no proof: running"
-            marker_area = f"lua-{shard}-of-{total}"
         green = f"green-{tree}-{marker_area}"
         repo = os.environ["GITHUB_REPOSITORY"]
         matches = []

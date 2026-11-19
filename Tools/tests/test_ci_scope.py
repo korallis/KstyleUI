@@ -114,9 +114,9 @@ class ReadByTestsTest(unittest.TestCase):
 
 
 class PushProofTest(unittest.TestCase):
-    def scope(self, *, artifacts=None, run=None, area="lua", event="push", error=None, env=None, total_count=None):
+    def scope(self, *, artifacts=None, run=None, area="python", event="push", error=None, env=None, total_count=None):
         tree = "a" * 40
-        marker = {"id": 2, "name": f"green-{tree}-lua-1-of-2", "created_at": "2026-11-16T12:00:00Z",
+        marker = {"id": 2, "name": f"green-{tree}-python", "created_at": "2026-11-16T12:00:00Z",
                   "expired": False, "workflow_run": {"id": 123}}
         proof = {"id": 123, "path": ".github/workflows/checks.yml", "event": "pull_request",
                  "status": "completed", "conclusion": "success",
@@ -149,11 +149,11 @@ class PushProofTest(unittest.TestCase):
                 self.assertEqual(ci_scope.main([area]), 0)
             return output.read_text(), stdout.getvalue(), calls
 
-    def test_successful_pr_proof_skips_the_exact_tree_and_shard(self):
+    def test_successful_pr_proof_skips_the_exact_tree_and_area(self):
         output, log, calls = self.scope()
         self.assertEqual(output, "run=false\n")
-        self.assertIn("tree " + "a" * 40 + ", area lua-1-of-2 passed in run 123: skipping", log)
-        self.assertIn("name=green-" + "a" * 40 + "-lua-1-of-2", calls[0])
+        self.assertIn("tree " + "a" * 40 + ", area python passed in run 123: skipping", log)
+        self.assertIn("name=green-" + "a" * 40 + "-python", calls[0])
 
     def test_failed_cancelled_or_incomplete_latest_attempt_runs(self):
         for conclusion, status in (("failure", "completed"), ("cancelled", "completed"), (None, "in_progress")):
@@ -161,15 +161,20 @@ class PushProofTest(unittest.TestCase):
                 self.assertEqual(self.scope(run={"path": ".github/workflows/checks.yml", "event": "pull_request",
                                                 "status": status, "conclusion": conclusion})[0], "run=true\n")
 
-    def test_a_marker_for_one_shard_does_not_prove_the_other(self):
-        self.assertEqual(self.scope(env={"SHARD": "2"})[0], "run=true\n")
+    def test_lua_never_reuses_hosted_proof_on_staging(self):
+        for total in (2, 6):
+            marker = {"name": "green-" + "a" * 40 + f"-lua-1-of-{total}"}
+            output, log, calls = self.scope(area="lua", artifacts=[marker])
+            self.assertEqual(output, "run=true\n")
+            self.assertIn("Mac CPU and cumulative instruction budgets", log)
+            self.assertEqual(calls, [])
 
     def test_a_partial_artifact_page_cannot_prove_which_marker_is_newest(self):
         self.assertEqual(self.scope(total_count=101)[0], "run=true\n")
 
     def test_a_different_tree_expired_marker_or_missing_proof_runs(self):
-        for markers in ([], [{"name": "green-" + "b" * 40 + "-lua-1-of-2"}],
-                        [{"id": 2, "name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": True,
+        for markers in ([], [{"name": "green-" + "b" * 40 + "-python"}],
+                        [{"id": 2, "name": "green-" + "a" * 40 + "-python", "expired": True,
                           "created_at": "2026-11-16T12:00:00Z", "workflow_run": {"id": 123}}]):
             with self.subTest(markers=markers):
                 output, log, _ = self.scope(artifacts=markers)
@@ -182,20 +187,20 @@ class PushProofTest(unittest.TestCase):
         self.assertEqual(self.scope(run=run)[0], "run=true\n")
 
     def test_a_newer_red_marker_beats_an_older_green(self):
-        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-python", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}}
                    for i, colour in ((1, "green"), (2, "red"))]
         output, _, _ = self.scope(artifacts=markers)
         self.assertEqual(output, "run=true\n")
 
     def test_a_start_without_an_end_blocks_an_older_green(self):
-        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-python", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}}
                    for i, kind in ((1, "green"), (2, "start"))]
         self.assertEqual(self.scope(artifacts=markers)[0], "run=true\n")
 
     def test_a_newer_green_after_its_start_can_skip(self):
-        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+        markers = [{"id": i, "name": kind + "-" + "a" * 40 + "-python", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": 123}}
                    for i, kind in ((1, "start"), (2, "green"))]
         output, _, calls = self.scope(artifacts=markers)
@@ -203,7 +208,7 @@ class PushProofTest(unittest.TestCase):
         self.assertTrue(any("name=start-" in call for call in calls))
 
     def test_a_newer_green_marker_after_an_older_red_can_skip(self):
-        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+        markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-python", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": 123}}
                    for i, colour in ((1, "red"), (2, "green"))]
         output, _, calls = self.scope(artifacts=markers)
@@ -212,14 +217,14 @@ class PushProofTest(unittest.TestCase):
 
     def test_markers_with_the_same_timestamp_cannot_prove_which_is_newest(self):
         for colours in (("green", "red"), ("green", "green"), ("green", "start")):
-            markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+            markers = [{"id": i, "name": colour + "-" + "a" * 40 + "-python", "expired": False,
                         "created_at": "2026-11-16T12:00:00Z", "workflow_run": {"id": 123}}
                        for i, colour in enumerate(colours, 1)]
             with self.subTest(colours=colours):
                 self.assertEqual(self.scope(artifacts=markers)[0], "run=true\n")
 
     def test_newest_marker_must_pass_even_if_an_older_marker_did(self):
-        markers = [{"id": i, "name": "green-" + "a" * 40 + "-lua-1-of-2", "expired": False,
+        markers = [{"id": i, "name": "green-" + "a" * 40 + "-python", "expired": False,
                     "created_at": f"2026-11-16T12:00:0{i}Z", "workflow_run": {"id": i}} for i in (1, 2)]
         output, _, calls = self.scope(artifacts=markers, run={"conclusion": "failure"})
         self.assertEqual(output, "run=true\n")
