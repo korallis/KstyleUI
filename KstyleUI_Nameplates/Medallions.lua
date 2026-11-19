@@ -11,17 +11,17 @@ ns.Medallions = Medallions
 
 local STYLE = "medallions"
 local OWNER = "Nameplates.Medallions"
-local WIDTH, HEIGHT = 120, 9
+local WIDTH, HEIGHT = 120, Tokens.Size("barHeight")
 local LOOK = {
-	["name.size"] = 11,
+	["name.size"] = Tokens.Size("medallionsPlateNameSize"),
 	["name.outline"] = "OUTLINE",
-	["level.size"] = 12,
+	["level.size"] = Tokens.Size("number"),
 	["level.outline"] = "OUTLINE",
 	["debuffs.size"] = 22,
 	["debuffs.textSize"] = 11,
 }
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
-local NAME_FACE = "InterSemiBold"
+local NAME_FACE = Tokens.MEDALLIONS_PLATE_NAME_FACE
 local TICK_WIDTH, TICK_GAP, TICK_OVERHANG = 2, 3, 2
 local LEVEL_GAP = TICK_GAP + TICK_WIDTH + 2
 local GUNMETAL = { Tokens.Color("medGunLit") }

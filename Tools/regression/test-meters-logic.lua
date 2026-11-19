@@ -30,7 +30,7 @@ assert(Logic.FormatPercent(nil) == "", "no percentage reads as empty text")
 -- number never goes through it; a secret does, with KstyleUI's breakpoints.
 local SHORT = {
 	{ 7.7643575668335, "7" }, { 38.4, "38" }, { 412.7, "412" }, { 999.9, "999" }, { 1000, "1K" }, { 1240, "1.2K" },
-	{ 2840, "2.8K" }, { 12400, "12K" }, { 1240000, "1.2M" }, { 12400000, "12M" }, { 1240000000, "1.2B" },
+	{ 2840, "2.8K" }, { 12400, "12.4K" }, { 1240000, "1.2M" }, { 12400000, "12.4M" }, { 1240000000, "1.2B" },
 }
 for _, case in ipairs(SHORT) do
 	assert(Logic.Abbreviate(case[1]) == case[2], "plain " .. case[1] .. " reads " .. case[2] .. ", got " .. tostring(Logic.Abbreviate(case[1])))
@@ -42,8 +42,8 @@ assert(Logic.Abbreviate(0) == "0" and Logic.Abbreviate(0.7396) == "0", "under on
 assert(Logic.Abbreviate(nil) == "", "nothing reads as empty text")
 assert(Logic.Abbreviate(0 / 0) == "", "NaN reads as empty text")
 assert(Logic.FormatRate(S(38.4), "dps") ~= "" and env.Reveal(Logic.FormatRate(S(38.4), "dps")) == "38 dps", "a secret rate is whole and keeps its unit")
-assert(env.Reveal(Logic.FormatRate(S(12400), "dps")) == "12K dps", "a large secret rate is abbreviated")
-assert(Logic.FormatRate(12400, "dps") == "12K dps" and Logic.FormatRate(38.4, "dps") == "38.4 dps", "a plain rate keeps one decimal under 1000")
+assert(env.Reveal(Logic.FormatRate(S(12400), "dps")) == "12.4K dps", "a large secret rate is abbreviated")
+assert(Logic.FormatRate(12400, "dps") == "12.4K dps" and Logic.FormatRate(38.4, "dps") == "38.4 dps", "a plain rate keeps one decimal under 1000")
 
 -- A client that refuses the breakpoints keeps the game's own abbreviation for a secret, and a client without
 -- AbbreviateLargeNumbers shows nothing for it. A plain number never needs the game.

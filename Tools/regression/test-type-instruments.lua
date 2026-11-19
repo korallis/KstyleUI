@@ -20,7 +20,7 @@ do
 	local list = ns.BarList.New(K.Scale.Root(), "damage", { width = 269, height = 158, block = true, columns = function() return { value = true, percent = true } end })
 	list:SetRow(1, "Lightning Bolt", "SHAMAN", "friendly", 60, 100, "60", "60%")
 	local row = list.rows[1]
-	assert(row.name:GetFont() == K.Tokens.FontPath("BarlowSemiBold"), "C3: meter row names use Barlow sans")
+	assert(row.name:GetFont() == K.Tokens.FontPath(K.Tokens.MEDALLIONS_PLATE_NAME_FACE), "C3: meter row names use the nameplate sans face")
 	local before = { row.bar:GetStatusBarColor() }
 	K.Options.Write("Meters", "instrumentNames", false)
 	list:Restyle()

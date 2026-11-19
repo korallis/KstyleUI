@@ -1,4 +1,4 @@
--- BarList.lua: the meter card the damage and threat meters share: a section cap with the title and an aside or a fight switch, full-width rows (the threat meter's over a flat 4-unit class pill, the damage card's as full-height bars with the name inside the fill and the amount and share at the right), and a split that opens under a hovered row, inside the card.
+-- BarList.lua: the meter card the damage and threat meters share: a section cap with the title and an aside or a fight switch, one row builder for damage and threat, with class-coloured bars, names and amount/share above the bar, and a split that opens under a hovered row, inside the card.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,10 +8,6 @@ local max, min, floor, abs = math.max, math.min, math.floor, math.abs
 
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
-local FILL_ALPHA = 0.5
-local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
-local PILL_HEIGHT = 4
-local PILL_GAP = 3
 local TEXT_AIR = 2
 local ICON_CROP = 0.08
 local MORE_GLYPH = 10
@@ -20,11 +16,7 @@ local CAP_RULE = 4
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
-local BLOCK_PAD = 16
-local BLOCK_CAP_LEFT = 12
-local BLOCK_CAP_TOP = 14.5
-local BLOCK_TOP = 35.5
-local BLOCK_TEXT_INSET = 7
+local BLOCK_TEXT_INSET = 0
 local BLOCK_SWITCH_REACH = 120
 local BLOCK_ICON_GAP = 2
 local DOT = "\194\183"
@@ -95,10 +87,6 @@ function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel, path)
 	return ((lastChar and rsb[lastChar]) or BEARING_DEFAULT) * size + dotLsb * size - gap, ((firstChar and lsb[firstChar]) or BEARING_DEFAULT) * size + dotRsb * size - gap
 end
 BarList.DOT_GAP_EM = DOT_GAP_EM
-ns.FILL_ALPHA = FILL_ALPHA
-BarList.PILL_HEIGHT = PILL_HEIGHT
-BarList.PILL_GAP = PILL_GAP
-BarList.LIT_ALPHA, BarList.SHADE_ALPHA = LIT_ALPHA, SHADE_ALPHA
 
 local List = {}
 
@@ -136,13 +124,14 @@ local function NewRow(list, index, parent, passive)
 	local frame = CreateFrame("Frame", nil, parent or list.panel)
 	local bar = Widgets.StatusBar(frame, {
 		texture = ns.Get(section .. ".texture"),
-		background = "buttonFill",
+		background = "barTrack",
+		border = true,
 		smooth = true,
 		min = 0,
 		max = 1,
 		value = 0,
 		width = width,
-		height = list.block and list.rowHeight or PILL_HEIGHT,
+		height = Tokens.Size("barHeight"),
 	})
 	local icon = frame:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
@@ -155,13 +144,16 @@ local function NewRow(list, index, parent, passive)
 	end
 	local ink = frame
 	if list.block then
-		bar.keyline:Hide()
-		bar:SetLitShade(LIT_ALPHA, SHADE_ALPHA)
 		ink = CreateFrame("Frame", nil, frame)
 		ink:SetAllPoints(frame)
 		ink:SetFrameLevel(bar:GetFrameLevel() + 1)
 	end
+	local wash = frame:CreateTexture(nil, "HIGHLIGHT")
+	wash:SetAllPoints(frame)
+	wash:SetColorTexture(Tokens.Color("rowHover"))
+	wash:Hide()
 	local row = {
+		wash = wash,
 		index = index,
 		frame = frame,
 		bar = bar,
@@ -183,7 +175,8 @@ local function NewRow(list, index, parent, passive)
 		more:Hide()
 		row.more = more
 	end
-	if (list.rowSplit or list.rowTooltip or list.tooltip) and not passive then
+	if not passive then
+		frame:EnableMouse(true)
 		frame:HookScript("OnEnter", function()
 			RowEnter(list, row)
 		end)
@@ -408,6 +401,7 @@ function HideSplit(list)
 end
 
 function RowEnter(list, row)
+	row.wash:Show()
 	local frame = row.frame
 	local splits = list.rowSplits ~= nil and list.rowSplits(list, row.index) == true
 	if row.more then
@@ -436,6 +430,7 @@ function RowEnter(list, row)
 end
 
 function RowLeave(list, row)
+	row.wash:Hide()
 	if row.more then
 		row.more:Hide()
 	end
@@ -446,13 +441,14 @@ function RowLeave(list, row)
 	end
 end
 
+local function NameSize(section)
+	return Tokens.Size(Widgets.Medallions() and "medallionsPlateNameSize" or "plateNameSize") * ns.Get(section .. ".fontSize") / Tokens.Size("number")
+end
+
 local function RowUnits(list)
 	local section = list.section
-	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
-	local text = em + TEXT_AIR
-	if not list.block then
-		text = text + PILL_GAP + PILL_HEIGHT
-	end
+	local em = max(NameSize(section), ns.Get(section .. ".fontSize") * K.Theme.FontScale())
+	local text = em + TEXT_AIR + Tokens.Size("barHeight")
 	return max(ns.Get(section .. ".rowHeight"), text)
 end
 
@@ -472,7 +468,7 @@ local function HeightUnits(list)
 end
 
 function List:Capacity()
-	local pad = self.block and BLOCK_PAD or self.panel.chrome:InsetUnits()
+	local pad = self.panel.chrome:InsetUnits()
 	return Logic.FitRows(HeightUnits(self) - self:Top(pad) - pad, RowUnits(self), ns.Get(self.section .. ".spacing"))
 end
 
@@ -480,9 +476,6 @@ function List:Top(pad)
 	pad = pad or self.pad
 	if not ns.Get(self.section .. ".title") then
 		return pad
-	end
-	if self.block then
-		return BLOCK_TOP
 	end
 	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP)
 end
@@ -495,15 +488,20 @@ local function Recolor(list, row)
 	end
 end
 
+function BarList.StyleName(text, section)
+	local medallions = Widgets.Medallions()
+	local path = medallions and Tokens.FontPath(Tokens.MEDALLIONS_PLATE_NAME_FACE) or ns.FontPath(section, "names")
+	if not K.Theme.FollowsKit(ns.Get(section .. ".font")) then path = ns.FontPath(section) end
+	local size = NameSize(section)
+	if medallions and not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") end
+	Widgets.StyleText(text, "names")
+	Widgets.ApplyFont(text, path, size, ns.Get(section .. ".outline"))
+end
+
 function StyleRow(list, row)
 	local section = list.section
-	local medallions = Widgets.Medallions()
-	local figures = (list.block or medallions) and "number" or nil
-	ns.ApplyFont(row.name, section, nil, medallions and "unit" or nil)
-	if medallions and ns.Get("instrumentNames") then
-		local path = K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section)
-		Widgets.ApplyFont(row.name, path, 11 * K.Theme.FontScale(), select(3, row.name:GetFont()))
-	end
+	local figures = "number"
+	BarList.StyleName(row.name, section)
 	ns.ApplyFont(row.value, section, nil, figures)
 	ns.ApplyFont(row.percent, section, nil, figures)
 	if row.dot then
@@ -560,10 +558,10 @@ local function PlaceBlockText(list, row)
 	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
 	local frame = row.frame
 	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
-	local rowHeight = list.rowHeight
+	local rowHeight = list.rowHeight - Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR)
 	local joined = list.percentWidth > 0 and row.joined == true
 	row.percent:ClearAllPoints()
-	Widgets.Point(row.percent, "RIGHT", frame, "RIGHT", -inset, 0)
+	Widgets.Point(row.percent, "TOPRIGHT", frame, "TOPRIGHT", -inset, 0)
 	row.percent:SetHeight(rowHeight)
 	row.percent:SetWidth(0)
 	row.percent:SetShown(joined)
@@ -587,10 +585,10 @@ local function PlaceBlockText(list, row)
 		dot:Show()
 		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
-		Widgets.Point(row.value, "RIGHT", frame, "RIGHT", -inset, 0)
+		Widgets.Point(row.value, "TOPRIGHT", frame, "TOPRIGHT", -inset, 0)
 	end
 	row.name:ClearAllPoints()
-	Widgets.Point(row.name, "LEFT", row.bar, "LEFT", inset, 0)
+	Widgets.Point(row.name, "TOPLEFT", frame, "TOPLEFT", row.nameInset or 0, 0)
 	if list.valueWidth > 0 then
 		row.name:SetPoint("RIGHT", row.value, "LEFT", -gap, 0)
 	else
@@ -604,13 +602,14 @@ function PlaceBlockRow(list, row, y, parent, x)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", parent or panel, "TOPLEFT", x or list.pad, -y)
 	frame:SetSize(max(1, list.barWidth), list.rowHeight)
-	local slot = list.blockIcons and list.rowHeight or 0
+	local slot = list.blockIcons and list.rowHeight - Widgets.Snap(panel, Tokens.Size("barHeight") + TEXT_AIR) or 0
 	local reach = slot > 0 and slot + Widgets.Snap(panel, BLOCK_ICON_GAP) or 0
-	bar.opts.width = max(1, list.barWidth - reach)
-	bar.opts.height = list.rowHeight
+	row.nameInset = reach
+	bar.opts.width = max(1, list.barWidth)
+	bar.opts.height = Widgets.Snap(panel, Tokens.Size("barHeight"))
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", reach, 0)
+	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
 	bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 	local back, icon = row.back, row.icon
 	back:ClearAllPoints()
@@ -627,56 +626,8 @@ function PlaceBlockRow(list, row, y, parent, x)
 end
 
 local function PlaceRow(list, row, i)
-	local rowHeight = list.rowHeight
-	local spacing = Spacing(list)
-	local pad, gap = list.pad, list.gap
-	local panel = list.panel
-	local y = Widgets.Snap(panel, list:Top()) + (i - 1) * (rowHeight + spacing)
-	if list.block then
-		PlaceBlockRow(list, row, y)
-		return
-	end
-	local frame, bar = row.frame, row.bar
-	frame:ClearAllPoints()
-	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -y)
-	frame:SetSize(max(1, list.barWidth), rowHeight)
-	local pill = Widgets.Snap(panel, PILL_HEIGHT)
-	bar.opts.width = max(1, list.barWidth)
-	bar.opts.height = pill
-	bar:Restyle()
-	bar:ClearAllPoints()
-	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
-	local line = rowHeight - pill - Widgets.Snap(panel, PILL_GAP)
-	row.percent:ClearAllPoints()
-	row.percent:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-	row.percent:SetSize(list.percentWidth, line)
-	row.value:ClearAllPoints()
-	if list.percentWidth > 0 then
-		row.value:SetPoint("RIGHT", row.percent, "LEFT", -gap, 0)
-	else
-		row.value:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-	end
-	row.value:SetSize(list.valueWidth, line)
-	row.value:SetShown(list.valueWidth > 0)
-	row.percent:SetShown(list.percentWidth > 0)
-	local stop = list.valueWidth > 0 and row.value or list.percentWidth > 0 and row.percent or nil
-	row.name:ClearAllPoints()
-	row.icon:ClearAllPoints()
-	if list.icons then
-		row.icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-		row.icon:SetSize(line, line)
-		row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", gap, 0)
-	else
-		row.icon:Hide()
-		row.name:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-	end
-	row.name:SetHeight(line)
-	if stop then
-		row.name:SetPoint("RIGHT", stop, "LEFT", -gap, 0)
-	else
-		row.name:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
-	end
-	PlaceMore(list, row)
+	local y = Widgets.Snap(list.panel, list:Top()) + (i - 1) * (list.rowHeight + Spacing(list))
+	PlaceBlockRow(list, row, y)
 end
 
 local function Floor(list, units)
@@ -725,9 +676,9 @@ local function CapReserve(list)
 	if list.stripReserve then
 		local title = Logic.Plain(select(4, list.title:GetPoint(1)))
 		local gem = Logic.Plain(select(4, list.cap.gem:GetPoint(1)))
-		if title and gem then return title + gem + (list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0) end
+		if title and gem then return title + gem end
 	end
-	return Widgets.SECTION_CAP_CHROME + CAP_RULE + (list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0)
+	return Widgets.SECTION_CAP_CHROME + CAP_RULE
 end
 
 local function Fits(list)
@@ -780,7 +731,7 @@ end
 function List:Restyle()
 	self.textLayout = (self.textLayout or 0) + 1
 	local section = self.section
-	self.pad = self.block and Widgets.Snap(self.panel, BLOCK_PAD) or self.panel.chrome:Inset()
+	self.pad = Widgets.Snap(self.panel, self.panel.chrome:InsetUnits())
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
 	local em = Widgets.FontSize(self.title, ns.Get(section .. ".fontSize") * K.Theme.FontScale())
@@ -794,8 +745,8 @@ function List:Restyle()
 	local cap = self.cap
 	cap.frame:SetShown(titled)
 	cap.frame:ClearAllPoints()
-	local capLeft = self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad
-	local capTop = self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad
+	local capLeft = self.pad
+	local capTop = self.pad
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
 	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -capTop)
 	cap:Restyle()
@@ -1017,7 +968,7 @@ end
 function List:SetTitleSwitch(first, second, selected)
 	self.switchFirst, self.switchSecond, self.switchPick = first, second, selected
 	self:PaintTitleSwitch()
-	if self.stripReserve then HoldTitle(self) end
+	HoldTitle(self)
 end
 
 function List:ShowRest()
@@ -1112,7 +1063,7 @@ function BarList.New(parent, section, opts)
 	list.rowTooltip = opts.rowTooltip
 	list.rowSplits = opts.rowSplits
 	list.rowSplit = opts.rowSplit
-	list.block = opts.block == true
+	list.block = true
 	list.iconsOn = opts.icons
 	list.key = opts.key
 	list.icons = false

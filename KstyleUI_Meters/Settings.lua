@@ -12,6 +12,10 @@ local MAX_SPACING = 12
 local MIN_WARN, MAX_WARN, WARN_STEP = 50, 100, 5
 local NO_OUTLINE = ""
 local CHANNELS = { "r", "g", "b" }
+local SHARED_ROWS = {}
+for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "titleSize" }) do
+	SHARED_ROWS["threat." .. key] = "damage." .. key
+end
 
 local function Rgb(name)
 	local r, g, b = Tokens.Color(name)
@@ -36,8 +40,8 @@ local function Bars(fill, texture, colorSource)
 	}
 end
 
-local function Text(size)
-	return { font = "", fontSize = size, outline = NO_OUTLINE }
+local function Text(size, outline)
+	return { font = "", fontSize = size, outline = outline or NO_OUTLINE }
 end
 
 local function Merge(...)
@@ -51,7 +55,7 @@ local function Merge(...)
 end
 
 local CAPTION = Tokens.Size("caption")
-local ROW, SPACING, ROW_TEXT = 18, 2, 12
+local ROW, ROW_TEXT = 27, Tokens.Size("number")
 local DAMAGE_SPACING = 3
 
 ns.defaults = {
@@ -61,7 +65,7 @@ ns.defaults = {
 	instrumentNames = true,
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
-	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT), {
+	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT, "OUTLINE"), {
 		shown = true,
 		group = false,
 		mode = "auto",
@@ -74,14 +78,14 @@ ns.defaults = {
 		percent = true,
 		icons = true,
 	}),
-	threat = Merge(Bars("left"), Text(ROW_TEXT), {
+	threat = Merge(Bars("left", "Flat"), Text(ROW_TEXT, "OUTLINE"), {
 		followGuide = true,
 		shown = true,
 		group = true,
 		pets = true,
 		value = "both",
 		rowHeight = ROW,
-		spacing = SPACING,
+		spacing = DAMAGE_SPACING,
 		title = true,
 		titleSize = CAPTION,
 		warnings = true,
@@ -181,6 +185,7 @@ end
 local function Off(section)
 	return function(settings)
 		if section ~= "swing" then
+			if section == "damage" then return not ns.MeterShown("damage") and not ns.MeterShown("threat") end
 			return not ns.MeterShown(section)
 		end
 		return type(settings[section]) == "table" and settings[section].shown == false
@@ -311,7 +316,7 @@ ListRows("damage", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
-schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
+schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Marks the card when a player passes 90 percent of your threat. Off keeps usual warnings."] }
 schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
 schema[#schema + 1] = {
 	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),
@@ -336,9 +341,8 @@ schema[#schema + 1] = {
 }
 schema[#schema + 1] = {
 	type = "slider", key = "threat.dangerAt", label = L["Danger at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
-	help = L["The threat percentage that turns the meter red and makes it pulse."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
+	help = L["The threat percentage that marks the card with the danger accent."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
 }
-ListRows("threat", schema)
 
 schema[#schema + 1] = { type = "header", label = L["Swing timer"] }
 schema[#schema + 1] = {
@@ -440,6 +444,7 @@ end
 local warned = {}
 
 function ns.Get(key)
+	key = SHARED_ROWS[key] or key
 	local default = Lookup(ns.defaults, key)
 	if default == nil then
 		error("KstyleUI_Meters: unknown setting " .. tostring(key), 2)

@@ -4,6 +4,7 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 
 local function Pair(env, K, ns)
 	local root = K.Scale.Root()
+	assert(K.Scale.AppliedUserScale() >= K.Scale.DEFAULT_USER_SCALE, "Both must fit without shrinking the HUD below the shipped size")
 	local damage = assert(Geometry.Rect(ns.Damage.list.panel, root))
 	local threat = assert(Geometry.Rect(ns.Threat.list.panel, root))
 	assert(ns.Damage.list.panel:IsVisible() and ns.Threat.list.panel:IsVisible(), "Both must show two separate cards")
@@ -14,19 +15,23 @@ local function Pair(env, K, ns)
 	local layouts, style = K.Setup.Layouts, K.HudStyle.Current()
 	local preset = K.Store.Module("Layout").preset
 	local places = layouts.Positions(preset, style, K.Scale.Aspect())
-	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.pet", "actionbars.stance" }) do
-		local w, h = layouts.StyleSize(style, K.Scale.Aspect(), key)
-		if not w then w, h = layouts.Footprint(preset, key) end
-		local left, bottom, right, top = layouts.Rect({ width = w, height = h }, places[key], root:GetWidth(), root:GetHeight())
-		for _, card in ipairs({ damage, threat }) do
-			assert(card.right <= left + 1 or right <= card.left + 1 or card.top <= bottom + 1 or top <= card.bottom + 1,
-				string.format("%s %s: meter %.1f %.1f %.1f %.1f overlaps %s %.1f %.1f %.1f %.1f; move the meter area clear of the action and pet slabs", style, preset, card.left, card.bottom, card.right, card.top, key, left, bottom, right, top))
+	for _, element in ipairs(layouts.ELEMENTS) do
+		local key = element.key
+		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and (key == "unitframes.player" or key == "unitframes.resource")) then
+			local w, h = layouts.StyleSize(style, K.Scale.Aspect(), key)
+			if not w then w, h = layouts.Footprint(preset, key, style) end
+			if places[key].width then w, h = places[key].width, places[key].height end
+			local left, bottom, right, top = layouts.Rect({ width = w, height = h }, places[key], root:GetWidth(), root:GetHeight())
+			for _, card in ipairs({ damage, threat }) do
+				assert(card.right <= left + 1 or right <= card.left + 1 or card.top <= bottom + 1 or top <= card.bottom + 1,
+					string.format("%s %s: meter %.1f %.1f %.1f %.1f overlaps %s %.1f %.1f %.1f %.1f; move the meter area clear of the other HUD elements", style, preset, card.left, card.bottom, card.right, card.top, key, left, bottom, right, top))
+			end
 		end
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
-for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
@@ -42,22 +47,28 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local layouts = K.Setup.Layouts
 			local limit = layouts.ScaleLimit
 			layouts.ScaleLimit = function(w, h, preset, _, hudStyle)
-				return limit(w, h, preset, layouts.Enabled(preset), hudStyle)
+				local enabled = layouts.Enabled(preset)
+				local meters = layouts.Enabled(preset, K.Store.Profile())
+				enabled["meters.damage"], enabled["meters.threat"] = meters["meters.damage"], meters["meters.threat"]
+				return limit(w, h, preset, enabled, hudStyle)
 			end
 			assert(K.Setup.Apply({ layout = layout, modules = { Meters = true } }))
 			env.RunTimers()
+			assert(K.Scale.AppliedUserScale() >= K.Scale.DEFAULT_USER_SCALE, style .. " " .. layout .. " " .. screen[1] .. "x" .. screen[2] .. ": the pair must fit without shrinking the whole HUD below the shipped size: " .. K.Scale.AppliedUserScale())
 			assert(ns.Get("roles.DAMAGER") == "damage", "DPS defaults to Damage")
 			assert(ns.Damage.holder:IsShown() and not ns.Threat.holder:IsShown(), "Damage shows only damage")
 			M.Write(env, K, "roles.DAMAGER", "threat")
 			assert(not ns.Damage.holder:IsShown() and ns.Threat.list.panel:IsVisible(), "Threat shows only threat")
 			local singleWidth = ns.Threat.holder:GetWidth()
 			M.Write(env, K, "roles.DAMAGER", "both")
+			env.RunTimers()
 			Pair(env, K, ns)
 			M.Write(env, K, "roles.DAMAGER", "threat")
 			assert(ns.Threat.holder:GetWidth() == singleWidth, "return to the independent card width")
 			M.Write(env, K, "followRole", false)
 			M.Write(env, K, "damage.shown", true)
 			M.Write(env, K, "threat.shown", true)
+			env.RunTimers()
 			Pair(env, K, ns)
 			M.Write(env, K, "damage.shown", false)
 			assert(not ns.Damage.holder:IsShown() and ns.Threat.holder:GetWidth() == singleWidth, "manual Threat releases the pair")
@@ -71,4 +82,4 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		end
 	end
 end
-print("DPS and manual meter choices ok: 3 styles, 3 layouts, 2 screens")
+print("DPS and manual meter choices ok: 3 styles, 3 layouts, 4 screens")

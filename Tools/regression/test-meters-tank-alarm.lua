@@ -23,15 +23,13 @@ env._threat.player, env._threat.party1 = { true, 3, 100, 100, 1000000 }, { false
 M.Enable(env, K)
 assert(ns.Threat.alarm, "the real threat event path raises the tank alarm")
 local want = { K.Tokens.Color("hostile") }
-local title = M.Last(ns.Threat.list.title, "SetTextColor")
-assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "the alarm colours the card title hostile")
+local title = M.Last(ns.Threat.list.column, "SetTextColor")
+assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "the alarm uses the shared hostile count accent")
 K.Layout.Update("meters.damage", { width = 300 })
 env.RunTimers()
-title = M.Last(ns.Threat.list.title, "SetTextColor")
+title = M.Last(ns.Threat.list.column, "SetTextColor")
 assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "resizing the paired cards must preserve the tank alarm")
-assert(ns.Threat.list.alarmFlash:IsPlaying(), "the alarm starts its flash")
-local alpha = ns.Threat.list.alarmFlash._anims[1]
-assert(alpha:GetDuration() == 0.2, "the alarm flash lasts 200 ms")
+assert(ns.Threat.list.alarmFlash == nil, "the alarm uses the shared card without separate flash art")
 env.UnitGroupRolesAssigned = function() return "TANK" end
 env._threat.player[1] = false
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
@@ -49,7 +47,7 @@ env.RunTimers()
 assert(ns.Threat.alarm)
 K.Options.Write("Meters", "threat.tankAlarm", false)
 env.RunTimers()
-assert(not ns.Threat.alarm and not ns.Threat.list.alarmFlash:IsPlaying(), "Tank alarm off restores the previous quiet title and edge")
+assert(not ns.Threat.alarm and ns.Threat.list.alarmFlash == nil, "Tank alarm off leaves only the ordinary shared warning accent")
 K.Options.Write("Meters", "threat.tankAlarm", true)
 env.RunTimers()
 assert(ns.Threat.alarm, "Tank alarm can be turned back on")

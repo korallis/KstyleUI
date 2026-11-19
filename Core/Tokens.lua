@@ -3,12 +3,14 @@ local _, ns = ...
 
 local Tokens = {}
 ns.Tokens = Tokens
+Tokens.MEDALLIONS_PLATE_NAME_FACE = "InterSemiBold"
 
 local MEDIA = "Interface\\AddOns\\KstyleUI\\Media\\"
 local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
+	rowHover = { "ffffff", 0.05 },
 	visionRGCalm = { "0072b2", 1 },
 	visionRGDanger = { "d55e00", 1 },
 	visionRGWarning = { "f0e442", 1 },
@@ -144,6 +146,9 @@ local COLORS = {
 }
 
 local SIZES = {
+	barHeight = 12,
+	plateNameSize = 16,
+	medallionsPlateNameSize = 11,
 	radius = 14,
 	radiusTile = 8,
 	chamferPanel = 14,

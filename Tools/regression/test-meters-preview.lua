@@ -22,7 +22,7 @@ end
 local build = K.Options.Preview("Meters")
 assert(type(build) == "function", "the Meters schema carries a preview builder")
 local parent = env.CreateFrame("Frame", nil, env.UIParent)
-parent:SetSize(420, 220)
+parent:SetSize(420, 380)
 local frame = build(parent)
 assert(type(frame.Refresh) == "function", "the preview refreshes after a setting changes")
 assert(frame.damage.count > 0, "the preview shows sample damage rows")
@@ -54,7 +54,7 @@ assert(Text(frame.damage.title) == "HEALING PER SECOND", "the sample follows the
 K.Options.Write("Meters", "damage.fontSize", 14)
 frame:Refresh()
 local font = M.Last(frame.damage.rows[1].name, "SetFont")
-assert(font[2] == K.Widgets.FontSize(frame.damage.rows[1].name, 14 * K.Theme.FontScale()), "the requested text size reaches the rows on the physical pixel grid")
+assert(font[2] == K.Widgets.FontSize(frame.damage.rows[1].name, K.Tokens.Size("plateNameSize") * 14 / K.Tokens.Size("number")), "the shared nameplate type scale reaches the rows on the physical pixel grid")
 local textPixels = font[2] * frame.damage.rows[1].name:GetEffectiveScale() * select(2, env.GetPhysicalScreenSize()) / 768
 assert(math.abs(textPixels - math.floor(textPixels + 0.5)) < 1e-6, "the preview font size is whole physical pixels")
 K.Options.Write("Meters", "damage.outline", "OUTLINE")

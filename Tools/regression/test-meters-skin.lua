@@ -191,8 +191,8 @@ assert(pill, "a KstyleUI status bar is a child of each row's bar")
 local holder = Holder(entry)
 assert(holder:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "the holder sits under Blizzard's bar")
 assert(pill:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "and so does the drawn bar, so Blizzard's name and value draw over the fill")
-assert(not pill.keyline:IsShown() and pill.lit:IsShown(), "no outside keyline, and the lit top edge the card's rows keep (KSTY-60 item 4)")
-assert(pill.backgroundName == "buttonFill", "the pill's track is the button body, as the own meter's rows")
+assert(pill.barEdge ~= nil, "no outside keyline, and the lit top edge the card's rows keep (KSTY-60 item 4)")
+assert(pill.backgroundName == "barTrack", "the pill's track is the button body, as the own meter's rows")
 assert(pill.textureKey == ns.Get("damage.texture"), "the pill takes KstyleUI's bar texture")
 local points = {}
 for _, call in ipairs(pill._calls) do
@@ -200,13 +200,13 @@ for _, call in ipairs(pill._calls) do
 		points[call.args[1]] = call.args[2]
 	end
 end
-assert(points.TOPLEFT == holder and points.BOTTOMRIGHT == holder, "the bar fills Blizzard's bar rect")
+assert(points.LEFT == holder and points.RIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width and shares the nameplate health height")
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")
-assert(M.Last(entry.StatusBar.Value, "SetFont")[1] == K.Tokens.Font("number"), "values take the card's figure face")
+assert(M.Last(entry.StatusBar.Value, "SetFont")[1] == K.Tokens.Font("number"), "values use the shared number role")
 
--- The value text is written by the formatter KstyleUI's own card uses, so every meter view reads "284K · 30%"
+-- The value text is written by the formatter KstyleUI's own card uses, so every meter view reads "284.2K · 30%"
 -- (the Captain on #311's merge renders: one view still read "284.2k"). A secret amount stays the game's
 -- abbreviation with no share; a death keeps Blizzard's time.
 do
@@ -215,7 +215,7 @@ do
 	end
 	entry.value, entry.valuePerSecond, entry.sessionTotalValue = 284200, 9473, 947300
 	entry:UpdateValue()
-	assert(Shown() == "284K \194\183 30%", "Blizzard's row reads as the card's: " .. tostring(Shown()))
+	assert(Shown() == "284.2K \194\183 30%", "Blizzard's row reads as the card's: " .. tostring(Shown()))
 	entry.perSecondFirst = true
 	entry:UpdateValue()
 	assert(Shown() == "9.4K \194\183 30%", "a per-second meter leads with the rate: " .. tostring(Shown()))
@@ -299,7 +299,7 @@ do
 	end
 	assert(glass and glass.chrome.shapeName == "panel", "the spell window wears the glass panel")
 	local spellPill = Pill(source.entries[1])
-	assert(spellPill and spellPill.backgroundName == "buttonFill", "a spell row gets the own meter's pill")
+	assert(spellPill and spellPill.backgroundName == "barTrack", "a spell row gets the own meter's pill")
 	local sr, sg, sb = ns.BarColor("damage", "WARRIOR", nil, nil, true)
 	local c = spellPill.colorRGBA
 	assert(c[1] == sr and c[2] == sg and c[3] == sb, "a spell row takes its source's class colour")

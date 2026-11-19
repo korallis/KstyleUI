@@ -225,7 +225,7 @@ local CHAT_WIDTH = { DPS = 442, Tank = 442, Healer = 318 }
 -- and the tooltip anchor stand left of the columns, off every card.
 local EDGE = K.Tokens.Size("screenMargin")
 local MAP, MAP_HEADING, MAP_CAPTION = 208, 22, 14
-local RIGHT_EDGE = { ["minimap.main"] = 208, ["meters.damage"] = 269, ["databars.strip"] = 278 }
+local RIGHT_EDGE = { ["minimap.main"] = 208, ["databars.strip"] = 278 }
 local RAIL_COLUMN, RAIL_PITCH, RAIL_INSET = 36.7, 4.6, 1.4
 local STORY_W, STORY_RAIL_MIN = 278, 280
 -- The aura rows: one row of ten 28-unit icons each, 307 x 42, the buffs 12 left of the map and top-aligned with it,
@@ -292,9 +292,11 @@ for _, name in ipairs(names) do
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
 		assert(same(auraBuffs.w, 307.5) and same(auraBuffs.h, 41.6) and same(auraDebuffs.w, 307.5) and same(auraDebuffs.h, 41.6), label .. ": each aura row is ten 27.6-unit icons 3.5 apart, 307.5 x 41.6")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
-		assert(meter.bottom == EDGE and meter.h == 158, label .. ": the damage card stands at the rail's foot on the margin")
-		assert(math.abs(strip.bottom - meter.top - 6) < 1e-6 and strip.h == 12, label .. ": the readout line stands 6 over the damage card")
+		assert(meter.w == 269 and meter.h == 158, label .. ": the damage card retains its 269 by 158 footprint")
+		assert(math.abs(strip.bottom - EDGE - 158 - 6) < 1e-6 and strip.h == 12, label .. ": the independent readout retains its lower rail slot")
 		local columns = { rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6") }
+		assert(same(meter.right, columns[3].left - 16) and same(meter.top, columns[1].top + K.Tokens.Size("gapLarge") - 16),
+			label .. ": put the meter area below the story cards and left of the side buttons, clear of the stance slab")
 		for i, bar in ipairs(columns) do
 			assert(math.abs(bar.w - RAIL_COLUMN) < 1e-6 and math.abs(bar.h - (12 * RAIL_COLUMN + 11 * RAIL_PITCH)) < 1e-6, label .. ": bar " .. (i + 3) .. " is a column of twelve 36.7-unit slots 4.6 apart")
 			assert(math.abs(bar.bottom - strip.top - 10) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 10 over the readout line")
@@ -422,11 +424,9 @@ for _, name in ipairs(names) do
 		assert(same(tot.x - mid, 317) and same(tot.top, 540 + LIFT), label .. ": the optional target of target keeps its original slot opposite the focus")
 		local clusterTop = 540 + LIFT
 		do
-			-- KSTY-64: the threat card covered nameplates under the target of target once Auto grew, so it leaves the clear
-			-- centre for the right rail, under the quest card's column, a rail gap over the target's top.
 			local threat = rect("meters.threat")
-			assert(same(threat.right, width - EDGE - STORY_W - 16) and same(threat.bottom, target.top + 16), label .. ": the threat card stands under the quest card's column, a rail gap over the target")
-			assert(threat.top <= clusterTop and threat.left >= mid + CLEAR.half, label .. ": the threat card stays under the cluster's top and out of the clear centre")
+			assert(same(threat.right, meter.left - 16) and same(threat.top, meter.top), label .. ": threat and damage have adjacent slots with level headings")
+			assert(threat.bottom > tot.top and threat.left >= mid + CLEAR.half, label .. ": keep threat above the target of target and outside the clear centre")
 		end
 		for _, key in ipairs({ "unitframes.focus", "unitframes.focustarget", "unitframes.targettarget", "unitframes.target" }) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
@@ -530,7 +530,7 @@ do
 		assert(a.anchor == b.anchor and a.x == b.x and a.y == b.y, "Healer keeps the DPS place for " .. key)
 	end
 	local threatW, threatH = Layouts.Footprint("Tank", "meters.threat")
-	assert(threatW == 200 and threatH == 112, "Tank sizes the threat card to the cluster's side, 200 by 112, got " .. threatW .. " x " .. threatH)
+	assert(threatW == 269 and threatH == 112, "Tank sizes the threat card to the cluster's side, 269 by 112, got " .. threatW .. " x " .. threatH)
 	local hs = {}
 	for _, entry in ipairs(Layouts.Settings("Healer")) do hs[entry.module .. "." .. entry.key] = entry.value end
 	assert(hs["GroupFrames.party.auraDispelCount"] == 2 and hs["GroupFrames.raid.auraDispelCount"] == 2, "Healer shows up to two dispellable debuffs first on every frame")
@@ -595,7 +595,7 @@ local FOOTPRINTS = {
 	["auras.buffs"] = { 307.5, 41.6 },
 	["auras.debuffs"] = { 307.5, 41.6 },
 	["meters.damage"] = { 269, 158 },
-	["meters.threat"] = { 200, 112 },
+	["meters.threat"] = { 269, 112 },
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 442, 186 },

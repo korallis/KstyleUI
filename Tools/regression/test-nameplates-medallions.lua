@@ -1,4 +1,4 @@
--- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 22-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
+-- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 12 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 22-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 local function eq(got, want, what)
@@ -65,11 +65,11 @@ env.RunTimers()
 eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 eq(#env._errors, 0, "the switch raised no error: " .. tostring(env._errors[1]))
 
--- The bar: 120 by 9 units, snapped to the plate's pixels.
+-- The bar: 120 by 12 units, snapped to the plate's pixels.
 for _, plate in ipairs({ enemy, friend, boss }) do
 	local w, h = plate:GetSize()
-	assert(near(w, 120, 1) and near(h, 9, 1), "the plate is 120 by 9: " .. w .. " by " .. h)
-	assert(near(plate.barW, 120, 1) and near(plate.barH, 9, 1), "the bar is 120 by 9: " .. plate.barW .. " by " .. plate.barH)
+	assert(near(w, 120, 1) and near(h, K.Tokens.Size("barHeight"), 1), "the plate is 120 by 12: " .. w .. " by " .. h)
+	assert(near(plate.barW, 120, 1) and near(plate.barH, K.Tokens.Size("barHeight"), 1), "the bar is 120 by 12: " .. plate.barW .. " by " .. plate.barH)
 end
 
 -- The name: Inter SemiBold caps, outlined, at the kit's 11-unit text floor.

@@ -82,7 +82,7 @@ local function StyleFont(text, size, outline, role)
 	local flags = OUTLINE_FLAGS[outline] or "OUTLINE"
 	local path = Settings.Get("font", role)
 	if not Widgets.ApplyFont(text, path, size, flags) then
-		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
+		Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
 		LogOnce("font:" .. path, "the font " .. path .. " did not load; plates use the world font")
 	end
 end

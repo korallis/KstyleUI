@@ -341,7 +341,7 @@ local function ClassIcon(class)
 	return icon or nil
 end
 
-local function SetClassIcon(list, i, class)
+function ns.SetClassIcon(list, i, class)
 	local icon = ClassIcon(class)
 	if not icon then
 		list:SetRowIcon(i)
@@ -370,7 +370,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
 		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, Logic.Abbreviate(Amount(source, info)), percentText)
 	end
-	SetClassIcon(list, i, source.classFilename)
+	ns.SetClassIcon(list, i, source.classFilename)
 end
 
 local function FillSources(list, info, session)

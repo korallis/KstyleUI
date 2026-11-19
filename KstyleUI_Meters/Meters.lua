@@ -96,7 +96,7 @@ local function OnSetting(_, module, key)
 		return
 	end
 	local section = type(key) == "string" and key:match("^(%w+)%.") or nil
-	if section == "roles" or key == "damage.shown" or key == "damage.mode" then
+	if section == "roles" or section == "damage" then
 		section = nil
 	end
 	for _, part in ipairs(parts) do

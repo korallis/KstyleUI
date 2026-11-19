@@ -116,7 +116,7 @@ do
 	local default, custom = data.profiles.Default.Nameplates, data.profiles.Custom.Nameplates
 	local _ = default
 	local get = ns.Settings.Get
-	assert(get("name.size") == 16 and get("level.show") == true and get("level.size") == 13 and get("level.outline") == "NONE", "settings still at the old picture's defaults follow the bible")
+	assert(get("name.size") == 16 and get("level.show") == true and get("level.size") == K.Tokens.Size("number") and get("level.outline") == "NONE", "settings still at the old picture's defaults follow the bible")
 	assert(get("debuffs.size") == 29 and get("debuffs.growthX") == "LEFT" and get("debuffs.showTime") == true and get("debuffs.textSize") == 13, "unconfigured debuffs keep their size and gain readable time")
 	local tr, tg, tb = K.Tokens.Color("giltLit")
 	local target = get("target.color")

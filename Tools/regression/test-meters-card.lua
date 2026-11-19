@@ -62,11 +62,13 @@ end
 -- Alone: the card lists the player's own spells at rest, titled by the meter.
 local env, K, ns = M.New({ game = function(e) Fight(e) end })
 M.Enable(env, K)
+K.Layout.Update("meters.damage", { height = 208 })
+env.RunTimers()
 env.RunTimers()
 local list = ns.Damage.list
 assert(list.block, "the damage card draws full-height bars")
 assert(list.count == 5, "the player's five spells show: " .. tostring(list.count))
-assert(W.Near(list.holder:GetWidth(), 269) and W.Near(list.holder:GetHeight(), 158), "the card is the picture's 269 by 158")
+assert(W.Near(list.holder:GetWidth(), 269) and W.Near(list.holder:GetHeight(), 208), "the test card is resized to hold five shared rows")
 
 -- The cap: the meter's name in caps, the rate at its right; the source's name and the fight switch are not shown.
 assert(Plain(Text(list.title)) == "DAMAGE  HEALING", "the cap is the damage and healing switch, not the source: " .. tostring(Text(list.title)))
@@ -99,14 +101,14 @@ M.Write(env, K, "damage.session", "Current")
 for i, spell in ipairs(SPELLS) do
 	local row = list.rows[i]
 	local at = { row.frame:GetPoint(1) }
-	assert(W.Near(row.frame:GetHeight(), 18), i .. ": the row is 18 units tall, got " .. tostring(row.frame:GetHeight()))
-	assert(W.Near(row.bar:GetHeight(), 18), i .. ": the bar is as tall as the row")
-	assert(at[1] == "TOPLEFT" and W.Near(at[4], 16), i .. ": the row is 16 units in from the left")
-	assert(W.Near(-at[5], 35.5 + (i - 1) * 21, 0.51), i .. ": the row is " .. (35.5 + (i - 1) * 21) .. " units under the card's top, got " .. tostring(-at[5]))
-	assert(W.Near(row.frame:GetWidth(), 237), i .. ": the row ends 16 units from the right edge")
+	assert(W.Near(row.frame:GetHeight(), 30), i .. ": the name, number and bar share a 30-unit row, got " .. tostring(row.frame:GetHeight()))
+	assert(W.Near(row.bar:GetHeight(), K.Widgets.Snap(row.bar, K.Tokens.Size("barHeight"))), i .. ": the bar shares the nameplate height")
+	assert(at[1] == "TOPLEFT" and W.Near(at[4], list.pad), i .. ": the row uses the shared card inset")
+	assert(W.Near(-at[5], list:Top() + (i - 1) * (list.rowHeight + list.spacing), 0.51), i .. ": the row is " .. (list:Top() + (i - 1) * (list.rowHeight + list.spacing)) .. " units under the card's top, got " .. tostring(-at[5]))
+	assert(W.Near(row.frame:GetWidth(), 269 - 2 * list.pad), i .. ": the row ends 16 units from the right edge")
 	assert(row.icon:IsShown() and M.Last(row.icon, "SetTexture")[1] == 100 + i, i .. ": the spell's icon leads the row")
-	assert(row.back:IsShown() and W.Near(row.back:GetWidth(), 18) and W.Near(row.back:GetHeight(), 18), i .. ": in a square as tall as the row")
-	assert(W.Near(row.bar:GetWidth(), 237 - 18 - 2), i .. ": the bar starts 2 units after the icon")
+	assert(row.back:IsShown() and W.Near(row.back:GetWidth(), list.rowHeight - K.Tokens.Size("barHeight") - 2) and W.Near(row.back:GetHeight(), row.back:GetWidth()), i .. ": in a square as tall as the row")
+	assert(W.Near(row.bar:GetWidth(), row.frame:GetWidth()), i .. ": the bar spans the whole row under its text")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == tostring(spell[3]), i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
@@ -213,13 +215,13 @@ end
 do
 	local row = list.rows[1]
 	local name = { row.name:GetPoint(1) }
-	assert(name[1] == "LEFT" and name[2] == row.bar and name[4] > 0 and name[4] < 12, "the name starts just inside the bar's left edge")
+	assert(name[1] == "TOPLEFT" and name[2] == row.frame and name[4] >= 0, "the name sits above the bar")
 	local share = { row.percent:GetPoint(1) }
-	assert(share[1] == "RIGHT" and share[4] < 0 and share[4] > -12, "the share ends just inside the bar's right edge")
+	assert(share[1] == "TOPRIGHT" and share[4] == 0, "the figures sit above the bar at the right")
 	assert(M.Last(row.value, "SetFont")[1] == K.Tokens.Font("number"), "the amount is bold")
 	assert(M.Last(row.percent, "SetFont")[1] == K.Tokens.Font("number"), "and so is the share")
 	assert(M.Last(row.dot, "SetFont")[1] == K.Tokens.Font("number"), "and so is the dot")
-	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("body"), "the name is the body face")
+	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("names"), "the name uses the nameplate face")
 	assert(row.name:GetParent() ~= row.frame and row.name:GetParent():GetFrameLevel() > row.bar:GetFrameLevel(), "the text is drawn above the bar")
 	local nr, ng, nb = K.Tokens.Color("textEmphasis")
 	local tnt = M.Last(row.name, "SetTextColor")
@@ -230,7 +232,7 @@ end
 
 -- No class-blue line, no pill: the bar is the whole row and nothing else rides under it.
 assert(list.rows[1].edge == nil and list.rows[1].glow == nil, "no thin line under a row")
-assert(M.Calls(list.rows[1].bar.keyline, "Hide") > 0 and list.rows[1].bar.lit:IsShown(), "no outside keyline; the fill keeps the mock-up's lit top edge (KSTY-60 item 4)")
+assert(list.rows[1].bar.barEdge ~= nil, "the bar uses the same shared edge as nameplates")
 
 -- Clicking a row does nothing: the spell list is the rest state, and there is nothing behind it to go back to.
 local before = env._lastSource
@@ -260,13 +262,15 @@ local cr, cg, cb = ns.BarColor("damage", "SHAMAN", nil, nil, true)
 local br, bg, bb = Color(list.rows[1].bar)
 assert(br == cr and bg == cg and bb == cb, "the class colour source colours a spell by class")
 M.Write(env, K, "damage.colorSource", "school")
-assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 18, "the picture's look is the default")
+assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 27, "the picture's look is the default")
 
 -- In a group the card lists the sources, titled by the meter, with the player's rate in the cap; a click opens one
 -- source's spells, titled by the source.
 do
 	local envG, KG, nsG = M.New({ game = function(e) Fight(e, { raid = false, size = 2 }) end })
 	M.Enable(envG, KG)
+KG.Layout.Update("meters.damage", { height = 208 })
+envG.RunTimers()
 	envG.RunTimers()
 	local group = nsG.Damage.list
 	assert(Plain(Text(group.title)) == "DAMAGE  HEALING" and group.count == 1, "in a group the card lists the sources under the meter's name")
@@ -316,6 +320,8 @@ end
 do
 	local envS, KS, nsS = M.New({ game = function(e) Fight(e) end })
 	M.Enable(envS, KS)
+KS.Layout.Update("meters.damage", { height = 208 })
+envS.RunTimers()
 	envS.RunTimers()
 	local card = nsS.Damage.list
 	local S = envS.Secret
@@ -352,6 +358,8 @@ end
 do
 	local envP, KP, nsP = M.New({ game = function(e) Fight(e) end })
 	M.Enable(envP, KP)
+KP.Layout.Update("meters.damage", { height = 208 })
+envP.RunTimers()
 	envP.RunTimers()
 	local card = nsP.Damage.list
 	assert(Text(card.column) == "38.4 dps", "Now shows the rate")
@@ -395,6 +403,8 @@ local screens = {
 for _, screen in ipairs(screens) do
 	local envS, KS, nsS = M.New({ width = screen[1], height = screen[2], game = function(e) Fight(e) end })
 	M.Enable(envS, KS)
+KS.Layout.Update("meters.damage", { height = 208 })
+envS.RunTimers()
 	envS.RunTimers()
 	local label = screen[1] .. "x" .. screen[2]
 	if screen[1] == 3456 and screen[2] == 2234 then
@@ -417,8 +427,8 @@ for _, screen in ipairs(screens) do
 		local valueX = select(4, row.value:GetPoint(1))
 		local dotX = select(4, row.dot:GetPoint(1))
 		local right = { row.percent:GetPoint(1) }
-		local inset = KS.Widgets.Snap(nsS.Damage.list.panel, 7)
-		assert(right[1] == "RIGHT" and right[2] == row.frame and right[3] == "RIGHT" and W.Near(right[4], -inset), at .. ": the share holds the row's right edge")
+		local inset = 0
+		assert(right[1] == "TOPRIGHT" and right[2] == row.frame and right[3] == "TOPRIGHT" and W.Near(right[4], -inset), at .. ": the share holds the row's right edge")
 		local dotInk = face.lsb["\194\183"]
 		local gaps = {
 			face.rsb["2"] * size + dotInk * size - valueX,

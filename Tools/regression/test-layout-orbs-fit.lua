@@ -51,6 +51,7 @@ end
 -- the chat card. At 1685 x 1123 with Tank the automatic size was 14 steps, 0.8415, and the orb ran 4 units into chat.
 do
 	local enabled = Layouts.Enabled("Tank")
+	enabled["meters.damage"], enabled["meters.threat"] = false, false
 	assert(not Layouts.Fits("Tank", 1685, 1123, 14 * step(1123), enabled, nil, "orbs"), "1685x1123 Tank Orbs: 14 steps puts the health orb over the chat card, so it does not fit")
 	assert(Layouts.Fits("Tank", 1685, 1123, 14 * step(1123), enabled, nil, "frames"), "1685x1123 Tank Frames still fits at 14 steps")
 	local barW, barH = Layouts.Footprint("Tank", "actionbars.bar1")

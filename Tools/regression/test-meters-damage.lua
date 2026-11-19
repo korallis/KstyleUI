@@ -27,6 +27,8 @@ env._session = Session({ Source("Kragar", "WARRIOR", 2840, 28.4), Source("Tester
 local blizzard = env.DamageMeter
 assert(blizzard:GetParent() == env.UIParent, "Blizzard's meter starts on UIParent")
 M.Enable(env, K)
+K.Layout.Update("meters.damage", { height = 208 })
+env.RunTimers()
 local Damage = ns.Damage
 local list = Damage.list
 
@@ -38,35 +40,35 @@ assert(M.Calls(blizzard, "Hide") == 0 and M.Calls(blizzard, "SetScript") == 0, "
 
 -- Each row's track is the near-black button body, as the unit frames' tracks inside their glass.
 do
-	local fr, fg, fb = K.Tokens.Color("buttonFill")
-	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the buttonFill body")
+	local fr, fg, fb = K.Tokens.Color("barTrack")
+	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the barTrack token")
 end
 
 -- The picture's card (test-meters-card.lua pins its numbers): a section cap (gem, tracked title, fading rule, the
 -- rate) over rows that are bars as tall as the row, 16 units in from the card's edge.
 do
-	local inset = 16
+	local inset = list.panel.chrome:InsetUnits()
 	assert(M.W.Near(list.pad, inset), "the meter's padding is the picture's 16 units, got " .. tostring(list.pad))
 	local cap = list.cap
 	assert(cap and cap.gem and cap.title and cap.rule and cap.aside, "the header is the shared section cap")
 	assert(list.title == cap.title and list.column == cap.aside, "the title and the column heading are the cap's title and aside")
 	local capRight = { cap.frame:GetPoint(2) }
 	assert(capRight[1] == "TOPRIGHT" and M.W.Near(capRight[4], -inset), "the cap spans the content width to the same inset from the right")
-	assert(M.W.Near(list:Top(), 35.5), "the rows start 35.5 units under the card's top")
+	assert(M.W.Near(list:Top(), inset + K.Widgets.SECTION_CAP_HEIGHT + K.Tokens.Size("gapMedium")), "the rows start 35.5 units under the card's top")
 	local row = list.rows[1]
 	local frame = { row.frame:GetPoint(1) }
 	assert(frame[1] == "TOPLEFT" and M.W.Near(frame[4], inset), "each row starts the inset from the left")
 	assert(M.W.Near(row.frame:GetWidth(), list.holder:GetWidth() - 2 * inset), "the row spans the content width: " .. tostring(row.frame:GetWidth()))
 	local percent = { row.percent:GetPoint(1) }
-	assert(percent[1] == "RIGHT" and percent[2] == row.frame and percent[3] == "RIGHT" and percent[4] < 0, "the share sits at the row's right end, inside the fill")
+	assert(percent[1] == "TOPRIGHT" and percent[2] == row.frame and percent[3] == "TOPRIGHT" and percent[4] == 0, "the share sits at the row's right end, inside the fill")
 	local value = { row.value:GetPoint(1) }
 	assert(value[2] == row.dot and value[3] == "LEFT", "the value sits left of the dot")
 	assert(row.dot:GetPoint(1) == "RIGHT" and select(2, row.dot:GetPoint(1)) == row.percent, "the dot sits left of the share")
 	local name = { row.name:GetPoint(2) }
 	assert(name[1] == "RIGHT" and name[2] == row.value and name[3] == "LEFT", "the name stops before the value, so a long name never runs under it")
-	assert(M.W.Near(row.bar:GetHeight(), row.frame:GetHeight()), "the bar is as tall as the row")
-	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth() - row.frame:GetHeight() - 2), "the bar spans the row after the icon square and its 2-unit gap")
-	assert(select(2, row.name:GetPoint(1)) == row.bar, "the name starts inside the fill, after the icon")
+	assert(M.W.Near(row.bar:GetHeight(), K.Widgets.Snap(row.bar, K.Tokens.Size("barHeight"))), "the bar shares the nameplate health height")
+	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth()), "the bar spans the row after the icon square and its 2-unit gap")
+	assert(select(2, row.name:GetPoint(1)) == row.frame, "the name starts inside the fill, after the icon")
 	assert(row.edge == nil and row.glow == nil, "no separate edge line and no glow ride on the bar")
 	for _, region in ipairs(row.frame._regions or {}) do
 		local blend = M.Last(region, "SetBlendMode")
@@ -222,6 +224,8 @@ envR._session = Session({
 	Source("Kragar", "WARRIOR", 2840, 28.4), Source("Tester", "HUNTER", 2160, 21.6), Source("Lunara", "MAGE", 900, 9),
 }, 2840, 5900)
 M.Enable(envR, KR)
+KR.Layout.Update("meters.damage", { height = 208 })
+envR.RunTimers()
 assert(nsR.Damage.Mode() == "window", "secret restrictions: auto is KstyleUI's window")
 assert(not nsR.DamageSkin.active and nsR.Damage.holder:IsShown(), "nothing is restyled and the window shows")
 assert(KR.Safe.IsHidden(envR.DamageMeter), "Blizzard's meter is hidden behind it")
@@ -264,6 +268,8 @@ assert(#envR._errors == 0, "no Lua error: " .. tostring(envR._errors[1]))
 -- Without C_DamageMeter the module restyles Blizzard's window from the start.
 local env2, K2, ns2 = M.New({ noMeter = true, game = function(e) e._group = { raid = false, size = 2 } end })
 M.Enable(env2, K2)
+K2.Layout.Update("meters.damage", { height = 208 })
+env2.RunTimers()
 assert(ns2.Damage.Mode() == "skin", "no C_DamageMeter, no window")
 assert(not ns2.Damage.holder:IsShown(), "the window stays hidden")
 assert(not K2.Safe.IsHidden(env2.DamageMeter), "Blizzard's meter stays")
@@ -273,6 +279,8 @@ assert(#env2._errors == 0, "no Lua error: " .. tostring(env2._errors[1]))
 -- The restyle style by choice.
 local env3, K3, ns3 = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 M.Enable(env3, K3)
+K3.Layout.Update("meters.damage", { height = 208 })
+env3.RunTimers()
 M.Write(env3, K3, "damage.mode", "skin")
 assert(not ns3.Damage.holder:IsShown(), "the restyle style hides KstyleUI's window")
 assert(not K3.Safe.IsHidden(env3.DamageMeter), "and keeps Blizzard's meter")

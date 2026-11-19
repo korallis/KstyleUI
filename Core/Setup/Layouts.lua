@@ -53,7 +53,7 @@ local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP 
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
 local DAMAGE_W, DAMAGE_H = 269, 158
-local THREAT_W, THREAT_H = 200, 112
+local THREAT_W, THREAT_H = DAMAGE_W, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
 local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465 }
@@ -168,8 +168,8 @@ local DPS = {
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME), y = -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + STORY_W + GAP), y = 217.5 + LIFT + 102.5 + GAP },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = STORY_BOTTOM - DAMAGE_H - GAP },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = STORY_BOTTOM - THREAT_H - GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -438,7 +438,8 @@ local ORBS = {
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(ORBS_RAIL_X + 3 * RAIL_COLUMN - RAIL_PITCH + GAP), y = ORBS_TRACKED_Y + select(2, ElementSize("cooldowns.bars")) + GAP },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(784 + DAMAGE_W + GAP), y = 736 + DAMAGE_H - THREAT_H },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -784, y = 736 },
 }
 local STORY_STYLES = {
 	orbs = {
@@ -1030,8 +1031,8 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
-			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y + 24 + GAP },
-			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = TIP_Y + 24 + GAP },
+			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = CLUSTER_TOP - THREAT_H },
+			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(SPARE_X + DAMAGE_W + GAP), y = CLUSTER_TOP - THREAT_H },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
@@ -1356,7 +1357,11 @@ function Layouts.Enabled(name, profile)
 				local id = key:match("^[^.]+%.(.+)$")
 				local cast = id:match("^castbar%.(.+)$")
 				local entry = section[cast or id]
-				if cast then
+				if element.module == "Meters" and (id == "damage" or id == "threat") and section.followRole then
+					local role = ns.Specialization.Role()
+					local choice = section.roles and section.roles[role] or (role == "TANK" and "threat" or "damage")
+					on = choice == "both" or choice == id
+				elseif cast then
 					on = type(entry) == "table" and entry.castbar ~= false
 					if on and entry.enabled ~= false then
 						on = entry.style == "plate" or (cast == "player" and entry.style == "column")

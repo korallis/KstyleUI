@@ -268,8 +268,9 @@ function Reference.Build(opts)
 	local style = os.getenv("RENDER_HUD_STYLE") or "Frames"
 	local layout = opts.layout or "DPS"
 	assert(layout == "DPS" or layout == "Tank" or layout == "Healer", "reference layout must be DPS, Tank or Healer")
-	local previous = rawget(_G, "RENDER_SCREEN")
+	local previous, previousMeter = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_METER_CHOICE")
 	rawset(_G, "RENDER_SCREEN", Reference.SCREEN)
+	rawset(_G, "RENDER_METER_CHOICE", opts.meterChoice or previousMeter)
 	local ok, scene = pcall(function()
 		local state = {}
 		for k, v in pairs(Reference.STATE) do
@@ -326,6 +327,7 @@ function Reference.Build(opts)
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)
+	rawset(_G, "RENDER_METER_CHOICE", previousMeter)
 	if not ok then
 		error(scene, 0)
 	end

@@ -33,11 +33,13 @@ for _, row in ipairs(schema) do
 		keys[row.key] = row
 	end
 end
-for _, section in ipairs({ "damage", "threat" }) do
+for _, section in ipairs({ "damage" }) do
 	for _, field in ipairs({ "shown", "font", "fontSize", "outline", "texture", "colorSource", "color", "fill", "titleSize", "rowHeight", "spacing" }) do
 		assert(keys[section .. "." .. field], "the schema has a row for " .. section .. "." .. field)
 	end
 end
+assert(keys["threat.shown"], "threat retains its manual show switch")
+assert(not keys["threat.font"] and not keys["threat.spacing"], "use one set of appearance controls for both meter cards")
 for _, field in ipairs({ "shown", "mainHand", "offHand", "ranged", "font", "fontSize", "outline", "texture", "colorSource", "color", "orientation", "reverse" }) do
 	assert(keys["swing." .. field], "the schema has a row for swing." .. field)
 end
@@ -60,9 +62,9 @@ assert(#fonts >= 2, "the font list holds KstyleUI's fonts")
 -- spreadsheet in ingame-18), the damage card's 3 units apart as the picture draws it (pitch 21) and the threat
 -- meter's 2 apart, text at the unit frames' bar size of 12, five rows in the damage card's 158 units under its
 -- 35-unit cap and three in the threat footprint under the title inside the content inset.
-assert(ns.defaults.damage.rowHeight == 18 and ns.defaults.threat.rowHeight == 18, "rows are 18 units")
-assert(ns.defaults.damage.spacing == 3 and ns.defaults.threat.spacing == 2, "the damage card's rows sit 3 units apart, the threat meter's 2")
-assert(ns.defaults.damage.fontSize == 12 and ns.defaults.threat.fontSize == 12, "row text is the unit frames' 12")
+assert(ns.defaults.damage.rowHeight == 27 and ns.defaults.threat.rowHeight == 27, "both rows start at 27 units")
+assert(ns.defaults.damage.spacing == 3 and ns.defaults.threat.spacing == 3, "both cards share the same row spacing")
+assert(ns.defaults.damage.fontSize == K.Tokens.Size("number") and ns.defaults.threat.fontSize == K.Tokens.Size("number"), "both cards use the nameplate value size")
 assert(ns.Logic.FitRows(158 - 35 - 15, 18, 3) == 5, "the damage card fits five rows under its cap")
 assert(ns.Logic.FitRows(104 - 12 - 9 - 8 - 12, 18, 2) == 3, "the threat footprint fits three rows under its title inside the content inset")
 -- Rows share out the room the last whole row leaves, so no dead band sits under them.

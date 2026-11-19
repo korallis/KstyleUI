@@ -62,7 +62,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 } }) do
 		local root = K.Scale.Root()
 		local t, d = assert(Geometry.Rect(threat.panel, root)), assert(Geometry.Rect(damage.panel, root))
 		assert(t.right <= d.left or d.right <= t.left or t.top <= d.bottom or d.top <= t.bottom, preset .. ": the cards no longer overlap")
-		assert(threat.count == 3, preset .. ": the compact card shows all three live rows")
+		assert(threat.count == 2, preset .. ": the compact card shows the two readable live rows")
 		for i = 1, threat.count do
 			local row = assert(Geometry.Rect(threat.rows[i].frame, root))
 			assert(row.bottom >= t.bottom - 0.01 and row.top <= t.top + 0.01, preset .. ": each visible row stays inside the compact card")
@@ -79,7 +79,7 @@ do
 		{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
 		{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 	}
-	local want = { Threat = 3, Damage = 5 }
+	local want = { Threat = 2, Damage = 3 }
 	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		for _, screen in ipairs(screens) do
 			local label = preset .. " " .. screen[1] .. "x" .. screen[2]
@@ -129,7 +129,7 @@ assert(minimum < list.holder:GetHeight() and RowsBottom(list) <= minimum - list.
 
 -- Full capacity fills the card with rows 18 units tall, 3 apart.
 Show(env, list.capacity + 3)
-assert(list.count == list.capacity and list.capacity == 5, "a long session fills the picture's five rows: " .. tostring(list.count))
+assert(list.count == list.capacity and list.capacity == 3, "a long session fills three readable rows: " .. tostring(list.count))
 assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "a full list fills the holder: " .. tostring(list.panel:GetHeight()))
 assert(RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the card")
 local same = { list.title:GetPoint(1) }

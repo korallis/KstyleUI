@@ -214,6 +214,10 @@ function Common.ForceScreen(env, completePreset)
 				local limit = layouts.ScaleLimit
 				layouts.ScaleLimit = function(w, h, preset, _, hudStyle)
 					local enabled = layouts.Enabled(preset)
+					local choice = rawget(_G, "RENDER_METER_CHOICE") or os.getenv("RENDER_METER_CHOICE")
+					if choice then
+						enabled["meters.damage"], enabled["meters.threat"] = choice ~= "threat", choice ~= "damage"
+					end
 					if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" then
 						enabled["actionbars.bar3"] = true
 					end

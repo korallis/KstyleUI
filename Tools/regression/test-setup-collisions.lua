@@ -34,7 +34,7 @@ end
 -- The quest card's column beside the RestedXP guide's card (KSTY-33): with RestedXP loaded the guide's card holds the
 -- slot and the quests stand a rail gap to its left, so their column must keep clear of everything too.
 local function Quests(name, width)
-	local column = Layouts.Story(name, HEIGHT, true).quests
+	local column = Layouts.Story(name, HEIGHT, true, "frames", width).quests
 	return { Layouts.Rect(column, column, width, HEIGHT) }
 end
 
@@ -60,7 +60,7 @@ local function PhysicalRects(name, width, height, user, enabled)
 			add(element.key, w, h, positions[element.key], offsetX)
 		end
 	end
-	local story = Layouts.Story(name, rh, true)
+	local story = Layouts.Story(name, rh, true, "frames", rw)
 	for _, card in ipairs({ story.guide, story.quests }) do
 		add(card.key, card.width, card.height, card)
 		if card.height < Layouts.STORY_FLOOR then
@@ -134,7 +134,8 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
 			assert(Layouts.Fits(name, width, height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
 			assert(Layouts.Fits(name, width, height, cap, enabled), label .. ": cap fits the snapped footprints")
-			assert(PhysicalFit(name, width, height, cap, enabled), label .. ": independent snapped footprint measurement fits")
+			local measured, why = PhysicalFit(name, width, height, cap, enabled)
+			assert(measured, label .. ": " .. tostring(why) .. "; keep the independent snapped footprints apart")
 			if cap < K.Scale.MAX_USER_SCALE then
 				assert(not Layouts.Fits(name, width, height, cap + 1e-6, enabled), label .. ": binary search reaches the fit boundary")
 				for step = 1, 32 do
@@ -164,8 +165,8 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 				assert(MK.Scale.UserScale() == requested and MK.Appearance.Get("uiScale") == requested, where .. ": the request remains saved and readable")
 				assert(CoreEnv.DeepEqual(MK.Store.Layout()["chat.main"], moved), where .. ": moved elements are unchanged")
 				assert(math.abs(MK.Scale.Root():GetEffectiveScale() * 1080 / 768 - applied) < 1e-9, where .. ": applied size drives the root")
-				local fits, why = PhysicalFit(name, width, height, applied, enabled)
-				assert(fits, where .. ": " .. tostring(why))
+				local fits, failure = PhysicalFit(name, width, height, applied, enabled)
+				assert(fits, where .. ": " .. tostring(failure))
 				assert(Layouts.Fits(name, width, height, applied, enabled), where .. ": predicate agrees with the independent rects")
 				assert(#menv._errors == 0, tostring(menv._errors[1]))
 				capped = capped + 1
@@ -178,14 +179,13 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 	end
 end
 
--- Bar 3 binds Healer on a 16:10 1920 x 1200 screen (0.9948 off, 0.8975 on). KSTY-57 gave Healer the DPS places for
--- its group frames and boss column, so at 1920 x 1080 the boss column binds Healer with bar 3 on or off.
+-- Bar 3 tightens the Healer cap at 1080p; compare enabled sets without crossing the new meter/story boundary.
 do
-	assert(Layouts.Fits("Healer", 1920, 1200, 0.95), "disabled bar 3 must not collide with focus at a size above its own cap")
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "disabled bar 3 must not collide with focus at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
 	enabled["actionbars.bar3"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1200, 0.95, enabled), "the same bar counts when the player enables it")
-	assert(Layouts.ScaleLimit(1920, 1200, "Healer", enabled) < Layouts.ScaleLimit(1920, 1200, "Healer"), "the cache distinguishes enabled-element sets")
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same bar counts when the player enables it")
+	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
 do
@@ -204,12 +204,10 @@ do
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
 end
 
--- Bar 3 binds the Healer preset on a 16:10 1920 x 1200 screen (at 1920 x 1080 the boss column binds first since
--- KSTY-57 gave Healer the DPS places; LEE-69 moved the rail in, so at 3456 x 2234 the target frame and the micro menu
--- bind first).
+-- Exercise live bar-3 resizing where its cap is tighter than the meter/story cap.
 do
 	local menv, MK = CoreEnv.New({
-		width = 1920, height = 1200, fit = true,
+		width = 1920, height = 1080, fit = true,
 		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
 			Default = Profile("Healer", 1.5), WithBar3 = Profile("Healer", 1.5, true), Small = Profile("Healer", 0.7, true),
 		} },

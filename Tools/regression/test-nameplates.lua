@@ -434,7 +434,7 @@ do
 	assert(diamond:GetFrameLevel() > health:GetFrameLevel(), "the diamond draws over the bar")
 	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
 	assert(select(2, plate.name:GetFont()) == 16, "the name reads at 16 units")
-	assert(select(2, plate.levelText:GetFont()) == 13, "the level at 13, 11 px at 1080p, the bible's floor")
+	assert(select(2, plate.levelText:GetFont()) == K.Tokens.Size("number"), "the level shares the number size token")
 	local lr, lg, lb = plate.levelText:GetTextColor()
 	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("giltLit")), "the level reads in lit gilt, as the mock-up's 6")
 	assert(not plate.healthText:IsShown(), "no health text by default: the mock-up's plate shows none")

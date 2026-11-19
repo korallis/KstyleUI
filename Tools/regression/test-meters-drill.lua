@@ -50,9 +50,11 @@ env._session = Session({
 env._sources["Player-1"] = { combatSpells = { Spell(100, 1800, 18), Spell(200, 1200, 12, "Wolf") }, maxAmount = 1800, totalAmount = 3000 }
 env._sources[4242] = { combatSpells = { Spell(200, 500, 5) }, maxAmount = 500, totalAmount = 500 }
 M.Enable(env, K)
+K.Layout.Update("meters.damage", { height = 230 })
+env.RunTimers()
 local Damage = ns.Damage
 local list = Damage.list
-list.holder:SetSize(318, 190)
+list.holder:SetSize(318, 230)
 env.RunTimers()
 assert(list.panel:IsShown() and list.count == 3, "three sources show in a group")
 
@@ -112,7 +114,7 @@ do
 	-- its spell icon, its school-coloured bar, its name and amount, one row pitch apart under the hovered row.
 	assert(split.chrome == nil, "the split draws no bordered box of its own")
 	local first, second = split.lines[1], split.lines[2]
-	assert(first.bar.opts.height == list.rowHeight and first.bar.keyline and not first.bar.keyline:IsShown(), "a spell row is the card's flat full-height bar")
+	assert(first.bar.opts.height == K.Widgets.Snap(first.bar, K.Tokens.Size("barHeight")) and first.bar.barEdge ~= nil, "spell rows use the shared nameplate-height bar")
 	assert(first.icon:IsShown(), "a spell row leads with its icon")
 	local pitch = list.rowHeight + list.spacing
 	local _, _, _, _, y1 = first.frame:GetPoint(1)
@@ -336,6 +338,8 @@ assert(Damage.Mode() == "window", "auto stays KstyleUI's window under secret res
 -- A client without C_DamageMeter: auto is Blizzard's window, restyled, named in the settings.
 local envR, KR, nsR = M.New({ noMeter = true })
 M.Enable(envR, KR)
+KR.Layout.Update("meters.damage", { height = 230 })
+envR.RunTimers()
 local blizzard = envR.DamageMeter
 assert(nsR.Damage.Mode() == "skin", "no C_DamageMeter: Blizzard's window restyled")
 local style = Row(nsR.schema, "damage.mode")

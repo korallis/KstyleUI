@@ -63,13 +63,11 @@ end
 
 local function PlacePill(pill)
 	local bar, holder = pill.bar, pill.holder
-	bar.opts.height = math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or ns.BarList.PILL_HEIGHT))
+	bar.opts.height = Widgets.Snap(bar, Tokens.Size("barHeight"))
 	bar:Restyle()
-	bar.keyline:Hide()
-	bar:SetLitShade(ns.BarList.LIT_ALPHA, ns.BarList.SHADE_ALPHA)
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", holder, "TOPLEFT")
-	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT")
+	bar:SetPoint("LEFT", holder, "LEFT")
+	bar:SetPoint("RIGHT", holder, "RIGHT")
 	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 
@@ -86,13 +84,14 @@ local function NewPill(entry, source)
 	holder:SetFrameLevel(math.max(entry:GetFrameLevel(), source:GetFrameLevel() - LEVEL_ABOVE))
 	local bar = Widgets.StatusBar(holder, {
 		texture = ns.Get("damage.texture"),
-		background = "buttonFill",
+		background = "barTrack",
+		border = true,
 		smooth = true,
 		min = 0,
 		max = 1,
 		value = 0,
 		width = Tokens.Size("buffBarWidth"),
-		height = ns.BarList.PILL_HEIGHT,
+		height = Tokens.Size("barHeight"),
 	})
 	local pill = { entry = entry, source = source, holder = holder, bar = bar, Restyle = PlacePill }
 	local low, high = source:GetMinMaxValues()
@@ -164,7 +163,7 @@ local function StyleEntry(entry)
 			StylePill(pill)
 		end
 		if bar.Name then
-			ns.ApplyFont(bar.Name, "damage")
+			ns.BarList.StyleName(bar.Name, "damage")
 			Widgets.TextColor(bar.Name, "textEmphasis")
 		end
 		if bar.Value then

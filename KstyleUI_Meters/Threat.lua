@@ -178,13 +178,8 @@ end
 local function Alarm(on)
 	local list = Threat.list
 	if not list then return end
-	local entering, leaving = on and not Threat.alarm, not on and Threat.alarm
 	Threat.alarm = on
-	if not on and not leaving then return end
-	if not on and list.alarmFlash then list.alarmFlash:Stop() end
-	list.panel.chrome:SetEdge(on and "hostile" or "edgeInner", 1)
-	K.Widgets.TextColor(list.title, on and "hostile" or "capsGold")
-	if entering and list.alarmFlash then list.alarmFlash:Play() end
+	if on then list:SetWarning(Logic.DANGER) end
 end
 
 local function Update()
@@ -224,6 +219,7 @@ local function Update()
 	for i = 1, shown do
 		local row = Threat.rows[Threat.order[i]]
 		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, Logic.ThreatText(row.threat), PercentText(row))
+		ns.SetClassIcon(list, i, row.class)
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)
@@ -301,22 +297,12 @@ local function Build()
 	local width, height = ns.Footprint(KEY)
 	Threat.list = ns.BarList.New(K.Scale.Root(), "threat", {
 		key = KEY, width = width or 260, height = height or 130, columns = Columns,
+		icons = function() return ns.Get("damage.icons") end,
 	})
 	Threat.list:SetTitle(L["Threat"])
 	Threat.list:SetColumn("")
 	Threat.countText = ""
-	local flash = Threat.list.panel:CreateTexture(nil, "OVERLAY")
-	flash:SetAllPoints(Threat.list.panel)
-	flash:SetColorTexture(K.Widgets.Rgba("hostile", 0.2))
-	flash:SetAlpha(0)
-	local group = flash:CreateAnimationGroup()
-	local alpha = group:CreateAnimation("Alpha")
-	alpha:SetFromAlpha(1)
-	alpha:SetToAlpha(0)
-	alpha:SetDuration(0.2)
-	Threat.list.alarmFlash = group
 	Threat.holder = Threat.list.holder
-	hooksecurefunc(Threat.list, "Paint", function() Alarm(Threat.alarm) end)
 	ns.Place(Threat.holder, KEY, LIMITS)
 	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide
 end

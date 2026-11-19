@@ -38,15 +38,15 @@ end
 
 local function Points(unit)
 	return {
-		Point(10000000000 * unit, "B", 1000000000 * unit, 1), Point(1000000000 * unit, "B", 100000000 * unit, 10),
-		Point(10000000 * unit, "M", 1000000 * unit, 1), Point(1000000 * unit, "M", 100000 * unit, 10),
-		Point(10000 * unit, "K", 1000 * unit, 1), Point(1000 * unit, "K", 100 * unit, 10),
+		Point(1000000000 * unit, "B", 100000000 * unit, 10),
+		Point(1000000 * unit, "M", 100000 * unit, 10),
+		Point(1000 * unit, "K", 100 * unit, 10),
 		Point(1, "", unit, 1),
 	}
 end
 
 local POINTS = { [1] = Points(1), [THREAT_UNITS] = Points(THREAT_UNITS) }
-local PROBES = { { 0.5, "0" }, { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
+local PROBES = { { 0.5, "0" }, { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12.4K" }, { 1240000, "1.2M" } }
 local secretOptions = {}
 
 local function SecretOptions(unit)
