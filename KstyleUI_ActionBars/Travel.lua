@@ -199,7 +199,9 @@ function Travel.Enable()
 	end
 	K.Callbacks.Register("SettingChanged", OWNER, function(_, module) if module == "ActionBars" then Travel.Refresh() end end)
 	K.Callbacks.Register("ProfileChanged", OWNER, Travel.Refresh)
-	K.Callbacks.Register("LayoutChanged", OWNER, Travel.Refresh)
+	K.Callbacks.Register("LayoutChanged", OWNER, function(_, key)
+		if key == "unitframes.castbar.player" or key == "unitframes.castbar.target" then Travel.Refresh() end
+	end)
 	K.Callbacks.Register("ReadabilityChanged", OWNER, Travel.Refresh)
 	K.Callbacks.Register("ThemeChanged", OWNER, Travel.Refresh)
 	K.Callbacks.Register("ModuleChanged", OWNER, function(_, module) if module == "UnitFrames" then Travel.Refresh() end end)
