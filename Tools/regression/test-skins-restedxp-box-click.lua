@@ -12,7 +12,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local rxp
 			local env, K, ns = S.New({
 				width = screen[1], height = screen[2],
-				saved = { version = 12, profiles = { Default = { HudStyle = { style = style }, Layout = { arrangement = arrangement } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+				saved = { version = 39, profiles = {
+					Default = { HudStyle = { style = style }, Layout = { arrangement = arrangement }, Skins = { restedXP = { boxes = false } } },
+					Other = { Skins = { restedXP = { boxes = false, compose = false } } }, Empty = {},
+				}, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 				setup = function(e)
 					e._size, e._fitScale = "auto", true
 					e._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
@@ -30,6 +33,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				return assert(Geometry.ScaledRect(K.Skin.Parts(frame).backdrop, env.UIParent, K.Scale.Root()))
 			end
 			local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
+			for name, profile in pairs(env.KstyleUIDB.profiles) do
+				assert(profile.Skins.restedXP.boxes == true, what .. ": migration restores docking for profile " .. name)
+			end
+			assert(K.Store.DB_VERSION == 40 and env.KstyleUIDB.version == 40, what .. ": migration reaches version 40")
+			assert(env.KstyleUIDB.profiles.Other.Skins.restedXP.compose == false, what .. ": migration preserves other settings")
 			local function Docked()
 				assert(ns.Skins.Setting("restedXP", "boxes"), what .. ": a stationary click must not disable docking")
 				local guide, t, i = Rect(rxp.RXPFrame), Rect(targets), Rect(items)
@@ -87,9 +95,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local point = { items:GetPoint(1) }
 			assert(point[1] == "CENTER" and point[4] == -300 and point[5] == 40, what .. ": the dragged item box stays where the player put it")
 			assert(rxp.settings.profile.framePositions.activeItemFrame[1][4] == -300, what .. ": RestedXP saves the real drag")
+			S.W.CoreEnv.Logout(env)
+			local _, reloaded = S.New({ saved = env.KstyleUIDB })
+			assert(reloaded.Store.Module("Skins").restedXP.boxes == false, what .. ": a drag after migration stays undocked on the next login")
 			assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))
 		end
 	end
 end
 
-print("skins restedxp box click ok: 24 screen/style/arrangement combinations")
+print("skins restedxp box click ok: migration, clicks and saved drags across 24 screen/style/arrangement combinations")
