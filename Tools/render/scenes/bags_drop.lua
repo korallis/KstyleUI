@@ -5,7 +5,7 @@ local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 return Common.Run(function()
 	local B = dofile("Tools/regression/bags_env.lua")
 	local env, K, ns = B.New(Common.ScreenOpts({
-		saved = Gallery.Saved({}),
+		saved = Gallery.Saved({ Bags = { compactBags = true } }),
 		bags = {
 			[0] = { size = 20, items = { B.Item("potion"), B.Item("sword"), B.Item("cloth") } },
 			[1] = { size = 20, items = {} },

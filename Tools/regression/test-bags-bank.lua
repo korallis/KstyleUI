@@ -156,6 +156,7 @@ end
 
 do
 	local env, K, ns = New({ bankTabs = { [BANK.Character] = { 6, 7 }, [BANK.Account] = { 15 } } })
+	Set(K, "compactBags", true)
 	local Bank = ns.Bank
 	env.SetBank(true)
 	Run(env)

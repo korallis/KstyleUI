@@ -72,7 +72,7 @@ local function NewSection(win, spec, group)
 end
 
 local function Grouped(section)
-	return section.groups ~= nil and Settings.Get("layout") == "categories"
+	return section.groups ~= nil and Settings.Get("compactBags") and Settings.Get("layout") == "categories"
 end
 
 function Window.New(spec)

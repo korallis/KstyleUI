@@ -30,6 +30,7 @@ Settings.LIMITS = {
 
 Settings.defaults = {
 	enabled = false,
+	compactBags = false,
 	layout = "categories",
 	emptySlots = "packed",
 	columns = 10,
@@ -132,17 +133,22 @@ local function qualityOn(settings)
 	return settings.showQuality == true
 end
 
+local function compactOn(settings)
+	return settings.compactBags == true
+end
+
 Settings.schema = {
 	{ type = "header", label = L["Bags"] },
 	{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
 	{ type = "header", label = L["Slots"] },
+	{ type = "toggle", key = "compactBags", label = L["Compact bags"], help = L["Group items and pack empty slots. Off keeps bags and bank in a fixed grid with every slot shown."], disableWhen = isOff },
 	{
 		type = "dropdown", key = "layout", label = L["Layout"], help = L["Sort items into sections by type, or show one grid."],
-		options = LAYOUT_OPTIONS, disableWhen = isOff,
+		options = LAYOUT_OPTIONS, disableWhen = isOff, showWhen = compactOn,
 	},
 	{
 		type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show each bag kind's free slots as one counted tile, or every empty slot."],
-		options = EMPTY_OPTIONS, disableWhen = isOff,
+		options = EMPTY_OPTIONS, disableWhen = isOff, showWhen = compactOn,
 	},
 	{
 		type = "slider", key = "columns", label = L["Columns"], help = L["How many slots sit in each row of the bag window."],

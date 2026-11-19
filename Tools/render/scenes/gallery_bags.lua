@@ -94,7 +94,7 @@ return Common.Run(function()
 
 	frames:Add(env, inventory.panel, {
 		name = "bags_window", title = "Bag window", grade = "window", reference = "chat",
-		caption = "The bag window at a banker and a merchant: a titled glass window with the search box and the Sell junk and Sort buttons on the button body, 46 bag slots on icon tiles (poor to epic rims, stacks, item levels, a junk dot, a new item's glow, a hovered rare, a locked grey item, a potion on cooldown, one empty slot per bag at a fainter body under an Empty cap that counts all 29) in Lumen sections by item type, the keyring under them, and the free-slot count and money footer.",
+		caption = "The bag window at a banker and a merchant: a titled glass window with the search box and the Sell junk and Sort buttons on the button body, 46 bag slots on icon tiles (poor to epic rims, stacks, item levels, a junk dot, a new item's glow, a hovered rare, a locked grey item, a potion on cooldown, every empty socket on a fainter body) in a fixed grid, the keyring under them, and the free-slot count and money footer.",
 		match = "Window grade: the chat panel's surface fill, dark outer and light inner line, 12-unit chamfer and drop shadow; the slots inside are the button grade, with the quality colour where the mockup's action buttons wear the class rim.",
 	})
 	local row = {}
@@ -109,7 +109,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, bankWindow.panel, {
 		name = "bags_bank", title = "Bank window", grade = "window", reference = "tracker",
-		caption = "The bank window on the character bank: the Bank and Warband tab strip, the search box with the Buy tab and Sort buttons, two bank bag slots in a strip under them, three purchased tabs' 84 slots sorted into the same Lumen sections as the bags (one empty slot per tab, the cap counting all 71), and the free-slot and money footer.",
+		caption = "The bank window on the character bank: the Bank and Warband tab strip, the search box with the Buy tab and Sort buttons, two bank bag slots in a strip under them, three purchased tabs' 84 slots in the same fixed grid as the bags, with all 71 empty sockets visible, and the free-slot and money footer.",
 		match = "Window grade as the mockup's tracker: surface fill, two-line edge, 12-unit chamfer and shadow; the tab strip, search box and buttons are the button body with the edgeInner hairline, and the slots the button grade.",
 	})
 	frames:Add(env, holder, {

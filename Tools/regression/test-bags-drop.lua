@@ -14,6 +14,7 @@ local function New()
 		bank = { [6] = { size = 2, family = 32, items = {} }, [7] = { size = 3, items = { [1] = Item("helm") } } },
 		bankTabs = { [B.BANK.Character] = { 7, 6 } },
 	})
+	K.Options.Write("Bags", "compactBags", true)
 	env.SetBank(true)
 	env.RunTimers()
 	W.Settle(env)

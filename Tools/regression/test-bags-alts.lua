@@ -238,7 +238,7 @@ do
 	Run(env)
 	win.picker:SetValue("Lordaeron-Valerin")
 	Run(env)
-	assert(not remote.frame:IsShown() and win.viewport:IsShown(), "picking this character brings the live bags back")
+	assert(not remote.frame:IsShown() and win.sections[1].view:IsShown(), "picking this character brings the live bags back")
 	assert(win.sortButton:IsEnabled() ~= false, "and Sort works again")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 

@@ -21,10 +21,16 @@ local function Set(K, key, value)
 	assert(K.Options.Write("Bags", key, value) ~= false, "writing " .. key)
 end
 
+local function Compact(opts)
+	local env, K, ns = B.New(opts)
+	Set(K, "compactBags", true)
+	return env, K, ns
+end
+
 -- Registration and settings ----------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags(), enable = false })
+	local env, K, ns = Compact({ bags = Bags(), enable = false })
 	local listed = false
 	for _, name in ipairs(K.Modules.List()) do
 		listed = listed or name == "Bags"
@@ -66,7 +72,7 @@ end
 -- Item buttons ------------------------------------------------------------------------------------
 
 do
-	local _, K, ns = B.New({ bags = Bags() })
+	local _, K, ns = Compact({ bags = Bags() })
 	local Inventory = ns.Inventory
 	local win = assert(Inventory.window, "Enable builds the bag window")
 	assert(not win.panel:IsShown(), "the window starts closed")
@@ -95,7 +101,7 @@ end
 -- Contents ----------------------------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	local Inventory = ns.Inventory
 	Open(env)
 	local win = Inventory.window
@@ -154,7 +160,7 @@ end
 -- New items ---------------------------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	env._new["0:2"] = true
 	Open(env)
 	local sword = ns.Inventory.Slot(0, 2)
@@ -176,7 +182,7 @@ end
 -- Settings change the window ---------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	-- The grid geometry below (slot positions, growth, the row limit and the wheel) is the one-grid layout's.
 	Set(K, "layout", "grid")
 	Open(env)
@@ -231,12 +237,12 @@ do
 	assert(W.SameRGB(hovered.chrome.rim[1], 0.2, 0.4, 0.6), "a hovered slot's edge follows a custom accent")
 end
 
--- Categories: the default layout sorts items into Lumen sections --------------------------------------------
+-- Categories: compact bags sort items into Lumen sections --------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	local Inventory = ns.Inventory
-	assert(ns.Settings.Get("layout") == "categories", "items sort into categories by default")
+	assert(ns.Settings.Get("layout") == "categories", "compact bags use categories by default")
 	local row = K.Options.Row("Bags", "layout")
 	assert(row and row.type == "dropdown", "the layout has a dropdown")
 	Open(env)
@@ -311,7 +317,7 @@ do
 		end
 	end
 	bags[-1] = { size = 32, items = {} }
-	local env, K, ns = B.New({ bags = bags, height = 1080 })
+	local env, K, ns = Compact({ bags = bags, height = 1080 })
 	Open(env)
 	local win = ns.Inventory.window
 	local panel, root = win.panel, K.Scale.Root()
@@ -377,7 +383,7 @@ end
 -- Empty slots pack into one stacked tile per bag family, the tile and the cap carry the free count --------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	Open(env)
 	local win = ns.Inventory.window
 	local empty = win.sections[1].groups.empty
@@ -429,7 +435,7 @@ end
 -- The window hugs its content: as wide as its widest row, never the column setting's full width ----------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	Open(env)
 	local win = ns.Inventory.window
 	local panel = win.panel
@@ -462,7 +468,7 @@ end
 -- The window hugs a five-wide row too: the header stacks rather than holding the window open ---------------
 
 do
-	local env, K, ns = B.New({ bags = Bags(), merchant = true })
+	local env, K, ns = Compact({ bags = Bags(), merchant = true })
 	Open(env)
 	local win = ns.Inventory.window
 	local panel = win.panel
@@ -534,7 +540,7 @@ end
 -- Custom categories: a named rule gets its own section ahead of the built-in ones -----------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	Open(env)
 	local win = ns.Inventory.window
 	local groups = win.sections[1].groups
@@ -559,7 +565,7 @@ end
 -- Search ------------------------------------------------------------------------------------------
 
 do
-	local env, _, ns = B.New({ bags = Bags() })
+	local env, _, ns = Compact({ bags = Bags() })
 	Open(env)
 	local Inventory = ns.Inventory
 	local search = Inventory.window.search
@@ -581,7 +587,7 @@ end
 -- Sorting -----------------------------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	Open(env)
 	local sort = ns.Inventory.window.sortButton
 	W.Click(sort)
@@ -600,7 +606,7 @@ end
 -- Combat ------------------------------------------------------------------------------------------
 
 do
-	local env, K, ns = B.New({ bags = Bags(), enable = false })
+	local env, K, ns = Compact({ bags = Bags(), enable = false })
 	env.SetCombat(true)
 	K.Modules.Enable("Bags")
 	env.RunTimers()
@@ -608,7 +614,7 @@ do
 	env.RunTimers()
 	assert(ns.Inventory.window, "turning the module on in combat waits for the end of combat")
 
-	local env2, _, ns2 = B.New({ bags = Bags() })
+	local env2, _, ns2 = Compact({ bags = Bags() })
 	env2.SetCombat(true)
 	local made = 0
 	for _, frame in ipairs(env2._frames) do
@@ -635,7 +641,7 @@ do
 end
 
 do
-	local env, K, ns = B.New({ bags = Bags() })
+	local env, K, ns = Compact({ bags = Bags() })
 	Open(env)
 	K.Motion.SetLevel("reduced")
 	local slot = ns.Inventory.Slot(0, 1)

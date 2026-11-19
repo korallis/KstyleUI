@@ -76,7 +76,7 @@ do
 	env._junkCount = 0
 	B.Put(env, 0, 1, nil)
 	Run(env)
-	assert(not button:IsShown(), "it hides when no junk is left")
+	assert(button:IsShown() and not button:IsEnabled(), "keep Sell junk in place, disabled, when no junk is left")
 	env.SetMerchant(false)
 	Run(env)
 	assert(not button:IsShown(), "and away from the merchant")
