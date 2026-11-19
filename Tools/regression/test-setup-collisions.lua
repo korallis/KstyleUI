@@ -585,9 +585,10 @@ do
 		local element = Layouts.Element(def.element)
 		local cfg = ans.defaults[def.key]
 		assert(written[def.key .. ".rows"] == cfg.rows, def.key .. ": Apply writes the rows the bar has by default (" .. tostring(written[def.key .. ".rows"]) .. " against " .. tostring(cfg.rows) .. ")")
-		local w, h = ans.GridSize(math.min(cfg.buttons, def.max), cfg.rows, cfg.size, cfg.spacing)
+		local count, rows, size, spacing = AK.Setup.Layouts.ActionBarGrid("frames", AK.Scale.Aspect(), def.element, cfg)
+		local w, h = ans.GridSize(count, rows, size, spacing)
 		assert(math.abs(w - element.width) < 0.5 and math.abs(h - element.height) < 0.5,
-			string.format("%s draws %.0f x %.0f in %d rows, but its element is %d x %d", def.key, w, h, cfg.rows, element.width, element.height))
+			string.format("%s draws %.0f x %.0f in %d rows, but its element is %d x %d", def.key, w, h, rows, element.width, element.height))
 	end
 	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
 end

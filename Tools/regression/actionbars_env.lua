@@ -587,9 +587,19 @@ local function InstallGame(env, opts)
 		env.StanceBar.actionButtons[i] = button
 	end
 	env.CreateFrame("Frame", "PossessActionBar", env.UIParent)
+	env.PossessActionBar:SetSize(64, 30)
+	env.PossessActionBar:SetPoint("BOTTOM", env.UIParent, "BOTTOM", 0, 0)
+	env.PossessActionBar:Hide()
+	AB.Protect(env, env.PossessActionBar)
 	env.PossessActionBar.actionButtons = {}
 	for i = 1, 2 do
 		local button = env.CreateFrame("CheckButton", "PossessButton" .. i, env.PossessActionBar)
+		button:SetSize(30, 30)
+		button:SetPoint("LEFT", env.PossessActionBar, "LEFT", (i - 1) * 34, 0)
+		button.icon = button:CreateTexture(nil, "ARTWORK")
+		button.icon:SetAllPoints(button)
+		button.cooldown = env.CreateFrame("Cooldown", nil, button)
+		AB.Protect(env, button)
 		button:SetID(i)
 		button.Click = function()
 			if i == 2 then g.possess = false; g.used[#g.used + 1] = "cancelpossess" end

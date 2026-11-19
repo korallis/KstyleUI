@@ -28,6 +28,7 @@ ns.Keybind.panel:GetScript("OnKeyDown")(ns.Keybind.panel, "F3")
 ns.Keybind.Save()
 assert(env.GetBindingAction("F3") == "SHAPESHIFTBUTTON1" and AB.PressKey(env, "F3") and env._game.forms[1].isActive,
 	"hover binding a stance must use the native form command and preserve its toggle")
+env.PossessActionBar:Show()
 assert(ns.Keybind.Enter())
 local possess = ns.Keybind.overlays[env.PossessButton2]
 assert(possess, "hover binding must include Blizzard's possess cancel button")

@@ -92,6 +92,12 @@ assert(not tray:IsShown(), "a bar 1 that fades until hovered has no tray")
 bars.bar1.fade = false
 K.Callbacks.Fire("SettingChanged", "ActionBars", "bar1.fade")
 assert(tray:IsShown(), "the tray returns when the fade is off")
+bars.tray = false
+K.Callbacks.Fire("SettingChanged", "ActionBars", "tray")
+assert(not tray:IsShown(), "Use the tray off removes the Orbs tray")
+bars.tray = true
+K.Callbacks.Fire("SettingChanged", "ActionBars", "tray")
+assert(tray:IsShown(), "Use the tray on restores the Orbs tray")
 
 -- Bar 1 dragged into a corner: the rings stay on the screen and stay on the tray's arms.
 assert(K.Layout.Update("actionbars.bar1", { anchor = "BOTTOMLEFT", x = 0, y = 0 }), "bar 1 moves into the corner")

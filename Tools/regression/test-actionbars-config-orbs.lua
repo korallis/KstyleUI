@@ -1,0 +1,1 @@
+dofile("Tools/regression/actionbars_config.lua")("orbs")

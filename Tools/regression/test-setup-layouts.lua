@@ -496,7 +496,7 @@ for _, name in ipairs(names) do
 	assert(settings["ActionBars.bar4.enabled"] == true and settings["ActionBars.bar5.enabled"] == true, name .. " writes bars 4 and 5 on, the rail's two columns")
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.bar2.enabled"] == true and settings["ActionBars.bar2.rows"] == 1, name .. ": LEE-20 writes bar 2 on, one row")
-	assert(settings["ActionBars.pet.rows"] == 3 and settings["ActionBars.stance.rows"] == 3, name .. " folds the pet and stance sockets into three rows of four beside the tray")
+	assert(settings["ActionBars.pet.rows"] == 0 and settings["ActionBars.stance.rows"] == 0, name .. " keeps the pet and stance bars on their HUD style's default rows")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
 	assert(settings["UnitFrames.boss.auraPosition"] == "LEFT", name .. " hangs the boss debuffs towards the centre")
 	assert(settings["ActionBars.bar1.showEmpty"] == true and settings["ActionBars.bar2.showEmpty"] == true, name .. ": LEE-20 shows both central bars' empty tiles")
