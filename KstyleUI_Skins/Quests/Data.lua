@@ -233,6 +233,18 @@ function Data.Count()
 	return total
 end
 
+function Data.ImportQuestie(tracker)
+	local log = C_QuestLog
+	if not (Fn(log, "GetNumQuestLogEntries") and Fn(log, "GetInfo") and Fn(log, "AddQuestWatch")
+		and type(tracker.IsTrackedByQuestie) == "function") then return end
+	local count = Number(log.GetNumQuestLogEntries())
+	for i = 1, count or 0 do
+		local info = log.GetInfo(i)
+		local id = not IsSecret(info) and type(info) == "table" and Number(info.questID)
+		if id and id > 0 and Yes(tracker.IsTrackedByQuestie(id)) then log.AddQuestWatch(id) end
+	end
+end
+
 function Data.Get(i)
 	if i < 1 or i > total then
 		return nil

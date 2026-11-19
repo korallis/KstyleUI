@@ -2,6 +2,7 @@
 local Fake = {}
 
 function Fake.Install(env, log, enabled, started)
+	env._loaded.Questie = true
 	local frame = env.CreateFrame("Frame", "Questie_BaseFrame", env.UIParent)
 	frame:SetSize(290, 370)
 	frame:SetPoint("TOPRIGHT", env.UIParent, "TOPRIGHT", -35, -240)
@@ -39,7 +40,14 @@ function Fake.Install(env, log, enabled, started)
 	function tracker.IsTrackedByQuestie(id) return tracker.watched[id] == true end
 	function tracker:Update()
 		if not self.started or env.InCombatLockdown() then return end
-		env.C_Timer.After(0.1, function() frame:SetShown(profile.trackerEnabled) end)
+		env.C_Timer.After(0.1, function()
+			local was = frame:IsShown()
+			frame:SetShown(profile.trackerEnabled)
+			if was and not profile.trackerEnabled then
+				local hide = frame:GetScript("OnHide")
+				if hide then hide(frame) end
+			end
+		end)
 	end
 	function tracker:Toggle()
 		assert(not env.InCombatLockdown(), "Questie's option must wait for combat to end")
@@ -51,10 +59,25 @@ function Fake.Install(env, log, enabled, started)
 		profile.trackerEnabled = true
 		self.reloaded = true
 	end
+	local compat = {}
+	function compat.HideWatchFrame()
+		tracker.suppressed = true
+		env.ObjectiveTrackerFrame:SetAlpha(0)
+	end
+	function compat.ShowWatchFrame()
+		if tracker.suppressed then
+			tracker.suppressed = false
+			env.ObjectiveTrackerFrame:SetAlpha(1)
+			env.ObjectiveTrackerFrame:Show()
+		end
+	end
 	env.QuestieLoader = { ImportModule = function(_, name)
-		assert(name == "QuestieTracker", "only the public tracker module is needed")
-		return tracker
+		if name == "QuestieTracker" then return tracker end
+		assert(name == "QuestieCompat", "only Questie's public tracker and compatibility APIs are needed")
+		return compat
 	end }
+	tracker.compat = compat
+	if profile.trackerEnabled then compat.HideWatchFrame() end
 	frame:SetShown(profile.trackerEnabled and tracker.started)
 	local parent = frame
 	local function Text(value, y, size)
@@ -69,7 +92,6 @@ function Fake.Install(env, log, enabled, started)
 		Text("[" .. quest.level .. "] " .. quest.title, -i * 38 - 3, 12)
 		Text(quest.objectives[1].text, -i * 38 - 17, 11)
 	end
-	frame:HookScript("OnHide", function() tracker:Update() end)
 	return tracker
 end
 

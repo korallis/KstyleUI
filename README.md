@@ -208,6 +208,8 @@ World of Warcraft: Forever. It is built and tested for that client only.
 **Does it work with RestedXP?**
 Yes. The guide gets its own tall card beside your quest card, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
 
+**Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
+
 **How do I switch HUD style?**
 In **Options, General, HUD style**, or by running the setup again with `/kstyle setup`. Out of combat the change applies at once; picked in combat, it waits for the fight to end.
 

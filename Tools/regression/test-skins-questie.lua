@@ -9,6 +9,20 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 	assert(not (other.frame:IsVisible() and ns.Quests.Card():IsVisible()), "Questie and the quest card draw on top of each other; use Questie's tracker option to select one")
 	assert(not env.Questie.db.profile.trackerEnabled and other.calls == 1, "the default choice turns off Questie's tracker through its own API exactly once")
 	assert(ns.QuestData.Count() == #R.quests, "the card keeps Questie-only watches when handing tracking back to the native watch list")
+	other.compat.HideWatchFrame()
+	R.settle()
+	assert(not other.suppressed, "Questie's previously registered widget hook cannot suppress the native scenario fallback after handover")
+	env.ObjectiveTrackerFrame.scenario.contentsHeight = 60
+	env.ObjectiveTrackerFrame:Update()
+	R.settle()
+	assert(not ns.Quests.Card():IsVisible() and env.ObjectiveTrackerFrame:IsVisible() and env.ObjectiveTrackerFrame:GetAlpha() == 1, "native scenario objectives return without Questie's suppression")
+	env.ObjectiveTrackerFrame.scenario.contentsHeight = 0
+	env.ObjectiveTrackerFrame:Update()
+	R.settle()
+	assert(K.Setup.Integrations.Detected("Skins")[1] == "Questie", "the Skins overlap notice detects Questie")
+	assert(K.Setup.Integrations.Note("Skins", "standard"):find("Existing addons", 1, true), "the overlap notice points to the tracker choice")
+	K.Options.Write("Integrations", "notices", false)
+	assert(K.Setup.Integrations.Note("Skins", "standard") == "standard", "the existing notices switch also controls Questie notices")
 	local seen = {}
 	for _ = 1, #R.quests do
 		local previous
@@ -33,6 +47,10 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 	K.Options.Write("Integrations", "questTracker", "questie")
 	R.settle()
 	assert(other.frame:IsVisible() and not ns.Quests.Card():IsVisible(), "selecting Questie relinquishes the card")
+	env.C_QuestLog.RemoveQuestWatch(301)
+	assert(not other.watched[301], "Questie's Forever removal hook follows native untracking")
+	env.C_QuestLog.AddQuestWatch(301)
+	assert(other.watched[301], "Questie's Forever addition hook follows native tracking")
 	env.SetCombat(true)
 	K.Options.Write("Integrations", "questTracker", "kstyleui")
 	R.settle()
@@ -42,6 +60,32 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 	assert(ns.Quests.Card():IsVisible() and not other.frame:IsVisible(), "combat exit applies the latest tracker choice")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	print("Questie " .. screen.width .. "x" .. screen.height .. ": one tracker, separated rows, watches retained")
+end
+
+do
+	local R = Boot({ width = 1920, height = 1080 }, nil, nil, true)
+	local other = Questie.Install(R.env, R.log, true, false)
+	R.env.FireEvent("ADDON_LOADED", "Questie")
+	R.settle()
+	assert(other.calls == 0, "late Questie initialization retains its watches until its first update")
+	other.started = true
+	other:Update()
+	R.settle()
+	assert(other.calls == 1 and not other.frame:IsVisible() and R.ns.Quests.Card():IsVisible(), "Questie's first asynchronous update hands tracking to the card")
+	R.K.Options.Write("Skins", "quests.enabled", false)
+	other:Toggle()
+	R.settle()
+	assert(other.frame:IsVisible(), "an off quest card leaves Questie's option alone")
+	R.K.Options.Write("Skins", "quests.enabled", true)
+	R.settle()
+	assert(not other.frame:IsVisible() and R.ns.Quests.Card():IsVisible(), "reenabling the card reconciles the tracker choice")
+end
+
+do
+	local R = Boot({ width = 1920, height = 1080 }, nil, nil, true, function(env, log) return Questie.Install(env, log, false, false) end)
+	R.K.Options.Write("Integrations", "questTracker", "questie")
+	R.settle()
+	assert(R.questie.reloaded and not R.ns.Quests.Card():IsVisible(), "Questie's own Enable API initializes a previously disabled tracker with its required reload")
 end
 
 print("test-skins-questie: ok")

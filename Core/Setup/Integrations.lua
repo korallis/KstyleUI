@@ -11,6 +11,7 @@ local OVERLAPS = {
 	GroupFrames = { "Grid2", "VuhDo", "HealBot", "ElvUI", "ShadowedUnitFrames" },
 	Bags = { "Bagnon", "AdiBags", "BetterBags", "ElvUI" },
 	Chat = { "Prat-3.0", "Chatter", "ElvUI" },
+	Skins = { "Questie" },
 }
 function Integration.Detected(module)
 	local out, api = {}, C_AddOns
@@ -26,6 +27,7 @@ end
 function Integration.Note(module, standard)
 	if Store.IsLoaded() and not Store.Module("Integrations").notices then return standard end
 	local detected = Integration.Detected(module)
+	if module == "Skins" and #detected > 0 then return L["Questie detected. Choose your quest tracker in Existing addons."] end
 	return #detected > 0 and string.format(L["Also detected: %s. Choose above."], table.concat(detected, ", ")) or standard
 end
 
@@ -35,10 +37,14 @@ local LANES = {
 	{ key = "weakAuras", label = L["WeakAuras anchor 1"], name = "KstyleUI_WeakAuras1", width = 180, height = 48, x = -300, y = 180 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },
 }
-Store.RegisterDefaults("Integrations", { notices = true, timerLane = true, announcementLane = true, weakAuras = true })
+Store.RegisterDefaults("Integrations", { notices = true, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "kstyleui" })
 K.Options.Register("Integrations", {
 	{ type = "header", label = L["Existing addons"] },
 	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },
+	{ type = "dropdown", key = "questTracker", label = L["Quest tracker"], help = L["Keep Questie's map pins and choose one tracker. Enabling Questie's tracker may reload the UI."], showWhen = function() return #Integration.Detected("Skins") > 0 end, options = {
+		{ value = "kstyleui", label = L["Use KstyleUI's quest card"] },
+		{ value = "questie", label = L["Use Questie's quest tracker"] },
+	} },
 	{ type = "toggle", key = "timerLane", label = L["Boss timer lane"], help = L["Reserve a movable 360 by 120 lane for your boss addon's timers."] },
 	{ type = "toggle", key = "announcementLane", label = L["Announcement lane"], help = L["Reserve a movable 520 by 48 lane for boss announcements."] },
 	{ type = "toggle", key = "weakAuras", label = L["WeakAuras anchors"], help = L["Two movable anchors; attach your own auras to KstyleUI_WeakAuras1 and KstyleUI_WeakAuras2."] },

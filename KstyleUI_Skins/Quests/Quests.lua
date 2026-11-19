@@ -21,6 +21,7 @@ local EVENTS = {
 
 local state = { on = false, active = false, dirty = false, built = false, queued = false, holder = nil, guide = nil, give = 0 }
 local others = false
+local QuestieActive, SyncQuestie
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -68,7 +69,7 @@ end
 
 local function Wanted()
 	local tracker = Tracker()
-	return state.on and state.built and tracker ~= nil and not Others(tracker)
+	return state.on and state.built and tracker ~= nil and not QuestieActive() and not Others(tracker)
 end
 
 local function Rail()
@@ -177,6 +178,69 @@ end
 
 local Evaluate
 
+local function QuestieProfile()
+	local addon = rawget(_G, "Questie")
+	local db = type(addon) == "table" and addon.db
+	return type(db) == "table" and type(db.profile) == "table" and db.profile or nil
+end
+
+local function UseQuestie()
+	return K.Store.Module("Integrations").questTracker == "questie"
+end
+
+function QuestieActive()
+	local profile = QuestieProfile()
+	if not profile then return false end
+	local frame = rawget(_G, "Questie_BaseFrame")
+	return UseQuestie() or not IsSecret(profile.trackerEnabled) and profile.trackerEnabled == true
+		or type(frame) == "table" and frame:IsShown() == true
+end
+
+function SyncQuestie()
+	if state.questieSync or state.questieQueued then return end
+	state.questieQueued = true
+	K.Combat.Queue(function()
+		state.questieQueued = false
+		if state.questieSync then return end
+		local profile, loader = QuestieProfile(), rawget(_G, "QuestieLoader")
+		if not profile or IsSecret(profile.trackerEnabled) or type(loader) ~= "table" or type(loader.ImportModule) ~= "function" then return end
+		local ok, addon = pcall(loader.ImportModule, loader, "QuestieTracker")
+		if not ok or type(addon) ~= "table" or type(addon.Update) ~= "function" or type(addon.Toggle) ~= "function" then return end
+		state.questieSync = true
+		if state.questie ~= addon then
+			state.questie = addon
+			hooksecurefunc(addon, "Update", SyncQuestie)
+		end
+		local frame = rawget(_G, "Questie_BaseFrame")
+		if type(frame) == "table" and state.questieFrame ~= frame then
+			state.questieFrame = frame
+			frame:HookScript("OnShow", SyncQuestie)
+			frame:HookScript("OnHide", function() Evaluate(); Dirty("Questie") end)
+		end
+		local enabled = not IsSecret(profile.trackerEnabled) and profile.trackerEnabled == true
+		if state.on and enabled ~= UseQuestie() then
+			if enabled and addon.started == true then
+				if K.Call(Data.ImportQuestie, addon) then K.Call(addon.Toggle, addon) end
+			elseif not enabled then
+				if addon.started == true then K.Call(addon.Toggle, addon)
+				elseif type(addon.Enable) == "function" then K.Call(addon.Enable, addon) end
+			end
+		end
+		local hasCompat, compat = pcall(loader.ImportModule, loader, "QuestieCompat")
+		if hasCompat and type(compat) == "table" then
+			if state.questieCompat ~= compat and type(compat.HideWatchFrame) == "function" then
+				state.questieCompat = compat
+				hooksecurefunc(compat, "HideWatchFrame", SyncQuestie)
+			end
+			local visibility = UseQuestie() and compat.HideWatchFrame or compat.ShowWatchFrame
+			if state.on and type(visibility) == "function" then K.Call(visibility) end
+		end
+		state.questieSync = false
+		Evaluate()
+		Dirty("Questie")
+	end)
+end
+
 local function Later()
 	state.queued = false
 	Evaluate()
@@ -256,6 +320,7 @@ local function OnSettingChanged(_, module, key)
 	if (module == "Layout" and key == "preset") or (module == "Skins" and key:find("^restedXP%.")) then
 		Replace()
 	end
+	if module == "Integrations" and key == "questTracker" then SyncQuestie() end
 end
 
 local function Build()
@@ -282,10 +347,12 @@ local function Build()
 	end
 	K.Events.RegisterUnit(OWNER, "UNIT_QUEST_LOG_CHANGED", Dirty, "player")
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", function()
+		SyncQuestie()
 		Replace()
 		Dirty()
 		Evaluate()
 	end)
+	K.Events.Register(OWNER .. ".Questie", "ADDON_LOADED", function(_, name) if name == "Questie" then SyncQuestie() end end)
 	K.Callbacks.Register("SettingChanged", OWNER, OnSettingChanged)
 	K.Callbacks.Register("HudStyleChanged", OWNER, Replace)
 	K.Widgets.Track({ Restyle = Replace })
@@ -307,11 +374,13 @@ local function Apply()
 	end
 	Build()
 	state.on = Skins.IsOn(KEY)
+	SyncQuestie()
 	Evaluate()
 end
 
 local function OnSwitch(_, on)
 	state.on = on == true
+	if state.built then SyncQuestie() end
 	Evaluate()
 end
 

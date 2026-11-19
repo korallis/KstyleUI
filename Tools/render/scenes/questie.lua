@@ -5,6 +5,8 @@ local Questie = dofile("Tools/regression/questie_fake.lua")
 
 return Common.Run(function()
 	local R = Boot(Common.SCREEN, nil, nil, true, os.getenv("RENDER_QUESTIE") ~= "absent" and Questie.Install or nil)
+	R.rxp.activeItemFrame.buttonList[1].icon:SetTexture(132794)
+	R.rxp.targeting.activeTargetFrame.enemyTargetButtons[1].icon:SetTexture(136188)
 	if R.questie then
 		local card, frame = R.ns.Quests.Card(), R.questie.frame
 		frame:ClearAllPoints()
