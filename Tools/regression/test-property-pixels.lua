@@ -91,10 +91,10 @@ local function Holds(c)
 	end
 	for _, request in ipairs({ c.size or 1, c.values[1] / 1000 + 1 }) do
 		local n = Scale.Nearest(request, c.height, c.maximum)
-		local low = math.ceil(Scale.MIN_USER_SCALE / step - 1e-9) * step
+		local low = math.min(math.ceil(Scale.MIN_USER_SCALE / step - 1e-9), math.floor(c.maximum / step)) * step
 		if not Whole(n / step) or Scale.Nearest(n, c.height, c.maximum) ~= n then
 			Fail("Scale.Nearest(%.9g) = %.9g is not a stable whole step of %.9g", request, n, step)
-		elseif n < low - EPS or (n > c.maximum + EPS and n > low + EPS) then
+		elseif n < low - EPS or n > c.maximum + EPS then
 			Fail("Scale.Nearest(%.9g) = %.9g is outside %.9g to the maximum %.9g", request, n, low, c.maximum)
 		end
 	end

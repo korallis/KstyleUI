@@ -18,7 +18,7 @@ local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
 local BLOCK_TEXT_INSET = 0
 local BLOCK_SWITCH_REACH = 120
-local BLOCK_ICON_GAP = 2
+local BLOCK_ICON_GAP = 0
 local DOT = "\194\183"
 local DOT_GAP_EM = 5 / 21
 local BEARING_DEFAULT = 0.025
@@ -557,7 +557,7 @@ local function PlaceBlockText(list, row)
 	end
 	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
 	local frame = row.frame
-	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
+	local inset = Widgets.Snap(list.panel, BLOCK_TEXT_INSET)
 	local rowHeight = list.rowHeight - Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR)
 	local joined = list.percentWidth > 0 and row.joined == true
 	row.percent:ClearAllPoints()
@@ -590,7 +590,7 @@ local function PlaceBlockText(list, row)
 	row.name:ClearAllPoints()
 	Widgets.Point(row.name, "TOPLEFT", frame, "TOPLEFT", row.nameInset or 0, 0)
 	if list.valueWidth > 0 then
-		row.name:SetPoint("RIGHT", row.value, "LEFT", -gap, 0)
+		row.name:SetPoint("RIGHT", row.value, "LEFT", -Widgets.Border(row.frame), 0)
 	else
 		row.name:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 	end

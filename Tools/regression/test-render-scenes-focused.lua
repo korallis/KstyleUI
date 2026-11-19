@@ -21,6 +21,8 @@ do
 	end
 	assert(shown.THREAT and shown["DAMAGE  HEALING"], "the DPS scene draws both meter cards, the damage card under its damage and healing switch")
 	assert(shown["86%"] and shown["72%"], "both readable threat rows draw")
+	local damage, threat = scene.elements["meters.damage"], scene.elements["meters.threat"]
+	assert(threat.left + threat.width < damage.left and math.abs(threat.bottom + threat.height - damage.bottom - damage.height) < 1, "Both metadata must capture the actual adjacent cards with level headings")
 	local bars = assert(scene.elements["native.cooldowns.bars"], "Both exercises live native tracked bars")
 	for _, key in ipairs({ "meters.damage", "meters.threat" }) do
 		local card = assert(scene.elements[key])

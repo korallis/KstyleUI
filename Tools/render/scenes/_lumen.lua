@@ -143,6 +143,11 @@ function Lumen.Elements(built)
 			for _, e in ipairs(K.Layout.Elements()) do
 				if e.live and not out[e.key] then
 					local left, bottom, width, height = K.Layout.Rect(e.key)
+					if e.key == "meters.threat" then
+						local x, y, w, h = Scene.Rect(env, K.Layout.Element(e.key).frame)
+						local k = K.Scale.Root():GetHeight() / 1080
+						left, bottom, width, height = x * k, (1080 - y - h) * k, w * k, h * k
+					end
 					if left then
 						out[e.key] = { module = name, left = left, bottom = bottom, width = width, height = height }
 					end
