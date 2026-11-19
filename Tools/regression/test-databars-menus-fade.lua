@@ -40,6 +40,7 @@ local function Boot(extra)
 			end
 		end,
 	})
+	K.Options.Write("DataBars", "strip.placement", "rail")
 	env.RunTimers()
 	W.Settle(env)
 	return env, K, ns, world

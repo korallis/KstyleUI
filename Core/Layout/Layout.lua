@@ -543,6 +543,8 @@ local function StyleDefault(el)
 	if el.key == "databars.strip" then
 		local setup = ns.Setup and ns.Setup.Layouts
 		local height = setup and setup.DataBarHeight()
+		local dock = setup and setup.DataBarDock()
+		if dock then d.anchor, d.x, d.y, d.width, d.height = dock.anchor, dock.x, dock.y, dock.width, dock.height end
 		if height then
 			d.anchor, d.x, d.y, d.width, d.height = "TOP", 0, 0, Layout.RootSize(), height
 			el.limits.maxWidth = math.max(el.limits.maxWidth, d.width)
@@ -588,6 +590,9 @@ local function Resolve(el)
 	end
 	links[el.key] = s.attachTo ~= "" and el or nil
 	if el.key == "databars.strip" and Store.IsLoaded() and (Store.Module("DataBars").strip or {}).enabled == false then s.shown = "never" end
+	if el.key == "databars.strip" and ns.Setup.Layouts.DataBarDock() then
+		s.anchor, s.x, s.y, s.width, s.height = d.anchor, d.x, d.y, d.width, d.height
+	end
 	return s
 end
 

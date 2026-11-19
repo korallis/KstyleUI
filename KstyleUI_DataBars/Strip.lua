@@ -192,12 +192,14 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens((item.view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens(item.view.slab and "medTextMuted" or (item.view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
 	local mode = s.valueColor
-	if item.view.docked then
+	if item.view.slab then
+		Widgets.TextColor(item.value, "medTextMuted")
+	elseif item.view.docked then
 		Widgets.TextColor(item.value, "labelMuted")
 	elseif mode == "accent" then
 		item.value:SetTextColor(ns.Accent())
@@ -410,7 +412,7 @@ local function PlaceLine(view, s)
 	if view.line and view.line < h then
 		h = view.line
 	end
-	local edge = view.topBar and Tokens.Size("screenMargin") or (view.bare and 0 or Pad(frame))
+	local edge = view.slab and 0 or view.topBar and Tokens.Size("screenMargin") or (view.bare and 0 or Pad(frame))
 	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
 	local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
@@ -433,7 +435,7 @@ local function PlaceLine(view, s)
 		local width = Widgets.Snap(frame, valueWidth + (labelWidth > 0 and unitGap + labelWidth or 0))
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
-		Widgets.Point(button, "TOPRIGHT", view.topBar and view.zones.right or frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
+		Widgets.Point(button, "TOPRIGHT", (view.topBar or view.slab) and view.zones.right or frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
 		Widgets.Point(item.value, "LEFT", button, "LEFT", 0, lift)
@@ -578,15 +580,15 @@ function Strip.Paint(view, s, values)
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
 	view.chrome.shadowOn = not view.topBar
-	if view.topBar then TopBar(view) end
-	view.lineMode = view.topBar or LineMode(s)
-	view.bare = not view.topBar and view.lineMode and s.backdrop == false
+	if view.topBar or view.slab then TopBar(view) end
+	view.lineMode = view.topBar or view.slab ~= nil or LineMode(s)
+	view.bare = view.slab ~= nil or not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
 	for _, id in ipairs(order) do
 		inOrder[id] = true
 	end
 	local forged = view.topBar and s.artwork ~= "plain"
-	view.chrome:SetShown(view.topBar or s.backdrop ~= false)
+	view.chrome:SetShown(not view.slab and (view.topBar or s.backdrop ~= false))
 	if view.art then
 		for _, texture in ipairs(view.art) do texture:SetShown(forged) end
 	end
@@ -609,10 +611,11 @@ function Strip.Paint(view, s, values)
 			item.separator:Hide()
 			item.dot:Hide()
 		else
-			Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
-			Font.Apply(item.value, s.font, s.fontSize, s.outline)
-			Font.Apply(item.dot, s.font, s.fontSize, s.outline)
-			Widgets.TextColor(item.dot, view.lineMode and "text" or "textEmphasis")
+			local face, size, role = view.slab and "default" or s.font, view.slab and 11 or s.fontSize, view.slab and "caps" or nil
+			Font.Apply(item.label, face, view.lineMode and size or CaptionSize(s), s.outline, role)
+			Font.Apply(item.value, face, size, s.outline, role)
+			Font.Apply(item.dot, face, size, s.outline, role)
+			Widgets.TextColor(item.dot, view.slab and "medTextMuted" or view.lineMode and "text" or "textEmphasis")
 			item.dot:SetWordWrap(false)
 			local label = s.labels ~= "none" and LABELS[id][view.lineMode and "inline" or s.labels] or ""
 			item.caption = label
@@ -718,7 +721,23 @@ end
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
-	local docked = not view.topBar and s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
+	if view.topBar and s.enabled ~= false and Menus and view == Strip.view then
+		view.microDock = view.microDock or function(content, width, height)
+			content:ClearAllPoints()
+			Widgets.Point(content, "LEFT", frame, "LEFT", Tokens.Size("screenMargin"), 0)
+			Widgets.Size(content, width, height)
+		end
+		Menus.SetDock("micro", view.microDock, frame, 15, 1, true)
+		Menus.SetDock("bags", nil)
+		local micro = Menus.Content("micro")
+		view.zones.left:ClearAllPoints()
+		Widgets.Point(view.zones.left, "TOPLEFT", frame, "TOPLEFT", Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0), 0)
+		view.line, view.lineTop, view.wrapMenus = nil, nil, nil
+		card:ClearAllPoints()
+		card:SetAllPoints(frame)
+		return
+	end
+	local docked = s.enabled ~= false and not view.topBar and not view.slab and s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
 	view.pad = view.bare and 0 or Pad(frame)
 	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
 	local line = Widgets.Snap(frame, view.lineMode and LINE or CELL_LINE)
@@ -921,7 +940,7 @@ local function DockMeter(view, s)
 	local layout = K.Layout.Get(KEY)
 	local element = K.Layout.Element(KEY)
 	local default = element and element.default
-	local on = not (s.placement == "top" and not Widgets.Medallions()) and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = not K.Setup.Layouts.DataBarDock() and not (s.placement == "top" and not Widgets.Medallions()) and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, LABEL_GAP))
 		local width = math.max(1, view.contentWidth or 1)
@@ -958,11 +977,33 @@ function Strip.Refresh()
 	if not view or not running then
 		return
 	end
+	if InCombatLockdown() then DockAfterCombat() return end
 	local s = ns.Settings().strip
-	K.Layout.SetLive(KEY, s.enabled ~= false)
 	view.order = Order(s)
 	Strip.order = view.order
 	DockMeter(view, s)
+	local xp = ns.Bars and ns.Bars.views.xp
+	local dock = K.Setup.Layouts.DataBarDock()
+	K.Layout.SetLive(KEY, s.enabled ~= false and not dock)
+	view.slab = dock and xp or nil
+	if view.slab then
+		TopBar(view)
+		view.frame:ClearAllPoints()
+		Widgets.Point(view.frame, "TOPLEFT", xp.holder, "BOTTOMLEFT", 0, -3)
+		Widgets.Size(view.frame, xp.holder:GetWidth(), LINE)
+		for _, zone in ipairs({ "left", "centre" }) do
+			view.zones[zone]:ClearAllPoints()
+			Widgets.Point(view.zones[zone], "TOPLEFT", view.frame, "TOPLEFT")
+		end
+		view.zones.right:ClearAllPoints()
+		Widgets.Point(view.zones.right, "TOPRIGHT", xp.text:IsVisible() and xp.text or view.frame, xp.text:IsVisible() and "TOPLEFT" or "TOPRIGHT", -LABEL_GAP, 0)
+	elseif view.zones then
+		for i, zone in ipairs({ "left", "centre", "right" }) do
+			local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
+			view.zones[zone]:ClearAllPoints()
+			view.zones[zone]:SetPoint(anchor, view.frame, anchor)
+		end
+	end
 	Strip.Paint(view, s, Read(view, s))
 	DockInk(view)
 end
@@ -1088,7 +1129,12 @@ function Strip.Disable()
 	running = false
 	StopTicker()
 	ns.Click.Detach()
+	if InCombatLockdown() then
+		K.Combat.Queue(function() if not running then Strip.Disable() end end)
+		return
+	end
 	if Strip.view then
+		if ns.Menus then ns.Menus.SetDock("micro", nil) ns.Menus.SetDock("bags", nil) end
 		DockMeter(Strip.view, { line = false, orientation = "VERTICAL" })
 		for _, item in pairs(Strip.view.items) do
 			Strip.HideTooltip(item)
@@ -1098,6 +1144,7 @@ function Strip.Disable()
 end
 
 function Strip.Setting(key)
+	if key:match("^xp%.") then Strip.Refresh() return end
 	local field = key:match("^strip%.(.+)$")
 	if not field and key ~= "accentSource" and key ~= "accentColor" then
 		return
@@ -1120,7 +1167,7 @@ ns.Listen("PLAYER_EQUIPMENT_CHANGED", Strip.Update)
 ns.Listen("PLAYER_ENTERING_WORLD", Strip.Update)
 
 ns.Subscribe("LayoutChanged", function(key)
-	if (key == KEY or key == "meters.damage") and running then
+	if (key == KEY or key == "meters.damage" or key == "databars.xp") and running then
 		Strip.Refresh()
 	end
 end)

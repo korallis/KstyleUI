@@ -88,7 +88,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "strip.placement", "top")
 	K.Options.Write("DataBars", "strip.height", 20)
 	K.Options.Write("HudStyle", "style", "medallions")
-	assert(not view.topBar and Layout.Get("databars.strip").anchor == "BOTTOMRIGHT", "Medallions retains the rail")
+	assert(not view.topBar and view.slab and Layout.Get("databars.strip").anchor == "BOTTOM", "Medallions docks below the slab")
 	near(Layouts.TopInset(), 0)
 	K.Options.Write("HudStyle", "style", "frames")
 	assert(view.topBar and Layout.Get("databars.strip").anchor == "TOP")

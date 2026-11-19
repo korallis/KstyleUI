@@ -332,9 +332,9 @@ function Arrange(bar)
 	local list = Visible(bar.id) and OwnerShown(bar) and wanted or {}
 	local size = bar.dockSize and min(s.size, bar.dockSize) or s.size
 	local height = Widgets.Snap(holder, size)
-	local width = s.shape ~= "tile" and height or Widgets.Snap(holder, size * bar.group.aspect)
+	local width = bar.inline and height or s.shape ~= "tile" and height or Widgets.Snap(holder, size * bar.group.aspect)
 	local gap = Widgets.Snap(holder, s.spacing)
-	local pad = Widgets.Snap(holder, PAD)
+	local pad = bar.inline and 0 or Widgets.Snap(holder, PAD)
 	local cols, rows = Menus.Grid(#wanted > 0 and #wanted or #bar.entries, bar.dockRows or s.rows)
 	local parts = { width, height, gap, pad, cols }
 	for _, entry in ipairs(list) do
@@ -388,18 +388,19 @@ local function Sync(bar)
 	end
 end
 
-function Menus.SetDock(id, dock, parent, size, rows)
+function Menus.SetDock(id, dock, parent, size, rows, inline)
 	local bar = bars[id]
-	if not bar or (bar.dock == dock and bar.dockParent == parent and bar.dockSize == size and bar.dockRows == rows) then
+	if not bar or (bar.dock == dock and bar.dockParent == parent and bar.dockSize == size and bar.dockRows == rows and bar.inline == inline) then
 		return
 	end
 	if InCombatLockdown() then
 		K.Combat.Queue(function()
-			Menus.SetDock(id, dock, parent, size, rows)
+			Menus.SetDock(id, dock, parent, size, rows, inline)
 		end)
 		return
 	end
 	bar.dock, bar.dockParent, bar.dockSize, bar.dockRows = dock, parent, size, rows
+	bar.inline = inline
 	local holder, content = bar.holder, bar.content
 	holder:SetShown(dock == nil)
 	content:ClearAllPoints()
@@ -412,6 +413,7 @@ function Menus.SetDock(id, dock, parent, size, rows)
 	end
 	bar.signature = nil
 	Sync(bar)
+	if Menus.Reveal then Menus.Reveal() end
 end
 
 local function Soon(id)
@@ -592,7 +594,7 @@ end
 
 local function Whole(bar)
 	local menus = ns.Settings().menus
-	return (type(menus) == "table" and menus.always == true) or bar.hover or Editing()
+	return bar.inline or (type(menus) == "table" and menus.always == true) or bar.hover or Editing()
 end
 
 local function Lit(bar)

@@ -210,8 +210,8 @@ function ns.Schema()
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
-		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["The top of the screen in Frames and Orbs, or the original right rail. Move either in Layout Mode."], options = {
-			{ value = "top", label = L["Top"] }, { value = "rail", label = L["Right rail"] },
+		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Top docks to the slab in Medallions. Dock follows the action bars. Rail is the old readout."], options = {
+			{ value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
 		} },
 		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1 },
 		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], options = {

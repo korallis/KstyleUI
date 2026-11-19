@@ -71,14 +71,19 @@ assert(math.abs(K.Scale.AppliedUserScale() - expected) < 1e-8,
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Core = dofile("Tools/regression/core_env.lua")
-local _, game = Core.New({ size = "auto", fit = true })
+local gameEnv, game = Core.New({ size = "auto", fit = true })
+local legacyMaximum, legacyFits = game.Setup.Layouts.ScaleLimit(3456, 2234, "DPS", nil, "medallions")
+assert(math.abs(game.Scale.Auto(2234, legacyMaximum, legacyFits) - 0.8158) < 0.00005,
+    "an absent placement retains the legacy rail fit")
+Core.Boot(gameEnv)
+game.Store.Module("DataBars").strip = { placement = "top" }
 for _, screen in ipairs({ {3456, 2234}, {5120, 1440}, {1920, 1080} }) do
     RENDER_SCREEN = { width = screen[1], height = screen[2], size = "auto" }
     local width = game.Scale.CanvasWidth(screen[1], screen[2])
     local maximum, fits = game.Setup.Layouts.ScaleLimit(width, screen[2], "DPS", nil, "medallions")
     local expected = game.Scale.Auto(screen[2], maximum, fits)
     if screen[1] == 3456 then
-        assert(math.abs(expected - 0.8158) < 0.00005, "the game's 3456x2234 fit changed")
+        assert(math.abs(expected - 0.84601611459266) < 1e-8, "the docked game's 3456x2234 fit changed")
     end
     for _, module in ipairs({ "unitframes", "actionbars", "minimap" }) do
         local scene = Hud.Module(module, { layout = "DPS", applyPreset = true })
