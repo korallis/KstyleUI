@@ -342,11 +342,29 @@ local function Around(f, path)
 	if not card or not current:IsShown() then
 		return nil
 	end
-	local ct, cb, st, sb = card:GetTop(), card:GetBottom(), current:GetTop(), current:GetBottom()
+	local bottom = path.cardBottom
+	local cb = bottom and bottom:GetBottom()
+	cb = Plain(cb) and cb + (path.cardOffset or 0) or card:GetBottom()
+	local ct, st, sb = card:GetTop(), current:GetTop(), current:GetBottom()
 	if not (Plain(ct) and Plain(cb) and Plain(st) and Plain(sb)) or ct <= cb then
 		return nil
 	end
 	return ct - st, sb - cb
+end
+
+function Rail.CardHeight(path, resize)
+	local story = On() and Rail.Story()
+	local quest = ns.QuestCard and ns.QuestCard.Frame()
+	if not (ns.Skins.Setting(KEY, "compose") and story and not story.stacked and quest and quest:IsShown()) then
+		return nil
+	end
+	if not resize or InCombatLockdown() then
+		return path.cardHeight
+	end
+	local f = path.frame
+	local scale = Widgets.ScaleFactor(f)
+	local steps = f.CurrentStepFrame:IsShown() and Height(f.CurrentStepFrame) or nil
+	return math.max(Height(path.card), Shape(f, path, steps).span, Height(quest) * Widgets.ScaleFactor(quest) / scale)
 end
 
 local function More(path)
@@ -653,17 +671,10 @@ function Rail.Place()
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
-	local story = Rail.Story()
 	local quest = ns.QuestCard and ns.QuestCard.Frame()
-	if ns.Skins.Setting(KEY, "compose") and story and not story.stacked and quest and quest:IsShown() and path and path.card and not InCombatLockdown() then
-		local card = path.card
-		local questScale = Widgets.ScaleFactor(quest)
-		local height = math.max(Height(card) * scale, shape.span * scale, Height(quest) * questScale)
-		card:ClearAllPoints()
-		card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
-		card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
-		card:SetHeight(Widgets.Snap(card, height / scale))
-		ns.QuestCard.Resize(Widgets.Snap(quest, height / questScale))
+	local height = path and Rail.CardHeight(path, true)
+	if height and quest and not InCombatLockdown() then
+		ns.QuestCard.Resize(Widgets.Snap(quest, height * scale / Widgets.ScaleFactor(quest)))
 	end
 	if Docking() then
 		Dock(f, path, band)

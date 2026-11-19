@@ -605,7 +605,7 @@ local function StepsBelow(f)
 	return IsTable(steps) and steps:IsShown() and steps.anchor == "BOTTOM" and steps or nil
 end
 
-local function PlaceCard(path)
+local function PlaceCard(path, resize)
 	local f, card = path.frame, path.card
 	local below = StepsBelow(f)
 	local bottom = below or f
@@ -613,10 +613,21 @@ local function PlaceCard(path)
 	if path.rest and not below then
 		offset = Widgets.Snap(card, REST_FOOT)
 	end
+	local rail = RestedXP.Rail
+	local height = rail and rail.CardHeight and rail.CardHeight(path, resize)
+	height = height and Widgets.Snap(card, height)
+	if path.cardBottom == bottom and path.cardOffset == offset and path.cardHeight == height then
+		return
+	end
+	path.cardBottom, path.cardOffset, path.cardHeight = bottom, offset, height
 	card:ClearAllPoints()
 	card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
 	card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
-	card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, offset)
+	if height then
+		card:SetHeight(height)
+	else
+		card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, offset)
+	end
 end
 
 local function Root(frame, units)
@@ -759,7 +770,7 @@ function Chrome.Rest(f, on, folded)
 	local path = Chrome.Path(f)
 	if path and (ns.Skins.Setting("restedXP", "compose") or path.rest ~= (on and folded == true)) then
 		path.rest = on and folded == true
-		PlaceCard(path)
+		PlaceCard(path, true)
 	end
 end
 
