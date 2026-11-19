@@ -410,13 +410,13 @@ do
 end
 
 -- Size: the KSTY-44 bible's plate (renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg, 1 px per screen unit
--- at 1920x1080, where a root unit is 16/19 of a pixel). The bar is 132 by 10 px, so 156.75 by 11.875 root units, with a
+-- at 1920x1080, where a root unit is 16/19 of a pixel). The bar keeps its 156.75-unit width and rounds its height to the shared 12 units, with a
 -- one-pixel black edge and one of 45 percent black outside it. The level diamond sits left of the bar, clear of the
 -- left bracket, and reads in lit gilt; the name is Cinzel caps at 16; no health text --------------------------------
 
 do
 	local env, K, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 156.75 and ns.Plate.DEFAULT_HEIGHT == 11.875, "the health bar is the mock-up's 132 by 10 px, 156.75 by 11.875 root units")
+	assert(ns.Plate.DEFAULT_WIDTH == 156.75 and ns.Plate.DEFAULT_HEIGHT == K.Tokens.Size("barHeight"), "the health bar uses the shared 12-unit bar height")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
 	local health = plate.health

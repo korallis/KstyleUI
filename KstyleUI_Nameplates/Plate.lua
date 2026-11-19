@@ -32,11 +32,10 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 156.75, 11.875
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 156.75, Tokens.Size("barHeight")
 Plate.NAME_OVERHANG = 44
 Plate.FRAME_GAP = 2.375
 
-local HALO_ALPHA = 0.45
 local NAME_GAP = 8
 Plate.NAME_GAP = NAME_GAP
 local BADGE_GAP = Tokens.Size("gapSmall")
@@ -79,9 +78,9 @@ local function LogOnce(key, message)
 end
 ns.LogOnce = LogOnce
 
-local function StyleFont(text, size, outline)
+local function StyleFont(text, size, outline, role)
 	local flags = OUTLINE_FLAGS[outline] or "OUTLINE"
-	local path = Settings.Get("font")
+	local path = Settings.Get("font", role)
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 		LogOnce("font:" .. path, "the font " .. path .. " did not load; plates use the world font")
@@ -119,43 +118,6 @@ function Plate.Place(region, point, relative, relativePoint, x, y, ownW, ownH, r
 	region:SetPoint(point, relative, relativePoint, dx * px, dy * px)
 end
 local Place = Plate.Place
-
-function ns.FlatBar(parent, opts)
-	opts.border = false
-	local bar = Widgets.StatusBar(parent, opts)
-	local restyle = bar.Restyle
-	bar.rim = { Tokens.Color("black") }
-	bar.halo = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -2))
-	function bar:PlaceRim()
-		local px = Widgets.Border(self)
-		if self.rimPixel == px then
-			return
-		end
-		self.rimPixel, self.rimOutset = px, px * 2
-		self.keyline:ClearAllPoints()
-		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
-		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
-		self.halo:SetColorTexture(Widgets.Rgba("black", HALO_ALPHA))
-		self.halo:ClearAllPoints()
-		self.halo:SetPoint("TOPLEFT", self, "TOPLEFT", -px * 2, px * 2)
-		self.halo:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px * 2, -px * 2)
-	end
-	function bar:SetRimColor(r, g, b, a)
-		local c = self.rim
-		c[1], c[2], c[3], c[4] = r, g, b, a or 1
-		self.keyline:SetVertexColor(c[1], c[2], c[3], c[4])
-	end
-	function bar:Restyle()
-		restyle(self)
-		self.shade:Hide()
-		self.rimPixel = nil
-		self:PlaceRim()
-		self:SetRimColor(unpack(self.rim))
-		self:ApplyFillRamp()
-	end
-	bar:Restyle()
-	return bar
-end
 
 local function UnitValue(fn, ...)
 	if type(fn) ~= "function" then
@@ -344,8 +306,8 @@ function Plate:Restyle()
 	local nameRole = Settings.Get("name.upper") and "names" or "heading"
 	Widgets.StyleText(self.name, nameRole)
 	Widgets.ApplyFont(self.name, (Tokens.Font(nameRole)), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
-	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"))
-	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"))
+	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"), "number")
+	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number")
 
 	self.healthText:ClearAllPoints()
 	Place(self.healthText, "RIGHT", health, "RIGHT", -TEXT_INSET, 0, nil, nil, barW, barH)

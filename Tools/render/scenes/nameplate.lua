@@ -15,9 +15,10 @@ return Common.Run(function()
 	local env, K = N.New({
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
+		size = Common.SCREEN.size or "default",
 		saved = {
 			version = 2,
-			profiles = { Default = { Nameplates = { enabled = true } } },
+			profiles = { Default = { Nameplates = { enabled = true, healthText = { show = true } } } },
 			characters = {},
 			layouts = {},
 			account = { setupSeen = true },

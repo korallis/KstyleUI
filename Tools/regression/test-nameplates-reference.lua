@@ -6,7 +6,7 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	K.Options.Write("Nameplates", "preset", preset)
 	N.Add(env, "nameplate1", { name = "Shadowgale Poacher", powerMax = 200 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(ns.Plate.DEFAULT_WIDTH == 156.75 and ns.Plate.DEFAULT_HEIGHT == 11.875, "the bible's bar is 156.75 by 11.875 root units")
+	assert(ns.Plate.DEFAULT_WIDTH == 156.75 and ns.Plate.DEFAULT_HEIGHT == K.Tokens.Size("barHeight"), "the plate uses the shared 12-unit bar height")
 	assert(plate.ornament == nil, "a plate owns no ornament handle: no rail, end or cap on or around the bar")
 	assert(plate.health.caps == nil and plate.health.chrome == nil, "the bar has no pill masks or rounded chrome")
 	assert(plate.health.unitBar and plate.health.cleanLit, "the bar is the shared unit bar with its one-pixel top highlight")
@@ -47,6 +47,12 @@ for _, screen in ipairs({ { 1280, 720 }, { 1920, 1080 }, { 2560, 1440 }, { 3440,
 	N.Target(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	local bar = plate.health
+	assert(ns.Settings.Get("health.height") == K.Tokens.Size("barHeight"), "the default follows the shared bar height")
+	assert(plate.levelText:GetFont() == (K.Tokens.Font("number")), "levels use the shared number face")
+	assert(plate.healthText:GetFont() == (K.Tokens.Font("number")), "health text uses the shared number face")
+	assert(plate.castBar.opts.border and plate.castBar.barEdge == K.Widgets.BarEdge(plate.castBar), "casts use the shared bordered StatusBar")
+	N.Cast(env, "nameplate1", { name = "Shadow Bolt", text = "Shadow Bolt", texture = 136197, notInterruptible = false })
+	assert(plate.castName:GetFont() == (K.Tokens.Font("caps")) and plate.castName:GetText() == "SHADOW BOLT", "cast names use the caps face and upper case")
 	K.Widgets.RestyleAll()
 	local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar)
 	local border = K.Widgets.Border(bar)
@@ -55,7 +61,7 @@ for _, screen in ipairs({ { 1280, 720 }, { 1920, 1080 }, { 2560, 1440 }, { 3440,
 	assert(N.Same(x, -border) and N.Same(y, border), where .. ": the bar's black edge is the kit's border")
 	local _, _, _, hx, hy = bar.under.edgeSoft:GetPoint(1)
 	assert(N.Same(hx, -border * 2) and N.Same(hy, border * 2), where .. ": and as much again of 45 percent black outside it")
-	local _, _, _, cx = plate.castBar.keyline:GetPoint(1)
+	local _, _, _, cx = plate.castBar.barEdge.hard:GetPoint(1)
 	assert(N.Same(cx, -border), where .. ": the cast bar takes the same edge")
 	local _, relative, relativePoint, _, castY = plate.cast:GetPoint(1)
 	assert(relative == bar and relativePoint == "BOTTOMLEFT", where .. ": the cast is placed from the health bar")
@@ -134,6 +140,39 @@ do
 	K.Store.migrations[28](probe)
 	assert(probe.profiles.P.Nameplates.target.color == nil, "a target colour still at the old gilt default follows the bible's lit gilt")
 	assert(K.Store.Data().profiles.Default.Nameplates.target.color.r == 0, "a black target colour is kept")
+end
+
+do
+	local texture = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\BarGlass.png"
+	local font = "Interface\\AddOns\\KstyleUI\\Media\\Fonts\\PTSerif-Regular.ttf"
+	local env, K, ns = N.New({ saved = {
+		version = 40, characters = {}, account = { setupSeen = true }, devlog = {}, layouts = {},
+		profiles = { Default = { Nameplates = { enabled = true, font = font, health = { height = 17, texture = texture }, cast = { texture = texture } } } },
+	} })
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	K.Widgets.RestyleAll()
+	assert(ns.Settings.Get("health.height") == 17, "an explicit saved height is preserved")
+	assert(N.Last(plate.health, "SetStatusBarTexture")[1] == texture and N.Last(plate.castBar, "SetStatusBarTexture")[1] == texture, "explicit saved bar textures are preserved")
+	assert(plate.levelText:GetFont() == font and plate.healthText:GetFont() == font and plate.castName:GetFont() == font, "an explicit saved font overrides the shared roles")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns = N.New({ width = screen[1], height = screen[2], size = "auto" })
+	K.Options.Write("HudStyle", "style", "medallions")
+	K.Options.Write("Nameplates", "preset", "dungeon")
+	assert(ns.state.width == 120 and ns.state.height == K.Tokens.Size("barHeight"), "Dungeon keeps the shared height under Medallions")
+	K.Options.Write("Nameplates", "healthText.show", false)
+	assert(ns.state.height == 12, "customising Dungeon keeps its chosen height")
+	env.FireEvent("PLAYER_LOGOUT")
+	local e, k, n = N.New({ width = screen[1], height = screen[2], size = "auto", saved = K.Store.Data() })
+	assert(n.state.height == 12, "Dungeon's chosen default-sized height survives a reload")
+	k.Options.Write("Nameplates", "preset", "lumen")
+	assert(n.state.height == 9, "Minimal restores Medallions' slim default")
+	k.Options.Write("Nameplates", "health.height", 12)
+	assert(n.state.height == 12, "an explicit 12-unit height wins over Medallions' default")
+	assert(#env._errors == 0 and #e._errors == 0, tostring(e._errors[1]))
 end
 
 print("nameplates reference ok")

@@ -23,7 +23,7 @@ Settings.defaults = {
 	offsetY = 0,
 	shrinkDistant = false,
 	font = "",
-	health = { width = 156.75, height = 11.875, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
+	health = { width = 156.75, height = Tokens.Size("barHeight"), texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("plateHostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
 	types = {

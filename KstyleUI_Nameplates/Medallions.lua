@@ -65,7 +65,7 @@ function Plates.ReadSize()
 	local state = ns.state
 	if Medallions.Active() and state.width == Plate.DEFAULT_WIDTH then
 		state.width = WIDTH
-		if state.height == Plate.DEFAULT_HEIGHT then state.height = HEIGHT end
+		if state.height == Plate.DEFAULT_HEIGHT and Settings.Get("preset") ~= "dungeon" and not K.Store.Module(Settings.MODULE).health.heightChosen then state.height = HEIGHT end
 	end
 end
 

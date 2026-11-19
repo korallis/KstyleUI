@@ -74,6 +74,7 @@ function Presets.Apply(name)
 		return false
 	end
 	Presets.applying = true
+	K.Store.Module(MODULE).health.heightChosen = values["health.height"] ~= nil or nil
 	for key in pairs(touched) do
 		local value = values[key]
 		if value == nil then
@@ -98,6 +99,9 @@ function Presets.OnSetting(_, module, key)
 		return
 	end
 	Settings.Invalidate()
+	if key == "health.height" or Settings.Get("preset") == "dungeon" then
+		K.Store.Module(MODULE).health.heightChosen = true
+	end
 	if key == "preset" then
 		local name = Settings.Get("preset")
 		if name ~= "custom" then

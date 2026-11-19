@@ -242,7 +242,7 @@ function Cast.Start(plate, channel, update)
 	plate.castFlag, plate.castID = flag, castID
 	local cast = plate.cast
 	plate.castIcon:SetTexture(texture)
-	plate.castName:SetText(text)
+	plate.castName:SetText(not IsSecret(text) and type(text) == "string" and K.Locale.Upper(text) or text)
 	Run(plate, channel, startMs, endMs)
 	plate.castClock = 0
 	local showTime = Settings.Get("cast.showTime") and type(plate.castDuration) ~= "nil" and not IsSecret(plate.castDuration)
@@ -268,7 +268,7 @@ function Cast.Stop(plate, interrupted, failed)
 		plate.castInterrupted = true
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
-		plate.castName:SetText(failed and L["Failed"] or L["Interrupted"])
+		plate.castName:SetText(K.Locale.Upper(failed and L["Failed"] or L["Interrupted"]))
 		plate.castTime:SetText("")
 		Paint(plate)
 		if Settings.Get("cast.outcomes") then
@@ -387,8 +387,8 @@ function Component.Build(plate)
 	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
-	plate.castBarOpts = { width = 100, height = 6 }
-	local bar = ns.FlatBar(cast, plate.castBarOpts)
+	plate.castBarOpts = { width = 100, height = 6, border = true }
+	local bar = Widgets.StatusBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar
 	local icon = cast:CreateTexture(nil, "ARTWORK")
@@ -469,7 +469,7 @@ function Component.Restyle(plate)
 	bar:SetReverseFill(reverse)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
 	bar:Restyle()
-	StyleFont(plate.castName)
+	StyleFont(plate.castName, "caps")
 	StyleFont(plate.castTime, "time")
 	local glyph = plate.castGlyph
 	glyph:SetShown(Settings.Get("cast.combatCues"))
@@ -509,7 +509,7 @@ function Cast.Sample(plate)
 	plate.cast:SetAlpha(1)
 	plate.cast:Show()
 	plate.castIcon:SetTexture(sample.texture)
-	plate.castName:SetText(sample.text)
+	plate.castName:SetText(K.Locale.Upper(sample.text))
 	plate.castTime:SetText(sample.time)
 	plate.castTime:SetShown(Settings.Get("cast.showTime"))
 	plate.castBar:SetBarRange(0, 1)

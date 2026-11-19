@@ -29,7 +29,7 @@ do
 	local timer = Last(bar, "SetTimerDuration")
 	assert(timer and timer[1] == env._units.nameplate1.castDuration, "the bar runs from the duration object")
 	assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills as time passes")
-	assert(Last(plate.castName, "SetText")[1] == "Molten Pulse", "the spell's name shows")
+	assert(Last(plate.castName, "SetText")[1] == "MOLTEN PULSE", "the spell's name shows in upper case")
 	assert(Last(plate.castIcon, "SetTexture")[1] == 135808, "the spell's icon shows")
 	local ar, ag, ab = token(K, "gilt")
 	assert(SameColor(ar, ag, ab, barColor(bar)), "without a known interrupt an interruptible cast keeps its normal colour")
@@ -38,7 +38,7 @@ do
 	-- The time text counts down while the bar shows.
 	N.Tick(env, 0.2)
 	assert(plate.castTime:GetFont() == (K.Tokens.Font("time")), "the cast time reads in the time role, as the cast bars' times do")
-	assert(plate.castName:GetFont() == (K.Tokens.Font("body")), "the cast name keeps the plate's body font")
+	assert(plate.castName:GetFont() == (K.Tokens.Font("caps")), "the cast name uses the shared caps font")
 	local time = Last(plate.castTime, "SetFormattedText")
 	assert(time and env.issecretvalue(time[2]) and env.Reveal(time[2]) == 1.5, "the time text formats the remaining time")
 
@@ -164,12 +164,12 @@ do
 	N.Cast(env, "nameplate1", { name = "Drain Life", text = "Drain Life", texture = 136169, channel = true })
 	env._units.nameplate1.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1", "cast-guid", 689, "Player-1-0001")
-	assert(Last(plate.castName, "SetText")[1] == K.L["Interrupted"], "a channel stopped by someone says Interrupted")
+	assert(Last(plate.castName, "SetText")[1] == K.Locale.Upper(K.L["Interrupted"]), "a channel stopped by someone says Interrupted")
 	N.Settle(env)
 	N.Cast(env, "nameplate1", { name = "Drain Life", text = "Drain Life", texture = 136169, channel = true })
 	env._units.nameplate1.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1", "cast-guid", 689, nil)
-	assert(Last(plate.castName, "SetText")[1] == "Drain Life", "a channel that ran out just fades")
+	assert(Last(plate.castName, "SetText")[1] == "DRAIN LIFE", "a channel that ran out just fades")
 end
 
 -- A flat cast still follows orientation and reverse settings -------------------------------------------
@@ -215,7 +215,7 @@ do
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "nameplate1")
 	env.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1")
 	assert(plate.cast:IsShown(), "the interrupted bar stays a moment")
-	assert(Last(plate.castName, "SetText")[1] == K.L["Interrupted"], "and says so")
+	assert(Last(plate.castName, "SetText")[1] == K.Locale.Upper(K.L["Interrupted"]), "and says so")
 	local hr, hg, hb = token(K, "hostile")
 	assert(SameColor(hr, hg, hb, barColor(plate.castBar)), "in the hostile colour")
 	env.RunTimers()
