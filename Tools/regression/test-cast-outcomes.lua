@@ -85,7 +85,7 @@ do
 	assert(plate.cast:IsShown() and plate.casting, "E3: an old interrupt timer cannot hide a new cast")
 	env._units.nameplate1.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_FAILED", "nameplate1")
-	assert(plate.castInterrupted and N.Last(plate.castName, "SetText")[1] == K.L["Failed"], "E3: a failed plate cast shows its own held outcome")
+	assert(plate.castInterrupted and N.Last(plate.castName, "SetText")[1] == K.Locale.Upper(K.L["Failed"]), "E3: a failed plate cast shows its own held outcome")
 	pending[#pending][2]()
 	assert(not plate.cast:IsShown(), "E3: a held plate leaves when its timer expires")
 	K.Options.Write("Nameplates", "cast.outcomes", false)

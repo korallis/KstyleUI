@@ -212,7 +212,7 @@ do
 	local explicit = K.Tokens.FontPath("InterSemiBold")
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
 		face(env, K, key)
-		font(plate.healthText, (K.Tokens.Font("body")), "nameplate values preserve the effective body role")
+		font(plate.healthText, (K.Tokens.Font("number")), "nameplate values follow the number role")
 	end
 	write(K, "Nameplates", "font", explicit)
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
@@ -221,12 +221,12 @@ do
 	end
 	write(K, "Nameplates", "font", "")
 	face(env, K, "SourceSans3Regular")
-	font(plate.healthText, (K.Tokens.Font("body")), "reset nameplate font inherits again")
+	font(plate.healthText, (K.Tokens.Font("number")), "reset nameplate font inherits again")
 	for _, word in ipairs({ "theme", "kit" }) do
 		write(K, "Nameplates", "font", explicit)
 		write(K, "Nameplates", "font", word)
 		face(env, K, "Lumen")
-		font(plate.healthText, (K.Tokens.Font("body")), "the saved word " .. word .. " still follows the kit for plates")
+		font(plate.healthText, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for plates")
 	end
 end
 
