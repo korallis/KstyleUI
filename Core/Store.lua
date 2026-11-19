@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 39
+Store.DB_VERSION = 40
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -967,6 +967,16 @@ Store.migrations[39] = function(data)
 			railEntry(entry, "minimap.main", { "TOPRIGHT", -20, -38 }, { ["minimap.main"] = { "TOPRIGHT", -20, -38 } })
 			if entry.anchor then layout["medallions:minimap.main"] = { anchor = entry.anchor, x = entry.x, y = entry.y } end
 			if next(entry) == nil then layout["minimap.main"] = nil end
+		end
+	end
+end
+
+Store.migrations[40] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			profile.Skins = type(profile.Skins) == "table" and profile.Skins or {}
+			profile.Skins.restedXP = type(profile.Skins.restedXP) == "table" and profile.Skins.restedXP or {}
+			profile.Skins.restedXP.boxes = true
 		end
 	end
 end
