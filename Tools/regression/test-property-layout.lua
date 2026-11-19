@@ -125,14 +125,13 @@ local function Place(c)
 				w, h, offsetX = grouped, groupHeight, nil
 			end
 			local frame = env.CreateFrame("Frame", nil, Scale.Root())
-			if key == "meters.threat" and enabled["meters.damage"] ~= false then
-				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil, c.style).layout[key]
-				Layout.Register(frame, key, paired, { label = key, module = element.module, scalable = true })
-			else
 			frame:SetSize(w, h)
 			Layout.Register(frame, key, Layouts.Default(key), { label = key, module = element.module, scalable = true })
-			end
 			Widgets.Size(frame, w, h)
+			if key == "meters.threat" and enabled["meters.damage"] ~= false then
+				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil, c.style).layout[key]
+				assert(Layout.Update(key, paired))
+			end
 			local left, bottom, fw, fh = Layout.Rect(key)
 			Add(key, left, bottom, fw, fh, offsetX)
 			if key == "actionbars.bar1" and c.style == "orbs" then

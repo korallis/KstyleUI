@@ -425,7 +425,7 @@ for _, name in ipairs(names) do
 		local clusterTop = 540 + LIFT
 		do
 			local threat = rect("meters.threat")
-			assert(same(threat.right, width - EDGE - 278 - 16) and same(threat.bottom, 217.5 + LIFT + 102.5 + 16), label .. ": solo threat retains its independent slot")
+			assert(same(threat.right, width - 263) and same(threat.bottom, 217.5 + LIFT + 102.5 + 16), label .. ": solo threat retains its independent slot")
 			assert(threat.left >= mid + CLEAR.half, label .. ": keep solo threat outside the clear centre")
 		end
 		for _, key in ipairs({ "unitframes.focus", "unitframes.focustarget", "unitframes.targettarget", "unitframes.target" }) do

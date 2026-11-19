@@ -169,7 +169,7 @@ local DPS = {
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + STORY_W + GAP), y = 217.5 + LIFT + 102.5 + GAP },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -1031,8 +1031,8 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
-			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -592, y = 432 },
-			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(592 + DAMAGE_W + GAP), y = 432 + DAMAGE_H - THREAT_H },
+			["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -592, y = 472 },
+			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(592 + DAMAGE_W + GAP), y = 472 + DAMAGE_H - THREAT_H },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },

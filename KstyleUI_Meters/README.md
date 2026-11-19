@@ -8,7 +8,7 @@ Options > Profiles also enables **Use a profile per specialization** by default.
 
 Regression evidence: `test-meters-role.lua` and `test-specialization.lua`. `meters_role` renders the real party meter; `RENDER_ROLE=TANK` shows threat and `RENDER_ROLE=DAMAGER` shows damage.
 
-**Meter while dealing damage** defaults to Damage. Both puts threat next to damage at the same width, with full class colours; the manual Show switches produce the same pair. A custom threat position stays independent. Default cards are 248 units wide so the pair clears the stance and orb areas. Frames and Orbs keep the pair at the right rail foot; Medallions seats it left of the story cards. The 248-unit default width leaves the stance and orb areas clear. Existing untouched 269-by-158 default damage sizes follow the new width; custom positions and sizes remain independent. `test-meters-both.lua` covers every style and layout at 1920x1080, 2560x1440, 5120x1440 Spread and 3840x2160; `hud_dps_threat` renders that state.
+**Meter while dealing damage** defaults to Damage. Both puts threat next to damage at the same width, with full class colours; the manual Show switches produce the same pair. A custom threat position stays independent. Default cards are 248 units wide so the pair clears the stance and orb areas. Frames and Orbs keep the pair at the right rail foot; Medallions seats it left of the story cards. Existing untouched 269-by-158 default damage sizes follow the new width; custom positions and sizes remain independent. `test-meters-both.lua` covers every style and layout at 1920x1080, 2560x1440, 5120x1440 Spread and 3840x2160; `hud_dps_threat` renders that state.
 
 | Field | Value |
 | --- | --- |
