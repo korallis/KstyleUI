@@ -266,50 +266,44 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn('--shard "$SHARD/$SHARD_TOTAL"', job)
         self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", job)
         install = next(step for step in job.split("\n      - ") if "name: Install hosted Lua" in step)
-        self.assertIn("if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'", install)
+        self.assertIn("if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'", install)
         self.assertIn('install -y lua5.1', install)
         self.assertIn('path: ~/.cache/lua51/*.deb', job)
+        self.assertNotIn('actions/upload-artifact@', job, 'Staging always runs Lua; remove unused Lua markers')
 
     def test_markers_record_each_pr_area_even_after_failure_or_cancellation(self):
-        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        for job, areas in (("lua", ("lua-${{ matrix.shard }}-of-${{ strategy.job-total }}",)),
-                           ("python-package", ("lint", "python", "package"))):
-            body = jobs[job]
-            self.assertIn("git rev-parse 'HEAD^{tree}'", body)
-            uploads = [step for step in body.split("\n      - ") if "actions/upload-artifact@" in step and "name: start-" not in step]
-            self.assertEqual(len(uploads), len(areas))
-            for area, upload in zip(areas, uploads):
-                self.assertIn("name: ${{ job.status == 'success' && 'green' || 'red' }}-${{ steps.tree.outputs.tree }}-" + area, upload)
-                output = "run" if job == "lua" else area
-                self.assertIn("if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs." + output, upload)
-                self.assertIn("!= 'false' }}", upload)
-                self.assertIn("retention-days: 7", upload)
-                self.assertIn("if-no-files-found: error", upload)
-                self.assertIn("overwrite: true", upload)
-            self.assertIn("contents: read", body)
-            self.assertIn("actions: read", body)
-        self.assertIn("SHARD: ${{ matrix.shard }}", jobs["lua"])
-        self.assertIn("SHARD_TOTAL: ${{ strategy.job-total }}", jobs["lua"])
+        body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        self.assertIn("git rev-parse 'HEAD^{tree}'", body)
+        areas = ("lint", "python", "package")
+        uploads = [step for step in body.split("\n      - ") if "actions/upload-artifact@" in step and "name: start-" not in step]
+        self.assertEqual(len(uploads), len(areas))
+        for area, upload in zip(areas, uploads):
+            self.assertIn("name: ${{ job.status == 'success' && 'green' || 'red' }}-${{ steps.tree.outputs.tree }}-" + area, upload)
+            self.assertIn("if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs." + area, upload)
+            self.assertIn("!= 'false' }}", upload)
+            self.assertIn("retention-days: 7", upload)
+            self.assertIn("if-no-files-found: error", upload)
+            self.assertIn("overwrite: true", upload)
+        self.assertIn("contents: read", body)
+        self.assertIn("actions: read", body)
 
     def test_marker_uploads_follow_their_area_suite_and_precede_the_next_area(self):
-        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        for job, suites in (("lua", (("bash scripts/gate.sh lua",),)),
-                            ("python-package", (("bash scripts/gate.sh lint",), ("bash scripts/gate.sh python",),
-                                                ("BigWigsMods/packager@", "bash Tools/hooks/check-package.sh")))):
-            body = jobs[job]
-            uploads = [match.start() for match in re.finditer("uses: actions/upload-artifact@", body)
-                       if "name: start-" not in steps_after(body, match.start())]
-            self.assertEqual(len(uploads), len(suites))
-            for i, commands in enumerate(suites):
-                for command in commands:
-                    self.assertLess(body.index(command), uploads[i], command + ": marker must follow its suite")
-                    if i:
-                        self.assertLess(uploads[i - 1], body.index(command), command + ": previous area's marker comes first")
+        body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        suites = (("bash scripts/gate.sh lint",), ("bash scripts/gate.sh python",),
+                  ("BigWigsMods/packager@", "bash Tools/hooks/check-package.sh"))
+        uploads = [match.start() for match in re.finditer("uses: actions/upload-artifact@", body)
+                   if "name: start-" not in steps_after(body, match.start())]
+        self.assertEqual(len(uploads), len(suites))
+        for i, commands in enumerate(suites):
+            for command in commands:
+                self.assertLess(body.index(command), uploads[i], command + ": marker must follow its suite")
+                if i:
+                    self.assertLess(uploads[i - 1], body.index(command), command + ": previous area's marker comes first")
 
     def test_cancelled_pr_steps_write_red_markers(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         uploads = [step for step in text.split("\n      - ") if "uses: actions/upload-artifact@" in step and "name: start-" not in step]
-        self.assertEqual(len(uploads), 4)
+        self.assertEqual(len(uploads), 3)
         for upload in uploads:
             self.assertIn("if: ${{ always() &&", upload)
             self.assertIn("job.status == 'success' && 'green' || 'red'", upload)
@@ -323,44 +317,38 @@ class WorkflowsTest(unittest.TestCase):
                 self.assertEqual(match.group(2), " # v7.0.2")
 
     def test_tree_steps_run_even_after_scope_failure_or_cancellation(self):
-        for body in jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8")).values():
-            tree = body.split("id: tree", 1)[1].split("\n      - ", 1)[0]
-            self.assertIn("if: ${{ always() && github.event_name == 'pull_request' }}", tree)
+        body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        tree = body.split("id: tree", 1)[1].split("\n      - ", 1)[0]
+        self.assertIn("if: ${{ always() && github.event_name == 'pull_request' }}", tree)
 
     def test_each_area_records_its_start_before_any_suite_work(self):
-        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        for job, areas in (("lua", (("lua", "lua-${{ matrix.shard }}-of-${{ strategy.job-total }}", "Check the runner's Lua"),)),
-                           ("python-package", (("lint", "lint", "Check the runner's luacheck"),
-                                               ("python", "python", "Check the runner's Lua"),
-                                               ("package", "package", "Check the runner's Lua")))):
-            body = jobs[job]
-            for area, marker, first_step in areas:
-                self.assertIn("id: start_" + area, body, "record the area's start before its suite")
-                start = body.split("id: start_" + area, 1)[1].split("\n      - ", 1)[0]
-                self.assertIn("name: start-${{ steps.tree.outputs.tree }}-" + marker, start)
-                self.assertIn("always() && github.event_name == 'pull_request'", start)
-                scope = "run" if job == "lua" else area
-                self.assertIn("steps.scope.outputs." + scope + " != 'false'", start)
-                self.assertLess(body.index("id: tree"), body.index("id: start_" + area))
-                self.assertLess(body.index("id: start_" + area), body.index("- name: " + first_step))
+        body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        for area, first_step in (("lint", "Check the runner's luacheck"),
+                                 ("python", "Check the runner's Lua"), ("package", "Check the runner's Lua")):
+            self.assertIn("id: start_" + area, body, "record the area's start before its suite")
+            start = body.split("id: start_" + area, 1)[1].split("\n      - ", 1)[0]
+            self.assertIn("name: start-${{ steps.tree.outputs.tree }}-" + area, start)
+            self.assertIn("always() && github.event_name == 'pull_request'", start)
+            self.assertIn("steps.scope.outputs." + area + " != 'false'", start)
+            self.assertLess(body.index("id: tree"), body.index("id: start_" + area))
+            self.assertLess(body.index("id: start_" + area), body.index("- name: " + first_step))
 
     def test_a_pr_suite_cannot_run_without_a_successful_start_upload(self):
-        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        commands = (("lua", "lua", "Check the runner's Lua"), ("lua", "lua", "Lua regression tests"),
-                    ("python-package", "lint", "Check the runner's luacheck"), ("python-package", "lint", "Run the lint gate"),
-                    ("python-package", "python", "Check the runner's Python"), ("python-package", "python", "Python tool tests"),
-                    ("python-package", "package", "Package without"), ("python-package", "package", "Check the zip"))
-        for job, area, name in commands:
-            step = jobs[job].split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
+        body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        commands = (("lint", "Check the runner's luacheck"), ("lint", "Run the lint gate"),
+                    ("python", "Check the runner's Python"), ("python", "Python tool tests"),
+                    ("package", "Package without"), ("package", "Check the zip"))
+        for area, name in commands:
+            step = body.split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
             self.assertIn("github.event_name != 'pull_request' || steps.start_" + area + ".outcome == 'success'", step)
 
     def test_push_reuse_is_a_step_decision_and_covers_lint_too(self):
         jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
         for body in jobs.values():
             self.assertIn("    if: " + FORK_GUARD + "\n", body)
-            scope = body.split("id: scope", 1)[1].split("\n      - ", 1)[0]
-            self.assertIn("GITHUB_TOKEN: ${{ github.token }}", scope)
         job = jobs["python-package"]
+        scope = job.split("id: scope", 1)[1].split("\n      - ", 1)[0]
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", scope)
         for name in ("Check the runner's luacheck and pre-commit", "Run the lint gate"):
             step = job.split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
             self.assertIn("if: steps.scope.outputs.lint != 'false'", step)

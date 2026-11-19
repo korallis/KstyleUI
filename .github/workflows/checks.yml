@@ -21,9 +21,6 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "mac-ci", "KstyleUI"]') }}
     timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -35,54 +32,27 @@ jobs:
           persist-credentials: false
       - name: Decide whether the Lua suite has work
         id: scope
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: python3 Tools/hooks/ci_scope.py lua
-      - name: Identify the PR tree
-        id: tree
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        run: |
-          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
-          echo checked > "$RUNNER_TEMP/ci-result"
-      - name: Record the lua start
-        id: start_lua
-        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: start-${{ steps.tree.outputs.tree }}-lua-${{ matrix.shard }}-of-${{ strategy.job-total }}
-          path: ${{ runner.temp }}/ci-result
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 7
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'
+        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'
         with:
           path: ~/.cache/lua51/*.deb
           key: ${{ runner.os }}-${{ runner.arch }}-lua515
       - name: Install hosted Lua 5.1
-        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' && steps.start_lua.outcome == 'success'
+        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'
         run: |
           mkdir -p "$HOME/.cache/lua51/partial"
           sudo apt-get update -qq
           sudo apt-get -o Dir::Cache::archives="$HOME/.cache/lua51" install -y lua5.1
       - name: Check the runner's Lua is 5.1.5
-        if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
+        if: steps.scope.outputs.run != 'false'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Lua regression tests, one slice of the files
-        if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
+        if: steps.scope.outputs.run != 'false'
         env:
           SHARD: ${{ matrix.shard }}
           SHARD_TOTAL: ${{ strategy.job-total }}
         run: bash scripts/gate.sh lua --shard "$SHARD/$SHARD_TOTAL"
-      - name: Record the Lua shard result
-        if: ${{ always() && github.event_name == 'pull_request' && steps.scope.outputs.run != 'false' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ${{ job.status == 'success' && 'green' || 'red' }}-${{ steps.tree.outputs.tree }}-lua-${{ matrix.shard }}-of-${{ strategy.job-total }}
-          path: ${{ runner.temp }}/ci-result
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 7
       - name: Report a failed staging push
         if: (failure() || cancelled()) && github.event_name == 'push'
         run: 'echo "::error title=staging is red::The merged result of staging fails: lua. Open the failed step above for the test."'
