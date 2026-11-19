@@ -1,4 +1,4 @@
--- test-setup-editmode-medallions.lua: under Medallions, Apply's Edit Mode writer measures each Medallions surface at the size the style gives it, so Blizzard's tracked buff bars take their own slot above the player's medallion instead of climbing over the focus into the nameplates, and the buff icons stay at the essential row's left end when the player's cast bar hangs under the slab (KSTY-97's warlock render, LEE-1535).
+-- test-setup-editmode-medallions.lua: under Medallions, Apply's Edit Mode writer measures each styled surface so Blizzard's tracked buff bars stay below focus and buff icons take the attached slot above the essential row, clear of the cast and unit frames (KSTY-97, LEE-1535).
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
@@ -59,8 +59,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			string.format("%s: the tracked bars take their own slot at %.1f %.1f, got %.1f %.1f", where, slot[1], slot[2], bar.anchorInfo.offsetX / k, bar.anchorInfo.offsetY / k))
 		local focus = Box("unitframes.focus")
 		assert(barBox[4] <= focus[2] + 0.5, where .. ": the bars stay under the focus frame, out of the nameplates over it")
-		local essential = Box("cooldowns.essential")
-		assert(near(iconBox[3], essential[1] - Layouts.GAP) and near(iconBox[2], essential[2]), where .. ": the buff icons stand a cluster gap left of the essential row, on its foot")
+		local icons = Box("cooldowns.buffs")
+		assert(near(iconBox[3], icons[3]) and near(iconBox[2], icons[2] + 14), where .. ": keep the buff icons at the right edge of their attached slot, 14 units above its foot")
 		for _, key in ipairs({ "unitframes.player", "unitframes.castbar.player", "unitframes.focus", "unitframes.focustarget", "unitframes.pet", "cooldowns.essential" }) do
 			if Layouts.Shown(name, key) ~= false then
 				local box = Box(key)
