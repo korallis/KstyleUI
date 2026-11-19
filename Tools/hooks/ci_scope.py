@@ -128,11 +128,10 @@ def push_decision(area):
         if os.environ.get("GITHUB_REF") != "refs/heads/staging":
             return True, "staging moved or no proof: running"
         tree = current_tree()
-        marker_area = area
-        green = f"green-{tree}-{marker_area}"
+        green = f"green-{tree}-{area}"
         repo = os.environ["GITHUB_REPOSITORY"]
         matches = []
-        for name in (green, f"red-{tree}-{marker_area}", f"start-{tree}-{marker_area}"):
+        for name in (green, f"red-{tree}-{area}", f"start-{tree}-{area}"):
             result = github_json(f"/repos/{repo}/actions/artifacts?" + urllib.parse.urlencode({"name": name, "per_page": 100}))
             artifacts = result["artifacts"]
             if result["total_count"] != len(artifacts):
@@ -148,7 +147,7 @@ def push_decision(area):
                 if (run["path"] == ".github/workflows/checks.yml" and run["event"] == "pull_request"
                         and run["status"] == "completed" and run["conclusion"] == "success"
                         and run["head_repository"]["full_name"] == repo):
-                    return False, f"tree {tree}, area {marker_area} passed in run {run_id}: skipping"
+                    return False, f"tree {tree}, area {area} passed in run {run_id}: skipping"
     except (OSError, http.client.HTTPException, subprocess.CalledProcessError, ValueError, KeyError, TypeError):
         pass
     return True, "staging moved or no proof: running"

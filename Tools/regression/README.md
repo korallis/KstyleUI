@@ -12,7 +12,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` for pull requests as six `--shard I/6` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted CPU overruns warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite on hosted `ubuntu-latest` for pull requests as six `--shard I/6` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU overruns and per-path CPU headroom warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
@@ -522,7 +522,7 @@ Fix the line: reuse a table that the object owns, or pass values as arguments. A
 
 ### Calibrate a budget
 
-A per-call budget must be **at least five times the measured PUC Lua 5.1 CPU time on a Mac**, including CI. The test reports the minimum when a budget is too tight:
+A per-call budget must be **at least five times the measured PUC Lua 5.1 CPU time on a Mac**, including CI. Hosted CI prints a warning for this machine-dependent headroom check; per-call budget overruns, allocations and errors still fail there. The test reports the minimum when a budget is too tight:
 
 ```text
 Nameplates interrupt readiness flipping under three casts: budget 40 us is 2.8 times the 14.2 us Lua 5.1 CPU time; set it to at least 71 us (5 times)

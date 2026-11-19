@@ -5,7 +5,7 @@ KstyleUI is a World of Warcraft addon suite for the Forever client, written in L
 Gate: bash scripts/gate.sh
 Known failing: none
 Evidence: see verify/SKILL.md
-Budget rule: Mac CI is the CPU budget of record: default PUC Lua 5.1.5 files use 20 CPU s or measured LEE-5827 allowances for files at or above 16 CPU s. Hosted Ubuntu pull-request shards, Windows and every non-CI CPU overrun warn; memory (4096 MB) and hang limits fail everywhere. The wall-clock hang guard is max(120 s, five times the adjusted CPU limit), or 120 s when CPU is not budgeted. LuaJIT and every `LUA` override print "not budgeted" for CPU. `test-perf` budgets remain at least five times measured Lua 5.1 CPU time; Windows skips headroom because MSVC `os.clock` measures wall time. See `Tools/regression/README.md` for calibration.
+Budget rule: Mac CI is the CPU budget of record: default PUC Lua 5.1.5 files use 20 CPU s or measured LEE-5827 allowances for files at or above 16 CPU s. Hosted Ubuntu pull-request shards warn on per-file CPU overruns and machine-dependent per-path CPU headroom; Windows and non-CI per-file CPU overruns also warn. Functional and instruction-count checks stay fatal everywhere; memory (4096 MB) and hang limits fail everywhere. The wall-clock hang guard is max(120 s, five times the adjusted CPU limit), or 120 s when CPU is not budgeted. LuaJIT and every `LUA` override print "not budgeted" for CPU. `test-perf` budgets remain at least five times measured Lua 5.1 CPU time; Windows skips headroom because MSVC `os.clock` measures wall time. See `Tools/regression/README.md` for calibration.
 
 ## Layout
 
