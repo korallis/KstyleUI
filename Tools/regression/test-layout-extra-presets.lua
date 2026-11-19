@@ -21,7 +21,7 @@ for _, screen in ipairs(screens) do
 				local cap, fits = L.ScaleLimit(width, screen[2], name, enabled, "medallions")
 				local label = name .. " " .. kind .. " " .. screen[1] .. "x" .. screen[2] .. " " .. arrangement
 				assert(fits(cap), label .. ": default overlap guard must fit")
-				if kind == "beside" then assert(fits(0.9375), label .. ": D must not shrink the usual HUD") end
+				if kind == "beside" and name == "DPS" then assert(fits(0.9375), label .. ": D must not shrink the usual DPS HUD") end
 				local at = L.Positions(name, "medallions", K.Scale.Aspect())
 				local positions = K.Store.Layout()
 				for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5" }) do

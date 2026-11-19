@@ -1031,8 +1031,7 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	elseif kind == "beside" and (key == "actionbars.pet" or key == "actionbars.stance") then
 		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
 		if class == ASPECTS[1] and key == "actionbars.stance" then
-			local pet = Base("actionbars.pet")
-			return { anchor = base.anchor, x = pet.x + select(2, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad + gap, y = pet.y + h + side.pad }
+			return { anchor = base.anchor, x = base.x, y = TIP_Y + select(2, ElementSize("tooltips.anchor")) + 2 * side.pad }
 		end
 		return { anchor = base.anchor, x = base.x, y = base.y + h + side.pad }
 	elseif kind == "beside" and class == ASPECTS[1] and (key == "chat.main" or key == "qol.lootfeed") then
