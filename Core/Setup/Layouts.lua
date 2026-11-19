@@ -928,7 +928,7 @@ end
 Layouts.STYLES = { "orbs", "medallions" }
 
 function Layouts.Style(style, name, key)
-	if style == "medallions" and key == "meters.damage" and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
+	if style == "medallions" and (key == "meters.damage" or key == "meters.threat") and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
 		return layouts[name] and layouts[name][key]
 	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
@@ -1033,7 +1033,6 @@ function Layouts.BuildMedallions()
 		end
 		sets[class] = {
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
-			["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -(592 + DAMAGE_W + GAP), y = 472 + DAMAGE_H - THREAT_H },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -660, y = 370 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },

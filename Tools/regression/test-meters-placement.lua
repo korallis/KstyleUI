@@ -1,4 +1,4 @@
--- test-meters-placement.lua: damage stays at the rail foot across screens and styles, while saved positions win.
+-- test-meters-placement.lua: damage and a solo threat meter stay at their presets across screens and styles, while saved positions win.
 local M = dofile("Tools/regression/meters_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
@@ -36,5 +36,15 @@ for _, key in ipairs({ "meters.damage", "medallions:meters.damage" }) do
 	local rect, root = Geometry.Rect(ns.Damage.holder, K.Scale.Root()), K.Scale.Root()
 	assert(math.abs(rect.right - (root:GetWidth() - 90)) < 1 and math.abs(rect.bottom - 60) < 1,
 		key .. ": keep positions saved both before and after the Medallions meter override")
+end
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true })
+	K.Options.Write("HudStyle", "style", "medallions")
+	assert(K.Setup.Apply({ layout = "Tank", modules = { Meters = true } }))
+	env.RunTimers()
+	local root = K.Scale.Root()
+	local rect = assert(Geometry.Rect(ns.Threat.holder, root))
+	local left, bottom = K.Setup.Layouts.Rect({ width = rect.right - rect.left, height = rect.top - rect.bottom }, K.Setup.Layouts.Default("meters.threat"), root:GetWidth(), root:GetHeight())
+	assert(math.abs(rect.left - left) < 1 and math.abs(rect.bottom - bottom) < 1, string.format("medallions %dx%d: put a solo threat meter at the layout preset, not mid-screen", screen[1], screen[2]))
 end
 print("damage meter placement ok: 4 screens, 3 styles, automatic and reference sizes; saved positions win")
