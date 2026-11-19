@@ -53,7 +53,13 @@ function Travel.Read()
 	for _, id in ipairs(CLASS) do Spell(groups[1], id) end
 	for _, id in ipairs(PORTALS) do Spell(groups[2], id) end
 	for _, id in ipairs(ns.TRAVEL_ITEMS) do
-		if carried[id] then groups[2][#groups[2] + 1] = carried[id] end
+		local entry = carried[id]
+		if not entry and itemAPI and type(itemAPI.IsEquippedItem) == "function" and Plain(itemAPI.IsEquippedItem(id), "boolean") == true then
+			local name = type(itemAPI.GetItemNameByID) == "function" and Plain(itemAPI.GetItemNameByID(id), "string")
+			local icon = type(itemAPI.GetItemIconByID) == "function" and Plain(itemAPI.GetItemIconByID(id), "number")
+			entry = { kind = "item", id = id, name = name or nil, icon = icon or nil }
+		end
+		if entry then groups[2][#groups[2] + 1] = entry end
 	end
 	for _, id in ipairs(MOUNTS) do
 		if C_Spell and type(C_Spell.IsSpellUsable) == "function" and Plain(C_Spell.IsSpellUsable(id), "boolean") == true then Spell(groups[3], id) end

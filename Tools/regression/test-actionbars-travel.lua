@@ -78,6 +78,13 @@ local groups = ns.TravelData.Read()
 assert(#groups[3] == 1 and groups[3][1].id == 471, "optional journal filters unusable, uncollected and hidden mounts")
 env.C_MountJournal.GetMountIDs = function() return env.Secret({}) end
 assert(#ns.TravelData.Read()[3] == 0)
+env.C_Item.IsEquippedItem = function(id) return id == 18986 end
+env.C_Item.GetItemNameByID = function() return "Ultrasafe Transporter: Gadgetzan" end
+env.C_Item.GetItemIconByID = function() return 133716 end
+groups = ns.TravelData.Read()
+assert(#groups[2] == 1 and groups[2][1].id == 18986, "keep a curated teleporter available after the secure item action equips it")
+env.C_Item.IsEquippedItem = function() return env.Secret(true) end
+assert(#ns.TravelData.Read()[2] == 0, "never test secret equipment state")
 K.Options.Write("HudStyle", "style", "frames")
 assert(not travel.crest:IsShown(), "other HUD styles stay click-through")
 assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))

@@ -49,6 +49,7 @@ The matching UI source is build **1.60.1.70862**, commit **9dc84f0**, at `C:/Use
 | `C_Container.GetContainerNumSlots`, `GetContainerItemInfo`, item names/IDs/icons | `Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua:313`, `:192`, `:766` |
 | Bag slot constants (guarded; classic fallback is bags 0–4) | `Blizzard_APIDocumentationGenerated/ItemConstants_MainlineDocumentation.lua:59`, `:61` |
 | `C_Item.GetItemCooldown`, `GetItemInfoInstant`, `IsUsableItem` | `Blizzard_APIDocumentationGenerated/ItemDocumentation.lua:434`, `:659`, `:1627` |
+| Equipped transport trinkets stay available after the secure item action equips them: `IsEquippedItem`, `GetItemNameByID`, `GetItemIconByID` | `Blizzard_APIDocumentationGenerated/ItemDocumentation.lua:1339`, `:846`, `:611`; equipment-before-use behaviour is `Blizzard_FrameXML/SecureTemplates.lua:434` |
 | Mount item class and subclass | `Blizzard_APIDocumentationGenerated/ItemConstantsDocumentation.lua:291`, `:465` |
 | `C_SpellBook.IsSpellKnown`, `C_Spell.GetSpellInfo`, `C_Spell.IsSpellUsable` | `Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua:738`; `SpellDocumentation.lua:416`, `:980` |
 | Optional `C_MountJournal.GetMountIDs`, `GetMountInfoByID` (spell, usable, hidden, collected) | `Blizzard_APIDocumentationGenerated/MountJournalDocumentation.lua:268`, `:278` |
