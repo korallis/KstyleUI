@@ -79,6 +79,7 @@ local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
 local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 for _, profile in ipairs({ customSettings, customLumen, customStyle }) do
 	profile.Meters = { followRole = false }
+	profile.Skins = { restedXP = { boxes = true } }
 end
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)
