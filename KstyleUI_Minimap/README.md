@@ -109,7 +109,7 @@ Coordinates come from `C_Map.GetBestMapForUnit("player")` and `C_Map.GetPlayerMa
 
 ### Icon size
 
-**Compact map icons** (compactIcons, off) restores the previous small pins, tracking glyphs and drawer tiles. With it off, the live minimap keeps at least its original Blizzard effective scale while its terrain still fits the card, tracking artwork is at least Forever's 23-unit button size, and drawer artwork fills tiles at least as large as the addon's original button (31 native units minimum). The existing size sliders can enlarge them; compact mode also permits smaller sizes. World-map pins keep Blizzard's sizes and zoom scaling; the skin does not resize that canvas.
+**Compact map icons** (compactIcons, off) restores the previous small pins, tracking glyphs and drawer tiles. With it off, the live minimap keeps at least its original Blizzard effective scale while its terrain still fits the card, tracking discs are at least Forever's 23-unit button size, and inset drawer artwork sits on tiles at least as large as the addon's original button (31 native units minimum). The drawer wraps inside the map card. The existing size sliders can enlarge them; compact mode also permits smaller sizes. World-map pins keep Blizzard's sizes and zoom scaling; the skin does not resize that canvas.
 
 ### Pins on the edge
 

@@ -246,7 +246,7 @@ end
 
 function Column:Layout()
 	local holder, face = self.holder, self.face
-	local size = Settings.IconSize(holder, "column.size", 23 / GLYPH_SHARE)
+	local size = Settings.IconSize(holder, "column.size", 23)
 	local spacing = Widgets.Snap(holder, Settings.Get("column.size") + Settings.Get("column.spacing")) - Widgets.Snap(holder, Settings.Get("column.size"))
 	local side = Settings.Get("column.side")
 	local up = Settings.Get("column.growth") == "up"
@@ -265,10 +265,6 @@ function Column:Layout()
 	end
 	local area = face.mapArea
 	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
-	if not Settings.Get("compactIcons") then
-		local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(holder)
-		inset = math.floor(size * (1 - GLYPH_SHARE) / 2 / pixel) * pixel
-	end
 	local Format = ns.Format
 	local edge, top = Widgets.Snap(holder, Format.EDGE), Widgets.Snap(holder, Format.TOP)
 	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, top)

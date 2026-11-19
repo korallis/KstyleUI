@@ -27,7 +27,8 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 	local function Readable()
 		assert(pin:GetEffectiveScale() >= native - 1e-6, "minimap pins must retain Blizzard's scale after reparenting")
 		assert(button:GetWidth() * button:GetEffectiveScale() >= 31 * native - 1e-6, "drawer buttons must retain their full native size")
-		assert(button.icon:GetWidth() >= button:GetWidth() - 1e-6, "drawer artwork fills its tile instead of being squeezed to 72 percent")
+		assert(button.icon:GetWidth() * button:GetEffectiveScale() >= 17 * native - 1e-6, "drawer artwork must retain at least its native size")
+		assert(button.icon:GetWidth() < button:GetWidth(), "drawer icons must keep the inset tile style")
 		local large = lib.objects.Wide
 		assert(large:GetWidth() * large:GetEffectiveScale() >= 50 * native - 1e-6, "larger addon buttons retain their native scale and full size")
 		local panel = assert(G.ScaledRect(ns.Map.drawer.panel, env.UIParent, K.Scale.Root()))
@@ -35,7 +36,8 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 			local rect = assert(G.ScaledRect(item, env.UIParent, K.Scale.Root()))
 			assert(rect.left >= panel.left - 1e-6 and rect.right <= panel.right + 1e-6, "scaled addon buttons must stay inside the drawer")
 		end
-		assert(tracking.icon:GetWidth() * tracking:GetEffectiveScale() >= 23 * native - 1e-6, "tracking artwork must be at least Blizzard's 23-unit size")
+		assert(tracking:GetWidth() * tracking:GetEffectiveScale() >= 23 * native - 1e-6, "tracking discs must be at least Blizzard's 23-unit size")
+		assert(tracking:GetWidth() * tracking:GetEffectiveScale() < 23 * native + 2 * K.Scale.Pixel(1), "tracking discs must not enlarge the native button to glyph size")
 		local map, area = env.Minimap, ns.Map.face.mapArea
 		assert(W.Near(map:GetWidth() * map:GetEffectiveScale(), area:GetWidth() * area:GetEffectiveScale()), "preserving icon scale must still fit terrain to the map card")
 	end
@@ -75,6 +77,24 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 	assert(env.Minimap:GetScale() == 1 and env.Minimap:GetWidth() == 198, "disabling restores Blizzard's minimap scale and size")
 	assert(button:GetWidth() == 31 and button.icon:GetWidth() == 17, "disabling restores the addon's button and icon sizes")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], uiScale = 768 / 1080, size = 0.6, setup = function(e)
+		local lib = M.FakeLibDBIcon(e)
+		for index = 1, 6 do lib:Add("Addon" .. index) end
+	end })
+	M.Settle(env)
+	local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, K.Scale.Root())) end
+	for _, side in ipairs({ "left", "right" }) do
+		K.Options.Write("Minimap", "column.side", side)
+		for _, direction in ipairs({ "auto", "left", "right", "up", "down" }) do
+			K.Options.Write("Minimap", "drawer.direction", direction)
+			local panel, card = Rect(ns.Map.drawer.panel), Rect(ns.Map.face.card)
+			assert(panel.left >= card.left and panel.right <= card.right and panel.top <= card.top and panel.bottom >= card.bottom,
+				"wrap full-size drawer buttons inside the minimap card at every screen size and direction")
+		end
+	end
 end
 
 print("minimap icon size ok (1080p, 1440p, ultrawide, 4K)")
