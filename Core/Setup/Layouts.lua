@@ -1514,7 +1514,11 @@ end
 function Layouts.DataBarPosition(style)
 	local saved = ns.Store.IsLoaded() and ns.Store.Layout() or {}
 	local entry = saved[(style or (ns.HudStyle and ns.HudStyle.Current() or "frames")) .. ":databars.strip"] or saved["databars.strip"] or {}
-	return { anchor = entry.anchor or "TOP", x = entry.x or 0, y = entry.y or 0, height = entry.height, width = entry.width, shown = entry.shown }
+	local position = { anchor = entry.anchor or "TOP", x = entry.x or 0, y = entry.y or 0, height = entry.height, width = entry.width, shown = entry.shown }
+	for _, axis in ipairs({ "x", "y" }) do
+		if type(position[axis]) == "number" and math.abs(position[axis]) < 1e-6 then position[axis] = 0 end
+	end
+	return position
 end
 
 function Layouts.TopInset(key, anchor, style, enabled, position)
@@ -1528,7 +1532,7 @@ function Layouts.TopInset(key, anchor, style, enabled, position)
 		return 0
 	end
 	position = position or Layouts.DataBarPosition(style)
-	if position.anchor ~= "TOP" or position.x ~= 0 or position.y ~= 0 or position.shown == "never" then return 0 end
+	if position.anchor ~= "TOP" or math.abs(position.x) >= 1e-6 or math.abs(position.y) >= 1e-6 or position.shown == "never" then return 0 end
 	return math.max(0, (position.height or height) + 6 - 16)
 end
 

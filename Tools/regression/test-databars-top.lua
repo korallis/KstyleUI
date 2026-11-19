@@ -47,6 +47,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		near(bottom + h, rh - 55 - want, K.Scale.Pixel(1))
 	end
 	inset(10)
+	local left, bottom, width, height = Layout.Rect("databars.strip")
+	local rw, rh = Layout.RootSize()
+	local anchor, barX, barY = Layout.Geometry.Position(left, bottom, width, height, rw, rh)
+	assert(Layout.Update("databars.strip", { anchor = anchor, x = barX, y = barY }))
+	inset(10)
 	local signature = Layouts.ActionBarSignature()
 	assert(Layout.Update("databars.strip", { anchor = "BOTTOM", x = 0, y = 80 }))
 	inset(0)
