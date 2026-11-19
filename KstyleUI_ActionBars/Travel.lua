@@ -99,7 +99,6 @@ end
 
 local function FillGroup(group, list, y)
 	group:Hide()
-	if #list == 0 then return y end
 	group.head = math.max(HEAD, group.cap:SetWrapWidth(WIDTH - PAD * 2) + GAP)
 	local pages = math.ceil(#list / PAGE)
 	group:SetAttribute("page", 1)
@@ -163,8 +162,12 @@ local function Refresh()
 	crest:Show()
 	local y = PAD
 	for i, list in ipairs(groups) do
-		local group = Travel.groups[i] or NewGroup(menu, i)
-		y = FillGroup(group, list, y)
+		local group = Travel.groups[i]
+		if #list > 0 then
+			y = FillGroup(group or NewGroup(menu, i), list, y)
+		elseif group then
+			group:Hide()
+		end
 	end
 	Widgets.Size(menu, WIDTH, y - GROUP_GAP + PAD)
 	menu:ClearAllPoints()
