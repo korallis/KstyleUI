@@ -23,6 +23,9 @@ function Reach.New(width, height, style, layout)
 	return Suite.New(nil, width or 1920, height or 1080, function(e)
 		e._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
 		Meters.Game(e)
+		e.GetNumShapeshiftForms = function() return 10 end
+		e.GetShapeshiftFormInfo = function(i) return 135036, false, true, 15473+i end
+		e.GetPetActionInfo = function(i) return "Pet action " .. i, 135809, false, false, false, false, 8000+i end
 		Group.Install(e)
 		e.UnitReaction = function() return 2 end
 		Minimap.Blizzard(e, {})
@@ -38,11 +41,18 @@ function Reach.New(width, height, style, layout)
 		end
 		Group.SetRoster(e,"raid",Group.Members(40),{name="Tester",class="HUNTER",health=3000,maxHealth=4000,power=60,maxPower=100,level=60},true)
 		e._target = true
+		e._threat.player = {false,1,60,50,600000}
+		for i=1,5 do
+			e._session.combatSources[i] = {name="MEM" .. i,classFilename="WARRIOR",totalAmount=3000-i*100,amountPerSecond=100-i,sourceDisplayType=1,isLocalPlayer=false}
+			e._threat["raid" .. i] = {i==1,1,100-i*10,100-i*10,1000000-i*10000}
+		end
+		e._session.maxAmount,e._session.totalAmount,e._session.durationSeconds=3000,14000,30
 	end, function(_, K)
 		K.Setup.EditMode.CountTracked(function(group) return group=="buffs" and 6 or group=="bars" and 2 or 12 end)
 		local choice=K.Setup.NewChoice()
 		choice.hudStyle,choice.layout=style or "frames",layout or "DPS"
 		assert(K.Setup.Apply(choice),"full HUD setup must apply before login")
+		K.Options.Write("Meters","followRole",false)
 		K.Options.Write("Meters","threat.shown",true)
 	end)
 end
@@ -72,7 +82,7 @@ end
 
 function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	local screens = Reach.screens
-	local first,last = wantedScreen=="small" and 10 or wantedScreen=="cases" and 17 or 1, wantedScreen=="small" and 16 or wantedScreen=="cases" and #screens or 9
+	local firstScreen,lastScreen = wantedScreen=="small" and 10 or wantedScreen=="cases" and 17 or 1, wantedScreen=="small" and 16 or wantedScreen=="cases" and #screens or 9
 	local allowed = {
 		-- The secure party and raid headers are mutually exclusive in the game.
 		["groupframes.party/groupframes.raid"] = true,
@@ -120,7 +130,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 				for _, arrangement in ipairs({"centred", "spread"}) do
 					K.Options.Write("Layout", "arrangement", arrangement)
 					for index, screen in ipairs(screens) do
-						if type(wantedScreen)=="number" and wantedScreen==index or type(wantedScreen)~="number" and index>=first and index<=last then
+						if type(wantedScreen)=="number" and wantedScreen==index or type(wantedScreen)~="number" and index>=firstScreen and index<=lastScreen then
 							local w,h = screen[1],screen[2]
 							env.GetPhysicalScreenSize = function() return w,h end
 							env.UIParent._width = 768*w/h/env.UIParent._scale

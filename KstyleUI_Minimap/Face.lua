@@ -323,7 +323,7 @@ function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
 	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or 0
-	local half = PLAQUE_HEIGHT / 2
+	local half = max(PLAQUE_HEIGHT / 2, max(Extent(self.zone), Extent(self.clock), Extent(self.coords)) / 2 + Widgets.Border(self.card))
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
 	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
@@ -497,7 +497,7 @@ function Face:PlaceRound(round)
 	ring:ClearAllPoints()
 	Widgets.Point(ring, "CENTER", self.mapArea, "CENTER")
 	ring:Show()
-	local height = Snap(card, PLAQUE_HEIGHT)
+	local height = Snap(card, max(PLAQUE_HEIGHT, max(Extent(self.zone), Extent(self.clock), Extent(self.coords)) + 2 * Widgets.Border(card)))
 	local width = Snap(card, side + 2 * Format.FRAME)
 	local zone, row = plaques[1], plaques[2]
 	for _, plaque in ipairs(plaques) do

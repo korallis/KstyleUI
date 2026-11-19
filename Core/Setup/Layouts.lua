@@ -1017,7 +1017,7 @@ function Layouts.BuildMedallions()
 		local ends = hub / 2 + width + slab.pad + side.clear + side.pad
 		local _, petW = Layouts.MedallionsSide(class, "actionbars.pet")
 		local _, stanceW = Layouts.MedallionsSide(class, "actionbars.stance")
-		local sideY = strip - slab.bottom + side.pad
+		local sideY = strip - slab.bottom + side.pad - 2 * TIGHT
 		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
 		local stanceBar = { anchor = "BOTTOM", x = ends + stanceW / 2, y = sideY }
 		if class == ASPECTS[1] then
@@ -1027,7 +1027,7 @@ function Layouts.BuildMedallions()
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
-		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + TIGHT + tot[2])
+		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + select(2, ElementSize("cooldowns.bars")) + NEAR + 2 * TIGHT + tot[2])
 		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
 		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
 		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
