@@ -209,9 +209,11 @@ do
 	e._cursor = { 12, 34 }
 	local x, y = e.GetCursorPosition()
 	assert(x == 12 and y == 34)
-	assert(e.IsShiftKeyDown() == false and e.IsControlKeyDown() == false)
+	assert(e.IsShiftKeyDown() == false and e.IsControlKeyDown() == false and e.IsAltKeyDown() == false)
 	e._modifiers.shift = true
 	assert(e.IsShiftKeyDown() == true)
+	e._modifiers.alt = true
+	assert(e.IsAltKeyDown() == true)
 	assert(e.UnitExists("player") == true and e.UnitExists("target") == false)
 	local heard
 	local frame = e.CreateFrame("Frame")

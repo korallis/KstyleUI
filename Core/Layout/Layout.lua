@@ -75,6 +75,7 @@ Layout.defaults = {
 	grid = false,
 	gridSize = 16,
 	snap = true,
+	showCoordinates = false,
 	snapDistance = 8,
 	calm = true,
 	preset = "DPS",
@@ -103,6 +104,10 @@ function Layout.Schema()
 			type = "slider", key = "snapDistance", label = L["Snap distance"],
 			help = L["How close an edge comes, in interface units, before it snaps."],
 			min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
+		},
+		{
+			type = "toggle", key = "showCoordinates", label = L["Show coordinates on every plate"],
+			help = L["Keeps position and size details visible on every Layout Mode plate."],
 		},
 		{ type = "header", label = L["Screen"] },
 		{
@@ -145,6 +150,7 @@ end
 local SETTING_VALID = {
 	grid = function(v) return type(v) == "boolean" end,
 	snap = function(v) return type(v) == "boolean" end,
+	showCoordinates = function(v) return type(v) == "boolean" end,
 	gridSize = function(v) return IsFinite(v) and v >= GRID_MIN and v <= GRID_MAX end,
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
 	calm = function(v) return type(v) == "boolean" end,

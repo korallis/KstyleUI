@@ -97,7 +97,7 @@ local function PaintPlate(plate)
 	local r, g, b = Tokens.Color(clear and "deep" or "buttonFill")
 	plate.chrome:SetFillRGBA(r, g, b, clear and 0.35 or fill)
 	plate.chrome:SetEdgeRGBA(Widgets.Rgba("accent", clear and 1 or (active or plate.hover) and EDGE_ACTIVE or EDGE_REST))
-	Widgets.SetText(plate.info, active and Describe(plate.key) or "")
+	Widgets.SetText(plate.info, (active or Layout.Setting("showCoordinates")) and Describe(plate.key) or "")
 end
 
 local function PaintHandle(handle)
@@ -145,7 +145,7 @@ local function PlacePlate(plate, frame, w, h)
 	else
 		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
 	end
-	if attached then
+	if attached or Layout.Setting("showCoordinates") and h < Tokens.Size("caption") * 2 + 8 then
 		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
 	elseif clear then
 		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
@@ -240,11 +240,17 @@ local function UpdateDrag()
 	local l, b, w, h, s = d.left, d.bottom, d.width, d.height, d.scale
 	if d.kind == "move" then
 		local gx, gy
+		if not d.axis and (dx ~= 0 or dy ~= 0) then
+			d.axis = math.abs(dx) >= math.abs(dy) and "x" or "y"
+		end
+		local axis = KeyDown(IsShiftKeyDown) and d.axis
+		if axis == "x" then dy = 0 elseif axis == "y" then dx = 0 end
 		l, b = G.ClampToRoot(l + dx, b + dy, w, h, rw, rh)
 		if Layout.Setting("snap") then
 			l, b, gx, gy = G.SnapMove(l, b, w, h, d.targets, Layout.Setting("snapDistance"), d.grid)
 		end
 		l, b = G.Align(l, pixel), G.Align(b, pixel)
+		if axis == "x" then b, gy = d.bottom, nil elseif axis == "y" then l, gx = d.left, nil end
 		ShowGuide(guideX, gx, true)
 		ShowGuide(guideY, gy, false)
 	elseif d.kind == "resize" then
@@ -386,6 +392,7 @@ local function PlateTooltip(tip, plate)
 		tip:AddCaption(el.module)
 	end
 	tip:AddLine(L["Drag to move. The arrow keys nudge it one pixel, or ten with Shift."])
+	tip:AddLine(L["Hold Shift to lock a drag to its first direction. Alt+scroll cycles through stacked plates."])
 	if el.opts.resizable then
 		tip:AddLine(L["Click it, then drag a handle to resize it."])
 	end
@@ -413,8 +420,32 @@ local function PlateDragStart(plate)
 end
 
 local function PlateWheel(plate, delta)
+	if not Layout.IsActive() or InCombatLockdown() or drag or not IsNumber(delta) or delta == 0 then return end
+	if KeyDown(IsAltKeyDown) then
+		local x, y = Cursor()
+		if not x then return end
+		local stack, at = {}, nil
+		for _, el in ipairs(Layout.Elements()) do
+			local other = plates[el.key]
+			if other and other:IsShown() then
+				local l, b, w, h = Layout.Rect(el.key)
+				local cx, cy = l + w / 2, b + h / 2
+				if math.abs(x - cx) <= max(PLATE_MIN, w) / 2 and math.abs(y - cy) <= max(PLATE_MIN, h) / 2 then
+					stack[#stack + 1] = other
+					if other == plate then at = #stack end
+				end
+			end
+		end
+		if at and #stack > 1 then
+			local nextPlate = stack[(at - 1 + (delta > 0 and 1 or -1)) % #stack + 1]
+			for _, other in ipairs(stack) do other:SetFrameLevel(overlay:GetFrameLevel() + 1) end
+			nextPlate:SetFrameLevel(overlay:GetFrameLevel() + 2)
+			Mode.Select(nextPlate.key)
+		end
+		return
+	end
 	local el = Layout.Element(plate.key)
-	if not el or not el.opts.scalable or not IsNumber(delta) or delta == 0 then
+	if not el or not el.opts.scalable then
 		return
 	end
 	local scale = el.settings.scale + (delta > 0 and 1 or -1) * Layout.SCALE_STEP

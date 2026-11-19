@@ -180,8 +180,10 @@ Party-only drivers test raid first because `group:party` also matches raids. The
 | --- | --- |
 | Press a plate | Selects it. |
 | Drag a plate | Moves the element. With `snap` on, an edge or the centre within `snapDistance` units snaps to another element's edges and centre, the screen's edges and centre, and, with the grid on, the nearest grid line. The release saves the position against the nearest of the nine anchors. |
+| Shift while dragging | Locks movement to the first axis the drag moved along, including while snapping. Releasing Shift restores free movement. |
 | Drag a handle | Resizes within the limits, keeping the opposite edge, the aspect when it is locked, and whole pixels. The scale handle scales from 0.5 to 2 and keeps the top left corner. |
 | Mouse wheel on a plate | Scales a scalable element by 0.05 around its anchor. |
+| Alt+mouse wheel on a plate | Cycles the visible plates under the pointer in either direction, raising and selecting the next plate. Alt never scales the element. |
 | Right-click a plate | Resets the element. |
 | Arrow keys | Nudge the selected element by one physical pixel, or ten with Shift. A run of nudges is one undo step. |
 | Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z | Undo, redo, redo. |
@@ -199,6 +201,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `gridSize` | 16 | slider, 4 to 64 in steps of 4 |
 | `snap` | `true` | toggle |
 | `snapDistance` | 8 | slider, 2 to 24 |
+| `showCoordinates` | `false` | toggle, **Show coordinates on every plate**. Off keeps details on the selected plate only; on uses the same text on every plate, below thin plates so it clears their labels. |
 | `calm` | `true` | toggle, **Calm the rails in combat**, under a **Combat** header |
 | `canvas` | `"21:9"` | `"21:9"`, `"16:9"` or `"full"` (Options, **HUD width**). On a screen wider than that aspect (21:9 is 12:5, so 2560x1080, 3440x1440 and 3840x1600 are untouched) `Scale` narrows `KstyleUI_Root` to a centred band that wide, an even number of pixels in from each edge, so every element, Layout Mode and the fit cap work on the band; the world, nameplates and Blizzard's frames keep the whole screen. `Scale.Origin()` is the band's left edge in root units, for the frames KstyleUI places from `UIParent` (the RestedXP guide, Apply's Edit Mode positions). |
 | `arrangement` | `"centred"` | `"centred"` or `"spread"` (Options, **Ultrawide arrangement**, under HUD width; KSTY-59). It matters only on a screen wider than the HUD width. Centred keeps every element in the centred band. Spread gives `KstyleUI_Root` the whole screen, so every rail element anchored to a side (chat and loot, the map, its aura rows and the story cards, the meters, the readout and the rail bars) goes out to its margin from the screen edge, and the centre cluster, anchored to the centre, stays put. The party, raid and boss frames stay on the centred band's line (the Captain's ruling on KSTY-60 item 6): at their defaults Layout moves them in by `Scale.Band()`, the band's inset, through `Setup.Layouts.Band`, and re-resolves when the band changes. Apply's Edit Mode viewers follow the class and the band. |

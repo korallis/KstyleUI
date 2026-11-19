@@ -1507,7 +1507,7 @@ function Stubs.NewEnv(opts)
 	env.SlashCmdList = {}
 
 	-- Input: the cursor (env._cursor, in the units GetCursorPosition returns: UIParent units times
-	-- UIParent's effective scale) and the modifier keys (env._modifiers.shift and .ctrl).
+	-- UIParent's effective scale) and the modifier keys (env._modifiers.shift, .ctrl and .alt).
 	env._cursor = { 0, 0 }
 	function env.GetCursorPosition()
 		return env._cursor[1], env._cursor[2]
@@ -1518,6 +1518,9 @@ function Stubs.NewEnv(opts)
 	end
 	function env.IsControlKeyDown()
 		return env._modifiers.ctrl == true
+	end
+	function env.IsAltKeyDown()
+		return env._modifiers.alt == true
 	end
 
 	-- The player always exists; the target exists while env._target is true. SetTarget fires
