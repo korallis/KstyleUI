@@ -106,7 +106,7 @@ Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and ba
 | `cooldowns.essential` | Essential cooldowns | 6 icons of 38 units with 3-unit gaps, 243 by 38, between the player and target frames | Scalable |
 | `cooldowns.utility` | Utility cooldowns | 4 icons of 38 units with 3-unit gaps, 161 by 38, beside the essential row | Scalable |
 | `cooldowns.buffs` | Tracked buff icons | 6 icons of 38 units with 3-unit gaps, 243 by 38, beside the essential row | Scalable |
-| `cooldowns.bars` | Tracked buff bars | 2 bars of 243 by 20 with a 3-unit gap, 243 by 43, over the tracked buff icons | Scalable |
+| `cooldowns.bars` | Tracked buff bars | 2 bars of 243 by 12 with a 3-unit gap, 243 by 27, over the tracked buff icons | Scalable |
 
 A tracked buff bar follows the composition mockup: a glass tile (`surface`) 243 by 20 units, as wide as the tracked buff icon row under it, with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
 
@@ -119,7 +119,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `path` | `"auto"` | Automatic, KstyleUI icons (the mirror) or Blizzard's restyled |
 | `accent`, `accentColor` | `"class"`, the kit accent | Class colour or a custom colour for glows and hairlines |
 | `tooltips` | `true` | A spell's tooltip under the pointer; off lets the pointer through |
-| `timerFont`, `timerOutline` | `"kit"`, `"none"` | The countdown numbers' font, and a soft shadow or an outline |
+| `timerFont`, `timerOutline` | `"kit"`, `"INHERIT"` | The countdown numbers' font and finish, following the world-text readability setting by default |
 | `countFont`, `countOutline` | `"kit"`, `"none"` | The charge and stack counts' font and outline |
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
 | `<icons>.size` | 38, the action button's size, for every row | Icon size, 16 to 64 |
@@ -134,9 +134,9 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 243, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N` bar one slot above the stack counts the rest, and pointing at it lists them |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 243, 12, 3, 2 | Bar size, gap and how many fit; height follows the shared `barHeight` token. With more active, a `+N` bar one slot above the stack counts the rest, and pointing at it lists them |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
-| `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
+| `bars.texture` | the kit's Flat texture | The fill texture, from the texture picker; an explicit saved texture stays selected |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |
 | `bars.orientation`, `bars.reverse` | horizontal, off | Fill direction |
 | `bars.icon`, `bars.name`, `bars.timer` | on | The parts each bar shows |

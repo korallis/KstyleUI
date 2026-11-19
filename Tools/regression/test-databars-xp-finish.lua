@@ -14,8 +14,8 @@ eq(xp.track.texturePath, paths.Flat, "default rested texture")
 eq(xp.fill.innerEdgeOn, true, "the flat XP fill keeps a dark inner edge")
 eq(xp.fill.innerEdgeToken, "barEdge", "the XP edge is the bar-edge token")
 for _, view in ipairs({ rep, honor }) do
-	eq(view.fill.texturePath, paths.Glass, "other fill texture")
-	eq(view.track.texturePath, paths.Glass, "other track texture")
+	eq(view.fill.texturePath, paths.Flat, "other fill texture follows the shared default")
+	eq(view.track.texturePath, paths.Flat, "other track texture follows the shared default")
 end
 local _, _, _, _, y = xp.text:GetPoint(1)
 eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "XP caption raise")

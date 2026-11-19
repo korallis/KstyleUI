@@ -272,6 +272,7 @@ local function HealsOnName(out, o, textLeft, textRight, keep, gap)
 	local size = min(o.healRow, name.height)
 	local spacing = o.healSpacing or 0
 	local room = textRight - textLeft - keep - gap
+	size = min(size, max(MIN_ICON, Whole(room, o.pixel)))
 	local count = min(o.healCount, floor((room + spacing) / (size + spacing)))
 	if count < o.healCount and size > MIN_ICON then
 		local shrunk = Whole((room - (o.healCount - 1) * spacing) / o.healCount, o.pixel)
