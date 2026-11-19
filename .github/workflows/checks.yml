@@ -68,30 +68,6 @@ jobs:
       - name: Check the runner's Lua is 5.1.5
         if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
-      - name: Inject temporary hosted failure proofs
-        if: github.event_name == 'pull_request'
-        env:
-          SHARD: ${{ matrix.shard }}
-          SHARD_TOTAL: ${{ strategy.job-total }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, "Tools/regression")
-          import run_all
-          if os.environ["SHARD"] == "2":
-              files = sorted(p.as_posix() for p in Path("Tools/regression").glob("test-*.lua"))
-              path = Path(run_all.shard(files, 2, int(os.environ["SHARD_TOTAL"]), run_all.load_weights())[0])
-              with path.open("a", encoding="utf-8") as handle:
-                  handle.write('\nerror("CI deliberate functional failure")\n')
-              print("Functional mutant:", path)
-          path = Path("Tools/regression/test-perf-path-budgets.lua")
-          source = path.read_text()
-          assert "Budget.Check(login, 15700000," in source
-          path.write_text(source.replace("Budget.Check(login, 15700000,", "Budget.Check(login, 1,"))
-          print("Instruction mutant: reload budget = 1 instruction")
-          PY
       - name: Lua regression tests, one slice of the files
         if: steps.scope.outputs.run != 'false' && (github.event_name != 'pull_request' || steps.start_lua.outcome == 'success')
         env:
