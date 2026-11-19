@@ -20,11 +20,11 @@ S.W.Settle(env)
 
 local parts = ns.Quests.Parts()
 local before = {}
-for _, frame in ipairs({ parts.card, parts.glass, parts.cap.row, parts.cap.title, parts.cap.trail, parts.view, parts.more, ns.Quests.Rows()[1] }) do
+for _, frame in ipairs({ parts.card, parts.glass, parts.cap, parts.cap.label, parts.cap.count, parts.view, parts.more, ns.Quests.Rows()[1] }) do
 	before[frame] = #frame._calls
 end
-parts.cap.row.GetFrameLevel = function() return env.Secret(12345) end
-parts.cap.row.GetFrameStrata = function() return env.Secret("private-strata") end
+parts.cap.GetFrameLevel = function() return env.Secret(12345) end
+parts.cap.GetFrameStrata = function() return env.Secret("private-strata") end
 parts.view.GetRect = function() error("native getter refused") end
 parts.card.GetAlpha = function() return env.Secret(0.12345) end
 

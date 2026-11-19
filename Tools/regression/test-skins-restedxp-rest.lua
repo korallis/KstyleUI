@@ -138,8 +138,7 @@ do
 	assert(talk.text:GetFont() == (ns.Style.Font("body")), "in the body face")
 
 	-- The place: the text starts under the cap's title, and the check sits left of it in the gem's column.
-	local cap = path.cap
-	local want = select(4, cap.title:GetPoint(1))
+	local want = K.Widgets.Snap(f.CurrentStepFrame, 4) + ns.Lumen.CapColumn(f.CurrentStepFrame)
 	for _, element in ipairs(step.elements) do
 		local point, relative, relativePoint, x, y = element.text:GetPoint(1)
 		assert(point == "TOPLEFT" and relative == element and relativePoint == "TOPLEFT", "a step's text hangs from its own row")
@@ -388,17 +387,19 @@ do
 	local cap = ns.RestedXP.Chrome.Path(f).cap
 	-- The game places a font string by its text alone; the stub wants a size, so the test gives the cap's title one
 	-- and lets RestedXP lay the steps out again.
-	cap.title:SetSize(cap.title:GetStringWidth(), cap.title:GetStringHeight())
+	cap.label:SetSize(cap.label:GetStringWidth(), cap.label:GetStringHeight())
 	f.CurrentStepFrame.UpdateText()
 	env.RunTimers()
-	assert(type(cap.title:GetLeft()) == "number" and math.abs(cap.title:GetLeft() * cap.title:GetEffectiveScale() - row:GetLeft() * row:GetEffectiveScale()) > 100, "the cap's title is far from the tip on the screen, so the test can tell the two columns apart")
-	local want = select(4, cap.title:GetPoint(1))
+	assert(type(cap.label:GetLeft()) == "number" and math.abs(cap.label:GetLeft() * cap.label:GetEffectiveScale() - row:GetLeft() * row:GetEffectiveScale()) > 100, "the cap's title is far from the tip on the screen, so the test can tell the two columns apart")
+	local want = K.Widgets.Snap(tip, 4) + ns.Lumen.CapColumn(tip)
 	local point, relative, _, gutter = row.text:GetPoint(1)
 	assert(point == "TOPLEFT" and relative == row and near(gutter, want, 0.01), "a tip's text starts at the step gutter of its own window, not under the guide's cap across the screen, got " .. tostring(gutter) .. " for " .. tostring(want))
 	assert(select(2, row.text:GetPoint(2)) == tip, "and ends at the tip's own right edge")
 	local _, _, _, cx = row.button:GetPoint(1)
 	assert(cx >= 0 and cx + row.button:GetWidth() <= gutter, "its check stays left of it, inside the tip, got " .. tostring(cx))
-	assert(near(select(4, step.elements[1].text:GetPoint(1)), want, K.Scale.Pixel(1) / K.Widgets.ScaleFactor(cap.title) / 2 + 1e-6), "the guide's own step stays within half a physical pixel of the snapped cap title")
+	local line = step.elements[1]
+	local guideWant = cap.label:GetLeft() * cap.label:GetEffectiveScale() / line:GetEffectiveScale() - line:GetLeft()
+	assert(near(select(4, line.text:GetPoint(1)), guideWant, K.Scale.Pixel(1) / K.Widgets.ScaleFactor(line) / 2 + 1e-6), "the guide's own step stays within half a physical pixel of the snapped cap title")
 	local one = math.ceil(select(2, row.text:GetFont()) * 1.1) + 1
 	assert(row:GetHeight() > one and tip:GetHeight() == row:GetHeight() + 18, "the tip's line wraps in its 230 units and its window grows with it, got " .. tostring(row:GetHeight()) .. " for one line of " .. tostring(one))
 	assert(near(f.CurrentStepFrame:GetHeight(), step:GetHeight(), 0.01), "and the tip's change of height adds nothing to the guide's stack, as in RestedXP's own layout, got " .. tostring(f.CurrentStepFrame:GetHeight()) .. " for " .. tostring(step:GetHeight()))
@@ -419,7 +420,7 @@ do
 	env.RunTimers()
 	assert(near(select(2, caption:GetFont()), K.Widgets.FontSize(caption, 10 / K.Widgets.ScaleFactor(tip)), 1e-6), "and comes back with it")
 	assert(tip.number.text:GetText() == "Tip", "RestedXP's own plate text is left as RestedXP wrote it")
-	assert(cap.trailValue == "Step 134", "the guide's cap names the guide's step, not the tip, got " .. tostring(cap.trailValue))
+	assert(cap.count:GetText() == "Step 134", "the guide's cap names the guide's step, not the tip, got " .. tostring(cap.count:GetText()))
 	local plain = K.Skin.Parts(step)
 	assert(not (plain and plain.backdrop and plain.backdrop:IsShown()) and ns.RestedXP.Chrome.TipCaption(step) == nil, "a step of the guide has no glass of its own")
 	-- RestedXP reuses the pool's frames: the tip's frame as a plain step loses the glass and the caption.

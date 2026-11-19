@@ -193,7 +193,7 @@ do
 	assert(Alpha(friend.background) == 0 and Alpha(friend.status) == 1 and Alpha(friend.gameIcon) == 1, "a friend row drops Blizzard's tint and keeps its status and game icons")
 	assert(FontPath(friend.name) == Style.Font("body") and FontPath(friend.info) == Style.Font("caption"), "the name in the body face, the info line under it as the caption")
 	local highlight = friend:GetHighlightTexture()
-	assert(W.SameRGB(highlight, Style.Accent()), "the friend row highlight is an accent wash")
+	assert(W.SameColor(highlight, K.Widgets.Rgba("white", K.Tokens.Share("rowHover"))), "friend rows use the shared white hover wash")
 	assert(Alpha(p.dividerArt) == 0, "the online divider art goes for an accent line")
 	assert(K.Skin.IsSkinned(p.invite.AcceptButton, "Button") and K.Skin.IsSkinned(p.invite.DeclineButton, "Button"), "invite buttons are restyled")
 	assert(Alpha(p.invite.DeclineButton.Icon) == 1 and Alpha(p.invite.DeclineButton.Art) == 0, "the decline button keeps its cross")
@@ -319,7 +319,7 @@ do
 	assert(Alpha(p.columnArt) == 0 and FontPath(members.MemberCount) == Style.Font("caption"))
 	local member = p.member
 	assert(FontPath(member.NameFrame.Name) == Style.Font("body") and FontPath(member.Zone) == Style.Font("body") and Alpha(member.Class) == 1, "member rows keep their class icons and wear the body font")
-	assert(W.SameRGB(member:GetHighlightTexture(), Style.Accent()), "the member highlight is an accent wash")
+	assert(W.SameColor(member:GetHighlightTexture(), K.Widgets.Rgba("white", K.Tokens.Share("rowHover"))), "member rows use the shared white hover wash")
 	assert(K.Skin.IsSkinned(f.Chat.ScrollBar, "ScrollBar") and K.Skin.IsSkinned(f.ChatEditBox, "EditBox") and Alpha(f.ChatEditBox.Mid) == 0, "the chat and its edit box are restyled")
 	assert(K.Skin.IsSkinned(f.InviteButton, "Button") and K.Skin.IsSkinned(f.CommunitiesControlFrame.GuildControlButton, "Button"))
 	assert(Alpha(p.benefitsArt) == 0, "the benefits page's inset art goes")

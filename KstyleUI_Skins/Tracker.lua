@@ -11,7 +11,7 @@ local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, -4, -8
 local RAIL_FALLBACK, DEFAULT_PRESET = 318, "DPS"
 local CAPTION_Y, CAPTION_RIGHT = 2, 24
 local DISC_UNITS, RING_UNITS, NUMERAL_SIZE = 18, 24, 11
-local RING_ALPHA, HOVER_RING_ALPHA, HOVER_MIX = 0.9, 0.45, 0.15
+local RING_ALPHA, HOVER_RING_ALPHA = 0.9, 0.45
 local COUNT_LEAD = "^(%d+%s*/%s*%d+)%s+(.-)%s*$"
 local COUNT_TRAIL = "^(.-)%s*:?%s+(%d+%s*/%s*%d+)%s*$"
 
@@ -115,10 +115,17 @@ local function CapLeft(row)
 end
 
 local function CaptionRow(header, value)
-	local cap = Lumen.SectionCap(header, { left = CapLeft, right = CAPTION_RIGHT, y = CAPTION_Y })
-	cap.row:SetAllPoints(header)
-	cap.row:SetFrameLevel(header:GetFrameLevel() + 1)
-	cap:SetTitle(value)
+	local cap = Lumen.SectionCap(header)
+	local restyle = cap.Restyle
+	cap.Restyle = function(self)
+		self:ClearAllPoints()
+		Widgets.Point(self, "TOPLEFT", header, "TOPLEFT", CapLeft(self), CAPTION_Y)
+		Widgets.Point(self, "BOTTOMRIGHT", header, "BOTTOMRIGHT", -CAPTION_RIGHT, CAPTION_Y)
+		restyle(self)
+	end
+	cap:Restyle()
+	cap:SetFrameLevel(header:GetFrameLevel() + 1)
+	cap:SetText(value)
 	captions[header] = cap
 	return cap
 end
@@ -142,7 +149,7 @@ local function Header(header, value)
 	local cap = CaptionRow(header, value or "")
 	if follows then
 		hooksecurefunc(text, "SetText", function(_, newValue)
-			cap:SetTitle(PlainText(newValue))
+			cap:SetText(PlainText(newValue))
 		end)
 	end
 	local chevron = Parts.Glyph(header.MinimizeButton, "glyphChevron", { flip = true })
@@ -157,23 +164,17 @@ local function Header(header, value)
 	return cap, chevron
 end
 
-local function TitleColor(block)
-	local r, g, b = Lumen.Color("questGold")
-	if block.isHighlighted == true then
-		r, g, b = Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, HOVER_MIX)
-	end
-	return r, g, b
-end
-
 local function PaintTitle(block)
 	local text = block.HeaderText
 	if type(text) ~= "table" or type(text.SetTextColor) ~= "function" then
 		return
 	end
 	if Skins.Setting(KEY, "titles") then
-		text:SetTextColor(TitleColor(block))
+		text:SetTextColor(Lumen.Color("questGold"))
+		titles[block]:SetShown(block.isHighlighted == true)
 		return
 	end
+	titles[block]:Hide()
 	local c = text.colorStyle
 	if type(c) == "table" and not IsSecret(c.r) and type(c.r) == "number" and type(c.g) == "number" and type(c.b) == "number" then
 		text:SetTextColor(c.r, c.g, c.b)
@@ -190,7 +191,9 @@ local function WatchTitle(block)
 	if titles[block] then
 		return
 	end
-	titles[block] = true
+	local holder = CreateFrame("Frame", nil, block)
+	holder:SetAllPoints(block)
+	titles[block] = Parts.Wash(holder)
 	if type(block.SetHeader) == "function" then
 		hooksecurefunc(block, "SetHeader", PaintTitle)
 	end
@@ -364,7 +367,7 @@ local function Blocks(module)
 	end
 	local cap = captions[module.Header]
 	if cap then
-		cap:SetTrail(total > 0 and total or nil)
+		cap:SetCount(total > 0 and total or nil)
 	end
 end
 

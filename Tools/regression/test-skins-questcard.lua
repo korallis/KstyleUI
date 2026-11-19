@@ -89,6 +89,15 @@ for _, screen in ipairs({ { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 
 	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, 1000)
 	ns.QuestCard.Render()
 	assert(#Shown(ns) == 4, "four fixture quests fit an unconstrained card")
+	local first = ns.Quests.Rows()[1]
+	local r, g, b = first.title:GetTextColor()
+	S.W.Enter(first)
+	assert(select(4, first.wash:GetVertexColor()) == K.Tokens.Share("rowHover"), "quest row hover uses the shared white wash at every screen size")
+	assert(S.W.SameRGB(first.wash, K.Tokens.Color("white")), "the quest hover wash is white")
+	local hr, hg, hb = first.title:GetTextColor()
+	assert(r == hr and g == hg and b == hb, "hover preserves the quest's gold title")
+	S.W.Leave(first)
+	assert(select(4, first.wash:GetVertexColor()) == 0, "leaving the quest clears its wash")
 	for _, row in ipairs(ns.Quests.Rows()) do
 		if row:IsShown() then
 			for _, value in ipairs({ row:GetHeight(), row.disc:GetWidth(), select(4, row:GetPoint(1)), select(5, row:GetPoint(1)) }) do
@@ -182,8 +191,8 @@ do
 	assert(nr == 1 and ng == 1 and nb == 1 and shade[1] == 0 and shade[2] == 0, "its number is white and casts no shadow on the disc")
 	assert(math.abs(select(4, first.title:GetPoint(1)) - 25.5 / factor) <= K.Scale.Pixel(1) / factor, "the title starts 25.5 root units in from the disc's left edge, got " .. tostring(select(4, first.title:GetPoint(1))))
 	local parts = ns.Quests.Parts()
-	assert(parts.cap.titleValue == "Quests" or parts.cap.titleValue == K.L["Quests"], "the cap reads QUESTS")
-	assert(parts.cap.trailValue == "10", "the cap counts every tracked quest, got " .. tostring(parts.cap.trailValue))
+	assert(parts.cap.label:GetText() == "QUESTS", "the cap reads QUESTS")
+	assert(tostring(parts.cap.count:GetText()) == "10", "the cap counts every tracked quest, got " .. tostring(parts.cap.count:GetText()))
 	local title = first.title:GetText()
 	assert(title:find("[10]", 1, true) and title:find("Dark Storms", 1, true), "the title carries the quest's level as Forever shows it, got " .. title)
 	assert(parts.more:IsShown() and parts.more:GetText():find("6", 1, true), "the card says how many more there are, got " .. tostring(parts.more:GetText()))
@@ -191,7 +200,7 @@ do
 	assert(parts.thumb:GetAlpha() == 0 and parts.track:GetAlpha() == 0, "at rest the scroll bar is unseen, as the picture draws the card")
 	assert(parts.more:GetAlpha() == 1, "but the more line always shows, so the card says when quests wait (the Captain's ruling on KSTY-33)")
 	local card = ns.Quests.Card()
-	local cardBox, capBox, viewBox = RootRect(K, card), RootRect(K, parts.cap.row), RootRect(K, parts.view)
+	local cardBox, capBox, viewBox = RootRect(K, card), RootRect(K, parts.cap), RootRect(K, parts.view)
 	assert(math.abs(cardBox.top - capBox.top - 11) <= 0.6, "standing alone, the caption's row starts 11 root units under the glass's top, as the picture's guide caption does, got " .. cardBox.top - capBox.top)
 	assert(math.abs(capBox.bottom - viewBox.top - 6.5) <= 0.6, "the first quest starts 6.5 under the caption's row, as the picture spaces them, got " .. capBox.bottom - viewBox.top)
 	assert(math.abs(capBox.top - capBox.bottom - 21) <= 0.6, "the caption's row is 21 root units high, got " .. capBox.top - capBox.bottom)

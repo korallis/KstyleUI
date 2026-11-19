@@ -9,14 +9,14 @@ for _, locale in ipairs({ "enUS", "deDE", "zhCN" }) do
 	local cap = W.SectionCap(K.Scale.Root(), { text = K.L["Feedback"] })
 	local panel = W.Panel(K.Scale.Root(), { width = 320, height = 200, title = K.L["Feedback"] })
 	local story = skin.Lumen.SectionCap(K.Scale.Root())
-	story.row:SetSize(320, 24)
-	story:SetTitle(K.L["Feedback"])
+	story:SetSize(320, 24)
+	story:SetText(K.L["Feedback"])
 	for _, unknown in ipairs({ function() return nil end, function() return 0 end, function() return env.Secret(30) end }) do
-		for _, label in ipairs({ cap.label, panel.cap.label, story.title }) do label.GetStringHeight = unknown end
+		for _, label in ipairs({ cap.label, panel.cap.label, story.label }) do label.GetStringHeight = unknown end
 		cap:Restyle()
 		panel:Restyle()
 		story:Restyle()
-		for _, item in ipairs({ { cap.label, cap.rule, cap, W.Snap(cap, 2) }, { panel.cap.label, panel.cap.rule, panel, W.Snap(panel, 2) }, { story.title, story.rule, story.row, W.Snap(story.row, skin.Lumen.Size(story.row, 2)) } }) do
+		for _, item in ipairs({ { cap.label, cap.rule, cap, W.Snap(cap, 2) }, { panel.cap.label, panel.cap.rule, panel, W.Snap(panel, 2) }, { story.label, story.rule, story, W.Snap(story, 2) } }) do
 			local label, rule, owner, gap = unpack(item)
 			local _, _, _, _, y = rule:GetPoint(1)
 			local halfRule = rule:GetHeight() / 2

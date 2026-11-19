@@ -1,4 +1,4 @@
--- Lumen.lua: the Lumen pieces the skins share, and the one place that switches to S1's names: the gilt and quest gold colours, the story card's text sizes in root units whatever scale the frame that draws them has, the gem, the section cap (gem, tracked title, fading rule, trailing count) and the ring check box.
+-- Lumen.lua: skin colours, root-sized text, shared card caps and insets, and ring check boxes.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,9 +12,7 @@ local FALLBACKS = { gilt = "neutral", questGold = "neutral", rimLight = "edgeInn
 local S1_NAMES = { rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "diamond", checkRing = "ringBevel", gemFill = "dot" }
-local GEM_UNITS, GEM_GAP, INSET = 8, 7, 15
 local CAP_SIZE, TEXT_SIZE = 12, 13
-local RULE_LEAD, RULE_TRAIL, RULE_UNITS, RULE_ALPHA = 11, 9, 1, 0.5
 local RING_UNITS, RING_FILL, RING_LEVEL = 14, 8, 2
 local THIN_SPACE = "\226\128\137"
 local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
@@ -23,19 +21,11 @@ local WEAK = { __mode = "k" }
 local rings = setmetatable({}, WEAK)
 
 Lumen.FALLBACKS, Lumen.TEXTURES = FALLBACKS, TEXTURES
-Lumen.GEM_UNITS, Lumen.GEM_GAP, Lumen.INSET, Lumen.CAP_SIZE, Lumen.TEXT_SIZE = GEM_UNITS, GEM_GAP, INSET, CAP_SIZE, TEXT_SIZE
-Lumen.RULE_LEAD, Lumen.RULE_TRAIL, Lumen.RULE_ALPHA = RULE_LEAD, RULE_TRAIL, RULE_ALPHA
+Lumen.CAP_SIZE, Lumen.TEXT_SIZE = CAP_SIZE, TEXT_SIZE
 Lumen.RING_UNITS, Lumen.RING_FILL = RING_UNITS, RING_FILL
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
-end
-
-local function PlainSize(value)
-	if IsSecret(value) or type(value) ~= "number" or value <= 0 then
-		return nil
-	end
-	return value
 end
 
 function Lumen.Color(name)
@@ -58,7 +48,7 @@ function Lumen.Size(frame, units)
 end
 
 function Lumen.Inset(frame)
-	return Widgets.Snap(frame, INSET / Widgets.ScaleFactor(frame))
+	return Widgets.Inset(frame, Tokens.Size("radius"))
 end
 
 function Lumen.Tint(region, name, alpha)
@@ -102,126 +92,8 @@ function Lumen.Gem(owner, layer, sublevel)
 	return gem
 end
 
-function Lumen.CapColumn(row)
-	return Widgets.Snap(row, Lumen.Size(row, GEM_UNITS)) + Widgets.Snap(row, Lumen.Size(row, GEM_GAP))
-end
-
-local function Units(value, row)
-	if type(value) == "function" then
-		return value(row)
-	end
-	return value or 0
-end
-
-local Cap = {}
-Cap.__index = Cap
-
-function Cap:Fit()
-	local row, opts = self.row, self.opts
-	local rowWidth = PlainSize(row:GetWidth())
-	local titleWidth = Widgets.TextWidth(self.title)
-	if not rowWidth or not titleWidth then
-		self.title:SetWidth(0)
-		return
-	end
-	local trailWidth = Widgets.TextWidth(self.trail, 0)
-	local taken = Units(opts.left, row) + Lumen.CapColumn(row) + Lumen.Size(row, RULE_LEAD + RULE_TRAIL) + trailWidth + Units(opts.right, row)
-	local room = rowWidth - taken
-	if titleWidth <= room then
-		self.title:SetWidth(0)
-		return
-	end
-	self.title:SetWidth(math.max(0, room) + Widgets.TrackPad(self.title))
-end
-
-function Cap:SetTitle(value)
-	self.titleValue = Lumen.Plain(value)
-	self.title:SetText(Lumen.Tracked(self.titleValue:upper()))
-	self:Fit()
-end
-
-function Cap:SetTrail(value)
-	self.trailValue = Lumen.Plain(value)
-	self.trail:SetText(self.trailValue)
-	self:Fit()
-end
-
-function Cap:SetShown(shown)
-	self.row:SetShown(shown)
-end
-
-function Cap:Paint()
-	Lumen.Tint(self.gem, "gilt")
-	local r, g, b = Lumen.Color("gilt")
-	self.title:SetTextColor(Widgets.Rgba("capsGold"))
-	Widgets.TextColor(self.trail, "textEmphasis")
-	self.rule:SetColorTexture(r, g, b, RULE_ALPHA)
-	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)
-	if Widgets.Readability("sectionHeadings") then
-		self.title:SetTextColor(Tokens.Color("capsGold"))
-		self.gem:SetVertexColor(Tokens.Color("capsGold"))
-		local cr, cg, cb = Tokens.Color("capsGold")
-		self.rule:SetColorTexture(cr, cg, cb, RULE_ALPHA)
-	end
-end
-
-function Cap:Restyle()
-	local row, opts = self.row, self.opts
-	local y = Widgets.Snap(row, Units(opts.y, row))
-	local headings = Widgets.Readability("sectionHeadings")
-	Style.ApplyFont(self.title, "caps", Lumen.Size(row, headings and 10 or CAP_SIZE))
-	Style.ApplyFont(self.trail, "number", Lumen.Size(row, CAP_SIZE))
-	if headings then
-		Widgets.ApplyFont(self.trail, Tokens.FontPath("PTSerifBold"), select(2, self.trail:GetFont()))
-	end
-	local left = Widgets.Snap(row, Units(opts.left, row))
-	local gem = Lumen.Size(row, GEM_UNITS)
-	Widgets.Size(self.gem, gem, gem)
-	self.gem:ClearAllPoints()
-	Widgets.Point(self.gem, "LEFT", row, "LEFT", left, y)
-	self.title:ClearAllPoints()
-	Widgets.Point(self.title, "LEFT", row, "LEFT", left + Lumen.CapColumn(row), y)
-	self.title:SetJustifyH("LEFT")
-	self.title:SetWordWrap(false)
-	self.trail:ClearAllPoints()
-	Widgets.Point(self.trail, "RIGHT", row, "RIGHT", -Widgets.Snap(row, Units(opts.right, row)), y)
-	self.trail:SetJustifyH("RIGHT")
-	self.rule:ClearAllPoints()
-	Widgets.Point(self.rule, "LEFT", self.title, "RIGHT", Widgets.Snap(row, Lumen.Size(row, RULE_LEAD) - Widgets.TrackPad(self.title)), 0)
-	Widgets.Point(self.rule, "RIGHT", self.trail, "LEFT", -Widgets.Snap(row, Lumen.Size(row, RULE_TRAIL)), 0)
-	local ruleHeight = math.max(Widgets.Border(row), Widgets.Snap(row, Lumen.Size(row, RULE_UNITS)))
-	self.rule:SetHeight(ruleHeight)
-	if headings then
-		local below = y - Widgets.TextHeight(self.title, Widgets.LineHeight(self.title)) / 2 - Widgets.Snap(row, Lumen.Size(row, 2)) - ruleHeight / 2
-		self.rule:ClearAllPoints()
-		Widgets.Point(self.rule, "LEFT", row, "LEFT", left + Lumen.CapColumn(row), below)
-		Widgets.Point(self.rule, "RIGHT", row, "RIGHT", -Widgets.Snap(row, Units(opts.right, row)), below)
-	end
-	self:Paint()
-	self:SetTitle(self.titleValue)
-	self:SetTrail(self.trailValue)
-end
-
-function Lumen.SectionCap(parent, opts)
-	local row = CreateFrame("Frame", nil, parent)
-	local cap = setmetatable({
-		row = row,
-		opts = opts or {},
-		gem = Lumen.Gem(row, "OVERLAY"),
-		title = Widgets.FontString(row, "OVERLAY"),
-		trail = Widgets.FontString(row, "OVERLAY"),
-		rule = row:CreateTexture(nil, "ARTWORK"),
-		titleValue = "",
-		trailValue = "",
-	}, Cap)
-	row:HookScript("OnSizeChanged", function()
-		cap:Fit()
-	end)
-	cap:Restyle()
-	Style.Track(cap)
-	Widgets.Track(cap)
-	return cap
-end
+Lumen.CapColumn = Widgets.CapColumn
+Lumen.SectionCap = Widgets.SectionCap
 
 local function Enabled(frame)
 	return type(frame.IsEnabled) ~= "function" or frame:IsEnabled() ~= false

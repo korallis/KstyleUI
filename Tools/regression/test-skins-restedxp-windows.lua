@@ -128,13 +128,13 @@ do
 	f.GuideName.text:SetAlpha(1)
 	assert(Alpha(f.GuideName.text) == 0, "and stays hushed when RestedXP shows it again")
 	local function Title()
-		return (tostring(path.cap.title:GetText()):gsub(THIN_SPACE, ""))
+		return (tostring(path.cap.label:GetText()):gsub(THIN_SPACE, ""))
 	end
 	assert(Title() == (f.GuideName.text:GetText() or ""):match("^[^\n]*"):upper(), "the cap's title is the guide's name, tracked in capitals, got " .. Title())
 	local gr, gg, gb = K.Tokens.Color("capsGold")
-	assert(Colored(path.cap.title, gr, gg, gb), "in the picture's muted gold")
-	assert(path.cap.title:GetFont() == (ns.Style.Font("caps")), "in the caps face, as the Quests cap")
-	assert(path.cap.trail:GetText() == "", "with no active step there is no trail")
+	assert(Colored(path.cap.label, gr, gg, gb), "in the picture's muted gold")
+	assert(path.cap.label:GetFont() == (ns.Style.Font("caps")), "in the caps face, as the Quests cap")
+	assert(path.cap.count:GetText() == "", "with no active step there is no trail")
 	f.GuideName.text:SetText("Durotar, 6 to 10")
 	assert(Title() == "DUROTAR, 6 TO 10", "a guide change follows RestedXP's title")
 	assert(not path.meta:IsShown(), "a one-line title shows no route row")
@@ -160,7 +160,7 @@ do
 	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.GuideName and holderBottom[3] == "TOPLEFT", "with the step frame hidden (a guide with no active step) the cap holder stands on the header's top")
 	rxp.fake.open(f.CurrentStepFrame)
 	ns.RestedXP.Chrome.Refit(f)
-	local capTop = path.cap.row._points[1]
+	local capTop = path.cap._points[1]
 	assert(capTop[1] == "TOPLEFT" and capTop[2] == path.holder, "the cap row hangs from the holder")
 	local cardTop, cardBottom = card._points[1], card._points[3]
 	assert(cardTop[1] == "TOPLEFT" and cardTop[2] == path.holder and cardBottom[1] == "BOTTOM" and cardBottom[2] == f, "the card runs from the cap holder's top to RestedXP's window bottom, the footer")
@@ -168,7 +168,7 @@ do
 	assert(path.height < 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	assert(FontSize(K, path.cap.title, select(2, path.cap.title:GetFont()), 10 * 1.5 / K.Widgets.ScaleFactor(path.cap.row)), "a text size change reaches the cap, whose 10 root units are the same pixels in RestedXP's window as in KstyleUI's own")
+	assert(FontSize(K, path.cap.label, select(2, path.cap.label:GetFont()), 10 * K.Theme.FontScale()), "the cap uses the shared heading size independently of the Skins body size")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
 	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
@@ -194,7 +194,7 @@ do
 	assert(W.Near(tl[5], 0) and W.Near(br[5], 0), "the glass keeps the card's top and bottom")
 	-- The cap's gem sits where the Quests cap's does: one content inset in from the glass edge.
 	local gem = path.cap.gem._points[1]
-	assert(W.Near(gem[4], K.Widgets.Snap(path.cap.row, 4)), "the gem sits 4 in from RestedXP's inner edge, one content inset from the glass, got " .. tostring(gem[4]))
+	assert(gem[1] == "CENTER" and gem[2] == path.cap and math.abs(gem[4] - K.Widgets.Snap(path.cap, 7.4)) <= K.Widgets.Border(path.cap), "the gem uses the shared cap centre inside the card inset, got " .. tostring(gem[4]))
 
 	-- The step list's view ends wherever RestedXP's frame height lands, mid-row more often than not, so a fade on
 	-- KstyleUI's own frame softens the cut line while there is more to scroll, and lifts at the end (round 1, Fable and Opus).
@@ -253,7 +253,7 @@ do
 		assert(not K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "not the square kit box")
 		assert(Alpha(step.elements[1].button) == 0, "and they rest unseen until the pointer is over the step: the picture's steps are plain lines")
 	end
-	assert(path.cap.trail:GetText() == f.CurrentStepFrame.framePool[1].number.text:GetText(), "the cap's trail is the first shown step's plate text, as RestedXP wrote it: " .. tostring(path.cap.trail:GetText()))
+	assert(path.cap.count:GetText() == f.CurrentStepFrame.framePool[1].number.text:GetText(), "the cap's trail is the first shown step's plate text, as RestedXP wrote it: " .. tostring(path.cap.count:GetText()))
 	holderBottom = path.holder._points[1]
 	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "with steps above the header the cap holder stands on the steps")
 	assert(math.abs(holderBottom[5] + K.Widgets.Snap(path.holder, 12)) <= K.Scale.Pixel(1) / K.Widgets.ScaleFactor(path.holder) / 2 + 1e-6, "snap the cap within half a physical pixel of the 12-unit rise, got " .. tostring(holderBottom[5]))

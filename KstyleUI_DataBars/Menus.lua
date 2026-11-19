@@ -876,7 +876,7 @@ local function Build(id)
 	local glass = CreateFrame("Frame", nil, content)
 	glass:SetAllPoints(content)
 	glass:SetFrameLevel(content:GetFrameLevel())
-	glass.chrome = Widgets.Chrome(glass, { shape = "tile", fill = "surface", shadow = true })
+	glass.chrome = Widgets.Chrome(glass, { shape = "card", fill = "surface", popup = true })
 	local bar = { id = id, group = group, holder = holder, content = content, glass = glass, entries = {}, shown = {} }
 	WatchRow(bar)
 	for index, def in ipairs(group.buttons) do

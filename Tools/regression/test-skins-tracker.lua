@@ -434,7 +434,6 @@ do
 	assert(ns.Skins.IsApplied("tracker"))
 	local tracker, quests = p.tracker, p.modules[1]
 	local ar, ag, ab = Style.Accent()
-	local gr, gg, gb = Lumen.Color("gilt")
 	local qr, qg, qb = Lumen.Color("questGold")
 
 	-- Blizzard's two headers become one: its "All Objectives" and "Quests" texts are hushed, and a Lumen section
@@ -446,45 +445,43 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
-	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), 10 / K.Widgets.ScaleFactor(row)), "in the caps face at the shared heading size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), 10 * K.Theme.FontScale()), "in the caps face at the shared heading size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	local wr, wg, wb = K.Tokens.Color("capsGold")
 	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")
 	local gem = Region(env, K, quests.Header, "Texture", Lumen.TEXTURES.gem)
 	assert(gem and gem:GetParent() == row, "a gem leads the caption row")
-	assert(S.W.SameRGB(gem, gr, gg, gb), "in gilt")
+	assert(S.W.SameRGB(gem, K.Tokens.Color("capsGold")), "in the shared card gold")
 	assert(not Region(env, K, quests.Header, "Texture", "glyphChevron"), "no chevron on the caption row any more; the gem is the mark")
 	local gemPoint = { gem:GetPoint(1) }
 	local captionPoint = { caption:GetPoint(1) }
-	assert(gemPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and gemPoint[2] == row and captionPoint[2] == row, "the gem leads the caption from the left")
-	-- The panel starts PANEL_LEFT left of the header, so the gem's left edge sits one content inset (the rule
-	-- every text panel follows: half the window cut, the edge band and gapSmall) inside the glass, clear of the
-	-- top-left cut, and the caption follows it after a gapSmall.
-	local inset = K.Widgets.Inset(row, K.Tokens.Size("chamferWindow"))
-	assert(Near(gemPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the gem's left edge is one content inset inside the glass, got " .. tostring(gemPoint[4]) .. " for " .. tostring(inset - PANEL_LEFT))
-	assert(Near(captionPoint[4] - gemPoint[4], Lumen.CapColumn(row), K.Scale.Pixel()), "the caption starts in the cap's column, 15 root units after the gem's left point, got " .. tostring(captionPoint[4] - gemPoint[4]))
+	assert(gemPoint[1] == "CENTER" and gemPoint[2] == row and captionPoint[2] == gem and captionPoint[3] == "CENTER", "the shared cap centres its gem and places the title from it")
+	local inset = K.Widgets.Inset(row, K.Tokens.Size("radius"))
+	local rowPoint = { row:GetPoint(1) }
+	assert(rowPoint[2] == quests.Header and Near(rowPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the header frame starts one shared inset inside the glass")
+	assert(Near(gemPoint[4] + captionPoint[4], Lumen.CapColumn(row), K.Scale.Pixel()), "the title follows the shared card column")
 	local rule
 	for _, region in ipairs({ row:GetRegions() }) do
 		if region:GetObjectType() == "Texture" and region ~= gem then
 			rule = region
 		end
 	end
-	assert(rule and Near(rule:GetHeight(), math.max(K.Widgets.Border(row), K.Widgets.Snap(row, 1 / K.Widgets.ScaleFactor(row)))), "an even rule one root unit thick runs on the caption row")
+	assert(rule and Near(rule:GetHeight(), K.Widgets.Border(row)), "an even rule one root unit thick runs on the caption row")
 	local ruleLeft = { rule:GetPoint(1) }
 	assert(ruleLeft[2] == row and ruleLeft[5] < select(5, caption:GetPoint(1)), "the rule sits below the heading")
 	local count = Region(env, K, quests.Header, "FontString")
 	for _, frame in ipairs(Children(env, quests.Header)) do
 		for _, region in ipairs({ frame:GetRegions() }) do
-			if region:GetObjectType() == "FontString" and region ~= caption then
+			if region:GetObjectType() == "FontString" and region ~= caption and region:IsShown() then
 				count = region
 			end
 		end
 	end
 	assert(count and Plain(count) == tostring(#quests.blocks), "the cap counts the module's blocks, got " .. tostring(count and Plain(count)))
-	assert(FontPath(count) == K.Tokens.FontPath("PTSerifBold"), "card-header figures use the lining serif face")
+	assert(FontPath(count) == (K.Tokens.Font("number")), "card-header figures follow the shared number role")
 	local countPoint = { count:GetPoint(1) }
-	assert(countPoint[1] == "RIGHT" and countPoint[2] == row and countPoint[4] < 0, "right-aligned before the collapse button")
+	assert(countPoint[1] == "RIGHT" and countPoint[2] == row and math.abs(countPoint[4] or 0) <= K.Widgets.Border(row), "right-aligned before the collapse button")
 	local allCaption, allRow = Caption(env, tracker.Header, "OBJECTIVES")
 	assert(allCaption and not allRow:IsShown(), "the tracker's own header keeps an OBJECTIVES caption for the collapsed tracker, hidden while expanded")
 	local allChevron = Chevron(env, K, tracker.Header.MinimizeButton)
@@ -594,7 +591,7 @@ do
 	first.poiButton:GetScript("OnLeave")(first.poiButton)
 	assert(not hoverRing:IsShown(), "and leaving hides it")
 
-	-- Titles take quest gold, brighter under the mouse; the setting restores Blizzard's colours.
+	-- Titles keep quest gold under the shared white hover wash; the setting restores Blizzard's colours.
 	local function TitleColor(block)
 		return block.HeaderText:GetTextColor()
 	end
@@ -603,10 +600,17 @@ do
 	first.isHighlighted = true
 	first:UpdateHighlight()
 	local hr, hg, hb = TitleColor(first)
-	assert(hr >= qr and hg >= qg and hb >= qb and (hr + hg + hb) > (qr + qg + qb), "under the mouse the title brightens from quest gold")
+	assert(Near(hr, qr) and Near(hg, qg) and Near(hb, qb), "hover preserves the quest title's gold")
+	local wash
+	for _, holder in ipairs(Children(env, first)) do
+		local texture = Region(env, K, holder, "Texture")
+		if texture and S.W.SameColor(texture, K.Widgets.Rgba("white", K.Tokens.Share("rowHover"))) then wash = texture end
+	end
+	assert(wash and wash:IsShown(), "the hovered tracker block uses the shared white row wash")
 	first.isHighlighted = false
 	first:UpdateHighlight()
 	r, g, b = TitleColor(first)
+	assert(not wash:IsShown(), "leaving the tracker block hides its wash")
 	assert(Near(r, qr) and Near(g, qg) and Near(b, qb), "and returns to quest gold")
 	local achievement = p.modules[2].blocks[1]
 	r, g, b = TitleColor(achievement)

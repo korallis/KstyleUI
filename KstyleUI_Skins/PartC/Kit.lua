@@ -13,7 +13,6 @@ local max = math.max
 local MODULE = "Skins"
 local ICON_CROP = 0.07
 local WASH_ALPHA = 0.12
-local HIGHLIGHT_ALPHA = 0.18
 local LEVEL_ABOVE = 1
 local NEUTRAL_SPREAD = 0.05
 local QUALITY_POOR, QUALITY_COMMON, QUALITY_UNCOMMON, QUALITY_RARE, QUALITY_EPIC = 0, 1, 2, 3, 4
@@ -283,7 +282,7 @@ function Kit.Wash(texture, alpha)
 end
 
 local function TintHighlight(state)
-	Style.TintAccent(state.texture, HIGHLIGHT_ALPHA)
+	state.texture:SetVertexColor(K.Widgets.Rgba("white", K.Tokens.Share("rowHover")))
 end
 
 function Kit.Highlight(button)

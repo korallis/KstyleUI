@@ -55,18 +55,18 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local function Check(count)
 				local scene = Scene.Build(env)
 				local _, glass = Drawable(scene, parts.glass.chrome.fill[5])
-				local cap, capIndex = Drawable(scene, parts.cap.title)
+				local cap, capIndex = Drawable(scene, parts.cap.label)
 				local title, titleIndex = Drawable(scene, row.title)
 				local progress, progressIndex = Drawable(scene, row.lines[1].count)
 				local footer, footerIndex = Drawable(scene, parts.more)
-				assert(cap.text == "QUESTS" and Drawable(scene, parts.cap.trail).text == "8", "the header keeps the tracked count")
+				assert(cap.text == "QUESTS" and Drawable(scene, parts.cap.count).text == "8", "the header keeps the tracked count")
 				assert(title.text == "[6] A Putrid Task" and progress.text == count, "the first quest keeps its current progress")
 				assert(footer.text == "7 more, scroll down", "the footer advertises the other seven quests")
 				for _, index in ipairs({ capIndex, titleIndex, progressIndex, footerIndex }) do
 					assert(index > glass, "all quest content draws above the card's material")
 				end
 				assert(cap.alpha >= 0.89 and title.alpha >= 0.89 and progress.alpha >= 0.89 and footer.alpha >= 0.89, "combat calm keeps all quest content legible")
-				assert(parts.cap.row:IsVisible() and parts.view:IsVisible() and row:IsVisible(), "the header and quest view stay visible")
+				assert(parts.cap:IsVisible() and parts.view:IsVisible() and row:IsVisible(), "the header and quest view stay visible")
 				assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 			end
 			Check("0/7")

@@ -466,7 +466,7 @@ do
 	noErrors(env, K)
 end
 
--- Room: one 26-unit button for both bars with 4-unit gaps, on a tile of glass whose cut nests the buttons' own
+-- Room: one 26-unit button for both bars with 4-unit gaps, on a popup card whose cut nests the buttons' own
 -- cut corners: each button's corner stands clear of the tray's cut by more than a tiny gap, and the tray stays
 -- inside the 36-unit pitch the saved layout puts between the two bars. In ingame-18 the 24-unit micro buttons
 -- (art about 10 units wide) and 22-unit bags sat 2 units apart, 2 from a panel's 10-unit cuts.
@@ -484,7 +484,7 @@ do
 		local glass = ns.Menus.Glass(id)
 		local chrome = assert(glass.chrome, id .. ": the glass keeps its chrome")
 		local cut = chrome:Chamfer()
-		assert(cut <= K.Tokens.Size("chamferTile"), id .. ": the tray is a tile of glass, its cut " .. cut)
+		assert(chrome.shapeName == "card" and chrome.popup == true, id .. ": standalone menus use the popup card grade")
 		local first = ns.Menus.Shown(id)[1]
 		local _, _, _, x, y = first:GetPoint(1)
 		local own = first.chrome:Chamfer()

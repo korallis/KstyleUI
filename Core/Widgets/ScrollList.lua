@@ -121,7 +121,7 @@ local function RowPaint(row)
 		row.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, row.hoverT or 0))
 	end
 	if row.highlight then
-		row.highlight:SetVertexColor(Widgets.Rgba("white", 0.05 * (row.hoverT or 0)))
+		row.highlight:SetVertexColor(Widgets.Rgba("white", Tokens.Share("rowHover") * (row.hoverT or 0)))
 	end
 end
 

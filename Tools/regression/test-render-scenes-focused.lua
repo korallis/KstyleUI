@@ -207,9 +207,9 @@ do
 	local function TextLeft(text)
 		local _, relative, relativePoint, x = text:GetPoint(1)
 		local rx, _, rw = Common.Scene.Rect(R.env, relative)
-		return rx and (relativePoint:find("RIGHT", 1, true) and rx + rw or rx) + x * rw / (relative:GetRight() - relative:GetLeft())
+		return rx and (relativePoint:find("RIGHT", 1, true) and rx + rw or relativePoint == "CENTER" and rx + rw / 2 or rx) + x * rw / (relative:GetRight() - relative:GetLeft())
 	end
-	local tx = TextLeft(cap.title)
+	local tx = TextLeft(cap.label)
 	local gx, _, gw = Common.Scene.Rect(R.env, cap.gem)
 	for e, element in ipairs(step.elements) do
 		local ex = TextLeft(element.text)

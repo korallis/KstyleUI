@@ -67,7 +67,7 @@ end
 local function Card(K, ns, rxp)
 	local f = rxp.RXPFrame
 	local path = ns.RestedXP.Chrome.Path(f)
-	local card = { glass = Rect(K, K.Skin.Parts(f).backdrop), cap = Rect(K, path.cap.row), lines = {} }
+	local card = { glass = Rect(K, K.Skin.Parts(f).backdrop), cap = Rect(K, path.cap), lines = {} }
 	local step = f.CurrentStepFrame.framePool[1]
 	for _, element in ipairs(step.elements) do
 		local value = element:IsShown() and element.text:GetText()

@@ -15,7 +15,6 @@ local MARK_HEIGHT = 10
 local SECTION_INSET = 12
 local MAX_LINES = 2
 local WASH_ALPHA = 0.18
-local HOVER_ALPHA = 0.05
 
 local lower = string.lower
 
@@ -69,7 +68,7 @@ local function Paint(row)
 		row.mark:Hide()
 		PaintPage(row)
 	end
-	row.hover:SetVertexColor(Widgets.Rgba("white", HOVER_ALPHA * (row.hoverT or 0)))
+	row.hover:SetVertexColor(Widgets.Rgba("white", Tokens.Share("rowHover") * (row.hoverT or 0)))
 end
 
 local function Column(list, section)

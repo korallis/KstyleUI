@@ -14,7 +14,7 @@ local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5.5, 4, 7
 local CAP_ROW, CAP_GAP, HEAD, FOOT = 21, 6.5, 11, 12.5
 local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
-local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
+local THUMB_ALPHA, TRACK_ALPHA = 0.35, 0.5
 local MORE_SCALE = 0.85
 local COMPACT_PAD = 6
 
@@ -81,11 +81,8 @@ function Card.Locked()
 end
 
 local function PaintTitle(row)
-	local r, g, b = Lumen.Color("questGold")
-	if row.hover then
-		r, g, b = Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, HOVER_MIX)
-	end
-	row.title:SetTextColor(r, g, b)
+	row.title:SetTextColor(Lumen.Color("questGold"))
+	row.wash:SetVertexColor(Widgets.Rgba("white", row.hover and Tokens.Share("rowHover") or 0))
 end
 
 local function PaintDisc(row)
@@ -230,6 +227,9 @@ local function NewRow(index)
 		PaintTitle(self)
 		Peek()
 	end)
+	row.wash = row:CreateTexture(nil, "BACKGROUND")
+	row.wash:SetColorTexture(Tokens.Color("white"))
+	row.wash:SetAllPoints(row)
 	row.index = index
 	row.disc = row:CreateTexture(nil, "ARTWORK")
 	row.disc:SetTexture((Tokens.Texture("dot")))
@@ -486,7 +486,7 @@ function Card.Render()
 		return
 	end
 	local total = Data.Count()
-	cap:SetTrail(total)
+	cap:SetCount(total)
 	if total == 0 then
 		for i = 1, #rows do
 			rows[i]:Hide()
@@ -527,7 +527,7 @@ function Card.Render()
 		chrome = top + foot + MoreRow() - Snap(ROW_GAP)
 		room = math.max(0, maxHeight - chrome)
 	end
-	cap.row:SetShown(not compact)
+	cap:SetShown(not compact)
 	more:ClearAllPoints()
 	Widgets.Point(more, "TOP", view, "BOTTOM", 0, -Snap(compact and 0 or ROW_GAP))
 	Widgets.Point(more, "BOTTOM", card, "BOTTOM", 0, foot)
@@ -553,10 +553,10 @@ function Card.Render()
 		rows[i]:Hide()
 		rows[i].questID = nil
 	end
-	cap.row:ClearAllPoints()
-	Widgets.Point(cap.row, "TOPLEFT", card, "TOPLEFT", 0, -top)
-	Widgets.Point(cap.row, "TOPRIGHT", card, "TOPRIGHT", 0, -top)
-	cap.row:SetHeight(capHeight)
+	cap:ClearAllPoints()
+	Widgets.Point(cap, "TOPLEFT", card, "TOPLEFT", inset, -top)
+	Widgets.Point(cap, "TOPRIGHT", card, "TOPRIGHT", -inset, -top)
+	cap:SetHeight(capHeight)
 	view:ClearAllPoints()
 	Widgets.Point(view, "TOPLEFT", card, "TOPLEFT", inset, -(top + capHeight + capGap))
 	Widgets.Point(view, "TOPRIGHT", card, "TOPRIGHT", -inset, -(top + capHeight + capGap))
@@ -737,12 +737,8 @@ function Card.Build(root)
 	glass:SetAllPoints(card)
 	glass:SetFrameLevel(card:GetFrameLevel())
 	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface" })
-	cap = Lumen.SectionCap(card, { left = function()
-		return Inset()
-	end, right = function()
-		return Inset()
-	end, y = 0 })
-	cap:SetTitle(L["Quests"])
+	cap = Lumen.SectionCap(card)
+	cap:SetText(L["Quests"])
 	view = CreateFrame("Frame", nil, card)
 	view:SetClipsChildren(true)
 	view:SetFrameLevel(card:GetFrameLevel() + 2)
@@ -841,9 +837,9 @@ function Card.Diagnose()
 	DiagnosticPart("holder", card and card:GetParent())
 	DiagnosticPart("card", card)
 	DiagnosticPart("glass", glass)
-	DiagnosticPart("cap", cap and cap.row)
-	DiagnosticPart("cap.title", cap and cap.title)
-	DiagnosticPart("cap.count", cap and cap.trail)
+	DiagnosticPart("cap", cap)
+	DiagnosticPart("cap.title", cap and cap.label)
+	DiagnosticPart("cap.count", cap and cap.count)
 	DiagnosticPart("view", view)
 	DiagnosticPart("more", more)
 	local row = rows[1]

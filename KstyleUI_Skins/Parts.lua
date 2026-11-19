@@ -17,7 +17,6 @@ local CHEVRON_UNITS = 8
 local STANDING_AMBER = 0.6
 local HOVER_ALPHA = 0.5
 local TAB_IDLE_ALPHA = 0.6
-local WASH_ALPHA = 0.12
 local MODULE = "Skins"
 
 local DOCK_GAP = "gapMedium"
@@ -981,7 +980,7 @@ function Parts.Wash(highlight)
 	wash:SetAllPoints(layer)
 	wash:SetColorTexture(Tokens.Color("white"))
 	wash.Restyle = function(self)
-		ns.Style.TintAccent(self, WASH_ALPHA)
+		self:SetVertexColor(Widgets.Rgba("white", Tokens.Share("rowHover")))
 	end
 	wash:Restyle()
 	ns.Style.Track(wash)

@@ -659,8 +659,8 @@ end
 
 local function FitHead(path)
 	local cap = path.cap
-	cap:SetTitle(path.titleValue)
-	cap:SetTrail(Trail(path.frame))
+	cap:SetText(path.titleValue)
+	cap:SetCount(Trail(path.frame))
 	local meta, value = path.meta, path.metaValue
 	local shown = value ~= "" and not path.metaHushed
 	meta:SetText(value)
@@ -688,11 +688,11 @@ end
 
 local function RestylePath(path)
 	local cap, meta, header = path.cap, path.meta, path.header
-	local air = Root(cap.row, CAP_TOP)
-	cap.row:ClearAllPoints()
-	cap.row:SetPoint("TOPLEFT", path.holder, "TOPLEFT", 0, -air)
-	cap.row:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT", 0, -air)
-	cap.row:SetHeight(Root(cap.row, CAP_ROW))
+	local air = Root(cap, CAP_TOP)
+	cap:ClearAllPoints()
+	cap:SetPoint("TOPLEFT", path.holder, "TOPLEFT", Widgets.Snap(cap, CAP_LEFT), -air)
+	cap:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT", -Widgets.Snap(cap, CAP_RIGHT), -air)
+	cap:SetHeight(Root(cap, CAP_ROW))
 	header:SetHeight(Widgets.Snap(header, path.height))
 	Style.Text(meta, "caption", "text")
 	meta:ClearAllPoints()
@@ -724,7 +724,7 @@ local function Path(f)
 		end
 	end)
 	local card = CreateFrame("Frame", nil, f)
-	local cap = Lumen.SectionCap(holder, { left = CAP_LEFT, right = CAP_RIGHT })
+	local cap = Lumen.SectionCap(holder)
 	local meta = Widgets.FontString(header, "OVERLAY")
 	path = { frame = f, header = header, holder = holder, card = card, cap = cap, meta = meta, titleValue = "", metaValue = "", capHeight = CAP_ROW, height = META_ROW, headerHeight = header:GetHeight(), Restyle = RestylePath }
 	RestylePath(path)
@@ -963,7 +963,7 @@ local function AlignSteps(f)
 				local text, check = IsTable(element) and element.text, IsTable(element) and element.button
 				local had = IsTable(text) and element:IsShown() and element:GetHeight()
 				if Plain(had) and had > RXP_LINE_PAD and type(text.GetStringHeight) == "function" then
-					local left = not tip and Column(cap.title, element) or gutter
+					local left = not tip and Column(cap.label, element) or gutter
 					text:ClearAllPoints()
 					text:SetPoint("TOPLEFT", element, "TOPLEFT", left, -top)
 					text:SetPoint("RIGHT", step, "RIGHT", -edge, 0)

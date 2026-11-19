@@ -257,8 +257,7 @@ do
 	assert(FontPath(entry.Title) == Style.Font("body") and FontPath(entry.Status) == Style.Font("caption"), "entry text wears the skin fonts")
 	local highlight = entry:GetHighlightTexture()
 	assert(W.LastCall(highlight, "SetColorTexture"), "the row highlight becomes a flat wash")
-	local ar, ag, ab = Style.Accent()
-	assert(W.SameRGB(highlight, ar, ag, ab), "in the module's accent")
+	assert(W.SameColor(highlight, W2.Rgba("white", K.Tokens.Share("rowHover"))), "in the shared white row-hover wash")
 	local mark = K.Skin.Parts(entry.Enabled).mark
 	entry.Enabled:SetChecked(true)
 	entry.Enabled.CheckedTexture:SetDesaturated(false)
@@ -272,7 +271,7 @@ do
 	assert(W.SameRGB(mark, 0.2, 0.4, 0.6), "check marks follow the module's accent setting")
 	entry.Enabled.CheckedTexture:SetDesaturated(true)
 	assert(W.SameRGB(mark, W2.Rgba("text")), "and the grey mark survives the accent painter")
-	assert(W.SameRGB(highlight, 0.2, 0.4, 0.6), "row highlights follow it too")
+	assert(W.SameColor(highlight, W2.Rgba("white", K.Tokens.Share("rowHover"))), "row highlights keep the shared wash when the accent changes")
 	assert(FontPath(p.category.Title) == Style.Font("caption"), "a category reads as a caption")
 	B.check(snap, HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))

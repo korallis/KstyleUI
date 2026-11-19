@@ -98,7 +98,7 @@ do
 	assert(near(card.top, band.top, 0.01), "the card hangs from the slot's top, to the pixel, got " .. card.top .. " for " .. band.top)
 	assert(card.bottom >= band.bottom - 0.5, "and ends inside the slot, got " .. card.bottom .. " for " .. band.bottom)
 	local path = ns.RestedXP.Chrome.Path(f)
-	local cap = Rect(K, path.cap.row)
+	local cap = Rect(K, path.cap)
 	local steps = Rect(K, f.CurrentStepFrame)
 	local name = Rect(K, f.GuideName)
 	assert(near(card.top, Rect(K, path.holder).top), "the card starts at the cap holder's top")
@@ -266,19 +266,19 @@ do
 	env.RunTimers()
 	rxp.SetStep(1)
 	local path = ns.RestedXP.Chrome.Path(f)
-	path.cap.title.GetUnboundedStringWidth = function() return 90 end
-	path.cap.trail.GetUnboundedStringWidth = function(self) return self:GetText() ~= "" and 40 or 0 end
+	path.cap.label.GetUnboundedStringWidth = function() return 90 end
+	path.cap.count.GetUnboundedStringWidth = function(self) return self:GetText() ~= "" and 40 or 0 end
 	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
 	local function At(width)
-		path.cap.row:SetWidth(width)
+		path.cap:SetWidth(width)
 		path.cap:Fit()
 	end
 	At(400)
-	assert(path.cap.trail:GetText() == "Step 1" and path.cap.title:GetWidth() == 0, "wide: the step rides in the cap's trail and the name takes its natural width")
+	assert(path.cap.count:GetText() == "Step 1" and path.cap.label:GetWidth() == 0, "wide: the step rides in the cap's trail and the name takes its natural width")
 	assert(path.meta:IsShown() and path.meta:GetText() == "Speedrun Guide 1-22", "the route has its own caption row")
 	At(120)
-	assert(path.cap.title:GetWidth() > 0 and path.cap.title:GetWidth() < 90, "narrow: the name is clamped to the room before the step, got " .. tostring(path.cap.title:GetWidth()))
-	assert(path.cap.trail:GetText() == "Step 1", "and the step stays whole")
+	assert(path.cap.label:GetWidth() > 0 and path.cap.label:GetWidth() < 90, "narrow: the name is clamped to the room before the step, got " .. tostring(path.cap.label:GetWidth()))
+	assert(path.cap.count:GetText() == "Step 1", "and the step stays whole")
 	local _, relative, _, _, top = f.ScrollFrame:GetPoint(1)
 	assert(relative == f.BottomFrame and -top >= 9, "the list's view starts under RestedXP's header overlap, got " .. tostring(top))
 	local bottom = select(5, f.ScrollFrame:GetPoint(2))

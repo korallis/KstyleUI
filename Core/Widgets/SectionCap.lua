@@ -82,10 +82,32 @@ local function Placed(self)
 	self.count:SetShown(count)
 end
 
+function Widgets.CapColumn(frame)
+	return Widgets.Snap(frame, GEM_CENTRE) + Widgets.Snap(frame, TEXT_FROM_GEM)
+end
+
+function Cap:Fit()
+	if self.wrapWidth then
+		return
+	end
+	local width = self:GetWidth()
+	self.label:SetWidth(0)
+	if Widgets.IsSecret(width) or type(width) ~= "number" or width <= 0 then
+		return
+	end
+	local trail = self.counted and Widgets.TextWidth(self.count, 0) or self.reserve or 0
+	local room = width - Widgets.CapColumn(self) - Widgets.Snap(self, GEM_GAP + COUNT_GAP) - trail
+	if Widgets.TextWidth(self.label, 0) > room then
+		self.label:SetWidth(math.max(0, room) + Widgets.TrackPad(self.label))
+	end
+end
+
 function Cap:SetText(text)
 	Widgets.SetText(self.label, text)
 	if self.wrapWidth then
 		self:SetWrapWidth(self.wrapWidth)
+	else
+		self:Fit()
 	end
 end
 
@@ -107,11 +129,13 @@ function Cap:SetCount(value)
 	self.counted = value ~= nil
 	Widgets.SetText(self.count, value)
 	Placed(self)
+	self:Fit()
 end
 
 function Cap:SetReserve(width)
 	self.reserve = type(width) == "number" and width > 0 and width or nil
 	Placed(self)
+	self:Fit()
 end
 
 function Cap:MeasureCount(value)
@@ -149,10 +173,6 @@ function Cap:Restyle()
 	Widgets.Point(self.gem, "CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
 	Widgets.CapsSize(self.label)
 	Widgets.StyleText(self.count, "number")
-	if Widgets.Readability("sectionHeadings") then
-		local _, size, flags = self.count:GetFont()
-		Widgets.ApplyFont(self.count, Tokens.FontPath("PTSerifBold"), size, flags)
-	end
 	self.label:ClearAllPoints()
 	Widgets.Point(self.label, "LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))
@@ -162,6 +182,7 @@ function Cap:Restyle()
 	if self.wrapWidth then
 		self:SetWrapWidth(self.wrapWidth)
 	end
+	self:Fit()
 	self:Paint()
 end
 
@@ -177,10 +198,12 @@ function Widgets.SectionCap(parent, opts)
 	cap.gem:SetTexture((Tokens.Texture("diamond")))
 	cap.rule = cap:CreateTexture(nil, "ARTWORK")
 	cap.label = Widgets.Text(cap, "caps", "capsGold")
+	cap.label:SetWordWrap(false)
 	cap.count = Widgets.Text(cap, "number", "muted")
 	cap.count:SetJustifyH("RIGHT")
 	cap.ruler = Widgets.Text(cap, "number", "muted")
 	cap.ruler:Hide()
+	cap:HookScript("OnSizeChanged", cap.Fit)
 	cap:Restyle()
 	if opts.text then
 		cap:SetText(opts.text)

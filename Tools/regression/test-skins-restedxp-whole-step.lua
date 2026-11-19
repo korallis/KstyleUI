@@ -109,7 +109,7 @@ for _, screen in ipairs(SCREENS) do
 			local px = K.Scale.Pixel(1) + 0.01
 			local f = rxp.RXPFrame
 			local path = ns.RestedXP.Chrome.Path(f)
-			local glass, cap = Rect(K, K.Skin.Parts(f).backdrop), Rect(K, path.cap.row)
+			local glass, cap = Rect(K, K.Skin.Parts(f).backdrop), Rect(K, path.cap)
 			local band = ns.RestedXP.Rail.Band()
 			local step = f.CurrentStepFrame.framePool[1]
 			local lines = {}
