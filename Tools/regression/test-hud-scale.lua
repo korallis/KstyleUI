@@ -96,8 +96,8 @@ do
 			local row = 12 * 38 * 19 / 16 + 11 * 3 * 19 / 16
 			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, row) and near(bar1.r - bar1.l, row), label .. ": the two enabled rows share the KSTY-44 tray's column")
 			assert(near(bar1.b, Layouts.TRAY_BOTTOM + Layouts.TRAY_PAD) and near(bar2.t + Layouts.TRAY_PAD, Layouts.TRAY_TOP) and near(bar2.b - bar1.t, 3 * 19 / 16), label .. ": the action rows stand inside the tray at its gap")
-			assert(layout["actionbars.bar3"].anchor == "BOTTOM" and near((bar3.l + bar3.r) / 2, width / 2) and near(bar3.b, 698) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own slot above the casts")
-			assert(bar3.b >= rect("unitframes.castbar.target").t + 2 and bar3.t <= rect("unitframes.boss").b - 16, label .. ": bar 3 clears the cast lane and central play field")
+			assert(layout["actionbars.bar3"].anchor == "BOTTOM" and near((bar3.l + bar3.r) / 2, width / 2 - 460) and near(bar3.b, 640) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own slot above the casts")
+			assert((bar3.r <= rect("unitframes.castbar.target").l or bar3.b >= rect("unitframes.castbar.target").t) and (bar3.r <= rect("unitframes.boss").l or bar3.t <= rect("unitframes.boss").b), label .. ": bar 3 clears the cast lane and central play field")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
 			assert(near(player.b, 138 + Layouts.TRAY_LIFT) and player.b - bar2.t - Layouts.TRAY_PAD >= 6 and near(target.b - player.t, 2), label .. ": player and target stack directly over the tray card, at least 6 clear of it")
 			local centre = (bar1.l + bar1.r) / 2

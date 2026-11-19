@@ -92,9 +92,9 @@ local ELEMENTS = {
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 442, height = 186 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], short = L["Loot"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
-	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = XP_H },
-	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
-	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
+	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = XP_H, insets = { 0, 0, 24, 0 } },
+	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
+	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
 	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = STORY_W, height = READOUT_H },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
@@ -106,6 +106,7 @@ local ELEMENTS = {
 }
 
 for _, element in ipairs(ELEMENTS) do
+	if element.module == "UnitFrames" then element.insets = { 2, 2, 2, 2 } end
 	if element.grid then
 		element.width, element.height = GridSize(element.key)
 		element.grid = nil
@@ -178,7 +179,7 @@ local DPS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = STRIP_ENDS, y = TRAY_BOTTOM - TRAY_STRIP_GAP - 1 },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR1_Y },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = TRAY_BAR2_Y },
-	["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = TEXT_TOP - BUTTON - TIGHT },
+	["actionbars.bar3"] = { anchor = "BOTTOM", x = -460, y = 640 },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
 	["actionbars.possess"] = { anchor = "TOPLEFT", x = MARGIN + 623 + GAP, y = -MARGIN },
@@ -427,7 +428,7 @@ local ORBS = {
 	["unitframes.pet"] = { anchor = "BOTTOMLEFT", x = EDGE + ORBS_PET_W + NEAR + ORBS_STANCE_W + NEAR + ORBS_GLOW + GAP, y = ORBS_FIT.cornerY },
 	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -ORBS_FIT.bossX, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["combattext.player"] = { anchor = "BOTTOM", x = -ORBS_FIT.textX, y = CLUSTER_TOP + GAP },
-	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -ORBS_TARGET_Y, width = ORBS_TARGET_W, height = ORBS_TARGET_H, insets = { 70, 2, 2, 2 } },
 	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + GAP) },
 	["unitframes.targettarget"] = { anchor = "TOP", x = ORBS_TARGET_W / 2 + NEAR + ORBS_TOT_W / 2, y = -ORBS_TARGET_Y },
 	["groupframes.party"] = DPS["groupframes.party"],
@@ -868,7 +869,7 @@ function Layouts.TrayMoves(name)
 		local now = layout[key]
 		local was = moved[key]
 		if was then
-			out[key] = { was[1], was[2], was[3] - 31 }
+			out[key] = { was[1], was[2], was[3] - math.ceil(TRAY_TOP - TIGHT - 132) }
 		elseif now then
 			out[key] = { now.anchor, now.x, now.y - LIFT }
 		end
@@ -960,12 +961,11 @@ local ASPECTS = ns.Scale.ASPECTS
 local PLACES = {}
 for _, class in ipairs(ASPECTS) do
 	PLACES[class] = { frames = {}, orbs = {}, medallions = {} }
-	PLACES[class].frames["actionbars.bar3"] = { anchor = "BOTTOM", x = -460, y = 640 }
 end
 Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
-Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33, [ASPECTS[1]] = 33.5 }
+Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, narrowGap = 3.5, floor = 33, [ASPECTS[1]] = 33.5 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 8 }
 Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 7, strip = 3, bottom = 3 }
 Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 26, reach = 12, medal = 86 + GAP, outboard = 12, stack = 46, castGap = 27, castStack = 9, powerReserve = 22 }
@@ -974,7 +974,7 @@ Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["u
 function Layouts.MedallionsGroup(class)
 	local slot = Layouts.MEDALLIONS_SLOT
 	local size = slot[class] or slot.size
-	local gap, columns = slot.gap * size / slot.size, GRIDS["actionbars.bar1"].buttons
+	local gap, columns = (slot[class] and slot.narrowGap or slot.gap) * size / slot.size, GRIDS["actionbars.bar1"].buttons
 	return columns, 1, columns * size + (columns - 1) * gap, size, size, gap
 end
 
@@ -1016,23 +1016,23 @@ function Layouts.BuildMedallions()
 		local top, strip = baseline + height, baseline - slab.stripGap - slab.strip
 		local side = Layouts.MEDALLIONS_SIDE
 		local ends = hub / 2 + width + slab.pad + side.clear + side.pad
-		local _, petW = Layouts.MedallionsSide(class, "actionbars.pet")
+		local _, petW, petH = Layouts.MedallionsSide(class, "actionbars.pet")
 		local sideY = strip - slab.bottom + side.pad - 2 * TIGHT
-		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2), y = sideY }
-		local stanceBar = { anchor = "BOTTOM", x = -580, y = 220 + select(3, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad }
-		if class == ASPECTS[1] then
-			petBar = { anchor = "BOTTOM", x = -570, y = 220 }
-		end
+		if class == ASPECTS[1] then sideY = DPS["meters.damage"].y + DAMAGE_H + GAP + 3 * side.pad end
+		local petBar = { anchor = "BOTTOM", x = -(ends + petW / 2 - (class == ASPECTS[1] and petH - GAP - TIGHT or 0)), y = sideY }
+		local stanceBar = { anchor = "BOTTOM", x = petBar.x, y = sideY + petH + 2 * side.pad + side.clear }
 		local frame, tot, pet, cast = unit.frame, unit.mini, unit.mini, unit.cast
 		local focus, boss = layouts.DPS["unitframes.focus"], layouts.DPS["unitframes.boss"]
 		local focusSize = { 220 * MOCK_PX, 64 * MOCK_PX }
 		local focusY = math.max(focus.y, layouts.DPS["cooldowns.bars"].y + math.max(select(2, ElementSize("cooldowns.bars")), select(2, ElementSize("cooldowns.buffs"))) + NEAR + 3 * TIGHT + tot[2])
 		local row, reach = top + slab.pad + unit.lift, Layouts.MEDALLIONS_RING / 2 + unit.reach
 		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
-		local petX, totX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, reach + frame[1] + unit.medal + unit.outboard + tot[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
+		local petX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
 		if class == ASPECTS[1] then
-			petX, totX, miniY = reach + frame[1] - pet[1] / 2, reach + frame[1] - tot[1] / 2, row + frame[2] + unit.stack
+			petX, miniY = reach + frame[1] - pet[1] / 2, row + frame[2] + unit.stack
 		end
+		petX = math.min(petX, -stanceBar.x - petW / 2 - side.pad - GAP - pet[1] / 2 - Layouts.MEDALLIONS_MEDALS["unitframes.pet"].d / 2)
+		local totX = petX
 		local function At(anchor, x, y, size)
 			return { anchor = anchor, x = x, y = y, width = size[1], height = size[2] }
 		end
@@ -1040,7 +1040,7 @@ function Layouts.BuildMedallions()
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
 			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
-			["actionbars.bar3"] = { anchor = "BOTTOM", x = -692, y = 378 },
+			["actionbars.bar3"] = { anchor = "BOTTOM", x = -692, y = 378 + side.clear },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = petBar,
@@ -1053,12 +1053,17 @@ function Layouts.BuildMedallions()
 			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
 			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
 			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
-			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + 120, { 160, 80 }),
+			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + unit.medal + 2 * unit.castStack, { 160, 80 }),
 			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
 			["unitframes.boss"] = At(boss.anchor, boss.x - 2 * GAP, boss.y - 24, { 280 * MOCK_PX, (5 * 60 + 24) * MOCK_PX }),
 		}
+		for key, medal in pairs(Layouts.MEDALLIONS_MEDALS) do
+			local place = sets[class][key]
+			place.insets = { medal.side < 0 and medal.d + ns.Tokens.Size("gapMedium") or 2, medal.side > 0 and medal.d + ns.Tokens.Size("gapMedium") or 2, unit.powerReserve, (medal.d - place.height) / 2 + ns.Tokens.Size("gapMedium") }
+		end
+		sets[class]["unitframes.boss"].insets = { 2, 40, 12, 12 }
 	end
 	for _, name in ipairs(NAMES) do
 		STYLES.medallions[name] = {}
@@ -1075,6 +1080,24 @@ function Layouts.BuildMedallions()
 	end
 end
 Layouts.BuildMedallions()
+
+function Layouts.DisplayInsets(key, height, anchor)
+	local element = byKey[key]
+	local style, name, class = ns.HudStyle.Current(), ns.Layout.Setting("preset"), ns.Scale.Aspect()
+	local place = PLACES[class] and PLACES[class][style] and PLACES[class][style][key]
+	place = place or STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
+	local inset = place and place.insets or element.insets
+	local l, r, b, t = inset and inset[1] or 0, inset and inset[2] or 0, inset and inset[3] or 0, inset and inset[4] or 0
+	if place and place.height then t = math.max(0, t + (place.height - height) / 2) end
+	local reserve = not (place and place.width) and element.reserve
+	if reserve then
+		local fx, fy = ns.Layout.Geometry.Fraction(anchor)
+		local ew, eh = math.max(0, reserve[1] - element.width), math.max(0, reserve[2] - element.height)
+		l, r = math.max(l, ew * fx - (reserve[3] or 0)), math.max(r, ew * (1 - fx) + (reserve[3] or 0))
+		b, t = math.max(b, eh * fy - (reserve[4] or 0)), math.max(t, eh * (1 - fy) + (reserve[4] or 0))
+	end
+	return l, r, b, t
+end
 
 function Layouts.Aspect(class, style, name, key)
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, style, name, key)
@@ -1409,7 +1432,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	end
 	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
 		local damage = layout["meters.damage"]
-		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - (style == "medallions" and TIGHT or GAP), y = damage.y }
+		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	for i, element in ipairs(ELEMENTS) do

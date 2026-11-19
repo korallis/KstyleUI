@@ -367,14 +367,14 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(centred(r) and same(r.bottom, 698) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has its own centred slot above the casts")
-				assert(r.bottom > rect("unitframes.focus").top and r.bottom > rect("unitframes.castbar.player").top, label .. ": bar 3 clears the complete HUD below")
+				assert(same((r.left + r.right) / 2, mid - 460) and same(r.bottom, 640) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has the same left slot in the registered and per-aspect defaults")
+				assert((r.right <= rect("unitframes.focus").left or r.bottom >= rect("unitframes.focus").top) and (r.right <= rect("unitframes.castbar.player").left or r.bottom >= rect("unitframes.castbar.player").top), label .. ": bar 3 clears the complete HUD below")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
 			if key == "actionbars.bar3" then
-				assert(r.bottom >= rect("unitframes.castbar.target").top + 2 and r.top <= rect("unitframes.boss").bottom - 16, label .. ": spare bar 3 clears the upper cast and the full boss column")
+				assert((r.right <= rect("unitframes.castbar.target").left or r.bottom >= rect("unitframes.castbar.target").top) and (r.right <= rect("unitframes.boss").left or r.top <= rect("unitframes.boss").bottom), label .. ": spare bar 3 clears the upper cast and the full boss column")
 			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 4, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else

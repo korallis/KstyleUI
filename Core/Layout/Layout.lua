@@ -487,30 +487,15 @@ function Layout.Clamp(key, left, bottom, w, h)
 	local el = elements[key]
 	local rw, rh = Layout.RootSize()
 	if el and el.opts.clamp then
-		return el.opts.clamp(left, bottom, w, h, rw, rh)
+		local cl, cb = el.opts.clamp(left, bottom, w, h, rw, rh)
+		if cl then return cl, cb end
 	end
 	local layouts = ns.Setup and ns.Setup.Layouts
 	local element = layouts and layouts.Element(key)
 	if el and element then
-		local style = ns.HudStyle.Current()
-		local preset = Layout.Setting("preset")
-		local place = layouts.Aspect(Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
 		local f, margin, origin = Factor(el.frame), Tokens.Size("screenMargin"), Scale.Origin()
-		local fx, fy = G.Fraction(el.default.anchor)
-		local reserve = not (place and place.width) and element.reserve
-		local extraW, extraH = reserve and max(0, (reserve[1] - element.width) * f) or 0, reserve and max(0, (reserve[2] - element.height) * f) or 0
-		local dx, dy = reserve and (reserve[3] or 0) * f or 0, reserve and (reserve[4] or 0) * f or 0
-		local l, r = max(0, extraW * fx - dx), max(0, extraW * (1 - fx) + dx)
-		local b, t = max(0, extraH * fy - dy), max(0, extraH * (1 - fy) + dy)
-		if key:match("^unitframes%.") then l, r, b, t = max(l, 2 * f), max(r, 2 * f), max(b, 2 * f), max(t, 2 * f) end
-		if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then b = max(b, 24 * f) end
-		if style == "orbs" and key == "unitframes.target" then l = max(l, 70 * f) end
-		local medal = style == "medallions" and layouts.MEDALLIONS_MEDALS[key]
-		if medal then
-			if medal.side < 0 then l = max(l, (medal.d + 8) * f) else r = max(r, (medal.d + 8) * f) end
-			b, t = max(b, 22 * f), max(t, (medal.d - h / f) * f / 2 + 8 * f)
-		end
-		if style == "medallions" and key == "unitframes.boss" then b, t, r = max(b, 12 * f), max(t, 12 * f), max(r, 40 * f) end
+		local l, r, b, t = layouts.DisplayInsets(key, h / f, el.default.anchor)
+		l, r, b, t = l * f, r * f, b * f, t * f
 		local cl, cb = Clamp(left, margin + l - origin, max(margin + l - origin, rw + origin - margin - r - w)), Clamp(bottom, margin + b, max(margin + b, rh - margin - t - h))
 		local pixel = Scale.Pixel(1)
 		if cl > left then cl = math.ceil(cl / pixel) * pixel elseif cl < left then cl = math.floor(cl / pixel) * pixel end

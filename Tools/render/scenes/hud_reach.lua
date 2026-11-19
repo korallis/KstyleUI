@@ -14,6 +14,7 @@ return Common.Run(function()
 	end
 	env.RunTimers()
 	Reach.Populate(env)
+	env.FireEvent("UNIT_COMBAT", "player", "WOUND", "CRITICAL", env.Secret(120), 1)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	return Common.Scene.Build(env)
 end)

@@ -38,6 +38,7 @@ for _, screen in ipairs(SCREENS) do
 	local what = width .. "x" .. height
 	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK" })
 	env._game.petExists = true
+	for i = 1, 10 do env._game.forms[i] = { texture = 135036, isCastable = true, spellID = 15473 + i } end
 	env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
 	AB.Enable(env, K)
 	local strip = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -114,15 +115,15 @@ for _, screen in ipairs(SCREENS) do
 			assert(r[1] >= petRect[1] - EPS and r[3] <= petRect[3] + EPS and r[2] >= petRect[2] - EPS and r[4] <= petRect[4] + EPS, what .. ": the pet slab holds every pet slot")
 		end
 	end
-	local narrow = K.Scale.Aspect() == Layouts.ASPECTS[1]
-	if narrow then
-		local rootRect = Rect(K.Scale.Root())
-		local center = (petRect[1]+petRect[3]-rootRect[1]-rootRect[3])/2/unit
-		assert(math.abs(center+570)<2*px and math.abs((petRect[2]-rootRect[2])/unit-214)<2*px, what .. ": keep the pet slab in its clear left slot above the meter footer")
-	else
-		local apart = (slabRect[1]-petRect[3])/unit
-		assert(math.abs(apart-Layouts.MEDALLIONS_SIDE.clear)<2*px, what .. ": the pet slab stands clear left of the action slab")
-		assert(math.abs((petRect[2]-slabRect[2])/unit+8)<2*px, what .. ": the pet slab sits eight units below the action slab's lower edge")
+	local stanceRect = Rect(assert(Slab.sides.stance))
+	local apart = (slabRect[1] - petRect[3]) / unit
+	if K.Scale.Aspect() == Layouts.ASPECTS[1] then apart = apart + select(3, Layouts.MedallionsSide(K.Scale.Aspect(), "actionbars.pet")) - Layouts.GAP - K.Tokens.Size("gapSmall") end
+	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": both side bars dock to the slab's left edge")
+	assert(math.abs(petRect[1] - stanceRect[1]) < 2 * px * unit and math.abs(petRect[3] - stanceRect[3]) < 2 * px * unit,
+		what .. ": align pet and stance slab edges; derive both positions from the action slab")
+	assert(stanceRect[2] >= petRect[4] - EPS, what .. ": keep the stacked pet and stance slabs apart")
+	if K.Scale.Aspect() ~= Layouts.ASPECTS[1] then
+		assert(math.abs((petRect[2] - slabRect[2]) / unit + 8) < 2 * px, what .. ": the pet slab sits eight units below the action slab's lower edge")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1

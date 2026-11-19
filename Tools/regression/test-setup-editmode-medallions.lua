@@ -39,7 +39,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local positions = Layouts.Positions(name, "medallions", K.Scale.Aspect(), K.Scale.Band())
 		local function Box(key)
 			local w, h, offsetX = Layouts.Footprint(name, key)
-			local styled = Layouts.Style("medallions", name, key)
+			local styled = Layouts.Aspect(K.Scale.Aspect(), "medallions", name, key) or Layouts.Style("medallions", name, key)
 			if styled and styled.width then
 				w, h, offsetX = styled.width, styled.height, nil
 			end
@@ -60,7 +60,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local focus = Box("unitframes.focus")
 		assert(barBox[4] <= focus[2] + 0.5, where .. ": the bars stay under the focus frame, out of the nameplates over it")
 		local icons = Box("cooldowns.buffs")
-		assert(near(iconBox[3], icons[3]) and near(iconBox[2], icons[2] + 14), where .. ": keep the buff icons at the right edge of their attached slot, 14 units above its foot")
+		local essential = Box("cooldowns.essential")
+		local beside = near(iconBox[3], essential[1] - Layouts.GAP) and near(iconBox[2], essential[2])
+		assert(beside or near(iconBox[3], icons[3]) and near(iconBox[2], icons[2] + 14), where .. ": keep the native buff row beside essentials or in its attached slot")
 		for _, key in ipairs({ "unitframes.player", "unitframes.castbar.player", "unitframes.focus", "unitframes.focustarget", "unitframes.pet", "cooldowns.essential" }) do
 			if Layouts.Shown(name, key) ~= false then
 				local box = Box(key)

@@ -163,7 +163,8 @@ local function Place(viewer, slot, folded)
 	c:ClearAllPoints()
 	local left, _, top = K.Widgets.Edges(slot)
 	local vl, _, vt = K.Widgets.Edges(viewer)
-	if not ns.IsSecret(left) and not ns.IsSecret(top) and not ns.IsSecret(vl) and not ns.IsSecret(vt) and type(left) == "number" and type(top) == "number" and type(vl) == "number" and type(vt) == "number" then
+	left, top, vl, vt = ns.Plain(left), ns.Plain(top), ns.Plain(vl), ns.Plain(vt)
+	if type(left) == "number" and type(top) == "number" and type(vl) == "number" and type(vt) == "number" then
 		K.Widgets.Point(c, "TOPLEFT", viewer, "TOPLEFT", left * scale - vl, top * scale - vt)
 	else
 		K.Widgets.Point(c, "TOPLEFT", slot, "TOPLEFT")

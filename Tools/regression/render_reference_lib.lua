@@ -34,7 +34,7 @@ return function(preset, built)
 		local position = positions[key]
 		if position then
 			local left, bottom = Layouts.Rect(element, position, rw, rh)
-			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + 24) end
+			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + Layouts.Element(key).insets[3]) end
 			assert(math.abs(left - element.left) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " horizontally")
 			assert(math.abs(bottom - element.bottom) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " vertically")
 		end
