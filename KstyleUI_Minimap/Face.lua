@@ -31,6 +31,7 @@ local PLAQUE_PAD = 6
 local RING_OUTER = 0.9189
 local RING_SUBLEVEL = 3
 local BADGE, BADGE_BAND = 16, 2
+local currentFrame
 
 Face.LEVEL_MAP = LEVEL_MAP
 
@@ -39,7 +40,7 @@ function Face.Round()
 end
 
 function Face.Frame()
-	return Face.Round() and Settings.Get("frame") or "classic"
+	return Face.Round() and (currentFrame or Settings.Get("frame")) or "classic"
 end
 
 local function RingOuter()
@@ -603,6 +604,7 @@ function Face:PlaceFrame()
 end
 
 function Face:Paint()
+	currentFrame = Settings.Get("frame")
 	self.layoutWidth = nil
 	local r, g, b = Style.Accent()
 	Widgets.Tint(self.zoom.track, "track")

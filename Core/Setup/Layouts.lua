@@ -611,7 +611,8 @@ function Layouts.CooldownGrid(style, key)
 end
 
 function Layouts.MinimapCrest()
-	local frame = ns.Store.IsLoaded() and ns.Store.Module("Minimap").frame
+	local section = ns.Store.IsLoaded() and ns.Store.Profile().Minimap
+	local frame = type(section) == "table" and section.frame
 	return issecretvalue and issecretvalue(frame) or frame ~= "classic"
 end
 
@@ -712,8 +713,8 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return nil
 	end
 	local crest = style == "medallions" and Layouts.MinimapCrest() and 52 or 0
-	local inset = style == "medallions" and GAP or 0
-	local slotHeight = slot.height - Lift(rootHeight) - inset - crest
+	local inset = style == "medallions" and GAP + crest or 0
+	local slotHeight = slot.height - Lift(rootHeight) - inset
 	out = out or {}
 	out.stacked = nil
 	local stack = STORY_STYLES[style]
@@ -746,7 +747,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset - crest)
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
 	if guideShown then
 		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, inset)
 		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
@@ -948,9 +949,9 @@ function Layouts.Style(style, name, key)
 	if style == "medallions" and (key == "meters.damage" or key == "meters.threat") and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
 		return layouts[name] and layouts[name][key]
 	end
-	if style == "medallions" and Layouts.MinimapCrest() then
+	if style == "medallions" and key == "minimap.main" and Layouts.MinimapCrest() then
 		local overhang = MAP * (150 / 118 - 1) / 2
-		if key == "minimap.main" then return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) } end
+		return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) }
 	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
 	if bar then return bar end
@@ -1114,7 +1115,8 @@ function Layouts.DisplayInsets(key, height, anchor)
 end
 
 function Layouts.Aspect(class, style, name, key)
-	if Layouts.MinimapCrest() and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") then
+	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs" or key == STORY_KEYS.quests or key == STORY_KEYS.guide)
+		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
 		if key == "auras.buffs" or key == "auras.debuffs" then
 			local base = layouts[name][key]
@@ -1208,6 +1210,7 @@ ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
 			end
 		end
 		if module == "Minimap" then
+			KstyleUIDB.scaleCache = nil
 			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", STORY_KEYS.quests, STORY_KEYS.guide }) do
 				local el = ns.Layout.Element(affected)
 				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
@@ -1528,7 +1531,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	end
 	local layout = state.layout
 	local pixelScale = physicalHeight / rootHeight
-	local rects, count = state.rects, 0
+	local rects, boxes, count = state.rects, state.boxes, 0
 	local elements = #ELEMENTS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
 	for i = 1, elements + 2 do
@@ -1552,7 +1555,6 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local h = max(1, floor(height * pixelScale + 0.5))
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5) + (offsetY or 0) * pixelScale
-			local boxes = state.boxes
 			local box = boxes[1]
 			box[1], box[2], box[3], box[4], box.key = left, bottom, left + w, bottom + h, key
 			local medal = style == "medallions" and Layouts.MEDALLIONS_MEDALS[key]
@@ -1563,13 +1565,14 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				box = boxes[2]
 				box[1], box[2], box[3], box[4], box.key = floor(cx - d / 2 + 0.5), floor(cy - d / 2 + 0.5), floor(cx - d / 2 + 0.5) + d, floor(cy - d / 2 + 0.5) + d, key
 			end
+			local neighbours = count
 			for j = 1, medal and 2 or 1 do
 				box = boxes[j]
 				local l, b, r, t = box[1], box[2], box[3], box[4]
 				if l < 0 or b < 0 or r > physicalWidth or t > physicalHeight or r <= l or t <= b then
 					return false
 				end
-				for index = 1, count do
+				for index = 1, neighbours do
 					local rect = rects[index]
 					if l < rect[3] and rect[1] < r and b < rect[4] and rect[2] < t and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
@@ -1578,12 +1581,9 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 						end
 					end
 				end
-			end
-			for j = 1, medal and 2 or 1 do
-				box = boxes[j]
 				count = count + 1
 				local rect = rects[count]
-				rect[1], rect[2], rect[3], rect[4], rect.key = box[1], box[2], box[3], box[4], box.key
+				rect[1], rect[2], rect[3], rect[4], rect.key = l, b, r, t, key
 			end
 		end
 	end
@@ -1656,6 +1656,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	end
 	style = STYLES[style] and style or "frames"
 	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature()
+		.. (style == "medallions" and tostring(Layouts.MinimapCrest()) or "")
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits

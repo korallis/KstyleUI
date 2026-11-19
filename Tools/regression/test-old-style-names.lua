@@ -29,7 +29,7 @@ for line in read("Tools/locale/enUS.json"):gmatch("[^\n]+") do
 	if key then
 		strings = strings + 1
 		local found = names(key)
-		if #found > 0 then
+		if #found > 0 and key ~= "Classic" then
 			problems[#problems + 1] = "enUS: " .. key .. " (" .. table.concat(found, ", ") .. ")"
 		end
 	end
@@ -44,6 +44,13 @@ for _, code in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
 		end
 	end
 end
+
+for _, path in ipairs(dofile("Tools/regression/toc_files.lua")("%.lua$")) do
+	if path ~= "KstyleUI_Minimap/Settings.lua" then
+		assert(not read(path):find('L["Classic"]', 1, true), "Classic is reserved for the owner's Minimap frame choice; use Frames or Orbs for HUD styles")
+	end
+end
+assert(read("KstyleUI_Minimap/Settings.lua"):find('{ value = "classic", label = L["Classic"] }', 1, true), "Classic labels the Minimap frame choice")
 
 assert(#problems == 0, "player-facing strings name a retired style (use Frames and Orbs, or describe the look):\n" .. table.concat(problems, "\n"))
 print("old style names ok")

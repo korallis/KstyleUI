@@ -18,6 +18,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	for _, owner in ipairs({ false, true }) do
 		local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], size = "auto",
 			position = { 0.616, 0.579 }, setup = function(e)
+				e._fitScale = true
 				e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" }
 				if owner then e.KstyleUIDB.layouts.Default = { ["medallions:minimap.main"] = { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } } end
 			end,
@@ -41,11 +42,19 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			holder:SetSize(card.width, card.height)
 			K.Layout.Register(holder, card.key, card)
 		end
+		local enabled = layouts.Enabled("DPS", K.Store.Profile())
+		local _, previousFit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled, "medallions")
+		local previousCrest = true
 		for _, frame in ipairs({ "classic", "ring", "medallion" }) do
+			env.KstyleUIDB.scaleCache = { oldFrame = true }
 			K.Options.Write("Minimap", "frame", frame)
 			M.Settle(env)
-			assert(face.mapArea:GetWidth() == width, "grow the frame outward; preserve the visible map size")
+			assert(math.abs(face.mapArea:GetWidth() - width) <= K.Scale.Pixel(1), "grow the frame outward; preserve the visible map size: " .. frame .. " " .. width .. " / " .. face.mapArea:GetWidth())
 			local crest = frame ~= "classic"
+			local _, fit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled, "medallions")
+			assert(previousCrest == crest or fit ~= previousFit, "invalidate layout-fit cache when the minimap footprint changes")
+			assert(not env.KstyleUIDB.scaleCache or not env.KstyleUIDB.scaleCache.oldFrame, "invalidate the persisted scale cache when Minimap frame changes")
+			previousFit, previousCrest = fit, crest
 			assert(face.enamel:IsShown() == crest and face.runes:IsShown() == crest, "Classic restores the previous ring")
 			assert(face.gem:IsShown() == (frame == "medallion"), "only the medallion uses the gem")
 			local path = W.LastCall(face.ring, "SetTexture")[1]
