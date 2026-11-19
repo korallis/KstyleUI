@@ -15,10 +15,35 @@ local function Texture(button, getter)
 	end
 end
 
-local function SkillRow(row)
+local function LineHeight(frame)
+	local _, size = ns.Style.Font("body")
+	return math.max(K.Widgets.FontSize(frame, size) * 1.2, K.Widgets.Snap(frame, 16 * K.Theme.FontScale()))
+end
+
+local function SkillRow(row, fit)
 	Kit.Hush(row, Texture(row, "GetNormalTexture"), Texture(row, "GetHighlightTexture"), row.selectedTex)
 	Kit.CropIcon(row.icon)
 	Kit.Select(row, row.selectedTex)
+	if fit and row.name and row.subText and K.Widgets.MayMove(row) then
+		local width = row:GetWidth()
+		if IsSecret(width) or type(width) ~= "number" then return end
+		local line, pad = LineHeight(row), K.Widgets.Snap(row, 6)
+		row.name:ClearAllPoints()
+		row.name:SetPoint("TOPLEFT", row, "TOPLEFT", 48, -pad)
+		row.name:SetHeight(line)
+		row.name:SetWordWrap(false)
+		row.subText:ClearAllPoints()
+		row.subText:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, 0)
+		row.subText:SetWidth(math.max(1, width - 48 - pad))
+		row.subText:SetHeight(2 * line)
+		row.subText:SetJustifyV("TOP")
+		row.subText:SetWordWrap(true)
+		row.subText:SetMaxLines(2)
+		if row.money then
+			row.money:ClearAllPoints()
+			row.money:SetPoint("TOPRIGHT", row, "TOPRIGHT", -pad, -pad)
+		end
+	end
 end
 
 local function Label(row)
@@ -83,7 +108,7 @@ end
 
 local function Row(row)
 	if row.icon ~= nil then
-		SkillRow(row)
+		SkillRow(row, true)
 	elseif row.LeftPiece ~= nil then
 		CategoryRow(row)
 	end
@@ -99,6 +124,31 @@ local function MetricBar(bar)
 		end
 	end
 	bar:Restyle()
+end
+
+local function Layout()
+	K.Combat.Queue(function()
+		local frame = ClassTrainerFrame
+		local box = frame.ScrollBox
+		if not box or not K.Widgets.MayMove(frame) then return end
+		if frame.TrainButton then
+			frame.TrainButton:ClearAllPoints()
+			K.Widgets.Point(frame.TrainButton, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 12)
+		end
+		if frame.money then
+			frame.money:ClearAllPoints()
+			K.Widgets.Point(frame.money, "BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 18)
+		end
+		box:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, K.Widgets.Snap(box, 52))
+		local view = type(box.GetView) == "function" and box:GetView()
+		if view and type(view.SetElementExtentCalculator) == "function" then
+			view:SetElementExtentCalculator(function(_, node)
+				return node:GetData().categoryInfo and 25 or 3 * LineHeight(box) + K.Widgets.Snap(box, 12)
+			end)
+			if type(box.FullUpdate) == "function" then box:FullUpdate() end
+		end
+		if type(box.ForEachFrame) == "function" then box:ForEachFrame(Row) end
+	end)
 end
 
 local function Apply()
@@ -128,6 +178,10 @@ local function Apply()
 	if frame.ScrollBox then
 		Kit.Rows(frame.ScrollBox, Row)
 	end
+	Layout()
+	frame:HookScript("OnShow", Layout)
+	K.Safe.Side(frame).trainerLayout = ns.Style.Track({ Restyle = Layout })
+	if type(ClassTrainerFrame_Update) == "function" then hooksecurefunc("ClassTrainerFrame_Update", Layout) end
 	if type(ClassTrainerFrame_InitCategoryButton) == "function" then
 		hooksecurefunc("ClassTrainerFrame_InitCategoryButton", CategoryInit)
 	else

@@ -5,7 +5,7 @@ local S = Windows.S
 
 local function Boot(off)
 	local env, K, ns = S.New({
-		saved = { version = 12, profiles = { Default = { Skins = { windows = { trainer = { enabled = not off } } } } },
+		saved = { version = 12, profiles = { Default = { Skins = { trainer = { enabled = not off }, text = { size = 1.2 } } } },
 			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 		setup = Common.ForceScreen,
 		before = function(e) Windows.Build("trainer", e, S.Blizzard(e)) end,
@@ -39,6 +39,8 @@ local function Check()
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 assert(ns.Skins.IsApplied("trainer"))
+assert(frame.ScrollBox:GetView().calculator(1, { GetData = function() return { categoryInfo = {} } end }) == 25,
+	"trainer category rows retain their native extent")
 Check()
 for _ = 1, 3 do
 	env.ClassTrainerFrame_Update()
@@ -47,7 +49,12 @@ for _ = 1, 3 do
 	S.W.Settle(env)
 	Check()
 end
-K.Options.Write("Skins", "text.size", 1.2)
+env.SetCombat(true)
+env.ClassTrainerFrame_Update()
+assert(frame.ScrollBox:GetNumPoints() == 1, "trainer layout changes must wait for combat to end")
+env.SetCombat(false)
+Check()
+K.Options.Write("Skins", "text.size", 1.4)
 env.RunTimers()
 S.W.Settle(env)
 Check()

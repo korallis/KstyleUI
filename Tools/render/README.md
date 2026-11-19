@@ -57,6 +57,10 @@ RENDER_BUFFS=16 Tools/render/shoot.sh auras_tracker --backdrop                  
 Tools/render/shoot.sh gallery_skins_mail --backdrop                             # one skinned Blizzard window (gallery_skins_<window>.lua, 19 of them); see Gallery below
 ```
 
+`gallery_skins_trainer` reproduces Rupert Boch's full warlock list with long
+requirements and the money footer at text size 1.2. Skill rows reserve two
+requirement lines, and the scroll viewport clips the remaining rows above Train.
+
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.
 
 `restedxp_arrow` isolates the RestedXP waypoint for dark/bright ground comparisons. Set `RENDER_RXP_ARROW_TEXTURE` to the path of a PNG decoded from the installed RestedXP arrow BLP (including its alpha); without it the scene logs that it uses the kit chevron as a stand-in. Pair `RENDER_SCREEN=1920x1080` with `--ppu 1`, or `RENDER_SCREEN=5120x1440` with `--ppu 1.3333333333`, and use `--backdrop PNG` for the ground. The scene keeps rotation at zero because the renderer does not model mask rotation; `test-skins-restedxp-arrow.lua` checks rotation and coordinate updates through the live skin hooks. Save proof PNGs outside the repository.
