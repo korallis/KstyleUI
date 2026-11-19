@@ -127,6 +127,66 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- G3: sweeping a Blizzard window leaves other addons' child frames and their descendants alone.
+
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local untouched, blizzard, addLate = {}, {}, nil
+	local env, K, ns = S.New({ width = screen[1], height = screen[2], before = function(env, _, ns)
+		local B = S.Blizzard(env)
+		local window = B.frame("Frame", nil, "CompatibilityFrame")
+		local function Child(source, parent)
+			local child = B.frame("Frame", parent or window)
+			if source ~= false then
+				child.GetSourceLocation = function() return source end
+			end
+			return child
+		end
+		local function Addon(parent, source)
+			local frame = Child(source, parent)
+			for _, owner in ipairs({ frame, Child("Interface/AddOns/Blizzard_Test/Template.xml:12", frame) }) do
+				local text = B.text(owner)
+				text:SetText("Other addon label")
+				text:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+				text:SetTextColor(1, 0.82, 0, 0.6)
+				untouched[#untouched + 1] = { text, source, text.SetFontObject, text.SetTextColor }
+			end
+		end
+		Addon(window, "Interface/AddOns/OtherAddon/x.lua:42")
+		Addon(window, "Interface\\AddOns\\OtherAddon\\x.xml:12")
+		Addon(window, "Interface/AddOns/OtherAddon/Blizzard_Fake/x.lua:42")
+		for _, source in ipairs({ "Interface/AddOns/Blizzard_Test/x.lua:42", "Interface\\AddOns\\Blizzard_Test\\x.xml:12", false, "", "[C]", "Interface/FrameXML/Test.xml:12", env.Secret("Interface/AddOns/OtherAddon/x.lua:42") }) do
+			blizzard[#blizzard + 1] = B.text(Child(source))
+		end
+		blizzard[#blizzard + 1] = B.text(Child(nil))
+		ns.Skins.Add(Fake("compatibility", { frame = "CompatibilityFrame", onApply = function()
+			Addon(window, "Interface/AddOns/LaterAddon/x.lua:1")
+		end }))
+		addLate = function() Addon(window, "Interface/AddOns/OnShowAddon/x.lua:1") end
+	end })
+	local function Check()
+		for _, entry in ipairs(untouched) do
+			local text = entry[1]
+			local path, size, flags = text:GetFont()
+			local r, g, b, a = text:GetTextColor()
+			assert(path == "Fonts\\FRIZQT__.TTF" and size == 9 and flags == "OUTLINE"
+				and r == 1 and g == 0.82 and b == 0 and a == 0.6
+				and text.SetFontObject == entry[3] and text.SetTextColor == entry[4] and not ns.Style.IsSwept(text),
+				"Style.Sweep restyled " .. text:GetText() .. " from " .. entry[2] .. "; skip children whose GetSourceLocation is not a Blizzard_ path.")
+		end
+		for _, text in ipairs(blizzard) do
+			assert(ns.Style.IsSwept(text), "keep sweeping Blizzard frames and frames whose source cannot identify an addon")
+		end
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+	K.Modules.Enable("Skins")
+	Check()
+	addLate()
+	S.Show(env.CompatibilityFrame)
+	Check()
+	S.Show(env.CompatibilityFrame)
+	Check()
+end
+
 -- A skin with no addon waits only for its window, and one with no frame applies when its addon loads -----
 
 do
