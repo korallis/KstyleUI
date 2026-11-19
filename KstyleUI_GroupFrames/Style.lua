@@ -131,8 +131,8 @@ function Style.Build(f, kind)
 	return f
 end
 
-local function SetFont(text, path, size, outline)
-	if Theme.FollowsKit(path) then path = Tokens.Font("number") end
+local function SetFont(text, path, size, outline, role)
+	if Theme.FollowsKit(path) then path = Tokens.Font(role or "number") end
 	local flags = outline == "NONE" and "" or outline
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		local fallback = Tokens.Font("body")
@@ -532,7 +532,7 @@ function Style.Apply(f, width, height)
 	local captioned = k.classLine == true and not parts.nameInside and not parts.overlay
 	classLine:SetShown(captioned)
 	if captioned then
-		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline)
+		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline, "body")
 		classLine:SetTextColor(Tokens.Color(CLASS_LINE_COLOR))
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end

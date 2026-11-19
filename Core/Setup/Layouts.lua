@@ -727,7 +727,7 @@ local PLACES_V30 = {
 	["orbs:groupframes.raid"] = { "TOPLEFT", MARGIN, -PARTY.top },
 	["minimap.main"] = { "TOPRIGHT", -(EDGE - 1), -(EDGE - 1 + MAP_HEADING) },
 	["auras.buffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -RAIL_EDGE },
-	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -DEBUFFS_Y },
+	["auras.debuffs"] = { "TOPRIGHT", -(EDGE + 188 + 10.9), -67.9 },
 	["databars.xp"] = { "BOTTOM", 0, TRAY_BOTTOM - TRAY_STRIP_GAP - 5, COLUMN, 5 },
 	["orbs:databars.xp"] = { "BOTTOM", 0, ORBS_XP_Y + XP_H - 5 },
 }
