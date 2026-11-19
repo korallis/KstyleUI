@@ -85,7 +85,8 @@ function Reach.Populate(env)
 	for _,unit in ipairs({"player","target","focus","boss1","boss2","boss3","boss4","boss5"}) do env.FireEvent("UNIT_SPELLCAST_START",unit,"Cast-1",133) end
 	env.KstyleUI.Motion.Settle()
 	for _,kind in ipairs({"player","target"}) do
-		local cast=env._addons.KstyleUI_UnitFrames.CastBars.Get(kind)[1]
+		local casts=env._addons.KstyleUI_UnitFrames.CastBars
+		local cast=(casts.ElementLive(kind) and casts.Get(kind) or casts.Inline(kind))[1]
 		assert(cast.frame:IsVisible() and cast.frame:GetEffectiveAlpha()>0,"the full HUD fixture must show the " .. kind .. " cast")
 	end
 	for _,id in ipairs({"micro","bags"}) do
