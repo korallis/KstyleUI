@@ -42,6 +42,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			end
 			K.Modules.Enable("Skins")
 			S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
+			assert(K.HudStyle.Current():lower() == style and K.Layout.Setting("arrangement") == arrangement, what .. ": the requested HUD style and arrangement are active")
 			rxp.SetStep()
 			rxp.targeting:UpdateTargetFrame(1, 0)
 			rxp.UpdateItemFrame(nil, 1)

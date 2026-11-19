@@ -126,9 +126,10 @@ end
 do
 	local env, K, ns, rxp = Boot({ 1920, 1080, 1 }, "orbs")
 	local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
+	targets.title:GetScript("OnMouseDown")(targets.title, "LeftButton")
 	targets:ClearAllPoints()
 	targets:SetPoint("CENTER", env.UIParent, "CENTER", -300, 40)
-	targets:GetScript("OnMouseUp")(targets, "LeftButton")
+	targets.title:GetScript("OnMouseUp")(targets.title, "LeftButton")
 	env.RunTimers()
 	S.W.Settle(env)
 	env.RunTimers()
@@ -155,6 +156,7 @@ do
 	local env, K, ns, rxp = Boot({ 1920, 1080, 1 }, "orbs")
 	local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 	env.SetCombat(true)
+	targets:GetScript("OnMouseDown")(targets, "LeftButton")
 	targets:ClearAllPoints()
 	targets:SetPoint("CENTER", env.UIParent, "CENTER", -300, 40)
 	targets:GetScript("OnMouseUp")(targets, "LeftButton")

@@ -826,9 +826,10 @@ function ReleaseBoxes(restore, save)
 	end)
 end
 
-local function BoxMoved(box)
+local function BoxMoved(box, left, top)
 	local entry = state.boxes[box]
-	if not (entry and entry.placed and Docking() and Shifted(box, entry.placed)) then
+	local l, t = box:GetLeft(), box:GetTop()
+	if not (entry and entry.placed and Docking() and Plain(left) and Plain(top) and Plain(l) and Plain(t) and (math.abs(l - left) > MOVED or math.abs(t - top) > MOVED)) then
 		return
 	end
 	entry.original = nil
@@ -869,13 +870,20 @@ local function WatchBox(box)
 		return
 	end
 	watched[box] = true
+	local left, top
+	local function Pressed()
+		left, top = box:GetLeft(), box:GetTop()
+	end
 	local function Dropped()
-		BoxMoved(box)
+		BoxMoved(box, left, top)
+		left, top = nil, nil
 	end
 	box:HookScript("OnShow", Watch)
 	box:HookScript("OnHide", Watch)
+	box:HookScript("OnMouseDown", Pressed)
 	box:HookScript("OnMouseUp", Dropped)
 	if IsTable(box.title) and type(box.title.HookScript) == "function" then
+		box.title:HookScript("OnMouseDown", Pressed)
 		box.title:HookScript("OnMouseUp", Dropped)
 	end
 end
