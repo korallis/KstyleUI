@@ -205,6 +205,10 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							end
 							owners[env.BuffIconCooldownViewer]="cooldowns.buffs"
 							owners[env.BuffBarCooldownViewer]="cooldowns.bars"
+							local strip=env._addons.KstyleUI_DataBars.Strip.view
+							local micro=env._addons.KstyleUI_DataBars.Menus.Content("micro")
+							owners[micro]="databars.micro"
+							allowed["actionbars.bar1/databars.strip"],allowed["actionbars.hub/databars.strip"],allowed["databars.strip/databars.xp"]=strip.slab~=nil,strip.slab~=nil,strip.slab~=nil
 							for _,name in ipairs({"buffs","debuffs"}) do owners[env._addons.KstyleUI_Auras.Panel.Group(name).host]="auras." .. name end
 							if style=="orbs" then
 								for _,kind in ipairs({"health","power"}) do owners[assert(env._addons.KstyleUI_UnitFrames.Orbs.Get(kind))]="unitframes.player" end
@@ -223,10 +227,18 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							local pixel = 1080/h
 							local margin = K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
 							local width = w*1080/h
+							local topMenu=strip.topBar and micro:GetParent()==strip.frame
+							local bar=topMenu and {Scene.Rect(env,strip.frame)}
+							local dockDrop=strip.slab and 15*K.Scale.AppliedUserScale() or 0
 							local function add(key, item)
 									local r=item.rect
 									local edge = key == "databars.strip" and K.Setup.Layouts.DataBarHeight(style) and 0 or margin
-									if r[1]<edge-pixel or r[2]<edge-pixel or r[1]+r[3]>width-edge+pixel or r[2]+r[4]>1080-edge+pixel then
+									local top=topMenu and key=="databars.micro" and 0 or edge
+									local bottomMargin=(key=="databars.rep" or key=="databars.honor") and math.max(0,margin-dockDrop) or edge
+									if topMenu and key=="databars.micro" then
+										assert(r[2]>=bar[2]-pixel and r[2]+r[4]<=bar[2]+bar[4]+pixel,"the docked menu must stay inside the top bar")
+									end
+									if r[1]<edge-pixel or r[2]<top-pixel or r[1]+r[3]>width-edge+pixel or r[2]+r[4]>1080-bottomMargin+pixel then
 										fail(label,key,"outside screen margin; move the default inward and reserve its full ornament/label bounds (" .. (item.text or item.file or item.kind) .. " " .. table.concat(r,",") .. ")")
 									end
 									groups[key]=groups[key] or {}

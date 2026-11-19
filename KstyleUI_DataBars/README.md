@@ -1,6 +1,6 @@
 # KstyleUI_DataBars
 
-XP, reputation and honour bars, micro menu, bag bar, and a data bar. Frames and Orbs default to a full-width top bar; Medallions docks beneath the action slab. The five existing slots stay in their existing order in the right zone; left and centre are reserved for later additions. FPS, latency, gold, durability and time are all on by default.
+XP, reputation and honour bars, micro menu, bag bar, and a data bar. Frames and Orbs default to a full-width top bar; Medallions docks beneath the action slab. The five existing slots keep their order in the top bar's right zone; the Medallions clock joins the left instrument line to clear the crest. FPS, latency, gold, durability and time are all on by default.
 
 Under **Data bar** in Options, choose Top, Docked under the action bars or Right rail, set height (12–32, default 20) and background opacity (0–100%, default 85%), choose Data bar artwork (Forged by default, with the existing gilt brackets and Medallions crest gem, or Plain glass), or turn the bar off. Top uses the screen edge in Frames and Orbs and defaults to the slab's foot in Medallions. The top and rail placements remain movable and resizable in Layout Mode; saved positions survive screen changes. The top bar spans the HUD root: the centred HUD band on ultrawide, or the whole screen under Spread. Its chrome uses the same card builder as the other cards and stays inside the bar rectangle without screen-edge bleed.
 

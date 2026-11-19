@@ -426,6 +426,7 @@ local function PlaceLine(view, s)
 	end
 	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM)
 	local x = edge
+	local first = view.slab and order[1] == "time" and 2 or 1
 	for i = #order, 1, -1 do
 		local item = view.items[order[i]]
 		local button = item.button
@@ -433,9 +434,11 @@ local function PlaceLine(view, s)
 		item.valueWidth = valueWidth
 		local labelWidth = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
 		local width = Widgets.Snap(frame, valueWidth + (labelWidth > 0 and unitGap + labelWidth or 0))
+		local left = view.slab and item.id == "time"
+		local anchor = left and "TOPLEFT" or "TOPRIGHT"
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
-		Widgets.Point(button, "TOPRIGHT", (view.topBar or view.slab) and view.zones.right or frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
+		Widgets.Point(button, anchor, left and view.zones.left or (view.topBar or view.slab) and view.zones.right or frame, anchor, left and 0 or -Widgets.Snap(frame, x), 0)
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
 		Widgets.Point(item.value, "LEFT", button, "LEFT", 0, lift)
@@ -447,9 +450,9 @@ local function PlaceLine(view, s)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
-		x = x + width
-		item.dot:SetShown(i > 1)
-		if i > 1 then
+		x = x + (left and 0 or width)
+		item.dot:SetShown(not left and i > first)
+		if not left and i > first then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
 			item.dot:ClearAllPoints()
 			Widgets.Point(item.dot, "CENTER", button, "LEFT", -(dotWidth / 2 + dotGap), lift)

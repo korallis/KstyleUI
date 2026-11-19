@@ -64,6 +64,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(select(2, view.frame:GetPoint()) == xp.holder)
 	assert(select(2, view.zones.right:GetPoint()) == xp.text)
 	assert(select(2, view.zones.left:GetPoint()) == select(2, view.zones.centre:GetPoint()))
+	assert(select(2, view.items.time.button:GetPoint()) == view.zones.left and not view.items.time.dot:IsShown(), "the centre clock joins the left instrument line and clears the crest")
 	near(view.frame:GetWidth(), xp.holder:GetWidth())
 	local docked = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
 	local dockBottom = {}
