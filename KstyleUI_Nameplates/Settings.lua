@@ -185,14 +185,12 @@ function Settings.Schema()
 			type = "slider", key = "health.width", label = L["Width"],
 			help = L["The width of the health bar, in interface units."], min = 80, max = 240, step = 1,
 		},
-		{
-			type = "slider", key = "health.height", label = L["Height"],
-			help = L["The height of the health bar, in interface units."], min = 6, max = 24, step = 1,
-		},
-		{
-			type = "texture", key = "health.texture", label = L["Texture"],
-			help = L["The texture that fills the health bar."],
-		},
+	}
+	K.Widgets.BarRows(schema, "health", { colors = false, height = { 6, 24, 1 } })
+	local function append(list)
+		for _, row in ipairs(list) do schema[#schema + 1] = row end
+	end
+	append({
 		{
 			type = "dropdown", key = "health.orientation", label = L["Orientation"],
 			help = L["Fills the health bar across or upward."],
@@ -203,27 +201,13 @@ function Settings.Schema()
 			help = L["Fills the bar from the other end."],
 		},
 		{ type = "header", label = L["Enemy plates"] },
-		{
-			type = "dropdown", key = "enemy.colorSource", label = L["Bar colour"],
-			help = L["Where the health colour of enemy plates comes from."],
-			options = COLOR_SOURCES,
-		},
-		{
-			type = "color", key = "enemy.color", label = L["Custom colour"],
-			help = L["The health colour of enemy plates."],
-			showWhen = Is("enemy.colorSource", "custom"),
-		},
+	})
+	K.Widgets.BarRows(schema, "enemy", { texture = false, options = COLOR_SOURCES, custom = Is("enemy.colorSource", "custom") })
+	append({
 		{ type = "header", label = L["Friendly plates"] },
-		{
-			type = "dropdown", key = "friendly.colorSource", label = L["Bar colour"],
-			help = L["Where the health colour of friendly plates comes from."],
-			options = COLOR_SOURCES,
-		},
-		{
-			type = "color", key = "friendly.color", label = L["Custom colour"],
-			help = L["The health colour of friendly plates."],
-			showWhen = Is("friendly.colorSource", "custom"),
-		},
+	})
+	K.Widgets.BarRows(schema, "friendly", { texture = false, options = COLOR_SOURCES, custom = Is("friendly.colorSource", "custom") })
+	append({
 		{
 			type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
 			help = L["Friendly plates show just the name, without a health bar."],
@@ -265,7 +249,7 @@ function Settings.Schema()
 			help = L["The bar colour of casters."],
 			disableWhen = Off("types.caster"),
 		},
-	}
+	})
 
 	SharedTextRows(schema, "name", L["Name"])
 	schema[#schema + 1] = {
@@ -297,16 +281,11 @@ function Settings.Schema()
 			type = "toggle", key = "cast.enabled", label = L["Show cast bars"],
 			help = L["Shows the spell a unit is casting under its health bar."],
 		},
-		{
-			type = "slider", key = "cast.height", label = L["Height"],
-			help = L["The height of the cast bar, in interface units."],
-			min = 6, max = 24, step = 1, disableWhen = Off("cast.enabled"),
-		},
-		{
-			type = "texture", key = "cast.texture", label = L["Texture"],
-			help = L["The texture that fills the cast bar."],
-			disableWhen = Off("cast.enabled"),
-		},
+	}
+	append(rest)
+	K.Widgets.BarRows(schema, "cast", { options = ACCENT_SOURCES, custom = Is("cast.colorSource", "custom"),
+		disableWhen = Off("cast.enabled"), height = { 6, 24, 1 } })
+	rest = {
 		{
 			type = "dropdown", key = "cast.orientation", label = L["Orientation"],
 			help = L["Fills the cast bar across or upward."],
@@ -316,16 +295,6 @@ function Settings.Schema()
 			type = "toggle", key = "cast.reverse", label = L["Reverse fill"],
 			help = L["Fills the cast bar from the other end."],
 			disableWhen = Off("cast.enabled"),
-		},
-		{
-			type = "dropdown", key = "cast.colorSource", label = L["Bar colour"],
-			help = L["Interruptible casts follow the accent or use your own colour."],
-			options = ACCENT_SOURCES, disableWhen = Off("cast.enabled"),
-		},
-		{
-			type = "color", key = "cast.color", label = L["Custom colour"],
-			help = L["The colour of casts you can interrupt."],
-			showWhen = Is("cast.colorSource", "custom"), disableWhen = Off("cast.enabled"),
 		},
 		{
 			type = "color", key = "cast.shieldColor", label = L["Uninterruptible colour"],

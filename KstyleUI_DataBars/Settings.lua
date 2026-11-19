@@ -118,27 +118,18 @@ function ns.Schema()
 	end
 
 	local function BarRows(id, title, sources)
-		local function custom(settings)
-			return Get(settings, id).colorSource ~= "custom"
-		end
 		local function noText(settings)
 			return Get(settings, id).text == "none"
 		end
-		local rows = {
-			{ type = "header", label = title },
-			{ type = "dropdown", key = id .. ".colorSource", label = L["Colour"], help = L["Fill the bar with the class colour or your own colour."], options = sources },
-			{ type = "color", key = id .. ".color", label = L["Custom colour"], help = L["The bar's colour when its colour is set to custom."], showWhen = function(settings)
-				return not custom(settings)
-			end },
-			{ type = "texture", key = id .. ".texture", label = L["Texture"], help = L["The texture that fills the bar."] },
+		local rows = { { type = "header", label = title } }
+		Widgets.BarRows(rows, id, { options = sources, custom = function(settings) return Get(settings, id).colorSource == "custom" end })
+		local rest = {
 			{ type = "dropdown", key = id .. ".orientation", label = L["Orientation"], help = L["A bar that fills sideways, or one that stands upright."], options = ORIENTATIONS },
 			{ type = "toggle", key = id .. ".reverse", label = L["Fill from the other end"], help = L["Fills from right to left, or from top to bottom."] },
 			{ type = "slider", key = id .. ".segments", label = L["Segments"], help = L["Ticks that split the bar into equal parts. 0 draws none."], min = 0, max = MAX_SEGMENTS, step = 1 },
 			{ type = "toggle", key = id .. ".border", label = L["Frame"], help = L["Draws the chamfered frame around the bar."] },
 		}
-		if sources == SOURCES_REACTION then
-			rows[2].help = L["Fill the bar with the class colour, your standing's colour or your own colour."]
-		end
+		for _, row in ipairs(rest) do rows[#rows + 1] = row end
 		if id == "xp" then
 			rows[#rows + 1] = { type = "toggle", key = "xp.instrumentText", label = L["Instrument experience text"], help = L["Use small muted capitals under the Medallions sockets. Off restores the original face."] }
 			rows[#rows + 1] = { type = "toggle", key = "xp.rested", label = L["Rested overlay"], help = L["Shows how far your rested experience reaches past your current experience."] }

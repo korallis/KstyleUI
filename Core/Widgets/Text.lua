@@ -28,6 +28,28 @@ function W.TextRows(schema, key, opts)
 		help = L["Blank uses the preset. Tags: [name], [hp], [hp:pct], [hp:abr], [pp], [level], [absorb]."] })
 end
 
+function W.BarRows(schema, key, opts)
+	local function add(row)
+		row.key = (key ~= "" and key .. "." or "") .. (opts.keys and opts.keys[row.key] or row.key)
+		row.disableWhen = opts.disableWhen
+		schema[#schema + 1] = opts.row and opts.row(row) or row
+	end
+	if opts.texture ~= false then
+		add({ type = "texture", key = "texture", label = L["Bar texture"], help = L["The texture the bar is filled with."] })
+	end
+	if opts.colors ~= false then
+		add({ type = "dropdown", key = "colorSource", label = L["Bar colour"], options = opts.options,
+			help = L["Where the bar's colour comes from."] })
+		add({ type = "color", key = "color", label = L["Custom bar colour"], showWhen = opts.custom,
+			help = L["The bar's colour when its colour source is custom."] })
+	end
+	local h = opts.height
+	if h then
+		add({ type = "slider", key = h.key or "height", label = L["Bar height"], min = h[1], max = h[2], step = h[3],
+			showWhen = h.showWhen, help = L["The height of each bar."] })
+	end
+end
+
 local parsed = {}
 local SAMPLE_FIELDS = { UnitName = "name", UnitHealth = "health", UnitHealthMax = "healthMax",
 	UnitPower = "power", UnitPowerMax = "powerMax", UnitLevel = "level", UnitGetTotalAbsorbs = "absorb" }

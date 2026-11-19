@@ -205,20 +205,11 @@ function ns.Schema()
 	end
 
 	local function BarRows(section, rows)
-		local off = Off(section)
-		rows[#rows + 1] = {
-			type = "texture", key = section .. ".texture", label = L["Bar texture"], disableWhen = off,
-			help = L["The fill texture of the bars."],
-		}
-		rows[#rows + 1] = {
-			type = "dropdown", key = section .. ".colorSource", label = L["Bar colour"], disableWhen = off,
-			help = L["Colour bars by class, by friend or foe, or with one colour you pick."],
+		K.Widgets.BarRows(rows, section, {
 			options = section == "damage" and DAMAGE_COLOR_SOURCES or COLOR_SOURCES,
-		}
-		rows[#rows + 1] = {
-			type = "color", key = section .. ".color", label = L["Custom bar colour"], disableWhen = off,
-			help = L["The colour of every bar when the bar colour is custom."], showWhen = Is(section .. ".colorSource", "custom"),
-		}
+			custom = Is(section .. ".colorSource", "custom"), disableWhen = Off(section),
+			height = section ~= "swing" and { MIN_ROW, MAX_ROW, 1, key = "rowHeight" } or nil,
+		})
 	end
 
 	local function ListRows(section, rows)
@@ -228,10 +219,6 @@ function ns.Schema()
 		rows[#rows + 1] = {
 			type = "dropdown", key = section .. ".fill", label = L["Bar direction"], disableWhen = off,
 			help = L["The side the bars grow from."], options = FILLS,
-		}
-		rows[#rows + 1] = {
-			type = "slider", key = section .. ".rowHeight", label = L["Row height"], disableWhen = off,
-			help = L["The height of each row. Taller rows show fewer at once."], min = MIN_ROW, max = MAX_ROW, step = 1,
 		}
 		rows[#rows + 1] = {
 			type = "slider", key = section .. ".spacing", label = L["Row spacing"], disableWhen = off,
