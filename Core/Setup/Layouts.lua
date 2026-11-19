@@ -1523,8 +1523,8 @@ end
 
 function Layouts.DataBarDock(style, name, class)
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
-	local strip = ns.Store.IsLoaded() and ns.Store.Module("DataBars").strip or {}
-	if strip.enabled == false then return nil end
+	local strip = ns.Store.IsLoaded() and ns.Store.Module("DataBars").strip
+	if not strip or strip.enabled == false then return nil end
 	if strip.placement ~= "dock" and not (style == "medallions" and strip.placement == "top") then return nil end
 	name = name or ns.Layout.Setting("preset")
 	local xp = Layouts.Aspect(class or ns.Scale.Aspect(), style, name, "databars.xp") or Layouts.Style(style, name, "databars.xp") or layouts[name]["databars.xp"]

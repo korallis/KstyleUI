@@ -228,6 +228,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							local margin = K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
 							local width = w*1080/h
 							local topMenu=strip.topBar and micro:GetParent()==strip.frame
+							allowed["databars.micro/databars.strip"]=topMenu
 							local bar=topMenu and {Scene.Rect(env,strip.frame)}
 							local dockDrop=strip.slab and 15*K.Scale.AppliedUserScale() or 0
 							local function add(key, item)
