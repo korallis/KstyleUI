@@ -2217,6 +2217,7 @@ ns.Locale.Add({
 	["The threat percentage that turns the meter red and makes it pulse."] = "Le pourcentage de menace qui fait passer le compteur au rouge et le fait pulser.",
 	["The threat percentage that turns the meter yellow."] = "Le pourcentage de menace qui fait passer le compteur au jaune.",
 	["The tooltip accent when Accent colour is set to custom."] = "L'accent des bulles d'aide quand Couleur d'accent est r\195\169gl\195\169e sur personnalis\195\169.",
+	["The travel menu will be ready after combat."] = "Le menu de voyage sera pr\195\170t apr\195\168s le combat.",
 	["The typeface for these lines while Use KstyleUI's font is off."] = "La police de ces lignes quand Utiliser la police KstyleUI est d\195\169sactiv\195\169.",
 	["The typeface of the %s."] = "La police pour %s.",
 	["The typeface of the numbers."] = "La police des chiffres.",

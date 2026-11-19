@@ -11,23 +11,24 @@ local SIZE, GAP, PAD, COLS, PAGE = 36, 5, 8, 3, 12
 local WIDTH = 3 * SIZE + 2 * GAP + 2 * PAD
 local HEAD, GROUP_GAP = 20, 8
 local TITLES = { L["Hearth and class"], L["Portals and teleports"], L["Mounts"] }
-local pending = false
+local pending, enabled, prepared = false, false, false
 
 local TOGGLE = [[
 	if down then return false end
 	if button == "RightButton" then
-		if not control:GetAttribute("hasTravel") then return false end
-		if control:IsShown() then
-			control:Hide()
+		local menu = control:GetFrameRef("menu")
+		if not menu or not menu:GetAttribute("hasTravel") then return false end
+		if menu:IsShown() then
+			menu:Hide()
 		else
-			control:Show()
-			control:SetBindingClick(true, "ESCAPE", self:GetName(), "RightButton")
+			menu:Show()
+			menu:SetBindingClick(true, "ESCAPE", self:GetName(), "RightButton")
 		end
 		return false
 	end
 	return nil, true
 ]]
-local CLOSE = [[ control:Hide() ]]
+local CLOSE = [[ local menu = control:GetFrameRef("menu") if menu then menu:Hide() end ]]
 local CLEAR = [[ self:ClearBindings() ]]
 local NEXT = [[
 	if down then return false end
@@ -40,30 +41,38 @@ local NEXT = [[
 ]]
 
 local function Tooltip(tip)
+	Travel.Prepare()
 	local bind, cooldown = ns.TravelData.Hearth()
 	local _, hearth = ns.TravelData.Read()
 	tip:AddTitle(L["Hearthstone"])
 	tip:AddDoubleLine(L["Bind location"], bind)
 	tip:AddDoubleLine(L["Hearthstone cooldown"], cooldown)
 	if not hearth then tip:AddLine(L["No Hearthstone in your bags."]) end
+	if InCombatLockdown() and not Travel.menu then tip:AddLine(L["The travel menu will be ready after combat."]) end
 	tip:AddLine(L["Left click: Hearthstone \194\183 Right click: travel"])
 end
 
 local function Build()
 	local root = K.Scale.Root()
-	local crest = CreateFrame("Button", "KstyleUI_CrestTravel", root, "SecureActionButtonTemplate")
+	local crest = CreateFrame("Button", "KstyleUI_CrestTravel", root, "SecureActionButtonTemplate,SecureHandlerBaseTemplate")
 	crest:SetFrameStrata("MEDIUM")
 	crest:RegisterForClicks("AnyUp", "AnyDown")
 	crest:SetAttribute("useOnKeyDown", false)
 	crest:Hide()
 	Widgets.AttachTooltip(crest, Tooltip, "ANCHOR_TOP")
-	local menu = CreateFrame("Frame", nil, root, "SecureHandlerBaseTemplate")
+	crest:HookScript("OnMouseDown", function(_, button) if button == "RightButton" then Travel.Prepare() end end)
+	SecureHandlerWrapScript(crest, "OnClick", crest, TOGGLE, CLOSE)
+	Travel.crest, Travel.groups = crest, {}
+end
+
+local function BuildMenu()
+	local menu = CreateFrame("Frame", nil, K.Scale.Root(), "SecureHandlerBaseTemplate")
 	menu.chrome = Widgets.Chrome(menu, { shape = "panel", fill = "surface", shadow = true, popup = true })
 	menu:SetFrameStrata("DIALOG")
 	menu:SetClampedToScreen(true)
 	menu:Hide()
-	Travel.crest, Travel.menu, Travel.groups = crest, menu, {}
-	SecureHandlerWrapScript(crest, "OnClick", menu, TOGGLE, CLOSE)
+	Travel.menu = menu
+	SecureHandlerSetFrameRef(Travel.crest, "menu", menu)
 	SecureHandlerWrapScript(menu, "OnHide", menu, CLEAR)
 end
 
@@ -93,7 +102,7 @@ local function Button(page)
 	Widgets.AttachTooltip(b, function(tip)
 		tip:AddTitle(b.travel.name or tostring(b.travel.id))
 	end, "ANCHOR_RIGHT")
-	SecureHandlerWrapScript(b, "OnClick", Travel.menu, [[ if down then return false end return nil, true ]], CLOSE)
+	SecureHandlerWrapScript(b, "OnClick", Travel.crest, [[ if down then return false end return nil, true ]], CLOSE)
 	return b
 end
 
@@ -140,9 +149,10 @@ end
 local function Refresh()
 	pending = false
 	local hub = ns.Slab.hub
-	local active = ns.Slab.Active() and hub and hub:IsShown() and ns.Config("crestTravel") ~= false and not ns.gamepad
+	local active = enabled and ns.Slab.Active() and hub and hub:IsShown() and ns.Config("crestTravel") ~= false and not ns.gamepad
 	if not active then
-		if Travel.crest then Travel.crest:Hide(); Travel.menu:Hide() end
+		if Travel.crest then Travel.crest:Hide() end
+		if Travel.menu then Travel.menu:Hide() end
 		return
 	end
 	if not Travel.crest then
@@ -152,14 +162,18 @@ local function Refresh()
 		end
 		Build()
 	end
-	local menu, crest = Travel.menu, Travel.crest
+	local crest = Travel.crest
+	crest:SetAttribute("item1", "item:6948")
+	crest:SetAttribute("type1", "item")
+	if not Widgets.Cover(crest, hub.crest) then crest:Hide(); return end
+	crest:Show()
+	if not prepared then return end
+	if not Travel.menu then BuildMenu() end
+	local menu = Travel.menu
 	menu:Hide()
 	local groups, hearth = ns.TravelData.Read()
 	menu:SetAttribute("hasTravel", #groups[1] + #groups[2] + #groups[3] > 0)
-	crest:SetAttribute("item1", "item:6948")
 	crest:SetAttribute("type1", hearth and "item" or nil)
-	if not Widgets.Cover(crest, hub.crest) then crest:Hide(); return end
-	crest:Show()
 	local y = PAD
 	for i, list in ipairs(groups) do
 		local group = Travel.groups[i]
@@ -188,12 +202,19 @@ local function Refresh()
 end
 
 function Travel.Refresh()
-	if pending then return end
+	if not enabled or pending then return end
 	pending = true
 	K.Combat.Queue(Refresh)
 end
 
+function Travel.Prepare()
+	if prepared then return end
+	prepared = true
+	Travel.Refresh()
+end
+
 function Travel.Enable()
+	enabled = true
 	for _, event in ipairs({ "BAG_UPDATE_DELAYED", "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "NEW_MOUNT_ADDED", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }) do
 		K.Events.Register(OWNER, event, Travel.Refresh)
 	end
@@ -209,6 +230,7 @@ function Travel.Enable()
 end
 
 function Travel.Disable()
+	enabled = false
 	K.Events.UnregisterAll(OWNER)
 	K.Callbacks.Unregister("SettingChanged", OWNER)
 	K.Callbacks.Unregister("ProfileChanged", OWNER)
@@ -216,5 +238,5 @@ function Travel.Disable()
 	K.Callbacks.Unregister("ReadabilityChanged", OWNER)
 	K.Callbacks.Unregister("ThemeChanged", OWNER)
 	K.Callbacks.Unregister("ModuleChanged", OWNER)
-	Travel.Refresh()
+	K.Combat.Queue(Refresh)
 end

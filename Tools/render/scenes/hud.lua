@@ -706,7 +706,7 @@ function modules.actionbars(opts)
 		Fx.Apply(env, "actionbars", ns, notes)
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
-			if ns.Travel.crest and ns.Travel.crest:IsShown() then AB.Click(env, ns.Travel.crest, "RightButton", false) end
+			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end
 		end
 	end)
 	for _, note in ipairs(notes) do
