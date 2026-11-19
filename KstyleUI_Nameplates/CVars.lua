@@ -1,4 +1,4 @@
--- CVars.lua: applies the nameplate CVars the player chose, only out of combat, leaves the plate scale CVars to Stacking.lua while it holds them, and returns them to the game's defaults when turned off.
+-- CVars.lua: applies the chosen nameplate CVars out of combat, keeps the player's values across reloads, and gives them back when management or the module stops, leaving the scale hold to Stacking.lua.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,20 +9,50 @@ local CVars = {}
 ns.CVars = CVars
 
 local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "minScale", "clickSize" }
-local applied = {}
 local queued = false
 
 CVars.Exists = K.CVars.Exists
 
-function CVars.Owns(name)
-	return applied[name] == true
+local function Records(create)
+	local key = K.Store.CharacterKey()
+	if type(key) ~= "string" then return nil end
+	local account = K.Store.Account()
+	if type(account.nameplateCVars) ~= "table" then
+		if not create then return nil end
+		account.nameplateCVars = {}
+	end
+	local all = account.nameplateCVars
+	if type(all[key]) ~= "table" and create then all[key] = {} end
+	return type(all[key]) == "table" and all[key] or nil
 end
 
-local function Set(name, value)
-	if not K.CVars.Set(name, value) then
+function CVars.Original(name)
+	local records = Records()
+	local record = records and records[name]
+	if type(record) == "table" and record.written ~= K.CVars.Get(name) then
+		records[name] = nil
+		return nil
+	end
+	return type(record) == "table" and type(record.original) == "string" and record.original or nil
+end
+
+local function Set(name, value, index)
+	local records, current = Records(true), K.CVars.Get(name)
+	if not records or not current then return false end
+	local record = records[name]
+	local original = type(record) == "table" and record.written == current and record.original or current
+	local done
+	if index then
+		done = K.CVars.SetBitfield(name, index, value)
+	else
+		done = K.CVars.Set(name, value)
+	end
+	if not done then
 		LogOnce("cvar-fail:" .. name, "the game refused CVar " .. name)
 		return false
 	end
+	local written = K.CVars.Get(name)
+	if written then records[name] = { original = original, written = written } end
 	return true
 end
 
@@ -39,36 +69,37 @@ local function Apply()
 			if name ~= Logic.STACKING_CVAR then
 				LogOnce("cvar-missing:" .. name, "CVar " .. name .. " is missing on this client; skipped")
 			end
-		elseif entry.index then
-			if K.CVars.SetBitfield(name, entry.index, entry.value) then
-				applied[name] = true
-			end
-		elseif Set(name, entry.value) then
-			applied[name] = true
+		else
+			Set(name, entry.value, entry.index)
 		end
 	end
 	K.DevTest.Log(Settings.MODULE, "applied the nameplate CVars")
 end
 
 local function Restore()
-	for name in pairs(applied) do
-		applied[name] = nil
-		local value = K.CVars.Default(name)
-		if type(value) == "string" and ns.Stacking.Holds(name) then
-			ns.Stacking.HandBack(name, value)
-		elseif type(value) == "string" then
-			Set(name, value)
-		else
-			LogOnce("cvar-default:" .. name, "no default for CVar " .. name .. "; left as it is")
+	local records = Records() or {}
+	for name, record in pairs(records) do
+		if name ~= "nameplateShowSelf" or not ns.Plates.running then
+			local valid = type(record) == "table" and type(record.original) == "string" and type(record.written) == "string"
+			local current = valid and K.CVars.Get(name)
+			if valid and ns.Stacking.Holds(name) then
+				ns.Stacking.HandBack(name, record.original)
+				records[name] = nil
+			elseif valid and (current == nil or (current == record.written
+				and (not K.CVars.Set(name, record.original) or K.CVars.Get(name) ~= record.original))) then
+				LogOnce("cvar-back:" .. name, "the game refused " .. name .. " back; KstyleUI tries again later")
+			else
+				records[name] = nil
+			end
 		end
 	end
-	K.DevTest.Log(Settings.MODULE, "returned the nameplate CVars to the game's defaults")
+	K.DevTest.Log(Settings.MODULE, "returned the nameplate CVars to the player's values")
 end
 
 function CVars.Sync()
 	if ns.Plates.running and Settings.Get("cvars.enabled") then
 		Apply()
-	elseif next(applied) then
+	else
 		Restore()
 	end
 end

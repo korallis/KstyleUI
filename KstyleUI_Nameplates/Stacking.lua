@@ -290,9 +290,9 @@ local function Pin()
 		if not current then
 			LogOnce("scale-missing:" .. name, "CVar " .. name .. " is missing on this client; the game keeps scaling the stacking box by it")
 		elseif not (type(record) == "table" and record.written == current) and tonumber(current) ~= 1 then
+			local kept = ns.CVars.Original(name) or current
 			local written = K.CVars.Set(name, PIN) and K.CVars.Get(name)
 			if written and written ~= current then
-				local kept = ns.CVars.Owns(name) and K.CVars.Default(name) or current
 				records[name] = { original = kept, written = written }
 				K.DevTest.Log(MODULE, name .. " is held at " .. written .. " (the game had " .. current .. "), so the box the game stacks by matches the plate at every distance")
 			else

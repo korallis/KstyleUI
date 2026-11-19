@@ -173,7 +173,7 @@ do
 	assert(#env._errors == 0, "the preview raised no error: " .. tostring(env._errors[1]))
 end
 
--- Nameplate CVars: only when asked, only out of combat, back to the game's defaults when turned off ----
+-- Nameplate CVars: only when asked, only out of combat, back to the player's values when turned off ----
 
 do
 	local env, K, ns = N.New()
@@ -192,7 +192,7 @@ do
 	assert(env._cvars.nameplateMaxDistance == "30", "and applies when combat ends")
 
 	K.Options.Write("Nameplates", "cvars.enabled", false)
-	assert(env._cvars.nameplateMaxDistance == "60" and env._cvars.nameplateSize == "2", "turning CVars off restores the game's defaults")
+	assert(env._cvars.nameplateMaxDistance == "60" and env._cvars.nameplateSize == "2", "turning CVars off restores the player's values")
 	assert(env._stacking[1] == false and env._stacking[2] == false, "and clears the stacking bits")
 end
 

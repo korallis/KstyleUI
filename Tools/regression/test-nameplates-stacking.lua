@@ -315,14 +315,14 @@ do
 	K.Options.Write("Nameplates", "cvars.enabled", false)
 	assert(held(env), "turning management off leaves the hold")
 	K.Options.Write("Nameplates", "shrinkDistant", true)
-	assert(env._cvars.nameplateMinScale == "0.8" and env._cvars.nameplateSelectedScale == "1.2", "then the game's defaults, as management off promises")
+	assert(env._cvars.nameplateMinScale == "0.8" and env._cvars.nameplateSelectedScale == "1.2", "then the player's values, as management off promises")
 
 	-- A value management wrote is never kept as the player's own.
 	K.Options.Write("Nameplates", "cvars.enabled", true)
 	assert(env._cvars.nameplateMinScale == "0.6", "management applies its own value with plates shrinking")
 	K.Options.Write("Nameplates", "shrinkDistant", false)
 	local record = K.Store.Account().nameplateScaleCVars[K.Store.CharacterKey()].nameplateMinScale
-	assert(held(env) and record.original == "0.8", "the hold keeps the game's default, not management's 0.6, got " .. tostring(record.original))
+	assert(held(env) and record.original == "0.8", "the hold keeps the player's value, not management's 0.6, got " .. tostring(record.original))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

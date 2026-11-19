@@ -324,7 +324,17 @@ function Setup.Apply(picked)
 		ns.Options.Write("Nameplates", "personalResource", false)
 	else
 		ns.Combat.Queue(function()
-			ns.CVars.Set("nameplateShowSelf", "0")
+			local key, current = Store.CharacterKey(), ns.CVars.Get("nameplateShowSelf")
+			if not key or not current then return end
+			local account = Store.Account()
+			if type(account.nameplateCVars) ~= "table" then account.nameplateCVars = {} end
+			if type(account.nameplateCVars[key]) ~= "table" then account.nameplateCVars[key] = {} end
+			local records = account.nameplateCVars[key]
+			local record = records.nameplateShowSelf
+			local original = type(record) == "table" and record.written == current and record.original or current
+			if ns.CVars.Set("nameplateShowSelf", "0") then
+				records.nameplateShowSelf = { original = original, written = ns.CVars.Get("nameplateShowSelf") }
+			end
 		end)
 	end
 	Setup.MarkSeen()

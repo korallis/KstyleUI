@@ -395,8 +395,8 @@ function N.Install(env, opts)
 	end
 	local bits = {}
 	if not opts.noBitfield then
-		env._cvars.nameplateStackingTypes = "bitfield"
-		env._cvarDefaults.nameplateStackingTypes = "bitfield"
+		env._cvars.nameplateStackingTypes = "0"
+		env._cvarDefaults.nameplateStackingTypes = "0"
 		env._stacking = bits
 	end
 	if opts.motion then
@@ -423,9 +423,9 @@ function N.Install(env, opts)
 			end
 			write(name, value)
 			env._cvars[name] = tostring(value)
-			if name == "nameplateStackingTypes" and value == env._cvarDefaults[name] then
-				for index in pairs(bits) do
-					bits[index] = false
+			if name == "nameplateStackingTypes" then
+				for index = 1, 2 do
+					bits[index] = math.floor(tonumber(value) / 2 ^ (index - 1)) % 2 == 1
 				end
 			end
 			return true
@@ -438,6 +438,10 @@ function N.Install(env, opts)
 				return false
 			end
 			write(name .. "[" .. index .. "]", value)
+			local bit = 2 ^ (index - 1)
+			local current = tonumber(env._cvars[name])
+			local present = math.floor(current / bit) % 2 == 1
+			env._cvars[name] = tostring(current + (present == value and 0 or (value and bit or -bit)))
 			bits[index] = value and true or false
 			return true
 		end,

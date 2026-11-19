@@ -1,6 +1,8 @@
 -- test-cvar-roundtrip.lua: G4 drives every CVar-writing module and setup, then checks that disabling it and reloading gives every recorded CVar back to the player.
 local Core = dofile("Tools/regression/core_env.lua")
 local MODULES = { "Chat", "CombatText", "Meters", "Nameplates", "QoL" }
+local FIXTURES = {}
+for _, module in ipairs(MODULES) do FIXTURES[module] = dofile("Tools/regression/" .. module:lower() .. "_env.lua") end
 local ORIGINAL = {
 	showTimestamps = "%I:%M ", enableFloatingCombatText = "1",
 	floatingCombatTextCombatDamage_v2 = "1", floatingCombatTextCombatHealing_v2 = "1",
@@ -62,7 +64,7 @@ local function Check(module, values, writes)
 end
 
 local function Start(module)
-	local fixture = dofile("Tools/regression/" .. module:lower() .. "_env.lua")
+	local fixture = FIXTURES[module]
 	local values, writes = Copy(ORIGINAL), {}
 	local env, K, ns = fixture.New({ enable = false, setup = function(e) Install(e, values, writes) end })
 	env.FireEvent("VARIABLES_LOADED")
@@ -75,9 +77,14 @@ local function Start(module)
 		K.Options.Write(module, "cvars.enabled", true)
 	elseif module == "QoL" then
 		K.Options.Write(module, "maxCamera", true)
+	elseif module == "Meters" then
+		K.Options.Write(module, "damage.mode", "skin")
 	end
 	env.RunTimers()
 	assert(K.Modules.IsRunning(module), module .. " must run")
+	local own = ({ Chat = "showTimestamps", CombatText = "enableFloatingCombatText", Meters = "damageMeterEnabled",
+		Nameplates = "nameplateMaxDistance", QoL = "cameraDistanceMaxZoomFactor" })[module]
+	assert(writes[own] and values[own] ~= ORIGINAL[own], module .. " must change " .. own)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	return env, K, ns, values, writes
 end
@@ -101,4 +108,70 @@ for _, module in ipairs(MODULES) do
 	end
 end
 assert(#failures == 0, table.concat(failures, "\n"))
+
+-- Management off restores the custom values, including untouched bits, while personal-resource control stays active.
+do
+	local env, K, _, values = Start("Nameplates")
+	K.Options.Write("Nameplates", "cvars.enabled", false)
+	for name in pairs(ORIGINAL) do
+		if name:match("^nameplate") and name ~= "nameplateShowSelf" then
+			assert(values[name] == ORIGINAL[name], "management off must restore the player's " .. name)
+		end
+	end
+	assert(values.nameplateShowSelf == "0", "management off leaves the separate personal-resource choice")
+	K.Modules.Disable("Nameplates")
+	assert(values.nameplateShowSelf == "1", "module off gives the personal-resource CVar back too")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The scale hold takes the player's custom values through multiple handoffs and an off-at-reload.
+do
+	local env, K, _, values, writes = Start("Nameplates")
+	for _ = 1, 2 do
+		K.Options.Write("Nameplates", "shrinkDistant", false)
+		assert(values.nameplateMinScale == "1", "the scale hold runs")
+		K.Options.Write("Nameplates", "shrinkDistant", true)
+		assert(values.nameplateMinScale == "0.8", "management resumes after the hold")
+	end
+	K.Options.Write("Nameplates", "shrinkDistant", false)
+	K.Options.Write("Nameplates", "cvars.enabled", false)
+	K.Store.Module("Nameplates").enabled = false
+	Reload(env, values, {})
+	Check("Nameplates handoff", values, writes)
+end
+
+-- Another addon or the player wins; refused restores retain the memory until the next login.
+do
+	local env, K, _, values = Start("Nameplates")
+	values.nameplateMaxDistance = "33"
+	values.nameplateMinScale = "0.9"
+	K.Options.Write("Nameplates", "shrinkDistant", false)
+	env._refused = "nameplateSize"
+	K.Options.Write("Nameplates", "cvars.enabled", false)
+	K.Modules.Disable("Nameplates")
+	local records = K.Store.Account().nameplateCVars[K.Store.CharacterKey()]
+	assert(values.nameplateMaxDistance == "33" and records.nameplateMaxDistance == nil, "leave another writer's value alone")
+	assert(records.nameplateSize.original == "4", "a refused restore keeps the player's value")
+	Reload(env, values, {})
+	assert(values.nameplateSize == "4" and values.nameplateMaxDistance == "33", "reload retries only the held value")
+	assert(values.nameplateMinScale == "0.9", "the scale hold returns another writer's value when it took over after management")
+end
+
+-- Reload while the module runs but management is off must use its saved records, not session state.
+do
+	local env, _, _, values, writes = Start("Nameplates")
+	Core.Logout(env)
+	local loaded, running = FIXTURES.Nameplates.New({ saved = env.KstyleUIDB, enable = false,
+		setup = function(e) Install(e, values, {}) end })
+	assert(values.nameplateMaxDistance == "40", "management stays active across reload")
+	running.Store.Module("Nameplates").cvars.enabled = false
+	Core.Logout(loaded)
+	loaded, running = FIXTURES.Nameplates.New({ saved = loaded.KstyleUIDB, enable = false,
+		setup = function(e) Install(e, values, {}) end })
+	assert(running.Modules.IsRunning("Nameplates"), "the module still runs after reload")
+	assert(values.nameplateMaxDistance == "55" and values.nameplateStackingTypes == "6", "management off at reload restores saved values")
+	running.Modules.Disable("Nameplates")
+	Check("Nameplates management off at reload", values, writes)
+	assert(#loaded._errors == 0, tostring(loaded._errors[1]))
+end
 print("test-cvar-roundtrip: ok")
