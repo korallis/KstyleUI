@@ -152,6 +152,8 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
+	profile.Minimap = profile.Minimap or { enabled = true }
+	profile.Minimap.frame = os.getenv("RENDER_MINIMAP_FRAME")
 	return {
 		version = 2,
 		profiles = { Default = profile },
@@ -202,6 +204,18 @@ local function applyPreset(env, opts)
 		enabled[name] = K.Modules.IsEnabled(name)
 	end
 	assert(K.Setup.Apply({ layout = opts.layout, modules = enabled }), "the scene could not Apply " .. tostring(opts.layout))
+	local extra = os.getenv("RENDER_EXTRA_BARS")
+	if extra and extra ~= "off" then
+		local cfg, layouts = K.Store.Module("ActionBars"), K.Setup.Layouts
+		local preset = assert(layouts.ExtraBarsPreset(extra, K.Scale.Aspect()), "RENDER_EXTRA_BARS must be off, rows or beside")
+		if K.Modules.IsEnabled("ActionBars") then
+			K.Options.Write("ActionBars", "extraBarsLayout", extra)
+		else
+			cfg.extraBarsApplied = extra
+			cfg.bar4, cfg.bar5 = preset, preset
+			K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
+		end
+	end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")
@@ -1021,7 +1035,7 @@ function modules.minimap(opts)
 	-- zone, the clock and the player's map position the module reads.
 	local env, K, ns = M.New({
 		enabled = true,
-		settings = Common.PreviousFinish() and { clearPlaques = false } or nil,
+		settings = { frame = os.getenv("RENDER_MINIMAP_FRAME"), clearPlaques = not Common.PreviousFinish() },
 		zone = opts.zone or "Riverglades",
 		position = opts.position,
 		setup = function(env)
@@ -1746,6 +1760,8 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 			return group == "essential" or group == "utility"
 		end)
 	end
+	K.Store.Module("Minimap").enabled = true
+	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
 	local style = Hud.Style()
 	if style then
 		K.Options.Write("HudStyle", "style", style:lower())

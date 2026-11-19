@@ -124,5 +124,8 @@ K.Modules.Register({
 	Disable = Disable,
 })
 
-Settings.schema.preview = Preview.Build
-K.Options.Register(MODULE, Settings.schema)
+K.Options.Register(MODULE, function()
+	local schema = Settings.Schema()
+	schema.preview = Preview.Build
+	return schema
+end)

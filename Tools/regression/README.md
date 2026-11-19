@@ -10,6 +10,10 @@ bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, how 
 
 To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
 
+## HUD reach gate
+
+`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. `test-hud-saved-columns*.lua` also reloads off-screen and valid player/target positions in every style at the four required sizes, including ultrawide Centred and Spread at scale 0.6, and asserts Store is unchanged. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh` and Mac CI.
+
 ## Modes
 
 CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU overruns and per-path CPU headroom warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
@@ -370,6 +374,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `protected-unguarded` | `SetBinding` | A protected call with no `InCombatLockdown` and no `Combat.Queue` in the 40 lines before it. |
 | `setparent-unguarded` | `self.icon:SetParent` | `SetParent` on any frame with no `EditModeManagerFrame:IsShown` and no `Safe.<name>` in the 40 lines before it. |
 | `aura-unguarded` | `C_UnitAuras.GetAuraDataByIndex` | `C_UnitAuras` in a file that never calls `C_Secrets.ShouldAurasBeSecret` or `issecretvalue`. |
+| `hot-hook` | `pin:SetPoint`, `frame:OnUpdate` | `hooksecurefunc` on a frame's `SetPoint`, `Show`, `Hide`, `SetShown` or `SetAlpha`, or `HookScript("OnUpdate")`. The hook runs on every call another addon makes, often every frame. Checked in `KstyleUI_Minimap/` only so far; its why names the caller and how often it calls. |
 
 The protected calls are `PickupAction`, `PlaceAction`, `SetBinding`, `SetOverrideBinding`, `SetOverrideBindingClick`, `ClearOverrideBindings`, `CreateMacro`, `EditMacro`, `C_Container.PickupContainerItem`, `C_Container.UseContainerItem`, `TargetUnit`, `CastSpellByName`, `CastSpellByID`, `UseAction`, `C_Macro.RunMacroText`, `RunMacroText`, `ShowUIPanel`, and `HideUIPanel`.
 

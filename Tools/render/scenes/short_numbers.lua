@@ -11,6 +11,19 @@ return Common.Run(function()
 	settings.GroupFrames.icons = { role = false, leader = false }
 	settings.Nameplates = { healthText = { show = true, format = "value" } }
 	settings.DataBars.xp = { text = "short", textHover = false, instrumentText = false }
+	if os.getenv("RENDER_TEXT_OPTIONS") == "1" then
+		local font = "Interface\\AddOns\\KstyleUI\\Media\\Fonts\\Inter-SemiBold.ttf"
+		settings.UnitFrames.player.fonts = {
+			name = { font = font, size = 14, outline = "THICKOUTLINE", colorMode = "class", textFormat = "[name] [level]" },
+			health = { size = 13, outline = "NONE", colorMode = "accent", textFormat = "[hp:abr]" },
+		}
+		settings.UnitFrames.target.fonts = {
+			name = { font = font, size = 14, outline = "NONE", colorMode = "reaction", textFormat = "[name]" },
+			health = { size = 13, outline = "OUTLINE", colorMode = "accent", textFormat = "[hp:pct]" },
+		}
+		settings.Nameplates.name = { font = font, size = 14, outline = "OUTLINE", colorMode = "accent", textFormat = "[name] [level]" }
+		settings.Nameplates.healthText = { show = true, font = font, size = 11, outline = "NONE", colorMode = "custom", textFormat = "[hp:abr] ([hp:pct])" }
+	end
 	return Hud.Build({
 		layout = "Tank", settings = settings,
 		modules = { "nameplates", "groupframes", "meters", "unitframes", "databars" },

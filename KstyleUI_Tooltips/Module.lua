@@ -109,6 +109,9 @@ local function Check()
 end
 
 K.Modules.Register(def)
-Settings.schema.preview = Preview.Build
-K.Options.Register(MODULE, Settings.schema)
+K.Options.Register(MODULE, function()
+	local schema = Settings.Schema()
+	schema.preview = Preview.Build
+	return schema
+end)
 K.DevTest.AddCheck("tooltips", Check)

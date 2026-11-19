@@ -72,7 +72,7 @@ do
 	end
 	assert(K.Layout.Setting("calm") == true, "Calm the rails in combat is on by default")
 	local row
-	for _, r in ipairs(K.Layout.schema) do
+	for _, r in ipairs(K.Options.Get("Layout")) do
 		if r.key == "calm" then
 			row = r
 		end

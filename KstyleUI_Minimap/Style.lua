@@ -19,6 +19,8 @@ function Style.Accent()
 	return K.Theme.Accent()
 end
 
+function Style.ClassColor() return K.Theme.ClassColor(K.Theme.Class()) end
+
 function Style.Color(token)
 	if token == "accent" then
 		return Style.Accent()

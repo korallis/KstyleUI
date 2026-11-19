@@ -78,10 +78,11 @@ local function Game(env)
 	env.print = function() end
 end
 
-local function Start(saved, W, H)
+local function Start(saved, W, H, setup, beforeLogin)
 	local env = Stubs.NewEnv({ width = W, height = H, uiScale = 768 / 1080, size = "auto", fit = true })
 	env.KstyleUIDB = saved
 	Game(env)
+	if setup then setup(env) end
 	env._auditTickers = {}
 	local newTicker = env.C_Timer.NewTicker
 	env.C_Timer.NewTicker = function(interval, fn, ...)
@@ -95,10 +96,13 @@ local function Start(saved, W, H)
 			env.FireEvent("ADDON_LOADED", addon, false)
 		end
 	end
+	if beforeLogin then beforeLogin(env, env.KstyleUI) end
 	env.FireEvent("PLAYER_LOGIN")
 	env.RunTimers()
 	return env, env.KstyleUI
 end
+
+Suite.New = Start
 
 -- Prepare(style, W, H) returns a saved-suite reload function and the initial environment.
 function Suite.Prepare(style, W, H)

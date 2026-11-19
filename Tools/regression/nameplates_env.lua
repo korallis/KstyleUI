@@ -237,6 +237,19 @@ function N.Install(env, opts)
 		local u = unit(token)
 		return u and u.powerMax or 0
 	end
+	function env.UnitPower(token)
+		local u = unit(token)
+		return env.Secret(u and u.power or 0)
+	end
+	function env.UnitPowerPercent(token, _, _, curve)
+		local u = unit(token)
+		local share = u and u.powerMax > 0 and (u.power or 0) / u.powerMax or 0
+		return env.Secret(curve and share * 100 or share)
+	end
+	function env.UnitGetTotalAbsorbs(token)
+		local u = unit(token)
+		return env.Secret(u and u.absorb or 0)
+	end
 	env.C_QuestLog = env.C_QuestLog or {}
 	function env.C_QuestLog.UnitIsRelatedToActiveQuest(token)
 		local u = unit(token)

@@ -47,10 +47,12 @@ for _, callback in ipairs({ "ProfileChanged", "ThemeChanged", "ScaleChanged" }) 
 	end)
 end
 
-ns.schema.preview = ns.Preview
-
 K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
-K.Options.Register(MODULE, ns.schema)
+K.Options.Register(MODULE, function()
+	local schema = ns.Schema()
+	schema.preview = ns.Preview
+	return schema
+end)
 
 K.DevTest.AddCheck("DataBars", function()
 	if not K.Modules.IsRunning(MODULE) then

@@ -7,10 +7,12 @@ K.Setup.Integrations = Integration
 local OVERLAPS = {
 	UnitFrames = { "ElvUI", "Tukui", "ShadowedUnitFrames", "PitBull4" },
 	ActionBars = { "Bartender4", "Dominos", "ElvUI", "Tukui" },
+	DataBars = { "Bartender4", "Dominos" },
+	Meters = { "Details" },
 	Nameplates = { "Plater", "Kui_Nameplates", "TidyPlates", "ElvUI" },
 	GroupFrames = { "Grid2", "VuhDo", "HealBot", "ElvUI", "ShadowedUnitFrames" },
-	Bags = { "Bagnon", "AdiBags", "BetterBags", "ElvUI" },
-	Chat = { "Prat-3.0", "Chatter", "ElvUI" },
+	Bags = { "Bagnon", "AdiBags", "BetterBags", "Baganator", "ElvUI" },
+	Chat = { "Prat-3.0", "Chatter", "Chattynator", "ElvUI" },
 	Skins = { "Questie" },
 }
 function Integration.Detected(module)
@@ -38,7 +40,7 @@ local LANES = {
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },
 }
 Store.RegisterDefaults("Integrations", { notices = true, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "kstyleui" })
-K.Options.Register("Integrations", {
+K.Options.Register("Integrations", function() return {
 	{ type = "header", label = L["Existing addons"] },
 	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },
 	{ type = "dropdown", key = "questTracker", label = L["Quest tracker"], help = L["Keep Questie's map pins and choose one tracker. Enabling Questie's tracker may reload the UI."], showWhen = function() return #Integration.Detected("Skins") > 0 end, options = {
@@ -48,7 +50,7 @@ K.Options.Register("Integrations", {
 	{ type = "toggle", key = "timerLane", label = L["Boss timer lane"], help = L["Reserve a movable 360 by 120 lane for your boss addon's timers."] },
 	{ type = "toggle", key = "announcementLane", label = L["Announcement lane"], help = L["Reserve a movable 520 by 48 lane for boss announcements."] },
 	{ type = "toggle", key = "weakAuras", label = L["WeakAuras anchors"], help = L["Two movable anchors; attach your own auras to KstyleUI_WeakAuras1 and KstyleUI_WeakAuras2."] },
-})
+} end)
 
 local function Apply()
 	if not Store.IsLoaded() then return end

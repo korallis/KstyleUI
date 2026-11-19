@@ -62,4 +62,4 @@ function def.Disable()
 end
 
 K.Modules.Register(def)
-K.Options.Register(NAME, ns.Schema())
+K.Options.Register(NAME, ns.Schema)

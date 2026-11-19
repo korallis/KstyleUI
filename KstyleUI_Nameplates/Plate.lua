@@ -63,6 +63,13 @@ local TYPES = { "quest", "rare", "elite", "caster" }
 local TYPE_KEYS = { quest = "types.quest", rare = "types.rare", elite = "types.elite", caster = "types.caster" }
 local TYPE_COLOR_KEYS = { quest = "types.questColor", rare = "types.rareColor", elite = "types.eliteColor", caster = "types.casterColor" }
 local typeEnabled, typeInfo = {}, {}
+local TEXT_ELEMENTS = { "name", "healthText" }
+local TAG_EVENTS = { UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
+	UNIT_ABSORB_AMOUNT_CHANGED = "Prediction", UNIT_TARGET = "Target" }
+
+local function OnTagEvent(plate, event)
+	plate:UpdateTags(TAG_EVENTS[event])
+end
 
 local fallbackLogged = {}
 
@@ -78,9 +85,9 @@ local function LogOnce(key, message)
 end
 ns.LogOnce = LogOnce
 
-local function StyleFont(text, size, outline, role)
+local function StyleFont(text, size, outline, role, ownFont)
 	local flags = OUTLINE_FLAGS[outline] or "OUTLINE"
-	local path = Settings.Get("font", role)
+	local path = ownFont or Settings.Get("font", role)
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 		LogOnce("font:" .. path, "the font " .. path .. " did not load; plates use the world font")
@@ -278,6 +285,12 @@ function Plate:ApplyScale()
 end
 
 function Plate:Restyle()
+	if self.textOptions then self.healthText:SetTextColor(Tokens.Color("white")) end
+	self.nameFormat, self.healthFormat = Settings.Get("name.textFormat"), Settings.Get("healthText.textFormat")
+	self.nameEnabled, self.healthTextEnabled = Settings.Get("name.show"), Settings.Get("healthText.show")
+	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= ""
+		or Settings.Get("name.colorMode") ~= "" or Settings.Get("healthText.colorMode") ~= ""
+	self:RegisterTagEvents()
 	self:ApplyScale()
 	local state = ns.state
 	local w, h = state.width, state.height
@@ -305,9 +318,12 @@ function Plate:Restyle()
 
 	local nameRole = Settings.Get("name.upper") and "names" or "heading"
 	Widgets.StyleText(self.name, nameRole)
-	Widgets.ApplyFont(self.name, (Tokens.Font(nameRole)), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
-	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"), "number")
-	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number")
+	StyleFont(self.name, Settings.Get("name.size"), Settings.Get("name.outline"), nameRole,
+		K.Theme.FollowsKit(Settings.Get("name.font")) and (Tokens.Font(nameRole)) or Settings.Get("name.font"))
+	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"), "number",
+		K.Theme.FollowsKit(Settings.Get("level.font")) and Settings.Get("font", "number") or Settings.Get("level.font"))
+	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number",
+		K.Theme.FollowsKit(Settings.Get("healthText.font")) and Settings.Get("font", "number") or Settings.Get("healthText.font"))
 
 	self.healthText:ClearAllPoints()
 	Place(self.healthText, "RIGHT", health, "RIGHT", -TEXT_INSET, 0, nil, nil, barW, barH)
@@ -480,6 +496,7 @@ end
 
 function Plate:SetUnit(unit)
 	self.unit = unit
+	self:RegisterTagEvents()
 	self.colorKey.r = nil
 	self.caster = nil
 	self:Show()
@@ -488,6 +505,7 @@ end
 
 function Plate:ClearUnit()
 	self.unit = nil
+	self:UnregisterAllEvents()
 	self.threatState = nil
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
 	self.alphaGoal = nil
@@ -502,13 +520,14 @@ function Plate:Refresh(immediate)
 	end
 	self:UpdateType()
 	self:UpdateStyle()
-	self:UpdateHealth(immediate)
-	self:UpdateName()
+	self:UpdateHealth(immediate, true)
+	self:UpdateName(true)
 	self:UpdateLevel()
 	self:UpdateRaid()
 	self:UpdateThreat()
 	self:UpdateHighlight()
 	Each("Refresh", self, immediate)
+	self:UpdateTags()
 end
 
 function Plate:RefreshFlags()
@@ -522,6 +541,7 @@ function Plate:RefreshFlags()
 		return
 	end
 	self:UpdateThreat()
+	self:UpdateTags()
 end
 
 function Plate:Is(field, fn, ...)
@@ -646,7 +666,7 @@ function Plate:UpdateColor()
 	end
 end
 
-function Plate:UpdateHealth(immediate)
+function Plate:UpdateHealth(immediate, refreshing)
 	local health = self.health
 	local sample = self.sample
 	if sample then
@@ -658,13 +678,17 @@ function Plate:UpdateHealth(immediate)
 		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
+	if self.textOptions and not refreshing then self:UpdateTags("Health") end
 end
 
 function Plate:UpdateHealthText()
 	local text = self.healthText
-	local show = Settings.Get("healthText.show") and not self.nameOnly
+	local show = self.healthTextEnabled and not self.nameOnly
 	text:SetShown(show)
 	if not show then
+		return
+	end
+	if self.healthFormat ~= "" then
 		return
 	end
 	local sample = self.sample
@@ -684,22 +708,61 @@ function Plate:UpdateHealthText()
 	end
 end
 
-function Plate:UpdateName()
+function Plate:UpdateName(refreshing)
 	local name = self.name
-	local show = Settings.Get("name.show")
+	local show = self.nameEnabled
 	name:SetShown(show)
 	if not show then
 		return
 	end
 	local value = self:Is("name", UnitName, self.unit)
-	if IsSecret(value) then
-		name:SetText(value)
-	elseif type(value) == "string" then
-		Widgets.SetText(name, Settings.Get("name.upper") and K.Locale.Upper(value) or value)
-	else
-		name:SetText("")
+	if self.nameFormat == "" then
+		if IsSecret(value) then
+			name:SetText(value)
+		elseif type(value) == "string" then
+			Widgets.SetText(name, Settings.Get("name.upper") and K.Locale.Upper(value) or value)
+		else
+			name:SetText("")
+		end
 	end
 	self:UpdateNameColor(true)
+	if self.textOptions and not refreshing then self:UpdateTags("Name") end
+end
+
+function Plate:RegisterTagEvents()
+	if self.sample then return end
+	for event, field in pairs(TAG_EVENTS) do
+		local needed = false
+		for _, key in ipairs(TEXT_ELEMENTS) do
+			if Settings.Get(key .. ".show") and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
+		end
+		if self.unit and needed then self:RegisterUnitEvent(event, self.unit) else self:UnregisterEvent(event) end
+	end
+	self:SetScript("OnEvent", OnTagEvent)
+end
+
+function Plate:PaintTags(key)
+	local sample = self.sample
+	if sample then
+		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
+	end
+	Widgets.TagText(key == "name" and self.name or self.healthText, Settings.Get(key .. ".textFormat"), self.unit, sample)
+end
+
+function Plate:UpdateTags(event)
+	if not self.textOptions then return end
+	for _, key in ipairs(TEXT_ELEMENTS) do
+		local text = key == "name" and self.name or self.healthText
+		local format = Settings.Get(key .. ".textFormat")
+		if format ~= "" and Settings.Get(key .. ".show") and (key ~= "healthText" or not self.nameOnly)
+			and (not event or Widgets.ParseText(format).events[event]) then
+			self:PaintTags(key)
+		end
+		local mode = Settings.Get(key .. ".colorMode")
+		if mode ~= "" then
+			Widgets.TextTint(text, mode, Settings.Get(key .. ".color"), self.unit, self.sample)
+		end
+	end
 end
 
 function Plate:UpdateNameColor(force)

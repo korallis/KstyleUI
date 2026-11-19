@@ -320,14 +320,14 @@ local UNIT_EVENTS = {
 	UNIT_HEALTH = Method("UpdateHealth"),
 	UNIT_MAXHEALTH = Method("UpdateHealth"),
 	UNIT_NAME_UPDATE = Method("UpdateName"),
-	UNIT_LEVEL = Method("UpdateLevel"),
+	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:UpdateTags("Level") end,
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
 		plate:UpdateMarker()
 		plate:RefreshType()
 	end,
 	UNIT_FACTION = Method("RefreshFlags"),
 	UNIT_FLAGS = Method("RefreshFlags"),
-	UNIT_DISPLAYPOWER = Method("RefreshType"),
+	UNIT_DISPLAYPOWER = function(plate) plate:RefreshType(); plate:UpdateTags("Power") end,
 	UNIT_THREAT_SITUATION_UPDATE = Method("UpdateThreat"),
 	UNIT_THREAT_LIST_UPDATE = Method("UpdateThreat"),
 }
@@ -378,6 +378,7 @@ local function OnRole()
 	UpdateRole()
 	for _, plate in pairs(byUnit) do
 		plate:UpdateThreat()
+		plate:UpdateTags("Group")
 	end
 end
 

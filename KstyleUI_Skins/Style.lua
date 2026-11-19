@@ -404,35 +404,49 @@ local function OnSweptColor(text, r, g, b)
 	end
 end
 
-local function SweepText(text)
+local function SweepText(text, otherAddon)
 	if swept[text] or roles[text] then
 		return false
 	end
-	local path, size = text:GetFont()
-	if IsSecret(path) or IsKitFace(path) then
+	local path, size, flags = text:GetFont()
+	if IsSecret(path) or (not otherAddon and IsKitFace(path)) then
 		return false
 	end
 	if IsSecret(size) or type(size) ~= "number" then
 		size = nil
 	end
 	local entry = { size = size }
-	swept[text] = entry
-	PaintSwept(text, entry)
+	if otherAddon then
+		if size == nil or IsSecret(flags) then return false end
+		local face = Style.Font(SWEEP_ROLE)
+		pcall(text.SetFont, text, face, size, flags)
+	else
+		swept[text] = entry
+		PaintSwept(text, entry)
+	end
 	local r, g, b = text:GetTextColor()
 	RecolorSwept(text, entry, r, g, b)
-	hooksecurefunc(text, "SetFontObject", OnSweptFontObject)
-	hooksecurefunc(text, "SetTextColor", OnSweptColor)
+	if not otherAddon then
+		hooksecurefunc(text, "SetFontObject", OnSweptFontObject)
+		hooksecurefunc(text, "SetTextColor", OnSweptColor)
+	end
 	return true
 end
 
-local function SweepFrame(frame, skip, depth)
+local function SweepFrame(frame, skip, depth, otherAddon)
 	if depth > SWEEP_DEPTH or (skip and skip[frame]) or Forbidden(frame) then
 		return 0
 	end
+	if type(frame.GetSourceLocation) == "function" then
+		local source = frame:GetSourceLocation()
+		local addon = not IsSecret(source) and type(source) == "string" and source:match("[/\\]AddOns[/\\]([^/\\]+)")
+		otherAddon = otherAddon or (addon and not addon:match("^Blizzard_") and not addon:match("^KstyleUI"))
+	end
+	if otherAddon and K.Store.Module(MODULE).restyleAddons == false then return 0 end
 	local count = 0
 	if type(frame.GetRegions) == "function" then
 		for _, region in ipairs({ frame:GetRegions() }) do
-			if IsFontString(region) and SweepText(region) then
+			if IsFontString(region) and SweepText(region, otherAddon) then
 				count = count + 1
 			end
 		end
@@ -440,7 +454,7 @@ local function SweepFrame(frame, skip, depth)
 	if type(frame.GetChildren) == "function" then
 		for _, child in ipairs({ frame:GetChildren() }) do
 			if type(child) == "table" then
-				count = count + SweepFrame(child, skip, depth + 1)
+				count = count + SweepFrame(child, skip, depth + 1, otherAddon)
 			end
 		end
 	end
@@ -517,69 +531,71 @@ end
 
 Style.SIZE_MIN, Style.SIZE_MAX, Style.SIZE_STEP = SIZE_MIN, SIZE_MAX, SIZE_STEP
 
-Style.rows = {
-	{ type = "header", label = L["Text"] },
-	{
-		type = "dropdown", key = "text.font", label = L["Font"], options = FontOptions,
-		help = L["The font of skinned window titles, headers and lists."],
-	},
-	{
-		type = "slider", key = "text.size", label = L["Text size"], min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
-		help = L["Makes the text in skinned windows larger or smaller."],
-	},
-	{
-		type = "dropdown", key = "text.outline", label = L["Text edge"],
-		options = {
-			{ value = "shadow", label = L["Soft shadow"] },
-			{ value = "outline", label = L["Thin outline"] },
-			{ value = "thick", label = L["Thick outline"] },
+function Style.Rows()
+	return {
+		{ type = "header", label = L["Text"] },
+		{
+			type = "dropdown", key = "text.font", label = L["Font"], options = FontOptions,
+			help = L["The font of skinned window titles, headers and lists."],
 		},
-		help = L["A soft shadow or an outline behind skinned text."],
-	},
-	{ type = "header", label = L["Bars"] },
-	{
-		type = "texture", key = "bars.texture", label = L["Bar texture"],
-		help = L["The fill of reputation, currency and quest progress bars."],
-	},
-	{
-		type = "dropdown", key = "bars.color", label = L["Bar colour"],
-		options = {
-			{ value = "reaction", label = L["Standing or reaction"] },
-			{ value = "class", label = L["Class colour"] },
-			{ value = "custom", label = L["Custom colour"] },
+		{
+			type = "slider", key = "text.size", label = L["Text size"], min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
+			help = L["Makes the text in skinned windows larger or smaller."],
 		},
-		help = L["Colours bars by their standing, by your class, or with one colour."],
-	},
-	{
-		type = "color", key = "bars.customColor", label = L["Custom bar colour"],
-		help = L["The bar colour when Bar colour is set to custom."],
-		showWhen = function(s)
-			return type(s.bars) == "table" and s.bars.color == "custom"
-		end,
-	},
-	{
-		type = "dropdown", key = "bars.fill", label = L["Bar fill direction"],
-		options = {
-			{ value = "left", label = L["Left to right"] },
-			{ value = "right", label = L["Right to left"] },
+		{
+			type = "dropdown", key = "text.outline", label = L["Text edge"],
+			options = {
+				{ value = "shadow", label = L["Soft shadow"] },
+				{ value = "outline", label = L["Thin outline"] },
+				{ value = "thick", label = L["Thick outline"] },
+			},
+			help = L["A soft shadow or an outline behind skinned text."],
 		},
-		help = L["Which end skinned bars fill from."],
-	},
-	{ type = "header", label = L["Accent"] },
-	{
-		type = "dropdown", key = "accent.source", label = L["Accent colour"],
-		options = {
-			{ value = FOLLOW, label = L["Interface accent"] },
-			{ value = "class", label = L["Class colour"] },
-			{ value = "custom", label = L["Custom colour"] },
+		{ type = "header", label = L["Bars"] },
+		{
+			type = "texture", key = "bars.texture", label = L["Bar texture"],
+			help = L["The fill of reputation, currency and quest progress bars."],
 		},
-		help = L["The colour of selected tabs, headers and hairlines in skinned windows."],
-	},
-	{
-		type = "color", key = "accent.color", label = L["Custom accent"],
-		help = L["The accent when Accent colour is set to custom."],
-		showWhen = function(s)
-			return type(s.accent) == "table" and s.accent.source == "custom"
-		end,
-	},
-}
+		{
+			type = "dropdown", key = "bars.color", label = L["Bar colour"],
+			options = {
+				{ value = "reaction", label = L["Standing or reaction"] },
+				{ value = "class", label = L["Class colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+			help = L["Colours bars by their standing, by your class, or with one colour."],
+		},
+		{
+			type = "color", key = "bars.customColor", label = L["Custom bar colour"],
+			help = L["The bar colour when Bar colour is set to custom."],
+			showWhen = function(s)
+				return type(s.bars) == "table" and s.bars.color == "custom"
+			end,
+		},
+		{
+			type = "dropdown", key = "bars.fill", label = L["Bar fill direction"],
+			options = {
+				{ value = "left", label = L["Left to right"] },
+				{ value = "right", label = L["Right to left"] },
+			},
+			help = L["Which end skinned bars fill from."],
+		},
+		{ type = "header", label = L["Accent"] },
+		{
+			type = "dropdown", key = "accent.source", label = L["Accent colour"],
+			options = {
+				{ value = FOLLOW, label = L["Interface accent"] },
+				{ value = "class", label = L["Class colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+			help = L["The colour of selected tabs, headers and hairlines in skinned windows."],
+		},
+		{
+			type = "color", key = "accent.color", label = L["Custom accent"],
+			help = L["The accent when Accent colour is set to custom."],
+			showWhen = function(s)
+				return type(s.accent) == "table" and s.accent.source == "custom"
+			end,
+		},
+	}
+end

@@ -25,7 +25,7 @@ local FALLBACK_ROOT_W, FALLBACK_ROOT_H = 1920, 1080
 
 Layout.SCALE_MIN, Layout.SCALE_MAX, Layout.SCALE_STEP = SCALE_MIN, SCALE_MAX, SCALE_STEP
 
-local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata" }
+local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata", "attachTo", "side", "offset", "matchWidth" }
 local IS_FIELD = {}
 for _, field in ipairs(FIELDS) do
 	IS_FIELD[field] = true
@@ -42,6 +42,12 @@ Layout.SHOWN_OPTIONS = {
 	{ value = "always", label = L["Always"] },
 	{ value = "combat", label = L["In combat only"] },
 	{ value = "noCombat", label = L["Out of combat only"] },
+	{ value = "party", label = L["In a party only"] },
+	{ value = "raid", label = L["In a raid only"] },
+	{ value = "solo", label = L["When solo only"] },
+	{ value = "noParty", label = L["Not in a party"] },
+	{ value = "noRaid", label = L["Not in a raid"] },
+	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
@@ -69,6 +75,7 @@ Layout.defaults = {
 	grid = false,
 	gridSize = 16,
 	snap = true,
+	showCoordinates = false,
 	snapDistance = 8,
 	calm = true,
 	preset = "DPS",
@@ -76,53 +83,61 @@ Layout.defaults = {
 	arrangement = Scale.DEFAULT_ARRANGEMENT,
 }
 
-Layout.schema = {
-	{ type = "header", label = L["Layout Mode"] },
-	{
-		type = "toggle", key = "grid", label = L["Show the grid"],
-		help = L["Draws a grid in Layout Mode, and elements snap to its lines."],
-	},
-	{
-		type = "slider", key = "gridSize", label = L["Grid spacing"],
-		help = L["The distance between grid lines, in interface units."],
-		min = GRID_MIN, max = GRID_MAX, step = GRID_STEP,
-	},
-	{
-		type = "toggle", key = "snap", label = L["Snap while dragging"],
-		help = L["Snaps to other elements, the screen edges and the centre as you drag."],
-	},
-	{
-		type = "slider", key = "snapDistance", label = L["Snap distance"],
-		help = L["How close an edge comes, in interface units, before it snaps."],
-		min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
-	},
-	{ type = "header", label = L["Screen"] },
-	{
-		type = "dropdown", key = "canvas", label = L["HUD width"],
-		help = L["On wider screens the HUD stays in a centred band this wide; the world still fills the screen."],
-		options = {
-			{ value = "21:9", label = L["21:9 (default)"] },
-			{ value = "16:9", label = L["16:9"] },
-			{ value = "full", label = L["Full width"] },
+function Layout.Schema()
+	if Layout.schema then return Layout.schema end
+	Layout.schema = {
+		{ type = "header", label = L["Layout Mode"] },
+		{
+			type = "toggle", key = "grid", label = L["Show the grid"],
+			help = L["Draws a grid in Layout Mode, and elements snap to its lines."],
 		},
-	},
-	{
-		type = "dropdown", key = "arrangement", label = L["Ultrawide arrangement"],
-		help = L["Wider screens: Centred keeps all in the HUD width; Spread moves the side columns to the edges."],
-		options = {
-			{ value = "centred", label = L["Centred (default)"] },
-			{ value = "spread", label = L["Spread"] },
+		{
+			type = "slider", key = "gridSize", label = L["Grid spacing"],
+			help = L["The distance between grid lines, in interface units."],
+			min = GRID_MIN, max = GRID_MAX, step = GRID_STEP,
 		},
-	},
-	{ type = "header", label = L["Combat"] },
-	{
-		type = "toggle", key = "calm", label = L["Calm the rails in combat"],
-		help = L["In combat, chat, the map, the menus and the XP line fade until you point at them."],
-	},
-}
+		{
+			type = "toggle", key = "snap", label = L["Snap while dragging"],
+			help = L["Snaps to other elements, the screen edges and the centre as you drag."],
+		},
+		{
+			type = "slider", key = "snapDistance", label = L["Snap distance"],
+			help = L["How close an edge comes, in interface units, before it snaps."],
+			min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
+		},
+		{
+			type = "toggle", key = "showCoordinates", label = L["Show coordinates on every plate"],
+			help = L["Keeps position and size details visible on every Layout Mode plate."],
+		},
+		{ type = "header", label = L["Screen"] },
+		{
+			type = "dropdown", key = "canvas", label = L["HUD width"],
+			help = L["On wider screens the HUD stays in a centred band this wide; the world still fills the screen."],
+			options = {
+				{ value = "21:9", label = L["21:9 (default)"] },
+				{ value = "16:9", label = L["16:9"] },
+				{ value = "full", label = L["Full width"] },
+			},
+		},
+		{
+			type = "dropdown", key = "arrangement", label = L["Ultrawide arrangement"],
+			help = L["Wider screens: Centred keeps all in the HUD width; Spread moves the side columns to the edges."],
+			options = {
+				{ value = "centred", label = L["Centred (default)"] },
+				{ value = "spread", label = L["Spread"] },
+			},
+		},
+		{ type = "header", label = L["Combat"] },
+		{
+			type = "toggle", key = "calm", label = L["Calm the rails in combat"],
+			help = L["In combat, chat, the map, the menus and the XP line fade until you point at them."],
+		},
+	}
+	return Layout.schema
+end
 
 Store.RegisterDefaults(SECTION, Layout.defaults)
-ns.Options.Register(SECTION, Layout.schema)
+ns.Options.Register(SECTION, Layout.Schema)
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
@@ -135,6 +150,7 @@ end
 local SETTING_VALID = {
 	grid = function(v) return type(v) == "boolean" end,
 	snap = function(v) return type(v) == "boolean" end,
+	showCoordinates = function(v) return type(v) == "boolean" end,
 	gridSize = function(v) return IsFinite(v) and v >= GRID_MIN and v <= GRID_MAX end,
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
 	calm = function(v) return type(v) == "boolean" end,
@@ -275,10 +291,12 @@ local function ModuleRunning(el)
 end
 
 local elements, order = {}, {}
+local links = {}
+local RefreshLinks
 local byFrame = setmetatable({}, { __mode = "k" })
 local showHooked = setmetatable({}, { __mode = "k" })
 local hoverOwner = setmetatable({}, { __mode = "k" })
-local state = { combat = false, target = false, active = false, combatEvents = false, targetEvents = false }
+local state = { combat = false, target = false, active = false, combatEvents = false, targetEvents = false, groupEvents = false }
 local history = History.New(HISTORY_LIMIT)
 local snapshot
 local RESET = {}
@@ -331,6 +349,19 @@ local function CheckAlpha(_, v)
 end
 
 local CHECK = {
+	attachTo = function(el, v)
+		if not IsSecret(v) and type(v) == "string" and #v <= MAX_KEY and Layout.CanAttach(el.key, v) then return v end
+		return nil, L["an element without a circular link"]
+	end,
+	side = function(_, v)
+		if not IsSecret(v) and (v == "above" or v == "below" or v == "left" or v == "right") then return v end
+		return nil, L["above, below, left or right"]
+	end,
+	offset = CheckOffset,
+	matchWidth = function(el, v)
+		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
+		return nil, L["a resizable element"]
+	end,
 	anchor = function(_, v)
 		if G.IsAnchor(v) then
 			return v
@@ -372,11 +403,31 @@ local CHECK = {
 	end,
 }
 
+local namedPositions
+
+local function SavedLayout()
+	if not namedPositions then return Store.Layout() end
+	local layout = Copy(Store.Layout())
+	for _, entry in pairs(layout) do
+		for _, field in ipairs(PLACED) do entry[field] = nil end
+	end
+	for key, position in pairs(namedPositions) do
+		layout[key] = layout[key] or {}
+		for _, field in ipairs(PLACED) do layout[key][field] = position[field] end
+	end
+	return layout
+end
+
 local function Entry(key)
 	if not Store.IsLoaded() then
 		return nil
 	end
 	local entry = Store.Layout()[key]
+	if namedPositions then
+		entry = Copy(entry) or {}
+		local position = namedPositions[key] or {}
+		for _, field in ipairs(PLACED) do entry[field] = position[field] end
+	end
 	if type(entry) == "table" then
 		return entry
 	end
@@ -384,11 +435,51 @@ end
 
 local function SetEntry(key, entry)
 	local layout = Store.Layout()
+	if namedPositions then
+		entry = Copy(entry) or {}
+		local position, base = {}, layout[key] or {}
+		for _, field in ipairs(PLACED) do
+			position[field], entry[field] = entry[field], base[field]
+		end
+		namedPositions[key] = next(position) and position or nil
+	end
 	if entry == nil or next(entry) == nil then
 		layout[key] = nil
 	else
 		layout[key] = entry
 	end
+end
+
+function Layout.CanAttach(key, target)
+	local seen = { [key] = true }
+	while target and target ~= "" do
+		if seen[target] then return false end
+		seen[target] = true
+		local entry = Entry(target)
+		target = entry and entry.attachTo
+		if IsSecret(target) or type(target) ~= "string" then return true end
+	end
+	return true
+end
+
+local function LinkTarget(el)
+	local key = el.settings.attachTo
+	local target = key ~= "" and elements[key]
+	if target and Layout.Live(key) and target.settings.shown ~= "never" and Layout.CanAttach(el.key, key) then
+		return target
+	end
+end
+
+local function LinkedRect(el, w, h, offset)
+	local target = LinkTarget(el)
+	if not target then return end
+	local l, b, tw, th = Layout.Rect(target.key)
+	local side = el.settings.side
+	offset = offset or el.settings.offset
+	if side == "above" then return l + (tw - w) / 2, b + th + offset end
+	if side == "below" then return l + (tw - w) / 2, b - h - offset end
+	if side == "left" then return l - w - offset, b + (th - h) / 2 end
+	return l + tw + offset, b + (th - h) / 2
 end
 
 local function Style()
@@ -429,6 +520,13 @@ local function StyleDefault(el)
 	el.frames = Band(el, Copy(d))
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
+	if style == "medallions" and (el.key == "chat.main" or el.key == "qol.lootfeed" or el.key == "unitframes.resource") then
+		local extra = layouts.ExtraBarsPlace(Scale.Aspect(), Layout.Setting("preset"), el.key)
+		if extra then
+			d.anchor, d.x, d.y = extra.anchor, extra.x, extra.y
+			el.frames = Band(el, Copy(d))
+		end
+	end
 	el.style = over and style or nil
 	el.styled = {}
 	if over then
@@ -480,14 +578,28 @@ local function Resolve(el)
 	else
 		s.width, s.height = FrameSize(el.frame)
 	end
+	links[el.key] = s.attachTo ~= "" and el or nil
 	return s
 end
 
 function Layout.Clamp(key, left, bottom, w, h)
 	local el = elements[key]
+	local rw, rh = Layout.RootSize()
 	if el and el.opts.clamp then
-		local rw, rh = Layout.RootSize()
-		return el.opts.clamp(left, bottom, w, h, rw, rh)
+		local cl, cb = el.opts.clamp(left, bottom, w, h, rw, rh)
+		if cl then return cl, cb end
+	end
+	local layouts = ns.Setup and ns.Setup.Layouts
+	local element = layouts and layouts.Element(key)
+	if el and element then
+		local f, margin, origin = Factor(el.frame), Tokens.Size("screenMargin"), Scale.Origin()
+		local l, r, b, t = layouts.DisplayInsets(key, h / f, el.default.anchor)
+		l, r, b, t = l * f, r * f, b * f, t * f
+		local cl, cb = Clamp(left, margin + l - origin, max(margin + l - origin, rw + origin - margin - r - w)), Clamp(bottom, margin + b, max(margin + b, rh - margin - t - h))
+		local pixel = Scale.Pixel(1)
+		if cl > left then cl = math.ceil(cl / pixel) * pixel elseif cl < left then cl = math.floor(cl / pixel) * pixel end
+		if cb > bottom then cb = math.ceil(cb / pixel) * pixel elseif cb < bottom then cb = math.floor(cb / pixel) * pixel end
+		return cl, cb
 	end
 	return left, bottom
 end
@@ -495,8 +607,11 @@ end
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
-	if el.opts.clamp then left, bottom = Layout.Clamp(el.key, left, bottom, w, h) end
+	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
+	left, bottom = linkedLeft or left, linkedBottom or bottom
+	left, bottom = Layout.Clamp(el.key, left, bottom, w, h)
 	left, bottom = G.Align(left, pixel), G.Align(bottom, pixel)
+	el.left, el.bottom = left, bottom
 	local _, ax, ay = G.Position(left, bottom, w, h, rw, rh, anchor)
 	local frame = el.frame
 	frame:ClearAllPoints()
@@ -528,6 +643,7 @@ local function ApplyGeometry(el, quiet)
 		LogOnce(el.key .. ":unplaceable", format("%s has no anchor, offset or size to place it by; it stays where it is", el.key))
 		return
 	end
+	el.placing, el.preview = true, nil
 	local oldWidth, oldHeight = FrameSize(frame)
 	local restyle = false
 	if el.opts.scalable and IsFinite(s.scale) and s.scale > 0 then
@@ -539,7 +655,14 @@ local function ApplyGeometry(el, quiet)
 	local pixel = Scale.Pixel(1)
 	local w, h
 	if el.opts.resizable then
-		w, h = G.SnapSize(s.width, f, pixel), G.SnapSize(s.height, f, pixel)
+		local width, height = s.width, s.height
+		local target = s.matchWidth and LinkTarget(el)
+		if target then
+			local _, _, tw = Layout.Rect(target.key)
+			width = Clamp(tw / f, el.limits.minWidth, el.limits.maxWidth)
+			if el.aspect then width, height = AspectFit(el, width) end
+		end
+		w, h = G.SnapSize(width, f, pixel), G.SnapSize(height, f, pixel)
 		frame:SetSize(w, h)
 	else
 		w, h = FrameSize(frame)
@@ -558,6 +681,7 @@ local function ApplyGeometry(el, quiet)
 		el.strataSet = true
 		frame:SetFrameStrata(s.strata)
 	end
+	el.placing = false
 end
 
 local function LogDriver(el, driver)
@@ -622,7 +746,7 @@ local function ApplyVisibility(el)
 		end
 		el.driver = nil
 	end
-	if Rules.Visible(el.settings.shown, state.combat, state.target) then
+	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
 		ShowHidden(el)
 		return
 	end
@@ -816,7 +940,9 @@ end
 
 local function OnElementSize(frame)
 	local el = byFrame[frame]
-	if not el or el.opts.resizable then
+	if not el or el.placing then return end
+	RefreshLinks(el.key)
+	if el.opts.resizable then
 		return
 	end
 	local f, pixel = Factor(frame), Scale.Pixel(1)
@@ -849,6 +975,16 @@ local function Apply(el, instant)
 		Queue(el)
 	end
 	ApplyAlpha(el, instant)
+	RefreshLinks(el.key)
+end
+
+function RefreshLinks(key)
+	for _, el in pairs(links) do
+		if el.settings.attachTo == key and Layout.CanAttach(el.key, key) then
+			Apply(el)
+			if state.active then Mode("Changed", el.key) end
+		end
+	end
 end
 
 local function ResolveAll()
@@ -873,6 +1009,17 @@ local function RefreshDynamic()
 	end
 end
 
+local function OnGroup()
+	local group
+	if type(SecureCmdOptionParse) == "function" then
+		group = SecureCmdOptionParse("[group:raid] raid; [group:party] party; solo")
+	end
+	if IsSecret(group) then group = nil end
+	if group == state.group then return end
+	state.group = group
+	RefreshDynamic()
+end
+
 local function OnTarget()
 	state.target = TargetExists()
 	RefreshDynamic()
@@ -895,14 +1042,24 @@ local function OnCombatEnd()
 end
 
 local function UpdateEvents()
-	local combat, target, hover = state.active, false, false
+	local combat, target, hover, group = state.active, false, false, false
 	for i = 1, #order do
 		local s = elements[order[i]].settings
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
 		target = target or Rules.NeedsTarget(s.shown)
 		hover = hover or s.shown == "mouseover"
+		group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
 	end
 	UpdatePoll(hover)
+	if group ~= state.groupEvents then
+		state.groupEvents = group
+		if group then
+			OnGroup()
+			ns.Events.Register(SECTION, "GROUP_ROSTER_UPDATE", OnGroup)
+		else
+			ns.Events.Unregister(SECTION, "GROUP_ROSTER_UPDATE")
+		end
+	end
 	if combat ~= state.combatEvents then
 		state.combatEvents = combat
 		if combat then
@@ -1016,6 +1173,7 @@ end
 local ELEMENT_FIELDS = {
 	shown = true, anchor = true, x = true, y = true, width = true, height = true, scale = true,
 	alphaCombat = true, alphaIdle = true, strata = true,
+	attachTo = true, side = true, offset = true, matchWidth = true,
 }
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
@@ -1086,7 +1244,7 @@ local function OnShow(frame)
 	if IsProtectedFrame(frame) then
 		return
 	end
-	if not Rules.Visible(el.settings.shown, state.combat, state.target) then
+	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
 		el.hidden = true
 		frame:Hide()
 	end
@@ -1125,6 +1283,7 @@ local function Defaults(el, frame, position, opts)
 		anchor = position.anchor, x = position.x or 0, y = position.y or 0,
 		width = w, height = h, scale = scale,
 		shown = "always", alphaCombat = 1, alphaIdle = 1, strata = strata,
+		attachTo = "", side = "above", offset = 0, matchWidth = false,
 	}
 end
 
@@ -1238,6 +1397,7 @@ function Layout.SetLive(key, live)
 		return true
 	end
 	el.live = live
+	RefreshLinks(key)
 	if state.active then
 		Mode("Changed", key)
 	end
@@ -1339,13 +1499,30 @@ function Layout.Rect(key)
 	if not el then
 		return nil
 	end
+	if el.preview then return unpack(el.preview) end
 	local w, h = OnRootSize(el)
+	if el.queued and el.left then return el.left, el.bottom, w, h end
 	local rw, rh = Layout.RootSize()
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
 	local left, bottom = G.Rect(s.anchor, s.x, s.y, w, h, rw, rh)
-	if el.opts.clamp then left, bottom = Layout.Clamp(key, left, bottom, w, h) end
+	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
+	left, bottom = linkedLeft or left, linkedBottom or bottom
+	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	return G.Align(left, pixel), G.Align(bottom, pixel), w, h
+end
+
+function Layout.Movement(key, left, bottom, w, h)
+	local el = elements[key]
+	local l, b = LinkedRect(el, w, h, 0)
+	if l then
+		local side = el.settings.side
+		local offset = side == "above" and bottom - b or side == "below" and b - bottom or side == "left" and l - left or left - l
+		return { offset = offset }
+	end
+	local rw, rh = Layout.RootSize()
+	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
+	return { anchor = anchor, x = x, y = y }
 end
 
 function Layout.Preview(key, left, bottom, w, h, scale)
@@ -1362,10 +1539,14 @@ function Layout.Preview(key, left, bottom, w, h, scale)
 		frame:SetSize(w / f, h / f)
 	end
 	local rw, rh = Layout.RootSize()
-	if el.opts.clamp then left, bottom = Layout.Clamp(key, left, bottom, w, h) end
+	local move = Layout.Movement(key, left, bottom, w, h)
+	if move.offset then left, bottom = LinkedRect(el, w, h, move.offset) end
+	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
 	frame:ClearAllPoints()
 	frame:SetPoint(anchor, Scale.Root(), anchor, x / f, y / f)
+	el.preview = { left, bottom, w, h }
+	RefreshLinks(key)
 end
 
 function Layout.Restore(key)
@@ -1460,7 +1641,7 @@ function Layout.Enter()
 		return false
 	end
 	state.active = true
-	snapshot = Copy(Store.Layout())
+	snapshot = Copy(SavedLayout())
 	history:Clear()
 	UpdateEvents()
 	Mode("Show")
@@ -1484,13 +1665,13 @@ function Layout.Exit(save)
 	Close()
 	if restore then
 		local entries = {}
-		for key, entry in pairs(Store.Layout()) do
+		for key, entry in pairs(SavedLayout()) do
 			if not Same(entry, restore[key]) then
 				entries[key] = restore[key] or false
 			end
 		end
 		for key, entry in pairs(restore) do
-			if entries[key] == nil and not Same(entry, Store.Layout()[key]) then
+			if entries[key] == nil and not Same(entry, Entry(key)) then
 				entries[key] = entry
 			end
 		end
@@ -1530,14 +1711,23 @@ local aspect, band = Scale.Aspect(), Scale.Band()
 ns.Callbacks.Register("ScaleChanged", SECTION, function()
 	local resolve = Scale.Aspect() ~= aspect or Scale.Band() ~= band
 	aspect, band = Scale.Aspect(), Scale.Band()
+	local changed = {}
 	if resolve then
 		Log("the " .. aspect .. " layout applies to elements at their defaults")
-		ResolveAll()
+		for i = 1, #order do
+			local el = elements[order[i]]
+			local s = el.settings
+			local anchor, x, y, width, height, scale = s.anchor, s.x, s.y, s.width, s.height, s.scale
+			Resolve(el)
+			if s.anchor ~= anchor or s.x ~= x or s.y ~= y or s.width ~= width or s.height ~= height or s.scale ~= scale then
+				changed[#changed + 1] = el.key
+			end
+		end
 		UpdateEvents()
 	end
 	ApplyAll(true)
-	for i = 1, resolve and #order or 0 do
-		ns.Callbacks.Fire("LayoutChanged", order[i])
+	for i = 1, #changed do
+		ns.Callbacks.Fire("LayoutChanged", changed[i], "scale")
 	end
 	if state.active then
 		Mode("Refresh")
@@ -1545,6 +1735,7 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 end)
 
 ns.Callbacks.Register("ProfileChanged", SECTION, function()
+	namedPositions = nil
 	if state.active then
 		snapshot = nil
 		Close()
@@ -1564,6 +1755,29 @@ local function Restyle()
 	for i = 1, #order do
 		ns.Callbacks.Fire("LayoutChanged", order[i])
 	end
+end
+
+function Layout.ApplyNamed(positions, previous)
+	Combat.Queue(function()
+		if previous and namedPositions ~= previous or namedPositions == positions then return end
+		if state.active then Layout.Exit(true) end
+		namedPositions = positions
+		Restyle()
+	end)
+end
+
+function Layout.CapturePositions()
+	local positions = {}
+	for key, entry in pairs(SavedLayout()) do
+		local place = {}
+		for _, field in ipairs(PLACED) do place[field] = entry[field] end
+		if next(place) then positions[key] = place end
+	end
+	for _, key in ipairs(order) do
+		local el = elements[key]
+		positions[StoreKey(el, "anchor")] = { anchor = el.settings.anchor, x = el.settings.x, y = el.settings.y }
+	end
+	return positions
 end
 
 ns.Callbacks.Register("ReadabilityChanged", SECTION, Restyle)
@@ -1588,6 +1802,7 @@ ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 end)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
+	if module == "ActionBars" and key == "extraBarsApplied" then Restyle() end
 	if module == SECTION and key == "preset" and Style() then
 		if InCombatLockdown() then
 			Combat.Queue(Restyle)

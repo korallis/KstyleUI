@@ -1,4 +1,4 @@
--- test-unitframes-column-keep.lua: a column frame's portrait and side auras stand outside its element, so a saved position that would put them off screen is shifted back on, out of combat only.
+-- test-unitframes-column-keep.lua: a column frame's portrait and side auras stand outside its element, so only off-screen drawn geometry is clamped, without rewriting saved positions.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
 local env, K, ns = U.New()
@@ -46,15 +46,15 @@ local function Edges(kind)
 end
 
 local function PutLeft(key, left)
-	local was = Layout.Rect(key)
-	assert(Layout.Set(key, "x", Layout.Get(key).x + (left - was)), "Layout takes the position")
+	local _, _, width = Layout.Rect(key)
+	assert(Layout.Set(key, "x", left - rootW / 2 + width / 2), "Layout takes the position")
 end
 
 PutLeft(PLAYER, 20)
 env.RunTimers()
 local left, _, w = Layout.Rect(PLAYER)
-assert(near(left, playerLeft, 1), "a player saved 20 units from the screen's left edge is moved so its portrait is on screen: left " .. left)
-assert(Layout.Get(PLAYER).x == Layout.Get(PLAYER).x and left - playerLeft >= -1, "and no further")
+assert(near(left, (playerLeft + K.Tokens.Size("gapSmall") + K.Tokens.Size("screenMargin") - K.Scale.Origin()), 1), "a player saved 20 units from the screen's left edge is moved so its portrait is on screen: left " .. left)
+assert(Layout.Get(PLAYER).x == Layout.Get(PLAYER).x and left - (playerLeft + K.Tokens.Size("gapSmall") + K.Tokens.Size("screenMargin") - K.Scale.Origin()) >= -1, "and no further")
 assert(w == 491, "its size is unchanged")
 local settled = Layout.Get(PLAYER).x
 Frames.Relayout(Frames.Get("player"))
@@ -69,7 +69,7 @@ PutLeft(TARGET, rootW - tw - 30)
 env.RunTimers()
 local tl = Layout.Rect(TARGET)
 local _, edge = Edges("target")
-assert(near(edge, rootW, 0.01), "a target saved 30 units from the right edge is moved so its snapped debuffs end at the edge: " .. edge .. " of " .. rootW)
+assert(near(edge, rootW + K.Scale.Origin() - K.Tokens.Size("screenMargin"), K.Scale.Pixel(1) + 0.01), "a target saved 30 units from the right edge is moved so its snapped debuffs end at the edge: " .. edge .. " of " .. rootW)
 local nominal = tl + tw + targetRight
 assert(edge - nominal > -0.01 and edge - nominal < 3, "the whole-pixel row ends under three units past the nominal reach: " .. edge - nominal)
 PutLeft(TARGET, 500)
@@ -93,14 +93,14 @@ env.SetCombat(true)
 PutLeft(PLAYER, 20)
 env.RunTimers()
 local inCombat = Layout.Get(PLAYER).x
-assert(near(Layout.Rect(PLAYER), 20), "in combat the saved position stays where it was put")
+assert(near(Layout.Get(PLAYER).x, 20 - rootW / 2 + w / 2), "in combat the saved position stays where it was put")
 assert(inCombat ~= before, "the move itself was written")
 env.SetCombat(false)
 env.RunTimers()
-assert(near(Layout.Rect(PLAYER), playerLeft, 1), "the shift runs when combat ends")
+assert(near(Layout.Rect(PLAYER), (playerLeft + K.Tokens.Size("gapSmall") + K.Tokens.Size("screenMargin") - K.Scale.Origin()), 1), "the display clamp applies when combat ends")
 local after = Layout.Get(PLAYER).x
 env.RunTimers()
-assert(Layout.Get(PLAYER).x == after, "and runs once")
+assert(Layout.Get(PLAYER).x == after, "and leaves saved coordinates unchanged")
 noErrors("keep")
 
 local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3456, 2234 }, { 3840, 2160 }, { 5120, 1440 } }
@@ -135,18 +135,20 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 				return lo, right
 			end
 			local function put(key, to)
-				local was = SK.Layout.Rect(key)
-				SK.Layout.Set(key, "x", SK.Layout.Get(key).x + (to - was))
+				local ownWidth = select(3, SK.Layout.Rect(key))
+				SK.Layout.Set(key, "x", to - width / 2 + ownWidth / 2)
 				senv.RunTimers()
 			end
-			local _, tw2 = SK.Layout.Rect(TARGET)
+			local _, _, tw2 = SK.Layout.Rect(TARGET)
 			local pw = select(3, SK.Layout.Rect(PLAYER))
-			put(TARGET, width - tw2 + 40)
+			local origin = SK.Scale.Origin()
+			put(TARGET, width + origin - tw2 + 40)
 			local _, right = edges("target")
-			assert(math.abs(right - width) < 0.01, where .. ": a target pushed off the right edge ends its snapped debuffs exactly at it: " .. right .. " of " .. width)
-			put(PLAYER, -60)
+			local margin, pixel = SK.Tokens.Size("screenMargin"), SK.Scale.Pixel(1)
+			assert(math.abs(right - (width + origin - margin)) <= pixel + 0.01, where .. ": the visible target debuffs keep the HUD edge margin")
+			put(PLAYER, -origin - 60)
 			local lo = edges("player")
-			assert(math.abs(lo) < 0.01, where .. ": a player pushed off the left edge starts its portrait exactly at it: " .. lo)
+			assert(lo >= margin - origin - pixel and lo <= margin - origin + SK.Tokens.Size("gapSmall") + pixel + 0.01, where .. ": the visible player portrait keeps the HUD edge margin")
 			put(TARGET, width / 2 - tw2 / 2)
 			put(PLAYER, width / 2 - pw / 2)
 			local settledX = SK.Layout.Get(TARGET).x

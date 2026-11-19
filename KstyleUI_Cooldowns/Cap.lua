@@ -161,7 +161,14 @@ local function Place(viewer, slot, folded)
 	w, h = math.ceil(w / pixel - 1e-6) * pixel, math.ceil(h / pixel - 1e-6) * pixel
 	Style.ShowChip(c, viewer, "LEFT", 0, w, h, "+" .. #folded, cfg.countSize + Style.CHIP_TEXT)
 	c:ClearAllPoints()
-	K.Widgets.Point(c, "TOPLEFT", slot, "TOPLEFT")
+	local left, _, top = K.Widgets.Edges(slot)
+	local vl, _, vt = K.Widgets.Edges(viewer)
+	left, top, vl, vt = ns.Plain(left), ns.Plain(top), ns.Plain(vl), ns.Plain(vt)
+	if type(left) == "number" and type(top) == "number" and type(vl) == "number" and type(vt) == "number" then
+		K.Widgets.Point(c, "TOPLEFT", viewer, "TOPLEFT", left * scale - vl, top * scale - vt)
+	else
+		K.Widgets.Point(c, "TOPLEFT", slot, "TOPLEFT")
+	end
 	c:SetFrameLevel(slot:GetFrameLevel() + Style.CHIP_LEVEL)
 	Style.Mouse(c, Tips(viewer))
 	c.count, c.folded = #folded, folded

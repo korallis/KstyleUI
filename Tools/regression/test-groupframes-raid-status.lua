@@ -98,7 +98,7 @@ do
 	local env, K, ns = Raid({ raid = { width = 30, height = 20 } }, 5)
 	-- Each indicator's rows end in two notes, one for party frames and one for raid frames.
 	local notes, slot = {}, 0
-	for _, row in ipairs(ns.Settings.schema) do
+	for _, row in ipairs(K.Options.Get("GroupFrames")) do
 		if row.key and row.key:match("^indicator%d+%.category$") then
 			slot = slot + 1
 			notes[slot] = {}

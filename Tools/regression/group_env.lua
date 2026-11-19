@@ -60,9 +60,9 @@ local function installRoster(env)
 	local function member(unit)
 		local r = env._roster
 		if unit == "player" then
-			return r.units.player or r.player
+			return r.units.player or r.player or env._units and env._units[unit]
 		end
-		return r.units[unit]
+		return r.units[unit] or env._units and env._units[unit]
 	end
 	env._member = member
 
@@ -765,6 +765,8 @@ local function installDrivers(env)
 				ok = ok and kind ~= nil
 			elseif part == "nogroup" then
 				ok = ok and kind == nil
+			elseif env.Condition then
+				ok = ok and env.Condition(part)
 			else
 				error("SecureCmdOptionParse stub: unknown condition " .. part)
 			end
@@ -831,21 +833,26 @@ end
 
 -- New(opts) -> env, KstyleUI, the module's private table. opts: the CoreEnv.New options, plus
 --   boot   false to skip ADDON_LOADED and PLAYER_LOGIN.
+function G.Install(env, opts)
+	opts = opts or {}
+	installRoster(env)
+	installAuras(env, opts.engine)
+	installCurves(env)
+	installPrediction(env)
+	installHeaders(env)
+	installDrivers(env)
+	installBlizzard(env)
+	installMeasure(env)
+	env.InCombatLockdown = function()
+		return env._combat == true
+	end
+end
+
 function G.New(opts)
 	opts = opts or {}
 	local setup = opts.setup
 	opts.setup = function(env)
-		installRoster(env)
-		installAuras(env, opts.engine)
-		installCurves(env)
-		installPrediction(env)
-		installHeaders(env)
-		installDrivers(env)
-		installBlizzard(env)
-		installMeasure(env)
-		env.InCombatLockdown = function()
-			return env._combat == true
-		end
+		G.Install(env, opts)
 		if setup then
 			setup(env)
 		end

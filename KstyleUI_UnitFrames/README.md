@@ -335,3 +335,11 @@ These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFram
 - **Focus target has its own key.** The element keys had no focus target. It sits under the focus frame, right-aligned, and `test-setup-layouts.lua` checks that it overlaps nothing in any layout.
 
 LEE-94 refines the type after the merged bar geometry without moving its shared baseline: the target creature caption defaults to 14.5 units, its size slider supports half-unit steps, and its mirrored gap is 9 units (the other forms retain 10). A selected font or size still wins. The `unit` face takes off 64 rather than 65 font units per advance (-0.064 em), closing the target core width while leaving the player core box unchanged. On the reference panel the target name, creature word and percentage still share rounded canvas baseline y1733. No `COLUMN` bar height or gap is changed here. The picture's blurred halo remains the documented font API limit, not a reason to enlarge letters or change shadows.
+
+### Text customisation
+
+Name and health text share Font, Text size, Outline, Text colour, Custom text colour and Text format rows. The role font and current style remain the defaults; health also follows the existing health preset while Text format is blank. Class, reaction, accent and custom are the colour choices. Existing Show switches and the health preset's None choice still hide text.
+
+A format can mix literal text with `[name]`, `[hp]`, `[hp:pct]`, `[hp:abr]`, `[hp:max]`, `[pp]`, `[pp:pct]`, `[pp:abr]`, `[pp:max]`, `[level]`, `[absorb]`, `[target]` and `[group]` (raid subgroup). For example, `[hp:abr] ([hp:pct])`. Custom formats preserve their literal case. Unknown tags stay literal; missing optional APIs produce empty text. Percent tags use the client's percent API and the shared whole-number abbreviation, so they truncate fractions. Default presets retain their existing rounding and offline/dead labels.
+
+Schemas build on demand; parsed formats are cached. Tags refresh on the existing unit event path, with no new frame ticker, secret comparison, saved-setting migration or layout move. `test-text-options.lua` checks defaults, off, live controls and secrets at all four supported screen sizes; `short_numbers` with `RENDER_TEXT_OPTIONS=1` renders the new controls in use.

@@ -96,8 +96,8 @@ do
 			local row = 12 * 38 * 19 / 16 + 11 * 3 * 19 / 16
 			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, row) and near(bar1.r - bar1.l, row), label .. ": the two enabled rows share the KSTY-44 tray's column")
 			assert(near(bar1.b, Layouts.TRAY_BOTTOM + Layouts.TRAY_PAD) and near(bar2.t + Layouts.TRAY_PAD, Layouts.TRAY_TOP) and near(bar2.b - bar1.t, 3 * 19 / 16), label .. ": the action rows stand inside the tray at its gap")
-			assert(layout["actionbars.bar3"].anchor == "TOP" and near((bar3.l + bar3.r) / 2, width / 2) and near(bar3.t, HEIGHT - 20) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own upper slot")
-			assert(bar3.b >= HEIGHT * 0.7 and bar3.b > rect("unitframes.castbar.player").t, label .. ": bar 3 clears the cast lane and central play field")
+			assert(layout["actionbars.bar3"].anchor == "BOTTOM" and near((bar3.l + bar3.r) / 2, width / 2 - 460) and near(bar3.b, 640) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own slot above the casts")
+			assert((bar3.r <= rect("unitframes.castbar.target").l or bar3.b >= rect("unitframes.castbar.target").t) and (bar3.r <= rect("unitframes.boss").l or bar3.t <= rect("unitframes.boss").b), label .. ": bar 3 clears the cast lane and central play field")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
 			assert(near(player.b, 138 + Layouts.TRAY_LIFT) and player.b - bar2.t - Layouts.TRAY_PAD >= 6 and near(target.b - player.t, 2), label .. ": player and target stack directly over the tray card, at least 6 clear of it")
 			local centre = (bar1.l + bar1.r) / 2
@@ -105,7 +105,7 @@ do
 			local readout, damage = rect("databars.strip"), rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
 			local railPitch = Layouts.Grid("actionbars.bar4").spacing
-			assert(near(bar4.r, damage.r - 1.4) and near(bar4.r, readout.r - 1.4), label .. ": bar 4 stands 1.4 inside the right rail's edge (the picture's 32 px against the cards' 30), over the readout and the damage card")
+			assert(near(bar4.r, damage.r - 1.4) and near(bar4.r, readout.r + 2.6), label .. ": bar 4 stands 1.4 inside the right rail's edge (the picture's 32 px against the cards' 30), over the damage card and the inset readout")
 			assert(near(bar4.l - bar5.r, railPitch) and near(bar5.l - bar6.r, railPitch), label .. ": bars 5 and 6 stand beside it at the rail bars' pitch")
 			assert(near(bar4.b, readout.t + 10) and near(bar5.b, bar4.b) and near(bar6.b, bar4.b), label .. ": the columns stand 10 over the readout")
 		end

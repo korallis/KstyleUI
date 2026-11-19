@@ -6,6 +6,7 @@ local M = dofile("Tools/regression/minimap_env.lua")
 return Common.Run(function()
 	local env, K = M.New(Common.ScreenOpts({
 		enabled = true, zone = "Tirisfal Glades", position = { 0.616, 0.579 },
+		settings = { frame = os.getenv("RENDER_MINIMAP_FRAME") },
 		setup = function(e)
 			e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" }
 			e.KstyleUIDB.layouts.Default = { ["minimap.main"] = { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } }

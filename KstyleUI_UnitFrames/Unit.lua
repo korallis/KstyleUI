@@ -289,15 +289,19 @@ function Unit.Health(view, unit, instant)
 	bar:SetHealth(UnitHealth(unit), instant)
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
-	if form ~= "plate" then
+	if view.s.fonts.health.textFormat ~= "" and format ~= "none" then
+		view.healthSub:SetText("")
+	elseif form ~= "plate" then
 		LumenHealth(view, unit, form, format)
-		Unit.Glow(view, unit)
-		ns.Slab.Health(view, unit)
 	elseif view.geometry and view.geometry.healthSub then
 		Format.Health(view.healthText, unit, Format.Main(format))
 		Format.HealthDetail(view.healthSub, unit, format)
 	else
 		Format.Health(view.healthText, unit, format)
+	end
+	if form ~= "plate" then
+		Unit.Glow(view, unit)
+		ns.Slab.Health(view, unit)
 	end
 	Unit.Prediction(view, unit)
 end
@@ -328,6 +332,15 @@ function Unit.Power(view, unit, instant)
 end
 
 function Unit.Name(view, unit)
+	if view.s.fonts.name.textFormat ~= "" then
+		view.plainName = nil
+		local g = view.geometry
+		if g and g.nameAuto and g.nameRoom then
+			view.name:SetWidth(K.Widgets.Snap(view.name, g.nameRoom))
+			view.nameBound = true
+		end
+		return
+	end
 	local name = UnitName(unit)
 	if IsSecret(name) then
 		Unit.SetName(view, name)
@@ -685,6 +698,28 @@ function Unit.Portrait(view, unit)
 	end
 end
 
+local TEXT_ELEMENTS = { "name", "health" }
+function Unit.TextTags(view, unit, event, sample)
+	if not view.s.textOptions then return end
+	event = event == "MaxHealth" and "Health" or event == "PowerType" and "Power" or event
+	for _, element in ipairs(TEXT_ELEMENTS) do
+		local style = view.s.fonts[element]
+		local text = element == "name" and view.name or view.healthText
+		local format = style.textFormat
+		if format ~= "" and (element ~= "health" or view.s.healthText ~= "none")
+			and (not event or K.Widgets.ParseText(format).events[event]) then
+			K.Widgets.TagText(text, format, unit, sample)
+			if element == "name" and view.chip then K.Widgets.TagText(view.chip.name, format, unit, sample) end
+			if element == "health" then view.healthSub:SetText("") end
+		end
+		if style.colorMode ~= "" then
+			K.Widgets.TextTint(text, style.colorMode, style.color, unit, sample)
+			if element == "name" and view.chip then K.Widgets.TextTint(view.chip.name, style.colorMode, style.color, unit, sample) end
+			if element == "health" then K.Widgets.TextTint(view.healthSub, style.colorMode, style.color, unit, sample) end
+		end
+	end
+end
+
 function Unit.All(view, unit, instant)
 	if not (view.s and UnitExists(unit)) then
 		return
@@ -697,4 +732,5 @@ function Unit.All(view, unit, instant)
 	Unit.Level(view, unit)
 	Unit.Portrait(view, unit)
 	Indicators.Update(view, unit)
+	Unit.TextTags(view, unit)
 end

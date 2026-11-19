@@ -37,10 +37,12 @@ Model.defaults = {
 	hideBlizzard = true,
 	buffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
+		onlyMine = false, dispellable = false,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
+		onlyMine = false, dispellable = false,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },

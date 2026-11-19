@@ -14,4 +14,4 @@ K.Modules.Register({
 		ns.Frames.Disable()
 	end,
 })
-K.Options.Register(Settings.MODULE, Settings.schema)
+K.Options.Register(Settings.MODULE, Settings.Schema)

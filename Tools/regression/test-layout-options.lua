@@ -35,6 +35,14 @@ assert(K.Options.Open("Elements"))
 W.Settle(env)
 local items = ns.Window.State().items
 assert(items[1].kind == "header" and items[1].label == "Layout Mode", "Layout's own settings lead the Elements page")
+local coordinates
+for _, item in ipairs(items) do
+	if item.label == "Show coordinates on every plate" then coordinates = item end
+end
+assert(coordinates and coordinates.get() == false, "Elements has the default-off Layout Mode coordinates toggle")
+coordinates.set(true)
+assert(K.Layout.Setting("showCoordinates") == true, "the toggle uses the shared Layout setting")
+coordinates.set(false)
 
 local rows = {}
 for _, item in ipairs(items) do

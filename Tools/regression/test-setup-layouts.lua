@@ -53,7 +53,7 @@ local REFERENCE = {
 	["cooldowns.buffs"] = { 182.6, 41.6, -(243.2 / 2 + 16 + 182.6 / 2), 335.3 + LIFT },
 	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
 	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
-	["databars.xp"] = { 491, 7 * 19 / 16, 0, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 },
+	["databars.xp"] = { 491, 7 * 19 / 16, 0, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 + 9 },
 }
 for _, name in ipairs(Layouts.Names()) do
 	for key, want in pairs(REFERENCE) do
@@ -283,13 +283,13 @@ for _, name in ipairs(names) do
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME or EDGE
+			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME + 4 or key == "databars.strip" and EDGE + 4 or EDGE
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-		assert(map.top == HEIGHT - (EDGE - 1 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
-		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the map and 2.4 under the top of the zone heading over it")
-		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
+		assert(map.top == HEIGHT - (EDGE + 10 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
+		assert(math.abs(auraBuffs.right - (map.left - 7.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET + 10)) < 1e-6, label .. ": the buff row stands 7.9 left of the map while the zone heading keeps its edge margin")
+		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 12 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 12 under the buffs, right-aligned")
 		assert(same(auraBuffs.w, 307.5) and same(auraBuffs.h, 41.6) and same(auraDebuffs.w, 307.5) and same(auraDebuffs.h, 41.6), label .. ": each aura row is ten 27.6-unit icons 3.5 apart, 307.5 x 41.6")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
 		assert(meter.w == 248 and meter.h == 158, label .. ": the damage card retains its 248 by 158 footprint")
@@ -335,7 +335,7 @@ for _, name in ipairs(names) do
 		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
 		assert(math.abs(story.right - (width - EDGE)) < 1e-6 and math.abs(story.right - story.left - STORY_W) < 1e-6, label .. ": the story slot is on the right rail's column, 278 wide")
 		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the corrected map's caption, got " .. (over - story.top))
-		assert(math.abs(story.bottom - columns[1].top - 12) < 1e-6, label .. ": the story slot ends 12 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
+		assert(math.abs(story.bottom - columns[1].top - 13) < 1e-6, label .. ": the story slot ends 13 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
 		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and four quests, got " .. (story.top - story.bottom))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
@@ -367,14 +367,14 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(centred(r) and same(r.top, HEIGHT - 20) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has its own centred upper slot")
-				assert(r.bottom > rect("unitframes.focus").top and r.bottom > rect("unitframes.castbar.player").top, label .. ": bar 3 clears the complete HUD below")
+				assert(same((r.left + r.right) / 2, mid - 460) and same(r.bottom, 640) and same(r.w, 489) and same(r.h, 38), label .. ": bar 3 has the same left slot in the registered and per-aspect defaults")
+				assert((r.right <= rect("unitframes.focus").left or r.bottom >= rect("unitframes.focus").top) and (r.right <= rect("unitframes.castbar.player").left or r.bottom >= rect("unitframes.castbar.player").top), label .. ": bar 3 clears the complete HUD below")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
 			if key == "actionbars.bar3" then
-				assert(r.bottom >= HEIGHT * 0.7, label .. ": bar 3 stays above the central play field")
+				assert((r.right <= rect("unitframes.castbar.target").left or r.bottom >= rect("unitframes.castbar.target").top) and (r.right <= rect("unitframes.boss").left or r.top <= rect("unitframes.boss").bottom), label .. ": spare bar 3 clears the upper cast and the full boss column")
 			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 4, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
@@ -391,7 +391,7 @@ for _, name in ipairs(names) do
 		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
-		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16), label .. ": the mock-up's 7 px experience strip sits 9 px under the KSTY-44 tray card")
+		assert(same(xp.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 + 9) and same(bar1.bottom - xp.top, TRAY_PAD + 9 * 19 / 16 - 9), label .. ": the experience strip leaves its caption inside the margin and clears the tray card")
 		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
 		assert(same((playerBar[1] + playerBar[3]) / 2, (bar1.left + bar1.right) / 2), label .. ": LEE-20 the player's bars, not its external portrait reserve, stand centred over the tray")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
@@ -409,7 +409,7 @@ for _, name in ipairs(names) do
 		assert(same(bar1.left - TRAY_PAD - petBar.right, near) and same(petBar.bottom, TRAY_BOTTOM), label .. ": the optional pet sockets stand beside the tray card, on its bottom edge")
 		assert(same(stance.left - bar1.right - TRAY_PAD, near) and same(stance.bottom, TRAY_BOTTOM), label .. ": the optional stance sockets stand beside the tray card, on its bottom edge")
 		local rep, honor = rect("databars.rep"), rect("databars.honor")
-		assert(same(rep.x - mid, -337.5) and same(rep.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 15) and rep.top < TRAY_BOTTOM, label .. ": the reputation line keeps its old x under the tray card's left end")
+		assert(same(rep.x - mid, -337.5) and same(rep.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 1) and rep.top < TRAY_BOTTOM, label .. ": the reputation line keeps its old x under the tray card's left end")
 		assert(same(honor.x - mid, 337.5) and same(honor.bottom, rep.bottom), label .. ": the honour line mirrors it under the right end")
 		local pet = rect("unitframes.pet")
 		assert(same(pet.x - mid, -317) and same(pet.bottom, 258 + LIFT) and pet.w == 120 and pet.h == 22, label .. ": the optional pet frame keeps its original compact slot")
@@ -448,7 +448,7 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
-		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 632 + LIFT) and same(targetCast.top, 664 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
+		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 628 + LIFT) and same(targetCast.top, 660 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
@@ -462,8 +462,8 @@ for _, name in ipairs(names) do
 			local column = Layouts.Story(name, HEIGHT, true).quests
 			local columnLeft = Layouts.Rect(column, column, width, HEIGHT)
 			assert(math.abs(boss.right - (columnLeft - 16)) < 1e-6, label .. ": the boss column stands a rail gap left of the quest card's column, got " .. boss.right .. " for " .. columnLeft)
-			assert(boss.bottom == 752 and boss.bottom > text.top, label .. ": the boss column keeps its foot at 752, over your combat text, which stands beside the cast since KSTY-64, got " .. boss.bottom)
-			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 16, label .. ": your combat text stands right of the cast, a rail gap off the target of target, the swing timer and the target's cast, so it leaves the quest card's column")
+			assert(boss.bottom == 756 and boss.bottom > text.top, label .. ": the boss column keeps its foot at 756, clear of the spare bar, over your combat text, which stands beside the cast, got " .. boss.bottom)
+			assert(text.right <= tot.left - 16 and text.bottom >= rect("meters.swing").top + 16 and text.top <= rect("unitframes.castbar.target").bottom - 12, label .. ": your combat text clears the target cast by 12, and the target of target and swing timer by a rail gap")
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
 			for _, entry in ipairs(Layouts.Settings(name)) do
@@ -639,7 +639,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME) and minimap.y == -(EDGE - 1 + MAP_HEADING), "the map's forged card, drawn its frame outside the square, ends on the card margin with the cards under it (KSTY-60 item 28), under its 22-unit zone heading")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE + Layouts.MAP_FRAME + 4) and minimap.y == -(EDGE + 10 + MAP_HEADING), "the map reserves its forged card and caption inside the screen margin, under its zone heading")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

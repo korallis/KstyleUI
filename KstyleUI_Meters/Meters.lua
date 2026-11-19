@@ -85,7 +85,17 @@ function ns.IsRunning()
 	return running
 end
 
+local function YieldDamage()
+	local settings = K.Store.Module(MODULE)
+	ns.damageOverlap = #K.Setup.Integrations.Detected(MODULE) > 0
+	if not settings.overlapDamage and ns.damageOverlap then
+		settings.damage.shown = false
+		settings.overlapDamage = true
+	end
+end
+
 local function ApplyAll()
+	YieldDamage()
 	for _, part in ipairs(parts) do
 		K.Call(part.Apply, part)
 	end
@@ -116,6 +126,7 @@ local function OnLayout(_, key)
 end
 
 local function Enable()
+	YieldDamage()
 	running = true
 	for _, part in ipairs(parts) do
 		K.Call(part.Start, part)
@@ -140,4 +151,8 @@ local function Disable()
 end
 
 K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
-K.Options.Register(MODULE, ns.schema)
+K.Options.Register(MODULE, function()
+	local schema = ns.Schema()
+	schema.preview = ns.Preview.Build
+	return schema
+end)

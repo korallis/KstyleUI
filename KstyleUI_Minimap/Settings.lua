@@ -23,6 +23,7 @@ Settings.defaults = {
 	enabled = false,
 	compactIcons = false,
 	clearPlaques = true,
+	frame = "medallion",
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
@@ -32,241 +33,260 @@ Settings.defaults = {
 	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "world" },
 }
 
-local ACCENT_OPTIONS = {
-	{ value = "class", label = L["Class colour"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local SIDE_OPTIONS = {
-	{ value = "right", label = L["Inside the right edge"] },
-	{ value = "left", label = L["Inside the left edge"] },
-	{ value = "inside", label = L["Inside the right edge"] },
-}
-local BEHAVIOUR_OPTIONS = {
-	{ value = "click", label = L["Open on click"] },
-	{ value = "hover", label = L["Open on mouseover"] },
-	{ value = "open", label = L["Always open"] },
-}
-local DIRECTION_OPTIONS = {
-	{ value = "auto", label = L["Away from the map"] },
-	{ value = "left", label = L["Left"] },
-	{ value = "right", label = L["Right"] },
-	{ value = "up", label = L["Up"] },
-	{ value = "down", label = L["Down"] },
-}
-local GROWTH_OPTIONS = {
-	{ value = "down", label = L["From the top, downward"] },
-	{ value = "up", label = L["From the bottom, upward"] },
-}
-local ZONE_COLOR_OPTIONS = {
-	{ value = "plain", label = L["Plain"] },
-	{ value = "pvp", label = L["By PvP status"] },
-	{ value = "accent", label = L["Accent colour"] },
-}
-local CLOCK_OPTIONS = {
-	{ value = "game", label = L["Game clock settings"] },
-	{ value = "local24", label = L["Local time, 24-hour"] },
-	{ value = "local12", label = L["Local time, 12-hour"] },
-	{ value = "realm24", label = L["Realm time, 24-hour"] },
-	{ value = "realm12", label = L["Realm time, 12-hour"] },
-}
-local PRECISION_OPTIONS = {
-	{ value = 0, label = L["Whole numbers (45, 62)"] },
-	{ value = 1, label = L["Tenths (45.3, 62.1)"] },
-	{ value = 2, label = L["Hundredths (45.32, 62.18)"] },
-}
-local OUTLINE_OPTIONS = {
-	{ value = "world", label = L["Outline with a soft shadow"] },
-	{ value = "", label = L["None, with a soft shadow"] },
-	{ value = "OUTLINE", label = L["Thin outline"] },
-	{ value = "THICKOUTLINE", label = L["Thick outline"] },
-}
+local rows
 
-function Settings.FontOptions()
-	local out = { { value = "", label = L["Interface font"] } }
-	local Widgets = K.Widgets
-	if Widgets and Widgets.MediaOptions then
-		for _, option in ipairs(Widgets.MediaOptions("font")) do
-			out[#out + 1] = option
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local FRAME_OPTIONS = {
+		{ value = "medallion", label = L["Crest medallion"] },
+		{ value = "ring", label = L["Crest ring"] },
+		{ value = "classic", label = L["Classic"] },
+	}
+	local ACCENT_OPTIONS = {
+		{ value = "class", label = L["Class colour"] },
+		{ value = "custom", label = L["Custom colour"] },
+	}
+	local SIDE_OPTIONS = {
+		{ value = "right", label = L["Inside the right edge"] },
+		{ value = "left", label = L["Inside the left edge"] },
+		{ value = "inside", label = L["Inside the right edge"] },
+	}
+	local BEHAVIOUR_OPTIONS = {
+		{ value = "click", label = L["Open on click"] },
+		{ value = "hover", label = L["Open on mouseover"] },
+		{ value = "open", label = L["Always open"] },
+	}
+	local DIRECTION_OPTIONS = {
+		{ value = "auto", label = L["Away from the map"] },
+		{ value = "left", label = L["Left"] },
+		{ value = "right", label = L["Right"] },
+		{ value = "up", label = L["Up"] },
+		{ value = "down", label = L["Down"] },
+	}
+	local GROWTH_OPTIONS = {
+		{ value = "down", label = L["From the top, downward"] },
+		{ value = "up", label = L["From the bottom, upward"] },
+	}
+	local ZONE_COLOR_OPTIONS = {
+		{ value = "plain", label = L["Plain"] },
+		{ value = "pvp", label = L["By PvP status"] },
+		{ value = "accent", label = L["Accent colour"] },
+	}
+	local CLOCK_OPTIONS = {
+		{ value = "game", label = L["Game clock settings"] },
+		{ value = "local24", label = L["Local time, 24-hour"] },
+		{ value = "local12", label = L["Local time, 12-hour"] },
+		{ value = "realm24", label = L["Realm time, 24-hour"] },
+		{ value = "realm12", label = L["Realm time, 12-hour"] },
+	}
+	local PRECISION_OPTIONS = {
+		{ value = 0, label = L["Whole numbers (45, 62)"] },
+		{ value = 1, label = L["Tenths (45.3, 62.1)"] },
+		{ value = 2, label = L["Hundredths (45.32, 62.18)"] },
+	}
+	local OUTLINE_OPTIONS = {
+		{ value = "world", label = L["Outline with a soft shadow"] },
+		{ value = "", label = L["None, with a soft shadow"] },
+		{ value = "OUTLINE", label = L["Thin outline"] },
+		{ value = "THICKOUTLINE", label = L["Thick outline"] },
+	}
+
+	function Settings.FontOptions()
+		local out = { { value = "", label = L["Interface font"] } }
+		local Widgets = K.Widgets
+		if Widgets and Widgets.MediaOptions then
+			for _, option in ipairs(Widgets.MediaOptions("font")) do
+				out[#out + 1] = option
+			end
 		end
+		return out
 	end
-	return out
-end
 
-local function Custom(settings)
-	return settings.accent.source == "custom"
-end
+	local function Custom(settings)
+		return settings.accent.source == "custom"
+	end
 
-local function TextRows(prefix, labels, name)
-	return {
+	local function TextRows(prefix, labels, name)
+		return {
+			{
+				type = "dropdown", key = prefix .. ".font", label = labels[1], options = Settings.FontOptions,
+				help = L["The typeface of the %s."]:format(name),
+			},
+			{
+				type = "slider", key = prefix .. ".size", label = labels[2],
+				min = TEXT_MIN, max = TEXT_MAX, step = TEXT_STEP,
+				help = L["The size of the %s, before the interface text size."]:format(name),
+			},
+			{
+				type = "dropdown", key = prefix .. ".outline", label = labels[3], options = OUTLINE_OPTIONS,
+				help = L["An outline helps the %s read over bright terrain."]:format(name),
+			},
+		}
+	end
+
+	local schema = {
+		{ type = "header", label = L["Frame"] },
+		{ type = "dropdown", key = "frame", label = L["Minimap frame"], options = FRAME_OPTIONS,
+			help = L["Medallions only: crest medallion, crest ring with classic labels, or the classic frame."] },
+		{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
+		{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
 		{
-			type = "dropdown", key = prefix .. ".font", label = labels[1], options = Settings.FontOptions,
-			help = L["The typeface of the %s."]:format(name),
+			type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
+			help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],
 		},
 		{
-			type = "slider", key = prefix .. ".size", label = labels[2],
-			min = TEXT_MIN, max = TEXT_MAX, step = TEXT_STEP,
-			help = L["The size of the %s, before the interface text size."]:format(name),
+			type = "color", key = "accent.color", label = L["Custom colour"], showWhen = Custom,
+			help = L["The hairline colour when it does not follow your class."],
+		},
+		{ type = "header", label = L["Button column"] },
+		{
+			type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
+			help = L["Which edge of the map the small buttons line."],
 		},
 		{
-			type = "dropdown", key = prefix .. ".outline", label = labels[3], options = OUTLINE_OPTIONS,
-			help = L["An outline helps the %s read over bright terrain."]:format(name),
+			type = "toggle", key = "column.hover", label = L["Buttons only on hover"],
+			help = L["Shows the tracking, calendar and addon buttons only while the pointer is over the map."],
+		},
+		{
+			type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,
+			help = L["Whether the buttons start at the top or the bottom of the column."],
+		},
+		{
+			type = "slider", key = "column.size", label = L["Button size"],
+			min = BUTTON_MIN, max = BUTTON_MAX, step = BUTTON_STEP,
+			help = L["The width and height of each button in the column."],
+		},
+		{
+			type = "slider", key = "column.spacing", label = L["Button spacing"],
+			min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
+			help = L["The gap between the buttons in the column."],
+		},
+		{
+			type = "toggle", key = "column.tracking", label = L["Tracking button"],
+			help = L["Picks what the map tracks, such as herbs or the nearest innkeeper."],
+		},
+		{
+			type = "toggle", key = "column.mail", label = L["Mail indicator"],
+			help = L["Shows an envelope while you have unread mail."],
+		},
+		{
+			type = "toggle", key = "column.calendar", label = L["Calendar button"],
+			help = L["Opens the calendar; right-click for the clock options."],
+		},
+		{
+			type = "toggle", key = "column.queue", label = L["Group finder status"],
+			help = L["Shows an eye while you are queued, in place of Blizzard's queue eye."],
+		},
+		{
+			type = "toggle", key = "column.drawer", label = L["Addon drawer button"],
+			help = L["Gathers minimap buttons from other addons into a drawer."],
+		},
+		{ type = "header", label = L["Addon drawer"] },
+		{
+			type = "dropdown", key = "drawer.behaviour", label = L["Drawer opens"], options = BEHAVIOUR_OPTIONS,
+			help = L["Open the drawer with a click, on mouseover, or keep it open."],
+		},
+		{
+			type = "dropdown", key = "drawer.direction", label = L["Drawer direction"], options = DIRECTION_OPTIONS,
+			help = L["Which way the drawer opens from its button."],
+		},
+		{
+			type = "slider", key = "drawer.size", label = L["Drawer icon size"],
+			min = ICON_MIN, max = ICON_MAX, step = ICON_STEP,
+			help = L["The size of each addon button in the drawer."],
+		},
+		{
+			type = "slider", key = "drawer.spacing", label = L["Drawer spacing"],
+			min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
+			help = L["The gap between addon buttons in the drawer."],
+		},
+		{
+			type = "slider", key = "drawer.columns", label = L["Drawer columns"],
+			min = COLUMNS_MIN, max = COLUMNS_MAX, step = COLUMNS_STEP,
+			help = L["How many addon buttons sit in each row before a new row starts."],
+		},
+		{
+			type = "toggle", key = "drawer.autoClose", label = L["Close after a click"],
+			help = L["Closes the drawer when you click one of its buttons."],
+		},
+		{
+			type = "toggle", key = "drawer.compartment", label = L["Addon compartment"],
+			help = L["Right-click the drawer button for Blizzard's addon compartment list."],
+		},
+		{
+			type = "toggle", key = "drawer.hideEmpty", label = L["Hide when empty"],
+			help = L["Hides the drawer button while no addon has a button to show."],
+		},
+		{
+			type = "toggle", key = "drawer.edgePins", label = L["Addon pins on the map's edge"],
+			help = L["Shows the pins addons such as guides park on the map's edge for places off the map."],
+		},
+		{ type = "header", label = L["Zoom"] },
+		{
+			type = "toggle", key = "zoom.wheel", label = L["Zoom with the mouse wheel"],
+			help = L["Scroll over the map to zoom in and out."],
+		},
+		{
+			type = "toggle", key = "zoom.slider", label = L["Zoom slider"],
+			help = L["A thin slider inside the map's left edge while the pointer is over it. Click or drag it to zoom."],
+		},
+		{
+			type = "toggle", key = "zoom.reset", label = L["Zoom back out"],
+			help = L["Returns the map to its widest view a few seconds after you zoom."],
+		},
+		{
+			type = "slider", key = "zoom.delay", label = L["Zoom-out delay"],
+			min = DELAY_MIN, max = DELAY_MAX, step = DELAY_STEP,
+			showWhen = function(settings)
+				return settings.zoom.reset == true
+			end,
+			help = L["Seconds before the map zooms back out."],
+		},
+		{ type = "header", label = L["Zone and clock"] },
+		{
+			type = "toggle", key = "zone.shown", label = L["Zone name"],
+			help = L["Shows the zone name under the map's left edge."],
+		},
+		{
+			type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,
+			help = L["Colours the zone name plainly, by PvP status or with the accent."],
 		},
 	}
-end
+	for _, row in ipairs(TextRows("zone", { L["Zone font"], L["Zone text size"], L["Zone outline"] }, L["zone name"])) do
+		schema[#schema + 1] = row
+	end
+	schema[#schema + 1] = {
+		type = "toggle", key = "clock.shown", label = L["Clock"],
+		help = L["Shows the time under the map's right edge."],
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
+		help = L["Follow the game's clock settings, or pick local or realm time."],
+	}
+	for _, row in ipairs(TextRows("clock", { L["Clock font"], L["Clock text size"], L["Clock outline"] }, L["clock"])) do
+		schema[#schema + 1] = row
+	end
+	schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
+	schema[#schema + 1] = {
+		type = "toggle", key = "coords.shown", label = L["Coordinates"],
+		help = L["Shows your position on the zone map, under the zone name."],
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
+		help = L["How many decimals the coordinates show."],
+	}
+	for _, row in ipairs(TextRows("coords", { L["Coordinate font"], L["Coordinate text size"], L["Coordinate outline"] }, L["coordinates"])) do
+		schema[#schema + 1] = row
+	end
+	Settings.schema = schema
 
-local schema = {
-	{ type = "header", label = L["Frame"] },
-	{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
-	{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
-	{
-		type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
-		help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],
-	},
-	{
-		type = "color", key = "accent.color", label = L["Custom colour"], showWhen = Custom,
-		help = L["The hairline colour when it does not follow your class."],
-	},
-	{ type = "header", label = L["Button column"] },
-	{
-		type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
-		help = L["Which edge of the map the small buttons line."],
-	},
-	{
-		type = "toggle", key = "column.hover", label = L["Buttons only on hover"],
-		help = L["Shows the tracking, calendar and addon buttons only while the pointer is over the map."],
-	},
-	{
-		type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,
-		help = L["Whether the buttons start at the top or the bottom of the column."],
-	},
-	{
-		type = "slider", key = "column.size", label = L["Button size"],
-		min = BUTTON_MIN, max = BUTTON_MAX, step = BUTTON_STEP,
-		help = L["The width and height of each button in the column."],
-	},
-	{
-		type = "slider", key = "column.spacing", label = L["Button spacing"],
-		min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
-		help = L["The gap between the buttons in the column."],
-	},
-	{
-		type = "toggle", key = "column.tracking", label = L["Tracking button"],
-		help = L["Picks what the map tracks, such as herbs or the nearest innkeeper."],
-	},
-	{
-		type = "toggle", key = "column.mail", label = L["Mail indicator"],
-		help = L["Shows an envelope while you have unread mail."],
-	},
-	{
-		type = "toggle", key = "column.calendar", label = L["Calendar button"],
-		help = L["Opens the calendar; right-click for the clock options."],
-	},
-	{
-		type = "toggle", key = "column.queue", label = L["Group finder status"],
-		help = L["Shows an eye while you are queued, in place of Blizzard's queue eye."],
-	},
-	{
-		type = "toggle", key = "column.drawer", label = L["Addon drawer button"],
-		help = L["Gathers minimap buttons from other addons into a drawer."],
-	},
-	{ type = "header", label = L["Addon drawer"] },
-	{
-		type = "dropdown", key = "drawer.behaviour", label = L["Drawer opens"], options = BEHAVIOUR_OPTIONS,
-		help = L["Open the drawer with a click, on mouseover, or keep it open."],
-	},
-	{
-		type = "dropdown", key = "drawer.direction", label = L["Drawer direction"], options = DIRECTION_OPTIONS,
-		help = L["Which way the drawer opens from its button."],
-	},
-	{
-		type = "slider", key = "drawer.size", label = L["Drawer icon size"],
-		min = ICON_MIN, max = ICON_MAX, step = ICON_STEP,
-		help = L["The size of each addon button in the drawer."],
-	},
-	{
-		type = "slider", key = "drawer.spacing", label = L["Drawer spacing"],
-		min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
-		help = L["The gap between addon buttons in the drawer."],
-	},
-	{
-		type = "slider", key = "drawer.columns", label = L["Drawer columns"],
-		min = COLUMNS_MIN, max = COLUMNS_MAX, step = COLUMNS_STEP,
-		help = L["How many addon buttons sit in each row before a new row starts."],
-	},
-	{
-		type = "toggle", key = "drawer.autoClose", label = L["Close after a click"],
-		help = L["Closes the drawer when you click one of its buttons."],
-	},
-	{
-		type = "toggle", key = "drawer.compartment", label = L["Addon compartment"],
-		help = L["Right-click the drawer button for Blizzard's addon compartment list."],
-	},
-	{
-		type = "toggle", key = "drawer.hideEmpty", label = L["Hide when empty"],
-		help = L["Hides the drawer button while no addon has a button to show."],
-	},
-	{
-		type = "toggle", key = "drawer.edgePins", label = L["Addon pins on the map's edge"],
-		help = L["Shows the pins addons such as guides park on the map's edge for places off the map."],
-	},
-	{ type = "header", label = L["Zoom"] },
-	{
-		type = "toggle", key = "zoom.wheel", label = L["Zoom with the mouse wheel"],
-		help = L["Scroll over the map to zoom in and out."],
-	},
-	{
-		type = "toggle", key = "zoom.slider", label = L["Zoom slider"],
-		help = L["A thin slider inside the map's left edge while the pointer is over it. Click or drag it to zoom."],
-	},
-	{
-		type = "toggle", key = "zoom.reset", label = L["Zoom back out"],
-		help = L["Returns the map to its widest view a few seconds after you zoom."],
-	},
-	{
-		type = "slider", key = "zoom.delay", label = L["Zoom-out delay"],
-		min = DELAY_MIN, max = DELAY_MAX, step = DELAY_STEP,
-		showWhen = function(settings)
-			return settings.zoom.reset == true
-		end,
-		help = L["Seconds before the map zooms back out."],
-	},
-	{ type = "header", label = L["Zone and clock"] },
-	{
-		type = "toggle", key = "zone.shown", label = L["Zone name"],
-		help = L["Shows the zone name under the map's left edge."],
-	},
-	{
-		type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,
-		help = L["Colours the zone name plainly, by PvP status or with the accent."],
-	},
-}
-for _, row in ipairs(TextRows("zone", { L["Zone font"], L["Zone text size"], L["Zone outline"] }, L["zone name"])) do
-	schema[#schema + 1] = row
+	rows = {}
+	for _, row in ipairs(schema) do
+		if row.key then rows[row.key] = row end
+	end
+
+	return Settings.schema
 end
-schema[#schema + 1] = {
-	type = "toggle", key = "clock.shown", label = L["Clock"],
-	help = L["Shows the time under the map's right edge."],
-}
-schema[#schema + 1] = {
-	type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
-	help = L["Follow the game's clock settings, or pick local or realm time."],
-}
-for _, row in ipairs(TextRows("clock", { L["Clock font"], L["Clock text size"], L["Clock outline"] }, L["clock"])) do
-	schema[#schema + 1] = row
-end
-schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
-schema[#schema + 1] = {
-	type = "toggle", key = "coords.shown", label = L["Coordinates"],
-	help = L["Shows your position on the zone map, under the zone name."],
-}
-schema[#schema + 1] = {
-	type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
-	help = L["How many decimals the coordinates show."],
-}
-for _, row in ipairs(TextRows("coords", { L["Coordinate font"], L["Coordinate text size"], L["Coordinate outline"] }, L["coordinates"])) do
-	schema[#schema + 1] = row
-end
-Settings.schema = schema
 
 function Settings.IconSize(frame, key, minimum)
 	local size = Settings.Get(key)
@@ -276,13 +296,6 @@ function Settings.IconSize(frame, key, minimum)
 		return math.ceil(size / pixel - 0.000001) * pixel
 	end
 	return K.Widgets.Snap(frame, size)
-end
-
-local rows = {}
-for _, row in ipairs(schema) do
-	if row.key then
-		rows[row.key] = row
-	end
 end
 
 local cache = {}
@@ -357,6 +370,8 @@ function Settings.Get(key)
 		return default
 	end
 	local value = Lookup(Store.Module(MODULE), key)
+	if not IsSecret(value) and value == default then return value end
+	if not rows then Settings.Schema() end
 	if value == nil or Valid(rows[key], value, default) then
 		return value == nil and default or value
 	end

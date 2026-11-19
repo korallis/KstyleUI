@@ -20,7 +20,7 @@ end
 -- Cursor(env, K, x, y) puts the pointer at root units x, y.
 local function Cursor(env, K, x, y)
 	local scale = K.Scale.Root():GetEffectiveScale()
-	env._cursor = { x * scale, y * scale }
+	env._cursor = { (x + K.Scale.Origin()) * scale, y * scale }
 end
 
 local function Tick(K)
@@ -437,4 +437,106 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-print("layout mode ok")
+-- Shift locks the first movement, Alt+wheel reaches every overlap, and optional coordinates share the plate style.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K = New({ width = screen[1], height = screen[2], size = "auto", uiScale = 768 / 1080 })
+	local Layout, Mode = K.Layout, K.Layout.Mode
+	for _, key in ipairs({ "Test.A", "Test.B", "Test.C" }) do
+		Element(env, K, key, { anchor = "BOTTOMLEFT", x = 301, y = 303 }, 220, 40, { scalable = true })
+	end
+	Element(env, K, "Test.Away", { anchor = "BOTTOMLEFT", x = 800, y = 303 }, 220, 40)
+	assert(Layout.Enter())
+	local a, b, c = Mode.Plate("Test.A"), Mode.Plate("Test.B"), Mode.Plate("Test.C")
+	assert(Layout.Setting("showCoordinates") == false and b.info:GetText() == "", "absent coordinates retain today's look")
+	Mode.Select(a.key)
+	assert(a.info:GetText() ~= "" and b.info:GetText() == "", "only the selection has coordinates by default")
+	K.Options.Write("Layout", "showCoordinates", true)
+	assert(a.info:GetText() ~= "" and b.info:GetText() ~= "" and c.info:GetText() ~= "", "the toggle paints every plate immediately")
+	assert(b.info._points[1][3] == "BOTTOMLEFT", "coordinates use the shared plate placement")
+	assert(Layout.Set(b.key, "x", 302) and b.info:GetText():find("302", 1, true), "coordinates follow a changed position")
+	assert(Layout.Set(b.key, "x", 301))
+	Element(env, K, "Test.Thin", { anchor = "BOTTOMLEFT", x = 1000, y = 600 }, 120, 22)
+	Mode.Refresh()
+	local thin = Mode.Plate("Test.Thin")
+	assert(#thin.info._points == 2 and thin.info._points[1][2] == thin and thin.info._points[2][2] == thin and not thin.label:IsShown(),
+		"a thin plate's coordinates take one line across the plate")
+	assert(thin.info:GetText() == "BOTTOMLEFT  1000, 600", "thin plates show the short coordinates")
+	K.Options.Write("Layout", "showCoordinates", false)
+	assert(a.info:GetText() ~= "" and b.info:GetText() == "", "turning off restores selection-only coordinates")
+	assert(Layout.Setting("showCoordinates") == false)
+
+	Cursor(env, K, 400, 320)
+	env._modifiers.alt = true
+	for _, step in ipairs({ { a, b }, { b, c }, { c, a }, { a, c, -1 } }) do
+		step[1]:GetScript("OnMouseWheel")(step[1], step[3] or 1)
+		assert(Mode.Selected() == step[2].key, "Alt+wheel cycles all three plates, wraps and reverses")
+		for _, other in ipairs({ a, b, c }) do
+			assert(other == step[2] or step[2]:GetFrameLevel() > other:GetFrameLevel(), "the selected plate receives the next click")
+		end
+		assert(Mode.Handle("SCALE"):GetFrameLevel() > step[2]:GetFrameLevel(), "handles stay above the cycled plate")
+	end
+	assert(Layout.Get(a.key).scale == 1 and Layout.Get(b.key).scale == 1 and Layout.Get(c.key).scale == 1, "cycling never scales a plate")
+	Layout.SetLive(b.key, false)
+	c:GetScript("OnMouseWheel")(c, -1)
+	assert(Mode.Selected() == a.key, "hidden plates and plates elsewhere are excluded")
+	Layout.SetLive(b.key, true)
+	env._modifiers.alt = false
+	a:GetScript("OnMouseWheel")(a, 1)
+	assert(near(Layout.Get(a.key).scale, 1.05), "unmodified wheel still scales")
+	assert(Layout.Set(a.key, "scale", 1))
+	Cursor(env, K, 400, 320)
+	a:GetScript("OnDragStart")(a)
+	a:GetScript("OnMouseWheel")(a, 1)
+	assert(near(Layout.Get(a.key).scale, 1.05), "the wheel still scales while the plate is dragged")
+	a:GetScript("OnDragStop")(a)
+	assert(Layout.Set(a.key, "scale", 1))
+
+	K.Options.Write("Layout", "grid", true)
+	local startL, startB = Layout.Rect(a.key)
+	env._modifiers.shift = true
+	Cursor(env, K, 400, 320)
+	a:GetScript("OnDragStart")(a)
+	Tick(K)
+	Cursor(env, K, 420, 321)
+	Tick(K)
+	Cursor(env, K, 430, 500)
+	Tick(K)
+	local _, bottom = Layout.Rect(a.key)
+	assert(near(bottom, startB), "horizontal Shift drag keeps its first axis even when later movement and snapping favour Y")
+	local _, gy = Mode.Guides()
+	assert(not gy:IsShown(), "no guide claims a snap on the locked axis")
+	a:GetScript("OnDragStop")(a)
+	assert(near(select(2, Layout.Rect(a.key)), startB), "the locked coordinate is saved")
+	assert(Layout.Undo())
+	Drag(env, K, a, 400, 320, 401, 350, true)
+	Cursor(env, K, 600, 360)
+	Tick(K)
+	assert(near(Layout.Rect(a.key), startL), "a fresh drag can lock vertically")
+	env._modifiers.shift = false
+	Tick(K)
+	assert(not near(Layout.Rect(a.key), startL), "releasing Shift restores free dragging")
+	a:GetScript("OnDragStop")(a)
+	K.Options.Write("Layout", "snap", false)
+	local l, y = Layout.Rect(a.key)
+	Drag(env, K, a, 400, 320, 440, 370)
+	local movedL, movedY = Layout.Rect(a.key)
+	assert(near(movedL - l, 40, 0.6) and near(movedY - y, 50, 0.6), "ordinary dragging still moves on both axes")
+	Mode.Select(a.key)
+	local pixel = K.Scale.Pixel(1)
+	l, y = Layout.Rect(a.key)
+	Key(K, "RIGHT")
+	env._modifiers.shift = true
+	Key(K, "UP")
+	env._modifiers.shift = false
+	movedL, movedY = Layout.Rect(a.key)
+	assert(near(movedL - l, pixel) and near(movedY - y, pixel * 10), "arrows remain 1 pixel and Shift+arrows 10 at every screen size")
+	env.SetCombat(true)
+	assert(not Layout.IsActive() and not Mode.Overlay():IsShown(), "combat still closes Layout Mode")
+	local scale = Layout.Get(a.key).scale
+	env._modifiers.alt = true
+	a:GetScript("OnMouseWheel")(a, 1)
+	assert(Mode.Selected() == nil and Layout.Get(a.key).scale == scale, "closed combat plates neither cycle nor scale")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+print("layout mode ok: four screens, axis lock, overlap cycling, coordinates, drag, nudge, scale and combat")

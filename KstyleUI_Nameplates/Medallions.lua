@@ -108,10 +108,14 @@ local function StyleType(plate)
 	if not FollowsKit() then
 		return
 	end
-	Widgets.ApplyFont(plate.name, Tokens.FontPath(NAME_FACE), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
+	if K.Theme.FollowsKit(Settings.Get("name.font")) then
+		Widgets.ApplyFont(plate.name, Tokens.FontPath(NAME_FACE), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
+	end
 	local number = (Tokens.Font("number"))
 	Widgets.ApplyFont(plate.levelText, number, Settings.Get("level.size"), OUTLINE_FLAGS[Settings.Get("level.outline")])
-	Widgets.ApplyFont(plate.healthText, number, Settings.Get("healthText.size"), OUTLINE_FLAGS[Settings.Get("healthText.outline")])
+	if K.Theme.FollowsKit(Settings.Get("healthText.font")) then
+		Widgets.ApplyFont(plate.healthText, number, Settings.Get("healthText.size"), OUTLINE_FLAGS[Settings.Get("healthText.outline")])
+	end
 end
 
 function Component.Restyle(plate)

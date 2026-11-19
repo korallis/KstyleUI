@@ -294,3 +294,19 @@ A CVar the client does not have is skipped and logged once. `nameplateMaxDistanc
 - **The footprint, not the overlap CVars.** `nameplateOverlapV` scales the game's own plate height, which stays Blizzard's; a plate twice that height would still overlap at any sane factor. Giving the game the plate's real size is how Plater and Platynator keep stacks apart, and the game's own driver exposes the same call.
 - **Type colours on the bar, not a badge.** A pull is read at a glance by colour; a small quest or caster glyph would be lost at distance. One type wins so a bar never has to say two things.
 - **No important-spell list.** Every nameplate cast is secret on Forever, so a list could never match. The interrupt's cooldown is the one fact the player can act on that the game lets a plate read in combat.
+
+### Text customisation
+
+Name and health text share Font, Text size, Outline, Text colour, Custom text colour and Text format rows. The role font and current style remain the defaults; health also follows the existing health preset while Text format is blank. Class, reaction, accent and custom are the colour choices. Existing Show switches and the health preset's None choice still hide text.
+
+A format can mix literal text with `[name]`, `[hp]`, `[hp:pct]`, `[hp:abr]`, `[hp:max]`, `[pp]`, `[pp:pct]`, `[pp:abr]`, `[pp:max]`, `[level]`, `[absorb]`, `[target]` and `[group]` (raid subgroup). For example, `[hp:abr] ([hp:pct])`. Custom formats preserve their literal case. Unknown tags stay literal; missing optional APIs produce empty text. Percent tags use the client's percent API and the shared whole-number abbreviation, so they truncate fractions. Default presets retain their existing rounding and offline/dead labels.
+
+The page and saved reads share one settings table; parsed formats are cached. Power, absorb and target tags subscribe only while an enabled text format needs them, filtered to each plate's unit. Tags refresh once per event with no new frame ticker, secret comparison, saved-setting migration or layout move. `test-text-options.lua` and `test-text-review.lua` check defaults, off, live controls and secrets at all four supported screen sizes; `short_numbers` with `RENDER_TEXT_OPTIONS=1` renders the new controls in use.
+
+## Aura filters
+
+The shared aura filter uses Only yours, Dispellable by you, Allow spell IDs, Block spell IDs and Sort by. IDs are positive whole numbers separated by commas or spaces; blank or invalid lists add no restriction. An allow list containing valid IDs limits the row to those spells within its other filters, and blocking wins. The engine handles identity filtering: an unreadable spell ID never becomes a Lua table key; an allow list rejects unidentifiable auras, while a block list alone cannot hide an unidentifiable spell. Overflow counters use the same filters as the visible icons.
+
+Missing settings preserve only your debuffs, nameplate-only debuffs and the existing Important first order. Turn Only yours off to include other casters. The existing order key is retained. No saved settings are migrated.
+
+`Tools/regression/test-aura-filters.lua` covers defaults, enabled filters and off at 1920x1080, 2560x1440, 5120x1440 and 3840x2160. `Tools/render/scenes/options_aura_filters.lua` renders the real controls; set `RENDER_AURA_MODULE` to `Nameplates`.

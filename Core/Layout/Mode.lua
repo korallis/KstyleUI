@@ -10,11 +10,11 @@ local floor, max, min, format = math.floor, math.max, math.min, string.format
 local Mode = {}
 Layout.Mode = Mode
 ns.Store.RegisterDefaults("LayoutControls", { clearMovers = true, search = true })
-ns.Options.Register("LayoutControls", {
+ns.Options.Register("LayoutControls", function() return {
 	{ type = "header", label = L["Mover controls"] },
 	{ type = "toggle", key = "clearMovers", label = L["See-through movers"], help = L["Uses 35 percent opacity and label tags on movers. Off restores the old solid plates."] },
 	{ type = "toggle", key = "search", label = L["Find Layout Mode elements"], help = L["Adds a searchable element list to the toolbar. Off keeps the previous drag-only toolbar."] },
-})
+} end)
 
 local TOOLBAR_KEY = "Layout.Toolbar"
 local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -96 }
@@ -67,13 +67,23 @@ local function Cursor()
 	if not (IsNumber(x) and IsNumber(y) and IsNumber(s)) or s <= 0 then
 		return nil
 	end
-	return x / s, y / s
+	return x / s - Scale.Origin(), y / s
 end
 
-local function Describe(key)
+local function Describe(key, short)
 	local s = Layout.Element(key).settings
 	local el = Layout.Element(key)
 	local text = format("%s  %d, %d", s.anchor, floor(s.x + 0.5), floor(s.y + 0.5))
+	if short then
+		return text
+	end
+	if s.attachTo ~= "" then
+		local side = ({ above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] })[s.side]
+		local target = Layout.Element(s.attachTo)
+		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
+		if s.matchWidth then text = text .. " / " .. L["Match width"] end
+		return text
+	end
 	if el.opts.resizable then
 		text = text .. format("  %d x %d", floor(s.width + 0.5), floor(s.height + 0.5))
 	end
@@ -90,7 +100,7 @@ local function PaintPlate(plate)
 	local r, g, b = Tokens.Color(clear and "deep" or "buttonFill")
 	plate.chrome:SetFillRGBA(r, g, b, clear and 0.35 or fill)
 	plate.chrome:SetEdgeRGBA(Widgets.Rgba("accent", clear and 1 or (active or plate.hover) and EDGE_ACTIVE or EDGE_REST))
-	Widgets.SetText(plate.info, active and Describe(plate.key) or "")
+	Widgets.SetText(plate.info, (active or Layout.Setting("showCoordinates")) and Describe(plate.key, plate.thin) or "")
 end
 
 local function PaintHandle(handle)
@@ -132,14 +142,30 @@ local function PlacePlate(plate, frame, w, h)
 	local clear = ns.Store.Module("LayoutControls").clearMovers
 	plate.label:ClearAllPoints()
 	plate.info:ClearAllPoints()
+	local attached = Layout.Element(plate.key).settings.attachTo ~= ""
+	local coordinates = Layout.Setting("showCoordinates")
+	plate.thin = not attached and coordinates and h < Tokens.Size("caption") * 2 + 8
 	if clear then
 		Widgets.Point(plate.label, "TOPLEFT", plate, "TOPLEFT", 4, -2)
-		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
 	else
 		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
+	end
+	if attached then
+		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
+	elseif plate.thin then
+		Widgets.Point(plate.info, "LEFT", plate, "LEFT", 4, 0)
+		Widgets.Point(plate.info, "RIGHT", plate, "RIGHT", -4, 0)
+	elseif clear and coordinates then
+		Widgets.Point(plate.info, "TOPLEFT", plate.label, "BOTTOMLEFT", 0, -2)
+	elseif clear then
+		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
+	else
 		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
 	end
-	plate.tag:SetShown(clear)
+	plate.info:SetWordWrap(not plate.thin)
+	plate.info:SetJustifyH(plate.thin and "LEFT" or "CENTER")
+	plate.label:SetShown(not plate.thin)
+	plate.tag:SetShown(clear and not plate.thin)
 end
 
 local function RefreshPlate(key)
@@ -227,11 +253,16 @@ local function UpdateDrag()
 	local l, b, w, h, s = d.left, d.bottom, d.width, d.height, d.scale
 	if d.kind == "move" then
 		local gx, gy
+		if not d.axis and (dx ~= 0 or dy ~= 0) then
+			d.axis = math.abs(dx) >= math.abs(dy) and "x" or "y"
+		end
+		local axis = KeyDown(IsShiftKeyDown) and d.axis
 		l, b = G.ClampToRoot(l + dx, b + dy, w, h, rw, rh)
 		if Layout.Setting("snap") then
 			l, b, gx, gy = G.SnapMove(l, b, w, h, d.targets, Layout.Setting("snapDistance"), d.grid)
 		end
 		l, b = G.Align(l, pixel), G.Align(b, pixel)
+		if axis == "x" then b, gy = d.bottom, nil elseif axis == "y" then l, gx = d.left, nil end
 		ShowGuide(guideX, gx, true)
 		ShowGuide(guideY, gy, false)
 	elseif d.kind == "resize" then
@@ -294,9 +325,11 @@ local function EndDrag(commit)
 	guideY:Hide()
 	local ok = false
 	if commit and d.moved then
-		local rw, rh = Layout.RootSize()
-		local anchor, x, y = G.Position(d.l, d.b, d.w, d.h, rw, rh)
-		local values = { anchor = anchor, x = x, y = y }
+		local values = Layout.Movement(d.key, d.l, d.b, d.w, d.h)
+		if values.offset == nil then
+			local rw, rh = Layout.RootSize()
+			values.anchor, values.x, values.y = G.Position(d.l, d.b, d.w, d.h, rw, rh)
+		end
 		if d.kind == "resize" then
 			values.width, values.height = d.w / d.factor, d.h / d.factor
 		elseif d.kind == "scale" then
@@ -327,8 +360,7 @@ local function Nudge(dx, dy)
 	local rw, rh = Layout.RootSize()
 	l, b = G.ClampToRoot(l + dx * step, b + dy * step, w, h, rw, rh)
 	l, b = Layout.Clamp(key, l, b, w, h)
-	local _, x, y = G.Position(l, b, w, h, rw, rh, Layout.Element(key).settings.anchor)
-	Layout.Update(key, { x = x, y = y }, "nudge:" .. key)
+	Layout.Update(key, Layout.Movement(key, l, b, w, h), "nudge:" .. key)
 end
 
 local function OnKeyDown(self, key)
@@ -372,6 +404,7 @@ local function PlateTooltip(tip, plate)
 		tip:AddCaption(el.module)
 	end
 	tip:AddLine(L["Drag to move. The arrow keys nudge it one pixel, or ten with Shift."])
+	tip:AddLine(L["Hold Shift to lock a drag to its first direction. Alt+scroll cycles through stacked plates."])
 	if el.opts.resizable then
 		tip:AddLine(L["Click it, then drag a handle to resize it."])
 	end
@@ -399,8 +432,32 @@ local function PlateDragStart(plate)
 end
 
 local function PlateWheel(plate, delta)
+	if not Layout.IsActive() or InCombatLockdown() or not IsNumber(delta) or delta == 0 then return end
+	if KeyDown(IsAltKeyDown) then
+		local x, y = Cursor()
+		if not x then return end
+		local stack, at = {}, nil
+		for _, el in ipairs(Layout.Elements()) do
+			local other = plates[el.key]
+			if other and other:IsShown() then
+				local l, b, w, h = Layout.Rect(el.key)
+				local cx, cy = l + w / 2, b + h / 2
+				if math.abs(x - cx) <= max(PLATE_MIN, w) / 2 and math.abs(y - cy) <= max(PLATE_MIN, h) / 2 then
+					stack[#stack + 1] = other
+					if other == plate then at = #stack end
+				end
+			end
+		end
+		if at and #stack > 1 then
+			local nextPlate = stack[(at - 1 + (delta > 0 and 1 or -1)) % #stack + 1]
+			for _, other in ipairs(stack) do other:SetFrameLevel(overlay:GetFrameLevel() + 1) end
+			nextPlate:SetFrameLevel(overlay:GetFrameLevel() + 2)
+			Mode.Select(nextPlate.key)
+		end
+		return
+	end
 	local el = Layout.Element(plate.key)
-	if not el or not el.opts.scalable or not IsNumber(delta) or delta == 0 then
+	if not el or not el.opts.scalable then
 		return
 	end
 	local scale = el.settings.scale + (delta > 0 and 1 or -1) * Layout.SCALE_STEP

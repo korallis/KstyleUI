@@ -68,23 +68,27 @@ local function Apply()
 	end
 end
 
-HudStyle.schema = {
-	{ type = "header", label = L["HUD"] },
-	{
-		type = "pictures", key = "style", label = L["HUD style"],
-		help = medallionsOffered and L["Orbs puts health and resource in orbs; Medallions adds round portraits. Changes out of combat."] or L["Orbs puts health and resource in orbs. Changes out of combat."],
-		options = {
-			{ value = "frames", label = L["Frames"], picture = (Tokens.Texture("hudStyleFrames")) },
-			{ value = "orbs", label = L["Orbs"], picture = (Tokens.Texture("hudStyleOrbs")) },
+function HudStyle.Schema()
+	if HudStyle.schema then return HudStyle.schema end
+	HudStyle.schema = {
+		{ type = "header", label = L["HUD"] },
+		{
+			type = "pictures", key = "style", label = L["HUD style"],
+			help = medallionsOffered and L["Orbs puts health and resource in orbs; Medallions adds round portraits. Changes out of combat."] or L["Orbs puts health and resource in orbs. Changes out of combat."],
+			options = {
+				{ value = "frames", label = L["Frames"], picture = (Tokens.Texture("hudStyleFrames")) },
+				{ value = "orbs", label = L["Orbs"], picture = (Tokens.Texture("hudStyleOrbs")) },
+			},
 		},
-	},
-}
-if medallionsOffered then
-	table.insert(HudStyle.schema[2].options, { value = "medallions", label = L["Medallions"], picture = (Tokens.Texture("hudStyleMedallions")) })
+	}
+	if medallionsOffered then
+		table.insert(HudStyle.schema[2].options, { value = "medallions", label = L["Medallions"], picture = (Tokens.Texture("hudStyleMedallions")) })
+	end
+	return HudStyle.schema
 end
 
 Store.RegisterDefaults(SECTION, HudStyle.defaults)
-ns.Options.Register(SECTION, HudStyle.schema)
+ns.Options.Register(SECTION, HudStyle.Schema)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module)
 	if module == SECTION then

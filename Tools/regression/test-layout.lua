@@ -247,7 +247,7 @@ end
 
 do
 	local SHOWN = { "always", "combat", "noCombat", "target", "mouseover", "never" }
-	check("six rules", #Rules.SHOWN == 6)
+	check("twelve rules", #Rules.SHOWN == 12)
 	for i, rule in ipairs(SHOWN) do
 		check("rule " .. rule, Rules.SHOWN[i] == rule and Rules.IsRule(rule))
 	end

@@ -1,9 +1,14 @@
 -- test-rails-composed.lua: story cards share their foot and eight-unit gutter, and a quest can continue under the viewport's lower fade.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
+for _, framing in ipairs({ "classic", "ring", "medallion" }) do
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, height = 1440 }, { width = 3456, height = 2234 } }) do
+	screen.frame = framing
 	local R = Boot(screen)
 	local env, K, ns = R.env, R.K, R.ns
+	R.quests[2].objectives[1].text = string.rep("Find the lost travelers near the lake. ", 2)
+	R.log.Fire("QUEST_LOG_UPDATE")
+	R.settle()
 	local root = K.Scale.Root()
 	local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, root)) end
 	local quest = ns.QuestCard.Frame()
@@ -12,7 +17,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local pixel = K.Scale.Pixel(1) + 0.01
 	local composed = ns.QuestCard.Parts()
 	assert(composed.cap:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out again at the composed height, with the cap and next quest visible")
-	if screen.width == 1920 then assert(composed.fade:IsShown(), "the 1080 story card uses its added height for a continuation under the fade") end
+	if screen.width == 1920 and framing == "classic" then assert(composed.fade:IsShown(), "the 1080 story card uses its added height for a continuation under the fade") end
 	assert(math.abs(q.bottom - g.bottom) <= pixel, "side-by-side story cards share the taller card's foot")
 	assert(math.abs(q.left - g.right - 8) <= pixel, "side-by-side story cards share one eight-unit gutter: " .. q.left .. " - " .. g.right)
 	K.Options.Write("Skins", "restedXP.compose", false)
@@ -32,7 +37,8 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	assert(not parts.fade:IsShown(), "turning quest continuation off restores complete-row pages without a fade")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
-print("composed story rail ok")
+end
+print("composed story rail ok: Classic continuation and all three minimap frames")
 
 do
 	local R = Boot({ width = 1920, height = 1080 })

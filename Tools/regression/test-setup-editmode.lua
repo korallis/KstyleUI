@@ -270,7 +270,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
 		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
 		assert(thick >= 20 / k - 0.5 and thick <= NativeIconSize(k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the nearest reference step, got " .. thick)
-		assert((barBox[4] - barBox[2] - 5 * 2) / 6 >= 15 - 0.5, where .. ": a bar is at least Edit Mode's 50%")
+		local barScale = (Setting(bar, ICON_SIZE) * 10 + 50) / 100
+		local barGap = (Setting(bar, EditModeFake.ICON_PADDING) - 2) * barScale / k
+		assert(Setting(bar, ICON_SIZE) >= 0 and (barBox[4] - barBox[2] - 5 * barGap) / 6 >= 15 / k - 0.5, where .. ": a bar is at least Edit Mode's 50%")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end

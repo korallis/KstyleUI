@@ -141,6 +141,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 			aura = { font = THEME_FONT, size = 8, outline = "OUTLINE" },
 		},
 	}
+	for _, element in ipairs({ "name", "health" }) do
+		local style = d.fonts[element]
+		style.colorMode, style.color, style.textFormat = "", Color("textEmphasis"), ""
+	end
 	for key, value in pairs(overrides or {}) do
 		d[key] = value
 	end
@@ -426,7 +430,7 @@ function Settings.Font(kind, element)
 			path = Tokens.Font(slab.role)
 		end
 	end
-	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline)
+	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline), style.outline
 end
 
 function Settings.ThemeFont(kind, element)
@@ -472,11 +476,16 @@ end
 function Settings.Snapshot(kind)
 	local fonts = {}
 	for _, element in ipairs(Settings.TEXTS) do
-		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale() }
+		local own, d = Kinds(kind)
+		local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
+		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale(),
+			colorMode = style.colorMode or "", color = style.color or d.fonts[element].color,
+			textFormat = type(style.textFormat) == "string" and style.textFormat or "" }
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
 	local s = { fonts = fonts, form = form, kind = kind, inlineCast = form == "column" and kind ~= "player" }
+	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
 			s[key] = Settings.Value(kind, key)
@@ -518,19 +527,16 @@ local function BarRows(schema, kind, bar)
 	local custom = function(s)
 		return on(s) and s[bar .. "Color"] == "custom"
 	end
-	schema[#schema + 1] = Row(kind, {
-		type = "texture", key = bar .. "Texture", label = L["Bar texture"],
-		help = L["The texture the bar is filled with."],
-	}, on)
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = bar .. "Color", label = L["Bar colour"],
-		help = L["Where the bar's colour comes from."],
+	K.Widgets.BarRows(schema, "", {
+		keys = { texture = bar .. "Texture", colorSource = bar .. "Color", color = bar .. "Custom" },
 		options = bar == "health" and CHOICES.healthColor or CHOICES.powerColor,
-	}, on)
-	schema[#schema + 1] = Row(kind, {
-		type = "color", key = bar .. "Custom", label = L["Custom bar colour"],
-		help = L["The bar's colour when its colour source is custom."],
-	}, custom)
+		height = bar == "power" and { POWER_HEIGHT_MIN, POWER_HEIGHT_MAX, 1, key = "powerHeight" } or nil,
+		row = function(row)
+			local show = row.type == "color" and custom or on
+			if row.type == "slider" then show = function(s) return on(s) and s.style ~= "column" end end
+			return Row(kind, row, show)
+		end,
+	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = bar .. "Orientation", label = L["Fill direction"],
 		help = L["Which way the bar fills."], options = CHOICES.orientation,
@@ -552,20 +558,17 @@ local TEXT_LABELS = {
 }
 
 local function TextRows(schema, kind, element)
-	local prefix = "fonts." .. element .. "."
-	local label = TEXT_LABELS[element]
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = prefix .. "font", label = label .. ": " .. L["font"],
-		help = L["The font of this text. KstyleUI font follows the Appearance page."], options = FontOptions,
-	})
-	schema[#schema + 1] = Row(kind, {
-		type = "slider", key = prefix .. "size", label = label .. ": " .. L["size"],
-		help = L["The text size in units at the 1080 reference."],
-		min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = kind == "target" and element == "level" and 0.5 or FONT_SIZE_STEP,
-	})
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = prefix .. "outline", label = label .. ": " .. L["outline"],
-		help = L["A soft shadow, or an outline for text over busy scenes."], options = CHOICES.outline,
+	local prefix = "fonts." .. element
+	K.Widgets.TextRows(schema, prefix, {
+		fontType = "dropdown", fonts = FontOptions, outlines = CHOICES.outline,
+		step = kind == "target" and element == "level" and 0.5 or FONT_SIZE_STEP,
+		tags = element == "name" or element == "health",
+		row = function(row)
+			row.label = TEXT_LABELS[element] .. ": " .. row.label
+			return Row(kind, row, row.type == "color" and function(s)
+				return s.fonts[element].colorMode == "custom"
+			end or nil)
+		end,
 	})
 end
 
@@ -605,13 +608,6 @@ CastRows = function(schema, kind)
 		type = "toggle", key = "castbar", label = L["Cast bar"],
 		help = L["Shows the unit's casts and channels."],
 	})
-	if not Settings.CAST_ELEMENTS[kind] then
-		schema[#schema + 1] = Row(kind, {
-			type = "slider", key = "castbarHeight", label = L["Cast bar height"],
-			help = L["The height of the cast bar under the frame, in units."],
-			min = CAST_HEIGHT_MIN, max = CAST_HEIGHT_MAX, step = 1,
-		}, on)
-	end
 	if Settings.CAST_ELEMENTS[kind] then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "castbarInside", label = L["Spell name inside the bar"],
@@ -636,22 +632,16 @@ CastRows = function(schema, kind)
 		type = "toggle", key = "castbarTimer", label = L["Timer"],
 		help = L["Shows the seconds left on the cast bar."],
 	}, on)
+	K.Widgets.BarRows(schema, "", {
+		keys = { texture = "castbarTexture", colorSource = "castbarColor", color = "castbarCustom" },
+		options = CHOICES.castbarColor,
+		height = not Settings.CAST_ELEMENTS[kind] and { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX, 1, key = "castbarHeight" } or nil,
+		row = function(row)
+			return Row(kind, row, row.type == "color" and function(s) return on(s) and s.castbarColor == "custom" end or on)
+		end,
+	})
 	schema[#schema + 1] = Row(kind, {
-		type = "texture", key = "castbarTexture", label = L["Cast bar texture"],
-		help = L["The texture the cast bar is filled with."],
-	}, on)
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = "castbarColor", label = L["Cast bar colour"],
-		help = L["The class colour, the caster's reaction to you, or a custom colour."], options = CHOICES.castbarColor,
-	}, on)
-	schema[#schema + 1] = Row(kind, {
-		type = "color", key = "castbarCustom", label = L["Custom cast bar colour"],
-		help = L["The cast bar's colour when it is custom."],
-	}, function(s)
-		return on(s) and s.castbarColor == "custom"
-	end)
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = "castbarOrientation", label = L["Cast bar fill direction"],
+		type = "dropdown", key = "castbarOrientation", label = L["Fill direction"],
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
@@ -750,23 +740,15 @@ ResourceRows = function(schema)
 		type = "toggle", key = "resource.druidMana", label = L["Druid mana"], showWhen = shows(on),
 		help = L["Shows your mana in bear and cat form."],
 	}
+	K.Widgets.BarRows(schema, "resource", {
+		keys = { texture = "manaTexture", colorSource = "manaColor", color = "manaCustom" }, options = CHOICES.manaColor,
+		row = function(row)
+			row.showWhen = shows(row.type == "color" and function(r) return on(r) and r.manaColor == "custom" end or on)
+			return row
+		end,
+	})
 	schema[#schema + 1] = {
-		type = "texture", key = "resource.manaTexture", label = L["Mana bar texture"], showWhen = shows(on),
-		help = L["The texture the druid mana bar is filled with."],
-	}
-	schema[#schema + 1] = {
-		type = "dropdown", key = "resource.manaColor", label = L["Mana bar colour"], showWhen = shows(on),
-		help = L["Where the druid mana bar's colour comes from."], options = CHOICES.manaColor,
-	}
-	schema[#schema + 1] = {
-		type = "color", key = "resource.manaCustom", label = L["Custom mana colour"],
-		help = L["The mana bar's colour when it is custom."],
-		showWhen = shows(function(r)
-			return on(r) and r.manaColor == "custom"
-		end),
-	}
-	schema[#schema + 1] = {
-		type = "dropdown", key = "resource.manaOrientation", label = L["Mana bar fill direction"], showWhen = shows(on),
+		type = "dropdown", key = "resource.manaOrientation", label = L["Fill direction"], showWhen = shows(on),
 		help = L["Which way the druid mana bar fills."], options = CHOICES.orientation,
 	}
 	for i = first, #schema do
@@ -854,13 +836,6 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "power", label = L["Power bar"],
 		help = L["Shows the unit's mana, rage, energy or focus under its health."],
 	})
-	schema[#schema + 1] = Row(kind, {
-		type = "slider", key = "powerHeight", label = L["Power bar height"],
-		help = L["The height of the power bar in units."],
-		min = POWER_HEIGHT_MIN, max = POWER_HEIGHT_MAX, step = 1,
-	}, function(s)
-		return s.power ~= false and s.style ~= "column"
-	end)
 	BarRows(schema, kind, "power")
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "powerSeparate", label = L["Separate similar health and power colours"],

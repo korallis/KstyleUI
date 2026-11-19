@@ -31,11 +31,13 @@ local function whole(v)
 	return near(v, math.floor(v + 0.5))
 end
 
+for _, frame in ipairs({ "medallion", "ring", "classic" }) do
 for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 }, { 2383, 1540 }, { 3456, 2234 }, { 1366, 768 } }) do
 	local env, K = New(screen[1], screen[2])
 	local Scale, Layouts = K.Scale, K.Setup.Layouts
 	local label = screen[1] .. "x" .. screen[2] .. " medallions"
 	local profile = K.Store.Profile()
+	profile.Minimap.frame = frame
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(K.HudStyle.Current() == "medallions", label .. ": the style applies")
@@ -54,4 +56,5 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 end
 
-print("scale auto medallions ok")
+end
+print("scale auto medallions ok: all three minimap frames")

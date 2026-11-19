@@ -1,4 +1,4 @@
--- Pins.lua: the pins other addons place on the minimap through HereBeDragons: one that floats on the map's edge for a place off the map is hidden while it rides the edge of KstyleUI's square map, unless the player keeps edge pins.
+-- Pins.lua: the pins other addons place on the minimap through HereBeDragons: one that floats on the map's edge for a place off the map is faded out while it rides the edge of KstyleUI's square map, unless the player keeps edge pins.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,7 @@ local EDGE, SLACK = 0.9, 0.001
 
 local watched = setmetatable({}, { __mode = "k" })
 local hidden = setmetatable({}, { __mode = "k" })
-local state = { active = false, add = nil, logged = false }
+local state = { lib = nil, hide = false, add = nil, logged = false }
 
 function Pins.Lib()
 	local stub = rawget(_G, "LibStub")
@@ -27,6 +27,10 @@ function Pins.Lib()
 end
 
 function Pins.Is(frame)
+	local name = frame:GetName()
+	if watched[frame] or type(name) == "string" and name:find("^QuestieFrame%d") then
+		return true
+	end
 	local lib = Pins.Lib()
 	return lib ~= nil and lib.minimapPins[frame] ~= nil
 end
@@ -52,21 +56,24 @@ local function OnEdge(pin, data)
 end
 
 local function Check(pin)
-	local lib = Pins.Lib()
-	local data = lib and lib.minimapPins[pin]
-	if state.active and not Settings.Get("drawer.edgePins") and OnEdge(pin, data) then
-		if pin:IsShown() then
-			hidden[pin] = true
-			pin:Hide()
-			if not state.logged then
-				state.logged = true
-				K.DevTest.Log("Minimap", "hid an addon's map pin riding the map's edge; Addon pins on the map's edge shows them")
-			end
+	local was = hidden[pin]
+	if not (state.hide or was) then
+		return
+	end
+	local alpha = pin:GetAlpha()
+	if state.hide and OnEdge(pin, state.lib.minimapPins[pin]) then
+		if not state.logged then
+			state.logged = true
+			K.DevTest.Log("Minimap", "faded out an addon's map pin riding the map's edge; Addon pins on the map's edge shows them")
 		end
-	elseif hidden[pin] then
+		if not was or not Plain(alpha) or alpha ~= 0 then
+			hidden[pin] = Plain(alpha) and alpha or 1
+			pin:SetAlpha(0)
+		end
+	elseif was then
 		hidden[pin] = nil
-		if data and type(lib.activeMinimapPins) == "table" and lib.activeMinimapPins[pin] then
-			pin:Show()
+		if Plain(alpha) and alpha == 0 then
+			pin:SetAlpha(was)
 		end
 	end
 end
@@ -80,8 +87,9 @@ local function Watch(pin)
 end
 
 function Pins.Sync(running)
-	state.active = running == true
 	local lib = Pins.Lib()
+	state.lib = lib
+	state.hide = running == true and lib ~= nil and not Settings.Get("drawer.edgePins")
 	if lib and lib.AddMinimapIconWorld ~= state.add and type(lib.AddMinimapIconWorld) == "function" then
 		hooksecurefunc(lib, "AddMinimapIconWorld", function(_, _, icon)
 			Watch(icon)

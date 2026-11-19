@@ -35,7 +35,7 @@ KstyleUI.Layout.Register(frame, key, defaultPosition, opts)
 | `defaultPosition` | A function returning `{ anchor, x, y }`, or nil to keep the registered position. Layout calls it when resolving defaults, including display/aspect changes; saved player positions and scale still take precedence. |
 | `plate` | `false` draws no mover plate, for a frame that moves itself in Layout Mode, such as the Layout toolbar. |
 | `window` | `true` for a core window the player needs to get back to: the settings window, the dialog host, the Layout Mode toolbar and the first-run setup. The settings window shows no Shown row for it, and its opacity sliders stop at 25%. |
-| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle` and `strata`. The settings window builds only those rows. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
+| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle`, `strata`, `attachTo`, `side`, `offset` and `matchWidth`. The settings window builds only those rows; `attachTo` includes the companion link controls. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
 
 `Register` raises an error for a bad argument. Registering a key again updates its frame, default and options. `Widgets.Place(frame, key, position, opts)` positions a frame and registers it in one call.
 
@@ -55,21 +55,33 @@ A module that fades or shows and hides its own frame, such as a cast bar, a unit
 
 Every element has these settings, saved per profile in `KstyleUIDB.layouts[profile][key]`. Only the fields that differ from the defaults are saved, with one exception: a place is saved whole. Once any of `anchor`, `x` and `y` differs from the default, all three are saved, so a layout class (`Scale.Aspect()`, whose places can differ) never moves an element the player placed; when all three are back at the default, none is saved and the element follows its class again. Store migration 30 made older partial places whole against the defaults they were saved against.
 
-The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Orbs or Medallions, the style's place and the class's place for that style (Medallions has one for the 21:9 and 32:9 classes, where the slab is one row). A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged` for every element.
+The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Orbs or Medallions, the style's place and the class's place for that style (Medallions has one for the 21:9 and 32:9 classes, where the slab is one row). A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged(key, "scale")` for elements whose resolved geometry changed. Modules already handling `ScaleChanged` can skip that geometry notification.
 
 | Field | Values | Default |
 | --- | --- | --- |
 | `anchor` | One of the nine anchors | `defaultPosition.anchor` |
 | `x`, `y` | Root units from the anchor | `defaultPosition.x` and `.y`, or 0 |
+| `attachTo` | Another element's key, or `""` for the saved root position | `""` |
+| `side` | `above`, `below`, `left`, `right`; centres the other axis | `above` |
+| `offset` | Gap from the linked element in root units; negative overlaps | 0 |
+| `matchWidth` | Matches the target's visible width across scales, within this element's size limits; resizable elements only | `false` |
 | `width`, `height` | Frame units, within the limits. For an element that is not resizable, the frame's current size, read only | The frame's size |
 | `scale` | 0.5 to 2, read only unless `scalable` | The frame's scale |
-| `shown` | `always`, `combat`, `noCombat`, `target`, `mouseover`, `never` | `always` |
+| `shown` | `always`, `combat`, `noCombat`, `target`, `mouseover`, `never`, `party`, `raid`, `solo`, `noParty`, `noRaid`, `noSolo` | `always` |
 | `alphaCombat`, `alphaIdle` | 0 to 1 | 1 |
 | `strata` | `BACKGROUND`, `LOW`, `MEDIUM`, `HIGH`, or the frame's own strata | The frame's strata |
 
 `Layout.SHOWN_OPTIONS`, `Layout.STRATA_OPTIONS` and `Layout.ANCHOR_OPTIONS` are `{ { value, label }, ... }` lists for the settings window's dropdowns. `Layout.SCALE_MIN`, `SCALE_MAX` and `SCALE_STEP` give the scale slider.
 
 A saved value that is not allowed, such as from a damaged or hand-edited profile, gives the default and one devlog line.
+
+### Attaching elements
+
+On an element's Options rows, **Attach to** chooses a target, **Side** chooses one of four sides, **Offset** sets the gap and **Match width** follows its width. These rows use the same controls as every other element setting and build when the page opens. An absent link leaves today's layout unchanged; choosing or clearing a link never rewrites `anchor`, `x`, `y` or the element's own saved width. A missing target, a module switched off, `SetLive(false)` or `shown = "never"` restores that saved place and size, and the link returns when the target does. Temporary visibility rules leave the attachment in place.
+
+The selected Layout Mode plate describes its link. Dragging or nudging an attached element adjusts the gap along its chosen side; moving or resizing the target updates its dependants, including during a drag preview. Undo, redo, reset, profile changes and combat cancellation include links. Circular links are refused, and circular data imported in a profile uses the root fallback. Protected frames move and resize through `Combat.Queue` after combat. Aspect-locked elements retain their proportions; width matching respects their size limits.
+
+`Layout.CanAttach(key, target)` checks a prospective chain. `Layout.Movement(key, left, bottom, width, height)` returns a gap patch for an active link, or a root-position patch for an unattached element or unavailable target.
 
 ## Functions
 
@@ -116,6 +128,12 @@ A resizable element's width and height snap so that size times scale is a whole 
 | `target` | Follows `PLAYER_TARGET_CHANGED` and `UnitExists("target")` | `"[@target,exists] show; hide"` |
 | `mouseover` | Shown at alpha 0 until the pointer is over the frame's rect or a hooked child | No state driver; alpha only |
 | `never` | Hidden | `"hide"` |
+| `party` | Shown only in a party (not a raid) | `"[group:raid] hide; [group:party] show; hide"` |
+| `raid` | Shown only in a raid | `"[group:raid] show; hide"` |
+| `solo` | Shown only outside a group | `"[group] hide; show"` |
+| `noParty` | Shown solo or in a raid | `"[group:raid] show; [group:party] hide; show"` |
+| `noRaid` | Shown solo or in a party | `"[group:raid] hide; show"` |
+| `noSolo` | Shown in a party or raid | `"[group] show; hide"` |
 
 - A frame counts as protected when `IsProtected()` is true or secret. Its state driver changes only out of combat; in combat the change waits for `Combat.Queue`. The secure state driver manager shows and hides the frame in combat, so no KstyleUI code makes a protected call there. Each driver is logged to the devlog with what `SecureCmdOptionParse` reads for it.
 - Without `RegisterStateDriver`, a protected element keeps its own visibility and the devlog says so.
@@ -125,7 +143,14 @@ A resizable element's width and height snap so that size times scale is a whole 
   - Hooks: `OnEnter` and `OnLeave` on the frame and its children, four levels deep, show and hide it at once. Layout hooks the tree again when the rule applies, when the frame shows, and when a hover starts, so a child made since, such as a lazily made icon, joins.
   - A poll: while any element uses the rule, one `C_Timer.NewTicker` reads `IsMouseOver` on each such frame, and on each hooked child under the pointer, every 0.1 s. It finds content that keeps the mouse focus from Layout's hooks: a child made since the last hook pass, or a frame mirrored over the element from outside its tree, such as the Auras host, whose aura buttons Layout never touches. It skips an element whose module is off, and it stops when no element uses the rule.
 - A frame that denies access, as an aura button does while auras are secret (`CanBeAccessedInContext` is false), is never hooked or read; it counts as not under the pointer. A secret `IsMouseOver` counts as under it, so the element stays visible rather than invisible and clickable. Each fallback is logged once.
+- Ordinary frames using a group rule listen for `GROUP_ROSTER_UPDATE` and read the same macro conditions through `SecureCmdOptionParse`. Protected frames use only the installed driver; roster changes in combat make no addon Show/Hide calls. An absent `shown` stays `always`, and resetting it removes the saved key.
 - Layout listens for `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED` only while Layout Mode is open or an element needs them, and for `PLAYER_TARGET_CHANGED` only while an element uses the target rule.
+
+## Forever API evidence
+
+The Forever tree at [`9dc84f0`](https://github.com/Gethe/wow-ui-source/tree/9dc84f0d3bbae1768ac3405b3716000bd93eda06) loads this service on camelot in [`Blizzard_RestrictedAddOnEnvironment.toc`](https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_RestrictedAddOnEnvironment/Blizzard_RestrictedAddOnEnvironment.toc). Its [`SecureStateDriver.lua`](https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_RestrictedAddOnEnvironment/SecureStateDriver.lua#L26) bridges `RegisterStateDriver` to the attribute driver; `resolveDriver` (line 95) passes the condition string to `SecureCmdOptionParse`, then shows or hides securely. The manager polls every 0.2 seconds and rescans early on `GROUP_ROSTER_UPDATE` (line 196).
+
+Party-only drivers test raid first because `group:party` also matches raids. The native macro parser is not implemented in the published Lua tree. The [`group`, `group:party` and `group:raid` conditions](https://warcraft.wiki.gg/wiki/Macro_conditionals) are documented macro syntax; their interpretation on the live Forever client remains an in-game check. Tests model those conditions and prove that roster transitions in combat use the installed driver, while changing the chosen rule waits for `Combat.Queue`.
 
 ## Protected frames and combat
 
@@ -155,8 +180,10 @@ A resizable element's width and height snap so that size times scale is a whole 
 | --- | --- |
 | Press a plate | Selects it. |
 | Drag a plate | Moves the element. With `snap` on, an edge or the centre within `snapDistance` units snaps to another element's edges and centre, the screen's edges and centre, and, with the grid on, the nearest grid line. The release saves the position against the nearest of the nine anchors. |
+| Shift while dragging | Locks movement to the first axis the drag moved along, including while snapping. Releasing Shift restores free movement. |
 | Drag a handle | Resizes within the limits, keeping the opposite edge, the aspect when it is locked, and whole pixels. The scale handle scales from 0.5 to 2 and keeps the top left corner. |
 | Mouse wheel on a plate | Scales a scalable element by 0.05 around its anchor. |
+| Alt+mouse wheel on a plate | Cycles the visible plates under the pointer in either direction, raising and selecting the next plate. Alt never scales the element. |
 | Right-click a plate | Resets the element. |
 | Arrow keys | Nudge the selected element by one physical pixel, or ten with Shift. A run of nudges is one undo step. |
 | Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z | Undo, redo, redo. |
@@ -174,6 +201,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `gridSize` | 16 | slider, 4 to 64 in steps of 4 |
 | `snap` | `true` | toggle |
 | `snapDistance` | 8 | slider, 2 to 24 |
+| `showCoordinates` | `false` | toggle, **Show coordinates on every plate**. Off keeps details on the selected plate only; on uses the same text on every plate, below thin plates so it clears their labels. |
 | `calm` | `true` | toggle, **Calm the rails in combat**, under a **Combat** header |
 | `canvas` | `"21:9"` | `"21:9"`, `"16:9"` or `"full"` (Options, **HUD width**). On a screen wider than that aspect (21:9 is 12:5, so 2560x1080, 3440x1440 and 3840x1600 are untouched) `Scale` narrows `KstyleUI_Root` to a centred band that wide, an even number of pixels in from each edge, so every element, Layout Mode and the fit cap work on the band; the world, nameplates and Blizzard's frames keep the whole screen. `Scale.Origin()` is the band's left edge in root units, for the frames KstyleUI places from `UIParent` (the RestedXP guide, Apply's Edit Mode positions). |
 | `arrangement` | `"centred"` | `"centred"` or `"spread"` (Options, **Ultrawide arrangement**, under HUD width; KSTY-59). It matters only on a screen wider than the HUD width. Centred keeps every element in the centred band. Spread gives `KstyleUI_Root` the whole screen, so every rail element anchored to a side (chat and loot, the map, its aura rows and the story cards, the meters, the readout and the rail bars) goes out to its margin from the screen edge, and the centre cluster, anchored to the centre, stays put. The party, raid and boss frames stay on the centred band's line (the Captain's ruling on KSTY-60 item 6): at their defaults Layout moves them in by `Scale.Band()`, the band's inset, through `Setup.Layouts.Band`, and re-resolves when the band changes. Apply's Edit Mode viewers follow the class and the band. |

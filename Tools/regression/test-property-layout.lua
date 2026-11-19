@@ -102,38 +102,47 @@ local function Place(c)
 	assert(K.HudStyle.Current() == c.style and Layout.Setting("preset") == c.preset and Scale.Arrangement() == c.arrangement, "the saved choices load")
 	local pixel, origin = Scale.Pixel(1), Scale.Origin()
 	local rects, orbs = {}, {}
-	local function Add(key, left, bottom, w, h, offsetX)
+	local function Add(key, left, bottom, w, h, offsetX, offsetY)
 		local l, b = (origin + left) / pixel, bottom / pixel
 		local r, t = l + w / pixel, b + h / pixel
-		local dx = (offsetX or 0) / pixel
-		rects[#rects + 1] = { l + dx, b, r + dx, t, key = key, edges = { l, b, r, t } }
+		local dx, dy = (offsetX or 0) / pixel, (offsetY or 0) / pixel
+		rects[#rects + 1] = { l + dx, b + dy, r + dx, t + dy, key = key, edges = { l, b, r, t } }
 	end
 	local enabled = Layouts.Enabled(c.preset, K.Store.Profile())
 	for _, element in ipairs(ELEMENTS) do
 		local key = element.key
 		if enabled[key] and not (c.style == "orbs" and key == "unitframes.player") then
-			local w, h, offsetX = Layouts.Footprint(c.preset, key)
+			local w, h, offsetX, offsetY = Layouts.Footprint(c.preset, key)
 			local styled = c.style ~= "frames" and Layouts.Style(c.style, c.preset, key)
 			if styled and styled.width then
-				w, h, offsetX = styled.width, styled.height, nil
+				w, h, offsetX, offsetY = styled.width, styled.height, nil, nil
 			end
 			if c.style == "orbs" and key == "actionbars.bar2" then
 				w = w + Layouts.SPLIT_GAP
 			end
 			local grouped, groupHeight = Layouts.StyleSize(c.style, Scale.Aspect(), key)
 			if grouped then
-				w, h, offsetX = grouped, groupHeight, nil
+				w, h, offsetX, offsetY = grouped, groupHeight, nil, nil
 			end
+			-- Register the visible body; add its outer reserve once after the live clamp.
+			local bodyW, bodyH = w, h
+			if element.reserve and not (styled and styled.width or grouped) then bodyW, bodyH = element.width, element.height end
 			local frame = env.CreateFrame("Frame", nil, Scale.Root())
-			frame:SetSize(w, h)
+			frame:SetSize(bodyW, bodyH)
 			Layout.Register(frame, key, Layouts.Default(key), { label = key, module = element.module, scalable = true })
-			Widgets.Size(frame, w, h)
+			Widgets.Size(frame, bodyW, bodyH)
 			if key == "meters.threat" and enabled["meters.damage"] ~= false then
 				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil, c.style).layout[key]
 				assert(Layout.Update(key, paired))
+				h = select(2, Layouts.Footprint(c.preset, "meters.damage"))
+				bodyH = h
+				Widgets.Size(frame, bodyW, bodyH)
 			end
 			local left, bottom, fw, fh = Layout.Rect(key)
-			Add(key, left, bottom, fw, fh, offsetX)
+			local fx, fy = Layout.Geometry.Fraction(Layout.Get(key).anchor)
+			local reserveW, reserveH = Scale.Snap(w - bodyW), Scale.Snap(h - bodyH)
+			Add(key, left - reserveW * fx, bottom - reserveH * fy, fw + reserveW, fh + reserveH, offsetX, offsetY)
+			rects[#rects].edges = { (origin + left) / pixel, bottom / pixel, (origin + left + fw) / pixel, (bottom + fh) / pixel }
 			if key == "actionbars.bar1" and c.style == "orbs" then
 				local art = Layouts.OrbsTray(fw)
 				local rw, rh = Layout.RootSize()

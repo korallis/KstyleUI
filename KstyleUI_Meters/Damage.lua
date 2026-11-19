@@ -832,7 +832,7 @@ function Damage:Apply()
 	ns.SetLive(KEY, ns.MeterShown("damage") and Damage.Mode() == "window")
 	if not ns.MeterShown("damage") then
 		self:Stop()
-		if ns.Get("followRole") then
+		if ns.Get("followRole") and not ns.damageOverlap then
 			HideBlizzard()
 		end
 		return

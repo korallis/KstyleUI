@@ -34,6 +34,7 @@ return function(preset, built)
 		local position = positions[key]
 		if position then
 			local left, bottom = Layouts.Rect(element, position, rw, rh)
+			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + Layouts.Element(key).insets[3]) end
 			assert(math.abs(left - element.left) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " horizontally")
 			assert(math.abs(bottom - element.bottom) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " vertically")
 		end
@@ -64,7 +65,7 @@ return function(preset, built)
 	column = column - inset * 2234 / rh
 	local counts = 0
 	for _, item in ipairs(built.items) do
-		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 and item.rect[2] > 300 and item.rect[2] < 420 then
+		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 then
 			local right = (item.rect[1] + item.rect[3]) * 2.0685
 			assert(math.abs(right - column) <= 1, preset .. " keeps quest counts inside the shared card inset and trailing pixel, got " .. right)
 			counts = counts + 1

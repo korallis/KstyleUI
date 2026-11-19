@@ -1507,7 +1507,7 @@ function Stubs.NewEnv(opts)
 	env.SlashCmdList = {}
 
 	-- Input: the cursor (env._cursor, in the units GetCursorPosition returns: UIParent units times
-	-- UIParent's effective scale) and the modifier keys (env._modifiers.shift and .ctrl).
+	-- UIParent's effective scale) and the modifier keys (env._modifiers.shift, .ctrl and .alt).
 	env._cursor = { 0, 0 }
 	function env.GetCursorPosition()
 		return env._cursor[1], env._cursor[2]
@@ -1518,6 +1518,9 @@ function Stubs.NewEnv(opts)
 	end
 	function env.IsControlKeyDown()
 		return env._modifiers.ctrl == true
+	end
+	function env.IsAltKeyDown()
+		return env._modifiers.alt == true
 	end
 
 	-- The player always exists; the target exists while env._target is true. SetTarget fires
@@ -1536,7 +1539,7 @@ function Stubs.NewEnv(opts)
 	end
 
 	-- Macro options: "[cond,cond] value; [cond] value; default". The conditions known here are combat,
-	-- nocombat, exists, noexists and a unit as @unit or target=unit (the default unit is the target).
+	-- nocombat, exists, noexists, group, group:party, group:raid and a unit as @unit or target=unit (the default unit is the target).
 	-- A test adds more by setting env.Condition(part, unit) -> true, false, or nil for an unknown part.
 	local function holds(group)
 		local unit, ok = "target", true
@@ -1553,6 +1556,12 @@ function Stubs.NewEnv(opts)
 				ok = ok and env.UnitExists(unit) == true
 			elseif part == "noexists" then
 				ok = ok and env.UnitExists(unit) ~= true
+			elseif part == "group" then
+				ok = ok and env._group ~= nil and env._group ~= "solo"
+			elseif part == "group:party" then
+				ok = ok and (env._group == "party" or env._group == "raid")
+			elseif part == "group:raid" then
+				ok = ok and env._group == "raid"
 			elseif env.Condition and env.Condition(part, unit) ~= nil then
 				ok = ok and env.Condition(part, unit) == true
 			else

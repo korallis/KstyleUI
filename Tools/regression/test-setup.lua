@@ -46,6 +46,40 @@ local function Seen(K)
 	return K.Store.Account().setupSeen == true
 end
 
+-- G5: whole-module overlaps start off; partial overlaps leave unrelated parts available.
+do
+	local env, K = Boot({ modules = {
+		"UnitFrames", "ActionBars", "Cooldowns", "GroupFrames", "Auras", "Nameplates", "CombatText", "Minimap",
+		"Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
+	} })
+	for _, entry in ipairs(K.Setup.PICKER) do
+		local names = {}
+		env.C_AddOns.IsAddOnLoaded = function(name) names[#names + 1] = name; return false end
+		K.Setup.Integrations.Detected(entry.name)
+		if names[1] then
+			local addon = names[1]
+			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
+			assert(K.Setup.NewChoice().modules[entry.name] == (entry.name == "DataBars" or entry.name == "Meters"),
+				"setup must turn whole-module overlaps off and keep DataBars/Meters selected beside " .. addon)
+		end
+	end
+	for module, addons in pairs({ ActionBars = { "Bartender4", "Dominos" }, DataBars = { "Bartender4", "Dominos" },
+		Meters = { "Details" }, Bags = { "Baganator" }, Chat = { "Chattynator" } }) do
+		for _, addon in ipairs(addons) do
+			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
+			local detected = K.Setup.Integrations.Detected(module)
+			assert(detected[1] == addon, "OVERLAPS." .. module .. " must list " .. addon .. ".")
+			local choice = K.Setup.NewChoice()
+			assert(choice.modules[module] == (module == "DataBars" or module == "Meters"), "only whole-module overlaps should start " .. module .. " off beside " .. addon)
+			assert(choice.modules.Cooldowns == true, "an unrelated module stays selected")
+		end
+	end
+	env.C_AddOns.IsAddOnLoaded = nil
+	for _, entry in ipairs(K.Setup.PICKER) do
+		assert(K.Setup.NewChoice().modules[entry.name] == true, "missing detection leaves " .. entry.name .. " available")
+	end
+end
+
 -- The account flag and the slash command ------------------------------------------------------------
 
 do

@@ -8,6 +8,7 @@ local function Pair(env, K, ns)
 	local threat = assert(Geometry.Rect(ns.Threat.list.panel, root))
 	assert(ns.Damage.list.panel:IsVisible() and ns.Threat.list.panel:IsVisible(), "Both must show two separate cards")
 	assert(math.abs((damage.right - damage.left) - (threat.right - threat.left)) < 1, "Both cards must share the damage width")
+	assert(math.abs(damage.left - threat.right - K.Setup.Layouts.GAP) <= K.Scale.Pixel(1), "all styles share the same meter gap")
 	assert(threat.right < damage.left and math.abs(threat.top - damage.top) < 1, "put threat beside damage with their headings level")
 	assert(math.abs((damage.top - damage.bottom) - (threat.top - threat.bottom)) < 1, "Both cards share their live height")
 	assert(ns.Damage.list.capacity == ns.Threat.list.capacity, "Both cards have the same row capacity")
@@ -25,8 +26,9 @@ local function Pair(env, K, ns)
 		local key = element.key
 		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and key == "unitframes.player") then
 			local w, h = layouts.StyleSize(style, K.Scale.Aspect(), key)
-			if not w then w, h = layouts.Footprint(preset, key, style) end
-			if places[key].width then w, h = places[key].width, places[key].height end
+			if not w then w, h = layouts.Footprint(preset, key, style, K.Scale.Aspect()) end
+			local styled = layouts.Aspect(K.Scale.Aspect(),style,preset,key) or layouts.Style(style,preset,key)
+			if styled and styled.width then w, h = styled.width, styled.height end
 			local left, bottom, right, top = layouts.Rect({ width = w, height = h }, places[key], root:GetWidth(), root:GetHeight())
 			for _, card in ipairs({ damage, threat }) do
 				assert(card.right <= left + 1 or right <= card.left + 1 or card.top <= bottom + 1 or top <= card.bottom + 1,

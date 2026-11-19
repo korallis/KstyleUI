@@ -328,7 +328,10 @@ end
 
 local function OnShownChanged(button)
 	local drawer = ns.Map and ns.Map.drawer
-	if drawer and drawer.active and drawer.adopted[button] then
+	local state = drawer and drawer.active and drawer.adopted[button]
+	local shown = button:IsShown() == true
+	if state and state.shown ~= shown then
+		state.shown = shown
 		drawer:Layout()
 		drawer.column:Refresh()
 	end
@@ -431,7 +434,7 @@ function Drawer:Collect()
 	end
 	local minimap = Minimap
 	for _, child in ipairs(minimap and { minimap:GetChildren() } or {}) do
-		local name = child:GetObjectType() == "Button" and child:GetName()
+		local name = child:GetObjectType() == "Button" and (child:GetScript("OnClick") or child:GetScript("OnMouseUp") or child:GetScript("OnMouseDown")) and child:GetName()
 		if type(name) == "string" and not name:find(OWN_PREFIX) and not ns.Pins.Is(child) and self:Adopt(name, child, true) then
 			added = true
 		end

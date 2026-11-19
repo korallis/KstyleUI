@@ -6,172 +6,175 @@ local Widgets, Tokens, Theme = K.Widgets, K.Tokens, K.Theme
 local L = K.L
 local Logic = ns.Logic
 
-local FALLBACK_WIDTH, FALLBACK_HEIGHT = 420, 220
-local SWING_HEIGHT = 8
-local STACK_BELOW = 240
-local SWING_FILL = 0.6
-local PERCENT_MAX = 100
-local DAMAGE_SAMPLE_RATE = 38.4
-local SPELLS = { { 403, 412 }, { 8050, 188 }, { 8042, 134 }, { 6603, 107 }, { 3599, 54 } }
-local SAMPLE = {
-	{ class = "WARRIOR", damage = 28400, threat = 100, raw = 3240000 },
-	{ class = "MAGE", damage = 24700, threat = 88, raw = 2851000, player = true },
-	{ class = "PRIEST", damage = 20100, threat = 61, raw = 1977000 },
-	{ class = "ROGUE", damage = 17600, threat = 42, raw = 1361000 },
-	{ class = "HUNTER", damage = 14200, threat = 23, raw = 745000 },
-}
-
 local Preview = {}
 ns.Preview = Preview
 
-local function Name(classFile)
-	local names = LOCALIZED_CLASS_NAMES_MALE
-	return type(names) == "table" and names[classFile] or classFile
-end
+local build
+function Preview.Build(...)
+	if build then return build(...) end
+	local FALLBACK_WIDTH, FALLBACK_HEIGHT = 420, 220
+	local SWING_HEIGHT = 8
+	local STACK_BELOW = 240
+	local SWING_FILL = 0.6
+	local PERCENT_MAX = 100
+	local DAMAGE_SAMPLE_RATE = 38.4
+	local SPELLS = { { 403, 412 }, { 8050, 188 }, { 8042, 134 }, { 6603, 107 }, { 3599, 54 } }
+	local SAMPLE = {
+		{ class = "WARRIOR", damage = 28400, threat = 100, raw = 3240000 },
+		{ class = "MAGE", damage = 24700, threat = 88, raw = 2851000, player = true },
+		{ class = "PRIEST", damage = 20100, threat = 61, raw = 1977000 },
+		{ class = "ROGUE", damage = 17600, threat = 42, raw = 1361000 },
+		{ class = "HUNTER", damage = 14200, threat = 23, raw = 745000 },
+	}
 
-local function Columns(section)
-	return function()
-		if section == "threat" then
-			local value = ns.Get("threat.value")
-			return { value = value ~= "percent", percent = value ~= "threat" }
-		end
-		return { value = true, percent = ns.Get("damage.percent") }
+	local function Name(classFile)
+		local names = LOCALIZED_CLASS_NAMES_MALE
+		return type(names) == "table" and names[classFile] or classFile
 	end
-end
 
-local function SpellLabel(id)
-	local spells = C_Spell
-	local name = type(spells) == "table" and type(spells.GetSpellName) == "function" and spells.GetSpellName(id)
-	if type(name) == "string" and name ~= "" and not Logic.IsSecret(name) then
-		return name
-	end
-	return string.format("%s %d", L["Spell"], id)
-end
-
-local function SpellIcon(id)
-	local spells = C_Spell
-	if type(spells) == "table" and type(spells.GetSpellTexture) == "function" then
-		return spells.GetSpellTexture(id)
-	end
-	return nil
-end
-
-local function Icons()
-	return ns.Get("damage.icons") == true
-end
-
-local function FillDamage(list)
-	local total = 0
-	for _, spell in ipairs(SPELLS) do
-		total = total + spell[2]
-	end
-	local count = math.min(#SPELLS, list.capacity or 0)
-	local percent = ns.Get("damage.percent")
-	for i = 1, count do
-		local id, amount = SPELLS[i][1], SPELLS[i][2]
-		list:SetRow(i, SpellLabel(id), Theme.Class(), "friendly", amount, SPELLS[1][2], Logic.Abbreviate(amount),
-			percent and Logic.FormatPercent(Logic.Percent(amount, total)) or "", nil, Logic.SchoolToken(id))
-		list:SetRowIcon(i, SpellIcon(id))
-	end
-	list:Finish(count)
-	local info = ns.METER_TYPES[1]
-	for _, entry in ipairs(ns.METER_TYPES) do
-		if entry.value == ns.Get("damage.meter") then
-			info = entry
+	local function Columns(section)
+		return function()
+			if section == "threat" then
+				local value = ns.Get("threat.value")
+				return { value = value ~= "percent", percent = value ~= "threat" }
+			end
+			return { value = true, percent = ns.Get("damage.percent") }
 		end
 	end
-	list:SetTitle(info.cap or info.label)
-	list:SetColumn(info.rate and Logic.FormatRate(DAMAGE_SAMPLE_RATE, info.rate) or "")
-end
 
-local function FillThreat(list)
-	local count = math.min(#SAMPLE, list.capacity or 0)
-	local rows = {}
-	for i = 1, count do
-		local sample = SAMPLE[i]
-		list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.threat, PERCENT_MAX,
-			Logic.ThreatText(sample.raw), Logic.FormatPercent(sample.threat))
-		if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, sample.class) end
-		rows[i] = { isPlayer = sample.player == true, tanking = i == 1, scaled = sample.threat }
+	local function SpellLabel(id)
+		local spells = C_Spell
+		local name = type(spells) == "table" and type(spells.GetSpellName) == "function" and spells.GetSpellName(id)
+		if type(name) == "string" and name ~= "" and not Logic.IsSecret(name) then
+			return name
+		end
+		return string.format("%s %d", L["Spell"], id)
 	end
-	list:Finish(count)
-	list:SetTitle(L["Threat"])
-	local watched = Logic.ThreatWatch(rows, count)
-	list:SetColumn(watched and Logic.FormatPercent(watched.scaled) or "")
-	local level = Logic.NO_WARNING
-	if ns.Get("threat.warnings") then
-		level = Logic.ThreatWarning(rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
-	end
-	list:SetWarning(level)
-end
 
-local function Arrange(frame)
-	local parent = frame:GetParent()
-	local width = Logic.Plain(parent:GetWidth()) or 0
-	local height = Logic.Plain(parent:GetHeight()) or 0
-	if width <= 0 then
-		width = FALLBACK_WIDTH
+	local function SpellIcon(id)
+		local spells = C_Spell
+		if type(spells) == "table" and type(spells.GetSpellTexture) == "function" then
+			return spells.GetSpellTexture(id)
+		end
+		return nil
 	end
-	if height <= 0 then
-		height = FALLBACK_HEIGHT
-	end
-	local gap = Widgets.Snap(frame, Tokens.Size("gapMedium"))
-	local stacked = math.floor((width - gap) / 2) < STACK_BELOW
-	local listWidth = stacked and width or math.floor((width - gap) / 2)
-	local listHeight = height - SWING_HEIGHT - gap
-	if stacked then
-		listHeight = math.floor((listHeight - gap) / 2)
-	end
-	for _, list in ipairs({ frame.damage, frame.threat }) do
-		list.width, list.height = listWidth, listHeight
-		Widgets.Size(list.holder, listWidth, listHeight)
-	end
-	frame.damage.holder:ClearAllPoints()
-	Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
-	frame.threat.holder:ClearAllPoints()
-	if stacked then
-		Widgets.Point(frame.threat.holder, "TOPLEFT", frame.damage.holder, "BOTTOMLEFT", 0, -gap)
-	else
-		Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
-	end
-	local swing = frame.swing
-	swing.opts.width, swing.opts.height = width, SWING_HEIGHT
-	swing:Restyle()
-	swing:ClearAllPoints()
-	Widgets.Point(swing, "BOTTOMLEFT", frame, "BOTTOMLEFT")
-end
 
-local function StyleSwing(swing)
-	swing:SetBarTexture(ns.Get("swing.texture"))
-	swing:SetReverseFill(ns.Get("swing.reverse"))
-	swing:SetBarColor(ns.BarColor("swing", Theme.Class(), "friendly"))
-	swing:SetShown(ns.Get("swing.shown"))
-end
+	local function Icons()
+		return ns.Get("damage.icons") == true
+	end
 
-local function Refresh(frame)
-	Arrange(frame)
-	frame.damage:Restyle()
-	frame.threat:Restyle()
-	frame.damage.holder:SetShown(ns.MeterShown("damage"))
-	frame.threat.holder:SetShown(ns.MeterShown("threat"))
-	FillDamage(frame.damage)
-	FillThreat(frame.threat)
-	StyleSwing(frame.swing)
-end
+	local function FillDamage(list)
+		local total = 0
+		for _, spell in ipairs(SPELLS) do
+			total = total + spell[2]
+		end
+		local count = math.min(#SPELLS, list.capacity or 0)
+		local percent = ns.Get("damage.percent")
+		for i = 1, count do
+			local id, amount = SPELLS[i][1], SPELLS[i][2]
+			list:SetRow(i, SpellLabel(id), Theme.Class(), "friendly", amount, SPELLS[1][2], Logic.Abbreviate(amount),
+				percent and Logic.FormatPercent(Logic.Percent(amount, total)) or "", nil, Logic.SchoolToken(id))
+			list:SetRowIcon(i, SpellIcon(id))
+		end
+		list:Finish(count)
+		local info = ns.METER_TYPES[1]
+		for _, entry in ipairs(ns.METER_TYPES) do
+			if entry.value == ns.Get("damage.meter") then
+				info = entry
+			end
+		end
+		list:SetTitle(info.cap or info.label)
+		list:SetColumn(info.rate and Logic.FormatRate(DAMAGE_SAMPLE_RATE, info.rate) or "")
+	end
 
-function Preview.Build(parent)
-	local frame = CreateFrame("Frame", nil, parent)
-	Widgets.Fill(frame, parent, 0, 0, 0, 0)
-	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
-	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat"), icons = Icons })
-	frame.swing = Widgets.StatusBar(frame, {
-		texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,
-		width = FALLBACK_WIDTH, height = SWING_HEIGHT,
-	})
-	frame.Refresh = Refresh
-	frame:HookScript("OnSizeChanged", Refresh)
-	Refresh(frame)
-	return frame
-end
+	local function FillThreat(list)
+		local count = math.min(#SAMPLE, list.capacity or 0)
+		local rows = {}
+		for i = 1, count do
+			local sample = SAMPLE[i]
+			list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.threat, PERCENT_MAX,
+				Logic.ThreatText(sample.raw), Logic.FormatPercent(sample.threat))
+			if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, sample.class) end
+			rows[i] = { isPlayer = sample.player == true, tanking = i == 1, scaled = sample.threat }
+		end
+		list:Finish(count)
+		list:SetTitle(L["Threat"])
+		local watched = Logic.ThreatWatch(rows, count)
+		list:SetColumn(watched and Logic.FormatPercent(watched.scaled) or "")
+		local level = Logic.NO_WARNING
+		if ns.Get("threat.warnings") then
+			level = Logic.ThreatWarning(rows, count, ns.Get("threat.warnAt"), ns.Get("threat.dangerAt"))
+		end
+		list:SetWarning(level)
+	end
 
-ns.schema.preview = Preview.Build
+	local function Arrange(frame)
+		local parent = frame:GetParent()
+		local width = Logic.Plain(parent:GetWidth()) or 0
+		local height = Logic.Plain(parent:GetHeight()) or 0
+		if width <= 0 then
+			width = FALLBACK_WIDTH
+		end
+		if height <= 0 then
+			height = FALLBACK_HEIGHT
+		end
+		local gap = Widgets.Snap(frame, Tokens.Size("gapMedium"))
+		local stacked = math.floor((width - gap) / 2) < STACK_BELOW
+		local listWidth = stacked and width or math.floor((width - gap) / 2)
+		local listHeight = height - SWING_HEIGHT - gap
+		if stacked then
+			listHeight = math.floor((listHeight - gap) / 2)
+		end
+		for _, list in ipairs({ frame.damage, frame.threat }) do
+			list.width, list.height = listWidth, listHeight
+			Widgets.Size(list.holder, listWidth, listHeight)
+		end
+		frame.damage.holder:ClearAllPoints()
+		Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
+		frame.threat.holder:ClearAllPoints()
+		if stacked then
+			Widgets.Point(frame.threat.holder, "TOPLEFT", frame.damage.holder, "BOTTOMLEFT", 0, -gap)
+		else
+			Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
+		end
+		local swing = frame.swing
+		swing.opts.width, swing.opts.height = width, SWING_HEIGHT
+		swing:Restyle()
+		swing:ClearAllPoints()
+		Widgets.Point(swing, "BOTTOMLEFT", frame, "BOTTOMLEFT")
+	end
+
+	local function StyleSwing(swing)
+		swing:SetBarTexture(ns.Get("swing.texture"))
+		swing:SetReverseFill(ns.Get("swing.reverse"))
+		swing:SetBarColor(ns.BarColor("swing", Theme.Class(), "friendly"))
+		swing:SetShown(ns.Get("swing.shown"))
+	end
+
+	local function Refresh(frame)
+		Arrange(frame)
+		frame.damage:Restyle()
+		frame.threat:Restyle()
+		frame.damage.holder:SetShown(ns.MeterShown("damage"))
+		frame.threat.holder:SetShown(ns.MeterShown("threat"))
+		FillDamage(frame.damage)
+		FillThreat(frame.threat)
+		StyleSwing(frame.swing)
+	end
+
+	build = function(parent)
+		local frame = CreateFrame("Frame", nil, parent)
+		Widgets.Fill(frame, parent, 0, 0, 0, 0)
+		frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
+		frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat"), icons = Icons })
+		frame.swing = Widgets.StatusBar(frame, {
+			texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,
+			width = FALLBACK_WIDTH, height = SWING_HEIGHT,
+		})
+		frame.Refresh = Refresh
+		frame:HookScript("OnSizeChanged", Refresh)
+		Refresh(frame)
+		return frame
+	end
+	return build(...)
+end

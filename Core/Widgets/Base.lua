@@ -208,53 +208,57 @@ function Widgets.Setting(key)
 	return Widgets.defaults[key]
 end
 
-Widgets.schema = {
-	{ type = "header", label = L["First-run setup"] },
-	{ type = "toggle", key = "general.brandedWelcome", label = L["Branded welcome page"], help = L["Logo, HUD previews and highlights in setup. Turn off for the original welcome page."] },
-	{ type = "header", label = L["Ornaments"] },
-	{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
-	{ type = "header", label = L["Card material"] },
-	{
-		type = "dropdown", key = "cardMaterial", label = L["Material"],
-		help = L["Choose the surface of KstyleUI's cards and windows. Glass keeps the original smoked glass."],
-		options = {
-			{ value = "Glass", label = L["Glass"] },
-			{ value = "Flat", label = L["Flat"] },
-			{ value = "Slate", label = L["Slate"] },
-			{ value = "ForgedTicks", label = L["Forged iron, gilt ticks"] },
-			{ value = "ForgedBrackets", label = L["Forged iron, brackets"] },
+function Widgets.Schema()
+	if Widgets.schema then return Widgets.schema end
+	Widgets.schema = {
+		{ type = "header", label = L["First-run setup"] },
+		{ type = "toggle", key = "general.brandedWelcome", label = L["Branded welcome page"], help = L["Logo, HUD previews and highlights in setup. Turn off for the original welcome page."] },
+		{ type = "header", label = L["Ornaments"] },
+		{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
+		{ type = "header", label = L["Card material"] },
+		{
+			type = "dropdown", key = "cardMaterial", label = L["Material"],
+			help = L["Choose the surface of KstyleUI's cards and windows. Glass keeps the original smoked glass."],
+			options = {
+				{ value = "Glass", label = L["Glass"] },
+				{ value = "Flat", label = L["Flat"] },
+				{ value = "Slate", label = L["Slate"] },
+				{ value = "ForgedTicks", label = L["Forged iron, gilt ticks"] },
+				{ value = "ForgedBrackets", label = L["Forged iron, brackets"] },
+			},
 		},
-	},
-	{ type = "header", label = L["Panel appearance"] },
-	{
-		type = "slider", key = "panelOpacity", label = L["Panel opacity"],
-		help = L["How solid the selected material looks. Glass keeps the original smoked-glass opacity."],
-		min = PANEL_OPACITY_MIN, max = PANEL_OPACITY_MAX, step = PANEL_OPACITY_STEP,
-	},
-	{
-		type = "toggle", key = "shadows", label = L["Panel shadows"],
-		help = L["Draws a soft shadow around KstyleUI's panels, windows and tooltips."],
-	},
-	{ type = "header", label = L["Feedback"] },
-	{
-		type = "toggle", key = "sounds", label = L["Interface sounds"],
-		help = L["Plays a soft click when you press KstyleUI's buttons, tabs and switches."],
-	},
-	{ type = "header", label = L["Tooltips"] },
-	{
-		type = "slider", key = "tooltipScale", label = L["Tooltip size"],
-		help = L["Makes the tooltips on KstyleUI's own controls larger or smaller."],
-		min = TOOLTIP_SCALE_MIN, max = TOOLTIP_SCALE_MAX, step = TOOLTIP_SCALE_STEP,
-	},
-	{ type = "header", label = L["Window resizing"] },
-	{
-		type = "toggle", key = "resizeDebounce", label = L["Wait for window resizing to stop"],
-		help = L["Keeps the HUD at its previous size until 120 ms after the last window resize."],
-	},
-}
+		{ type = "header", label = L["Panel appearance"] },
+		{
+			type = "slider", key = "panelOpacity", label = L["Panel opacity"],
+			help = L["How solid the selected material looks. Glass keeps the original smoked-glass opacity."],
+			min = PANEL_OPACITY_MIN, max = PANEL_OPACITY_MAX, step = PANEL_OPACITY_STEP,
+		},
+		{
+			type = "toggle", key = "shadows", label = L["Panel shadows"],
+			help = L["Draws a soft shadow around KstyleUI's panels, windows and tooltips."],
+		},
+		{ type = "header", label = L["Feedback"] },
+		{
+			type = "toggle", key = "sounds", label = L["Interface sounds"],
+			help = L["Plays a soft click when you press KstyleUI's buttons, tabs and switches."],
+		},
+		{ type = "header", label = L["Tooltips"] },
+		{
+			type = "slider", key = "tooltipScale", label = L["Tooltip size"],
+			help = L["Makes the tooltips on KstyleUI's own controls larger or smaller."],
+			min = TOOLTIP_SCALE_MIN, max = TOOLTIP_SCALE_MAX, step = TOOLTIP_SCALE_STEP,
+		},
+		{ type = "header", label = L["Window resizing"] },
+		{
+			type = "toggle", key = "resizeDebounce", label = L["Wait for window resizing to stop"],
+			help = L["Keeps the HUD at its previous size until 120 ms after the last window resize."],
+		},
+	}
+	return Widgets.schema
+end
 
 ns.Store.RegisterDefaults(SECTION, Widgets.defaults)
-ns.Options.Register(SECTION, Widgets.schema)
+ns.Options.Register(SECTION, Widgets.Schema)
 
 local tracked = {}
 Widgets.Cards = setmetatable({}, { __mode = "k" })

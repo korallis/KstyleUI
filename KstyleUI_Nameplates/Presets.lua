@@ -82,6 +82,7 @@ function Presets.Apply(name)
 		Write(key, value)
 	end
 	if name == "lumen" then
+		Settings.Schema()
 		for key in pairs(Settings.rows) do
 			if key ~= "preset" and key ~= "personalResource" and not touched[key] and not key:find("^cvars%.") then
 				Write(key, lookup(Settings.defaults, key))

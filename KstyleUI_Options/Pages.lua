@@ -56,6 +56,12 @@ local SHOWN = {
 	{ value = "always", label = L["Always"] },
 	{ value = "combat", label = L["In combat only"] },
 	{ value = "noCombat", label = L["Out of combat only"] },
+	{ value = "party", label = L["In a party only"] },
+	{ value = "raid", label = L["In a raid only"] },
+	{ value = "solo", label = L["When solo only"] },
+	{ value = "noParty", label = L["Not in a party"] },
+	{ value = "noRaid", label = L["Not in a raid"] },
+	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
@@ -247,6 +253,30 @@ function Pages.ElementItems(element, page, level)
 			kind = "dropdown", label = L["Shown"], help = L["When the element shows."], options = Choices("SHOWN_OPTIONS", SHOWN),
 			get = get("shown", FALLBACK.shown), set = set("shown"),
 		})
+	end
+	if has("attachTo") then
+		add({ kind = "dropdown", label = L["Attach to"], help = L["Follows another element. An unavailable element uses your saved place."],
+			options = function()
+				local choices = { { value = "", label = L["Not attached"] } }
+				local can = LayoutFn("CanAttach")
+				for _, target in ipairs(Pages.Elements()) do
+					if target.key ~= key and (not can or can(key, target.key)) then
+						choices[#choices + 1] = { value = target.key, label = target.label or target.key }
+					end
+				end
+				return choices
+			end, get = get("attachTo", ""), set = set("attachTo"),
+		})
+		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."], options = {
+			{ value = "above", label = L["Above"] }, { value = "below", label = L["Below"] },
+			{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
+		}, get = get("side", "above"), set = set("side") })
+		add({ kind = "slider", label = L["Offset"], help = L["The gap from the attached element, in interface units."],
+			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset") })
+		if opts.resizable then
+			add({ kind = "toggle", label = L["Match width"], help = L["Uses the other element's width within this element's size limits."],
+				get = get("matchWidth", false), set = set("matchWidth") })
+		end
 	end
 	if has("anchor") then
 		add({
@@ -506,11 +536,11 @@ local function Report(ok, err, done)
 	return ok
 end
 
-local function AskName(title, text, initial, onName)
+local function AskName(title, text, initial, onName, placeholder)
 	K.Widgets.Popup({
 		title = title,
 		text = text,
-		editBox = { text = initial or "", placeholder = L["Profile name"], maxLetters = 48 },
+		editBox = { text = initial or "", placeholder = placeholder or L["Profile name"], maxLetters = 48 },
 		buttons = {
 			{ label = L["Cancel"] },
 			{
@@ -547,7 +577,7 @@ local function AllProfiles()
 end
 
 function Pages.ExportProfile()
-	local text, why = K.Profiles.Export(Pages.shareScope or "everything")
+	local text, why = K.Profiles.Export(Pages.shareScope or "everything", Pages.includeLayout ~= false)
 	if not text then
 		Notify(L["Export failed"], tostring(why))
 		return nil
@@ -583,7 +613,7 @@ end
 
 function Pages.ReviewImport(text)
 	if not K.Store.Module("ProfileTools").review then return Pages.ImportProfile(text) end
-	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything")
+	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything", Pages.includeLayout ~= false)
 	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
 	K.Widgets.Confirm({ title = L["Review import"], text = format(message, preview.summary),
@@ -610,6 +640,13 @@ local function ProfileItems()
 		get = K.Specialization.Enabled, set = K.Specialization.SetEnabled,
 	})
 	add({ kind = "note", label = L["Every specialization starts on your current profile. Pick another profile to customize it."] })
+	local function LayoutChoices()
+		local choices, names = { { value = "", label = L["Profile's layout"] } }, {}
+		for name in pairs(K.Profiles.Layouts()) do names[#names + 1] = name end
+		table.sort(names)
+		for _, name in ipairs(names) do choices[#choices + 1] = { value = name, label = name } end
+		return choices
+	end
 	for _, choice in ipairs(K.Specialization.Choices()) do
 		local key = choice.key
 		add({
@@ -619,7 +656,27 @@ local function ProfileItems()
 			get = function() return K.Specialization.Profile(key) end,
 			set = function(name) K.Specialization.Assign(key, name) end,
 		})
+		add({ kind = "dropdown", label = format(L["%s layout"], choice.label), options = LayoutChoices,
+			help = L["Positions only. Every other setting stays with the profile. Changes wait until combat ends."],
+			disableWhen = function() return not K.Specialization.Enabled() end,
+			get = function() return K.Specialization.Layout(key) end,
+			set = function(name) Report(K.Specialization.AssignLayout(key, name)) end })
 	end
+	add({ kind = "button", label = L["Save layout"], help = L["Save the current element positions under a name, then choose it for a specialization."],
+		buttons = { { label = L["Save"], onClick = function()
+			AskName(L["Save layout"], L["Name the layout."], "", function(name) Report(K.Profiles.SaveLayout(name)) end, L["Layout name"])
+		end } } })
+	add({ kind = "dropdown", label = L["Delete layout"], help = L["Specializations using a deleted layout return to their profile's layout."],
+		options = function()
+			local choices = LayoutChoices()
+			choices[1].label = L["Saved layouts"]
+			return choices
+		end, get = function() return "" end,
+		set = function(name)
+			if name == "" then return end
+			K.Widgets.Confirm({ title = L["Delete layout"], text = format(L["Delete the saved layout %s?"], name),
+				acceptLabel = L["Delete"], onAccept = function() Report(K.Profiles.DeleteLayout(name)) end })
+		end })
 	add({
 		kind = "dropdown", label = L["Profile"], help = L["The profile this character uses."], options = AllProfiles,
 		get = store.ProfileName,
@@ -717,6 +774,11 @@ local function ProfileItems()
 	if K.Store.Module("ProfileTools").review then
 	add({ kind = "dropdown", label = L["Share scope"], help = L["Export or import everything, the layout, or one module."], options = scopes,
 		get = function() return Pages.shareScope or "everything" end, set = function(value) Pages.shareScope = value end })
+	end
+	if K.Store.Module("ProfileTools").review then
+	add({ kind = "toggle", label = L["Include layout"], help = L["Share element positions and saved layouts with the profile. Off shares settings only."],
+		get = function() return Pages.includeLayout ~= false end, set = function(value) Pages.includeLayout = value end,
+		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" end })
 	end
 	if K.Store.Module("ProfileTools").backups then
 	add({ kind = "button", label = L["Restore backup"], help = K.Store.Account().restoreProfile or L["No backup is available."],

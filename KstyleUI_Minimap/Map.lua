@@ -705,6 +705,7 @@ end
 local function RegisterCallbacks()
 	local Callbacks = K.Callbacks
 	Callbacks.Register("ThemeChanged", MODULE, Map.Refresh)
+	Callbacks.Register("ClassChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ScaleChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ProfileChanged", MODULE, Map.Refresh)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module)

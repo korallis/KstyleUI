@@ -447,6 +447,8 @@ local TEXTURES = {
 	medProcWarrior = { file = "Textures\\Medallions\\ProcWarrior.png", rows = 4, columns = 4, frames = 16, seconds = 0.96 },
 	medReadyFlash = { file = "Textures\\Medallions\\ReadyFlash.png" },
 	medRing = { file = "Textures\\Medallions\\Ring128.png" },
+	medMinimapCrestRing = { file = "Textures\\Medallions\\MinimapCrestRing.png" },
+	medMinimapCrestEnamel = { file = "Textures\\Medallions\\MinimapCrestEnamel.png" },
 	medRingLarge = { file = "Textures\\Medallions\\Ring256.png" },
 	medRuneGlyphs = { file = "Textures\\Medallions\\RuneGlyphs.png" },
 	medRuneRing = { file = "Textures\\Medallions\\RuneRing.png" },

@@ -94,10 +94,10 @@ check(element.width == 307.5 and element.height == 41.6 and element.reserve == n
 check(element.short == K.L["Auras"], "the setup preview names the block Auras (short in every language), not Blessings")
 -- Beside the minimap's left edge, as the picture draws it: 11.9 left of the map's square, which stands its card's frame in
 -- from the card margin (KSTY-60 item 28), and 1.4 under the screen margin
--- (its 32 px from the top); the debuffs 8 under the buffs, their right ends at the same x.
+-- (its 32 px from the top); the debuffs 12 under the buffs, their right ends at the same x.
 local map, margin = Layouts.Element("minimap.main"), Tokens.Size("screenMargin")
 check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + Layouts.MAP_FRAME + map.width + 11.9)) and near(b.position.y, -(margin + 1.4)), "the buffs stand 11.9 left of the map's square and 1.4 under the screen margin, got " .. tostring(b.position.x) .. ", " .. tostring(b.position.y))
-check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and near(d.position.y, -(margin + 1.4 + 41.6 + 8)), "the debuffs hang 8 under the buffs, got " .. tostring(d.position.y))
+check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and near(d.position.y, -(margin + 1.4 + 41.6 + 12)), "the debuffs hang 12 under the buffs, got " .. tostring(d.position.y))
 for _, name in ipairs(Layouts.Names()) do
 	for _, entry in ipairs(Layouts.Settings(name)) do
 		check(entry.module ~= "Auras", name .. " writes no Auras setting: the rows are the same in every layout")

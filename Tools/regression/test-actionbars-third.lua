@@ -1,8 +1,12 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local integrationKeys = { "timerLane", "announcementLane", "KstyleUI_WeakAuras1", "KstyleUI_WeakAuras2" }
+local Measure = dofile("Tools/regression/geometry.lua")
+local root, base
 local function Rect(frame)
-	return { frame:GetLeft(), frame:GetBottom(), frame:GetRight(), frame:GetTop() }
+	local r = assert(Measure.ScaledRect(frame, base, root))
+	local origin = assert(Measure.ScaledRect(root, base, root))
+	return { r.left - origin.left, r.bottom - origin.bottom, r.right - origin.left, r.top - origin.bottom }
 end
 local function Apart(a, b)
 	return a[1] >= b[3] or b[1] >= a[3] or a[2] >= b[4] or b[2] >= a[4]
@@ -10,6 +14,7 @@ end
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
+		root, base = K.Scale.Root(), env.UIParent
 		AB.Enable(env, K)
 		K.Options.Write("HudStyle", "style", style)
 		local plannedScales = {}
@@ -129,5 +134,5 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	assert(K.Store.CreateProfile("Fresh") and K.Store.SetProfile("Fresh"))
 	assert(K.Store.Layout()[key] == nil, "a fresh profile inherits the new style default")
 	local position = K.Setup.Layouts.Positions("DPS", style, "16:9")["actionbars.bar3"]
-	assert(position.anchor == (style == "medallions" and "BOTTOM" or "TOP") and position.x == (style == "medallions" and -660 or 0))
+	assert(position.anchor == (style == "orbs" and "TOP" or "BOTTOM") and position.x == (style == "medallions" and -692 or style == "frames" and -460 or 0))
 end

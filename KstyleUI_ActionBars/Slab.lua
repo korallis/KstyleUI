@@ -1,4 +1,4 @@
--- Slab.lua: Medallions action slabs, one row per side of the crest hub, pet and stance plates, sockets and effects.
+-- Slab.lua: Medallions action slabs, editable extra rows, crest hub, pet and stance plates, sockets and effects.
 local _, ns = ...
 
 local K = KstyleUI
@@ -662,10 +662,11 @@ local function Edges(frame)
 	return left * s, right * s, top * s, bottom * s
 end
 
-function Slab.Pair()
+function Slab.Pair(cfg)
 	local bars = ns.bars
 	local left, right = bars and bars.bar1, bars and bars.bar2
-	if not (left and right and left:Shown() and right:Shown()) or left.holderHidden or right.holderHidden then
+	cfg = cfg or K.Store.Module("ActionBars")
+	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden then
 		return nil
 	end
 	local l1, r1, t1, b1 = Edges(left.holder)
@@ -718,12 +719,14 @@ function Slab.Refresh()
 		Hide()
 		return false
 	end
-	if ns.Config("slab") == false then
+	local cfg = K.Store.Module("ActionBars")
+	state.extra = cfg.extraBarsApplied ~= "off"
+	if cfg.slab == false then
 		Hide()
-		Slab.PlaceSides(true)
+		Slab.PlaceSides(true, cfg)
 		return false
 	end
-	local left, right, gapWidth, l1, r2 = Slab.Pair()
+	local left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	if not left then
 		Hide()
 		return false
@@ -735,8 +738,25 @@ function Slab.Refresh()
 	state.class = select(2, UnitClass("player"))
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
+	local rise = 0
+	Slab.joined = {}
+	if cfg.extraBarsApplied == "rows" then
+		for i, key in ipairs({ "bar4", "bar5" }) do
+			local bar, base = ns.bars[key], i == 1 and left or right
+			if bar and bar:Shown() and not bar.holderHidden then
+				local l, r, t, b = Edges(bar.holder)
+				local bl, br, bt = Edges(base.holder)
+				local _, _, _, spacing = Layouts().ActionBarGrid(STYLE, K.Scale.Aspect(), base.def.element)
+				local unit = K.Scale.Root():GetEffectiveScale()
+				local slack = 2 * K.Scale.Pixel(1) * unit
+				if l and abs(l - bl) <= slack and abs(r - br) <= slack and abs(b - bt - spacing * unit) <= slack then
+					Slab.joined[key], rise = true, max(rise, (t - bt) / unit)
+				end
+			end
+		end
+	end
 	slab:ClearAllPoints()
-	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad)
+	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad + Widgets.Snap(slab, rise))
 	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
 	LayPlate(slab)
 	local gap = slab.gap
@@ -749,7 +769,8 @@ function Slab.Refresh()
 	end
 	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
-	hub:SetPoint("CENTER", gap, "TOP", 0, 0)
+	local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
+	hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
 	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
 	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
@@ -765,7 +786,7 @@ function Slab.Refresh()
 		K.Effects.Ambient("hub", Animate, Yield)
 	end
 	Animate()
-	Slab.PlaceSides(true)
+	Slab.PlaceSides(true, cfg)
 	ns.SlabEffects.UpdateCap()
 	if ns.Travel then ns.Travel.Refresh() end
 	return true
@@ -821,22 +842,29 @@ function Slab.LevelUp(level)
 	end
 end
 
-local sides, SIDE_BARS = {}, { "pet", "stance", "bar3" }
+local sides, SIDE_BARS = {}, { "pet", "stance", "bar3", "bar4", "bar5" }
 
-function Slab.PlaceSides(on)
+function Slab.PlaceSides(on, cfg)
+	local active = Slab.Active()
+	cfg = cfg or (on or active) and K.Store.Module("ActionBars")
+	local extra = on and state.extra
 	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
-		local wanted = key == "bar3" and Slab.Active() and ns.Config("bar3").finished or key ~= "bar3" and on
+		local wanted = key == "bar3" and active and cfg.bar3.finished or key ~= "bar3" and on
+		if key == "bar4" or key == "bar5" then
+			wanted = extra and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
+		end
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar:Config().backing
+			local shown = wanted and bar:Shown() and not bar.holderHidden and not cfg[key].backing
 			if shown then
-				local pad = Widgets.Snap(plate, key == "bar3" and Slab.Spec().pad or Slab.Side().pad)
-				local vertical = pad - (K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
+				local action = key == "bar3" or key == "bar4" or key == "bar5"
+				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)
+				local vertical = pad - (key ~= "bar4" and key ~= "bar5" and K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
 				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, vertical)
 				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -vertical)
@@ -991,15 +1019,19 @@ end
 local DRESSED = { action = true, pet = true, stance = true, travel = true }
 
 function Slab.Keybind(b, wanted)
+	local cfg = K.Store.Module("ActionBars")
 	if wanted == nil then
-		wanted = b.kbar and ns.Config(b.kbar.def.key).hotkey == true or false
+		wanted = b.kbar and cfg[b.kbar.def.key].hotkey == true or false
 	end
 	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
-	b.hotkey:SetAlpha(ns.Config("readableCountdown") and b.realCooldown and 0.6 or 1)
+	b.hotkey:SetAlpha(cfg.readableCountdown and b.realCooldown and 0.6 or 1)
 end
 
 local function Inset(b)
 	local slot = Layouts().MEDALLIONS_SLOT
+	if state.extra and slot and b.kbar and (b.kbar.def.key == "bar4" or b.kbar.def.key == "bar5") then
+		return ICON_INSET * b.opts.size / slot.size
+	end
 	if not (slot and b.kbar and Grouped(b.kbar.def)) then
 		return ICON_INSET
 	end

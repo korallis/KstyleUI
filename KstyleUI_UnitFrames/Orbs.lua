@@ -388,6 +388,21 @@ local function Tint(orb, r, g, b)
 	orb.surface:SetVertexColor(K.Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, SURFACE_LIFT))
 end
 
+local healthText, healthOff
+local function TextTags(event)
+	if not healthText then return end
+	local text = orbs.health.value
+	local format = healthText.textFormat or ""
+	if healthOff and format ~= "" then
+		text:SetText("")
+	elseif format ~= "" and (not event or K.Widgets.ParseText(format).events[event]) then
+		K.Widgets.TagText(text, format, "player")
+	end
+	if healthText.colorMode and healthText.colorMode ~= "" then
+		K.Widgets.TextTint(text, healthText.colorMode, healthText.color, "player")
+	end
+end
+
 local function Restyle()
 	local Tokens, Widgets = K.Tokens, K.Widgets
 	local path = Tokens.Font("number")
@@ -398,6 +413,16 @@ local function Restyle()
 		end
 		orb.value:SetTextColor(Tokens.Color("textEmphasis"))
 	end
+	healthText = Settings.Module().player.fonts.health
+	healthOff = Settings.Value("player", "healthText") == "none"
+	local default = Settings.defaults.player.fonts.health
+	if not K.Theme.FollowsKit(healthText.font) or healthText.size ~= default.size or healthText.outline ~= default.outline then
+		local ownPath, ownSize, flags = Settings.Font("player", "health")
+		Widgets.ApplyFont(orbs.health.value, ownPath, VALUE_SIZE * ownSize / default.size,
+			healthText.outline == "INHERIT" and VALUE_FLAGS or flags)
+	end
+	Format.Health(orbs.health.value, "player", HEALTH_FORMAT)
+	TextTags()
 	local sharp = Settings.Module().orbGlass ~= false
 	for _, orb in pairs(orbs) do
 		orb.back:SetTexture(Texture(sharp and "orbBack" or "orbBackSoft"))
@@ -460,6 +485,7 @@ local function Health(eased)
 		orb.lossValue, orb.lossKnown = value, true
 	end
 	Format.Health(orb.value, "player", HEALTH_FORMAT)
+	TextTags("Health")
 end
 
 local function Level(level)
@@ -502,6 +528,10 @@ local HANDLERS = {
 	end,
 }
 
+local TAG_EVENTS = { UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power", UNIT_LEVEL = "Level",
+	UNIT_NAME_UPDATE = "Name", UNIT_ABSORB_AMOUNT_CHANGED = "Prediction", UNIT_TARGET = "Target" }
+for event in pairs(TAG_EVENTS) do HANDLERS[event] = HANDLERS[event] or function() end end
+
 local function OnLayoutChanged(_, key)
 	if active and (key == nil or key == BAR_KEY) then
 		Place()
@@ -518,8 +548,12 @@ end
 local function Listen()
 	local Events, Callbacks = K.Events, K.Callbacks
 	for event, handler in pairs(HANDLERS) do
-		Events.RegisterUnit(OWNER, event, handler, "player")
+		Events.RegisterUnit(OWNER, event, function(fired)
+			handler()
+			if TAG_EVENTS[fired] then TextTags(TAG_EVENTS[fired]) end
+		end, "player")
 	end
+	Events.Register(OWNER, "GROUP_ROSTER_UPDATE", function() TextTags("Group") end)
 	Events.Register(OWNER, "PLAYER_ENTERING_WORLD", function()
 		Place()
 		Refresh()
