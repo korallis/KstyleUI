@@ -140,7 +140,7 @@ The first time you log in, one short setup does it all: pick Medallions, Frames 
 
 *KstyleUI test render over an in-game screenshot: the first-run setup on its layout step.*
 
-Tank adds a threat card in the combat cluster. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
+Tank gives threat its own clear slot. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
 
 ![KstyleUI test render over an in-game screenshot of the addon's raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_raid.jpg)
 

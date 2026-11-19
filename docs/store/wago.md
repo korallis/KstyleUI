@@ -157,7 +157,7 @@ The first time you log in, one short setup does it all: pick Medallions, Frames 
 
 *KstyleUI test render over an in-game screenshot: the first-run setup on its layout step.*
 
-Tank adds a threat card in the combat cluster. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
+Tank gives threat its own clear slot. Healer gives party and raid frames more room: dispellable debuffs lead the row, a member with a boss debuff glows, shields and your heals over time show on each tile, and the frames work with the game's Click Casting.
 
 ![KstyleUI test render over an in-game screenshot of the addon's raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_raid.jpg)
 
@@ -298,8 +298,8 @@ Upload in this order. The gallery description is the caption.
 | `gallery/05-ultrawide-spread.jpg` | 1600×450 | Ultrawide, Spread | KstyleUI test render over an in-game screenshot of the Healer layout on a 5120 by 1440 screen, in the Spread arrangement. The side columns sit at the edges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/06-setup.jpg` | 720×523 | First-run setup | KstyleUI test render over an in-game screenshot of the first-run setup on its layout step: DPS, Tank and Healer, with a preview under the pointer. |
 | `gallery/07-nameplates.jpg` | 800×466 | Nameplates | KstyleUI test render over an in-game screenshot of the nameplates in combat: a targeted beast, an elite, a rare, a world boss and a friendly player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/08-meter.jpg` | 540×347 | Damage meter | KstyleUI test render over an in-game screenshot of the damage meter in a party of five, one class-coloured bar per player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/09-quests.jpg` | 660×492 | Map, quests and guide | KstyleUI test render over an in-game screenshot of the right rail: the map card, the quest card and the guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/08-meter.jpg` | 470×330 | Damage meter | KstyleUI test render over an in-game screenshot of the damage meter in a party of five, one class-coloured bar per player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/09-quests.jpg` | 660×624 | Map, quests and guide | KstyleUI test render over an in-game screenshot of the right rail: the map card, the quest card and the guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/10-medallion-closeup.gif` | 800×166 | Target medallion | In-game screenshot: selecting a target brings in the target medallion, and its red ring pulses at low health. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 
 The upload page for a project, once it exists, is `https://addons.wago.io/developers/projects/<slug>/gallery/create`.
