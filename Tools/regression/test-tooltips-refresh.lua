@@ -49,7 +49,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	T.BlizzardShow(tip, true)
 	assert(Plays(fade) == before, "Reduced motion still disables tooltip fades")
 	assert(ns.Settings.Get("cursorX") == 0 and ns.Settings.Get("cursorY") == 0, "original cursor offsets remain the defaults")
-	assert(K.Options.Write("Tooltips", "cursorX", -16), "negative cursor offsets remain available")
+	K.Options.Write("Tooltips", "cursorX", -16)
+	assert(ns.Settings.Get("cursorX") == -16, "negative cursor offsets remain available")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	print("tooltip refresh stable at " .. screen[1] .. "x" .. screen[2])
 end

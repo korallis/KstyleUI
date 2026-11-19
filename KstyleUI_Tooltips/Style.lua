@@ -267,13 +267,15 @@ function Style.Fade(tooltip)
 end
 
 local function FadeIn(tooltip)
+	local glass = Style.Glass(tooltip)
 	local fade = Style.Fade(tooltip)
-	if not fade then
+	if not fade or glass.fadeShown then
 		return
 	end
+	glass.fadeShown = true
 	fade:Stop()
 	if Motion.Fades() then
-		Style.Glass(tooltip).fadeAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("hover")))
+		glass.fadeAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("hover")))
 		fade:Play()
 	end
 end
@@ -310,6 +312,16 @@ function Style.Skin(tooltip, name)
 	tooltip:HookScript("OnHide", function()
 		if glass.fade then
 			glass.fade:Stop()
+		end
+		if C_Timer and type(C_Timer.After) == "function" then
+			C_Timer.After(0, function()
+				local shown = tooltip:IsShown()
+				if not Logic.IsSecret(shown) and not shown then
+					glass.fadeShown = nil
+				end
+			end)
+		else
+			glass.fadeShown = nil
 		end
 	end)
 	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
