@@ -42,6 +42,12 @@ Layout.SHOWN_OPTIONS = {
 	{ value = "always", label = L["Always"] },
 	{ value = "combat", label = L["In combat only"] },
 	{ value = "noCombat", label = L["Out of combat only"] },
+	{ value = "party", label = L["In a party only"] },
+	{ value = "raid", label = L["In a raid only"] },
+	{ value = "solo", label = L["When solo only"] },
+	{ value = "noParty", label = L["Not in a party"] },
+	{ value = "noRaid", label = L["Not in a raid"] },
+	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
@@ -278,7 +284,7 @@ local elements, order = {}, {}
 local byFrame = setmetatable({}, { __mode = "k" })
 local showHooked = setmetatable({}, { __mode = "k" })
 local hoverOwner = setmetatable({}, { __mode = "k" })
-local state = { combat = false, target = false, active = false, combatEvents = false, targetEvents = false }
+local state = { combat = false, target = false, active = false, combatEvents = false, targetEvents = false, groupEvents = false }
 local history = History.New(HISTORY_LIMIT)
 local snapshot
 local RESET = {}
@@ -622,7 +628,7 @@ local function ApplyVisibility(el)
 		end
 		el.driver = nil
 	end
-	if Rules.Visible(el.settings.shown, state.combat, state.target) then
+	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
 		ShowHidden(el)
 		return
 	end
@@ -873,6 +879,16 @@ local function RefreshDynamic()
 	end
 end
 
+local function OnGroup()
+	local group
+	if type(SecureCmdOptionParse) == "function" then
+		group = SecureCmdOptionParse("[group:raid] raid; [group:party] party; solo")
+	end
+	if IsSecret(group) then group = nil end
+	state.group = group
+	RefreshDynamic()
+end
+
 local function OnTarget()
 	state.target = TargetExists()
 	RefreshDynamic()
@@ -895,14 +911,24 @@ local function OnCombatEnd()
 end
 
 local function UpdateEvents()
-	local combat, target, hover = state.active, false, false
+	local combat, target, hover, group = state.active, false, false, false
 	for i = 1, #order do
 		local s = elements[order[i]].settings
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
 		target = target or Rules.NeedsTarget(s.shown)
 		hover = hover or s.shown == "mouseover"
+		group = group or (s.shown ~= "always" and Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
 	end
 	UpdatePoll(hover)
+	if group ~= state.groupEvents then
+		state.groupEvents = group
+		if group then
+			OnGroup()
+			ns.Events.Register(SECTION, "GROUP_ROSTER_UPDATE", OnGroup)
+		else
+			ns.Events.Unregister(SECTION, "GROUP_ROSTER_UPDATE")
+		end
+	end
 	if combat ~= state.combatEvents then
 		state.combatEvents = combat
 		if combat then
@@ -1086,7 +1112,7 @@ local function OnShow(frame)
 	if IsProtectedFrame(frame) then
 		return
 	end
-	if not Rules.Visible(el.settings.shown, state.combat, state.target) then
+	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
 		el.hidden = true
 		frame:Hide()
 	end

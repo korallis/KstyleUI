@@ -709,7 +709,7 @@ do
 	assert(settings.grid == false and settings.snap == true and settings.gridSize == 16 and settings.snapDistance == 8, "Layout Mode's settings and defaults")
 	local schema = K.Options.Get("Layout")
 	assert(type(schema) == "table" and K.Options.Row("Layout", "gridSize").type == "slider", "the settings page is registered")
-	assert(type(K.Layout.SHOWN_OPTIONS) == "table" and #K.Layout.SHOWN_OPTIONS == 6, "the shown rule options for the settings window")
+	assert(type(K.Layout.SHOWN_OPTIONS) == "table" and #K.Layout.SHOWN_OPTIONS == 12, "the shown rule options for the settings window")
 	assert(type(K.Layout.STRATA_OPTIONS) == "table" and #K.Layout.STRATA_OPTIONS == 4)
 	assert(type(K.Layout.ANCHOR_OPTIONS) == "table" and #K.Layout.ANCHOR_OPTIONS == 9)
 end

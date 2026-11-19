@@ -303,3 +303,5 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Fonts the repository lacks (`Fonts\FRIZQT__.TTF`, `ARIALN.TTF`) fall back to Source Sans on the page; the log names them.
 - Tiled textures repeat at one texel per unit of the region's own scale, which is the game's behaviour as far as the owner's screenshots show; check the grain against a screenshot before trusting it.
 - Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame. Animation groups are sampled at the scene's clock as above; a `Scale` animation is not applied.
+
+`layout_shown` renders the real Elements page and six registered panels using the shared Shown rules. `RENDER_GROUP=party|raid|solo` chooses the roster fixture. The positive rules use protected panels and the opposite rules ordinary panels, all in combat; only the panels whose rules match remain visible. Use `RENDER_SCREEN` and `--ppu` for each screen size.
