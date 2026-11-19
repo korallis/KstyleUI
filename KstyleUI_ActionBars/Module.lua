@@ -98,7 +98,9 @@ local function ApplyAll(geometryOnly)
 		ns.QueueApply()
 		return
 	end
+	local extra = ns.ApplyExtraBars()
 	HoldTray(function() ApplyBars(geometryOnly) end)
+	if extra == "beside" then ns.ClearExtraChat() end
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
 		frame:SetAttribute("gap", K.Widgets.Snap(frame, K.Tokens.Size("actionGap")))
@@ -335,6 +337,12 @@ local function OnSetting(_, module, key)
 	if key == "enabled" and ns.Config("enabled") then
 		K.Store.Module(MODULE).overlapBindings = #K.Setup.Integrations.Detected(MODULE) > 0
 		ns.ApplyBindings()
+		return
+	end
+	if key == "extraBarsLayout" then
+		ns.QueueApply()
+		return
+	elseif key == "extraBarsApplied" then
 		return
 	end
 	if key == "bindingHints" then ns.UpdateHotkeys() end

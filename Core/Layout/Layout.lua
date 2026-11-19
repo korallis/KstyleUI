@@ -467,6 +467,13 @@ local function StyleDefault(el)
 	el.frames = Band(el, Copy(d))
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
+	if style == "medallions" and not over then
+		local extra = layouts.ExtraBarsPlace(Scale.Aspect(), Layout.Setting("preset"), el.key)
+		if extra then
+			d.anchor, d.x, d.y = extra.anchor, extra.x, extra.y
+			el.frames = Band(el, Copy(d))
+		end
+	end
 	el.style = over and style or nil
 	el.styled = {}
 	if over then
@@ -1693,6 +1700,7 @@ ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 end)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
+	if module == "ActionBars" and key == "extraBarsApplied" then Restyle() end
 	if module == SECTION and key == "preset" and Style() then
 		if InCombatLockdown() then
 			Combat.Queue(Restyle)

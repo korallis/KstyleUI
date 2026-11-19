@@ -75,6 +75,9 @@ local defaults = {
 	tray = true,
 	useTray = true,
 	slab = true,
+	extraBarsLayout = "off",
+	extraBarsApplied = "off",
+	extraBarsPrevious = {},
 	trayColumn = true,
 	quietSockets = true,
 	quietCooldown = true,
@@ -96,6 +99,69 @@ for _, def in ipairs(ns.BARS) do
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
 ns.defaults = defaults
+
+local function Copy(value)
+	if type(value) ~= "table" then return value end
+	local out = {}
+	for key, child in pairs(value) do out[key] = Copy(child) end
+	return out
+end
+
+function ns.ApplyExtraBars()
+	local settings, positions = K.Store.Module("ActionBars"), K.Store.Layout()
+	local wanted = settings.extraBarsLayout
+	if wanted == settings.extraBarsApplied then return false end
+	local preset = K.Setup.Layouts.ExtraBarsPreset(wanted, K.Scale.Aspect())
+	if wanted ~= "off" and not preset then return false end
+	local previous = settings.extraBarsPrevious
+	for _, key in ipairs({ "bar4", "bar5" }) do
+		local element = "actionbars." .. key
+		if preset then
+			if settings.extraBarsApplied == "off" then
+				previous[key] = { settings = Copy(settings[key]), position = Copy(positions[element]), styled = Copy(positions["medallions:" .. element]) }
+			end
+			for field, value in pairs(preset) do settings[key][field] = value end
+			positions["medallions:" .. element] = nil
+		elseif previous[key] then
+			settings[key] = Copy(previous[key].settings)
+			positions[element] = Copy(previous[key].position)
+			positions["medallions:" .. element] = Copy(previous[key].styled)
+		end
+	end
+	settings.extraBarsApplied = wanted
+	if preset then
+		local layouts, rootWidth = K.Setup.Layouts, K.Layout.RootSize()
+		local _, _, _, gap = layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
+		for i, key in ipairs({ "bar4", "bar5" }) do
+			local parent = i == 1 and "actionbars.bar1" or "actionbars.bar2"
+			local x, y, w, h = K.Layout.Rect(parent)
+			if x then
+				local bw, bh = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars." .. key)
+				local scale = wanted == "rows" and K.Layout.Get(parent).scale or 1
+				local center = x + w / 2 - rootWidth / 2
+				if wanted == "beside" then center = center + (i == 1 and -1 or 1) * (w / 2 + 2 * layouts.MEDALLIONS_SLAB.pad + gap + bw / 2) end
+				positions["medallions:actionbars." .. key] = { anchor = "BOTTOM", x = center, y = wanted == "rows" and y + h + gap or y + h - bh, scale = scale }
+			end
+		end
+	end
+	if not preset then settings.extraBarsPrevious = {} end
+	K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", wanted)
+	return wanted
+end
+
+function ns.ClearExtraChat()
+	local saved = K.Store.Layout()["chat.main"]
+	if not (saved and (saved.anchor or saved.x or saved.y)) then return end
+	local l, b, w, h = K.Layout.Rect("chat.main")
+	local x, y, bw, bh = K.Layout.Rect("actionbars.bar4")
+	if not (l and x) then return end
+	local pad = K.Setup.Layouts.MEDALLIONS_SLAB.pad
+	if x - pad < l + w and l < x + bw + pad and y - pad < b + h and b < y + bh + pad then
+		local position = K.Layout.Get("actionbars.bar4")
+		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
+		K.Layout.Set("actionbars.bar4", "y", position.y + b + h + pad + gap - y)
+	end
+end
 
 local function Label(def)
 	local element = K.Setup and K.Setup.Layouts and K.Setup.Layouts.Element(def.element)
@@ -226,6 +292,8 @@ function ns.Schema()
 	local schema = {
 		{ type = "header", label = L["Slab and cooldowns"] },
 		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."], showWhen = function() return K.HudStyle.Current() == "medallions" end,
+			options = { { value = "off", label = L["Off"] }, { value = "rows", label = L["Two rows on the slab"] }, { value = "beside", label = L["Beside the slab"] } } },
 		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."] },
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },

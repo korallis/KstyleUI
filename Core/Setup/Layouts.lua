@@ -563,7 +563,7 @@ end
 
 function Layouts.ActionBarSignature()
 	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
-	local out = { tostring(saved.slab ~= false), tostring(saved.useTray ~= false), tostring(saved.trayColumn ~= false) }
+	local out = { tostring(saved.slab ~= false), tostring(saved.useTray ~= false), tostring(saved.trayColumn ~= false), saved.extraBarsApplied or "off" }
 	for _, key in ipairs(GRID_ORDER) do
 		local grid, cfg = GRIDS["actionbars." .. key], saved[key] or {}
 		local side = key == "pet" or key == "stance"
@@ -956,6 +956,8 @@ function Layouts.Style(style, name, key)
 		local overhang = Layouts.CREST_GROW / 2
 		return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) }
 	end
+	local extra = style == "medallions" and key ~= "chat.main" and key ~= "qol.lootfeed" and Layouts.ExtraBarsPlace(ns.Scale.Aspect(), name, key)
+	if extra then return extra end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
 	if bar then return bar end
 	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
@@ -994,6 +996,50 @@ function Layouts.MedallionsGroup(class)
 	local size = slot[class] or slot.size
 	local gap, columns = (slot[class] and slot.narrowGap or slot.gap) * size / slot.size, GRIDS["actionbars.bar1"].buttons
 	return columns, 1, columns * size + (columns - 1) * gap, size, size, gap
+end
+
+function Layouts.ExtraBarsPreset(kind, class)
+	if kind ~= "rows" and kind ~= "beside" then return end
+	local _, _, size, gap = Layouts.ActionBarGrid("medallions", class, "actionbars.bar1")
+	if kind == "beside" then size, gap = size * 0.75, gap * 0.75 end
+	return { enabled = true, buttons = kind == "rows" and 12 or 8, rows = kind == "rows" and 1 or 2,
+		size = size, spacing = gap, orientation = "HORIZONTAL", growth = "RIGHTDOWN", split = "off", showEmpty = true, backing = false }
+end
+
+function Layouts.ExtraBarsPlace(class, name, key)
+	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
+	local kind = bars.extraBarsApplied
+	if kind ~= "rows" and kind ~= "beside" then return end
+	local places = PLACES[class] and PLACES[class].medallions or {}
+	local function Base(id) return places[id] or STYLES.medallions[name][id] or layouts[name][id] end
+	local left, right = Base("actionbars.bar1"), Base("actionbars.bar2")
+	local width, height = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
+	local _, _, _, gap = Layouts.ActionBarGrid("medallions", class, "actionbars.bar1")
+	local slab, side = Layouts.MEDALLIONS_SLAB, Layouts.MEDALLIONS_SIDE
+	if key == "actionbars.bar4" or key == "actionbars.bar5" then
+		local parent = key == "actionbars.bar4" and left or right
+		local w, h = Layouts.ActionBarFootprint("medallions", class, key)
+		if kind == "rows" then return { anchor = "BOTTOM", x = parent.x, y = parent.y + height + gap } end
+		local sign = key == "actionbars.bar4" and -1 or 1
+		return { anchor = "BOTTOM", x = parent.x + sign * (width / 2 + 2 * slab.pad + gap + w / 2), y = parent.y + height - h }
+	end
+	local base = Base(key)
+	if kind == "rows" and (key == "unitframes.player" or key == "unitframes.target" or key == "unitframes.pet" or key == "unitframes.targettarget" or key == "unitframes.focus" or key == "unitframes.focustarget") then
+		return { anchor = base.anchor, x = base.x, y = base.y + height + gap + 2, width = base.width, height = base.height }
+	elseif kind == "rows" and (key == "unitframes.castbar.player" or key == "unitframes.castbar.target" or key == "combattext.player") then
+		return { anchor = base.anchor, x = base.x, y = base.y + height + gap, width = base.width, height = base.height }
+	elseif kind == "beside" and (key == "actionbars.pet" or key == "actionbars.stance") then
+		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
+		if class == ASPECTS[1] and key == "actionbars.stance" then
+			local pet = Base("actionbars.pet")
+			return { anchor = base.anchor, x = pet.x + select(2, Layouts.MedallionsSide(class, "actionbars.pet")) + 2 * side.pad + gap, y = pet.y + h + side.pad }
+		end
+		return { anchor = base.anchor, x = base.x, y = base.y + h + side.pad }
+	elseif kind == "beside" and class == ASPECTS[1] and (key == "chat.main" or key == "qol.lootfeed") then
+		local chat = layouts[name]["chat.main"]
+		local lift = math.max(0, left.y + height + slab.pad + gap - chat.y)
+		return { anchor = base.anchor, x = base.x, y = base.y + lift }
+	end
 end
 
 function Layouts.MedallionsSide(_, key)
@@ -1131,6 +1177,8 @@ function Layouts.Aspect(class, style, name, key)
 			if base then return { anchor = base.anchor, x = base.x, y = base.y - 52 } end
 		end
 	end
+	local extra = style == "medallions" and Layouts.ExtraBarsPlace(class, name, key)
+	if extra then return extra end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, style, name, key)
 	if bar then return bar end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar(style) end
@@ -1168,7 +1216,7 @@ function Layouts.Attached(style, name, key, class)
 	local y = cast.y + (cast.height or 30) + 8
 	local x = 0
 	if style == "medallions" then
-		local player = PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
+		local player = Layouts.ExtraBarsPlace(class, name, "unitframes.player") or PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
 		y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
 		x = (key == "cooldowns.essential" or key == "cooldowns.buffs") and -300 or 300
 		if key == "cooldowns.buffs" or key == "cooldowns.bars" then y = y + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
@@ -1494,6 +1542,10 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		if style == "medallions" and key == "unitframes.player" then
 			height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 		end
+		if style == "medallions" and ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "beside" and (key == "actionbars.bar4" or key == "actionbars.bar5") then
+			local pad, point = Layouts.MEDALLIONS_SLAB.pad, OFFSETS[layout[key].anchor]
+			width, height, offsetX, offsetY = width + 2 * pad, height + 2 * pad, (2 * point[1] - 1) * pad, (2 * point[2] - 1) * pad
+		end
 		if key == "meters.threat" and enabled["meters.damage"] ~= false then height = DAMAGE_H end
 		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER, key }
 		state.orbs = state.orbs or style == "orbs" and element.module == "UnitFrames" and enabled[key] ~= false
@@ -1507,6 +1559,18 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	end
 	local _, groupHeight = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
 	state.groupHeight = groupHeight
+	state.hubLift = 0
+	if style == "medallions" and ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "rows" then
+		local _, _, _, gap = Layouts.ActionBarGrid(style, class, "actionbars.bar1")
+		for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5" }) do
+			local base, extra = layout[key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2"], layout[key]
+			local w, h = Layouts.ActionBarFootprint(style, class, key)
+			local bw = Layouts.ActionBarFootprint(style, class, key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2")
+			if enabled[key] ~= false and extra.anchor == "BOTTOM" and base.anchor == "BOTTOM" and math.abs(extra.x - base.x) < 2 and math.abs(w - bw) < 2 and math.abs(extra.y - base.y - groupHeight - gap) < 2 then
+				state.hubLift = math.max(state.hubLift, (extra.y + h - base.y) / 2 - groupHeight)
+			end
+		end
+	end
 	state.slab = not ns.Store.IsLoaded() or ns.Store.Module("ActionBars").slab ~= false
 	return state
 end
@@ -1598,7 +1662,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		local groupHeight = state.groupHeight
 		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
 		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
-		local bottom = floor((bar.y + groupHeight) * pixelScale - ring / 2 + 0.5)
+		local bottom = floor((bar.y + groupHeight + state.hubLift) * pixelScale - ring / 2 + 0.5)
 		if left < 0 or bottom < 0 or bottom + ring > physicalHeight then
 			return false
 		end

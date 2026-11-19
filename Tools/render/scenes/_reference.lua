@@ -281,6 +281,11 @@ function Reference.Build(opts)
 			state[k] = v
 		end
 		state.meterSecret = opts.meterSecret == true
+		if os.getenv("RENDER_EXTRA_BARS") then
+			state.slots = {}
+			for i, action in ipairs(state.spec.bar2) do state.slots[24 + i] = action[2] end
+			for i, action in ipairs(state.spec.bar1) do state.slots[36 + i] = action[2] end
+		end
 		state.plates = {}
 		for i, plate in ipairs(Reference.STATE.plates) do
 			state.plates[i] = plate

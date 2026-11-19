@@ -1,4 +1,4 @@
--- Slab.lua: Medallions action slabs, one row per side of the crest hub, pet and stance plates, sockets and effects.
+-- Slab.lua: Medallions action slabs, editable extra rows, crest hub, pet and stance plates, sockets and effects.
 local _, ns = ...
 
 local K = KstyleUI
@@ -735,8 +735,25 @@ function Slab.Refresh()
 	state.class = select(2, UnitClass("player"))
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
+	local rise = 0
+	Slab.joined = {}
+	if ns.Config("extraBarsApplied") == "rows" then
+		for i, key in ipairs({ "bar4", "bar5" }) do
+			local bar, base = ns.bars[key], i == 1 and left or right
+			if bar and bar:Shown() and not bar.holderHidden then
+				local l, r, t, b = Edges(bar.holder)
+				local bl, br, bt = Edges(base.holder)
+				local _, _, _, spacing = Layouts().ActionBarGrid(STYLE, K.Scale.Aspect(), base.def.element)
+				local unit = K.Scale.Root():GetEffectiveScale()
+				local slack = 2 * K.Scale.Pixel(1) * unit
+				if l and abs(l - bl) <= slack and abs(r - br) <= slack and abs(b - bt - spacing * unit) <= slack then
+					Slab.joined[key], rise = true, max(rise, (t - bt) / unit)
+				end
+			end
+		end
+	end
 	slab:ClearAllPoints()
-	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad)
+	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad + Widgets.Snap(slab, rise))
 	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
 	LayPlate(slab)
 	local gap = slab.gap
@@ -749,7 +766,8 @@ function Slab.Refresh()
 	end
 	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
-	hub:SetPoint("CENTER", gap, "TOP", 0, 0)
+	local lift = rise > 0 and (rise - left.holder:GetHeight()) / 2 or 0
+	hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
 	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
 	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
@@ -821,13 +839,16 @@ function Slab.LevelUp(level)
 	end
 end
 
-local sides, SIDE_BARS = {}, { "pet", "stance", "bar3" }
+local sides, SIDE_BARS = {}, { "pet", "stance", "bar3", "bar4", "bar5" }
 
 function Slab.PlaceSides(on)
 	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
 		local wanted = key == "bar3" and Slab.Active() and ns.Config("bar3").finished or key ~= "bar3" and on
+		if key == "bar4" or key == "bar5" then
+			wanted = on and ns.Config("extraBarsApplied") ~= "off" and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
+		end
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)
 			sides[key] = plate
@@ -835,8 +856,9 @@ function Slab.PlaceSides(on)
 		if plate then
 			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar:Config().backing
 			if shown then
-				local pad = Widgets.Snap(plate, key == "bar3" and Slab.Spec().pad or Slab.Side().pad)
-				local vertical = pad - (K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
+				local action = key == "bar3" or key == "bar4" or key == "bar5"
+				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)
+				local vertical = pad - (key ~= "bar4" and key ~= "bar5" and K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
 				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, vertical)
 				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -vertical)
@@ -1000,6 +1022,9 @@ end
 
 local function Inset(b)
 	local slot = Layouts().MEDALLIONS_SLOT
+	if slot and b.kbar and (b.kbar.def.key == "bar4" or b.kbar.def.key == "bar5") and ns.Config("extraBarsApplied") ~= "off" then
+		return ICON_INSET * b.opts.size / slot.size
+	end
 	if not (slot and b.kbar and Grouped(b.kbar.def)) then
 		return ICON_INSET
 	end
