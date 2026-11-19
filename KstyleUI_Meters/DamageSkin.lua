@@ -64,7 +64,7 @@ end
 local function PlacePill(pill)
 	local bar, holder = pill.bar, pill.holder
 	local styled = ns.Get("nameplateRows")
-	bar.opts.height = styled and Widgets.Snap(bar, Tokens.Size("barHeight")) or math.max(1, Logic.Plain(holder:GetHeight()) or 4)
+	bar.opts.height = styled and Widgets.Snap(bar, Tokens.Size("barHeight")) or math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or 4))
 	bar:Restyle()
 	bar:ClearAllPoints()
 	Widgets.Point(bar, "TOPLEFT", holder, "TOPLEFT", 0, 0)

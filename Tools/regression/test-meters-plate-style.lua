@@ -26,7 +26,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			for _, pair in ipairs({ { row.name, plate.name }, { row.value, plate.healthText }, { row.percent, plate.healthText } }) do
 				local font, size = pair[1]:GetFont()
 				local plateFont, plateSize = pair[2]:GetFont()
-				assert(font == plateFont and math.abs(size - (pair[1] == row.name and plateSize or K.Widgets.FontSize(pair[1], K.Tokens.Size("number")))) < 0.01, style .. ": meter name and number faces/sizes must match the nameplates")
+				assert(font == plateFont and math.abs(size - (pair[1] == row.name and plateSize or K.Widgets.FontSize(pair[1], K.Tokens.Size("number")))) < 0.01, style .. ": meter names match nameplate type; figures share its face and the number-size token")
 			end
 			lists[#lists + 1] = list
 		end

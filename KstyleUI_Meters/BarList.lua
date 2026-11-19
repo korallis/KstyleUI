@@ -267,7 +267,7 @@ local function LayoutSplit(list, split, shown, note)
 	end
 	split.note:SetShown(note)
 	if note then
-		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, BLOCK_ICON_GAP) or 0
+		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, list.plate and BLOCK_ICON_GAP or 2) or 0
 		local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
 		split.note:ClearAllPoints()
 		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", slot + inset, -y)
@@ -499,6 +499,7 @@ end
 function StyleRow(list, row)
 	local section = list.section
 	local figures = (list.block or Widgets.Medallions()) and "number" or nil
+	Widgets.TextColor(row.percent, list.block and "textEmphasis" or "text")
 	if list.plate then
 		BarList.StyleName(row.name, section)
 	else
