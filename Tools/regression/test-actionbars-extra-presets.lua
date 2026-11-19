@@ -20,6 +20,16 @@ for _, screen in ipairs(screens) do
 	local before4, before5 = C.DeepCopy(cfg.bar4), C.DeepCopy(cfg.bar5)
 	local original = C.DeepCopy(positions)
 	local baseline = K.Layout.Get("actionbars.bar1")
+	if screen[1] == 1920 then
+		local saved = C.DeepCopy(env.KstyleUIDB)
+		saved.profiles.Default.ActionBars.extraBarsLayout = "rows"
+		local reloaded, RK, RN = AB.New({ saved = saved, combatAtLogin = true })
+		AB.Enable(reloaded, RK)
+		assert(RN.Config("extraBarsApplied") == "off", "a pending preset also waits when reloading in combat")
+		reloaded.SetCombat(false)
+		assert(RN.Config("extraBarsApplied") == "rows", "the pending login preset applies after combat")
+		assert(#reloaded._blocked == 0 and #reloaded._errors == 0, AB.Errors(reloaded))
+	end
 	for _, kind in ipairs({ "rows", "beside" }) do
 		K.Options.Write("ActionBars", "extraBarsLayout", kind)
 		for _, key in ipairs({ "bar4", "bar5" }) do

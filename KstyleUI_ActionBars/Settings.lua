@@ -111,6 +111,10 @@ function ns.ApplyExtraBars()
 	local settings = K.Store.Module("ActionBars")
 	local wanted = settings.extraBarsLayout
 	if wanted == settings.extraBarsApplied then return false end
+	if InCombatLockdown() then
+		ns.QueueApply()
+		return false
+	end
 	local preset = K.Setup.Layouts.ExtraBarsPreset(wanted, K.Scale.Aspect())
 	if wanted ~= "off" and not preset then return false end
 	local positions = K.Store.Layout()
