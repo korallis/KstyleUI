@@ -439,7 +439,6 @@ local ORBS = {
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 }
 local STORY_STYLES = {
 	orbs = {
