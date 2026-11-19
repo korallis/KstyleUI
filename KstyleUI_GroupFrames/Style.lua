@@ -33,10 +33,10 @@ function Style.NameMin(k)
 	return math.max(NAME_FLOOR, k.nameSize - NAME_STEPS)
 end
 local RESERVE = {
-	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
+	party = { DEFICIT = { "-88.8K", "-888" }, PERCENT = { "100%" } },
 	raid = {
-		DEFICIT = { "-8.8k", "-88k", "-888" }, PERCENT = { "100%" }, CURRENT = { "88.8k" }, CURRENT_MAX = { "88.8k / 88.8k" },
-		CURRENT_PERCENT = { "88.8k  100%" },
+		DEFICIT = { "-88.8K", "-888" }, PERCENT = { "100%" }, CURRENT = { "88.8K" }, CURRENT_MAX = { "88.8K / 88.8K" },
+		CURRENT_PERCENT = { "88.8K  100%" },
 	},
 }
 local PIP = { party = 13, raid = 10 }

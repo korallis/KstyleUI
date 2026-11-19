@@ -1285,10 +1285,7 @@ function modules.nameplates(opts)
 		setup = function(env)
 			shared(env, opts)
 			-- The combat text stub labels its formatters; the scene wants the plain number.
-			env.AbbreviateNumbers = function(n)
-				return tostring(n)
-			end
-			env.BreakUpLargeNumbers = env.AbbreviateNumbers
+			env.BreakUpLargeNumbers = tostring
 			CT.Fakes(env)
 			CT.CVars(env)
 		end,
@@ -1458,10 +1455,10 @@ function modules.groupframes(opts)
 	}))
 	local members = {}
 	for i, m in ipairs(opts.party or {}) do
-		members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = 60, maxPower = 100, role = m[4], leader = i == 1 }
+		members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = m[5] or 100, power = 60, maxPower = 100, role = m[4], leader = i == 1 }
 	end
 	local player = { name = spec.name, class = class, health = 82, maxHealth = 100, power = 45, maxPower = 100, powerType = spec.power.token, role = opts.role or "DAMAGER" }
-	G.SetRoster(env, #members > 0 and "party" or nil, members, player)
+	G.SetRoster(env, opts.raid and "raid" or #members > 0 and "party" or nil, members, player)
 	if not K.Modules.IsRunning("GroupFrames") then
 		K.Modules.Enable("GroupFrames")
 	end

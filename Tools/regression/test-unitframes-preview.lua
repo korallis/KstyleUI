@@ -51,7 +51,7 @@ assert(preview.kind == "player", "the preview starts on the player frame")
 local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
 assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
-assert(U.Shown(env, view.healthSub) == "3120 / 3980", "the sample shows current and max under the track")
+assert(U.Shown(env, view.healthSub) == "3.1K / 3.9K", "the sample shows current and max under the track")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
 do
 	-- The sample's power bar reads the player's own power type (the owner's ruling of 2026-11-08: power is never
@@ -102,7 +102,7 @@ assert(target.geometry.portrait.x > target.geometry.panel.x, "the target sample 
 -- Settings redraw the preview at once.
 K.Options.Write("UnitFrames", "target.healthText", "currentMax")
 settle()
-assert(U.Shown(env, target.healthText) == "2240 / 4020", "a new text format shows in the preview")
+assert(U.Shown(env, target.healthText) == "2.2K / 4K", "a new text format shows in the preview")
 K.Options.Write("UnitFrames", "target.portrait", false)
 settle()
 assert(target.portraitFrame:IsShown() == false, "switching the portrait off hides it in the preview")
@@ -160,7 +160,7 @@ K.Options.Write("UnitFrames", "edit", "player")
 settle()
 local vitals = preview.views.player
 assert(vitals.geometry.form == "vitals", "the preview draws the vitals line")
-assert(U.Shown(env, vitals.healthText) == "3120" and U.Shown(env, vitals.healthSub) == "/ 3980", "current, then the max: " .. U.Shown(env, vitals.healthText) .. " " .. U.Shown(env, vitals.healthSub))
+assert(U.Shown(env, vitals.healthText) == "3.1K" and U.Shown(env, vitals.healthSub) == "/ 3.9K", "current, then the max: " .. U.Shown(env, vitals.healthText) .. " " .. U.Shown(env, vitals.healthSub))
 assert(U.Shown(env, vitals.levelText) == "60" and vitals.disc:IsShown(), "the level in its disc")
 assert(U.Shown(env, vitals.caption) == K.L["Battle Stance"], "a sample stance follows the name")
 local line = preview.casts.player

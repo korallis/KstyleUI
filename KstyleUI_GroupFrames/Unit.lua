@@ -70,54 +70,10 @@ local function Curves()
 	return percentCurve or nil, fullCurve or nil
 end
 
-local function Point(breakpoint, abbreviation, significand, fraction)
-	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
+local Abbreviate = K.Widgets.ShortNumber
+function Unit.Abbreviate(value)
+	return Abbreviate(value)
 end
-
-local NUMBER_STYLES = {
-	party = {
-		probe = 12400, expect = "12.4k",
-		points = { Point(10000000, "m", 1000000, 1), Point(1000000, "m", 100000, 10), Point(100000, "k", 1000, 1), Point(1000, "k", 100, 10) },
-	},
-	raid = {
-		probe = 12400, expect = "12k",
-		points = { Point(10000000, "m", 1000000, 1), Point(1000000, "m", 100000, 10), Point(10000, "k", 1000, 1), Point(1000, "k", 100, 10) },
-	},
-}
-local numberOptions = {}
-
-local function NumberOptions(kind)
-	local cached = numberOptions[kind]
-	if cached ~= nil then
-		return cached or nil
-	end
-	numberOptions[kind] = false
-	local style = NUMBER_STYLES[kind]
-	if not (style and AbbreviateNumbers) then
-		return nil
-	end
-	local options = { breakpointData = style.points }
-	local ok, text = pcall(AbbreviateNumbers, style.probe, options)
-	if ok and text == style.expect then
-		numberOptions[kind] = options
-		Style.LogOnce("shortNumbers" .. kind, kind .. " health numbers read like " .. style.expect)
-	else
-		Style.LogOnce("shortNumbersOff" .. kind, "AbbreviateNumbers refused KstyleUI's breakpoints; " .. kind .. " health numbers use the game's abbreviation")
-	end
-	return numberOptions[kind] or nil
-end
-
-local function Abbreviate(value, kind)
-	if AbbreviateNumbers then
-		local options = kind and NumberOptions(kind)
-		if options then
-			return AbbreviateNumbers(value, options)
-		end
-		return AbbreviateNumbers(value)
-	end
-	return value
-end
-Unit.Abbreviate = Abbreviate
 
 local function Status(f)
 	local unit = f.unit
@@ -160,16 +116,16 @@ local function HealthText(f)
 	if format == "PERCENT" and percent then
 		text:SetFormattedText(PERCENT_FORMAT, UnitHealthPercent(unit, true, percent))
 	elseif format == "DEFICIT" then
-		text:SetFormattedText(DEFICIT_FORMAT, Abbreviate(UnitHealthMissing(unit), f.kind))
+		text:SetFormattedText(DEFICIT_FORMAT, Abbreviate(UnitHealthMissing(unit)))
 		if full then
 			text:SetAlpha(UnitHealthPercent(unit, true, full))
 		end
 	elseif format == "CURRENT_MAX" then
-		text:SetFormattedText(CURRENT_MAX_FORMAT, Abbreviate(UnitHealth(unit), f.kind), Abbreviate(UnitHealthMax(unit), f.kind))
+		text:SetFormattedText(CURRENT_MAX_FORMAT, Abbreviate(UnitHealth(unit)), Abbreviate(UnitHealthMax(unit)))
 	elseif format == "CURRENT_PERCENT" and percent then
-		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit), f.kind), UnitHealthPercent(unit, true, percent))
+		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit)), UnitHealthPercent(unit, true, percent))
 	else
-		text:SetText(Abbreviate(UnitHealth(unit), f.kind))
+		text:SetText(Abbreviate(UnitHealth(unit)))
 	end
 end
 

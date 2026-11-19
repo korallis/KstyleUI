@@ -251,30 +251,31 @@ do
 	assert(W.Near(nr, er) and W.Near(ng, eg) and W.Near(nb, eb), "and the name brightens")
 end
 
--- Muse #4, Opus #7: missing health reads -12.4k on a party frame and -12k on a narrow raid tile, through the game's
--- own AbbreviateNumbers with breakpoints; a client that refuses them keeps the game's abbreviation.
+-- Missing health uses the shared format on party and raid frames, passing secrets through the engine.
 do
-	local Unit = ns.Unit
-	eq(Unit.Abbreviate(12400, "party"), "12.4k", "party: one decimal under 100k")
-	eq(Unit.Abbreviate(124000, "party"), "124k", "party: whole thousands from 100k")
-	eq(Unit.Abbreviate(1240000, "party"), "1.2m", "party: millions")
-	eq(Unit.Abbreviate(12400, "raid"), "12k", "raid: whole thousands from 10k")
-	eq(Unit.Abbreviate(1240, "raid"), "1.2k", "raid: one decimal under 10k")
-	eq(Unit.Abbreviate(840, "raid"), "840", "under a thousand in full")
-	assert(env.issecretvalue(Unit.Abbreviate(env.Secret(12400), "party")), "a secret goes through whole")
+	local Short = K.Widgets.ShortNumber
+	local pair = Short(12400) .. " / " .. Short(41800)
+	local reserve = ns.Style.Reserve(tank, { healthText = "CURRENT_MAX", healthTextSize = 11 }, nil, true)
+	assert(ns.Names.Width(tank.healthText, pair, 11) <= reserve, "update Style.RESERVE samples to the shared uppercase format so current/max health fits")
+	eq(Short(12400), "12.4K", "party: shared thousands")
+	eq(Short(124000), "124K", "party: whole thousands from 100k")
+	eq(Short(1240000), "1.2M", "party: millions")
+	eq(Short(12400), "12.4K", "raid: shared thousands")
+	eq(Short(1240), "1.2K", "raid: one decimal under 10k")
+	eq(Short(840), "840", "under a thousand in full")
+	assert(env.issecretvalue(Short(env.Secret(12400))), "a secret goes through whole")
 	Batch(env, K, { { "party.healthText", "DEFICIT" } })
 	env._member("party1").health, env._member("party1").maxHealth = 29400, 41800
 	env.FireEvent("UNIT_HEALTH", "party1")
 	local call = W.LastCall(tank.healthText, "SetFormattedText")
 	eq(call[1], "-%s", "the deficit format")
-	eq(env.Reveal(call[2]), "12.4k", "missing 12,400 of 41,800 reads 12.4k")
+	eq(env.Reveal(call[2]), "12.4K", "missing 12,400 of 41,800 reads 12.4K")
 	env._member("party1").health, env._member("party1").maxHealth = 92, 100
 	env.FireEvent("UNIT_MAXHEALTH", "party1")
 end
 do
-	-- The breakpoint check runs once per kind and is remembered, so the refusing client needs its own load; it
-	-- needs no boot, since Abbreviate reads only the game's function.
-	local bare, _, bareNs = G.New({
+	-- Readable numbers use the shared rules even when the client refuses custom breakpoints.
+	local bare, bareK = G.New({
 		boot = false,
 		setup = function(e)
 			e.AbbreviateNumbers = function(value, options)
@@ -285,7 +286,7 @@ do
 			end
 		end,
 	})
-	eq(bareNs.Unit.Abbreviate(12400, "party"), "12400", "a client that refuses breakpoints keeps its own abbreviation")
+	eq(bareK.Widgets.ShortNumber(12400), "12.4K", "a refusing client still formats readable numbers consistently")
 	eq(#bare._errors, 0, tostring(bare._errors[1]))
 end
 

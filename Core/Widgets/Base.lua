@@ -59,6 +59,70 @@ local function IsSecret(v)
 end
 Widgets.IsSecret = IsSecret
 
+local function Point(breakpoint, abbreviation, significand, fraction)
+	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
+end
+
+local function Points(unit)
+	return {
+		Point(1000000000 * unit, "B", 100000000 * unit, 10),
+		Point(1000000 * unit, "M", 100000 * unit, 10),
+		Point(1000 * unit, "K", 100 * unit, 10),
+		Point(1, "", unit, 1),
+	}
+end
+
+local POINTS = { [1] = Points(1), [100] = Points(100) }
+local PROBES = { { 0.5, "0" }, { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12.4K" }, { 1240000, "1.2M" } }
+local secretOptions = {}
+
+local function SecretOptions(unit)
+	if secretOptions[unit] ~= nil then return secretOptions[unit] or nil end
+	secretOptions[unit] = false
+	if type(AbbreviateNumbers) ~= "function" then
+		return nil
+	end
+	local options = { breakpointData = POINTS[unit] }
+	for i = 1, #PROBES do
+		local value = PROBES[i][1] * unit
+		if value >= 1 then
+			local ok, text = pcall(AbbreviateNumbers, value, options)
+			if not ok or IsSecret(text) or text ~= PROBES[i][2] then
+				return nil
+			end
+		end
+	end
+	secretOptions[unit] = options
+	return options
+end
+
+function Widgets.ShortNumber(value, unit)
+	unit = unit or 1
+	if IsSecret(value) then
+		local options = SecretOptions(unit)
+		if options then
+			return AbbreviateNumbers(value, options)
+		end
+		if unit == 1 and type(AbbreviateLargeNumbers) == "function" then
+			return AbbreviateLargeNumbers(value)
+		end
+		return ""
+	end
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return ""
+	end
+	local sign = value < 0 and "-" or ""
+	value = abs(value)
+	local points = POINTS[unit]
+	for i = 1, #points do
+		local point = points[i]
+		if value >= point.breakpoint then
+			return sign .. (floor(value / point.significandDivisor) / point.fractionDivisor) .. point.abbreviation
+		end
+	end
+	return "0"
+end
+
 function Widgets.Restricted(region)
 	if type(region.IsAnchoringRestricted) ~= "function" then
 		return false

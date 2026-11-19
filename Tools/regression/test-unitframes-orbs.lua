@@ -118,7 +118,7 @@ do
 	value, low, high = U.Bar(env, power.bar)
 	assert(value == unit.power and low == 0 and high == unit.powerMax, "the resource orb holds the player's power")
 end
-assert(U.Shown(env, health.value):find(tostring(unit.health), 1, true), "the health orb shows current and max, got " .. U.Shown(env, health.value))
+assert(U.Shown(env, health.value) == "3.1K / 3.9K", "the health orb shows current and max, got " .. U.Shown(env, health.value))
 assert(U.Shown(env, power.value):find("%", 1, true), "the resource orb shows a percentage, got " .. U.Shown(env, power.value))
 
 -- Placement: the orbs flank action bar 1 at equal distance and sit above the screen's foot.

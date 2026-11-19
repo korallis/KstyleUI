@@ -274,9 +274,9 @@ local function show(format, unit)
 	return U.Shown(env, text)
 end
 assert(show("percent") == "78%", "percent: " .. show("percent"))
-assert(show("current") == "3120", "current: " .. show("current"))
-assert(show("currentMax") == "3120 / 3980", "current and max: " .. show("currentMax"))
-assert(show("both") == "3120 / 3980  78%", "both: " .. show("both"))
+assert(show("current") == "3.1K", "current: " .. show("current"))
+assert(show("currentMax") == "3.1K / 3.9K", "current and max: " .. show("currentMax"))
+assert(show("both") == "3.1K / 3.9K  78%", "both: " .. show("both"))
 assert(show("none") == "", "none")
 env._units.player.dead = true
 assert(show("percent") == K.L["Dead"], "a dead unit shows Dead")
@@ -290,12 +290,12 @@ env._units.player.offline = false
 assert((function()
 	Format.Power(text, "player", "currentMax")
 	return U.Shown(env, text)
-end)() == "2000 / 4000", "power current and max")
+end)() == "2K / 4K", "power current and max")
 env._restricted = true
 Format.Power(text, "player", "percent")
 assert(U.Shown(env, text) == "50%", "a secret power percentage still shows: " .. U.Shown(env, text))
 Format.Power(text, "player", "both")
-assert(U.Shown(env, text) == "2000 / 4000  50%", "secret power, both")
+assert(U.Shown(env, text) == "2K / 4K  50%", "secret power, both")
 env._restricted = false
 
 -- A full frame splits "both": the percentage at the track's end, current and max under it.
@@ -305,7 +305,7 @@ local function showDetail(format)
 	Format.HealthDetail(detail, "player", format)
 	return U.Shown(env, detail)
 end
-assert(showDetail("both") == "3120 / 3980", "both: current and max under the track: " .. showDetail("both"))
+assert(showDetail("both") == "3.1K / 3.9K", "both: current and max under the track: " .. showDetail("both"))
 for _, format in ipairs({ "percent", "current", "currentMax", "none" }) do
 	assert(showDetail(format) == "", format .. ": nothing under the track")
 end
@@ -316,7 +316,7 @@ env._units.player.dead = false
 -- Without a curve API the percentage falls back to current and max, and says so once in the devlog.
 env.C_CurveUtil, env.CurveConstants = nil, nil
 Format.ResetCurve()
-assert(show("percent") == "3120 / 3980", "no curve: current and max instead of a wrong percentage")
+assert(show("percent") == "3.1K / 3.9K", "no curve: current and max instead of a wrong percentage")
 assert(showDetail("both") == "", "no curve: current and max show once, not twice")
 
 assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))

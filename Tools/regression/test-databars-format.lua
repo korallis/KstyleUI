@@ -23,7 +23,7 @@ eq(Format.Short(999), "999", "below a thousand stays whole")
 eq(Format.Short(12345), "12.3K", "thousands with one decimal")
 eq(Format.Short(50000), "50K", "no trailing .0")
 eq(Format.Short(49990), "49.9K", "cut, never rounded up to the next step")
-eq(Format.Short(123456), "123K", "three digits drop the decimal")
+eq(Format.Short(123456), "123.4K", "all scales retain one decimal when needed")
 eq(Format.Short(2500000), "2.5M", "millions")
 eq(Format.Short(-12345), "-12.3K", "a negative short number keeps its sign")
 

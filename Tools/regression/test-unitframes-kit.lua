@@ -100,12 +100,12 @@ assert(near(badgeX, g.badge.x, 1) and near(-badgeY, g.badge.y, 1), "the badge si
 
 -- Texts: the percentage at the track's end and current and max under it, from secret health.
 assert(U.Shown(env, player.healthText) == "78%", "the percentage at the track's end: " .. U.Shown(env, player.healthText))
-assert(U.Shown(env, player.healthSub) == "3120 / 3980", "current and max under it: " .. U.Shown(env, player.healthSub))
+assert(U.Shown(env, player.healthSub) == "3.1K / 3.9K", "current and max under it: " .. U.Shown(env, player.healthSub))
 assert(player.healthText:GetJustifyH() == "RIGHT", "the percentage is right-aligned at the track's end")
 assert(player.healthSub:GetJustifyH() == "RIGHT" and player.powerText:GetJustifyH() == "LEFT", "the detail row: health at the right, power at the left")
 env._units.player.health = 1990
 env.FireEvent("UNIT_HEALTH", "player")
-assert(U.Shown(env, player.healthText) == "50%" and U.Shown(env, player.healthSub) == "1990 / 3980", "health events update both texts")
+assert(U.Shown(env, player.healthText) == "50%" and U.Shown(env, player.healthSub) == "1.9K / 3.9K", "health events update both texts")
 env._units.player.health = 3120
 env.FireEvent("UNIT_HEALTH", "player")
 local line = player.trackLine
@@ -119,9 +119,9 @@ assert(W.Near(lr, er) and W.Near(lg, eg) and W.Near(lb, eb) and W.Near(la, ea), 
 assert(K.Layout.Set("unitframes.player", "height", 30), "Layout can make the player frame compact")
 assert(player.geometry.compact and not player.healthSub:IsShown(), "a compact frame has no row under its bar")
 assert(not line:IsShown(), "a compact frame's bar fills its glass, with no hairline")
-assert(U.Shown(env, player.healthText) == "3120 / 3980  78%", "resizing rewrites the health text at once: " .. U.Shown(env, player.healthText))
+assert(U.Shown(env, player.healthText) == "3.1K / 3.9K  78%", "resizing rewrites the health text at once: " .. U.Shown(env, player.healthText))
 K.Layout.Reset("unitframes.player")
-assert(U.Shown(env, player.healthText) == "78%" and player.healthSub:IsShown() and U.Shown(env, player.healthSub) == "3120 / 3980", "and back again")
+assert(U.Shown(env, player.healthText) == "78%" and player.healthSub:IsShown() and U.Shown(env, player.healthSub) == "3.1K / 3.9K", "and back again")
 noErrors("texts")
 
 -- The round portrait is a setting: today's ring, disc and round badge, with the chamfered chrome hidden.

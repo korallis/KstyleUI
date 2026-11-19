@@ -159,9 +159,7 @@ function N.Install(env, opts)
 		return env.Secret(pct)
 	end
 	env.CurveConstants = { ScaleTo100 = { curve = "ScaleTo100" } }
-	function env.AbbreviateNumbers(value)
-		return env.Secret("abbr:" .. tostring(env.issecretvalue(value) and env.Reveal(value) or value))
-	end
+	dofile("Tools/regression/abbreviate_env.lua")(env)
 	function env.UnitLevel(token)
 		local u = unit(token)
 		return u and u.level or 0

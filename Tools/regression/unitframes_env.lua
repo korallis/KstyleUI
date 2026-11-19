@@ -303,12 +303,7 @@ function U.Install(env)
 		end
 		return secretWhen(env._restricted, curve and curve:Evaluate(share) or share)
 	end
-	function env.AbbreviateNumbers(value)
-		if env.issecretvalue(value) then
-			return env.Secret(tostring(env.Reveal(value)))
-		end
-		return tostring(value)
-	end
+	dofile("Tools/regression/abbreviate_env.lua")(env)
 	-- Unit watches show a frame while its unit exists, as SecureStateDriverManager does, and run the
 	-- frame's OnShow and OnHide scripts on a change. They rescan with the state drivers.
 	local function setVisible(frame, shown)

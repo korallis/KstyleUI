@@ -101,7 +101,7 @@ local br, bg, bb = Tokens.Color("hudPlayerHealth")
 local hc = player.health.colorRGBA
 assert(near(hc[1], br) and near(hc[2], bg) and near(hc[3], bb), "the player's health is the picture's blue")
 assert(player.health:GetReverseFill() == false, "the player's health fills from the left")
-assert(U.Shown(env, player.healthText) == "3120" and U.Shown(env, player.healthSub) == "/ 3980", "203 / 237 in the picture: current bold, then the max")
+assert(U.Shown(env, player.healthText) == "3.1K" and U.Shown(env, player.healthSub) == "/ 3.9K", "203 / 237 in the picture: current bold, then the max")
 assert(U.Shown(env, player.caption) == "Hunter", "the class word after the name: " .. U.Shown(env, player.caption))
 assert(player.name:GetFont() == Tokens.Font("unit"), "the name uses the picture's tight unit-name face")
 local shadowX, shadowY = player.name:GetShadowOffset()

@@ -26,14 +26,6 @@ local function Log(message)
 	K.DevTest.Log("UnitFrames", message)
 end
 
-local logged = {}
-local function LogOnce(key, message)
-	if not logged[key] then
-		logged[key] = true
-		Log(message)
-	end
-end
-
 local function Curve()
 	if curveTried then
 		return curve
@@ -68,13 +60,7 @@ function Format.ResetCurve()
 	curve, curveTried = nil, false
 end
 
-local function Abbreviate(value)
-	if AbbreviateNumbers then
-		return AbbreviateNumbers(value)
-	end
-	LogOnce("abbreviate", "AbbreviateNumbers is missing; numbers show in full")
-	return tostring(value)
-end
+local Abbreviate = K.Widgets.ShortNumber
 
 local function Gone(unit)
 	if UnitIsConnected and not UnitIsConnected(unit) then
@@ -158,7 +144,7 @@ function Format.Max(text, unit)
 end
 
 function Format.SampleMax(text, max)
-	text:SetFormattedText(MAX, max)
+	text:SetFormattedText(MAX, Abbreviate(max))
 end
 
 function Format.PowerMode(unit, format, powerType)

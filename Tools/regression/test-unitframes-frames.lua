@@ -97,7 +97,7 @@ assert(env.issecretvalue(W.LastCall(player.health, "SetValue")[1]), "the bar get
 assert(U.Shown(env, player.healthText) == "78%", "health text: " .. U.Shown(env, player.healthText))
 assert(U.Shown(env, player.powerText) == "50%" and player.powerText:IsShown(), "mana reads as a percent by default")
 K.Options.Write("UnitFrames", "player.powerText", "currentMax")
-assert(player.powerText:IsShown() and U.Shown(env, player.powerText) == "2000 / 4000", "power text as an option: " .. U.Shown(env, player.powerText))
+assert(player.powerText:IsShown() and U.Shown(env, player.powerText) == "2K / 4K", "power text as an option: " .. U.Shown(env, player.powerText))
 K.Options.Write("UnitFrames", "player.powerText", "none")
 assert(U.Shown(env, player.name) == "TESTER", "the name in capitals: " .. U.Shown(env, player.name))
 local THIN = "\226\128\137"

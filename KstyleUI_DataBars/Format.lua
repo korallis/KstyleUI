@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local L = ns.L
-local floor, abs, format = math.floor, math.abs, string.format
+local floor, format = math.floor, string.format
 
 local Format = {}
 ns.Format = Format
@@ -10,8 +10,6 @@ ns.Format = Format
 local COPPER_PER_SILVER = 100
 local COPPER_PER_GOLD = 10000
 local HOURS_HALF_DAY = 12
-local SHORT_STEPS = { { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } }
-local SHORT_DECIMAL_BELOW = 100
 local DOT = " \194\183 "
 
 Format.BAR_TEXTS = {
@@ -56,22 +54,7 @@ function Format.Number(n)
 	return Group(n)
 end
 
-function Format.Short(n)
-	local size = abs(n)
-	for _, step in ipairs(SHORT_STEPS) do
-		if size >= step[1] then
-			local scaled = size / step[1]
-			local text
-			if scaled < SHORT_DECIMAL_BELOW then
-				text = format("%.1f", floor(scaled * 10) / 10):gsub("%.0$", "")
-			else
-				text = tostring(floor(scaled))
-			end
-			return (n < 0 and "-" or "") .. text .. step[2]
-		end
-	end
-	return tostring(Whole(n))
-end
+Format.Short = KstyleUI.Widgets.ShortNumber
 
 function Format.Percent(current, max, over)
 	if max <= 0 then

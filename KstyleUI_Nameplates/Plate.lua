@@ -676,9 +676,9 @@ function Plate:UpdateHealthText()
 	local format = Settings.Get("healthText.format")
 	local curve = PercentCurve()
 	if format == "value" or not curve then
-		text:SetText(AbbreviateNumbers(UnitHealth(unit)))
+		text:SetText(Widgets.ShortNumber(UnitHealth(unit)))
 	elseif format == "both" then
-		text:SetFormattedText("%s  %.0f%%", AbbreviateNumbers(UnitHealth(unit)), UnitHealthPercent(unit, true, curve))
+		text:SetFormattedText("%s  %.0f%%", Widgets.ShortNumber(UnitHealth(unit)), UnitHealthPercent(unit, true, curve))
 	else
 		text:SetFormattedText("%.0f%%", UnitHealthPercent(unit, true, curve))
 	end

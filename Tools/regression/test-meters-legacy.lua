@@ -18,7 +18,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local row = threat.rows[1]
 			assert(math.abs(row.bar:GetHeight() - K.Widgets.Snap(row.bar, 4)) < 0.01, "previous threat rows use a four-unit class pill")
 			assert(not row.frame:IsMouseEnabled(), "threat rows must pass clicks to the world")
-			assert(ns.Logic.Abbreviate(12400) == "12K" and env.Reveal(ns.Logic.Abbreviate(env.Secret(12400))) == "12K", "Off restores plain and secret number formatting")
+			assert(ns.Logic.Abbreviate(12400) == "12.4K" and env.Reveal(ns.Logic.Abbreviate(env.Secret(12400))) == "12.4K", "Off keeps the shared plain and secret number formatting")
 			M.Write(env, K, "damage.rowHeight", 27)
 			M.Write(env, K, "damage.outline", "OUTLINE")
 			assert(ns.Get("damage.rowHeight") == 27 and ns.Get("damage.outline") == "OUTLINE", "previous damage controls can select the shared style defaults")

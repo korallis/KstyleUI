@@ -190,30 +190,7 @@ local function installRoster(env)
 	function env.SetPortraitTexture(texture, unit)
 		texture._portraitUnit = unit
 	end
-	-- AbbreviateNumbers(value, options): with options.breakpointData, the first breakpoint (largest first) the
-	-- value reaches divides it by significandDivisor, keeps whole significand digits and shows fractionDivisor's
-	-- decimals, as LocalizationSharedDocumentation.lua describes ("1234" -> "1.2k", "12345" -> "12k").
-	local function abbreviate(value, options)
-		local points = options and options.breakpointData
-		if type(points) == "table" then
-			for _, point in ipairs(points) do
-				if value >= point.breakpoint then
-					local significand = math.floor(value / point.significandDivisor)
-					local shown = significand / point.fractionDivisor
-					local digits = point.fractionDivisor > 1 and string.format("%.1f", shown) or tostring(math.floor(shown))
-					return digits .. point.abbreviation
-				end
-			end
-		end
-		return tostring(value)
-	end
-	function env.AbbreviateNumbers(value, options)
-		if env.issecretvalue(value) then
-			return env.Secret(abbreviate(env.Reveal(value), options))
-		end
-		return abbreviate(value, options)
-	end
-
+	dofile("Tools/regression/abbreviate_env.lua")(env)
 	function env.UnitIsGroupLeader(unit)
 		local m = member(unit)
 		return env.Secret(m ~= nil and m.leader == true)

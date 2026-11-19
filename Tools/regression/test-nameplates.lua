@@ -406,7 +406,7 @@ do
 	K.Options.Write("Nameplates", "healthText.show", true)
 	K.Options.Write("Nameplates", "healthText.format", "value")
 	local text = Last(plate.healthText, "SetText")[1]
-	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
+	assert(env.issecretvalue(text) and env.Reveal(text) == "40", "the value format abbreviates UnitHealth")
 end
 
 -- Size: the KSTY-44 bible's plate (renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg, 1 px per screen unit
