@@ -7,6 +7,7 @@ value ceiling and geometry, and redrawn and compared when NumPy is there. The im
 """
 
 import importlib.util
+import hashlib
 import json
 import re
 import tempfile
@@ -74,6 +75,11 @@ class FilesTest(unittest.TestCase):
 
 
 class SourcesTest(unittest.TestCase):
+    def test_existing_hub_textures_are_unchanged(self):
+        for name, expected in {'Ring256': '5042ab814ae82dc7bb3807c2e169e60daccebfac8a467cec0aeb17ac34f128d8', 'Enamel256': '83ecbde76bdf84a678d14bd955eb4342168002ec8348dbb7e705cd77018f989e'}.items():
+            self.assertEqual(hashlib.sha256((ROOT / kit.OUT / (name + ".png")).read_bytes()).hexdigest(), expected,
+                             "restore the original hub texture; ship new minimap art under a new filename")
+
     def test_every_source_has_a_job_a_model_and_an_original_prompt(self):
         sources = kit.sources()
         used = {i.source for i in kit.KIT}

@@ -78,6 +78,15 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			M.Settle(env)
 			assert(math.abs(face.mapArea:GetWidth() - width) <= K.Scale.Pixel(1), "grow the frame outward; preserve the visible map size: " .. frame .. " " .. width .. " / " .. face.mapArea:GetWidth())
 			local crest = frame ~= "classic"
+			if frame == "classic" then
+				local w, h = ns.Map.holder:GetSize()
+				local overhang = math.min(w, h) * (1 / 0.9189 - 1) / 2
+				local left = face:Clamp(rw * 2, rh / 2, w, h, rw, rh)
+				assert(W.Near(left, rw + K.Scale.Origin() - K.Tokens.Size("screenMargin") - overhang - w), "Classic retains the base screen margin without a one-pixel shift")
+				local slot = layouts.Slot("DPS", rh)
+				local cards = layouts.Story("DPS", rh, true, "medallions", rw)
+				assert(cards.guide.y == slot.y - 16 and cards.quests.y == slot.y - 16, "Classic retains the base story inset")
+			end
 			local _, fit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled, "medallions")
 			assert(previousCrest == crest or fit ~= previousFit, "invalidate layout-fit cache when the minimap footprint changes")
 			assert(not env.KstyleUIDB.scaleCache or not env.KstyleUIDB.scaleCache.oldFrame, "invalidate the persisted scale cache when Minimap frame changes")
