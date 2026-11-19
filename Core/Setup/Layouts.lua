@@ -271,7 +271,7 @@ for i = #GRID_ORDER, 1, -1 do
 	if grid.growth then
 		table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".growth", value = grid.growth })
 	end
-	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = grid.rows })
+	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = (bar == "pet" or bar == "stance") and 0 or grid.rows })
 end
 
 local BOSS_LEFT = {
@@ -503,6 +503,68 @@ function Layouts.Grid(key)
 	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
 end
 
+function Layouts.ActionBarGrid(style, class, key, cfg)
+	local grid = GRIDS[key]
+	if not grid then return end
+	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
+	cfg = cfg or saved[key:match("%.(.+)$")] or {}
+	local side = key == "actionbars.pet" or key == "actionbars.stance"
+	local count = math.min(grid.buttons, math.max(1, math.floor(cfg.buttons or grid.buttons)))
+	local rows = cfg.rows or (side and 0 or grid.rows)
+	local size, gap = cfg.size or grid.size, cfg.spacing or (side and -1 or grid.spacing or PITCH)
+	if rows == 0 then rows = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.rows or grid.rows end
+	if gap < 0 then gap = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.gap * size / grid.size or PITCH end
+	if style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+		local _, _, _, _, cell, spacing = Layouts.MedallionsGroup(class)
+		size = saved.bar1 and saved.bar1.size or size
+		rows, gap, size = 1, spacing * size / grid.size, cell * size / grid.size
+	end
+	return count, rows, size, gap
+end
+
+function Layouts.ActionBarFootprint(style, class, key)
+	local count, rows, size, gap = Layouts.ActionBarGrid(style, class, key)
+	if not count then return end
+	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
+	local cfg, grid = saved[key:match("%.(.+)$")] or {}, GRIDS[key]
+	local side = key == "actionbars.pet" or key == "actionbars.stance"
+	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
+	local defaultSplit = key == "actionbars.bar2" and "auto" or "off"
+	if (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == defaultRows) and (cfg.size == nil or cfg.size == grid.size)
+		and (cfg.spacing == nil or cfg.spacing == defaultGap) and (cfg.split == nil or cfg.split == defaultSplit) then
+		if style == "medallions" then
+			if saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+				local _, _, width, height = Layouts.MedallionsGroup(class)
+				return width, height
+			end
+			if side then return select(2, Layouts.MedallionsSide(class, key)) end
+		end
+		return GridSize(key)
+	end
+	rows = math.min(count, math.max(1, math.floor(rows)))
+	local columns = math.ceil(count / rows)
+	rows = math.ceil(count / columns)
+	local height = rows * size + (rows - 1) * gap
+	if style == "frames" and saved.tray ~= false and saved.trayColumn ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+		size, gap = size * 37.6 / grid.size, gap * 3.6 / grid.spacing
+	end
+	local width = columns * size + (columns - 1) * gap
+	local grouped = style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2")
+	if not grouped and columns > 1 and (cfg.split == "on" or style == "orbs" and (cfg.split or (key == "actionbars.bar2" and "auto")) == "auto") then width = width + Layouts.SPLIT_GAP end
+	if style == "orbs" and key == "actionbars.bar2" then return width * ORBS_BAR2_SCALE, height * ORBS_BAR2_SCALE end
+	return width, height
+end
+
+function Layouts.ActionBarSignature(style, class)
+	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
+	local out = { tostring(saved.slab ~= false), tostring(saved.tray ~= false) }
+	for _, key in ipairs(GRID_ORDER) do
+		local width, height = Layouts.ActionBarFootprint(style, class, "actionbars." .. key)
+		out[#out + 1] = tostring(width) .. "/" .. tostring(height)
+	end
+	return table.concat(out, ":")
+end
+
 local function Lift(rootHeight)
 	if type(rootHeight) == "number" and rootHeight > 0 then
 		return HEIGHT - rootHeight
@@ -547,6 +609,7 @@ function Layouts.Footprint(name, key, style)
 		return nil
 	end
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
+	if GRIDS[key] then return Layouts.ActionBarFootprint(style, ns.Scale.Aspect(), key) end
 	local size, gap, columns, rows = Layouts.CooldownGrid(style, key)
 	if size then return columns * size + (columns - 1) * gap, rows * size + (rows - 1) * gap end
 	local place = Layouts.Attached(style, name, key, ns.Scale.Aspect())
@@ -863,6 +926,8 @@ end
 Layouts.STYLES = { "orbs", "medallions" }
 
 function Layouts.Style(style, name, key)
+	local bar = Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
+	if bar then return bar end
 	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
 		and ns.Store.Module("CombatText").clearLanes == false then
 		return
@@ -907,18 +972,22 @@ function Layouts.MedallionsSide(_, key)
 	return side.rows, columns * grid.size + (columns - 1) * side.gap, side.rows * grid.size + (side.rows - 1) * side.gap
 end
 
+function Layouts.ActionBarPlace(class, style, name, key)
+	if style ~= "medallions" or not (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") then return end
+	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
+	if bars.slab == false then return end
+	local place = PLACES[class] and PLACES[class].medallions[key] or STYLES[style][name] and STYLES[style][name][key]
+	if not place then return end
+	local left = Layouts.ActionBarFootprint(style, class, "actionbars.bar1")
+	local right = Layouts.ActionBarFootprint(style, class, "actionbars.bar2")
+	local hub = Layouts.MEDALLIONS_HUB_GAP
+	local x = key == "actionbars.bar1" and -(hub + left) / 2 or (hub + right) / 2
+	if key == "databars.xp" then return { anchor = place.anchor, x = (right - left) / 2, y = place.y, width = left + right + hub, height = place.height } end
+	return { anchor = place.anchor, x = x, y = place.y }
+end
+
 function Layouts.StyleSize(style, class, key)
-	if style ~= "medallions" then
-		return nil
-	end
-	if key == "actionbars.bar1" or key == "actionbars.bar2" then
-		local _, _, width, height = Layouts.MedallionsGroup(class)
-		return width, height
-	end
-	if key == "actionbars.pet" or key == "actionbars.stance" then
-		local _, width, height = Layouts.MedallionsSide(class, key)
-		return width, height
-	end
+	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class, key) end
 end
 
 function Layouts.BuildMedallions()
@@ -992,6 +1061,8 @@ end
 Layouts.BuildMedallions()
 
 function Layouts.Aspect(class, style, name, key)
+	local bar = Layouts.ActionBarPlace(class, style, name, key)
+	if bar then return bar end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar(style) end
 	local attached = Layouts.Attached(style, name, key, class)
 	if attached then
@@ -1349,7 +1420,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	for i = 1, rectCount do
 		state.rects[i] = {}
 	end
-	local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
+	local _, groupHeight = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
 	state.groupHeight = groupHeight
 	return state
 end
@@ -1436,7 +1507,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			end
 		end
 	end
-	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
+	if style == "medallions" and (not ns.Store.IsLoaded() or ns.Store.Module("ActionBars").slab ~= false) and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
 		local bar = layout["actionbars.bar1"]
 		local groupHeight = state.groupHeight
 		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
@@ -1504,7 +1575,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		flags[i] = enabled[element.key] ~= false and "1" or "0"
 	end
 	style = STYLES[style] and style or "frames"
-	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags)
+	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature(style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits

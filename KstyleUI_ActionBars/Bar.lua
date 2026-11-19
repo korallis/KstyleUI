@@ -207,6 +207,8 @@ local CUMULATIVE = { bar1 = true, bar2 = true, bar3 = true, bar4 = true, bar5 = 
 function Bar:Layout()
 	local def, cfg = self.def, self:Config()
 	local header = self.header
+	local grouped = ns.Slab.Grouped(def)
+	local orientation, growth = grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth
 	self.factor = Widgets.ScaleFactor(header)
 	local count = min(def.max, max(1, floor(cfg.buttons or def.max)))
 	if def.kind == "stance" then
@@ -235,7 +237,7 @@ function Bar:Layout()
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 	end
-	local split = SplitGap(cfg)
+	local split = grouped and 0 or SplitGap(cfg)
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
 		local _, _, columns = ns.GridSize(count, rows, 1, 0)
@@ -250,25 +252,25 @@ function Bar:Layout()
 	self.backing:ClearAllPoints()
 	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", -margin, margin)
 	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin, -margin)
-	self.backing:SetShown(cfg.backing == true)
+	self.backing:SetShown(not grouped and cfg.backing == true)
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cell
 		if i <= count then
 			local col, row
 			if cols then
-				if cfg.orientation == "VERTICAL" then
+				if orientation == "VERTICAL" then
 					row, col = (i - 1) % used, floor((i - 1) / used)
 				else
 					col, row = (i - 1) % cols, floor((i - 1) / cols)
 				end
-				if cfg.growth == "LEFTDOWN" or cfg.growth == "LEFTUP" then
+				if growth == "LEFTDOWN" or growth == "LEFTUP" then
 					col = cols - 1 - col
 				end
-				if cfg.growth == "RIGHTUP" or cfg.growth == "LEFTUP" then
+				if growth == "RIGHTUP" or growth == "LEFTUP" then
 					row = used - 1 - row
 				end
 			else
-				col, row = ns.Cell(i, count, rows, cfg.orientation, cfg.growth)
+				col, row = ns.Cell(i, count, rows, orientation, growth)
 			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch) - drop)
@@ -299,6 +301,14 @@ function Bar:Apply()
 		K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
 	end
 	self:Layout()
+	local groupedWidth = ns.Slab.Grouped(self.def) and self.holder:GetWidth() or nil
+	if self.registered and self.groupedWidth ~= groupedWidth then
+		self.holder:SetScale(1)
+		K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
+		local strip = K.Layout.Element("databars.xp")
+		if strip then K.Layout.Register(strip.frame, strip.key, K.Setup.Layouts.Default(strip.key), strip.opts) end
+	end
+	self.groupedWidth = groupedWidth
 	self:UpdateLive()
 	local header, def = self.header, self.def
 	if type(RegisterStateDriver) == "function" then

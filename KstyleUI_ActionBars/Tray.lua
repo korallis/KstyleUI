@@ -18,7 +18,7 @@ end
 local COLUMN = { size = 37.6, spacing = 3.6 }
 
 function Tray.Column(def)
-	return K.HudStyle.Current() == "frames" and (def.key == "bar1" or def.key == "bar2") and ns.Config("trayColumn") ~= false
+	return K.HudStyle.Current() == "frames" and (def.key == "bar1" or def.key == "bar2") and ns.Config("tray") ~= false and ns.Config("trayColumn") ~= false
 end
 
 function Tray.Grid(def, size, spacing)

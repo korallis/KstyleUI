@@ -82,6 +82,7 @@ local function HoldTray(fn)
 end
 
 local function ApplyBars()
+	if ns.Slab.Grouped(ns.BAR.bar1) then ns.Config("bar2").size = ns.Config("bar1").size end
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
@@ -337,12 +338,27 @@ local function OnSetting(_, module, key)
 		ns.Ranks.Stop()
 	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
-	if key == "trayColumn" or key == "safeDragging" then
+	if barKey and field == "size" and (barKey == "bar1" or barKey == "bar2") and ns.Slab.Grouped(ns.BAR[barKey]) then
+		local other = barKey == "bar1" and "bar2" or "bar1"
+		if ns.Config(other).size ~= ns.Config(barKey).size then
+			K.Options.Write(MODULE, other .. ".size", ns.Config(barKey).size)
+			return
+		end
 		ApplyAll()
+		return
+	elseif key == "trayColumn" or key == "tray" or key == "slab" or key == "safeDragging" then
+		ApplyAll()
+		return
 	elseif barKey and ns.BAR[barKey] then
-		if field ~= "showEmpty" and field ~= "fade" and field ~= "fadeAlpha" and field ~= "hotkey" and field ~= "count" and field ~= "macro" and field ~= "cooldown" then
+		local bar = ns.bars[barKey]
+		if bar then
+			bar:Apply()
+			ns.ApplyBindings()
+			ns.Vehicle.Update()
+		else
 			ApplyAll()
 		end
+		return
 	end
 	RefreshVisuals()
 end
@@ -444,6 +460,7 @@ local function Enable()
 	ns.Vehicle.Update()
 	ns.Flyout.Refresh()
 	ns.HideBlizzard()
+	ns.StylePossess()
 	UpdateAll()
 	ns.Slab.Enable()
 	ns.SlabEffects.Enable()

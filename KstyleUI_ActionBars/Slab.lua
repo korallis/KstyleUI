@@ -70,60 +70,24 @@ end
 
 local function Grouped(def)
 	local group = Layouts().MedallionsGroup
-	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and type(group) == "function"
+	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and ns.Config("slab") ~= false and type(group) == "function"
 end
-
-local function Sided(def)
-	return (def.key == "pet" or def.key == "stance") and K.HudStyle.Current() == STYLE
-end
+Slab.Grouped = Grouped
 
 function Slab.Side()
 	return Layouts().MEDALLIONS_SIDE or SIDE
 end
 
 function Slab.Rows(def, cfg)
-	if Grouped(def) then
-		local _, rows = Layouts().MedallionsGroup(K.Scale.Aspect())
-		return Plain(rows) and rows or 1
-	end
-	if Sided(def) then
-		return Slab.Side().rows
-	end
-	return cfg.rows
-end
-
-local function Share(def, cfg)
-	local grid = Layouts().Grid and Layouts().Grid(def.element)
-	if not (grid and Plain(grid.size) and grid.size > 0 and Plain(cfg.size)) then
-		return nil
-	end
-	return cfg.size / grid.size
+	return select(2, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Size(def, cfg)
-	if not Grouped(def) then
-		return cfg.size
-	end
-	local _, _, _, _, size = Layouts().MedallionsGroup(K.Scale.Aspect())
-	local share = Share(def, cfg)
-	if not (Plain(size) and share) then
-		return cfg.size
-	end
-	return size * share
+	return select(3, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Spacing(def, cfg)
-	local gap
-	if Grouped(def) then
-		gap = select(6, Layouts().MedallionsGroup(K.Scale.Aspect()))
-	elseif Sided(def) then
-		gap = Slab.Side().gap
-	end
-	local share = Share(def, cfg)
-	if not (Plain(gap) and share) then
-		return cfg.spacing
-	end
-	return gap * share
+	return select(4, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.TextSize(key, cfg, size, text)
@@ -750,6 +714,11 @@ function Slab.Refresh()
 		Hide()
 		return false
 	end
+	if ns.Config("slab") == false then
+		Hide()
+		Slab.PlaceSides(true)
+		return false
+	end
 	local left, right, gapWidth, l1, r2 = Slab.Pair()
 	if not left then
 		Hide()
@@ -859,7 +828,7 @@ function Slab.PlaceSides(on)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = wanted and bar:Shown() and not bar.holderHidden
+			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar:Config().backing
 			if shown then
 				local pad = Widgets.Snap(plate, key == "bar3" and Slab.Spec().pad or Slab.Side().pad)
 				local vertical = pad - (K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)

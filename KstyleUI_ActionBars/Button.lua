@@ -111,7 +111,7 @@ end
 function Button.UpdateAlpha(b)
 	if ns.UpdateHotkey and b.keyHasAction ~= b.hasAction then ns.UpdateHotkey(b) end
 	local cfg = Config(b)
-	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout or cfg.showEmpty == true
+	local shown = b.hasAction or b.kind == "stance" or ns.grid > 0 or ns.layout or cfg.showEmpty == true or ns.Slab.Grouped(b.kbar.def)
 	local quiet = ns.Config("quietSockets") and ns.Slab.Active() and not b.hasAction and ns.grid == 0 and not ns.layout and not ns.Keybind.active
 	b:SetAlpha(shown and (quiet and 0.4 or 1) or 0)
 	ns.Slab.Keybind(b, cfg.hotkey == true)

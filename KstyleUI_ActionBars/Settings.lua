@@ -30,11 +30,11 @@ local function BarDefaults(def)
 	local out = {
 		enabled = ON_BY_DEFAULT[def.key] == true,
 		buttons = def.max,
-		rows = grid.rows or 1,
+		rows = action and (grid.rows or 1) or 0,
 		orientation = "HORIZONTAL",
 		growth = grid.growth or "RIGHTDOWN",
 		size = grid.size,
-		spacing = grid.spacing or Tokens.Size("actionGap"),
+		spacing = action and (grid.spacing or Tokens.Size("actionGap")) or -1,
 		fade = false,
 		fadeAlpha = 0,
 		hotkey = true,
@@ -72,6 +72,7 @@ local defaults = {
 	ranks = "ask",
 	newSpells = "ask",
 	tray = true,
+	slab = true,
 	trayColumn = true,
 	quietSockets = true,
 	quietCooldown = true,
@@ -147,6 +148,12 @@ local function BarRows(schema, def)
 	local scope = { key = "editBar", value = key }
 	local function add(row)
 		row.showWhen = row.showWhen or editing
+		if key == "bar1" or key == "bar2" then
+			local field = row.key and row.key:match("%.(.+)$")
+			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" then
+				row.showWhen = function(settings) return editing(settings) and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
+			end
+		end
 		row.scope = scope
 		if row.type ~= "header" and row.key ~= key .. ".enabled" then
 			row.disableWhen = Off
@@ -156,12 +163,15 @@ local function BarRows(schema, def)
 	add({ type = "header", label = Label(def) })
 	local help = key == "bar3" and L["Turns this bar on or off. Beside the party frames it lowers the largest HUD size."] or L["Turns this bar on or off."]
 	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = help })
+	if key == "bar1" or key == "bar2" then
+		add({ type = "note", label = L["The slab keeps one row of up to 12 buttons per side, with fixed socket spacing and backing. Button size scales both sides. Turn off Use the Medallions slab to arrange these bars freely."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
+	end
 	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
-	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = def.max, step = 1 })
+	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = def.kind == "action" and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = def.kind == "action" and 1 or 0, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
 	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
-	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = SPACING_MAX, step = 0.1 })
+	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = def.kind == "action" and L["The gap between buttons."] or L["The gap between buttons. -1 keeps the HUD style's default spacing."], min = def.kind == "action" and 0 or -1, max = SPACING_MAX, step = 0.1 })
 	if def.kind == "action" then
 		add({ type = "dropdown", key = key .. ".split", label = L["Split in two"], help = L["Parts each row into two halves with a gap between them."], options = SPLIT_OPTIONS })
 	end
@@ -212,6 +222,8 @@ end
 function ns.Schema()
 	local schema = {
 		{ type = "header", label = L["Slab and cooldowns"] },
+		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "tray", label = L["Use the tray"], help = L["Frames bars 1 and 2 in their HUD tray. Off frees the bars and removes the tray's button sizing."], showWhen = function() return K.HudStyle.Current() ~= "medallions" end },
 		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."] },
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },
@@ -265,8 +277,7 @@ function ns.Schema()
 			},
 		},
 		{ type = "header", label = L["Tray"] },
-		{ type = "toggle", key = "tray", label = L["Tray card"], help = L["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."] },
-		{ type = "toggle", key = "trayColumn", label = L["Tray on the centre column"], help = L["Frames: bars 1 and 2 shrink so their buttons line up with the unit bars above."] },
+		{ type = "toggle", key = "trayColumn", label = L["Tray on the centre column"], help = L["Frames: bars 1 and 2 shrink so their buttons line up with the unit bars above."], showWhen = function(settings) return settings.tray ~= false and K.HudStyle.Current() == "frames" end },
 		{ type = "header", label = L["Spell ranks"] },
 		{
 			type = "dropdown", key = "ranks", label = L["New spell ranks"], help = L["What happens when you learn a higher rank of a spell on your bars."],
