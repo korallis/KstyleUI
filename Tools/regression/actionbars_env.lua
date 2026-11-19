@@ -421,6 +421,7 @@ local function InstallGame(env, opts)
 		if name == "lockActionBars" then
 			return g.lockActionBars
 		end
+		if name == "ActionButtonUseKeyDown" then return g.useKeyDown ~= false end
 		return false
 	end
 	env.IsModifiedClick = function()
@@ -701,6 +702,7 @@ function AB.Click(env, button, mouse, down)
 		if newButton == false then
 			return
 		end
+		if newButton then mouse = tostring(newButton) end
 	end
 	local suffix = mouse == "RightButton" and "2" or "1"
 	local kind = button:GetAttribute("type" .. suffix)
@@ -708,7 +710,12 @@ function AB.Click(env, button, mouse, down)
 		kind = button:GetAttribute("type")
 	end
 	local g = env._game
-	if kind == "action" then
+	local useOnKeyDown = button:GetAttribute("useOnKeyDown")
+	if useOnKeyDown == nil then useOnKeyDown = env.GetCVarBool("ActionButtonUseKeyDown") end
+	local acts = (down == true) == (useOnKeyDown == true)
+	if not acts then
+		-- The template still runs visual hooks on the other half of the click.
+	elseif kind == "action" then
 		local page = button:GetAttribute("actionpage")
 		if page == nil and button:GetAttribute("useparent-actionpage") then
 			page = button:GetParent():GetAttribute("actionpage")
@@ -746,6 +753,7 @@ function AB.PressKey(env, key)
 			local button = env[binding.name]
 			assert(button, "the override binding names a button that does not exist: " .. tostring(binding.name))
 			AB.Click(env, button, binding.mouse, true)
+			AB.Click(env, button, binding.mouse, false)
 			return true
 		end
 	end
