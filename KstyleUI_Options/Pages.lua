@@ -644,8 +644,8 @@ local function ProfileItems()
 		end, get = function() return "" end,
 		set = function(name)
 			if name == "" then return end
-			K.Widgets.Popup({ title = L["Delete layout"], text = format(L["Delete the saved layout %s?"], name),
-				buttons = { { label = L["Cancel"] }, { label = L["Delete"], onClick = function() Report(K.Profiles.DeleteLayout(name)) end } } })
+			K.Widgets.Confirm({ title = L["Delete layout"], text = format(L["Delete the saved layout %s?"], name),
+				acceptLabel = L["Delete"], onAccept = function() Report(K.Profiles.DeleteLayout(name)) end })
 		end })
 	add({
 		kind = "dropdown", label = L["Profile"], help = L["The profile this character uses."], options = AllProfiles,
