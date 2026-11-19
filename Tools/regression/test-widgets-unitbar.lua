@@ -148,15 +148,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(edge.soft:IsShown() == (finishName ~= "medallions"), where .. ": a global restyle preserves the finish's soft edge")
 		assert(W.SameColor(edge.track, k.Tokens.Color(finishName == "medallions" and "medFillBottom" or "barTrack")),
 			where .. ": a global restyle preserves the finish's track")
-		local r, g, b = k.Tokens.Color("gilt")
-		edge.hard:SetColorTexture(r, g, b)
+		edge.hard:SetColorTexture(k.Tokens.Color("gilt"))
 		local rim = W.LastCall(edge.hard, "SetColorTexture")
-		assert(W.SameColor(edge.hard, k.Tokens.Color("white")) and rim[1] == r and rim[2] == g and rim[3] == b, where .. ": nameplates can recolour the hard edge with SetColorTexture")
+		widgets.RestyleUnder({ [unit.fillClip] = true })
+		assert(W.LastCall(edge.hard, "SetColorTexture") == rim and W.SameColor(edge.hard, k.Tokens.Color("white")),
+			where .. ": a scoped restyle preserves an unrelated unit bar's rim colour and neutral vertex tint")
 	end
-	edge.hard:SetColorTexture(k.Tokens.Color("gilt"))
-	local rim = W.LastCall(edge.hard, "SetColorTexture")
-	widgets.RestyleUnder({ [unit.fillClip] = true })
-	assert(W.LastCall(edge.hard, "SetColorTexture") == rim, where .. ": a scoped restyle must not reset an unrelated unit bar's rim")
 	assert(#e._errors == 0, where .. ": " .. tostring(e._errors[1]))
 end
 print("ok unit bar: loss band, flash, spark and low-health curve on secret values")

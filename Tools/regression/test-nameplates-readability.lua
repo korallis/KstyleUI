@@ -51,6 +51,7 @@ assert(select(5, target.auras:GetPoint(1)) == selectedAuraY and select(5, other.
 K.Options.Write("Nameplates", "cast.nameSelectedOnly", false)
 assert(target.castName:IsShown(), "the player can show all cast names")
 
+K.Options.Write("Nameplates", "preset", "lumen")
 K.Options.Write("HudStyle", "style", "medallions")
 assert(ns.state.width == 120 and ns.state.height == 9, "Minimal keeps the existing 120 by 9 Medallions plate")
 K.Options.Write("Nameplates", "preset", "dungeon")
