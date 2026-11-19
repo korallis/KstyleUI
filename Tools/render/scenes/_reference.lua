@@ -68,6 +68,7 @@ Reference.STATE = {
 	game = {
 		level = 11, xp = tonumber(os.getenv("RENDER_XP") or "") or 0, xpMax = 8800, rested = 440, fps = 162, latencyHome = 15, latencyWorld = 15, money = 2616,
 		faction = os.getenv("RENDER_FACTION") == "1" and { factionID = 72, name = "Stormwind", reaction = 5, currentReactionThreshold = 3000, nextReactionThreshold = 9000, currentStanding = 4500 } or nil,
+		honor = os.getenv("RENDER_HONOR") == "1" and 240 or 0, honorMax = 400, battlefield = os.getenv("RENDER_HONOR") == "1",
 	},
 	quests = {
 		{ title = "Unnerving Silence", level = 11, objectives = { "Find and speak with Elegael Thornpaw in the northeastern part of Shadowgale Forest." }, questID = 301, superTracked = true },

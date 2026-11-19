@@ -732,6 +732,7 @@ function Strip.DockMenus(view, s)
 		local micro = Menus.Content("micro")
 		view.zones.left:ClearAllPoints()
 		Widgets.Point(view.zones.left, "TOPLEFT", frame, "TOPLEFT", Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0), 0)
+		Widgets.Point(view.zones.left, "BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 		view.line, view.lineTop, view.wrapMenus = nil, nil, nil
 		card:ClearAllPoints()
 		card:SetAllPoints(frame)
@@ -992,17 +993,13 @@ function Strip.Refresh()
 		Widgets.Point(view.frame, "TOPLEFT", xp.holder, "BOTTOMLEFT", 0, -3)
 		Widgets.Size(view.frame, xp.holder:GetWidth(), LINE)
 		for _, zone in ipairs({ "left", "centre" }) do
-			view.zones[zone]:ClearAllPoints()
-			Widgets.Point(view.zones[zone], "TOPLEFT", view.frame, "TOPLEFT")
+			view.zones[zone]:SetAllPoints(view.frame)
 		end
 		view.zones.right:ClearAllPoints()
 		Widgets.Point(view.zones.right, "TOPRIGHT", xp.text:IsVisible() and xp.text or view.frame, xp.text:IsVisible() and "TOPLEFT" or "TOPRIGHT", -LABEL_GAP, 0)
+		Widgets.Point(view.zones.right, "BOTTOMLEFT", view.frame, "BOTTOMLEFT")
 	elseif view.zones then
-		for i, zone in ipairs({ "left", "centre", "right" }) do
-			local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
-			view.zones[zone]:ClearAllPoints()
-			view.zones[zone]:SetPoint(anchor, view.frame, anchor)
-		end
+		for _, zone in pairs(view.zones) do zone:SetAllPoints(view.frame) end
 	end
 	Strip.Paint(view, s, Read(view, s))
 	DockInk(view)

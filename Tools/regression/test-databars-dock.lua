@@ -8,7 +8,7 @@ end
 
 local secure = { SetParent = true, ClearAllPoints = true, SetPoint = true, SetAllPoints = true, SetSize = true, SetWidth = true, SetHeight = true, SetAttribute = true, Show = true, Hide = true, SetShown = true }
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = D.Menus })
+	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = D.Menus, game = { honor = 240, honorMax = 400, battlefield = true } })
 	local view, Menus = ns.Strip.view, ns.Menus
 	local micro, bags = Menus.Content("micro"), Menus.Content("bags")
 	local function settle() env.RunTimers() W.Settle(env) end
@@ -65,6 +65,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(select(2, view.zones.right:GetPoint()) == xp.text)
 	assert(select(2, view.zones.left:GetPoint()) == select(2, view.zones.centre:GetPoint()))
 	near(view.frame:GetWidth(), xp.holder:GetWidth())
+	local docked = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
+	local dockBottom = {}
+	for _, key in ipairs({ "databars.rep", "databars.honor" }) do dockBottom[key] = select(2, K.Layout.Rect(key)) end
 	for _, item in pairs(view.items) do
 		if item.button:IsShown() then
 			assert(item.value:GetFont() == (K.Tokens.Font("caps")))
@@ -75,6 +78,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	end
 	changeInCombat("rail", Menus.Holder("micro"))
 	assert(not view.slab and not view.topBar)
+	local rail = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
+	for _, key in ipairs({ "databars.rep", "databars.honor" }) do
+		near(docked[key].y, rail[key].y - 15)
+		local _, bottom = K.Layout.Rect(key)
+		assert(math.abs(bottom - dockBottom[key] - 15) <= K.Scale.Pixel(1), "the edge clamp must preserve the dock's fifteen-unit caption band")
+	end
 	changeInCombat("dock", Menus.Holder("micro"))
 	assert(view.slab == xp)
 	K.Layout.Update("databars.xp", { shown = "never" })
@@ -82,6 +91,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(view.slab == xp and view.frame:IsVisible(), "the dock remains when experience is disabled")
 	K.Options.Write("DataBars", "strip.enabled", false)
 	assert(not view.frame:IsShown() and micro:GetParent() == Menus.Holder("micro"))
+	local off = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
+	for _, key in ipairs({ "databars.rep", "databars.honor" }) do near(off[key].y, rail[key].y) end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

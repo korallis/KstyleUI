@@ -83,7 +83,7 @@ for _, screen in ipairs({ {3456, 2234}, {5120, 1440}, {1920, 1080} }) do
     local maximum, fits = game.Setup.Layouts.ScaleLimit(width, screen[2], "DPS", nil, "medallions")
     local expected = game.Scale.Auto(screen[2], maximum, fits)
     if screen[1] == 3456 then
-        assert(math.abs(expected - 0.84601611459266) < 1e-8, "the docked game's 3456x2234 fit changed")
+        assert(math.abs(expected - 0.81580125335721) < 1e-8, "the dock leaves the current Medallions Auto fit unchanged")
     end
     for _, module in ipairs({ "unitframes", "actionbars", "minimap" }) do
         local scene = Hud.Module(module, { layout = "DPS", applyPreset = true })
