@@ -79,9 +79,9 @@ assert(near(Layout.Rect(TARGET), 500), "a target with room to spare is not moved
 K.Options.Write("UnitFrames", "target.auras", false)
 local reachOff = select(2, Geometry.Reach(Settings.Snapshot("target")))
 assert(near(reachOff, 14 + 77.5), "with the debuffs off the target reaches only its portrait")
-PutLeft(TARGET, rootW - tw - (737.4 - 491) - K.Tokens.Size("screenMargin") - 5)
+PutLeft(TARGET, rootW - tw - 100)
 env.RunTimers()
-assert(near(Layout.Rect(TARGET), rootW - tw - (737.4 - 491) - K.Tokens.Size("screenMargin") - 5), "which still fits at 100 units from the edge")
+assert(near(Layout.Rect(TARGET), rootW - tw - 100), "which still fits at 100 units from the edge")
 K.Options.Write("UnitFrames", "target.auras", true)
 
 assert(Layout.Set(PLAYER, "scale", 1.5) == false, "these elements cannot be scaled, so a reach is always in root units")
