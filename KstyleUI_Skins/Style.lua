@@ -404,42 +404,49 @@ local function OnSweptColor(text, r, g, b)
 	end
 end
 
-local function SweepText(text)
+local function SweepText(text, otherAddon)
 	if swept[text] or roles[text] then
 		return false
 	end
-	local path, size = text:GetFont()
-	if IsSecret(path) or IsKitFace(path) then
+	local path, size, flags = text:GetFont()
+	if IsSecret(path) or (not otherAddon and IsKitFace(path)) then
 		return false
 	end
 	if IsSecret(size) or type(size) ~= "number" then
 		size = nil
 	end
 	local entry = { size = size }
-	swept[text] = entry
-	PaintSwept(text, entry)
+	if otherAddon then
+		if size == nil or IsSecret(flags) then return false end
+		local face = Style.Font(SWEEP_ROLE)
+		pcall(text.SetFont, text, face, size, flags)
+	else
+		swept[text] = entry
+		PaintSwept(text, entry)
+	end
 	local r, g, b = text:GetTextColor()
 	RecolorSwept(text, entry, r, g, b)
-	hooksecurefunc(text, "SetFontObject", OnSweptFontObject)
-	hooksecurefunc(text, "SetTextColor", OnSweptColor)
+	if not otherAddon then
+		hooksecurefunc(text, "SetFontObject", OnSweptFontObject)
+		hooksecurefunc(text, "SetTextColor", OnSweptColor)
+	end
 	return true
 end
 
-local function SweepFrame(frame, skip, depth)
+local function SweepFrame(frame, skip, depth, otherAddon)
 	if depth > SWEEP_DEPTH or (skip and skip[frame]) or Forbidden(frame) then
 		return 0
 	end
-	if depth > 1 and type(frame.GetSourceLocation) == "function" then
+	if type(frame.GetSourceLocation) == "function" then
 		local source = frame:GetSourceLocation()
 		local addon = not IsSecret(source) and type(source) == "string" and source:match("[/\\]AddOns[/\\]([^/\\]+)")
-		if addon and not addon:match("^Blizzard_") then
-			return 0
-		end
+		otherAddon = otherAddon or (addon and not addon:match("^Blizzard_"))
 	end
+	if otherAddon and K.Store.Module(MODULE).restyleAddons == false then return 0 end
 	local count = 0
 	if type(frame.GetRegions) == "function" then
 		for _, region in ipairs({ frame:GetRegions() }) do
-			if IsFontString(region) and SweepText(region) then
+			if IsFontString(region) and SweepText(region, otherAddon) then
 				count = count + 1
 			end
 		end
@@ -447,7 +454,7 @@ local function SweepFrame(frame, skip, depth)
 	if type(frame.GetChildren) == "function" then
 		for _, child in ipairs({ frame:GetChildren() }) do
 			if type(child) == "table" then
-				count = count + SweepFrame(child, skip, depth + 1)
+				count = count + SweepFrame(child, skip, depth + 1, otherAddon)
 			end
 		end
 	end
