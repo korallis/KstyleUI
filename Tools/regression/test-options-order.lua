@@ -23,9 +23,12 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	assert(K.Options.Open("DataBars"))
 	settle(env)
 	local list = ns.Window.Parts().content
+	local moduleRow = assert(O.Find(list.rows, function(row) return row:IsShown() and row.item.key == "enabled" end))
+	local toggleX = Scene.Rect(env, moduleRow.controls.toggle)
 	local first = rowFor(ns, "module1")
 	local control = first.controls.order
 	assert(control and control.toggle:GetValue() and control.zone:GetValue() == "left")
+	assert(Scene.Rect(env, control.toggle) == toggleX, "entry and module toggles share one x position")
 	assert(first:GetHeight() == ns.Rows.HEIGHT, "an entry keeps the standard 48-unit row")
 	assert(not control.up:IsEnabled(), "up is disabled at the start")
 	local events = 0
