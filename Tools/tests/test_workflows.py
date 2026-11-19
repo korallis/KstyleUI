@@ -97,6 +97,7 @@ class WorkflowsTest(unittest.TestCase):
                 "WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}",
                 "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
                 "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+                "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
             ]),
         )
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
@@ -134,7 +135,16 @@ class WorkflowsTest(unittest.TestCase):
 
     def test_release_check_and_lua_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
-        self.assertNotIn("continue-on-error:", text)
+        jobs = jobs_of(text)
+        for job in (jobs["check"], jobs["lua"]):
+            self.assertNotIn("continue-on-error:", job)
+        steps = jobs["release"].split("\n      - ")[1:]
+        for step in steps[:-1]:
+            self.assertNotIn("continue-on-error:", step)
+        self.assertIn("name: Post the changelog to Discord", steps[-1])
+        self.assertIn("continue-on-error: true", steps[-1])
+        self.assertIn("DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}", steps[-1])
+        self.assertIn('run: python3 Tools/release/discord_post.py "$GITHUB_REF_NAME"', steps[-1])
 
     def test_release_check_validates_the_tag_changelog(self):
         job = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]

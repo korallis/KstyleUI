@@ -117,3 +117,8 @@ jobs:
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
           (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
           gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
+      - name: Post the changelog to Discord
+        continue-on-error: true
+        env:
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: python3 Tools/release/discord_post.py "$GITHUB_REF_NAME"
