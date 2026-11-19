@@ -67,7 +67,7 @@ local function Cursor()
 	if not (IsNumber(x) and IsNumber(y) and IsNumber(s)) or s <= 0 then
 		return nil
 	end
-	return x / s, y / s
+	return x / s - Scale.Origin(), y / s
 end
 
 local function Describe(key)

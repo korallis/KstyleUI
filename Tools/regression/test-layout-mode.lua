@@ -20,7 +20,7 @@ end
 -- Cursor(env, K, x, y) puts the pointer at root units x, y.
 local function Cursor(env, K, x, y)
 	local scale = K.Scale.Root():GetEffectiveScale()
-	env._cursor = { x * scale, y * scale }
+	env._cursor = { (x + K.Scale.Origin()) * scale, y * scale }
 end
 
 local function Tick(K)
