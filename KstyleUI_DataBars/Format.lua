@@ -77,7 +77,7 @@ function Format.Percent(current, max, over)
 	if max <= 0 then
 		return 0
 	end
-	local percent = floor(current / max * 100)
+	local percent = floor(current * 100 / max)
 	if percent < 0 then
 		return 0
 	elseif percent > 100 and not over then
