@@ -11,7 +11,7 @@ do
 	local Tokens = K.Tokens
 	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 18, smooth = true, spark = true })
 	assert(bar:GetObjectType() == "StatusBar")
-	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == Tokens.Texture("barGlass"), "the Glass texture by default")
+	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == Tokens.Texture("barFlat"), "the shared Flat texture by default")
 	assert(W.SameRGB({ GetVertexColor = function()
 		return bar:GetStatusBarColor()
 	end }, Tokens.Color("accent")), "the accent by default")
@@ -202,8 +202,8 @@ do
 	bar:SetBarTexture(K.Tokens.Texture("barSoft"))
 	assert(#W.Calls(bar, "SetStatusBarTexture") == calls, "the key's own path is the same texture")
 	bar:SetBarTexture(nil)
-	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == K.Tokens.Texture("barGlass"), "nil returns to the Glass default")
-	assert(W.LastCall(bar.background, "SetTexture")[1] == K.Tokens.Texture("barGlass"), "and the background follows")
+	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == K.Tokens.Texture("barFlat"), "nil returns to the shared Flat default")
+	assert(W.LastCall(bar.background, "SetTexture")[1] == K.Tokens.Texture("barFlat"), "and the background follows")
 end
 
 -- Owner pass 1 (M6, "two similar flat blues"): a flat bar reads as a lit, shaded object. A lit line one border tall

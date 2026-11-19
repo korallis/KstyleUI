@@ -60,7 +60,7 @@ for _, screen in ipairs(screens) do
 	local target = un.Frames.Get("target").views[1]
 	local _, _, _, captionX = target.caption:GetPoint(1)
 	assert(math.abs(captionX + UK.Widgets.Snap(target.parent, 9)) < 1e-6, label .. ": the target caption gap is snapped")
-	assert(un.Settings.FontSize("target", "level") == 14.5, label .. ": the default creature caption fits the core")
+	assert(un.Settings.FontSize("target", "level") == 14, label .. ": the creature caption uses the shared level size")
 	snapped(UK, target.name, label .. " target name")
 	snapped(UK, target.caption, label .. " target caption")
 	UK.Options.Write("UnitFrames", "target.fonts.level.size", 18)
