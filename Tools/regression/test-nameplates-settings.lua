@@ -175,6 +175,22 @@ end
 
 -- Nameplate CVars: only when asked, only out of combat, back to the player's values when turned off ----
 
+for _, manage in ipairs({ false, true }) do
+	local env, K = N.New()
+	K.Options.Write("Nameplates", "personalResource", false)
+	K.Options.Write("Nameplates", "cvars.enabled", manage)
+	assert(env._cvars.nameplateShowSelf == "0", "the personal-resource choice hides the display")
+	K.Modules.Disable("Nameplates")
+	assert(env._cvars.nameplateShowSelf == "1", "disabling gives the player's personal-resource value back")
+	env.SetCombat(true)
+	K.Modules.Enable("Nameplates")
+	assert(env._cvars.nameplateShowSelf == "1", "re-enabling in combat waits to apply the choice")
+	env.SetCombat(false)
+	assert(K.Store.Module("Nameplates").personalResource == false and env._cvars.nameplateShowSelf == "0",
+		"re-enabling must apply the personal-resource choice again, with management on or off")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 do
 	local env, K, ns = N.New()
 	for _, write in ipairs(env._cvarWrites) do

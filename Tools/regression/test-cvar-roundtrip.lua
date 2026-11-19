@@ -90,6 +90,23 @@ local function Start(module)
 end
 
 local failures = {}
+for _, original in ipairs({ "0", "1" }) do
+	local ok, err = pcall(function()
+		local values, writes = Copy(ORIGINAL), {}
+		values.nameplateShowSelf = original
+		local env, K = Core.New({ setup = function(e) Install(e, values, writes) end })
+		Core.LoadSaved(env)
+		Core.Login(env)
+		assert(K.Store.Defaults("Nameplates") == nil, "Nameplates is not loaded")
+		assert(K.Setup.Apply(K.Setup.NewChoice()), "setup applies without Nameplates")
+		env.RunTimers()
+		assert(writes.nameplateShowSelf == nil and values.nameplateShowSelf == original,
+			"setup must leave the player's personal-resource CVar alone when Nameplates is not loaded")
+		Reload(env, values, writes)
+		assert(writes.nameplateShowSelf == nil and values.nameplateShowSelf == original, "reload leaves the unowned CVar alone too")
+	end)
+	if not ok then failures[#failures + 1] = tostring(err) end
+end
 for _, module in ipairs(MODULES) do
 	for _, offAtReload in ipairs({ false, true }) do
 		local ok, err = pcall(function()
