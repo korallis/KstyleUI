@@ -75,7 +75,10 @@ function Lumen.Preset(layout)
 	local Layouts = K.Setup.Layouts
 	local settings = Hud.PresetSettings(layout)
 	local rootHeight = Layouts.HEIGHT
-	local slot = Layouts.Slot(layout, rootHeight)
+	local style = Hud.Style() and Hud.Style():lower() == "medallions" and "medallions" or nil
+	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
+	local story = Layouts.Story(layout, rootHeight, true, style, rootHeight * K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height) / Common.SCREEN.height)
+	local slot = story.guide
 	local k = HEIGHT / rootHeight
 	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
 	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
@@ -83,7 +86,7 @@ function Lumen.Preset(layout)
 		local l, _, r, t = Layouts.Rect(spec, spec, rootHeight * width / Common.SCREEN.height, rootHeight)
 		return { left = origin + l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = spec.height * k }
 	end
-	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(Layouts.Story(layout, rootHeight, true, nil, rootHeight * width / Common.SCREEN.height).quests)
+	return settings, Screen(slot), slot, Layouts.Sizes(layout), Screen(story.quests)
 end
 
 -- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,

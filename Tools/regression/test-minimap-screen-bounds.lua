@@ -16,9 +16,14 @@ local function Bounds(env, K, ns, context, preview)
 			context .. ": inset the whole minimap group by screenMargin, including the ring and plaques")
 	end
 	assert(zone.bottom + 1e-6 >= ring.top + pixel, context .. ": place the zone plaque above the ring")
-	assert(row.top <= ring.bottom - pixel + 1e-6, context .. ": place the coordinate plaque below the ring")
-	assert(math.abs(zone.left - row.left) <= pixel + 1e-6 and math.abs(zone.right - row.right) <= pixel + 1e-6,
-		context .. ": align both plaques")
+	if ns.Face.Frame() == "medallion" then
+		assert(math.abs((row.top + row.bottom) / 2 - ring.bottom) <= pixel, context .. string.format(": seat the coordinate plaque on the rim: %.4f vs %.4f, pixel %.4f", (row.top + row.bottom) / 2, ring.bottom, pixel))
+		assert(row.right - row.left < zone.right - zone.left, context .. ": shorten the medallion coordinate plaque")
+	else
+		assert(row.top <= ring.bottom - pixel + 1e-6, context .. ": place the coordinate plaque below the ring")
+		assert(math.abs(zone.left - row.left) <= pixel + 1e-6 and math.abs(zone.right - row.right) <= pixel + 1e-6,
+			context .. ": align both classic plaques")
+	end
 	if not preview then
 		local left, bottom = K.Layout.Rect("minimap.main")
 		local map = Rect(ns.Map.holder)
@@ -38,16 +43,17 @@ local function Drag(env, K, ns, frame, dx, dy, context)
 	frame:GetScript("OnDragStop")(frame)
 	Bounds(env, K, ns, context .. " committed")
 end
+for _, frame in ipairs({ "classic", "ring", "medallion" }) do
 for _, screen in ipairs(screens) do
 	for _, arrangement in ipairs({ "centred", "spread" }) do
 		for _, position in ipairs({ false, { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = {
 				version = 37, profiles = { Default = {
-					HudStyle = { style = "medallions" }, Layout = { arrangement = arrangement }, Minimap = { enabled = true },
+					HudStyle = { style = "medallions" }, Layout = { arrangement = arrangement }, Minimap = { enabled = true, frame = frame },
 				} }, characters = {}, layouts = { Default = { ["minimap.main"] = position or nil } }, account = { setupSeen = true }, devlog = {},
 			} })
 			M.Settle(env)
-			local context = screen[1] .. "x" .. screen[2] .. " " .. arrangement .. (position and " owner" or " default")
+			local context = frame .. " " .. screen[1] .. "x" .. screen[2] .. " " .. arrangement .. (position and " owner" or " default")
 			Bounds(env, K, ns, context)
 			if position then
 				local saved = env.KstyleUIDB.layouts.Default["minimap.main"]
@@ -73,6 +79,7 @@ for _, screen in ipairs(screens) do
 			end
 		end
 	end
+end
 end
 do
 	local _, K = M.New()

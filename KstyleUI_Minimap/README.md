@@ -192,3 +192,13 @@ Store migration 22 moves a map saved at the old default (16 units from the top) 
 - **Buttons and the slider on hover.** The overhaul's mock-up shows no buttons on the map, so the tracking, calendar and drawer buttons and the zoom slider show on hover. New mail and a queue are things the game tells the player, so they show whenever they apply.
 - **No ornament pieces.** The design bible (KSTY-44, section 3.3) allows ornament only on card corners, so the map's forged corner pieces and the plaque behind the N, which #287 added, are gone; the card's brackets are its corners.
 - **Coordinates on a ticker, only while moving, never in combat.** The overhaul's smoothness rule allows no per-frame script for visuals. Movement events start and stop a 0.2 s ticker, so a player standing still costs nothing, and combat pauses it; the only minimap timer left in a fight is the clock's once-a-second tick.
+
+## Medallions minimap frame
+
+In Medallions, **Minimap frame** on the Minimap Options page chooses **Crest medallion** (default), **Crest ring**, or **Classic**. Frames and Orbs keep their square map.
+
+Both crest choices use the central hub's gunmetal bevel, the enamel class-colour edge at 0.35, and the additive rune glyphs at 0.25. The colour follows the player's class even with a custom interface or minimap accent. Crest medallion adds the hub's `LevelPlaque` north gem in the band and seats a shorter coordinates/clock plaque on the bottom rim; Crest ring keeps the classic north marker and full-width lower plaque. The zone plaque keeps its existing frame, text and width.
+
+The visible map retains its full size: the ring grows outward from the 208-unit map (about 195 physical pixels at 1080p), adding about 19 units per edge compared with Classic. Its larger footprint moves the default buff/debuff rows 45 units left and the default story rail 52 units down in Medallions. Saved positions stay saved; the complete map group is clamped inside the screen margin. The live map and Options preview use the same face.
+
+`Ring256.png` and `Enamel256.png` are fresh 512-pixel exports from the original procedural source, with its original geometry and palette; their legacy filenames keep the existing texture tokens. [Media provenance](../Media/PROVENANCE.md) records the recipe: `python Tools/media/medallions_kit.py chrome --only Ring256 Enamel256`. The original generated rune source was unavailable, so `RuneGlyphs.png` stays at 256 pixels without upscaling.

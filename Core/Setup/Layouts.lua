@@ -610,12 +610,21 @@ function Layouts.CooldownGrid(style, key)
 	return Number(cfg.size, 16, 64, 0.1, essential and CENTRE_BUTTON or BUTTON), Number(cfg.spacing, 0, 12, 0.1, essential and CENTRE_GAP or PITCH), columns, rows
 end
 
+function Layouts.MinimapCrest()
+	local frame = ns.Store.IsLoaded() and ns.Store.Module("Minimap").frame
+	return issecretvalue and issecretvalue(frame) or frame ~= "classic"
+end
+
 function Layouts.Footprint(name, key, style, class)
 	local element = byKey[key]
 	if not element or not layouts[name] then
 		return nil
 	end
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
+	if style == "medallions" and key == "minimap.main" and Layouts.MinimapCrest() then
+		local overhang = MAP * (150 / 118 - 1) / 2
+		return MAP + 2 * overhang, MAP + 2 * overhang + 40, overhang, overhang + 20
+	end
 	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class or ns.Scale.Aspect(), key) end
 	local size, gap, columns, rows = Layouts.CooldownGrid(style, key)
 	if size then return columns * size + (columns - 1) * gap, rows * size + (rows - 1) * gap end
@@ -702,8 +711,9 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 	if not slot then
 		return nil
 	end
+	local crest = style == "medallions" and Layouts.MinimapCrest() and 52 or 0
 	local inset = style == "medallions" and GAP or 0
-	local slotHeight = slot.height - Lift(rootHeight) - inset
+	local slotHeight = slot.height - Lift(rootHeight) - inset - crest
 	out = out or {}
 	out.stacked = nil
 	local stack = STORY_STYLES[style]
@@ -736,7 +746,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
+	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset - crest)
 	if guideShown then
 		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, inset)
 		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
@@ -938,6 +948,10 @@ function Layouts.Style(style, name, key)
 	if style == "medallions" and (key == "meters.damage" or key == "meters.threat") and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
 		return layouts[name] and layouts[name][key]
 	end
+	if style == "medallions" and Layouts.MinimapCrest() then
+		local overhang = MAP * (150 / 118 - 1) / 2
+		if key == "minimap.main" then return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) } end
+	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
 	if bar then return bar end
 	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
@@ -1100,6 +1114,18 @@ function Layouts.DisplayInsets(key, height, anchor)
 end
 
 function Layouts.Aspect(class, style, name, key)
+	if Layouts.MinimapCrest() and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") then
+		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
+		if key == "auras.buffs" or key == "auras.debuffs" then
+			local base = layouts[name][key]
+			return { anchor = base.anchor, x = base.x - math.ceil(MAP * (150 / 118 - 1) - AURA_MAP_GAP), y = base.y }
+		end
+		if style == "frames" and (key == STORY_KEYS.quests or key == STORY_KEYS.guide) then
+			local element = ns.Layout.Element(key)
+			local base = element and element.base
+			if base then return { anchor = base.anchor, x = base.x, y = base.y - 52 } end
+		end
+	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, style, name, key)
 	if bar then return bar end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar(style) end
@@ -1173,13 +1199,20 @@ function Layouts.Previous(style, name, key, class)
 end
 
 ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
-	if not (module == "Cooldowns" and key == "attached" or module == "Meters" and key == "swing.attached") then return end
+	if not (module == "Cooldowns" and key == "attached" or module == "Meters" and key == "swing.attached" or module == "Minimap" and key == "frame") then return end
 	ns.Combat.Queue(function()
 		for _, element in ipairs(ELEMENTS) do
 			if element.key:match("^cooldowns%.") or element.key == "meters.swing" then
 				local el = ns.Layout.Element(element.key)
 				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
 			end
+		end
+		if module == "Minimap" then
+			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", STORY_KEYS.quests, STORY_KEYS.guide }) do
+				local el = ns.Layout.Element(affected)
+				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
+			end
+			ns.Widgets.RestyleAll()
 		end
 		local name = ns.Layout.Setting("preset")
 		if Setup.EditMode and Setup.EditMode.ActiveName() == name then

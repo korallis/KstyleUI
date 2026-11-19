@@ -19,6 +19,14 @@ function Style.Accent()
 	return K.Theme.Accent()
 end
 
+function Style.ClassColor()
+	local _, class
+	if type(UnitClass) == "function" then
+		_, class = UnitClass("player")
+	end
+	return K.Theme.ClassColor(class)
+end
+
 function Style.Color(token)
 	if token == "accent" then
 		return Style.Accent()

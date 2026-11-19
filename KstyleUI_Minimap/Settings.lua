@@ -23,6 +23,7 @@ Settings.defaults = {
 	enabled = false,
 	compactIcons = false,
 	clearPlaques = true,
+	frame = "medallion",
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
@@ -32,6 +33,11 @@ Settings.defaults = {
 	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "world" },
 }
 
+local FRAME_OPTIONS = {
+	{ value = "medallion", label = L["Crest medallion"] },
+	{ value = "ring", label = L["Crest ring"] },
+	{ value = "classic", label = L["Classic"] },
+}
 local ACCENT_OPTIONS = {
 	{ value = "class", label = L["Class colour"] },
 	{ value = "custom", label = L["Custom colour"] },
@@ -116,6 +122,8 @@ end
 
 local schema = {
 	{ type = "header", label = L["Frame"] },
+	{ type = "dropdown", key = "frame", label = L["Minimap frame"], options = FRAME_OPTIONS,
+		help = L["Medallions only: crest medallion, crest ring with classic labels, or the classic frame."] },
 	{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
 	{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
 	{

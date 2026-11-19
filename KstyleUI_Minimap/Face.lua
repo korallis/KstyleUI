@@ -38,6 +38,14 @@ function Face.Round()
 	return Widgets.Medallions()
 end
 
+function Face.Frame()
+	return Face.Round() and Settings.Get("frame") or "classic"
+end
+
+local function RingOuter()
+	return Face.Frame() ~= "classic" and 118 / 150 or RING_OUTER
+end
+
 local function CaptionX()
 	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
 end
@@ -320,13 +328,13 @@ local function ZoneCenter(face, side)
 	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(face.zone) / 2))
-	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, RowCenter(face, side))) or y
+	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)) or y
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
-	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or 0
+	local overhang = Face.Round() and side * (1 / RingOuter() - 1) / 2 or 0
 	local half = PlaqueHeight(self) / 2
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
@@ -373,7 +381,7 @@ local function SplitClock(text)
 end
 
 function Face:PlaceClock()
-	local card, clock, meridiem = self.card, self.clock, self.meridiem
+	local card, clock, meridiem = self.clockAnchor or self.card, self.clock, self.meridiem
 	local pixel = self.clockPixel
 	if not pixel then
 		return
@@ -392,7 +400,7 @@ function Face:PlaceClock()
 	clock:ClearAllPoints()
 	local x = (floor(-(self.clockInset + width + gap) / pixel + self.clockRight + 0.5) - self.clockRight) * pixel
 	local y = -(floor(self.clockRow / pixel + self.clockBottom + 0.5) - self.clockBottom) * pixel
-	clock:SetPoint("RIGHT", card, "BOTTOMRIGHT", x, y)
+	clock:SetPoint("RIGHT", card, self.clockAnchor and "RIGHT" or "BOTTOMRIGHT", x, y)
 end
 
 function Face:SetClock(text)
@@ -473,8 +481,11 @@ end
 function Face:PlaceRound(round)
 	local ring, plaques = self.ring, self.plaques
 	if not round then
+		if self.gem then self.gem:Hide() end
+		for _, layer in pairs(self.plate.diamond) do layer:Show() end
 		if ring then
 			ring:Hide()
+			if self.enamel then self.enamel:Hide(); self.runes:Hide() end
 			for _, plaque in ipairs(plaques) do
 				plaque.chrome:SetShown(false)
 			end
@@ -493,11 +504,29 @@ function Face:PlaceRound(round)
 		end
 		self.plaques = plaques
 	end
+	local crest = Face.Frame() ~= "classic"
 	local name, standin = Widgets.TextureName("medMinimapRing")
-	ring:SetTexture((Tokens.Texture(name)))
-	ring:SetVertexColor(Widgets.Rgba(standin and "steel" or "white"))
+	local path = crest and Tokens.Texture("medRingLarge") or Tokens.Texture(name)
+	ring:SetTexture(path)
+	ring:SetVertexColor(Widgets.Rgba(not crest and standin and "steel" or "white"))
+	if crest and not self.enamel then
+		self.enamel = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL + 1)
+		self.enamel:SetTexture((Tokens.Texture("medEnamelLarge")))
+		self.enamel:SetAllPoints(ring)
+		self.runes = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL + 2)
+		self.runes:SetTexture((Tokens.Texture("medRuneGlyphs")))
+		self.runes:SetAllPoints(ring)
+		self.runes:SetBlendMode("ADD")
+	end
+	if self.enamel then
+		local r, g, b = Style.ClassColor()
+		self.enamel:SetVertexColor(r, g, b, 0.35)
+		self.runes:SetVertexColor(r, g, b, 0.25)
+		self.enamel:SetShown(crest)
+		self.runes:SetShown(crest)
+	end
 	local card, side = self.card, self.mapSize or 0
-	Widgets.Size(ring, side / RING_OUTER, side / RING_OUTER)
+	Widgets.Size(ring, side / RingOuter(), side / RingOuter())
 	ring:ClearAllPoints()
 	Widgets.Point(ring, "CENTER", self.mapArea, "CENTER")
 	ring:Show()
@@ -511,6 +540,23 @@ function Face:PlaceRound(round)
 	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX - Snap(card, PLAQUE_PAD), self.zoneY)
 	row:ClearAllPoints()
 	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, RowCenter(self)))
+	local seated = Face.Frame() == "medallion"
+	local rowWidth = width
+	if seated then
+		rowWidth = Snap(card, min(width, max(side * 0.6, (self.coords:GetStringWidth() or 0) + (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0) + 2 * PLAQUE_PAD + 12)))
+	end
+	row:SetWidth(rowWidth)
+	if seated then
+		row:ClearAllPoints()
+		Widgets.Point(row, "CENTER", ring, "BOTTOM")
+	end
+	if seated and not self.gem then
+		self.gem = self.plate:CreateTexture(nil, "ARTWORK", nil, 1)
+		self.gem:SetTexture((Tokens.Texture("medLevelPlaque")))
+		self.gem:SetAllPoints(self.plate)
+	end
+	if self.gem then self.gem:SetShown(seated) end
+	for _, layer in pairs(self.plate.diamond) do layer:SetShown(not seated) end
 	self:SyncPlaques()
 end
 
@@ -659,19 +705,25 @@ function Face:Layout()
 	local x, rowY = Snap(card, CaptionX()), Snap(card, RowCenter(self))
 	local coords = self.coords
 	self:PlaceZone()
-	if round and Settings.Get("clearPlaques") then
+	if round and Settings.Get("clearPlaques") and Face.Frame() ~= "medallion" then
 		self.plate:ClearAllPoints()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
 	self:PlaceRound(round)
+	if Face.Frame() == "medallion" then
+		self.plate:ClearAllPoints()
+		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, Snap(area, side * (1 / RingOuter() - 1) / 4))
+	end
+	local seated = Face.Frame() == "medallion"
+	self.clockAnchor = seated and self.plaques[2] or nil
 	coords:ClearAllPoints()
-	Widgets.Point(coords, "LEFT", card, "BOTTOMLEFT", x, -rowY)
-	local w, h = card:GetSize()
+	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x, seated and 0 or -rowY)
+	local w, h = (self.clockAnchor or card):GetSize()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
 	self.clockBottom = Plain(h) and h / pixel or 0
-	self.clockInset, self.clockGap = Snap(card, CaptionX()), Snap(card, MERIDIEM_GAP)
-	self.clockRow = rowY
+	self.clockInset, self.clockGap = x, Snap(card, MERIDIEM_GAP)
+	self.clockRow = seated and 0 or rowY
 	self:PlaceClock()
 
 	self:PlaceSlider()

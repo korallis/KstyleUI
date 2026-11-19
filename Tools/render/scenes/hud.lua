@@ -152,6 +152,8 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
+	profile.Minimap = profile.Minimap or {}
+	profile.Minimap.frame = os.getenv("RENDER_MINIMAP_FRAME")
 	return {
 		version = 2,
 		profiles = { Default = profile },
@@ -1021,7 +1023,7 @@ function modules.minimap(opts)
 	-- zone, the clock and the player's map position the module reads.
 	local env, K, ns = M.New({
 		enabled = true,
-		settings = Common.PreviousFinish() and { clearPlaques = false } or nil,
+		settings = { frame = os.getenv("RENDER_MINIMAP_FRAME"), clearPlaques = not Common.PreviousFinish() },
 		zone = opts.zone or "Riverglades",
 		position = opts.position,
 		setup = function(env)
@@ -1746,6 +1748,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 			return group == "essential" or group == "utility"
 		end)
 	end
+	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
 	local style = Hud.Style()
 	if style then
 		K.Options.Write("HudStyle", "style", style:lower())
