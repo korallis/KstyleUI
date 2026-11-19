@@ -22,6 +22,11 @@ for _, screen in ipairs(screens) do
 		Write("tray", false)
 		assert(not ns.Tray.Column(ns.BAR.bar1), "Use the tray off must release the Frames size override")
 		if ns.Slab.frame then assert(not ns.Slab.frame:IsShown(), "Use the slab off hides its connected plate") end
+		local previewParent = env.CreateFrame("Frame", nil, K.Scale.Root())
+		previewParent:SetSize(600, 300)
+		Write("editBar", "pet")
+		local preview = ns.Preview(previewParent)
+		Near(preview:GetHeight(), ns.bars.pet.holder:GetHeight(), "preview resolves automatic pet rows and spacing")
 		for _, def in ipairs(ns.BARS) do
 			local key, element = def.key, def.element
 			Write(key .. ".enabled", true)

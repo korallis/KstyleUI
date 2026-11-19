@@ -36,15 +36,17 @@ function Preview:Refresh()
 	local key = ns.Config("editBar")
 	local def = ns.BAR[key] or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
-	local size, gap = Widgets.Snap(self, cfg.size), Widgets.Snap(self, cfg.spacing)
+	local rowCount, cell, spacing = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg), ns.Slab.Spacing(def, cfg)
+	cell, spacing = ns.Tray.Grid(def, cell, spacing)
+	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)
 	local centre = def.key == "bar1" or def.key == "bar2"
-	local count = Fits(self.parentFrame, centre and cfg.size or size, centre and cfg.spacing or gap, min(def.max, cfg.buttons))
-	local rows = min(cfg.rows, count)
+	local count = Fits(self.parentFrame, centre and cell or size, centre and spacing or gap, min(def.max, cfg.buttons))
+	local rows = min(rowCount, count)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch = size + gap
 	if centre then
-		local _, _, columns, used = ns.GridSize(count, rows, cfg.size, cfg.spacing)
-		pitch = cfg.size + cfg.spacing
+		local _, _, columns, used = ns.GridSize(count, rows, cell, spacing)
+		pitch = cell + spacing
 		width = Widgets.Snap(self, (columns - 1) * pitch) + size
 		height = Widgets.Snap(self, (used - 1) * pitch) + size
 	end
@@ -52,8 +54,9 @@ function Preview:Refresh()
 	local r, g, b = ns.AccentRGB()
 	for i, button in ipairs(self.buttons) do
 		if i <= count then
-			local col, row = ns.Cell(i, count, rows, cfg.orientation, cfg.growth)
-			button.opts.size = cfg.size
+			local grouped = ns.Slab.Grouped(def)
+			local col, row = ns.Cell(i, count, rows, grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
+			button.opts.size = cell
 			button:ClearAllPoints()
 			button:SetPoint("TOPLEFT", self, "TOPLEFT", Widgets.Snap(self, col * pitch), -Widgets.Snap(self, row * pitch))
 			button:Restyle()
