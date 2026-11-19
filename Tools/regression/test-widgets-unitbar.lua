@@ -133,4 +133,22 @@ assert(fill == 300 and how == nil and value(under) == 300, "with motion off the 
 K.Motion.SetLevel("full")
 
 assert(#env._errors == 0, tostring(env._errors[1]))
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local e, k = W.New({ width = screen[1], height = screen[2], size = "auto" })
+	local widgets = k.Widgets
+	local unit = widgets.UnitBar(k.Scale.Root(), { width = 300, height = 18 })
+	local edge = widgets.BarEdge(unit.under)
+	local where = screen[1] .. "x" .. screen[2]
+	assert(unit.under.edgeSoft == edge.soft and unit.under.edgeHard == edge.hard and unit.under.track == edge.track,
+		where .. ": UnitBar must reuse Widgets.BarEdge for its under-edge")
+	for _, finishName in ipairs({ "medallions", "frames" }) do
+		unit:SetFinish(finishName)
+		widgets.RestyleAll()
+		assert(edge.soft:IsShown() == (finishName ~= "medallions"), where .. ": a global restyle preserves the finish's soft edge")
+		assert(W.SameColor(edge.track, k.Tokens.Color(finishName == "medallions" and "medFillBottom" or "barTrack")),
+			where .. ": a global restyle preserves the finish's track")
+		assert(W.SameColor(edge.hard, k.Tokens.Color("white")), where .. ": nameplates can still recolour the hard edge with SetColorTexture")
+	end
+	assert(#e._errors == 0, where .. ": " .. tostring(e._errors[1]))
+end
 print("ok unit bar: loss band, flash, spark and low-health curve on secret values")
