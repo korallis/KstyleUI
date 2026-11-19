@@ -30,7 +30,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		T.W.FinishGroups(env)
 		for i = 1, 10 do
 			env._now = env._now + 0.2
-			owner:UpdateTooltip(i % 2 == 0)
+			owner:UpdateTooltip(i % 2 == 1)
 			env.RunTimers()
 			assert(Plays(fade) == before + 1, surface[1] .. ": UpdateTooltip restarted the alpha-zero fade")
 			assert(tip:GetAlpha() == 1 and not fade:IsPlaying(), "a refreshed tooltip stays opaque")
