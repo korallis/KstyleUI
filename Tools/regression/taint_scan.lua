@@ -274,10 +274,6 @@ local function sortedKeys(t)
 	return keys
 end
 
-local HINT = {
-	["hot-hook"] = " The hook runs on every call another addon makes, often every frame: read the state when you need it instead, and in a why name the caller and how often it calls.",
-}
-
 -- Compares each scanned file's findings with the allow-list. A call's count is the number of
 -- places (sites) in the file that make it; one place can give a frame-call and a
 -- setparent-unguarded finding. The count must match exactly, so the list never holds room for an
@@ -309,7 +305,8 @@ function Scan.Check(scanned, allow)
 				for _, f in ipairs(group.findings) do
 					problem(string.format(
 						"%s:%d: %s %s is not allowed. Fix it, or add [%q] = %d with a why to %s.%s",
-						path, f.line, f.kind, call, call, count, file, HINT[f.kind] or ""
+						path, f.line, f.kind, call, call, count, file,
+						f.kind == "hot-hook" and " The hook runs on every call another addon makes, often every frame: read the state when you need it instead, and in a why name the caller and how often it calls." or ""
 					))
 				end
 			elseif count > limit then
