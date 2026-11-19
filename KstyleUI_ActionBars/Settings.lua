@@ -108,11 +108,12 @@ local function Copy(value)
 end
 
 function ns.ApplyExtraBars()
-	local settings, positions = K.Store.Module("ActionBars"), K.Store.Layout()
+	local settings = K.Store.Module("ActionBars")
 	local wanted = settings.extraBarsLayout
 	if wanted == settings.extraBarsApplied then return false end
 	local preset = K.Setup.Layouts.ExtraBarsPreset(wanted, K.Scale.Aspect())
 	if wanted ~= "off" and not preset then return false end
+	local positions = K.Store.Layout()
 	local previous = settings.extraBarsPrevious
 	for _, key in ipairs({ "bar4", "bar5" }) do
 		local element = "actionbars." .. key

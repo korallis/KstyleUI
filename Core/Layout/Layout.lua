@@ -467,7 +467,7 @@ local function StyleDefault(el)
 	el.frames = Band(el, Copy(d))
 	local style, layouts = Style()
 	local over = style and layouts.Style(style, Layout.Setting("preset"), el.key)
-	if style == "medallions" and not over then
+	if style == "medallions" and (el.key == "chat.main" or el.key == "qol.lootfeed") then
 		local extra = layouts.ExtraBarsPlace(Scale.Aspect(), Layout.Setting("preset"), el.key)
 		if extra then
 			d.anchor, d.x, d.y = extra.anchor, extra.x, extra.y

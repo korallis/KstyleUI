@@ -662,10 +662,11 @@ local function Edges(frame)
 	return left * s, right * s, top * s, bottom * s
 end
 
-function Slab.Pair()
+function Slab.Pair(cfg)
 	local bars = ns.bars
 	local left, right = bars and bars.bar1, bars and bars.bar2
-	if not (left and right and left:Shown() and right:Shown()) or left.holderHidden or right.holderHidden then
+	cfg = cfg or K.Store.Module("ActionBars")
+	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden then
 		return nil
 	end
 	local l1, r1, t1, b1 = Edges(left.holder)
@@ -718,12 +719,14 @@ function Slab.Refresh()
 		Hide()
 		return false
 	end
-	if ns.Config("slab") == false then
+	local cfg = K.Store.Module("ActionBars")
+	state.extra = cfg.extraBarsApplied ~= "off"
+	if cfg.slab == false then
 		Hide()
-		Slab.PlaceSides(true)
+		Slab.PlaceSides(true, cfg)
 		return false
 	end
-	local left, right, gapWidth, l1, r2 = Slab.Pair()
+	local left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	if not left then
 		Hide()
 		return false
@@ -737,7 +740,7 @@ function Slab.Refresh()
 	local pad = Widgets.Snap(slab, spec.pad)
 	local rise = 0
 	Slab.joined = {}
-	if ns.Config("extraBarsApplied") == "rows" then
+	if cfg.extraBarsApplied == "rows" then
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local bar, base = ns.bars[key], i == 1 and left or right
 			if bar and bar:Shown() and not bar.holderHidden then
@@ -783,7 +786,7 @@ function Slab.Refresh()
 		K.Effects.Ambient("hub", Animate, Yield)
 	end
 	Animate()
-	Slab.PlaceSides(true)
+	Slab.PlaceSides(true, cfg)
 	ns.SlabEffects.UpdateCap()
 	if ns.Travel then ns.Travel.Refresh() end
 	return true
@@ -841,20 +844,24 @@ end
 
 local sides, SIDE_BARS = {}, { "pet", "stance", "bar3", "bar4", "bar5" }
 
-function Slab.PlaceSides(on)
-	for _, key in ipairs(SIDE_BARS) do
+function Slab.PlaceSides(on, cfg)
+	local active = Slab.Active()
+	cfg = cfg or (on or active) and K.Store.Module("ActionBars")
+	local extra = on and state.extra
+	for i = 1, (extra or sides.bar4 or sides.bar5) and #SIDE_BARS or 3 do
+		local key = SIDE_BARS[i]
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
-		local wanted = key == "bar3" and Slab.Active() and ns.Config("bar3").finished or key ~= "bar3" and on
+		local wanted = key == "bar3" and active and cfg.bar3.finished or key ~= "bar3" and on
 		if key == "bar4" or key == "bar5" then
-			wanted = on and ns.Config("extraBarsApplied") ~= "off" and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
+			wanted = extra and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
 		end
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar:Config().backing
+			local shown = wanted and bar:Shown() and not bar.holderHidden and not cfg[key].backing
 			if shown then
 				local action = key == "bar3" or key == "bar4" or key == "bar5"
 				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)

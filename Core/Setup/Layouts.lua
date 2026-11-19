@@ -1006,9 +1006,18 @@ function Layouts.ExtraBarsPreset(kind, class)
 		size = size, spacing = gap, orientation = "HORIZONTAL", growth = "RIGHTDOWN", split = "off", showEmpty = true, backing = false }
 end
 
+Layouts.EXTRA_BAR_GROUPS = {
+	["actionbars.bar4"] = "bars", ["actionbars.bar5"] = "bars",
+	["unitframes.player"] = "units", ["unitframes.target"] = "units", ["unitframes.pet"] = "units",
+	["unitframes.targettarget"] = "units", ["unitframes.focus"] = "units", ["unitframes.focustarget"] = "units",
+	["unitframes.castbar.player"] = "casts", ["unitframes.castbar.target"] = "casts", ["combattext.player"] = "casts",
+	["actionbars.pet"] = "sides", ["actionbars.stance"] = "sides", ["chat.main"] = "chat", ["qol.lootfeed"] = "chat",
+}
+
 function Layouts.ExtraBarsPlace(class, name, key)
-	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
-	local kind = bars.extraBarsApplied
+	local group = Layouts.EXTRA_BAR_GROUPS[key]
+	if not group then return end
+	local kind = ns.Store.IsLoaded() and (ns.Store.Profile().ActionBars or {}).extraBarsApplied
 	if kind ~= "rows" and kind ~= "beside" then return end
 	local places = PLACES[class] and PLACES[class].medallions or {}
 	local function Base(id) return places[id] or STYLES.medallions[name][id] or layouts[name][id] end
@@ -1016,7 +1025,7 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	local width, height = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
 	local _, _, _, gap = Layouts.ActionBarGrid("medallions", class, "actionbars.bar1")
 	local slab, side = Layouts.MEDALLIONS_SLAB, Layouts.MEDALLIONS_SIDE
-	if key == "actionbars.bar4" or key == "actionbars.bar5" then
+	if group == "bars" then
 		local parent = key == "actionbars.bar4" and left or right
 		local w, h = Layouts.ActionBarFootprint("medallions", class, key)
 		if kind == "rows" then return { anchor = "BOTTOM", x = parent.x, y = parent.y + height + gap } end
@@ -1024,17 +1033,17 @@ function Layouts.ExtraBarsPlace(class, name, key)
 		return { anchor = "BOTTOM", x = parent.x + sign * (width / 2 + 2 * slab.pad + gap + w / 2), y = parent.y + height - h }
 	end
 	local base = Base(key)
-	if kind == "rows" and (key == "unitframes.player" or key == "unitframes.target" or key == "unitframes.pet" or key == "unitframes.targettarget" or key == "unitframes.focus" or key == "unitframes.focustarget") then
+	if kind == "rows" and group == "units" then
 		return { anchor = base.anchor, x = base.x, y = base.y + height + gap + 2, width = base.width, height = base.height }
-	elseif kind == "rows" and (key == "unitframes.castbar.player" or key == "unitframes.castbar.target" or key == "combattext.player") then
+	elseif kind == "rows" and group == "casts" then
 		return { anchor = base.anchor, x = base.x, y = base.y + height + gap, width = base.width, height = base.height }
-	elseif kind == "beside" and (key == "actionbars.pet" or key == "actionbars.stance") then
+	elseif kind == "beside" and group == "sides" then
 		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
 		if class == ASPECTS[1] and key == "actionbars.stance" then
 			return { anchor = base.anchor, x = base.x, y = TIP_Y + select(2, ElementSize("tooltips.anchor")) + 2 * side.pad }
 		end
 		return { anchor = base.anchor, x = base.x, y = base.y + h + side.pad }
-	elseif kind == "beside" and class == ASPECTS[1] and (key == "chat.main" or key == "qol.lootfeed") then
+	elseif kind == "beside" and class == ASPECTS[1] and group == "chat" then
 		local chat = layouts[name]["chat.main"]
 		local lift = math.max(0, left.y + height + slab.pad + gap - chat.y)
 		return { anchor = base.anchor, x = base.x, y = base.y + lift }
@@ -1522,6 +1531,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	end
 	local state = { layout = layout, sizes = {}, rects = {}, boxes = { {}, {} }, story = { value = { guide = {}, quests = {} } }, span = HEIGHT }
 	state.crest = style == "medallions" and Layouts.MinimapCrest()
+	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
 		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, style, class)
@@ -1541,7 +1551,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		if style == "medallions" and key == "unitframes.player" then
 			height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 		end
-		if style == "medallions" and ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "beside" and (key == "actionbars.bar4" or key == "actionbars.bar5") then
+		if style == "medallions" and bars.extraBarsApplied == "beside" and (key == "actionbars.bar4" or key == "actionbars.bar5") then
 			local pad, point = Layouts.MEDALLIONS_SLAB.pad, OFFSETS[layout[key].anchor]
 			width, height, offsetX, offsetY = width + 2 * pad, height + 2 * pad, (2 * point[1] - 1) * pad, (2 * point[2] - 1) * pad
 		end
@@ -1557,9 +1567,8 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		state.rects[i] = {}
 	end
 	local _, groupHeight = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
-	state.groupHeight = groupHeight
 	state.hubLift = 0
-	if style == "medallions" and ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "rows" then
+	if style == "medallions" and bars.extraBarsApplied == "rows" then
 		local _, _, _, gap = Layouts.ActionBarGrid(style, class, "actionbars.bar1")
 		for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5" }) do
 			local base, extra = layout[key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2"], layout[key]
@@ -1570,7 +1579,8 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 			end
 		end
 	end
-	state.slab = not ns.Store.IsLoaded() or ns.Store.Module("ActionBars").slab ~= false
+	state.groupHeight = groupHeight + state.hubLift
+	state.slab = bars.slab ~= false
 	return state
 end
 
@@ -1661,7 +1671,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		local groupHeight = state.groupHeight
 		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
 		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
-		local bottom = floor((bar.y + groupHeight + state.hubLift) * pixelScale - ring / 2 + 0.5)
+		local bottom = floor((bar.y + groupHeight) * pixelScale - ring / 2 + 0.5)
 		if left < 0 or bottom < 0 or bottom + ring > physicalHeight then
 			return false
 		end
