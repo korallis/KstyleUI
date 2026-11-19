@@ -877,8 +877,7 @@ function Rows.Create(list)
 	row:SetScript("OnMouseUp", function(self, button)
 		local item = self.item
 		if K.Store.Module("OptionControls").changedSettings and button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
-			K.Options.Write(item.module, item.key, K.Options.Default(item.module, item.key))
-			ns.Changed()
+			Apply(self, K.Options.Default(item.module, item.key))
 		end
 	end)
 	row.Restyle = Rows.Restyle

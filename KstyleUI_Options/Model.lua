@@ -269,6 +269,7 @@ local function OrderItems(item, row)
 				return at and list[at]
 			end
 			entry.set = function(patch)
+				if patch[1] then return item.set(patch) end
 				local list = Copy(item.get())
 				local at = locate(list)
 				if not at then return end
