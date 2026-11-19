@@ -20,9 +20,10 @@ return Common.Run(function()
 	})
 	AB.Enable(env, K)
 	local mode = os.getenv("RENDER_BAR_CONFIG") or "default"
-	if mode ~= "default" then
+	if mode == "legacy" then K.Options.Write("ActionBars", "tray", false) end
+	if mode == "free" then
 		local settings = K.Store.Module("ActionBars")
-		settings.slab, settings.tray = false, false
+		settings.slab, settings.tray, settings.useTray = false, false, false
 		K.Callbacks.Fire("ProfileChanged")
 		for _, key in ipairs({ "bar1", "bar2", "pet", "stance" }) do
 			K.Options.Write("ActionBars", key .. ".buttons", 6)

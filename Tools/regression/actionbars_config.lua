@@ -17,9 +17,11 @@ for _, screen in ipairs(screens) do
 		AB.Enable(env, K)
 		K.Options.Write("HudStyle", "style", style)
 		local function Write(key, value) K.Options.Write("ActionBars", key, value) end
-		assert(ns.Config("slab") == true and ns.Config("tray") == true, "slab and tray keep the shipped look by default")
-		Write("slab", false)
+		assert(ns.Config("slab") == true and ns.Config("useTray") == true, "slab and tray keep the shipped look by default")
 		Write("tray", false)
+		if style == "frames" then assert(ns.Tray.Column(ns.BAR.bar1), "the legacy Tray card switch must preserve centre-column sizing") end
+		Write("slab", false)
+		Write("useTray", false)
 		assert(not ns.Tray.Column(ns.BAR.bar1), "Use the tray off must release the Frames size override")
 		if ns.Slab.frame then assert(not ns.Slab.frame:IsShown(), "Use the slab off hides its connected plate") end
 		local previewParent = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -90,6 +92,13 @@ for _, screen in ipairs(screens) do
 			assert(math.abs(height - bar.holder:GetHeight() * scale) <= 2 * K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar.header), key .. " setup height follows live bar")
 			local before = bar.holder:GetWidth()
 			env.SetCombat(true)
+			Write(key .. ".hotkey", false)
+			assert(not bar.buttons[1].hotkey:IsShown(), key .. " keybind visibility updates immediately in combat")
+			if def.kind == "action" then
+				Write(key .. ".count", false)
+				assert(not bar.buttons[1].count:IsShown(), key .. " count visibility updates immediately in combat")
+			end
+			Write(key .. ".hotkey", true)
 			Write(key .. ".buttons", 4)
 			Write(key .. ".size", 32)
 			Write(key .. ".spacing", 8)

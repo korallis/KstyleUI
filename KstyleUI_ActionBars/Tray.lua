@@ -18,7 +18,7 @@ end
 local COLUMN = { size = 37.6, spacing = 3.6 }
 
 function Tray.Column(def)
-	return K.HudStyle.Current() == "frames" and (def.key == "bar1" or def.key == "bar2") and ns.Config("tray") ~= false and ns.Config("trayColumn") ~= false
+	return K.HudStyle.Current() == "frames" and (def.key == "bar1" or def.key == "bar2") and ns.Config("useTray") ~= false and ns.Config("trayColumn") ~= false
 end
 
 function Tray.Grid(def, size, spacing)
@@ -62,7 +62,7 @@ local function Card(main)
 end
 
 function Tray.Wanted(main, second, steady)
-	if ns.Config("tray") ~= true or K.HudStyle.Current() ~= "frames" or not (main and second) or not steady then
+	if K.HudStyle.Current() ~= "frames" or ns.Config("useTray") == false or ns.Config("tray") ~= true or not (main and second) or not steady then
 		return false
 	end
 	if not (main:Shown() and second:Shown()) or main.holderHidden or second.holderHidden then

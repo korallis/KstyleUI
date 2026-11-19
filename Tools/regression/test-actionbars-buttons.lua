@@ -584,7 +584,8 @@ do
 	end
 	K.Options.Write("ActionBars", "bar1.size", 40)
 	frame:Refresh()
-	assert(near(frame.buttons[1]:GetWidth(), 40), "the preview follows the button size")
+	local ns = env._addons.KstyleUI_ActionBars
+	assert(near(frame.buttons[1]:GetWidth(), ns.bars.bar1.buttons[1]:GetWidth()), "the preview follows the live style's button size")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

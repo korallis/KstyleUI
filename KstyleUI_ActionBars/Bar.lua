@@ -96,6 +96,7 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
+		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), def.element) or nil
 		if def.key == "bar3" then bar.finished = Layouts.ThirdBarFinished() end
 		if Widgets.ScaleFactor(header) ~= bar.factor then
 			bar:Layout()
@@ -215,7 +216,7 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local rows, cell, spacing = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg), ns.Slab.Spacing(def, cfg)
+	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg)
 	local wide, wideGap = cell, spacing
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
@@ -290,6 +291,11 @@ function Bar:Layout()
 	end
 end
 
+function Bar:Register()
+	self.holder:SetScale(1)
+	K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
+end
+
 function Bar:Apply()
 	if InCombatLockdown() and not ns.enabling then
 		ns.QueueApply()
@@ -297,14 +303,12 @@ function Bar:Apply()
 	end
 	if self.def.key == "bar3" and self.registered and self.finished ~= K.Setup.Layouts.ThirdBarFinished() then
 		self.finished = K.Setup.Layouts.ThirdBarFinished()
-		self.holder:SetScale(1)
-		K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
+		self:Register()
 	end
 	self:Layout()
-	local groupedWidth = ns.Slab.Grouped(self.def) and self.holder:GetWidth() or nil
+	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), self.def.element) or nil
 	if self.registered and self.groupedWidth ~= groupedWidth then
-		self.holder:SetScale(1)
-		K.Layout.Register(self.holder, self.def.element, K.Setup.Layouts.Default(self.def.element), { label = ns.Label(self.def), module = "ActionBars", scalable = true })
+		self:Register()
 		local strip = K.Layout.Element("databars.xp")
 		if strip then K.Layout.Register(strip.frame, strip.key, K.Setup.Layouts.Default(strip.key), strip.opts) end
 	end

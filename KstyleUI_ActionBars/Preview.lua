@@ -36,7 +36,7 @@ function Preview:Refresh()
 	local key = ns.Config("editBar")
 	local def = ns.BAR[key] or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
-	local rowCount, cell, spacing = ns.Slab.Rows(def, cfg), ns.Slab.Size(def, cfg), ns.Slab.Spacing(def, cfg)
+	local _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg)
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)
 	local centre = def.key == "bar1" or def.key == "bar2"

@@ -335,6 +335,12 @@ do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
 	assert(K.Options.Open("ActionBars"), "the settings window opens on the action bars page")
+	local section, trays = nil, 0
+	for _, row in ipairs(K.Options.Get("ActionBars")) do
+		if row.type == "header" then section = row.label; if section == K.L["Tray"] then trays = trays + 1 end end
+		if row.key == "useTray" or row.key == "tray" or row.key == "trayColumn" then assert(section == K.L["Tray"], "keep every tray control in the same Tray section") end
+	end
+	assert(trays == 1, "the Action Bars page has one Tray section")
 	local Model = env._addons.KstyleUI_Options.Model
 	local function VisibleKeys()
 		local keys = {}

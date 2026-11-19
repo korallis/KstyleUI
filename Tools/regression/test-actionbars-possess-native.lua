@@ -6,6 +6,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local frame = env.PossessActionBar
 	assert(K.Layout.Element("actionbars.possess").frame == frame, "move the native frame, retaining native buttons and cancellation")
 	assert(not frame:IsShown(), "native possess visibility stays native")
+	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+		K.Options.Write("HudStyle", "style", style)
+		local width, height = K.Setup.Layouts.Footprint("DPS", "actionbars.possess", style)
+		assert(math.abs(width - frame:GetWidth()) <= K.Scale.Pixel(1) and math.abs(height - frame:GetHeight()) <= K.Scale.Pixel(1), "native possess has a setup footprint in " .. style)
+		assert(K.Setup.Layouts.Positions("DPS", style, K.Scale.Aspect())["actionbars.possess"], "native possess participates in setup positions")
+	end
 	for _, button in ipairs(frame.actionButtons) do
 		assert(K.Skin.Parts(button).backdrop.chrome, "native possess uses the shared icon chrome")
 	end

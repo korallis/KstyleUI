@@ -45,6 +45,7 @@ KSTY-49 (2026-11-13): the Frames tray card, at the KSTY-44 mock-ups' size, lifts
 | `actionbars.bar6` | ActionBars | Action bar 6 | 36.7 x 491 | Off in Lumen. A third column 4.6 units left of bar 5 at the same height, so its slot costs the rail no height and the HUD size cap no room |
 | `actionbars.pet` | ActionBars | Pet bar | 129 x 96 | Three rows of four 30-unit sockets left of the tray card, on its bottom edge, narrow enough to leave the chat-side column free for the tracked buffs |
 | `actionbars.stance` | ActionBars | Stance bar | 129 x 96 | Three rows of four 30-unit sockets right of the tray card, on its bottom edge |
+| `actionbars.possess` | ActionBars | Possess | 64 x 30 | Native secure buttons below and right of the experience strip; movable in Layout Mode |
 | `cooldowns.essential` | Cooldowns | Essential cooldowns | 243.2 x 36.7 | LEE-20: 6 square 36.7 icons at 41.3 pitch, centred at bottom 366.3 (335.3 plus the tray lift), above the target and below the player cast |
 | `cooldowns.utility` | Cooldowns | Utility cooldowns | 161 x 38 | 4 optional 38-unit icons with 3-unit gaps; x 218, bottom 366.3, beside the essential row |
 | `cooldowns.buffs` | Cooldowns | Tracked buff icons | 182.6 x 41.6 | 27.6-unit icons at the left end of the essential cooldown row, a cluster gap off it and on its foot (KSTY-60 item 28; it was beside the player portrait), where Apply also puts Blizzard's BuffIconCooldownViewer |

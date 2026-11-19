@@ -69,8 +69,7 @@ function Slab.Spec()
 end
 
 local function Grouped(def)
-	local group = Layouts().MedallionsGroup
-	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and ns.Config("slab") ~= false and type(group) == "function"
+	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE and ns.Config("slab") ~= false
 end
 Slab.Grouped = Grouped
 
@@ -79,14 +78,17 @@ function Slab.Side()
 end
 
 function Slab.Rows(def, cfg)
+	if not Grouped(def) and cfg.rows ~= 0 then return cfg.rows end
 	return select(2, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Size(def, cfg)
+	if not Grouped(def) then return cfg.size end
 	return select(3, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Spacing(def, cfg)
+	if not Grouped(def) and cfg.spacing >= 0 then return cfg.spacing end
 	return select(4, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
 end
 
@@ -98,10 +100,11 @@ function Slab.TextSize(key, cfg, size, text)
 	if text == "hotkey" and K.HudStyle.Current() == STYLE then
 		return (ns.Config("readableCountdown") and K.Scale.TEXT_FLOOR or KEYBIND) * K.Theme.FontScale()
 	end
+	local cell = Grouped(bar.def) and bar.buttons[1] and bar.buttons[1].opts.size or cfg.size
 	if text == "cooldown" and ns.Config("readableCountdown") then
-		return max(K.Scale.TEXT_FLOOR, Slab.Size(bar.def, cfg) * 0.42) * K.Theme.FontScale()
+		return max(K.Scale.TEXT_FLOOR, cell * 0.42) * K.Theme.FontScale()
 	end
-	local fit = Slab.Size(bar.def, cfg) / cfg.size
+	local fit = cell / cfg.size
 	if not (Plain(fit) and fit < 1) then
 		return size
 	end

@@ -94,9 +94,12 @@ K.Callbacks.Fire("SettingChanged", "ActionBars", "bar1.fade")
 assert(tray:IsShown(), "the tray returns when the fade is off")
 bars.tray = false
 K.Callbacks.Fire("SettingChanged", "ActionBars", "tray")
+assert(tray:IsShown(), "the legacy Tray card switch must preserve Orbs art")
+bars.useTray = false
+K.Callbacks.Fire("SettingChanged", "ActionBars", "useTray")
 assert(not tray:IsShown(), "Use the tray off removes the Orbs tray")
-bars.tray = true
-K.Callbacks.Fire("SettingChanged", "ActionBars", "tray")
+bars.useTray = true
+K.Callbacks.Fire("SettingChanged", "ActionBars", "useTray")
 assert(tray:IsShown(), "Use the tray on restores the Orbs tray")
 
 -- Bar 1 dragged into a corner: the rings stay on the screen and stay on the tray's arms.

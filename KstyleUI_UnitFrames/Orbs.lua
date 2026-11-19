@@ -262,7 +262,7 @@ local function Faded()
 end
 
 local function TrayWanted()
-	return K.Layout.Live(BAR_KEY) == true and K.Store.Module("ActionBars").tray ~= false and not Faded()
+	return K.Layout.Live(BAR_KEY) == true and K.Store.Module("ActionBars").useTray ~= false and not Faded()
 end
 
 function Orbs.Tray()

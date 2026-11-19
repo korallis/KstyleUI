@@ -9,7 +9,7 @@ function ns.StylePossess()
 	K.Combat.Queue(function()
 		if not ns.running then return end
 		if not K.Layout.Element("actionbars.possess") then
-			K.Layout.Register(frame, "actionbars.possess", { anchor = "BOTTOM", x = 0, y = 0 }, { label = K.L["Possess"], module = "ActionBars", fields = { "anchor", "x", "y" } })
+			K.Layout.Register(frame, "actionbars.possess", K.Setup.Layouts.Default("actionbars.possess"), { label = K.L["Possess"], module = "ActionBars", fields = { "anchor", "x", "y" } })
 		end
 		for _, button in ipairs(frame.actionButtons) do
 			if button.icon then

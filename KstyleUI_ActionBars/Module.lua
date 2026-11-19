@@ -82,7 +82,6 @@ local function HoldTray(fn)
 end
 
 local function ApplyBars()
-	if ns.Slab.Grouped(ns.BAR.bar1) then ns.Config("bar2").size = ns.Config("bar1").size end
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
@@ -346,10 +345,14 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "trayColumn" or key == "tray" or key == "slab" or key == "safeDragging" then
+	elseif key == "trayColumn" or key == "tray" or key == "useTray" or key == "slab" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then
+		if field == "showEmpty" or field == "fade" or field == "fadeAlpha" or field == "hotkey" or field == "count" or field == "macro" or field == "cooldown" then
+			RefreshVisuals()
+			return
+		end
 		local bar = ns.bars[barKey]
 		if bar then
 			bar:Apply()
