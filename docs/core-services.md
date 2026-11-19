@@ -180,7 +180,7 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 
 ## Options
 
-`Options.Register(module, schema)` needs the module's defaults first. `schema` is a list of rows. Besides the rows, the schema may hold one named field, `preview`: a `function(parent) -> frame` that builds the module's live preview inside `parent`, the settings window's preview pane. The window calls it once, the first time the module's page opens, shows the frame while the page is open, and calls `frame:Refresh()`, when the frame has one, after any of the module's settings changes.
+`Options.Register(module, schema)` needs the module's defaults first. `schema` is a list of rows, or a function returning that list. A function defers construction and validation until the first `Get`, `Row` or `Preview` call, then retains the validated schema; `List` does not build it. Table schemas are validated at registration as before. Besides the rows, the schema may hold one named field, `preview`: a `function(parent) -> frame` that builds the module's live preview inside `parent`, the settings window's preview pane. The window calls it once, the first time the module's page opens, shows the frame while the page is open, and calls `frame:Refresh()`, when the frame has one, after any of the module's settings changes.
 
 | Field | Rows | Rule |
 | --- | --- | --- |

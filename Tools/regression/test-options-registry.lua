@@ -242,4 +242,39 @@ do
 	assert(K3.Options.Open() == false and CoreEnv.Printed(env3, "settings"), "no C_AddOns: Open says the settings are unavailable")
 end
 
+do
+	local env, K = fresh()
+	local builds, schema = 0, rows()
+	local preview = function() end
+	schema.preview = preview
+	K.Options.Register("UnitFrames", function()
+		builds = builds + 1
+		return schema
+	end)
+	local names = K.Options.List()
+	CoreEnv.Boot(env)
+	assert(names[#names] == "UnitFrames" and builds == 0, "registration, listing and login must defer schema construction")
+	assert(K.Options.Read("UnitFrames", "width") == 220 and builds == 0, "reading saved settings does not need the schema")
+	Raises(function() K.Options.Register("UnitFrames", rows()) end, "already registered", "a pending schema still reserves its module")
+	assert(K.Options.Preview("UnitFrames") == preview and builds == 1, "preview lookup builds a deferred schema")
+	assert(K.Options.Get("UnitFrames") == schema and K.Options.Row("UnitFrames", "width") == schema[4] and builds == 1, "schema and row lookups reuse the validated schema")
+	assert(#K.Options.List() == #names, "building a schema keeps its one registration in order")
+end
+
+do
+	local env, K = fresh()
+	local schema, builds = rows(), 0
+	schema[4].max = 200
+	K.Options.Register("UnitFrames", function()
+		builds = builds + 1
+		return schema
+	end)
+	Raises(function() K.Options.Row("UnitFrames", "width") end, "range", "deferred rows undergo the same validation")
+	schema[4].max = 400
+	CoreEnv.Boot(env)
+	K.Options.Write("UnitFrames", "width", 250)
+	assert(builds == 2 and K.Options.Read("UnitFrames", "width") == 250, "a failed build is not cached and Write builds before validating a row")
+	assert(K.Options.Get("UnitFrames") == schema and builds == 2, "a successful retry is cached")
+end
+
 print("options registry ok")

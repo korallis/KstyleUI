@@ -15,9 +15,11 @@ K.Modules.Register({
 	end,
 })
 
-local schema = Settings.Schema()
-schema.preview = Preview.Build
-K.Options.Register(Settings.MODULE, schema)
+K.Options.Register(Settings.MODULE, function()
+	local schema = Settings.Schema()
+	schema.preview = Preview.Build
+	return schema
+end)
 
 K.DevTest.AddCheck("UnitFrames", function()
 	if not K.Modules.IsEnabled(Settings.MODULE) then
