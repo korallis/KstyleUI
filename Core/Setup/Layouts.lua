@@ -165,7 +165,7 @@ local DPS = {
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME), y = -(EDGE + 6 + MAP_HEADING) },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME + 4), y = -(EDGE + 6 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
@@ -966,7 +966,7 @@ Layouts.ASPECTS, Layouts.PLACES = ASPECTS, PLACES
 Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_HUB_GAP = 150, 158
 Layouts.MEDALLIONS_SLOT = { size = 42, gap = 5, floor = 33, [ASPECTS[1]] = 33.5 }
 Layouts.MEDALLIONS_SIDE = { rows = 2, gap = 4, pad = 6, clear = 8 }
-Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 3, strip = 3, bottom = 3 }
+Layouts.MEDALLIONS_SLAB = { pad = 9, stripGap = 7, strip = 3, bottom = 3 }
 Layouts.MEDALLIONS_UNITS = { frame = { 300, 58 }, mini = { 170, 34 }, cast = { 300, 20 }, lift = 26, reach = 12, medal = 86 + GAP, outboard = 12, stack = 46, castGap = 27, castStack = 9, powerReserve = 22 }
 Layouts.MEDALLIONS_MEDALS = { ["unitframes.player"] = { side = -1, d = 86 }, ["unitframes.target"] = { side = 1, d = 86 }, ["unitframes.pet"] = { side = -1, d = 56 } }
 
@@ -1041,7 +1041,7 @@ function Layouts.BuildMedallions()
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
 			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -(DEBUFFS_Y + TIGHT) },
-			["actionbars.bar3"] = { anchor = "BOTTOM", x = -676, y = 374 },
+			["actionbars.bar3"] = { anchor = "BOTTOM", x = -680, y = 374 },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = petBar,

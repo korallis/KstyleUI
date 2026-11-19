@@ -39,7 +39,7 @@ function Reach.New(width, height, style, layout)
 		for _, unit in ipairs({"target", "focus", "focustarget", "targettarget", "pet", "boss1", "boss2", "boss3", "boss4", "boss5"}) do
 			e._units[unit] = {name=unit, class="WARRIOR", reaction=2, hostile=true, exists=true, health=3000, maxHealth=4000, power=60, maxPower=100, level=60}
 		end
-		Group.SetRoster(e,"raid",Group.Members(40),{name="Tester",class="HUNTER",health=3000,maxHealth=4000,power=60,maxPower=100,level=60},true)
+		Group.SetRoster(e,"raid",Group.Members(40,function(i,m) m.name="M" .. i end),{name="Tester",class="HUNTER",health=3000,maxHealth=4000,power=60,maxPower=100,level=60},true)
 		e._target = true
 		e._threat.player = {false,1,60,50,600000}
 		for i=1,5 do

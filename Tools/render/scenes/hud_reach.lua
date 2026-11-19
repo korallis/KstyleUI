@@ -9,7 +9,7 @@ return Common.Run(function()
 	K.Options.Write("Meters", "threat.shown", true)
 	if os.getenv("RENDER_GROUP")=="party" then
 		local Group=dofile("Tools/regression/group_env.lua")
-		Group.SetRoster(env,"party",Group.Members(4),env._units.player,true)
+		Group.SetRoster(env,"party",Group.Members(4,function(i,m) m.name="M" .. i end),env._units.player,true)
 		env.FireEvent("GROUP_ROSTER_UPDATE")
 	end
 	env.RunTimers()
