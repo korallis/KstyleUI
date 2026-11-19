@@ -225,7 +225,8 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							local width = w*1080/h
 							local function add(key, item)
 									local r=item.rect
-									if r[1]<margin-pixel or r[2]<margin-pixel or r[1]+r[3]>width-margin+pixel or r[2]+r[4]>1080-margin+pixel then
+									local edge = key == "databars.strip" and K.Setup.Layouts.DataBarHeight(style) and 0 or margin
+									if r[1]<edge-pixel or r[2]<edge-pixel or r[1]+r[3]>width-edge+pixel or r[2]+r[4]>1080-edge+pixel then
 										fail(label,key,"outside screen margin; move the default inward and reserve its full ornament/label bounds (" .. (item.text or item.file or item.kind) .. " " .. table.concat(r,",") .. ")")
 									end
 									groups[key]=groups[key] or {}

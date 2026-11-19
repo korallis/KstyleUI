@@ -12,18 +12,20 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local Layout, Layouts = K.Layout, K.Setup.Layouts
 	local view = ns.Strip.view
 	local Scene = dofile("Tools/render/scene.lua")
-	local x, y, w, h = Scene.Rect(env, view.frame)
-	local cx, cy, cw, ch = Scene.Rect(env, view.card)
-	near(cx, x)
-	near(cy, y)
-	near(cw, w)
-	near(ch, h)
+	do
+		local x, y, w, h = Scene.Rect(env, view.frame)
+		local cx, cy, cw, ch = Scene.Rect(env, view.card)
+		near(cx, x)
+		near(cy, y)
+		near(cw, w)
+		near(ch, h)
+		assert(not view.chrome.shadowOn, "the top bar draws its chrome inside the screen without shadow bleed")
+	end
 	assert(view.zones.left and view.zones.centre and view.zones.right)
 	assert(view.topBar and view.lineMode)
 	assert(table.concat(ns.Strip.order, ",") == "fps,latency,gold,durability,time", "all five readouts default to the right zone")
 	near(Layout.Get("databars.strip").width, Layout.RootSize())
 	assert(view.items.fps.button._points[1][2] == view.zones.right)
-	local Scene = dofile("Tools/render/scene.lua")
 	for _, id in ipairs(ns.Strip.order) do
 		local x, y, w, h = Scene.Rect(env, view.items[id].button)
 		assert(x and y and w > 0 and h > 0, "the zone anchor must resolve the " .. id .. " text rectangle")

@@ -467,7 +467,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 end
 STYLES.orbs.Healer["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -(ORBS_TARGET_Y + ORBS_TARGET_H + TIGHT) }
 STYLES.orbs.Healer["groupframes.party"] = { anchor = "LEFT", x = MARGIN, y = DPS["groupframes.party"].y + TIGHT }
-STYLES.orbs.Healer["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT }
+STYLES.orbs.Healer["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = ORBS_TRACKED_Y + AURA_H + NEAR - TIGHT - 7 }
 STYLES.orbs.Healer["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X + 160 + NEAR, y = ORBS_TRACKED_Y + AURA_H + NEAR - 22 - 2 * TIGHT }
 
 Layouts.ELEMENTS = ELEMENTS
@@ -739,7 +739,8 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return nil
 	end
 	crest = style == "medallions" and (crest or crest == nil and Layouts.MinimapCrest()) and 52 or 0
-	inset = (style == "medallions" and GAP + crest or 0) + (inset or Layouts.TopInset(style))
+	local offset = style == "medallions" and GAP + crest or 0
+	inset = offset + (inset or Layouts.TopInset(style))
 	local slotHeight = slot.height - Lift(rootHeight) - inset
 	out = out or {}
 	out.stacked = nil
@@ -759,7 +760,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		return out
 	end
 	if not guide then
-		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, offset)
 		out.guide = nil
 		return out
 	end
@@ -775,12 +776,12 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
 	if guideShown then
-		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, inset)
-		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, inset)
+		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, offset)
+		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, offset)
 		return out
 	end
-	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, inset)
-	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot, inset)
+	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, offset)
+	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot, offset)
 	return out
 end
 end

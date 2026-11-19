@@ -134,7 +134,7 @@ for _, want in ipairs({ "Level 38 \194\183 32%", "fps", "144", "34", "ms", "143g
 	assert(seen[want], "the data bars scene shows " .. want)
 end
 assert(not seen["32%"], "the XP caption includes the level under LEE-20; this fixture has no rested XP")
-assert(not seen["14:32"], "the readout leaves the clock to the minimap card, as the Lumen mockup does (round 4, Fable #5)")
+assert(seen["14:32"], "the top bar owns the clock alongside its other four default readouts")
 
 -- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.
 local chat = check("chat", (dofile("Tools/render/scenes/chat.lua"))())

@@ -567,7 +567,7 @@ local function SetValues(view, s, values, timedOnly, force)
 			end
 		end
 	end
-	if place then
+	if place and not force then
 		PlaceLine(view, s)
 	end
 end
@@ -577,6 +577,7 @@ function Strip.Paint(view, s, values)
 	view.order = order
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
+	view.chrome.shadowOn = not view.topBar
 	if view.topBar then TopBar(view) end
 	view.lineMode = view.topBar or LineMode(s)
 	view.bare = not view.topBar and view.lineMode and s.backdrop == false
@@ -623,14 +624,6 @@ function Strip.Paint(view, s, values)
 	end
 	SetValues(view, s, values, nil, true)
 	Strip.DockMenus(view, s)
-	if view.topBar and view == Strip.view then
-		local position = K.Setup.Layouts.DataBarPosition()
-		if position.anchor == "TOP" and position.x == 0 and position.y == 0 then
-			view.card:ClearAllPoints()
-			Widgets.Point(view.card, "TOPLEFT", view.frame, "TOPLEFT", -32, 32)
-			Widgets.Point(view.card, "BOTTOMRIGHT", view.frame, "BOTTOMRIGHT", 32, 0)
-		end
-	end
 	PlaceItems(view, s)
 	for _, item in pairs(view.items) do
 		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
