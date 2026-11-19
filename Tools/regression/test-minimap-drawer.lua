@@ -17,6 +17,7 @@ end
 local lib
 local env, K, ns = M.New({
 	enabled = true,
+	settings = { compactIcons = true },
 	setup = function(e)
 		lib = M.FakeLibDBIcon(e)
 		lib:Add("Bravo")

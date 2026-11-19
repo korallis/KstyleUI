@@ -21,6 +21,7 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
 Settings.defaults = {
 	enabled = false,
+	compactIcons = false,
 	clearPlaques = true,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
@@ -115,6 +116,7 @@ end
 
 local schema = {
 	{ type = "header", label = L["Frame"] },
+	{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
 	{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
 	{
 		type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
@@ -265,6 +267,16 @@ for _, row in ipairs(TextRows("coords", { L["Coordinate font"], L["Coordinate te
 	schema[#schema + 1] = row
 end
 Settings.schema = schema
+
+function Settings.IconSize(frame, key, minimum)
+	local size = Settings.Get(key)
+	if not Settings.Get("compactIcons") then
+		local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(frame)
+		size = math.max(size, minimum * K.Widgets.ScaleFactor(UIParent) / K.Widgets.ScaleFactor(frame))
+		return math.ceil(size / pixel - 0.000001) * pixel
+	end
+	return K.Widgets.Snap(frame, size)
+end
 
 local rows = {}
 for _, row in ipairs(schema) do

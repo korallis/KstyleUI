@@ -19,7 +19,7 @@ local function Y(frame)
 	return (select(5, frame:GetPoint(1)))
 end
 
-local env, K, ns = M.New({ enabled = true })
+local env, K, ns = M.New({ enabled = true, settings = { compactIcons = true } })
 M.Settle(env)
 NoErrors(env, "login")
 
@@ -55,7 +55,7 @@ K.Options.Write("Minimap", "column.hover", false)
 assert(buttons.tracking:GetParent() == column.host and buttons.calendar:GetParent() == column.host and buttons.drawer:GetParent() == column.host, "with the setting off they sit on the always-shown host")
 local Format = ns.Format
 local size, spacing = 19.5, 5.5
-assert(W.Near(buttons.tracking:GetWidth(), size, 1), "buttons are round discs 19.5 units across by default: " .. tostring(buttons.tracking:GetWidth()))
+assert(W.Near(buttons.tracking:GetWidth(), size, 1), "compact buttons are round discs 19.5 units across: " .. tostring(buttons.tracking:GetWidth()))
 local function InColumn(button, slot, side, up)
 	local point, rel, relPoint = Anchor(button)
 	local want, x, y = Format.Column(slot, size, spacing, side, up, Format.EDGE, Format.TOP)

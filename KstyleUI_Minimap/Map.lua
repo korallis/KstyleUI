@@ -478,12 +478,15 @@ local function Remember(minimap)
 	for i = 1, minimap:GetNumPoints() do
 		points[i] = { n = select("#", minimap:GetPoint(i)), minimap:GetPoint(i) }
 	end
+	local scale = minimap:GetScale()
 	original = {
 		parent = minimap:GetParent(),
 		points = points,
 		width = minimap:GetWidth(),
 		height = minimap:GetHeight(),
 		level = minimap:GetFrameLevel(),
+		scale = ns.Format.IsNumber(scale) and scale > 0 and scale or 1,
+		nativeScale = Widgets.ScaleFactor(minimap) / Widgets.ScaleFactor(UIParent),
 	}
 end
 
@@ -525,7 +528,12 @@ function Fit()
 	end
 	minimap:ClearAllPoints()
 	minimap:SetPoint("CENTER", face.mapArea, "CENTER")
-	minimap:SetSize(width, height)
+	local scale = original.scale
+	if not Settings.Get("compactIcons") then
+		scale = math.max(scale, original.nativeScale * Widgets.ScaleFactor(UIParent) / Widgets.ScaleFactor(Map.holder))
+	end
+	minimap:SetScale(scale)
+	minimap:SetSize(width / scale, height / scale)
 end
 
 local function OnEditModeExit()
@@ -613,6 +621,7 @@ function Release()
 		return
 	end
 	minimap:SetParent(original.parent)
+	minimap:SetScale(original.scale)
 	minimap:ClearAllPoints()
 	for _, point in ipairs(original.points) do
 		minimap:SetPoint(unpack(point, 1, point.n))

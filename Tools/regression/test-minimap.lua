@@ -75,7 +75,7 @@ assert(mw == mh, "the map stays square")
 local function Fits(what)
 	local size = W.LastCall(minimap, "SetSize")
 	local sw, sh = face.mapArea:GetSize()
-	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the map square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
+	assert(size and W.Near(size[1] * minimap:GetScale(), sw) and W.Near(size[2] * minimap:GetScale(), sh), what .. ": the minimap's scaled size is the map square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
 	local point, relative, relativePoint = minimap:GetPoint(1)
 	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the map square")
 end
