@@ -429,6 +429,13 @@ local function SweepFrame(frame, skip, depth)
 	if depth > SWEEP_DEPTH or (skip and skip[frame]) or Forbidden(frame) then
 		return 0
 	end
+	if depth > 1 and type(frame.GetSourceLocation) == "function" then
+		local source = frame:GetSourceLocation()
+		local addon = not IsSecret(source) and type(source) == "string" and source:match("[/\\]AddOns[/\\]([^/\\]+)")
+		if addon and not addon:match("^Blizzard_") then
+			return 0
+		end
+	end
 	local count = 0
 	if type(frame.GetRegions) == "function" then
 		for _, region in ipairs({ frame:GetRegions() }) do
