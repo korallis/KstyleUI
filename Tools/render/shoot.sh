@@ -75,7 +75,7 @@ if [ ! -f "$script" ]; then
 	echo "no scene script $script" >&2
 	exit 2
 fi
-outdir="Tools/render/out"
+outdir=${RENDER_OUTDIR:-Tools/render/out}
 mkdir -p "$outdir"
 json="$outdir/$scene.json"
 lua=${LUA:-luajit}

@@ -139,6 +139,10 @@ local function Handle(env, frame)
 	h.RegisterAutoHide = function(_, seconds)
 		frame._autoHide = seconds
 	end
+	h.SetBindingClick = secure(function(priority, key, name, button)
+		env.SetOverrideBindingClick(frame, priority, key, name, button)
+	end)
+	h.ClearBindings = secure(function() env.ClearOverrideBindings(frame) end)
 	h.AddToAutoHide = function(_, other)
 		frame._autoHideWith = other and other._frame
 	end
@@ -638,6 +642,13 @@ local function InstallGame(env, opts)
 			if template:find("SecureHandlerStateTemplate", 1, true) then
 				MakeStateHandler(env, frame)
 			end
+			local hide = frame.Hide
+			frame.Hide = function(self)
+				local wrap = self._wraps and self._wraps.OnHide
+				local shown = self:IsShown()
+				hide(self)
+				if shown and wrap then RunSnippet(env, "self", wrap.pre, wrap.header, self) end
+			end
 		end
 		return frame
 	end
@@ -738,6 +749,8 @@ function AB.Click(env, button, mouse, down)
 		g.used[#g.used + 1] = "pet" .. tostring(button:GetAttribute("action"))
 	elseif kind == "spell" then
 		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell"))
+	elseif kind == "item" then
+		g.used[#g.used + 1] = button:GetAttribute("item" .. suffix) or button:GetAttribute("item")
 	elseif kind == "click" then
 		local delegate = button:GetAttribute("clickbutton")
 		if delegate then

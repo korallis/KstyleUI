@@ -696,6 +696,7 @@ local function Hide()
 	end
 	Slab.frame:Hide()
 	Slab.hub:Hide()
+	if ns.Travel then ns.Travel.Refresh() end
 	if K.Effects and K.Effects.Ambient then
 		K.Effects.Ambient("hub", nil, nil)
 	end
@@ -766,6 +767,7 @@ function Slab.Refresh()
 	Animate()
 	Slab.PlaceSides(true)
 	ns.SlabEffects.UpdateCap()
+	if ns.Travel then ns.Travel.Refresh() end
 	return true
 end
 
@@ -986,11 +988,11 @@ local function SlotLayer(parent, layer, sublevel, name, owner)
 	return t
 end
 
-local DRESSED = { action = true, pet = true, stance = true }
+local DRESSED = { action = true, pet = true, stance = true, travel = true }
 
 function Slab.Keybind(b, wanted)
 	if wanted == nil then
-		wanted = ns.Config(b.kbar.def.key).hotkey == true
+		wanted = b.kbar and ns.Config(b.kbar.def.key).hotkey == true or false
 	end
 	b.hotkey:SetShown(wanted and not (b.hasAction == false and Slab.Active() and DRESSED[b.kind] == true))
 	b.hotkey:SetAlpha(ns.Config("readableCountdown") and b.realCooldown and 0.6 or 1)
@@ -998,7 +1000,7 @@ end
 
 local function Inset(b)
 	local slot = Layouts().MEDALLIONS_SLOT
-	if not (slot and Grouped(b.kbar.def)) then
+	if not (slot and b.kbar and Grouped(b.kbar.def)) then
 		return ICON_INSET
 	end
 	local _, _, _, _, size = Layouts().MedallionsGroup(K.Scale.Aspect())

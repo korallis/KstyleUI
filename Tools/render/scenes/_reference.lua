@@ -321,7 +321,7 @@ function Reference.Build(opts)
 			end
 		end
 		return Lumen.Build("questing", {
-			class = "SHAMAN",
+			class = opts.class or "SHAMAN",
 			settings = os.getenv("RENDER_COMBAT_LEGACY") == "1" and {
 				UnitFrames = { player = { powerText = "legacy", powerSeparate = false }, target = { percentLead = false } },
 				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 }, debuffs = { size = style == "Medallions" and 17 or 29, textSize = style == "Medallions" and 10 or 13, showTime = false, readableText = false, expiring = 0 } },

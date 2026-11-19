@@ -548,6 +548,7 @@ end
 
 function modules.actionbars(opts)
 	local AB = dofile("Tools/regression/actionbars_env.lua")
+	local travel = rawget(_G, "RENDER_TRAVEL") or os.getenv("RENDER_TRAVEL")
 	local class, spec = Hud.Class(opts)
 	local bar1, bar2 = slots(spec.bar1), slots(spec.bar2)
 	local env, K, ns = AB.New({
@@ -594,6 +595,10 @@ function modules.actionbars(opts)
 				return Hud.Player(opts).level
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
+			if travel then
+				env._resolveRects = true
+				dofile("Tools/regression/travel_fixture.lua").Install(env, travel:find("mage", 1, true) ~= nil)
+			end
 			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
 			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.
 			if spec.pet then
@@ -699,6 +704,10 @@ function modules.actionbars(opts)
 	local notes = {}
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
+		if travel then
+			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
+			if ns.Travel.crest and ns.Travel.crest:IsShown() then AB.Click(env, ns.Travel.crest, "RightButton", false) end
+		end
 	end)
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note

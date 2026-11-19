@@ -8,6 +8,9 @@
 	<Script file="Tray.lua"/>
 	<Script file="Bar.lua"/>
 	<Script file="Slab.lua"/>
+	<Script file="TravelItems.lua"/>
+	<Script file="TravelData.lua"/>
+	<Script file="Travel.lua"/>
 	<Script file="SlabEffects.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>

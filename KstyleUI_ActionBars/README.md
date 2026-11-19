@@ -32,6 +32,44 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
+### Crest travel
+
+In Medallions, **Crest travel clicks** defaults on. Left click uses `item:6948`; with no carried Hearthstone its action type is cleared. Right click opens travel above the crest and both central cast bars. Right click again, Escape, or using a destination closes it. The crest tooltip uses the shared KstyleUI tooltip, showing the bind location, remaining Hearthstone cooldown (`--` when secret), missing-Hearthstone notice and both clicks. Turning the setting off hides the secure overlay and restores click-through artwork.
+
+The flyout uses the action bars' own `Widgets.Slot`, `Socket.Decorate` and `Slab.Dress` builders. Empty Hearth and class, Portals and teleports, and Mounts groups hide; each group has twelve destinations per page, so a large mount collection cannot grow it off screen. Page changes, opening, closing and Escape bindings run in secure snippets, including in combat. Inventory, spell, mount, zone, layout and option updates run through `Combat.Queue` and coalesce while combat holds them.
+
+`TravelData.Read()` returns three ordered lists of `{ kind, id, name, icon }` entries plus whether a Hearthstone is carried. `TravelData.Hearth()` returns bind location and cooldown text. `TravelData.lua` has no UI, events or dependency on the enabled Action Bars module; it attaches to its loader's private namespace, so a future Hearthstone data widget can load that same source with the generated item list. `Tools/data/travel-items.json` is the curated transport item source; run `python Tools/data/travel-items.py` after editing it. The behaviour test checks that the shipped generated IDs match it.
+
+Forever's source proves **item mounts** (`ItemClass.Miscellaneous=15`, `ItemMiscellaneousSubclass.Mount=5`) and known Paladin/Warlock mount spells. Carried item mounts must pass `C_Item.IsUsableItem`; class mount spells must be known and usable. The code also reads the documented core `C_MountJournal` API if the client exposes it, filtering collected, usable and non-hidden mounts and casting their spell IDs. It never loads `Blizzard_Collections`, whose TOC excludes camelot, and never assumes the old companion API exists: this source has no `GetNumCompanions` or `GetCompanionInfo` declaration. API documentation does not prove a populated journal on a live camelot character, so the in-game checks must confirm which guarded route the client provides. Bag items and class spells work without a journal.
+
+The matching UI source is build **1.60.1.70862**, commit **9dc84f0**, at `C:/Users/leeba/.cache/wow-ui-source/Interface/AddOns/`. New API and secure contracts are proved there:
+
+| Contract | Proving file and line (relative to `Interface/AddOns/`) |
+| --- | --- |
+| `C_Container.GetContainerNumSlots`, `GetContainerItemInfo`, item names/IDs/icons | `Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua:313`, `:192`, `:766` |
+| Bag slot constants (guarded; classic fallback is bags 0–4) | `Blizzard_APIDocumentationGenerated/ItemConstants_MainlineDocumentation.lua:59`, `:61` |
+| `C_Item.GetItemCooldown`, `GetItemInfoInstant`, `IsUsableItem` | `Blizzard_APIDocumentationGenerated/ItemDocumentation.lua:434`, `:659`, `:1627` |
+| Mount item class and subclass | `Blizzard_APIDocumentationGenerated/ItemConstantsDocumentation.lua:291`, `:465` |
+| `C_SpellBook.IsSpellKnown`, `C_Spell.GetSpellInfo`, `C_Spell.IsSpellUsable` | `Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua:738`; `SpellDocumentation.lua:416`, `:980` |
+| Optional `C_MountJournal.GetMountIDs`, `GetMountInfoByID` (spell, usable, hidden, collected) | `Blizzard_APIDocumentationGenerated/MountJournalDocumentation.lua:268`, `:278` |
+| Collections does not load on camelot | `Blizzard_Collections/Blizzard_Collections.toc:13` |
+| `GetBindLocation`, `GetTime`, `issecretvalue` | `Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua:266`; `SystemTimeDocumentation.lua:57`; `FrameScriptDocumentation.lua:287` |
+| `SecureActionButtonTemplate`, `SecureHandlerBaseTemplate` | `Blizzard_FrameXML/SecureTemplates.xml:4`; `Blizzard_RestrictedAddOnEnvironment/SecureHandlerTemplates.xml:6` |
+| Button suffixes `type1`, `item1`, action `type`, `item`, `spell` | `Blizzard_FrameXML/SecureTemplates.lua:6`, `:30`, `:396`, `:418` |
+| Release-only `useOnKeyDown=false` plus `AnyUp`/`AnyDown` | `Blizzard_FrameXML/SecureTemplates.lua:792`; `Blizzard_APIDocumentationGenerated/SimpleButtonAPIDocumentation.lua:271` |
+| Secure pre/post click wrapping, suppressing the underlying click and returning a post message | `Blizzard_RestrictedAddOnEnvironment/SecureHandlers.lua:272`, `:602` |
+| Secure hide wrapping and frame references | `Blizzard_RestrictedAddOnEnvironment/SecureHandlers.lua:406`, `:702`; `RestrictedFrames.lua:205` |
+| Restricted `Show`, `Hide`, `GetAttribute`, `SetAttribute`, `SetBindingClick`, `ClearBindings` | `Blizzard_RestrictedAddOnEnvironment/RestrictedFrames.lua:394`, `:402`, `:192`, `:522`, `:545`, `:537` |
+| Blizzard flyout toggle, close after use and Escape precedents | `Blizzard_ActionBar/Shared/SpellFlyout.lua:278`, `:30`, `:11`; our combat path uses the restricted handlers above |
+| Frame clamping, scale and top measurements | `Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua:1207`, `:381`; `SimpleScriptRegionAPIDocumentation.lua:308` |
+| Frame creation precedent and ordinary frame methods (`SetFrameStrata`, `SetAttribute`, `GetAttribute`, `IsShown`, `Hide`, `Show`, `SetShown`) | `Blizzard_RestrictedAddOnEnvironment/SecureHandlers.lua:589`; `Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua:1293`, `:1169`, `:290`, `:915`, `:687`, `:1539`, `:1484` |
+| `ClearAllPoints`, `SetAllPoints`, `SetPoint`, FontString `SetText` | `Blizzard_APIDocumentationGenerated/SimpleScriptRegionResizingAPIDocumentation.lua:22`, `:111`, `:135`; `SimpleFontStringAPIDocumentation.lua:664` |
+| Bag, spell, entering-world, mount and zone events | `Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua:677`; `SpellBookDocumentation.lua:968`; `SystemDocumentation.lua:136`; `MountJournalDocumentation.lua:656`; `MapDocumentation.lua:653`, `:659`, `:665` |
+
+The travel IDs are confirmed against `Tools/data/abilities.json`, including Forever's `Teleport: Dalaran` (1297659) and `Portal of Summoning` (437169), and every spell is filtered through `IsSpellKnown`. Shared overlay placement is `Core/Widgets/Base.lua:659` (`Widgets.Cover`); deferred updates use `Core/Combat.lua:27`; bag record reads follow `KstyleUI_Bags/Data.lua:130`.
+
+In game: check left/right click and Escape inside and outside combat, missing Hearthstone, secret cooldowns with forced restrictions, learned spells, carried mounts and transport trinkets, mount skill restrictions, changing bags during combat, and disabling the option. The harness proves protected-call discipline and geometry; it cannot prove client taint or protected-action permission.
+
 `ActionBars.xml` loads them in this order:
 
 | File | What it holds |
