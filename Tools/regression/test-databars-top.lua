@@ -134,7 +134,7 @@ do
 end
 
 do
-	local env, K = D.New({ saved = { version = 40, profiles = { Default = { DataBars = { enabled = false, strip = { enabled = false, placement = "rail" } } } } } })
+	local env, K = D.New({ enable = false, saved = { version = 40, profiles = { Default = { DataBars = { enabled = false, strip = { enabled = false, placement = "rail" } } } } } })
 	assert(not K.Store.Module("DataBars").enabled and K.Store.Module("DataBars").strip.enabled)
 	assert(K.Store.Module("DataBars").strip.placement == "top")
 	assert(env.KstyleUIDB.version == K.Store.DB_VERSION)
