@@ -21,6 +21,7 @@ for i, name in ipairs({ "Kragar", "Valerin", "Sylaen", "Thargor", "Lunara", "Bra
 end
 env._session = { combatSources = sources, maxAmount = 2900, totalAmount = 15900, durationSeconds = 30 }
 M.Enable(env, K)
+M.Write(env, K, "threat.shown", false)
 local list = ns.Damage.list
 local panel = list.panel
 local root = K.Scale.Root()

@@ -261,7 +261,7 @@ local cr, cg, cb = ns.BarColor("damage", "SHAMAN", nil, nil, true)
 local br, bg, bb = Color(list.rows[1].bar)
 assert(br == cr and bg == cg and bb == cb, "the class colour source colours a spell by class")
 M.Write(env, K, "damage.colorSource", "school")
-assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 27, "the picture's look is the default")
+assert(ns.defaults.damage.colorSource == "school" and ns.defaults.damage.spacing == 3 and ns.defaults.damage.rowHeight == 18, "the picture's look is the default")
 
 -- In a group the card lists the sources, titled by the meter, with the player's rate in the cap; a click opens one
 -- source's spells, titled by the source.

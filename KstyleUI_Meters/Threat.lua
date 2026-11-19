@@ -273,6 +273,7 @@ function DockGuide()
 	if Threat.soloWidth and not both then
 		holder:SetSize(Threat.soloWidth, Threat.soloHeight)
 		Threat.soloWidth, Threat.soloHeight = nil, nil
+		ns.Damage.list:Fit()
 	end
 	if both then
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
@@ -372,6 +373,10 @@ function Threat:Stop()
 		return
 	end
 	ns.UnwatchAll(self)
+	if self.paired then
+		self.paired = false
+		ns.Damage.list:Fit()
+	end
 	Alarm(false)
 	self.list:SetWarning(Logic.NO_WARNING)
 	self.list.panel:Hide()

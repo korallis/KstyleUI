@@ -118,6 +118,7 @@ end
 local env, K, ns = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 env._session = Session(1)
 M.Enable(env, K)
+M.Write(env, K, "threat.shown", false)
 local list = ns.Damage.list
 local title = { list.title:GetPoint(1) }
 
@@ -176,6 +177,7 @@ do
 	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234, game = function(e) e._group = { raid = false, size = 2 } end })
 	hiEnv._session = Session(30)
 	M.Enable(hiEnv, hiK)
+	M.Write(hiEnv, hiK, "threat.shown", false)
 	local hi = hiNs.Damage.list
 	assert(hiK.Scale.Pixel(1) < 0.75 and math.abs(hiK.Scale.Border() - hiK.Scale.Pixel(1)) < 1e-9, "this screen draws more than a pixel per unit and a one-pixel border")
 	for _, height in ipairs({ 385, 300, 211, 130 }) do

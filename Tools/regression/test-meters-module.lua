@@ -62,7 +62,7 @@ assert(#fonts >= 2, "the font list holds KstyleUI's fonts")
 -- spreadsheet in ingame-18), the damage card's 3 units apart as the picture draws it (pitch 21) and the threat
 -- meter's 2 apart, text at the unit frames' bar size of 12, five rows in the damage card's 158 units under its
 -- 35-unit cap and three in the threat footprint under the title inside the content inset.
-assert(ns.defaults.damage.rowHeight == 27 and ns.Get("threat.rowHeight") == 27, "both rows start at 27 units")
+assert(ns.defaults.damage.rowHeight == 18 and ns.Get("threat.rowHeight") == 18, "both use the saved row height; the shared style adds its readable minimum")
 assert(ns.defaults.damage.spacing == 3 and ns.Get("threat.spacing") == 3, "both cards share the same row spacing")
 assert(ns.defaults.damage.fontSize == K.Tokens.Size("number") and ns.defaults.threat.fontSize == K.Tokens.Size("number"), "both cards use the nameplate value size")
 assert(ns.Logic.FitRows(158 - 35 - 15, 18, 3) == 5, "the damage card fits five rows under its cap")

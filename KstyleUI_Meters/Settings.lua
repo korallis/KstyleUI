@@ -12,7 +12,6 @@ local MAX_SPACING = 12
 local MIN_WARN, MAX_WARN, WARN_STEP = 50, 100, 5
 local NO_OUTLINE = ""
 local CHANNELS = { "r", "g", "b" }
-local LEGACY_DAMAGE = { ["damage.rowHeight"] = 18, ["damage.outline"] = "" }
 local SHARED_ROWS = {}
 for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "title", "titleSize" }) do
 	SHARED_ROWS["threat." .. key] = "damage." .. key
@@ -32,8 +31,8 @@ local function Bars(fill, texture, colorSource)
 	}
 end
 
-local function Text(size, outline)
-	return { font = "", fontSize = size, outline = outline or NO_OUTLINE }
+local function Text(size)
+	return { font = "", fontSize = size, outline = NO_OUTLINE }
 end
 
 local function Merge(...)
@@ -47,7 +46,7 @@ local function Merge(...)
 end
 
 local CAPTION = Tokens.Size("caption")
-local ROW, ROW_TEXT = 27, Tokens.Size("number")
+local ROW, ROW_TEXT = 18, Tokens.Size("number")
 local DAMAGE_SPACING = 3
 
 ns.defaults = {
@@ -58,7 +57,7 @@ ns.defaults = {
 	instrumentNames = true,
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
-	damage = Merge(Bars("left", Tokens.Texture("barFlat"), "school"), Text(ROW_TEXT, "OUTLINE"), {
+	damage = Merge(Bars("left", Tokens.Texture("barFlat"), "school"), Text(ROW_TEXT), {
 		shown = true,
 		group = false,
 		mode = "auto",
@@ -459,7 +458,6 @@ function ns.Get(key)
 		return default
 	end
 	local value = Lookup(settings, key)
-	if not styled and LEGACY_DAMAGE[key] ~= nil and value == default then return LEGACY_DAMAGE[key] end
 	local row = rows[key]
 	if value == nil or (row and not Allowed(row, value)) or (not row and type(value) ~= type(default)) then
 		if value ~= nil and not warned[key] then

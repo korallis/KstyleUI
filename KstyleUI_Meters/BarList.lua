@@ -444,7 +444,7 @@ local function RowUnits(list)
 	local section = list.section
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
 	local text = em + TEXT_AIR
-	if list.plate then text = max(NameSize(section), em) + TEXT_AIR + Tokens.Size("barHeight")
+	if list.plate then text = max(27, max(NameSize(section), em) + TEXT_AIR + Tokens.Size("barHeight"))
 	elseif not list.block then text = text + PILL_GAP + PILL_HEIGHT end
 	return max(ns.Get(section .. ".rowHeight"), text)
 end
@@ -739,9 +739,9 @@ local function CapReserve(list)
 	if list.stripReserve then
 		local title = Logic.Plain(select(4, list.title:GetPoint(1)))
 		local gem = Logic.Plain(select(4, list.cap.gem:GetPoint(1)))
-		if title and gem then return title + gem end
+		if title and gem then return title + gem + (not list.plate and list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0) end
 	end
-	return Widgets.SECTION_CAP_CHROME + CAP_RULE
+	return Widgets.SECTION_CAP_CHROME + CAP_RULE + (not list.plate and list.block and BLOCK_CAP_LEFT - BLOCK_PAD or 0)
 end
 
 local function Fits(list)
@@ -854,8 +854,14 @@ function List:Fit()
 		local rows, spacing = max(self.block and fit and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
-	if self.key and ns.Threat.paired then height = holderHeight end
-	self.panel:SetHeight(max(1, min(height, holderHeight)))
+	height = max(1, min(height, holderHeight))
+	self.fitHeight = height
+	local other = self.key and ns.Threat.paired and (self.section == "damage" and ns.Threat.list or ns.Damage.list)
+	if other then
+		height = min(holderHeight, other.holder:GetHeight(), max(height, other.fitHeight or height))
+		if other.panel:GetHeight() ~= height then other.panel:SetHeight(height) end
+	end
+	self.panel:SetHeight(height)
 	if self.key then
 		local side = K.Safe.Side(K.Scale.Root())
 		side.meterCards = side.meterCards or {}
