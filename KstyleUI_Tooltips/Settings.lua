@@ -63,232 +63,238 @@ Settings.defaults = {
 	iconSize = ICON_SIZE,
 }
 
-local OUTLINES = {
-	{ value = "NONE", label = L["None"] },
-	{ value = "OUTLINE", label = L["Thin"] },
-	{ value = "THICKOUTLINE", label = L["Thick"] },
-}
+local byKey
 
-local function Cursor(settings)
-	return settings.anchor == "cursor" or settings.anchor == "cursorOutOfCombat"
-end
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local OUTLINES = {
+		{ value = "NONE", label = L["None"] },
+		{ value = "OUTLINE", label = L["Thin"] },
+		{ value = "THICKOUTLINE", label = L["Thick"] },
+	}
 
-local function OwnFont(settings)
-	return settings.followFont == false
-end
+	local function Cursor(settings)
+		return settings.anchor == "cursor" or settings.anchor == "cursorOutOfCombat"
+	end
 
-local function FontOptions()
-	local choices = { { value = FACE, label = L["KstyleUI font"] } }
-	for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
-		if not K.Theme.FollowsKit(choice.value) then
-			choices[#choices + 1] = choice
+	local function OwnFont(settings)
+		return settings.followFont == false
+	end
+
+	local function FontOptions()
+		local choices = { { value = FACE, label = L["KstyleUI font"] } }
+		for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
+			if not K.Theme.FollowsKit(choice.value) then
+				choices[#choices + 1] = choice
+			end
+		end
+		return choices
+	end
+
+	local function TextRows(rows, role, name)
+		rows[#rows + 1] = {
+			type = "font", key = role .. ".font", label = string.format(L["%s font"], name),
+			help = L["The typeface for these lines while Use KstyleUI's font is off."],
+			showWhen = OwnFont, options = FontOptions,
+		}
+		rows[#rows + 1] = {
+			type = "slider", key = role .. ".size", label = string.format(L["%s size"], name),
+			help = L["The text size in KstyleUI units; Appearance's text size scales it too."],
+			min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
+		}
+		rows[#rows + 1] = {
+			type = "dropdown", key = role .. ".outline", label = string.format(L["%s outline"], name),
+			help = L["An outline instead of the soft shadow, for busy backgrounds."],
+			options = OUTLINES,
+		}
+	end
+
+	local schema = {
+		{ type = "header", label = L["Position"] },
+		{
+			type = "dropdown", key = "anchor", label = L["Tooltip position"],
+			help = L["The combat choice follows the mouse outside combat and uses the Layout Mode anchor in combat."],
+			options = {
+				{ value = "fixed", label = L["Tooltip anchor"] },
+				{ value = "cursor", label = L["Mouse cursor"] },
+				{ value = "cursorOutOfCombat", label = L["Mouse cursor out of combat"] },
+			},
+		},
+		{
+			type = "toggle", key = "minimapAnchor", label = L["Keep minimap clear"],
+			help = L["Place minimap tooltips beside the map. Turn off to use Tooltip position for them."],
+		},
+		{
+			type = "slider", key = "cursorX", label = L["Cursor offset X"],
+			help = L["How far right of the mouse the tooltip sits."],
+			min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
+		},
+		{
+			type = "slider", key = "cursorY", label = L["Cursor offset Y"],
+			help = L["How far above the mouse the tooltip sits."],
+			min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
+		},
+		{ type = "header", label = L["Text"] },
+		{ type = "toggle", key = "hierarchy", label = L["Clear tooltip hierarchy"],
+			help = L["Larger titles, readable lines and smaller icons. Off restores the original sizes and title face."] },
+		{ type = "toggle", key = "qualityColors", label = L["Refined tooltip colours"],
+			help = L["Softer item qualities, bright stat lines and readable hostile names. Off uses original colours."] },
+		{
+			type = "toggle", key = "followFont", label = L["Use KstyleUI's font"],
+			help = L["Tooltips use the font from Appearance. Turn off to pick a font for each kind of line."],
+		},
+	}
+	TextRows(schema, "title", L["Title"])
+	TextRows(schema, "body", L["Line"])
+	TextRows(schema, "small", L["Small line"])
+	local LOOK = {
+		{ type = "header", label = L["Look"] },
+		{
+			type = "toggle", key = "qualityEdge", label = L["Item quality edge"],
+			help = L["Lights the tooltip's edge in the item's quality colour, from uncommon up."],
+		},
+		{
+			type = "toggle", key = "divider", label = L["Title divider"],
+			help = L["Draws a gilt line under the tooltip's title."],
+		},
+		{
+			type = "toggle", key = "softColors", label = L["Soft line colours"],
+			help = L["Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay."],
+		},
+		{
+			type = "dropdown", key = "accentSource", label = L["Accent colour"],
+			help = L["The colour of the You target and spell icon rims: your class colour or one you pick."],
+			options = {
+				{ value = "class", label = L["Class colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+		},
+		{
+			type = "color", key = "accentColor", label = L["Custom accent"],
+			help = L["The tooltip accent when Accent colour is set to custom."],
+			showWhen = function(settings)
+				return settings.accentSource == "custom"
+			end,
+		},
+	}
+	local function GuildShown(settings)
+		return settings.guildLine ~= false
+	end
+
+	local function BarShown(settings)
+		return settings.healthBar ~= false
+	end
+
+	local function CustomBar(settings)
+		return settings.healthBar ~= false and type(settings.bar) == "table" and settings.bar.color == "custom"
+	end
+
+	local function IconShown(settings)
+		return settings.icon ~= false
+	end
+
+	local MORE = {
+		{ type = "header", label = L["Units"] },
+		{
+			type = "toggle", key = "classNames", label = L["Class colours"],
+			help = L["Colours player names by class and other names by reaction."],
+		},
+		{
+			type = "toggle", key = "guildLine", label = L["Guild line"],
+			help = L["Shows a player's guild in angle brackets, green for your own guild."],
+		},
+		{
+			type = "toggle", key = "guildRank", label = L["Guild rank"],
+			help = L["Adds the player's guild rank after the guild name."],
+			showWhen = GuildShown,
+		},
+		{
+			type = "toggle", key = "targetLine", label = L["Target line"],
+			help = L["Adds a line naming the unit's target, or You in the accent colour."],
+		},
+		{
+			type = "toggle", key = "unitEdge", label = L["Unit edge"],
+			help = L["Lights the tooltip's edge in the unit's class or reaction colour."],
+		},
+		{ type = "header", label = L["Health bar"] },
+		{
+			type = "toggle", key = "healthBar", label = L["Health bar"],
+			help = L["Shows the unit's health on a KstyleUI bar under the tooltip."],
+		},
+		{
+			type = "texture", key = "bar.texture", label = L["Bar texture"],
+			help = L["The fill texture of the health bar."], showWhen = BarShown,
+		},
+		{
+			type = "dropdown", key = "bar.color", label = L["Bar colour"],
+			help = L["Class colour for players, reaction colour for everyone, or a colour you pick."],
+			options = {
+				{ value = "class", label = L["Class colour"] },
+				{ value = "reaction", label = L["Reaction colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+			showWhen = BarShown,
+		},
+		{
+			type = "color", key = "bar.custom", label = L["Custom bar colour"],
+			help = L["The health bar colour when Bar colour is set to custom."], showWhen = CustomBar,
+		},
+		{
+			type = "dropdown", key = "bar.orientation", label = L["Bar orientation"],
+			help = L["A horizontal bar under the tooltip, or a vertical bar beside it."],
+			options = {
+				{ value = "HORIZONTAL", label = L["Horizontal"] },
+				{ value = "VERTICAL", label = L["Vertical"] },
+			},
+			showWhen = BarShown,
+		},
+		{
+			type = "toggle", key = "bar.reverse", label = L["Reverse fill"],
+			help = L["Fills the bar from the right, or from the top when it is vertical."], showWhen = BarShown,
+		},
+		{
+			type = "slider", key = "bar.size", label = L["Bar thickness"],
+			help = L["How thick the health bar is, in KstyleUI units."],
+			min = BAR_MIN, max = BAR_MAX, step = BAR_STEP, showWhen = BarShown,
+		},
+		{ type = "header", label = L["Extra lines"] },
+		{
+			type = "toggle", key = "itemID", label = L["Item ID"],
+			help = L["Adds the item's ID to item tooltips."],
+		},
+		{
+			type = "toggle", key = "spellID", label = L["Spell ID"],
+			help = L["Adds the spell's ID to spell and aura tooltips."],
+		},
+		{
+			type = "toggle", key = "iconID", label = L["Icon ID"],
+			help = L["Adds the icon's file ID to item, spell and aura tooltips."],
+		},
+		{
+			type = "toggle", key = "icon", label = L["Icon"],
+			help = L["Shows the item or spell icon in the tooltip's top left corner."],
+		},
+		{
+			type = "slider", key = "iconSize", label = L["Icon size"],
+			help = L["The size of that icon, in KstyleUI units."],
+			min = ICON_MIN, max = ICON_MAX, step = ICON_STEP, showWhen = IconShown,
+		},
+	}
+
+	for _, list in ipairs({ LOOK, MORE }) do
+		for _, row in ipairs(list) do
+			schema[#schema + 1] = row
 		end
 	end
-	return choices
-end
+	Settings.schema = schema
 
-local function TextRows(rows, role, name)
-	rows[#rows + 1] = {
-		type = "font", key = role .. ".font", label = string.format(L["%s font"], name),
-		help = L["The typeface for these lines while Use KstyleUI's font is off."],
-		showWhen = OwnFont, options = FontOptions,
-	}
-	rows[#rows + 1] = {
-		type = "slider", key = role .. ".size", label = string.format(L["%s size"], name),
-		help = L["The text size in KstyleUI units; Appearance's text size scales it too."],
-		min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
-	}
-	rows[#rows + 1] = {
-		type = "dropdown", key = role .. ".outline", label = string.format(L["%s outline"], name),
-		help = L["An outline instead of the soft shadow, for busy backgrounds."],
-		options = OUTLINES,
-	}
-end
-
-local schema = {
-	{ type = "header", label = L["Position"] },
-	{
-		type = "dropdown", key = "anchor", label = L["Tooltip position"],
-		help = L["The combat choice follows the mouse outside combat and uses the Layout Mode anchor in combat."],
-		options = {
-			{ value = "fixed", label = L["Tooltip anchor"] },
-			{ value = "cursor", label = L["Mouse cursor"] },
-			{ value = "cursorOutOfCombat", label = L["Mouse cursor out of combat"] },
-		},
-	},
-	{
-		type = "toggle", key = "minimapAnchor", label = L["Keep minimap clear"],
-		help = L["Place minimap tooltips beside the map. Turn off to use Tooltip position for them."],
-	},
-	{
-		type = "slider", key = "cursorX", label = L["Cursor offset X"],
-		help = L["How far right of the mouse the tooltip sits."],
-		min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
-	},
-	{
-		type = "slider", key = "cursorY", label = L["Cursor offset Y"],
-		help = L["How far above the mouse the tooltip sits."],
-		min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
-	},
-	{ type = "header", label = L["Text"] },
-	{ type = "toggle", key = "hierarchy", label = L["Clear tooltip hierarchy"],
-		help = L["Larger titles, readable lines and smaller icons. Off restores the original sizes and title face."] },
-	{ type = "toggle", key = "qualityColors", label = L["Refined tooltip colours"],
-		help = L["Softer item qualities, bright stat lines and readable hostile names. Off uses original colours."] },
-	{
-		type = "toggle", key = "followFont", label = L["Use KstyleUI's font"],
-		help = L["Tooltips use the font from Appearance. Turn off to pick a font for each kind of line."],
-	},
-}
-TextRows(schema, "title", L["Title"])
-TextRows(schema, "body", L["Line"])
-TextRows(schema, "small", L["Small line"])
-local LOOK = {
-	{ type = "header", label = L["Look"] },
-	{
-		type = "toggle", key = "qualityEdge", label = L["Item quality edge"],
-		help = L["Lights the tooltip's edge in the item's quality colour, from uncommon up."],
-	},
-	{
-		type = "toggle", key = "divider", label = L["Title divider"],
-		help = L["Draws a gilt line under the tooltip's title."],
-	},
-	{
-		type = "toggle", key = "softColors", label = L["Soft line colours"],
-		help = L["Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay."],
-	},
-	{
-		type = "dropdown", key = "accentSource", label = L["Accent colour"],
-		help = L["The colour of the You target and spell icon rims: your class colour or one you pick."],
-		options = {
-			{ value = "class", label = L["Class colour"] },
-			{ value = "custom", label = L["Custom colour"] },
-		},
-	},
-	{
-		type = "color", key = "accentColor", label = L["Custom accent"],
-		help = L["The tooltip accent when Accent colour is set to custom."],
-		showWhen = function(settings)
-			return settings.accentSource == "custom"
-		end,
-	},
-}
-local function GuildShown(settings)
-	return settings.guildLine ~= false
-end
-
-local function BarShown(settings)
-	return settings.healthBar ~= false
-end
-
-local function CustomBar(settings)
-	return settings.healthBar ~= false and type(settings.bar) == "table" and settings.bar.color == "custom"
-end
-
-local function IconShown(settings)
-	return settings.icon ~= false
-end
-
-local MORE = {
-	{ type = "header", label = L["Units"] },
-	{
-		type = "toggle", key = "classNames", label = L["Class colours"],
-		help = L["Colours player names by class and other names by reaction."],
-	},
-	{
-		type = "toggle", key = "guildLine", label = L["Guild line"],
-		help = L["Shows a player's guild in angle brackets, green for your own guild."],
-	},
-	{
-		type = "toggle", key = "guildRank", label = L["Guild rank"],
-		help = L["Adds the player's guild rank after the guild name."],
-		showWhen = GuildShown,
-	},
-	{
-		type = "toggle", key = "targetLine", label = L["Target line"],
-		help = L["Adds a line naming the unit's target, or You in the accent colour."],
-	},
-	{
-		type = "toggle", key = "unitEdge", label = L["Unit edge"],
-		help = L["Lights the tooltip's edge in the unit's class or reaction colour."],
-	},
-	{ type = "header", label = L["Health bar"] },
-	{
-		type = "toggle", key = "healthBar", label = L["Health bar"],
-		help = L["Shows the unit's health on a KstyleUI bar under the tooltip."],
-	},
-	{
-		type = "texture", key = "bar.texture", label = L["Bar texture"],
-		help = L["The fill texture of the health bar."], showWhen = BarShown,
-	},
-	{
-		type = "dropdown", key = "bar.color", label = L["Bar colour"],
-		help = L["Class colour for players, reaction colour for everyone, or a colour you pick."],
-		options = {
-			{ value = "class", label = L["Class colour"] },
-			{ value = "reaction", label = L["Reaction colour"] },
-			{ value = "custom", label = L["Custom colour"] },
-		},
-		showWhen = BarShown,
-	},
-	{
-		type = "color", key = "bar.custom", label = L["Custom bar colour"],
-		help = L["The health bar colour when Bar colour is set to custom."], showWhen = CustomBar,
-	},
-	{
-		type = "dropdown", key = "bar.orientation", label = L["Bar orientation"],
-		help = L["A horizontal bar under the tooltip, or a vertical bar beside it."],
-		options = {
-			{ value = "HORIZONTAL", label = L["Horizontal"] },
-			{ value = "VERTICAL", label = L["Vertical"] },
-		},
-		showWhen = BarShown,
-	},
-	{
-		type = "toggle", key = "bar.reverse", label = L["Reverse fill"],
-		help = L["Fills the bar from the right, or from the top when it is vertical."], showWhen = BarShown,
-	},
-	{
-		type = "slider", key = "bar.size", label = L["Bar thickness"],
-		help = L["How thick the health bar is, in KstyleUI units."],
-		min = BAR_MIN, max = BAR_MAX, step = BAR_STEP, showWhen = BarShown,
-	},
-	{ type = "header", label = L["Extra lines"] },
-	{
-		type = "toggle", key = "itemID", label = L["Item ID"],
-		help = L["Adds the item's ID to item tooltips."],
-	},
-	{
-		type = "toggle", key = "spellID", label = L["Spell ID"],
-		help = L["Adds the spell's ID to spell and aura tooltips."],
-	},
-	{
-		type = "toggle", key = "iconID", label = L["Icon ID"],
-		help = L["Adds the icon's file ID to item, spell and aura tooltips."],
-	},
-	{
-		type = "toggle", key = "icon", label = L["Icon"],
-		help = L["Shows the item or spell icon in the tooltip's top left corner."],
-	},
-	{
-		type = "slider", key = "iconSize", label = L["Icon size"],
-		help = L["The size of that icon, in KstyleUI units."],
-		min = ICON_MIN, max = ICON_MAX, step = ICON_STEP, showWhen = IconShown,
-	},
-}
-
-for _, list in ipairs({ LOOK, MORE }) do
-	for _, row in ipairs(list) do
-		schema[#schema + 1] = row
+	byKey = {}
+	for _, row in ipairs(schema) do
+		if row.key then
+			byKey[row.key] = row
+		end
 	end
-end
-Settings.schema = schema
-
-local rows = {}
-for _, row in ipairs(schema) do
-	if row.key then
-		rows[row.key] = row
-	end
+	return Settings.schema
 end
 
 local function IsSecret(v)
@@ -348,6 +354,7 @@ local VALID = {
 local logged = {}
 
 function Settings.Get(key)
+	if not byKey then Settings.Schema() end
 	local default = Lookup(Settings.defaults, key)
 	if default == nil then
 		error("KstyleUI_Tooltips Settings.Get: unknown setting " .. tostring(key), 2)
@@ -357,7 +364,7 @@ function Settings.Get(key)
 		return default
 	end
 	local value = Lookup(Store.Module(MODULE), key)
-	local row = rows[key]
+	local row = byKey[key]
 	if IsSecret(value) then
 		value = nil
 	end

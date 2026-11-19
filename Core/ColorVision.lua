@@ -5,13 +5,13 @@ K.ColorVision = Vision
 local Store, Tokens, L = K.Store, K.Tokens, K.L
 local PALETTES = { redGreen = { "visionRGCalm", "visionRGDanger", "visionRGWarning" }, blueYellow = { "visionBYCalm", "visionBYDanger", "visionBYWarning" } }
 Store.RegisterDefaults("ColorVision", { mode = "game" })
-K.Options.Register("ColorVision", {
+K.Options.Register("ColorVision", function() return {
 	{ type = "header", label = L["Colour vision"] },
 	{ type = "dropdown", key = "mode", label = L["Colour vision"], help = L["Changes alert colours; role and state shapes stay visible in every mode."], options = {
 		{ value = "game", label = L["Follow the game"] }, { value = "standard", label = L["Standard"] },
 		{ value = "redGreen", label = L["Red-green"] }, { value = "blueYellow", label = L["Blue-yellow"] },
 	} },
-})
+} end)
 
 function Vision.Mode()
 	local value = Store.IsLoaded() and Store.Module("ColorVision").mode or "game"

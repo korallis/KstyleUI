@@ -30,7 +30,7 @@ do
 		end
 	end
 	assert(table.concat(shown, ",") == "frames,orbs,medallions", "the General page shows Frames, Orbs and Medallions, got " .. table.concat(shown, ","))
-	assert(K.HudStyle.schema[2].help:find("Medallions", 1, true), "the picker help names Medallions")
+	assert(K.Options.Get("HudStyle")[2].help:find("Medallions", 1, true), "the picker help names Medallions")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

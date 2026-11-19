@@ -52,5 +52,8 @@ end
 if K.Setup and K.Setup.EditMode and K.Setup.EditMode.NativeRows then
 	K.Setup.EditMode.NativeRows(Native)
 end
-Settings.schema.preview = ns.Preview.Build
-K.Options.Register(ns.MODULE, Settings.schema)
+K.Options.Register(ns.MODULE, function()
+	local schema = Settings.Schema()
+	schema.preview = ns.Preview.Build
+	return schema
+end)

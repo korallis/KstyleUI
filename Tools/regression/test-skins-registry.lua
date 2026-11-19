@@ -395,13 +395,14 @@ do
 	Raises(function() ns.Skins.Add(Fake("tooLate")) end, "Skins.xml", "a skin added after the module registered")
 end
 
--- A bad extra row stops the module from loading, with the row's key in the error ----------------------------
+-- A bad extra row fails when its lazy schema is requested, with the row's key in the error ----------------------------
 
 do
 	Raises(function()
-		S.New({ before = function(_, _, ns)
+		local _, kit = S.New({ before = function(_, _, ns)
 			ns.Skins.Add(Fake("rows", { defaults = { size = 1 }, rows = { { type = "slider", key = "size", label = "Size", help = "Size.", min = 2, max = 3, step = 1 } } }))
 		end })
+		kit.Options.Get("Skins")
 	end, "rows.size", "a slider default outside its range")
 end
 

@@ -57,542 +57,548 @@ Settings.defaults = {
 	},
 }
 
-local OUTLINES = {
-	{ value = "NONE", label = L["None, soft shadow"] },
-	{ value = "OUTLINE", label = L["Thin outline"] },
-	{ value = "THICKOUTLINE", label = L["Thick outline"] },
-}
-local COLOR_SOURCES = {
-	{ value = "class", label = L["Class colour for players"] },
-	{ value = "reaction", label = L["Reaction colour"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local ACCENT_SOURCES = {
-	{ value = "class", label = L["Accent (class colour)"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local ORIENTATIONS = {
-	{ value = "HORIZONTAL", label = L["Horizontal"] },
-	{ value = "VERTICAL", label = L["Vertical"] },
-}
-local HEALTH_FORMATS = {
-	{ value = "percent", label = L["Percent"] },
-	{ value = "value", label = L["Value"] },
-	{ value = "both", label = L["Value and percent"] },
-}
-local THREAT_DISPLAYS = {
-	{ value = "glow", label = L["Glow around the plate"] },
-	{ value = "health", label = L["Health bar colour"] },
-	{ value = "off", label = L["Off"] },
-}
-local THREAT_ROLES = {
-	{ value = "auto", label = L["From my group role"] },
-	{ value = "tank", label = L["Tank: I want aggro"] },
-	{ value = "other", label = L["Damage or healing: I avoid aggro"] },
-}
-local GROWTH_X = {
-	{ value = "RIGHT", label = L["Right"] },
-	{ value = "LEFT", label = L["Left"] },
-}
-local GROWTH_Y = {
-	{ value = "UP", label = L["Up, above the name"] },
-	{ value = "DOWN", label = L["Down, under the cast bar"] },
-}
-local STACKING = {
-	{ value = "none", label = L["Overlap"] },
-	{ value = "enemy", label = L["Stack enemy plates"] },
-	{ value = "all", label = L["Stack all plates"] },
-}
-local ORDERS = {
-	{ value = "important", label = L["Important first"] },
-	{ value = "longest", label = L["Most time left first"] },
-	{ value = "expiring", label = L["Soonest to fade first"] },
-	{ value = "default", label = L["The game's order"] },
-}
-local FOOTPRINTS = {
-	{ value = "plate", label = L["KstyleUI's plate"] },
-	{ value = "game", label = L["The game's own size"] },
-}
+local rows
 
-local TEXT_MIN, TEXT_MAX = 6, 20
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local OUTLINES = {
+		{ value = "NONE", label = L["None, soft shadow"] },
+		{ value = "OUTLINE", label = L["Thin outline"] },
+		{ value = "THICKOUTLINE", label = L["Thick outline"] },
+	}
+	local COLOR_SOURCES = {
+		{ value = "class", label = L["Class colour for players"] },
+		{ value = "reaction", label = L["Reaction colour"] },
+		{ value = "custom", label = L["Custom colour"] },
+	}
+	local ACCENT_SOURCES = {
+		{ value = "class", label = L["Accent (class colour)"] },
+		{ value = "custom", label = L["Custom colour"] },
+	}
+	local ORIENTATIONS = {
+		{ value = "HORIZONTAL", label = L["Horizontal"] },
+		{ value = "VERTICAL", label = L["Vertical"] },
+	}
+	local HEALTH_FORMATS = {
+		{ value = "percent", label = L["Percent"] },
+		{ value = "value", label = L["Value"] },
+		{ value = "both", label = L["Value and percent"] },
+	}
+	local THREAT_DISPLAYS = {
+		{ value = "glow", label = L["Glow around the plate"] },
+		{ value = "health", label = L["Health bar colour"] },
+		{ value = "off", label = L["Off"] },
+	}
+	local THREAT_ROLES = {
+		{ value = "auto", label = L["From my group role"] },
+		{ value = "tank", label = L["Tank: I want aggro"] },
+		{ value = "other", label = L["Damage or healing: I avoid aggro"] },
+	}
+	local GROWTH_X = {
+		{ value = "RIGHT", label = L["Right"] },
+		{ value = "LEFT", label = L["Left"] },
+	}
+	local GROWTH_Y = {
+		{ value = "UP", label = L["Up, above the name"] },
+		{ value = "DOWN", label = L["Down, under the cast bar"] },
+	}
+	local STACKING = {
+		{ value = "none", label = L["Overlap"] },
+		{ value = "enemy", label = L["Stack enemy plates"] },
+		{ value = "all", label = L["Stack all plates"] },
+	}
+	local ORDERS = {
+		{ value = "important", label = L["Important first"] },
+		{ value = "longest", label = L["Most time left first"] },
+		{ value = "expiring", label = L["Soonest to fade first"] },
+		{ value = "default", label = L["The game's order"] },
+	}
+	local FOOTPRINTS = {
+		{ value = "plate", label = L["KstyleUI's plate"] },
+		{ value = "game", label = L["The game's own size"] },
+	}
 
-local function Is(key, value)
-	return function(s)
-		local node = s
-		for part in key:gmatch("[^%.]+") do
-			node = type(node) == "table" and node[part] or nil
+	local TEXT_MIN, TEXT_MAX = 6, 20
+
+	local function Is(key, value)
+		return function(s)
+			local node = s
+			for part in key:gmatch("[^%.]+") do
+				node = type(node) == "table" and node[part] or nil
+			end
+			return node == value
 		end
-		return node == value
 	end
-end
 
-local function Off(key)
-	local on = Is(key, true)
-	return function(s)
-		return not on(s)
+	local function Off(key)
+		local on = Is(key, true)
+		return function(s)
+			return not on(s)
+		end
 	end
-end
 
-local function HasCVar(name)
-	return function()
-		local cvars = ns.CVars
-		return not (cvars and type(cvars.Exists) == "function") or cvars.Exists(name)
+	local function HasCVar(name)
+		return function()
+			local cvars = ns.CVars
+			return not (cvars and type(cvars.Exists) == "function") or cvars.Exists(name)
+		end
 	end
-end
 
-local function SharedTextRows(schema, key, label)
-	schema[#schema + 1] = { type = "header", label = label }
-	schema[#schema + 1] = { type = "toggle", key = key .. ".show", label = L["Show"], help = L["Shows this text on every plate."] }
-	K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = key ~= "level",
-		disableWhen = Off(key .. ".show"), custom = Is(key .. ".colorMode", "custom") })
-end
-
-local schema = {
-	{ type = "header", label = L["Preset"] },
-	{
-		type = "dropdown", key = "preset", label = L["Preset"],
-		help = L["Applies a whole set of plate settings. Changing a setting by hand makes it Custom."],
-		options = function()
-			return ns.Presets.LIST
-		end,
-	},
-	{ type = "header", label = L["Plates"] },
-	{
-		type = "toggle", key = "personalResource", label = L["Personal resource display"],
-		help = L["Changes Blizzard's bars near your character out of combat. Later Blizzard setting changes are kept."],
-		showWhen = HasCVar("nameplateShowSelf"),
-	},
-	{
-		type = "slider", key = "offsetY", label = L["Height above the unit"],
-		help = L["Moves every plate up or down from where the game places it."],
-		min = -40, max = 40, step = 1,
-	},
-	{
-		type = "toggle", key = "shrinkDistant", label = L["Shrink distant plates"],
-		help = L["Plates shrink with distance and grow on your target, as the game's own do."],
-	},
-	{
-		type = "font", key = "font", label = L["Font"],
-		options = K.Widgets.InheritedFontOptions,
-		help = L["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."],
-	},
-	{ type = "header", label = L["Health bar"] },
-	{
-		type = "slider", key = "health.width", label = L["Width"],
-		help = L["The width of the health bar, in interface units."], min = 80, max = 240, step = 1,
-	},
-	{
-		type = "slider", key = "health.height", label = L["Height"],
-		help = L["The height of the health bar, in interface units."], min = 6, max = 24, step = 1,
-	},
-	{
-		type = "texture", key = "health.texture", label = L["Texture"],
-		help = L["The texture that fills the health bar."],
-	},
-	{
-		type = "dropdown", key = "health.orientation", label = L["Orientation"],
-		help = L["Fills the health bar across or upward."],
-		options = ORIENTATIONS,
-	},
-	{
-		type = "toggle", key = "health.reverse", label = L["Reverse fill"],
-		help = L["Fills the bar from the other end."],
-	},
-	{ type = "header", label = L["Enemy plates"] },
-	{
-		type = "dropdown", key = "enemy.colorSource", label = L["Bar colour"],
-		help = L["Where the health colour of enemy plates comes from."],
-		options = COLOR_SOURCES,
-	},
-	{
-		type = "color", key = "enemy.color", label = L["Custom colour"],
-		help = L["The health colour of enemy plates."],
-		showWhen = Is("enemy.colorSource", "custom"),
-	},
-	{ type = "header", label = L["Friendly plates"] },
-	{
-		type = "dropdown", key = "friendly.colorSource", label = L["Bar colour"],
-		help = L["Where the health colour of friendly plates comes from."],
-		options = COLOR_SOURCES,
-	},
-	{
-		type = "color", key = "friendly.color", label = L["Custom colour"],
-		help = L["The health colour of friendly plates."],
-		showWhen = Is("friendly.colorSource", "custom"),
-	},
-	{
-		type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
-		help = L["Friendly plates show just the name, without a health bar."],
-	},
-	{ type = "header", label = L["Unit types"] },
-	{
-		type = "toggle", key = "types.quest", label = L["Quest mobs"],
-		help = L["Colours the plates of mobs one of your quests needs. Wins over the other types."],
-	},
-	{
-		type = "color", key = "types.questColor", label = L["Quest colour"],
-		help = L["The bar colour of quest mobs."],
-		disableWhen = Off("types.quest"),
-	},
-	{
-		type = "toggle", key = "types.rare", label = L["Rares"],
-		help = L["Colours the plates of rare and rare elite mobs."],
-	},
-	{
-		type = "color", key = "types.rareColor", label = L["Rare colour"],
-		help = L["The bar colour of rares."],
-		disableWhen = Off("types.rare"),
-	},
-	{
-		type = "toggle", key = "types.elite", label = L["Elites"],
-		help = L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."],
-	},
-	{
-		type = "color", key = "types.eliteColor", label = L["Elite colour"],
-		help = L["The bar colour of elites."],
-		disableWhen = Off("types.elite"),
-	},
-	{
-		type = "toggle", key = "types.caster", label = L["Casters"],
-		help = L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."],
-	},
-	{
-		type = "color", key = "types.casterColor", label = L["Caster colour"],
-		help = L["The bar colour of casters."],
-		disableWhen = Off("types.caster"),
-	},
-}
-
-SharedTextRows(schema, "name", L["Name"])
-schema[#schema + 1] = {
-	type = "toggle", key = "name.upper", label = L["Upper case"],
-	help = L["Writes names in capitals. Names hidden by the game in combat stay as they are."],
-	disableWhen = Off("name.show"),
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "name.classColor", label = L["Class-coloured player names"],
-	help = L["Colours players' names with their class colour."],
-	disableWhen = Off("name.show"),
-}
-SharedTextRows(schema, "level", L["Level"])
-SharedTextRows(schema, "healthText", L["Health text"])
-schema[#schema + 1] = {
-	type = "dropdown", key = "healthText.format", label = L["Format"],
-	help = L["Shows health as a percent, a value, or both."],
-	options = HEALTH_FORMATS, disableWhen = Off("healthText.show"),
-}
-
-local rest = {
-	{ type = "header", label = L["Cast bar"] },
-	{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
-	{
-		type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
-		help = L["Dims casts while your interrupt is unavailable and marks uninterruptible casts with a shield."],
-	},
-	{
-		type = "toggle", key = "cast.enabled", label = L["Show cast bars"],
-		help = L["Shows the spell a unit is casting under its health bar."],
-	},
-	{
-		type = "slider", key = "cast.height", label = L["Height"],
-		help = L["The height of the cast bar, in interface units."],
-		min = 6, max = 24, step = 1, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "texture", key = "cast.texture", label = L["Texture"],
-		help = L["The texture that fills the cast bar."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "dropdown", key = "cast.orientation", label = L["Orientation"],
-		help = L["Fills the cast bar across or upward."],
-		options = ORIENTATIONS, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.reverse", label = L["Reverse fill"],
-		help = L["Fills the cast bar from the other end."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "dropdown", key = "cast.colorSource", label = L["Bar colour"],
-		help = L["Interruptible casts follow the accent or use your own colour."],
-		options = ACCENT_SOURCES, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "color", key = "cast.color", label = L["Custom colour"],
-		help = L["The colour of casts you can interrupt."],
-		showWhen = Is("cast.colorSource", "custom"), disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "color", key = "cast.shieldColor", label = L["Uninterruptible colour"],
-		help = L["The colour of casts nothing can interrupt."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "color", key = "cast.waitColor", label = L["Interrupt recharging colour"],
-		help = L["The colour of casts you could interrupt, while your interrupt is on cooldown."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "text", key = "cast.interruptSpell", label = L["Interrupt spell"],
-		help = L["The spell the recharging colour watches. Blank finds your class's interrupt."],
-		maxLetters = 40, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.hideOnTarget", label = L["One cast for your target"],
-		help = L["Hides your target's cast on its plate while the target frame shows that cast."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.showIcon", label = L["Spell icon"],
-		help = L["Shows the spell's icon at the left of the cast bar."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.showName", label = L["Spell name"],
-		help = L["Shows the name of the spell being cast."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.nameSelectedOnly", label = L["Spell names on target and focus only"],
-		help = L["Keeps other plates quiet while showing the spell your target or focus is casting."],
-		disableWhen = Off("cast.showName"),
-	},
-	{
-		type = "toggle", key = "cast.nameBelow", label = L["Spell names below the cast bar"],
-		help = L["Gives the spell name its own line. Off puts it inside the cast bar."],
-		disableWhen = Off("cast.showName"),
-	},
-	{
-		type = "toggle", key = "cast.showTime", label = L["Time left"],
-		help = L["Shows the seconds left on the cast bar."],
-		disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "slider", key = "cast.textSize", label = L["Text size"],
-		help = L["The size of the cast bar's text, in interface units."],
-		min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "dropdown", key = "cast.outline", label = L["Outline"],
-		help = L["An outline keeps text readable over the game world."],
-		options = OUTLINES, disableWhen = Off("cast.enabled"),
-	},
-	{
-		type = "toggle", key = "cast.outcomes", label = L["Readable cast outcomes"],
-		help = L["Holds failed casts before fading. Off restores the original cast effects."],
-	},
-	{ type = "header", label = L["Debuffs"] },
-	{
-		type = "toggle", key = "debuffs.enabled", label = L["Show my debuffs"],
-		help = L["Shows the debuffs you put on each unit."],
-	},
-	{
-		type = "toggle", key = "debuffs.includePlateOnly", label = L["Nameplate-only debuffs"],
-		help = L["Also shows your debuffs that the game marks for nameplates only."],
-		disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.size", label = L["Icon size"],
-		help = L["The size of each debuff icon, in interface units."],
-		min = 10, max = 40, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.spacing", label = L["Spacing"],
-		help = L["The gap between debuff icons."],
-		min = 0, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.columns", label = L["Icons per row"],
-		help = L["Shows up to this many debuffs in a row."],
-		min = 1, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.rows", label = L["Rows"],
-		help = L["Shows up to icons per row times rows debuffs; a +N chip counts the rest."],
-		min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "dropdown", key = "debuffs.order", label = L["Which debuffs win a tile"],
-		help = L["How the game ranks your debuffs when more than fit. Important: the game's lethal ones."],
-		options = ORDERS, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],
-		help = L["Which way a row of debuffs grows."],
-		options = GROWTH_X, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "dropdown", key = "debuffs.growthY", label = L["Grow"],
-		help = L["Whether rows of debuffs stack upward above the name or downward under the cast bar."],
-		options = GROWTH_Y, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "toggle", key = "debuffs.showTime", label = L["Time left"],
-		help = L["Shows the time left under each debuff."],
-		disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "toggle", key = "debuffs.showCount", label = L["Stacks"],
-		help = L["Shows how many times a debuff has stacked."],
-		disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "toggle", key = "debuffs.readableText", label = L["Number font for debuffs"],
-		help = L["Uses the number font for debuff timers and stacks. Turn off to use the plate font."],
-		disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.expiring", label = L["Expiring timer colour"],
-		help = L["Colours a debuff timer red below this many seconds. Set to zero to keep one colour."],
-		min = 0, max = 20, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "slider", key = "debuffs.textSize", label = L["Text size"],
-		help = L["The size of the debuffs' text, in interface units."],
-		min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("debuffs.enabled"),
-	},
-	{
-		type = "dropdown", key = "debuffs.outline", label = L["Outline"],
-		help = L["An outline keeps text readable over the game world."],
-		options = OUTLINES, disableWhen = Off("debuffs.enabled"),
-	},
-	{ type = "header", label = L["Threat"] },
-	{ type = "toggle", key = "threat.shapes", label = L["Threat shapes"], help = L["Adds a tick, triangle or square beside threat colours. Off keeps the colours alone."] },
-	{ type = "toggle", key = "threat.keyline", label = L["Threat as an edge"],
-		help = L["Colours the bar edge instead of glowing around it. Off restores the threat glow."] },
-	{
-		type = "dropdown", key = "threat.display", label = L["Threat display"],
-		help = L["How a plate shows that its unit is attacking you or about to."],
-		options = THREAT_DISPLAYS,
-	},
-	{
-		type = "dropdown", key = "threat.role", label = L["Role"],
-		help = L["Tanks want aggro; everyone else wants to avoid it."],
-		options = THREAT_ROLES, disableWhen = Is("threat.display", "off"),
-	},
-	{
-		type = "toggle", key = "threat.groupOnly", label = L["Only in a group"],
-		help = L["Shows threat only while you are in a party or raid."],
-		disableWhen = Is("threat.display", "off"),
-	},
-	{
-		type = "color", key = "threat.safe", label = L["Safe colour"],
-		help = L["A tank holds aggro."],
-		disableWhen = Is("threat.display", "off"),
-	},
-	{
-		type = "color", key = "threat.warning", label = L["Warning colour"],
-		help = L["Aggro is about to change hands."],
-		disableWhen = Is("threat.display", "off"),
-	},
-	{
-		type = "color", key = "threat.danger", label = L["Danger colour"],
-		help = L["A damage dealer or healer has aggro, or a tank lost it."],
-		disableWhen = Is("threat.display", "off"),
-	},
-	{ type = "header", label = L["Target and focus"] },
-	{ type = "toggle", key = "target.readableTicks", label = L["Bright target ticks"],
-		help = L["Medallions: bright, outlined ticks settle beside your target. Off restores the dark ticks."] },
-	{ type = "toggle", key = "target.smoothOpacity", label = L["Smooth plate opacity"],
-		help = L["Fades other plates smoothly when your target changes. Off changes their opacity immediately."] },
-	{
-		type = "toggle", key = "target.highlight", label = L["Highlight the target"],
-		help = L["Draws a glow and an edge around your target's plate."],
-	},
-	{
-		type = "dropdown", key = "target.colorSource", label = L["Target colour"],
-		help = L["The target highlight follows the accent or uses your own colour."],
-		options = ACCENT_SOURCES, disableWhen = Off("target.highlight"),
-	},
-	{
-		type = "color", key = "target.color", label = L["Custom target colour"],
-		help = L["The colour of the target highlight."],
-		showWhen = Is("target.colorSource", "custom"), disableWhen = Off("target.highlight"),
-	},
-	{
-		type = "slider", key = "target.dimOthers", label = L["Other plates' opacity"],
-		help = L["Fades plates that are not your target while you have one."],
-		min = 0.2, max = 1, step = 0.05,
-	},
-	{
-		type = "toggle", key = "focus.highlight", label = L["Mark the focus"],
-		help = L["Gives your focus's plate a coloured edge."],
-	},
-	{
-		type = "color", key = "focus.color", label = L["Focus colour"],
-		help = L["The edge colour of your focus's plate."],
-		disableWhen = Off("focus.highlight"),
-	},
-	{ type = "header", label = L["Markers"] },
-	{
-		type = "toggle", key = "markers.classification", label = L["Elite and rare markers"],
-		help = L["A gold diamond marks elites and bosses, a blue one rares."],
-	},
-	{
-		type = "toggle", key = "markers.raid", label = L["Raid markers"],
-		help = L["Shows the raid marker a unit carries."],
-	},
-	{
-		type = "slider", key = "markers.raidSize", label = L["Raid marker size"],
-		help = L["The size of the raid marker, in interface units."],
-		min = 8, max = 32, step = 1, disableWhen = Off("markers.raid"),
-	},
-	{ type = "header", label = L["Stacking"] },
-	{
-		type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
-		help = L["The size the game stacks and clicks plates by. KstyleUI's plate keeps stacked plates apart."],
-		options = FOOTPRINTS,
-	},
-	{ type = "header", label = L["Game nameplate settings"] },
-	{
-		type = "toggle", key = "cvars.enabled", label = L["Manage these settings"],
-		help = L["Applies the settings below out of combat. Off returns them to the game's defaults."],
-	},
-	{
-		type = "slider", key = "cvars.maxDistance", label = L["Distance"],
-		help = L["How far away, in yards, plates show."],
-		min = 10, max = 60, step = 1, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxDistance"),
-	},
-	{
-		type = "slider", key = "cvars.verticalDistance", label = L["Height difference"],
-		help = L["Hides plates this far above or below you. 0 shows them at any height."],
-		min = 0, max = 100, step = 5, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxVerticalDistance"),
-	},
-	{
-		type = "dropdown", key = "cvars.stacking", label = L["Stacking"],
-		help = L["Stacked plates move apart so they never overlap."],
-		options = STACKING, disableWhen = Off("cvars.enabled"),
-	},
-	{
-		type = "slider", key = "cvars.selectedScale", label = L["Target plate scale"],
-		help = L["How much larger your target's plate is drawn."],
-		min = 1, max = 1.6, step = 0.05, disableWhen = Off("cvars.enabled"),
-	},
-	{
-		type = "slider", key = "cvars.minScale", label = L["Distant plate scale"],
-		help = L["How small plates shrink with distance."],
-		min = 0.5, max = 1, step = 0.05, disableWhen = Off("cvars.enabled"),
-	},
-	{
-		type = "slider", key = "cvars.clickSize", label = L["Click area size"],
-		help = L["The game's own plate size, which sets where you can click and how plates stack."],
-		min = 1, max = 5, step = 1, disableWhen = Off("cvars.enabled"),
-	},
-}
-for _, row in ipairs(rest) do
-	schema[#schema + 1] = row
-end
-
-Settings.schema = schema
-
-local rows = {}
-for _, row in ipairs(schema) do
-	if row.key then
-		rows[row.key] = row
+	local function SharedTextRows(schema, key, label)
+		schema[#schema + 1] = { type = "header", label = label }
+		schema[#schema + 1] = { type = "toggle", key = key .. ".show", label = L["Show"], help = L["Shows this text on every plate."] }
+		K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = key ~= "level",
+			disableWhen = Off(key .. ".show"), custom = Is(key .. ".colorMode", "custom") })
 	end
+
+	local schema = {
+		{ type = "header", label = L["Preset"] },
+		{
+			type = "dropdown", key = "preset", label = L["Preset"],
+			help = L["Applies a whole set of plate settings. Changing a setting by hand makes it Custom."],
+			options = function()
+				return ns.Presets.LIST
+			end,
+		},
+		{ type = "header", label = L["Plates"] },
+		{
+			type = "toggle", key = "personalResource", label = L["Personal resource display"],
+			help = L["Changes Blizzard's bars near your character out of combat. Later Blizzard setting changes are kept."],
+			showWhen = HasCVar("nameplateShowSelf"),
+		},
+		{
+			type = "slider", key = "offsetY", label = L["Height above the unit"],
+			help = L["Moves every plate up or down from where the game places it."],
+			min = -40, max = 40, step = 1,
+		},
+		{
+			type = "toggle", key = "shrinkDistant", label = L["Shrink distant plates"],
+			help = L["Plates shrink with distance and grow on your target, as the game's own do."],
+		},
+		{
+			type = "font", key = "font", label = L["Font"],
+			options = K.Widgets.InheritedFontOptions,
+			help = L["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."],
+		},
+		{ type = "header", label = L["Health bar"] },
+		{
+			type = "slider", key = "health.width", label = L["Width"],
+			help = L["The width of the health bar, in interface units."], min = 80, max = 240, step = 1,
+		},
+		{
+			type = "slider", key = "health.height", label = L["Height"],
+			help = L["The height of the health bar, in interface units."], min = 6, max = 24, step = 1,
+		},
+		{
+			type = "texture", key = "health.texture", label = L["Texture"],
+			help = L["The texture that fills the health bar."],
+		},
+		{
+			type = "dropdown", key = "health.orientation", label = L["Orientation"],
+			help = L["Fills the health bar across or upward."],
+			options = ORIENTATIONS,
+		},
+		{
+			type = "toggle", key = "health.reverse", label = L["Reverse fill"],
+			help = L["Fills the bar from the other end."],
+		},
+		{ type = "header", label = L["Enemy plates"] },
+		{
+			type = "dropdown", key = "enemy.colorSource", label = L["Bar colour"],
+			help = L["Where the health colour of enemy plates comes from."],
+			options = COLOR_SOURCES,
+		},
+		{
+			type = "color", key = "enemy.color", label = L["Custom colour"],
+			help = L["The health colour of enemy plates."],
+			showWhen = Is("enemy.colorSource", "custom"),
+		},
+		{ type = "header", label = L["Friendly plates"] },
+		{
+			type = "dropdown", key = "friendly.colorSource", label = L["Bar colour"],
+			help = L["Where the health colour of friendly plates comes from."],
+			options = COLOR_SOURCES,
+		},
+		{
+			type = "color", key = "friendly.color", label = L["Custom colour"],
+			help = L["The health colour of friendly plates."],
+			showWhen = Is("friendly.colorSource", "custom"),
+		},
+		{
+			type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
+			help = L["Friendly plates show just the name, without a health bar."],
+		},
+		{ type = "header", label = L["Unit types"] },
+		{
+			type = "toggle", key = "types.quest", label = L["Quest mobs"],
+			help = L["Colours the plates of mobs one of your quests needs. Wins over the other types."],
+		},
+		{
+			type = "color", key = "types.questColor", label = L["Quest colour"],
+			help = L["The bar colour of quest mobs."],
+			disableWhen = Off("types.quest"),
+		},
+		{
+			type = "toggle", key = "types.rare", label = L["Rares"],
+			help = L["Colours the plates of rare and rare elite mobs."],
+		},
+		{
+			type = "color", key = "types.rareColor", label = L["Rare colour"],
+			help = L["The bar colour of rares."],
+			disableWhen = Off("types.rare"),
+		},
+		{
+			type = "toggle", key = "types.elite", label = L["Elites"],
+			help = L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."],
+		},
+		{
+			type = "color", key = "types.eliteColor", label = L["Elite colour"],
+			help = L["The bar colour of elites."],
+			disableWhen = Off("types.elite"),
+		},
+		{
+			type = "toggle", key = "types.caster", label = L["Casters"],
+			help = L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."],
+		},
+		{
+			type = "color", key = "types.casterColor", label = L["Caster colour"],
+			help = L["The bar colour of casters."],
+			disableWhen = Off("types.caster"),
+		},
+	}
+
+	SharedTextRows(schema, "name", L["Name"])
+	schema[#schema + 1] = {
+		type = "toggle", key = "name.upper", label = L["Upper case"],
+		help = L["Writes names in capitals. Names hidden by the game in combat stay as they are."],
+		disableWhen = Off("name.show"),
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "name.classColor", label = L["Class-coloured player names"],
+		help = L["Colours players' names with their class colour."],
+		disableWhen = Off("name.show"),
+	}
+	SharedTextRows(schema, "level", L["Level"])
+	SharedTextRows(schema, "healthText", L["Health text"])
+	schema[#schema + 1] = {
+		type = "dropdown", key = "healthText.format", label = L["Format"],
+		help = L["Shows health as a percent, a value, or both."],
+		options = HEALTH_FORMATS, disableWhen = Off("healthText.show"),
+	}
+
+	local rest = {
+		{ type = "header", label = L["Cast bar"] },
+		{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
+		{
+			type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
+			help = L["Dims casts while your interrupt is unavailable and marks uninterruptible casts with a shield."],
+		},
+		{
+			type = "toggle", key = "cast.enabled", label = L["Show cast bars"],
+			help = L["Shows the spell a unit is casting under its health bar."],
+		},
+		{
+			type = "slider", key = "cast.height", label = L["Height"],
+			help = L["The height of the cast bar, in interface units."],
+			min = 6, max = 24, step = 1, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "texture", key = "cast.texture", label = L["Texture"],
+			help = L["The texture that fills the cast bar."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "dropdown", key = "cast.orientation", label = L["Orientation"],
+			help = L["Fills the cast bar across or upward."],
+			options = ORIENTATIONS, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.reverse", label = L["Reverse fill"],
+			help = L["Fills the cast bar from the other end."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "dropdown", key = "cast.colorSource", label = L["Bar colour"],
+			help = L["Interruptible casts follow the accent or use your own colour."],
+			options = ACCENT_SOURCES, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "color", key = "cast.color", label = L["Custom colour"],
+			help = L["The colour of casts you can interrupt."],
+			showWhen = Is("cast.colorSource", "custom"), disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "color", key = "cast.shieldColor", label = L["Uninterruptible colour"],
+			help = L["The colour of casts nothing can interrupt."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "color", key = "cast.waitColor", label = L["Interrupt recharging colour"],
+			help = L["The colour of casts you could interrupt, while your interrupt is on cooldown."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "text", key = "cast.interruptSpell", label = L["Interrupt spell"],
+			help = L["The spell the recharging colour watches. Blank finds your class's interrupt."],
+			maxLetters = 40, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.hideOnTarget", label = L["One cast for your target"],
+			help = L["Hides your target's cast on its plate while the target frame shows that cast."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.showIcon", label = L["Spell icon"],
+			help = L["Shows the spell's icon at the left of the cast bar."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.showName", label = L["Spell name"],
+			help = L["Shows the name of the spell being cast."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.nameSelectedOnly", label = L["Spell names on target and focus only"],
+			help = L["Keeps other plates quiet while showing the spell your target or focus is casting."],
+			disableWhen = Off("cast.showName"),
+		},
+		{
+			type = "toggle", key = "cast.nameBelow", label = L["Spell names below the cast bar"],
+			help = L["Gives the spell name its own line. Off puts it inside the cast bar."],
+			disableWhen = Off("cast.showName"),
+		},
+		{
+			type = "toggle", key = "cast.showTime", label = L["Time left"],
+			help = L["Shows the seconds left on the cast bar."],
+			disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "slider", key = "cast.textSize", label = L["Text size"],
+			help = L["The size of the cast bar's text, in interface units."],
+			min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "dropdown", key = "cast.outline", label = L["Outline"],
+			help = L["An outline keeps text readable over the game world."],
+			options = OUTLINES, disableWhen = Off("cast.enabled"),
+		},
+		{
+			type = "toggle", key = "cast.outcomes", label = L["Readable cast outcomes"],
+			help = L["Holds failed casts before fading. Off restores the original cast effects."],
+		},
+		{ type = "header", label = L["Debuffs"] },
+		{
+			type = "toggle", key = "debuffs.enabled", label = L["Show my debuffs"],
+			help = L["Shows the debuffs you put on each unit."],
+		},
+		{
+			type = "toggle", key = "debuffs.includePlateOnly", label = L["Nameplate-only debuffs"],
+			help = L["Also shows your debuffs that the game marks for nameplates only."],
+			disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.size", label = L["Icon size"],
+			help = L["The size of each debuff icon, in interface units."],
+			min = 10, max = 40, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.spacing", label = L["Spacing"],
+			help = L["The gap between debuff icons."],
+			min = 0, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.columns", label = L["Icons per row"],
+			help = L["Shows up to this many debuffs in a row."],
+			min = 1, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.rows", label = L["Rows"],
+			help = L["Shows up to icons per row times rows debuffs; a +N chip counts the rest."],
+			min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "dropdown", key = "debuffs.order", label = L["Which debuffs win a tile"],
+			help = L["How the game ranks your debuffs when more than fit. Important: the game's lethal ones."],
+			options = ORDERS, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],
+			help = L["Which way a row of debuffs grows."],
+			options = GROWTH_X, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "dropdown", key = "debuffs.growthY", label = L["Grow"],
+			help = L["Whether rows of debuffs stack upward above the name or downward under the cast bar."],
+			options = GROWTH_Y, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "toggle", key = "debuffs.showTime", label = L["Time left"],
+			help = L["Shows the time left under each debuff."],
+			disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "toggle", key = "debuffs.showCount", label = L["Stacks"],
+			help = L["Shows how many times a debuff has stacked."],
+			disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "toggle", key = "debuffs.readableText", label = L["Number font for debuffs"],
+			help = L["Uses the number font for debuff timers and stacks. Turn off to use the plate font."],
+			disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.expiring", label = L["Expiring timer colour"],
+			help = L["Colours a debuff timer red below this many seconds. Set to zero to keep one colour."],
+			min = 0, max = 20, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "slider", key = "debuffs.textSize", label = L["Text size"],
+			help = L["The size of the debuffs' text, in interface units."],
+			min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("debuffs.enabled"),
+		},
+		{
+			type = "dropdown", key = "debuffs.outline", label = L["Outline"],
+			help = L["An outline keeps text readable over the game world."],
+			options = OUTLINES, disableWhen = Off("debuffs.enabled"),
+		},
+		{ type = "header", label = L["Threat"] },
+		{ type = "toggle", key = "threat.shapes", label = L["Threat shapes"], help = L["Adds a tick, triangle or square beside threat colours. Off keeps the colours alone."] },
+		{ type = "toggle", key = "threat.keyline", label = L["Threat as an edge"],
+			help = L["Colours the bar edge instead of glowing around it. Off restores the threat glow."] },
+		{
+			type = "dropdown", key = "threat.display", label = L["Threat display"],
+			help = L["How a plate shows that its unit is attacking you or about to."],
+			options = THREAT_DISPLAYS,
+		},
+		{
+			type = "dropdown", key = "threat.role", label = L["Role"],
+			help = L["Tanks want aggro; everyone else wants to avoid it."],
+			options = THREAT_ROLES, disableWhen = Is("threat.display", "off"),
+		},
+		{
+			type = "toggle", key = "threat.groupOnly", label = L["Only in a group"],
+			help = L["Shows threat only while you are in a party or raid."],
+			disableWhen = Is("threat.display", "off"),
+		},
+		{
+			type = "color", key = "threat.safe", label = L["Safe colour"],
+			help = L["A tank holds aggro."],
+			disableWhen = Is("threat.display", "off"),
+		},
+		{
+			type = "color", key = "threat.warning", label = L["Warning colour"],
+			help = L["Aggro is about to change hands."],
+			disableWhen = Is("threat.display", "off"),
+		},
+		{
+			type = "color", key = "threat.danger", label = L["Danger colour"],
+			help = L["A damage dealer or healer has aggro, or a tank lost it."],
+			disableWhen = Is("threat.display", "off"),
+		},
+		{ type = "header", label = L["Target and focus"] },
+		{ type = "toggle", key = "target.readableTicks", label = L["Bright target ticks"],
+			help = L["Medallions: bright, outlined ticks settle beside your target. Off restores the dark ticks."] },
+		{ type = "toggle", key = "target.smoothOpacity", label = L["Smooth plate opacity"],
+			help = L["Fades other plates smoothly when your target changes. Off changes their opacity immediately."] },
+		{
+			type = "toggle", key = "target.highlight", label = L["Highlight the target"],
+			help = L["Draws a glow and an edge around your target's plate."],
+		},
+		{
+			type = "dropdown", key = "target.colorSource", label = L["Target colour"],
+			help = L["The target highlight follows the accent or uses your own colour."],
+			options = ACCENT_SOURCES, disableWhen = Off("target.highlight"),
+		},
+		{
+			type = "color", key = "target.color", label = L["Custom target colour"],
+			help = L["The colour of the target highlight."],
+			showWhen = Is("target.colorSource", "custom"), disableWhen = Off("target.highlight"),
+		},
+		{
+			type = "slider", key = "target.dimOthers", label = L["Other plates' opacity"],
+			help = L["Fades plates that are not your target while you have one."],
+			min = 0.2, max = 1, step = 0.05,
+		},
+		{
+			type = "toggle", key = "focus.highlight", label = L["Mark the focus"],
+			help = L["Gives your focus's plate a coloured edge."],
+		},
+		{
+			type = "color", key = "focus.color", label = L["Focus colour"],
+			help = L["The edge colour of your focus's plate."],
+			disableWhen = Off("focus.highlight"),
+		},
+		{ type = "header", label = L["Markers"] },
+		{
+			type = "toggle", key = "markers.classification", label = L["Elite and rare markers"],
+			help = L["A gold diamond marks elites and bosses, a blue one rares."],
+		},
+		{
+			type = "toggle", key = "markers.raid", label = L["Raid markers"],
+			help = L["Shows the raid marker a unit carries."],
+		},
+		{
+			type = "slider", key = "markers.raidSize", label = L["Raid marker size"],
+			help = L["The size of the raid marker, in interface units."],
+			min = 8, max = 32, step = 1, disableWhen = Off("markers.raid"),
+		},
+		{ type = "header", label = L["Stacking"] },
+		{
+			type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
+			help = L["The size the game stacks and clicks plates by. KstyleUI's plate keeps stacked plates apart."],
+			options = FOOTPRINTS,
+		},
+		{ type = "header", label = L["Game nameplate settings"] },
+		{
+			type = "toggle", key = "cvars.enabled", label = L["Manage these settings"],
+			help = L["Applies the settings below out of combat. Off returns them to the game's defaults."],
+		},
+		{
+			type = "slider", key = "cvars.maxDistance", label = L["Distance"],
+			help = L["How far away, in yards, plates show."],
+			min = 10, max = 60, step = 1, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxDistance"),
+		},
+		{
+			type = "slider", key = "cvars.verticalDistance", label = L["Height difference"],
+			help = L["Hides plates this far above or below you. 0 shows them at any height."],
+			min = 0, max = 100, step = 5, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxVerticalDistance"),
+		},
+		{
+			type = "dropdown", key = "cvars.stacking", label = L["Stacking"],
+			help = L["Stacked plates move apart so they never overlap."],
+			options = STACKING, disableWhen = Off("cvars.enabled"),
+		},
+		{
+			type = "slider", key = "cvars.selectedScale", label = L["Target plate scale"],
+			help = L["How much larger your target's plate is drawn."],
+			min = 1, max = 1.6, step = 0.05, disableWhen = Off("cvars.enabled"),
+		},
+		{
+			type = "slider", key = "cvars.minScale", label = L["Distant plate scale"],
+			help = L["How small plates shrink with distance."],
+			min = 0.5, max = 1, step = 0.05, disableWhen = Off("cvars.enabled"),
+		},
+		{
+			type = "slider", key = "cvars.clickSize", label = L["Click area size"],
+			help = L["The game's own plate size, which sets where you can click and how plates stack."],
+			min = 1, max = 5, step = 1, disableWhen = Off("cvars.enabled"),
+		},
+	}
+	for _, row in ipairs(rest) do
+		schema[#schema + 1] = row
+	end
+
+	Settings.schema = schema
+
+	rows = {}
+	for _, row in ipairs(schema) do
+		if row.key then
+			rows[row.key] = row
+		end
+	end
+	Settings.rows = rows
+	return Settings.schema
 end
-Settings.rows = rows
 
 local function Lookup(root, key)
 	local node = root
@@ -648,9 +654,8 @@ local cache = {}
 local logged = {}
 
 local function Read(key)
-	local row = rows[key]
 	local default = Lookup(Settings.defaults, key)
-	if not row and default == nil then
+	if default == nil then
 		error("KstyleUI_Nameplates: unknown setting " .. tostring(key), 3)
 	end
 	local Store = K.Store
@@ -658,6 +663,9 @@ local function Read(key)
 		return default
 	end
 	local stored = Lookup(Store.Module(MODULE), key)
+	if not ns.Logic.IsSecret(stored) and stored == default then return stored end
+	if not rows then Settings.Schema() end
+	local row = rows[key]
 	if row then
 		local value = Allowed(row, stored)
 		if value ~= nil then
@@ -692,5 +700,6 @@ function Settings.Invalidate()
 end
 
 function Settings.Row(key)
+	if not rows then Settings.Schema() end
 	return rows[key]
 end

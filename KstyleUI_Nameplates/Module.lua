@@ -125,7 +125,7 @@ K.Modules.Register({
 })
 
 K.Options.Register(MODULE, function()
-	local schema = Settings.schema
+	local schema = Settings.Schema()
 	schema.preview = Preview.Build
 	return schema
 end)

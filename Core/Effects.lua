@@ -210,21 +210,25 @@ local function Refresh()
 end
 Effects.Refresh = Refresh
 
-Effects.schema = {
-	{ type = "header", label = L["Medallions"] },
-	{
-		type = "dropdown", key = "motion", label = L["Medallions motion"],
-		help = L["Full adds the game's 3D effects; Calm keeps short fades and flashes; Off is still."],
-		options = {
-			{ value = "full", label = L["Full"] },
-			{ value = "calm", label = L["Calm"] },
-			{ value = "off", label = L["Off"] },
+function Effects.Schema()
+	if Effects.schema then return Effects.schema end
+	Effects.schema = {
+		{ type = "header", label = L["Medallions"] },
+		{
+			type = "dropdown", key = "motion", label = L["Medallions motion"],
+			help = L["Full adds the game's 3D effects; Calm keeps short fades and flashes; Off is still."],
+			options = {
+				{ value = "full", label = L["Full"] },
+				{ value = "calm", label = L["Calm"] },
+				{ value = "off", label = L["Off"] },
+			},
 		},
-	},
-}
+	}
+	return Effects.schema
+end
 
 Store.RegisterDefaults(SECTION, Effects.defaults)
-ns.Options.Register(SECTION, Effects.schema)
+ns.Options.Register(SECTION, Effects.Schema)
 
 ns.Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
 	if module == SECTION or (module == "Appearance" and key == "motion") then

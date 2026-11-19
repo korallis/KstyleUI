@@ -29,7 +29,6 @@ end
 
 local Swing = { section = "swing", key = KEY, bars = {}, state = {}, weapons = {}, count = 0, dirty = true }
 ns.defaults.swing.attached = true
-table.insert(ns.schema, { type = "toggle", key = "swing.attached", label = K.L["Swing timer matches the HUD"], help = K.L["Use the HUD's bar finish and placement. Turn off for the previous swing timer."] })
 Swing.LINGER = LINGER
 ns.Swing = Swing
 

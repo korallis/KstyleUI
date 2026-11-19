@@ -226,9 +226,12 @@ local function Disable()
 	Blizzard.Stop()
 end
 
-Settings.schema.preview = Preview.Build
 K.Modules.Register({ name = MODULE, defaults = Settings.defaults, Enable = Enable, Disable = Disable })
-K.Options.Register(MODULE, Settings.schema)
+K.Options.Register(MODULE, function()
+	local schema = Settings.Schema()
+	schema.preview = Preview.Build
+	return schema
+end)
 
 World.Capture()
 if K.Store.IsLoaded() and K.Modules.IsEnabled(MODULE) then

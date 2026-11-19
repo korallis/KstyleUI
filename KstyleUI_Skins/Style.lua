@@ -531,69 +531,71 @@ end
 
 Style.SIZE_MIN, Style.SIZE_MAX, Style.SIZE_STEP = SIZE_MIN, SIZE_MAX, SIZE_STEP
 
-Style.rows = {
-	{ type = "header", label = L["Text"] },
-	{
-		type = "dropdown", key = "text.font", label = L["Font"], options = FontOptions,
-		help = L["The font of skinned window titles, headers and lists."],
-	},
-	{
-		type = "slider", key = "text.size", label = L["Text size"], min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
-		help = L["Makes the text in skinned windows larger or smaller."],
-	},
-	{
-		type = "dropdown", key = "text.outline", label = L["Text edge"],
-		options = {
-			{ value = "shadow", label = L["Soft shadow"] },
-			{ value = "outline", label = L["Thin outline"] },
-			{ value = "thick", label = L["Thick outline"] },
+function Style.Rows()
+	return {
+		{ type = "header", label = L["Text"] },
+		{
+			type = "dropdown", key = "text.font", label = L["Font"], options = FontOptions,
+			help = L["The font of skinned window titles, headers and lists."],
 		},
-		help = L["A soft shadow or an outline behind skinned text."],
-	},
-	{ type = "header", label = L["Bars"] },
-	{
-		type = "texture", key = "bars.texture", label = L["Bar texture"],
-		help = L["The fill of reputation, currency and quest progress bars."],
-	},
-	{
-		type = "dropdown", key = "bars.color", label = L["Bar colour"],
-		options = {
-			{ value = "reaction", label = L["Standing or reaction"] },
-			{ value = "class", label = L["Class colour"] },
-			{ value = "custom", label = L["Custom colour"] },
+		{
+			type = "slider", key = "text.size", label = L["Text size"], min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
+			help = L["Makes the text in skinned windows larger or smaller."],
 		},
-		help = L["Colours bars by their standing, by your class, or with one colour."],
-	},
-	{
-		type = "color", key = "bars.customColor", label = L["Custom bar colour"],
-		help = L["The bar colour when Bar colour is set to custom."],
-		showWhen = function(s)
-			return type(s.bars) == "table" and s.bars.color == "custom"
-		end,
-	},
-	{
-		type = "dropdown", key = "bars.fill", label = L["Bar fill direction"],
-		options = {
-			{ value = "left", label = L["Left to right"] },
-			{ value = "right", label = L["Right to left"] },
+		{
+			type = "dropdown", key = "text.outline", label = L["Text edge"],
+			options = {
+				{ value = "shadow", label = L["Soft shadow"] },
+				{ value = "outline", label = L["Thin outline"] },
+				{ value = "thick", label = L["Thick outline"] },
+			},
+			help = L["A soft shadow or an outline behind skinned text."],
 		},
-		help = L["Which end skinned bars fill from."],
-	},
-	{ type = "header", label = L["Accent"] },
-	{
-		type = "dropdown", key = "accent.source", label = L["Accent colour"],
-		options = {
-			{ value = FOLLOW, label = L["Interface accent"] },
-			{ value = "class", label = L["Class colour"] },
-			{ value = "custom", label = L["Custom colour"] },
+		{ type = "header", label = L["Bars"] },
+		{
+			type = "texture", key = "bars.texture", label = L["Bar texture"],
+			help = L["The fill of reputation, currency and quest progress bars."],
 		},
-		help = L["The colour of selected tabs, headers and hairlines in skinned windows."],
-	},
-	{
-		type = "color", key = "accent.color", label = L["Custom accent"],
-		help = L["The accent when Accent colour is set to custom."],
-		showWhen = function(s)
-			return type(s.accent) == "table" and s.accent.source == "custom"
-		end,
-	},
-}
+		{
+			type = "dropdown", key = "bars.color", label = L["Bar colour"],
+			options = {
+				{ value = "reaction", label = L["Standing or reaction"] },
+				{ value = "class", label = L["Class colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+			help = L["Colours bars by their standing, by your class, or with one colour."],
+		},
+		{
+			type = "color", key = "bars.customColor", label = L["Custom bar colour"],
+			help = L["The bar colour when Bar colour is set to custom."],
+			showWhen = function(s)
+				return type(s.bars) == "table" and s.bars.color == "custom"
+			end,
+		},
+		{
+			type = "dropdown", key = "bars.fill", label = L["Bar fill direction"],
+			options = {
+				{ value = "left", label = L["Left to right"] },
+				{ value = "right", label = L["Right to left"] },
+			},
+			help = L["Which end skinned bars fill from."],
+		},
+		{ type = "header", label = L["Accent"] },
+		{
+			type = "dropdown", key = "accent.source", label = L["Accent colour"],
+			options = {
+				{ value = FOLLOW, label = L["Interface accent"] },
+				{ value = "class", label = L["Class colour"] },
+				{ value = "custom", label = L["Custom colour"] },
+			},
+			help = L["The colour of selected tabs, headers and hairlines in skinned windows."],
+		},
+		{
+			type = "color", key = "accent.color", label = L["Custom accent"],
+			help = L["The accent when Accent colour is set to custom."],
+			showWhen = function(s)
+				return type(s.accent) == "table" and s.accent.source == "custom"
+			end,
+		},
+	}
+end

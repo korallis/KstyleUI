@@ -119,153 +119,157 @@ local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), 
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
-local function WorldFontOn(settings)
-	return settings.worldFont == true
-end
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local function WorldFontOn(settings)
+		return settings.worldFont == true
+	end
 
-local function CritColorOn(settings)
-	return settings.critColor == true
-end
+	local function CritColorOn(settings)
+		return settings.critColor == true
+	end
 
-Settings.schema = {
-	{ type = "header", label = L["Blizzard's combat text"] },
-	{
-		type = "dropdown", key = "blizzardSelf", label = L["Blizzard's text over you"],
-		help = L["Hide turns off the game's scrolling combat text over your character while this module is on."],
-		options = BLIZZARD_OPTIONS,
-	},
-	{
-		type = "dropdown", key = "blizzardTargets", label = L["Blizzard's numbers over targets"],
-		help = L["The game's numbers over targets show only your own hits. Hide turns them off."],
-		options = BLIZZARD_OPTIONS,
-	},
-	{ type = "header", label = L["World numbers"] },
-	{
-		type = "toggle", key = "worldFont", label = L["KstyleUI font for world numbers"],
-		help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
-	},
-	{
-		type = "font", key = "worldFace", label = L["World number font"],
-		options = K.Widgets.InheritedFontOptions,
-		help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
-		showWhen = WorldFontOn,
-	},
-	{ type = "header", label = L["Numbers"] },
-	{ type = "toggle", key = "calmNumbers", label = L["Calmer combat numbers"],
-		help = L["Five lanes, brief fades and combined nearby hits. Secret amounts always stay separate."] },
-	{
-		type = "toggle", key = "clearLanes", label = L["Keep combat text clear"],
-		help = L["In Medallions, places your numbers above the cast bars and target numbers above the debuffs."],
-	},
-	{
-		type = "dropdown", key = "style", label = L["Animation"],
-		help = L["Numbers rise straight up, arc to one side, or pop in and drift."],
-		options = STYLE_OPTIONS,
-	},
-	{ type = "toggle", key = "damage", label = L["Damage"], help = L["Shows the damage you take."] },
-	{ type = "toggle", key = "heals", label = L["Heals"], help = L["Shows the healing you receive, with a plus sign."] },
-	{
-		type = "toggle", key = "misses", label = L["Misses and absorbs"],
-		help = L["Shows words such as Dodge, Parry, Absorb and Immune."],
-	},
-	{
-		type = "dropdown", key = "format", label = L["Number format"],
-		help = L["Short numbers such as 12.3K, or full numbers such as 12,345."],
-		options = FORMAT_OPTIONS,
-	},
-	{
-		type = "slider", key = "duration", label = L["Duration"],
-		help = L["How long each number stays on screen, in seconds."],
-		min = DURATION_MIN, max = DURATION_MAX, step = DURATION_STEP,
-	},
-	{
-		type = "slider", key = "maxPerFrame", label = L["Numbers at once"],
-		help = L["The most numbers one place shows at a time; the oldest makes way."],
-		min = PER_FRAME_MIN, max = PER_FRAME_MAX, step = 1,
-	},
-	{ type = "header", label = L["Text"] },
-	{ type = "font", key = "font", label = L["Font"], help = L["The typeface of the numbers."], options = K.Widgets.InheritedFontOptions },
-	{
-		type = "slider", key = "size", label = L["Size"],
-		help = L["The text size of the numbers."],
-		min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
-	},
-	{
-		type = "dropdown", key = "outline", label = L["Outline"],
-		help = L["A soft shadow, or a thin or thick outline that reads well over the game world."],
-		options = OUTLINE_OPTIONS,
-	},
-	{ type = "header", label = L["Colours"] },
-	{
-		type = "dropdown", key = "colorMode", label = L["Damage colour"],
-		help = L["Colour damage by its spell school, or use one colour for all damage."],
-		options = COLOR_MODE_OPTIONS,
-	},
-	{
-		type = "color", key = "damageColor", label = L["Damage"],
-		help = L["The colour of damage when it does not follow the school, or the school is hidden."],
-	},
-	{ type = "color", key = "healColor", label = L["Heals"], help = L["The colour of healing numbers."] },
-	{ type = "color", key = "missColor", label = L["Misses"], help = L["The colour of words such as Dodge and Absorb."] },
-	{ type = "header", label = L["Critical hits"] },
-	{
-		type = "slider", key = "critScale", label = L["Critical size"],
-		help = L["How much larger critical hits and heals appear; 1 turns the emphasis off."],
-		min = CRIT_MIN, max = CRIT_MAX, step = CRIT_STEP,
-	},
-	{
-		type = "toggle", key = "critColor", label = L["Colour critical hits"],
-		help = L["Draws critical damage in its own colour."],
-	},
-	{
-		type = "color", key = "critTint", label = L["Critical colour"],
-		help = L["The colour of critical damage."],
-		showWhen = CritColorOn,
-	},
-	{ type = "header", label = L["Where numbers show"] },
-	{
-		type = "toggle", key = "units.player", label = L["You"],
-		help = L["Shows the damage and healing you take."],
-	},
-	{
-		type = "dropdown", key = "playerPlacement", label = L["Your numbers"],
-		help = L["In their own field above your character, or on your KstyleUI player frame."],
-		options = PLACEMENT_OPTIONS,
-	},
-	{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
-	{
-		type = "toggle", key = "units.targettarget", label = L["Target of target"],
-		help = L["Shows numbers on your KstyleUI target-of-target frame."],
-	},
-	{ type = "toggle", key = "units.focus", label = L["Focus frame"], help = L["Shows numbers on your KstyleUI focus frame."] },
-	{
-		type = "toggle", key = "units.focustarget", label = L["Focus target"],
-		help = L["Shows numbers on your KstyleUI focus-target frame."],
-	},
-	{ type = "toggle", key = "units.pet", label = L["Pet frame"], help = L["Shows numbers on your KstyleUI pet frame."] },
-	{ type = "toggle", key = "units.boss", label = L["Boss frames"], help = L["Shows numbers on KstyleUI boss frames."] },
-	{ type = "toggle", key = "units.party", label = L["Party frames"], help = L["Shows numbers on KstyleUI party frames."] },
-	{ type = "toggle", key = "units.raid", label = L["Raid frames"], help = L["Shows numbers on KstyleUI raid frames."] },
-	{
-		type = "toggle", key = "units.nameplate", label = L["Nameplates"],
-		help = L["Every hit a nameplate's unit takes, from any player. Needs KstyleUI's Nameplates."],
-	},
-	{
-		type = "dropdown", key = "framePoint", label = L["Start point"],
-		help = L["Numbers on frames start at the frame's centre, or just above it."],
-		options = POINT_OPTIONS,
-	},
-	{
-		type = "slider", key = "distance", label = L["Travel on frames"],
-		help = L["How far numbers move on unit, group and nameplate frames."],
-		min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
-	},
-	{
-		type = "slider", key = "groupSize", label = L["Size on group frames"],
-		help = L["The text size of numbers on party and raid frames."],
-		min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
-	},
-}
+	Settings.schema = {
+		{ type = "header", label = L["Blizzard's combat text"] },
+		{
+			type = "dropdown", key = "blizzardSelf", label = L["Blizzard's text over you"],
+			help = L["Hide turns off the game's scrolling combat text over your character while this module is on."],
+			options = BLIZZARD_OPTIONS,
+		},
+		{
+			type = "dropdown", key = "blizzardTargets", label = L["Blizzard's numbers over targets"],
+			help = L["The game's numbers over targets show only your own hits. Hide turns them off."],
+			options = BLIZZARD_OPTIONS,
+		},
+		{ type = "header", label = L["World numbers"] },
+		{
+			type = "toggle", key = "worldFont", label = L["KstyleUI font for world numbers"],
+			help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
+		},
+		{
+			type = "font", key = "worldFace", label = L["World number font"],
+			options = K.Widgets.InheritedFontOptions,
+			help = L["Log out to the character screen and back in to apply this font; /reload is not enough."],
+			showWhen = WorldFontOn,
+		},
+		{ type = "header", label = L["Numbers"] },
+		{ type = "toggle", key = "calmNumbers", label = L["Calmer combat numbers"],
+			help = L["Five lanes, brief fades and combined nearby hits. Secret amounts always stay separate."] },
+		{
+			type = "toggle", key = "clearLanes", label = L["Keep combat text clear"],
+			help = L["In Medallions, places your numbers above the cast bars and target numbers above the debuffs."],
+		},
+		{
+			type = "dropdown", key = "style", label = L["Animation"],
+			help = L["Numbers rise straight up, arc to one side, or pop in and drift."],
+			options = STYLE_OPTIONS,
+		},
+		{ type = "toggle", key = "damage", label = L["Damage"], help = L["Shows the damage you take."] },
+		{ type = "toggle", key = "heals", label = L["Heals"], help = L["Shows the healing you receive, with a plus sign."] },
+		{
+			type = "toggle", key = "misses", label = L["Misses and absorbs"],
+			help = L["Shows words such as Dodge, Parry, Absorb and Immune."],
+		},
+		{
+			type = "dropdown", key = "format", label = L["Number format"],
+			help = L["Short numbers such as 12.3K, or full numbers such as 12,345."],
+			options = FORMAT_OPTIONS,
+		},
+		{
+			type = "slider", key = "duration", label = L["Duration"],
+			help = L["How long each number stays on screen, in seconds."],
+			min = DURATION_MIN, max = DURATION_MAX, step = DURATION_STEP,
+		},
+		{
+			type = "slider", key = "maxPerFrame", label = L["Numbers at once"],
+			help = L["The most numbers one place shows at a time; the oldest makes way."],
+			min = PER_FRAME_MIN, max = PER_FRAME_MAX, step = 1,
+		},
+		{ type = "header", label = L["Text"] },
+		{ type = "font", key = "font", label = L["Font"], help = L["The typeface of the numbers."], options = K.Widgets.InheritedFontOptions },
+		{
+			type = "slider", key = "size", label = L["Size"],
+			help = L["The text size of the numbers."],
+			min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
+		},
+		{
+			type = "dropdown", key = "outline", label = L["Outline"],
+			help = L["A soft shadow, or a thin or thick outline that reads well over the game world."],
+			options = OUTLINE_OPTIONS,
+		},
+		{ type = "header", label = L["Colours"] },
+		{
+			type = "dropdown", key = "colorMode", label = L["Damage colour"],
+			help = L["Colour damage by its spell school, or use one colour for all damage."],
+			options = COLOR_MODE_OPTIONS,
+		},
+		{
+			type = "color", key = "damageColor", label = L["Damage"],
+			help = L["The colour of damage when it does not follow the school, or the school is hidden."],
+		},
+		{ type = "color", key = "healColor", label = L["Heals"], help = L["The colour of healing numbers."] },
+		{ type = "color", key = "missColor", label = L["Misses"], help = L["The colour of words such as Dodge and Absorb."] },
+		{ type = "header", label = L["Critical hits"] },
+		{
+			type = "slider", key = "critScale", label = L["Critical size"],
+			help = L["How much larger critical hits and heals appear; 1 turns the emphasis off."],
+			min = CRIT_MIN, max = CRIT_MAX, step = CRIT_STEP,
+		},
+		{
+			type = "toggle", key = "critColor", label = L["Colour critical hits"],
+			help = L["Draws critical damage in its own colour."],
+		},
+		{
+			type = "color", key = "critTint", label = L["Critical colour"],
+			help = L["The colour of critical damage."],
+			showWhen = CritColorOn,
+		},
+		{ type = "header", label = L["Where numbers show"] },
+		{
+			type = "toggle", key = "units.player", label = L["You"],
+			help = L["Shows the damage and healing you take."],
+		},
+		{
+			type = "dropdown", key = "playerPlacement", label = L["Your numbers"],
+			help = L["In their own field above your character, or on your KstyleUI player frame."],
+			options = PLACEMENT_OPTIONS,
+		},
+		{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
+		{
+			type = "toggle", key = "units.targettarget", label = L["Target of target"],
+			help = L["Shows numbers on your KstyleUI target-of-target frame."],
+		},
+		{ type = "toggle", key = "units.focus", label = L["Focus frame"], help = L["Shows numbers on your KstyleUI focus frame."] },
+		{
+			type = "toggle", key = "units.focustarget", label = L["Focus target"],
+			help = L["Shows numbers on your KstyleUI focus-target frame."],
+		},
+		{ type = "toggle", key = "units.pet", label = L["Pet frame"], help = L["Shows numbers on your KstyleUI pet frame."] },
+		{ type = "toggle", key = "units.boss", label = L["Boss frames"], help = L["Shows numbers on KstyleUI boss frames."] },
+		{ type = "toggle", key = "units.party", label = L["Party frames"], help = L["Shows numbers on KstyleUI party frames."] },
+		{ type = "toggle", key = "units.raid", label = L["Raid frames"], help = L["Shows numbers on KstyleUI raid frames."] },
+		{
+			type = "toggle", key = "units.nameplate", label = L["Nameplates"],
+			help = L["Every hit a nameplate's unit takes, from any player. Needs KstyleUI's Nameplates."],
+		},
+		{
+			type = "dropdown", key = "framePoint", label = L["Start point"],
+			help = L["Numbers on frames start at the frame's centre, or just above it."],
+			options = POINT_OPTIONS,
+		},
+		{
+			type = "slider", key = "distance", label = L["Travel on frames"],
+			help = L["How far numbers move on unit, group and nameplate frames."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
+		},
+		{
+			type = "slider", key = "groupSize", label = L["Size on group frames"],
+			help = L["The text size of numbers on party and raid frames."],
+			min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
+		},
+	}
+	return Settings.schema
+end
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true

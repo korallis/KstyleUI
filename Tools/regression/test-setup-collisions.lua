@@ -352,7 +352,7 @@ do
 	})
 	local list = { view = OK.Scale.Root(), GetViewWidth = function() return 800 end }
 	local row = ons.Rows.Create(list)
-	local items = ons.Model.SchemaItems("Appearance", OK.Appearance.schema, "General")
+	local items = ons.Model.SchemaItems("Appearance", OK.Options.Get("Appearance"), "General")
 	local item
 	for _, entry in ipairs(items) do
 		if entry.key == "uiScale" then item = entry end

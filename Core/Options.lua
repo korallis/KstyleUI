@@ -463,8 +463,8 @@ function Options.Open(page)
 end
 
 ns.Store.RegisterDefaults("OptionControls", { numericInput = true, changedSettings = true })
-Options.Register("OptionControls", {
+Options.Register("OptionControls", function() return {
 	{ type = "header", label = L["Settings controls"] },
 	{ type = "toggle", key = "numericInput", label = L["Type slider values"], help = L["Click a slider value to type a number. Off keeps the slider and its readout."] },
 	{ type = "toggle", key = "changedSettings", label = L["Changed settings and quick reset"], help = L["Marks changed rows with a diamond and lets right-click reset them. Off keeps the usual rows."] },
-})
+} end)

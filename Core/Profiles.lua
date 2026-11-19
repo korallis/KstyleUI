@@ -4,11 +4,11 @@ local Store, Codec, L = K.Store, K.Codec, K.L
 local Profiles = {}
 K.Profiles = Profiles
 Store.RegisterDefaults("ProfileTools", { review = true, backups = true })
-K.Options.Register("ProfileTools", {
+K.Options.Register("ProfileTools", function() return {
 	{ type = "header", label = L["Profile tools"] },
 	{ type = "toggle", key = "review", label = L["Scoped sharing and import review"], help = L["Share a layout or one module and review imports. Off shares and imports whole profiles directly."] },
 	{ type = "toggle", key = "backups", label = L["Recovery backups"], help = L["Saves a restore point before setup, import or reset. Off keeps the previous direct changes."] },
-})
+} end)
 
 local Copy, Equal = K.Options.Copy, K.Options.Equal
 

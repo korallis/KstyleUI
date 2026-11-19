@@ -151,4 +151,8 @@ local function Disable()
 end
 
 K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
-K.Options.Register(MODULE, ns.schema)
+K.Options.Register(MODULE, function()
+	local schema = ns.Schema()
+	schema.preview = ns.Preview.Build
+	return schema
+end)

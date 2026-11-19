@@ -60,28 +60,35 @@ for group, values in pairs(Style.defaults) do
 	defaults[group] = Copy(values)
 end
 
-local schema = { { type = "header", label = L["Windows"] } }
-schema[#schema + 1] = { type = "toggle", key = "steelButtons", label = L["Steel window buttons"], help = L["Give window buttons steel surfaces and clearer states. Off restores the previous finish."] }
-schema[#schema + 1] = { type = "toggle", key = "windowMetrics", label = L["Consistent window spacing"], help = L["Use shared window sizes and spacing. Off restores previous layouts; reload to apply."] }
-schema[#schema + 1] = { type = "toggle", key = "restyleAddons", label = L["Restyle other addons' text"], help = L["KstyleUI fonts and colours in addon panels, at their sizes. Off restores theirs; reload to apply."] }
 for _, def in ipairs(Skins.List()) do
 	local section = Copy(def.defaults or {})
 	section.enabled = true
 	defaults[def.key] = section
-	schema[#schema + 1] = { type = "toggle", key = def.key .. ".enabled", label = def.label, help = def.help }
 end
-for _, def in ipairs(Skins.List()) do
-	if def.rows then
-		schema[#schema + 1] = { type = "header", label = def.label, showWhen = WindowOn(def.key) }
-		for _, row in ipairs(def.rows) do
-			schema[#schema + 1] = SkinRow(def, row)
+
+local function BuildSchema()
+	local schema = { { type = "header", label = L["Windows"] } }
+	schema[#schema + 1] = { type = "toggle", key = "steelButtons", label = L["Steel window buttons"], help = L["Give window buttons steel surfaces and clearer states. Off restores the previous finish."] }
+	schema[#schema + 1] = { type = "toggle", key = "windowMetrics", label = L["Consistent window spacing"], help = L["Use shared window sizes and spacing. Off restores previous layouts; reload to apply."] }
+	schema[#schema + 1] = { type = "toggle", key = "restyleAddons", label = L["Restyle other addons' text"], help = L["KstyleUI fonts and colours in addon panels, at their sizes. Off restores theirs; reload to apply."] }
+
+	for _, def in ipairs(Skins.List()) do
+		schema[#schema + 1] = { type = "toggle", key = def.key .. ".enabled", label = def.label, help = def.help }
+	end
+	for _, def in ipairs(Skins.List()) do
+		if def.rows then
+			schema[#schema + 1] = { type = "header", label = def.label, showWhen = WindowOn(def.key) }
+			for _, row in ipairs(def.rows) do
+				schema[#schema + 1] = SkinRow(def, row)
+			end
 		end
 	end
+	for _, row in ipairs(Style.Rows()) do
+		schema[#schema + 1] = row
+	end
+	schema.preview = ns.Preview.Build
+	return schema
 end
-for _, row in ipairs(Style.rows) do
-	schema[#schema + 1] = row
-end
-schema.preview = ns.Preview.Build
 
 Skins.Close()
 
@@ -96,4 +103,4 @@ K.Modules.Register({
 		Skins.Stop()
 	end,
 })
-K.Options.Register(MODULE, schema)
+K.Options.Register(MODULE, BuildSchema)

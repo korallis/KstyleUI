@@ -9,7 +9,6 @@ ns.K = K
 ns.L = K.L
 ns.parts = {}
 ns.defaults = {}
-ns.schema = {}
 
 local MODULE = ns.MODULE
 local logged = {}

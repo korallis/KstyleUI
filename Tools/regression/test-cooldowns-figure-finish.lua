@@ -7,7 +7,7 @@ local env, K, ns = C.New({ setup = C.Game })
 C.Enable(env, K)
 assert(ns.Settings.defaults.essential.timerSize == 16.5, "essential figures use the picture's smaller 16.5-unit default")
 assert(ns.Settings.current.essential.timerSize == 16.5, "clean reads preserve the fractional default instead of rounding it up")
-for _, setting in ipairs(ns.Settings.schema) do
+for _, setting in ipairs(K.Options.Get("Cooldowns")) do
 	if setting.key == "essential.timerSize" then
 		assert(setting.step == 0.5, "the essential timer slider can select the measured half-unit default")
 	elseif setting.key == "utility.timerSize" or setting.key == "buffs.timerSize" then

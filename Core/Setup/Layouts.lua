@@ -1580,7 +1580,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 				end
 				for index = 1, neighbours do
 					local rect = rects[index]
-					if rect[1] < r and l < rect[3] and rect[2] < t and b < rect[4] and Apart(key, rect.key) then
+					if b < rect[4] and rect[2] < t and l < rect[3] and rect[1] < r and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
 						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
 							return false

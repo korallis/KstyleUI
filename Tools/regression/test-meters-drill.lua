@@ -353,13 +353,13 @@ local settings = { damage = { mode = "auto" } }
 assert(not Row(nsR.schema, "damage.meter").showWhen(settings), "window-only settings hide when auto picked the restyle")
 assert(Row(nsR.schema, "damage.group").showWhen == nil, "group only applies to both styles")
 local autoHere
-for _, option in ipairs(Row(ns.schema, "damage.mode").options()) do
+for _, option in ipairs(Row(K.Options.Get("Meters"), "damage.mode").options()) do
 	if option.value == "auto" then
 		autoHere = option.label
 	end
 end
 assert(autoHere and autoHere:find("KstyleUI", 1, true), "auto names KstyleUI's window: " .. tostring(autoHere))
-assert(Row(ns.schema, "damage.meter").showWhen(settings), "window-only settings show when auto picked the window")
+assert(Row(K.Options.Get("Meters"), "damage.meter").showWhen(settings), "window-only settings show when auto picked the window")
 
 -- Group only holds Blizzard's restyled window too: hidden alone, back in a group, back when switched off.
 assert(not KR.Safe.IsHidden(blizzard), "by default Blizzard's restyled window shows alone")

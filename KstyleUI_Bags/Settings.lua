@@ -121,137 +121,141 @@ local CHOICES = {
 	sortDirection = Choices(SORT_OPTIONS),
 }
 
-local function isOff(settings)
-	return not settings.enabled
-end
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local function isOff(settings)
+		return not settings.enabled
+	end
 
-local function customAccent(settings)
-	return settings.accentSource == "custom"
-end
+	local function customAccent(settings)
+		return settings.accentSource == "custom"
+	end
 
-local function qualityOn(settings)
-	return settings.showQuality == true
-end
+	local function qualityOn(settings)
+		return settings.showQuality == true
+	end
 
-local function compactOn(settings)
-	return settings.compactBags == true
-end
+	local function compactOn(settings)
+		return settings.compactBags == true
+	end
 
-Settings.schema = {
-	{ type = "header", label = L["Bags"] },
-	{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
-	{ type = "header", label = L["Slots"] },
-	{ type = "toggle", key = "compactBags", label = L["Compact bags"], help = L["Group items and pack empty slots. Off keeps bags and bank in a fixed grid with every slot shown."], disableWhen = isOff },
-	{
-		type = "dropdown", key = "layout", label = L["Layout"], help = L["Sort items into sections by type, or show one grid."],
-		options = LAYOUT_OPTIONS, disableWhen = isOff, showWhen = compactOn,
-	},
-	{
-		type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show each bag kind's free slots as one counted tile, or every empty slot."],
-		options = EMPTY_OPTIONS, disableWhen = isOff, showWhen = compactOn,
-	},
-	{
-		type = "slider", key = "columns", label = L["Columns"], help = L["How many slots sit in each row of the bag window."],
-		min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
-	},
-	{
-		type = "slider", key = "rows", label = L["Rows shown"], help = L["How many rows show before the grid or the sections scroll; 0 fits the screen."],
-		min = 0, max = ROWS_MAX, step = 1, disableWhen = isOff,
-	},
-	{
-		type = "slider", key = "slotSize", label = L["Slot size"], help = L["The size of each item slot."],
-		min = SLOT_MIN, max = SLOT_MAX, step = 1, disableWhen = isOff,
-	},
-	{
-		type = "slider", key = "spacing", label = L["Spacing"], help = L["The gap between item slots."],
-		min = SPACING_MIN, max = SPACING_MAX, step = 1, disableWhen = isOff,
-	},
-	{
-		type = "dropdown", key = "growth", label = L["Growth"], help = L["The way the grid fills from its first slot."],
-		options = GROWTH_OPTIONS, disableWhen = isOff,
-	},
-	{ type = "header", label = L["Custom categories"] },
-	{ type = "header", label = L["Slot text"] },
-	{ type = "toggle", key = "separateFigures", label = L["Separate item figures"], help = L["Put item levels above stack counts. Off keeps item levels at the lower left."] },
-	{ type = "toggle", key = "readableHeaders", label = L["Readable bag headings"], help = L["Use a full title band and smaller category headings. Off restores the previous headings."] },
-	{ type = "toggle", key = "showCount", label = L["Stack counts"], help = L["Show how many items are in each stack."], disableWhen = isOff },
-	{ type = "toggle", key = "showItemLevel", label = L["Item levels"], help = L["Show the item level of weapons and armour."], disableWhen = isOff },
-	{ type = "font", key = "font", label = L["Font"], help = L["The font of stack counts and item levels."], options = K.Widgets.InheritedFontOptions, disableWhen = isOff },
-	{
-		type = "slider", key = "fontSize", label = L["Font size"], help = L["The size of stack counts and item levels."],
-		min = FONT_MIN, max = FONT_MAX, step = 1, disableWhen = isOff,
-	},
-	{
-		type = "dropdown", key = "fontOutline", label = L["Font outline"], help = L["A soft shadow or an outline behind slot text."],
-		options = OUTLINE_OPTIONS, disableWhen = isOff,
-	},
-	{ type = "header", label = L["Markers"] },
-	{ type = "toggle", key = "showQuality", label = L["Quality borders"], help = L["Colour each slot's border by the item's quality."], disableWhen = isOff },
-	{ type = "toggle", key = "qualityColors", label = L["Refined item colours"], help = L["Softer quality colours and quiet common-item rims. Off restores the original colours."], disableWhen = isOff },
-	{
-		type = "dropdown", key = "qualityMin", label = L["Coloured from"], help = L["The lowest quality whose border is coloured."],
-		options = QUALITY_OPTIONS, showWhen = qualityOn, disableWhen = isOff,
-	},
-	{ type = "toggle", key = "showNewGlow", label = L["New item glow"], help = L["Make items you just got glow until you point at them."], disableWhen = isOff },
-	{ type = "toggle", key = "showJunk", label = L["Junk marker"], help = L["Mark grey items that sell for money."], disableWhen = isOff },
-	{ type = "toggle", key = "showKeyring", label = L["Keyring"], help = L["Show the keyring's slots under your bags."], disableWhen = isOff },
-	{ type = "header", label = L["Junk"] },
-	{
-		type = "toggle", key = "autoSellJunk", label = L["Sell junk by itself"],
-		help = L["Sell grey items as soon as you open a merchant, out of combat only."], disableWhen = isOff,
-	},
-	{ type = "header", label = L["Other characters"] },
-	{
-		type = "toggle", key = "altCounts", label = L["Counts in tooltips"],
-		help = L["Show how many of an item your other characters hold, from the bags and bank KstyleUI last saw."], disableWhen = isOff,
-	},
-	{ type = "header", label = L["Accent"] },
-	{
-		type = "dropdown", key = "accentSource", label = L["Accent colour"], help = L["The colour of the window's hairlines and the new item glow."],
-		options = ACCENT_OPTIONS, disableWhen = isOff,
-	},
-	{
-		type = "color", key = "accentColor", label = L["Custom accent"], help = L["The accent colour when it does not follow your class."],
-		showWhen = customAccent, disableWhen = isOff,
-	},
-	{ type = "header", label = L["Bank"] },
-	{
-		type = "toggle", key = "replaceBank", label = L["KstyleUI bank"],
-		help = L["Replace Blizzard's bank window; a change takes effect after a reload."], disableWhen = isOff,
-	},
-	{
-		type = "slider", key = "bankColumns", label = L["Bank columns"], help = L["How many slots sit in each row of the bank window."],
-		min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
-	},
-	{ type = "toggle", key = "bankOpensBags", label = L["Bank opens bags"], help = L["Open your bags beside the bank when you visit a banker."], disableWhen = isOff },
-	{ type = "header", label = L["Sorting"] },
-	{
-		type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],
-		options = SORT_OPTIONS, disableWhen = isOff,
-	},
-}
+	Settings.schema = {
+		{ type = "header", label = L["Bags"] },
+		{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
+		{ type = "header", label = L["Slots"] },
+		{ type = "toggle", key = "compactBags", label = L["Compact bags"], help = L["Group items and pack empty slots. Off keeps bags and bank in a fixed grid with every slot shown."], disableWhen = isOff },
+		{
+			type = "dropdown", key = "layout", label = L["Layout"], help = L["Sort items into sections by type, or show one grid."],
+			options = LAYOUT_OPTIONS, disableWhen = isOff, showWhen = compactOn,
+		},
+		{
+			type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show each bag kind's free slots as one counted tile, or every empty slot."],
+			options = EMPTY_OPTIONS, disableWhen = isOff, showWhen = compactOn,
+		},
+		{
+			type = "slider", key = "columns", label = L["Columns"], help = L["How many slots sit in each row of the bag window."],
+			min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
+		},
+		{
+			type = "slider", key = "rows", label = L["Rows shown"], help = L["How many rows show before the grid or the sections scroll; 0 fits the screen."],
+			min = 0, max = ROWS_MAX, step = 1, disableWhen = isOff,
+		},
+		{
+			type = "slider", key = "slotSize", label = L["Slot size"], help = L["The size of each item slot."],
+			min = SLOT_MIN, max = SLOT_MAX, step = 1, disableWhen = isOff,
+		},
+		{
+			type = "slider", key = "spacing", label = L["Spacing"], help = L["The gap between item slots."],
+			min = SPACING_MIN, max = SPACING_MAX, step = 1, disableWhen = isOff,
+		},
+		{
+			type = "dropdown", key = "growth", label = L["Growth"], help = L["The way the grid fills from its first slot."],
+			options = GROWTH_OPTIONS, disableWhen = isOff,
+		},
+		{ type = "header", label = L["Custom categories"] },
+		{ type = "header", label = L["Slot text"] },
+		{ type = "toggle", key = "separateFigures", label = L["Separate item figures"], help = L["Put item levels above stack counts. Off keeps item levels at the lower left."] },
+		{ type = "toggle", key = "readableHeaders", label = L["Readable bag headings"], help = L["Use a full title band and smaller category headings. Off restores the previous headings."] },
+		{ type = "toggle", key = "showCount", label = L["Stack counts"], help = L["Show how many items are in each stack."], disableWhen = isOff },
+		{ type = "toggle", key = "showItemLevel", label = L["Item levels"], help = L["Show the item level of weapons and armour."], disableWhen = isOff },
+		{ type = "font", key = "font", label = L["Font"], help = L["The font of stack counts and item levels."], options = K.Widgets.InheritedFontOptions, disableWhen = isOff },
+		{
+			type = "slider", key = "fontSize", label = L["Font size"], help = L["The size of stack counts and item levels."],
+			min = FONT_MIN, max = FONT_MAX, step = 1, disableWhen = isOff,
+		},
+		{
+			type = "dropdown", key = "fontOutline", label = L["Font outline"], help = L["A soft shadow or an outline behind slot text."],
+			options = OUTLINE_OPTIONS, disableWhen = isOff,
+		},
+		{ type = "header", label = L["Markers"] },
+		{ type = "toggle", key = "showQuality", label = L["Quality borders"], help = L["Colour each slot's border by the item's quality."], disableWhen = isOff },
+		{ type = "toggle", key = "qualityColors", label = L["Refined item colours"], help = L["Softer quality colours and quiet common-item rims. Off restores the original colours."], disableWhen = isOff },
+		{
+			type = "dropdown", key = "qualityMin", label = L["Coloured from"], help = L["The lowest quality whose border is coloured."],
+			options = QUALITY_OPTIONS, showWhen = qualityOn, disableWhen = isOff,
+		},
+		{ type = "toggle", key = "showNewGlow", label = L["New item glow"], help = L["Make items you just got glow until you point at them."], disableWhen = isOff },
+		{ type = "toggle", key = "showJunk", label = L["Junk marker"], help = L["Mark grey items that sell for money."], disableWhen = isOff },
+		{ type = "toggle", key = "showKeyring", label = L["Keyring"], help = L["Show the keyring's slots under your bags."], disableWhen = isOff },
+		{ type = "header", label = L["Junk"] },
+		{
+			type = "toggle", key = "autoSellJunk", label = L["Sell junk by itself"],
+			help = L["Sell grey items as soon as you open a merchant, out of combat only."], disableWhen = isOff,
+		},
+		{ type = "header", label = L["Other characters"] },
+		{
+			type = "toggle", key = "altCounts", label = L["Counts in tooltips"],
+			help = L["Show how many of an item your other characters hold, from the bags and bank KstyleUI last saw."], disableWhen = isOff,
+		},
+		{ type = "header", label = L["Accent"] },
+		{
+			type = "dropdown", key = "accentSource", label = L["Accent colour"], help = L["The colour of the window's hairlines and the new item glow."],
+			options = ACCENT_OPTIONS, disableWhen = isOff,
+		},
+		{
+			type = "color", key = "accentColor", label = L["Custom accent"], help = L["The accent colour when it does not follow your class."],
+			showWhen = customAccent, disableWhen = isOff,
+		},
+		{ type = "header", label = L["Bank"] },
+		{
+			type = "toggle", key = "replaceBank", label = L["KstyleUI bank"],
+			help = L["Replace Blizzard's bank window; a change takes effect after a reload."], disableWhen = isOff,
+		},
+		{
+			type = "slider", key = "bankColumns", label = L["Bank columns"], help = L["How many slots sit in each row of the bank window."],
+			min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
+		},
+		{ type = "toggle", key = "bankOpensBags", label = L["Bank opens bags"], help = L["Open your bags beside the bank when you visit a banker."], disableWhen = isOff },
+		{ type = "header", label = L["Sorting"] },
+		{
+			type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],
+			options = SORT_OPTIONS, disableWhen = isOff,
+		},
+	}
 
-do
-	local at
-	for i, row in ipairs(Settings.schema) do
-		if row.type == "header" and row.label == L["Custom categories"] then
-			at = i
+	do
+		local at
+		for i, row in ipairs(Settings.schema) do
+			if row.type == "header" and row.label == L["Custom categories"] then
+				at = i
+			end
+		end
+		local CUSTOM_LABELS = { L["Category 1"], L["Category 2"], L["Category 3"] }
+		for i = #Settings.CUSTOM, 1, -1 do
+			local key = Settings.CUSTOM[i]
+			table.insert(Settings.schema, at + 1, {
+				type = "text", key = key .. ".rule", label = L["Rule"], maxLetters = CUSTOM_LETTERS,
+				help = L["Items this search matches fill the section: & both, | either, ! not, type:, ilvl>30, junk, bound."],
+				disableWhen = isOff,
+			})
+			table.insert(Settings.schema, at + 1, {
+				type = "text", key = key .. ".name", label = CUSTOM_LABELS[i], maxLetters = CUSTOM_LETTERS,
+				help = L["The section's name. A named category with a rule sorts before the built-in sections."],
+				disableWhen = isOff,
+			})
 		end
 	end
-	local CUSTOM_LABELS = { L["Category 1"], L["Category 2"], L["Category 3"] }
-	for i = #Settings.CUSTOM, 1, -1 do
-		local key = Settings.CUSTOM[i]
-		table.insert(Settings.schema, at + 1, {
-			type = "text", key = key .. ".rule", label = L["Rule"], maxLetters = CUSTOM_LETTERS,
-			help = L["Items this search matches fill the section: & both, | either, ! not, type:, ilvl>30, junk, bound."],
-			disableWhen = isOff,
-		})
-		table.insert(Settings.schema, at + 1, {
-			type = "text", key = key .. ".name", label = CUSTOM_LABELS[i], maxLetters = CUSTOM_LETTERS,
-			help = L["The section's name. A named category with a rule sorts before the built-in sections."],
-			disableWhen = isOff,
-		})
-	end
+	return Settings.schema
 end
 
 local function Plain(value, kind)

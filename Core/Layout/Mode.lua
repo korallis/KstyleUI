@@ -10,11 +10,11 @@ local floor, max, min, format = math.floor, math.max, math.min, string.format
 local Mode = {}
 Layout.Mode = Mode
 ns.Store.RegisterDefaults("LayoutControls", { clearMovers = true, search = true })
-ns.Options.Register("LayoutControls", {
+ns.Options.Register("LayoutControls", function() return {
 	{ type = "header", label = L["Mover controls"] },
 	{ type = "toggle", key = "clearMovers", label = L["See-through movers"], help = L["Uses 35 percent opacity and label tags on movers. Off restores the old solid plates."] },
 	{ type = "toggle", key = "search", label = L["Find Layout Mode elements"], help = L["Adds a searchable element list to the toolbar. Off keeps the previous drag-only toolbar."] },
-})
+} end)
 
 local TOOLBAR_KEY = "Layout.Toolbar"
 local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -96 }

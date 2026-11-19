@@ -118,281 +118,288 @@ ns.SESSIONS = {
 	{ value = "Overall", label = L["Overall"] },
 }
 
-local COLOR_SOURCES = {
-	{ value = "class", label = L["Class colour"] },
-	{ value = "reaction", label = L["Reaction colour"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local OUTLINES = {
-	{ value = NO_OUTLINE, label = L["Soft shadow"] },
-	{ value = "OUTLINE", label = L["Thin outline"] },
-	{ value = "THICKOUTLINE", label = L["Thick outline"] },
-}
-local DAMAGE_COLOR_SOURCES = {
-	{ value = "school", label = L["By spell school"] },
-	{ value = "class", label = L["Class colour"] },
-	{ value = "reaction", label = L["Reaction colour"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local FILLS = {
-	{ value = "left", label = L["From the left"] },
-	{ value = "right", label = L["From the right"] },
-}
-local ORIENTATIONS = {
-	{ value = "HORIZONTAL", label = L["Horizontal"] },
-	{ value = "VERTICAL", label = L["Vertical"] },
-}
+local byKey
 
-local function FontOptions()
-	local out = { { value = "", label = L["Interface font"] } }
-	for _, item in ipairs(K.Widgets.MediaOptions("font")) do
-		out[#out + 1] = item
-	end
-	return out
-end
-
-local function Is(path, value)
-	local section, key = path:match("^(%w+)%.(%w+)$")
-	return function(settings)
-		local node = section and settings[section] or settings
-		return type(node) == "table" and node[key or path] == value
-	end
-end
-
-local function WindowStyle(settings)
-	local node = settings.damage
-	local mode = type(node) == "table" and node.mode or nil
-	return ns.ResolveMode(mode) == "window"
-end
-
-local function StyleOptions()
-	local auto = ns.ResolveMode("auto") == "window" and L["Automatic: KstyleUI window"] or L["Automatic: Blizzard's, restyled"]
-	return {
-		{ value = "auto", label = auto },
-		{ value = "window", label = L["KstyleUI window"] },
-		{ value = "skin", label = L["Restyle Blizzard's window"] },
+function ns.Schema()
+	if ns.schema then return ns.schema end
+	local COLOR_SOURCES = {
+		{ value = "class", label = L["Class colour"] },
+		{ value = "reaction", label = L["Reaction colour"] },
+		{ value = "custom", label = L["Custom colour"] },
 	}
-end
+	local OUTLINES = {
+		{ value = NO_OUTLINE, label = L["Soft shadow"] },
+		{ value = "OUTLINE", label = L["Thin outline"] },
+		{ value = "THICKOUTLINE", label = L["Thick outline"] },
+	}
+	local DAMAGE_COLOR_SOURCES = {
+		{ value = "school", label = L["By spell school"] },
+		{ value = "class", label = L["Class colour"] },
+		{ value = "reaction", label = L["Reaction colour"] },
+		{ value = "custom", label = L["Custom colour"] },
+	}
+	local FILLS = {
+		{ value = "left", label = L["From the left"] },
+		{ value = "right", label = L["From the right"] },
+	}
+	local ORIENTATIONS = {
+		{ value = "HORIZONTAL", label = L["Horizontal"] },
+		{ value = "VERTICAL", label = L["Vertical"] },
+	}
 
-local function Off(section)
-	return function(settings)
-		if section ~= "swing" then
-			if section == "damage" then return not ns.MeterShown("damage") and not ns.MeterShown("threat") end
-			return not ns.MeterShown(section)
+	local function FontOptions()
+		local out = { { value = "", label = L["Interface font"] } }
+		for _, item in ipairs(K.Widgets.MediaOptions("font")) do
+			out[#out + 1] = item
 		end
-		return type(settings[section]) == "table" and settings[section].shown == false
+		return out
 	end
-end
 
-local function TextRows(section, rows)
-	local off = Off(section)
-	rows[#rows + 1] = {
-		type = "dropdown", key = section .. ".font", label = L["Font"], disableWhen = off,
-		help = L["The typeface of the text. The interface font follows the Appearance page."], options = FontOptions,
-	}
-	rows[#rows + 1] = {
-		type = "slider", key = section .. ".fontSize", label = L["Text size"], disableWhen = off,
-		help = L["How large the text is, in units at the 1080 reference."], min = MIN_TEXT, max = MAX_TEXT, step = 1,
-	}
-	rows[#rows + 1] = {
-		type = "dropdown", key = section .. ".outline", label = L["Text outline"], disableWhen = off,
-		help = L["A soft shadow, or an outline for text over bright scenes."], options = OUTLINES,
-	}
-end
-
-local function BarRows(section, rows)
-	local off = Off(section)
-	rows[#rows + 1] = {
-		type = "texture", key = section .. ".texture", label = L["Bar texture"], disableWhen = off,
-		help = L["The fill texture of the bars."],
-	}
-	rows[#rows + 1] = {
-		type = "dropdown", key = section .. ".colorSource", label = L["Bar colour"], disableWhen = off,
-		help = L["Colour bars by class, by friend or foe, or with one colour you pick."],
-		options = section == "damage" and DAMAGE_COLOR_SOURCES or COLOR_SOURCES,
-	}
-	rows[#rows + 1] = {
-		type = "color", key = section .. ".color", label = L["Custom bar colour"], disableWhen = off,
-		help = L["The colour of every bar when the bar colour is custom."], showWhen = Is(section .. ".colorSource", "custom"),
-	}
-end
-
-local function ListRows(section, rows)
-	local first = #rows + 1
-	local off = Off(section)
-	BarRows(section, rows)
-	rows[#rows + 1] = {
-		type = "dropdown", key = section .. ".fill", label = L["Bar direction"], disableWhen = off,
-		help = L["The side the bars grow from."], options = FILLS,
-	}
-	rows[#rows + 1] = {
-		type = "slider", key = section .. ".rowHeight", label = L["Row height"], disableWhen = off,
-		help = L["The height of each row. Taller rows show fewer at once."], min = MIN_ROW, max = MAX_ROW, step = 1,
-	}
-	rows[#rows + 1] = {
-		type = "slider", key = section .. ".spacing", label = L["Row spacing"], disableWhen = off,
-		help = L["The gap between rows."], min = 0, max = MAX_SPACING, step = 1,
-	}
-	rows[#rows + 1] = {
-		type = "toggle", key = section .. ".title", label = L["Show the title"], disableWhen = off,
-		help = L["Shows the meter's name and column heading above the rows."],
-	}
-	rows[#rows + 1] = {
-		type = "slider", key = section .. ".titleSize", label = L["Title size"], disableWhen = off,
-		help = L["How large the title and column heading are."], min = MIN_TEXT, max = MAX_TEXT, step = 1,
-	}
-	TextRows(section, rows)
-	if section == "threat" then
-		for i = first, #rows do
-			local previous = rows[i].showWhen
-			rows[i].showWhen = function(settings) return settings.nameplateRows == false and (not previous or previous(settings)) end
+	local function Is(path, value)
+		local section, key = path:match("^(%w+)%.(%w+)$")
+		return function(settings)
+			local node = section and settings[section] or settings
+			return type(node) == "table" and node[key or path] == value
 		end
 	end
-end
 
-local schema = {
-	{ type = "toggle", key = "nameplateRows", label = L["Nameplate-style meter rows"],
-		help = L["Match meter rows to nameplates. Off restores the previous rows and separate threat appearance."] },
-	{
-		type = "toggle", key = "followRole", label = L["Show the meter for my role"],
-		help = L["Follows your group role, then spec role, after combat. Off restores the manual show switches."],
-	},
-	{
-		type = "dropdown", key = "roles.TANK", label = L["Tank"],
-		help = L["The meter to show while tanking. This overrides the manual show switches."], disableWhen = Is("followRole", false),
-		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
-	},
-	{
-		type = "dropdown", key = "roles.HEALER", label = L["Healer"],
-		help = L["The meter to show while healing. This overrides the manual show switches."], disableWhen = Is("followRole", false),
-		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
-	},
-	{
-		type = "dropdown", key = "roles.DAMAGER", label = L["Meter while dealing damage"],
-		help = L["Both shows a threat card next to the damage meter."], disableWhen = Is("followRole", false),
-		options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
-	},
-	{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
-	{ type = "toggle", key = "instrumentNames", label = L["Instrument row names"],
-		help = L["Use compact sans capitals for Medallions meter names. Off restores the original face."] },
-	{ type = "header", label = L["Accent"] },
-	{
-		type = "dropdown", key = "accent", label = L["Accent colour"],
-		help = L["The colour of the meters' title marks: the class colour or one you pick."],
-		options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
-	},
-	{
-		type = "color", key = "accentColor", label = L["Custom accent"], showWhen = Is("accent", "custom"),
-		help = L["The accent colour the meters use when the accent is custom."],
-	},
-	{ type = "header", label = L["Damage meter"] },
-	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], disableWhen = function(settings) return settings.followRole and #K.Setup.Integrations.Detected(ns.MODULE) == 0 end, help = L["Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details."] },
-	{
-		type = "dropdown", key = "damage.mode", label = L["Style"], disableWhen = Off("damage"),
-		help = L["Automatic picks once, at login, the window that shows numbers in combat on this client."],
-		options = StyleOptions,
-	},
-	{
-		type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["What the window measures. Click its title to switch between damage and healing in game."], options = ns.METER_TYPES,
-	},
-	{
-		type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = ns.SESSIONS,
-	},
-	{
-		type = "toggle", key = "damage.group", label = L["Only in a group"], disableWhen = Off("damage"),
-		help = L["Hides the damage meter while you play alone, in either style."],
-	},
-	{
-		type = "toggle", key = "damage.percent", label = L["Show percentages"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["Shows each share of the total, when the game lets addons read it."],
-	},
-	{
-		type = "toggle", key = "damage.icons", label = L["Show icons"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["Shows each player's class or each spell's icon at the start of its row."],
-	},
-}
-ListRows("damage", schema)
-
-schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
-schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
-schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
-schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
-schema[#schema + 1] = {
-	type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),
-	help = L["Hides the meter while you play alone."],
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "threat.pets", label = L["Include pets"], disableWhen = Off("threat"),
-	help = L["Lists the group's pets as well as its players."],
-}
-schema[#schema + 1] = {
-	type = "dropdown", key = "threat.value", label = L["Numbers"], disableWhen = Off("threat"),
-	help = L["Threat as a percentage of pulling aggro, as threat points, or both."],
-	options = { { value = "both", label = L["Threat and percentage"] }, { value = "percent", label = L["Percentage"] }, { value = "threat", label = L["Threat"] } },
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "threat.warnings", label = L["Threat warnings"], disableWhen = Off("threat"),
-	help = L["Lights the meter when you near aggro, or when a tank is about to lose it."],
-}
-schema[#schema + 1] = {
-	type = "slider", key = "threat.warnAt", label = L["Warn at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
-	help = L["The threat percentage that turns the meter yellow."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
-}
-schema[#schema + 1] = {
-	type = "slider", key = "threat.dangerAt", label = L["Danger at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
-	help = L["The threat percentage that turns the meter red and makes it pulse."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
-}
-
-ListRows("threat", schema)
-
-schema[#schema + 1] = { type = "header", label = L["Swing timer"] }
-schema[#schema + 1] = {
-	type = "toggle", key = "swing.shown", label = L["Show the swing timer"],
-	help = L["Replaces Blizzard's swing timer with KstyleUI's bars."],
-}
-for _, slot in ipairs({
-	{ "mainHand", L["Main hand"], L["Shows a bar for your main-hand swings."] },
-	{ "offHand", L["Off hand"], L["Shows a bar for your off-hand swings."] },
-	{ "ranged", L["Ranged"], L["Shows a bar for your ranged attacks."] },
-}) do
-	schema[#schema + 1] = { type = "toggle", key = "swing." .. slot[1], label = slot[2], help = slot[3], disableWhen = Off("swing") }
-end
-schema[#schema + 1] = {
-	type = "toggle", key = "swing.hideIdle", label = L["Hide when idle"], disableWhen = Off("swing"),
-	help = L["Hides the bars while no swing is running, in combat too."],
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "swing.range", label = L["Dim out of range"], disableWhen = Off("swing"),
-	help = L["Dims a bar while your target is out of reach of that attack."],
-}
-BarRows("swing", schema)
-schema[#schema + 1] = {
-	type = "dropdown", key = "swing.orientation", label = L["Orientation"], disableWhen = Off("swing"),
-	help = L["Bars that fill across, or bars that fill upward side by side."], options = ORIENTATIONS,
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "swing.reverse", label = L["Reverse fill"], disableWhen = Off("swing"),
-	help = L["Fills the bars from the other end."],
-}
-schema[#schema + 1] = {
-	type = "slider", key = "swing.spacing", label = L["Bar spacing"], disableWhen = Off("swing"),
-	help = L["The gap between the main-hand, off-hand and ranged bars."], min = 0, max = MAX_SPACING, step = 1,
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "swing.time", label = L["Show the time"], disableWhen = Off("swing"),
-	help = L["Shows the seconds left until the next swing."],
-}
-TextRows("swing", schema)
-
-ns.schema = schema
-
-local rows = {}
-for _, row in ipairs(schema) do
-	if row.key then
-		rows[row.key] = row
+	local function WindowStyle(settings)
+		local node = settings.damage
+		local mode = type(node) == "table" and node.mode or nil
+		return ns.ResolveMode(mode) == "window"
 	end
+
+	local function StyleOptions()
+		local auto = ns.ResolveMode("auto") == "window" and L["Automatic: KstyleUI window"] or L["Automatic: Blizzard's, restyled"]
+		return {
+			{ value = "auto", label = auto },
+			{ value = "window", label = L["KstyleUI window"] },
+			{ value = "skin", label = L["Restyle Blizzard's window"] },
+		}
+	end
+
+	local function Off(section)
+		return function(settings)
+			if section ~= "swing" then
+				if section == "damage" then return not ns.MeterShown("damage") and not ns.MeterShown("threat") end
+				return not ns.MeterShown(section)
+			end
+			return type(settings[section]) == "table" and settings[section].shown == false
+		end
+	end
+
+	local function TextRows(section, rows)
+		local off = Off(section)
+		rows[#rows + 1] = {
+			type = "dropdown", key = section .. ".font", label = L["Font"], disableWhen = off,
+			help = L["The typeface of the text. The interface font follows the Appearance page."], options = FontOptions,
+		}
+		rows[#rows + 1] = {
+			type = "slider", key = section .. ".fontSize", label = L["Text size"], disableWhen = off,
+			help = L["How large the text is, in units at the 1080 reference."], min = MIN_TEXT, max = MAX_TEXT, step = 1,
+		}
+		rows[#rows + 1] = {
+			type = "dropdown", key = section .. ".outline", label = L["Text outline"], disableWhen = off,
+			help = L["A soft shadow, or an outline for text over bright scenes."], options = OUTLINES,
+		}
+	end
+
+	local function BarRows(section, rows)
+		local off = Off(section)
+		rows[#rows + 1] = {
+			type = "texture", key = section .. ".texture", label = L["Bar texture"], disableWhen = off,
+			help = L["The fill texture of the bars."],
+		}
+		rows[#rows + 1] = {
+			type = "dropdown", key = section .. ".colorSource", label = L["Bar colour"], disableWhen = off,
+			help = L["Colour bars by class, by friend or foe, or with one colour you pick."],
+			options = section == "damage" and DAMAGE_COLOR_SOURCES or COLOR_SOURCES,
+		}
+		rows[#rows + 1] = {
+			type = "color", key = section .. ".color", label = L["Custom bar colour"], disableWhen = off,
+			help = L["The colour of every bar when the bar colour is custom."], showWhen = Is(section .. ".colorSource", "custom"),
+		}
+	end
+
+	local function ListRows(section, rows)
+		local first = #rows + 1
+		local off = Off(section)
+		BarRows(section, rows)
+		rows[#rows + 1] = {
+			type = "dropdown", key = section .. ".fill", label = L["Bar direction"], disableWhen = off,
+			help = L["The side the bars grow from."], options = FILLS,
+		}
+		rows[#rows + 1] = {
+			type = "slider", key = section .. ".rowHeight", label = L["Row height"], disableWhen = off,
+			help = L["The height of each row. Taller rows show fewer at once."], min = MIN_ROW, max = MAX_ROW, step = 1,
+		}
+		rows[#rows + 1] = {
+			type = "slider", key = section .. ".spacing", label = L["Row spacing"], disableWhen = off,
+			help = L["The gap between rows."], min = 0, max = MAX_SPACING, step = 1,
+		}
+		rows[#rows + 1] = {
+			type = "toggle", key = section .. ".title", label = L["Show the title"], disableWhen = off,
+			help = L["Shows the meter's name and column heading above the rows."],
+		}
+		rows[#rows + 1] = {
+			type = "slider", key = section .. ".titleSize", label = L["Title size"], disableWhen = off,
+			help = L["How large the title and column heading are."], min = MIN_TEXT, max = MAX_TEXT, step = 1,
+		}
+		TextRows(section, rows)
+		if section == "threat" then
+			for i = first, #rows do
+				local previous = rows[i].showWhen
+				rows[i].showWhen = function(settings) return settings.nameplateRows == false and (not previous or previous(settings)) end
+			end
+		end
+	end
+
+	local schema = {
+		{ type = "toggle", key = "nameplateRows", label = L["Nameplate-style meter rows"],
+			help = L["Match meter rows to nameplates. Off restores the previous rows and separate threat appearance."] },
+		{
+			type = "toggle", key = "followRole", label = L["Show the meter for my role"],
+			help = L["Follows your group role, then spec role, after combat. Off restores the manual show switches."],
+		},
+		{
+			type = "dropdown", key = "roles.TANK", label = L["Tank"],
+			help = L["The meter to show while tanking. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+			options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+		},
+		{
+			type = "dropdown", key = "roles.HEALER", label = L["Healer"],
+			help = L["The meter to show while healing. This overrides the manual show switches."], disableWhen = Is("followRole", false),
+			options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+		},
+		{
+			type = "dropdown", key = "roles.DAMAGER", label = L["Meter while dealing damage"],
+			help = L["Both shows a threat card next to the damage meter."], disableWhen = Is("followRole", false),
+			options = { { value = "damage", label = L["Damage"] }, { value = "threat", label = L["Threat"] }, { value = "both", label = L["Both"] } },
+		},
+		{ type = "toggle", key = "fitCards", label = L["Fit meter cards to rows"], help = L["Fit cards to their rows, with a three-row minimum. Off restores the previous card heights."] },
+		{ type = "toggle", key = "instrumentNames", label = L["Instrument row names"],
+			help = L["Use compact sans capitals for Medallions meter names. Off restores the original face."] },
+		{ type = "header", label = L["Accent"] },
+		{
+			type = "dropdown", key = "accent", label = L["Accent colour"],
+			help = L["The colour of the meters' title marks: the class colour or one you pick."],
+			options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
+		},
+		{
+			type = "color", key = "accentColor", label = L["Custom accent"], showWhen = Is("accent", "custom"),
+			help = L["The accent colour the meters use when the accent is custom."],
+		},
+		{ type = "header", label = L["Damage meter"] },
+		{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], disableWhen = function(settings) return settings.followRole and #K.Setup.Integrations.Detected(ns.MODULE) == 0 end, help = L["Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details."] },
+		{
+			type = "dropdown", key = "damage.mode", label = L["Style"], disableWhen = Off("damage"),
+			help = L["Automatic picks once, at login, the window that shows numbers in combat on this client."],
+			options = StyleOptions,
+		},
+		{
+			type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			help = L["What the window measures. Click its title to switch between damage and healing in game."], options = ns.METER_TYPES,
+		},
+		{
+			type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = ns.SESSIONS,
+		},
+		{
+			type = "toggle", key = "damage.group", label = L["Only in a group"], disableWhen = Off("damage"),
+			help = L["Hides the damage meter while you play alone, in either style."],
+		},
+		{
+			type = "toggle", key = "damage.percent", label = L["Show percentages"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			help = L["Shows each share of the total, when the game lets addons read it."],
+		},
+		{
+			type = "toggle", key = "damage.icons", label = L["Show icons"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			help = L["Shows each player's class or each spell's icon at the start of its row."],
+		},
+	}
+	ListRows("damage", schema)
+
+	schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
+	schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
+	schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
+	schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
+	schema[#schema + 1] = {
+		type = "toggle", key = "threat.group", label = L["Only in a group"], disableWhen = Off("threat"),
+		help = L["Hides the meter while you play alone."],
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "threat.pets", label = L["Include pets"], disableWhen = Off("threat"),
+		help = L["Lists the group's pets as well as its players."],
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "threat.value", label = L["Numbers"], disableWhen = Off("threat"),
+		help = L["Threat as a percentage of pulling aggro, as threat points, or both."],
+		options = { { value = "both", label = L["Threat and percentage"] }, { value = "percent", label = L["Percentage"] }, { value = "threat", label = L["Threat"] } },
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "threat.warnings", label = L["Threat warnings"], disableWhen = Off("threat"),
+		help = L["Lights the meter when you near aggro, or when a tank is about to lose it."],
+	}
+	schema[#schema + 1] = {
+		type = "slider", key = "threat.warnAt", label = L["Warn at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
+		help = L["The threat percentage that turns the meter yellow."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
+	}
+	schema[#schema + 1] = {
+		type = "slider", key = "threat.dangerAt", label = L["Danger at"], disableWhen = Off("threat"), showWhen = Is("threat.warnings", true),
+		help = L["The threat percentage that turns the meter red and makes it pulse."], min = MIN_WARN, max = MAX_WARN, step = WARN_STEP,
+	}
+
+	ListRows("threat", schema)
+
+	schema[#schema + 1] = { type = "header", label = L["Swing timer"] }
+	schema[#schema + 1] = {
+		type = "toggle", key = "swing.shown", label = L["Show the swing timer"],
+		help = L["Replaces Blizzard's swing timer with KstyleUI's bars."],
+	}
+	for _, slot in ipairs({
+		{ "mainHand", L["Main hand"], L["Shows a bar for your main-hand swings."] },
+		{ "offHand", L["Off hand"], L["Shows a bar for your off-hand swings."] },
+		{ "ranged", L["Ranged"], L["Shows a bar for your ranged attacks."] },
+	}) do
+		schema[#schema + 1] = { type = "toggle", key = "swing." .. slot[1], label = slot[2], help = slot[3], disableWhen = Off("swing") }
+	end
+	schema[#schema + 1] = {
+		type = "toggle", key = "swing.hideIdle", label = L["Hide when idle"], disableWhen = Off("swing"),
+		help = L["Hides the bars while no swing is running, in combat too."],
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "swing.range", label = L["Dim out of range"], disableWhen = Off("swing"),
+		help = L["Dims a bar while your target is out of reach of that attack."],
+	}
+	BarRows("swing", schema)
+	schema[#schema + 1] = {
+		type = "dropdown", key = "swing.orientation", label = L["Orientation"], disableWhen = Off("swing"),
+		help = L["Bars that fill across, or bars that fill upward side by side."], options = ORIENTATIONS,
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "swing.reverse", label = L["Reverse fill"], disableWhen = Off("swing"),
+		help = L["Fills the bars from the other end."],
+	}
+	schema[#schema + 1] = {
+		type = "slider", key = "swing.spacing", label = L["Bar spacing"], disableWhen = Off("swing"),
+		help = L["The gap between the main-hand, off-hand and ranged bars."], min = 0, max = MAX_SPACING, step = 1,
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "swing.time", label = L["Show the time"], disableWhen = Off("swing"),
+		help = L["Shows the seconds left until the next swing."],
+	}
+	TextRows("swing", schema)
+
+	table.insert(schema, { type = "toggle", key = "swing.attached", label = K.L["Swing timer matches the HUD"], help = K.L["Use the HUD's bar finish and placement. Turn off for the previous swing timer."] })
+	ns.schema = schema
+
+	byKey = {}
+	for _, row in ipairs(schema) do
+		if row.key then
+			byKey[row.key] = row
+		end
+	end
+	return ns.schema
 end
 
 local paths = {}
@@ -458,7 +465,9 @@ function ns.Get(key)
 		return default
 	end
 	local value = Lookup(settings, key)
-	local row = rows[key]
+	if not ns.Logic.IsSecret(value) and value == default then return value end
+	if not byKey then ns.Schema() end
+	local row = byKey[key]
 	if value == nil or (row and not Allowed(row, value)) or (not row and type(value) ~= type(default)) then
 		if value ~= nil and not warned[key] then
 			warned[key] = true

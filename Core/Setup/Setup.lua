@@ -5,7 +5,7 @@ local Setup = ns.Setup
 local Layouts = Setup.Layouts
 local L = ns.L
 ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, samples = true, columns = true, readableText = true })
-ns.Options.Register("OptionsPresentation", {
+ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "header", label = L["Settings window"] },
 	{ type = "toggle", key = "tasks", label = L["Start with tasks"], help = L["Open settings on six common tasks. Off opens the last module page, as before."] },
 	{ type = "toggle", key = "synonyms", label = L["Search in player words"], help = L["Find settings with words like kicks, bigger text and healing clicks. Off matches labels and help."] },
@@ -14,9 +14,9 @@ ns.Options.Register("OptionsPresentation", {
 	{ type = "toggle", key = "switches", label = L["Slim bright switches"], help = L["Use slimmer switches with a clearer On colour. Off restores the taller, dimmer switches."] },
 	{ type = "toggle", key = "columns", label = L["Aligned settings headings"], help = L["Line up the category, page and preview headings. Off restores the previous column layout."] },
 	{ type = "toggle", key = "samples", label = L["Show ornament samples"], help = L["Compare Off, Subtle and Full before choosing. Off keeps the text-only ornament picker."] },
-})
+} end)
 ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
-ns.Options.Register("Setup", {
+ns.Options.Register("Setup", function() return {
 	{ type = "header", label = L["Setup"] },
 	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] },
 	{ type = "toggle", key = "readableNotes", label = L["Readable setup notes"], help = L["Use wrapping 11-unit notes in setup. Off restores the smaller, single-line module notes."] },
@@ -25,7 +25,7 @@ ns.Options.Register("Setup", {
 		{ value = "later", label = L["Do nothing, ask again later"] },
 	} },
 	{ type = "toggle", key = "replaceLayout", label = L["Choose an Edit Mode replacement"], help = L["When all layouts are full, choose one to replace. Off keeps the previous full-list message."] },
-})
+} end)
 
 local OWNER = "Setup"
 local OPEN_DELAY = 2

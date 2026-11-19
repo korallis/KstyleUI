@@ -13,7 +13,7 @@ do
 	local page = K.Options.Get("UnitFrames")
 	assert(builds == 1 and K.Options.Get("UnitFrames") == page, "build and validate a schema once")
 	local other, plates, settings = N.New({ enable = false })
-	assert(settings.Settings.rows, "share nameplate validation and schema rows")
+	assert(not settings.Settings.rows, "defer nameplate text and filter rows until requested")
 	plates.Options.Get("Nameplates")
 	assert(settings.Settings.rows, "opening the page builds nameplate rows")
 	assert(#env._errors == 0 and #other._errors == 0)

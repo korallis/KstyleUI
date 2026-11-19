@@ -122,160 +122,164 @@ Settings.defaults = {
 	},
 }
 
-local function FontOptions()
-	local out = { { value = "kit", label = L["KstyleUI font"] } }
-	local media = K.Widgets and K.Widgets.MediaOptions
-	if media then
-		local ok, list = pcall(media, "font")
-		if ok and type(list) == "table" then
-			for _, option in ipairs(list) do
-				if type(option.value) == "string" then
-					out[#out + 1] = { value = option.value, label = tostring(option.label) }
+function Settings.Schema()
+	if Settings.schema then return Settings.schema end
+	local function FontOptions()
+		local out = { { value = "kit", label = L["KstyleUI font"] } }
+		local media = K.Widgets and K.Widgets.MediaOptions
+		if media then
+			local ok, list = pcall(media, "font")
+			if ok and type(list) == "table" then
+				for _, option in ipairs(list) do
+					if type(option.value) == "string" then
+						out[#out + 1] = { value = option.value, label = tostring(option.label) }
+					end
 				end
 			end
 		end
+		return out
 	end
-	return out
-end
-Settings.FontOptions = FontOptions
+	Settings.FontOptions = FontOptions
 
-local OUTLINE_OPTIONS = {
-	{ value = "INHERIT", label = L["Use readability setting"] },
-	{ value = "none", label = L["Soft shadow"] },
-	{ value = "OUTLINE", label = L["Thin outline"] },
-	{ value = "THICKOUTLINE", label = L["Thick outline"] },
-}
-local GROWTH_OPTIONS = {
-	{ value = "center", label = L["Centred"] },
-	{ value = "right", label = L["Left to right"] },
-	{ value = "left", label = L["Right to left"] },
-	{ value = "rightAligned", label = L["Left to right, aligned right"] },
-}
-local WRAP_OPTIONS = {
-	{ value = "auto", label = L["Automatic"] },
-	{ value = "down", label = L["New rows below"] },
-	{ value = "up", label = L["New rows above"] },
-}
-local BAR_GROWTH_OPTIONS = {
-	{ value = "up", label = L["Upward"] },
-	{ value = "down", label = L["Downward"] },
-}
-local PATH_OPTIONS = {
-	{ value = "auto", label = L["Automatic"] },
-	{ value = "mirror", label = L["KstyleUI icons"] },
-	{ value = "reskin", label = L["Restyle Blizzard's"] },
-}
-local COLOR_SOURCE_OPTIONS = {
-	{ value = "class", label = L["Class colour"] },
-	{ value = "reaction", label = L["Reaction colour"] },
-	{ value = "custom", label = L["Custom colour"] },
-}
-local ORIENTATION_OPTIONS = {
-	{ value = "HORIZONTAL", label = L["Horizontal"] },
-	{ value = "VERTICAL", label = L["Vertical"] },
-}
+	local OUTLINE_OPTIONS = {
+		{ value = "INHERIT", label = L["Use readability setting"] },
+		{ value = "none", label = L["Soft shadow"] },
+		{ value = "OUTLINE", label = L["Thin outline"] },
+		{ value = "THICKOUTLINE", label = L["Thick outline"] },
+	}
+	local GROWTH_OPTIONS = {
+		{ value = "center", label = L["Centred"] },
+		{ value = "right", label = L["Left to right"] },
+		{ value = "left", label = L["Right to left"] },
+		{ value = "rightAligned", label = L["Left to right, aligned right"] },
+	}
+	local WRAP_OPTIONS = {
+		{ value = "auto", label = L["Automatic"] },
+		{ value = "down", label = L["New rows below"] },
+		{ value = "up", label = L["New rows above"] },
+	}
+	local BAR_GROWTH_OPTIONS = {
+		{ value = "up", label = L["Upward"] },
+		{ value = "down", label = L["Downward"] },
+	}
+	local PATH_OPTIONS = {
+		{ value = "auto", label = L["Automatic"] },
+		{ value = "mirror", label = L["KstyleUI icons"] },
+		{ value = "reskin", label = L["Restyle Blizzard's"] },
+	}
+	local COLOR_SOURCE_OPTIONS = {
+		{ value = "class", label = L["Class colour"] },
+		{ value = "reaction", label = L["Reaction colour"] },
+		{ value = "custom", label = L["Custom colour"] },
+	}
+	local ORIENTATION_OPTIONS = {
+		{ value = "HORIZONTAL", label = L["Horizontal"] },
+		{ value = "VERTICAL", label = L["Vertical"] },
+	}
 
-local function IsCustomAccent(settings)
-	return settings.accent == "custom"
-end
-
-local function IsCustomBar(settings)
-	return type(settings.bars) == "table" and settings.bars.colorSource == "custom"
-end
-
-local function Slider(group, key, label, help, range)
-	range = group == "essential" and key == "timerSize" and ESSENTIAL_TIMER_RANGE or range[key]
-	local row = { type = "slider", key = group .. "." .. key, label = label, help = help, min = range[1], max = range[2], step = range[3] }
-	if COOLDOWN_GROUPS[group] and (key == "columns" or key == "rows") then
-		row.shown = function(value) return value == 0 and Settings.Read()[group][key] or value end
+	local function IsCustomAccent(settings)
+		return settings.accent == "custom"
 	end
-	return row
-end
 
-local function Toggle(group, key, label, help)
-	return { type = "toggle", key = group .. "." .. key, label = label, help = help }
-end
-
-local function Add(schema, row)
-	schema[#schema + 1] = row
-end
-
-local function IconRows(schema, group, title)
-	Add(schema, { type = "header", label = title })
-	Add(schema, Slider(group, "size", L["Icon size"], L["The width and height of each icon."], ICON_RANGE))
-	Add(schema, Slider(group, "spacing", L["Spacing"], L["The gap between icons."], ICON_RANGE))
-	local perRow = COOLDOWN_GROUPS[group] and L["How many icons fit on one row."] or L["How many icons fit on one row. Point at the +N chip beside it to list the rest."]
-	Add(schema, Slider(group, "columns", L["Icons per row"], perRow, ICON_RANGE))
-	Add(schema, Slider(group, "rows", L["Rows"], L["How many rows the group may use."], ICON_RANGE))
-	Add(schema, { type = "dropdown", key = group .. ".growth", label = L["Growth"], help = L["Where a short row starts."], options = GROWTH_OPTIONS })
-	Add(schema, { type = "dropdown", key = group .. ".wrap", label = L["Wrap"], help = L["Whether extra rows go below or above the first."], options = WRAP_OPTIONS })
-	Add(schema, Toggle(group, "timer", L["Timers"], L["Show the seconds left on each icon."]))
-	Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the countdown numbers."], ICON_RANGE))
-	Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the charge or stack count."], ICON_RANGE))
-	if COOLDOWN_GROUPS[group] then
-		Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
-		Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
-		Add(schema, Toggle(group, "usable", L["Dim unusable"], L["Dim an icon while you cannot cast its spell."]))
-		Add(schema, Toggle(group, "readyGlow", L["Ready glow"], L["A soft accent glow around a spell that is ready."]))
-		Add(schema, Toggle(group, "procGlow", L["Proc glow"], L["Pulse an icon while the game highlights its spell."]))
-	else
-		Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep a dimmed icon while the buff is off you. Active buffs come first."]))
+	local function IsCustomBar(settings)
+		return type(settings.bars) == "table" and settings.bars.colorSource == "custom"
 	end
-end
 
-local function BarRows(schema)
-	local group = "bars"
-	Add(schema, { type = "header", label = L["Tracked buff bars"] })
-	Add(schema, Slider(group, "width", L["Bar width"], L["The width of each bar, icon included."], BAR_RANGE))
-	Add(schema, Slider(group, "height", L["Bar height"], L["The height of each bar."], BAR_RANGE))
-	Add(schema, Slider(group, "spacing", L["Spacing"], L["The gap between bars."], BAR_RANGE))
-	Add(schema, Slider(group, "count", L["Bars"], L["How many bars show. Point at the +N more bar above them to list the rest."], BAR_RANGE))
-	Add(schema, { type = "dropdown", key = "bars.growth", label = L["Growth"], help = L["Whether new bars stack upward or downward."], options = BAR_GROWTH_OPTIONS })
-	Add(schema, { type = "texture", key = "bars.texture", label = L["Bar texture"], help = L["The texture of the bar's fill."] })
-	Add(schema, { type = "dropdown", key = "bars.colorSource", label = L["Bar colour"], help = L["Fill bars with your class colour, the friendly colour or a colour you pick."], options = COLOR_SOURCE_OPTIONS })
-	Add(schema, { type = "color", key = "bars.color", label = L["Custom bar colour"], help = L["The fill colour when the bar colour is custom."], showWhen = IsCustomBar })
-	Add(schema, { type = "dropdown", key = "bars.orientation", label = L["Orientation"], help = L["Whether the fill runs across or up the bar."], options = ORIENTATION_OPTIONS })
-	Add(schema, Toggle(group, "reverse", L["Reverse fill"], L["Drain the fill from the other end."]))
-	Add(schema, Toggle(group, "icon", L["Icon"], L["Show the buff's icon at the start of the bar."]))
-	Add(schema, Toggle(group, "name", L["Name"], L["Show the buff's name on the bar."]))
-	Add(schema, Toggle(group, "timer", L["Timer"], L["Show the seconds left on the bar."]))
-	Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep an empty bar while the buff is off you. Active bars come first."]))
-	Add(schema, Slider(group, "nameSize", L["Name size"], L["The size of the buff's name."], BAR_RANGE))
-	Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the seconds left."], BAR_RANGE))
-	Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the stack count."], BAR_RANGE))
-end
+	local function Slider(group, key, label, help, range)
+		range = group == "essential" and key == "timerSize" and ESSENTIAL_TIMER_RANGE or range[key]
+		local row = { type = "slider", key = group .. "." .. key, label = label, help = help, min = range[1], max = range[2], step = range[3] }
+		if COOLDOWN_GROUPS[group] and (key == "columns" or key == "rows") then
+			row.shown = function(value) return value == 0 and Settings.Read()[group][key] or value end
+		end
+		return row
+	end
 
-local schema = {
-	{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
-	{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Uses the same bare seconds and minute labels as action buttons."] },
-	{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses the action slab's metal frame for cooldown and tracked buff icons in Medallions."] },
-	{ type = "header", label = L["Cooldown Manager"] },
-	{
-		type = "dropdown", key = "path", label = L["Display"],
-		help = L["Automatic uses KstyleUI icons where the game allows it in combat."],
-		options = PATH_OPTIONS,
-	},
-	{
-		type = "dropdown", key = "accent", label = L["Accent"],
-		help = L["Keep hairlines quiet, or use your class colour or a colour you pick."],
-		options = { { value = "quiet", label = L["Quiet"] }, { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
-	},
-	{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = IsCustomAccent },
-	{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
-	{ type = "header", label = L["Text"] },
-	{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
-	{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
-	{ type = "dropdown", key = "countFont", label = L["Count font"], help = L["The font of charge and stack counts."], options = FontOptions },
-	{ type = "dropdown", key = "countOutline", label = L["Count outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
-	{ type = "dropdown", key = "nameFont", label = L["Name font"], help = L["The font of the names on buff bars."], options = FontOptions },
-	{ type = "dropdown", key = "nameOutline", label = L["Name outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
-}
-IconRows(schema, "essential", L["Essential cooldowns"])
-IconRows(schema, "utility", L["Utility cooldowns"])
-IconRows(schema, "buffs", L["Tracked buff icons"])
-BarRows(schema)
-table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
-Settings.schema = schema
+	local function Toggle(group, key, label, help)
+		return { type = "toggle", key = group .. "." .. key, label = label, help = help }
+	end
+
+	local function Add(schema, row)
+		schema[#schema + 1] = row
+	end
+
+	local function IconRows(schema, group, title)
+		Add(schema, { type = "header", label = title })
+		Add(schema, Slider(group, "size", L["Icon size"], L["The width and height of each icon."], ICON_RANGE))
+		Add(schema, Slider(group, "spacing", L["Spacing"], L["The gap between icons."], ICON_RANGE))
+		local perRow = COOLDOWN_GROUPS[group] and L["How many icons fit on one row."] or L["How many icons fit on one row. Point at the +N chip beside it to list the rest."]
+		Add(schema, Slider(group, "columns", L["Icons per row"], perRow, ICON_RANGE))
+		Add(schema, Slider(group, "rows", L["Rows"], L["How many rows the group may use."], ICON_RANGE))
+		Add(schema, { type = "dropdown", key = group .. ".growth", label = L["Growth"], help = L["Where a short row starts."], options = GROWTH_OPTIONS })
+		Add(schema, { type = "dropdown", key = group .. ".wrap", label = L["Wrap"], help = L["Whether extra rows go below or above the first."], options = WRAP_OPTIONS })
+		Add(schema, Toggle(group, "timer", L["Timers"], L["Show the seconds left on each icon."]))
+		Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the countdown numbers."], ICON_RANGE))
+		Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the charge or stack count."], ICON_RANGE))
+		if COOLDOWN_GROUPS[group] then
+			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
+			Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
+			Add(schema, Toggle(group, "usable", L["Dim unusable"], L["Dim an icon while you cannot cast its spell."]))
+			Add(schema, Toggle(group, "readyGlow", L["Ready glow"], L["A soft accent glow around a spell that is ready."]))
+			Add(schema, Toggle(group, "procGlow", L["Proc glow"], L["Pulse an icon while the game highlights its spell."]))
+		else
+			Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep a dimmed icon while the buff is off you. Active buffs come first."]))
+		end
+	end
+
+	local function BarRows(schema)
+		local group = "bars"
+		Add(schema, { type = "header", label = L["Tracked buff bars"] })
+		Add(schema, Slider(group, "width", L["Bar width"], L["The width of each bar, icon included."], BAR_RANGE))
+		Add(schema, Slider(group, "height", L["Bar height"], L["The height of each bar."], BAR_RANGE))
+		Add(schema, Slider(group, "spacing", L["Spacing"], L["The gap between bars."], BAR_RANGE))
+		Add(schema, Slider(group, "count", L["Bars"], L["How many bars show. Point at the +N more bar above them to list the rest."], BAR_RANGE))
+		Add(schema, { type = "dropdown", key = "bars.growth", label = L["Growth"], help = L["Whether new bars stack upward or downward."], options = BAR_GROWTH_OPTIONS })
+		Add(schema, { type = "texture", key = "bars.texture", label = L["Bar texture"], help = L["The texture of the bar's fill."] })
+		Add(schema, { type = "dropdown", key = "bars.colorSource", label = L["Bar colour"], help = L["Fill bars with your class colour, the friendly colour or a colour you pick."], options = COLOR_SOURCE_OPTIONS })
+		Add(schema, { type = "color", key = "bars.color", label = L["Custom bar colour"], help = L["The fill colour when the bar colour is custom."], showWhen = IsCustomBar })
+		Add(schema, { type = "dropdown", key = "bars.orientation", label = L["Orientation"], help = L["Whether the fill runs across or up the bar."], options = ORIENTATION_OPTIONS })
+		Add(schema, Toggle(group, "reverse", L["Reverse fill"], L["Drain the fill from the other end."]))
+		Add(schema, Toggle(group, "icon", L["Icon"], L["Show the buff's icon at the start of the bar."]))
+		Add(schema, Toggle(group, "name", L["Name"], L["Show the buff's name on the bar."]))
+		Add(schema, Toggle(group, "timer", L["Timer"], L["Show the seconds left on the bar."]))
+		Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep an empty bar while the buff is off you. Active bars come first."]))
+		Add(schema, Slider(group, "nameSize", L["Name size"], L["The size of the buff's name."], BAR_RANGE))
+		Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the seconds left."], BAR_RANGE))
+		Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the stack count."], BAR_RANGE))
+	end
+
+	local schema = {
+		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
+		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Uses the same bare seconds and minute labels as action buttons."] },
+		{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses the action slab's metal frame for cooldown and tracked buff icons in Medallions."] },
+		{ type = "header", label = L["Cooldown Manager"] },
+		{
+			type = "dropdown", key = "path", label = L["Display"],
+			help = L["Automatic uses KstyleUI icons where the game allows it in combat."],
+			options = PATH_OPTIONS,
+		},
+		{
+			type = "dropdown", key = "accent", label = L["Accent"],
+			help = L["Keep hairlines quiet, or use your class colour or a colour you pick."],
+			options = { { value = "quiet", label = L["Quiet"] }, { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
+		},
+		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = IsCustomAccent },
+		{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
+		{ type = "header", label = L["Text"] },
+		{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
+		{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
+		{ type = "dropdown", key = "countFont", label = L["Count font"], help = L["The font of charge and stack counts."], options = FontOptions },
+		{ type = "dropdown", key = "countOutline", label = L["Count outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
+		{ type = "dropdown", key = "nameFont", label = L["Name font"], help = L["The font of the names on buff bars."], options = FontOptions },
+		{ type = "dropdown", key = "nameOutline", label = L["Name outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
+	}
+	IconRows(schema, "essential", L["Essential cooldowns"])
+	IconRows(schema, "utility", L["Utility cooldowns"])
+	IconRows(schema, "buffs", L["Tracked buff icons"])
+	BarRows(schema)
+	table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
+	Settings.schema = schema
+	return schema
+end
 
 local function Section()
 	local Store = K.Store

@@ -227,121 +227,125 @@ local function FaceOptions()
 	return out
 end
 
-Appearance.schema = {
-	{ type = "header", label = L["Accent"] },
-	{
-		type = "dropdown", key = "accentSource", label = L["Accent colour"],
-		help = L["Use your class colour, or a colour you pick, for lines, fills and glows."],
-		options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
-	},
-	{
-		type = "color", key = "accentColor", label = L["Custom accent"],
-		help = L["The accent KstyleUI uses when the accent colour is set to custom."],
-		showWhen = function(settings)
-			return settings.accentSource == "custom"
-		end,
-	},
-	{ type = "header", label = L["Text"] },
-	{
-		type = "dropdown", key = "typeSet", label = L["Type set"],
-		help = L["Changes inherited fonts together; your chosen fonts stay unchanged."],
-		options = SetOptions,
-	},
-	{
-		type = "dropdown", key = "font", label = L["Font"],
-		help = L["Replaces the type set; Source Sans 3 stays on numbers unless set below."],
-		options = function()
-			return FaceOptions()
-		end,
-	},
-	{
-		type = "slider", key = "fontScale", label = L["Text size"],
-		help = L["Makes KstyleUI's text larger or smaller without changing anything else."],
-		min = Theme.MIN_FONT_SCALE, max = Theme.MAX_FONT_SCALE, step = FONT_SCALE_STEP,
-	},
-	{ type = "header", label = L["Size"] },
-	{ type = "toggle", key = "snapEdges", label = L["Snap hard edges"],
-		help = L["Keep window borders and chat tab underlines on whole pixels. Off restores their original placement."] },
-	{
-		type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
-		help = L["Sizes KstyleUI for your screen so every edge lands on a whole pixel."],
-	},
-	{
-		type = "slider", key = "uiScale", label = L["Interface size"],
-		help = L["Makes every KstyleUI element larger or smaller, in whole-pixel steps."],
-		min = Scale.MIN_USER_SCALE, max = Scale.MAX_USER_SCALE, step = SIZE_STEP,
-		showWhen = function(settings)
-			return settings.uiScaleAuto == false
-		end,
-	},
-	{ type = "header", label = L["Readability"] },
-	{ type = "toggle", key = "textFloor", label = L["Text follows interface size"],
-		help = L["Size small text with your interface. Off uses the original screen-height minimum."] },
-	{ type = "toggle", key = "sectionHeadings", label = L["Consistent section headings"],
-		help = L["Gold section caps and tabs, with smaller option help. Off restores the original headings."] },
-	{ type = "toggle", key = "readableBars", label = L["Readable text on bars"],
-		help = L["Clearer bar ink, outside skin captions and spaced casts. Off restores the original look."] },
-	{ type = "toggle", key = "worldText", label = L["Backing for text over the world"],
-		help = L["Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text."] },
-	{ type = "toggle", key = "chatTabs", label = L["Chat tabs always readable"],
-		help = L["Keep chat tabs visible, underline their names and leave room above the first message."] },
-	{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],
-		help = L["Tint lost health from its bar and make mana a darker step below health."] },
-	{ type = "header", label = L["Motion"] },
-	{ type = "toggle", key = "auraEndings", label = L["Quiet aura endings"],
-		help = L["Round up aura timers and hide the finishing flash on aura swipes. Off restores the old endings."] },
-	{ type = "toggle", key = "calmLists", label = L["Calmer settings lists"],
-		help = L["Search appears at once; page lists and previews fade briefly. Off restores the original motion."] },
-	{
-		type = "dropdown", key = "motion", label = L["Motion"],
-		help = L["Full animates; Calm keeps short fades and flashes without slides or loops; Off is still."],
-		options = {
-			{ value = "full", label = L["Full"] },
-			{ value = "reduced", label = L["Calm"] },
-			{ value = "off", label = L["Off"] },
+function Appearance.Schema()
+	if Appearance.schema then return Appearance.schema end
+	Appearance.schema = {
+		{ type = "header", label = L["Accent"] },
+		{
+			type = "dropdown", key = "accentSource", label = L["Accent colour"],
+			help = L["Use your class colour, or a colour you pick, for lines, fills and glows."],
+			options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
 		},
-	},
-}
+		{
+			type = "color", key = "accentColor", label = L["Custom accent"],
+			help = L["The accent KstyleUI uses when the accent colour is set to custom."],
+			showWhen = function(settings)
+				return settings.accentSource == "custom"
+			end,
+		},
+		{ type = "header", label = L["Text"] },
+		{
+			type = "dropdown", key = "typeSet", label = L["Type set"],
+			help = L["Changes inherited fonts together; your chosen fonts stay unchanged."],
+			options = SetOptions,
+		},
+		{
+			type = "dropdown", key = "font", label = L["Font"],
+			help = L["Replaces the type set; Source Sans 3 stays on numbers unless set below."],
+			options = function()
+				return FaceOptions()
+			end,
+		},
+		{
+			type = "slider", key = "fontScale", label = L["Text size"],
+			help = L["Makes KstyleUI's text larger or smaller without changing anything else."],
+			min = Theme.MIN_FONT_SCALE, max = Theme.MAX_FONT_SCALE, step = FONT_SCALE_STEP,
+		},
+		{ type = "header", label = L["Size"] },
+		{ type = "toggle", key = "snapEdges", label = L["Snap hard edges"],
+			help = L["Keep window borders and chat tab underlines on whole pixels. Off restores their original placement."] },
+		{
+			type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
+			help = L["Sizes KstyleUI for your screen so every edge lands on a whole pixel."],
+		},
+		{
+			type = "slider", key = "uiScale", label = L["Interface size"],
+			help = L["Makes every KstyleUI element larger or smaller, in whole-pixel steps."],
+			min = Scale.MIN_USER_SCALE, max = Scale.MAX_USER_SCALE, step = SIZE_STEP,
+			showWhen = function(settings)
+				return settings.uiScaleAuto == false
+			end,
+		},
+		{ type = "header", label = L["Readability"] },
+		{ type = "toggle", key = "textFloor", label = L["Text follows interface size"],
+			help = L["Size small text with your interface. Off uses the original screen-height minimum."] },
+		{ type = "toggle", key = "sectionHeadings", label = L["Consistent section headings"],
+			help = L["Gold section caps and tabs, with smaller option help. Off restores the original headings."] },
+		{ type = "toggle", key = "readableBars", label = L["Readable text on bars"],
+			help = L["Clearer bar ink, outside skin captions and spaced casts. Off restores the original look."] },
+		{ type = "toggle", key = "worldText", label = L["Backing for text over the world"],
+			help = L["Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text."] },
+		{ type = "toggle", key = "chatTabs", label = L["Chat tabs always readable"],
+			help = L["Keep chat tabs visible, underline their names and leave room above the first message."] },
+		{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],
+			help = L["Tint lost health from its bar and make mana a darker step below health."] },
+		{ type = "header", label = L["Motion"] },
+		{ type = "toggle", key = "auraEndings", label = L["Quiet aura endings"],
+			help = L["Round up aura timers and hide the finishing flash on aura swipes. Off restores the old endings."] },
+		{ type = "toggle", key = "calmLists", label = L["Calmer settings lists"],
+			help = L["Search appears at once; page lists and previews fade briefly. Off restores the original motion."] },
+		{
+			type = "dropdown", key = "motion", label = L["Motion"],
+			help = L["Full animates; Calm keeps short fades and flashes without slides or loops; Off is still."],
+			options = {
+				{ value = "full", label = L["Full"] },
+				{ value = "reduced", label = L["Calm"] },
+				{ value = "off", label = L["Off"] },
+			},
+		},
+	}
 
-local ROLE_ROWS = {
-	{ "display", L["Display font"], L["Large titles, such as window and page titles."] },
-	{ "heading", L["Heading font"], L["Headings and marks such as the minimap's N."] },
-	{ "title", L["Title font"], L["Tooltip and menu titles."] },
-	{ "caps", L["Capitals font"], L["Small capital labels and section titles."] },
-	{ "names", L["Names font"], L["Names on plates, chat tabs and the minimap."] },
-	{ "unit", L["Unit name font"], L["The large unit name on column unit frames."] },
-	{ "body", L["Body font"], L["Most text: lists, chat, menus and quest lines."] },
-	{ "prose", L["Prose font"], L["Longer lines of text, such as the experience bar."] },
-	{ "caption", L["Caption font"], L["Small descriptive text, such as macro names."] },
-	{ "number", L["Number font"], L["Counts, keybinds and values."] },
-	{ "time", L["Time font"], L["Clocks and other times."] },
-	{ "timer", L["Timer font"], L["Aura and cooldown timers."] },
-	{ "world", L["World text font"], L["Text drawn in the game world, such as plate casts."] },
-}
+	local ROLE_ROWS = {
+		{ "display", L["Display font"], L["Large titles, such as window and page titles."] },
+		{ "heading", L["Heading font"], L["Headings and marks such as the minimap's N."] },
+		{ "title", L["Title font"], L["Tooltip and menu titles."] },
+		{ "caps", L["Capitals font"], L["Small capital labels and section titles."] },
+		{ "names", L["Names font"], L["Names on plates, chat tabs and the minimap."] },
+		{ "unit", L["Unit name font"], L["The large unit name on column unit frames."] },
+		{ "body", L["Body font"], L["Most text: lists, chat, menus and quest lines."] },
+		{ "prose", L["Prose font"], L["Longer lines of text, such as the experience bar."] },
+		{ "caption", L["Caption font"], L["Small descriptive text, such as macro names."] },
+		{ "number", L["Number font"], L["Counts, keybinds and values."] },
+		{ "time", L["Time font"], L["Clocks and other times."] },
+		{ "timer", L["Timer font"], L["Aura and cooldown timers."] },
+		{ "world", L["World text font"], L["Text drawn in the game world, such as plate casts."] },
+	}
 
-local at
-for i, row in ipairs(Appearance.schema) do
-	if row.key == "fontScale" then
-		at = i
+	local at
+	for i, row in ipairs(Appearance.schema) do
+		if row.key == "fontScale" then
+			at = i
+		end
 	end
-end
-local function InsertRow(row)
-	at = at + 1
-	table.insert(Appearance.schema, at, row)
-end
-InsertRow({ type = "header", label = L["Fonts by role"] })
-InsertRow({ type = "note", label = L["A font you choose here may lack some letters or equal-width figures. KstyleUI adds no spacing to it and uses a standard font if it fails to load."] })
-for _, spec in ipairs(ROLE_ROWS) do
-	InsertRow({
-		type = "font", key = ROLE_KEY[spec[1]], label = spec[2], help = spec[3],
-		options = function()
-			return ns.Widgets.InheritedFontOptions()
-		end,
-	})
+	local function InsertRow(row)
+		at = at + 1
+		table.insert(Appearance.schema, at, row)
+	end
+	InsertRow({ type = "header", label = L["Fonts by role"] })
+	InsertRow({ type = "note", label = L["A font you choose here may lack some letters or equal-width figures. KstyleUI adds no spacing to it and uses a standard font if it fails to load."] })
+	for _, spec in ipairs(ROLE_ROWS) do
+		InsertRow({
+			type = "font", key = ROLE_KEY[spec[1]], label = spec[2], help = spec[3],
+			options = function()
+				return ns.Widgets.InheritedFontOptions()
+			end,
+		})
+	end
+	return Appearance.schema
 end
 
 Store.RegisterDefaults(SECTION, Appearance.defaults)
-ns.Options.Register(SECTION, Appearance.schema)
+ns.Options.Register(SECTION, Appearance.Schema)
 
 local mediaDone = {}
 local mediaRefused

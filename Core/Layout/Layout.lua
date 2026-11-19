@@ -82,53 +82,57 @@ Layout.defaults = {
 	arrangement = Scale.DEFAULT_ARRANGEMENT,
 }
 
-Layout.schema = {
-	{ type = "header", label = L["Layout Mode"] },
-	{
-		type = "toggle", key = "grid", label = L["Show the grid"],
-		help = L["Draws a grid in Layout Mode, and elements snap to its lines."],
-	},
-	{
-		type = "slider", key = "gridSize", label = L["Grid spacing"],
-		help = L["The distance between grid lines, in interface units."],
-		min = GRID_MIN, max = GRID_MAX, step = GRID_STEP,
-	},
-	{
-		type = "toggle", key = "snap", label = L["Snap while dragging"],
-		help = L["Snaps to other elements, the screen edges and the centre as you drag."],
-	},
-	{
-		type = "slider", key = "snapDistance", label = L["Snap distance"],
-		help = L["How close an edge comes, in interface units, before it snaps."],
-		min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
-	},
-	{ type = "header", label = L["Screen"] },
-	{
-		type = "dropdown", key = "canvas", label = L["HUD width"],
-		help = L["On wider screens the HUD stays in a centred band this wide; the world still fills the screen."],
-		options = {
-			{ value = "21:9", label = L["21:9 (default)"] },
-			{ value = "16:9", label = L["16:9"] },
-			{ value = "full", label = L["Full width"] },
+function Layout.Schema()
+	if Layout.schema then return Layout.schema end
+	Layout.schema = {
+		{ type = "header", label = L["Layout Mode"] },
+		{
+			type = "toggle", key = "grid", label = L["Show the grid"],
+			help = L["Draws a grid in Layout Mode, and elements snap to its lines."],
 		},
-	},
-	{
-		type = "dropdown", key = "arrangement", label = L["Ultrawide arrangement"],
-		help = L["Wider screens: Centred keeps all in the HUD width; Spread moves the side columns to the edges."],
-		options = {
-			{ value = "centred", label = L["Centred (default)"] },
-			{ value = "spread", label = L["Spread"] },
+		{
+			type = "slider", key = "gridSize", label = L["Grid spacing"],
+			help = L["The distance between grid lines, in interface units."],
+			min = GRID_MIN, max = GRID_MAX, step = GRID_STEP,
 		},
-	},
-	{ type = "header", label = L["Combat"] },
-	{
-		type = "toggle", key = "calm", label = L["Calm the rails in combat"],
-		help = L["In combat, chat, the map, the menus and the XP line fade until you point at them."],
-	},
-}
+		{
+			type = "toggle", key = "snap", label = L["Snap while dragging"],
+			help = L["Snaps to other elements, the screen edges and the centre as you drag."],
+		},
+		{
+			type = "slider", key = "snapDistance", label = L["Snap distance"],
+			help = L["How close an edge comes, in interface units, before it snaps."],
+			min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
+		},
+		{ type = "header", label = L["Screen"] },
+		{
+			type = "dropdown", key = "canvas", label = L["HUD width"],
+			help = L["On wider screens the HUD stays in a centred band this wide; the world still fills the screen."],
+			options = {
+				{ value = "21:9", label = L["21:9 (default)"] },
+				{ value = "16:9", label = L["16:9"] },
+				{ value = "full", label = L["Full width"] },
+			},
+		},
+		{
+			type = "dropdown", key = "arrangement", label = L["Ultrawide arrangement"],
+			help = L["Wider screens: Centred keeps all in the HUD width; Spread moves the side columns to the edges."],
+			options = {
+				{ value = "centred", label = L["Centred (default)"] },
+				{ value = "spread", label = L["Spread"] },
+			},
+		},
+		{ type = "header", label = L["Combat"] },
+		{
+			type = "toggle", key = "calm", label = L["Calm the rails in combat"],
+			help = L["In combat, chat, the map, the menus and the XP line fade until you point at them."],
+		},
+	}
+	return Layout.schema
+end
 
 Store.RegisterDefaults(SECTION, Layout.defaults)
-ns.Options.Register(SECTION, Layout.schema)
+ns.Options.Register(SECTION, Layout.Schema)
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true

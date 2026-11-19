@@ -44,7 +44,7 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 	Readable()
 	for _, control in ipairs({ { "column.size", tracking.icon }, { "drawer.size", button.icon } }) do
 		local width = control[2]:GetWidth()
-		for _, row in ipairs(ns.Settings.schema) do
+		for _, row in ipairs(K.Options.Get("Minimap")) do
 			if row.key == control[1] then K.Options.Write("Minimap", control[1], row.max) end
 		end
 		assert(control[2]:GetWidth() > width, "raise minimap icon size slider maxima above the native-size floor so icons can still be enlarged")
