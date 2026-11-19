@@ -28,7 +28,7 @@ local kinds = {}
 for _, f in ipairs(bad) do
 	kinds[f.kind] = (kinds[f.kind] or 0) + 1
 end
-for _, k in ipairs({ "frame-call", "field-write", "game-table-write", "protected-unguarded", "setparent-unguarded", "aura-unguarded" }) do
+for _, k in ipairs({ "frame-call", "field-write", "game-table-write", "protected-unguarded", "setparent-unguarded", "aura-unguarded", "hot-hook" }) do
 	assert(kinds[k], "bad.lua: no " .. k .. " finding")
 end
 expect(
@@ -40,6 +40,8 @@ expect(
 		"6 protected-unguarded SetBinding",
 		"8 setparent-unguarded bar:SetParent",
 		"9 aura-unguarded C_UnitAuras.GetAuraDataByIndex",
+		"10 hot-hook bar:SetPoint",
+		"11 hot-hook bar:OnUpdate",
 	}, "\n")
 )
 expect(read("Tools/regression/fixtures/taint/good.lua"), "")

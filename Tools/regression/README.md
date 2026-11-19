@@ -370,6 +370,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `protected-unguarded` | `SetBinding` | A protected call with no `InCombatLockdown` and no `Combat.Queue` in the 40 lines before it. |
 | `setparent-unguarded` | `self.icon:SetParent` | `SetParent` on any frame with no `EditModeManagerFrame:IsShown` and no `Safe.<name>` in the 40 lines before it. |
 | `aura-unguarded` | `C_UnitAuras.GetAuraDataByIndex` | `C_UnitAuras` in a file that never calls `C_Secrets.ShouldAurasBeSecret` or `issecretvalue`. |
+| `hot-hook` | `pin:SetPoint`, `frame:OnUpdate` | `hooksecurefunc` on a frame's `SetPoint`, `Show`, `Hide`, `SetShown` or `SetAlpha`, or `HookScript("OnUpdate")`. The hook runs on every call another addon makes, often every frame. Checked in `KstyleUI_Minimap/` only so far; its why names the caller and how often it calls. |
 
 The protected calls are `PickupAction`, `PlaceAction`, `SetBinding`, `SetOverrideBinding`, `SetOverrideBindingClick`, `ClearOverrideBindings`, `CreateMacro`, `EditMacro`, `C_Container.PickupContainerItem`, `C_Container.UseContainerItem`, `TargetUnit`, `CastSpellByName`, `CastSpellByID`, `UseAction`, `C_Macro.RunMacroText`, `RunMacroText`, `ShowUIPanel`, and `HideUIPanel`.
 

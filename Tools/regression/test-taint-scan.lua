@@ -16,6 +16,12 @@ for _, path in ipairs(TocFiles("%.lua$")) do
 	if not (path:match("^Libs/") or path:find("/Libs/", 1, true)) then
 		local ok, result = pcall(Scan, read(path), names)
 		assert(ok, path .. ": " .. tostring(result))
+		-- The hot-hook kind covers the Minimap first; the other areas' hooks are not reviewed yet.
+		for i = #result, 1, -1 do
+			if result[i].kind == "hot-hook" and not path:match("^KstyleUI_Minimap/") then
+				table.remove(result, i)
+			end
+		end
 		scanned[path] = result
 		count = count + 1
 	end

@@ -18,6 +18,9 @@
 --                        in the 40 lines before it: "self.icon:SetParent"
 --   aura-unguarded       C_UnitAuras in a file that never calls ShouldAurasBeSecret or
 --                        issecretvalue: "C_UnitAuras.GetAuraDataByIndex"
+--   hot-hook             hooksecurefunc on a frame's SetPoint, Show, Hide, SetShown or SetAlpha, or
+--                        HookScript("OnUpdate"): the hook runs on every call another addon makes,
+--                        often every frame: "pin:SetPoint", "frame:OnUpdate"
 --
 -- The scan follows locals: a local given a Blizzard path (local f = PlayerFrame) counts as that
 -- path until it is reassigned or its block ends, and a local or parameter with a Blizzard name hides
@@ -53,6 +56,7 @@ local PROTECTED = set({
 local CLOSED_TABLES = set({ "UISpecialFrames", "UIPanelWindows", "hash_SlashCmdList" })
 local KEY_PREFIX = { StaticPopupDialogs = "KSTYLEUI_", SlashCmdList = "KSTYLE" }
 local MUTATORS = set({ "tinsert", "tremove", "wipe", "table.insert", "table.remove", "table.wipe" })
+local HOT_METHODS = set({ "SetPoint", "Show", "Hide", "SetShown", "SetAlpha" })
 local GUARD_LINES = 40
 local ALLOW_DIR = "Tools/regression/taint_allow"
 
@@ -156,6 +160,9 @@ local function scan(source, names)
 		if name == "SetParent" then
 			setParent(tokens, site, receiver)
 		end
+		if name == "HookScript" and isOp(tokens[site + 1], "(") and tokens[site + 2].type == "string" and tokens[site + 2].value == "OnUpdate" then
+			add("hot-hook", receiver .. ":OnUpdate", tokens[site].line, site)
+		end
 	end
 
 	Source.Walk(source, {
@@ -195,6 +202,13 @@ local function scan(source, names)
 				end
 				if r.global and PROTECTED[r.text] and not guarded(tokens, p.from, combatGuard) then
 					add("protected-unguarded", r.text, line, p.from)
+				end
+				if r.global and r.text == "hooksecurefunc" and isOp(after, "(") and tokens[p.to + 2].type == "name" then
+					local q = w:Path(p.to + 2)
+					local hooked = isOp(tokens[q.to + 1], ",") and tokens[q.to + 2]
+					if hooked and hooked.type == "string" and HOT_METHODS[hooked.value] then
+						add("hot-hook", resolve(w, q, names).text .. ":" .. hooked.value, line, p.from)
+					end
 				end
 				if r.global and MUTATORS[r.text] and isOp(after, "(") and tokens[p.to + 2].type == "name" then
 					local q = w:Path(p.to + 2)
@@ -260,6 +274,10 @@ local function sortedKeys(t)
 	return keys
 end
 
+local HINT = {
+	["hot-hook"] = " The hook runs on every call another addon makes, often every frame: read the state when you need it instead, and in a why name the caller and how often it calls.",
+}
+
 -- Compares each scanned file's findings with the allow-list. A call's count is the number of
 -- places (sites) in the file that make it; one place can give a frame-call and a
 -- setparent-unguarded finding. The count must match exactly, so the list never holds room for an
@@ -290,8 +308,8 @@ function Scan.Check(scanned, allow)
 			if not limit then
 				for _, f in ipairs(group.findings) do
 					problem(string.format(
-						"%s:%d: %s %s is not allowed. Fix it, or add [%q] = %d with a why to %s.",
-						path, f.line, f.kind, call, call, count, file
+						"%s:%d: %s %s is not allowed. Fix it, or add [%q] = %d with a why to %s.%s",
+						path, f.line, f.kind, call, call, count, file, HINT[f.kind] or ""
 					))
 				end
 			elseif count > limit then
