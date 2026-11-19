@@ -83,8 +83,9 @@ local function OwnKey()
 end
 
 local function Refreshed(win)
-	local hasJunk = Junk.AtMerchant() and Junk.Count() > 0
-	win.junkButton:SetShown(win:Browsing() == nil and Junk.AtMerchant() and (not Settings.Get("compactBags") or hasJunk))
+	local atMerchant = Junk.AtMerchant()
+	local hasJunk = atMerchant and Junk.Count() > 0
+	win.junkButton:SetShown(win:Browsing() == nil and atMerchant and (not Settings.Get("compactBags") or hasJunk))
 	win.junkButton:SetEnabled(hasJunk)
 	local picker = win.picker
 	if picker then
