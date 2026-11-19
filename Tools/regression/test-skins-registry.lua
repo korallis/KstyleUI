@@ -127,11 +127,11 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- G3: sweeping a Blizzard window leaves other addons' child frames and their descendants alone.
+-- G3: addon text takes the skin face and colours at its own size, without permanent hooks.
 
-for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local untouched, blizzard, addLate = {}, {}, nil
-	local env, K, ns = S.New({ width = screen[1], height = screen[2], before = function(env, _, ns)
+for _, enabled in ipairs({ true, false }) do
+	local addonText, blizzard, addLate = {}, {}, nil
+	local env, K, ns = S.New({ before = function(env, _, ns)
 		local B = S.Blizzard(env)
 		local window = B.frame("Frame", nil, "CompatibilityFrame")
 		local function Child(source, parent)
@@ -146,9 +146,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			for _, owner in ipairs({ frame, Child("Interface/AddOns/Blizzard_Test/Template.xml:12", frame) }) do
 				local text = B.text(owner)
 				text:SetText("Other addon label")
-				text:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+				text:SetFont("Fonts\\FRIZQT__.TTF", 9.25, "OUTLINE")
 				text:SetTextColor(1, 0.82, 0, 0.6)
-				untouched[#untouched + 1] = { text, source, text.SetFontObject, text.SetTextColor }
+				addonText[#addonText + 1] = { text, source, text.SetFontObject, text.SetTextColor }
 			end
 		end
 		Addon(window, "Interface/AddOns/OtherAddon/x.lua:42")
@@ -163,28 +163,52 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end }))
 		addLate = function() Addon(window, "Interface/AddOns/OnShowAddon/x.lua:1") end
 	end })
+	if not enabled then K.Options.Write("Skins", "restyleAddons", false) end
+	K.Options.Write("Skins", "text.size", 1.5)
 	local function Check()
-		for _, entry in ipairs(untouched) do
+		for _, entry in ipairs(addonText) do
 			local text = entry[1]
 			local path, size, flags = text:GetFont()
 			local r, g, b, a = text:GetTextColor()
-			assert(path == "Fonts\\FRIZQT__.TTF" and size == 9 and flags == "OUTLINE"
-				and r == 1 and g == 0.82 and b == 0 and a == 0.6
-				and text.SetFontObject == entry[3] and text.SetTextColor == entry[4] and not ns.Style.IsSwept(text),
-				"Style.Sweep restyled " .. text:GetText() .. " from " .. entry[2] .. "; skip children whose GetSourceLocation is not a Blizzard_ path.")
+			local expectedR, expectedG, expectedB = K.Tokens.Color("text")
+			assert(path == (enabled and ns.Style.Font("body") or "Fonts\\FRIZQT__.TTF") and size == 9.25 and flags == "OUTLINE",
+				"Style.Sweep must restyle " .. entry[2] .. " at its exact original size, without scaling or a body-size floor; off must leave it untouched")
+			assert(enabled and r == expectedR and g == expectedG and b == expectedB or not enabled and r == 1 and g == 0.82 and b == 0 and a == 0.6,
+				"map addon yellow to the skin colour only while restyling is on")
+			assert(text.SetFontObject == entry[3] and text.SetTextColor == entry[4], "addon text must receive no permanent SetFontObject or SetTextColor hooks")
 		end
 		for _, text in ipairs(blizzard) do
-			assert(ns.Style.IsSwept(text), "keep sweeping Blizzard frames and frames whose source cannot identify an addon")
+			assert(ns.Style.IsSwept(text) and text:GetFont() == ns.Style.Font("body"), "keep sweeping Blizzard frames and frames whose source cannot identify an addon")
 		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 	K.Modules.Enable("Skins")
 	Check()
+	assert(K.Store.Defaults("Skins").restyleAddons == true, "restyling other addons defaults on")
+	local row = K.Options.Row("Skins", "restyleAddons")
+	assert(row and row.type == "toggle" and row.label == "Restyle other addons' text", "expose the addon text switch on the Skins page")
 	addLate()
 	S.Show(env.CompatibilityFrame)
 	Check()
 	S.Show(env.CompatibilityFrame)
 	Check()
+	local text = addonText[1][1]
+	text:SetFontObject(env.GameFontHighlight)
+	text:SetFont("Fonts\\FRIZQT__.TTF", 7.75, "OUTLINE")
+	text:SetTextColor(1, 0.82, 0, 0.6)
+	ns.Style.RestyleAll()
+	local r, g, b = text:GetTextColor()
+	assert(text:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, text:GetFont()) == 7.75 and r == 1 and g == 0.82 and b == 0,
+		"an addon's later font and colour writes must win, including through the theme restyle pass")
+	S.Show(env.CompatibilityFrame)
+	assert(select(2, text:GetFont()) == 7.75, "OnShow must retain an addon's latest size")
+	assert(text:GetFont() == (enabled and ns.Style.Font("body") or "Fonts\\FRIZQT__.TTF"), "OnShow restyles addon text only when enabled")
+	K.Options.Write("Skins", "restyleAddons", false)
+	text:SetFont("Fonts\\FRIZQT__.TTF", 8.5, "OUTLINE")
+	text:SetTextColor(1, 0.82, 0, 0.6)
+	S.Show(env.CompatibilityFrame)
+	assert(text:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, text:GetFont()) == 8.5 and select(2, text:GetTextColor()) == 0.82,
+		"switching restyling off must leave subsequent addon draws untouched")
 end
 
 -- A skin with no addon waits only for its window, and one with no frame applies when its addon loads -----
