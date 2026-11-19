@@ -372,11 +372,31 @@ local CHECK = {
 	end,
 }
 
+local namedPositions
+
+local function SavedLayout()
+	if not namedPositions then return Store.Layout() end
+	local layout = Copy(Store.Layout())
+	for _, entry in pairs(layout) do
+		for _, field in ipairs(PLACED) do entry[field] = nil end
+	end
+	for key, position in pairs(namedPositions) do
+		layout[key] = layout[key] or {}
+		for _, field in ipairs(PLACED) do layout[key][field] = position[field] end
+	end
+	return layout
+end
+
 local function Entry(key)
 	if not Store.IsLoaded() then
 		return nil
 	end
 	local entry = Store.Layout()[key]
+	if namedPositions then
+		entry = Copy(entry) or {}
+		local position = namedPositions[key] or {}
+		for _, field in ipairs(PLACED) do entry[field] = position[field] end
+	end
 	if type(entry) == "table" then
 		return entry
 	end
@@ -384,6 +404,14 @@ end
 
 local function SetEntry(key, entry)
 	local layout = Store.Layout()
+	if namedPositions then
+		entry = Copy(entry) or {}
+		local position, base = {}, layout[key] or {}
+		for _, field in ipairs(PLACED) do
+			position[field], entry[field] = entry[field], base[field]
+		end
+		namedPositions[key] = next(position) and position or nil
+	end
 	if entry == nil or next(entry) == nil then
 		layout[key] = nil
 	else
@@ -1460,7 +1488,7 @@ function Layout.Enter()
 		return false
 	end
 	state.active = true
-	snapshot = Copy(Store.Layout())
+	snapshot = Copy(SavedLayout())
 	history:Clear()
 	UpdateEvents()
 	Mode("Show")
@@ -1484,13 +1512,13 @@ function Layout.Exit(save)
 	Close()
 	if restore then
 		local entries = {}
-		for key, entry in pairs(Store.Layout()) do
+		for key, entry in pairs(SavedLayout()) do
 			if not Same(entry, restore[key]) then
 				entries[key] = restore[key] or false
 			end
 		end
 		for key, entry in pairs(restore) do
-			if entries[key] == nil and not Same(entry, Store.Layout()[key]) then
+			if entries[key] == nil and not Same(entry, Entry(key)) then
 				entries[key] = entry
 			end
 		end
@@ -1545,6 +1573,7 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 end)
 
 ns.Callbacks.Register("ProfileChanged", SECTION, function()
+	namedPositions = nil
 	if state.active then
 		snapshot = nil
 		Close()
@@ -1564,6 +1593,29 @@ local function Restyle()
 	for i = 1, #order do
 		ns.Callbacks.Fire("LayoutChanged", order[i])
 	end
+end
+
+function Layout.ApplyNamed(positions, previous)
+	Combat.Queue(function()
+		if previous and namedPositions ~= previous or namedPositions == positions then return end
+		if state.active then Layout.Exit(true) end
+		namedPositions = positions
+		Restyle()
+	end)
+end
+
+function Layout.CapturePositions()
+	local positions = {}
+	for key, entry in pairs(SavedLayout()) do
+		local place = {}
+		for _, field in ipairs(PLACED) do place[field] = entry[field] end
+		if next(place) then positions[key] = place end
+	end
+	for _, key in ipairs(order) do
+		local el = elements[key]
+		positions[StoreKey(el, "anchor")] = { anchor = el.settings.anchor, x = el.settings.x, y = el.settings.y }
+	end
+	return positions
 end
 
 ns.Callbacks.Register("ReadabilityChanged", SECTION, Restyle)

@@ -114,6 +114,27 @@ function Service.Profile(key)
 	return config and config.profiles[key] or ns.Store.ProfileName()
 end
 
+function Service.Layout(key)
+	local config = Config()
+	local name = config and config.layouts and config.layouts[key]
+	return name and ns.Profiles.Layouts()[name] and name or ""
+end
+
+function Service.AssignLayout(key, name)
+	local config = Config()
+	if not config or type(name) ~= "string" or name ~= "" and not ns.Profiles.Layouts()[name] then return false end
+	for _, choice in ipairs(Service.Choices()) do
+		if choice.key == key then
+			config.layouts = config.layouts or {}
+			config.layouts[key] = name ~= "" and name or nil
+			requested = requested or key == appliedKey
+			Service.Check()
+			return true
+		end
+	end
+	return false
+end
+
 local function Settle()
 	queued = false
 	if not ns.Store.IsLoaded() then
@@ -132,6 +153,9 @@ local function Settle()
 		if name then
 			ns.Store.SetProfile(name)
 		end
+		ns.Layout.ApplyNamed(ns.Profiles.Layouts()[Service.Layout(key)])
+	elseif requested and config and config.enabled == false then
+		ns.Layout.ApplyNamed(nil)
 	end
 	appliedKey, requested = key, false
 	if previous ~= role then

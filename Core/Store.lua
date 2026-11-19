@@ -995,7 +995,7 @@ local MAX_KEY = 64
 local MAX_NAME = 48
 local MAX_INTEGER_KEY = 2147483647
 local FIELDS = { "profiles", "characters", "layouts", "account", "devlog" }
-local PAYLOAD_FIELDS = { kind = true, version = true, name = true, settings = true, layout = true }
+local PAYLOAD_FIELDS = { kind = true, version = true, name = true, settings = true, layout = true, namedLayouts = true }
 local ENCODING_FUNCTIONS = { "SerializeCBOR", "DeserializeCBOR", "CompressString", "DecompressString", "EncodeBase64", "DecodeBase64" }
 
 local PASTE = L["Paste a KstyleUI profile string first."]
@@ -1683,6 +1683,7 @@ function Store.Export(name)
 		name = name,
 		settings = stripProfile(profile),
 		layout = deepCopy(db.layouts[name] or {}),
+		namedLayouts = deepCopy(account.namedLayouts),
 	}
 	local text, why = encodeCBOR(payload)
 	local path = "C_EncodingUtil"
@@ -1930,6 +1931,22 @@ local function checkPayload(payload)
 	elseif type(layout) ~= "table" then
 		return nil, L["The profile's layout is not a table."]
 	end
+	local named = payload.namedLayouts
+	if named ~= nil then
+		if type(named) ~= "table" then return nil, L["The saved layouts are not valid."] end
+		for title, positions in pairs(named) do
+			if not validName(title) or type(positions) ~= "table" or checkLayout(positions) then return nil, L["The saved layouts are not valid."] end
+			for _, position in pairs(positions) do
+				for field, value in pairs(position) do
+					if field == "anchor" then
+						if type(value) ~= "string" or not ns.Layout.Geometry.IsAnchor(value) then return nil, L["The saved layouts are not valid."] end
+					elseif (field ~= "x" and field ~= "y") or type(value) ~= "number" or math.abs(value) > 8192 then
+						return nil, L["The saved layouts are not valid."]
+					end
+				end
+			end
+		end
+	end
 	local data = {
 		version = version,
 		profiles = { [name] = deepCopy(payload.settings) },
@@ -1945,7 +1962,7 @@ local function checkPayload(payload)
 	if problem then
 		return nil, problem
 	end
-	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name] }
+	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = deepCopy(named) }
 end
 
 function Store.Decode(text)
@@ -2005,6 +2022,17 @@ function Store.Import(text, name)
 	target = freeName(target)
 	db.profiles[target] = payload.settings
 	db.layouts[target] = payload.layout
+	if payload.namedLayouts then
+		account.namedLayouts = account.namedLayouts or {}
+		for title, positions in pairs(payload.namedLayouts) do
+			local importedName, i = title, 1
+			while account.namedLayouts[importedName] and not deepEqual(account.namedLayouts[importedName], positions) do
+				i = i + 1
+				importedName = title:sub(1, 40) .. " " .. i
+			end
+			account.namedLayouts[importedName] = positions
+		end
+	end
 	Store.SetProfile(target)
 	log("imported profile " .. target)
 	return true, target

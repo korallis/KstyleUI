@@ -58,6 +58,7 @@ return Common.Run(function()
 		local parts = env._addons.KstyleUI_Options.Window.Parts()
 		parts.search:SetText(query)
 		parts.search:GetScript("OnTextChanged")(parts.search, true)
+		Gallery.Ticks(W, env, 40)
 	end
 	local err = Common.Errors(env, K)
 	assert(not err, tostring(err))

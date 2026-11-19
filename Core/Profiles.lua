@@ -46,15 +46,48 @@ function Profiles.Restore()
 	return ok, why
 end
 
-function Profiles.Export(scope)
+function Profiles.Layouts()
+	return Store.Account().namedLayouts or {}
+end
+
+function Profiles.SaveLayout(name)
+	if type(name) ~= "string" then return false, L["Name the layout."] end
+	name = name:match("^%s*(.-)%s*$")
+	if name == "" or #name > 48 or name:find("[%c|]") then return false, L["Choose a layout name of 1 to 48 characters without control characters or pipes."] end
+	if Profiles.Layouts()[name] then return false, L["A layout with that name already exists."] end
+	local account = Store.Account()
+	account.namedLayouts = account.namedLayouts or {}
+	account.namedLayouts[name] = K.Layout.CapturePositions()
+	return true, name
+end
+
+function Profiles.DeleteLayout(name)
+	local positions = Profiles.Layouts()[name]
+	if not positions then return false end
+	Store.Account().namedLayouts[name] = nil
+	for _, config in pairs(Store.Account().specializationProfiles or {}) do
+		for key, assigned in pairs(config.layouts or {}) do
+			if assigned == name then config.layouts[key] = nil end
+		end
+	end
+	K.Layout.ApplyNamed(nil, positions)
+	return true
+end
+
+function Profiles.Export(scope, includeLayout)
 	local text, why = Store.Export()
-	if not text or not scope or scope == "everything" or not Store.Module("ProfileTools").review then return text, why end
+	if not text or not Store.Module("ProfileTools").review then return text, why end
+	scope = scope or "everything"
+	if scope == "everything" and includeLayout ~= false then return text, why end
+	if scope == "everything" then scope = "settings" end
 	local payload, err = Store.Decode(text)
 	if not payload then return nil, err end
 	if scope == "layout" then
 		payload.settings = {}
+	elseif scope == "settings" then
+		payload.layout, payload.namedLayouts = {}, nil
 	elseif Store.Defaults(scope) then
-		payload.settings, payload.layout = { [scope] = payload.settings[scope] or {} }, {}
+		payload.settings, payload.layout, payload.namedLayouts = { [scope] = payload.settings[scope] or {} }, {}, nil
 	else
 		return nil, L["Choose a module to share."]
 	end
@@ -66,7 +99,7 @@ local function Decode(text)
 		if #text > 1048576 then return nil, L["This profile string is too large."] end
 		local raw = Codec.DecodeBase64(text:sub(6):gsub("%s+", ""))
 		local envelope = raw and Codec.Deserialize(raw)
-		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or (envelope.scope ~= "layout" and not Store.Defaults(envelope.scope)) then
+		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or (envelope.scope ~= "layout" and envelope.scope ~= "settings" and not Store.Defaults(envelope.scope)) then
 			return nil, L["This scoped profile is not valid."]
 		end
 		local payload, why = Store.Decode(envelope.profile)
@@ -83,7 +116,7 @@ local function Merge(base, values)
 	return out
 end
 
-function Profiles.Preview(text, scope)
+function Profiles.Preview(text, scope, includeLayout)
 	local payload, why, sharedScope = Decode(text)
 	if not payload then return nil, why end
 	scope = scope or "everything"
@@ -91,11 +124,12 @@ function Profiles.Preview(text, scope)
 		if scope ~= "everything" and scope ~= sharedScope then return nil, L["Choose the scope included in this profile."] end
 		scope = sharedScope
 	end
-	if scope ~= "everything" and scope ~= "layout" and not payload.settings[scope] then return nil, L["This profile has no settings for that module."] end
+	if scope == "everything" and includeLayout == false then scope = "settings" end
+	if scope ~= "everything" and scope ~= "layout" and scope ~= "settings" and not payload.settings[scope] then return nil, L["This profile has no settings for that module."] end
 	local changes, settings, layout = {}, Copy(Store.Profile()), Copy(Store.Layout())
 	if scope ~= "layout" then
 		for module in pairs(settings) do
-			if scope == "everything" or scope == module then
+			if scope == "everything" or scope == "settings" or scope == module then
 				local future = Merge(Store.Defaults(module), payload.settings[module])
 				if not Equal(settings[module], future) then changes[#changes + 1] = module end
 				settings[module] = future
@@ -105,6 +139,9 @@ function Profiles.Preview(text, scope)
 	if scope == "everything" or scope == "layout" then
 		if not Equal(layout, payload.layout) then changes[#changes + 1] = L["Layout"] end
 		layout = Copy(payload.layout)
+		if payload.namedLayouts and not Equal(Profiles.Layouts(), payload.namedLayouts) then changes[#changes + 1] = L["Saved layouts"] end
+	else
+		payload.namedLayouts = nil
 	end
 	table.sort(changes)
 	local labels = {}
