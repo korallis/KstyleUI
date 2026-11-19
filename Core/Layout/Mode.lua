@@ -242,6 +242,7 @@ local function UpdateDrag()
 		w, h = d.width * s / d.scale, d.height * s / d.scale
 		b = d.bottom + d.height - h
 	end
+	l, b = Layout.Clamp(d.key, l, b, w, h)
 	d.moved = true
 	d.l, d.b, d.w, d.h, d.s = l, b, w, h, s
 	Layout.Preview(d.key, l, b, w, h, s)
@@ -325,6 +326,7 @@ local function Nudge(dx, dy)
 	local step = Scale.Pixel(KeyDown(IsShiftKeyDown) and NUDGE_BIG or NUDGE_SMALL)
 	local rw, rh = Layout.RootSize()
 	l, b = G.ClampToRoot(l + dx * step, b + dy * step, w, h, rw, rh)
+	l, b = Layout.Clamp(key, l, b, w, h)
 	local _, x, y = G.Position(l, b, w, h, rw, rh, Layout.Element(key).settings.anchor)
 	Layout.Update(key, { x = x, y = y }, "nudge:" .. key)
 end

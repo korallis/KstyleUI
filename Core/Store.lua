@@ -962,16 +962,11 @@ end
 
 Store.migrations[39] = function(data)
 	for _, layout in pairs(data.layouts) do
-		for _, key in ipairs({ "minimap.main", "frames:minimap.main", "orbs:minimap.main", "medallions:minimap.main" }) do
-			local entry = type(layout) == "table" and layout[key]
-			if type(entry) == "table" then
-				railEntry(entry, key, { "TOPRIGHT", -20, -38 }, { [key] = { "TOPRIGHT", -20, -38 } })
-				if next(entry) == nil then layout[key] = nil end
-			end
-		end
-		local shared = type(layout) == "table" and layout["minimap.main"]
-		if type(shared) == "table" and shared.anchor ~= nil and layout["medallions:minimap.main"] == nil then
-			layout["medallions:minimap.main"] = { anchor = shared.anchor, x = shared.x, y = shared.y }
+		local entry = type(layout) == "table" and layout["minimap.main"]
+		if type(entry) == "table" then
+			railEntry(entry, "minimap.main", { "TOPRIGHT", -20, -38 }, { ["minimap.main"] = { "TOPRIGHT", -20, -38 } })
+			if entry.anchor then layout["medallions:minimap.main"] = { anchor = entry.anchor, x = entry.x, y = entry.y } end
+			if next(entry) == nil then layout["minimap.main"] = nil end
 		end
 	end
 end

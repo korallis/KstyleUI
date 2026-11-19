@@ -483,9 +483,19 @@ local function Resolve(el)
 	return s
 end
 
+function Layout.Clamp(key, left, bottom, w, h)
+	local el = elements[key]
+	if el and el.opts.clamp then
+		local rw, rh = Layout.RootSize()
+		return el.opts.clamp(left, bottom, w, h, rw, rh)
+	end
+	return left, bottom
+end
+
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
+	left, bottom = Layout.Clamp(el.key, left, bottom, w, h)
 	left, bottom = G.Align(left, pixel), G.Align(bottom, pixel)
 	local _, ax, ay = G.Position(left, bottom, w, h, rw, rh, anchor)
 	local frame = el.frame
@@ -1010,6 +1020,7 @@ local ELEMENT_FIELDS = {
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
 local OPTION_CHECK = {
+	clamp = function(v) return type(v) == "function" end,
 	defaultPosition = function(v) return type(v) == "function" end,
 	label = function(v) return type(v) == "string" end,
 	module = function(v) return type(v) == "string" end,
@@ -1333,6 +1344,7 @@ function Layout.Rect(key)
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
 	local left, bottom = G.Rect(s.anchor, s.x, s.y, w, h, rw, rh)
+	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	return G.Align(left, pixel), G.Align(bottom, pixel), w, h
 end
 
@@ -1350,6 +1362,7 @@ function Layout.Preview(key, left, bottom, w, h, scale)
 		frame:SetSize(w / f, h / f)
 	end
 	local rw, rh = Layout.RootSize()
+	left, bottom = Layout.Clamp(key, left, bottom, w, h)
 	local anchor, x, y = G.Position(left, bottom, w, h, rw, rh, el.settings.anchor)
 	frame:ClearAllPoints()
 	frame:SetPoint(anchor, Scale.Root(), anchor, x / f, y / f)

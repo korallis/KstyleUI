@@ -1,4 +1,4 @@
--- minimap_plaque.lua: the Medallions minimap at its default screen edge with the full ring and both plaques.
+-- minimap_plaque.lua: the Medallions minimap at the owner's saved screen-corner position with the full ring and both plaques.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local M = dofile("Tools/regression/minimap_env.lua")

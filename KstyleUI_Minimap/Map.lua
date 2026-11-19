@@ -392,6 +392,7 @@ function Map.Refresh()
 		return
 	end
 	face:Refresh()
+	K.Layout.Restore(KEY)
 	ApplyMask()
 	MaskHybrid()
 	Fit()
@@ -409,6 +410,7 @@ end
 
 local function Relayout()
 	if running and Map.face then
+		Map.face.layoutWidth = nil
 		Map.face:Layout()
 		Fit()
 		if Map.column then
@@ -448,9 +450,11 @@ local function Build()
 		HookHover(button)
 	end
 	holder:HookScript("OnSizeChanged", Relayout)
+	hooksecurefunc(holder, "SetPoint", Relayout)
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {
 		label = element.label,
 		module = MODULE,
+		clamp = function(...) return face:Clamp(...) end,
 		resizable = true,
 		aspect = true,
 		minWidth = MIN_SIZE,

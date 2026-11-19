@@ -42,9 +42,9 @@ local function CaptionX()
 	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
 end
 
-local function RowCenter(face)
+local function RowCenter(face, side)
 	if Face.Round() and Settings.Get("clearPlaques") then
-		return max(Format.ROW_CENTER, face.mapSize * (1 / RING_OUTER - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)
+		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RING_OUTER - 1) / 2 + PLAQUE_HEIGHT / 2 + 2 - Format.FRAME)
 	end
 	return Format.ROW_CENTER
 end
@@ -311,6 +311,26 @@ local function Extent(text)
 	return Plain(size) and size or 0
 end
 
+local function ZoneCenter(face, side)
+	local card = face.card
+	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
+	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
+	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(face.zone) / 2))
+	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, RowCenter(face, side))) or y
+end
+
+function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
+	local factor = Widgets.ScaleFactor(self.holder)
+	local side = min(width, height) / factor
+	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or Format.FRAME
+	local half = Face.Round() and PLAQUE_HEIGHT / 2 or 0
+	local x = max(overhang, Format.FRAME) * factor
+	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
+	local lower = max(overhang, Format.FRAME + RowCenter(self, side) + max(half, Extent(self.clock) / 2, Extent(self.coords) / 2)) * factor
+	local margin = Tokens.Size("screenMargin")
+	return max(margin + x, min(left, rootWidth - margin - x - width)), max(margin + lower, min(bottom, rootHeight - margin - top - height))
+end
+
 function Face:PlaceZone()
 	local card, zone = self.card, self.zone
 	local side = self.mapSize
@@ -318,11 +338,14 @@ function Face:PlaceZone()
 		return
 	end
 	self.zonePlaced = true
-	local mark = max(self.plate.diamond.black:GetHeight(), Extent(self.north)) / 2
-	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
-	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(zone) / 2))
+	local y = ZoneCenter(self, side)
 	if Face.Round() and Settings.Get("clearPlaques") then
-		y = max(y, Snap(card, RowCenter(self)))
+		local _, _, top = Widgets.Edges(card)
+		local _, _, screen = Widgets.Edges(Scale.Root())
+		local factor = Widgets.ScaleFactor(card)
+		if Plain(top) and Plain(screen) and Plain(factor) and factor > 0 then
+			y = min(y, Snap(card, (screen - top * factor - Tokens.Size("screenMargin")) / factor - PLAQUE_HEIGHT / 2))
+		end
 	end
 	self.zoneX, self.zoneY = Snap(card, CaptionX()), y
 	zone:ClearAllPoints()
