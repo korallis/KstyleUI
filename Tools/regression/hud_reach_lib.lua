@@ -52,6 +52,10 @@ function Reach.New(width, height, style, layout)
 		local choice=K.Setup.NewChoice()
 		choice.hudStyle,choice.layout=style or "frames",layout or "DPS"
 		assert(K.Setup.Apply(choice),"full HUD setup must apply before login")
+		for _,bar in ipairs({"bar1","bar2","bar3","bar4","bar5","bar6","pet","stance"}) do
+			K.Options.Write("ActionBars",bar .. ".enabled",true)
+			if bar~="stance" then K.Options.Write("ActionBars",bar .. ".showEmpty",true) end
+		end
 		K.Options.Write("Meters","followRole",false)
 		K.Options.Write("Meters","threat.shown",true)
 	end)
@@ -191,9 +195,11 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							local solver, clicks = Scene.RectSolver(env), {}
 							if style=="medallions" then
 								local face=env._addons.KstyleUI_Minimap.Map.face
+								local glass={}
+								for _,card in ipairs(Guard.Cards(scene)) do glass[card.frame]=card.glass end
 								for _,part in ipairs({{face.zone,1},{face.clock,2},{face.meridiem,2},{face.coords,2}}) do
 									if part[1]:IsVisible() then
-										local text,plate={Scene.RectIn(solver,part[1])},{Scene.RectIn(solver,face.plaques[part[2]])}
+										local text,plate={Scene.RectIn(solver,part[1])},assert(glass[face.plaques[part[2]]])
 										if text[1]<plate[1]-pixel or text[2]<plate[2]-pixel or text[1]+text[3]>plate[1]+plate[3]+pixel or text[2]+text[4]>plate[2]+plate[4]+pixel then
 											fail(label,"minimap.main", "caption spills outside its plaque; size the plaque to the minimum font height")
 										end
@@ -282,18 +288,21 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 			end
 		end
 	end
+	K.Options.Write("Layout","arrangement","centred")
+	env.RunTimers()
 	K.Options.Write("HudStyle","style","frames")
 	assert(K.Layout.Update("chat.main",{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
 	env.RunTimers()
 	local left,bottom=K.Layout.Rect("chat.main")
-	if left<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
+	if left+K.Scale.Origin()<K.Tokens.Size("screenMargin") or bottom<K.Tokens.Size("screenMargin") then
 		fail("saved","chat.main","off-screen saved position must display inside the margin; clamp display geometry without rewriting Store.Layout")
 	end
 	assert(K.Store.Layout()["chat.main"].x==-5000 and K.Store.Layout()["chat.main"].y==-5000,"display clamp must preserve the saved position")
 	local shown={Scene.Rect(env,K.Layout.Element("chat.main").frame)}
 	local margin=K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
 	assert(shown[1]>=margin and shown[2]+shown[4]<=1080-margin+1e-8,"the actual frame must display on screen, not just Layout.Rect")
-	local x,y=400*K.Scale.Pixel(1),400*K.Scale.Pixel(1)
+	local pixel=K.Scale.Pixel(1)
+	local x,y=K.Scale.Origin()>0 and -math.floor(K.Scale.Origin()/2/pixel)*pixel or 400*pixel,400*pixel
 	assert(K.Layout.Update("chat.main",{anchor="BOTTOMLEFT",x=x,y=y},true))
 	env.RunTimers()
 	left,bottom=K.Layout.Rect("chat.main")

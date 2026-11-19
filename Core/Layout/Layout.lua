@@ -495,7 +495,7 @@ function Layout.Clamp(key, left, bottom, w, h)
 		local style = ns.HudStyle.Current()
 		local preset = Layout.Setting("preset")
 		local place = layouts.Aspect(Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
-		local f, margin = Factor(el.frame), Tokens.Size("screenMargin")
+		local f, margin, origin = Factor(el.frame), Tokens.Size("screenMargin"), Scale.Origin()
 		local fx, fy = G.Fraction(el.settings.anchor)
 		local reserve = not (place and place.width) and element.reserve
 		local extraW, extraH = reserve and max(0, (reserve[1] - element.width) * f) or 0, reserve and max(0, (reserve[2] - element.height) * f) or 0
@@ -509,7 +509,7 @@ function Layout.Clamp(key, left, bottom, w, h)
 			b, t = max(b, 22 * f), max(t, (medal.d - h / f) * f / 2 + 8 * f)
 		end
 		if style == "medallions" and key == "unitframes.boss" then b, t, r = max(b, 12 * f), max(t, 12 * f), max(r, 40 * f) end
-		local cl, cb = Clamp(left, margin + l, max(margin + l, rw - margin - r - w)), Clamp(bottom, margin + b, max(margin + b, rh - margin - t - h))
+		local cl, cb = Clamp(left, margin + l - origin, max(margin + l - origin, rw + origin - margin - r - w)), Clamp(bottom, margin + b, max(margin + b, rh - margin - t - h))
 		local pixel = Scale.Pixel(1)
 		if cl > left then cl = math.ceil(cl / pixel) * pixel elseif cl < left then cl = math.floor(cl / pixel) * pixel end
 		if cb > bottom then cb = math.ceil(cb / pixel) * pixel elseif cb < bottom then cb = math.floor(cb / pixel) * pixel end
