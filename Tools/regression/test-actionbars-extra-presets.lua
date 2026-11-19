@@ -98,6 +98,11 @@ for _, screen in ipairs(screens) do
 	K.Options.Write("ActionBars", "extraBarsLayout", "rows")
 	K.Options.Write("ActionBars", "extraBarsLayout", "off")
 	assert(C.DeepEqual(cfg.bar4, before4) and C.DeepEqual(cfg.bar5, before5), "switching C and D keeps the original restore point")
+	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2" }) do assert(K.Layout.Set(key, "scale", 0.8)) end
+	K.Options.Write("ActionBars", "extraBarsLayout", "rows")
+	local hub, lower, upper = ns.Slab.hub, ns.bars.bar1.holder, ns.bars.bar4.holder
+	Near(select(2, hub:GetCenter()) * hub:GetEffectiveScale(), (lower:GetBottom() * lower:GetEffectiveScale() + upper:GetTop() * upper:GetEffectiveScale()) / 2, "crest centres across saved scaled rows")
+	K.Options.Write("ActionBars", "extraBarsLayout", "off")
 	K.Options.Write("HudStyle", "style", "frames")
 	assert(not option.showWhen(cfg), "other HUD styles hide this option")
 	assert(#env._blocked == 0 and #env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env) .. table.concat(env._blocked, ", "))

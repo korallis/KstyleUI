@@ -769,7 +769,7 @@ function Slab.Refresh()
 	end
 	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 	hub:ClearAllPoints()
-	local lift = rise > 0 and (rise - left.holder:GetHeight()) / 2 or 0
+	local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
 	hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
 	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
 	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
