@@ -104,6 +104,9 @@ local function Speed(slotType)
 	elseif slotType == RANGED then
 		speed = ranged
 	end
+	if Logic.IsSecret(speed) then
+		return nil, true
+	end
 	speed = Logic.Plain(speed)
 	if speed and speed > 0 then
 		return speed
@@ -300,6 +303,7 @@ local function StartEngine(slot, duration)
 	local ok = pcall(st.durationObject.SetTimeFromStart, st.durationObject, GetTime(), duration)
 	if ok and bar:SetBarDuration(st.durationObject) then
 		st.running, st.engine = false, true
+		bar.time:SetText("")
 		ns.LogOnce("swingEngine", "a swing arrived with a secret duration; the engine fills the bar from a duration object")
 	else
 		ns.LogOnce("swingEngineFailed", "a swing arrived with a secret duration that a duration object refused; that swing is not shown")
@@ -351,6 +355,18 @@ local function RestartForWeapons()
 			if speed then
 				st.start, st.duration = now, speed
 			else
+				Clear(slot)
+			end
+		end
+	end
+end
+
+local function ClearUnarmed()
+	for _, slot in ipairs(SLOTS) do
+		local st = Swing.state[slot.type]
+		if slot.type ~= MAIN and (st.running or st.engine) then
+			local speed, secret = Speed(slot.type)
+			if not speed and not secret then
 				Clear(slot)
 			end
 		end
@@ -415,10 +431,12 @@ function Swing:OnEvent(event, ...)
 	elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_INVENTORY_CHANGED" then
 		if ... == "player" then
 			UpdateWeapons()
+			ClearUnarmed()
 			Refresh()
 		end
 	else
 		UpdateWeapons()
+		ClearUnarmed()
 		Refresh()
 	end
 end
