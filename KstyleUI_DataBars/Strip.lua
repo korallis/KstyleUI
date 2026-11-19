@@ -241,8 +241,40 @@ function Strip.NewView(parent)
 	Widgets.Point(card, "TOPRIGHT", frame, "TOPRIGHT")
 	Widgets.Point(card, "BOTTOM", frame, "BOTTOM", 0, 0)
 	local view = { frame = frame, card = card, items = {}, order = {}, values = {} }
+	view.zones = {}
+	for i, zone in ipairs({ "left", "centre", "right" }) do
+		local holder = CreateFrame("Frame", nil, frame)
+		local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
+		holder:SetPoint(anchor, frame, anchor)
+		view.zones[zone] = holder
+	end
+	frame:HookScript("OnSizeChanged", function()
+		for _, holder in pairs(view.zones) do holder:SetSize(frame:GetWidth() / 3, frame:GetHeight()) end
+	end)
 	frame.kView = view
 	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
+	view.plain = Widgets.Chrome(card, { shape = "panel", fill = "surface", grain = false, gilt = false })
+	view.plain:SetShown(false)
+	local material = view.chrome.Material
+	view.chrome.Material = function(self)
+		return view.topBar and Tokens.Material("ForgedBrackets") or material(self)
+	end
+	view.art = {}
+	for _, piece in ipairs({
+		{ "medLevelPlaque", "CENTER", "BOTTOM", 0, 0, 18, "giltLit" },
+		{ "forgedDiamond", "CENTER", "BOTTOM", 0, 0, 8, "materialGold" },
+		{ "forgedBracket1", "BOTTOMLEFT", "BOTTOMLEFT", 17, 0, 8, "white" },
+		{ "forgedBracket1", "BOTTOMRIGHT", "BOTTOMRIGHT", -17, 0, 8, "white", true },
+	}) do
+		local texture = frame:CreateTexture(nil, "OVERLAY")
+		texture:SetTexture((Tokens.Texture(piece[1])))
+		Widgets.Point(texture, piece[2], frame, piece[3], piece[4], piece[5])
+		Widgets.Size(texture, piece[6], piece[6])
+		if piece[8] then texture:SetTexCoord(1, 0, 1, 0) else texture:SetTexCoord(0, 1, 1, 0) end
+		Widgets.Tint(texture, piece[7])
+		texture:Hide()
+		view.art[#view.art + 1] = texture
+	end
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)
@@ -383,7 +415,7 @@ local function PlaceLine(view, s)
 	if view.line and view.line < h then
 		h = view.line
 	end
-	local edge = view.bare and 0 or Pad(frame)
+	local edge = view.topBar and Tokens.Size("screenMargin") or (view.bare and 0 or Pad(frame))
 	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
 	local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
@@ -406,7 +438,7 @@ local function PlaceLine(view, s)
 		local width = Widgets.Snap(frame, valueWidth + (labelWidth > 0 and unitGap + labelWidth or 0))
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
-		Widgets.Point(button, "TOPRIGHT", frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
+		Widgets.Point(button, "TOPRIGHT", view.topBar and view.zones.right or frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
 		Widgets.Point(item.value, "LEFT", button, "LEFT", 0, lift)
@@ -548,13 +580,24 @@ end
 function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order = order
-	view.lineMode = LineMode(s)
-	view.bare = view.lineMode and s.backdrop == false
+	view.topBar = s.placement == "top" and not Widgets.Medallions()
+	view.lineMode = view.topBar or LineMode(s)
+	view.bare = not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
 	for _, id in ipairs(order) do
 		inOrder[id] = true
 	end
-	view.chrome:SetShown(s.backdrop ~= false)
+	local forged = view.topBar and s.artwork ~= "plain"
+	view.chrome:SetShown(forged or not view.topBar and s.backdrop ~= false)
+	view.plain:SetShown(view.topBar and not forged)
+	for _, texture in ipairs(view.art) do texture:SetShown(forged) end
+	if view.topBar then
+		local r, g, b = Tokens.Color("surface")
+		view.chrome:SetFillRGBA(r, g, b, (s.background or 85) / 100)
+		view.plain:SetFillRGBA(r, g, b, (s.background or 85) / 100)
+	else
+		view.chrome:SetFill("surface")
+	end
 	if s.accentEdge then
 		view.chrome:SetEdgeRGBA(ns.Accent())
 	else
@@ -583,6 +626,14 @@ function Strip.Paint(view, s, values)
 	end
 	SetValues(view, s, values, nil, true)
 	Strip.DockMenus(view, s)
+	if view.topBar then
+		local position = K.Setup.Layouts.DataBarPosition()
+		if position.anchor == "TOP" and position.x == 0 and position.y == 0 then
+			view.card:ClearAllPoints()
+			Widgets.Point(view.card, "TOPLEFT", view.frame, "TOPLEFT", -32, 32)
+			Widgets.Point(view.card, "BOTTOMRIGHT", view.frame, "BOTTOMRIGHT", 32, 0)
+		end
+	end
 	PlaceItems(view, s)
 	for _, item in pairs(view.items) do
 		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
@@ -677,7 +728,7 @@ end
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
-	local docked = s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
+	local docked = not view.topBar and s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
 	view.pad = view.bare and 0 or Pad(frame)
 	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
 	local line = Widgets.Snap(frame, view.lineMode and LINE or CELL_LINE)
@@ -880,7 +931,7 @@ local function DockMeter(view, s)
 	local layout = K.Layout.Get(KEY)
 	local element = K.Layout.Element(KEY)
 	local default = element and element.default
-	local on = s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = not (s.placement == "top" and not Widgets.Medallions()) and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, LABEL_GAP))
 		local width = math.max(1, view.contentWidth or 1)
@@ -918,6 +969,7 @@ function Strip.Refresh()
 		return
 	end
 	local s = ns.Settings().strip
+	K.Layout.SetLive(KEY, s.enabled ~= false)
 	view.order = Order(s)
 	Strip.order = view.order
 	DockMeter(view, s)
@@ -995,7 +1047,7 @@ local function Build()
 	end
 	K.Layout.Register(frame, KEY, position, {
 		label = label, module = ns.MODULE, resizable = true,
-		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = MAX_WIDTH, maxHeight = MAX_HEIGHT,
+		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = max(MAX_WIDTH, K.Layout.RootSize()), maxHeight = MAX_HEIGHT,
 	})
 	Strip.view = view
 	K.Safe.Side(K.Scale.Root()).dockDataStrip = Strip.Dock
@@ -1004,7 +1056,7 @@ end
 
 local function MatchOrientation(s, changed)
 	local layout = K.Layout.Get(KEY)
-	if not layout then
+	if not layout or s.placement == "top" and not Widgets.Medallions() then
 		return
 	end
 	local vertical = s.orientation == "VERTICAL"
@@ -1019,7 +1071,7 @@ end
 
 local function MatchLine(s)
 	local layout = K.Layout.Get(KEY)
-	if not layout or s.orientation == "VERTICAL" then
+	if not layout or s.orientation == "VERTICAL" or s.placement == "top" and not Widgets.Medallions() then
 		return
 	end
 	local _, height = Footprint()

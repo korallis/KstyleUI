@@ -708,8 +708,14 @@ local function RegisterCallbacks()
 	Callbacks.Register("ClassChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ScaleChanged", MODULE, Map.Refresh)
 	Callbacks.Register("ProfileChanged", MODULE, Map.Refresh)
+	Callbacks.Register("ModuleChanged", MODULE, function(_, module)
+		if module == "DataBars" then Map.Refresh() end
+	end)
+	Callbacks.Register("LayoutChanged", MODULE, function(_, key)
+		if key == "databars.strip" then Map.Refresh() end
+	end)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module)
-		if module == MODULE then
+		if module == MODULE or module == "DataBars" then
 			Map.Refresh()
 		end
 	end)

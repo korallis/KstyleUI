@@ -540,6 +540,14 @@ local function StyleDefault(el)
 		end
 		Aspect(el, d, style)
 	end
+	if el.key == "databars.strip" then
+		local setup = ns.Setup and ns.Setup.Layouts
+		local height = setup and setup.DataBarHeight()
+		if height then
+			d.anchor, d.x, d.y, d.width, d.height = "TOP", 0, 0, Layout.RootSize(), height
+			el.limits.maxWidth = math.max(el.limits.maxWidth, d.width)
+		end
+	end
 	el.default = Band(el, d)
 end
 
@@ -579,6 +587,7 @@ local function Resolve(el)
 		s.width, s.height = FrameSize(el.frame)
 	end
 	links[el.key] = s.attachTo ~= "" and el or nil
+	if el.key == "databars.strip" and Store.IsLoaded() and (Store.Module("DataBars").strip or {}).enabled == false then s.shown = "never" end
 	return s
 end
 
@@ -606,6 +615,8 @@ end
 
 local function Place(el, anchor, x, y, w, h, f, pixel)
 	local rw, rh = Layout.RootSize()
+	local setup = ns.Setup and ns.Setup.Layouts
+	y = y - (setup and setup.TopInset(el.key, anchor) or 0)
 	local left, bottom = G.Rect(anchor, x, y, w, h, rw, rh)
 	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
 	left, bottom = linkedLeft or left, linkedBottom or bottom
@@ -1086,6 +1097,12 @@ local function Changed(el)
 	Resolve(el)
 	UpdateEvents()
 	Apply(el)
+	if el.key == "databars.strip" then
+		if KstyleUIDB then KstyleUIDB.scaleCache = nil end
+		for _, key in ipairs(order) do
+			if key ~= el.key then Apply(elements[key]) end
+		end
+	end
 	ns.Callbacks.Fire("LayoutChanged", el.key)
 	if state.active then
 		Mode("Changed", el.key)
@@ -1505,7 +1522,9 @@ function Layout.Rect(key)
 	local rw, rh = Layout.RootSize()
 	local pixel = Scale.Pixel(1)
 	local s = el.settings
-	local left, bottom = G.Rect(s.anchor, s.x, s.y, w, h, rw, rh)
+	local setup = ns.Setup and ns.Setup.Layouts
+	local inset = setup and setup.TopInset(key, s.anchor) or 0
+	local left, bottom = G.Rect(s.anchor, s.x, s.y - inset, w, h, rw, rh)
 	local linkedLeft, linkedBottom = LinkedRect(el, w, h)
 	left, bottom = linkedLeft or left, linkedBottom or bottom
 	left, bottom = Layout.Clamp(key, left, bottom, w, h)
@@ -1724,6 +1743,8 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 			end
 		end
 		UpdateEvents()
+	elseif elements["databars.strip"] then
+		Resolve(elements["databars.strip"])
 	end
 	ApplyAll(true)
 	for i = 1, #changed do
@@ -1790,6 +1811,7 @@ ns.Callbacks.Register("HudStyleChanged", SECTION, function()
 end)
 
 ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
+	if name == "DataBars" then ApplyAll(true) end
 	for i = 1, #order do
 		local el = elements[order[i]]
 		if el.module == name then
@@ -1809,6 +1831,10 @@ ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 		else
 			Restyle()
 		end
+	end
+	if module == "DataBars" and (key == "strip.placement" or key == "strip.height" or key == "strip.enabled") then
+		if KstyleUIDB then KstyleUIDB.scaleCache = nil end
+		Restyle()
 	end
 	if module == SECTION and state.active then
 		Mode("Refresh")

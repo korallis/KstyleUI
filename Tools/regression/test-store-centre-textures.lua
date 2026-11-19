@@ -23,6 +23,8 @@ env.KstyleUIDB = saved
 local custom = Core.DeepCopy(saved.profiles.Custom)
 custom.Meters = { followRole = false }
 custom.Skins = { restedXP = { boxes = true } }
+custom.DataBars.enabled = true
+custom.DataBars.strip = { enabled = true, placement = "top" }
 local list = K.Tokens.MediaList
 K.Tokens.MediaList = function(kind)
 	local items = list(kind)

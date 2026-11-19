@@ -1,5 +1,11 @@
 -- test-databars-strip.lua: the data strip against the stub game: items, order, values, colours, settings, clicks, the secure click proxy, tooltips and the ticker.
 local D = dofile("Tools/regression/databars_env.lua")
+local function Rail(opts)
+	local env, K, ns, game = D.New(opts)
+	K.Options.Write("DataBars", "strip.placement", "rail")
+	return env, K, ns, game
+end
+
 local W = D.W
 
 local function eq(got, want, what)
@@ -73,7 +79,7 @@ local function useCells(env, K)
 end
 
 do
-	local env, K, ns, game = D.New()
+	local env, K, ns, game = Rail()
 	local el = assert(element(K, "databars.strip"), "the strip registers with Layout")
 	eq(el.module, "DataBars", "the strip belongs to the module")
 	eq(el.opts.resizable, true, "the strip is resizable")
@@ -222,7 +228,7 @@ end
 -- The cells layout, set up as the Lumen readout card first drew it: 318 x 42 glass, five items in fixed cells
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns = Rail()
 	useCells(env, K)
 	local got = K.Layout.Get("databars.strip")
 	eq(shown(ns), "fps,latency,gold,durability", "the cells order, with no clock")
@@ -266,7 +272,7 @@ end
 -- The ticker updates fps, latency and the clock; events update gold and durability -------------------
 
 do
-	local env, K, ns, game = D.New()
+	local env, K, ns, game = Rail()
 	K.Options.Write("DataBars", "strip.slot4", "durability")
 	K.Options.Write("DataBars", "strip.valueColor", "highlight")
 	K.Options.Write("DataBars", "strip.slot5", "time")
@@ -307,7 +313,7 @@ end
 
 -- Turning the line off while the module is disabled still gives the cells their height when it comes back (codex review).
 do
-	local env, K = D.New()
+	local env, K = Rail()
 	eq(K.Layout.Get("databars.strip").height, 12, "the line starts 12 units tall")
 	K.Modules.Disable("DataBars")
 	K.Options.Write("DataBars", "strip.line", false)
@@ -321,7 +327,7 @@ end
 -- Settings: slots, labels, colours, money, latency, clock, backdrop, separators, font ----------------
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns = Rail()
 	local Options = K.Options
 	useCells(env, K)
 	Options.Write("DataBars", "strip.slot5", "time")
@@ -459,7 +465,7 @@ local function Inside(ns, cellsOnly)
 end
 
 do
-	local env, K, ns, game = D.New()
+	local env, K, ns, game = Rail()
 	local Options = K.Options
 	useCells(env, K)
 	-- The cells and captions below are measured at the 492 by 43 strip they were drawn for; the Lumen readout card is
@@ -543,7 +549,7 @@ end
 -- Clicks: settings, latency source, clock format -----------------------------------------------------
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns = Rail()
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	local opened
 	K.Options.Open = function(page)
@@ -563,7 +569,7 @@ end
 -- The secure click proxy reaches Blizzard's buttons out of combat only -------------------------------
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns = Rail()
 	K.Options.Write("DataBars", "strip.slot4", "durability")
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	local gold = item(ns, "gold").button
@@ -622,7 +628,7 @@ do
 end
 
 do
-	local env, K, ns = D.New({ blizzard = false })
+	local env, K, ns = Rail({ blizzard = false })
 	W.Enter(item(ns, "gold").button)
 	eq(ns.Click.proxy, nil, "no Blizzard target, no proxy")
 	W.Click(item(ns, "gold").button)
@@ -632,7 +638,7 @@ end
 -- Tooltips -------------------------------------------------------------------------------------------
 
 do
-	local env, K, ns, game = D.New()
+	local env, K, ns, game = Rail()
 	K.Options.Write("DataBars", "strip.slot4", "durability")
 	game.durability[5] = { 10, 100 }
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
@@ -656,7 +662,7 @@ end
 -- A client without the data APIs shows placeholders, not errors ----------------------------------------
 
 do
-	local env, K, ns = D.New({ setup = function(e)
+	local env, K, ns = Rail({ setup = function(e)
 		e.GetFramerate, e.GetNetStats, e.GetInventoryItemDurability = nil, nil, nil
 	end })
 	K.Options.Write("DataBars", "strip.slot4", "durability")
@@ -670,7 +676,7 @@ end
 -- The preview shows a sample strip that follows the settings ------------------------------------------
 
 do
-	local env, K = D.New()
+	local env, K = Rail()
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(248, 400)
 	local frame = K.Options.Preview("DataBars")(parent)
@@ -700,7 +706,7 @@ end
 -- default (test-databars-compact.lua), so these checks turn them on.
 
 do
-	local env, K, ns = D.New({ setup = D.Menus })
+	local env, K, ns = Rail({ setup = D.Menus })
 	K.Options.Write("DataBars", "strip.menus", true)
 	K.Options.Write("DataBars", "micro.shown", true)
 	K.Options.Write("DataBars", "bags.shown", true)
@@ -760,7 +766,7 @@ end
 -- answers IsTruncated for a string drawn narrower than its text; the stub answers it from the same widths.
 
 do
-	local env, K, ns = D.New({
+	local env, K, ns = Rail({
 		setup = function(e)
 			D.Menus(e)
 		end,
@@ -846,7 +852,7 @@ for _, screen in ipairs(screens) do
 	if screen[1] == 3456 and screen[2] == 2234 then
 		opts.size = 16 / 19
 	end
-	local envS, KS, nsS = D.New(opts)
+	local envS, KS, nsS = Rail(opts)
 	local dot = item(nsS, "latency").dot
 	local frame = nsS.Strip.view.frame
 	local _, size = dot:GetFont()

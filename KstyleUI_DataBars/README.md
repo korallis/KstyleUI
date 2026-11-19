@@ -1,6 +1,10 @@
 # KstyleUI_DataBars
 
-XP, reputation and honour bars, micro menu, bag bar, and a data strip with FPS, latency, gold and durability; its fifth slot can show the time, which by default the minimap card's foot shows, as the Lumen mockup does.
+XP, reputation and honour bars, micro menu, bag bar, and a data bar. Frames and Orbs default to a full-width top bar; Medallions keeps the original rail readout. The five existing slots stay in their existing order in the right zone; left and centre are reserved for later additions. The default slots remain FPS, latency and gold, with durability and time available in the remaining slots.
+
+Under **Data bar** in Options, choose Top or Right rail, set height (12–32, default 20) and background opacity (0–100%, default 85%), choose Data bar artwork (Forged by default, with the existing gilt brackets and Medallions crest gem, or Plain glass), or turn the bar off. Both placements remain movable and resizable in Layout Mode; saved positions survive screen changes. The top bar spans the HUD root: the centred HUD band on ultrawide, or the whole screen under Spread. Its chrome uses the same card builder as the other cards, with the top and ends outside the screen at the default position.
+
+At the default top position, top-anchored elements reserve `max(0, height + 6 - 16)` units, including custom saved top anchors. Moving the bar away or turning it off releases that space; returning it to the top restores it. Layout placement, rectangle queries and the overlap guard use the same inset. Store migration 41 turns the bar on in existing profiles. While a visible bar includes the time slot, the minimap foot hides its clock; disabling that slot, the bar or DataBars returns it.
 
 | Field | Value |
 | --- | --- |

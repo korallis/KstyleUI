@@ -364,6 +364,7 @@ function D.New(opts)
 	local game
 	local env, K = W.New({
 		boot = false,
+		fit = opts.fit,
 		saved = opts.saved,
 		width = opts.width,
 		height = opts.height,

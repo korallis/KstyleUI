@@ -1,5 +1,11 @@
 -- test-databars-readout.lua: the readout's cells and menu card: a value plus muted unit in each cell, the micro menu and bag bar docked under them as round crystal buttons in the same card when strip.menus is on, or set free as their own elements, and the docked line of the picture's readout.
 local D = dofile("Tools/regression/databars_env.lua")
+local function Rail(opts)
+	local env, K, ns, game = D.New(opts)
+	K.Options.Write("DataBars", "strip.placement", "rail")
+	return env, K, ns, game
+end
+
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
@@ -22,7 +28,7 @@ local function item(ns, id)
 	return assert(ns.Strip.view.items[id], id .. " exists")
 end
 
-local env, K, ns = D.New({
+local env, K, ns = Rail({
 	enable = false,
 	setup = function(e)
 		D.Menus(e)

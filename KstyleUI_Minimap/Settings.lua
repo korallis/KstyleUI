@@ -369,6 +369,17 @@ function Settings.Get(key)
 	if not Store.IsLoaded() then
 		return default
 	end
+	if key == "clock.shown" and K.Modules.IsEnabled("DataBars") then
+		local strip = Store.Module("DataBars").strip or {}
+		if strip.enabled ~= false then
+			for i = 1, 5 do
+				if strip["slot" .. i] == "time" then
+					local element = K.Layout.Get("databars.strip")
+					if not element or element.shown ~= "never" then return false end
+				end
+			end
+		end
+	end
 	local value = Lookup(Store.Module(MODULE), key)
 	if not IsSecret(value) and value == default then return value end
 	if not rows then Settings.Schema() end

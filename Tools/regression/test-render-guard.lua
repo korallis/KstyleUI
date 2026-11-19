@@ -63,6 +63,18 @@ glow:SetTexture(TEX .. "Glow.png")
 glow:SetPoint("TOPLEFT", button, "TOPLEFT", -10, 10)
 glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 10, -10)
 
+-- The existing hub gem may seat on a card's bottom centre as trim; the same art displaced off the card is a spill.
+local crest = window:CreateTexture(nil, "OVERLAY")
+crest:SetTexture(TEX .. "Medallions\\LevelPlaque.png")
+crest:SetSize(18, 18)
+crest:SetPoint("CENTER", window, "BOTTOM")
+window.crest = crest
+local loose = window:CreateTexture(nil, "OVERLAY")
+loose:SetTexture(TEX .. "Medallions\\LevelPlaque.png")
+loose:SetSize(18, 18)
+loose:SetPoint("CENTER", window, "BOTTOM", 60, -20)
+window.loose = loose
+
 -- A tab card hung off the window's edge: its own glass, inside the window's content, outside the window's glass.
 local tabs = env.CreateFrame("Frame", nil, window)
 tabs:SetSize(30, 60)
@@ -312,7 +324,9 @@ for _, subject in ipairs(outside) do
 end
 assert(has("Spills onto the window"), "a label that spills out of its sub-panel onto the window's glass is outside")
 assert(has("GuardSmall.big glass"), "a card larger than the card that holds it is checked against it")
-assert(#outside == 5, "only the five spills are listed, not the popout's tiles or the wide holder's children: " .. table.concat(outside, "; "))
+assert(has("GuardWindow.loose"), "an unseated hub gem remains a spill")
+assert(not has("GuardWindow.crest"), "the seated crest is card trim")
+assert(#outside == 6, "only the six spills are listed, not the popout's tiles or the wide holder's children: " .. table.concat(outside, "; "))
 
 -- The allowlist: an owner scope, a scene glob, a kind and a subject prefix ("=" for the whole subject).
 local path = fs.tmp() .. "/allow.tsv"
@@ -336,7 +350,7 @@ for _, f in ipairs(allowed) do
 	owners[f.entry.owner] = f.kind
 end
 assert(#allowed == 2 and owners.R4b == "outside" and owners.S3 == "clipped", "the R4b line covers the column and the S3 glob line covers the cut cast label")
-assert(#fresh == 9, "the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the three overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
+assert(#fresh == 10, "the displaced gem, the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the three overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
 assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not judged by one scene")
 
 -- A glob line is judged by the run: stale when it matched a scene of the run and covered nothing in any of them.

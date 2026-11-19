@@ -1,5 +1,11 @@
 -- test-databars-menus.lua: KstyleUI's micro menu and bag bar: Blizzard's two bars hidden through Safe, secure buttons in Layout holders that click Blizzard's own buttons, and the settings.
 local D = dofile("Tools/regression/databars_env.lua")
+local function Rail(opts)
+	local env, K, ns, game = D.New(opts)
+	K.Options.Write("DataBars", "strip.placement", "rail")
+	return env, K, ns, game
+end
+
 local W = D.W
 
 local KEYRING = -2
@@ -219,7 +225,7 @@ local function New(opts)
 	end
 	local enable = opts.enable
 	opts.enable = false
-	local env, K, ns = D.New(opts)
+	local env, K, ns = Rail(opts)
 	local before = Snapshot(env)
 	-- The rows are hidden by default (test-databars-compact.lua); these checks are about the buttons, so they show them.
 	if opts.shown ~= false then
@@ -663,7 +669,7 @@ end
 -- A client without the micro menu or bag bar runs the module without errors ----------------------------
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns = Rail()
 	env.RunTimers()
 	eq(K.Modules.IsRunning("DataBars"), true, "no micro menu or bag bar, no problem")
 	eq(#ns.Menus.Shown("micro"), 0, "and no micro buttons")

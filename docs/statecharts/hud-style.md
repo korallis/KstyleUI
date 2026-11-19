@@ -73,3 +73,5 @@ stateDiagram-v2
     Waiting --> ActivePool : aura gate opens, original style restored
     Rebuilding --> ActivePool : release old groups, select or create destination pool
 ```
+
+The data bar follows this switch: Frames and Orbs use its top placement, while Medallions keeps the rail placement. The bar remains movable through Layout Mode. Only a bar at its default top position reserves the shared top inset; moving it, hiding it or switching to Medallions releases that space. `test-databars-top` covers the inset, saved positions and overlap guard across all styles and layouts.

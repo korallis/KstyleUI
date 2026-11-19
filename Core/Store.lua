@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 40
+Store.DB_VERSION = 41
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -977,6 +977,34 @@ Store.migrations[40] = function(data)
 			profile.Skins = type(profile.Skins) == "table" and profile.Skins or {}
 			profile.Skins.restedXP = type(profile.Skins.restedXP) == "table" and profile.Skins.restedXP or {}
 			profile.Skins.restedXP.boxes = true
+		end
+	end
+end
+
+Store.migrations[41] = function(data)
+	for name, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			profile.DataBars = type(profile.DataBars) == "table" and profile.DataBars or {}
+			profile.DataBars.strip = type(profile.DataBars.strip) == "table" and profile.DataBars.strip or {}
+			profile.DataBars.enabled = true
+			profile.DataBars.strip.enabled = true
+			profile.DataBars.strip.placement = "top"
+			local layout = data.layouts[name]
+			local entry = type(layout) == "table" and layout["databars.strip"]
+			if type(entry) == "table" and not layout["medallions:databars.strip"] then
+				layout["medallions:databars.strip"] = {}
+				for field, value in pairs(entry) do layout["medallions:databars.strip"][field] = value end
+			end
+			for _, key in ipairs({ "databars.strip", "orbs:databars.strip" }) do
+				local old = type(layout) == "table" and layout[key]
+				if type(old) == "table" then
+					local default = ns.Setup.Layouts.Default("databars.strip")
+					if old.anchor == default.anchor and old.x == default.x and old.y == default.y then old.anchor, old.x, old.y = nil, nil, nil end
+					if old.width == 278 then old.width = nil end
+					if old.height == 12 then old.height = nil end
+					if next(old) == nil then layout[key] = nil end
+				end
+			end
 		end
 	end
 end

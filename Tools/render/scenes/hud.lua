@@ -142,6 +142,10 @@ local function saved(opts, module, settings, more)
 	merge(section, opts.settings and opts.settings[module])
 	merge(section, settings)
 	local profile = { [module] = section }
+	if opts.dataBar then
+		profile.DataBars = merge(merge({}, opts.dataBar), opts.settings and opts.settings.DataBars)
+		if module == "DataBars" then merge(profile.DataBars, section) end
+	end
 	local style = Hud.Style()
 	if style then
 		assert(style == "Orbs" or style == "Frames" or style == "Medallions", "RENDER_HUD_STYLE must be Frames, Orbs or Medallions")
@@ -239,6 +243,8 @@ local function build(env, opts, extra, beforeDraw)
 	applyPreset(env, opts)
 	local K = env.KstyleUI
 	dofile("Tools/render/scenes/_audit.lua").Apply(K)
+	local artwork = os.getenv("RENDER_DATABAR_ARTWORK")
+	if artwork and K.Options.Row("DataBars", "strip.artwork") then K.Options.Write("DataBars", "strip.artwork", artwork) end
 	local previewed = {}
 	for key, size in pairs(opts.sizes or {}) do
 		local el = K and K.Layout and K.Layout.Element and K.Layout.Element(key)

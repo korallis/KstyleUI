@@ -1,5 +1,11 @@
 -- test-databars-compact.lua: the readout is the picture's 12-unit line by default (the micro menu and bag rows undocked and out of sight at rest, Blizzard's still hidden, the keybinds left alone), each row comes back from its setting, docked rows grow the element to fit, the layouts size it as the line, and older saved data keeps a bar its player had set up.
 local D = dofile("Tools/regression/databars_env.lua")
+local function Rail(opts)
+	local env, K, ns, game = D.New(opts)
+	K.Options.Write("DataBars", "strip.placement", "rail")
+	return env, K, ns, game
+end
+
 local W = D.W
 local CoreEnv = D.CoreEnv
 
@@ -22,7 +28,7 @@ end
 -- By default the card is the readout line alone ------------------------------------------------------------------
 
 do
-	local env, K, ns = D.New({ setup = D.Menus })
+	local env, K, ns = Rail({ setup = D.Menus })
 	env.RunTimers()
 	local Strip, Menus, Layouts = ns.Strip, ns.Menus, K.Setup.Layouts
 	local view = Strip.view
@@ -141,7 +147,7 @@ end
 -- A row turned on in combat: the card holds its size until combat ends (its docked secure buttons make it protected) --
 
 do
-	local env, K, ns = D.New({ setup = D.Menus })
+	local env, K, ns = Rail({ setup = D.Menus })
 	env.RunTimers()
 	K.Options.Write("DataBars", "micro.shown", false)
 	K.Options.Write("DataBars", "bags.shown", false)
@@ -215,14 +221,14 @@ do
 	eq(profiles.SparseBlizzard.DataBars.bags.shown, true, "while its free bag bar stays shown")
 	eq(profiles.Chosen.DataBars.micro.shown, false, "a saved choice is never overwritten")
 	eq(profiles.Blizzard.DataBars.micro.shown, nil, "a bar handed back to Blizzard is left alone")
-	eq(profiles.Empty.DataBars, nil, "a profile without DataBars gets nothing")
+	assert(profiles.Empty.DataBars.strip.enabled, "existing profiles receive the data bar")
 	noErrors(env)
 end
 
 -- A migrated profile through the module ----------------------------------------------------------------------
 
 do
-	local env, K = D.New({ setup = D.Menus, saved = { version = 3, profiles = { Default = { DataBars = { enabled = true, micro = { size = 30 } } } } } })
+	local env, K = Rail({ setup = D.Menus, saved = { version = 3, profiles = { Default = { DataBars = { enabled = true, micro = { size = 30 } } } } } })
 	env.RunTimers()
 	eq(K.Options.Read("DataBars", "micro.shown"), true, "a migrated profile's tuned micro menu shows")
 	eq(K.Options.Read("DataBars", "bags.shown"), true, "and its untouched bag row takes today's default: on, out of sight at rest")
