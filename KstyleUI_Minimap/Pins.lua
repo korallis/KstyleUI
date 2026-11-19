@@ -8,7 +8,6 @@ local Pins = {}
 ns.Pins = Pins
 
 local LIB = "HereBeDragons-Pins-2.0"
-local QUESTIE = "^QuestieFrame%d"
 local EDGE, SLACK = 0.9, 0.001
 
 local watched = setmetatable({}, { __mode = "k" })
@@ -29,7 +28,7 @@ end
 
 function Pins.Is(frame)
 	local name = frame:GetName()
-	if watched[frame] or type(name) == "string" and name:find(QUESTIE) then
+	if watched[frame] or type(name) == "string" and name:find("^QuestieFrame%d") then
 		return true
 	end
 	local lib = Pins.Lib()
@@ -63,23 +62,19 @@ local function Check(pin)
 	end
 	local alpha = pin:GetAlpha()
 	if state.hide and OnEdge(pin, state.lib.minimapPins[pin]) then
-		if not was then
-			hidden[pin] = { Plain(alpha) and alpha or 1, pin:IsMouseEnabled() }
-			pin:EnableMouse(false)
-			if not state.logged then
-				state.logged = true
-				K.DevTest.Log("Minimap", "faded out an addon's map pin riding the map's edge; Addon pins on the map's edge shows them")
-			end
+		if not state.logged then
+			state.logged = true
+			K.DevTest.Log("Minimap", "faded out an addon's map pin riding the map's edge; Addon pins on the map's edge shows them")
 		end
-		if not Plain(alpha) or alpha ~= 0 then
+		if not was or not Plain(alpha) or alpha ~= 0 then
+			hidden[pin] = Plain(alpha) and alpha or 1
 			pin:SetAlpha(0)
 		end
 	elseif was then
 		hidden[pin] = nil
 		if Plain(alpha) and alpha == 0 then
-			pin:SetAlpha(was[1])
+			pin:SetAlpha(was)
 		end
-		pin:EnableMouse(was[2])
 	end
 end
 

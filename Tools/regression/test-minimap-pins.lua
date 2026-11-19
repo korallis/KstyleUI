@@ -101,7 +101,7 @@ for key, pin in pairs(pins) do
 end
 assert(Seen(pins.inside) and Seen(pins.named) and Seen(pins.plain), "pins for places on the map stay on the map")
 assert(not Seen(pins.edgeA) and not Seen(pins.edgeB), "pins floated on the map's edge for places off the map are hidden")
-assert(pins.edgeA:IsShown() and not pins.edgeA:IsMouseEnabled(), "HereBeDragons shows every pin again on every frame the player moves, so an edge pin fades with SetAlpha(0) and its mouse off; Hide would flip it shown and hidden every frame")
+assert(pins.edgeA:IsShown() and pins.edgeA:IsMouseEnabled(), "an edge pin fades with SetAlpha(0) without changing its shown or mouse state; EnableMouse is protected on secure pins")
 
 hbd.Draw(pins.edgeA, 0.4, 0.4)
 assert(Seen(pins.edgeA) and pins.edgeA:GetAlpha() == 1, "a pin whose place comes onto the map shows again where HereBeDragons puts it")
@@ -127,7 +127,7 @@ assert(not Seen(late), "a pin an addon adds after login is watched too")
 
 K.Options.Write("Minimap", "drawer.edgePins", true)
 M.Settle(env)
-assert(Seen(pins.inside) and Seen(pins.edgeB) and Seen(late), "Addon pins on the map's edge brings the edge pins back")
+assert(Seen(pins.inside) and pins.inside:GetAlpha() == 0.6 and Seen(pins.edgeB) and Seen(late), "Addon pins on the map's edge brings the edge pins back")
 hbd.Draw(pins.edgeB, 0, -6)
 assert(Seen(pins.edgeB), "and keeps them while it is on")
 
