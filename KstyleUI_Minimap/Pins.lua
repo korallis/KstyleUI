@@ -8,6 +8,7 @@ local Pins = {}
 ns.Pins = Pins
 
 local LIB = "HereBeDragons-Pins-2.0"
+local QUESTIE = "^QuestieFrame%d"
 local EDGE, SLACK = 0.9, 0.001
 
 local watched = setmetatable({}, { __mode = "k" })
@@ -27,7 +28,8 @@ function Pins.Lib()
 end
 
 function Pins.Is(frame)
-	if watched[frame] then
+	local name = frame:GetName()
+	if watched[frame] or type(name) == "string" and name:find(QUESTIE) then
 		return true
 	end
 	local lib = Pins.Lib()

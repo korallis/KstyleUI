@@ -145,11 +145,23 @@ hbd:RemoveMinimapIcon("RXPGuides", pins.named)
 local node = env.CreateFrame("Button", "SomeGatherNode1", env.Minimap)
 node:SetSize(12, 12)
 node:SetPoint("CENTER", env.Minimap, "CENTER", 10, 10)
+-- Questie's icons are clickable Buttons named QuestieFrame<n>, placed by Questie's own copy of the library, which is
+-- a Questie module and not in LibStub; that copy shows and places every one again on every frame the player moves.
+local questie = env.CreateFrame("Button", "QuestieFrame7", env.Minimap)
+questie:SetSize(16, 16)
+questie:SetScript("OnClick", function() end)
+local function Redraw()
+	questie:Show()
+	questie:ClearAllPoints()
+	questie:SetPoint("CENTER", env.Minimap, "CENTER", 20, -10)
+end
+Redraw()
 drawer:Collect()
-for _, frame in ipairs({ pins.named, node }) do
-	assert(frame:GetParent() == env.Minimap, "the drawer took in " .. frame:GetName() .. ", a map pin HereBeDragons released or a Button with no click script; Pins.Is must stay true for any frame HereBeDragons ever held, and the drawer must skip a Button with no OnClick, OnMouseUp or OnMouseDown")
+for _, frame in ipairs({ pins.named, node, questie }) do
+	assert(frame:GetParent() == env.Minimap, "the drawer took in " .. frame:GetName() .. ", a map pin; Pins.Is must stay true for any frame HereBeDragons ever held and for Questie's QuestieFrame<n> icons, and the drawer must skip a Button with no OnClick, OnMouseUp or OnMouseDown")
 end
 assert(drawer:Count() == 3, "the drawer still holds only the three addon buttons")
+Budget(Redraw, 1, "a map pin the drawer left alone must cost nothing when its addon places it again; the drawer hooks only the buttons it took in")
 pins.named = nil
 
 -- A button's addon showing it again, as LibDBIcon does on every refresh, must not lay the whole drawer out again.
