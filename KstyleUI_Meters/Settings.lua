@@ -474,6 +474,7 @@ function ns.Log(message)
 end
 
 function ns.MeterShown(section)
+	if section == "damage" and #K.Setup.Integrations.Detected(ns.MODULE) > 0 then return false end
 	if not ns.Get("followRole") then
 		return ns.Get(section .. ".shown")
 	end

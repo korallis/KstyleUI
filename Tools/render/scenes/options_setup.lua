@@ -19,6 +19,7 @@ return Common.Run(function()
 		setup = function(env)
 			Gallery.Setup(env)
 			env.C_AddOns = {
+				IsAddOnLoaded = function(name) return name == os.getenv("RENDER_ADDON") end,
 				DoesAddOnExist = function() return true end,
 				LoadAddOn = function(name)
 					if name == "KstyleUI_Options" and not env._addons[name] then Load(O.Files(), env) end

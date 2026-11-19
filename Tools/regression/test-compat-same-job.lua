@@ -20,7 +20,9 @@ end
 
 for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160} }) do
 	for _, addon in ipairs({ "Bartender4", "Dominos" }) do
-		local env, K, ns = AB.New({ width = screen[1], height = screen[2], setup = function(e)
+		local env, K = AB.New({ width = screen[1], height = screen[2],
+			saved = { version = 2, profiles = { Default = { ActionBars = { enabled = true } } }, characters = { ["Realm-Tester"] = "Default" } },
+			setup = function(e)
 			Loaded(addon)(e)
 			e._game.bindings.ACTIONBUTTON1 = { "1" }
 		end })

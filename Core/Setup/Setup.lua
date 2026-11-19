@@ -90,7 +90,7 @@ end
 function Setup.NewChoice()
 	local modules = {}
 	for _, entry in ipairs(PICKER) do
-		modules[entry.name] = Setup.Available(entry.name)
+		modules[entry.name] = Setup.Available(entry.name) and #Setup.Integrations.Detected(entry.name) == 0
 	end
 	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS }
 end

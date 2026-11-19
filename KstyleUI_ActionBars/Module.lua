@@ -332,6 +332,11 @@ local function OnSetting(_, module, key)
 	if module ~= MODULE or type(key) ~= "string" or key == "editBar" or key == "tooltips" then
 		return
 	end
+	if key == "enabled" and ns.Config("enabled") then
+		K.Store.Module(MODULE).overlapBindings = #K.Setup.Integrations.Detected(MODULE) > 0
+		ns.ApplyBindings()
+		return
+	end
 	if key == "bindingHints" then ns.UpdateHotkeys() end
 	if key == "ranks" and ns.Config("ranks") == "off" then
 		ns.Ranks.Stop()

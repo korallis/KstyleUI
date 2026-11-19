@@ -976,6 +976,10 @@ local function InstallHooks()
 end
 
 function Menus.Enable()
+	if #K.Setup.Integrations.Detected(ns.MODULE) > 0 then
+		ns.LogOnce("menus-overlap", "another action bar addon owns the micro menu and bag bar; KstyleUI leaves them alone")
+		return
+	end
 	running = true
 	enabling = true
 	InstallHooks()

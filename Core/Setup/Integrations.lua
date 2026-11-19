@@ -7,10 +7,12 @@ K.Setup.Integrations = Integration
 local OVERLAPS = {
 	UnitFrames = { "ElvUI", "Tukui", "ShadowedUnitFrames", "PitBull4" },
 	ActionBars = { "Bartender4", "Dominos", "ElvUI", "Tukui" },
+	DataBars = { "Bartender4", "Dominos" },
+	Meters = { "Details" },
 	Nameplates = { "Plater", "Kui_Nameplates", "TidyPlates", "ElvUI" },
 	GroupFrames = { "Grid2", "VuhDo", "HealBot", "ElvUI", "ShadowedUnitFrames" },
-	Bags = { "Bagnon", "AdiBags", "BetterBags", "ElvUI" },
-	Chat = { "Prat-3.0", "Chatter", "ElvUI" },
+	Bags = { "Bagnon", "AdiBags", "BetterBags", "Baganator", "ElvUI" },
+	Chat = { "Prat-3.0", "Chatter", "Chattynator", "ElvUI" },
 	Skins = { "Questie" },
 }
 function Integration.Detected(module)

@@ -1099,6 +1099,7 @@
 	"Krazhk": "Krazhk",
 	"Kstyle": "Kstyle",
 	"KstyleUI": "KstyleUI",
+	"KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings.": "Los atajos de las barras de acción de KstyleUI están desactivados mientras %s está cargado. Desactiva y vuelve a activar las barras de acción en los ajustes para usar los atajos de KstyleUI.",
 	"KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it.": "KstyleUI ha aplicado el diseño %s. Escribe /reload para terminar, o /kstyle setup para cambiarlo.",
 	"KstyleUI bags": "Bolsas de KstyleUI",
 	"KstyleUI bank": "Banco de KstyleUI",

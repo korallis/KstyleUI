@@ -5,6 +5,7 @@ local K = KstyleUI
 
 local owner
 local pending = false
+local noticed = false
 
 local function EachKey(fn, ...)
 	for i = 1, select("#", ...) do
@@ -70,6 +71,15 @@ local function Apply()
 	owner = owner or CreateFrame("Frame")
 	ClearOverrideBindings(owner)
 	if not ns.running or ns.gamepad then
+		ns.UpdateHotkeys()
+		return
+	end
+	local detected = K.Setup.Integrations.Detected("ActionBars")
+	if #detected > 0 and not ns.Config("overlapBindings") then
+		if not noticed then
+			noticed = true
+			K.Print(string.format(K.L["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."], table.concat(detected, ", ")))
+		end
 		ns.UpdateHotkeys()
 		return
 	end

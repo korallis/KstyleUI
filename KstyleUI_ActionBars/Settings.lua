@@ -60,6 +60,7 @@ local function BarDefaults(def)
 end
 
 local defaults = {
+	overlapBindings = false,
 	safeDragging = true,
 	hubNumber = true,
 	editBar = "bar1",

@@ -18,7 +18,7 @@ stateDiagram-v2
         [*] --> Welcome
         Welcome --> HudStyle : Next
         HudStyle --> Layout : Next, role pictures follow the chosen HUD
-        Layout --> Modules : Next
+        Layout --> Modules : Next, detected same-job modules start off
         Modules --> Ornaments : Next
         Ornaments --> Summary : Next
         Summary --> Ornaments : Back
@@ -46,7 +46,7 @@ stateDiagram-v2
 | --- | --- | --- |
 | LoggedIn | `PLAYER_LOGIN` fired once; the handler unregisters itself. | `Setup.lua`, the `PLAYER_LOGIN` handler |
 | Delayed | `C_Timer.After(OPEN_DELAY)`, 2 s, so the game's own frames settle first. | same |
-| Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, every installed module on, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
+| Open | `Setup.Open(first)`: refuses and prints when the Store is not loaded or `Setup.ShowWindow` is missing; otherwise sets `firstRun`, resets the choice with `Setup.NewChoice` (the saved HUD style, DPS, installed modules on unless `Integrations.Detected` finds a same-job addon, Full ornaments) and calls `Setup.ShowWindow`, which opens on step 1 with only step 1 reachable. | `Setup.Open`, `Setup.NewChoice`, `Setup.ShowWindow` |
 | Steps | Next and Back call `Setup.Go` one step on; a step tab calls `Setup.Go(value)` for any step up to the furthest reached, and `Go` clamps to 1 to 6. Keep my UI shows only on step 1. | `Setup.Go`, `Refresh` |
 | Layout pictures | General > Layout pictures in setup defaults on: each role card shows its rendered Frames, Orbs or Medallions layout, following the HUD style chosen on the previous step. Off restores the hovered footprint diagram and story-rail legend. The picture never applies settings. | `PlaceLayouts`, `BuildLayouts`; `test-setup-polish` |
 | NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking any card (HUD style, layout, ornaments) or module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |

@@ -1099,6 +1099,7 @@
 	"Krazhk": "Krazhk",
 	"Kstyle": "Kstyle",
 	"KstyleUI": "KstyleUI",
+	"KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings.": "加载 %s 时，KstyleUI 动作条的按键绑定已停用。如需使用 KstyleUI 的按键绑定，请在设置中关闭动作条后重新开启。",
 	"KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it.": "KstyleUI 已应用%s布局。输入 /reload 以完成，或输入 /kstyle setup 进行更改。",
 	"KstyleUI bags": "KstyleUI 背包",
 	"KstyleUI bank": "KstyleUI 银行",

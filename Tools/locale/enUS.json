@@ -1099,6 +1099,7 @@
 	"Krazhk",
 	"Kstyle",
 	"KstyleUI",
+	"KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings.",
 	"KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it.",
 	"KstyleUI bags",
 	"KstyleUI bank",

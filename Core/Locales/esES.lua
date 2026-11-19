@@ -1106,6 +1106,7 @@ ns.Locale.Add({
 	["Krazhk"] = "Krazhk",
 	["Kstyle"] = "Kstyle",
 	["KstyleUI"] = "KstyleUI",
+	["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."] = "Los atajos de las barras de acci\195\179n de KstyleUI est\195\161n desactivados mientras %s est\195\161 cargado. Desactiva y vuelve a activar las barras de acci\195\179n en los ajustes para usar los atajos de KstyleUI.",
 	["KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it."] = "KstyleUI ha aplicado el dise\195\177o %s. Escribe /reload para terminar, o /kstyle setup para cambiarlo.",
 	["KstyleUI bags"] = "Bolsas de KstyleUI",
 	["KstyleUI bank"] = "Banco de KstyleUI",
