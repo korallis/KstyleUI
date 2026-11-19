@@ -34,7 +34,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ### Crest travel
 
-In Medallions, **Crest travel clicks** defaults on. Left click uses `item:6948`; with no carried Hearthstone its action type is cleared. Right click opens travel above the crest and both central cast bars. Right click again, Escape, or using a destination closes it. The crest tooltip uses the shared KstyleUI tooltip, showing the bind location, remaining Hearthstone cooldown (`--` when secret), missing-Hearthstone notice and both clicks. Turning the setting off hides the secure overlay and restores click-through artwork.
+In Medallions, **Crest travel clicks** defaults on. Left click uses `item:6948`; the native action does nothing when no Hearthstone is carried, and preparation clears its action type too. Right click opens travel above the crest and both central cast bars. Right click again, Escape, or using a destination closes it. The crest tooltip uses the shared KstyleUI tooltip, showing the bind location, remaining Hearthstone cooldown (`--` when secret), missing-Hearthstone notice and both clicks. Turning the setting off hides the secure overlay and restores click-through artwork.
 
 Only the crest overlay is created at startup. First hover or right mouse-down prepares the travel list and flyout; after preparation both clicks work through secure handlers in combat. If the first preparation is requested during combat, it waits for `Combat.Queue` and the tooltip explains that travel will be ready after combat. The native `item:6948` action remains harmless when no Hearthstone is carried, even before the first inventory scan.
 
