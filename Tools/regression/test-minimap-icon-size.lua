@@ -80,19 +80,28 @@ for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 
 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], uiScale = 768 / 1080, size = 0.6, setup = function(e)
-		local lib = M.FakeLibDBIcon(e)
-		for index = 1, 6 do lib:Add("Addon" .. index) end
-	end })
-	M.Settle(env)
-	local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, K.Scale.Root())) end
-	for _, side in ipairs({ "left", "right" }) do
-		K.Options.Write("Minimap", "column.side", side)
-		for _, direction in ipairs({ "auto", "left", "right", "up", "down" }) do
-			K.Options.Write("Minimap", "drawer.direction", direction)
-			local panel, card = Rect(ns.Map.drawer.panel), Rect(ns.Map.face.card)
-			assert(panel.left >= card.left and panel.right <= card.right and panel.top <= card.top and panel.bottom >= card.bottom,
-				"wrap full-size drawer buttons inside the minimap card at every screen size and direction")
+	for _, size in ipairs({ 0.6, "auto" }) do
+		local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], uiScale = 768 / 1080, size = size, setup = function(e)
+			local lib = M.FakeLibDBIcon(e)
+			for index = 1, 6 do lib:Add("Addon" .. index) end
+		end })
+		M.Settle(env)
+		local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, K.Scale.Root())) end
+		for _, side in ipairs({ "left", "right" }) do
+			K.Options.Write("Minimap", "column.side", side)
+			for _, direction in ipairs({ "auto", "left", "right", "up", "down" }) do
+				K.Options.Write("Minimap", "drawer.direction", direction)
+				local panel, card = Rect(ns.Map.drawer.panel), Rect(ns.Map.face.card)
+				for _, button in pairs(ns.Map.column.buttons) do
+					if button:IsShown() then
+						local rect = Rect(button)
+						assert(rect.left >= card.left and rect.right <= card.right and rect.top <= card.top and rect.bottom >= card.bottom,
+							"keep native-size side buttons inside the minimap card")
+					end
+				end
+				assert(panel.left >= card.left and panel.right <= card.right and panel.top <= card.top and panel.bottom >= card.bottom,
+					"wrap full-size drawer buttons inside the minimap card at every screen size and direction")
+			end
 		end
 	end
 end
