@@ -2,9 +2,10 @@
 local D = dofile("Tools/regression/databars_env.lua")
 local function Rail(opts)
 	local env, K, ns, game = D.New(opts)
+	D.RailModules(K, ns)
 	K.Options.Write("DataBars", "strip.placement", "rail")
-	K.Options.Write("DataBars", "strip.slot4", "none")
-	K.Options.Write("DataBars", "strip.slot5", "none")
+	D.Entry(K, 4, "none")
+	D.Entry(K, 5, "none")
 	return env, K, ns, game
 end
 
@@ -41,7 +42,7 @@ K.Modules.Enable("DataBars")
 -- test-databars-strip.lua, test-databars-compact.lua); these checks are about the cells and the docked rows, so they set them.
 K.Options.Write("DataBars", "strip.line", false)
 K.Options.Write("DataBars", "strip.backdrop", true)
-K.Options.Write("DataBars", "strip.slot4", "durability")
+D.Entry(K, 4, "durability")
 K.Options.Write("DataBars", "strip.fontSize", 12)
 K.Options.Write("DataBars", "strip.menus", true)
 K.Options.Write("DataBars", "micro.shown", true)
@@ -198,7 +199,7 @@ end
 do
 	Options.Write("DataBars", "strip.line", true)
 	Options.Write("DataBars", "strip.backdrop", false)
-	Options.Write("DataBars", "strip.slot4", "none")
+	D.Entry(K, 4, "none")
 	Options.Write("DataBars", "strip.menus", true)
 	K.Layout.Update("databars.strip", { width = 278, height = 12 })
 	env.RunTimers()

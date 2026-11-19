@@ -215,7 +215,13 @@ function Lumen.Build(state, opts)
 	end
 	names = opts.modules or names
 	for _, name in ipairs(names) do
-		if name == "databars" then base.dataBar = { enabled = true, strip = { enabled = true, placement = "top", height = 20 } } end
+		if name == "databars" then
+			local D = dofile("Tools/regression/databars_env.lua")
+			local _, kit = D.New({ enable = false })
+			base.dataBar = D.CoreEnv.DeepCopy(kit.Store.Defaults("DataBars"))
+			base.dataBar.enabled = true
+			base.dataBar.strip.enabled, base.dataBar.strip.placement, base.dataBar.strip.height = true, "top", 20
+		end
 	end
 	local built, at = {}, {}
 	for _, name in ipairs(names) do

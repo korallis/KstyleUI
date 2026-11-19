@@ -391,6 +391,21 @@ function D.New(opts)
 	return env, K, env._addons[FOLDER], game
 end
 
+function D.Entry(K, index, id)
+	local modules = K.Store.Module("DataBars").strip.modules
+	modules[index] = { id = id, shown = id ~= "none", zone = "right" }
+	K.Callbacks.Fire("SettingChanged", "DataBars", "strip.modules", modules)
+end
+
+function D.RailModules(K, ns)
+	local modules = {}
+	for i, id in ipairs({ "fps", "latency", "gold", "none", "none" }) do
+		modules[i] = { id = id, shown = id ~= "none", zone = "right" }
+	end
+	ns.Settings().strip.modules = modules
+	ns.Strip.Refresh()
+end
+
 -- Metrics ---------------------------------------------------------------------------------------
 
 -- The stub font strings have no glyph metrics of their own. New installs D.TextWidth as the environment's

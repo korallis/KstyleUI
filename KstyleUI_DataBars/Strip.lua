@@ -11,7 +11,6 @@ local Strip = {}
 ns.Strip = Strip
 
 local KEY = "databars.strip"
-local SLOTS = 5
 local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
@@ -30,9 +29,6 @@ local FPS_GOOD, FPS_OK = 60, 30
 local MS_GOOD, MS_OK = 150, 300
 local DURABILITY_GOOD, DURABILITY_OK = 50, 25
 
-Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
-Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "durability", "time" }
-Strip.SLOTS = SLOTS
 
 local LABELS = {
 	fps = { full = L["Frame rate"], short = L["FPS"], inline = L["fps"] },
@@ -41,6 +37,7 @@ local LABELS = {
 	durability = { full = L["Durability"], short = L["DUR"], inline = L["armour"] },
 	time = { full = L["Time"], short = "", inline = "" },
 }
+Strip.LABELS = LABELS
 local UNIT_GAP = 2
 local MENU_GAP = 6
 local LINE = 12
@@ -61,6 +58,8 @@ local TITLES = {
 	fps = L["Frame rate"], latency = L["Latency"], gold = L["Gold"], durability = L["Durability"], time = L["Time"],
 }
 
+Strip.TITLES = TITLES
+Strip.TOOLTIPS, Strip.TOOLTIP_EXTRA = {}, {}
 local GRADE_TOKEN = { good = "friendly", ok = "neutral", bad = "hostile" }
 local HIGHLIGHTED = { fps = true }
 
@@ -70,6 +69,7 @@ local DURABILITY_SLOTS = {
 }
 
 local TIMED = { fps = true, latency = true, time = true }
+Strip.TIMED = TIMED
 
 local function LineMode(s)
 	return s.line ~= false and s.orientation ~= "VERTICAL"
@@ -116,7 +116,9 @@ local function Clock(s)
 			return hour, minute
 		end
 	end
-	local hour, minute = tonumber((Call(date, "%H"))), tonumber((Call(date, "%M")))
+	local hour, minute = Call(date, "%H"), Call(date, "%M")
+	if ns.IsSecret(hour) or ns.IsSecret(minute) then return end
+	hour, minute = tonumber(hour), tonumber(minute)
 	if IsNumber(hour) and IsNumber(minute) then
 		return hour, minute
 	end
@@ -180,9 +182,9 @@ end
 
 local function Order(s)
 	local out, seen = {}, {}
-	for i = 1, SLOTS do
-		local id = s["slot" .. i]
-		if VALUES[id] and not seen[id] then
+	for _, entry in ipairs(s.modules) do
+		local id = entry.id
+		if entry.shown and VALUES[id] and not seen[id] and (not ns.Readouts or ns.Readouts.Visible(id)) then
 			seen[id] = true
 			out[#out + 1] = id
 		end
@@ -277,10 +279,6 @@ function Strip.NewView(parent)
 			ns.Click.Release(item)
 		end
 	end)
-	for _, id in ipairs(Strip.ITEMS) do
-		view.items[id] = NewItem(view, id)
-		view.values[id] = { false, false }
-	end
 	return view
 end
 
@@ -300,7 +298,7 @@ end
 local function Weight(order)
 	local total = 0
 	for _, id in ipairs(order) do
-		total = total + CELL_WEIGHT[id]
+		total = total + (CELL_WEIGHT[id] or 1)
 	end
 	return total
 end
@@ -426,6 +424,19 @@ local function PlaceLine(view, s)
 	end
 	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM)
 	local x = edge
+	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
+	if view.topBar then
+		for _, entry in ipairs(s.modules or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
+		for _, id in ipairs(order) do
+			local item = view.items[id]
+			local label = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
+			local width = Widgets.Snap(frame, TextWidth(item.value, s.fontSize) + (label > 0 and unitGap + label or 0))
+			local zone = zones[id] or "right"
+			local gap = widths[zone] > 0 and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
+			positions[id] = { zone, widths[zone] + gap, width, gap > 0 }
+			widths[zone] = widths[zone] + gap + width
+		end
+	end
 	local first = view.slab and order[1] == "time" and 2 or 1
 	for i = #order, 1, -1 do
 		local item = view.items[order[i]]
@@ -438,7 +449,15 @@ local function PlaceLine(view, s)
 		local anchor = left and "TOPLEFT" or "TOPRIGHT"
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
+		if view.topBar then
+			local position = positions[item.id]
+			local zone, offset = position[1], position[2]
+			local anchor = zone == "centre" and "TOP" or zone == "left" and "TOPLEFT" or "TOPRIGHT"
+			local start = zone == "centre" and -widths[zone] / 2 or zone == "left" and edge or -edge - widths[zone]
+			Widgets.Point(button, "TOPLEFT", view.zones[zone], anchor, Widgets.Snap(frame, start + offset), 0)
+		else
 		Widgets.Point(button, anchor, left and view.zones.left or (view.topBar or view.slab) and view.zones.right or frame, anchor, left and 0 or -Widgets.Snap(frame, x), 0)
+		end
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
 		Widgets.Point(item.value, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", 0, view.slab and 0 or lift)
@@ -451,8 +470,9 @@ local function PlaceLine(view, s)
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
 		x = x + (left and 0 or width)
-		item.dot:SetShown(not left and i > first)
-		if not left and i > first then
+		local dot = view.topBar and positions[item.id][4] or not view.topBar and not left and i > first
+		item.dot:SetShown(dot)
+		if dot then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
 			item.dot:ClearAllPoints()
 			Widgets.Point(item.dot, view.slab and "TOP" or "CENTER", button, view.slab and "TOPLEFT" or "LEFT", -(dotWidth / 2 + dotGap), view.slab and 0 or lift)
@@ -500,7 +520,7 @@ local function PlaceItems(view, s)
 	local lefts, cells, used = {}, {}, 0
 	for i, id in ipairs(order) do
 		local x = Widgets.Snap(frame, pad + used * unit)
-		used = used + CELL_WEIGHT[id]
+		used = used + (CELL_WEIGHT[id] or 1)
 		lefts[i], cells[i] = x, max(1, Widgets.Snap(frame, pad + used * unit) - x)
 	end
 	local captioned = Captioned(view, s, h, cells, gap)
@@ -589,6 +609,10 @@ function Strip.Paint(view, s, values)
 	local inOrder = {}
 	for _, id in ipairs(order) do
 		inOrder[id] = true
+		if not view.items[id] then
+			view.items[id] = NewItem(view, id)
+			if view.bind then view.bind(view.items[id]) end
+		end
 	end
 	local forged = view.topBar and s.artwork ~= "plain"
 	view.chrome:SetShown(not view.slab and (view.topBar or s.backdrop ~= false))
@@ -611,6 +635,7 @@ function Strip.Paint(view, s, values)
 		local on = inOrder[id] == true
 		item.button:SetShown(on)
 		if not on then
+			item.grade = nil
 			ns.Click.Release(item)
 			item.separator:Hide()
 			item.dot:Hide()
@@ -620,9 +645,13 @@ function Strip.Paint(view, s, values)
 				Font.Caption(item.value, caption, caption.medal)
 				Font.Caption(item.dot, caption, caption.medal)
 			else
+			local fontSize = s.fontSize * K.Theme.FontScale()
+			if item.font ~= s.font or item.fontSize ~= fontSize or item.outline ~= s.outline or item.lineMode ~= view.lineMode then
 				Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
 				Font.Apply(item.value, s.font, s.fontSize, s.outline)
 				Font.Apply(item.dot, s.font, s.fontSize, s.outline)
+				item.font, item.fontSize, item.outline, item.lineMode = s.font, fontSize, s.outline, view.lineMode
+			end
 			end
 			Widgets.TextColor(item.dot, view.slab and "medTextMuted" or view.lineMode and "text" or "textEmphasis")
 			item.dot:SetWordWrap(false)
@@ -634,7 +663,9 @@ function Strip.Paint(view, s, values)
 			PaintItem(item)
 		end
 	end
-	SetValues(view, s, values, nil, true)
+	local force = view.paintColor ~= s.valueColor or view.paintDock ~= view.docked or view.paintLine ~= view.lineMode
+	SetValues(view, s, values, nil, force)
+	view.paintColor, view.paintDock, view.paintLine = s.valueColor, view.docked, view.lineMode
 	Strip.DockMenus(view, s)
 	PlaceItems(view, s)
 	for _, item in pairs(view.items) do
@@ -798,7 +829,8 @@ local function Read(view, s, timedOnly)
 	local values = view.values
 	for _, id in ipairs(view.order) do
 		if not timedOnly or TIMED[id] then
-			local slot = values[id]
+			local slot = values[id] or {}
+			values[id] = slot
 			local text, grade = VALUES[id](s)
 			slot[1], slot[2] = text or false, grade or false
 		end
@@ -809,6 +841,10 @@ end
 local function Tooltip(item, tip)
 	local id, s = item.id, ns.Settings().strip
 	tip:AddTitle(TITLES[id])
+	if Strip.TOOLTIPS[id] then
+		Strip.TOOLTIPS[id](item, tip)
+		return
+	end
 	if id == "fps" then
 		local fps = Call(GetFramerate)
 		tip:AddDoubleLine(L["Frame rate"], IsNumber(fps) and format(L["%d fps"], floor(fps + 0.5)) or L["--"])
@@ -853,7 +889,7 @@ local function Tooltip(item, tip)
 		end
 	elseif id == "time" then
 		local now = Call(date, "*t")
-		if type(now) == "table" and IsNumber(now.hour) and IsNumber(now.min) then
+		if not ns.IsSecret(now) and type(now) == "table" and IsNumber(now.hour) and IsNumber(now.min) then
 			tip:AddDoubleLine(L["Local time"], Format.Clock(now.hour, now.min, s.clock24))
 		end
 		local hour, minute = Call(GetGameTime)
@@ -861,7 +897,7 @@ local function Tooltip(item, tip)
 			tip:AddDoubleLine(L["Realm time"], Format.Clock(hour, minute, s.clock24))
 		end
 		local today = Call(date, L["%A %d %B"])
-		if type(today) == "string" then
+		if not ns.IsSecret(today) and type(today) == "string" then
 			tip:AddLine(today, "text")
 		end
 		tip:AddDivider()
@@ -870,6 +906,7 @@ local function Tooltip(item, tip)
 		end
 		tip:AddLine(L["Right-click: switch between 12 and 24 hours."], "text")
 	end
+	if Strip.TOOLTIP_EXTRA[id] then Strip.TOOLTIP_EXTRA[id](item, tip) end
 end
 
 function Strip.ShowTooltip(item)
@@ -1076,7 +1113,7 @@ local function Build()
 	local frame = view.frame
 	local width, height, label, position = Footprint()
 	frame:SetSize(width, height)
-	for _, item in pairs(view.items) do
+	view.bind = function(item)
 		item.button:HookScript("OnEnter", OnEnter)
 		item.button:HookScript("OnLeave", OnLeave)
 		item.button.onClick = OnClick
@@ -1086,6 +1123,7 @@ local function Build()
 		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = max(MAX_WIDTH, K.Layout.RootSize()), maxHeight = MAX_HEIGHT,
 	})
 	Strip.view = view
+	frame:HookScript("OnShow", Strip.Refresh)
 	K.Safe.Side(K.Scale.Root()).dockDataStrip = Strip.Dock
 	return view
 end
@@ -1155,13 +1193,14 @@ function Strip.Setting(key)
 		return
 	end
 	local s = ns.Settings().strip
+	if not field and Strip.view then Strip.view.paintColor = nil end
 	if field == "orientation" then
 		MatchOrientation(s, true)
 	elseif field == "line" then
 		MatchLine(s)
 	end
 	Strip.Refresh()
-	if field and field:match("^slot%d$") then
+	if field == "modules" then
 		StartTicker()
 	end
 end
@@ -1190,6 +1229,10 @@ ns.AddPart({
 	Disable = Strip.Disable,
 	Setting = Strip.Setting,
 	Refresh = function()
+		if Strip.view then
+			Strip.view.paintColor = nil
+			for _, item in pairs(Strip.view.items) do item.font = nil end
+		end
 		Strip.Refresh()
 		StartTicker()
 	end,

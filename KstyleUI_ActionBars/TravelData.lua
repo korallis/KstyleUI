@@ -3,6 +3,7 @@ local _, ns = ...
 
 local Travel = {}
 ns.TravelData = Travel
+KstyleUI.Safe.Side(KstyleUI).travelData = Travel
 
 local CLASS = { 18960, 556, 698, 437169 }
 local PORTALS = { 3561, 3562, 3563, 3565, 3566, 3567, 1297659, 10059, 11416, 11417, 11418, 11419, 11420 }
@@ -88,7 +89,10 @@ function Travel.Hearth()
 		local start, duration = C_Item.GetItemCooldown(6948)
 		start, duration = Plain(start, "number"), Plain(duration, "number")
 		local now = type(GetTime) == "function" and Plain(GetTime(), "number")
-		if start and duration and now then cooldown = tostring(math.ceil(math.max(0, start + duration - now))) .. "s" end
+		if start and duration and now then
+			local remaining = math.max(0, start + duration - now)
+			cooldown = remaining == 0 and KstyleUI.L["ready"] or KstyleUI.Widgets.Duration.Format(remaining)
+		end
 	end
 	return bind, cooldown
 end

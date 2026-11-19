@@ -355,9 +355,10 @@ do
 		for key, value in pairs(node) do
 			local path = prefix and (prefix .. "." .. key) or key
 			local isColor = type(value) == "table" and value.r ~= nil
-			if type(value) == "table" and not isColor then
+			local declared = K.Options.Row("DataBars", path)
+			if type(value) == "table" and not isColor and not declared then
 				walk(value, path)
-			elseif path ~= "enabled" then
+			elseif not declared and path ~= "enabled" then
 				assert(K.Options.Row("DataBars", path), path .. " has a row in the settings window")
 			end
 		end

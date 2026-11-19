@@ -6,6 +6,7 @@
 	<Script file="Bars.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Strip.lua"/>
+	<Script file="Readouts.lua"/>
 	<Script file="Click.lua"/>
 	<Script file="Menus.lua"/>
 	<Script file="Settings.lua"/>

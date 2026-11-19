@@ -38,7 +38,6 @@ return Common.Run(function()
 			end
 		end,
 	})
-	K.Options.Write("DataBars", "strip.slot4", "durability")
 	env.RunTimers()
 	D.W.Settle(env)
 	if name == "hover" then

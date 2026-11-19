@@ -3,9 +3,10 @@ local D = dofile("Tools/regression/databars_env.lua")
 local function Rail(opts)
 	local env, K, ns, game = D.New(opts)
 	K.Options.Write("DataBars", "strip.menus", false)
+	D.RailModules(K, ns)
 	K.Options.Write("DataBars", "strip.placement", "rail")
-	K.Options.Write("DataBars", "strip.slot4", "none")
-	K.Options.Write("DataBars", "strip.slot5", "none")
+	D.Entry(K, 4, "none")
+	D.Entry(K, 5, "none")
 	return env, K, ns, game
 end
 
@@ -76,7 +77,7 @@ local function useCells(env, K)
 	Options.Write("DataBars", "strip.backdrop", true)
 	Options.Write("DataBars", "strip.valueColor", "highlight")
 	Options.Write("DataBars", "strip.fontSize", 12)
-	Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	assert(K.Layout.Update("databars.strip", { width = 318, height = 42 }))
 	env.RunTimers()
 end
@@ -91,8 +92,8 @@ do
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
 	local s = ns.Settings().strip
 	eq(shown(ns), "fps,latency,gold", "the default line: frame rate, latency, gold, and neither durability nor the clock")
-	eq(ns.defaults.strip.slot4, "durability", "durability defaults on")
-	eq(ns.defaults.strip.slot5, "time", "the clock defaults on")
+	eq(ns.defaults.strip.modules[7].id, "durability", "durability defaults on")
+	eq(ns.defaults.strip.modules[4].id, "time", "the clock defaults on")
 	eq(s.line, true, "the readout is one line by default")
 	eq(s.backdrop, false, "with no card behind it")
 	eq(s.labels, "inline", "units follow their values")
@@ -179,14 +180,14 @@ do
 	W.Leave(proxy)
 
 	-- Durability stays a slot choice.
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	eq(shown(ns), "fps,latency,gold,durability", "durability is selectable")
 	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "96% armour", "and reads with its unit at the line's left end")
 	eq(select(4, item(ns, "durability").button:GetPoint(1)), 0, "now it ends the line")
-	K.Options.Write("DataBars", "strip.slot4", "none")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 4, "none")
+	D.Entry(K, 5, "time")
 	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "14:32", "the clock too")
-	K.Options.Write("DataBars", "strip.slot5", "none")
+	D.Entry(K, 5, "none")
 
 	-- Units: the full and short label modes use the inline unit in the line; none leaves the values alone.
 	K.Options.Write("DataBars", "strip.labels", "full")
@@ -235,7 +236,7 @@ do
 	useCells(env, K)
 	local got = K.Layout.Get("databars.strip")
 	eq(shown(ns), "fps,latency,gold,durability", "the cells order, with no clock")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 5, "time")
 	eq(shown(ns), "fps,latency,gold,durability,time", "the fifth slot takes the clock")
 	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
@@ -276,9 +277,9 @@ end
 
 do
 	local env, K, ns, game = Rail()
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	K.Options.Write("DataBars", "strip.valueColor", "highlight")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 5, "time")
 	eq(env.LiveTickers(), 1, "one ticker runs while the strip shows a timed item")
 	game.fps, game.latencyHome = 25.4, 320
 	game.localTime.hour, game.localTime.min = 15, 1
@@ -333,14 +334,14 @@ do
 	local env, K, ns = Rail()
 	local Options = K.Options
 	useCells(env, K)
-	Options.Write("DataBars", "strip.slot5", "time")
-	Options.Write("DataBars", "strip.slot2", "none")
+	D.Entry(K, 5, "time")
+	D.Entry(K, 2, "none")
 	eq(shown(ns), "fps,gold,durability,time", "an empty slot drops its item")
-	Options.Write("DataBars", "strip.slot1", "time")
+	D.Entry(K, 1, "time")
 	eq(shown(ns), "time,gold,durability", "a slot can take another item, and a repeat shows once")
 	eq(item(ns, "fps").button:IsShown(), false, "an item in no slot hides")
-	Options.Write("DataBars", "strip.slot1", "fps")
-	Options.Write("DataBars", "strip.slot2", "latency")
+	D.Entry(K, 1, "fps")
+	D.Entry(K, 2, "latency")
 
 	Options.Write("DataBars", "strip.labels", "short")
 	eq(item(ns, "durability").label:GetText(), "DUR", "short captions")
@@ -426,7 +427,7 @@ do
 	layout = K.Layout.Get("databars.strip")
 	eq(layout.width .. "x" .. layout.height, "278x42", "a row strip returns to its footprint, as tall as a cell needs")
 	for i = 2, 5 do
-		Options.Write("DataBars", "strip.slot" .. i, "none")
+		D.Entry(K, i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
@@ -553,7 +554,7 @@ end
 
 do
 	local env, K, ns = Rail()
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 5, "time")
 	local opened
 	K.Options.Open = function(page)
 		opened = page
@@ -573,8 +574,8 @@ end
 
 do
 	local env, K, ns = Rail()
-	K.Options.Write("DataBars", "strip.slot4", "durability")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 4, "durability")
+	D.Entry(K, 5, "time")
 	local gold = item(ns, "gold").button
 	W.Enter(gold)
 	local proxy = assert(ns.Click.proxy, "hovering gold readies the secure proxy")
@@ -607,9 +608,9 @@ do
 	eq(proxy:IsShown(), false, "hiding the strip, as a shown rule does, puts the proxy away")
 	eq(K.Widgets.Tooltip():IsOwned(gold), false, "and its tooltip")
 	W.Enter(gold)
-	K.Options.Write("DataBars", "strip.slot3", "none")
+	D.Entry(K, 3, "none")
 	eq(proxy:IsShown(), false, "taking gold out of its slot puts the proxy away")
-	K.Options.Write("DataBars", "strip.slot3", "gold")
+	D.Entry(K, 3, "gold")
 	K.Options.Write("DataBars", "strip.clock24", true)
 
 	local inCombat = {}
@@ -642,7 +643,7 @@ end
 
 do
 	local env, K, ns, game = Rail()
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	game.durability[5] = { 10, 100 }
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 	W.Enter(item(ns, "durability").button)
@@ -668,7 +669,7 @@ do
 	local env, K, ns = Rail({ setup = function(e)
 		e.GetFramerate, e.GetNetStats, e.GetInventoryItemDurability = nil, nil, nil
 	end })
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	eq(item(ns, "fps").value:GetText(), "--", "no frame rate")
 	eq(item(ns, "latency").value:GetText(), "--", "no latency")
 	eq(item(ns, "durability").value:GetText(), "--", "no durability")
@@ -684,7 +685,7 @@ do
 	parent:SetSize(248, 400)
 	local frame = K.Options.Preview("DataBars")(parent)
 	local sample = assert(frame.strip, "the preview shows a strip")
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	frame:Refresh()
 	eq(sample.lineMode, true, "the preview draws the line by default")
 	eq(sample.items.latency.value:GetText(), "34", "with the latency's unit after it")
@@ -775,7 +776,7 @@ do
 		end,
 	})
 	env.RunTimers()
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	D.Entry(K, 5, "time")
 	useCells(env, K)
 	assert(K.Layout.Update("databars.strip", { width = 318, height = 118 }))
 	env.RunTimers()

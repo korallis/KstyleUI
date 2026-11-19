@@ -10,6 +10,8 @@ ns.Click = Click
 local OVERLAY_LEVEL = 5
 local TARGETS = {
 	gold = { "MainMenuBarBackpackButton" },
+	bags = { "MainMenuBarBackpackButton" },
+	spec = { "TalentMicroButton" },
 	durability = { "CharacterMicroButton" },
 	time = { "GameTimeFrame", "TimeManagerClockButton" },
 }
@@ -17,6 +19,7 @@ local TARGETS = {
 local current
 
 function Click.Target(id)
+	if id == "spec" and ns.Readouts.CanSwitch() then return nil end
 	local names = TARGETS[id]
 	if not names then
 		return nil
@@ -121,7 +124,7 @@ end
 
 function Click.Attach(item)
 	local target = Click.Target(item.id)
-	if not target or InCombatLockdown() then
+	if (not target and item.id ~= "hearth") or InCombatLockdown() then
 		return false
 	end
 	local button = Ensure()
@@ -132,8 +135,9 @@ function Click.Attach(item)
 		return false
 	end
 	current = item
-	button:SetAttribute("type1", "click")
+	button:SetAttribute("type1", item.id == "hearth" and "item" or "click")
 	button:SetAttribute("clickbutton1", target)
+	button:SetAttribute("item1", item.id == "hearth" and "item:6948" or nil)
 	local strata = item.button:GetFrameStrata()
 	if type(strata) == "string" and not ns.IsSecret(strata) then
 		button:SetFrameStrata(strata)

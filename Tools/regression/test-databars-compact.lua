@@ -3,9 +3,10 @@ local D = dofile("Tools/regression/databars_env.lua")
 local function Rail(opts)
 	local env, K, ns, game = D.New(opts)
 	K.Options.Write("DataBars", "strip.menus", false)
+	D.RailModules(K, ns)
 	K.Options.Write("DataBars", "strip.placement", "rail")
-	K.Options.Write("DataBars", "strip.slot4", "none")
-	K.Options.Write("DataBars", "strip.slot5", "none")
+	D.Entry(K, 4, "none")
+	D.Entry(K, 5, "none")
 	return env, K, ns, game
 end
 
@@ -80,7 +81,7 @@ do
 	eq(proxy:GetAttribute("clickbutton1"), env.MainMenuBarBackpackButton, "gold opens Blizzard's bags")
 	assert(K.Widgets.Tooltip():IsOwned(gold), "and shows its tooltip")
 	W.Leave(proxy)
-	K.Options.Write("DataBars", "strip.slot4", "durability")
+	D.Entry(K, 4, "durability")
 	W.Enter(ns.Strip.view.items.durability.button)
 	eq(proxy:GetAttribute("clickbutton1"), env.CharacterMicroButton, "durability opens the character sheet")
 	W.Leave(proxy)
@@ -92,7 +93,7 @@ do
 		assert(type(r.help) == "string" and r.help ~= "", id .. ".shown has help text")
 	end
 
-	K.Options.Write("DataBars", "strip.slot4", "none")
+	D.Entry(K, 4, "none")
 
 	-- Undocked, a row shown is its own element and the line does not move.
 	K.Options.Write("DataBars", "micro.shown", true)

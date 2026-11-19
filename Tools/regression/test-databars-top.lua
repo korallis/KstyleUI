@@ -23,7 +23,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	end
 	assert(view.zones.left and view.zones.centre and view.zones.right)
 	assert(view.topBar and view.lineMode)
-	assert(table.concat(ns.Strip.order, ",") == "fps,latency,gold,durability,time", "all five readouts default to the right zone")
+	assert(table.concat(ns.Strip.order, ",") == "hearth,time,friends,durability,bags,fps,latency,gold", "the default readouts occupy their zones")
 	near(Layout.Get("databars.strip").width, Layout.RootSize())
 	assert(view.items.fps.button._points[1][2] == view.zones.right)
 	for _, id in ipairs(ns.Strip.order) do
@@ -45,7 +45,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local _, _, _, x, y = preview.card:GetPoint()
 	near(x, 0)
 	near(y, 0)
-	assert(table.concat(ns.Strip.Order({ slot1 = "fps", slot2 = "latency", slot3 = "gold", slot4 = "durability", slot5 = "time" }), ",") == "fps,latency,gold,durability,time")
+	assert(table.concat(ns.Strip.Order({ modules = { { id = "fps", shown = true }, { id = "latency", shown = true }, { id = "gold", shown = true }, { id = "durability", shown = true }, { id = "time", shown = true } } }), ",") == "fps,latency,gold,durability,time")
 	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 	frame:SetSize(100, 40)
 	Layout.Register(frame, "minimap.main", { anchor = "TOPRIGHT", x = -17, y = -40 })
@@ -118,7 +118,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	clockRow:SetSize(700, 48)
 	options.Rows.Update(clockRow, items[1], nil, list)
 	assert(not clockRow.controls.toggle:GetValue() and not clockRow.controls.toggle:IsEnabled(), "the hidden minimap clock paints OFF and disabled")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	local modules = D.CoreEnv.DeepCopy(ns.Settings().strip.modules)
+	K.Options.Write("DataBars", "strip.modules", modules)
 	assert(not clock:IsShown(), "the minimap foot yields to the bar's clock")
 	K.Options.Write("DataBars", "strip.enabled", false)
 	assert(clock:IsShown(), "turning the bar off returns the minimap clock")
@@ -126,9 +127,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(clockRow.controls.toggle:GetValue() and clockRow.controls.toggle:IsEnabled(), "the minimap clock row restores its saved value when the bar is off")
 	K.Options.Write("DataBars", "strip.enabled", true)
 	assert(not clock:IsShown())
-	K.Options.Write("DataBars", "strip.slot5", "none")
+	modules[4].shown = false
+	K.Options.Write("DataBars", "strip.modules", modules)
 	assert(clock:IsShown(), "turning only the bar's clock off returns the minimap clock")
-	K.Options.Write("DataBars", "strip.slot5", "time")
+	modules[4].shown = true
+	K.Options.Write("DataBars", "strip.modules", modules)
 	K.Modules.Disable("DataBars")
 	assert(clock:IsShown(), "disabling DataBars also returns the minimap clock")
 	assert(#env._errors == 0, tostring(env._errors[1]))

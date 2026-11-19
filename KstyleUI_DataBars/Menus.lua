@@ -99,7 +99,13 @@ local function Active(id)
 end
 
 local function Visible(id)
-	return Active(id) and Settings(id).shown == true
+	if not Active(id) or Settings(id).shown ~= true then return false end
+	if id == "micro" then
+		for _, entry in ipairs(ns.Settings().strip.modules or {}) do
+			if entry.id == "micro" then return entry.shown end
+		end
+	end
+	return true
 end
 Menus.Visible = Visible
 
@@ -1019,6 +1025,10 @@ function Menus.Disable()
 end
 
 function Menus.Setting(key)
+	if key == "strip.modules" then
+		Sync(bars.micro)
+		return
+	end
 	if key == "accentSource" or key == "accentColor" then
 		RepaintMicro()
 		return

@@ -25,7 +25,6 @@ return Common.Run(function()
 			end
 		end,
 	})
-	K.Options.Write("DataBars", "strip.slot4", "durability")
 	env.RunTimers()
 	D.W.Settle(env)
 	local scene = Common.Scene.Build(env)

@@ -101,7 +101,7 @@ The zone's heading is 22 units (`Format.HEADING`) and the row under the card 14 
 | Local time, 24-hour or 12-hour | `date("*t")` |
 | Realm time, 24-hour or 12-hour | `GetGameTime()` |
 
-The clock ticks once a second through `C_Timer.NewTicker`, only while the module runs and the clock shows. A client without `NewTicker` counts with `OnUpdate` on the caption frame and logs it. The clock shows in one place: the data strip's time slot is a DataBars choice that no default slot uses.
+The clock ticks once a second through `C_Timer.NewTicker`, only while the module runs and the clock shows. A client without `NewTicker` counts with `OnUpdate` on the caption frame and logs it. The clock shows in one place: it hides while the enabled data bar has its Clock module switched on, and returns when that module, the bar or DataBars is hidden. The check reads the ordered `strip.modules` list.
 
 ### Coordinates
 

@@ -1094,6 +1094,7 @@ local BACKPACK, KEYRING = 133633, 134237
 
 function modules.databars(opts)
 	local D = dofile("Tools/regression/databars_env.lua")
+	local Readouts = dofile("Tools/regression/databars_readouts_fixture.lua")
 	local portraitNote
 	local class = Hud.Class(opts)
 	local env, K, ns = D.New({
@@ -1104,6 +1105,7 @@ function modules.databars(opts)
 		setup = function(env)
 			shared(env, opts)
 			Common.ForceScreen(env, true)
+			Readouts(env)
 			if opts.menus ~= false then
 				D.Menus(env, {
 					bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
@@ -1120,6 +1122,8 @@ function modules.databars(opts)
 	})
 	env.RunTimers()
 	D.W.Settle(env)
+	dofile("Tools/regression/load_files.lua")({ "KstyleUI_ActionBars/TravelData.lua" }, env)
+	ns.Strip.Refresh()
 	local scene = build(env, opts)
 	if portraitNote then
 		scene.log[#scene.log + 1] = portraitNote
