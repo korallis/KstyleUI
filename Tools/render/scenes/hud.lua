@@ -1644,9 +1644,10 @@ function modules.restedxp(opts)
 		R.env.RunTimers()
 		R.ns.RestedXP.Rail.Place()
 	end
-	-- RENDER_RXP_BOXES=1 shows RestedXP's Active Targets and Active Items boxes, each with one icon, starting from the
-	-- places the owner's RestedXP settings saved for them (KSTY-77), so the render shows where the rail docks them.
-	if (rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")) == "1" then
+	-- RENDER_RXP_BOXES=1 shows both boxes with one icon; =click also changes RestedXP's target scale and clicks its
+	-- locked title without moving it, reproducing a false drag that used to release both boxes (#484).
+	local boxes = rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")
+	if boxes == "1" or boxes == "click" then
 		local rxp, UIParent = R.rxp, R.env.UIParent
 		local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 		items:ClearAllPoints()
@@ -1655,12 +1656,24 @@ function modules.restedxp(opts)
 		targets:SetPoint("RIGHT", UIParent, "RIGHT", -191.5, -276.6)
 		rxp.targeting:UpdateTargetFrame(1, 0)
 		rxp.UpdateItemFrame(nil, 1)
+		items.buttonList[1].icon:SetTexture(135230)
+		targets.enemyTargetButtons[1].icon:SetTexture(132333)
 		for _, frame in ipairs({ items, items.title, R.K.Skin.Parts(items).backdrop }) do
 			frame:Show()
 		end
 		R.env.RunTimers()
 		R.ns.RestedXP.Rail.Place()
 		R.S.W.Settle(R.env)
+		if boxes == "click" then
+			rxp.settings.profile.activeTargetScale = 1.25
+			targets:UpdateVisuals()
+			rxp.settings.profile.lockFrames = true
+			targets.title:GetScript("OnMouseDown")(targets.title, "LeftButton")
+			targets.title:GetScript("OnMouseUp")(targets.title, "LeftButton")
+			rxp.SetStep()
+			R.env.RunTimers()
+			R.S.W.Settle(R.env)
+		end
 	end
 	local scene = build(R.env, opts)
 	for _, line in ipairs(R.log) do
