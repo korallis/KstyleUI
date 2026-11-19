@@ -232,6 +232,7 @@ local function Within(k, height, maximum, fits)
 	if top * step > maximum then
 		top = top - 1
 	end
+	low = min(low, top)
 	k = max(low, min(k, top))
 	while fits and k > low and not fits(k * step) do
 		k = k - 1

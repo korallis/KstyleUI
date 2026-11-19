@@ -25,6 +25,9 @@ local function step(height)
 	return 1080 / (Scale.STEPS_PER_PIXEL * height)
 end
 
+assert(Scale.Auto(1024, 0.62117715747328) == 9 * step(1024), "1280x1024 Both: use the step below the fit cap when the normal minimum step would overlap the Orbs")
+assert(Scale.Nearest(0.84210526315789, 1024, 0.62117715747328) <= 0.62117715747328, "manual size also stays below the fit cap")
+
 -- LEE-1461: Scale.Within took the step a hair above a cap that sits just under a whole step. At 2043 x 855 with Tank the
 -- cap was 0.947368421052572 and the applied size 0.947368421052632, where the party frames met action bar 3.
 do

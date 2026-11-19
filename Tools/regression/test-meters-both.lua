@@ -42,7 +42,7 @@ do
 	assert(K.Store.Layout()["meters.damage"].width == 248, "persist the updated default width")
 end
 
-for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 4236, 1495 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 4236, 1495 }, { 1280, 1024 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
@@ -96,4 +96,4 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end
 	end
 end
-print("DPS and manual meter choices ok: 3 styles, 3 layouts, 6 screens")
+print("DPS and manual meter choices ok: 3 styles, 3 layouts, 7 screens")
