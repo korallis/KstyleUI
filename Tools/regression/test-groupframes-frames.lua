@@ -113,11 +113,10 @@ eq(env.Reveal(value[1]), 92, "the bar gets party1's health")
 local range = last(c.health, "SetMinMaxValues")
 eq(range[1], 0, "the bar starts at 0")
 eq(env.Reveal(range[2]), 100, "and ends at the secret maximum")
--- KSTY-57: every bar is the mock-ups' one friendly green and the name carries the class colour; the class colour
--- on the bar stays a setting.
+-- Health bars and names use the member's class colour by default.
 local color = last(c.health, "SetStatusBarColor")
-local gr0, gg0, gb0 = K.Tokens.Color("friendly")
-assert(near(color[1], gr0) and near(color[2], gg0) and near(color[3], gb0), "party1's bar is the friendly green")
+local gr0, gg0, gb0 = K.Theme.ClassColor("WARRIOR")
+assert(near(color[1], gr0) and near(color[2], gg0) and near(color[3], gb0), "party1's bar uses its class colour")
 local warrior = G.CLASS_COLORS.WARRIOR
 local nr, ng, nb = c.name:GetTextColor()
 assert(near(nr, warrior[1]) and near(ng, warrior[2]) and near(nb, warrior[3]), "and its name is warrior coloured")

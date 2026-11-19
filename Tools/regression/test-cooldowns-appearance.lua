@@ -23,6 +23,18 @@ local function appearance()
 	assert(W.Near(edge[1], er) and W.Near(edge[2], eg) and W.Near(edge[3], eb) and W.Near(edge[4], ea), "quiet mode rests on the slot's lit rim, not the class colour")
 end
 appearance()
+assert(ns.Settings.current.timerOutline == "INHERIT", "timers follow readability by default")
+for _, readable in ipairs({ false, true }) do
+	K.Options.Write("Appearance", "worldText", readable)
+	for _, path in ipairs({ "mirror", "reskin" }) do
+		K.Options.Write("Cooldowns", "path", path)
+		local text = path == "mirror" and ns.Mirror.Row("essential").icons[1].countdown
+			or env._viewers.EssentialCooldownViewer._items[1].Cooldown:GetCountdownFontString()
+		local _, _, flags = text:GetFont()
+		assert(flags == (readable and "OUTLINE" or ""), path .. " timers follow the readability setting")
+	end
+end
+K.Options.Write("Cooldowns", "path", "auto")
 ns.Style.SetProc(icon, true)
 local r, g, b = K.Tokens.Color("giltLit")
 assert(icon.chrome.proc == true, "the proc rim is delegated to shared chrome, not redrawn locally")

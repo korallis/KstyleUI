@@ -192,11 +192,12 @@ local SIZES = {
 	socketGap = 8,
 	screenMargin = 17,
 	rowHeight = 24,
+	barHeight = 12,
 	lootTile = 24,
 	lootText = 14,
 }
 
-local SHARES = {}
+local SHARES = { rowHover = 0.05 }
 
 local DURATIONS = {
 	dangerBreath = 0.8,
@@ -305,9 +306,9 @@ local TYPE_SET_VALUES = {
 local ROLE_ORDER = { "display", "heading", "title", "caps", "names", "unit", "body", "prose", "caption", "number", "time", "timer", "world" }
 
 local STATUSBARS = {
+	{ key = "Flat", label = "Flat", path = TEXTURES_DIR .. "BarFlat.png" },
 	{ key = "Glass", label = "Glass", path = TEXTURES_DIR .. "BarGlass.png" },
 	{ key = "Soft", label = "Soft", path = TEXTURES_DIR .. "BarSoft.png" },
-	{ key = "Flat", label = "Flat", path = TEXTURES_DIR .. "BarFlat.png" },
 }
 
 local TEXTURES = {

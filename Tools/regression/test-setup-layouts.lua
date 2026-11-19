@@ -290,7 +290,7 @@ for _, name in ipairs(names) do
 		assert(map.top == HEIGHT - (EDGE - 1 + MAP_HEADING) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 208 map heads the right rail under its 22-unit zone heading, with its 14-unit row under it")
 		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top + MAP_HEADING - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the map and 2.4 under the top of the zone heading over it")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
-		assert(auraBuffs.w == 306.5 and auraBuffs.h == 41.5 and auraDebuffs.w == 306.5 and auraDebuffs.h == 41.5, label .. ": each aura row is ten 27.5-unit icons 3.5 apart, 306.5 x 41.5")
+		assert(auraBuffs.w == 307.5 and auraBuffs.h == 41.6 and auraDebuffs.w == 307.5 and auraDebuffs.h == 41.6, label .. ": each aura row is ten 27.6-unit icons 3.5 apart, 307.5 x 41.6")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
 		assert(meter.bottom == EDGE and meter.h == 158, label .. ": the damage card stands at the rail's foot on the margin")
 		assert(math.abs(strip.bottom - meter.top - 6) < 1e-6 and strip.h == 12, label .. ": the readout line stands 6 over the damage card")
@@ -592,8 +592,8 @@ local FOOTPRINTS = {
 	-- row of ten 27.5-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
 	-- 0 to 40 buffs); the 269 x 158 damage card; the readout as one 12-unit line.
 	["minimap.main"] = { 208, 222 },
-	["auras.buffs"] = { 306.5, 41.5 },
-	["auras.debuffs"] = { 306.5, 41.5 },
+	["auras.buffs"] = { 307.5, 41.6 },
+	["auras.debuffs"] = { 307.5, 41.6 },
 	["meters.damage"] = { 269, 158 },
 	["meters.threat"] = { 200, 112 },
 	["databars.strip"] = { 278, 12 },

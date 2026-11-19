@@ -61,7 +61,12 @@ do
 	eq(K.Store.Defaults("GroupFrames").text.nameFont, "theme", "the saved default is the sentinel, not a captured file")
 	eq((tank.name:GetFont()), compact, "a captioned party deliberately keeps the compact face by default")
 	local healthFace = (tank.healthText:GetFont())
-	eq(healthFace, K.Tokens.FontPath("AlegreyaSansExtraBold"), "the old health default stays Alegreya Sans ExtraBold")
+	eq(healthFace, (K.Tokens.Font("number")), "the health default follows the number role")
+	K.Options.Write("Appearance", "roleFontNumber", ROLE_FACE)
+	env.RunTimers()
+	eq((tank.healthText:GetFont()), K.Tokens.FontPath(ROLE_FACE), "health text follows an explicit number role")
+	K.Options.Write("Appearance", "roleFontNumber", "")
+	env.RunTimers()
 	local parts, caption = tank.parts, tank.classLine:GetText()
 	local nameWidth, healthTop, roleLeft = parts.name.width, parts.health.top, parts.icons.role.left
 	local originalSize = uniform(ns, compact, "default party")

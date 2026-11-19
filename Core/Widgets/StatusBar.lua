@@ -5,7 +5,7 @@ local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 local min = math.min
 
-local DEFAULT_TEXTURE = "Glass"
+local DEFAULT_TEXTURE = "Flat"
 local SPARK_WIDTH = 10
 local SPARK_HEIGHT_SHARE = 1.8
 local SPARK_ALPHA = 0.8

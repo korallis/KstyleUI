@@ -145,7 +145,7 @@ for name, want in pairs({
 	radius = 14, radiusTile = 8, chamferPanel = 14, chamferTile = 8, chamferWindow = 14, shadow = 14, shadowOffset = 3,
 	gapSmall = 4, gapMedium = 8, gapLarge = 12, gapHuge = 16, gapXLarge = 20, gapXXLarge = 28,
 	railWidth = 318, railPadding = 20, sectionGap = 22, rowGap = 12, socketGap = 8, screenMargin = 17, tick = 15,
-	actionButton = 34, actionGap = 3, cooldownEssential = 40,
+	actionButton = 34, actionGap = 3, cooldownEssential = 40, barHeight = 12,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, time = 12, timer = 11, world = 13, textShadowOffset = 1,
 	pressOffset = 1, panelRise = 6, panelOvershoot = 2,
@@ -159,6 +159,7 @@ for _, name in ipairs({ "chamfer", "chamferIcon", "radiusSocket" }) do
 end
 assert(not pcall(Tokens.Size, "buttonBezel"), "the chamfered button's bezel is retired")
 assert(not pcall(Tokens.Share, "nope"), "an unknown share is an error")
+assert(Tokens.Share("rowHover") == 0.05, "list rows share the kit's five-percent hover wash")
 -- Lumen's motion: hover 0.12, combat in 0.24, combat out 0.6 after 3 seconds, proc breathing 0.7.
 for name, want in pairs({
 	hover = 0.12, combatIn = 0.24, combatOut = 0.6, combatOutDelay = 3, panelOpen = 0.25, panelRise = 0.4, panelClose = 0.15,
@@ -207,6 +208,7 @@ assert(Tokens.TextStyle("display") == 0.6 and Tokens.TextStyle("heading") == 0.4
 
 -- Media lists for the settings window and LibSharedMedia.
 local fonts, bars = Tokens.MediaList("font"), Tokens.MediaList("statusbar")
+assert(bars[1].key == "Flat", "Flat is the shared default bar texture")
 assert(#fonts == 20 and #bars == 3, "the original seven faces, six Folio faces, the two Medallions number faces, the five role-only faces and three status bars")
 assert(fonts[1].key == "CinzelSemiBold", "Lumen's faces come first")
 local sets = Tokens.MediaList("fontSet")

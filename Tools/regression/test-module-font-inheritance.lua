@@ -75,14 +75,14 @@ do
 	local explicit = K.Tokens.FontPath("InterSemiBold")
 	local nameDefault = ns.Settings.THEME_FONT
 	local compact = ns.Settings.COMPACT_NAME_FONT
-	local healthDefault = K.Tokens.FontPath("AlegreyaSansExtraBold")
+	local healthDefault = "theme"
 	eq(ns.Settings.defaults.text.nameFont, nameDefault, "group names retain the staging theme sentinel")
 	eq(compact, K.Tokens.FontPath("AlegreyaSansRegular"), "compact lanes retain the proven file")
-	eq(ns.Settings.defaults.text.healthFont, healthDefault, "group health retains the staging default file")
+	eq(ns.Settings.defaults.text.healthFont, healthDefault, "group health retains the theme sentinel")
 	for _, key in ipairs({ "Folio", "Lumen", "SourceSans3Regular" }) do
 		face(env, K, key)
 		font(member.name, K.Tokens.IsFontSet(key) and compact or (K.Tokens.Font("names")), "group names retain the compact kit face or explicit global override")
-		font(member.healthText, healthDefault, "group health intentionally keeps the original file")
+		font(member.healthText, (K.Tokens.Font("number")), "group health follows the number role")
 	end
 	write(K, "GroupFrames", "text.nameFont", explicit)
 	write(K, "GroupFrames", "text.healthFont", explicit)
@@ -96,7 +96,7 @@ do
 	for _, key in ipairs({ "Folio", "Lumen", "SourceSans3Regular" }) do
 		face(env, K, key)
 		font(member.name, K.Tokens.IsFontSet(key) and compact or (K.Tokens.Font("names")), "reset group name restores the staging theme treatment")
-		font(member.healthText, healthDefault, "reset group health restores the intentional Lumen default")
+		font(member.healthText, (K.Tokens.Font("number")), "reset group health restores the number role")
 	end
 	for _, word in ipairs({ "theme", "kit" }) do
 		write(K, "GroupFrames", "text.nameFont", explicit)

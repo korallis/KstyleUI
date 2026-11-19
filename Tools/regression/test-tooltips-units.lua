@@ -225,6 +225,7 @@ do
 	assert(p1[1] == "BOTTOMLEFT" and p1[2] == tip and p1[3] == "BOTTOMLEFT" and p1[4] > 0 and p1[5] > 0, "inside the tooltip's bottom left corner")
 	assert(p2[1] == "BOTTOMRIGHT" and p2[2] == tip and p2[3] == "BOTTOMRIGHT" and p2[4] < 0 and p2[5] == p1[5], "and its bottom right")
 	local size = K.Options.Read("Tooltips", "bar.size")
+	assert(size == K.Tokens.Size("barHeight"), "tooltip health uses the shared default bar height")
 	local _, padBottom = tip:GetPadding()
 	assert(padBottom == size + ns.Health.GAP, "the tooltip grows by the bar and a gap: " .. tostring(padBottom))
 	assert(bar.opts.height == size, "the bar is as tall as its setting")

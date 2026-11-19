@@ -132,6 +132,7 @@ function Style.Build(f, kind)
 end
 
 local function SetFont(text, path, size, outline)
+	if Theme.FollowsKit(path) then path = Tokens.Font("number") end
 	local flags = outline == "NONE" and "" or outline
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		local fallback = Tokens.Font("body")

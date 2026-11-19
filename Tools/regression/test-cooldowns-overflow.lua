@@ -162,7 +162,7 @@ assert(near(top.top, barsHolder.top), "the first bar heads the stack, as the moc
 assert(near(barChipRect.bottom, barsHolder.top + bars.cfg.spacing) and near(barChipRect.left, top.left) and near(barChipRect.right, top.right), "the chip is one more bar slot on top of the stack, one gap away")
 assert(barChip.chrome.ownFill and barChip.chrome.fillColor[4] == 1, "an opaque tile")
 local rw, rh = bars.holder:GetSize()
-assert(rw == 243 and rh == 43, "the bars keep their 243 by 43 footprint")
+assert(rw == 243 and rh == 27, "the bars keep their 243 by 27 footprint")
 do
 	local tip = env.GameTooltip
 	barChip:GetScript("OnEnter")(barChip)

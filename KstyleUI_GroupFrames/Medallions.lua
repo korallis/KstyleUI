@@ -22,7 +22,6 @@ local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
-local NUMBER_FACE = Tokens.FontPath("PTSerifBold")
 local LOOK = {
 	party = { portrait = true, roleRing = false },
 	raid = { textLayout = "INSIDE", power = false, buffCount = 0 },
@@ -449,7 +448,7 @@ local function Tile(f, parts, k)
 		end
 		fit.set(f.name, fit.size)
 	end
-	Style.SetFont(f.healthText, NUMBER_FACE, k.healthTextSize, TILE_TEXT)
+	Style.SetFont(f.healthText, Settings.current.text.healthFont, k.healthTextSize, TILE_TEXT)
 	ShowCap(f, false)
 	if block then
 		local _, percent = TextReserve(f, k)

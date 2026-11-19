@@ -19,6 +19,8 @@ eq(K.Modules.IsRunning("GroupFrames"), false, "GroupFrames does not run until it
 -- The footprints from element-keys.md are the defaults.
 local d = K.Store.Defaults("GroupFrames")
 assert(type(d) == "table", "GroupFrames registers its defaults")
+eq(d.health.colorSource, "class", "party and raid health default to class colour")
+eq(d.text.healthFont, "theme", "health figures follow the number role")
 eq(d.party.width, 259, "party width default: the mock-up's 194 row and its 65-unit debuff lane")
 eq(d.party.height, 39, "party height default: the name line, a 12-unit bar and a 3-unit power line")
 eq(d.party.spacing, 13, "party spacing default: the mock-up's 52-unit pitch")
@@ -115,6 +117,9 @@ assert(type(schema.preview) == "function", "GroupFrames gives the settings windo
 -- A damaged or hand-edited value reads as its default; a number out of range is clamped.
 local S = ns.Settings
 local saved = K.Store.Module("GroupFrames")
+local glass = K.Tokens.Texture("barGlass")
+saved.health.texture = glass
+eq(S.Get("health.texture"), glass, "an explicit saved Glass texture stays selected")
 saved.party.growth = "SIDEWAYS"
 saved.party.width = 9999
 saved.raid.sortBy = 42

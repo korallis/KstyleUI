@@ -96,10 +96,10 @@ do
 	end
 	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "one row of ten buffs and one of ten debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.Expiration and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by use: the engine's Expiration comparator (yours, then ones you can cast, then the soonest to end, always-on after timed)")
-	check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14, "each buff is a 27.5-unit icon (whole pixels at this size) with its 10-unit timer in 14 units under it")
-	check(bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "icons on one 31-unit pitch of whole pixels, 4 between rows")
+	check(bg.layout.elementWidth == K.Scale.Snap(27.6) and bg.layout.elementHeight == K.Scale.Snap(27.6) + 14, "each buff is a 27.6-unit icon (whole pixels at this size) with its 10-unit timer in 14 units under it")
+	check(bg.layout.elementSpacing == K.Scale.Snap(31.1) - K.Scale.Snap(27.6) and bg.layout.lineSpacing == 4, "icons on one 31-unit pitch of whole pixels, 4 between rows")
 	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs list the first aura at the left, then down")
-	check(buffs._flow.lineSize >= 10 * K.Scale.Snap(27.5) + 9 * (K.Scale.Snap(31) - K.Scale.Snap(27.5)) and buffs._flow.lineSize < 11 * K.Scale.Snap(27.5) + 10 * (K.Scale.Snap(31) - K.Scale.Snap(27.5)), "ten icons fit on a line, and an eleventh wraps")
+	check(buffs._flow.lineSize >= 10 * K.Scale.Snap(27.6) + 9 * (K.Scale.Snap(31.1) - K.Scale.Snap(27.6)) and buffs._flow.lineSize < 11 * K.Scale.Snap(27.6) + 10 * (K.Scale.Snap(31.1) - K.Scale.Snap(27.6)), "ten icons fit on a line, and an eleventh wraps")
 
 	local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
 	check(b and d, "both elements register with Layout under the element keys")
@@ -109,11 +109,11 @@ do
 	-- under the buffs (test-auras-rows.lua has the positions against the minimap element).
 	local mapW, margin = K.Setup.Layouts.Element("minimap.main").width, K.Tokens.Size("screenMargin") + K.Setup.Layouts.MAP_FRAME
 	check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + mapW + 11.9)) and near(b.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4)), "buffs stand beside the minimap")
-	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 11.9)) and near(d.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4 + 41.5 + 8)), "debuffs hang under the buffs")
+	check(d.position.anchor == "TOPRIGHT" and near(d.position.x, -(margin + mapW + 11.9)) and near(d.position.y, -(margin - K.Setup.Layouts.MAP_FRAME + 1.4 + 41.6 + 8)), "debuffs hang under the buffs")
 	local w, h = size(b.frame)
-	check(near(w, 10 * K.Scale.Snap(27.5) + 9 * (K.Scale.Snap(31) - K.Scale.Snap(27.5))) and near(h, K.Scale.Snap(27.5) + 14), "the buff element is its row of ten, 306.5 x 41.5 in units, whole pixels at this size, got " .. tostring(w) .. " x " .. tostring(h))
+	check(near(w, 10 * K.Scale.Snap(27.6) + 9 * (K.Scale.Snap(31.1) - K.Scale.Snap(27.6))) and near(h, K.Scale.Snap(27.6) + 14), "the buff element is its row of ten, 307.5 x 41.6 in units, whole pixels at this size, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)
-	check(near(w, 10 * K.Scale.Snap(27.5) + 9 * (K.Scale.Snap(31) - K.Scale.Snap(27.5))) and near(h, K.Scale.Snap(27.5) + 14), "the debuff element is its row, 306.5 x 41.5 in units")
+	check(near(w, 10 * K.Scale.Snap(27.6) + 9 * (K.Scale.Snap(31.1) - K.Scale.Snap(27.6))) and near(h, K.Scale.Snap(27.6) + 14), "the debuff element is its row, 307.5 x 41.6 in units")
 	check(not isAncestor(b.frame, buffs), "the Layout element is not an ancestor of the container, so Layout never touches an aura button")
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
@@ -125,7 +125,7 @@ do
 		check(aura.cancel == "RightButtonUp", "right-click cancels a buff through the secure template")
 		check(#aura.dispel == 0, "buffs show no dispel border")
 		local bw, bh = button:GetSize()
-		check(near(bw, K.Scale.Snap(27.5)) and near(bh, K.Scale.Snap(27.5) + 14), "an aura button is sized to its element")
+		check(near(bw, K.Scale.Snap(27.6)) and near(bh, K.Scale.Snap(27.6) + 14), "an aura button is sized to its element")
 	end
 	for _, button in ipairs(groupButtons(dg)) do
 		local aura = button._aura
@@ -193,7 +193,7 @@ do
 
 	K.Options.Write("Auras", "timer.format", "none")
 	check(groupButtons(dg)[1]._aura.timer == nil, "a hidden timer is cleared from the engine")
-	check(dg.layout.elementHeight == K.Scale.Snap(27.5), "and takes no room under the icon")
+	check(dg.layout.elementHeight == K.Scale.Snap(27.6), "and takes no room under the icon")
 	K.Options.Write("Auras", "timer.format", "long")
 	local aura = groupButtons(dg)[1]._aura
 	check(aura.timer, "the timer comes back")
@@ -331,7 +331,7 @@ do
 	check(#events == 1, "Auras holds one PLAYER_ENTERING_WORLD handler, got " .. #events)
 	env._aurasSecret = true
 	K.Options.Write("Auras", "debuffs.iconSize", 24)
-	check(near(groupButtons(dg)[1]:GetSize(), K.Scale.Snap(27.5)), "no debuff button is resized while auras are secret")
+	check(near(groupButtons(dg)[1]:GetSize(), K.Scale.Snap(27.6)), "no debuff button is resized while auras are secret")
 	env._aurasSecret = false
 	env.FireEvent("PLAYER_ENTERING_WORLD", false, true)
 	env.RunTimers()
@@ -346,7 +346,7 @@ do
 	env.C_Secrets = nil
 	env.SetCombat(true)
 	K.Options.Write("Auras", "buffs.iconSize", 20)
-	check(near(groupButtons(bg)[1]:GetSize(), K.Scale.Snap(27.5)), "nothing is resized in combat")
+	check(near(groupButtons(bg)[1]:GetSize(), K.Scale.Snap(27.6)), "nothing is resized in combat")
 	env.SetCombat(false)
 	env.RunTimers()
 	check(near(groupButtons(bg)[1]:GetSize(), 20), "the change lands when combat ends")
@@ -358,7 +358,7 @@ do
 	local _, bg = A.Container(env, "HELPFUL")
 	env.SetCombat(true)
 	K.Options.Write("Auras", "buffs.iconSize", 22)
-	check(near(groupButtons(bg)[1]:GetSize(), K.Scale.Snap(27.5)), "nothing is resized in combat")
+	check(near(groupButtons(bg)[1]:GetSize(), K.Scale.Snap(27.6)), "nothing is resized in combat")
 	env.SetCombat(false)
 	env.RunTimers()
 	check(near(groupButtons(bg)[1]:GetSize(), 22), "the change lands when combat ends")

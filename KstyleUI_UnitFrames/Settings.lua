@@ -70,13 +70,6 @@ local function Color(token)
 end
 
 local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
-local FLAT_TEXTURE
-for _, item in ipairs(Tokens.MediaList("statusbar")) do
-	if item.key == "Flat" then
-		FLAT_TEXTURE = item.path
-	end
-end
-FLAT_TEXTURE = FLAT_TEXTURE or BAR_TEXTURE
 
 local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "INHERIT" }
@@ -170,13 +163,13 @@ Settings.defaults = {
 	player = Kind(true, {
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
-		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
+		healthColor = "hud",
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		crestDebuffs = true, transitions = true,
 		style = "column", rangeFade = true, portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
-		power = false, healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
-	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
+		power = false, auraSpacing = 4,
+	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),

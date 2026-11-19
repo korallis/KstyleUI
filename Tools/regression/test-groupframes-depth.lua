@@ -158,6 +158,7 @@ do
 	eq((C.Describe(click.profile[2])), "Rejuvenation", "and its spell")
 	local panel = preview.clickCast
 	assert(panel, "the preview carries the click casting panel")
+	eq(panel.rows[1]:GetHeight(), K.Tokens.Size("rowHeight"), "click casting uses the shared row height")
 	panel:Refresh()
 	assert(panel.rows[1]:IsShown() and not panel.rows[2]:IsShown(), "one spell binding listed; the game's target click is not")
 	assert(panel.rows[1].key._state.Text[1]:upper():find("SHIFT", 1, true), "the row shows the keys")

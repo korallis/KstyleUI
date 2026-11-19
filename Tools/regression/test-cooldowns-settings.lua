@@ -68,8 +68,9 @@ assert(defaults.utility.timerSize == 11 and defaults.utility.countSize == 11, "t
 assert(defaults.essential.columns == 0 and defaults.essential.readyGlow == false, "automatic essential columns with no ready halo by default")
 assert(defaults.buffs.size == 27.6 and defaults.buffs.spacing == 3.4 and defaults.buffs.growth == "rightAligned", "tracked buffs right-align at 27.6 on a 31-unit pitch, preserving configured order")
 assert(defaults.accent == "quiet", "cooldown rims are quiet by default")
-assert(defaults.bars.width == 243 and defaults.bars.height == 20 and defaults.bars.count == 2, "two bars of 243 by 20 units, as wide as the tracked buff icon row")
+assert(defaults.bars.width == 243 and defaults.bars.height == K.Tokens.Size("barHeight") and defaults.bars.count == 2, "two bars of 243 by 12 units, as wide as the tracked buff icon row")
 assert(defaults.path == "auto", "the path is automatic by default")
+assert(defaults.timerOutline == "INHERIT", "timers follow the shared readability setting")
 assert(defaults.essential.desaturate == false and defaults.utility.desaturate == false, "a cooling icon keeps its colour, as the mockup's centre cluster shows")
 
 -- The font dropdown lists the kit font first, then the media fonts as paths.

@@ -19,7 +19,7 @@ Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 Model.LABELS = { buffs = 40, debuffs = 24 }
 
 Model.LIMITS = {
-	iconSize = { min = 16, max = 64, step = 0.5 },
+	iconSize = { min = 16, max = 64, step = 0.1 },
 	spacing = { min = 0, max = 24, step = 0.5 },
 	rows = { min = 1, max = 8, step = 1 },
 	columns = { min = 1, max = 24, step = 1 },
@@ -36,11 +36,11 @@ Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
+		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
-		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
+		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },

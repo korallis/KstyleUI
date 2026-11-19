@@ -80,6 +80,7 @@ function Style.Font(text, choice, size, outline, role)
 		scale = K.Theme.FontScale() or 1
 	end
 	local flags = outline
+	if flags == "INHERIT" then flags = Widgets.Readability("worldText") and "OUTLINE" or "" end
 	if flags == nil or flags == "none" then
 		flags = ""
 	end

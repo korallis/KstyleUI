@@ -6,7 +6,6 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
 local max = math.max
 
-local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = Tokens.Size("caption")
 local XP_FONT_SIZE = 12
 local SEGMENTS = 0
@@ -27,15 +26,6 @@ local MENU_SPACING = 4
 local MENU_SIZE_MIN, MENU_SIZE_MAX = 12, 48
 local MENU_SPACING_MAX = 12
 
-local function Texture(key)
-	for _, item in ipairs(Tokens.MediaList("statusbar")) do
-		if item.key == key then
-			return item.path
-		end
-	end
-	return Tokens.MediaList("statusbar")[1].path
-end
-
 local function Rgb(name, alpha)
 	local r, g, b = Tokens.Color(name)
 	return { r = r, g = g, b = b, a = alpha }
@@ -43,7 +33,7 @@ end
 
 local function BarDefaults(colorSource, colorToken, text)
 	return {
-		texture = Texture(DEFAULT_TEXTURE),
+		texture = Tokens.MediaList("statusbar")[1].path,
 		colorSource = colorSource,
 		color = Rgb(colorToken),
 		orientation = "HORIZONTAL",
@@ -64,7 +54,6 @@ defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("custom", "epic", "levelRested")
-defaults.xp.texture = Texture("Flat")
 defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"

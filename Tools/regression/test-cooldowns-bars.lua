@@ -33,7 +33,7 @@ local row = ns.Mirror.Row("bars")
 assert(row.count == 2, "two active bars show, got " .. tostring(row.count))
 local holder = row.holder
 local width, height = holder:GetSize()
-assert(width == 243 and height == 43, "two bars of 243 by 20 fill a 243 by 43 footprint, as wide as the tracked buff icon row over them, got " .. tostring(width) .. " by " .. tostring(height))
+assert(width == 243 and height == 27, "two bars of 243 by 12 fill a 243 by 27 footprint, as wide as the tracked buff icon row over them, got " .. tostring(width) .. " by " .. tostring(height))
 
 -- The countdown reads "24s", as the mockup writes it, through the same one-letter formatter as the cooldown rows.
 do
@@ -45,7 +45,7 @@ end
 local first, second = row.bars[1], row.bars[2]
 assert(ns.Settings.current.bars.growth == "down", "bars grow downward by default")
 assert(LastArg(first, "SetPoint", 5) == 0, "the first bar sits at the top of the holder")
-assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 23), "the second bar sits one 20-unit bar and one 3-unit gap below")
+assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 15), "the second bar sits one 12-unit bar and one 3-unit gap below")
 
 -- The bar is the bible's square bar (KSTY-60 item 10), a black pixel round a dark track; the icon sits on its own dark button tile, inset inside it.
 assert(first.chrome == nil and first.edge, "a bar is the square bar, not a glass tile")
@@ -53,7 +53,7 @@ assert(W.SameColor(first.edge.hard, K.Tokens.Color("black")) and W.SameColor(fir
 local tile = first.iconTile
 assert(tile and tile.chrome.fillName == "buttonFill", "the icon sits on a dark button tile")
 local tw, th = tile:GetSize()
-assert(tw == 20 and th == 20, "the icon tile is a square as tall as the 20-unit bar, got " .. tostring(tw) .. " by " .. tostring(th))
+assert(tw == 12 and th == 12, "the icon tile is a square as tall as the 12-unit bar, got " .. tostring(tw) .. " by " .. tostring(th))
 local iconPoint = Point(first.icon, "TOPLEFT")
 assert(iconPoint and iconPoint[2] == tile and iconPoint[4] > 0, "the icon is inset inside its tile")
 

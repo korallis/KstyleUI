@@ -15,7 +15,7 @@ local BUTTON = Layouts.BUTTON
 local UTILITY_COLUMNS = 4
 local ESSENTIAL_TIMER, ESSENTIAL_COUNT = 16.5, 10
 local UTILITY_TIMER, UTILITY_COUNT = 11, 11
-local BAR_WIDTH, BAR_HEIGHT = Layouts.Element("cooldowns.bars").width, 20
+local BAR_WIDTH, BAR_HEIGHT = Layouts.Element("cooldowns.bars").width, Tokens.Size("barHeight")
 local BAR_FILL_ALPHA = 0.15
 local GROUPS = { "essential", "utility", "buffs", "bars" }
 local ICON_GROUPS = { "essential", "utility", "buffs" }
@@ -50,7 +50,7 @@ local PATH = { auto = true, mirror = true, reskin = true }
 local GROWTH = { center = true, right = true, left = true, rightAligned = true }
 local WRAP = { down = true, up = true }
 local BAR_GROWTH = { up = true, down = true }
-local OUTLINE = { none = true, OUTLINE = true, THICKOUTLINE = true }
+local OUTLINE = { INHERIT = true, none = true, OUTLINE = true, THICKOUTLINE = true }
 local ACCENT = { quiet = true, class = true, custom = true }
 local COLOR_SOURCE = { class = true, reaction = true, custom = true }
 local ORIENTATION = { HORIZONTAL = true, VERTICAL = true }
@@ -93,7 +93,7 @@ Settings.defaults = {
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	tooltips = true,
 	timerFont = "kit",
-	timerOutline = "none",
+	timerOutline = "INHERIT",
 	countFont = "kit",
 	countOutline = "none",
 	nameFont = "kit",
@@ -140,6 +140,7 @@ end
 Settings.FontOptions = FontOptions
 
 local OUTLINE_OPTIONS = {
+	{ value = "INHERIT", label = L["Use readability setting"] },
 	{ value = "none", label = L["Soft shadow"] },
 	{ value = "OUTLINE", label = L["Thin outline"] },
 	{ value = "THICKOUTLINE", label = L["Thick outline"] },

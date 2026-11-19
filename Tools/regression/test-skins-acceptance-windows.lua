@@ -135,7 +135,7 @@ Check(function()
 	local scene = Scene("gallery_skins_legacy")
 	local fill
 	for _, item in ipairs(scene.items) do
-		if File(item, "BarGlass") and item.rect[3] > 300 then
+		if File(item, "BarFlat") and item.rect[3] > 300 then
 			fill = item
 		end
 	end
@@ -180,7 +180,7 @@ Check(function()
 	end
 	local fills, toned = 0, 0
 	for _, item in ipairs(scene.items) do
-		if File(item, "BarGlass") then
+		if File(item, "BarFlat") then
 			fills = fills + 1
 			for _, c in ipairs(wanted) do
 				if math.abs(item.vertex[1] - c[1]) < 0.01 and math.abs(item.vertex[2] - c[2]) < 0.01 and math.abs(item.vertex[3] - c[3]) < 0.01 then

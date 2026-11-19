@@ -21,17 +21,7 @@ local HEAL_ABSORB_ALPHA = 0.7
 local INDICATOR_SLOTS = 6
 Settings.INDICATOR_SLOTS = INDICATOR_SLOTS
 
-local function DefaultTexture()
-	for _, item in ipairs(Tokens.MediaList("statusbar")) do
-		if item.key == "Glass" then
-			return item.path
-		end
-	end
-	return Tokens.MediaList("statusbar")[1].path
-end
-
 local THEME_FONT = "theme"
-local NUMBER_FONT = Tokens.FontPath("AlegreyaSansExtraBold")
 Settings.THEME_FONT = THEME_FONT
 Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
@@ -59,11 +49,11 @@ Settings.defaults = {
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
 	},
-	health = { texture = DefaultTexture(), colorSource = "custom", color = Rgb("friendly"), orientation = "HORIZONTAL" },
+	health = { texture = Tokens.MediaList("statusbar")[1].path, colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
 	text = {
 		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "class", nameColor = Rgb("textEmphasis"),
-		healthFont = NUMBER_FONT, healthOutline = "NONE",
+		healthFont = THEME_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
 	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },

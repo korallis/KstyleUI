@@ -49,7 +49,7 @@ local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 local EDGE = ns.Tokens.Size("screenMargin")
 local RAIL_EDGE = EDGE + 1.4
 local MAP, MAP_HEADING, MAP_CAPTION, MAP_FRAME = 208, 22, 14, 3
-local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 11.9
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.6, 3.5, 10, 14, 8, 11.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
 local DAMAGE_W, DAMAGE_H = 269, 158
@@ -85,7 +85,7 @@ local ELEMENTS = {
 	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 6 * CENTRE_BUTTON + 5 * CENTRE_GAP, height = CENTRE_BUTTON },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 182.6, height = 41.6 },
-	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 43 },
+	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 2 * ns.Tokens.Size("barHeight") + PITCH },
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = AURA_W, height = AURA_H },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = AURA_W, height = AURA_H },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
