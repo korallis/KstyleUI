@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MARKETING = ROOT / "docs" / "media" / "marketing"
 MASTER = ROOT / "docs" / "store" / "description.md"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
+ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
 SUMMARY = ("A complete, pixel-perfect interface for World of Warcraft: Forever "
            "\u2014 one dark forged style, three HUDs, set up in one window.")
 
@@ -40,7 +41,7 @@ def fenced_description(path):
 
 class MarketingImages(unittest.TestCase):
     def expected(self):
-        return ({"banner.jpg"} | {name for name, _, _ in M.HEADERS}
+        return ({"banner.jpg"} | {name for name, _, _ in M.HEADERS} | set(M.COMPARE)
                 | {name for name, *_ in M.CARDS} | {name for name, _ in M.SHOWCASES})
 
     def test_folder_holds_exactly_the_script_outputs(self):
@@ -167,16 +168,14 @@ class MasterDescription(unittest.TestCase):
         for rel in ("docs/store/curseforge.md", "docs/store/wago.md"):
             block = fenced_description(ROOT / rel)
             self.assertEqual(block, master, rel)
-            self.assertNotIn("releases", block, rel)
             for url in re.findall(r"https?://[^\s)]+", block):
-                self.assertNotIn("/releases", url, url)
+                self.assertTrue("/releases" not in url or url == ICON_RELEASES, url)
                 self.assertFalse(url.split("?")[0].lower().endswith(".zip"), url)
 
     def test_master_has_no_download_link_and_does_not_repeat_the_summary(self):
         master = MASTER.read_text(encoding="utf-8")
-        self.assertNotIn("releases", master)
         for url in re.findall(r"https?://[^\s)]+", master):
-            self.assertNotIn("/releases", url, url)
+            self.assertTrue("/releases" not in url or url == ICON_RELEASES, url)
             self.assertFalse(url.split("?")[0].lower().endswith(".zip"), url)
         self.assertNotIn(SUMMARY, master)
         first_text = next(line for line in master.splitlines() if line and not line.startswith("!["))

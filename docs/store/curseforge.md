@@ -25,7 +25,7 @@ The [moderation policies](https://support.curseforge.com/en/support/solutions/ar
 The page follows CurseForge's [moderation policies](https://support.curseforge.com/support/solutions/articles/9000197279-moderation-policies), checked on 2026-11-17:
 
 - The summary is a one-sentence tl;dr and is not repeated as the description's first line.
-- The description has no external download links: the optional icon pack, which is not an addon, is offered only on GitHub and is not linked here. Links to the source code and Discord for bug reports and help sit at the bottom of the page.
+- The description has no external download links for the addon. Its one releases link points at the GitHub releases page, not a file, and only for the optional icon pack, which is not an addon and cannot ship through CurseForge. Links to the source code and Discord for bug reports and help sit at the bottom of the page.
 - A Credits section credits the bundled SIL Open Font License fonts and says the art is original to KstyleUI, with the AI-made pieces named.
 - The name has no game name or version, the avatar is the 400x400 logo, the gallery has in-game pictures and labels the test renders, and every file carries the changelog.
 
@@ -43,6 +43,28 @@ On the Description step, switch the editor to Markdown, then paste this. The blo
 **Install in a minute:** the CurseForge app, the Wago app or WowUp, or unzip by hand into your AddOns folder - full steps are at the bottom.
 
 Rendered previews below use cropped real Forever scenery, enlarged to fit the preview. They show fixture data, not a live play session. The source screenshots and exact crops are recorded in [scenery provenance](https://github.com/korallis/KstyleUI/blob/main/docs/media/plates/PROVENANCE.md).
+
+## KstyleUI Icons: the full repainted look
+
+The addon repaints the frames; **KstyleUI Icons** repaints the icons inside them. Every ability, item, buff and debuff icon in one style, everywhere the game draws it: your bars, bags, spellbook, tooltips and buff tiles. It is optional, and the icons were made with AI image tools.
+
+![KstyleUI test render over an in-game screenshot; KstyleUI Icons before and after: the same action bar row with Blizzard's icons, then with the pack](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/icons-before-after.jpg)
+
+*KstyleUI test render over an in-game screenshot: the same action bar row - Blizzard's icons above, the pack below. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
+**Get it:** the `KstyleUI-Icons-<version>.zip` on the [GitHub releases page](https://github.com/korallis/KstyleUI/releases/latest). CurseForge and Wago install addons only, and this pack is not an addon, so it is not part of this download and does not go in `AddOns`.
+
+**Install it:**
+
+1. Download `KstyleUI-Icons-<version>.zip` from the releases page above.
+2. Quit the game fully.
+3. Unzip it. You get one folder, `Interface`.
+4. Copy that `Interface` folder into `World of Warcraft/_forever_/`, so the files land in `_forever_/Interface/Icons/`. On a Mac the folder is `/Applications/World of Warcraft/_forever_`.
+5. Start the game.
+
+To remove it, delete its files from `Interface/Icons` (or the whole `Icons` folder) and start the game again. Blizzard's icons come back.
+
+Good to know: the pack works with or without the KstyleUI addon. It loads only at a full restart, never after `/reload`. A few store and event icons stay Blizzard's - the client encrypts them, so no pack can replace them.
 
 **Why players switch**
 
@@ -264,6 +286,14 @@ Yes. Every feature is a module you can switch off, and **Keep my UI** in the set
 
 **Which languages are included?**
 English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string in #bug-reports on Discord.
+
+**How do I install the KstyleUI Icons pack?**
+
+1. Download `KstyleUI-Icons-<version>.zip` from the [GitHub releases page](https://github.com/korallis/KstyleUI/releases/latest).
+2. Quit the game fully.
+3. Unzip it. You get one folder, `Interface`.
+4. Copy that `Interface` folder into `World of Warcraft/_forever_/`, so the files land in `_forever_/Interface/Icons/`. On a Mac the folder is `/Applications/World of Warcraft/_forever_`.
+5. Start the game. A `/reload` is not enough.
 
 **How do I report a bug?**
 Post in #bug-reports on the [KstyleUI Discord](https://discord.gg/A5qqGZEXyN). Say what you were doing, what you expected and what happened instead, and add your KstyleUI version and a screenshot.

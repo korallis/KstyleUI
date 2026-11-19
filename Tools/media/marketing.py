@@ -91,6 +91,12 @@ SHOWCASES = [
     ("show_frame_skins.jpg", "frame_skins.jpg"),
 ]
 
+# The icon pack before-and-after: one action bar row from the hud_reference render, Blizzard's icons
+# then the pack's. Its crops live in Tools/render/out (icons_before.png, icons_after.png), cut from
+# that render and the same scene with the icon sources swapped to the Blizzard extract cache; a
+# machine without them keeps the committed image.
+COMPARE = ["icons-before-after.jpg"]
+
 # (file, frame step, width, colours, posterize step) for clips over the size cap.
 GIF_SPECS = [
     ("game_medallions_target.gif", 1, 800, 48, 8),
@@ -298,6 +304,39 @@ def make_showcase(name, picture):
     return save(img, name, quality=82)
 
 
+def make_icons_compare():
+    from PIL import Image, ImageDraw
+    crops = [ROOT / "Tools/render/out" / name for name in ("icons_before.png", "icons_after.png")]
+    if not all(path.is_file() for path in crops):
+        print("icons-before-after.jpg kept (no crops in Tools/render/out)")
+        return
+    width = 1600
+    rows = []
+    for path in crops:
+        row = Image.open(path).convert("RGB")
+        rows.append(row.resize((width - 128, round(row.height * (width - 128) / row.width)), Image.LANCZOS))
+    height = 64 + 120 + sum(56 + row.height for row in rows) + 128
+    img = gradient(width, height, (13, 15, 18), FORGED)
+    draw = ImageDraw.Draw(img)
+    gold_rule(draw, width, 0, 3)
+    gold_rule(draw, width, height - 5, 3)
+    draw.rounded_rectangle([40, 40, width - 40, height - 40], radius=22, fill=SLAB_TOP,
+                           outline=EDGE, width=2)
+    x, y = 88, 64
+    draw.rectangle([x, y + 8, x + 110, y + 12], fill=GILT)
+    face, tracking = fit_tracked(draw, "KstyleUI Icons", CINZEL, 68, 0.04, width - 2 * x)
+    tracked(draw, (x, y + 30), "KstyleUI Icons", face, EMPHASIS, tracking)
+    y += 120
+    for label, row in zip(("Blizzard's icons", "With the pack"), rows):
+        draw.text((x, y), label, font=font(BODY_BOLD, 40), fill=GILT_LIT)
+        y += 56
+        rounded_paste(img, row, (64, y))
+        draw = ImageDraw.Draw(img)
+        y += row.height
+    source_label(draw, (x, y + 28), "hud_frames_1080.jpg")
+    return save(img, COMPARE[0], quality=84)
+
+
 def make_gallery():
     from PIL import Image
     out = ROOT / "docs/store/gallery"
@@ -385,6 +424,7 @@ def main(argv=None):
         make_card(*card)
     for name, picture in SHOWCASES:
         make_showcase(name, picture)
+    make_icons_compare()
     for spec in GIF_SPECS:
         recompress_gif(*spec)
     make_gallery()
