@@ -40,7 +40,7 @@ Settings.defaults = {
 		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 	},
 	debuffs = {
-		enabled = true, includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
+		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
@@ -358,8 +358,8 @@ function Settings.Schema()
 		},
 		{ type = "header", label = L["Debuffs"] },
 		{
-			type = "toggle", key = "debuffs.enabled", label = L["Show my debuffs"],
-			help = L["Shows the debuffs you put on each unit."],
+		type = "toggle", key = "debuffs.enabled", label = L["Show debuffs"],
+		help = L["Shows debuffs on each unit."],
 		},
 		{
 			type = "toggle", key = "debuffs.includePlateOnly", label = L["Nameplate-only debuffs"],
@@ -386,11 +386,7 @@ function Settings.Schema()
 			help = L["Shows up to icons per row times rows debuffs; a +N chip counts the rest."],
 			min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
 		},
-		{
-			type = "dropdown", key = "debuffs.order", label = L["Which debuffs win a tile"],
-			help = L["How the game ranks your debuffs when more than fit. Important: the game's lethal ones."],
-			options = ORDERS, disableWhen = Off("debuffs.enabled"),
-		},
+
 		{
 			type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],
 			help = L["Which way a row of debuffs grows."],
@@ -558,6 +554,14 @@ function Settings.Schema()
 		schema[#schema + 1] = row
 	end
 
+	local filterRows = {}
+	K.Options.AuraFilterRows(filterRows, "debuffs", { sortKey = "order", sortOptions = ORDERS, disableWhen = Off("debuffs.enabled") })
+	for i, row in ipairs(schema) do
+		if row.key == "debuffs.enabled" then
+			for j = #filterRows, 1, -1 do table.insert(schema, i + 1, filterRows[j]) end
+			break
+		end
+	end
 	Settings.schema = schema
 
 	rows = {}

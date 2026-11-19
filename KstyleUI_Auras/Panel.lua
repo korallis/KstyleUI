@@ -247,17 +247,21 @@ local function GroupLayout(ctx)
 	}
 end
 
+local function Filter(desc)
+	return K.Options.AuraFilterString(K.Store.Module(MODULE)[desc.name], Model.FILTERS[desc.name])
+end
+
 local function Candidates(desc)
 	local group = desc.ctx.group
 	if group.tracked ~= "cdm" then
-		return nil
+		return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name])
 	end
 	local set, why = Tracked.Set()
 	if not set then
 		LogOnce("tracked:" .. tostring(why), "the buff row shows every buff: " .. tostring(why))
-		return nil
+		return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name])
 	end
-	return { excludeSpellIDs = set }
+	return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name], { excludeSpellIDs = set })
 end
 
 local function EnchantLayout(ctx)
@@ -330,7 +334,7 @@ local function ApplyChip(desc, candidates)
 	local corner = Model.LastCell(ctx.group.growth)
 	Overflow.Apply(chip, {
 		enabled = true,
-		groups = { { filter = Model.FILTERS[desc.name], candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
+		groups = { { filter = Filter(desc), candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
 		cap = Capacity(desc), cell = ctx.icon, width = ctx.icon,
 		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
@@ -347,6 +351,7 @@ local function ApplyGroup(desc)
 	if method ~= nil and direction ~= nil then
 		container:SetAuraGroupSortMethod(key, method, direction)
 	end
+	container:SetAuraGroupFilterString(key, Filter(desc))
 	container:SetAuraGroupMaxFrameCount(key, Capacity(desc))
 	local candidates = Candidates(desc)
 	if type(container.SetAuraGroupCandidateFilters) == "function" then
@@ -448,7 +453,7 @@ end
 
 local function NewChip(desc)
 	local capacity = Capacity(desc)
-	local spec = { filter = Model.FILTERS[desc.name], cap = capacity, labels = Model.LABELS[desc.name] }
+	local spec = { filter = Filter(desc), candidates = Candidates(desc), cap = capacity, labels = Model.LABELS[desc.name] }
 	local chip, why = Overflow.New(desc.host, UNIT, { spec }, capacity)
 	if not chip then
 		LogOnce("chip", "the " .. desc.name .. " row has no counting container (" .. tostring(why) .. "); a full row shows no +N")
@@ -474,7 +479,7 @@ local function Build(name)
 	desc.ctx = Context(desc)
 	container:SetUnit(UNIT)
 	local method, direction = SortEnums(desc.ctx.group)
-	local added, err = pcall(container.AddAuraGroup, container, name, Model.FILTERS[name], {
+	local added, err = pcall(container.AddAuraGroup, container, name, Filter(desc), {
 		maxFrameCount = Model.Capacity(desc.ctx.group, 0),
 		sortMethod = method,
 		sortDirection = direction,

@@ -180,7 +180,7 @@ local function GroupCount(f, k, key)
 	return cells + OVERFLOW
 end
 
-local function Candidates(key, types, k)
+local function Category(key, types, k)
 	if key == BOSS then
 		return { isBossAura = true }
 	elseif key == IMPORTANT then
@@ -191,6 +191,15 @@ local function Candidates(key, types, k)
 	end
 	local processed = key == DISPELS and types.Dispel or types.Debuff
 	return { processedAuraType = processed, isBossAura = false, isPriorityAura = false }
+end
+
+local function Candidates(key, types, k)
+	return K.Options.AuraCandidates(Settings.current.auras, types and Category(key, types, k))
+end
+
+local function Filter()
+	local a = Settings.current.auras
+	return K.Options.AuraFilterString(a, FILTERS[a.filter] or FILTERS.ALL)
 end
 
 local function Sizes(f, k)
@@ -637,10 +646,9 @@ local function GroupOptions(f, k, key, types)
 	if methods and directions then
 		options.sortMethod = types and methods.UnitFrameDebuff or methods.Default
 		options.sortDirection = directions.Normal
+		options.sortMethod, options.sortDirection = K.Options.AuraSort(Settings.current.auras.sort, options.sortMethod, options.sortDirection)
 	end
-	if types then
-		options.candidateFilters = Candidates(key, types, k)
-	end
+	options.candidateFilters = Candidates(key, types, k)
 	return options
 end
 
@@ -800,6 +808,8 @@ local function ConfigureDispelGhost(f, k, a, block, filter)
 	local pitch = badge * MORE_PITCH
 	ghost:SetAuraProcessingPolicy(Processing(), PolicyOptions())
 	ghost:SetAuraGroupFilterString(MORE, filter)
+	local _, types = Processing()
+	ghost:SetAuraGroupCandidateFilters(MORE, Candidates(DISPELS, types))
 	ghost:SetAuraGroupMaxFrameCount(MORE, cap)
 	ghost:SetAuraGroupLayout(MORE, { elementWidth = 1, elementHeight = pitch, elementSpacing = 0, lineSpacing = 0 })
 	local window = more.window
@@ -885,7 +895,7 @@ local function NewContainer(f)
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
 	local k, a = Settings.current[f.kind], Settings.current.auras
-	local added, processed = pcall(AddGroups, container, f, k, FILTERS[a.filter] or FILTERS.ALL)
+	local added, processed = pcall(AddGroups, container, f, k, Filter())
 	local err = processed
 	f.processed = added and processed
 	if not added then
@@ -915,7 +925,7 @@ local function NewContainer(f)
 			end
 		end
 		local bossMade, bossErr = pcall(highlights.AddAuraSlot, highlights, BOSS_SLOT, GLOW_FILTER, {
-			candidateFilters = BOSS_CANDIDATES,
+			candidateFilters = K.Options.AuraCandidates(Settings.current.auras, BOSS_CANDIDATES),
 			initializeFrame = function(button)
 				Auras.Dress(button, f, function()
 					return Auras.BossSize(f)
@@ -940,8 +950,8 @@ local function NewContainer(f)
 		end
 	end
 	if f.processed then
-		f.dispelMore = NewDispelGhost(f, FILTERS[a.filter] or FILTERS.ALL)
-		f.debuffChip = NewChip(f, k, FILTERS[a.filter] or FILTERS.ALL)
+		f.dispelMore = NewDispelGhost(f, Filter())
+		f.debuffChip = NewChip(f, k, Filter())
 	end
 	Style.LogOnce("auraEngine", "group frame debuffs run on the AuraContainer engine")
 	return container
@@ -1085,7 +1095,7 @@ local function Configure(f)
 	else
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
-	local filter = FILTERS[a.filter] or FILTERS.ALL
+	local filter = Filter()
 	if f.processed then
 		container:SetAuraProcessingPolicy(Processing(), PolicyOptions())
 		local dispels = DispelCount(k)
@@ -1104,6 +1114,9 @@ local function Configure(f)
 	end
 	if f.bossSlot then
 		highlights:SetAuraSlotFilterString(BOSS_SLOT, filter)
+		if type(highlights.SetAuraSlotCandidateFilters) == "function" then
+			highlights:SetAuraSlotCandidateFilters(BOSS_SLOT, K.Options.AuraCandidates(a, BOSS_CANDIDATES))
+		end
 		highlights:SetAuraSlotEnabled(BOSS_SLOT, Auras.BossOn(f))
 	end
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
@@ -1111,7 +1124,16 @@ local function Configure(f)
 	container:SetAuraGroupFilterString(GROUP, filter)
 	if f.processed then
 		local _, types = Processing()
-		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP, types, k))
+		for _, key in ipairs(GROUPS) do
+			container:SetAuraGroupCandidateFilters(key, Candidates(key, types, k))
+		end
+	elseif type(container.SetAuraGroupCandidateFilters) == "function" then
+		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP))
+	end
+	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
+	if methods and directions and type(container.SetAuraGroupSortMethod) == "function" then
+		local method, order = K.Options.AuraSort(a.sort, f.processed and methods.UnitFrameDebuff or methods.Default, directions.Normal)
+		for _, key in ipairs(f.processed and GROUPS or { GROUP }) do container:SetAuraGroupSortMethod(key, method, order) end
 	end
 	container:SetAuraGroupEnabled(GROUP, a.enabled)
 	ConfigureDispelGhost(f, k, a, block, filter)

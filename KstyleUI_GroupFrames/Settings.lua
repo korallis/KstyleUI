@@ -59,7 +59,7 @@ Settings.defaults = {
 	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true, shapes = true },
 	auras = {
-		enabled = true, typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		enabled = true, onlyMine = false, dispellable = false, allowSpells = "", blockSpells = "", sort = "", typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true },
@@ -294,6 +294,7 @@ function Settings.Schema()
 		add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
 		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
+		K.Options.AuraFilterRows(schema, "auras", { disableWhen = Is("auras.enabled", false) })
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 		add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
 		add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))
@@ -436,9 +437,15 @@ function Settings.Get(key)
 	if not rows then Settings.Schema() end
 	if key == "blizzard.manager" then return not Settings.Get("blizzard.keepManager") end
 	local row = rows[key]
-	if not row then
-		error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2)
+	if not row and key:match("^auras%.") then
+		local default = Settings.defaults.auras[key:sub(7)]
+		local value = Saved(key)
+		if default ~= nil then
+			if not (issecretvalue and issecretvalue(value)) and type(value) == type(default) then return value end
+			return default
 	end
+	end
+	if not row then error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2) end
 	local value = CHECK[row.type](row, Saved(key))
 	if value == nil then
 		return Default(key)
