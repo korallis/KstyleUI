@@ -1010,7 +1010,7 @@ Layouts.EXTRA_BAR_GROUPS = {
 	["actionbars.bar4"] = "bars", ["actionbars.bar5"] = "bars",
 	["unitframes.player"] = "units", ["unitframes.target"] = "units", ["unitframes.pet"] = "units",
 	["unitframes.targettarget"] = "units", ["unitframes.focus"] = "units", ["unitframes.focustarget"] = "units",
-	["unitframes.castbar.player"] = "casts", ["unitframes.castbar.target"] = "casts", ["combattext.player"] = "casts",
+	["unitframes.castbar.player"] = "casts", ["unitframes.castbar.target"] = "casts", ["combattext.player"] = "casts", ["unitframes.resource"] = "casts",
 	["actionbars.pet"] = "sides", ["actionbars.stance"] = "sides", ["chat.main"] = "chat", ["qol.lootfeed"] = "chat",
 }
 
@@ -1039,8 +1039,9 @@ function Layouts.ExtraBarsPlace(class, name, key)
 		return { anchor = base.anchor, x = base.x, y = base.y + height + gap, width = base.width, height = base.height }
 	elseif kind == "beside" and group == "sides" then
 		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
-		if class == ASPECTS[1] and key == "actionbars.stance" then
-			return { anchor = base.anchor, x = base.x, y = TIP_Y + select(2, ElementSize("tooltips.anchor")) + 2 * side.pad }
+		if class == ASPECTS[1] then
+			local lift = math.max(h + side.pad, left.y + height + slab.pad + gap - layouts[name]["chat.main"].y)
+			return { anchor = base.anchor, x = base.x, y = base.y + lift }
 		end
 		return { anchor = base.anchor, x = base.x, y = base.y + h + side.pad }
 	elseif kind == "beside" and class == ASPECTS[1] and group == "chat" then

@@ -848,8 +848,7 @@ function Slab.PlaceSides(on, cfg)
 	local active = Slab.Active()
 	cfg = cfg or (on or active) and K.Store.Module("ActionBars")
 	local extra = on and state.extra
-	for i = 1, (extra or sides.bar4 or sides.bar5) and #SIDE_BARS or 3 do
-		local key = SIDE_BARS[i]
+	for _, key in ipairs(SIDE_BARS) do
 		local bar = ns.bars and ns.bars[key]
 		local plate = sides[key]
 		local wanted = key == "bar3" and active and cfg.bar3.finished or key ~= "bar3" and on
