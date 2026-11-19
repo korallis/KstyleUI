@@ -75,6 +75,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(U.Shown(env, view.healthText) == "60 / 450", "absorb events refresh absorb tags")
 	set("healthText", "none")
 	assert(U.Shown(env, view.healthText) == "", "off wins over a custom health format")
+	env._units.player.health = 1100
 	set("fonts.name.textFormat", "")
 	set("fonts.health.textFormat", "")
 	set("healthText", "percent")
