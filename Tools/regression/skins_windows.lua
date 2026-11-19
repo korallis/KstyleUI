@@ -1372,7 +1372,7 @@ end
 
 -- The trainer (Blizzard_TrainerUI.xml:150, ButtonFrameTemplate): the skill bar, the filter, category and skill rows.
 function build.trainer(env, B)
-	local trainer = Window(B, "ClassTrainerFrame", nil, 338, 424, "Grezz Ragefist", { inset = { top = 90, bottom = 60 } })
+	local trainer = Window(B, "ClassTrainerFrame", nil, 338, 424, "Rupert Boch", { inset = { top = 60, bottom = 26 } })
 	At(trainer, env.UIParent, 120, 120)
 	-- Blizzard_TrainerUI.xml:167: the skill bar is 130 by 18 at (64, -35) and reads "rank/max"
 	-- (Blizzard_TrainerUI.lua:565); the skill line's name comes from GetTrainerServiceSkillLine.
@@ -1388,49 +1388,73 @@ function build.trainer(env, B)
 	end
 	trainer.FilterDropdown = Dropdown(B, trainer, "Available", 100)
 	Anchor(trainer.FilterDropdown, trainer, "TOPRIGHT", -12, -60)
-	Text(B.text(trainer), "Warrior Trainer", "TOPLEFT", trainer, "TOPLEFT", 60, -60)
 	trainer.ScrollBar = ScrollBar(B, trainer)
 	Anchor(trainer.ScrollBar, trainer.Inset, "TOPRIGHT", -4, -4)
 	trainer.ScrollBar:SetHeight(260)
 	trainer.ScrollBox = ScrollBox(B, trainer)
-	Fill(trainer.ScrollBox, trainer.Inset, 4, 4, 18, 4)
+	At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
+	trainer.ScrollBox:SetClipsChildren(true)
 	local rows = {}
-	local function Category(label)
-		local row = Row(B, trainer.ScrollBox, 22)
-		row.LeftPiece, row.RightPiece, row.CenterPiece = B.texture(row), B.texture(row), B.texture(row)
-		row.Label = Text(B.text(row), label, "LEFT", row, "LEFT", 8, 0)
-		rows[#rows + 1] = row
-		trainer.ScrollBox.AddRow(row, {})
-	end
-	local function Skill(name, cost, id, selected)
-		local row = Row(B, trainer.ScrollBox, 44)
+	local function Skill(name, requires, cost, id)
+		local row = Row(B, trainer.ScrollBox, 47)
 		row.icon = Icon(B, row, id)
 		row.icon:ClearAllPoints()
-		row.icon:SetPoint("LEFT", row, "LEFT", 4, 0)
+		row.icon:SetPoint("LEFT", row, "LEFT", 6, 0)
 		row.icon:SetSize(36, 36)
 		row.selectedTex = B.texture(row)
-		row.selectedTex:SetShown(selected == true)
-		row.name = Text(B.text(row), name, "TOPLEFT", row, "TOPLEFT", 48, -6)
-		row.money = Text(B.text(row), cost, "BOTTOMLEFT", row, "BOTTOMLEFT", 48, 6)
+		row.selectedTex:Hide()
+		row.name = Text(B.text(row), name, "TOPLEFT", row.icon, "TOPRIGHT", 6, -1)
+		row.name:SetSize(220, 12)
+		row.name:SetWordWrap(false)
+		row.subText = Text(B.text(row), requires, "LEFT", row.name, "LEFT", 0, -19)
+		row.subText:SetSize(240, 30)
+		row.subText:SetJustifyH("LEFT")
+		row.nameSubText = Text(B.text(row), "", "BOTTOMLEFT", row.name, "BOTTOMRIGHT", 5, -1)
+		row.money = B.frame("Frame", row)
+		row.money:SetSize(28, 14)
+		Anchor(row.money, row, "TOPRIGHT", 5, -7)
+		Text(B.text(row.money), cost, "RIGHT", row.money)
 		rows[#rows + 1] = row
-		trainer.ScrollBox.AddRow(row, {})
+		trainer.ScrollBox.AddRow(row, { skillIndex = #rows })
 	end
-	Category("Available")
-	Skill("Mortal Strike (Rank 2)", "2g 40s", ICONS[13], true)
-	Skill("Whirlwind (Rank 1)", "1g 80s", ICONS[12])
-	Category("Unavailable")
-	Skill("Execute (Rank 4)", "Requires level 40", ICONS[8])
-	Skill("Sweeping Strikes", "Requires level 42", ICONS[28])
-	Stack(rows, trainer.ScrollBox, 0, 2)
+	Skill("Demon Skin (Rank 2)", "Requires: Level 10, Demon Skin (Rank 1)", "3s", 136185)
+	Skill("Drain Soul (Rank 1)", "Requires: Level 10", "3s", 136163)
+	Skill("Immolate (Rank 2)", "Requires: Level 10, Immolate (Rank 1)", "3s", 135817)
+	Skill("Create Healthstone (Rank 1)", "Requires: Level 10, Drain Soul (Rank 1)", "3s", 135230)
+	Skill("Curse of Weakness (Rank 2)", "Requires: Level 12, Curse of Weakness (Rank 1)", "8s", 136138)
+	Skill("Health Funnel (Rank 1)", "Requires: Level 12", "8s", 136168)
+	Skill("Shadow Bolt (Rank 3)", "Requires: Level 12, Shadow Bolt (Rank 2)", "8s", 136197)
+	local view = {}
+	function view:SetElementExtentCalculator(calculator) self.calculator = calculator end
+	function trainer.ScrollBox:GetView() return view end
+	function trainer.ScrollBox:FullUpdate()
+		for i, row in ipairs(rows) do
+			if view.calculator then
+				row:SetHeight(view.calculator(i, { GetData = function() return row._data end }))
+			end
+			self.Init(row, row._data)
+		end
+		Stack(rows, self, 1, 0)
+	end
+	trainer.ScrollBox:FullUpdate()
 	trainer.TrainButton = Button(B, trainer, "Train", 90)
 	env.ClassTrainerTrainButton = trainer.TrainButton
 	Anchor(trainer.TrainButton, trainer, "BOTTOMRIGHT", -10, 10)
+	trainer.money = B.frame("Frame", trainer)
+	trainer.money:SetSize(130, 14)
+	Anchor(trainer.money, trainer, "BOTTOMLEFT", 12, 0)
+	Text(B.text(trainer.money), "30s 28c", "RIGHT", trainer.money)
 	trainer.bottomInset = B.frame("Frame", trainer)
 	Fill(trainer.bottomInset, trainer, 4, 374, 6, 10)
 	trainer.bottomInset.NineSlice = B.frame("Frame", trainer.bottomInset)
 	B.texture(trainer.bottomInset.NineSlice)
 	trainer.bottomInset.Bg = B.texture(trainer.bottomInset, "BACKGROUND")
-	Text(B.text(trainer.bottomInset), "143g 82s 17c", "LEFT", trainer.bottomInset, "LEFT", 10, 0)
+	trainer.bottomInset:Hide()
+	env.ClassTrainerFrame_Update = function()
+		trainer.ScrollBox:ClearAllPoints()
+		At(trainer.ScrollBox, trainer.Inset, 5, 5, 302, 330)
+		trainer.ScrollBox:FullUpdate()
+	end
 	env.ClassTrainerFrame_InitCategoryButton = function() end
 	env.ClassTrainerFrame_SetTrainButtonEnabled = function() end
 	return trainer, {}
