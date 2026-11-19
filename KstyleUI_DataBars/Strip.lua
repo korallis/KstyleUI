@@ -253,11 +253,13 @@ function Strip.NewView(parent)
 	end)
 	frame.kView = view
 	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
-	view.plain = Widgets.Chrome(card, { shape = "panel", fill = "surface", grain = false, gilt = false })
-	view.plain:SetShown(false)
 	local material = view.chrome.Material
 	view.chrome.Material = function(self)
-		return view.topBar and Tokens.Material("ForgedBrackets") or material(self)
+		if view.topBar then
+			if view.artwork == "plain" then return nil end
+			return Tokens.Material("ForgedBrackets")
+		end
+		return material(self)
 	end
 	view.art = {}
 	for _, piece in ipairs({
@@ -587,14 +589,13 @@ function Strip.Paint(view, s, values)
 	for _, id in ipairs(order) do
 		inOrder[id] = true
 	end
+	view.artwork = s.artwork
 	local forged = view.topBar and s.artwork ~= "plain"
-	view.chrome:SetShown(forged or not view.topBar and s.backdrop ~= false)
-	view.plain:SetShown(view.topBar and not forged)
+	view.chrome:SetShown(view.topBar or s.backdrop ~= false)
 	for _, texture in ipairs(view.art) do texture:SetShown(forged) end
 	if view.topBar then
 		local r, g, b = Tokens.Color("surface")
 		view.chrome:SetFillRGBA(r, g, b, (s.background or 85) / 100)
-		view.plain:SetFillRGBA(r, g, b, (s.background or 85) / 100)
 	else
 		view.chrome:SetFill("surface")
 	end
@@ -626,7 +627,7 @@ function Strip.Paint(view, s, values)
 	end
 	SetValues(view, s, values, nil, true)
 	Strip.DockMenus(view, s)
-	if view.topBar then
+	if view.topBar and view == Strip.view then
 		local position = K.Setup.Layouts.DataBarPosition()
 		if position.anchor == "TOP" and position.x == 0 and position.y == 0 then
 			view.card:ClearAllPoints()

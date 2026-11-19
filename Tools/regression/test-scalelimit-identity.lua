@@ -1,8 +1,9 @@
--- test-scalelimit-identity.lua: the optimized search returns the previous implementation's exact double, including its non-monotonic pixel boundaries.
+-- test-scalelimit-identity.lua: with the retained rail readout, the optimized search returns the previous implementation's exact double, including its non-monotonic pixel boundaries.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local env, K = CoreEnv.New({ fit = true, size = "auto" })
 CoreEnv.Boot(env)
 K.Store.Module("Minimap").frame = "classic"
+K.Store.Module("DataBars").strip = { placement = "rail" }
 local Layouts = K.Setup.Layouts
 local previous = { L = K.L, Scale = K.Scale, Tokens = K.Tokens }
 assert(loadfile("Tools/regression/fixtures/scalelimit-before.lua"))("KstyleUI", previous)

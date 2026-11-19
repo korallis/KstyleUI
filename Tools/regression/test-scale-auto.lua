@@ -1,4 +1,4 @@
--- test-scale-auto.lua: the automatic pixel-perfect Interface size and its steps, the size migration, rescaling at runtime, and Widgets.Point, Widgets.Fill and the chrome landing on whole pixels.
+-- test-scale-auto.lua: the automatic pixel-perfect Interface size and its steps with the retained rail readout, the size migration, rescaling at runtime, and Widgets.Point, Widgets.Fill and the chrome landing on whole pixels.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -22,6 +22,7 @@ local function New(width, height, opts)
 		profile[element.module] = profile[element.module] or {}
 		profile[element.module].enabled = true
 	end
+	profile.DataBars.strip = { placement = "rail" }
 	profile.Meters.followRole = true
 	profile.ActionBars.consumables = { enabled = false }
 	K.Callbacks.Fire("ModuleChanged")

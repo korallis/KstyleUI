@@ -564,9 +564,11 @@ function Layouts.ActionBarFootprint(style, class, key)
 	return width, height
 end
 
-function Layouts.ActionBarSignature()
+function Layouts.ActionBarSignature(style)
 	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
 	local out = { tostring(saved.slab ~= false), tostring(saved.useTray ~= false), tostring(saved.trayColumn ~= false), saved.extraBarsApplied or "off" }
+	local bar = Layouts.DataBarPosition(style)
+	out[#out + 1] = table.concat({ tostring(Layouts.DataBarHeight(style)), bar.anchor, bar.x, bar.y, bar.width or 0, bar.height or 0, bar.shown or "always" }, "/")
 	for _, key in ipairs(GRID_ORDER) do
 		local grid, cfg = GRIDS["actionbars." .. key], saved[key] or {}
 		local side = key == "pet" or key == "stance"
@@ -1817,8 +1819,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		flags[i] = element.key ~= "consumables.bar" and enabled[element.key] ~= false and "1" or "0"
 	end
 	style = STYLES[style] and style or "frames"
-	local bar = Layouts.DataBarPosition(style)
-	local signature = table.concat({ bar.anchor, bar.x, bar.y, bar.width or 0, bar.height or 0, bar.shown or "always" }, "/") .. style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature() .. ":" .. tostring(Layouts.DataBarHeight(style)) .. ":" .. tostring(Layouts.TopInset("", "TOP", style, enabled))
+	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature(style)
 		.. (style == "medallions" and tostring(Layouts.MinimapCrest()) or "")
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then

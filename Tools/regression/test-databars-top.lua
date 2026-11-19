@@ -18,12 +18,19 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(view.items.fps.button._points[1][2] == view.zones.right)
 	for _, artwork in ipairs({ "forged", "plain" }) do
 		K.Options.Write("DataBars", "strip.artwork", artwork)
-		assert(view.plain.visible == (artwork == "plain"))
-		assert(view.chrome.visible == (artwork == "forged"))
+		assert((view.chrome:Material() ~= nil) == (artwork == "forged"))
+		assert(view.chrome.visible)
 		for _, texture in ipairs(view.art) do assert(texture:IsShown() == (artwork == "forged")) end
 		near(view.art[1]:GetWidth(), K.Widgets.Snap(view.art[1], 18), K.Scale.Pixel(1))
 	end
 	K.Options.Write("DataBars", "strip.artwork", "forged")
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(300, 500)
+	local preview = ns.Preview(parent).strip
+	near(preview.frame:GetHeight(), 20)
+	local _, _, _, x, y = preview.card:GetPoint()
+	near(x, 0)
+	near(y, 0)
 	assert(table.concat(ns.Strip.Order({ slot1 = "fps", slot2 = "latency", slot3 = "gold", slot4 = "durability", slot5 = "time" }), ",") == "fps,latency,gold,durability,time")
 	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 	frame:SetSize(100, 40)
@@ -40,8 +47,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		near(bottom + h, rh - 55 - want, K.Scale.Pixel(1))
 	end
 	inset(10)
+	local signature = Layouts.ActionBarSignature()
 	assert(Layout.Update("databars.strip", { anchor = "BOTTOM", x = 0, y = 80 }))
 	inset(0)
+	assert(signature ~= Layouts.ActionBarSignature(), "both scale caches include the bar placement")
 	assert(Layout.Get("databars.strip").y == 80, "Layout honours the player's saved bar placement")
 	assert(Layout.Update("databars.strip", { anchor = "TOP", x = 0, y = 0 }))
 	inset(10)
@@ -133,7 +142,6 @@ do
 					assert(Layouts.Fits(preset, width, height, scale, on, positions, style), "saved top anchors use the same inset in Fits")
 					positions["databars.strip"] = { anchor = "BOTTOM", x = 0, y = 500, width = 100, height = 20 }
 					near(Layouts.TopInset("minimap.main", "TOPRIGHT", style, on, positions["databars.strip"]), 0)
-
 				end
 			end
 		end

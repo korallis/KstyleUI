@@ -365,14 +365,15 @@ function ns.Preview(...)
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)
+			local height = s.placement == "top" and not Widgets.Medallions() and s.height or PREVIEW_STRIP
 			local available = Width(self) or Width(parent) or PREVIEW_FALLBACK_WIDTH
 			sample.frame:SetScale(1)
-			sample.frame:SetSize(available, PREVIEW_STRIP)
+			sample.frame:SetSize(available, height)
 			Strip.Paint(sample, s, samples)
 			local needed = Widgets.Snap(sample.frame, (sample.contentWidth or 0) + 2 * PREVIEW_STRIP_PAD)
 			local scale = needed > available and available / needed or 1
 			sample.frame:SetScale(scale)
-			sample.frame:SetSize(max(needed, available / scale), PREVIEW_STRIP)
+			sample.frame:SetSize(max(needed, available / scale), height)
 			sample.frame:ClearAllPoints()
 			Widgets.Point(sample.frame, "TOPLEFT", self, "TOPLEFT", 0, -sample.top / scale)
 			Strip.Paint(sample, s, samples)

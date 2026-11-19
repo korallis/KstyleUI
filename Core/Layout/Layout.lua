@@ -1098,7 +1098,6 @@ local function Changed(el)
 	UpdateEvents()
 	Apply(el)
 	if el.key == "databars.strip" then
-		if KstyleUIDB then KstyleUIDB.scaleCache = nil end
 		for _, key in ipairs(order) do
 			if key ~= el.key then Apply(elements[key]) end
 		end
@@ -1833,7 +1832,6 @@ ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 		end
 	end
 	if module == "DataBars" and (key == "strip.placement" or key == "strip.height" or key == "strip.enabled") then
-		if KstyleUIDB then KstyleUIDB.scaleCache = nil end
 		Restyle()
 	end
 	if module == SECTION and state.active then
