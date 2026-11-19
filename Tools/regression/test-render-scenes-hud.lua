@@ -21,7 +21,7 @@ assert(#hud.items == total, "the merge keeps every module's drawables")
 -- and warrior icons from set B, which
 -- the renderer draws for every file ID the pack covers, as the client does with the pack installed (docs/icons.md).
 local texts, files = collect(hud)
-for _, want in ipairs({ "VALERIN", "SLAM", "0.7 / 1.5", "SNAP", "1.5", "RIVERGLADE CROCOLISK", "38", "Beast", "56%", "2750", "/ 3350", "Battle Shout", "Enrage" }) do
+for _, want in ipairs({ "VALERIN", "SLAM", "0.7 / 1.5", "SNAP", "1.5", "RIVERGLADE CROCOLISK", "38", "Beast", "56%", "2.7K", "/ 3.3K", "Battle Shout", "Enrage" }) do
 	assert(texts[want], "the HUD shows " .. want)
 end
 assert(not texts["Casting"], "the column's cast captions omit the redundant Casting word")
