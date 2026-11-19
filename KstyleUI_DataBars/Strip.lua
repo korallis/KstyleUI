@@ -237,10 +237,9 @@ local function TopBar(view)
 	if view.zones then return end
 	local frame = view.frame
 	view.zones = {}
-	for i, zone in ipairs({ "left", "centre", "right" }) do
+	for _, zone in ipairs({ "left", "centre", "right" }) do
 		local holder = CreateFrame("Frame", nil, frame)
-		local anchor = ({ "TOPLEFT", "TOP", "TOPRIGHT" })[i]
-		holder:SetPoint(anchor, frame, anchor)
+		holder:SetAllPoints(frame)
 		view.zones[zone] = holder
 	end
 	view.art = {}
