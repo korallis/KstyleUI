@@ -74,4 +74,4 @@ stateDiagram-v2
     Rebuilding --> ActivePool : release old groups, select or create destination pool
 ```
 
-The data bar follows this switch: Frames and Orbs use its top placement, while Medallions keeps the rail placement. The bar remains movable through Layout Mode. Only a bar at its default top position reserves the shared top inset; moving it, hiding it or switching to Medallions releases that space. `test-databars-top` covers the inset, saved positions and overlap guard across all styles and layouts.
+The data bar follows this switch: Frames and Orbs use its top placement, with the micro menu docked while `strip.menus` is on and returned to its standalone hover slot while off. Medallions docks the readouts beneath the action slab, sharing the XP caption font and baseline, and returns the menu to its hover slot; the explicit Rail placement retains the rail. The bar remains movable through Layout Mode. Only a bar at its default top position reserves the shared top inset; moving it, hiding it or switching to Medallions releases that space. `test-databars-top` covers the inset, saved positions and overlap guard across all styles and layouts.

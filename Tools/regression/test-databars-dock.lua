@@ -1,9 +1,10 @@
 -- test-databars-dock.lua: the inline secure menu, queued dock transitions, slab caption anchors and the dock-only hub exemption.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
+local Scene = dofile("Tools/render/scene.lua")
 
-local function near(a, b)
-	assert(math.abs(a - b) < 0.01, tostring(a) .. " differs from " .. tostring(b))
+local function near(a, b, what)
+	assert(math.abs(a - b) < 0.01, (what or "dock geometry") .. ": " .. tostring(a) .. " differs from " .. tostring(b))
 end
 
 local secure = { SetParent = true, ClearAllPoints = true, SetPoint = true, SetAllPoints = true, SetSize = true, SetWidth = true, SetHeight = true, SetAttribute = true, Show = true, Hide = true, SetShown = true }
@@ -12,6 +13,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local view, Menus = ns.Strip.view, ns.Menus
 	local micro, bags = Menus.Content("micro"), Menus.Content("bags")
 	local function settle() env.RunTimers() W.Settle(env) end
+	local artwork = K.Options.Row("DataBars", "strip.artwork")
+	assert(artwork.showWhen(ns.Settings()), "artwork is available on the top bar")
 	settle()
 	assert(micro:GetParent() == view.frame and bags:GetParent() == Menus.Holder("bags"))
 	assert(not Menus.Glass("micro"):IsShown() and not Menus.Holder("micro"):IsShown())
@@ -44,9 +47,13 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		env.SetCombat(false)
 		settle()
 	end
-	changeInCombat("rail", view.frame)
+	changeInCombat(false, view.frame, "strip.menus")
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0, "menu docking off restores standalone hover")
+	changeInCombat("rail", Menus.Holder("micro"))
 	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
 	changeInCombat("top", Menus.Holder("micro"))
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
+	changeInCombat(true, Menus.Holder("micro"), "strip.menus")
 	assert(micro:GetParent() == view.frame and micro:GetAlpha() == 1)
 	changeInCombat(false, view.frame, "strip.enabled")
 	assert(micro:GetParent() == Menus.Holder("micro"))
@@ -55,9 +62,16 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("HudStyle", "style", "orbs")
 	settle()
 	assert(micro:GetParent() == view.frame)
+	K.Options.Write("DataBars", "strip.menus", false)
+	settle()
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0, "Orbs honours menu docking off")
+	K.Options.Write("DataBars", "strip.menus", true)
+	settle()
+	assert(micro:GetParent() == view.frame)
 	K.Options.Write("HudStyle", "style", "medallions")
 	settle()
 	local xp = ns.Bars.views.xp
+	assert(not artwork.showWhen(ns.Settings()), "artwork is hidden while docked")
 	assert(view.slab == xp and not view.topBar and not view.chrome.visible)
 	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
 	assert(bags:GetParent() == Menus.Holder("bags"))
@@ -77,7 +91,35 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			near(color[1], r) near(color[2], g) near(color[3], b)
 		end
 	end
+	local function sameCaption()
+		Scene.Build(env)
+		for _, item in pairs(view.items) do
+			if item.button:IsShown() then
+				for _, text in ipairs({ item.value, item.label, item.dot }) do
+					local face, size, flags = text:GetFont()
+					local xpFace, xpSize, xpFlags = xp.text:GetFont()
+					assert(face == xpFace and size == xpSize and flags == xpFlags, "dock text must share the XP caption font")
+					if text:IsShown() then
+						local _, y, _, h = Scene.Rect(env, text)
+						local _, xpY, _, xpH = Scene.Rect(env, xp.text)
+						near(y + h, xpY + xpH, "dock text must share the XP caption baseline")
+					end
+				end
+			end
+		end
+	end
+	sameCaption()
+	K.Options.Write("DataBars", "xp.font", (K.Tokens.Font("prose")))
+	sameCaption()
+	K.Options.Write("DataBars", "xp.instrumentText", false)
+	sameCaption()
+	K.Options.Write("DataBars", "xp.fontSize", 15)
+	sameCaption()
+	K.Options.Write("DataBars", "xp.font", "default")
+	K.Options.Write("DataBars", "xp.instrumentText", true)
+	K.Options.Write("DataBars", "strip.menus", false)
 	changeInCombat("rail", Menus.Holder("micro"))
+	assert(artwork.showWhen(ns.Settings()), "artwork returns outside the dock")
 	assert(not view.slab and not view.topBar)
 	local rail = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
 	for _, key in ipairs({ "databars.rep", "databars.honor" }) do
@@ -86,6 +128,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(math.abs(bottom - dockBottom[key] - 15) <= K.Scale.Pixel(1), "the edge clamp must preserve the dock's fifteen-unit caption band")
 	end
 	changeInCombat("dock", Menus.Holder("micro"))
+	assert(not artwork.showWhen(ns.Settings()), "explicit dock also hides artwork")
 	assert(view.slab == xp)
 	K.Layout.Update("databars.xp", { shown = "never" })
 	ns.Strip.Refresh()

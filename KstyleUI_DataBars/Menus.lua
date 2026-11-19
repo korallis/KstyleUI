@@ -413,7 +413,7 @@ function Menus.SetDock(id, dock, parent, size, rows, inline)
 	end
 	bar.signature = nil
 	Sync(bar)
-	if Menus.Reveal then Menus.Reveal() end
+	Menus.Reveal()
 end
 
 local function Soon(id)

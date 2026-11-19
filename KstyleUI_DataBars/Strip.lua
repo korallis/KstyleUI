@@ -441,12 +441,12 @@ local function PlaceLine(view, s)
 		Widgets.Point(button, anchor, left and view.zones.left or (view.topBar or view.slab) and view.zones.right or frame, anchor, left and 0 or -Widgets.Snap(frame, x), 0)
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
-		Widgets.Point(item.value, "LEFT", button, "LEFT", 0, lift)
+		Widgets.Point(item.value, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", 0, view.slab and 0 or lift)
 		item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
 		item.value:SetJustifyH("LEFT")
 		item.label:SetShown(labelWidth > 0)
 		item.label:ClearAllPoints()
-		Widgets.Point(item.label, "LEFT", button, "LEFT", Widgets.Snap(button, valueWidth + unitGap), lift)
+		Widgets.Point(item.label, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", Widgets.Snap(button, valueWidth + unitGap), view.slab and 0 or lift)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
@@ -455,7 +455,7 @@ local function PlaceLine(view, s)
 		if not left and i > first then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
 			item.dot:ClearAllPoints()
-			Widgets.Point(item.dot, "CENTER", button, "LEFT", -(dotWidth / 2 + dotGap), lift)
+			Widgets.Point(item.dot, view.slab and "TOP" or "CENTER", button, view.slab and "TOPLEFT" or "LEFT", -(dotWidth / 2 + dotGap), view.slab and 0 or lift)
 			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
 			item.dot:SetJustifyH("CENTER")
 			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
@@ -583,7 +583,7 @@ function Strip.Paint(view, s, values)
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
 	view.chrome.shadowOn = not view.topBar
-	if view.topBar or view.slab then TopBar(view) end
+	if view.topBar then TopBar(view) end
 	view.lineMode = view.topBar or view.slab ~= nil or LineMode(s)
 	view.bare = view.slab ~= nil or not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
@@ -606,6 +606,7 @@ function Strip.Paint(view, s, values)
 	else
 		view.chrome:SetEdge("edgeInner")
 	end
+	local caption = view.slab and ns.Bars.Settings(view.slab)
 	for id, item in pairs(view.items) do
 		local on = inOrder[id] == true
 		item.button:SetShown(on)
@@ -614,10 +615,15 @@ function Strip.Paint(view, s, values)
 			item.separator:Hide()
 			item.dot:Hide()
 		else
-			local face, size, role = view.slab and "default" or s.font, view.slab and 11 or s.fontSize, view.slab and "caps" or nil
-			Font.Apply(item.label, face, view.lineMode and size or CaptionSize(s), s.outline, role)
-			Font.Apply(item.value, face, size, s.outline, role)
-			Font.Apply(item.dot, face, size, s.outline, role)
+			if view.slab then
+				Font.Caption(item.label, caption, caption.medal)
+				Font.Caption(item.value, caption, caption.medal)
+				Font.Caption(item.dot, caption, caption.medal)
+			else
+				Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
+				Font.Apply(item.value, s.font, s.fontSize, s.outline)
+				Font.Apply(item.dot, s.font, s.fontSize, s.outline)
+			end
 			Widgets.TextColor(item.dot, view.slab and "medTextMuted" or view.lineMode and "text" or "textEmphasis")
 			item.dot:SetWordWrap(false)
 			local label = s.labels ~= "none" and LABELS[id][view.lineMode and "inline" or s.labels] or ""
@@ -724,7 +730,7 @@ end
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
-	if view.topBar and s.enabled ~= false and Menus and view == Strip.view then
+	if view.topBar and s.enabled ~= false and s.menus == true and Menus and view == Strip.view then
 		view.microDock = view.microDock or function(content, width, height)
 			content:ClearAllPoints()
 			Widgets.Point(content, "LEFT", frame, "LEFT", Tokens.Size("screenMargin"), 0)
@@ -995,9 +1001,8 @@ function Strip.Refresh()
 		view.frame:ClearAllPoints()
 		Widgets.Point(view.frame, "TOPLEFT", xp.holder, "BOTTOMLEFT", 0, -3)
 		Widgets.Size(view.frame, xp.holder:GetWidth(), LINE)
-		for _, zone in ipairs({ "left", "centre" }) do
-			view.zones[zone]:SetAllPoints(view.frame)
-		end
+		view.zones.left:SetAllPoints(view.frame)
+		view.zones.centre:SetAllPoints(view.frame)
 		view.zones.right:ClearAllPoints()
 		Widgets.Point(view.zones.right, "TOPRIGHT", xp.text:IsVisible() and xp.text or view.frame, xp.text:IsVisible() and "TOPLEFT" or "TOPRIGHT", -LABEL_GAP, 0)
 		Widgets.Point(view.zones.right, "BOTTOMLEFT", view.frame, "BOTTOMLEFT")

@@ -505,7 +505,7 @@ for _, name in ipairs(names) do
 	end
 	assert(settings["ActionBars.bar4.showEmpty"] == false and settings["ActionBars.bar5.showEmpty"] == false, name .. " draws only the filled slots of the rail columns at rest (KSTY-34); dragging an action or Layout Mode shows the rest")
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
-	assert(settings["DataBars.strip.menus"] == false, name .. " leaves the menu and the bags out of the readout line")
+	assert(settings["DataBars.strip.menus"] == true, name .. " enables menu docking in the top bar by default")
 	-- Apply sizes the meters: six damage rows, or in Tank two damage rows over two threat rows, so the rail fits.
 	local sizes = Layouts.Sizes(name)
 	for key, size in pairs(sizes) do

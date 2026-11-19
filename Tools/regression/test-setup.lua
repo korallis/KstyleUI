@@ -556,7 +556,7 @@ do
 	assert(bars.pet.rows == 0 and bars.stance.rows == 0, "Apply keeps the pet and stance bars on their HUD style's default rows")
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
-	assert(K.Store.Module("DataBars").strip.menus == false, "Apply leaves the menu and the bags out of the readout line (LEE-20)")
+	assert(K.Store.Module("DataBars").strip.menus == true, "Apply enables menu docking in the top bar by default")
 	assert(group.party.height == 43 and group.raid.height == 36 and group.raid.groupsPerRow == 4 and group.raid.width == 72, "Healer writes taller party rows, four groups a row, and leaves the raid width the player chose")
 	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")
 	assert(K.Setup.Apply({ layout = "Tank", modules = { ActionBars = true, Meters = true, GroupFrames = true } }))

@@ -2,6 +2,7 @@
 local D = dofile("Tools/regression/databars_env.lua")
 local function Rail(opts)
 	local env, K, ns, game = D.New(opts)
+	K.Options.Write("DataBars", "strip.menus", false)
 	K.Options.Write("DataBars", "strip.placement", "rail")
 	K.Options.Write("DataBars", "strip.slot4", "none")
 	K.Options.Write("DataBars", "strip.slot5", "none")

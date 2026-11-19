@@ -52,3 +52,8 @@ function Font.Apply(text, face, size, outline, role)
 		text:SetShadowOffset(offset, -offset)
 	end
 end
+
+function Font.Caption(text, s, medal)
+	local instrument = medal and s.instrumentText ~= false
+	Font.Apply(text, s.font, instrument and 11 or s.fontSize, s.outline, instrument and "caps" or "prose")
+end

@@ -277,10 +277,7 @@ local function Style(view, s)
 		view.holder:SetHitRectInsets(0, 0, -HIT_PAD, -HIT_PAD)
 	end
 	LayoutTicks(view, s)
-	Font.Apply(view.text, s.font, s.fontSize, s.outline, "prose")
-	if view.def.id == "xp" and s.medal and s.instrumentText ~= false then
-		Font.Apply(view.text, s.font, 11, s.outline, "caps")
-	end
+	Font.Caption(view.text, s, view.def.id == "xp" and s.medal)
 	PlaceText(view, s.textPosition, s.medal)
 	if view.def.id == "xp" and s.medal and not view.lowered then
 		view.lowered = view.holder:GetFrameStrata()
@@ -351,6 +348,7 @@ local function Settings(view)
 	end
 	return medal
 end
+Bars.Settings = Settings
 
 local function OnEnter(holder)
 	local view = holder.kView

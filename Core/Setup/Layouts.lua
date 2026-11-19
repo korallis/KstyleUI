@@ -267,7 +267,7 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
-	{ module = "DataBars", key = "strip.menus", value = false },
+	{ module = "DataBars", key = "strip.menus", value = true },
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
 }
 local GRID_ORDER = { "bar1", "bar2", "bar3", "bar4", "bar5", "bar6", "pet", "stance" }
@@ -977,6 +977,10 @@ function Layouts.OrbsTray(width)
 end
 Layouts.STYLES = { "orbs", "medallions" }
 
+function Layouts.DataBarBelowDock(style, name, key, class)
+	return style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(style, name, class)
+end
+
 function Layouts.Style(style, name, key)
 	if style == "medallions" and (key == "meters.damage" or key == "meters.threat") and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
 		return layouts[name] and layouts[name][key]
@@ -1008,7 +1012,7 @@ function Layouts.Style(style, name, key)
 	local set = STYLES[style][name]
 	local position = set and (set[key] or STORY_STYLES[style] and STORY_STYLES[style][key])
 	if position then
-		local drop = style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(style, name) and 15 or 0
+		local drop = Layouts.DataBarBelowDock(style, name, key) and 15 or 0
 		return { anchor = position.anchor, x = position.x, y = position.y - drop, scale = position.scale, width = position.width, height = position.height }
 	end
 end
@@ -1198,7 +1202,7 @@ function Layouts.DisplayInsets(key, height, anchor)
 	place = place or STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
 	local inset = place and place.insets or element.insets
 	local l, r, b, t = inset and inset[1] or 0, inset and inset[2] or 0, inset and inset[3] or 0, inset and inset[4] or 0
-	if style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(style, name, class) then b = math.max(0, b - 15) end
+	if Layouts.DataBarBelowDock(style, name, key, class) then b = math.max(0, b - 15) end
 	if place and place.height then t = math.max(0, t + (place.height - height) / 2) end
 	local reserve = not (place and place.width) and element.reserve
 	if reserve then
@@ -1239,7 +1243,7 @@ function Layouts.Aspect(class, style, name, key)
 	if position and position.anchor and position.x and position.y then
 		local place = copy(position)
 		place.width, place.height = position.width, position.height
-		if style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(style, name, class) then place.y = place.y - 15 end
+		if Layouts.DataBarBelowDock(style, name, key, class) then place.y = place.y - 15 end
 		return place
 	end
 end
