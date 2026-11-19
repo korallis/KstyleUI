@@ -63,7 +63,7 @@ end
 local schema = { { type = "header", label = L["Windows"] } }
 schema[#schema + 1] = { type = "toggle", key = "steelButtons", label = L["Steel window buttons"], help = L["Give window buttons steel surfaces and clearer states. Off restores the previous finish."] }
 schema[#schema + 1] = { type = "toggle", key = "windowMetrics", label = L["Consistent window spacing"], help = L["Use shared window sizes and spacing. Off restores previous layouts; reload to apply."] }
-schema[#schema + 1] = { type = "toggle", key = "restyleAddons", label = L["Restyle other addons' text"], help = L["Use KstyleUI fonts and colours in attached addon panels, keeping their text sizes."] }
+schema[#schema + 1] = { type = "toggle", key = "restyleAddons", label = L["Restyle other addons' text"], help = L["KstyleUI fonts and colours in addon panels, at their sizes. Off restores theirs; reload to apply."] }
 for _, def in ipairs(Skins.List()) do
 	local section = Copy(def.defaults or {})
 	section.enabled = true

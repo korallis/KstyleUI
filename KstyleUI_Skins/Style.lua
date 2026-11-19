@@ -440,7 +440,7 @@ local function SweepFrame(frame, skip, depth, otherAddon)
 	if type(frame.GetSourceLocation) == "function" then
 		local source = frame:GetSourceLocation()
 		local addon = not IsSecret(source) and type(source) == "string" and source:match("[/\\]AddOns[/\\]([^/\\]+)")
-		otherAddon = otherAddon or (addon and not addon:match("^Blizzard_"))
+		otherAddon = otherAddon or (addon and not addon:match("^Blizzard_") and not addon:match("^KstyleUI"))
 	end
 	if otherAddon and K.Store.Module(MODULE).restyleAddons == false then return 0 end
 	local count = 0
