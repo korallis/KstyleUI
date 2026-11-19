@@ -361,15 +361,14 @@ class WorkflowsTest(unittest.TestCase):
             step = job.split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
             self.assertIn("if: steps.scope.outputs.lint != 'false'", step)
 
-    def test_every_job_runs_on_the_mac_ci_runners_and_never_for_a_fork(self):
+    def test_light_jobs_use_hosted_linux_and_budget_and_release_jobs_use_the_macs(self):
         for path in workflows():
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("ubuntu-", text, path.name)
-            self.assertNotRegex(text, r"\bsudo\b", path.name)
             jobs = jobs_of(text)
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
-                self.assertIn("\n    " + RUNNERS + "\n", body, f"{path.name}: {job}")
+                runner = "runs-on: ubuntu-latest" if job in ("python-package", "pr-rules") else RUNNERS
+                self.assertIn("\n    " + runner + "\n", body, f"{path.name}: {job}")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
                 self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
@@ -393,9 +392,18 @@ class WorkflowsTest(unittest.TestCase):
         for job in ("check", "release"):
             self.assertIn("| grep '^Pillow 13\\.0\\.0$'", release[job], job)
 
-    def test_no_workflow_fetches_packages_with_apt(self):
-        for path in workflows():
-            self.assertNotRegex(path.read_text(encoding="utf-8"), r"apt(-get)?\s+(update|install)", path.name)
+    def test_hosted_tools_are_cached_and_the_gate_uses_the_python_venv(self):
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
+        self.assertIn("sudo apt-get install -y lua5.1 luajit luarocks", job)
+        self.assertIn("luarocks --local --lua-version=5.1 install luacheck 1.2.0", job)
+        self.assertIn('"$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0', job)
+        self.assertIn("KSTYLEUI_PYTHON: /home/runner/.local/share/wow-dev/venv/bin/python", job)
+        self.assertNotIn("KSTYLEUI_PYTHON: python3", job)
+        cache = next(step for step in job.split("\n      - ") if "uses: actions/cache@" in step)
+        for path in ("~/.luarocks", "~/.local/share/wow-dev/venv", "~/.cache/pre-commit"):
+            self.assertIn(path, cache)
+        self.assertIn("hashFiles('.pre-commit-config.yaml')", cache)
+        self.assertNotIn("restore-keys:", cache)
 
     def test_pr_text_reaches_scripts_only_through_env(self):
         text_fields = re.compile(r"github\.(event\.pull_request\.(body|title|labels|head)|head_ref|base_ref)")
