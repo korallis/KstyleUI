@@ -41,10 +41,11 @@ local NEXT = [[
 
 local function Tooltip(tip)
 	local bind, cooldown = ns.TravelData.Hearth()
+	local _, hearth = ns.TravelData.Read()
 	tip:AddTitle(L["Hearthstone"])
 	tip:AddDoubleLine(L["Bind location"], bind)
 	tip:AddDoubleLine(L["Hearthstone cooldown"], cooldown)
-	if not Travel.hasHearth then tip:AddLine(L["No Hearthstone in your bags."]) end
+	if not hearth then tip:AddLine(L["No Hearthstone in your bags."]) end
 	tip:AddLine(L["Left click: Hearthstone \194\183 Right click: travel"])
 end
 
@@ -154,10 +155,9 @@ local function Refresh()
 	menu:Hide()
 	local groups, hearth = ns.TravelData.Read()
 	menu:SetAttribute("hasTravel", #groups[1] + #groups[2] + #groups[3] > 0)
-	Travel.hasHearth = hearth
 	crest:SetAttribute("item1", "item:6948")
 	crest:SetAttribute("type1", hearth and "item" or nil)
-	Widgets.Cover(crest, hub.crest)
+	if not Widgets.Cover(crest, hub.crest) then crest:Hide(); return end
 	crest:Show()
 	local y = PAD
 	for i, list in ipairs(groups) do
@@ -173,7 +173,9 @@ local function Refresh()
 		local frame = element and element.frame
 		local place = K.Setup.Layouts.Style("medallions", "DPS", key)
 		local edge = frame and ns.TravelData.Plain(frame:GetTop(), "number")
-		if edge then edge = edge * frame:GetEffectiveScale() / menu:GetEffectiveScale() end
+		local scale = frame and ns.TravelData.Plain(frame:GetEffectiveScale(), "number")
+		local own = ns.TravelData.Plain(menu:GetEffectiveScale(), "number")
+		if edge and scale and own and own > 0 then edge = edge * scale / own else edge = nil end
 		edge = edge or (place and place.y + place.height)
 		if edge and ns.TravelData.Plain(top, "number") then lift = math.max(lift, edge - top + GAP + GROUP_GAP) end
 	end

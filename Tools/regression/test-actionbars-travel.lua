@@ -41,6 +41,11 @@ assert(not travel.menu:IsShown(), "second right click closes")
 data.items = {}
 env.FireEvent("BAG_UPDATE_DELAYED")
 assert(travel.crest:GetAttribute("type1") == "item", "inventory mutations wait for Combat.Queue")
+AB.W.Enter(travel.crest)
+local liveMissing = false
+for _, line in ipairs(K.Widgets.Tooltip().used) do if line.left:GetText() == K.L["No Hearthstone in your bags."] then liveMissing = true end end
+assert(liveMissing, "the tooltip reads current bags even while secure menu contents wait for combat")
+AB.W.Leave(travel.crest)
 K.Options.Write("ActionBars", "crestTravel", false)
 assert(travel.crest:IsShown(), "disabling protected clicks waits for combat to end")
 assert(#env._blocked == 0, table.concat(env._blocked, ", "))
