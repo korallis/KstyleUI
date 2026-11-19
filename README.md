@@ -227,16 +227,15 @@ Type `/kstyle layout` (or click **Layout Mode** in Options). Every piece of the 
 Yes. Every feature is a module you can switch off, and **Keep my UI** in the setup leaves the game's interface as it is.
 
 **Which languages are included?**
-English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string as an issue.
+English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string in #bug-reports on Discord.
 
 **How do I report a bug?**
-Open an issue at the link below, or post in #bug-reports on the KstyleUI Discord. Say what you were doing, what you expected and what happened instead, and add a screenshot and your KstyleUI version if you can.
+Post in #bug-reports on the [KstyleUI Discord](https://discord.gg/A5qqGZEXyN). Say what you were doing, what you expected and what happened instead, and add your KstyleUI version and a screenshot.
 
 ## Links
 
 - Source code: https://github.com/korallis/KstyleUI
-- Issues: https://github.com/korallis/KstyleUI/issues
-- Discord: https://discord.gg/A5qqGZEXyN
+- Bug reports and help: https://discord.gg/A5qqGZEXyN
 
 ## Credits
 

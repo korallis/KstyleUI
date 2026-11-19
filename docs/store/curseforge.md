@@ -25,7 +25,7 @@ The [moderation policies](https://support.curseforge.com/en/support/solutions/ar
 The page follows CurseForge's [moderation policies](https://support.curseforge.com/support/solutions/articles/9000197279-moderation-policies), checked on 2026-11-17:
 
 - The summary is a one-sentence tl;dr and is not repeated as the description's first line.
-- The description has no external download links: the optional icon pack, which is not an addon, is offered only on GitHub and is not linked here. Links to the source code and the issue tracker sit at the bottom of the page.
+- The description has no external download links: the optional icon pack, which is not an addon, is offered only on GitHub and is not linked here. Links to the source code and Discord for bug reports and help sit at the bottom of the page.
 - A Credits section credits the bundled SIL Open Font License fonts and says the art is original to KstyleUI, with the AI-made pieces named.
 - The name has no game name or version, the avatar is the 400x400 logo, the gallery has in-game pictures and labels the test renders, and every file carries the changelog.
 
@@ -255,16 +255,15 @@ Type `/kstyle layout` (or click **Layout Mode** in Options). Every piece of the 
 Yes. Every feature is a module you can switch off, and **Keep my UI** in the setup leaves the game's interface as it is.
 
 **Which languages are included?**
-English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string as an issue.
+English, German, French, Spanish and Simplified Chinese, using the game's own terms for each language. The translations are machine-made and not yet checked by a native speaker, so please report a wrong or awkward string in #bug-reports on Discord.
 
 **How do I report a bug?**
-Open an issue at the link below, or post in #bug-reports on the KstyleUI Discord. Say what you were doing, what you expected and what happened instead, and add a screenshot and your KstyleUI version if you can.
+Post in #bug-reports on the [KstyleUI Discord](https://discord.gg/A5qqGZEXyN). Say what you were doing, what you expected and what happened instead, and add your KstyleUI version and a screenshot.
 
 ## Links
 
 - Source code: https://github.com/korallis/KstyleUI
-- Issues: https://github.com/korallis/KstyleUI/issues
-- Discord: https://discord.gg/A5qqGZEXyN
+- Bug reports and help: https://discord.gg/A5qqGZEXyN
 
 ## Credits
 
@@ -288,7 +287,7 @@ The TOC says `## X-License: All Rights Reserved`, and [LICENSE.md](../../LICENSE
 ## Links to set on the project
 
 - Source: https://github.com/korallis/KstyleUI
-- Issues: https://github.com/korallis/KstyleUI/issues
+- Issues: https://discord.gg/A5qqGZEXyN
 - Discord: https://discord.gg/A5qqGZEXyN
 
 ## Logo
