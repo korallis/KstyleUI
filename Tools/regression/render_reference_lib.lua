@@ -2,7 +2,7 @@
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
-local env, K = CoreEnv.New()
+local env, K = CoreEnv.New({ width = 3456, height = 2234, size = 16 / 19 })
 CoreEnv.Boot(env)
 local Layouts = K.Setup.Layouts
 local Guard = dofile("Tools/render/guard.lua")
@@ -55,15 +55,18 @@ return function(preset, built)
 	assert(questCount == 4, preset .. " draws all four picture quests, got " .. questCount)
 	local Scene = dofile("Tools/render/scene.lua")
 	assert(firstObjective and Scene.WrappedLines(Scene.PlainText(firstObjective.text), firstObjective.font.size, firstObjective.font.path, firstObjective.rect[3]) == 3, preset .. " draws the first objective on three lines")
-	-- The picture's counts end at 3398 px. KSTY-33 moved the quest card one column left of the RestedXP guide's card;
-	-- with the guide shown under Frames the quest card holds the story slot again (LEE-1532), so its counts end at the
-	-- picture's own right inset.
-	local column = 0
+	local column
+	for _, card in ipairs(built.rail) do
+		if card.name == "quests" then column = (card.left + card.width) * 2234 / 1080 end
+	end
+	assert(column, preset .. " measures the quest card's right edge")
+	local inset = K.Widgets.Inset(K.Scale.Root(), K.Tokens.Size("radius")) + K.Widgets.Snap(K.Scale.Root(), 1)
+	column = column - inset * 2234 / rh
 	local counts = 0
 	for _, item in ipairs(built.items) do
 		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1250 and item.rect[2] > 300 and item.rect[2] < 420 then
 			local right = (item.rect[1] + item.rect[3]) * 2.0685
-			assert(math.abs(right - (3398 - column)) <= 1, preset .. " keeps the resting quest count at the picture's right inset, got " .. right)
+			assert(math.abs(right - column) <= 1, preset .. " keeps quest counts inside the shared card inset and trailing pixel, got " .. right)
 			counts = counts + 1
 		end
 	end

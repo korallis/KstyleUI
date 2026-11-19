@@ -44,8 +44,8 @@ end
 assert(chatLine("Congratulations, you have reached"), "the session's chat lines draw")
 
 -- The story card in the picture's state (LEE-67, handoffs/reference-diff/DIFF-acceptance-1.md section 3): the first
--- quest's objective wraps onto three lines that stand a row apart, each quest's disc stands a pixel in from the
--- caption marks, and the glass is as tall as the picture's. The acceptance pass's clean-plate rule reads the glass's
+-- quest's objective wraps onto three lines that stand a row apart, each quest's disc shares the cap's marker
+-- column, and the glass is as tall as the picture's. The acceptance pass's clean-plate rule reads the glass's
 -- 553 pixels as 557, the rim's shadow with it.
 do
 	local Scene = dofile("Tools/render/scene.lua")
@@ -100,8 +100,8 @@ do
 	local lines = Scene.WrappedLines(Scene.PlainText(objective.text), objective.font.size, objective.font.path, objective.rect[3])
 	assert(lines == 3, "the first objective takes the picture's three lines in the 278-unit card, got " .. lines)
 	assert(objective.spacing > 0 and math.abs(objective.rect[4] - 3 * row.rect[4]) < 0.01, "and its lines stand a row apart: three rows high, got " .. objective.rect[4] .. " for a row of " .. row.rect[4])
-	local lead = (dot.rect[1] - mark.rect[1]) * ppu
-	assert(lead > 1.5 and lead < 2.5, "the disc texture starts two pixels in from the caption mark, drawing the picture's core a pixel farther in, got " .. lead)
+	local centre = (dot.rect[1] + dot.rect[3] / 2 - mark.rect[1] - mark.rect[3] / 2) * ppu
+	assert(math.abs(centre - 3) <= 0.5, "the quest disc sits three pixels right of the shared cap marker's centre, got " .. centre)
 	assert(math.abs(dot.rect[3] * ppu - 28) < 0.01, "the disc draws the picture's 28-pixel core, as the acceptance mask measures, got " .. dot.rect[3] * ppu)
 	local tall = (glass[2] - glass[1]) * ppu
 	-- KSTY-33 split the picture's story card (553 pixels, the guide's head and step over the quests) into two cards: the
