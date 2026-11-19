@@ -213,6 +213,7 @@ In **Options, General, HUD style**, or by running the setup again with `/kstyle 
 
 **My HUD sits in the middle of my ultrawide. How do I spread it out?**
 On 21:9 and 32:9 screens KstyleUI keeps everything in a centred band by default. In **Options, Elements**, set **Ultrawide arrangement** to **Spread**: the chat, minimap, quest tracker and the other side columns move out to the screen edges, and your group frames stay close to your character. **HUD width**, just above it, sets how wide the centred band is.
+![KstyleUI Options, Elements page, Screen section: Ultrawide arrangement set to Spread (test render)](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/faq/options-ultrawide-arrangement.jpg)
 
 **How do I get an action bar into the slab?**
 In Medallions the slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. In Frames and Orbs the first two bars sit in the main tray. You can move any bar with Layout Mode (below).
