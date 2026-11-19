@@ -369,6 +369,8 @@ class WorkflowsTest(unittest.TestCase):
             for job, body in jobs.items():
                 runner = "runs-on: ubuntu-latest" if job in ("python-package", "pr-rules") else RUNNERS
                 self.assertIn("\n    " + runner + "\n", body, f"{path.name}: {job}")
+                if runner == RUNNERS:
+                    self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
                 self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
