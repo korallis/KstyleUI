@@ -320,10 +320,9 @@ local function ZoneCenter(face, side)
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
-	if not Face.Round() then return left, bottom end
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
-	local overhang = side * (1 / RING_OUTER - 1) / 2
+	local overhang = Face.Round() and side * (1 / RING_OUTER - 1) / 2 or 0
 	local half = PLAQUE_HEIGHT / 2
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
@@ -667,7 +666,7 @@ function Face:Layout()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
 	self.clockBottom = Plain(h) and h / pixel or 0
-	self.clockInset, self.clockGap = Snap(card, CaptionX()), Snap(card, MERIDIEM_GAP)
+	self.clockInset, self.clockGap = Snap(card, CaptionX()) + 2 * Widgets.Border(card), Snap(card, MERIDIEM_GAP)
 	self.clockRow = rowY
 	self:PlaceClock()
 

@@ -53,7 +53,7 @@ do
 	local frames = Layouts.Get("DPS")["groupframes.party"]
 	local orbs = Layouts.Style("orbs", "DPS", "groupframes.party")
 	assert(orbs.anchor == "LEFT" and orbs.x == frames.x and orbs.y == frames.y, "DPS party sits at mid-left under Orbs, where Frames puts it (KSTY-60 item 6)")
-	assert(Layouts.Style("orbs", "Healer", "groupframes.party") == nil, "Healer party keeps its Frames place, the same mid-left")
+	assert(Layouts.Style("orbs", "Healer", "groupframes.party").y == frames.y + 4, "Healer party clears the full stance-bar reserve at mid-left")
 	assert(Layouts.Style("orbs", "DPS", "unitframes.target").anchor == "TOP", "the target is a top-centre bar under Orbs")
 	assert(Layouts.Style("orbs", "DPS", BAR2).scale < 0.85, "bar 2 is the smaller second row under Orbs")
 	local positions = Layouts.Positions("DPS", "orbs")

@@ -173,8 +173,8 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							for _, item in ipairs(scene.items) do
 								local key = owner(item.object)
 								local file = item.file or item.path or ""
-								-- Soft shadows/glows have transparent padding and deliberately bleed; solid ornaments stay checked.
-								if key and not (style=="orbs" and key=="unitframes.player") and not file:find("Shadow",1,true) and not file:find("Glow.png",1,true) then add(key,item) end
+								-- Soft lighting/shadows have transparent padding and deliberately bleed; solid ornaments stay checked.
+								if key and not (style=="orbs" and key=="unitframes.player") and not file:find("Shadow",1,true) and not file:find("Glow.png",1,true) and not file:find("PortraitSheen.png",1,true) then add(key,item) end
 							end
 							local solver, clicks = Scene.RectSolver(env), {}
 							if style=="orbs" then
@@ -186,7 +186,8 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							end
 							for _, frame in ipairs(env._frames) do
 								local key=owner(frame)
-								if key and frame:IsVisible() and frame:IsMouseEnabled() and env.Look(frame:GetAlpha())>0 then
+								local mouse=frame:IsMouseEnabled() or frame._mouse~=false and (frame._type=="Button" or frame._type=="CheckButton")
+								if key and frame:IsVisible() and mouse and env.Look(frame:GetAlpha())>0 then
 									local rect={Scene.RectIn(solver,frame)}
 									assert(#rect==4,label .. ": " .. key .. ": clickable bounds must resolve")
 									local click={kind="click",rect=rect,key=key,object=frame}

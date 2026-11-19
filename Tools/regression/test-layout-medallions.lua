@@ -60,17 +60,17 @@ do
 		local pet, tot = Place("unitframes.pet"), Place("unitframes.targettarget")
 		assert(near(player.width, 300) and near(player.height, 58) and near(target.width, 300) and near(target.height, 58), label .. ": the player and target slabs are 300 by 58")
 		assert(near(player.x, -target.x) and near(player.y, target.y), label .. ": the player and target mirror about the hub")
-		assert(near(player.y, top + pad + 14), label .. ": the unit slabs stand 14 over the action slab")
+		assert(near(player.y, top + pad + 26), label .. ": the unit slabs leave their power reserves clear of the action slab")
 		assert(near(target.x - target.width / 2, ring / 2 + 12), label .. ": the target's inner edge stands 12 clear of the hub ring")
 		assert(near(pet.width, 170) and near(pet.height, 34) and near(tot.width, 170) and near(tot.height, 34), label .. ": the pet and target of target are 170 by 34")
 		assert(near(pet.x, -tot.x) and near(pet.y, tot.y), label .. ": the pet and target of target mirror")
 		if class == Layouts.ASPECTS[1] then
 			assert(near(tot.x + tot.width / 2, target.x + target.width / 2) and near(tot.y, target.y + target.height + 46), label .. ": under 21:9 the target of target stands over the target, clear of its debuff row")
 		else
-			assert(near(tot.x - tot.width / 2, target.x + target.width / 2 + 41 + 12) and near(tot.y + tot.height / 2, target.y + target.height / 2), label .. ": at 21:9 and wider the target of target stands 12 outboard of the target medallion, centred on the slab")
+			assert(near(tot.x - tot.width / 2, target.x + target.width / 2 + 86 + 16 + 12) and near(tot.y + tot.height / 2, target.y + target.height / 2 + 8), label .. ": at 21:9 and wider the mini frames clear the full medallion and the pet bar's plaque")
 		end
 		local cast, targetCast = Place("unitframes.castbar.player"), Place("unitframes.castbar.target")
-		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 15), label .. ": the player's cast bar is 300 by 20, centred 15 over the hub")
+		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 27), label .. ": the player's cast bar is 300 by 20 and clears the raised unit slabs")
 		assert(targetCast.x == 0 and near(targetCast.width, 300) and near(targetCast.height, 20) and near(targetCast.y - (cast.y + cast.height), 9), label .. ": the target cast must be 300 by 20 with a nine-unit gap above the player cast")
 	end
 	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")

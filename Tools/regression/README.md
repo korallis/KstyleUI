@@ -10,6 +10,10 @@ bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, how 
 
 To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
 
+## HUD reach gate
+
+`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh` and Mac CI.
+
 ## Modes
 
 CI runs the whole suite once per pull request head and once per push to `staging`, as two `--shard I/2` jobs. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
