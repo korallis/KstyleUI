@@ -89,8 +89,10 @@ do
 	T.BlizzardShow(env.GameTooltip, true)
 	assert(not glass.fade:IsPlaying(), "Off suppresses the game tooltip fade")
 	K.Options.Write("Appearance", "motion", "full")
+	T.BlizzardShow(env.GameTooltip, false)
+	env.RunTimers()
 	T.BlizzardShow(env.GameTooltip, true)
-	assert(glass.fade:IsPlaying(), "Full restores the game tooltip fade")
+	assert(glass.fade:IsPlaying(), "Full restores the game tooltip fade on a new opening")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 print("motion reduced ok")

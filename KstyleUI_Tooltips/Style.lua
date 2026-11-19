@@ -308,18 +308,19 @@ function Style.Skin(tooltip, name)
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
 	glass.fade, glass.fadeAlpha = BuildFade(tooltip)
+	local function ClearFadeShown()
+		local shown = tooltip:IsShown()
+		if not Logic.IsSecret(shown) and not shown then
+			glass.fadeShown = nil
+		end
+	end
 	tooltip:HookScript("OnShow", FadeIn)
 	tooltip:HookScript("OnHide", function()
 		if glass.fade then
 			glass.fade:Stop()
 		end
 		if C_Timer and type(C_Timer.After) == "function" then
-			C_Timer.After(0, function()
-				local shown = tooltip:IsShown()
-				if not Logic.IsSecret(shown) and not shown then
-					glass.fadeShown = nil
-				end
-			end)
+			C_Timer.After(0, ClearFadeShown)
 		else
 			glass.fadeShown = nil
 		end

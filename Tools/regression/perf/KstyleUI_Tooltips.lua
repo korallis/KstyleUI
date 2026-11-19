@@ -26,6 +26,7 @@ return {
 				turn = turn % 2 + 1
 				local size = SIZES[turn]
 				T.BlizzardShow(tip, false)
+				env.RunTimers()
 				tip:SetSize(size[1], size[2])
 				T.BlizzardShow(tip, true)
 				onSize(glass, size[1], size[2])
