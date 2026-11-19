@@ -956,7 +956,7 @@ function Layouts.Style(style, name, key)
 		local overhang = Layouts.CREST_GROW / 2
 		return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) }
 	end
-	local extra = style == "medallions" and key ~= "chat.main" and key ~= "qol.lootfeed" and Layouts.ExtraBarsPlace(ns.Scale.Aspect(), name, key)
+	local extra = style == "medallions" and key ~= "chat.main" and key ~= "qol.lootfeed" and key ~= "unitframes.resource" and Layouts.ExtraBarsPlace(ns.Scale.Aspect(), name, key)
 	if extra then return extra end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
 	if bar then return bar end
