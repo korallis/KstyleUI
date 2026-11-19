@@ -430,6 +430,7 @@ local function Under(bar, parent)
 	under:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL")
 	under:SetReverseFill(Reversed(bar))
 	local edge = Widgets.BarEdge(under)
+	edge.bar = bar
 	under.edgeSoft, under.edgeHard, under.track = edge.soft, edge.hard, edge.track
 	local restyle = edge.Restyle
 	edge.Restyle = function(self)
