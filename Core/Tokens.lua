@@ -10,7 +10,6 @@ local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
-	rowHover = { "ffffff", 0.05 },
 	visionRGCalm = { "0072b2", 1 },
 	visionRGDanger = { "d55e00", 1 },
 	visionRGWarning = { "f0e442", 1 },

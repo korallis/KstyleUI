@@ -150,7 +150,7 @@ local function NewRow(list, index, parent, passive)
 	end
 	local wash = frame:CreateTexture(nil, "HIGHLIGHT")
 	wash:SetAllPoints(frame)
-	wash:SetColorTexture(Tokens.Color("rowHover"))
+	wash:SetColorTexture(Widgets.Rgba("white", Tokens.Share("rowHover")))
 	wash:Hide()
 	local row = {
 		wash = wash,
