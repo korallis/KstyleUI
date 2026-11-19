@@ -229,7 +229,7 @@ Under the Medallions HUD style (`KstyleUI.HudStyle.Current() == "medallions"`, K
 
 ## Aura filters
 
-The shared aura filter uses Only yours, Dispellable by you, Allow spell IDs, Block spell IDs and Sort by. IDs are positive whole numbers separated by commas or spaces; blank lists add no restriction. A nonempty allow list limits the row to those spells within its other filters, and blocking wins. The engine handles identity filtering: an unreadable spell ID never becomes a Lua table key; an allow list rejects unidentifiable auras, while a block list alone cannot hide an unidentifiable spell. Overflow counters use the same filters as the visible icons.
+Only yours and Sort by share the aura filter builder. Which debuffs retains the existing Dispellable choice; there is no duplicate toggle. Spell-ID allow and block lists are offered only on nameplates, where the engine can honour them. Overflow counters use the same filters as the visible icons.
 
 Missing settings preserve the existing Which debuffs filter, priority lanes and ordering. The shared filters apply to every debuff lane and the boss slot; they leave dispel highlights, glow alerts, heal icons and indicator slots independent. Current style restores the existing ordering within each priority lane. No saved settings are migrated.
 

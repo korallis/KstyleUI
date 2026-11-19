@@ -35,11 +35,15 @@ local function BuildSchema()
 				help = L["Which way new icons are added, and where the next row starts."],
 			},
 			{
+				type = "dropdown", key = name .. ".sort", label = L["Sort by"], options = Model.SORT_OPTIONS,
+				help = L["The order the icons are shown in."],
+			},
+			{
 				type = "toggle", key = name .. ".reverse", label = L["Reverse order"],
 				help = L["Flips the sort order, so the last icon comes first."],
 			},
 		}
-		K.Options.AuraFilterRows(schema, name, { sortOptions = Model.SORT_OPTIONS })
+		K.Options.AuraFilterRows(schema, name, { sort = false })
 		for _, row in ipairs(rows) do
 			schema[#schema + 1] = row
 		end

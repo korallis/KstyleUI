@@ -193,13 +193,6 @@ function Logic.CVarPlan(cvars)
 	return plan
 end
 
-local AURA_FILTER = "HARMFUL|PLAYER"
-local AURA_FILTER_PLATES = "HARMFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY"
-
-function Logic.AuraFilter(includePlateOnly)
-	return includePlateOnly and AURA_FILTER_PLATES or AURA_FILTER
-end
-
 local GROWTH_X = { RIGHT = { "LEFT", "Right", 1 }, LEFT = { "RIGHT", "Left", -1 } }
 local GROWTH_Y = { UP = { "BOTTOM", "Up", 1 }, DOWN = { "TOP", "Down", -1 } }
 

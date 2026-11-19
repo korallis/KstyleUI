@@ -18,8 +18,15 @@ return Common.Run(function()
 		end,
 	}))
 	local prefix = module == "GroupFrames" and "auras" or "debuffs"
-	for key, value in pairs({ onlyMine = true, dispellable = true, allowSpells = "589, 139, 774", blockSpells = "139" }) do
-		K.Options.Write(module, prefix .. "." .. key, value)
+	K.Options.Write(module, prefix .. ".onlyMine", true)
+	if module == "GroupFrames" then
+		K.Options.Write(module, "auras.filter", "DISPELLABLE")
+	else
+		K.Options.Write(module, prefix .. ".dispellable", true)
+	end
+	if module == "Nameplates" then
+		K.Options.Write(module, "debuffs.allowSpells", "589, 139, 774")
+		K.Options.Write(module, "debuffs.blockSpells", "139")
 	end
 	K.Options.Write(module, prefix .. "." .. (module == "Nameplates" and "order" or "sort"), module == "Nameplates" and "longest" or "name")
 	if module == "Auras" then K.Options.Write(module, "timer.position", "inside") end
@@ -36,7 +43,7 @@ return Common.Run(function()
 	env.RunTimers()
 	local ns = env._addons.KstyleUI_Options
 	for i, item in ipairs(ns.Window.State().items) do
-		if item.key == prefix .. ".onlyMine" then
+		if item.key == (module == "GroupFrames" and "auras.filter" or prefix .. ".onlyMine") then
 			ns.Window.Parts().content:ScrollToIndex(i, true, "TOP")
 			break
 		end

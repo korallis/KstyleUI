@@ -305,7 +305,7 @@ The page and saved reads share one settings table; parsed formats are cached. Po
 
 ## Aura filters
 
-The shared aura filter uses Only yours, Dispellable by you, Allow spell IDs, Block spell IDs and Sort by. IDs are positive whole numbers separated by commas or spaces; blank lists add no restriction. A nonempty allow list limits the row to those spells within its other filters, and blocking wins. The engine handles identity filtering: an unreadable spell ID never becomes a Lua table key; an allow list rejects unidentifiable auras, while a block list alone cannot hide an unidentifiable spell. Overflow counters use the same filters as the visible icons.
+The shared aura filter uses Only yours, Dispellable by you, Allow spell IDs, Block spell IDs and Sort by. IDs are positive whole numbers separated by commas or spaces; blank or invalid lists add no restriction. An allow list containing valid IDs limits the row to those spells within its other filters, and blocking wins. The engine handles identity filtering: an unreadable spell ID never becomes a Lua table key; an allow list rejects unidentifiable auras, while a block list alone cannot hide an unidentifiable spell. Overflow counters use the same filters as the visible icons.
 
 Missing settings preserve only your debuffs, nameplate-only debuffs and the existing Important first order. Turn Only yours off to include other casters. The existing order key is retained. No saved settings are migrated.
 

@@ -180,7 +180,7 @@ local function GroupCount(f, k, key)
 	return cells + OVERFLOW
 end
 
-local function Category(key, types, k)
+local function Candidates(key, types, k)
 	if key == BOSS then
 		return { isBossAura = true }
 	elseif key == IMPORTANT then
@@ -191,10 +191,6 @@ local function Category(key, types, k)
 	end
 	local processed = key == DISPELS and types.Dispel or types.Debuff
 	return { processedAuraType = processed, isBossAura = false, isPriorityAura = false }
-end
-
-local function Candidates(key, types, k)
-	return K.Options.AuraCandidates(Settings.current.auras, types and Category(key, types, k))
 end
 
 local function Filter()
@@ -648,7 +644,7 @@ local function GroupOptions(f, k, key, types)
 		options.sortDirection = directions.Normal
 		options.sortMethod, options.sortDirection = K.Options.AuraSort(Settings.current.auras.sort, options.sortMethod, options.sortDirection)
 	end
-	options.candidateFilters = Candidates(key, types, k)
+	if types then options.candidateFilters = Candidates(key, types, k) end
 	return options
 end
 
@@ -808,8 +804,6 @@ local function ConfigureDispelGhost(f, k, a, block, filter)
 	local pitch = badge * MORE_PITCH
 	ghost:SetAuraProcessingPolicy(Processing(), PolicyOptions())
 	ghost:SetAuraGroupFilterString(MORE, filter)
-	local _, types = Processing()
-	ghost:SetAuraGroupCandidateFilters(MORE, Candidates(DISPELS, types))
 	ghost:SetAuraGroupMaxFrameCount(MORE, cap)
 	ghost:SetAuraGroupLayout(MORE, { elementWidth = 1, elementHeight = pitch, elementSpacing = 0, lineSpacing = 0 })
 	local window = more.window
@@ -925,7 +919,7 @@ local function NewContainer(f)
 			end
 		end
 		local bossMade, bossErr = pcall(highlights.AddAuraSlot, highlights, BOSS_SLOT, GLOW_FILTER, {
-			candidateFilters = K.Options.AuraCandidates(Settings.current.auras, BOSS_CANDIDATES),
+			candidateFilters = BOSS_CANDIDATES,
 			initializeFrame = function(button)
 				Auras.Dress(button, f, function()
 					return Auras.BossSize(f)
@@ -1114,9 +1108,6 @@ local function Configure(f)
 	end
 	if f.bossSlot then
 		highlights:SetAuraSlotFilterString(BOSS_SLOT, filter)
-		if type(highlights.SetAuraSlotCandidateFilters) == "function" then
-			highlights:SetAuraSlotCandidateFilters(BOSS_SLOT, K.Options.AuraCandidates(a, BOSS_CANDIDATES))
-		end
 		highlights:SetAuraSlotEnabled(BOSS_SLOT, Auras.BossOn(f))
 	end
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
@@ -1124,11 +1115,7 @@ local function Configure(f)
 	container:SetAuraGroupFilterString(GROUP, filter)
 	if f.processed then
 		local _, types = Processing()
-		for _, key in ipairs(GROUPS) do
-			container:SetAuraGroupCandidateFilters(key, Candidates(key, types, k))
-		end
-	elseif type(container.SetAuraGroupCandidateFilters) == "function" then
-		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP))
+		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP, types, k))
 	end
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions and type(container.SetAuraGroupSortMethod) == "function" then

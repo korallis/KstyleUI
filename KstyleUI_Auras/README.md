@@ -102,7 +102,7 @@ Each tile is a square icon one border inside a one-pixel dark square plate (`bla
 
 ## Aura filters
 
-The shared aura filter uses Only yours, Dispellable by you, Allow spell IDs, Block spell IDs and Sort by. IDs are positive whole numbers separated by commas or spaces; blank lists add no restriction. A nonempty allow list limits the row to those spells within its other filters, and blocking wins. The engine handles identity filtering: an unreadable spell ID never becomes a Lua table key; an allow list rejects unidentifiable auras, while a block list alone cannot hide an unidentifiable spell. Overflow counters use the same filters as the visible icons.
+Buffs and debuffs use Only yours and Dispellable by you. Sort by stays beside Reverse order. Spell-ID allow and block lists are offered only on nameplates, where the engine can honour them. Overflow counters use the same filters as the visible icons.
 
 Buffs and debuffs have independent filters. Missing settings preserve all player buffs and debuffs, the existing sort and the Cooldown Manager exclusion. Weapon enchantments remain separate from spell filters. No saved settings are migrated.
 

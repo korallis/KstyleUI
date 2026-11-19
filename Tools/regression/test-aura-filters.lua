@@ -11,7 +11,7 @@ local function Lists(group)
 end
 
 local function Rows(K, module, prefix, sort)
-	for _, key in ipairs({ "onlyMine", "dispellable", "allowSpells", "blockSpells", sort }) do
+	for _, key in ipairs(module == "Nameplates" and { "onlyMine", "dispellable", "allowSpells", "blockSpells", sort } or { "onlyMine", sort }) do
 		assert(K.Options.Row(module, prefix .. "." .. key), module .. " shares the filter rows")
 	end
 end
@@ -22,9 +22,15 @@ local function Change(env, K, module, prefix)
 		env.RunTimers()
 	end
 	write("onlyMine", true)
-	write("dispellable", true)
-	write("allowSpells", "774, 139 774 1.2 spell:2 -3")
-	write("blockSpells", "139")
+	if module == "GroupFrames" then
+		write("filter", "DISPELLABLE")
+	else
+		write("dispellable", true)
+	end
+	if module == "Nameplates" then
+		write("allowSpells", "774, 139 774 1.2 spell:2 -3")
+		write("blockSpells", "139")
+	end
 	return write
 end
 
@@ -41,14 +47,11 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 		Rows(K, "Auras", "buffs", "sort")
 		local write = Change(env, K, "Auras", "debuffs")
 		assert(group.filter == "HARMFUL|PLAYER|RAID")
-		Lists(group)
-		Lists(desc.chip.pairs[1].a._groups.count)
+		assert(group.candidateFilters == nil and desc.chip.pairs[1].a._groups.count.candidateFilters == nil)
 		write("sort", "name")
 		assert(group.sortMethod == env.AuraContainerSortMethod.NameOnly)
 		write("onlyMine", false)
 		write("dispellable", false)
-		write("allowSpells", "")
-		write("blockSpells", "")
 		assert(group.filter == "HARMFUL" and group.candidateFilters == nil, "off removes the optional filters")
 		assert(desc.chip.pairs[1].a._groups.count.candidateFilters == nil, "off clears the counting filter too")
 		K.Modules.Disable("Auras")
@@ -88,18 +91,16 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 		local write = Change(env, K, "GroupFrames", "auras")
 		for _, key in ipairs({ "boss", "important", "dispels", "debuffs" }) do
 			local g = f.auras._groups[key]
-			assert(g.filter == "HARMFUL|PLAYER|RAID", "every priority lane uses the filter")
-			Lists(g)
+			assert(g.filter == "HARMFUL|RAID|PLAYER", "every priority lane uses the filter")
+			assert(g.candidateFilters.includeSpellIDs == nil)
 		end
 		for _, pair in ipairs(f.debuffChip.pairs) do
-			for _, g in pairs(pair.a._groups) do Lists(g) end
+			for _, g in pairs(pair.a._groups) do assert(g.candidateFilters.includeSpellIDs == nil) end
 		end
 		write("sort", "name")
 		assert(group.sortMethod == env.AuraContainerSortMethod.NameOnly)
 		write("onlyMine", false)
-		write("dispellable", false)
-		write("allowSpells", "")
-		write("blockSpells", "")
+		write("filter", "ALL")
 		write("sort", "")
 		assert(group.filter == "HARMFUL" and group.candidateFilters.includeSpellIDs == nil)
 		assert(group.sortMethod == env.AuraContainerSortMethod.UnitFrameDebuff, "current style restores the original ordering")
@@ -117,7 +118,7 @@ do
 	assert(c.excludeSpellIDs[42] and c.excludeSpellIDs[139] and c.processedAuraType == 3, "lists preserve existing engine candidates")
 	assert(base.excludeSpellIDs[139] == nil, "shared tracked spell sets are not mutated")
 	assert(K.Options.AuraCandidates({ allowSpells = env.Secret("774") }, base) == base, "a secret setting is never parsed")
-	assert(K.Options.AuraCandidates({ allowSpells = "bad, -1, 1.5" }).includeSpellIDs[1] == nil, "invalid input never accidentally allows another spell")
+	assert(K.Options.AuraCandidates({ allowSpells = "bad, -1, 1.5" }) == nil, "invalid input adds no restriction")
 end
 
 print("shared aura filters ok at all four screen sizes")

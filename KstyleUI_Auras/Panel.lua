@@ -254,14 +254,14 @@ end
 local function Candidates(desc)
 	local group = desc.ctx.group
 	if group.tracked ~= "cdm" then
-		return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name])
+		return nil
 	end
 	local set, why = Tracked.Set()
 	if not set then
 		LogOnce("tracked:" .. tostring(why), "the buff row shows every buff: " .. tostring(why))
-		return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name])
+		return nil
 	end
-	return K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name], { excludeSpellIDs = set })
+	return { excludeSpellIDs = set }
 end
 
 local function EnchantLayout(ctx)

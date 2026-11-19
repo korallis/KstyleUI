@@ -46,11 +46,14 @@ function Options.AuraFilterRows(schema, key, opts)
 		schema[#schema + 1] = row
 	end
 	add({ type = "toggle", key = "onlyMine", label = L["Only yours"], help = L["Shows only auras you cast."] })
-	add({ type = "toggle", key = "dispellable", label = L["Dispellable by you"], help = L["Shows only debuffs you can dispel; for buffs, only ones you can apply."] })
-	add({ type = "text", key = "allowSpells", label = L["Allow spell IDs"], maxLetters = 240,
-		help = L["Only these spell IDs, separated by commas or spaces. Blank allows any spell."] })
-	add({ type = "text", key = "blockSpells", label = L["Block spell IDs"], maxLetters = 240,
-		help = L["Hides these spell IDs, separated by commas or spaces. Blocking wins over allowing."] })
+	if opts.dispellable ~= false then add({ type = "toggle", key = "dispellable", label = L["Dispellable by you"], help = L["Shows only debuffs you can dispel; for buffs, only ones you can apply."] }) end
+	if opts.spellIDs then
+		add({ type = "text", key = "allowSpells", label = L["Allow spell IDs"], maxLetters = 240,
+			help = L["On nameplates, only these spell IDs, separated by commas or spaces. Blank allows any spell."] })
+		add({ type = "text", key = "blockSpells", label = L["Block spell IDs"], maxLetters = 240,
+			help = L["On nameplates, hides these spell IDs, separated by commas or spaces. Blocking wins."] })
+	end
+	if opts.sort == false then return end
 	add({ type = "dropdown", key = opts.sortKey or "sort", label = L["Sort by"], options = opts.sortOptions or {
 		{ value = "", label = L["Current style"] }, { value = "time", label = L["Time left"] },
 		{ value = "name", label = L["Name"] }, { value = "applied", label = L["Order applied"] },
@@ -68,16 +71,16 @@ end
 local spellLists = {}
 local function SpellList(value)
 	if ns.Widgets.IsSecret(value) or type(value) ~= "string" or value == "" then return nil end
-	if spellLists[value] then return spellLists[value] end
+	if spellLists[value] ~= nil then return spellLists[value] or nil end
 	local ids = {}
 	for token in value:gmatch("[^,%s]+") do
 		if token:match("^%d+$") then
 			local id = tonumber(token)
-			if id and id > 0 and id < math.huge then ids[id] = true end
+			if id > 0 and id < math.huge then ids[id] = true end
 		end
 	end
-	spellLists[value] = ids
-	return ids
+	spellLists[value] = next(ids) and ids or false
+	return spellLists[value] or nil
 end
 
 function Options.AuraCandidates(settings, base)

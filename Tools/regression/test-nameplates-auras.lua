@@ -32,8 +32,6 @@ end
 do
 	local _, _, ns = N.New({ enable = false })
 	local Logic = ns.Logic
-	assert(Logic.AuraFilter(true) == "HARMFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY")
-	assert(Logic.AuraFilter(false) == "HARMFUL|PLAYER")
 	local anchor, h, v = Logic.AuraGrowth("RIGHT", "UP")
 	assert(anchor == "BOTTOMLEFT" and h == "Right" and v == "Up")
 	anchor, h, v = Logic.AuraGrowth("LEFT", "DOWN")

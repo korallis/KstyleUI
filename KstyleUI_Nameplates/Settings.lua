@@ -358,12 +358,12 @@ function Settings.Schema()
 		},
 		{ type = "header", label = L["Debuffs"] },
 		{
-		type = "toggle", key = "debuffs.enabled", label = L["Show debuffs"],
-		help = L["Shows debuffs on each unit."],
+			type = "toggle", key = "debuffs.enabled", label = L["Show debuffs"],
+			help = L["Shows debuffs on each unit."],
 		},
 		{
 			type = "toggle", key = "debuffs.includePlateOnly", label = L["Nameplate-only debuffs"],
-			help = L["Also shows your debuffs that the game marks for nameplates only."],
+			help = L["Also shows debuffs that the game marks for nameplates only."],
 			disableWhen = Off("debuffs.enabled"),
 		},
 		{
@@ -386,7 +386,6 @@ function Settings.Schema()
 			help = L["Shows up to icons per row times rows debuffs; a +N chip counts the rest."],
 			min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
 		},
-
 		{
 			type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],
 			help = L["Which way a row of debuffs grows."],
@@ -555,7 +554,7 @@ function Settings.Schema()
 	end
 
 	local filterRows = {}
-	K.Options.AuraFilterRows(filterRows, "debuffs", { sortKey = "order", sortOptions = ORDERS, disableWhen = Off("debuffs.enabled") })
+	K.Options.AuraFilterRows(filterRows, "debuffs", { spellIDs = true, sortKey = "order", sortOptions = ORDERS, disableWhen = Off("debuffs.enabled") })
 	for i, row in ipairs(schema) do
 		if row.key == "debuffs.enabled" then
 			for j = #filterRows, 1, -1 do table.insert(schema, i + 1, filterRows[j]) end
