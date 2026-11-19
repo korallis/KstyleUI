@@ -41,12 +41,12 @@ local function Points(unit)
 		Point(10000000000 * unit, "B", 1000000000 * unit, 1), Point(1000000000 * unit, "B", 100000000 * unit, 10),
 		Point(10000000 * unit, "M", 1000000 * unit, 1), Point(1000000 * unit, "M", 100000 * unit, 10),
 		Point(10000 * unit, "K", 1000 * unit, 1), Point(1000 * unit, "K", 100 * unit, 10),
-		Point(unit, "", unit, 1),
+		Point(1, "", unit, 1),
 	}
 end
 
 local POINTS = { [1] = Points(1), [THREAT_UNITS] = Points(THREAT_UNITS) }
-local PROBES = { { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
+local PROBES = { { 0.5, "0" }, { 412.7, "412" }, { 1240, "1.2K" }, { 12400, "12K" }, { 1240000, "1.2M" } }
 local secretOptions = {}
 
 local function SecretOptions(unit)
@@ -59,9 +59,12 @@ local function SecretOptions(unit)
 	end
 	local options = { breakpointData = POINTS[unit] }
 	for i = 1, #PROBES do
-		local ok, text = pcall(AbbreviateNumbers, PROBES[i][1] * unit, options)
-		if not ok or text ~= PROBES[i][2] then
-			return nil
+		local value = PROBES[i][1] * unit
+		if value >= 1 then
+			local ok, text = pcall(AbbreviateNumbers, value, options)
+			if not ok or text ~= PROBES[i][2] then
+				return nil
+			end
 		end
 	end
 	secretOptions[unit] = options

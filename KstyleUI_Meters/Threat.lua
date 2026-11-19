@@ -124,10 +124,6 @@ local function Collect(mob)
 	return count
 end
 
-local function ValueText(row)
-	return Logic.ThreatText(row.threat)
-end
-
 local function PercentText(row)
 	local scaled = row.scaled
 	if IsSecret(scaled) then
@@ -227,7 +223,7 @@ local function Update()
 	local shown = math.min(count, list.capacity or 0)
 	for i = 1, shown do
 		local row = Threat.rows[Threat.order[i]]
-		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, ValueText(row), PercentText(row))
+		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, Logic.ThreatText(row.threat), PercentText(row))
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)
