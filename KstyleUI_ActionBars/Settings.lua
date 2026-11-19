@@ -98,6 +98,8 @@ for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
+defaults.consumables = { enabled = true, attached = true, rows = 2, size = 38, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = false }
+for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 
 local function Copy(value)
@@ -240,8 +242,8 @@ local function BarRows(schema, def)
 	if key == "bar1" or key == "bar2" then
 		add({ type = "note", label = L["The slab keeps one row of up to 12 buttons per side, with fixed socket spacing and backing. Button size scales both sides. Turn off Use the Medallions slab to arrange these bars freely."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 	end
-	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
-	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = def.kind == "action" and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = def.kind == "action" and 1 or 0, max = def.max, step = 1 })
+	if def.kind ~= "consumable" then add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 }) end
+	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = (def.kind == "action" or def.kind == "consumable") and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = (def.kind == "action" or def.kind == "consumable") and 1 or 0, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
 	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
@@ -249,7 +251,7 @@ local function BarRows(schema, def)
 	if def.kind == "action" then
 		add({ type = "dropdown", key = key .. ".split", label = L["Split in two"], help = L["Parts each row into two halves with a gap between them."], options = SPLIT_OPTIONS })
 	end
-	if def.kind ~= "stance" then
+	if def.kind ~= "stance" and def.kind ~= "consumable" then
 		add({ type = "toggle", key = key .. ".showEmpty", label = L["Show empty buttons"], help = L["Shows slots with no action as empty tiles."] })
 	end
 	add({ type = "toggle", key = key .. ".backing", label = L["Backing strip"], help = L["Draws a strip of smoked glass behind the bar's buttons."] })
@@ -262,11 +264,17 @@ local function BarRows(schema, def)
 		end,
 	})
 	add({ type = "toggle", key = key .. ".hotkey", label = L["Keybind text"], help = L["Shows the key bound to each button."] })
-	if def.kind == "action" then
+	if def.kind == "action" or def.kind == "consumable" then
 		add({ type = "toggle", key = key .. ".count", label = L["Count text"], help = L["Shows item counts and spell charges."] })
-		add({ type = "toggle", key = key .. ".macro", label = L["Macro names"], help = L["Shows the name of each macro."] })
+		if def.kind == "action" then add({ type = "toggle", key = key .. ".macro", label = L["Macro names"], help = L["Shows the name of each macro."] }) end
 	end
 	add({ type = "toggle", key = key .. ".cooldown", label = L["Cooldown numbers"], help = L["Shows the time left on each cooldown."] })
+	if def.kind == "consumable" then
+		for _, option in ipairs({ { "attached", L["Attach to the player frame"] }, { "combat", L["Show in combat"] }, { "idle", L["Show out of combat"] }, { "hideEmpty", L["Hide when empty"] }, { "other", L["Other usable consumables"] } }) do
+			add({ type = "toggle", key = key .. "." .. option[1], label = option[2], help = L["Controls when and where consumables appear."] })
+		end
+		for _, kind in ipairs(ns.Consumables.kinds) do add({ type = "toggle", key = key .. "." .. kind.key, label = kind.label, help = L["Shows the best carried item of this kind."] }) end
+	end
 	if def.paged then
 		local function Custom(settings)
 			return settings[key].paging ~= ""
@@ -290,6 +298,7 @@ local function EditOptions()
 	for i, def in ipairs(ns.BARS) do
 		out[i] = { value = def.key, label = Label(def) }
 	end
+	out[#out + 1] = { value = "consumables", label = L["Consumables bar"] }
 	return out
 end
 
@@ -319,6 +328,7 @@ function ns.Schema()
 	for _, def in ipairs(ns.BARS) do
 		BarRows(schema, def)
 	end
+	BarRows(schema, ns.Consumables.def)
 	schema[#schema + 1] = { type = "header", label = L["Text"] }
 	for _, text in ipairs(ns.TEXTS) do
 		local base = "text." .. text.key

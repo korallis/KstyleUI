@@ -23,6 +23,7 @@ local function New(width, height, opts)
 		profile[element.module].enabled = true
 	end
 	profile.Meters.followRole = true
+	profile.ActionBars.consumables = { enabled = false }
 	K.Callbacks.Fire("ModuleChanged")
 	return env, K
 end

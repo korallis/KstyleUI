@@ -16,6 +16,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 		root, base = K.Scale.Root(), env.UIParent
 		AB.Enable(env, K)
+		env.C_Container = {
+			GetContainerNumSlots = function(bag) return bag == 0 and 12 or 0 end,
+			GetContainerItemInfo = function(_, slot) return { itemID = ns.Consumables.kinds[slot].ids[1], stackCount = 1, iconFileID = 134829 } end,
+		}
+		env.FireEvent("BAG_UPDATE_DELAYED")
+		assert(#ns.Consumables.selected == 12 and ns.Consumables.header:IsShown(), "check bar 3 against the occupied consumables grid")
 		K.Options.Write("HudStyle", "style", style)
 		local plannedScales = {}
 		do

@@ -525,6 +525,8 @@ local function ShowTooltip(b)
 	end
 	if b.kind == "action" then
 		tip:SetAction(b.slot)
+	elseif b.kind == "consumable" then
+		if type(tip.SetItemByID) == "function" then tip:SetItemByID(b.itemID) end
 	elseif b.kind == "pet" then
 		tip:SetPetAction(b.index)
 	else
@@ -543,6 +545,8 @@ local function HideTooltip(b)
 		tip:Hide()
 	end
 end
+
+Button.ShowTooltip, Button.HideTooltip = ShowTooltip, HideTooltip
 
 function ns.KeybindMode()
 	return type(KeybindFrames_InQuickKeybindMode) == "function" and KeybindFrames_InQuickKeybindMode() == true

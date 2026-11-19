@@ -34,13 +34,15 @@ end
 
 function Preview:Refresh()
 	local key = ns.Config("editBar")
-	local def = ns.BAR[key] or ns.BAR.bar1
+	local def = ns.BAR[key] or key == "consumables" and ns.Consumables.def or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
-	local _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg)
+	local rowCount, cell, spacing
+	if def.kind == "consumable" then rowCount, cell, spacing = K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())
+	else local _; _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg) end
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)
 	local centre = def.key == "bar1" or def.key == "bar2"
-	local count = Fits(self.parentFrame, centre and cell or size, centre and spacing or gap, min(def.max, cfg.buttons))
+	local count = Fits(self.parentFrame, centre and cell or size, centre and spacing or gap, min(def.max, cfg.buttons or def.max))
 	local rows = min(rowCount, count)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch = size + gap
@@ -62,7 +64,8 @@ function Preview:Refresh()
 			button:Restyle()
 			button:Show()
 			button:SetIcon(Sample(def.kind == "action" and ns.Slot(i, def.page or 1) or i))
-			button:SetHotkey(cfg.hotkey and ns.ShortKey(ns.FirstKey(def.binding .. i)) or nil)
+			local command = def.kind == "consumable" and "CLICK KstyleUI_Consumable" .. i .. ":LeftButton" or def.binding .. i
+			button:SetHotkey(cfg.hotkey and ns.ShortKey(ns.FirstKey(command)) or nil)
 			button.hotkey:SetShown(cfg.hotkey == true)
 			button:SetCount(i == 2 and cfg.count and "3" or nil)
 			button:SetAccent(r, g, b)

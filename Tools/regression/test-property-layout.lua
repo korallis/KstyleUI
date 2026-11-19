@@ -68,6 +68,7 @@ local function Profile(c)
 	end
 	profile.Meters.followRole = false
 	profile.Meters.threat = { shown = c.threat }
+	profile.ActionBars.consumables = { enabled = false }
 	return profile
 end
 

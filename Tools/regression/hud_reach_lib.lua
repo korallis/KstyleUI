@@ -284,7 +284,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							local rw,rootHeight=K.Layout.RootSize()
 							for i,element in ipairs(L.ELEMENTS) do
 								local key=element.key
-								if not groups[key] and not (style=="orbs" and key=="unitframes.player") then
+								if not groups[key] and (key~="consumables.bar" or env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) and not (style=="orbs" and key=="unitframes.player") then
 									local size=state.sizes[i]
 									local p=L.Place(layout,style,K.Scale.Aspect(),key,K.Scale.Band())
 									local l,b,r,t=L.Rect({width=size[1],height=size[2],offsetX=size[3],offsetY=size[4]},p,rw,rootHeight)
@@ -299,7 +299,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 								end
 							end
 							for _,element in ipairs(L.ELEMENTS) do
-								assert(groups[element.key] or style=="orbs" and element.key=="unitframes.player",label .. ": missing HUD bounds for " .. element.key)
+								assert(groups[element.key] or element.key=="consumables.bar" and not (env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) or style=="orbs" and element.key=="unitframes.player",label .. ": missing HUD bounds for " .. element.key)
 							end
 							for i,a in ipairs(clicks) do
 								for j=i+1,#clicks do

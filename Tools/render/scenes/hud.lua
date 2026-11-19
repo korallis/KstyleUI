@@ -628,6 +628,17 @@ function modules.actionbars(opts)
 		return env._time
 	end
 	AB.Enable(env, K)
+	local consumables = tonumber(rawget(_G, "RENDER_CONSUMABLES") or os.getenv("RENDER_CONSUMABLES") or "")
+	if consumables and ns.Consumables then
+		local items = { { 13446, 134834 }, { 13444, 134856 }, { 5510, 135230 }, { 14530, 133682 }, { 22895, 134029 }, { 8079, 132805 }, { 18253, 134828 }, { 20452, 133971 }, { 13510, 134842 }, { 13452, 134812 }, { 20007, 134825 }, { 954, 134938 } }
+		env.C_Container = {
+			GetContainerNumSlots = function(bag) return bag == 0 and math.min(12, consumables) or 0 end,
+			GetContainerItemInfo = function(_, slot) return { itemID = items[slot][1], iconFileID = items[slot][2], stackCount = slot + 2 } end,
+		}
+		local rows = tonumber(os.getenv("RENDER_CONSUMABLE_ROWS") or "2")
+		K.Options.Write("ActionBars", "consumables.rows", rows)
+		ns.Consumables.Refresh()
+	end
 	-- Each bar's shape as Layout > Apply writes it for the layout (rows and growth), so the pet and stance bars draw
 	-- the footprint the layout reserves for them.
 	for _, entry in ipairs(K.Setup.Layouts.Settings(opts.layout or "DPS")) do
@@ -721,6 +732,11 @@ function modules.actionbars(opts)
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
 			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end
+		end
+		if consumables and ns.Consumables and os.getenv("RENDER_CONSUMABLE_FREE") == "1" then
+			K.Options.Write("ActionBars", "consumables.attached", false)
+			K.Layout.Set("consumables.bar", "x", -600)
+			K.Layout.Set("consumables.bar", "y", 400)
 		end
 	end)
 	for _, note in ipairs(notes) do

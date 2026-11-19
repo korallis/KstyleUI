@@ -115,6 +115,7 @@ local function Profile(name, requested, bar3, threat)
 	end
 	profile.UnitFrames.player = { enabled = true, style = "column", castbar = true }
 	profile.UnitFrames.target = { enabled = true, style = "column", castbar = true }
+	profile.ActionBars.consumables = { enabled = false }
 	profile.ActionBars.bar3.enabled = bar3 == true
 	if threat ~= nil then profile.Meters.threat.shown = threat end
 	return profile
@@ -128,6 +129,7 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 		for _, name in ipairs(Layouts.Names()) do
 			local enabled = {}
 			for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown(name, element.key) ~= false end
+			enabled["consumables.bar"] = false
 			enabled["actionbars.bar3"] = bar3
 			if threat ~= nil then enabled["meters.threat"] = threat end
 			local cap = Layouts.ScaleLimit(K.Scale.CanvasWidth(width, height), height, name, enabled)

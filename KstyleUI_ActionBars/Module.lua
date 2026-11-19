@@ -260,6 +260,7 @@ local function OnLayoutMode()
 	if on ~= ns.layout then
 		ns.layout = on
 		RefreshShown()
+		if ns.Consumables.header then ns.Consumables:RefreshFade() end
 	end
 end
 
@@ -484,6 +485,7 @@ local function Enable()
 	ns.SlabEffects.Enable()
 	ns.enabling = false
 	ns.Keybind.Enable()
+	ns.Consumables.Enable()
 	ns.Log("running for class " .. tostring(ns.class) .. (ns.gamepad and " in gamepad mode: the bars stay hidden" or "") .. "; Blizzard's keyboard bars are hidden through Safe")
 end
 
@@ -491,6 +493,7 @@ local function Disable()
 	ns.Keybind.Exit()
 	ns.enabling = false
 	ns.running = false
+	ns.Consumables.Disable()
 	ApplyAll()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]

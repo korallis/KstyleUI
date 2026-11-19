@@ -54,6 +54,7 @@ end
 -- the chat card. At 1685 x 1123 with Tank the automatic size was 14 steps, 0.8415, and the orb ran 4 units into chat.
 do
 	local enabled = Layouts.Enabled("Tank")
+	enabled["consumables.bar"] = false
 	enabled["meters.damage"], enabled["meters.threat"] = false, false
 	assert(not Layouts.Fits("Tank", 1685, 1123, 14 * step(1123), enabled, nil, "orbs"), "1685x1123 Tank Orbs: 14 steps puts the health orb over the chat card, so it does not fit")
 	assert(Layouts.Fits("Tank", 1685, 1123, 14 * step(1123), enabled, nil, "frames"), "1685x1123 Tank Frames still fits at 14 steps")
@@ -69,6 +70,7 @@ do
 			local class = Scale.AspectClass(physical, height)
 			for _, name in ipairs(Layouts.Names()) do
 				local on = Layouts.Enabled(name)
+				on["consumables.bar"] = false
 				on["meters.damage"], on["meters.threat"] = name ~= "Tank", name == "Tank"
 				local cap, fits = Layouts.ScaleLimit(physical, height, name, on, "orbs")
 				local size = Scale.Auto(height, cap, fits)
@@ -131,6 +133,7 @@ do
 		end
 	end
 	local on = Layouts.Enabled("Healer")
+	on["consumables.bar"] = false
 	on["actionbars.bar3"] = true
 	local size = Scale.Auto(1495, Layouts.ScaleLimit(4236, 1495, "Healer", on, "orbs"))
 	assert(Layouts.Fits("Healer", 4236, 1495, size, on, nil, "orbs"), "4236x1495 Healer Orbs with bar 3 on fits at its automatic size, got " .. size)
@@ -154,6 +157,8 @@ for _, case in ipairs(CASES) do
 	local label, width, height, preset, style, arrangement, canvas, size, bar3 = unpack(case)
 	local caseEnv, CK = New(width, height)
 	local profile = CK.Store.Profile()
+	profile.ActionBars = profile.ActionBars or {}
+	profile.ActionBars.consumables = { enabled = false }
 	for _, element in ipairs(CK.Setup.Layouts.ELEMENTS) do
 		profile[element.module] = profile[element.module] or {}
 		profile[element.module].enabled = true

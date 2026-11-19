@@ -235,6 +235,9 @@ function Mode.Enter()
 			if name then Add(button, "CLICK " .. name .. ":LeftButton", L["Possess"] .. " " .. button:GetID()) end
 		end
 	end
+	for i, button in ipairs(ns.Consumables.buttons or {}) do
+		Add(button, "CLICK " .. button:GetName() .. ":LeftButton", L["Consumables bar"] .. " " .. i)
+	end
 	if ns.leaveButton then Add(ns.leaveButton, "VEHICLEEXIT", L["Leave vehicle"]) end
 	if ExtraActionButton1 and not (ActionButtonUtil and type(ActionButtonUtil.IsExtraActionButtonDisabled) == "function" and ActionButtonUtil.IsExtraActionButtonDisabled()) then
 		Add(ExtraActionButton1, "EXTRAACTIONBUTTON1", L["Extra action"])

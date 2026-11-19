@@ -151,7 +151,7 @@ local function Others(name, rw, rh, skip)
 	local out = {}
 	skip = skip or TRACKED
 	for key in pairs(Positions(name)) do
-		if not skip[key] and Layouts.Shown(name, key) ~= false then
+		if key ~= "consumables.bar" and not skip[key] and Layouts.Shown(name, key) ~= false then
 			local box = Box(name, key, rw, rh)
 			if box then
 				box.passing = key == "combattext.player" or nil

@@ -1,0 +1,225 @@
+-- test-consumables.lua: ranks, combat freezing, settings, attachment and the maximum grid on every owner screen.
+local AB = dofile("Tools/regression/actionbars_env.lua")
+local slots = {}
+local env, K, ns = AB.New({ setup = function(e)
+	e.C_Container = {
+		GetContainerNumSlots = function(bag) return bag == 0 and #slots or 0 end,
+		GetContainerItemInfo = function(_, slot) return slots[slot] end,
+	}
+	e.C_Item = {
+		GetItemCooldown = function() return 0, 0, 1 end,
+		GetItemInfoInstant = function(id) return id, nil, nil, nil, nil, id == 90003 and 12 or 0 end,
+		GetItemSpell = function(id) return "Use", id == 90002 and 90001 or id end,
+		GetItemInfo = function(id) return "Item", nil, nil, id, id, nil, nil, id == 90004 and 1 or 20 end,
+	}
+end })
+AB.Enable(env, K)
+local C = ns.Consumables
+local cfg = K.Store.Module("ActionBars").consumables
+local function Read(path)
+	local file = assert(io.open(path, "rb"))
+	local text = file:read("*a")
+	file:close()
+	return text
+end
+local source = Read("Tools/data/items.json")
+for _, kind in ipairs(C.kinds) do
+	for _, id in ipairs(kind.ids) do
+		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": 0,'), "curated ids must be consumables proven by items.json")
+	end
+end
+assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.hideEmpty, "on, attached, two rows and hidden when empty by default")
+assert(not C.header and not C.holder, "empty inventory creates no holder or secure header")
+assert(#C.buttons == 0, "an empty inventory defers all secure slot art until the first carried consumable")
+
+local function Bag(ids)
+	slots = {}
+	for i, id in ipairs(ids) do slots[i] = { itemID = id, stackCount = i + 1, iconFileID = 134829 } end
+	env.FireEvent("BAG_UPDATE_DELAYED")
+end
+local function near(a, b) return math.abs(a - b) < 0.02 end
+local function Clean()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(#env._blocked == 0, tostring(env._blocked[1]))
+end
+
+env._combat = true
+Bag({ 118 })
+assert(#C.buttons == 0 and #C.selected == 0, "the first consumable acquired in combat creates no secure slots")
+Clean()
+env._combat = false
+env.FireEvent("PLAYER_REGEN_ENABLED")
+assert(#C.buttons == 12 and C.selected[1].id == 118, "the first out-of-combat repack creates the secure pool")
+
+Bag({ 6948 })
+assert(#C.selected == 0, "a Hearthstone in the bags never creates a slot")
+for _, id in ipairs(C.travel) do
+	Bag({ id, 5510 })
+	assert(#C.selected == 1 and C.selected[1].id == 5510, "travel items stay out of every kind while Healthstones stay")
+end
+local use = env.C_Item.GetItemSpell
+env.C_Item.GetItemSpell = function() return "Travel", 3561 end
+Bag({ 90001 }); assert(#C.selected == 0, "an unknown teleport item is excluded by its use spell")
+env.C_Item.GetItemSpell = use
+
+for _, kind in ipairs(C.kinds) do
+	for i = 1, #kind.ids - 1 do
+		Bag({ kind.ids[i + 1], kind.ids[i] })
+		assert(#C.selected == 1 and C.selected[1].id == kind.ids[i], kind.key .. " curated rank wins")
+	end
+	Bag({ kind.ids[1] })
+	K.Options.Write("ActionBars", "consumables." .. kind.key, false)
+	assert(#C.selected == 0, kind.key .. " off excludes known ranks rather than passing them through Other")
+	K.Options.Write("ActionBars", "consumables." .. kind.key, true)
+end
+
+Bag({ 118, 13446, 5512, 5510, 5349, 22895, 5350, 8079 })
+assert(#C.selected == 4 and C.selected[1].id == 13446 and C.selected[2].id == 5510 and C.selected[3].id == 22895 and C.selected[4].id == 8079, "potion, Healthstone, conjured food and conjured water rank independently")
+local b = C.buttons[1]
+assert(b:GetAttribute("type") == "item" and b:GetAttribute("item") == "item:13446", "secure use binds the item id rather than the bag slot")
+local before = C.header:GetWidth()
+local firstPoint = { b:GetPoint() }
+env._combat = true
+env.FireEvent("PLAYER_REGEN_DISABLED")
+AB.Click(env, b, "LeftButton", true)
+AB.Click(env, b, "LeftButton", false)
+assert(AB.Used(env) == "item:13446", "secure item click retains its id in combat")
+Bag({ 118, 5512, 5349, 5350, 14530 })
+assert(C.buttons[1]:GetAttribute("item") == "item:13446" and #C.selected == 4, "no rank substitution or new kind during combat")
+assert(C.buttons[1].count:GetText() == "0" and AB.W.LastCall(C.buttons[1].icon, "SetDesaturated")[1], "emptied slot dims with count zero")
+assert(C.header:GetWidth() == before and b:GetPoint() == firstPoint[1], "combat keeps the live footprint and anchor")
+local pending = K.Combat.Pending()
+env.FireEvent("BAG_UPDATE_DELAYED")
+assert(K.Combat.Pending() == pending, "one queued repack despite repeated bag events")
+Clean()
+env._combat = false
+env.FireEvent("PLAYER_REGEN_ENABLED")
+assert(C.selected[1].id == 118 and #C.selected == 5 and C.selected[3].id == 14530, "combat end upgrades bindings and packs in priority order")
+Bag({ 118 })
+assert(C.header:GetWidth() < before, "shrinks out of combat")
+local narrow = C.header:GetWidth()
+Bag({ 118, 2455, 5512, 1251, 5349, 5350, 2456, 20452, 13510, 13452, 20007, 954 })
+assert(#C.selected == 12 and C.header:GetWidth() > narrow, "grows to the cap out of combat")
+for _, rows in ipairs({ 1, 2, 3 }) do
+	K.Options.Write("ActionBars", "consumables.rows", rows)
+	local w, h = K.Setup.Layouts.ConsumableFootprint(K.HudStyle.Current())
+	assert(near(C.holder:GetWidth(), w) and near(C.holder:GetHeight(), h), "mover reserves all 12 at " .. rows .. " rows")
+	local x, y, _, dx, dy = C.buttons[math.min(12, math.ceil(12 / rows) + 1)]:GetPoint()
+	assert(x == "BOTTOMRIGHT" and y == C.header and near(dx, 0) and dy > 0 or rows == 1, "row-major fill starts a new row from the attached edge")
+end
+K.Options.Write("ActionBars", "consumables.rows", 2)
+K.Options.Write("ActionBars", "editBar", "consumables")
+local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
+pane:SetSize(600, 300)
+local preview = ns.Preview(pane)
+assert(preview:GetHeight() > C.buttons[1]:GetHeight(), "Options previews the consumables grid rather than bar 1")
+K.Options.Write("ActionBars", "consumables.orientation", "VERTICAL")
+local _, _, _, x, y = C.buttons[2]:GetPoint()
+assert(x == 0 and y > 0, "column-first fill")
+K.Options.Write("ActionBars", "consumables.growth", "RIGHTDOWN")
+assert(C.buttons[1]:GetPoint() == "TOPLEFT", "custom growth")
+K.Options.Write("ActionBars", "consumables.size", 48)
+K.Options.Write("ActionBars", "consumables.spacing", 8)
+assert(C.holder:GetWidth() == 328 and C.holder:GetHeight() == 104, "custom size and gap reach both mover and live buttons")
+
+for _, style in ipairs({ "Frames", "Medallions", "Orbs" }) do
+	K.Options.Write("HudStyle", "style", style:lower())
+	local player = env.CreateFrame("Frame", nil, K.Scale.Root())
+	player:SetSize(491, 77.5)
+	K.Layout.Register(player, "unitframes.player", K.Setup.Layouts.Default("unitframes.player"))
+	K.Callbacks.Fire("LayoutChanged", "unitframes.player")
+	C.Apply()
+	local expected = K.HudStyle.Current() == "orbs" and ns.bars.bar1.holder or player
+	local _, relative = C.holder:GetPoint()
+	assert(relative == expected, style .. " physically follows the player frame or orb assembly")
+	K.Options.Write("ActionBars", "consumables.attached", false)
+	local _, free = C.holder:GetPoint()
+	assert(free == K.Scale.Root() and K.Layout.Element("consumables.bar").opts.plate ~= false, "detached bar has a free mover")
+	K.Layout.Set("consumables.bar", "x", 500)
+	K.Options.Write("ActionBars", "consumables.attached", true)
+	local _, docked = C.holder:GetPoint()
+	assert(docked == expected, "reattaching overrides a free saved position")
+end
+
+env._game.bindings["CLICK KstyleUI_Consumable1:LeftButton"] = { "SHIFT-1" }
+env.FireEvent("UPDATE_BINDINGS")
+assert(C.buttons[1].hotkey:GetText() == "S1", "bindings use the action bars' compact key text")
+assert(ns.Keybind.Enter())
+local overlay = ns.Keybind.overlays[C.buttons[1]]
+assert(overlay, "consumables take part in /kb")
+overlay:GetScript("OnEnter")(overlay)
+ns.Keybind.Input("F8")
+ns.Keybind.Save()
+assert(env.GetBindingAction("F8") == "CLICK KstyleUI_Consumable1:LeftButton", "/kb saves real secure click bindings")
+for _, key in ipairs({ "count", "hotkey", "cooldown" }) do
+	K.Options.Write("ActionBars", "consumables." .. key, false)
+	assert(key ~= "count" or C.buttons[1].count:GetText() == "", "count text off")
+	assert(key ~= "hotkey" or C.buttons[1].hotkey:GetText() == "", "binding text off")
+	assert(key ~= "cooldown" or AB.W.LastCall(C.buttons[1].cooldown, "SetHideCountdownNumbers")[1], "cooldown text off")
+	K.Options.Write("ActionBars", "consumables." .. key, true)
+end
+K.Options.Write("ActionBars", "consumables.fade", true)
+K.Options.Write("ActionBars", "consumables.fadeAlpha", 0.25)
+AB.W.Settle(env)
+assert(C.header:GetAlpha() == 0.25, "fade opacity")
+AB.W.Enter(C.buttons[1]); AB.W.Settle(env); assert(C.header:GetAlpha() == 1, "hover restores opacity")
+AB.W.Leave(C.buttons[1]); env.RunTimers(); AB.W.Settle(env); assert(C.header:GetAlpha() == 0.25, "leaving fades again")
+K.Options.Write("ActionBars", "consumables.fade", false)
+AB.W.Settle(env)
+assert(C.header:GetAlpha() == 1, "fade off")
+for _, key in ipairs({ "combat", "idle", "enabled" }) do
+	K.Options.Write("ActionBars", "consumables." .. key, false)
+	assert(env.Driver(C.header, "visibility"):find("hide", 1, true), key .. " off registers secure visibility")
+	if key ~= "enabled" then
+		env._combat = true; env.RunStateDrivers()
+		assert(C.header:IsShown() == (key == "idle"), "secure combat visibility obeys " .. key)
+		env._combat = false; env.RunStateDrivers()
+		assert(C.header:IsShown() == (key == "combat"), "secure idle visibility obeys " .. key)
+	end
+	K.Options.Write("ActionBars", "consumables." .. key, true)
+end
+Bag({ 90001, 90002, 90003, 90004 })
+assert(#C.selected == 1 and C.selected[1].id == 90002, "Other groups use-spell ids, ranks by required level, and excludes quest/permanent items")
+K.Options.Write("ActionBars", "consumables.other", false)
+assert(#C.selected == 0, "Other off")
+K.Options.Write("ActionBars", "consumables.hideEmpty", false)
+assert(C.header:IsShown() and C.buttons[1]:IsShown(), "hide empty off keeps the empty bar")
+assert(near(C.header:GetWidth(), C.holder:GetWidth()) and near(C.header:GetHeight(), C.holder:GetHeight()), "an empty visible bar and its backing use the complete chosen grid")
+K.Options.Write("ActionBars", "consumables.hideEmpty", true)
+assert(not C.header:IsShown(), "hide empty on")
+
+for _, field in ipairs({ "itemID", "stackCount", "iconFileID" }) do
+	Bag({ 118 })
+	slots[1][field] = env.Secret(42)
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(field == "iconFileID" or #C.selected == 0, "secret bag fields are dropped before indexing, arithmetic or comparison")
+end
+slots = { env.Secret({}) }
+env.FireEvent("BAG_UPDATE_DELAYED")
+assert(#C.selected == 0, "secret bag records are skipped")
+env.C_Container.GetContainerNumSlots = function() return env.Secret(5) end
+env.FireEvent("BAG_UPDATE_DELAYED")
+assert(#C.selected == 0, "secret bag sizes are skipped")
+env.C_Container.GetContainerNumSlots = function(bag) return bag == 0 and #slots or 0 end
+K.Options.Write("ActionBars", "consumables.other", true)
+local instant, spell, info = env.C_Item.GetItemInfoInstant, env.C_Item.GetItemSpell, env.C_Item.GetItemInfo
+env.C_Item.GetItemInfoInstant = function() return nil, nil, nil, nil, nil, env.Secret(0) end
+Bag({ 90001 }); assert(#C.selected == 0, "secret item class is never compared")
+env.C_Item.GetItemInfoInstant = instant
+env.C_Item.GetItemSpell = function() return "Use", env.Secret(100) end
+Bag({ 90001 }); assert(#C.selected == 0, "secret use-spell id is never indexed")
+env.C_Item.GetItemSpell = spell
+env.C_Item.GetItemInfo = function() return nil, nil, nil, env.Secret(100), env.Secret(50), nil, nil, env.Secret(20) end
+Bag({ 90001 }); assert(#C.selected == 0, "secret metadata is never ranked")
+env.C_Item.GetItemInfo = info
+Bag({ 118 })
+env.C_Item.GetItemCooldown = function() return env.Secret(1), env.Secret(120), 1 end
+env._combat = true
+env.FireEvent("SPELL_UPDATE_COOLDOWN")
+env._combat = false
+env.FireEvent("PLAYER_REGEN_ENABLED")
+Clean()
+K.Modules.Disable("ActionBars")
+assert(not C.header:IsShown(), "module disable hides the bar")
+Clean()
+print("consumables ok: curated ranks, secure combat repack, attachment, grids, settings and secrets")

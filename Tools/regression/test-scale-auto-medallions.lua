@@ -19,6 +19,7 @@ local function New(width, height)
 		profile[element.module] = profile[element.module] or {}
 		profile[element.module].enabled = true
 	end
+	profile.ActionBars.consumables = { enabled = false }
 	K.Callbacks.Fire("ModuleChanged")
 	return env, K
 end

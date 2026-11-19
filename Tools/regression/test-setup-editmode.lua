@@ -97,7 +97,7 @@ local function Collisions(K, name, box)
 	local rw, rh = K.Layout.RootSize()
 	local hits = {}
 	for key, position in pairs(K.Setup.Layouts.Get(name, rh)) do
-		if not key:find("^cooldowns%.") and K.Setup.Layouts.Shown(name, key) ~= false then
+		if key ~= "consumables.bar" and not key:find("^cooldowns%.") and K.Setup.Layouts.Shown(name, key) ~= false then
 			local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
 			if w then
 				local l, b, r, t = K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)

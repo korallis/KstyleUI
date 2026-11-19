@@ -17,7 +17,7 @@ local KEYS = {
 	"unitframes.player", "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget", "unitframes.pet",
 	"unitframes.boss", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "groupframes.party", "groupframes.raid", "actionbars.bar1",
 	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet",
-	"actionbars.stance", "actionbars.possess", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
+	"actionbars.stance", "consumables.bar", "actionbars.possess", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
 	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
 	"databars.strip", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
 	"combattext.player",
@@ -83,7 +83,7 @@ for _, element in ipairs(Layouts.ELEMENTS) do
 	assert(not seen[element.key], "a key is listed twice: " .. element.key)
 	seen[element.key] = true
 	assert(type(element.module) == "string" and K.Features.modules[element.module] ~= nil, element.key .. " names a module in Features")
-	assert(element.key:sub(1, #element.module):lower() == element.module:lower(), element.key .. " starts with its module's name")
+	assert(element.key == "consumables.bar" and element.module == "ActionBars" or element.key:sub(1, #element.module):lower() == element.module:lower(), element.key .. " starts with its module's name")
 	assert(type(element.label) == "string" and element.label ~= "", element.key .. " has a label")
 	assert(type(element.width) == "number" and element.width > 0 and type(element.height) == "number" and element.height > 0, element.key .. " has a footprint")
 	assert(Layouts.Element(element.key) == element, "Element finds " .. element.key)

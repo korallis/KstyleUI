@@ -82,6 +82,7 @@ local ELEMENTS = {
 	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], grid = true },
 	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], grid = true },
 	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], grid = true },
+	{ key = "consumables.bar", module = "ActionBars", label = L["Consumables bar"], width = 243, height = 79 },
 	{ key = "actionbars.possess", module = "ActionBars", label = L["Possess"], width = 64, height = 30 },
 	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 6 * CENTRE_BUTTON + 5 * CENTRE_GAP, height = CENTRE_BUTTON },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
@@ -183,6 +184,7 @@ local DPS = {
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = TRAY_BOTTOM },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = TRAY_BOTTOM },
 	["actionbars.possess"] = { anchor = "TOPLEFT", x = MARGIN + 623 + GAP, y = -MARGIN },
+	["consumables.bar"] = { anchor = "BOTTOM", x = -506.5, y = 219 },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 + LIFT },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
 	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 421 + LIFT },
@@ -244,6 +246,7 @@ local SWITCHES = {
 	{ key = "actionbars.bar6", module = "ActionBars", setting = "bar6.enabled" },
 	{ key = "actionbars.pet", module = "ActionBars", setting = "pet.enabled" },
 	{ key = "actionbars.stance", module = "ActionBars", setting = "stance.enabled" },
+	{ key = "consumables.bar", module = "ActionBars", setting = "consumables.enabled" },
 	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
 }
 
@@ -619,6 +622,20 @@ function Layouts.MinimapCrest()
 	return not (issecretvalue and issecretvalue(frame)) and (frame == nil or frame == "medallion" or frame == "ring")
 end
 
+function Layouts.ConsumableGrid(style, class)
+	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
+	local size = (cfg.size or BUTTON) * (style == "medallions" and (Layouts.MEDALLIONS_SLOT[class or ns.Scale.Aspect()] or Layouts.MEDALLIONS_SLOT.size) / BUTTON or 1)
+	local gap = cfg.spacing and cfg.spacing >= 0 and cfg.spacing or (style == "medallions" and Layouts.MEDALLIONS_SLOT.gap * size / Layouts.MEDALLIONS_SLOT.size or PITCH)
+	return math.min(12, math.max(1, math.floor(cfg.rows or 2))), size, gap
+end
+
+function Layouts.ConsumableFootprint(style, class)
+	local rows, size, gap = Layouts.ConsumableGrid(style, class)
+	local columns = math.ceil(12 / rows)
+	rows = math.ceil(12 / columns)
+	return columns * (size + gap) - gap, rows * (size + gap) - gap
+end
+
 function Layouts.Footprint(name, key, style, class)
 	local element = byKey[key]
 	if not element or not layouts[name] then
@@ -629,6 +646,7 @@ function Layouts.Footprint(name, key, style, class)
 		local overhang = Layouts.CREST_GROW / 2
 		return MAP + 2 * overhang, MAP + 2 * overhang + 40, overhang, overhang + 20
 	end
+	if key == "consumables.bar" then return Layouts.ConsumableFootprint(style, class) end
 	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class or ns.Scale.Aspect(), key) end
 	local size, gap, columns, rows = Layouts.CooldownGrid(style, key)
 	if size then return columns * size + (columns - 1) * gap, rows * size + (rows - 1) * gap end
@@ -1074,6 +1092,7 @@ function Layouts.ActionBarPlace(class, style, name, key)
 end
 
 function Layouts.StyleSize(style, class, key)
+	if key == "consumables.bar" then return Layouts.ConsumableFootprint(style, class) end
 	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class, key) end
 end
 
@@ -1207,6 +1226,23 @@ end
 
 function Layouts.Attached(style, name, key, class)
 	if not layouts[name] or not byKey[key] or not (style == "frames" or STYLES[style]) then return nil end
+	if key == "consumables.bar" then
+		local w, h = Layouts.ConsumableFootprint(style, class)
+		local player = Layouts.Aspect(class, style, name, "unitframes.player") or Layouts.Style(style, name, "unitframes.player") or layouts[name]["unitframes.player"]
+		local pw, ph = player.width or COLUMN, player.height or 77.5
+		local reserve = style == "medallions" and 43 or 131.5
+		local x, y = player.x - pw / 2 - reserve - 8 - w / 2, math.max(219, player.y + (ph - h) / 2)
+		if style == "orbs" then x, y = -(ORBS_X + ORBS_RING / 2 + 8 + w / 2) + 80, class == "16:9" and 421 or 410
+		elseif style == "medallions" then
+			y = player.y + ph + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + (class == "16:9" and 158 or 22) - h
+			if class ~= "16:9" then x = x - 176
+			else
+				local third = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").bar3
+				if third and third.enabled then x, y = x - 64, y + 76 end
+			end
+		end
+		return { anchor = "BOTTOM", x = x, y = y, width = w, height = h }
+	end
 	local cooldown = key:match("^cooldowns%.") ~= nil
 	local swing = key == "meters.swing"
 	if not (cooldown or swing) then return nil end
@@ -1484,7 +1520,7 @@ function Layouts.Enabled(name, profile)
 			if on then
 				local id = key:match("^[^.]+%.(.+)$")
 				local cast = id:match("^castbar%.(.+)$")
-				local entry = section[cast or id]
+				local entry = section[key == "consumables.bar" and "consumables" or cast or id]
 				if element.module == "Meters" and (id == "damage" or id == "threat") and section.followRole then
 					local role = ns.Specialization.Role()
 					local choice = section.roles and section.roles[role] or (role == "TANK" and "threat" or "damage")
@@ -1536,7 +1572,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
 		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, style, class)
-		if search then
+		if search and key ~= "consumables.bar" then
 			local position = layout[key]
 			state.span = math.max(state.span, math.abs(position.x) + width, math.abs(position.y) + height)
 		end
@@ -1732,7 +1768,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	enabled = enabled or Layouts.Enabled(preset)
 	local flags = {}
 	for i, element in ipairs(ELEMENTS) do
-		flags[i] = enabled[element.key] ~= false and "1" or "0"
+		flags[i] = element.key ~= "consumables.bar" and enabled[element.key] ~= false and "1" or "0"
 	end
 	style = STYLES[style] and style or "frames"
 	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature()
@@ -1741,6 +1777,9 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits
 	end
+	local free = {}
+	for key, value in pairs(enabled) do free[key] = value end
+	free["consumables.bar"], enabled = false, free
 	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
 	local state = Layouts.PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, style, true)
 	local function fits(size)

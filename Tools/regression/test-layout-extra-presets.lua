@@ -16,6 +16,7 @@ for _, screen in ipairs(screens) do
 				cfg.extraBarsApplied = kind
 				cfg.bar4, cfg.bar5 = L.ExtraBarsPreset(kind, K.Scale.Aspect()), L.ExtraBarsPreset(kind, K.Scale.Aspect())
 				local enabled = L.Enabled(name)
+				enabled["consumables.bar"] = false
 				enabled["actionbars.bar4"], enabled["actionbars.bar5"] = true, true
 				local width = arrangement == "centred" and math.min(screen[1], screen[2] * 21 / 9) or screen[1]
 				local cap, fits = L.ScaleLimit(width, screen[2], name, enabled, "medallions")

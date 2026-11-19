@@ -31,6 +31,8 @@ local function Same(a, b)
 end
 
 local function Check(name, style, screen, enabled)
+	enabled = enabled or Layouts.Enabled(name)
+	enabled["consumables.bar"] = false
 	local width, height = screen[1], screen[2]
 	local old, oldFits = Before.ScaleLimit(width, height, name, enabled, style)
 	local new, newFits = Layouts.ScaleLimit(width, height, name, enabled, style)
