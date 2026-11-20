@@ -38,7 +38,13 @@ function Button.StyleText(text, spec, colorName, role)
 		Widgets.ApplyFont(text, path, spec.size, flags)
 		LogOnce("font:" .. tostring(spec.font), "the font " .. tostring(spec.font) .. " did not load; aura text uses " .. tostring(path))
 	end
-	local ok = pcall(text.SetTextColor, text, Tokens.Color(colorName or "textEmphasis"))
+	local color = spec.color
+	local ok
+	if color then
+		ok = pcall(text.SetTextColor, text, color.r, color.g, color.b, 1)
+	else
+		ok = pcall(text.SetTextColor, text, Tokens.Color(colorName or "textEmphasis"))
+	end
 	if not ok then
 		LogOnce("color", "the engine holds an aura text's colour; it keeps the engine's colour")
 	end
@@ -88,19 +94,26 @@ local function PlaceTexts(entry, ctx, inset)
 	Button.StyleText(count, ctx.count)
 	timer:ClearAllPoints()
 	count:ClearAllPoints()
-	local text = Widgets.Snap(skin, TEXT_INSET)
-	if ctx.timer.position == "inside" then
-		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", ctx.timer.x, inset + text + ctx.timer.y)
+	local edge = inset + Widgets.Snap(skin, TEXT_INSET)
+	local position = ctx.timer.position
+	if position == "inside" then
+		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", ctx.timer.x, edge + ctx.timer.y)
+	elseif position == "top" then
+		Widgets.Point(timer, "TOP", skin, "TOP", ctx.timer.x, -edge + ctx.timer.y)
+	elseif position == "center" then
+		Widgets.Point(timer, "CENTER", skin, "CENTER", ctx.timer.x, ctx.timer.y)
 	else
 		Widgets.Point(timer, "TOP", skin, "BOTTOM", ctx.timer.x, -(ns.Model.TIMER_GAP - TIMER_LIFT) + ctx.timer.y)
 	end
 	local shadow = Widgets.Border(skin)
 	count:SetShadowColor(Tokens.Color("textShadow"))
 	count:SetShadowOffset(shadow, -shadow)
-	Widgets.Point(count, "TOPRIGHT", skin, "TOPRIGHT", -(inset + text) + ctx.count.x, -(inset + text) + ctx.count.y)
+	local corner = ctx.count.position
+	local signs = ns.Model.CORNER_SIGNS[corner]
+	Widgets.Point(count, corner, skin, corner, signs[1] * edge + ctx.count.x, signs[2] * edge + ctx.count.y)
 	count:SetAlpha(ctx.count.shown and 1 or 0)
 	timer:SetJustifyH("CENTER")
-	count:SetJustifyH("RIGHT")
+	count:SetJustifyH(signs[3])
 	badge:ClearAllPoints()
 	badge:SetAllPoints(skin)
 end
@@ -123,6 +136,13 @@ local function BindDispel(entry, ctx)
 	end
 	local button = entry.button
 	button:ClearDispelTypeTextures()
+	local typeIcon = entry.typeIcon
+	if typeIcon and ctx.typeIconOptions then
+		button:AddDispelTypeTexture(typeIcon, ctx.typeIconOptions)
+	elseif typeIcon and entry.typeBound then
+		typeIcon:Hide()
+	end
+	entry.typeBound = typeIcon ~= nil and ctx.typeIconOptions ~= nil
 	if not (ctx.group.dispel and ctx.dispelOptions) then
 		Widgets.ShowSlice(slice, false)
 		return
@@ -150,6 +170,46 @@ function Button.Bind(entry, ctx)
 	if ctx.group.cancel ~= nil then
 		button:SetCancelAuraButtons(ctx.group.cancel and CANCEL_CLICK or nil)
 	end
+	local tooltips = ctx.group.tooltips
+	if (entry.tooltips or "always") ~= tooltips and type(button.SetHideTooltipInCombat) == "function" and type(button.SetMouseMotionEnabled) == "function" then
+		button:SetHideTooltipInCombat(tooltips == "noCombat")
+		button:SetMouseMotionEnabled(tooltips ~= "never")
+		entry.tooltips = tooltips
+	end
+	local cue, refresh = entry.cue, ctx.group.refresh
+	if cue and (entry.cueBound == true) ~= refresh then
+		if type(button.AddPandemicRegion) ~= "function" or type(button.RemovePandemicRegion) ~= "function" then
+			LogOnce("pandemic", "CustomAuraButton has no pandemic regions; the refresh mark stays hidden")
+		elseif refresh then
+			button:AddPandemicRegion(cue)
+			entry.cueBound = true
+		else
+			button:RemovePandemicRegion(cue)
+			cue:Hide()
+			entry.cueBound = false
+		end
+	end
+end
+
+local function Extras(entry, ctx, inset)
+	local skin, group = entry.skin, ctx.group
+	local corner = group.typeIcon
+	if entry.dispel and corner and corner ~= "none" then
+		entry.typeIcon = entry.typeIcon or entry.over:CreateTexture(nil, "OVERLAY")
+		local signs, size = ns.Model.CORNER_SIGNS[corner], Widgets.Snap(skin, group.typeIconSize)
+		entry.typeIcon:SetSize(size, size)
+		entry.typeIcon:ClearAllPoints()
+		Widgets.Point(entry.typeIcon, corner, skin, corner, signs[1] * inset, signs[2] * inset)
+	end
+	if group.refresh and not entry.cue then
+		local cue = entry.over:CreateTexture(nil, "OVERLAY")
+		cue:SetColorTexture(Widgets.Rgba("capsGold", 0.8))
+		cue:SetHeight(2)
+		cue:SetPoint("BOTTOMLEFT", skin, "BOTTOMLEFT", 2, 0)
+		cue:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -2, 0)
+		cue:Hide()
+		entry.cue = cue
+	end
 end
 
 function Button.Style(entry, ctx)
@@ -175,15 +235,16 @@ function Button.Style(entry, ctx)
 		swipe:SetHideCountdownNumbers(true)
 		swipe:SetDrawEdge(false)
 		swipe:SetDrawBling(false)
-		swipe:SetReverse(true)
 		swipe:SetSwipeColor(Widgets.Rgba("black", 0.65))
 		entry.swipe = swipe
 	end
 	if entry.swipe then
 		Widgets.Cover(entry.swipe, icon)
+		entry.swipe:SetReverse(ctx.group.swipeReverse ~= false)
 		entry.swipe:SetShown(ctx.group.swipe)
 	end
 	PlaceTexts(entry, ctx, inset)
+	Extras(entry, ctx, inset)
 	if Engine(button) then
 		Button.Bind(entry, ctx)
 	end

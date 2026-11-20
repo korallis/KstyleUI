@@ -18,13 +18,14 @@ function Preview.Build(...)
 		{ icon = 135932, seconds = 12 },
 		{ icon = 135906, seconds = 480 },
 		{ icon = 132333, seconds = 180 },
-		{ icon = 135953, seconds = 2.4 },
+		{ icon = 135953, seconds = 2.4, refresh = true },
 	}
 	local DEBUFFS = {
 		{ icon = 136207, seconds = 18, kind = "MAGIC" },
 		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2" },
-		{ icon = 135846, seconds = 4, kind = "NONE" },
+		{ icon = 135846, seconds = 4, kind = "NONE", refresh = true },
 	}
+	local TYPE_NAMES = { MAGIC = "Magic", CURSE = "Curse" }
 
 	local function DispelColor(kind)
 		local colors = {
@@ -70,7 +71,7 @@ function Preview.Build(...)
 
 	local function StyleSample(entry, ctx)
 		Button.Style(entry, ctx)
-		entry.timer:SetText(Model.FormatTime(entry.spec.seconds, ctx.timer.format))
+		entry.timer:SetText(Model.FormatTime(entry.spec.seconds, ctx.timer.format, ctx.timer))
 		entry.timer:SetShown(ctx.timer.format ~= "none")
 		if entry.swipe and ctx.group.swipe and type(entry.swipe.SetCooldown) == "function" and type(GetTime) == "function" then
 			entry.swipe:SetCooldown(GetTime(), entry.spec.seconds)
@@ -80,6 +81,17 @@ function Preview.Build(...)
 		if entry.dispel then
 			Widgets.ColorSlice(entry.dispel, DispelColor(entry.spec.kind))
 			Widgets.ShowSlice(entry.dispel, ctx.group.dispel == true)
+		end
+		if entry.typeIcon then
+			local util, kind = AuraUtil, TYPE_NAMES[entry.spec.kind]
+			local atlas = kind and ctx.group.typeIcon ~= "none" and type(util) == "table" and type(util.GetAuraDispelTypeIcon) == "function" and util.GetAuraDispelTypeIcon(kind)
+			if atlas then
+				entry.typeIcon:SetAtlas(atlas)
+			end
+			entry.typeIcon:SetShown(atlas and true or false)
+		end
+		if entry.cue then
+			entry.cue:SetShown(ctx.group.refresh and entry.spec.refresh == true)
 		end
 	end
 

@@ -1,4 +1,4 @@
--- test-aura-review.lua: empty spell lists impose no restriction and aura pages offer only supported controls beside their related settings.
+-- test-aura-review.lua: empty spell lists impose no restriction and aura pages offer only supported controls beside their related settings; spell-ID rows stay where the engine matches spell IDs.
 local A = dofile("Tools/regression/auras_env.lua")
 local N = dofile("Tools/regression/nameplates_env.lua")
 local G = dofile("Tools/regression/group_env.lua")
@@ -24,8 +24,9 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 		end
 		for _, key in ipairs({ "allowSpells", "blockSpells" }) do
 			local row = core.Options.Row(module, prefix .. "." .. key)
-			assert((row ~= nil) == (module == "Nameplates"), "spell-ID rows belong only on nameplates")
-			if row then assert(row.help:find("nameplates", 1, true), "spell-ID help names its supported surface") end
+			local honoured = module == "Nameplates" or (module == "Auras" and prefix == "buffs")
+			assert((row ~= nil) == honoured, "spell-ID rows belong only where the engine matches spell IDs: nameplates and your own buffs")
+			if row then assert(row.help:find(module == "Nameplates" and "nameplates" or "buff", 1, true), "spell-ID help names its supported surface") end
 		end
 		if module == "GroupFrames" then
 			assert(core.Options.Row(module, "auras.dispellable") == nil, "reuse Which debuffs instead of a duplicate dispel toggle")

@@ -30,7 +30,8 @@ return Common.Run(function()
  env.RunTimers()
  if os.getenv("RENDER_PARITY_ENABLED") == "1" then
   local values = {
-   Auras = { ["buffs.swipe"] = true, ["debuffs.swipe"] = true, ["count.shown"] = false, iconZoom = 0.1, ["timer.x"] = 3 },
+   Auras = { ["buffs.swipe"] = true, ["debuffs.swipe"] = true, ["count.shown"] = false, iconZoom = 0.1, ["timer.x"] = 3,
+    ["debuffs.typeIcon"] = "TOPLEFT", ["buffs.refresh"] = true, ["timer.seconds"] = false, ["timer.precise"] = 10, ["buffs.show"] = "important" },
    Cooldowns = { ["essential.iconZoom"] = 0.2, ["utility.iconZoom"] = 0.2, ["buffs.iconZoom"] = 0.2, ["bars.iconZoom"] = 0.2, ["essential.edge"] = false, ["utility.edge"] = false },
    CombatText = { direction = "down", shadow = "show", combat = true },
    Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true, ["damage.iconZoom"] = 0.2, ["damage.spellTooltips"] = true },
