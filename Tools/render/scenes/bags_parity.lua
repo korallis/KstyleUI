@@ -40,7 +40,7 @@ return Common.Run(function()
 		bags = bags,
 		bank = bank,
 		money = 1234567,
-		sets = { { name = "Tank", items = { 1002 } } },
+		sets = { { name = "Tank", items = { 1000, 1002 } } },
 		currencies = { { name = "Honor", quantity = 1250, iconFileID = 463448 }, { name = "Arena", quantity = 80, iconFileID = 133784 } },
 		equippedBags = { [1] = { icon = 133633, quality = 1 }, [2] = { icon = 133633, quality = 2 }, [3] = { icon = 133633, quality = 1 }, [4] = { icon = 133633, quality = 1 }, [5] = { icon = 133633, quality = 3 } },
 		setup = function(env)
