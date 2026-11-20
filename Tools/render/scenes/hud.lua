@@ -851,7 +851,7 @@ function modules.cooldowns(opts)
 	-- RENDER_COOLDOWN_PARITY=1: EllesmereUI parity round 1 switched on, spell rules named as the reference shaman's spells.
 	if os.getenv("RENDER_COOLDOWN_PARITY") == "1" then
 		for key, value in pairs({ ["rules.fade"] = "Stoneclaw Totem", ["rules.tint"] = "Earth Shock", ["rules.hideReady"] = "Searing Totem", closeGaps = true,
-			glowsInCombat = true, ["essential.timerPosition"] = "TOP", ["buffs.inactiveShade"] = "colour", ["essential.hideZero"] = true }) do
+			glowsInCombat = true, ["essential.timerPosition"] = "TOP", ["buffs.inactiveShade"] = "colour", ["essential.hideZero"] = true, ["essential.vertical"] = true }) do
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
