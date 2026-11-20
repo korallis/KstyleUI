@@ -62,7 +62,7 @@ function Preview.Build(...)
 		local function snap(units)
 			return Widgets.Snap(canvas, units)
 		end
-		local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge }
+		local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge, iconZoom = Model.IconZoom(Settings()) }
 		ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
 		ctx.spacing, ctx.rowSpacing = Model.Gaps(group, timer, snap)
 		return ctx
@@ -72,6 +72,9 @@ function Preview.Build(...)
 		Button.Style(entry, ctx)
 		entry.timer:SetText(Model.FormatTime(entry.spec.seconds, ctx.timer.format))
 		entry.timer:SetShown(ctx.timer.format ~= "none")
+		if entry.swipe and ctx.group.swipe and type(entry.swipe.SetCooldown) == "function" and type(GetTime) == "function" then
+			entry.swipe:SetCooldown(GetTime(), entry.spec.seconds)
+		end
 		entry.count:SetText(entry.spec.stacks or "")
 		entry.badge:SetShown(entry.spec.stacks ~= nil)
 		if entry.dispel then
@@ -158,6 +161,10 @@ function Preview.Build(...)
 		local scale = 1
 		if available and widest > available then
 			scale = available / widest
+		end
+		local height = frame:GetHeight()
+		if not Widgets.IsSecret(height) and type(height) == "number" and height > 0 then
+			scale = min(scale, height / max(1, top - gap))
 		end
 		frame.canvas:SetScale(scale)
 		frame.canvas:SetSize(max(widest, 1), max(top, 1))

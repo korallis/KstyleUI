@@ -25,6 +25,8 @@ Model.LIMITS = {
 	columns = { min = 1, max = 24, step = 1 },
 	timerSize = { min = 6, max = 24, step = 1 },
 	countSize = { min = 6, max = 24, step = 1 },
+	offset = { min = -50, max = 50, step = 1 },
+	iconZoom = { min = 0, max = 0.2, step = 0.01 },
 	expiring = { min = 0, max = 30, step = 1 },
 }
 local LIMITS = Model.LIMITS
@@ -35,18 +37,19 @@ Model.defaults = {
 	medallionsIcons = true,
 	enabled = false,
 	hideBlizzard = true,
+	iconZoom = 0.07,
 	buffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
-		onlyMine = false, dispellable = false,
+		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
-		onlyMine = false, dispellable = false,
+		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },
-	count = { font = "", size = 10, outline = "OUTLINE" },
+	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5, x = 0, y = 0 },
+	count = { shown = true, font = "", size = 10, outline = "OUTLINE", x = 0, y = 0 },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
 local defaults = Model.defaults
@@ -114,7 +117,7 @@ local ACCENT_SET = allowed(Model.ACCENT_SOURCES)
 local TRACKED_SET = allowed(Model.TRACKED_OPTIONS)
 
 local function number(value, default, limit, whole)
-	if type(value) ~= "number" or value ~= value then
+	if K.Widgets.IsSecret(value) or type(value) ~= "number" or value ~= value then
 		return default
 	end
 	if whole then
@@ -131,6 +134,7 @@ local function choice(value, set, default)
 end
 
 local function boolean(value, default)
+	if K.Widgets.IsSecret(value) then return default end
 	if type(value) == "boolean" then
 		return value
 	end
@@ -155,6 +159,7 @@ function Model.Group(settings, name)
 		growth = choice(s.growth, GROWTH, base.growth),
 		sort = choice(s.sort, SORT, base.sort),
 		reverse = s.reverse == true,
+		swipe = boolean(s.swipe, base.swipe),
 	}
 	if K.HudStyle.Current() == "orbs" then
 		g.growth = (g.growth:gsub("_DOWN$", "_UP"))
@@ -188,16 +193,23 @@ function Model.Timer(settings)
 		size = number(s.size, base.size, LIMITS.timerSize),
 		outline = outline,
 		expiring = number(s.expiring, base.expiring, LIMITS.expiring),
+		x = number(s.x, base.x, LIMITS.offset), y = number(s.y, base.y, LIMITS.offset),
 	}
 end
 
 function Model.Count(settings)
 	local base, s = defaults.count, section(settings, "count")
 	return {
+		shown = boolean(s.shown, base.shown),
 		font = font(s.font, (Tokens.Font("number"))),
 		size = number(s.size, base.size, LIMITS.countSize),
 		outline = choice(s.outline, FLAGS, base.outline),
+		x = number(s.x, base.x, LIMITS.offset), y = number(s.y, base.y, LIMITS.offset),
 	}
+end
+
+function Model.IconZoom(settings)
+	return number(settings.iconZoom, defaults.iconZoom, LIMITS.iconZoom)
 end
 
 function Model.TextScale()

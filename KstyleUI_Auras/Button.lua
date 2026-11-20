@@ -92,14 +92,15 @@ local function PlaceTexts(entry, ctx, inset)
 	count:ClearAllPoints()
 	local text = Widgets.Snap(skin, TEXT_INSET)
 	if ctx.timer.position == "inside" then
-		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", 0, inset + text)
+		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", ctx.timer.x, inset + text + ctx.timer.y)
 	else
-		Widgets.Point(timer, "TOP", skin, "BOTTOM", 0, -(ns.Model.TIMER_GAP - TIMER_LIFT))
+		Widgets.Point(timer, "TOP", skin, "BOTTOM", ctx.timer.x, -(ns.Model.TIMER_GAP - TIMER_LIFT) + ctx.timer.y)
 	end
 	local shadow = Widgets.Border(skin)
 	count:SetShadowColor(Tokens.Color("textShadow"))
 	count:SetShadowOffset(shadow, -shadow)
-	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -(inset + text), -(inset + text))
+	Widgets.Point(count, "TOPRIGHT", skin, "TOPRIGHT", -(inset + text) + ctx.count.x, -(inset + text) + ctx.count.y)
+	if type(count.SetAlpha) == "function" then count:SetAlpha(ctx.count.shown and 1 or 0) end
 	timer:SetJustifyH("CENTER")
 	count:SetJustifyH("RIGHT")
 	badge:ClearAllPoints()
@@ -145,6 +146,9 @@ function Button.Bind(entry, ctx)
 		entry.badge:Hide()
 	end
 	BindDispel(entry, ctx)
+	if type(button.SetDurationCooldown) == "function" and type(button.ClearDurationCooldown) == "function" then
+		if ctx.group.swipe and entry.swipe then button:SetDurationCooldown(entry.swipe) else button:ClearDurationCooldown() end
+	end
 	if ctx.group.cancel ~= nil then
 		button:SetCancelAuraButtons(ctx.group.cancel and CANCEL_CLICK or nil)
 	end
@@ -162,9 +166,27 @@ function Button.Style(entry, ctx)
 	Widgets.ShowSlice(entry.rim, true)
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
 	local icon = entry.icon
+	if type(icon.SetTexCoord) == "function" then
+		local crop = ctx.iconZoom or ICON_CROP
+		icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
+	end
 	icon:ClearAllPoints()
 	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+	if ctx.group.swipe and not entry.swipe then
+		local swipe = CreateFrame("Cooldown", nil, skin, "CooldownFrameTemplate")
+		if type(swipe.SetDrawSwipe) == "function" then swipe:SetDrawSwipe(true) end
+		if type(swipe.SetHideCountdownNumbers) == "function" then swipe:SetHideCountdownNumbers(true) end
+		if type(swipe.SetDrawEdge) == "function" then swipe:SetDrawEdge(false) end
+		if type(swipe.SetDrawBling) == "function" then swipe:SetDrawBling(false) end
+		if type(swipe.SetReverse) == "function" then swipe:SetReverse(true) end
+		if type(swipe.SetSwipeColor) == "function" then swipe:SetSwipeColor(Widgets.Rgba("black", 0.65)) end
+		entry.swipe = swipe
+	end
+	if entry.swipe then
+		Widgets.Cover(entry.swipe, icon)
+		entry.swipe:SetShown(ctx.group.swipe)
+	end
 	PlaceTexts(entry, ctx, inset)
 	if Engine(button) then
 		Button.Bind(entry, ctx)

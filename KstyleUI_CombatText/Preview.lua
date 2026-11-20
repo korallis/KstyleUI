@@ -59,7 +59,9 @@ function Preview.Build(...)
 		frame.base:SetHeight(Widgets.Border(frame))
 		Widgets.Size(tile, FRAME_WIDTH, FRAME_HEIGHT)
 		tile:ClearAllPoints()
-		Widgets.Point(tile, "BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM)
+		local cfg = frame.cfg
+		local clearance = cfg and cfg.direction == "down" and cfg.distance + cfg.size * cfg.critScale or 0
+		Widgets.Point(tile, "BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM + clearance)
 		tile.bar:ClearAllPoints()
 		Widgets.Point(tile.bar, "CENTER", tile, "CENTER")
 		PlaceCaption(frame.caption)
@@ -89,8 +91,8 @@ function Preview.Build(...)
 		frame.pool, frame.cfg, frame.field, frame.unitFrame = pool, cfg, field, unitFrame
 
 		function frame.Refresh()
-			Place(frame)
 			Settings.Snapshot(Settings.Values(), cfg)
+			Place(frame)
 			pool:ReleaseAll()
 			elapsed = INTERVAL
 		end

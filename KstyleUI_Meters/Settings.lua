@@ -69,6 +69,9 @@ ns.defaults = {
 		titleSize = CAPTION,
 		percent = true,
 		icons = true,
+		alwaysPlayer = true,
+		hover = true,
+		format = "short",
 	}),
 	threat = Merge(Bars("left"), Text(12), {
 		followGuide = true,
@@ -305,6 +308,14 @@ function ns.Schema()
 		},
 	}
 	ListRows("damage", schema)
+	schema[#schema + 1] = { type = "toggle", key = "damage.alwaysPlayer", label = L["Always show player"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Keep your row visible when it falls outside the meter's visible rows."] }
+	schema[#schema + 1] = { type = "toggle", key = "damage.hover", label = L["Show breakdown on hover"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Open the spell breakdown when you point at a player's row."] }
+	schema[#schema + 1] = { type = "dropdown", key = "damage.format", label = L["Number format"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Use short or full numbers for damage and healing amounts."], options = {
+		{ value = "short", label = L["Short, such as 12.3K"] }, { value = "full", label = L["Full, such as 12,345"] },
+	} }
 
 	schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 	schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }

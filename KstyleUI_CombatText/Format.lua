@@ -18,6 +18,7 @@ local FALLBACK_WORDS = {
 	MISS = L["Miss"], DODGE = L["Dodge"], PARRY = L["Parry"], BLOCK = L["Block"], EVADE = L["Evade"],
 	IMMUNE = L["Immune"], DEFLECT = L["Deflect"], ABSORB = L["Absorb"], REFLECT = L["Reflect"],
 	RESIST = L["Resist"], INTERRUPT = L["Interrupt"],
+	PLAYER_REGEN_DISABLED = L["Entering combat"], PLAYER_REGEN_ENABLED = L["Leaving combat"],
 }
 
 local function IsSecret(v)
@@ -89,6 +90,9 @@ function Format.Classify(event, flag, amount)
 		return nil
 	end
 	local flagText = PlainFlag(flag)
+	if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+		return "combat", "none", event
+	end
 	if event == "WOUND" then
 		if secretAmount then
 			if AVOIDED[flagText] then
@@ -135,6 +139,7 @@ function Format.Text(fontString, cfg, kind, amount, word)
 end
 
 function Format.Color(cfg, kind, emphasis, school)
+	if kind == "combat" then return cfg.combatR, cfg.combatG, cfg.combatB end
 	if kind == "heal" then
 		return cfg.healR, cfg.healG, cfg.healB
 	elseif kind ~= "damage" then

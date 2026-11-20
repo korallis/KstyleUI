@@ -144,6 +144,10 @@ local function newButton(env, container)
 		element(cooldown, "Cooldown")
 		aura.cooldown = cooldown
 	end
+	function button.ClearDurationCooldown()
+		guard("ClearDurationCooldown")
+		aura.cooldown = nil
+	end
 	function button.ClearDurationText()
 		guard("ClearDurationText")
 		aura.timer, aura.timerOptions = nil, nil

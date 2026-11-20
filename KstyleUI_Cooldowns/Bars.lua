@@ -85,6 +85,7 @@ function BarRow:StyleBar(bar)
 	bar.count:ClearAllPoints()
 	bar.count:SetPoint("BOTTOMRIGHT", bar.icon, "BOTTOMRIGHT", 0, 0)
 	bar.count:SetShown(cfg.icon)
+	if type(bar.count.SetAlpha) == "function" then bar.count:SetAlpha(cfg.showCount and 1 or 0) end
 	Style.Mouse(bar, current.tooltips)
 end
 

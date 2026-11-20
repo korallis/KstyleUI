@@ -42,6 +42,7 @@ local function BuildSchema()
 				type = "toggle", key = name .. ".reverse", label = L["Reverse order"],
 				help = L["Flips the sort order, so the last icon comes first."],
 			},
+			{ type = "toggle", key = name .. ".swipe", label = L["Duration swipe"], help = L["Show the shaded duration sweep on each icon."] },
 		}
 		K.Options.AuraFilterRows(schema, name, { sort = false })
 		for _, row in ipairs(rows) do
@@ -62,6 +63,7 @@ local function BuildSchema()
 	local schema = {
 		{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses a dark metal rim around aura tiles in Medallions. Off restores the black rim."] },
 		{ type = "header", label = L["Rows"] },
+		slider("iconZoom", L["Icon zoom"], L["How much of the icon's edge is cropped."], LIMITS.iconZoom),
 		{
 			type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's buff frames"],
 			help = L["Hides the default buff and debuff frames while these rows show your auras."],
@@ -106,6 +108,7 @@ local function BuildSchema()
 		},
 		slider("timer.expiring", L["Warn under"], L["Seconds left when a timer turns red. 0 turns the warning off."], LIMITS.expiring, timerHidden),
 		{ type = "header", label = L["Stack counts"] },
+		{ type = "toggle", key = "count.shown", label = L["Show stack counts"], help = L["Show the number of applications on aura icons."] },
 		{ type = "font", key = "count.font", label = L["Stack font"], help = L["The typeface of the stack counts on the icons."], options = K.Widgets.InheritedFontOptions },
 		slider("count.size", L["Stack size"], L["The text size of the stack counts."], LIMITS.countSize),
 		{
@@ -124,6 +127,11 @@ local function BuildSchema()
 	}
 	for _, row in ipairs(rest) do
 		schema[#schema + 1] = row
+	end
+	for _, key in ipairs({ "timer", "count" }) do
+		schema[#schema + 1] = { type = "header", label = key == "timer" and L["Timer position"] or L["Stack position"] }
+		schema[#schema + 1] = slider(key .. ".x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset)
+		schema[#schema + 1] = slider(key .. ".y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset)
 	end
 	schema.preview = Preview.Build
 

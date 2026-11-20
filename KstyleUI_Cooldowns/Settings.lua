@@ -42,9 +42,10 @@ local BAR_RANGE = {
 	nameSize = { 6, 24, 1 },
 	timerSize = { 6, 24, 1 },
 	countSize = { 6, 24, 1 },
+	fillOpacity = { 0, 1, 0.05 },
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive" }
-local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe" }
+local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
 local GROWTH = { center = true, right = true, left = true, rightAligned = true }
@@ -68,6 +69,8 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		growth = "center",
 		wrap = cooldown and "auto" or "up",
 		timer = true,
+		showCount = true,
+		swipe = true,
 		timerSize = timerSize,
 		countSize = countSize,
 	}
@@ -119,6 +122,8 @@ Settings.defaults = {
 		nameSize = 11,
 		timerSize = 11,
 		countSize = 9,
+		showCount = true,
+		fillOpacity = BAR_FILL_ALPHA,
 	},
 }
 
@@ -211,6 +216,8 @@ function Settings.Schema()
 		Add(schema, { type = "dropdown", key = group .. ".growth", label = L["Growth"], help = L["Where a short row starts."], options = GROWTH_OPTIONS })
 		Add(schema, { type = "dropdown", key = group .. ".wrap", label = L["Wrap"], help = L["Whether extra rows go below or above the first."], options = WRAP_OPTIONS })
 		Add(schema, Toggle(group, "timer", L["Timers"], L["Show the seconds left on each icon."]))
+		Add(schema, Toggle(group, "swipe", L["Duration swipe"], L["Show the shaded duration sweep on each icon."]))
+		Add(schema, Toggle(group, "showCount", L["Show charges and stacks"], L["Show charge or application counts on this group."]))
 		Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the countdown numbers."], ICON_RANGE))
 		Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the charge or stack count."], ICON_RANGE))
 		if COOLDOWN_GROUPS[group] then
@@ -237,6 +244,8 @@ function Settings.Schema()
 		Add(schema, Toggle(group, "icon", L["Icon"], L["Show the buff's icon at the start of the bar."]))
 		Add(schema, Toggle(group, "name", L["Name"], L["Show the buff's name on the bar."]))
 		Add(schema, Toggle(group, "timer", L["Timer"], L["Show the seconds left on the bar."]))
+		Add(schema, Toggle(group, "showCount", L["Show stack counts"], L["Show the number of applications on aura icons."]))
+		Add(schema, Slider(group, "fillOpacity", L["Fill opacity"], L["How strong the bar's coloured fill appears."], BAR_RANGE))
 		Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep an empty bar while the buff is off you. Active bars come first."]))
 		Add(schema, Slider(group, "nameSize", L["Name size"], L["The size of the buff's name."], BAR_RANGE))
 		Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the seconds left."], BAR_RANGE))
@@ -428,5 +437,5 @@ end
 
 function Settings.BarColor()
 	local r, g, b = BarRGB()
-	return r, g, b, BAR_FILL_ALPHA
+	return r, g, b, current.bars.fillOpacity
 end

@@ -223,6 +223,7 @@ local function Context(desc)
 		group = group,
 		timer = timer,
 		count = count,
+		iconZoom = Model.IconZoom(settings),
 		icon = snap(group.iconSize),
 		lineSize = Model.LineSize(group, timer, snap),
 		edge = EdgeColor(),

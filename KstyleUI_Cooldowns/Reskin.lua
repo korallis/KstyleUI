@@ -43,10 +43,11 @@ local function Crop(texture)
 	end
 end
 
-local function Text(text, font, size, outline, role)
+local function Text(text, font, size, outline, role, shown)
 	if type(text) == "table" and type(text.SetFont) == "function" then
 		Style.Font(text, font, size, outline, role)
 		Widgets.TextColor(text, "textEmphasis")
+		if shown ~= nil and type(text.SetAlpha) == "function" then text:SetAlpha(shown == false and 0 or 1) end
 	end
 end
 
@@ -101,6 +102,8 @@ local function SkinIcon(group, item)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
+		if type(cooldown.SetHideCountdownNumbers) == "function" then cooldown:SetHideCountdownNumbers(not cfg.timer) end
+		if type(cooldown.SetDrawSwipe) == "function" then cooldown:SetDrawSwipe(cfg.swipe) end
 		local text = cooldown:GetCountdownFontString()
 		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group ~= "essential" and "timer" or nil)
 		Style.Countdown(cooldown, group == "essential")
@@ -115,9 +118,9 @@ local function SkinIcon(group, item)
 		end
 	end
 	local charges = item.ChargeCount
-	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize / scale, current.countOutline)
+	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize / scale, current.countOutline, nil, cfg.showCount)
 	local applications = item.Applications
-	Text(type(applications) == "table" and applications.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
+	Text(type(applications) == "table" and applications.Applications, current.countFont, cfg.countSize / scale, current.countOutline, nil, cfg.showCount)
 end
 
 local function SkinBar(item)
@@ -148,7 +151,7 @@ local function SkinBar(item)
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon)
 		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
-		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
+		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline, nil, cfg.showCount)
 	end
 end
 

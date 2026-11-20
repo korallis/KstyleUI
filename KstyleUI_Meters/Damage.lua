@@ -33,6 +33,14 @@ local CLASS_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Cla
 local order = {}
 local classIcons = {}
 
+local function NumberText(amount)
+	if ns.Get("damage.format") == "full" and type(BreakUpLargeNumbers) == "function" then
+		local ok, text = pcall(BreakUpLargeNumbers, amount)
+		if ok then return text end
+	end
+	return Logic.Abbreviate(amount)
+end
+
 local function HideBlizzard()
 	local meter = _G.DamageMeter
 	if meter == nil then
@@ -368,7 +376,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
-		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, Logic.Abbreviate(Amount(source, info)), percentText)
+		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info)), percentText)
 	end
 	ns.SetClassIcon(list, i, source.classFilename)
 end
@@ -396,7 +404,7 @@ local function FillSources(list, info, session)
 			break
 		end
 	end
-	local first, shown, pin = Span(list, n, mine)
+	local first, shown, pin = Span(list, n, ns.Get("damage.alwaysPlayer") and mine or nil)
 	for i = 1, shown do
 		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy)
 	end
@@ -497,7 +505,7 @@ local function RowSplit(split, list, i)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText,
+		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, NumberText(Amount(spell, info)), percentText,
 			SpellCall("GetSpellTexture", spell.spellID), Logic.SchoolToken(spell.spellID))
 	end
 	if listed == 0 then
@@ -512,7 +520,7 @@ local function RowSplit(split, list, i)
 end
 
 local function RowSplits(list, i)
-	if drill.active or Damage.resting then
+	if not ns.Get("damage.hover") or drill.active or Damage.resting then
 		return false
 	end
 	local slot = slots[i]
@@ -557,7 +565,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText, nil, Logic.SchoolToken(spell.spellID))
+		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info)), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
 	end
 	Damage.filled = Damage.view
