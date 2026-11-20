@@ -88,8 +88,14 @@ local function Describe(key, short)
 		for _, option in ipairs(Layout.SideOptions()) do
 			if option.value == s.side then side = option.label break end
 		end
-		local target = Layout.Element(s.attachTo)
+		local target, link = Layout.Element(s.attachTo), s.link
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
+		if link and link.point then
+			local names = {}
+			for _, option in ipairs(Layout.ANCHOR_OPTIONS) do names[option.value] = option.label end
+			text = format("%s > %s: %s / %d, %d", names[link.point], names[link.target or link.point], target and target.label or s.attachTo,
+				floor((link.x or 0) + 0.5), floor((link.y or 0) + 0.5))
+		end
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
 		if s.matchHeight then text = text .. " / " .. L["Match height"] end
 		return text

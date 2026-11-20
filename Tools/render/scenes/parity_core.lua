@@ -1,4 +1,4 @@
--- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links and the round 1 palette, outline and attach points.
+-- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links, round 1 attach points (RENDER_CORE_POINT), the palette and outline (RENDER_CORE_PALETTE=1) and the round 1 Options rows.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -26,6 +26,8 @@ return Common.Run(function()
 	local layout = K.Layout
 	assert(layout.Update("unitframes.player", { anchor = "CENTER", x = -270, y = -170, width = 300, height = 100 }))
 	assert(layout.Update("unitframes.target", { attachTo = "unitframes.player", side = os.getenv("RENDER_CORE_SIDE") or "right", offset = 50, matchHeight = true, extraHeight = 10 }))
+	local point, target = (os.getenv("RENDER_CORE_POINT") or ""):match("^(%u+):(%u+)$")
+	if point then assert(layout.Set("unitframes.target", "link", { point = point, target = target, x = 30, y = 12 })) end
 	K.Options.Write("Layout", "grid", true)
 	K.Options.Write("Layout", "gridAlpha", 0.15)
 	K.Options.Write("Layout", "nudgeStep", 100)
@@ -33,15 +35,13 @@ return Common.Run(function()
 	local account = K.Store.Account()
 	if view == "toolbar" then account.layoutToolbarHover = true end
 	if view == "gametext" then account.gameFont, account.gameTextScale, account.combatFont = true, 1.2, true end
-	if view == "palette" or view == "colours" then
+	if view == "colours" or os.getenv("RENDER_CORE_PALETTE") == "1" then
 		K.Options.Write("Appearance", "classColors.WARRIOR", { r = 0.85, g = 0.33, b = 0.2 })
 		K.Options.Write("Appearance", "powerColors.RAGE", { r = 0.95, g = 0.55, b = 0.1 })
 		K.Options.Write("Appearance", "outline", "OUTLINE")
-		assert(layout.Set("unitframes.target", "link", { point = "BOTTOMLEFT", target = "TOPRIGHT", x = 40, y = 10 }))
+		K.Options.Write("UnitFrames", "player.healthColor", "class")
 	end
-	if view == "palette" then
-		layout.Element("unitframes.player").frame:Show()
-	elseif view == "mode" or view == "hidden" or view == "toolbar" then
+	if view == "mode" or view == "hidden" or view == "toolbar" then
 		assert(layout.Enter())
 		layout.Mode.Select("unitframes.target")
 		if view == "hidden" then

@@ -452,7 +452,7 @@ function Appearance.Schema()
 	local classNames = rawget(_G, "LOCALIZED_CLASS_NAMES_MALE")
 	local function Colour(group, key, label, help)
 		local schema = Appearance.schema
-		schema[#schema + 1] = { type = "color", key = group .. "." .. key, label = type(label) == "string" and label or key, help = help }
+		schema[#schema + 1] = { type = "color", key = group .. "." .. key, label = type(label) == "string" and label or key:sub(1, 1) .. key:sub(2):lower(), help = help }
 	end
 	Appearance.schema[#Appearance.schema + 1] = { type = "header", label = L["Class and power colours"] }
 	for _, file in ipairs(Appearance.CLASS_ORDER) do
