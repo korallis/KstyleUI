@@ -26,7 +26,7 @@ class PruningTests(unittest.TestCase):
         edges = [edge('a', 'b', 10), edge('a', 'c', 5), edge('c', 'b', 6)]
         kept = prune(edges)
         self.assertEqual(len(kept), 2)
-        self.assertEqual(distances([], kept, 'a')['b'], 11)
+        self.assertEqual(distances(kept, 'a')['b'], 11)
 
     def test_too_long_alternative_keeps_edge(self):
         self.assertEqual(len(prune([edge('a', 'b', 10), edge('a', 'c', 6), edge('c', 'b', 6)])), 3)
@@ -38,7 +38,7 @@ class PruningTests(unittest.TestCase):
     def test_equal_length_triangle_is_not_deleted_simultaneously(self):
         kept = prune([edge('a', 'b', 0), edge('a', 'c', 0), edge('b', 'c', 0)])
         self.assertEqual(len(kept), 2)
-        self.assertEqual(set(distances([], kept, 'a')), {'a', 'b', 'c'})
+        self.assertEqual(set(distances(kept, 'a')), {'a', 'b', 'c'})
 
     def test_flight_is_never_a_walking_prune_alternative(self):
         edges = [edge('a', 'b', 10), edge('a', 'c', 1, 'flight'), edge('c', 'b', 1)]
@@ -46,8 +46,8 @@ class PruningTests(unittest.TestCase):
 
     def test_directed_flight_dijkstra(self):
         hop = dict(edge('a', 'b', 1, 'flight'), directed=True)
-        self.assertIn('b', distances([], [hop], 'a'))
-        self.assertNotIn('a', distances([], [hop], 'b'))
+        self.assertIn('b', distances([hop], 'a'))
+        self.assertNotIn('a', distances([hop], 'b'))
 
     def test_parallel_special_edge_is_preserved(self):
         special = edge('a', 'b', 2, 'flight')
@@ -74,6 +74,7 @@ class SharingTests(unittest.TestCase):
                  edge('a', 'c', 25, pts=[(0, 0, 0), (10, 0, 0), (20, -10, 0)])]
         result, edges = shared_graph(nodes, roads)
         self.assertEqual(len(result), 4)
+        self.assertTrue(all(n['map'] == 1 for n in result))
         self.assertEqual(len(edges), 3)
         self.assertEqual(sum(e['len'] == 10 for e in edges), 1)
 
@@ -82,7 +83,7 @@ class SharingTests(unittest.TestCase):
         roads = [edge('a', 'b', 20, pts=[(0, 0, 0), (10, 0, 0), (20, 0, 0)]),
                  edge('c', 'd', 20, pts=[(10, -10, 20), (10, 0, 20), (10, 10, 20)])]
         _, edges = shared_graph(nodes, roads)
-        self.assertNotIn('c', distances([], edges, 'a'))
+        self.assertNotIn('c', distances(edges, 'a'))
 
     def test_degree_two_bends_simplify_and_keep_length(self):
         nodes = [node('a', 0), node('b', 20)]

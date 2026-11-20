@@ -18,7 +18,7 @@ def prune(edges, tolerance=.1):
     adjacent = defaultdict(dict)
     for (a, b), edge in kept.items():
         adjacent[a][b] = adjacent[b][a] = edge
-    for key, edge in sorted(kept.copy().items(), key=lambda kv: (-kv[1]['len'], kv[0])):
+    for key, edge in sorted(kept.items(), key=lambda kv: (-kv[1]['len'], kv[0])):
         a, b = key
         if any(adjacent[a][c]['len'] + adjacent[b][c]['len'] <= edge['len'] * (1 + tolerance)
                for c in adjacent[a].keys() & adjacent[b].keys()):
@@ -73,11 +73,13 @@ def shared_graph(places, edges):
             if current != start:
                 result.append(dict(a=start, b=current, kind='walk', len=length(pts), pts=simplify(pts)))
     for key in anchors - nodes.keys():
-        nodes[key] = dict(id=key, name='', kind='junction', point=positions[key])
-    return list(nodes.values()), result
+        nodes[key] = dict(id=key, name='', kind='junction', point=positions[key], map=places[0]['map'])
+    result = {(e['a'], e['b'], tuple(p[:2] for p in e['pts'])): e
+              for e in sorted(result, key=lambda e: -e['len'])}
+    return list(nodes.values()), list(result.values())
 
 
-def distances(nodes, edges, start, kinds=None):
+def distances(edges, start, kinds=None):
     adjacent = defaultdict(list)
     for e in edges:
         if kinds is None or e['kind'] in kinds:

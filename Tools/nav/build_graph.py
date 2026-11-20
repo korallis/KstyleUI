@@ -21,7 +21,7 @@ import build_routes as base
 from geometry import MID, TILE, chunks, m2_collision, place, placements, simplify, terrain, transform, water_surface, wmo_doodads, wmo_group
 from graph import distances, length, lua_graph, prune, shared_graph
 
-TABLES = ('Map', 'AreaTable', 'UiMap', 'UiMapAssignment', 'TaxiNodes', 'AreaPOI', 'TaxiPath', 'TaxiPathNode', 'LiquidType')
+TABLES = ('Map', 'AreaTable', 'UiMapAssignment', 'TaxiNodes', 'AreaPOI', 'TaxiPath', 'TaxiPathNode', 'LiquidType')
 CAP = 3500
 K = 6
 # Sampled places walking cannot reach, each with its reason; summary.json lists them.
@@ -66,7 +66,7 @@ def tables(client):
     return {t: base.load_csv(client.cache / f'{t}.csv') for t in TABLES}
 
 
-def mesh_tiles(client, continent, directory, areas):
+def mesh_tiles(client, directory, areas):
     """Only one ADT soup and a 32-entry collision LRU are resident in Python."""
     source = f'world/maps/{directory.lower()}/{directory.lower()}.wdt'
     client.fetch([source])
@@ -480,7 +480,7 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
     metadata = json.loads(metadata_path.read_text(encoding='utf-8')) if metadata_path.exists() else {}
     fingerprint = hashlib.sha256(Path(__file__).with_name('geometry.py').read_bytes() + inspect.getsource(mesh_tiles).encode('utf-8')).hexdigest()
     if not manifest.exists() or metadata.get('fingerprint') != fingerprint:
-        manifest, metadata = mesh_tiles(client, continent, directory, areas)
+        manifest, metadata = mesh_tiles(client, directory, areas)
     lift_nodes, lift_pairs = landmarks(client, directory, metadata, areas)
     nodes = discover(db, continent, metadata) + [n for n in transport_nodes if n['map'] == continent] + lift_nodes
     # A border's low level cells are pass candidates; keep the first one on the main walking component.
@@ -537,8 +537,6 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
             special.append(dict(a=a, b=b, kind='lift', len=length(pts), pts=pts, seconds=30 + length(pts) / 8))
     nodes, edges = shared_graph(nodes, prune(walks))
     edges.extend(special)
-    for n in nodes:
-        n.setdefault('map', continent)
     by_id = {n['id']: n for n in nodes}
     for edge in transport_edges:
         a, b = edge['a'], edge['b']
@@ -562,7 +560,7 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
     mainland = Counter()
     for a, b in sorted(sample):
         if a not in cached_distances:
-            cached_distances[a] = distances(nodes, edges, a)
+            cached_distances[a] = distances(edges, a)
         connected += b in cached_distances[a]
         inland = a not in excluded and b not in excluded
         mainland['pairs'] += inland
@@ -570,7 +568,7 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
         if direct and length(direct):
             direct_count += 1
             mainland['navmesh_direct'] += inland
-            road = distances(nodes, edges, a, {'walk'}).get(b)
+            road = distances(edges, a, {'walk'}).get(b)
             if road is not None:
                 walk_connected += 1
                 mainland['walk_connected'] += inland

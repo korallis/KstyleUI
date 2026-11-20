@@ -82,7 +82,7 @@ python -I Tools/nav/build_graph.py --install 'C:/Program Files (x86)/World of Wa
 ```
 
 This uses the same cache, tools and exclusive build lock. It processes Eastern
-Kingdoms and Kalimdor sequentially. `Map`, `AreaTable`, `UiMap` and
+Kingdoms and Kalimdor sequentially. `Map`, `AreaTable` and
 `UiMapAssignment` supply continent assignments and map bounds; `AreaPOI` and
 `TaxiNodes` supply named destinations; `Generic`, `Quest Path` and `zzOLD` taxi
 helpers are not places. ADT area samples supply other named areas, including inns.
@@ -109,7 +109,9 @@ alternative is at most 110% of their length. This preserves connectivity; the
 10% rule is local and does not guarantee 10% total route stretch. Shared
 half-yard xyz path vertices become junctions, identical segments are stored
 once, and degree-two bends collapse to a 5-yard Douglas-Peucker polyline.
-Overpasses at different heights stay separate.
+Overpasses at different heights stay separate. Identical simplified walking
+polylines with the same endpoints keep only their shortest length. Sharing does
+not yet split a segment at a place on its interior.
 
 Precise POI/taxi seeds project within 30 yards, dock seeds within 120, lift
 landings within 25 and area/crossing seeds within 120/80 yards. Except for
@@ -171,6 +173,9 @@ floors. Terrain MH2O, WMO group collision, WMO doodad sets and ADT M2 collision 
 included. Moving transports,
 instance triggers, faction restrictions and actual wait times need in-game
 checks. No addon data, client art or meshes are written to the repository.
+
+Next: add WMO liquid (MLIQ) surfaces to the swim queries and split walking
+segments at interior places.
 
 ## Licences and data
 
