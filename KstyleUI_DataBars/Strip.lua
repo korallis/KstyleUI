@@ -182,7 +182,7 @@ local function TextWidth(text, fontSize)
 end
 
 function Strip.Modules(s)
-	return Widgets.Medallions() and s.placement ~= "rail" and s.dockModules or s.modules
+	return s.placement == "rail" and s.railModules or Widgets.Medallions() and s.dockModules or s.modules
 end
 
 local function Order(s)
@@ -430,7 +430,7 @@ local function PlaceLine(view, s)
 		end
 	end
 	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM)
-	local x = edge
+	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
 	if view.slab then
@@ -440,6 +440,8 @@ local function PlaceLine(view, s)
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		limits.left = max(0, left * ratio - LABEL_GAP)
 		limits.right = max(0, right * ratio - LABEL_GAP - (view.slab.text:IsVisible() and TextWidth(view.slab.text, dotSize) + LABEL_GAP or 0))
+	elseif view.rail then
+		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
 	local signature = { tostring(view.slab), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0 }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
@@ -449,9 +451,10 @@ local function PlaceLine(view, s)
 		local value = TextWidth(item.value, s.fontSize)
 		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0))
 		local zone = zones[id] or "right"
+		if view.rail then zone = "right" end
 		if view.slab and zone == "centre" then zone = "left" end
 		local gap = widths[zone] > 0 and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
-		local overflow = view.slab and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
+		local overflow = (view.slab or view.rail) and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
 		positions[id] = { zone, widths[zone] + gap, width, gap > 0, value, label, overflow }
 		if overflow then
 			hidden[zone][#hidden[zone] + 1] = id
@@ -497,7 +500,7 @@ local function PlaceLine(view, s)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
-		x = x + width
+		if not item.overflow then x = x + width end
 		local dot = not item.overflow and ((view.topBar or view.slab) and positions[item.id][4] or not view.topBar and not view.slab and i > 1)
 		item.dot:SetShown(dot)
 		if dot then
@@ -630,6 +633,7 @@ function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order = order
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
+	view.rail = s.placement == "rail" and not view.docked
 	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
 	view.chrome.shadowOn = not view.topBar
 	if view.topBar then TopBar(view) end
@@ -1255,7 +1259,7 @@ function Strip.Setting(key)
 		MatchLine(s)
 	end
 	Strip.Refresh()
-	if field == "modules" or field == "dockModules" or field == "enabled" then
+	if field == "modules" or field == "dockModules" or field == "railModules" or field == "enabled" then
 		StartTicker()
 	end
 end

@@ -49,9 +49,9 @@ end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto" })
 	K.Options.Write("DataBars", "strip.placement", "rail")
-	local modules = {}
-	for i, id in ipairs({ "fps", "latency", "gold", "durability", "time" }) do
-		modules[i] = { id = id, shown = true, zone = i % 2 == 0 and "left" or "centre" }
+	local modules = D.CoreEnv.DeepCopy(ns.Settings().strip.railModules)
+	for i, entry in ipairs(modules) do
+		entry.shown, entry.zone = i <= 5, i % 2 == 0 and "left" or "centre"
 	end
 	K.Options.Write("DataBars", "strip.railModules", modules)
 	local view = ns.Strip.view
@@ -68,7 +68,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					if text:IsShown() then
 						local tx, _, tw = Scene.Rect(env, text)
 						assert(tx >= x - 0.01 and tx + tw <= x + width + 0.01,
-							"Right rail " .. id .. " text must stay inside its frame; hide whole overflowing readouts")
+							"Right rail " .. id .. " text must stay inside its frame; hide whole overflowing readouts: " .. tx .. "+" .. tw .. " outside " .. x .. ".." .. (x + width))
 						assert(not text:IsTruncated(), "Right rail must never truncate a readout mid-item")
 					end
 				end

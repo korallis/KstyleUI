@@ -208,7 +208,7 @@ do
 	eq(view.pad, 0, "bare of padding")
 	local first = micro._points[1]
 	assert(first[1] == "TOPRIGHT" and first[2] == view.frame and near(-first[5], ns.Strip.LINE + 6, 0.5), "the first row sits a gap under the line: " .. tostring(first[5]))
-	assert(near(select(4, ns.Strip.view.items.gold.button:GetPoint(1)), 0), "the line still ends on the right edge")
+	assert(near(select(4, ns.Strip.view.items.gold.button:GetPoint(1)), -K.Widgets.Snap(view.frame, 3)), "the line still ends on the right edge")
 	local microRow, bagsRow = ns.Menus.Holder("micro"):GetHeight(), ns.Menus.Holder("bags"):GetHeight()
 	local rows = view.wrapMenus and (microRow + 6 + bagsRow) or math.max(microRow, bagsRow)
 	assert(near(view.frame:GetHeight(), ns.Strip.LINE + 6 + rows, 0.5), "the element holds the line and its rows, no padding under them: " .. tostring(view.frame:GetHeight()))

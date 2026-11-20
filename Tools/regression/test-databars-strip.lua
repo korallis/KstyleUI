@@ -118,7 +118,7 @@ do
 		local point, rel, relPoint, x, y = it.button:GetPoint(1)
 		eq(point .. ">" .. tostring(rel == frame) .. ">" .. relPoint .. "@" .. y, "TOPRIGHT>true>TOPRIGHT@0", it.id .. " hangs off the strip's top right, on one row")
 		if i == #ns.Strip.order then
-			eq(x, 0, "the last item ends on the element's right edge: right-aligned")
+			eq(x, -K.Widgets.Snap(frame, 3), "the last item reserves the text padding at the right edge")
 		else
 			assert(x < previousX, it.id .. " sits left of the item after it")
 		end
@@ -167,7 +167,7 @@ do
 	env.RunTickers()
 	eq(lineText(ns), "1444 fps" .. MIDDLE_DOT .. "1234 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the tick rewrites the line")
 	assert(select(4, item(ns, "fps").button:GetPoint(1)) < before, "wider values push the earlier items left")
-	eq(select(4, item(ns, "gold").button:GetPoint(1)), 0, "while the line stays on the right edge")
+	eq(select(4, item(ns, "gold").button:GetPoint(1)), -K.Widgets.Snap(frame, 3), "the line keeps its text padding at the right edge")
 	game.fps, game.latencyHome = 144.2, 34
 	env.RunTickers()
 
@@ -183,7 +183,7 @@ do
 	D.Entry(K, 4, "durability")
 	eq(shown(ns), "fps,latency,gold,durability", "durability is selectable")
 	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "96% armour", "and reads with its unit at the line's left end")
-	eq(select(4, item(ns, "durability").button:GetPoint(1)), 0, "now it ends the line")
+	eq(select(4, item(ns, "durability").button:GetPoint(1)), -K.Widgets.Snap(frame, 3), "now it ends the line with text padding")
 	D.Entry(K, 4, "none")
 	D.Entry(K, 5, "time")
 	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "14:32", "the clock too")
@@ -205,7 +205,7 @@ do
 	K.Options.Write("DataBars", "strip.backdrop", true)
 	eq(view.chrome.fill[1]:IsShown(), true, "backdrop on draws the card")
 	local pad = K.Widgets.Inset(frame, K.Tokens.Size("chamferPanel"))
-	assert(near(select(4, item(ns, "gold").button:GetPoint(1)), -pad), "and the text keeps the card's padding from the right edge")
+	assert(near(select(4, item(ns, "gold").button:GetPoint(1)), -pad - K.Widgets.Snap(frame, 3)), "and the text keeps the card's padding from the right edge")
 	K.Options.Write("DataBars", "strip.backdrop", false)
 
 	-- Off, the cells come back.

@@ -1025,7 +1025,7 @@ function Menus.Disable()
 end
 
 function Menus.Setting(key)
-	if key == "strip.modules" or key == "strip.dockModules" then
+	if key == "strip.modules" or key == "strip.dockModules" or key == "strip.railModules" then
 		Sync(bars.micro)
 		return
 	end

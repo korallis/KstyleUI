@@ -103,6 +103,11 @@ for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
+defaults.strip.railModules = {}
+for i, entry in ipairs(defaults.strip.dockModules) do
+	defaults.strip.railModules[i] = { id = entry.id, shown = i <= 3 or entry.id == "micro", zone = "right" }
+end
+
 function ns.Schema()
 	if ns.schema then return ns.schema end
 	ns.schema = {}
@@ -238,10 +243,10 @@ function ns.Schema()
 		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top data bar's background."], min = 0, max = 100, step = 1 },
 	}
 	stripRows[#stripRows + 1] = { type = "toggle", key = "strip.dockMeter", label = L["Dock readouts to the meter"], help = L["Place the data strip beside the damage meter title. Off returns it to its own position."] }
-	for _, key in ipairs({ "modules", "dockModules" }) do
+	for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
 		local dock = key == "dockModules"
 		stripRows[#stripRows + 1] = { type = "order", key = "strip." .. key, label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = moduleOptions, showWhen = function(settings)
-			return dock == (Widgets.Medallions() and settings.strip.placement ~= "rail")
+			return settings.strip.placement == "rail" and key == "railModules" or settings.strip.placement ~= "rail" and key ~= "railModules" and dock == Widgets.Medallions()
 		end }
 	end
 	for _, row in ipairs({

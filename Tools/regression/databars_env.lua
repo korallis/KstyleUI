@@ -392,9 +392,11 @@ function D.New(opts)
 end
 
 function D.Entry(K, index, id)
-	local modules = K.Store.Module("DataBars").strip.modules
+	local s = K.Store.Module("DataBars").strip
+	local key = s.placement == "rail" and "railModules" or "modules"
+	local modules = s[key]
 	modules[index] = { id = id, shown = id ~= "none", zone = "right" }
-	K.Callbacks.Fire("SettingChanged", "DataBars", "strip.modules", modules)
+	K.Callbacks.Fire("SettingChanged", "DataBars", "strip." .. key, modules)
 end
 
 function D.RailModules(K, ns)
@@ -402,7 +404,7 @@ function D.RailModules(K, ns)
 	for i, id in ipairs({ "fps", "latency", "gold", "none", "none" }) do
 		modules[i] = { id = id, shown = id ~= "none", zone = "right" }
 	end
-	ns.Settings().strip.modules = modules
+	ns.Settings().strip.railModules = modules
 	ns.Strip.Refresh()
 end
 
