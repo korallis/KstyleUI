@@ -514,8 +514,7 @@ local function PlateTooltip(tip, plate)
 		tip:AddLine(L["Scroll to scale it, or click it and drag the corner handle."])
 	end
 	tip:AddLine(L["Right-click to reset it. Shift + right-click hides this mover until restored or Layout Mode reopens."])
-	local controls = ns.Store.Profile().OptionsMovers
-	local shortcut = type(controls) == "table" and controls.moverOptions
+	local shortcut = ns.Store.Account().moverOptions
 	if not IsSecret(shortcut) and shortcut == true then tip:AddLine(L["Double-click to open its settings."]) end
 end
 
@@ -550,8 +549,7 @@ local function PlateDoubleClick(plate, button)
 	local settings = bar and ns.Store.Module("ActionBars")
 	local el = Layout.Element(plate.key)
 	local actionBar = settings and settings[bar]
-	local controls = ns.Store.Profile().OptionsMovers
-	local shortcut = type(controls) == "table" and controls.moverOptions
+	local shortcut = ns.Store.Account().moverOptions
 	if actionBar then
 		if not actionBar.moverOptions then return end
 		ns.Options.Write("ActionBars", "editBar", bar)

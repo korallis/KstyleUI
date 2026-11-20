@@ -10,10 +10,10 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation", "OptionsWindow" }
+Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
-local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true, OptionsMovers = true, OptionsWindow = true }
+local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true }
 local MODULE_ORDER = {
 	"UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates", "CombatText",
 	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
@@ -421,6 +421,10 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
+	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Window conveniences"] }
+	items[#items + 1] = { kind = "toggle", page = "General", label = L["Search current page only"], help = L["Searches this page only. Off searches every settings page."],
+		get = function() return K.Store.Account().optionsSearchPage == true end,
+		set = function(value) K.Store.Account().optionsSearchPage = value; ns.Changed() end }
 	for _, element in ipairs(Pages.Elements(true)) do
 		if element.key == Pages.WINDOW_KEY then
 			element.label = L["Window size and opacity"]
@@ -441,6 +445,7 @@ local function GeneralItems()
 end
 
 local function ResetGeneral()
+	K.Store.Account().optionsSearchPage = nil
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
 		Model.ResetSchema(section, K.Options.Get(section))
 	end
@@ -454,7 +459,10 @@ local function ElementsItems()
 		Append(items, Model.SchemaItems(Pages.ELEMENTS_SECTION, schema, "Elements"))
 	end
 	Append(items, Model.SchemaItems("LayoutControls", K.Options.Get("LayoutControls"), "Elements"))
-	Append(items, Model.SchemaItems("OptionsMovers", K.Options.Get("OptionsMovers"), "Elements"))
+	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Double-click movers for settings"],
+		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
+		get = function() return K.Store.Account().moverOptions == true end,
+		set = function(value) K.Store.Account().moverOptions = value; ns.Changed() end }
 	NoLayoutNote(items, "Elements")
 	local byModule, order = {}, {}
 	for _, element in ipairs(Pages.Elements()) do

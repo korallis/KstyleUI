@@ -14,7 +14,7 @@ local function row(page, label)
 	return assert(O.Find(ns.Pages.Find(ns.Pages.List(), page).Items(), function(item) return item.label == label end), label)
 end
 assert(K.Appearance.Get("font") == "InterSemiBold" and K.Appearance.Get("uiScale") == 0.8, "v0.2.8 appearance is unchanged")
-assert(not K.Store.Module("OptionsMovers").moverOptions and not K.Store.Module("OptionsWindow").searchPage, "new conveniences default off")
+assert(not K.Store.Account().moverOptions and not K.Store.Account().optionsSearchPage, "new conveniences default off")
 local attach, tooltip = K.Widgets.AttachTooltip
 K.Widgets.AttachTooltip = function(frame, builder)
 	if frame.key == "Parity.Chat" then tooltip = builder end
@@ -44,7 +44,7 @@ Layout.Exit(true)
 assert(Layout.Enter() and plate:IsShown(), "reopening Layout Mode restores hidden movers")
 env.IsShiftKeyDown = nil
 row("Elements", "Double-click movers for settings").set(true)
-assert(K.Store.Module("OptionsMovers").moverOptions, "mover shortcut writes")
+assert(K.Store.Account().moverOptions, "mover shortcut writes")
 env._combat = true
 plate:GetScript("OnDoubleClick")(plate, "LeftButton")
 assert(Layout.IsActive(), "shortcut cannot open settings or alter secure frames in combat")
@@ -121,10 +121,12 @@ end
 assert(not K.Profiles.Preview(exported).warning, "secret current scale cannot be compared in import review")
 K.Store.Module = read
 row("Elements", "Double-click movers for settings").set(true)
+row("General", "Search current page only").set(true)
 local upgraded = K.Options.Copy(K.Store.Data())
 local _, again = O.New({ saved = upgraded, load = false })
-assert(not again.Store.Defaults("OptionsWindow") and not again.Store.Defaults("OptionsMovers"), "Options conveniences register only on demand")
-assert(again.Store.Profile().OptionsMovers.moverOptions, "saved mover preference is available before Options loads")
+assert(not again.Store.Profile().OptionsWindow and not again.Store.Profile().OptionsMovers, "Editor preferences add no unregistered profile sections")
+assert(again.Store.Decode(assert(again.Store.Export())), "A profile exported before Options loads must decode after reload")
+assert(again.Store.Account().moverOptions and again.Store.Account().optionsSearchPage, "saved mover preference is available before Options loads")
 assert(again.Appearance.Get("font") == "InterSemiBold", "named imported profile survives reload")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("core parity follow-up ok: unchanged defaults, v0.2.8, mover conveniences, search, native fonts, named imports and reset")
