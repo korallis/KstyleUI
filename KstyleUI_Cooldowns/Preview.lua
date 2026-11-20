@@ -73,12 +73,16 @@ function Preview.Build(...)
 		end
 	end
 
-	local function Fitted(frame, cfg)
+	local function Fitted(frame, cfg, group)
 		local width = frame.pane:GetWidth()
-		if cfg.vertical or issecretvalue(width) or type(width) ~= "number" or width <= 0 then
-			return cfg
+		local columns = #SAMPLE_ICONS[group]
+		if not cfg.vertical then
+			if issecretvalue(width) or type(width) ~= "number" or width <= 0 then
+				return cfg
+			end
+			columns = math.floor((width + cfg.spacing) / (cfg.size + cfg.spacing))
 		end
-		local columns = math.max(1, math.min(cfg.columns, math.floor((width + cfg.spacing) / (cfg.size + cfg.spacing))))
+		columns = math.max(1, math.min(cfg.columns, columns))
 		if columns == cfg.columns then
 			return cfg
 		end
@@ -96,7 +100,7 @@ function Preview.Build(...)
 		local previous
 		for _, group in ipairs(Settings.GROUPS) do
 			local row = frame.rows[group]
-			row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group]))
+			row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group], group))
 			row.holder:ClearAllPoints()
 			if previous then
 				Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, -gap)
