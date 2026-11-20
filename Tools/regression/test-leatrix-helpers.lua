@@ -18,6 +18,13 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	for _, call in ipairs({ "LootSlot", "RepairAllItems", "AcceptQuest", "SetCVar" }) do
 		assert(#Q.Calls(env, call) == 0, "Leatrix Plus must switch off the matching QoL helper before startup or events call " .. call)
 	end
+	C.W.CoreEnv.Logout(env)
+	local resumed, resumedK = Q.New({ width = width, height = height, saved = env.KstyleUIDB })
+	resumed._loot = { {}, {} }
+	resumed.FireEvent("LOOT_READY", true)
+	assert(resumedK.Store.Module("QoL").fastLoot and #Q.Calls(resumed, "LootSlot") == 2,
+		"after Leatrix is removed, fast loot must resume at login before the first loot event")
+	assert(#resumed._errors == 0, tostring(resumed._errors[1]))
 	K.Options.Write("QoL", "fastLoot", true)
 	env.SetTime(env.GetTime() + 1)
 	env.FireEvent("LOOT_READY", true)
