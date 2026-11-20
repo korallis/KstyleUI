@@ -113,6 +113,14 @@ for _, size in ipairs(SIZES) do
 	write(env, K, "sideStyle", "card")
 	assert(not ns.Panel.Strip():IsShown(), "Card hides the strip")
 	assert(near(rect(glass).left, rect(holder).left) and near(rect(chat).left, before.left), "the card and the messages come back")
+	write(env, K, "tabsAbove", true)
+	for _, style in ipairs({ "card", "glass" }) do
+		write(env, K, "sideStyle", style)
+		local edge = rect(style == "glass" and ns.Panel.Strip() or glass).top
+		assert(rect(env.QuickJoinToastButton).top <= edge + 0.01, size[1] .. "x" .. size[2] .. " " .. style .. ": the friends button stays on the glass under the tabs")
+	end
+	write(env, K, "sideStyle", "card")
+	write(env, K, "tabsAbove", false)
 	clean(env, K)
 end
 
@@ -295,6 +303,7 @@ end
 do
 	local env, K = boot()
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetPoint("CENTER")
 	parent:SetSize(320, 480)
 	local preview = K.Options.Preview("Chat")(parent)
 	local function shown()
@@ -325,6 +334,8 @@ do
 	write(env, K, "tabsAbove", true)
 	preview:Refresh()
 	assert(select(5, preview.card:GetPoint(1)) < -20 and not preview.divider:IsShown(), "the card starts under the tabs")
+	local tab = preview.tabs[1]
+	assert(tab:GetTop() and tab:GetBottom() >= preview.card:GetTop() - 0.01, "the tab names sit above the card and resolve, so the settings pane keeps them in view")
 	write(env, K, "buttons", false)
 	preview:Refresh()
 	assert(shown() == 0, "no buttons, no tiles")

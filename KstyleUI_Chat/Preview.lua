@@ -127,6 +127,7 @@ function Preview.Build(...)
 		local tall = tonumber(settings.editHeight) or ns.defaults.editHeight
 		local lift = always and settings.inputOnTop == true and tall + inset or 0
 		local above = settings.tabsAbove == true and top * 2 or 0
+		local edge = inset + (beside and band or room)
 		if settings.idleFade == true or self.faded then
 			self.faded = settings.idleFade == true
 			local alpha = self.faded and 1 - math.min(1, tonumber(settings.idleStrength) or 0) or 1
@@ -146,7 +147,7 @@ function Preview.Build(...)
 		self.divider:SetShown(above == 0)
 		self.divider:ClearAllPoints()
 		Widgets.Point(self.divider, "TOPLEFT", glass, "TOPLEFT", left, -(top * 2))
-		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -(inset + (beside and band or room)), -(top * 2))
+		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -edge, -(top * 2))
 		self.lines[1]:ClearAllPoints()
 		Widgets.Point(self.lines[1], "TOPLEFT", glass, "TOPLEFT", left, -(top * 2 + inset + lift))
 		self.edit:ClearAllPoints()
@@ -159,8 +160,8 @@ function Preview.Build(...)
 		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
 		self.edit:SetShown(always)
 		local x = left
-		local right = glass:GetWidth() > 0 and glass:GetWidth() - inset - room or math.huge
-		local spare = right - x
+		local limit = glass:GetWidth() > 0 and glass:GetWidth() - edge or math.huge
+		local spare = limit - x
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 			local label = TABS[i]
@@ -168,12 +169,16 @@ function Preview.Build(...)
 			spare = spare - Widgets.TextWidth(tab, TAB_WIDTH)
 		end
 		local fits = spare >= math.min(gap, Tokens.Size("gapSmall")) * (#self.tabs - 1)
-		local stop = fits and right or right - CHEVRON - Tokens.Size("gapSmall")
+		local stop = fits and limit or limit - CHEVRON - Tokens.Size("gapSmall")
 		gap = math.max(math.min(gap, Tokens.Size("gapSmall")), math.min(gap, spare / (#self.tabs - 1)))
 		for i, tab in ipairs(self.tabs) do
 			tab:ClearAllPoints()
 			Widgets.Point(tab, "LEFT", glass, "TOPLEFT", x, -top)
 			local width = Widgets.TextWidth(tab, TAB_WIDTH)
+			if above > 0 or tab.sized then
+				tab.sized = above > 0
+				tab:SetSize(tab.sized and width + Widgets.TrackPad(tab) or 0, tab.sized and top * 2 or 0)
+			end
 			if i == 1 then
 				self.fill:ClearAllPoints()
 				Widgets.Point(self.fill, "LEFT", tab, "LEFT", -pad, 0)
@@ -188,7 +193,7 @@ function Preview.Build(...)
 			tab:SetTextColor(Widgets.Rgba(color))
 		end
 		self.more:SetShown(not fits)
-		Widgets.Point(self.more, "RIGHT", glass, "TOPRIGHT", -(inset + room), -top)
+		Widgets.Point(self.more, "RIGHT", glass, "TOPRIGHT", -edge, -top)
 		Widgets.Tint(self.more, ns.Frames.TabLook(style, false) or "text")
 		local _, underlined, filled = ns.Frames.TabLook(style, true)
 		ns.Frames.PaintUnderline(self.underline, self.glow, underlined)

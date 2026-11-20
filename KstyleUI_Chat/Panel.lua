@@ -515,9 +515,12 @@ local function PlaceGlass(g)
 	local glass, holder = state.glass, state.holder
 	local divider = glass.divider
 	local top = state.settings.tabsAbove and -g.divider or 0
-	glass:ClearAllPoints()
-	glass:SetPoint("TOPLEFT", holder, "TOPLEFT", g.near, top)
-	glass:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.far, 0)
+	if state.near ~= g.near or state.far ~= g.far or state.top ~= top then
+		state.near, state.far, state.top = g.near, g.far, top
+		glass:ClearAllPoints()
+		glass:SetPoint("TOPLEFT", holder, "TOPLEFT", g.near, top)
+		glass:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.far, 0)
+	end
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left - g.near, -g.divider)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", g.far - g.rule, -g.divider)
@@ -776,7 +779,7 @@ function Panel.Place()
 		local scale, spots = Number(s.sideScale, 1), s.sideFree == true and type(s.sidePositions) == "table" and s.sidePositions or {}
 		local shown = type(friends) == "table" and not (type(icons) == "table" and icons.friends == false)
 		if type(friends) == "table" then friends:SetScale(Keep(friends).scale * scale) end
-		local top = max(g.top / g.k, x + (shown and Number(friends:GetHeight(), 0) * Ratio(friends, holder) / g.k or 0))
+		local top = max(g.top / g.k, (s.tabsAbove and g.divider / g.k or 0) + x + (shown and Number(friends:GetHeight(), 0) * Ratio(friends, holder) / g.k or 0))
 		x = side == "RIGHT" and -x or x
 		Keep(column, true)
 		column:ClearAllPoints()
@@ -1085,6 +1088,7 @@ local function Build()
 	Widgets.Size(holder, Footprint(layouts))
 	local glass = Widgets.Panel(holder, { strata = STRATA, shape = "window" })
 	glass:SetAllPoints(holder)
+	state.near, state.far, state.top = 0, 0, 0
 	glass:SetFixedFrameStrata(true)
 	glass.divider = glass:CreateTexture(nil, "ARTWORK")
 	glass.divider:SetColorTexture(Tokens.Color("white"))
