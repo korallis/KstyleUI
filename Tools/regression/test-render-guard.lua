@@ -328,6 +328,22 @@ assert(has("GuardWindow.loose"), "an unseated hub gem remains a spill")
 assert(not has("GuardWindow.crest"), "the seated crest is card trim")
 assert(#outside == 6, "only the six spills are listed, not the popout's tiles or the wide holder's children: " .. table.concat(outside, "; "))
 
+crest:ClearAllPoints()
+crest:SetPoint("TOP", window, "BOTTOM")
+local gem = window:CreateTexture(nil, "OVERLAY")
+gem:SetTexture(TEX .. "ForgedDiamond.png")
+gem:SetSize(8, 8)
+gem:SetPoint("CENTER", crest, "CENTER")
+for _, finding in ipairs(Guard.Check(Scene.Build(env))) do
+	assert(finding.object ~= crest and finding.object ~= gem, "the bottom-hung centre gem is attached card trim")
+end
+crest:SetPoint("TOP", window, "BOTTOM", 0, -40)
+local detached = {}
+for _, finding in ipairs(Guard.Check(Scene.Build(env))) do
+	if finding.object then detached[finding.object] = true end
+end
+assert(detached[crest] and detached[gem], "a gem detached below the card must still fail the spill guard")
+
 -- The allowlist: an owner scope, a scene glob, a kind and a subject prefix ("=" for the whole subject).
 local path = fs.tmp() .. "/allow.tsv"
 local handle = assert(io.open(path, "wb"))

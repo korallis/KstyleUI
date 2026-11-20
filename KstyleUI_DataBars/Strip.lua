@@ -253,8 +253,8 @@ local function TopBar(view)
 	end
 	view.art = {}
 	for _, piece in ipairs({
-		{ "medLevelPlaque", "CENTER", "BOTTOM", 0, 0, 18, "giltLit" },
-		{ "forgedDiamond", "CENTER", "BOTTOM", 0, 0, 8, "materialGold" },
+		{ "medLevelPlaque", "TOP", "BOTTOM", 0, 0, 18, "giltLit" },
+		{ "forgedDiamond", "TOP", "BOTTOM", 0, -5, 8, "materialGold" },
 		{ "forgedBracket1", "BOTTOMLEFT", "BOTTOMLEFT", 17, 0, 8, "white" },
 		{ "forgedBracket1", "BOTTOMRIGHT", "BOTTOMRIGHT", -17, 0, 8, "white", true },
 	}) do
@@ -670,7 +670,7 @@ function Strip.Paint(view, s, values)
 			item.dot:Hide()
 		else
 			local f = caption or s
-			local size = view.topBar and min(s.fontSize, (view.frame:GetHeight() - 2 * Widgets.Border(view.frame)) / (1.2 * K.Theme.FontScale())) or f.fontSize
+			local size = view.topBar and min(s.fontSize, (view.frame:GetHeight() - 4 * Widgets.Border(view.frame)) / (1.2 * K.Theme.FontScale())) or f.fontSize
 			local fontSize = size * K.Theme.FontScale()
 			if item.font ~= f.font or item.fontSize ~= fontSize or item.outline ~= f.outline or item.lineMode ~= view.lineMode or item.slab ~= view.slab or item.instrument ~= f.instrumentText then
 				Widgets.Fitted(item.label, view.topBar)

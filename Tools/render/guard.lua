@@ -253,9 +253,11 @@ local function ownBorder(item, card, rect)
 	local object = item.object
 	local file = fileOf(item)
 	local glass = card.glass
+	local pendantDrop = file:match("/Medallions/LevelPlaque%.png$") and rect[4] / 2 or rect[4] * 9 / 8
 	if item.kind == "texture" and (file:match("/Medallions/LevelPlaque%.png$") or file:match("/ForgedDiamond%.png$")) and rect[3] <= 32 and rect[4] <= 32
 		and math.abs(rect[1] + rect[3] / 2 - glass[1] - glass[3] / 2) <= slack
-		and math.abs(rect[2] + rect[4] / 2 - glass[2] - glass[4]) <= slack then return true end
+		and (math.abs(rect[2] + rect[4] / 2 - glass[2] - glass[4]) <= slack
+			or math.abs(rect[2] + rect[4] / 2 - glass[2] - glass[4] - pendantDrop) <= slack) then return true end
 	if item.kind ~= "texture" or object._parent ~= card.frame or not card.border
 		or Geometry.Outside(bounds(rect), bounds(card.border)) > 0.001 then
 		return false
