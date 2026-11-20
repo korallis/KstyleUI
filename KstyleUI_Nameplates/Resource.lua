@@ -129,7 +129,7 @@ function Resource.Update()
 	if not Settings.Get("resource.energy") then return end
 	local kind = PowerType("Energy", 3)
 	local value, max = UnitPower("player", kind), UnitPowerMax("player", kind)
-	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and not IsSecret(value) and not IsSecret(max)
+	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and not issecretvalue(value) and not issecretvalue(max)
 		and type(value) == "number" and type(max) == "number" and value >= max
 	frame.energy:SetShown(not full)
 	frame.energy:SetBarRange(0, max)
