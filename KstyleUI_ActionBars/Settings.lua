@@ -216,9 +216,6 @@ end
 local function BarRows(schema, def)
 	local key = def.key
 	local editing = Editing(key)
-	local function Off(settings)
-		return not settings[key].enabled
-	end
 	local scope = { key = "editBar", value = key }
 	local function add(row)
 		row.showWhen = row.showWhen or editing
@@ -233,10 +230,6 @@ local function BarRows(schema, def)
 			end
 		end
 		row.scope = scope
-		if row.type ~= "header" and row.key ~= key .. ".enabled" then
-			local disabled = row.disableWhen
-			row.disableWhen = disabled and function(settings) return Off(settings) or disabled(settings) end or Off
-		end
 		schema[#schema + 1] = row
 	end
 	add({ type = "header", label = Label(def) })
