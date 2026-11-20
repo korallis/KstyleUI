@@ -87,13 +87,15 @@ function F.Modern()
 			Viewer(F.BUFF_ICON, F.HORIZONTAL, F.RIGHT, 370),
 			Viewer(F.BUFF_BAR, F.VERTICAL, F.LEFT, 400),
 			Warning(),
+			System(16, 0, 0, { { setting = 0, value = 5 } }),
 		},
 	}
 end
 
 function F.Install(env, state)
 	env.Enum = env.Enum or {}
-	env.Enum.EditModeSystem = { ObjectiveTracker = F.TRACKER, DamageMeter = F.METER, ChatFrame = F.CHAT, RaidWarning = F.RAID_WARNING }
+	env.Enum.EditModeSystem = { ObjectiveTracker = F.TRACKER, DamageMeter = F.METER, ChatFrame = F.CHAT, RaidWarning = F.RAID_WARNING, DurabilityFrame = 16 }
+	env.Enum.EditModeDurabilityFrameSetting = { Size = 0 }
 	if not state.noViewers then
 		env.Enum.EditModeSystem.CooldownViewer = F.VIEWER
 	end
