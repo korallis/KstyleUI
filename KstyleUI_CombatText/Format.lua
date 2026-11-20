@@ -18,7 +18,6 @@ local FALLBACK_WORDS = {
 	MISS = L["Miss"], DODGE = L["Dodge"], PARRY = L["Parry"], BLOCK = L["Block"], EVADE = L["Evade"],
 	IMMUNE = L["Immune"], DEFLECT = L["Deflect"], ABSORB = L["Absorb"], REFLECT = L["Reflect"],
 	RESIST = L["Resist"], INTERRUPT = L["Interrupt"],
-	PLAYER_REGEN_DISABLED = L["Entering combat"], PLAYER_REGEN_ENABLED = L["Leaving combat"],
 }
 
 local function IsSecret(v)
@@ -61,6 +60,7 @@ local function Words()
 		words = {
 			MISS = MISS, DODGE = DODGE, PARRY = PARRY, BLOCK = BLOCK, EVADE = EVADE, IMMUNE = IMMUNE,
 			DEFLECT = DEFLECT, ABSORB = ABSORB, REFLECT = REFLECT, RESIST = RESIST, INTERRUPT = INTERRUPT,
+			PLAYER_REGEN_DISABLED = ENTERING_COMBAT, PLAYER_REGEN_ENABLED = LEAVING_COMBAT,
 		}
 		for key, fallback in pairs(FALLBACK_WORDS) do
 			if IsSecret(words[key]) or type(words[key]) ~= "string" then

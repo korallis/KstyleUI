@@ -47,7 +47,7 @@ local function Text(text, font, size, outline, role, shown)
 	if type(text) == "table" and type(text.SetFont) == "function" then
 		Style.Font(text, font, size, outline, role)
 		Widgets.TextColor(text, "textEmphasis")
-		if shown ~= nil and type(text.SetAlpha) == "function" then text:SetAlpha(shown == false and 0 or 1) end
+		if shown ~= nil then text:SetAlpha(shown == false and 0 or 1) end
 	end
 end
 
@@ -71,6 +71,34 @@ local function Outset(backdrop, outset)
 		end
 	end
 	return backdrop
+end
+
+local function Toggle(cooldown, group, method, key, off, native)
+	if type(cooldown[method]) ~= "function" then return end
+	local side = K.Safe.Side(cooldown)
+	local state = side[method]
+	if not state then
+		state = { native = native }
+		side[method] = state
+		hooksecurefunc(cooldown, method, function(frame, value)
+			if state.busy then return end
+			state.native = value
+			if active[group] and not Settings.current[group][key] then
+				state.busy = true
+				frame[method](frame, off)
+				state.busy = nil
+			end
+		end)
+	end
+	local disabled = not Settings.current[group][key]
+	if disabled or state.disabled then
+		state.busy = true
+		local value = state.native
+		if disabled then value = off end
+		cooldown[method](cooldown, value)
+		state.busy = nil
+	end
+	state.disabled = disabled
 end
 
 local function SkinIcon(group, item)
@@ -102,8 +130,8 @@ local function SkinIcon(group, item)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
-		if type(cooldown.SetHideCountdownNumbers) == "function" then cooldown:SetHideCountdownNumbers(not cfg.timer) end
-		if type(cooldown.SetDrawSwipe) == "function" then cooldown:SetDrawSwipe(cfg.swipe) end
+		Toggle(cooldown, group, "SetHideCountdownNumbers", "timer", true, not Viewers.Frame(group).timerShown)
+		Toggle(cooldown, group, "SetDrawSwipe", "swipe", false, item.cooldownShowSwipe)
 		local text = cooldown:GetCountdownFontString()
 		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group ~= "essential" and "timer" or nil)
 		Style.Countdown(cooldown, group == "essential")

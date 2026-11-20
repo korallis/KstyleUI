@@ -62,7 +62,6 @@ local function Build()
 end
 
 local function Shows(cfg, kind)
-	if kind == "combat" then return cfg.combat end
 	if kind == "damage" then
 		return cfg.damage
 	elseif kind == "heal" then

@@ -7,7 +7,6 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 local Button = {}
 ns.Button = Button
 
-local ICON_CROP = 0.07
 local ICON_INSET_LINES = 1
 local TEXT_INSET = 1
 local TIMER_LIFT = 0.5
@@ -51,7 +50,6 @@ function Button.Create(button, hasDispel)
 	rim:SetColorTexture(Widgets.Rgba("white"))
 	rim:SetAllPoints(skin)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
-	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local over = CreateFrame("Frame", nil, skin)
 	over:SetAllPoints(skin)
 	over:SetFrameLevel(skin:GetFrameLevel() + BADGE_LEVEL)
@@ -100,7 +98,7 @@ local function PlaceTexts(entry, ctx, inset)
 	count:SetShadowColor(Tokens.Color("textShadow"))
 	count:SetShadowOffset(shadow, -shadow)
 	Widgets.Point(count, "TOPRIGHT", skin, "TOPRIGHT", -(inset + text) + ctx.count.x, -(inset + text) + ctx.count.y)
-	if type(count.SetAlpha) == "function" then count:SetAlpha(ctx.count.shown and 1 or 0) end
+	count:SetAlpha(ctx.count.shown and 1 or 0)
 	timer:SetJustifyH("CENTER")
 	count:SetJustifyH("RIGHT")
 	badge:ClearAllPoints()
@@ -166,21 +164,19 @@ function Button.Style(entry, ctx)
 	Widgets.ShowSlice(entry.rim, true)
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
 	local icon = entry.icon
-	if type(icon.SetTexCoord) == "function" then
-		local crop = ctx.iconZoom or ICON_CROP
-		icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
-	end
+	local crop = ctx.iconZoom
+	icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 	icon:ClearAllPoints()
 	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
 	if ctx.group.swipe and not entry.swipe then
 		local swipe = CreateFrame("Cooldown", nil, skin, "CooldownFrameTemplate")
-		if type(swipe.SetDrawSwipe) == "function" then swipe:SetDrawSwipe(true) end
-		if type(swipe.SetHideCountdownNumbers) == "function" then swipe:SetHideCountdownNumbers(true) end
-		if type(swipe.SetDrawEdge) == "function" then swipe:SetDrawEdge(false) end
-		if type(swipe.SetDrawBling) == "function" then swipe:SetDrawBling(false) end
-		if type(swipe.SetReverse) == "function" then swipe:SetReverse(true) end
-		if type(swipe.SetSwipeColor) == "function" then swipe:SetSwipeColor(Widgets.Rgba("black", 0.65)) end
+		swipe:SetDrawSwipe(true)
+		swipe:SetHideCountdownNumbers(true)
+		swipe:SetDrawEdge(false)
+		swipe:SetDrawBling(false)
+		swipe:SetReverse(true)
+		swipe:SetSwipeColor(Widgets.Rgba("black", 0.65))
 		entry.swipe = swipe
 	end
 	if entry.swipe then

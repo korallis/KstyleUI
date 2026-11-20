@@ -1,7 +1,17 @@
 -- test-combattext-parity.lua: direction, independent shadow and optional combat messages preserve legacy defaults and apply through real events without inspecting secret amounts.
 local CT = dofile("Tools/regression/combattext_env.lua")
-local env, K, ns = CT.New({ saved = CT.Saved({ enabled = true, outline = "NONE" }) })
+local env, K, ns = CT.New({ saved = CT.Saved({ enabled = true, outline = "NONE" }), setup = function(e)
+ e.ENTERING_COMBAT, e.LEAVING_COMBAT = "Entering combat", "Leaving combat"
+end })
 CT.Enable(env, K)
+local header, found = nil, {}
+for _, row in ipairs(ns.Settings.Schema()) do
+ if row.type == "header" then header = row.label end
+ if row.key == "direction" then assert(header == "Numbers", "scroll direction belongs with Animation"); found.direction = true end
+ if row.key == "shadow" then assert(header == "Text", "text shadow belongs with Outline"); found.shadow = true end
+ if row.key == "combatColor" then assert(header == "Combat messages" and row.showWhen and not row.showWhen({ combat = false }) and row.showWhen({ combat = true }), "combat colour follows combat messages"); found.combatColor = true end
+end
+assert(found.direction and found.shadow and found.combatColor, "all combat text controls are registered")
 local cfg = ns.Module.cfg
 assert(cfg.direction == "up" and cfg.shadow and not cfg.combat, "v0.2.8 keeps upward motion, its outline's shadow and no combat messages")
 env.FireEvent("PLAYER_REGEN_DISABLED")
@@ -29,7 +39,7 @@ K.Options.Write("CombatText", "combat", true)
 for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
  env.FireEvent(event)
  local number = CT.Shown(ns)[1]
- assert(CT.Text(env, number) == (event == "PLAYER_REGEN_DISABLED" and "Entering combat" or "Leaving combat"), "combat event emits the right localized message")
+ assert(CT.Text(env, number) == (event == "PLAYER_REGEN_DISABLED" and env.ENTERING_COMBAT or env.LEAVING_COMBAT), "combat event emits the right localized message")
  local r, g, b = CT.LastCall(number.text, "SetTextColor")
  assert(r == 0.3 and g == 0.5 and b == 0.7, "combat message colour applies")
  CT.Finish(number)

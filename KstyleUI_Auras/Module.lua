@@ -60,6 +60,10 @@ local function BuildSchema()
 		return type(timer) == "table" and timer.format == "none"
 	end
 
+	local function countHidden(settings)
+		return settings.count.shown == false
+	end
+
 	local schema = {
 		{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses a dark metal rim around aura tiles in Medallions. Off restores the black rim."] },
 		{ type = "header", label = L["Rows"] },
@@ -100,6 +104,8 @@ local function BuildSchema()
 			type = "dropdown", key = "timer.position", label = L["Timer position"], options = Model.TIMER_POSITIONS,
 			help = L["Puts the timer under the icon or on its lower edge."], disableWhen = timerHidden,
 		},
+		slider("timer.x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset, timerHidden),
+		slider("timer.y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset, timerHidden),
 		{ type = "font", key = "timer.font", label = L["Timer font"], help = L["The typeface of the timers."], options = K.Widgets.InheritedFontOptions, disableWhen = timerHidden },
 		slider("timer.size", L["Timer size"], L["The text size of the timers."], LIMITS.timerSize, timerHidden),
 		{
@@ -115,6 +121,8 @@ local function BuildSchema()
 			type = "dropdown", key = "count.outline", label = L["Stack outline"], options = Model.OUTLINES,
 			help = L["A soft shadow, or an outline that reads well over bright icons."],
 		},
+		slider("count.x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset, countHidden),
+		slider("count.y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset, countHidden),
 		{ type = "header", label = L["Accent"] },
 		{
 			type = "dropdown", key = "accent.source", label = L["Buff border colour"], options = Model.ACCENT_SOURCES,
@@ -127,11 +135,6 @@ local function BuildSchema()
 	}
 	for _, row in ipairs(rest) do
 		schema[#schema + 1] = row
-	end
-	for _, key in ipairs({ "timer", "count" }) do
-		schema[#schema + 1] = { type = "header", label = key == "timer" and L["Timer position"] or L["Stack position"] }
-		schema[#schema + 1] = slider(key .. ".x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset)
-		schema[#schema + 1] = slider(key .. ".y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset)
 	end
 	schema.preview = Preview.Build
 

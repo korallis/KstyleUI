@@ -36,7 +36,7 @@ function Row:StyleIcon(icon)
 	end
 	icon.cooldown:SetHideCountdownNumbers(not cfg.timer)
 	if type(icon.cooldown.SetDrawSwipe) == "function" then icon.cooldown:SetDrawSwipe(cfg.swipe) end
-	if type(icon.count.SetAlpha) == "function" then icon.count:SetAlpha(cfg.showCount and 1 or 0) end
+	icon.count:SetAlpha(cfg.showCount and 1 or 0)
 	icon.cooldown:SetReverse(self.group == "buffs")
 	Style.Countdown(icon.cooldown, self.group == "essential")
 	icon.greyWhileCooling = cfg.desaturate

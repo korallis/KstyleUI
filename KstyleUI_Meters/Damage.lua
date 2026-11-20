@@ -33,8 +33,8 @@ local CLASS_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Cla
 local order = {}
 local classIcons = {}
 
-local function NumberText(amount)
-	if ns.Get("damage.format") == "full" and type(BreakUpLargeNumbers) == "function" then
+local function NumberText(amount, format)
+	if format == "full" and type(BreakUpLargeNumbers) == "function" then
 		local ok, text = pcall(BreakUpLargeNumbers, amount)
 		if ok then return text end
 	end
@@ -360,7 +360,7 @@ function ns.SetClassIcon(list, i, class)
 	end
 end
 
-local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, rank)
+local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, format, rank)
 	local display = source.sourceDisplayType
 	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
 	Remember(i, source, reaction, info.deaths)
@@ -376,7 +376,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
-		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info)), percentText)
+		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info), format), percentText)
 	end
 	ns.SetClassIcon(list, i, source.classFilename)
 end
@@ -391,6 +391,7 @@ local function FillSources(list, info, session)
 	if not Present(maxAmount) then
 		maxAmount = 1
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent") and not info.deaths
 	local displays = Enum and Enum.DamageMeterSourceDisplayType
 	local enemy = displays and displays.Enemy
@@ -406,12 +407,12 @@ local function FillSources(list, info, session)
 	end
 	local first, shown, pin = Span(list, n, ns.Get("damage.alwaysPlayer") and mine or nil)
 	for i = 1, shown do
-		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy)
+		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy, format)
 	end
 	local count = shown
 	if pin then
 		count = shown + 1
-		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, mine)
+		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, format, mine)
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -492,6 +493,7 @@ local function RowSplit(split, list, i)
 	if not Present(maxAmount) then
 		maxAmount = 1
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent")
 	local listed = 0
 	for n = 1, TOOLTIP_SPELLS do
@@ -505,7 +507,7 @@ local function RowSplit(split, list, i)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, NumberText(Amount(spell, info)), percentText,
+		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, NumberText(Amount(spell, info), format), percentText,
 			SpellCall("GetSpellTexture", spell.spellID), Logic.SchoolToken(spell.spellID))
 	end
 	if listed == 0 then
@@ -554,6 +556,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 	if sessionOk and Readable(session) and Readable(session.combatSources) and (who.own or who.guid) then
 		list:SetRest(RateOf(session.combatSources, info, not who.own and who.guid or nil))
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent")
 	local n = Entries(spells)
 	Order(spells, n, info)
@@ -565,7 +568,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info)), percentText, nil, Logic.SchoolToken(spell.spellID))
+		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
 	end
 	Damage.filled = Damage.view

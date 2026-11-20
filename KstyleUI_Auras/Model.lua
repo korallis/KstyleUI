@@ -117,7 +117,7 @@ local ACCENT_SET = allowed(Model.ACCENT_SOURCES)
 local TRACKED_SET = allowed(Model.TRACKED_OPTIONS)
 
 local function number(value, default, limit, whole)
-	if K.Widgets.IsSecret(value) or type(value) ~= "number" or value ~= value then
+	if type(value) ~= "number" or value ~= value then
 		return default
 	end
 	if whole then
@@ -134,7 +134,6 @@ local function choice(value, set, default)
 end
 
 local function boolean(value, default)
-	if K.Widgets.IsSecret(value) then return default end
 	if type(value) == "boolean" then
 		return value
 	end
