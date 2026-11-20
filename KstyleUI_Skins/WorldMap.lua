@@ -52,9 +52,7 @@ local function SaveZoom()
 	if not Number(scale) or not Number(x) or not Number(y) then return end
 	local zooms = K.Store.Module("Skins").worldMap.zooms
 	if type(zooms) ~= "table" then return end
-	local saved = type(zooms[id]) == "table" and zooms[id] or {}
-	zooms[id] = saved
-	saved[1], saved[2], saved[3] = scale, x, y
+	zooms[id] = { scale, x, y }
 end
 
 local function RestoreZoom(scroll)
@@ -69,11 +67,13 @@ local function RestoreZoom(scroll)
 		and Number(low) and Number(high) then
 		scroll:InstantPanAndZoom(math.max(low, math.min(high, saved[1])), saved[2], saved[3], true)
 	end
+	SaveZoom()
 end
 
 local function Wheel(scroll, delta)
 	SaveZoom()
-	if not NavigationOn("wheelMaps") or not Number(delta) or delta == 0 then return end
+	if not NavigationOn("wheelMaps") or not Number(delta) or delta == 0
+		or (InCombatLockdown and InCombatLockdown()) then return end
 	local map, api = navigation.map, C_Map
 	local id = scroll.mapID
 	if not Number(id) or not Has(api, "GetMapInfoAtPosition")
@@ -123,7 +123,7 @@ local function ApplyNavigation(map)
 		end)
 		hooksecurefunc(scroll, "OnMouseWheel", Wheel)
 	end
-	for _, method in ipairs({ "OnUpdate", "OnMouseUp", "OnHide" }) do
+	for _, method in ipairs({ "OnMouseUp", "OnHide" }) do
 		if Has(scroll, method) then hooksecurefunc(scroll, method, SaveZoom) end
 	end
 	ZoomMode()
