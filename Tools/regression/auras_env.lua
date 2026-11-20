@@ -183,10 +183,6 @@ local function newButton(env, container)
 		guard("ClearDispelTypeTextures")
 		aura.dispel = {}
 	end
-	function button.SetMouseMotionEnabled(_, enabled)
-		guard("SetMouseMotionEnabled")
-		aura.motion = enabled
-	end
 	function button.RemoveDispelTypeTexture(_, texture)
 		guard("RemoveDispelTypeTexture")
 		for i, entry in ipairs(aura.dispel) do

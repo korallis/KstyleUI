@@ -52,6 +52,11 @@ local function colorIs(env, f, want, what)
 	assert(near(r, want.r) and near(g, want.g) and near(b, want.b), what .. ": got " .. r .. ", " .. g .. ", " .. b)
 end
 
+local function motion(button)
+	local call = A.W.LastCall(button, "SetMouseMotionEnabled")
+	return call and call[1]
+end
+
 local function roleShown(f)
 	return f.role:IsShown() or f.pipFill:IsShown()
 end
@@ -305,20 +310,20 @@ do
 	local debuff = f.auras._groups.debuffs.active[1]
 	local p = ns.Auras.Parts(debuff)
 	local l = p.icon:GetTexCoord()
-	assert(near(l, 0.07) and debuff._aura.motion == nil, "icons keep the 7% crop and their tooltips, with no new call")
+	assert(near(l, 0.07) and motion(debuff) == nil, "icons keep the 7% crop and their tooltips, with no new call")
 	write(env, K, "auras.zoom", 0.15)
 	l = p.icon:GetTexCoord()
 	assert(near(l, 0.15), "icon zoom crops further")
 	write(env, K, "auras.tooltips", false)
-	assert(debuff._aura.motion == false, "debuff tooltips off stops the pointer reaching the icon")
+	assert(motion(debuff) == false, "debuff tooltips off stops the pointer reaching the icon")
 	local heal = f.buffs and f.buffs._groups.buffs.frames[1]
-	assert(heal and heal._aura.motion == nil, "heal icons keep their tooltips")
+	assert(heal and motion(heal) == nil, "heal icons keep their tooltips")
 	write(env, K, "buffs.tooltips", false)
-	assert(heal._aura.motion == false, "heal icon tooltips switch alone")
+	assert(motion(heal) == false, "heal icon tooltips switch alone")
 	write(env, K, "auras.tooltips", true)
 	write(env, K, "buffs.tooltips", true)
 	write(env, K, "auras.zoom", 0.07)
-	assert(debuff._aura.motion == true and heal._aura.motion == true and near(p.icon:GetTexCoord(), 0.07), "switching back restores both")
+	assert(motion(debuff) == true and motion(heal) == true and near(p.icon:GetTexCoord(), 0.07), "switching back restores both")
 	local line = f.shield.opts.height
 	write(env, K, "prediction.shieldLines", 4)
 	assert(near(f.shield.opts.height, line * 2), "the shield line doubles from two pixels to four")

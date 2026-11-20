@@ -1,5 +1,6 @@
 -- test-groupframes-parity-r1-review.lua: the PR #595 review's probes as regressions: held tooltips, fail-closed tooltip modes, low-health fill opacity, one roster pass, preview fidelity, restored debuff filters, the raid card's hidden groups, Medallions and the defaults.
 local G = dofile("Tools/regression/group_env.lua")
+local W = dofile("Tools/regression/widget_env.lua")
 
 local MODULE = "GroupFrames"
 
@@ -158,9 +159,10 @@ do
 	for _, value in pairs(f.highlights._slots.boss) do
 		if type(value) == "table" and value._aura then boss = value end
 	end
-	assert(boss and boss._aura.motion == false, "Debuff tooltips off reaches the boss debuff")
+	local function motion() return W.LastCall(boss, "SetMouseMotionEnabled")[1] end
+	assert(boss and motion() == false, "Debuff tooltips off reaches the boss debuff")
 	write(env, K, "auras.tooltips", true)
-	assert(boss._aura.motion == true, "and on restores it")
+	assert(motion() == true, "and on restores it")
 	noErrors(env, K)
 end
 collectgarbage()
