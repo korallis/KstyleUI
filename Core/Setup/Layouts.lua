@@ -743,7 +743,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 	if not slot then
 		return nil
 	end
-	crest = style == "medallions" and (crest or crest == nil and Layouts.MinimapCrest()) and 52 or 0
+	crest = style == "medallions" and (crest or crest == nil and Layouts.MinimapCrest()) and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0
 	local offset = style == "medallions" and GAP + crest or 0
 	inset = offset + (inset or Layouts.TopInset(style))
 	local slotHeight = slot.height - Lift(rootHeight) - inset
@@ -1223,7 +1223,7 @@ function Layouts.Aspect(class, style, name, key)
 	end
 	if (key == STORY_KEYS.quests or key == STORY_KEYS.guide) and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") then
 		local slot = slots[name]
-		return { anchor = slot.anchor, x = slot.x - (key == STORY_KEYS.quests and slot.width + GAP or 0), y = slot.y - GAP - (Layouts.MinimapCrest() and 52 or 0) }
+		return { anchor = slot.anchor, x = slot.x - (key == STORY_KEYS.quests and slot.width + GAP or 0), y = slot.y - GAP - (Layouts.MinimapCrest() and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0) }
 	end
 	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs")
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
