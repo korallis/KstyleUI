@@ -1,4 +1,4 @@
--- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY.
+-- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY, RENDER_OPTIONS_ON, RENDER_OPTIONS_EDIT and RENDER_PARITY_R1.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -14,10 +14,17 @@ return Common.Run(function()
 			return true
 		end }
 	end }))
-	if module == "UnitFrames" then K.Options.Write(module, "edit", "player") end
+	if module == "UnitFrames" then K.Options.Write(module, "edit", os.getenv("RENDER_OPTIONS_EDIT") or "player") end
 	for item in (os.getenv("RENDER_OPTIONS_ON") or ""):gmatch("[^,]+") do
 		local key, value = item:match("^([^=]+)=?(.*)$")
 		K.Options.Write(module, key, value == "" or value)
+	end
+	if module == "UnitFrames" and os.getenv("RENDER_PARITY_R1") == "1" then
+		local kind = os.getenv("RENDER_OPTIONS_EDIT") or "player"
+		for _, pair in ipairs({ { "healthDecimal", true }, { kind .. ".healthAlpha", 0.75 }, { kind .. ".healthColor", "health" },
+			{ kind .. ".portraitMirror", true }, { kind .. ".hoverBorder", true }, { kind .. ".auraZoom", 0.2 } }) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
 	end
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_ENABLED") == "1" then
 		K.Options.Write(module, "player.castbarSmooth", true)
