@@ -327,6 +327,7 @@ function Bank.Build()
 		title = L["Bank"],
 		position = Bank.POSITION,
 		columns = "bankColumns",
+		nest = "bankNestExpansion",
 		canDrop = Bank.IsAtBank,
 		sections = { { bags = SelectedBags, free = true, categories = true } },
 		sort = Bank.Sort,
@@ -376,8 +377,43 @@ function Bank.Open()
 	window:Open()
 end
 
+local COPPER_PER_GOLD = 10000
+
+local function KeepGold()
+	if not Settings.Get("warbandGold") then
+		return
+	end
+	local amount = tonumber((Settings.Get("warbandGoldAmount"):gsub("%D", "")))
+	local _, account = Types()
+	if not amount or not Flag("DoesBankTypeSupportMoneyTransfer", account) then
+		ns.Log("gold stays put: no amount to keep, or the Warband bank cannot move money")
+		return
+	end
+	K.Combat.Queue(function()
+		local money = type(GetMoney) == "function" and Data.Plain(GetMoney(), "number")
+		local target = amount * COPPER_PER_GOLD
+		if not money or money == target then
+			return
+		end
+		local moved, text
+		if money > target and Flag("CanDepositMoney", account) then
+			moved, text = money - target, L["Deposited %s into the Warband bank."]
+			Call("DepositMoney", account, moved)
+		elseif money < target and Flag("CanWithdrawMoney", account) then
+			moved, text = min(target - money, Data.Plain(Call("FetchDepositedMoney", account), "number") or 0), L["Withdrew %s from the Warband bank."]
+			if moved > 0 then
+				Call("WithdrawMoney", account, moved)
+			end
+		end
+		if moved and moved > 0 and Settings.Get("warbandGoldChat") then
+			K.Print(string.format(text, ns.Window.MoneyText(moved)))
+		end
+	end)
+end
+
 local function Opened()
 	atBank = true
+	KeepGold()
 	if not replaced or not Bank.window or afterVisit == "hide" then
 		return
 	end

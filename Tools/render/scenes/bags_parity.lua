@@ -1,0 +1,64 @@
+-- bags_parity.lua: the bag and bank windows at a banker with the parity options on: labels, sections, merged stacks,
+-- the reagent marker, the bag strip and tracked currencies (RENDER_BAGS_LIST=1 shows the list view, RENDER_BAGS_DEFAULTS=1 none).
+local Common = dofile("Tools/render/scenes/_common.lua")
+local Gallery = dofile("Tools/render/scenes/_gallery.lua")
+local B = dofile("Tools/regression/bags_env.lua")
+local Item = B.Item
+
+local TILES = {
+	compactBags = true, recentItems = true, recentClear = true, mergeStacks = true, sectionValue = true, gearBySlot = true,
+	compactGroups = true, splitSets = true, bindText = true, setNames = true, reagentMark = true, currencies = true,
+	bagSlots = true, bankNestExpansion = true, capSize = 12, maxHeight = 80,
+}
+local LIST = {
+	compactBags = true, listView = true, splitTypes = true, sectionValue = true, nestExpansion = true, setNames = true,
+	listLeft = 4, listRight = 4, reagentMark = true,
+}
+
+return Common.Run(function()
+	local list = os.getenv("RENDER_BAGS_LIST") == "1"
+	local defaults = os.getenv("RENDER_BAGS_DEFAULTS") == "1"
+	local bags = {
+		[0] = { size = 16, items = {
+			[1] = Item("potion", { count = 4 }), [2] = Item("sword", { bind = 2, equipLoc = "INVTYPE_WEAPON" }),
+			[3] = Item("helm", { bound = true, equipLoc = "INVTYPE_HEAD", expansion = 1 }), [4] = Item("ring", { bound = true, equipLoc = "INVTYPE_FINGER" }),
+			[5] = Item("cloth"), [6] = Item("cloth"), [7] = Item("junk"), [8] = Item("hearth"),
+			[9] = Item("cloth", { itemID = 4338, name = "Mageweave Cloth", subtype = "Mageweave", icon = 132892, count = 12 }),
+		} },
+		[1] = { size = 10, items = { [1] = Item("cloth", { count = 7 }), [2] = Item("potion", { count = 3 }) } },
+		[5] = { size = 8, items = { [1] = Item("cloth", { count = 14, reagent = true }), [2] = Item("cloth", { itemID = 4338, name = "Mageweave Cloth", subtype = "Mageweave", icon = 132892, count = 5, reagent = true }) } },
+		[-1] = { size = 4, items = { [1] = Item("key") } },
+	}
+	local bank = {
+		[6] = { size = 14, items = { [1] = Item("helm", { itemID = 1101, expansion = 1 }), [2] = Item("sword"), [3] = Item("cloth", { count = 20 }), [5] = Item("potion") } },
+	}
+	local env, K, ns = B.New(Common.ScreenOpts({
+		saved = Gallery.Saved({}),
+		bags = bags,
+		bank = bank,
+		money = 1234567,
+		sets = { { name = "Tank", items = { 1002 } } },
+		currencies = { { name = "Honor", quantity = 1250, iconFileID = 463448 }, { name = "Arena", quantity = 80, iconFileID = 133784 } },
+		equippedBags = { [1] = { icon = 133633, quality = 1 }, [2] = { icon = 133633, quality = 2 }, [3] = { icon = 133633, quality = 1 }, [4] = { icon = 133633, quality = 1 }, [5] = { icon = 133633, quality = 3 } },
+		setup = function(env)
+			Gallery.Setup(env)
+			env.GetMoneyString = nil
+			env.INVTYPE_HEAD, env.INVTYPE_WEAPON, env.INVTYPE_FINGER = "Head", "One-Hand", "Finger"
+			env.EXPANSION_NAME0, env.EXPANSION_NAME1 = "Classic", "Burning Crusade"
+		end,
+	}))
+	if not defaults then
+		for key, value in pairs(list and LIST or TILES) do
+			assert(K.Options.Write("Bags", key, value) ~= false, key .. " must write")
+		end
+	end
+	env._new["0:1"] = true
+	env.SetBank(true)
+	env.RunTimers()
+	assert(ns.Inventory.IsOpen() and ns.Bank.IsOpen(), "the bank visit opens both windows: " .. tostring(ns.Inventory.IsOpen()) .. tostring(ns.Bank.IsOpen()) .. tostring(env._errors[1]))
+	local scene = Gallery.Build(env)
+	local errors = Common.Errors(env, K)
+	assert(not errors, errors)
+	scene.log[#scene.log + 1] = "bags parity: " .. (defaults and "defaults" or list and "list view" or "tiles")
+	return scene
+end)

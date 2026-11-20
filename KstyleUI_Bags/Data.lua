@@ -47,14 +47,15 @@ function Data.Grid(count, columns)
 	return cols, ceil(count / cols)
 end
 
-function Data.Size(cols, rows, size, spacing)
+function Data.Size(cols, rows, size, spacing, height)
 	if cols <= 0 or rows <= 0 then
 		return 0, 0
 	end
-	return cols * size + (cols - 1) * spacing, rows * size + (rows - 1) * spacing
+	height = height or size
+	return cols * size + (cols - 1) * spacing, rows * height + (rows - 1) * spacing
 end
 
-function Data.Cell(index, cols, rows, size, spacing, growth)
+function Data.Cell(index, cols, rows, size, spacing, growth, height)
 	local flip = GROWTH[growth]
 	if not flip then
 		error("KstyleUI_Bags Data.Cell: unknown growth " .. tostring(growth), 2)
@@ -67,8 +68,7 @@ function Data.Cell(index, cols, rows, size, spacing, growth)
 	if flip[2] then
 		row = rows - 1 - row
 	end
-	local step = size + spacing
-	return col * step, -row * step
+	return col * (size + spacing), -row * ((height or size) + spacing)
 end
 
 local function InventoryCount(field, fallback)
@@ -550,6 +550,57 @@ function Data.CursorItem()
 	if Plain(kind, "string") == "item" then
 		return Plain(id, "number")
 	end
+end
+
+function Data.ReagentBag()
+	local index = Enum and Enum.BagIndex
+	return Plain(index and index.ReagentBag, "number") or REAGENT_BAG_FALLBACK
+end
+
+local infos = {}
+
+function Data.Info(record)
+	local id, item = record.itemID, C_Item
+	local info = id and infos[id]
+	if info or not id or not item or type(item.GetItemInfo) ~= "function" then
+		return info or NONE
+	end
+	local name, _, _, _, _, _, subType, _, equipLoc, _, price, _, _, bind, expansion = item.GetItemInfo(record.link or id)
+	if not Plain(name, "string") then
+		return NONE
+	end
+	info = { subType = Plain(subType, "string"), equipLoc = Plain(equipLoc, "string"), price = Plain(price, "number"), bind = Plain(bind, "number"), expansion = Plain(expansion, "number") }
+	infos[id] = info
+	return info
+end
+
+local setNames
+
+function Data.SetsChanged()
+	setNames = nil
+end
+
+function Data.SetName(itemID)
+	if not setNames then
+		setNames = {}
+		local sets = C_EquipmentSet
+		local ids = sets and type(sets.GetEquipmentSetIDs) == "function" and sets.GetEquipmentSetIDs()
+		if type(ids) == "table" and not IsSecret(ids) and type(sets.GetEquipmentSetInfo) == "function" and type(sets.GetItemIDs) == "function" then
+			for _, setID in ipairs(ids) do
+				local name = Plain(sets.GetEquipmentSetInfo(setID), "string")
+				local items = name and sets.GetItemIDs(setID)
+				if type(items) == "table" and not IsSecret(items) then
+					for _, id in pairs(items) do
+						id = Plain(id, "number")
+						if id and not setNames[id] then
+							setNames[id] = name
+						end
+					end
+				end
+			end
+		end
+	end
+	return itemID and setNames[itemID]
 end
 
 function Data.CanHold(bag, itemID)

@@ -318,7 +318,7 @@ function B.Game(env, opts)
 			if not it then
 				return nil
 			end
-			return it.name, it.link, it.quality, it.ilvl or 1, 1, it.type, it.subtype, 20, "", it.icon, it.noValue and 0 or 5, it.classID, 0, 0, 0, nil, it.reagent == true
+			return it.name, it.link, it.quality, it.ilvl or 1, 1, it.type, it.subtype, 20, it.equipLoc or "", it.icon, it.price or (it.noValue and 0 or 5), it.classID, 0, it.bind or 0, it.expansion or 0, nil, it.reagent == true
 		end,
 		GetDetailedItemLevelInfo = function(link)
 			record(env, "GetDetailedItemLevelInfo", link)
@@ -451,6 +451,60 @@ function B.Game(env, opts)
 
 	env.GetMoney = function()
 		return env._money
+	end
+	-- Equipment sets (opts.sets = { { name, items = { itemID, ... } } }), backpack currencies (opts.currencies),
+	-- equipped bag slots and the Warband bank's gold (env._warbandMoney), as Forever's C_ APIs return them.
+	env.C_EquipmentSet = {
+		GetEquipmentSetIDs = function()
+			local ids = {}
+			for i in ipairs(opts.sets or {}) do ids[i] = i end
+			return ids
+		end,
+		GetEquipmentSetInfo = function(id)
+			local set = (opts.sets or {})[id]
+			return set and set.name, 132940, id, false, #set.items, 0, #set.items, 0, 0
+		end,
+		GetItemIDs = function(id)
+			return (opts.sets or {})[id].items
+		end,
+	}
+	env.C_CurrencyInfo = {
+		GetBackpackCurrencyInfo = function(index)
+			return (opts.currencies or {})[index]
+		end,
+	}
+	env.C_Container.ContainerIDToInventoryID = function(bag)
+		return bag >= 1 and bag <= 5 and 30 + bag or nil
+	end
+	env._equippedBags = opts.equippedBags or {}
+	env.GetInventoryItemTexture = function(_, id)
+		local it = env._equippedBags[id - 30]
+		return it and it.icon
+	end
+	env.GetInventoryItemQuality = function(_, id)
+		local it = env._equippedBags[id - 30]
+		return it and it.quality
+	end
+	env.PickupBagFromSlot = function(id)
+		record(env, "PickupBagFromSlot", id)
+	end
+	env.PutItemInBag = function(id)
+		record(env, "PutItemInBag", id)
+	end
+	env._warbandMoney = opts.warbandMoney or 0
+	env.C_Bank.DoesBankTypeSupportMoneyTransfer = function(bankType)
+		return bankType == B.BANK.Account and opts.moneyTransfer ~= false
+	end
+	env.C_Bank.CanDepositMoney = function() return true end
+	env.C_Bank.CanWithdrawMoney = function() return true end
+	env.C_Bank.FetchDepositedMoney = function() return env._warbandMoney end
+	env.C_Bank.DepositMoney = function(bankType, amount)
+		record(env, "DepositMoney", bankType, amount)
+		env._money, env._warbandMoney = env._money - amount, env._warbandMoney + amount
+	end
+	env.C_Bank.WithdrawMoney = function(bankType, amount)
+		record(env, "WithdrawMoney", bankType, amount)
+		env._money, env._warbandMoney = env._money + amount, env._warbandMoney - amount
 	end
 	env.GetMoneyString = function(money)
 		return "money:" .. tostring(money)

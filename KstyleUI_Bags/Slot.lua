@@ -22,8 +22,12 @@ local FALLBACK_FONT = "NumberFontNormal"
 local NEW_ATLAS = "bags-glow-white"
 local NEW_LOW, NEW_HIGH = 0.3, 1
 local NEW_REST = 0.8
+local STRIPE_LIFT = 0.06
+local LIST_TEXT_GAP = 6
+local LIST_FIGURE_ROOM = 36
 
 local bySlotButton = setmetatable({}, { __mode = "k" })
+local NONE = {}
 
 local function Accent()
 	return Settings.Accent()
@@ -35,14 +39,18 @@ local function PlaceIcon(slot)
 		return
 	end
 	local offset = Widgets.Snap(button, Tokens.Size("pressOffset") * (slot.pressT or 0))
-	if slot.placedOffset == offset and slot.placedInset == slot.inset then
+	if slot.placedOffset == offset and slot.placedInset == slot.inset and slot.placedList == slot.list then
 		return
 	end
-	slot.placedOffset, slot.placedInset = offset, slot.inset
+	slot.placedOffset, slot.placedInset, slot.placedList = offset, slot.inset, slot.list
 	local inset = slot.inset or 0
 	slot.icon:ClearAllPoints()
 	slot.icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset - offset)
-	slot.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset - offset)
+	if slot.list then
+		slot.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMLEFT", slot.height - inset, inset - offset)
+	else
+		slot.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset - offset)
+	end
 end
 
 local function EdgeColor(slot)
@@ -75,16 +83,26 @@ function Slot.Paint(slot)
 	else
 		slot.chrome:SetRim(r, g, b, a)
 	end
+	local fr, fg, fb, fa
 	if state.empty then
-		slot.chrome:SetFillRGBA(Widgets.Rgba("buttonFill", EMPTY_FILL_ALPHA))
+		fr, fg, fb, fa = Widgets.Rgba("buttonFill", EMPTY_FILL_ALPHA)
 	else
-		slot.chrome:SetFillRGBA(Tokens.Color("buttonFill"))
+		fr, fg, fb, fa = Tokens.Color("buttonFill")
 	end
+	if slot.stripe then
+		fr, fg, fb, fa = Widgets.Mix(fr, fg, fb, fa, 1, 1, 1, fa, STRIPE_LIFT)
+	end
+	slot.chrome:SetFillRGBA(fr, fg, fb, fa)
 	slot.icon:SetAlpha(state.match and 1 or DIM_ALPHA)
 	slot.icon:SetDesaturated(state.locked == true or state.junk == true and Settings.Get("desaturateJunk"))
 	local textAlpha = state.match and 1 or DIM_ALPHA
 	slot.count:SetAlpha(textAlpha)
 	slot.level:SetAlpha(textAlpha)
+	for _, key in ipairs({ "bind", "set", "name" }) do
+		if slot[key] then
+			slot[key]:SetAlpha(textAlpha)
+		end
+	end
 	PlaceIcon(slot)
 end
 
@@ -102,6 +120,18 @@ function Slot.Style(slot)
 	local path, size, flags = Settings.Font()
 	ApplyFont(slot.count, path, size, flags)
 	ApplyFont(slot.level, path, size, flags)
+	for _, key in ipairs({ "bind", "set" }) do
+		if slot[key] then
+			ApplyFont(slot[key], path, Settings.Get("labelSize"), flags)
+		end
+	end
+	if slot.name then
+		ApplyFont(slot.name, path, Settings.Get("listFontSize"), flags)
+	end
+	if slot.mark then
+		local mark = Widgets.Snap(slot.button, Settings.Get("reagentMarkSize"))
+		slot.mark:SetSize(mark, mark)
+	end
 	if slot.glow then
 		slot.glow:Restyle()
 	end
@@ -173,22 +203,61 @@ local function NewMark(slot)
 	return setmetatable({ texture = texture, mask = mask, pulse = pulse, playing = false }, Mark)
 end
 
-function Slot.Layout(slot, size, force)
+local function Place(slot)
+	local button, list = slot.button, slot.list
+	local inset = Widgets.Snap(button, TEXT_INSET)
+	local separate = Settings.Get("separateFigures")
+	local corner = separate and "TOPLEFT" or "BOTTOMLEFT"
+	local text = slot.bind
+	if text then
+		text:ClearAllPoints()
+		if list then
+			text:SetPoint("RIGHT", slot.level, "LEFT", -Widgets.Snap(button, LIST_TEXT_GAP), 0)
+		else
+			text:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+		end
+	end
+	text = slot.set
+	if text then
+		text:ClearAllPoints()
+		local edge = separate and "BOTTOM" or "TOP"
+		text:SetPoint(edge .. "LEFT", button, edge .. "LEFT", inset, separate and inset or -inset)
+		text:SetPoint(edge .. "RIGHT", button, edge .. "RIGHT", -inset, separate and inset or -inset)
+	end
+	text = slot.name
+	if text then
+		text:ClearAllPoints()
+		text:SetPoint("LEFT", button, "LEFT", slot.height + Widgets.Snap(button, LIST_TEXT_GAP), 0)
+		text:SetPoint("RIGHT", button, "RIGHT", -Widgets.Snap(button, LIST_FIGURE_ROOM), 0)
+	end
+	if slot.mark then
+		slot.mark:ClearAllPoints()
+		slot.mark:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", inset, inset)
+	end
+	slot.count:ClearAllPoints()
+	slot.level:ClearAllPoints()
+	if list then
+		slot.count:SetPoint("RIGHT", button, "RIGHT", -inset, 0)
+		slot.level:SetPoint("RIGHT", button, "RIGHT", -inset, 0)
+	else
+		slot.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+		slot.level:SetPoint(corner, button, corner, inset, separate and -inset or inset)
+	end
+end
+
+function Slot.Layout(slot, size, force, height)
 	local button = slot.button
-	if (slot.size == size and not force) or not Widgets.MayMove(button) then
+	local list = height ~= nil
+	height = height or size
+	if (slot.size == size and slot.height == height and slot.list == list and not force) or not Widgets.MayMove(button) then
 		return
 	end
-	slot.size = size
-	Widgets.Size(button, size, size)
+	slot.size, slot.height, slot.list = size, height, list
+	Widgets.Size(button, size, height)
 	slot.inset = Widgets.Border(button) * ICON_INSET_LINES
 	slot.placedOffset = nil
 	local inset = Widgets.Snap(button, TEXT_INSET)
-	slot.count:ClearAllPoints()
-	slot.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
-	slot.level:ClearAllPoints()
-	local separate = Settings.Get("separateFigures")
-	local corner = separate and "TOPLEFT" or "BOTTOMLEFT"
-	slot.level:SetPoint(corner, button, corner, inset, separate and -inset or inset)
+	Place(slot)
 	local junkSize = Widgets.Snap(button, JUNK_SIZE)
 	slot.junk:SetSize(junkSize, junkSize)
 	slot.junk:ClearAllPoints()
@@ -208,7 +277,47 @@ local function SetGlow(slot, on)
 	end
 end
 
-function Slot.Update(slot, record, level, match, packed)
+local function Region(slot, key, on)
+	local region = slot[key]
+	if on and not region then
+		if key == "mark" then
+			region = slot.overlay:CreateTexture(nil, "OVERLAY")
+			region:SetTexture((Tokens.Texture("diamond")))
+			Widgets.Tint(region, "capsGold")
+		else
+			region = Widgets.FontString(slot.overlay, "OVERLAY")
+			region:SetWordWrap(false)
+			region:SetJustifyH(key == "set" and "CENTER" or "LEFT")
+			region:SetTextColor(Tokens.Color(key == "set" and "muted" or "textEmphasis"))
+		end
+		slot[key] = region
+		Slot.Style(slot)
+		Place(slot)
+	end
+	if region and slot[key .. "On"] ~= on then
+		slot[key .. "On"] = on
+		region:SetShown(on)
+	end
+	return region
+end
+
+local function Label(slot, key, text)
+	local region = Region(slot, key, text ~= nil)
+	if text then
+		region:SetText(text)
+	end
+	return region
+end
+
+function Slot.SetStripe(slot, on)
+	if slot.stripe ~= on then
+		slot.stripe = on
+		Slot.Paint(slot)
+	end
+end
+
+function Slot.Update(slot, record, level, match, packed, extra)
+	extra = extra or NONE
 	local state = slot.state
 	local empty = record.empty == true
 	state.empty = empty
@@ -223,7 +332,7 @@ function Slot.Update(slot, record, level, match, packed)
 	local quality = record.quality
 	state.coloured = not empty and Settings.Get("showQuality") and quality ~= nil and quality >= Settings.Get("qualityMin")
 	slot.icon:SetTexture(not empty and record.icon or nil)
-	local count = record.count
+	local count = extra.count or record.count
 	if empty and type(packed) == "number" and packed > 1 then
 		slot.count:SetText(tostring(packed))
 		slot.count:Show()
@@ -241,6 +350,17 @@ function Slot.Update(slot, record, level, match, packed)
 		slot.level:Hide()
 	end
 	slot.junk:SetShown(not empty and record.junk == true and Settings.Get("showJunk"))
+	Label(slot, "bind", not empty and extra.bind or nil)
+	Label(slot, "set", not empty and not slot.list and extra.set or nil)
+	local name = slot.list and not empty and record.name or nil
+	if name and extra.set then
+		name = name .. " \194\183 " .. extra.set
+	end
+	local nameText = Label(slot, "name", name)
+	if name then
+		nameText:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
+	end
+	Region(slot, "mark", not empty and extra.mark == true)
 	state.isNew = not empty and record.isNew == true
 	SetGlow(slot, state.isNew and Settings.Get("showNewGlow"))
 	Slot.Paint(slot)
