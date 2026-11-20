@@ -495,6 +495,7 @@ local function PaintCaption(text, entry)
 		end
 	end
 	local heading = Parts.HeadingOf(caption)
+	if entry.row then entry.row:SetHeight(Widgets.Snap(entry.row, Tokens.Size("gapXLarge"))) end
 	if heading then heading:Restyle() end
 end
 
@@ -518,6 +519,13 @@ local function CaptionFor(text, title, sized, heading)
 	local caption = Widgets.FontString(holder, "OVERLAY")
 	local entry = { caption = caption, busy = false }
 	if sized then
+		if heading then
+			holder:SetParent(heading.panel)
+			holder:ClearAllPoints()
+			holder:SetPoint("TOPLEFT", heading.panel, "TOPLEFT")
+			holder:SetPoint("TOPRIGHT", heading.panel, "TOPRIGHT")
+			entry.row = holder
+		end
 		caption:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", 0, 0)
 		caption:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", 0, 0)
 		caption:SetJustifyH("LEFT")
@@ -553,7 +561,7 @@ local function CaptionFor(text, title, sized, heading)
 	end)
 	word(text:GetText())
 	if heading and heading.panel then
-		Parts.Heading(heading.panel, caption, { row = text, close = heading.close })
+		Parts.Heading(heading.panel, caption, { row = entry.row or text, close = heading.close })
 	end
 end
 
