@@ -294,6 +294,7 @@ function Settings.Schema()
 			byKey[row.key] = row
 		end
 	end
+	Settings.schema.preview = ns.Preview.Build
 	return Settings.schema
 end
 

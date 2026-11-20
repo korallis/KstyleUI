@@ -228,7 +228,6 @@ local function FaceOptions()
 end
 
 function Appearance.Schema()
-	if Appearance.schema then return Appearance.schema end
 	Appearance.schema = {
 		{ type = "header", label = L["Accent"] },
 		{

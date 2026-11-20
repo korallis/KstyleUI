@@ -386,6 +386,7 @@ function ns.Schema()
 			byKey[row.key] = row
 		end
 	end
+	ns.schema.preview = ns.Preview.Build
 	return ns.schema
 end
 

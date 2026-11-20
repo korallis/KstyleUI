@@ -69,7 +69,6 @@ local function Apply()
 end
 
 function HudStyle.Schema()
-	if HudStyle.schema then return HudStyle.schema end
 	HudStyle.schema = {
 		{ type = "header", label = L["HUD"] },
 		{

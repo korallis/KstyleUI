@@ -16,8 +16,4 @@ K.Modules.Register({
 	end,
 })
 
-K.Options.Register(Settings.MODULE, function()
-	local schema = Settings.Schema()
-	schema.preview = ns.Preview.Build
-	return schema
-end)
+K.Options.Register(Settings.MODULE, Settings.Schema)

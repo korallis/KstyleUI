@@ -211,7 +211,6 @@ end
 Effects.Refresh = Refresh
 
 function Effects.Schema()
-	if Effects.schema then return Effects.schema end
 	Effects.schema = {
 		{ type = "header", label = L["Medallions"] },
 		{

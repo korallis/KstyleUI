@@ -302,6 +302,7 @@ function Settings.Schema()
 		if row.key then rows[row.key] = row end
 	end
 
+	Settings.schema.preview = ns.Preview.Build
 	return Settings.schema
 end
 

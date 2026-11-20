@@ -130,8 +130,4 @@ end
 
 K.Modules.Register({ name = MODULE, defaults = Settings.defaults, Enable = Enable, Disable = Disable })
 K.DevTest.AddCheck("bags", Check)
-K.Options.Register(MODULE, function()
-	local schema = Settings.Schema()
-	schema.preview = ns.Preview.Build
-	return schema
-end)
+K.Options.Register(MODULE, Settings.Schema)

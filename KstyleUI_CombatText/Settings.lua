@@ -120,7 +120,6 @@ local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
 function Settings.Schema()
-	if Settings.schema then return Settings.schema end
 	local function WorldFontOn(settings)
 		return settings.worldFont == true
 	end
@@ -268,6 +267,7 @@ function Settings.Schema()
 			min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
 		},
 	}
+	Settings.schema.preview = ns.Preview.Build
 	return Settings.schema
 end
 

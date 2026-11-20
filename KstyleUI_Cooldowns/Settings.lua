@@ -123,7 +123,6 @@ Settings.defaults = {
 }
 
 function Settings.Schema()
-	if Settings.schema then return Settings.schema end
 	local function FontOptions()
 		local out = { { value = "kit", label = L["KstyleUI font"] } }
 		local media = K.Widgets and K.Widgets.MediaOptions
@@ -274,6 +273,7 @@ function Settings.Schema()
 	IconRows(schema, "buffs", L["Tracked buff icons"])
 	BarRows(schema)
 	table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
+	schema.preview = ns.Preview.Build
 	Settings.schema = schema
 	return schema
 end

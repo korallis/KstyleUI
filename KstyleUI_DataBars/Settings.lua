@@ -109,7 +109,6 @@ for i, entry in ipairs(defaults.strip.dockModules) do
 end
 
 function ns.Schema()
-	if ns.schema then return ns.schema end
 	ns.schema = {}
 	local SOURCES_PLAIN = {
 		{ value = "class", label = L["Class colour"] },
@@ -325,6 +324,7 @@ function ns.Schema()
 	ns.AddRows({
 		{ type = "toggle", key = "menus.always", label = L["Always show the menu and bag bars"], help = L["Off, both stay hidden until you point at them, open a bag or use Edit Mode."] },
 	})
+	ns.schema.preview = ns.Preview
 	return ns.schema
 end
 

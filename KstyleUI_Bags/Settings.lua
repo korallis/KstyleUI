@@ -122,7 +122,6 @@ local CHOICES = {
 }
 
 function Settings.Schema()
-	if Settings.schema then return Settings.schema end
 	local function isOff(settings)
 		return not settings.enabled
 	end
@@ -255,6 +254,7 @@ function Settings.Schema()
 			})
 		end
 	end
+	Settings.schema.preview = ns.Preview.Build
 	return Settings.schema
 end
 

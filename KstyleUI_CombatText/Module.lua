@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local L = K.L
-local Settings, Format, Pool, Display, Anchors, World, Blizzard, Preview = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.Anchors, ns.World, ns.Blizzard, ns.Preview
+local Settings, Format, Pool, Display, Anchors, World, Blizzard = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.Anchors, ns.World, ns.Blizzard
 
 local MODULE = "CombatText"
 local FIELD_KEY = "combattext.player"
@@ -227,11 +227,7 @@ local function Disable()
 end
 
 K.Modules.Register({ name = MODULE, defaults = Settings.defaults, Enable = Enable, Disable = Disable })
-K.Options.Register(MODULE, function()
-	local schema = Settings.Schema()
-	schema.preview = Preview.Build
-	return schema
-end)
+K.Options.Register(MODULE, Settings.Schema)
 
 World.Capture()
 if K.Store.IsLoaded() and K.Modules.IsEnabled(MODULE) then

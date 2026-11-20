@@ -209,7 +209,6 @@ function Widgets.Setting(key)
 end
 
 function Widgets.Schema()
-	if Widgets.schema then return Widgets.schema end
 	Widgets.schema = {
 		{ type = "header", label = L["First-run setup"] },
 		{ type = "toggle", key = "general.brandedWelcome", label = L["Branded welcome page"], help = L["Logo, HUD previews and highlights in setup. Turn off for the original welcome page."] },

@@ -30,7 +30,6 @@ function ns.Get(key)
 end
 
 function ns.Schema()
-	if ns.schema then return ns.schema end
 	local function isOff(settings)
 		return not settings.enabled
 	end

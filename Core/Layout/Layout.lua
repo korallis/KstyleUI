@@ -84,7 +84,6 @@ Layout.defaults = {
 }
 
 function Layout.Schema()
-	if Layout.schema then return Layout.schema end
 	Layout.schema = {
 		{ type = "header", label = L["Layout Mode"] },
 		{

@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Style, Anchor, Content, Preview, Health = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Preview, ns.Health
+local Settings, Style, Anchor, Content, Health = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Health
 
 local MODULE = ns.MODULE
 
@@ -109,9 +109,5 @@ local function Check()
 end
 
 K.Modules.Register(def)
-K.Options.Register(MODULE, function()
-	local schema = Settings.Schema()
-	schema.preview = Preview.Build
-	return schema
-end)
+K.Options.Register(MODULE, Settings.Schema)
 K.DevTest.AddCheck("tooltips", Check)

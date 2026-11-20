@@ -570,6 +570,7 @@ function Settings.Schema()
 		end
 	end
 	Settings.rows = rows
+	Settings.schema.preview = ns.Preview.Build
 	return Settings.schema
 end
 
