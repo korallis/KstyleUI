@@ -363,6 +363,11 @@ local function CheckAlpha(_, v)
 	return nil, L["a number from 0 to 1"]
 end
 
+local SIDES = {
+	above = { "above", 0.5 }, aboveLeft = { "above", 0 }, aboveRight = { "above", 1 }, below = { "below", 0.5 }, belowLeft = { "below", 0 }, belowRight = { "below", 1 },
+	left = { "left", 0.5 }, leftBottom = { "left", 0 }, leftTop = { "left", 1 }, right = { "right", 0.5 }, rightBottom = { "right", 0 }, rightTop = { "right", 1 },
+}
+
 local CHECK = {
 	matchHeight = function(el, v)
 		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
@@ -373,7 +378,7 @@ local CHECK = {
 		return nil, L["an element without a circular link"]
 	end,
 	side = function(_, v)
-		if not IsSecret(v) and type(v) == "string" and Layout.Side(v) then return v end
+		if not IsSecret(v) and SIDES[v] then return v end
 		return nil, L["above, below, left or right"]
 	end,
 	offset = CheckOffset,
@@ -491,21 +496,9 @@ local function LinkTarget(el)
 	end
 end
 
-function Layout.Side(v)
-	local side, edge = v:match("^(%l+)(%a*)$")
-	local along = edge == "" and 0.5 or nil
-	if side == "above" or side == "below" then
-		along = along or edge == "Left" and 0 or edge == "Right" and 1 or nil
-	elseif side == "left" or side == "right" then
-		along = along or edge == "Bottom" and 0 or edge == "Top" and 1 or nil
-	else
-		return
-	end
-	if along then return side, along end
-end
-
+local sideOptions
 function Layout.SideOptions()
-	return {
+	sideOptions = sideOptions or {
 		{ value = "above", label = L["Above"] }, { value = "aboveLeft", label = L["Above, left edges lined up"] },
 		{ value = "aboveRight", label = L["Above, right edges lined up"] }, { value = "below", label = L["Below"] },
 		{ value = "belowLeft", label = L["Below, left edges lined up"] }, { value = "belowRight", label = L["Below, right edges lined up"] },
@@ -513,18 +506,20 @@ function Layout.SideOptions()
 		{ value = "leftBottom", label = L["Left, bottom edges lined up"] }, { value = "right", label = L["Right"] },
 		{ value = "rightTop", label = L["Right, top edges lined up"] }, { value = "rightBottom", label = L["Right, bottom edges lined up"] },
 	}
+	return sideOptions
 end
 
 local function LinkedRect(el, w, h, offset)
 	local target = LinkTarget(el)
 	if not target then return end
 	local l, b, tw, th = Layout.Rect(target.key)
-	local side, along = Layout.Side(el.settings.side)
+	local s = SIDES[el.settings.side]
+	local side, along = s[1], s[2]
 	offset = offset or el.settings.offset
-	if side == "above" then return l + (tw - w) * along, b + th + offset end
-	if side == "below" then return l + (tw - w) * along, b - h - offset end
-	if side == "left" then return l - w - offset, b + (th - h) * along end
-	return l + tw + offset, b + (th - h) * along
+	if side == "above" then return l + (tw - w) * along, b + th + offset, side end
+	if side == "below" then return l + (tw - w) * along, b - h - offset, side end
+	if side == "left" then return l - w - offset, b + (th - h) * along, side end
+	return l + tw + offset, b + (th - h) * along, side
 end
 
 local function Style()
@@ -1586,9 +1581,8 @@ end
 
 function Layout.Movement(key, left, bottom, w, h)
 	local el = elements[key]
-	local l, b = LinkedRect(el, w, h, 0)
+	local l, b, side = LinkedRect(el, w, h, 0)
 	if l then
-		local side = Layout.Side(el.settings.side)
 		local offset = side == "above" and bottom - b or side == "below" and b - bottom or side == "left" and l - left or left - l
 		return { offset = offset }
 	end

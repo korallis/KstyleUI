@@ -86,7 +86,7 @@ local function Describe(key, short)
 	if s.attachTo ~= "" then
 		local side
 		for _, option in ipairs(Layout.SideOptions()) do
-			if option.value == s.side then side = option.label end
+			if option.value == s.side then side = option.label break end
 		end
 		local target = Layout.Element(s.attachTo)
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
@@ -466,9 +466,13 @@ local function Nudge(dx, dy)
 end
 
 local function RevealToolbar()
-	if toolbar and ns.Store.Account().layoutToolbarHover then
-		toolbar:SetAlpha(KeyDown(IsShiftKeyDown) and 0 or toolbar:IsMouseOver() and 1 or TOOLBAR_REST)
-	end
+	if not toolbar then return end
+	local fade = ns.Store.Account().layoutToolbarHover == true
+	local hidden = fade and KeyDown(IsShiftKeyDown)
+	toolbar:EnableMouse(fade and not hidden)
+	toolbar.content:SetShown(not hidden)
+	toolbar.titleBar:SetShown(not hidden)
+	if fade then toolbar:SetAlpha(hidden and 0 or toolbar:IsMouseOver() and 1 or TOOLBAR_REST) end
 end
 
 local function ShiftChanged(_, key)
@@ -919,7 +923,6 @@ local function BuildToolbar()
 		panel.elements:SetOptions(Elements)
 	end })
 	function panel:Arrange()
-		panel:EnableMouse(ns.Store.Account().layoutToolbarHover == true)
 		panel.restore:SetShown(Mode.hidden and next(Mode.hidden) ~= nil)
 		local search = ns.Store.Module("LayoutControls").search
 		panel.search:SetShown(search)

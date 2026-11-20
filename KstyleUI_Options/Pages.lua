@@ -512,6 +512,7 @@ end
 
 local function ResetElements(module)
 	local all = LayoutFn("ResetAll")
+	if module == nil then K.Store.Account().layoutToolbarHover = nil end
 	if module == nil and all then
 		K.Call(all)
 		return
@@ -653,18 +654,7 @@ local function ShareModules()
 	return modules
 end
 
-function Pages.ExportProfile()
-	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false)
-	if not text then
-		Notify(L["Export failed"], tostring(why))
-		return nil
-	end
-	local handle = K.Widgets.Popup({
-		title = L["Export profile"],
-		text = L["Press Ctrl+C to copy this string, then share it."],
-		editBox = { text = text },
-		buttons = { { label = L["Close"], primary = true } },
-	})
+local function SelectLater(handle)
 	if C_Timer and C_Timer.After then
 		C_Timer.After(0, function()
 			C_Timer.After(0, function()
@@ -674,6 +664,20 @@ function Pages.ExportProfile()
 			end)
 		end)
 	end
+end
+
+function Pages.ExportProfile()
+	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false)
+	if not text then
+		Notify(L["Export failed"], tostring(why))
+		return nil
+	end
+	SelectLater(K.Widgets.Popup({
+		title = L["Export profile"],
+		text = L["Press Ctrl+C to copy this string, then share it."],
+		editBox = { text = text },
+		buttons = { { label = L["Close"], primary = true } },
+	}))
 	return text
 end
 
@@ -992,8 +996,8 @@ local function AboutItems()
 	add({
 		kind = "button", label = L["What's new"], help = L["Shows the link to every version's release notes, ready to copy."],
 		buttons = { { label = L["Show"], onClick = function()
-			K.Widgets.Popup({ title = L["What's new"], text = L["Press Ctrl+C to copy this link, then open it in your browser."],
-				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } })
+			SelectLater(K.Widgets.Popup({ title = L["What's new"], text = L["Press Ctrl+C to copy this link, then open it in your browser."],
+				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } }))
 		end } },
 	})
 	add({ kind = "header", level = 1, label = L["Credits"] })

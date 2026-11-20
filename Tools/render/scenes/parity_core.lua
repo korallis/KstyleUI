@@ -30,7 +30,9 @@ return Common.Run(function()
 	K.Options.Write("Layout", "gridAlpha", 0.15)
 	K.Options.Write("Layout", "nudgeStep", 100)
 	K.Options.Write("Layout", "overlap", "ctrl")
-	if view == "toolbar" then K.Store.Account().layoutToolbarHover = true end
+	local account = K.Store.Account()
+	if view == "toolbar" then account.layoutToolbarHover = true end
+	if view == "gametext" then account.gameFont, account.gameTextScale, account.combatFont = true, 1.2, true end
 	if view == "mode" or view == "hidden" or view == "toolbar" then
 		assert(layout.Enter())
 		layout.Mode.Select("unitframes.target")
