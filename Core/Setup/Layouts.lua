@@ -1764,6 +1764,12 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local elements, replaced = #ELEMENTS, REPLACED[style]
 	local medals = style == "medallions" and Layouts.MEDALLIONS_MEDALS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, style)
+	for i = 1, 2 do
+		local card = i == 1 and story.guide or story.quests
+		if enabled[card.key] ~= false and not (replaced and replaced[card.key]) and (card.width <= 0 or card.height < STORY_FLOOR) then
+			return false
+		end
+	end
 	for i = 1, elements + 2 do
 		local key, width, height, position, offsetX, offsetY, point
 		if i <= elements then
