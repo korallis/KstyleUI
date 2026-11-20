@@ -1,4 +1,4 @@
--- test-unitframes-power-lane.lua: power has a separate 18-unit lane, automatic mana/resource formatting, secret-safe values, and opt-in hue separation.
+-- test-unitframes-power-lane.lua: power stays inside the frame, automatic mana/resource formatting, secret-safe values, and opt-in hue separation.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local function near(a, b) return math.abs(a - b) < 0.02 end
 for _, style in ipairs({ "frames", "medallions" }) do
@@ -8,8 +8,10 @@ for _, style in ipairs({ "frames", "medallions" }) do
 	local g = view.geometry
 	assert(view.powerText:IsShown() and g.powerText, "H2: " .. style .. " must display the power number")
 	if style == "medallions" then
-		assert(g.powerText.h == 18 and g.powerReserve == 22, "the Medallions power lane is 18 units with a 4-unit gap and 22-unit reserve")
-		assert(g.powerText.y == g.name.y + g.name.h + 4, "the number clears the identity row by four units")
+		assert(g.powerText.y == g.name.y and g.powerText.h == g.name.h, "Medallions power shares the identity row inside the card")
+		assert(g.powerText.y + g.powerText.h <= g.glass.h, "the Player Frame mover must contain the power text")
+		assert(g.healthSub == nil, "the in-card power number replaces the secondary health percentage")
+		assert(g.name.x + g.name.w <= g.powerText.x, "the name and power number have separate room")
 	else
 		assert(g.powerReserve == nil and g.powerText.y == g.power.y and g.powerText.h == g.power.h, "Frames uses the existing power bar without moving its layout")
 	end
@@ -106,4 +108,31 @@ ir, ig, ib = K.Tokens.Color("textEmphasis")
 assert(near(tr, ir) and near(tg, ig) and near(tb, ib) and select(3, view.powerText:GetFont()) == "OUTLINE", "the separate Medallions lane keeps light world ink on a light power fill")
 assert(not view.powerFillClip:IsShown(), "the outside-fill Medallions lane has no clipped overlay")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+local Common = dofile("Tools/render/scenes/_common.lua")
+local Hud = dofile("Tools/render/scenes/hud.lua")
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	_G.RENDER_SCREEN = { width = screen[1], height = screen[2], size = "auto" }
+	_G.RENDER_HUD_STYLE = "Medallions"
+	local e, kit, units = U.New(Common.ScreenOpts({
+		saved = Hud.Saved(Hud.Options({ layout = "DPS" }), "UnitFrames", {}),
+		setup = function(game) Common.ForceScreen(game, true) end,
+	}))
+	e.RunTimers()
+	local v = units.Frames.Get("player").views[1]
+	for _, health in ipairs({ "both", "percent", "currentMax", "none" }) do
+		kit.Options.Write("UnitFrames", "player.healthText", health)
+		local geometry = v.geometry
+		assert(geometry.powerText and geometry.powerText.y + geometry.powerText.h <= geometry.glass.h,
+			"keep every power format inside the Medallions card at " .. screen[1] .. "x" .. screen[2])
+	end
+	kit.Layout.Enter()
+	e.RunTimers()
+	local px, py, pw, ph = Common.Scene.Rect(e, kit.Layout.Mode.Plate("unitframes.player"))
+	local tx, ty, tw, th = Common.Scene.Rect(e, v.powerText)
+	assert(tx >= px - 1 and ty >= py - 1 and tx + tw <= px + pw + 1 and ty + th <= py + ph + 1,
+		"the Player Frame mover must contain the entire power text at " .. screen[1] .. "x" .. screen[2])
+	assert(#e._errors == 0 and kit.ErrorCount() == 0, tostring(e._errors[1]))
+end
+_G.RENDER_SCREEN, _G.RENDER_HUD_STYLE = nil, nil
+
 print("unitframes power lane ok")
