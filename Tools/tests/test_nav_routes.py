@@ -62,7 +62,7 @@ class TerrainTests(unittest.TestCase):
         water = bytearray(3072)
         struct.pack_into("<III", water, 0, 3072, 1, 0)
         water += struct.pack("<HHff4BII", 2, 2, 11.5, 11.5, 0, 0, 2, 1, 3096, 0) + b"\x01"
-        self.assertEqual(set(liquid_cells(water, 0)), {(0, 0)})
+        self.assertEqual(set(liquid_cells(water)[0]), {(0, 0)})
         self.assertEqual(len(next(terrain(adt(liquid=water)))[2]), 256)
         deep_centre = bytearray(adt(liquid=water))
         struct.pack_into("<f", deep_centre, deep_centre.index(b"TVCM") + 8 + 9 * 4, -4)
@@ -75,7 +75,20 @@ class TerrainTests(unittest.TestCase):
         struct.pack_into("<III", water, 0, 3072, 1, 0)
         water += struct.pack("<HHff4BII", 1240, 6083, 11, 11, 0, 0, 1, 1, 0, 3096)
         water += struct.pack("<4f", 11, 12, 13, 14) + bytes(4)
-        self.assertEqual(liquid_cells(water, 0)[0, 0], (1240, [11, 12, 14, 13]))
+        self.assertEqual(liquid_cells(water)[0][0, 0], (1240, [11, 12, 14, 13]))
+
+
+    def test_liquid_boundaries_include_other_chunk_layers(self):
+        water = bytearray(3072)
+        struct.pack_into("<III", water, 0, 3072, 1, 0)
+        struct.pack_into("<III", water, 12, 3116, 1, 0)
+        water += struct.pack("<HHff4BII", 1240, 6083, 11, 11, 0, 0, 1, 1, 0, 3096)
+        water += struct.pack("<4f", 11, 12, 13, 14) + bytes(4)
+        water += struct.pack("<HHff4BII", 2, 2, 20, 20, 1, 2, 1, 1, 0, 0)
+        self.assertEqual(liquid_cells(water), {
+            0: {(0, 0): (1240, [11, 12, 14, 13])},
+            1: {(2, 1): (2, [20, 20, 20, 20])},
+        })
 
 
 class CollisionTests(unittest.TestCase):

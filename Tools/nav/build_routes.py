@@ -85,8 +85,11 @@ class Client:
                 self.cache, self.cache / "extract.log")
         for source in sources:
             path = self.path(source)
-            if not path.is_file() or not path.stat().st_size or not any(path.read_bytes()[:128]):
+            if not path.is_file():
                 raise ValueError(f"missing, empty or encrypted client file: {source}; see extract.log")
+            with path.open("rb") as handle:
+                if not any(handle.read(128)):
+                    raise ValueError(f"missing, empty or encrypted client file: {source}; see extract.log")
 
 
 def native(cache):
@@ -164,6 +167,7 @@ def geometry(client):
         if source not in models:
             if kind == "MODF":
                 v, t = [], []
+                root_blocks = dict(chunks(client.path(source).read_bytes()))
                 for group in groups[source]:
                     if group == "0":
                         continue
@@ -171,7 +175,6 @@ def geometry(client):
                     gv, gt = wmo_group(group_data)
                     header = dict(chunks(group_data))["MOGP"]
                     name_offset = struct.unpack_from("<I", header)[0]
-                    root_blocks = dict(chunks(client.path(source).read_bytes()))
                     group_name = root_blocks.get("MOGN", b"")[name_offset:].split(b"\0", 1)[0]
                     if group_name == b"DungeonEntrance" and b"Cleft of Shadow" in root_blocks.get("MOGN", b""):
                         lo, hi = struct.unpack_from("<3f", header, 12), struct.unpack_from("<3f", header, 24)
@@ -228,20 +231,18 @@ def places(client, landmarks):
     for key, point in landmarks.items():
         result[key] = point
         sources[key], radii[key] = ("client WMO DungeonEntrance group bounds", 20) if key == "Ragefire" else ("client orcbridge MODF pivot; nearest reachable surface", 80)
-    with csv_path.open(encoding="utf-8", newline="") as handle:
-        for row in csv.DictReader(handle):
-            name = ' '.join(row["Name"].split())
-            for prefix, key in (("Crossroads,", "Crossroads"), ("Ratchet,", "Ratchet"), ("Camp Taurajo,", "CampTaurajo")):
-                if name.startswith(prefix):
-                    result[key] = tuple(float(row[f"Pos_{i}"]) for i in range(3))
-                    zones[key] = "Barrens"
-                    sources[key], radii[key] = f"TaxiNodes {row['ID']}: {name}", 8
+    for row in rows:
+        name = ' '.join(row["Name"].split())
+        for prefix, key in (("Crossroads,", "Crossroads"), ("Ratchet,", "Ratchet"), ("Camp Taurajo,", "CampTaurajo")):
+            if name.startswith(prefix):
+                result[key] = tuple(float(row[f"Pos_{i}"]) for i in range(3))
+                zones[key] = "Barrens"
+                sources[key], radii[key] = f"TaxiNodes {row['ID']}: {name}", 8
     if not {"Crossroads", "Ratchet", "CampTaurajo", "WailingCaverns", "SouthfuryCrossing"} <= result.keys():
         raise ValueError("client data did not supply all five Barrens places")
     path = client.cache / "places.txt"
     radii["EchoShore"] = 8
     sources["EchoShore"] = "spike Echo Isles centroid; local island surface within 8 yards"
-    radii["Ragefire"] = 20
     if "Ragefire" not in landmarks:
         raise ValueError("Orgrimmar WMO did not supply its DungeonEntrance group")
     path.write_text(''.join(f"{name} {' '.join(str(v) for v in p)} {radii[name]} {int(name not in ('EchoShore', 'Ragefire'))}\n" for name, p in result.items()), encoding="utf-8", newline="\n")

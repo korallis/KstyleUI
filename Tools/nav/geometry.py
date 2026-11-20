@@ -21,37 +21,41 @@ def chunks(data, start=0, end=None):
         start = stop
 
 
-def liquid_cells(data, index):
+def liquid_cells(data):
     """MH2O's offsets and existence mask are relative to the whole MH2O body."""
-    cells = {}
+    result = {}
     if not data:
-        return cells
+        return result
     boundaries = {len(data)}
     for i in range(256):
         off, layers, attributes = struct.unpack_from("<III", data, i * 12)
         boundaries.update(v for v in (off, attributes) if v)
         for j in range(layers):
             boundaries.update(v for v in struct.unpack_from("<II", data, off + j * 24 + 16) if v)
-    offset, count, _ = struct.unpack_from("<III", data, index * 12)
-    for layer in range(count):
-        kind, fmt, low, high, x, y, w, h, mask, vertices = struct.unpack_from("<HHff4BII", data, offset + layer * 24)
-        if vertices and fmt > 3:
-            size = min(v for v in boundaries if v > vertices) - vertices
-            stride = size / ((w + 1) * (h + 1))
-            if stride not in (1, 5, 8, 9):
-                raise ValueError(f"unsupported MH2O vertex stride {stride} for liquid object {fmt}")
-            fmt = {1: 2, 5: 0, 8: 1, 9: 3}[stride]
-        bits = int.from_bytes(data[mask:mask + (w * h + 7) // 8], "little") if mask else (1 << (w * h)) - 1
-        for row in range(h):
-            for col in range(w):
-                if bits & (1 << (row * w + col)):
-                    heights = [low] * 4
-                    if vertices and fmt != 2:
-                        heights = [struct.unpack_from("<f", data, vertices + 4 * k)[0] for k in (
-                            row * (w + 1) + col, row * (w + 1) + col + 1,
-                            (row + 1) * (w + 1) + col + 1, (row + 1) * (w + 1) + col)]
-                    cells[y + row, x + col] = (kind, heights)
-    return cells
+    for index in range(256):
+        cells = {}
+        offset, count, _ = struct.unpack_from("<III", data, index * 12)
+        for layer in range(count):
+            kind, fmt, low, high, x, y, w, h, mask, vertices = struct.unpack_from("<HHff4BII", data, offset + layer * 24)
+            if vertices and fmt > 3:
+                size = min(v for v in boundaries if v > vertices) - vertices
+                stride = size / ((w + 1) * (h + 1))
+                if stride not in (1, 5, 8, 9):
+                    raise ValueError(f"unsupported MH2O vertex stride {stride} for liquid object {fmt}")
+                fmt = {1: 2, 5: 0, 8: 1, 9: 3}[stride]
+            bits = int.from_bytes(data[mask:mask + (w * h + 7) // 8], "little") if mask else (1 << (w * h)) - 1
+            for row in range(h):
+                for col in range(w):
+                    if bits & (1 << (row * w + col)):
+                        heights = [low] * 4
+                        if vertices and fmt != 2:
+                            heights = [struct.unpack_from("<f", data, vertices + 4 * k)[0] for k in (
+                                row * (w + 1) + col, row * (w + 1) + col + 1,
+                                (row + 1) * (w + 1) + col + 1, (row + 1) * (w + 1) + col)]
+                        cells[y + row, x + col] = (kind, heights)
+        if cells:
+            result[index] = cells
+    return result
 
 
 def terrain(data):
@@ -59,7 +63,7 @@ def terrain(data):
     top = list(chunks(data))
     if dict(top).get("MVER") != struct.pack("<I", 18):
         raise ValueError("expected ADT version 18")
-    liquid = dict(top).get("MH2O")
+    liquid = liquid_cells(dict(top).get("MH2O"))
     for name, body in top:
         if name != "MCNK":
             continue
@@ -72,7 +76,7 @@ def terrain(data):
         # MCVT alternates nine outer and eight inner vertices on each row.
         verts = [(x - r * UNIT, y - c * UNIT, z + heights[r * 17 + c]) for r in range(9) for c in range(9)]
         verts += [(x - (r + .5) * UNIT, y - (c + .5) * UNIT, z + heights[r * 17 + 9 + c]) for r in range(8) for c in range(8)]
-        water = liquid_cells(liquid, iy * 16 + ix)
+        water = liquid.get(iy * 16 + ix, {})
         tris = []
         for r in range(8):
             for c in range(8):
