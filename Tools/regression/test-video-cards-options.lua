@@ -29,6 +29,9 @@ local function Cards(screen)
 	R.rxp.fake.guide({ { index = 98, elements = { { text = "Leave the Magic Quarter" } } } })
 	R.rxp.SetStep(1); R.settle(); Check()
 	assert(guide:GetHeight() < tall, "issue 8: a shorter step shrinks the card again: " .. tall .. " to " .. guide:GetHeight() .. " steps " .. steps:GetHeight())
+	R.K.Options.Write("Skins", "restedXP.fit", false); R.settle()
+	assert(guide:GetHeight() > tall, "guide fit Off restores the shared story-card height")
+	R.K.Options.Write("Skins", "restedXP.fit", true); R.settle(); Check()
 	assert(path and #R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
 end
 
@@ -55,6 +58,19 @@ local function Options(screen)
 	Settle()
 	local sample = parts.preview.current
 	assert(sample and sample.body, "issue 12: Text shows typography, even with both boss lanes enabled")
+	local shows, show = 0, ns.Preview.Show
+	ns.Preview.Show = function(...) shows = shows + 1; return show(...) end
+	for i, item in ipairs(ns.Window.State().items) do
+		if item.kind == "header" and item.label == K.L["Settings window"] then parts.content:ScrollToIndex(i, true, "TOP"); break end
+	end
+	Settle()
+	assert(shows == 0, "scrolling between sections with the same preview must not refit it")
+	ns.Preview.Show = show
+	K.Widgets.Size(ns.Window.Frame(), 1800, 1040); ns.Window.Frame():Restyle(); Settle()
+	K.Options.Write("OptionsPresentation", "preview", false); Settle()
+	local small = sample:GetScale()
+	K.Options.Write("OptionsPresentation", "preview", true); Settle()
+	assert(sample:GetScale() > small and small <= 1.25, "the typography sample obeys the larger-preview setting")
 	local face, size = sample.body:GetFont()
 	K.Options.Write("Appearance", "fontScale", 1.2); Settle()
 	assert(select(2, sample.body:GetFont()) > size, "issue 12: the Text size control changes the sample")

@@ -1,4 +1,5 @@
 -- test-options-rows.lua: settings help text wraps, every row grows to hold it, and no label or help line runs under a control, at the window's default and minimum sizes.
+local minimum = ... == "minimum"
 local Scene = dofile("Tools/render/scene.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
@@ -128,7 +129,7 @@ local function check(page, width, height)
 	return checked
 end
 
-for _, size in ipairs({ { 1040, 680 }, { 880, 520 } }) do
+for _, size in ipairs({ minimum and { 880, 520 } or { 1040, 680 } }) do
 	for _, page in ipairs({ "UnitFrames", "General" }) do
 		check(page, size[1], size[2])
 		local content = ns.Window.Parts().content
@@ -141,6 +142,12 @@ for _, size in ipairs({ { 1040, 680 }, { 880, 520 } }) do
 			end
 		end
 	end
+end
+
+if minimum then
+	assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
+	print("options minimum rows ok")
+	return
 end
 
 -- A row whose help is long grows past the standard row height; a short one keeps it.

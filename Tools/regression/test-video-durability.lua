@@ -1,6 +1,21 @@
 -- test-video-durability.lua: Apply gives native durability its own space beside the minimap and respects subsequent Edit Mode moves.
 local W = dofile("Tools/regression/widget_env.lua")
 local F = dofile("Tools/regression/editmode_fake.lua")
+for _, explicit in ipairs({ false, true }) do
+	local layout = F.Modern()
+	layout.layoutName, layout.layoutType = "KstyleUI DPS", F.ACCOUNT
+	local doll = F.Find(layout, 16)
+	doll.isInDefaultPosition = not explicit
+	doll.anchorInfo.offsetX = -137
+	local state = { saved = { F.Copy(layout) }, active = 3 }
+	local env, K = W.New({ setup = function(e) F.Install(e, state) end })
+	env.RunTimers(); W.Settle(env); env.RunTimers()
+	local after = F.Find(F.Named(state, "KstyleUI DPS"), 16)
+	assert(explicit and after.anchorInfo.offsetX == -137 or not explicit and after.anchorInfo.offsetX ~= -137, "login updates untouched durability defaults and keeps an explicitly saved position")
+	assert(K.Setup.EditMode.Write("DPS", K.Setup.Story("DPS", false)))
+	if explicit then assert(F.Find(F.Named(state, "KstyleUI DPS"), 16).anchorInfo.offsetX == -137, "Apply also preserves explicit durability positions") end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local state = { saved = {}, active = 1 }

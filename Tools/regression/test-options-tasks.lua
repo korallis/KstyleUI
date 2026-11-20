@@ -27,6 +27,14 @@ for i, task in ipairs(ns.Pages.TASKS) do
 	K.Options.Open("Tasks")
 	settle()
 	local row = rowAt(i)
+	for _, readable in ipairs({ false, true }) do
+		K.Options.Write("Appearance", "sectionHeadings", readable); settle()
+		local color = W.LastCall(row.help, "SetTextColor")
+		local r, g, b = K.Tokens.Color(readable and "muted" or "text")
+		assert(color[1] == r and color[2] == g and color[3] == b, "task help uses the same readability colour as setting help")
+		local point = W.LastCall(row.help, "SetPoint")
+		assert(point[5] == -K.Widgets.Snap(row, readable and 2 or K.Tokens.Size("gapTiny")), "task help uses the same tiny gap as setting help")
+	end
 	assert(row.item.label == task.label and row:GetHeight() > 36 and row.help:IsShown(), "every task keeps its 36-unit link and a visible explanation")
 	assert(row.controls.task:GetWidth() >= K.Widgets.TextWidth(row.controls.task.label, 0) + 2 * K.Tokens.Size("gapLarge"), "G9: the whole task label fits its link")
 	W.Click(row.controls.task)
