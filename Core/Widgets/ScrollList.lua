@@ -39,6 +39,7 @@ local function Measure(self)
 		self.tops, self.shortest = nil, nil
 		return
 	end
+	self.measuring = true
 	local tops, width, fallback = self.tops or {}, self:GetViewWidth(), Widgets.Snap(self, RowHeight(self))
 	local y, shortest = 0, nil
 	for i, item in ipairs(self.items) do
@@ -54,6 +55,7 @@ local function Measure(self)
 		tops[i] = nil
 	end
 	self.tops, self.shortest, self.measuredWidth = tops, shortest or fallback, width
+	self.measuring = nil
 end
 
 local function ContentHeight(self)
@@ -85,7 +87,7 @@ local function FirstIndex(self, offset)
 	if not tops then
 		return max(0, floor(offset / RowHeight(self))) + 1
 	end
-	local low, high = 1, #self.items
+	local low, high = 1, min(#self.items, #tops - 1)
 	while low < high do
 		local mid = floor((low + high + 1) / 2)
 		if tops[mid] <= offset then
@@ -291,12 +293,14 @@ local function Reveal(self, t)
 end
 
 function List:SetData(items, keepOffset, cascade)
+	self.settingData = true
 	self.items = items or {}
 	Measure(self)
 	EnsureRows(self)
 	for _, row in ipairs(self.rows) do
 		row.index = nil
 	end
+	self.settingData = nil
 	local offset = keepOffset and min(self.offset, self:GetMaxOffset()) or 0
 	self.target = nil
 	Motion.Tween(self, "SetOffset", offset, offset, 0)
@@ -404,6 +408,7 @@ function Widgets.ScrollList(parent, opts)
 		Widgets.Hover(list, false)
 	end)
 	list:SetScript("OnSizeChanged", function(self)
+		if self.settingData or self.measuring then return end
 		if self.tops and self:GetViewWidth() ~= self.measuredWidth then
 			Measure(self)
 		end
