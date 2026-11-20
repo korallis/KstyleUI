@@ -153,14 +153,14 @@ local function scan(source, names)
 		end
 	end
 	-- A frame method called on receiver, written receiver:Method(...) or receiver.Method(receiver, ...).
-	local function method(tokens, r, receiver, name, site)
+	local function method(tokens, r, receiver, name, site, script)
 		if r.blizz and FRAME_METHODS[name] then
 			add("frame-call", receiver .. ":" .. name, tokens[site].line, site)
 		end
 		if name == "SetParent" then
 			setParent(tokens, site, receiver)
 		end
-		if name == "HookScript" and isOp(tokens[site + 1], "(") and tokens[site + 2].type == "string" and tokens[site + 2].value == "OnUpdate" then
+		if name == "HookScript" and script and script.type == "string" and script.value == "OnUpdate" then
 			add("hot-hook", receiver .. ":OnUpdate", tokens[site].line, site)
 		end
 	end
@@ -194,11 +194,16 @@ local function scan(source, names)
 			local after = tokens[p.to + 1]
 			if isOp(after, ":") and tokens[p.to + 2].type == "name" and Source.IsArgs(tokens[p.to + 3]) then
 				receivers[p.to + 1] = true
-				method(tokens, r, r.text, tokens[p.to + 2].value, p.to + 2)
+				method(tokens, r, r.text, tokens[p.to + 2].value, p.to + 2, tokens[p.to + 4])
 			elseif Source.IsArgs(after) then
 				local last = r.segs[#r.segs]
 				if last and last.key then
-					method(tokens, r, r.text:sub(1, #r.text - #last.text), last.key, p.from)
+					local script
+					if last.key == "HookScript" and isOp(after, "(") and tokens[p.to + 2].type == "name" then
+						local first = w:Path(p.to + 2)
+						if isOp(tokens[first.to + 1], ",") then script = tokens[first.to + 2] end
+					end
+					method(tokens, r, r.text:sub(1, #r.text - #last.text), last.key, p.from, script)
 				end
 				if r.global and PROTECTED[r.text] and not guarded(tokens, p.from, combatGuard) then
 					add("protected-unguarded", r.text, line, p.from)
@@ -227,11 +232,14 @@ local function scan(source, names)
 			end
 		end,
 
-		-- SetParent on a receiver that is not a path, such as CreateFrame(...):SetParent(...).
+		-- Methods on a receiver that is not a path, such as CreateFrame(...):SetParent(...).
 		Token = function(w, i)
 			local tokens = w.tokens
-			if not receivers[i] and isOp(tokens[i], ":") and isName(tokens[i + 1], "SetParent") and Source.IsArgs(tokens[i + 2]) then
-				setParent(tokens, i + 1, "?")
+			if not receivers[i] and isOp(tokens[i], ":") and Source.IsArgs(tokens[i + 2]) then
+				if isName(tokens[i + 1], "SetParent") then setParent(tokens, i + 1, "?") end
+				if isName(tokens[i + 1], "HookScript") and isOp(tokens[i + 2], "(") and tokens[i + 3].type == "string" and tokens[i + 3].value == "OnUpdate" then
+					add("hot-hook", "?:OnUpdate", tokens[i + 1].line, i + 1)
+				end
 			end
 		end,
 	})
@@ -289,6 +297,7 @@ function Scan.Check(scanned, allow)
 			local group = byCall[f.call] or { findings = {}, sites = {}, lines = {} }
 			byCall[f.call] = group
 			group.findings[#group.findings + 1] = f
+			if f.kind == "hot-hook" then group.hot = true end
 			local site = f.site or {} -- a finding without a site is its own place
 			if not group.sites[site] then
 				group.sites[site] = true
@@ -301,18 +310,19 @@ function Scan.Check(scanned, allow)
 		for _, call in ipairs(sortedKeys(byCall)) do
 			local group, limit = byCall[call], calls[call]
 			local count, lines = #group.lines, table.concat(group.lines, ", ")
+			local hint = group.hot and " The hook runs on every call another addon makes, often every frame: read the state when you need it instead, and in a why name the caller and how often it calls." or ""
 			if not limit then
 				for _, f in ipairs(group.findings) do
 					problem(string.format(
 						"%s:%d: %s %s is not allowed. Fix it, or add [%q] = %d with a why to %s.%s",
 						path, f.line, f.kind, call, call, count, file,
-						f.kind == "hot-hook" and " The hook runs on every call another addon makes, often every frame: read the state when you need it instead, and in a why name the caller and how often it calls." or ""
+						hint
 					))
 				end
 			elseif count > limit then
 				problem(string.format(
-					"%s: %s is found %d times (lines %s) but allowed %d in %s. Fix the new place, or raise the count with a why.",
-					path, call, count, lines, limit, file
+					"%s: %s is found %d times (lines %s) but allowed %d in %s. Fix the new place, or raise the count with a why.%s",
+					path, call, count, lines, limit, file, hint
 				))
 			elseif count < limit then
 				problem(string.format(

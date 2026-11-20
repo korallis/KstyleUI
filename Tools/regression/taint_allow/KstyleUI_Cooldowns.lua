@@ -6,4 +6,10 @@ return {
 			["GameTooltip:Hide"] = 1,
 		},
 	},
+	["KstyleUI_Cooldowns/Viewers.lua"] = {
+		why = "Blizzard cooldown viewers and visibility addons call viewer SetAlpha on visibility changes or fade ticks. Refade returns unless the viewer is held, then restores zero with a recursion guard; item frames remain available to the engine.",
+		calls = {
+			["frame:SetAlpha"] = 1,
+		},
+	},
 }

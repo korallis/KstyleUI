@@ -12,4 +12,24 @@ return {
 			["scene:SetParent"] = 1,
 		},
 	},
+	["Core/Skin.lua"] = {
+		why = "Blizzard skin refreshes set texture alpha when windows open, select rows or animate fades; third-party skins may do so too. Rehush only restores zero under a recursion guard, so each fade tick costs one guarded setter.",
+		calls = {
+			["texture:SetAlpha"] = 1,
+		},
+	},
+	["Core/Widgets/Base.lua"] = {
+		why = "KstyleUI controls show, hide or SetShown on their own card header nodes on settings and state changes. These three hooks update the header ornament only when visibility changes; Blizzard and other addons do not drive these private nodes.",
+		calls = {
+			["node:Show"] = 1,
+			["node:Hide"] = 1,
+			["node:SetShown"] = 1,
+		},
+	},
+	["Core/Widgets/Rects.lua"] = {
+		why = "KstyleUI layout and widget builders call SetPoint on recorded, unprotected regions at construction, resize and layout changes. The hook records anchor arguments without measuring or placing frames; Blizzard and other addons do not animate these private regions.",
+		calls = {
+			["region:SetPoint"] = 1,
+		},
+	},
 }

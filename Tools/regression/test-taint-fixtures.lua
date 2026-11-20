@@ -138,4 +138,22 @@ expect("local A = C_UnitAuras\nlocal a = A.GetPlayerAuraBySpellID(1)", "2 aura-u
 expect("local s = 'PlayerFrame:Hide()'\n--[[ PlayerFrame:Hide() ]]", "")
 expect("KstyleUI = {}\nKstyleUI.Frame:Hide()\nKstyleUI.Frame.x = 1", "")
 
+-- Every hot method is reported regardless of area; source scanning must never discard that kind.
+for _, method in ipairs({ "SetPoint", "Show", "Hide", "SetShown", "SetAlpha" }) do
+	expect('hooksecurefunc(widget, "' .. method .. '", refresh)', "1 hot-hook widget:" .. method)
+end
+expect('widget:HookScript("OnUpdate", refresh)', "1 hot-hook widget:OnUpdate")
+expect('widget:HookScript("OnShow", refresh)', "")
+expect('widget.HookScript(widget, "OnUpdate", refresh)', "1 hot-hook widget:OnUpdate")
+expect('CreateFrame("Frame"):HookScript("OnUpdate", refresh)', "1 hot-hook ?:OnUpdate")
+local driver = read("Tools/regression/test-taint-scan.lua")
+assert(not driver:find('kind == "hot-hook"', 1, true),
+	"G1: remove the area filter from test-taint-scan.lua; every area's hot hooks need reviewed taint_allow entries")
+local problems = Scan.Check({ ["Core/Example.lua"] = Scan('hooksecurefunc(widget, "Show", refresh)', names) }, {})
+assert(#problems == 1 and problems[1]:find("read the state when you need it", 1, true) and problems[1]:find("caller and how often", 1, true),
+	"G1: name the fix: read state on demand, or review the caller and frequency in taint_allow")
+local extra = Scan.Check({ ["Core/Example.lua"] = Scan('hooksecurefunc(widget, "Show", refresh) hooksecurefunc(widget, "Show", again)', names) }, {
+	["Core/Example.lua"] = { calls = { ["widget:Show"] = 1 } },
+})
+assert(#extra == 1 and extra[1]:find("read the state when you need it", 1, true), "G1: a repeated hot-hook site must name the same fix as a new hook")
 print("taint fixtures ok")

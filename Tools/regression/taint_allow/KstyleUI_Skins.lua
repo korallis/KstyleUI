@@ -34,4 +34,23 @@ return {
 			["ClassTrainerFrame.money:SetPoint"] = 1,
 		},
 	},
+	["KstyleUI_Skins/Addons/RestedXP/Chrome.lua"] = {
+		why = "RestedXP refreshes or fades guide regions and native text on step changes, guide refreshes and animation ticks. RestAlpha remembers requested alpha and hides only during combat calm; HushText keeps replaced labels transparent. Both hooks guard recursive alpha writes.",
+		calls = {
+			["region:SetAlpha"] = 1,
+			["text:SetAlpha"] = 1,
+		},
+	},
+	["KstyleUI_Skins/Encounter/Warnings.lua"] = {
+		why = "The engine runs RaidWarningFrame OnUpdate every shown frame, including warnings posted by DBM or BigWigs. Fade returns when the private plate is hidden and otherwise follows the pooled messages alpha so the glass fades with the warning.",
+		calls = {
+			["_G[?]:OnUpdate"] = 1,
+		},
+	},
+	["KstyleUI_Skins/Tracker.lua"] = {
+		why = "Blizzard objective-tracker updates and fade animations set native tracker label alpha on quest changes and animation ticks; tracker addons may too. Rehush sets zero under a recursion guard because KstyleUI draws the replacement caption.",
+		calls = {
+			["text:SetAlpha"] = 1,
+		},
+	},
 }

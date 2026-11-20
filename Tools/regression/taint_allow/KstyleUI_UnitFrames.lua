@@ -6,4 +6,10 @@ return {
 			["tray:SetParent"] = 1,
 		},
 	},
+	["KstyleUI_UnitFrames/Auras.lua"] = {
+		why = "KstyleUI unit-frame range and visibility fades call holder SetAlpha on range updates and every fade tick. The hook forwards that alpha once to the private aura host so restricted aura children follow the unit frame; Blizzard and other addons do not drive this holder.",
+		calls = {
+			["view.uf.holder:SetAlpha"] = 1,
+		},
+	},
 }
