@@ -62,6 +62,7 @@ do
 	env.GetZoneText = function() return env.Secret("hidden") end
 	env.GetAverageItemLevel = function() return 66, env.Secret(63) end
 	env.FireEvent("ZONE_CHANGED")
+	env.FireEvent("PLAYER_AVG_ITEM_LEVEL_UPDATE")
 	assert(ns.Strip.view.items.location.value:GetText() == "--" and ns.Strip.view.items.itemLevel.value:GetText() == "--")
 	env.GetZoneText, env.GetAverageItemLevel = nil, nil
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED")
