@@ -243,7 +243,7 @@ local function resize(self, w, h)
 	end
 	notifySpanners(self, {})
 end
-local function resolve(self)
+local function resolvePendingSizeChange(self)
 	local script = rawget(self, "_sizeUnseen") and self._scripts.OnSizeChanged
 	if script then
 		rawset(self, "_sizeUnseen", nil)
@@ -337,11 +337,11 @@ local function veil(self, value)
 	return value
 end
 function Object:GetWidth()
-	resolve(self)
+	resolvePendingSizeChange(self)
 	return veil(self, rawSize(self, "w"))
 end
 function Object:GetHeight()
-	resolve(self)
+	resolvePendingSizeChange(self)
 	return veil(self, rawSize(self, "h"))
 end
 function Object:GetSize() return self:GetWidth(), self:GetHeight() end
@@ -1328,6 +1328,11 @@ function Stubs.NewEnv(opts)
 			env[name] = frame
 		end
 		return frame
+	end
+
+	-- Layout can leave a size notification pending until GetWidth or GetHeight resolves the frame.
+	function env.QueueSizeChanged(frame)
+		rawset(frame, "_sizeUnseen", true)
 	end
 
 	-- CreateFont(name) makes a Font object, which SetFontObject and templates use.
