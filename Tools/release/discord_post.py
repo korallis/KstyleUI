@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 GITHUB = "https://github.com/korallis/KstyleUI"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI"
+DOWNLOAD = "[CurseForge](https://www.curseforge.com/wow/addons/kstyleui) · [Wago](https://addons.wago.io/addons/kstyleui)"
 
 
 def release_section(changelog, tag):
@@ -20,6 +22,10 @@ def release_section(changelog, tag):
         raise ValueError("Missing release section: " + tag)
     section = re.split(r"^## ", changelog[heading.end():], maxsplit=1, flags=re.M)[0].strip()
     return section, heading.group(1)
+
+
+def github_notes(changelog, tag):
+    return release_section(changelog, tag)[0] + "\n\n**Download:** " + DOWNLOAD + "\n"
 
 
 def characters(text):
@@ -66,8 +72,7 @@ def release_payload(changelog, tag, release_notes="", readme=""):
     description = (shorten(summary, 2400, sentence=False) + "\n\n**Highlights**\n"
                    + "\n".join("- " + shorten(line) for line in highlights) + ("\n\n" + counts if counts else ""))
     fields = [
-        {"name": "Download", "value": "[CurseForge](https://www.curseforge.com/wow/addons/kstyleui) · "
-         f"[Wago](https://addons.wago.io/addons/kstyleui) · [GitHub]({url})"},
+        {"name": "Download", "value": f"{DOWNLOAD} · [GitHub]({url})"},
         {"name": "Full notes", "value": f"[Read the release notes]({url})"},
     ]
     if lists.get("Upgrading"):
@@ -123,9 +128,13 @@ def main():
     parser.add_argument("tag")
     parser.add_argument("message_ids", nargs="?", default="")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--notes", action="store_true", help="print the GitHub release text instead")
     args = parser.parse_args()
     if args.edit != bool(args.message_ids):
         parser.error("--edit requires message_ids; message_ids requires --edit")
+    if args.notes:
+        sys.stdout.buffer.write(github_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag).encode())
+        return
     webhook = os.environ.get("DISCORD_RELEASE_WEBHOOK", "").strip()
     if not webhook and not args.dry_run:
         print("::notice::Discord release post skipped: webhook is not set.")

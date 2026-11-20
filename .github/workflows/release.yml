@@ -137,6 +137,13 @@ jobs:
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
           (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
           gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
+      - name: Show only this version's changelog on the GitHub release
+        # The packager writes the whole CHANGELOG.md to the release page.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 Tools/release/discord_post.py --notes "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          gh release edit "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
       - name: Post the changelog to Discord
         continue-on-error: true
         env:

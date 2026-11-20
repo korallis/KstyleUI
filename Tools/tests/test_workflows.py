@@ -93,6 +93,7 @@ class WorkflowsTest(unittest.TestCase):
                 "WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}",
                 "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
                 "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+                "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
                 "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
                 "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
             ]),
