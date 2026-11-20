@@ -61,7 +61,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_SHELL_OPTIONS") ~= "0" then
 		assert(K.Options.Open(module))
 		if module == "DataBars" then
-			K.Options.Write(module, "strip.labels", "short")
+			if not defaults then K.Options.Write(module, "strip.labels", "short") end
 			ns.Strip.view.frame:Hide()
 		end
 		env.RunTimers()
