@@ -205,6 +205,13 @@ class PortableRunnerTest(unittest.TestCase):
             self.assertEqual(self.runner.cpu_factor(windows=False), 1)
             self.assertEqual(self.runner.hang_limit(30 * self.runner.cpu_factor(windows=True)), 300)
 
+    def test_hosted_linux_factor_does_not_apply_to_self_hosted_or_local_linux(self):
+        for ci, environment, expected in (("true", "github-hosted", 2.5), ("true", "self-hosted", 1),
+                                           ("false", "github-hosted", 1), ("false", "", 1)):
+            with mock.patch.dict(os.environ, {"CI": ci, "RUNNER_ENVIRONMENT": environment}, clear=True), \
+                    mock.patch.object(self.runner.sys, "platform", "linux"):
+                self.assertEqual(self.runner.cpu_factor(windows=False), expected)
+
     def test_windows_accounting_on_every_os(self):
         import runner_platform as platform
 
@@ -322,6 +329,44 @@ class RunAllTest(unittest.TestCase):
         (self.regression / "test-cwd.lua").write_text("from pathlib import Path; assert Path('Tools/regression').is_dir()\n")
         result = self.run_all()
         self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_list_needs_no_interpreter_and_runs_no_files(self):
+        self.marking_tests("ab")
+        result = self.run_all("--list", lua="no-such-lua-kstyleui")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Tools/regression/test-a.lua", result.stdout)
+        self.assertIn("2 test files selected", result.stdout)
+        self.assertEqual(self.marks(), [])
+
+    def test_explicit_files_validate_and_run_only_those_files(self):
+        self.marking_tests("abc")
+        result = self.run_all("test-b.lua", "Tools/regression/test-c.lua")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(sorted(self.marks()), ["b", "c"])
+        self.assertIn("worker slots: 64", result.stdout)
+        self.assertEqual(self.run_all("helper.lua").returncode, 2)
+        self.assertEqual(self.run_all("--shard", "1/2", "test-a.lua").returncode, 2)
+        self.assertEqual(self.run_all("--write-weights", "test-a.lua").returncode, 2)
+
+    def test_busy_slots_refuse_large_local_selection_but_allow_force_ci_and_explicit_files(self):
+        import run_all
+        paths = [Path("Tools/regression/test-%d.lua" % i) for i in range(151)]
+        slots = mock.Mock(count=2)
+        slots.others.return_value = 1
+        for env, args, refused in (({}, [], True), ({"KSTYLEUI_FULL": "1"}, [], False),
+                                   ({"CI": "true"}, [], False), ({}, [paths[0].as_posix()], False),
+                                   ({}, ["--list"], False)):
+            with self.subTest(env=env, args=args), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(Path, "glob", return_value=paths), \
+                    mock.patch.object(run_all, "make_slots", return_value=(slots, None)), \
+                    mock.patch.object(run_all, "interpreter", return_value=(None, "stop before execution")), \
+                    contextlib.redirect_stdout(io.StringIO()) as output:
+                code = run_all.main(args)
+            self.assertEqual("Beast speed rule" in output.getvalue(), refused)
+            if refused:
+                self.assertEqual(code, 2)
+                self.assertIn("KSTYLEUI_FULL=1", output.getvalue())
+                self.assertIn("explicit files", output.getvalue())
 
     def test_runs_tests_in_parallel(self):
         for own, other in (("x", "y"), ("y", "x")):
