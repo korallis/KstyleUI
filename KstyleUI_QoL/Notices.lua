@@ -58,7 +58,6 @@ local function Show(slot, value, r, g, b, y)
 	ns.PaintNotice(line.text, value, r, g, b)
 	Widgets.Size(line, Widgets.TextWidth(line.text, 1), Widgets.TextHeight(line.text, Widgets.LineHeight(line.text)))
 	if not line:IsShown() or line:GetAlpha() < 1 then Motion.FadeIn(line, Tokens.Duration("panelOpen")) end
-	return line
 end
 
 local function Hide(slot)
@@ -120,7 +119,6 @@ local function Fight(event)
 	Talents()
 	Durability()
 end
-
 
 local function Gone(unit)
 	return ns.True(UnitIsDeadOrGhost(unit)) and not (type(UnitIsFeignDeath) == "function" and ns.True(UnitIsFeignDeath(unit)))
