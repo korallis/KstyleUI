@@ -9,6 +9,7 @@ local MEMORIES = {
 	{ module = "Nameplates", key = "nameplateCVars" },
 	{ module = "Nameplates", key = "nameplateScaleCVars" },
 	{ module = "QoL", key = "qolCamera", cvar = "cameraDistanceMaxZoomFactor" },
+	{ module = "Tooltips", key = "tooltipsDetailed" },
 }
 
 local seen = {}
