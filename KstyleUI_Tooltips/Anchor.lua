@@ -1,4 +1,4 @@
--- Anchor.lua: the placed tooltip anchor, Blizzard cursor positioning and shared minimap placement for Blizzard and kit tooltips.
+-- Anchor.lua: the placed tooltip anchor, Blizzard cursor positioning, shared minimap placement for Blizzard and kit tooltips, and when the game tooltip hides.
 local _, ns = ...
 
 local K = KstyleUI
@@ -174,6 +174,28 @@ local function Place(tooltip, parent)
 	end
 end
 
+local PEEK = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
+
+local function Yes(fn)
+	if type(fn) ~= "function" then return false end
+	local v = fn()
+	return not Logic.IsSecret(v) and v == true
+end
+
+function Anchor.Hidden()
+	local mode, peek = Settings.Get("show"), PEEK[Settings.Get("peekKey")]
+	if mode == "always" or peek and Yes(_G[peek]) then return false end
+	if mode == "outOfCombat" then return Yes(InCombatLockdown) end
+	if mode == "outOfBoss" then return Yes(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress) end
+	return true
+end
+
+local function Suppress(tooltip)
+	if not (ns.active and Anchor.Hidden()) then return end
+	tooltip:Hide()
+	for _, shop in ipairs(type(tooltip.shoppingTooltips) == "table" and tooltip.shoppingTooltips or {}) do shop:Hide() end
+end
+
 function Anchor.IsHooked()
 	return hooked
 end
@@ -206,6 +228,7 @@ function Anchor.Hook()
 		end)
 		GameTooltip:HookScript("OnShow", function(tooltip)
 			K.Call(PlaceMinimap, tooltip)
+			K.Call(Suppress, tooltip)
 		end)
 		if type(GameTooltip.SetMinimapMouseover) == "function" then
 			hooksecurefunc(GameTooltip, "SetMinimapMouseover", function(tooltip)

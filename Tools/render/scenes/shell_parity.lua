@@ -6,8 +6,14 @@ local Load = dofile("Tools/regression/load_files.lua")
 local module = os.getenv("RENDER_SHELL_MODULE") or "Minimap"
 local loaders = { Minimap = "minimap", DataBars = "databars", Chat = "chat", Bags = "bags", Tooltips = "tooltips", QoL = "qol" }
 local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
-local followup = os.getenv("RENDER_SHELL_FOLLOWUP") == "1"
-local followups = {
+local batch = os.getenv("RENDER_SHELL_FOLLOWUP")
+local followup = batch == "1" or batch == "3"
+local followups = batch == "3" and {
+	DataBars = { { "strip.money", "short" } },
+	Bags = { { "characterBags", true } },
+	Tooltips = { { "show", "outOfCombat" }, { "awayTag", true }, { "mountLine", true } },
+	QoL = { { "autoDelete", true }, { "autoResurrect", true } },
+} or {
 	Minimap = { { "coords.hover", true } },
 	DataBars = { { "strip.itemLevelSource", "overall" }, { "strip.itemLevelDecimals", 2 } },
 	Chat = { { "inputOnTop", true }, { "editBox", "always" } },
@@ -46,7 +52,7 @@ return Common.Run(function()
 			local s = K.Store.Module(module).strip
 			for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
 				for _, entry in ipairs(s[key]) do
-					if followup then entry.shown = entry.id == "itemLevel"
+					if followup then entry.shown = entry.id == (batch == "3" and "gold" or "itemLevel")
 					elseif entry.id == "location" or entry.id == "itemLevel" then entry.shown = true end
 				end
 				assert(K.Options.Write(module, "strip." .. key, s[key]) ~= false)

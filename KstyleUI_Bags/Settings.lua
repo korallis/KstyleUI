@@ -60,6 +60,7 @@ Settings.defaults = {
 	sortDirection = "LEFT",
 	bankColumns = 14,
 	bankOpensBags = true,
+	characterBags = false,
 	replaceBank = true,
 	autoSellJunk = true,
 	altCounts = true,
@@ -236,6 +237,7 @@ function Settings.Schema()
 			min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
 		},
 		{ type = "toggle", key = "bankOpensBags", label = L["Bank opens bags"], help = L["Open your bags beside the bank when you visit a banker."], disableWhen = isOff },
+		{ type = "toggle", key = "characterBags", label = L["Character window opens bags"], help = L["Open your bags with the character window and close them with it, unless you opened them first."], disableWhen = isOff },
 		{ type = "header", label = L["Sorting"] },
 		{
 			type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],

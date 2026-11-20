@@ -220,6 +220,7 @@ function ns.Schema()
 	local MONEY_STYLES = {
 		{ value = "full", label = L["Gold, silver and copper"] },
 		{ value = "gold", label = L["Gold only"] },
+		{ value = "short", label = L["Short gold"] },
 		{ value = "icons", label = L["Coin icons"] },
 	}
 	local LATENCIES = {

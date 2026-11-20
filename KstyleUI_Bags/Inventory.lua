@@ -1,4 +1,4 @@
--- Inventory.lua: the bag window: the backpack, bags and reagent bag in one grid, the keyring under them, opened and closed with Blizzard's bags.
+-- Inventory.lua: the bag window: the backpack, bags and reagent bag in one grid, the keyring under them, opened and closed with Blizzard's bags and, when asked, the character window.
 local _, ns = ...
 
 local K = KstyleUI
@@ -246,7 +246,30 @@ ns.On("BAG_UPDATE_COOLDOWN", function()
 	end
 end)
 
+local watching, opened = false, false
+
+local function WatchCharacter()
+	local frame = CharacterFrame
+	if watching or not Settings.Get("characterBags") or type(frame) ~= "table" or type(frame.HookScript) ~= "function" then
+		return
+	end
+	watching = true
+	frame:HookScript("OnShow", function()
+		if not open and Blizzard.IsActive() and Settings.Get("characterBags") and Blizzard.MayOpen() then
+			opened = true
+			Inventory.Open()
+		end
+	end)
+	frame:HookScript("OnHide", function()
+		if opened and open then
+			Inventory.Close()
+		end
+		opened = false
+	end)
+end
+
 function Inventory.Enable()
+	WatchCharacter()
 	local window = Inventory.Build()
 	if not InCombatLockdown() then
 		window:Prepare()
@@ -263,6 +286,7 @@ function Inventory.Disable()
 end
 
 function Inventory.SettingsChanged()
+	WatchCharacter()
 	local window = Inventory.window
 	if not window or not K.Modules.IsRunning(Settings.MODULE) then
 		return

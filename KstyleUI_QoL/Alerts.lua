@@ -1,4 +1,4 @@
--- Alerts.lua: quiet error text, which hides through UIErrorsFrame's own SetMessageTypeEnabled the cooldown, range and resource errors that Retail's error frame never shows and Forever's override shows again, and shows only those it hid when it stops.
+-- Alerts.lua: quiet error text, which hides through UIErrorsFrame's own SetMessageTypeEnabled the cooldown, range and resource errors that Retail's error frame never shows and Forever's override shows again, and shows only those it hid when it stops; cinematic skips, the delete word and resurrection offers.
 local _, ns = ...
 
 local TYPES = {
@@ -79,13 +79,50 @@ local function SkipCinematic(_, cancellable)
 	end)
 end
 
+local DELETE_POPUPS = { "DELETE_GOOD_ITEM", "DELETE_GOOD_QUEST_ITEM" }
+
+local function FillDelete()
+	if not (ns.running and ns.Get("autoDelete")) or type(StaticPopup_FindVisible) ~= "function" or type(DELETE_ITEM_CONFIRM_STRING) ~= "string" then return end
+	for _, which in ipairs(DELETE_POPUPS) do
+		local dialog = StaticPopup_FindVisible(which)
+		local box = dialog and type(dialog.GetEditBox) == "function" and dialog:GetEditBox()
+		if box then box:SetText(DELETE_ITEM_CONFIRM_STRING) end
+	end
+end
+
+local function Resurrect(_, inviter)
+	if not ns.Get("autoResurrect") or type(AcceptResurrect) ~= "function" then return end
+	if not ns.Get("combatResurrect") then
+		local ok, fighting = pcall(UnitAffectingCombat, inviter)
+		if not ok or ns.IsSecret(fighting) or fighting then return end
+	end
+	local wait = type(GetCorpseRecoveryDelay) == "function" and ns.Number(GetCorpseRecoveryDelay())
+	if wait == 0 then AcceptResurrect() end
+end
+
+local OPTIONAL = {
+	DELETE_ITEM_CONFIRM = { "autoDelete", function() if C_Timer then C_Timer.After(0, FillDelete) else FillDelete() end end },
+	RESURRECT_REQUEST = { "autoResurrect", Resurrect },
+}
+
+local function Listen()
+	for event, entry in pairs(OPTIONAL) do
+		if ns.running and ns.Get(entry[1]) then
+			ns.K.Events.Register(ns.MODULE, event, entry[2])
+		else
+			ns.K.Events.Unregister(ns.MODULE, event)
+		end
+	end
+end
+
 ns.AddPart({
 	name = "alerts",
 	events = { CINEMATIC_START = SkipCinematic },
-	Start = Sync,
-	Stop = function() cinematicToken = cinematicToken + 1; Sync() end,
+	Start = function() Sync(); Listen() end,
+	Stop = function() cinematicToken = cinematicToken + 1; Sync(); Listen() end,
 	Setting = function(key)
 		if key == nil or key == "skipCinematics" or key == "skipDelay" then cinematicToken = cinematicToken + 1 end
+		if key == nil or key == "autoDelete" or key == "autoResurrect" then Listen() end
 		if key == nil or key == "quietErrors" then
 			Sync()
 		end
