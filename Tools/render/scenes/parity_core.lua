@@ -1,4 +1,4 @@
--- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links, round 1 attach points (RENDER_CORE_POINT), the palette and outline (RENDER_CORE_PALETTE=1) and the round 1 Options rows.
+-- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links, round 1 attach points (RENDER_CORE_POINT), the palette and outline (RENDER_CORE_PALETTE=1), the grid light mid-drag (RENDER_CORE_LIGHT=1 with mode), the game menu buttons (conveniences) and the round 1 Options rows.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -17,6 +17,9 @@ return Common.Run(function()
 				e._units[unit] = { name = name, class = "WARRIOR", level = 38, health = 2750, healthMax = 3350,
 					power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = unit == "player", reaction = unit == "player" and 5 or 2 }
 			end
+			e.GameMenuFrame = e.CreateFrame("Frame", "GameMenuFrame", e.UIParent)
+			e.GameMenuFrame:SetSize(200, 280)
+			e.GameMenuFrame:SetPoint("TOPLEFT", e.UIParent, "TOPLEFT", 60, -180)
 			e.C_AddOns = { LoadAddOn = function(name)
 				if name == "KstyleUI_Options" and not e._addons[name] then Load(O.Files(), e) end
 				return true
@@ -69,7 +72,11 @@ return Common.Run(function()
 			account.optionsCpuMetric = 1
 			ns.Changed()
 		end
-		if view == "conveniences" then account.optionsSearchMemory, account.optionsFold, account.gameMenuOptions, account.gameMenuLayout = true, true, true, true; ns.Changed() end
+		if view == "conveniences" then
+			account.optionsSearchMemory, account.optionsFold, account.gameMenuOptions, account.gameMenuLayout = true, true, true, true
+			K.OptionsEntry.GameMenu()
+			ns.Changed()
+		end
 		for _, element in ipairs(layout.Elements()) do
 			if element.module == "UnitFrames" then layout.Element(element.key).frame:Hide() end
 		end
@@ -92,6 +99,15 @@ return Common.Run(function()
 	end
 	Gallery.Ticks(O.W, env, 40)
 	env.RunTimers()
+	if view == "mode" and os.getenv("RENDER_CORE_LIGHT") == "1" then
+		account.layoutGridLight = true
+		local plate, scale = layout.Mode.Plate("unitframes.player"), K.Scale.Root():GetEffectiveScale()
+		local l, b, w, h = layout.Rect("unitframes.player")
+		env._cursor = { (l + w / 2 + K.Scale.Origin()) * scale, (b + h / 2) * scale }
+		plate:GetScript("OnDragStart")(plate, "LeftButton")
+		env._cursor = { env._cursor[1] + 30 * scale, env._cursor[2] + 20 * scale }
+		layout.Mode.Overlay():GetScript("OnUpdate")(layout.Mode.Overlay(), 0.016)
+	end
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Gallery.Build(env)
 end)
