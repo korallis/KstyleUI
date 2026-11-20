@@ -10,6 +10,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		C.Game(e)
 		Common.ForceScreen(e)
 	end })
+	local pooled = env._viewers.BuffBarCooldownViewer._items[2]
+	assert(pooled:GetHeight() == 30 and pooled.Icon:GetHeight() == 30 and pooled.Bar:GetHeight() == 19, "initialize pooled tracked bars with Forever's XML dimensions before native layout")
 	C.Enable(env, K)
 	local entry = F.Find(F.Modern(), F.VIEWER, F.BUFF_BAR)
 	entry.anchorInfo = { point = "TOPRIGHT", relativePoint = "TOPRIGHT", offsetX = -137, offsetY = -219 }

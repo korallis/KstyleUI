@@ -440,12 +440,15 @@ function C.Item(env, viewer, id)
 		return id
 	end
 	if viewer._bars then
+		item._width, item._height = 220, 30
 		local icon = Frame(env, "Frame", item)
+		icon._width, icon._height = 30, 30
 		icon.Icon = Texture(env, icon)
 		icon.Overlay = Texture(env, icon, "OVERLAY")
 		icon.Applications = FontString(env, icon)
 		item.Icon = icon
 		local bar = Frame(env, "StatusBar", item)
+		bar._height = 19
 		bar:SetStatusBarTexture("bar-atlas")
 		Own(env, bar:GetStatusBarTexture())
 		bar.BarBG = Texture(env, bar, "BACKGROUND")
