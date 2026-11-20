@@ -11,6 +11,9 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		env.RunTimers()
 		local function rail()
 			env.RunTimers()
+			local view = ns.Strip.view
+			assert(table.concat(view.order, ",") == "fps,latency,gold",
+				"Right rail must default to v0.2.6 strip.slot1..5: fps, latency, gold, none, none")
 			assert(ns.Settings().strip.menus == false,
 				"Setup must keep strip.menus off while Right rail is selected")
 			local p = K.Layout.Get("databars.strip")
@@ -42,5 +45,56 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 			"Right rail must never clear a position the player moved by hand")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
+end
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto" })
+	K.Options.Write("DataBars", "strip.placement", "rail")
+	local modules = {}
+	for i, id in ipairs({ "fps", "latency", "gold", "durability", "time" }) do
+		modules[i] = { id = id, shown = true, zone = i % 2 == 0 and "left" or "centre" }
+	end
+	K.Options.Write("DataBars", "strip.railModules", modules)
+	local view = ns.Strip.view
+	local function check(expectHidden)
+		Scene.Build(env)
+		local x, _, width = Scene.Rect(env, view.frame)
+		local hidden, last = {}, nil
+		for _, id in ipairs(view.order) do
+			local item = view.items[id]
+			if item.button:IsShown() then
+				assert(#hidden == 0, "Right rail must keep a prefix of the module order and hide whole items from its end")
+				last = item
+				for _, text in ipairs({ item.value, item.label, item.dot }) do
+					if text:IsShown() then
+						local tx, _, tw = Scene.Rect(env, text)
+						assert(tx >= x - 0.01 and tx + tw <= x + width + 0.01,
+							"Right rail " .. id .. " text must stay inside its frame; hide whole overflowing readouts")
+						assert(not text:IsTruncated(), "Right rail must never truncate a readout mid-item")
+					end
+				end
+			else
+				hidden[#hidden + 1] = id
+				assert(not item.dot:IsShown(), "hidden readouts must not leave separators behind")
+			end
+		end
+		assert((#hidden > 0) == expectHidden, "exercise both overflowing and fitting rail readouts")
+		if last and #hidden > 0 then
+			assert(table.concat(last.hiddenReadouts, ",") == table.concat(hidden, ","))
+			ns.Strip.ShowTooltip(last)
+			local titles = {}
+			for _, row in ipairs(K.Widgets.Tooltip().used) do titles[row.left:GetText() or ""] = true end
+			for _, id in ipairs(hidden) do assert(titles[ns.Strip.TITLES[id]], "the tooltip must list hidden " .. id) end
+		end
+	end
+	check(true)
+	ns.Strip.Refresh()
+	check(true)
+	K.Options.Write("DataBars", "strip.fontSize", 20)
+	check(true)
+	assert(K.Layout.Update("databars.strip", { width = 1200 }))
+	check(false)
+	K.Options.Write("DataBars", "strip.placement", "top")
+	assert(table.concat(view.order, ",") == "hearth,time,friends,durability,bags,fps,latency,gold", "top defaults must stay independent of rail choices")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("databars rail ok: v0.2.6 placement after Setup, rerun and reload in all styles and owner screens; moved positions kept")

@@ -245,6 +245,8 @@ local function build(env, opts, extra, beforeDraw)
 	dofile("Tools/render/scenes/_audit.lua").Apply(K)
 	local artwork = os.getenv("RENDER_DATABAR_ARTWORK")
 	if artwork and K.Options.Row("DataBars", "strip.artwork") then K.Options.Write("DataBars", "strip.artwork", artwork) end
+	local placement = os.getenv("RENDER_DATABAR_PLACEMENT")
+	if placement and K.Options.Row("DataBars", "strip.placement") then K.Options.Write("DataBars", "strip.placement", placement) end
 	local previewed = {}
 	for key, size in pairs(opts.sizes or {}) do
 		local el = K and K.Layout and K.Layout.Element and K.Layout.Element(key)
