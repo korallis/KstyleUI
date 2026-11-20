@@ -188,6 +188,7 @@ end
 local native
 
 function Appearance.GameText()
+	if not Store.IsLoaded() then return false, 1, false end
 	local account = Store.Account()
 	local scale = account.gameTextScale
 	scale = not (issecretvalue and issecretvalue(scale)) and type(scale) == "number" and scale == scale and math.min(1.5, math.max(0.8, scale)) or 1
