@@ -44,8 +44,8 @@ function Preview.Build(...)
 		local stops = Unit.GradientStops()
 		for i = 2, #stops do
 			local a, b = stops[i - 1], stops[i]
-			if share <= b[1] or i == #stops then
-				local t = b[1] > a[1] and math.max(0, math.min(1, (share - a[1]) / (b[1] - a[1]))) or 1
+			if share <= b[1] then
+				local t = (share - a[1]) / (b[1] - a[1])
 				local ca, cb = a[2], b[2]
 				return ca.r + (cb.r - ca.r) * t, ca.g + (cb.g - ca.g) * t, ca.b + (cb.b - ca.b) * t
 			end
@@ -110,6 +110,7 @@ function Preview.Build(...)
 			r, g, b = c.r, c.g, c.b
 		end
 		f.health:SetBarColor(r, g, b, alpha)
+		f.health.fillClip:SetAlpha(alpha)
 		if f.showPower then
 			f.power:SetBarRange(0, 1)
 			f.power:SetBarValue(sample.power)
@@ -131,7 +132,7 @@ function Preview.Build(...)
 		if f.showPortrait then
 			f.ring:SetVertexColor(cr, cg, cb)
 			f.portrait:SetTexture((Tokens.Texture("logo")))
-			local zoom = cfg[f.kind].portraitZoom or 0
+			local zoom = not ns.Medallions.Active() and cfg[f.kind].portraitZoom or 0
 			f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 			f.level:SetText(SAMPLE_LEVEL)
 		elseif f.showRoleRing then
@@ -249,7 +250,10 @@ function Preview.Build(...)
 			Style.Apply(f, partyGeo.memberWidth, party.height)
 			Paint(f, f.sample)
 		end
-		for _, f in ipairs(preview.raidFrames) do
+		local groups = 0
+		for g = 1, 8 do groups = groups + (cfg.groups["show" .. g] and 1 or 0) end
+		for i, f in ipairs(preview.raidFrames) do
+			f:SetShown(i <= math.min(groups, RAID_GROUPS_SHOWN) * GROUP_SIZE)
 			Style.Apply(f, raid.width, raid.height)
 			Paint(f, f.sample)
 		end

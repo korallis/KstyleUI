@@ -182,10 +182,7 @@ function Style.PowerShown(f)
 	if not f.sample and f.unit and UnitGroupRolesAssigned then
 		role = UnitGroupRolesAssigned(f.unit)
 	end
-	if (issecretvalue and issecretvalue(role)) or not POWER_ROLES[role] then
-		return true
-	end
-	return power[POWER_ROLES[role]] == true
+	return (issecretvalue and issecretvalue(role)) or power[POWER_ROLES[role]] ~= false
 end
 
 function Style.Size(f)
@@ -619,6 +616,10 @@ function Style.Paint(f)
 end
 
 function Style.SetHovered(f, hovered)
-	f.hovered = hovered and Settings.current.accent.hover and true or false
+	hovered = hovered and Settings.current.accent.hover and true or false
+	if not (hovered or f.hovered or (f.hoverT or 0) > 0) then
+		return
+	end
+	f.hovered = hovered
 	K.Motion.Tween(f, SetHoverT, f.hoverT or 0, f.hovered and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
 end

@@ -153,7 +153,7 @@ end
 Style.appliers[#Style.appliers + 1] = Layout
 
 local function UnitRole(f)
-	local role = UnitGroupRolesAssigned(f.unit)
+	local role = UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
 	if issecretvalue(role) or type(role) ~= "string" or role == "NONE" or not GetMicroIconForRole then
 		f.role:Hide()
 		return
@@ -194,7 +194,8 @@ local function RoleHidden(f)
 	elseif icons.roleTank and icons.roleHealer and icons.roleDamager then
 		return false
 	end
-	local role = f.sample and f.sample.role or UnitGroupRolesAssigned(f.unit)
+	local role = f.sample and f.sample.role
+	if not f.sample and UnitGroupRolesAssigned then role = UnitGroupRolesAssigned(f.unit) end
 	return not issecretvalue(role) and ROLE_KEYS[role] ~= nil and not icons[ROLE_KEYS[role]]
 end
 
@@ -205,7 +206,7 @@ local function Role(f)
 		return
 	end
 	if f.pipped then
-		local role = UnitGroupRolesAssigned(f.unit)
+		local role = UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
 		if not issecretvalue(role) then
 			f.role:Hide()
 			ShowPip(f, role)
@@ -408,15 +409,13 @@ local function PaintSample(f, sample)
 	local icons = Settings.current.icons
 	local role = icons.role and not RoleHidden(f) and sample.role or nil
 	local atlas = not f.roleInRing and role and GetMicroIconForRole and GetMicroIconForRole(role)
-	ShowPip(f, f.pipped and role or nil)
 	if f.pipped then
 		f.role:Hide()
 		ShowPip(f, role)
-	elseif type(atlas) == "string" then
-		f.role:SetAtlas(atlas)
-		f.role:Show()
 	else
-		f.role:Hide()
+		ShowPip(f, nil)
+		if type(atlas) == "string" then f.role:SetAtlas(atlas) end
+		f.role:SetShown(type(atlas) == "string")
 	end
 	f.leader:SetShown(icons.leader)
 	f.leader:SetAlpha(sample.leader and 1 or 0)
@@ -445,16 +444,16 @@ end
 Style.painters[#Style.painters + 1] = PaintSample
 
 local events = Frames.events
+local EachRole, EachLeader = Each(Role), Each(Leader)
 events[#events + 1] = { event = "RAID_TARGET_UPDATE", fn = Each(Marker) }
-events[#events + 1] = { event = "PARTY_LEADER_CHANGED", fn = Each(Leader) }
-events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Each(Role) }
+events[#events + 1] = { event = "PARTY_LEADER_CHANGED", fn = EachLeader }
+events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = EachRole }
 events[#events + 1] = { event = "READY_CHECK", fn = ReadyStart }
 events[#events + 1] = { event = "READY_CHECK_CONFIRM", fn = EachReady }
 events[#events + 1] = { event = "READY_CHECK_FINISHED", fn = ReadyFinished }
 for _, event in ipairs({ "INCOMING_RESURRECT_CHANGED", "INCOMING_SUMMON_CHANGED", "PLAYER_FLAGS_CHANGED" }) do
 	events[#events + 1] = { event = event, fn = Each(Status) }
 end
-local EachRole, EachLeader = Each(Role), Each(Leader)
 local function CombatChanged()
 	local icons = Settings.current.icons
 	if not icons.roleInCombat then EachRole() end
@@ -462,3 +461,6 @@ local function CombatChanged()
 end
 events[#events + 1] = { event = "PLAYER_REGEN_DISABLED", fn = CombatChanged }
 events[#events + 1] = { event = "PLAYER_REGEN_ENABLED", fn = CombatChanged }
+for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "ENCOUNTER_START" }) do
+	events[#events + 1] = { event = event, fn = Button.Starting }
+end

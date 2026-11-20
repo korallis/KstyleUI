@@ -77,11 +77,9 @@ do
 	local get = ns.Settings.Get
 	for _, key in ipairs({ "icons.roleTank", "icons.roleHealer", "icons.roleDamager", "icons.roleInCombat", "icons.leaderInCombat",
 		"power.tanks", "power.healers", "power.damagers", "accent.hover", "accent.target", "auras.magic", "auras.curse",
-		"auras.poison", "auras.disease", "auras.bleed", "groups.show1", "groups.show8", "auras.tooltips", "buffs.tooltips" }) do
+		"auras.poison", "auras.disease", "auras.bleed", "groups.show1", "groups.show8", "auras.tooltips", "buffs.tooltips",
+		"health.statusGrey", "auras.lasting", "groups.mythicBench" }) do
 		assert(get(key) == true, key .. " starts on")
-	end
-	for _, key in ipairs({ "health.statusColors", "auras.timedOnly", "groups.mythic" }) do
-		assert(get(key) == false, key .. " starts off")
 	end
 	assert(get("health.colorSource") == "class" and get("health.alpha") == 1 and get("tooltip.mode") == "ALWAYS"
 		and get("auras.dispelAlpha") == 0.16 and get("auras.dispelLines") == 2 and get("party.portraitZoom") == 0
@@ -174,14 +172,14 @@ do
 	local dead = frame(ns, "party2")
 	local dr, dg, db = K.Tokens.Color("textDisabled")
 	colorIs(env, dead, { r = dr, g = dg, b = db }, "dead members keep the disabled grey by default")
-	write(env, K, "health.statusColors", true)
+	write(env, K, "health.statusGrey", false)
 	write(env, K, "health.deadColor", { r = 0.5, g = 0, b = 0 })
 	colorIs(env, dead, { r = 0.5, g = 0, b = 0 }, "the dead colour applies")
 	env._roster.units.party3.online = false
 	env.FireEvent("UNIT_CONNECTION", "party3")
 	write(env, K, "health.offlineColor", { r = 0, g = 0, b = 0.5 })
 	colorIs(env, frame(ns, "party3"), { r = 0, g = 0, b = 0.5 }, "the offline colour applies")
-	write(env, K, "health.statusColors", false)
+	write(env, K, "health.statusGrey", true)
 	colorIs(env, dead, { r = dr, g = dg, b = db }, "off restores the grey")
 	noErrors(env, K)
 end
@@ -279,11 +277,11 @@ do
 	end
 	assert(f.highlights._slots.boss.candidateFilters.excludeDispelTypes.Magic, "so does the boss slot")
 	assert(f.highlights._slots.dispel.candidateFilters == nil, "the dispel highlight stays independent")
-	write(env, K, "auras.timedOnly", true)
+	write(env, K, "auras.lasting", false)
 	assert(filters("debuffs").maxDuration == math.huge, "only debuffs that expire")
 	write(env, K, "auras.magic", true)
 	write(env, K, "auras.bleed", true)
-	write(env, K, "auras.timedOnly", false)
+	write(env, K, "auras.lasting", true)
 	assert(filters("debuffs").excludeDispelTypes == nil and filters("debuffs").maxDuration == nil, "switching back clears the filters")
 
 	local slot = f.dispelFrame
@@ -359,7 +357,7 @@ do
 	write(env, K, "groups.show2", true)
 	assert(headers[2]:GetAttribute("groupFilter") == "2" and #G.Shown(headers[6]) == 5, "showing it again restores every group")
 
-	write(env, K, "groups.mythic", true)
+	write(env, K, "groups.mythicBench", false)
 	assert(ns.Settings.current.groups.show5 == true and #G.Shown(headers[5]) == 5, "outside Mythic group 5 shows")
 	env._difficulty = 16
 	env.FireEvent("ZONE_CHANGED_NEW_AREA")

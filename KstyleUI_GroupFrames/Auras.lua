@@ -194,7 +194,7 @@ local DISPEL_TYPES = { magic = "Magic", curse = "Curse", poison = "Poison", dise
 
 local function Narrowed()
 	local a = Settings.current.auras
-	return not (a.magic and a.curse and a.poison and a.disease and a.bleed) or a.timedOnly
+	return not (a.magic and a.curse and a.poison and a.disease and a.bleed and a.lasting)
 end
 
 local function Narrow(candidates)
@@ -208,7 +208,7 @@ local function Narrow(candidates)
 			candidates.excludeDispelTypes[name] = true
 		end
 	end
-	if a.timedOnly then
+	if not a.lasting then
 		candidates.maxDuration = math.huge
 	end
 	return candidates
@@ -392,10 +392,7 @@ local function Zoom(icon, zoom)
 end
 
 local function Tips(p)
-	if p.size then
-		return true
-	end
-	return p.buff and Settings.current.buffs.tooltips or not p.buff and Settings.current.auras.tooltips
+	return Settings.current[p.buff and "buffs" or "auras"].tooltips
 end
 
 local function StyleIcon(button)
@@ -415,7 +412,8 @@ local function StyleIcon(button)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledZoom == a.zoom and p.styledTips == Tips(p) and (not mark or p.styledPriority == MarkLift(p.group)) then
+	local tips = Tips(p)
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledZoom == a.zoom and p.styledTips == tips and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -445,8 +443,8 @@ local function StyleIcon(button)
 	end
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if a.zoom ~= (p.styledZoom or ICON_CROP) then Zoom(p.icon, a.zoom) end
-	if Tips(p) ~= (p.styledTips ~= false) and button.SetMouseMotionEnabled then
-		pcall(button.SetMouseMotionEnabled, button, Tips(p))
+	if tips ~= (p.styledTips ~= false) and button.SetMouseMotionEnabled then
+		pcall(button.SetMouseMotionEnabled, button, tips)
 	end
 	if p.mark and not p.size then
 		if p.buff or not f.debuffChip then
@@ -458,7 +456,7 @@ local function StyleIcon(button)
 		end
 	end
 	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers = text.healthFont, a.swipe, a.stacks, a.timers
-	p.styledZoom, p.styledTips = a.zoom, Tips(p)
+	p.styledZoom, p.styledTips = a.zoom, tips
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -902,9 +900,11 @@ local function ConfigureDispelGhost(f, k, a, block, filter)
 	local cap = GroupCount(f, k, DISPELS) + OVERFLOW
 	local badge = Widgets.Snap(f, math.max(MARK_MIN, block.size * MARK_SHARE))
 	local pitch = badge * MORE_PITCH
-	ghost:SetAuraProcessingPolicy(Processing(), PolicyOptions())
+	local policy, types = Processing()
+	ghost:SetAuraProcessingPolicy(policy, PolicyOptions())
 	ghost:SetAuraGroupFilterString(MORE, filter)
-	if f.narrowed or Narrowed() then ghost:SetAuraGroupCandidateFilters(MORE, Candidates(DISPELS, select(2, Processing()))) end
+	if more.narrowed or Narrowed() then ghost:SetAuraGroupCandidateFilters(MORE, Candidates(DISPELS, types)) end
+	more.narrowed = Narrowed()
 	ghost:SetAuraGroupMaxFrameCount(MORE, cap)
 	ghost:SetAuraGroupLayout(MORE, { elementWidth = 1, elementHeight = pitch, elementSpacing = 0, lineSpacing = 0 })
 	local window = more.window
@@ -1194,10 +1194,10 @@ local function Configure(f)
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
 	local filter = Filter()
+	local policy, types = Processing()
 	if f.processed then
-		container:SetAuraProcessingPolicy(Processing(), PolicyOptions())
+		container:SetAuraProcessingPolicy(policy, PolicyOptions())
 		local dispels = DispelCount(k)
-		local _, types = Processing()
 		for _, key in ipairs({ BOSS, IMPORTANT, DISPELS }) do
 			container:SetAuraGroupLayout(key, GroupLayout(f, k, key))
 			container:SetAuraGroupFilterString(key, filter)
@@ -1221,8 +1221,9 @@ local function Configure(f)
 	container:SetAuraGroupMaxFrameCount(GROUP, GroupCount(f, k, GROUP))
 	container:SetAuraGroupFilterString(GROUP, filter)
 	if f.processed then
-		local _, types = Processing()
 		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP, types, k))
+	elseif narrow then
+		container:SetAuraGroupCandidateFilters(GROUP, Narrow({}))
 	end
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions and type(container.SetAuraGroupSortMethod) == "function" then
@@ -1472,6 +1473,7 @@ local function LayoutSamples(f, k)
 		boss.tile.chrome:Restyle()
 		boss.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(boss.tile)
+		Zoom(boss.tile.icon, Settings.current.auras.zoom)
 	end
 	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end
@@ -1488,17 +1490,19 @@ Style.appliers[#Style.appliers + 1] = Applied
 local function PaintSample(f, sample)
 	local k, a = Settings.current[f.kind], Settings.current.auras
 	local cells = math.min(f.sampleCells or Count(k), #f.sampleAuras)
-	local debuffs = a.enabled and (sample.debuffs or 0) or 0
-	for i = debuffs, 1, -1 do
+	local kept = {}
+	for i = 1, a.enabled and (sample.debuffs or 0) or 0 do
 		local kind = SAMPLE_TYPES[i]
-		if (kind and not a[kind]) or (i == SAMPLE_LASTING and a.timedOnly) then
-			debuffs = debuffs - 1
+		if (not kind or a[kind]) and (i ~= SAMPLE_LASTING or a.lasting) then
+			kept[#kept + 1] = i
 		end
 	end
+	local debuffs = #kept
 	local more = cells > 0 and debuffs > cells
 	local shown = more and cells - 1 or math.min(debuffs, cells)
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
+		if kept[i] then icon.art:SetTexture(SAMPLE_ICONS[kept[i]]) end
 	end
 	if more then
 		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))

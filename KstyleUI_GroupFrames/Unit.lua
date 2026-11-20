@@ -147,7 +147,7 @@ end
 
 function Unit.StatusColor(status)
 	local health = Settings.current.health
-	if not health.statusColors then
+	if health.statusGrey then
 		return Tokens.Color("textDisabled")
 	end
 	local c = status == "offline" and health.offlineColor or health.deadColor
@@ -178,10 +178,10 @@ local function GradientCurves()
 		Style.LogOnce("noGradient", "C_CurveUtil or UnitHealthPercent is missing; the by-health colour keeps the full health colour")
 		return nil
 	end
-	local curves = {}
+	local curves, stops = {}, Unit.GradientStops()
 	for i, channel in ipairs({ "r", "g", "b" }) do
 		curves[i] = util.CreateCurve()
-		for _, stop in ipairs(Unit.GradientStops()) do
+		for _, stop in ipairs(stops) do
 			curves[i]:AddPoint(stop[1], stop[2][channel])
 		end
 	end
@@ -209,6 +209,10 @@ local function Colors(f)
 	local alpha = health.alpha
 	local healthSource, nameSource = Unit.ColorSources(f)
 	f.health:SetHealthUnit(nil)
+	if (f.fillAlpha or 1) ~= alpha then
+		f.health.fillClip:SetAlpha(alpha)
+		f.fillAlpha = alpha
+	end
 	f.gradient = not f.status and healthSource == "gradient"
 	if f.status then
 		local r, g, b = Unit.StatusColor(f.status)
@@ -315,9 +319,6 @@ end
 local function Health(f)
 	local unit = f.unit
 	f.health:SetHealth(UnitHealth(unit), f.fresh)
-	if f.gradient then
-		GradientColor(f)
-	end
 	HealthText(f)
 end
 
@@ -406,12 +407,15 @@ local HANDLERS = {
 		if f.status ~= before then
 			Colors(f)
 			Range(f)
+		elseif f.gradient then
+			GradientColor(f)
 		end
 		Health(f)
 	end,
 	UNIT_MAXHEALTH = function(f)
 		f.health:SetBarRange(0, UnitHealthMax(f.unit))
 		Health(f)
+		if f.gradient then GradientColor(f) end
 	end,
 	UNIT_NAME_UPDATE = function(f)
 		Name(f)
@@ -583,25 +587,25 @@ local function PartyCount(deferGroups)
 		local card = Headers.cards and Headers.cards.raid
 		local groups = card and card.groups
 		if not deferGroups then
-			groups = Unit.HighestGroup(count)
+			groups = Unit.GroupSizes(count)
 		end
 		Headers.SetRaidCount(count, groups)
 	end
 end
 
-function Unit.HighestGroup(count)
+function Unit.GroupSizes(count)
 	if not count or type(GetRaidRosterInfo) ~= "function" then
 		return nil
 	end
-	local highest
+	local sizes = {}
 	for i = 1, count do
 		local _, _, group = GetRaidRosterInfo(i)
 		if IsSecret(group) or type(group) ~= "number" then
 			return nil
 		end
-		highest = math.max(highest or 0, group)
+		sizes[group] = (sizes[group] or 0) + 1
 	end
-	return highest
+	return sizes
 end
 Unit.PartyCount = PartyCount
 

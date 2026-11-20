@@ -37,7 +37,7 @@ return Common.Run(function()
 		K.Options.Write(module, "party.healthTextPlace", "BAR")
 		if os.getenv("RENDER_PARITY_R1") == "1" then
 			K.Options.Write(module, "health.colorSource", "gradient")
-			K.Options.Write(module, "health.statusColors", true)
+			K.Options.Write(module, "health.statusGrey", false)
 			K.Options.Write(module, "icons.roleDamager", false)
 			K.Options.Write(module, "power.damagers", false)
 		end

@@ -57,7 +57,7 @@ end
 local colorSources = Unit.ColorSources
 function Unit.ColorSources(f)
 	if f and f.kind == "raid" and Medallions.Active() then
-		return "class", "text"
+		return colorSources(f) == "gradient" and "gradient" or "class", "text"
 	end
 	return colorSources(f)
 end
@@ -505,7 +505,7 @@ function Style.Paint(f)
 end
 
 local function PaintSample(f, sample)
-	if not Medallions.Active() or f.kind ~= "raid" or f.status then
+	if not Medallions.Active() or f.kind ~= "raid" or f.status or Settings.current.health.colorSource == "gradient" then
 		return
 	end
 	local r, g, b = K.Theme.ClassColor(sample.class)

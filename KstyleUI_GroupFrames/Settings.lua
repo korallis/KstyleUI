@@ -59,7 +59,7 @@ Settings.defaults = {
 	health = {
 		texture = Tokens.MediaList("statusbar")[1].path, colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL", alpha = 1,
 		gradientHigh = Rgb("friendly"), gradientMid = Rgb("neutral"), gradientLow = Rgb("hostile"), gradientLowAt = 0, gradientHighAt = 100,
-		statusColors = false, deadColor = Rgb("textDisabled"), offlineColor = Rgb("textDisabled"),
+		statusGrey = true, deadColor = Rgb("textDisabled"), offlineColor = Rgb("textDisabled"),
 	},
 	power = { colorSource = "power", color = Rgb("rare"), tanks = true, healers = true, damagers = true },
 	text = {
@@ -73,10 +73,10 @@ Settings.defaults = {
 	},
 	threat = { enabled = true, shapes = true },
 	tooltip = { mode = "ALWAYS" },
-	groups = { show1 = true, show2 = true, show3 = true, show4 = true, show5 = true, show6 = true, show7 = true, show8 = true, mythic = false },
+	groups = { show1 = true, show2 = true, show3 = true, show4 = true, show5 = true, show6 = true, show7 = true, show8 = true, mythicBench = true },
 	auras = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
-		magic = true, curse = true, poison = true, disease = true, bleed = true, timedOnly = false, dispelAlpha = 0.16, dispelLines = 2,
+		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
 		zoom = 0.07, tooltips = true,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
@@ -263,7 +263,7 @@ function Settings.Schema(includeText)
 			for g = 1, 8 do
 				add(Toggle("groups.show" .. g, L["Show group %d"]:format(g), L["Shows this raid group's members. The groups shown close up, in order."]))
 			end
-			add(Toggle("groups.mythic", L["Hide groups 5 to 8 in Mythic raids"], L["In a Mythic raid only groups 1 to 4 fight, so the benched groups hide."]))
+			add(Toggle("groups.mythicBench", L["Groups 5 to 8 in Mythic raids"], L["Off hides groups 5 to 8 in a Mythic raid, where only groups 1 to 4 fight."]))
 		end
 		add(Toggle(p .. "power", L["Power bar"], L["Shows a thin mana, rage or energy bar under the health bar."]))
 		add(Slider(p .. "powerHeight", L["Power bar height"], L["The height of the power bar in interface units."], 1, 12, 1))
@@ -333,9 +333,9 @@ function Settings.Schema(includeText)
 		schema[#schema].showWhen = gradient
 		add(Slider("health.alpha", L["Fill opacity"], L["How solid the health fill is."], 0.1, 1, 0.05))
 		add(Dropdown("health.orientation", L["Fill direction"], L["Fills the health bar from left to right or from the bottom up."], ORIENTATION))
-		add(Toggle("health.statusColors", L["Dead and offline colours"], L["Paints the bars of dead and offline members in colours you choose."]))
-		add({ type = "color", key = "health.deadColor", label = L["Dead colour"], help = L["The bar's colour while a member is dead or a ghost."], showWhen = Is("health.statusColors", true) })
-		add({ type = "color", key = "health.offlineColor", label = L["Offline colour"], help = L["The bar's colour while a member is offline."], showWhen = Is("health.statusColors", true) })
+		add(Toggle("health.statusGrey", L["Grey dead and offline bars"], L["Off paints the bars of dead and offline members in colours you choose."]))
+		add({ type = "color", key = "health.deadColor", label = L["Dead colour"], help = L["The bar's colour while a member is dead or a ghost."], showWhen = Is("health.statusGrey", false) })
+		add({ type = "color", key = "health.offlineColor", label = L["Offline colour"], help = L["The bar's colour while a member is offline."], showWhen = Is("health.statusGrey", false) })
 		add({ type = "header", label = L["Power bar"] })
 		K.Widgets.BarRows(schema, "power", { texture = false, options = POWER_COLOR, custom = Is("power.colorSource", "custom") })
 		add(Toggle("power.tanks", L["Power bar for tanks"], L["Shows the power bar on tanks' frames; off gives their health bar the room."]))
@@ -377,7 +377,7 @@ function Settings.Schema(includeText)
 		for _, kind in ipairs({ { "magic", L["Magic debuffs"] }, { "curse", L["Curse debuffs"] }, { "poison", L["Poison debuffs"] }, { "disease", L["Disease debuffs"] }, { "bleed", L["Bleed debuffs"] } }) do
 			add(Toggle("auras." .. kind[1], kind[2], L["Shows debuffs of this type; off leaves them out of every debuff row."], { disableWhen = Is("auras.enabled", false) }))
 		end
-		add(Toggle("auras.timedOnly", L["Only debuffs that expire"], L["Leaves out debuffs that last until removed."], { disableWhen = Is("auras.enabled", false) }))
+		add(Toggle("auras.lasting", L["Debuffs that last until removed"], L["Shows debuffs that never expire; off leaves them out of every debuff row."], { disableWhen = Is("auras.enabled", false) }))
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 		add(Slider("auras.zoom", L["Icon zoom"], L["How far into its artwork each debuff and heal icon crops."], 0, 0.2, 0.01))
 		add(Toggle("auras.tooltips", L["Debuff tooltips"], L["Shows a debuff's tooltip when you point at its icon."]))

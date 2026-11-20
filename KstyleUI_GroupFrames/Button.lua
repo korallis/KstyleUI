@@ -63,21 +63,31 @@ local function ClickHint(tooltip)
 	tooltip:AddLine(L["Bind spells to clicks on these frames in %s."]:format(path), r, g, b, true)
 end
 
-local function Plain(fn, ...)
-	local value = type(fn) == "function" and fn(...)
-	return not issecretvalue(value) and value == true
+local function Calm(fn, ...)
+	if type(fn) ~= "function" then
+		return false
+	end
+	local value = fn(...)
+	return not issecretvalue(value) and value == false
 end
 
 local function TooltipAllowed()
 	local mode = Settings.current.tooltip.mode
-	if mode == "NEVER" then
-		return false
-	elseif mode == "COMBAT" then
-		return not Plain(UnitAffectingCombat, "player")
+	if mode == "COMBAT" then
+		return Calm(UnitAffectingCombat, "player")
 	elseif mode == "BOSS" then
-		return not Plain(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress)
+		return Calm(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress)
 	end
-	return true
+	return mode ~= "NEVER"
+end
+
+local held
+local STARTS = { PLAYER_REGEN_DISABLED = "COMBAT", ENCOUNTER_START = "BOSS" }
+function Button.Starting(event)
+	local tooltip = GameTooltip
+	if held and STARTS[event] == Settings.current.tooltip.mode and tooltip and tooltip.IsOwned and tooltip:IsOwned(held) then
+		tooltip:Hide()
+	end
 end
 
 local function OnEnter(button)
@@ -92,6 +102,7 @@ local function OnEnter(button)
 		tooltip:SetUnit(f.unit)
 		ClickHint(tooltip)
 		tooltip:Show()
+		held = button
 	end
 end
 

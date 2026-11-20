@@ -13,7 +13,6 @@ local GROUP_BUTTONS = 5
 local RAID_BUTTONS = 40
 local TEMPLATE = "SecureGroupHeaderTemplate"
 local BUTTON_TEMPLATE = "SecureUnitButtonTemplate"
-local ALL_GROUPS = "1,2,3,4,5,6,7,8"
 local ROLE_ORDER = "TANK,HEALER,DAMAGER,NONE"
 local DRIVER_PARTY = "[group:raid] hide; [group] show; hide"
 local DRIVER_PARTY_SOLO = "[group:raid] hide; show"
@@ -303,31 +302,17 @@ local function ShownGroups()
 	return out
 end
 
-local function ShownCount(members, groups)
-	local shown = ShownGroups()
-	if #shown == RAID_GROUPS then
-		return members, groups
-	end
-	local slot = {}
-	for i, g in ipairs(shown) do slot[g] = i end
-	local used = 0
-	for g = 1, groups or 0 do used = slot[g] or used end
-	if type(GetRaidRosterInfo) ~= "function" then
-		return members, groups and used
-	end
-	local count = members and 0
-	for i = 1, members or 0 do
-		local _, _, group = GetRaidRosterInfo(i)
-		if issecretvalue and issecretvalue(group) or type(group) ~= "number" then
-			return members, groups and used
+local function RaidShown(s, members, sizes)
+	local cfg, groups, slot = ns.Settings.current.groups, nil, 0
+	for g = 1, sizes and RAID_GROUPS or 0 do
+		local size = sizes[g] or 0
+		if cfg["show" .. g] then
+			slot = slot + 1
+			groups = size > 0 and slot or groups
+		elseif members then
+			members = math.max(0, members - size)
 		end
-		count = count + (slot[group] and 1 or 0)
 	end
-	return count, groups and used
-end
-
-local function RaidShown(s, members, groups)
-	members, groups = ShownCount(members, groups)
 	if s.sortBy == "GROUP" then
 		return Geometry.RaidGroups(s, groups or (members and math.ceil(members / GROUP_BUTTONS)))
 	end
@@ -391,7 +376,7 @@ function Headers.ApplyRaid(s)
 	for g, header in ipairs(Headers.raid) do
 		RaidHeader(header, holder, s)
 		if g == 1 then
-			header:SetAttribute("groupFilter", #shown == RAID_GROUPS and ALL_GROUPS or table.concat(shown, ","))
+			header:SetAttribute("groupFilter", table.concat(shown, ","))
 			Sort(header, s.sortBy)
 			Columns(header, geo.unitsPerColumn, geo.maxColumns, geo.columnAnchorPoint, geo.columnSpacing)
 			Grow(header, geo, "raid")

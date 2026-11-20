@@ -49,9 +49,15 @@ local function Large(raid)
 	raid.healthText = "NONE"
 end
 
+local function Mythic()
+	local id = DifficultyUtil and DifficultyUtil.ID and DifficultyUtil.ID.PrimaryRaidMythic
+	local difficulty = id and type(GetInstanceInfo) == "function" and select(3, GetInstanceInfo())
+	return id ~= nil and not Unit.IsSecret(difficulty) and difficulty == id
+end
+
 function AutoLayout.Overlay(cfg, state)
 	state = state or AutoLayout.state
-	if cfg.groups and cfg.groups.mythic and state.mythic then
+	if cfg.groups and not cfg.groups.mythicBench and Mythic() then
 		for g = 5, 8 do cfg.groups["show" .. g] = false end
 	end
 	if cfg.presets and cfg.presets.raid == "Healer" then
@@ -98,9 +104,7 @@ local function Read()
 	local members = not Unit.IsSecret(raid) and raid == true and type(GetNumGroupMembers) == "function" and GetNumGroupMembers() or nil
 	local role = type(UnitGroupRolesAssigned) == "function" and UnitGroupRolesAssigned("player") or nil
 	local healer = not Unit.IsSecret(role) and role == "HEALER"
-	local mythicID = DifficultyUtil and DifficultyUtil.ID and DifficultyUtil.ID.PrimaryRaidMythic
-	local difficulty = mythicID and type(GetInstanceInfo) == "function" and select(3, GetInstanceInfo())
-	return { bracket = AutoLayout.Bracket(members), healer = healer, mythic = mythicID ~= nil and not Unit.IsSecret(difficulty) and difficulty == mythicID }
+	return { bracket = AutoLayout.Bracket(members), healer = healer, mythic = not Settings.current.groups.mythicBench and Mythic() }
 end
 
 local function Settle()
