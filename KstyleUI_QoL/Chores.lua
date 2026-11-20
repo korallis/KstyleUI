@@ -1,4 +1,4 @@
--- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, and skipping movies; each touches the game only while its switch is on and undoes only what it did.
+-- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, and skipping movies; each touches the game only while its switch is on and undoes only what it did. A hook on LoggingCombat hands the log back to the player once anyone else starts or stops it; a movie skip waits only while Shift was up at its start and no skip setting changed.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -6,7 +6,7 @@ local K, L = ns.K, ns.L
 local OWNER = "QoL.chores"
 local SHOT = "SCREENSHOT_SUCCEEDED"
 
-local muted, logging = false, false
+local muted, logging, hooked = false, false, false
 local movieToken = 0
 
 local function Screenshot()
@@ -23,14 +23,18 @@ local function Screenshot()
 end
 
 local function Reset(_, text)
-	if not ns.LootText.Matches("INSTANCE_RESET_SUCCESS", text) or ns.True(InCombatLockdown()) then return end
-	local channel = ns.True(IsInRaid()) and "RAID" or ns.True(IsInGroup()) and "PARTY"
+	if not ns.LootText.Matches("INSTANCE_RESET_SUCCESS", text) or ns.Ask(InCombatLockdown) ~= false then return end
+	local channel = ns.Ask(IsInRaid) == true and "RAID" or ns.Ask(IsInGroup) == true and "PARTY"
 	local send = C_ChatInfo and C_ChatInfo.SendChatMessage
 	if channel and type(send) == "function" then send(text, channel) end
 end
 
 local function Log()
-	if type(LoggingCombat) ~= "function" then return end
+	if type(LoggingCombat) ~= "function" or type(IsInInstance) ~= "function" then return end
+	if not hooked then
+		hooked = true
+		hooksecurefunc("LoggingCombat", function(on) if on ~= nil then logging = false end end)
+	end
 	local inside, kind = IsInInstance()
 	local where = ns.Get("autoLogWhere")
 	local want = ns.running and ns.Get("autoLog") and ns.True(inside) and not ns.IsSecret(kind) and (where == "all" or kind == where)
@@ -48,10 +52,10 @@ end
 local function Movie()
 	movieToken = movieToken + 1
 	local token = movieToken
-	if not ns.Get("skipCinematics") or ns.Get("skipMode") == "cinematics" then return end
+	if not ns.Get("skipCinematics") or ns.Get("skipMode") == "cinematics" or ns.Ask(IsShiftKeyDown) ~= false or not (C_Timer and type(C_Timer.After) == "function") then return end
 	C_Timer.After(ns.Get("skipDelay"), function()
-		local frame, shift, fight = MovieFrame, IsShiftKeyDown(), InCombatLockdown()
-		if token ~= movieToken or not ns.running or ns.IsSecret(shift) or shift ~= false or ns.IsSecret(fight) or fight ~= false then return end
+		local frame = MovieFrame
+		if token ~= movieToken or not ns.running or ns.Ask(IsShiftKeyDown) ~= false or ns.Ask(InCombatLockdown) ~= false then return end
 		if type(frame) == "table" and type(frame.FinishMovie) == "function" and ns.True(frame:IsShown()) then frame:FinishMovie() end
 	end)
 end
@@ -69,7 +73,6 @@ local function Sync()
 			if on then K.Events.Register(OWNER, event, fn) else K.Events.Unregister(OWNER, event) end
 		end
 	end
-	movieToken = movieToken + 1
 	if muted or ns.Get("hideScreenshot") then Screenshot() end
 	if logging or ns.Get("autoLog") then Log() end
 end
@@ -79,8 +82,9 @@ local KEYS = { hideScreenshot = true, announceReset = true, autoLog = true, auto
 ns.AddPart({
 	name = "chores",
 	Start = Sync,
-	Stop = Sync,
+	Stop = function() movieToken = movieToken + 1; Sync() end,
 	Setting = function(key)
+		if key == nil or key == "skipCinematics" or key == "skipMode" or key == "skipDelay" then movieToken = movieToken + 1 end
 		if key == nil or KEYS[key] then Sync() end
 	end,
 })
