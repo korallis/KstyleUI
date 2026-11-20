@@ -104,12 +104,9 @@ function Preview.Build(...)
 				return
 			end
 			elapsed = 0
+			if nextSample == #SAMPLES and not (cfg.power and cfg.units.player) then nextSample = 1 end
 			local sample = SAMPLES[nextSample]
 			nextSample = nextSample % #SAMPLES + 1
-			if sample.kind == "power" and not cfg.power then
-				sample = SAMPLES[nextSample]
-				nextSample = nextSample % #SAMPLES + 1
-			end
 			Display.Spawn(emitters[sample.place], cfg, sample.kind, sample.emphasis, sample.amount, sample.word, sample.school)
 		end)
 		frame:SetScript("OnHide", function()

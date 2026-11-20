@@ -51,6 +51,7 @@ local defaults = {
 	powerColor = TokenColor("rare"),
 	playerPlacement = "field",
 	fieldDistance = 48,
+	fieldDistanceMedallions = 40,
 	clearLanes = true,
 	calmNumbers = true,
 	framePoint = "CENTER",
@@ -76,7 +77,6 @@ local MEDALLIONS = {
 	critScale = 1.4,
 	duration = 0.9,
 	maxPerFrame = 6,
-	fieldDistance = 40,
 	damageColor = { r = 0xff / 255, g = 0xd2 / 255, b = 0x3f / 255 },
 	critTint = { r = 0xff / 255, g = 0xf1 / 255, b = 0xa8 / 255 },
 	healColor = { r = 0x62 / 255, g = 0xd5 / 255, b = 0x8d / 255 },
@@ -126,6 +126,11 @@ end
 local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), Set(STYLE_OPTIONS), Set(OUTLINE_OPTIONS), Set(FORMAT_OPTIONS), Set(COLOR_MODE_OPTIONS)
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+
+local function Medallions()
+	local hud = K.HudStyle
+	return hud ~= nil and hud.Current() == "medallions"
+end
 
 function Settings.Schema()
 	local function WorldFontOn(settings)
@@ -255,7 +260,12 @@ function Settings.Schema()
 		{
 			type = "slider", key = "fieldDistance", label = L["Travel above you"],
 			help = L["How far your numbers move in their field above your character, up to the field's height."],
-			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = function() return not Medallions() end,
+		},
+		{
+			type = "slider", key = "fieldDistanceMedallions", label = L["Travel above you"],
+			help = L["How far your numbers move in their field above your character, up to the field's height."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = Medallions,
 		},
 		{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
 		{
@@ -364,14 +374,9 @@ local function Same(a, b)
 	return a == b
 end
 
-local function Medallions()
-	local hud = K.HudStyle
-	return hud ~= nil and hud.Current() == "medallions"
-end
-
 local function Styled(values, key, medallions)
 	local value = values[key]
-	if medallions and (value == nil or (not IsSecret(value) and Same(value, defaults[key]))) then
+	if medallions and not IsSecret(value) and (value == nil or Same(value, defaults[key])) then
 		return MEDALLIONS[key]
 	end
 	return value
@@ -411,7 +416,8 @@ function Settings.Snapshot(values, cfg)
 	cfg.fontPath = FontPath(values.font, medallions and Tokens.FontPath("BarlowBold") or (Tokens.Font("number")))
 	cfg.size = Number(Styled(values, "size", medallions), SIZE_MIN, SIZE_MAX, d.size)
 	cfg.fadeTime = medallions and MEDALLIONS_FADE or nil
-	cfg.rise = Number(Styled(values, "fieldDistance", medallions), DISTANCE_MIN, DISTANCE_MAX, d.fieldDistance)
+	local travel = medallions and "fieldDistanceMedallions" or "fieldDistance"
+	cfg.rise = Number(values[travel], DISTANCE_MIN, DISTANCE_MAX, d[travel])
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"

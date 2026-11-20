@@ -115,40 +115,27 @@ function Format.Classify(event, flag, amount)
 	return nil
 end
 
-local function SecretGain(amount)
-	local util = C_StringUtil
-	return util.WrapString(util.TruncateWhenZero(amount), "+")
-end
-
 function Format.Text(fontString, cfg, kind, amount, word)
-	if kind == "power" and IsSecret(amount) then
-		local ok, text = pcall(SecretGain, amount)
-		if ok then
-			fontString:SetText(text)
-		else
-			fontString:SetText("")
-		end
-		return
-	elseif word then
+	if word then
 		fontString:SetText(Words()[word] or word)
 		return
 	end
-	local formatter = cfg.formatter
+	local formatter, text = cfg.formatter, amount
 	if formatter then
-		local ok, text = pcall(formatter, amount)
+		local ok, formatted = pcall(formatter, amount)
 		if ok then
-			if kind == "heal" or kind == "power" then
-				fontString:SetFormattedText(HEAL_FORMAT, text)
-			else
-				fontString:SetText(text)
-			end
-			return
+			text = formatted
+		else
+			LogOnce("formatter", "the number formatter failed (" .. tostring(formatted) .. "); numbers show unformatted")
 		end
-		LogOnce("formatter", "the number formatter failed (" .. tostring(text) .. "); numbers show unformatted")
 	else
 		LogOnce("noformatter", "AbbreviateNumbers and BreakUpLargeNumbers are missing; numbers show unformatted")
 	end
-	fontString:SetText(amount)
+	if kind == "heal" or kind == "power" then
+		fontString:SetFormattedText(HEAL_FORMAT, text)
+	else
+		fontString:SetText(text)
+	end
 end
 
 function Format.Color(cfg, kind, emphasis, school)

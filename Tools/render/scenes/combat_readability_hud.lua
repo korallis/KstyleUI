@@ -66,9 +66,10 @@ return Common.Run(function()
 	CT.Hit(env, "target", "WOUND", "CRITICAL", env.Secret(240), 1)
 	local time = env._time
 	if os.getenv("RENDER_COMBAT_PARITY") == "1" then
-		env.C_CombatText = { GetCurrentEventInfo = function() return 25, rogue and "ENERGY" or "MANA" end }
+		env.C_CombatText = { GetActiveUnit = function() return "player" end, GetCurrentEventInfo = function() return 25, rogue and "ENERGY" or "MANA" end }
 		K.Options.Write("CombatText", "power", true)
 		K.Options.Write("CombatText", "fieldDistance", 80)
+		K.Options.Write("CombatText", "fieldDistanceMedallions", 80)
 		env.FireEvent("COMBAT_TEXT_UPDATE", "ENERGIZE")
 		time = env._now + 0.35
 	end
