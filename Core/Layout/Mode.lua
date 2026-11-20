@@ -780,7 +780,7 @@ local function DrawGrid()
 	local pixel, border = Scale.Pixel(1), Scale.Border()
 	local cx, cy = rw / 2, rh / 2
 	local n = 0
-	gridSpan = { size = size, cx = cx, cy = cy, vFirst = -floor(cx / size + EPSILON), hFirst = -floor(cy / size + EPSILON) }
+	gridSpan, lastX = { size = size, cx = cx, cy = cy, vFirst = -floor(cx / size + EPSILON), hFirst = -floor(cy / size + EPSILON) }, nil
 	for k = -floor(cx / size + EPSILON), floor((rw - cx) / size + EPSILON) do
 		n = n + 1
 		PlaceLine(n, true, cx + k * size, k == 0, pixel, border)
