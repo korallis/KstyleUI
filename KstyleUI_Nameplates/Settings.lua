@@ -135,12 +135,7 @@ function Settings.Schema()
 		{ value = "CENTER", label = L["Centre"] },
 		{ value = "RIGHT", label = L["Right"] },
 	}
-	local FOCUS_LETTER = {
-		{ value = "", label = L["Off"] },
-		{ value = "LEFT", label = L["Left"] },
-		{ value = "CENTER", label = L["Centre"] },
-		{ value = "RIGHT", label = L["Right"] },
-	}
+	local FOCUS_LETTER = { { value = "", label = L["Off"] }, INSIDE[1], INSIDE[2], INSIDE[3] }
 	local LEVEL_COLORS = {
 		{ value = "", label = L["Current style"] },
 		{ value = "difficulty", label = L["Level difficulty colour"] },
