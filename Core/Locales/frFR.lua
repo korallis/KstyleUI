@@ -591,7 +591,6 @@ ns.Locale.Add({
 	["Critical colour"] = "Couleur des critiques",
 	["Critical hits"] = "Coups critiques",
 	["Critical size"] = "Taille des critiques",
-	["Crop the artwork inside the square icon without changing its size."] = "Rogne l\226\128\153image dans l\226\128\153ic\195\180ne carr\195\169e sans modifier sa taille.",
 	["Crowd control"] = "Contr\195\180le des foules",
 	["Ctrl"] = "Ctrl",
 	["Ctrl + scroll"] = "Ctrl + molette",

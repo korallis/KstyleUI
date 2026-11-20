@@ -591,7 +591,6 @@ ns.Locale.Add({
 	["Critical colour"] = "Farbe kritischer Treffer",
 	["Critical hits"] = "Kritische Treffer",
 	["Critical size"] = "Gr\195\182\195\159e kritischer Treffer",
-	["Crop the artwork inside the square icon without changing its size."] = "Beschneidet das Bild im quadratischen Symbol, ohne seine Gr\195\182\195\159e zu \195\164ndern.",
 	["Crowd control"] = "Kontrolleffekte",
 	["Ctrl"] = "Strg",
 	["Ctrl + scroll"] = "Strg + Mausrad",
