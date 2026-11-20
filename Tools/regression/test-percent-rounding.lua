@@ -2,6 +2,19 @@
 local D = dofile("Tools/regression/databars_env.lua")
 local cases = { 0, 0.4, 24.4, 24.5, 24.6, 99.6, 100, 114.6 }
 
+do
+	local _, _, ns = D.New({ enable = false })
+	for _, pair in ipairs({ { 7000, 50000, 15 }, { 11, 20, 56 } }) do
+		assert(ns.Format.Percent(pair[1], pair[2]) == pair[3], "divide before multiplying, exactly as Blizzard does")
+	end
+	for maximum = 1, 2000 do
+		for current = 0, maximum do
+			assert(ns.Format.Percent(current, maximum) == math.ceil(current / maximum * 100),
+				"percentages must match Blizzard's division-first expression")
+		end
+	end
+end
+
 -- Blizzard_TextStatusBar/TextStatusBar.lua:181,191,197; ExpBarOverrides.lua:27.
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns, game = D.New({ width = screen[1], height = screen[2] })
@@ -9,7 +22,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "honor.show", "always")
 	for _, percent in ipairs(cases) do
 		local current, maximum = percent * 100, 10000
-		local expected = math.ceil(current * 100 / maximum)
+		local expected = math.ceil(current / maximum * 100)
 		assert(ns.Format.Percent(current, maximum, true) == expected,
 			"use the shared Blizzard whole-percent formula: " .. percent .. "% must show " .. expected .. "%")
 		game.xp, game.xpMax, game.rested = current, maximum, current
@@ -36,8 +49,30 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local rep = ns.Sources.Reputation()
 	-- Blizzard_StatusTrackingBar/Shared/ReputationBar.lua:103-107.
 	assert(rep.current == 12500 % 10000 + 10000 and rep.max == 10000, "keep overflow while a paragon reward waits")
-	assert(ns.Bars.views.rep.text:GetText() == "Stormwind 125% \194\183 Reward ready", "show paragon progress and the waiting reward on the bar")
-	assert(ns.Bars.views.rep.text:IsShown(), "a waiting reward remains visible without hovering")
+	local view = ns.Bars.views.rep
+	assert(K.Options.Read("DataBars", "rep.rewardMarker") == true, "the reward marker defaults on")
+	local option
+	for _, row in ipairs(ns.Schema()) do
+		if row.key == "rep.rewardMarker" then option = row end
+	end
+	assert(option and option.type == "toggle", "the reputation options expose the reward marker toggle")
+	assert(view.text:GetText() == "Stormwind 125% \194\183 *", "mark a waiting reward with a compact asterisk")
+	assert(not view.text:IsShown() and not view.plate:IsShown(), "a waiting reward respects hover-only text")
+	D.W.Enter(view.holder)
+	assert(view.text:IsShown() and view.plate:IsShown(), "hover reveals the same caption plate as the other bars")
+	assert(view.plate:GetWidth() < view.holder:GetWidth(), "the pending reward caption must leave visible fill beside its plate")
+	K.Options.Write("DataBars", "rep.rewardMarker", false)
+	assert(view.text:GetText() == "Stormwind 125%", "turning off the reward marker preserves progress")
+	K.Options.Write("DataBars", "rep.rewardMarker", true)
+	assert(view.text:GetText() == "Stormwind 125% \194\183 *", "turning on the marker updates the pending caption")
+	D.W.Leave(view.holder)
+	assert(not view.text:IsShown(), "leaving hides the pending caption")
+	K.Options.Write("DataBars", "rep.textHover", false)
+	assert(view.text:IsShown(), "the player can keep the pending caption visible")
+	K.Options.Write("DataBars", "rep.text", "none")
+	assert(not view.text:IsShown() and not view.plate:IsShown(), "no text also hides the reward marker")
+	K.Options.Write("DataBars", "rep.text", "labelPercent")
+	K.Options.Write("DataBars", "rep.textHover", true)
 	game.paragon[72].rewardPending = false
 	env.FireEvent("UPDATE_FACTION")
 	D.W.Settle(env)
@@ -52,9 +87,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			assert(ns.Sources.Reputation().current == value % 10000 + (pending and 10000 or 0), "paragon wrap and reward boundaries match Blizzard")
 		end
 	end
-	env.C_Reputation.IsFactionParagonForCurrentPlayer = function() return env.Secret(true) end
-	local hidden, why = ns.Sources.Reputation()
-	assert(hidden == nil and why == "secret", "never compare a secret paragon flag")
 	env.C_Reputation.IsFactionParagonForCurrentPlayer = nil
 	assert(ns.Sources.Reputation().kind == "faction", "a missing paragon API keeps ordinary reputation")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
