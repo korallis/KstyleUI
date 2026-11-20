@@ -118,7 +118,7 @@ In the cells layout the cells share the width inside one content inset by weight
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
-| `fps` | `GetFramerate`, rounded | 60 and up good, 30 and up fair | Every second | Opens the DataBars settings page | |
+| `fps` | `GetFramerate`, rounded; `--` after entering the world until the next one-second sample | 60 and up good, 30 and up fair | Every second | Opens the DataBars settings page | |
 | `latency` | `GetNetStats` home or world latency | Under 150 ms good, under 300 ms fair | Every second | Switches between home and world | |
 | `gold` | `GetMoney`, as gold, silver and copper, gold only or coin icons | | `PLAYER_MONEY` | Blizzard's backpack button, through the secure proxy | |
 | `durability` | The most worn equipped item, from `GetInventoryItemDurability` | 50% and up good, 25% and up fair | `UPDATE_INVENTORY_DURABILITY`, `PLAYER_EQUIPMENT_CHANGED` | Blizzard's character button, through the secure proxy | |

@@ -628,7 +628,8 @@ local function SlabFrame(out, s, width, height, scale)
 		out.healthText = Rect(left + pad, top, max(0, barW - 2 * pad), barH)
 	end
 	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
-	local extra = spec.extra == "health" and s.healthText == "both"
+	local powerText = s.power and (s.powerText or "none") ~= "none" and s.powerText ~= "legacy"
+	local extra = spec.extra == "health" and (s.healthText == "both" or powerText)
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
 	if s.name then
 		local levelSize = Size(s, "level", scale)
@@ -639,7 +640,7 @@ local function SlabFrame(out, s, width, height, scale)
 	local extraW = max(0, barW - room - TEXT_GAP)
 	local extraX = right and left or left + barW - extraW
 	if spec.extra == "health" and extra then
-		out.healthSub = Rect(extraX, y, extraW, rowH)
+		out[powerText and "powerText" or "healthSub"] = Rect(extraX, y, extraW, rowH)
 	elseif spec.extra == "caption" then
 		out.caption = Rect(extraX, y, extraW, rowH)
 	end
@@ -715,15 +716,9 @@ local function Marker(out, s)
 end
 
 local function PowerLane(out, s)
-	if not (s.power and out.power) or (s.powerText or "none") == "none" or s.powerText == "legacy" then return end
-	local bar, name, power = out.health, out.name, out.power
-	if out.form ~= "slab" then
-		out.powerText = Rect(power.x + TEXT_GAP, power.y, max(0, power.w - 2 * TEXT_GAP), power.h)
-		return
-	end
-	local bottom = max(bar.y + bar.h, power.y + power.h, name and name.y + name.h or 0)
-	out.powerText = Rect(bar.x, bottom + 4, bar.w, 18)
-	out.powerReserve = 22
+	if out.powerText or not (s.power and out.power) or (s.powerText or "none") == "none" or s.powerText == "legacy" then return end
+	local power = out.power
+	out.powerText = Rect(power.x + TEXT_GAP, power.y, max(0, power.w - 2 * TEXT_GAP), power.h)
 end
 
 function Geometry.Frame(s, width, height, fontScale)

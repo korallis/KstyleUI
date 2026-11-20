@@ -77,6 +77,7 @@ end
 Strip.LineMode = LineMode
 
 local running = false
+local fpsReady = true
 local ticker, ticking
 local sessionStart
 
@@ -135,7 +136,7 @@ end
 
 local VALUES = {
 	fps = function()
-		local fps = Call(GetFramerate)
+		local fps = fpsReady and Call(GetFramerate) or nil
 		if not IsNumber(fps) then
 			return nil
 		end
@@ -893,7 +894,7 @@ local function Tooltip(item, tip)
 		return
 	end
 	if id == "fps" then
-		local fps = Call(GetFramerate)
+		local fps = fpsReady and Call(GetFramerate) or nil
 		tip:AddDoubleLine(L["Frame rate"], IsNumber(fps) and format(L["%d fps"], floor(fps + 0.5)) or L["--"])
 		tip:AddDivider()
 		tip:AddLine(L["Click: open the data bar settings."], "text")
@@ -1034,6 +1035,7 @@ function Strip.Update(timedOnly)
 end
 
 function Strip.Tick()
+	fpsReady = true
 	Strip.Update(true)
 end
 
@@ -1269,7 +1271,11 @@ function Strip.Setting(key)
 	end
 end
 
-ns.Listen("PLAYER_ENTERING_WORLD", Strip.Update)
+ns.Listen("PLAYER_ENTERING_WORLD", function()
+	fpsReady = false
+	Strip.Update()
+	StartTicker()
+end)
 
 ns.Subscribe("LayoutChanged", function(key)
 	if (key == KEY or key == "meters.damage" or key == "databars.xp") and running then
