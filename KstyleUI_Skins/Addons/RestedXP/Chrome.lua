@@ -514,13 +514,12 @@ local function CaptionFor(text, title, sized, heading)
 	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or type(text.GetParent) ~= "function" or captions[text] then
 		return
 	end
-	local holder = CreateFrame("Frame", nil, title or text:GetParent())
+	local holder = CreateFrame("Frame", nil, sized and heading and heading.panel or title or text:GetParent())
 	holder:SetAllPoints(title or text)
 	local caption = Widgets.FontString(holder, "OVERLAY")
 	local entry = { caption = caption, busy = false }
 	if sized then
 		if heading then
-			holder:SetParent(heading.panel)
 			holder:ClearAllPoints()
 			holder:SetPoint("TOPLEFT", heading.panel, "TOPLEFT")
 			holder:SetPoint("TOPRIGHT", heading.panel, "TOPRIGHT")
