@@ -421,7 +421,129 @@ do
 end
 collectgarbage()
 
--- The live preview shows the new options on its sample plates, and every option on at once raises nothing at four screen sizes.
+-- Review of 6795e26b: the size and visibility rows apply, the threat percent and health text share the right edge, tags survive
+-- name formats, enemy players keep a class name, cast width restores, the player's faction repaints badges, casting keeps its
+-- colour under threat, and events skip work their options do not need.
+do
+	local env, K, ns, set = boot({
+		nameplate1 = { isPlayer = true, class = "MAGE", afk = true, threat = 2, threatPct = 55, pvp = true, faction = "Horde" },
+		nameplate2 = { threat = 2 },
+	})
+	local plate, mob = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
+	set("focus.letter", "RIGHT")
+	local _, small = plate.focusLetter:GetFont()
+	set("focus.letterSize", 20)
+	local _, large = plate.focusLetter:GetFont()
+	assert(near(large / small, 20 / 12), "the focus letter size applies")
+	set("markers.nameRaid", true)
+	local w = env.Reveal(plate.nameRaid:GetWidth())
+	set("markers.nameRaidSize", 28)
+	assert(env.Reveal(plate.nameRaid:GetWidth()) > w, "the name raid marker size applies")
+	set("cvars.enabled", true)
+	set("cvars.showFriends", "hide")
+	set("cvars.enemyMinions", "hide")
+	set("cvars.friendlyMinions", "show")
+	assert(env._cvars.nameplateShowFriendlyPlayers == "0" and env._cvars.nameplateShowEnemyMinions == "0"
+		and env._cvars.nameplateShowFriendlyPlayerMinions == "1", "the friendly, enemy minion and friendly minion rows write their CVars")
+	set("cvars.enabled", false)
+	assert(env._cvars.nameplateShowFriendlyPlayers == "1" and env._cvars.nameplateShowEnemyMinions == "1"
+		and env._cvars.nameplateShowFriendlyPlayerMinions == "0", "and management off hands them back")
+
+	set("name.afk", true)
+	set("name.textFormat", "[name]")
+	assert(revealed(env, plate.name):find("<AFK>", 1, true), "a name format keeps the AFK tag: " .. revealed(env, plate.name))
+	set("name.textFormat", "")
+	set("name.classColor", true)
+	set("enemy.playersUseEnemy", true)
+	same({ plate.name:GetTextColor() }, { K.Theme.ClassTextColorForWidget("MAGE") }, "an enemy player on the enemy bar colour keeps a class-coloured name")
+	set("threat.groupOnly", false)
+	set("threat.percent", true)
+	set("threat.percentPlace", "RIGHT")
+	set("healthText.show", true)
+	local _, rel = plate.threatText:GetPoint(1)
+	assert(rel == plate.healthText, "the threat percent sits beside the health text, not on it")
+	set("cast.nameAlign", "RIGHT")
+	set("cast.nameBelow", false)
+	set("cast.nameAlign", "LEFT")
+	set("cast.nameBelow", true)
+	assert(N.Last(plate.castName, "SetWidth")[1] == 0, "left alignment below the bar restores the free width")
+
+	local calls, query = 0, env.UnitThreatSituation
+	env.UnitThreatSituation = function(...) calls = calls + 1; return query(...) end
+	env.FireEvent("UNIT_THREAT_LIST_UPDATE", "nameplate1")
+	env.UnitThreatSituation = query
+	assert(calls == 1, "an uncoloured threat percent adds no threat query: " .. calls)
+	local hides = #N.Calls(plate.threatText, "Hide")
+	env._units.nameplate1.threatPct = nil
+	for _ = 1, 4 do env.FireEvent("UNIT_THREAT_LIST_UPDATE", "nameplate1") end
+	assert(#N.Calls(plate.threatText, "Hide") - hides == 1, "a hidden threat percent is not hidden again")
+	set("name.afk", false)
+	local writes = #plate.name._calls
+	env.FireEvent("PLAYER_FLAGS_CHANGED", "nameplate1")
+	assert(#plate.name._calls == writes, "flag changes leave the name alone with both tags off")
+
+	set("markers.pvp", true)
+	set("markers.pvpEnemyOnly", true)
+	assert(plate.pvpBadge:IsShown(), "a Horde player shows to an Alliance player")
+	local faction = env.UnitFactionGroup
+	env.UnitFactionGroup = function(token) if token == "player" then return "Horde", "Horde" end return faction(token) end
+	env.FireEvent("UNIT_FACTION", "player")
+	assert(not plate.pvpBadge:IsShown(), "the player's own faction change repaints opposite-faction badges")
+
+	set("threat.display", "health")
+	set("types.casting", true)
+	set("types.castingColor", { r = 0.1, g = 0.2, b = 0.3 })
+	set("threat.overTypes", false)
+	N.Cast(env, "nameplate2", { name = "Fear", text = "Fear", texture = 136183 })
+	same({ bar(mob) }, { 0.1, 0.2, 0.3 }, "with threat beating types off, casting keeps its colour under threat")
+	set("threat.overTypes", true)
+	local count, classify = 0, env.UnitClassification
+	env.UnitClassification = function(...) count = count + 1; return classify(...) end
+	env._units.nameplate2.threat = 1
+	env.FireEvent("UNIT_THREAT_LIST_UPDATE", "nameplate2")
+	env.UnitClassification = classify
+	assert(count == 0, "threat that always wins skips the unit type lookup")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- The Options preview, at its own size, shows each option on the sample plate it actually draws.
+do
+	local env, K, ns, set = boot({})
+	local preview = ns.Preview.Build(env.UIParent)
+	preview:SetSize(248, 516)
+	local function seen(region)
+		while region do
+			if not region:IsShown() then return false end
+			region = region:GetParent()
+		end
+		return true
+	end
+	local function on(key, value, field, text)
+		set(key, value)
+		preview.Refresh()
+		local plate = preview.plates[preview.chosen]
+		assert(seen(plate[field]), key .. " shows on the drawn sample")
+		assert(not text or revealed(env, plate[field]):find(text, 1, true), key .. ": " .. revealed(env, plate[field]))
+		set(key, NEW[key])
+	end
+	preview.Refresh()
+	assert(preview.chosen == 1, "the preview draws the first sample by default")
+	on("threat.percent", true, "threatText")
+	on("cast.showTarget", true, "castName", "Thaldrin")
+	on("focus.letter", "RIGHT", "focusLetter")
+	on("target.hashLine", true, "hashLine")
+	on("markers.nameRaid", true, "nameRaid")
+	on("markers.pvp", true, "pvpBadge")
+	on("name.afk", true, "name", "<AFK>")
+	on("name.dnd", true, "name", "<DND>")
+	preview.Refresh()
+	assert(preview.chosen == 1, "and returns to it")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Every option on at once raises nothing at four screen sizes, the live preview included.
 local ALL_ON = {
 	["types.boss"] = true, ["types.miniBoss"] = true, ["types.neutral"] = true, ["types.minor"] = true, ["types.normal"] = true,
 	["enemy.playersUseEnemy"] = true, ["name.afk"] = true, ["name.dnd"] = true, ["level.colorMode"] = "difficulty",
@@ -433,22 +555,15 @@ local ALL_ON = {
 for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local own = {}
 	for key, value in pairs(ALL_ON) do
-		local node = own
 		local first, last = key:match("^(%w+)%.(%w+)$")
-		node[first] = node[first] or {}
-		node[first][last] = value
+		own[first] = own[first] or {}
+		own[first][last] = value
 	end
 	local env, K, ns = boot({ nameplate1 = { isPlayer = true, pvp = true, raid = 2, threat = 3, threatPct = 100, spellTarget = "Thaldrin" } },
 		{ saved = saved(own), width = size[1], height = size[2] })
 	N.Focus(env, "nameplate1")
 	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183 })
-	local preview = ns.Preview.Build(env.UIParent)
-	preview.Refresh()
-	local hostile, player, friend = preview.plates[1], preview.plates[2], preview.plates[3]
-	assert(player.threatText:IsShown() and player.pvpBadge:IsShown(), "the preview shows the threat percent and PvP flag")
-	assert(revealed(env, player.castName) == "%s > %s|GREATER HEAL|Thaldrin", "the preview shows the spell target: " .. revealed(env, player.castName))
-	assert(friend.focusLetter:IsShown() and revealed(env, friend.name):find("<AFK>", 1, true), "the preview shows the focus letter and AFK tag")
-	assert(hostile.hashLine:IsShown() and hostile.nameRaid:IsShown(), "the preview shows the health line and name marker")
+	ns.Preview.Build(env.UIParent).Refresh()
 	assert(#env._errors == 0 and K.ErrorCount() == 0, size[1] .. "x" .. size[2] .. ": " .. tostring(env._errors[1]))
 	collectgarbage()
 end
