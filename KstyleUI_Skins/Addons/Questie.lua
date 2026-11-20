@@ -41,7 +41,6 @@ local function Discover(node)
 				region:SetFont(ns.Style.Font("body"), size, flags)
 			elseif kind == "Texture" and not art[region] and (node == frame or node == icon) then
 				art[region] = region:GetAlpha()
-				hooksecurefunc(region, "SetAlpha", PaintArt)
 				hooksecurefunc(region, "SetVertexColor", PaintArt)
 				hooksecurefunc(region, "SetColorTexture", PaintArt)
 				region:SetAlpha(0)
@@ -91,7 +90,10 @@ local function Refresh()
 	panel:SetShown(on)
 	if active ~= on then
 		active = on
-		for texture, alpha in pairs(art) do texture:SetAlpha(on and 0 or alpha) end
+		for texture, alpha in pairs(art) do
+			if on then art[texture] = texture:GetAlpha() end
+			texture:SetAlpha(on and 0 or alpha)
+		end
 		for text, font in pairs(fonts) do
 			text:SetFont(on and K.Store.Module("Skins").restyleAddons ~= false and ns.Style.Font("body") or font[1], font[2], font[3])
 		end

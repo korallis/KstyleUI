@@ -61,16 +61,17 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		assert(other.art:GetAlpha() == 0 and icon:GetAlpha() == 0, "Hide Questie art only while its shared card is active")
 		other.art:SetColorTexture(1, 1, 1, 0.7)
 		assert(other.art:GetAlpha() == 0, "Keep native recolouring hidden while Questie's card is active")
+		local nativeAlpha = 0.7
 		for _, choice in ipairs({ "skin", "tracker", "module" }) do
 			if choice == "skin" then K.Options.Write("Skins", "questie.enabled", false)
 			elseif choice == "tracker" then K.Options.Write("Integrations", "questTracker", "kstyleui")
 			else K.Modules.Disable("Skins") end
 			R.settle()
 			if choice == "skin" then assert(not K.Widgets.DialogHost():IsShown(), "A reversible Questie card switch needs no reload prompt") end
-			assert(other.art:GetAlpha() == 0.7 and icon:GetAlpha() == 0.6, "Restore Questie's native art when either card setting or tracker choice is off")
+			assert(other.art:GetAlpha() == nativeAlpha and icon:GetAlpha() == 0.6, "Restore Questie's native art when either card setting or tracker choice is off")
 			other.art:SetAlpha(0.8)
 			assert(other.art:GetAlpha() == 0.8, "Let Questie update its native art while its skin is off")
-			other.art:SetAlpha(0.7)
+			nativeAlpha = 0.8
 			if choice == "skin" then K.Options.Write("Skins", "questie.enabled", true)
 			elseif choice == "tracker" then K.Options.Write("Integrations", "questTracker", "questie")
 			else K.Modules.Enable("Skins") end
@@ -82,7 +83,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		assert(other.art:GetAlpha() == 0, "Defer tracker art changes during combat")
 		R.env.SetCombat(false)
 		R.settle()
-		assert(other.art:GetAlpha() == 0.7, "Restore native tracker art when the deferred switch leaves combat")
+		assert(other.art:GetAlpha() == nativeAlpha, "Restore native tracker art when the deferred switch leaves combat")
 	end)
 end
 Check("cost and new regions", function()
