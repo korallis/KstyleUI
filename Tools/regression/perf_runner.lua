@@ -194,7 +194,7 @@ local function Fastest(entry, run, checkHeadroom)
 	local kept, order = {}, {}
 	for attempt = 1, ATTEMPTS do
 		local problems, r, tight = Attempt(entry, run, checkHeadroom)
-		local slow = tight and not HOSTED or false
+		local slow = tight and Measure.TimeEnforced or false
 		local timed = {}
 		for _, problem in ipairs(problems) do
 			if IsTimeProblem(problem) then
@@ -272,9 +272,11 @@ return function(group)
 local paths = Load(group)
 local label = "test-perf (" .. group .. ")"
 local windows = package.config:sub(1, 1) == "\\"
-local checkHeadroom = not windows and rawget(_G, "jit") == nil
+local checkHeadroom = not windows and not HOSTED and rawget(_G, "jit") == nil
 if windows then
 	print("HeadroomProblem skipped: Windows MSVC os.clock measures wall time, not Lua 5.1 CPU time")
+elseif HOSTED then
+	print("HeadroomProblem skipped: hosted CPU time is not the Mac calibration")
 elseif not checkHeadroom then
 	print("HeadroomProblem skipped: requires PUC Lua 5.1 CPU time")
 end
@@ -304,10 +306,10 @@ for _, entry in ipairs(paths) do
 				Fail(problem)
 			end
 			if tight then
-				if HOSTED then
-					print("WARN " .. tight)
-				else
+				if Measure.TimeEnforced then
 					Fail(tight)
+				else
+					print("WARN " .. tight)
 				end
 			end
 			if #env._errors > errors then

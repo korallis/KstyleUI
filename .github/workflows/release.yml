@@ -6,6 +6,17 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to announce (leave empty for the roadmap)
+        type: string
+      message_ids:
+        description: Optional comma-separated message IDs (edit first, delete the rest; one ID for the roadmap)
+        type: string
+      roadmap:
+        description: Post docs/ROADMAP.md instead of a release
+        type: boolean
 
 permissions: {}
 
@@ -16,11 +27,14 @@ concurrency:
 jobs:
   check:
     name: check
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
-    timeout-minutes: 15
+    timeout-minutes: 35
     permissions:
       contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.proof.outputs.run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,6 +47,18 @@ jobs:
             echo "The tag $GITHUB_REF_NAME is not on main. Release only from main, after the in-game pass on staging."
             exit 1
           fi
+      - name: Reuse successful checks or refuse known-red proof
+        # Tags from hotfix/vX.Y.Z normally have no push proof, so release runs its own lint, Python and Lua checks.
+        id: proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -m Tools.release.proof
+      - name: Run missing lint checks
+        if: steps.proof.outputs.run != 'false'
+        run: bash scripts/gate.sh lint
+      - name: Run missing Python checks
+        if: steps.proof.outputs.run != 'false'
+        run: bash scripts/gate.sh python
       - name: Check the release changelog
         run: python3 -m unittest Tools.tests.test_release_changelog
       - name: Check the runner's Lua is 5.1.5 and its Python has Pillow
@@ -53,40 +79,35 @@ jobs:
         run: bash Tools/hooks/check-package.sh
 
   lua:
-    name: lua ${{ matrix.shard }}/2
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    name: lua ${{ matrix.shard }}/5
+    needs: check
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
-    timeout-minutes: 35
+    timeout-minutes: 15
     permissions:
       contents: read
-      actions: read
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
           persist-credentials: false
-      - name: Reuse the staging result for this commit
-        id: proof
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: python3 Tools/hooks/ci_scope.py proven-sha
       - name: Check the runner's Lua is 5.1.5
-        if: steps.proof.outputs.run != 'false'
+        if: needs.check.outputs.run != 'false'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: Lua regression tests, one slice of the files
-        if: steps.proof.outputs.run != 'false'
+        if: needs.check.outputs.run != 'false'
         env:
           SHARD: ${{ matrix.shard }}
-        run: bash scripts/gate.sh lua --shard "$SHARD/2"
+        run: bash scripts/gate.sh lua --shard "$SHARD/5"
 
   release:
     name: release
     needs: [check, lua]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
     environment: release
@@ -98,6 +119,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Package and upload
+        # The check job validates a deterministic dry build of this same commit with this same pinned packager.
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           pandoc: false
@@ -117,8 +139,44 @@ jobs:
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
           (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
           gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
+      - name: Show only this version's changelog on the GitHub release
+        # The packager writes the whole CHANGELOG.md to the release page.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 Tools/release/discord_post.py --notes "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          gh release edit "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
       - name: Post the changelog to Discord
         continue-on-error: true
         env:
           DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
         run: python3 Tools/release/discord_post.py "$GITHUB_REF_NAME"
+
+  discord-repost:
+    name: Repost Discord announcement
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, mac-ci, KstyleUI]
+    timeout-minutes: 5
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Post or edit the Discord announcement
+        env:
+          TAG: ${{ inputs.tag }}
+          MESSAGE_IDS: ${{ inputs.message_ids }}
+          ROADMAP: ${{ inputs.roadmap }}
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          if [ "$ROADMAP" = true ]; then
+            set -- --roadmap ${MESSAGE_IDS:+--edit}
+          else
+            git show-ref --verify "refs/tags/$TAG"
+            set -- ${MESSAGE_IDS:+--edit} "$TAG"
+          fi
+          if [ -n "$MESSAGE_IDS" ]; then set -- "$@" "$MESSAGE_IDS"; fi
+          python3 Tools/release/discord_post.py "$@"

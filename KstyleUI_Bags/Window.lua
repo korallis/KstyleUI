@@ -725,11 +725,18 @@ function Window:UpdateCooldowns()
 	end
 end
 
+local function SlotCount(free, total)
+	local mode = Settings.Get("slotCount")
+	if mode == "usedTotal" then return string.format(L["%d/%d used"], total - free, total) end
+	if mode == "free" then return string.format(L["%d free"], free) end
+	return string.format(L["%d/%d free"], free, total)
+end
+
 function Window:UpdateFooter()
 	local remote = self.remoteData
 	if remote then
 		if remote.free and remote.total then
-			Widgets.SetText(self.free, string.format(L["%d/%d free"], remote.free, remote.total))
+			Widgets.SetText(self.free, SlotCount(remote.free, remote.total))
 		else
 			Widgets.SetText(self.free, remote.name)
 		end
@@ -747,7 +754,7 @@ function Window:UpdateFooter()
 			end
 		end
 	end
-	Widgets.SetText(self.free, string.format(L["%d/%d free"], free, total))
+	Widgets.SetText(self.free, SlotCount(free, total))
 	self:UpdateMoney()
 end
 

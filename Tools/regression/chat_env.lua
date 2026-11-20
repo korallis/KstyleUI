@@ -130,6 +130,10 @@ local function newChatFrame(env, id, parent)
 	frame.buttonFrame:SetWidth(29)
 	frame.buttonFrame:SetPoint("TOPRIGHT", frame.Background, "TOPLEFT", -3, -3)
 	frame.buttonFrame:SetPoint("BOTTOMRIGHT", frame.Background, "BOTTOMLEFT", -3, 6)
+	-- FloatingChatFrame.xml:464: the 16-unit size grip at the background's bottom right.
+	frame.ResizeButton = blizzard(env, env.CreateFrame("Button", name .. "ResizeButton", frame))
+	frame.ResizeButton:SetSize(16, 16)
+	frame.ResizeButton:SetPoint("BOTTOMRIGHT", frame.Background, "BOTTOMRIGHT", 0, 0)
 	local tab = blizzard(env, env.CreateFrame("Button", name .. "Tab", env.UIParent))
 	tab:SetID(id)
 	-- ChatTabArtTemplate: a 64 by 32 button, 16-unit side pieces, the text centred 5 units below the middle.
@@ -285,6 +289,17 @@ function C.Install(env, opts)
 	env._messageFilters = {}
 	env._nameFilters = {}
 	env.date = os.date
+	-- GetTime and C_Timer.After share one clock: a timer that runs moves env._now to its due time.
+	env._now = 0
+	env.GetTime = function() return env._now end
+	local after = env.C_Timer.After
+	env.C_Timer.After = function(delay, fn)
+		local due = env._now + (tonumber(delay) or 0)
+		after(delay, function()
+			env._now = math.max(env._now, due)
+			fn()
+		end)
+	end
 	env.CHAT_FRAMES = {}
 	env._cvars = { showTimestamps = "none" }
 	env._cvarWrites = {}
@@ -418,6 +433,17 @@ function C.Install(env, opts)
 		friends:SetSize(32, 32)
 		friends:SetPoint("BOTTOMLEFT", alerts, "BOTTOMLEFT", 0, 0)
 		env.QuickJoinToastButton = friends
+		-- FloatingChatFrame.xml:723 and FloatingChatFrameVoiceChat.xml: the menu and channel buttons live in the column,
+		-- the voice toggles under UIParent, anchored below the channel button.
+		local column = env.ChatFrame1.buttonFrame
+		for name, parent in pairs({ ChatFrameMenuButton = column, ChatFrameChannelButton = column, ChatFrameToggleVoiceDeafenButton = env.UIParent, ChatFrameToggleVoiceMuteButton = env.UIParent }) do
+			env[name] = blizzard(env, env.CreateFrame("Button", name, parent))
+			env[name]:SetSize(32, 32)
+		end
+		env.ChatFrameMenuButton:SetPoint("BOTTOM", column, "BOTTOM", 0, 0)
+		env.ChatFrameChannelButton:SetPoint("TOP", column, "TOP", 0, 0)
+		env.ChatFrameToggleVoiceDeafenButton:SetPoint("TOP", env.ChatFrameChannelButton, "BOTTOM", 0, -2)
+		env.ChatFrameToggleVoiceMuteButton:SetPoint("TOP", env.ChatFrameToggleVoiceDeafenButton, "BOTTOM", 0, -2)
 	end
 	-- Edit Mode's system mixin replaces ChatFrame1's SetPoint and ClearAllPoints with overrides that
 	-- tell the Edit Mode manager, and keeps the widget methods as SetPointBase and ClearAllPointsBase.

@@ -128,6 +128,21 @@ class ProblemsTest(unittest.TestCase):
         strings.sync(self.root)
         self.assertTrue(any("space" in p for p in strings.problems(self.root)))
 
+    def test_an_english_sentence_shipped_as_a_translation_fails(self):
+        self.lua('local L = {}\nprint(L["Hello"], L["Level %d"], L["On: "], L["Tabs use the caps face."], L["World of Warcraft"])\n')
+        self.translate("deDE", {"Tabs use the caps face.": "Tabs use the caps face.", "World of Warcraft": "World of Warcraft"})
+        found = strings.problems(self.root)
+        self.assertTrue(any('deDE "Tabs use the caps face." is the English sentence itself' in p for p in found), found)
+        self.assertFalse(any("World of Warcraft" in p for p in found), found)
+        self.translate("deDE", {"Tabs use the caps face.": "Reiter nutzen die Titelschrift.", "World of Warcraft": "World of Warcraft"})
+        self.assertFalse(any("English sentence" in p for p in strings.problems(self.root)))
+
+    def test_a_sentence_with_a_one_letter_word_and_a_format_token_fails(self):
+        self.lua('local L = {}\nprint(L["A profile named %s already exists."])\n')
+        self.translate("deDE", {"A profile named %s already exists.": "A profile named %s already exists."})
+        found = strings.problems(self.root)
+        self.assertTrue(any("is the English sentence itself" in p for p in found), found)
+
     def test_a_glyph_the_faces_lack_fails(self):
         self.translate("deDE", {"Hello": "Hallo 小"})
         found = strings.problems(self.root)

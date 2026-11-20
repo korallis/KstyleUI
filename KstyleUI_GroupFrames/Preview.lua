@@ -123,6 +123,10 @@ function Preview.Build(...)
 		local fade = cfg.range.fade and sample.far
 		f:SetAlpha(fade and cfg.range.alpha or 1)
 		f.target:SetAlpha(sample.target and 1 or 0)
+		if f.extra1 or f.extra2 then
+			Unit.TextSlots(f, nil, { name = sample.name, health = sample.health * SAMPLE_MAX, healthMax = SAMPLE_MAX,
+				power = sample.power and sample.power * 100 or 0, powerMax = 100, level = sample.level or 60, class = sample.class, own = true })
+		end
 		for _, hook in ipairs(Style.painters) do
 			hook(f, sample)
 		end

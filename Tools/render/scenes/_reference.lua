@@ -332,6 +332,10 @@ function Reference.Build(opts)
 				UnitFrames = { player = { powerText = "legacy", powerSeparate = false }, target = { percentLead = false } },
 				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 }, debuffs = { size = style == "Medallions" and 17 or 29, textSize = style == "Medallions" and 10 or 13, showTime = false, readableText = false, expiring = 0 } },
 				CombatText = { clearLanes = false },
+			} or os.getenv("RENDER_PARITY_ENABLED") == "1" and {
+				UnitFrames = { player = { castbarIconRight = true, castbarTotal = true, castbarInside = false } },
+				Cooldowns = { essential = { edge = false }, utility = { edge = false } },
+				Meters = { damage = { iconZoom = 0.2 } },
 			} or opts.meterChoice and { Meters = { roles = { DAMAGER = opts.meterChoice }, nameplateRows = os.getenv("RENDER_METER_ROWS") ~= "legacy" } } or nil,
 			layout = layout,
 			applyPreset = true,

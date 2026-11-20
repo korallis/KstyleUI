@@ -169,10 +169,20 @@ function Fan.Apply(view, enabled)
 	local on = enabled and Fan.Wanted(view) and fan ~= nil and not fan.failed
 	if fan then
 		fan.enabled = on and true or false
+		local settings = Settings.Value("target", "auraFilters")
+		local filter = K.Options.AuraFilterString({ dispellable = settings.dispellable }, FILTER)
+		local method, direction
+		if on and AuraContainerSortMethod and AuraContainerSortDirection then
+			method, direction = K.Options.AuraSort(settings.sort, AuraContainerSortMethod.ExpirationOnly, AuraContainerSortDirection.Normal)
+		end
 		for _, container in ipairs(fan.containers) do
+			if on then
+				container:SetAuraGroupFilterString("debuffs", filter)
+				if method and container.SetAuraGroupSortMethod then container:SetAuraGroupSortMethod("debuffs", method, direction) end
+			end
 			container:SetEnabled(on and true or false)
 		end
-		if fan.overflow then ns.Overflow.Enable(fan.overflow, on) end
+		if fan.overflow then fan.overflowOptions.filter = filter; ns.Overflow.Enable(fan.overflow, on) end
 		if not on then fan.content:Hide() end
 		K.Layout.SetLive(Fan.KEY, on)
 	end

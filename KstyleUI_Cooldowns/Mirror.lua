@@ -1,8 +1,8 @@
--- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects, or Blizzard's viewer restyled in place when the mirror cannot work, with Setup asked to place Blizzard's essential and utility viewers on KstyleUI's rows.
+-- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects and the spell rules, or Blizzard's viewer restyled in place when the mirror cannot work, with Setup asked to place Blizzard's essential and utility viewers on KstyleUI's rows.
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Data, Path, Row, BarRow, Style, Viewers, Auras, Reskin = ns.Settings, ns.Data, ns.Path, ns.Row, ns.BarRow, ns.Style, ns.Viewers, ns.Auras, ns.Reskin
+local Settings, Data, Path, Row, BarRow, Style, Viewers, Auras, Reskin, Rules, Grid = ns.Settings, ns.Data, ns.Path, ns.Row, ns.BarRow, ns.Style, ns.Viewers, ns.Auras, ns.Reskin, ns.Rules, ns.Grid
 
 local Mirror = {}
 ns.Mirror = Mirror
@@ -14,6 +14,8 @@ local DATA_EVENT = "CooldownViewerSettings.OnDataChanged"
 local RETRY_SECONDS = 1
 local MAX_RETRIES = 10
 local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars" }
+local OTHER = { essential = "utility", utility = "essential" }
+local EMPTY = Rules.EMPTY
 local INTERPOLATION = "Immediate"
 local DIRECTION = "RemainingTime"
 
@@ -25,6 +27,8 @@ local retries = 0
 local auraQueued, auraOwed = false, false
 local auraUnits
 local trackedSpells, foundAuras = {}, { player = {}, target = {} }
+local merged = { essential = {}, utility = {} }
+local fighting = false
 
 local pcall = pcall
 
@@ -122,8 +126,12 @@ local function SpellCooling(spell, cooldownEvent)
 	return true
 end
 
+local function Glows()
+	return fighting or not Settings.current.glowsInCombat
+end
+
 local function Ready(row, icon)
-	local ready = icon.entry ~= nil and row.cfg.readyGlow and not icon.onCooldown and icon.usable ~= false
+	local ready = icon.entry ~= nil and row.cfg.readyGlow and not icon.onCooldown and icon.usable ~= false and Glows()
 	Style.SetReady(icon, ready)
 end
 
@@ -143,6 +151,7 @@ local function Cooling(row, icon, cooling, trusted)
 		end
 		icon.onCooldown = cooling
 		icon:Paint()
+		row:Visible(icon)
 	end
 	Ready(row, icon)
 end
@@ -209,7 +218,7 @@ local function ItemTimer(row, icon, start, duration, rate, enabled, active, gcd,
 		return
 	end
 	active = enabled and active and start > 0 and duration > 0 and finish > now
-	if active and (row.cfg.gcd or not onGCD) then
+	if active and (row.cfg.gcd and not (icon.rule or EMPTY).noGcd or not onGCD) then
 		local set = icon.cooldown.SetCooldown
 		if type(set) ~= "function" then
 			Fail(row.group, "Cooldown:SetCooldown is missing")
@@ -277,7 +286,7 @@ local function Cooldown(row, icon, cooldownEvent)
 		Fail(row.group, "GetSpellCooldownDuration is missing")
 		return
 	end
-	local ok, duration = pcall(getter, spell, not row.cfg.gcd)
+	local ok, duration = pcall(getter, spell, not row.cfg.gcd or (icon.rule or EMPTY).noGcd == true)
 	if not ok then
 		Fail(row.group, "GetSpellCooldownDuration failed: " .. tostring(duration))
 		return
@@ -292,6 +301,24 @@ local function Cooldown(row, icon, cooldownEvent)
 	SetCooldownState(row, icon, spell, cooldownEvent)
 end
 
+local function Recharge(icon, on)
+	if icon.recharging ~= on then
+		icon.recharging = on
+		icon.cooldownsRow:Visible(icon)
+	end
+end
+
+local function ChargeText(icon, count)
+	local format = icon.cooldownsRow.cfg.hideZero and C_StringUtil and C_StringUtil.TruncateWhenZero
+	if type(format) == "function" then
+		local ok, text = pcall(format, count)
+		if ok and (ns.IsSecret(text) or type(text) == "string") then
+			return text
+		end
+	end
+	return count
+end
+
 local function Charges(icon)
 	local entry = icon.entry
 	local api = C_Spell
@@ -301,7 +328,8 @@ local function Charges(icon)
 		if ok and not ns.IsSecret(info) and type(info) == "table" then
 			local maxCharges = info.maxCharges
 			if Finite(maxCharges) and maxCharges > 1 then
-				icon:SetCount(info.currentCharges)
+				icon:SetCount(ChargeText(icon, info.currentCharges))
+				if not ns.IsSecret(info.isActive) then Recharge(icon, info.isActive == true) end
 				local getter = api.GetSpellChargeDuration
 				if getter then
 					local okDuration, duration = pcall(getter, spell)
@@ -316,6 +344,7 @@ local function Charges(icon)
 		end
 	end
 	icon:ClearChargeCooldown()
+	Recharge(icon, false)
 	local countSpell, _, resolved = CooldownSpell(entry)
 	if not resolved then
 		icon:SetCount(nil)
@@ -343,19 +372,25 @@ local function Charges(icon)
 end
 
 local function Usable(row, icon)
-	local entry = icon.entry
-	local usable = true
+	local entry, rule = icon.entry, icon.rule or EMPTY
+	local usable, castable = true, true
 	local api = C_Spell
-	if row.cfg.usable and entry and entry.spell and api and api.IsSpellUsable then
-		local ok, isUsable = pcall(api.IsSpellUsable, entry.spell)
+	if (row.cfg.usable or rule.hideUnusable) and entry and entry.spell and api and api.IsSpellUsable then
+		local ok, isUsable, noMana = pcall(api.IsSpellUsable, entry.spell)
 		if ok and not ns.IsSecret(isUsable) then
-			usable = isUsable == true
+			local short = not ns.IsSecret(noMana) and noMana == true
+			usable, castable = isUsable == true or short and rule.noCost == true, isUsable == true or short
 		else
-			usable = icon.usable ~= false
+			usable, castable = icon.usable ~= false, icon.castable ~= false
 		end
 	end
+	usable = usable or not row.cfg.usable
 	if icon.usable ~= usable then
 		icon:SetUsable(usable)
+	end
+	if icon.castable ~= castable then
+		icon.castable = castable
+		row:Visible(icon)
 	end
 	Ready(row, icon)
 end
@@ -371,7 +406,7 @@ end
 
 local function Proc(row, icon)
 	local entry = icon.entry
-	local on = row.cfg.procGlow and entry ~= nil and (Overlayed(entry.spell) or (entry.spellID ~= entry.spell and Overlayed(entry.spellID)))
+	local on = row.cfg.procGlow and Glows() and entry ~= nil and (Overlayed(entry.spell) or (entry.spellID ~= entry.spell and Overlayed(entry.spellID)))
 	Style.SetProc(icon, on)
 end
 
@@ -392,7 +427,44 @@ local function OnCooldownDone(cooldown)
 		else
 			SetCooldownState(row, icon, CooldownSpell(icon.entry))
 		end
+		row:Settle()
 	end
+end
+
+local function Tint(icon, out, again)
+	if out == (icon.outOfRange == true) and not again then return end
+	if out then
+		local current = Settings.current
+		icon:SetTint(current.rangeR, current.rangeG, current.rangeB)
+	elseif icon.outOfRange then
+		icon:SetTint(1)
+	end
+	icon.outOfRange = out
+end
+
+local function Range(icon)
+	local spell, api = icon.entry and icon.entry.spell, C_Spell
+	local out = false
+	if (icon.rule or EMPTY).range and spell and api and type(api.IsSpellInRange) == "function" then
+		local ok, inRange = pcall(api.IsSpellInRange, spell)
+		out = ok and not ns.IsSecret(inRange) and inRange == false
+	end
+	Tint(icon, out, true)
+end
+
+local function Rule(row, icon, entry)
+	local rule = Rules.For(entry)
+	if icon.rule ~= rule then
+		icon.rule = rule
+		row:Look(icon)
+	end
+end
+
+local function Match(row, icon)
+	Rule(row, icon, icon.entry)
+	RefreshCooldownIcon(row, icon)
+	Range(icon)
+	row:Visible(icon)
 end
 
 local function AssignCooldowns(row, list)
@@ -404,12 +476,32 @@ local function AssignCooldowns(row, list)
 			icon.cooldown:HookScript("OnCooldownDone", OnCooldownDone)
 		end
 		icon.entry = list[i]
-		RefreshCooldownIcon(row, icon)
+		Match(row, icon)
 	end
+	row:Settle()
+end
+
+local function Merged(group)
+	local list, other = lists[group], OTHER[group]
+	local extra, cfg = lists[other], Settings.current[other]
+	local cap = Grid.Capacity(cfg)
+	if not (cfg.overflow and extra and #extra > cap and Live(other)) then return list end
+	local out = merged[group]
+	for i = #out, 1, -1 do
+		out[i] = nil
+	end
+	for i = 1, #list do
+		out[i] = list[i]
+	end
+	for i = cap + 1, #extra do
+		out[#out + 1] = extra[i]
+	end
+	return out
 end
 
 local function ShowAuraIcon(row, icon, entry)
 	icon.entry = entry
+	Rule(row, icon, entry)
 	Texture(icon.icon, entry)
 	local id = entry.auraID
 	if id then
@@ -706,7 +798,7 @@ end
 
 local function Assign(group)
 	if COOLDOWN_GROUPS[group] then
-		AssignCooldowns(rows[group], lists[group])
+		AssignCooldowns(rows[group], Merged(group))
 	elseif Auras.Secret() then
 		Owe()
 	else
@@ -736,11 +828,18 @@ local function Rebuild(group)
 	return source == "dirty"
 end
 
+local function Refill()
+	if Settings.current.utility.overflow and Live("essential") and Live("utility") then
+		Assign("essential")
+	end
+end
+
 local function RebuildAll()
 	local dirty = false
 	for _, group in ipairs(GROUPS) do
 		dirty = Rebuild(group) or dirty
 	end
+	Refill()
 	if dirty and retries < MAX_RETRIES then
 		retries = retries + 1
 		C_Timer.After(RETRY_SECONDS, Mirror.Schedule)
@@ -820,6 +919,7 @@ local function EachCooldownIcon(fn)
 			for i = 1, row.count do
 				fn(row, row.icons[i])
 			end
+			row:Settle()
 		end
 	end
 end
@@ -858,13 +958,34 @@ local function ProcIcon(row, icon)
 	if ns.IsSecret(eventSpell) then
 		Proc(row, icon)
 	elseif entry and (entry.spell == eventSpell or entry.spellID == eventSpell) then
-		Style.SetProc(icon, eventShow and row.cfg.procGlow)
+		Style.SetProc(icon, eventShow and row.cfg.procGlow and Glows())
 	end
 end
 
 local function OverrideIcon(row, icon)
 	if icon.entry == eventEntry then
-		RefreshCooldownIcon(row, icon)
+		Match(row, icon)
+	end
+end
+
+local eventOut
+
+local function RangeIcon(_, icon)
+	local entry = icon.entry
+	if (icon.rule or EMPTY).range and entry and (entry.spell == eventSpell or entry.spellID == eventSpell) then
+		Tint(icon, eventOut)
+	end
+end
+
+local function GlowIcon(row, icon)
+	Ready(row, icon)
+	Proc(row, icon)
+end
+
+local function OnCombat(event)
+	fighting = event == "PLAYER_REGEN_DISABLED"
+	if Settings.current.glowsInCombat then
+		EachCooldownIcon(GlowIcon)
 	end
 end
 
@@ -911,6 +1032,17 @@ local EVENTS = {
 		end
 		eventEntry = nil
 	end,
+	SPELL_RANGE_CHECK_UPDATE = function(_, spell, inRange, checksRange)
+		if Settings.current.rules.range == "" or ns.IsSecret(spell) then
+			return
+		end
+		eventSpell = spell
+		eventOut = not ns.IsSecret(inRange) and not ns.IsSecret(checksRange) and checksRange == true and inRange == false
+		EachCooldownIcon(RangeIcon)
+		eventSpell = nil
+	end,
+	PLAYER_REGEN_DISABLED = OnCombat,
+	PLAYER_REGEN_ENABLED = OnCombat,
 	SPELLS_CHANGED = Mirror.Schedule,
 	PLAYER_ENTERING_WORLD = Mirror.Schedule,
 	COOLDOWN_VIEWER_DATA_LOADED = Mirror.Schedule,
@@ -956,6 +1088,7 @@ local function OnLayout(_, key)
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row and KEYS[group] == key then
+			if row.cfg.vertical then row:Resize() end
 			row:Restyle()
 		end
 	end
@@ -965,6 +1098,7 @@ function Mirror.Start()
 	Settings.Read()
 	running = true
 	retries = 0
+	fighting = InCombatLockdown and InCombatLockdown() == true or false
 	auraOwed = false
 	local mirrored, aurasMirrored = false, false
 	for _, group in ipairs(GROUPS) do

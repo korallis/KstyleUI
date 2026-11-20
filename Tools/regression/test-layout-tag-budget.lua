@@ -1,4 +1,4 @@
--- test-layout-tag-budget.lua: selecting sixty movers stays near the pre-tag CPU and allocation cost.
+-- test-layout-tag-budget.lua: selecting sixty movers stays within addon instruction and allocation budgets.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New({ width = 1920, height = 1080 })
 for i = 1, 60 do
@@ -10,13 +10,16 @@ assert(K.Layout.Enter())
 assert(#env._errors == 0, tostring(env._errors[1]))
 local Mode = K.Layout.Mode
 collectgarbage(); collectgarbage("stop")
-local m0, t0 = collectgarbage("count"), os.clock()
+local m0 = collectgarbage("count")
 for i = 1, 200 do Mode.Select("B.e" .. (i % 60 + 1)) end
-local elapsed, garbage = os.clock() - t0, collectgarbage("count") - m0
+local garbage = collectgarbage("count") - m0
 collectgarbage("restart")
-print(string.format("Select x200: %.3f s, %.0f KB garbage", elapsed, garbage))
+print(string.format("Select x200: %.0f KB garbage", garbage))
 assert(garbage < 4096, "cache mover rectangles on layout changes; selecting movers must allocate less than 4 MB")
-assert(elapsed < 0.1, "place only affected tags on selection; 200 selections must take less than 0.1 CPU seconds")
+local instructions = dofile("Tools/regression/instruction_budget.lua")(function()
+	for i = 1, 200 do Mode.Select("B.e" .. (i % 60 + 1)) end
+end, 1100000, "place only affected tags on selection")
+print("Select x200: " .. instructions .. " addon instructions")
 local p = Mode.Plate("B.e5")
 assert(p:GetHeight() == 16, "thin movers must retain the 16-unit grab area used by wheel and coverage hit tests")
 

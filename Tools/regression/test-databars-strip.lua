@@ -331,7 +331,7 @@ end
 -- Settings: slots, labels, colours, money, latency, clock, backdrop, separators, font ----------------
 
 do
-	local env, K, ns = Rail()
+	local env, K, ns, game = Rail()
 	local Options = K.Options
 	useCells(env, K)
 	D.Entry(K, 5, "time")
@@ -382,6 +382,11 @@ do
 	eq(item(ns, "gold").value:GetText(), "143g", "gold only")
 	Options.Write("DataBars", "strip.latency", "world")
 	eq(item(ns, "latency").value:GetText(), "41 ms", "world latency")
+	game.latencyWorld = nil
+	env.RunTickers()
+	eq(item(ns, "latency").value:GetText(), K.L["--"], "an unavailable World latency never borrows Home's number")
+	game.latencyWorld = 41
+	env.RunTickers()
 	Options.Write("DataBars", "strip.clock24", false)
 	eq(item(ns, "time").value:GetText(), "2:32 PM", "a 12-hour clock")
 	Options.Write("DataBars", "strip.timeSource", "realm")

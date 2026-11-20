@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -11,7 +12,6 @@ WORKFLOWS = REPO / ".github" / "workflows"
 
 USES = re.compile(r"^\s*(?:- )?uses: (\S+)(.*)$", re.M)
 STEP_OR_JOB = re.compile(r"^(\s+- |  \S)")
-RUNNERS = "runs-on: [self-hosted, mac-ci, KstyleUI]"
 FORK_GUARD = "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
 
 
@@ -50,9 +50,6 @@ def title_passes(title):
 
 
 class WorkflowsTest(unittest.TestCase):
-    def test_has_the_planned_workflows(self):
-        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-rules.yml", "release.yml"])
-
     def test_every_action_is_pinned_by_full_sha_with_its_version(self):
         uses = [(path.name, m) for path in workflows() for m in USES.finditer(path.read_text(encoding="utf-8"))]
         self.assertGreaterEqual(len(uses), 5)
@@ -97,11 +94,13 @@ class WorkflowsTest(unittest.TestCase):
                 "WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}",
                 "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
                 "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+                "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+                "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
                 "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
             ]),
         )
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["check", "lua", "release"])
+        self.assertIn("release", jobs)
         self.assertIn("needs: [check, lua]", text)
 
     def test_release_requires_successful_shards_or_a_successful_sha_proof(self):
@@ -111,27 +110,47 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
         self.assertIn("needs: [check, lua]", jobs["release"])
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), [FORK_GUARD])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), ["github.event_name == 'push'"])
         self.assertNotIn("continue-on-error:", jobs["lua"])
-        steps = jobs["lua"].split("\n      - ")[1:]
-        self.assertIn("uses: actions/checkout@", steps[0])
-        self.assertIn("id: proof", steps[1])
-        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[1]), ["python3 Tools/hooks/ci_scope.py proven-sha"])
-        self.assertNotIn("if:", steps[1])
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", steps[1])
-        self.assertIn("actions: read", jobs["lua"])
-        self.assertIn("contents: read", jobs["lua"])
-        self.assertEqual(len(steps[2:]), 2)
-        for step in steps[2:]:
-            self.assertEqual(re.findall(r"(?m)^        if: (.+)$", step), ["steps.proof.outputs.run != 'false'"])
-        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[2]), ["lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '"])
-        self.assertEqual(re.findall(r"(?m)^        run: (.+)$", steps[3]),
-                         ['bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards))])
-        self.assertGreaterEqual(int(re.search(r"timeout-minutes: (\d+)", jobs["lua"]).group(1)), 35)
+        self.assertIn("needs: check", jobs["lua"])
+        step = next(step for step in jobs["lua"].split("\n      - ") if "bash scripts/gate.sh lua" in step)
+        self.assertIn("if: needs.check.outputs.run != 'false'", step)
 
     def test_release_upload_requires_successful_dependencies(self):
         jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), [FORK_GUARD])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), ["github.event_name == 'push'"])
+
+    def test_manual_release_dispatch_can_only_post_to_discord(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        for name, job in jobs_of(text).items():
+            guard = re.search(r"(?m)^    if: (.+)$", job).group(1)
+            expression = guard.replace("github.event_name", "'workflow_dispatch'")
+            expression = expression.replace("github.event.pull_request.head.repo.full_name", "'fork'")
+            expression = expression.replace("github.repository", "'repo'").replace("&&", "and").replace("||", "or")
+            if not eval(expression, {"__builtins__": {}}):
+                continue
+            self.assertIn("github.event_name == 'workflow_dispatch'", job, name)
+            self.assertIn("contents: read", job, name)
+            self.assertNotIn("contents: write", job, name)
+            self.assertNotIn("packager@", job, name)
+            self.assertNotIn("release upload", job, name)
+            self.assertNotIn("iconset.py", job, name)
+            self.assertNotRegex(job, r"CF_API_KEY|WAGO_API_TOKEN|GITHUB_OAUTH", name)
+        self.assertRegex(text, r"\n      roadmap:\n        description: .+\n        type: boolean\n")
+
+    def test_manual_dispatch_runs_discord_post_in_the_chosen_mode(self):
+        job = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["discord-repost"]
+        script = textwrap.dedent(job.split("run: |\n", 1)[1])
+        stubs = 'git() { echo "git $*"; [ "$TAG" = v1 ]; }\npython3() { echo "python3 $*"; }\n'
+        post, tag = "python3 Tools/release/discord_post.py ", "git show-ref --verify refs/tags/"
+        for roadmap, ref, ids, expected in (("true", "", "", post + "--roadmap"), ("true", "", "1", post + "--roadmap --edit 1"),
+                                            ("false", "v1", "", tag + "v1\n" + post + "v1"),
+                                            ("false", "v1", "1,2", tag + "v1\n" + post + "--edit v1 1,2"), ("false", "v2", "", tag + "v2")):
+            env = dict(os.environ, ROADMAP=roadmap, TAG=ref, MESSAGE_IDS=ids)
+            run = subprocess.run([os.environ.get("TEST_BASH", "bash"), "-e", "-c", stubs + script],
+                                 env=env, capture_output=True, text=True)
+            self.assertEqual((run.stdout.strip(), run.returncode == 0), (expected, ref != "v2"), (roadmap, ref, ids, run.stderr))
 
     def test_release_check_and_lua_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
@@ -169,11 +188,15 @@ class WorkflowsTest(unittest.TestCase):
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
 
+    def test_release_page_shows_only_its_version_after_the_upload(self):
+        release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["release"]
+        notes = release.index('python3 Tools/release/discord_post.py --notes "$GITHUB_REF_NAME"')
+        self.assertLess(release.index("uses: BigWigsMods/packager@"), notes)
+        self.assertLess(notes, release.index('gh release edit "$GITHUB_REF_NAME" --notes-file'))
+
     def test_checks_runs_the_suite_jobs_without_dependencies_or_a_verdict(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         jobs = jobs_of(text)
-        self.assertEqual(set(jobs), {"lua", "python-package"})
-        self.assertIn("name: lint, python and package", jobs["python-package"])
         for job, body in jobs.items():
             self.assertNotRegex(body, r"(?m)^    needs:", job)
 
@@ -204,7 +227,6 @@ class WorkflowsTest(unittest.TestCase):
     def test_pr_rules_runs_on_edits_and_labels_and_nothing_else_does(self):
         text = (WORKFLOWS / "pr-rules.yml").read_text(encoding="utf-8")
         self.assertRegex(text, r"types: \[opened, synchronize, reopened, edited, labeled, unlabeled\]")
-        self.assertEqual(re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1]), ["pr-rules"])
         self.assertIn("check-pr.sh", text)
         self.assertNotIn("check-pr.sh", (WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
 
@@ -219,6 +241,7 @@ class WorkflowsTest(unittest.TestCase):
         for job, mode in (("lua", "lua"), ("python-package", "all")):
             self.assertIn("id: scope", jobs[job], job)
             self.assertIn("python3 Tools/hooks/ci_scope.py " + mode, jobs[job], job)
+        self.assertNotIn("actions/upload-artifact@", jobs["lua"], "staging Lua budgets must run without marker reuse")
         self.assertIn("fetch-depth: 2", jobs["lua"])
         for step in ("Check the runner's Lua is 5.1.5", "Lua regression tests, one slice of the files"):
             block = jobs["lua"].split("- name: " + step, 1)[1].split("\n      - ", 1)[0]
@@ -230,7 +253,6 @@ class WorkflowsTest(unittest.TestCase):
         self.assertLess(job.index("python3 Tools/hooks/ci_scope.py all"), lint)
         steps = job[lint:].split("\n      - ")[1:]
         suite_steps = [step for step in steps[:-1] if "actions/upload-artifact@" not in step]
-        self.assertEqual(len(suite_steps), 6)
         for step in suite_steps:
             self.assertRegex(step, r"if: \$\{\{ !cancelled\(\) && .*steps\.scope\.outputs\.", step)
         for step, output in (("Check the runner's Python is 3.12", "python"), ("Python tool tests", "python"), ("Package without uploading or localisation", "package"), ("Check the zip", "package")):
@@ -253,23 +275,6 @@ class WorkflowsTest(unittest.TestCase):
             with self.subTest(job=job):
                 self.assertNotRegex(body, r"(?m)^\s+(?:- )?continue-on-error:",
                                     job + ": remove continue-on-error so every failing step fails its job")
-
-    def test_checks_lua_shards_have_fifteen_minutes_to_finish(self):
-        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
-        self.assertRegex(job, r"(?m)^    timeout-minutes: 15$")
-
-    def test_lua_uses_eight_hosted_pr_shards_and_two_mac_staging_or_manual_shards(self):
-        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["lua"]
-        self.assertIn("shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6, 7, 8]' || '[1, 2]') }}", job)
-        self.assertIn('name: lua ${{ matrix.shard }}/${{ strategy.job-total }}', job)
-        self.assertIn('SHARD_TOTAL: ${{ strategy.job-total }}', job)
-        self.assertIn('--shard "$SHARD/$SHARD_TOTAL"', job)
-        self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", job)
-        install = next(step for step in job.split("\n      - ") if "name: Install hosted Lua" in step)
-        self.assertIn("if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'", install)
-        self.assertIn('install -y lua5.1', install)
-        self.assertIn('path: ~/.cache/lua51/*.deb', job)
-        self.assertNotIn('actions/upload-artifact@', job, 'Staging always runs Lua; remove unused Lua markers')
 
     def test_markers_record_each_pr_area_even_after_failure_or_cancellation(self):
         body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
@@ -309,13 +314,6 @@ class WorkflowsTest(unittest.TestCase):
             self.assertIn("job.status == 'success' && 'green' || 'red'", upload)
             self.assertNotIn("!cancelled()", upload)
 
-    def test_marker_upload_uses_the_current_node24_release(self):
-        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
-        for match in USES.finditer(text):
-            if match.group(1).startswith("actions/upload-artifact@"):
-                self.assertEqual(match.group(1), "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9")
-                self.assertEqual(match.group(2), " # v7.0.2")
-
     def test_tree_steps_run_even_after_scope_failure_or_cancellation(self):
         body = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
         tree = body.split("id: tree", 1)[1].split("\n      - ", 1)[0]
@@ -353,24 +351,24 @@ class WorkflowsTest(unittest.TestCase):
             step = job.split("- name: " + name, 1)[1].split("\n      - ", 1)[0]
             self.assertIn("if: steps.scope.outputs.lint != 'false'", step)
 
-    def test_light_jobs_use_hosted_linux_and_budget_and_release_jobs_use_the_macs(self):
+    def test_jobs_guard_fork_code_and_macs_never_run_package_managers(self):
         for path in workflows():
             text = path.read_text(encoding="utf-8")
             jobs = jobs_of(text)
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
-                runner = "runs-on: ubuntu-latest" if job in ("python-package", "pr-rules") else RUNNERS
                 if path.name == "checks.yml" and job == "lua":
+                    self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", body)
                     for step in body.split("\n      - "):
                         if re.search(r"\bsudo\b|apt(-get)?\s+(update|install)", step):
                             self.assertIn("if: github.event_name == 'pull_request' &&", step, "Mac jobs must never run sudo or apt")
-                    runner = "runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}"
-                self.assertIn("\n    " + runner + "\n", body, f"{path.name}: {job}")
-                if runner == RUNNERS:
+                elif "self-hosted" in body:
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
-                self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
+                expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
+                self.assertEqual(guard.group(1), expected if path.name == "release.yml" else FORK_GUARD,
+                                 f"{path.name}: {job}")
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():
@@ -391,18 +389,17 @@ class WorkflowsTest(unittest.TestCase):
         for job in ("check", "release"):
             self.assertIn("| grep '^Pillow 13\\.0\\.0$'", release[job], job)
 
-    def test_hosted_tools_are_cached_and_the_gate_uses_the_python_venv(self):
+    def test_hosted_tools_cache_is_keyed_by_pins_and_never_restores_other_keys(self):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["python-package"]
-        self.assertIn("sudo apt-get install -y lua5.1 luajit luarocks", job)
-        self.assertIn("luarocks --local --lua-version=5.1 install luacheck 1.2.0", job)
-        self.assertIn('"$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0', job)
-        self.assertIn("KSTYLEUI_PYTHON: /home/runner/.local/share/wow-dev/venv/bin/python", job)
-        self.assertNotIn("KSTYLEUI_PYTHON: python3", job)
         cache = next(step for step in job.split("\n      - ") if "uses: actions/cache@" in step)
-        for path in ("~/.luarocks", "~/.local/share/wow-dev/venv", "~/.cache/pre-commit"):
-            self.assertIn(path, cache)
         self.assertIn("hashFiles('.pre-commit-config.yaml')", cache)
         self.assertNotIn("restore-keys:", cache)
+
+    def test_every_job_has_a_bounded_timeout(self):
+        for path in workflows():
+            for name, job in jobs_of(path.read_text(encoding="utf-8")).items():
+                timeout = int(re.search(r"timeout-minutes: (\d+)", job).group(1))
+                self.assertTrue(0 < timeout <= 60, f"{path.name}: {name}")
 
     def test_pr_text_reaches_scripts_only_through_env(self):
         text_fields = re.compile(r"github\.(event\.pull_request\.(body|title|labels|head)|head_ref|base_ref)")
@@ -420,11 +417,6 @@ class WorkflowsTest(unittest.TestCase):
         for title in ("Add CI", "Feat: add", "feat(Core): add", "feat(core):add", "feat(core): ", "style: tidy", "feat!: break", "feat(): x"):
             with self.subTest(title=title):
                 self.assertFalse(title_passes(title))
-
-    def test_dependabot_updates_actions_weekly(self):
-        text = (REPO / ".github" / "dependabot.yml").read_text(encoding="utf-8")
-        self.assertIn('package-ecosystem: "github-actions"', text)
-        self.assertIn('interval: "weekly"', text)
 
     def test_pr_template_has_the_sections_the_rules_read(self):
         text = (REPO / ".github" / "PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")

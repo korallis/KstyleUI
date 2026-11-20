@@ -3,14 +3,25 @@ local _, K = ...
 local Store, Codec, L = K.Store, K.Codec, K.L
 local Profiles = {}
 K.Profiles = Profiles
-Store.RegisterDefaults("ProfileTools", { review = true, backups = true })
+Store.RegisterDefaults("ProfileTools", { review = true, backups = true, scaleWarning = true })
 K.Options.Register("ProfileTools", function() return {
 	{ type = "header", label = L["Profile tools"] },
-	{ type = "toggle", key = "review", label = L["Scoped sharing and import review"], help = L["Share a layout or one module and review imports. Off shares and imports whole profiles directly."] },
+	{ type = "toggle", key = "review", label = L["Scoped sharing and import review"], help = L["Choose what to share and review imports. Off shares and imports whole profiles directly."] },
 	{ type = "toggle", key = "backups", label = L["Recovery backups"], help = L["Saves a restore point before setup, import or reset. Off keeps the previous direct changes."] },
+	{ type = "toggle", key = "scaleWarning", label = L["Warn about imported interface size"], help = L["Adds a note to import review when the shared settings change your interface size."] },
 } end)
 
 local Copy, Equal = K.Options.Copy, K.Options.Equal
+
+local function Selection(scope)
+	if type(scope) ~= "table" then return end
+	local selected = {}
+	for module, on in pairs(scope) do
+		if type(module) ~= "string" or type(on) ~= "boolean" or not Store.Defaults(module) then return end
+		if on then selected[module] = true end
+	end
+	return next(selected) and selected or nil
+end
 
 local function Encode(payload)
 	local body = Codec.Serialize(payload)
@@ -82,7 +93,15 @@ function Profiles.Export(scope, includeLayout)
 	if scope == "everything" then scope = "settings" end
 	local payload, err = Store.Decode(text)
 	if not payload then return nil, err end
-	if scope == "layout" then
+	local selected = Selection(scope)
+	if type(scope) == "table" then
+		if not selected then return nil, L["Choose at least one module to share."] end
+		for module in pairs(payload.settings) do
+			if not selected[module] then payload.settings[module] = nil end
+		end
+		if includeLayout == false then payload.layout, payload.namedLayouts = {}, nil end
+		scope = "modules"
+	elseif scope == "layout" then
 		payload.settings = {}
 	elseif scope == "settings" then
 		payload.layout, payload.namedLayouts = {}, nil
@@ -91,7 +110,7 @@ function Profiles.Export(scope, includeLayout)
 	else
 		return nil, L["Choose a module to share."]
 	end
-	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = Encode(payload) }))
+	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = Encode(payload), includeLayout = scope == "modules" and includeLayout ~= false or nil }))
 end
 
 local function Decode(text)
@@ -99,11 +118,11 @@ local function Decode(text)
 		if #text > 1048576 then return nil, L["This profile string is too large."] end
 		local raw = Codec.DecodeBase64(text:sub(6):gsub("%s+", ""))
 		local envelope = raw and Codec.Deserialize(raw)
-		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or (envelope.scope ~= "layout" and envelope.scope ~= "settings" and not Store.Defaults(envelope.scope)) then
+		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or (envelope.scope ~= "layout" and envelope.scope ~= "settings" and envelope.scope ~= "modules" and not Store.Defaults(envelope.scope)) then
 			return nil, L["This scoped profile is not valid."]
 		end
 		local payload, why = Store.Decode(envelope.profile)
-		return payload, why, envelope.scope
+		return payload, why, envelope.scope, envelope.includeLayout == true
 	end
 	return Store.Decode(text)
 end
@@ -117,26 +136,43 @@ local function Merge(base, values)
 end
 
 function Profiles.Preview(text, scope, includeLayout)
-	local payload, why, sharedScope = Decode(text)
+	local payload, why, sharedScope, sharedLayout = Decode(text)
 	if not payload then return nil, why end
 	scope = scope or "everything"
-	if sharedScope then
-		if scope ~= "everything" and scope ~= sharedScope then return nil, L["Choose the scope included in this profile."] end
-		scope = sharedScope
+	if sharedScope == "modules" then
+		if scope == "everything" then
+			scope = {}
+			for module in pairs(payload.settings) do scope[module] = true end
+		elseif type(scope) ~= "table" then return nil, L["Choose the scope included in this profile."] end
+		includeLayout = includeLayout ~= false and sharedLayout
+	elseif sharedScope then
+		if type(scope) == "table" and sharedScope ~= "layout" then
+			includeLayout = false
+		else
+			if scope ~= "everything" and scope ~= sharedScope then return nil, L["Choose the scope included in this profile."] end
+			scope = sharedScope
+		end
+	end
+	local selected = Selection(scope)
+	if type(scope) == "table" then
+		if not selected then return nil, L["Choose at least one module to share."] end
+		for module in pairs(selected) do
+			if not payload.settings[module] then return nil, L["This profile has no settings for that module."] end
+		end
 	end
 	if scope == "everything" and includeLayout == false then scope = "settings" end
-	if scope ~= "everything" and scope ~= "layout" and scope ~= "settings" and not payload.settings[scope] then return nil, L["This profile has no settings for that module."] end
+	if not selected and scope ~= "everything" and scope ~= "layout" and scope ~= "settings" and not payload.settings[scope] then return nil, L["This profile has no settings for that module."] end
 	local changes, settings, layout = {}, Copy(Store.Profile()), Copy(Store.Layout())
 	if scope ~= "layout" then
 		for module in pairs(settings) do
-			if scope == "everything" or scope == "settings" or scope == module then
+			if scope == "everything" or scope == "settings" or scope == module or selected and selected[module] then
 				local future = Merge(Store.Defaults(module), payload.settings[module])
 				if not Equal(settings[module], future) then changes[#changes + 1] = module end
 				settings[module] = future
 			end
 		end
 	end
-	if scope == "everything" or scope == "layout" then
+	if scope == "everything" or scope == "layout" or selected and includeLayout ~= false then
 		if not Equal(layout, payload.layout) then changes[#changes + 1] = L["Layout"] end
 		layout = Copy(payload.layout)
 		if payload.namedLayouts and not Equal(Profiles.Layouts(), payload.namedLayouts) then changes[#changes + 1] = L["Saved layouts"] end
@@ -144,17 +180,15 @@ function Profiles.Preview(text, scope, includeLayout)
 		payload.namedLayouts = nil
 	end
 	table.sort(changes)
-	local labels = {}
-	for _, module in ipairs(changes) do
-		local label = module
-		for _, entry in ipairs(K.Setup and K.Setup.PICKER or {}) do if entry.name == module then label = entry.label; break end end
-		labels[#labels + 1] = label
-	end
 	payload.settings, payload.layout = settings, layout
 	local encoded = Encode(payload)
 	local valid, err = Store.Decode(encoded)
 	if not valid then return nil, err end
-	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(labels, ", ") or L["No changes"] }
+	local current, future = Store.Module("Appearance"), settings.Appearance
+	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
+		and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
+	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
+		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end
 
 local import, reset = Store.Import, Store.ResetProfile

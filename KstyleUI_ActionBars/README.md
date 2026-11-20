@@ -164,7 +164,7 @@ In game: check left/right click and Escape inside and outside combat, missing He
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
 | `Keybind.lua` | Hover overlays, the Save/Discard panel and staged game bindings |
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
-| `Vehicle.lua` | The leave-vehicle button below the Medallions slab, beyond the power orb or beside bar 1 (beyond an active Frames stance bar) |
+| `Vehicle.lua` | The leave-vehicle button beyond the Medallions right slab, beyond the power orb or beside bar 1 (beyond an active Frames stance bar) |
 | `Preview.lua` | The settings window's live preview |
 | `Ranks.lua` | One learned-spell dialog: update ranks or add new active spells to empty visible slots |
 | `Module.lua` | `Modules.Register`, `Enable`, `Disable`, events and settings changes |

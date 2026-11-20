@@ -10,6 +10,7 @@
 	<Script file="Character.lua"/>
 	<Script file="Spellbook.lua"/>
 	<Script file="WorldMap.lua"/>
+	<Script file="WorldMapRoads.lua"/>
 	<Script file="WorldMapRoutes.lua"/>
 	<Script file="Tracker.lua"/>
 	<Script file="Quests\Data.lua"/>

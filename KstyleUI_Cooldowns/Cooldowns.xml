@@ -3,6 +3,7 @@
 	<Script file="Grid.lua"/>
 	<Script file="Data.lua"/>
 	<Script file="Settings.lua"/>
+	<Script file="Rules.lua"/>
 	<Script file="Style.lua"/>
 	<Script file="Row.lua"/>
 	<Script file="Bars.lua"/>

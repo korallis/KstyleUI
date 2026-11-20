@@ -1,5 +1,69 @@
 # Layout
 
+## EllesmereUI parity audit (2026-11-20)
+
+Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5` for labels and behaviour only. No code or assets were copied. Sources: [CurseForge description](https://www.curseforge.com/wow/addons/ellesmereui), [Wago listing](https://addons.wago.io/addons/ellesmereui/versions?stability=stable), [release notes](https://www.curseforge.com/wow/addons/ellesmereui/files/8961439), and the source files linked below. Wago's detail page requires JavaScript and adds no independently readable menu inventory; its release listing identifies the same product. The [public settings screenshot](https://media.forgecdn.net/attachments/1663/776/3-png.png) establishes the editor entry and shared window; individual editor controls come from the pinned source. Repeated source/target choices are listed together with all their values rather than counted as separate features.
+
+| Publicly documented option | KstyleUI status | Control or remaining work | Public source |
+| --- | --- | --- | --- |
+| Enter / leave Unlock Mode | Present | Layout Mode button; `/kstyle layout`; refuses combat | [Session] |
+| Save and exit | Present | Done; positions save to the current profile | [Session] |
+| Exit without saving | Present | Layout.Exit(false); combat restores the session snapshot | [Session] |
+| Drag to move | Present | Every live element's mover | [Movers] |
+| Shift drag on one axis | Present | Shift locks to the first direction | [Session] |
+| Arrow-key 1px nudge | Present | Selected mover, physical pixels at every resolution | [Session] |
+| Shift arrow-key 100px nudge | Present | Elements > Shift nudge distance, 1–100; default stays 10 | [Session] |
+| Grid off / dim / bright | Present | Show the grid and Grid brightness, 0–50%; original 7% remains default | [Session] |
+| Cursor light on grid | Missing, fits | Follow-up L1: it needs per-frame cursor tracking while Layout Mode is open, so it waits for a way without a per-frame update | [Session] |
+| Dark element overlays on / off | Present | See-through movers; off restores solid plates | [Session] |
+| Snap to elements / screen | Present | Snap while dragging, including edges and centres | [Session] |
+| Snap to grid | Present | Show the grid with snapping enabled | [Unlock tools] |
+| Per-element snap target: auto / none / selected / all | Missing, fits | Follow-up L1: a per-element choice needs a saved element field that every reload resolves; skipped to add no reload cost | [Movers] |
+| Coordinates always visible | Present | Show coordinates on every plate | [Session] |
+| Overlap cycle: off / scroll / Shift / Ctrl / Alt scroll | Present | Elements > Overlap cycling; Alt remains default; other scrolling still scales | [General source] |
+| Select element from list / filter | Present | Find Layout Mode elements; searchable toolbar list | [Unlock filter] |
+| Temporarily hide an individual overlay | Present | Middle-click hides a mover for this session; Restore movers or the element picker shows it again | [Session] |
+| Hover-only top toolbar / hold Shift to hide | Present | Elements > Fade the toolbar until pointed at, off by default: the toolbar rests at 25%, shows when pointed at and hides while Shift is held | [Session] |
+| Toolbar smaller / bigger | Present | Layout.Toolbar scale through Elements | [Session] |
+| Open element options from mover | Present | Elements > Double-click movers for settings, on by default; action bars retain their own shortcut setting | [Session] |
+| Numeric X position | Present | Element > X offset | [Movers] |
+| Numeric Y position | Present | Element > Y offset | [Movers] |
+| Centre on screen | Present | Anchor Centre with X and Y zero | [Movers] |
+| Width / height sizing | Present | Element Width / Height and resize handles | [Movers] |
+| Element scale | Present | Element Scale, corner handle and wheel | [Movers] |
+| Width match | Present | Attach to > Match width; respects limits and physical size across scales | [Movers] |
+| Height match | Present | Attach to > Match height; off by default; respects limits and combat queue | [Movers] |
+| Extra matched width | Present | Extra width in root units; zero preserves exact matching | [v9.2.5] |
+| Extra matched height | Present | Extra height in root units; zero preserves exact matching | [v9.2.5] |
+| Independent width / height match targets | Missing, fits | Follow-up L2: separate targets need new element fields that every reload resolves, plus chain, cycle and combat tests; skipped to add no reload cost | [Movers] |
+| Attach above / below / left / right | Present | Attach to, Side and Offset | [Movers] |
+| Nine source points × nine target points | Missing, fits | Follow-up L2: Side now covers the twelve edge-to-edge pairs; other point pairs need a new element field that every reload resolves | [Point picker] |
+| Independent anchor X and Y offsets | Missing, fits | Follow-up L2: a sideways offset needs a new element field that every reload resolves; corner sides line up edges meanwhile | [Movers] |
+| Grow / corner direction; fallback direction | Present | Attach to > Side: each side centred or lined up at either edge; an unavailable target falls back to the saved place; module growth stays on each module's page | [Movers] |
+| Remove anchor | Present | Attach to > Not attached restores saved root position | [Movers] |
+| Anchor connector colour | Missing, breaks consistency | Layout guides use the shared accent; a separate guide palette would split the editor's visual language | [General source] |
+| Anchor border colour | Missing, breaks consistency | Mover borders follow the same accent as selection everywhere | [General source] |
+| Anchor point colour | Missing, breaks consistency | Point marks must use the shared accent, rather than another per-control palette | [General source] |
+| Layout per spec / spec group | Present | Profiles > Save layout and each specialization's layout; defaults to Profile's layout | [Session] |
+| Conditional per-element override anchors | Missing, breaks consistency | A second per-setting condition editor duplicates the profile/layout assignment system | [Movers] |
+| Position Blizzard-owned frames through Edit Mode | Missing, breaks consistency | Layout owns KstyleUI replacements; it never moves Blizzard frames (binding design rule) | [Unlock tools] |
+
+This follow-up adds session-only mover hiding and optional double-click settings, preserving the existing action-bar toggle. Hidden movers return when Layout Mode reopens; their elements and saved positions never change. The mover tooltip names the actual overlap modifier (Alt + scroll by default).
+
+The third batch adds the fading toolbar and corner-aligned sides. The toolbar preference is account-wide and off by default; Layout Mode reads it only while it is open. Corner sides reuse the existing `side` field, so no element gains a field and reload resolves nothing new. Remaining L1 covers cursor lighting and snap targets; L2 covers point pairs, sideways offsets and independent match targets. Each of those needs a per-frame update or a new element field that every reload resolves, so they wait for a design with no reload cost. Together with the appearance/profile follow-ups in `KstyleUI_Options/README.md`, fitting gaps exceed a 600-line implementation batch; this PR ships height matching, match adjustments, grid brightness and interaction controls first. No existing place, font, scale or opacity changes by default. Both matches preserve an element's saved fallback size. When both matches conflict with a locked aspect ratio, width wins. Protected changes reuse `Combat.Queue`; no new event, ticker or per-frame path was added.
+
+Forever API proof is pinned to `9dc84f0d3bbae1768ac3405b3716000bd93eda06`: `Blizzard_APIDocumentationGenerated/InputDocumentation.lua` declares `IsAltKeyDown`, `IsControlKeyDown`, `IsShiftKeyDown`; the shared modifier reader guards availability and secrecy. `SimpleScriptRegionAPIDocumentation.lua` declares size getters and `SimpleScriptRegionResizingAPIDocumentation.lua` declares setters; the existing frame measurement path rejects secret/invalid dimensions before matching. `SimpleRegionAPIDocumentation.lua` and `SimpleTextureBaseAPIDocumentation.lua` prove alpha/vertex colour setters used by the existing grid painter. New geometry fields use Layout's existing validation, sparse saved records, history and combat queue.
+
+Verification: `test-core-parity-third`, `test-core-parity`, `test-layout-links`, the existing Layout tests, and `test-perf-path-budgets` under PUC Lua 5.1. Scene `parity_core` accepts `RENDER_CORE_PAGE=layout`, `links`, `mode` or `toolbar`, and `RENDER_CORE_SIDE` for the target frame's side; use the four requested screen sizes with strict guards and a real backdrop. Evidence stays outside the repository.
+
+[Session]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Session.lua
+[Movers]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Movers.lua
+[Unlock tools]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Tools.lua
+[Unlock filter]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Filter.lua
+[Point picker]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_PointPicker.lua
+[General source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI__General_Options.lua
+[v9.2.5]: https://www.curseforge.com/wow/addons/ellesmereui/files/8961439
+
 `KstyleUI.Layout` places every visible KstyleUI element, stores where the player puts it, and runs Layout Mode. The spec's [Layout Mode](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#layout-mode) and [Customisation and resizing](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#customisation-and-resizing) sections are binding. `Core/Layout/Layout.xml` loads the files in this order:
 
 | File | What it holds |
@@ -35,7 +99,7 @@ KstyleUI.Layout.Register(frame, key, defaultPosition, opts)
 | `defaultPosition` | A function returning `{ anchor, x, y }`, or nil to keep the registered position. Layout calls it when resolving defaults, including display/aspect changes; saved player positions and scale still take precedence. |
 | `plate` | `false` draws no mover plate, for a frame that moves itself in Layout Mode, such as the Layout toolbar. |
 | `window` | `true` for a core window the player needs to get back to: the settings window, the dialog host, the Layout Mode toolbar and the first-run setup. The settings window shows no Shown row for it, and its opacity sliders stop at 25%. |
-| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle`, `strata`, `attachTo`, `side`, `offset` and `matchWidth`. The settings window builds only those rows; `attachTo` includes the companion link controls. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
+| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle`, `strata`, `attachTo`, `side`, `offset`, `matchWidth`, `matchHeight`, `extraWidth` and `extraHeight`. The settings window builds only those rows; `attachTo` includes the companion link controls. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
 
 `Register` raises an error for a bad argument. Registering a key again updates its frame, default and options. `Widgets.Place(frame, key, position, opts)` positions a frame and registers it in one call.
 
@@ -62,9 +126,11 @@ The defaults themselves are layered: the element's registered position, then the
 | `anchor` | One of the nine anchors | `defaultPosition.anchor` |
 | `x`, `y` | Root units from the anchor | `defaultPosition.x` and `.y`, or 0 |
 | `attachTo` | Another element's key, or `""` for the saved root position | `""` |
-| `side` | `above`, `below`, `left`, `right`; centres the other axis | `above` |
+| `side` | `above`, `below`, `left`, `right` centre the other axis; `aboveLeft`, `aboveRight`, `belowLeft`, `belowRight`, `leftTop`, `leftBottom`, `rightTop` and `rightBottom` line up that edge instead | `above` |
 | `offset` | Gap from the linked element in root units; negative overlaps | 0 |
 | `matchWidth` | Matches the target's visible width across scales, within this element's size limits; resizable elements only | `false` |
+| `matchHeight` | Matches the target's visible height across scales, within this element's size limits; resizable elements only | `false` |
+| `extraWidth`, `extraHeight` | Root units added to the matched dimension; ignored when that match is off | 0 |
 | `width`, `height` | Frame units, within the limits. For an element that is not resizable, the frame's current size, read only | The frame's size |
 | `scale` | 0.5 to 2, read only unless `scalable` | The frame's scale |
 | `shown` | `always`, `combat`, `noCombat`, `target`, `mouseover`, `never`, `party`, `raid`, `solo`, `noParty`, `noRaid`, `noSolo` | `always` |
@@ -77,7 +143,7 @@ A saved value that is not allowed, such as from a damaged or hand-edited profile
 
 ### Attaching elements
 
-On an element's Options rows, **Attach to** chooses a target, **Side** chooses one of four sides, **Offset** sets the gap and **Match width** follows its width. These rows use the same controls as every other element setting and build when the page opens. An absent link leaves today's layout unchanged; choosing or clearing a link never rewrites `anchor`, `x`, `y` or the element's own saved width. A missing target, a module switched off, `SetLive(false)` or `shown = "never"` restores that saved place and size, and the link returns when the target does. Temporary visibility rules leave the attachment in place.
+On an element's Options rows, **Attach to** chooses a target, **Side** chooses one of four sides, centred or lined up at either edge (`Layout.SideOptions()`), **Offset** sets the gap and **Match width** / **Match height** follow its dimensions. **Extra width** and **Extra height** adjust a matched dimension in root units. These rows use the same controls as every other element setting and build when the page opens. An absent link leaves today's layout unchanged; choosing or clearing a link never rewrites `anchor`, `x`, `y` or the element's own saved width and height. A missing target, a module switched off, `SetLive(false)` or `shown = "never"` restores that saved place and size, and the link returns when the target does. Temporary visibility rules leave the attachment in place.
 
 The selected Layout Mode plate describes its link. Dragging or nudging an attached element adjusts the gap along its chosen side; moving or resizing the target updates its dependants, including during a drag preview. Undo, redo, reset, profile changes and combat cancellation include links. Circular links are refused, and circular data imported in a profile uses the root fallback. Protected frames move and resize through `Combat.Queue` after combat. Aspect-locked elements retain their proportions; width matching respects their size limits.
 
@@ -173,7 +239,7 @@ Party-only drivers test raid first because `group:party` also matches raids. The
 | Handles | The selected resizable element shows eight handles on its corners and edges. A selected element that is scalable and not resizable shows one scale handle on its bottom right corner. |
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
-| Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. |
+| Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. With Elements > Fade the toolbar until pointed at, it rests at 25%, shows when pointed at and hides while Shift is held. |
 | Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |

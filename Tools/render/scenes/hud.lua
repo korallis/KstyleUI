@@ -848,6 +848,13 @@ function modules.cooldowns(opts)
 			end
 		end,
 	})
+	-- RENDER_COOLDOWN_PARITY=1: EllesmereUI parity round 1 switched on, spell rules named as the reference shaman's spells.
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "1" then
+		for key, value in pairs({ ["rules.fade"] = "Stoneclaw Totem", ["rules.tint"] = "Earth Shock", ["rules.hideReady"] = "Searing Totem", closeGaps = true,
+			glowsInCombat = true, ["essential.timerPosition"] = "TOP", ["buffs.inactiveShade"] = "colour", ["essential.hideZero"] = true, ["essential.vertical"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
 	local cdm = env._cdm
 	local now = 10
 	env._time = now
@@ -944,6 +951,7 @@ function modules.chat(opts)
 		C.Enable(env, K)
 	end
 	applyPreset(env, opts)
+	Common.ChatSettings(env, K)
 	local chat = env.ChatFrame1
 	local stamp = env._cvars.showTimestamps
 	local function stamped(text)

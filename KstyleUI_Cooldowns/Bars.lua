@@ -35,6 +35,7 @@ end
 function BarRow:StyleBar(bar)
 	local cfg, current = self.cfg, ns.Settings.current
 	local holder = self.holder
+	bar.icon:SetTexCoord(cfg.iconZoom, 1 - cfg.iconZoom, cfg.iconZoom, 1 - cfg.iconZoom)
 	Widgets.Size(bar, cfg.width, cfg.height)
 	local height = Widgets.Snap(holder, cfg.height)
 	local border = Widgets.Border(bar)
@@ -85,6 +86,7 @@ function BarRow:StyleBar(bar)
 	bar.count:ClearAllPoints()
 	bar.count:SetPoint("BOTTOMRIGHT", bar.icon, "BOTTOMRIGHT", 0, 0)
 	bar.count:SetShown(cfg.icon)
+	bar.count:SetAlpha(cfg.showCount and 1 or 0)
 	Style.Mouse(bar, current.tooltips)
 end
 

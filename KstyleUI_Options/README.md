@@ -1,5 +1,148 @@
 # KstyleUI_Options
 
+## EllesmereUI parity audit (2026-11-20)
+
+This is the profile, general appearance and Options-window inventory for public EllesmereUI v9.9.1, using its [CurseForge page](https://www.curseforge.com/wow/addons/ellesmereui), [Wago release listing](https://addons.wago.io/addons/ellesmereui/versions?stability=stable), [patch notes](https://www.curseforge.com/wow/addons/ellesmereui/files/9341121), [settings screenshot](https://media.forgecdn.net/attachments/1663/776/3-png.png) and [HUD examples](https://media.forgecdn.net/attachments/1664/342/9-png.png). The source links below pin `8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5`; source was read for labels and behaviour only, with no code or data copied. Wago's JavaScript-only detail body supplies no additional readable menu rows. Layout Mode has its own complete table in `Core/Layout/README.md`.
+
+Repeated swatches and module mirrors are enumerated in their row. A module mirror is the same option as the module's own control, not a requirement for a second settings page. Other module-specific controls remain in their module audits. The General page's gamepad, combat/gameplay CVars, glow-effects editor and Numbers formatter are outside this task's appearance/window/profile scope.
+
+| Publicly documented option | KstyleUI status | Control or remaining work | Public source |
+| --- | --- | --- | --- |
+| Active profile | Present | Profiles > Profile | [Profiles source] |
+| New profile | Present | Profiles > New profile | [Profiles source] |
+| Copy current / another profile | Present | Profiles > Copy from | [Profiles source] |
+| Rename profile | Present | Profiles > Rename | [Profiles source] |
+| Delete profile | Present | Profiles > Delete; active profile is protected | [Profiles source] |
+| Reset profile | Present | Profiles > Reset profile; recovery backup available | [Profiles source] |
+| Assign to specialization / class | Present | Use a profile per specialization: client spec IDs when available, assigned-role fallback otherwise | [Profiles source] |
+| Whole profile import from string | Present | Profiles > Import; decode, checksum, validation, review and backup | [Profiles source] |
+| Whole profile export to string | Present | Profiles > Export; selected text ready to copy | [Profiles source] |
+| Export addon checklist | Present | Share scope > Selected modules; independent toggles, Select all and Clear | [Profiles source] |
+| Import addon checklist | Present | The same Selected modules toggles restrict review and application | [Profiles source] |
+| Include Unlock Mode layout on import | Present | Include layout; off keeps positions and named layouts | [Profiles source] |
+| Include Unlock Mode layout on export | Present | Include layout; available for Everything and Selected modules | [Profiles source] |
+| Include global appearance | Present | Selected modules includes Appearance, Widgets, Hud Style and Readability | [Profiles source] |
+| Include window / tooltip skins | Present | Selected modules > Window Skins and Tooltips; these remain per profile | [Profiles source] |
+| Import profile name | Present | Import review > Profile name (optional); blank keeps the shared name, duplicates get a unique suffix | [Profiles source] |
+| Assign imported profile to original specs | Missing, fits | Follow-up P1: assignments live in `Core/Specialization.lua` and Store's validated payload, outside this batch's files; a new envelope would break older importers | [Profiles source] |
+| Profile hotkey / right-click unbind | Missing, fits | Follow-up P1: a binding needs `Bindings.xml` and new `BINDING_*` globals in `.luacheckrc`, outside this batch's files | [Profiles source] |
+| Include spec / conditional overrides | Missing, breaks consistency | Whole-profile and layout-per-spec assignment are the supported model; no per-setting condition engine | [Profiles source] |
+| Include per-spec cooldown spell assignments | Missing, fits | Follow-up P2 with Cooldowns owner: optional curated spell layout sharing | [Profiles source] |
+| Include Blizzard Edit Mode layout | Missing, fits | Follow-up P2: optional native layout export/import through existing setup integration | [Profiles source] |
+| Warn about a different imported UI scale | Present | Warn about imported interface size, on by default; adds review text, changes no saved size | [Profiles source] |
+| Match imported scale / keep own | Present | Include Appearance or leave it unchecked in Selected modules; review warns on an effective size-setting change | [Profiles source] |
+| Import full account data | Missing, fits | Follow-up P2: opt-in export of named profiles and character assignments with recovery | [Profiles source] |
+| Community presets / popular preset browser | Missing, fits | Follow-up P2: curated preset import; current first-run role/style presets remain available | [Profiles source] |
+| Wago installer profile protocol | Missing, fits | Follow-up P2: validate public installer contract before adding an adapter | [Profile protocol] |
+| Global font | Present | General > Text > Font; inherited module fonts follow it | [Fonts source] |
+| Global outline: shadow / outline / thick outline | Missing, fits | Follow-up A1: the inherited outline belongs in the shared font application (`Core/Theme.lua`, `Core/Widgets/`), outside this batch's files | [Fonts source] |
+| Apply global font to all game text | Present | General > Game text > Use your font for game text, off by default: every named font the game has made by login that uses one of the game's own font files (`Fonts\`) takes the body font at its own size and outline; KstyleUI's fonts and fonts with an addon's own file keep theirs | [Fonts source] |
+| Blizzard Default / Blizzard Chat / System Default font entries | Present | General > Font reads the available native font objects on demand; bundled fonts remain the default | [Fonts source] |
+| Force Latin-only font in non-Latin locales | Missing, breaks consistency | Locale fonts preserve readable translated text; no supported switch that knowingly removes its letters | [Fonts source] |
+| Icon-text outlines per Action Bars / Unit Frames / CDM / Raid Frames / Bags | Missing, fits | Action Bars, Unit Frames, Cooldowns and Bags have outline rows; separate raid-aura icon outlines are follow-up A2 | [Fonts source] |
+| Disable SLUG outline | Missing, fits | Partly built: KstyleUI's own outlines never ask for slug rendering, but game text keeps each native font's flags, including the game's own slug font; a separate switch is follow-up A1 | [Fonts source] |
+| Game name font | Missing, fits | Partly built: names in the world take the Names role font (General > Fonts by role) after relogging only while Use your font for game text is on; a separate name-font switch is follow-up A1 | [Fonts source] |
+| Game text scale | Present | General > Game text > Game text size, 80 to 150%; 100% leaves the game's sizes untouched | [Fonts source] |
+| Module font overrides: Action Bars, Nameplates, Unit Frames, Raid Frames, CDM | Present | The modules' shared Text rows with Font, Text size and Outline | [Fonts source] |
+| Resource health / power / class resource / cast text | Present | Unit Frames' player text, class-resource and cast text rows | [Fonts source] |
+| Separate totem-bar text | Missing, fits | Follow-up A2 with Cooldowns owner: optional timer/label rows for a dedicated totem surface | [Fonts source] |
+| Aura stack size | Present | Auras and frame aura text size controls | [Fonts source] |
+| Healer mana text size | Missing, fits | Follow-up A2 with Group Frames owner: optional power text and size beside the current thin power bar | [Fonts source] |
+| Aura reminder name / item-count / mana-warning fonts and sizes | Missing, fits | Follow-up A2 with aura owner: keep equivalent text on existing reminders/consumable surfaces | [Fonts source] |
+| QoL FPS-counter / movement-alert / battle-res text fonts, sizes, outline | Missing, fits | Follow-up A2 with QoL owner; Data Bars already has a shared FPS readout font | [Fonts source] |
+| Chat font / size / outline | Present | Chat > Text; input shares message font | [Fonts source] |
+| Separate chat tab font / size | Missing, breaks consistency | Tab text keeps the shared caps role; role font can change globally | [Fonts source] |
+| Separate chat input font / size | Missing, fits | Follow-up A2 with Chat owner: optional readable input size without changing panel chrome | [Fonts source] |
+| Meter header / timer / history text sizes and timer font | Missing, fits | Follow-up A2 with Meters owner; current text rows cover the meter's shared type | [Fonts source] |
+| Quest-tracker font and per-line sizes | Missing, fits | Follow-up A2 with Skins owner: use the shared role fonts in the existing tracker skin | [Fonts source] |
+| Tooltip font size scale | Present | Tooltips > its three text role sizes; General Text size is the common multiplier | [Fonts source] |
+| Enchant text size | Missing, fits | Follow-up A2 with Skins owner: native enchant-label role sizing | [Fonts source] |
+| Minimap clock / zone / coordinates / FPS / difficulty text | Present | Minimap text rows; FPS on Data Bars | [Fonts source] |
+| Bags count / item-level text | Present | Bags > Font, Font size and Font outline | [Fonts source] |
+| Bags category / label text sizes | Missing, fits | Follow-up A2 with Bags owner: size rows for category labels using the shared roles | [Fonts source] |
+| Data bar text scale | Present | Data Bars > Text size | [Fonts source] |
+| Standalone native combat-text font | Present | General > Game text > Use your number font for combat text, off by default, after relogging; KstyleUI Combat Text keeps its own rows | [Fonts source] |
+| Standalone native combat-text scale | Missing, fits | Follow-up A1: the Forever UI source at `9dc84f0` references no combat-text scale CVar; prove one in game before adding a row | [Fonts source] |
+| Mythic+ timer/objective/threshold/spell text; keystone popup size | Not possible on Forever | `Blizzard_ChallengesUI.toc` at `9dc84f0` allows standard,mists, not camelot; no keystone system | [Fonts source] |
+| Skyriding speed text and font | Not possible on Forever | `Blizzard_FrameXMLUtil.toc:52` at `9dc84f0` loads DragonridingUtil only for mainline | [Fonts source] |
+| Texture previews and SharedMedia textures/fonts | Present | Shared FontPicker/TexturePicker, bundled media plus LibSharedMedia | [Textures source] |
+| XP / reputation / favor bar textures | Present | Data Bars > each bar > Bar texture | [Textures source] |
+| Unit-frame health / power / cast textures | Present | Unit Frames > shared Bar texture rows | [Textures source] |
+| Nameplate health / cast textures | Present | Nameplates > shared Bar texture rows | [Textures source] |
+| Raid / party health textures | Present | Party and Raid > shared Bar texture rows | [Textures source] |
+| Absorb / heal-absorb / max-health artwork styles | Missing, breaks consistency | Existing prediction overlays use the same bar finish; independent art styles split sibling bars | [Textures source] |
+| Nameplate highlight / textured bar background | Missing, breaks consistency | Target and focus marks use the shared accent and material | [Textures source] |
+| Tracking / buff-bar textures | Present | Cooldowns > selected bar > Bar texture | [Textures source] |
+| Class resource / cast bar textures | Present | Unit Frames > Bar texture; existing class resource shares the player style | [Textures source] |
+| Standalone GCD bar texture | Missing, fits | Follow-up A2 with Unit Frames owner: optional GCD bar using shared BarRows | [Textures source] |
+| Chat background / tab textures | Missing, breaks consistency | Chat uses the same global card material and tab finish as the rest of the UI | [Textures source] |
+| Movement alert / cursor / GCD ring / cast ring textures | Missing, breaks consistency | A cursor/effects texture library adds separate visual styles instead of the shared kit | [Textures source] |
+| Meter bar / breakdown / spell-history textures | Present | Meters > Bar texture, shared across its views | [Textures source] |
+| Data-bar background texture | Missing, breaks consistency | Data Bars uses the global card material | [Textures source] |
+| Minimap / icon / popup / tooltip border style pickers | Missing, breaks consistency | Chrome follows the global material; no independent border zoo | [Textures source] |
+| Mythic timer / forces / spell bar textures | Not possible on Forever | `Blizzard_ChallengesUI.toc` excludes camelot at `9dc84f0` | [Textures source] |
+| Dragonriding bar texture | Not possible on Forever | `Blizzard_FrameXMLUtil.toc:52` restricts DragonridingUtil to mainline | [Textures source] |
+| Shared accent: class / custom colour | Present | General > Accent colour and Custom accent | [General source] |
+| Dark Mode independently for Unit Frames / Raid Frames / class resource | Missing, breaks consistency | Separate module themes make siblings look unrelated; one shared material is the rule | [Colours source] |
+| Dark Mode fill colour and opacity | Missing, breaks consistency | Uses shared global material and element opacity, rather than a second dark-mode theme | [Colours source] |
+| Dark Mode background colour and opacity | Missing, breaks consistency | Same shared material; element combat/idle opacity already exists | [Colours source] |
+| Class / resource / power / power-background colour darkening | Missing, fits | Follow-up A3: the palette's consumers are `Core/Theme.lua` and each module's colour code, outside this batch's files | [Colours source] |
+| Class palette swatches: Warrior, Paladin, Hunter, Rogue, Priest, DK, Shaman, Mage, Warlock, Monk, Druid, DH, Evoker | Missing, fits | Follow-up A3: shared supported-class palette, never per-element copies | [Colours source] |
+| Power palette swatches: Mana, Rage, Focus, Energy, Runic Power, Fury, Astral Power, Insanity, Maelstrom, Ebon Might | Missing, fits | Follow-up A3: shared supported-power palette with safe fallback for absent types | [Colours source] |
+| Class-resource swatches: Combo Points, Runes, Soul Shards, Holy Power, Arcane Charges, Icicles, Chi, Essence, Soul Fragments | Missing, fits | Follow-up A3: shared palette only for resources the client exposes | [Colours source] |
+| Each class / power / resource swatch Reset | Missing, fits | Follow-up A3: reset shared palette entry to its semantic default | [Colours source] |
+| Apply palette section to all profiles | Missing, fits | Follow-up A3: explicit optional palette sharing; default remains per profile | [Colours source] |
+| Pull palette section from another profile | Missing, fits | Follow-up A3: copy palette values without linking unrelated settings | [Colours source] |
+| Whole game UI scale | Present | Equivalent: General Interface size and Auto; intentionally scales only KstyleUI's root | [General source] |
+| Options theme and custom background tint | Missing, breaks consistency | The settings window uses the same chosen global material and accent as every other window | [General source] |
+| Options language override | Missing, fits | Follow-up W1: string tables load before saved variables, so an override needs `Core/Locale.lua` and a second table build on reload | [General source] |
+| Hide pause-menu settings button | Missing, fits | Follow-up W1: game menu entries need a startup hook in `Core/OptionsEntry.lua`, outside this batch's files, and add reload work | [General source] |
+| Hide pause-menu Unlock Mode button | Missing, fits | Follow-up W1: the same startup game menu hook in `Core/OptionsEntry.lua`, outside this batch's files | [General source] |
+| Show minimap settings button | Present | Minimap drawer / KstyleUI addon compartment opens Options | [General source] |
+| Disable sidebar sync icons / only hide fully synced | Missing, breaks consistency | Sync icons belong to the excluded per-setting override system | [General source] |
+| Remember search picks | Missing, fits | Follow-up W1: small optional search history using existing rows | [General source] |
+| Clear search-pick history | Missing, fits | Follow-up W1 with remembered search picks | [General source] |
+| Search all modules | Present | Window header search, translated player synonyms, every lazy schema | [Panel source] |
+| Search current module | Present | General > Window conveniences > Search current page only; off by default | [Panel source] |
+| Module categories / sidebar sections | Present | Category rail, module pages and their section links | [Panel source] |
+| Collapse sidebar groups | Missing, fits | Partly built: General > Window conveniences > List page sections in the rail, on by default, hides every page's sections at once; collapsing one group at a time is follow-up W1 | [Panel source] |
+| Enable/disable module from sidebar | Present | Equivalent module page Enable toggle | [Panel source] |
+| Live preview | Present | Shared live preview pane and selected module's real preview | [Panel source] |
+| Resize / scale Options window | Present | General > Window size and opacity; same shared deferred element rows as Elements | [Panel source] |
+| Move Options window | Present | Drag header; position saved by Options.Window | [Panel source] |
+| Collapse Options window | Missing, fits | Follow-up W1: optional compact header state with a clear restore button | [Panel source] |
+| Reset module settings | Present | Reset footer with confirmation | [Panel source] |
+| Reload UI button | Present | Existing reload dialog after settings that require it; font and appearance changes apply live | [Panel source] |
+| Close / Done / Escape | Present | Close button, own Escape handler and `/kstyle` toggle | [Panel source] |
+| CPU metric picker: session / recent / encounter / last / peak | Missing, fits | Follow-up W2: opt-in diagnostic readout, updated only while visible | [Panel source] |
+| Patch notes / What's New | Missing, fits | Partly built: About > What's new shows the release notes link, selected for copying, and the notes open in a browser; an in-game notes page is follow-up W2 | [Panel source] |
+| Credits / EUI Legends | Present | About > Credits | [Panel source] |
+| Developer suppress-Lua-errors toggle | Missing, breaks consistency | Hiding errors would undermine the project's fatal functional checks; existing devlog retains failures | [General source] |
+
+Follow-up batches: **P1** imported assignments and profile hotkeys; **P2** optional native/CDM/account/preset exchange; **A1** inherited outline, a native combat-text scale, a separate game name font and a SLUG switch; **A2** coordinate missing module text rows with their owners; **A3** one shared class/power/resource palette; **W1** search/navigation and native menu conveniences, including rail groups that collapse one at a time; **W2** optional diagnostics and in-game release notes. Combined with Layout L1/L2 these exceed a 600-line batch and several require files outside this task's allowlist. The second batch shipped named imports, native font choices, page-scoped search and two Layout editor conveniences. The third ships game text (your font for Blizzard's text and world names, a game text size, and your number font for combat numbers), the rail's section list switch, What's new, the fading Layout Mode toolbar and corner-aligned attach sides. Every P1, P2, A2 and A3 row and the W1 language and pause-menu rows need files outside this batch (`Core/Store.lua`, `Core/Specialization.lua`, `Core/Theme.lua`, `Core/Locale.lua`, `Core/OptionsEntry.lua`, `Bindings.xml`, other modules) or a curated external contract; W1 search history, the collapsed window and the W2 CPU readout fit but were not built in this batch. Window size/scale/opacity rows now have specific help and their Reset preserves position; import review uses the shared page labels and compares saved scale settings directly. Missing, fits means deferred work, never an unsupported Forever claim.
+
+The two convenience preferences are account-wide, stored only when changed and available before the Options addon loads. They add no profile sections or startup registration; a profile exported after reload still decodes before Options loads. The built-in font list is resolved on demand by the Font picker. No reload frames, events, widget calls or regions are added; `test-perf-path-budgets` stays within its existing limits. Global outlines and palettes remain follow-ups because they require shared typography/palette consumers outside this batch, and must also prove zero reload cost.
+
+Game text, toolbar fade and rail sections are account-wide preferences, stored only when changed, because they change the game's own fonts or the editor rather than a profile's look. With all of them at their defaults a reload reads three account fields and returns: no font is rewritten, no global is set, and no frame, event, widget call or region is added. Turning game text on reads every font `GetFonts` lists before it writes any, then gives each one that uses a game font file (`Fonts\`), except KstyleUI's own, the body font at its own height and outline; a font that already follows a changed parent is not written. A later change the game makes itself, such as Accessibility text size, becomes the font's original. Turning game text off restores each original exactly and stops touching fonts; secret or refused fonts are skipped. Fonts the game makes after login (a window loaded on demand) are picked up the next time a game text or appearance setting changes. `STANDARD_TEXT_FONT`, `UNIT_NAME_FONT` and `DAMAGE_TEXT_FONT` are set while their option is on and restored when it is turned off; the game reads them at login. Game text size applies on release.
+
+Defaults retain today's fonts, textures, colours, geometry, dim grid, ten-pixel Shift nudge, Alt-scroll cycling and exact width matching. Height matching starts off; match adjustments start at zero. Selected modules starts with none checked and is only used when explicitly chosen. Import-size warnings start on because explaining a size change before application is expected review behaviour; this adds no visual change to the HUD. The v0.2.8-shaped profile regression omits every new field, keeps its explicit font/scale/position and verifies the old interactions. No schema is built on reload, and no new frame/event/update handler is registered.
+
+Game text proof at the same commit: `Blizzard_APIDocumentationGenerated/FontDocumentation.lua` declares `GetFonts`, and `SimpleFontAPIDocumentation.lua` declares `GetFont` and `SetFont` (`SecretArguments = AllowedWhenUntainted`; only plain values are passed). `Blizzard_Fonts_Shared/Shared/GameFonts.xml` sets `STANDARD_TEXT_FONT`, `UNIT_NAME_FONT` and `DAMAGE_TEXT_FONT` for the game, and no Lua in the tree reads them. `Blizzard_AccessibilityTemplates/TextSizeManager.lua` shows the client itself walking `GetFonts` to resize text. Whether the client rereads the three globals at login, and how a font family keeps other alphabets after `SetFont`, remain in-game checks.
+
+Additional native-font proof: `Blizzard_Fonts_Shared/Shared/FontStyles.xml` defines GameFontNormal, `Shared/Fonts.xml` defines ChatFontNormal and SystemFont_Med1, and `SimpleFontAPIDocumentation.lua` declares GetFont at the same pinned commit. Missing, refused or secret native font paths are omitted. The hide action uses MiddleButtonUp (Blizzard_ChatFrameBase/Mainline/FloatingChatFrame.xml:353) and existing Show/Hide methods; profile naming and page filtering add no game API.
+
+API proof: Forever `9dc84f0d3bbae1768ac3405b3716000bd93eda06`, under `Interface/AddOns/Blizzard_APIDocumentationGenerated/`: `InputDocumentation.lua` for guarded modifier predicates; `SimpleScriptRegionAPIDocumentation.lua` for size getters; `SimpleScriptRegionResizingAPIDocumentation.lua` for setters; `SimpleRegionAPIDocumentation.lua` and `SimpleTextureBaseAPIDocumentation.lua` for existing grid alpha/colour painting. Layout's safe measurement and combat-queue paths are reused; sharing and warnings use validated local profile data and introduce no game API. Unsupported rows above cite the actual TOC game filters, not an inferred missing API. Existing specialization assignment uses the guarded spec-ID APIs and a role fallback; the precise IDs/names returned by the Forever client, including a primary/secondary talent-group switch, remain an in-game check. The Profiles render deliberately shows the role fallback, while `test-spec-layouts` exercises supplied spec IDs.
+
+Verification: `test-core-parity-third`, `test-core-parity-followup`, `test-core-parity`, `test-profiles-scopes`, `test-spec-layouts`, Options/Layout/Appearance/Scale/Store scoped tests and PUC Lua 5.1 `test-perf-path-budgets`. `parity_core` with `RENDER_CORE_PAGE=profiles`, `sharing`, `appearance`, `gametext`, `search`, `about`, `window`, `layout`, `links`, `mode` or `toolbar` drives the actual window/movers; `RENDER_CORE_KEY` chooses a visible section. Renders and logs go to `C:/Users/leeba/.cache/kstyleui-evidence/parity-core-3/`.
+
+[Profiles source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI_Profiles_Options.lua
+[Profile protocol]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUI_Profiles.lua
+[General source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI__General_Options.lua
+[Fonts source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI_Fonts_Options.lua
+[Textures source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI_Textures_Options.lua
+[Colours source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/EUI_Colors_Options.lua
+[Panel source]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUI_Panel.lua
+
 The settings window: category rail, search, option cards, live preview and the Layout Mode button. It is registered as a canvas category in Blizzard's Settings panel and opened by `/kstyle`.
 
 | Field | Value |
@@ -42,7 +185,7 @@ General > Settings window contains the presentation choices, all on by default: 
 | Part | What it is |
 | --- | --- |
 | Header | The logo, the spaced title, the search field with its clear button, and the close button. The header is the drag handle. |
-| Rail | `Rail.lua`: a `ScrollList` of pages, and under the open page its sections. The selected page has an accent bar and an accent wash that fades to the right. A section row is shorter (26 units) and indented; the section whose header is on screen, or last scrolled past, carries a 2-unit accent tick. Clicking a section scrolls the rows so its header sits at the top. The rail lists no sections while a search is on. |
+| Rail | `Rail.lua`: a `ScrollList` of pages, and under the open page its sections. The selected page has an accent bar and an accent wash that fades to the right. A section row is shorter (26 units) and indented; the section whose header is on screen, or last scrolled past, carries a 2-unit accent tick. Clicking a section scrolls the rows so its header sits at the top. The rail lists no sections while a search is on, or when General > List page sections in the rail is off. |
 | Rows | A `ScrollList` of 48-unit rows (`Rows.lua`). Each row is a header, a note, or a label with help text and one kit control on the right, 220 units wide. |
 | Preview | `Preview.lua`: a `buttonFill` tile captioned "Live preview". |
 | Footer | **Layout Mode** (primary) and **Reset** under the preview. |
@@ -56,8 +199,8 @@ General > Settings window contains the presentation choices, all on by default: 
 | General | The schemas of the core's `HudStyle` section (the HUD style pictures), its `Appearance` section and, when it is registered, the `Widgets` section, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
 | Elements | The `Layout` section's schema (grid and snapping) when Layout registers one, then every element from `Layout.Elements()`, grouped under its module. |
 | One per module | Each module in `Options.List()` or `Modules.List()`, except `Options` and the General sections, in the spec's module order and then by name. A module's page starts with a header named after the module and an **Enable** switch unless its schema has an `enabled` row, then its schema rows, then **Positions and sizes** for its own elements. A schema whose first row is a level-1 header with the module's own name (`Unit frames` under `Unit Frames`) and no `showWhen` or `disableWhen` shares that header with the switch instead of repeating it; a conditional header keeps its own row, so it still hides its section. |
-| Profiles | Active profile, automatic specialization profiles (or assigned-role profiles when specs are unavailable), new, copy from, rename, delete, reset, export, import, and every known character's profile. Automatic assignments default on, start on the current profile, and switch after combat. |
-| About | Version, commands, the smoke checks and first-run setup buttons, and credits. |
+| Profiles | Active profile, specialization profiles and layouts (or assigned-role fallback), new, copy, rename, delete, reset, selected-module/appearance sharing, optional layout, import size warning and recovery, and every known character's profile. Assignments default on, start on the current profile, and switch after combat. |
+| About | Version, commands, the smoke checks and first-run setup buttons, What's new (the release notes link to copy), and credits. |
 
 ### Element rows
 

@@ -13,7 +13,7 @@ local DURATION_MIN, DURATION_MAX, DURATION_STEP = 0.6, 3, 0.1
 local PER_FRAME_MIN, PER_FRAME_MAX = 1, 8
 local CRIT_MIN, CRIT_MAX, CRIT_STEP = 1, 2, 0.05
 local DISTANCE_MIN, DISTANCE_MAX, DISTANCE_STEP = 8, 120, 4
-local MEDALLIONS_FADE, MEDALLIONS_RISE = 0.3, 40
+local MEDALLIONS_FADE = 0.3
 local UNIT_KEYS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss", "party", "raid", "nameplate" }
 
 local function TokenColor(name)
@@ -27,9 +27,13 @@ local defaults = {
 	worldFont = true,
 	worldFace = "",
 	style = "rise",
+	direction = "up",
+	shadow = "style",
+	combat = false,
 	damage = true,
 	heals = true,
 	misses = true,
+	power = false,
 	format = "short",
 	duration = 1.2,
 	maxPerFrame = 4,
@@ -43,7 +47,11 @@ local defaults = {
 	critScale = 1.6,
 	critColor = true,
 	critTint = TokenColor("neutral"),
+	combatColor = TokenColor("neutral"),
+	powerColor = TokenColor("rare"),
 	playerPlacement = "field",
+	fieldDistance = 48,
+	fieldDistanceMedallions = 40,
 	clearLanes = true,
 	calmNumbers = true,
 	framePoint = "CENTER",
@@ -119,6 +127,11 @@ local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), 
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
+local function Medallions()
+	local hud = K.HudStyle
+	return hud ~= nil and hud.Current() == "medallions"
+end
+
 function Settings.Schema()
 	local function WorldFontOn(settings)
 		return settings.worldFont == true
@@ -163,12 +176,16 @@ function Settings.Schema()
 			help = L["Numbers rise straight up, arc to one side, or pop in and drift."],
 			options = STYLE_OPTIONS,
 		},
+		{ type = "dropdown", key = "direction", label = L["Scroll direction"], help = L["Move combat text upward or downward."], options = {
+			{ value = "up", label = L["Upward"] }, { value = "down", label = L["Downward"] },
+		} },
 		{ type = "toggle", key = "damage", label = L["Damage"], help = L["Shows the damage you take."] },
 		{ type = "toggle", key = "heals", label = L["Heals"], help = L["Shows the healing you receive, with a plus sign."] },
 		{
 			type = "toggle", key = "misses", label = L["Misses and absorbs"],
 			help = L["Shows words such as Dodge, Parry, Absorb and Immune."],
 		},
+		{ type = "toggle", key = "power", label = L["Power gains"], help = L["Shows the mana, rage, energy and other power you gain, with a plus sign."] },
 		{
 			type = "dropdown", key = "format", label = L["Number format"],
 			help = L["Short numbers such as 12.3K, or full numbers such as 12,345."],
@@ -196,6 +213,9 @@ function Settings.Schema()
 			help = L["A soft shadow, or a thin or thick outline that reads well over the game world."],
 			options = OUTLINE_OPTIONS,
 		},
+		{ type = "dropdown", key = "shadow", label = L["Text shadow"], help = L["Keep the current outline's shadow, or show or hide it explicitly."], options = {
+			{ value = "style", label = L["Current style"] }, { value = "show", label = L["Show"] }, { value = "hide", label = L["Hide"] },
+		} },
 		{ type = "header", label = L["Colours"] },
 		{
 			type = "dropdown", key = "colorMode", label = L["Damage colour"],
@@ -208,6 +228,10 @@ function Settings.Schema()
 		},
 		{ type = "color", key = "healColor", label = L["Heals"], help = L["The colour of healing numbers."] },
 		{ type = "color", key = "missColor", label = L["Misses"], help = L["The colour of words such as Dodge and Absorb."] },
+		{
+			type = "color", key = "powerColor", label = L["Power gains"], help = L["The colour of power gains."],
+			showWhen = function(settings) return settings.power == true end,
+		},
 		{ type = "header", label = L["Critical hits"] },
 		{
 			type = "slider", key = "critScale", label = L["Critical size"],
@@ -232,6 +256,16 @@ function Settings.Schema()
 			type = "dropdown", key = "playerPlacement", label = L["Your numbers"],
 			help = L["In their own field above your character, or on your KstyleUI player frame."],
 			options = PLACEMENT_OPTIONS,
+		},
+		{
+			type = "slider", key = "fieldDistance", label = L["Travel above you"],
+			help = L["How far your numbers move in their field above your character, up to the field's height."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = function() return not Medallions() end,
+		},
+		{
+			type = "slider", key = "fieldDistanceMedallions", label = L["Travel above you"],
+			help = L["How far your numbers move in their field above your character, up to the field's height."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = Medallions,
 		},
 		{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
 		{
@@ -268,6 +302,9 @@ function Settings.Schema()
 		},
 	}
 	Settings.schema.preview = ns.Preview.Build
+	Settings.schema[#Settings.schema + 1] = { type = "header", label = L["Combat messages"] }
+	Settings.schema[#Settings.schema + 1] = { type = "toggle", key = "combat", label = L["Show combat enter and leave"], help = L["Show a short message when you enter or leave combat."] }
+	Settings.schema[#Settings.schema + 1] = { type = "color", key = "combatColor", label = L["Combat message colour"], help = L["The colour of enter and leave combat messages."], showWhen = function(settings) return settings.combat == true end }
 	return Settings.schema
 end
 
@@ -337,14 +374,9 @@ local function Same(a, b)
 	return a == b
 end
 
-local function Medallions()
-	local hud = K.HudStyle
-	return hud ~= nil and hud.Current() == "medallions"
-end
-
 local function Styled(values, key, medallions)
 	local value = values[key]
-	if medallions and (value == nil or (not IsSecret(value) and Same(value, defaults[key]))) then
+	if medallions and not IsSecret(value) and (value == nil or Same(value, defaults[key])) then
 		return MEDALLIONS[key]
 	end
 	return value
@@ -368,9 +400,14 @@ function Settings.Snapshot(values, cfg)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
 	cfg.worldFace = FontPath(values.worldFace, (Tokens.Font("world")))
 	cfg.style = Choice(values.style, STYLES, d.style)
+	cfg.direction = Choice(values.direction, { up = true, down = true }, d.direction)
+	cfg.combat = Bool(values.combat, d.combat)
+	cfg.combatR, cfg.combatG, cfg.combatB = Color(values.combatColor, d.combatColor)
 	cfg.damage = Bool(values.damage, d.damage)
 	cfg.heals = Bool(values.heals, d.heals)
 	cfg.misses = Bool(values.misses, d.misses)
+	cfg.power = Bool(values.power, d.power)
+	cfg.powerR, cfg.powerG, cfg.powerB = Color(values.powerColor, d.powerColor)
 	cfg.neutral = cfg.damage or cfg.heals
 	cfg.format = Choice(values.format, FORMATS, d.format)
 	cfg.formatter = Formatter(cfg.format)
@@ -379,10 +416,13 @@ function Settings.Snapshot(values, cfg)
 	cfg.fontPath = FontPath(values.font, medallions and Tokens.FontPath("BarlowBold") or (Tokens.Font("number")))
 	cfg.size = Number(Styled(values, "size", medallions), SIZE_MIN, SIZE_MAX, d.size)
 	cfg.fadeTime = medallions and MEDALLIONS_FADE or nil
-	cfg.rise = medallions and MEDALLIONS_RISE or nil
+	local travel = medallions and "fieldDistanceMedallions" or "fieldDistance"
+	cfg.rise = Number(values[travel], DISTANCE_MIN, DISTANCE_MAX, d[travel])
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"
+	local shadow = Choice(values.shadow, { style = true, show = true, hide = true }, d.shadow)
+	if shadow ~= "style" then cfg.shadow = shadow == "show" end
 	cfg.colorMode = Choice(values.colorMode, COLOR_MODES, d.colorMode)
 	cfg.damageR, cfg.damageG, cfg.damageB = Color(Styled(values, "damageColor", medallions), d.damageColor)
 	cfg.healR, cfg.healG, cfg.healB = Color(Styled(values, "healColor", medallions), d.healColor)

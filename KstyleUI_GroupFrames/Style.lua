@@ -467,6 +467,13 @@ function Style.SetMarked(f, marked)
 	end
 end
 
+local function ExtraTexts(f, k)
+	for i = 1, 2 do
+		local key = "extra" .. i
+		f[key] = Widgets.PlaceText(f[key], k[key], f.text, f, f.width)
+	end
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -537,6 +544,8 @@ function Style.Apply(f, width, height)
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end
 	Style.PlaceRowEnd(f)
+	ExtraTexts(f, k)
+	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
 	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then

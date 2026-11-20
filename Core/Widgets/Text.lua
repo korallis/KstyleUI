@@ -1,6 +1,7 @@
 -- Text.lua: shared text settings and cached tag painters that pass restricted values straight to text setters.
 local _, ns = ...
 local W, L = ns.Widgets, ns.L
+local placementPoints
 
 function W.TextRows(schema, key, opts)
 	opts = opts or {}
@@ -25,7 +26,46 @@ function W.TextRows(schema, key, opts)
 	add({ type = "color", key = "color", label = L["Custom text colour"],
 		help = L["The text colour when its colour mode is custom."], showWhen = opts.custom })
 	add({ type = "text", key = "textFormat", label = L["Text format"], maxLetters = 160,
-		help = L["Blank uses the preset. Tags: [name], [hp], [hp:pct], [hp:abr], [pp], [level], [absorb]."] })
+		help = opts.placement and L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."]
+			or L["Blank uses the preset. Tags: [name], [hp], [hp:pct], [hp:abr], [pp], [level], [absorb]."] })
+	if opts.placement then
+		placementPoints = placementPoints or {
+			{ value = "CENTER", label = L["Centre"] },
+			{ value = "TOPLEFT", label = L["Top left"] }, { value = "TOP", label = L["Top"] }, { value = "TOPRIGHT", label = L["Top right"] },
+			{ value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] },
+			{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "BOTTOM", label = L["Bottom"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
+		}
+		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = placementPoints })
+		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
+		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+	end
+end
+
+local TEXT_POINTS = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true,
+	RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
+local function Offset(value)
+	return type(value) == "number" and value == value and math.max(-200, math.min(200, value)) or 0
+end
+
+function W.PlaceText(text, cfg, parent, anchor, width)
+	local on = type(cfg.textFormat) == "string" and cfg.textFormat ~= ""
+	if on then
+		if not text then
+			text = W.FontString(parent, "OVERLAY")
+			text:SetWordWrap(false)
+		end
+		local position = TEXT_POINTS[cfg.position] and cfg.position or "CENTER"
+		local path = ns.Theme.IsFontPath(cfg.font) and cfg.font or (ns.Tokens.Font("number"))
+		local size = type(cfg.size) == "number" and math.max(6, math.min(32, cfg.size)) or 12
+		W.ApplyFont(text, path, size * ns.Theme.FontScale(), cfg.outline == "NONE" and "" or cfg.outline == "THICKOUTLINE" and "THICKOUTLINE" or "OUTLINE")
+		text:SetTextColor(ns.Tokens.Color("textEmphasis"))
+		text:ClearAllPoints()
+		text:SetPoint(position, anchor, position, W.Snap(anchor, Offset(cfg.x)), W.Snap(anchor, Offset(cfg.y)))
+		text:SetWidth(W.Snap(anchor, width or anchor:GetWidth()))
+		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
+	end
+	if text then text:SetShown(on) end
+	return text
 end
 
 function W.BarRows(schema, key, opts)

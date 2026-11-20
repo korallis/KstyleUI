@@ -5,7 +5,7 @@ local Data = {}
 ns.Data = Data
 
 local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
-local lower, find, match = string.lower, string.find, string.match
+local lower, find, match = KstyleUI.Locale.Lower, string.find, string.match
 
 local NONE = {}
 local FALLBACK_BAG_SLOTS = 4
@@ -293,7 +293,9 @@ local function TypeMatches(record, query)
 end
 
 local function NameMatches(record, query)
-	if Contains(record.name, query) then
+	local name = record.name
+	if name and record.foldedFrom ~= name then record.foldedFrom, record.folded = name, lower(name) end
+	if name and find(record.folded, query, 1, true) then
 		return true
 	end
 	local item = C_Item

@@ -88,11 +88,31 @@ class SelectTest(unittest.TestCase):
         self.assertEqual(chosen[self.tests[2]], "Tools/regression/test-c.lua itself changed")
 
     def test_a_shared_file_runs_everything_and_says_why(self):
-        for path in ("Tools/regression/stubs/wow.lua", "Tools/regression/widget_env.lua", "Tools/regression/run_all.py", ".luacheckrc"):
+        for path in ("Tools/regression/stubs/wow.lua", "Tools/regression/run_all.py", ".luacheckrc"):
             with self.subTest(path=path):
                 chosen, notes = self.choose({path: "M"})
                 self.assertEqual(self.stems(chosen), ["test-a", "test-b", "test-c", "test-scan"])
                 self.assertIn(path, notes[0])
+
+    def test_an_env_change_selects_only_readers_and_all_mandatory_guards(self):
+        guards = ["Tools/regression/" + name + ".lua" for name in affected.GUARDS]
+        tests = self.tests + guards
+        cache = self.cache()
+        cache.update({test: record(sha=affected.fingerprint(test)) for test in guards})
+        chosen, _ = affected.select(tests, {"Tools/regression/b_env.lua": "M"}, cache)
+        self.assertEqual(set(chosen), {self.tests[1], *guards})
+        self.assertNotIn(self.tests[2], chosen, "an unrelated module must stay excluded")
+
+    def test_an_env_change_with_missing_or_stale_records_runs_everything(self):
+        for stale in (None, record(sha="old")):
+            cache = self.cache()
+            if stale is None:
+                del cache[self.tests[2]]
+            else:
+                cache[self.tests[2]] = stale
+            chosen, notes = self.choose({"Tools/regression/b_env.lua": "M"}, cache)
+            self.assertEqual(set(chosen), set(self.tests))
+            self.assertIn("record", notes[0])
 
     def test_a_file_that_half_the_tests_load_runs_everything(self):
         many = ["Tools/regression/test-{0}.lua".format(i) for i in range(20)]

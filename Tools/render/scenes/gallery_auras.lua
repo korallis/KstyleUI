@@ -34,6 +34,14 @@ local DEBUFFS = {
 	{ "thunderClap", "26s", "NONE" },
 }
 
+-- RENDER_AURAS_PARITY=1 switches on the EllesmereUI parity options a player sees: the dispel-type icon in the stack
+-- count's corner (so the count sits beside it), the refresh mark, a custom timer colour, and timers without the seconds
+-- suffix and in minutes and seconds under ten minutes, written by the timer formatter the module hands the engine (the
+-- seconds each tile above stands for).
+local PARITY = os.getenv("RENDER_AURAS_PARITY") == "1"
+local SECONDS = { buffs = { 1680, 24, 17, 12, 9, 480, 180, 3600, 2.4 }, debuffs = { 18, 9, 4, 60, 26 } }
+local REFRESHABLE = { buffs = 9, debuffs = 3 }
+
 local function at(frame, x, y, w, h)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", frame:GetParent(), "TOPLEFT", x, -y)
@@ -50,13 +58,17 @@ end
 -- fill(env, button, icon, timer, count) binds what the engine would: the icon's texture, as a secret the way
 -- Forever's engine writes it (so the watched tile keeps the game's art), the timer text, and the stack count with
 -- its badge shown, as the engine shows the application bar from two applications.
-local function fill(env, button, icon, timer, count)
+local function fill(env, button, icon, timer, count, seconds, refresh)
 	local aura = button._aura
 	if aura.icon then
 		aura.icon:SetTexture(env.Secret(I[icon]))
 	end
 	if aura.timer then
-		aura.timer:SetText(timer)
+		local formatter = aura.timerOptions and aura.timerOptions.textFormatter
+		aura.timer:SetText(PARITY and formatter and formatter:FormatNumber(seconds) or timer)
+	end
+	if refresh and aura.pandemic and aura.pandemic[1] then
+		aura.pandemic[1]:Show()
 	end
 	if aura.count then
 		aura.count:SetText(count or "")
@@ -71,8 +83,14 @@ end
 local function dispel(env, Widgets, button, kind)
 	local color = env["DEBUFF_TYPE_" .. kind .. "_COLOR"]
 	local pieces = {}
-	for i, entry in ipairs(button._aura.dispel) do
-		pieces[i] = entry.texture
+	for _, entry in ipairs(button._aura.dispel) do
+		if entry.options.style == env.Enum.CustomAuraButtonDispelTypeTextureStyle.Icon then
+			local atlas = env.AuraUtil.GetAuraDispelTypeIcon(kind:sub(1, 1) .. kind:sub(2):lower())
+			if atlas and kind ~= "NONE" then entry.texture:SetAtlas(atlas) end
+			entry.texture:SetShown(atlas ~= nil and kind ~= "NONE")
+		else
+			pieces[#pieces + 1] = entry.texture
+		end
 	end
 	Widgets.ColorSlice(pieces, color:GetRGB())
 	Widgets.ShowSlice(pieces, true)
@@ -85,6 +103,15 @@ return Common.Run(function()
 		K.Modules.Enable("Auras")
 	end
 	env.RunTimers()
+	if PARITY then
+		for key, value in pairs({
+			["debuffs.typeIcon"] = "TOPRIGHT", ["debuffs.refresh"] = true, ["buffs.refresh"] = true, ["timer.seconds"] = false,
+			["timer.precise"] = 10, ["timer.color"] = { r = 0.62, g = 0.82, b = 1 }, ["timer.customColor"] = true,
+		}) do
+			K.Options.Write("Auras", key, value)
+		end
+		env.RunTimers()
+	end
 	local Widgets = K.Widgets
 	local frames = Gallery.Frames()
 	for _, container in ipairs(env._containers) do
@@ -101,12 +128,12 @@ return Common.Run(function()
 	local tiles = {}
 	local enchant = buffs._enchants[env.AuraContainerItemEnchantmentSlot.MainHand]
 	if enchant then
-		fill(env, enchant.frame, ENCHANT[1], ENCHANT[2])
+		fill(env, enchant.frame, ENCHANT[1], ENCHANT[2], nil, SECONDS.buffs[1])
 		tiles[#tiles + 1] = enchant.frame
 	end
 	for i, buff in ipairs(BUFFS) do
 		local button = buffGroup.frames[i]
-		fill(env, button, buff[1], buff[2], buff[3])
+		fill(env, button, buff[1], buff[2], buff[3], SECONDS.buffs[i + 1], i + 1 == REFRESHABLE.buffs)
 		tiles[#tiles + 1] = button
 	end
 	Hud.PlaceAuras(buffs, buffGroup, tiles, 8)
@@ -123,7 +150,7 @@ return Common.Run(function()
 	local harmful = {}
 	for i, debuff in ipairs(DEBUFFS) do
 		local button = debuffGroup.frames[i]
-		fill(env, button, debuff[1], debuff[2], debuff[4])
+		fill(env, button, debuff[1], debuff[2], debuff[4], SECONDS.debuffs[i], i == REFRESHABLE.debuffs)
 		dispel(env, Widgets, button, debuff[3])
 		harmful[#harmful + 1] = button
 	end
@@ -141,7 +168,7 @@ return Common.Run(function()
 	preview:Refresh()
 	frames:Add(env, parent, {
 		name = "auras_preview", title = "Auras preview", grade = "button", reference = "bufficons",
-		caption = "The Auras page's live preview: six sample buffs and three sample debuffs on the module's own plain tiles with the settings' sizes, timers and badges, the buffs' rim neutral and the debuffs' hostile under dispel plates.",
+		caption = "The Auras page's live preview: seven sample buffs (the last permanent, so it has no timer) and three sample debuffs on the module's own plain tiles with the settings' sizes, timers and badges, the buffs' rim neutral and the debuffs' hostile under dispel plates.",
 		match = "The same tiles the rows draw, so the preview shows what a setting does.",
 	})
 

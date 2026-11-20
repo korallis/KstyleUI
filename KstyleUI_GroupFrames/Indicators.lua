@@ -262,6 +262,11 @@ local READY_ATLAS = {
 	end,
 }
 
+local function ReadStatus(fn, unit)
+	if type(fn) == "function" then return fn(unit) end
+	return false
+end
+
 local function Status(f)
 	local icons, unit = f.statusIcons, f.unit
 	if not icons then return end
@@ -269,12 +274,12 @@ local function Status(f)
 		for _, icon in pairs(icons) do icon:SetAlpha(0) end
 		return
 	end
-	local function Read(fn)
-		if type(fn) == "function" then return fn(unit) end
-		return false
-	end
 	local api = C_IncomingSummon
-	local afk, resurrection, summon = Read(UnitIsAFK), Read(UnitHasIncomingResurrection), Read(api and api.HasIncomingSummon)
+	local settings = Settings.current.icons
+	local afk, resurrection, summon = false, false, false
+	if settings.afk then afk = ReadStatus(UnitIsAFK, unit) end
+	if settings.resurrection then resurrection = ReadStatus(UnitHasIncomingResurrection, unit) end
+	if settings.summon then summon = ReadStatus(api and api.HasIncomingSummon, unit) end
 	FromBoolean(icons.afk, afk)
 	FromBoolean(icons.resurrection, resurrection)
 	FromBoolean(icons.summon, summon)

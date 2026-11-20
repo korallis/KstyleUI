@@ -40,7 +40,7 @@ local function CVarOn(name)
 end
 
 function Data.Zone()
-	local text = Call(GetMinimapZoneText)
+	local text = Call(ns.Settings.Get("zone.subzone") and GetMinimapZoneText or GetZoneText)
 	local pvpType
 	local pvp = C_PvP
 	if pvp then
@@ -113,6 +113,60 @@ function Data.Coords(precision)
 	end
 	local x, y = position:GetXY()
 	return Format.Coords(x, y, precision)
+end
+
+function Data.Rotated()
+	return CVarOn("rotateMinimap") == true
+end
+
+local function Plain(...)
+	for i = 1, select("#", ...) do
+		if IsSecret((select(i, ...))) then return false end
+	end
+	return true
+end
+
+function Data.Difficulty()
+	if type(GetInstanceInfo) ~= "function" then
+		return nil
+	end
+	local _, kind, id, _, size = GetInstanceInfo()
+	if not Plain(kind, id, size) or (kind ~= "party" and kind ~= "raid") or type(size) ~= "number" or size < 1 then
+		return nil
+	end
+	if type(GetDifficultyInfo) ~= "function" or type(id) ~= "number" then
+		return nil
+	end
+	local _, _, isHeroic, _, displayHeroic, displayMythic = GetDifficultyInfo(id)
+	if not Plain(isHeroic, displayHeroic, displayMythic) then
+		return nil
+	end
+	return (displayMythic == true and L["%dM"] or (isHeroic == true or displayHeroic == true) and L["%dH"] or L["%dN"]):format(size)
+end
+
+function Data.Perf(latency)
+	local fps = Call(GetFramerate)
+	local _, _, home, world = Call(GetNetStats)
+	local ms = latency == "world" and world or home
+	if not Plain(fps, ms) or type(fps) ~= "number" or type(ms) ~= "number" then
+		return nil
+	end
+	return math.floor(fps + 0.5), math.floor(ms + 0.5)
+end
+
+function Data.Lockouts()
+	local out = {}
+	local count = Call(GetNumSavedInstances)
+	if not Plain(count) or type(count) ~= "number" or type(GetSavedInstanceInfo) ~= "function" then
+		return out
+	end
+	for index = 1, count do
+		local name, _, reset, _, locked, extended, _, _, _, difficulty = GetSavedInstanceInfo(index)
+		if Data.IsText(name) and Plain(reset, locked, extended) and type(reset) == "number" and reset > 0 and (locked == true or extended == true) then
+			out[#out + 1] = { name = Data.IsText(difficulty) and name .. " (" .. difficulty .. ")" or name, reset = reset }
+		end
+	end
+	return out
 end
 
 function Data.RuleActive(name)

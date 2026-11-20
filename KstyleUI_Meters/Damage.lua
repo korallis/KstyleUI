@@ -6,7 +6,6 @@ local L = K.L
 local Logic = ns.Logic
 
 local KEY = "meters.damage"
-local UPDATE_DELAY = 0.5
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
@@ -23,7 +22,6 @@ ns.Damage = Damage
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
 local drill = { active = false }
-local TOOLTIP_SPELLS = 3
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
@@ -32,6 +30,14 @@ local HEALING = { HealingDone = true, Hps = true }
 local CLASS_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
 local order = {}
 local classIcons = {}
+
+local function NumberText(amount, format)
+	if format == "full" and type(BreakUpLargeNumbers) == "function" then
+		local ok, text = pcall(BreakUpLargeNumbers, amount)
+		if ok then return text end
+	end
+	return Logic.Abbreviate(amount)
+end
 
 local function HideBlizzard()
 	local meter = _G.DamageMeter
@@ -352,12 +358,20 @@ function ns.SetClassIcon(list, i, class)
 	end
 end
 
-local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, rank)
+local function SpellRow(list, i, id)
+	local row = list.rows[i]
+	if row.spellID ~= id then
+		row.spellID = id
+		ns.BarList.Unown(row.frame)
+	end
+end
+
+local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, format, rank)
 	local display = source.sourceDisplayType
 	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
 	Remember(i, source, reaction, info.deaths)
 	local name = source.name
-	if rank then
+	if rank and not ns.Get("damage.hideRank") then
 		name = rank .. ". " .. name
 	end
 	if info.deaths then
@@ -368,9 +382,10 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
-		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, Logic.Abbreviate(Amount(source, info)), percentText)
+		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info), format), percentText)
 	end
 	ns.SetClassIcon(list, i, source.classFilename)
+	SpellRow(list, i)
 end
 
 local function FillSources(list, info, session)
@@ -383,6 +398,7 @@ local function FillSources(list, info, session)
 	if not Present(maxAmount) then
 		maxAmount = 1
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent") and not info.deaths
 	local displays = Enum and Enum.DamageMeterSourceDisplayType
 	local enemy = displays and displays.Enemy
@@ -396,14 +412,14 @@ local function FillSources(list, info, session)
 			break
 		end
 	end
-	local first, shown, pin = Span(list, n, mine)
+	local first, shown, pin = Span(list, n, ns.Get("damage.alwaysPlayer") and mine or nil)
 	for i = 1, shown do
-		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy)
+		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy, format)
 	end
 	local count = shown
 	if pin then
 		count = shown + 1
-		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, mine)
+		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, format, mine)
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -457,7 +473,16 @@ local function Context()
 end
 
 local function RowTooltip(tip, list, i)
-	if drill.active and i <= (list.count or 0) then
+	local shown, game = i <= (list.count or 0), GameTooltip
+	local row = shown and list.rows[i]
+	if row and row.spellID and ns.Get("damage.spellTooltips") and game and type(game.SetSpellByID) == "function" then
+		game:SetOwner(row.frame, ns.BarList.Inward(row.frame))
+		game:SetSpellByID(row.spellID)
+		if drill.active then game:AddLine(L["Click to go back to every source."]) end
+		game:Show()
+		return false
+	end
+	if drill.active and shown then
 		tip:AddLine(L["Click to go back to every source."])
 		return true
 	end
@@ -484,9 +509,10 @@ local function RowSplit(split, list, i)
 	if not Present(maxAmount) then
 		maxAmount = 1
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent")
 	local listed = 0
-	for n = 1, TOOLTIP_SPELLS do
+	for n = 1, ns.Get("damage.hoverSpells") do
 		local spell = spells[n]
 		if not Readable(spell) then
 			break
@@ -497,7 +523,7 @@ local function RowSplit(split, list, i)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText,
+		split:AddRow(SpellName(spell, slot.name), amount, maxAmount, NumberText(Amount(spell, info), format), percentText,
 			SpellCall("GetSpellTexture", spell.spellID), Logic.SchoolToken(spell.spellID))
 	end
 	if listed == 0 then
@@ -512,7 +538,7 @@ local function RowSplit(split, list, i)
 end
 
 local function RowSplits(list, i)
-	if drill.active or Damage.resting then
+	if not ns.Get("damage.hover") or drill.active or Damage.resting then
 		return false
 	end
 	local slot = slots[i]
@@ -546,6 +572,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 	if sessionOk and Readable(session) and Readable(session.combatSources) and (who.own or who.guid) then
 		list:SetRest(RateOf(session.combatSources, info, not who.own and who.guid or nil))
 	end
+	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent")
 	local n = Entries(spells)
 	Order(spells, n, info)
@@ -557,8 +584,9 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, Logic.Abbreviate(Amount(spell, info)), percentText, nil, Logic.SchoolToken(spell.spellID))
+		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
+		SpellRow(list, i, Logic.Plain(spell.spellID))
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -633,7 +661,7 @@ local function Schedule()
 		return
 	end
 	Damage.pending = true
-	C_Timer.After(UPDATE_DELAY, Refresh)
+	C_Timer.After(ns.Get("damage.refresh"), Refresh)
 end
 
 local function SkinVisibility()

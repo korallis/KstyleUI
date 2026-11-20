@@ -16,7 +16,7 @@ local MINUTE, HOUR, DAY = 60, 3600, 86400
 
 local made = {}
 
-function Duration.ExpiringColor(expiring)
+function Duration.ExpiringColor(expiring, base)
 	local util, E = C_CurveUtil, Enum
 	if expiring <= 0 or not (util and type(util.CreateColorCurve) == "function" and type(CreateColor) == "function" and E and E.DurationTextBindingProperty and E.LuaCurveType) then
 		return nil
@@ -25,7 +25,7 @@ function Duration.ExpiringColor(expiring)
 		local c = util.CreateColorCurve()
 		c:SetType(E.LuaCurveType.Step)
 		c:AddPoint(0, CreateColor(ns.Tokens.Color("hostile")))
-		c:AddPoint(expiring, CreateColor(ns.Tokens.Color("timerText")))
+		c:AddPoint(expiring, base and CreateColor(base.r, base.g, base.b) or CreateColor(ns.Tokens.Color("timerText")))
 		return c
 	end)
 	if ok then

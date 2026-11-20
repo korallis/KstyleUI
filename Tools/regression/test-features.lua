@@ -1,4 +1,4 @@
--- test-features.lua: every switch is a boolean, only Skins defaults on, each module folder has one, and Get is strict.
+-- test-features.lua: every switch is a boolean, only Skins defaults on, each runtime module has one, and Get is strict.
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
@@ -31,11 +31,12 @@ end
 assert(type(Features.modules) == "table", "Features.modules is missing")
 assert(type(Features.account) == "table", "Features.account is missing")
 
--- One module switch per KstyleUI_<Module> folder, named <Module>, and no switch without a folder.
+-- Road data follows the world map's switch; it is not a separately enabled runtime module.
+assert(Features.modules.Routes == nil, "route data is controlled by World map > Follow roads, not a separate module switch")
 local folders = {}
 for _, folder in ipairs(fs.list(".", { dirs = true, match = "KstyleUI_*" })) do
 	local module = folder:match("^KstyleUI_(%w+)$")
-	if module then
+	if module and module ~= "Routes" then
 		folders[module] = true
 	end
 end

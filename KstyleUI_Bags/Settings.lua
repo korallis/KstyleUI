@@ -26,11 +26,14 @@ Settings.LIMITS = {
 	spacing = { SPACING_MIN, SPACING_MAX },
 	rows = { 0, ROWS_MAX },
 	fontSize = { FONT_MIN, FONT_MAX },
+	iconZoom = { 0, 20 },
 }
 
 Settings.defaults = {
 	enabled = false,
 	compactBags = false,
+	slotCount = "freeTotal",
+	iconZoom = 7,
 	layout = "categories",
 	emptySlots = "packed",
 	columns = 10,
@@ -47,6 +50,7 @@ Settings.defaults = {
 	qualityMin = QUALITY.UNCOMMON,
 	showNewGlow = true,
 	showJunk = true,
+	desaturateJunk = false,
 	showKeyring = true,
 	font = "",
 	fontSize = Tokens.Size("number"),
@@ -56,6 +60,7 @@ Settings.defaults = {
 	sortDirection = "LEFT",
 	bankColumns = 14,
 	bankOpensBags = true,
+	characterBags = false,
 	replaceBank = true,
 	autoSellJunk = true,
 	altCounts = true,
@@ -112,6 +117,7 @@ local function Choices(list)
 end
 
 local CHOICES = {
+	slotCount = { freeTotal = true, usedTotal = true, free = true },
 	layout = Choices(LAYOUT_OPTIONS),
 	emptySlots = Choices(EMPTY_OPTIONS),
 	growth = Choices(GROWTH_OPTIONS),
@@ -141,6 +147,11 @@ function Settings.Schema()
 	Settings.schema = {
 		{ type = "header", label = L["Bags"] },
 		{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
+		{ type = "dropdown", key = "slotCount", label = L["Slot count format"], help = L["Show free slots, used slots or free slots alone in the footer."], options = {
+			{ value = "freeTotal", label = L["Free / total"] }, { value = "usedTotal", label = L["Used / total"] },
+			{ value = "free", label = L["Free slots only"] },
+		}, disableWhen = isOff },
+		{ type = "slider", key = "iconZoom", label = L["Icon zoom"], help = L["Crop item icon edges by this percentage on each side."], min = 0, max = 20, step = 1, disableWhen = isOff },
 		{ type = "header", label = L["Slots"] },
 		{ type = "toggle", key = "compactBags", label = L["Compact bags"], help = L["Group items and pack empty slots. Off keeps bags and bank in a fixed grid with every slot shown."], disableWhen = isOff },
 		{
@@ -195,6 +206,7 @@ function Settings.Schema()
 		},
 		{ type = "toggle", key = "showNewGlow", label = L["New item glow"], help = L["Make items you just got glow until you point at them."], disableWhen = isOff },
 		{ type = "toggle", key = "showJunk", label = L["Junk marker"], help = L["Mark grey items that sell for money."], disableWhen = isOff },
+		{ type = "toggle", key = "desaturateJunk", label = L["Desaturate junk"], help = L["Show sellable grey items with grey icons."], disableWhen = isOff },
 		{ type = "toggle", key = "showKeyring", label = L["Keyring"], help = L["Show the keyring's slots under your bags."], disableWhen = isOff },
 		{ type = "header", label = L["Junk"] },
 		{
@@ -225,6 +237,7 @@ function Settings.Schema()
 			min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
 		},
 		{ type = "toggle", key = "bankOpensBags", label = L["Bank opens bags"], help = L["Open your bags beside the bank when you visit a banker."], disableWhen = isOff },
+		{ type = "toggle", key = "characterBags", label = L["Character window opens bags"], help = L["Open your bags with the character window and close them with it, unless you opened them first."], disableWhen = isOff },
 		{ type = "header", label = L["Sorting"] },
 		{
 			type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],

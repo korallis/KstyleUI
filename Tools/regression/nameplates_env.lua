@@ -39,6 +39,10 @@ N.UNIT = {
 	powerType = 0,
 	powerMax = 0,
 	quest = false,
+	afk = false,
+	dnd = false,
+	pvp = false,
+	faction = "Horde",
 }
 
 -- Blizzard's class colours for the classes the tests use.
@@ -56,6 +60,12 @@ N.CVAR_DEFAULTS = {
 	nameplateMinScale = "0.8",
 	nameplateMaxScale = "1",
 	nameplateSize = "2",
+	nameplateShowEnemies = "1",
+	nameplateShowFriendlyPlayers = "1",
+	nameplateShowEnemyMinions = "1",
+	nameplateShowFriendlyPlayerMinions = "0",
+	nameplateShowFriendlyNpcs = "0",
+	nameplateShowOnlyNameForFriendlyPlayerUnits = "0",
 }
 
 local moduleFiles
@@ -203,6 +213,33 @@ function N.Install(env, opts)
 	function env.UnitThreatSituation(a, b)
 		local u = unit(b)
 		return u and u.threat
+	end
+	-- unit.threatPct is the player's scaled threat percent, returned as a secret, as when threat values are restricted.
+	function env.UnitDetailedThreatSituation(a, b)
+		local u = unit(b)
+		if not (u and u.threatPct) then return nil end
+		return env.Secret(u.threat == 3), env.Secret(u.threat or 0), env.Secret(u.threatPct), env.Secret(u.threatPct), env.Secret(1000)
+	end
+	function env.UnitIsAFK(token)
+		local u = unit(token)
+		return u ~= nil and u.afk == true
+	end
+	function env.UnitIsDND(token)
+		local u = unit(token)
+		return u ~= nil and u.dnd == true
+	end
+	function env.UnitIsPVP(token)
+		local u = unit(token)
+		return u ~= nil and u.pvp == true
+	end
+	function env.UnitFactionGroup(token)
+		if token == "player" then return "Alliance", "Alliance" end
+		local u = unit(token)
+		return u and u.faction, u and u.faction
+	end
+	function env.UnitSpellTargetName(token)
+		local u = unit(token)
+		return u and u.spellTarget and env.Secret(u.spellTarget) or nil
 	end
 	env._inGroup = false
 	function env.IsInGroup()

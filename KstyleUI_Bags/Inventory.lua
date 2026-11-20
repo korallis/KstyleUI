@@ -1,4 +1,4 @@
--- Inventory.lua: the bag window: the backpack, bags and reagent bag in one grid, the keyring under them, opened and closed with Blizzard's bags.
+-- Inventory.lua: the bag window: the backpack, bags and reagent bag in one grid, the keyring under them, opened and closed with Blizzard's bags and, when asked, the character window.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,7 +14,7 @@ Inventory.POSITION = { anchor = "BOTTOMRIGHT", x = -16, y = 134 }
 local NONE = {}
 local PICKER_WIDTH = 132
 
-local open = false
+local open, opened = false, false
 local heldBags
 local keyringBags = {}
 
@@ -53,7 +53,7 @@ function Inventory.Sort()
 end
 
 local function Closed()
-	open = false
+	open, opened = false, false
 	Blizzard.Release()
 end
 
@@ -160,7 +160,7 @@ function Inventory.Close()
 	if window and open then
 		window:Close()
 	end
-	open = false
+	open, opened = false, false
 end
 
 function Inventory.Toggle()
@@ -246,7 +246,28 @@ ns.On("BAG_UPDATE_COOLDOWN", function()
 	end
 end)
 
+local watching = false
+
+local function WatchCharacter()
+	local on, frame = Settings.Get("characterBags"), CharacterFrame
+	opened = opened and on
+	if watching or not on or type(frame) ~= "table" or type(frame.HookScript) ~= "function" then
+		return
+	end
+	watching = true
+	frame:HookScript("OnShow", function()
+		if not open and Blizzard.IsActive() and Settings.Get("characterBags") and Blizzard.MayOpen() then
+			opened = true
+			Inventory.Open()
+		end
+	end)
+	frame:HookScript("OnHide", function()
+		if opened then Inventory.Close() end
+	end)
+end
+
 function Inventory.Enable()
+	WatchCharacter()
 	local window = Inventory.Build()
 	if not InCombatLockdown() then
 		window:Prepare()
@@ -255,7 +276,7 @@ function Inventory.Enable()
 end
 
 function Inventory.Disable()
-	open = false
+	open, opened = false, false
 	local window = Inventory.window
 	if window then
 		window:Hide()
@@ -263,6 +284,7 @@ function Inventory.Disable()
 end
 
 function Inventory.SettingsChanged()
+	WatchCharacter()
 	local window = Inventory.window
 	if not window or not K.Modules.IsRunning(Settings.MODULE) then
 		return

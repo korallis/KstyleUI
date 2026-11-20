@@ -7,7 +7,7 @@ local SPEC_MODULES = {
 	"Options", "UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates",
 	"CombatText", "Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins",
 }
-local ON_DEMAND = { Options = true }
+local ON_DEMAND = { Options = true, Routes = true }
 
 -- The core service files and area XML files, in the order Core.xml loads them.
 local CORE_FILES = {

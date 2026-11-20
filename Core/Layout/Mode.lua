@@ -20,17 +20,18 @@ local TOOLBAR_KEY = "Layout.Toolbar"
 local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -2 }
 local OVERLAY_STRATA = "FULLSCREEN"
 local TOOLBAR_STRATA = "FULLSCREEN_DIALOG"
+local TOOLBAR_REST = 0.25
 local GRID_STRATA = "BACKGROUND"
 local PLATE_MIN = 16
 local HANDLE_SIZE = 8
 local HANDLE_LEVELS = 20
 local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.6, 0.72, 0.85
 local EDGE_REST, EDGE_ACTIVE = 0.55, 1
-local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
+local GRID_CENTRE_ALPHA = 0.45
 local GUIDE_ALPHA = 0.9
 local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
 local HELP_LEADING, HINT_LINES = 1.3, 2
-local NUDGE_SMALL, NUDGE_BIG = 1, 10
+local NUDGE_SMALL = 1
 local EPSILON = 1e-4
 local ARROWS = { LEFT = { -1, 0 }, RIGHT = { 1, 0 }, UP = { 0, 1 }, DOWN = { 0, -1 } }
 local TAG_SIDES = { 0, -1, 1 }
@@ -61,7 +62,9 @@ local function Log(message)
 end
 
 local function KeyDown(fn)
-	return type(fn) == "function" and fn() == true
+	if type(fn) ~= "function" then return false end
+	local value = fn()
+	return not IsSecret(value) and value == true
 end
 
 local function Cursor()
@@ -81,10 +84,14 @@ local function Describe(key, short)
 		return text
 	end
 	if s.attachTo ~= "" then
-		local side = ({ above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] })[s.side]
+		local side
+		for _, option in ipairs(Layout.SideOptions()) do
+			if option.value == s.side then side = option.label break end
+		end
 		local target = Layout.Element(s.attachTo)
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
+		if s.matchHeight then text = text .. " / " .. L["Match height"] end
 		return text
 	end
 	if el.opts.resizable then
@@ -264,7 +271,7 @@ end
 local function RefreshPlate(key)
 	local plate = plates[key]
 	local el = Layout.Element(key)
-	if not overlay or not el or el.opts.plate == false or not Layout.Live(key) then
+	if not overlay or not el or el.opts.plate == false or not Layout.Live(key) or Mode.hidden and Mode.hidden[key] then
 		if plate then
 			plate:Hide()
 		end
@@ -451,14 +458,29 @@ local function Nudge(dx, dy)
 	if not l then
 		return
 	end
-	local step = Scale.Pixel(KeyDown(IsShiftKeyDown) and NUDGE_BIG or NUDGE_SMALL)
+	local step = Scale.Pixel(KeyDown(IsShiftKeyDown) and Layout.Setting("nudgeStep") or NUDGE_SMALL)
 	local rw, rh = Layout.RootSize()
 	l, b = G.ClampToRoot(l + dx * step, b + dy * step, w, h, rw, rh)
 	l, b = Layout.Clamp(key, l, b, w, h)
 	Layout.Update(key, Layout.Movement(key, l, b, w, h), "nudge:" .. key)
 end
 
+local function RevealToolbar()
+	if not toolbar then return end
+	local fade = ns.Store.Account().layoutToolbarHover == true
+	local hidden = fade and KeyDown(IsShiftKeyDown)
+	toolbar:EnableMouse(fade and not hidden)
+	toolbar.content:SetShown(not hidden)
+	toolbar.titleBar:SetShown(not hidden)
+	if fade then toolbar:SetAlpha(hidden and 0 or toolbar:IsMouseOver() and 1 or TOOLBAR_REST) end
+end
+
+local function ShiftChanged(_, key)
+	if key == "LSHIFT" or key == "RSHIFT" then RevealToolbar() end
+end
+
 local function OnKeyDown(self, key)
+	ShiftChanged(self, key)
 	if InCombatLockdown() then
 		return
 	end
@@ -498,15 +520,20 @@ local function PlateTooltip(tip, plate)
 	if el.module then
 		tip:AddCaption(el.module)
 	end
-	tip:AddLine(L["Drag to move. The arrow keys nudge it one pixel, or ten with Shift."])
-	tip:AddLine(L["Hold Shift to lock a drag to its first direction. Alt+scroll cycles through stacked plates."])
+	tip:AddLine(L["Drag to move. Arrows nudge one pixel; Shift uses the distance in Elements."])
+	tip:AddLine(L["Shift locks a drag to one axis."])
+	local method = Layout.Setting("overlap")
+	local cycling = ({ alt = L["Alt + scroll selects overlapping movers."], ctrl = L["Ctrl + scroll selects overlapping movers."],
+		shift = L["Shift + scroll selects overlapping movers."], scroll = L["Scroll selects overlapping movers."] })[method]
+	if cycling then tip:AddLine(cycling) end
 	if el.opts.resizable then
 		tip:AddLine(L["Click it, then drag a handle to resize it."])
 	end
 	if el.opts.scalable then
 		tip:AddLine(L["Scroll to scale it, or click it and drag the corner handle."])
 	end
-	tip:AddLine(L["Right-click to reset it."])
+	tip:AddLine(L["Right-click to reset it. Middle-click hides this mover until restored or Layout Mode reopens."])
+	if ns.Store.Account().moverOptions ~= false then tip:AddLine(L["Double-click to open its settings."]) end
 end
 
 local function PlateDown(plate, button)
@@ -516,7 +543,13 @@ local function PlateDown(plate, button)
 end
 
 local function PlateClick(plate, button)
-	if button == "RightButton" then
+	if button == "MiddleButton" then
+		Mode.hidden[plate.key] = true
+		plate:Hide()
+		Mode.Select(nil)
+		toolbar:Arrange()
+		Mode.Refresh()
+	elseif button == "RightButton" then
 		Layout.Reset(plate.key)
 	end
 end
@@ -530,15 +563,31 @@ local function PlateDoubleClick(plate, button)
 	if button ~= "LeftButton" or not Layout.IsActive() or InCombatLockdown() then return end
 	local bar = plate.key:match("^actionbars%.(.+)$") or plate.key == "consumables.bar" and "consumables"
 	local settings = bar and ns.Store.Module("ActionBars")
-	if not (settings and settings[bar] and settings[bar].moverOptions) then return end
-	ns.Options.Write("ActionBars", "editBar", bar)
+	local el = Layout.Element(plate.key)
+	local actionBar = settings and settings[bar]
+	local target = { page = el.module or "Elements", labelTarget = el.label }
+	if actionBar then
+		if not actionBar.moverOptions then return end
+		ns.Options.Write("ActionBars", "editBar", bar)
+		target = { page = "ActionBars", module = "ActionBars", key = "editBar" }
+	elseif ns.Store.Account().moverOptions == false then return end
+	local picker, section, kind = el.module and ns.Options.Row(el.module, "edit"), plate.key:match("^[^.]+%.([^.]+)%.([^.]+)$")
+	kind = kind or plate.key:match("([^.]+)$")
+	for _, option in ipairs(picker and type(picker.options) == "table" and picker.options or {}) do
+		if option.value == kind then
+			ns.Options.Write(el.module, "edit", kind)
+			target = { page = el.module, module = el.module, key = section and kind .. "." .. section or "edit" }
+		end
+	end
 	Layout.Exit()
-	ns.Options.Open("ActionBars")
+	ns.Options.Open(target)
 end
 
 local function PlateWheel(plate, delta)
 	if not Layout.IsActive() or InCombatLockdown() or not IsNumber(delta) or delta == 0 then return end
-	if KeyDown(IsAltKeyDown) then
+	local method = Layout.Setting("overlap")
+	if method == "scroll" or method == "alt" and KeyDown(IsAltKeyDown)
+		or method == "ctrl" and KeyDown(IsControlKeyDown) or method == "shift" and KeyDown(IsShiftKeyDown) then
 		local x, y = Cursor()
 		if not x then return end
 		local stack, at = {}, nil
@@ -600,7 +649,7 @@ function Mode.NewPlate(key)
 	plate.tag:SetColorTexture(Widgets.Rgba("deep", 0.85))
 	plate.info = Widgets.Text(plate, "caption", "text")
 	plate:EnableMouse(true)
-	plate:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	plate:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 	plate:RegisterForDrag("LeftButton")
 	plate:EnableMouseWheel(true)
 	plate:SetScript("OnMouseDown", PlateDown)
@@ -671,7 +720,7 @@ local function PlaceLine(i, vertical, at, centre, pixel, border)
 	if centre then
 		Widgets.Tint(line, "accent", GRID_CENTRE_ALPHA)
 	else
-		Widgets.Tint(line, "white", GRID_LINE_ALPHA)
+		Widgets.Tint(line, "white", Layout.Setting("gridAlpha"))
 	end
 	line:Show()
 end
@@ -858,6 +907,11 @@ local function BuildToolbar()
 		Layout.Exit(true)
 		ns.Options.BindKeys()
 	end })
+	panel.restore = Widgets.Button(content, { text = L["Restore movers"], tooltip = L["Show every mover hidden in this Layout Mode session."], onClick = function()
+		Mode.hidden = {}
+		Mode.Refresh()
+		panel:Arrange()
+	end })
 	local function Elements()
 		local out, query = {}, panel.search and panel.search:GetText():lower() or ""
 		for _, el in ipairs(Layout.Elements()) do
@@ -867,20 +921,33 @@ local function BuildToolbar()
 		end
 		return #out > 0 and out or { { value = "", label = L["No matches"] } }
 	end
-	panel.elements = Widgets.Dropdown(content, { width = 200, options = Elements, placeholder = L["Choose an element"], onChange = function(key)
-		if key ~= "" then Mode.Select(key) end
-	end })
+	local function Pick(key)
+		if key ~= "" then
+			Mode.hidden[key] = nil
+			Mode.Refresh()
+			Mode.Select(key)
+			panel:Arrange()
+		end
+	end
+	panel.elements = Widgets.Dropdown(content, { width = 200, options = Elements, placeholder = L["Choose an element"], onChange = Pick })
 	panel.search = Widgets.EditBox(content, { width = 160, placeholder = L["Find an element"], onChange = function()
 		panel.elements:SetOptions(Elements)
+	end, onEnter = function()
+		local only = Elements()
+		if #only == 1 and only[1].value ~= "" then
+			panel.elements:SetValue(only[1].value, true)
+			Pick(only[1].value)
+		end
 	end })
 	function panel:Arrange()
+		panel.restore:SetShown(Mode.hidden and next(Mode.hidden) ~= nil)
 		local search = ns.Store.Module("LayoutControls").search
 		panel.search:SetShown(search)
 		panel.elements:SetShown(search)
 		panel.bind:SetShown(ns.Store.Module("ActionBars").bindingHints ~= false)
 		local gap = Tokens.Size("gapMedium")
 		local x, tallest = 0, 0
-		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.search, panel.elements, panel.done }) do
+		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
 			if item:IsShown() then
 				item:ClearAllPoints()
 				item:SetPoint("LEFT", content, "LEFT", Widgets.Snap(panel, x), 0)
@@ -895,6 +962,10 @@ local function BuildToolbar()
 		panel:Restyle()
 	end
 	panel:Arrange()
+	for _, part in ipairs({ panel, panel.titleBar, panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
+		part:HookScript("OnEnter", RevealToolbar)
+		part:HookScript("OnLeave", RevealToolbar)
+	end
 	local bar = panel.titleBar
 	bar:EnableMouse(true)
 	bar:RegisterForDrag("LeftButton")
@@ -916,6 +987,7 @@ local function Build()
 	overlay:SetFrameStrata(OVERLAY_STRATA)
 	overlay:Hide()
 	overlay:SetScript("OnKeyDown", OnKeyDown)
+	overlay:SetScript("OnKeyUp", ShiftChanged)
 	guideX = overlay:CreateTexture(nil, "OVERLAY")
 	guideX:SetColorTexture(Tokens.Color("white"))
 	guideX:Hide()
@@ -942,6 +1014,7 @@ local function Build()
 end
 
 function Mode.Show()
+	Mode.hidden = {}
 	Build()
 	toolbar:Arrange()
 	overlay:Show()
@@ -957,6 +1030,7 @@ function Mode.Show()
 	PlaceSlot()
 	Mode.HistoryChanged()
 	toolbar:Open()
+	RevealToolbar()
 	PlaceTags()
 end
 

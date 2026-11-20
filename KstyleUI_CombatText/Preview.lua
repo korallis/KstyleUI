@@ -25,6 +25,7 @@ function Preview.Build(...)
 		{ place = "frame", kind = "miss", emphasis = "none", word = "DODGE" },
 		{ place = "field", kind = "heal", emphasis = "crit", amount = 612 },
 		{ place = "frame", kind = "damage", emphasis = "none", amount = 842, school = 32 },
+		{ place = "field", kind = "power", emphasis = "none", amount = 25 },
 	}
 
 	local function Caption(frame, anchor, text)
@@ -59,7 +60,9 @@ function Preview.Build(...)
 		frame.base:SetHeight(Widgets.Border(frame))
 		Widgets.Size(tile, FRAME_WIDTH, FRAME_HEIGHT)
 		tile:ClearAllPoints()
-		Widgets.Point(tile, "BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM)
+		local cfg = frame.cfg
+		local clearance = cfg and cfg.direction == "down" and cfg.distance + cfg.size * cfg.critScale or 0
+		Widgets.Point(tile, "BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM + clearance)
 		tile.bar:ClearAllPoints()
 		Widgets.Point(tile.bar, "CENTER", tile, "CENTER")
 		PlaceCaption(frame.caption)
@@ -89,8 +92,8 @@ function Preview.Build(...)
 		frame.pool, frame.cfg, frame.field, frame.unitFrame = pool, cfg, field, unitFrame
 
 		function frame.Refresh()
-			Place(frame)
 			Settings.Snapshot(Settings.Values(), cfg)
+			Place(frame)
 			pool:ReleaseAll()
 			elapsed = INTERVAL
 		end
@@ -101,6 +104,7 @@ function Preview.Build(...)
 				return
 			end
 			elapsed = 0
+			if nextSample == #SAMPLES and not (cfg.power and cfg.units.player) then nextSample = 1 end
 			local sample = SAMPLES[nextSample]
 			nextSample = nextSample % #SAMPLES + 1
 			Display.Spawn(emitters[sample.place], cfg, sample.kind, sample.emphasis, sample.amount, sample.word, sample.school)

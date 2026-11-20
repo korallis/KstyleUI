@@ -234,6 +234,8 @@ function Setup.Go(target)
 		if old then
 			old:Hide()
 		end
+		panel.opts.height = HEIGHT
+		Widgets.Size(panel, WIDTH, HEIGHT)
 		step = target
 		Motion.FadeIn(panel.pages[step], Tokens.Duration("fade"))
 	end
@@ -377,6 +379,20 @@ local function BuildBrandedWelcome(page)
 	return title, note
 end
 
+local function ScrollBar(page, scroll, body)
+	local bar = CreateFrame("Frame", nil, page)
+	Widgets.Point(bar, "TOPLEFT", scroll, "TOPRIGHT", gap("gapTiny"), 0)
+	bar:SetFrameLevel(scroll:GetFrameLevel() + 10)
+	local thumb = bar:CreateTexture(nil, "OVERLAY")
+	return bar, thumb, function(offset)
+		local height, view = body:GetHeight(), scroll:GetHeight()
+		Widgets.Size(bar, 2, view)
+		Widgets.Point(thumb, "TOPLEFT", bar, "TOPLEFT", 0, -offset * view / height)
+		Widgets.Size(thumb, 2, view * view / height)
+		return height - view
+	end
+end
+
 local function BuildWelcome(page)
 	local classic = CreateFrame("Frame", nil, page)
 	Widgets.Fill(classic, page, 0, 0, 0, 0)
@@ -389,19 +405,11 @@ local function BuildWelcome(page)
 	Widgets.Size(branded, WIDTH - 2 * Widgets.WindowInset(panel), 400)
 	scroll:SetScrollChild(branded)
 	BuildBrandedWelcome(branded)
-	local bar = CreateFrame("Frame", nil, page)
-	Widgets.Point(bar, "TOPLEFT", scroll, "TOPRIGHT", gap("gapTiny"), 0)
-	bar:SetFrameLevel(scroll:GetFrameLevel() + 10)
-	local thumb = bar:CreateTexture(nil, "OVERLAY")
+	local bar, thumb, PlaceBar = ScrollBar(page, scroll, branded)
 	local function ScrollTo(offset)
-		local height, view = branded:GetHeight(), scroll:GetHeight()
-		offset = Widgets.Snap(scroll, max(0, min(max(0, height - view), offset)))
+		offset = Widgets.Snap(scroll, max(0, min(max(0, branded:GetHeight() - scroll:GetHeight()), offset)))
 		scroll:SetVerticalScroll(offset)
-		Widgets.Size(bar, 2, view)
-		thumb:ClearAllPoints()
-		Widgets.Point(thumb, "TOPLEFT", bar, "TOPLEFT", 0, -offset * view / height)
-		Widgets.Size(thumb, 2, view * view / height)
-		bar:SetShown(scroll:IsShown() and height > view)
+		bar:SetShown(scroll:IsShown() and PlaceBar(offset) > 1)
 	end
 	scroll:SetScript("OnMouseWheel", function(_, delta)
 		ScrollTo(scroll:GetVerticalScroll() - delta * Widgets.LineHeight(branded.features) * 3)
@@ -427,6 +435,9 @@ local function BuildWelcome(page)
 		if branded.note:IsShown() then
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
+		local rise = 2 * Widgets.Border(panel)
+		panel.opts.height = HEIGHT + (self:IsVisible() and max(0, math.ceil((panel.opts.height + (shown and height or 0) - scroll:GetHeight() - HEIGHT) / rise - 0.01) * rise) or 0)
+		Widgets.Size(panel, WIDTH, panel.opts.height)
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
 		ScrollTo(0)
 	end
@@ -781,10 +792,16 @@ local function BuildModules(page, width)
 	local body = CreateFrame("Frame", nil, scroll)
 	Widgets.Size(body, width, 1)
 	scroll:SetScrollChild(body)
+	local bar, thumb, PlaceBar = ScrollBar(page, scroll, body)
+	function bar.Place()
+		thumb:SetColorTexture(Widgets.Rgba("accent", 0.6))
+		bar:SetShown(PlaceBar(scroll:GetVerticalScroll() or 0) > 0)
+	end
 	scroll:SetScript("OnMouseWheel", function(_, delta)
 		scroll:SetVerticalScroll(max(0, min(max(0, body:GetHeight() - scroll:GetHeight()), (scroll:GetVerticalScroll() or 0) - delta * ROW_HEIGHT)))
+		bar.Place()
 	end)
-	panel.moduleScroll, panel.moduleBody = scroll, body
+	panel.moduleScroll, panel.moduleBody, panel.moduleBar = scroll, body, bar
 	panel.toggles = {}
 	for _, entry in ipairs(Setup.PICKER) do
 		local name = entry.name
@@ -809,22 +826,28 @@ PlaceModules = function()
 	local column = panel.moduleBody:GetWidth() / 2
 	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
 	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
-	local heights = { 0, 0 }
-	for i, entry in ipairs(Setup.PICKER) do
-		local col = i <= ROWS_PER_COLUMN and 1 or 2
-		local toggle = panel.toggles[entry.name]
-		Setup.NoteStyle(toggle.note)
-		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
-		toggle:ClearAllPoints()
-		Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
-		toggle.note:ClearAllPoints()
-		Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
-		toggle.note:SetWidth(column - indent - gap("gapLarge"))
-		local height = ns.Store.Module("Setup").readableNotes and max(ROW_HEIGHT, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
-		heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+	local function Place(least)
+		local heights = { 0, 0 }
+		for i, entry in ipairs(Setup.PICKER) do
+			local col = i <= ROWS_PER_COLUMN and 1 or 2
+			local toggle = panel.toggles[entry.name]
+			Setup.NoteStyle(toggle.note)
+			local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
+			toggle:ClearAllPoints()
+			Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
+			toggle.note:ClearAllPoints()
+			Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
+			toggle.note:SetWidth(column - indent - gap("gapLarge"))
+			local height = ns.Store.Module("Setup").readableNotes and max(least, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
+			heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+		end
+		return max(heights[1], heights[2])
 	end
-	panel.moduleBody:SetHeight(max(heights[1], heights[2]))
+	local height = Place(ROW_HEIGHT)
+	if ns.Store.Module("Setup").readableNotes and height > panel.moduleScroll:GetHeight() then height = Place(0) end
+	panel.moduleBody:SetHeight(height)
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
+	panel.moduleBar.Place()
 end
 
 local function BuildStyles(page, width)

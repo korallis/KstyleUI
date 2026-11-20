@@ -1,4 +1,4 @@
--- Alerts.lua: quiet error text, which hides through UIErrorsFrame's own SetMessageTypeEnabled the cooldown, range and resource errors that Retail's error frame never shows and Forever's override shows again, and shows only those it hid when it stops.
+-- Alerts.lua: quiet error text, which hides through UIErrorsFrame's own SetMessageTypeEnabled the cooldown, range and resource errors that Retail's error frame never shows and Forever's override shows again, and shows only those it hid when it stops; cinematic skips, the delete word and resurrection offers.
 local _, ns = ...
 
 local TYPES = {
@@ -61,11 +61,63 @@ local function Sync()
 	end
 end
 
+local cinematicToken = 0
+
+local function SkipCinematic(_, cancellable)
+	cinematicToken = cinematicToken + 1
+	if not ns.Get("skipCinematics") or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
+	local held = IsShiftKeyDown()
+	if ns.IsSecret(held) or held ~= false then return end
+	local delay, token = ns.Get("skipDelay"), cinematicToken
+	if delay == 0 then StopCinematic(); return end
+	if not C_Timer or type(C_Timer.After) ~= "function" or type(InCinematic) ~= "function" then return end
+	C_Timer.After(delay, function()
+		if ns.running and token == cinematicToken and ns.Get("skipCinematics") and ns.True(InCinematic()) then
+			local shift = IsShiftKeyDown()
+			if not ns.IsSecret(shift) and shift == false then StopCinematic() end
+		end
+	end)
+end
+
+local function FillDelete()
+	if not (ns.running and ns.Get("autoDelete")) or type(StaticPopup_FindVisible) ~= "function" or type(DELETE_ITEM_CONFIRM_STRING) ~= "string" then return end
+	local dialog = StaticPopup_FindVisible("DELETE_GOOD_ITEM") or StaticPopup_FindVisible("DELETE_GOOD_QUEST_ITEM")
+	local box = dialog and type(dialog.GetEditBox) == "function" and dialog:GetEditBox()
+	if box then box:SetText(DELETE_ITEM_CONFIRM_STRING) end
+end
+
+local function Resurrect()
+	if not ns.Get("autoResurrect") or type(AcceptResurrect) ~= "function" then return end
+	local fighting, encounter = InCombatLockdown(), C_InstanceEncounter
+	local boss = type(encounter) ~= "table" or type(encounter.IsEncounterInProgress) ~= "function" or encounter.IsEncounterInProgress()
+	if ns.IsSecret(fighting) or fighting or ns.IsSecret(boss) or boss ~= false then return end
+	local wait = type(GetCorpseRecoveryDelay) == "function" and ns.Number(GetCorpseRecoveryDelay())
+	if wait == 0 then AcceptResurrect() end
+end
+
+local OPTIONAL = {
+	DELETE_ITEM_CONFIRM = { "autoDelete", function() if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0, FillDelete) else FillDelete() end end },
+	RESURRECT_REQUEST = { "autoResurrect", Resurrect },
+}
+
+local function Listen()
+	for event, entry in pairs(OPTIONAL) do
+		if ns.Get(entry[1]) then
+			ns.K.Events.Register(ns.MODULE, event, entry[2])
+		else
+			ns.K.Events.Unregister(ns.MODULE, event)
+		end
+	end
+end
+
 ns.AddPart({
 	name = "alerts",
-	Start = Sync,
-	Stop = Sync,
+	events = { CINEMATIC_START = SkipCinematic },
+	Start = function() Sync(); Listen() end,
+	Stop = function() cinematicToken = cinematicToken + 1; Sync() end,
 	Setting = function(key)
+		if key == nil or key == "skipCinematics" or key == "skipDelay" then cinematicToken = cinematicToken + 1 end
+		if key == nil or key == "autoDelete" or key == "autoResurrect" then Listen() end
 		if key == nil or key == "quietErrors" then
 			Sync()
 		end

@@ -24,6 +24,7 @@ local function ApplyAll()
 	ApplyScale()
 	if ns.active then
 		Health.Restyle()
+		Anchor.Watch()
 	end
 end
 

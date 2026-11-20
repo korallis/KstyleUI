@@ -160,6 +160,8 @@ do
 	assert(Data.Matches(sword, "one-handed"), "a search matches the item's type and subtype")
 	assert(Data.Matches(sword, "%[") == false, "a search treats symbols as plain text")
 	assert(not Data.Matches(empty, "heal"), "an empty slot never matches a search")
+	sword.name = "Épée de garde"
+	assert(Data.Matches(sword, Data.Query("épée")) and Data.Matches(sword, Data.Query("ÉPÉE")), "a search matches accented capitals in either case")
 end
 
 -- Search grammar: & | ! ( ), keywords, type: and item level ranges ------------------------------
@@ -294,6 +296,26 @@ do
 	assert(Category(1) == "consumables" and Category(3) == "other", "clearing a rule returns its items to the built-in categories")
 	K.Options.Write("Bags", "custom2.rule", "&")
 	assert(Category(2) == "equipment", "a rule that matches nothing claims nothing")
+end
+
+do
+	local env, K, ns = B.New({ enable = false, bags = { [0] = { size = 1, items = { Item("sword") } } } })
+	local real = K.Locale.Lower
+	local function Cost(fold)
+		K.Locale.Lower = fold
+		setfenv(assert(loadfile("KstyleUI_Bags/Data.lua")), env)("KstyleUI_Bags", ns)
+		K.Locale.Lower = real
+		local record = ns.Data.Read(0, 1, {})
+		local query = ns.Data.Query(record.name:sub(1, 4))
+		assert(ns.Data.Matches(record, query))
+		local ticks = 0
+		debug.sethook(function() ticks = ticks + 1 end, "", 100)
+		for _ = 1, 25000 do ns.Data.Matches(record, query) end
+		debug.sethook()
+		return ticks
+	end
+	local folded, plain = Cost(real), Cost(string.lower)
+	assert(folded <= plain * 1.01, "filtering an ASCII name with the accent fold costs " .. folded .. " hundred instructions per 25000 slots against " .. plain .. " with string.lower; fold each name once, not on every match")
 end
 
 print("bags data ok")

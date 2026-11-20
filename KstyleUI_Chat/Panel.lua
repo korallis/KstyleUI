@@ -28,10 +28,28 @@ local EDIT_HEIGHT = 32
 local EDIT_LEFT = 5
 local EDIT_PAST_SCROLLBAR = 8
 local SCROLLBAR_WIDTH = 8
+local SIDE_ROOM, SIDE_MIN = 35, 32
 
 local STRIP_HEIGHT = 32
 local EDIT_TILE = 22
 local EDIT_BOTTOM = 6
+
+local IDLE_OWNER = "ChatIdle"
+local WAKE_EVENTS = {
+	"CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
+	"CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER",
+	"CHAT_MSG_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL", "CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER",
+	"CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER_INFORM",
+}
+local WAKE_GROUPS = {
+	emotes = { "CHAT_MSG_EMOTE", "CHAT_MSG_TEXT_EMOTE" },
+	skills = { "CHAT_MSG_SKILL", "CHAT_MSG_COMBAT_XP_GAIN" },
+	reputation = { "CHAT_MSG_COMBAT_FACTION_CHANGE", "CHAT_MSG_COMBAT_HONOR_GAIN" },
+	loot = { "CHAT_MSG_LOOT", "CHAT_MSG_MONEY", "CHAT_MSG_CURRENCY" },
+	system = { "CHAT_MSG_SYSTEM" },
+	achievements = { "CHAT_MSG_ACHIEVEMENT", "CHAT_MSG_GUILD_ACHIEVEMENT" },
+	npc = { "CHAT_MSG_MONSTER_SAY", "CHAT_MSG_MONSTER_YELL", "CHAT_MSG_MONSTER_EMOTE", "CHAT_MSG_MONSTER_WHISPER", "CHAT_MSG_MONSTER_PARTY", "CHAT_MSG_RAID_BOSS_EMOTE", "CHAT_MSG_RAID_BOSS_WHISPER" },
+}
 
 local IsSecret = Format.IsSecret
 
@@ -52,7 +70,7 @@ local state = {
 	hover = false,
 }
 local logged = {}
-local HookHover
+local HookHover, SideAlpha
 local mirrored = setmetatable({}, { __mode = "k" })
 local edits = setmetatable({}, { __mode = "k" })
 local busy = false
@@ -109,17 +127,22 @@ local function EditAlways()
 	return settings ~= nil and settings.editBox == "always"
 end
 
+local function Tile()
+	return Number(state.settings and state.settings.editHeight, EDIT_TILE)
+end
+
 function Panel.Geometry(chat)
 	local k = Ratio(chat, state.holder)
 	local snap = Scale.Snap
 	local pad = snap(Pad())
 	local foot = pad
-	if EditAlways() then
-		local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
+	if EditAlways() and not state.settings.inputOnTop then
+		local tile = max(0, (EDIT_HEIGHT * k - Tile()) / 2)
 		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
-	local divider = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
+	local divider = snap(max(Number(state.settings and state.settings.tabHeight, TAB_ROW), TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
 	local top = divider + (Widgets.Readability("chatTabs") and snap(12) or 0)
+	if state.settings and state.settings.inputOnTop then top = top + snap((EDIT_HEIGHT + EDIT_DROP) * k) end
 	local _, size = chat:GetFont()
 	local height = state.holder and state.holder:GetHeight()
 	local spacing
@@ -144,11 +167,16 @@ function Panel.Geometry(chat)
 		end
 		spacing = fit / k
 	end
+	local s = state.settings
+	local side = s and s.buttons and max(SIDE_MIN, Number(s.sideWidth, SIDE_ROOM)) * k or 0
+	local right = s and s.sideRight and side > 0
+	local band = right and side + SCROLLBAR_WIDTH * k or 0
 	return {
 		k = k,
-		left = pad + (state.settings and state.settings.buttons and 35 * k or 0),
+		left = pad + (right and 0 or side),
 		top = top,
-		right = pad,
+		right = pad + band,
+		band = band,
 		bottom = foot,
 		divider = divider,
 		spacing = spacing,
@@ -157,7 +185,7 @@ end
 
 function Panel.EditInsets(frame)
 	local k = Ratio(frame, state.holder)
-	local vertical = max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2)
+	local vertical = max(0, (EDIT_HEIGHT - Tile() / k) / 2)
 	return { left = EDIT_LEFT, right = EDIT_PAST_SCROLLBAR, top = vertical, bottom = vertical }
 end
 
@@ -166,7 +194,7 @@ function Panel.UndockedInsets(frame)
 	local pad = Pad() / k
 	local bottom = -pad
 	if EditAlways() then
-		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2) + EDIT_BOTTOM / k)
+		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + EDIT_BOTTOM / k)
 	end
 	return {
 		left = -pad,
@@ -326,11 +354,16 @@ local function EditAlpha(frame)
 				ApplyEdit(self, info)
 			end
 		end)
-		local function refocus(self)
+		box:HookScript("OnEditFocusGained", function(self)
 			ApplyEdit(self, info)
-		end
-		box:HookScript("OnEditFocusGained", refocus)
-		box:HookScript("OnEditFocusLost", refocus)
+			state.typing = true
+			Panel.Wake()
+		end)
+		box:HookScript("OnEditFocusLost", function(self)
+			ApplyEdit(self, info)
+			state.typing = false
+			Panel.Wake()
+		end)
 	end
 	ApplyEdit(box, info)
 end
@@ -363,16 +396,80 @@ local function SetChatAlpha(alpha, force)
 	end
 end
 
+local function IdleFactor()
+	local s = state.settings
+	if not state.faded or not s or s.idleFade ~= true then
+		return 1
+	end
+	return 1 - min(1, Number(s.idleStrength, 0))
+end
+
 local function Mirror()
 	local holder = state.holder
 	if not state.active or not holder then
 		return
 	end
-	local alpha = 0
+	local alpha, factor = 0, IdleFactor()
 	if holder:IsShown() then
 		alpha = Number(holder:GetAlpha(), 0)
 	end
-	SetChatAlpha(alpha)
+	SetChatAlpha(alpha * factor)
+	if (state.factor or 1) ~= factor then
+		state.factor = factor
+		state.glass:SetAlpha(factor)
+		Widgets.ColorSlice(state.shade, Widgets.Rgba("black", SHADE_ALPHA * factor))
+		SideAlpha()
+	end
+end
+
+local function Settle()
+	state.idleTimer = false
+	local s = state.settings
+	if not state.active or not s or s.idleFade ~= true or state.faded then
+		return
+	end
+	local left = state.idleAt - GetTime()
+	if left > 0 then
+		state.idleTimer = true
+		C_Timer.After(left, Settle)
+	elseif not state.hover and not state.typing then
+		state.faded = true
+		Mirror()
+	end
+end
+
+function Panel.Wake()
+	local s = state.settings
+	if not state.active or not s or s.idleFade ~= true then
+		return
+	end
+	local delay = Number(s.idleDelay, 15)
+	state.idleAt = GetTime() + delay
+	if state.faded then
+		state.faded = false
+		Mirror()
+	end
+	if not state.idleTimer then
+		state.idleTimer = true
+		C_Timer.After(delay, Settle)
+	end
+end
+
+local function Idle()
+	local s = state.settings
+	local on = state.active and s ~= nil and s.idleFade == true
+	local wake = s and type(s.idleWake) == "table" and s.idleWake or {}
+	for _, event in ipairs(WAKE_EVENTS) do
+		if on then K.Events.Register(IDLE_OWNER, event, Panel.Wake) else K.Events.Unregister(IDLE_OWNER, event) end
+	end
+	for key, events in pairs(WAKE_GROUPS) do
+		for _, event in ipairs(events) do
+			if on and wake[key] == true then K.Events.Register(IDLE_OWNER, event, Panel.Wake) else K.Events.Unregister(IDLE_OWNER, event) end
+		end
+	end
+	state.faded = false
+	Mirror()
+	Panel.Wake()
 end
 
 function Panel.Spacing(frame)
@@ -402,16 +499,16 @@ local function PlaceDivider(g)
 	local divider = glass.divider
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left, -g.divider)
-	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
+	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left - g.band, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
 	Panel.PaintRule(divider)
 	state.headerUnits = g.divider + Widgets.Border(glass)
 	SyncHeader()
 	local y = -g.divider / 2
 	glass.plus:ClearAllPoints()
-	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
+	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET + g.band), Widgets.Snap(glass.plus, y))
 	glass.copy:ClearAllPoints()
-	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny")), Widgets.Snap(glass.copy, y))
+	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny") + g.band), Widgets.Snap(glass.copy, y))
 end
 
 local function PlaceEdit(frame, k, over, own)
@@ -419,9 +516,15 @@ local function PlaceEdit(frame, k, over, own)
 	if type(box) ~= "table" or type(box.SetPoint) ~= "function" or type(bar) ~= "table" then
 		return
 	end
+	if state.active and state.settings.inputOnTop and own then
+		box:ClearAllPoints()
+		box:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", -EDIT_LEFT, EDIT_DROP)
+		box:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", EDIT_PAST_SCROLLBAR, EDIT_DROP)
+		return
+	end
 	local y = -EDIT_DROP
 	if over then
-		y = EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2)
+		y = EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2)
 	end
 	box:ClearAllPoints()
 	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
@@ -430,6 +533,42 @@ local function PlaceEdit(frame, k, over, own)
 		return
 	end
 	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)
+end
+
+local sideBase, sideSet = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
+
+local function SideFrames()
+	local list = {}
+	for _, frame in pairs({ state.chat and state.chat.buttonFrame, ChatFrameMenuButton, ChatFrameChannelButton, ChatFrameToggleVoiceDeafenButton, ChatFrameToggleVoiceMuteButton, QuickJoinToastButton, ChatAlertFrame }) do
+		if type(frame) == "table" and type(frame.SetAlpha) == "function" then
+			list[#list + 1] = frame
+		end
+	end
+	return list
+end
+
+function SideAlpha()
+	local s = state.settings
+	local on = state.active and s ~= nil and s.buttons == true
+	local hide, factor = on and s.sideHover == true and not state.hover, on and IdleFactor() or 1
+	if not hide and factor == 1 and next(sideSet) == nil then
+		return
+	end
+	local column = state.chat and state.chat.buttonFrame
+	for _, frame in ipairs(SideFrames()) do
+		local alpha = frame:GetAlpha()
+		if not IsSecret(alpha) and alpha ~= sideSet[frame] then
+			sideBase[frame] = alpha
+		end
+		local scale = hide and 0 or (frame == column or frame:GetParent() == column) and 1 or factor
+		if scale ~= 1 then
+			sideSet[frame] = (sideBase[frame] or 1) * scale
+			frame:SetAlpha(sideSet[frame])
+		elseif sideSet[frame] ~= nil then
+			frame:SetAlpha(sideBase[frame] or 1)
+			sideSet[frame] = nil
+		end
+	end
 end
 
 function Panel.Place()
@@ -467,17 +606,25 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	if state.settings.buttons and type(chat.buttonFrame) == "table" then
-		local column = chat.buttonFrame
+		local column, friends, icons = chat.buttonFrame, QuickJoinToastButton, state.settings.sideIcons
+		local side, x = state.settings.sideRight and "RIGHT" or "LEFT", Scale.Snap(Pad()) / g.k
+		local shown = type(friends) == "table" and not (type(icons) == "table" and icons.friends == false)
+		local top = max(g.top / g.k, x + (shown and Number(friends:GetHeight(), 0) * Ratio(friends, holder) / g.k or 0))
+		x = side == "RIGHT" and -x or x
 		column:ClearAllPoints()
-		column:SetPoint("TOPLEFT", holder, "TOPLEFT", Scale.Snap(Pad()) / g.k, -g.top / g.k)
-		column:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", Scale.Snap(Pad()) / g.k, g.bottom / g.k)
-		for _, frame in ipairs({ ChatAlertFrame, QuickJoinToastButton }) do
+		column:SetPoint("TOP" .. side, holder, "TOP" .. side, x, -top)
+		column:SetPoint("BOTTOM" .. side, holder, "BOTTOM" .. side, x, g.bottom / g.k)
+		for _, frame in ipairs({ ChatAlertFrame, friends }) do
 			if type(frame) == "table" then
 				frame:ClearAllPoints()
-				frame:SetPoint("TOPLEFT", column, "TOPLEFT", 0, 0)
+				frame:SetPoint("BOTTOM", column, "TOP", 0, 0)
 			end
 		end
+		for _, frame in ipairs(SideFrames()) do
+			HookHover(frame)
+		end
 	end
+	SideAlpha()
 	for _, frame in ipairs(Windows.List()) do
 		local name = frame:GetName()
 		HookHover(IsText(name) and _G[name .. "Tab"] or nil)
@@ -530,6 +677,7 @@ function Panel.Rest()
 	local show = state.hover == true
 	glass.plus:SetShown(show)
 	glass.copy:SetShown(show and settings ~= nil and settings.copyButton == true)
+	SideAlpha()
 	if state.bare and state.alpha ~= nil then
 		SetChatAlpha(state.alpha, true)
 	end
@@ -539,6 +687,7 @@ local function Reveal()
 	state.generation = (state.generation or 0) + 1
 	state.hover = true
 	Panel.Rest()
+	Panel.Wake()
 end
 
 local function Conceal()
@@ -550,6 +699,7 @@ local function Conceal()
 		end
 		state.hover = false
 		Panel.Rest()
+		Panel.Wake()
 	end)
 end
 
@@ -584,7 +734,7 @@ local function Paint(settings)
 	SyncHeader()
 	local shade = state.shade
 	Shade()
-	Widgets.ColorSlice(shade, Widgets.Rgba("black", SHADE_ALPHA))
+	Widgets.ColorSlice(shade, Widgets.Rgba("black", SHADE_ALPHA * (state.factor or 1)))
 	Widgets.ShowSlice(shade, bare)
 	glass.copy:Paint()
 	glass.plus:Paint()
@@ -853,8 +1003,14 @@ function Panel.Start(settings)
 	end
 	Panel.Place()
 	Schedule()
-	Mirror()
+	Idle()
 end
+
+local PLACE = {
+	scale = true, theme = true, copyButton = true, editBox = true, fontSize = true, lineSpacing = true, framing = true, buttons = true,
+	inputOnTop = true, tabHeight = true, editHeight = true, tabSpacing = true, tabFont = true, sideRight = true, sideWidth = true, sideHover = true,
+	["sideIcons.friends"] = true,
+}
 
 function Panel.Refresh(settings, key)
 	state.settings = settings
@@ -862,11 +1018,14 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" or key == "buttons" then
+	if key == nil or PLACE[key] then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then
 		Panel.Sync()
+	end
+	if key == nil or key:sub(1, 4) == "idle" then
+		Idle()
 	end
 end
 
@@ -887,6 +1046,8 @@ function Panel.Stop()
 	end
 	state.editMode = false
 	K.Callbacks.Unregister(LAYOUT_CHANGED, Panel)
+	Idle()
+	SideAlpha()
 	state.alpha = nil
 	SetChatAlpha(1)
 	RestoreDock()

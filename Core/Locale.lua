@@ -28,6 +28,7 @@ local SPACED_FACES = { ["AlegreyaSansTabular-Regular.ttf"] = true, ["AlegreyaSan
 local OWN_ROOT = "interface\\addons\\kstyleui\\media\\fonts\\"
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
+local SMALLS = { ["\197\146"] = "\197\147", ["\197\184"] = "\195\191" }
 
 local fallback = GAME_FONTS[CLIENT]
 
@@ -93,6 +94,18 @@ end
 
 function Locale.Upper(text)
 	return (text:upper():gsub("([\195\197])([\128-\191])", Capital))
+end
+
+local function Small(lead, trail)
+	local byte = trail:byte()
+	if lead == "\195" and byte >= 128 and byte <= 158 and byte ~= 151 then
+		return lead .. string.char(byte + 32)
+	end
+	return SMALLS[lead .. trail]
+end
+
+function Locale.Lower(text)
+	return (text:lower():gsub("([\195\197])([\128-\191])", Small))
 end
 
 function Locale.Path(...)

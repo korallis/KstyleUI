@@ -14,12 +14,12 @@ local SIZE_LIMITS = { minWidth = 40, maxWidth = 320, minHeight = 4, maxHeight = 
 Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64,
-		enemy = true, reaction = 2, isPlayer = false, target = true, raid = 8, caster = true,
-		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false },
+		enemy = true, reaction = 2, isPlayer = false, target = true, focus = true, raid = 8, caster = true, threatPct = 87,
+		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"] },
 	},
 	{
-		name = L["Elunara"], level = 60, classification = "normal", health = 0.81,
-		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning",
+		name = L["Elunara"], level = 60, classification = "normal", health = 0.81, afk = true, dnd = true,
+		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning", threatPct = 87, pvp = true, faction = "Horde",
 		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true },
 	},
 	{
@@ -27,6 +27,7 @@ Preview.SAMPLES = {
 		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true,
 	},
 }
+local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEnemy", "threat.name", "threat.percentColor" }
 
 local function Span(plate)
 	local w, above, h, below = ns.Stacking.Extent(plate)
@@ -44,8 +45,12 @@ local function Stack(frame)
 		plate:GetParent():SetScale(1)
 	end
 	local chosen, smallest
-	for i, plate in ipairs(frame.plates) do
-		local w, h = Span(plate)
+	local first = 1
+	for _, key in ipairs(PLAYER_ROWS) do
+		if Settings.Get(key) then first = 2 end
+	end
+	for i = first, #frame.plates do
+		local w, h = Span(frame.plates[i])
 		if not known or (w and w <= width and h <= height) then
 			chosen = i
 			break
@@ -55,7 +60,7 @@ local function Stack(frame)
 			chosen, smallest = i, share
 		end
 	end
-	chosen = chosen or 1
+	chosen = chosen or first
 	for i, plate in ipairs(frame.plates) do
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()

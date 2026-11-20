@@ -386,9 +386,11 @@ do
 	local previousBottom
 	for _, def in ipairs(ns.Bars.DEFS) do
 		local caption, shown = frame.captions[def.id], frame.bars[def.id]
-		local captionTop = -select(5, caption:GetPoint(1))
+		local point, relative, anchor, _, lift = caption:GetPoint(1)
+		assert(point == "BOTTOMLEFT" and relative == shown.holder and anchor == "TOPLEFT" and lift >= K.Widgets.LineHeight(shown.text),
+			def.id .. ": the caption sits above its bar and the bar's own text, got " .. tostring(lift))
 		local barTop = -select(5, shown.holder:GetPoint(1))
-		assert(captionTop + captionSize <= barTop, def.id .. ": the caption sits above its bar, got caption " .. captionTop .. " and bar " .. barTop)
+		local captionTop = barTop - lift - captionSize
 		if previousBottom then
 			assert(captionTop >= previousBottom, def.id .. ": the caption sits below the bar before it, got caption " .. captionTop .. " and bar bottom " .. previousBottom)
 		end

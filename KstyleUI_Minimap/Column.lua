@@ -4,6 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
 local Settings, Style, Data, SecureClick = ns.Settings, ns.Style, ns.Data, ns.SecureClick
+local Plain = ns.Face.Plain
 
 local Column = {}
 Column.__index = Column
@@ -16,6 +17,7 @@ local BADGE_SIZE = 6
 local BADGE_INSET = 1
 local GLYPH_SHARE = 14 / 22
 local HOVER_ONLY = { tracking = true, calendar = true, drawer = true }
+local TOOLTIP_ANCHORS = { up = "ANCHOR_TOP", down = "ANCHOR_BOTTOM", left = "ANCHOR_LEFT", right = "ANCHOR_RIGHT" }
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
@@ -35,10 +37,7 @@ function Column.Cell(name)
 end
 
 local function Anchor(button)
-	if Settings.Get("column.side") == "right" then
-		return "ANCHOR_RIGHT"
-	end
-	return "ANCHOR_LEFT"
+	return TOOLTIP_ANCHORS[Settings.Get("column.tooltip")] or (Settings.Get("column.side") == "right" and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
 end
 
 local TOOLTIPS = {}
@@ -135,6 +134,39 @@ local RESOLVE = {
 	end,
 }
 
+function Column.Drag(button, start, cancel)
+	if start then
+		if button.minimapName and Settings.Get("column.free") and not InCombatLockdown() and type(IsShiftKeyDown) == "function" and IsShiftKeyDown() then
+			button.moving = true
+			button:SetMovable(true)
+			button:StartMoving()
+		end
+		return
+	end
+	if not button.moving then
+		return
+	end
+	button.moving = nil
+	button:StopMovingOrSizing()
+	local area = button.column.face.mapArea
+	if cancel or Widgets.Restricted(button) or Widgets.Restricted(area) then
+		return button.column:Layout()
+	end
+	local bx, by = button:GetCenter()
+	local ax, ay = area:GetCenter()
+	local bs, as = button:GetEffectiveScale(), area:GetEffectiveScale()
+	if not (Plain(bx) and Plain(by) and Plain(ax) and Plain(ay) and Plain(bs) and Plain(as)) or as <= 0 then
+		button.column:Layout()
+		return
+	end
+	local spots = {}
+	for name, spot in pairs(Settings.Get("column.spots")) do
+		spots[name] = spot
+	end
+	spots[button.minimapName] = { x = math.floor((bx * bs - ax * as) / as + 0.5), y = math.floor((by * bs - ay * as) / as + 0.5) }
+	K.Options.Write(Settings.MODULE, "column.spots", spots)
+end
+
 local function NewButton(column, name)
 	local button = Widgets.IconButton(column.host, {
 		size = Settings.Get("column.size"),
@@ -145,6 +177,7 @@ local function NewButton(column, name)
 		end,
 	})
 	button.minimapName = name
+	button.column, button.dragging = column, false
 	button:SetIcon(GLYPHS)
 	button.icon:SetTexCoord(Column.Cell(name))
 	button:RegisterForClicks("AnyUp")
@@ -161,6 +194,8 @@ local function NewButton(column, name)
 	badge:Hide()
 	button.badge = badge
 	if not column.preview then
+		button:HookScript("OnDragStart", function(self) Column.Drag(self, true) end)
+		button:HookScript("OnDragStop", function(self) Column.Drag(self, false) end)
 		if name == "drawer" then
 			button.onClick = function(_, mouseButton)
 				if column.drawer then
@@ -244,13 +279,34 @@ local function Fit(button, size, inset)
 	end
 end
 
+local function Put(button, size, inset, point, area, x, y)
+	Fit(button, size, inset)
+	Widgets.Size(button.badge, BADGE_SIZE, BADGE_SIZE)
+	local badgeInset = Widgets.Snap(button.badge, BADGE_INSET)
+	button.badge:ClearAllPoints()
+	button.badge:SetPoint("TOPRIGHT", button, "TOPRIGHT", -badgeInset, -badgeInset)
+	button:ClearAllPoints()
+	button:SetPoint(point, area, point, x, y)
+end
+
+function Column.Size(holder)
+	return Settings.IconSize(holder, "column.size", 23)
+end
+
 function Column:Layout()
 	local holder, face = self.holder, self.face
-	local size = Settings.IconSize(holder, "column.size", 23)
+	local size = Column.Size(holder)
 	local spacing = Widgets.Snap(holder, Settings.Get("column.size") + Settings.Get("column.spacing")) - Widgets.Snap(holder, Settings.Get("column.size"))
 	local side = Settings.Get("column.side")
 	local up = Settings.Get("column.growth") == "up"
-	local shown = {}
+	local free = Settings.Get("column.free")
+	local spots = free and Settings.Get("column.spots") or {}
+	local mail = Settings.Get("mail.position")
+	local area = face.mapArea
+	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
+	local Format = ns.Format
+	local edge, top = Widgets.Snap(holder, Format.EDGE + Settings.Get("column.offset")), Widgets.Snap(holder, Format.TOP)
+	local shown, cornered = {}, false
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
 		local wanted = self:Wanted(name)
@@ -259,24 +315,30 @@ function Column:Layout()
 			button:SetParent(home)
 		end
 		button:SetShown(wanted)
-		if wanted then
+		local spot = spots[name]
+		if not self.preview and button.dragging ~= free then
+			button.dragging = free
+			if free then button:RegisterForDrag("LeftButton") else button:RegisterForDrag() end
+		end
+		if button.moving and not free then
+			button.moving = nil
+			button:StopMovingOrSizing()
+		end
+		if wanted and type(spot) == "table" and Plain(spot.x) and Plain(spot.y) then
+			Put(button, size, inset, "CENTER", area, Widgets.Snap(holder, spot.x), Widgets.Snap(holder, spot.y))
+		elseif wanted and name == "mail" and mail ~= "column" then
+			cornered = true
+			local h, v = mail:find("LEFT") and 1 or -1, mail:find("TOP") and -1 or 1
+			Put(button, size, inset, mail, area, h * edge + Widgets.Snap(holder, Settings.Get("mail.x")), v * top + Widgets.Snap(holder, Settings.Get("mail.y")))
+		elseif wanted then
 			shown[#shown + 1] = button
 		end
 	end
-	local area = face.mapArea
-	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
-	local Format = ns.Format
-	local edge, top = Widgets.Snap(holder, Format.EDGE), Widgets.Snap(holder, Format.TOP)
 	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, top)
+	local skip = cornered and mail == Format.Column(1, size, spacing, side, up, edge, top, perColumn) and 1 or 0
 	for slot, button in ipairs(shown) do
-		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
-		Fit(button, size, inset)
-		Widgets.Size(button.badge, BADGE_SIZE, BADGE_SIZE)
-		local badgeInset = Widgets.Snap(button.badge, BADGE_INSET)
-		button.badge:ClearAllPoints()
-		button.badge:SetPoint("TOPRIGHT", button, "TOPRIGHT", -badgeInset, -badgeInset)
-		button:ClearAllPoints()
-		button:SetPoint(point, area, point, x, y)
+		local point, x, y = Format.Column(slot + skip, size, spacing, side, up, edge, top, perColumn)
+		Put(button, size, inset, point, area, x, y)
 	end
 	face:PlaceSlider()
 end
@@ -295,6 +357,7 @@ function Column:Paint()
 		end
 		button.badge:SetVertexColor(ar, ag, ab)
 		button.crystal:Paint()
+		button.crystal:SetShown(Settings.Get("column.backgrounds"))
 		button.badge:SetShown(name == "calendar" and active)
 	end
 end

@@ -176,7 +176,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	for _, item in ipairs(model.Visible(items)) do if item.entry then entries[item.entry] = item end end
 	for _, entry in ipairs(bar.Settings().strip.modules) do
 		assert(entries[entry.id], entry.id .. " is in the real ordered list")
-		eq(entry.shown, entry.id ~= "xp")
+		eq(entry.shown, entry.id ~= "xp" and entry.id ~= "location" and entry.id ~= "itemLevel")
 	end
 	entries.micro.set({ shown = false })
 	assert(not bar.Menus.Visible("micro"))

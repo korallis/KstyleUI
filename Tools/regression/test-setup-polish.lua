@@ -59,6 +59,7 @@ for _, entry in ipairs(K.Setup.PICKER) do
 	if K.Widgets.WrappedHeight(note, note:GetWidth()) > K.Widgets.LineHeight(note) then wrapped = true end
 end
 assert(wrapped and panel.moduleBody:GetHeight() > panel.moduleScroll:GetHeight(), "G4: wrapping notes grow a scrollable module list")
+assert(panel.moduleBar:IsShown(), "a module list that scrolls shows its scroll thumb")
 local wheel = panel.moduleScroll:GetScript("OnMouseWheel")
 wheel(panel.moduleScroll, -10)
 assert(panel.moduleScroll:GetVerticalScroll() > 0, "long notes can be reached without clipping")

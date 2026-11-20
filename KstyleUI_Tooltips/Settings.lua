@@ -31,6 +31,8 @@ Settings.defaults = {
 	qualityColors = true,
 	anchor = "cursorOutOfCombat",
 	minimapAnchor = true,
+	show = "always",
+	peekKey = "SHIFT",
 	cursorX = 0,
 	cursorY = 0,
 	followFont = true,
@@ -43,9 +45,12 @@ Settings.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	classNames = true,
+	playerTitles = true,
 	guildLine = true,
 	guildRank = false,
 	targetLine = true,
+	awayTag = false,
+	mountLine = false,
 	unitEdge = false,
 	healthBar = true,
 	bar = {
@@ -57,6 +62,7 @@ Settings.defaults = {
 		size = BAR_SIZE,
 	},
 	itemID = false,
+	maxStack = false,
 	spellID = false,
 	iconID = false,
 	icon = true,
@@ -134,6 +140,28 @@ function Settings.Schema()
 			help = L["How far above the mouse the tooltip sits."],
 			min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
 		},
+		{ type = "header", label = L["Visibility"] },
+		{
+			type = "dropdown", key = "show", label = L["Show tooltips"],
+			help = L["Hide the game tooltip in combat, in boss fights or always. The peek key still shows it."],
+			options = {
+				{ value = "always", label = L["Always"] },
+				{ value = "outOfCombat", label = L["Out of combat"] },
+				{ value = "outOfBoss", label = L["Out of boss fights"] },
+				{ value = "never", label = L["Never"] },
+			},
+		},
+		{
+			type = "dropdown", key = "peekKey", label = L["Peek key"],
+			help = L["Hold this key as a tooltip opens to see it while tooltips are hidden."],
+			options = {
+				{ value = "none", label = L["None"] },
+				{ value = "SHIFT", label = L["Shift"] },
+				{ value = "CTRL", label = L["Ctrl"] },
+				{ value = "ALT", label = L["Alt"] },
+			},
+			showWhen = function(settings) return settings.show ~= nil and settings.show ~= "always" end,
+		},
 		{ type = "header", label = L["Text"] },
 		{ type = "toggle", key = "hierarchy", label = L["Clear tooltip hierarchy"],
 			help = L["Larger titles, readable lines and smaller icons. Off restores the original sizes and title face."] },
@@ -195,6 +223,7 @@ function Settings.Schema()
 
 	local MORE = {
 		{ type = "header", label = L["Units"] },
+		{ type = "toggle", key = "playerTitles", label = L["Player titles"], help = L["Keep titles in player names. Off shows the character name alone."] },
 		{
 			type = "toggle", key = "classNames", label = L["Class colours"],
 			help = L["Colours player names by class and other names by reaction."],
@@ -212,6 +241,8 @@ function Settings.Schema()
 			type = "toggle", key = "targetLine", label = L["Target line"],
 			help = L["Adds a line naming the unit's target, or You in the accent colour."],
 		},
+		{ type = "toggle", key = "awayTag", label = L["Away and busy tag"], help = L["Adds <AFK> or <DND> after the names of away or busy players."] },
+		{ type = "toggle", key = "mountLine", label = L["Mount line"], help = L["Adds the mount a player rides, when the game shares it."] },
 		{
 			type = "toggle", key = "unitEdge", label = L["Unit edge"],
 			help = L["Lights the tooltip's edge in the unit's class or reaction colour."],
@@ -258,6 +289,7 @@ function Settings.Schema()
 			min = BAR_MIN, max = BAR_MAX, step = BAR_STEP, showWhen = BarShown,
 		},
 		{ type = "header", label = L["Extra lines"] },
+		{ type = "toggle", key = "maxStack", label = L["Maximum stack"], help = L["Adds the maximum stack size to stackable item tooltips."] },
 		{
 			type = "toggle", key = "itemID", label = L["Item ID"],
 			help = L["Adds the item's ID to item tooltips."],
@@ -370,7 +402,7 @@ function Settings.Get(key)
 		value = nil
 	end
 	if row and value ~= nil and VALID[row.type](row, value) then
-		if key ~= "hierarchy" and Settings.Get("hierarchy") == false and LEGACY_SIZES[key] and value == default then return LEGACY_SIZES[key] end
+		if LEGACY_SIZES[key] and value == default and Settings.Get("hierarchy") == false then return LEGACY_SIZES[key] end
 		return value
 	end
 	if not row and type(value) == type(default) then

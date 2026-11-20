@@ -1,4 +1,4 @@
--- Vehicle.lua: the leave-vehicle slot below the Medallions slab, beyond the power orb or beside the Frames tray and stance bar.
+-- Vehicle.lua: the leave-vehicle slot beyond the Medallions right slab, beyond the power orb or beside the Frames tray and stance bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -63,8 +63,8 @@ function Vehicle.Update()
 	end
 	button:ClearAllPoints()
 	if bar and K.HudStyle.Current() == "medallions" then
-		local slab = ns.Slab.Spec()
-		button:SetPoint("TOPLEFT", bar.holder, "BOTTOMLEFT", 0, -Widgets.Snap(button, slab.stripGap + slab.strip + slab.bottom + Tokens.Size("gapSmall")))
+		local right = ns.bars.bar2 and ns.bars.bar2:Shown() and ns.bars.bar2 or bar
+		button:SetPoint("LEFT", right.holder, "RIGHT", Widgets.Snap(button, ns.Slab.Spec().pad + Tokens.Size("gapMedium")), 0)
 	elseif bar and K.HudStyle.Current() == "orbs" then
 		local width = bar.holder:GetWidth()
 		local art = K.Setup.Layouts.OrbsTray(width)

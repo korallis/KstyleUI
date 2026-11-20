@@ -97,7 +97,7 @@ local function Plain(value)
 	return type(value) == "number" and not (issecretvalue and issecretvalue(value)) and value == value
 end
 
-local function Inward(frame)
+function BarList.Inward(frame)
 	local x, root = frame:GetCenter(), K.Scale.Root()
 	local middle = root:GetCenter()
 	local own, scale = frame:GetEffectiveScale(), root:GetEffectiveScale()
@@ -410,7 +410,7 @@ function RowEnter(list, row)
 		return
 	end
 	local tip = Widgets.Tooltip()
-	tip:SetOwner(frame, Inward(frame))
+	tip:SetOwner(frame, BarList.Inward(frame))
 	local filled
 	if list.rowTooltip then
 		filled = list.rowTooltip(tip, list, row.index)
@@ -424,6 +424,12 @@ function RowEnter(list, row)
 	tip:Show()
 end
 
+function BarList.Unown(frame)
+	if GameTooltip and GameTooltip:IsOwned(frame) then
+		GameTooltip:Hide()
+	end
+end
+
 function RowLeave(list, row)
 	row.wash:Hide()
 	if row.more then
@@ -434,6 +440,7 @@ function RowLeave(list, row)
 	if tip:IsOwned(row.frame) then
 		tip:Hide()
 	end
+	BarList.Unown(row.frame)
 end
 
 local function NameSize(section)
@@ -803,6 +810,7 @@ function List:Restyle()
 	local em = Widgets.FontSize(self.title, ns.Get(section .. ".fontSize") * K.Theme.FontScale())
 	local columns = self.columns()
 	self.blockIcons = self.block and self.iconsOn ~= nil and self.iconsOn() == true
+	self.crop = ns.Get("damage.iconZoom")
 	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * VALUE_EMS) or 0
 	self.percentWidth = columns.percent and Widgets.Snap(self.panel, em * PERCENT_EMS) or 0
 	self.barWidth = Widgets.Snap(self.panel, width - 2 * self.pad)
@@ -954,7 +962,7 @@ function SetIcon(list, row, texture, atlas, left, right, top, bottom)
 		if left then
 			icon:SetTexCoord(left, right, top, bottom)
 		else
-			icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+			icon:SetTexCoord(list.crop, 1 - list.crop, list.crop, 1 - list.crop)
 		end
 	end
 	row.iconAtlas = atlas
@@ -1166,7 +1174,7 @@ function BarList.New(parent, section, opts)
 		end)
 	end
 	if opts.tooltip then
-		Widgets.AttachTooltip(panel, opts.tooltip, Inward)
+		Widgets.AttachTooltip(panel, opts.tooltip, BarList.Inward)
 	end
 	if opts.onTitle then
 		local hit = CreateFrame("Frame", nil, panel)
@@ -1177,7 +1185,7 @@ function BarList.New(parent, section, opts)
 			opts.onTitle(list, button)
 		end)
 		if opts.titleTooltip then
-			Widgets.AttachTooltip(hit, opts.titleTooltip, Inward)
+			Widgets.AttachTooltip(hit, opts.titleTooltip, BarList.Inward)
 		end
 		list.titleHit = hit
 	end
@@ -1215,7 +1223,7 @@ function BarList.New(parent, section, opts)
 		end)
 		if opts.switchTooltip then
 			list.switchTooltip = opts.switchTooltip
-			Widgets.AttachTooltip(switch, opts.switchTooltip, Inward)
+			Widgets.AttachTooltip(switch, opts.switchTooltip, BarList.Inward)
 		end
 		list.switch = switch
 	end

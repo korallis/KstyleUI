@@ -74,6 +74,10 @@ local function Hex(token)
 end
 
 local function MoneyText(copper)
+	if ns.Get("coinIcons") and C_CurrencyInfo and type(C_CurrencyInfo.GetCoinTextureString) == "function" then
+		local text = C_CurrencyInfo.GetCoinTextureString(copper)
+		if not ns.IsSecret(text) and type(text) == "string" then return text end
+	end
 	local parts = {}
 	for _, coin in ipairs(COINS) do
 		local amount = math.floor(copper / coin.per)
@@ -439,7 +443,7 @@ ns.AddPart({
 		if key == nil or key == "lootFeed" then
 			Sync()
 		end
-		if key == nil then
+		if key == nil or key == "coinIcons" then
 			Restyle()
 		end
 	end,

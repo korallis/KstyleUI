@@ -17,6 +17,7 @@ local INTERRUPT_FADE = 0.8
 local function InQuad(t) return t * t end
 local function HideCast(cast) cast:Hide() end
 local SHIELD_ALPHA = 0.6
+local IN_FRONT = 100
 local ICON_CROP = 0.07
 local MS = 1000
 local SIGIL_MODULE = "UnitFrames"
@@ -225,13 +226,17 @@ local function Run(plate, channel, startMs, endMs)
 	plate.castFallback = true
 end
 
+local function Recolor(plate)
+	if plate.unit and Settings.Get("types.casting") then plate:UpdateColor() end
+end
+
 local function Shows(plate)
 	return Settings.Get("cast.enabled") and not plate.nameOnly and plate.unit ~= nil
 end
 
 function Cast.Start(plate, channel, update)
 	if not Shows(plate) then
-		return
+		return Recolor(plate)
 	end
 	local name, text, texture, startMs, endMs, flag, castID = Info(plate.unit, channel)
 	if type(name) == "nil" then
@@ -242,7 +247,11 @@ function Cast.Start(plate, channel, update)
 	plate.castFlag, plate.castID = flag, castID
 	local cast = plate.cast
 	plate.castIcon:SetTexture(texture)
-	plate.castName:SetText(not IsSecret(text) and type(text) == "string" and K.Locale.Upper(text) or text)
+	local target
+	if Settings.Get("cast.showTarget") and type(UnitSpellTargetName) == "function" then
+		target = UnitSpellTargetName(plate.unit)
+	end
+	Cast.Name(plate, not IsSecret(text) and type(text) == "string" and K.Locale.Upper(text) or text, target)
 	Run(plate, channel, startMs, endMs)
 	plate.castClock = 0
 	local showTime = Settings.Get("cast.showTime") and type(plate.castDuration) ~= "nil" and not IsSecret(plate.castDuration)
@@ -254,16 +263,34 @@ function Cast.Start(plate, channel, update)
 	cast:Show()
 	plate.castBar:SetScript("OnUpdate", (showTime or plate.castFallback) and OnUpdate or nil)
 	Paint(plate)
+	plate:SetNameAlpha(Settings.Get("cast.hideUnitName") and 0 or 1)
+	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
 	if not (update and Settings.Get("cast.outcomes")) then plate.castBar:PlaySheen(false) end
+	Recolor(plate)
+end
+
+function Cast.Name(plate, spell, target)
+	if type(target) ~= "nil" then
+		plate.castName:SetFormattedText("%s > %s", spell, target)
+	else
+		plate.castName:SetText(spell)
+	end
+end
+
+local function RestoreName(plate)
+	plate:SetNameAlpha(1)
+	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
+	Recolor(plate)
 end
 
 function Cast.Stop(plate, interrupted, failed)
 	if not plate.casting then
-		return
+		return Recolor(plate)
 	end
 	local bar, cast = plate.castBar, plate.cast
 	bar:SetScript("OnUpdate", nil)
 	plate.casting, plate.castDuration, plate.castFallback = false, nil, false
+	RestoreName(plate)
 	if interrupted then
 		plate.castInterrupted = true
 		bar:SetMinMaxValues(0, 1)
@@ -293,9 +320,10 @@ end
 
 function Cast.Hide(plate)
 	StopFade(plate)
-	plate.casting, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, false, false
+	plate.casting, plate.castChannel, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, nil, false, false
 	plate.castBar:SetScript("OnUpdate", nil)
 	plate.cast:Hide()
+	RestoreName(plate)
 end
 
 function Cast.SetInterruptible(plate, interruptible)
@@ -427,7 +455,7 @@ function Component.Room(plate, anchor)
 		return 0
 	end
 	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
-	return Settings.Get("cast.height") + Cast.Gap(plate) + Widgets.Border(plate.castBar) * 2 + label
+	return Settings.Get("cast.height") + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label
 end
 
 function Cast.Gap(plate)
@@ -437,7 +465,7 @@ end
 function Cast.Place(plate)
 	local cast = plate.cast
 	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, Cast.Gap(plate)))
+	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, Cast.Gap(plate)) - Widgets.Snap(plate, Settings.Get("cast.offsetY")))
 end
 
 function Component.Restyle(plate)
@@ -451,8 +479,14 @@ function Component.Restyle(plate)
 	Widgets.Size(cast, state.width, h)
 	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
+	local iconSide = Settings.Get("cast.iconRight") and "TOPRIGHT" or "TOPLEFT"
 	icon:ClearAllPoints()
-	icon:SetPoint("TOPLEFT", cast, "TOPLEFT")
+	icon:SetPoint(iconSide, cast, iconSide)
+	local front = Settings.Get("cast.inFront")
+	if front or plate.castRaised then
+		plate.castGate:SetFrameLevel(plate:GetFrameLevel() + (front and IN_FRONT or 1))
+		plate.castRaised = front
+	end
 	icon:SetShown(showIcon)
 	plate.castShield:SetShown(showIcon)
 	Widgets.Size(plate.castBadge, badge, badge)
@@ -460,8 +494,9 @@ function Component.Restyle(plate)
 	Widgets.Point(plate.castBadge, "TOPLEFT", cast, "TOPLEFT", -badge - GAP, (badge - h) / 2)
 	local opts = plate.castBarOpts
 	opts.width, opts.height = math.max(1, state.width - iconRoom), h
+	local barSide = iconSide == "TOPLEFT" and "TOPRIGHT" or "TOPLEFT"
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPRIGHT", cast, "TOPRIGHT")
+	bar:SetPoint(barSide, cast, barSide)
 	local orientation = Settings.Get("cast.orientation")
 	bar:SetOrientation(orientation)
 	bar.vertical = orientation == "VERTICAL"
@@ -469,6 +504,7 @@ function Component.Restyle(plate)
 	bar:SetReverseFill(reverse)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
 	bar:Restyle()
+	bar:SetFillCursor(Settings.Get("cast.spark"))
 	StyleFont(plate.castName, "caps")
 	StyleFont(plate.castTime, "time")
 	local glyph = plate.castGlyph
@@ -477,9 +513,15 @@ function Component.Restyle(plate)
 	Widgets.Size(glyph, glyphSize, glyphSize)
 	glyph:ClearAllPoints()
 	glyph:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, Widgets.Snap(plate, (Widgets.Snap(plate, glyphSize) - Widgets.Snap(plate, h)) / 2))
+	local align = Settings.Get("cast.nameAlign")
+	local aligned = align ~= "LEFT" or plate.castAligned
+	plate.castAligned = align ~= "LEFT"
 	plate.castName:ClearAllPoints()
+	if aligned then plate.castName:SetJustifyH(align) end
 	if Settings.Get("cast.nameBelow") then
 		ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))
+		if align ~= "LEFT" or plate.castWide then plate.castName:SetWidth(align == "LEFT" and 0 or Widgets.Snap(plate, opts.width)) end
+		plate.castWide = align ~= "LEFT"
 	else
 		ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 		plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
@@ -509,7 +551,7 @@ function Cast.Sample(plate)
 	plate.cast:SetAlpha(1)
 	plate.cast:Show()
 	plate.castIcon:SetTexture(sample.texture)
-	plate.castName:SetText(K.Locale.Upper(sample.text))
+	Cast.Name(plate, K.Locale.Upper(sample.text), Settings.Get("cast.showTarget") and sample.target or nil)
 	plate.castTime:SetText(sample.time)
 	plate.castTime:SetShown(Settings.Get("cast.showTime"))
 	plate.castBar:SetBarRange(0, 1)
@@ -553,7 +595,7 @@ Component.events.UNIT_SPELLCAST_FAILED = function(plate, _, castGUID)
 	end
 end
 Component.events.UNIT_SPELLCAST_CHANNEL_STOP = function(plate, _, _, _, interruptedBy)
-	if plate.castChannel then
+	if plate.castChannel or not plate.casting then
 		Cast.Stop(plate, type(interruptedBy) ~= "nil")
 	end
 end

@@ -77,10 +77,16 @@ end
 
 local COMPACT_TEXT = { 12, 12, 9, 10 }
 
+local function ExtraText()
+	return { font = "", size = 12, outline = "OUTLINE", colorMode = "", color = Color("textEmphasis"),
+		textFormat = "", position = "CENTER", x = 0, y = 0 }
+end
+
 local function Kind(full, overrides, castHeight, castFont, aura, text)
 	text = text or COMPACT_TEXT
 	local d = {
 		enabled = true,
+		extra1 = ExtraText(), extra2 = ExtraText(),
 		style = "lumen",
 		portrait = full,
 		portraitStyle = "portrait",
@@ -95,6 +101,9 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthOrientation = "RIGHT",
 		healthText = full and "both" or "percent",
 		healPrediction = true,
+		absorbs = true,
+		healAbsorbs = false,
+		levelDifficulty = false,
 		power = full,
 		powerHeight = full and 7 or 3,
 		powerTexture = BAR_TEXTURE,
@@ -118,6 +127,9 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarText = true,
 		castbarCaps = true,
 		castbarTimer = true,
+		castbarSpark = true,
+		castbarLatency = false,
+		castbarLockedColor = Color("textDisabled"),
 		castbarTexture = BAR_TEXTURE,
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
@@ -125,6 +137,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarInside = false,
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
+		auraFilters = { onlyMine = false, dispellable = false, sort = "" },
 		auraSize = aura and aura.size or 20,
 		auraSpacing = 2,
 		auraRows = aura and aura.rows or 1,
@@ -167,6 +180,7 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
+		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarIconRight = false, castbarTotal = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -352,7 +366,7 @@ function Settings.Value(kind, key)
 	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
 		return slab
 	end
-	if type(value) ~= type(default) then
+	if value == default or type(value) ~= type(default) then
 		return default
 	end
 	local choice = kind == "target" and key == "style" and "styleTarget" or CHOICE_OF[key]
@@ -489,8 +503,8 @@ end
 
 function Settings.Snapshot(kind)
 	local fonts = {}
+	local own, d = Kinds(kind)
 	for _, element in ipairs(Settings.TEXTS) do
-		local own, d = Kinds(kind)
 		local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
 		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale(),
 			colorMode = style.colorMode or "", color = style.color or d.fonts[element].color,
@@ -659,6 +673,22 @@ CastRows = function(schema, kind)
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
+	if kind == "player" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSmooth", label = L["Smooth cast progress"],
+			help = L["Use the game's smoothing for cast and channel progress."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarChannelOverride", label = L["Separate channel colour"],
+			help = L["Use a separate fill colour while you channel a spell."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "color", key = "castbarChannelColor", label = L["Channel colour"],
+			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
+			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
+			help = L["Put the spell icon at the right end of the cast bar."] }, function(s) return on(s) and s.castbarIcon ~= false end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
+			help = L["Show the time cast so far and the full cast time, such as 0.4 / 2.0."] }, function(s) return on(s) and s.castbarTimer ~= false end)
+	end
 	TextRows(schema, kind, "cast")
 end
 
@@ -685,6 +715,12 @@ AuraRows = function(schema, kind)
 			type = "dropdown", key = medallions and "medallionsAuraFilter" or "auraFilter", label = L["Which auras"],
 			help = L["Your debuffs, all debuffs, buffs, or debuffs and buffs."], options = CHOICES.auraFilter,
 		}, function() return visible(true) end)
+	end
+	local filters = {}
+	K.Options.AuraFilterRows(filters, kind .. ".auraFilters")
+	for _, row in ipairs(filters) do
+		row.showWhen, row.scope = Shows(kind, on), Scope(kind)
+		schema[#schema + 1] = row
 	end
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
@@ -834,6 +870,8 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "level", label = L["Level"],
 		help = L["Shows the unit's level in a badge on the portrait, or after the name."],
 	})
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "levelDifficulty", label = L["Level difficulty colour"],
+		help = L["Colours an enemy's level number by how hard it is for you."] }, function(s) return s.level ~= false end)
 	schema[#schema + 1] = Header(kind, L["health bar"])
 	BarRows(schema, kind, "health")
 	if kind == "target" then
@@ -850,6 +888,10 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "healPrediction", label = L["Incoming heals"],
 		help = L["Shows incoming heals and absorb shields on the health bar."],
 	})
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "absorbs", label = L["Absorbs"],
+		help = L["Shows absorb shields when incoming heals are enabled."] }, function(s) return s.healPrediction ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "healAbsorbs", label = L["Heal absorbs"],
+		help = L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."] }, function(s) return s.healPrediction ~= false end)
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],
@@ -863,6 +905,12 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)
+	end
+	for i = 1, 2 do
+		local key = "extra" .. i
+		schema[#schema + 1] = Header(kind, L["Extra text"] .. " " .. i)
+		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true, placement = true,
+			row = function(row) return Row(kind, row) end })
 	end
 	IconRows(schema, kind)
 	if Settings.CASTBAR[kind] then

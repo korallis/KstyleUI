@@ -14,7 +14,7 @@ local XP_RESTED_ALPHA = 0.55
 local MAX_SEGMENTS = 20
 local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
-local PREVIEW_TOP = 26
+local PREVIEW_TOP = 32
 local PREVIEW_STRIP = 36
 local PREVIEW_STRIP_PAD = 12
 local STRIP_FONT_SIZE = 12
@@ -73,6 +73,7 @@ defaults.strip = {
 	line = true, labels = "inline", menus = true, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
+	itemLevelSource = "equipped", itemLevelDecimals = 0,
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
 }
 defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
@@ -93,14 +94,16 @@ local MODULES = {
 	{ "gold", L["Gold"], "right" },
 	{ "currencies", L["Currencies"], "right", L["Shows up to three currencies tracked in your backpack."] },
 	{ "xp", L["Experience and reputation"], "right", L["Shows experience, or watched reputation at the level cap."] },
+	{ "location", L["Location"], "left", L["Shows your current zone."] },
+	{ "itemLevel", L["Item level"], "right", L["Shows the average item level of equipped gear."] },
 }
 defaults.strip.modules = {}
 for i, def in ipairs(MODULES) do
-	defaults.strip.modules[i] = { id = def[1], shown = def[1] ~= "xp", zone = def[3] }
+	defaults.strip.modules[i] = { id = def[1], shown = i <= 12, zone = def[3] }
 end
 
 defaults.strip.dockModules = {}
-for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp" }) do
+for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel" }) do
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
@@ -217,6 +220,7 @@ function ns.Schema()
 	local MONEY_STYLES = {
 		{ value = "full", label = L["Gold, silver and copper"] },
 		{ value = "gold", label = L["Gold only"] },
+		{ value = "short", label = L["Short gold"] },
 		{ value = "icons", label = L["Coin icons"] },
 	}
 	local LATENCIES = {
@@ -276,6 +280,11 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
 		{ type = "header", label = L["Latency"] },
 		{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
+		{ type = "header", label = L["Item level"] },
+		{ type = "dropdown", key = "strip.itemLevelSource", label = L["Item level shown"], help = L["Use equipped gear or your best owned gear for the item level readout."], options = {
+			{ value = "equipped", label = L["Equipped gear"] }, { value = "overall", label = L["All owned gear"] },
+		} },
+		{ type = "slider", key = "strip.itemLevelDecimals", label = L["Item level decimals"], help = L["How many decimal places the item level readout shows."], min = 0, max = 2, step = 1 },
 		{ type = "header", label = L["Gold"] },
 		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
 	})
@@ -365,6 +374,7 @@ function ns.Preview(...)
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
 			spec = { L["Specialization"] }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { "22" },
+			location = { L["Stormwind"] }, itemLevel = { s.itemLevelDecimals == 0 and "58" or string.format("%." .. s.itemLevelDecimals .. "f", 58.3) },
 			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { "32%" },
 		}
 	end
@@ -376,7 +386,6 @@ function ns.Preview(...)
 		local y = PREVIEW_TOP
 		for _, def in ipairs(Bars.DEFS) do
 			local caption = Widgets.Text(frame, "caption", "text")
-			Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 			Widgets.SetText(caption, def.title)
 			local view = Bars.NewView(frame, def)
 			Widgets.Point(view.holder, "TOPLEFT", frame, "TOPLEFT", 0, -y)
@@ -395,6 +404,7 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
+				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (view.text:IsShown() and Widgets.LineHeight(view.text) or 0) + Tokens.Size("gapSmall"))
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)

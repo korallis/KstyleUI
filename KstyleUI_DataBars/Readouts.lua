@@ -121,6 +121,7 @@ local titles = {
 	xp = L["Experience and reputation"],
 	bags = L["Bag space"], spec = L["Specialization"], hearth = L["Hearthstone"],
 	guild = L["Guild"], friends = L["Friends"], currencies = L["Currencies"],
+	location = L["Location"], itemLevel = L["Item level"],
 }
 for id, title in pairs(titles) do
 	Strip.LABELS[id] = { full = title, short = title, inline = id == "bags" and L["free"] or id == "guild" and L["guild"] or id == "friends" and L["friends"] or "" }
@@ -138,6 +139,19 @@ end
 Strip.VALUES.guild = Guild
 Strip.VALUES.friends = Friends
 Strip.VALUES.currencies = function() return Currencies() end
+Strip.VALUES.location = function() return Plain(Call(GetZoneText), "string") or L["--"] end
+Strip.VALUES.itemLevel = function(s)
+	s = s or ns.Settings().strip
+	local overall, equipped = Call(GetAverageItemLevel)
+	local value = equipped
+	if s.itemLevelSource == "overall" then value = overall end
+	if not IsNumber(value) or value < 0 then return L["--"] end
+	local decimals = IsNumber(s.itemLevelDecimals) and math.max(0, math.min(2, math.floor(s.itemLevelDecimals))) or 0
+	return decimals == 0 and tostring(math.floor(value)) or string.format("%." .. decimals .. "f", value)
+end
+for _, id in ipairs({ "location", "itemLevel" }) do
+	Strip.TOOLTIPS[id] = function(_, tip) tip:AddDoubleLine(titles[id], Strip.VALUES[id]()) end
+end
 
 function Readouts.Visible(id)
 	if id == "guild" then return Plain(Call(IsInGuild), "boolean") == true end
@@ -212,6 +226,8 @@ local EVENTS = {
 	currencies = { "CURRENCY_DISPLAY_UPDATE" },
 	gold = { "PLAYER_MONEY" },
 	durability = { "UPDATE_INVENTORY_DURABILITY", "PLAYER_EQUIPMENT_CHANGED" },
+	location = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" },
+	itemLevel = { "PLAYER_EQUIPMENT_CHANGED", "PLAYER_AVG_ITEM_LEVEL_UPDATE" },
 }
 local active = {}
 local function Changed(event)

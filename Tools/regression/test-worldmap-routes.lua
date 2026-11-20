@@ -23,6 +23,10 @@ end
 assert(#R.Search("Harpies") == 1, "watched quest absent from GetQuestsOnMap uses GetNextWaypoint")
 assert(#R.Search("Untracked") == 0, "unwatched quests are excluded")
 assert(#R.Search("[literal pattern") == 0, "search is literal")
+local named = state.flight.name
+state.flight.name = "Étape über"
+assert(#R.Search("étape") == 1 and #R.Search("ÜBER") == 1, "search matches accented capitals in either case")
+state.flight.name = named
 local taxiNodes = env.C_TaxiMap.GetTaxiNodesForMap
 env.C_TaxiMap.GetTaxiNodesForMap = function()
 	return {

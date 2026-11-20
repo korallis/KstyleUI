@@ -182,8 +182,52 @@ function Panel.Wait()
 	Log("restyling the aura buttons waits until aura data is no longer secret")
 end
 
-local function Formatter(timerFormat)
+local function Units(base)
+	local units = {}
+	for key, seconds in pairs({ s = 2, m = 120, h = 7200, d = 172800 }) do
+		local ok, text = pcall(base.Format, base, seconds)
+		if not ok or type(text) ~= "string" or IsSecret(text) then
+			return nil
+		end
+		local unit, hits = text:gsub("%%", "%%%%"):gsub("2", "%%d", 1)
+		if hits ~= 1 then
+			return nil
+		end
+		units[key] = unit
+	end
+	return units
+end
+
+local rules = {}
+
+function Panel.RuleFormatter(timer)
+	if Model.PlainTimer(timer) then
+		return nil
+	end
 	local endings = K.Appearance.Get("auraEndings")
+	local key = concat({ timer.format, tostring(timer.seconds), timer.precise, tostring(endings) }, ":")
+	if rules[key] == nil then
+		local util, R, base = C_StringUtil, Enum and Enum.NumericRuleFormatRounding, Widgets.Duration.Formatter("short")
+		local units = util and type(util.CreateNumericRuleFormatter) == "function" and R and base and Units(base)
+		local ok, formatter = pcall(function()
+			local f = util.CreateNumericRuleFormatter()
+			f:SetBreakpoints(Model.Breakpoints(timer, units, R, endings))
+			return f
+		end)
+		rules[key] = units and ok and formatter or false
+		if not rules[key] then
+			LogOnce("rules", "C_StringUtil.CreateNumericRuleFormatter is missing or refused the timer rules; timers keep the plain format")
+		end
+	end
+	return rules[key] or nil
+end
+
+local function Formatter(timer)
+	local custom = Panel.RuleFormatter(timer)
+	if custom then
+		return custom
+	end
+	local timerFormat, endings = timer.format, K.Appearance.Get("auraEndings")
 	if timerFormat == "short" and not endings then
 		return nil
 	end
@@ -196,13 +240,18 @@ local function Formatter(timerFormat)
 	return formatter
 end
 
-local function DispelOptions()
+local MISSING_STYLE = {
+	PreserveAsset = { "dispel", "Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour" },
+	Icon = { "type-icon", "Enum.CustomAuraButtonDispelTypeTextureStyle.Icon is missing; debuffs show no type icon" },
+}
+
+local function DispelOptions(style, withoutType)
 	local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-	if not (styles and styles.PreserveAsset) then
-		LogOnce("dispel", "Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour")
+	if not (styles and styles[style]) then
+		LogOnce(MISSING_STYLE[style][1], MISSING_STYLE[style][2])
 		return nil
 	end
-	return { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
+	return { style = styles[style], showWhenHarmful = true, showWithoutDispelType = withoutType }
 end
 
 local function EdgeColor()
@@ -223,11 +272,14 @@ local function Context(desc)
 		group = group,
 		timer = timer,
 		count = count,
+		iconZoom = Model.IconZoom(settings),
 		icon = snap(group.iconSize),
 		lineSize = Model.LineSize(group, timer, snap),
 		edge = EdgeColor(),
-		timerOptions = { textFormatter = Formatter(timer.format), textColor = Widgets.Duration.ExpiringColor(timer.expiring) },
-		dispelOptions = group.dispel and DispelOptions() or nil,
+		timerOptions = { textFormatter = Formatter(timer), textColor = Widgets.Duration.ExpiringColor(timer.expiring, timer.color) },
+		dispelOptions = group.dispel and DispelOptions("PreserveAsset", true) or nil,
+		typeIconOptions = group.typeIcon and group.typeIcon ~= "none" and DispelOptions("Icon") or nil,
+		hiddenAlpha = Model.HiddenAlpha(settings),
 	}
 	ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
 	ctx.spacing, ctx.rowSpacing = Model.Gaps(group, timer, snap)
@@ -248,20 +300,43 @@ local function GroupLayout(ctx)
 end
 
 local function Filter(desc)
-	return K.Options.AuraFilterString(K.Store.Module(MODULE)[desc.name], Model.FILTERS[desc.name])
+	local filter = K.Options.AuraFilterString(K.Store.Module(MODULE)[desc.name], Model.FILTERS[desc.name])
+	local token = Model.SHOW_TOKENS[desc.ctx.group.show]
+	if not token then
+		return filter
+	end
+	local util = AuraUtil
+	local ok, valid = false, false
+	if type(util) == "table" and type(util.IsValidFilterString) == "function" then
+		ok, valid = pcall(util.IsValidFilterString, filter .. "|" .. token)
+	end
+	if ok and not IsSecret(valid) and valid == true then
+		return filter .. "|" .. token
+	end
+	LogOnce("show:" .. token, "the " .. token .. " aura filter cannot be checked on this client; the " .. desc.name .. " row shows every aura")
+	return filter
 end
 
+local TIMED = 2147483647
+
 local function Candidates(desc)
-	local group = desc.ctx.group
-	if group.tracked ~= "cdm" then
-		return nil
+	local group, base = desc.ctx.group, nil
+	if group.tracked == "cdm" then
+		local set, why = Tracked.Set()
+		if set then
+			base = { excludeSpellIDs = set }
+		else
+			LogOnce("tracked:" .. tostring(why), "the buff row shows every buff: " .. tostring(why))
+		end
 	end
-	local set, why = Tracked.Set()
-	if not set then
-		LogOnce("tracked:" .. tostring(why), "the buff row shows every buff: " .. tostring(why))
-		return nil
+	if group.timed then
+		base = base or {}
+		base.maxDuration = TIMED
 	end
-	return { excludeSpellIDs = set }
+	if desc.name == "buffs" then
+		base = K.Options.AuraCandidates(K.Store.Module(MODULE).buffs or {}, base)
+	end
+	return base
 end
 
 local function EnchantLayout(ctx)
@@ -319,13 +394,13 @@ end
 
 local function ChipStyle(ctx)
 	return function(text)
-		Button.StyleText(text, ctx.count)
+		Button.StyleText(text, ctx.count, nil, nil, false)
 		text:SetJustifyH("CENTER")
 		text:SetJustifyV("MIDDLE")
 	end
 end
 
-local function ApplyChip(desc, candidates)
+local function ApplyChip(desc, filter, candidates)
 	local chip = desc.chip
 	if not chip then
 		return
@@ -334,7 +409,7 @@ local function ApplyChip(desc, candidates)
 	local corner = Model.LastCell(ctx.group.growth)
 	Overflow.Apply(chip, {
 		enabled = true,
-		groups = { { filter = Filter(desc), candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
+		groups = { { filter = filter, candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
 		cap = Capacity(desc), cell = ctx.icon, width = ctx.icon,
 		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
@@ -351,13 +426,13 @@ local function ApplyGroup(desc)
 	if method ~= nil and direction ~= nil then
 		container:SetAuraGroupSortMethod(key, method, direction)
 	end
-	container:SetAuraGroupFilterString(key, Filter(desc))
+	local filter, candidates = Filter(desc), Candidates(desc)
+	container:SetAuraGroupFilterString(key, filter)
 	container:SetAuraGroupMaxFrameCount(key, Capacity(desc))
-	local candidates = Candidates(desc)
 	if type(container.SetAuraGroupCandidateFilters) == "function" then
 		container:SetAuraGroupCandidateFilters(key, candidates)
 	end
-	ApplyChip(desc, candidates)
+	ApplyChip(desc, filter, candidates)
 end
 
 local function Init(desc, button)
@@ -371,7 +446,12 @@ function Panel.Group(name)
 end
 
 local function ShowHost(desc)
-	desc.host:SetShown(desc.holder:IsShown() and not gamepad)
+	local shown = desc.holder:IsShown()
+	local faded = not shown and running and desc.ctx.hiddenAlpha or 0
+	desc.host:SetShown((shown or faded > 0) and not gamepad)
+	if faded > 0 then
+		desc.host:SetAlpha(faded)
+	end
 end
 
 local function LayoutFrame(parent)
@@ -539,6 +619,7 @@ local function Apply(desc, relayout)
 		K.Layout.Restore(Model.KEYS[desc.name])
 	end
 	RestyleButtons(desc)
+	ShowHost(desc)
 end
 
 local function ApplyAll(relayout)

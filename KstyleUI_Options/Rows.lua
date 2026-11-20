@@ -97,7 +97,9 @@ function MAKERS.slider(row)
 		width = Rows.CONTROL_WIDTH,
 		format = function(value)
 			local item = row.item
-			if item and item.format then
+			if item and item.percent then
+				return floor(value * 100 + 0.5) .. "%"
+			elseif item and item.format then
 				return item.format(value)
 			end
 			return nil
@@ -132,8 +134,9 @@ function MAKERS.slider(row)
 		slider.edit:Hide()
 	end)
 	slider.edit = Widgets.EditBox(slider, { width = 56, onEnter = function(text, box)
-		local value = tonumber(text)
-		if value then slider:SetValue(value) end
+		local percent = row.item and row.item.percent
+		local value = tonumber(percent and text:gsub("%%%s*$", "") or text)
+		if value then slider:SetValue(percent and value / 100 or value) end
 		box:Hide()
 	end, onEscape = function(box) box:Hide() end })
 	Widgets.Point(slider.edit, "CENTER", slider.readout, "CENTER")
@@ -143,7 +146,7 @@ function MAKERS.slider(row)
 	slider.valueButton:SetAllPoints(slider.readout)
 	slider.valueButton:SetScript("OnClick", function()
 		if slider:IsEnabled() then
-			slider.edit:SetText(tostring(slider:GetValue()))
+			slider.edit:SetText(tostring(row.item and row.item.percent and floor(slider:GetValue() * 100 + 0.5) or slider:GetValue()))
 			slider.readout:Hide()
 			slider.edit:Show()
 			slider.edit:SetFocus()

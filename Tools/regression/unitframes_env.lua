@@ -352,6 +352,7 @@ function U.Install(env)
 	env.Enum.LuaCurveType = { Linear = 0, Step = 1 }
 	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
 	env.Enum.PowerType = POWER_TYPES
+	env.Enum.UnitHealAbsorbClampMode = { CurrentHealth = 0, MaximumHealth = 1 }
 	env.C_CurveUtil = { CreateCurve = NewCurve, CreateColorCurve = NewColorCurve }
 	env.C_Secrets = {
 		ShouldAurasBeSecret = function()
@@ -369,12 +370,20 @@ function U.Install(env)
 		function calc:SetIncomingHealClampMode(mode)
 			self.clamp = mode
 		end
+		function calc:SetHealAbsorbClampMode(mode)
+			self.healAbsorbClamp = mode
+		end
+		function calc:GetHealAbsorbs()
+			return env.Secret(self.healAbsorb or 0), false
+		end
 		return calc
 	end
 	function env.UnitGetDetailedHealPrediction(token, _, calc)
 		local u = unitOf(token)
 		calc.incoming = u and u.incoming or 0
 		calc.absorb = u and u.absorb or 0
+		local clamp = u and (calc.healAbsorbClamp == 0 and u.health or calc.healAbsorbClamp == 1 and u.healthMax)
+		calc.healAbsorb = u and math.min(u.healAbsorb or 0, clamp or math.huge) or 0
 	end
 	function env.UnitIsGroupLeader(token)
 		local u = unitOf(token)

@@ -25,29 +25,44 @@ Model.LIMITS = {
 	columns = { min = 1, max = 24, step = 1 },
 	timerSize = { min = 6, max = 24, step = 1 },
 	countSize = { min = 6, max = 24, step = 1 },
+	offset = { min = -50, max = 50, step = 1 },
+	iconZoom = { min = 0, max = 0.2, step = 0.01 },
 	expiring = { min = 0, max = 30, step = 1 },
+	hiddenAlpha = { min = 0, max = 1, step = 0.05 },
+	precise = { min = 0, max = 90, step = 1 },
+	typeIconSize = { min = 6, max = 24, step = 1 },
 }
 local LIMITS = Model.LIMITS
 
-local ar, ag, ab = Tokens.Color("accentDefault")
+local function rgb(name)
+	local r, g, b = Tokens.Color(name)
+	return { r = r, g = g, b = b }
+end
 
 Model.defaults = {
 	medallionsIcons = true,
 	enabled = false,
 	hideBlizzard = true,
+	iconZoom = 0.07,
+	hiddenAlpha = 0,
 	buffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
-		onlyMine = false, dispellable = false,
+		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
+		allowSpells = "", blockSpells = "", show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
 	},
 	debuffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
-		onlyMine = false, dispellable = false,
-		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
+		onlyMine = false, dispellable = false, swipe = false,
+		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, typeIcon = "none", typeIconSize = 10,
+		show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
 	},
-	timer = { format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5 },
-	count = { font = "", size = 10, outline = "OUTLINE" },
-	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
+	timer = {
+		format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5, x = 0, y = 0,
+		seconds = true, precise = 0, customColor = false, color = rgb("timerText"),
+	},
+	count = { shown = true, font = "", size = 10, outline = "OUTLINE", x = 0, y = 0, position = "TOPRIGHT", customColor = false, color = rgb("textEmphasis") },
+	accent = { source = "class", color = rgb("accentDefault") },
 }
 local defaults = Model.defaults
 
@@ -78,7 +93,44 @@ Model.TIMER_FORMATS = {
 Model.TIMER_POSITIONS = {
 	{ value = "below", label = L["Under the icon"] },
 	{ value = "inside", label = L["On the icon"] },
+	{ value = "top", label = L["On the icon's top edge"] },
+	{ value = "center", label = L["Centre of the icon"] },
 }
+Model.SHOW_OPTIONS = {
+	buffs = {
+		{ value = "all", label = L["All buffs"] },
+		{ value = "important", label = L["Important (Blizzard's list)"] },
+		{ value = "bigDefensive", label = L["Big defensives"] },
+		{ value = "external", label = L["External defensives"] },
+		{ value = "cancelable", label = L["Ones you can cancel"] },
+	},
+	debuffs = {
+		{ value = "all", label = L["All debuffs"] },
+		{ value = "crowdControl", label = L["Crowd control"] },
+		{ value = "dispellable", label = L["Dispellable by anyone"] },
+	},
+}
+Model.SHOW_TOKENS = {
+	important = "IMPORTANT", bigDefensive = "BIG_DEFENSIVE", external = "EXTERNAL_DEFENSIVE", cancelable = "CANCELABLE",
+	crowdControl = "CROWD_CONTROL", dispellable = "DISPELLABLE",
+}
+Model.TOOLTIP_OPTIONS = {
+	{ value = "always", label = L["Always"] },
+	{ value = "noCombat", label = L["Out of combat"] },
+	{ value = "never", label = L["Never"] },
+}
+Model.CORNERS = {
+	{ value = "TOPRIGHT", label = L["Top right"] },
+	{ value = "TOPLEFT", label = L["Top left"] },
+	{ value = "BOTTOMRIGHT", label = L["Bottom right"] },
+	{ value = "BOTTOMLEFT", label = L["Bottom left"] },
+	{ value = "CENTER", label = L["Centre"] },
+}
+Model.TYPE_ICON_OPTIONS = { { value = "none", label = L["Hidden"] } }
+for i = 1, #Model.CORNERS do
+	Model.TYPE_ICON_OPTIONS[i + 1] = Model.CORNERS[i]
+end
+Model.CORNER_SIGNS = { TOPRIGHT = { -1, -1, "RIGHT" }, TOPLEFT = { 1, -1, "LEFT" }, BOTTOMRIGHT = { -1, 1, "RIGHT" }, BOTTOMLEFT = { 1, 1, "LEFT" }, CENTER = { 0, 0, "CENTER" } }
 Model.OUTLINES = {
 	{ value = "INHERIT", label = L["Use readability setting"] },
 	{ value = "NONE", label = L["Soft shadow"] },
@@ -112,6 +164,8 @@ local TIMER_FORMAT_SET = allowed(Model.TIMER_FORMATS)
 local TIMER_POSITION_SET = allowed(Model.TIMER_POSITIONS)
 local ACCENT_SET = allowed(Model.ACCENT_SOURCES)
 local TRACKED_SET = allowed(Model.TRACKED_OPTIONS)
+local SHOW_SETS = { buffs = allowed(Model.SHOW_OPTIONS.buffs), debuffs = allowed(Model.SHOW_OPTIONS.debuffs) }
+local TOOLTIP_SET = allowed(Model.TOOLTIP_OPTIONS)
 
 local function number(value, default, limit, whole)
 	if type(value) ~= "number" or value ~= value then
@@ -155,6 +209,12 @@ function Model.Group(settings, name)
 		growth = choice(s.growth, GROWTH, base.growth),
 		sort = choice(s.sort, SORT, base.sort),
 		reverse = s.reverse == true,
+		swipe = boolean(s.swipe, base.swipe),
+		show = choice(s.show, SHOW_SETS[name], base.show),
+		timed = s.timed == true,
+		tooltips = choice(s.tooltips, TOOLTIP_SET, base.tooltips),
+		swipeReverse = boolean(s.swipeReverse, base.swipeReverse),
+		refresh = s.refresh == true,
 	}
 	if K.HudStyle.Current() == "orbs" then
 		g.growth = (g.growth:gsub("_DOWN$", "_UP"))
@@ -166,8 +226,21 @@ function Model.Group(settings, name)
 	end
 	if base.dispel ~= nil then
 		g.dispel = boolean(s.dispel, base.dispel)
+		g.typeIcon = choice(s.typeIcon, Model.CORNER_SIGNS, base.typeIcon)
+		g.typeIconSize = number(s.typeIconSize, base.typeIconSize, LIMITS.typeIconSize)
 	end
 	return g
+end
+
+local function channel(value)
+	return type(value) == "number" and value == value and value >= 0 and value <= 1
+end
+
+local function customColor(s)
+	local c = s.color
+	if s.customColor == true and type(c) == "table" and channel(c.r) and channel(c.g) and channel(c.b) then
+		return { r = c.r, g = c.g, b = c.b }
+	end
 end
 
 local function font(value, default)
@@ -188,16 +261,56 @@ function Model.Timer(settings)
 		size = number(s.size, base.size, LIMITS.timerSize),
 		outline = outline,
 		expiring = number(s.expiring, base.expiring, LIMITS.expiring),
+		x = number(s.x, base.x, LIMITS.offset), y = number(s.y, base.y, LIMITS.offset),
+		seconds = boolean(s.seconds, base.seconds),
+		precise = number(s.precise, base.precise, LIMITS.precise, true),
+		color = customColor(s),
 	}
 end
 
 function Model.Count(settings)
 	local base, s = defaults.count, section(settings, "count")
 	return {
+		shown = boolean(s.shown, base.shown),
 		font = font(s.font, (Tokens.Font("number"))),
 		size = number(s.size, base.size, LIMITS.countSize),
 		outline = choice(s.outline, FLAGS, base.outline),
+		x = number(s.x, base.x, LIMITS.offset), y = number(s.y, base.y, LIMITS.offset),
+		position = choice(s.position, Model.CORNER_SIGNS, base.position),
+		color = customColor(s),
 	}
+end
+
+function Model.IconZoom(settings)
+	return number(settings.iconZoom, defaults.iconZoom, LIMITS.iconZoom)
+end
+
+function Model.HiddenAlpha(settings)
+	return number(settings.hiddenAlpha, defaults.hiddenAlpha, LIMITS.hiddenAlpha)
+end
+
+local SECONDS_BAND, MINUTE_BAND, HOUR_BAND = 91, 5401, 129601
+
+function Model.PlainTimer(timer)
+	return (timer.seconds and timer.precise == 0) or (timer.format ~= "short" and timer.format ~= "decimal")
+end
+
+function Model.Breakpoints(timer, units, R, roundUp)
+	local whole = roundUp and R.Up or R.Down
+	local list, from = {}, 0
+	if timer.format == "decimal" then
+		list[1] = { threshold = 0, step = 0.1, rounding = R.Down, format = "%.1f" }
+		from = Model.DECIMAL_BELOW
+	end
+	list[#list + 1] = { threshold = from, step = 1, rounding = whole, format = timer.seconds and units.s or "%d" }
+	local minutes = max(SECONDS_BAND, timer.precise * 60)
+	if timer.precise > 1 then
+		list[#list + 1] = { threshold = 60, step = 1, rounding = whole, format = "%d:%02d", components = { { div = 60, step = 1, rounding = R.Down }, { mod = 60, step = 1, rounding = R.Down } } }
+	end
+	for _, band in ipairs({ { minutes, 60, units.m }, { MINUTE_BAND, 3600, units.h }, { HOUR_BAND, 86400, units.d } }) do
+		list[#list + 1] = { threshold = band[1], format = band[3], components = { { div = band[2], step = 1, rounding = R.Up } } }
+	end
+	return list
 end
 
 function Model.TextScale()
@@ -273,10 +386,6 @@ end
 
 function Model.Capacity(group, enchants)
 	return max(0, group.rows * group.columns - (enchants or 0))
-end
-
-local function channel(value)
-	return type(value) == "number" and value == value and value >= 0 and value <= 1
 end
 
 function Model.AccentColor(settings)

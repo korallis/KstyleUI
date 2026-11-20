@@ -37,6 +37,8 @@ local MODULE_LABELS = {
 	Skins = L["Window Skins"],
 	QoL = L["Quality of Life"],
 	Appearance = L["Appearance"],
+	HudStyle = L["HUD style"],
+	Readability = L["Readability"],
 	Widgets = L["Widgets"],
 	Layout = L["Layout"],
 }
@@ -81,10 +83,6 @@ local ALPHA_STEP = 0.05
 local OWN_MIN_ALPHA = 0.25
 local SIZE_MIN = 8
 local ROOT_WIDTH, ROOT_HEIGHT = 1920, 1080
-
-local function Percent(value)
-	return floor(value * 100 + 0.5) .. "%"
-end
 
 local function Whole(value)
 	return tostring(floor(value + 0.5))
@@ -267,15 +265,21 @@ function Pages.ElementItems(element, page, level)
 				return choices
 			end, get = get("attachTo", ""), set = set("attachTo"),
 		})
-		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."], options = {
-			{ value = "above", label = L["Above"] }, { value = "below", label = L["Below"] },
-			{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
-		}, get = get("side", "above"), set = set("side") })
+		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."],
+			options = LayoutFn("SideOptions"), get = get("side", "above"), set = set("side") })
 		add({ kind = "slider", label = L["Offset"], help = L["The gap from the attached element, in interface units."],
 			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset") })
 		if opts.resizable then
 			add({ kind = "toggle", label = L["Match width"], help = L["Uses the other element's width within this element's size limits."],
 				get = get("matchWidth", false), set = set("matchWidth") })
+			add({ kind = "toggle", label = L["Match height"], help = L["Uses the other element's height within this element's size limits."],
+				get = get("matchHeight", false), set = set("matchHeight") })
+			add({ kind = "slider", label = L["Extra width"], min = -width, max = width, step = 1,
+				help = L["Adds interface units to the matched width; zero matches exactly."],
+				get = get("extraWidth", 0), set = set("extraWidth"), disableWhen = function() return not get("matchWidth", false)() end })
+			add({ kind = "slider", label = L["Extra height"], min = -height, max = height, step = 1,
+				help = L["Adds interface units to the matched height; zero matches exactly."],
+				get = get("extraHeight", 0), set = set("extraHeight"), disableWhen = function() return not get("matchHeight", false)() end })
 		end
 	end
 	if has("anchor") then
@@ -301,34 +305,34 @@ function Pages.ElementItems(element, page, level)
 		local minH, maxH = opts.minHeight or SIZE_MIN, opts.maxHeight or height
 		if minW < maxW and has("width") then
 			add({
-				kind = "slider", label = L["Width"], help = L["The element's width in interface units."],
+				kind = "slider", label = L["Width"], help = own and L["Settings window width in interface units; release the slider to apply."] or L["The element's width in interface units."],
 				min = minW, max = maxW, step = 1, format = Whole, get = get("width", minW), set = set("width"),
 			})
 		end
 		if minH < maxH and has("height") then
 			add({
-				kind = "slider", label = L["Height"], help = L["The element's height in interface units."],
+				kind = "slider", label = L["Height"], help = own and L["Settings window height in interface units; release the slider to apply."] or L["The element's height in interface units."],
 				min = minH, max = maxH, step = 1, format = Whole, get = get("height", minH), set = set("height"),
 			})
 		end
 	end
 	if opts.scalable and has("scale") then
 		add({
-			kind = "slider", label = L["Scale"], help = L["Makes the element larger or smaller."],
+			kind = "slider", label = L["Scale"], help = own and L["Scales the entire settings window, including its text; release to apply."] or L["Makes the element larger or smaller."],
 			min = Limit("SCALE_MIN", SCALE_MIN), max = Limit("SCALE_MAX", SCALE_MAX), step = Limit("SCALE_STEP", SCALE_STEP),
-			format = Percent, get = get("scale", FALLBACK.scale), set = set("scale"),
+			percent = true, get = get("scale", FALLBACK.scale), set = set("scale"),
 		})
 	end
 	if has("alphaCombat") then
 		add({
-			kind = "slider", label = L["Opacity in combat"], help = L["How solid the element is while you fight."],
-			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
+			kind = "slider", label = L["Opacity in combat"], help = own and L["Settings window opacity during combat, with a 25 percent minimum."] or L["How solid the element is while you fight."],
+			min = minAlpha, max = 1, step = ALPHA_STEP, percent = true, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
 		})
 	end
 	if has("alphaIdle") then
 		add({
-			kind = "slider", label = L["Opacity out of combat"], help = L["How solid the element is the rest of the time."],
-			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
+			kind = "slider", label = L["Opacity out of combat"], help = own and L["Settings window opacity outside combat, with a 25 percent minimum."] or L["How solid the element is the rest of the time."],
+			min = minAlpha, max = 1, step = ALPHA_STEP, percent = true, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
 		})
 	end
 	if has("strata") then
@@ -338,12 +342,14 @@ function Pages.ElementItems(element, page, level)
 		})
 	end
 	add({
-		kind = "button", label = L["Reset this element"], help = L["Puts the element back where its module placed it."],
+		kind = "button", label = own and L["Reset window size and opacity"] or L["Reset this element"], help = own and L["Restores the settings window size, scale and opacity while keeping its position."] or L["Puts the element back where its module placed it."],
 		buttons = {
 			{
 				label = L["Reset"],
 				onClick = function()
-					Pages.ResetElement(key)
+					if own then
+						for _, field in ipairs({ "width", "height", "scale", "alphaCombat", "alphaIdle" }) do set(field)(nil) end
+					else Pages.ResetElement(key) end
 				end,
 			},
 		},
@@ -409,6 +415,37 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
+	local function account(key, default, apply)
+		return function()
+			local value = K.Store.Account()[key]
+			if value == nil then return default end
+			return value
+		end, function(value)
+			K.Store.Account()[key] = value
+			if apply then K.Appearance.ApplyGameText() end
+			ns.Changed()
+		end
+	end
+	local function add(item, key, default, apply)
+		item.kind, item.page = item.kind or "toggle", "General"
+		if key then item.get, item.set = account(key, default, apply) end
+		items[#items + 1] = item
+	end
+	add({ kind = "header", level = 1, label = L["Game text"] })
+	add({ label = L["Use your font for game text"], help = L["Blizzard windows and quest text use your font; names in the world follow after relogging."] }, "gameFont", false, true)
+	add({ kind = "slider", label = L["Game text size"], min = 0.8, max = 1.5, step = 0.05, percent = true, defer = true,
+		help = L["Makes Blizzard's own text larger or smaller; 100 percent keeps the game's sizes."] }, "gameTextScale", 1, true)
+	add({ label = L["Use your number font for combat text"], help = L["Damage and healing numbers in the world use your number font after relogging."] }, "combatFont", false, true)
+	add({ kind = "header", level = 1, label = L["Window conveniences"] })
+	add({ label = L["Search current page only"], help = L["Searches this page only. Off searches every settings page."] }, "optionsSearchPage", false)
+	add({ label = L["List page sections in the rail"], help = L["Shows the open page's sections under it. Off lists the pages only."] }, "optionsRailSections", true)
+	for _, element in ipairs(Pages.Elements(true)) do
+		if element.key == Pages.WINDOW_KEY then
+			element.label = L["Window size and opacity"]
+			element.opts.fields = { "width", "height", "scale", "alphaCombat", "alphaIdle" }
+			Append(items, Pages.ElementItems(element, "General", 1))
+		end
+	end
 	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Text preset"] }
 	items[#items + 1] = {
 		kind = "dropdown", page = "General", module = "Readability", key = "preset", label = L["Text preset"], help = L["Readable grows text and its rows; Standard restores the usual sizes."],
@@ -422,6 +459,9 @@ local function GeneralItems()
 end
 
 local function ResetGeneral()
+	local account = K.Store.Account()
+	account.optionsSearchPage, account.optionsRailSections, account.gameFont, account.gameTextScale, account.combatFont = nil, nil, nil, nil, nil
+	K.Appearance.ApplyGameText()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
 		Model.ResetSchema(section, K.Options.Get(section))
 	end
@@ -435,6 +475,14 @@ local function ElementsItems()
 		Append(items, Model.SchemaItems(Pages.ELEMENTS_SECTION, schema, "Elements"))
 	end
 	Append(items, Model.SchemaItems("LayoutControls", K.Options.Get("LayoutControls"), "Elements"))
+	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Double-click movers for settings"],
+		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
+		get = function() return K.Store.Account().moverOptions ~= false end,
+		set = function(value) K.Store.Account().moverOptions = value; ns.Changed() end }
+	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Fade the toolbar until pointed at"],
+		help = L["The Layout Mode toolbar rests at 25 percent until pointed at; hold Shift to hide it."],
+		get = function() return K.Store.Account().layoutToolbarHover == true end,
+		set = function(value) K.Store.Account().layoutToolbarHover = value; ns.Changed() end }
 	NoLayoutNote(items, "Elements")
 	local byModule, order = {}, {}
 	for _, element in ipairs(Pages.Elements()) do
@@ -460,6 +508,7 @@ end
 
 local function ResetElements(module)
 	local all = LayoutFn("ResetAll")
+	if module == nil then K.Store.Account().layoutToolbarHover = nil end
 	if module == nil and all then
 		K.Call(all)
 		return
@@ -586,18 +635,22 @@ local function AllProfiles()
 	return out
 end
 
-function Pages.ExportProfile()
-	local text, why = K.Profiles.Export(Pages.shareScope or "everything", Pages.includeLayout ~= false)
-	if not text then
-		Notify(L["Export failed"], tostring(why))
-		return nil
+local function ShareScope()
+	return Pages.shareScope == "modules" and (Pages.shareModules or {}) or Pages.shareScope or "everything"
+end
+
+local function ShareModules()
+	local modules = {}
+	for _, name in ipairs({ "Appearance", "Widgets", "HudStyle", "Readability" }) do
+		if K.Store.Defaults(name) then modules[#modules + 1] = name end
 	end
-	local handle = K.Widgets.Popup({
-		title = L["Export profile"],
-		text = L["Press Ctrl+C to copy this string, then share it."],
-		editBox = { text = text },
-		buttons = { { label = L["Close"], primary = true } },
-	})
+	for _, name in ipairs(K.Modules.List()) do
+		if name ~= "Options" then modules[#modules + 1] = name end
+	end
+	return modules
+end
+
+local function SelectLater(handle)
 	if C_Timer and C_Timer.After then
 		C_Timer.After(0, function()
 			C_Timer.After(0, function()
@@ -607,11 +660,25 @@ function Pages.ExportProfile()
 			end)
 		end)
 	end
+end
+
+function Pages.ExportProfile()
+	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false)
+	if not text then
+		Notify(L["Export failed"], tostring(why))
+		return nil
+	end
+	SelectLater(K.Widgets.Popup({
+		title = L["Export profile"],
+		text = L["Press Ctrl+C to copy this string, then share it."],
+		editBox = { text = text },
+		buttons = { { label = L["Close"], primary = true } },
+	}))
 	return text
 end
 
-function Pages.ImportProfile(text)
-	local ok, result = K.Store.Import(text)
+function Pages.ImportProfile(text, name)
+	local ok, result = K.Store.Import(text, name)
 	ns.Changed()
 	if ok then
 		Notify(L["Profile imported"], format(L["Imported the profile as %s. This character now uses it."], tostring(result)))
@@ -623,11 +690,20 @@ end
 
 function Pages.ReviewImport(text)
 	if not K.Store.Module("ProfileTools").review then return Pages.ImportProfile(text) end
-	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything", Pages.includeLayout ~= false)
+	local preview, why = K.Profiles.Preview(text, ShareScope(), Pages.includeLayout ~= false)
 	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
-	K.Widgets.Confirm({ title = L["Review import"], text = format(message, preview.summary),
-		acceptLabel = L["Apply"], onAccept = function() Pages.ImportProfile(preview.text) end })
+	local labels = {}
+	for _, module in ipairs(preview.changes) do labels[#labels + 1] = Pages.ModuleLabel(module) end
+	message = format(message, #labels > 0 and table.concat(labels, ", ") or L["No changes"])
+	if preview.warning then message = message .. "\n\n" .. preview.warning end
+	K.Widgets.Popup({ title = L["Review import"], text = message,
+		editBox = { placeholder = L["Profile name (optional)"], maxLetters = 48 }, buttons = {
+			{ label = L["Cancel"] }, { label = L["Apply"], primary = true, onClick = function(handle)
+				local name = handle:GetText():match("^%s*(.-)%s*$")
+				Pages.ImportProfile(preview.text, name ~= "" and name or nil)
+			end },
+		} })
 	return true, preview
 end
 
@@ -777,18 +853,34 @@ local function ProfileItems()
 	})
 	Append(items, Model.SchemaItems("ProfileTools", K.Options.Get("ProfileTools"), "Profiles"))
 	add({ kind = "header", level = 1, label = L["Share"] })
-	local scopes = { { value = "everything", label = L["Everything"] }, { value = "layout", label = L["Layout only"] } }
-	for _, name in ipairs(K.Modules.List()) do
-		if name ~= "Options" then scopes[#scopes + 1] = { value = name, label = Pages.ModuleLabel(name) } end
+	local scopes = { { value = "everything", label = L["Everything"] }, { value = "layout", label = L["Layout only"] },
+		{ value = "modules", label = L["Selected modules"] } }
+	for _, name in ipairs(ShareModules()) do
+		scopes[#scopes + 1] = { value = name, label = Pages.ModuleLabel(name) }
 	end
 	if K.Store.Module("ProfileTools").review then
-	add({ kind = "dropdown", label = L["Share scope"], help = L["Export or import everything, the layout, or one module."], options = scopes,
+	add({ kind = "dropdown", label = L["Share scope"], help = L["Share everything, a layout, or selected modules; imports keep the other settings."], options = scopes,
 		get = function() return Pages.shareScope or "everything" end, set = function(value) Pages.shareScope = value end })
+	if Pages.shareScope == "modules" then
+		Pages.shareModules = Pages.shareModules or {}
+		add({ kind = "button", label = L["Selected modules"], buttons = {
+			{ label = L["Select all"], onClick = function()
+				for _, name in ipairs(ShareModules()) do Pages.shareModules[name] = true end
+			end },
+			{ label = L["Clear"], onClick = function() Pages.shareModules = {} end },
+		} })
+		for _, name in ipairs(ShareModules()) do
+			local module = name
+			add({ kind = "toggle", label = Pages.ModuleLabel(module), help = L["Include this module when sharing selected modules."],
+				get = function() return Pages.shareModules[module] == true end,
+				set = function(on) Pages.shareModules[module] = on end })
+		end
+	end
 	end
 	if K.Store.Module("ProfileTools").review then
 	add({ kind = "toggle", label = L["Include layout"], help = L["Share element positions and saved layouts with the profile. Off shares settings only."],
 		get = function() return Pages.includeLayout ~= false end, set = function(value) Pages.includeLayout = value end,
-		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" end })
+		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" and Pages.shareScope ~= "modules" end })
 	end
 	if K.Store.Module("ProfileTools").backups then
 	add({ kind = "button", label = L["Restore backup"], help = K.Store.Account().restoreProfile or L["No backup is available."],
@@ -896,6 +988,13 @@ local function AboutItems()
 				end
 			end,
 		} },
+	})
+	add({
+		kind = "button", label = L["What's new"], help = L["Shows the link to every version's release notes, ready to copy."],
+		buttons = { { label = L["Show"], onClick = function()
+			SelectLater(K.Widgets.Popup({ title = L["What's new"], text = L["Press Ctrl+C to copy this link, then open it in your browser."],
+				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } }))
+		end } },
 	})
 	add({ kind = "header", level = 1, label = L["Credits"] })
 	add({ kind = "note", label = L["Fonts: Source Sans 3 and Inter, under the SIL Open Font Licence."] })

@@ -6,7 +6,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local failures = {}
 for _, screen in ipairs(... or { { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } }) do
-	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], uiScale = 768 / 1080 })
+	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], uiScale = 768 / 1080, size = screen[5] })
 	rawset(_G, "RENDER_HUD_STYLE", screen[4] or "Medallions")
 	rawset(_G, "RENDER_LOCALE", screen[3] or "enUS")
 	local env, K = U.New(Common.ScreenOpts({
@@ -20,7 +20,7 @@ for _, screen in ipairs(... or { { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } 
 			end
 		end,
 	}))
-	if screen[3] == "frFR" then assert(K.L["Frost Howler"] == "Hurleur du givre", "the French preview fixture is loaded") end
+	if screen[3] == "frFR" then assert(K.L["Frost Howler"] == "Hurlegivre", "the French preview fixture is loaded") end
 	K.Options.Write("UnitFrames", "edit", "target")
 	K.Options.Open("UnitFrames")
 	local ns = env._addons.KstyleUI_Options

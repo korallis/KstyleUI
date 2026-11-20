@@ -21,7 +21,7 @@ function A.Remaining(env, button, seconds)
 	aura.remaining = { seconds }
 	if aura.timer then
 		local formatter = aura.timerOptions.textFormatter or env.AuraContainerInbound.GetDefaultAuraDurationFormatter()
-		aura.timer:SetText(formatter:Format(seconds))
+		aura.timer:SetText(formatter:FormatNumber(seconds))
 	end
 end
 
@@ -144,6 +144,10 @@ local function newButton(env, container)
 		element(cooldown, "Cooldown")
 		aura.cooldown = cooldown
 	end
+	function button.ClearDurationCooldown()
+		guard("ClearDurationCooldown")
+		aura.cooldown = nil
+	end
 	function button.ClearDurationText()
 		guard("ClearDurationText")
 		aura.timer, aura.timerOptions = nil, nil
@@ -187,6 +191,25 @@ local function newButton(env, container)
 	function button.SetTooltipAnchorPoint(_, point)
 		guard("SetTooltipAnchorPoint")
 		aura.tooltip = point
+	end
+	function button.SetHideTooltipInCombat(_, hide)
+		guard("SetHideTooltipInCombat")
+		aura.hideTooltipInCombat = hide == true
+	end
+	aura.pandemic = {}
+	function button.AddPandemicRegion(_, region)
+		guard("AddPandemicRegion")
+		assert(region ~= button and isDescendant(region, button), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+		for _, existing in ipairs(aura.pandemic) do
+			assert(existing ~= region, "Display element has already been added.")
+		end
+		aura.pandemic[#aura.pandemic + 1] = region
+	end
+	function button.RemovePandemicRegion(_, region)
+		guard("RemovePandemicRegion")
+		for i = #aura.pandemic, 1, -1 do
+			if aura.pandemic[i] == region then table.remove(aura.pandemic, i) end
+		end
 	end
 	for _, name in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "GetEffectiveScale", "IsProtected", "HookScript", "SetScript", "IsMouseOver", "GetChildren" }) do
 		local method = button[name]
@@ -368,6 +391,10 @@ end
 
 local function fakeFormatter(env, name)
 	local f = { name = name, calls = {}, settings = {} }
+	-- SecondsFormatter inherits NumericFormatter's FormatNumber, which the engine's duration binding calls.
+	function f:FormatNumber(seconds)
+		return self:Format(seconds)
+	end
 	function f:Format(seconds)
 		local secret = env.issecretvalue(seconds)
 		if secret then seconds = env.Reveal(seconds) end
@@ -530,12 +557,71 @@ function A.Engine(env, opts)
 			return env._enchants[slot]
 		end,
 	}
+	-- C_StringUtil.CreateNumericRuleFormatter: the last breakpoint at or under the value formats it, rounding the value
+	-- to the breakpoint's step first, then each component dividing, taking the remainder and rounding to its own step
+	-- (NumericRuleFormatterSharedDocumentation.lua). Like Forever's NumericRuleFormatter it answers FormatNumber, not Format.
+	env.Enum.NumericRuleFormatRounding = { Nearest = 0, Up = 1, Down = 2 }
+	local function round(value, step, rounding)
+		if not step then return value end
+		local R = env.Enum.NumericRuleFormatRounding
+		local n = value / step
+		n = rounding == R.Up and math.ceil(n - 1e-9) or rounding == R.Down and math.floor(n + 1e-9) or math.floor(n + 0.5)
+		return n * step
+	end
 	env.C_StringUtil = {
 		CreateSecondsFormatter = function()
 			return fakeFormatter(env, "seconds")
 		end,
+		CreateNumericRuleFormatter = function()
+			local f = { breakpoints = {} }
+			function f.SetBreakpoints(self, list)
+				local last = -math.huge
+				for _, bp in ipairs(list) do
+					assert(type(bp.threshold) == "number" and bp.threshold >= last and type(bp.format) == "string", "breakpoints need ascending thresholds and a format")
+					last = bp.threshold
+				end
+				self.breakpoints = list
+			end
+			function f.FormatNumber(self, value)
+				local secret = env.issecretvalue(value)
+				if secret then value = env.Reveal(value) end
+				local pick
+				for _, bp in ipairs(self.breakpoints) do
+					if value >= bp.threshold then pick = bp end
+				end
+				value = round(value, pick.step, pick.rounding)
+				local text
+				if pick.components then
+					local parts = {}
+					for i, c in ipairs(pick.components) do
+						local v = value
+						if c.div then v = v / c.div end
+						if c.mod then v = v % c.mod end
+						parts[i] = round(v, c.step, c.rounding)
+					end
+					text = string.format(pick.format, unpack(parts))
+				else
+					text = string.format(pick.format, value)
+				end
+				return secret and env.Secret(text) or text
+			end
+			return f
+		end,
 	}
+	env.AuraUtil = env.AuraUtil or {}
+	env.AuraUtil.IsValidFilterString = validFilter
+	env.AuraUtil.GetAuraDispelTypeIcon = function(kind)
+		return kind ~= "None" and "RaidFrame-Icon-Debuff" .. kind or nil
+	end
+	-- The engine's default formatter keeps its bands (Blizzard_AuraContainerShared.lua): seconds to 90, then the next unit, rounded up.
 	local default = fakeFormatter(env, "default")
+	function default.Format(_, seconds)
+		local secret = env.issecretvalue(seconds)
+		if secret then seconds = env.Reveal(seconds) end
+		local text = seconds < 91 and string.format("%ds", math.floor(seconds)) or seconds < 5401 and string.format("%dm", math.ceil(seconds / 60))
+			or seconds < 129601 and string.format("%dh", math.ceil(seconds / 3600)) or string.format("%dd", math.ceil(seconds / 86400))
+		return secret and env.Secret(text) or text
+	end
 	env.AuraContainerInbound = {
 		GetDefaultAuraDurationFormatter = function()
 			return default

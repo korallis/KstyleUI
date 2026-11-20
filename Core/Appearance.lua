@@ -185,12 +185,63 @@ local function ApplyKey(key)
 	APPLY[key](Appearance.Get(key))
 end
 
+local native, saved
+
+local function Read(font)
+	local ok, file, height, flags = pcall(font.GetFont, font)
+	if ok and not (issecretvalue and (issecretvalue(file) or issecretvalue(height) or issecretvalue(flags))) and type(file) == "string" and type(height) == "number" then
+		return { file, height, flags or "" }
+	end
+end
+
+function Appearance.ApplyGameText()
+	if not Store.IsLoaded() then return end
+	local account = Store.Account()
+	local on, combat, scale = account.gameFont == true, account.combatFont == true, account.gameTextScale
+	scale = not (issecretvalue and issecretvalue(scale)) and type(scale) == "number" and scale == scale and math.min(1.5, math.max(0.8, scale)) or 1
+	if not (native or saved or on or combat or scale ~= 1) then return end
+	saved = saved or {}
+	for name, role in pairs({ STANDARD_TEXT_FONT = on and "body", UNIT_NAME_FONT = on and "names", DAMAGE_TEXT_FONT = combat and "number" }) do
+		if role then
+			if saved[name] == nil then saved[name] = rawget(_G, name) or false end
+			rawset(_G, name, (Tokens.Font(role)))
+		elseif saved[name] ~= nil then
+			rawset(_G, name, saved[name] or nil)
+			saved[name] = nil
+		end
+	end
+	saved = next(saved) and saved or nil
+	if not (native or on or scale ~= 1) or type(GetFonts) ~= "function" then return end
+	native = native or {}
+	local ok, names = pcall(GetFonts)
+	local path, live = Tokens.Font("body"), {}
+	for _, name in ipairs(ok and type(names) == "table" and names or {}) do
+		local font = type(name) == "string" and not name:find("^KstyleUI") and rawget(_G, name)
+		local now = type(font) == "table" and type(font.GetFont) == "function" and Read(font)
+		local state = now and (native[name] or now[1]:lower():find("^fonts[\\/]") and { font, {}, {} })
+		if state then
+			for i = 1, 3 do
+				if now[i] ~= state[3][i] then state[2][i] = now[i] end
+			end
+			native[name], live[#live + 1] = state, state
+		end
+	end
+	for _, state in ipairs(live) do
+		local font, original = state[1], state[2]
+		local want, now = { on and path or original[1], original[2] * scale, original[3] }, Read(font) or {}
+		if now[1] ~= want[1] or now[2] ~= want[2] or now[3] ~= want[3] then pcall(font.SetFont, font, want[1], want[2], want[3]) end
+		state[3] = Read(font) or want
+	end
+	if not on and scale == 1 then native = nil end
+end
+
 function Appearance.Apply()
 	for _, key in ipairs(ORDER) do
 		ApplyKey(key)
 	end
 	ApplyRoleFonts()
 	ApplyReadability()
+	Appearance.ApplyGameText()
 end
 
 local function PathKey(path)
@@ -210,6 +261,17 @@ local function FaceOptions()
 	for _, face in ipairs(Tokens.MediaList("font")) do
 		out[#out + 1] = { value = face.key, label = face.label }
 		seen[PathKey(face.path)] = true
+	end
+	for _, entry in ipairs({ { "GameFontNormal", L["Blizzard Default"] }, { "ChatFontNormal", L["Blizzard Chat"] }, { "SystemFont_Med1", L["System Default"] } }) do
+		local object = rawget(_G, entry[1])
+		if object and type(object.GetFont) == "function" then
+			local ok, path = pcall(object.GetFont, object)
+			if native and native[entry[1]] then path = native[entry[1]][2][1] end
+			if ok and not (issecretvalue and issecretvalue(path)) and Theme.IsFontPath(path) and not seen[PathKey(path)] then
+				out[#out + 1] = { value = path, label = entry[2] }
+				seen[PathKey(path)] = true
+			end
+		end
 	end
 	local media = ns.Widgets and ns.Widgets.MediaOptions
 	if media then
@@ -386,6 +448,7 @@ end
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION and APPLY[key] then
 		ApplyKey(key)
+		if native or saved then Appearance.ApplyGameText() end
 	end
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Appearance.Apply)

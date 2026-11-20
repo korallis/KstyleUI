@@ -41,6 +41,7 @@ local moving = false
 local hoverHooked = false
 local graceLeft = 0
 local openMenu
+local perfTicker, perfEvery
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
@@ -91,6 +92,74 @@ end
 
 local function UpdateCoords()
 	Map.face:SetCoords(Data.Coords(Settings.Get("coords.precision")))
+end
+
+local function UpdateDifficulty()
+	if Settings.Get("difficulty.shown") then
+		Map.face:SetDifficulty(Data.Difficulty())
+	end
+end
+
+local function Hex(r, g, b)
+	return ("|cff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
+function Map.PerfText(fps, ms)
+	if not fps then
+		return nil
+	end
+	local open, close = "", ""
+	if Settings.Get("perf.accent") then
+		open, close = Hex(ns.Style.Accent()), "|r"
+	end
+	return ("%d %s%s%s  %d %s%s%s"):format(fps, open, L["fps"], close, ms, open, L["ms"], close)
+end
+
+local function UpdatePerf()
+	if running and Map.face and Settings.Get("perf.shown") then
+		Map.face:SetPerf(Map.PerfText(Data.Perf(Settings.Get("perf.latency"))))
+	end
+end
+
+local function SyncPerf()
+	local every = running and Settings.Get("perf.shown") and Settings.Get("perf.interval") or nil
+	if every == perfEvery then
+		return
+	end
+	if perfTicker then
+		perfTicker:Cancel()
+		perfTicker = nil
+	end
+	perfEvery = every
+	if every and C_Timer and type(C_Timer.NewTicker) == "function" then
+		perfTicker = C_Timer.NewTicker(every, UpdatePerf)
+	elseif every then
+		Log("C_Timer.NewTicker is missing; the frame rate updates only when the map refreshes")
+	end
+end
+
+local function SyncRotate()
+	local want, account, key = running and Settings.Get("rotate"), K.Store.Account(), K.Store.CharacterKey()
+	local memory = account.minimapRotate or {}
+	local own = memory[key]
+	local current = (want or own ~= nil) and type(key) == "string" and K.CVars.Get("rotateMinimap")
+	if not current then
+		return
+	end
+	if want then
+		if own == nil and current ~= "1" then
+			if K.CVars.Set("rotateMinimap", "1") then
+				memory[key], account.minimapRotate = current, memory
+			else
+				Log("the game refused rotateMinimap; the map keeps its rotation")
+			end
+		end
+	elseif own ~= nil then
+		if current == "1" then
+			K.CVars.Set("rotateMinimap", own)
+		end
+		memory[key] = nil
+	end
 end
 
 local function ClockOnUpdate(_, elapsed)
@@ -167,6 +236,9 @@ end
 
 local function EnterCombat()
 	fighting = true
+	for _, button in pairs(Map.column.buttons) do
+		Column.Drag(button, false, true)
+	end
 	SecureClick.Detach()
 	SyncCoords()
 end
@@ -270,12 +342,45 @@ local function ZoneTooltip(tip, frame)
 	end
 end
 
-local function ClockTooltip(tip, frame)
+local function Lockouts(tip, redraw)
+	if not redraw and type(RequestRaidInfo) == "function" then
+		RequestRaidInfo()
+	end
+	local list = Data.Lockouts()
+	if #list == 0 then
+		tip:AddLine(L["No saved instances"], "text")
+	end
+	for _, entry in ipairs(list) do
+		tip:AddDoubleLine(entry.name, Widgets.Duration.Format(entry.reset, "long"))
+	end
+end
+
+local function ClockTooltip(tip, frame, redraw)
 	tip:SetOwner(frame, "ANCHOR_LEFT")
 	tip:AddTitle(L["Time"])
 	local hours = Data.Uses24(Settings.Get("clock.mode")) and "24" or "12"
 	tip:AddDoubleLine(L["Local time"], Data.Clock("local" .. hours) or "")
 	tip:AddDoubleLine(L["Realm time"], Data.Clock("realm" .. hours) or "")
+	if Settings.Get("clock.hover") == "lockouts" then
+		tip:AddCaption(L["Instance lockouts"])
+		Lockouts(tip, redraw)
+	end
+end
+
+local function PerfTooltip(tip, _, redraw)
+	tip:AddTitle(L["Instance lockouts"])
+	Lockouts(tip, redraw)
+end
+
+local function RedrawLockouts()
+	local tip, face = Widgets.Tooltip(), Map.face
+	local frame = tip:IsOwned(face.clockHit) and face.clockHit or tip:IsOwned(face.perfHit) and face.perfHit
+	if frame then
+		local content = frame == face.clockHit and ClockTooltip or PerfTooltip
+		tip:SetOwner(frame, "ANCHOR_LEFT")
+		content(tip, frame, true)
+		tip:Show()
+	end
 end
 
 local function KeepQueueFaded(queue, alpha)
@@ -391,6 +496,7 @@ function Map.Refresh()
 	if not (running and face) then
 		return
 	end
+	SyncRotate()
 	face:Paint()
 	if Face.Round() then K.Layout.Restore(KEY) end
 	face:Layout()
@@ -404,9 +510,12 @@ function Map.Refresh()
 	UpdateZone()
 	UpdateClock()
 	UpdateCoords()
+	UpdateDifficulty()
+	UpdatePerf()
 	UpdateZoom()
 	SyncClock()
 	SyncCoords()
+	SyncPerf()
 end
 
 local function Relayout()
@@ -434,6 +543,7 @@ local function Build()
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
 	Widgets.AttachTooltip(face.clockHit, ClockTooltip)
+	Widgets.AttachTooltip(face.perfHit, PerfTooltip, "ANCHOR_LEFT")
 	SecureClick.Bind(face.zoneHit, function()
 		local cluster = MinimapCluster
 		return cluster and cluster.ZoneTextButton
@@ -444,7 +554,7 @@ local function Build()
 	Map.column = Column.New(face)
 	Map.drawer = Drawer.New(Map.column)
 	Map.column.drawer = Map.drawer
-	for _, frame in ipairs({ face.zoneHit, face.clockHit, face.zoom }) do
+	for _, frame in ipairs({ face.zoneHit, face.clockHit, face.perfHit, face.zoom }) do
 		HookHover(frame)
 	end
 	for _, button in pairs(Map.column.buttons) do
@@ -642,6 +752,7 @@ end
 local function OnBlizzardConfig()
 	if running then
 		ApplyMask()
+		Map.face.north:SetShown(not Data.Rotated())
 	end
 end
 
@@ -669,7 +780,13 @@ local function RegisterEvents()
 	local function onZone()
 		UpdateZone()
 		UpdateCoords()
+		UpdateDifficulty()
 	end
+	Events.Register(MODULE, "PLAYER_DIFFICULTY_CHANGED", UpdateDifficulty)
+	Events.Register(MODULE, "UPDATE_INSTANCE_INFO", function()
+		UpdateDifficulty()
+		RedrawLockouts()
+	end)
 	for _, event in ipairs(ZONE_EVENTS) do
 		Events.Register(MODULE, event, onZone)
 	end
@@ -767,6 +884,8 @@ function Map.Disable()
 	zoomToken = zoomToken + 1
 	StopClock()
 	StopCoords()
+	SyncPerf()
+	SyncRotate()
 	SecureClick.SetActive(false)
 	if Map.drawer then
 		Map.drawer:Sync(false)

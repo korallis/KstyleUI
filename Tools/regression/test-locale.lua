@@ -150,6 +150,10 @@ do
 	assert(Upper("cœur ÿ ñ ç à") == "CŒUR Ÿ Ñ Ç À", "œ, ÿ, ñ, ç and à capitalise")
 	assert(Upper("÷ ×") == "÷ ×", "the division and multiplication signs are not letters")
 	assert(Upper("小队 abc") == "小队 ABC", "Chinese text passes through")
+	local Lower = K.Locale.Lower
+	assert(Lower("ÉPÉE ÜBER") == "épée über", "accented capitals lower case, got " .. Lower("ÉPÉE ÜBER"))
+	assert(Lower("CŒUR Ÿ Ñ Ç À ß") == "cœur ÿ ñ ç à ß", "Œ, Ÿ, Ñ, Ç and À lower case; ß stays")
+	assert(Lower("÷ × 小队 ABC") == "÷ × 小队 abc", "signs and Chinese text pass through")
 	local root = K.Scale.Root()
 	local text = K.Widgets.Text(root, "title", "text")
 	K.Widgets.SetText(text, "Barres d’actions élégantes")

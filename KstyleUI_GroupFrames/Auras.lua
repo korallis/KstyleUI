@@ -42,6 +42,7 @@ local ICON_INSET_LINES = 2
 local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
+local TIMER_LINE = 1.3
 local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 136139, 136071, 135894 }
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
@@ -141,6 +142,13 @@ local function MarkLift(key)
 end
 Auras.MarkLift = MarkLift
 
+local function OneRow(block)
+	if Settings.current.auras.timers and block.rows > 1 then
+		block.rows, block.cells, block.height = 1, block.columns, block.size
+	end
+	return block
+end
+
 local function Block(f, k)
 	local w, h = Style.Size(f)
 	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
@@ -152,12 +160,12 @@ local function Block(f, k)
 		if not b then
 			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
 		end
-		return {
+		return OneRow({
 			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
 			left = b.left, top = b.top, spacing = spacing, inset = inset, gap = gap,
-		}
+		})
 	end
-	local block = Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap)
+	local block = OneRow(Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap))
 	block.spacing, block.inset, block.gap = spacing, inset, gap
 	block.left = place == "OUTSIDE_LEFT" and -gap - block.width or w + gap
 	block.top = k.auraWrap == "UP" and h - block.height or 0
@@ -254,6 +262,16 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
+local function TimerRoom(f, size)
+	if not Settings.current.auras.timers then return 0 end
+	return math.ceil(math.max(6, math.floor(size * COUNT_SHARE + 0.5)) * TIMER_LINE) + Widgets.Border(f)
+end
+
+local function PlaceTimer(timer, skin)
+	timer:ClearAllPoints()
+	timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
+end
+
 local function PlaceIcon(tile)
 	local skin, icon = tile.skin, tile.icon
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
@@ -329,7 +347,7 @@ local function StyleIcon(button)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and (not mark or p.styledPriority == MarkLift(p.group)) then
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -343,7 +361,20 @@ local function StyleIcon(button)
 		p.styledSize, p.styledBorder = size, border
 	end
 	p.chrome:SetRimAccent(ar, ag, ab)
-	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
+	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+	Style.SetFont(p.count, text.healthFont, textSize, "OUTLINE")
+	p.count:SetAlpha(a.stacks and 1 or 0)
+	if a.timers and type(button.SetDurationText) == "function" then
+		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
+		Style.SetFont(timer, text.healthFont, textSize, "OUTLINE")
+		PlaceTimer(timer, p.skin)
+		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
+		p.timer = timer
+		timer:Show()
+	elseif p.timer and p.styledTimers then
+		button:ClearDurationText()
+		p.timer:Hide()
+	end
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if p.mark and not p.size then
 		if p.buff or not f.debuffChip then
@@ -354,7 +385,7 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
-	p.styledFont, p.styledSwipe = text.healthFont, a.swipe
+	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers = text.healthFont, a.swipe, a.stacks, a.timers
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -398,12 +429,12 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
 	if not changed then
-		for i = 1, 21 do
+		for i = 1, 23 do
 			if old[i] ~= inputs[i] then changed = true; break end
 		end
 	end
@@ -555,7 +586,8 @@ local function BuildIcon(button, key)
 	if not p.buff and types and types.CustomAsset ~= nil and K.ColorVision and type(button.AddDispelTypeTexture) == "function" then
 		p.dispelLetter = textFrame:CreateTexture(nil, "OVERLAY")
 		p.dispelLetter:SetPoint("TOPRIGHT", p.skin, "TOPRIGHT")
-		Widgets.Size(p.dispelLetter, 14, 14)
+		local letter = math.min(14, p.styledSize or 14)
+		Widgets.Size(p.dispelLetter, letter, letter)
 		p.dispelLetter:Hide()
 		p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0)
 		button:AddDispelTypeTexture(p.dispelLetter, { style = types.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
@@ -1049,7 +1081,7 @@ local function ConfigureBuffs(f)
 	else
 		clip:SetPoint(corner, f, corner, 0, 0)
 	end
-	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size)
+	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size + TimerRoom(f, size))
 	container:ClearAllPoints()
 	container:SetPoint(corner, clip, corner, 0, 0)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
@@ -1072,13 +1104,15 @@ local function Configure(f)
 	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
+	local room = TimerRoom(f, block.size)
+	local lift = point:find("^BOTTOM") and room or 0
 	local clip = f.auraClip
 	clip:ClearAllPoints()
-	clip:SetPoint(point, f, "TOPLEFT", x, y)
-	clip:SetSize(math.max(1, block.width), math.max(1, block.height))
+	clip:SetPoint(point, f, "TOPLEFT", x, y - lift)
+	clip:SetSize(math.max(1, block.width), math.max(1, block.height + room))
 	clip:SetShown(block.cells > 0)
 	container:ClearAllPoints()
-	container:SetPoint(point, clip, point, 0, 0)
+	container:SetPoint(point, clip, point, 0, lift)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
@@ -1282,6 +1316,20 @@ local function BuildSamples(f)
 end
 Button.built[#Button.built + 1] = BuildSamples
 
+local function SampleLabel(icon, key, on, text, size)
+	local label = icon[key]
+	if on and not label then
+		label = Widgets.Fitted(Widgets.FontString(icon.tile.skin, "OVERLAY"))
+		label:SetText(text)
+		icon[key] = label
+	end
+	if label then
+		Style.SetFont(label, Settings.current.text.healthFont, size, "OUTLINE")
+		label:SetShown(on)
+	end
+	return label
+end
+
 local function LayoutSamples(f, k)
 	local holder = f.sampleAuraHolder
 	local block = Block(f, k)
@@ -1304,6 +1352,16 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
+	local first, a = f.sampleAuras[1], Settings.current.auras
+	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+	local count = SampleLabel(first, "count", a.stacks, "3", textSize)
+	if count then
+		local inset = PlaceIcon(first.tile)
+		count:ClearAllPoints()
+		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", -inset, inset)
+	end
+	local timer = SampleLabel(first, "timer", a.timers, "12s", textSize)
+	if timer then PlaceTimer(timer, first.tile.skin) end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
 	chip:ClearAllPoints()

@@ -25,25 +25,32 @@ local THEME_FONT = "theme"
 Settings.THEME_FONT = THEME_FONT
 Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
+local function ExtraText()
+	return { font = "", size = 12, outline = "OUTLINE", colorMode = "", color = Rgb("textEmphasis"),
+		textFormat = "", position = "CENTER", x = 0, y = 0 }
+end
+
 Settings.defaults = {
 	layout = { tidyLanes = true },
 	blizzard = { party = true, raid = true, manager = false, keepManager = true },
 	party = {
+		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
 		portrait = false, roleRing = false, classLine = false, power = true, powerHeight = 3,
-		textLayout = "ABOVE", nameSize = 13, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 13, nameChars = 0, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 11, buffCount = 3,
 	},
 	raid = {
+		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 116, height = 36, spacing = 9, growth = "DOWN", card = true,
 		groupGrowth = "RIGHT", groupSpacing = 13, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
 		roleRing = false, classLine = false, power = true, powerHeight = 2,
-		textLayout = "ABOVE", nameSize = 12, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 12, nameChars = 0, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
 		iconSize = 10,
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -56,10 +63,10 @@ Settings.defaults = {
 		healthFont = THEME_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
-	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },
+	icons = { role = true, roleShapes = true, statuses = true, afk = true, resurrection = true, summon = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true, shapes = true },
 	auras = {
-		enabled = true, onlyMine = false, sort = "", typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true },
@@ -85,8 +92,35 @@ end
 
 local rows
 
-function Settings.Schema()
-	if Settings.schema then return Settings.schema end
+local textRows = false
+local function TextSlotRows(schema)
+	if textRows then return end
+	textRows = true
+	for _, kind in ipairs({ "party", "raid" }) do
+		local label = kind == "party" and L["Party"] or L["Raid"]
+		local additions = {}
+		for i = 1, 2 do
+			additions[#additions + 1] = { type = "header", label = label .. ": " .. L["Extra text"] .. " " .. i }
+			K.Widgets.TextRows(additions, kind .. ".extra" .. i, { outlines = {
+				{ value = "NONE", label = L["None, soft shadow"] }, { value = "OUTLINE", label = L["Thin outline"] },
+				{ value = "THICKOUTLINE", label = L["Thick outline"] },
+			}, tags = true, placement = true })
+		end
+		additions[#additions + 1] = { type = "header", label = label .. ": " .. L["icons"] }
+		local index
+		for i, row in ipairs(schema) do if row.key == kind .. ".healthTextPlace" then index = i; break end end
+		for i, row in ipairs(additions) do
+			table.insert(schema, index + i, row)
+			if rows and row.key then rows[row.key] = row end
+		end
+	end
+end
+
+function Settings.Schema(includeText)
+	if Settings.schema then
+		if includeText then TextSlotRows(Settings.schema) end
+		return Settings.schema
+	end
 	local function Options(list)
 		local out = {}
 		for i, item in ipairs(list) do
@@ -218,6 +252,7 @@ function Settings.Schema()
 		schema[#schema].showWhen = Is(p .. "power", true)
 		add(Dropdown(p .. "textLayout", L["Name position"], L["Puts the name above the health bar or on it."], TEXT_LAYOUT))
 		add(Slider(p .. "nameSize", L["Name size"], L["The size of the name text."], 6, 24, 1))
+		add(Slider(p .. "nameChars", L["Name letters"], L["Shortens names to this many letters. 0 keeps whole names."], 0, 20, 1))
 		add(Dropdown(p .. "healthText", L["Health text"], L["What the health text shows."], HEALTH_TEXT))
 		add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 		schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
@@ -288,11 +323,16 @@ function Settings.Schema()
 		add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
 		add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
 		add(Toggle("icons.statuses", L["Resurrection, summon and AFK"], L["Shows these states in the ready-check space. Off leaves only ready checks."]))
+		add(Toggle("icons.afk", L["AFK indicator"], L["Marks members who are away from their keyboard."], { showWhen = Is("icons.statuses", true) }))
+		add(Toggle("icons.resurrection", L["Incoming resurrection"], L["Marks members with a resurrection on the way."], { showWhen = Is("icons.statuses", true) }))
+		add(Toggle("icons.summon", L["Incoming summon"], L["Marks members with a summon on the way."], { showWhen = Is("icons.statuses", true) }))
 		add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
 		add(Toggle("threat.shapes", L["Threat shapes"], L["Adds a tick, triangle or square beside the threat border. Off keeps the border alone."]))
 		add({ type = "header", label = L["Debuffs"] })
 		add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
+		add(Toggle("auras.stacks", L["Stacks"], L["Shows how many times a debuff has stacked."]))
+		add(Toggle("auras.timers", L["Time left"], L["Shows the time left on each aura."]))
 		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
 		K.Options.AuraFilterRows(schema, "auras", { dispellable = false, disableWhen = Is("auras.enabled", false) })
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
@@ -350,6 +390,7 @@ function Settings.Schema()
 
 	local schema = BuildSchema()
 	Settings.schema = schema
+	if includeText then TextSlotRows(schema) end
 
 	rows = {}
 	for _, row in ipairs(schema) do
@@ -434,9 +475,17 @@ CHECK.texture = function(_, v)
 end
 
 function Settings.Get(key)
+	if key:match("%.extra[12]$") then
+		local value = Saved(key)
+		return type(value) == "table" and value or Default(key)
+	end
 	if not rows then Settings.Schema() end
 	if key == "blizzard.manager" then return not Settings.Get("blizzard.keepManager") end
 	local row = rows[key]
+	if not row then
+		Settings.Schema(true)
+		row = rows[key]
+	end
 	if not row then
 		error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2)
 	end
@@ -476,9 +525,19 @@ end
 Settings.current = current
 
 function Settings.Refresh()
+	local stored = K.Store.IsLoaded() and K.Store.Module(MODULE) or Settings.defaults
 	for section, out in pairs(current) do
-		for name in pairs(Settings.defaults[section]) do
-			out[name] = Settings.Get(section .. "." .. name)
+		local own = stored[section]
+		for name, default in pairs(Settings.defaults[section]) do
+			local value = type(own) == "table" and own[name]
+			if not (section == "blizzard" and name == "manager") and type(default) ~= "table" and not (issecretvalue and issecretvalue(value)) and value == default then
+				out[name] = value
+			elseif type(default) == "table" then
+				if default.textFormat then out[name] = type(value) == "table" and value or default
+				else out[name] = CHECK.color(nil, value) or default end
+			else
+				out[name] = Settings.Get(section .. "." .. name)
+			end
 		end
 	end
 	return current

@@ -272,11 +272,10 @@ local function LevelColor(plate, level)
 	if level == SKULL_LEVEL then
 		return Tokens.Color("hostile")
 	end
-	if plate.kind == "enemy" and level > 0 and type(GetCreatureDifficultyColor) == "function" then
-		local c = GetCreatureDifficultyColor(level)
-		if type(c) == "table" and not (IsSecret(c.r) or IsSecret(c.g) or IsSecret(c.b))
-			and type(c.r) == "number" and type(c.g) == "number" and type(c.b) == "number" then
-			return K.Theme.Brighten(c.r, c.g, c.b)
+	if plate.kind == "enemy" then
+		local r, g, b = Plate.DifficultyColor(level)
+		if r then
+			return r, g, b
 		end
 	end
 	return Tokens.Color("medText")
@@ -285,7 +284,7 @@ end
 local updateLevel = Plate.UpdateLevel
 function Plate:UpdateLevel()
 	updateLevel(self)
-	if not Medallions.Active() or not self.level:IsShown() then
+	if not Medallions.Active() or not self.level:IsShown() or Settings.Get("level.colorMode") ~= "" then
 		return
 	end
 	self.levelText:SetTextColor(LevelColor(self, self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)))

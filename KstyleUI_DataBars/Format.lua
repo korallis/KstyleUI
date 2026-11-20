@@ -162,8 +162,9 @@ function Format.Money(copper, style)
 			return text
 		end
 	end
-	if style == "gold" and copper >= COPPER_PER_GOLD then
-		return format(L["%sg"], Format.Number(floor(copper / COPPER_PER_GOLD)))
+	if (style == "gold" or style == "short") and copper >= COPPER_PER_GOLD then
+		local gold = floor(copper / COPPER_PER_GOLD)
+		return format(L["%sg"], style == "short" and Format.Short(gold) or Format.Number(gold))
 	end
 	return FullMoney(copper)
 end

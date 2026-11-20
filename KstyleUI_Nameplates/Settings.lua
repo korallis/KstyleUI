@@ -17,43 +17,55 @@ end
 
 local BAR_TEXTURE = Tokens.Texture("barFlat")
 
+local function ExtraText()
+	return { font = "", size = 12, outline = "OUTLINE", colorMode = "", color = Color("textEmphasis"),
+		textFormat = "", position = "CENTER", x = 0, y = 0 }
+end
+
 Settings.defaults = {
 	preset = "lumen",
+	extra1 = ExtraText(), extra2 = ExtraText(),
 	personalResource = false,
 	offsetY = 0,
 	shrinkDistant = false,
 	font = "",
 	health = { width = 156.75, height = Tokens.Size("barHeight"), texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
-	enemy = { colorSource = "class", color = Color("plateHostile") },
+	enemy = { colorSource = "class", color = Color("plateHostile"), playersUseEnemy = false },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
 	types = {
 		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
+		casting = false, castingColor = Color("gilt"),
+		boss = false, bossColor = Color("hostile"), miniBoss = false, miniBossColor = Color("legendary"),
+		neutral = false, neutralColor = Color("neutral"), minor = false, minorColor = Color("poor"),
+		normal = false, normalColor = Color("plateHostile"),
 	},
-	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
-	level = { show = true, size = 13, outline = "NONE", font = "" },
+	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, afk = false, dnd = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
+	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit") },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent", font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
-		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
+		showIcon = false, iconRight = false, offsetY = 0, inFront = false, showTarget = false, nameAlign = "LEFT", spark = false, hideUnitName = false, fullOpacity = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 	},
 	threat = {
-		display = "glow", keyline = true, shapes = true, role = "auto", groupOnly = true,
+		display = "glow", keyline = true, shapes = true, role = "auto", groupOnly = true, name = false, calm = false, overTypes = true,
+		percent = false, percentPlace = "LEFT", percentColor = false,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
-	target = { readableTicks = true, smoothOpacity = true, highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
-	focus = { highlight = true, color = Color("rare") },
-	markers = { classification = true, raid = true, raidSize = 16 },
+	target = { readableTicks = true, smoothOpacity = true, highlight = true, friendly = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1, hashLine = false, hashPercent = 30 },
+	focus = { fullOpacity = false, highlight = true, color = Color("rare"), letter = "", letterSize = 12, letterX = 0, letterY = 0 },
+	markers = { classification = true, raid = true, raidSize = 16, nameRaid = false, nameRaidSize = 14, pvp = false, pvpEnemyOnly = false, pvpPlayersOnly = true },
 	stacking = { footprint = "plate" },
 	cvars = {
 		enabled = false, maxDistance = 40, verticalDistance = 0, stacking = "enemy",
 		selectedScale = 1.2, minScale = 0.8, clickSize = 2,
+		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game",
 	},
 }
 
@@ -112,6 +124,22 @@ function Settings.Schema()
 		{ value = "longest", label = L["Most time left first"] },
 		{ value = "expiring", label = L["Soonest to fade first"] },
 		{ value = "default", label = L["The game's order"] },
+	}
+	local GAME_CHOICES = {
+		{ value = "game", label = L["The game's setting"] },
+		{ value = "show", label = L["On"] },
+		{ value = "hide", label = L["Off"] },
+	}
+	local INSIDE = {
+		{ value = "LEFT", label = L["Left"] },
+		{ value = "CENTER", label = L["Centre"] },
+		{ value = "RIGHT", label = L["Right"] },
+	}
+	local FOCUS_LETTER = { { value = "", label = L["Off"] }, INSIDE[1], INSIDE[2], INSIDE[3] }
+	local LEVEL_COLORS = {
+		{ value = "", label = L["Current style"] },
+		{ value = "difficulty", label = L["Level difficulty colour"] },
+		{ value = "custom", label = L["Custom colour"] },
 	}
 	local FOOTPRINTS = {
 		{ value = "plate", label = L["KstyleUI's plate"] },
@@ -203,6 +231,8 @@ function Settings.Schema()
 		{ type = "header", label = L["Enemy plates"] },
 	})
 	K.Widgets.BarRows(schema, "enemy", { texture = false, options = COLOR_SOURCES, custom = Is("enemy.colorSource", "custom") })
+	schema[#schema + 1] = { type = "toggle", key = "enemy.playersUseEnemy", label = L["Enemy players use the enemy colour"],
+		help = L["Enemy players take the enemy bar colour instead of their class colour."] }
 	append({
 		{ type = "header", label = L["Friendly plates"] },
 	})
@@ -213,43 +243,22 @@ function Settings.Schema()
 			help = L["Friendly plates show just the name, without a health bar."],
 		},
 		{ type = "header", label = L["Unit types"] },
-		{
-			type = "toggle", key = "types.quest", label = L["Quest mobs"],
-			help = L["Colours the plates of mobs one of your quests needs. Wins over the other types."],
-		},
-		{
-			type = "color", key = "types.questColor", label = L["Quest colour"],
-			help = L["The bar colour of quest mobs."],
-			disableWhen = Off("types.quest"),
-		},
-		{
-			type = "toggle", key = "types.rare", label = L["Rares"],
-			help = L["Colours the plates of rare and rare elite mobs."],
-		},
-		{
-			type = "color", key = "types.rareColor", label = L["Rare colour"],
-			help = L["The bar colour of rares."],
-			disableWhen = Off("types.rare"),
-		},
-		{
-			type = "toggle", key = "types.elite", label = L["Elites"],
-			help = L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."],
-		},
-		{
-			type = "color", key = "types.eliteColor", label = L["Elite colour"],
-			help = L["The bar colour of elites."],
-			disableWhen = Off("types.elite"),
-		},
-		{
-			type = "toggle", key = "types.caster", label = L["Casters"],
-			help = L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."],
-		},
-		{
-			type = "color", key = "types.casterColor", label = L["Caster colour"],
-			help = L["The bar colour of casters."],
-			disableWhen = Off("types.caster"),
-		},
 	})
+	for _, t in ipairs({
+		{ "quest", L["Quest mobs"], L["Quest colour"], L["Colours the plates of mobs one of your quests needs. Wins over the other types."], L["The bar colour of quest mobs."] },
+		{ "rare", L["Rares"], L["Rare colour"], L["Colours the plates of rare and rare elite mobs."], L["The bar colour of rares."] },
+		{ "elite", L["Elites"], L["Elite colour"], L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."], L["The bar colour of elites."] },
+		{ "caster", L["Casters"], L["Caster colour"], L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."], L["The bar colour of casters."] },
+		{ "casting", L["Casting enemies"], L["Casting colour"], L["Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off."], L["The bar colour of enemies while they cast."] },
+		{ "boss", L["Bosses"], L["Boss colour"], L["Colours world bosses and skull-level mobs. Wins over rares and elites."] },
+		{ "miniBoss", L["Mini-bosses"], L["Mini-boss colour"], L["Colours elites above your level."] },
+		{ "neutral", L["Neutral mobs"], L["Neutral colour"], L["Colours mobs that leave you alone until you attack them."] },
+		{ "minor", L["Minor mobs"], L["Minor colour"], L["Colours the small mobs that come in swarms."] },
+		{ "normal", L["Normal mobs"], L["Normal colour"], L["Colours ordinary and trivial mobs. The other types win."] },
+	}) do
+		schema[#schema + 1] = { type = "toggle", key = "types." .. t[1], label = t[2], help = t[4] }
+		schema[#schema + 1] = { type = "color", key = "types." .. t[1] .. "Color", label = t[3], help = t[5] or L["The bar colour of this unit type."], disableWhen = Off("types." .. t[1]) }
+	end
 
 	SharedTextRows(schema, "name", L["Name"])
 	schema[#schema + 1] = {
@@ -262,7 +271,13 @@ function Settings.Schema()
 		help = L["Colours players' names with their class colour."],
 		disableWhen = Off("name.show"),
 	}
+	schema[#schema + 1] = { type = "toggle", key = "name.afk", label = L["AFK tag"], help = L["Adds <AFK> to the names of players who are away."], disableWhen = Off("name.show") }
+	schema[#schema + 1] = { type = "toggle", key = "name.dnd", label = L["DND tag"], help = L["Adds <DND> to the names of players who do not want to be disturbed."], disableWhen = Off("name.show") }
 	SharedTextRows(schema, "level", L["Level"])
+	schema[#schema + 1] = { type = "dropdown", key = "level.colorMode", label = L["Text colour"], options = LEVEL_COLORS,
+		help = L["Keeps the current style, colours the level by how hard the unit is, or uses your own colour."], disableWhen = Off("level.show") }
+	schema[#schema + 1] = { type = "color", key = "level.color", label = L["Custom text colour"], help = L["The text colour when its colour mode is custom."],
+		showWhen = Is("level.colorMode", "custom"), disableWhen = Off("level.show") }
 	SharedTextRows(schema, "healthText", L["Health text"])
 	schema[#schema + 1] = {
 		type = "dropdown", key = "healthText.format", label = L["Format"],
@@ -270,8 +285,16 @@ function Settings.Schema()
 		options = HEALTH_FORMATS, disableWhen = Off("healthText.show"),
 	}
 
+	for i = 1, 2 do
+		schema[#schema + 1] = { type = "header", label = L["Extra text"] .. " " .. i }
+		K.Widgets.TextRows(schema, "extra" .. i, { max = TEXT_MAX, outlines = OUTLINES, tags = true, placement = true })
+	end
+
 	local rest = {
 		{ type = "header", label = L["Cast bar"] },
+		{ type = "toggle", key = "cast.spark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] },
+		{ type = "toggle", key = "cast.hideUnitName", label = L["Hide unit name while casting"], help = L["Hides the unit name for the duration of its cast."] },
+		{ type = "toggle", key = "cast.fullOpacity", label = L["Keep casting units at full opacity"], help = L["Keeps casting units visible when other plates are dimmed."] },
 		{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
 		{
 			type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
@@ -322,6 +345,9 @@ function Settings.Schema()
 			help = L["Shows the spell's icon at the left of the cast bar."],
 			disableWhen = Off("cast.enabled"),
 		},
+		{ type = "toggle", key = "cast.iconRight", label = L["Icon on the right"], help = L["Puts the spell icon at the right of the cast bar."], disableWhen = Off("cast.showIcon") },
+		{ type = "slider", key = "cast.offsetY", label = L["Gap under the health bar"], help = L["Moves the cast bar further below the health bar."], min = 0, max = 20, step = 1, disableWhen = Off("cast.enabled") },
+		{ type = "toggle", key = "cast.inFront", label = L["Casts in front of plates"], help = L["Draws cast bars over neighbouring plates."], disableWhen = Off("cast.enabled") },
 		{
 			type = "toggle", key = "cast.showName", label = L["Spell name"],
 			help = L["Shows the name of the spell being cast."],
@@ -337,6 +363,8 @@ function Settings.Schema()
 			help = L["Gives the spell name its own line. Off puts it inside the cast bar."],
 			disableWhen = Off("cast.showName"),
 		},
+		{ type = "dropdown", key = "cast.nameAlign", label = L["Spell name position"], help = L["Aligns the spell name left, centred or right."], options = INSIDE, disableWhen = Off("cast.showName") },
+		{ type = "toggle", key = "cast.showTarget", label = L["Spell target"], help = L["Adds who the spell is aimed at after the spell name."], disableWhen = Off("cast.showName") },
 		{
 			type = "toggle", key = "cast.showTime", label = L["Time left"],
 			help = L["Shows the seconds left on the cast bar."],
@@ -445,6 +473,11 @@ function Settings.Schema()
 			help = L["Shows threat only while you are in a party or raid."],
 			disableWhen = Is("threat.display", "off"),
 		},
+		{ type = "toggle", key = "threat.name", label = L["Threat on the name"], help = L["Also colours the unit's name with its threat colour."], disableWhen = Is("threat.display", "off") },
+		{ type = "toggle", key = "threat.calm", label = L["Safe colour while you hold no aggro"],
+			help = L["Damage dealers and healers see the safe colour on units attacking someone else."], disableWhen = Is("threat.display", "off") },
+		{ type = "toggle", key = "threat.overTypes", label = L["Threat beats unit types"],
+			help = L["Threat on the health bar wins over unit type colours. Off keeps the type colour."], disableWhen = Is("threat.display", "off") },
 		{
 			type = "color", key = "threat.safe", label = L["Safe colour"],
 			help = L["A tank holds aggro."],
@@ -460,7 +493,11 @@ function Settings.Schema()
 			help = L["A damage dealer or healer has aggro, or a tank lost it."],
 			disableWhen = Is("threat.display", "off"),
 		},
+		{ type = "toggle", key = "threat.percent", label = L["Threat percent"], help = L["Shows your share of threat on units that are attacking your group."] },
+		{ type = "dropdown", key = "threat.percentPlace", label = L["Threat percent position"], help = L["Where the threat percent sits inside the health bar."], options = INSIDE, disableWhen = Off("threat.percent") },
+		{ type = "toggle", key = "threat.percentColor", label = L["Colour by threat"], help = L["Colours the threat percent with the threat colour. Off shows it in white."], disableWhen = Off("threat.percent") },
 		{ type = "header", label = L["Target and focus"] },
+		{ type = "toggle", key = "focus.fullOpacity", label = L["Keep focus at full opacity"], help = L["Keeps your focus visible when other plates are dimmed."] },
 		{ type = "toggle", key = "target.readableTicks", label = L["Bright target ticks"],
 			help = L["Medallions: bright, outlined ticks settle beside your target. Off restores the dark ticks."] },
 		{ type = "toggle", key = "target.smoothOpacity", label = L["Smooth plate opacity"],
@@ -469,6 +506,9 @@ function Settings.Schema()
 			type = "toggle", key = "target.highlight", label = L["Highlight the target"],
 			help = L["Draws a glow and an edge around your target's plate."],
 		},
+		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = Off("target.highlight") },
+		{ type = "toggle", key = "target.hashLine", label = L["Health line on the target"], help = L["Marks a health percent, such as an execute range, on your target's health bar."] },
+		{ type = "slider", key = "target.hashPercent", label = L["Health line percent"], help = L["The health percent the line marks."], min = 0, max = 100, step = 1, disableWhen = Off("target.hashLine") },
 		{
 			type = "dropdown", key = "target.colorSource", label = L["Target colour"],
 			help = L["The target highlight follows the accent or uses your own colour."],
@@ -493,6 +533,10 @@ function Settings.Schema()
 			help = L["The edge colour of your focus's plate."],
 			disableWhen = Off("focus.highlight"),
 		},
+		{ type = "dropdown", key = "focus.letter", label = L["Focus letter"], help = L["Writes F on your focus's health bar."], options = FOCUS_LETTER },
+		{ type = "slider", key = "focus.letterSize", label = L["Text size"], help = L["The size of this text, in interface units."], min = TEXT_MIN, max = 32, step = 1, disableWhen = Is("focus.letter", "") },
+		{ type = "slider", key = "focus.letterX", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -100, max = 100, step = 1, disableWhen = Is("focus.letter", "") },
+		{ type = "slider", key = "focus.letterY", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -100, max = 100, step = 1, disableWhen = Is("focus.letter", "") },
 		{ type = "header", label = L["Markers"] },
 		{
 			type = "toggle", key = "markers.classification", label = L["Elite and rare markers"],
@@ -507,6 +551,11 @@ function Settings.Schema()
 			help = L["The size of the raid marker, in interface units."],
 			min = 8, max = 32, step = 1, disableWhen = Off("markers.raid"),
 		},
+		{ type = "toggle", key = "markers.nameRaid", label = L["Raid marker by the name"], help = L["Also shows the raid marker just before the unit's name."] },
+		{ type = "slider", key = "markers.nameRaidSize", label = L["Name raid marker size"], help = L["The size of the raid marker by the name, in interface units."], min = 8, max = 32, step = 1, disableWhen = Off("markers.nameRaid") },
+		{ type = "toggle", key = "markers.pvp", label = L["PvP flag"], help = L["Shows a faction badge after the names of units flagged for PvP."] },
+		{ type = "toggle", key = "markers.pvpEnemyOnly", label = L["Opposite faction only"], help = L["Shows the PvP badge only on the other faction."], disableWhen = Off("markers.pvp") },
+		{ type = "toggle", key = "markers.pvpPlayersOnly", label = L["Players only"], help = L["Hides the PvP badge on faction NPCs such as guards."], disableWhen = Off("markers.pvp") },
 		{ type = "header", label = L["Stacking"] },
 		{
 			type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
@@ -549,6 +598,17 @@ function Settings.Schema()
 			min = 1, max = 5, step = 1, disableWhen = Off("cvars.enabled"),
 		},
 	}
+	for _, c in ipairs({
+		{ "showEnemies", "nameplateShowEnemies", L["Enemy plates"] },
+		{ "showFriends", "nameplateShowFriendlyPlayers", L["Friendly player plates"] },
+		{ "enemyMinions", "nameplateShowEnemyMinions", L["Enemy pets and minions"] },
+		{ "friendlyMinions", "nameplateShowFriendlyPlayerMinions", L["Friendly pets and minions"] },
+		{ "friendlyNpcs", "nameplateShowFriendlyNpcs", L["Friendly NPC plates"] },
+		{ "friendlyNameOnly", "nameplateShowOnlyNameForFriendlyPlayerUnits", L["Names only for friendly players in instances"] },
+	}) do
+		rest[#rest + 1] = { type = "dropdown", key = "cvars." .. c[1], label = c[3], options = GAME_CHOICES,
+			help = L["Turns these game plates on or off. The game's setting leaves them alone."], disableWhen = Off("cvars.enabled"), showWhen = HasCVar(c[2]) }
+	end
 	for _, row in ipairs(rest) do
 		schema[#schema + 1] = row
 	end
@@ -638,6 +698,7 @@ local function Read(key)
 	end
 	local stored = Lookup(Store.Module(MODULE), key)
 	if not ns.Logic.IsSecret(stored) and stored == default then return stored end
+	if type(default) == "table" and default.textFormat then return type(stored) == "table" and stored or default end
 	if not rows then Settings.Schema() end
 	local row = rows[key]
 	if row then

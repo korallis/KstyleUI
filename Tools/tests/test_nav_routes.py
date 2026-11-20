@@ -11,7 +11,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "nav"))
 
 import build_routes
-from geometry import MID, UNIT, chunks, liquid_cells, lua_routes, m2_collision, simplify, terrain, transform, wmo_group
+from geometry import MID, UNIT, chunks, liquid_cells, lua_routes, m2_collision, place, simplify, terrain, transform, wmo_doodads, wmo_group
 
 
 def chunk(name, body):
@@ -91,16 +91,28 @@ class TerrainTests(unittest.TestCase):
 
 
 class CollisionTests(unittest.TestCase):
-    def test_wmo_filters_render_only_detail(self):
+    def test_wmo_keeps_collision_hulls_and_drops_detail(self):
         group = bytes(68) + chunk("MOVT", struct.pack("<9f", 0, 0, 0, 1, 0, 0, 0, 1, 0))
-        group += chunk("MOVI", struct.pack("<9H", *([0, 1, 2] * 3)))
-        group += chunk("MOPY", bytes([4, 0, 0x22, 0, 0x20, 0]))
+        group += chunk("MOVI", struct.pack("<12H", 0, 1, 2, 0, 2, 1, 1, 0, 2, 1, 2, 0))
+        # Render+detail, collision-only hull (material 0xff), render, render without camera collision.
+        group += chunk("MOPY", bytes([0x64, 0, 0x48, 0xff, 0x20, 0, 0x22, 0]))
         v, t = wmo_group(chunk("MOGP", group))
         self.assertEqual(len(v), 3)
-        self.assertEqual(len(t), 2)
+        self.assertEqual(t, [(0, 2, 1), (1, 0, 2), (1, 2, 0)])
 
-        modern = group.replace(chunk("MOPY", bytes([4, 0, 0x22, 0, 0x20, 0])), chunk("MPY2", struct.pack("<6H", 4, 300, 0x22, 400, 0x20, 500)))
+        modern = group.replace(chunk("MOPY", bytes([0x64, 0, 0x48, 0xff, 0x20, 0, 0x22, 0])), chunk("MPY2", struct.pack("<8H", 0x64, 300, 0x48, 0xffff, 0x20, 400, 0x22, 500)))
         self.assertEqual(wmo_group(chunk("MOGP", modern)), (v, t))
+
+    def test_wmo_doodads_use_default_and_placed_sets(self):
+        sets = b"".join(name.ljust(20, b"\0") + struct.pack("<3I", start, 1, 0) for name, start in ((b"Set_$DefaultGlobal", 0), (b"Night", 1), (b"Day", 2)))
+        defs = b"".join(struct.pack("<I8fI", index, 10 * index, 0, 0, 0, 0, math.sin(math.pi / 4), math.cos(math.pi / 4), 2, 0) for index in range(3))
+        blocks = {"MODS": sets, "MODD": defs, "MODI": struct.pack("<3I", 501, 502, 503)}
+        found = list(wmo_doodads(blocks, 2))
+        self.assertEqual([d[0] for d in found], ["501", "503"])
+        source, position, rotation, scale = found[1]
+        # A quarter turn about z, doubled and moved 20 yards along x.
+        for actual, expected in zip(place([(1, 0, 0)], position, rotation, scale)[0], (20, 2, 0)):
+            self.assertAlmostEqual(actual, expected, places=5)
 
     def test_m2_collision_offsets_are_relative_to_md20(self):
         data = bytearray(250)

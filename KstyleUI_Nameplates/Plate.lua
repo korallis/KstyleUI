@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens, Theme, Scale, Motion = K.Widgets, K.Tokens, K.Theme, K.Scale, K.Motion
+local Widgets, Tokens, Theme, Scale, Motion, L = K.Widgets, K.Tokens, K.Theme, K.Scale, K.Motion, K.L
 local Logic, Settings = ns.Logic, ns.Settings
 local IsSecret = Logic.IsSecret
 
@@ -59,12 +59,17 @@ local SKULL_LEVEL = -1
 local THREAT_KEYS = { safe = "threat.safe", warning = "threat.warning", danger = "threat.danger" }
 local SOURCE_KEYS = { enemy = "enemy.colorSource", friendly = "friendly.colorSource" }
 local COLOR_KEYS = { enemy = "enemy.color", friendly = "friendly.color" }
-local TYPES = { "quest", "rare", "elite", "caster" }
-local TYPE_KEYS = { quest = "types.quest", rare = "types.rare", elite = "types.elite", caster = "types.caster" }
-local TYPE_COLOR_KEYS = { quest = "types.questColor", rare = "types.rareColor", elite = "types.eliteColor", caster = "types.casterColor" }
+local TYPES = { "quest", "boss", "rare", "miniBoss", "elite", "caster", "neutral", "minor", "normal" }
+local TYPE_KEYS, TYPE_COLOR_KEYS = {}, {}
+local TYPE_VISION = { boss = 2, normal = 2, neutral = 3 }
+for _, name in ipairs(TYPES) do
+	TYPE_KEYS[name], TYPE_COLOR_KEYS[name] = "types." .. name, "types." .. name .. "Color"
+end
+local PVP_ATLAS = { Horde = "UI-HUD-UnitFrame-SmallCircle-Horde", Alliance = "UI-HUD-UnitFrame-SmallCircle-Alliance" }
+local INSIDE_X = { LEFT = 1, CENTER = 0, RIGHT = -1 }
 local typeEnabled, typeInfo = {}, {}
-local TEXT_ELEMENTS = { "name", "healthText" }
-local TAG_EVENTS = { UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
+local TEXT_ELEMENTS = { "name", "healthText", "extra1", "extra2" }
+local TAG_EVENTS = { UNIT_LEVEL = "Level", UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
 	UNIT_ABSORB_AMOUNT_CHANGED = "Prediction", UNIT_TARGET = "Target" }
 
 local function OnTagEvent(plate, event)
@@ -284,13 +289,102 @@ function Plate:ApplyScale()
 	end
 end
 
+local function Host(plate)
+	if not plate.extraHost then
+		plate.extraHost = CreateFrame("Frame", nil, plate)
+		plate.extraHost:SetAllPoints(plate.health)
+	end
+	plate.extraHost:SetFrameLevel(plate.health.fillClip:GetFrameLevel() + 1)
+	return plate.extraHost
+end
+
+local function ExtraTexts(plate)
+	for i = 1, 2 do
+		local key = "extra" .. i
+		local cfg = Settings.Get(key)
+		if type(cfg.textFormat) == "string" and cfg.textFormat ~= "" then
+			Host(plate)
+		end
+		plate[key] = Widgets.PlaceText(plate[key], cfg, plate.extraHost, plate.health, plate.barW)
+	end
+end
+
+local letterCfg = { textFormat = "", font = "", outline = "OUTLINE" }
+local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp" }
+
+local function Overlays(plate)
+	local health, barW, barH = plate.health, plate.barW, plate.barH
+	local letter = Settings.Get("focus.letter")
+	if letter ~= "" or plate.focusLetter then
+		letterCfg.textFormat, letterCfg.position = letter ~= "" and "F" or "", letter
+		letterCfg.size, letterCfg.x, letterCfg.y = Settings.Get("focus.letterSize"), Settings.Get("focus.letterX"), Settings.Get("focus.letterY")
+		plate.focusLetter = Widgets.PlaceText(plate.focusLetter, letterCfg, letter ~= "" and Host(plate) or plate.extraHost, health, barW)
+		if letter ~= "" then plate.focusLetter:SetText(L["F"]) end
+	end
+	if Settings.Get("target.hashLine") then
+		local line = plate.hashLine or Host(plate):CreateTexture(nil, "OVERLAY")
+		plate.hashLine = line
+		line:SetColorTexture(Tokens.Color("textEmphasis"))
+		local share = Settings.Get("target.hashPercent") / 100
+		if Settings.Get("health.reverse") then share = 1 - share end
+		line:ClearAllPoints()
+		if health.vertical then
+			Widgets.Size(line, barW, Pixel(plate))
+			line:SetPoint("BOTTOMLEFT", health, "BOTTOMLEFT", 0, Widgets.Snap(plate, barH * share))
+		else
+			Widgets.Size(line, Pixel(plate), barH)
+			line:SetPoint("TOPLEFT", health, "TOPLEFT", Widgets.Snap(plate, barW * share), 0)
+		end
+	end
+	if Settings.Get("threat.percent") then
+		local text = plate.threatText or NewText(Host(plate), "CENTER")
+		plate.threatText, text.tint = text, nil
+		StyleFont(text, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number",
+			K.Theme.FollowsKit(Settings.Get("healthText.font")) and Settings.Get("font", "number") or Settings.Get("healthText.font"))
+		local place = Settings.Get("threat.percentPlace")
+		text:ClearAllPoints()
+		text:SetJustifyH(place)
+		if place == "RIGHT" and plate.healthTextEnabled then
+			Widgets.Point(text, "RIGHT", plate.healthText, "LEFT", -TEXT_INSET, 0)
+		else
+			Place(text, place, health, place, INSIDE_X[place] * TEXT_INSET, 0, nil, nil, barW, barH)
+		end
+	end
+	if Settings.Get("markers.nameRaid") then
+		local icon = plate.nameRaid or plate:CreateTexture(nil, "OVERLAY")
+		plate.nameRaid = icon
+		icon:SetTexture(RAID_ICONS)
+		local size = Settings.Get("markers.nameRaidSize")
+		Widgets.Size(icon, size, size)
+		icon:ClearAllPoints()
+		Widgets.Point(icon, "RIGHT", plate.name, "LEFT", -BADGE_GAP, 0)
+	end
+	if Settings.Get("markers.pvp") then
+		local badge = plate.pvpBadge or plate:CreateTexture(nil, "OVERLAY")
+		plate.pvpBadge, badge.atlas = badge, nil
+		local size = Settings.Get("name.size")
+		Widgets.Size(badge, size, size)
+		badge:ClearAllPoints()
+		Widgets.Point(badge, "LEFT", plate.name, "RIGHT", BADGE_GAP, 0)
+	end
+	for key, setting in pairs(OVERLAY_KEYS) do
+		if plate[key] and not Settings.Get(setting) then plate[key]:Hide() end
+	end
+end
+
+function Plate:SetNameAlpha(alpha)
+	self.name:SetAlpha(alpha)
+	if self.nameRaid then self.nameRaid:SetAlpha(alpha) end
+	if self.pvpBadge then self.pvpBadge:SetAlpha(alpha) end
+end
+
 function Plate:Restyle()
 	if self.textOptions then self.healthText:SetTextColor(Tokens.Color("white")) end
 	self.nameFormat, self.healthFormat = Settings.Get("name.textFormat"), Settings.Get("healthText.textFormat")
 	self.nameEnabled, self.healthTextEnabled = Settings.Get("name.show"), Settings.Get("healthText.show")
+	self.statusTags = Settings.Get("name.afk") or Settings.Get("name.dnd")
 	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= ""
 		or Settings.Get("name.colorMode") ~= "" or Settings.Get("healthText.colorMode") ~= ""
-	self:RegisterTagEvents()
 	self:ApplyScale()
 	local state = ns.state
 	local w, h = state.width, state.height
@@ -340,6 +434,9 @@ function Plate:Restyle()
 	self.glowFrame:SetFrameLevel(math.max(0, health.under:GetFrameLevel() - 1))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
+	ExtraTexts(self)
+	Overlays(self)
+	self:RegisterTagEvents()
 	self.nameOnly = nil
 	self.bracketsShown = nil
 	Each("Restyle", self)
@@ -524,6 +621,7 @@ function Plate:Refresh(immediate)
 	self:UpdateName(true)
 	self:UpdateLevel()
 	self:UpdateRaid()
+	self:UpdatePvp()
 	self:UpdateThreat()
 	self:UpdateHighlight()
 	Each("Refresh", self, immediate)
@@ -540,6 +638,7 @@ function Plate:RefreshFlags()
 		self:Refresh()
 		return
 	end
+	self:UpdatePvp()
 	self:UpdateThreat()
 	self:UpdateTags()
 end
@@ -622,6 +721,13 @@ function Plate:TypeColor(isPlayer, tapped)
 	if IsSecret(typeInfo.classification) then
 		typeInfo.classification = nil
 	end
+	if typeEnabled.boss or typeEnabled.miniBoss then
+		typeInfo.level = self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)
+		typeInfo.playerLevel = typeEnabled.miniBoss and UnitValue(UnitEffectiveLevel or UnitLevel, "player")
+	end
+	if typeEnabled.neutral then
+		typeInfo.reaction = self:Is("reaction", UnitReaction, self.unit, "player")
+	end
 	local found = Logic.UnitType(typeEnabled, typeInfo)
 	self.unitType = found
 	return found and TYPE_COLOR_KEYS[found] or nil
@@ -630,30 +736,38 @@ end
 function Plate:UpdateColor()
 	local r, g, b
 	local state = self.threatState
-	if state and Settings.Get("threat.display") == "health" then
-		r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
+	local kind = self.kind
+	local threat = state and Settings.Get("threat.display") == "health"
+	local casting, source, typeKey
+	if not (threat and Settings.Get("threat.overTypes")) then
+		casting = kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil"))
+		if not casting then
+			local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
+			local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
+			source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer and not (kind == "enemy" and Settings.Get("enemy.playersUseEnemy")), tapped)
+			typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
+		end
+	end
+	if threat and not (casting or typeKey) then
+		r, g, b = ThreatColor(state)
+	elseif casting then
+		r, g, b = Rgb(Settings.Get("types.castingColor"))
+	elseif typeKey then
+		r, g, b = Rgb(Settings.Get(typeKey))
+		if TYPE_VISION[self.unitType] then r, g, b = K.ColorVision.Color(TYPE_VISION[self.unitType], r, g, b) end
+	elseif source == "tapped" then
+		r, g, b = Tokens.Color("textDisabled")
+	elseif source == "custom" then
+		r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
+	elseif source == "class" then
+		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
+		r, g, b = Theme.ClassColorForWidget(class)
 	else
-		local kind = self.kind
-		local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
-		local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
-		local source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer, tapped)
-		local typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
-		if typeKey then
-			r, g, b = Rgb(Settings.Get(typeKey))
-		elseif source == "tapped" then
-			r, g, b = Tokens.Color("textDisabled")
-		elseif source == "custom" then
-			r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
-		elseif source == "class" then
-			local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
-			r, g, b = Theme.ClassColorForWidget(class)
+		local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
+		if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
+			r, g, b = K.ColorVision.Color(2, Tokens.Color("plateHostile"))
 		else
-			local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
-			if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
-				r, g, b = Tokens.Color("plateHostile")
-			else
-				r, g, b = Theme.ReactionColor(reaction)
-			end
+			r, g, b = K.ColorVision.ReactionColor(reaction)
 		end
 	end
 	local last = self.colorKey
@@ -678,7 +792,7 @@ function Plate:UpdateHealth(immediate, refreshing)
 		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
-	if self.textOptions and not refreshing then self:UpdateTags("Health") end
+	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Health") end
 end
 
 function Plate:UpdateHealthText()
@@ -717,24 +831,41 @@ function Plate:UpdateName(refreshing)
 	end
 	local value = self:Is("name", UnitName, self.unit)
 	if self.nameFormat == "" then
+		local tag = self.statusTags and self:StatusTag()
 		if IsSecret(value) then
-			name:SetText(value)
+			if tag then name:SetFormattedText("%s <%s>", value, tag) else name:SetText(value) end
 		elseif type(value) == "string" then
-			Widgets.SetText(name, Settings.Get("name.upper") and K.Locale.Upper(value) or value)
+			value = Settings.Get("name.upper") and K.Locale.Upper(value) or value
+			Widgets.SetText(name, tag and value .. " <" .. tag .. ">" or value)
 		else
 			name:SetText("")
 		end
 	end
 	self:UpdateNameColor(true)
-	if self.textOptions and not refreshing then self:UpdateTags("Name") end
+	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Name") end
+end
+
+function Plate:StatusTag()
+	if not IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) then
+		return nil
+	end
+	if Settings.Get("name.afk") and IsTrue(self:Is("afk", UnitIsAFK, self.unit)) then
+		return L["AFK"]
+	elseif Settings.Get("name.dnd") and IsTrue(self:Is("dnd", UnitIsDND, self.unit)) then
+		return L["DND"]
+	end
 end
 
 function Plate:RegisterTagEvents()
 	if self.sample then return end
+	if not (self.textOptions or self.extra1 or self.extra2) then
+		for event in pairs(TAG_EVENTS) do self:UnregisterEvent(event) end
+		return
+	end
 	for event, field in pairs(TAG_EVENTS) do
 		local needed = false
 		for _, key in ipairs(TEXT_ELEMENTS) do
-			if Settings.Get(key .. ".show") and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
+			if self[key] and (key:match("^extra") or Settings.Get(key .. ".show")) and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
 		end
 		if self.unit and needed then self:RegisterUnitEvent(event, self.unit) else self:UnregisterEvent(event) end
 	end
@@ -746,20 +877,23 @@ function Plate:PaintTags(key)
 	if sample then
 		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
 	end
-	Widgets.TagText(key == "name" and self.name or self.healthText, Settings.Get(key .. ".textFormat"), self.unit, sample)
+	local format = Settings.Get(key .. ".textFormat")
+	local tag = key == "name" and self.statusTags and self:StatusTag()
+	Widgets.TagText(self[key], tag and format .. " <" .. tag .. ">" or format, self.unit, sample)
 end
 
 function Plate:UpdateTags(event)
-	if not self.textOptions then return end
+	if not (self.textOptions or self.extra1 or self.extra2) then return end
 	for _, key in ipairs(TEXT_ELEMENTS) do
-		local text = key == "name" and self.name or self.healthText
-		local format = Settings.Get(key .. ".textFormat")
-		if format ~= "" and Settings.Get(key .. ".show") and (key ~= "healthText" or not self.nameOnly)
+		local text = self[key]
+		local extra = key:match("^extra")
+		local format = text and Settings.Get(key .. ".textFormat") or ""
+		if format ~= "" and (extra or Settings.Get(key .. ".show")) and (key ~= "healthText" or not self.nameOnly)
 			and (not event or Widgets.ParseText(format).events[event]) then
 			self:PaintTags(key)
 		end
-		local mode = Settings.Get(key .. ".colorMode")
-		if mode ~= "" then
+		local mode = text and Settings.Get(key .. ".colorMode") or ""
+		if mode ~= "" and not (key == "name" and self.threatState and Settings.Get("threat.name")) then
 			Widgets.TextTint(text, mode, Settings.Get(key .. ".color"), self.unit, self.sample)
 		end
 	end
@@ -770,9 +904,12 @@ function Plate:UpdateNameColor(force)
 		return
 	end
 	local name = self.name
-	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
-	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
-	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
+	if self.threatState and Settings.Get("threat.name") then
+		name:SetTextColor(ThreatColor(self.threatState))
+		return
+	end
+	if IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) and Settings.Get("name.classColor") and (self.nameOnly
+		or Settings.Get(SOURCE_KEYS[self.kind]) ~= "class" or self.kind == "enemy" and Settings.Get("enemy.playersUseEnemy")) then
 		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
 		name:SetTextColor(Theme.ClassTextColorForWidget(class))
 	else
@@ -791,8 +928,15 @@ function Plate:UpdateLevel()
 		return
 	end
 	self.levelText:SetText(text or "")
+	local mode = Settings.Get("level.colorMode")
+	local dr, dg, db
+	if mode == "difficulty" then dr, dg, db = Plate.DifficultyColor(level) end
 	if not IsSecret(level) and level == SKULL_LEVEL then
 		self.levelText:SetTextColor(Tokens.Color("hostile"))
+	elseif mode == "custom" then
+		self.levelText:SetTextColor(Rgb(Settings.Get("level.color")))
+	elseif dr then
+		self.levelText:SetTextColor(dr, dg, db)
 	else
 		self.levelText:SetTextColor(Tokens.Color("giltLit"))
 	end
@@ -807,18 +951,53 @@ end
 
 Plate.UpdateMarker = Plate.UpdateLevel
 
+function Plate.DifficultyColor(level)
+	if IsSecret(level) or type(level) ~= "number" or level <= 0 or type(GetCreatureDifficultyColor) ~= "function" then
+		return nil
+	end
+	local c = GetCreatureDifficultyColor(level)
+	if type(c) == "table" and not (IsSecret(c.r) or IsSecret(c.g) or IsSecret(c.b))
+		and type(c.r) == "number" and type(c.g) == "number" and type(c.b) == "number" then
+		return Theme.Brighten(c.r, c.g, c.b)
+	end
+end
+
+local function ShowRaid(icon, shown, index)
+	if not shown or type(index) == "nil" then
+		icon:Hide()
+	else
+		icon:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
+		icon:Show()
+	end
+end
+
 function Plate:UpdateRaid()
-	local raid = self.raid
 	local index
-	if Settings.Get("markers.raid") then
+	local nameRaid = Settings.Get("markers.nameRaid") and self.nameRaid
+	if Settings.Get("markers.raid") or nameRaid then
 		index = self:Is("raid", GetRaidTargetIndex, self.unit)
 	end
-	if type(index) == "nil" then
-		raid:Hide()
-	else
-		raid:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
-		raid:Show()
+	ShowRaid(self.raid, Settings.Get("markers.raid"), index)
+	if nameRaid then ShowRaid(nameRaid, self.nameEnabled, index) end
+end
+
+function Plate:UpdatePvp()
+	local badge = Settings.Get("markers.pvp") and self.pvpBadge
+	if not badge then return end
+	local faction
+	if self.nameEnabled and (IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) or not Settings.Get("markers.pvpPlayersOnly"))
+		and IsTrue(self:Is("pvp", UnitIsPVP, self.unit)) then
+		faction = self.sample and self.sample.faction or UnitValue(UnitFactionGroup, self.unit)
+		local mine = Settings.Get("markers.pvpEnemyOnly") and UnitValue(UnitFactionGroup, "player")
+		if IsSecret(faction) or IsSecret(mine) or faction == mine then
+			faction = nil
+		end
 	end
+	local atlas = faction and PVP_ATLAS[faction] or false
+	if badge.atlas == atlas then return end
+	badge.atlas = atlas
+	if atlas then badge:SetAtlas(atlas) end
+	badge:SetShown(atlas and true or false)
 end
 
 function Plate:UpdateThreat()
@@ -828,11 +1007,16 @@ function Plate:UpdateThreat()
 		if self.sample then
 			state = self.sample.threat
 		elseif ns.state.inGroup or not Settings.Get("threat.groupOnly") then
-			state = Logic.ThreatState(UnitValue(UnitThreatSituation, "player", self.unit), ns.state.isTank)
+			state = Logic.ThreatState(UnitValue(UnitThreatSituation, "player", self.unit), ns.state.isTank, Settings.Get("threat.calm"))
 		end
 	end
 	local changed = state ~= self.threatState
 	self.threatState = state
+	self:UpdateThreatText()
+	if changed and Settings.Get("threat.name") then
+		self:UpdateNameColor(true)
+		self:UpdateTags("Threat")
+	end
 	local shape = self.threatShape
 	shape:SetShown(state ~= nil and Settings.Get("threat.shapes"))
 	if state then
@@ -864,6 +1048,37 @@ function Plate:UpdateThreat()
 	end
 end
 
+function Plate:UpdateThreatText()
+	local text = Settings.Get("threat.percent") and self.threatText
+	if not text then return end
+	local pct, state
+	if self.kind == "enemy" and not self.nameOnly then
+		if self.sample then
+			pct, state = self.sample.threatPct, self.sample.threat
+		else
+			pct = select(3, UnitValue(UnitDetailedThreatSituation, "player", self.unit))
+			if type(pct) ~= "nil" and Settings.Get("threat.percentColor") then
+				state = Logic.ThreatState(UnitValue(UnitThreatSituation, "player", self.unit), ns.state.isTank, Settings.Get("threat.calm"))
+			end
+		end
+	end
+	if type(pct) == "nil" then
+		if text:IsShown() then text:Hide() end
+		return
+	end
+	text:SetFormattedText("%.0f%%", pct)
+	local tint = Settings.Get("threat.percentColor") and state or "white"
+	if text.tint ~= tint then
+		text.tint = tint
+		if tint == "white" then
+			text:SetTextColor(Tokens.Color("textEmphasis"))
+		else
+			text:SetTextColor(ThreatColor(tint))
+		end
+	end
+	text:Show()
+end
+
 function Plate:UpdateHighlight(sigilCasts)
 	local state = ns.state
 	local isTarget, isFocus
@@ -875,7 +1090,10 @@ function Plate:UpdateHighlight(sigilCasts)
 	end
 	ns.Cast.Gate(self, isTarget, sigilCasts)
 	ns.Cast.Selection(self, isTarget, isFocus)
-	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly or false
+	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly
+		and (self.kind ~= "friendly" or Settings.Get("target.friendly")) or false
+	if self.hashLine and Settings.Get("target.hashLine") then self.hashLine:SetShown(isTarget and not self.nameOnly or false) end
+	if self.focusLetter and Settings.Get("focus.letter") ~= "" then self.focusLetter:SetShown(isFocus and not self.nameOnly or false) end
 	self:ShowBrackets(framed)
 	local health = self.health
 	self.focusRim = isFocus and Settings.Get("focus.highlight") and not framed
@@ -888,7 +1106,8 @@ function Plate:UpdateHighlight(sigilCasts)
 		health:SetRimColor(Tokens.Color("black"))
 	end
 	local alpha = 1
-	if not self.sample and state.hasTarget and not isTarget then
+	if not self.sample and state.hasTarget and not isTarget
+		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
 		alpha = Settings.Get("target.dimOthers")
 	end
 	if self.alphaGoal ~= alpha or not Settings.Get("target.smoothOpacity") then

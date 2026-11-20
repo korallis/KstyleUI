@@ -1,4 +1,4 @@
--- Units.lua: unit tooltips: class and reaction colours, the guild and target lines, the unit edge and the health bar's colour.
+-- Units.lua: unit tooltips: class and reaction colours, the away tag, the guild, target and mount lines, the unit edge and the health bar's colour.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,6 +9,7 @@ local Units = {}
 ns.Units = Units
 
 local GUILD_SEARCH = 4
+local MAX_AURAS = 40
 
 local function Plain(v)
 	return not Logic.IsSecret(v) and v ~= nil
@@ -18,13 +19,7 @@ local function Text(v)
 	return Plain(v) and type(v) == "string" and v ~= ""
 end
 
-local function Yes(fn, ...)
-	if type(fn) ~= "function" then
-		return false
-	end
-	local v = fn(...)
-	return Plain(v) and v == true
-end
+local Yes = Logic.Yes
 
 function Units.Token(data)
 	local guid = data.guid
@@ -134,6 +129,38 @@ local function Target(tooltip, unit)
 	tooltip:AddDoubleLine(L["Target"], name, lr, lg, lb, r, g, b)
 end
 
+local function Mount(tooltip, unit)
+	local auras, journal = C_UnitAuras, C_MountJournal
+	if not (auras and journal and type(auras.GetAuraDataByIndex) == "function" and type(journal.GetMountFromSpell) == "function" and type(journal.GetMountInfoByID) == "function") then
+		return
+	end
+	local secrets = C_Secrets
+	if secrets and type(secrets.ShouldAurasBeSecret) == "function" then
+		local ok, secret = pcall(secrets.ShouldAurasBeSecret)
+		if not ok or not Plain(secret) or secret then
+			return
+		end
+	elseif InCombatLockdown() then
+		return
+	end
+	for i = 1, MAX_AURAS do
+		local ok, aura = pcall(auras.GetAuraDataByIndex, unit, i, "HELPFUL")
+		if not ok or not Plain(aura) or type(aura) ~= "table" or not Plain(aura.spellId) then
+			return
+		end
+		local mount = journal.GetMountFromSpell(aura.spellId)
+		if Plain(mount) then
+			local name = journal.GetMountInfoByID(mount)
+			if Text(name) then
+				local lr, lg, lb = Tokens.Color("text")
+				local rr, rg, rb = Tokens.Color("textEmphasis")
+				tooltip:AddDoubleLine(L["Mount"], name, lr, lg, lb, rr, rg, rb)
+			end
+			return
+		end
+	end
+end
+
 function Units.Decorate(tooltip, data)
 	local unit = Units.Token(data)
 	if tooltip == GameTooltip then
@@ -142,6 +169,16 @@ function Units.Decorate(tooltip, data)
 	if not unit then
 		Settings.LogOnce("unit", "a unit tooltip had no readable unit; it keeps Blizzard's lines")
 		return
+	end
+	if not Settings.Get("playerTitles") and Yes(UnitIsPlayer, unit) and type(UnitName) == "function" then
+		local name, line = UnitName(unit), Style.Line(tooltip, "left", 1)
+		if line and Text(name) then line:SetText(name) end
+	end
+	if Settings.Get("awayTag") and Yes(UnitIsPlayer, unit) then
+		local tag = Yes(UnitIsAFK, unit) and CHAT_FLAG_AFK or Yes(UnitIsDND, unit) and CHAT_FLAG_DND
+		local line = Style.Line(tooltip, "left", 1)
+		local text = line and line:GetText()
+		if Text(tag) and Text(text) then line:SetText(text .. " " .. tag) end
 	end
 	local r, g, b = Units.NameColor(unit)
 	if Settings.Get("qualityColors") and type(UnitReaction) == "function" then
@@ -162,6 +199,9 @@ function Units.Decorate(tooltip, data)
 	end
 	if Settings.Get("targetLine") then
 		Target(tooltip, unit)
+	end
+	if Settings.Get("mountLine") and Yes(UnitIsPlayer, unit) then
+		Mount(tooltip, unit)
 	end
 	if r and Settings.Get("unitEdge") then
 		Style.SetEdge(tooltip, r, g, b)

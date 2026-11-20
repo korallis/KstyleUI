@@ -18,9 +18,12 @@ end
 local THREAT_TANK = { [0] = "danger", [1] = "warning", [2] = "warning", [3] = "safe" }
 local THREAT_OTHER = { [1] = "warning", [2] = "danger", [3] = "danger" }
 
-function Logic.ThreatState(status, isTank)
+function Logic.ThreatState(status, isTank, calm)
 	if not IsNumber(status) then
 		return nil
+	end
+	if calm and not isTank and status == 0 then
+		return "safe"
 	end
 	local map = isTank and THREAT_TANK or THREAT_OTHER
 	return map[status]
@@ -48,6 +51,7 @@ end
 
 local ELITE_KINDS = { worldboss = true, elite = true }
 local RARE_KINDS = { rareelite = true, rare = true }
+local SKULL_LEVEL = -1
 
 function Logic.UnitType(enabled, unit)
 	if unit.isPlayer or unit.tapped then
@@ -57,12 +61,23 @@ function Logic.UnitType(enabled, unit)
 		return "quest"
 	end
 	local kind = unit.classification
-	if enabled.rare and RARE_KINDS[kind] then
+	local level = IsNumber(unit.level) and unit.level or nil
+	if enabled.boss and (kind == "worldboss" or level == SKULL_LEVEL) then
+		return "boss"
+	elseif enabled.rare and RARE_KINDS[kind] then
 		return "rare"
+	elseif enabled.miniBoss and (kind == "elite" or kind == "rareelite") and level and IsNumber(unit.playerLevel) and level > unit.playerLevel then
+		return "miniBoss"
 	elseif enabled.elite and ELITE_KINDS[kind] then
 		return "elite"
 	elseif enabled.caster and unit.caster then
 		return "caster"
+	elseif enabled.neutral and IsNumber(unit.reaction) and unit.reaction == 4 then
+		return "neutral"
+	elseif enabled.minor and kind == "minus" then
+		return "minor"
+	elseif enabled.normal and (kind == "normal" or kind == "trivial") then
+		return "normal"
 	end
 	return nil
 end
@@ -128,8 +143,6 @@ function Logic.Footprint(width, height, above, below, scale)
 	return math.ceil(width * scale), math.ceil((above + height + below) * scale)
 end
 
-local SKULL_LEVEL = -1
-
 function Logic.LevelText(level)
 	if not IsNumber(level) then
 		return nil
@@ -182,6 +195,15 @@ local VALUE_CVARS = {
 
 Logic.STACKING_CVAR = "nameplateStackingTypes"
 
+local SHOW_CVARS = {
+	{ name = "nameplateShowEnemies", key = "showEnemies" },
+	{ name = "nameplateShowFriendlyPlayers", key = "showFriends" },
+	{ name = "nameplateShowEnemyMinions", key = "enemyMinions" },
+	{ name = "nameplateShowFriendlyPlayerMinions", key = "friendlyMinions" },
+	{ name = "nameplateShowFriendlyNpcs", key = "friendlyNpcs" },
+	{ name = "nameplateShowOnlyNameForFriendlyPlayerUnits", key = "friendlyNameOnly" },
+}
+
 function Logic.CVarPlan(cvars)
 	local plan = {}
 	for _, entry in ipairs(VALUE_CVARS) do
@@ -190,6 +212,10 @@ function Logic.CVarPlan(cvars)
 	local stacking = STACKING[cvars.stacking] or STACKING.enemy
 	plan[#plan + 1] = { name = Logic.STACKING_CVAR, index = STACK_ENEMY, value = stacking.enemy }
 	plan[#plan + 1] = { name = Logic.STACKING_CVAR, index = STACK_FRIENDLY, value = stacking.friendly }
+	for _, entry in ipairs(SHOW_CVARS) do
+		local choice = cvars[entry.key]
+		plan[#plan + 1] = { name = entry.name, value = choice == "show" and "1" or choice == "hide" and "0" or nil }
+	end
 	return plan
 end
 

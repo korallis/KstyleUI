@@ -14,7 +14,6 @@ local FIELD_LANE = 0.25
 local FIELD_ARC = 0.35
 local FIELD_START = 0.6
 local FIELD_HEADROOM = 1.2
-local FIELD_RISE = 48
 local FRAME_LANE = 1.6
 local FRAME_ARC = 0.7
 local TOP_START = 0.6
@@ -140,8 +139,9 @@ local function FieldGeometry(emitter, cfg)
 	local height = Plain(frame:GetHeight(), 0)
 	local size = cfg.size
 	local x = NextLane(emitter, cfg) * width * FIELD_LANE
-	local distance = math.min(cfg.rise or FIELD_RISE, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
-	return "BOTTOM", x, size * FIELD_START, distance, width * FIELD_ARC, 1
+	local distance = math.min(cfg.rise, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
+	local down = cfg.direction == "down"
+	return down and "TOP" or "BOTTOM", x, size * FIELD_START * (down and -1 or 1), distance, width * FIELD_ARC, 1
 end
 
 local function FrameGeometry(emitter, cfg)
@@ -188,6 +188,7 @@ local function Animate(number, emitter, cfg, emphasis, per, distance, spread)
 		end
 	end
 	local move, fall, pop, fade = number.move, number.fall, number.pop, number.fade
+	if cfg.direction == "down" then dy1, dy2 = -dy1, -dy2 end
 	move:SetOffset(dx1 * per, dy1 * per)
 	move:SetDuration(moveTime)
 	move:SetSmoothing(MOVE_SMOOTHING)

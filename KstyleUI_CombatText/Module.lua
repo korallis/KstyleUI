@@ -22,18 +22,12 @@ local NAMEPLATES = Anchors.NAMEPLATES
 
 local stats = {
 	events = 0, shown = 0, secretAmount = 0, secretEvent = 0, secretFlag = 0, secretSchool = 0,
-	secretUnit = 0, nameplate = 0,
+	secretUnit = 0, nameplate = 0, combatText = 0, power = 0,
 }
 Module.stats = stats
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
-end
-
-local function Refresh()
-	Settings.Snapshot(Settings.Values(), Module.cfg)
-	if Module.field and K.Layout and K.Layout.Update then K.Layout.Update(FIELD_KEY, {}) end
-	Anchors.Rebuild(Module.cfg)
 end
 
 local function Build()
@@ -69,7 +63,7 @@ local function Shows(cfg, kind)
 	elseif kind == "miss" then
 		return cfg.misses
 	end
-	return cfg.neutral
+	return cfg.neutral or kind == "combat"
 end
 
 local function Count(unit, event, flag, amount, school)
@@ -126,8 +120,46 @@ local function OnUnitCombat(_, unit, event, flag, amount, school)
 	end
 end
 
+local function OnCombatText(_, kind)
+	stats.combatText = stats.combatText + 1
+	if IsSecret(kind) or (kind ~= "ENERGIZE" and kind ~= "PERIODIC_ENERGIZE") then
+		return
+	end
+	local api = C_CombatText
+	local watched, unit = pcall(api.GetActiveUnit)
+	local ok, amount, token = pcall(api.GetCurrentEventInfo)
+	amount = ok and watched and not IsSecret(unit) and unit == "player" and not IsSecret(amount) and tonumber(amount)
+	local list = Anchors.Lookup("player")
+	if not (amount and amount > 0 and (IsSecret(token) or type(token) == "string") and list) then
+		return
+	end
+	stats.power = stats.power + 1
+	for i = 1, #list do
+		local emitter = list[i]
+		if emitter and emitter.kind ~= "group" and Anchors.Ready(emitter, "player") then
+			Show(emitter, Module.cfg, "power", "none", amount, nil, token)
+		end
+	end
+end
+
+local function Refresh()
+	local cfg, api = Module.cfg, C_CombatText
+	Settings.Snapshot(Settings.Values(), cfg)
+	if Module.field and K.Layout and K.Layout.Update then K.Layout.Update(FIELD_KEY, {}) end
+	Anchors.Rebuild(cfg)
+	if cfg.power and api and type(api.GetCurrentEventInfo) == "function" and type(api.GetActiveUnit) == "function" then
+		K.Events.Register(MODULE, "COMBAT_TEXT_UPDATE", OnCombatText)
+	else
+		K.Events.Unregister(MODULE, "COMBAT_TEXT_UPDATE")
+	end
+end
+
 local function OnRoster()
 	Anchors.Schedule()
+end
+
+local function OnCombat(event)
+	if Module.cfg.combat then OnUnitCombat(nil, "player", event, "", 0) end
 end
 
 local function OnPlateRemoved(_, unit)
@@ -184,9 +216,9 @@ local function Check()
 	end
 	local unitFrames, groupFrames = Anchors.Counts()
 	return true, string.format(
-		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d numbers shown; numbers attach to %d unit frames, %d group frames; DAMAGE_TEXT_FONT %s",
+		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d COMBAT_TEXT_UPDATE events (%d power gains); %d numbers shown; numbers attach to %d unit frames, %d group frames; DAMAGE_TEXT_FONT %s",
 		stats.events, stats.secretAmount, stats.secretEvent, stats.secretFlag, stats.secretSchool, stats.secretUnit,
-		stats.nameplate, stats.shown, unitFrames, groupFrames, tostring(World.Current()))
+		stats.nameplate, stats.combatText, stats.power, stats.shown, unitFrames, groupFrames, tostring(World.Current()))
 end
 
 local function Enable()
@@ -197,6 +229,8 @@ local function Enable()
 	Module.layer:Show()
 	Module.field:Show()
 	K.Events.Register(MODULE, "UNIT_COMBAT", OnUnitCombat)
+	K.Events.Register(MODULE, "PLAYER_REGEN_DISABLED", OnCombat)
+	K.Events.Register(MODULE, "PLAYER_REGEN_ENABLED", OnCombat)
 	K.Events.Register(MODULE, "GROUP_ROSTER_UPDATE", OnRoster)
 	K.Events.Register(MODULE, "NAME_PLATE_UNIT_REMOVED", OnPlateRemoved)
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
