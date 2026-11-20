@@ -1,16 +1,25 @@
 -- test-rails-composed.lua: story cards share their foot and eight-unit gutter, and a quest can continue under the viewport's lower fade.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
+local Minimap = dofile("Tools/regression/minimap_env.lua")
 for _, framing in ipairs({ "classic", "ring", "medallion" }) do
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, height = 1440 }, { width = 3456, height = 2234 } }) do
 	screen.frame = framing
 	local R = Boot(screen)
 	local env, K, ns = R.env, R.K, R.ns
+	Minimap.Blizzard(env, { position = { 0.616, 0.579 } })
+	dofile("Tools/regression/load_files.lua")(Minimap.Files(), env)
+	K.Modules.Enable("Minimap")
+	Minimap.Settle(env)
 	R.quests[2].objectives[1].text = string.rep("Find the lost travelers near the lake. ", 2)
 	R.log.Fire("QUEST_LOG_UPDATE")
 	R.settle()
 	local root = K.Scale.Root()
 	local function Rect(frame) return assert(G.ScaledRect(frame, env.UIParent, root)) end
+	local plaque = Rect(env._addons.KstyleUI_Minimap.Map.face.plaques[2])
+	local header = Rect(ns.RestedXP.Chrome.Path(R.rxp.RXPFrame).cap)
+	assert(plaque.top <= header.bottom or header.top <= plaque.bottom or plaque.right <= header.left or header.right <= plaque.left,
+		framing .. " " .. screen.width .. "x" .. screen.height .. ": keep the live minimap plaque clear of the guide header")
 	local quest = ns.QuestCard.Frame()
 	local guide = K.Skin.Parts(R.rxp.RXPFrame).backdrop
 	local q, g = Rect(quest), Rect(guide)

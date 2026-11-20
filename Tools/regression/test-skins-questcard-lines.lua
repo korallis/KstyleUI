@@ -12,6 +12,10 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
 		local Hud = dofile("Tools/render/scenes/hud.lua")
 		local Reference = dofile("Tools/render/scenes/_reference.lua")
+		local _, guide = Hud.Module("restedxp", { layout = "DPS", applyPreset = true })
+		local minimap = guide.K.Store.Module("Minimap")
+		assert(minimap.enabled and minimap.frame == choice,
+			"the rendered guide must share the enabled minimap and frame choice so it reserves the live Crest clearance")
 		local scene, ns = Hud.Module("tracker", { layout = "DPS", applyPreset = true, withGuide = true, quests = Reference.STATE.quests })
 		local env = Hud.envs[scene]
 		local rows, view = ns.Quests.Rows(), ns.Quests.Parts().view
