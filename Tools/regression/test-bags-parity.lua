@@ -378,4 +378,212 @@ do
 	clean(env, K)
 end
 
+-- Review of #602: Warband gold rechecks the switch, the amount and the visit when the combat queue runs, reads only whole gold and reports only a transfer that ran.
+do
+	local env, K = new({ enabled = true, warbandGold = true, warbandGoldAmount = "100" }, { money = 2000000 })
+	env.SetCombat(true)
+	env.SetBank(true)
+	write(env, K, "warbandGold", false)
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(B.Count(env, "DepositMoney") == 0 and env._money == 2000000, "turned off before combat ended: no gold moves")
+	env.SetBank(false)
+	write(env, K, "warbandGold", true)
+	env.SetCombat(true)
+	env.SetBank(true)
+	env.SetBank(false)
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(B.Count(env, "DepositMoney") == 0, "left the bank before combat ended: no gold moves")
+	env.SetCombat(true)
+	env.SetBank(true)
+	env.SetBank(false)
+	env.SetBank(true)
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(B.Count(env, "DepositMoney") == 1, "two visits in one fight move gold once, got " .. B.Count(env, "DepositMoney"))
+	env.SetBank(false)
+	write(env, K, "warbandGoldAmount", "1.5")
+	env._money = 2000000
+	env.SetBank(true)
+	env.RunTimers()
+	assert(B.Count(env, "DepositMoney") == 1 and env._money == 2000000, "1.5 is not read as 15 gold")
+	env.SetBank(false)
+	local said = {}
+	K.Print = function(text) said[#said + 1] = text end
+	write(env, K, "warbandGoldAmount", "100")
+	write(env, K, "warbandGoldChat", true)
+	env.C_Bank.DepositMoney = nil
+	env.SetBank(true)
+	env.RunTimers()
+	env.SetBank(false)
+	env.C_Bank.DepositMoney = function() error("refused") end
+	env.SetBank(true)
+	env.RunTimers()
+	assert(#said == 0, "a missing or failing transfer is not reported, got " .. tostring(said[1]))
+	clean(env, K)
+end
+
+-- Merged counts do not follow a slot into the reagent section.
+do
+	local env, K, ns = new({ enabled = true, compactBags = true, mergeStacks = true }, { bags = { [0] = { size = 1, items = {} }, [5] = { size = 2, items = { Item("cloth"), Item("cloth") } } } })
+	assert(slot(ns, 5, 1).count:GetText() == "40")
+	write(env, K, "categorizeReagents", false)
+	assert(slot(ns, 5, 1).count:GetText() == "20" and slot(ns, 5, 2).count:GetText() == "20", "each reagent stack shows its own count, got " .. tostring(slot(ns, 5, 1).count:GetText()))
+	clean(env, K)
+end
+
+-- Merging pauses at the guild bank, and picked-up amounts pause at a mailbox.
+do
+	local env, K, ns = new({ enabled = true, compactBags = true, mergeStacks = true, recentItems = true, recentGained = true }, { bags = { [0] = { size = 4, items = { Item("cloth"), Item("cloth") } } } })
+	env.FireEvent("GUILDBANKFRAME_OPENED")
+	assert(slot(ns, 0, 2).button:IsShown(), "the guild bank shows every stack")
+	env.FireEvent("GUILDBANKFRAME_CLOSED")
+	assert(not slot(ns, 0, 2).button:IsShown(), "merging resumes when the guild bank closes")
+	env._new["0:1"], env._new["0:2"] = true, true
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	env.RunTimers()
+	env.FireEvent("MAIL_SHOW")
+	assert(slot(ns, 0, 2).button:IsShown(), "the mailbox shows every recent stack")
+	clean(env, K)
+end
+
+-- New items only: an item you no longer carry is new again.
+do
+	local env, K, _, win = new({ enabled = true, compactBags = true, recentItems = true, recentNewOnly = true }, { bags = { [0] = { size = 3, items = { Item("cloth") } } } })
+	B.Put(env, 0, 1, nil)
+	env.RunTimers()
+	env._new["0:2"] = true
+	B.Put(env, 0, 2, Item("cloth"))
+	env.RunTimers()
+	local recent = win.sections[1].groups.recent
+	assert(recent and recent.total == 1, "cloth bought after selling all of it is recent")
+	clean(env, K)
+	local env2, K2, _, win2 = new({ enabled = true, compactBags = true, recentItems = true, recentNewOnly = true }, { bags = { [0] = { size = 3, items = { Item("cloth") } } } })
+	B.Put(env2, 0, 1, nil)
+	env2._new["0:2"] = true
+	B.Put(env2, 0, 2, Item("cloth"))
+	env2.RunTimers()
+	recent = win2.sections[1].groups.recent
+	assert(recent and recent.total == 1, "also when both changes land in one refresh")
+	clean(env2, K2)
+end
+
+-- The open bank follows equipment set changes.
+do
+	local sets = { { name = "Tank", items = { 1001 } } }
+	local env, K, ns = new({ enabled = true, setNames = true, compactBags = true, splitSets = true }, { sets = sets, bank = { [6] = { size = 2, items = { Item("helm") } } } })
+	env.SetBank(true)
+	env.RunTimers()
+	local s = ns.Bank.window:Slot(6, 1)
+	sets[1].name = "Healer"
+	env.FireEvent("EQUIPMENT_SETS_CHANGED")
+	env.RunTimers()
+	assert(s.set:GetText() == "Healer", "the bank's set label follows a rename, got " .. tostring(s.set:GetText()))
+	clean(env, K)
+end
+
+-- A secret binding is unknown, not BoE; a no-value item adds no value.
+do
+	local env, K, ns = new({ enabled = true, bindText = true }, { bags = { [0] = { size = 1, items = { Item("sword", { bind = 2, equipLoc = "INVTYPE_WEAPON" }) } } }, setup = function(env)
+		local old = env.C_Container.GetContainerItemInfo
+		env.C_Container.GetContainerItemInfo = function(...)
+			local info = old(...)
+			if info then info.isBound = env.Secret(true) end
+			return info
+		end
+	end })
+	assert(not shown(slot(ns, 0, 1).bind), "unknown binding draws no BoE")
+	clean(env, K)
+	local env2, K2, _, win2 = new({ enabled = true, compactBags = true, sectionValue = true }, { bags = { [0] = { size = 2, items = { Item("sword", { price = 500, noValue = true }) } } } })
+	assert(win2.sections[1].groups.equipment.value == 0, "an item that cannot be sold adds nothing")
+	clean(env2, K2)
+end
+
+-- Bind labels, set names and item levels never overlap.
+do
+	for _, dim in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+		for _, separate in ipairs({ true, false }) do
+			local sword = Item("sword", { bind = 2, equipLoc = "INVTYPE_WEAPON", ilvl = 66 })
+			local helm = Item("helm", { bind = 2, bound = true, equipLoc = "INVTYPE_HEAD", ilvl = 66 })
+			local env, K, ns = new({ enabled = true, bindText = true, setNames = true, separateFigures = separate }, { width = dim[1], height = dim[2], sets = { { name = "Tank", items = { sword.itemID, helm.itemID } } }, bags = { [0] = { size = 2, items = { sword, helm } } } })
+			local where = dim[1] .. "x" .. dim[2] .. (separate and " separate" or " together") .. ": "
+			local function box(r, button)
+				local bw, bh = button:GetWidth(), button:GetHeight()
+				local w, h = r:GetStringWidth(), select(2, r:GetFont())
+				local point, _, rel, x, y = r:GetPoint(1)
+				local left
+				if r:GetNumPoints() == 2 then
+					left = (x + bw + select(4, r:GetPoint(2))) / 2 - w / 2
+				else
+					local px = (rel:find("LEFT") and 0 or rel:find("RIGHT") and bw or bw / 2) + x
+					left = point:find("LEFT") and px or point:find("RIGHT") and px - w or px - w / 2
+				end
+				local py = (rel:find("TOP") and bh or rel:find("BOTTOM") and 0 or bh / 2) + y
+				local bottom = point:find("TOP") and py - h or point:find("BOTTOM") and py or py - h / 2
+				return { left, bottom, left + w, bottom + h }
+			end
+			local function apart(a, b) return a[3] <= b[1] or b[3] <= a[1] or a[4] <= b[2] or b[4] <= a[2] end
+			local s, h = slot(ns, 0, 1), slot(ns, 0, 2)
+			assert(shown(s.bind) and shown(s.level) and not shown(s.set), where .. "an unbound copy is not the set's own item, since equipping binds it")
+			assert(apart(box(s.bind, s.button), box(s.level, s.button)), where .. "BoE and the item level overlap")
+			assert(shown(h.set) and shown(h.level) and not shown(h.bind) and apart(box(h.set, h.button), box(h.level, h.button)), where .. "the set name and the item level overlap")
+			clean(env, K)
+		end
+	end
+end
+
+-- The preview hides the reagent marker once the reagent bag is apart.
+do
+	local env, K = new({ enabled = true, compactBags = true }, {})
+	local preview = K.Options.Preview("Bags")(env.CreateFrame("Frame", nil, K.Scale.Root()))
+	write(env, K, "reagentMark", true)
+	preview:Refresh()
+	assert(shown(preview.slots[6].mark))
+	write(env, K, "categorizeReagents", false)
+	preview:Refresh()
+	assert(not shown(preview.slots[6].mark), "no preview marker when the reagent bag has its own section")
+	clean(env, K)
+end
+
+-- Turning Hold the nearest corner off restores each window's own anchor.
+do
+	local env, K, _, win = new({ enabled = true }, {})
+	assert(K.Layout.Get("bags.inventory").anchor == "BOTTOMRIGHT" and K.Layout.Get("bags.bank").anchor == "TOPLEFT")
+	win.panel:ClearAllPoints()
+	win.panel:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 40, -40)
+	write(env, K, "nearestCorner", true)
+	assert(K.Layout.Get("bags.inventory").anchor == "TOPLEFT")
+	local left, top = win.panel:GetLeft(), win.panel:GetTop()
+	write(env, K, "nearestCorner", false)
+	local layout = K.Layout.Get("bags.inventory")
+	assert(layout.anchor == "BOTTOMRIGHT", "off returns the bags to the bottom right anchor, got " .. tostring(layout.anchor))
+	assert(W.Near(win.panel:GetLeft(), left) and W.Near(win.panel:GetTop(), top), "and the window stays where it is")
+	assert(K.Layout.Get("bags.bank").anchor == "TOPLEFT", "the bank keeps its own anchor")
+	clean(env, K)
+end
+
+-- A saved character's view shows no live currency; silver mode never prints copper.
+do
+	local env, K, ns, win = new({ enabled = true, currencies = true }, { currencies = { { quantity = 120, iconFileID = 123 } }, bags = { [0] = { size = 1, items = { Item("cloth") } } } })
+	K.Store.Account().inventory.characters["Alt-Realm"] = { name = "Alt", class = "MAGE", seen = os.time(), money = 1234, bags = {}, bank = {}, items = {}, free = 1, total = 1 }
+	assert(shown(win.currency))
+	assert(win:Browse("Alt-Realm"))
+	env.RunTimers()
+	assert(not shown(win.currency), "the alt's view hides this character's currencies")
+	assert(ns.Window.MoneyText(95, "silver") == "0s" and ns.Window.MoneyText(10095, "silver") == "1g 0s", "Gold and silver shows no copper, got " .. ns.Window.MoneyText(95, "silver"))
+	clean(env, K)
+end
+
+-- An unchanged refresh reads no item metadata with the new options off.
+do
+	local env, K, ns = new({ enabled = true, compactBags = true }, { bags = { [0] = { size = 4, items = { Item("cloth"), Item("ring") } } } })
+	local calls, info = 0, ns.Data.Info
+	ns.Data.Info = function(r) calls = calls + 1 return info(r) end
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	env.RunTimers()
+	assert(calls == 0, "metadata reads with every metadata option off: " .. calls)
+	clean(env, K)
+end
+
 print("bags parity ok: labels, sections, list, window, footer, auto open, warband gold and preview")
