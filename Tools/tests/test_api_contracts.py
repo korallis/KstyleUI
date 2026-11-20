@@ -755,6 +755,33 @@ class GeneratorTest(unittest.TestCase):
         found = check_api_contracts.check(addon, check_api_contracts.load_contracts(contracts_path, Path(self._tmp.name) / "none.lua"))
         self.assertEqual(sorted(r.use.line for r in found if r.status == "problem"), [2, 4, 6])
 
+    def test_map_cvar_wrappers_prove_names_and_reject_unknown_addon_cvars(self):
+        for wrapper in (
+            'DungeonEntranceDataProviderMixin = CreateFromMixins(CVarMapCanvasDataProviderMixin)\nDungeonEntranceDataProviderMixin:Init("%s")',
+            'local function AddFilter(text, cvarName, tooltipText) end\nAddFilter("label", "%s", "description")',
+        ):
+            with self.subTest(wrapper=wrapper):
+                lua = wrapper % "showDungeonEntrancesOnMap"
+                self.addon("Blizzard_Fixture", ["Map.lua"], {"Map.lua": lua})
+                data = self.collect()
+                self.assertIn("showdungeonentrancesonmap", data["cvars"])
+                addon = Path(self._tmp.name) / "addon"
+                addon.mkdir(exist_ok=True)
+                (addon / "Test.toc").write_text("Map.lua\n", encoding="utf-8")
+                (addon / "Map.lua").write_text(lua + "\n" + wrapper % "madeUpMapCVar", encoding="utf-8")
+                contract = check_api_contracts.Contracts(json.loads(gen_api_contracts.render(data, "abc1234", "fixture")))
+                found = check_api_contracts.check(addon, contract)
+                self.assertEqual([r.use.name for r in found if r.status == "problem" and r.use.category == "cvar"], ["madeUpMapCVar"])
+
+    def test_unrelated_init_and_filter_arguments_do_not_prove_cvars(self):
+        self.addon("Blizzard_Fixture", ["Map.lua"], {"Map.lua": '''
+            OtherDataProviderMixin = CreateFromMixins(MapCanvasDataProviderMixin)
+            OtherDataProviderMixin:Init("notACVar")
+            local function AddFilter(text, arbitrary) end
+            AddFilter("label", "alsoNotACVar")
+        '''})
+        self.assertEqual(self.collect()["cvars"], {})
+
     def test_client_binary_proves_only_cvars_the_addon_names_and_source_lacks(self):
         (self.source / "version.txt").write_text("1.0.0.7\n", encoding="utf-8")
         self.addon("Blizzard_Fixture", ["Fixture.lua"], {"Fixture.lua": "GetCVar('fromSource')\n"})

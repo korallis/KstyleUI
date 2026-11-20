@@ -470,7 +470,7 @@ def event_parameters(text):
     return found
 
 
-def uses_in_call(tokens, call, add, wrappers=None, consts=None, getters=None, aliases=None, partner=None):
+def uses_in_call(tokens, call, add, wrappers=None, consts=None, getters=None, aliases=None, partner=None, cvar_calls=None):
     """Add the event, CVar, template and global-name uses that one call makes."""
     name = call.chain[-1]
     consts = consts or {}
@@ -513,6 +513,8 @@ def uses_in_call(tokens, call, add, wrappers=None, consts=None, getters=None, al
         operand(0, "cvar", ".".join(call.chain[-2:]))
     elif name in CVAR_SECOND_ARG:
         operand(1, "cvar", name)
+    elif cvar_calls and (".".join(call.chain), call.method) in cvar_calls:
+        operand(cvar_calls[(".".join(call.chain), call.method)], "cvar", ".".join(call.chain))
     elif name in TEMPLATE_CALLS:
         operand(TEMPLATE_CALLS[name], "template", name, split=True)
     elif getters and name in getters:
@@ -600,9 +602,17 @@ def scan_lua(text, wrappers=None, getters=None, shared_consts=None):
     aliases = alias_table(tokens, partner, declared, sites)
     consts = dict(shared_consts or {})
     consts.update(string_constants(tokens, partner, sites))
+    cvar_calls = {("AddFilter", False): 1 for name, colon, params, _, _ in function_heads(tokens)
+                  if name == "AddFilter" and not colon and len(params) > 1 and params[1] == "cvarName"}
+    for i in range(count - 5):
+        if tokens[i][0] == "name" and tokens[i + 1:i + 6] == [
+            ("op", "="), ("name", "CreateFromMixins"), ("op", "("),
+            ("name", "CVarMapCanvasDataProviderMixin"), ("op", ")"),
+        ]:
+            cvar_calls[(tokens[i][1] + ".Init", True)] = 0
 
     for call in iter_calls(tokens, lines, partner):
-        uses_in_call(tokens, call, add, wrappers, consts, getters, aliases, partner)
+        uses_in_call(tokens, call, add, wrappers, consts, getters, aliases, partner, cvar_calls)
         if call.chain == ["CreateFrame"] and len(call.args) > 1:
             start, end = call.args[1]
             name = string_value(tokens[start]) if end - start == 1 else None
