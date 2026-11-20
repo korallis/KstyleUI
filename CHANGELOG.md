@@ -1,5 +1,14 @@
 # KstyleUI changelog
 
+## v0.2.8.1 (2026-11-20)
+
+A small fix release.
+
+### Fixed
+
+- No more Lua error in the scroll list (ScrollList.lua:91) when switching Options pages.
+- The consumables bar stays where you move it in Layout Mode; moving it turns off Attach to the player frame. Turn that back on to dock it beside the player frame again.
+
 ## v0.2.8 (2026-11-20)
 
 The map and bars release: a world map that zooms smoothly, searches and draws you a route, a setup step for your own addons, and action bars you can tune bar by bar, plus the fixes from a long gameplay video.
