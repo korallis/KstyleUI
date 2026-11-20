@@ -50,4 +50,27 @@ for _, path in ipairs({ "mirror", "reskin" }) do
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, path .. " has no errors")
 end
+local function edge(frame) return C.W.LastCall(frame, "SetDrawEdge")[1] end
+local env, K, ns = C.New({ saved = { version = 42, profiles = { Default = { Cooldowns = { enabled = true, path = "mirror" } } }, characters = {} }, setup = C.Game })
+env.RunTimers()
+K.Options.Write("Cooldowns", "essential.edge", false); env.RunTimers()
+env._cdm.charges[1002] = { current = 1, max = 2 }; env.FireEvent("SPELL_UPDATE_CHARGES")
+local icon = ns.Mirror.Row("essential"):Icon(2)
+assert(edge(icon.cooldown) == false and edge(icon.chargeCooldown) == false, "the switch hides the recharge edge too")
+local writes, set = 0, icon.cooldown.SetDrawEdge
+icon.cooldown.SetDrawEdge = function(frame, value) writes = writes + 1; return set(frame, value) end
+icon:Paint(); writes = 0
+for _ = 1, 10 do icon:Paint() end
+assert(writes == 0, "unchanged paints write no edge")
+K.Options.Write("Cooldowns", "essential.edge", true); env.RunTimers()
+assert(edge(icon.chargeCooldown) == true, "the recharge edge returns")
+assert(#env._errors == 0 and K.ErrorCount() == 0, "the recharge edge applies without errors")
+env, K, ns = C.New({ saved = { version = 42, profiles = { Default = { Cooldowns = { enabled = true, path = "reskin" } } }, characters = {} }, setup = C.Game })
+env.RunTimers()
+local cooldown = env._viewers.EssentialCooldownViewer._items[1].Cooldown
+cooldown:SetDrawEdge(true)
+K.Options.Write("Cooldowns", "essential.edge", false); env.RunTimers()
+assert(edge(cooldown) == false, "the restyle hides Blizzard's edge")
+ns.definition.Disable()
+assert(edge(cooldown) == true, "stopping the restyle restores Blizzard's edge")
 print("more cooldown parity ok")

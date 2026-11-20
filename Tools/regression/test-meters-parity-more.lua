@@ -64,6 +64,29 @@ assert(K.Store.Module("Meters").damage.spellTooltips == true, "spell tooltips ar
 assert(list.rowTooltip(tip, list, 1) == false and shown == 1 and owner == row.frame, "the game's spell tooltip shows for the pointed spell")
 row.frame._scripts.OnLeave(row.frame)
 assert(owner == nil, "leaving the row hides the spell tooltip")
+assert(list.rowTooltip(tip, list, 1) == false and owner == row.frame, "the spell tooltip shows again")
+local get, reads = ns.Get, 0
+ns.Get = function(key) if key == "damage.iconZoom" then reads = reads + 1 end return get(key) end
+env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED"); env.RunTimers()
+ns.Get = get
+assert(reads == 0 and owner == row.frame, "a refresh reads no crop and keeps the tooltip of an unchanged row")
+row.frame._scripts.OnMouseUp(row.frame, "LeftButton"); env.RunTimers()
+assert(owner == nil, "going back hides the spell tooltip of a row that changes")
 M.Write(env, K, "damage.spellTooltips", false)
 assert(#env._errors == 0 and K.ErrorCount() == 0, "more meter settings apply without errors")
+local solo, SK, sns = M.New({ game = function(e) e._group = { raid = false, size = 0 } end })
+solo._units.player.guid = "Player-1"
+solo._session = { combatSources = { { name = "Tester", classFilename = "WARRIOR", totalAmount = 100, amountPerSecond = 10, sourceDisplayType = 1, isLocalPlayer = true } }, maxAmount = 100, totalAmount = 100, durationSeconds = 10 }
+solo._spells[100] = { name = "Test spell", icon = 101 }
+solo._sources["Player-1"] = { combatSpells = { { spellID = 100, totalAmount = 100, amountPerSecond = 10 } }, maxAmount = 100, totalAmount = 100 }
+M.Enable(solo, SK); M.Write(solo, SK, "damage.spellTooltips", true)
+local hint
+shown = nil
+solo.GameTooltip = { SetOwner = function() end, SetSpellByID = function(_, id) shown = id end, AddLine = function() hint = true end, Show = function() end,
+	Hide = function() end, IsOwned = function() return false end }
+solo.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 4); solo.RunTimers()
+local own = sns.Damage.list
+assert(sns.Damage.resting and own.count == 1, "a solo player sees their own spells")
+assert(own.rowTooltip(SK.Widgets.Tooltip(), own, 1) == false and shown == 100 and not hint, "a solo player's spells show their tooltip without the back hint")
+assert(#solo._errors == 0 and SK.ErrorCount() == 0, "solo spell tooltips show without errors")
 print("more meter parity ok")

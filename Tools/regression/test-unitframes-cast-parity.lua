@@ -81,5 +81,9 @@ assert(caption.mode == "inside" and caption.geometry.icon.x == 0, "the caption c
 CK.Options.Write("UnitFrames", "player.castbarIconRight", true); cenv.RunTimers(); cast()
 local icon = caption.geometry.icon
 assert(icon.x > 0 and W.LastCall(caption.bar, "SetPoint")[4] == 0, "the caption cast puts its icon after the bar")
+CK.Options.Write("UnitFrames", "player.castbarInside", false); cenv.RunTimers(); cast()
+icon = caption.geometry.icon
+local point = W.LastCall(caption.timer, "SetPoint")
+assert(caption.mode == "above" and point[2] == caption.frame and icon.x + icon.w + point[4] <= icon.x, "the caption timer ends before a right-hand icon")
 assert(#cenv._errors == 0 and CK.ErrorCount() == 0, "the caption icon side applies without errors")
 print("cast parity ok")
