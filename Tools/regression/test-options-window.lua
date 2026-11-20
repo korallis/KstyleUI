@@ -561,6 +561,17 @@ do
 	K.Options.Write("UnitFrames", "style", "glass")
 	settle(env)
 	assert(ns.Window.Parts().resetButton:IsEnabled() == true)
+	local search, cap = ns.Window.Parts().search, ns.Window.Frame().pageCap
+	local function heading() return (tostring(cap.label:GetText()):upper():gsub("[^%w]", "")) end
+	search:SetText("size")
+	search:GetScript("OnTextChanged")(search, true)
+	settle(env)
+	assert(heading() == "SEARCHRESULTS", "search heads its results, not the page it started on: " .. heading())
+	assert(ns.Window.Parts().resetButton:IsEnabled() == false, "Reset cannot target a page search hides")
+	search:SetText("")
+	search:GetScript("OnTextChanged")(search, true)
+	settle(env)
+	assert(heading() == "UNITFRAMES" and ns.Window.Parts().resetButton:IsEnabled() == true, "clearing search restores the page heading and Reset")
 	W.Click(ns.Window.Parts().resetButton)
 	settle(env)
 	local host = K.Widgets.DialogHost()

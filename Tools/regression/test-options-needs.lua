@@ -40,6 +40,22 @@ row:GetScript("OnMouseUp")(row, "RightButton")
 env.RunTimers()
 W.Settle(env)
 assert(K.Options.Read("ActionBars", "size") == 20, "right-click restores the default")
+ns.Window.Jump({ page = "General", labelTarget = K.L["Opacity out of combat"] })
+W.Settle(env)
+for _, candidate in ipairs(ns.Window.Parts().content.rows) do
+	if candidate.item and candidate.item.label == K.L["Opacity out of combat"] then row = candidate end
+end
+local percent = row.controls.slider
+for _, typed in ipairs({ { "50", 0.5 }, { "40%", 0.4 }, { " 75 % ", 0.75 } }) do
+	W.Click(percent.valueButton)
+	percent.edit:SetText(typed[1])
+	percent.edit:GetScript("OnEnterPressed")(percent.edit)
+	env.RunTimers()
+	assert(K.Layout.Get("Options.Window").alphaIdle == typed[2], "a percent slider reads typed " .. typed[1] .. " as shown, got " .. tostring(K.Layout.Get("Options.Window").alphaIdle))
+end
+W.Click(percent.valueButton)
+assert(percent.edit:GetText() == "75", "the editor opens in the units the slider shows, got " .. tostring(percent.edit:GetText()))
+percent.edit:GetScript("OnEscapePressed")(percent.edit)
 assert(K.Layout.Enter())
 W.Settle(env)
 local toolbar = K.Layout.Mode.Toolbar()

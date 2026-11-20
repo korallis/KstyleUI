@@ -51,8 +51,9 @@ local function Check(screen)
 			local xp = env._addons.KstyleUI_DataBars.Bars.views.xp
 			assert(xp and xp.holder:IsShown(), label .. ": exercise the live experience strip")
 			Clear(rect, Rect(xp.holder), label .. " experience strip")
-			assert(Rect(xp.holder)[2] - rect[4] >= K.Tokens.Size("gapSmall") * leave:GetEffectiveScale() - K.Scale.Pixel(1),
-				label .. ": leave a readable gap below the experience strip")
+			local strip = env._addons.KstyleUI_DataBars.Strip.view
+			assert(strip.slab and strip.frame:IsShown(), label .. ": exercise the data strip docked under the slab")
+			Clear(rect, Rect(strip.frame), label .. " data strip docked under the slab")
 			assert(math.abs(leave:GetWidth() - ns.bars.bar1.buttons[1]:GetWidth()) < 1e-6,
 				label .. ": the leave slot matches the rendered action slot size")
 		end

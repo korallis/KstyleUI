@@ -160,6 +160,8 @@ do
 	assert(Data.Matches(sword, "one-handed"), "a search matches the item's type and subtype")
 	assert(Data.Matches(sword, "%[") == false, "a search treats symbols as plain text")
 	assert(not Data.Matches(empty, "heal"), "an empty slot never matches a search")
+	sword.name = "Épée de garde"
+	assert(Data.Matches(sword, Data.Query("épée")) and Data.Matches(sword, Data.Query("ÉPÉE")), "a search matches accented capitals in either case")
 end
 
 -- Search grammar: & | ! ( ), keywords, type: and item level ranges ------------------------------
