@@ -48,9 +48,19 @@ do
 	afk, combat, boss, auras = true, true, true, { { spellId = 32292 } }
 	local lines = hover()
 	assert(lines[1][1] == "Valerin" and not mount(lines) and tip:IsShown(), "defaults keep today's tooltip")
+	local get, read = ns.Settings.Get, {}
+	ns.Settings.Get = function(key) read[key] = true; return get(key) end
+	T.BlizzardShow(tip, true)
+	ns.Settings.Get = get
+	assert(not read.show and not read.peekKey, "a default tooltip reads no visibility setting as it opens")
+	local preview = K.Options.Preview("Tooltips")(env.CreateFrame("Frame", nil, K.Scale.Root()))
+	local title, ride = preview.unit.rows[1].left, preview.unit.rows[5]
+	assert(title:GetText() == "Valerin" and not ride.left:IsShown(), "the preview keeps today's unit sample")
 
 	write(env, K, "Tooltips", "awayTag", true)
 	write(env, K, "Tooltips", "mountLine", true)
+	preview:Refresh()
+	assert(title:GetText() == "Valerin <AFK>" and ride.left:IsShown() and ride.right:GetText() == K.L["Swift Brown Wolf"], "the preview shows the away tag and mount line")
 	lines = hover()
 	assert(lines[1][1] == "Valerin <AFK>", tostring(lines[1][1]))
 	assert(mount(lines) == "Swift Purple Gryphon")
@@ -65,6 +75,10 @@ do
 	env.C_Secrets = { ShouldAurasBeSecret = function() return true end }
 	assert(not mount(hover()), "secret auras add no mount line")
 	env.C_Secrets = nil
+	assert(not mount(hover()), "without the secrecy predicate combat reads no auras")
+	combat = false
+	assert(mount(hover()) == "Swift Purple Gryphon", "and out of combat it does")
+	combat = true
 	env.C_MountJournal = nil
 	assert(not mount(hover()), "a missing mount journal adds no line")
 
@@ -81,6 +95,8 @@ do
 	combat = false
 	hover()
 	assert(tip:IsShown(), "out of combat it shows")
+	env.FireEvent("PLAYER_REGEN_DISABLED")
+	assert(not tip:IsShown(), "entering combat hides an open tooltip before lockdown starts")
 	env.InCombatLockdown = function() return env.Secret(true) end
 	hover()
 	assert(tip:IsShown(), "a secret combat state shows the tooltip")
@@ -90,6 +106,9 @@ do
 	boss = false
 	hover()
 	assert(tip:IsShown())
+	boss = true
+	env.FireEvent("ENCOUNTER_START")
+	assert(not tip:IsShown(), "a boss pull hides an open tooltip")
 	write(env, K, "Tooltips", "show", "never")
 	hover()
 	assert(not tip:IsShown(), "never hides it")
@@ -109,12 +128,12 @@ do
 		box.SetText = function(self, text) self.text = text end
 		e.StaticPopup_FindVisible = function(which) return which == "DELETE_GOOD_ITEM" and { GetEditBox = function() return box end } or nil end
 		e.AcceptResurrect = function() accepted = accepted + 1 end
-		e.UnitAffectingCombat = function() return fighting end
+		e.InCombatLockdown = function() return fighting end
 		e.GetCorpseRecoveryDelay = function() return delay end
 	end })
 	Q.Enable(env, K)
 	assert(K.Store.Module("QoL").questModifier == "CTRL")
-	assert(not ns.Get("autoDelete") and not ns.Get("autoResurrect") and not ns.Get("combatResurrect"))
+	assert(not ns.Get("autoDelete") and not ns.Get("autoResurrect") and ns.defaults.combatResurrect == nil)
 	env.FireEvent("DELETE_ITEM_CONFIRM", "Thunderfury", 5, 1, 0)
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
 	env.RunTimers()
@@ -125,28 +144,30 @@ do
 	assert(box.text == nil, "the word waits for Blizzard's popup")
 	env.RunTimers()
 	assert(box.text == "DELETE")
+	local timer = env.C_Timer
+	env.C_Timer, box.text = {}, nil
+	env.FireEvent("DELETE_ITEM_CONFIRM", "Thunderfury", 5, 1, 0)
+	env.C_Timer = timer
+	assert(box.text == "DELETE" and K.ErrorCount() == 0, "without C_Timer.After the word fills at once")
 	write(env, K, "QoL", "autoResurrect", true)
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
-	assert(accepted == 1)
+	assert(accepted == 1, "out of combat the offer is taken")
 	fighting = true
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
-	assert(accepted == 1, "a resurrection from combat waits for the player")
+	assert(accepted == 1, "in combat the offer waits for the player, whoever casts it")
 	fighting = env.Secret(false)
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
 	assert(accepted == 1, "a secret combat state waits for the player")
-	write(env, K, "QoL", "combatResurrect", true)
+	fighting, delay = false, 30
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
-	assert(accepted == 2, "Accept in combat takes battle resurrections")
-	delay = 30
-	env.FireEvent("RESURRECT_REQUEST", "Mender")
-	assert(accepted == 2, "a recovery delay leaves the popup's countdown")
+	assert(accepted == 1, "a recovery delay leaves the popup's countdown")
 	write(env, K, "QoL", "autoDelete", false)
 	write(env, K, "QoL", "autoResurrect", false)
 	box.text, delay = nil, 0
 	env.FireEvent("DELETE_ITEM_CONFIRM", "Thunderfury", 5, 1, 0)
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
 	env.RunTimers()
-	assert(box.text == nil and accepted == 2, "turning off stops both helpers")
+	assert(box.text == nil and accepted == 1, "turning off stops both helpers")
 	clean(env, K)
 end
 
@@ -185,6 +206,15 @@ do
 	assert(Inventory.IsOpen(), "the character window opens the bags")
 	shut()
 	assert(not Inventory.IsOpen(), "and closes the bags it opened")
+	character:Show()
+	env.ToggleAllBags()
+	env.RunTimers()
+	env.ToggleAllBags()
+	env.RunTimers()
+	shut()
+	assert(Inventory.IsOpen(), "bags closed and reopened by hand stay open")
+	env.ToggleAllBags()
+	env.RunTimers()
 	env.ToggleAllBags()
 	env.RunTimers()
 	character:Show()
@@ -192,10 +222,15 @@ do
 	assert(Inventory.IsOpen(), "bags the player opened stay open")
 	env.ToggleAllBags()
 	env.RunTimers()
+	character:Show()
 	write(env, K, "Bags", "characterBags", false)
+	shut()
+	assert(Inventory.IsOpen(), "turning the option off leaves the bags it opened to the player")
+	env.ToggleAllBags()
+	env.RunTimers()
 	character:Show()
 	assert(not Inventory.IsOpen(), "turning off stops following the character window")
 	clean(env, K)
 end
 
-print("shell parity batch 3 ok: nine options keep defaults, apply, reverse and keep v0.2.8 settings")
+print("shell parity batch 3 ok: eight options keep defaults, apply, reverse and keep v0.2.8 settings")
