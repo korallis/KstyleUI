@@ -298,8 +298,8 @@ RefreshRoute = function()
 	if Routes.road then
 		distance:SetText(string.format(L["%d yd - about %d min"], math.floor(Routes.road.yards + 0.5), math.max(1, math.ceil(Routes.road.seconds / 60))))
 	elseif x then
-		local width, height = Call(C_Map, "GetMapWorldSize", target.mapID)
-		local yards, minutes = Routes.Measure(x, y, target.x, target.y, width, height, mounted)
+		local worldWidth, worldHeight = Call(C_Map, "GetMapWorldSize", target.mapID)
+		local yards, minutes = Routes.Measure(x, y, target.x, target.y, worldWidth, worldHeight, mounted)
 		if yards then distance:SetText(string.format(L["%d yd - about %d min"], math.floor(yards + 0.5), math.max(1, math.ceil(minutes)))) end
 	end
 end
