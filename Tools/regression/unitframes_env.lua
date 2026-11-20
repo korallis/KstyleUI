@@ -369,12 +369,19 @@ function U.Install(env)
 		function calc:SetIncomingHealClampMode(mode)
 			self.clamp = mode
 		end
+		function calc:SetHealAbsorbClampMode(mode)
+			self.healAbsorbClamp = mode
+		end
+		function calc:GetHealAbsorbs()
+			return env.Secret(self.healAbsorb or 0), false
+		end
 		return calc
 	end
 	function env.UnitGetDetailedHealPrediction(token, _, calc)
 		local u = unitOf(token)
 		calc.incoming = u and u.incoming or 0
 		calc.absorb = u and u.absorb or 0
+		calc.healAbsorb = u and u.healAbsorb or 0
 	end
 	function env.UnitIsGroupLeader(token)
 		local u = unitOf(token)
