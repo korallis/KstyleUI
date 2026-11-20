@@ -171,7 +171,7 @@ local function Select(id)
 end
 
 function Window.Jump(target)
-	if state.query or state.page ~= target.page then Select(target.page) end
+	Select(target.page)
 	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return true end
 	for i, item in ipairs(state.items) do
 		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then
