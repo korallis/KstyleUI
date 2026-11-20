@@ -1,4 +1,4 @@
--- Settings.lua: KstyleUI_QoL's defaults, its settings page and checked reads of each setting.
+-- Settings.lua: KstyleUI_QoL's defaults, its settings page, checked reads of each setting, and ns.Ask, which answers nil when a game API is missing or its first answer is secret.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -95,6 +95,12 @@ function ns.Get(key)
 	return value
 end
 
+function ns.Ask(api, ...)
+	if type(api) ~= "function" then return nil end
+	local value = api(...)
+	if not ns.IsSecret(value) then return value end
+end
+
 function ns.Schema()
 	local function isOff(settings)
 		return not settings.enabled
@@ -153,14 +159,14 @@ function ns.Schema()
 			{ value = "both", label = L["Both"] }, { value = "enter", label = L["Entering"] }, { value = "leave", label = L["Leaving"] },
 		}, disableWhen = combatOff },
 		{ type = "text", key = "combatEnterText", label = L["Entering text"], help = L["Blank shows +Combat."], maxLetters = 40, disableWhen = combatOff },
-		{ type = "color", key = "combatEnterColor", label = L["Entering colour"], help = L["The colour of the alert as you enter combat."], disableWhen = combatOff },
+		{ type = "color", key = "combatEnterColor", label = L["Entering colour"], help = L["The colour of the alert as you enter combat."], disableWhen = function(s) return combatOff(s) or s.combatEnterClass end },
 		{ type = "toggle", key = "combatEnterClass", label = L["Entering in class colour"], help = L["Use your class colour as you enter combat."], disableWhen = combatOff },
 		{ type = "text", key = "combatLeaveText", label = L["Leaving text"], help = L["Blank shows -Combat."], maxLetters = 40, disableWhen = combatOff },
-		{ type = "color", key = "combatLeaveColor", label = L["Leaving colour"], help = L["The colour of the alert as you leave combat."], disableWhen = combatOff },
+		{ type = "color", key = "combatLeaveColor", label = L["Leaving colour"], help = L["The colour of the alert as you leave combat."], disableWhen = function(s) return combatOff(s) or s.combatLeaveClass end },
 		{ type = "toggle", key = "combatLeaveClass", label = L["Leaving in class colour"], help = L["Use your class colour as you leave combat."], disableWhen = combatOff },
 		{ type = "toggle", key = "talentAlert", label = L["Unspent talents alert"], help = L["Show text out of combat while you have talent points to spend."], disableWhen = isOff },
 		{ type = "text", key = "talentText", label = L["Talent alert text"], help = L["Blank shows Unspent talent points."], maxLetters = 40, disableWhen = talentOff },
-		{ type = "color", key = "talentColor", label = L["Talent alert colour"], help = L["The colour of the unspent talents alert."], disableWhen = talentOff },
+		{ type = "color", key = "talentColor", label = L["Talent alert colour"], help = L["The colour of the unspent talents alert."], disableWhen = function(s) return talentOff(s) or s.talentClass end },
 		{ type = "toggle", key = "talentClass", label = L["Talent alert in class colour"], help = L["Use your class colour for the unspent talents alert."], disableWhen = talentOff },
 		{ type = "toggle", key = "deathAlert", label = L["Group death alert"], help = L["Show large text when a party or raid member dies."], disableWhen = isOff },
 		{ type = "dropdown", key = "deathSound", label = L["Death sound"], help = L["The sound that plays with a group death alert."], options = {
