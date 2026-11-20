@@ -50,7 +50,7 @@ assert(preview and preview ~= pane.placeholder and preview.Refresh, "the preview
 assert(preview.kind == "player", "the preview starts on the player frame")
 local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
-assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
+assert(U.Shown(env, view.healthText) == math.ceil(3120 / 3980 * 100) .. "%", "the sample health text follows Blizzard's ceil formula")
 assert(U.Shown(env, view.healthSub) == "3.1K / 3.9K", "the sample shows current and max under the track")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
 do
