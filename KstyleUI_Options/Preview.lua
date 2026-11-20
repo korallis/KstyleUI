@@ -1,4 +1,4 @@
--- Preview.lua: the live preview pane: a module's own preview builder or the kit sample for General, in a card sized to what it draws; a page with no preview hides the pane.
+-- Preview.lua: the live preview pane: a module's own preview builder or the typography sample for General, in a card sized to what it draws; a page with no preview hides the pane.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,8 +9,6 @@ local Preview = {}
 ns.Preview = Preview
 
 local SAMPLE_WIDTH = 220
-local SAMPLE_BAR = 0.7
-local SAMPLE_SLIDER = 68
 local SNUG_MARGIN = 4
 local SCALE_SAME = 0.0001
 Preview.MAX_SCALE = 1.6
@@ -23,26 +21,32 @@ end
 
 function Preview.Sample(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	local gap = Tokens.Size("gapLarge")
-	local title = Widgets.Text(frame, "caps", "capsGold")
-	Widgets.CapsSize(title)
-	Widgets.Point(title, "TOP", frame, "TOP", 0, -gap)
-	Widgets.SetText(title, L["Sample panel"])
-	local body = Widgets.Text(frame, "body", "text")
-	Widgets.Point(body, "TOP", title, "BOTTOM", 0, -Tokens.Size("gapSmall"))
-	body:SetWidth(SAMPLE_WIDTH)
-	Widgets.SetText(body, L["Accent, font, size and motion changes show here at once."])
-	local bar = Widgets.StatusBar(frame, { width = SAMPLE_WIDTH, smooth = true, spark = true })
-	Widgets.Point(bar, "TOP", body, "BOTTOM", 0, -gap)
-	bar:SetBarRange(0, 1)
-	bar:SetBarValue(SAMPLE_BAR)
-	local toggle = Widgets.Toggle(frame, { value = true, label = L["Switch"] })
-	Widgets.Point(toggle, "TOPLEFT", bar, "BOTTOMLEFT", 0, -gap)
-	local slider = Widgets.Slider(frame, { min = 0, max = 100, step = 1, value = SAMPLE_SLIDER, width = SAMPLE_WIDTH })
-	Widgets.Point(slider, "TOPLEFT", toggle, "BOTTOMLEFT", 0, -gap)
-	local button = Widgets.Button(frame, { text = L["Button"], primary = true })
-	Widgets.Point(button, "TOPLEFT", slider, "BOTTOMLEFT", 0, -gap)
-	frame.body, frame.bar, frame.toggle, frame.slider, frame.button = body, bar, toggle, slider, button
+	local samples = {
+		Widgets.Text(frame, "caps", "capsGold"),
+		Widgets.Text(frame, "unit", "textEmphasis"),
+		Widgets.Text(frame, "number", "text"),
+		Widgets.Text(frame, "body", "text"),
+	}
+	Widgets.CapsSize(samples[1])
+	Widgets.SetText(samples[1], L["Sample panel"])
+	Widgets.SetText(samples[2], L["Frost Howler"])
+	Widgets.SetText(samples[3], string.format("%d / %d", 2240, 4020))
+	Widgets.SetText(samples[4], L["Accent, font, size and motion changes show here at once."])
+	frame.body = samples[4]
+	frame.Refresh = function(self)
+		local width = Widgets.Snap(self, math.max(1, math.min(SAMPLE_WIDTH, parent:GetWidth() - 2 * Tokens.Size("gapLarge"))))
+		local previous = self
+		self.selfFits = parent:GetWidth() .. "x" .. parent:GetHeight()
+		for _, text in ipairs(samples) do
+			local row = Widgets.Snap(text, Widgets.WrappedHeight(text, width))
+			Widgets.Size(text, width, row)
+			Widgets.Point(text, "TOPLEFT", previous, previous == self and "TOPLEFT" or "BOTTOMLEFT", previous == self and Tokens.Size("gapLarge") or 0, -Tokens.Size("gapMedium"), true)
+			previous = text
+		end
+	end
+	frame.Restyle = frame.Refresh
+	Widgets.Track(frame)
+	frame:Refresh()
 	return frame
 end
 
