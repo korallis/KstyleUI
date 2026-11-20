@@ -69,7 +69,7 @@ local function Shows(cfg, kind)
 	elseif kind == "miss" then
 		return cfg.misses
 	end
-	return cfg.neutral
+	return cfg.neutral or kind == "combat"
 end
 
 local function Count(unit, event, flag, amount, school)
