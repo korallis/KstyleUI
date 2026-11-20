@@ -6,6 +6,7 @@ local cfg = ns.Module.cfg
 assert(cfg.direction == "up" and cfg.shadow and not cfg.combat, "v0.2.8 keeps upward motion, its outline's shadow and no combat messages")
 env.FireEvent("PLAYER_REGEN_DISABLED")
 assert(#CT.Shown(ns) == 0, "combat messages start off")
+assert(ns.Module.stats.events == 0, "disabled combat messages do no emission or statistics work")
 for _, direction in ipairs({ "up", "down" }) do
  K.Options.Write("CombatText", "direction", direction)
  CT.Hit(env, "player", "WOUND", "", env.Secret(1234), env.Secret(4))

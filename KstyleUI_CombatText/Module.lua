@@ -132,7 +132,7 @@ local function OnRoster()
 end
 
 local function OnCombat(event)
-	OnUnitCombat(nil, "player", event, "", 0)
+	if Module.cfg.combat then OnUnitCombat(nil, "player", event, "", 0) end
 end
 
 local function OnPlateRemoved(_, unit)
