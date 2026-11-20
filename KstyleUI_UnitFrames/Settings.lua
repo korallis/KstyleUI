@@ -892,27 +892,8 @@ local function KindRows(schema, kind)
 	for i = 1, 2 do
 		local key = "extra" .. i
 		schema[#schema + 1] = Header(kind, L["Extra text"] .. " " .. i)
-		local function add(row)
-			row.key = key .. "." .. row.key
-			schema[#schema + 1] = Row(kind, row)
-		end
-		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true,
-			row = function(row)
-				if row.key == key .. ".textFormat" then row.help = L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."] end
-				return Row(kind, row)
-			end })
-
-		local points = { { value = "CENTER", label = L["Centre"] } }
-		for _, point in ipairs({
-			{ "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] },
-			{ "LEFT", L["Left"] }, { "RIGHT", L["Right"] },
-			{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
-		}) do
-			points[#points + 1] = { value = point[1], label = point[2] }
-		end
-		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = points })
-		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
-		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true, placement = true,
+			row = function(row) return Row(kind, row) end })
 	end
 	IconRows(schema, kind)
 	if Settings.CASTBAR[kind] then

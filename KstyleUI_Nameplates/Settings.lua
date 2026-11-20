@@ -257,30 +257,6 @@ function Settings.Schema()
 		},
 	})
 
-	for i = 1, 2 do
-		local key = "extra" .. i
-		schema[#schema + 1] = { type = "header", label = L["Extra text"] .. " " .. i }
-		K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = true, row = function(row)
-			if row.key == key .. ".textFormat" then row.help = L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."] end
-			return row
-		end })
-		local function add(row)
-			row.key = key .. "." .. row.key
-			schema[#schema + 1] = row
-		end
-
-		local points = { { value = "CENTER", label = L["Centre"] } }
-		for _, point in ipairs({
-			{ "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] },
-			{ "LEFT", L["Left"] }, { "RIGHT", L["Right"] },
-			{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
-		}) do
-			points[#points + 1] = { value = point[1], label = point[2] }
-		end
-		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = points })
-		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
-		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
-	end
 	SharedTextRows(schema, "name", L["Name"])
 	schema[#schema + 1] = {
 		type = "toggle", key = "name.upper", label = L["Upper case"],
@@ -299,6 +275,11 @@ function Settings.Schema()
 		help = L["Shows health as a percent, a value, or both."],
 		options = HEALTH_FORMATS, disableWhen = Off("healthText.show"),
 	}
+
+	for i = 1, 2 do
+		schema[#schema + 1] = { type = "header", label = L["Extra text"] .. " " .. i }
+		K.Widgets.TextRows(schema, "extra" .. i, { max = TEXT_MAX, outlines = OUTLINES, tags = true, placement = true })
+	end
 
 	local rest = {
 		{ type = "header", label = L["Cast bar"] },

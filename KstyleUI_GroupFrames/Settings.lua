@@ -97,33 +97,21 @@ local function TextSlotRows(schema)
 	if textRows then return end
 	textRows = true
 	for _, kind in ipairs({ "party", "raid" }) do
-		local p = kind .. "."
+		local label = kind == "party" and L["Party"] or L["Raid"]
+		local additions = {}
 		for i = 1, 2 do
-			local key = p .. "extra" .. i
-			schema[#schema + 1] = { type = "header", label = (kind == "party" and L["Party"] or L["Raid"]) .. ": " .. L["Extra text"] .. " " .. i }
-			K.Widgets.TextRows(schema, key, { outlines = {
+			additions[#additions + 1] = { type = "header", label = label .. ": " .. L["Extra text"] .. " " .. i }
+			K.Widgets.TextRows(additions, kind .. ".extra" .. i, { outlines = {
 				{ value = "NONE", label = L["None, soft shadow"] }, { value = "OUTLINE", label = L["Thin outline"] },
 				{ value = "THICKOUTLINE", label = L["Thick outline"] },
-			}, tags = true, row = function(row)
-				if row.key == key .. ".textFormat" then row.help = L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."] end
-				return row
-			end })
-			local function add(row)
-				row.key = key .. "." .. row.key
-				schema[#schema + 1] = row
-			end
-
-			local points = { { value = "CENTER", label = L["Centre"] } }
-			for _, point in ipairs({
-				{ "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] },
-				{ "LEFT", L["Left"] }, { "RIGHT", L["Right"] },
-				{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
-			}) do
-				points[#points + 1] = { value = point[1], label = point[2] }
-			end
-			add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = points })
-			add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
-			add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+			}, tags = true, placement = true })
+		end
+		additions[#additions + 1] = { type = "header", label = label .. ": " .. L["icons"] }
+		local index
+		for i, row in ipairs(schema) do if row.key == kind .. ".healthTextPlace" then index = i; break end end
+		for i, row in ipairs(additions) do
+			table.insert(schema, index + i, row)
+			if rows and row.key then rows[row.key] = row end
 		end
 	end
 end
@@ -493,7 +481,7 @@ function Settings.Get(key)
 	local row = rows[key]
 	if not row then
 		Settings.Schema(true)
-		for _, candidate in ipairs(Settings.schema) do if candidate.key == key then row = candidate; break end end
+		row = rows[key]
 	end
 	if not row then
 		error("KstyleUI_GroupFrames: unknown setting " .. tostring(key), 2)
@@ -539,7 +527,7 @@ function Settings.Refresh()
 		local own = stored[section]
 		for name, default in pairs(Settings.defaults[section]) do
 			local value = type(own) == "table" and own[name]
-			if type(default) ~= "table" and not (issecretvalue and issecretvalue(value)) and value == default then
+			if not (section == "blizzard" and name == "manager") and type(default) ~= "table" and not (issecretvalue and issecretvalue(value)) and value == default then
 				out[name] = value
 			elseif type(default) == "table" then
 				if default.textFormat then out[name] = type(value) == "table" and value or default

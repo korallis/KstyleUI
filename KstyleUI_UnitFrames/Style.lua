@@ -571,34 +571,9 @@ function Style.PlaceName(view, rect)
 end
 
 local function ExtraTexts(view, s)
-	if s.extra1.textFormat == "" and s.extra2.textFormat == "" and not (view.extra1 or view.extra2) then return end
 	for i = 1, 2 do
 		local key = "extra" .. i
-		local cfg = s[key]
-		local text = view[key]
-		local on = type(cfg.textFormat) == "string" and cfg.textFormat ~= ""
-		if on then
-			if not text then
-				text = Widgets.FontString(view.top, "OVERLAY")
-				text:SetWordWrap(false)
-				view[key] = text
-			end
-			local position = cfg.position
-			local valid = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
-			if not valid[position] then position = "CENTER" end
-			local function offset(value)
-				return type(value) == "number" and value == value and math.max(-200, math.min(200, value)) or 0
-			end
-			local path = K.Theme.IsFontPath(cfg.font) and cfg.font or (Tokens.Font("number"))
-			local size = type(cfg.size) == "number" and math.max(6, math.min(32, cfg.size)) or 12
-			Widgets.ApplyFont(text, path, size * K.Theme.FontScale(), cfg.outline == "NONE" and "" or cfg.outline == "THICKOUTLINE" and "THICKOUTLINE" or "OUTLINE")
-			text:SetTextColor(Tokens.Color("textEmphasis"))
-			text:ClearAllPoints()
-			text:SetPoint(position, view.parent, position, Widgets.Snap(view.parent, offset(cfg.x)), Widgets.Snap(view.parent, offset(cfg.y)))
-			text:SetWidth(Widgets.Snap(view.parent, view.parent:GetWidth()))
-			text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
-		end
-		if text then text:SetShown(on) end
+		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent, view.parent:GetWidth())
 	end
 end
 
