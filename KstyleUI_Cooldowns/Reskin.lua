@@ -142,6 +142,8 @@ local function SkinBar(item)
 		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_ICON_OUTSET / scale }), BAR_ICON_OUTSET / scale)
 		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
 	end
+	local viewer = Viewers.Frame("bars")
+	if viewer and type(viewer.Layout) == "function" then viewer:Layout() end
 end
 
 function Reskin.Item(group, item)

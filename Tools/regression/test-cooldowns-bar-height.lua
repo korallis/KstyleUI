@@ -28,6 +28,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end
 		local point, relative, relativePoint, x, y = viewer:GetPoint()
 		assert(point == "TOPRIGHT" and relative == env.UIParent and relativePoint == "TOPRIGHT" and x == -137 and y == -219, "resizing tracked bars must preserve the saved viewer anchor")
+		local first, second = viewer._items[1], viewer._items[2]
+		local offset = select(5, second:GetPoint()) * second:GetScale()
+		assert(C.W.Near(-offset, first:GetHeight() * first:GetScale() + viewer._nativePadding), "relayout native tracked bars after resizing so their rows keep Edit Mode spacing")
 	end
 	Check()
 	env.SetCombat(true)

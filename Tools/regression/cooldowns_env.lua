@@ -499,7 +499,17 @@ function C.Viewers(env)
 		viewer.GetHideWhenInactive = function(self)
 			return self._hideWhenInactive ~= false
 		end
-		viewer.Layout = function() end
+		viewer.Layout = function(self)
+			if not self._nativePadding then return end
+			local top = 0
+			for i = 1, self._nativeCount do
+				local item = self._items[i]
+				item._points = { { "TOPLEFT", self, "TOPLEFT", 0, 0, n = 5 } }
+				item._points[1][5] = -top / item:GetScale()
+				top = top + item:GetHeight() * item:GetScale() + self._nativePadding
+			end
+			self._height = top - self._nativePadding
+		end
 		for i = 1, 2 do
 			C.Item(env, viewer, i)
 		end
@@ -539,6 +549,7 @@ function C.Native(env, name, entry, items, format)
 	local pad = setting(4) - (bars and 2 or 4)
 	pad = pad * scale
 	local n = math.max(2, #items)
+	if bars then viewer._nativePadding, viewer._nativeCount = pad, n end
 	while #viewer._items < n do
 		C.Item(env, viewer, #viewer._items + 1)
 	end
@@ -607,13 +618,6 @@ function C.Native(env, name, entry, items, format)
 		end
 		if i <= n then
 			viewer:OnAcquireItemFrame(item)
-		end
-	end
-	if bars then
-		h = viewer._items[1]:GetHeight()
-		viewer._height = n * h * scale + (n - 1) * pad
-		for i, item in ipairs(viewer._items) do
-			item._points[1][5] = -(i - 1) * (h + pad / scale)
 		end
 	end
 	viewer:Layout()
