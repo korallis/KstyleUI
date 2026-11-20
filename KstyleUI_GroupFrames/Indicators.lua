@@ -274,7 +274,11 @@ local function Status(f)
 		return false
 	end
 	local api = C_IncomingSummon
-	local afk, resurrection, summon = Read(UnitIsAFK), Read(UnitHasIncomingResurrection), Read(api and api.HasIncomingSummon)
+	local settings = Settings.current.icons
+	local afk, resurrection, summon = false, false, false
+	if settings.afk then afk = Read(UnitIsAFK) end
+	if settings.resurrection then resurrection = Read(UnitHasIncomingResurrection) end
+	if settings.summon then summon = Read(api and api.HasIncomingSummon) end
 	FromBoolean(icons.afk, afk)
 	FromBoolean(icons.resurrection, resurrection)
 	FromBoolean(icons.summon, summon)

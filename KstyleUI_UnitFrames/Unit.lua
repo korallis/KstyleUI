@@ -174,7 +174,7 @@ function Unit.Prediction(view, unit)
 		UnitGetDetailedHealPrediction(unit, "player", calc)
 		view.incoming:SetBarValue((calc:GetIncomingHeals()))
 		view.absorb:SetBarValue((calc:GetDamageAbsorbs()))
-		view.absorb:Show()
+		view.absorb:SetShown(view.s.absorbs ~= false)
 	elseif UnitGetIncomingHeals then
 		LogOnce("prediction", "heal prediction: UnitGetIncomingHeals, no absorbs")
 		local heals = UnitGetIncomingHeals(unit)

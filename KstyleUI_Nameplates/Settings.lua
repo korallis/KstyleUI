@@ -37,7 +37,7 @@ Settings.defaults = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
-		showIcon = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
+		showIcon = false, spark = false, hideUnitName = false, fullOpacity = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
@@ -48,7 +48,7 @@ Settings.defaults = {
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
 	target = { readableTicks = true, smoothOpacity = true, highlight = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1 },
-	focus = { highlight = true, color = Color("rare") },
+	focus = { fullOpacity = false, highlight = true, color = Color("rare") },
 	markers = { classification = true, raid = true, raidSize = 16 },
 	stacking = { footprint = "plate" },
 	cvars = {
@@ -272,6 +272,9 @@ function Settings.Schema()
 
 	local rest = {
 		{ type = "header", label = L["Cast bar"] },
+		{ type = "toggle", key = "cast.spark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] },
+		{ type = "toggle", key = "cast.hideUnitName", label = L["Hide unit name while casting"], help = L["Hides the unit name for the duration of its cast."] },
+		{ type = "toggle", key = "cast.fullOpacity", label = L["Full opacity while casting"], help = L["Keeps casting units visible when other plates are dimmed."] },
 		{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
 		{
 			type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
@@ -461,6 +464,7 @@ function Settings.Schema()
 			disableWhen = Is("threat.display", "off"),
 		},
 		{ type = "header", label = L["Target and focus"] },
+		{ type = "toggle", key = "focus.fullOpacity", label = L["Keep focus at full opacity"], help = L["Keeps your focus visible when other plates are dimmed."] },
 		{ type = "toggle", key = "target.readableTicks", label = L["Bright target ticks"],
 			help = L["Medallions: bright, outlined ticks settle beside your target. Off restores the dark ticks."] },
 		{ type = "toggle", key = "target.smoothOpacity", label = L["Smooth plate opacity"],

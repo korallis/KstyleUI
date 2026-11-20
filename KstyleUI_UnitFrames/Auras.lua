@@ -407,10 +407,10 @@ local function Capacity(view)
 	return Value(view, "auraRows") * Value(view, "auraColumns")
 end
 
-local function Sort()
+local function Sort(view)
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if type(methods) == "table" and type(directions) == "table" and methods[SORT] ~= nil and directions.Normal ~= nil then
-		return methods[SORT], directions.Normal
+		return K.Options.AuraSort(view and Value(view, "auraFilters").sort, methods[SORT], directions.Normal)
 	end
 	LogOnce("sort", "frame auras: AuraContainerSortMethod." .. SORT .. " is missing; the engine keeps its default order")
 	return nil
@@ -573,11 +573,14 @@ end
 local function ApplyContainer(view, fan)
 	local a = view.auras
 	local container = a.container
-	local filter = FILTERS[Value(view, "auraFilter")] or FILTERS.mine
-	if fan then
-		filter = { debuffs = filter.debuffs == "HARMFUL" and "HARMFUL|!PLAYER" or nil, buffs = filter.buffs }
+	local filter = {}
+	for key, value in pairs(FILTERS[Value(view, "auraFilter")] or FILTERS.mine) do
+		filter[key] = K.Options.AuraFilterString(Value(view, "auraFilters"), value)
 	end
-	local method, direction = Sort()
+	if fan then
+		filter = { debuffs = not Value(view, "auraFilters").onlyMine and (FILTERS[Value(view, "auraFilter")] or FILTERS.mine).debuffs == "HARMFUL" and filter.debuffs .. "|!PLAYER" or nil, buffs = filter.buffs }
+	end
+	local method, direction = Sort(view)
 	for _, key in ipairs(GROUPS) do
 		local on = filter[key] ~= nil
 		container:SetAuraGroupEnabled(key, on)

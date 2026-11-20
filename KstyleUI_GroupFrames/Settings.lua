@@ -56,7 +56,7 @@ Settings.defaults = {
 		healthFont = THEME_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
-	icons = { role = true, roleShapes = true, statuses = true, leader = true, marker = true, readyCheck = true },
+	icons = { role = true, roleShapes = true, statuses = true, afk = true, resurrection = true, summon = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true, shapes = true },
 	auras = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
@@ -288,6 +288,9 @@ function Settings.Schema()
 		add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
 		add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
 		add(Toggle("icons.statuses", L["Resurrection, summon and AFK"], L["Shows these states in the ready-check space. Off leaves only ready checks."]))
+		add(Toggle("icons.afk", L["AFK indicator"], L["Marks members who are away from their keyboard."], { showWhen = Is("icons.statuses", true) }))
+		add(Toggle("icons.resurrection", L["Incoming resurrection"], L["Marks members with a resurrection on the way."], { showWhen = Is("icons.statuses", true) }))
+		add(Toggle("icons.summon", L["Incoming summon"], L["Marks members with a summon on the way."], { showWhen = Is("icons.statuses", true) }))
 		add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
 		add(Toggle("threat.shapes", L["Threat shapes"], L["Adds a tick, triangle or square beside the threat border. Off keeps the border alone."]))
 		add({ type = "header", label = L["Debuffs"] })

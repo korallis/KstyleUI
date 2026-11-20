@@ -95,6 +95,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthOrientation = "RIGHT",
 		healthText = full and "both" or "percent",
 		healPrediction = true,
+		absorbs = true,
 		power = full,
 		powerHeight = full and 7 or 3,
 		powerTexture = BAR_TEXTURE,
@@ -118,6 +119,9 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarText = true,
 		castbarCaps = true,
 		castbarTimer = true,
+		castbarSpark = true,
+		castbarLatency = false,
+		castbarLockedColor = Color("textDisabled"),
 		castbarTexture = BAR_TEXTURE,
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
@@ -125,6 +129,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarInside = false,
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
+		auraFilters = { onlyMine = false, dispellable = false, sort = "" },
 		auraSize = aura and aura.size or 20,
 		auraSpacing = 2,
 		auraRows = aura and aura.rows or 1,
@@ -659,6 +664,12 @@ CastRows = function(schema, kind)
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
+	if kind == "player" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
+			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
+	end
 	TextRows(schema, kind, "cast")
 end
 
@@ -685,6 +696,12 @@ AuraRows = function(schema, kind)
 			type = "dropdown", key = medallions and "medallionsAuraFilter" or "auraFilter", label = L["Which auras"],
 			help = L["Your debuffs, all debuffs, buffs, or debuffs and buffs."], options = CHOICES.auraFilter,
 		}, function() return visible(true) end)
+	end
+	local filters = {}
+	K.Options.AuraFilterRows(filters, kind .. ".auraFilters")
+	for _, row in ipairs(filters) do
+		row.showWhen, row.scope = Shows(kind, on), Scope(kind)
+		schema[#schema + 1] = row
 	end
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
@@ -850,6 +867,8 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "healPrediction", label = L["Incoming heals"],
 		help = L["Shows incoming heals and absorb shields on the health bar."],
 	})
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "absorbs", label = L["Absorbs"],
+		help = L["Shows absorb shields when incoming heals are enabled."] }, function(s) return s.healPrediction ~= false end)
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],

@@ -888,7 +888,8 @@ function Plate:UpdateHighlight(sigilCasts)
 		health:SetRimColor(Tokens.Color("black"))
 	end
 	local alpha = 1
-	if not self.sample and state.hasTarget and not isTarget then
+	if not self.sample and state.hasTarget and not isTarget
+		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
 		alpha = Settings.Get("target.dimOthers")
 	end
 	if self.alphaGoal ~= alpha or not Settings.Get("target.smoothOpacity") then
