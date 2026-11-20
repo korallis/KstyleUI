@@ -14,6 +14,7 @@
 	<Script file="TravelData.lua"/>
 	<Script file="Travel.lua"/>
 	<Script file="SlabEffects.lua"/>
+	<Script file="SlabJewels.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>
 	<Script file="Blizzard.lua"/>

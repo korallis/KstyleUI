@@ -618,6 +618,16 @@ function modules.actionbars(opts)
 			env.UnitLevel = env.UnitLevel or function()
 				return Hud.Player(opts).level
 			end
+			-- The player's combo points, holy power or soul shards, which the Medallions hub's jewels light (spec.combo, else 3 of 5).
+			env.GetComboPoints = env.GetComboPoints or function()
+				return spec.combo or 0
+			end
+			env.UnitPower = env.UnitPower or function()
+				return spec.combo or 3
+			end
+			env.UnitPowerMax = env.UnitPowerMax or function()
+				return 5
+			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			if travel then
 				env._resolveRects = true

@@ -106,6 +106,10 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
+### Resource jewels
+
+Under Medallions, the hub ring carries one gilt-set diamond per point of the player's secondary resource across its top arc, filling left to right: combo points on the target for a rogue or a druid in cat form (embers, `jewelCombo`), holy power for a paladin (gold, `jewelHoly`) and soul shards for a warlock (violet, `jewelShard`). Other classes, and a druid out of cat form, show none. The count is `UnitPowerMax` for that power, five when the maximum is secret, and none when it is zero, so a client without the power draws nothing. Each gem, its bright core and its glow are one-point status bars (range `i - 1` to `i`) fed the raw `GetComboPoints` or `UnitPower` value, so the engine lights them and Lua never compares a secret value. The jewels listen to power events only while the hub is shown.
+
 ### Crest travel
 
 In Medallions, **Crest travel clicks** defaults on. Left click uses `item:6948`; the native action does nothing when no Hearthstone is carried, and preparation clears its action type too. Right click opens travel above the crest and both central cast bars. Right click again, Escape, or using a destination closes it. The crest tooltip uses the shared KstyleUI tooltip, showing the bind location, remaining Hearthstone cooldown (`--` when secret), missing-Hearthstone notice and both clicks. Turning the setting off hides the secure overlay and restores click-through artwork.
@@ -161,6 +165,7 @@ In game: check left/right click and Escape inside and outside combat, missing He
 | `Tray.lua` | The [Frames tray](#frames-tray): one card behind bars 1 and 2 while they stand stacked |
 | `Slab.lua` | The [Medallions slab](#medallions-slab): the slab behind bars 1 and 2, the crest hub between them and its motion |
 | `SlabEffects.lua` | The Medallions effects beside the slab: the slot ready flash, the hub's resource-cap ring and the hub's 3D models ([medallions-effects.md](../docs/medallions-effects.md)) |
+| `SlabJewels.lua` | The Medallions hub's [resource jewels](#resource-jewels): combo points, holy power or soul shards as gems on the ring |
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
 | `Keybind.lua` | Hover overlays, the Save/Discard panel and staged game bindings |
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
