@@ -35,6 +35,8 @@ for _, shadow in ipairs({ "show", "hide", "style" }) do
  CT.Finish(number)
 end
 K.Options.Write("CombatText", "combatColor", { r = 0.3, g = 0.5, b = 0.7 })
+K.Options.Write("CombatText", "damage", false)
+K.Options.Write("CombatText", "heals", false)
 K.Options.Write("CombatText", "combat", true)
 for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
  env.FireEvent(event)
