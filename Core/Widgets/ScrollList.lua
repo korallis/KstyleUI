@@ -293,14 +293,12 @@ local function Reveal(self, t)
 end
 
 function List:SetData(items, keepOffset, cascade)
-	self.settingData = true
 	self.items = items or {}
 	Measure(self)
 	EnsureRows(self)
 	for _, row in ipairs(self.rows) do
 		row.index = nil
 	end
-	self.settingData = nil
 	local offset = keepOffset and min(self.offset, self:GetMaxOffset()) or 0
 	self.target = nil
 	Motion.Tween(self, "SetOffset", offset, offset, 0)
@@ -408,7 +406,7 @@ function Widgets.ScrollList(parent, opts)
 		Widgets.Hover(list, false)
 	end)
 	list:SetScript("OnSizeChanged", function(self)
-		if self.settingData or self.measuring then return end
+		if self.measuring then return end
 		if self.tops and self:GetViewWidth() ~= self.measuredWidth then
 			Measure(self)
 		end
