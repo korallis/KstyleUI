@@ -50,8 +50,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 5120
 	end)
 	Check(6, function()
 		local plate = Mode.Plate("databars.xp")
-		local _, _, _, height = K.Layout.Rect(plate.key)
-		assert(math.abs(plate:GetHeight() - height) < 0.01, "keep a thin mover at the element's actual height")
+		assert(plate:GetHeight() == 16, "keep the 16-unit thin mover grab area used by wheel and coverage hit tests")
 		assert(not Overlap(Rect(plate), Rect(Mode.Plate("actionbars.bar1"))), "keep the XP mover below Action Bar 1")
 		assert(not Overlap(Rect(plate.tag), Rect(Mode.Plate("databars.strip"))), "keep the XP label clear of the clock")
 	end)
@@ -62,26 +61,23 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 5120
 	Check("tags", function()
 		for _, coordinates in ipairs({ true, false }) do
 			K.Options.Write("Layout", "showCoordinates", coordinates)
-			for _, clear in ipairs({ true, false }) do
-				K.Options.Write("LayoutControls", "clearMovers", clear)
-				Scene.Build(env)
-				local tags = {}
-				for _, el in ipairs(K.Layout.Elements()) do
-					local plate = Mode.Plate(el.key)
-					if plate and plate:IsShown() then
-						local tag = Rect(plate.tag)
-						assert(plate.tag:IsShown(), "every fixture's name remains visible")
-						for _, other in ipairs(K.Layout.Elements()) do
-							local mover = Mode.Plate(other.key)
-							if mover and mover:IsShown() then
-								Check("tags", function() assert(not Overlap(tag, Rect(mover)), "keep tags outside all movers") end)
-							end
+			Scene.Build(env)
+			local tags = {}
+			for _, el in ipairs(K.Layout.Elements()) do
+				local plate = Mode.Plate(el.key)
+				if plate and plate:IsShown() then
+					local tag = Rect(plate.tag)
+					assert(plate.tag:IsShown(), "every fixture's name remains visible: " .. el.key)
+					for _, other in ipairs(K.Layout.Elements()) do
+						local mover = Mode.Plate(other.key)
+						if mover and mover:IsShown() then
+							Check("tags", function() assert(not Overlap(tag, Rect(mover)), "keep tags outside all movers") end)
 						end
-						for _, other in ipairs(tags) do
-							Check("tags", function() assert(not Overlap(tag, other), "keep adjacent tags apart") end)
-						end
-						tags[#tags + 1] = tag
 					end
+					for _, other in ipairs(tags) do
+						Check("tags", function() assert(not Overlap(tag, other), "keep adjacent tags apart") end)
+					end
+					tags[#tags + 1] = tag
 				end
 			end
 		end

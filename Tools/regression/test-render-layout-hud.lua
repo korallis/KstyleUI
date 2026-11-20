@@ -21,6 +21,15 @@ end
 for _, name in ipairs({ "ESSENTIAL COOLDOWNS", "UTILITY COOLDOWNS", "EXPERIENCE BAR", "CHAT", "BOSS ANNOUNCEMENTS" }) do
 	assert(shown[name], "keep the " .. name .. " label visible")
 end
+for _, art in ipairs(scene.items) do
+	if art.file == "Media/Textures/Medallions/Ring256.png" then
+		for _, item in ipairs(scene.items) do
+			if item.kind == "text" and (item.text == "ACTION BAR 1" or item.text == "ACTION BAR 2" or item.text == "EXPERIENCE BAR") then
+				assert(not Overlap(item.rect, art.rect), "keep mover labels clear of the plate-less Medallions crest")
+			end
+		end
+	end
+end
 rawset(_G, "RENDER_SCREEN", nil)
 rawset(_G, "RENDER_HUD_STYLE", nil)
 print("layout HUD render ok: Medallions at 5120x1440, cooldown reserves, XP track, toolbar and all four video labels")
