@@ -25,12 +25,17 @@ Settings.defaults = {
 	clearPlaques = true,
 	frame = "medallion",
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
-	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
+	rotate = false,
+	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true,
+		offset = 0, tooltip = "auto", backgrounds = true, free = false, spots = {} },
+	mail = { position = "column", x = 0, y = 0 },
+	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false, list = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	zone = { shown = true, subzone = true, color = "plain", font = "", size = 12, outline = "world" },
-	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world" },
-	coords = { shown = true, hover = false, precision = 1, font = "", size = 11.5, outline = "world" },
+	zone = { shown = true, subzone = true, color = "plain", font = "", size = 12, outline = "world", position = "", x = 0, y = 0 },
+	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world", position = "", x = 0, y = 0, accent = false, hover = "none" },
+	coords = { shown = true, hover = false, precision = 1, font = "", size = 11.5, outline = "world", position = "", x = 0, y = 0 },
+	difficulty = { shown = false, position = "TOPLEFT", x = 0, y = 0, font = "", size = 12, outline = "world", accent = false },
+	perf = { shown = false, position = "BOTTOMLEFT", x = 0, y = 0, font = "", size = 12, outline = "world", interval = 3, latency = "home", accent = true, hover = "none" },
 }
 
 local rows
@@ -48,6 +53,14 @@ function Settings.BarClock()
 		end
 	end
 	return false
+end
+
+function Settings.MailMoved(v)
+	return v.column.mail and v.mail.position ~= "column"
+end
+
+function Settings.TooltipsPlace()
+	return K.Store.IsLoaded() and K.Modules.IsRunning("Tooltips") and K.Store.Module("Tooltips").minimapAnchor ~= false
 end
 
 function Settings.Schema()
@@ -117,23 +130,50 @@ function Settings.Schema()
 		return out
 	end
 
+	local POINTS = {
+		{ value = "TOPLEFT", label = L["Top left"] }, { value = "TOP", label = L["Top"] }, { value = "TOPRIGHT", label = L["Top right"] },
+		{ value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] },
+		{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "BOTTOM", label = L["Bottom"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
+	}
+	local CAPTION_POINTS = { { value = "", label = L["Usual place"] } }
+	for _, point in ipairs(POINTS) do CAPTION_POINTS[#CAPTION_POINTS + 1] = point end
+	local MAIL_POINTS = { { value = "column", label = L["In the button column"] } }
+	for _, point in ipairs(POINTS) do
+		if point.value:find("TOP.+") or point.value:find("BOTTOM.+") then MAIL_POINTS[#MAIL_POINTS + 1] = point end
+	end
+	local TOOLTIP_OPTIONS = {
+		{ value = "auto", label = L["Away from the map"] }, { value = "up", label = L["Up"] }, { value = "down", label = L["Down"] },
+		{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
+	}
+	local HOVER_OPTIONS = { { value = "none", label = L["None"] }, { value = "lockouts", label = L["Instance lockouts"] } }
+	local LATENCY_OPTIONS = { { value = "home", label = L["Home"] }, { value = "world", label = L["World"] } }
+
 	local function Custom(settings)
 		return settings.accent.source == "custom"
 	end
 
-	local function TextRows(prefix, labels, name)
+	local function Place(prefix, name, points, showWhen)
+		return {
+			{ type = "dropdown", key = prefix .. ".position", label = L["%s place"]:format(name), options = points, showWhen = showWhen,
+				help = points == CAPTION_POINTS and L["Its usual place, or inside the map's edge."] or L["Where it sits inside the map's edge."] },
+			{ type = "slider", key = prefix .. ".x", label = L["%s horizontal offset"]:format(name), min = -200, max = 200, step = 1, showWhen = showWhen, help = L["Moves it left or right."] },
+			{ type = "slider", key = prefix .. ".y", label = L["%s vertical offset"]:format(name), min = -200, max = 200, step = 1, showWhen = showWhen, help = L["Moves it up or down."] },
+		}
+	end
+
+	local function TextRows(prefix, labels, name, showWhen)
 		return {
 			{
-				type = "dropdown", key = prefix .. ".font", label = labels[1], options = Settings.FontOptions,
+				type = "dropdown", key = prefix .. ".font", label = labels[1], options = Settings.FontOptions, showWhen = showWhen,
 				help = L["The typeface of the %s."]:format(name),
 			},
 			{
-				type = "slider", key = prefix .. ".size", label = labels[2],
+				type = "slider", key = prefix .. ".size", label = labels[2], showWhen = showWhen,
 				min = TEXT_MIN, max = TEXT_MAX, step = TEXT_STEP,
 				help = L["The size of the %s, before the interface text size."]:format(name),
 			},
 			{
-				type = "dropdown", key = prefix .. ".outline", label = labels[3], options = OUTLINE_OPTIONS,
+				type = "dropdown", key = prefix .. ".outline", label = labels[3], options = OUTLINE_OPTIONS, showWhen = showWhen,
 				help = L["An outline helps the %s read over bright terrain."]:format(name),
 			},
 		}
@@ -145,6 +185,7 @@ function Settings.Schema()
 			help = L["Medallions only: crest medallion, crest ring with classic labels, or the classic frame."] },
 		{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
 		{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
+		{ type = "toggle", key = "rotate", label = L["Rotate the map"], help = L["Turns the map so you always face up, and hides the N. Off leaves the game's own setting alone."] },
 		{
 			type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
 			help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],
@@ -176,6 +217,13 @@ function Settings.Schema()
 			min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
 			help = L["The gap between the buttons in the column."],
 		},
+		{ type = "slider", key = "column.offset", label = L["Distance from the edge"], min = -40, max = 40, step = 1,
+			help = L["Moves the column in from the map's edge, or out past it."] },
+		{ type = "dropdown", key = "column.tooltip", label = L["Button tooltips open"], options = TOOLTIP_OPTIONS, disableWhen = Settings.TooltipsPlace,
+			help = L["Which way button tooltips open. Tooltips > Keep minimap clear places them while it is on."] },
+		{ type = "toggle", key = "column.backgrounds", label = L["Button backgrounds"], help = L["The crystal disc behind each button. Off shows the bare symbols."] },
+		{ type = "toggle", key = "column.free", label = L["Move buttons freely"],
+			help = L["Shift-drag a button anywhere on the map, out of combat. Off returns every button to the column."] },
 		{
 			type = "toggle", key = "column.tracking", label = L["Tracking button"],
 			help = L["Picks what the map tracks, such as herbs or the nearest innkeeper."],
@@ -184,6 +232,12 @@ function Settings.Schema()
 			type = "toggle", key = "column.mail", label = L["Mail indicator"],
 			help = L["Shows an envelope while you have unread mail."],
 		},
+		{ type = "dropdown", key = "mail.position", label = L["Mail place"], options = MAIL_POINTS, showWhen = function(v) return v.column.mail end,
+			help = L["Keep the envelope in the column, or in a corner of the map."] },
+		{ type = "slider", key = "mail.x", label = L["Mail horizontal offset"], min = -100, max = 100, step = 1, help = L["Moves it left or right."],
+			showWhen = Settings.MailMoved },
+		{ type = "slider", key = "mail.y", label = L["Mail vertical offset"], min = -100, max = 100, step = 1, help = L["Moves it up or down."],
+			showWhen = Settings.MailMoved },
 		{
 			type = "toggle", key = "column.calendar", label = L["Calendar button"],
 			help = L["Opens the calendar; right-click for the clock options."],
@@ -236,6 +290,7 @@ function Settings.Schema()
 			type = "toggle", key = "drawer.edgePins", label = L["Addon pins on the map's edge"],
 			help = L["Shows the pins addons such as guides park on the map's edge for places off the map."],
 		},
+		{ type = "toggle", key = "drawer.list", label = L["Show as a list"], help = L["One column with each addon's name beside its button."] },
 		{ type = "header", label = L["Zoom"] },
 		{
 			type = "toggle", key = "zoom.wheel", label = L["Zoom with the mouse wheel"],
@@ -270,35 +325,55 @@ function Settings.Schema()
 			help = L["Colours the zone name plainly, by PvP status or with the accent."],
 		},
 	}
-	for _, row in ipairs(TextRows("zone", { L["Zone font"], L["Zone text size"], L["Zone outline"] }, L["zone name"])) do
-		schema[#schema + 1] = row
+	local function Add(list)
+		for _, row in ipairs(list) do schema[#schema + 1] = row end
 	end
-	schema[#schema + 1] = {
-		type = "toggle", key = "clock.shown", label = L["Clock"],
-		help = L["Hidden while the data bar shows the clock."],
-		disableWhen = Settings.BarClock,
-		shown = function(value) return value and not Settings.BarClock() end,
-	}
-	schema[#schema + 1] = {
-		type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
-		help = L["Follow the game's clock settings, or pick local or realm time."],
-	}
-	for _, row in ipairs(TextRows("clock", { L["Clock font"], L["Clock text size"], L["Clock outline"] }, L["clock"])) do
-		schema[#schema + 1] = row
-	end
-	schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
-	schema[#schema + 1] = {
-		type = "toggle", key = "coords.shown", label = L["Coordinates"],
-		help = L["Shows your position on the zone map, under the zone name."],
-	}
-	schema[#schema + 1] = { type = "toggle", key = "coords.hover", label = L["Coordinates only on hover"], help = L["Show coordinates only while the pointer is over the map."], showWhen = function(v) return v.coords.shown end }
-	schema[#schema + 1] = {
-		type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
-		help = L["How many decimals the coordinates show."],
-	}
-	for _, row in ipairs(TextRows("coords", { L["Coordinate font"], L["Coordinate text size"], L["Coordinate outline"] }, L["coordinates"])) do
-		schema[#schema + 1] = row
-	end
+	Add(TextRows("zone", { L["Zone font"], L["Zone text size"], L["Zone outline"] }, L["zone name"]))
+	Add(Place("zone", L["Zone"], CAPTION_POINTS))
+	Add({
+		{ type = "toggle", key = "clock.shown", label = L["Clock"], help = L["Hidden while the data bar shows the clock."],
+			disableWhen = Settings.BarClock, shown = function(value) return value and not Settings.BarClock() end },
+		{ type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
+			help = L["Follow the game's clock settings, or pick local or realm time."] },
+	})
+	Add(TextRows("clock", { L["Clock font"], L["Clock text size"], L["Clock outline"] }, L["clock"]))
+	Add(Place("clock", L["Clock"], CAPTION_POINTS))
+	Add({
+		{ type = "toggle", key = "clock.accent", label = L["Accent AM and PM"], help = L["Colours the clock's AM or PM with the accent."] },
+		{ type = "dropdown", key = "clock.hover", label = L["Clock tooltip adds"], options = HOVER_OPTIONS,
+			help = L["Adds your saved instances and their resets to the clock's tooltip."] },
+		{ type = "header", label = L["Coordinates"] },
+		{ type = "toggle", key = "coords.shown", label = L["Coordinates"], help = L["Shows your position on the zone map, under the zone name."] },
+		{ type = "toggle", key = "coords.hover", label = L["Coordinates only on hover"], help = L["Show coordinates only while the pointer is over the map."],
+			showWhen = function(v) return v.coords.shown end },
+		{ type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
+			help = L["How many decimals the coordinates show."] },
+	})
+	Add(TextRows("coords", { L["Coordinate font"], L["Coordinate text size"], L["Coordinate outline"] }, L["coordinates"]))
+	Add(Place("coords", L["Coordinates"], CAPTION_POINTS))
+	local function Difficulty(v) return v.difficulty.shown end
+	Add({
+		{ type = "header", label = L["Instance difficulty"] },
+		{ type = "toggle", key = "difficulty.shown", label = L["Instance difficulty"],
+			help = L["Shows the group size and difficulty, such as 25H, while you are in a dungeon or raid."] },
+		{ type = "toggle", key = "difficulty.accent", label = L["Accent the difficulty"], showWhen = Difficulty, help = L["Colours the difficulty with the accent."] },
+	})
+	Add(Place("difficulty", L["Difficulty"], POINTS, Difficulty))
+	Add(TextRows("difficulty", { L["Difficulty font"], L["Difficulty text size"], L["Difficulty outline"] }, L["difficulty"], Difficulty))
+	local function Perf(v) return v.perf.shown end
+	Add({
+		{ type = "header", label = L["Frame rate and latency"] },
+		{ type = "toggle", key = "perf.shown", label = L["Frame rate and latency"], help = L["Shows frames per second and latency on the map."] },
+		{ type = "dropdown", key = "perf.latency", label = L["Latency shown"], options = LATENCY_OPTIONS, showWhen = Perf,
+			help = L["Home latency for chat and logins, or world latency for combat."] },
+		{ type = "slider", key = "perf.interval", label = L["Update every"], min = 1, max = 5, step = 1, showWhen = Perf,
+			help = L["Seconds between readings."] },
+		{ type = "toggle", key = "perf.accent", label = L["Accent fps and ms"], showWhen = Perf, help = L["Colours the fps and ms labels with the accent."] },
+		{ type = "dropdown", key = "perf.hover", label = L["Tooltip on hover"], options = HOVER_OPTIONS, showWhen = Perf,
+			help = L["Shows your saved instances and their resets while the pointer is over the readout."] },
+	})
+	Add(Place("perf", L["Readout"], POINTS, Perf))
+	Add(TextRows("perf", { L["Readout font"], L["Readout text size"], L["Readout outline"] }, L["readout"], Perf))
 	Settings.schema = schema
 
 	rows = {}

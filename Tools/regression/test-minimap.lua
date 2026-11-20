@@ -423,7 +423,7 @@ local xp, xrel, xrelp = face.coords:GetPoint(1)
 assert(xp == "LEFT" and xrel == face.card and xrelp == "BOTTOMLEFT", "the coordinates sit under the card, at the left")
 local cpoint, crel, crelp = face.clock:GetPoint(1)
 assert(cpoint == "RIGHT" and crel == face.card and crelp == "BOTTOMRIGHT", "and the clock at the right")
-assert(K.Store.Defaults("Minimap").coords.position == nil, "the coordinate position setting is gone: the caption is the one place")
+assert(K.Store.Defaults("Minimap").coords.position == "", "the coordinates keep their usual place by default")
 K.Options.Write("Minimap", "coords.precision", 0)
 assert(face.coords:GetText() == "45, 62", "the coordinate format follows the setting")
 local function CoordsTickers()
@@ -550,7 +550,7 @@ do
 	assert(db.version == mK.Store.DB_VERSION and db.version >= 5, "the saved data migrates to the current version: " .. tostring(db.version))
 	local section = db.profiles.Default.Minimap
 	assert(section.compass == nil and db.profiles.Alt.Minimap.compass == nil, "the north mark setting is dropped from every profile")
-	assert(section.coords.position == nil and section.coords.shown == true, "the coordinate position is dropped and the other coordinate settings stay")
+	assert((section.coords.position or "") == "" and section.coords.shown == true, "the old coordinate position is dropped and the other coordinate settings stay")
 	assert(section.column.size == 26, "a tuned button size stays")
 	local entry = db.layouts.Default["minimap.main"]
 	assert(entry.width == nil and entry.height == nil, "the lens card's saved size is dropped")

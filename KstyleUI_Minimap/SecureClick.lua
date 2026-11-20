@@ -11,7 +11,7 @@ local OVERLAY_LEVEL = 5
 
 local bound = setmetatable({}, { __mode = "k" })
 local tooltips = setmetatable({}, { __mode = "k" })
-local current
+local current, dragged
 local active = false
 
 local function Visual()
@@ -31,6 +31,11 @@ local function Press(visual, down)
 end
 
 function SecureClick.Detach()
+	if dragged then
+		local visual = dragged
+		dragged = nil
+		ns.Column.Drag(visual, false)
+	end
 	local overlay = SecureClick.overlay
 	if overlay and not InCombatLockdown() then
 		overlay:Hide()
@@ -52,6 +57,9 @@ local function OverlayEnter()
 end
 
 local function OverlayLeave()
+	if dragged then
+		return
+	end
 	local visual = Visual()
 	Hover(visual, false)
 	Press(visual, false)
@@ -62,6 +70,19 @@ local function OverlayLeave()
 	SecureClick.Detach()
 	if ns.Map and ns.Map.CheckHover then
 		ns.Map.CheckHover()
+	end
+end
+
+local function DragStart()
+	if current then
+		ns.Column.Drag(current, true)
+		dragged = current.moving and current or nil
+	end
+end
+
+local function DragStop()
+	if dragged then
+		SecureClick.Detach()
 	end
 end
 
@@ -89,6 +110,8 @@ local function EnsureOverlay()
 	overlay:HookScript("OnLeave", OverlayLeave)
 	overlay:HookScript("OnMouseDown", OverlayDown)
 	overlay:HookScript("OnMouseUp", OverlayUp)
+	overlay:HookScript("OnDragStart", DragStart)
+	overlay:HookScript("OnDragStop", DragStop)
 	overlay:Hide()
 	SecureClick.overlay = overlay
 	K.DevTest.Log("Minimap", "the secure click overlay is ready")
@@ -114,6 +137,10 @@ local function Attach(visual)
 	current = visual
 	overlay:SetAttribute("clickbutton1", left)
 	overlay:SetAttribute("clickbutton2", right or left)
+	if overlay.dragging ~= (visual.dragging == true) then
+		overlay.dragging = visual.dragging == true
+		if overlay.dragging then overlay:RegisterForDrag("LeftButton") else overlay:RegisterForDrag() end
+	end
 	local strata = visual:GetFrameStrata()
 	if type(strata) == "string" then
 		overlay:SetFrameStrata(strata)

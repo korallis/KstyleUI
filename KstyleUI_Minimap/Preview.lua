@@ -16,6 +16,7 @@ function Preview.Build(...)
 	local GRAIN_ALPHA = 0.08
 	local PLAYER_SIZE = 8
 	local SAMPLE_ZOOM, SAMPLE_ZOOM_LEVELS = 5, 6
+	local SAMPLE_GROUP, SAMPLE_FPS, SAMPLE_MS = 25, 60, 42
 
 	local function Refresh(frame)
 		local face = frame.face
@@ -27,6 +28,8 @@ function Preview.Build(...)
 		face:SetZone(zone, pvpType)
 		face:SetClock(Data.Clock(Settings.Get("clock.mode")) or Format.Time(14, 32, true))
 		face:SetCoords(Format.Coords(SAMPLE_X, SAMPLE_Y, Settings.Get("coords.precision")))
+		face:SetDifficulty(Data.Difficulty() or L["%dH"]:format(SAMPLE_GROUP))
+		face:SetPerf(ns.Map.PerfText(SAMPLE_FPS, SAMPLE_MS))
 		face:SetRevealed(true)
 		face:SetZoom(SAMPLE_ZOOM, SAMPLE_ZOOM_LEVELS)
 		frame.column:Refresh()

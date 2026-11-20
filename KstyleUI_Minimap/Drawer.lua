@@ -18,6 +18,7 @@ local ICON_FILL = 0.72
 local HOVER_GRACE = 0.5
 local DRAG_BUTTON = "LeftButton"
 local OWN_PREFIX = "^KstyleUI"
+local LABEL_SIZE = 12
 
 local hooked = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
@@ -181,6 +182,7 @@ function Drawer.New(column, opts)
 		preview = opts.preview == true,
 		adopted = {},
 		order = {},
+		labels = {},
 		active = false,
 		open = false,
 		graceLeft = 0,
@@ -241,7 +243,7 @@ function Drawer:Place(button)
 	end
 	local size = self:Size()
 	local spacing = Widgets.Snap(self.panel, Settings.Get("drawer.spacing"))
-	local direction = Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side"))
+	local direction = Settings.Get("drawer.list") and "down" or Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side"))
 	local point, x, y = Format.Grid(state.slot, self.columns or Settings.Get("drawer.columns"), size, spacing, direction, Widgets.Snap(self.panel, PAD))
 	local compact = Settings.Get("compactIcons")
 	local scale = compact and 1 or button:GetScale()
@@ -282,11 +284,37 @@ function Drawer:Layout()
 	if not Settings.Get("compactIcons") then
 		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - reserve - 2 * pad + spacing) / (size + spacing))))
 	end
-	self.columns = columns
-	local width, height = Format.GridSize(slot, columns, size, spacing, pad)
+	local list = Settings.Get("drawer.list")
+	self.columns = list and 1 or columns
+	local width, height = Format.GridSize(slot, self.columns, size, spacing, pad)
+	local gap = Widgets.Snap(panel, GAP)
+	local labelWidth = 0
+	for _, button in ipairs(self.order) do
+		local state, label = self.adopted[button], self.labels[button]
+		if list and state.slot and not label then
+			label = Widgets.FontString(panel, "OVERLAY")
+			label:SetWordWrap(false)
+			label:SetJustifyH("LEFT")
+			self.labels[button] = label
+		end
+		if label then
+			label:SetShown(list and state.slot ~= nil)
+			if list and state.slot then
+				Widgets.ApplyFont(label, (Tokens.Font("body")), LABEL_SIZE * K.Theme.FontScale(), "")
+				label:SetTextColor(Tokens.Color("text"))
+				label:SetText((tostring(state.name):gsub("^LibDBIcon10_", "")))
+				label:ClearAllPoints()
+				label:SetPoint("LEFT", panel, "TOPLEFT", pad + size + gap, -(pad + (state.slot - 1) * (size + spacing) + size / 2))
+				local w = label:GetStringWidth()
+				labelWidth = math.max(labelWidth, Format.IsNumber(w) and w or 0)
+			end
+		end
+	end
+	if list and slot > 0 then
+		width = width + gap + labelWidth
+	end
 	Widgets.Size(panel, math.max(width, Widgets.Border(panel)), math.max(height, Widgets.Border(panel)))
 	local point, relative, xs, ys = Format.DrawerAnchor(direction)
-	local gap = Widgets.Snap(panel, GAP)
 	panel:ClearAllPoints()
 	if Settings.Get("compactIcons") then
 		panel:SetPoint(point, toggle, relative, xs * gap, ys * gap)
@@ -498,6 +526,9 @@ function Drawer:Stop()
 				icon:SetPoint(point[1], point[2], point[3], point[4], point[5])
 			end
 		end
+	end
+	for _, label in pairs(self.labels) do
+		label:Hide()
 	end
 	self.adopted, self.order = {}, {}
 end

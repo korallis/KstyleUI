@@ -31,6 +31,8 @@ local PLAQUE_PAD = 6
 local RING_OUTER = 0.9189
 local RING_SUBLEVEL = 3
 local BADGE, BADGE_BAND = 16, 2
+local ROUND_CORNER = 0.146
+local INSIDE = { "zone", "clock", "coords", "difficulty", "perf" }
 local currentFrame
 
 Face.LEVEL_MAP = LEVEL_MAP
@@ -262,6 +264,11 @@ function Face.New(holder, opts)
 	face.coordsFrame = coordsFrame
 	face.coords = NewText(caption)
 	face.coords:SetJustifyH("LEFT")
+	face.difficulty = NewText(caption)
+	face.perf = NewText(caption)
+	face.perfHit = CreateFrame("Button", nil, caption)
+	face.perfHit:SetAllPoints(face.perf)
+	face.perfHit:Hide()
 
 	local reveal = CreateFrame("Frame", nil, holder)
 	Level(reveal, holder, LEVEL_REVEAL)
@@ -348,7 +355,7 @@ end
 function Face:PlaceZone()
 	local card, zone = self.card, self.zone
 	local side = self.mapSize
-	if not side or self.zonePlaced then
+	if not side or self.zonePlaced or Face.Moved("zone") then
 		return
 	end
 	self.zonePlaced = true
@@ -363,7 +370,7 @@ function Face:PlaceZone()
 	end
 	self.zoneX, self.zoneY = Snap(card, CaptionX()), y
 	zone:ClearAllPoints()
-	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX, self.zoneY)
+	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX + Snap(card, Settings.Get("zone.x")), self.zoneY + Snap(card, Settings.Get("zone.y")))
 	zone:SetWidth(Snap(card, max(0, side + 2 * Format.FRAME - 2 * CaptionX())))
 end
 
@@ -399,10 +406,13 @@ function Face:PlaceClock()
 	end
 	meridiem:ClearAllPoints()
 	meridiem:SetPoint("BOTTOMLEFT", clock, "BOTTOMRIGHT", gap, 0)
+	if Face.Moved("clock") then
+		return self:PlaceInside()
+	end
 	clock:ClearAllPoints()
 	local x = (floor(-(self.clockInset + width + gap) / pixel + self.clockRight + 0.5) - self.clockRight) * pixel
 	local y = -(floor(self.clockRow / pixel + self.clockBottom + 0.5) - self.clockBottom) * pixel
-	clock:SetPoint("RIGHT", card, self.clockAnchor and "RIGHT" or "BOTTOMRIGHT", x, y)
+	clock:SetPoint("RIGHT", card, self.clockAnchor and "RIGHT" or "BOTTOMRIGHT", x + Snap(self.card, Settings.Get("clock.x")), y + Snap(self.card, Settings.Get("clock.y")))
 end
 
 function Face:SetClock(text)
@@ -419,8 +429,9 @@ function Face:SyncPlaques()
 	if not plaques or not Face.Round() then
 		return
 	end
-	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true)
-	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true or self.coordsText ~= nil and Settings.Get("coords.shown") == true and (not Settings.Get("coords.hover") or self.revealed))
+	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true and not Face.Moved("zone"))
+	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true and not Face.Moved("clock")
+		or self.coordsText ~= nil and Settings.Get("coords.shown") == true and not Face.Moved("coords") and (not Settings.Get("coords.hover") or self.revealed))
 end
 
 function Face:SetCoords(text)
@@ -428,6 +439,60 @@ function Face:SetCoords(text)
 	self.coords:SetText(text or "")
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown") and (not Settings.Get("coords.hover") or self.revealed))
 	self:SyncPlaques()
+end
+
+function Face:SetDifficulty(text)
+	self.difficultyText = text
+	self.difficulty:SetText(text or "")
+	self.difficulty:SetShown(text ~= nil and Settings.Get("difficulty.shown"))
+end
+
+function Face:SetPerf(text)
+	self.perfText = text
+	self.perf:SetText(text or "")
+	self.perf:SetShown(text ~= nil and Settings.Get("perf.shown"))
+end
+
+function Face.Moved(name)
+	local point = Settings.Get(name .. ".position")
+	return point ~= "" and point or nil
+end
+
+function Face:PlaceInside()
+	local area, side = self.mapArea, self.mapSize
+	if not side then
+		return
+	end
+	local edge, gap = Snap(area, Format.EDGE), Snap(area, 2)
+	local column = Settings.Get("column.side") == "left" and 1 or -1
+	local reserve = max(0, Snap(area, Format.EDGE + Settings.Get("column.offset")) + ns.Column.Size(self.holder))
+	local mail = Settings.Get("column.mail") and Settings.Get("mail.position")
+	local used = {}
+	for _, name in ipairs(INSIDE) do
+		local point, text = Face.Moved(name), self[name]
+		if point then
+			local h = point:find("LEFT") and 1 or point:find("RIGHT") and -1 or 0
+			local v = point:find("TOP") and -1 or point:find("BOTTOM") and 1 or 0
+			local corner = Face.Round() and h ~= 0 and v ~= 0 and Snap(area, side * ROUND_CORNER) or 0
+			local x = edge + corner + (h == column and reserve or 0) + (point == mail and reserve or 0)
+				+ (point == "LEFT" and Snap(area, SLIDER_INSET + SLIDER_HIT) or 0)
+			local y = (v == 0 and 0 or edge + corner) + (used[point] or 0)
+			x = h * x + Snap(area, Settings.Get(name .. ".x"))
+			if name == "clock" and h == -1 and (self.meridiem:GetText() or "") ~= "" then
+				local width = self.meridiem:GetStringWidth()
+				x = x - (Plain(width) and width + self.clockGap or 0)
+			end
+			text:ClearAllPoints()
+			Widgets.Point(text, point, area, point, x, (v == 1 and 1 or -1) * y + Snap(area, Settings.Get(name .. ".y")))
+			text:SetJustifyH(h == 1 and "LEFT" or h == -1 and "RIGHT" or "CENTER")
+			if name == "zone" then
+				text:SetWidth(max(0, side - 2 * edge - reserve))
+			end
+			if Settings.Get(name .. ".shown") then
+				used[point] = (used[point] or 0) + Extent(text) + gap
+			end
+		end
+	end
 end
 
 function Face:SetRevealed(on)
@@ -541,14 +606,16 @@ function Face:PlaceRound(round)
 		plaque:SetSize(width, height)
 	end
 	zone:ClearAllPoints()
-	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX - Snap(card, PLAQUE_PAD), self.zoneY)
+	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX - Snap(card, PLAQUE_PAD) + Snap(card, Settings.Get("zone.x")), self.zoneY + Snap(card, Settings.Get("zone.y")))
 	row:ClearAllPoints()
 	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, RowCenter(self)))
 	local seated = Face.Frame() == "medallion"
 	self.clockAnchor = seated and row or nil
 	local rowWidth = width
 	if seated then
-		rowWidth = Snap(card, min(width, max(side * 0.6, (self.coords:GetStringWidth() or 0) + (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0) + 2 * PLAQUE_PAD + 12)))
+		local coords = Face.Moved("coords") and 0 or self.coords:GetStringWidth() or 0
+		local clock = Face.Moved("clock") and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
+		rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
 	end
 	row:SetWidth(rowWidth)
 	if seated then
@@ -648,9 +715,15 @@ function Face:Paint()
 	self.clockSize = Style.Text(self.clock, CLOCK_ROLE, "clock")
 	Style.Text(self.meridiem, CLOCK_ROLE, "clock", Settings.Get("clock.size") * Format.MERIDIEM)
 	self.coordsSize = Style.Text(self.coords, COORDS_ROLE, "coords")
+	Style.Text(self.difficulty, COORDS_ROLE, "difficulty")
+	Style.Text(self.perf, COORDS_ROLE, "perf")
 	self.clock:SetTextColor(Style.Color("textEmphasis"))
-	self.meridiem:SetTextColor(Style.Color("textEmphasis"))
+	self.meridiem:SetTextColor(Style.Color(Settings.Get("clock.accent") and "accent" or "textEmphasis"))
 	self.coords:SetTextColor(Style.Color("text"))
+	self.difficulty:SetTextColor(Style.Color(Settings.Get("difficulty.accent") and "accent" or "textEmphasis"))
+	self.perf:SetTextColor(Style.Color("text"))
+	self.north:SetShown(not ns.Data.Rotated())
+	self.perfHit:SetShown(Settings.Get("perf.shown") and Settings.Get("perf.hover") ~= "none")
 
 	local zoneShown, clockShown = Settings.Get("zone.shown"), Settings.Get("clock.shown")
 	self.zone:SetShown(zoneShown)
@@ -660,6 +733,8 @@ function Face:Paint()
 	self.clockHit:SetShown(clockShown)
 	self:SetZone(self.zoneText, self.pvpType)
 	self:SetCoords(self.coordsText)
+	self:SetDifficulty(self.difficultyText)
+	self:SetPerf(self.perfText)
 	self:SetRevealed(self.revealed)
 end
 
@@ -720,7 +795,7 @@ function Face:Layout()
 	self:PlaceRound(round)
 	local seated = self.clockAnchor ~= nil
 	coords:ClearAllPoints()
-	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x, seated and 0 or -rowY)
+	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + Snap(card, Settings.Get("coords.x")), (seated and 0 or -rowY) + Snap(card, Settings.Get("coords.y")))
 	local w, h = (self.clockAnchor or card):GetSize()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
@@ -730,6 +805,7 @@ function Face:Layout()
 	self:PlaceClock()
 
 	self:PlaceSlider()
+	self:PlaceInside()
 end
 
 function Face:Refresh()

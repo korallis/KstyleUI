@@ -115,6 +115,60 @@ function Data.Coords(precision)
 	return Format.Coords(x, y, precision)
 end
 
+function Data.Rotated()
+	return CVarOn("rotateMinimap") == true
+end
+
+local function Plain(...)
+	for i = 1, select("#", ...) do
+		if IsSecret((select(i, ...))) then return false end
+	end
+	return true
+end
+
+function Data.Difficulty()
+	if type(GetInstanceInfo) ~= "function" then
+		return nil
+	end
+	local _, kind, id, _, size = GetInstanceInfo()
+	if not Plain(kind, id, size) or (kind ~= "party" and kind ~= "raid") or type(size) ~= "number" or size < 1 then
+		return nil
+	end
+	local heroic, mythic
+	if type(GetDifficultyInfo) == "function" and type(id) == "number" then
+		local _, _, isHeroic, _, displayHeroic, displayMythic = GetDifficultyInfo(id)
+		if Plain(isHeroic, displayHeroic, displayMythic) then
+			heroic, mythic = isHeroic == true or displayHeroic == true, displayMythic == true
+		end
+	end
+	return (mythic and L["%dM"] or heroic and L["%dH"] or L["%dN"]):format(size)
+end
+
+function Data.Perf(latency)
+	local fps = Call(GetFramerate)
+	local _, _, home, world = Call(GetNetStats)
+	local ms = latency == "world" and world or home
+	if not Plain(fps, ms) or type(fps) ~= "number" or type(ms) ~= "number" then
+		return nil
+	end
+	return math.floor(fps + 0.5), math.floor(ms + 0.5)
+end
+
+function Data.Lockouts()
+	local out = {}
+	local count = Call(GetNumSavedInstances)
+	if not Plain(count) or type(count) ~= "number" or type(GetSavedInstanceInfo) ~= "function" then
+		return out
+	end
+	for index = 1, count do
+		local name, _, reset, _, locked, extended, _, _, _, difficulty = GetSavedInstanceInfo(index)
+		if Data.IsText(name) and Plain(reset, locked, extended) and type(reset) == "number" and reset > 0 and (locked == true or extended == true) then
+			out[#out + 1] = { name = Data.IsText(difficulty) and name .. " (" .. difficulty .. ")" or name, reset = reset }
+		end
+	end
+	return out
+end
+
 function Data.RuleActive(name)
 	local rules, enum = C_GameRules, Enum and Enum.GameRule
 	local rule = enum and enum[name]
