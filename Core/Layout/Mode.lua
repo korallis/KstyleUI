@@ -17,7 +17,7 @@ ns.Options.Register("LayoutControls", function() return {
 } end)
 
 local TOOLBAR_KEY = "Layout.Toolbar"
-local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -96 }
+local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -2 }
 local OVERLAY_STRATA = "FULLSCREEN"
 local TOOLBAR_STRATA = "FULLSCREEN_DIALOG"
 local GRID_STRATA = "BACKGROUND"
@@ -103,6 +103,52 @@ local function PaintPlate(plate)
 	Widgets.SetText(plate.info, (active or Layout.Setting("showCoordinates")) and Describe(plate.key, plate.thin) or "")
 end
 
+local function PlaceTags()
+	local rw, rh = Layout.RootSize()
+	local occupied = { { Layout.Rect(TOOLBAR_KEY) } }
+	local ordered = Layout.Elements()
+	for _, el in ipairs(ordered) do
+		local plate = plates[el.key]
+		if plate and plate:IsShown() then occupied[#occupied + 1] = { Layout.Rect(el.key) } end
+	end
+	for _, el in ipairs(ordered) do
+		local plate = plates[el.key]
+		if plate and plate:IsShown() then
+			local l, b, w, h = Layout.Rect(el.key)
+			local _, size = plate.label:GetFont()
+			local line = size * 1.2
+			local details = plate.info:GetText() ~= ""
+			local tw = max(plate.label:GetStringWidth() or 0, details and (plate.info:GetStringWidth() or 0) or 0) + 8
+			local th = line * (details and 2 or 1) + 4
+			local placed
+			for step = 0, floor(rh / (th + 4)) do
+				local gap = 4 + step * (th + 4)
+				for _, at in ipairs({ { l + (w - tw) / 2, b + h + gap }, { l + (w - tw) / 2, b - th - gap },
+					{ l + w + gap, b + (h - th) / 2 }, { l - tw - gap, b + (h - th) / 2 } }) do
+					local x, y = Scale.Snap(at[1]), Scale.Snap(at[2])
+					local free = x >= 0 and y >= 0 and x + tw <= rw and y + th <= rh
+					for _, rect in ipairs(occupied) do
+						if free and x < rect[1] + rect[3] + 2 and rect[1] < x + tw + 2
+							and y < rect[2] + rect[4] + 2 and rect[2] < y + th + 2 then free = false end
+					end
+					if free then
+						plate.tag:ClearAllPoints()
+						Widgets.Size(plate.tag, tw, th)
+						Widgets.Point(plate.tag, "BOTTOMLEFT", overlay, "BOTTOMLEFT", x, y)
+						occupied[#occupied + 1] = { x, y, tw, th }
+						placed = true
+						break
+					end
+				end
+				if placed then break end
+			end
+			plate.label:SetShown(placed == true)
+			plate.info:SetShown(placed == true and details)
+			plate.tag:SetShown(placed == true)
+		end
+	end
+end
+
 local function PaintHandle(handle)
 	Widgets.Tint(handle.edge, "edgeOuter")
 	Widgets.Tint(handle.fill, handle.hover and "textHover" or "accent")
@@ -136,36 +182,17 @@ local function PlaceHandles()
 end
 
 local function PlacePlate(plate, frame, w, h)
-	Widgets.Size(plate, max(PLATE_MIN, w), max(PLATE_MIN, h))
+	Widgets.Size(plate, max(PLATE_MIN, w), max(Scale.Pixel(1), h))
 	plate:ClearAllPoints()
 	Widgets.Point(plate, "CENTER", frame, "CENTER")
-	local clear = ns.Store.Module("LayoutControls").clearMovers
 	plate.label:ClearAllPoints()
 	plate.info:ClearAllPoints()
-	local attached = Layout.Element(plate.key).settings.attachTo ~= ""
-	local coordinates = Layout.Setting("showCoordinates")
-	plate.thin = not attached and coordinates and h < Tokens.Size("caption") * 2 + 8
-	if clear then
-		Widgets.Point(plate.label, "TOPLEFT", plate, "TOPLEFT", 4, -2)
-	else
-		Widgets.Point(plate.label, "CENTER", plate, "CENTER")
-	end
-	if attached then
-		Widgets.Point(plate.info, "TOPLEFT", plate, "BOTTOMLEFT", 4, -4)
-	elseif plate.thin then
-		Widgets.Point(plate.info, "LEFT", plate, "LEFT", 4, 0)
-		Widgets.Point(plate.info, "RIGHT", plate, "RIGHT", -4, 0)
-	elseif clear and coordinates then
-		Widgets.Point(plate.info, "TOPLEFT", plate.label, "BOTTOMLEFT", 0, -2)
-	elseif clear then
-		Widgets.Point(plate.info, "BOTTOMLEFT", plate, "BOTTOMLEFT", 4, 2)
-	else
-		Widgets.Point(plate.info, "TOP", plate.label, "BOTTOM", 0, -Widgets.Snap(plate, Tokens.Size("gapTiny")))
-	end
-	plate.info:SetWordWrap(not plate.thin)
-	plate.info:SetJustifyH(plate.thin and "LEFT" or "CENTER")
-	plate.label:SetShown(not plate.thin)
-	plate.tag:SetShown(clear and not plate.thin)
+	plate.thin = Layout.Element(plate.key).settings.attachTo == "" and h < Tokens.Size("caption") * 2 + 8
+	Widgets.Point(plate.label, "TOPLEFT", plate.tag, "TOPLEFT", 4, -2)
+	Widgets.Point(plate.info, "TOPLEFT", plate.label, "BOTTOMLEFT", 0, 0)
+	plate.label:SetWordWrap(false)
+	plate.info:SetWordWrap(false)
+	plate.info:SetJustifyH("LEFT")
 end
 
 local function RefreshPlate(key)
@@ -196,6 +223,7 @@ function Mode.Select(key)
 		PaintPlate(plates[key])
 	end
 	PlaceHandles()
+	PlaceTags()
 end
 
 local function ShowGuide(guide, at, vertical)
@@ -281,6 +309,7 @@ local function UpdateDrag()
 	if plate and el and d.kind ~= "move" then
 		PlacePlate(plate, el.frame, w, h)
 	end
+	PlaceTags()
 end
 
 local function Begin(kind, key, handle)
@@ -482,6 +511,7 @@ end
 local function RestylePlate(plate)
 	if plate:IsShown() then
 		RefreshPlate(plate.key)
+		PlaceTags()
 	end
 end
 
@@ -491,8 +521,6 @@ function Mode.NewPlate(key)
 	plate.chrome = Widgets.Chrome(plate, { shape = "tile", fill = "buttonFill", shadow = false })
 	plate.label = Widgets.Text(plate, "caption", "textEmphasis")
 	plate.tag = plate:CreateTexture(nil, "BACKGROUND")
-	plate.tag:SetPoint("TOPLEFT", plate.label, "TOPLEFT", -2, 2)
-	plate.tag:SetPoint("BOTTOMRIGHT", plate.label, "BOTTOMRIGHT", 2, -2)
 	plate.tag:SetColorTexture(Widgets.Rgba("deep", 0.85))
 	plate.info = Widgets.Text(plate, "caption", "text")
 	plate:EnableMouse(true)
@@ -852,6 +880,7 @@ function Mode.Show()
 	PlaceSlot()
 	Mode.HistoryChanged()
 	toolbar:Open()
+	PlaceTags()
 end
 
 function Mode.Hide()
@@ -890,12 +919,14 @@ function Mode.Refresh()
 	DrawGrid()
 	PlaceHandles()
 	PlaceSlot()
+	PlaceTags()
 end
 
 function Mode.Changed(key)
 	if overlay and Layout.IsActive() and not (drag and drag.key == key) then
 		RefreshPlate(key)
 		PlaceSlot()
+		PlaceTags()
 		if key == selected then
 			local plate = plates[key]
 			if plate and plate:IsShown() then
@@ -911,6 +942,7 @@ function Mode.Added(key)
 	if overlay and Layout.IsActive() then
 		RefreshPlate(key)
 		PlaceSlot()
+		PlaceTags()
 	end
 end
 

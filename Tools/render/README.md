@@ -307,3 +307,5 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame. Animation groups are sampled at the scene's clock as above; a `Scale` animation is not applied.
 
 `layout_shown` renders the real Elements page and six registered panels using the shared Shown rules. `RENDER_GROUP=party|raid|solo` chooses the roster fixture. The positive rules use protected panels and the opposite rules ordinary panels, all in combat; only the panels whose rules match remain visible. Use `RENDER_SCREEN` and `--ppu` for each screen size.
+
+`layout_hud` renders the real chat, data bars, action bars, unit frames and cooldowns in Layout Mode. It collects their resolved mover rectangles into one registry so tags avoid neighbouring modules, with one toolbar and the shipped integration lanes. Use `RENDER_HUD_STYLE=Medallions`, `RENDER_SIZE=auto`, `RENDER_SCREEN` and `--strict --backdrop docs/media/plates/forest-ultrawide.jpg` to check the gameplay video's ultrawide state; `test-render-layout-hud.lua` guards that state without Chrome.

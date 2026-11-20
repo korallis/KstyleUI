@@ -111,7 +111,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(L.Enter())
 	L.Mode.Select("Link.Child")
 	assert(L.Mode.Plate("Link.Child").info:GetText():lower():find("link.target", 1, true), "selected mover describes link")
-	assert(L.Mode.Plate("Link.Child").info._points[1][3] == "BOTTOMLEFT", "link details sit below thin movers")
+	assert(L.Mode.Plate("Link.Child").info._points[1][3] == "BOTTOMLEFT", "link details sit below the name in its external tag")
 	L.Exit(true)
 	assert(L.Update("Link.Child", { anchor = "TOPLEFT", x = 150, y = -120 }))
 	local savedPlace = K.Store.Layout()["Link.Child"]

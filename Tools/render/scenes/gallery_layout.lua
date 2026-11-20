@@ -59,7 +59,9 @@ local function LayOutToolbar(env, K, panel)
 end
 
 local function NewEnv(W)
-	return W.New(Common.ScreenOpts({ saved = Gallery.Saved({}), setup = Gallery.Setup }))
+	return W.New(Common.ScreenOpts({ saved = Gallery.Saved({ Integrations = {
+		timerLane = false, announcementLane = false, weakAuras = false,
+	} }), setup = Gallery.Setup }))
 end
 
 return Common.Run(function()
