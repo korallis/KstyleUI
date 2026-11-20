@@ -166,9 +166,12 @@ do
 	env.FireEvent("GOSSIP_SHOW")
 	env.FireEvent("CINEMATIC_START", true)
 	assert(selected == 0 and stopped == 0)
+	for _, row in ipairs(K.Options.Get("QoL")) do
+		if row.key == "questInstances" or row.key == "questModifier" then assert(row.disableWhen(s), "quest helpers off must disable the instance and pause-key controls") end
+	end
 	write(env, K, "QoL", "autoGossip", true)
 	for _, row in ipairs(K.Options.Get("QoL")) do
-		if row.key == "questModifier" then assert(not row.disableWhen(s), "gossip alone enables the shared pause-key control") end
+		if row.key == "questInstances" or row.key == "questModifier" then assert(not row.disableWhen(s), "gossip alone enables the shared instance and pause-key controls") end
 	end
 	env.FireEvent("GOSSIP_SHOW")
 	assert(selected == 1)
