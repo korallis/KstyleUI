@@ -19,8 +19,6 @@ local HOVER_GRACE = 0.5
 local DRAG_BUTTON = "LeftButton"
 local OWN_PREFIX = "^KstyleUI"
 
-local PLACES = { column = true, hidden = true }
-
 local hooked = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
 local waiting = false
@@ -240,7 +238,7 @@ end
 
 function Drawer:PlaceOf(button)
 	local place = Settings.Get("column.drawer") and Settings.Get("drawer.places")[self.adopted[button].name]
-	return PLACES[place] and place or "drawer"
+	return (place == "column" or place == "hidden") and place or "drawer"
 end
 
 function Drawer:Count()
