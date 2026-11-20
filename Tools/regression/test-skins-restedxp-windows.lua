@@ -421,6 +421,7 @@ do
 			rxp = Fake.Install(env, {})
 			rxp.UpdateItemFrame(rxp.activeItemFrame, 1)
 		end,
+		enabled = false,
 	})
 	env.SetCombat(true)
 	K.Modules.Enable("Skins")

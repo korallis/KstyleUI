@@ -7,6 +7,7 @@
 -- S.New(opts) takes the widget_env options plus:
 --   before(env, K, ns)  runs after every skin file has loaded and before Module.lua registers the module
 --   loaded              { [addonName] = true } for C_AddOns.IsAddOnLoaded; nil for a client without C_AddOns
+--   enabled             false to leave the fixture's skins off until its explicit Enable call
 -- The core is booted (saved data loaded, PLAYER_LOGIN fired) before the module's files load.
 local W = dofile("Tools/regression/widget_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
@@ -60,6 +61,7 @@ function S.New(opts)
 	if opts.before then
 		opts.before(env, K, ns)
 	end
+	if opts.enabled == false then K.Store.Module("Skins").enabled = false end
 	Load({ MODULE_FILE }, env)
 	return env, K, ns
 end

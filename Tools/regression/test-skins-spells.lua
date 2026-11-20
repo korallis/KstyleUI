@@ -190,7 +190,7 @@ end
 -- The talents switch alone skins the window and the talents, and leaves the spell pages alone -----------
 
 do
-	local env, K, ns = S.New({ loaded = { Blizzard_PlayerSpells = true } })
+	local env, K, ns = S.New({ enabled = false, loaded = { Blizzard_PlayerSpells = true } })
 	K.Options.Write("Skins", "spellbook.enabled", false)
 	local B = S.Blizzard(env)
 	local p = PlayerSpells(env, B)

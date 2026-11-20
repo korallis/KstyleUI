@@ -185,10 +185,12 @@ local function QuestieProfile()
 end
 
 local function UseQuestie()
-	return K.Setup.Integrations.QuestTracker() == "questie"
+	local choice = K.Setup.Integrations.QuestTracker()
+	return choice == "questie" or choice == "both"
 end
 
 function QuestieActive()
+	if K.Store.Module("Integrations").questTracker == "both" then return false end
 	local profile = QuestieProfile()
 	if not profile then return false end
 	local frame = rawget(_G, "Questie_BaseFrame")

@@ -1,5 +1,11 @@
 -- test-skins-registry.lua: KstyleUI_Skins registers one switch per window and skins each window only after its Blizzard addon loads and the window first shows.
 local S = dofile("Tools/regression/skins_env.lua")
+local New = S.New
+function S.New(opts)
+	opts = opts or {}
+	opts.enabled = false
+	return New(opts)
+end
 local CoreEnv = S.W.CoreEnv
 local Raises = CoreEnv.Raises
 
@@ -32,10 +38,10 @@ do
 		end,
 	})
 	assert(#env._frames == frames, "Module.lua created frames at load")
-	assert(K.Modules.IsEnabled("Skins") == false, "Skins is off by default")
+	assert(K.Modules.IsEnabled("Skins") == false, "this fixture explicitly keeps Skins off until Enable")
 	assert(not K.Modules.IsRunning("Skins"), "Skins does not run until it is enabled")
 	local defaults = K.Store.Defaults("Skins")
-	assert(defaults.enabled == false)
+	assert(defaults.enabled == true, "Skins defaults on")
 	assert(type(defaults.testA) == "table" and defaults.testA.enabled == true, "each window's skin is on once the module is on")
 	local row = K.Options.Row("Skins", "testA.enabled")
 	assert(row and row.type == "toggle" and row.label == "Window testA", "one toggle per window, labelled with the window's name")

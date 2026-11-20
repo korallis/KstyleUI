@@ -236,6 +236,7 @@ end
 do
 	local tracker
 	local env, K = S.New({
+		enabled = false,
 		loaded = { Blizzard_ObjectiveTracker = true },
 		before = function(env)
 			tracker = Tracker(env, S.Blizzard(env))

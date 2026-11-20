@@ -40,6 +40,7 @@ function E.New(opts)
 	opts = opts or {}
 	local nm, tracker, log
 	local env, K, ns = S.New({
+		enabled = false,
 		saved = opts.saved or Saved(opts),
 		setup = function(env)
 			M.Blizzard(env, {})

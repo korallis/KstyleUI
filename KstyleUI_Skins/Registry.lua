@@ -92,6 +92,8 @@ function Skins.List()
 	return out
 end
 
+K.Setup.Integrations.RegisterSkins(Skins.List)
+
 function Skins.Get(key)
 	return byKey[key]
 end

@@ -15,11 +15,68 @@ local OVERLAPS = {
 	Chat = { "Prat-3.0", "Chatter", "Chattynator", "ElvUI" },
 	Skins = { "Questie" },
 }
+function Integration.RegisterSkins(list)
+	Integration.Skins = list
+end
+
 function Integration.Loaded(name)
 	local api = C_AddOns
 	if not api or type(api.IsAddOnLoaded) ~= "function" then return false end
 	local ok, loaded = pcall(api.IsAddOnLoaded, name)
 	return ok and not Widgets.IsSecret(loaded) and loaded == true
+end
+
+function Integration.Addons()
+	local api, out = C_AddOns, {}
+	if not api or type(api.GetNumAddOns) ~= "function" or type(api.GetAddOnInfo) ~= "function" then return out end
+	local ok, count = pcall(api.GetNumAddOns)
+	if not ok or Widgets.IsSecret(count) or type(count) ~= "number" then return out end
+	local character = UnitGUID and UnitGUID("player")
+	if Widgets.IsSecret(character) then character = nil end
+	for i = 1, count do
+		local found, name, title = pcall(api.GetAddOnInfo, i)
+		if found and not Widgets.IsSecret(name) and type(name) == "string" and not name:match("^Blizzard_") and not name:match("^KstyleUI") then
+			local enabled = Integration.Loaded(name)
+			if type(api.GetAddOnEnableState) == "function" then
+				local read, state = pcall(api.GetAddOnEnableState, name, character)
+				if read and not Widgets.IsSecret(state) and type(state) == "number" then enabled = state > 0 end
+			end
+			if enabled then out[#out + 1] = { name = name, label = not Widgets.IsSecret(title) and type(title) == "string" and title ~= "" and title or name } end
+		end
+	end
+	table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
+	return out
+end
+
+function Integration.AddonRows(addon)
+	local rows = {}
+	local function Add(module, key, recommended, label, help)
+		if not Store.Defaults(module) then return end
+		local row = K.Options.Row(module, key)
+		if key ~= "enabled" and not row then return end
+		rows[#rows + 1] = { module = module, key = key, recommended = recommended, type = row and row.type or "toggle",
+			label = label or row.label, help = help or row.help, options = row and row.options }
+	end
+	for _, def in ipairs(Integration.Skins and Integration.Skins() or {}) do
+		if def.addon == addon then Add("Skins", def.key .. ".enabled", true, L["Skin it"], def.help) end
+	end
+	for _, entry in ipairs(K.Setup.PICKER) do
+		for _, name in ipairs(OVERLAPS[entry.name] or {}) do
+			if name == addon then
+				if entry.name == "Skins" then
+					Add("Integrations", "questTracker", "kstyleui")
+				elseif entry.name == "DataBars" then
+					Add("DataBars", "micro.enabled", false, L["Use KstyleUI's micro menu"], L["Off keeps your other addon's micro menu (recommended)."])
+					Add("DataBars", "bags.enabled", false, L["Use KstyleUI's bag bar"], L["Off keeps your other addon's bag bar (recommended)."])
+				elseif entry.name == "Meters" then
+					Add("Meters", "damage.shown", false, nil, L["Off keeps Details for damage; threat and swing stay available (recommended)."])
+				else
+					Add(entry.name, "enabled", false, entry.label, L["Off keeps your other addon for this feature (recommended)."])
+				end
+			end
+		end
+	end
+	return rows
 end
 
 local LEATRIX = {
@@ -91,15 +148,16 @@ function Integration.QuestTracker()
 	if config.questTracker == "" and not Widgets.IsSecret(enabled) and type(enabled) == "boolean" then
 		config.questTracker = enabled and "questie" or "kstyleui"
 	end
-	return config.questTracker == "questie" and "questie" or "kstyleui"
+	return config.questTracker == "both" and "both" or config.questTracker == "questie" and "questie" or "kstyleui"
 end
 K.Options.Register("Integrations", function() return {
 	{ type = "header", label = L["Existing addons"] },
 	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },
-	{ type = "dropdown", key = "questTracker", label = L["Quest tracker"], help = L["Keep Questie's map pins and choose one tracker. Enabling Questie's tracker may reload the UI."], showWhen = function() return #Integration.Detected("Skins") > 0 end, options = {
+	{ type = "dropdown", key = "questTracker", label = L["Quest tracker"], help = L["KstyleUI's card is recommended; keep Questie's map pins with either tracker, or show both."], showWhen = function() return #Integration.Detected("Skins") > 0 end, options = {
 		{ value = "", label = L["Automatic"] },
 		{ value = "kstyleui", label = L["Use KstyleUI's quest card"] },
 		{ value = "questie", label = L["Use Questie's quest tracker"] },
+		{ value = "both", label = L["Show both quest trackers"] },
 	} },
 	{ type = "toggle", key = "timerLane", label = L["Boss timer lane"], help = L["Reserve a movable 360 by 120 lane for your boss addon's timers."] },
 	{ type = "toggle", key = "announcementLane", label = L["Announcement lane"], help = L["Reserve a movable 520 by 48 lane for boss announcements."] },

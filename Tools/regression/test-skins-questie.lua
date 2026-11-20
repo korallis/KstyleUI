@@ -47,6 +47,9 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		ns.QuestCard.Scroll(1)
 	end
 	for _, quest in ipairs(R.quests) do assert(seen[quest.id], "all Questie-watched quests are reachable") end
+	K.Options.Write("Integrations", "questTracker", "both")
+	R.settle()
+	assert(other.frame:IsVisible() and ns.Quests.Card():IsVisible(), "both keeps Questie's tracker and KstyleUI's quest card visible")
 	K.Options.Write("Integrations", "questTracker", "questie")
 	R.settle()
 	assert(other.frame:IsVisible() and not ns.Quests.Card():IsVisible(), "selecting Questie relinquishes the card")

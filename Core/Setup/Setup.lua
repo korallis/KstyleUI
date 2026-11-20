@@ -87,12 +87,28 @@ function Setup.Available(name)
 	return registered()[name] == true
 end
 
-function Setup.NewChoice()
+function Setup.NewChoice(current)
 	local modules = {}
 	for _, entry in ipairs(PICKER) do
-		modules[entry.name] = Setup.Available(entry.name) and (entry.name == "DataBars" or entry.name == "Meters" or #Setup.Integrations.Detected(entry.name) == 0)
+		local overlaps = #Setup.Integrations.Detected(entry.name) > 0
+		modules[entry.name] = Setup.Available(entry.name) and (entry.name == "Skins" or entry.name == "DataBars" or entry.name == "Meters" or not overlaps)
+		if current and (overlaps or entry.name == "Skins") and Setup.Available(entry.name) then modules[entry.name] = ns.Modules.IsEnabled(entry.name) end
 	end
-	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS }
+	local addons, settings = Setup.Integrations.Addons(), {}
+	for _, addon in ipairs(addons) do
+		addon.rows = Setup.Integrations.AddonRows(addon.name)
+		for _, row in ipairs(addon.rows) do
+			if row.key == "enabled" then
+				modules[row.module] = current and ns.Modules.IsEnabled(row.module) or row.recommended
+			else
+				local value = ns.Options.Read(row.module, row.key)
+				if not current and (row.module == "DataBars" or row.module == "Meters") then value = row.recommended end
+				settings[row.module .. "." .. row.key] = value
+			end
+		end
+		if #addon.rows == 0 and ns.Store.Defaults("Skins") then settings["Skins.restyleAddons"] = ns.Options.Read("Skins", "restyleAddons") end
+	end
+	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
 end
 
 function Setup.Choice()
@@ -314,6 +330,10 @@ function Setup.Apply(picked)
 	end
 	local moved, saved = writeLayout(picked.layout)
 	local written, skipped = writeSettings(picked.layout)
+	for path, value in pairs(picked.addonSettings or {}) do
+		local module, key = path:match("^([^%.]+)%.(.+)$")
+		ns.Options.Write(module, key, value)
+	end
 	local ornaments = Setup.Ornament(picked.ornaments) and picked.ornaments
 	if ornaments then
 		ns.Options.Write("Widgets", "ornaments", ornaments)
@@ -342,7 +362,7 @@ function Setup.Open(first)
 		return false
 	end
 	firstRun, kept = first == true, false
-	choice = Setup.NewChoice()
+	choice = Setup.NewChoice(first ~= true)
 	local show = Setup.ShowWindow
 	if type(show) ~= "function" then
 		ns.Print(L["The first-run setup is not available yet."])

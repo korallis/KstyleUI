@@ -1,4 +1,4 @@
--- test-features.lua: every switch is a boolean that is off by default, each module folder has one, and Get is strict.
+-- test-features.lua: every switch is a boolean, only Skins defaults on, each module folder has one, and Get is strict.
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
@@ -24,7 +24,7 @@ for store, switches in pairs(Features) do
 		for key, value in pairs(switches) do
 			assert(type(key) == "string", "Features." .. store .. " has a key that is not a string")
 			assert(type(value) == "boolean", "Features." .. store .. "." .. key .. " is not a boolean")
-			assert(value == false, "Features." .. store .. "." .. key .. " is on by default; code defaults leave it off")
+			assert(value == (store == "modules" and key == "Skins"), "only Features.modules.Skins defaults on")
 		end
 	end
 end

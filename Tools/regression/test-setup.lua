@@ -59,7 +59,7 @@ do
 		if names[1] then
 			local addon = names[1]
 			env.C_AddOns.IsAddOnLoaded = function(name) return name == addon end
-			assert(K.Setup.NewChoice().modules[entry.name] == (entry.name == "DataBars" or entry.name == "Meters"),
+			assert(K.Setup.NewChoice().modules[entry.name] == (entry.name == "Skins" or entry.name == "DataBars" or entry.name == "Meters"),
 				"setup must turn whole-module overlaps off and keep DataBars/Meters selected beside " .. addon)
 		end
 	end

@@ -55,7 +55,7 @@ local function SkinRow(def, row)
 	return copy
 end
 
-local defaults = { enabled = false, steelButtons = true, windowMetrics = true, restyleAddons = true }
+local defaults = { enabled = true, steelButtons = true, windowMetrics = true, restyleAddons = true }
 for group, values in pairs(Style.defaults) do
 	defaults[group] = Copy(values)
 end

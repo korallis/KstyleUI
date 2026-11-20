@@ -1,4 +1,4 @@
--- Window.lua: the six-step setup, with HUD and role pictures, module choices, ornaments and the Apply summary.
+-- Window.lua: the setup, with HUD and role pictures, module and detected-addon choices, ornaments and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -159,6 +159,8 @@ end
 
 local function Refresh()
 	local choice = Setup.Choice()
+	panel.addons:Sync()
+	for name, toggle in pairs(panel.toggles) do toggle:SetValue(choice.modules[name] == true, true) end
 	panel.back:SetShown(step > 1)
 	panel.skip:SetShown(step == 1)
 	panel.next:SetShown(step < STEPS)
@@ -281,6 +283,15 @@ local function WelcomeNote()
 	return text
 end
 
+local function WelcomeSteps(page)
+	local addons = #Setup.Choice().addons > 0
+	Widgets.SetText(page.caption, addons and L["Six steps"] or L["Five steps"])
+	page.list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."])
+		.. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."]
+		.. "\n" .. (addons and L["4. Choose how KstyleUI works with your addons."] .. "\n" .. L["5. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["6. Apply, then reload."]
+			or L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."]))
+end
+
 local function BuildClassicWelcome(page)
 	local pad = gap("gapLarge")
 	local logo = page:CreateTexture(nil, "ARTWORK")
@@ -295,10 +306,10 @@ local function BuildClassicWelcome(page)
 	body:SetText(L["This short setup picks a layout and the parts of the interface KstyleUI replaces. You can change everything later in the settings window, and move or resize any element in Layout Mode."])
 	local caption = Widgets.Text(page, "caption", "text")
 	Widgets.Point(caption, "TOPLEFT", body, "BOTTOMLEFT", 0, -gap("gapHuge"))
-	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", 520)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."]) .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
+	page.caption, page.list = caption, list
+	WelcomeSteps(page)
 	local note = Paragraph(page, "body", "text", 520)
 	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
@@ -355,14 +366,13 @@ local function BuildBrandedWelcome(page)
 	local caption = Widgets.Text(page, "caps", "capsGold")
 	Widgets.CapsSize(caption)
 	Widgets.Point(caption, "TOPLEFT", pictures, "BOTTOMLEFT", width * 0.53, -gap("gapLarge"))
-	Widgets.SetText(caption, L["Five steps"])
 	local list = Paragraph(page, "body", "textEmphasis", width * 0.47 - pad)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gutter)
-	list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."]) .. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."])
 	local note = Paragraph(page, "body", "text", width - pad * 2)
 	Widgets.Point(note, "BOTTOMLEFT", page, "BOTTOMLEFT", pad, gutter)
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
 	page.hero, page.pictures, page.features, page.caption, page.list = hero, pictures, features, caption, list
+	WelcomeSteps(page)
 	page.title, page.note, page.body, page.version = title, note, body, version
 	return title, note
 end
@@ -397,6 +407,8 @@ local function BuildWelcome(page)
 		ScrollTo(scroll:GetVerticalScroll() - delta * Widgets.LineHeight(branded.features) * 3)
 	end)
 	function page:Restyle()
+		WelcomeSteps(classic)
+		WelcomeSteps(branded)
 		thumb:SetColorTexture(Widgets.Rgba("accent", 0.6))
 		local shown = ns.Options.Read("Widgets", "general.brandedWelcome") ~= false
 		classic:SetShown(not shown)
@@ -1062,6 +1074,11 @@ local function Build()
 	BuildModules(panel.pages[4], width)
 	BuildOrnaments(panel.pages[5], width)
 	BuildSummary(panel.pages[6], width)
+	panel.ornamentPage, panel.summaryPage = panel.pages[5], panel.pages[6]
+	panel.addonsPage = CreateFrame("Frame", nil, content)
+	Widgets.Fill(panel.addonsPage, panel.pages[4])
+	panel.addonsPage:Hide()
+	panel.addons = Setup.AddonsPage(panel.addonsPage, width, Changed)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	Widgets.Point(panel.back, "BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {
@@ -1106,6 +1123,18 @@ function Setup.ShowWindow()
 	for i = 1, STEPS do
 		panel.pages[i]:Hide()
 	end
+	local addons = #Setup.Choice().addons > 0
+	STEPS = addons and 7 or 6
+	panel.pages[5] = addons and panel.addonsPage or panel.ornamentPage
+	panel.pages[6] = addons and panel.ornamentPage or panel.summaryPage
+	panel.pages[7] = addons and panel.summaryPage or nil
+	local tabs = {}
+	for i, label in ipairs(STEP_LABELS) do
+		if addons and i == 5 then tabs[#tabs + 1] = { value = 5, label = L["Your addons"], disabled = true } end
+		tabs[#tabs + 1] = { value = #tabs + 1, label = label, disabled = i > 1 }
+	end
+	panel.steps:SetTabs(tabs, 1)
+	panel.addons:Refresh()
 	step = 0
 	panel.welcomeNote:SetText(WelcomeNote())
 	panel.welcomeNote:SetShown(Setup.IsFirstRun())
@@ -1127,6 +1156,7 @@ ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
 		panel.pages[1]:Restyle()
 		PlaceLayouts()
 		PlaceModules()
+		panel.addons:Restyle()
 	end
 end)
 
@@ -1136,9 +1166,10 @@ ns.Callbacks.Register("LayoutChanged", "SetupWindow", function(_, key)
 		Widgets.RestyleUnder({ [panel] = true })
 		PlaceLayouts()
 		PlaceModules()
+		panel.addons:Restyle()
 	end
 end)
 
 ns.Callbacks.Register("ThemeChanged", "SetupWindow", function()
-	if panel then Refresh(); PlaceModules() end
+	if panel then Refresh(); PlaceModules(); panel.addons:Restyle() end
 end)

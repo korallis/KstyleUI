@@ -7,6 +7,7 @@ local HOOKED = { SetAlpha = true, SetVertexColor = true, SetColorTexture = true,
 local function Boot(skinFirst, saved)
 	local rxp
 	local env, K, ns = S.New({
+		enabled = false,
 		saved = { version = 9, profiles = { Default = { Appearance = { uiScale = 16 / 19 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 		setup = function(env)
 			rxp = Fake.Install(env, {})

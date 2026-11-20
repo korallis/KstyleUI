@@ -9,6 +9,7 @@ local function New(opts)
 	opts = opts or {}
 	local B, frame, snap
 	local env, K, ns = S.New({
+		enabled = false,
 		loaded = { Blizzard_RaidWarning = opts.loaded ~= false },
 		before = function(env)
 			B = S.Blizzard(env)

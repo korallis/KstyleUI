@@ -17,7 +17,7 @@ local Features = {
 		Tooltips = false,
 		DataBars = false,
 		Meters = false,
-		Skins = false,
+		Skins = true,
 		QoL = false,
 	},
 	account = {

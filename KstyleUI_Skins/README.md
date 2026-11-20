@@ -6,11 +6,17 @@ Character sheet, spellbook and talents, quest log and objective tracker, world m
 | --- | --- |
 | Module name | `Skins`: its switch in `Core/Features.lua` and the `name` it registers with `KstyleUI.Modules.Register` |
 | Approach | Reskin, one window per task |
-| Loads | With the core addon, switched off until the player turns it on |
+| Loads | With the core addon; the module and every skin default on |
 | Files | `KstyleUI_Skins.toc` lists `Skins.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 | Tests | `Tools/regression/test-skins-*.lua`, through `Tools/regression/skins_env.lua` |
 
 ## Rules
+
+The first-run setup's **Your addons** step enumerates the player's enabled addons from the client; it never assumes an addon is installed. Dedicated registry skins such as RestedXP get **Skin it**, on by default. Same-job addons get their existing Options choices: action bars and menus beside Bartender or Dominos, damage beside Details, frames, bags, chat and nameplates beside their alternatives. Questie offers KstyleUI's quest card (recommended), Questie's tracker or both; Questie no longer switches off the whole Skins module. Other detected addons are listed under one shared **Match KstyleUI fonts and colours** switch, the existing `restyleAddons` setting for text encountered in skinned windows.
+
+The step is skipped when there are no enabled external addons. `/kstyle setup` detects them again and reads current addon choices; edits remain pending until Apply, and **Keep my UI** leaves them alone. Migration **43** enables only a missing `Skins.enabled`, preserving an explicit master or individual-skin `false`. Per-window switches already defaulted on; the master now does too.
+
+Forever build `9dc84f0` proves `C_AddOns.GetNumAddOns`, `GetAddOnInfo`, `GetAddOnEnableState` and `IsAddOnLoaded` in `Interface/AddOns/Blizzard_APIDocumentationGenerated/AddOnsDocumentation.lua`; `Blizzard_AddOnList/AddonList.lua` proves the player's GUID for current-character enablement. `Integrations.Skins` reads the existing registry list to find dedicated addon skins. `test-setup-addons` covers all four owner screens; `setup_addons` renders the real step against a fixture client list, including an unknown addon.
 
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 

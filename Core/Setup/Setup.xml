@@ -3,5 +3,6 @@
 	<Script file="EditMode.lua"/>
 	<Script file="Setup.lua"/>
 	<Script file="Integrations.lua"/>
+	<Script file="Addons.lua"/>
 	<Script file="Window.lua"/>
 </Ui>

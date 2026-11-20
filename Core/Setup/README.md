@@ -1,15 +1,19 @@
 # Setup
 
-`KstyleUI.Setup` is the first-run setup: six steps that pick the HUD style, a layout, the modules and the ornament level, then apply them and offer a reload. The spec's [Settings and first-run setup](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#settings-and-first-run-setup) section is binding. `Core/Setup/Setup.xml` loads the files in this order:
+`KstyleUI.Setup` is the first-run setup: six steps, or seven with detected addons, that pick the HUD style, a layout, the modules, addon choices and the ornament level, then apply them and offer a reload. The spec's [Settings and first-run setup](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#settings-and-first-run-setup) section is binding. `Core/Setup/Setup.xml` loads the files in this order:
 
 | File | What it holds |
 | --- | --- |
 | `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
 | `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots |
 | `Setup.lua` | The choices, `Apply`, the story slot's split, the first run, and when the window opens |
+| `Integrations.lua` | Live addon discovery, same-job choices and integration lanes |
+| `Addons.lua` | The optional Your addons page, using the existing Options settings and skin registry |
 | `Window.lua` | The window, built from the widget kit |
 
-Tests: `Tools/regression/test-setup.lua`, `test-setup-editmode.lua` and `test-setup-layouts.lua`.
+Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-editmode.lua` and `test-setup-layouts.lua`.
+
+**Your addons** follows Modules when the client reports enabled external addons. It offers registry skins, the existing same-job Options settings, and one shared fonts-and-colours switch for other addons. Reopening reads current addon choices; Apply writes them after the layout preset, and Keep my UI discards pending changes.
 
 ## When it opens
 
@@ -17,15 +21,15 @@ Tests: `Tools/regression/test-setup.lua`, `test-setup-editmode.lua` and `test-se
 - Applying or closing the setup turns the switch on.
 - On the first run, closing the window without Apply (the close button, Escape or **Later**) applies the choice as it stands: DPS, every loaded module and Full ornaments unless the player changed them. A skipped setup never leaves an empty screen. The welcome step says so, and **Keep my UI** is the opt-out: it closes the setup and changes nothing.
 - A setup opened later with `/kstyle setup` changes nothing when it closes without Apply; it prints how to run it again.
-- `/kstyle setup` opens it at any time, on the welcome step with fresh choices.
+- `/kstyle setup` opens it at any time, on the welcome step with current addon choices and a fresh live addon list.
 
 ## The steps
 
 General > Layout pictures in setup defaults on: DPS, Tank and Healer cards show 512x256 HUD renders at 180x90, following the selected HUD style. Off restores the footprint diagram and hover legend. General > Readable setup notes defaults on: 11-unit body notes wrap and respect the reading floor; the module list scrolls when it needs more room. Off restores the previous small single-line module notes. `test-setup-polish` checks both choices, the 0.65 window scale and picture placement after a text-size change.
 
-The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows the six steps. A step the player has not reached is disabled, and each page fades in over `fade`.
+The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows six steps, or seven with enabled external addons. A step the player has not reached is disabled, and each page fades in over `fade`.
 
-1. **Welcome.** The logo, a short welcome, the five steps ahead, on the first run the note that closing applies the DPS layout with every module on and Full ornaments, **Keep my UI** and **Next**.
+1. **Welcome.** The logo, a short welcome, the five or six steps ahead, on the first run the note that closing applies the DPS layout with every module on and Full ornaments, **Keep my UI** and **Next**.
 2. **HUD style.** Three cards side by side on the layout cards' button body, **Frames**, **Orbs** and **Medallions**, each with its one-line note and its picture (`HudStyleFrames`, `HudStyleOrbs`, `HudStyleMedallions`, the same pictures the settings window shows), with the same `accent` hairline and selection glow. The profile's saved style is picked first, Frames for a new one. A hint under them says the style changes later at the top of the settings window's General page, and that a change made in combat waits for combat to end. Apply writes the pick to the `HudStyle` section (`Core/HudStyle.lua`), which switches it.
 3. **Layout.** One card per layout on the button grade's body, its name and its note, over one large 16:9 preview of the picked layout (the hovered card's while the pointer is on one): a glass panel at the tile chamfer with the drop shadow that draws each element the layout shows at its Lumen footprint (`Layouts.Footprint`, `Layouts.Shown`), names it where its label (or its `short` label) fits the block, and outlines the story slot in the accent and names it (**Story rail**, or **Quests** where that does not fit; round 6, Opus). The elements whose place or presence differs between the layouts (the group frames, the threat and boss cards, your combat text) draw in the accent over the shared hands and rails, so Tank's named threat card and Healer's group frames read at a glance. The legend beside the preview names the outline, the **Story rail**, and says Apply places the quest tracker there through Edit Mode. A click picks the card: an `accent` hairline and a selection glow. DPS is picked first. The preview takes the page's height under the cards, so the step has no empty half.
 4. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. The settings window is not in the list: it loads on demand.
@@ -79,7 +83,7 @@ While the Cooldowns module mirrors the essential and utility rows, Blizzard's `E
 
 | Function | Behaviour |
 | --- | --- |
-| `Open(first) -> boolean` | Opens the window on the welcome step with fresh choices. `first` is true for the first-login open, whose close applies the choice. Refused before the saved data loads. |
+| `Open(first) -> boolean` | Opens the window on the welcome step with current addon choices and a fresh live addon list. `first` is true for the first-login open, whose close applies the choice. Refused before the saved data loads. |
 | `IsFirstRun()`, `Keep()` | Whether the open window is the first run; `Keep` makes its close change nothing (the **Keep my UI** button) |
 | `Story(name, guide) -> { guide, tracker }` | The bands in root units (`left`, `right`, `bottom`, `top`) of the RestedXP guide's card and the quest card (`tracker`, where Apply puts Blizzard's tracker too), from their Layout elements when they are registered, else from `Layouts.Story`: with `guide`, the guide the story slot and the quests a second column a rail gap to its left; without, the quests the slot and no guide band. `Story(name, guide, shown)` with `shown` (the RestedXP guide on screen with the quest card up, outside a stacked style) swaps the two: the guide the column, the quests the slot |
 | `GuideLoaded()`, `RootSize()` | Whether RestedXP Guides is loaded; the root's size, through Layout when it is there |
