@@ -347,4 +347,15 @@ assert(K.Modules.Disable("Minimap"))
 assert(env._cvarWrites[1] == "rotateMinimap=0", "disabling turns rotation off")
 assert(perfTicker.cancelled, "and stops the readout's ticker")
 clean(env, K, "disable")
+-- A profile saved with every caption moved loads cleanly on each Medallions frame.
+for _, frame in ipairs({ "medallion", "ring", "classic" }) do
+	local fresh = { version = 42, profiles = { Default = { HudStyle = { style = "medallions" }, Minimap = { enabled = true, frame = frame,
+		zone = { position = "TOP" }, clock = { position = "BOTTOMRIGHT" }, coords = { position = "BOTTOMRIGHT" } } } },
+		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local fenv, fK, fns = M.New({ saved = fresh, position = { 0.4532, 0.6218 }, setup = instance })
+	M.Settle(fenv)
+	clean(fenv, fK, "moved captions on the " .. frame .. " frame")
+	assert(point(fns.Map.face.zone) == "TOP" and not fns.Map.face.plaques[1].chrome.fill[5]:IsShown(), "the " .. frame .. " zone loads inside the map")
+	assert(not fns.Map.face.plaques[2].chrome.fill[5]:IsShown(), "and the " .. frame .. " row plaque hides with the clock and coordinates moved")
+end
 print("minimap parity r1 ok")

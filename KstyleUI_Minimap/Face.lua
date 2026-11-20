@@ -355,7 +355,7 @@ end
 function Face:PlaceZone()
 	local card, zone = self.card, self.zone
 	local side = self.mapSize
-	if not side or self.zonePlaced or Face.Moved("zone") then
+	if not side or self.zonePlaced then
 		return
 	end
 	self.zonePlaced = true
@@ -369,6 +369,9 @@ function Face:PlaceZone()
 		end
 	end
 	self.zoneX, self.zoneY = Snap(card, CaptionX()), y
+	if Face.Moved("zone") then
+		return
+	end
 	zone:ClearAllPoints()
 	Widgets.Point(zone, "LEFT", card, "TOPLEFT", self.zoneX + Snap(card, Settings.Get("zone.x")), self.zoneY + Snap(card, Settings.Get("zone.y")))
 	zone:SetWidth(Snap(card, max(0, side + 2 * Format.FRAME - 2 * CaptionX())))
