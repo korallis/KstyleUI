@@ -291,8 +291,13 @@ local function ExtraTexts(plate)
 		local text = plate[key]
 		local on = type(cfg.textFormat) == "string" and cfg.textFormat ~= ""
 		if on then
+			if not plate.extraHost then
+				plate.extraHost = CreateFrame("Frame", nil, plate)
+				plate.extraHost:SetAllPoints(plate.health)
+			end
+			plate.extraHost:SetFrameLevel(plate.health.fillClip:GetFrameLevel() + 1)
 			if not text then
-				text = Widgets.FontString(plate.health, "OVERLAY")
+				text = Widgets.FontString(plate.extraHost, "OVERLAY")
 				text:SetWordWrap(false)
 				plate[key] = text
 			end

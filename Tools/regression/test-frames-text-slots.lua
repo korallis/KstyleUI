@@ -29,7 +29,8 @@ local function slots(env, K, module, prefix, frame, source, event, combat)
 		write(env, K, module, key .. "textFormat", "[hp] [pp] [level]")
 		local text = assert(frame["extra" .. i], "writing a format creates its region")
 		if module == "Nameplates" then
-			assert(text:GetParent() == frame.health, "plate text overlays the health fill")
+			assert(text:GetParent() == frame.extraHost and frame.extraHost:GetFrameLevel() > frame.health.fillClip:GetFrameLevel(),
+				"plate text overlays the health fill")
 		end
 		assert(text:IsShown() and content(text):find(tostring(source.health), 1, true), "slot paints its unit")
 		write(env, K, module, key .. "size", 15)
@@ -53,8 +54,9 @@ local function slots(env, K, module, prefix, frame, source, event, combat)
 			assert(text:GetPoint(1) == "CENTER", "secure placement stays queued in combat")
 			env.SetCombat(false); env.RunTimers()
 		end
-		local point, _, relative, x, y = text:GetPoint(1)
-		assert(point == "TOPLEFT" and relative == "TOPLEFT" and x > 0 and y < 0, "slot placement applies")
+		local point, parent, relative, x, y = text:GetPoint(1)
+		assert(point == "TOPLEFT" and relative == "TOPLEFT"
+			and x == K.Widgets.Snap(parent, 7) and y == K.Widgets.Snap(parent, -9), "slot placement applies")
 		source.health = source.health + 37
 		fire(event)
 		assert(content(text):find(tostring(source.health), 1, true), "health event refreshes extra text")

@@ -260,7 +260,10 @@ function Settings.Schema()
 	for i = 1, 2 do
 		local key = "extra" .. i
 		schema[#schema + 1] = { type = "header", label = L["Extra text"] .. " " .. i }
-		K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = true })
+		K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = true, row = function(row)
+			if row.key == key .. ".textFormat" then row.help = L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."] end
+			return row
+		end })
 		local function add(row)
 			row.key = key .. "." .. row.key
 			schema[#schema + 1] = row
