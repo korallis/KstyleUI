@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -141,6 +142,19 @@ class WorkflowsTest(unittest.TestCase):
             self.assertIn('python3 Tools/release/discord_post.py --roadmap --edit "$MESSAGE_IDS"', job)
             self.assertIn("python3 Tools/release/discord_post.py --roadmap\n", job)
         self.assertRegex(text, r"\n      roadmap:\n        description: .+\n        type: boolean\n")
+
+    def test_manual_dispatch_runs_discord_post_in_the_chosen_mode(self):
+        job = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["discord-repost"]
+        script = textwrap.dedent(job.split("run: |\n", 1)[1])
+        stubs = 'git() { echo "git $*"; [ "$TAG" = v1 ]; }\npython3() { echo "python3 $*"; }\n'
+        post, tag = "python3 Tools/release/discord_post.py ", "git show-ref --verify refs/tags/"
+        for roadmap, ref, ids, expected in (("true", "", "", post + "--roadmap"), ("true", "", "1", post + "--roadmap --edit 1"),
+                                            ("false", "v1", "", tag + "v1\n" + post + "v1"),
+                                            ("false", "v1", "1,2", tag + "v1\n" + post + "--edit v1 1,2"), ("false", "v2", "", tag + "v2")):
+            env = dict(os.environ, ROADMAP=roadmap, TAG=ref, MESSAGE_IDS=ids)
+            run = subprocess.run([os.environ.get("TEST_BASH", "bash"), "-e", "-c", stubs + script],
+                                 env=env, capture_output=True, text=True)
+            self.assertEqual((run.stdout.strip(), run.returncode == 0), (expected, ref != "v2"), (roadmap, ref, ids, run.stderr))
 
     def test_release_check_and_lua_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")

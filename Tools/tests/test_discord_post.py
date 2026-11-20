@@ -49,7 +49,7 @@ class RoadmapTests(unittest.TestCase):
             self.assertLessEqual(discord.characters(line), 120, 'shorten this roadmap highlight: ' + line)
             self.assertNotIn('…', line)
         discord.roadmap_payload(HEAD + SECTION.replace('- One', '- ' + 'x' * 120) + LATER, 'D')
-        for line in ('x' * 121, 'A cut-off highlight…'):
+        for line in ('x' * 121, 'A cut-off highlight…', 'Wait...'):
             for text in (HEAD + SECTION.replace('- One', '- ' + line) + LATER, HEAD + SECTION + LATER.replace('Maybe', line)):
                 with self.assertRaisesRegex(ValueError, '120 characters or fewer, without an ellipsis'):
                     discord.roadmap_payload(text, 'D')
@@ -61,14 +61,21 @@ class RoadmapTests(unittest.TestCase):
             ('Later', '- Maybe\n\nBye.')])
         self.assertEqual(discord.roadmap_payload(HEAD + LATER, 'D')['embeds'][0]['description'], 'Intro.\n\n- Maybe\n\nBye.')
         for text in (HEAD + SECTION.replace('Estimated: ', 'ETA: ') + LATER, HEAD + SECTION.replace('Highlights:\n\n', '') + LATER,
-                     HEAD + SECTION + LATER.replace('Later', 'Someday'), HEAD + SECTION, HEAD, SECTION + LATER):
+                     HEAD + SECTION + LATER.replace('Later', 'Someday'), HEAD + SECTION, HEAD, SECTION + LATER,
+                     HEAD + SECTION.replace('v1.0.0', 'v...') + LATER, HEAD + SECTION.replace('v1.0.0', 'v1.0') + LATER,
+                     HEAD + SECTION + LATER.replace('\n\nBye.', '\n- Bye.'), HEAD + SECTION + LATER.replace('Bye.', '- Bye.')):
             with self.assertRaisesRegex(ValueError, 'Unexpected roadmap section'):
                 discord.roadmap_payload(text, 'D')
 
-    def test_roadmap_over_discord_limits_fails(self):
+    def test_each_discord_limit_fails_on_its_own(self):
         self.assertEqual(len(discord.roadmap_payload(HEAD + SECTION * 9 + LATER, 'D')['embeds']), 10)
-        for text in (HEAD + SECTION * 10 + LATER, HEAD + SECTION.replace('Summary.', 'x' * 6000) + LATER):
-            with self.assertRaisesRegex(ValueError, 'Discord message limits'):
+        first = discord.roadmap_payload(HEAD + SECTION + LATER, 'D')['embeds'][0]
+        for name, text in {'11 embeds': HEAD + SECTION * 10 + LATER,
+                           'total over 6000': HEAD + SECTION.replace('Summary.', 'x' * 3000) * 2 + LATER,
+                           '4097-character description': HEAD + SECTION.replace('Summary.', 'x' * (4105 - len(first['description']))) + LATER,
+                           '257-character title': HEAD + SECTION.replace('first', 'x' * (262 - len(first['title']))) + LATER,
+                           '257-character author': HEAD.replace('Roadmap', 'A' * 257) + SECTION + LATER}.items():
+            with self.subTest(name), self.assertRaisesRegex(ValueError, 'Discord message limits'):
                 discord.roadmap_payload(text, 'D')
 
     @patch('Tools.release.discord_post.urllib.request.urlopen')
@@ -87,11 +94,11 @@ class RoadmapTests(unittest.TestCase):
                 else:
                     self.assertEqual((request.method, json.loads(request.data)), ('POST', expected))
             opener.reset_mock()
-            with patch('sys.argv', ['discord_post.py', '--roadmap', '--edit', '123', '--dry-run']):
-                with contextlib.redirect_stdout(io.StringIO()) as output:
-                    discord.main()
-            self.assertEqual(json.loads(output.getvalue().split('Character totals: ')[0]), expected)
-            for argv in (['--roadmap', 'v0.2.8', '123'], ['--roadmap', '--notes'], ['--roadmap', '123'], ['--edit', '--dry-run']):
+            with patch('sys.argv', ['discord_post.py', '--roadmap', '--edit', '123', '--dry-run']), contextlib.redirect_stdout(io.StringIO()) as output:
+                discord.main()
+            self.assertEqual(json.loads(output.getvalue().split('Character totals: ')[0]), json.loads(request.data))
+            for argv in (['--roadmap', 'v0.2.8', '123'], ['--roadmap', '--notes'], ['--roadmap', '123'], ['--edit', '--dry-run'],
+                         ['--roadmap', '--edit', '123,456']):
                 with patch('sys.argv', ['discord_post.py'] + argv), contextlib.redirect_stderr(io.StringIO()):
                     with self.assertRaises(SystemExit, msg=argv):
                         discord.main()
@@ -226,7 +233,7 @@ class DiscordPostTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 discord.main()
         payload, totals = output.getvalue().split('Character totals: ')
-        self.assertEqual(json.loads(payload)['flags'], 4096)
+        self.assertEqual((json.loads(payload)['flags'], json.loads(payload)['content']), (0, ''))
         self.assert_valid(json.loads(payload))
         self.assertEqual(json.loads(totals), discord.character_totals(json.loads(payload)))
         opener.assert_not_called()
