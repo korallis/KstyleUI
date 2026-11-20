@@ -123,13 +123,14 @@ end
 
 do
 	local Q = dofile("Tools/regression/qol_env.lua")
-	local accepted, fighting, delay, box = 0, false, 0, {}
+	local accepted, fighting, boss, delay, box = 0, false, false, 0, {}
 	local env, K, ns = Q.New({ saved = saved("QoL", { enabled = true, questModifier = "CTRL" }), setup = function(e)
 		e.DELETE_ITEM_CONFIRM_STRING = "DELETE"
 		box.SetText = function(self, text) self.text = text end
 		e.StaticPopup_FindVisible = function(which) return which == "DELETE_GOOD_ITEM" and { GetEditBox = function() return box end } or nil end
 		e.AcceptResurrect = function() accepted = accepted + 1 end
 		e.InCombatLockdown = function() return fighting end
+		e.C_InstanceEncounter = { IsEncounterInProgress = function() return boss end }
 		e.GetCorpseRecoveryDelay = function() return delay end
 	end })
 	Q.Enable(env, K)
@@ -159,6 +160,14 @@ do
 	fighting = env.Secret(false)
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
 	assert(accepted == 1, "a secret combat state waits for the player")
+	fighting, boss = false, true
+	env.FireEvent("RESURRECT_REQUEST", "Mender")
+	assert(accepted == 1, "dead and out of lockdown in a boss fight, the offer waits for the player")
+	local encounter = env.C_InstanceEncounter
+	env.C_InstanceEncounter, boss = nil, false
+	env.FireEvent("RESURRECT_REQUEST", "Mender")
+	assert(accepted == 1, "without the encounter API the offer waits for the player")
+	env.C_InstanceEncounter = encounter
 	fighting, delay = false, 30
 	env.FireEvent("RESURRECT_REQUEST", "Mender")
 	assert(accepted == 1, "a recovery delay leaves the popup's countdown")
