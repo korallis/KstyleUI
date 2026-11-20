@@ -573,7 +573,7 @@ end
 local function ExtraTexts(view, s)
 	for i = 1, 2 do
 		local key = "extra" .. i
-		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent, view.parent:GetWidth())
+		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent)
 	end
 end
 

@@ -61,7 +61,7 @@ function W.PlaceText(text, cfg, parent, anchor, width)
 		text:SetTextColor(ns.Tokens.Color("textEmphasis"))
 		text:ClearAllPoints()
 		text:SetPoint(position, anchor, position, W.Snap(anchor, Offset(cfg.x)), W.Snap(anchor, Offset(cfg.y)))
-		text:SetWidth(W.Snap(anchor, width))
+		text:SetWidth(W.Snap(anchor, width or anchor:GetWidth()))
 		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
 	end
 	if text then text:SetShown(on) end
