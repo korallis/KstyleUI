@@ -19,7 +19,10 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		assert(#Q.Calls(env, call) == 0, "Leatrix Plus must switch off the matching QoL helper before startup or events call " .. call)
 	end
 	C.W.CoreEnv.Logout(env)
-	local resumed, resumedK = Q.New({ width = width, height = height, saved = env.KstyleUIDB })
+	local resumed, resumedK = Q.New({ width = width, height = height, saved = env.KstyleUIDB, boot = false })
+	Q.CoreEnv.Boot(resumed)
+	resumed.FireEvent("VARIABLES_LOADED")
+	resumed.RunTimers()
 	resumed._loot = { {}, {} }
 	resumed.FireEvent("LOOT_READY", true)
 	assert(resumedK.Store.Module("QoL").fastLoot and #Q.Calls(resumed, "LootSlot") == 2,

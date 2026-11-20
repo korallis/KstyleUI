@@ -32,6 +32,7 @@ ns.Locale.Add({
 	["%s could not be checked against its choices."] = "%s n'a pas pu \195\170tre compar\195\169 \195\160 ses choix possibles.",
 	["%s font"] = "Police (%s)",
 	["%s has a key that is not text."] = "%s a une cl\195\169 qui n'est pas du texte.",
+	["%s is back on now that Leatrix Plus no longer handles it."] = "%s est de nouveau activ\195\169, car Leatrix Plus ne s\226\128\153en charge plus.",
 	["%s is not a Layout element."] = "%s n'est pas un \195\169l\195\169ment de disposition.",
 	["%s is not a Layout setting."] = "%s n'est pas un r\195\169glage de disposition.",
 	["%s is not a setting KstyleUI knows."] = "%s n'est pas un r\195\169glage connu de KstyleUI.",

@@ -25,6 +25,7 @@
 	"%s could not be checked against its choices.",
 	"%s font",
 	"%s has a key that is not text.",
+	"%s is back on now that Leatrix Plus no longer handles it.",
 	"%s is not a Layout element.",
 	"%s is not a Layout setting.",
 	"%s is not a setting KstyleUI knows.",

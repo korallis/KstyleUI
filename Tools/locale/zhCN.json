@@ -25,6 +25,7 @@
 	"%s could not be checked against its choices.": "无法根据可选项检查 %s。",
 	"%s font": "%s字体",
 	"%s has a key that is not text.": "%s 有一个不是文本的键。",
+	"%s is back on now that Leatrix Plus no longer handles it.": "Leatrix Plus 不再处理此功能，%s 已重新开启。",
 	"%s is not a Layout element.": "%s 不是布局元素。",
 	"%s is not a Layout setting.": "%s 不是布局设置。",
 	"%s is not a setting KstyleUI knows.": "%s 不是 KstyleUI 认识的设置。",

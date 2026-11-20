@@ -25,6 +25,7 @@
 	"%s could not be checked against its choices.": "%s n'a pas pu être comparé à ses choix possibles.",
 	"%s font": "Police (%s)",
 	"%s has a key that is not text.": "%s a une clé qui n'est pas du texte.",
+	"%s is back on now that Leatrix Plus no longer handles it.": "%s est de nouveau activé, car Leatrix Plus ne s’en charge plus.",
 	"%s is not a Layout element.": "%s n'est pas un élément de disposition.",
 	"%s is not a Layout setting.": "%s n'est pas un réglage de disposition.",
 	"%s is not a setting KstyleUI knows.": "%s n'est pas un réglage connu de KstyleUI.",

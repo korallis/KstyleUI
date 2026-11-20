@@ -31,21 +31,27 @@ local LEATRIX = {
 	{ "AutomateQuests", "QoL", "autoQuests", L["Accept and turn in quests"] },
 	{ "MaxCameraZoom", "QoL", "maxCamera", L["Max camera distance"] },
 }
-function Integration.Leatrix()
+function Integration.Leatrix(event)
+	if not Store.IsLoaded() then return end
 	local saved = rawget(_G, "LeaPlusDB")
-	if Widgets.IsSecret(saved) or type(saved) ~= "table" or not Store.IsLoaded() or not Integration.Loaded("Leatrix_Plus") then return end
+	if Widgets.IsSecret(saved) or type(saved) ~= "table" or not Integration.Loaded("Leatrix_Plus") then saved = {} end
 	local config = Store.Module("Integrations")
 	for _, feature in ipairs(LEATRIX) do
 		local toggle, module, key, label = unpack(feature)
 		local value = saved[toggle]
-		local minimap = saved.MinimapModder
 		local on = not Widgets.IsSecret(value) and value == "On"
-		if toggle == "CombineAddonButtons" then on = on and not Widgets.IsSecret(minimap) and minimap == "On" end
+		if toggle == "CombineAddonButtons" then on = on and not Widgets.IsSecret(saved.MinimapModder) and saved.MinimapModder == "On" end
 		if on and not config.leatrix[toggle] and Store.Defaults(module) then
 			config.leatrix[toggle] = true
 			K.Options.Write(module, key, false)
 			if config.notices then
 				K.Print(string.format(L["%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI."], label))
+			end
+		elseif event == "PLAYER_LOGIN" and not on and config.leatrix[toggle] and Store.Defaults(module) then
+			config.leatrix[toggle] = nil
+			if K.Options.Read(module, key) == false then
+				K.Options.Write(module, key, true)
+				if config.notices then K.Print(string.format(L["%s is back on now that Leatrix Plus no longer handles it."], label)) end
 			end
 		end
 	end

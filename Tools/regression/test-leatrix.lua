@@ -80,13 +80,20 @@ for _, feature in ipairs(features) do
 	for _, absent in ipairs({ false, true }) do
 		local env = Boot({ [toggle] = "On", MinimapModder = "On" }, true)
 		Core.Logout(env)
-		local restored, K = Boot(absent and nil or { [toggle] = "Off", MinimapModder = "On" }, not absent, env.KstyleUIDB, function(e, core)
+		local toggles
+		if not absent then toggles = { [toggle] = "Off", MinimapModder = "On" } end
+		local restored, K = Boot(toggles, not absent, env.KstyleUIDB, function(e, core)
 			for _, addon in ipairs({ "KstyleUI_QoL", "Unrelated", "Leatrix_Plus" }) do e.FireEvent("ADDON_LOADED", addon) end
 			assert(not Get(core, module, key) and core.Store.Module("Integrations").leatrix[toggle], "restore " .. key .. " only at PLAYER_LOGIN, after all addons load")
 		end)
 		assert(Get(K, module, key), "Leatrix no longer handles " .. key .. ": restore it at the next login")
 		assert(not K.Store.Module("Integrations").leatrix[toggle], "clear the restored helper's Leatrix latch")
 		assert(Core.Printed(restored, "is back on now that Leatrix Plus no longer handles it."), "explain the restored helper once")
+		local notices = 0
+		for _, line in ipairs(restored._printed) do
+			if line:find("is back on now that Leatrix Plus no longer handles it.", 1, true) then notices = notices + 1 end
+		end
+		assert(notices == 1, "restore just one helper with just one notice")
 		local count = #restored._printed
 		restored.FireEvent("ADDON_LOADED", "Unrelated")
 		restored.FireEvent("PLAYER_LOGIN")
@@ -99,6 +106,18 @@ for _, feature in ipairs(features) do
 	local restored, nextK = Boot({ [toggle] = "Off" }, true, env.KstyleUIDB)
 	assert(Get(nextK, module, key) and not nextK.Store.Module("Integrations").leatrix[toggle], "clear the latch without changing a manual override")
 	assert(not Core.Printed(restored, "Leatrix Plus"), "a helper already turned on manually needs no restoration notice")
+end
+do
+	local env = Boot({ FasterLooting = "On" }, true)
+	Core.Logout(env)
+	local restored, K = Boot({ FasterLooting = "On" }, true, env.KstyleUIDB, function(e, core)
+		e.LeaPlusDB.FasterLooting = "Off"
+		e.FireEvent("ADDON_LOADED", "Unrelated")
+		assert(not Get(core, "QoL", "fastLoot"), "an intermediate addon load must not restore a latched helper")
+		e.LeaPlusDB.FasterLooting = "On"
+		e.FireEvent("ADDON_LOADED", "Leatrix_Plus")
+	end)
+	assert(not Get(K, "QoL", "fastLoot") and not Core.Printed(restored, "Leatrix Plus"), "an active Leatrix option stays yielded without flip-flops or double notices")
 end
 do
 	local env = Boot({ CombineAddonButtons = "On", MinimapModder = "On" }, true)
