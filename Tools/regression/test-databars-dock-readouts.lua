@@ -58,7 +58,8 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 				for _, text in ipairs({ item.value, item.label, item.dot }) do
 					if text:IsShown() then
 						local tx, _, tw = Scene.Rect(env, text)
-						assert(tx >= bounds[zone][1] - 0.01 and tx + tw <= bounds[zone][2] + 0.01, "dock " .. id .. " text crossed the " .. zone .. " wing: " .. tx .. "+" .. tw .. " outside " .. bounds[zone][1] .. ".." .. bounds[zone][2] .. "; drop whole items instead of drawing behind the crest or past the wing")
+						local edge = zone == "right" and text == item.dot and view.slab.text:IsVisible() and captionX or bounds[zone][2]
+						assert(tx >= bounds[zone][1] - 0.01 and tx + tw <= edge + 0.01, "dock " .. id .. " text crossed the " .. zone .. " wing: " .. tx .. "+" .. tw .. " outside " .. bounds[zone][1] .. ".." .. edge .. "; drop whole items instead of drawing behind the crest or past the wing")
 						assert(not text:IsTruncated(), "never truncate a dock readout mid-item")
 					end
 				end

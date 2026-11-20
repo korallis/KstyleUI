@@ -433,13 +433,15 @@ local function PlaceLine(view, s)
 	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
+	local captionGap = LABEL_GAP
 	if view.slab then
 		local layouts = K.Setup.Layouts
 		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
 		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		limits.left = max(0, left * ratio - LABEL_GAP)
-		limits.right = max(0, right * ratio - LABEL_GAP - (view.slab.text:IsVisible() and TextWidth(view.slab.text, dotSize) + LABEL_GAP or 0))
+		captionGap = sample and TextWidth(sample.dot, dotSize) + 2 * dotGap or LABEL_GAP
+		limits.right = max(0, right * ratio - LABEL_GAP - (view.slab.text:IsVisible() and TextWidth(view.slab.text, dotSize) + captionGap or 0))
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
@@ -467,6 +469,11 @@ local function PlaceLine(view, s)
 	signature = table.concat(signature, "|")
 	if view.lineLayout == signature then return end
 	view.lineLayout = signature
+	if view.slab then
+		view.zones.right:ClearAllPoints()
+		Widgets.Point(view.zones.right, "TOPRIGHT", view.slab.text:IsVisible() and view.slab.text or frame, view.slab.text:IsVisible() and "TOPLEFT" or "TOPRIGHT", -(view.slab.text:IsVisible() and captionGap or LABEL_GAP), 0)
+		Widgets.Point(view.zones.right, "BOTTOMLEFT", frame, "BOTTOMLEFT")
+	end
 	for _, item in pairs(view.items) do item.hiddenReadouts = nil end
 	for zone, ids in pairs(hidden) do
 		if last[zone] and #ids > 0 then view.items[last[zone]].hiddenReadouts = ids end
@@ -501,12 +508,13 @@ local function PlaceLine(view, s)
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
 		if not item.overflow then x = x + width end
-		local dot = not item.overflow and ((view.topBar or view.slab) and positions[item.id][4] or not view.topBar and not view.slab and i > 1)
+		local captionDot = view.slab and position[1] == "right" and not position[4] and view.slab.text:IsVisible()
+		local dot = not item.overflow and (captionDot or (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1)
 		item.dot:SetShown(dot)
 		if dot then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
 			item.dot:ClearAllPoints()
-			Widgets.Point(item.dot, view.slab and "TOP" or "CENTER", button, view.slab and "TOPLEFT" or "LEFT", -(dotWidth / 2 + dotGap), view.slab and 0 or lift)
+			Widgets.Point(item.dot, view.slab and "TOP" or "CENTER", captionDot and view.slab.text or button, view.slab and "TOPLEFT" or "LEFT", -(dotWidth / 2 + dotGap), view.slab and 0 or lift)
 			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
 			item.dot:SetJustifyH("CENTER")
 			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
@@ -1094,9 +1102,6 @@ function Strip.Refresh()
 		Widgets.Size(view.frame, xp.holder:GetWidth(), LINE)
 		view.zones.left:SetAllPoints(view.frame)
 		view.zones.centre:SetAllPoints(view.frame)
-		view.zones.right:ClearAllPoints()
-		Widgets.Point(view.zones.right, "TOPRIGHT", xp.text:IsVisible() and xp.text or view.frame, xp.text:IsVisible() and "TOPLEFT" or "TOPRIGHT", -LABEL_GAP, 0)
-		Widgets.Point(view.zones.right, "BOTTOMLEFT", view.frame, "BOTTOMLEFT")
 	elseif view.zones then
 		for _, zone in pairs(view.zones) do zone:SetAllPoints(view.frame) end
 	end
