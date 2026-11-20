@@ -33,7 +33,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					for _, fs in ipairs({ item.value, item.label }) do
 						local _, size = fs:GetFont()
 						assert(size * K.Widgets.ScaleFactor(fs) / K.Scale.Pixel(1) >= K.Scale.TextFloor() - 0.01,
-							case .. ": keep the " .. id .. " readout at the text floor; do not exempt top bar text with Widgets.Fitted")
+							case .. ": keep the " .. id .. " readout at the text floor: size it to the largest whole-pixel font whose line fits the bar")
 					end
 				end
 			end

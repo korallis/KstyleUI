@@ -401,7 +401,7 @@ local function BuildWelcome(page)
 		thumb:ClearAllPoints()
 		Widgets.Point(thumb, "TOPLEFT", bar, "TOPLEFT", 0, -offset * view / height)
 		Widgets.Size(thumb, 2, view * view / height)
-		bar:SetShown(scroll:IsShown() and height > view)
+		bar:SetShown(scroll:IsShown() and height > view + 1)
 	end
 	scroll:SetScript("OnMouseWheel", function(_, delta)
 		ScrollTo(scroll:GetVerticalScroll() - delta * Widgets.LineHeight(branded.features) * 3)
@@ -427,7 +427,8 @@ local function BuildWelcome(page)
 		if branded.note:IsShown() then
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
-		panel.opts.height = max(HEIGHT, panel.opts.height + (shown and height or 0) - scroll:GetHeight())
+		local step = 2 * Scale.Pixel(1) / Widgets.ScaleFactor(panel)
+		panel.opts.height = HEIGHT + max(0, math.ceil((panel.opts.height + (shown and height or 0) - scroll:GetHeight() - HEIGHT) / step - 0.01) * step)
 		Widgets.Size(panel, WIDTH, panel.opts.height)
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
 		ScrollTo(0)
