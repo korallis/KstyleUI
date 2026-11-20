@@ -437,7 +437,6 @@ local function RoomAbove(plate)
 	end
 	return GAP + ns.Resource.Above(plate)
 end
-Auras.RoomAbove = RoomAbove
 
 local function RoomBelow(plate)
 	local room = GAP
