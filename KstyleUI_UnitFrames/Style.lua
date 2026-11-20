@@ -746,7 +746,7 @@ function Style.PowerTint(view, r, g, b)
 	end
 	view.power:SetBarColor(r, g, b)
 	local geometry = view.geometry
-	local inside = geometry and geometry.form ~= "plate" and geometry.form ~= "slab" and geometry.powerText
+	local inside = geometry and geometry.form ~= "plate" and geometry.powerText and geometry.form ~= "slab"
 	view.powerFillClip:SetShown(inside == true)
 	if inside then
 		Widgets.InkText(view.powerText, Tokens.Color(TRACK))

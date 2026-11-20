@@ -14,6 +14,7 @@ for _, style in ipairs({ "frames", "medallions" }) do
 		assert(g.name.x + g.name.w <= g.powerText.x, "the name and power number have separate room")
 	else
 		assert(g.powerReserve == nil and g.powerText.y == g.power.y and g.powerText.h == g.power.h, "Frames uses the existing power bar without moving its layout")
+		assert(view.powerFillClip:IsShown(), "Frames must keep its fill-clipped ink visible")
 	end
 	assert(view.powerText:GetJustifyH() == "RIGHT", "the number is right-aligned")
 	assert(select(2, view.powerText:GetFont()) >= 12, "power uses the 12-unit number role")
