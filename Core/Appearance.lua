@@ -15,6 +15,10 @@ local LSM_PREFIX = "KstyleUI "
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
+local function IsUnit(v)
+	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v >= 0 and v <= 1
+end
+
 local ROLES = Tokens.FontRoles()
 local ROLE_KEY = {}
 for _, role in ipairs(ROLES) do
@@ -40,12 +44,28 @@ for _, role in ipairs(ROLES) do
 	Appearance.defaults[ROLE_KEY[role]] = ""
 end
 
+local CLASSES = { WARRIOR = { 0.78, 0.61, 0.43 }, PALADIN = { 0.96, 0.55, 0.73 }, HUNTER = { 0.67, 0.83, 0.45 }, ROGUE = { 1, 0.96, 0.41 },
+	PRIEST = { 1, 1, 1 }, SHAMAN = { 0, 0.44, 0.87 }, MAGE = { 0.25, 0.78, 0.92 }, WARLOCK = { 0.53, 0.53, 0.93 }, DRUID = { 1, 0.49, 0.04 } }
+local POWERS = { MANA = { 0, 0, 1 }, RAGE = { 1, 0, 0 }, ENERGY = { 1, 1, 0 }, FOCUS = { 1, 0.5, 0.25 } }
+Appearance.CLASS_ORDER = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+Appearance.POWER_ORDER = { "MANA", "RAGE", "ENERGY", "FOCUS" }
+local function Native(list, source)
+	local out = {}
+	for key, rgb in pairs(list) do
+		local c = type(source) == "table" and source[key]
+		local plain = type(c) == "table" and IsUnit(c.r) and IsUnit(c.g) and IsUnit(c.b)
+		out[key] = plain and { r = c.r, g = c.g, b = c.b } or { r = rgb[1], g = rgb[2], b = rgb[3] }
+	end
+	return out
+end
+Appearance.defaults.classColors = Native(CLASSES, rawget(_G, "RAID_CLASS_COLORS"))
+Appearance.defaults.powerColors = Native(POWERS, rawget(_G, "PowerBarColor"))
+Appearance.defaults.paletteDarken = 0
+Appearance.defaults.outline = ""
+Appearance.PALETTE = { "classColors", "powerColors", "paletteDarken" }
+
 local function Log(message)
 	ns.DevTest.Log(SECTION, message)
-end
-
-local function IsUnit(v)
-	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v >= 0 and v <= 1
 end
 
 local CLEAN = {
@@ -95,6 +115,9 @@ local CLEAN = {
 			return v
 		end
 	end,
+	outline = function(v)
+		if v == "" or v == "SHADOW" or v == "OUTLINE" or v == "THICKOUTLINE" then return v end
+	end,
 }
 
 local function CleanRoleFont(v)
@@ -138,6 +161,38 @@ local function ApplyReadability()
 	end)
 end
 
+local function ApplyPalette()
+	local settings, colors = Store.IsLoaded() and Store.Module(SECTION) or {}, {}
+	for _, group in ipairs({ "classColors", "powerColors" }) do
+		local saved = type(settings[group]) == "table" and settings[group] or {}
+		for key, d in pairs(Appearance.defaults[group]) do
+			local c = saved[key]
+			if type(c) == "table" and IsUnit(c.r) and IsUnit(c.g) and IsUnit(c.b) and (c.r ~= d.r or c.g ~= d.g or c.b ~= d.b) then
+				colors[key] = { r = c.r, g = c.g, b = c.b }
+			end
+		end
+	end
+	Theme.SetPalette(colors, settings.paletteDarken)
+end
+
+function Appearance.CopyPalette(from, to)
+	local profiles = Store.Data().profiles
+	local source = type(profiles[from]) == "table" and profiles[from][SECTION] or {}
+	for _, name in ipairs(to and { to } or Store.ListProfiles()) do
+		if name ~= from and type(profiles[name]) == "table" then
+			local live = name == Store.ProfileName()
+			profiles[name][SECTION] = type(profiles[name][SECTION]) == "table" and profiles[name][SECTION] or {}
+			for _, key in ipairs(Appearance.PALETTE) do
+				local value = source[key]
+				if value == nil and live then value = Appearance.defaults[key] end
+				profiles[name][SECTION][key] = ns.Options.Copy(value)
+			end
+			if live then ApplyPalette(); ns.Callbacks.Fire("SettingChanged", SECTION, "classColors") end
+		end
+	end
+	return true
+end
+
 local function ApplyRoleFonts()
 	local choices = {}
 	for _, role in ipairs(ROLES) do
@@ -158,12 +213,15 @@ local APPLY = {
 	uiScaleAuto = Scale.SetAuto,
 	motion = Motion.SetLevel,
 	auraEndings = function() ns.Callbacks.Fire("ThemeChanged") end,
+	outline = Theme.SetOutline,
+	classColors = ApplyPalette, powerColors = ApplyPalette, paletteDarken = ApplyPalette,
 }
+CLEAN.classColors, CLEAN.powerColors, CLEAN.paletteDarken = ns.Options.Copy, ns.Options.Copy, function(v) return IsUnit(v) and v or nil end
 for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
 for key in pairs(READABILITY) do APPLY[key] = ApplyReadability end
-local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleAuto", "uiScale", "motion" }
+local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleAuto", "uiScale", "motion", "outline" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -197,11 +255,14 @@ end
 function Appearance.ApplyGameText()
 	if not Store.IsLoaded() then return end
 	local account = Store.Account()
-	local on, combat, scale = account.gameFont == true, account.combatFont == true, account.gameTextScale
-	scale = not (issecretvalue and issecretvalue(scale)) and type(scale) == "number" and scale == scale and math.min(1.5, math.max(0.8, scale)) or 1
-	if not (native or saved or on or combat or scale ~= 1) then return end
+	local on, combat, nameFont = account.gameFont == true, account.combatFont == true, account.nameFont == true
+	local function Size(v)
+		return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v and math.min(1.5, math.max(0.8, v)) or 1
+	end
+	local scale, combatScale = Size(account.gameTextScale), Size(account.combatTextScale)
+	if not (native or saved or on or combat or nameFont or scale ~= 1 or combatScale ~= 1) then return end
 	saved = saved or {}
-	for name, role in pairs({ STANDARD_TEXT_FONT = on and "body", UNIT_NAME_FONT = on and "names", DAMAGE_TEXT_FONT = combat and "number" }) do
+	for name, role in pairs({ STANDARD_TEXT_FONT = on and "body", UNIT_NAME_FONT = (on or nameFont) and "names", DAMAGE_TEXT_FONT = combat and "number" }) do
 		if role then
 			if saved[name] == nil then saved[name] = rawget(_G, name) or false end
 			rawset(_G, name, (Tokens.Font(role)))
@@ -211,14 +272,14 @@ function Appearance.ApplyGameText()
 		end
 	end
 	saved = next(saved) and saved or nil
-	if not (native or on or scale ~= 1) or type(GetFonts) ~= "function" then return end
+	if not (native or on or scale ~= 1 or combatScale ~= 1) or type(GetFonts) ~= "function" then return end
 	native = native or {}
 	local ok, names = pcall(GetFonts)
 	local path, live = Tokens.Font("body"), {}
 	for _, name in ipairs(ok and type(names) == "table" and names or {}) do
 		local font = type(name) == "string" and not name:find("^KstyleUI") and rawget(_G, name)
 		local now = type(font) == "table" and type(font.GetFont) == "function" and Read(font)
-		local state = now and (native[name] or now[1]:lower():find("^fonts[\\/]") and { font, {}, {} })
+		local state = now and (native[name] or now[1]:lower():find("^fonts[\\/]") and { font, {}, {}, combat = name:find("^CombatTextFont") ~= nil })
 		if state then
 			for i = 1, 3 do
 				if now[i] ~= state[3][i] then state[2][i] = now[i] end
@@ -228,11 +289,12 @@ function Appearance.ApplyGameText()
 	end
 	for _, state in ipairs(live) do
 		local font, original = state[1], state[2]
-		local want, now = { on and path or original[1], original[2] * scale, original[3] }, Read(font) or {}
+		local size = state.combat and combatScale or scale
+		local want, now = { on and path or original[1], original[2] * size, original[3] }, Read(font) or {}
 		if now[1] ~= want[1] or now[2] ~= want[2] or now[3] ~= want[3] then pcall(font.SetFont, font, want[1], want[2], want[3]) end
 		state[3] = Read(font) or want
 	end
-	if not on and scale == 1 then native = nil end
+	if not on and scale == 1 and combatScale == 1 then native = nil end
 end
 
 function Appearance.Apply()
@@ -240,6 +302,7 @@ function Appearance.Apply()
 		ApplyKey(key)
 	end
 	ApplyRoleFonts()
+	ApplyPalette()
 	ApplyReadability()
 	Appearance.ApplyGameText()
 end
@@ -317,6 +380,10 @@ function Appearance.Schema()
 				return FaceOptions()
 			end,
 		},
+		{ type = "dropdown", key = "outline", label = L["Text outline"], help = L["A thin or thick outline, or a soft shadow, around the text."], options = {
+			{ value = "", label = L["Current style"] }, { value = "SHADOW", label = L["Soft shadow"] },
+			{ value = "OUTLINE", label = L["Thin outline"] }, { value = "THICKOUTLINE", label = L["Thick outline"] },
+		} },
 		{
 			type = "slider", key = "fontScale", label = L["Text size"],
 			help = L["Makes KstyleUI's text larger or smaller without changing anything else."],
@@ -382,6 +449,21 @@ function Appearance.Schema()
 		{ "world", L["World text font"], L["Text drawn in the game world, such as plate casts."] },
 	}
 
+	local classNames = rawget(_G, "LOCALIZED_CLASS_NAMES_MALE")
+	local function Colour(group, key, label, help)
+		local schema = Appearance.schema
+		schema[#schema + 1] = { type = "color", key = group .. "." .. key, label = type(label) == "string" and label or key, help = help }
+	end
+	Appearance.schema[#Appearance.schema + 1] = { type = "header", label = L["Class and power colours"] }
+	for _, file in ipairs(Appearance.CLASS_ORDER) do
+		Colour("classColors", file, type(classNames) == "table" and classNames[file], L["Wherever KstyleUI shows this class colour; the accent keeps its own setting."])
+	end
+	for _, token in ipairs(Appearance.POWER_ORDER) do
+		Colour("powerColors", token, rawget(_G, token), L["Unit and group frame bars that show this power use this colour."])
+	end
+	Appearance.schema[#Appearance.schema + 1] = { type = "slider", key = "paletteDarken", label = L["Darken class and power colours"], min = 0, max = 0.6, step = 0.05,
+		help = L["Darkens class and power colours by this share; zero keeps them as they are."] }
+
 	local at
 	for i, row in ipairs(Appearance.schema) do
 		if row.key == "fontScale" then
@@ -446,6 +528,7 @@ local function RegisterSharedMedia()
 end
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
+	key = module == SECTION and type(key) == "string" and key:match("^[^%.]+") or key
 	if module == SECTION and APPLY[key] then
 		ApplyKey(key)
 		if native or saved then Appearance.ApplyGameText() end

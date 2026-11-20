@@ -1,4 +1,4 @@
--- OptionsEntry.lua: the settings window's other doors: a canvas category in Blizzard's Settings panel and the addon compartment entry.
+-- OptionsEntry.lua: the settings window's other doors: a canvas category in Blizzard's Settings panel, the addon compartment entry and optional game menu buttons.
 local _, ns = ...
 
 local L = ns.L
@@ -70,9 +70,46 @@ local function Register()
 	end
 end
 
+local Entry = {}
+ns.OptionsEntry = Entry
+local menu
+
+local function MenuButton(text, onClick)
+	local button = ns.Widgets.Button(menu, { text = text, onClick = function()
+		if not InCombatLockdown() and type(HideUIPanel) == "function" then HideUIPanel(GameMenuFrame) end
+		onClick()
+	end })
+	button:SetWidth(ns.Widgets.Snap(button, 200))
+	return button
+end
+
+function Entry.GameMenu()
+	local account = ns.Store.IsLoaded() and ns.Store.Account() or {}
+	local options, layout = account.gameMenuOptions == true, account.gameMenuLayout == true
+	local parent = rawget(_G, "GameMenuFrame")
+	if not (options or layout or menu) or type(parent) ~= "table" then return end
+	if not menu then
+		menu = CreateFrame("Frame", nil, parent)
+		menu.options = MenuButton(L["KstyleUI settings"], function() ns.Options.Open() end)
+		menu.layout = MenuButton(L["Layout Mode"], function() ns.Layout.Enter() end)
+		Log("added KstyleUI buttons under the game menu")
+	end
+	local gap = ns.Widgets.Snap(menu, ns.Tokens.Size("gapSmall"))
+	menu:ClearAllPoints()
+	menu:SetPoint("TOP", parent, "BOTTOM", 0, -gap)
+	menu:SetSize(menu.options:GetWidth(), 2 * menu.options:GetHeight() + gap)
+	menu.options:SetShown(options)
+	menu.layout:SetShown(layout)
+	menu.options:ClearAllPoints()
+	menu.options:SetPoint("TOP", menu, "TOP")
+	menu.layout:ClearAllPoints()
+	menu.layout:SetPoint("TOP", options and menu.options or menu, options and "BOTTOM" or "TOP", 0, options and -gap or 0)
+end
+
 ns.Events.Register(OWNER, "PLAYER_LOGIN", function()
 	ns.Events.Unregister(OWNER, "PLAYER_LOGIN")
 	Register()
+	Entry.GameMenu()
 end)
 
 function KstyleUI_OnAddonCompartmentClick()

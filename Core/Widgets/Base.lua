@@ -665,6 +665,18 @@ function Widgets.StyleText(text, role)
 	end
 end
 
+local styleText = Widgets.StyleText
+function Widgets.SetOutline(flags)
+	Widgets.StyleText = flags and function(text, role)
+		styleText(text, role)
+		role = textRole[text]
+		if role ~= "caps" or Widgets.CapsSized[text] == nil then
+			local path, size = Tokens.Font(role)
+			Widgets.ApplyFont(text, path, size, flags)
+		end
+	end or styleText
+end
+
 local baseFont
 
 function Widgets.FontString(parent, layer)

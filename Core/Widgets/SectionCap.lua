@@ -23,7 +23,7 @@ function Widgets.CapsSize(text, plain, factor)
 	Widgets.CapsSized[text] = plain or false
 	local path, floor, flags = Tokens.Font("caps")
 	local size = Widgets.Readability("sectionHeadings") and 10 * ns.Theme.FontScale() or math.max(floor, CAP_SIZE * ns.Theme.FontScale())
-	Widgets.ApplyFont(text, path, size * (factor or 1), flags, plain)
+	Widgets.ApplyFont(text, path, size * (factor or 1), ns.Theme.outline or flags, plain)
 end
 
 function Widgets.PaintCapRule(rule, alpha)

@@ -14,11 +14,11 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Arrow-key 1px nudge | Present | Selected mover, physical pixels at every resolution | [Session] |
 | Shift arrow-key 100px nudge | Present | Elements > Shift nudge distance, 1–100; default stays 10 | [Session] |
 | Grid off / dim / bright | Present | Show the grid and Grid brightness, 0–50%; original 7% remains default | [Session] |
-| Cursor light on grid | Missing, fits | Follow-up L1: it needs per-frame cursor tracking while Layout Mode is open, so it waits for a way without a per-frame update | [Session] |
+| Cursor light on grid | Present | Elements > Light the grid around the pointer, off by default: grid lines near the pointer brighten during a drag, inside the drag's existing update, and dim when it ends | [Session] |
 | Dark element overlays on / off | Present | See-through movers; off restores solid plates | [Session] |
 | Snap to elements / screen | Present | Snap while dragging, including edges and centres | [Session] |
 | Snap to grid | Present | Show the grid with snapping enabled | [Unlock tools] |
-| Per-element snap target: auto / none / selected / all | Missing, fits | Follow-up L1: a per-element choice needs a saved element field that every reload resolves; skipped to add no reload cost | [Movers] |
+| Per-element snap target: auto / none / selected / all | Present | Each element > Snap: Follow Snap while dragging (default), Never, Always or Only to one element; stored in the element's optional link record, read only while dragging | [Movers] |
 | Coordinates always visible | Present | Show coordinates on every plate | [Session] |
 | Overlap cycle: off / scroll / Shift / Ctrl / Alt scroll | Present | Elements > Overlap cycling; Alt remains default; other scrolling still scales | [General source] |
 | Select element from list / filter | Present | Find Layout Mode elements; searchable toolbar list | [Unlock filter] |
@@ -35,10 +35,10 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Height match | Present | Attach to > Match height; off by default; respects limits and combat queue | [Movers] |
 | Extra matched width | Present | Extra width in root units; zero preserves exact matching | [v9.2.5] |
 | Extra matched height | Present | Extra height in root units; zero preserves exact matching | [v9.2.5] |
-| Independent width / height match targets | Missing, fits | Follow-up L2: separate targets need new element fields that every reload resolves, plus chain, cycle and combat tests; skipped to add no reload cost | [Movers] |
+| Independent width / height match targets | Present | Each element > Match width of / Match height of: any element, attached or not; refreshes when that element changes and stops at a cycle | [Movers] |
 | Attach above / below / left / right | Present | Attach to, Side and Offset | [Movers] |
-| Nine source points × nine target points | Missing, fits | Follow-up L2: Side now covers the twelve edge-to-edge pairs; other point pairs need a new element field that every reload resolves | [Point picker] |
-| Independent anchor X and Y offsets | Missing, fits | Follow-up L2: a sideways offset needs a new element field that every reload resolves; corner sides line up edges meanwhile | [Movers] |
+| Nine source points × nine target points | Present | Each element > Point on this element and Point on the other element (Use Side by default) | [Point picker] |
+| Independent anchor X and Y offsets | Present | Each element > Attached X offset and Attached Y offset, zero by default; dragging a point link moves them | [Movers] |
 | Grow / corner direction; fallback direction | Present | Attach to > Side: each side centred or lined up at either edge; an unavailable target falls back to the saved place; module growth stays on each module's page | [Movers] |
 | Remove anchor | Present | Attach to > Not attached restores saved root position | [Movers] |
 | Anchor connector colour | Missing, breaks consistency | Layout guides use the shared accent; a separate guide palette would split the editor's visual language | [General source] |
@@ -52,9 +52,11 @@ This follow-up adds session-only mover hiding and optional double-click settings
 
 The third batch adds the fading toolbar and corner-aligned sides. The toolbar preference is account-wide and off by default; Layout Mode reads it only while it is open. Corner sides reuse the existing `side` field, so no element gains a field and reload resolves nothing new. Remaining L1 covers cursor lighting and snap targets; L2 covers point pairs, sideways offsets and independent match targets. Each of those needs a per-frame update or a new element field that every reload resolves, so they wait for a design with no reload cost. Together with the appearance/profile follow-ups in `KstyleUI_Options/README.md`, fitting gaps exceed a 600-line implementation batch; this PR ships height matching, match adjustments, grid brightness and interaction controls first. No existing place, font, scale or opacity changes by default. Both matches preserve an element's saved fallback size. When both matches conflict with a locked aspect ratio, width wins. Protected changes reuse `Combat.Queue`; no new event, ticker or per-frame path was added.
 
+Round 1 builds the remaining L1 and L2 rows with one optional `link` record per element ({ point, target, x, y, width, height, snap }), validated like every field and kept out of the shared field list, so an element without one resolves nothing new on reload and a drag preview adds a 9-instruction check. A point pair joins any of nine points on the element to any of nine on its target, plus the X and Y offsets; dragging moves those offsets. Match width of and Match height of take a size from any live element, attached or not, and follow it through `RefreshLinks`, which skips an element already being applied so a match cycle settles. Snap is read when a drag starts: Never skips snapping, Always snaps even with Snap off, Only to an element snaps to its edges alone without the grid. The grid light brightens lines within two steps of the pointer inside the drag's existing OnUpdate and restores them when the drag ends; it is off by default.
+
 Forever API proof is pinned to `9dc84f0d3bbae1768ac3405b3716000bd93eda06`: `Blizzard_APIDocumentationGenerated/InputDocumentation.lua` declares `IsAltKeyDown`, `IsControlKeyDown`, `IsShiftKeyDown`; the shared modifier reader guards availability and secrecy. `SimpleScriptRegionAPIDocumentation.lua` declares size getters and `SimpleScriptRegionResizingAPIDocumentation.lua` declares setters; the existing frame measurement path rejects secret/invalid dimensions before matching. `SimpleRegionAPIDocumentation.lua` and `SimpleTextureBaseAPIDocumentation.lua` prove alpha/vertex colour setters used by the existing grid painter. New geometry fields use Layout's existing validation, sparse saved records, history and combat queue.
 
-Verification: `test-core-parity-third`, `test-core-parity`, `test-layout-links`, the existing Layout tests, and `test-perf-path-budgets` under PUC Lua 5.1. Scene `parity_core` accepts `RENDER_CORE_PAGE=layout`, `links`, `mode` or `toolbar`, and `RENDER_CORE_SIDE` for the target frame's side; use the four requested screen sizes with strict guards and a real backdrop. Evidence stays outside the repository.
+Verification: `test-core-parity-round1`, `test-core-parity-third`, `test-core-parity`, `test-layout-links`, the existing Layout tests, and `test-perf-path-budgets` under PUC Lua 5.1. Scene `parity_core` accepts `RENDER_CORE_PAGE=layout`, `links`, `mode`, `toolbar`, `points` or `palette`, and `RENDER_CORE_SIDE` for the target frame's side; use the four requested screen sizes with strict guards and a real backdrop. Evidence stays outside the repository.
 
 [Session]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Session.lua
 [Movers]: https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EUI_UnlockMode_Movers.lua

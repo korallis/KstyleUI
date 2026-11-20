@@ -245,6 +245,34 @@ function Pages.ElementItems(element, page, level)
 	end
 	local width, height = RootSize()
 	local minAlpha = window and OWN_MIN_ALPHA or 0
+	local function link(field)
+		return function()
+			local settings = ElementSettings(key)
+			return settings and settings.link and settings.link[field]
+		end, function(value)
+			local settings = ElementSettings(key)
+			local changed = Model.Copy(settings and settings.link or {})
+			changed[field] = value ~= "" and value ~= 0 and value or nil
+			set("link")(next(changed) and changed or nil)
+		end
+	end
+	local function others(first)
+		return function()
+			local choices = { { value = "", label = first } }
+			for _, target in ipairs(Pages.Elements()) do
+				if target.key ~= key then choices[#choices + 1] = { value = target.key, label = target.label or target.key } end
+			end
+			return choices
+		end
+	end
+	local function linkRow(item, field, fallback)
+		local read, put = link(field)
+		item.get, item.set = function() local v = read(); if v == nil then return fallback end; return v end, put
+		return add(item)
+	end
+	local function pointed()
+		return link("point")() ~= nil
+	end
 	add({ kind = "header", level = level, label = element.label or opts.label or key })
 	if not window and has("shown") then
 		add({
@@ -266,9 +294,19 @@ function Pages.ElementItems(element, page, level)
 			end, get = get("attachTo", ""), set = set("attachTo"),
 		})
 		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."],
-			options = LayoutFn("SideOptions"), get = get("side", "above"), set = set("side") })
+			options = LayoutFn("SideOptions"), get = get("side", "above"), set = set("side"), disableWhen = pointed })
 		add({ kind = "slider", label = L["Offset"], help = L["The gap from the attached element, in interface units."],
-			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset") })
+			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset"), disableWhen = pointed })
+		local points = { { value = "", label = L["Use Side"] } }
+		for _, anchor in ipairs(Choices("ANCHOR_OPTIONS", ANCHORS)) do points[#points + 1] = anchor end
+		linkRow({ kind = "dropdown", label = L["Point on this element"], options = points,
+			help = L["Joins this point to a point on the other element instead of using Side."] }, "point", "")
+		linkRow({ kind = "dropdown", label = L["Point on the other element"], options = Choices("ANCHOR_OPTIONS", ANCHORS),
+			help = L["The point on the attached element that this element joins."], disableWhen = function() return not pointed() end }, "target", "CENTER")
+		linkRow({ kind = "slider", label = L["Attached X offset"], min = -width, max = width, step = 1, format = Whole,
+			help = L["Moves an attached element left or right of where it joins."] }, "x", 0)
+		linkRow({ kind = "slider", label = L["Attached Y offset"], min = -height, max = height, step = 1, format = Whole,
+			help = L["Moves an attached element down or up from where it joins."] }, "y", 0)
 		if opts.resizable then
 			add({ kind = "toggle", label = L["Match width"], help = L["Uses the other element's width within this element's size limits."],
 				get = get("matchWidth", false), set = set("matchWidth") })
@@ -280,6 +318,10 @@ function Pages.ElementItems(element, page, level)
 			add({ kind = "slider", label = L["Extra height"], min = -height, max = height, step = 1,
 				help = L["Adds interface units to the matched height; zero matches exactly."],
 				get = get("extraHeight", 0), set = set("extraHeight"), disableWhen = function() return not get("matchHeight", false)() end })
+			linkRow({ kind = "dropdown", label = L["Match width of"], options = others(L["The attached element"]),
+				help = L["Takes the width from this element, attached or not."], disableWhen = function() return not get("matchWidth", false)() end }, "width", "")
+			linkRow({ kind = "dropdown", label = L["Match height of"], options = others(L["The attached element"]),
+				help = L["Takes the height from this element, attached or not."], disableWhen = function() return not get("matchHeight", false)() end }, "height", "")
 		end
 	end
 	if has("anchor") then
@@ -287,6 +329,17 @@ function Pages.ElementItems(element, page, level)
 			kind = "dropdown", label = L["Anchor"], help = L["The point of the screen the element is placed from."], options = Choices("ANCHOR_OPTIONS", ANCHORS),
 			get = get("anchor", FALLBACK.anchor), set = set("anchor"),
 		})
+	end
+	if has("x") and not window then
+		local snaps = others(L["Follow Snap while dragging"])
+		linkRow({ kind = "dropdown", label = L["Snap"], help = L["Snap this element to everything, nothing or one element while dragging."],
+			options = function()
+				local choices = snaps()
+				table.insert(choices, 2, { value = "none", label = L["Never"] })
+				table.insert(choices, 3, { value = "all", label = L["Always"] })
+				for i = 4, #choices do choices[i].label = format(L["Only to %s"], choices[i].label) end
+				return choices
+			end }, "snap", "")
 	end
 	if has("x") then
 		add({
@@ -422,8 +475,32 @@ local function GeneralItems()
 			return value
 		end, function(value)
 			K.Store.Account()[key] = value
-			if apply then K.Appearance.ApplyGameText() end
+			if apply == true then K.Appearance.ApplyGameText() elseif apply then apply() end
 			ns.Changed()
+		end
+	end
+	for i, item in ipairs(items) do
+		if item.module == "Appearance" and item.key == "paletteDarken" then
+			local function confirm(text, run)
+				K.Widgets.Confirm({ title = L["Class and power colours"], text = text, acceptLabel = L["Apply"], onAccept = function() run(); ns.Changed() end })
+			end
+			table.insert(items, i + 1, { kind = "button", page = "General", label = L["Use these colours in every profile"],
+				help = L["Copies these class and power colours to all your other profiles."], buttons = { { label = L["Apply"], onClick = function()
+					confirm(L["Copy these class and power colours to every other profile?"], function() K.Appearance.CopyPalette(K.Store.ProfileName()) end)
+				end } } })
+			table.insert(items, i + 2, { kind = "dropdown", page = "General", label = L["Copy colours from"],
+				help = L["Takes the class and power colours from another profile."], get = function() return "" end,
+				options = function()
+					local out = { { value = "", label = L["Choose a profile"] } }
+					for _, name in ipairs(K.Store.ListProfiles()) do
+						if name ~= K.Store.ProfileName() then out[#out + 1] = { value = name, label = name } end
+					end
+					return out
+				end, set = function(name)
+					if name == "" then return end
+					confirm(format(L["Copy the class and power colours from %s?"], name), function() K.Appearance.CopyPalette(name, K.Store.ProfileName()) end)
+				end })
+			break
 		end
 	end
 	local function add(item, key, default, apply)
@@ -436,9 +513,19 @@ local function GeneralItems()
 	add({ kind = "slider", label = L["Game text size"], min = 0.8, max = 1.5, step = 0.05, percent = true, defer = true,
 		help = L["Makes Blizzard's own text larger or smaller; 100 percent keeps the game's sizes."] }, "gameTextScale", 1, true)
 	add({ label = L["Use your number font for combat text"], help = L["Damage and healing numbers in the world use your number font after relogging."] }, "combatFont", false, true)
+	add({ label = L["Use your names font for names in the world"], help = L["Names over characters use the Names font after relogging; other game text keeps its font."] }, "nameFont", false, true)
+	add({ kind = "slider", label = L["Combat text size"], min = 0.8, max = 1.5, step = 0.05, format = Percent, defer = true,
+		help = L["Makes the game's combat text beside your character larger or smaller."] }, "combatTextScale", 1, true)
 	add({ kind = "header", level = 1, label = L["Window conveniences"] })
 	add({ label = L["Search current page only"], help = L["Searches this page only. Off searches every settings page."] }, "optionsSearchPage", false)
-	add({ label = L["List page sections in the rail"], help = L["Shows the open page's sections under it. Off lists the pages only."] }, "optionsRailSections", true)
+	add({ label = L["List page sections in the rail"], help = L["Shows the open page's sections; right-click a page to fold them. Off lists pages only."] }, "optionsRailSections", true)
+	add({ label = L["Remember search picks"], help = L["Settings you change from search results are listed first in later searches."] }, "optionsSearchMemory", false)
+	add({ kind = "button", label = L["Clear search picks"], help = L["Forgets the settings remembered from your searches."],
+		buttons = { { label = L["Clear"], onClick = function() K.Store.Account().optionsSearchPicks = nil; ns.Changed() end } } })
+	add({ label = L["Double-click the header to fold"], help = L["Double-click the window's header to fold it to its header; again to open it."] }, "optionsFold", false)
+	add({ kind = "header", level = 1, label = L["Game menu"] })
+	add({ label = L["KstyleUI settings button"], help = L["Adds a button under the game menu that opens these settings."] }, "gameMenuOptions", false, function() K.OptionsEntry.GameMenu() end)
+	add({ label = L["Layout Mode button"], help = L["Adds a button under the game menu that opens Layout Mode."] }, "gameMenuLayout", false, function() K.OptionsEntry.GameMenu() end)
 	for _, element in ipairs(Pages.Elements(true)) do
 		if element.key == Pages.WINDOW_KEY then
 			element.label = L["Window size and opacity"]
@@ -461,7 +548,10 @@ end
 local function ResetGeneral()
 	local account = K.Store.Account()
 	account.optionsSearchPage, account.optionsRailSections, account.gameFont, account.gameTextScale, account.combatFont = nil, nil, nil, nil, nil
+	account.nameFont, account.combatTextScale, account.optionsSearchMemory, account.optionsFold = nil, nil, nil, nil
+	account.gameMenuOptions, account.gameMenuLayout = nil, nil
 	K.Appearance.ApplyGameText()
+	K.OptionsEntry.GameMenu()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
 		Model.ResetSchema(section, K.Options.Get(section))
 	end
@@ -479,6 +569,10 @@ local function ElementsItems()
 		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
 		get = function() return K.Store.Account().moverOptions ~= false end,
 		set = function(value) K.Store.Account().moverOptions = value; ns.Changed() end }
+	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Light the grid around the pointer"],
+		help = L["While you drag, grid lines near the pointer brighten. Off keeps the grid even."],
+		get = function() return K.Store.Account().layoutGridLight == true end,
+		set = function(value) K.Store.Account().layoutGridLight = value or nil; ns.Changed() end }
 	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Fade the toolbar until pointed at"],
 		help = L["The Layout Mode toolbar rests at 25 percent until pointed at; hold Shift to hide it."],
 		get = function() return K.Store.Account().layoutToolbarHover == true end,
@@ -662,8 +756,12 @@ local function SelectLater(handle)
 	end
 end
 
+local function Extras()
+	return { specs = Pages.shareSpecs == true, editMode = Pages.shareEditMode == true }
+end
+
 function Pages.ExportProfile()
-	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false)
+	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false, Extras())
 	if not text then
 		Notify(L["Export failed"], tostring(why))
 		return nil
@@ -689,8 +787,13 @@ function Pages.ImportProfile(text, name)
 end
 
 function Pages.ReviewImport(text)
+	if type(text) == "string" and text:match("^%s*KSA1:") then
+		K.Widgets.Confirm({ title = L["Import profile"], text = L["Add every profile in this string and its character choices? Your other profiles stay."],
+			acceptLabel = L["Import"], onAccept = function() Report(K.Profiles.ImportAccount(text:match("^%s*(.-)%s*$"))) end })
+		return true
+	end
 	if not K.Store.Module("ProfileTools").review then return Pages.ImportProfile(text) end
-	local preview, why = K.Profiles.Preview(text, ShareScope(), Pages.includeLayout ~= false)
+	local preview, why = K.Profiles.Preview(text, ShareScope(), Pages.includeLayout ~= false, Extras())
 	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
 	local labels = {}
@@ -784,6 +887,18 @@ local function ProfileItems()
 			end,
 		} },
 	})
+	add({ kind = "dropdown", label = L["New profile from a preset"], help = L["Creates a profile from a role and HUD style preset, then switches to it."],
+		options = function()
+			local choices = K.Profiles.Presets()
+			table.insert(choices, 1, { value = NONE, label = L["Choose a preset."] })
+			return choices
+		end, get = function() return NONE end,
+		set = function(preset)
+			if preset == NONE then return end
+			local label = preset
+			for _, choice in ipairs(K.Profiles.Presets()) do if choice.value == preset then label = choice.label end end
+			AskName(L["New profile"], L["Name the new profile."], label, function(name) Report(K.Profiles.FromPreset(preset, name)) end)
+		end })
 	add({
 		kind = "dropdown", label = L["Copy from"], help = L["Copies another profile's settings and layout into this one."],
 		options = OtherProfiles(L["Choose a profile"]),
@@ -881,6 +996,10 @@ local function ProfileItems()
 	add({ kind = "toggle", label = L["Include layout"], help = L["Share element positions and saved layouts with the profile. Off shares settings only."],
 		get = function() return Pages.includeLayout ~= false end, set = function(value) Pages.includeLayout = value end,
 		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" and Pages.shareScope ~= "modules" end })
+	add({ kind = "toggle", label = L["Include specialization assignments"], help = L["Shares which specializations use this profile; imports assign them again."],
+		get = function() return Pages.shareSpecs == true end, set = function(value) Pages.shareSpecs = value end })
+	add({ kind = "toggle", label = L["Include Edit Mode layout"], help = L["Shares your active Edit Mode layout; imports add it after combat and switch to it."],
+		get = function() return Pages.shareEditMode == true end, set = function(value) Pages.shareEditMode = value end })
 	end
 	if K.Store.Module("ProfileTools").backups then
 	add({ kind = "button", label = L["Restore backup"], help = K.Store.Account().restoreProfile or L["No backup is available."],
@@ -890,6 +1009,13 @@ local function ProfileItems()
 		kind = "button", label = L["Export"], help = L["Shows this profile as a string you can copy and share."],
 		buttons = { { label = L["Export"], onClick = Pages.ExportProfile } },
 	})
+	add({ kind = "button", label = L["Export every profile"], help = L["Shows all your profiles and character choices as one string to copy."],
+		buttons = { { label = L["Export"], onClick = function()
+			local text, why = K.Profiles.ExportAccount()
+			if not text then return Notify(L["Export failed"], tostring(why)) end
+			SelectLater(K.Widgets.Popup({ title = L["Export every profile"], text = L["Press Ctrl+C to copy this string, then share it."],
+				editBox = { text = text }, buttons = { { label = L["Close"], primary = true } } }))
+		end } } })
 	add({
 		kind = "button", label = L["Import"], help = L["Adds a profile from a string, then switches this character to it."],
 		buttons = { {
@@ -912,6 +1038,17 @@ local function ProfileItems()
 			end,
 		} },
 	})
+	add({ kind = "header", level = 1, label = L["Profile hotkeys"] })
+	add({ kind = "note", label = L["Bind each hotkey under KstyleUI in the game's Key Bindings; it switches after combat."] })
+	for i = 1, K.Profiles.HOTKEYS do
+		local binding = type(GetBindingKey) == "function" and GetBindingKey("CLICK KstyleUI_Profile" .. i .. ":LeftButton")
+		add({ kind = "dropdown", label = format(L["Switch to profile hotkey %d"], i), help = type(binding) == "string" and binding or L["Not bound"],
+			options = function()
+				local choices = AllProfiles()
+				table.insert(choices, 1, { value = NONE, label = L["None"] })
+				return choices
+			end, get = function() return K.Profiles.Hotkey(i) end, set = function(name) K.Profiles.SetHotkey(i, name); ns.Changed() end })
+	end
 	add({ kind = "header", level = 1, label = L["Characters"] })
 	local characters = store.Characters()
 	local keys = {}
@@ -950,6 +1087,30 @@ local function Version()
 		return L["development build"]
 	end
 	return version
+end
+
+local cpuTicker
+function Pages.Cpu(metric)
+	local api = C_AddOnProfiler
+	if type(api) ~= "table" or type(api.GetAddOnMetric) ~= "function" or type(api.IsEnabled) == "function" and api.IsEnabled() ~= true then
+		return L["The game's addon profiler is off, so there is no CPU readout."]
+	end
+	local total = 0
+	for _, name in ipairs(K.Modules.List()) do
+		local ok, value = pcall(api.GetAddOnMetric, "KstyleUI_" .. name, metric)
+		if ok and type(value) == "number" and not K.Widgets.IsSecret(value) then total = total + value end
+	end
+	local ok, value = pcall(api.GetAddOnMetric, "KstyleUI", metric)
+	total = total + (ok and type(value) == "number" and not K.Widgets.IsSecret(value) and value or 0)
+	if not cpuTicker and C_Timer and C_Timer.NewTicker then
+		cpuTicker = C_Timer.NewTicker(1, function()
+			local win = ns.Window.Frame()
+			if win and win:IsShown() and ns.Window.State().page == "About" and K.Store.Account().optionsCpuMetric then return ns.Changed() end
+			cpuTicker:Cancel()
+			cpuTicker = nil
+		end)
+	end
+	return format(L["KstyleUI: %.2f ms"], total)
 end
 
 local function AboutItems()
@@ -996,6 +1157,13 @@ local function AboutItems()
 				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } }))
 		end } },
 	})
+	local metrics = { { value = "", label = L["Off"] }, { value = 0, label = L["Session average"] }, { value = 1, label = L["Recent average"] },
+		{ value = 2, label = L["Encounter average"] }, { value = 3, label = L["Last frame"] }, { value = 4, label = L["Peak"] } }
+	add({ kind = "dropdown", label = L["CPU readout"], help = L["Shows how long KstyleUI takes each frame, refreshed while this page is open."], options = metrics,
+		get = function() return K.Store.Account().optionsCpuMetric or "" end,
+		set = function(value) K.Store.Account().optionsCpuMetric = value ~= "" and value or nil; ns.Changed() end })
+	local metric = K.Store.Account().optionsCpuMetric
+	if metric then add({ kind = "note", label = Pages.Cpu(metric) }) end
 	add({ kind = "header", level = 1, label = L["Credits"] })
 	add({ kind = "note", label = L["Fonts: Source Sans 3 and Inter, under the SIL Open Font Licence."] })
 	return items

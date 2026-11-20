@@ -203,7 +203,7 @@ function Fx.UpdateCap()
 	local ring = slab.RING or hub:GetWidth()
 	Widgets.Size(frame.halo, ring * CAP_HALO, ring * CAP_HALO)
 	local _, class = UnitClass("player")
-	local c = not IsSecret(class) and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+	local c = not IsSecret(class) and (K.Theme.Palette(class) or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
 	local r, g, b = Color("steelLit", "textEmphasis")
 	if c then
 		r, g, b = c.r, c.g, c.b

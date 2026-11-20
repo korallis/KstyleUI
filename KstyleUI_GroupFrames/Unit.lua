@@ -299,7 +299,7 @@ local function PowerColor(f)
 		return
 	end
 	local _, token = UnitPowerType(unit)
-	local color = not IsSecret(token) and type(PowerBarColor) == "table" and type(token) == "string" and PowerBarColor[token]
+	local color = not IsSecret(token) and type(token) == "string" and (Theme.Palette(token) or type(PowerBarColor) == "table" and PowerBarColor[token])
 	if type(color) == "table" and type(color.r) == "number" then
 		f.power:SetBarColor(color.r, color.g, color.b)
 	else

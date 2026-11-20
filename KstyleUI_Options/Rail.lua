@@ -135,12 +135,15 @@ local function CreateRow(list)
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
 	row.Paint = Paint
-	row.onClick = function(self)
+	row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	row.onClick = function(self, mouse)
 		local entry = self.entry
 		if not entry then
 			return
 		end
-		if IsSection(entry) then
+		if mouse == "RightButton" then
+			if not IsSection(entry) and self.rail.onFold then K.Call(self.rail.onFold, entry.id) end
+		elseif IsSection(entry) then
 			if self.rail.onSection then
 				K.Call(self.rail.onSection, entry)
 			end
@@ -195,7 +198,7 @@ local function PaintAll(self)
 	end
 end
 
-function Rail.Create(parent, onSelect, onSection)
+function Rail.Create(parent, onSelect, onSection, onFold)
 	local rail = Widgets.ScrollList(parent, {
 		rowHeight = Rail.ROW_HEIGHT,
 		heightOf = HeightOf,
@@ -206,6 +209,7 @@ function Rail.Create(parent, onSelect, onSection)
 	rail.gauge:Hide()
 	rail.onSelect = onSelect
 	rail.onSection = onSection
+	rail.onFold = onFold
 	rail.SetPages = function(self, pages, sections, keepOffset)
 		self.pages = pages
 		self:SetData(Rail.Entries(pages, self.selected, sections), keepOffset)

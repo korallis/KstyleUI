@@ -1,6 +1,7 @@
--- Profiles.lua: scoped sharing, import previews and named recovery profiles before destructive profile operations.
+-- Profiles.lua: scoped sharing, import previews, named recovery profiles before destructive profile operations, account sharing, presets and profile hotkeys.
 local _, K = ...
 local Store, Codec, L = K.Store, K.Codec, K.L
+local format = string.format
 local Profiles = {}
 K.Profiles = Profiles
 Store.RegisterDefaults("ProfileTools", { review = true, backups = true, scaleWarning = true })
@@ -85,14 +86,50 @@ function Profiles.DeleteLayout(name)
 	return true
 end
 
-function Profiles.Export(scope, includeLayout)
+local function EditModeLayouts()
+	local api, manager = C_EditMode, rawget(_G, "EditModePresetLayoutManager")
+	if not (type(api) == "table" and type(api.GetLayouts) == "function" and type(manager) == "table" and type(manager.GetCopyOfPresetLayouts) == "function") then return end
+	local ok, info = pcall(api.GetLayouts)
+	local copied, all = pcall(manager.GetCopyOfPresetLayouts, manager)
+	if not (ok and copied and type(info) == "table" and type(info.layouts) == "table" and type(all) == "table") then return end
+	local presets = #all
+	for _, layout in ipairs(info.layouts) do all[#all + 1] = layout end
+	return all, presets, type(info.activeLayout) == "number" and info.activeLayout or 1
+end
+
+local function EditModeChunks()
+	local all, presets, active = EditModeLayouts()
+	local layout = all and active > presets and all[active]
+	if not layout or type(C_EditMode.ConvertLayoutInfoToString) ~= "function" then return end
+	local ok, text = pcall(C_EditMode.ConvertLayoutInfoToString, layout)
+	if not ok or type(text) ~= "string" or text == "" then return end
+	local chunks = {}
+	for i = 1, #text, 1000 do chunks[#chunks + 1] = text:sub(i, i + 999) end
+	return chunks
+end
+
+local function SpecKeys()
+	local config = (Store.Account().specializationProfiles or {})[Store.CharacterKey() or ""]
+	local keys = {}
+	for key, name in pairs(type(config) == "table" and type(config.profiles) == "table" and config.profiles or {}) do
+		if name == Store.ProfileName() and type(key) == "string" then keys[#keys + 1] = key end
+	end
+	table.sort(keys)
+	return keys[1] and keys or nil
+end
+
+function Profiles.Export(scope, includeLayout, extras)
 	local text, why = Store.Export()
 	if not text or not Store.Module("ProfileTools").review then return text, why end
 	scope = scope or "everything"
-	if scope == "everything" and includeLayout ~= false then return text, why end
-	if scope == "everything" then scope = "settings" end
+	extras = extras or {}
+	if scope == "everything" and includeLayout ~= false and not (extras.specs or extras.editMode) then return text, why end
 	local payload, err = Store.Decode(text)
 	if not payload then return nil, err end
+	payload.specs = extras.specs and SpecKeys() or nil
+	payload.editMode = extras.editMode and EditModeChunks() or nil
+	if scope == "everything" and includeLayout ~= false then return Encode(payload) end
+	if scope == "everything" then scope = "settings" end
 	local selected = Selection(scope)
 	if type(scope) == "table" then
 		if not selected then return nil, L["Choose at least one module to share."] end
@@ -135,9 +172,11 @@ local function Merge(base, values)
 	return out
 end
 
-function Profiles.Preview(text, scope, includeLayout)
+function Profiles.Preview(text, scope, includeLayout, extras)
 	local payload, why, sharedScope, sharedLayout = Decode(text)
 	if not payload then return nil, why end
+	extras = extras or {}
+	local specs, editMode = extras.specs and payload.specs, extras.editMode and payload.editMode
 	scope = scope or "everything"
 	if sharedScope == "modules" then
 		if scope == "everything" then
@@ -179,8 +218,10 @@ function Profiles.Preview(text, scope, includeLayout)
 	else
 		payload.namedLayouts = nil
 	end
+	if specs then changes[#changes + 1] = L["Specializations"] end
+	if editMode then changes[#changes + 1] = L["Edit Mode"] end
 	table.sort(changes)
-	payload.settings, payload.layout = settings, layout
+	payload.settings, payload.layout, payload.specs, payload.editMode = settings, layout, specs or nil, editMode or nil
 	local encoded = Encode(payload)
 	local valid, err = Store.Decode(encoded)
 	if not valid then return nil, err end
@@ -191,15 +232,134 @@ function Profiles.Preview(text, scope, includeLayout)
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end
 
+local function ImportEditMode(chunks, name)
+	K.Combat.Queue(function()
+		local all, _, active = EditModeLayouts()
+		local api, types = C_EditMode, Enum and Enum.EditModeLayoutType
+		if not (all and types and type(api.ConvertStringToLayoutInfo) == "function" and type(api.SaveLayouts) == "function" and type(api.SetActiveLayout) == "function") then
+			return K.Print(L["Edit Mode did not take the shared layout."])
+		end
+		local ok, layout = pcall(api.ConvertStringToLayoutInfo, table.concat(chunks))
+		if not ok or type(layout) ~= "table" then return K.Print(L["Edit Mode did not take the shared layout."]) end
+		if Store.Module("ProfileTools").backups then
+			Store.Account().editModeBackup = { name = L["Before import"], profile = Store.Account().restoreProfile, layouts = Copy(all), activeLayout = active }
+		end
+		layout.layoutName, layout.layoutType = ("KstyleUI " .. name):sub(1, 32), types.Account
+		all[#all + 1] = layout
+		if not pcall(api.SaveLayouts, { layouts = all, activeLayout = #all }) then return K.Print(L["Edit Mode did not take the shared layout."]) end
+		pcall(api.SetActiveLayout, #all)
+	end)
+end
+
+local function ApplyExtras(payload, target)
+	for _, key in ipairs(payload.specs or {}) do K.Specialization.Assign(key, target) end
+	if payload.editMode then ImportEditMode(payload.editMode, target) end
+end
+
 local import, reset = Store.Import, Store.ResetProfile
 function Store.Import(text, name)
-	if not Store.IsLoaded() or not Store.Module("ProfileTools").backups then return import(text, name) end
+	if not Store.IsLoaded() then return import(text, name) end
 	local payload, why = Store.Decode(text)
 	if not payload then return false, why end
-	local ok, err = Profiles.Backup(L["Before import"])
-	if not ok then return false, err end
-	return import(text, name)
+	if Store.Module("ProfileTools").backups then
+		local ok, err = Profiles.Backup(L["Before import"])
+		if not ok then return false, err end
+	end
+	local ok, target = import(text, name)
+	if ok then ApplyExtras(payload, target) end
+	return ok, target
 end
+
+function Profiles.ExportAccount()
+	local out = { profiles = {}, characters = Store.Characters() }
+	for _, name in ipairs(Store.ListProfiles()) do
+		local text, why = Store.Export(name)
+		if not text then return nil, why end
+		out.profiles[name] = text
+	end
+	return "KSA1:" .. Codec.EncodeBase64(Codec.Serialize(out))
+end
+
+function Profiles.ImportAccount(text)
+	if not Store.IsLoaded() then return false, L["KstyleUI has not loaded its saved settings yet."] end
+	local raw = type(text) == "string" and #text <= 4194304 and text:sub(1, 5) == "KSA1:" and Codec.DecodeBase64((text:sub(6):gsub("%s+", "")))
+	local data = raw and Codec.Deserialize(raw)
+	if type(data) ~= "table" or type(data.profiles) ~= "table" or type(data.characters or {}) ~= "table" then return false, L["This account string is not valid."] end
+	local payloads = {}
+	for name, profile in pairs(data.profiles) do
+		local payload, why = Store.Decode(profile)
+		if type(name) ~= "string" or not payload then return false, why or L["This account string is not valid."] end
+		payloads[name] = payload
+	end
+	if Store.Module("ProfileTools").backups then Profiles.Backup(L["Before import"]) end
+	local names, count = {}, 0
+	for name, payload in pairs(payloads) do
+		names[name], count = Store.AddProfile(payload, payload.name), count + 1
+	end
+	local characters = Store.Data().characters
+	for key, name in pairs(data.characters or {}) do
+		if type(key) == "string" and #key <= 64 and not key:find("[%c|]") and names[name] then characters[key] = names[name] end
+	end
+	local mine = names[(data.characters or {})[Store.CharacterKey() or ""] or ""]
+	if mine then Store.SetProfile(mine) end
+	return true, count
+end
+
+local STYLE_LABELS = { frames = L["Frames"], orbs = L["Orbs"], medallions = L["Medallions"] }
+function Profiles.Presets()
+	local out, layouts = {}, K.Setup and K.Setup.Layouts
+	for _, layout in ipairs(layouts and layouts.Names() or {}) do
+		for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+			if K.HudStyle.Offered(style) then
+				out[#out + 1] = { value = layout .. ":" .. style, label = format("%s, %s", layouts.Label(layout) or layout, STYLE_LABELS[style]) }
+			end
+		end
+	end
+	return out
+end
+
+function Profiles.FromPreset(preset, name)
+	local layout, style = tostring(preset):match("^(%w+):(%a+)$")
+	local setup = K.Setup
+	if not (layout and setup and setup.Layouts.Get(layout) and K.HudStyle.Offered(style)) then return false, L["Choose a preset."] end
+	local ok, result = Store.CreateProfile(name)
+	if not ok then return false, result end
+	Store.SetProfile(result)
+	local choice = setup.NewChoice(true)
+	choice.layout, choice.hudStyle = layout, style
+	return setup.Apply(choice), result
+end
+
+Profiles.HOTKEYS = 5
+_G["BINDING_NAME_CLICK KstyleUI_Profile1:LeftButton"] = format(L["Switch to profile hotkey %d"], 1)
+_G["BINDING_NAME_CLICK KstyleUI_Profile2:LeftButton"] = format(L["Switch to profile hotkey %d"], 2)
+_G["BINDING_NAME_CLICK KstyleUI_Profile3:LeftButton"] = format(L["Switch to profile hotkey %d"], 3)
+_G["BINDING_NAME_CLICK KstyleUI_Profile4:LeftButton"] = format(L["Switch to profile hotkey %d"], 4)
+_G["BINDING_NAME_CLICK KstyleUI_Profile5:LeftButton"] = format(L["Switch to profile hotkey %d"], 5)
+
+local function HotkeyButton(i)
+	local name = "KstyleUI_Profile" .. i
+	if _G[name] or type(CreateFrame) ~= "function" then return end
+	CreateFrame("Button", name, UIParent):SetScript("OnClick", function()
+		local target = (Store.Account().profileKeys or {})[i]
+		if target then K.Combat.Queue(function() Store.SetProfile(target) end) end
+	end)
+end
+
+function Profiles.Hotkey(i)
+	return Store.IsLoaded() and (Store.Account().profileKeys or {})[i] or ""
+end
+
+function Profiles.SetHotkey(i, name)
+	local keys = Store.Account().profileKeys or {}
+	keys[i] = name ~= "" and name or nil
+	Store.Account().profileKeys = next(keys) and keys or nil
+	if keys[i] then HotkeyButton(i) end
+end
+
+K.Events.Register("ProfileKeys", "PLAYER_LOGIN", function()
+	for i in pairs(Store.IsLoaded() and Store.Account().profileKeys or {}) do HotkeyButton(i) end
+end)
 
 function Store.ResetProfile(name)
 	if not Store.IsLoaded() or not Store.Module("ProfileTools").backups then return reset(name) end

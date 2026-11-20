@@ -162,10 +162,10 @@ local function PowerTypeColor(unit, column)
 		token = own
 	end
 	local colors = PowerBarColor
-	if column and not IsSecret(token) and token == "MANA" then
+	if column and not IsSecret(token) and token == "MANA" and not Theme.Palette(token) then
 		return Tokens.Color("hudMana")
 	end
-	local c = type(token) == "string" and not IsSecret(token) and colors and colors[token]
+	local c = type(token) == "string" and not IsSecret(token) and (Theme.Palette(token) or colors and colors[token])
 	if type(c) == "table" and type(c.r) == "number" then
 		return Theme.Brighten(c.r, c.g, c.b)
 	end

@@ -149,7 +149,7 @@ local function ManaColor()
 	elseif source == "class" then
 		return Theme.Accent()
 	end
-	local c = PowerBarColor and PowerBarColor.MANA
+	local c = Theme.Palette("MANA") or PowerBarColor and PowerBarColor.MANA
 	if type(c) == "table" and type(c.r) == "number" then
 		return Theme.Brighten(c.r, c.g, c.b)
 	end
