@@ -1,6 +1,7 @@
 -- test-colorvision-health.lua: hostile, neutral and friendly health fills on nameplates and unit frames follow the colour-vision palette, and Standard keeps the kit colours.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
+local G = dofile("Tools/regression/group_env.lua")
 
 local PALETTE = {
 	redGreen = { hostile = "visionRGDanger", neutral = "visionRGWarning", friendly = "visionRGCalm" },
@@ -27,7 +28,30 @@ for _, mode in ipairs({ "standard", "redGreen", "blueYellow" }) do
 		local kit = { hostile = "hostile", neutral = "neutral", friendly = "friendly" }
 		same(K, kit[unit[1]], r, g, b, mode .. " " .. unit[1] .. " Theme.ReactionColor (reputation bar, text, cooldowns): keep colour vision to health fills")
 	end
+	for _, key in ipairs({ "types.boss", "types.neutral", "types.normal" }) do K.Options.Write("Nameplates", key, true) end
+	for i, unit in ipairs({ { "boss", "worldboss", 2, "hostile", "hostile" }, { "neutral", "normal", 4, "neutral", "neutral" }, { "normal", "normal", 2, "hostile", "plateHostile" } }) do
+		local token = "nameplate" .. (3 + i)
+		N.Add(env, token, { name = unit[1], health = 70, maxHealth = 100, reaction = unit[3], canAttack = true, classification = unit[2] })
+		local c = ns.Plates.Get(token).colorKey
+		same(K, PALETTE[mode] and want[unit[4]] or unit[5], c.r, c.g, c.b, mode .. " " .. unit[1] .. " unit-type nameplate colour")
+	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
+
+	local genv, GK, gns = G.New()
+	genv.UnitReaction = function(unit) return unit == "party1" and 2 or 5 end
+	G.SetRoster(genv, "party", { { name = "Hostile", class = "WARRIOR" }, { name = "Friendly", class = "DRUID" } })
+	GK.Modules.Enable("GroupFrames")
+	GK.Options.Write("ColorVision", "mode", mode)
+	GK.Options.Write("GroupFrames", "health.colorSource", "reaction")
+	genv.RunTimers()
+	for i = 1, 2 do
+		local button = gns.Headers.party._attributes["child" .. i]
+		local unit = button._attributes.unit
+		local c = gns.Button.Content(button).health.colorRGBA
+		local kind = unit == "party1" and "hostile" or "friendly"
+		same(GK, PALETTE[mode] and want[kind] or kind, c[1], c[2], c[3], mode .. " " .. kind .. " group frame on reaction colour")
+	end
+	assert(#genv._errors == 0, tostring(genv._errors[1]))
 
 	local uenv, UK, uns = U.New()
 	UK.Options.Write("ColorVision", "mode", mode)
