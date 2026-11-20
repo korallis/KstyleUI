@@ -420,7 +420,7 @@ function Face:SyncPlaques()
 		return
 	end
 	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true)
-	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true or self.coordsText ~= nil and Settings.Get("coords.shown") == true)
+	plaques[2].chrome:SetShown(Settings.Get("clock.shown") == true or self.coordsText ~= nil and Settings.Get("coords.shown") == true and (not Settings.Get("coords.hover") or self.revealed))
 end
 
 function Face:SetCoords(text)

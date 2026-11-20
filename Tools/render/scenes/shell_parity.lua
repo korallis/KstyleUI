@@ -11,7 +11,7 @@ local followups = {
 	Minimap = { { "coords.hover", true } },
 	DataBars = { { "strip.itemLevelSource", "overall" }, { "strip.itemLevelDecimals", 2 } },
 	Chat = { { "inputOnTop", true }, { "editBox", "always" } },
-	Bags = { { "frameStrata", "HIGH" }, { "slotCount", "usedTotal" }, { "iconZoom", 12 } },
+	Bags = { { "slotCount", "usedTotal" }, { "iconZoom", 12 } },
 	Tooltips = { { "playerTitles", false } },
 	QoL = { { "coinIcons", true }, { "skipCinematics", true }, { "skipDelay", 5 } },
 }

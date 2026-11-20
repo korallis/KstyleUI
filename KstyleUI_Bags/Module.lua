@@ -24,11 +24,6 @@ local function Restyle()
 end
 
 local function SettingsChanged(_, key)
-	if key == "frameStrata" then
-		for _, window in ipairs({ Inventory.window or false, Bank.window or false }) do
-			if window then K.Layout.Set(window.spec.key, "strata", Settings.Get("frameStrata")) end
-		end
-	end
 	Inventory.SettingsChanged(key)
 	Bank.SettingsChanged(key)
 end

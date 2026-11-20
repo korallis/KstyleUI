@@ -17,6 +17,7 @@ local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
 local SCREEN_MARGIN = 48
 local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
+local STRATA = "MEDIUM"
 local windows = {}
 local ANCHOR_FRACTIONS = {
 	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
@@ -82,7 +83,7 @@ function Window.New(spec)
 		escape = true,
 		hidden = true,
 		movable = true,
-		strata = Settings.Get("frameStrata"),
+		strata = STRATA,
 		onMoved = function()
 			win:SavePosition()
 		end,

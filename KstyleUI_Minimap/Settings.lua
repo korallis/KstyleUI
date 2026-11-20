@@ -287,11 +287,11 @@ function Settings.Schema()
 		schema[#schema + 1] = row
 	end
 	schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
-	schema[#schema + 1] = { type = "toggle", key = "coords.hover", label = L["Coordinates only on hover"], help = L["Show coordinates only while the pointer is over the map."], showWhen = function(v) return v.coords.shown end }
 	schema[#schema + 1] = {
 		type = "toggle", key = "coords.shown", label = L["Coordinates"],
 		help = L["Shows your position on the zone map, under the zone name."],
 	}
+	schema[#schema + 1] = { type = "toggle", key = "coords.hover", label = L["Coordinates only on hover"], help = L["Show coordinates only while the pointer is over the map."], showWhen = function(v) return v.coords.shown end }
 	schema[#schema + 1] = {
 		type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
 		help = L["How many decimals the coordinates show."],

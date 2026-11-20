@@ -373,7 +373,7 @@ function ns.Preview(...)
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
 			spec = { L["Specialization"] }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { "22" },
-			location = { L["Stormwind"] }, itemLevel = { Strip.VALUES.itemLevel(s) },
+			location = { L["Stormwind"] }, itemLevel = { s.itemLevelDecimals == 0 and "58" or string.format("%." .. s.itemLevelDecimals .. "f", 58.3) },
 			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { "32%" },
 		}
 	end

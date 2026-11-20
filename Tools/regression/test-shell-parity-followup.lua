@@ -70,6 +70,13 @@ do
 	env.GetAverageItemLevel = nil
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED")
 	assert(value() == "--")
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(300, 500)
+	local preview = K.Options.Preview("DataBars")(parent)
+	assert(preview.strip.items.itemLevel.value:GetText() == "58", "the preview keeps a fixed sample without the live API")
+	write(env, K, "DataBars", "strip.itemLevelDecimals", 2)
+	preview:Refresh()
+	assert(preview.strip.items.itemLevel.value:GetText() == "58.30", "preview decimals format the fixed sample")
 	clean(env, K)
 end
 
@@ -107,18 +114,16 @@ do
 	assert(win.free:GetText():lower() == "3/4 free", tostring(win.free:GetText()))
 	local crop = B.W.LastCall(slot.icon, "SetTexCoord")
 	assert(crop[1] == 0.07 and math.abs(crop[2] - 0.93) < 1e-8, tostring(crop[1]) .. "," .. tostring(crop[2]))
-	write(env, K, "Bags", "frameStrata", "HIGH")
-	assert(win.panel:GetFrameStrata() == "HIGH")
 	assert(K.Layout.Set(win.spec.key, "strata", "LOW"))
 	win:Layout(true)
-	assert(win.panel:GetFrameStrata() == "LOW", "apply Window layer through Layout so later per-window choices survive bag refreshes")
+	assert(win.panel:GetFrameStrata() == "LOW", "Layout Strata survives bag refreshes")
 	write(env, K, "Bags", "slotCount", "usedTotal")
 	assert(win.free:GetText():lower() == "1/4 used")
 	write(env, K, "Bags", "slotCount", "free")
 	assert(win.free:GetText():lower() == "3 free")
 	write(env, K, "Bags", "iconZoom", 12)
 	assert(B.W.LastCall(slot.icon, "SetTexCoord")[1] == 0.12)
-	write(env, K, "Bags", "frameStrata", "MEDIUM")
+	assert(K.Layout.Set(win.spec.key, "strata", "MEDIUM"))
 	write(env, K, "Bags", "slotCount", "freeTotal")
 	write(env, K, "Bags", "iconZoom", 7)
 	assert(win.free:GetText():lower() == "3/4 free" and win.panel:GetFrameStrata() == "MEDIUM")
@@ -206,4 +211,4 @@ do
 	clean(env, K)
 end
 
-print("shell parity follow-up ok: ten controls apply, reverse and preserve v0.2.8 settings")
+print("shell parity follow-up ok: nine controls apply, reverse and preserve v0.2.8 settings")
