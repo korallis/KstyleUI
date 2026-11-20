@@ -5,6 +5,8 @@ import re
 import unittest
 from pathlib import Path
 
+from Tools.release.discord_post import github_notes
+
 ROOT = Path(__file__).resolve().parents[2]
 CHANGELOG = ROOT / "CHANGELOG.md"
 PKGMETA = ROOT / ".pkgmeta"
@@ -98,6 +100,19 @@ class ReleaseChangelogTests(unittest.TestCase):
         text = CHANGELOG.read_text(encoding="utf-8")
         self.assertIn("\n## How to install\n", text)
         self.assertIn("https://github.com/korallis/KstyleUI/blob/main/docs/icons.md", text)
+
+    def test_github_release_body_is_one_version_and_the_store_links(self):
+        text = CHANGELOG.read_text(encoding="utf-8")
+        links = ("**Download:** [CurseForge](https://www.curseforge.com/wow/addons/kstyleui)"
+                 " · [Wago](https://addons.wago.io/addons/kstyleui)\n")
+        for tag, start, other in (("v0.2.8.1", "A small fix release.", "The map and bars release"),
+                                  ("v0.2.8", "The map and bars release", "A small fix release.")):
+            with self.subTest(tag=tag):
+                notes = github_notes(text, tag)
+                self.assertTrue(notes.startswith(start), notes[:80])
+                self.assertTrue(notes.endswith("\n\n" + links), notes[-200:])
+                self.assertNotIn(other, notes)
+                self.assertNotRegex(notes, r"(?m)^#{1,2} ")
 
 
 if __name__ == "__main__":

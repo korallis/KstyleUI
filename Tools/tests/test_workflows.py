@@ -174,6 +174,12 @@ class WorkflowsTest(unittest.TestCase):
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
 
+    def test_release_page_shows_only_its_version_after_the_upload(self):
+        release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["release"]
+        notes = release.index('python3 Tools/release/discord_post.py --notes "$GITHUB_REF_NAME"')
+        self.assertLess(release.index("uses: BigWigsMods/packager@"), notes)
+        self.assertLess(notes, release.index('gh release edit "$GITHUB_REF_NAME" --notes-file'))
+
     def test_checks_runs_the_suite_jobs_without_dependencies_or_a_verdict(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         jobs = jobs_of(text)

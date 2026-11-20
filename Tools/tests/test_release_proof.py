@@ -59,8 +59,11 @@ class ReleaseProofTest(unittest.TestCase):
     def test_missing_proof_runs_checks(self):
         self.assertEqual(self.run_proof(lambda run: [])[:2], (0, "run=true\n"))
 
-    def test_hotfix_failure_also_refuses(self):
-        self.assertEqual(self.run_proof(lambda run: [dict(run, head_branch="hotfix/repair", conclusion="failure")])[0], 1)
+    def test_hotfix_tag_on_main_without_a_staging_run_runs_release_gates(self):
+        result, output, log = self.run_proof(lambda run: [dict(run, path=".github/workflows/release.yml",
+                                                               head_branch="v0.2.8.1", status="in_progress")])
+        self.assertEqual((result, output), (0, "run=true\n"))
+        self.assertIn("No checks.yml push run", log)
 
     def test_other_workflows_events_repositories_or_shas_cannot_prove_release(self):
         for changes in ({"path": ".github/workflows/release.yml"}, {"event": "pull_request"},
