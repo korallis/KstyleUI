@@ -5,7 +5,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -133,7 +132,7 @@ def main():
     if args.edit != bool(args.message_ids):
         parser.error("--edit requires message_ids; message_ids requires --edit")
     if args.notes:
-        sys.stdout.buffer.write(github_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag).encode())
+        print(github_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag), end="")
         return
     webhook = os.environ.get("DISCORD_RELEASE_WEBHOOK", "").strip()
     if not webhook and not args.dry_run:
