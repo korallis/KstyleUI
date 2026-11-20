@@ -17,8 +17,14 @@ end
 
 local BAR_TEXTURE = Tokens.Texture("barFlat")
 
+local function ExtraText()
+	return { font = "", size = 12, outline = "OUTLINE", colorMode = "", color = Color("textEmphasis"),
+		textFormat = "", position = "CENTER", x = 0, y = 0 }
+end
+
 Settings.defaults = {
 	preset = "lumen",
+	extra1 = ExtraText(), extra2 = ExtraText(),
 	personalResource = false,
 	offsetY = 0,
 	shrinkDistant = false,
@@ -251,6 +257,27 @@ function Settings.Schema()
 		},
 	})
 
+	for i = 1, 2 do
+		local key = "extra" .. i
+		schema[#schema + 1] = { type = "header", label = L["Extra text"] .. " " .. i }
+		K.Widgets.TextRows(schema, key, { max = TEXT_MAX, outlines = OUTLINES, tags = true })
+		local function add(row)
+			row.key = key .. "." .. row.key
+			schema[#schema + 1] = row
+		end
+
+		local points = { { value = "CENTER", label = L["Centre"] } }
+		for _, point in ipairs({
+			{ "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] },
+			{ "LEFT", L["Left"] }, { "RIGHT", L["Right"] },
+			{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
+		}) do
+			points[#points + 1] = { value = point[1], label = point[2] }
+		end
+		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = points })
+		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
+		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+	end
 	SharedTextRows(schema, "name", L["Name"])
 	schema[#schema + 1] = {
 		type = "toggle", key = "name.upper", label = L["Upper case"],
@@ -274,7 +301,7 @@ function Settings.Schema()
 		{ type = "header", label = L["Cast bar"] },
 		{ type = "toggle", key = "cast.spark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] },
 		{ type = "toggle", key = "cast.hideUnitName", label = L["Hide unit name while casting"], help = L["Hides the unit name for the duration of its cast."] },
-		{ type = "toggle", key = "cast.fullOpacity", label = L["Full opacity while casting"], help = L["Keeps casting units visible when other plates are dimmed."] },
+		{ type = "toggle", key = "cast.fullOpacity", label = L["Keep casting units at full opacity"], help = L["Keeps casting units visible when other plates are dimmed."] },
 		{ type = "toggle", key = "cast.shieldBadge", label = L["Interrupt shield"], help = L["Adds a shield beside casts you cannot interrupt. Off keeps the usual cast bar."] },
 		{
 			type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
@@ -642,6 +669,7 @@ local function Read(key)
 	end
 	local stored = Lookup(Store.Module(MODULE), key)
 	if not ns.Logic.IsSecret(stored) and stored == default then return stored end
+	if type(default) == "table" and default.textFormat then return type(stored) == "table" and stored or default end
 	if not rows then Settings.Schema() end
 	local row = rows[key]
 	if row then

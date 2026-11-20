@@ -467,6 +467,38 @@ function Style.SetMarked(f, marked)
 	end
 end
 
+local function ExtraTexts(f, k)
+	if k.extra1.textFormat == "" and k.extra2.textFormat == "" and not (f.extra1 or f.extra2) then return end
+	for i = 1, 2 do
+		local key = "extra" .. i
+		local cfg = k[key]
+		local text = f[key]
+		local on = type(cfg.textFormat) == "string" and cfg.textFormat ~= ""
+		if on then
+			if not text then
+				text = Widgets.FontString(f.text, "OVERLAY")
+				text:SetWordWrap(false)
+				f[key] = text
+			end
+			local position = cfg.position
+			local valid = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
+			if not valid[position] then position = "CENTER" end
+			local function offset(value)
+				return type(value) == "number" and value == value and math.max(-200, math.min(200, value)) or 0
+			end
+			local path = K.Theme.IsFontPath(cfg.font) and cfg.font or (Tokens.Font("number"))
+			local size = type(cfg.size) == "number" and math.max(6, math.min(32, cfg.size)) or 12
+			Widgets.ApplyFont(text, path, size * K.Theme.FontScale(), cfg.outline == "NONE" and "" or cfg.outline == "THICKOUTLINE" and "THICKOUTLINE" or "OUTLINE")
+			text:SetTextColor(Tokens.Color("textEmphasis"))
+			text:ClearAllPoints()
+			text:SetPoint(position, f, position, Widgets.Snap(f, offset(cfg.x)), Widgets.Snap(f, offset(cfg.y)))
+			text:SetWidth(Widgets.Snap(f, f.width))
+			text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
+		end
+		if text then text:SetShown(on) end
+	end
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -537,6 +569,8 @@ function Style.Apply(f, width, height)
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end
 	Style.PlaceRowEnd(f)
+	ExtraTexts(f, k)
+	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
 	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then

@@ -574,13 +574,16 @@ local function ApplyContainer(view, fan)
 	local a = view.auras
 	local container = a.container
 	local filter = {}
-	for key, value in pairs(FILTERS[Value(view, "auraFilter")] or FILTERS.mine) do
-		filter[key] = K.Options.AuraFilterString(Value(view, "auraFilters"), value)
+	local base = FILTERS[Value(view, "auraFilter")] or FILTERS.mine
+	local settings = Value(view, "auraFilters")
+	for key, value in pairs(base) do
+		filter[key] = K.Options.AuraFilterString(settings, value)
 	end
 	if fan then
-		filter = { debuffs = not Value(view, "auraFilters").onlyMine and (FILTERS[Value(view, "auraFilter")] or FILTERS.mine).debuffs == "HARMFUL" and filter.debuffs .. "|!PLAYER" or nil, buffs = filter.buffs }
+		filter.debuffs = not settings.onlyMine and base.debuffs == "HARMFUL" and filter.debuffs .. "|!PLAYER" or nil
 	end
 	local method, direction = Sort(view)
+	local capacity = Capacity(view)
 	for _, key in ipairs(GROUPS) do
 		local on = filter[key] ~= nil
 		container:SetAuraGroupEnabled(key, on)
@@ -588,7 +591,7 @@ local function ApplyContainer(view, fan)
 			container:SetAuraGroupFilterString(key, filter[key])
 		end
 		container:SetAuraGroupLayout(key, GroupLayout(view, key))
-		container:SetAuraGroupMaxFrameCount(key, Capacity(view))
+		container:SetAuraGroupMaxFrameCount(key, capacity)
 		if method ~= nil and type(container.SetAuraGroupSortMethod) == "function" then
 			container:SetAuraGroupSortMethod(key, method, direction)
 		end

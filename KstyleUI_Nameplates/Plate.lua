@@ -63,8 +63,8 @@ local TYPES = { "quest", "rare", "elite", "caster" }
 local TYPE_KEYS = { quest = "types.quest", rare = "types.rare", elite = "types.elite", caster = "types.caster" }
 local TYPE_COLOR_KEYS = { quest = "types.questColor", rare = "types.rareColor", elite = "types.eliteColor", caster = "types.casterColor" }
 local typeEnabled, typeInfo = {}, {}
-local TEXT_ELEMENTS = { "name", "healthText" }
-local TAG_EVENTS = { UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
+local TEXT_ELEMENTS = { "name", "healthText", "extra1", "extra2" }
+local TAG_EVENTS = { UNIT_LEVEL = "Level", UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
 	UNIT_ABSORB_AMOUNT_CHANGED = "Prediction", UNIT_TARGET = "Target" }
 
 local function OnTagEvent(plate, event)
@@ -284,13 +284,43 @@ function Plate:ApplyScale()
 	end
 end
 
+local function ExtraTexts(plate)
+	for i = 1, 2 do
+		local key = "extra" .. i
+		local cfg = Settings.Get(key)
+		local text = plate[key]
+		local on = type(cfg.textFormat) == "string" and cfg.textFormat ~= ""
+		if on then
+			if not text then
+				text = Widgets.FontString(plate.health, "OVERLAY")
+				text:SetWordWrap(false)
+				plate[key] = text
+			end
+			local position = cfg.position
+			local valid = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
+			if not valid[position] then position = "CENTER" end
+			local function offset(value)
+				return type(value) == "number" and value == value and math.max(-200, math.min(200, value)) or 0
+			end
+			local path = K.Theme.IsFontPath(cfg.font) and cfg.font or (Tokens.Font("number"))
+			local size = type(cfg.size) == "number" and math.max(6, math.min(32, cfg.size)) or 12
+			Widgets.ApplyFont(text, path, size * K.Theme.FontScale(), cfg.outline == "NONE" and "" or cfg.outline == "THICKOUTLINE" and "THICKOUTLINE" or "OUTLINE")
+			text:SetTextColor(Tokens.Color("textEmphasis"))
+			text:ClearAllPoints()
+			text:SetPoint(position, plate.health, position, Widgets.Snap(plate.health, offset(cfg.x)), Widgets.Snap(plate.health, offset(cfg.y)))
+			text:SetWidth(Widgets.Snap(plate.health, plate.barW))
+			text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
+		end
+		if text then text:SetShown(on) end
+	end
+end
+
 function Plate:Restyle()
 	if self.textOptions then self.healthText:SetTextColor(Tokens.Color("white")) end
 	self.nameFormat, self.healthFormat = Settings.Get("name.textFormat"), Settings.Get("healthText.textFormat")
 	self.nameEnabled, self.healthTextEnabled = Settings.Get("name.show"), Settings.Get("healthText.show")
 	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= ""
 		or Settings.Get("name.colorMode") ~= "" or Settings.Get("healthText.colorMode") ~= ""
-	self:RegisterTagEvents()
 	self:ApplyScale()
 	local state = ns.state
 	local w, h = state.width, state.height
@@ -340,6 +370,8 @@ function Plate:Restyle()
 	self.glowFrame:SetFrameLevel(math.max(0, health.under:GetFrameLevel() - 1))
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
+	ExtraTexts(self)
+	self:RegisterTagEvents()
 	self.nameOnly = nil
 	self.bracketsShown = nil
 	Each("Restyle", self)
@@ -678,7 +710,7 @@ function Plate:UpdateHealth(immediate, refreshing)
 		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
-	if self.textOptions and not refreshing then self:UpdateTags("Health") end
+	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Health") end
 end
 
 function Plate:UpdateHealthText()
@@ -726,15 +758,19 @@ function Plate:UpdateName(refreshing)
 		end
 	end
 	self:UpdateNameColor(true)
-	if self.textOptions and not refreshing then self:UpdateTags("Name") end
+	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Name") end
 end
 
 function Plate:RegisterTagEvents()
 	if self.sample then return end
+	if not (self.textOptions or self.extra1 or self.extra2) then
+		for event in pairs(TAG_EVENTS) do self:UnregisterEvent(event) end
+		return
+	end
 	for event, field in pairs(TAG_EVENTS) do
 		local needed = false
 		for _, key in ipairs(TEXT_ELEMENTS) do
-			if Settings.Get(key .. ".show") and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
+			if self[key] and (key:match("^extra") or Settings.Get(key .. ".show")) and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
 		end
 		if self.unit and needed then self:RegisterUnitEvent(event, self.unit) else self:UnregisterEvent(event) end
 	end
@@ -746,19 +782,20 @@ function Plate:PaintTags(key)
 	if sample then
 		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
 	end
-	Widgets.TagText(key == "name" and self.name or self.healthText, Settings.Get(key .. ".textFormat"), self.unit, sample)
+	Widgets.TagText(self[key], Settings.Get(key .. ".textFormat"), self.unit, sample)
 end
 
 function Plate:UpdateTags(event)
-	if not self.textOptions then return end
+	if not (self.textOptions or self.extra1 or self.extra2) then return end
 	for _, key in ipairs(TEXT_ELEMENTS) do
-		local text = key == "name" and self.name or self.healthText
-		local format = Settings.Get(key .. ".textFormat")
-		if format ~= "" and Settings.Get(key .. ".show") and (key ~= "healthText" or not self.nameOnly)
+		local text = self[key]
+		local extra = key:match("^extra")
+		local format = text and Settings.Get(key .. ".textFormat") or ""
+		if format ~= "" and (extra or Settings.Get(key .. ".show")) and (key ~= "healthText" or not self.nameOnly)
 			and (not event or Widgets.ParseText(format).events[event]) then
 			self:PaintTags(key)
 		end
-		local mode = Settings.Get(key .. ".colorMode")
+		local mode = text and Settings.Get(key .. ".colorMode") or ""
 		if mode ~= "" then
 			Widgets.TextTint(text, mode, Settings.Get(key .. ".color"), self.unit, self.sample)
 		end

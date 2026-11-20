@@ -700,8 +700,21 @@ end
 
 local TEXT_ELEMENTS = { "name", "health" }
 function Unit.TextTags(view, unit, event, sample)
-	if not view.s.textOptions then return end
+	if not (view.s.textOptions or view.extra1 or view.extra2) then return end
+	local Widgets = K.Widgets
 	event = event == "MaxHealth" and "Health" or event == "PowerType" and "Power" or event
+	if view.extra1 or view.extra2 then
+		for i = 1, 2 do
+			local key = "extra" .. i
+			local text, cfg = view[key], view.s[key]
+			if text and text:IsShown() then
+				local format = cfg.textFormat
+				if not event or Widgets.ParseText(format).events[event] then Widgets.TagText(text, format, unit, sample) end
+				Widgets.TextTint(text, cfg.colorMode, cfg.color, unit, sample)
+			end
+		end
+	end
+	if not view.s.textOptions then return end
 	for _, element in ipairs(TEXT_ELEMENTS) do
 		local style = view.s.fonts[element]
 		local text = element == "name" and view.name or view.healthText

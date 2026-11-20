@@ -361,10 +361,26 @@ local HANDLERS = {
 }
 Unit.HANDLERS = HANDLERS
 
+function Unit.TextSlots(f, event, sample)
+	local Widgets = K.Widgets
+	local k = Settings.current[f.kind]
+	for i = 1, 2 do
+		local key = "extra" .. i
+		local text, cfg = f[key], k[key]
+		if text and text:IsShown() then
+			local format = cfg.textFormat
+			if not event or Widgets.ParseText(format).events[event] then Widgets.TagText(text, format, f.unit, sample) end
+			Widgets.TextTint(text, cfg.colorMode, cfg.color, f.unit, sample)
+		end
+	end
+end
+
 function Unit.OnEvent(f, event)
 	local handler = HANDLERS[event]
+	if not handler and f.unit and (f.extra1 or f.extra2) then Unit.TextSlots(f) end
 	if handler and f.unit then
 		handler(f)
+		if f.extra1 or f.extra2 then Unit.TextSlots(f) end
 	end
 end
 
@@ -385,6 +401,7 @@ function Unit.Refresh(f)
 	ClassLine(f)
 	Range(f)
 	Target(f)
+	if f.extra1 or f.extra2 then Unit.TextSlots(f) end
 	local extra = Unit.extra
 	for i = 1, #extra do
 		extra[i](f)
@@ -401,6 +418,14 @@ function Unit.Listen(f)
 	end
 	for i = 1, #UNIT_EVENTS do
 		f:RegisterUnitEvent(UNIT_EVENTS[i], unit)
+	end
+	if f.extra1 or f.extra2 then
+		local k = Settings.current[f.kind]
+		for event, field in pairs({ UNIT_TARGET = "Target", UNIT_ABSORB_AMOUNT_CHANGED = "Prediction" }) do
+			if K.Widgets.ParseText(k.extra1.textFormat).events[field] or K.Widgets.ParseText(k.extra2.textFormat).events[field] then
+				f:RegisterUnitEvent(event, unit)
+			end
+		end
 	end
 	local more = Unit.events
 	for i = 1, #more do
@@ -518,6 +543,9 @@ local function FlushRoster()
 end
 
 function Unit.RosterChanged()
+	for _, f in ipairs(frames) do
+		if f.unit and (f.extra1 or f.extra2) then Unit.TextSlots(f, "Group") end
+	end
 	if not Unit.running then
 		return
 	end

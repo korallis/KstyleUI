@@ -957,7 +957,6 @@ local function Latency(cb, channel, startMs, endMs)
 	end
 	local vertical = cb.bar.vertical
 	local reverse = cb.bar:GetReverseFill()
-	if issecretvalue(reverse) then return end
 	local start = (reverse == true) ~= (channel == true)
 	local point = vertical and (start and "BOTTOM" or "TOP") or (start and "LEFT" or "RIGHT")
 	local share = math.min(1, ms / (endMs - startMs))

@@ -259,6 +259,11 @@ function Cast.Start(plate, channel, update)
 	if not (update and Settings.Get("cast.outcomes")) then plate.castBar:PlaySheen(false) end
 end
 
+local function RestoreName(plate)
+	plate.name:SetAlpha(1)
+	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
+end
+
 function Cast.Stop(plate, interrupted, failed)
 	if not plate.casting then
 		return
@@ -266,8 +271,7 @@ function Cast.Stop(plate, interrupted, failed)
 	local bar, cast = plate.castBar, plate.cast
 	bar:SetScript("OnUpdate", nil)
 	plate.casting, plate.castDuration, plate.castFallback = false, nil, false
-	plate.name:SetAlpha(1)
-	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
+	RestoreName(plate)
 	if interrupted then
 		plate.castInterrupted = true
 		bar:SetMinMaxValues(0, 1)
@@ -300,8 +304,7 @@ function Cast.Hide(plate)
 	plate.casting, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, false, false
 	plate.castBar:SetScript("OnUpdate", nil)
 	plate.cast:Hide()
-	plate.name:SetAlpha(1)
-	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
+	RestoreName(plate)
 end
 
 function Cast.SetInterruptible(plate, interruptible)
