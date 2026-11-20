@@ -25,6 +25,7 @@ function Preview.Build(...)
 		{ place = "frame", kind = "miss", emphasis = "none", word = "DODGE" },
 		{ place = "field", kind = "heal", emphasis = "crit", amount = 612 },
 		{ place = "frame", kind = "damage", emphasis = "none", amount = 842, school = 32 },
+		{ place = "field", kind = "power", emphasis = "none", amount = 25 },
 	}
 
 	local function Caption(frame, anchor, text)
@@ -105,6 +106,10 @@ function Preview.Build(...)
 			elapsed = 0
 			local sample = SAMPLES[nextSample]
 			nextSample = nextSample % #SAMPLES + 1
+			if sample.kind == "power" and not cfg.power then
+				sample = SAMPLES[nextSample]
+				nextSample = nextSample % #SAMPLES + 1
+			end
 			Display.Spawn(emitters[sample.place], cfg, sample.kind, sample.emphasis, sample.amount, sample.word, sample.school)
 		end)
 		frame:SetScript("OnHide", function()

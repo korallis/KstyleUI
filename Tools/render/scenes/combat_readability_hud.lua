@@ -1,4 +1,4 @@
--- combat_readability_hud.lua: real unit frames and combat text together, with a power readout, a half-health target, two target debuffs and live player/target hits.
+-- combat_readability_hud.lua: real unit frames and combat text together, with a power readout, a half-health target, two target debuffs and live player/target hits. RENDER_COMBAT_PARITY=1 turns on power gains and an 80-unit field travel, adds a power gain and samples the numbers 0.35 s into their rise.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -64,7 +64,15 @@ return Common.Run(function()
 	end
 	CT.Hit(env, "player", "WOUND", "", env.Secret(120), 1)
 	CT.Hit(env, "target", "WOUND", "CRITICAL", env.Secret(240), 1)
-	local scene = Gallery.Build(env, { time = env._time })
+	local time = env._time
+	if os.getenv("RENDER_COMBAT_PARITY") == "1" then
+		env.C_CombatText = { GetCurrentEventInfo = function() return 25, rogue and "ENERGY" or "MANA" end }
+		K.Options.Write("CombatText", "power", true)
+		K.Options.Write("CombatText", "fieldDistance", 80)
+		env.FireEvent("COMBAT_TEXT_UPDATE", "ENERGIZE")
+		time = env._now + 0.35
+	end
+	local scene = Gallery.Build(env, { time = time })
 	assert(not Common.Errors(env, K), Common.Errors(env, K))
 	return scene
 end)

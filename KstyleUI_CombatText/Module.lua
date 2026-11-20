@@ -13,6 +13,7 @@ local FRAME_CAPACITY = 64
 local WORLD_KEYS = { worldFont = true, worldFace = true }
 local BLIZZARD_KEYS = { blizzardSelf = true, blizzardTargets = true }
 local WATCHED_MODULES = { UnitFrames = true, GroupFrames = true, Nameplates = true }
+local ENERGIZE = { ENERGIZE = true, PERIODIC_ENERGIZE = true }
 
 local Module = {}
 ns.Module = Module
@@ -22,7 +23,7 @@ local NAMEPLATES = Anchors.NAMEPLATES
 
 local stats = {
 	events = 0, shown = 0, secretAmount = 0, secretEvent = 0, secretFlag = 0, secretSchool = 0,
-	secretUnit = 0, nameplate = 0,
+	secretUnit = 0, nameplate = 0, combatText = 0, power = 0,
 }
 Module.stats = stats
 
@@ -30,10 +31,28 @@ local function Log(message)
 	K.DevTest.Log(MODULE, message)
 end
 
+local OnCombatText
+
+local function WatchPower(cfg)
+	local api = C_CombatText
+	if not (cfg.power and api and type(api.GetCurrentEventInfo) == "function") then
+		K.Events.Unregister(MODULE, "COMBAT_TEXT_UPDATE")
+		return
+	end
+	K.Events.Register(MODULE, "COMBAT_TEXT_UPDATE", OnCombatText)
+	if type(api.GetActiveUnit) == "function" and type(api.SetActiveUnit) == "function" then
+		local ok, unit = pcall(api.GetActiveUnit)
+		if ok and not IsSecret(unit) and unit == nil then
+			pcall(api.SetActiveUnit, "player")
+		end
+	end
+end
+
 local function Refresh()
 	Settings.Snapshot(Settings.Values(), Module.cfg)
 	if Module.field and K.Layout and K.Layout.Update then K.Layout.Update(FIELD_KEY, {}) end
 	Anchors.Rebuild(Module.cfg)
+	WatchPower(Module.cfg)
 end
 
 local function Build()
@@ -126,6 +145,40 @@ local function OnUnitCombat(_, unit, event, flag, amount, school)
 	end
 end
 
+local function Gained(amount)
+	if IsSecret(amount) then
+		local util = C_StringUtil
+		return util ~= nil and type(util.TruncateWhenZero) == "function" and type(util.WrapString) == "function"
+	end
+	amount = tonumber(amount)
+	return amount ~= nil and amount > 0
+end
+
+function OnCombatText(_, kind)
+	stats.combatText = stats.combatText + 1
+	if IsSecret(kind) or not ENERGIZE[kind] then
+		return
+	end
+	local ok, amount = pcall(C_CombatText.GetCurrentEventInfo)
+	if not ok or not Gained(amount) then
+		return
+	end
+	if not IsSecret(amount) then
+		amount = tonumber(amount)
+	end
+	local list = Anchors.Lookup("player")
+	if not list then
+		return
+	end
+	stats.power = stats.power + 1
+	for i = 1, #list do
+		local emitter = list[i]
+		if emitter and Anchors.Ready(emitter, "player") then
+			Show(emitter, Module.cfg, "power", "none", amount)
+		end
+	end
+end
+
 local function OnRoster()
 	Anchors.Schedule()
 end
@@ -188,9 +241,9 @@ local function Check()
 	end
 	local unitFrames, groupFrames = Anchors.Counts()
 	return true, string.format(
-		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d numbers shown; numbers attach to %d unit frames, %d group frames; DAMAGE_TEXT_FONT %s",
+		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d COMBAT_TEXT_UPDATE events (%d power gains); %d numbers shown; numbers attach to %d unit frames, %d group frames; DAMAGE_TEXT_FONT %s",
 		stats.events, stats.secretAmount, stats.secretEvent, stats.secretFlag, stats.secretSchool, stats.secretUnit,
-		stats.nameplate, stats.shown, unitFrames, groupFrames, tostring(World.Current()))
+		stats.nameplate, stats.combatText, stats.power, stats.shown, unitFrames, groupFrames, tostring(World.Current()))
 end
 
 local function Enable()

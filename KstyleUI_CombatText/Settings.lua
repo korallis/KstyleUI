@@ -13,7 +13,7 @@ local DURATION_MIN, DURATION_MAX, DURATION_STEP = 0.6, 3, 0.1
 local PER_FRAME_MIN, PER_FRAME_MAX = 1, 8
 local CRIT_MIN, CRIT_MAX, CRIT_STEP = 1, 2, 0.05
 local DISTANCE_MIN, DISTANCE_MAX, DISTANCE_STEP = 8, 120, 4
-local MEDALLIONS_FADE, MEDALLIONS_RISE = 0.3, 40
+local MEDALLIONS_FADE = 0.3
 local UNIT_KEYS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss", "party", "raid", "nameplate" }
 
 local function TokenColor(name)
@@ -33,6 +33,7 @@ local defaults = {
 	damage = true,
 	heals = true,
 	misses = true,
+	power = false,
 	format = "short",
 	duration = 1.2,
 	maxPerFrame = 4,
@@ -47,7 +48,9 @@ local defaults = {
 	critColor = true,
 	critTint = TokenColor("neutral"),
 	combatColor = TokenColor("neutral"),
+	powerColor = TokenColor("rare"),
 	playerPlacement = "field",
+	fieldDistance = 48,
 	clearLanes = true,
 	calmNumbers = true,
 	framePoint = "CENTER",
@@ -73,6 +76,7 @@ local MEDALLIONS = {
 	critScale = 1.4,
 	duration = 0.9,
 	maxPerFrame = 6,
+	fieldDistance = 40,
 	damageColor = { r = 0xff / 255, g = 0xd2 / 255, b = 0x3f / 255 },
 	critTint = { r = 0xff / 255, g = 0xf1 / 255, b = 0xa8 / 255 },
 	healColor = { r = 0x62 / 255, g = 0xd5 / 255, b = 0x8d / 255 },
@@ -176,6 +180,7 @@ function Settings.Schema()
 			type = "toggle", key = "misses", label = L["Misses and absorbs"],
 			help = L["Shows words such as Dodge, Parry, Absorb and Immune."],
 		},
+		{ type = "toggle", key = "power", label = L["Power gains"], help = L["Shows the mana, rage, energy and other power you gain, with a plus sign."] },
 		{
 			type = "dropdown", key = "format", label = L["Number format"],
 			help = L["Short numbers such as 12.3K, or full numbers such as 12,345."],
@@ -218,6 +223,10 @@ function Settings.Schema()
 		},
 		{ type = "color", key = "healColor", label = L["Heals"], help = L["The colour of healing numbers."] },
 		{ type = "color", key = "missColor", label = L["Misses"], help = L["The colour of words such as Dodge and Absorb."] },
+		{
+			type = "color", key = "powerColor", label = L["Power gains"], help = L["The colour of power gains."],
+			showWhen = function(settings) return settings.power == true end,
+		},
 		{ type = "header", label = L["Critical hits"] },
 		{
 			type = "slider", key = "critScale", label = L["Critical size"],
@@ -242,6 +251,11 @@ function Settings.Schema()
 			type = "dropdown", key = "playerPlacement", label = L["Your numbers"],
 			help = L["In their own field above your character, or on your KstyleUI player frame."],
 			options = PLACEMENT_OPTIONS,
+		},
+		{
+			type = "slider", key = "fieldDistance", label = L["Travel above you"],
+			help = L["How far your numbers move in their field above your character, up to the field's height."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
 		},
 		{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
 		{
@@ -387,6 +401,8 @@ function Settings.Snapshot(values, cfg)
 	cfg.damage = Bool(values.damage, d.damage)
 	cfg.heals = Bool(values.heals, d.heals)
 	cfg.misses = Bool(values.misses, d.misses)
+	cfg.power = Bool(values.power, d.power)
+	cfg.powerR, cfg.powerG, cfg.powerB = Color(values.powerColor, d.powerColor)
 	cfg.neutral = cfg.damage or cfg.heals
 	cfg.format = Choice(values.format, FORMATS, d.format)
 	cfg.formatter = Formatter(cfg.format)
@@ -395,7 +411,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.fontPath = FontPath(values.font, medallions and Tokens.FontPath("BarlowBold") or (Tokens.Font("number")))
 	cfg.size = Number(Styled(values, "size", medallions), SIZE_MIN, SIZE_MAX, d.size)
 	cfg.fadeTime = medallions and MEDALLIONS_FADE or nil
-	cfg.rise = medallions and MEDALLIONS_RISE or nil
+	cfg.rise = Number(Styled(values, "fieldDistance", medallions), DISTANCE_MIN, DISTANCE_MAX, d.fieldDistance)
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"

@@ -20,7 +20,7 @@ K.Options.Write("CombatText", "calmNumbers", false)
 local cfg = ns.Module.cfg
 local frames = { size = cfg.size, critScale = cfg.critScale, duration = cfg.duration, maxPerFrame = cfg.maxPerFrame, fontPath = cfg.fontPath, worldFace = cfg.worldFace }
 assert(not cfg.fontPath:find("Barlow", 1, true), "Frames' numbers are not Barlow")
-assert(cfg.fadeTime == nil and cfg.rise == nil, "Frames keeps its own fade and rise")
+assert(cfg.fadeTime == nil and cfg.rise == 48, "Frames keeps its own fade and rise")
 
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
@@ -69,7 +69,7 @@ cfg = ns.Module.cfg
 for key, value in pairs(frames) do
 	assert(cfg[key] == value, "Frames gets its " .. key .. " back: " .. tostring(cfg[key]))
 end
-assert(cfg.fadeTime == nil and cfg.rise == nil, "and its own fade and rise")
+assert(cfg.fadeTime == nil and cfg.rise == 48, "and its own fade and rise")
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "no addon error")
 print("ok - test-combattext-medallions")

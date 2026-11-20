@@ -115,8 +115,21 @@ function Format.Classify(event, flag, amount)
 	return nil
 end
 
+local function SecretGain(amount)
+	local util = C_StringUtil
+	return util.WrapString(util.TruncateWhenZero(amount), "+")
+end
+
 function Format.Text(fontString, cfg, kind, amount, word)
-	if word then
+	if kind == "power" and IsSecret(amount) then
+		local ok, text = pcall(SecretGain, amount)
+		if ok then
+			fontString:SetText(text)
+		else
+			fontString:SetText("")
+		end
+		return
+	elseif word then
 		fontString:SetText(Words()[word] or word)
 		return
 	end
@@ -124,7 +137,7 @@ function Format.Text(fontString, cfg, kind, amount, word)
 	if formatter then
 		local ok, text = pcall(formatter, amount)
 		if ok then
-			if kind == "heal" then
+			if kind == "heal" or kind == "power" then
 				fontString:SetFormattedText(HEAL_FORMAT, text)
 			else
 				fontString:SetText(text)
@@ -140,6 +153,7 @@ end
 
 function Format.Color(cfg, kind, emphasis, school)
 	if kind == "combat" then return cfg.combatR, cfg.combatG, cfg.combatB end
+	if kind == "power" then return cfg.powerR, cfg.powerG, cfg.powerB end
 	if kind == "heal" then
 		return cfg.healR, cfg.healG, cfg.healB
 	elseif kind ~= "damage" then
