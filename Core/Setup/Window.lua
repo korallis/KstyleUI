@@ -427,6 +427,8 @@ local function BuildWelcome(page)
 		if branded.note:IsShown() then
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
+		panel.opts.height = max(HEIGHT, panel.opts.height + (shown and height or 0) - scroll:GetHeight())
+		Widgets.Size(panel, WIDTH, panel.opts.height)
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
 		ScrollTo(0)
 	end
