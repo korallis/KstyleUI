@@ -137,7 +137,7 @@ class DiscordPostTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 discord.main()
         payload, totals = output.getvalue().split('Character totals: ')
-        self.assertEqual(json.loads(payload)['flags'], 0)
+        self.assertEqual(json.loads(payload)['flags'], 4096)
         self.assert_valid(json.loads(payload))
         self.assertEqual(json.loads(totals), discord.character_totals(json.loads(payload)))
         opener.assert_not_called()

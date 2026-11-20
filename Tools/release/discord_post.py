@@ -78,7 +78,7 @@ def release_payload(changelog, tag, release_notes="", readme=""):
     logo = f"{raw}/Media/Logo/Logo256.png"
     embed = {"title": shorten(title, 256, sentence=False), "url": url, "color": int(gold, 16),
              "author": {"name": "KstyleUI", "url": GITHUB, "icon_url": logo},
-             "thumbnail": {"url": logo}, "description": description, "fields": fields,
+             "description": description, "fields": fields,
              "footer": {"text": "KstyleUI for WoW Forever · " + date}}
     hero = re.search(r"!\[[^\]]*\]\((?:https://raw\.githubusercontent\.com/korallis/KstyleUI/[^/]+/)?(docs/[^)]+)\)", readme)
     if hero and (ROOT / hero.group(1)).is_file():
@@ -104,15 +104,16 @@ def send(webhook, payload, message_ids=""):
     if any(not re.fullmatch(r"[0-9]+", value) for value in ids) or len(set(ids)) != len(ids):
         raise ValueError("message_ids must be distinct comma-separated Discord message IDs")
     base = urllib.parse.urlsplit(webhook)
+    headers = {"Content-Type": "application/json", "User-Agent": "KstyleUI-release"}
     endpoint = urllib.parse.urlunsplit(base._replace(path=base.path.rstrip("/") + "/messages/" + ids[0])) if ids else webhook
     request = urllib.request.Request(endpoint, data=json.dumps(dict(payload, content="", flags=0) if ids else payload).encode(),
                                      method="PATCH" if ids else "POST",
-                                     headers={"Content-Type": "application/json", "User-Agent": "KstyleUI-release"})
+                                     headers=headers)
     with urllib.request.urlopen(request, timeout=30):
         pass
     for message_id in ids[1:]:
         endpoint = urllib.parse.urlunsplit(base._replace(path=base.path.rstrip("/") + "/messages/" + message_id))
-        with urllib.request.urlopen(urllib.request.Request(endpoint, method="DELETE"), timeout=30):
+        with urllib.request.urlopen(urllib.request.Request(endpoint, method="DELETE", headers=headers), timeout=30):
             pass
 
 
@@ -132,8 +133,6 @@ def main():
     payload = release_payload((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag,
                               (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8"),
                               subprocess.check_output(["git", "show", args.tag + ":README.md"], cwd=ROOT).decode("utf-8"))
-    if args.edit:
-        payload.update(content="", flags=0)
     if args.dry_run:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         print("Character totals: " + json.dumps(character_totals(payload)))

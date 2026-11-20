@@ -112,7 +112,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
         self.assertIn("needs: [check, lua]", jobs["release"])
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), ["github.event_name == 'push' && (" + FORK_GUARD + ")"])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), ["github.event_name == 'push'"])
         self.assertNotIn("continue-on-error:", jobs["lua"])
         steps = jobs["lua"].split("\n      - ")[1:]
         self.assertIn("uses: actions/checkout@", steps[0])
@@ -132,7 +132,7 @@ class WorkflowsTest(unittest.TestCase):
 
     def test_release_upload_requires_successful_dependencies(self):
         jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), ["github.event_name == 'push' && (" + FORK_GUARD + ")"])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), ["github.event_name == 'push'"])
 
     def test_manual_release_dispatch_can_only_post_to_discord(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
@@ -391,7 +391,9 @@ class WorkflowsTest(unittest.TestCase):
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
-                self.assertTrue(guard.group(1) == FORK_GUARD or guard.group(1).endswith(" && (" + FORK_GUARD + ")"), f"{path.name}: {job}")
+                expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
+                self.assertEqual(guard.group(1), expected if path.name == "release.yml" else FORK_GUARD,
+                                 f"{path.name}: {job}")
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():

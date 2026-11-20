@@ -25,7 +25,7 @@ concurrency:
 jobs:
   check:
     name: check
-    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
     permissions:
@@ -63,7 +63,7 @@ jobs:
 
   lua:
     name: lua ${{ matrix.shard }}/2
-    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 35
     permissions:
@@ -95,7 +95,7 @@ jobs:
   release:
     name: release
     needs: [check, lua]
-    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
     environment: release
@@ -134,7 +134,7 @@ jobs:
 
   discord-repost:
     name: Repost Discord announcement
-    if: github.event_name == 'workflow_dispatch' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 5
     environment: release
