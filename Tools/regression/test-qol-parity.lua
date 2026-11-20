@@ -39,7 +39,7 @@ do
 	env.FireEvent("CHAT_MSG_SYSTEM", "Deadmines has been reset.")
 	env.FireEvent("PLAY_MOVIE", 1)
 	env.RunTimers()
-	assert(not ns.NoticeLine("flash") and not ns.NoticeLine("talents") and not ns.NoticeLine("durability"), "no alert line is built")
+	assert(not ns.noticeLines.flash and not ns.noticeLines.talents and not ns.noticeLines.durability, "no alert line is built")
 	local cross, ring = ns.AidFrames()
 	assert(not cross and not ring, "no crosshair or ring is built")
 	assert(env.ActionStatus:IsEventRegistered("SCREENSHOT_SUCCEEDED"), "the screenshot notice stays")
@@ -54,7 +54,7 @@ do
 	local env, K, ns = boot()
 	Q.Write(env, K, "combatAlert", true)
 	env.SetCombat(true)
-	local line = ns.NoticeLine("flash")
+	local line = ns.noticeLines.flash
 	assert(shown(line) and line.text:GetText() == "+Combat", tostring(line and line.text:GetText()))
 	local r, g, b = line.text:GetTextColor()
 	local hr, hg, hb = K.Tokens.Color("hostile")
@@ -96,7 +96,7 @@ do
 	local env, K, ns = boot()
 	env._unspent = true
 	Q.Write(env, K, "talentAlert", true)
-	local line = ns.NoticeLine("talents")
+	local line = ns.noticeLines.talents
 	assert(shown(line) and line.text:GetText() == "Unspent talent points")
 	env.SetCombat(true)
 	settle(env)
@@ -119,7 +119,7 @@ do
 	local _, _, _, _, tY = line:GetPoint(1)
 	Q.Write(env, K, "combatAlert", true)
 	env.SetCombat(true)
-	local _, _, _, _, fY = ns.NoticeLine("flash"):GetPoint(1)
+	local _, _, _, _, fY = ns.noticeLines.flash:GetPoint(1)
 	assert(math.abs(fY - tY) >= 40, "the combat and talent lines do not overlap")
 	env.SetCombat(false)
 	Q.Write(env, K, "talentAlert", false)
@@ -135,7 +135,7 @@ do
 	env._group, env._names.party1 = true, "Valerin"
 	env._dead.party1 = true
 	env.FireEvent("UNIT_HEALTH", "party1")
-	local line = ns.NoticeLine("flash")
+	local line = ns.noticeLines.flash
 	assert(shown(line) and line.text:GetText() == "Valerin died", tostring(line and line.text:GetText()))
 	assert(#Q.Calls(env, "PlaySound") == 1 and Q.Calls(env, "PlaySound")[1][1] == 8959, "the raid warning sound plays")
 	env.FireEvent("UNIT_HEALTH", "party1")
@@ -168,10 +168,10 @@ do
 	local env, K, ns = boot()
 	env._durability[5], env._durability[18], env._equipped[18], env._items[900] = { 60, 100 }, { 1, 100 }, 900, { icon = 1, equipLoc = "INVTYPE_THROWN" }
 	Q.Write(env, K, "durabilityAlert", true)
-	assert(not ns.NoticeLine("durability"), "a thrown weapon alone raises nothing")
+	assert(not ns.noticeLines.durability, "a thrown weapon alone raises nothing")
 	env._durability[5] = { 30, 100 }
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
-	local line = ns.NoticeLine("durability")
+	local line = ns.noticeLines.durability
 	assert(shown(line) and line.text:GetText() == "Low durability: 30%", tostring(line and line.text:GetText()))
 	local _, _, _, _, y = line:GetPoint(1)
 	Q.Write(env, K, "durabilityY", 100)

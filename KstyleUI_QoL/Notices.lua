@@ -57,7 +57,7 @@ local function Show(slot, value, r, g, b, y)
 	local line = Line(slot, y)
 	ns.PaintNotice(line.text, value, r, g, b)
 	Widgets.Size(line, Widgets.TextWidth(line.text, 1), Widgets.TextHeight(line.text, Widgets.LineHeight(line.text)))
-	if not line:IsShown() or line:GetAlpha() < 1 then Motion.FadeIn(line, Tokens.Duration("panelOpen")) end
+	if not line:IsShown() or line:GetAlpha() < 1 then Motion.FadeIn(line) end
 end
 
 local function Hide(slot)
@@ -175,9 +175,7 @@ local function Sync()
 	Durability()
 end
 
-function ns.NoticeLine(slot)
-	return lines[slot]
-end
+ns.noticeLines = lines
 
 local KEYS = { alertSize = true, combatAlert = true, talentAlert = true, talentText = true, talentColor = true, talentClass = true, deathAlert = true,
 	durabilityAlert = true, durabilityPercent = true, durabilityY = true, durabilityThrown = true }

@@ -100,14 +100,6 @@ function ns.Schema()
 		return not settings.enabled
 	end
 
-	local function repairOff(settings)
-		return not (settings.enabled and settings.autoRepair)
-	end
-
-	local function questsOff(settings)
-		return not (settings.enabled and settings.autoQuests)
-	end
-
 	local function when(key)
 		return function(settings) return not (settings.enabled and settings[key] and settings[key] ~= "none") end
 	end
@@ -136,12 +128,12 @@ function ns.Schema()
 		{ type = "toggle", key = "coinIcons", label = L["Coin icons"], help = L["Show coin icons instead of gold, silver and copper letters in the loot feed."], disableWhen = function(s) return not (s.enabled and s.lootFeed) end },
 		{ type = "header", label = L["Merchants"] },
 		{ type = "toggle", key = "autoRepair", label = L["Repair by itself"], help = L["Repair your gear at merchants and print the cost."], disableWhen = isOff },
-		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = repairOff },
+		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = when("autoRepair") },
 		{ type = "note", label = L["Junk selling lives on the Bags page, as Sell junk by itself."] },
 		{ type = "header", label = L["Quests"] },
 		{ type = "toggle", key = "autoQuests", label = L["Accept and turn in quests"], help = L["Accept quests and hand in finished ones. A choice of rewards stays yours."], disableWhen = isOff },
 		{ type = "toggle", key = "autoGossip", label = L["Select single gossip"], help = L["Choose a lone gossip option when the NPC offers no quests. The pause key still works."], disableWhen = isOff },
-		{ type = "toggle", key = "ignoreTrivial", label = L["Ignore low-level quests"], help = L["Leave low-level quest offers for you to choose."], disableWhen = questsOff },
+		{ type = "toggle", key = "ignoreTrivial", label = L["Ignore low-level quests"], help = L["Leave low-level quest offers for you to choose."], disableWhen = when("autoQuests") },
 		{ type = "toggle", key = "questInstances", label = L["Quest helpers in instances"], help = L["Allow automatic quests and single gossip inside instances."], disableWhen = function(settings) return not (settings.enabled and (settings.autoQuests or settings.autoGossip)) end },
 		{
 			type = "dropdown", key = "questModifier", label = L["Pause key"], help = L["Hold this key as you talk to a quest giver to do it yourself."],

@@ -47,7 +47,8 @@ function ns.PaintRing(texture, dim)
 	local r, g, b = ns.NoticeColor("cursor")
 	texture:SetTexture((Tokens.Texture("ring")))
 	texture:SetVertexColor(r, g, b, ns.Get("cursorOpacity") / 100 * (dim or 1))
-	Widgets.Size(texture, RING * ns.Get("cursorScale") / 100, RING * ns.Get("cursorScale") / 100)
+	local size = RING * ns.Get("cursorScale") / 100
+	Widgets.Size(texture, size, size)
 end
 
 local function Follow(self)
@@ -92,8 +93,7 @@ end
 
 local function State()
 	local fight, inside = InCombatLockdown(), IsInInstance()
-	instanced = not ns.IsSecret(inside) and inside == true
-	fighting = not ns.IsSecret(fight) and fight == true
+	instanced, fighting = ns.True(inside), ns.True(fight)
 	Visible()
 end
 

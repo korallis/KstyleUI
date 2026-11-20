@@ -5,7 +5,7 @@ local K, L = ns.K, ns.L
 local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OFF = 0.35
-local GAP = 12
+local GAP = Tokens.Size("gapLarge")
 
 function ns.Preview(parent)
 	local frame = CreateFrame("Frame", nil, parent)
