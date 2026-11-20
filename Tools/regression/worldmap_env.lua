@@ -8,7 +8,7 @@ function M.Vector(x, y)
 end
 
 function M.Setup(env, map)
-	local state = { id = 1, cvar = "0", mounted = false, tracked = false, levels = { 13, 18 }, queries = {} }
+	local state = { id = 1, cvar = "0", cvarWrites = 0, mounted = false, tracked = false, levels = { 13, 18 }, queries = {}, playerX = 0.3, playerY = 0.7 }
 	local function Place(name, x, y, extra)
 		extra = extra or {}
 		extra.name, extra.position = name, M.Vector(x, y)
@@ -18,11 +18,14 @@ function M.Setup(env, map)
 	map.ScrollContainer.Child = env.CreateFrame("Frame", nil, map.ScrollContainer)
 	map.ScrollContainer.Child:SetAllPoints(map.ScrollContainer)
 	function map:GetMapID() return state.id end
-	function map:SetMapID(id) state.id = id end
+	function map:SetMapID(id)
+		assert(not env.InCombatLockdown(), "skip addon SetMapID in combat: pin setup reaches protected SetPassThroughButtons")
+		state.id = id
+	end
 	function map:GetCanvas() return self.ScrollContainer.Child end
 	function map:RefreshAllDataProviders() state.refreshes = (state.refreshes or 0) + 1 end
 	local dungeon = Place("Ragefire Chasm", 0.72, 0.36, { journalInstanceID = 42 })
-	local flight = Place("Razor Hill flight master", 0.35, 0.55)
+	local flight = Place("Razor Hill flight master", 0.35, 0.55, { faction = 1 })
 	local link = Place("Road to the Barrens", 0.14, 0.65)
 	state.dungeon, state.flight, state.link = dungeon, flight, link
 	state.pins = {}
@@ -32,7 +35,13 @@ function M.Setup(env, map)
 		pin:SetPoint("CENTER", map:GetCanvas(), "TOPLEFT", pair[2].position:GetXY())
 		function pin:GetPoiInfo() return self._info end
 		pin._info = pair[2]
-		function pin:OnMouseClickAction() state.nativeClicks = (state.nativeClicks or 0) + 1 end
+		function pin:OnMouseClickAction(button)
+			state.nativeClicks = (state.nativeClicks or 0) + 1
+			if button == "LeftButton" then
+				state.nativeTracked = state.nativeTracked ~= self and self or nil
+				state.tracked = false
+			end
+		end
 		function pin:CheckShowTooltip() state.tooltip = {} end
 		state.pins[pair[1]] = pin
 	end
@@ -40,25 +49,35 @@ function M.Setup(env, map)
 		local pin = state.pins[template]
 		return function() local nextPin = pin; pin = nil; return nextPin end
 	end
+	function map:AcquirePin(template, info)
+		local pin = env.CreateFrame("Button", nil, map:GetCanvas())
+		function pin:GetPoiInfo() return info end
+		pin.OnMouseClickAction = state.pins[template].OnMouseClickAction
+		pin.CheckShowTooltip = state.pins[template].CheckShowTooltip
+		state.pins[template] = pin
+		return pin
+	end
 	env.GetAppropriateTooltip = function()
 		return { AddLine = function(_, text) state.tooltip[#state.tooltip + 1] = text end, Show = function() end }
 	end
 	env.Enum = env.Enum or {}
 	env.Enum.UIMapType = { Continent = 2, Zone = 3 }
+	env.Enum.FlightPathFaction = { Neutral = 0, Horde = 1, Alliance = 2 }
+	env.UnitFactionGroup = function() return "Horde" end
 	env.C_Map = {
 		GetMapInfo = function() return { mapType = 2 } end,
 		GetMapChildrenInfo = function() return { { mapID = 2, name = "Durotar" } } end,
 		GetMapRectOnMap = function() return 0.2, 0.4, 0.4, 0.6 end,
 		GetMapLevels = function(id) state.queries[#state.queries + 1] = id; return unpack(state.levels) end,
 		GetMapLinksForMap = function() return { link } end,
-		GetPlayerMapPosition = function() return M.Vector(0.3, 0.7) end,
+		GetPlayerMapPosition = function() return M.Vector(state.playerX, state.playerY) end,
 		GetMapWorldSize = function() return 4000, 3000 end,
 		CanSetUserWaypointOnMap = function() return true end,
 		GetUserWaypoint = function() return state.waypoint end,
 		SetUserWaypoint = function(point) state.waypoint = point; return true end,
 		ClearUserWaypoint = function() state.waypoint = nil end,
 	}
-	env.C_TaxiMap = { GetTaxiNodesForMap = function() return { flight } end }
+	env.C_TaxiMap = { ShouldMapShowTaxiNodes = function() return true end, GetTaxiNodesForMap = function() return { flight } end }
 	env.C_EncounterJournal = { GetDungeonEntrancesForMap = function() return { dungeon } end }
 	env.EJ_GetInstanceInfo = function(id) assert(id == 42); return "Ragefire Chasm", nil, nil, nil, nil, nil, 389 end
 	env.C_AreaPoiInfo = {
@@ -81,9 +100,10 @@ function M.Setup(env, map)
 	}
 	env.UiMapPoint = { CreateFromCoordinates = function(id, x, y) return { uiMapID = id, position = M.Vector(x, y) } end }
 	env.C_SuperTrack = env.C_SuperTrack or {}
-	env.C_SuperTrack.SetSuperTrackedUserWaypoint = function(on) state.tracked = on end
+	env.C_SuperTrack.SetSuperTrackedUserWaypoint = function(on) state.tracked = on; state.nativeTracked = nil end
 	env.C_SuperTrack.IsSuperTrackingUserWaypoint = function() return state.tracked end
-	env.C_CVar = { GetCVar = function() return state.cvar end, SetCVar = function(_, value) state.cvar = value end }
+	env.C_SuperTrack.IsSuperTrackingAnything = function() return state.tracked or state.nativeTracked ~= nil end
+	env.C_CVar = { GetCVar = function() return state.cvar end, SetCVar = function(_, value) state.cvar = value; state.cvarWrites = state.cvarWrites + 1 end }
 	env.IsMounted = function() return state.mounted end
 	return state
 end
