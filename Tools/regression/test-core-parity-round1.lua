@@ -27,10 +27,10 @@ local function row(page, label)
 end
 local function near(a, b) return math.abs(a - b) < 0.51 end
 local themed = 0
+local styleText = K.Widgets.StyleText
 K.Callbacks.Register("ThemeChanged", "ParityRound1", function() themed = themed + 1 end)
 
 -- Defaults: nothing changes until a player switches an option on.
-local styleText = K.Widgets.StyleText
 K.Appearance.Apply()
 assert(themed == 0 and Theme.Palette("WARRIOR") == nil and Theme.Palette("MANA") == nil and Theme.outline == nil and K.Widgets.StyleText == styleText,
 	"a default reload adds no palette, outline or theme change")
@@ -47,6 +47,7 @@ local native = { Theme.ClassColor("WARRIOR") }
 local accent = { Theme.Accent() }
 local sample = ns.Preview.Sample(env.UIParent)
 local plainName = { sample.body:GetTextColor() }
+local fired = themed
 K.Options.Write("Appearance", "classColors.WARRIOR", { r = 0.1, g = 0.2, b = 0.3 })
 K.Options.Write("Appearance", "classColors." .. Theme.Class(), { r = 0.4, g = 0.5, b = 0.6 })
 sample:Refresh()
@@ -55,9 +56,10 @@ assert(select(1, Theme.Accent()) == accent[1] and select(1, name:GetTextColor())
 K.Options.Write("Appearance", "classColors." .. Theme.Class(), K.Options.Default("Appearance", "classColors." .. Theme.Class()))
 sample:Refresh()
 assert(select(1, name:GetTextColor()) ~= 0.4, "the preview name returns to its own colour")
-themed = 1
+assert(themed == fired + 3, "each palette change fires ThemeChanged once, not " .. themed - fired)
+fired = themed
 local r, g, bl2 = Theme.ClassColor("WARRIOR")
-assert(themed == 1 and r == 0.1 and g == 0.2 and bl2 == 0.3 and Theme.Palette("WARRIOR").r == 0.1, "a custom class colour reaches every class colour reader")
+assert(themed == fired and r == 0.1 and g == 0.2 and bl2 == 0.3 and Theme.Palette("WARRIOR").r == 0.1, "a custom class colour reaches every class colour reader")
 assert(Theme.Palette(env.Secret("WARRIOR")) == nil and select(1, Theme.ClassColor("MAGE")) ~= 0.1, "secret classes and other classes keep the game's colour")
 K.Options.Write("Appearance", "powerColors.MANA", { r = 0.2, g = 0.4, b = 0.6 })
 assert(Theme.Palette("MANA").b == 0.6, "a custom power colour reaches the power readers")
@@ -73,17 +75,16 @@ assert(Theme.Palette("WARRIOR").r == 0.05 and K.Options.Read("Appearance", "pale
 K.Appearance.CopyPalette("Default", "Other")
 for _, key in ipairs({ "classColors.WARRIOR", "paletteDarken" }) do K.Options.Write("Appearance", key, K.Options.Default("Appearance", key)) end
 
--- The inherited outline swaps in only while chosen and restores the role flags.
+-- The inherited outline applies only while chosen and restores the role flags.
 local text = K.Widgets.FontString(env.UIParent)
 K.Widgets.StyleText(text, "body")
 assert(select(3, text:GetFont()) == "", "body text has no outline by default")
 K.Options.Write("Appearance", "outline", "THICKOUTLINE")
-assert(K.Widgets.StyleText ~= styleText, "an outline choice swaps the text styler")
 K.Widgets.StyleText(text, "body")
 assert(select(3, text:GetFont()) == "THICKOUTLINE", "inherited text takes the chosen outline")
 K.Options.Write("Appearance", "outline", "")
 K.Widgets.StyleText(text, "body")
-assert(K.Widgets.StyleText == styleText and select(3, text:GetFont()) == "", "current style restores the original styler and flags")
+assert(select(3, text:GetFont()) == "", "current style restores the role flags")
 
 -- Name font and combat text size touch only their own fonts.
 env.UNIT_NAME_FONT, env.STANDARD_TEXT_FONT = "Fonts\\FRIZQT__.TTF", "Fonts\\FRIZQT__.TTF"
@@ -163,11 +164,12 @@ assert(Store.Decode(plain).specs == nil and Store.Decode(plain).editMode == nil,
 local full = assert(K.Profiles.Export("everything", true, { specs = true, editMode = true }))
 local decoded = Store.Decode(full)
 assert(#decoded.specs == 1 and decoded.specs[1] == "role:HEALER" and table.concat(decoded.editMode) == "L:Mine", "included extras carry the spec keys and the Edit Mode layout")
-assert(not K.Profiles.Preview(full).text:find("editMode", 1, true) or Store.Decode(K.Profiles.Preview(full).text).editMode == nil, "review strips extras unless included")
+local stripped = Store.Decode(K.Profiles.Preview(full).text)
+assert(stripped.specs == nil and stripped.editMode == nil, "review strips extras unless included")
 local preview = K.Profiles.Preview(full, "everything", true, { specs = true, editMode = true })
 assert(Store.Decode(preview.text).editMode and table.concat(preview.changes, ","):find("Edit Mode", 1, true), "review lists the included extras")
 local saves = edit.saves or 0
-assert(Store.Import(preview.text, "Shared"))
+assert(Store.Import(preview.text, "Shared", { specs = true, editMode = true }))
 assert(K.Specialization.Profile("role:HEALER") == "Shared" and edit.saves == saves + 1 and EditModeFake.Named(edit, "KstyleUI Shared"), "import assigns the specs and adds the Edit Mode layout")
 assert(Store.Account().editModeBackup and Store.Account().editModeBackup.name == "Before import", "the Edit Mode change has a recovery backup")
 
@@ -242,7 +244,7 @@ assert(near(win:GetHeight(), height), "a second double-click opens it at its sav
 env.C_AddOnProfiler = { IsEnabled = function() return true end, GetAddOnMetric = function(addon, metric) return addon == "KstyleUI" and metric + 1 or 0.25 end }
 K.Options.Open("About")
 row("About", "CPU readout").set(1)
-assert(O.Find(ns.Pages.Find(ns.Pages.List(), "About").Items(), function(item) return item.label == "KstyleUI: 2.25 ms" end), "the readout sums KstyleUI's addons")
+assert(O.Find(ns.Pages.Find(ns.Pages.List(), "About").Items(), function(item) return item.label == "KstyleUI: 2.50 ms" end), "the readout sums KstyleUI's addons")
 row("About", "CPU readout").set("")
 assert(not O.Find(ns.Pages.Find(ns.Pages.List(), "About").Items(), function(item) return tostring(item.label):find("ms$") end), "Off removes the readout")
 row("General", "KstyleUI settings button").set(true)

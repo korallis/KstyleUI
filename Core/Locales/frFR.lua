@@ -2048,7 +2048,6 @@ ns.Locale.Add({
 	["Pause key"] = "Touche de pause",
 	["Paused"] = "En pause",
 	["Pay from the guild bank when your rank allows it."] = "Paie avec la banque de guilde si votre rang le permet.",
-	["Peak"] = "Pic",
 	["Peek key"] = "Touche d'aper\195\167u",
 	["Pending invites"] = "Invitations en attente",
 	["Pending invites: %d"] = "Invitations en attente : %d",

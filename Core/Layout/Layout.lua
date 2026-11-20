@@ -532,7 +532,7 @@ local function LinkedRect(el, w, h, offset)
 		l, b = l + (link.x or 0), b + (link.y or 0)
 		if link.point then
 			local fx, fy = G.Fraction(link.point)
-			local tx, ty = G.Fraction(link.target or link.point)
+			local tx, ty = G.Fraction(link.target or "CENTER")
 			return l + tw * tx - w * fx, b + th * ty - h * fy, "point"
 		end
 	end
@@ -545,9 +545,25 @@ local function LinkedRect(el, w, h, offset)
 	return l + tw + offset, b + (th - h) * along, side
 end
 
-local function MatchTarget(el, key)
+local MATCH = { width = "matchWidth", height = "matchHeight" }
+local function MatchTarget(el, field)
+	local s = el.settings
+	if not s[MATCH[field]] then return end
+	local key = s.link and s.link[field]
 	local target = key and elements[key]
 	if target and target ~= el and Layout.Live(key) and target.settings.shown ~= "never" then return target end
+	return LinkTarget(el)
+end
+
+local function SizeSource(el, field)
+	local target = MatchTarget(el, field)
+	local at = target
+	for _ = 1, 32 do
+		if at == el then return end
+		if not at then return target end
+		at = MatchTarget(at, field)
+	end
+	return target
 end
 
 local function Style()
@@ -744,10 +760,7 @@ local function ApplyGeometry(el, quiet)
 	local w, h
 	if el.opts.resizable then
 		local width, height = s.width, s.height
-		local own = (s.matchWidth or s.matchHeight) and LinkTarget(el)
-		local link = s.link
-		local wide = s.matchWidth and (link and MatchTarget(el, link.width) or own)
-		local tall = s.matchHeight and (link and MatchTarget(el, link.height) or own)
+		local wide, tall = SizeSource(el, "width"), SizeSource(el, "height")
 		if wide then
 			local _, _, tw = Layout.Rect(wide.key)
 			width = Clamp((tw + s.extraWidth) / f, el.limits.minWidth, el.limits.maxWidth)

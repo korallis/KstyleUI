@@ -187,7 +187,7 @@ function Appearance.CopyPalette(from, to)
 				if value == nil and live then value = Appearance.defaults[key] end
 				profiles[name][SECTION][key] = ns.Options.Copy(value)
 			end
-			if live then ApplyPalette(); ns.Callbacks.Fire("SettingChanged", SECTION, "classColors") end
+			if live then ns.Callbacks.Fire("SettingChanged", SECTION, "classColors") end
 		end
 	end
 	return true
@@ -216,7 +216,7 @@ local APPLY = {
 	outline = Theme.SetOutline,
 	classColors = ApplyPalette, powerColors = ApplyPalette, paletteDarken = ApplyPalette,
 }
-CLEAN.classColors, CLEAN.powerColors, CLEAN.paletteDarken = ns.Options.Copy, ns.Options.Copy, function(v) return IsUnit(v) and v or nil end
+CLEAN.paletteDarken = function(v) return IsUnit(v) and v or nil end
 for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
@@ -240,7 +240,7 @@ function Appearance.Get(key)
 end
 
 local function ApplyKey(key)
-	APPLY[key](Appearance.Get(key))
+	APPLY[key](CLEAN[key] and Appearance.Get(key))
 end
 
 local native, saved
@@ -289,7 +289,7 @@ function Appearance.ApplyGameText()
 	end
 	for _, state in ipairs(live) do
 		local font, original = state[1], state[2]
-		local size = state.combat and combatScale or scale
+		local size = state.combat and scale * combatScale or scale
 		local want, now = { on and path or original[1], original[2] * size, original[3] }, Read(font) or {}
 		if now[1] ~= want[1] or now[2] ~= want[2] or now[3] ~= want[3] then pcall(font.SetFont, font, want[1], want[2], want[3]) end
 		state[3] = Read(font) or want

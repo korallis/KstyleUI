@@ -267,7 +267,7 @@ function Pages.ElementItems(element, page, level)
 	end
 	local function linkRow(item, field, fallback)
 		local read, put = link(field)
-		item.get, item.set = function() local v = read(); if v == nil then return fallback end; return v end, put
+		item.get, item.set = function() return read() or fallback end, put
 		return add(item)
 	end
 	local function pointed()
@@ -452,6 +452,21 @@ local function NoLayoutNote(items, page)
 	end
 end
 
+local NONE = ""
+
+local function OtherProfiles(placeholder)
+	return function()
+		local out = { { value = NONE, label = placeholder } }
+		local active = K.Store.ProfileName()
+		for _, name in ipairs(K.Store.ListProfiles()) do
+			if name ~= active then
+				out[#out + 1] = { value = name, label = name }
+			end
+		end
+		return out
+	end
+end
+
 local function GeneralItems()
 	local items = {}
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
@@ -489,15 +504,9 @@ local function GeneralItems()
 					confirm(L["Copy these class and power colours to every other profile?"], function() K.Appearance.CopyPalette(K.Store.ProfileName()) end)
 				end } } })
 			table.insert(items, i + 2, { kind = "dropdown", page = "General", label = L["Copy colours from"],
-				help = L["Takes the class and power colours from another profile."], get = function() return "" end,
-				options = function()
-					local out = { { value = "", label = L["Choose a profile"] } }
-					for _, name in ipairs(K.Store.ListProfiles()) do
-						if name ~= K.Store.ProfileName() then out[#out + 1] = { value = name, label = name } end
-					end
-					return out
-				end, set = function(name)
-					if name == "" then return end
+				help = L["Takes the class and power colours from another profile."], get = function() return NONE end,
+				options = OtherProfiles(L["Choose a profile"]), set = function(name)
+					if name == NONE then return end
 					confirm(format(L["Copy the class and power colours from %s?"], name), function() K.Appearance.CopyPalette(name, K.Store.ProfileName()) end)
 				end })
 			break
@@ -549,7 +558,7 @@ local function ResetGeneral()
 	local account = K.Store.Account()
 	account.optionsSearchPage, account.optionsRailSections, account.gameFont, account.gameTextScale, account.combatFont = nil, nil, nil, nil, nil
 	account.nameFont, account.combatTextScale, account.optionsSearchMemory, account.optionsFold = nil, nil, nil, nil
-	account.gameMenuOptions, account.gameMenuLayout = nil, nil
+	account.gameMenuOptions, account.gameMenuLayout, account.optionsRailFolded = nil, nil, nil
 	K.Appearance.ApplyGameText()
 	K.OptionsEntry.GameMenu()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
@@ -602,7 +611,7 @@ end
 
 local function ResetElements(module)
 	local all = LayoutFn("ResetAll")
-	if module == nil then K.Store.Account().layoutToolbarHover = nil end
+	if module == nil then K.Store.Account().layoutToolbarHover, K.Store.Account().layoutGridLight = nil, nil end
 	if module == nil and all then
 		K.Call(all)
 		return
@@ -706,21 +715,6 @@ local function AskName(title, text, initial, onName, placeholder)
 	})
 end
 
-local NONE = ""
-
-local function OtherProfiles(placeholder)
-	return function()
-		local out = { { value = NONE, label = placeholder } }
-		local active = K.Store.ProfileName()
-		for _, name in ipairs(K.Store.ListProfiles()) do
-			if name ~= active then
-				out[#out + 1] = { value = name, label = name }
-			end
-		end
-		return out
-	end
-end
-
 local function AllProfiles()
 	local out = {}
 	for _, name in ipairs(K.Store.ListProfiles()) do
@@ -776,7 +770,7 @@ function Pages.ExportProfile()
 end
 
 function Pages.ImportProfile(text, name)
-	local ok, result = K.Store.Import(text, name)
+	local ok, result = K.Store.Import(text, name, Extras())
 	ns.Changed()
 	if ok then
 		Notify(L["Profile imported"], format(L["Imported the profile as %s. This character now uses it."], tostring(result)))
@@ -1091,17 +1085,17 @@ end
 
 local cpuTicker
 function Pages.Cpu(metric)
-	local api = C_AddOnProfiler
-	if type(api) ~= "table" or type(api.GetAddOnMetric) ~= "function" or type(api.IsEnabled) == "function" and api.IsEnabled() ~= true then
+	local api = type(C_AddOnProfiler) == "table" and C_AddOnProfiler or {}
+	local enabled, on = pcall(api.IsEnabled)
+	if not (enabled and on == true and type(api.GetAddOnMetric) == "function") then
 		return L["The game's addon profiler is off, so there is no CPU readout."]
 	end
-	local total = 0
-	for _, name in ipairs(K.Modules.List()) do
-		local ok, value = pcall(api.GetAddOnMetric, "KstyleUI_" .. name, metric)
+	local total, names = 0, { KstyleUI = true, KstyleUI_Options = true }
+	for _, name in ipairs(K.Modules.List()) do names["KstyleUI_" .. name] = true end
+	for name in pairs(names) do
+		local ok, value = pcall(api.GetAddOnMetric, name, metric)
 		if ok and type(value) == "number" and not K.Widgets.IsSecret(value) then total = total + value end
 	end
-	local ok, value = pcall(api.GetAddOnMetric, "KstyleUI", metric)
-	total = total + (ok and type(value) == "number" and not K.Widgets.IsSecret(value) and value or 0)
 	if not cpuTicker and C_Timer and C_Timer.NewTicker then
 		cpuTicker = C_Timer.NewTicker(1, function()
 			local win = ns.Window.Frame()
@@ -1158,7 +1152,7 @@ local function AboutItems()
 		end } },
 	})
 	local metrics = { { value = "", label = L["Off"] }, { value = 0, label = L["Session average"] }, { value = 1, label = L["Recent average"] },
-		{ value = 2, label = L["Encounter average"] }, { value = 3, label = L["Last frame"] }, { value = 4, label = L["Peak"] } }
+		{ value = 2, label = L["Encounter average"] }, { value = 3, label = L["Last frame"] } }
 	add({ kind = "dropdown", label = L["CPU readout"], help = L["Shows how long KstyleUI takes each frame, refreshed while this page is open."], options = metrics,
 		get = function() return K.Store.Account().optionsCpuMetric or "" end,
 		set = function(value) K.Store.Account().optionsCpuMetric = value ~= "" and value or nil; ns.Changed() end })

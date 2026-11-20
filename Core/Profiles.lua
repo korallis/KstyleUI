@@ -44,7 +44,10 @@ function Profiles.Restore()
 	local name = Store.Account().restoreProfile
 	if not name then return false, L["No backup is available."] end
 	local ok, why = Store.CopyProfile(name, Store.ProfileName())
-	local backup = Store.Account().editModeBackup
+	local backup, characters = Store.Account().editModeBackup, Store.Account().restoreCharacters
+	if ok and characters and characters.profile == name then
+		for key, profile in pairs(characters.characters) do Store.Data().characters[key] = profile or nil end
+	end
 	if ok and backup and backup.profile == name then
 		local saved = Copy(backup)
 		K.Combat.Queue(function()
@@ -92,14 +95,13 @@ local function EditModeLayouts()
 	local ok, info = pcall(api.GetLayouts)
 	local copied, all = pcall(manager.GetCopyOfPresetLayouts, manager)
 	if not (ok and copied and type(info) == "table" and type(info.layouts) == "table" and type(all) == "table") then return end
-	local presets = #all
 	for _, layout in ipairs(info.layouts) do all[#all + 1] = layout end
-	return all, presets, type(info.activeLayout) == "number" and info.activeLayout or 1
+	return all, type(info.activeLayout) == "number" and info.activeLayout or 1
 end
 
 local function EditModeChunks()
-	local all, presets, active = EditModeLayouts()
-	local layout = all and active > presets and all[active]
+	local all, active = EditModeLayouts()
+	local layout = all and all[active]
 	if not layout or type(C_EditMode.ConvertLayoutInfoToString) ~= "function" then return end
 	local ok, text = pcall(C_EditMode.ConvertLayoutInfoToString, layout)
 	if not ok or type(text) ~= "string" or text == "" then return end
@@ -128,6 +130,7 @@ function Profiles.Export(scope, includeLayout, extras)
 	if not payload then return nil, err end
 	payload.specs = extras.specs and SpecKeys() or nil
 	payload.editMode = extras.editMode and EditModeChunks() or nil
+	if extras.editMode and not payload.editMode then return nil, L["Edit Mode's active layout could not be read."] end
 	if scope == "everything" and includeLayout ~= false then return Encode(payload) end
 	if scope == "everything" then scope = "settings" end
 	local selected = Selection(scope)
@@ -234,7 +237,7 @@ end
 
 local function ImportEditMode(chunks, name)
 	K.Combat.Queue(function()
-		local all, _, active = EditModeLayouts()
+		local all, active = EditModeLayouts()
 		local api, types = C_EditMode, Enum and Enum.EditModeLayoutType
 		if not (all and types and type(api.ConvertStringToLayoutInfo) == "function" and type(api.SaveLayouts) == "function" and type(api.SetActiveLayout) == "function") then
 			return K.Print(L["Edit Mode did not take the shared layout."])
@@ -247,17 +250,12 @@ local function ImportEditMode(chunks, name)
 		layout.layoutName, layout.layoutType = ("KstyleUI " .. name):sub(1, 32), types.Account
 		all[#all + 1] = layout
 		if not pcall(api.SaveLayouts, { layouts = all, activeLayout = #all }) then return K.Print(L["Edit Mode did not take the shared layout."]) end
-		pcall(api.SetActiveLayout, #all)
+		if not pcall(api.SetActiveLayout, #all) then K.Print(L["Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode."]) end
 	end)
 end
 
-local function ApplyExtras(payload, target)
-	for _, key in ipairs(payload.specs or {}) do K.Specialization.Assign(key, target) end
-	if payload.editMode then ImportEditMode(payload.editMode, target) end
-end
-
 local import, reset = Store.Import, Store.ResetProfile
-function Store.Import(text, name)
+function Store.Import(text, name, extras)
 	if not Store.IsLoaded() then return import(text, name) end
 	local payload, why = Store.Decode(text)
 	if not payload then return false, why end
@@ -266,7 +264,9 @@ function Store.Import(text, name)
 		if not ok then return false, err end
 	end
 	local ok, target = import(text, name)
-	if ok then ApplyExtras(payload, target) end
+	extras = ok and extras or {}
+	for _, key in ipairs(extras.specs and payload.specs or {}) do K.Specialization.Assign(key, target) end
+	if extras.editMode and payload.editMode then ImportEditMode(payload.editMode, target) end
 	return ok, target
 end
 
@@ -291,14 +291,22 @@ function Profiles.ImportAccount(text)
 		if type(name) ~= "string" or not payload then return false, why or L["This account string is not valid."] end
 		payloads[name] = payload
 	end
-	if Store.Module("ProfileTools").backups then Profiles.Backup(L["Before import"]) end
+	local before = {}
+	if Store.Module("ProfileTools").backups then
+		local ok, backup = Profiles.Backup(L["Before import"])
+		if not ok then return false, backup end
+		Store.Account().restoreCharacters = { profile = backup, characters = before }
+	end
 	local names, count = {}, 0
 	for name, payload in pairs(payloads) do
 		names[name], count = Store.AddProfile(payload, payload.name), count + 1
 	end
-	local characters = Store.Data().characters
+	local characters, me = Store.Data().characters, Store.CharacterKey()
 	for key, name in pairs(data.characters or {}) do
-		if type(key) == "string" and #key <= 64 and not key:find("[%c|]") and names[name] then characters[key] = names[name] end
+		if type(key) == "string" and #key <= 64 and not key:find("[%c|]") and names[name] then
+			if key ~= me then before[key] = characters[key] or false end
+			characters[key] = names[name]
+		end
 	end
 	local mine = names[(data.characters or {})[Store.CharacterKey() or ""] or ""]
 	if mine then Store.SetProfile(mine) end
@@ -341,8 +349,10 @@ local function HotkeyButton(i)
 	local name = "KstyleUI_Profile" .. i
 	if _G[name] or type(CreateFrame) ~= "function" then return end
 	CreateFrame("Button", name, UIParent):SetScript("OnClick", function()
-		local target = (Store.Account().profileKeys or {})[i]
-		if target then K.Combat.Queue(function() Store.SetProfile(target) end) end
+		K.Combat.Queue(function()
+			local target = Profiles.Hotkey(i)
+			if Store.Data().profiles[target] then Store.SetProfile(target) end
+		end)
 	end)
 end
 

@@ -1542,7 +1542,7 @@ function Store.CopyProfile(source, target)
 	return true
 end
 
-local function reassignSpecializations(from, to)
+local function reassignSpecializations(from, to, hotkey)
 	local assignments = account.specializationProfiles
 	for _, config in pairs(type(assignments) == "table" and assignments or {}) do
 		local profiles = type(config) == "table" and config.profiles
@@ -1551,6 +1551,10 @@ local function reassignSpecializations(from, to)
 				profiles[key] = to
 			end
 		end
+	end
+	local keys = type(account.profileKeys) == "table" and account.profileKeys or {}
+	for i, name in pairs(keys) do
+		if name == from then keys[i] = hotkey end
 	end
 end
 
@@ -1575,7 +1579,7 @@ function Store.RenameProfile(old, new)
 	end
 	db.profiles[to], db.profiles[from] = db.profiles[from], nil
 	db.layouts[to], db.layouts[from] = db.layouts[from] or {}, nil
-	reassignSpecializations(from, to)
+	reassignSpecializations(from, to, to)
 	for key, name in pairs(db.characters) do
 		if name == from then
 			db.characters[key] = to

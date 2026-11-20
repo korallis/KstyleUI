@@ -70,20 +70,17 @@ local function Register()
 	end
 end
 
-local Entry = {}
-ns.OptionsEntry = Entry
+ns.OptionsEntry = {}
 local menu
 
 local function MenuButton(text, onClick)
-	local button = ns.Widgets.Button(menu, { text = text, onClick = function()
+	return ns.Widgets.Button(menu, { text = text, width = 200, onClick = function()
 		if not InCombatLockdown() and type(HideUIPanel) == "function" then HideUIPanel(GameMenuFrame) end
 		onClick()
 	end })
-	button:SetWidth(ns.Widgets.Snap(button, 200))
-	return button
 end
 
-function Entry.GameMenu()
+function ns.OptionsEntry.GameMenu()
 	local account = ns.Store.IsLoaded() and ns.Store.Account() or {}
 	local options, layout = account.gameMenuOptions == true, account.gameMenuLayout == true
 	local parent = rawget(_G, "GameMenuFrame")
@@ -109,7 +106,7 @@ end
 ns.Events.Register(OWNER, "PLAYER_LOGIN", function()
 	ns.Events.Unregister(OWNER, "PLAYER_LOGIN")
 	Register()
-	Entry.GameMenu()
+	ns.OptionsEntry.GameMenu()
 end)
 
 function KstyleUI_OnAddonCompartmentClick()

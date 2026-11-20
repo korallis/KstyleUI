@@ -668,11 +668,11 @@ end
 local styleText = Widgets.StyleText
 function Widgets.SetOutline(flags)
 	Widgets.StyleText = flags and function(text, role)
-		styleText(text, role)
-		role = textRole[text]
-		if role ~= "caps" or Widgets.CapsSized[text] == nil then
-			local path, size = Tokens.Font(role)
-			Widgets.ApplyFont(text, path, size, flags)
+		role = role or textRole[text] or "body"
+		textRole[text] = role
+		local path, size = Tokens.Font(role)
+		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags) then
+			return styleText(text, role)
 		end
 	end or styleText
 end

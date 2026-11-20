@@ -93,7 +93,7 @@ local function Describe(key, short)
 		if link and link.point then
 			local names = {}
 			for _, option in ipairs(Layout.ANCHOR_OPTIONS) do names[option.value] = option.label end
-			text = format("%s > %s: %s / %d, %d", names[link.point], names[link.target or link.point], target and target.label or s.attachTo,
+			text = format("%s > %s: %s / %d, %d", names[link.point], names[link.target or "CENTER"], target and target.label or s.attachTo,
 				floor((link.x or 0) + 0.5), floor((link.y or 0) + 0.5))
 		end
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
@@ -345,15 +345,12 @@ local function Targets(key, only)
 	return targets
 end
 
-local gridSpan, lit = nil, {}
+local gridSpan, lit, was, lastX, lastY = nil, {}, {}, nil, nil
 local function LightGrid(x, y)
-	for line in pairs(lit) do
-		Widgets.Tint(line, "white", Layout.Setting("gridAlpha"))
-		lit[line] = nil
-	end
-	local g = gridSpan
-	if not (g and x and grid:IsShown()) then return end
-	for axis = 1, 2 do
+	if x == lastX and y == lastY then return end
+	lastX, lastY, lit, was = x, y, was, lit
+	local g, alpha = gridSpan, Layout.Setting("gridAlpha")
+	for axis = 1, g and x and grid:IsShown() and 2 or 0 do
 		local at, centre, first, count, base = x, g.cx, g.vFirst, g.vCount, 0
 		if axis == 2 then at, centre, first, count, base = y, g.cy, g.hFirst, g.hCount, g.vCount end
 		local k = floor((at - centre) / g.size + 0.5)
@@ -362,10 +359,14 @@ local function LightGrid(x, y)
 			if i ~= 0 and index >= 1 and index <= count then
 				local line = gridLines[base + index]
 				local near = 1 - min(1, math.abs(centre + i * g.size - at) / (3 * g.size))
-				Widgets.Tint(line, "white", min(1, Layout.Setting("gridAlpha") + near * 0.35))
-				lit[line] = true
+				Widgets.Tint(line, "white", min(1, alpha + near * 0.35))
+				lit[line], was[line] = true, nil
 			end
 		end
+	end
+	for line in pairs(was) do
+		Widgets.Tint(line, "white", alpha)
+		was[line] = nil
 	end
 end
 

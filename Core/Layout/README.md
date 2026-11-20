@@ -14,7 +14,7 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Arrow-key 1px nudge | Present | Selected mover, physical pixels at every resolution | [Session] |
 | Shift arrow-key 100px nudge | Present | Elements > Shift nudge distance, 1–100; default stays 10 | [Session] |
 | Grid off / dim / bright | Present | Show the grid and Grid brightness, 0–50%; original 7% remains default | [Session] |
-| Cursor light on grid | Present | Elements > Light the grid around the pointer, off by default: grid lines near the pointer brighten during a drag, inside the drag's existing update, and dim when it ends | [Session] |
+| Cursor light on grid | Present | Elements > Light the grid around the pointer, off by default: grid lines near the pointer brighten during a drag, inside the drag's existing update, repaint only when the pointer moves, and dim when it ends | [Session] |
 | Dark element overlays on / off | Present | See-through movers; off restores solid plates | [Session] |
 | Snap to elements / screen | Present | Snap while dragging, including edges and centres | [Session] |
 | Snap to grid | Present | Show the grid with snapping enabled | [Unlock tools] |
@@ -35,9 +35,9 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Height match | Present | Attach to > Match height; off by default; respects limits and combat queue | [Movers] |
 | Extra matched width | Present | Extra width in root units; zero preserves exact matching | [v9.2.5] |
 | Extra matched height | Present | Extra height in root units; zero preserves exact matching | [v9.2.5] |
-| Independent width / height match targets | Present | Each element > Match width of / Match height of: any element, attached or not; refreshes when that element changes and stops at a cycle | [Movers] |
+| Independent width / height match targets | Present | Each element > Match width of / Match height of: any element, attached or not; refreshes when that element changes; elements whose matches form a cycle keep their own sizes | [Movers] |
 | Attach above / below / left / right | Present | Attach to, Side and Offset | [Movers] |
-| Nine source points × nine target points | Present | Each element > Point on this element and Point on the other element (Use Side by default) | [Point picker] |
+| Nine source points × nine target points | Present | Each element > Point on this element and Point on the other element (Use Side by default; the other element's point starts at its centre) | [Point picker] |
 | Independent anchor X and Y offsets | Present | Each element > Attached X offset and Attached Y offset, zero by default; dragging a point link moves them | [Movers] |
 | Grow / corner direction; fallback direction | Present | Attach to > Side: each side centred or lined up at either edge; an unavailable target falls back to the saved place; module growth stays on each module's page | [Movers] |
 | Remove anchor | Present | Attach to > Not attached restores saved root position | [Movers] |

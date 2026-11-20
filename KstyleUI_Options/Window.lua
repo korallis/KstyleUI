@@ -136,7 +136,7 @@ local function JumpTo(entry)
 end
 
 local function PickId(item)
-	return item.page .. "|" .. tostring(item.module) .. "|" .. tostring(item.key or item.label)
+	return item.page .. "|" .. tostring(item.element or item.module) .. "|" .. tostring(item.key or item.label)
 end
 
 function Window.Picks(items, account)
@@ -175,18 +175,21 @@ end
 
 function Window.SetFolded(fold)
 	if not win or (state.folded or false) == fold then return end
+	if fold then
+		local parent = win:GetParent()
+		local left, top, pl, pb, ps, ws = win:GetLeft(), win:GetTop(), parent:GetLeft(), parent:GetBottom(), parent:GetEffectiveScale(), win:GetEffectiveScale()
+		for _, v in ipairs({ left or false, top or false, pl or false, pb or false, ps or false, ws or false }) do
+			if Widgets.IsSecret(v) or type(v) ~= "number" or v ~= v then return end
+		end
+		if ws <= 0 then return end
+		local ratio = ps / ws
+		win:ClearAllPoints()
+		win:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", left - pl * ratio, top - pb * ratio)
+		win:SetHeight(Snap(Widgets.WindowInset(win) * 2 + HEADER))
+	end
 	state.folded = fold
 	if win.SetClipsChildren then win:SetClipsChildren(fold) end
-	if not fold then return K.Layout.Restore(Pages.WINDOW_KEY) end
-	local parent = win:GetParent()
-	local left, top, pl, pb = win:GetLeft(), win:GetTop(), parent:GetLeft(), parent:GetBottom()
-	local ratio = parent:GetEffectiveScale() / win:GetEffectiveScale()
-	for _, v in ipairs({ left or false, top or false, pl or false, pb or false, ratio }) do
-		if Widgets.IsSecret(v) or type(v) ~= "number" or v ~= v then return end
-	end
-	win:ClearAllPoints()
-	win:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", left - pl * ratio, top - pb * ratio)
-	win:SetHeight(Snap(Widgets.WindowInset(win) * 2 + HEADER))
+	if not fold then K.Layout.Restore(Pages.WINDOW_KEY) end
 end
 
 function Window.Refresh()
