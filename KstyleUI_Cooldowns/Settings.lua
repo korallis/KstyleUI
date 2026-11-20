@@ -352,6 +352,7 @@ local function ReadIcons(out, saved, defaults, group)
 		out[key] = Number(saved[key], range, defaults[key])
 	end
 	out.growth = Choice(saved.growth, GROWTH, defaults.growth)
+	if group == "buffs" and out.growth == defaults.growth and K.HudStyle.Current() == "medallions" then out.growth = "center" end
 	out.wrap = Choice(saved.wrap, WRAP, defaults.wrap)
 	for _, key in ipairs(ICON_FLAGS) do
 		out[key] = Bool(saved[key], defaults[key] == true)

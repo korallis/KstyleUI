@@ -85,6 +85,17 @@ function Reach.New(width, height, style, layout, saved)
 end
 
 function Reach.Populate(env)
+ local units = env._addons.KstyleUI_UnitFrames
+ for _, kind in ipairs({ "player", "target" }) do
+  local a = units.Frames.Get(kind).views[1].auras
+  if a and units.Settings.AuraRows(kind) then
+   local key = kind == "player" and "buffs" or "debuffs"
+   Auras.Assign(env, a.container, key, 9)
+   local group = a.container._groups[key]
+   Hud.PlaceAuras(a.container, group, group.active, units.Settings.Value(kind, "auraColumns"))
+   for _, button in ipairs(group.active) do button._aura.icon:SetTexture(env.Secret(135813)); button._aura.timer:SetText("30s") end
+  end
+ end
 	local fan=env._addons.KstyleUI_UnitFrames.Frames.Get("target").views[1].auras.fan
 	if fan and fan.enabled then
 		for _,container in ipairs(fan.containers) do
@@ -129,7 +140,7 @@ function Reach.Populate(env)
 	end
 end
 
-function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
+function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	local screens = Reach.screens
 	local firstScreen = type(wantedScreen)=="table" and wantedScreen[1] or wantedScreen=="small" and 10 or wantedScreen=="cases" and 19 or 1
 	local lastScreen = type(wantedScreen)=="table" and wantedScreen[2] or firstScreen+2
@@ -175,6 +186,15 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 	end
 
 	local env, K = Reach.New(nil,nil,wantedStyle,wantedLayout)
+	if extra then
+		local consumables = env._addons.KstyleUI_ActionBars.Consumables
+		env.C_Container = {
+			GetContainerNumSlots = function(bag) return bag == 0 and 12 or 0 end,
+			GetContainerItemInfo = function(_, slot) return { itemID = consumables.kinds[slot].ids[1], stackCount = 1, iconFileID = 134829 } end,
+		}
+		env.FireEvent("BAG_UPDATE_DELAYED")
+		assert(#consumables.selected == 12, "the overlap matrix includes every consumable kind")
+	end
 	local choice = K.Setup.NewChoice()
 	for _, style in ipairs({"frames", "orbs", "medallions"}) do
 		if not wantedStyle or wantedStyle == style then
@@ -194,6 +214,21 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 							env.UIParent._width = 768*w/h/env.UIParent._scale
 							env.FireEvent("DISPLAY_SIZE_CHANGED")
 							env.RunTimers()
+							if extra then
+								local cfg, layouts = K.Store.Module("ActionBars"), K.Setup.Layouts
+								cfg.extraBarsApplied, cfg.extraBarsLayout = extra, extra
+								if extra ~= "off" then cfg.bar4, cfg.bar5 = layouts.ExtraBarsPreset(extra, K.Scale.Aspect()), layouts.ExtraBarsPreset(extra, K.Scale.Aspect()) end
+								K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
+								env._addons.KstyleUI_ActionBars.QueueApply()
+								K.Layout.ResetAll()
+								env.RunTimers()
+							end
+							if extra then
+								env._rectSolver = nil
+								local slab = env._addons.KstyleUI_ActionBars.Slab
+								slab.Refresh()
+								allowed["actionbars.bar1/actionbars.bar4"], allowed["actionbars.bar1/actionbars.bar5"] = slab.joined.bar4, slab.joined.bar5
+							end
 							Reach.Populate(env)
 							local label = string.format("%s %s %s %dx%d", style,layout,arrangement,w,h)
 							assert(#env._errors == 0 and K.ErrorCount() == 0, label .. ": fixture errors: " .. tostring(env._errors[1]))
@@ -202,6 +237,10 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen)
 								if K.Setup.Layouts.Element(element.key) or element.key=="skins.guide" or element.key=="skins.quests" or element.key=="unitframes.crestDebuffs" then
 									owners[K.Layout.Element(element.key).frame] = element.key
 								end
+							end
+							for _, kind in ipairs({ "player", "target" }) do
+								local a = env._addons.KstyleUI_UnitFrames.Frames.Get(kind).views[1].auras
+								if a then owners[a.host] = "unitframes." .. kind end
 							end
 							owners[env.BuffIconCooldownViewer]="cooldowns.buffs"
 							owners[env.BuffBarCooldownViewer]="cooldowns.bars"

@@ -3,6 +3,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K, ns = U.New({ before = function(_, core)
+	core.Store.Module("UnitFrames").auraLayout = "fan"
 	core.Store.Module("HudStyle").style = "medallions"
 	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
@@ -159,7 +160,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 	local entries = {}
 	for i = 1, 7 do entries[i] = { 135813, i * 3 .. "s" } end
-	local rendered, units = Hud.Module("unitframes", { class = "SHAMAN", layout = "DPS", applyPreset = true, targetAuras = entries })
+	local rendered, units = Hud.Module("unitframes", { class = "SHAMAN", layout = "DPS", applyPreset = true, targetAuras = entries, settings = { UnitFrames = { auraLayout = "fan" } } })
 	local crest = units.Frames.Get("target").views[1].auras.fan
 	local regions = {}
 	for _, entry in ipairs(crest.buttons) do regions[entry.icon], regions[entry.timer] = true, true end
@@ -189,6 +190,7 @@ rawset(_G, "RENDER_HUD_STYLE", nil)
 
 -- An unsupported native sort is a construction failure, so the original target display must survive.
 local fallbackEnv, fallbackK, fallback = U.New({ before = function(game, core)
+	core.Store.Module("UnitFrames").auraLayout = "fan"
 	core.Store.Module("HudStyle").style = "medallions"
 	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	game.AuraContainerSortMethod = nil
@@ -198,6 +200,7 @@ assert(original.fan.failed and original.container._groups.debuffs.filter == "HAR
 assert(original.fan.content._shown == false and #fallbackEnv._errors == 0 and fallbackK.ErrorCount() == 0, "failed fan construction is contained and hidden")
 
 local delayedEnv, delayedK, delayed = U.New({ before = function(_, core)
+	core.Store.Module("UnitFrames").auraLayout = "fan"
 	core.Store.Module("HudStyle").style = "medallions"
 	core.Store.Module("UnitFrames").target = { crestDebuffs = false }
 	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")

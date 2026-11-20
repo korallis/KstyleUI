@@ -1051,7 +1051,7 @@ Layouts.EXTRA_BAR_GROUPS = {
 	["unitframes.player"] = "units", ["unitframes.target"] = "units", ["unitframes.pet"] = "units",
 	["unitframes.targettarget"] = "units", ["unitframes.focus"] = "units", ["unitframes.focustarget"] = "units",
 	["unitframes.castbar.player"] = "casts", ["unitframes.castbar.target"] = "casts", ["combattext.player"] = "casts", ["unitframes.resource"] = "casts",
-	["actionbars.pet"] = "sides", ["actionbars.stance"] = "sides", ["chat.main"] = "chat", ["qol.lootfeed"] = "chat",
+	["actionbars.pet"] = "sides", ["actionbars.stance"] = "sides", ["actionbars.bar3"] = "third", ["chat.main"] = "chat", ["qol.lootfeed"] = "chat",
 }
 
 function Layouts.ExtraBarsPlace(class, name, key)
@@ -1059,6 +1059,10 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	if not group then return end
 	local kind = ns.Store.IsLoaded() and (ns.Store.Profile().ActionBars or {}).extraBarsApplied
 	if kind ~= "rows" and kind ~= "beside" then return end
+	if group == "third" then
+		if kind == "beside" and class == ASPECTS[1] then return { anchor = "BOTTOM", x = -800, y = 470 } end
+		return
+	end
 	local places = PLACES[class] and PLACES[class].medallions or {}
 	local function Base(id) return places[id] or STYLES.medallions[name][id] or layouts[name][id] end
 	local left, right = Base("actionbars.bar1"), Base("actionbars.bar2")
@@ -1081,7 +1085,7 @@ function Layouts.ExtraBarsPlace(class, name, key)
 		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
 		if class == ASPECTS[1] then
 			local lift = math.max(h + side.pad, left.y + height + slab.pad + gap - layouts[name]["chat.main"].y)
-			return { anchor = base.anchor, x = base.x, y = base.y + lift }
+			return { anchor = base.anchor, x = base.x - 12, y = base.y + lift }
 		end
 		return { anchor = base.anchor, x = base.x, y = base.y + h + side.pad }
 	elseif kind == "beside" and class == ASPECTS[1] and group == "chat" then
@@ -1143,7 +1147,7 @@ function Layouts.BuildMedallions()
 		local castY = top + Layouts.MEDALLIONS_RING / 2 + unit.castGap
 		local petX, miniY = reach + frame[1] + unit.medal + unit.outboard + pet[1] / 2, row + (frame[2] - pet[2]) / 2 + 2 * TIGHT
 		if class == ASPECTS[1] then
-			petX, miniY = reach + frame[1] - pet[1] / 2, row + frame[2] + unit.stack
+			petX, miniY = reach + frame[1] - pet[1] / 2, row + frame[2] + unit.stack + 96
 		end
 		petX = math.min(petX, -stanceBar.x - petW / 2 - side.pad - GAP - pet[1] / 2 - Layouts.MEDALLIONS_MEDALS["unitframes.pet"].d / 2)
 		local totX = petX
@@ -1165,9 +1169,10 @@ function Layouts.BuildMedallions()
 			["unitframes.player"] = At("BOTTOM", -(reach + frame[1] / 2), row, frame),
 			["unitframes.target"] = At("BOTTOM", reach + frame[1] / 2, row, frame),
 			["unitframes.targettarget"] = At("BOTTOM", totX, miniY, tot),
+			["unitframes.resource"] = At("BOTTOM", 0, castY - 22, { 120, 14 }),
 			["unitframes.castbar.player"] = At("BOTTOM", 0, castY, cast),
 			["unitframes.castbar.target"] = At("BOTTOM", 0, castY + cast[2] + unit.castStack, cast),
-			["combattext.player"] = At("BOTTOM", 0, castY + 2 * cast[2] + unit.castStack + unit.medal + 2 * unit.castStack, { 160, 80 }),
+			["combattext.player"] = At("BOTTOM", 0, castY + 410, { 160, 80 }),
 			["unitframes.pet"] = At("BOTTOM", -petX, miniY, pet),
 			["unitframes.focus"] = At(focus.anchor, focus.x, focusY, focusSize),
 			["unitframes.focustarget"] = At(focus.anchor, focus.x - (focusSize[1] - tot[1]) / 2, focusY - TIGHT - tot[2], tot),
@@ -1182,14 +1187,12 @@ function Layouts.BuildMedallions()
 	for _, name in ipairs(NAMES) do
 		STYLES.medallions[name] = {}
 		for key, place in pairs(sets[ASPECTS[1]]) do
-			STYLES.medallions[name][key] = place
+			if key ~= "unitframes.resource" then STYLES.medallions[name][key] = place end
 		end
 	end
 	for _, class in ipairs(ASPECTS) do
-		if class ~= ASPECTS[1] then
-			for key, place in pairs(sets[class]) do
-				PLACES[class].medallions[key] = place
-			end
+		for key, place in pairs(sets[class]) do
+			if class ~= ASPECTS[1] or key == "unitframes.resource" then PLACES[class].medallions[key] = place end
 		end
 	end
 end
@@ -1215,6 +1218,9 @@ function Layouts.DisplayInsets(key, height, anchor)
 end
 
 function Layouts.Aspect(class, style, name, key)
+	if key == "unitframes.resource" and (style == "medallions" or style == "frames" and ns.HudStyle.Current() == "medallions") then
+		return Layouts.ExtraBarsPlace(class, name, key) or PLACES[class].medallions[key] or STYLES.medallions[name][key]
+	end
 	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs" or key == STORY_KEYS.quests or key == STORY_KEYS.guide)
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
@@ -1259,10 +1265,12 @@ function Layouts.Attached(style, name, key, class)
 		if style == "orbs" then x, y = -(ORBS_X + ORBS_RING / 2 + 8 + w / 2) + 80, class == "16:9" and 421 or 410
 		elseif style == "medallions" then
 			y = player.y + ph + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + (class == "16:9" and 158 or 22) - h
-			if class ~= "16:9" then x = x - 176
+			if class ~= "16:9" then
+				x = x - 176
+				if ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "beside" then y = y + 72 end
 			else
 				local third = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").bar3
-				if third and third.enabled then x, y = x - 64, y + 76 end
+				if third and third.enabled then x, y = -480, player.y + 447 end
 			end
 		end
 		return { anchor = "BOTTOM", x = x, y = y, width = w, height = h }
@@ -1287,10 +1295,12 @@ function Layouts.Attached(style, name, key, class)
 	if style == "medallions" then
 		local player = Layouts.ExtraBarsPlace(class, name, "unitframes.player") or PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
 		y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
-		x = (key == "cooldowns.essential" or key == "cooldowns.buffs") and -300 or 300
-		if key == "cooldowns.buffs" or key == "cooldowns.bars" then y = y + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
+		y = y + 76
+		if key ~= "cooldowns.utility" then y = y + 96 end
+		if key == "cooldowns.buffs" or key == "cooldowns.bars" then y = y + 96 end
+		if key == "cooldowns.bars" then x, y = 300, player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24 + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
 		if swing then
-			y = player.y + (player.height + Layouts.MEDALLIONS_MEDALS["unitframes.player"].d) / 2 + 4
+			y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 28
 			x = -((cast.width or 300) / 2 + 220 / 2 + 8)
 		end
 	else

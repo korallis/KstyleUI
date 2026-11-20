@@ -7,7 +7,7 @@ local function check(ok, why)
 	if not ok then failures[#failures + 1] = why end
 end
 
-for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
+for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 } }) do
 	_G.RENDER_SCREEN = { width = screen[1], height = screen[2], size = "auto" }
 	_G.RENDER_HUD_STYLE = "Medallions"
 	local env, K, ns = U.New(Common.ScreenOpts({
@@ -129,6 +129,9 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 } }) do
 	env.RunTimers()
 	local g, s = view.geometry, view.s
 	local row = { x = g.aura.x, y = g.aura.y, w = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing, h = s.auraSize + 16 }
+	if g.aura.outer then
+		row.x, row.y, row.h = row.x - row.w, row.y - s.auraRows * (s.auraSize + 16), s.auraRows * (s.auraSize + 16)
+	end
 	local m = g.marker
 	check(m.x >= row.x + row.w + ns.Geometry.MARKER_GAP or m.x + m.w + ns.Geometry.MARKER_GAP <= row.x or m.y >= row.y + row.h or m.y + m.h <= row.y, tag .. ": raid marker clears debuffs and timers")
 	check(m.x >= g.medal.x + g.medal.w and m.y + m.h <= 0, tag .. ": raid marker clears the medallion and outboard unit slab")

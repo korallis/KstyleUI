@@ -332,12 +332,12 @@ function Hud.PlaceAuras(container, group, buttons, columns)
 	local corner, dx, dy = flow.anchor or "TOPLEFT", flow.horizontal or 1, flow.vertical or -1
 	local rows = math.ceil(#buttons / columns)
 	local across = math.min(#buttons, columns)
-	container:SetSize(math.max(0, across * width + (across - 1) * spacing), rows * height)
+	container:SetSize(math.max(0, across * width + (across - 1) * spacing), rows * height + math.max(0, rows - 1) * (layout.lineSpacing or 0))
 	for i, button in ipairs(buttons) do
 		local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
 		button:ClearAllPoints()
 		button:SetSize(width, height)
-		button:SetPoint(corner, container, corner, dx * col * (width + spacing), dy * row * height)
+		button:SetPoint(corner, container, corner, dx * col * (width + spacing), dy * row * (height + (layout.lineSpacing or 0)))
 		button:Show()
 	end
 end
@@ -380,8 +380,8 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
-	if a and a.fan and ns.Fan.Wanted(view) then
-		K.Options.Write("UnitFrames", "target.auraFilter", "debuffs")
+	if a and K.HudStyle.Current() == "medallions" then
+		if ns.Fan.Wanted(view) then K.Options.Write("UnitFrames", "target.auraFilter", "debuffs") end
 		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
 		local icons = { 135813, 136026, 136207, 136197, 136118, 136016, 136048 }

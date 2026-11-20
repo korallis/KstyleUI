@@ -39,6 +39,7 @@ function Engine.Refresh(env)
 			group.assigned = {}
 			local layout = group.layout
 			local w, h, gap = layout.elementWidth, layout.elementHeight, layout.elementSpacing or 0
+			local dx, dy = unpack(container._growth or { 1, -1 })
 			local columns = math.max(1, math.floor(((container._line or math.huge) + gap) / (w + gap)))
 			for i, button in ipairs(group.buttons) do
 				button:SetShown(i <= count)
@@ -48,7 +49,7 @@ function Engine.Refresh(env)
 					button:ClearAllPoints()
 					button:SetSize(w, h)
 					button:SetPoint(container._anchor or "TOPLEFT", container, container._anchor or "TOPLEFT",
-						(i - 1) % columns * (w + gap), -(offset + math.floor((i - 1) / columns) * (h + (layout.lineSpacing or 0))))
+						dx * ((i - 1) % columns) * (w + gap), dy * (offset + math.floor((i - 1) / columns) * (h + (layout.lineSpacing or 0))))
 					local bindings = button._aura
 					if bindings.SetIcon then bindings.SetIcon[1]:SetTexture(env.Secret(aura.icon)) end
 					if bindings.SetDurationText then bindings.SetDurationText[1]:SetText(env.Secret(aura.left .. "s")) end

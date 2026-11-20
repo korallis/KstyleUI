@@ -2,7 +2,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New({
-	saved = { version = 2, characters = {}, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "medallions" } } } },
+	saved = { version = 2, characters = {}, profiles = { Default = { UnitFrames = { enabled = true, auraLayout = "fan" }, HudStyle = { style = "medallions" } } } },
 })
 local Tokens, Settings = K.Tokens, ns.Settings
 

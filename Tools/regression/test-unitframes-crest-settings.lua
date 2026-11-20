@@ -13,6 +13,7 @@ local function Same(actual, expected, label)
 end
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local env, K, ns = U.New({ before = function(_, core)
+		core.Store.Module("UnitFrames").auraLayout = "fan"
 		core.Store.Module("HudStyle").style = style
 		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
@@ -55,6 +56,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 end
 
 local env, K, ns = U.New({ before = function(_, core)
+	core.Store.Module("UnitFrames").auraLayout = "fan"
 	core.Store.Module("HudStyle").style = "medallions"
 	core.Store.Module("UnitFrames").target = { auras = false, crestDebuffs = false }
 	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")

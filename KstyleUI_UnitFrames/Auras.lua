@@ -55,6 +55,10 @@ local issecretvalue = issecretvalue or function()
 	return false
 end
 
+local function PoolStyle(view)
+	return Settings.AuraRows(view.kind) and "medallionsRows" or K.HudStyle.Current()
+end
+
 local views = {}
 local pending = {}
 local waiting = false
@@ -185,6 +189,7 @@ local function Centred(kind)
 end
 
 local function TimerBelow(kind)
+	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
 	local below = Centred(kind) or position ~= nil and position.below == true
 	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
@@ -254,7 +259,7 @@ local function Flush()
 	local work = pending
 	pending = {}
 	for view in pairs(work) do
-		if not view.auras or view.auras.style ~= K.HudStyle.Current() or ns.Fan.Wanted(view) and not view.auras.fan then
+		if not view.auras or view.auras.style ~= PoolStyle(view) or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
 			local style = TextStyle(view)
@@ -326,7 +331,7 @@ local function Dress(view, key, button, buttons)
 	local skin = entry.skin
 	skin:SetAllPoints(button)
 	entry.kind = view.kind
-	if Settings.Form(view.kind) == "slab" then
+	if Settings.Form(view.kind) == "slab" and not Settings.AuraRows(view.kind) then
 		entry.slab = Widgets.NineSlice(skin, "medAuraBorder", "BACKGROUND", 1)
 		entry.chrome:SetShown(false)
 		entry.lineFrame = CreateFrame("Frame", nil, skin)
@@ -439,7 +444,7 @@ local function MirrorHolder(view, host)
 end
 
 local function BuildStyle(view)
-	local a, style = view.auras, K.HudStyle.Current()
+	local a, style = view.auras, PoolStyle(view)
 	if a.container then
 		for _, key in ipairs(GROUPS) do
 			a.container:SetAuraGroupEnabled(key, false)
@@ -657,6 +662,12 @@ end
 
 function Auras.Anchor(host, frame, kind, panelX, spot)
 	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
+	if spot and spot.outer and Settings.AuraRows(kind) and Settings.Value(kind, "auraPosition") == "ABOVE" then
+		local side = kind == "target" and "RIGHT" or "LEFT"
+		host:ClearAllPoints()
+		host:SetPoint("BOTTOM" .. side, frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		return
+	end
 	if spot and spot.centred then
 		host:ClearAllPoints()
 		host:SetPoint("TOP", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
@@ -696,7 +707,7 @@ function Auras.Apply(view)
 		Build(view)
 	end
 	local a = view.auras
-	if not a.failed and a.style ~= K.HudStyle.Current() then
+	if not a.failed and a.style ~= PoolStyle(view) then
 		if not Auras.Open() then
 			Wait(view)
 			return

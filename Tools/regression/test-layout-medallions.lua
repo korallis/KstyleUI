@@ -65,7 +65,7 @@ do
 		assert(near(pet.width, 170) and near(pet.height, 34) and near(tot.width, 170) and near(tot.height, 34), label .. ": the pet and target of target are 170 by 34")
 		assert(near(pet.x, -tot.x) and near(pet.y, tot.y), label .. ": the pet and target of target mirror")
 		if class == Layouts.ASPECTS[1] then
-			assert(tot.x + tot.width / 2 <= target.x + target.width / 2 and near(tot.y, target.y + target.height + 46), label .. ": under 21:9 the target of target stands over the target, clear of its debuff row")
+			assert(tot.x + tot.width / 2 <= target.x + target.width / 2 and near(tot.y, target.y + target.height + 46 + 96), label .. ": under 21:9 the target of target stands over the target, clear of its debuff row")
 		else
 			assert(pet.x - pet.width / 2 - Layouts.MEDALLIONS_MEDALS["unitframes.pet"].d / 2 >= at["actionbars.stance"].x + select(2, Layouts.MedallionsSide(class, "actionbars.stance")) / 2 + Layouts.MEDALLIONS_SIDE.pad and near(tot.y + tot.height / 2, target.y + target.height / 2 + 8), label .. ": at 21:9 and wider the mini frames clear the full medallion and the pet bar's plaque")
 		end

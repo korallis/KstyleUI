@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 41
+Store.DB_VERSION = 42
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1007,6 +1007,17 @@ Store.migrations[41] = function(data)
 		end
 	end
 	if moved then ns.Print(L["the data strip is now a top bar; move it in Layout Mode."]) end
+end
+
+Store.migrations[42] = function(data)
+	for name, profile in pairs(data.profiles) do
+		local layout = data.layouts[name]
+		local moved = type(layout) == "table" and (layout["medallions:unitframes.crestDebuffs"] or layout["unitframes.crestDebuffs"])
+		if type(profile) == "table" and type(moved) == "table" and (moved.x ~= nil or moved.y ~= nil or moved.anchor ~= nil) then
+			profile.UnitFrames = type(profile.UnitFrames) == "table" and profile.UnitFrames or {}
+			if profile.UnitFrames.auraLayout == nil then profile.UnitFrames.auraLayout = "fan" end
+		end
+	end
 end
 
 local PREFIX = "KSUI1:"

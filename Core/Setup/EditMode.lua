@@ -182,7 +182,7 @@ local function Clear(rect, others, rw, rh)
 end
 
 local function Shape(spot, length, thick)
-	local l = spot.right and spot.x - (spot.across and length or thick) or spot.x
+	local l = spot.center and spot.x - length / 2 or spot.right and spot.x - (spot.across and length or thick) or spot.x
 	local w, h = thick, length
 	if spot.across then
 		w, h = length, thick
@@ -201,6 +201,7 @@ local function Spots(group, boxes, icons)
 			list[1] = { x = edge - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
 		end
 		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }
+		if ns.HudStyle.Current() == "medallions" then table.insert(list, 1, { x = (slot.l + slot.r) / 2, y = slot.b + 14, center = true, across = true, gaps = { 3 } }) end
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
 		local edges, rail = {}, boxes["meters.damage"]
 		edges[#edges + 1] = focus and focus.l

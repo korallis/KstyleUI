@@ -152,6 +152,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 end
 
 Settings.defaults = {
+	auraLayout = "rows",
 	stableSlabNames = true,
 	singleSlabLevel = true,
 	hideBlizzard = true,
@@ -165,6 +166,7 @@ Settings.defaults = {
 	orbCastRoom = true,
 	edit = "player",
 	player = Kind(true, {
+		medallionsAuras = true, medallionsAuraFilter = "buffs",
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -253,6 +255,7 @@ local CHOICE_OF = {
 	castbarColor = "castbarColor",
 	castbarOrientation = "orientation",
 	auraFilter = "auraFilter",
+	medallionsAuraFilter = "auraFilter",
 	auraGrowth = "auraGrowth",
 	auraPosition = "auraPosition",
 	growth = "growth",
@@ -326,14 +329,25 @@ local function IsNumber(v)
 end
 
 local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
+local ROW_DEFAULTS = {
+	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+}
+
+function Settings.AuraRows(kind)
+	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
+end
 
 function Settings.Value(kind, key)
+	if kind == "player" and (key == "auras" or key == "auraFilter") and Settings.AuraRows(kind) then key = key == "auras" and "medallionsAuras" or "medallionsAuraFilter" end
 	local own, d = Kinds(kind)
 	local default = d[key]
 	if default == nil then
 		error("UnitFrames.Settings.Value: unknown setting " .. tostring(key), 2)
 	end
 	local value = own[key]
+	local rows = ROW_DEFAULTS[kind]
+	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then return rows[key] end
 	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
 	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
 		return slab
@@ -484,7 +498,7 @@ function Settings.Snapshot(kind)
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
-	local s = { fonts = fonts, form = form, kind = kind, inlineCast = form == "column" and kind ~= "player" }
+	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
@@ -649,24 +663,29 @@ CastRows = function(schema, kind)
 end
 
 AuraRows = function(schema, kind)
-	local function on(s)
-		return s.auras == true
+	local function on()
+		return Settings.Value(kind, "auras") == true
 	end
 	schema[#schema + 1] = Header(kind, L["auras"])
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "crestDebuffs", label = L["Your target debuffs above the crest"],
 			help = L["Medallions: fans your debuffs above the crest, with the rest on the target frame."],
-		}, function() return K.HudStyle.Current() == "medallions" end)
+		}, function() return K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout == "fan" end)
 	end
-	schema[#schema + 1] = Row(kind, {
-		type = "toggle", key = "auras", label = L["Auras"],
-		help = L["Shows the unit's buffs and debuffs beside the frame."],
-	})
-	schema[#schema + 1] = Row(kind, {
-		type = "dropdown", key = "auraFilter", label = L["Which auras"],
-		help = L["Your debuffs, all debuffs, buffs, or debuffs and buffs."], options = CHOICES.auraFilter,
-	}, on)
+	for _, medallions in ipairs(kind == "player" and { false, true } or { false }) do
+		local function visible(filter)
+			return (kind ~= "player" or Settings.AuraRows(kind) == medallions) and (not filter or on())
+		end
+		schema[#schema + 1] = Row(kind, {
+			type = "toggle", key = medallions and "medallionsAuras" or "auras", label = L["Auras"],
+			help = L["Shows the unit's buffs and debuffs beside the frame."],
+		}, function() return visible(false) end)
+		schema[#schema + 1] = Row(kind, {
+			type = "dropdown", key = medallions and "medallionsAuraFilter" or "auraFilter", label = L["Which auras"],
+			help = L["Your debuffs, all debuffs, buffs, or debuffs and buffs."], options = CHOICES.auraFilter,
+		}, function() return visible(true) end)
+	end
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
@@ -860,6 +879,9 @@ end
 function Settings.Schema()
 	local schema = {
 		{ type = "header", label = L["Unit frames"] },
+		{ type = "dropdown", key = "auraLayout", label = L["Aura layout"], help = L["Place auras above their frames or restore the crest fan."],
+			options = Options({ { "rows", L["Rows above frames"] }, { "fan", L["Crest fan"] } }),
+			showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
 			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
