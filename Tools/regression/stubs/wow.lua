@@ -507,6 +507,9 @@ local function booleanAlpha(value, yes, no)
 	return selected
 end
 
+-- Texture alpha is one value: SetAlpha and colour alpha writes replace each other, last write wins.
+-- Forever's FloatingChatFrame.lua writes backgrounds in FCF_SetWindowAlpha with SetAlpha, then reads
+-- that same opacity with GetVertexColor in FCF_GetChatWindowInfo; keep both getters in agreement.
 function Object:SetAlpha(alpha)
 	self._state.Alpha = pack(alpha)
 	self._alpha = alpha
@@ -1011,6 +1014,12 @@ end
 function Object:GetNumMaskTextures() return self._masks and #self._masks or 0 end
 function Object:GetMaskTexture(i) return self._masks and self._masks[i] end
 
+-- An atlas replaces the file asset; the render harness resolves its sheet through the atlas cache.
+function Object:SetAtlas(...)
+	self._state.Texture = nil
+	self._state.Atlas = pack(...)
+end
+
 -- The file ID a texture shows: the number SetTexture last got, as the game reports it. A secret
 -- file ID comes back secret: an API that takes a secret with no secret aspect marks the whole object
 -- as holding secrets, so its getters return secrets too.
@@ -1107,6 +1116,12 @@ local function quietSetter(field)
 end
 
 local Quiet = {}
+
+local setAtlas = quietSetter("Atlas")
+function Quiet:SetAtlas(...)
+	self._state.Texture = nil
+	setAtlas(self, ...)
+end
 
 local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBoolean")
 for _, field in ipairs({ "VertexColor", "ColorTexture" }) do
