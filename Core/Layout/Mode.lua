@@ -267,7 +267,7 @@ end
 local function RefreshPlate(key)
 	local plate = plates[key]
 	local el = Layout.Element(key)
-	if not overlay or not el or el.opts.plate == false or not Layout.Live(key) then
+	if not overlay or not el or el.opts.plate == false or not Layout.Live(key) or Mode.hidden and Mode.hidden[key] then
 		if plate then
 			plate:Hide()
 		end
@@ -502,14 +502,21 @@ local function PlateTooltip(tip, plate)
 		tip:AddCaption(el.module)
 	end
 	tip:AddLine(L["Drag to move. Arrows nudge one pixel; Shift uses the distance in Elements."])
-	tip:AddLine(L["Shift locks a drag to one axis. Choose overlap cycling in Elements."])
+	tip:AddLine(L["Shift locks a drag to one axis."])
+	local method = Layout.Setting("overlap")
+	local cycling = ({ alt = L["Alt + scroll selects overlapping movers."], ctrl = L["Ctrl + scroll selects overlapping movers."],
+		shift = L["Shift + scroll selects overlapping movers."], scroll = L["Scroll selects overlapping movers."] })[method]
+	if cycling then tip:AddLine(cycling) end
 	if el.opts.resizable then
 		tip:AddLine(L["Click it, then drag a handle to resize it."])
 	end
 	if el.opts.scalable then
 		tip:AddLine(L["Scroll to scale it, or click it and drag the corner handle."])
 	end
-	tip:AddLine(L["Right-click to reset it."])
+	tip:AddLine(L["Right-click to reset it. Shift + right-click hides this mover until restored or Layout Mode reopens."])
+	local controls = ns.Store.Profile().OptionsMovers
+	local shortcut = type(controls) == "table" and controls.moverOptions
+	if not IsSecret(shortcut) and shortcut == true then tip:AddLine(L["Double-click to open its settings."]) end
 end
 
 local function PlateDown(plate, button)
@@ -520,7 +527,15 @@ end
 
 local function PlateClick(plate, button)
 	if button == "RightButton" then
-		Layout.Reset(plate.key)
+		if KeyDown(IsShiftKeyDown) then
+			Mode.hidden[plate.key] = true
+			plate:Hide()
+			Mode.Select(nil)
+			toolbar:Arrange()
+			Mode.Refresh()
+		else
+			Layout.Reset(plate.key)
+		end
 	end
 end
 
@@ -533,10 +548,16 @@ local function PlateDoubleClick(plate, button)
 	if button ~= "LeftButton" or not Layout.IsActive() or InCombatLockdown() then return end
 	local bar = plate.key:match("^actionbars%.(.+)$") or plate.key == "consumables.bar" and "consumables"
 	local settings = bar and ns.Store.Module("ActionBars")
-	if not (settings and settings[bar] and settings[bar].moverOptions) then return end
-	ns.Options.Write("ActionBars", "editBar", bar)
+	local el = Layout.Element(plate.key)
+	local actionBar = settings and settings[bar]
+	local controls = ns.Store.Profile().OptionsMovers
+	local shortcut = type(controls) == "table" and controls.moverOptions
+	if actionBar then
+		if not actionBar.moverOptions then return end
+		ns.Options.Write("ActionBars", "editBar", bar)
+	elseif IsSecret(shortcut) or shortcut ~= true then return end
 	Layout.Exit()
-	ns.Options.Open("ActionBars")
+	ns.Options.Open(actionBar and "ActionBars" or el.module or "Elements")
 end
 
 local function PlateWheel(plate, delta)
@@ -863,6 +884,11 @@ local function BuildToolbar()
 		Layout.Exit(true)
 		ns.Options.BindKeys()
 	end })
+	panel.restore = Widgets.Button(content, { text = L["Restore movers"], tooltip = L["Show every mover hidden in this Layout Mode session."], onClick = function()
+		Mode.hidden = {}
+		Mode.Refresh()
+		panel:Arrange()
+	end })
 	local function Elements()
 		local out, query = {}, panel.search and panel.search:GetText():lower() or ""
 		for _, el in ipairs(Layout.Elements()) do
@@ -873,19 +899,25 @@ local function BuildToolbar()
 		return #out > 0 and out or { { value = "", label = L["No matches"] } }
 	end
 	panel.elements = Widgets.Dropdown(content, { width = 200, options = Elements, placeholder = L["Choose an element"], onChange = function(key)
-		if key ~= "" then Mode.Select(key) end
+		if key ~= "" then
+			Mode.hidden[key] = nil
+			Mode.Refresh()
+			Mode.Select(key)
+			panel:Arrange()
+		end
 	end })
 	panel.search = Widgets.EditBox(content, { width = 160, placeholder = L["Find an element"], onChange = function()
 		panel.elements:SetOptions(Elements)
 	end })
 	function panel:Arrange()
+		panel.restore:SetShown(Mode.hidden and next(Mode.hidden) ~= nil)
 		local search = ns.Store.Module("LayoutControls").search
 		panel.search:SetShown(search)
 		panel.elements:SetShown(search)
 		panel.bind:SetShown(ns.Store.Module("ActionBars").bindingHints ~= false)
 		local gap = Tokens.Size("gapMedium")
 		local x, tallest = 0, 0
-		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.search, panel.elements, panel.done }) do
+		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
 			if item:IsShown() then
 				item:ClearAllPoints()
 				item:SetPoint("LEFT", content, "LEFT", Widgets.Snap(panel, x), 0)
@@ -947,6 +979,7 @@ local function Build()
 end
 
 function Mode.Show()
+	Mode.hidden = {}
 	Build()
 	toolbar:Arrange()
 	overlay:Show()

@@ -7,8 +7,10 @@ local Load = dofile("Tools/regression/load_files.lua")
 
 return Common.Run(function()
 	local view = os.getenv("RENDER_CORE_PAGE") or "layout"
+	local saved = Gallery.Saved({ UnitFrames = {} })
+	saved.profiles.Default.HudStyle = { style = "frames" }
 	local env, K = U.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ UnitFrames = {}, HudStyle = { style = "frames" } }),
+		saved = saved,
 		setup = function(e)
 			Gallery.Setup(e)
 			for unit, name in pairs({ player = "Valerin", target = "Training Dummy" }) do
@@ -28,11 +30,16 @@ return Common.Run(function()
 	K.Options.Write("Layout", "gridAlpha", 0.15)
 	K.Options.Write("Layout", "nudgeStep", 100)
 	K.Options.Write("Layout", "overlap", "ctrl")
-	if view == "mode" then
+	if view == "mode" or view == "hidden" then
 		assert(layout.Enter())
 		layout.Mode.Select("unitframes.target")
+		if view == "hidden" then
+			env.IsShiftKeyDown = function() return true end
+			local plate = layout.Mode.Plate("unitframes.target")
+			plate:GetScript("OnClick")(plate, "RightButton")
+		end
 	else
-		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", sharing = "Profiles", appearance = "General", window = "General" }
+		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements" }
 		assert(K.Options.Open(assert(pages[view], "unknown core page")))
 		assert(layout.Update("Options.Window", { width = 1240, height = 860, scale = 1 }))
 		local ns = env._addons.KstyleUI_Options
@@ -44,13 +51,14 @@ return Common.Run(function()
 			ns.Pages.includeLayout = false
 			ns.Changed()
 		end
+		if view == "import" then assert(ns.Pages.ReviewImport(assert(K.Store.Export()))) end
 		for _, element in ipairs(layout.Elements()) do
 			if element.module == "UnitFrames" then layout.Element(element.key).frame:Hide() end
 		end
 		env.RunTimers()
 		Gallery.Ticks(O.W, env, 30)
 		env.RunTimers()
-		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", links = "Target frame" })[view]
+		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", search = "Window conveniences", movers = "Mover controls", links = "Target frame" })[view]
 		if label then
 			local found
 			for i, item in ipairs(ns.Window.State().items) do

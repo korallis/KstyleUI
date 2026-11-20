@@ -181,20 +181,20 @@ function Profiles.Preview(text, scope, includeLayout)
 		payload.namedLayouts = nil
 	end
 	table.sort(changes)
-	local labels = {}
-	for _, module in ipairs(changes) do
-		local label = ({ Appearance = L["Appearance"], Widgets = L["Widgets"], HudStyle = L["HUD style"], Readability = L["Readability"] })[module] or module
-		for _, entry in ipairs(K.Setup and K.Setup.PICKER or {}) do if entry.name == module then label = entry.label; break end end
-		labels[#labels + 1] = label
-	end
 	payload.settings, payload.layout = settings, layout
 	local encoded = Encode(payload)
 	local valid, err = Store.Decode(encoded)
 	if not valid then return nil, err end
 	local current, future = Store.Module("Appearance"), settings.Appearance
-	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
-		and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
-	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(labels, ", ") or L["No changes"],
+	local scaleChanged
+	if Store.Module("ProfileTools").scaleWarning and future then
+		local safe = true
+		for _, value in ipairs({ current.uiScaleAuto, current.uiScale, future.uiScaleAuto, future.uiScale }) do
+			if issecretvalue and issecretvalue(value) then safe = false; break end
+		end
+		scaleChanged = safe and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
+	end
+	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end
 

@@ -211,6 +211,16 @@ local function FaceOptions()
 		out[#out + 1] = { value = face.key, label = face.label }
 		seen[PathKey(face.path)] = true
 	end
+	for _, entry in ipairs({ { "GameFontNormal", L["Blizzard Default"] }, { "ChatFontNormal", L["Blizzard Chat"] }, { "SystemFont_Med1", L["System Default"] } }) do
+		local object = rawget(_G, entry[1])
+		if object and type(object.GetFont) == "function" then
+			local ok, path = pcall(object.GetFont, object)
+			if ok and not (issecretvalue and issecretvalue(path)) and Theme.IsFontPath(path) then
+				out[#out + 1] = { value = path, label = entry[2] }
+				seen[PathKey(path)] = true
+			end
+		end
+	end
 	local media = ns.Widgets and ns.Widgets.MediaOptions
 	if media then
 		local ok, list = pcall(media, "font")

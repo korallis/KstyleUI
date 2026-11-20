@@ -86,7 +86,7 @@ local function Render(keepOffset, reselect, pageChanged)
 	end
 	local items
 	if state.query then
-		items = Model.Search(state.pages, state.query) or {}
+		items = Model.Search(K.Store.Module("OptionsWindow").searchPage and { CurrentPage() } or state.pages, state.query) or {}
 		if #items == 0 then
 			items = Note(format(L["No settings match \"%s\"."], state.query))
 		end

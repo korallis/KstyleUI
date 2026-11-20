@@ -22,10 +22,10 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Coordinates always visible | Present | Show coordinates on every plate | [Session] |
 | Overlap cycle: off / scroll / Shift / Ctrl / Alt scroll | Present | Elements > Overlap cycling; Alt remains default; other scrolling still scales | [General source] |
 | Select element from list / filter | Present | Find Layout Mode elements; searchable toolbar list | [Unlock filter] |
-| Temporarily hide an individual overlay | Missing, fits | Follow-up L1: session-only hiding and an obvious restore action | [Session] |
+| Temporarily hide an individual overlay | Present | Shift + right-click hides a mover for this session; Restore movers or the element picker shows it again | [Session] |
 | Hover-only top toolbar / hold Shift to hide | Missing, fits | Follow-up L1: optional toolbar reveal, without changing default keyboard behaviour | [Session] |
 | Toolbar smaller / bigger | Present | Layout.Toolbar scale through Elements | [Session] |
-| Open element options from mover | Missing, fits | Follow-up L1: generalise the existing action-bar double-click setting to other modules | [Session] |
+| Open element options from mover | Present | Elements > Double-click movers for settings, off by default; action bars retain their own shortcut setting | [Session] |
 | Numeric X position | Present | Element > X offset | [Movers] |
 | Numeric Y position | Present | Element > Y offset | [Movers] |
 | Centre on screen | Present | Anchor Centre with X and Y zero | [Movers] |
@@ -48,7 +48,9 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Conditional per-element override anchors | Missing, breaks consistency | A second per-setting condition editor duplicates the profile/layout assignment system | [Movers] |
 | Position Blizzard-owned frames through Edit Mode | Missing, breaks consistency | Layout owns KstyleUI replacements; it never moves Blizzard frames (binding design rule) | [Unlock tools] |
 
-Follow-up L1 covers editor conveniences; L2 covers the larger point-anchor/independent-match model. Together with the appearance/profile follow-ups in `KstyleUI_Options/README.md`, fitting gaps exceed a 600-line implementation batch; this PR ships height matching, match adjustments, grid brightness and interaction controls first. No existing place, font, scale or opacity changes by default. Both matches preserve an element's saved fallback size. When both matches conflict with a locked aspect ratio, width wins. Protected changes reuse `Combat.Queue`; no new event, ticker or per-frame path was added.
+This follow-up adds session-only mover hiding and optional double-click settings, preserving the existing action-bar toggle. Hidden movers return when Layout Mode reopens; their elements and saved positions never change. The mover tooltip names the actual overlap modifier (Alt + scroll by default).
+
+Remaining L1 covers cursor lighting, snap targets and toolbar reveal; L2 covers the larger point-anchor/independent-match model. Together with the appearance/profile follow-ups in `KstyleUI_Options/README.md`, fitting gaps exceed a 600-line implementation batch; this PR ships height matching, match adjustments, grid brightness and interaction controls first. No existing place, font, scale or opacity changes by default. Both matches preserve an element's saved fallback size. When both matches conflict with a locked aspect ratio, width wins. Protected changes reuse `Combat.Queue`; no new event, ticker or per-frame path was added.
 
 Forever API proof is pinned to `9dc84f0d3bbae1768ac3405b3716000bd93eda06`: `Blizzard_APIDocumentationGenerated/InputDocumentation.lua` declares `IsAltKeyDown`, `IsControlKeyDown`, `IsShiftKeyDown`; the shared modifier reader guards availability and secrecy. `SimpleScriptRegionAPIDocumentation.lua` declares size getters and `SimpleScriptRegionResizingAPIDocumentation.lua` declares setters; the existing frame measurement path rejects secret/invalid dimensions before matching. `SimpleRegionAPIDocumentation.lua` and `SimpleTextureBaseAPIDocumentation.lua` prove alpha/vertex colour setters used by the existing grid painter. New geometry fields use Layout's existing validation, sparse saved records, history and combat queue.
 
