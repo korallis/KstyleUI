@@ -225,16 +225,12 @@ function Settings.Schema()
 	local SOURCE_OPTIONS = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } }
 	local INACTIVE_OPTIONS = { { value = "", label = L["Current style"] }, { value = "grey", label = L["Grey"] }, { value = "colour", label = L["Full colour"] } }
 
-	local function Mirrored(group)
-		return function(settings) return not ns.Path.Restyles(group, settings.path) end
+	local function Mirrors(group, settings)
+		return not ns.Path.Restyles(group, settings.path) and ns.Path.Get(group) ~= "reskin"
 	end
 
 	local function Custom(key)
 		return function(settings) return settings[key] == "custom" end
-	end
-
-	local function IsCustomAccent(settings)
-		return settings.accent == "custom"
 	end
 
 	local function IsCustomBar(settings)
@@ -257,8 +253,7 @@ function Settings.Schema()
 	local function Add(schema, row, mirrorOnly)
 		if mirrorOnly then
 			local shown = row.showWhen
-			local mirrored = Mirrored(mirrorOnly)
-			row.showWhen = function(settings) return mirrored(settings) and (not shown or shown(settings)) end
+			row.showWhen = function(settings) return Mirrors(mirrorOnly, settings) and (not shown or shown(settings)) end
 		end
 		schema[#schema + 1] = row
 	end
@@ -283,7 +278,7 @@ function Settings.Schema()
 		Add(schema, Slider(group, "timerY", L["Timer vertical offset"], L["Moves the countdown down or up."], ICON_RANGE))
 		Add(schema, Slider(group, "countX", L["Count horizontal offset"], L["Moves the charge or stack count left or right."], ICON_RANGE))
 		Add(schema, Slider(group, "countY", L["Count vertical offset"], L["Moves the charge or stack count down or up."], ICON_RANGE))
-		Add(schema, Toggle(group, "vertical", L["Vertical"], L["Fill each column top to bottom instead of each row."]), group)
+		Add(schema, Toggle(group, "vertical", L["Vertical"], L["Fill each column first. Attached rows keep their size; a detached or moved row stands upright."]), group)
 		if COOLDOWN_GROUPS[group] then
 			Add(schema, Toggle(group, "hideZero", L["Hide 0 charges"], L["Hide the charge count while no charge is left."]), group)
 			Add(schema, Toggle(group, "countOnly", L["Counts only"], L["Show only the charge or stack count, in an empty socket."]), group)
@@ -368,9 +363,9 @@ function Settings.Schema()
 			help = L["Keep hairlines quiet, or use your class colour or a colour you pick."],
 			options = { { value = "quiet", label = L["Quiet"] }, { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
 		},
-		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = IsCustomAccent },
+		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = Custom("accent") },
 		{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
-		{ type = "toggle", key = "glowsInCombat", label = L["Glows only in combat"], help = L["Hide the ready and proc glows of cooldown icons out of combat."], showWhen = Mirrored("essential") },
+		{ type = "toggle", key = "glowsInCombat", label = L["Glows only in combat"], help = L["Hide the ready and proc glows of cooldown icons out of combat."], showWhen = function(settings) return Mirrors("essential", settings) end },
 		{ type = "header", label = L["Text"] },
 		{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
 		{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
@@ -513,7 +508,7 @@ function Settings.Read()
 	local rules, savedRules = current.rules or {}, type(saved.rules) == "table" and saved.rules or {}
 	for _, key in ipairs(RULES) do
 		local text = savedRules[key]
-		rules[key] = type(text) == "string" and not ns.IsSecret(text) and #text <= MAX_RULE and text or ""
+		rules[key] = type(text) == "string" and not ns.IsSecret(text) and #text:gsub("[\128-\191]", "") <= MAX_RULE and text or ""
 	end
 	current.rules = rules
 	for _, kind in ipairs({ "timer", "count", "name" }) do
@@ -531,6 +526,12 @@ function Settings.Read()
 	ReadBars(current.bars, saved.bars, defaults.bars)
 	ns.Rules.Reset()
 	return current
+end
+
+function Settings.Free(group)
+	local el = K.Layout and K.Layout.Element("cooldowns." .. group)
+	local s, d = el and el.settings, el and el.default
+	return Section().attached == false or s ~= nil and d ~= nil and (s.anchor ~= d.anchor or s.x ~= d.x or s.y ~= d.y)
 end
 
 function Settings.SourceColor(key)

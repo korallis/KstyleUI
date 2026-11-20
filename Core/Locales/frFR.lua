@@ -923,7 +923,7 @@ ns.Locale.Add({
 	["Feet"] = "Pieds",
 	["Fight"] = "Combat",
 	["Fill direction"] = "Sens de remplissage",
-	["Fill each column top to bottom instead of each row."] = "Remplit chaque colonne de haut en bas au lieu de chaque rang\195\169e.",
+	["Fill each column first. Attached rows keep their size; a detached or moved row stands upright."] = "Remplit d'abord chaque colonne. Une rang\195\169e attach\195\169e garde sa taille ; d\195\169tach\195\169e ou d\195\169plac\195\169e, elle se dresse.",
 	["Fill from the other end"] = "Remplir depuis l'autre extr\195\169mit\195\169",
 	["Fill in the delete word"] = "Remplir le mot de suppression",
 	["Fill opacity"] = "Opacit\195\169 du remplissage",

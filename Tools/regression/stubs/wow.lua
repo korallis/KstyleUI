@@ -1506,6 +1506,15 @@ function Stubs.NewEnv(opts)
 		return secretValues[value] ~= nil
 	end
 
+	-- strcmputf8i(a, b) compares in any case, as the client does; the stub folds ASCII and the Latin-1 capitals.
+	local function Fold(text)
+		return (text:lower():gsub("\195([\128-\150\152-\158])", function(c) return "\195" .. string.char(c:byte() + 32) end))
+	end
+	function env.strcmputf8i(a, b)
+		a, b = Fold(a), Fold(b)
+		return a == b and 0 or a < b and -1 or 1
+	end
+
 	-- Reveal(secret) -> the value a test stored in it. Tests only: addon code never sees this.
 	function env.Reveal(secret)
 		return assert(secretValues[secret], "Reveal: not a secret value")[1]

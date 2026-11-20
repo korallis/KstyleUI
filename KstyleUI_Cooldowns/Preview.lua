@@ -1,9 +1,9 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings, cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, L = K.Widgets, K.Tokens, K.L
-local Settings, Row, BarRow, Style = ns.Settings, ns.Row, ns.BarRow, ns.Style
+local Settings, Row, BarRow, Style, Grid = ns.Settings, ns.Row, ns.BarRow, ns.Style, ns.Grid
 
 local Preview = {}
 ns.Preview = Preview
@@ -21,7 +21,8 @@ function Preview.Build(...)
 		utility = { false, { 60, 48 }, false, false },
 		buffs = { { 30, 12 }, { 600, 420 }, false },
 	}
-	local SAMPLE_CHARGES = { essential = { [2] = 2 }, buffs = { [1] = 3 } }
+	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 } }
+	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
 	local SAMPLE_BARS = {
 		{ icon = 132208, name = L["Rapid Fire"], duration = 15, left = 9 },
@@ -29,15 +30,25 @@ function Preview.Build(...)
 	}
 	local SAMPLE_BAR_FILL = 0.6
 
-	local function Fill(row, group)
-		local cfg = row.cfg
-		local count = row:SetCount(#SAMPLE_ICONS[group])
+	local function Samples(frame, group)
+		local list, other = {}, OTHER[group]
+		for i = 1, #SAMPLE_ICONS[group] do list[i] = { group, i } end
+		local cfg = other and frame.rows[other].cfg
+		if cfg and cfg.overflow then
+			for i = Grid.Capacity(cfg) + 1, #SAMPLE_ICONS[other] do list[#list + 1] = { other, i } end
+		end
+		return list
+	end
+
+	local function Fill(row, group, list, rule)
+		local cfg, current = row.cfg, Settings.current
+		local count = row:SetCount(#list)
 		local now = GetTime and GetTime() or 0
+		local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
 		for i = 1, count do
-			local icon = row.icons[i]
-			icon:SetIcon(SAMPLE_ICONS[group][i])
-			local sample = SAMPLE_COOLDOWNS[group][i]
-			local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
+			local icon, from, n = row.icons[i], list[i][1], list[i][2]
+			icon:SetIcon(SAMPLE_ICONS[from][n])
+			local sample = SAMPLE_COOLDOWNS[from][n]
 			if sample and cooldownGroup then
 				icon:SetCooldown(now - (sample[1] - sample[2]), sample[1])
 			elseif sample then
@@ -47,15 +58,24 @@ function Preview.Build(...)
 				icon:ClearCooldown()
 			end
 			icon.onCooldown = cooldownGroup and sample and true or false
-			icon:SetCount(SAMPLE_CHARGES[group] and SAMPLE_CHARGES[group][i])
-			local glows = not Settings.current.glowsInCombat or InCombatLockdown()
-			Style.SetProc(icon, glows and cfg.procGlow and SAMPLE_PROC[group] and SAMPLE_PROC[group][i])
+			local charges = SAMPLE_CHARGES[from] and SAMPLE_CHARGES[from][n]
+			icon:SetCount(not (charges == 0 and cfg.hideZero) and charges or nil)
+			local glows = not current.glowsInCombat or InCombatLockdown()
+			Style.SetProc(icon, glows and cfg.procGlow and SAMPLE_PROC[from] and SAMPLE_PROC[from][n])
 			Style.SetReady(icon, glows and cooldownGroup and cfg.readyGlow and not sample)
 			if not cooldownGroup then
 				icon:SetUsable(sample and true or false)
 			end
+			icon.rule = rule
+			row:Look(icon)
+			if rule.range or icon.outOfRange then
+				icon.outOfRange = rule.range
+				if rule.range then icon:SetTint(current.rangeR, current.rangeG, current.rangeB) else icon:SetTint(1) end
+			end
 			icon:Paint()
+			if cooldownGroup then row:Visible(icon) end
 		end
+		row:Settle()
 	end
 
 	local function FillBars(row)
@@ -76,7 +96,7 @@ function Preview.Build(...)
 	local function Fitted(frame, cfg, group)
 		local width = frame.pane:GetWidth()
 		local columns = #SAMPLE_ICONS[group]
-		if not cfg.vertical then
+		if not (cfg.vertical and Settings.Free(group)) then
 			if issecretvalue(width) or type(width) ~= "number" or width <= 0 then
 				return cfg
 			end
@@ -97,7 +117,8 @@ function Preview.Build(...)
 	local function Refresh(frame)
 		Settings.Read()
 		local gap = Tokens.Size("gapMedium")
-		local previous
+		local previous, rule = nil, {}
+		for _, key in ipairs(Settings.RULES) do rule[key] = Settings.current.rules[key] ~= "" or nil end
 		for _, group in ipairs(Settings.GROUPS) do
 			local row = frame.rows[group]
 			row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group], group))
@@ -107,12 +128,14 @@ function Preview.Build(...)
 			else
 				Widgets.Point(row.holder, "TOP", frame, "TOP", 0, -Tokens.Size("gapHuge"))
 			end
-			if group == "bars" then
-				FillBars(row)
-			else
-				Fill(row, group)
-			end
 			previous = row
+		end
+		for _, group in ipairs(Settings.GROUPS) do
+			if group == "bars" then
+				FillBars(frame.rows.bars)
+			else
+				Fill(frame.rows[group], group, Samples(frame, group), rule)
+			end
 		end
 	end
 

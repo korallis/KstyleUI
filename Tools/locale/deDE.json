@@ -916,7 +916,7 @@
 	"Feet": "Füße",
 	"Fight": "Kampf",
 	"Fill direction": "Füllrichtung",
-	"Fill each column top to bottom instead of each row.": "Füllt jede Spalte von oben nach unten statt jeder Reihe.",
+	"Fill each column first. Attached rows keep their size; a detached or moved row stands upright.": "Füllt zuerst jede Spalte. Angedockte Reihen behalten ihre Größe; gelöst oder verschoben steht eine Reihe aufrecht.",
 	"Fill from the other end": "Vom anderen Ende füllen",
 	"Fill in the delete word": "Löschwort eintragen",
 	"Fill opacity": "Deckkraft der Füllung",

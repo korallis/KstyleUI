@@ -6,22 +6,19 @@ ns.Rules = Rules
 
 local EMPTY = {}
 Rules.EMPTY = EMPTY
-local parsed, bySpell, any = {}, {}, {}
+local parsed, bySpell = {}, {}
 local stamp = 0
 
 local function Parse(text)
-	local set = parsed[text]
-	if set then return set end
-	set = {}
+	local set = {}
 	for token in text:gmatch("[^,]+") do
 		token = token:match("^%s*(.-)%s*$")
 		if token:match("^[%d%s]+$") then
 			for id in token:gmatch("%d+") do set[tonumber(id)] = true end
 		elseif token ~= "" then
-			set[token:lower()] = true
+			set[token] = true
 		end
 	end
-	parsed[text] = set
 	return set
 end
 
@@ -29,19 +26,26 @@ local function Name(spell)
 	local api = C_Spell
 	if ns.IsSecret(spell) or type(spell) ~= "number" or not (api and api.GetSpellName) then return nil end
 	local ok, name = pcall(api.GetSpellName, spell)
-	if ok and not ns.IsSecret(name) and type(name) == "string" then return name:lower() end
-	return nil
+	if ok and not ns.IsSecret(name) and type(name) == "string" then return name end
 end
 
-local function Build(a, b, c)
-	local rules, out, names = ns.Settings.current.rules, nil, nil
+local function Named(set, name)
+	if not name then return false end
+	for token in pairs(set) do
+		if type(token) == "string" and (strcmputf8i and strcmputf8i(name, token) == 0 or name:lower() == token:lower()) then return true end
+	end
+	return false
+end
+
+local function Build(a, b)
+	local out, names
 	for _, key in ipairs(ns.Settings.RULES) do
-		if any[key] then
-			local set = Parse(rules[key])
-			local hit = set[a] or set[b] or set[c]
+		local set = parsed[key]
+		if set then
+			local hit = set[a] or set[b]
 			if not hit then
 				names = names or { Name(a) or false, Name(b) or false }
-				hit = set[names[1]] or set[names[2]]
+				hit = Named(set, names[1]) or Named(set, names[2])
 			end
 			if hit then
 				out = out or {}
@@ -54,25 +58,21 @@ end
 
 function Rules.Reset()
 	stamp = stamp + 1
-	for spell in pairs(bySpell) do bySpell[spell] = nil end
+	bySpell = {}
 	local rules = ns.Settings.current.rules
-	for _, key in ipairs(ns.Settings.RULES) do any[key] = rules[key] ~= "" end
+	for _, key in ipairs(ns.Settings.RULES) do parsed[key] = rules[key] ~= "" and Parse(rules[key]) or nil end
 end
 
 function Rules.For(entry)
 	if not entry then return EMPTY end
 	if entry.ruleStamp ~= stamp then
-		entry.rule, entry.ruleStamp = Build(entry.spell, entry.spellID, entry.overrideSpellID), stamp
+		entry.rule, entry.ruleStamp = Build(entry.spell, entry.spellID), stamp
 	end
 	return entry.rule
 end
 
 function Rules.ForSpell(spell)
 	if ns.IsSecret(spell) or type(spell) ~= "number" then return EMPTY end
-	local rule = bySpell[spell]
-	if not rule then
-		rule = Build(spell)
-		bySpell[spell] = rule
-	end
-	return rule
+	if not bySpell[spell] then bySpell[spell] = Build(spell) end
+	return bySpell[spell]
 end

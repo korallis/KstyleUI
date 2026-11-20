@@ -223,8 +223,11 @@ function Style.MoveText(text, owner, position, x, y)
 		Widgets.Point(text, position, owner, position, x, y)
 		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
 	elseif x ~= 0 or y ~= 0 then
-		local point, relative, relativePoint, px, py = text:GetPoint(1)
-		if point then text:SetPoint(point, relative, relativePoint, px + Widgets.Snap(owner, x), py + Widgets.Snap(owner, y)) end
+		local anchor = { text:GetPoint(1) }
+		for i = 1, 5 do
+			if ns.IsSecret(anchor[i]) then return end
+		end
+		if anchor[1] then text:SetPoint(anchor[1], anchor[2], anchor[3], anchor[4] + Widgets.Snap(owner, x), anchor[5] + Widgets.Snap(owner, y)) end
 	end
 end
 

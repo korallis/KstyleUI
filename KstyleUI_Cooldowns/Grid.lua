@@ -1,4 +1,4 @@
--- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap and, for a vertical grid, columns filled top to bottom.
+-- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap and, for a vertical grid, columns filled top to bottom: inside the same box, or turned on its side when the row is free of the HUD.
 local _, ns = ...
 
 local Grid = {}
@@ -30,7 +30,7 @@ end
 
 function Grid.Size(cfg)
 	local columns, rows, spacing, cw, ch = Dims(cfg)
-	if cfg.vertical then
+	if cfg.vertical and cfg.free then
 		return rows * cw + (rows - 1) * spacing, columns * ch + (columns - 1) * spacing
 	end
 	return columns * cw + (columns - 1) * spacing, rows * ch + (rows - 1) * spacing
@@ -74,6 +74,7 @@ end
 function Grid.Offset(index, count, cfg)
 	local columns, rows, spacing, cw, ch = Dims(cfg)
 	if cfg.vertical then
+		if not cfg.free then columns, rows = rows, columns end
 		local y, x = Line(index, count, cfg, columns, rows, spacing, ch, cw)
 		return x, y
 	end

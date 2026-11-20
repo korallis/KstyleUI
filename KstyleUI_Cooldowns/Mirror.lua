@@ -427,18 +427,19 @@ local function OnCooldownDone(cooldown)
 		else
 			SetCooldownState(row, icon, CooldownSpell(icon.entry))
 		end
+		row:Settle()
 	end
 end
 
-local function Tint(icon, out)
+local function Tint(icon, out, again)
+	if out == (icon.outOfRange == true) and not again then return end
 	if out then
 		local current = Settings.current
-		icon.outOfRange = true
 		icon:SetTint(current.rangeR, current.rangeG, current.rangeB)
 	elseif icon.outOfRange then
-		icon.outOfRange = false
 		icon:SetTint(1)
 	end
+	icon.outOfRange = out
 end
 
 local function Range(icon)
@@ -448,7 +449,7 @@ local function Range(icon)
 		local ok, inRange = pcall(api.IsSpellInRange, spell)
 		out = ok and not ns.IsSecret(inRange) and inRange == false
 	end
-	Tint(icon, out)
+	Tint(icon, out, true)
 end
 
 local function Rule(row, icon, entry)
@@ -457,6 +458,13 @@ local function Rule(row, icon, entry)
 		icon.rule = rule
 		row:Look(icon)
 	end
+end
+
+local function Match(row, icon)
+	Rule(row, icon, icon.entry)
+	RefreshCooldownIcon(row, icon)
+	Range(icon)
+	row:Visible(icon)
 end
 
 local function AssignCooldowns(row, list)
@@ -468,28 +476,25 @@ local function AssignCooldowns(row, list)
 			icon.cooldown:HookScript("OnCooldownDone", OnCooldownDone)
 		end
 		icon.entry = list[i]
-		Rule(row, icon, list[i])
-		RefreshCooldownIcon(row, icon)
-		Range(icon)
-		row:Visible(icon)
+		Match(row, icon)
 	end
+	row:Settle()
 end
 
 local function Merged(group)
-	local list, other, out = lists[group], OTHER[group], merged[group]
-	local cfg, otherCfg = Settings.current[group], Settings.current[other]
+	local list, other = lists[group], OTHER[group]
+	local extra, cfg = lists[other], Settings.current[other]
+	local cap = Grid.Capacity(cfg)
+	if not (cfg.overflow and extra and #extra > cap and Live(other)) then return list end
+	local out = merged[group]
 	for i = #out, 1, -1 do
 		out[i] = nil
 	end
-	local keep = cfg.overflow and Live(other) and Grid.Capacity(cfg) or #list
-	for i = 1, math.min(keep, #list) do
-		out[#out + 1] = list[i]
+	for i = 1, #list do
+		out[i] = list[i]
 	end
-	local extra = lists[other]
-	if otherCfg.overflow and extra and Live(other) then
-		for i = Grid.Capacity(otherCfg) + 1, #extra do
-			out[#out + 1] = extra[i]
-		end
+	for i = cap + 1, #extra do
+		out[#out + 1] = extra[i]
 	end
 	return out
 end
@@ -878,7 +883,6 @@ local function ApplySettings()
 			end
 		end
 	end
-	Refill()
 	Index()
 	Reskin.Refresh()
 end
@@ -915,6 +919,7 @@ local function EachCooldownIcon(fn)
 			for i = 1, row.count do
 				fn(row, row.icons[i])
 			end
+			row:Settle()
 		end
 	end
 end
@@ -959,7 +964,7 @@ end
 
 local function OverrideIcon(row, icon)
 	if icon.entry == eventEntry then
-		RefreshCooldownIcon(row, icon)
+		Match(row, icon)
 	end
 end
 
@@ -1083,6 +1088,7 @@ local function OnLayout(_, key)
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row and KEYS[group] == key then
+			if row.cfg.vertical then row:Resize() end
 			row:Restyle()
 		end
 	end

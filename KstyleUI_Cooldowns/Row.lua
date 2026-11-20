@@ -34,6 +34,7 @@ function Row.New(parent, group, cfg)
 end
 
 function Row:Resize()
+	self.cfg.free = self.cfg.vertical and ns.Settings.Free(self.group) or nil
 	local width, height = Grid.Size(self.cfg)
 	Widgets.Size(self.holder, width, height)
 end
@@ -70,7 +71,9 @@ function Row:Look(icon)
 		icon.countOnly = only
 		icon.icon:SetAlpha(only and 0 or 1)
 	end
-	icon.greyWhileCooling = (cfg.desaturate or rule.grey == true) and not rule.colour
+	local grey = (cfg.desaturate or rule.grey == true) and not rule.colour
+	local repaint = (icon.greyWhileCooling or false) ~= grey
+	icon.greyWhileCooling = grey
 	if not cooldowns then
 		icon.inactiveShade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
 		icon:Paint()
@@ -90,6 +93,7 @@ function Row:Look(icon)
 		Style.GlowColor(icon)
 	end
 	icon:StyleCooldown()
+	if repaint then icon:Paint() end
 end
 
 function Row:Visible(icon)
@@ -105,7 +109,7 @@ function Row:Visible(icon)
 	if icon.ruleHidden ~= hidden then
 		icon.ruleHidden = hidden
 		Style.Mouse(icon, current.tooltips and not hidden)
-		if current.closeGaps then self:Place() end
+		self.placeOwed = current.closeGaps or nil
 	end
 end
 
@@ -119,8 +123,13 @@ function Row:Icon(index)
 	return icon
 end
 
+function Row:Settle()
+	if self.placeOwed then self:Place() end
+end
+
 function Row:Place()
 	local cfg, count = self.cfg, self.count
+	self.placeOwed = nil
 	local gaps = ns.Settings.current.closeGaps and COOLDOWN_GROUPS[self.group]
 	local shown, slot = count, 0
 	if gaps then

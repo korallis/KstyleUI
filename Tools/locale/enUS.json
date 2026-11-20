@@ -916,7 +916,7 @@
 	"Feet",
 	"Fight",
 	"Fill direction",
-	"Fill each column top to bottom instead of each row.",
+	"Fill each column first. Attached rows keep their size; a detached or moved row stands upright.",
 	"Fill from the other end",
 	"Fill in the delete word",
 	"Fill opacity",

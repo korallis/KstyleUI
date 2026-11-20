@@ -231,9 +231,7 @@ do
 	assert(row.count == cap and #ns.Mirror.Row("utility").icons >= 2, "a long essential list fills its grid")
 	local width, height = row.holder:GetWidth(), row.holder:GetHeight()
 	Write("essential.vertical", true)
-	assert(math.abs(row.holder:GetWidth() - height) < 1 and math.abs(row.holder:GetHeight() - width) < 1, "Vertical turns the grid on its side")
-	local first, second = { row.icons[1]:GetPoint(1) }, { row.icons[2]:GetPoint(1) }
-	assert(first[4] == second[4] and first[5] ~= second[5], "a vertical grid fills a column first")
+	assert(row.holder:GetWidth() == width and row.holder:GetHeight() == height, "attached, Vertical keeps the grid's box")
 	Write("essential.vertical", false)
 	assert(math.abs(row.holder:GetWidth() - width) < 1, "and returns")
 
@@ -298,7 +296,7 @@ do
 	local width = essential.holder:GetWidth()
 	Write("essential.vertical", true); Write("glowsInCombat", true); Write("essential.readyGlow", true); Write("essential.timerPosition", "TOP")
 	frame:Refresh()
-	assert(essential.holder:GetHeight() > width - 1 and not essential.icons[4].proc and not essential.icons[2].ready, "the preview follows vertical grids and glows in combat")
+	assert(math.abs(essential.holder:GetWidth() - width) < 1 and not essential.icons[4].proc and not essential.icons[2].ready, "the preview follows vertical grids and glows in combat")
 	assert(W.LastCall(essential.icons[1].countdown, "SetPoint")[1] == "TOP", "the preview follows the timer position")
 	assert(W.LastCall(frame.rows.buffs.icons[3].icon, "SetDesaturated")[1] == false, "the preview keeps the inactive sample in colour")
 	Clean(env, K, "buff icons and preview")

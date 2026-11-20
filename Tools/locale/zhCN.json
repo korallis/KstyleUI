@@ -916,7 +916,7 @@
 	"Feet": "脚",
 	"Fight": "战斗",
 	"Fill direction": "填充方向",
-	"Fill each column top to bottom instead of each row.": "按列从上到下填充，而不是按行。",
+	"Fill each column first. Attached rows keep their size; a detached or moved row stands upright.": "先逐列填充。附着在HUD上的行保持尺寸；分离或移动后的行竖直排列。",
 	"Fill from the other end": "从另一端填充",
 	"Fill in the delete word": "自动填写删除确认词",
 	"Fill opacity": "填充不透明度",

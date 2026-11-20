@@ -923,7 +923,7 @@ ns.Locale.Add({
 	["Feet"] = "F\195\188\195\159e",
 	["Fight"] = "Kampf",
 	["Fill direction"] = "F\195\188llrichtung",
-	["Fill each column top to bottom instead of each row."] = "F\195\188llt jede Spalte von oben nach unten statt jeder Reihe.",
+	["Fill each column first. Attached rows keep their size; a detached or moved row stands upright."] = "F\195\188llt zuerst jede Spalte. Angedockte Reihen behalten ihre Gr\195\182\195\159e; gel\195\182st oder verschoben steht eine Reihe aufrecht.",
 	["Fill from the other end"] = "Vom anderen Ende f\195\188llen",
 	["Fill in the delete word"] = "L\195\182schwort eintragen",
 	["Fill opacity"] = "Deckkraft der F\195\188llung",

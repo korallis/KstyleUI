@@ -916,7 +916,7 @@
 	"Feet": "Pieds",
 	"Fight": "Combat",
 	"Fill direction": "Sens de remplissage",
-	"Fill each column top to bottom instead of each row.": "Remplit chaque colonne de haut en bas au lieu de chaque rangée.",
+	"Fill each column first. Attached rows keep their size; a detached or moved row stands upright.": "Remplit d'abord chaque colonne. Une rangée attachée garde sa taille ; détachée ou déplacée, elle se dresse.",
 	"Fill from the other end": "Remplir depuis l'autre extrémité",
 	"Fill in the delete word": "Remplir le mot de suppression",
 	"Fill opacity": "Opacité du remplissage",

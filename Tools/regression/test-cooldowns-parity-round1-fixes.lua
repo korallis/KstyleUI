@@ -13,15 +13,9 @@ local function case(name, fn)
 	end
 end
 
--- Lower-cases ASCII and the Latin-1 capitals as the client's strcmputf8i does.
-local function Fold(text)
-	return (text:lower():gsub("\195([\128-\150\152-\158])", function(c) return "\195" .. string.char(c:byte() + 32) end))
-end
-
 local function Game(e)
 	C.Game(e)
 	e.C_StringUtil.TruncateWhenZero = function(count) return count == 0 and "" or tostring(count) end
-	e.strcmputf8i = function(a, b) a, b = Fold(a), Fold(b); return a == b and 0 or (a < b and -1 or 1) end
 	e._range = {}
 	e.C_Spell.IsSpellInRange = function(spell) return e._range[spell] end
 	for name, viewer in pairs(e._viewers) do
@@ -216,7 +210,8 @@ case("one cooldown event lays a row out once", function()
 end)
 
 case("unchanged refreshes and range events write nothing", function()
-	local env, _, ns, Write = New("reskin")
+	local env, _, _, Write = New("reskin")
+	local ns
 	local buff = env._viewers.BuffIconCooldownViewer._items[2]
 	local stacks = buff.Applications.Applications
 	buff._active = false
