@@ -62,7 +62,7 @@ jobs:
         run: bash Tools/hooks/check-package.sh
 
   lua:
-    name: lua ${{ matrix.shard }}/2
+    name: lua ${{ matrix.shard }}/3
     if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 35
@@ -72,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,7 +90,7 @@ jobs:
         if: steps.proof.outputs.run != 'false'
         env:
           SHARD: ${{ matrix.shard }}
-        run: bash scripts/gate.sh lua --shard "$SHARD/2"
+        run: bash scripts/gate.sh lua --shard "$SHARD/3"
 
   release:
     name: release

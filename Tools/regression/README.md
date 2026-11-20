@@ -18,7 +18,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as three `--shard I/3` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
@@ -35,7 +35,13 @@ Explicit files cannot be combined with `--shard`, `--affected` or `--write-weigh
 
 ### Shards and weights
 
-`weights.json` holds each file's time in seconds on the Mac. `--shard` puts the heaviest file in the lightest slice first, so every slice takes about the same time (4 slices: 72, 72, 72 and 72 s of test time against 76, 55, 95 and 61 s for taking every fourth file). A file with no weight counts as the median, so a new test file needs no entry and a stale entry does no harm. Every run starts the heaviest files first. Refresh the weights with `bash Tools/regression/run-all.sh --write-weights` when the slices drift apart by more than a third; it is not part of a pull request's checks.
+`weights.json` holds each file's time in seconds on the Mac. `--shard` puts the heaviest file in the lightest slice first, so every slice takes about the same time (4 slices: 72, 72, 72 and 72 s of test time against 76, 55, 95 and 61 s for taking every fourth file). A file with no weight counts as the median, so a new test file needs no entry and a stale entry does no harm. Every run starts the heaviest files first. Refresh from a recent successful full Mac run when the slices drift apart; no extra suite run is needed. Replace `RUN_ID` below with its `checks` run ID. This one command imports the per-file wall times, rejects an incomplete log and drops deleted tests:
+
+```bash
+gh run view RUN_ID --log | python3 -c 'import json,re,sys; from pathlib import Path; tests={p.name for p in Path("Tools/regression").glob("test-*.lua")}; weights={n:round(float(w),1) for n,w in re.findall(r"usage: (test-\S+\.lua) cpu=\S+ wall=([0-9.]+) peak_mb=",sys.stdin.read())}; assert tests <= weights.keys(), "Incomplete Mac log: every current test needs a usage line"; Path("Tools/regression/weights.json").write_text(json.dumps({n:weights[n] for n in sorted(tests)},indent=1)+"\n",encoding="utf-8",newline="\n")'
+```
+
+`bash Tools/regression/run-all.sh --write-weights` remains available when running the full suite on a Mac. Weight refreshes are not part of a pull request's checks.
 
 ### Affected mode
 
