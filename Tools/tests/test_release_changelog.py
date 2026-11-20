@@ -25,7 +25,10 @@ def check_readable_section(section):
     assert separator and summary and "\n\n" not in summary and not summary.startswith(("- ", "#")), fix
     bullets = re.findall(r"^- (.+)$", highlights, re.M)
     assert 1 <= len(bullets) <= 6, fix
-    assert all(len(line) <= 220 for line in bullets), fix
+    for body in [highlights] + re.findall(r"^### Upgrading\n([\s\S]*?)(?=^### |\Z)", section, re.M):
+        for line in re.findall(r"^- (.+)$", body, re.M):
+            assert len(line) <= 120 and "…" not in line, (
+                "shorten this highlight to 120 characters or fewer; move the detail to Added/Changed/Fixed: " + line)
     for name, body in re.findall(r"^### (Added|Changed|Fixed)\n([\s\S]*?)(?=^### |\Z)", section, re.M):
         bullets = re.findall(r"^\s*- (.+)$", body, re.M)
         assert bullets and all(len(line) <= 220 for line in bullets), name + ": " + fix
@@ -72,6 +75,24 @@ class ReleaseChangelogTests(unittest.TestCase):
                         "Summary.\n\nHighlights:\n\n" + "- Fix.\n" * 7):
             with self.assertRaises(AssertionError):
                 check_readable_section(section)
+
+    def test_announcement_guard_rejects_the_old_cut_off_highlight_and_upgrade(self):
+        highlight = ("A data bar across the top in Frames and Orbs, and a dock under the slab in Medallions, "
+                     "with your choice of readouts and a toggleable micro menu.")
+        upgrade = ("In Medallions your readouts move into the dock under the slab; "
+                   "a saved readout position is not used while the dock is on.")
+        for line in (highlight, upgrade, "A cut-off announcement…"):
+            for heading in ("Highlights:", "### Upgrading"):
+                section = "Summary.\n\nHighlights:\n\n- Short highlight.\n\n### Fixed\n\n- Fix."
+                section = (section.replace("Short highlight.", line) if heading == "Highlights:" else
+                           section + "\n\n" + heading + "\n\n- " + line)
+                with self.subTest(heading=heading, line=line):
+                    with self.assertRaisesRegex(AssertionError, "shorten this highlight to 120 characters or fewer"):
+                        check_readable_section(section)
+
+    def test_announcement_guard_accepts_120_characters(self):
+        line = "x" * 120
+        check_readable_section("Summary.\n\nHighlights:\n\n- " + line + "\n\n### Upgrading\n\n- " + line)
 
     def test_changelog_ends_with_how_to_install(self):
         text = CHANGELOG.read_text(encoding="utf-8")
