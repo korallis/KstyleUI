@@ -414,24 +414,6 @@ local function Uncut()
 	return any
 end
 
-local function Lines(step, room)
-	local top = step:GetTop()
-	local reach = 0
-	for _, line in ipairs(IsTable(step.elements) and step.elements or {}) do
-		if IsTable(line) and line:IsShown() and Alpha(line) > 0 then
-			local bottom = line:GetBottom()
-			local ends = Plain(top) and Plain(bottom) and top - bottom or nil
-			if not ends or ends > room then
-				Cut(line)
-				Mute(line.button)
-			else
-				reach = math.max(reach, ends)
-			end
-		end
-	end
-	return reach
-end
-
 local function Fit(f, path, band)
 	local current = f.CurrentStepFrame
 	local pool = IsTable(current.framePool) and current.framePool or {}
@@ -478,20 +460,14 @@ local function Fit(f, path, band)
 		end
 		keep = keep - 1
 	end
-	local partial = 0
 	if keep == 0 and #steps > 0 then
-		local first = steps[1].step
-		local fixed = Span(0) + row
-		local reach = Lines(first, room + pixel - fixed)
-		if reach > 0 then
-			keep, partial = 1, 1
-		end
-		height = reach > 0 and reach + row or 0
+		keep = 1
+		height = #steps > 1 and steps[1].height + row or natural
 	end
 	for i = keep + 1, #steps do
 		Cut(steps[i].step)
 	end
-	local hidden = #steps - keep + partial
+	local hidden = #steps - keep
 	if hidden > 0 or Plain(current:GetHeight()) and math.abs(current:GetHeight() - height) > 0.01 then
 		current:SetHeight(math.max(EMPTY_STEPS, height))
 	end
