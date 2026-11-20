@@ -43,7 +43,6 @@ Highlights:
 - Layout Mode mover labels and readouts clear neighbouring movers, the clock and chat tabs, the toolbar clears Boss Announcements, turning See-through movers off restores the centred solid labels, and thin movers keep their grab area and size and scale details. Dragging and selecting movers no longer repeats the label placement work.
 - The durability doll moves to a clear spot beside the minimap at login when you never moved it yourself; a position and size you saved in Edit Mode are kept.
 - Options Tasks has destination help and a live preview, and General > Text previews its typography; the help text follows the same colour and spacing as every other row.
-- Restoring extra action bars saved by v0.2.7 no longer errors.
 - Percentages round the way Blizzard rounds them, including at exact halves.
 - KstyleUI steps aside for the Leatrix Plus features you have on and for BetterFriendlist's friends window.
 - Finding Questie for the first time keeps its current tracker setting, and the Speedrun Guide and context-menu headers match the rest of KstyleUI.
@@ -54,7 +53,6 @@ Highlights:
 
 - Skins are on by default now: if you never touched them, your supported addons start skinned. Switch any off in Options or in the setup's "Your addons" step; skins you switched off stay off.
 - The consumables bar shrinks to half size with a backdrop unless you set its size or backing yourself; both are under Options > Action Bars > Consumables.
-- Your extra action bars from v0.2.7 restore cleanly again.
 
 The optional icon pack still applies: download `KstyleUI-Icons-<version>.zip` from this project's GitHub releases page, quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
 
