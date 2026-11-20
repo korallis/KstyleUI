@@ -13,7 +13,9 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import db2
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "icons"))
+import casc_export
+from abilities import load_csv
 from geometry import chunks, lua_routes, m2_collision, placements, simplify, terrain, transform, wmo_group
 
 CACHE = Path.home() / ".cache/kstyleui-navmesh"
@@ -116,7 +118,7 @@ def native(cache):
 
 
 def geometry(client):
-    client.fetch(["world/maps/kalimdor/kalimdor.wdt", "dbfilesclient/taxinodes.db2", "dbfilesclient/areapoi.db2"])
+    client.fetch(["world/maps/kalimdor/kalimdor.wdt"])
     maid = dict(chunks(client.path("world/maps/kalimdor/kalimdor.wdt").read_bytes()))["MAID"]
     # One continuous rectangle includes both banks and a tile of context around the places.
     tiles = []
@@ -207,32 +209,27 @@ def geometry(client):
 
 
 def places(client, landmarks):
-    columns = ["Name", ("Pos", 3), ("MapOffset", 2), ("FlightMapOffset", 2), "ID", "ContinentID", "ConditionID", "CharacterBitNumber", "Flags",
-               "UiTextureKitID", "MinimapAtlasMemberID", "Facing", "SpecialIconConditionID", "VisibilityConditionID", ("MountCreatureID", 2)]
-    rows = db2.load(client.path("dbfilesclient/taxinodes.db2"), columns, strings=("Name",), floats=("Pos", "MapOffset", "FlightMapOffset", "Facing"))
-    csv_path = client.cache / "TaxiNodes.csv"
-    with csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
+    tools = casc_export.DEFAULT_TOOLS
+    casc_export.export_tables(client.info["Version"], client.install, client.cache, "wowf", client.tact,
+                              tools / "dotnet/dotnet.exe", tools / "casc/DBC2CSV/DBC2CSV.dll", tables=("TaxiNodes", "AreaPOI"))
+    rows = load_csv(client.cache / "TaxiNodes.csv")
     result = dict(PLACES)
     sources = {name: "spike ADT area centroid; nearest main-component surface within 200 yards" for name in result}
     radii = {name: 200 for name in result}
     zones = {name: "Durotar" for name in result}
     zones.update(SouthfuryCrossing="Barrens", WailingCaverns="Barrens")
-    poi_columns = ["Name", "Description", "ID", ("Pos", 3), "PortLocID", "PlayerConditionID", "Field6", "UiTextureAtlasMemberID", "Flags", "WMOGroupID", "PoiDataType", "PoiData", "Field12", "ContinentID", "AreaID", "WorldStateID", "Field16", "UiWidgetSetID", "UiTextureKitID", "Field19", "Importance", "Icon"]
-    pois = db2.load(client.path("dbfilesclient/areapoi.db2"), poi_columns, strings=("Name", "Description"), floats=("Pos",))
+    pois = load_csv(client.cache / "AreaPOI.csv")
     wanted = {"Razor Hill": "RazorHill", "Orgrimmar": "OrgrimmarGate", "Sen'jin Village": "Senjin", "The Den": "ValleyOfTrials", "Razorwind Canyon": "Razorwind", "Wailing Caverns": "WailingCaverns"}
     for row in pois:
-        key = wanted.get(row["Name"])
-        if key and row["ContinentID"] == 1:
-            result[key] = tuple(row[f"Pos_{i}"] for i in range(3))
-            sources[key], radii[key] = f"AreaPOI {row['ID']}: {row['Name']}", 20
+        key = wanted.get(row["Name_lang"])
+        if key and row["ContinentID"] == "1":
+            result[key] = tuple(float(row[f"Pos_{i}"]) for i in range(3))
+            sources[key], radii[key] = f"AreaPOI {row['ID']}: {row['Name_lang']}", 20
     for key, point in landmarks.items():
         result[key] = point
         sources[key], radii[key] = ("client WMO DungeonEntrance group bounds", 20) if key == "Ragefire" else ("client orcbridge MODF pivot; nearest reachable surface", 80)
     for row in rows:
-        name = ' '.join(row["Name"].split())
+        name = ' '.join(row["Name_lang"].split())
         for prefix, key in (("Crossroads,", "Crossroads"), ("Ratchet,", "Ratchet"), ("Camp Taurajo,", "CampTaurajo")):
             if name.startswith(prefix):
                 result[key] = tuple(float(row[f"Pos_{i}"]) for i in range(3))

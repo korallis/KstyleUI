@@ -6,11 +6,11 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "nav"))
 
 import build_routes
-import db2
 from geometry import MID, UNIT, chunks, liquid_cells, lua_routes, m2_collision, simplify, terrain, transform, wmo_group
 
 
@@ -77,7 +77,6 @@ class TerrainTests(unittest.TestCase):
         water += struct.pack("<4f", 11, 12, 13, 14) + bytes(4)
         self.assertEqual(liquid_cells(water)[0][0, 0], (1240, [11, 12, 14, 13]))
 
-
     def test_liquid_boundaries_include_other_chunk_layers(self):
         water = bytearray(3072)
         struct.pack_into("<III", water, 0, 3072, 1, 0)
@@ -117,38 +116,37 @@ class CollisionTests(unittest.TestCase):
             self.assertAlmostEqual(actual, expected)
 
 
-class DatabaseTests(unittest.TestCase):
-    def test_wdc5_client_position_and_encryption_refusal(self):
-        header = b"WDC5" + struct.pack("<I", 5) + bytes(128)
-        header += struct.pack("<9iHH7i", 1, 3, 20, 5, 0, 0, 7, 7, 0, 0, 1, 3, 0, 0, 72, 0, 0, 1)
-        section = struct.pack("<Q8i", 0, 328, 1, 5, 348, 0, 0, 0, 0)
-        meta = b"".join(struct.pack("<hh", 0, off) for off in (0, 4, 8))
-        columns = b"".join(struct.pack("<HHIIIII", off, size, 0, 0, 0, 0, 0) for off, size in ((0, 32), (32, 32), (64, 96)))
-        data = header + section + meta + columns + struct.pack("<II3f", 20, 7, 1.5, -2.5, 3.5) + b"Test\0"
-        with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "synthetic.db2"
-            path.write_bytes(data)
-            rows = db2.load(path, ["Name", "ID", ("Pos", 3)], strings=("Name",), floats=("Pos",))
-            self.assertEqual(rows, [dict(Name="Test", ID=7, Pos_0=1.5, Pos_1=-2.5, Pos_2=3.5)])
-            encrypted = bytearray(data)
-            struct.pack_into("<Q", encrypted, 204, 42)
-            path.write_bytes(encrypted)
-            with self.assertRaisesRegex(ValueError, "encrypted"):
-                db2.load(path, ["Name", "ID", ("Pos", 3)])
-
-    def test_pallet_array_consumes_one_index_for_whole_vector(self):
-        header = b"WDC5" + struct.pack("<I", 5) + bytes(128)
-        header += struct.pack("<9iHH7i", 1, 1, 1, 0, 0, 0, 7, 7, 0, 0, 0, 1, 0, 0, 24, 0, 24, 1)
-        section = struct.pack("<Q8i", 0, 296, 1, 0, 297, 4, 0, 0, 0)
-        meta = struct.pack("<hhHHIIIII", 0, 0, 0, 2, 24, 4, 0, 2, 3)
-        data = header + section + meta + struct.pack("<6f", 1, 2, 3, 4, 5, 6) + b"\x01" + struct.pack("<I", 7)
-        with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "synthetic.db2"
-            path.write_bytes(data)
-            self.assertEqual(db2.load(path, ["ID", ("Pos", 3)], floats=("Pos",)), [dict(ID=7, Pos_0=4, Pos_1=5, Pos_2=6)])
-
-
 class RouteTests(unittest.TestCase):
+    def test_places_from_shared_csv_export(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            client = build_routes.Client(root / "game", root, root / "TACTTool.exe", {"Version": "test"})
+
+            def export(*args, **kwargs):
+                self.assertEqual(kwargs["tables"], ("TaxiNodes", "AreaPOI"))
+                (root / "TaxiNodes.csv").write_text(
+                    "ID,Name_lang,Pos[0],Pos[1],Pos[2]\n"
+                    '25,"Crossroads, The Barrens",1.25,2.5,3.75\n'
+                    '77,"Camp Taurajo, The Barrens",4,5,6\n'
+                    '80," Ratchet,  The Barrens ",7,8,9\n', encoding="utf-8")
+                (root / "AreaPOI.csv").write_text(
+                    "ID,Name_lang,ContinentID,Pos[0],Pos[1],Pos[2]\n"
+                    "31,Razor Hill,1,10.125,-20.25,30.5\n"
+                    "1068,Wailing Caverns,1,40,50,60\n"
+                    "99,Razor Hill,0,0,0,0\n", encoding="utf-8")
+
+            with mock.patch.object(build_routes.casc_export, "export_tables", side_effect=export):
+                points, zones, path, metadata = build_routes.places(client, {"Ragefire": (70, 80, 90), "SouthfuryCrossing": (100, 110, 120)})
+            self.assertEqual(len(points), 21)
+            self.assertEqual(points["RazorHill"], (10.125, -20.25, 30.5))
+            self.assertEqual(points["Crossroads"], (1.25, 2.5, 3.75))
+            self.assertEqual(points["Ratchet"], (7, 8, 9))
+            self.assertEqual(points["WailingCaverns"], (40, 50, 60))
+            self.assertEqual({name for name in points if zones[name] == "Barrens"}, {"Crossroads", "Ratchet", "CampTaurajo", "WailingCaverns", "SouthfuryCrossing"})
+            self.assertEqual(metadata["Ragefire"]["radius"], 20)
+            self.assertEqual(metadata["Crossroads"]["source"], "TaxiNodes 25: Crossroads, The Barrens")
+            self.assertIn("Ragefire 70 80 90 20 0\n", path.read_text(encoding="utf-8"))
+
     def test_simplifies_collinear_keeps_endpoints(self):
         points = [(i, 0, 0) for i in range(100)]
         self.assertEqual(simplify(points), [points[0], points[-1]])

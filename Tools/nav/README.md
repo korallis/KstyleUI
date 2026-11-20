@@ -16,6 +16,11 @@ The install and repository are read-only; all generated files stay under
 
 - Install Pillow with `python -m pip install Pillow` and have Git on PATH.
 - Use TACTTool at `~/.local/share/wow-dev/casc/TACTTool/TACTTool.exe`.
+- Install the .NET 10 runtime at `~/.local/share/wow-dev/dotnet/dotnet.exe`
+  and [DBC2CSV v1.0.11](https://github.com/Marlamin/DBC2CSV/releases/tag/v1.0.11)
+  (Windows x64) at `~/.local/share/wow-dev/casc/DBC2CSV/DBC2CSV.dll`, keeping its
+  `definitions/` folder. `Tools/icons/casc_export.py` exports TaxiNodes and AreaPOI
+  through the same TACTTool/DBC2CSV path used by the icon tools.
 - Unpack the official [Zig 0.17.1 Windows x86-64 archive](https://ziglang.org/download/)
   to `~/.cache/kstyleui-navmesh/tools/zig/zig-x86_64-windows-0.17.1/`.
 
@@ -38,7 +43,7 @@ a time; after an interruption, verify its PID has exited before removing it.
   as `{from,to,{{x,y,z},...},mode="walk"}` records. Cross-zone routes occur in both.
 - `<version>/<build-key>/summary.json`: connectivity, every endpoint's original,
   seed and final coordinates, source, radius, distance moved, exclusions, failures,
-  runtime and per-zone points/bytes; logs and `TaxiNodes.csv` are beside it.
+  runtime and per-zone points/bytes; logs, `TaxiNodes.csv` and `AreaPOI.csv` are beside it.
 - `durotar-barrens-routes-1920.png` in that build directory: 1920x1080 over client
   map art, using the 1002x668 map viewport rather than padded tile dimensions.
 
@@ -72,9 +77,9 @@ edges. Entrance areas do not prove server-side instance triggers or in-game walk
 Recast/Detour is [zlib](https://github.com/recastnavigation/recastnavigation/blob/main/License.txt);
 external TACTTool/TACTSharp is [MIT](https://github.com/wowdev/TACTSharp/blob/main/LICENSE).
 Preserve their notices if distributing them. Zig and Pillow retain their upstream
-licences. Schema/format references are WoWDBDefs and the MIT wow.export readers;
-this implementation grew from the owner's spike. TACTTool obtains a community
-filename list; all coordinates, geometry, DB2 records and map art are Blizzard's,
+licences. DBC2CSV/DBCD uses the WoWDBDefs definitions; geometry format references are the
+MIT wow.export readers, and the geometry implementation grew from the owner's
+spike. TACTTool obtains a community filename list; all coordinates, geometry, DB2 records and map art are Blizzard's,
 from the owner's client. Extracts, meshes, images and evidence stay in cache;
 only reviewed simplified points could ship in a later addon-data PR. No Wowhead,
 wclbox, GPL source/extractor or third-party addon code is used.
