@@ -1,0 +1,70 @@
+-- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode.
+local Common = dofile("Tools/render/scenes/_common.lua")
+local Gallery = dofile("Tools/render/scenes/_gallery.lua")
+local U = dofile("Tools/regression/unitframes_env.lua")
+local O = dofile("Tools/regression/options_env.lua")
+local Load = dofile("Tools/regression/load_files.lua")
+
+return Common.Run(function()
+	local view = os.getenv("RENDER_CORE_PAGE") or "layout"
+	local env, K = U.New(Common.ScreenOpts({
+		saved = Gallery.Saved({ UnitFrames = {}, HudStyle = { style = "frames" } }),
+		setup = function(e)
+			Gallery.Setup(e)
+			for unit, name in pairs({ player = "Valerin", target = "Training Dummy" }) do
+				e._units[unit] = { name = name, class = "WARRIOR", level = 38, health = 2750, healthMax = 3350,
+					power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = unit == "player", reaction = unit == "player" and 5 or 2 }
+			end
+			e.C_AddOns = { LoadAddOn = function(name)
+				if name == "KstyleUI_Options" and not e._addons[name] then Load(O.Files(), e) end
+				return true
+			end }
+		end,
+	}))
+	local layout = K.Layout
+	assert(layout.Update("unitframes.player", { anchor = "CENTER", x = -270, y = -170, width = 300, height = 100 }))
+	assert(layout.Update("unitframes.target", { attachTo = "unitframes.player", side = "right", offset = 50, matchHeight = true, extraHeight = 10 }))
+	K.Options.Write("Layout", "grid", true)
+	K.Options.Write("Layout", "gridAlpha", 0.15)
+	K.Options.Write("Layout", "nudgeStep", 100)
+	K.Options.Write("Layout", "overlap", "ctrl")
+	if view == "mode" then
+		assert(layout.Enter())
+		layout.Mode.Select("unitframes.target")
+	else
+		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", sharing = "Profiles", appearance = "General", window = "General" }
+		assert(K.Options.Open(assert(pages[view], "unknown core page")))
+		assert(layout.Update("Options.Window", { width = 1240, height = 860, scale = 1 }))
+		local ns = env._addons.KstyleUI_Options
+		if view == "sharing" then
+			for _, item in ipairs(ns.Window.State().items) do
+				if item.label == "Share scope" then item.set("modules") end
+			end
+			ns.Pages.shareModules = { UnitFrames = true, Appearance = true }
+			ns.Pages.includeLayout = false
+			ns.Changed()
+		end
+		for _, element in ipairs(layout.Elements()) do
+			if element.module == "UnitFrames" then layout.Element(element.key).frame:Hide() end
+		end
+		env.RunTimers()
+		Gallery.Ticks(O.W, env, 30)
+		env.RunTimers()
+		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", links = "Target frame" })[view]
+		if label then
+			local found
+			for i, item in ipairs(ns.Window.State().items) do
+				if item.label == label or item.key == label then
+					ns.Window.Parts().content:ScrollToIndex(i, true, "TOP")
+					found = true
+					break
+				end
+			end
+			assert(found, "missing Options section " .. label)
+		end
+	end
+	Gallery.Ticks(O.W, env, 40)
+	env.RunTimers()
+	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
+	return Gallery.Build(env)
+end)

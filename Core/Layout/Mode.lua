@@ -26,11 +26,11 @@ local HANDLE_SIZE = 8
 local HANDLE_LEVELS = 20
 local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.6, 0.72, 0.85
 local EDGE_REST, EDGE_ACTIVE = 0.55, 1
-local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
+local GRID_CENTRE_ALPHA = 0.45
 local GUIDE_ALPHA = 0.9
 local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
 local HELP_LEADING, HINT_LINES = 1.3, 2
-local NUDGE_SMALL, NUDGE_BIG = 1, 10
+local NUDGE_SMALL = 1
 local EPSILON = 1e-4
 local ARROWS = { LEFT = { -1, 0 }, RIGHT = { 1, 0 }, UP = { 0, 1 }, DOWN = { 0, -1 } }
 local TAG_SIDES = { 0, -1, 1 }
@@ -61,7 +61,9 @@ local function Log(message)
 end
 
 local function KeyDown(fn)
-	return type(fn) == "function" and fn() == true
+	if type(fn) ~= "function" then return false end
+	local value = fn()
+	return not IsSecret(value) and value == true
 end
 
 local function Cursor()
@@ -85,6 +87,7 @@ local function Describe(key, short)
 		local target = Layout.Element(s.attachTo)
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
+		if s.matchHeight then text = text .. " / " .. L["Match height"] end
 		return text
 	end
 	if el.opts.resizable then
@@ -451,7 +454,7 @@ local function Nudge(dx, dy)
 	if not l then
 		return
 	end
-	local step = Scale.Pixel(KeyDown(IsShiftKeyDown) and NUDGE_BIG or NUDGE_SMALL)
+	local step = Scale.Pixel(KeyDown(IsShiftKeyDown) and Layout.Setting("nudgeStep") or NUDGE_SMALL)
 	local rw, rh = Layout.RootSize()
 	l, b = G.ClampToRoot(l + dx * step, b + dy * step, w, h, rw, rh)
 	l, b = Layout.Clamp(key, l, b, w, h)
@@ -498,8 +501,8 @@ local function PlateTooltip(tip, plate)
 	if el.module then
 		tip:AddCaption(el.module)
 	end
-	tip:AddLine(L["Drag to move. The arrow keys nudge it one pixel, or ten with Shift."])
-	tip:AddLine(L["Hold Shift to lock a drag to its first direction. Alt+scroll cycles through stacked plates."])
+	tip:AddLine(L["Drag to move. Arrows nudge one pixel; Shift uses the distance in Elements."])
+	tip:AddLine(L["Shift locks a drag to one axis. Choose overlap cycling in Elements."])
 	if el.opts.resizable then
 		tip:AddLine(L["Click it, then drag a handle to resize it."])
 	end
@@ -538,7 +541,9 @@ end
 
 local function PlateWheel(plate, delta)
 	if not Layout.IsActive() or InCombatLockdown() or not IsNumber(delta) or delta == 0 then return end
-	if KeyDown(IsAltKeyDown) then
+	local method = Layout.Setting("overlap")
+	if method == "scroll" or method == "alt" and KeyDown(IsAltKeyDown)
+		or method == "ctrl" and KeyDown(IsControlKeyDown) or method == "shift" and KeyDown(IsShiftKeyDown) then
 		local x, y = Cursor()
 		if not x then return end
 		local stack, at = {}, nil
@@ -671,7 +676,7 @@ local function PlaceLine(i, vertical, at, centre, pixel, border)
 	if centre then
 		Widgets.Tint(line, "accent", GRID_CENTRE_ALPHA)
 	else
-		Widgets.Tint(line, "white", GRID_LINE_ALPHA)
+		Widgets.Tint(line, "white", Layout.Setting("gridAlpha"))
 	end
 	line:Show()
 end

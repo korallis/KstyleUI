@@ -37,6 +37,8 @@ local MODULE_LABELS = {
 	Skins = L["Window Skins"],
 	QoL = L["Quality of Life"],
 	Appearance = L["Appearance"],
+	HudStyle = L["HUD style"],
+	Readability = L["Readability"],
 	Widgets = L["Widgets"],
 	Layout = L["Layout"],
 }
@@ -276,6 +278,14 @@ function Pages.ElementItems(element, page, level)
 		if opts.resizable then
 			add({ kind = "toggle", label = L["Match width"], help = L["Uses the other element's width within this element's size limits."],
 				get = get("matchWidth", false), set = set("matchWidth") })
+			add({ kind = "toggle", label = L["Match height"], help = L["Uses the other element's height within this element's size limits."],
+				get = get("matchHeight", false), set = set("matchHeight") })
+			add({ kind = "slider", label = L["Extra width"], min = -width, max = width, step = 1,
+				help = L["Adds interface units to the matched width; zero matches exactly."],
+				get = get("extraWidth", 0), set = set("extraWidth"), disableWhen = function() return not get("matchWidth", false)() end })
+			add({ kind = "slider", label = L["Extra height"], min = -height, max = height, step = 1,
+				help = L["Adds interface units to the matched height; zero matches exactly."],
+				get = get("extraHeight", 0), set = set("extraHeight"), disableWhen = function() return not get("matchHeight", false)() end })
 		end
 	end
 	if has("anchor") then
@@ -407,6 +417,13 @@ local function GeneralItems()
 		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
+		end
+	end
+	for _, element in ipairs(Pages.Elements(true)) do
+		if element.key == Pages.WINDOW_KEY then
+			element.label = L["Window size and opacity"]
+			element.opts.fields = { "width", "height", "scale", "alphaCombat", "alphaIdle" }
+			Append(items, Pages.ElementItems(element, "General", 1))
 		end
 	end
 	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Text preset"] }
@@ -586,8 +603,23 @@ local function AllProfiles()
 	return out
 end
 
+local function ShareScope()
+	return Pages.shareScope == "modules" and (Pages.shareModules or {}) or Pages.shareScope or "everything"
+end
+
+local function ShareModules()
+	local modules = {}
+	for _, name in ipairs({ "Appearance", "Widgets", "HudStyle", "Readability" }) do
+		if K.Store.Defaults(name) then modules[#modules + 1] = name end
+	end
+	for _, name in ipairs(K.Modules.List()) do
+		if name ~= "Options" then modules[#modules + 1] = name end
+	end
+	return modules
+end
+
 function Pages.ExportProfile()
-	local text, why = K.Profiles.Export(Pages.shareScope or "everything", Pages.includeLayout ~= false)
+	local text, why = K.Profiles.Export(ShareScope(), Pages.includeLayout ~= false)
 	if not text then
 		Notify(L["Export failed"], tostring(why))
 		return nil
@@ -623,10 +655,12 @@ end
 
 function Pages.ReviewImport(text)
 	if not K.Store.Module("ProfileTools").review then return Pages.ImportProfile(text) end
-	local preview, why = K.Profiles.Preview(text, Pages.shareScope or "everything", Pages.includeLayout ~= false)
+	local preview, why = K.Profiles.Preview(text, ShareScope(), Pages.includeLayout ~= false)
 	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
-	K.Widgets.Confirm({ title = L["Review import"], text = format(message, preview.summary),
+	message = format(message, preview.summary)
+	if preview.warning then message = message .. "\n\n" .. preview.warning end
+	K.Widgets.Confirm({ title = L["Review import"], text = message,
 		acceptLabel = L["Apply"], onAccept = function() Pages.ImportProfile(preview.text) end })
 	return true, preview
 end
@@ -777,18 +811,34 @@ local function ProfileItems()
 	})
 	Append(items, Model.SchemaItems("ProfileTools", K.Options.Get("ProfileTools"), "Profiles"))
 	add({ kind = "header", level = 1, label = L["Share"] })
-	local scopes = { { value = "everything", label = L["Everything"] }, { value = "layout", label = L["Layout only"] } }
-	for _, name in ipairs(K.Modules.List()) do
-		if name ~= "Options" then scopes[#scopes + 1] = { value = name, label = Pages.ModuleLabel(name) } end
+	local scopes = { { value = "everything", label = L["Everything"] }, { value = "layout", label = L["Layout only"] },
+		{ value = "modules", label = L["Selected modules"] } }
+	for _, name in ipairs(ShareModules()) do
+		scopes[#scopes + 1] = { value = name, label = Pages.ModuleLabel(name) }
 	end
 	if K.Store.Module("ProfileTools").review then
-	add({ kind = "dropdown", label = L["Share scope"], help = L["Export or import everything, the layout, or one module."], options = scopes,
+	add({ kind = "dropdown", label = L["Share scope"], help = L["Share everything, a layout, or selected modules; imports keep the other settings."], options = scopes,
 		get = function() return Pages.shareScope or "everything" end, set = function(value) Pages.shareScope = value end })
+	if Pages.shareScope == "modules" then
+		Pages.shareModules = Pages.shareModules or {}
+		add({ kind = "button", label = L["Selected modules"], buttons = {
+			{ label = L["Select all"], onClick = function()
+				for _, name in ipairs(ShareModules()) do Pages.shareModules[name] = true end
+			end },
+			{ label = L["Clear"], onClick = function() Pages.shareModules = {} end },
+		} })
+		for _, name in ipairs(ShareModules()) do
+			local module = name
+			add({ kind = "toggle", label = Pages.ModuleLabel(module), help = L["Include this module when sharing selected modules."],
+				get = function() return Pages.shareModules[module] == true end,
+				set = function(on) Pages.shareModules[module] = on end })
+		end
+	end
 	end
 	if K.Store.Module("ProfileTools").review then
 	add({ kind = "toggle", label = L["Include layout"], help = L["Share element positions and saved layouts with the profile. Off shares settings only."],
 		get = function() return Pages.includeLayout ~= false end, set = function(value) Pages.includeLayout = value end,
-		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" end })
+		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" and Pages.shareScope ~= "modules" end })
 	end
 	if K.Store.Module("ProfileTools").backups then
 	add({ kind = "button", label = L["Restore backup"], help = K.Store.Account().restoreProfile or L["No backup is available."],

@@ -25,7 +25,7 @@ local FALLBACK_ROOT_W, FALLBACK_ROOT_H = 1920, 1080
 
 Layout.SCALE_MIN, Layout.SCALE_MAX, Layout.SCALE_STEP = SCALE_MIN, SCALE_MAX, SCALE_STEP
 
-local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata", "attachTo", "side", "offset", "matchWidth" }
+local FIELDS = { "anchor", "x", "y", "width", "height", "scale", "shown", "alphaCombat", "alphaIdle", "strata", "attachTo", "side", "offset", "matchWidth", "matchHeight", "extraWidth", "extraHeight" }
 local IS_FIELD = {}
 for _, field in ipairs(FIELDS) do
 	IS_FIELD[field] = true
@@ -74,6 +74,9 @@ Layout.ANCHOR_OPTIONS = {
 Layout.defaults = {
 	grid = false,
 	gridSize = 16,
+	gridAlpha = 0.07,
+	nudgeStep = 10,
+	overlap = "alt",
 	snap = true,
 	showCoordinates = false,
 	snapDistance = 8,
@@ -99,6 +102,16 @@ function Layout.Schema()
 			type = "toggle", key = "snap", label = L["Snap while dragging"],
 			help = L["Snaps to other elements, the screen edges and the centre as you drag."],
 		},
+		{ type = "slider", key = "gridAlpha", label = L["Grid brightness"], min = 0, max = 0.5, step = 0.01,
+			help = L["Dims or brightens grid lines; zero hides them. The centre guides stay visible."] },
+		{ type = "slider", key = "nudgeStep", label = L["Shift nudge distance"], min = 1, max = 100, step = 1,
+			help = L["Physical pixels moved by Shift and an arrow key; plain arrows still move one pixel."] },
+		{ type = "dropdown", key = "overlap", label = L["Overlap cycling"],
+			help = L["Choose how scrolling selects stacked movers; other scrolling scales the element."], options = {
+			{ value = "off", label = L["Off"] }, { value = "scroll", label = L["Scroll"] },
+			{ value = "shift", label = L["Shift + scroll"] }, { value = "ctrl", label = L["Ctrl + scroll"] },
+			{ value = "alt", label = L["Alt + scroll"] },
+		} },
 		{
 			type = "slider", key = "snapDistance", label = L["Snap distance"],
 			help = L["How close an edge comes, in interface units, before it snaps."],
@@ -151,6 +164,9 @@ local SETTING_VALID = {
 	snap = function(v) return type(v) == "boolean" end,
 	showCoordinates = function(v) return type(v) == "boolean" end,
 	gridSize = function(v) return IsFinite(v) and v >= GRID_MIN and v <= GRID_MAX end,
+	gridAlpha = function(v) return IsFinite(v) and v >= 0 and v <= 0.5 end,
+	nudgeStep = function(v) return IsFinite(v) and v >= 1 and v <= 100 end,
+	overlap = function(v) return not IsSecret(v) and (v == "off" or v == "scroll" or v == "shift" or v == "ctrl" or v == "alt") end,
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
 	calm = function(v) return type(v) == "boolean" end,
 	canvas = function(v) return Scale.CANVAS[v] ~= nil end,
@@ -348,6 +364,10 @@ local function CheckAlpha(_, v)
 end
 
 local CHECK = {
+	matchHeight = function(el, v)
+		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
+		return nil, L["a resizable element"]
+	end,
 	attachTo = function(el, v)
 		if not IsSecret(v) and type(v) == "string" and #v <= MAX_KEY and Layout.CanAttach(el.key, v) then return v end
 		return nil, L["an element without a circular link"]
@@ -357,6 +377,8 @@ local CHECK = {
 		return nil, L["above, below, left or right"]
 	end,
 	offset = CheckOffset,
+	extraWidth = CheckOffset,
+	extraHeight = CheckOffset,
 	matchWidth = function(el, v)
 		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
 		return nil, L["a resizable element"]
@@ -673,11 +695,12 @@ local function ApplyGeometry(el, quiet)
 	local w, h
 	if el.opts.resizable then
 		local width, height = s.width, s.height
-		local target = s.matchWidth and LinkTarget(el)
+		local target = (s.matchWidth or s.matchHeight) and LinkTarget(el)
 		if target then
-			local _, _, tw = Layout.Rect(target.key)
-			width = Clamp(tw / f, el.limits.minWidth, el.limits.maxWidth)
-			if el.aspect then width, height = AspectFit(el, width) end
+			local _, _, tw, th = Layout.Rect(target.key)
+			if s.matchWidth then width = Clamp((tw + s.extraWidth) / f, el.limits.minWidth, el.limits.maxWidth) end
+			if s.matchHeight then height = Clamp((th + s.extraHeight) / f, el.limits.minHeight, el.limits.maxHeight) end
+			if el.aspect then width, height = AspectFit(el, s.matchWidth and width or height * el.aspect) end
 		end
 		w, h = G.SnapSize(width, f, pixel), G.SnapSize(height, f, pixel)
 		frame:SetSize(w, h)
@@ -1197,7 +1220,7 @@ end
 local ELEMENT_FIELDS = {
 	shown = true, anchor = true, x = true, y = true, width = true, height = true, scale = true,
 	alphaCombat = true, alphaIdle = true, strata = true,
-	attachTo = true, side = true, offset = true, matchWidth = true,
+	attachTo = true, side = true, offset = true, matchWidth = true, matchHeight = true, extraWidth = true, extraHeight = true,
 }
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
@@ -1307,7 +1330,7 @@ local function Defaults(el, frame, position, opts)
 		anchor = position.anchor, x = position.x or 0, y = position.y or 0,
 		width = w, height = h, scale = scale,
 		shown = "always", alphaCombat = 1, alphaIdle = 1, strata = strata,
-		attachTo = "", side = "above", offset = 0, matchWidth = false,
+		attachTo = "", side = "above", offset = 0, matchWidth = false, matchHeight = false, extraWidth = 0, extraHeight = 0,
 	}
 end
 
