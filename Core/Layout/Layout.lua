@@ -760,7 +760,7 @@ local function ApplyGeometry(el, quiet)
 	local w, h
 	if el.opts.resizable then
 		local width, height = s.width, s.height
-		local wide, tall = SizeSource(el, "width"), SizeSource(el, "height")
+		local wide, tall = s.matchWidth and SizeSource(el, "width"), s.matchHeight and SizeSource(el, "height")
 		if wide then
 			local _, _, tw = Layout.Rect(wide.key)
 			width = Clamp((tw + s.extraWidth) / f, el.limits.minWidth, el.limits.maxWidth)
