@@ -14,9 +14,7 @@ local LEVEL_TEXT = 8
 local BADGE_EDGE = "text"
 local BADGE_EDGE_ALPHA = 0.6
 local PORTRAIT_BACK_ALPHA = 1
-local INCOMING_ALPHA = 0.45
-local ABSORB_ALPHA = 0.35
-local HEAL_ABSORB_ALPHA = 0.7
+local GRADIENT_SHADE = 0.55
 local IMAGE_SUBLEVEL = -4
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local TRACK = "buttonFill"
@@ -293,7 +291,7 @@ local function PlaceHealAbsorb(view)
 	if not bar then return end
 	PlacePrediction(view, bar, view.health:GetStatusBarTexture(), true)
 	bar:SetBarTexture(Settings.Value(view.kind, "healthTexture"))
-	bar:SetBarColor(Widgets.Rgba("hostile", HEAL_ABSORB_ALPHA))
+	bar:SetBarColor(Widgets.Rgba("hostile", Settings.Value(view.kind, "healAbsorbAlpha")))
 end
 
 function Style.HealAbsorb(view)
@@ -604,6 +602,7 @@ function Style.Layout(view, s, width, height)
 			Widgets.TextScrim(view[key], g.form ~= "slab" and view[key]:IsShown())
 		end
 		ExtraTexts(view, s)
+		Style.Gradient(view)
 		return g
 	end
 	ns.Slab.Layout(view, g)
@@ -659,6 +658,7 @@ function Style.Layout(view, s, width, height)
 	PlaceText(view, view.powerText, g.powerText)
 	Indicators.Layout(view, g, s)
 	ExtraTexts(view, s)
+	Style.Gradient(view)
 	return g
 end
 
@@ -714,8 +714,8 @@ function Style.Restyle(view, kind)
 	view.orientation = Settings.Value(kind, "healthOrientation")
 	Orient(view.health, view.orientation)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
-	view.incoming:SetBarColor(Widgets.Rgba("friendly", INCOMING_ALPHA))
-	view.absorb:SetBarColor(Widgets.Rgba("white", ABSORB_ALPHA))
+	view.incoming:SetBarColor(Widgets.Rgba("friendly", Settings.Value(kind, "incomingAlpha")))
+	view.absorb:SetBarColor(Widgets.Rgba("white", Settings.Value(kind, "absorbAlpha")))
 	PlaceHealAbsorb(view)
 	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
 	Style.Accent(view)
@@ -745,6 +745,21 @@ function Style.HealthTint(view, r, g, b)
 		view.healthText:SetTextColor(r + (1 - r) * TINT, g + (1 - g) * TINT, b + (1 - b) * TINT)
 	else
 		view.healthText:SetTextColor(Tokens.Color("textEmphasis"))
+	end
+	Style.Gradient(view)
+end
+
+function Style.Gradient(view)
+	local s, bar = view.s, view.health
+	local direction, r, g, b = s and s.healthGradient or "", view.healthR, view.healthG, view.healthB
+	local texture = bar:GetStatusBarTexture()
+	if direction ~= "" and r and texture and texture.SetGradient and CreateColor then
+		local a = s.healthAlpha
+		view.gradient = true
+		texture:SetGradient(direction, CreateColor(r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a), CreateColor(r, g, b, a))
+	elseif view.gradient then
+		view.gradient = nil
+		bar:SetBarColor(unpack(bar.colorRGBA, 1, bar.colorRGBA.n))
 	end
 end
 

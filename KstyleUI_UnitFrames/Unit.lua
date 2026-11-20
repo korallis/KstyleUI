@@ -20,6 +20,7 @@ local CLASS_WORDS = { elite = L["elite"], rareelite = L["rare elite"], rare = L[
 local CAP_WORDS = { elite = L["Elite"], rareelite = L["Rare elite"], rare = L["Rare"], worldboss = L["Boss"] }
 local GLOW_POINTS = { { 0, 1 }, { 0.25, 0.9 }, { 0.5, 0.55 }, { 0.8, 0.12 }, { 1, 0 } }
 Unit.GLOW_POINTS = GLOW_POINTS
+local HEALTH_STOPS = { { 0, "hostile" }, { 0.5, "neutral" }, { 1, "friendly" } }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -45,8 +46,49 @@ local function LogOnce(key, message)
 	end
 end
 
-local function SetColor(bar, r, g, b)
-	bar:SetBarColor(r, g, b)
+local function SetColor(bar, r, g, b, a)
+	if a < 1 then
+		bar:SetBarColor(r, g, b, a)
+	else
+		bar:SetBarColor(r, g, b)
+	end
+end
+
+function Unit.ShareColor(share)
+	for i = 2, #HEALTH_STOPS do
+		local low, high = HEALTH_STOPS[i - 1], HEALTH_STOPS[i]
+		if share <= high[1] or i == #HEALTH_STOPS then
+			local t = math.max(0, math.min(1, (share - low[1]) / (high[1] - low[1])))
+			local r1, g1, b1 = Tokens.Color(low[2])
+			local r2, g2, b2 = Tokens.Color(high[2])
+			return r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t
+		end
+	end
+end
+
+local shareCurves, sharesTried
+local function ShareCurves()
+	if sharesTried then return shareCurves end
+	sharesTried = true
+	local util, kinds = C_CurveUtil, Enum and Enum.LuaCurveType
+	if not (util and type(util.CreateCurve) == "function" and UnitHealthPercent) then
+		Log("health colour by health left: no curve API; the bar keeps the class colour")
+		return nil
+	end
+	shareCurves = {}
+	for channel = 1, 3 do
+		local curve = util.CreateCurve()
+		if kinds and kinds.Linear and curve.SetType then curve:SetType(kinds.Linear) end
+		for _, stop in ipairs(HEALTH_STOPS) do curve:AddPoint(stop[1], (select(channel, Tokens.Color(stop[2])))) end
+		shareCurves[channel] = curve
+	end
+	return shareCurves
+end
+
+local function ShareColor(unit)
+	local curves = ShareCurves()
+	if not curves then return nil end
+	return UnitHealthPercent(unit, true, curves[1]), UnitHealthPercent(unit, true, curves[2]), UnitHealthPercent(unit, true, curves[3])
 end
 
 local function ClassFile(unit)
@@ -94,15 +136,20 @@ function Unit.HealthColor(view, unit)
 	local r, g, b
 	local grey = UnitIsConnected and not UnitIsConnected(unit) or UnitIsTapDenied and UnitIsTapDenied(unit)
 	view.health:SetHealthUnit(nil)
+	view.healthByShare = false
 	if grey then
 		r, g, b = Tokens.Color("textDisabled")
 	elseif s.healthColor == "custom" then
 		local c = s.healthCustom
 		r, g, b = c.r, c.g, c.b
+	elseif s.healthColor == "health" then
+		r, g, b = ShareColor(unit)
+		view.healthByShare = r ~= nil
+		if not r then r, g, b = UnitColor(unit, "class") end
 	else
 		r, g, b = UnitColor(unit, view.form == "slab" and s.healthColor == "hud" and unit == "player" and "class" or s.healthColor)
 	end
-	SetColor(view.health, r, g, b)
+	SetColor(view.health, r, g, b, s.healthAlpha)
 	local reaction = UnitReaction and UnitReaction(unit, "player")
 	local hostile = not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX
 	if not (grey or hostile) then
@@ -264,35 +311,35 @@ end
 
 local function LumenHealth(view, unit, form, format)
 	if form == "bar" then
-		Format.Health(view.healthText, unit, format == "none" and "none" or "percent")
+		Format.Health(view.healthText, unit, format == "none" and "none" or "percent", view.s.healthDecimal)
 		Format.HealthDetail(view.healthSub, unit, format == "none" and "none" or "both")
 	elseif form == "column" and view.geometry.mirror then
-		Format.Health(view.healthText, unit, Format.Main(format))
+		Format.Health(view.healthText, unit, Format.Main(format), view.s.healthDecimal)
 	elseif form == "vitals" or form == "column" then
 		local main, split = format, false
 		if format == "both" or format == "currentMax" then
 			main, split = "current", true
 		end
-		Format.Health(view.healthText, unit, main)
+		Format.Health(view.healthText, unit, main, view.s.healthDecimal)
 		if split then
 			Format.Max(view.healthSub, unit)
 		else
 			view.healthSub:SetText("")
 		end
 	elseif form == "card" then
-		Format.Health(view.healthText, unit, Format.Main(format))
+		Format.Health(view.healthText, unit, Format.Main(format), view.s.healthDecimal)
 	elseif form == "slab" then
 		local percent = view.kind == "target" and view.s.percentLead and format == "both"
-		Format.Health(view.healthText, unit, percent and "percent" or format == "both" and "currentMax" or format)
+		Format.Health(view.healthText, unit, percent and "percent" or format == "both" and "currentMax" or format, view.s.healthDecimal)
 		local dead = UnitIsDeadOrGhost and UnitIsDeadOrGhost(unit)
 		local gone = not IsSecret(dead) and dead == true
 		if percent then
 			Format.HealthDetail(view.healthSub, unit, gone and "none" or "both")
 		else
-			Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none")
+			Format.Health(view.healthSub, unit, format == "both" and not gone and "percent" or "none", view.s.healthDecimal)
 		end
 	elseif form == "row" then
-		Format.Health(view.healthText, unit, format)
+		Format.Health(view.healthText, unit, format, view.s.healthDecimal)
 	end
 end
 
@@ -307,6 +354,10 @@ function Unit.Health(view, unit, instant)
 		Unit.HealthRange(view, unit)
 	end
 	bar:SetHealth(UnitHealth(unit), instant)
+	if view.healthByShare then
+		local r, g, b = ShareColor(unit)
+		SetColor(bar, r, g, b, view.s.healthAlpha)
+	end
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
 	if view.s.fonts.health.textFormat ~= "" and format ~= "none" then
@@ -314,10 +365,10 @@ function Unit.Health(view, unit, instant)
 	elseif form ~= "plate" then
 		LumenHealth(view, unit, form, format)
 	elseif view.geometry and view.geometry.healthSub then
-		Format.Health(view.healthText, unit, Format.Main(format))
+		Format.Health(view.healthText, unit, Format.Main(format), view.s.healthDecimal)
 		Format.HealthDetail(view.healthSub, unit, format)
 	else
-		Format.Health(view.healthText, unit, format)
+		Format.Health(view.healthText, unit, format, view.s.healthDecimal)
 	end
 	if form ~= "plate" then
 		Unit.Glow(view, unit)
@@ -491,8 +542,8 @@ function Unit.SetName(view, name)
 	ns.Style.Baseline(view)
 end
 
-local function LevelColor(unit, fallback, level)
-	if unit and UnitCanAttack and UnitCanAttack("player", unit) then
+local function LevelColor(unit, fallback, level, friendly)
+	if unit and (friendly or UnitCanAttack and UnitCanAttack("player", unit)) then
 		level = UnitLevel(unit)
 	end
 	if GetCreatureDifficultyColor and not IsSecret(level) and type(level) == "number" and level > 0 then
@@ -542,7 +593,7 @@ local function Shows(value)
 	return IsSecret(value) or (type(value) == "string" and value ~= "")
 end
 
-local function LevelText(text, level, classification, creature, short, unit, hostile)
+local function LevelText(text, level, classification, creature, short, unit, hostile, friendly)
 	local fmt, args = {}, {}
 	local plainClass = Plain(classification) and classification
 	if short and plainClass and CAP_WORDS[plainClass] then
@@ -553,7 +604,7 @@ local function LevelText(text, level, classification, creature, short, unit, hos
 		fmt[1] = L["Boss"]
 	else
 		fmt[1] = L["Level %s"]
-		local r, g, b = LevelColor(unit, false, hostile and level)
+		local r, g, b = LevelColor(unit, false, hostile and level, friendly)
 		args[1] = r and string.format("|cff%02x%02x%02x%d|r", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), level) or level
 	end
 	if not short and plainClass and CLASS_WORDS[plainClass] and fmt[1] ~= L["Boss"] then
@@ -569,12 +620,17 @@ end
 
 Unit.LevelText = LevelText
 
-local function LevelLine(text, unit, short, tint)
+local function Friendly(view)
+	return view.s.levelDifficulty and view.s.levelFriendly
+end
+Unit.Friendly = Friendly
+
+local function LevelLine(text, unit, short, view)
 	local creature
 	if not short and UnitCreatureType then
 		creature = UnitCreatureType(unit)
 	end
-	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short, tint and unit)
+	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short, view.s.levelDifficulty and unit, nil, Friendly(view))
 end
 
 function Unit.Caption(view, unit)
@@ -618,9 +674,9 @@ function Unit.Caption(view, unit)
 		ns.Slab.SetCaption(view, label)
 		Unit.Refit(view)
 	elseif form == "sigil" then
-		LevelLine(text, unit, false, view.s.levelDifficulty)
+		LevelLine(text, unit, false, view)
 	elseif form == "card" then
-		LevelLine(text, unit, true, view.s.levelDifficulty)
+		LevelLine(text, unit, true, view)
 		view.capLabel:SetText(ns.Settings.CAP_LABELS[view.kind] or "")
 	end
 end
@@ -657,7 +713,7 @@ function Unit.Level(view, unit)
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then
 			text:SetText(UnitLevel(unit))
-			text:SetTextColor(LevelColor(view.s.levelDifficulty and unit))
+			text:SetTextColor(LevelColor(view.s.levelDifficulty and unit, nil, nil, Friendly(view)))
 		end
 		return
 	end
@@ -677,26 +733,46 @@ function Unit.Level(view, unit)
 	else
 		text:SetText(level)
 	end
-	text:SetTextColor(LevelColor(unit))
+	text:SetTextColor(LevelColor(unit, nil, nil, Friendly(view)))
 end
 
-local function ClassIcon(texture, unit)
-	local file = ClassFile(unit)
-	if not HasClass(file) then
-		return false
+function Unit.Crop(texture, s, l, r, t, b)
+	local zoom = s.portraitZoom
+	if zoom <= 0 and not s.portraitMirror then
+		return
 	end
+	local dx, dy = (r - l) * zoom / 2, (b - t) * zoom / 2
+	l, r, t, b = l + dx, r - dx, t + dy, b - dy
+	if s.portraitMirror then
+		l, r = r, l
+	end
+	texture:SetTexCoord(l, r, t, b)
+end
+
+function Unit.ClassArt(texture, file, s)
 	if GetClassAtlas then
 		texture:SetTexCoord(0, 1, 0, 1)
-		texture:SetAtlas(GetClassAtlas(file))
+		local atlas = GetClassAtlas(file)
+		texture:SetAtlas(atlas)
+		local info = not IsSecret(atlas) and type(atlas) == "string" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+		if info then
+			Unit.Crop(texture, s, info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord)
+		end
 		return true
 	end
 	local coords = not IsSecret(file) and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[file]
 	if coords then
 		texture:SetTexture(CLASS_CIRCLES)
 		texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+		Unit.Crop(texture, s, coords[1], coords[2], coords[3], coords[4])
 		return true
 	end
 	return false
+end
+
+local function ClassIcon(texture, unit, s)
+	local file = ClassFile(unit)
+	return HasClass(file) and Unit.ClassArt(texture, file, s)
 end
 
 function Unit.Portrait(view, unit)
@@ -708,15 +784,16 @@ function Unit.Portrait(view, unit)
 		return
 	end
 	local texture = view.portrait
-	if view.s.portraitStyle == "class" and ClassIcon(texture, unit) then
+	if view.s.portraitStyle == "class" and ClassIcon(texture, unit, view.s) then
 		return
 	end
 	texture:SetTexCoord(0, 1, 0, 1)
 	if SetPortraitTexture then
 		SetPortraitTexture(texture, unit, view.s.portraitShape ~= "round")
+		Unit.Crop(texture, view.s, 0, 1, 0, 1)
 	else
 		LogOnce("portrait", "SetPortraitTexture is missing; portraits show the class icon")
-		ClassIcon(texture, unit)
+		ClassIcon(texture, unit, view.s)
 	end
 end
 

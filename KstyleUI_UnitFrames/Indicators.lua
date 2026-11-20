@@ -28,6 +28,11 @@ local ATLAS = {
 
 local SLOTS = { "leader", "role", "pvp", "combat", "resting" }
 Indicators.SLOTS = SLOTS
+local RANK = {
+	elite = "nameplates-icon-elite-gold", worldboss = "nameplates-icon-elite-gold",
+	rareelite = "nameplates-icon-elite-silver", rare = "UI-HUD-UnitFrame-Target-PortraitOn-Boss-Rare-Star",
+}
+local MOOD = { "UI-PetMad", "UI-PetNeutral", "UI-PetHappiness" }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -195,6 +200,13 @@ function Indicators.PvP(view, unit)
 		icon:Hide()
 		return
 	end
+	if view.s.pvpPlayersOnly then
+		local player = UnitIsPlayer(unit)
+		if issecretvalue(player) or player ~= true then
+			icon:Hide()
+			return
+		end
+	end
 	local ffa = UnitIsPVPFreeForAll and UnitIsPVPFreeForAll(unit)
 	if not issecretvalue(ffa) and ffa == true then
 		icon:SetAtlas(ATLAS.ffa)
@@ -204,6 +216,10 @@ function Indicators.PvP(view, unit)
 	local flagged = UnitIsPVP and UnitIsPVP(unit)
 	local faction = UnitFactionGroup and UnitFactionGroup(unit)
 	local atlas = not issecretvalue(faction) and type(faction) == "string" and ATLAS[faction]
+	if atlas and view.s.pvpEnemyOnly then
+		local own = UnitFactionGroup("player")
+		atlas = not issecretvalue(own) and own ~= faction and atlas
+	end
 	if issecretvalue(flagged) or flagged ~= true or not atlas then
 		icon:Hide()
 		return
@@ -267,12 +283,48 @@ function Indicators.Threat(view, unit)
 	glow:Show()
 end
 
+local function ExtraAtlas(view, unit, sample)
+	local s = view.s
+	if view.kind == "pet" then
+		local info = C_PetInfo
+		if not s.happiness or not (sample or info and info.GetPetHappiness) then
+			return nil
+		end
+		local hunter = HasPetUI and select(2, HasPetUI())
+		local mood = sample or not issecretvalue(hunter) and hunter ~= false and info.GetPetHappiness()
+		return not issecretvalue(mood) and MOOD[mood] or nil
+	end
+	if not s.elite or view.kind == "player" then
+		return nil
+	end
+	local rank = sample or UnitClassification and UnitClassification(unit)
+	return not issecretvalue(rank) and RANK[rank] or nil
+end
+
+function Indicators.Extra(view, unit, sample)
+	local atlas, icon = ExtraAtlas(view, unit, sample), view.extraIcon
+	if not atlas then
+		if icon and icon:IsShown() then
+			icon:Hide()
+		end
+		return
+	end
+	if not icon then
+		icon = view.top:CreateTexture(nil, "OVERLAY")
+		icon:SetAllPoints(view.icons.resting)
+		view.extraIcon = icon
+	end
+	icon:SetAtlas(atlas)
+	icon:Show()
+end
+
 function Indicators.Status(view, unit)
 	Indicators.Leader(view, unit)
 	Indicators.Role(view, unit)
 	Indicators.PvP(view, unit)
 	Indicators.Combat(view, unit)
 	Indicators.Resting(view, unit)
+	Indicators.Extra(view, unit)
 end
 
 function Indicators.Update(view, unit)

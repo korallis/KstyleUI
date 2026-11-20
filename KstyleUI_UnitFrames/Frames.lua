@@ -116,6 +116,7 @@ local HANDLERS = {
 	end,
 	Level = function(view, unit)
 		Unit.Level(view, unit)
+		Indicators.Extra(view, unit)
 	end,
 	Portrait = function(view, unit)
 		Unit.Portrait(view, unit)
@@ -135,10 +136,38 @@ local function Active(view)
 	return running and view.uf.active
 end
 
+function Frames.Edge(view, sample)
+	local s, glow = view.s, view.edge
+	local target = s and s.targetBorder and view.kind ~= "target"
+	if not (s and (s.hoverBorder or target)) then
+		if glow then glow:Stop() end
+		return
+	end
+	if not glow then
+		local frame = CreateFrame("Frame", nil, view.parent)
+		frame:SetFrameLevel(view.parent:GetFrameLevel())
+		frame:SetAllPoints(view.glowFrame)
+		glow = K.Widgets.Glow(frame, { kind = "selection" })
+		view.edge = glow
+	end
+	local r, g, b = Settings.Accent()
+	if view.edgeR ~= r or view.edgeG ~= g or view.edgeB ~= b then
+		view.edgeR, view.edgeG, view.edgeB = r, g, b
+		glow:SetColorRGB(r, g, b)
+	end
+	local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit(view.unit, "target")
+	if sample or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true then
+		glow:Start()
+	else
+		glow:Stop()
+	end
+end
+
 local function Refresh(view, instant)
 	if Active(view) then
 		Unit.All(view, view.unit, instant)
 		Frames.Range(view)
+		Frames.Edge(view)
 	end
 end
 
@@ -195,15 +224,20 @@ local function RefreshKind(kind, instant)
 end
 
 local function OnEnter(button)
-	if UnitFrame_OnEnter then
+	local mode = Settings.Module().unitTooltip
+	if UnitFrame_OnEnter and mode ~= "never" and not (mode == "noCombat" and InCombatLockdown()) then
 		UnitFrame_OnEnter(button)
 	end
+	button.view.hovered = true
+	Frames.Edge(button.view)
 end
 
 local function OnLeave(button)
 	if UnitFrame_OnLeave then
 		UnitFrame_OnLeave(button)
 	end
+	button.view.hovered = false
+	Frames.Edge(button.view)
 end
 
 local function Poll(uf)
@@ -827,7 +861,7 @@ local function OnSettingChanged(_, module, key)
 	end
 	if kind == "resource" then
 		ns.Resource.Restyle()
-	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" then
+	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" then
 		K.Combat.Queue(function()
 			ForEach(function(each)
 				if each.active then Frames.Restyle(each) end
@@ -835,7 +869,7 @@ local function OnSettingChanged(_, module, key)
 		end)
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
-	elseif key == "orbCastRoom" then
+	elseif key == "orbCastRoom" or key == "castbarRaise" then
 		ns.CastBars.Apply()
 	elseif key == "cleanLowRing" then
 		ForEach(function(each)
@@ -850,6 +884,7 @@ local function OnSettingChanged(_, module, key)
 		ForEach(function(each)
 			for _, view in ipairs(each.views) do
 				Style.Accent(view)
+				Frames.Edge(view)
 			end
 		end)
 	end
@@ -922,6 +957,7 @@ local function RegisterEvents()
 		TargetChange(frames.target and frames.target.views[1])
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
+		EachShown(function(view) Frames.Edge(view) end)
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
@@ -933,6 +969,10 @@ local function RegisterEvents()
 	Events.RegisterUnit(MODULE, "UNIT_PET", function()
 		RefreshKind("pet", true)
 	end, "player")
+	Events.RegisterUnit(MODULE, "UNIT_HAPPINESS", function()
+		local uf = frames.pet
+		if running and uf and uf.active then Indicators.Extra(uf.views[1], "pet") end
+	end, "pet")
 	Events.Register(MODULE, "INSTANCE_ENCOUNTER_ENGAGE_UNIT", function()
 		RefreshKind("boss", true)
 		Frames.MarkTargets()

@@ -23,6 +23,7 @@ end
 
 local function Style(entry, style)
 	ns.Auras.LayoutTile(entry, true, style[4])
+	ns.Auras.Zoom(entry, "target")
 	for _, text in ipairs({ entry.timer, entry.count }) do
 		Widgets.ApplyFont(text, style[1], style[2], style[3])
 		text:SetTextColor(style[5], style[6], style[7], style[8])

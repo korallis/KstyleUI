@@ -439,8 +439,7 @@ local function Form(cb)
 	cb.medal = K.HudStyle.Current() == "medallions"
 	cb.line = not cb.medal and Lined(cb)
 	cb.mode = not cb.medal and Caption(cb) or nil
-	local player = cb.kind == "player"
-	cb.iconRight, cb.showTotal = player and Settings.Value(cb.kind, "castbarIconRight"), player and Settings.Value(cb.kind, "castbarTotal")
+	cb.iconRight, cb.showTotal = Settings.Value(cb.kind, "castbarIconRight"), cb.kind == "player" and Settings.Value(cb.kind, "castbarTotal")
 	if cb.medalOn == cb.medal then
 		return
 	end
@@ -577,6 +576,10 @@ local function LayoutCaption(cb, width, height)
 	if roomy then
 		reach = Ceil(cb, math.max(0, CAPTION_ROOM + timerW + (timerOn and TEXT_PAD or 0) - width) / 2)
 		width, lead = width + 2 * reach, lead - reach
+		if trail > 0 then
+			cb.geometry.icon.x = cb.geometry.icon.x + reach
+			Place(cb, cb.iconFrame, cb.geometry.icon)
+		end
 	end
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
@@ -754,6 +757,10 @@ local function BarColor(cb)
 end
 
 local function Paint(cb, r, g, b, a)
+	if a == nil then
+		a = Settings.Value(cb.kind, "castbarAlpha")
+		if a >= 1 then a = nil end
+	end
 	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
 	if (cb.medal or cb.mode == "inside") and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
 		cb.inkPaint = cb.inkEmpty
@@ -795,6 +802,27 @@ local function Orient(cb)
 	bar:PlaceFillCursor()
 	if turned then
 		bar:Restyle()
+	end
+end
+
+local LOW_STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true }
+
+local function Raise(cb)
+	local on = cb.unit ~= nil and Settings.Module().castbarRaise == true
+	if on == (cb.raised ~= nil) then
+		return
+	end
+	local frame = cb.frame
+	if on then
+		local strata = frame:GetFrameStrata()
+		if issecretvalue(strata) or not LOW_STRATA[strata] then
+			return
+		end
+		cb.raised = strata
+		frame:SetFrameStrata("HIGH")
+	else
+		frame:SetFrameStrata(cb.raised)
+		cb.raised = nil
 	end
 end
 
@@ -846,6 +874,7 @@ function CastBars.Restyle(cb)
 	end
 	Orient(cb)
 	Spark(cb)
+	Raise(cb)
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -856,17 +885,18 @@ local function ColorObjects(cb, r, g, b)
 	if not create then
 		return nil
 	end
-	local c = cb.colors
-	if c.r ~= r or c.g ~= g or c.b ~= b then
+	local c, a = cb.colors, Settings.Value(cb.kind, "castbarAlpha")
+	if c.r ~= r or c.g ~= g or c.b ~= b or c.a ~= a then
 		c.r, c.g, c.b = r, g, b
-		c.normal = create(r, g, b, 1)
+		c.normal = create(r, g, b, a)
 	end
 	local color = Settings.Value(cb.kind, "castbarLockedColor")
 	local lr, lg, lb = color.r, color.g, color.b
-	if c.lr ~= lr or c.lg ~= lg or c.lb ~= lb then
+	if c.lr ~= lr or c.lg ~= lg or c.lb ~= lb or c.a ~= a then
 		c.lr, c.lg, c.lb = lr, lg, lb
-		c.locked = create(lr, lg, lb, 1)
+		c.locked = create(lr, lg, lb, a)
 	end
+	c.a = a
 	return c.locked, c.normal
 end
 

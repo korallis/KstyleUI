@@ -51,8 +51,8 @@ local function Size(s, element, scale)
 	return (fonts and fonts.size or 11) * scale
 end
 
-local function Column(format, size, room)
-	return min(Format.ColumnWidth(format or "none", size), max(0, floor(room * MAX_COLUMN_SHARE)))
+local function Column(s, format, size, room)
+	return min(Format.ColumnWidth(format or "none", size, s.healthDecimal), max(0, floor(room * MAX_COLUMN_SHARE)))
 end
 
 local function Portrait(out, s, width, height)
@@ -206,7 +206,7 @@ local function Full(out, s, scale, height)
 	end
 	local trackW = iw
 	if healthText then
-		local col = Column(Format.Shown(s.healthText, detail and rowH > 0), healthSize, iw)
+		local col = Column(s, Format.Shown(s.healthText, detail and rowH > 0), healthSize, iw)
 		if shape.textShare then
 			col = max(col, floor(iw * shape.textShare))
 		end
@@ -226,7 +226,7 @@ end
 local function Compact(out, s, scale, left, right, height)
 	local ix, iw = left + COMPACT_PAD, right - left - 2 * COMPACT_PAD
 	local top, bottom = COMPACT_PAD, height - COMPACT_PAD
-	local healthCol = Column(s.healthText, Size(s, "health", scale), iw)
+	local healthCol = Column(s, s.healthText, Size(s, "health", scale), iw)
 	local powerH = PowerHeight(s, max(0, bottom - top))
 	local healthH = max(0, bottom - top - PowerRoom(powerH))
 	out.health = Rect(ix, top, iw, healthH)
@@ -303,7 +303,7 @@ local function Vitals(out, s, width, height, scale)
 	local valueW = 0
 	if main ~= "none" then
 		local subW = split and Format.ColumnWidth("current", captionSize) or 0
-		local curW = Format.ColumnWidth(main, valueSize)
+		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal)
 		if split then
 			out.healthSub = Above(x0 + colW - subW, subW, rowBottom, captionSize)
 		end
@@ -401,7 +401,7 @@ local function Card(out, s, width, height, scale)
 	end
 	y = y + capH + gap(2)
 	local main = Format.Main(s.healthText)
-	local pctW = main ~= "none" and Column(main, valueSize, colW) or 0
+	local pctW = main ~= "none" and Column(s, main, valueSize, colW) or 0
 	if rowH > 0 and pctW > 0 then
 		out.healthText = Rect(padX + colW - pctW, y, pctW, rowH)
 	end
@@ -436,7 +436,7 @@ local function PillRow(out, s, width, height, scale)
 	local textH = max(0, out.health.y - ROW.gap)
 	local col = 0
 	if (s.healthText or "none") ~= "none" then
-		col = Column(s.healthText, Size(s, "health", scale), width)
+		col = Column(s, s.healthText, Size(s, "health", scale), width)
 		out.healthText = Rect(width - col, 0, col, textH)
 	end
 	if s.name then
@@ -486,14 +486,14 @@ local function ColumnTexts(out, s, width, scale, right)
 	local valueW = 0
 	if right then
 		main = Format.Main(s.healthText)
-		local pctW = main ~= "none" and Column(main, valueSize, width) or 0
+		local pctW = main ~= "none" and Column(s, main, valueSize, width) or 0
 		if pctW > 0 then
 			out.healthText = Above(0, pctW, rowBottom, valueSize)
 			valueW = pctW + TEXT_GAP
 		end
 	elseif main ~= "none" then
 		local subW = split and Format.ColumnWidth("current", captionSize) or 0
-		local curW = Format.ColumnWidth(main, valueSize)
+		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal)
 		if split then
 			out.healthSub = Above(width - subW, subW, rowBottom, captionSize)
 		end

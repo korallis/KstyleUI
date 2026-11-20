@@ -10,13 +10,18 @@ ns.Format = Format
 local ceil = math.ceil
 
 local COLUMN = { none = 0, legacy = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
-local PERCENT = "%.0f%%"
+local DECIMAL_EM = 1.1
+local PERCENT, PERCENT_DECIMAL = "%.0f%%", "%.1f%%"
 local CURRENT_MAX = "%s / %s"
-local BOTH = "%s / %s  %.0f%%"
+local BOTH, BOTH_DECIMAL = "%s / %s  %.0f%%", "%s / %s  %.1f%%"
 local MAX = "/ %s"
 
-function Format.ColumnWidth(format, size)
-	return ceil((COLUMN[format] or 0) * size)
+function Format.ColumnWidth(format, size, decimal)
+	local em = COLUMN[format] or 0
+	if decimal and (format == "percent" or format == "both") then
+		em = em + DECIMAL_EM
+	end
+	return ceil(em * size)
 end
 
 local curve
@@ -84,20 +89,20 @@ local function Status(text, unit)
 	return false
 end
 
-local function Write(text, format, current, max, percent, hasPercent)
-	if hasPercent then percent = K.Widgets.WholePercent(percent) end
+local function Write(text, format, current, max, percent, hasPercent, decimal)
+	if hasPercent and not decimal then percent = K.Widgets.WholePercent(percent) end
 	if format == "current" then
 		text:SetText(Abbreviate(current))
 	elseif format == "percent" and hasPercent then
-		text:SetFormattedText(PERCENT, percent)
+		text:SetFormattedText(decimal and PERCENT_DECIMAL or PERCENT, percent)
 	elseif format == "both" and hasPercent then
-		text:SetFormattedText(BOTH, Abbreviate(current), Abbreviate(max), percent)
+		text:SetFormattedText(decimal and BOTH_DECIMAL or BOTH, Abbreviate(current), Abbreviate(max), percent)
 	else
 		text:SetFormattedText(CURRENT_MAX, Abbreviate(current), Abbreviate(max))
 	end
 end
 
-function Format.Health(text, unit, format)
+function Format.Health(text, unit, format, decimal)
 	if format == "none" then
 		text:SetText("")
 		return
@@ -113,7 +118,7 @@ function Format.Health(text, unit, format)
 			percent = UnitHealthPercent(unit, true, c)
 		end
 	end
-	Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent)
+	Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent, decimal)
 end
 
 function Format.Main(format)
@@ -185,7 +190,7 @@ function Format.SampleDetail(text, format, current, max)
 	Write(text, "currentMax", current, max)
 end
 
-function Format.Sample(text, format, current, max)
+function Format.Sample(text, format, current, max, decimal)
 	if format == "legacy" then format = "none" end
 	if format == "auto" then format = "percent" end
 	if format == "none" then
@@ -193,5 +198,5 @@ function Format.Sample(text, format, current, max)
 		return
 	end
 	local percent = max > 0 and current / max * 100 or 0
-	Write(text, format, current, max, percent, true)
+	Write(text, format, current, max, percent, true, decimal)
 end

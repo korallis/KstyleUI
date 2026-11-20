@@ -135,8 +135,18 @@ function Auras.SampleTile(parent)
 	return tile
 end
 
+function Auras.Zoom(entry, kind)
+	local zoom = Settings.Value(kind, "auraZoom")
+	entry.icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
+	local button = entry.button
+	if button and button.SetHideTooltipInCombat then
+		button:SetHideTooltipInCombat(not Settings.Value(kind, "auraTooltipCombat"))
+	end
+end
+
 function Auras.StyleSample(tile, kind)
 	local view = { kind = kind }
+	Auras.Zoom(tile, kind)
 	local inset = Widgets.Snap(tile.skin, COUNT_INSET)
 	tile.count:ClearAllPoints()
 	tile.count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", inset, inset)
@@ -243,6 +253,7 @@ local function StyleButton(view, entry, style)
 	local size = Snap(view, Value(view, "auraSize"))
 	entry.button:SetSize(size, size)
 	Auras.LayoutTile(entry)
+	Auras.Zoom(entry, view.kind)
 	local inset = Widgets.Snap(entry.skin, COUNT_INSET)
 	entry.count:ClearAllPoints()
 	entry.count:SetPoint("TOPRIGHT", entry.skin, "TOPRIGHT", inset, inset)

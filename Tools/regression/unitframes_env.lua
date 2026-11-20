@@ -572,7 +572,7 @@ function U.Install(env)
 		local button = createFrame("AuraButton", nil, parent)
 		button._layoutForbidden = true
 		button._aura = {}
-		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures", "AddPandemicRegion" }) do
+		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures", "AddPandemicRegion", "SetHideTooltipInCombat" }) do
 			button[method] = function(self, ...)
 				self._aura[method] = { ... }
 			end

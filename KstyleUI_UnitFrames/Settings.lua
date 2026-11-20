@@ -17,6 +17,8 @@ local AURA_SIZE_MIN, AURA_SIZE_MAX = 12, 48
 local AURA_SPACING_MAX = 12
 local AURA_ROWS_MAX, AURA_COLUMNS_MAX = 6, 16
 local SPACING_MIN, SPACING_MAX = 0, 12
+local ALPHA_MIN, ALPHA_STEP = 0.1, 0.05
+local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -92,7 +94,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		portraitStyle = "portrait",
 		portraitShape = "round",
 		portraitSide = "LEFT",
+		portraitMirror = false,
+		portraitZoom = 0,
 		level = full,
+		levelFriendly = false,
 		name = true,
 		nameCaps = true,
 		healthTexture = BAR_TEXTURE,
@@ -100,9 +105,14 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthCustom = Color("friendly"),
 		healthOrientation = "RIGHT",
 		healthText = full and "both" or "percent",
+		healthAlpha = 1,
+		healthGradient = "",
 		healPrediction = true,
 		absorbs = true,
 		healAbsorbs = false,
+		incomingAlpha = 0.45,
+		absorbAlpha = 0.35,
+		healAbsorbAlpha = 0.7,
 		levelDifficulty = false,
 		power = full,
 		powerHeight = full and 7 or 3,
@@ -117,9 +127,14 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		leader = full,
 		role = full,
 		pvp = full,
+		pvpEnemyOnly = false,
+		pvpPlayersOnly = false,
+		elite = false,
 		combat = false,
 		resting = false,
 		threat = full,
+		hoverBorder = false,
+		targetBorder = false,
 		iconSize = 12,
 		castbar = castHeight ~= nil,
 		castbarHeight = castHeight or 20,
@@ -135,6 +150,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarCustom = Color("rare"),
 		castbarOrientation = "RIGHT",
 		castbarInside = false,
+		castbarAlpha = 1,
+		castbarIconRight = false,
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
 		auraFilters = { onlyMine = false, dispellable = false, sort = "" },
@@ -145,6 +162,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		auraGrowth = "RIGHT_DOWN",
 		auraPosition = aura and aura.position or "BELOW",
 		auraTimer = true,
+		auraZoom = 0.07,
+		auraTooltipCombat = true,
 		fonts = {
 			name = TextStyle(text[1]),
 			health = TextStyle(text[2]),
@@ -170,6 +189,9 @@ Settings.defaults = {
 	singleSlabLevel = true,
 	hideBlizzard = true,
 	castOutcomes = true,
+	healthDecimal = false,
+	unitTooltip = "always",
+	castbarRaise = false,
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	dangerEdge = true,
@@ -180,7 +202,7 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
-		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarIconRight = false, castbarTotal = false,
+		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -193,7 +215,7 @@ Settings.defaults = {
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
-	pet = Kind(false),
+	pet = Kind(false, { happiness = false }),
 	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
@@ -237,7 +259,9 @@ Settings.CHOICES = {
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
-	healthColor = Options({ { "hud", L["KstyleUI colours"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
+	healthColor = Options({ { "hud", L["KstyleUI colours"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "health", L["By health left"] }, { "custom", L["Custom colour"] } }),
+	gradient = Options({ { "", L["None"] }, { "HORIZONTAL", L["Left to right"] }, { "VERTICAL", L["Bottom to top"] } }),
+	unitTooltip = Options({ { "always", L["Always"] }, { "noCombat", L["Out of combat"] }, { "never", L["Never"] } }),
 	powerColor = Options({ { "power", L["Power type"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	orientation = Options({ { "RIGHT", L["Left to right"] }, { "LEFT", L["Right to left"] }, { "UP", L["Bottom to top"] }, { "DOWN", L["Top to bottom"] } }),
 	text = Options({
@@ -261,6 +285,7 @@ local CHOICE_OF = {
 	portraitShape = "portraitShape",
 	portraitSide = "portraitSide",
 	healthColor = "healthColor",
+	healthGradient = "gradient",
 	powerColor = "powerColor",
 	healthOrientation = "orientation",
 	powerOrientation = "orientation",
@@ -336,6 +361,13 @@ local RANGES = {
 	auraSpacing = { 0, AURA_SPACING_MAX },
 	auraRows = { 1, AURA_ROWS_MAX },
 	auraColumns = { 1, AURA_COLUMNS_MAX },
+	healthAlpha = { ALPHA_MIN, 1 },
+	incomingAlpha = { ALPHA_MIN, 1 },
+	absorbAlpha = { ALPHA_MIN, 1 },
+	healAbsorbAlpha = { ALPHA_MIN, 1 },
+	castbarAlpha = { ALPHA_MIN, 1 },
+	portraitZoom = { 0, ZOOM_MAX },
+	auraZoom = { 0, ZOOM_MAX },
 }
 
 local function IsNumber(v)
@@ -513,6 +545,7 @@ function Settings.Snapshot(kind)
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
 	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
+	s.healthDecimal = Settings.Module().healthDecimal == true
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
@@ -605,9 +638,15 @@ local ICON_ROWS = {
 	{ "leader", L["Leader icon"], L["Shows a crown when the unit leads the group."] },
 	{ "role", L["Role icon"], L["Shows the unit's group role."] },
 	{ "pvp", L["PvP icon"], L["Shows the faction badge while the unit is flagged for PvP."] },
+	{ "pvpEnemyOnly", L["Other faction only"], L["Shows the PvP badge only on units of the other faction."], nil, "pvp" },
+	{ "pvpPlayersOnly", L["Players only"], L["Hides the PvP badge on NPCs such as guards."], nil, "pvp" },
+	{ "elite", L["Elite and rare icon"], L["Marks elite, rare and boss units with the game's dragon badge."], "-player-pet" },
 	{ "combat", L["Combat icon"], L["Shows crossed swords while the unit is in combat."] },
 	{ "resting", L["Resting"], L["Shows Zz while you rest in an inn or a city."], "player" },
 	{ "threat", L["Threat glow"], L["Glows in the threat colour when the unit has or causes threat."] },
+	{ "hoverBorder", L["Hover glow"], L["Glows in the accent colour while the mouse is over the frame."] },
+	{ "targetBorder", L["Target glow"], L["Glows in the accent colour while this unit is your target."], "-target" },
+	{ "happiness", L["Pet happiness"], L["Shows your hunter pet's happiness."], "pet" },
 }
 
 IconRows = function(schema, kind)
@@ -616,8 +655,11 @@ IconRows = function(schema, kind)
 	end
 	schema[#schema + 1] = Header(kind, L["icons"])
 	for _, spec in ipairs(ICON_ROWS) do
-		if spec[4] == nil or spec[4] == kind then
-			schema[#schema + 1] = Row(kind, { type = "toggle", key = spec[1], label = spec[2], help = spec[3] })
+		local only = spec[4]
+		if only == nil or only == kind or only:sub(1, 1) == "-" and not ("-" .. only .. "-"):find("-" .. kind .. "-", 1, true) then
+			local parent = spec[5]
+			schema[#schema + 1] = Row(kind, { type = "toggle", key = spec[1], label = spec[2], help = spec[3] },
+				parent and function() return Settings.Value(kind, parent) == true end or nil)
 		end
 	end
 	schema[#schema + 1] = Row(kind, {
@@ -673,6 +715,10 @@ CastRows = function(schema, kind)
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
+		help = L["Put the spell icon at the right end of the cast bar."] }, function(s) return on(s) and Settings.Value(kind, "castbarIcon") end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarAlpha", label = L["Fill opacity"],
+		help = L["How solid the cast fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
 	if kind == "player" then
@@ -684,8 +730,6 @@ CastRows = function(schema, kind)
 			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
 			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
-		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
-			help = L["Put the spell icon at the right end of the cast bar."] }, function(s) return on(s) and s.castbarIcon ~= false end)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
 			help = L["Show the time cast so far and the full cast time, such as 0.4 / 2.0."] }, function(s) return on(s) and s.castbarTimer ~= false end)
 	end
@@ -750,6 +794,10 @@ AuraRows = function(schema, kind)
 		type = "toggle", key = "auraTimer", label = L["Aura timers"],
 		help = L["Shows the time left on each aura."],
 	}, on)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraZoom", label = L["Aura icon zoom"],
+		help = L["Crops into each aura icon. 0 shows the whole icon with its border."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTooltipCombat", label = L["Aura tooltips in combat"],
+		help = L["Off hides aura tooltips while you fight; they still show out of combat."] }, on)
 	TextRows(schema, kind, "aura")
 end
 
@@ -856,6 +904,13 @@ local function KindRows(schema, kind)
 		type = "dropdown", key = "portraitSide", label = L["Portrait side"],
 		help = L["Which side of the bars the portrait sits on."], options = CHOICES.portraitSide,
 	}, portraitOn)
+	local function flatPortrait(s)
+		return portraitOn(s) and K.HudStyle.Current() ~= "medallions"
+	end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "portraitMirror", label = L["Mirror portrait"],
+		help = L["Flips the portrait or class icon to face the other way."] }, flatPortrait)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "portraitZoom", label = L["Portrait zoom"],
+		help = L["Crops into the portrait or class icon. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, flatPortrait)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "name", label = L["Name"],
 		help = L["Shows the unit's name."],
@@ -872,8 +927,14 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "levelDifficulty", label = L["Level difficulty colour"],
 		help = L["Colours an enemy's level number by how hard it is for you."] }, function(s) return s.level ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "levelFriendly", label = L["Friendly level colour"],
+		help = L["Gives friendly units their level's difficulty colour too."] }, function(s) return s.level ~= false and s.levelDifficulty == true end)
 	schema[#schema + 1] = Header(kind, L["health bar"])
 	BarRows(schema, kind, "health")
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "healthAlpha", label = L["Fill opacity"],
+		help = L["How solid the health fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP })
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "healthGradient", label = L["Fill gradient"],
+		help = L["Shades the health fill from darker to its colour."], options = CHOICES.gradient })
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],
@@ -892,6 +953,14 @@ local function KindRows(schema, kind)
 		help = L["Shows absorb shields when incoming heals are enabled."] }, function(s) return s.healPrediction ~= false end)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "healAbsorbs", label = L["Heal absorbs"],
 		help = L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."] }, function(s) return s.healPrediction ~= false end)
+	for _, spec in ipairs({
+		{ "incomingAlpha", L["Incoming heal opacity"], L["How solid incoming heals look on the health bar."], function() return true end },
+		{ "absorbAlpha", L["Absorb opacity"], L["How solid absorb shields look on the health bar."], function(s) return s.absorbs ~= false end },
+		{ "healAbsorbAlpha", L["Heal absorb opacity"], L["How solid heal absorbs look on the health bar."], function(s) return s.healAbsorbs == true end },
+	}) do
+		schema[#schema + 1] = Row(kind, { type = "slider", key = spec[1], label = spec[2], help = spec[3], min = ALPHA_MIN, max = 1, step = ALPHA_STEP },
+			function(s) return s.healPrediction ~= false and spec[4](s) end)
+	end
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],
@@ -932,6 +1001,12 @@ function Settings.Schema()
 			showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
 			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },
+		{ type = "toggle", key = "castbarRaise", label = L["Cast bars above other frames"],
+			help = L["Draws every unit frame cast bar above other frames so nothing covers it."] },
+		{ type = "toggle", key = "healthDecimal", label = L["Health percent with a decimal"],
+			help = L["Shows health percentages with one decimal place. Shortened health values already show one."] },
+		{ type = "dropdown", key = "unitTooltip", label = L["Unit tooltips"], options = CHOICES.unitTooltip,
+			help = L["When hovering a unit frame shows the unit's tooltip."] },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
 		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],
