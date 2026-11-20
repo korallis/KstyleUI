@@ -82,9 +82,7 @@ function Slot.Paint(slot)
 		slot.chrome:SetFillRGBA(Tokens.Color("buttonFill"))
 	end
 	slot.icon:SetAlpha(state.match and 1 or DIM_ALPHA)
-	if type(slot.icon.SetDesaturated) == "function" then
-		slot.icon:SetDesaturated(state.locked == true or state.junk == true and Settings.Get("desaturateJunk"))
-	end
+	slot.icon:SetDesaturated(state.locked == true or state.junk == true and Settings.Get("desaturateJunk"))
 	local textAlpha = state.match and 1 or DIM_ALPHA
 	slot.count:SetAlpha(textAlpha)
 	slot.level:SetAlpha(textAlpha)

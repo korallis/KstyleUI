@@ -145,8 +145,7 @@ Strip.VALUES.itemLevel = function()
 	return IsNumber(equipped) and equipped >= 0 and tostring(math.floor(equipped)) or L["--"]
 end
 for _, id in ipairs({ "location", "itemLevel" }) do
-	local key = id
-	Strip.TOOLTIPS[key] = function(_, tip) tip:AddDoubleLine(titles[key], Strip.VALUES[key]()) end
+	Strip.TOOLTIPS[id] = function(_, tip) tip:AddDoubleLine(titles[id], Strip.VALUES[id]()) end
 end
 
 function Readouts.Visible(id)

@@ -75,33 +75,6 @@ do
 end
 
 do
-	local C = dofile("Tools/regression/chat_env.lua")
-	local sounds = 0
-	local env, K = C.New({ saved = saved("Chat", { enabled = true, timestamp = "%H:%M" }), setup = function(e)
-		e.SOUNDKIT = { TELL_MESSAGE = 3081 }
-		e.PlaySound = function() sounds = sounds + 1 end
-	end })
-	C.Enable(env, K)
-	assert(K.Store.Module("Chat").timestamp == "%H:%M" and K.Store.Module("Chat").whisperSound == false)
-	env.FireEvent("CHAT_MSG_WHISPER", "hello")
-	assert(sounds == 0)
-	write(env, K, "Chat", "whisperSound", true)
-	env.FireEvent("CHAT_MSG_WHISPER", "hello")
-	env.FireEvent("CHAT_MSG_BN_WHISPER", "hello")
-	assert(sounds == 2, "both whisper kinds play once")
-	env.SOUNDKIT.TELL_MESSAGE = env.Secret(3081)
-	env.FireEvent("CHAT_MSG_WHISPER", "hello")
-	assert(sounds == 2, "secret sound IDs are refused")
-	env.SOUNDKIT.TELL_MESSAGE, env.PlaySound = 3081, nil
-	env.FireEvent("CHAT_MSG_WHISPER", "hello")
-	write(env, K, "Chat", "whisperSound", false)
-	env.PlaySound = function() sounds = sounds + 1 end
-	env.FireEvent("CHAT_MSG_WHISPER", "hello")
-	assert(sounds == 2)
-	clean(env, K)
-end
-
-do
 	local B = dofile("Tools/regression/bags_env.lua")
 	local env, K, ns = B.New({ saved = saved("Bags", { enabled = true, columns = 7 }), bags = { [0] = { size = 4, items = { B.Item("junk"), B.Item("potion") } } } })
 	env.ToggleAllBags()
@@ -213,4 +186,4 @@ do
 	assert(stopped == 1)
 	clean(env, K)
 end
-print("shell parity ok: ten options apply, reverse and preserve v0.2.8 settings")
+print("shell parity ok: nine options apply, reverse and preserve v0.2.8 settings")

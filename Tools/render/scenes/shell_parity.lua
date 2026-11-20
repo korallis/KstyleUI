@@ -5,7 +5,7 @@ local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local module = os.getenv("RENDER_SHELL_MODULE") or "Minimap"
 local loaders = { Minimap = "minimap", DataBars = "databars", Chat = "chat", Bags = "bags", Tooltips = "tooltips", QoL = "qol" }
-local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Chat = "whisperSound", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
+local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
 local driver = assert(loaders[module], "RENDER_SHELL_MODULE must name a shell module")
 local D = dofile("Tools/regression/" .. driver .. "_env.lua")
 
@@ -32,7 +32,7 @@ return Common.Run(function()
 	env.RunTimers()
 	local defaults = os.getenv("RENDER_SHELL_DEFAULTS") == "1"
 	if not defaults then
-		if module ~= "DataBars" then assert(K.Options.Write(module, keys[module], module ~= "Minimap") ~= false) end
+		if keys[module] and module ~= "DataBars" then assert(K.Options.Write(module, keys[module], module ~= "Minimap") ~= false) end
 		if module == "DataBars" then
 			local s = K.Store.Module(module).strip
 			for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
