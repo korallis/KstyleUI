@@ -344,7 +344,7 @@ do
 		Q.Write(env, K, key, value)
 	end
 	preview:Refresh()
-	assert(preview.lines[1]:GetText() == "Go" and preview.lines[1]:GetAlpha() == 1 and preview.lines[3]:GetAlpha() == 1)
+	assert(preview.lines[1]:GetText() == "Go" and preview.lines[1]:GetAlpha() == 1 and preview.lines[4]:GetAlpha() == 1)
 	assert(near(preview.cross.h:GetWidth(), 70) and near(preview.cross.h:GetHeight(), K.Scale.Pixel(1)))
 	assert(near(select(4, preview.ring:GetVertexColor()), 0.7), "the ring sample takes the ring's opacity")
 	clean(env, K)
@@ -520,8 +520,8 @@ do
 		end
 	end
 	local function offset(a, b)
-		local ax, ay = a:GetCenter()
-		local bx, by = b:GetCenter()
+		local _, _, _, ax, ay = a:GetPoint(1)
+		local _, _, _, bx, by = b:GetPoint(1)
 		return ax - bx, ay - by
 	end
 	local function close(a, b)
