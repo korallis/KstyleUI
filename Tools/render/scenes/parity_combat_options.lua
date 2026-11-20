@@ -31,9 +31,9 @@ return Common.Run(function()
  if os.getenv("RENDER_PARITY_ENABLED") == "1" then
   local values = {
    Auras = { ["buffs.swipe"] = true, ["debuffs.swipe"] = true, ["count.shown"] = false, iconZoom = 0.1, ["timer.x"] = 3 },
-   Cooldowns = { ["essential.swipe"] = false, ["essential.showCount"] = false, ["bars.fillOpacity"] = 0.65 },
+   Cooldowns = { ["essential.iconZoom"] = 0.2, ["utility.iconZoom"] = 0.2, ["buffs.iconZoom"] = 0.2, ["bars.iconZoom"] = 0.2 },
    CombatText = { direction = "down", shadow = "show", combat = true },
-   Meters = { ["damage.hover"] = false, ["damage.alwaysPlayer"] = false, ["damage.format"] = "full" },
+   Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true },
   }
   for key, value in pairs(values[module]) do K.Options.Write(module, key, value) end
  end

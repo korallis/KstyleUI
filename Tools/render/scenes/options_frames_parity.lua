@@ -15,6 +15,10 @@ return Common.Run(function()
 		end }
 	end }))
 	if module == "UnitFrames" then K.Options.Write(module, "edit", "player") end
+	if module == "UnitFrames" and os.getenv("RENDER_PARITY_ENABLED") == "1" then
+		K.Options.Write(module, "player.castbarSmooth", true)
+		K.Options.Write(module, "player.castbarChannelOverride", true)
+	end
 	if module == "GroupFrames" then
 		K.Options.Write(module, "party.width", 350)
 		K.Options.Write(module, "party.healthTextPlace", "BAR")

@@ -172,6 +172,7 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
+		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"),
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -667,6 +668,12 @@ CastRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
 	if kind == "player" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSmooth", label = L["Smooth cast progress"],
+			help = L["Use the game's smoothing for cast and channel progress."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarChannelOverride", label = L["Separate channel colour"],
+			help = L["Use a separate fill colour while you channel a spell."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "color", key = "castbarChannelColor", label = L["Channel colour"],
+			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
 			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
 	end

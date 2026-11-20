@@ -96,8 +96,9 @@ local function Direction(channel)
 	return enum and enum.ElapsedTime or 0
 end
 
-local function Interpolation()
+local function Interpolation(cb)
 	local enum = Enum and Enum.StatusBarInterpolation
+	if cb and cb.kind == "player" and Settings.Value("player", "castbarSmooth") and enum and enum.ExponentialEaseOut then return enum.ExponentialEaseOut end
 	return enum and enum.Immediate or 0
 end
 
@@ -724,6 +725,10 @@ local function Reaction(cb)
 end
 
 local function BarColor(cb)
+	if cb.channel and cb.kind == "player" and Settings.Value("player", "castbarChannelOverride") then
+		local c = Settings.Value("player", "castbarChannelColor")
+		return c.r, c.g, c.b
+	end
 	local source = Settings.Value(cb.kind, "castbarColor")
 	if cb.medal and cb.kind == "player" and source ~= "custom" then
 		return K.Theme.Accent()
@@ -910,7 +915,7 @@ local function RunDuration(cb, channel)
 	if type(duration) == "nil" then
 		return false
 	end
-	local ok = pcall(cb.bar.SetTimerDuration, cb.bar, duration, Interpolation(), Direction(channel))
+	local ok = pcall(cb.bar.SetTimerDuration, cb.bar, duration, Interpolation(cb), Direction(channel))
 	if not ok then
 		LogOnce("timer-refused", "cast bars: SetTimerDuration refused a duration; using the cast times")
 		return false

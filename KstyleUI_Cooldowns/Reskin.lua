@@ -8,7 +8,6 @@ local Cap, Settings, Style, Viewers = ns.Cap, ns.Settings, ns.Style, ns.Viewers
 local Reskin = {}
 ns.Reskin = Reskin
 
-local ICON_CROP = 0.07
 local ICON_OUTSET = 0
 local CVAR = "cooldownViewerEnabled"
 
@@ -37,9 +36,9 @@ local function Keep(...)
 	return keep
 end
 
-local function Crop(texture)
+local function Crop(texture, crop)
 	if IsTexture(texture) then
-		texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+		texture:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 	end
 end
 
@@ -107,7 +106,7 @@ local function SkinIcon(group, item)
 	local icon = item.Icon
 	if IsTexture(icon) then
 		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange) })
-		Crop(icon)
+		Crop(icon, cfg.iconZoom)
 	end
 	local backdrop = Outset(Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
@@ -177,7 +176,7 @@ local function SkinBar(item)
 		frame:SetWidth(height)
 		frame:SetHeight(height)
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
-		Crop(frame.Icon)
+		Crop(frame.Icon, cfg.iconZoom)
 		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline, nil, cfg.showCount)
 	end

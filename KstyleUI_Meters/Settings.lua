@@ -72,6 +72,9 @@ ns.defaults = {
 		alwaysPlayer = true,
 		hover = true,
 		format = "short",
+		refresh = 0.5,
+		hoverSpells = 3,
+		hideRank = false,
 	}),
 	threat = Merge(Bars("left"), Text(12), {
 		followGuide = true,
@@ -115,12 +118,6 @@ ns.METER_TYPES = {
 	{ value = "Deaths", label = L["Deaths"], deaths = true },
 	{ value = "EnemyDamageTaken", label = L["Enemy damage taken"] },
 }
-ns.SESSIONS = {
-	{ value = "Current", label = L["Current fight"] },
-	{ value = "Previous", label = L["Previous fight"] },
-	{ value = "Overall", label = L["Overall"] },
-}
-
 local byKey
 
 function ns.Schema()
@@ -292,7 +289,11 @@ function ns.Schema()
 		},
 		{
 			type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
-			help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = ns.SESSIONS,
+			help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = {
+				{ value = "Current", label = L["Current fight"] },
+				{ value = "Previous", label = L["Previous fight"] },
+				{ value = "Overall", label = L["Overall"] },
+			},
 		},
 		{
 			type = "toggle", key = "damage.group", label = L["Only in a group"], disableWhen = Off("damage"),
@@ -308,6 +309,12 @@ function ns.Schema()
 		},
 	}
 	ListRows("damage", schema)
+	schema[#schema + 1] = { type = "slider", key = "damage.refresh", label = L["Refresh interval"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Seconds between grouped meter updates. Lower values refresh sooner."], min = 0.1, max = 2, step = 0.1 }
+	schema[#schema + 1] = { type = "slider", key = "damage.hoverSpells", label = L["Spells on hover"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["The maximum number of spells in a row's hover breakdown."], min = 1, max = 10, step = 1 }
+	schema[#schema + 1] = { type = "toggle", key = "damage.hideRank", label = L["Hide pinned rank"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Hide the rank number beside your pinned row."] }
 	schema[#schema + 1] = { type = "toggle", key = "damage.alwaysPlayer", label = L["Always show player"], disableWhen = Off("damage"), showWhen = WindowStyle,
 		help = L["Keep your row visible when it falls outside the meter's visible rows."] }
 	schema[#schema + 1] = { type = "toggle", key = "damage.hover", label = L["Show breakdown on hover"], disableWhen = Off("damage"), showWhen = WindowStyle,
@@ -450,13 +457,14 @@ local function Allowed(row, value)
 	return type(value) == type((Lookup(ns.defaults, row.key)))
 end
 
-local warned = {}
+local warned, defaultsByKey = {}, {}
 
 function ns.Get(key)
 	local settings = K.Store.IsLoaded() and K.Store.Module(ns.MODULE)
 	local styled = not settings or settings.nameplateRows ~= false
 	if styled then key = SHARED_ROWS[key] or key end
-	local default = Lookup(ns.defaults, key)
+	local default = defaultsByKey[key]
+	if default == nil then default = Lookup(ns.defaults, key); defaultsByKey[key] = default end
 	if default == nil then
 		error("KstyleUI_Meters: unknown setting " .. tostring(key), 2)
 	end

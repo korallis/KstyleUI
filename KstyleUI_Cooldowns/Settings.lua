@@ -27,6 +27,7 @@ Settings.COOLDOWN_GROUPS = COOLDOWN_GROUPS
 
 local ICON_RANGE = {
 	size = { 16, 64, 0.1 },
+	iconZoom = { 0, 0.3, 0.01 },
 	spacing = { 0, 12, 0.1 },
 	columns = { 1, 12, 1 },
 	rows = { 1, 4, 1 },
@@ -36,6 +37,7 @@ local ICON_RANGE = {
 local ESSENTIAL_TIMER_RANGE = { 6, 32, 0.5 }
 local BAR_RANGE = {
 	width = { 80, 400, 1 },
+	iconZoom = { 0, 0.3, 0.01 },
 	height = { 8, 40, 1 },
 	spacing = { 0, 12, 1 },
 	count = { 1, 12, 1 },
@@ -63,6 +65,7 @@ local DEFAULT_BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 local function IconDefaults(size, timerSize, countSize, cooldown, spacing, columns)
 	local out = {
 		size = size,
+		iconZoom = 0.07,
 		spacing = spacing or GAP,
 		columns = cooldown and 0 or (columns or 6),
 		rows = cooldown and 0 or 1,
@@ -106,6 +109,7 @@ Settings.defaults = {
 	buffs = buffs,
 	bars = {
 		width = BAR_WIDTH,
+		iconZoom = 0.07,
 		height = BAR_HEIGHT,
 		spacing = GAP,
 		count = 2,
@@ -209,6 +213,7 @@ function Settings.Schema()
 	local function IconRows(schema, group, title)
 		Add(schema, { type = "header", label = title })
 		Add(schema, Slider(group, "size", L["Icon size"], L["The width and height of each icon."], ICON_RANGE))
+		Add(schema, Slider(group, "iconZoom", L["Icon zoom"], L["Crop the artwork inside the square icon without changing its size."], ICON_RANGE))
 		Add(schema, Slider(group, "spacing", L["Spacing"], L["The gap between icons."], ICON_RANGE))
 		local perRow = COOLDOWN_GROUPS[group] and L["How many icons fit on one row."] or L["How many icons fit on one row. Point at the +N chip beside it to list the rest."]
 		Add(schema, Slider(group, "columns", L["Icons per row"], perRow, ICON_RANGE))
@@ -242,6 +247,7 @@ function Settings.Schema()
 		Add(schema, { type = "dropdown", key = "bars.orientation", label = L["Orientation"], help = L["Whether the fill runs across or up the bar."], options = ORIENTATION_OPTIONS })
 		Add(schema, Toggle(group, "reverse", L["Reverse fill"], L["Drain the fill from the other end."]))
 		Add(schema, Toggle(group, "icon", L["Icon"], L["Show the buff's icon at the start of the bar."]))
+		Add(schema, Slider(group, "iconZoom", L["Icon zoom"], L["Crop the artwork inside the square icon without changing its size."], BAR_RANGE))
 		Add(schema, Toggle(group, "name", L["Name"], L["Show the buff's name on the bar."]))
 		Add(schema, Toggle(group, "timer", L["Timer"], L["Show the seconds left on the bar."]))
 		Add(schema, Toggle(group, "showCount", L["Show stack counts"], L["Show the number of applications on aura icons."]))
@@ -358,7 +364,9 @@ local function ReadIcons(out, saved, defaults, group)
 		if group == "essential" and key == "timerSize" then
 			range = ESSENTIAL_TIMER_RANGE
 		end
-		out[key] = Number(saved[key], range, defaults[key])
+		if not COOLDOWN_GROUPS[group] or key ~= "columns" and key ~= "rows" then
+			out[key] = Number(saved[key], range, defaults[key])
+		end
 	end
 	out.growth = Choice(saved.growth, GROWTH, defaults.growth)
 	if group == "buffs" and out.growth == defaults.growth and K.HudStyle.Current() == "medallions" then out.growth = "center" end

@@ -6,7 +6,6 @@ local L = K.L
 local Logic = ns.Logic
 
 local KEY = "meters.damage"
-local UPDATE_DELAY = 0.5
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
@@ -23,7 +22,6 @@ ns.Damage = Damage
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
 local drill = { active = false }
-local TOOLTIP_SPELLS = 3
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
@@ -365,7 +363,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
 	Remember(i, source, reaction, info.deaths)
 	local name = source.name
-	if rank then
+	if rank and not ns.Get("damage.hideRank") then
 		name = rank .. ". " .. name
 	end
 	if info.deaths then
@@ -496,7 +494,7 @@ local function RowSplit(split, list, i)
 	local format = ns.Get("damage.format")
 	local percent = ns.Get("damage.percent")
 	local listed = 0
-	for n = 1, TOOLTIP_SPELLS do
+	for n = 1, ns.Get("damage.hoverSpells") do
 		local spell = spells[n]
 		if not Readable(spell) then
 			break
@@ -644,7 +642,7 @@ local function Schedule()
 		return
 	end
 	Damage.pending = true
-	C_Timer.After(UPDATE_DELAY, Refresh)
+	C_Timer.After(ns.Get("damage.refresh"), Refresh)
 end
 
 local function SkinVisibility()

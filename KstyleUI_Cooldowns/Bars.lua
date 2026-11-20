@@ -35,6 +35,10 @@ end
 function BarRow:StyleBar(bar)
 	local cfg, current = self.cfg, ns.Settings.current
 	local holder = self.holder
+	if cfg.iconZoom ~= (bar.iconZoom or ICON_CROP) then
+		bar.iconZoom = cfg.iconZoom
+		bar.icon:SetTexCoord(cfg.iconZoom, 1 - cfg.iconZoom, cfg.iconZoom, 1 - cfg.iconZoom)
+	end
 	Widgets.Size(bar, cfg.width, cfg.height)
 	local height = Widgets.Snap(holder, cfg.height)
 	local border = Widgets.Border(bar)
