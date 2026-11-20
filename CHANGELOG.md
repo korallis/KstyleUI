@@ -20,9 +20,9 @@ The map and bars release: a world map that zooms smoothly, searches and draws yo
 
 Highlights:
 
-- The world map gains smooth zoom, search and a straight-line route card with distance and time. Road-following routes are coming.
-- Setup gains a "Your addons" step: choose which of your addons KstyleUI skins, with every skin on by default.
-- Action Bars gains one tab per bar, text placement, cooldown controls, quality borders and show/hide rules. Toggle keys, click-through and reversed order are available per bar.
+- Travel with smooth map zoom, search and a straight-line route card showing distance and time.
+- Choose which addons KstyleUI skins in setup's "Your addons" step, with every skin on by default.
+- Tune each action bar with its own tab for text, cooldowns, quality borders and show/hide rules.
 - The consumables bar starts at half size with a backdrop.
 - Gameplay fixes keep RestedXP steps readable, Layout Mode labels apart, and power and frame-rate readouts in place.
 
@@ -65,8 +65,9 @@ Highlights:
 
 ### Upgrading
 
-- Skins are on by default now: if you never touched them, your supported addons start skinned. Switch any off in Options or in the setup's "Your addons" step; skins you switched off stay off.
-- The consumables bar starts at half size with a backdrop unless you saved a size or backing. Both settings are under Options > Action Bars > Consumables.
+- Your supported addons start skinned by default; skins you switched off stay off.
+- Choose skins in Options or setup's "Your addons" step.
+- Consumables start at half size with a backdrop unless saved; adjust under Options > Action Bars > Consumables.
 
 The optional icon pack still applies: download `KstyleUI-Icons-<version>.zip` from this project's GitHub releases page, quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
 
@@ -76,11 +77,11 @@ The big customisation release: a data bar you fill with the readouts you want, a
 
 Highlights:
 
-- A data bar across the top in Frames and Orbs, and a dock under the slab in Medallions, with your choice of readouts and a toggleable micro menu.
-- An automatic consumables bar that keeps your best food, potions and other consumables to hand.
-- Medallions: cooldowns centred above the crest, aura rows above the unit frames, click the crest to hearth, right-click it for travel, frame the minimap like the crest, and pick an extra-bar layout.
-- Text formats for health and power, one aura filter set, one bar options set, and a layout for each of your specs.
-- Attach any element to another and match its width, lock drags to one direction in Layout Mode, and cycle stacked frames.
+- Choose your readouts and micro menu in a top data bar for Frames and Orbs, or a dock below the Medallions slab.
+- An automatic consumables bar keeps your best food, potions and other consumables to hand.
+- Travel with a click of the Medallions crest, with new cooldown and aura positions and minimap and bar layouts.
+- Customise health and power text, share aura and bar settings, and give each spec its own layout.
+- Attach elements and match their widths, lock drags to one direction in Layout Mode, and cycle stacked frames.
 - Hover a quest to see your party's progress on it.
 
 ### Added
@@ -132,10 +133,11 @@ Highlights:
 
 ### Upgrading
 
-- Your Frames and Orbs data readout moves into the new top bar; if you had moved it, a chat message says so once. Pick Right rail in Options > Data Bars for the old readout.
-- In Medallions your readouts move into the dock under the slab; a saved readout position is not used while the dock is on.
-- If you had moved the Medallions crest fan, you keep the fan; everyone else gets the new aura rows (Unit Frames > Aura layout switches back).
-- RestedXP's Active Items and Active Targets boxes dock under the guide card again once, even if you had undocked them; drag either box to undock it.
+- Frames and Orbs readouts move to the top bar; a one-time chat notice flags a readout you had moved.
+- Restore the old readout with Right rail in Options > Data Bars.
+- Medallions readouts move below the slab; saved readout positions are unused while the dock is on.
+- A moved Medallions crest fan stays; otherwise aura rows replace it (switch in Unit Frames > Aura layout).
+- RestedXP item and target boxes redock under the guide once; drag either box to undock it.
 - Role-following meters stay off for existing profiles until you turn them on.
 
 An optional icon pack repaints ability and item icons everywhere, including buffs. The addon repaints the frames; **KstyleUI Icons** repaints the icons inside them, in one style everywhere the game draws them. The icons were made with AI image tools. The pack is not an addon and is not part of this download: download `KstyleUI-Icons-<version>.zip` from this project's GitHub releases page, quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
@@ -146,11 +148,11 @@ Clearer combat and finished HUD styles: tooltips that follow your mouse out of c
 
 Highlights:
 
-- Tooltips can follow the mouse out of combat and sit at their usual place in combat. This is the new default; pick another anchor in Options if you prefer.
-- Under Medallions, your debuffs on your target fan out in a metal-rimmed row above the crest, with their timers, cooldown sweeps and overflow, a switch in Options and a mover in Layout Mode.
-- Four readability switches in Options > General > Appearance, on by default, with the original look available when you switch one off.
-- Enemy cast names on target and focus nameplates, a shield mark for casts you cannot interrupt, and a Dungeon nameplate preset.
-- Orbs gains Sharp orb glass, Ledge under bar 2 and Room for long spell names. Frames gains Spell name inside the bar and Tray on the centre column. All are on by default.
+- Tooltips now follow your mouse out of combat and return to their usual place in combat, with other anchors in Options.
+- Track your target debuffs in a timed, metal-rimmed fan above the Medallions crest.
+- Read more easily with four switches in Options > General > Appearance, all on by default.
+- Read enemy casts on target and focus nameplates, spot uninterruptible casts and try the Dungeon preset.
+- Enjoy clearer Orbs glass and spell names, a ledge under bar 2, and aligned Frames casts and tray, all on by default.
 
 ### Added
 
@@ -222,11 +224,11 @@ Your feedback release: keybinding, a working stealth button, the Options font er
 
 Highlights:
 
-- Bind action, stance, pet and possess buttons with `/kb` or `/kstyle kb`: hover, press a key, then Save for account or character. Escape clears, Discard undoes, and combat locks edits.
-- Login, reload, display and HUD-style changes do less work: HUD sizing takes about a quarter of the time with almost no temporary memory, and about 40% fewer hidden pieces are built early. The look is kept.
-- In combat, party and raid frames, boss frames and action-bar cooldowns skip updates that could not change anything on screen.
+- Bind action, stance, pet and possess buttons with `/kb`: hover, press a key and save for your account or character.
+- Login, reload, display and HUD-style changes do less work while keeping the same look.
+- Party, raid and boss frames and action-bar cooldowns skip unnecessary updates in combat.
 - Clicking the stance button cancels stealth again, and its key binding in Blizzard's Key Bindings window works.
-- Opening Options no longer raises "Invalid font height (0)" from the group-frames preview, and the preview fits the window at its smallest size.
+- Options opens without the group-preview font error, and the preview fits even the smallest window.
 
 ### Added
 
@@ -249,7 +251,7 @@ Install and update KstyleUI through CurseForge, Wago or your addon manager.
 
 Highlights:
 
-- KstyleUI is now on CurseForge and Wago Addons, so the CurseForge app, WowUp and other addon managers can install and update it.
+- Install and update KstyleUI through CurseForge, Wago Addons, WowUp and other addon managers.
 
 ### Added
 
@@ -261,11 +263,11 @@ The Medallions polish pass: dark gunmetal chrome, rounded bevelled cards, and a 
 
 Highlights:
 
-- Medallions has a new dark gunmetal chrome kit. Cards, windows and slabs have rounded, bevelled edges instead of thin steel hairlines, with machined medallion rings and round level badges.
-- The rails follow it. Cards are dark and bevelled with a header band in your class colour, the minimap sits in a round ring with an N badge, and chat, the damage meter, the quest card and tooltips wear the same chrome.
-- The action slab gains recessed sockets, class-colour proc borders and a bright race-and-class crest clipped to its ring. Empty sockets hide keybinds, wings retire, and pet and stance bars get matching slabs.
-- Numbers use Barlow Semi Condensed. Nameplates are slimmer, with the level in its difficulty colour and tick marks on your target. Scrolling combat text is gold and rises and fades faster.
-- Unit frames form a tight cluster above the slab. Health values are outlined at bar ends, casts sit over the crest, and target debuffs use small tiles with dispel-colour underlines.
+- Enjoy dark gunmetal Medallions cards, windows and slabs with rounded bevels, machined rings and round level badges.
+- Matching dark cards, class-colour headers and a round minimap bring the Medallions look to both rails.
+- Recessed action sockets, class-colour proc borders and a bright race-and-class crest complete the Medallions slab.
+- Read Barlow Semi Condensed numbers and slimmer nameplates, with faster gold combat text.
+- Keep health, casts and target debuffs close in a tighter unit-frame cluster above the slab.
 
 ### Changed
 
@@ -295,11 +297,11 @@ Clearer Medallions bars, hidden effects that stay hidden, and one combat-text di
 
 Highlights:
 
-- The Medallions hub no longer leaves its shock ring and square flash visible between effects. Recoloring now preserves their opacity instead of bringing them back over the painted crest and runes.
-- Hidden Blizzard and RestedXP backdrop textures stay hidden when their owning UI refreshes the vertex color.
-- Medallions health and resource bars use flat fills without the white sheen. Health numbers use dark ink on bright fills and return to light ink when health falls onto the dark track.
-- CombatText hides Blizzard's separate damage and healing numbers by default while KstyleUI's scrolling text is enabled. An explicit Keep choice remains available, and disabling the module restores the original settings.
-- Blizzard's world numbers inherit the combat-text font role before login. Log out to the character screen and back in to apply the font; `/reload` is not enough.
+- The Medallions crest stays clear of stray shock rings and flashes between effects.
+- Hidden Blizzard and RestedXP backdrops stay hidden when their colours refresh.
+- Read Medallions health and power on flat bars, with health text that adapts to bright and dark fills.
+- KstyleUI scrolling combat text now hides Blizzard's separate numbers by default, with a Keep option.
+- Blizzard's world numbers use your combat-text font after logging out to the character screen and back in.
 
 ### Fixed
 
@@ -319,9 +321,9 @@ The Medallions action slab as it was designed: one row and one connected piece.
 
 Highlights:
 
-- Medallions bar 1 and 2 use one row of twelve buttons per side on every screen. On 16:9 and narrower screens, buttons and their labels shrink by a fifth to fit beside chat.
-- The Medallions slab, crest and wings form one piece. Wings follow the slab's top edge and extend in combat; experience runs along its lower edge below the crest.
-- Under Medallions on 16:9 and narrower screens, the pet and stance bars stand in two rows of five to the right of the slab, and the player and target frames sit a little higher so your target's target clears the bag bar.
+- Medallions bars 1 and 2 fit one row of twelve buttons per side on every screen, shrinking on 16:9 and narrower.
+- The Medallions slab, crest and combat wings join into one piece, with experience along the lower edge.
+- Pet, stance and unit frames fit beside the Medallions slab on 16:9 and narrower screens, clear of the bag bar.
 
 ### Changed
 
@@ -335,7 +337,7 @@ A third HUD style, Medallions, with a painted portrait of your character and a c
 
 Highlights:
 
-- **Medallions**, a third HUD style next to Frames and Orbs. Pick it in Options > General > HUD style or on the HUD style step of the first-run setup.
+- Choose **Medallions**, a third HUD style beside Frames and Orbs, in Options > General > HUD style or setup.
 
 ### Added
 
@@ -353,8 +355,8 @@ A hotfix for the RestedXP guide card, with fixes for the bag window, the swing t
 
 Highlights:
 
-- Under Frames, an open RestedXP guide takes the tall column and quests move below the minimap with scrolling. The cards swap only when the guide opens or closes, leaving room for the current step.
-- The RestedXP guide card shows your current step again. When RestedXP put its steps under its own window, the card showed a blank block with only the step's last line and "1 more".
+- RestedXP gets the tall column under Frames while open, with scrolling quests below the minimap.
+- The RestedXP guide card shows your whole current step again.
 - RestedXP's Active Targets and Active Items boxes no longer take room the guide needs for your current step.
 - The bag window's close button works again after you drag the window.
 - A hunter's ranged swing shows one swing bar instead of two.
@@ -377,11 +379,11 @@ Fixes for the minimap, the RestedXP guide and the HUD's size on screens that are
 
 Highlights:
 
-- Minimap > Addon pins on the map's edge hides off-map guide pins by default. Turn it on to restore them; pins for places on the map always show.
+- Keep off-map guide pins hidden by default, with a switch under Minimap > Addon pins on the map's edge.
 - The minimap's addon drawer now collects every addon button that sits on the map, not only the ones it knew by name.
-- Action bar 3 has its own place under Orbs, above the pet and stance bars. If you moved bar 3 yourself, it keeps your place.
+- Action bar 3 fits above Orbs pet and stance bars, keeping any position you saved.
 - The zone name above the minimap no longer runs into the N diamond, and the N stays inside its diamond.
-- RestedXP Active Targets and Active Items sit side by side below the guide. The current step and number stay visible; the quest card may show one fewer quest while both boxes are up.
+- See your current RestedXP step with Active Targets and Active Items side by side below the guide.
 
 ### Added
 
@@ -426,11 +428,11 @@ This is the overhaul. KstyleUI now has two HUD styles, Frames and Orbs, that you
 
 Highlights:
 
-- Choose Frames or Orbs in Options > General or setup, with a preview of each. Frames uses framed unit cards; Orbs uses health and resource orbs with a forged action tray.
-- A group damage meter offers current, last and whole-session views with a spell split per player. The threat card follows the same design.
-- Nameplates redrawn: plain, flat bars with tracked capital names, a black track while you hold threat, cast and stop flashes, and a name-only plate for objects such as a mailbox that can never fill a bar.
+- Choose framed unit cards with Frames or health and power orbs with Orbs, with previews in Options and setup.
+- Track group damage for the current fight, last fight or session, with each player's spell breakdown.
+- Read cleaner nameplates with flat bars, clear threat and cast signals, and name-only plates for objects.
 - A wide target bar at the top of the screen under Orbs, and a wide form of the target frame under Frames.
-- Ultrawide screens choose between Centred and Spread. Centred keeps the HUD in the 21:9 band in the middle of a 32:9 monitor. Spread uses the whole width and keeps your group frames on the 21:9 line.
+- Choose Centred for a HUD in the middle 21:9 band of an ultrawide screen, or Spread to use the full width.
 
 ### Added
 
@@ -469,7 +471,7 @@ A small release that fixes two things in the cooldown and buff displays.
 
 Highlights:
 
-- When KstyleUI falls back to Blizzard's own essential and utility cooldown rows, they now sit on KstyleUI's rows instead of on top of your action bars. A row you moved yourself, or one too wide to fit, stays where it was.
+- Fallback Blizzard cooldown rows now sit on KstyleUI's rows, clear of action bars, preserving moved or oversized rows.
 - Tracked buff icons and bars keep the right gap between icons at every icon size and UI scale.
 
 ### Fixed
@@ -483,10 +485,10 @@ This release fixes what the first live session on World of Warcraft: Forever tur
 
 Highlights:
 
-- A centred HUD width for ultrawide screens. The HUD sits in a 21:9 band by default, with 16:9 and full width as choices in Options, so nothing is stranded at the far edges of a 32:9 monitor.
+- Keep your HUD together on ultrawide screens with a centred 21:9 band, or choose 16:9 or full width in Options.
 - Separate cards for your quests and the RestedXP guide on the right rail, in place of one shared story card.
-- Empty slots on action bars 4 and 5 are hidden at rest. They still show while you drag an action onto a bar and while Layout Mode is open, and filled slots are always drawn.
-- The damage meter shows KstyleUI's own card instead of Blizzard's restyled window. Blizzard's window is still there under Options > Meters > Style.
+- Empty slots on bars 4 and 5 stay hidden until you drag an action or open Layout Mode.
+- Track damage in KstyleUI's own card, with Blizzard's window still available under Options > Meters > Style.
 - Forged trim now draws on nameplates and on the player and target frames, placed from KstyleUI's own layout.
 
 ### Added
@@ -511,11 +513,11 @@ The first public KstyleUI release brings a complete modular interface for WoW Fo
 
 Highlights:
 
-- Switch on the modules you want: unit and group frames, action bars, cooldowns, auras, nameplates, combat text, minimap, chat, bags, tooltips, data bars, meters, skins and quality of life.
-- Open `/kstyle` for module pages, search, live previews and shareable per-character profiles. First-run setup chooses a DPS, Tank or Healer layout and your modules.
-- Layout Mode (`/kstyle layout`): move, resize and scale every element with snapping guides, a grid, arrow-key nudges, undo and redo, and set when each element shows.
-- A card material choice in General: Forged iron with brackets (the default), Forged iron with gilt ticks, Slate, Flat or Glass. Dropdowns and tooltips stay opaque on every material except Glass.
-- Type sets and fonts by role: pick Folio or Lumen, then override the font for any role, from KstyleUI's own faces or any LibSharedMedia font.
+- Build your interface with only the KstyleUI modules you want, from frames and bars to bags, chat and skins.
+- Open `/kstyle` for search, live previews and shareable profiles, with DPS, Tank or Healer layouts in setup.
+- Move, resize and scale every element in Layout Mode, with snapping, nudges, undo, redo and visibility rules.
+- Choose Forged iron, Slate, Flat or Glass cards in General, with brackets or gilt ticks for Forged iron.
+- Set your own type with Folio or Lumen and per-role fonts, including LibSharedMedia faces.
 
 ### Added
 
