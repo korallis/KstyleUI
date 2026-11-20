@@ -13,7 +13,7 @@ K.Options.Register("ColorVision", function() return {
 	} },
 } end)
 
-function Vision.Mode()
+local function Resolve()
 	local value = Store.IsLoaded() and Store.Module("ColorVision").mode or "game"
 	if value ~= "game" then return value end
 	local api = C_CVar and C_CVar.GetCVar or GetCVar
@@ -26,6 +26,12 @@ function Vision.Mode()
 		end
 	end
 	return "standard"
+end
+
+local resolved
+function Vision.Mode()
+	if not resolved and Store.IsLoaded() then resolved = Resolve() end
+	return resolved or Resolve()
 end
 
 function Vision.Color(index, ...)
@@ -48,12 +54,15 @@ function K.Theme.ThreatColor(status)
 	return Vision.Color(status == 3 and 2 or status == 2 and 3 or 1, threat(status))
 end
 
-local reaction = K.Theme.ReactionColor
-function K.Theme.ReactionColor(value)
-	if type(value) ~= "number" or issecretvalue and issecretvalue(value) then return reaction(value) end
-	return Vision.Color(value <= 3 and 2 or value == 4 and 3 or 1, reaction(value))
+function Vision.ReactionColor(value)
+	if type(value) ~= "number" or issecretvalue and issecretvalue(value) then return K.Theme.ReactionColor(value) end
+	return Vision.Color(value <= 3 and 2 or value == 4 and 3 or 1, K.Theme.ReactionColor(value))
 end
 
-local function Changed() K.Callbacks.Fire("ThemeChanged") end
+local function Changed()
+	resolved = nil
+	K.Callbacks.Fire("ThemeChanged")
+end
+K.Callbacks.Register("ProfileChanged", "ColorVision", function() resolved = nil end)
 K.Callbacks.Register("SettingChanged", "ColorVision", function(_, module) if module == "ColorVision" then Changed() end end)
 K.Events.Register("ColorVision", "CVAR_UPDATE", function(_, name) if name == "colorblindSimulator" or name == "colorblindMode" then Changed() end end)

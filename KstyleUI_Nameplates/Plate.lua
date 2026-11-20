@@ -765,7 +765,7 @@ function Plate:UpdateColor()
 		if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
 			r, g, b = K.ColorVision.Color(2, Tokens.Color("plateHostile"))
 		else
-			r, g, b = Theme.ReactionColor(reaction)
+			r, g, b = K.ColorVision.ReactionColor(reaction)
 		end
 	end
 	local last = self.colorKey

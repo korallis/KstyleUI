@@ -58,7 +58,7 @@ function Unit.ReactionColor(reaction)
 	if not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX then
 		return K.ColorVision.Color(2, Tokens.Color("healthHostile"))
 	end
-	return Theme.ReactionColor(reaction)
+	return K.ColorVision.ReactionColor(reaction)
 end
 
 local function ReactionColor(unit)
@@ -73,7 +73,7 @@ local function HudColor(unit)
 	if unit == "player" then
 		return ns.Lumen.Color("hudPlayerHealth")
 	end
-	return Theme.ReactionColor(reaction)
+	return K.ColorVision.ReactionColor(reaction)
 end
 
 local function UnitColor(unit, source)
