@@ -306,8 +306,9 @@ function Reskin.Refresh()
 end
 
 local function Restore(_, item)
-	if K.Safe.Side(item).greyed and IsTexture(item.Icon) then
-		K.Safe.Side(item).greyed = nil
+	local side = K.Safe.Side(item)
+	if side.greyed and IsTexture(item.Icon) then
+		side.greyed = nil
 		item.Icon:SetDesaturated(false)
 	end
 	local cooldown = item.Cooldown

@@ -1028,7 +1028,7 @@ local EVENTS = {
 		eventEntry = nil
 	end,
 	SPELL_RANGE_CHECK_UPDATE = function(_, spell, inRange, checksRange)
-		if not Rules.Any("range") or ns.IsSecret(spell) then
+		if Settings.current.rules.range == "" or ns.IsSecret(spell) then
 			return
 		end
 		eventSpell = spell

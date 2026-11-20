@@ -59,10 +59,6 @@ function Rules.Reset()
 	for _, key in ipairs(ns.Settings.RULES) do any[key] = rules[key] ~= "" end
 end
 
-function Rules.Any(key)
-	return any[key] == true
-end
-
 function Rules.For(entry)
 	if not entry then return EMPTY end
 	if entry.ruleStamp ~= stamp then
