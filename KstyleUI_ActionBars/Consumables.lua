@@ -62,6 +62,16 @@ function C.Dock()
 	holder:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", position.x + width / 2 - reference.x + defaultWidth / 2, position.y - reference.y)
 end
 
+local function Moved(key, values, merge)
+	if key ~= KEY or merge == "setup" or not Config().attached then return end
+	local position, moved = K.Layout.Get(KEY), false
+	for field, value in pairs(values) do
+		if ns.IsSecret(value) or position[field] ~= value then return end
+		moved = moved or field == "anchor" or field == "x" or field == "y"
+	end
+	if moved then K.Options.Write("ActionBars", "consumables.attached", false) end
+end
+
 local function Build()
 	if not holder then
 		holder = CreateFrame("Frame", nil, K.Scale.Root())
@@ -69,6 +79,10 @@ local function Build()
 		header = CreateFrame("Frame", nil, C.gate, "SecureHandlerStateTemplate")
 		header:Hide()
 		C.holder, C.header, C.buttons = holder, header, buttons
+		hooksecurefunc(K.Layout, "Update", Moved)
+		hooksecurefunc(K.Layout, "Set", function(key, field, value)
+			if field == "anchor" or field == "x" or field == "y" then Moved(key, { [field] = value }) end
+		end)
 	end
 	if #buttons > 0 or #selected == 0 and Config().hideEmpty ~= false then return end
 	backing = CreateFrame("Frame", nil, header)

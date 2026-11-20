@@ -8,6 +8,16 @@ local player = env.CreateFrame("Frame", nil, K.Scale.Root())
 player:SetSize(491, 77.5)
 K.Layout.Register(player, "unitframes.player", K.Setup.Layouts.Default("unitframes.player"))
 C.Apply()
+local cfg = K.Store.Module("ActionBars").consumables
+assert(cfg.attached and select(2, C.holder:GetPoint()) == player, "the default remains docked")
+assert(K.Layout.Update(key, K.Setup.Layouts.Default(key), "setup"))
+assert(cfg.attached, "applying a preset keeps the default dock")
+assert(K.Layout.Set(key, "scale", 1.1))
+assert(cfg.attached, "scaling is not a position edit")
+assert(K.Layout.Set(key, "scale", 1))
+assert(not K.Layout.Set(key, "x", "bad"))
+assert(not K.Layout.Update(key, { x = 500, bogus = true }))
+assert(cfg.attached, "rejected position edits keep the dock")
 assert(K.Layout.Enter())
 local l, b, w, h = K.Layout.Rect(key)
 K.Layout.Preview(key, l + 200, b + 100, w, h)
@@ -17,5 +27,40 @@ local _, relative, _, x, y = C.holder:GetPoint()
 local position = K.Layout.Get(key)
 assert(relative == K.Scale.Root() and math.abs(x - position.x) < 0.02 and math.abs(y - position.y) < 0.02,
 	"consumables must stay at the Layout Mode drag position after Apply")
+assert(not cfg.attached and K.Options.Read("ActionBars", "consumables.attached") == false, "Options reflects the released dock")
+K.Options.Write("ActionBars", "consumables.attached", true)
+assert(select(2, C.holder:GetPoint()) == player, "the Attach toggle re-docks after a drag")
+K.Layout.Mode.Select(key)
+local overlay = K.Layout.Mode.Overlay()
+overlay:GetScript("OnKeyDown")(overlay, "RIGHT")
+C.Apply()
+assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), "a keyboard nudge releases the dock")
 K.Layout.Exit(true)
+for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
+	K.Options.Write("ActionBars", "consumables.attached", true)
+	local target = style == "orbs" and ns.bars.bar1.holder or player
+	assert(select(2, C.holder:GetPoint()) == target, style .. ": Attach restores the current HUD dock")
+	assert(K.Layout.Set(key, "x", 450))
+	assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), style .. ": numeric positions release the dock")
+	C.Apply()
+	assert(math.abs(select(4, C.holder:GetPoint()) - 450) < 0.02, style .. ": numeric position survives Apply")
+end
+K.Options.Write("ActionBars", "consumables.attached", true)
+local before = { C.holder:GetPoint() }
+env._combat = true
+env.FireEvent("PLAYER_REGEN_DISABLED")
+assert(K.Layout.Set(key, "y", 600))
+C.Apply()
+local during = { C.holder:GetPoint() }
+for i = 1, 5 do assert(during[i] == before[i], "protected moves wait for combat to end") end
+assert(not cfg.attached, "the queued position edit releases Attach")
+env._combat = false
+env.FireEvent("PLAYER_REGEN_ENABLED")
+assert(select(2, C.holder:GetPoint()) == K.Scale.Root() and math.abs(select(5, C.holder:GetPoint()) - 600) < 0.02,
+	"the queued move applies on leaving combat")
+assert(#env._blocked == 0 and #env._errors == 0, tostring(env._blocked[1] or env._errors[1]))
+AB.CoreEnv.Logout(env)
+local _, restored = AB.New({ saved = AB.CoreEnv.DeepCopy(env.KstyleUIDB) })
+assert(restored.Store.Module("ActionBars").consumables.attached == false, "the released dock survives reload")
 print("consumables Layout move: ok")
