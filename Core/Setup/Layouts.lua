@@ -1294,13 +1294,12 @@ function Layouts.Attached(style, name, key, class)
 	local x = 0
 	if style == "medallions" then
 		local player = Layouts.ExtraBarsPlace(class, name, "unitframes.player") or PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
-		y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
-		y = y + 76
-		if key ~= "cooldowns.utility" then y = y + 96 end
-		if key == "cooldowns.buffs" then y = y + 96 end
-		if key == "cooldowns.bars" then x, y = 300, player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24 + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
+		local base = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
+		cast = Layouts.ExtraBarsPlace(class, name, "unitframes.castbar.player") or cast
+		y = cast.y + 2 * (cast.height or Layouts.MEDALLIONS_UNITS.cast[2]) + Layouts.MEDALLIONS_UNITS.castStack + 8 + (key == "cooldowns.buffs" and 192 or key == "cooldowns.utility" and 96 or 0)
+		if key == "cooldowns.bars" then x, y = 300, base + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
 		if swing then
-			y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 28
+			y = base + 4
 			x = -((cast.width or 300) / 2 + 220 / 2 + 8)
 		end
 	else

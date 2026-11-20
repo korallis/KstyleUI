@@ -26,11 +26,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 			local castSize = style == "medallions" and {width=300,height=20} or L.Element("unitframes.castbar.player")
 			local l,b,rr,t = L.Rect(castSize, cast, K.Scale.Root():GetWidth(), K.Scale.Root():GetHeight())
 			assert(r.right <= l or r.left >= rr or r.top <= b or r.bottom >= t, "cooldowns leave casts clear")
-			if style == "medallions" then
-				local bar = L.Style(style, "DPS", "actionbars.bar1")
-				local _, _, _, height = L.MedallionsGroup(K.Scale.Aspect())
-				assert(r.bottom > bar.y + height + 263, "centre cooldowns above the original crest fan reservation")
-			end
+			if style == "medallions" then assert(r.bottom >= cast.y + 49, "essential cooldowns stay above both casts") end
 		end
 		local utility = ns.Mirror.Row("utility")
 		utility:SetCount(count)
