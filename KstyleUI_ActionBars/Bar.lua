@@ -1,4 +1,4 @@
--- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width, so a few forms sit in one row on the bar's baseline.
+-- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width, so a few forms sit in one row on the bar's baseline, and its backing hugs the shown forms.
 local _, ns = ...
 
 local K = KstyleUI
@@ -258,11 +258,7 @@ function Bar:Layout()
 		end
 	end
 	self.holder:SetSize(width, height)
-	local margin = Widgets.Snap(header, BACKING_MARGIN)
-	self.backing:ClearAllPoints()
-	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", -margin, margin)
-	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin, -margin)
-	self.backing:SetShown(not grouped and cfg.backing == true)
+	local left, top, right, bottom = width, height, 0, 0
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cell
 		b:EnableMouse(cfg.clickThrough ~= true)
@@ -284,8 +280,10 @@ function Bar:Layout()
 			else
 				col, row = ns.Cell(position, count, rows, orientation, growth)
 			end
+			local x, y = Widgets.Snap(header, col * pitch) + (col >= half and split or 0), Widgets.Snap(header, row * pitch) + drop
+			left, top, right, bottom = min(left, x), min(top, y), max(right, x + size), max(bottom, y + size)
 			b:ClearAllPoints()
-			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch) - drop)
+			b:SetPoint("TOPLEFT", header, "TOPLEFT", x, -y)
 			b:Restyle()
 			b:Show()
 		else
@@ -300,6 +298,12 @@ function Bar:Layout()
 		end
 		b:SetAttribute("safeDragging", ns.Config("safeDragging") == true)
 	end
+	self.inset = cols and count > 0 and { left, top, max(0, width - right), max(0, height - bottom) } or { 0, 0, 0, 0 }
+	local inset, margin = self.inset, Widgets.Snap(header, BACKING_MARGIN)
+	self.backing:ClearAllPoints()
+	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", inset[1] - margin, margin - inset[2])
+	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin - inset[3], inset[4] - margin)
+	self.backing:SetShown(not grouped and cfg.backing == true)
 end
 
 function Bar:Register()

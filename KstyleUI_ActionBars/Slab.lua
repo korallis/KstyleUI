@@ -866,8 +866,9 @@ function Slab.PlaceSides(on, cfg)
 				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)
 				local vertical = pad - (key ~= "bar4" and key ~= "bar5" and K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
-				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", -pad, vertical)
-				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad, -vertical)
+				local inset = bar.inset or { 0, 0, 0, 0 }
+				plate:SetPoint("TOPLEFT", bar.holder, "TOPLEFT", inset[1] - pad, vertical - inset[2])
+				plate:SetPoint("BOTTOMRIGHT", bar.holder, "BOTTOMRIGHT", pad - inset[3], inset[4] - vertical)
 				LayPlate(plate)
 			end
 			plate:SetShown(shown)

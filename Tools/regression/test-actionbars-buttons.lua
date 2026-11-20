@@ -409,12 +409,45 @@ do
 		local _, _, _, x, y = bar.buttons[i]:GetPoint(1)
 		assert(near(x, (i - 1) * 33) and near(y, 0), "form " .. i .. " sits in the one row, left to right, got " .. x .. ", " .. y)
 	end
+	-- The backing strip hugs the shown forms, never the full row the bar keeps for its place (the owner's rogue
+	-- screenshot, 2026-11-20: Stealth alone on a plate six buttons wide).
+	local function Strip()
+		local a, b = bar.backing._points[1], bar.backing._points[2]
+		assert(a[1] == "TOPLEFT" and a[2] == bar.header and b[1] == "BOTTOMRIGHT" and b[2] == bar.header)
+		return a[4], a[5], b[4], b[5]
+	end
+	SK.Options.Write("ActionBars", "stance.backing", true)
+	env.RunTimers()
+	assert(bar.backing:IsShown(), "the stance bar's strip shows")
+	local l, t, r, b = Strip()
+	assert(near(l, -3) and near(t, 3) and near(r, 3 - 2 * 33) and near(b, -3), "three forms of five: the strip ends 3 units past the third, got " .. r)
+	local three = env._game.forms
+	env._game.forms = { three[1] }
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	l, t, r, b = Strip()
+	assert(near(l, -3) and near(r, 3 - 4 * 33), "one form: the strip shrinks to the one button, got " .. r)
+	env.SetCombat(true)
+	env._game.forms = three
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	assert(#env._blocked == 0, "a new form in combat leaves the strip alone: " .. table.concat(env._blocked, ", "))
+	env.SetCombat(false)
+	l, t, r, b = Strip()
+	assert(near(r, 3 - 2 * 33), "and the strip widens when combat ends, got " .. r)
+	SK.Options.Write("ActionBars", "stance.growth", "LEFTDOWN")
+	env.RunTimers()
+	l, t, r, b = Strip()
+	assert(near(l, 2 * 33 - 3) and near(r, 3), "growing left, the strip hugs the right end, got " .. l .. " .. " .. r)
+	SK.Options.Write("ActionBars", "stance.growth", "RIGHTUP")
+	env.RunTimers()
 	for i = 4, 6 do
 		env._game.forms[i] = { texture = 132275, spellID = 3000 + i }
 	end
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	w, h = bar.holder:GetSize()
 	assert(near(w, 5 * 30 + 4 * 3) and near(h, 2 * 30 + 3), "six forms take a second row: " .. w .. " x " .. h)
+	l, t, r, b = Strip()
+	assert(near(l, -3) and near(t, 3) and near(r, 3) and near(b, -3), "a full row: the strip spans the whole bar")
+	SK.Options.Write("ActionBars", "stance.backing", false)
 	local _, _, _, x1, y1 = bar.buttons[1]:GetPoint(1)
 	local _, _, _, x6, y6 = bar.buttons[6]:GetPoint(1)
 	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "growing up, the first five stay on the foot, the sixth starts the row above")
