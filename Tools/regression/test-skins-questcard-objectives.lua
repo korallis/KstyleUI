@@ -52,11 +52,13 @@ for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, heigh
 					for i = 1, entry.count do
 						local line = row.lines[i]
 						local what = style .. " " .. screen.width .. "x" .. screen.height .. " quest " .. row.questID .. " objective " .. i
-						assert(line.text:IsVisible(), what .. ": scrolling must show objectives with their quest title")
-						local rect = assert(Geometry.ScaledRect(line.text, env.UIParent, K.Scale.Root()))
-						assert(row.clipped and parts.fade:IsShown() or rect.top <= view.top + K.Scale.Pixel(1) and rect.bottom >= view.bottom - K.Scale.Pixel(1), what .. ": a partial last quest runs only under the lower fade (clipped=" .. tostring(row.clipped) .. ", fade=" .. tostring(parts.fade:IsShown()) .. ", bottom=" .. rect.bottom .. ", view=" .. view.bottom .. ")")
-						if entry.objectives[i].count then
-							assert(line.count:IsVisible() and line.count:GetText() == entry.objectives[i].count, what .. ": progress is visible")
+						assert(row.clipped or line.text:IsVisible(), what .. ": scrolling must show objectives with their quest title")
+						if line.text:IsVisible() then
+							local rect = assert(Geometry.ScaledRect(line.text, env.UIParent, K.Scale.Root()))
+							assert(rect.top <= view.top + K.Scale.Pixel(1) and rect.bottom >= view.bottom - K.Scale.Pixel(1), what .. ": fit quest objectives to whole lines above the footer")
+							if entry.objectives[i].count then
+								assert(line.count:IsVisible() and line.count:GetText() == entry.objectives[i].count, what .. ": progress is visible")
+							end
 						end
 					end
 				end

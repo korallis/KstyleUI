@@ -764,7 +764,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		out.stacked = true
 		return out
 	end
-	if not guide then
+	if not guide and style ~= "medallions" then
 		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, offset)
 		out.guide = nil
 		return out
@@ -780,12 +780,12 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown, ou
 		end
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
-	if guideShown then
+	if guideShown and style ~= "medallions" then
 		out.guide = Card(out.guide, STORY_KEYS.guide, x, column, nil, slot, offset)
 		out.quests = Card(out.quests, STORY_KEYS.quests, slot.x, slotHeight, nil, slot, offset)
 		return out
 	end
-	out.guide = Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, offset)
+	out.guide = guide and Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, offset) or nil
 	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot, offset)
 	return out
 end
@@ -1221,17 +1221,16 @@ function Layouts.Aspect(class, style, name, key)
 	if key == "unitframes.resource" and (style == "medallions" or style == "frames" and ns.HudStyle.Current() == "medallions") then
 		return Layouts.ExtraBarsPlace(class, name, key) or PLACES[class].medallions[key] or STYLES.medallions[name][key]
 	end
-	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs" or key == STORY_KEYS.quests or key == STORY_KEYS.guide)
+	if (key == STORY_KEYS.quests or key == STORY_KEYS.guide) and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") then
+		local slot = slots[name]
+		return { anchor = slot.anchor, x = slot.x - (key == STORY_KEYS.quests and slot.width + GAP or 0), y = slot.y - GAP - (Layouts.MinimapCrest() and 52 or 0) }
+	end
+	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs")
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
 		if key == "auras.buffs" or key == "auras.debuffs" then
 			local base = layouts[name][key]
 			return { anchor = base.anchor, x = base.x - math.ceil(Layouts.CREST_GROW - AURA_MAP_GAP), y = base.y }
-		end
-		if style == "frames" and (key == STORY_KEYS.quests or key == STORY_KEYS.guide) then
-			local element = ns.Layout.Element(key)
-			local base = element and element.base
-			if base then return { anchor = base.anchor, x = base.x, y = base.y - 52 } end
 		end
 	end
 	local extra = style == "medallions" and Layouts.ExtraBarsPlace(class, name, key)

@@ -554,7 +554,8 @@
 		}
 		// Wrap first: a text with a width but no height of its own is as tall as its wrapped lines.
 		const canWrap = item.wordWrap !== false && !(item.natural && item.natural.width) && rect[2] * ppu > 0;
-		const lines = canWrap ? wrapLines(ctx, plain, rect[2] * ppu) : plain.split("\n");
+		let lines = canWrap ? wrapLines(ctx, plain, rect[2] * ppu) : plain.split("\n");
+		if (item.maxLines > 0) lines = lines.slice(0, item.maxLines);
 		if (item.natural && item.natural.height) {
 			const side = item.natural.height;
 			const block = lineHeight * lines.length + spacing * (lines.length - 1);

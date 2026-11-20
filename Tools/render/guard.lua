@@ -15,7 +15,7 @@
 --             hung off a window's edge), named "<key path> glass";
 --   clipped   a text whose rect reaches more than SLACK units past the nearest frame that clips its children, so
 --             the player reads a fragment ("ing Frostbolt"). A scroll view (a ScrollFrame, or a clipping frame that
---             takes the mouse wheel, or whose parent does) cuts its rows by design and is never a finding;
+--             takes the mouse wheel, or whose parent does) cuts its rows by design; the quest card pages whole lines;
 --             an identical, fully visible text may supply the complete label under a clipped alternate ink layer;
 --   overlap   two texts whose glyphs cross by more than OVERLAP units on both axes, or a text whose glyphs an
 --             opaque texture (effective alpha at least COVER_ALPHA) from another frame draws over, drawn after the
@@ -361,6 +361,7 @@ function Guard.Ink(item)
 		local _, breaks = plain:gsub("\n", "")
 		lines = breaks + 1
 	end
+	if item.maxLines and item.maxLines > 0 then lines = math.min(lines, item.maxLines) end
 	local lh = size * LINE
 	local spacing = item.spacing or 0
 	local block = lines * lh + (lines - 1) * spacing
@@ -485,7 +486,7 @@ function Guard.Check(scene)
 				if item.kind == "text" then
 					local ink, glyph = Guard.Ink(item)
 					if item.clip and not item.scroll then
-						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
+						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV, maxLines = item.maxLines })
 						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
 						if cut > slack then
 							clippedTexts[#clippedTexts + 1] = { item = item, card = card, whole = whole, cut = cut }

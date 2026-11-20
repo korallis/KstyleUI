@@ -17,13 +17,12 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local pixel = K.Scale.Pixel(1) + 0.01
 	local composed = ns.QuestCard.Parts()
 	assert(composed.cap:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out again at the composed height, with the cap and next quest visible")
-	if screen.width == 1920 and framing == "classic" then assert(composed.fade:IsShown(), "the 1080 story card uses its added height for a continuation under the fade") end
 	assert(math.abs(q.bottom - g.bottom) <= pixel, "side-by-side story cards share the taller card's foot")
-	assert(math.abs(q.left - g.right - 8) <= pixel, "side-by-side story cards share one eight-unit gutter: " .. q.left .. " - " .. g.right)
+	assert(math.abs(g.left - q.right - 8) <= pixel, "the tall quest column stands left of the guide with one eight-unit gutter")
 	K.Options.Write("Skins", "restedXP.compose", false)
 	R.settle()
 	local oldQuest, oldGuide = Rect(quest), Rect(guide)
-	assert(math.abs(oldQuest.left - oldGuide.right - K.Setup.Layouts.STORY_GAP) <= pixel, "turning story alignment off restores the previous gutter")
+	assert(math.abs(oldGuide.left - oldQuest.right - K.Setup.Layouts.STORY_GAP) <= pixel, "turning story alignment off restores the previous gutter")
 	K.Options.Write("Skins", "restedXP.compose", true)
 	R.settle()
 	ns.QuestCard.Place(root, q.left, q.top, q.right - q.left, 125)

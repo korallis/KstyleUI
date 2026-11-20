@@ -313,27 +313,26 @@ local function Words(row, entry, limit)
 	local right = Right(entry)
 	row.title:SetText(entry.title)
 	local used, cut = 0, 0
-	if entry.complete then
-		used = 1
-		Line(row, 1, titleH, right, Ready(), nil, "friend", Room(right), 1)
-	elseif entry.failed then
-		used = 1
-		Line(row, 1, titleH, right, Failed(), nil, "hostile", Room(right), 1)
+	if entry.complete or entry.failed then
+		if not limit or titleH + LineHeight() <= limit then
+			used = 1
+			Line(row, 1, titleH, right, entry.complete and Ready() or Failed(), nil, entry.complete and "friend" or "hostile", Room(right), 1)
+		end
 	else
 		local y = titleH
 		for i = 1, entry.count do
 			local objective = entry.objectives[i]
 			local room = Room(right, objective)
 			local lines = Lines(objective, room)
-			if limit and i == 1 and lines > 1 then
+			if limit and lines > 1 then
 				lines = math.max(1, math.min(lines, math.floor((limit - y - LineHeight()) / pitch) + 1))
 			end
+			Line(row, i, y, right, objective.text, objective.count, objective.done and "textDisabled" or "text", room, lines)
 			if limit and Snap(y + Span(lines)) > limit then
 				cut = entry.count - used
 				break
 			end
 			used = i
-			Line(row, i, y, right, objective.text, objective.count, objective.done and "textDisabled" or "text", room, lines)
 			y = y + Span(lines)
 		end
 	end
@@ -362,6 +361,9 @@ local function Bind(row, entry, position, y, height, right, limit)
 	row.title:ClearAllPoints()
 	Widgets.Point(row.title, "TOPLEFT", row, "TOPLEFT", Gutter(), 0)
 	row.title:SetHeight(titleH)
+	row.title:SetShown(not limit or limit >= titleH)
+	row.disc:SetShown(not limit or limit >= titleH)
+	row.numeral:SetShown(not limit or limit >= titleH)
 	if entry.item then
 		row.socket:ClearAllPoints()
 		Widgets.Point(row.socket, "TOPRIGHT", row, "TOPRIGHT", 0, 0)
@@ -547,7 +549,7 @@ function Card.Render()
 		end
 		k = k + 1
 		local row = rows[k]
-		local limit = (compact or not continuation) and not Fits(h, viewHeight) and viewHeight or nil
+		local limit = not Fits(y + h, viewHeight) and viewHeight - y or nil
 		cut = Bind(row, Data.Get(offset + k - 1), offset + k - 1, y, h, right, limit)
 		row.clipped = not Fits(y + h, viewHeight)
 		row.itemClipped = continuation and not Fits(y + Snap(SOCKET), viewHeight)

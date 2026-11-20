@@ -3,7 +3,7 @@ local Scene = dofile("Tools/render/scene.lua")
 local Guard = dofile("Tools/render/guard.lua")
 local getenv = os.getenv
 local frame
-os.getenv = function(key) if key == "RENDER_MINIMAP_FRAME" then return frame end return getenv(key) end
+rawset(os, "getenv", function(key) if key == "RENDER_MINIMAP_FRAME" then return frame end return getenv(key) end)
 rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
@@ -34,9 +34,24 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 			if finding.kind == "clipped" and finding.object == text.object then caught = true end
 		end
 		assert(caught, "the render guard must reject a partly clipped quest line even though the card takes the wheel")
+		for _ = 1, #Reference.STATE.quests do
+			ns.QuestCard.Scroll(1)
+			for _, finding in ipairs(Guard.Check(Scene.Build(env))) do
+				assert(finding.kind ~= "clipped", label .. ": scrolling must fit quest text to whole lines: " .. finding.subject)
+			end
+		end
+		local K = env.KstyleUI
+		assert(K.Layout.Set("skins.quests", "x", -900) and K.Layout.Set("skins.quests", "y", -400))
+		K.Store.Module("Minimap").frame = choice == "classic" and "ring" or "classic"
+		K.Callbacks.Fire("SettingChanged", "Minimap", "frame")
+		env.RunTimers()
+		local saved = K.Store.Layout()["skins.quests"]
+		local placed = K.Layout.Get("skins.quests")
+		assert(saved.x == -900 and saved.y == -400 and placed.x == -900 and placed.y == -400,
+			"change Medallions quest defaults only; keep saved quest positions when the minimap frame changes")
 	end
 end
-os.getenv = getenv
+rawset(os, "getenv", getenv)
 rawset(_G, "RENDER_SCREEN", nil)
 rawset(_G, "RENDER_HUD_STYLE", nil)
 print("test-skins-questcard-lines: ok (12 frame/screen cases)")

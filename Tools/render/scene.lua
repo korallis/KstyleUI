@@ -1276,6 +1276,7 @@ function Scene.Build(env, opts)
 		local scale = effectiveScale(region)
 		local item = {
 			kind = "text", alpha = round4(alpha), text = text,
+			maxLines = state(region, "MaxLines"),
 			font = { file = resolve(path), path = path, size = round4(size * scale * k), flags = flags },
 			color = color4(region._state.TextColor, colour and { colour[1], colour[2], colour[3], 1 } or { 1, 1, 1, 1 }, env),
 			justifyH = state(region, "JustifyH") or "CENTER",
@@ -1407,6 +1408,7 @@ function Scene.Build(env, opts)
 	end
 
 	local function scrolls(frame)
+		if frame._parent and frame._parent._name == "KstyleUI_QuestCard" then return false end
 		if frame._type == "ScrollFrame" or frame._type == "ScrollingMessageFrame"
 			or (frame._parent and frame._parent._type == "ScrollingMessageFrame" and frame._parent.FontStringContainer == frame) then
 			return true
