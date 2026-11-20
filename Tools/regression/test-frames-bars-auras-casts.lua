@@ -149,9 +149,13 @@ do
 	assert(aura.count:GetAlpha() == 0, "turning stacks off hides the count")
 	write(env, K, "GroupFrames", "auras.stacks", true)
 	assert(aura.count:GetAlpha() == 1, "turning stacks on shows the count")
+	assert(ns.Auras.Block(f, ns.Settings.current.party).rows == 2, "party debuffs fill two rows by default")
 	write(env, K, "GroupFrames", "auras.timers", true)
 	local timer = assert(aura.timer, "turning timers on binds a duration text")
 	assert(timer:IsVisible(), "the time left shows")
+	local point, _, toPoint = timer:GetPoint()
+	assert(ns.Auras.Block(f, ns.Settings.current.party).rows == 1 and point == "TOP" and toPoint == "BOTTOM",
+		"time left puts the party debuffs in one row, each time under its icon")
 	local _, countSize = aura.count:GetFont()
 	local _, timerSize = timer:GetFont()
 	assert(timerSize == countSize, "time left and stacks share one size")
