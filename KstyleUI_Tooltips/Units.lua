@@ -140,6 +140,13 @@ local function Mount(tooltip, unit)
 	if not (auras and journal and type(auras.GetAuraDataByIndex) == "function" and type(journal.GetMountFromSpell) == "function" and type(journal.GetMountInfoByID) == "function") then
 		return
 	end
+	local secrets = C_Secrets
+	if secrets and type(secrets.ShouldAurasBeSecret) == "function" then
+		local ok, secret = pcall(secrets.ShouldAurasBeSecret)
+		if not ok or not Plain(secret) or secret then
+			return
+		end
+	end
 	for i = 1, MAX_AURAS do
 		local ok, aura = pcall(auras.GetAuraDataByIndex, unit, i, "HELPFUL")
 		if not ok or not Plain(aura) or type(aura) ~= "table" or not Plain(aura.spellId) then

@@ -62,6 +62,9 @@ do
 	assert(lines[1][1] == "Valerin" and not mount(lines), "secret away state and aura ids stay unread")
 	auras = { { spellId = 1459 }, { spellId = 32292 } }
 	assert(mount(hover()) == "Swift Purple Gryphon", "the mount is found past other auras")
+	env.C_Secrets = { ShouldAurasBeSecret = function() return true end }
+	assert(not mount(hover()), "secret auras add no mount line")
+	env.C_Secrets = nil
 	env.C_MountJournal = nil
 	assert(not mount(hover()), "a missing mount journal adds no line")
 
