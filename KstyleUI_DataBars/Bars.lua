@@ -195,7 +195,8 @@ local function TextFor(s, info)
 	if info.capped then
 		return info.label
 	end
-	return Format.BarText(s.text, info.current, info.max, info.label, info.short, info.rested)
+	local text = Format.BarText(s.text, info.current, info.max, info.label, info.short, info.rested, info.kind == "paragon")
+	return text and info.rewardPending and text .. " \194\183 " .. L["Reward ready"] or text
 end
 
 local function UpdateText(view, s, info)
@@ -203,7 +204,7 @@ local function UpdateText(view, s, info)
 	if value then
 		view.text:SetText(value)
 	end
-	local shown = value ~= nil and (not s.textHover or view.hovered == true)
+	local shown = value ~= nil and (not s.textHover or view.hovered == true or info.rewardPending == true)
 	view.text:SetShown(shown)
 	PlacePlate(view, s)
 	Widgets.TextScrim(view.text, shown and not view.plate:IsShown())
@@ -321,8 +322,8 @@ local function AddTooltip(view, tip)
 		return
 	end
 	tip:AddDivider()
-	tip:AddDoubleLine(L["Progress"], Format.BarText("valuePercent", info.current, info.max))
-	tip:AddDoubleLine(L["Remaining"], Format.Number(info.max - info.current))
+	tip:AddDoubleLine(L["Progress"], Format.BarText("valuePercent", info.current, info.max, nil, nil, nil, info.kind == "paragon"))
+	tip:AddDoubleLine(L["Remaining"], Format.Number(max(0, info.max - info.current)))
 	if id == "xp" and info.rested > 0 then
 		tip:AddDoubleLine(info.restName or L["Rested"], Format.Number(info.rested) .. " (" .. Format.Percent(info.rested, info.max, true) .. "%)")
 	elseif id == "rep" and info.rewardPending then

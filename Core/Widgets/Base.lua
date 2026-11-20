@@ -59,6 +59,13 @@ local function IsSecret(v)
 end
 Widgets.IsSecret = IsSecret
 
+function Widgets.WholePercent(value, mode)
+	if IsSecret(value) then return value end
+	if mode == "nearest" then return floor(value + 0.5) end
+	if mode == "threat" then return tonumber(string.format("%.0f", value)) end
+	return ceil(value)
+end
+
 local function Point(breakpoint, abbreviation, significand, fraction)
 	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
 end

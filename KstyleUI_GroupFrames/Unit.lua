@@ -114,7 +114,7 @@ local function HealthText(f)
 	K.Widgets.LowHealthText(text, unit, "textEmphasis")
 	local percent, full = Curves()
 	if format == "PERCENT" and percent then
-		text:SetFormattedText(PERCENT_FORMAT, UnitHealthPercent(unit, true, percent))
+		text:SetFormattedText(PERCENT_FORMAT, K.Widgets.WholePercent(UnitHealthPercent(unit, true, percent)))
 	elseif format == "DEFICIT" then
 		text:SetFormattedText(DEFICIT_FORMAT, Abbreviate(UnitHealthMissing(unit)))
 		if full then
@@ -123,7 +123,7 @@ local function HealthText(f)
 	elseif format == "CURRENT_MAX" then
 		text:SetFormattedText(CURRENT_MAX_FORMAT, Abbreviate(UnitHealth(unit)), Abbreviate(UnitHealthMax(unit)))
 	elseif format == "CURRENT_PERCENT" and percent then
-		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit)), UnitHealthPercent(unit, true, percent))
+		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit)), K.Widgets.WholePercent(UnitHealthPercent(unit, true, percent)))
 	else
 		text:SetText(Abbreviate(UnitHealth(unit)))
 	end

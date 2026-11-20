@@ -100,7 +100,7 @@ local function Durabilities()
 	for _, slot in ipairs(DURABILITY_SLOTS) do
 		local current, most = Call(GetInventoryItemDurability, slot[1])
 		if IsNumber(current) and IsNumber(most) and most > 0 then
-			local percent = floor(current / most * 100)
+			local percent = Format.Percent(current, most)
 			if not lowest or percent < lowest then
 				lowest = percent
 			end
@@ -923,7 +923,7 @@ local function Tooltip(item, tip)
 				local current, most = Call(GetInventoryItemDurability, slot[1])
 				if IsNumber(current) and IsNumber(most) and most > 0 then
 					any = true
-					tip:AddDoubleLine(slot[2], floor(current / most * 100) .. "%")
+					tip:AddDoubleLine(slot[2], Format.Percent(current, most) .. "%")
 				end
 			end
 		end

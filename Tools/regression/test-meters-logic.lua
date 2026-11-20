@@ -25,6 +25,11 @@ assert(Logic.Percent(5, S(100)) == nil, "a secret total gives no percentage")
 assert(Logic.FormatPercent(42) == "42%", "a percentage reads 42%")
 assert(Logic.FormatPercent(nil) == "", "no percentage reads as empty text")
 
+-- Forever Blizzard_DamageMeter/DamageMeterEntry.lua:125 uses Round, rather than status-bar ceil.
+for _, value in ipairs({ 24.4, 24.5, 24.6, 99.6, 100 }) do
+	assert(Logic.Percent(value, 100) == math.floor(value / 100 * 100 + 0.5), "damage shares match Blizzard's Round at " .. value)
+end
+
 -- Abbreviate: a whole number under 1000, one decimal to 10K, whole above, and K, M, B, for plain floats and secrets alike.
 -- Out of combat the game's AbbreviateNumbers answers a bare float with every digit ("7.7643575668335"), so a plain
 -- number never goes through it; a secret does, with KstyleUI's breakpoints.

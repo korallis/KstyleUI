@@ -103,8 +103,8 @@ local function Percent(unit, power)
 		end
 	end
 	if not curve then return "" end
-	if power then return W.ShortNumber(fn(unit, nil, false, curve)) .. "%" end
-	return W.ShortNumber(fn(unit, true, curve)) .. "%"
+	if power then return W.ShortNumber(W.WholePercent(fn(unit, nil, false, curve))) .. "%" end
+	return W.ShortNumber(W.WholePercent(fn(unit, true, curve))) .. "%"
 end
 
 function W.TagText(text, format, unit, sample)
@@ -119,7 +119,7 @@ function W.TagText(text, format, unit, sample)
 			elseif spec[3] == "percent" then
 				local power = spec[2] == "Power"
 				local max = sample[power and "powerMax" or "healthMax"] or 100
-				value = W.ShortNumber(max > 0 and (sample[power and "power" or "health"] or 0) / max * 100 or 0) .. "%"
+				value = W.ShortNumber(W.WholePercent(max > 0 and (sample[power and "power" or "health"] or 0) / max * 100 or 0)) .. "%"
 			else
 				value = sample[SAMPLE_FIELDS[spec[1]]] or ""
 				if spec[3] == "short" then value = W.ShortNumber(value) end

@@ -53,7 +53,7 @@ function Preview.Build(...)
 		end
 		local format = Settings.current[f.kind].healthText
 		local current = math.floor(SAMPLE_MAX * sample.health + 0.5)
-		local percent = math.floor(PERCENT * sample.health + 0.5)
+		local percent = K.Widgets.WholePercent(PERCENT * sample.health)
 		if format == "NONE" then
 			text:SetText("")
 		elseif format == "PERCENT" then

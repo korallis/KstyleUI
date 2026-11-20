@@ -106,7 +106,7 @@ do
 	eq(xp.rim, nil, "and no rim frame waits for one")
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
-	eq(xp.text:GetText(), "Level 38 \194\183 24% \194\183 rested 16%", "the reference caption restores the level under LEE-20")
+	eq(xp.text:GetText(), "Level 38 \194\183 25% \194\183 rested 16%", "the reference caption restores the level under LEE-20")
 	local cp, crel, crelp = xp.text:GetPoint(1)
 	eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOP>true>BOTTOM", "the caption is centred under the line")
 	eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
@@ -133,7 +133,7 @@ do
 	-- A player who chose a label on the line keeps #151's plate.
 	K.Options.Write("DataBars", "xp.textPosition", "CENTER")
 	K.Options.Write("DataBars", "xp.text", "shortPercent")
-	eq(xp.text:GetText(), "XP 24%", "the short name and the percent")
+	eq(xp.text:GetText(), "XP 25%", "the short name and the percent")
 	local er, eg, eb = K.Tokens.Color("textEmphasis")
 	tr, tg, tb = xp.text:GetTextColor()
 	assert(near(tr, er) and near(tg, eg) and near(tb, eb), "a label on the line reads in full white")
@@ -320,7 +320,7 @@ do
 	Options.Write("DataBars", "xp.text", "percent")
 	Options.Write("DataBars", "xp.textHover", false)
 	eq(xp.text:IsShown(), true, "the text can always show")
-	eq(xp.text:GetText(), "24%", "in the chosen format")
+	eq(xp.text:GetText(), "25%", "in the chosen format")
 	Options.Write("DataBars", "xp.text", "none")
 	eq(xp.text:IsShown(), false, "no text hides it")
 	eq(xp.plate:IsShown(), false, "and its plate")

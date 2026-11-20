@@ -112,7 +112,7 @@ end
 local function XP()
 	local info = ns.Sources.XP() or ns.Sources.Reputation()
 	if info and IsNumber(info.current) and IsNumber(info.max) and info.max > 0 then
-		return tostring(math.floor(info.current / info.max * 100)) .. "%"
+		return ns.Format.Percent(info.current, info.max, info.kind == "paragon") .. "%"
 	end
 	return L["--"]
 end

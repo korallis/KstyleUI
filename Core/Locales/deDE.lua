@@ -1705,6 +1705,7 @@ ns.Locale.Add({
 	["Reverse fill"] = "Umgekehrte F\195\188llung",
 	["Reverse order"] = "Umgekehrte Reihenfolge",
 	["Review import"] = "Import pr\195\188fen",
+	["Reward ready"] = "Belohnung bereit",
 	["Right"] = "Rechts",
 	["Right of the bar"] = "Rechts der Leiste",
 	["Right of the frame"] = "Rechts des Rahmens",

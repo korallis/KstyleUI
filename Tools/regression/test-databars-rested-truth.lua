@@ -12,8 +12,8 @@ assert(caption == "Level 8" .. DOT .. "74%" .. DOT .. "rested 150%", "75,000 res
 assert(Format.BarText("percentRested", 37000, 50000, nil, nil, 75000) == "74%" .. DOT .. "rested 150%", "and so in the short caption")
 assert(Format.Percent(60000, 50000) == 100, "a bar's own progress still stops at 100%")
 
--- The share is cut to a whole percent, and a share that is a whole percent reads as it: 57,500 of 50,000 is 115%.
-for _, case in ipairs({ { 57500, 115 }, { 58000, 116 }, { 57499, 114 }, { 50000, 100 }, { 49999, 99 }, { 500, 1 }, { 499, 0 } }) do
+-- The share rounds up to a whole percent, and a share that is a whole percent reads as it: 57,500 of 50,000 is 115%.
+for _, case in ipairs({ { 57500, 115 }, { 58000, 116 }, { 57499, 115 }, { 50000, 100 }, { 49999, 100 }, { 500, 1 }, { 499, 1 } }) do
 	local shown = Format.Percent(case[1], 50000, true)
 	assert(shown == case[2], case[1] .. " rested of a 50,000 level is " .. case[2] .. "%, KstyleUI shows " .. shown .. "%")
 end

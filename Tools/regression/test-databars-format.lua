@@ -40,7 +40,7 @@ end
 
 -- Percentages --------------------------------------------------------------------------------------
 
-eq(Format.Percent(12345, 50000), 24, "a percentage is cut to a whole number")
+eq(Format.Percent(12345, 50000), 25, "a percentage rounds up as Blizzard does")
 eq(Format.Percent(50000, 50000), 100, "full")
 eq(Format.Percent(60000, 50000), 100, "clamped at 100")
 eq(Format.Percent(-5, 50000), 0, "clamped at 0")
@@ -49,15 +49,15 @@ eq(Format.Percent(10, 0), 0, "an empty range is 0%")
 -- Bar texts ------------------------------------------------------------------------------------------
 
 eq(Format.BarText("none", 12345, 50000, "Level 38"), nil, "none shows nothing")
-eq(Format.BarText("percent", 12345, 50000, "Level 38"), "24%", "percent")
+eq(Format.BarText("percent", 12345, 50000, "Level 38"), "25%", "percent")
 eq(Format.BarText("value", 12345, 50000, "Level 38"), "12,345 / 50,000", "value")
-eq(Format.BarText("valuePercent", 12345, 50000, "Level 38"), "12,345 / 50,000 (24%)", "value and percent")
+eq(Format.BarText("valuePercent", 12345, 50000, "Level 38"), "12,345 / 50,000 (25%)", "value and percent")
 eq(Format.BarText("short", 12345, 50000, "Level 38"), "12.3K / 50K", "short value")
 eq(Format.BarText("remaining", 12345, 50000, "Level 38"), "37,655 to go", "remaining")
 eq(Format.BarText("label", 12345, 50000, "Level 38"), "Level 38", "label")
-eq(Format.BarText("labelPercent", 12345, 50000, "Stormwind"), "Stormwind 24%", "label and percent")
+eq(Format.BarText("labelPercent", 12345, 50000, "Stormwind"), "Stormwind 25%", "label and percent")
 eq(Format.BarText("labelValue", 12345, 50000, "Stormwind"), "Stormwind 12,345 / 50,000", "label and value")
-eq(Format.BarText("labelPercent", 12345, 50000, nil), "24%", "a missing label leaves the percent")
+eq(Format.BarText("labelPercent", 12345, 50000, nil), "25%", "a missing label leaves the percent")
 -- The Lumen XP caption: "Level 8 \194\183 74% \194\183 rested 10%", the rested part only while there is rested XP.
 local DOT = " \194\183 "
 eq(Format.BarText("levelRested", 37000, 50000, "Level 8", "XP", 5000), "Level 8" .. DOT .. "74%" .. DOT .. "rested 10%", "level, percent and rested")
@@ -72,8 +72,8 @@ eq(listed, true, "the caption is a text choice")
 eq(Format.BarText("percentRested", 37000, 50000, "Level 8", "XP", 5000), "74%" .. DOT .. "rested 10%", "percent and rested, no level")
 eq(Format.BarText("percentRested", 37000, 50000, "Level 8", "XP", 0), "74%", "no rested part without rested XP")
 eq(Format.BarText("percentRested", 37000, 50000, "Level 8"), "74%", "or when the source has none")
-eq(Format.BarText("shortPercent", 12345, 50000, "Level 38", "XP"), "XP 24%", "short name and percent: the mockup's XP 32% caption")
-eq(Format.BarText("shortPercent", 12345, 50000, "Stormwind"), "Stormwind 24%", "a bar without a short name uses its label")
+eq(Format.BarText("shortPercent", 12345, 50000, "Level 38", "XP"), "XP 25%", "short name and percent: the mockup's XP 32% caption")
+eq(Format.BarText("shortPercent", 12345, 50000, "Stormwind"), "Stormwind 25%", "a bar without a short name uses its label")
 eq(Format.BarText("bogus", 12345, 50000, "x"), nil, "an unknown style shows nothing")
 
 local styles = {}

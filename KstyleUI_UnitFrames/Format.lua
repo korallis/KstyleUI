@@ -85,6 +85,7 @@ local function Status(text, unit)
 end
 
 local function Write(text, format, current, max, percent, hasPercent)
+	if hasPercent then percent = K.Widgets.WholePercent(percent) end
 	if format == "current" then
 		text:SetText(Abbreviate(current))
 	elseif format == "percent" and hasPercent then

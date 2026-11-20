@@ -68,6 +68,13 @@ local colour = M.Last(list.rows[1].bar, "SetStatusBarColor")
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "the warrior's bar takes the class colour")
 
 -- Warnings follow the player's threat.
+-- Forever Blizzard_UnitFrame/Mainline/UnitFrame.lua:1041 formats threat with %1.0f.
+for _, value in ipairs({ 24.4, 24.5, 24.6, 99.6, 100 }) do
+	env._threat.player = { false, 1, value, value, 600000 }
+	env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+	env.RunTimers()
+	assert(Text(list.column) == string.format("%.0f%%", value), "threat's own count matches Blizzard at " .. value)
+end
 env._threat.player = { false, 2, 85, 80, 850000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()

@@ -60,7 +60,7 @@ function Format.Percent(current, max, over)
 	if max <= 0 then
 		return 0
 	end
-	local percent = floor(current * 100 / max)
+	local percent = KstyleUI.Widgets.WholePercent(current * 100 / max)
 	if percent < 0 then
 		return 0
 	elseif percent > 100 and not over then
@@ -88,12 +88,12 @@ local function Rested(rested, max)
 end
 
 local BAR_TEXT = {
-	percent = function(current, max)
-		return Format.Percent(current, max) .. "%"
+	percent = function(current, max, _, _, _, over)
+		return Format.Percent(current, max, over) .. "%"
 	end,
 	value = Value,
-	valuePercent = function(current, max)
-		return Value(current, max) .. " (" .. Format.Percent(current, max) .. "%)"
+	valuePercent = function(current, max, _, _, _, over)
+		return Value(current, max) .. " (" .. Format.Percent(current, max, over) .. "%)"
 	end,
 	short = function(current, max)
 		return Format.Short(current) .. " / " .. Format.Short(max)
@@ -104,33 +104,33 @@ local BAR_TEXT = {
 	label = function(_, _, label)
 		return label
 	end,
-	labelPercent = function(current, max, label)
-		return Joined(label, Format.Percent(current, max) .. "%")
+	labelPercent = function(current, max, label, _, _, over)
+		return Joined(label, Format.Percent(current, max, over) .. "%")
 	end,
 	labelValue = function(current, max, label)
 		return Joined(label, Value(current, max))
 	end,
-	shortPercent = function(current, max, label, short)
-		return Joined(short or label, Format.Percent(current, max) .. "%")
+	shortPercent = function(current, max, label, short, _, over)
+		return Joined(short or label, Format.Percent(current, max, over) .. "%")
 	end,
-	levelRested = function(current, max, label, _, rested)
-		local text = Format.Percent(current, max) .. "%"
+	levelRested = function(current, max, label, _, rested, over)
+		local text = Format.Percent(current, max, over) .. "%"
 		if label and label ~= "" then
 			text = label .. DOT .. text
 		end
 		return text .. Rested(rested, max)
 	end,
-	percentRested = function(current, max, _, _, rested)
-		return Format.Percent(current, max) .. "%" .. Rested(rested, max)
+	percentRested = function(current, max, _, _, rested, over)
+		return Format.Percent(current, max, over) .. "%" .. Rested(rested, max)
 	end,
 }
 
-function Format.BarText(style, current, max, label, short, rested)
+function Format.BarText(style, current, max, label, short, rested, over)
 	local fn = BAR_TEXT[style]
 	if not fn then
 		return nil
 	end
-	return fn(current, max, label, short, rested)
+	return fn(current, max, label, short, rested, over)
 end
 
 local function Coins(copper)

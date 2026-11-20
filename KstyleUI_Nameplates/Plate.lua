@@ -693,7 +693,7 @@ function Plate:UpdateHealthText()
 	end
 	local sample = self.sample
 	if sample then
-		text:SetFormattedText("%.0f%%", sample.health * 100)
+		text:SetFormattedText("%.0f%%", Widgets.WholePercent(sample.health * 100))
 		return
 	end
 	local unit = self.unit
@@ -702,9 +702,9 @@ function Plate:UpdateHealthText()
 	if format == "value" or not curve then
 		text:SetText(Widgets.ShortNumber(UnitHealth(unit)))
 	elseif format == "both" then
-		text:SetFormattedText("%s  %.0f%%", Widgets.ShortNumber(UnitHealth(unit)), UnitHealthPercent(unit, true, curve))
+		text:SetFormattedText("%s  %.0f%%", Widgets.ShortNumber(UnitHealth(unit)), Widgets.WholePercent(UnitHealthPercent(unit, true, curve)))
 	else
-		text:SetFormattedText("%.0f%%", UnitHealthPercent(unit, true, curve))
+		text:SetFormattedText("%.0f%%", Widgets.WholePercent(UnitHealthPercent(unit, true, curve)))
 	end
 end
 
