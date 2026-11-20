@@ -17,8 +17,12 @@ for _, style in ipairs({ "frames", "medallions" }) do
 		assert(view.powerFillClip:IsShown(), "Frames must keep its fill-clipped ink visible")
 	end
 	assert(view.powerText:GetJustifyH() == "RIGHT", "the number is right-aligned")
-	assert(select(2, view.powerText:GetFont()) >= 12, "power uses the 12-unit number role")
-	assert((view.powerText:GetFont()) == K.Tokens.Font("number"), "power uses the number face")
+	local path, size, flags = ns.Settings.Font("player", style == "medallions" and "level" or "power")
+	assert((view.powerText:GetFont()) == path and select(2, view.powerText:GetFont()) == size,
+		"power uses the caption font in Medallions and the number font in Frames")
+	if style == "medallions" then
+		assert(select(3, view.powerText:GetFont()) == flags, "Medallions power uses the caption outline setting")
+	end
 	assert(U.Shown(env, view.powerText) == "50%", "mana reads as a percent by default")
 	local player = env._units.player
 	player.powerType, player.powerToken, player.power, player.powerMax = 3, "ENERGY", 37, 100
@@ -105,9 +109,9 @@ assert(near(tr, ir) and near(tg, ig) and near(tb, ib), "a dark fill restores lig
 K.Options.Write("HudStyle", "style", "medallions")
 K.Options.Write("UnitFrames", "player.powerCustom", { r = 1, g = 0.9, b = 0 })
 tr, tg, tb = view.powerText:GetTextColor()
-ir, ig, ib = K.Tokens.Color("textEmphasis")
-assert(near(tr, ir) and near(tg, ig) and near(tb, ib) and select(3, view.powerText:GetFont()) == "OUTLINE", "the separate Medallions lane keeps light world ink on a light power fill")
-assert(not view.powerFillClip:IsShown(), "the outside-fill Medallions lane has no clipped overlay")
+ir, ig, ib = K.Tokens.Color("labelMuted")
+assert(near(tr, ir) and near(tg, ig) and near(tb, ib), "Medallions power uses the muted caption colour")
+assert(not view.powerFillClip:IsShown(), "the in-card Medallions caption has no clipped overlay")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -125,6 +129,23 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local geometry = v.geometry
 		assert(geometry.powerText and geometry.powerText.y + geometry.powerText.h <= geometry.glass.h,
 			"keep every power format inside the Medallions card at " .. screen[1] .. "x" .. screen[2])
+	end
+	for _, kind in ipairs({ "target", "focus", "pet" }) do
+		kit.Options.Write("UnitFrames", kind .. ".power", true)
+		kit.Options.Write("UnitFrames", kind .. ".powerText", "percent")
+		local other = units.Frames.Get(kind).views[1]
+		local g = other.geometry
+		local text = g.powerText
+		assert(text and text.y == g.name.y and text.h == g.name.h, kind .. " power shares the identity row")
+		assert(text.y >= g.power.y + g.power.h and text.y + text.h <= g.glass.h,
+			kind .. " power fits below the bar inside the card")
+		local path, size, flags = units.Settings.Font(kind, "level")
+		assert((other.powerText:GetFont()) == path and select(3, other.powerText:GetFont()) == flags,
+			kind .. " power uses the caption font")
+		assert(text.h >= size and text.w >= Common.Scene.TextWidth("100%", size, path),
+			kind .. " power must fit without truncation at " .. screen[1] .. "x" .. screen[2])
+		kit.Options.Write("UnitFrames", kind .. ".powerText", "none")
+		assert(not other.geometry.powerText and not other.powerText:IsShown(), kind .. " power text switches off")
 	end
 	kit.Layout.Enter()
 	e.RunTimers()
