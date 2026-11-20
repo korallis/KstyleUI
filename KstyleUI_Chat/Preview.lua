@@ -12,7 +12,6 @@ local build
 function Preview.Build(...)
 	if build then return build(...) end
 	local TAB_WIDTH = 72
-	local TAB_TOP = 16
 	local UNDERLINE = 1
 	local LINE_GAP = 3
 
@@ -59,20 +58,34 @@ function Preview.Build(...)
 		local path, size, flags, tabSize, tabPath = ns.Frames.Fonts(settings)
 		local ar, ag, ab = ns.Accent(settings)
 		local style = settings.tabStyle
-		local x = Tokens.Size("gapMedium")
+		local inset = Tokens.Size("gapMedium")
 		local gap = Tokens.Size("gapLarge") + ns.Frames.TabGap(settings) - ns.defaults.tabSpacing
-		local pad = Tokens.Size("gapSmall") + ns.Frames.TilePad(settings) - ns.defaults.tabPadding
+		local pad = Tokens.Size("gapSmall") * ns.Frames.TilePad(settings) / ns.defaults.tabPadding
 		local top = ((tonumber(settings.tabHeight) or ns.defaults.tabHeight) - 2) / 2
+		local room = settings.buttons == true and (tonumber(settings.sideWidth) or ns.defaults.sideWidth) or 0
+		local band = settings.sideRight == true and room or 0
+		local left, always = inset + room - band, settings.editBox == "always"
+		local tall = tonumber(settings.editHeight) or ns.defaults.editHeight
+		local lift = always and settings.inputOnTop == true and tall + inset or 0
 		if settings.idleFade == true or self.faded then
 			self.faded = settings.idleFade == true
 			glass:SetAlpha(self.faded and 1 - math.min(1, tonumber(settings.idleStrength) or 0) or 1)
 		end
 		self.divider:ClearAllPoints()
-		Widgets.Point(self.divider, "TOPLEFT", glass, "TOPLEFT", x, -(top * 2))
-		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -x, -(top * 2))
+		Widgets.Point(self.divider, "TOPLEFT", glass, "TOPLEFT", left, -(top * 2))
+		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -(inset + room), -(top * 2))
 		self.lines[1]:ClearAllPoints()
-		Widgets.Point(self.lines[1], "TOPLEFT", glass, "TOPLEFT", x, -(top * 2 + x))
-		Widgets.Point(self.lines[1], "RIGHT", glass, "RIGHT", -x, 0)
+		Widgets.Point(self.lines[1], "TOPLEFT", glass, "TOPLEFT", left, -(top * 2 + inset + lift))
+		self.edit:ClearAllPoints()
+		if lift > 0 then
+			Widgets.Point(self.edit, "TOPLEFT", glass, "TOPLEFT", left, -(top * 2 + inset))
+		else
+			Widgets.Point(self.edit, "BOTTOMLEFT", glass, "BOTTOMLEFT", left, inset)
+		end
+		Widgets.Point(self.edit, "RIGHT", glass, "RIGHT", -(inset + band), 0)
+		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
+		self.edit:SetShown(always)
+		local x = left
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 			local label = TABS[i]
@@ -96,12 +109,14 @@ function Preview.Build(...)
 		ns.Frames.PaintUnderline(self.underline, self.glow, underlined)
 		self.fill:SetShown(filled)
 		self.fill.chrome:SetFill("buttonFill", settings.tabOpacity ~= 1 and settings.tabOpacity or nil)
+		self.fill.wash:SetVertexColor(Widgets.Rgba("accent", K.Skin.TAB_WASH_ALPHA * settings.tabOpacity))
 		if settings.tabEdge == "panel" then
 			self.fill.chrome:SetEdge("edgeInner")
 		else
 			self.fill.chrome:SetEdgeRGBA(ar, ag, ab, 1)
 		end
 		for i, line in ipairs(self.lines) do
+			Widgets.Point(line, "RIGHT", glass, "RIGHT", -(inset + band), 0)
 			Widgets.TextColor(line, "textEmphasis")
 			ns.Frames.ApplyFont(line, path, size, flags)
 			line:SetText(Line(SAMPLES[i], settings))
@@ -118,21 +133,20 @@ function Preview.Build(...)
 		frame.glass = glass
 		frame.fill = CreateFrame("Frame", nil, glass)
 		frame.fill.chrome = Widgets.Chrome(frame.fill, { shape = "tile", fill = "buttonFill", shadow = false })
+		frame.fill.wash = frame.fill:CreateTexture(nil, "ARTWORK")
+		frame.fill.wash:SetAllPoints(frame.fill)
+		frame.fill.wash:SetColorTexture(Tokens.Color("white"))
+		frame.edit = CreateFrame("Frame", nil, glass)
+		frame.edit.chrome = Widgets.Chrome(frame.edit, { shape = "tile", fill = "buttonFill", shadow = false })
 		local top = CreateFrame("Frame", nil, glass)
 		top:SetAllPoints(glass)
 		top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)
 		frame.tabs = {}
 		for i = 1, #TABS do
-			local tab = Widgets.FontString(top, "OVERLAY")
-			Widgets.Point(tab, "CENTER", glass, "TOPLEFT", pad + (i - 0.5) * TAB_WIDTH, -TAB_TOP)
-			frame.tabs[i] = tab
+			frame.tabs[i] = Widgets.FontString(top, "OVERLAY")
 		end
-		Widgets.Point(frame.fill, "CENTER", frame.tabs[1], "CENTER")
-		Widgets.Size(frame.fill, TAB_WIDTH - pad, TAB_TOP * 2 - UNDERLINE)
 		frame.underline = top:CreateTexture(nil, "OVERLAY")
 		frame.underline:SetTexture((Tokens.Texture("divider")))
-		Widgets.Point(frame.underline, "TOPLEFT", glass, "TOPLEFT", pad + pad, -(TAB_TOP * 2))
-		Widgets.Size(frame.underline, TAB_WIDTH - 2 * pad, UNDERLINE)
 		frame.glow = top:CreateTexture(nil, "OVERLAY", nil, -1)
 		ns.Frames.PlaceGlow(frame.glow, frame.underline)
 		frame.divider = glass:CreateTexture(nil, "ARTWORK")
@@ -148,7 +162,6 @@ function Preview.Build(...)
 			if previous then
 				Widgets.Point(line, "TOPLEFT", previous, "BOTTOMLEFT", 0, -LINE_GAP)
 			end
-			Widgets.Point(line, "RIGHT", glass, "RIGHT", -pad, 0)
 			frame.lines[i] = line
 			previous = line
 		end

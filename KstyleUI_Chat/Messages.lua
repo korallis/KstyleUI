@@ -20,7 +20,7 @@ local MENTION_EVENTS = {
 	"CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
 }
 local ROSTER_OWNER = "ChatNames"
-local ROSTER_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD", "UNIT_NAME_UPDATE" }
+local ROSTER_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD", "UNIT_NAME_UPDATE", "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 local TIP_ENTER, TIP_LEAVE = "ChatFrame.OnHyperlinkEnter", "ChatFrame.OnHyperlinkLeave"
 local TIP_TYPES = { item = true, spell = true, achievement = true, quest = true, currency = true, enchant = true, talent = true, instancelock = true, glyph = true }
 
@@ -259,7 +259,7 @@ local function MentionFilter(_, _, message, ...)
 end
 
 local function SetMentions(on)
-	if on == state.mentionsRegistered then
+	if on == (state.mentionsRegistered == true) then
 		return
 	end
 	local util = Util("AddMessageEventFilter", "RemoveMessageEventFilter")
@@ -278,7 +278,7 @@ end
 
 local function OnLinkEnter(_, frame, link)
 	local tip = GameTooltip
-	if not state.tips or not IsText(link) or type(tip) ~= "table" or type(tip.SetHyperlink) ~= "function" then
+	if not state.tips or not IsText(link) or type(tip) ~= "table" or type(tip.SetOwner) ~= "function" or type(tip.SetHyperlink) ~= "function" then
 		return
 	end
 	if TIP_TYPES[link:match("^([^:]+)")] then
@@ -293,14 +293,14 @@ local function OnLinkLeave()
 	local owner = state.tipOwner
 	state.tipOwner = nil
 	local owned = owner and type(GameTooltip.IsOwned) == "function" and GameTooltip:IsOwned(owner)
-	if IsSecret(owned) or owned == true then
+	if not IsSecret(owned) and owned == true then
 		GameTooltip:Hide()
 	end
 end
 
 local function SetTips(on)
 	local registry = EventRegistry
-	if on == state.tipsRegistered or type(registry) ~= "table" or type(registry.RegisterCallback) ~= "function" then
+	if on == (state.tipsRegistered == true) or type(registry) ~= "table" or type(registry.RegisterCallback) ~= "function" or type(registry.UnregisterCallback) ~= "function" then
 		return
 	end
 	if on then

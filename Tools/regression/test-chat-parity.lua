@@ -355,21 +355,29 @@ local function overlap(a, b)
 end
 
 -- Every chat button keeps its own slot on either side, at every screen size, and the smallest room still holds them.
+-- The voice toggles show only in voice chat and stack under the channel button, so they are checked for room only.
 for _, size in ipairs(SIZES) do
-	local env, K, _, rect = sized(size[1], size[2])
-	local buttons = { env.QuickJoinToastButton, env.ChatFrameChannelButton, env.ChatFrameToggleVoiceDeafenButton, env.ChatFrameToggleVoiceMuteButton, env.ChatFrameMenuButton }
+	local env, K, ns, rect = sized(size[1], size[2])
+	local friends, glass = env.QuickJoinToastButton, ns.Panel.Glass()
+	local slots = { friends, env.ChatFrameChannelButton, env.ChatFrameMenuButton }
+	local buttons = { friends, env.ChatFrameChannelButton, env.ChatFrameMenuButton, env.ChatFrameToggleVoiceDeafenButton, env.ChatFrameToggleVoiceMuteButton }
 	write(env, K, "buttons", true)
 	write(env, K, "sideWidth", K.Options.Row("Chat", "sideWidth").min)
 	for _, right in ipairs({ false, true }) do
 		write(env, K, "sideRight", right)
-		local chat = rect(env.ChatFrame1)
+		local chat, card = rect(env.ChatFrame1), rect(glass)
 		for i, a in ipairs(buttons) do
 			local r = rect(a)
 			assert(right and r.left >= chat.right - 0.01 or not right and r.right <= chat.left + 0.01,
 				size[1] .. "x" .. size[2] .. ": " .. a:GetName() .. " reaches into the messages at the smallest room")
-			for j = i + 1, #buttons do
-				assert(not overlap(r, rect(buttons[j])), size[1] .. "x" .. size[2] .. ": " .. a:GetName() .. " overlaps " .. buttons[j]:GetName())
+			for j = i + 1, #slots do
+				assert(i > #slots or not overlap(r, rect(slots[j])), size[1] .. "x" .. size[2] .. ": " .. a:GetName() .. " overlaps " .. slots[j]:GetName())
 			end
+		end
+		local r = rect(friends)
+		assert(r.top <= card.top + 0.01, "the friends button stays inside the card")
+		for _, other in ipairs({ glass.plus, glass.copy, glass.divider }) do
+			assert(not overlap(r, rect(other)), size[1] .. "x" .. size[2] .. ": the friends button covers the tab row's glyphs or rule")
 		end
 	end
 	clean(env, K)

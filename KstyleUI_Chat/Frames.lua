@@ -217,6 +217,9 @@ local function PaintTab(parts)
 	end
 	if parts.wash then
 		parts.wash:SetShown(filled)
+		if filled and settings.tabOpacity ~= 1 then
+			parts.wash:SetVertexColor(Widgets.Rgba("accent", Skin.TAB_WASH_ALPHA * settings.tabOpacity))
+		end
 		if fill and not parts.washFitted then
 			parts.washFitted = true
 			parts.wash:ClearAllPoints()
@@ -530,10 +533,9 @@ local function Buttons()
 		{ ChatFrameToggleVoiceDeafenButton, state.active and icons.voice == false }, { ChatFrameToggleVoiceMuteButton, state.active and icons.voice == false },
 	}
 	for _, entry in ipairs(frames) do
-		if type(entry[1]) == "table" and entry[2] then
-			Safe.HideBlizzard(entry[1])
-		elseif type(entry[1]) == "table" then
-			Safe.RestoreBlizzard(entry[1])
+		if type(entry[1]) == "table" then
+			local action = entry[2] and Safe.HideBlizzard or Safe.RestoreBlizzard
+			action(entry[1])
 		end
 	end
 end

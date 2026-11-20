@@ -248,25 +248,24 @@ function ns.Schema()
 		},
 		{ type = "toggle", key = "sideHover", label = L["Chat buttons on hover"], help = L["Shows the chat buttons only while the pointer is over the chat."], showWhen = Sided },
 		{ type = "toggle", key = "sideRight", label = L["Chat buttons on the right"], help = L["Puts the chat buttons on the right side of the card."], showWhen = Sided },
-		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, in units."], min = 24, max = 60, step = 1, showWhen = Sided },
+		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, in units."], min = 32, max = 60, step = 1, showWhen = Sided },
 	}
 	for _, key in ipairs(SIDE_ICONS) do
 		schema[#schema + 1] = { type = "toggle", key = "sideIcons." .. key, label = ICON_LABELS[key], help = L["Shows this button among the chat buttons."], showWhen = Sided }
 	end
-	local panel = {
+	Append(schema, {
 		{ type = "toggle", key = "inputOnTop", label = L["Input on top"], help = L["Place the typing box above chat messages, below the tabs."] },
-		{ type = "slider", key = "editHeight", label = L["Edit box height"], help = L["The height of the box you type in, in units."], min = 16, max = 30, step = 1 },
+		{ type = "slider", key = "editHeight", label = L["Edit box tile height"], help = L["The height of the tile drawn behind the text you type, in units."], min = 16, max = 30, step = 1 },
 		{ type = "toggle", key = "lockSize", label = L["Lock chat size"], help = L["Hides the size grip on docked chat windows, so the chat resizes only in Layout Mode."] },
 		{ type = "header", label = L["Idle fade"] },
 		{ type = "toggle", key = "idleFade", label = L["Fade when idle"], help = L["The whole chat fades after a quiet spell. Hovering, typing or new player chat brings it back."] },
 		{ type = "slider", key = "idleDelay", label = L["Idle after"], help = L["Seconds without new chat, hovering or typing before the chat fades."], min = 5, max = 60, step = 1, showWhen = Idles },
 		{ type = "slider", key = "idleStrength", label = L["Idle fade strength"], help = L["How far the idle chat fades. 1 hides it until it wakes."], min = 0.05, max = 1, step = 0.05, showWhen = Idles },
-	}
-	Append(schema, panel)
+	})
 	for _, key in ipairs(IDLE_WAKE) do
 		schema[#schema + 1] = { type = "toggle", key = "idleWake." .. key, label = WAKE_LABELS[key], help = L["Player chat and whispers always wake the chat; these lines wake it too."], showWhen = Idles }
 	end
-	local text = {
+	Append(schema, {
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
@@ -375,8 +374,7 @@ function ns.Schema()
 			options = { { value = "name", label = L["[1. General]"] }, { value = "number", label = L["[1]"] } },
 			showWhen = IsShort,
 		},
-	}
-	Append(schema, text)
+	})
 	for _, key in ipairs(Format.CHANNEL_KEYS) do
 		schema[#schema + 1] = {
 			type = "text", key = "abbr." .. key, label = ABBREVIATION_LABELS[key],
@@ -384,7 +382,7 @@ function ns.Schema()
 			maxLetters = MAX_ABBREVIATION, showWhen = IsShort,
 		}
 	end
-	local tail = {
+	Append(schema, {
 		{ type = "header", label = L["Names and links"] },
 		{
 			type = "toggle", key = "classNames", label = L["Class-coloured names"],
@@ -396,8 +394,7 @@ function ns.Schema()
 			help = L["Turns web addresses into links. Click one to copy it."],
 		},
 		{ type = "toggle", key = "linkTooltips", label = L["Link tooltips on hover"], help = L["Shows an item, spell or quest tooltip while the pointer is over its link in chat."] },
-	}
-	Append(schema, tail)
+	})
 	schema.preview = function(parent)
 		return ns.Preview.Build(parent)
 	end

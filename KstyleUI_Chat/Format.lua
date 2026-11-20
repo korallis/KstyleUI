@@ -256,20 +256,19 @@ end
 local mentions, tinted
 
 local function MentionWord(word)
-	local hex = mentions[lower(word)]
-	return hex and ("|c" .. hex .. word .. "|r") or word
+	local lead, name = match(word, "^([\128-\191]*)(.*)$")
+	local hex = mentions[lower(name)]
+	return hex and (lead .. "|c" .. hex .. name .. "|r") or word
 end
 
 local function MentionPlain(run)
-	return tinted and run or (gsub(run, "[%w\128-\255]+", MentionWord))
+	return tinted and run or (gsub(run, "[%w\128-\225\228-\238\240-\255]+", MentionWord))
 end
 
 local function MentionCode(code)
 	local kind = sub(code, 2, 2)
-	if kind == "c" then
-		tinted = true
-	elseif kind == "r" then
-		tinted = false
+	if kind == "c" or kind == "r" then
+		tinted = kind == "c"
 	end
 	return code
 end

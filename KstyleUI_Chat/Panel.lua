@@ -28,7 +28,7 @@ local EDIT_HEIGHT = 32
 local EDIT_LEFT = 5
 local EDIT_PAST_SCROLLBAR = 8
 local SCROLLBAR_WIDTH = 8
-local SIDE_ROOM = 35
+local SIDE_ROOM, SIDE_MIN = 35, 32
 
 local STRIP_HEIGHT = 32
 local EDIT_TILE = 22
@@ -39,6 +39,7 @@ local WAKE_EVENTS = {
 	"CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
 	"CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER",
 	"CHAT_MSG_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL", "CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER",
+	"CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER_INFORM",
 }
 local WAKE_GROUPS = {
 	emotes = { "CHAT_MSG_EMOTE", "CHAT_MSG_TEXT_EMOTE" },
@@ -167,13 +168,15 @@ function Panel.Geometry(chat)
 		spacing = fit / k
 	end
 	local s = state.settings
-	local side = s and s.buttons and Number(s.sideWidth, SIDE_ROOM) * k or 0
+	local side = s and s.buttons and max(SIDE_MIN, Number(s.sideWidth, SIDE_ROOM)) * k or 0
 	local right = s and s.sideRight and side > 0
+	local band = right and side + SCROLLBAR_WIDTH * k or 0
 	return {
 		k = k,
 		left = pad + (right and 0 or side),
 		top = top,
-		right = pad + (right and side + SCROLLBAR_WIDTH * k or 0),
+		right = pad + band,
+		band = band,
 		bottom = foot,
 		divider = divider,
 		spacing = spacing,
@@ -415,11 +418,21 @@ local function Mirror()
 		state.factor = factor
 		state.glass:SetAlpha(factor)
 		Widgets.ColorSlice(state.shade, Widgets.Rgba("black", SHADE_ALPHA * factor))
+		SideAlpha()
 	end
 end
 
-local function Fade(generation)
-	if state.idleGen == generation and state.active and not state.hover and not state.typing then
+local function Settle()
+	state.idleTimer = false
+	local s = state.settings
+	if not state.active or not s or s.idleFade ~= true or state.faded then
+		return
+	end
+	local left = state.idleAt - GetTime()
+	if left > 0 then
+		state.idleTimer = true
+		C_Timer.After(left, Settle)
+	elseif not state.hover and not state.typing then
 		state.faded = true
 		Mirror()
 	end
@@ -430,15 +443,16 @@ function Panel.Wake()
 	if not state.active or not s or s.idleFade ~= true then
 		return
 	end
-	local generation = (state.idleGen or 0) + 1
-	state.idleGen = generation
+	local delay = Number(s.idleDelay, 15)
+	state.idleAt = GetTime() + delay
 	if state.faded then
 		state.faded = false
 		Mirror()
 	end
-	C_Timer.After(Number(s.idleDelay, 15), function()
-		Fade(generation)
-	end)
+	if not state.idleTimer then
+		state.idleTimer = true
+		C_Timer.After(delay, Settle)
+	end
 end
 
 local function Idle()
@@ -453,7 +467,6 @@ local function Idle()
 			if on and wake[key] == true then K.Events.Register(IDLE_OWNER, event, Panel.Wake) else K.Events.Unregister(IDLE_OWNER, event) end
 		end
 	end
-	state.idleGen = (state.idleGen or 0) + 1
 	state.faded = false
 	Mirror()
 	Panel.Wake()
@@ -486,16 +499,16 @@ local function PlaceDivider(g)
 	local divider = glass.divider
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left, -g.divider)
-	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
+	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left - g.band, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
 	Panel.PaintRule(divider)
 	state.headerUnits = g.divider + Widgets.Border(glass)
 	SyncHeader()
 	local y = -g.divider / 2
 	glass.plus:ClearAllPoints()
-	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
+	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET + g.band), Widgets.Snap(glass.plus, y))
 	glass.copy:ClearAllPoints()
-	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny")), Widgets.Snap(glass.copy, y))
+	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny") + g.band), Widgets.Snap(glass.copy, y))
 end
 
 local function PlaceEdit(frame, k, over, own)
@@ -522,7 +535,7 @@ local function PlaceEdit(frame, k, over, own)
 	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)
 end
 
-local sideAlpha = setmetatable({}, { __mode = "k" })
+local sideBase, sideSet = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
 
 local function SideFrames()
 	local list = {}
@@ -536,19 +549,24 @@ end
 
 function SideAlpha()
 	local s = state.settings
-	local hide = state.active and s ~= nil and s.buttons == true and s.sideHover == true and not state.hover
+	local on = state.active and s ~= nil and s.buttons == true
+	local hide, factor = on and s.sideHover == true and not state.hover, on and IdleFactor() or 1
+	if not hide and factor == 1 and next(sideSet) == nil then
+		return
+	end
+	local column = state.chat and state.chat.buttonFrame
 	for _, frame in ipairs(SideFrames()) do
-		if hide then
-			local alpha = frame:GetAlpha()
-			if sideAlpha[frame] == nil then
-				sideAlpha[frame] = IsSecret(alpha) and 1 or alpha
-			end
-			if IsSecret(alpha) or alpha ~= 0 then
-				frame:SetAlpha(0)
-			end
-		elseif sideAlpha[frame] ~= nil then
-			frame:SetAlpha(sideAlpha[frame])
-			sideAlpha[frame] = nil
+		local alpha = frame:GetAlpha()
+		if not IsSecret(alpha) and alpha ~= sideSet[frame] then
+			sideBase[frame] = alpha
+		end
+		local scale = hide and 0 or (frame == column or frame:GetParent() == column) and 1 or factor
+		if scale ~= 1 then
+			sideSet[frame] = (sideBase[frame] or 1) * scale
+			frame:SetAlpha(sideSet[frame])
+		elseif sideSet[frame] ~= nil then
+			frame:SetAlpha(sideBase[frame] or 1)
+			sideSet[frame] = nil
 		end
 	end
 end
@@ -588,16 +606,18 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	if state.settings.buttons and type(chat.buttonFrame) == "table" then
-		local column = chat.buttonFrame
+		local column, friends, icons = chat.buttonFrame, QuickJoinToastButton, state.settings.sideIcons
 		local side, x = state.settings.sideRight and "RIGHT" or "LEFT", Scale.Snap(Pad()) / g.k
+		local shown = type(friends) == "table" and not (type(icons) == "table" and icons.friends == false)
+		local top = max(g.top / g.k, x + (shown and Number(friends:GetHeight(), 0) * Ratio(friends, holder) / g.k or 0))
 		x = side == "RIGHT" and -x or x
 		column:ClearAllPoints()
-		column:SetPoint("TOP" .. side, holder, "TOP" .. side, x, -g.top / g.k)
+		column:SetPoint("TOP" .. side, holder, "TOP" .. side, x, -top)
 		column:SetPoint("BOTTOM" .. side, holder, "BOTTOM" .. side, x, g.bottom / g.k)
-		for _, frame in ipairs({ ChatAlertFrame, QuickJoinToastButton }) do
+		for _, frame in ipairs({ ChatAlertFrame, friends }) do
 			if type(frame) == "table" then
 				frame:ClearAllPoints()
-				frame:SetPoint("TOP" .. side, column, "TOP" .. side, 0, 0)
+				frame:SetPoint("BOTTOM" .. side, column, "TOP" .. side, 0, 0)
 			end
 		end
 		for _, frame in ipairs(SideFrames()) do
@@ -983,13 +1003,13 @@ function Panel.Start(settings)
 	end
 	Panel.Place()
 	Schedule()
-	Mirror()
 	Idle()
 end
 
 local PLACE = {
 	scale = true, theme = true, copyButton = true, editBox = true, fontSize = true, lineSpacing = true, framing = true, buttons = true,
 	inputOnTop = true, tabHeight = true, editHeight = true, tabSpacing = true, tabFont = true, sideRight = true, sideWidth = true, sideHover = true,
+	["sideIcons.friends"] = true,
 }
 
 function Panel.Refresh(settings, key)
