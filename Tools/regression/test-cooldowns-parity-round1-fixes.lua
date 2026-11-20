@@ -86,6 +86,9 @@ case("Vertical fills an attached row's own box column first and stands a detache
 	assert(row.holder:GetWidth() == width and row.holder:GetHeight() == height, "attached, the row keeps its size")
 	local first, second = { row.icons[1]:GetPoint(1) }, { row.icons[2]:GetPoint(1) }
 	assert(first[4] == second[4] and first[5] ~= second[5], "the second icon sits below the first")
+	local short = { vertical = true, columns = 6, rows = 2, spacing = 2, cellWidth = 10, cellHeight = 10, growth = "center", wrap = "up" }
+	local x3, y3 = ns.Grid.Offset(3, 3, short)
+	assert(y3 == 0 and x3 == 36, "a short last column starts at the top beside the others, never between rows")
 	Write("attached", false)
 	assert(math.abs(row.holder:GetWidth() - height) < 1 and math.abs(row.holder:GetHeight() - width) < 1, "detached, the row stands upright")
 	Write("attached", true)
