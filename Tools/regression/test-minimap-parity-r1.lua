@@ -79,9 +79,11 @@ local function instance(env)
 end
 
 -- A v0.2.8-shaped profile loads, every new option is at today's default and nothing new shows.
-local saved = { version = 42, profiles = { Default = { Minimap = { enabled = true, column = { size = 19.5 }, zone = { size = 12 } } } },
-	characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
-local env, K, ns = M.New({ saved = saved, position = { 0.4532, 0.6218 }, setup = instance })
+local function profile()
+	return { version = 42, profiles = { Default = { Minimap = { enabled = true, column = { size = 19.5 }, zone = { size = 12 } } } },
+		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+end
+local env, K, ns = M.New({ saved = profile(), position = { 0.4532, 0.6218 }, setup = instance })
 M.Settle(env)
 local S, face, column = ns.Settings, ns.Map.face, ns.Map.column
 local buttons, area = column.buttons, face.mapArea
@@ -116,7 +118,11 @@ K.Options.Write("Minimap", "column.hover", false)
 local _, _, _, x0 = point(buttons.tracking)
 K.Options.Write("Minimap", "column.offset", 10)
 local _, _, _, x1 = point(buttons.tracking)
-assert(W.Near(x1, x0 - 10, 0.01), "the column moves in from the right edge: " .. tostring(x0) .. " -> " .. tostring(x1))
+local function moved(sK, holder, from, to)
+	local Snap, EDGE = sK.Widgets.Snap, ns.Format.EDGE
+	return W.Near(to, from - (Snap(holder, EDGE + 10) - Snap(holder, EDGE)), 0.01)
+end
+assert(moved(K, column.holder, x0, x1), "the column moves in from the right edge: " .. tostring(x0) .. " -> " .. tostring(x1))
 K.Options.Write("Minimap", "column.offset", -30)
 assert(select(2, rect(buttons.tracking)) > select(2, rect(area)) + 10, "a negative distance moves the column out past the edge")
 K.Options.Write("Minimap", "column.offset", 0)
@@ -358,4 +364,157 @@ for _, frame in ipairs({ "medallion", "ring", "classic" }) do
 	assert(point(fns.Map.face.zone) == "TOP" and not fns.Map.face.plaques[1].chrome.fill[5]:IsShown(), "the " .. frame .. " zone loads inside the map")
 	assert(not fns.Map.face.plaques[2].chrome.fill[5]:IsShown(), "and the " .. frame .. " row plaque hides with the clock and coordinates moved")
 end
+
+-- Review of a6c2c482: each probe below failed before its fix.
+-- The column's distance from the edge moves it by the snapped difference at every test screen size.
+for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local senv, sK, sns = M.New({ width = size[1], height = size[2], saved = profile(), position = { 0.4532, 0.6218 }, setup = instance })
+	M.Settle(senv)
+	local scol = sns.Map.column
+	sK.Options.Write("Minimap", "column.hover", false)
+	local sx0 = select(4, point(scol.buttons.tracking))
+	sK.Options.Write("Minimap", "column.offset", 10)
+	local sx1 = select(4, point(scol.buttons.tracking))
+	assert(moved(sK, scol.holder, sx0, sx1), size[1] .. "x" .. size[2] .. ": the column moves in by the snapped distance: " .. sx0 .. " -> " .. sx1)
+	clean(senv, sK, size[1] .. "x" .. size[2])
+end
+
+local renv, rK, rns = M.New({ saved = profile(), position = { 0.4532, 0.6218 }, setup = instance })
+M.Settle(renv)
+local function rwrite(key, value) rK.Options.Write("Minimap", key, value) end
+local RS, rface, rbuttons, rdrawer = rns.Settings, rns.Map.face, rns.Map.column.buttons, rns.Map.drawer
+
+-- Rotation keeps the player's own value: on then off leaves a native rotation on, and the memory survives a reload.
+renv._cvars.rotateMinimap = true
+rwrite("rotate", true)
+rwrite("rotate", false)
+assert(renv._cvars.rotateMinimap == true, "switching rotation off keeps the player's own rotation")
+renv._cvars.rotateMinimap = false
+local rsaved = profile()
+local aenv, aK = M.New({ saved = rsaved, position = { 0.4532, 0.6218 }, setup = instance })
+M.Settle(aenv)
+aK.Options.Write("Minimap", "rotate", true)
+local benv, bK = M.New({ saved = rsaved, position = { 0.4532, 0.6218 }, setup = function(e) instance(e); e._cvars.rotateMinimap = true end })
+M.Settle(benv)
+bK.Options.Write("Minimap", "rotate", false)
+assert(benv._cvars.rotateMinimap == false, "after a reload, off still puts back the player's unrotated map")
+clean(benv, bK, "rotation after a reload")
+
+-- The open lockout tooltip redraws when the server answers, without asking again.
+local rkit = rK.Widgets.Tooltip()
+local rows = renv._saved
+renv._saved = {}
+rwrite("clock.hover", "lockouts")
+rface.clockHit:GetScript("OnEnter")(rface.clockHit)
+local asked = renv._raidInfo
+renv._saved = rows
+renv.FireEvent("UPDATE_INSTANCE_INFO")
+assert(lines(rkit):find("Molten Core", 1, true) and renv._raidInfo == asked, "the open tooltip shows the server's lockouts: " .. lines(rkit))
+rface.clockHit:GetScript("OnLeave")(rface.clockHit)
+rwrite("clock.hover", "none")
+
+-- Drags: switching free move off, a restricted drop, a missing modifier API and combat each end the drag without saving.
+rwrite("column.free", true)
+renv.IsShiftKeyDown = function() return true end
+local rbtn = rbuttons.tracking
+rns.Column.Drag(rbtn, true)
+rwrite("column.free", false)
+rns.Column.Drag(rbtn, false)
+assert(not rbtn.moving and next(RS.Get("column.spots")) == nil, "switching free move off mid-drag ends the drag unsaved")
+rwrite("column.free", true)
+rns.Column.Drag(rbtn, true)
+renv.RestrictAnchoring(rbtn)
+local ok, err = pcall(rns.Column.Drag, rbtn, false)
+renv.RestrictAnchoring(rbtn, false)
+assert(ok and not rbtn.moving and next(RS.Get("column.spots")) == nil, "a restricted drop ends the drag unmeasured: " .. tostring(err))
+renv.IsShiftKeyDown = nil
+assert(pcall(rns.Column.Drag, rbtn, true) and not rbtn.moving, "a missing IsShiftKeyDown refuses the drag")
+renv.IsShiftKeyDown = function() return true end
+rns.Column.Drag(rbtn, true)
+rbuttons.calendar:GetScript("OnEnter")(rbuttons.calendar)
+local rov = rns.SecureClick.overlay
+rov:GetScript("OnDragStart")(rov)
+assert(rbtn.moving and rbuttons.calendar.moving, "the tracking and calendar drags start")
+renv.FireEvent("PLAYER_REGEN_DISABLED")
+assert(not rbtn.moving and not rbuttons.calendar.moving and next(RS.Get("column.spots")) == nil, "entering combat cancels both drags unsaved")
+renv.FireEvent("PLAYER_REGEN_ENABLED")
+rwrite("column.free", false)
+clean(renv, rK, "drags")
+
+-- Readouts: a hidden difficulty frees its corner, a missing frame rate hides its hover region, an unknown difficulty is not Normal.
+rwrite("difficulty.shown", true)
+rwrite("perf.shown", true)
+rwrite("perf.position", "TOPLEFT")
+renv._instance = { "Karazhan", "raid", 6, "25 Heroic", 25 }
+renv.FireEvent("ZONE_CHANGED_NEW_AREA")
+local below = select(5, point(rface.perf))
+renv._instance = { "Riverglades", "none", 0, "", 5 }
+renv.FireEvent("ZONE_CHANGED_NEW_AREA")
+local alone = select(5, point(rface.perf))
+rwrite("difficulty.shown", false)
+assert(alone ~= below and alone == select(5, point(rface.perf)), "outside an instance the readout takes the corner: " .. below .. " / " .. alone)
+rwrite("perf.hover", "lockouts")
+local framerate = renv.GetFramerate
+renv.GetFramerate = nil
+M.RunTickers(renv)
+assert(not rface.perf:IsShown() and not rface.perfHit:IsShown(), "without a frame rate the readout and its hover region hide")
+renv.GetFramerate = framerate
+M.RunTickers(renv)
+assert(rface.perf:IsShown() and rface.perfHit:IsShown(), "and come back with it")
+rwrite("perf.shown", false)
+local info = renv.GetDifficultyInfo
+renv.GetDifficultyInfo = nil
+renv._instance = { "Karazhan", "raid", 6, "25 Heroic", 25 }
+assert(rns.Data.Difficulty() == nil, "an unknown difficulty is not reported as normal: " .. tostring(rns.Data.Difficulty()))
+renv.GetDifficultyInfo = info
+
+-- No repeated work: a hidden difficulty writes nothing on its events, and a moved clock places the captions once per layout.
+local writes = 0
+for _, method in ipairs({ "SetText", "SetShown" }) do
+	local fn = rface.difficulty[method]
+	rface.difficulty[method] = function(self, ...) writes = writes + 1; return fn(self, ...) end
+end
+renv.FireEvent("UPDATE_INSTANCE_INFO")
+renv.FireEvent("UPDATE_INSTANCE_INFO")
+assert(writes == 0, "a hidden difficulty writes nothing on its events: " .. writes)
+local passes, inside = 0, rface.PlaceInside
+rface.PlaceInside = function(self, ...) passes = passes + 1; return inside(self, ...) end
+rwrite("clock.position", "RIGHT")
+passes = 0
+rface.layoutWidth = nil
+rface:Layout()
+assert(passes == 1, "one layout places the inside captions once: " .. passes)
+rface.PlaceInside = inside
+rwrite("clock.position", "")
+
+-- The drawer list: the Options preview shows sample rows, every row stays on screen, and the names follow Readable text.
+rwrite("drawer.behaviour", "open")
+rwrite("drawer.list", true)
+local rpreview = rns.Preview.Build(renv.UIParent)
+local pdrawer = rpreview.column.drawer
+assert(pdrawer.open and pdrawer:Count() > 0 and pdrawer.labels[pdrawer.order[1]]:IsShown(), "the preview shows the open list with sample rows")
+assert(rdrawer:Count() == 2 and rdrawer.open, "and the live drawer keeps only the live addons")
+for i = 1, 40 do renv._lib:Add("TestAddon" .. i) end
+rdrawer:Collect()
+local rpanel = rdrawer.panel
+assert(rpanel:GetBottom() >= renv.UIParent:GetBottom() - 0.01, "a long list stays on screen: bottom " .. rpanel:GetBottom())
+for i, button in ipairs(rdrawer.order) do
+	local nextButton = rdrawer.order[i + 1]
+	if nextButton then apart(rdrawer.labels[button], nextButton, "a name and the next button") end
+end
+rwrite("drawer.list", false)
+local hides = 0
+for _, label in pairs(rdrawer.labels) do
+	local fn = label.SetShown
+	label.SetShown = function(self, ...) hides = hides + 1; return fn(self, ...) end
+end
+rdrawer:Layout()
+assert(hides == 0, "a grid layout leaves the hidden names alone: " .. hides)
+rwrite("drawer.list", true)
+rK.Profiles.Readable("Readable")
+rdrawer:Layout()
+local label = rdrawer.labels[renv._lib.objects.BugSack]
+local body = rK.Widgets.Text(rface.mapArea, "body", "text", "OVERLAY")
+assert(select(2, label:GetFont()) == select(2, body:GetFont()), "drawer names use the body text size: " .. select(2, label:GetFont()) .. " vs " .. select(2, body:GetFont()))
+clean(renv, rK, "review")
 print("minimap parity r1 ok")
