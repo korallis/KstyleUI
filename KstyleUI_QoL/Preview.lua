@@ -34,15 +34,15 @@ function ns.Preview(parent)
 		ns.PaintRing(self.ring, not ns.Get("cursorRing") and OFF or nil)
 		local cw, ch = self.cross:GetSize()
 		local rw = self.ring:GetWidth()
-		Widgets.Size(self, width + 4 * GAP + cw + rw, math.max(height, ch, rw))
+		Widgets.Size(self, width + 6 * GAP + cw + rw, math.max(height, ch, rw))
 		local y = 0
 		for _, text in ipairs(self.lines) do
 			text:ClearAllPoints()
-			Widgets.Point(text, "TOP", self, "TOPLEFT", width / 2, -y)
+			Widgets.Point(text, "TOP", self, "TOPLEFT", GAP + width / 2, -y)
 			y = y + Widgets.TextHeight(text, Widgets.LineHeight(text)) + GAP
 		end
 		self.cross:ClearAllPoints()
-		Widgets.Point(self.cross, "LEFT", self, "LEFT", width + 2 * GAP, 0)
+		Widgets.Point(self.cross, "LEFT", self, "LEFT", width + 3 * GAP, 0)
 		self.ring:ClearAllPoints()
 		Widgets.Point(self.ring, "LEFT", self.cross, "RIGHT", 2 * GAP, 0)
 	end
