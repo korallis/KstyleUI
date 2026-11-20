@@ -479,7 +479,6 @@ local function PlaceLine(view, s)
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
 		if view.topBar or view.slab then
-			local position = positions[item.id]
 			local zone, offset = position[1], position[2]
 			local anchor = zone == "centre" and "TOP" or zone == "left" and "TOPLEFT" or "TOPRIGHT"
 			local start = zone == "centre" and -widths[zone] / 2 or zone == "left" and edge or -edge - widths[zone] - (view.slab and 2 or 0)
