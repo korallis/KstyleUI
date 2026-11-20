@@ -38,7 +38,7 @@ Settings.defaults = {
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
 		portrait = false, roleRing = false, classLine = false, power = true, powerHeight = 3,
-		textLayout = "ABOVE", nameSize = 13, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 13, nameChars = 0, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -50,7 +50,7 @@ Settings.defaults = {
 		groupGrowth = "RIGHT", groupSpacing = 13, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
 		roleRing = false, classLine = false, power = true, powerHeight = 2,
-		textLayout = "ABOVE", nameSize = 12, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 12, nameChars = 0, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
 		iconSize = 10,
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -66,7 +66,7 @@ Settings.defaults = {
 	icons = { role = true, roleShapes = true, statuses = true, afk = true, resurrection = true, summon = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true, shapes = true },
 	auras = {
-		enabled = true, onlyMine = false, sort = "", typeLetters = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true },
@@ -252,6 +252,7 @@ function Settings.Schema(includeText)
 		schema[#schema].showWhen = Is(p .. "power", true)
 		add(Dropdown(p .. "textLayout", L["Name position"], L["Puts the name above the health bar or on it."], TEXT_LAYOUT))
 		add(Slider(p .. "nameSize", L["Name size"], L["The size of the name text."], 6, 24, 1))
+		add(Slider(p .. "nameChars", L["Name letters"], L["Shortens names to this many letters. 0 keeps whole names."], 0, 20, 1))
 		add(Dropdown(p .. "healthText", L["Health text"], L["What the health text shows."], HEALTH_TEXT))
 		add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 		schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
@@ -330,6 +331,8 @@ function Settings.Schema(includeText)
 		add({ type = "header", label = L["Debuffs"] })
 		add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
+		add(Toggle("auras.stacks", L["Stacks"], L["Shows how many times a debuff has stacked."]))
+		add(Toggle("auras.timers", L["Time left"], L["Shows the time left on each aura."]))
 		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
 		K.Options.AuraFilterRows(schema, "auras", { dispellable = false, disableWhen = Is("auras.enabled", false) })
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))

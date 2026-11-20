@@ -102,6 +102,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthText = full and "both" or "percent",
 		healPrediction = true,
 		absorbs = true,
+		healAbsorbs = false,
+		levelDifficulty = false,
 		power = full,
 		powerHeight = full and 7 or 3,
 		powerTexture = BAR_TEXTURE,
@@ -864,6 +866,8 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "level", label = L["Level"],
 		help = L["Shows the unit's level in a badge on the portrait, or after the name."],
 	})
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "levelDifficulty", label = L["Level difficulty colour"],
+		help = L["Colours an enemy's level number by how hard it is for you."] }, function(s) return s.level ~= false end)
 	schema[#schema + 1] = Header(kind, L["health bar"])
 	BarRows(schema, kind, "health")
 	if kind == "target" then
@@ -882,6 +886,8 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "absorbs", label = L["Absorbs"],
 		help = L["Shows absorb shields when incoming heals are enabled."] }, function(s) return s.healPrediction ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "healAbsorbs", label = L["Heal absorbs"],
+		help = L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."] }, function(s) return s.healPrediction ~= false end)
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],

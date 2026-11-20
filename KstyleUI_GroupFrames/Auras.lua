@@ -329,7 +329,7 @@ local function StyleIcon(button)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and (not mark or p.styledPriority == MarkLift(p.group)) then
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -343,7 +343,20 @@ local function StyleIcon(button)
 		p.styledSize, p.styledBorder = size, border
 	end
 	p.chrome:SetRimAccent(ar, ag, ab)
-	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
+	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+	Style.SetFont(p.count, text.healthFont, textSize, "OUTLINE")
+	p.count:SetAlpha(a.stacks and 1 or 0)
+	if a.timers and not p.timer and type(button.SetDurationText) == "function" then
+		p.timerFrame = CreateFrame("Frame", nil, p.textFrame)
+		p.timerFrame:SetAllPoints(p.skin)
+		p.timer = Widgets.Fitted(Widgets.FontString(p.timerFrame, "OVERLAY"))
+		p.timer:SetPoint("CENTER", p.skin, "CENTER")
+		button:SetDurationText(p.timer)
+	end
+	if p.timer then
+		Style.SetFont(p.timer, text.healthFont, textSize, "OUTLINE")
+		p.timerFrame:SetShown(a.timers)
+	end
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if p.mark and not p.size then
 		if p.buff or not f.debuffChip then
@@ -354,7 +367,7 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
-	p.styledFont, p.styledSwipe = text.healthFont, a.swipe
+	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers = text.healthFont, a.swipe, a.stacks, a.timers
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -398,12 +411,12 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
 	if not changed then
-		for i = 1, 21 do
+		for i = 1, 23 do
 			if old[i] ~= inputs[i] then changed = true; break end
 		end
 	end

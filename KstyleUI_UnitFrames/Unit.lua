@@ -153,15 +153,21 @@ local function SetValue(bar, value, instant)
 end
 
 function Unit.Prediction(view, unit)
+	local eaten = view.healAbsorb
+	if eaten and not (view.s.healPrediction and view.s.healAbsorbs) then eaten:Hide() end
 	if not view.s.healPrediction then
 		view.incoming:Hide()
 		view.absorb:Hide()
 		return
 	end
+	if view.s.healAbsorbs and not eaten then
+		eaten, view.predictionRange = ns.Style.HealAbsorb(view), false
+	end
 	if not view.predictionRange then
 		local max = UnitHealthMax(unit)
 		view.incoming:SetBarRange(0, max)
 		view.absorb:SetBarRange(0, max)
+		if eaten then eaten:SetBarRange(0, max) end
 		view.predictionRange = true
 	end
 	local calc = view.calculator
@@ -175,6 +181,12 @@ function Unit.Prediction(view, unit)
 		view.incoming:SetBarValue((calc:GetIncomingHeals()))
 		view.absorb:SetBarValue((calc:GetDamageAbsorbs()))
 		view.absorb:SetShown(view.s.absorbs ~= false)
+		if view.s.healAbsorbs and calc.GetHealAbsorbs then
+			local modes = Enum and Enum.UnitHealAbsorbClampMode
+			if modes and calc.SetHealAbsorbClampMode then calc:SetHealAbsorbClampMode(modes.CurrentHealth) end
+			eaten:SetBarValue((calc:GetHealAbsorbs()))
+			eaten:Show()
+		end
 	elseif UnitGetIncomingHeals then
 		LogOnce("prediction", "heal prediction: UnitGetIncomingHeals, no absorbs")
 		local heals = UnitGetIncomingHeals(unit)
@@ -471,7 +483,7 @@ function Unit.SetName(view, name)
 	ns.Style.Baseline(view)
 end
 
-local function LevelColor(unit)
+local function DifficultyColor(unit)
 	if GetCreatureDifficultyColor and UnitCanAttack and UnitCanAttack("player", unit) then
 		local level = UnitLevel(unit)
 		if not IsSecret(level) and type(level) == "number" and level > 0 then
@@ -481,6 +493,12 @@ local function LevelColor(unit)
 			end
 		end
 	end
+end
+Unit.DifficultyColor = DifficultyColor
+
+local function LevelColor(unit)
+	local r, g, b = DifficultyColor(unit)
+	if r then return r, g, b end
 	return Tokens.Color("textEmphasis")
 end
 
@@ -635,7 +653,7 @@ function Unit.Level(view, unit)
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then
 			text:SetText(UnitLevel(unit))
-			text:SetTextColor(Tokens.Color("textEmphasis"))
+			if view.s.levelDifficulty then text:SetTextColor(LevelColor(unit)) else text:SetTextColor(Tokens.Color("textEmphasis")) end
 		end
 		return
 	end

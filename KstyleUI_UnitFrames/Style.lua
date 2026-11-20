@@ -16,6 +16,7 @@ local BADGE_EDGE_ALPHA = 0.6
 local PORTRAIT_BACK_ALPHA = 1
 local INCOMING_ALPHA = 0.45
 local ABSORB_ALPHA = 0.35
+local HEAL_ABSORB_ALPHA = 0.7
 local IMAGE_SUBLEVEL = -4
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local TRACK = "buttonFill"
@@ -288,6 +289,26 @@ local function PlacePrediction(view, bar, after)
 	bar:Restyle()
 end
 
+local function PlaceHealAbsorb(view)
+	local bar = view.healAbsorb
+	if not bar then return end
+	local o = ORIENTATION[view.orientation or "RIGHT"]
+	bar.opts.width, bar.opts.height = view.health.opts.width, view.health.opts.height
+	bar:SetOrientation(o[1])
+	bar:SetReverseFill(not o[2])
+	bar:ClearAllPoints()
+	bar:SetPoint(o[4], view.health:GetStatusBarTexture(), o[4])
+	bar:Restyle()
+	bar:SetBarTexture(Settings.Value(view.kind, "healthTexture"))
+	bar:SetBarColor(Widgets.Rgba("hostile", HEAL_ABSORB_ALPHA))
+end
+
+function Style.HealAbsorb(view)
+	view.healAbsorb = Prediction(view.health, "hostile")
+	PlaceHealAbsorb(view)
+	return view.healAbsorb
+end
+
 local function PlaceGem(view, gem, rect)
 	if not rect then
 		gem:Hide()
@@ -500,6 +521,7 @@ local function LayoutLumen(view, g, s)
 	view.trackLine:Hide()
 	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
 	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
+	PlaceHealAbsorb(view)
 	view.badge:Hide()
 	if g.portrait then
 		local p = g.portrait
@@ -608,6 +630,7 @@ function Style.Layout(view, s, width, height)
 	end
 	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
 	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
+	PlaceHealAbsorb(view)
 	if g.portrait then
 		Place(view, view.portraitFrame, g.portrait)
 		view.portraitChrome:SetChamfer(PORTRAIT_CHAMFER * g.portrait.w)
@@ -700,6 +723,7 @@ function Style.Restyle(view, kind)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
 	view.incoming:SetBarColor(Widgets.Rgba("friendly", INCOMING_ALPHA))
 	view.absorb:SetBarColor(Widgets.Rgba("white", ABSORB_ALPHA))
+	PlaceHealAbsorb(view)
 	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
 	Style.Accent(view)
 	ns.Slab.Restyle(view, form)

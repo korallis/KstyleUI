@@ -225,6 +225,10 @@ local function Run(plate, channel, startMs, endMs)
 	plate.castFallback = true
 end
 
+local function Recolor(plate)
+	if plate.unit and Settings.Get("types.casting") then plate:UpdateColor() end
+end
+
 local function Shows(plate)
 	return Settings.Get("cast.enabled") and not plate.nameOnly and plate.unit ~= nil
 end
@@ -257,6 +261,7 @@ function Cast.Start(plate, channel, update)
 	plate.name:SetAlpha(Settings.Get("cast.hideUnitName") and 0 or 1)
 	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
 	if not (update and Settings.Get("cast.outcomes")) then plate.castBar:PlaySheen(false) end
+	Recolor(plate)
 end
 
 local function RestoreName(plate)
@@ -272,6 +277,7 @@ function Cast.Stop(plate, interrupted, failed)
 	bar:SetScript("OnUpdate", nil)
 	plate.casting, plate.castDuration, plate.castFallback = false, nil, false
 	RestoreName(plate)
+	Recolor(plate)
 	if interrupted then
 		plate.castInterrupted = true
 		bar:SetMinMaxValues(0, 1)
@@ -305,6 +311,7 @@ function Cast.Hide(plate)
 	plate.castBar:SetScript("OnUpdate", nil)
 	plate.cast:Hide()
 	RestoreName(plate)
+	Recolor(plate)
 end
 
 function Cast.SetInterruptible(plate, interruptible)

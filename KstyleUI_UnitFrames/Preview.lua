@@ -134,6 +134,14 @@ local function Paint(view, kind)
 		view.incoming:Hide()
 	end
 	view.absorb:Hide()
+	if s.healPrediction and s.healAbsorbs then
+		local eaten = view.healAbsorb or ns.Style.HealAbsorb(view)
+		eaten:SetBarRange(0, sample.healthMax)
+		eaten:SetValue(sample.healthMax * INCOMING_SHARE)
+		eaten:Show()
+	elseif view.healAbsorb then
+		view.healAbsorb:Hide()
+	end
 	ns.Unit.SetName(view, sample.name)
 	view.levelText:SetText(sample.level > 0 and sample.level or "??")
 	view.levelText:SetTextColor(Tokens.Color("textEmphasis"))

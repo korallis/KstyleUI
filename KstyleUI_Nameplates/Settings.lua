@@ -35,6 +35,7 @@ Settings.defaults = {
 	types = {
 		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
+		casting = false, castingColor = Color("gilt"),
 	},
 	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	level = { show = true, size = 13, outline = "NONE", font = "" },
@@ -254,6 +255,15 @@ function Settings.Schema()
 			type = "color", key = "types.casterColor", label = L["Caster colour"],
 			help = L["The bar colour of casters."],
 			disableWhen = Off("types.caster"),
+		},
+		{
+			type = "toggle", key = "types.casting", label = L["Casting enemies"],
+			help = L["Colours enemies while they cast. Threat shown on the health bar still wins."],
+		},
+		{
+			type = "color", key = "types.castingColor", label = L["Casting colour"],
+			help = L["The bar colour of enemies while they cast."],
+			disableWhen = Off("types.casting"),
 		},
 	})
 
