@@ -384,6 +384,7 @@ local function Inline(out, bar, tall, timer, size, em)
 end
 
 function CastBars.Geometry(width, height, icon, timer, size, em, right)
+	em = em or TIMER_COLUMN
 	local out = { tall = height > width }
 	local thick = out.tall and width or height
 	local offset = 0
