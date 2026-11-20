@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text, the tooltip scale, whether a game call answers a plain true or a modifier key is held, the growth corner and the unit level line.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text, the tooltip scale, whether a game call answers a plain true or a plain false or a modifier key is held, the growth corner and the unit level line, found by the game's level template anywhere in it.
 local _, ns = ...
 
 local Logic = {}
@@ -35,6 +35,11 @@ function Logic.Yes(fn, ...)
 	return not IsSecret(v) and v == true
 end
 
+function Logic.No(fn)
+	local v = type(fn) ~= "function" or fn()
+	return not IsSecret(v) and v == false
+end
+
 local KEYS = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
 
 function Logic.Held(key)
@@ -50,22 +55,32 @@ local function Hex(c, text)
 	return format("|cff%02x%02x%02x%s|r", floor(c.r * 255 + 0.5), floor(c.g * 255 + 0.5), floor(c.b * 255 + 0.5), text)
 end
 
-function Logic.LevelPrefix(template)
-	local prefix = type(template) == "string" and template:match("^(.-)%%[sd]")
-	return prefix ~= "" and prefix or nil
+local OPEN, CLOSE = "\239\188\136", "\239\188\137"
+
+local function Escape(text)
+	return (text:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"))
 end
 
-function Logic.LevelLine(text, prefix, compact, suffix, levelColor, className, classColor)
-	if IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) or not prefix or text:sub(1, #prefix) ~= prefix then
+function Logic.LevelLine(text, template, compact, player, levelColor, className, classColor)
+	local before, after
+	if type(template) == "string" then before, after = template:match("^(.-)%%[sd](.*)$") end
+	if IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) or not before or not (before .. after):find("%S") then
 		return nil
 	end
-	local level, rest = text:sub(#prefix + 1):match("^(%S+)(.*)$")
-	if not level then return nil end
-	local s, e
-	if classColor and type(className) == "string" and className ~= "" then s, e = rest:find(className, 1, true) end
-	if s then rest = rest:sub(1, s - 1) .. Hex(classColor, className) .. rest:sub(e + 1) end
-	if compact and type(suffix) == "string" and suffix ~= "" and rest:sub(-#suffix) == suffix then rest = rest:sub(1, -#suffix - 1) end
-	return (compact and "" or prefix) .. (levelColor and Hex(levelColor, level) or level) .. rest
+	local _, _, s, ls, le, e = text:lower():find("()" .. Escape(before:lower()) .. "()[%d%?]+()" .. Escape(after:lower()) .. "()")
+	if not s then return nil end
+	local level, tail = text:sub(ls, le - 1), text:sub(e)
+	level = levelColor and Hex(levelColor, level) or level
+	if compact and type(player) == "string" and player ~= "" then
+		for _, tag in ipairs({ " (" .. player .. ")", OPEN .. player .. CLOSE }) do
+			if tail:lower():sub(-#tag) == tag:lower() then tail = tail:sub(1, -#tag - 1) end
+		end
+	end
+	local out = text:sub(1, s - 1) .. (compact and level or text:sub(s, ls - 1) .. level .. text:sub(le, e - 1)) .. tail
+	local i, j
+	if classColor and type(className) == "string" and className ~= "" then i, j = out:find(className, 1, true) end
+	if i then out = out:sub(1, i - 1) .. Hex(classColor, className) .. out:sub(j + 1) end
+	return out
 end
 
 function Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)
@@ -117,8 +132,7 @@ function Logic.Soften(r, g, b, palette)
 end
 
 local function Pattern(template)
-	local escaped = template:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
-	return "^" .. (escaped:gsub("%%%%d", "%%d+"))
+	return "^" .. (Escape(template):gsub("%%%%d", "%%d+"))
 end
 
 local footerPatterns

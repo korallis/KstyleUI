@@ -1,4 +1,4 @@
--- Content.lua: the tooltip data post-call: line colours, the heading rule, item quality edges, unit lines, the unit-only health bar, IDs and icons.
+-- Content.lua: the tooltip data post-call: line colours, the heading rule, item quality edges, unit lines, the unit-only health bar, IDs and icons, and the rebuild of an open tooltip when a setting or a held ID or stack key changes.
 local _, ns = ...
 
 local K = KstyleUI
@@ -42,12 +42,10 @@ local function ItemQuality(data)
 	return Call(C_Item, "GetItemQualityByID", info)
 end
 
-local function AddID(tooltip, label, id)
-	Units.Pair(tooltip, label, Logic.IDText(id))
-end
+local AddID = Units.AddID
 
-local function Extra(key)
-	local hold = Settings.Get(key) and Settings.Get("extraKey")
+local function Extra(key, hold)
+	hold = Settings.Get(key) and Settings.Get(hold)
 	return hold == "none" or Logic.Held(hold)
 end
 
@@ -73,14 +71,14 @@ local function Item(tooltip, data)
 		return
 	end
 	local icon = Call(C_Item, "GetItemIconByID", id)
-	if Extra("itemID") then
+	if Extra("itemID", "idKey") then
 		AddID(tooltip, L["Item ID"], id)
 	end
-	if Extra("maxStack") then
+	if Extra("maxStack", "stackKey") then
 		local stack = Call(C_Item, "GetItemMaxStackSizeByID", id)
 		if Logic.IsNumber(stack) and stack > 1 then AddID(tooltip, L["Maximum stack"], stack) end
 	end
-	if Extra("iconID") then
+	if Extra("iconID", "idKey") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
 	Style.Icon(tooltip, icon, quality)
@@ -93,10 +91,10 @@ local function Spell(tooltip, data)
 		return
 	end
 	local icon = Call(C_Spell, "GetSpellTexture", id)
-	if Extra("spellID") then
+	if Extra("spellID", "idKey") then
 		AddID(tooltip, L["Spell ID"], id)
 	end
-	if Extra("iconID") then
+	if Extra("iconID", "idKey") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
 	Style.Icon(tooltip, icon, nil, true)
@@ -128,6 +126,22 @@ end
 
 local function OnTooltip(tooltip, data)
 	K.Call(Decorate, tooltip, data)
+end
+
+function Content.Refresh()
+	local tip = GameTooltip
+	if type(tip) == "table" and type(tip.RefreshData) == "function" and Logic.No(InCombatLockdown) and Logic.Yes(tip.IsShown, tip) then
+		tip:RefreshData()
+	end
+end
+
+function Content.Watch()
+	if Settings.Get("idKey") ~= "none" or Settings.Get("stackKey") ~= "none" then
+		K.Events.Register(ns.MODULE, "MODIFIER_STATE_CHANGED", Content.Refresh)
+	else
+		K.Events.Unregister(ns.MODULE, "MODIFIER_STATE_CHANGED")
+	end
+	Content.Refresh()
 end
 
 function Content.IsRegistered()

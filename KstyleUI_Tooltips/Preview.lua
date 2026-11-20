@@ -22,7 +22,6 @@ function Preview.Build(...)
 	local BAR_EDGE = 8
 	local FRIENDLY = 5
 	local PAIR_MIN_SIZE = 8
-	local SAMPLE_LEVEL = 60
 	local SAMPLE_BUFFS = { 136076, 132212, 132328, 135987, 135906 }
 
 	local ITEM = {
@@ -215,14 +214,11 @@ function Preview.Build(...)
 			local away = Settings.Get("awayTag") and type(CHAT_FLAG_AFK) == "string"
 			glass.rows[1].left:SetText(away and L["Valerin"] .. " " .. CHAT_FLAG_AFK or L["Valerin"])
 			glass.rows[2].left:SetText(Settings.Get("guildRank") and Logic.GuildText(L["Kstyle"], L["Officer"]) or Logic.GuildText(L["Kstyle"]))
-			local level, compact = L["Level 60 Hunter (Player)"], Settings.Get("compactLevel")
-			local byLevel = Settings.Get("levelColor") and type(GetCreatureDifficultyColor) == "function" and GetCreatureDifficultyColor(SAMPLE_LEVEL) or nil
+			local level = L["Level 60 Hunter (Player)"]
+			local byLevel = Settings.Get("levelColor") and type(GetCreatureDifficultyColor) == "function" and GetCreatureDifficultyColor(60) or nil
 			local r, g, b = Theme.ClassColor("HUNTER")
 			local byClass = Settings.Get("classLine") and r and { r = r, g = g, b = b } or nil
-			if compact or byLevel or byClass then
-				local suffix = type(PLAYER) == "string" and " (" .. PLAYER .. ")" or nil
-				level = Logic.LevelLine(level, Logic.LevelPrefix(TOOLTIP_UNIT_LEVEL), compact, suffix, byLevel, L["Hunter"], byClass) or level
-			end
+			level = Logic.LevelLine(level, TOOLTIP_UNIT_LEVEL, Settings.Get("compactLevel"), PLAYER, byLevel, L["Hunter"], byClass) or level
 			glass.rows[3].left:SetText(level)
 		end
 		Widgets.Size(glass, width, y - gap + pad + (reserve.bottom or 0))
@@ -320,6 +316,12 @@ function Preview.Build(...)
 			end
 			icon:SetShown(on)
 		end
+		local side = Settings.Get("buffs.position")
+		if not on or side == "BOTTOM" then
+			return 0
+		end
+		local rows = math.ceil(#SAMPLE_BUFFS / Settings.Get("buffs.perRow"))
+		return math.max(0, Settings.Get("buffs.y") + (side == "TOP" and rows * (Settings.Get("buffs.size") + Tokens.Size("gapSmall")) or 0))
 	end
 
 	local function Refresh(frame)
@@ -342,9 +344,9 @@ function Preview.Build(...)
 		Edge(frame.unit, Settings.Get("unitEdge"), cr, cg, cb)
 		LayoutIcon(frame)
 		LayoutBar(frame)
-		LayoutBuffs(frame)
+		local rise = LayoutBuffs(frame)
 		frame.unit:ClearAllPoints()
-		Widgets.Point(frame.unit, "TOPLEFT", frame.item, "BOTTOMLEFT", 0, -Widgets.Snap(frame.unit, SAMPLE_GAP))
+		Widgets.Point(frame.unit, "TOPLEFT", frame.item, "BOTTOMLEFT", 0, -Widgets.Snap(frame.unit, SAMPLE_GAP + rise))
 	end
 
 	build = function(parent)

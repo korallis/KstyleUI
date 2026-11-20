@@ -5,7 +5,7 @@ local K = KstyleUI
 local Settings, Style, Anchor, Content, Health, Units = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Health, ns.Units
 
 local MODULE = ns.MODULE
-local UBER, DETAILED = "UberTooltips", "TooltipsDetailed"
+local UBER, DETAILED, SHARED = "UberTooltips", "TooltipsDetailed", "*"
 
 local Detailed
 
@@ -16,7 +16,9 @@ end
 
 Detailed = function()
 	local CVars, account = K.CVars, K.Store.Account()
-	local want, memory = ns.active and Settings.Get("detailed") or "game", account.tooltipsDetailed
+	local all = account.tooltipsDetailed
+	local shared = type(all) == "table" and type(all[SHARED]) == "table" and all[SHARED] or nil
+	local want, memory = ns.active and Settings.Get("detailed") or "game", shared and shared[UBER]
 	if want == "game" and type(memory) ~= "table" then
 		return
 	end
@@ -30,10 +32,10 @@ Detailed = function()
 		return
 	end
 	if want == "game" then
-		if current == memory.written and type(memory.original) == "string" then
-			CVars.Set(UBER, memory.original)
+		if current ~= memory.written or type(memory.original) ~= "string"
+			or CVars.Set(UBER, memory.original) and CVars.Get(UBER) == memory.original then
+			shared[UBER] = nil
 		end
-		account.tooltipsDetailed = nil
 		return
 	end
 	memory = type(memory) == "table" and memory or {}
@@ -43,7 +45,7 @@ Detailed = function()
 	local value = want == "on" and "1" or "0"
 	if current == value or CVars.Set(UBER, value) then
 		memory.written = value
-		account.tooltipsDetailed = memory
+		account.tooltipsDetailed = { [SHARED] = { [UBER] = memory } }
 	end
 end
 
@@ -68,6 +70,7 @@ local function ApplyAll()
 		Health.Restyle()
 		Anchor.Watch()
 		Detailed()
+		Content.Watch()
 	end
 end
 

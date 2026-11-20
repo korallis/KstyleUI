@@ -93,7 +93,7 @@ end
 local store = K.Store.Module("Tooltips")
 assert(store.iconSize == 28 and Get("anchor") == "fixed" and Get("itemID"), "the old profile's choices survive")
 for key, value in pairs({ cursorSide = "ANCHOR_CURSOR_RIGHT", growth = "auto", itemLevel = false, levelColor = false, classLine = false,
-	compactLevel = false, factionColor = false, ["buffs.shown"] = false, extraKey = "none", detailed = "game" }) do
+	compactLevel = false, factionColor = false, ["buffs.shown"] = false, idKey = "none", stackKey = "none", detailed = "game" }) do
 	assert(Get(key) == value, key .. " defaults to " .. tostring(value))
 end
 s.auras = { { icon = 136076 }, { icon = 132212 }, { icon = 132328 } }
@@ -158,8 +158,8 @@ s.player = true
 write("compactLevel", true)
 write("levelColor", true)
 assert(hover()[2][1] == "|cffff8040" .. "60|r " .. hex .. "Hunter|r", "all three combine")
-assert(ns.Logic.LevelLine(env.Secret("Level 60 Hunter (Player)"), "Level ", true) == nil, "a secret level line is left alone")
-assert(ns.Logic.LevelLine("Level |cffffffff60|r", "Level ", true) == nil, "so is one Blizzard already coloured")
+assert(ns.Logic.LevelLine(env.Secret("Level 60 Hunter (Player)"), "Level %s", true) == nil, "a secret level line is left alone")
+assert(ns.Logic.LevelLine("Level |cffffffff60|r", "Level %s", true) == nil, "so is one Blizzard already coloured")
 for _, key in ipairs({ "compactLevel", "levelColor", "classLine" }) do write(key, false) end
 assert(hover()[2][1] == "Level 60 Hunter (Player)", "off restores Blizzard's line")
 
@@ -217,16 +217,18 @@ assert(#buffs() == 0, "off hides the icons at once")
 env.FireEvent("UNIT_AURA", "mouseover")
 assert(#buffs() == 0, "and stops following auras")
 
--- Extra lines key: ID and stack lines only while the key is held.
+-- ID and stack keys: those lines show only while their key is held.
 write("maxStack", true)
-write("extraKey", "SHIFT")
+write("idKey", "SHIFT")
+write("stackKey", "SHIFT")
 lines = item()
 assert(not find(lines, K.L["Item ID"]) and not find(lines, K.L["Maximum stack"]), "without Shift the extra lines stay hidden")
 env._modifiers.shift = true
 lines = item()
 assert(find(lines, K.L["Item ID"]) == "19019" and find(lines, K.L["Maximum stack"]) == "20", "holding Shift shows them")
 env._modifiers.shift = false
-write("extraKey", "none")
+write("idKey", "none")
+write("stackKey", "none")
 assert(find(item(), K.L["Item ID"]) == "19019", "no key shows them always")
 
 -- Position: the cursor side and the anchor's growth.
@@ -248,9 +250,9 @@ assert(tip:GetPoint(1) == "BOTTOMRIGHT", "Automatic restores it")
 
 -- Detailed tooltips: written on choice, restored to the player's value on Game setting and on Disable.
 write("detailed", "off")
-assert(env._cvars.UberTooltips == "0" and K.Store.Account().tooltipsDetailed.original == "1", "Off writes the CVar and remembers the player's value")
+assert(env._cvars.UberTooltips == "0" and K.Store.Account().tooltipsDetailed["*"].UberTooltips.original == "1", "Off writes the CVar and remembers the player's value")
 write("detailed", "game")
-assert(env._cvars.UberTooltips == "1" and K.Store.Account().tooltipsDetailed == nil, "Game setting puts it back")
+assert(env._cvars.UberTooltips == "1" and next(K.Store.Account().tooltipsDetailed["*"]) == nil, "Game setting puts it back")
 write("detailed", "off")
 env._cvars.UberTooltips = "1"
 write("detailed", "game")
@@ -313,8 +315,8 @@ env.FireEvent("INSPECT_READY", "Player-1-22")
 s.now, s.ilvl = 1400, 81.2
 player("Player-1-22")
 env.FireEvent("INSPECT_READY", "Player-1-22")
-local level, count = ilvl()
-assert(level == "81" and count == 1, "a fresher answer replaces the level on the open tooltip: " .. tostring(level) .. " x" .. count)
+local level, times = ilvl()
+assert(level == "81" and times == 1, "a fresher answer replaces the level on the open tooltip: " .. tostring(level) .. " x" .. times)
 s.now = 1410
 player("Player-1-23")
 K.Modules.Disable("Tooltips")
@@ -332,7 +334,7 @@ local lockdown, aurasAt = env.InCombatLockdown, env.C_UnitAuras.GetAuraDataByInd
 local reads = 0
 env.C_UnitAuras.GetAuraDataByIndex = function(...) reads = reads + 1; return aurasAt(...) end
 write("buffs.shown", true)
-env.InCombatLockdown, s.now, asked = nil, 2100, #s.asks
+env.InCombatLockdown, s.now, asked, reads = nil, 2100, #s.asks, 0
 player("Player-1-25")
 assert(#s.asks == asked and reads == 0, "without InCombatLockdown nothing is inspected and no aura is read")
 env.InCombatLockdown = lockdown
@@ -345,9 +347,9 @@ env.C_UnitAuras.GetAuraDataByIndex = aurasAt
 write("itemLevel", false)
 
 local isUnit = env.UnitIsUnit
-env.UnitIsUnit = function(a, b)
-	assert(not env.issecretvalue(a) and not env.issecretvalue(b), "a secret unit token reached UnitIsUnit")
-	return isUnit(a, b)
+env.UnitIsUnit = function(one, two)
+	assert(not env.issecretvalue(one) and not env.issecretvalue(two), "a secret unit token reached UnitIsUnit")
+	return isUnit(one, two)
 end
 for key, value in pairs({ ["buffs.position"] = "BOTTOM", ["buffs.size"] = 20, ["buffs.perRow"] = 8 }) do write(key, value) end
 hover()

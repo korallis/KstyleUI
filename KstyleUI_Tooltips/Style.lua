@@ -501,11 +501,7 @@ function Style.PlaceIcon(icon, panel, size, point, relative, x, y)
 	Widgets.Size(icon, size, size)
 	icon:ClearAllPoints()
 	local inset = Widgets.Snap(icon, ICON_INSET)
-	if point then
-		icon:SetPoint(point, panel, relative, Widgets.Snap(icon, x), Widgets.Snap(icon, y))
-	else
-		icon:SetPoint("TOPLEFT", panel, "TOPLEFT", inset, -inset)
-	end
+	icon:SetPoint(point or "TOPLEFT", panel, relative or "TOPLEFT", point and Widgets.Snap(icon, x) or inset, point and Widgets.Snap(icon, y) or -inset)
 	local border = Widgets.Border(icon) * BORDER_LINES
 	icon.texture:ClearAllPoints()
 	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", border, -border)
