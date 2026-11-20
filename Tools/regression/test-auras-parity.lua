@@ -10,10 +10,14 @@ local entry
 for _, candidate in ipairs(desc.buttons) do if candidate.button == button then entry = candidate end end
 assert(entry, "the real aura button has a styled entry")
 assert(not entry.swipe, "legacy profiles allocate no duration swipe")
-K.Options.Write("Auras", "buffs.swipe", true); env.RunTimers()
-assert(entry.swipe and button._aura.cooldown == entry.swipe, "the engine binds the optional swipe without reading aura durations")
-K.Options.Write("Auras", "buffs.swipe", false); env.RunTimers()
-assert(button._aura.cooldown == nil and not entry.swipe:IsShown(), "disabling clears the engine binding")
+for _, name in ipairs({ "buffs", "debuffs" }) do
+ local sample = ns.Panel.Group(name).buttons[1]
+ K.Options.Write("Auras", name .. ".swipe", true); env.RunTimers()
+ assert(sample.swipe and sample.button._aura.cooldown == sample.swipe, "the engine binds " .. name .. " swipes without reading aura durations")
+ K.Options.Write("Auras", name .. ".swipe", false); env.RunTimers()
+ assert(sample.button._aura.cooldown == nil and not sample.swipe:IsShown(), "disabling clears the engine binding")
+end
+assert(ns.Model.Timer({ timer = { x = env.Secret(5) } }).x == 0, "secret offsets use the default")
 assert(entry.count:GetAlpha() == 1 and ns.Model.IconZoom(K.Store.Module("Auras")) == 0.07, "v0.2.8 keeps stack text and the existing crop")
 local beforeTimer, beforeCount = entry.timer._points[1], entry.count._points[1]
 local x, y, cx, cy = beforeTimer[4], beforeTimer[5], beforeCount[4], beforeCount[5]
