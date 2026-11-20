@@ -25,8 +25,7 @@ local function Color(name)
 end
 
 local function TextDefaults(out)
-	out.desaturateCooldown, out.swipeOpacity, out.rarityBorder = false, 0.65, true
-	out.moverOptions = true
+	out.desaturateCooldown, out.swipeOpacity, out.rarityBorder, out.moverOptions = false, ns.Socket.SWIPE_ALPHA, true, true
 	out.placement = {}
 	for _, spec in ipairs(ns.TEXTS) do out.placement[spec.key] = { anchor = "", x = 0, y = 0 } end
 	return out
@@ -146,6 +145,7 @@ function ns.ApplyExtraBars()
 			positions["medallions:" .. element] = nil
 		elseif previous[key] then
 			settings[key] = Copy(previous[key].settings)
+			for field, value in pairs(defaults[key]) do if settings[key][field] == nil then settings[key][field] = Copy(value) end end
 			positions[element] = Copy(previous[key].position)
 			positions["medallions:" .. element] = Copy(previous[key].styled)
 		end
@@ -314,10 +314,10 @@ local function BarRows(schema, def)
 	add({ type = "toggle", key = key .. ".desaturateCooldown", label = L["Desaturate on cooldown"], help = L["Greys icons during real cooldowns, keeping the global cooldown in colour."] })
 	add({ type = "slider", key = key .. ".swipeOpacity", label = L["Swipe opacity"], help = L["Opacity of cooldown sweeps. Quiet global cooldowns stay proportionally softer."], min = 0, max = 1, step = FADE_STEP })
 	if def.kind == "action" then
-		add({ type = "toggle", key = key .. ".rarityBorder", label = L["Item rarity borders"], help = L["Colours equippable items with their quality colour."] })
+		add({ type = "toggle", key = key .. ".rarityBorder", label = L["Item quality borders"], help = L["Colours the border of buttons holding an uncommon or better item."] })
 	end
 	add({ type = "toggle", key = key .. ".moverOptions", label = L["Double-click mover for settings"], help = L["Opens this bar in Options from Layout Mode. Click selects; right-click resets."] })
-	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."] }) end
+	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."], showWhen = function(settings) return editing(settings) and settings[key].enabled and select(2, K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())) < 30 end }) end
 	for _, spec in ipairs(ns.TEXTS) do
 		if spec.key == "hotkey" or spec.key == "cooldown" or spec.key == "count" and (def.kind == "action" or def.kind == "consumable") or spec.key == "macro" and def.kind == "action" then
 			local path = key .. ".placement." .. spec.key
@@ -368,7 +368,7 @@ function ns.Schema()
 	K.Callbacks.Register("SettingChanged", "ActionBarsVisibility", ns.VisibilityChanged)
 	K.Callbacks.Register("ProfileChanged", "ActionBarsVisibility", ns.SyncVisibilities)
 	local schema = {
-		{ type = "segmented", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
+		{ type = "segmented", key = "editBar", pin = true, label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" end },
 	}
 	for _, def in ipairs(ns.BARS) do BarRows(schema, def) end

@@ -1,4 +1,4 @@
--- actionbars_parity.lua: public per-bar settings at every text anchor, with real cooldown events and equippable-item quality.
+-- actionbars_parity.lua: public per-bar settings at every text anchor, with real cooldown events and item quality.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local AB = dofile("Tools/regression/actionbars_env.lua")
@@ -14,7 +14,6 @@ return Common.Run(function()
 			e._game.slots[25] = { type = "spell", id = 200, texture = 136026, cooldown = { start = 2, finish = 22 } }
 			e._game.bindings.ACTIONBUTTON1 = { "Q" }
 			e.C_Item = e.C_Item or {}
-			e.C_Item.IsEquippableItem = function() return true end
 			e.C_Item.GetItemQualityByID = function(id) return id == 100 and 3 or 4 end
 			e.C_Item.GetItemQualityColor = function(q) return q == 3 and 0 or 0.64, q == 3 and 0.44 or 0.21, q == 3 and 0.87 or 0.93 end
 		end })

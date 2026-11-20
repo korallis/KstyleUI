@@ -6,6 +6,7 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 
 local Socket = {}
 ns.Socket = Socket
+Socket.SWIPE_ALPHA, Socket.QUIET_ALPHA = 0.65, 0.4
 
 Socket.TOKENS = {
 	gilt = "giltLit",
@@ -120,13 +121,12 @@ function Socket.Decorate(b)
 		AfterPaint(self)
 	end
 	b.StyleCooldown = function(self, real)
-		if type(self.cooldown.SetSwipeColor) ~= "function" then ns.LogOnce("swipe", "Cooldown:SetSwipeColor is missing; the existing sweep finish is kept"); return end
 		local cfg = self.textConfig
 		if cfg and self.swipeOpacity ~= cfg.swipeOpacity then self.swipeOpacity = cfg.swipeOpacity; self.cooldownStyleKey = nil end
 		cooldownStyle(self, real)
-		if cfg and cfg.swipeOpacity ~= 0.65 and type(self.cooldown.SetSwipeColor) == "function" then
+		if cfg and cfg.swipeOpacity ~= Socket.SWIPE_ALPHA then
 			local alpha = cfg.swipeOpacity
-			if self.opts.quietCooldown and not (real == nil and self.realCooldown or real) then alpha = alpha * 0.4 / 0.65 end
+			if self.opts.quietCooldown and not (real == nil and self.realCooldown or real) then alpha = alpha * Socket.QUIET_ALPHA / Socket.SWIPE_ALPHA end
 			self.cooldown:SetSwipeColor(Widgets.Rgba("black", alpha))
 		end
 	end

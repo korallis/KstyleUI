@@ -6,6 +6,7 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 
 local Button = {}
 ns.Button = Button
+local itemButtons = {}
 
 local TEXT_INSET = 2
 local AUTOCAST_SIZE = 6
@@ -273,13 +274,25 @@ function Button.UpdateRarity(b)
 		local kind, value, subType = GetActionInfo(b.slot)
 		if not IsSecret(kind) and not IsSecret(value) and not IsSecret(subType) and (kind == "item" or kind == "macro" and subType == "item") then id = value end
 	end
+	if type(id) ~= "number" then id = nil end
+	if b.rarityItemID ~= id then
+		local previous = b.rarityItemID and itemButtons[b.rarityItemID]
+		if previous then
+			previous[b] = nil
+			if not next(previous) then itemButtons[b.rarityItemID] = nil end
+		end
+		b.rarityItemID = id
+		if id then
+			itemButtons[id] = itemButtons[id] or {}
+			itemButtons[id][b] = true
+		end
+	end
 	local quality
-	if type(id) == "number" and item and type(item.IsEquippableItem) == "function" and type(item.GetItemQualityByID) == "function" then
-		local equippable = item.IsEquippableItem(id)
-		if not IsSecret(equippable) and equippable then quality = Plain(item.GetItemQualityByID(id)) end
+	if id and item and type(item.GetItemQualityByID) == "function" then
+		quality = Plain(item.GetItemQualityByID(id))
 	end
 	local r, g, bl
-	if type(quality) == "number" and item and type(item.GetItemQualityColor) == "function" then r, g, bl = item.GetItemQualityColor(quality) end
+	if type(quality) == "number" and quality >= 2 and item and type(item.GetItemQualityColor) == "function" then r, g, bl = item.GetItemQualityColor(quality) end
 	if IsSecret(r) or IsSecret(g) or IsSecret(bl) or type(r) ~= "number" or type(g) ~= "number" or type(bl) ~= "number" then quality = nil end
 	local color = b.itemColor
 	if quality then
@@ -291,6 +304,11 @@ function Button.UpdateRarity(b)
 	else b.itemColor = nil end
 	b.itemQuality = quality
 	b:Paint()
+end
+
+function Button.ItemInfoReceived(_, id)
+	local buttons = not IsSecret(id) and itemButtons[id]
+	if buttons then for b in pairs(buttons) do Button.UpdateRarity(b) end end
 end
 
 local function SpellOf(slot)
@@ -489,8 +507,7 @@ function ns.PlaceTexts(b)
 		if fs and (place.anchor ~= "" or place.x ~= 0 or place.y ~= 0 or b.placedTexts and b.placedTexts[spec.key]) then
 			local anchor = place.anchor ~= "" and place.anchor or (spec.key == "hotkey" and "TOPLEFT" or spec.key == "count" and "BOTTOMRIGHT" or spec.key == "macro" and "BOTTOM" or "CENTER")
 			local left, right, top, bottom = anchor:find("LEFT"), anchor:find("RIGHT"), anchor:find("TOP"), anchor:find("BOTTOM")
-			local inset = spec.key == "count" and not b.opts.readableCountdown and 3 or 2
-			if spec.key == "hotkey" then inset = b.opts.readableCountdown and 2 or 3 end
+			local inset = (spec.key == "count" or spec.key == "hotkey") and not b.opts.readableCountdown and 3 or 2
 			fs:ClearAllPoints()
 			fs:SetWidth(spec.key == "macro" and math.max(1, b.opts.size - 2 * TEXT_INSET) or 0)
 			fs:SetPoint(anchor, b, anchor, Widgets.Snap(fs, (left and inset or right and -inset or 0) + place.x), Widgets.Snap(fs, (top and -inset or bottom and inset or 0) + place.y))

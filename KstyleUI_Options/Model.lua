@@ -249,7 +249,7 @@ local function Copy(value)
 end
 Model.Copy = Copy
 
-local FIELDS = { "min", "max", "step", "shown", "options", "hasAlpha", "maxLetters", "scope" }
+local FIELDS = { "min", "max", "step", "shown", "options", "hasAlpha", "maxLetters", "scope", "pin" }
 
 local function OrderItems(item, row)
 	local out, options = {}, {}

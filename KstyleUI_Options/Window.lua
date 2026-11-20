@@ -98,8 +98,8 @@ local function Render(keepOffset, reselect, pageChanged)
 		end
 	end
 	local pinned
-	if not state.query and state.page == "ActionBars" then
-		for i, item in ipairs(items) do if item.key == "editBar" then pinned = i; break end end
+	if not state.query then
+		for i, item in ipairs(items) do if item.pin then pinned = i; break end end
 	end
 	local wasPinned = picker.item
 	picker.item = pinned and table.remove(items, pinned) or nil
@@ -170,7 +170,7 @@ end
 
 function Window.Jump(target)
 	Select(target.page)
-	if target.key == "editBar" and picker:IsShown() then return end
+	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return end
 	for i, item in ipairs(state.items) do
 		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then
 			content:ScrollToIndex(i, true, "TOP")

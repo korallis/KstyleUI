@@ -3,13 +3,13 @@ local AB = dofile("Tools/regression/actionbars_env.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local W = AB.W
-local quality, equippable = { [100] = 3, [200] = 4 }, true
+local quality, reads = { [100] = 3, [200] = 4 }, {}
 local env, K, ns = AB.New({ setup = function(e)
 	for i = 1, 10 do e._game.forms[i] = { texture = 132355, spellID = 2457 + i } end
 	e._game.petExists = true
 	e.C_Item = e.C_Item or {}
-	e.C_Item.IsEquippableItem = function() return equippable end
-	e.C_Item.GetItemQualityByID = function(id) return quality[id] end
+	e.C_Item.IsEquippableItem = function() error("quality borders include non-equippable items") end
+	e.C_Item.GetItemQualityByID = function(id) reads[id] = (reads[id] or 0) + 1; return quality[id] end
 	e.C_Item.GetItemQualityColor = function(q) return q / 5, 0.4, 0.8 end
 	e.C_AddOns.LoadAddOn = function(name)
 		if name == "KstyleUI_Options" and not e._addons[name] then Load(O.Files(), e) end
@@ -90,31 +90,44 @@ end
 assert(b.hotkey._points[1][1] == "TOPLEFT" and b.count._points[1][1] == "BOTTOMRIGHT" and b.countdown._points[1][1] == "CENTER", "reset restores the original text positions")
 assert(#b.macroText._points == 2, "reset restores the original macro width")
 AB.Slot(env, 1, { type = "item", id = 100, texture = 132355 })
-assert(b.itemQuality == 3, "equippable item gets its quality")
-quality[100] = 4
-env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, true)
-assert(b.itemQuality == 4, "equip event refreshes item quality")
+assert(b.itemQuality == 3, "rare items get their quality border")
+for _, q in ipairs({ 0, 1, 2, 3, 4 }) do
+	quality[100] = q
+	env.FireEvent("GET_ITEM_INFO_RECEIVED", 100, true)
+	assert(b.itemQuality == (q >= 2 and q or nil), "only uncommon and better items have quality borders")
+end
 quality[100] = nil
-env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, false)
-assert(b.itemQuality == nil, "unequip with unavailable item data clears the old border")
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 100, true)
+assert(b.itemQuality == nil, "unavailable data clears the old border")
 AB.Slot(env, 1, { type = "item", id = 200, texture = 132355 })
 assert(b.itemQuality == 4, "swapping the action updates its quality")
 Write("bar1.rarityBorder", false)
 assert(b.itemQuality == nil, "rarity toggle clears its border")
 Write("bar1.rarityBorder", true)
 assert(b.itemQuality == 4, "rarity toggle restores its border")
-equippable = false
+quality[200] = nil
 env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
-assert(b.itemQuality == nil, "non-equippable items have no quality border")
-equippable = true
-env.FireEvent("ITEM_DATA_LOAD_RESULT", 200, true)
+assert(b.itemQuality == nil, "uncached item starts with the regular border")
+quality[200] = 4
+AB.Slot(env, 2, { type = "macro", subType = "item", id = 200, texture = 132355 })
+AB.Slot(env, 3, { type = "item", id = 100, texture = 132355 })
+reads = {}
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 999, true)
+assert(next(reads) == nil, "unrelated item data does no action-button work")
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
+assert(reads[200] == 2 and reads[100] == nil, "refresh only buttons and resolved macros holding the received item")
 assert(b.itemQuality == 4, "item data arrival restores quality")
+AB.Slot(env, 2, { type = "spell", id = 200, texture = 132355 })
+reads = {}
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
+assert(reads[200] == 1, "swapping an item for a spell removes its old map entry")
+env.FireEvent("GET_ITEM_INFO_RECEIVED", env.Secret(200), true)
 local qualityColor = env.C_Item.GetItemQualityColor
 env.C_Item.GetItemQualityColor = function() error("paint must use the cached item colour") end
 b:Paint()
 env.C_Item.GetItemQualityColor = qualityColor
 quality[200] = env.Secret(4)
-env.FireEvent("ITEM_DATA_LOAD_RESULT", 200, true)
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
 assert(b.itemQuality == nil, "secret quality is never compared or used as a key")
 quality[200] = 4
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
@@ -147,19 +160,14 @@ for _, def in ipairs(choices) do
 	assert(options.Window.State().page == "ActionBars" and options.Window.Frame():IsShown(), "open the actual Options page")
 end
 local itemAPI = env.C_Item
-for _, method in ipairs({ "IsEquippableItem", "GetItemQualityByID", "GetItemQualityColor" }) do
+for _, method in ipairs({ "GetItemQualityByID", "GetItemQualityColor" }) do
 	local saved = itemAPI[method]
 	itemAPI[method] = nil
-	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, true)
+	env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
 	assert(b.itemQuality == nil, "missing " .. method .. " keeps the regular border")
 	itemAPI[method] = saved
 end
-env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, true)
-local swipe = b.cooldown.SetSwipeColor
-b.cooldown.SetSwipeColor = false
-Write("bar1.swipeOpacity", 0.3)
-b.cooldown.SetSwipeColor = swipe
-Write("bar1.swipeOpacity", 0.65)
+env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
 Write("bar1.moverOptions", false)
 assert(K.Layout.Enter())
 local plate = K.Layout.Mode.Plate("actionbars.bar1")

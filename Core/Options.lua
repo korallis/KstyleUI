@@ -22,7 +22,7 @@ local VALUE_TYPES = {
 	order = "table",
 }
 local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen = true, scope = true }
-local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
+local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true, pin = true }
 local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
 	toggle = { shown = true },

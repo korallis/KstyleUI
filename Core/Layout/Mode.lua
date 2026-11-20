@@ -526,6 +526,16 @@ local function PlateDragStart(plate)
 	Begin("move", plate.key)
 end
 
+local function PlateDoubleClick(plate, button)
+	if button ~= "LeftButton" or not Layout.IsActive() or InCombatLockdown() then return end
+	local bar = plate.key:match("^actionbars%.(.+)$") or plate.key == "consumables.bar" and "consumables"
+	local settings = bar and ns.Store.Module("ActionBars")
+	if not (settings and settings[bar] and settings[bar].moverOptions) then return end
+	ns.Options.Write("ActionBars", "editBar", bar)
+	Layout.Exit()
+	ns.Options.Open("ActionBars")
+end
+
 local function PlateWheel(plate, delta)
 	if not Layout.IsActive() or InCombatLockdown() or not IsNumber(delta) or delta == 0 then return end
 	if KeyDown(IsAltKeyDown) then
@@ -595,15 +605,7 @@ function Mode.NewPlate(key)
 	plate:EnableMouseWheel(true)
 	plate:SetScript("OnMouseDown", PlateDown)
 	plate:SetScript("OnClick", PlateClick)
-	plate:SetScript("OnDoubleClick", function(self, button)
-		if button ~= "LeftButton" or not Layout.IsActive() or InCombatLockdown() then return end
-		local bar = self.key:match("^actionbars%.(.+)$") or self.key == "consumables.bar" and "consumables"
-		local settings = bar and ns.Store.Module("ActionBars")
-		if not (settings and settings[bar] and settings[bar].moverOptions) then return end
-		ns.Options.Write("ActionBars", "editBar", bar)
-		Layout.Exit()
-		ns.Options.Open("ActionBars")
-	end)
+	plate:SetScript("OnDoubleClick", PlateDoubleClick)
 	plate:SetScript("OnDragStart", PlateDragStart)
 	plate:SetScript("OnDragStop", DragStop)
 	plate:SetScript("OnMouseWheel", PlateWheel)
