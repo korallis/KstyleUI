@@ -10,6 +10,7 @@ local env, K, ns, game = D.New({ game = { level = 11, xp = 3400, xpMax = 10000, 
 local xp, rep = ns.Bars.views.xp, ns.Bars.views.rep
 local flat = K.Tokens.Texture("barFlat")
 local DOT = " \194\183 "
+local RESTED = "rested " .. math.ceil(1400 / 10000 * 100) .. "%"
 
 local function shownTicks(view)
 	local count = 0
@@ -24,7 +25,7 @@ local function noErrors(where)
 	assert(K.ErrorCount() == 0, where .. ": KstyleUI caught an error")
 end
 
-eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. "rested 14%", "Frames keeps the level caption")
+eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. RESTED, "Frames keeps the level caption")
 local framesPath, framesSize = xp.text:GetFont()
 eq(select(1, xp.text:GetPoint(1)), "TOP", "Frames centres the caption under the bar")
 eq(shownTicks(rep), 0, "the Frames reputation bar has no ticks")
@@ -66,7 +67,7 @@ for i = 1, 9 do
 end
 eq(xp.ticks[1]:GetParent(), xp.overlay, "the ticks lie over the fill")
 
-eq(xp.text:GetText(), "34%" .. DOT .. "rested 14%", "the caption is the percent and the rested share")
+eq(xp.text:GetText(), "34%" .. DOT .. RESTED, "the caption is the percent and the rested share")
 local point, relative, relPoint, x, y = xp.text:GetPoint(1)
 eq(point, "TOPRIGHT", "the caption hangs from its right edge")
 eq(relative, xp.holder, "on the strip")
@@ -110,7 +111,7 @@ noErrors("medallions strips")
 eq(xp.holder:GetFrameStrata(), "LOW", "under Medallions the experience strip sits at the slab's strata, under the hub")
 
 K.Options.Write("HudStyle", "style", "frames")
-eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. "rested 14%", "Frames gets the level caption back")
+eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. RESTED, "Frames gets the level caption back")
 eq(select(1, xp.text:GetPoint(1)), "TOP", "centred under the bar again")
 local backPath, backSize = xp.text:GetFont()
 eq(backPath, framesPath, "the face is back")

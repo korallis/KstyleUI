@@ -136,9 +136,7 @@ local function StandingName(reaction)
 end
 
 local function Paragon(api, id, info)
-	local paragon = Call(api.IsFactionParagonForCurrentPlayer, id)
-	if IsSecret(paragon) then return Secret("paragon reputation") end
-	if paragon ~= true then
+	if Call(api.IsFactionParagonForCurrentPlayer, id) ~= true then
 		return nil
 	end
 	local value, threshold, _, pending = Call(api.GetFactionParagonInfo, id)

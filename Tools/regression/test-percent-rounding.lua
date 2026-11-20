@@ -42,6 +42,18 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			== math.min(100, expected) .. "%" .. (current > 0 and " \194\183 rested " .. expected .. "%" or ""),
 			"XP and rested captions share the same rounding, including rested overflow")
 	end
+	for _, pair in ipairs({ { 7000, 50000 }, { 11, 20 } }) do
+		game.xp, game.xpMax, game.rested = pair[1], pair[2], pair[1]
+		game.faction.currentStanding, game.faction.nextReactionThreshold = pair[1], pair[2]
+		game.rank.renownReputationEarned, game.rank.renownLevelThreshold = pair[1], pair[2]
+		env.FireEvent("PLAYER_XP_UPDATE", "player")
+		env.FireEvent("UPDATE_FACTION")
+		D.W.Settle(env)
+		local percent = math.ceil(pair[1] / pair[2] * 100) .. "%"
+		assert(ns.Bars.views.rep.text:GetText() == "Stormwind " .. percent, "reputation keeps Blizzard's operation order")
+		assert(ns.Strip.VALUES.xp() == percent, "XP keeps Blizzard's operation order")
+		assert(ns.Bars.views.honor.text:GetText():find(percent, 1, true), "honour keeps Blizzard's operation order")
+	end
 	game.faction.reaction = 8
 	game.paragon[72] = { value = 12500, threshold = 10000, rewardPending = true }
 	env.FireEvent("UPDATE_FACTION")
@@ -73,6 +85,13 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(not view.text:IsShown() and not view.plate:IsShown(), "no text also hides the reward marker")
 	K.Options.Write("DataBars", "rep.text", "labelPercent")
 	K.Options.Write("DataBars", "rep.textHover", true)
+	for _, style in ipairs({ "medallions", "orbs", "frames" }) do
+		K.Options.Write("HudStyle", "style", style)
+		assert(not view.text:IsShown(), "pending reward respects hover text in " .. style)
+		D.W.Enter(view.holder)
+		assert(view.text:IsShown(), "hover reveals pending reward in " .. style)
+		D.W.Leave(view.holder)
+	end
 	game.paragon[72].rewardPending = false
 	env.FireEvent("UPDATE_FACTION")
 	D.W.Settle(env)

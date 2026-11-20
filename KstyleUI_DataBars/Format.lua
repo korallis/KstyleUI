@@ -11,6 +11,7 @@ local COPPER_PER_SILVER = 100
 local COPPER_PER_GOLD = 10000
 local HOURS_HALF_DAY = 12
 local DOT = " \194\183 "
+Format.DOT = DOT
 
 Format.BAR_TEXTS = {
 	{ value = "none", label = L["No text"] },
@@ -60,7 +61,7 @@ function Format.Percent(current, max, over)
 	if max <= 0 then
 		return 0
 	end
-	local percent = KstyleUI.Widgets.WholePercent(current * 100 / max)
+	local percent = KstyleUI.Widgets.WholePercent(current / max * 100)
 	if percent < 0 then
 		return 0
 	elseif percent > 100 and not over then

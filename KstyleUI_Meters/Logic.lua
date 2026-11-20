@@ -39,7 +39,7 @@ function Logic.Percent(part, total)
 	if not part or not total or total <= 0 then
 		return nil
 	end
-	return KstyleUI.Widgets.WholePercent(part / total * 100, "nearest")
+	return floor(part / total * 100 + 0.5)
 end
 
 function Logic.FormatPercent(percent)

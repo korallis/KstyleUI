@@ -64,6 +64,7 @@ defaults.xp.instrumentText = true
 defaults.xp.rested = true
 defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
+defaults.rep.rewardMarker = true
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
@@ -161,6 +162,8 @@ function ns.Schema()
 			rows[#rows + 1] = { type = "color", key = "xp.restedColor", label = L["Rested colour"], help = L["The colour of the rested overlay."], hasAlpha = true, showWhen = function(settings)
 				return Get(settings, "xp").rested == true
 			end }
+		elseif id == "rep" then
+			rows[#rows + 1] = { type = "toggle", key = "rep.rewardMarker", label = L["Paragon reward marker"], help = L["Marks a waiting paragon reward with an asterisk in the caption."] }
 		elseif id == "honor" then
 			rows[#rows + 1] = { type = "dropdown", key = "honor.show", label = L["Show"], help = L["Shows honour only in battlegrounds and world PvP, or all the time."], options = HONOR_SHOW }
 		end

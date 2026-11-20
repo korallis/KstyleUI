@@ -134,7 +134,7 @@ local function PercentText(row)
 	if not scaled then
 		return ""
 	end
-	return Logic.FormatPercent(KstyleUI.Widgets.WholePercent(scaled, "threat"))
+	return string.format("%.0f%%", scaled)
 end
 
 local function Columns()

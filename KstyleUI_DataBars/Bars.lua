@@ -196,7 +196,7 @@ local function TextFor(s, info)
 		return info.label
 	end
 	local text = Format.BarText(s.text, info.current, info.max, info.label, info.short, info.rested, info.kind == "paragon")
-	return text and info.rewardPending and text .. " \194\183 " .. L["Reward ready"] or text
+	return text and info.rewardPending and s.rewardMarker and text .. Format.DOT .. "*" or text
 end
 
 local function UpdateText(view, s, info)
@@ -204,7 +204,7 @@ local function UpdateText(view, s, info)
 	if value then
 		view.text:SetText(value)
 	end
-	local shown = value ~= nil and (not s.textHover or view.hovered == true or info.rewardPending == true)
+	local shown = value ~= nil and (not s.textHover or view.hovered == true)
 	view.text:SetShown(shown)
 	PlacePlate(view, s)
 	Widgets.TextScrim(view.text, shown and not view.plate:IsShown())
@@ -342,11 +342,12 @@ local function Settings(view)
 	for key, value in pairs(s) do
 		medal[key] = value
 	end
-	medal.medal, medal.border, medal.textHover, medal.textPosition = true, false, false, "BOTTOM"
+	medal.medal, medal.border, medal.textPosition = true, false, "BOTTOM"
 	medal.texture, medal.segments, medal.fontSize = Tokens.Texture("barFlat"), MEDAL_SEGMENTS, MEDAL_FONT_SIZE
 	if view.def.id == "xp" and s.text ~= "none" then
 		medal.text = "percentRested"
 	end
+	if view.def.id == "xp" then medal.textHover = false end
 	return medal
 end
 Bars.Settings = Settings
