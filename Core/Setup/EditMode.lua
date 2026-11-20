@@ -1000,6 +1000,7 @@ end
 
 ns.Events.Register("Setup.Durability", "PLAYER_LOGIN", function()
 	ns.Events.Unregister("Setup.Durability", "PLAYER_LOGIN")
+	if not EditMode.Available() then return end
 	C_Timer.After(0, function()
 		ns.Combat.Queue(function()
 			local all, _, active = Read()

@@ -38,6 +38,7 @@ function Preview.Sample(parent)
 		local height = -gap
 		Widgets.Point(samples[1], "TOPLEFT", self, "TOPLEFT", Tokens.Size("gapLarge"), 0, true)
 		for i, text in ipairs(samples) do
+			Widgets.StyleText(text)
 			local row = Widgets.Snap(text, Widgets.WrappedHeight(text, width))
 			Widgets.Size(text, width, row)
 			if i > 1 then Widgets.Point(text, "TOPLEFT", samples[i - 1], "BOTTOMLEFT", 0, -gap, true) end
