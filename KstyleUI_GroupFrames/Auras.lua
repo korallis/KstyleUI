@@ -42,6 +42,7 @@ local ICON_INSET_LINES = 2
 local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
+local TIMER_LINE = 1.3
 local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 136139, 136071, 135894 }
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
@@ -1098,13 +1099,15 @@ local function Configure(f)
 	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
+	local room = a.timers and math.ceil(math.max(6, math.floor(block.size * COUNT_SHARE + 0.5)) * TIMER_LINE) + Widgets.Border(f) or 0
+	local lift = point:find("^BOTTOM") and room or 0
 	local clip = f.auraClip
 	clip:ClearAllPoints()
-	clip:SetPoint(point, f, "TOPLEFT", x, y)
-	clip:SetSize(math.max(1, block.width), math.max(1, block.height))
+	clip:SetPoint(point, f, "TOPLEFT", x, y - lift)
+	clip:SetSize(math.max(1, block.width), math.max(1, block.height + room))
 	clip:SetShown(block.cells > 0)
 	container:ClearAllPoints()
-	container:SetPoint(point, clip, point, 0, 0)
+	container:SetPoint(point, clip, point, 0, lift)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
