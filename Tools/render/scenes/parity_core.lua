@@ -1,4 +1,4 @@
--- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode.
+-- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar and corner-aligned links.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -25,12 +25,13 @@ return Common.Run(function()
 	}))
 	local layout = K.Layout
 	assert(layout.Update("unitframes.player", { anchor = "CENTER", x = -270, y = -170, width = 300, height = 100 }))
-	assert(layout.Update("unitframes.target", { attachTo = "unitframes.player", side = "right", offset = 50, matchHeight = true, extraHeight = 10 }))
+	assert(layout.Update("unitframes.target", { attachTo = "unitframes.player", side = os.getenv("RENDER_CORE_SIDE") or "right", offset = 50, matchHeight = true, extraHeight = 10 }))
 	K.Options.Write("Layout", "grid", true)
 	K.Options.Write("Layout", "gridAlpha", 0.15)
 	K.Options.Write("Layout", "nudgeStep", 100)
 	K.Options.Write("Layout", "overlap", "ctrl")
-	if view == "mode" or view == "hidden" then
+	if view == "toolbar" then K.Store.Account().layoutToolbarHover = true end
+	if view == "mode" or view == "hidden" or view == "toolbar" then
 		assert(layout.Enter())
 		layout.Mode.Select("unitframes.target")
 		if view == "hidden" then
@@ -38,7 +39,7 @@ return Common.Run(function()
 			plate:GetScript("OnClick")(plate, "MiddleButton")
 		end
 	else
-		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements" }
+		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements", gametext = "General", about = "About" }
 		assert(K.Options.Open(assert(pages[view], "unknown core page")))
 		assert(layout.Update("Options.Window", { width = 1240, height = 860, scale = 1 }))
 		local ns = env._addons.KstyleUI_Options
@@ -57,7 +58,7 @@ return Common.Run(function()
 		env.RunTimers()
 		Gallery.Ticks(O.W, env, 30)
 		env.RunTimers()
-		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", search = "Window conveniences", movers = "Mover controls", links = "Target frame" })[view]
+		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", search = "Window conveniences", movers = "Mover controls", links = "Target frame", gametext = "Game text", about = "Tools" })[view]
 		if label then
 			local found
 			for i, item in ipairs(ns.Window.State().items) do
