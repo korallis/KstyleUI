@@ -556,14 +556,14 @@ local function ApplyOverflow(view, filter, want)
 		return
 	end
 	local level = a.host:GetFrameLevel() + CHIP_LEVEL
+	local after, capacity = TimerRoom(view.kind) > 0, Capacity(view)
 	for _, key in ipairs(GROUPS) do
 		local chip = a.overflow[key]
 		if chip then
 			local on = want and filter[key] ~= nil
-			local after = TimerRoom(view.kind) > 0
 			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs, after)
 			Overflow.Apply(chip, {
-				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell, after = after,
+				enabled = on, filter = filter[key], cap = capacity, cell = cell, after = after,
 				rel = a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
 			})
 		end

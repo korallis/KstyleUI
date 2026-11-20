@@ -17,8 +17,8 @@ local function slots(env, K, module, prefix, frame, source, event, combat)
 		local value = text:GetText()
 		return env.issecretvalue(value) and env.Reveal(value) or value
 	end
-	local function fire(event)
-		env.FireEvent(event, frame.unit or "player")
+	local function fire(name)
+		env.FireEvent(name, frame.unit or "player")
 		env.RunTickers()
 	end
 	K.Options.Get(module)
@@ -28,6 +28,9 @@ local function slots(env, K, module, prefix, frame, source, event, combat)
 			"v0.2.8 profiles keep blank slots and create no extra regions")
 		write(env, K, module, key .. "textFormat", "[hp] [pp] [level]")
 		local text = assert(frame["extra" .. i], "writing a format creates its region")
+		if module == "Nameplates" then
+			assert(text:GetParent() == frame.health, "plate text overlays the health fill")
+		end
 		assert(text:IsShown() and content(text):find(tostring(source.health), 1, true), "slot paints its unit")
 		write(env, K, module, key .. "size", 15)
 		local _, size = text:GetFont()
@@ -98,5 +101,15 @@ do
 	local env, K, ns = N.New({ saved = saved("Nameplates") })
 	N.Add(env, "nameplate1")
 	slots(env, K, "Nameplates", "", ns.Plates.Get("nameplate1"), env._units.nameplate1, "UNIT_HEALTH")
+end
+collectgarbage()
+do
+	local profile = saved("UnitFrames")
+	profile.profiles.Default.UnitFrames.focus = { extra1 = { textFormat = "[name]", position = "TOP", y = 7 } }
+	local env, K, ns = U.New({ saved = profile })
+	local frame = ns.Frames.Get("focus").views[1]
+	assert(frame.extra1 and frame.extra1:GetPoint(1) == "TOP", "saved custom slots restore before opening Options")
+	assert(K.Options.Read("UnitFrames", "focus.extra1.y") == 7, "saved offsets survive profile loading")
+	assert(#env._errors == 0 and K.ErrorCount() == 0)
 end
 print("frame text slots ok: old profiles, lazy regions, font/colour/format/placement, events and combat queue")
