@@ -10,8 +10,9 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		assert(K.Setup.Apply(choice))
 		env.RunTimers()
 		local function rail()
-			K.Options.Write("DataBars", "strip.placement", "rail")
 			env.RunTimers()
+			assert(ns.Settings().strip.menus == false,
+				"Setup must keep strip.menus off while Right rail is selected")
 			local p = K.Layout.Get("databars.strip")
 			assert(p.anchor == "BOTTOMRIGHT" and p.x == -17 and p.y == 181,
 				"Right rail must use the v0.2.6 default after Setup; do not save the automatic top bar as a player position")
@@ -25,6 +26,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 				"Right rail must restore the v0.2.6 readout size after Setup: " .. p.width .. "x" .. p.height)
 			assert(x and y and w > 0 and h > 0 and rh > 0)
 		end
+		K.Options.Write("DataBars", "strip.placement", "rail")
 		rail()
 		assert(K.Setup.Apply(choice))
 		rail()
