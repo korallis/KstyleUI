@@ -175,25 +175,30 @@ local function Place(tooltip, parent)
 end
 
 local PEEK = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
+local STARTS = { outOfCombat = "PLAYER_REGEN_DISABLED", outOfBoss = "ENCOUNTER_START" }
+local mode = "always"
 
-local function Yes(fn)
-	if type(fn) ~= "function" then return false end
-	local v = fn()
-	return not Logic.IsSecret(v) and v == true
-end
-
-local function Hidden()
-	local mode, peek = Settings.Get("show"), PEEK[Settings.Get("peekKey")]
-	if mode == "always" or peek and Yes(_G[peek]) then return false end
-	if mode == "outOfCombat" then return Yes(InCombatLockdown) end
-	if mode == "outOfBoss" then return Yes(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress) end
+local function Hidden(starting)
+	local peek = PEEK[Settings.Get("peekKey")]
+	if peek and Logic.Yes(_G[peek]) then return false end
+	if mode == "outOfCombat" then return starting or Logic.Yes(InCombatLockdown) end
+	if mode == "outOfBoss" then return starting or Logic.Yes(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress) end
 	return true
 end
 
-local function Suppress(tooltip)
-	if not (ns.active and Hidden()) then return end
-	tooltip:Hide()
-	for _, shop in ipairs(type(tooltip.shoppingTooltips) == "table" and tooltip.shoppingTooltips or {}) do shop:Hide() end
+local function Suppress(tooltip, starting)
+	if ns.active and Hidden(starting) then tooltip:Hide() end
+end
+
+local function Starting()
+	if GameTooltip then Suppress(GameTooltip, true) end
+end
+
+function Anchor.Watch()
+	mode = Settings.Get("show")
+	for each, event in pairs(STARTS) do
+		if each == mode then K.Events.Register(ns.MODULE, event, Starting) else K.Events.Unregister(ns.MODULE, event) end
+	end
 end
 
 function Anchor.IsHooked()
@@ -228,7 +233,7 @@ function Anchor.Hook()
 		end)
 		GameTooltip:HookScript("OnShow", function(tooltip)
 			K.Call(PlaceMinimap, tooltip)
-			K.Call(Suppress, tooltip)
+			if mode ~= "always" then K.Call(Suppress, tooltip) end
 		end)
 		if type(GameTooltip.SetMinimapMouseover) == "function" then
 			hooksecurefunc(GameTooltip, "SetMinimapMouseover", function(tooltip)

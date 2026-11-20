@@ -79,35 +79,29 @@ local function SkipCinematic(_, cancellable)
 	end)
 end
 
-local DELETE_POPUPS = { "DELETE_GOOD_ITEM", "DELETE_GOOD_QUEST_ITEM" }
-
 local function FillDelete()
 	if not (ns.running and ns.Get("autoDelete")) or type(StaticPopup_FindVisible) ~= "function" or type(DELETE_ITEM_CONFIRM_STRING) ~= "string" then return end
-	for _, which in ipairs(DELETE_POPUPS) do
-		local dialog = StaticPopup_FindVisible(which)
-		local box = dialog and type(dialog.GetEditBox) == "function" and dialog:GetEditBox()
-		if box then box:SetText(DELETE_ITEM_CONFIRM_STRING) end
-	end
+	local dialog = StaticPopup_FindVisible("DELETE_GOOD_ITEM") or StaticPopup_FindVisible("DELETE_GOOD_QUEST_ITEM")
+	local box = dialog and type(dialog.GetEditBox) == "function" and dialog:GetEditBox()
+	if box then box:SetText(DELETE_ITEM_CONFIRM_STRING) end
 end
 
-local function Resurrect(_, inviter)
+local function Resurrect()
 	if not ns.Get("autoResurrect") or type(AcceptResurrect) ~= "function" then return end
-	if not ns.Get("combatResurrect") then
-		local ok, fighting = pcall(UnitAffectingCombat, inviter)
-		if not ok or ns.IsSecret(fighting) or fighting then return end
-	end
+	local fighting = InCombatLockdown()
+	if ns.IsSecret(fighting) or fighting then return end
 	local wait = type(GetCorpseRecoveryDelay) == "function" and ns.Number(GetCorpseRecoveryDelay())
 	if wait == 0 then AcceptResurrect() end
 end
 
 local OPTIONAL = {
-	DELETE_ITEM_CONFIRM = { "autoDelete", function() if C_Timer then C_Timer.After(0, FillDelete) else FillDelete() end end },
+	DELETE_ITEM_CONFIRM = { "autoDelete", function() if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0, FillDelete) else FillDelete() end end },
 	RESURRECT_REQUEST = { "autoResurrect", Resurrect },
 }
 
 local function Listen()
 	for event, entry in pairs(OPTIONAL) do
-		if ns.running and ns.Get(entry[1]) then
+		if ns.Get(entry[1]) then
 			ns.K.Events.Register(ns.MODULE, event, entry[2])
 		else
 			ns.K.Events.Unregister(ns.MODULE, event)
@@ -119,7 +113,7 @@ ns.AddPart({
 	name = "alerts",
 	events = { CINEMATIC_START = SkipCinematic },
 	Start = function() Sync(); Listen() end,
-	Stop = function() cinematicToken = cinematicToken + 1; Sync(); Listen() end,
+	Stop = function() cinematicToken = cinematicToken + 1; Sync() end,
 	Setting = function(key)
 		if key == nil or key == "skipCinematics" or key == "skipDelay" then cinematicToken = cinematicToken + 1 end
 		if key == nil or key == "autoDelete" or key == "autoResurrect" then Listen() end

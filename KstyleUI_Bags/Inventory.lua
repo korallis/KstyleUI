@@ -14,7 +14,7 @@ Inventory.POSITION = { anchor = "BOTTOMRIGHT", x = -16, y = 134 }
 local NONE = {}
 local PICKER_WIDTH = 132
 
-local open = false
+local open, opened = false, false
 local heldBags
 local keyringBags = {}
 
@@ -53,7 +53,7 @@ function Inventory.Sort()
 end
 
 local function Closed()
-	open = false
+	open, opened = false, false
 	Blizzard.Release()
 end
 
@@ -160,7 +160,7 @@ function Inventory.Close()
 	if window and open then
 		window:Close()
 	end
-	open = false
+	open, opened = false, false
 end
 
 function Inventory.Toggle()
@@ -246,11 +246,12 @@ ns.On("BAG_UPDATE_COOLDOWN", function()
 	end
 end)
 
-local watching, opened = false, false
+local watching = false
 
 local function WatchCharacter()
-	local frame = CharacterFrame
-	if watching or not Settings.Get("characterBags") or type(frame) ~= "table" or type(frame.HookScript) ~= "function" then
+	local on, frame = Settings.Get("characterBags"), CharacterFrame
+	opened = opened and on
+	if watching or not on or type(frame) ~= "table" or type(frame.HookScript) ~= "function" then
 		return
 	end
 	watching = true
@@ -261,10 +262,7 @@ local function WatchCharacter()
 		end
 	end)
 	frame:HookScript("OnHide", function()
-		if opened and open then
-			Inventory.Close()
-		end
-		opened = false
+		if opened then Inventory.Close() end
 	end)
 end
 
@@ -278,7 +276,7 @@ function Inventory.Enable()
 end
 
 function Inventory.Disable()
-	open = false
+	open, opened = false, false
 	local window = Inventory.window
 	if window then
 		window:Hide()

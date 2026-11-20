@@ -23,6 +23,7 @@ do
 		e.CHAT_FLAG_AFK, e.CHAT_FLAG_DND = "<AFK>", "<DND>"
 		e.InCombatLockdown = function() return combat end
 		e.C_InstanceEncounter = { IsEncounterInProgress = function() return boss end }
+		e.C_Secrets = { ShouldAurasBeSecret = function() return false end }
 		e.C_UnitAuras = { GetAuraDataByIndex = function(_, i) return auras[i] end }
 		e.C_MountJournal = {
 			GetMountFromSpell = function(spell) return spell == 32292 and 7 or nil end,

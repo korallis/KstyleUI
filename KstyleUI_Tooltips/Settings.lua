@@ -402,7 +402,7 @@ function Settings.Get(key)
 		value = nil
 	end
 	if row and value ~= nil and VALID[row.type](row, value) then
-		if key ~= "hierarchy" and Settings.Get("hierarchy") == false and LEGACY_SIZES[key] and value == default then return LEGACY_SIZES[key] end
+		if LEGACY_SIZES[key] and value == default and Settings.Get("hierarchy") == false then return LEGACY_SIZES[key] end
 		return value
 	end
 	if not row and type(value) == type(default) then

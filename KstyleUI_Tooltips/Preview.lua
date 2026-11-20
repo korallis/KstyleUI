@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live sample: an item and a unit tooltip drawn with the module's fonts, colours, edges, icon and health bar.
+-- Preview.lua: the settings window's live sample: an item and a unit tooltip drawn with the module's fonts, colours, edges, icon, health bar, away tag and mount line.
 local _, ns = ...
 
 local K = KstyleUI
@@ -41,6 +41,7 @@ function Preview.Build(...)
 		{ left = "", color = "guild", key = "guildLine" },
 		{ left = L["Level 60 Hunter (Player)"], color = "highlight" },
 		{ left = L["Target"], right = L["You"], color = "text", rightColor = "accent", key = "targetLine" },
+		{ left = L["Mount"], right = L["Swift Brown Wolf"], color = "text", rightColor = "textEmphasis", key = "mountLine" },
 	}
 
 	local BLIZZARD = { highlight = "HIGHLIGHT_FONT_COLOR", normal = "NORMAL_FONT_COLOR", bonus = "GREEN_FONT_COLOR" }
@@ -65,8 +66,8 @@ function Preview.Build(...)
 			kind = "highlight"
 		elseif kind == "accent" then
 			return Settings.Accent()
-		elseif kind == "guild" or kind == "text" then
-			return Tokens.Color(kind == "guild" and "friendly" or "text")
+		elseif kind == "guild" or kind == "text" or kind == "textEmphasis" then
+			return Tokens.Color(kind == "guild" and "friendly" or kind)
 		end
 		local color = _G[BLIZZARD[kind]]
 		local r, g, b
@@ -202,10 +203,10 @@ function Preview.Build(...)
 				y = y + height + gap
 			end
 		end
-		if glass.spec[2] and glass.spec[2].key == "guildLine" and Settings.Get("guildRank") then
-			glass.rows[2].left:SetText(Logic.GuildText(L["Kstyle"], L["Officer"]))
-		elseif glass.spec[2] and glass.spec[2].key == "guildLine" then
-			glass.rows[2].left:SetText(Logic.GuildText(L["Kstyle"]))
+		if glass.spec[2] and glass.spec[2].key == "guildLine" then
+			local away = Settings.Get("awayTag") and type(CHAT_FLAG_AFK) == "string"
+			glass.rows[1].left:SetText(away and L["Valerin"] .. " " .. CHAT_FLAG_AFK or L["Valerin"])
+			glass.rows[2].left:SetText(Settings.Get("guildRank") and Logic.GuildText(L["Kstyle"], L["Officer"]) or Logic.GuildText(L["Kstyle"]))
 		end
 		Widgets.Size(glass, width, y - gap + pad + (reserve.bottom or 0))
 		local divider = glass.divider

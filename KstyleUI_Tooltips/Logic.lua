@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text and the tooltip scale.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text, the tooltip scale and whether a game call answers a plain true.
 local _, ns = ...
 
 local Logic = {}
@@ -28,6 +28,12 @@ local function IsNumber(v)
 end
 Logic.IsNumber = IsNumber
 Logic.IsSecret = IsSecret
+
+function Logic.Yes(fn, ...)
+	if type(fn) ~= "function" then return false end
+	local v = fn(...)
+	return not IsSecret(v) and v == true
+end
 
 function Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)
 	if not (IsNumber(left) and IsNumber(bottom) and IsNumber(width) and IsNumber(height) and IsNumber(rootWidth) and IsNumber(rootHeight)) then

@@ -19,13 +19,7 @@ local function Text(v)
 	return Plain(v) and type(v) == "string" and v ~= ""
 end
 
-local function Yes(fn, ...)
-	if type(fn) ~= "function" then
-		return false
-	end
-	local v = fn(...)
-	return Plain(v) and v == true
-end
+local Yes = Logic.Yes
 
 function Units.Token(data)
 	local guid = data.guid
@@ -146,6 +140,8 @@ local function Mount(tooltip, unit)
 		if not ok or not Plain(secret) or secret then
 			return
 		end
+	elseif InCombatLockdown() then
+		return
 	end
 	for i = 1, MAX_AURAS do
 		local ok, aura = pcall(auras.GetAuraDataByIndex, unit, i, "HELPFUL")
