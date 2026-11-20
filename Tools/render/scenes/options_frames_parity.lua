@@ -16,6 +16,8 @@ return Common.Run(function()
 	end }))
 	if module == "UnitFrames" then K.Options.Write(module, "edit", "player") end
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_ENABLED") == "1" then
+		K.Options.Write(module, "player.castbarSmooth", true)
+		K.Options.Write(module, "player.castbarChannelOverride", true)
 		K.Options.Write(module, "player.castbarIconRight", true)
 		K.Options.Write(module, "player.castbarTotal", true)
 	end

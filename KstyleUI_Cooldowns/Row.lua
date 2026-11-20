@@ -10,6 +10,16 @@ Row.__index = Row
 ns.Row = Row
 
 local OVERFLOW = { buffs = true }
+local styleCooldown
+
+local function StyleCooldown(icon, real)
+	local key, charge = icon.cooldownStyleKey, icon.cooldownStyleCharge
+	styleCooldown(icon, real)
+	if icon.hideEdge and (key ~= icon.cooldownStyleKey or charge ~= icon.cooldownStyleCharge) then
+		icon.cooldown:SetDrawEdge(false)
+		if icon.chargeCooldown then icon.chargeCooldown:SetDrawEdge(false) end
+	end
+end
 
 function Row.New(parent, group, cfg)
 	local holder = CreateFrame("Frame", nil, parent)
@@ -30,9 +40,12 @@ function Row:StyleIcon(icon)
 	icon.opts.readableCountdown = ns.Settings.current.readableCountdown
 	local cfg, current = self.cfg, ns.Settings.current
 	local hide = ns.Settings.COOLDOWN_GROUPS[self.group] and not cfg.edge or nil
-	if icon.hideEdge ~= hide then icon.hideEdge, icon.cooldownStyleKey = hide, nil end
+	if icon.hideEdge ~= hide then
+		styleCooldown = styleCooldown or icon.StyleCooldown
+		icon.StyleCooldown, icon.hideEdge, icon.cooldownStyleKey = StyleCooldown, hide, nil
+		if icon.chargeCooldown then icon.chargeCooldown:SetDrawEdge(not hide) end
+	end
 	icon:StyleCooldown()
-	if hide then icon.cooldown:SetDrawEdge(false) end
 	icon.icon:SetTexCoord(cfg.iconZoom, 1 - cfg.iconZoom, cfg.iconZoom, 1 - cfg.iconZoom)
 	if icon.opts.size ~= cfg.size then
 		icon.opts.size = cfg.size

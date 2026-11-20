@@ -21,7 +21,7 @@ ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
-local drill = { active = false, spells = {} }
+local drill = { active = false }
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
@@ -358,6 +358,14 @@ function ns.SetClassIcon(list, i, class)
 	end
 end
 
+local function SpellRow(list, i, id)
+	local row = list.rows[i]
+	if row.spellID ~= id then
+		row.spellID = id
+		ns.BarList.Unown(row.frame)
+	end
+end
+
 local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, format, rank)
 	local display = source.sourceDisplayType
 	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
@@ -377,6 +385,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info), format), percentText)
 	end
 	ns.SetClassIcon(list, i, source.classFilename)
+	SpellRow(list, i)
 end
 
 local function FillSources(list, info, session)
@@ -464,15 +473,16 @@ local function Context()
 end
 
 local function RowTooltip(tip, list, i)
-	if drill.active and i <= (list.count or 0) then
-		local id, game, frame = drill.spells[i], GameTooltip, list.rows[i].frame
-		if id and ns.Get("damage.spellTooltips") and game and type(game.SetSpellByID) == "function" then
-			game:SetOwner(frame, ns.BarList.Inward(frame))
-			game:SetSpellByID(id)
-			game:AddLine(L["Click to go back to every source."])
-			game:Show()
-			return false
-		end
+	local shown, game = i <= (list.count or 0), GameTooltip
+	local row = shown and list.rows[i]
+	if row and row.spellID and ns.Get("damage.spellTooltips") and game and type(game.SetSpellByID) == "function" then
+		game:SetOwner(row.frame, ns.BarList.Inward(row.frame))
+		game:SetSpellByID(row.spellID)
+		if drill.active then game:AddLine(L["Click to go back to every source."]) end
+		game:Show()
+		return false
+	end
+	if drill.active and shown then
 		tip:AddLine(L["Click to go back to every source."])
 		return true
 	end
@@ -576,7 +586,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
 		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
-		drill.spells[i] = Logic.Plain(spell.spellID)
+		SpellRow(list, i, Logic.Plain(spell.spellID))
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)

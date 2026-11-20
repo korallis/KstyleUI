@@ -366,8 +366,7 @@ function Settings.Value(kind, key)
 	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
 		return slab
 	end
-	if value == nil or value == default then return default end
-	if type(value) ~= type(default) then
+	if value == default or type(value) ~= type(default) then
 		return default
 	end
 	local choice = kind == "target" and key == "style" and "styleTarget" or CHOICE_OF[key]
