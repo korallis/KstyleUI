@@ -74,6 +74,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		assert(parts and parts.backdrop, "Card Questie's own tracker using the shared window builder")
 		local header = R.env.Questie_HeaderFrame
 		assert(header.trackedQuests.label:GetAlpha() == 0, "Replace Questie's native header with the shared SectionCap")
+		assert(header.questieIcon.texture:GetAlpha() == 0, "Hide Questie's native icon art under the shared header while keeping its button")
 		local cap
 		for _, child in ipairs({ header:GetChildren() }) do if child.label and child.gem and child.rule then cap = child end end
 		assert(cap and cap:IsShown(), "Use the shared SectionCap for Questie's own header")

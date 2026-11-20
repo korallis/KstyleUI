@@ -29,6 +29,7 @@ local function Refresh()
 	on = on and K.Setup.Integrations.QuestTracker() == "questie"
 	panel:SetShown(on)
 	local header = rawget(_G, "Questie_HeaderFrame")
+	if on and type(header) == "table" and type(header.questieIcon) == "table" then Skin.Strip(header.questieIcon) end
 	local tracked = type(header) == "table" and header.trackedQuests
 	local text = type(tracked) == "table" and tracked.label
 	if type(text) == "table" and text ~= label then
