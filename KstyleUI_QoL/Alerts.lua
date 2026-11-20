@@ -88,8 +88,9 @@ end
 
 local function Resurrect()
 	if not ns.Get("autoResurrect") or type(AcceptResurrect) ~= "function" then return end
-	local fighting = InCombatLockdown()
-	if ns.IsSecret(fighting) or fighting then return end
+	local fighting, encounter = InCombatLockdown(), C_InstanceEncounter
+	local boss = type(encounter) ~= "table" or type(encounter.IsEncounterInProgress) ~= "function" or encounter.IsEncounterInProgress()
+	if ns.IsSecret(fighting) or fighting or ns.IsSecret(boss) or boss ~= false then return end
 	local wait = type(GetCorpseRecoveryDelay) == "function" and ns.Number(GetCorpseRecoveryDelay())
 	if wait == 0 then AcceptResurrect() end
 end
