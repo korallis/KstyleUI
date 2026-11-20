@@ -164,6 +164,12 @@ function W.SameRGB(region, r, g, b)
 	return W.SameColor(region, r, g, b)
 end
 
+-- SameRimColor(rim, r, g, b) is true when a Parts.Rim holder is coloured r, g, b; an unpainted rim is false.
+function W.SameRimColor(rim, r, g, b)
+	local cr, cg, cb = rim:GetRimColor()
+	return cr ~= nil and W.Near(cr, r) and W.Near(cg, g) and W.Near(cb, b)
+end
+
 -- Calls(object, method) -> the list of argument packs the object's method got, oldest first.
 function W.Calls(object, method)
 	local out = {}

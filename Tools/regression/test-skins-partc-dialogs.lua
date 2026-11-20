@@ -15,10 +15,7 @@ end
 local function RimColor(ns, frame)
 	local rim = ns.Parts.RimOf(frame)
 	assert(rim, "the frame has a KstyleUI rim")
-	if not rim.rim[1]:IsShown() then
-		return nil
-	end
-	return rim.rim[1]:GetVertexColor()
+	return rim:GetRimColor()
 end
 
 local function Button(B, parent, key)

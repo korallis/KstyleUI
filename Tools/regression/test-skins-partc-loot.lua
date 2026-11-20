@@ -22,10 +22,7 @@ end
 local function RimColor(ns, frame)
 	local rim = ns.Parts.RimOf(frame)
 	assert(rim, "the frame has a KstyleUI rim")
-	if not rim.rim[1]:IsShown() then
-		return nil
-	end
-	return rim.rim[1]:GetVertexColor()
+	return rim:GetRimColor()
 end
 
 local function SameQuality(K, r, g, b, quality)
@@ -305,7 +302,7 @@ do
 	local frame = build(pane)
 	assert(frame and #frame.extras == 1, "part C adds one sample to the preview")
 	local roll = frame.extras[1]
-	assert(roll.rim and W.SameRGB(roll.rim.rim[1], K.Theme.QualityColor(QUALITY_EPIC)), "the sample roll wears the epic rim")
+	assert(roll.rim and W.SameRimColor(roll.rim, K.Theme.QualityColor(QUALITY_EPIC)), "the sample roll wears the epic rim")
 	assert(FontPath(roll.name) == ns.Style.Font("body"), "its name wears the body font")
 	K.Options.Write("Skins", "text.size", 1.2)
 	K.Options.Write("Skins", "bars.color", "custom")
