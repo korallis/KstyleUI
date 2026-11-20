@@ -217,7 +217,12 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							if extra then
 								local cfg, layouts = K.Store.Module("ActionBars"), K.Setup.Layouts
 								cfg.extraBarsApplied, cfg.extraBarsLayout = extra, extra
-								if extra ~= "off" then cfg.bar4, cfg.bar5 = layouts.ExtraBarsPreset(extra, K.Scale.Aspect()), layouts.ExtraBarsPreset(extra, K.Scale.Aspect()) end
+								if extra ~= "off" then
+									for _, key in ipairs({ "bar4", "bar5" }) do
+										for field, value in pairs(layouts.ExtraBarsPreset(extra, K.Scale.Aspect())) do cfg[key][field] = value end
+									end
+									assert(cfg.bar4.placement and cfg.bar5.placement, "merge preset fields into each bar so text and cooldown defaults survive")
+								end
 								K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
 								env._addons.KstyleUI_ActionBars.QueueApply()
 								K.Layout.ResetAll()

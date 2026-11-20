@@ -399,8 +399,7 @@ local function Build()
 		createRow = Rows.Create,
 		updateRow = Rows.Update,
 	})
-	picker = Rows.Create(content)
-	picker:SetParent(win)
+	picker = Rows.Create({ view = win })
 	picker:Hide()
 	local setOffset = content.SetOffset
 	content.SetOffset = function(self, offset)
