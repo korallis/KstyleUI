@@ -17,7 +17,6 @@ local function Selection(scope)
 	if type(scope) ~= "table" then return end
 	local selected = {}
 	for module, on in pairs(scope) do
-		if issecretvalue and (issecretvalue(module) or issecretvalue(on)) then return end
 		if type(module) ~= "string" or type(on) ~= "boolean" or not Store.Defaults(module) then return end
 		if on then selected[module] = true end
 	end
@@ -186,14 +185,8 @@ function Profiles.Preview(text, scope, includeLayout)
 	local valid, err = Store.Decode(encoded)
 	if not valid then return nil, err end
 	local current, future = Store.Module("Appearance"), settings.Appearance
-	local scaleChanged
-	if Store.Module("ProfileTools").scaleWarning and future then
-		local safe = true
-		for _, value in ipairs({ current.uiScaleAuto, current.uiScale, future.uiScaleAuto, future.uiScale }) do
-			if issecretvalue and issecretvalue(value) then safe = false; break end
-		end
-		scaleChanged = safe and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
-	end
+	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
+		and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
 	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end

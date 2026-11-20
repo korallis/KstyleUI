@@ -22,10 +22,10 @@ Inventory of the public v9.9.1 editor, checked against public source at `8abfcbf
 | Coordinates always visible | Present | Show coordinates on every plate | [Session] |
 | Overlap cycle: off / scroll / Shift / Ctrl / Alt scroll | Present | Elements > Overlap cycling; Alt remains default; other scrolling still scales | [General source] |
 | Select element from list / filter | Present | Find Layout Mode elements; searchable toolbar list | [Unlock filter] |
-| Temporarily hide an individual overlay | Present | Shift + right-click hides a mover for this session; Restore movers or the element picker shows it again | [Session] |
+| Temporarily hide an individual overlay | Present | Middle-click hides a mover for this session; Restore movers or the element picker shows it again | [Session] |
 | Hover-only top toolbar / hold Shift to hide | Missing, fits | Follow-up L1: optional toolbar reveal, without changing default keyboard behaviour | [Session] |
 | Toolbar smaller / bigger | Present | Layout.Toolbar scale through Elements | [Session] |
-| Open element options from mover | Present | Elements > Double-click movers for settings, off by default; action bars retain their own shortcut setting | [Session] |
+| Open element options from mover | Present | Elements > Double-click movers for settings, on by default; action bars retain their own shortcut setting | [Session] |
 | Numeric X position | Present | Element > X offset | [Movers] |
 | Numeric Y position | Present | Element > Y offset | [Movers] |
 | Centre on screen | Present | Anchor Centre with X and Y zero | [Movers] |

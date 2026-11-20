@@ -215,7 +215,7 @@ local function FaceOptions()
 		local object = rawget(_G, entry[1])
 		if object and type(object.GetFont) == "function" then
 			local ok, path = pcall(object.GetFont, object)
-			if ok and not (issecretvalue and issecretvalue(path)) and Theme.IsFontPath(path) then
+			if ok and not (issecretvalue and issecretvalue(path)) and Theme.IsFontPath(path) and not seen[PathKey(path)] then
 				out[#out + 1] = { value = path, label = entry[2] }
 				seen[PathKey(path)] = true
 			end

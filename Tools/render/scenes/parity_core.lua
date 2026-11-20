@@ -34,9 +34,8 @@ return Common.Run(function()
 		assert(layout.Enter())
 		layout.Mode.Select("unitframes.target")
 		if view == "hidden" then
-			env.IsShiftKeyDown = function() return true end
 			local plate = layout.Mode.Plate("unitframes.target")
-			plate:GetScript("OnClick")(plate, "RightButton")
+			plate:GetScript("OnClick")(plate, "MiddleButton")
 		end
 	else
 		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements" }

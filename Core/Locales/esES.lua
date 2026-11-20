@@ -1872,7 +1872,7 @@ ns.Locale.Add({
 	["Right, then up"] = "Derecha, luego arriba",
 	["Right-click the drawer button for Blizzard's addon compartment list."] = "Haz clic derecho en el bot\195\179n del caj\195\179n para la lista del compartimento de addons de Blizzard.",
 	["Right-click to cancel"] = "Clic derecho para cancelar",
-	["Right-click to reset it. Shift + right-click hides this mover until restored or Layout Mode reopens."] = "Clic derecho para restablecer. May\195\186s + clic derecho oculta el marco hasta restaurarlo o reabrir el modo de dise\195\177o.",
+	["Right-click to reset it. Middle-click hides this mover until restored or Layout Mode reopens."] = "Clic derecho para restablecerlo. El clic central oculta este control hasta que lo restaures o vuelvas a abrir el modo de dise\195\177o.",
 	["Right-click: switch between 12 and 24 hours."] = "Clic derecho: cambiar entre 12 y 24 horas.",
 	["Right-clicking a buff or weapon enchantment removes it."] = "Hacer clic derecho en un beneficio o un encantamiento de arma lo quita.",
 	["Rings each item in the item's quality colour."] = "Rodea cada objeto con el color de su calidad.",

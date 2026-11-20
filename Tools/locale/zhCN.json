@@ -1865,7 +1865,7 @@
 	"Right, then up": "向右，然后向上",
 	"Right-click the drawer button for Blizzard's addon compartment list.": "右键点击抽屉按钮可打开暴雪的插件收纳盒列表。",
 	"Right-click to cancel": "右键点击取消",
-	"Right-click to reset it. Shift + right-click hides this mover until restored or Layout Mode reopens.": "右键重置。Shift + 右键隐藏此移动框，直到恢复或重新打开布局模式。",
+	"Right-click to reset it. Middle-click hides this mover until restored or Layout Mode reopens.": "右键点击重置。中键点击隐藏此移动框，直到恢复或重新打开布局模式。",
 	"Right-click: switch between 12 and 24 hours.": "右键点击：在 12 和 24 小时制之间切换。",
 	"Right-clicking a buff or weapon enchantment removes it.": "右键点击增益效果或武器附魔可将其移除。",
 	"Rings each item in the item's quality colour.": "用物品品质颜色为每件物品描边。",

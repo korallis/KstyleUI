@@ -513,9 +513,8 @@ local function PlateTooltip(tip, plate)
 	if el.opts.scalable then
 		tip:AddLine(L["Scroll to scale it, or click it and drag the corner handle."])
 	end
-	tip:AddLine(L["Right-click to reset it. Shift + right-click hides this mover until restored or Layout Mode reopens."])
-	local shortcut = ns.Store.Account().moverOptions
-	if not IsSecret(shortcut) and shortcut == true then tip:AddLine(L["Double-click to open its settings."]) end
+	tip:AddLine(L["Right-click to reset it. Middle-click hides this mover until restored or Layout Mode reopens."])
+	if ns.Store.Account().moverOptions ~= false then tip:AddLine(L["Double-click to open its settings."]) end
 end
 
 local function PlateDown(plate, button)
@@ -525,16 +524,14 @@ local function PlateDown(plate, button)
 end
 
 local function PlateClick(plate, button)
-	if button == "RightButton" then
-		if KeyDown(IsShiftKeyDown) then
-			Mode.hidden[plate.key] = true
-			plate:Hide()
-			Mode.Select(nil)
-			toolbar:Arrange()
-			Mode.Refresh()
-		else
-			Layout.Reset(plate.key)
-		end
+	if button == "MiddleButton" then
+		Mode.hidden[plate.key] = true
+		plate:Hide()
+		Mode.Select(nil)
+		toolbar:Arrange()
+		Mode.Refresh()
+	elseif button == "RightButton" then
+		Layout.Reset(plate.key)
 	end
 end
 
@@ -549,11 +546,10 @@ local function PlateDoubleClick(plate, button)
 	local settings = bar and ns.Store.Module("ActionBars")
 	local el = Layout.Element(plate.key)
 	local actionBar = settings and settings[bar]
-	local shortcut = ns.Store.Account().moverOptions
 	if actionBar then
 		if not actionBar.moverOptions then return end
 		ns.Options.Write("ActionBars", "editBar", bar)
-	elseif IsSecret(shortcut) or shortcut ~= true then return end
+	elseif ns.Store.Account().moverOptions == false then return end
 	Layout.Exit()
 	ns.Options.Open(actionBar and "ActionBars" or el.module or "Elements")
 end
@@ -624,7 +620,7 @@ function Mode.NewPlate(key)
 	plate.tag:SetColorTexture(Widgets.Rgba("deep", 0.85))
 	plate.info = Widgets.Text(plate, "caption", "text")
 	plate:EnableMouse(true)
-	plate:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	plate:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 	plate:RegisterForDrag("LeftButton")
 	plate:EnableMouseWheel(true)
 	plate:SetScript("OnMouseDown", PlateDown)

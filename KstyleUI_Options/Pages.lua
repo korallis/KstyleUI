@@ -461,7 +461,7 @@ local function ElementsItems()
 	Append(items, Model.SchemaItems("LayoutControls", K.Options.Get("LayoutControls"), "Elements"))
 	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Double-click movers for settings"],
 		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
-		get = function() return K.Store.Account().moverOptions == true end,
+		get = function() return K.Store.Account().moverOptions ~= false end,
 		set = function(value) K.Store.Account().moverOptions = value; ns.Changed() end }
 	NoLayoutNote(items, "Elements")
 	local byModule, order = {}, {}
@@ -673,7 +673,7 @@ function Pages.ReviewImport(text)
 	for _, module in ipairs(preview.changes) do labels[#labels + 1] = Pages.ModuleLabel(module) end
 	message = format(message, #labels > 0 and table.concat(labels, ", ") or L["No changes"])
 	if preview.warning then message = message .. "\n\n" .. preview.warning end
-	K.Widgets.Popup({ title = L["Review import"], text = message .. "\n\n" .. L["Profile name (optional)"],
+	K.Widgets.Popup({ title = L["Review import"], text = message,
 		editBox = { placeholder = L["Profile name (optional)"], maxLetters = 48 }, buttons = {
 			{ label = L["Cancel"] }, { label = L["Apply"], primary = true, onClick = function(handle)
 				local name = handle:GetText():match("^%s*(.-)%s*$")
