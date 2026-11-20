@@ -181,8 +181,6 @@ Other content-sized surfaces are tooltips, fitted chat tabs, toggle-label hit ar
 
 Player/target column names retain the `unit` role (CinzelUnit Medium in baseline; CinzelUnit SemiBold in Folio). Across 108 frozen nine-screen, three-preset, four-Latin-locale HUD pairs, all 432 real name instances remain whole at their configured size, with unchanged allocations and anchors. The minimum remaining room is 42.874 physical pixels. Healer world-nameplate fixture collisions are separate from these player/target lanes.
 
-The frFR Options sample `Hurleur du givre` is an accepted bounded preview exception: eight more instances ellipsize across seven screens with Folio, inside unchanged reserved name lanes. Complete retained characters and a complete `...` run fit the outward-rounded native pixel boxes, with no partial foreground-glyph clipping. Existing configured shadows can paint up to two pixels beyond the rectangle in either source. The affected screens are 1280×720, 1366×768, 1920×1080, 2560×1440, 3440×1440, 5120×1440 and 3456×2234. This does not establish every arbitrary NPC/player name or native-client rendering.
-
 ## Final gallery fit evidence
 
 The preserved initial matrix contains 4,410 renders. A separate 1,206-render delta on `bafa97fa` covers 324 affected Latin cases and 441 paired Folio/calibrated-baseline zhCN cases, with zero infrastructure errors. All affected authored Latin labels fit whole: zero authored findings and zero horizontal clips exceeding one physical pixel. The 18 remaining Latin strict failures are French/Spanish game-data preview names at the unchanged floor, not kit-authored labels. All 45 repacked aura-count cases pass.
