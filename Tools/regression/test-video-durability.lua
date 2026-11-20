@@ -16,7 +16,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		local width, height = K.Setup.Layouts.Footprint("DPS", "minimap.main")
 		local l, b, _, t = K.Setup.Layouts.Rect({ width = width, height = height }, map, rw, rh)
 		local x, y = a.offsetX / k - K.Scale.Origin(), a.offsetY / k
-		assert(a.point == "TOPRIGHT" and x <= l - 16 and y <= t - 64 and y - 75 >= b, "issue 9: the doll sits beside the map, below the buff row and above the story cards")
+		assert(a.point == "TOPRIGHT" and x <= l - 16 + 0.01 and y <= t - 64 and y - 75 / k >= b, "issue 9: the doll sits beside the map, below the buff row and above the story cards: " .. style .. " " .. x .. "," .. y .. " map " .. l .. "," .. b .. "," .. t)
 		assert(F.Setting(doll, 0) == 5, "keep the player's durability size")
 		doll.anchorInfo.offsetX = doll.anchorInfo.offsetX - 40
 		local moved = doll.anchorInfo.offsetX

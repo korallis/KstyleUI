@@ -1,4 +1,4 @@
--- test-rails-composed.lua: story cards share their foot and eight-unit gutter, and a quest can continue under the viewport's lower fade.
+-- test-rails-composed.lua: story cards keep independent heights and an eight-unit gutter, and a quest can continue under the viewport's lower fade.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 local Minimap = dofile("Tools/regression/minimap_env.lua")
@@ -26,7 +26,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local pixel = K.Scale.Pixel(1) + 0.01
 	local composed = ns.QuestCard.Parts()
 	assert(composed.cap:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out again at the composed height, with the cap and next quest visible")
-	assert(math.abs(q.bottom - g.bottom) <= pixel, "side-by-side story cards share the taller card's foot")
+	assert(g.bottom > q.bottom + pixel, "the short guide ends above the taller quest card's foot")
 	assert(math.abs(g.left - q.right - 8) <= pixel, "the tall quest column stands left of the guide with one eight-unit gutter")
 	K.Options.Write("Skins", "restedXP.compose", false)
 	R.settle()

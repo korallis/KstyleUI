@@ -27,7 +27,7 @@ for i, task in ipairs(ns.Pages.TASKS) do
 	K.Options.Open("Tasks")
 	settle()
 	local row = rowAt(i)
-	assert(row.item.label == task.label and math.abs(row:GetHeight() - 36) < 0.01, "G9: every task is a 36-unit link")
+	assert(row.item.label == task.label and row:GetHeight() > 36 and row.help:IsShown(), "every task keeps its 36-unit link and a visible explanation")
 	assert(row.controls.task:GetWidth() >= K.Widgets.TextWidth(row.controls.task.label, 0) + 2 * K.Tokens.Size("gapLarge"), "G9: the whole task label fits its link")
 	W.Click(row.controls.task)
 	settle()

@@ -26,12 +26,14 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the first time, and `Window.lua` hands it `Window.Show` through `Options.SetWindow`. `/kstyle`, the KstyleUI category in Blizzard's Settings panel and the addon compartment all call `Options.Open` (see `Core/OptionsEntry.lua` and `docs/core-services.md`).
 
-- `Show(page)` builds the window on first use, opens it on `page`, and raises it. With no page, a closed window opens on Tasks: six 36-unit links to Change HUD, Choose role (the existing setup entry), Readable text, Bind keys, Healing clicks and Existing addons. General > Start with tasks restores the previous last-page opening when off. Page ids include `Tasks`, `General`, `Elements`, `Profiles`, `About` and module names, in any letter case. General section names also open General.
+- `Show(page)` builds the window on first use, opens it on `page`, and raises it. With no page, a closed window opens on Tasks: six 36-unit links with destination help and the shared live sample preview, to Change HUD, Choose role (the existing setup entry), Readable text, Bind keys, Healing clicks and Existing addons. General > Start with tasks restores the previous last-page opening when off. Page ids include `Tasks`, `General`, `Elements`, `Profiles`, `About` and module names, in any letter case. General section names also open General.
 - `Show()` with no page closes an open window, so `/kstyle` toggles it.
 - The window plays the kit panel's open motion: alpha 0 to 1 over `panelOpen` while it rises `panelRise` with a `panelOvershoot` overshoot. It closes with a `panelClose` fade.
 - Escape closes it through `Widgets.EscapeCloses`, its own key handler. It never touches `UISpecialFrames`. Escape in the search field only clears the field's focus.
 - It sits in the `HIGH` strata as a top-level frame, so dialogs (`DIALOG`), dropdown menus (`FULLSCREEN_DIALOG`) and the colour picker show above it, and it shows over Blizzard's Settings panel.
 - It registers with Layout as `Options.Window` (module `Options`, label "Settings window"), resizable from 880 by 520 to 1800 by 1040 units and scalable. Dragging the header saves a `CENTER` position through `Layout.Set`. When its own scale changes, `LayoutChanged` makes the kit restyle so borders stay whole pixels.
+
+General uses the live kit sample for Text and the other appearance sections; only Existing addons selects the boss lane preview when a lane is enabled. Scrolling between sections updates the preview.
 
 ## Layout of the window
 

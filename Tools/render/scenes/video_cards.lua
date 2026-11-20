@@ -7,6 +7,7 @@ local F = dofile("Tools/regression/editmode_fake.lua")
 return Common.Run(function()
 	local R = Boot(Common.DEFAULT_SCREEN, nil, nil, true)
 	local env, K, rxp = R.env, R.K, R.rxp
+	K.Options.Write("Skins", "restedXP.boxes", false)
 	M.Blizzard(env, { position = { 0.725, 0.396 } })
 	dofile("Tools/regression/load_files.lua")(M.Files(), env)
 	K.Modules.Enable("Minimap"); M.Settle(env)
@@ -17,7 +18,10 @@ return Common.Run(function()
 		{ text = "Turn in Halgar's Summons", textOnly = true },
 		{ text = "Accept Creature of the Void", textOnly = true },
 	} } })
-	rxp.SetStep(); R.settle()
+	rxp.SetStep(1); R.settle()
+	rxp.targeting.activeTargetFrame:Hide()
+	rxp.activeItemFrame:Hide()
+	R.settle()
 	local doll = env.CreateFrame("Frame", "DurabilityFrame", env.UIParent)
 	doll:SetSize(58, 75)
 	-- Body geometry and UVs: Blizzard_DurabilityFrame/DurabilityFrame.xml; alert colours: DurabilityFrame.lua.
@@ -41,7 +45,6 @@ return Common.Run(function()
 	end
 	-- Start at the video's managed position, touching the guide's top, before Apply places this native system.
 	local guide = K.Skin.Parts(rxp.RXPFrame).backdrop
-	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local state = { saved = {}, active = 1 }
 	F.Install(env, state)
 	local modern = F.Modern
@@ -53,6 +56,6 @@ return Common.Run(function()
 	assert(K.Setup.EditMode.Write("DPS", K.Setup.Story("DPS", true)))
 	local a = F.Find(F.Named(state, "KstyleUI DPS"), 16).anchorInfo
 	doll:SetPoint(a.point, env.UIParent, a.relativePoint, a.offsetX, a.offsetY)
-	assert(k > 0 and not Common.Errors(env, K), tostring(Common.Errors(env, K)))
+	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Gallery.Build(env)
 end)

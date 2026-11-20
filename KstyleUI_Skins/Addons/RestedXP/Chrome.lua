@@ -769,6 +769,8 @@ function Chrome.Rest(f, on, folded)
 		return
 	end
 	on = on == true
+	local gutter = gutters[f.BottomFrame]
+	if gutter then gutter:SetShown(not (on and folded)) end
 	for _, button in ipairs({ footer.cog, footer.icon }) do
 		RestAlpha(button, on)
 		RestMouse(button, on)

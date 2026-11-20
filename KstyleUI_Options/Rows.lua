@@ -756,7 +756,15 @@ local function Layout(row, item, width)
 		control:Restyle()
 		control:ClearAllPoints()
 		Widgets.Point(control, "TOPLEFT", row, "TOPLEFT", Gap(row), 0)
-		return Snap(row, TASK_HEIGHT), control
+		Widgets.SetText(row.help, item.help or "")
+		Widgets.TextColor(row.help, "muted")
+		row.help:SetWordWrap(true)
+		local room = max(1, width - 2 * Gap(row))
+		local height = Widgets.WrappedHeight(row.help, room)
+		Widgets.Size(row.help, room, height)
+		Widgets.Point(row.help, "TOPLEFT", control, "BOTTOMLEFT", 0, -Gap(row, "gapSmall"))
+		row.help:Show()
+		return Snap(row, TASK_HEIGHT + height + Gap(row, "gapSmall") + Gap(row)), control
 	end
 	local control = Control(row, kind)
 	if kind == "segmented" then

@@ -71,6 +71,10 @@ local function TrackSection()
 	end
 	state.section = current
 	rail:SetCurrent(current)
+	local label = current and state.items[current].label
+	if preview and preview.page and preview.page.builtinPreview and preview.section ~= label then
+		Preview.Show(preview, preview.page, label)
+	end
 end
 
 local function Render(keepOffset, reselect, pageChanged)

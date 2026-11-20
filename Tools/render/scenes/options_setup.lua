@@ -48,6 +48,13 @@ return Common.Run(function()
 	env.RunTimers()
 	Gallery.Ticks(W, env, 40)
 	env.RunTimers()
+	if os.getenv("RENDER_SECTION") and env._addons.KstyleUI_Options then
+		local options = env._addons.KstyleUI_Options
+		for i, item in ipairs(options.Window.State().items) do
+			if item.kind == "header" and item.label == os.getenv("RENDER_SECTION") then options.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
+		end
+		Gallery.Ticks(W, env, 40)
+	end
 	if os.getenv("RENDER_TARGET") == "ornaments" and env._addons.KstyleUI_Options then
 		local options = env._addons.KstyleUI_Options
 		for i, item in ipairs(options.Window.State().items) do

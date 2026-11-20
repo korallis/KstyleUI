@@ -933,25 +933,25 @@ local function ModuleNames()
 	return names
 end
 
-local function GeneralPreview()
+local function GeneralPreview(section)
 	local cfg = K.Store.Module("Integrations")
-	if cfg.timerLane or cfg.announcementLane then return K.Setup.Integrations.Preview end
+	if section == L["Existing addons"] and (cfg.timerLane or cfg.announcementLane) then return K.Setup.Integrations.Preview end
 	return ns.Preview and ns.Preview.Sample
 end
 
 Pages.TASKS = {
-	{ label = L["Change HUD"], page = "General", module = "HudStyle", key = "style" },
-	{ label = L["Choose role"], page = "About", labelTarget = L["First-run setup"] },
-	{ label = L["Readable text"], page = "General", module = "Readability", key = "preset" },
-	{ label = L["Bind keys"], page = "ActionBars", labelTarget = L["Bind keys"] },
-	{ label = L["Healing clicks"], page = "GroupFrames", module = "GroupFrames", key = "clickCast.hint" },
-	{ label = L["Existing addons"], page = "General", module = "Integrations", key = "notices" },
+	{ label = L["Change HUD"], help = L["Choose Frames, Orbs or Medallions."], page = "General", module = "HudStyle", key = "style" },
+	{ label = L["Choose role"], help = L["Open setup to choose a damage, tank or healer layout."], page = "About", labelTarget = L["First-run setup"] },
+	{ label = L["Readable text"], help = L["Grow text and its rows with the Readable preset."], page = "General", module = "Readability", key = "preset" },
+	{ label = L["Bind keys"], help = L["Open Action Bars to assign your keybinds."], page = "ActionBars", labelTarget = L["Bind keys"] },
+	{ label = L["Healing clicks"], help = L["Find the click casting settings for party and raid frames."], page = "GroupFrames", module = "GroupFrames", key = "clickCast.hint" },
+	{ label = L["Existing addons"], help = L["Choose how KstyleUI works with your other addons."], page = "General", module = "Integrations", key = "notices" },
 }
 
 local function TasksItems()
 	local items = {}
 	for _, task in ipairs(Pages.TASKS) do
-		items[#items + 1] = { kind = "task", label = task.label, page = "Tasks", onClick = function() ns.Window.Jump(task) end }
+		items[#items + 1] = { kind = "task", label = task.label, help = task.help, page = "Tasks", onClick = function() ns.Window.Jump(task) end }
 	end
 	return items
 end
@@ -967,7 +967,7 @@ function Pages.List()
 		},
 	}
 	if K.Store.Module("OptionsPresentation").tasks then
-		table.insert(pages, 1, { id = "Tasks", label = L["Tasks"], Items = TasksItems })
+		table.insert(pages, 1, { id = "Tasks", label = L["Tasks"], Items = TasksItems, builtinPreview = function() return ns.Preview.Sample end })
 	end
 	for _, module in ipairs(ModuleNames()) do
 		pages[#pages + 1] = { id = module, module = module, label = Pages.ModuleLabel(module), Items = ModuleItems, reset = ResetModule }

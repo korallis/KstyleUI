@@ -5,7 +5,7 @@
 | File | What it holds |
 | --- | --- |
 | `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
-| `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots |
+| `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots, plus the durability doll beside the minimap, below its buff row and above the story cards |
 | `Setup.lua` | The choices, `Apply`, the story slot's split, the first run, and when the window opens |
 | `Integrations.lua` | Live addon discovery, same-job choices and integration lanes |
 | `Addons.lua` | The optional Your addons page, using the existing Options settings and skin registry |
@@ -146,3 +146,5 @@ A player can still move either frame in Layout Mode. Applying a preset restores 
 | `Reserves() -> { { key, width, height, offsetX }, ... }` | The room beyond an element's frame: player portrait 586.5 x 77.5 at offsetX -47.75; target portrait and auras 737.4 x 102.5 at offsetX 123.2; the focus card's 112 height, boss column's 318 width, and readout card's 118 height. A reserve is never smaller than its element. |
 
 Saved custom positions stay as they are; Store migrations upgrade positions that still match superseded preset defaults. A profile that never stored a position gets the reference DPS position from `Layouts.Default`. Bottom-anchored player and target columns keep their relative placement when the Interface size changes.
+
+Reapply the layout to place native durability in an existing profile. HUD style changes keep the stamped position current and preserve a position the player subsequently moves in Edit Mode. Its native size setting is retained. Forever evidence: `Blizzard_DurabilityFrame/DurabilityFrame.xml`, `Blizzard_EditMode/Shared/EditModeSystemTemplates.lua` and `Blizzard_APIDocumentationGenerated/EditModeManagerConstantsDocumentation.lua` at `9dc84f0`.

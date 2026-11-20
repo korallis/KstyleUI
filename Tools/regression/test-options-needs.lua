@@ -55,11 +55,14 @@ env.RunTimers()
 W.Settle(env)
 local preview = ns.Window.Parts().preview
 local standard = preview.current
+for i, item in ipairs(ns.Window.State().items) do
+	if item.kind == "header" and item.label == K.L["Existing addons"] then ns.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
+end
 K.Options.Write("Integrations", "timerLane", true)
 K.Options.Write("Integrations", "announcementLane", true)
 env.RunTimers()
 W.Settle(env)
-assert(preview.current ~= standard, "opting into boss lanes must replace the General sample immediately")
+assert(preview.current ~= standard, "opting into boss lanes must replace the Existing addons sample immediately")
 assert(preview.current:GetWidth() == K.Widgets.Snap(preview.current, 520) and preview.current:GetHeight() == K.Widgets.Snap(preview.current, 190), "the lane sample snaps its 520 by 190 canvas at the fitted preview scale")
 K.Options.Write("Integrations", "timerLane", false)
 K.Options.Write("Integrations", "announcementLane", false)

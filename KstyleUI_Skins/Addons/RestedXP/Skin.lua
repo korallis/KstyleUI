@@ -12,7 +12,7 @@ ns.Skins.Add({
 	addon = "RXPGuides",
 	defaults = { rail = true, boxes = true, compose = true },
 	rows = {
-		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Give story cards a shared lower edge and gutter. Off restores their previous sizes."] },
+		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Align the story cards and fit the guide to its steps. Off restores their previous spacing."] },
 		{
 			type = "toggle", key = "rail", label = L["Story rail"],
 			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],

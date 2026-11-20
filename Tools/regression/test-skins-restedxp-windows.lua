@@ -224,6 +224,7 @@ do
 
 	-- The scroll bar sits in its own gutter: a faint line, one border wide, runs the list's height a gap left
 	-- of the bar, on KstyleUI's own glass frame.
+	ns.RestedXP.Chrome.Rest(f, true, false)
 	local gutter = ns.RestedXP.Chrome.Gutter(f.BottomFrame)
 	assert(gutter and gutter:IsShown(), "a gutter line beside the step list's scroll bar")
 	assert(gutter:GetParent() == glass, "drawn on KstyleUI's glass, not on RestedXP's frame")

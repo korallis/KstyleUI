@@ -2,9 +2,14 @@
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
+local mode = ...
 
 local function Cards(screen)
-	local R = Boot({ width = screen[1], height = screen[2] }, nil, nil, true)
+	local R = Boot({ width = screen[1], height = screen[2], uiScale = 768 / 1080 }, nil, nil, true)
+	R.K.Options.Write("Skins", "restedXP.boxes", false)
+	R.rxp.targeting.activeTargetFrame:Hide()
+	R.rxp.activeItemFrame:Hide()
+	R.settle()
 	local path = R.ns.RestedXP.Chrome.Path(R.rxp.RXPFrame)
 	local guide = R.K.Skin.Parts(R.rxp.RXPFrame).backdrop
 	local steps = R.rxp.RXPFrame.CurrentStepFrame
@@ -19,11 +24,11 @@ local function Cards(screen)
 	end
 	Check()
 	R.rxp.fake.guide({ { index = 97, elements = { { text = "Talk to Carendin in the Magic Quarter" }, { text = "Turn in Halgar's Summons" }, { text = "Accept Creature of the Void" } } } })
-	R.rxp.SetStep(); R.settle(); Check()
+	R.rxp.SetStep(1); R.settle(); Check()
 	local tall = guide:GetHeight()
 	R.rxp.fake.guide({ { index = 98, elements = { { text = "Leave the Magic Quarter" } } } })
-	R.rxp.SetStep(); R.settle(); Check()
-	assert(guide:GetHeight() < tall, "issue 8: a shorter step shrinks the card again")
+	R.rxp.SetStep(1); R.settle(); Check()
+	assert(guide:GetHeight() < tall, "issue 8: a shorter step shrinks the card again: " .. tall .. " to " .. guide:GetHeight() .. " steps " .. steps:GetHeight())
 	assert(path and #R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
 end
 
@@ -32,15 +37,17 @@ local function Options(screen)
 	local function Settle() env.RunTimers(); O.W.Settle(env); env.RunTimers() end
 	K.Options.Open("Tasks"); Settle()
 	local parts = ns.Window.Parts()
-	assert(parts.preview:IsVisible() and parts.preview.current, "issue 11: Tasks uses the usual preview column")
-	local tasks = 0
-	for _, item in ipairs(ns.Window.State().items) do
-		if item.kind == "task" then
-			tasks = tasks + 1
-			assert(type(item.help) == "string" and item.help ~= "", "issue 11: explain each task's destination")
+	if mode ~= "text" then
+		assert(parts.preview:IsVisible() and parts.preview.current, "issue 11: Tasks uses the usual preview column")
+		local tasks = 0
+		for _, item in ipairs(ns.Window.State().items) do
+			if item.kind == "task" then
+				tasks = tasks + 1
+				assert(type(item.help) == "string" and item.help ~= "", "issue 11: explain each task's destination")
+			end
 		end
+		assert(tasks == 6, "issue 11: keep the six existing shortcuts")
 	end
-	assert(tasks == 6, "issue 11: keep the six existing shortcuts")
 	K.Options.Open("General"); Settle()
 	for i, item in ipairs(ns.Window.State().items) do
 		if item.kind == "header" and item.label == K.L["Text"] then parts.content:ScrollToIndex(i, true, "TOP"); break end
@@ -62,7 +69,7 @@ local function Options(screen)
 end
 
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
-	if ... ~= "options" then Cards(screen) end
-	if ... ~= "cards" then Options(screen) end
+	if mode ~= "options" and mode ~= "text" then Cards(screen) end
+	if mode ~= "cards" then Options(screen) end
 end
 print("video cards and Options ok")

@@ -22,7 +22,7 @@ end)
 
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, height = 1440 }, { width = 5120, height = 1440 }, { width = 3840, height = 2160 } }) do
 	Check("shrink " .. screen.width, function()
-		local R = Boot(screen, nil, nil, true)
+		local R = Boot({ width = screen.width, height = screen.height, uiScale = 768 / 1080 }, nil, nil, true)
 		local path = R.ns.RestedXP.Chrome.Path(R.rxp.RXPFrame)
 		local capHeight = path.cap:GetHeight()
 		for _ = 1, 3 do
@@ -32,9 +32,9 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		local before = path.card:GetHeight()
 		for i = #R.quests, 2, -1 do R.log.Untrack(R.quests[i].id) end
 		R.rxp.fake.guide({ { index = 12, elements = { { text = "Talk to Joshua", textOnly = true } } } })
-		R.rxp.SetStep()
+		R.rxp.SetStep(1)
 		R.settle()
-		assert(path.card:GetHeight() < before, "Compute aligned guide height from current content so both story cards shrink")
+		assert(path.card:GetHeight() < before, "Compute guide height from its current steps")
 		R.K.Options.Write("Skins", "restedXP.compose", false)
 		R.settle()
 		local natural = R.ns.Quests.Card():GetHeight()

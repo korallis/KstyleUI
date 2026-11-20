@@ -529,6 +529,10 @@ local function Places(name, story, notes)
 		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, x = l * k, y = t * k, settings = settings }
 	end
 	local rw, rh = Setup.RootSize()
+	local map = enum.EditModeSystem.DurabilityFrame and Box(name, "minimap.main", rw, rh)
+	if map then
+		places[#places + 1] = { label = "the durability doll", system = enum.EditModeSystem.DurabilityFrame, stamp = "durability", point = "TOPRIGHT", x = (map.l - Layouts.GAP) * k, y = (map.t - 80) * k, settings = {} }
+	end
 	local rows = Rows(name, k, rw, rh, notes)
 	for _, place in ipairs(rows) do
 		places[#places + 1] = place

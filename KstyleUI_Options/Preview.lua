@@ -42,7 +42,7 @@ function Preview.Sample(parent)
 	Widgets.Point(slider, "TOPLEFT", toggle, "BOTTOMLEFT", 0, -gap)
 	local button = Widgets.Button(frame, { text = L["Button"], primary = true })
 	Widgets.Point(button, "TOPLEFT", slider, "BOTTOMLEFT", 0, -gap)
-	frame.bar, frame.toggle, frame.slider, frame.button = bar, toggle, slider, button
+	frame.body, frame.bar, frame.toggle, frame.slider, frame.button = body, bar, toggle, slider, button
 	return frame
 end
 
@@ -494,8 +494,9 @@ function RefreshCurrent(pane)
 	pane.held[frame] = { room = pane.room, wide = pane.wide, height = height, scale = frame:GetScale() }
 end
 
-function Preview.Show(pane, page)
+function Preview.Show(pane, page, section)
 	pane.page = page
+	pane.section = section
 	local previous = pane.current
 	local frame
 	if page then
@@ -503,7 +504,7 @@ function Preview.Show(pane, page)
 		if builder then
 			frame = Build(pane, page.module, builder)
 		elseif page.builtinPreview then
-			local sample = page.builtinPreview()
+			local sample = page.builtinPreview(section)
 			if sample then
 				frame = Build(pane, sample, sample)
 			end
@@ -532,7 +533,7 @@ end
 
 function Preview.Refresh(pane, module)
 	if pane.page and pane.page.builtinPreview then
-		Preview.Show(pane, pane.page)
+		Preview.Show(pane, pane.page, pane.section)
 	elseif module == nil or module == pane.module then
 		RefreshCurrent(pane)
 	end
