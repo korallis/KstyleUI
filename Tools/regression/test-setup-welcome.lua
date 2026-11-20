@@ -134,6 +134,24 @@ for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES", "zhCN" }) do
 	end
 end
 
+do
+	local env, K, page = boot({ 1920, 1080 }, "Frames", "deDE", "default")
+	K.Layout.Set("setup.window", "scale", 0.9)
+	W.Settle(env)
+	local panel = K.Setup.window
+	local grown = panel.opts.height
+	assert(grown > 540, "the German welcome at the pre-Auto size grows the window")
+	for _, step in ipairs({ 2, 3, 4, 6, 1 }) do
+		assert(K.Setup.Go(step))
+		for _, restyle in ipairs({ false, true }) do
+			if restyle then page:Restyle() end
+			W.Settle(env)
+			local want = step == 1 and grown or 540
+			assert(panel.opts.height == want and (step == 1 or panel:GetHeight() < 541), string.format("step %d%s: only the welcome page grows the window; restore 540 units off it (height %.2f)", step, restyle and " after a restyle" or "", panel:GetHeight()))
+		end
+	end
+end
+
 local f = assert(io.open("Media/Logo/Logo256.tga", "rb"))
 local header = f:read(18)
 f:close()
