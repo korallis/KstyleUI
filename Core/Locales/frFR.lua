@@ -1052,7 +1052,7 @@ ns.Locale.Add({
 	["From the left"] = "Depuis la gauche",
 	["From the right"] = "Depuis la droite",
 	["From the top, downward"] = "Du haut vers le bas",
-	["Frost Howler"] = "Hurleur du givre",
+	["Frost Howler"] = "Hurlegivre",
 	["Frostbolt"] = "\195\137clair de givre",
 	["Full"] = "Complet",
 	["Full adds the game's 3D effects; Calm keeps short fades and flashes; Off is still."] = "Complet ajoute les effets 3D ; Calme garde de brefs fondus et \195\169clats ; D\195\169sactiv\195\169 est fixe.",
