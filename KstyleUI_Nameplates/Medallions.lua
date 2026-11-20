@@ -199,7 +199,8 @@ function Plate:LayoutDiamond()
 		return
 	end
 	self.levelText:ClearAllPoints()
-	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)), 0, nil, nil, self.barW, self.barH)
+	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)) + Settings.Get("level.x"),
+		Settings.Get("level.y"), nil, nil, self.barW, self.barH)
 end
 
 local layoutBrackets = Plate.LayoutBrackets

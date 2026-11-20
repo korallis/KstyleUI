@@ -18,6 +18,11 @@ local GAP = Tokens.Size("gapTiny")
 local NAME_GAP = Tokens.Size("gapMedium")
 local ICON_CROP = 0.07
 local RINGS = { "black", "hostile", "black" }
+local RING_LEVELS, DISPEL_LEVEL = { 1, 2, 4 }, 3
+local OUT_X = { TOPRIGHT = 1, BOTTOMRIGHT = 1, TOPLEFT = -1, BOTTOMLEFT = -1, CENTER = 0 }
+local OUT_Y = { TOPRIGHT = 1, TOPLEFT = 1, BOTTOMRIGHT = -1, BOTTOMLEFT = -1, CENTER = 0 }
+local CUE_ALPHA, CUE_HEIGHT = 0.8, 2
+local IN_FRONT = 100
 local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
@@ -27,6 +32,8 @@ local COUNT_OUT_X, COUNT_OUT_Y = 1, 2
 local BADGE_PAD, BADGE_ALPHA = 1, 0.62
 local TIMER_GAP, TIMER_EXTRA = 1, 3
 local SAMPLE_ICONS = { 136118, 135817, 132155 }
+local SAMPLE_TIMES = { "12", "4", "21" }
+local TEXT_KEYS = { "timePlace", "timeX", "timeY", "countPlace", "countX", "countY" }
 
 local available = true
 local parts = setmetatable({}, { __mode = "k" })
@@ -44,14 +51,16 @@ local function AurasSecret()
 end
 
 local function Grid(frame)
-	local size = Widgets.Snap(frame, Settings.Get("debuffs.size"))
+	local raw = Settings.Get("debuffs.size")
+	local size = Widgets.Snap(frame, raw)
 	local spacing = Widgets.Snap(frame, Settings.Get("debuffs.spacing"))
-	return size, spacing, Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows")
+	local height = Settings.Get("debuffs.cropped") and Widgets.Snap(frame, raw * (1 - Settings.Get("debuffs.crop") / 50)) or size
+	return size, spacing, Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows"), height
 end
 Auras.GROUP, Auras.OVERFLOW_MAX, Auras.Grid = GROUP, OVERFLOW_MAX, Grid
 
 local function SettingsLane(frame)
-	if not Settings.Get("debuffs.showTime") then
+	if not Settings.Get("debuffs.showTime") or Settings.Get("debuffs.timePlace") ~= "BELOW" then
 		return 0
 	end
 	local lane = TIMER_GAP + Settings.Get("debuffs.textSize") + TIMER_EXTRA
@@ -85,8 +94,8 @@ local function SortOptions()
 end
 
 local function GroupLayout(plate)
-	local size, spacing = Grid(plate)
-	return { elementSpacing = spacing, lineSpacing = spacing + Lane(plate), elementWidth = size, elementHeight = size }
+	local size, spacing, _, _, height = Grid(plate)
+	return { elementSpacing = spacing, lineSpacing = spacing + Lane(plate), elementWidth = size, elementHeight = height }
 end
 
 local function Filter()
@@ -113,13 +122,13 @@ local function NewTile(owner)
 	skin:SetAllPoints(owner)
 	local rings = {}
 	for i, color in ipairs(RINGS) do
-		local ring = Widgets.Crisp(skin:CreateTexture(nil, "BACKGROUND", nil, i))
+		local ring = Widgets.Crisp(skin:CreateTexture(nil, "BACKGROUND", nil, RING_LEVELS[i]))
 		ring:SetColorTexture(Tokens.Color(color))
 		rings[i] = ring
 	end
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	return { skin = skin, icon = icon, rings = rings }
+	return { skin = skin, icon = icon, rings = rings, bare = false, crop = 0 }
 end
 
 local function Inset(region, skin, inset)
@@ -131,10 +140,122 @@ end
 local function LayoutTile(tile)
 	local skin = tile.skin
 	local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(skin)
+	local bare = not Settings.Get("debuffs.border")
 	for i, ring in ipairs(tile.rings) do
 		Inset(ring, skin, px * (i - 1))
+		if bare ~= tile.bare then ring:SetShown(not bare) end
 	end
-	Inset(tile.icon, skin, px * #tile.rings)
+	tile.bare = bare
+	if tile.dispel then Inset(tile.dispel, skin, px) end
+	Inset(tile.icon, skin, bare and 0 or px * #tile.rings)
+	local crop = Settings.Get("debuffs.cropped") and Settings.Get("debuffs.crop") / 100 or 0
+	if crop ~= tile.crop then
+		tile.crop = crop
+		local edge = 0.5 - (0.5 - ICON_CROP) * (1 - 2 * crop)
+		tile.icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, edge, 1 - edge)
+	end
+end
+
+local function AddTexts(tile, owner, level)
+	local textFrame = CreateFrame("Frame", nil, owner)
+	textFrame:SetAllPoints(owner)
+	textFrame:SetFrameLevel(level)
+	local countHolder = CreateFrame("Frame", nil, textFrame)
+	countHolder:SetAllPoints(textFrame)
+	local count = Widgets.Fitted(Widgets.FontString(countHolder, "OVERLAY"))
+	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", COUNT_OUT_X, COUNT_OUT_Y)
+	count:SetJustifyH("RIGHT")
+	local badge = countHolder:CreateTexture(nil, "BACKGROUND")
+	local pad = Widgets.Snap(countHolder, BADGE_PAD)
+	badge:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
+	badge:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
+	badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
+	local timeHolder = CreateFrame("Frame", nil, textFrame)
+	timeHolder:SetAllPoints(textFrame)
+	local time = Widgets.FontString(timeHolder, "OVERLAY")
+	time:SetJustifyH("CENTER")
+	tile.count, tile.time, tile.countHolder, tile.timeHolder, tile.over = count, time, countHolder, timeHolder, textFrame
+end
+
+local function StyleTexts(p, size)
+	local place, x, y = Settings.Get("debuffs.countPlace"), Settings.Get("debuffs.countX"), Settings.Get("debuffs.countY")
+	p.count:ClearAllPoints()
+	p.count:SetPoint(place, p.countHolder, place, Widgets.Snap(p.countHolder, COUNT_OUT_X) * OUT_X[place] + Widgets.Snap(p.countHolder, x),
+		Widgets.Snap(p.countHolder, COUNT_OUT_Y) * OUT_Y[place] + Widgets.Snap(p.countHolder, y))
+	StyleText(p.count, math.max(COUNT_MIN, Settings.Get("debuffs.textSize") - COUNT_STEP))
+	StyleText(p.time)
+	place, x, y = Settings.Get("debuffs.timePlace"), Widgets.Snap(p.skin, Settings.Get("debuffs.timeX")), Widgets.Snap(p.skin, Settings.Get("debuffs.timeY"))
+	p.time:ClearAllPoints()
+	if place == "BELOW" then
+		p.time:SetPoint("TOP", p.timeHolder, "BOTTOM", Widgets.Snap(p.skin, size / 2) - size / 2 + x, -Widgets.Snap(p.skin, TIMER_GAP) + y)
+	else
+		p.time:SetPoint(place, p.timeHolder, place, x, y)
+	end
+	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
+	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
+end
+
+local function Cue(p)
+	if not p.cue then
+		p.cue = (p.cooldown and p.over or p.skin):CreateTexture(nil, "OVERLAY")
+		p.cue:SetColorTexture(Widgets.Rgba("capsGold", CUE_ALPHA))
+		p.cue:Hide()
+	end
+	local px = Widgets.Snap(p.skin, CUE_HEIGHT)
+	p.cue:SetHeight(px)
+	p.cue:ClearAllPoints()
+	p.cue:SetPoint("BOTTOMLEFT", p.skin, "BOTTOMLEFT", px, 0)
+	p.cue:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -px, 0)
+	return p.cue
+end
+
+local function Dispel(p)
+	if not p.dispel then
+		p.dispel = Widgets.Crisp(p.skin:CreateTexture(nil, "BACKGROUND", nil, DISPEL_LEVEL))
+		p.dispel:SetColorTexture(Tokens.Color("white"))
+		Inset(p.dispel, p.skin, K.Scale.Pixel(1) / Widgets.ScaleFactor(p.skin))
+	end
+	return p.dispel
+end
+
+local dispelOptions
+local function DispelOptions()
+	if dispelOptions == nil then
+		local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+		dispelOptions = styles and styles.PreserveAsset ~= nil and { style = styles.PreserveAsset, showWhenHarmful = true } or false
+		if not dispelOptions then
+			LogOnce("aura-dispel", "Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs keep their red ring")
+		end
+	end
+	return dispelOptions or nil
+end
+
+local function Cues(button, p)
+	local dispel = Settings.Get("debuffs.dispelColor") and Settings.Get("debuffs.border") and DispelOptions() ~= nil
+	if dispel ~= (p.dispelBound == true) and type(button.RemoveDispelTypeTexture) == "function" then
+		if dispel then
+			button:AddDispelTypeTexture(Dispel(p), DispelOptions())
+		else
+			button:RemoveDispelTypeTexture(p.dispel)
+			p.dispel:Hide()
+		end
+		p.dispelBound = dispel
+	end
+	local cue = Settings.Get("debuffs.pandemic")
+	if cue ~= (p.cueBound == true) and type(button.AddPandemicRegion) == "function" and type(button.RemovePandemicRegion) == "function" then
+		if cue then
+			button:AddPandemicRegion(Cue(p))
+		else
+			button:RemovePandemicRegion(p.cue)
+			p.cue:Hide()
+		end
+		p.cueBound = cue
+	end
+	local tooltips = Settings.Get("debuffs.tooltips")
+	if tooltips ~= (p.tooltips == true) and type(button.SetMouseMotionEnabled) == "function" then
+		button:SetMouseMotionEnabled(tooltips)
+		p.tooltips = tooltips
+	end
 end
 
 local function StyleButton(button)
@@ -142,25 +263,19 @@ local function StyleButton(button)
 	if not p then
 		return
 	end
-	local size = Grid(p.skin)
+	local size, _, _, _, height = Grid(p.skin)
 	local endings = K.Appearance.Get("auraEndings")
 	if p.cooldown and type(p.cooldown.SetDrawBling) == "function" then
 		p.cooldown:SetDrawBling(not endings)
 	end
-	button:SetSize(size, size)
+	button:SetSize(size, height)
 	LayoutTile(p)
-	p.count:ClearAllPoints()
-	p.count:SetPoint("TOPRIGHT", p.countHolder, "TOPRIGHT", Widgets.Snap(p.countHolder, COUNT_OUT_X), Widgets.Snap(p.countHolder, COUNT_OUT_Y))
-	StyleText(p.count, math.max(COUNT_MIN, Settings.Get("debuffs.textSize") - COUNT_STEP))
-	StyleText(p.time)
-	p.time:ClearAllPoints()
-	p.time:SetPoint("TOP", p.timeHolder, "BOTTOM", Widgets.Snap(p.skin, size / 2) - size / 2, -Widgets.Snap(p.skin, TIMER_GAP))
-	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
-	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
+	StyleTexts(p, size)
 	button:SetDurationText(p.time, {
 		textFormatter = endings and Widgets.Duration.Formatter("short", true) or nil,
 		textColor = Widgets.Duration.ExpiringColor(Settings.Get("debuffs.expiring")),
 	})
+	Cues(button, p)
 end
 
 local function BuildButton(button)
@@ -176,30 +291,13 @@ local function BuildButton(button)
 	cooldown:SetReverse(true)
 	cooldown:SetHideCountdownNumbers(true)
 	cooldown:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
-	local textFrame = CreateFrame("Frame", nil, button)
-	textFrame:SetAllPoints(button)
-	textFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
-	local countHolder = CreateFrame("Frame", nil, textFrame)
-	countHolder:SetAllPoints(textFrame)
-	local count = Widgets.Fitted(Widgets.FontString(countHolder, "OVERLAY"))
-	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", COUNT_OUT_X, COUNT_OUT_Y)
-	count:SetJustifyH("RIGHT")
-	local badge = countHolder:CreateTexture(nil, "BACKGROUND")
-	local pad = Widgets.Snap(countHolder, BADGE_PAD)
-	badge:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
-	badge:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
-	badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
-	local timeHolder = CreateFrame("Frame", nil, textFrame)
-	timeHolder:SetAllPoints(textFrame)
-	local time = Widgets.FontString(timeHolder, "OVERLAY")
-	time:SetJustifyH("CENTER")
-	tile.count, tile.time, tile.countHolder, tile.timeHolder = count, time, countHolder, timeHolder
+	AddTexts(tile, button, cooldown:GetFrameLevel() + 1)
 	tile.cooldown = cooldown
 	parts[button] = tile
 	StyleButton(button)
 	button:SetIcon(icon)
 	button:SetDurationCooldown(cooldown)
-	button:SetApplicationCount(count)
+	button:SetApplicationCount(tile.count)
 end
 
 local function InitButton(button)
@@ -335,10 +433,11 @@ end
 
 local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
-		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP
+		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP + ns.Resource.Above(plate)
 	end
-	return GAP
+	return GAP + ns.Resource.Above(plate)
 end
+Auras.RoomAbove = RoomAbove
 
 local function RoomBelow(plate)
 	local room = GAP
@@ -371,11 +470,11 @@ function Auras.Extent(plate, rowsCap)
 	if not Shows(plate) then
 		return above, below
 	end
-	local size, spacing, _, rows = Grid(plate)
+	local _, spacing, _, rows, height = Grid(plate)
 	if rowsCap then
 		rows = math.min(rows, rowsCap)
 	end
-	local block = rows * (size + Lane(plate)) + (rows - 1) * spacing
+	local block = rows * (height + Lane(plate)) + (rows - 1) * spacing
 	if Settings.Get("debuffs.growthY") == "DOWN" then
 		return above, below + block
 	end
@@ -441,26 +540,56 @@ function LayoutContainer(plate)
 	if method ~= nil then
 		container:SetAuraGroupSortMethod(GROUP, method, order)
 	end
+	local raise = Settings.Get("debuffs.raise")
+	if raise or plate.aurasRaised then
+		plate.aurasRaised = raise
+		container:SetFrameLevel(plate:GetFrameLevel() + (raise and IN_FRONT or 1))
+	end
 	Anchor(plate, container, anchor)
 	LayoutChip(plate, anchor, size, spacing, columns)
 	RestyleButtons(plate)
 end
 
+local function SampleTexts(tile, i, size)
+	local texts = false
+	for _, key in ipairs(TEXT_KEYS) do
+		if Settings.Get("debuffs." .. key) ~= Settings.defaults.debuffs[key] then texts = true end
+	end
+	if texts and not tile.time then
+		AddTexts(tile, tile.skin, tile.skin:GetFrameLevel() + 1)
+		tile.time:SetText(SAMPLE_TIMES[i])
+		tile.count:SetText(i == 1 and "3" or "")
+	end
+	if tile.time then
+		tile.over:SetShown(texts)
+		StyleTexts(tile, size)
+	end
+	local cue = Settings.Get("debuffs.pandemic") and i == 2
+	if cue or tile.cue then Cue(tile):SetShown(cue) end
+	local dispel = Settings.Get("debuffs.dispelColor") and Settings.Get("debuffs.border") and i == 1
+	if dispel or tile.dispel then
+		Dispel(tile):SetVertexColor(Tokens.Color("magic"))
+		tile.dispel:SetShown(dispel)
+	end
+end
+
 local function LayoutSamples(plate)
 	local icons = plate.sampleAuras
-	local size, spacing, columns, rows = Grid(plate)
+	local size, spacing, columns, rows, height = Grid(plate)
 	local anchor = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
 	local holder = plate.sampleAuraHolder
-	Widgets.Size(holder, size, size)
+	Widgets.Size(holder, size, height)
 	Anchor(plate, holder, anchor)
 	local shown = Shows(plate)
+	local texts = plate ~= ns.Preview.samplePlate
 	for i, icon in ipairs(icons) do
-		Widgets.Size(icon, size, size)
-		local x, y = Logic.AuraOffset(i, columns, size, spacing, Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"), Lane(plate))
+		Widgets.Size(icon, size, height)
+		local x, y = Logic.AuraOffset(i, columns, size, spacing, Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"), Lane(plate), height)
 		icon:ClearAllPoints()
 		icon:SetPoint(anchor, holder, anchor, x, y)
 		icon:SetShown(shown and i <= columns * rows)
 		LayoutTile(icon.tile)
+		if texts then SampleTexts(icon.tile, i, size) end
 	end
 end
 

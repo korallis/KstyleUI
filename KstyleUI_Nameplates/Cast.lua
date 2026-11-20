@@ -18,6 +18,7 @@ local function InQuad(t) return t * t end
 local function HideCast(cast) cast:Hide() end
 local SHIELD_ALPHA = 0.6
 local IN_FRONT = 100
+local GLOW_CORNER, GLOW_OUTSET = 8, 6
 local ICON_CROP = 0.07
 local MS = 1000
 local SIGIL_MODULE = "UnitFrames"
@@ -31,6 +32,10 @@ end
 local function Immediate()
 	local enum = Enum and Enum.StatusBarInterpolation
 	return enum and enum.Immediate
+end
+
+local function Rgb(c)
+	return c.r, c.g, c.b
 end
 
 local function CastColor()
@@ -134,7 +139,43 @@ local function Shade(plate, alpha)
 	plate.castGlyph:SetAlpha(Settings.Get("cast.combatCues") and alpha > 0 and 1 or 0)
 end
 
+local function FromFlag(region, flag)
+	if IsSecret(flag) and region.SetAlphaFromBoolean then
+		region:SetAlphaFromBoolean(flag, 1, 0)
+	else
+		region:SetAlpha(not IsSecret(flag) and flag == true and 1 or 0)
+	end
+end
+
+local function PaintImportant(plate)
+	local important = plate.castImportant
+	if plate.castInterrupted then important = nil end
+	local fill, glow = plate.castImportantFill, plate.castImportantGlow
+	if fill then
+		local interrupt = ns.Interrupt
+		if type(important) ~= "nil" and Settings.Get("cast.important") and not (Settings.Get("cast.importantKick") and interrupt and interrupt.spell and interrupt.ready == true) then
+			fill:SetVertexColor(Rgb(Settings.Get("cast.importantColor")))
+			FromFlag(fill, important)
+			plate.castFillOn = true
+		elseif plate.castFillOn ~= false then
+			fill:SetAlpha(0)
+			plate.castFillOn = false
+		end
+	end
+	if glow then
+		local on = type(important) ~= "nil" and Settings.Get("cast.importantGlow") or false
+		if on or plate.castGlowOn ~= false then
+			Widgets.ShowSlice(glow, on)
+			plate.castGlowOn = on
+		end
+		if on then
+			for i = 1, #glow do FromFlag(glow[i], important) end
+		end
+	end
+end
+
 local function Paint(plate, openR, openG, openB)
+	PaintImportant(plate)
 	local flag = plate.castFlag
 	if Settings.Get("cast.shieldBadge") and plate.castBadge.SetAlphaFromBoolean and (IsSecret(flag) or type(flag) == "boolean") then
 		plate.castBadge:SetAlphaFromBoolean(flag, 1, 0)
@@ -189,11 +230,26 @@ end
 
 local function Info(unit, channel)
 	if channel then
-		local name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(unit)
-		return name, text, texture, startMs, endMs, notInterruptible, nil
+		local name, text, texture, startMs, endMs, _, notInterruptible, spellID = UnitChannelInfo(unit)
+		return name, text, texture, startMs, endMs, notInterruptible, nil, spellID
 	end
-	local name, text, texture, startMs, endMs, _, castID, notInterruptible = UnitCastingInfo(unit)
-	return name, text, texture, startMs, endMs, notInterruptible, castID
+	local name, text, texture, startMs, endMs, _, castID, notInterruptible, spellID = UnitCastingInfo(unit)
+	return name, text, texture, startMs, endMs, notInterruptible, castID, spellID
+end
+
+local function Important(spellID)
+	if not (Settings.Get("cast.important") or Settings.Get("cast.importantGlow")) or type(spellID) == "nil" then
+		return nil
+	end
+	local api = C_Spell and C_Spell.IsSpellImportant
+	if type(api) ~= "function" then
+		LogOnce("cast-important", "C_Spell.IsSpellImportant is missing; no cast is marked important")
+		return nil
+	end
+	local ok, important = pcall(api, spellID)
+	if ok then return important end
+	LogOnce("cast-important-refused", "C_Spell.IsSpellImportant refused a spell: " .. tostring(important))
+	return nil
 end
 
 local function DurationFor(unit, channel)
@@ -227,24 +283,32 @@ local function Run(plate, channel, startMs, endMs)
 end
 
 local function Recolor(plate)
-	if plate.unit and Settings.Get("types.casting") then plate:UpdateColor() end
+	if not plate.unit then return end
+	if Settings.Get("types.casting") then plate:UpdateColor() end
+	if Settings.Get("cast.fullOpacity") or Settings.Get("cast.scale") ~= 1 then plate:UpdateHighlight() end
 end
 
 local function Shows(plate)
 	return Settings.Get("cast.enabled") and not plate.nameOnly and plate.unit ~= nil
+end
+Cast.Shows = Shows
+
+function Cast.Active(plate)
+	if plate.sample then return plate.sample.cast ~= nil end
+	return plate.unit ~= nil and (type((UnitCastingInfo(plate.unit))) ~= "nil" or type((UnitChannelInfo(plate.unit))) ~= "nil")
 end
 
 function Cast.Start(plate, channel, update)
 	if not Shows(plate) then
 		return Recolor(plate)
 	end
-	local name, text, texture, startMs, endMs, flag, castID = Info(plate.unit, channel)
+	local name, text, texture, startMs, endMs, flag, castID, spellID = Info(plate.unit, channel)
 	if type(name) == "nil" then
 		return
 	end
 	StopFade(plate)
 	plate.casting, plate.castChannel, plate.castInterrupted = true, channel, false
-	plate.castFlag, plate.castID = flag, castID
+	plate.castFlag, plate.castID, plate.castImportant = flag, castID, Important(spellID)
 	local cast = plate.cast
 	plate.castIcon:SetTexture(texture)
 	local target
@@ -264,7 +328,6 @@ function Cast.Start(plate, channel, update)
 	plate.castBar:SetScript("OnUpdate", (showTime or plate.castFallback) and OnUpdate or nil)
 	Paint(plate)
 	plate:SetNameAlpha(Settings.Get("cast.hideUnitName") and 0 or 1)
-	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
 	if not (update and Settings.Get("cast.outcomes")) then plate.castBar:PlaySheen(false) end
 	Recolor(plate)
 end
@@ -279,7 +342,6 @@ end
 
 local function RestoreName(plate)
 	plate:SetNameAlpha(1)
-	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
 	Recolor(plate)
 end
 
@@ -455,8 +517,11 @@ function Component.Room(plate, anchor)
 		return 0
 	end
 	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
-	return Settings.Get("cast.height") + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label
+	local h = Settings.Get("cast.height")
+	local icon = Settings.Get("cast.showIcon") and math.max(0, (Settings.Get("cast.iconScale") - 1) * h / 2 - Settings.Get("cast.iconY")) or 0
+	return h + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label + icon
 end
+Cast.Room = Component.Room
 
 function Cast.Gap(plate)
 	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
@@ -465,7 +530,7 @@ end
 function Cast.Place(plate)
 	local cast = plate.cast
 	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, Cast.Gap(plate)) - Widgets.Snap(plate, Settings.Get("cast.offsetY")))
+	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", Widgets.Snap(plate, Settings.Get("cast.offsetX")), -Widgets.Snap(plate, Cast.Gap(plate)) - Widgets.Snap(plate, Settings.Get("cast.offsetY")))
 end
 
 function Component.Restyle(plate)
@@ -478,10 +543,13 @@ function Component.Restyle(plate)
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
 	Cast.Place(plate)
-	Widgets.Size(icon, h, h)
-	local iconSide = Settings.Get("cast.iconRight") and "TOPRIGHT" or "TOPLEFT"
+	local side = h * Settings.Get("cast.iconScale")
+	local grow = (side - h) / 2
+	Widgets.Size(icon, side, side)
+	local right = Settings.Get("cast.iconRight")
+	local iconSide = right and "TOPRIGHT" or "TOPLEFT"
 	icon:ClearAllPoints()
-	icon:SetPoint(iconSide, cast, iconSide)
+	icon:SetPoint(iconSide, cast, iconSide, Widgets.Snap(plate, (right and grow or -grow) + Settings.Get("cast.iconX")), Widgets.Snap(plate, grow + Settings.Get("cast.iconY")))
 	local front = Settings.Get("cast.inFront")
 	if front or plate.castRaised then
 		plate.castGate:SetFrameLevel(plate:GetFrameLevel() + (front and IN_FRONT or 1))
@@ -505,6 +573,33 @@ function Component.Restyle(plate)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
 	bar:Restyle()
 	bar:SetFillCursor(Settings.Get("cast.spark"))
+	local border = Settings.Get("cast.border")
+	if (not border or plate.castBare) and bar.barEdge then
+		plate.castBare = not border
+		bar.barEdge:SetShown(border)
+	end
+	if Settings.Get("cast.important") and not plate.castImportantFill then
+		plate.castImportantFill = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+		plate.castImportantFill:SetColorTexture(Tokens.Color("white"))
+		plate.castImportantFill:SetAllPoints(bar:GetStatusBarTexture())
+		plate.castImportantFill:SetAlpha(0)
+		plate.castFillOn = false
+	end
+	if Settings.Get("cast.importantGlow") then
+		local glow = plate.castImportantGlow
+		if not glow then
+			glow = Widgets.NineSlice(cast, "shadow", "BACKGROUND", -8)
+			for _, piece in ipairs(glow) do piece:SetBlendMode("ADD") end
+			Widgets.ShowSlice(glow, false)
+			plate.castImportantGlow, plate.castGlowOn = glow, false
+		end
+		Widgets.LayoutSlice(glow, bar, GLOW_CORNER, GLOW_OUTSET)
+		Widgets.ColorSlice(glow, Rgb(Settings.Get("cast.importantColor")))
+	end
+	if plate.castImportantGlow and not Settings.Get("cast.importantGlow") and plate.castGlowOn ~= false then
+		Widgets.ShowSlice(plate.castImportantGlow, false)
+		plate.castGlowOn = false
+	end
 	StyleFont(plate.castName, "caps")
 	StyleFont(plate.castTime, "time")
 	local glyph = plate.castGlyph
@@ -556,7 +651,7 @@ function Cast.Sample(plate)
 	plate.castTime:SetShown(Settings.Get("cast.showTime"))
 	plate.castBar:SetBarRange(0, 1)
 	plate.castBar:SetValue(sample.progress)
-	plate.castFlag = sample.notInterruptible
+	plate.castFlag, plate.castImportant = sample.notInterruptible, sample.important
 	Paint(plate)
 end
 

@@ -41,31 +41,38 @@ Settings.defaults = {
 		normal = false, normalColor = Color("plateHostile"),
 	},
 	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, afk = false, dnd = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
-	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit") },
+	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit"), x = 0, y = 0 },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent", font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "custom", color = Color("gilt"), shieldColor = Color("steelDim"),
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
 		showIcon = false, iconRight = false, offsetY = 0, inFront = false, showTarget = false, nameAlign = "LEFT", spark = false, hideUnitName = false, fullOpacity = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
+		iconScale = 1, iconX = 0, iconY = 0, offsetX = 0, border = true, important = false, importantGlow = false, importantColor = Color("legendary"), importantKick = false, scale = 1,
 	},
 	debuffs = {
 		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
+		timePlace = "BELOW", timeX = 0, timeY = 0, countPlace = "TOPRIGHT", countX = 0, countY = 0,
+		border = true, cropped = false, crop = 10, raise = false, dispelColor = false, pandemic = false, tooltips = false,
 	},
 	threat = {
 		display = "glow", keyline = true, shapes = true, role = "auto", groupOnly = true, name = false, calm = false, overTypes = true,
 		percent = false, percentPlace = "LEFT", percentColor = false,
+		overBoss = true, overMiniBoss = true, overCaster = true, tankOverBoss = true, tankOverOthers = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
-	target = { readableTicks = true, smoothOpacity = true, highlight = true, friendly = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1, hashLine = false, hashPercent = 30 },
+	target = { readableTicks = true, smoothOpacity = true, highlight = true, friendly = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1, hashLine = false, hashPercent = 30,
+		glow = false, glowAlpha = 0.9, fill = false, fillColor = Color("white"), fillAlpha = 0.2, scale = 1 },
 	focus = { fullOpacity = false, highlight = true, color = Color("rare"), letter = "", letterSize = 12, letterX = 0, letterY = 0 },
 	markers = { classification = true, raid = true, raidSize = 16, nameRaid = false, nameRaidSize = 14, pvp = false, pvpEnemyOnly = false, pvpPlayersOnly = true },
+	resource = { show = false, colorSource = "class", color = Color("gilt"), place = "BOTTOM", scale = 1, spacing = 2,
+		energy = false, energyHeight = 3, energyPlace = "BELOW", energyWidth = 1, energyHideFull = false },
 	stacking = { footprint = "plate" },
 	cvars = {
 		enabled = false, maxDistance = 40, verticalDistance = 0, stacking = "enemy",
 		selectedScale = 1.2, minScale = 0.8, clickSize = 2,
-		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game",
+		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game", enemiesInCombat = false,
 	},
 }
 
@@ -99,6 +106,8 @@ function Settings.Schema()
 	local THREAT_DISPLAYS = {
 		{ value = "glow", label = L["Glow around the plate"] },
 		{ value = "health", label = L["Health bar colour"] },
+		{ value = "healthEdge", label = L["Health bar colour and edge"] },
+		{ value = "name", label = L["The name only"] },
 		{ value = "off", label = L["Off"] },
 	}
 	local THREAT_ROLES = {
@@ -141,6 +150,14 @@ function Settings.Schema()
 		{ value = "difficulty", label = L["Level difficulty colour"] },
 		{ value = "custom", label = L["Custom colour"] },
 	}
+	local TIME_PLACES = {
+		{ value = "BELOW", label = L["Under the icon"] }, { value = "CENTER", label = L["Centre"] },
+		{ value = "TOP", label = L["Top"] }, { value = "BOTTOM", label = L["Bottom"] },
+	}
+	local COUNT_PLACES = {
+		{ value = "TOPRIGHT", label = L["Top right"] }, { value = "TOPLEFT", label = L["Top left"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
+		{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "CENTER", label = L["Centre"] },
+	}
 	local FOOTPRINTS = {
 		{ value = "plate", label = L["KstyleUI's plate"] },
 		{ value = "game", label = L["The game's own size"] },
@@ -162,6 +179,17 @@ function Settings.Schema()
 		local on = Is(key, true)
 		return function(s)
 			return not on(s)
+		end
+	end
+
+	local function None(...)
+		local tests = {}
+		for i, key in ipairs({ ... }) do tests[i] = Is(key, true) end
+		return function(s)
+			for _, on in ipairs(tests) do
+				if on(s) then return false end
+			end
+			return true
 		end
 	end
 
@@ -278,6 +306,8 @@ function Settings.Schema()
 		help = L["Keeps the current style, colours the level by how hard the unit is, or uses your own colour."], disableWhen = Off("level.show") }
 	schema[#schema + 1] = { type = "color", key = "level.color", label = L["Custom text colour"], help = L["The text colour when its colour mode is custom."],
 		showWhen = Is("level.colorMode", "custom"), disableWhen = Off("level.show") }
+	schema[#schema + 1] = { type = "slider", key = "level.x", label = L["Horizontal offset"], help = L["Moves the level left or right."], min = -50, max = 50, step = 1 }
+	schema[#schema + 1] = { type = "slider", key = "level.y", label = L["Vertical offset"], help = L["Moves the level up or down."], min = -50, max = 50, step = 1 }
 	SharedTextRows(schema, "healthText", L["Health text"])
 	schema[#schema + 1] = {
 		type = "dropdown", key = "healthText.format", label = L["Format"],
@@ -346,8 +376,18 @@ function Settings.Schema()
 			disableWhen = Off("cast.enabled"),
 		},
 		{ type = "toggle", key = "cast.iconRight", label = L["Icon on the right"], help = L["Puts the spell icon at the right of the cast bar."], disableWhen = Off("cast.showIcon") },
-		{ type = "slider", key = "cast.offsetY", label = L["Gap under the health bar"], help = L["Moves the cast bar further below the health bar."], min = 0, max = 20, step = 1, disableWhen = Off("cast.enabled") },
+		{ type = "slider", key = "cast.iconScale", label = L["Icon scale"], help = L["Scales the spell icon around its place."], min = 0.5, max = 2, step = 0.1, disableWhen = Off("cast.showIcon") },
+		{ type = "slider", key = "cast.iconX", label = L["Icon horizontal offset"], help = L["Moves the spell icon left or right."], min = -50, max = 50, step = 1, disableWhen = Off("cast.showIcon") },
+		{ type = "slider", key = "cast.iconY", label = L["Icon vertical offset"], help = L["Moves the spell icon up or down."], min = -50, max = 50, step = 1, disableWhen = Off("cast.showIcon") },
+		{ type = "slider", key = "cast.offsetX", label = L["Horizontal offset"], help = L["Moves the cast bar left or right."], min = -50, max = 50, step = 1, disableWhen = Off("cast.enabled") },
+		{ type = "slider", key = "cast.offsetY", label = L["Gap under the health bar"], help = L["Moves the cast bar down from the health bar, or up into it below zero."], min = -25, max = 75, step = 1, disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.inFront", label = L["Casts in front of plates"], help = L["Draws cast bars over neighbouring plates."], disableWhen = Off("cast.enabled") },
+		{ type = "toggle", key = "cast.border", label = L["Cast bar border"], help = L["Frames the cast bar with the dark bar edge. Off draws it without one."], disableWhen = Off("cast.enabled") },
+		{ type = "toggle", key = "cast.important", label = L["Important cast colour"], help = L["Colours casts the game marks as important, such as spells that are deadly if not interrupted."], disableWhen = Off("cast.enabled") },
+		{ type = "toggle", key = "cast.importantGlow", label = L["Important cast glow"], help = L["Glows around the cast bar during important casts."], disableWhen = Off("cast.enabled") },
+		{ type = "color", key = "cast.importantColor", label = L["Important colour"], help = L["The colour of important casts and their glow."], disableWhen = None("cast.important", "cast.importantGlow") },
+		{ type = "toggle", key = "cast.importantKick", label = L["Usual colour while you can interrupt"], help = L["Important casts keep the usual cast colour while your interrupt is ready."], disableWhen = Off("cast.important") },
+		{ type = "slider", key = "cast.scale", label = L["Plate size while casting"], help = L["Draws enemy plates larger while they cast. 1 keeps their size."], min = 1, max = 1.5, step = 0.05 },
 		{
 			type = "toggle", key = "cast.showName", label = L["Spell name"],
 			help = L["Shows the name of the spell being cast."],
@@ -434,6 +474,19 @@ function Settings.Schema()
 			help = L["Shows how many times a debuff has stacked."],
 			disableWhen = Off("debuffs.enabled"),
 		},
+		{ type = "dropdown", key = "debuffs.timePlace", label = L["Time left position"], help = L["Where each debuff's time left sits."], options = TIME_PLACES, disableWhen = Off("debuffs.showTime") },
+		{ type = "slider", key = "debuffs.timeX", label = L["Timer horizontal offset"], help = L["Moves each debuff's time left sideways."], min = -20, max = 20, step = 1, disableWhen = Off("debuffs.showTime") },
+		{ type = "slider", key = "debuffs.timeY", label = L["Timer vertical offset"], help = L["Moves each debuff's time left up or down."], min = -20, max = 20, step = 1, disableWhen = Off("debuffs.showTime") },
+		{ type = "dropdown", key = "debuffs.countPlace", label = L["Stacks position"], help = L["Where each debuff's stacks sit."], options = COUNT_PLACES, disableWhen = Off("debuffs.showCount") },
+		{ type = "slider", key = "debuffs.countX", label = L["Stacks horizontal offset"], help = L["Moves each debuff's stacks sideways."], min = -20, max = 20, step = 1, disableWhen = Off("debuffs.showCount") },
+		{ type = "slider", key = "debuffs.countY", label = L["Stacks vertical offset"], help = L["Moves each debuff's stacks up or down."], min = -20, max = 20, step = 1, disableWhen = Off("debuffs.showCount") },
+		{ type = "toggle", key = "debuffs.border", label = L["Debuff border"], help = L["Rings each debuff with its dark and red edge. Off shows the bare icon."], disableWhen = Off("debuffs.enabled") },
+		{ type = "toggle", key = "debuffs.dispelColor", label = L["Colour by dispel type"], help = L["Colours the red ring of each debuff by its type, such as magic or poison."], disableWhen = Off("debuffs.border") },
+		{ type = "toggle", key = "debuffs.cropped", label = L["Cropped icons"], help = L["Trims the top and bottom of each debuff into a wide tile."], disableWhen = Off("debuffs.enabled") },
+		{ type = "slider", key = "debuffs.crop", label = L["Crop"], help = L["How much is trimmed from the top and from the bottom, in percent."], min = 5, max = 25, step = 1, disableWhen = Off("debuffs.cropped") },
+		{ type = "toggle", key = "debuffs.raise", label = L["Debuffs in front of plates"], help = L["Draws debuffs over neighbouring plates."], disableWhen = Off("debuffs.enabled") },
+		{ type = "toggle", key = "debuffs.pandemic", label = L["Pandemic mark"], help = L["Underlines a debuff in gold once refreshing it keeps its full duration."], disableWhen = Off("debuffs.enabled") },
+		{ type = "toggle", key = "debuffs.tooltips", label = L["Debuff tooltips"], help = L["Shows a debuff's tooltip while you hover it. The plate behind the icon does not take the mouse."], disableWhen = Off("debuffs.enabled") },
 		{
 			type = "toggle", key = "debuffs.readableText", label = L["Number font for debuffs"],
 			help = L["Uses the number font for debuff timers and stacks. Turn off to use the plate font."],
@@ -478,6 +531,11 @@ function Settings.Schema()
 			help = L["Damage dealers and healers see the safe colour on units attacking someone else."], disableWhen = Is("threat.display", "off") },
 		{ type = "toggle", key = "threat.overTypes", label = L["Threat beats unit types"],
 			help = L["Threat on the health bar wins over unit type colours. Off keeps the type colour."], disableWhen = Is("threat.display", "off") },
+		{ type = "toggle", key = "threat.overBoss", label = L["Threat beats bosses"], help = L["Damage dealers and healers: threat wins over the boss colour."], disableWhen = Off("threat.overTypes") },
+		{ type = "toggle", key = "threat.overMiniBoss", label = L["Threat beats mini-bosses"], help = L["Damage dealers and healers: threat wins over the mini-boss colour."], disableWhen = Off("threat.overTypes") },
+		{ type = "toggle", key = "threat.overCaster", label = L["Threat beats casters"], help = L["Damage dealers and healers: threat wins over the caster colour."], disableWhen = Off("threat.overTypes") },
+		{ type = "toggle", key = "threat.tankOverBoss", label = L["Tanks: threat beats bosses"], help = L["Tanks: threat wins over the boss colour."], disableWhen = Off("threat.overTypes") },
+		{ type = "toggle", key = "threat.tankOverOthers", label = L["Tanks: threat beats mini-bosses and casters"], help = L["Tanks: threat wins over the mini-boss and caster colours."], disableWhen = Off("threat.overTypes") },
 		{
 			type = "color", key = "threat.safe", label = L["Safe colour"],
 			help = L["A tank holds aggro."],
@@ -506,18 +564,24 @@ function Settings.Schema()
 			type = "toggle", key = "target.highlight", label = L["Highlight the target"],
 			help = L["Draws a glow and an edge around your target's plate."],
 		},
-		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = Off("target.highlight") },
+		{ type = "toggle", key = "target.glow", label = L["Target glow"], help = L["Glows around your target's plate in the target colour."] },
+		{ type = "slider", key = "target.glowAlpha", label = L["Glow opacity"], help = L["How strong the target glow is."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.glow") },
+		{ type = "toggle", key = "target.fill", label = L["Target bar highlight"], help = L["Brightens your target's health bar."] },
+		{ type = "color", key = "target.fillColor", label = L["Highlight colour"], help = L["The colour that brightens your target's health bar."], disableWhen = Off("target.fill") },
+		{ type = "slider", key = "target.fillAlpha", label = L["Highlight opacity"], help = L["How strongly your target's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.fill") },
+		{ type = "slider", key = "target.scale", label = L["Target plate size"], help = L["Draws your target's plate larger. 1 keeps its size."], min = 1, max = 1.6, step = 0.05 },
+		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = None("target.highlight", "target.glow", "target.fill") },
 		{ type = "toggle", key = "target.hashLine", label = L["Health line on the target"], help = L["Marks a health percent, such as an execute range, on your target's health bar."] },
 		{ type = "slider", key = "target.hashPercent", label = L["Health line percent"], help = L["The health percent the line marks."], min = 0, max = 100, step = 1, disableWhen = Off("target.hashLine") },
 		{
 			type = "dropdown", key = "target.colorSource", label = L["Target colour"],
 			help = L["The target highlight follows the accent or uses your own colour."],
-			options = ACCENT_SOURCES, disableWhen = Off("target.highlight"),
+			options = ACCENT_SOURCES, disableWhen = None("target.highlight", "target.glow"),
 		},
 		{
 			type = "color", key = "target.color", label = L["Custom target colour"],
 			help = L["The colour of the target highlight."],
-			showWhen = Is("target.colorSource", "custom"), disableWhen = Off("target.highlight"),
+			showWhen = Is("target.colorSource", "custom"), disableWhen = None("target.highlight", "target.glow"),
 		},
 		{
 			type = "slider", key = "target.dimOthers", label = L["Other plates' opacity"],
@@ -537,6 +601,21 @@ function Settings.Schema()
 		{ type = "slider", key = "focus.letterSize", label = L["Text size"], help = L["The size of this text, in interface units."], min = TEXT_MIN, max = 32, step = 1, disableWhen = Is("focus.letter", "") },
 		{ type = "slider", key = "focus.letterX", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -100, max = 100, step = 1, disableWhen = Is("focus.letter", "") },
 		{ type = "slider", key = "focus.letterY", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -100, max = 100, step = 1, disableWhen = Is("focus.letter", "") },
+		{ type = "header", label = L["Class resource"] },
+		{ type = "toggle", key = "resource.show", label = L["Combo points on the target"], help = L["Shows your combo points on your target's plate, as the unit frames' pips."] },
+		{ type = "dropdown", key = "resource.colorSource", label = L["Bar colour"], help = L["Where the bar's colour comes from."], options = ACCENT_SOURCES, disableWhen = Off("resource.show") },
+		{ type = "color", key = "resource.color", label = L["Custom bar colour"], help = L["The bar's colour when its colour source is custom."],
+			showWhen = Is("resource.colorSource", "custom"), disableWhen = Off("resource.show") },
+		{ type = "dropdown", key = "resource.place", label = L["Position"], help = L["Puts the points under the plate or above the name."], options = {
+			{ value = "BOTTOM", label = L["Under the plate"] }, { value = "TOP", label = L["Above the name"] } }, disableWhen = Off("resource.show") },
+		{ type = "slider", key = "resource.scale", label = L["Points size"], help = L["Scales the points."], min = 0.5, max = 3, step = 0.1, disableWhen = Off("resource.show") },
+		{ type = "slider", key = "resource.spacing", label = L["Spacing"], help = L["The gap between the points."], min = -2, max = 10, step = 1, disableWhen = Off("resource.show") },
+		{ type = "toggle", key = "resource.energy", label = L["Energy bar"], help = L["Adds your energy as a thin bar beside the points."], disableWhen = Off("resource.show") },
+		{ type = "slider", key = "resource.energyHeight", label = L["Energy bar height"], help = L["The height of the energy bar, in interface units."], min = 1, max = 12, step = 1, disableWhen = Off("resource.energy") },
+		{ type = "dropdown", key = "resource.energyPlace", label = L["Energy bar position"], help = L["Puts the energy bar under or above the points."], options = {
+			{ value = "BELOW", label = L["Under the points"] }, { value = "ABOVE", label = L["Above the points"] } }, disableWhen = Off("resource.energy") },
+		{ type = "slider", key = "resource.energyWidth", label = L["Energy bar width"], help = L["The energy bar's width against the row of points."], min = 0.5, max = 3, step = 0.1, disableWhen = Off("resource.energy") },
+		{ type = "toggle", key = "resource.energyHideFull", label = L["Hide full energy out of combat"], help = L["Hides the energy bar while it is full and you are out of combat."], disableWhen = Off("resource.energy") },
 		{ type = "header", label = L["Markers"] },
 		{
 			type = "toggle", key = "markers.classification", label = L["Elite and rare markers"],
@@ -607,8 +686,11 @@ function Settings.Schema()
 		{ "friendlyNameOnly", "nameplateShowOnlyNameForFriendlyPlayerUnits", L["Names only for friendly players in instances"] },
 	}) do
 		rest[#rest + 1] = { type = "dropdown", key = "cvars." .. c[1], label = c[3], options = GAME_CHOICES,
-			help = L["Turns these game plates on or off. The game's setting leaves them alone."], disableWhen = Off("cvars.enabled"), showWhen = HasCVar(c[2]) }
+			help = L["Turns these game plates on or off. The game's setting leaves them alone."], showWhen = HasCVar(c[2]),
+			disableWhen = c[1] == "showEnemies" and function(s) return Off("cvars.enabled")(s) or Is("cvars.enemiesInCombat", true)(s) end or Off("cvars.enabled") }
 	end
+	rest[#rest + 1] = { type = "toggle", key = "cvars.enemiesInCombat", label = L["Enemy plates in combat only"],
+		help = L["Hides enemy plates out of combat and shows them as combat starts."], disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateShowEnemies") }
 	for _, row in ipairs(rest) do
 		schema[#schema + 1] = row
 	end

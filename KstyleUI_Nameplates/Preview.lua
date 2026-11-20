@@ -15,7 +15,7 @@ Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64,
 		enemy = true, reaction = 2, isPlayer = false, target = true, focus = true, raid = 8, caster = true, threatPct = 87,
-		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"] },
+		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"], important = true },
 	},
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81, afk = true, dnd = true,
@@ -28,6 +28,7 @@ Preview.SAMPLES = {
 	},
 }
 local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEnemy", "threat.name", "threat.percentColor" }
+local THREAT_SAMPLE = { healthEdge = true, name = true }
 
 local function Span(plate)
 	local w, above, h, below = ns.Stacking.Extent(plate)
@@ -49,6 +50,7 @@ local function Stack(frame)
 	for _, key in ipairs(PLAYER_ROWS) do
 		if Settings.Get(key) then first = 2 end
 	end
+	if THREAT_SAMPLE[Settings.Get("threat.display")] then first = 2 end
 	for i = first, #frame.plates do
 		local w, h = Span(frame.plates[i])
 		if not known or (w and w <= width and h <= height) then
@@ -66,13 +68,14 @@ local function Stack(frame)
 		holder:ClearAllPoints()
 		if i == chosen then
 			local w, h, side, above = Span(plate)
+			local boost = plate.boost or 1
 			local scale = 1
 			if known and w then
-				scale = math.min(1, width / w, height / h)
+				scale = math.min(1, width / (w * boost), height / (h * boost))
 			end
 			holder:SetScale(scale)
 			if w then
-				K.Widgets.Size(holder, w, h)
+				K.Widgets.Size(holder, w * boost, h * boost)
 				K.Widgets.Point(holder, "CENTER", frame, "CENTER")
 				plate:ClearAllPoints()
 				plate:SetPoint("TOPLEFT", holder, "TOPLEFT", K.Widgets.Snap(plate, side), -K.Widgets.Snap(plate, above))

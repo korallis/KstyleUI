@@ -9,7 +9,7 @@ local CVars = {}
 ns.CVars = CVars
 
 local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "minScale", "clickSize",
-	"showEnemies", "showFriends", "enemyMinions", "friendlyMinions", "friendlyNpcs", "friendlyNameOnly" }
+	"showEnemies", "showFriends", "enemyMinions", "friendlyMinions", "friendlyNpcs", "friendlyNameOnly", "enemiesInCombat" }
 local queued = false
 
 CVars.Exists = K.CVars.Exists
@@ -72,6 +72,7 @@ local function Apply()
 	for _, key in ipairs(KEYS) do
 		values[key] = Settings.Get("cvars." .. key)
 	end
+	values.inCombat = ns.state.inCombat
 	for _, entry in ipairs(Logic.CVarPlan(values)) do
 		local name = entry.name
 		if entry.value == nil then
@@ -117,6 +118,17 @@ function CVars.Schedule()
 		queued = false
 		CVars.Sync()
 	end)
+end
+
+function CVars.Combat()
+	if not (ns.Plates.running and Settings.Get("cvars.enabled") and Settings.Get("cvars.enemiesInCombat") and K.CVars.Exists("nameplateShowEnemies")) then
+		return
+	end
+	if InCombatLockdown() then
+		LogOnce("cvar-combat", "combat lockdown began before enemy plates could show; they show after combat")
+		return CVars.Schedule()
+	end
+	Set("nameplateShowEnemies", ns.state.inCombat and "1" or "0")
 end
 
 function CVars.PersonalResource(value)

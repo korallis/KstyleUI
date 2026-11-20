@@ -40,6 +40,10 @@ function Plates.Get(unit)
 	return byUnit[unit]
 end
 
+function Plates.Highlighted(which)
+	return highlighted[which]
+end
+
 function Plates.AddSample(plate)
 	samples[#samples + 1] = plate
 end
@@ -379,11 +383,20 @@ local function OnHighlight(event)
 end
 
 local function OnRole()
+	local tank = ns.state.isTank
 	UpdateRole()
+	local flipped = tank ~= ns.state.isTank
 	for _, plate in pairs(byUnit) do
 		plate:UpdateThreat()
+		if flipped then plate:UpdateColor() end
 		plate:UpdateTags("Group")
 	end
+end
+
+local function OnCombat(event)
+	ns.state.inCombat = event == "PLAYER_REGEN_DISABLED"
+	ns.CVars.Combat()
+	ns.Resource.Update()
 end
 
 local GLOBAL_EVENTS = {
@@ -408,6 +421,8 @@ local GLOBAL_EVENTS = {
 	PLAYER_FOCUS_CHANGED = OnHighlight,
 	PLAYER_ROLES_ASSIGNED = OnRole,
 	GROUP_ROSTER_UPDATE = OnRole,
+	PLAYER_REGEN_DISABLED = OnCombat,
+	PLAYER_REGEN_ENABLED = OnCombat,
 }
 Plates.UNIT_EVENTS, Plates.GLOBAL_EVENTS = UNIT_EVENTS, GLOBAL_EVENTS
 
@@ -430,6 +445,7 @@ function Plates.ReadSize()
 end
 
 function Plates.RestyleAll()
+	ns.Resource.Sync()
 	Plates.Each(function(plate)
 		plate:Restyle()
 	end)
@@ -437,6 +453,8 @@ end
 
 function Plates.Start()
 	Plates.running = true
+	local fighting = InCombatLockdown()
+	ns.state.inCombat = not IsSecret(fighting) and fighting == true
 	Settings.Invalidate()
 	UpdateRole()
 	UpdateTokens()
@@ -462,6 +480,7 @@ end
 function Plates.Stop()
 	Plates.running = false
 	ns.Interrupt.Stop()
+	ns.Resource.Sync()
 	for unit in pairs(byUnit) do
 		Detach(unit)
 	end

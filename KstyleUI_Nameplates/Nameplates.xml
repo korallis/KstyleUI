@@ -6,6 +6,7 @@
 	<Script file="Cast.lua"/>
 	<Script file="Interrupt.lua"/>
 	<Script file="Auras.lua"/>
+	<Script file="Resource.lua"/>
 	<Script file="Plates.lua"/>
 	<Script file="CVars.lua"/>
 	<Script file="Stacking.lua"/>

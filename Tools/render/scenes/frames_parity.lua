@@ -48,6 +48,26 @@ return Common.Run(function()
 			end
 			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
 			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+		elseif os.getenv("RENDER_PARITY_ROUND") == "2" then
+			-- Round 2 switched on: the target's glow, bar highlight and size, a rogue's combo points and energy on the target, an
+			-- important cast with its glow and a larger spell icon on the add, and threat as the bar colour and its edge.
+			local unitClass = env.UnitClass
+			env.UnitClass = function(unit)
+				if unit == "player" then return "Rogue", "ROGUE", 4 end
+				return unitClass(unit)
+			end
+			env._units.player = env._units.player or {}
+			env._units.player.power, env._units.player.powerMax = 70, 100
+			env.GetComboPoints = function() return 3 end
+			env.C_Spell.IsSpellImportant = function(id) return id ~= nil end
+			env._units.nameplate2.threat = 1
+			for key, value in pairs({ ["target.glow"] = true, ["target.fill"] = true, ["target.scale"] = 1.15, ["resource.show"] = true,
+				["resource.energy"] = true, ["cast.important"] = true, ["cast.importantGlow"] = true, ["cast.showIcon"] = true,
+				["cast.iconScale"] = 1.4, ["threat.groupOnly"] = false, ["threat.display"] = "healthEdge", ["cast.hideUnitName"] = false }) do
+				K.Options.Write(module, key, value)
+			end
+			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
 		end
 		N.Focus(env, "nameplate2")
 	end

@@ -150,6 +150,26 @@ local function ThreatColor(state)
 	return K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
 end
 
+local BAR_THREAT = { health = true, healthEdge = true }
+local KEEPS = { boss = { "threat.overBoss", "threat.tankOverBoss" }, miniBoss = { "threat.overMiniBoss", "threat.tankOverOthers" },
+	caster = { "threat.overCaster", "threat.tankOverOthers" } }
+
+local function ThreatEdge()
+	local display = Settings.Get("threat.display")
+	return display == "healthEdge" or display == "glow" and Settings.Get("threat.keyline")
+end
+
+local function ThreatName()
+	return Settings.Get("threat.name") or Settings.Get("threat.display") == "name"
+end
+
+local function Keeps(tank)
+	local slot = tank and 2 or 1
+	for _, keys in pairs(KEEPS) do
+		if not Settings.Get(keys[slot]) then return slot end
+	end
+end
+
 local function TargetColor()
 	if Settings.Get("target.colorSource") == "custom" then
 		return Rgb(Settings.Get("target.color"))
@@ -264,8 +284,9 @@ function ns.NewPlate(parent, sample)
 end
 
 function Plate:ApplyScale()
+	local boost = self.boost or 1
 	if self.sample then
-		self:SetScale(1)
+		self:SetScale(self == ns.Preview.samplePlate and 1 or boost)
 		return
 	end
 	local root = Scale.Root():GetEffectiveScale()
@@ -277,14 +298,14 @@ function Plate:ApplyScale()
 		end
 		local outer = base:GetParent()
 		local reference = Logic.ShrinkReference(outer and outer:GetEffectiveScale() or 1, UIParent:GetEffectiveScale())
-		self:SetScale(Logic.PlateScale(root, reference))
+		self:SetScale(Logic.PlateScale(root, reference) * boost)
 		LogOnce("shrink", "plates follow their base plate's scale, the game's distance and target scaling")
 	elseif canIgnore then
 		self:SetIgnoreParentScale(true)
-		self:SetScale(Logic.PlateScale(root, 1))
+		self:SetScale(Logic.PlateScale(root, 1) * boost)
 		LogOnce("hold", "plates ignore their base plate's scale and draw in root units")
 	else
-		self:SetScale(Logic.PlateScale(root, base:GetEffectiveScale()))
+		self:SetScale(Logic.PlateScale(root, base:GetEffectiveScale()) * boost)
 		LogOnce("hold", "SetIgnoreParentScale is missing; plates take their base plate's scale at each restyle")
 	end
 end
@@ -310,7 +331,7 @@ local function ExtraTexts(plate)
 end
 
 local letterCfg = { textFormat = "", font = "", outline = "OUTLINE" }
-local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp" }
+local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp", targetFill = "target.fill" }
 
 local function Overlays(plate)
 	local health, barW, barH = plate.health, plate.barW, plate.barH
@@ -366,6 +387,33 @@ local function Overlays(plate)
 		Widgets.Size(badge, size, size)
 		badge:ClearAllPoints()
 		Widgets.Point(badge, "LEFT", plate.name, "RIGHT", BADGE_GAP, 0)
+	end
+	if Settings.Get("target.glow") then
+		local glow = plate.targetGlow
+		if not glow then
+			glow = Widgets.NineSlice(plate.glowFrame, "shadow", "BACKGROUND", -2)
+			for _, piece in ipairs(glow) do piece:SetBlendMode("ADD") end
+			plate.targetGlow = glow
+		end
+		Widgets.LayoutSlice(glow, health, GLOW_CORNER, GLOW_OUTSET)
+		local r, g, b = TargetColor()
+		Widgets.ColorSlice(glow, r, g, b, Settings.Get("target.glowAlpha"))
+	end
+	if plate.targetGlow and not Settings.Get("target.glow") and plate.glowShown ~= false then
+		Widgets.ShowSlice(plate.targetGlow, false)
+		plate.glowShown = false
+	end
+	if Settings.Get("target.fill") then
+		local fill = plate.targetFill
+		if not fill then
+			fill = Host(plate):CreateTexture(nil, "ARTWORK")
+			fill:SetAllPoints(health)
+			fill:SetBlendMode("ADD")
+			fill:SetColorTexture(Tokens.Color("white"))
+			plate.targetFill = fill
+		end
+		fill:SetVertexColor(Rgb(Settings.Get("target.fillColor")))
+		fill:SetAlpha(Settings.Get("target.fillAlpha"))
 	end
 	for key, setting in pairs(OVERLAY_KEYS) do
 		if plate[key] and not Settings.Get(setting) then plate[key]:Hide() end
@@ -439,6 +487,7 @@ function Plate:Restyle()
 	self:RegisterTagEvents()
 	self.nameOnly = nil
 	self.bracketsShown = nil
+	self.resourceStale = true
 	Each("Restyle", self)
 	self:Refresh(true)
 end
@@ -461,7 +510,7 @@ function Plate:LayoutDiamond()
 	local outer = Plate.DiamondSize(self)
 	Widgets.Size(diamond, outer, outer)
 	diamond:ClearAllPoints()
-	Place(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self), 0, outer, outer, self.barW, self.barH)
+	Place(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self) + Settings.Get("level.x"), Settings.Get("level.y"), outer, outer, self.barW, self.barH)
 	diamond.size = outer
 	diamond.outer.side = outer
 	diamond.rim.side = Diagonal(self, DIAMOND_SIDE)
@@ -737,15 +786,19 @@ function Plate:UpdateColor()
 	local r, g, b
 	local state = self.threatState
 	local kind = self.kind
-	local threat = state and Settings.Get("threat.display") == "health"
+	local threat = state and BAR_THREAT[Settings.Get("threat.display")]
+	local wins = threat and Settings.Get("threat.overTypes")
+	local keeps = wins and kind == "enemy" and Keeps(ns.state.isTank)
 	local casting, source, typeKey
-	if not (threat and Settings.Get("threat.overTypes")) then
-		casting = kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil"))
+	if not wins or keeps then
+		casting = not wins and kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil"))
 		if not casting then
 			local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
 			local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 			source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer and not (kind == "enemy" and Settings.Get("enemy.playersUseEnemy")), tapped)
 			typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
+			local kept = keeps and KEEPS[self.unitType]
+			if keeps and not (typeKey and kept and not Settings.Get(kept[keeps])) then typeKey = nil end
 		end
 	end
 	if threat and not (casting or typeKey) then
@@ -893,7 +946,7 @@ function Plate:UpdateTags(event)
 			self:PaintTags(key)
 		end
 		local mode = text and Settings.Get(key .. ".colorMode") or ""
-		if mode ~= "" and not (key == "name" and self.threatState and Settings.Get("threat.name")) then
+		if mode ~= "" and not (key == "name" and self.threatState and ThreatName()) then
 			Widgets.TextTint(text, mode, Settings.Get(key .. ".color"), self.unit, self.sample)
 		end
 	end
@@ -904,7 +957,7 @@ function Plate:UpdateNameColor(force)
 		return
 	end
 	local name = self.name
-	if self.threatState and Settings.Get("threat.name") then
+	if self.threatState and ThreatName() then
 		name:SetTextColor(ThreatColor(self.threatState))
 		return
 	end
@@ -1013,7 +1066,7 @@ function Plate:UpdateThreat()
 	local changed = state ~= self.threatState
 	self.threatState = state
 	self:UpdateThreatText()
-	if changed and Settings.Get("threat.name") then
+	if changed and ThreatName() then
 		self:UpdateNameColor(true)
 		self:UpdateTags("Threat")
 	end
@@ -1028,7 +1081,7 @@ function Plate:UpdateThreat()
 		shape:SetVertexColor(ThreatColor(state))
 	end
 	local glow = self.threatGlow
-	local keyline = Settings.Get("threat.keyline") and display == "glow"
+	local keyline = ThreatEdge()
 	if not self.focusRim then
 		if keyline and state then
 			self.health:SetRimColor(ThreatColor(state))
@@ -1090,24 +1143,40 @@ function Plate:UpdateHighlight(sigilCasts)
 	end
 	ns.Cast.Gate(self, isTarget, sigilCasts)
 	ns.Cast.Selection(self, isTarget, isFocus)
-	local framed = isTarget and Settings.Get("target.highlight") and not self.nameOnly
-		and (self.kind ~= "friendly" or Settings.Get("target.friendly")) or false
+	local targeted = isTarget and not self.nameOnly and (self.kind ~= "friendly" or Settings.Get("target.friendly")) or false
+	local framed = targeted and Settings.Get("target.highlight") or false
 	if self.hashLine and Settings.Get("target.hashLine") then self.hashLine:SetShown(isTarget and not self.nameOnly or false) end
 	if self.focusLetter and Settings.Get("focus.letter") ~= "" then self.focusLetter:SetShown(isFocus and not self.nameOnly or false) end
+	local glow = Settings.Get("target.glow") and targeted or false
+	if self.targetGlow and self.glowShown ~= glow then
+		self.glowShown = glow
+		Widgets.ShowSlice(self.targetGlow, glow)
+	end
+	if self.targetFill and Settings.Get("target.fill") then self.targetFill:SetShown(targeted) end
+	if self.resource or Settings.Get("resource.show") then ns.Resource.Place(self, isTarget) end
 	self:ShowBrackets(framed)
 	local health = self.health
 	self.focusRim = isFocus and Settings.Get("focus.highlight") and not framed
 	if self.focusRim then
 		local r, g, b = Rgb(Settings.Get("focus.color"))
 		health:SetRimColor(r, g, b, 1)
-	elseif Settings.Get("threat.keyline") and Settings.Get("threat.display") == "glow" and self.threatState then
+	elseif ThreatEdge() and self.threatState then
 		health:SetRimColor(ThreatColor(self.threatState))
 	else
 		health:SetRimColor(Tokens.Color("black"))
 	end
+	local casting = self.casting
+	local castScale = self.kind == "enemy" and Settings.Get("cast.scale") or 1
+	if not casting and (Settings.Get("cast.fullOpacity") or castScale ~= 1) and not ns.Cast.Shows(self) then casting = ns.Cast.Active(self) end
+	local boost = (isTarget and Settings.Get("target.scale") or 1) * (casting and castScale or 1)
+	if boost ~= (self.boost or 1) then
+		self.boost = boost
+		self:ApplyScale()
+		if not self.sample then ns.Stacking.Bound(self, self.rise or 0) end
+	end
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget
-		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
+		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (casting and Settings.Get("cast.fullOpacity")) then
 		alpha = Settings.Get("target.dimOthers")
 	end
 	if self.alphaGoal ~= alpha or not Settings.Get("target.smoothOpacity") then
