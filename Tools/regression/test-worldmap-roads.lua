@@ -57,6 +57,7 @@ R.panel:GetScript("OnUpdate")(R.panel, 0.25)
 assert(state.loads == 1 and state.constructs == 1 and R.note:GetText() == "The ground may block this.", "moving off-road reuses the graph and labels the dashed connector")
 K.Options.Write("Skins", "worldMap.followRoads", false)
 assert(not R.road and R.note:GetText():find("Straight line", 1, true), "toggle off restores batch two's direct route")
+assert(R.card:GetWidth() == 280 and R.card:GetHeight() == 142, "Follow roads off must restore batch two's exact 280x142 card")
 K.Options.Write("Skins", "worldMap.followRoads", true)
 assert(R.road and state.loads == 1)
 state.playerX = 0.3
