@@ -20,7 +20,7 @@ return Common.Run(function()
 	local ns = env._addons.KstyleUI_Options
 	ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = "editBar" })
 	env.RunTimers(); AB.W.Settle(env)
-	for _, row in ipairs(ns.Window.Parts().content.rows) do
+	for _, row in ipairs({ ns.Window.Parts().picker }) do
 		if row:IsShown() and row.item and row.item.key == "editBar" then
 			local picker = row.controls[row.item.kind]
 			if row.item.kind == "segmented" then picker:Select("bar2") else picker:SetValue("bar2") end
@@ -34,6 +34,8 @@ return Common.Run(function()
 		ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = "bar2.visibilityBuilder.mode" })
 		env.RunTimers(); AB.W.Settle(env)
 	end
+	local target = os.getenv("RENDER_OPTIONS_KEY")
+	if target then ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = target }); env.RunTimers(); AB.W.Settle(env) end
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Gallery.Build(env)
 end)
