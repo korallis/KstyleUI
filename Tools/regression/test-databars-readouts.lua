@@ -17,16 +17,31 @@ end
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
 	local e, kit, bar = D.New({ enable = false, width = screen[1], height = screen[2], size = "auto", setup = Fixture })
 	local s = kit.Store.Module("DataBars").strip
+	local listening = {}
+	local register, unregister = kit.Events.Register, kit.Events.UnregisterAll
+	kit.Events.Register = function(owner, event, fn)
+		if owner:match("^DataBars%.Readouts%.") then listening[owner] = true end
+		return register(owner, event, fn)
+	end
+	kit.Events.UnregisterAll = function(owner)
+		listening[owner] = nil
+		return unregister(owner)
+	end
 	s.enabled = false
 	kit.Modules.Enable("DataBars")
 	assert(next(bar.Strip.view.items) == nil, "defer readout frames while the bar is disabled")
+	assert(next(listening) == nil, "register no readout events while the bar is disabled")
 	for _, entry in ipairs(s.modules) do entry.shown = entry.id == "fps" end
 	kit.Options.Write("DataBars", "strip.enabled", true)
 	assert(bar.Strip.view.items.fps and not bar.Strip.view.items.bags, "build only the module the bar first shows")
+	assert(next(listening) == nil, "off readouts must not register events beside the event-free fps readout")
 	local fps = bar.Strip.view.items.fps
 	for _, entry in ipairs(s.modules) do if entry.id == "bags" then entry.shown = true end end
 	kit.Options.Write("DataBars", "strip.modules", s.modules)
 	assert(bar.Strip.view.items.bags and bar.Strip.view.items.fps == fps, "add a newly shown module and reuse existing readouts")
+	assert(listening["DataBars.Readouts.bags"], "first showing bags registers its events")
+	kit.Options.Write("DataBars", "strip.enabled", false)
+	assert(next(listening) == nil, "turning the bar off unregisters every readout event")
 	assert(#e._errors == 0 and kit.ErrorCount() == 0)
 end
 
@@ -156,7 +171,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	local model = e._addons.KstyleUI_Options.Model
 	local items = model.SchemaItems("DataBars", kit.Options.Get("DataBars"), "DataBars")
 	local entries = {}
-	for _, item in ipairs(items) do if item.entry then entries[item.entry] = item end end
+	for _, item in ipairs(model.Visible(items)) do if item.entry then entries[item.entry] = item end end
 	for _, entry in ipairs(bar.Settings().strip.modules) do
 		assert(entries[entry.id], entry.id .. " is in the real ordered list")
 		eq(entry.shown, entry.id ~= "xp")

@@ -947,6 +947,7 @@ ns.Locale.Add({
 	["Here as well"] = "Ici aussi",
 	["Hidden"] = "Masqu\195\169",
 	["Hidden in combat"] = "Masqu\195\169 en combat",
+	["Hidden readouts"] = "Indicateurs masqu\195\169s",
 	["Hidden while the data bar shows the clock."] = "Masqu\195\169e tant que la barre de donn\195\169es affiche l\226\128\153horloge.",
 	["Hide"] = "Cacher",
 	["Hide Blizzard party frames"] = "Masquer les cadres de groupe de Blizzard",

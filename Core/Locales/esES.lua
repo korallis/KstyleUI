@@ -947,6 +947,7 @@ ns.Locale.Add({
 	["Here as well"] = "Aqu\195\173 tambi\195\169n",
 	["Hidden"] = "Oculto",
 	["Hidden in combat"] = "Oculto en combate",
+	["Hidden readouts"] = "Lecturas ocultas",
 	["Hidden while the data bar shows the clock."] = "Oculto mientras la barra de datos muestra el reloj.",
 	["Hide"] = "Ocultar",
 	["Hide Blizzard party frames"] = "Ocultar los marcos de grupo de Blizzard",

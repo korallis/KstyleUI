@@ -205,7 +205,7 @@ local EVENTS = {
 	time = { "CALENDAR_UPDATE_PENDING_INVITES" },
 	guild = { "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE" },
 	friends = { "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_LIST_SIZE_CHANGED", "BN_CONNECTED", "BN_DISCONNECTED" },
-	hearth = { "HEARTHSTONE_BOUND", "SPELL_UPDATE_COOLDOWN" },
+	hearth = { "HEARTHSTONE_BOUND" },
 	spec = { "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" },
 	currencies = { "CURRENCY_DISPLAY_UPDATE" },
 	gold = { "PLAYER_MONEY" },
@@ -217,7 +217,7 @@ local function Changed(event)
 		Strip.Refresh()
 	elseif event == "CURRENCY_DISPLAY_UPDATE" then
 		local item = Strip.view and Strip.view.items.currencies
-		if Readouts.Visible("currencies") ~= (item and item.button:IsShown() or false) then Strip.Refresh() else Strip.Update() end
+		if Readouts.Visible("currencies") ~= (item and (item.overflow or item.button:IsShown()) or false) then Strip.Refresh() else Strip.Update() end
 	else
 		if event == "PLAYER_MONEY" then Readouts.SaveGold() end
 		Strip.Update()
@@ -227,7 +227,7 @@ end
 function Readouts.Sync(shown)
 	local wanted = {}
 	if shown then
-		for _, entry in ipairs(ns.Settings().strip.modules) do
+		for _, entry in ipairs(Strip.Modules(ns.Settings().strip)) do
 			if entry.shown then wanted[entry.id] = true end
 		end
 	end

@@ -101,7 +101,7 @@ end
 local function Visible(id)
 	if not Active(id) or Settings(id).shown ~= true then return false end
 	if id == "micro" then
-		for _, entry in ipairs(ns.Settings().strip.modules or {}) do
+		for _, entry in ipairs(ns.Strip.Modules(ns.Settings().strip) or {}) do
 			if entry.id == "micro" then return entry.shown end
 		end
 	end
@@ -1025,7 +1025,7 @@ function Menus.Disable()
 end
 
 function Menus.Setting(key)
-	if key == "strip.modules" then
+	if key == "strip.modules" or key == "strip.dockModules" then
 		Sync(bars.micro)
 		return
 	end

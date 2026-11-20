@@ -98,6 +98,11 @@ for i, def in ipairs(MODULES) do
 	defaults.strip.modules[i] = { id = def[1], shown = def[1] ~= "xp", zone = def[3] }
 end
 
+defaults.strip.dockModules = {}
+for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp" }) do
+	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
+end
+
 function ns.Schema()
 	if ns.schema then return ns.schema end
 	ns.schema = {}
@@ -230,6 +235,12 @@ function ns.Schema()
 	moduleOptions[11].rows = {
 		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
 	}
+	local sharedRows = {}
+	for _, index in ipairs({ 4, 10, 11 }) do
+		sharedRows[#sharedRows + 1] = { type = "header", label = MODULES[index][2] }
+		for _, row in ipairs(moduleOptions[index].rows) do sharedRows[#sharedRows + 1] = row end
+		moduleOptions[index].rows = {}
+	end
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
@@ -243,7 +254,12 @@ function ns.Schema()
 		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top data bar's background."], min = 0, max = 100, step = 1 },
 	}
 	stripRows[#stripRows + 1] = { type = "toggle", key = "strip.dockMeter", label = L["Dock readouts to the meter"], help = L["Place the data strip beside the damage meter title. Off returns it to its own position."] }
-	stripRows[#stripRows + 1] = { type = "order", key = "strip.modules", label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = moduleOptions }
+	for _, key in ipairs({ "modules", "dockModules" }) do
+		local dock = key == "dockModules"
+		stripRows[#stripRows + 1] = { type = "order", key = "strip." .. key, label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = moduleOptions, showWhen = function(settings)
+			return dock == (Widgets.Medallions() and settings.strip.placement ~= "rail")
+		end }
+	end
 	for _, row in ipairs({
 		{ type = "toggle", key = "strip.line", label = L["One line"], help = L["Items run together on one line at the right, joined by middle dots. Off, each sits in its own cell."] },
 		{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
@@ -263,6 +279,7 @@ function ns.Schema()
 		stripRows[#stripRows + 1] = row
 	end
 	ns.AddRows(stripRows)
+	ns.AddRows(sharedRows)
 
 	local TINTS = {
 		{ value = "none", label = L["Blizzard's colours"] },
@@ -304,9 +321,8 @@ function ns.Schema()
 		return rows
 	end
 
-	moduleOptions[1].rows = MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in place of Blizzard's. Off, Blizzard's returns."],
-		L["Show the micro menu"], L["The system buttons under the readout. Off, the card is one line; keybinds and Escape still work."])
-	table.remove(moduleOptions[1].rows, 1)
+	ns.AddRows(MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in place of Blizzard's. Off, Blizzard's returns."],
+		L["Show the micro menu"], L["The system buttons under the readout. Off, the card is one line; keybinds and Escape still work."]))
 	ns.AddRows(MenuRows("bags", L["Bag bar"], L["Shows KstyleUI's bag bar in place of Blizzard's. Off, Blizzard's returns."],
 		L["Show the bag bar"], L["Your bags under the readout. Off, the card is one line; B and the gold still open your bags."]))
 	ns.AddRows({

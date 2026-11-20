@@ -947,6 +947,7 @@ ns.Locale.Add({
 	["Here as well"] = "Auch hier",
 	["Hidden"] = "Verborgen",
 	["Hidden in combat"] = "Im Kampf verborgen",
+	["Hidden readouts"] = "Ausgeblendete Anzeigen",
 	["Hidden while the data bar shows the clock."] = "Ausgeblendet, solange die Datenleiste die Uhr zeigt.",
 	["Hide"] = "Ausblenden",
 	["Hide Blizzard party frames"] = "Blizzards Gruppenrahmen ausblenden",
