@@ -85,7 +85,7 @@ local defaults = {
 	urls = true,
 	linkTooltips = false,
 }
-ns.IDLE_WAKE = { "emotes", "skills", "reputation", "loot", "system", "achievements", "npc" }
+local IDLE_WAKE = { "emotes", "skills", "reputation", "loot", "system", "achievements", "npc" }
 ns.defaults = defaults
 
 function ns.Settings()
@@ -183,7 +183,7 @@ local function Sided(s)
 	return s.buttons == true
 end
 
-ns.SIDE_ICONS = { "menu", "channels", "voice", "friends" }
+local SIDE_ICONS = { "menu", "channels", "voice", "friends" }
 local ICON_LABELS = { menu = L["Chat menu button"], channels = L["Channels button"], voice = L["Voice buttons"], friends = L["Friends button"] }
 
 local WAKE_LABELS = {
@@ -250,7 +250,7 @@ function ns.Schema()
 		{ type = "toggle", key = "sideRight", label = L["Chat buttons on the right"], help = L["Puts the chat buttons on the right side of the card."], showWhen = Sided },
 		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, in units."], min = 24, max = 60, step = 1, showWhen = Sided },
 	}
-	for _, key in ipairs(ns.SIDE_ICONS) do
+	for _, key in ipairs(SIDE_ICONS) do
 		schema[#schema + 1] = { type = "toggle", key = "sideIcons." .. key, label = ICON_LABELS[key], help = L["Shows this button among the chat buttons."], showWhen = Sided }
 	end
 	local panel = {
@@ -263,7 +263,7 @@ function ns.Schema()
 		{ type = "slider", key = "idleStrength", label = L["Idle fade strength"], help = L["How far the idle chat fades. 1 hides it until it wakes."], min = 0.05, max = 1, step = 0.05, showWhen = Idles },
 	}
 	Append(schema, panel)
-	for _, key in ipairs(ns.IDLE_WAKE) do
+	for _, key in ipairs(IDLE_WAKE) do
 		schema[#schema + 1] = { type = "toggle", key = "idleWake." .. key, label = WAKE_LABELS[key], help = L["Player chat and whispers always wake the chat; these lines wake it too."], showWhen = Idles }
 	end
 	local text = {
