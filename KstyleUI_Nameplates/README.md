@@ -321,6 +321,15 @@ The two slots are independent per unit-frame type and per party/raid kind; namep
 
 The API proof remains the source at `9dc84f0`: `Blizzard_APIDocumentationGenerated/UnitDocumentation.lua` names the existing unit value APIs and `UNIT_LEVEL`, `UNIT_TARGET`, `UNIT_ABSORB_AMOUNT_CHANGED`; native values go through the shared guarded tag painter and text setters. No new API, CVar, template, frame driver or OnUpdate is added.
 
+### F2 batch 3: casting enemies (2026-11-20)
+
+**Casting enemies** (Unit types, off by default) colours an enemy plate's health bar with **Casting colour** (the cast bar's gilt by default) from cast or channel start until it stops, fails, is interrupted or the plate clears. Threat shown as health colour still wins. It runs on the existing `UNIT_SPELLCAST_*` handlers and the plate's cached colour path, with no polling. Important-cast tints, threat percent and the other F2 cast and aura rows stay follow-ups: the important flag and threat values can be secret in combat, so they need their own design.
+
+`test-frames-bars-auras-casts` loads v0.2.8-shaped profiles, checks every default and that no new region exists until an option needs it, then writes and applies each option. `test-perf-path-budgets` keeps the 13.0M ceiling with the same reload widget calls and regions as staging. Evidence: `~/.cache/kstyleui-evidence/parity-frames-3/`.
+
+API proof at `9dc84f0`: `Blizzard_APIDocumentationGenerated/UnitDocumentation.lua` (`UnitCastingInfo`, `UnitChannelInfo`, `UNIT_SPELLCAST_*`).
+
+
 ## EllesmereUI parity audit (2026-11-20)
 
 Option inventory for public EllesmereUI **8abfcbf** (v9.9.1 on the audit date). Public source was read for behaviour and control labels only; no implementation, artwork, profile or spell data is copied. The table uses the Action Bars audit columns. Every distinct literal option label in each scoped builder is listed, including its cog rows; repeated labels in the same builder are collapsed, with all occurrence line numbers in the source link. This counts control templates, not repetitions for every unit, class or raid size. Dynamic/shared controls are listed separately below. Dropdown entries are choices of that row, not additional controls.
@@ -371,7 +380,7 @@ API proof and the shared verification paths are in [Unit Frames](../KstyleUI_Uni
 | Neutral & Mini Enemies | Missing, fits | Follow-up F4: add the named behaviour as an optional row in the existing schema, with today's behaviour as its default. | [1038](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1038) |
 | Enable Quest Mob Color | Present | Unit types > Quest mobs / Quest colour | [1058](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1058) |
 | Mini Coloring M+ Only | Not possible on Forever | The M+ condition has no Forever activity: pinned 9dc84f0 Interface/AddOns/Blizzard_ChallengesUI/Blizzard_ChallengesUI.toc allows only standard and mists; ordinary mob colouring remains a fitting follow-up. | [1100](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1100) |
-| Color Casting Enemies | Missing, fits | Follow-up F2: add this bar/readout control using the existing bar/text builders and guarded native values; retain the current style. | [1117](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1117) |
+| Color Casting Enemies | Present | Unit types > Casting enemies and Casting colour (batch 3, off by default) | [1117](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1117) |
 | Enemy Players Use Enemy Color | Missing, fits | Follow-up F4: add the named behaviour as an optional row in the existing schema, with today's behaviour as its default. | [1125](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1125) |
 | Normal / Trivial | Missing, fits | Follow-up F4: add the named behaviour as an optional row in the existing schema, with today's behaviour as its default. | [1138](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1138) |
 | Elite | Missing, fits | Follow-up F4: add the named behaviour as an optional row in the existing schema, with today's behaviour as its default. | [1139](https://github.com/EllesmereGaming/EllesmereUI/blob/8abfcbf6afa4129369cdc9fb5e03e96d1fdd94e5/EllesmereUIOptions/Nameplates_Options/ColorsPage_Options.lua#L1139) |
