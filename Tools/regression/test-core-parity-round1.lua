@@ -38,7 +38,7 @@ assert(K.Appearance.Get("outline") == "" and K.Appearance.Get("paletteDarken") =
 	and row("General", "Combat text size").get() == 1 and not row("General", "Remember search picks").get() and not row("General", "Double-click the header to fold").get()
 	and not row("General", "KstyleUI settings button").get() and not row("General", "Layout Mode button").get()
 	and not row("Elements", "Light the grid around the pointer").get() and env.GameMenuFrame:GetNumChildren() == 0, "every new option starts off")
-local bl, bb, bw, bh = Layout.Rect("Parity.Base")
+local bl, bb, bw = Layout.Rect("Parity.Base")
 local l, b, w, h = Layout.Rect("Parity.Bar")
 assert(near(l, bl + (bw - w) / 2) and near(b + h, bb - 4), "a v0.2.8 link keeps its place")
 
@@ -100,7 +100,7 @@ assert(select(2, env.CombatTextFont:GetFont()) == 20 and env.UNIT_NAME_FONT == "
 
 -- Attach points, sideways offsets and independent match targets.
 assert(Layout.Set("Parity.Bar", "link", { point = "TOPLEFT", target = "BOTTOMRIGHT", x = 5, y = -3 }))
-bl, bb, bw, bh = Layout.Rect("Parity.Base")
+bl, bb, bw = Layout.Rect("Parity.Base")
 l, b, w, h = Layout.Rect("Parity.Bar")
 assert(near(l, bl + bw + 5) and near(b + h, bb - 3), "point pairs join the chosen points with their offsets")
 local move = Layout.Movement("Parity.Bar", l + 10, b, w, h)
@@ -180,8 +180,8 @@ assert(not K.Profiles.ImportAccount("KSA1:bad"), "a damaged account string is re
 
 -- Presets make a new profile; hotkeys switch after combat.
 assert(#K.Profiles.Presets() >= 6, "the preset browser lists each role and HUD style")
-local made, name = K.Profiles.FromPreset("Healer:orbs", "Healer orbs")
-assert(made and Store.ProfileName() == name and K.HudStyle.Saved() == "orbs", "a preset creates and fills a new profile")
+local made, preset = K.Profiles.FromPreset("Healer:orbs", "Healer orbs")
+assert(made and Store.ProfileName() == preset and K.HudStyle.Saved() == "orbs", "a preset creates and fills a new profile")
 Store.SetProfile("Default")
 K.Profiles.SetHotkey(2, "Other")
 assert(env.KstyleUI_Profile2 and K.Profiles.Hotkey(2) == "Other", "a hotkey slot makes its binding button")
@@ -198,9 +198,9 @@ Store.SetProfile("Default")
 assert(K.Options.Open("General"))
 env.RunTimers()
 row("General", "Remember search picks").set(true)
-local function search(text)
+local function search(query)
 	local box = ns.Window.Parts().search
-	box:SetText(text)
+	box:SetText(query)
 	box:GetScript("OnTextChanged")(box, true)
 end
 search("snap")
