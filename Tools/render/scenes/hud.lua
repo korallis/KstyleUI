@@ -1218,6 +1218,15 @@ function modules.auras(opts)
 		K.Modules.Enable("Auras")
 	end
 	env.RunTimers()
+	-- RENDER_AURAS_EXTRA=1 switches on the extra buff and debuff rows (parity round 2) at their default places, the
+	-- debuff one glowing, with two important buffs and one crowd control debuff.
+	local extra = os.getenv("RENDER_AURAS_EXTRA") == "1"
+	if extra then
+		for key, value in pairs({ ["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["extraDebuffs.glow"] = true }) do
+			K.Options.Write("Auras", key, value)
+		end
+		env.RunTimers()
+	end
 	for _, container in ipairs(env._containers) do
 		for _, button in ipairs(A.Buttons(container)) do
 			button:Hide()
@@ -1242,6 +1251,10 @@ function modules.auras(opts)
 	end
 	if debuffs then
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
+	end
+	for _, row in ipairs(extra and { { "HELPFUL|IMPORTANT", "extraBuffs", { buffRow[1], buffRow[2] } }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { DEBUFF_ROW[2] } } } or {}) do
+		local container, group = A.Container(env, row[1])
+		Hud.PlaceAuras(container, group, fillAuras(env, A, container, row[2], group, row[3]), ns.Model.Group(settings, row[2]).columns)
 	end
 	-- The rows' "+N" cells are counted by the engine's layout; the stub plays that pass for the counts laid out.
 	A.Counters(ns, { #buffRow, 0, #entries })

@@ -1,4 +1,4 @@
--- Panel.lua: the buff and debuff rows: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" tile the size of the others over the last cell, counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
+-- Panel.lua: the buff and debuff rows, and the optional extra rows built only once switched on: one AuraContainer each on the engine, each its own Layout element that the rows grow from, weapon enchantments on the buff row, the Cooldown Manager's tracked buffs left out through the engine's spell filter, a "+N" tile the size of the others over the last cell, counted by the engine's own layout (so it stays true in combat), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,10 +21,13 @@ local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYE
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged", "HudStyleChanged" }
 local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
+local KIND = Model.KIND
 local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 local FALLBACK = {
 	buffs = { position = { anchor = "TOPRIGHT", x = -28, y = -390 }, label = K.L["Buffs"] },
 	debuffs = { position = { anchor = "TOPRIGHT", x = -28, y = -494 }, label = K.L["Debuffs"] },
+	extraBuffs = { position = { anchor = "TOPRIGHT", x = -350, y = -390 }, label = K.L["Extra buff row"] },
+	extraDebuffs = { position = { anchor = "TOPRIGHT", x = -350, y = -494 }, label = K.L["Extra debuff row"] },
 }
 
 local groups = {}
@@ -153,7 +156,7 @@ function Panel.Flush()
 	StopWaiting()
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]
-		if desc and not desc.failed then
+		if desc and not desc.failed and not desc.off then
 			RestyleButtons(desc)
 		end
 	end
@@ -333,8 +336,8 @@ local function Candidates(desc)
 		base = base or {}
 		base.maxDuration = TIMED
 	end
-	if desc.name == "buffs" then
-		base = K.Options.AuraCandidates(K.Store.Module(MODULE).buffs or {}, base)
+	if KIND[desc.name] == "buffs" then
+		base = K.Options.AuraCandidates(K.Store.Module(MODULE)[desc.name] or {}, base)
 	end
 	return base
 end
@@ -414,7 +417,7 @@ local function ApplyChip(desc, filter, candidates)
 		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
 		accent = function()
-			return Tokens.Color(EDGE_TOKENS[desc.name])
+			return Tokens.Color(EDGE_TOKENS[KIND[desc.name]])
 		end,
 	})
 end
@@ -436,7 +439,7 @@ local function ApplyGroup(desc)
 end
 
 local function Init(desc, button)
-	local entry = Button.Create(button, desc.name == "debuffs")
+	local entry = Button.Create(button, KIND[desc.name] == "debuffs")
 	desc.buttons[#desc.buttons + 1] = entry
 	Button.Style(entry, desc.ctx)
 end
@@ -448,7 +451,7 @@ end
 local function ShowHost(desc)
 	local shown = desc.holder:IsShown()
 	local faded = not shown and running and desc.ctx.hiddenAlpha or 0
-	desc.host:SetShown((shown or faded > 0) and not gamepad)
+	desc.host:SetShown((shown or faded > 0) and not gamepad and not desc.off)
 	if faded > 0 then
 		desc.host:SetAlpha(faded)
 	end
@@ -625,7 +628,7 @@ end
 local function ApplyAll(relayout)
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]
-		if desc and not desc.failed then
+		if desc and not desc.failed and not desc.off then
 			Apply(desc, relayout)
 		end
 	end
@@ -640,7 +643,7 @@ end
 
 local function Blizzard()
 	local hide = running and not gamepad and K.Store.Module(MODULE).hideBlizzard ~= false
-	for _, name in ipairs(Model.GROUPS) do
+	for _, name in ipairs(Model.MAIN) do
 		local desc = groups[name]
 		local frame = BlizzardFrame(name)
 		if hide and desc and not desc.failed then
@@ -657,6 +660,11 @@ local function OnSetting(_, module, key)
 	end
 	if key == "hideBlizzard" then
 		Blizzard()
+		return
+	end
+	local row = key:match("^(%a+)%.enabled$")
+	if row and KIND[row] then
+		K.Combat.Queue(Panel.SyncRows)
 		return
 	end
 	ApplyAll(false)
@@ -677,6 +685,7 @@ local HANDLERS = {
 		ApplyAll(true)
 	end,
 	ProfileChanged = function()
+		K.Combat.Queue(Panel.SyncRows)
 		ApplyAll(true)
 		Blizzard()
 	end,
@@ -703,9 +712,10 @@ local function OnEnchant()
 end
 
 local function OnTracked()
-	local desc = groups.buffs
-	if running and desc and not desc.failed then
-		K.Call(ApplyGroup, desc)
+	for name, desc in pairs(groups) do
+		if running and KIND[name] == "buffs" and not desc.failed and not desc.off then
+			K.Call(ApplyGroup, desc)
+		end
 	end
 end
 
@@ -723,6 +733,46 @@ local function Refresh()
 	Blizzard()
 end
 
+local function Active(name)
+	local s = K.Store.Module(MODULE)[name]
+	return KIND[name] == name or (type(s) == "table" and s.enabled == true)
+end
+
+local function Ensure(name)
+	local desc = groups[name]
+	if not desc then
+		desc = Build(name)
+		groups[name] = desc
+	end
+	return desc
+end
+
+local function SetRow(name)
+	local on = running and Active(name)
+	local desc = on and Ensure(name) or groups[name]
+	if not desc or desc.failed then
+		return desc
+	end
+	desc.off = not on
+	desc.holder:SetShown(on)
+	if K.Layout and K.Layout.SetLive then
+		K.Layout.SetLive(Model.KEYS[name], on)
+	end
+	return desc
+end
+
+function Panel.SyncRows()
+	for _, name in ipairs(Model.GROUPS) do
+		if KIND[name] ~= name then
+			local before = groups[name] and groups[name].off
+			local desc = SetRow(name)
+			if desc and not desc.failed and desc.off ~= before then
+				if desc.off then ShowHost(desc) else Apply(desc, true) end
+			end
+		end
+	end
+end
+
 local function OnTransition()
 	K.Combat.Queue(Refresh)
 end
@@ -733,14 +783,7 @@ function Panel.Enable()
 	listeners = {}
 	SetGamepad(Panel.Gamepad())
 	for _, name in ipairs(Model.GROUPS) do
-		local desc = groups[name]
-		if not desc then
-			desc = Build(name)
-			groups[name] = desc
-		end
-		if not desc.failed then
-			desc.holder:Show()
-		end
+		SetRow(name)
 	end
 	ApplyAll(true)
 	Blizzard()
@@ -775,7 +818,7 @@ function Panel.Status()
 		local desc = groups[name]
 		if desc and desc.failed then
 			failed[#failed + 1] = name
-		elseif desc then
+		elseif desc and not desc.off then
 			built[#built + 1] = format("%s %d", name, #desc.buttons)
 		end
 	end

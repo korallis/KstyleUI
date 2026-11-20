@@ -18,7 +18,7 @@ local KEYS = {
 	"unitframes.boss", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "groupframes.party", "groupframes.raid", "actionbars.bar1",
 	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet",
 	"actionbars.stance", "consumables.bar", "actionbars.possess", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
-	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
+	"auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
 	"databars.strip", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
 	"combattext.player",
 	"qol.lootfeed",
@@ -249,13 +249,13 @@ local CLEAR = { half = 260, bottom = 664 + LIFT, top = HEIGHT - 28 }
 -- ruling on the Fable audit), so on 16:10 it stands 69 units right of the centre line, where it stood 144.
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
-	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
+	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
-	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
+	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
-	Healer = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
+	Healer = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat" }),
 }

@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the Auras round two options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -28,8 +28,11 @@ return Common.Run(function()
  end
  if not K.Modules.IsRunning(module) then K.Modules.Enable(module) end
  env.RunTimers()
- if os.getenv("RENDER_PARITY_ENABLED") == "1" then
+ local enabled = os.getenv("RENDER_PARITY_ENABLED")
+ if enabled == "1" or enabled == "2" then
   local values = {
+   Auras2 = { ["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["buffs.glow"] = true, ["debuffs.glow"] = true,
+    ["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM" },
    Auras = { ["buffs.swipe"] = true, ["debuffs.swipe"] = true, ["count.shown"] = false, iconZoom = 0.1, ["timer.x"] = 3,
     ["debuffs.typeIcon"] = "TOPLEFT", ["buffs.refresh"] = true, ["timer.seconds"] = false, ["timer.precise"] = 10, ["buffs.show"] = "cancelable" },
    Cooldowns = { ["essential.iconZoom"] = 0.2, ["utility.iconZoom"] = 0.2, ["buffs.iconZoom"] = 0.2, ["bars.iconZoom"] = 0.2, ["essential.edge"] = false, ["utility.edge"] = false, ["essential.vertical"] = true, ["essential.timerPosition"] = "TOP", ["utility.countOnly"] = true, glowsInCombat = true, ["buffs.inactiveShade"] = "colour", ["rules.fade"] = "Earth Shock" },
@@ -38,7 +41,7 @@ return Common.Run(function()
     ["damage.panelAlpha"] = 0.6, ["damage.capAlpha"] = 0.8, ["damage.headerHeight"] = 4, ["damage.titleX"] = 6, ["damage.resetButton"] = true, ["damage.nameScale"] = 0.9,
     ["damage.valueScale"] = 1.1, ["damage.playerMarker"] = true, ["timer.shown"] = true, ["timer.decimal"] = true, ["history.icons"] = true, ["history.bars"] = true },
   }
-  for key, value in pairs(values[module]) do K.Options.Write(module, key, value) end
+  for key, value in pairs(values[enabled == "2" and module .. "2" or module]) do K.Options.Write(module, key, value) end
  end
  assert(K.Options.Open(module))
  settle()

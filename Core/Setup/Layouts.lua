@@ -90,6 +90,8 @@ local ELEMENTS = {
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 2 * ns.Tokens.Size("barHeight") + PITCH },
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = AURA_W, height = AURA_H },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = AURA_W, height = AURA_H },
+	{ key = "auras.extraBuffs", module = "Auras", label = L["Extra buff row"], width = 6 * 36 + 5 * AURA_GAP, height = 36 + AURA_TIMER },
+	{ key = "auras.extraDebuffs", module = "Auras", label = L["Extra debuff row"], width = 6 * 36 + 5 * AURA_GAP, height = 36 + AURA_TIMER },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 442, height = 186 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], short = L["Loot"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
@@ -170,6 +172,8 @@ local DPS = {
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + MAP_FRAME + 4), y = -(EDGE + 10 + MAP_HEADING) },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
+	["auras.extraBuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(DEBUFFS_Y + AURA_H + AURA_ROW_GAP) },
+	["auras.extraDebuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(DEBUFFS_Y + AURA_H + 36 + AURA_TIMER + 2 * AURA_ROW_GAP) },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
@@ -252,7 +256,7 @@ local SWITCHES = {
 
 local BARS_OFF = {
 	"actionbars.bar3", "actionbars.bar6",
-	"unitframes.castbar.target",
+	"unitframes.castbar.target", "auras.extraBuffs", "auras.extraDebuffs",
 }
 local OFF = {
 	DPS = { "meters.threat" },
@@ -421,6 +425,8 @@ local ORBS = {
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = ORBS_SWING_Y },
 	["auras.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT - ORBS_X + ORBS_FIT.nudge, y = ORBS_AURA_Y },
 	["auras.debuffs"] = { anchor = "BOTTOM", x = ORBS_AURA_SHIFT + ORBS_X, y = ORBS_AURA_Y },
+	["auras.extraBuffs"] = DPS["auras.buffs"],
+	["auras.extraDebuffs"] = DPS["auras.debuffs"],
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = ORBS_AURA_HALF - ORBS_X + ORBS_FIT.nudge - ORBS_TRACKED_W / 2, y = ORBS_TRACKED_Y },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = ORBS_X - GAP, y = ORBS_TRACKED_Y },
 	["actionbars.pet"] = { anchor = "BOTTOMLEFT", x = EDGE, y = ORBS_FIT.cornerY },
@@ -1158,6 +1164,8 @@ function Layouts.BuildMedallions()
 			["minimap.main"] = { anchor = "TOPRIGHT", x = -(EDGE + 10), y = -(EDGE + 30) },
 			["auras.buffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -RAIL_EDGE },
 			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
+			["auras.extraBuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = DPS["auras.extraBuffs"].y },
+			["auras.extraDebuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = DPS["auras.extraDebuffs"].y },
 			["actionbars.bar3"] = { anchor = "BOTTOM", x = -692, y = 378 + side.clear },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
@@ -1225,10 +1233,10 @@ function Layouts.Aspect(class, style, name, key)
 		local slot = slots[name]
 		return { anchor = slot.anchor, x = slot.x - (key == STORY_KEYS.quests and slot.width + GAP or 0), y = slot.y - GAP - (Layouts.MinimapCrest() and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0) }
 	end
-	if (key == "minimap.main" or key == "auras.buffs" or key == "auras.debuffs")
+	if (key == "minimap.main" or key:match("^auras%."))
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
-		if key == "auras.buffs" or key == "auras.debuffs" then
+		if key:match("^auras%.") then
 			local base = layouts[name][key]
 			return { anchor = base.anchor, x = base.x - math.ceil(Layouts.CREST_GROW - AURA_MAP_GAP), y = base.y }
 		end
@@ -1339,7 +1347,7 @@ ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
 		end
 		if module == "Minimap" then
 			KstyleUIDB.scaleCache = nil
-			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", STORY_KEYS.quests, STORY_KEYS.guide }) do
+			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs", STORY_KEYS.quests, STORY_KEYS.guide }) do
 				local el = ns.Layout.Element(affected)
 				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
 			end

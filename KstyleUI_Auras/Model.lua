@@ -9,14 +9,16 @@ local Model = {}
 ns.Model = Model
 
 Model.MODULE = "Auras"
-Model.GROUPS = { "buffs", "debuffs" }
-Model.KEYS = { buffs = "auras.buffs", debuffs = "auras.debuffs" }
-Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL" }
+Model.GROUPS = { "buffs", "debuffs", "extraBuffs", "extraDebuffs" }
+Model.MAIN = { "buffs", "debuffs" }
+Model.KIND = { buffs = "buffs", debuffs = "debuffs", extraBuffs = "buffs", extraDebuffs = "debuffs" }
+Model.KEYS = { buffs = "auras.buffs", debuffs = "auras.debuffs", extraBuffs = "auras.extraBuffs", extraDebuffs = "auras.extraDebuffs" }
+Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL", extraBuffs = "HELPFUL", extraDebuffs = "HARMFUL" }
 
 local LINE_SLACK = 0.5
 Model.TIMER_GAP = 3
 Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
-Model.LABELS = { buffs = 40, debuffs = 24 }
+Model.LABELS = { buffs = 40, debuffs = 24, extraBuffs = 40, extraDebuffs = 24 }
 
 Model.LIMITS = {
 	iconSize = { min = 16, max = 64, step = 0.1 },
@@ -49,13 +51,25 @@ Model.defaults = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
-		allowSpells = "", blockSpells = "", show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
+		allowSpells = "", blockSpells = "", show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false, glow = false,
 	},
 	debuffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, typeIcon = "none", typeIconSize = 10,
-		show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
+		show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false, glow = false,
+	},
+	extraBuffs = {
+		enabled = false, iconSize = 36, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 6,
+		onlyMine = false, dispellable = false, swipe = false,
+		growth = "RIGHT_DOWN", sort = "use", reverse = false, cancel = true, tracked = "cdm",
+		allowSpells = "", blockSpells = "", show = "important", timed = false, tooltips = "always", swipeReverse = true, refresh = false, glow = false,
+	},
+	extraDebuffs = {
+		enabled = false, iconSize = 36, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 6,
+		onlyMine = false, dispellable = false, swipe = false,
+		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, typeIcon = "none", typeIconSize = 10,
+		show = "crowdControl", timed = false, tooltips = "always", swipeReverse = true, refresh = false, glow = false,
 	},
 	timer = {
 		format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5, x = 0, y = 0,
@@ -95,7 +109,14 @@ Model.TIMER_POSITIONS = {
 	{ value = "inside", label = L["On the icon"] },
 	{ value = "top", label = L["On the icon's top edge"] },
 	{ value = "center", label = L["Centre of the icon"] },
+	{ value = "TOPLEFT", label = L["Top left"] },
+	{ value = "TOPRIGHT", label = L["Top right"] },
+	{ value = "LEFT", label = L["Left"] },
+	{ value = "RIGHT", label = L["Right"] },
+	{ value = "BOTTOMLEFT", label = L["Bottom left"] },
+	{ value = "BOTTOMRIGHT", label = L["Bottom right"] },
 }
+local TIMER_ANCHORS = { inside = "BOTTOM", top = "TOP", center = "CENTER" }
 Model.SHOW_OPTIONS = {
 	buffs = {
 		{ value = "all", label = L["All buffs"] },
@@ -120,17 +141,24 @@ Model.TOOLTIP_OPTIONS = {
 	{ value = "never", label = L["Never"] },
 }
 Model.CORNERS = {
-	{ value = "TOPRIGHT", label = L["Top right"] },
 	{ value = "TOPLEFT", label = L["Top left"] },
-	{ value = "BOTTOMRIGHT", label = L["Bottom right"] },
-	{ value = "BOTTOMLEFT", label = L["Bottom left"] },
+	{ value = "TOP", label = L["Top"] },
+	{ value = "TOPRIGHT", label = L["Top right"] },
+	{ value = "LEFT", label = L["Left"] },
 	{ value = "CENTER", label = L["Centre"] },
+	{ value = "RIGHT", label = L["Right"] },
+	{ value = "BOTTOMLEFT", label = L["Bottom left"] },
+	{ value = "BOTTOM", label = L["Bottom"] },
+	{ value = "BOTTOMRIGHT", label = L["Bottom right"] },
 }
 Model.TYPE_ICON_OPTIONS = { { value = "none", label = L["Hidden"] } }
 for i = 1, #Model.CORNERS do
 	Model.TYPE_ICON_OPTIONS[i + 1] = Model.CORNERS[i]
 end
-Model.CORNER_SIGNS = { TOPRIGHT = { -1, -1, "RIGHT" }, TOPLEFT = { 1, -1, "LEFT" }, BOTTOMRIGHT = { -1, 1, "RIGHT" }, BOTTOMLEFT = { 1, 1, "LEFT" }, CENTER = { 0, 0, "CENTER" } }
+Model.CORNER_SIGNS = {
+	TOPRIGHT = { -1, -1, "RIGHT" }, TOPLEFT = { 1, -1, "LEFT" }, BOTTOMRIGHT = { -1, 1, "RIGHT" }, BOTTOMLEFT = { 1, 1, "LEFT" }, CENTER = { 0, 0, "CENTER" },
+	TOP = { 0, -1, "CENTER" }, BOTTOM = { 0, 1, "CENTER" }, LEFT = { 1, 0, "LEFT" }, RIGHT = { -1, 0, "RIGHT" },
+}
 Model.OUTLINES = {
 	{ value = "INHERIT", label = L["Use readability setting"] },
 	{ value = "NONE", label = L["Soft shadow"] },
@@ -210,17 +238,21 @@ function Model.Group(settings, name)
 		sort = choice(s.sort, SORT, base.sort),
 		reverse = s.reverse == true,
 		swipe = boolean(s.swipe, base.swipe),
-		show = choice(s.show, SHOW_SETS[name], base.show),
+		show = choice(s.show, SHOW_SETS[Model.KIND[name]], base.show),
 		timed = s.timed == true,
 		tooltips = choice(s.tooltips, TOOLTIP_SET, base.tooltips),
 		swipeReverse = boolean(s.swipeReverse, base.swipeReverse),
 		refresh = s.refresh == true,
+		glow = s.glow == true,
+		enabled = boolean(s.enabled, base.enabled ~= false),
 	}
-	if K.HudStyle.Current() == "orbs" then
+	if K.HudStyle.Current() == "orbs" and base.enabled == nil then
 		g.growth = (g.growth:gsub("_DOWN$", "_UP"))
 	end
 	if base.enchants ~= nil then
 		g.enchants = boolean(s.enchants, base.enchants)
+	end
+	if base.cancel ~= nil then
 		g.cancel = boolean(s.cancel, base.cancel)
 		g.tracked = choice(s.tracked, TRACKED_SET, base.tracked)
 	end
@@ -351,6 +383,10 @@ function Model.TimerArea(timer)
 		return math.max(timer.size, least) + Model.TIMER_GAP
 	end
 	return 0
+end
+
+function Model.TimerAnchor(position)
+	return TIMER_ANCHORS[position] or (Model.CORNER_SIGNS[position] and position)
 end
 
 local function same(units)
