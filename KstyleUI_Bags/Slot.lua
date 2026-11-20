@@ -261,7 +261,7 @@ function Slot.Layout(slot, size, force, height)
 	local junkSize = Widgets.Snap(button, JUNK_SIZE)
 	slot.junk:SetSize(junkSize, junkSize)
 	slot.junk:ClearAllPoints()
-	slot.junk:SetPoint("TOPRIGHT", button, "TOPRIGHT", -inset, -inset)
+	slot.junk:SetPoint("TOPRIGHT", button, list and "TOPLEFT" or "TOPRIGHT", list and height - inset or -inset, -inset)
 	slot.chrome:Restyle()
 	Slot.Paint(slot)
 end
@@ -350,17 +350,25 @@ function Slot.Update(slot, record, level, match, packed, extra)
 		slot.level:Hide()
 	end
 	slot.junk:SetShown(not empty and record.junk == true and Settings.Get("showJunk"))
-	Label(slot, "bind", not empty and extra.bind or nil)
-	Label(slot, "set", not empty and not slot.list and extra.set or nil)
-	local name = slot.list and not empty and record.name or nil
-	if name and extra.set then
-		name = name .. " \194\183 " .. extra.set
+	if extra.bind or slot.bind then
+		Label(slot, "bind", not empty and extra.bind or nil)
 	end
-	local nameText = Label(slot, "name", name)
-	if name then
-		nameText:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
+	if extra.set or slot.set then
+		Label(slot, "set", not empty and not slot.list and extra.set or nil)
 	end
-	Region(slot, "mark", not empty and extra.mark == true)
+	if slot.list or slot.name then
+		local name = slot.list and not empty and record.name or nil
+		if name and extra.set then
+			name = name .. " \194\183 " .. extra.set
+		end
+		local nameText = Label(slot, "name", name)
+		if name then
+			nameText:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
+		end
+	end
+	if extra.mark or slot.mark then
+		Region(slot, "mark", not empty and extra.mark == true)
+	end
 	state.isNew = not empty and record.isNew == true
 	SetGlow(slot, state.isNew and Settings.Get("showNewGlow"))
 	Slot.Paint(slot)

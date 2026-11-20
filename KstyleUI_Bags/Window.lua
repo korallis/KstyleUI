@@ -16,8 +16,8 @@ local SORT_WIDTH = 64
 local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
 local SCREEN_MARGIN = 48
+local CAP_ROOM = 20
 local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
-local EMPTY = {}
 local STRATA = "MEDIUM"
 local windows = {}
 local ANCHOR_FRACTIONS = {
@@ -32,6 +32,21 @@ end
 
 local function Plain(value)
 	return Data.Plain(value, "number")
+end
+
+local function NewCap(section, parent)
+	section.cap = Widgets.SectionCap(parent, { text = section.spec.caption })
+	local restyle = section.cap.Restyle
+	section.cap.Restyle = function(self)
+		restyle(self)
+		local size = Settings.Get("capSize")
+		if Settings.Get("readableHeaders") then
+			local path, _, flags = Tokens.Font("caps")
+			Widgets.ApplyFont(self.label, path, size * K.Theme.FontScale(), flags)
+		elseif size ~= Settings.defaults.capSize then
+			Widgets.CapsSize(self.label, nil, size / Settings.defaults.capSize)
+		end
+	end
 end
 
 local function NewSection(win, spec, group)
@@ -55,19 +70,8 @@ local function NewSection(win, spec, group)
 			win:Scroll(section, delta)
 		end)
 	end
-	if spec.caption then
-		section.cap = Widgets.SectionCap(parent, { text = spec.caption })
-		local restyle = section.cap.Restyle
-		section.cap.Restyle = function(self)
-			restyle(self)
-			local size = Settings.Get("capSize")
-			if Settings.Get("readableHeaders") then
-				local path, _, flags = Tokens.Font("caps")
-				Widgets.ApplyFont(self.label, path, size * K.Theme.FontScale(), flags)
-			elseif size ~= Settings.defaults.capSize then
-				Widgets.CapsSize(self.label, nil, size / Settings.defaults.capSize)
-			end
-		end
+	if spec.caption and not spec.lazy then
+		NewCap(section, parent)
 	end
 	if spec.categories then
 		section.groups = {}
@@ -317,7 +321,7 @@ function Window:Adopt(home, slot)
 end
 
 function Window:Sort(section)
-	local groups = section.groups or EMPTY
+	local groups = section.groups
 	for _, group in pairs(groups) do
 		local order = group.order
 		for i = #order, 1, -1 do
@@ -494,6 +498,9 @@ function Window:Ensure(section)
 			end
 			if slot then
 				order[#order + 1] = slot
+				if not section.groups and slot.button:GetParent() ~= frame then
+					self:Adopt(section, slot)
+				end
 			end
 		end
 		for slotID, slot in pairs(bagSlots) do
@@ -507,7 +514,9 @@ function Window:Ensure(section)
 			frame:Hide()
 		end
 	end
-	self:Sort(section)
+	if section.groups then
+		self:Sort(section)
+	end
 	return order
 end
 
@@ -541,7 +550,9 @@ function Window:PlaceSlots(section)
 			button:SetPoint("TOPLEFT", section.grid, "TOPLEFT", x, y)
 			button:SetShown(row >= first and row <= last)
 		end
-		Slot.SetStripe(slot, geometry.stripes and i % 2 == 0)
+		if geometry.stripes or slot.stripe then
+			Slot.SetStripe(slot, geometry.stripes and i % 2 == 0)
+		end
 	end
 end
 
@@ -581,7 +592,11 @@ function Window:Layout(force)
 	self.geometry = { size = width, height = height, spacing = spacing, growth = Settings.Get("growth"), x = left, list = list, full = full, stripes = list and Settings.Get("listStripes") }
 	self.opts.bind, self.opts.sets = Settings.Get("bindText"), Settings.Get("setNames")
 	self.opts.mark = Settings.Get("reagentMark") and not Settings.ReagentApart()
-	self.moneyHover:EnableMouse(Settings.Get("goldTooltip"))
+	local gold = Settings.Get("goldTooltip")
+	if self.goldHover ~= gold then
+		self.goldHover = gold
+		self.moneyHover:EnableMouse(gold)
+	end
 	local pad = Widgets.WindowInset(panel)
 	local gap = Snap(self, Tokens.Size("gapMedium"))
 	local rowHeight = Snap(self, Tokens.Size("rowHeight") + Tokens.Size("gapSmall"))
@@ -619,6 +634,7 @@ function Window:Layout(force)
 	if type(self.sortButton.SetEnabled) == "function" then
 		self.sortButton:SetEnabled(remote == nil)
 	end
+	local side = Settings.Get("compactGroups") and not list
 	for _, section in ipairs(panels) do
 		local count = #section.order
 		section.cols, section.rows = Data.Grid(count, list and 1 or columns)
@@ -626,7 +642,7 @@ function Window:Layout(force)
 		section.visibleRows = limit > 0 and min(section.rows, limit) or section.rows
 		section.width = self:Extent(section.cols, section.visibleRows)
 		contentWidth = max(contentWidth, section.width)
-		if section.group and not list and Settings.Get("compactGroups") then
+		if section.group and side then
 			contentWidth = max(contentWidth, (Data.Size(columns, 1, size, spacing)))
 		end
 	end
@@ -673,7 +689,7 @@ function Window:Layout(force)
 	for _, section in ipairs(panels) do
 		if not section.group and #section.order > 0 then
 			section.height = select(2, self:Extent(section.cols, section.visibleRows))
-			plainHeight = plainHeight + (section.cap and capBlock or 0) + section.height + gap
+			plainHeight = plainHeight + (section.spec.caption and capBlock or 0) + section.height + gap
 		end
 	end
 	local placedStack = false
@@ -697,7 +713,7 @@ function Window:Layout(force)
 				used, top = used + placed - top, placed
 			end
 		elseif #section.order > 0 then
-			local reserved = (section.cap and capBlock or 0) + section.height + gap
+			local reserved = (section.spec.caption and capBlock or 0) + section.height + gap
 			plainHeight = plainHeight - reserved
 			local room = budget and max(step, budget - used - plainHeight) or nil
 			local placed = self:PlaceSection(section, content, top, contentWidth, room, rowsLimit, capBlock, gap)
@@ -722,7 +738,7 @@ function Window:Layout(force)
 	self.money:SetPoint("RIGHT", content, "TOPLEFT", contentWidth, -(top + footer / 2))
 	top = top + footer
 	if currencies and not self.currency then
-		self.currency = Widgets.Text(panel, "caption", "text")
+		self.currency = Widgets.Text(panel, "body", "text")
 		self.currency:SetJustifyH("LEFT")
 		self.currency:SetWordWrap(false)
 	end
@@ -762,13 +778,15 @@ function Window:PlaceSection(section, parent, top, width, room, rowsLimit, capBl
 	if not shown then
 		return top
 	end
+	if section.spec.caption and not section.cap then
+		NewCap(section, section.view:GetParent())
+	end
 	if section.cap then
 		local cap = section.cap
 		cap.opts.width = width
 		cap:Restyle()
 		if section.group then
-			local value = self.opts.value and (section.value or 0) > 0 and Window.MoneyText(section.value) or nil
-			cap:SetCount(value and (section.total .. "  " .. value) or tostring(section.total))
+			cap:SetCount(self:CapCount(section))
 		end
 		cap:ClearAllPoints()
 		cap:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -top)
@@ -793,6 +811,11 @@ function Window:PlaceSection(section, parent, top, width, room, rowsLimit, capBl
 	return top + section.height + gap
 end
 
+function Window:CapCount(section)
+	local value = self.opts.value and section.value > 0 and Window.MoneyText(section.value) or nil
+	return value and (section.total .. "  " .. value) or tostring(section.total)
+end
+
 function Window:PlaceStack(groups, content, top, width, room, rowsLimit, capBlock, gap)
 	local g = self.geometry
 	local step = g.height + g.spacing
@@ -800,7 +823,13 @@ function Window:PlaceStack(groups, content, top, width, room, rowsLimit, capBloc
 	local half = floor((width - gap) / 2)
 	local stackTop, x, bottom = 0, 0, 0
 	for _, group in ipairs(groups) do
-		local need = side and group.width <= half and half or width
+		local need, cap = width, group.cap
+		if side and group.width <= half then
+			cap:SetCount(self:CapCount(group))
+			if Widgets.CapColumn(cap) + Snap(self, CAP_ROOM) + Widgets.TextWidth(cap.label, 0) + Widgets.TextWidth(cap.count, 0) <= half then
+				need = half
+			end
+		end
 		if x == 0 or x + need > width then
 			stackTop, x = bottom, 0
 		end
@@ -958,7 +987,7 @@ function Window:UpdateCurrencies()
 			parts[#parts + 1] = (icon and ("|T" .. icon .. ":0|t ") or "") .. amount
 		end
 	end
-	Widgets.SetText(text, #parts > 0 and table.concat(parts, "   ") or L["Track currencies on the backpack to see them here."])
+	text:SetText(#parts > 0 and table.concat(parts, "   ") or L["Track currencies on the backpack to see them here."])
 end
 
 function Window:GoldTooltip(owner)

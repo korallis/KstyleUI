@@ -107,7 +107,11 @@ local function BagStrip(win, content, top, width)
 				slot.button:SetScript("OnDragStart", SwapBag)
 				slot.button:SetScript("OnReceiveDrag", SwapBag)
 				slot.button:HookScript("OnEnter", BagTooltip)
-				slot.button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+				slot.button:HookScript("OnLeave", function()
+					if type(GameTooltip_Hide) == "function" then
+						GameTooltip_Hide()
+					end
+				end)
 				strip.slots[index] = slot
 			end
 			local icon = type(GetInventoryItemTexture) == "function" and GetInventoryItemTexture("player", id)
@@ -211,7 +215,7 @@ function Inventory.Build()
 		sections = {
 			{ bags = HeldBags, free = true, categories = true },
 			{ bags = KeyringBags, caption = L["Keyring"] },
-			{ bags = ReagentBags, free = true, caption = L["Reagent bag"] },
+			{ bags = ReagentBags, free = true, caption = L["Reagent bag"], lazy = true },
 		},
 		recent = true,
 		currencies = true,

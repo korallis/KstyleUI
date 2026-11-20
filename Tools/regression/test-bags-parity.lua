@@ -9,6 +9,7 @@ end
 local function setup(env)
 	env.INVTYPE_HEAD, env.INVTYPE_WEAPON, env.INVTYPE_FINGER = "Head", "One-Hand", "Finger"
 	env.EXPANSION_NAME0, env.EXPANSION_NAME1 = "Classic", "Burning Crusade"
+	env._textWidth = function(text, _, size) return #text * size * 0.6 end
 end
 
 local function new(settings, opts)
@@ -161,6 +162,10 @@ do
 	assert(select(4, finger.view:GetPoint(1)) > 0 and select(5, finger.view:GetPoint(1)) == select(5, head.view:GetPoint(1)), "a small section sits beside the one before it")
 	assert(select(4, weapon.view:GetPoint(1)) == 0, "a section that does not fit starts a new row")
 	assert(finger.cap:GetWidth() < win.stack:GetWidth() / 2, "side-by-side headings take half the width")
+	write(env, K, "nestExpansion", true)
+	local long = main.groups["equipment|1|Head"]
+	assert(long and W.Near(long.cap:GetWidth(), win.stack:GetWidth()), "a heading too long for half a row keeps the full width")
+	write(env, K, "nestExpansion", false)
 	write(env, K, "compactGroups", false)
 	assert(select(4, finger.view:GetPoint(1)) == 0, "off stacks sections again")
 	write(env, K, "gearBySlot", false)
@@ -188,9 +193,10 @@ end
 
 -- List view.
 do
-	local env, K, ns, win = new({ enabled = true }, { bags = { [0] = { size = 4, items = { Item("potion"), Item("sword") } } } })
-	local s1, s2 = slot(ns, 0, 1), slot(ns, 0, 2)
+	local env, K, ns, win = new({ enabled = true }, { bags = { [0] = { size = 4, items = { Item("potion"), Item("sword"), Item("junk") } } } })
+	local s1, s2, junk = slot(ns, 0, 1), slot(ns, 0, 2), slot(ns, 0, 3)
 	write(env, K, "listView", true)
+	assert(select(3, junk.junk:GetPoint(1)) == "TOPLEFT" and select(4, junk.junk:GetPoint(1)) < junk.button:GetHeight(), "the junk dot sits on the row's icon, clear of the count")
 	assert(s1.list and s1.button:GetWidth() > s1.button:GetHeight() and W.Near(s1.button:GetHeight(), 24), "slots become rows")
 	assert(shown(s1.name) and s1.name:GetText() == "Minor Healing Potion", "rows show the item name")
 	assert(s2.stripe and not s1.stripe, "every other row is shaded")
