@@ -141,6 +141,13 @@ local function MarkLift(key)
 end
 Auras.MarkLift = MarkLift
 
+local function OneRow(block)
+	if Settings.current.auras.timers and block.rows > 1 then
+		block.rows, block.cells, block.height = 1, block.columns, block.size
+	end
+	return block
+end
+
 local function Block(f, k)
 	local w, h = Style.Size(f)
 	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
@@ -152,12 +159,12 @@ local function Block(f, k)
 		if not b then
 			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
 		end
-		return {
+		return OneRow({
 			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
 			left = b.left, top = b.top, spacing = spacing, inset = inset, gap = gap,
-		}
+		})
 	end
-	local block = Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap)
+	local block = OneRow(Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap))
 	block.spacing, block.inset, block.gap = spacing, inset, gap
 	block.left = place == "OUTSIDE_LEFT" and -gap - block.width or w + gap
 	block.top = k.auraWrap == "UP" and h - block.height or 0
@@ -254,13 +261,9 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
-local function PlaceTimer(timer, skin, below)
+local function PlaceTimer(timer, skin)
 	timer:ClearAllPoints()
-	if below then
-		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
-	else
-		timer:SetPoint("CENTER", skin, "CENTER")
-	end
+	timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
 end
 
 local function PlaceIcon(tile)
@@ -358,7 +361,7 @@ local function StyleIcon(button)
 	if a.timers and type(button.SetDurationText) == "function" then
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
 		Style.SetFont(timer, text.healthFont, textSize, "OUTLINE")
-		PlaceTimer(timer, p.skin, p.buff or p.size or Block(f, k).rows <= 1)
+		PlaceTimer(timer, p.skin)
 		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
 		p.timer = timer
 		timer:Show()
@@ -1350,7 +1353,7 @@ local function LayoutSamples(f, k)
 		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", -inset, inset)
 	end
 	local timer = SampleLabel(first, "timer", a.timers, "12s", textSize)
-	if timer then PlaceTimer(timer, first.tile.skin, block.rows <= 1) end
+	if timer then PlaceTimer(timer, first.tile.skin) end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
 	chip:ClearAllPoints()
