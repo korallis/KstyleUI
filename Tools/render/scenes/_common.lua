@@ -258,6 +258,20 @@ function Common.ChatSettings(env, K)
 		assert(K.Options.Write("Chat", key, parsed) ~= false, "RENDER_CHAT_SETTINGS: Chat." .. key .. " did not write")
 		env.RunTimers()
 	end
+	-- The stand-in chat buttons have no art, so each gets a flat tile to show its slot. The voice toggles stay hidden,
+	-- as the game keeps them while the player is logged out of voice chat (VoiceToggleButton.lua:17-21).
+	if os.getenv("RENDER_CHAT_SETTINGS") then
+		for name, rgb in pairs({ QuickJoinToastButton = { 0.25, 0.6, 1 }, ChatFrameChannelButton = { 0.95, 0.7, 0.2 }, ChatFrameMenuButton = { 0.4, 0.85, 0.4 } }) do
+			local tile = env[name] and env[name]:CreateTexture(nil, "ARTWORK")
+			if tile then
+				tile:SetAllPoints(env[name])
+				tile:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.7)
+			end
+		end
+		for _, name in ipairs({ "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }) do
+			if env[name] then env[name]:Hide() end
+		end
+	end
 end
 
 function Common.Errors(env, K)
