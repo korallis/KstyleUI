@@ -107,7 +107,8 @@ function Preview.Build(...)
 				Widgets.Point(self.underline, "TOPLEFT", tab, "BOTTOMLEFT", 0, -2)
 				Widgets.Size(self.underline, width, UNDERLINE)
 			end
-			x = x + width + gap
+			tab:SetShown(i == 1 or x + width <= right)
+			if tab:IsShown() then x = x + width + gap end
 			local color = ns.Frames.TabLook(style, i == 1) or (i == 1 and "textEmphasis" or "text")
 			tab:SetTextColor(Widgets.Rgba(color))
 		end
