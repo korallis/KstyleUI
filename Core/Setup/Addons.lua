@@ -103,7 +103,6 @@ function Setup.AddonsPage(page, width, changed)
 					Widgets.Track(item.note)
 					Widgets.TextColor(item.note, "text")
 					item.note:SetJustifyH("LEFT")
-					item.note:SetWordWrap(true)
 					group.items[key] = item
 				end
 				item.frame:Show()

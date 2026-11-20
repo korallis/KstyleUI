@@ -37,7 +37,6 @@ K.Tokens.MediaList = function(kind)
 end
 Core.Boot(env)
 local profiles = env.KstyleUIDB.profiles
-custom.Skins.enabled = true
 assert(profiles.Default.UnitFrames.player.castbarTexture == paths.Flat, "a saved Glass key migrates to the picker-visible Flat path")
 assert(profiles.Default.UnitFrames.target.castbarTexture == paths.Flat, "a saved Glass path migrates without relying on media order")
 assert(profiles.Default.DataBars.xp.texture == paths.Flat and profiles.Legacy.DataBars.xp.texture == paths.Flat, "XP migrates both Glass aliases in every profile")

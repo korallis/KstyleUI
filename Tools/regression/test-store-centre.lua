@@ -79,7 +79,7 @@ local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
 local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 for _, profile in ipairs({ customSettings, customLumen, customStyle }) do
 	profile.Meters = { followRole = false }
-	profile.Skins = { enabled = true, restedXP = { boxes = true } }
+	profile.Skins = { restedXP = { boxes = true } }
 	profile.DataBars = profile.DataBars or {}
 	profile.DataBars.strip = { enabled = true, placement = "top" }
 end
