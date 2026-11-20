@@ -1,0 +1,42 @@
+-- test-skins-questcard-lines.lua: Medallions defaults keep the reference quest and the next title, with no partly clipped text.
+local Scene = dofile("Tools/render/scene.lua")
+local Guard = dofile("Tools/render/guard.lua")
+local getenv = os.getenv
+local frame
+os.getenv = function(key) if key == "RENDER_MINIMAP_FRAME" then return frame end return getenv(key) end
+rawset(_G, "RENDER_HUD_STYLE", "Medallions")
+
+for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
+	for _, choice in ipairs({ "medallion", "ring", "classic" }) do
+		frame = choice
+		rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
+		local Hud = dofile("Tools/render/scenes/hud.lua")
+		local Reference = dofile("Tools/render/scenes/_reference.lua")
+		local scene, ns = Hud.Module("tracker", { layout = "DPS", applyPreset = true, withGuide = true, quests = Reference.STATE.quests })
+		local env = Hud.envs[scene]
+		local rows, view = ns.Quests.Rows(), ns.Quests.Parts().view
+		local _, top, _, height = Scene.Rect(env, view)
+		local _, titleTop, _, titleHeight = Scene.Rect(env, rows[2].title)
+		local label = choice .. " " .. screen[1] .. "x" .. screen[2]
+		assert(rows[2]:IsShown() and titleTop >= top and titleTop + titleHeight <= top + height + 0.01,
+			label .. ": give the Medallions quest card the tall column so one whole quest and the next title fit")
+		for _, finding in ipairs(Guard.Check(scene)) do
+			assert(finding.kind ~= "clipped", label .. ": fit quest text to whole lines above the footer: " .. finding.subject)
+		end
+		local text
+		for _, item in ipairs(scene.items) do
+			if item.object == rows[1].title then text = item; break end
+		end
+		assert(text, "the first quest title is drawn")
+		text.clip = { text.rect[1], text.rect[2], text.rect[3], text.rect[4] / 2 }
+		local caught = false
+		for _, finding in ipairs(Guard.Check(scene)) do
+			if finding.kind == "clipped" and finding.object == text.object then caught = true end
+		end
+		assert(caught, "the render guard must reject a partly clipped quest line even though the card takes the wheel")
+	end
+end
+os.getenv = getenv
+rawset(_G, "RENDER_SCREEN", nil)
+rawset(_G, "RENDER_HUD_STYLE", nil)
+print("test-skins-questcard-lines: ok (12 frame/screen cases)")
