@@ -694,6 +694,11 @@ function Style.Restyle(view, kind)
 	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
 	Style.Accent(view)
 	ns.Slab.Restyle(view, form)
+	if form == "slab" then
+		local _, size, flags = Settings.Font(kind, "level")
+		Widgets.ApplyFont(view.powerText, (Settings.Font(kind, "power")), size, flags)
+		view.powerText:SetTextColor(Tokens.Color("labelMuted"))
+	end
 end
 
 local function Plain(...)

@@ -629,7 +629,13 @@ local function SlabFrame(out, s, width, height, scale)
 	end
 	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
 	local powerText = s.power and (s.powerText or "none") ~= "none" and s.powerText ~= "legacy"
-	local extra = spec.extra == "health" and (s.healthText == "both" or powerText)
+	if powerText and y + rowH > height then
+		local shift = max(0, y + rowH - height - SLAB_PAD.powerNameGap * k)
+		out.health.y, out.power.y = out.health.y - shift, out.power.y - shift
+		if out.healthText then out.healthText.y = out.healthText.y - shift end
+		y = height - rowH
+	end
+	local extra = powerText or spec.extra == "health" and s.healthText == "both"
 	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
 	if s.name then
 		local levelSize = Size(s, "level", scale)
@@ -639,7 +645,7 @@ local function SlabFrame(out, s, width, height, scale)
 	end
 	local extraW = max(0, barW - room - TEXT_GAP)
 	local extraX = right and left or left + barW - extraW
-	if spec.extra == "health" and extra then
+	if extra then
 		out[powerText and "powerText" or "healthSub"] = Rect(extraX, y, extraW, rowH)
 	elseif spec.extra == "caption" then
 		out.caption = Rect(extraX, y, extraW, rowH)

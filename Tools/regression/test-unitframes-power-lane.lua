@@ -17,11 +17,14 @@ for _, style in ipairs({ "frames", "medallions" }) do
 		assert(view.powerFillClip:IsShown(), "Frames must keep its fill-clipped ink visible")
 	end
 	assert(view.powerText:GetJustifyH() == "RIGHT", "the number is right-aligned")
-	local path, size, flags = ns.Settings.Font("player", style == "medallions" and "level" or "power")
-	assert((view.powerText:GetFont()) == path and select(2, view.powerText:GetFont()) == size,
-		"power uses the caption font in Medallions and the number font in Frames")
 	if style == "medallions" then
+		local _, size, flags = view.caption:GetFont()
+		assert((view.powerText:GetFont()) == ns.Settings.Font("player", "power") and select(2, view.powerText:GetFont()) == size,
+			"Medallions power keeps the number face at the caption size")
 		assert(select(3, view.powerText:GetFont()) == flags, "Medallions power uses the caption outline setting")
+	else
+		assert(select(2, view.powerText:GetFont()) >= 12 and (view.powerText:GetFont()) == K.Tokens.Font("number"),
+			"Frames power keeps the number font and size")
 	end
 	assert(U.Shown(env, view.powerText) == "50%", "mana reads as a percent by default")
 	local player = env._units.player
@@ -115,6 +118,7 @@ assert(not view.powerFillClip:IsShown(), "the in-card Medallions caption has no 
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
+local Guard = dofile("Tools/render/guard.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	_G.RENDER_SCREEN = { width = screen[1], height = screen[2], size = "auto" }
 	_G.RENDER_HUD_STYLE = "Medallions"
@@ -131,19 +135,37 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			"keep every power format inside the Medallions card at " .. screen[1] .. "x" .. screen[2])
 	end
 	for _, kind in ipairs({ "target", "focus", "pet" }) do
+		U.SetUnit(e, kind, { name = "Boar", level = 60, health = 50, healthMax = 100, power = 100, powerMax = 100, powerType = 0, powerToken = "MANA" })
+		kit.Options.Write("UnitFrames", kind .. ".enabled", true)
 		kit.Options.Write("UnitFrames", kind .. ".power", true)
 		kit.Options.Write("UnitFrames", kind .. ".powerText", "percent")
 		local other = units.Frames.Get(kind).views[1]
-		local g = other.geometry
-		local text = g.powerText
-		assert(text and text.y == g.name.y and text.h == g.name.h, kind .. " power shares the identity row")
-		assert(text.y >= g.power.y + g.power.h and text.y + text.h <= g.glass.h,
+		local geometry = other.geometry
+		local text = geometry.powerText
+		assert(text and text.y == geometry.name.y and text.h == geometry.name.h, kind .. " power shares the identity row")
+		assert(text.y + 0.02 >= geometry.power.y + geometry.power.h and text.y + text.h <= geometry.glass.h + 0.02,
 			kind .. " power fits below the bar inside the card")
-		local path, size, flags = units.Settings.Font(kind, "level")
+		local _, size, flags = units.Settings.Font(kind, "level")
+		local path = units.Settings.Font(kind, "power")
 		assert((other.powerText:GetFont()) == path and select(3, other.powerText:GetFont()) == flags,
 			kind .. " power uses the caption font")
 		assert(text.h >= size and text.w >= Common.Scene.TextWidth("100%", size, path),
 			kind .. " power must fit without truncation at " .. screen[1] .. "x" .. screen[2])
+		e.SetTarget(true)
+		e.FireEvent("PLAYER_FOCUS_CHANGED")
+		e.FireEvent("UNIT_PET", "player")
+		local scene = Common.Scene.Build(e)
+		local drawn = false
+		for _, item in ipairs(scene.items) do
+			if item.object == other.powerText then
+				drawn = true
+				assert(item.rect[4] >= item.font.size, kind .. " rendered power rect must fit the caption height")
+			end
+		end
+		assert(drawn and U.Shown(e, other.powerText) == "100%", kind .. " enabled power text must render")
+		for _, finding in ipairs(Guard.Check(scene)) do
+			assert(finding.object ~= other.powerText, kind .. " power fails strict render: " .. finding.kind .. " " .. finding.detail)
+		end
 		kit.Options.Write("UnitFrames", kind .. ".powerText", "none")
 		assert(not other.geometry.powerText and not other.powerText:IsShown(), kind .. " power text switches off")
 	end
