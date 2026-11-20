@@ -31,7 +31,6 @@ local SCROLLBAR_WIDTH = 8
 local SIDE_ROOM, SIDE_MIN = 35, 32
 local COLUMN_WIDTH = 29
 local ICONS = { channels = { "ChatFrameChannelButton" }, voice = { "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }, menu = { "ChatFrameMenuButton" } }
-local ORDER = "channels,voice,menu"
 
 local STRIP_HEIGHT = 32
 local EDIT_TILE = 22
@@ -662,7 +661,7 @@ end
 local function Stack(column, s, spots, scale)
 	local gap = max(0, tonumber(s.sideSpacing) or 2) / scale
 	local icons, ids, top, bottom = type(s.sideIcons) == "table" and s.sideIcons or {}, {}, {}, {}
-	for id in (IsText(s.sideOrder) and s.sideOrder or ORDER):gmatch("%a+") do
+	for id in tostring(s.sideOrder):gmatch("%a+") do
 		if ICONS[id] then ids[#ids + 1] = id end
 	end
 	for i, id in ipairs(ids) do
