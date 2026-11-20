@@ -1,5 +1,76 @@
 # KstyleUI changelog
 
+## v0.2.7 (2026-11-20)
+
+The big customisation release: a data bar you fill with the readouts you want, a consumables bar that fills itself, a reworked Medallions centre with crest clicks and a crest minimap, and layout tools that keep everything apart at every screen size.
+
+Highlights:
+
+- A data bar across the top in Frames and Orbs, and a dock under the slab in Medallions, with your choice of readouts and a toggleable micro menu.
+- An automatic consumables bar that keeps your best food, potions and other consumables to hand.
+- Medallions: cooldowns centred above the crest, aura rows above the unit frames, click the crest to hearth, right-click it for travel, frame the minimap like the crest, and pick an extra-bar layout.
+- Text formats for health and power, one aura filter set, one bar options set, and a layout for each of your specs.
+- Attach any element to another and match its width, lock drags to one direction in Layout Mode, and cycle stacked frames.
+- Hover a quest to see your party's progress on it.
+- Fixes for the alt-tab stutter and the frame-rate drop from minimap pins, and HUD parts that overlapped or left the screen.
+
+### Added
+
+- A data bar across the top of the screen in Frames and Orbs, in the shared card chrome: your specialization, Hearthstone and a toggleable micro menu on the left, the clock in the centre, and guild, friends, durability, bag space, frame rate, latency, gold and tracked currencies on the right. It is 14 units tall by default, so Frames and Orbs keep their v0.2.6 size and place at every screen size. In Options > Data Bars pick Top, Docked under the action bars or Right rail, the height (12 to 32), opacity, Forged or Plain artwork, and which readouts show and in what order. Right rail puts the readout back where v0.2.6 had it, even after you run setup again. While the bar shows the time, the minimap clock steps aside and comes back when the bar clock is off.
+- New readouts: specialization (switch dual specialization out of combat, or open talents), Hearthstone location and cooldown, guild and friends online, bag space and up to three tracked currencies.
+- In Medallions, a data dock under the action slab shows the original five readouts (frame rate, latency, gold, durability and clock) and the micro menu; turn the others on in Options. When the dock runs out of room it drops whole readouts from its ends and lists them in the last readout's tooltip.
+- An automatic consumables bar with twelve item kinds, in the action bars' shared sockets, with grid controls, fading, a preview and `/kb` bindings. It fills itself with your best consumables and stays clear of your auras and side bars.
+- In Medallions, left-click the central crest to use your Hearthstone and right-click it for your travel spells, items and mounts. Turn Crest travel clicks on or off in Action Bars options.
+- In Medallions, frame the minimap like the central crest: pick Crest medallion, Crest ring or Classic under Minimap frame in Options.
+- Two quick layouts for extra action bars in Medallions: two rows on the slab, or small bars beside it. Pick one under Extra bars layout in Options; everything stays movable.
+- Every action bar can be sized and arranged in Options, in every HUD style, including the Medallions slab bars.
+- Text options for unit frames and nameplates: font, size, outline, colour, and formats such as `[hp:abr]` and `[hp:pct]`, with tags for name, health, power, level, absorbs, target and group.
+- Shared aura controls for player auras, nameplates and group frames, with spell-ID allow and block lists on nameplates.
+- Give each spec its own layout of frames and bars while keeping one profile's look, show any element only in a party, in a raid or when solo, and let the meter follow your role: threat when you tank, damage otherwise.
+- As a damage dealer you can show the threat meter next to the damage meter (Options > Meters).
+- In Layout Mode, Shift locks a drag to one direction, you can cycle through stacked frames, and every frame can show its coordinates. Attach any element to another one (above, below or beside it) and match its width; it follows wherever you move the other.
+- Hover a quest in the quest card to see each party member's progress on it. Party members with KstyleUI or Questie show their objectives.
+
+### Changed
+
+- In Medallions your cooldowns sit centred above the crest and cast bars, your buffs stand in rows above your own frame, and your target debuffs stand in a row above the target frame. Prefer the old crest fan? Pick Crest fan under Unit Frames > Aura layout.
+- The damage and threat meters use matching nameplate-style rows by default; turn off Nameplate-style meter rows in Options > Meters for the previous rows. The damage and threat cards are 250 units wide, so two fit side by side.
+- Nameplate bars, levels and cast names use the same bar and fonts as the rest of the interface: cast names are in capitals and the default plate health bar is 12 units high. Medallions' Minimal preset keeps its slim bar, and Dungeon and saved Custom plates keep theirs.
+- Quest, tracker and guide cards use the same header and spacing as every other card.
+- Every bar's texture, colour and height options use the same shared controls across unit frames, nameplates, group frames, cooldowns, meters and data bars.
+- Bars across the interface share one texture and height, party health uses class colours, and short numbers read the same everywhere (12.4K). Saved profiles with an explicitly chosen texture keep it.
+- The bag window keeps its size and your items stay put; compact bags are an option.
+- Logging in, reloading and changing screen size do less work, with no visible change.
+
+### Fixed
+
+- Alt-tabbing out of the game and back no longer causes a stutter, and frame rate no longer drops while other addons draw pins or gathering nodes on the minimap. The addon drawer no longer takes map pins in.
+- HUD parts, captions and mouse targets stay on screen and apart in all three HUD styles, at every screen size. Your saved positions are kept; anything you saved within 17 units of a screen edge is drawn just inside it.
+- Minimap and map icons are no longer shrunk (compact icons are an option), the minimap no longer runs off the edge of wide screens, and its zone name no longer covers the map.
+- The Medallions damage meter is back on the lower right rail, clear of the nameplates, and long spell names in the damage meter stay whole; saved positions are kept.
+- The Medallions quest card shows whole lines with every minimap frame, in the taller column beside the guide card.
+- With Questie installed, its quest tracker and the KstyleUI quest card no longer draw over each other, RestedXP's Active Items and Active Targets boxes dock under the guide card instead of floating mid-screen, and the RestedXP guide window no longer flickers.
+- KstyleUI restyles other addons' text inside skinned windows without making it overflow their frames, and item tooltips no longer blink when you hover items in the auction house and other lists.
+- Moving a spell on your action bars no longer casts it, the class trainer's skill rows no longer spill over each other or the Train button, and opening the travel menu no longer slows later refreshes.
+- Saved Frames health-text settings no longer blank the health orb, and custom text tags paint once per update.
+- The experience bar shows your real rested share past one level of rested experience, experience, reputation and honour percents no longer read one percent low at exact values, the swing timer stops a hand with no weapon, and the threat meter reads the same figure on a boss as on other enemies.
+- When another addon does the same job, KstyleUI steps aside only for that part: DataBars yields its micro menu and bag bar to Bartender4 or Dominos, Meters yields only damage to Details, and each part can be turned back on. Turning nameplate management or the Nameplates module off gives your own game settings back across reloads.
+- Running setup again with Right rail chosen keeps the data readout in its old spot.
+- The data bar's clock no longer sits on the bar's centre gem.
+- The Medallions data dock separates its readouts from the XP caption.
+- In Medallions, the quest card and guide card line up.
+- Right rail shows the classic readout and keeps it inside its frame.
+
+### Upgrading
+
+- Your Frames and Orbs data readout moves into the new top bar; if you had moved it, a chat message says so once. Pick Right rail in Options > Data Bars for the old readout.
+- In Medallions your readouts move into the dock under the slab; a saved readout position is not used while the dock is on.
+- If you had moved the Medallions crest fan, you keep the fan; everyone else gets the new aura rows (Unit Frames > Aura layout switches back).
+- RestedXP's Active Items and Active Targets boxes dock under the guide card again once, even if you had undocked them; drag either box to undock it.
+- Role-following meters stay off for existing profiles until you turn them on.
+
+An optional icon pack repaints ability and item icons everywhere, including buffs. The addon repaints the frames; **KstyleUI Icons** repaints the icons inside them, in one style everywhere the game draws them. The icons were made with AI image tools. The pack is not an addon and is not part of this download: download `KstyleUI-Icons-<version>.zip` from this project's GitHub releases page, quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
+
 ## v0.2.6 (2026-11-18)
 
 Clearer combat and finished HUD styles: tooltips that follow your mouse out of combat, readable casts and their outcomes, one danger signal at the screen edge, colour-vision and readability choices, Orbs and Frames finished with their own switches, Options that opens on common tasks, a branded welcome page, and a long list of alignment and readability fixes.
