@@ -401,6 +401,9 @@ end
 
 local EVENTS = {
 	PLAYER_ENTERING_WORLD = UpdateAll,
+	PLAYER_EQUIPMENT_CHANGED = function() ForActions(ns.Button.UpdateRarity) end,
+	GET_ITEM_INFO_RECEIVED = function() ForActions(ns.Button.UpdateRarity) end,
+	ITEM_DATA_LOAD_RESULT = function() ForActions(ns.Button.UpdateRarity) end,
 	ACTIONBAR_SLOT_CHANGED = OnSlotChanged,
 	ACTIONBAR_UPDATE_COOLDOWN = OnCooldown,
 	SPELL_UPDATE_COOLDOWN = OnSpellCooldown,

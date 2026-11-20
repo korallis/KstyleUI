@@ -17,6 +17,7 @@ local function Settle() env.RunTimers(); AB.W.Settle(env); env.RunTimers() end
 local function Jump(key)
 	ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = key })
 	Settle()
+	if key == "editBar" then return assert(ns.Window.Parts().picker) end
 	for _, row in ipairs(ns.Window.Parts().content.rows) do
 		if row:IsShown() and row.item and row.item.key == key then return row end
 	end

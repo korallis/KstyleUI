@@ -267,6 +267,32 @@ function Button.UpdateMacroText(b)
 	b.macroText:SetText(text or "")
 end
 
+function Button.UpdateRarity(b)
+	local item, id = C_Item
+	if Config(b).rarityBorder and b.hasAction and type(GetActionInfo) == "function" then
+		local kind, value, subType = GetActionInfo(b.slot)
+		if not IsSecret(kind) and not IsSecret(value) and not IsSecret(subType) and (kind == "item" or kind == "macro" and subType == "item") then id = value end
+	end
+	local quality
+	if type(id) == "number" and item and type(item.IsEquippableItem) == "function" and type(item.GetItemQualityByID) == "function" then
+		local equippable = item.IsEquippableItem(id)
+		if not IsSecret(equippable) and equippable then quality = Plain(item.GetItemQualityByID(id)) end
+	end
+	local r, g, bl
+	if type(quality) == "number" and item and type(item.GetItemQualityColor) == "function" then r, g, bl = item.GetItemQualityColor(quality) end
+	if IsSecret(r) or IsSecret(g) or IsSecret(bl) or type(r) ~= "number" or type(g) ~= "number" or type(bl) ~= "number" then quality = nil end
+	local color = b.itemColor
+	if quality then
+		if b.itemQuality == quality and color and color[1] == r and color[2] == g and color[3] == bl then return end
+		color = color or {}
+		color[1], color[2], color[3] = r, g, bl
+		b.itemColor = color
+	elseif not b.itemQuality then return
+	else b.itemColor = nil end
+	b.itemQuality = quality
+	b:Paint()
+end
+
 local function SpellOf(slot)
 	if type(GetActionInfo) ~= "function" then
 		return nil
@@ -309,6 +335,7 @@ local function UpdateAction(b)
 		RangeCheck(b, slot, true)
 	end
 	b.flyoutArrow:SetShown(b.isFlyout == true)
+	Button.UpdateRarity(b)
 	Button.UpdateMacroText(b)
 	Button.UpdateCount(b)
 	Button.UpdateCooldown(b)
@@ -452,8 +479,36 @@ local function TextFor(b, key)
 	return b.cooldown.GetCountdownFontString and b.cooldown:GetCountdownFontString()
 end
 
+function ns.PlaceTexts(b)
+	local cfg = b.textConfig
+	if not cfg then return end
+	if b.kind == "consumable" and b.opts.size < 30 then return end
+	for _, spec in ipairs(ns.TEXTS) do
+		local place = cfg.placement[spec.key]
+		local fs = TextFor(b, spec.key)
+		if fs and (place.anchor ~= "" or place.x ~= 0 or place.y ~= 0 or b.placedTexts and b.placedTexts[spec.key]) then
+			local anchor = place.anchor ~= "" and place.anchor or (spec.key == "hotkey" and "TOPLEFT" or spec.key == "count" and "BOTTOMRIGHT" or spec.key == "macro" and "BOTTOM" or "CENTER")
+			local left, right, top, bottom = anchor:find("LEFT"), anchor:find("RIGHT"), anchor:find("TOP"), anchor:find("BOTTOM")
+			local inset = spec.key == "count" and not b.opts.readableCountdown and 3 or 2
+			if spec.key == "hotkey" then inset = b.opts.readableCountdown and 2 or 3 end
+			fs:ClearAllPoints()
+			fs:SetWidth(spec.key == "macro" and math.max(1, b.opts.size - 2 * TEXT_INSET) or 0)
+			fs:SetPoint(anchor, b, anchor, Widgets.Snap(fs, (left and inset or right and -inset or 0) + place.x), Widgets.Snap(fs, (top and -inset or bottom and inset or 0) + place.y))
+			if spec.key == "macro" and place.anchor == "" then
+				fs:ClearAllPoints()
+				Widgets.Point(fs, "BOTTOMLEFT", b, "BOTTOMLEFT", TEXT_INSET + place.x, TEXT_INSET + place.y)
+				Widgets.Point(fs, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -TEXT_INSET + place.x, TEXT_INSET + place.y)
+			end
+			fs:SetJustifyH(left and "LEFT" or right and "RIGHT" or "CENTER")
+			b.placedTexts = b.placedTexts or {}
+			b.placedTexts[spec.key] = true
+		end
+	end
+end
+
 function ns.StyleTextsFor(b, barKey)
 	local cfg = ns.Config(barKey)
+	b.textConfig = cfg
 	b.opts.procTransitions = ns.Config("procTransitions") == true
 	b.opts.inputContinuity = ns.Config("inputContinuity") == true
 	local readable = b.opts.readableCountdown
@@ -494,6 +549,7 @@ function ns.StyleTextsFor(b, barKey)
 	b.count:SetShown(cfg.count ~= false)
 	b.macroText:SetShown(cfg.macro == true)
 	b.cooldown:SetHideCountdownNumbers(cfg.cooldown ~= true)
+	ns.PlaceTexts(b)
 end
 
 function Button.StyleTexts(b)

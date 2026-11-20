@@ -24,6 +24,14 @@ local function Color(name)
 	return { r = r, g = g, b = b }
 end
 
+local function TextDefaults(out)
+	out.desaturateCooldown, out.swipeOpacity, out.rarityBorder = false, 0.65, true
+	out.moverOptions = true
+	out.placement = {}
+	for _, spec in ipairs(ns.TEXTS) do out.placement[spec.key] = { anchor = "", x = 0, y = 0 } end
+	return out
+end
+
 local function BarDefaults(def)
 	local action = def.kind == "action"
 	local grid = K.Setup.Layouts.Grid(def.element) or {}
@@ -60,7 +68,7 @@ local function BarDefaults(def)
 		out.pagePossess = true
 		out.pageKeys = true
 	end
-	return out
+	return TextDefaults(out)
 end
 
 local defaults = {
@@ -105,6 +113,7 @@ end
 defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
 defaults.consumables.visibilityBuilder = ns.VisibilityDefaults()
 defaults.consumables.clickThrough, defaults.consumables.reverse = false, false
+TextDefaults(defaults.consumables)
 for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 
@@ -212,6 +221,13 @@ local GROWTH_OPTIONS = {
 	{ value = "LEFTUP", label = L["Left, then up"] },
 }
 
+local TEXT_ANCHORS = {
+	{ value = "", label = L["Current style"] },
+	{ value = "TOPLEFT", label = L["Top left"] }, { value = "TOP", label = L["Top centre"] }, { value = "TOPRIGHT", label = L["Top right"] },
+	{ value = "LEFT", label = L["Left centre"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right centre"] },
+	{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "BOTTOM", label = L["Bottom centre"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
+}
+
 local function Editing(key)
 	return function(settings)
 		return settings.editBar == key
@@ -247,6 +263,12 @@ local function BarRows(schema, def)
 			local field = row.key and row.key:match("%.(.+)$")
 			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" or field == "reverse" then
 				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
+			end
+		end
+		if key == "consumables" and row.key and row.key:find(".placement.", 1, true) then
+			row.disableWhen = function()
+				local _, size = K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())
+				return size < 30
 			end
 		end
 		row.scope = scope
@@ -289,6 +311,22 @@ local function BarRows(schema, def)
 		if def.kind == "action" then add({ type = "toggle", key = key .. ".macro", label = L["Macro names"], help = L["Shows the name of each macro."] }) end
 	end
 	add({ type = "toggle", key = key .. ".cooldown", label = L["Cooldown numbers"], help = L["Shows the time left on each cooldown."] })
+	add({ type = "toggle", key = key .. ".desaturateCooldown", label = L["Desaturate on cooldown"], help = L["Greys icons during real cooldowns, keeping the global cooldown in colour."] })
+	add({ type = "slider", key = key .. ".swipeOpacity", label = L["Swipe opacity"], help = L["Opacity of cooldown sweeps. Quiet global cooldowns stay proportionally softer."], min = 0, max = 1, step = FADE_STEP })
+	if def.kind == "action" then
+		add({ type = "toggle", key = key .. ".rarityBorder", label = L["Item rarity borders"], help = L["Colours equippable items with their quality colour."] })
+	end
+	add({ type = "toggle", key = key .. ".moverOptions", label = L["Double-click mover for settings"], help = L["Opens this bar in Options from Layout Mode. Click selects; right-click resets."] })
+	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."] }) end
+	for _, spec in ipairs(ns.TEXTS) do
+		if spec.key == "hotkey" or spec.key == "cooldown" or spec.key == "count" and (def.kind == "action" or def.kind == "consumable") or spec.key == "macro" and def.kind == "action" then
+			local path = key .. ".placement." .. spec.key
+			add({ type = "header", label = spec.label })
+			add({ type = "dropdown", key = path .. ".anchor", label = L["Text position"], help = L["Current style keeps the usual position. Offsets move text within the button."], options = TEXT_ANCHORS })
+			add({ type = "slider", key = path .. ".x", label = L["Horizontal offset"], help = L["Moves the text horizontally."], min = -12, max = 12, step = 1 })
+			add({ type = "slider", key = path .. ".y", label = L["Vertical offset"], help = L["Moves the text vertically."], min = -12, max = 12, step = 1 })
+		end
+	end
 	if def.kind == "consumable" then
 		for _, option in ipairs({ { "attached", L["Attach to the player frame"] }, { "combat", L["Show in combat"] }, { "idle", L["Show out of combat"] }, { "hideEmpty", L["Hide when empty"] }, { "other", L["Other usable consumables"] } }) do
 			add({ type = "toggle", key = key .. "." .. option[1], label = option[2], help = L["Controls when and where consumables appear."],

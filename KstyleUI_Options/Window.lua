@@ -22,7 +22,7 @@ local RULE_ALPHA = 0.5
 local TITLE = "K S T Y L E U I"
 local DEFAULT_POSITION = { anchor = "CENTER", x = 0, y = 20 }
 
-local win, rail, content, preview, search, clear, layoutButton, resetButton
+local win, rail, content, preview, search, clear, layoutButton, resetButton, picker
 local state = { page = "General", pages = {} }
 local refreshQueued = false
 local Relayout
@@ -97,6 +97,14 @@ local function Render(keepOffset, reselect, pageChanged)
 			items = Note(L["Nothing to set on this page yet."])
 		end
 	end
+	local pinned
+	if not state.query and state.page == "ActionBars" then
+		for i, item in ipairs(items) do if item.key == "editBar" then pinned = i; break end end
+	end
+	local wasPinned = picker.item
+	picker.item = pinned and table.remove(items, pinned) or nil
+	picker:SetShown(pinned and true or false)
+	if pinned or wasPinned then Relayout(true) end
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
@@ -162,6 +170,7 @@ end
 
 function Window.Jump(target)
 	Select(target.page)
+	if target.key == "editBar" and picker:IsShown() then return end
 	for i, item in ipairs(state.items) do
 		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then
 			content:ScrollToIndex(i, true, "TOP")
@@ -244,7 +253,7 @@ local function AskReset()
 	})
 end
 
-function Relayout()
+function Relayout(keepPreview)
 	if not win then
 		return
 	end
@@ -301,11 +310,20 @@ function Relayout()
 	win.split:SetWidth(Widgets.Border(win))
 	Widgets.Tint(win.split, "edgeFaint")
 	content:ClearAllPoints()
-	content:SetPoint("TOPLEFT", rail, "TOPRIGHT", Snap(gap), 0)
-	Widgets.Size(content, contentWidth, max(1, bodyHeight - capHeight - (shown and 0 or footer + gap)))
+	local pickerHeight = 0
+	if picker.item then
+		picker:SetWidth(contentWidth)
+		pickerHeight = Rows.Measure(picker.item, nil, content, contentWidth)
+		picker:SetHeight(pickerHeight)
+		picker:ClearAllPoints()
+		picker:SetPoint("TOPLEFT", rail, "TOPRIGHT", Snap(gap), 0)
+		Rows.Update(picker, picker.item, nil, content)
+	end
+	content:SetPoint("TOPLEFT", rail, "TOPRIGHT", Snap(gap), -pickerHeight)
+	Widgets.Size(content, contentWidth, max(1, bodyHeight - capHeight - pickerHeight - (shown and 0 or footer + gap)))
 	preview:ClearAllPoints()
 	preview:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(top))
-	preview:SetRoom(PREVIEW_WIDTH, max(1, bodyHeight - footer - gap))
+	if keepPreview ~= true then preview:SetRoom(PREVIEW_WIDTH, max(1, bodyHeight - footer - gap)) end
 	resetButton:ClearAllPoints()
 	resetButton:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -Snap(pad), Snap(pad))
 	layoutButton:ClearAllPoints()
@@ -381,6 +399,9 @@ local function Build()
 		createRow = Rows.Create,
 		updateRow = Rows.Update,
 	})
+	picker = Rows.Create(content)
+	picker:SetParent(win)
+	picker:Hide()
 	local setOffset = content.SetOffset
 	content.SetOffset = function(self, offset)
 		setOffset(self, offset)
@@ -500,7 +521,7 @@ function Window.State()
 end
 
 function Window.Parts()
-	return { rail = rail, content = content, preview = preview, search = search, clear = clear, layoutButton = layoutButton, resetButton = resetButton }
+	return { rail = rail, content = content, picker = picker, preview = preview, search = search, clear = clear, layoutButton = layoutButton, resetButton = resetButton }
 end
 
 K.Options.SetWindow(Window.Show)

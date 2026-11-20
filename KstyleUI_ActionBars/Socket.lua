@@ -70,6 +70,17 @@ local function AfterPaint(b)
 	local timer = b.kind == "consumable" and b.opts.size < 30 and b.cooling and not b.opts.hideNumbers
 	if b.kind == "consumable" then b.count:SetAlpha(timer and 0 or 1) end
 	b.hotkey:SetAlpha(timer and 0 or b.opts.readableCountdown and b.realCooldown and 0.6 or 1)
+	local cfg = b.textConfig
+	if cfg and cfg.desaturateCooldown and b.cooling and b.realCooldown and type(b.icon.SetDesaturated) == "function" then b.icon:SetDesaturated(true) end
+	local color = b.itemColor
+	if color then
+		b.chrome:SetRim(color[1], color[2], color[3], 1)
+		local rim = b.medFrame or b.medIconFrame
+		if rim then rim:SetVertexColor(unpack(color)); b.rarityTinted = true end
+	elseif b.rarityTinted then
+		(b.medFrame or b.medIconFrame):SetVertexColor(Tokens.Color("white"))
+		b.rarityTinted = nil
+	end
 	if not Usable(b) then
 		return
 	end
@@ -90,6 +101,7 @@ end
 
 function Socket.Place(b)
 	Countdown(b)
+
 end
 
 function Socket.Tint(b, key)
@@ -102,15 +114,27 @@ function Socket.Tint(b, key)
 end
 
 function Socket.Decorate(b)
-	local paint, restyle = b.Paint, b.Restyle
+	local paint, restyle, cooldownStyle = b.Paint, b.Restyle, b.StyleCooldown
 	b.Paint = function(self)
 		self.rimToken = Quiet() and Socket.TOKENS.quietRim or nil
 		paint(self)
 		AfterPaint(self)
 	end
+	b.StyleCooldown = function(self, real)
+		if type(self.cooldown.SetSwipeColor) ~= "function" then ns.LogOnce("swipe", "Cooldown:SetSwipeColor is missing; the existing sweep finish is kept"); return end
+		local cfg = self.textConfig
+		if cfg and self.swipeOpacity ~= cfg.swipeOpacity then self.swipeOpacity = cfg.swipeOpacity; self.cooldownStyleKey = nil end
+		cooldownStyle(self, real)
+		if cfg and cfg.swipeOpacity ~= 0.65 and type(self.cooldown.SetSwipeColor) == "function" then
+			local alpha = cfg.swipeOpacity
+			if self.opts.quietCooldown and not (real == nil and self.realCooldown or real) then alpha = alpha * 0.4 / 0.65 end
+			self.cooldown:SetSwipeColor(Widgets.Rgba("black", alpha))
+		end
+	end
 	b.Restyle = function(self)
 		Socket.Place(self)
 		restyle(self)
+		if ns.PlaceTexts then ns.PlaceTexts(self) end
 	end
 	Socket.Place(b)
 	Socket.Tint(b)
