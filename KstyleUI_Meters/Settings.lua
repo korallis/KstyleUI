@@ -350,7 +350,8 @@ function ns.Schema()
 		help = L["Use short or full numbers for damage and healing amounts."], options = {
 		{ value = "short", label = L["Short, such as 12.3K"] }, { value = "full", label = L["Full, such as 12,345"] },
 	} }
-	local cards = Off("damage")
+	local meters = Off("damage")
+	local function cards(settings) return meters(settings) and not settings.history.bars end
 	local function Slider(key, label, help, low, high, step, extra)
 		local row = { type = "slider", key = key, label = label, help = help, min = low, max = high, step = step, disableWhen = cards }
 		for k, v in pairs(extra or {}) do row[k] = v end
@@ -363,10 +364,10 @@ function ns.Schema()
 	Slider("damage.titleY", L["Title Y offset"], L["Moves the title and rows up or down."], -4, 8, 1)
 	Slider("damage.nameScale", L["Name size"], L["Scales the names on meter rows."], 0.5, 2, 0.05)
 	Slider("damage.valueScale", L["Number size"], L["Scales the numbers on meter rows."], 0.5, 2, 0.05)
-	schema[#schema + 1] = { type = "toggle", key = "damage.playerMarker", label = L["Mark your bar"], disableWhen = cards,
+	schema[#schema + 1] = { type = "toggle", key = "damage.playerMarker", label = L["Mark your bar"], disableWhen = meters,
 		help = L["Draws a white stripe on your own meter bar."] }
-	local noReset = function(settings) return Off("damage")(settings) or not settings.damage.resetButton end
-	schema[#schema + 1] = { type = "toggle", key = "damage.resetButton", label = L["Reset button"], disableWhen = Off("damage"), showWhen = WindowStyle,
+	local noReset = function(settings) return meters(settings) or not settings.damage.resetButton end
+	schema[#schema + 1] = { type = "toggle", key = "damage.resetButton", label = L["Reset button"], disableWhen = meters, showWhen = WindowStyle,
 		help = L["Shows a button on the damage meter's title that clears every fight, after combat."] }
 	schema[#schema + 1] = { type = "toggle", key = "damage.resetHover", label = L["Reset button on mouseover"], disableWhen = noReset, showWhen = WindowStyle,
 		help = L["Shows the reset button only while you point at the meter."] }

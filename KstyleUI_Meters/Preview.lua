@@ -19,6 +19,8 @@ function Preview.Build(...)
 	local PERCENT_MAX = 100
 	local DAMAGE_SAMPLE_RATE = 38.4
 	local SPELLS = { { 403, 412 }, { 8050, 188 }, { 8042, 134 }, { 6603, 107 }, { 3599, 54 } }
+	local CASTS = {}
+	for i = 1, 10 do CASTS[i] = SPELLS[(i - 1) % #SPELLS + 1][1] end
 	local SAMPLE = {
 		{ class = "WARRIOR", damage = 28400, threat = 100, raw = 3240000 },
 		{ class = "MAGE", damage = 24700, threat = 88, raw = 2851000, player = true },
@@ -121,7 +123,7 @@ function Preview.Build(...)
 
 	local function Lists(frame)
 		local lists = { frame.damage, frame.threat }
-		local on = ns.Get("history.bars")
+		local on = ns.Get("history.bars") and not ns.History.Hidden()
 		if on and not frame.history then
 			frame.history = ns.BarList.New(frame, "history", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, block = true,
 				columns = function() return { value = false, percent = false } end, icons = function() return true end })
@@ -132,30 +134,12 @@ function Preview.Build(...)
 		return lists
 	end
 
-	local function Band(frame, width)
-		local icons, timer = ns.Get("history.icons"), ns.Get("timer.shown")
-		local size, gap = ns.Get("history.size"), ns.Get("history.gap")
-		local count = icons and math.min(ns.Get("history.count"), math.floor((width - 80 + gap) / (size + gap))) or 0
-		frame.icons = frame.icons or {}
-		for i = 1, math.max(count, #frame.icons) do
-			local icon = frame.icons[i]
-			if i <= count and not icon then
-				icon = frame:CreateTexture(nil, "ARTWORK")
-				frame.icons[i] = icon
-			end
-			if icon then
-				local id = SPELLS[(i - 1) % #SPELLS + 1][1]
-				local slot = ns.Get("history.grow") == "LEFT" and count - i or i - 1
-				icon:SetTexture(SpellIcon(id))
-				icon:SetShown(i <= count)
-				icon:ClearAllPoints()
-				Widgets.Size(icon, size, size)
-				Widgets.Point(icon, "BOTTOMLEFT", frame, "BOTTOMLEFT", slot * (size + gap), SWING_HEIGHT + Tokens.Size("gapMedium"))
-			end
-		end
+	local function Band(frame, width, height)
+		local History, timer, grow = ns.History, ns.Get("timer.shown"), ns.Get("history.grow")
+		local icons, upright = ns.Get("history.icons") and not History.Hidden(), grow == "UP" or grow == "DOWN"
+		local size, gap, air = ns.Get("history.size"), ns.Get("history.gap"), Tokens.Size("gapMedium")
 		if timer and not frame.timer then frame.timer = Widgets.FontString(frame, "OVERLAY") end
-		local text = frame.timer
-		local height = icons and size or 0
+		local text, band, side = frame.timer, 0, 0
 		if text then
 			text:SetShown(timer)
 			ns.ApplyFont(text, "timer", nil, "timer")
@@ -167,10 +151,30 @@ function Preview.Build(...)
 			local tall = ns.Get("timer.fontSize") * Theme.FontScale() + 4
 			text:ClearAllPoints()
 			Widgets.Size(text, 80, tall)
-			Widgets.Point(text, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, SWING_HEIGHT + Tokens.Size("gapMedium"))
-			if timer then height = math.max(height, tall) end
+			Widgets.Point(text, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, SWING_HEIGHT + air)
+			if timer then band = tall end
 		end
-		return height
+		if icons and not frame.strip then frame.strip = History.Strip(frame, {}) end
+		local strip = frame.strip
+		if strip then strip.holder:SetShown(icons) end
+		if icons then
+			local room = upright and height - SWING_HEIGHT - air - (band > 0 and band + air or 0) or width - 80
+			History.StyleStrip(strip, math.max(1, math.min(ns.Get("history.count"), math.floor((room + gap) / (size + gap)))))
+			History.PaintStrip(strip, CASTS)
+			if strip.look ~= ns.Get("history.anim") .. grow then
+				strip.look = ns.Get("history.anim") .. grow
+				History.Slide(strip)
+			end
+			strip.holder:ClearAllPoints()
+			if upright then
+				Widgets.Point(strip.holder, "TOPRIGHT", frame, "TOPRIGHT")
+				side = size + air
+			else
+				Widgets.Point(strip.holder, "BOTTOMLEFT", frame, "BOTTOMLEFT", 0, SWING_HEIGHT + air)
+				band = math.max(band, size)
+			end
+		end
+		return band, side
 	end
 
 	local function Arrange(frame)
@@ -184,10 +188,11 @@ function Preview.Build(...)
 			height = FALLBACK_HEIGHT
 		end
 		local gap = Widgets.Snap(frame, Tokens.Size("gapMedium"))
-		local lists, band = Lists(frame), Band(frame, width)
-		local n = #lists
-		local stacked = math.floor((width - gap * (n - 1)) / n) < STACK_BELOW
-		local listWidth = stacked and width or math.floor((width - gap * (n - 1)) / n)
+		local lists = Lists(frame)
+		local band, side = Band(frame, width, height)
+		local n, room = #lists, width - side
+		local stacked = math.floor((room - gap * (n - 1)) / n) < STACK_BELOW
+		local listWidth = stacked and room or math.floor((room - gap * (n - 1)) / n)
 		local listHeight = height - SWING_HEIGHT - gap - (band > 0 and band + gap or 0)
 		if stacked then
 			listHeight = math.floor((listHeight - gap * (n - 1)) / n)
@@ -201,7 +206,7 @@ function Preview.Build(...)
 			elseif stacked then
 				Widgets.Point(list.holder, "TOPLEFT", lists[i - 1].holder, "BOTTOMLEFT", 0, -gap)
 			elseif i == n then
-				Widgets.Point(list.holder, "TOPRIGHT", frame, "TOPRIGHT")
+				Widgets.Point(list.holder, "TOPRIGHT", frame, "TOPRIGHT", -side, 0)
 			else
 				Widgets.Point(list.holder, "TOPLEFT", lists[i - 1].holder, "TOPRIGHT", gap, 0)
 			end

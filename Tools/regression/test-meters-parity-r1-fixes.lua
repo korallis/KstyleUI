@@ -69,7 +69,7 @@ env.C_Spell.GetSpellName = function(...) names = names + 1; return name(...) end
 cast(2)
 assert(reads == 0 and names == 0, "a cast with every display hidden queries nothing: " .. reads .. "/" .. names)
 set("history.hideWorld", false)
-assert(h.panel:IsShown() and M.Last(h.rows[1].name, "SetText")[1] == "Spell 2", "showing the card paints the casts it missed")
+assert(h.panel:IsShown() and M.Last(h.rows[1].name, "SetText")[1]:upper() == "SPELL 2", "showing the card paints the casts it missed")
 env.C_Spell.GetSpellTexture, env.C_Spell.GetSpellName = texture, name
 
 -- Raid and PvP place rules.

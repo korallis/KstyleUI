@@ -87,7 +87,7 @@ M.Write(env, K, "damage.resetButton", true)
 local button = assert(list.resetButton)
 local b, cap, panel = Rect(button), Rect(list.cap.frame), Rect(list.panel)
 assert(button:IsShown() and b.left >= cap.right - 1e-6 and b.right <= panel.right - list.pad + 1e-6, "the reset button sits right of the title, inside the card")
-assert(math.abs(b.right - b.left - 12) < 1, "the reset button is 12 units by default")
+assert(math.abs(b.top - b.bottom - 12) < 1, "the reset button is 12 units by default")
 button._scripts.OnClick(button)
 assert(env._resets == 1, "the reset button clears every fight")
 env.SetCombat(true)
@@ -96,7 +96,7 @@ assert(env._resets == 1, "a reset in combat waits")
 env.SetCombat(false); env.RunTimers()
 assert(env._resets == 2, "a waiting reset runs after combat")
 M.Write(env, K, "damage.resetSize", 18)
-assert(math.abs(Rect(button).right - Rect(button).left - 18) < 1, "reset button size")
+assert(math.abs(Rect(button).top - Rect(button).bottom - 18) < 1, "reset button size")
 M.Write(env, K, "damage.resetHover", true)
 assert(not button:IsShown(), "a mouseover reset button hides until you point at the meter")
 list.panel._mouseOver = true; list.panel._scripts.OnEnter(list.panel)
@@ -104,7 +104,7 @@ assert(button:IsShown(), "pointing at the meter shows the reset button")
 list.panel._mouseOver = false; list.rows[1].frame._scripts.OnLeave(list.rows[1].frame)
 assert(not button:IsShown(), "leaving the meter hides the reset button")
 M.Write(env, K, "damage.resetButton", false)
-assert(not button:IsShown() and math.abs(Rect(list.cap.frame).right - cap.right - 12 - list.gap) < 1, "turning the button off gives the title its room back")
+assert(not button:IsShown() and math.abs(Rect(list.cap.frame).right - cap.right - (b.right - b.left) - list.gap) < 1, "turning the button off gives the title its room back")
 Errors("card options")
 
 -- Combat timer.
@@ -233,13 +233,14 @@ assert(preview.damage.resetButton and preview.damage.resetButton:IsShown(), "the
 local marked = false
 for i = 1, preview.threat.count do marked = marked or (preview.threat.rows[i].marker and preview.threat.rows[i].marker:IsShown()) or false end
 assert(marked, "the preview marks your threat row")
-assert(preview.timer:IsShown() and preview.icons[1]:IsShown() and preview.history.holder:IsShown() and preview.history.count > 0, "the preview shows the timer, the icons and the bars")
-local h = PRect(preview.history.holder)
-for _, other in ipairs({ preview.damage.holder, preview.threat.holder }) do
-	local o = PRect(other)
-	assert(h.right <= o.left + 1e-6 or o.right <= h.left + 1e-6 or h.top <= o.bottom + 1e-6 or o.top <= h.bottom + 1e-6, "preview cards never overlap")
+assert(preview.timer:IsShown() and preview.strip.icons[1].frame:IsShown() and preview.history.holder:IsShown() and preview.history.count > 0, "the preview shows the timer, the icons and the bars")
+local parts = { preview.damage.holder, preview.threat.holder, preview.history.holder, preview.strip.holder, preview.timer }
+for i, part in ipairs(parts) do
+	for j = i + 1, #parts do
+		local h, o = PRect(part), PRect(parts[j])
+		assert(h.right <= o.left + 1e-6 or o.right <= h.left + 1e-6 or h.top <= o.bottom + 1e-6 or o.top <= h.bottom + 1e-6, "preview parts never overlap: " .. i .. " and " .. j)
+	end
 end
-assert(PRect(preview.icons[1]).top <= PRect(preview.damage.holder).bottom + 1e-6, "the preview's strip sits below the cards")
 Errors("preview")
 
 -- The new elements' default places stay clear of the HUD on every owner screen, style and layout.

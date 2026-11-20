@@ -677,7 +677,7 @@ local function Schedule()
 end
 
 local function SkinVisibility()
-	if Alone() then
+	if Alone() or ns.windowsHidden then
 		HideBlizzard()
 	else
 		RestoreBlizzard()

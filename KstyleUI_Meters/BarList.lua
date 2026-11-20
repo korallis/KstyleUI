@@ -149,7 +149,6 @@ local function NewRow(list, index, parent, passive)
 	wash:SetColorTexture(Widgets.Rgba("white", Tokens.Share("rowHover")))
 	wash:Hide()
 	local row = {
-		ink = ink,
 		wash = wash,
 		index = index,
 		frame = frame,
@@ -459,8 +458,7 @@ end
 
 local function RowUnits(list)
 	local section = list.section
-	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale() * max(1, ns.Get("damage.valueScale"))
-	if not list.plate then em = max(em, ns.Get(section .. ".fontSize") * K.Theme.FontScale() * ns.Get("damage.nameScale")) end
+	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale() * max(1, list.valueScale, list.plate and 1 or list.nameScale)
 	local text = em + TEXT_AIR
 	if list.plate then text = max(27, max(NameSize(section), em) + TEXT_AIR + Tokens.Size("barHeight"))
 	elseif not list.block then text = text + PILL_GAP + PILL_HEIGHT end
@@ -510,9 +508,18 @@ function BarList.StyleName(text, section)
 	local path = medallions and Tokens.FontPath(Tokens.MEDALLIONS_PLATE_NAME_FACE) or ns.FontPath(section, "names")
 	if not K.Theme.FollowsKit(ns.Get(section .. ".font")) then path = ns.FontPath(section) end
 	local size = NameSize(section)
-	if medallions and not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") end
+	if medallions and not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") * ns.Get("damage.nameScale") end
 	Widgets.StyleText(text, "names")
 	Widgets.ApplyFont(text, path, size, ns.Get(section .. ".outline"))
+end
+
+local function PlaceMarker(list, row)
+	local right = ns.Get(list.section .. ".fill") == "right"
+	row.marker:ClearAllPoints()
+	row.marker:SetPoint(right and "TOPRIGHT" or "TOPLEFT", row.bar, right and "TOPRIGHT" or "TOPLEFT")
+	row.marker:SetPoint(right and "BOTTOMRIGHT" or "BOTTOMLEFT", row.bar, right and "BOTTOMRIGHT" or "BOTTOMLEFT")
+	row.marker:SetWidth(2 * K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel))
+	row.marker:SetShown(list.marker == true and row.own == true)
 end
 
 function StyleRow(list, row)
@@ -540,14 +547,7 @@ function StyleRow(list, row)
 	if row.dot then
 		ns.ApplyFont(row.dot, section, nil, figures, list.valueScale)
 	end
-	if row.marker then
-		local right = ns.Get(section .. ".fill") == "right"
-		row.marker:ClearAllPoints()
-		row.marker:SetPoint(right and "TOPRIGHT" or "TOPLEFT", row.bar, right and "TOPRIGHT" or "TOPLEFT")
-		row.marker:SetPoint(right and "BOTTOMRIGHT" or "BOTTOMLEFT", row.bar, right and "BOTTOMRIGHT" or "BOTTOMLEFT")
-		row.marker:SetWidth(2 * K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel))
-		row.marker:SetShown(list.marker == true and row.own == true)
-	end
+	if row.marker then PlaceMarker(list, row) end
 	for _, text in ipairs(Widgets.Readability("readableBars") and { row.name, row.value, row.percent } or {}) do
 		local r, g, b = Tokens.Color("textShadow")
 		text:SetShadowColor(r, g, b, 0.8)
@@ -824,28 +824,28 @@ local function ResetButton(list, size)
 	if not button then
 		button = CreateFrame("Button", nil, list.panel)
 		button:SetFrameLevel(list.panel:GetFrameLevel() + 2)
-		local glyph = button:CreateTexture(nil, "OVERLAY")
-		glyph:SetAllPoints(button)
-		glyph:SetTexture((Tokens.Texture("glyphClose")))
-		button.glyph = glyph
-		button:SetScript("OnClick", function() list.onReset() end)
+		button.label = Widgets.FontString(button, "OVERLAY")
+		button.label:SetAllPoints(button)
+		button.label:SetText(K.L["Reset"])
+		button:SetScript("OnClick", list.onReset)
 		button:SetScript("OnEnter", function(self)
-			Widgets.Tint(self.glyph, "textHover")
+			Widgets.TextColor(self.label, "textHover")
 			local tip = Widgets.Tooltip()
 			tip:SetOwner(self, BarList.Inward(self))
 			tip:AddLine(K.L["Reset every fight"])
 			tip:Show()
 		end)
 		button:SetScript("OnLeave", function(self)
-			Widgets.Tint(self.glyph, "muted")
+			Widgets.TextColor(self.label, "muted")
 			Widgets.Tooltip():Hide()
 			Hover(list)
 		end)
 		list.resetButton = button
 	end
-	Widgets.Tint(button.glyph, "muted")
+	Widgets.TextColor(button.label, "muted")
+	ns.ApplyFont(button.label, list.section, "resetSize")
 	button:ClearAllPoints()
-	Widgets.Size(button, size, size)
+	Widgets.Size(button, Widgets.Snap(list.panel, Widgets.TextWidth(button.label, size * 3)), size)
 	Widgets.Point(button, "LEFT", list.cap.frame, "RIGHT", list.gap, 0)
 	return button
 end
@@ -855,9 +855,7 @@ local function PaintFill(list)
 	if fill < 1 then
 		local r, g, b = Tokens.Color("surface")
 		chrome:SetFillRGBA(r, g, b, Widgets.Setting("panelOpacity") * fill)
-		list.ownFill = true
-	elseif list.ownFill then
-		list.ownFill = nil
+	elseif chrome.ownFill then
 		chrome:SetFill(chrome.fillName)
 	end
 end
@@ -887,8 +885,8 @@ function List:Restyle()
 	cap.frame:ClearAllPoints()
 	local x, y = Widgets.Snap(self.panel, ns.Get("damage.titleX")), Widgets.Snap(self.panel, ns.Get("damage.titleY"))
 	local resetOn = self.onReset ~= nil and ns.Get("damage.resetButton") and titled
-	local resetSize = resetOn and Widgets.Snap(self.panel, ns.Get("damage.resetSize")) or 0
-	self.capInset = x + (resetOn and resetSize + self.gap or 0)
+	local reset = resetOn and ResetButton(self, Widgets.Snap(self.panel, ns.Get("damage.resetSize")))
+	self.capInset = x + (reset and reset:GetWidth() + self.gap or 0)
 	local capLeft = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad) + x
 	local capTop = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad) + y
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
@@ -899,8 +897,8 @@ function List:Restyle()
 		cap.frame:SetAlpha(capAlpha)
 	end
 	self.resetHover = resetOn and ns.Get("damage.resetHover")
-	if resetOn then
-		ResetButton(self, resetSize):SetShown(not self.resetHover or self.panel:IsMouseOver() == true)
+	if reset then
+		reset:SetShown(not self.resetHover or self.panel:IsMouseOver() == true)
 	elseif self.resetButton then
 		self.resetButton:Hide()
 	end
@@ -946,7 +944,7 @@ function List:Fit()
 	end
 	height = max(1, min(height, holderHeight))
 	self.fitHeight = height
-	local other = self.key and ns.Threat.paired and (self.section == "damage" and ns.Threat.list or ns.Damage.list)
+	local other = self.key and ns.Threat.paired and (self.section == "damage" and ns.Threat.list or self.section == "threat" and ns.Damage.list)
 	if other then
 		height = min(holderHeight, other.holder:GetHeight(), max(height, other.fitHeight or height))
 		if other.panel:GetHeight() ~= height then other.panel:SetHeight(height) end
@@ -1056,9 +1054,9 @@ function List:SetMarker(i, own)
 	local on = self.marker and own == true
 	row.own = own == true
 	if on and not row.marker then
-		row.marker = row.ink:CreateTexture(nil, "OVERLAY")
+		row.marker = row.name:GetParent():CreateTexture(nil, "OVERLAY")
 		row.marker:SetColorTexture(Tokens.Color("white"))
-		StyleRow(self, row)
+		PlaceMarker(self, row)
 	end
 	if row.marker then row.marker:SetShown(on) end
 end
@@ -1271,10 +1269,6 @@ function BarList.New(parent, section, opts)
 	if opts.tooltip then
 		Widgets.AttachTooltip(panel, opts.tooltip, BarList.Inward)
 	end
-	if opts.onReset then
-		panel:HookScript("OnEnter", function() Hover(list) end)
-		panel:HookScript("OnLeave", function() Hover(list) end)
-	end
 	if opts.onTitle then
 		local hit = CreateFrame("Frame", nil, panel)
 		hit:SetFrameLevel(panel:GetFrameLevel() + 2)
@@ -1283,7 +1277,6 @@ function BarList.New(parent, section, opts)
 		hit:SetScript("OnMouseUp", function(_, button)
 			opts.onTitle(list, button)
 		end)
-		hit:HookScript("OnLeave", function() Hover(list) end)
 		if opts.titleTooltip then
 			Widgets.AttachTooltip(hit, opts.titleTooltip, BarList.Inward)
 		end
@@ -1313,7 +1306,6 @@ function BarList.New(parent, section, opts)
 			switch:HookScript("OnLeave", function()
 				list.hot = false
 				list:ShowSwitch()
-				Hover(list)
 			end)
 		else
 			switch:SetAllPoints(list.column)
@@ -1327,6 +1319,12 @@ function BarList.New(parent, section, opts)
 			Widgets.AttachTooltip(switch, opts.switchTooltip, BarList.Inward)
 		end
 		list.switch = switch
+	end
+	if opts.onReset then
+		for _, frame in pairs({ panel, list.titleHit, list.switch }) do
+			frame:HookScript("OnEnter", function() Hover(list) end)
+			frame:HookScript("OnLeave", function() Hover(list) end)
+		end
 	end
 	holder:HookScript("OnSizeChanged", function()
 		list:Restyle()

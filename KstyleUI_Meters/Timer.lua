@@ -9,7 +9,7 @@ local EVENTS = { "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERI
 local Timer = { section = "timer", key = KEY }
 ns.Timer = Timer
 
-local function Format(seconds, decimal)
+function Timer.Format(seconds, decimal)
 	local tenths = math.floor(math.max(0, seconds) * 10 + 1e-6)
 	local minutes = math.floor(tenths / 600)
 	if decimal then
@@ -17,12 +17,11 @@ local function Format(seconds, decimal)
 	end
 	return string.format("%d:%02d", minutes, math.floor((tenths - minutes * 600) / 10))
 end
-Timer.Format = Format
 
 local function Paint()
 	local seconds = Timer.last or 0
 	if Timer.start then seconds = GetTime() - Timer.start end
-	Timer.text:SetText(Format(seconds, Timer.decimal))
+	Timer.text:SetText(Timer.Format(seconds, Timer.decimal))
 end
 
 local function Color()
@@ -45,7 +44,7 @@ end
 local function Run()
 	if Timer.ticker then Timer.ticker:Cancel() end
 	Timer.ticker = nil
-	if Timer.start and type(C_Timer.NewTicker) == "function" then
+	if Timer.start and Timer.text:IsShown() then
 		Timer.ticker = C_Timer.NewTicker(Timer.decimal and 0.1 or 1, Paint)
 	end
 end
@@ -57,8 +56,8 @@ function Timer:OnEvent(event)
 	elseif not fighting and self.start then
 		self.last, self.start = GetTime() - self.start, nil
 	end
-	Run()
 	Show()
+	Run()
 end
 
 local function Build()
@@ -73,13 +72,9 @@ local function Build()
 	})
 end
 
-function Timer:Start()
-	self:Apply()
-end
-
 function Timer:Apply()
 	if not ns.IsRunning() then return end
-	local shown = ns.Get("timer.shown")
+	local shown = ns.Get("timer.shown") and type(C_Timer) == "table" and type(C_Timer.NewTicker) == "function"
 	ns.SetLive(KEY, shown)
 	if not shown then
 		self:Stop()
@@ -93,6 +88,7 @@ function Timer:Apply()
 	for _, event in ipairs(EVENTS) do ns.Watch(self, event) end
 	self:OnEvent(InCombatLockdown() == true and "PLAYER_REGEN_DISABLED" or "PLAYER_REGEN_ENABLED")
 end
+Timer.Start = Timer.Apply
 
 function Timer:Stop()
 	if not self.holder then return end

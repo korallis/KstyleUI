@@ -125,6 +125,7 @@ local function OnLayout(_, key)
 	if key == "meters.damage" then ns.Threat:Resized() end
 end
 
+_G.BINDING_HEADER_KSTYLEUI_ACTIONBARS = "KstyleUI"
 _G["BINDING_NAME_CLICK KstyleUI_MetersReset:LeftButton"] = K.L["Reset meter data"]
 _G["BINDING_NAME_CLICK KstyleUI_MetersToggle:LeftButton"] = K.L["Show or hide meters"]
 
