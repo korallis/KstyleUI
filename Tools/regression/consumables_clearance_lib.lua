@@ -1,12 +1,14 @@
 -- consumables_clearance_lib.lua: the default maximum grid clears the drawn player aura row, including its timers.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = dofile("Tools/render/scene.lua")
+local Common = dofile("Tools/render/scenes/_common.lua")
 local function Overlap(a, b)
 	return a[1] < b[1] + b[3] - 0.01 and b[1] < a[1] + a[3] - 0.01 and a[2] < b[2] + b[4] - 0.01 and b[2] < a[2] + a[4] - 0.01
 end
-return function(style, preset)
+return function(style, preset, screens)
 	rawset(_G, "RENDER_CONSUMABLES", 12)
-	for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, ns
+	for _, screen in ipairs(screens) do
 		rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
 		for _, arrangement in ipairs({ "centred", "spread" }) do
 			rawset(_G, "RENDER_ARRANGEMENT", arrangement)
@@ -14,8 +16,20 @@ return function(style, preset)
 			local opts = { class = "SHAMAN", layout = preset, applyPreset = true, spec = {
 				buffs = { { "Nature's Swiftness", 136076, { 10, 8 } }, { "Elemental Mastery", 136115, { 30, 14 } }, { "Buff 3", 136076, { 30, 14 } }, { "Buff 4", 136076, { 30, 14 } }, { "Buff 5", 136076, { 30, 14 } }, { "Buff 6", 136076, { 30, 14 } } },
 			} }
-			local bars, ns = Hud.Module("actionbars", opts)
-			local env = Hud.envs[bars]
+			if not env then
+				local bars
+				bars, ns = Hud.Module("actionbars", opts)
+				env = Hud.envs[bars]
+			else
+				Common.ForceScreen(env)
+				local K, enabled = env.KstyleUI, {}
+				K.Options.Write("Layout", "arrangement", arrangement)
+				env.FireEvent("DISPLAY_SIZE_CHANGED")
+				env.RunTimers()
+				for _, name in ipairs(K.Modules.List()) do enabled[name] = K.Modules.IsEnabled(name) end
+				assert(K.Setup.Apply({ layout = preset, modules = enabled }))
+				env.RunTimers()
+			end
 			local rect = { Scene.Rect(env, ns.Consumables.header) }
 			local label = string.format("%dx%d %s", screen[1], screen[2], style .. " " .. preset .. " " .. arrangement)
 			assert(#ns.Consumables.selected == 12 and ns.Consumables.header:IsShown(), "exercise the maximum occupied footprint")
@@ -37,5 +51,5 @@ return function(style, preset)
 	rawset(_G, "RENDER_SCREEN", nil)
 	rawset(_G, "RENDER_HUD_STYLE", nil)
 	rawset(_G, "RENDER_ARRANGEMENT", nil)
-	print("consumables clearance ok: maximum grid clears drawn units, auras and timers at four sizes x both arrangements: " .. style .. " " .. (preset))
+	print("consumables clearance ok: maximum grid clears drawn units, auras and timers at " .. #screens .. " sizes x both arrangements: " .. style .. " " .. (preset))
 end

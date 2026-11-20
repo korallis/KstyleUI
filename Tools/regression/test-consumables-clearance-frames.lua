@@ -1,2 +1,2 @@
--- test-consumables-clearance-frames.lua: the maximum Frames DPS consumables grid clears units and the full player aura row.
-dofile("Tools/regression/consumables_clearance_lib.lua")("Frames", "DPS")
+-- test-consumables-clearance-frames.lua: the maximum Frames DPS consumables grid clears units and the full player aura row at the first two owner sizes.
+dofile("Tools/regression/consumables_clearance_lib.lua")("Frames", "DPS", { { 1920, 1080 }, { 2560, 1440 } })
