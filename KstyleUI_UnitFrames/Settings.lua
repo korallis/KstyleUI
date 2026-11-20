@@ -644,8 +644,8 @@ local ICON_ROWS = {
 	{ "combat", L["Combat icon"], L["Shows crossed swords while the unit is in combat."] },
 	{ "resting", L["Resting"], L["Shows Zz while you rest in an inn or a city."], "player" },
 	{ "threat", L["Threat glow"], L["Glows in the threat colour when the unit has or causes threat."] },
-	{ "hoverBorder", L["Hover glow"], L["Glows in the accent colour while the mouse is over the frame."] },
-	{ "targetBorder", L["Target glow"], L["Glows in the accent colour while this unit is your target."], "-target" },
+	{ "hoverBorder", L["Hover highlight"], L["Outlines the frame in the accent colour while the mouse is over it."] },
+	{ "targetBorder", L["Target highlight"], L["Outlines the frame in the accent colour while this unit is your target."], "-target" },
 	{ "happiness", L["Pet happiness"], L["Shows your hunter pet's happiness."], "pet" },
 }
 

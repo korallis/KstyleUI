@@ -137,30 +137,28 @@ local function Active(view)
 end
 
 function Frames.Edge(view, sample)
-	local s, glow = view.s, view.edge
+	local s, edge = view.s, view.edge
 	local target = s and s.targetBorder and view.kind ~= "target"
-	if not (s and (s.hoverBorder or target)) then
-		if glow then glow:Stop() end
+	local on = false
+	if s and (s.hoverBorder or target) then
+		local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit(view.unit, "target")
+		on = sample or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true
+	end
+	if not on then
+		if edge and edge:IsShown() then edge:Hide() end
 		return
 	end
-	if not glow then
-		local frame = CreateFrame("Frame", nil, view.parent)
-		frame:SetFrameLevel(view.parent:GetFrameLevel())
-		frame:SetAllPoints(view.glowFrame)
-		glow = K.Widgets.Glow(frame, { kind = "selection" })
-		view.edge = glow
+	if not edge then
+		edge = CreateFrame("Frame", nil, view.parent)
+		edge:SetFrameLevel(view.top:GetFrameLevel() - 1)
+		edge:SetAllPoints(view.button or view.parent)
+		edge.line = K.Widgets.NineSlice(edge, "lumenOutline", "OVERLAY")
+		view.edge = edge
 	end
+	K.Widgets.LayoutSlice(edge.line, edge, K.Tokens.Size("radiusTile"), 0)
 	local r, g, b = Settings.Accent()
-	if view.edgeR ~= r or view.edgeG ~= g or view.edgeB ~= b then
-		view.edgeR, view.edgeG, view.edgeB = r, g, b
-		glow:SetColorRGB(r, g, b)
-	end
-	local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit(view.unit, "target")
-	if sample or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true then
-		glow:Start()
-	else
-		glow:Stop()
-	end
+	K.Widgets.ColorSlice(edge.line, r, g, b, 1)
+	edge:Show()
 end
 
 local function Refresh(view, instant)

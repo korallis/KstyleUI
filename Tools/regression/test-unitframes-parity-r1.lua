@@ -1,4 +1,4 @@
--- test-unitframes-parity-r1.lua: parity round 1 options keep v0.2.8 looks and regions, then write and apply fill and prediction opacity, colour by health, gradient, decimals, portrait mirror and zoom, friendly level colour, PvP filters, elite and pet badges, hover and target glows, tooltips, cast icon side, cast opacity and layering, and aura zoom.
+-- test-unitframes-parity-r1.lua: parity round 1 options keep v0.2.8 looks and regions, then write and apply fill and prediction opacity, colour by health, gradient, decimals, portrait mirror and zoom, friendly level colour, PvP filters, elite and pet badges, hover and target highlights, tooltips, cast icon side, cast opacity and layering, and aura zoom.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -65,7 +65,7 @@ for _, kind in ipairs(U.KINDS) do
 		assert(Settings.Value(kind, key) == value, kind .. "." .. key .. " keeps its default")
 	end
 	for _, view in ipairs(ns.Frames.Get(kind).views) do
-		assert(view.edge == nil and view.extraIcon == nil, kind .. " makes no glow or badge until an option needs one")
+		assert(view.edge == nil and view.extraIcon == nil, kind .. " makes no highlight or badge until an option needs one")
 	end
 end
 assert(Settings.Value("pet", "happiness") == false, "pet happiness starts off")
@@ -74,7 +74,7 @@ assert(not module.healthDecimal and module.unitTooltip == "always" and not modul
 
 local schema = keys(Settings.Schema())
 assert(schema["pet.happiness"] and not schema["target.happiness"], "only the pet has a happiness row")
-assert(schema["focus.targetBorder"] and not schema["target.targetBorder"], "the target frame has no target glow row")
+assert(schema["focus.targetBorder"] and not schema["target.targetBorder"], "the target frame has no target highlight row")
 assert(schema["target.elite"] and not schema["player.elite"] and not schema["pet.elite"], "the elite badge is for other units")
 
 U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, power = 30, powerMax = 100,
@@ -203,6 +203,8 @@ local pet = ns.Frames.Get("pet").views[1]
 write("pet.happiness", true)
 local mood = assert(pet.extraIcon, "turning happiness on makes the badge")
 assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetHappiness", "a happy pet shows its mood")
+local spot = W.LastCall(mood, "SetPoint")
+assert(pet.form == "row" and spot[1] == "BOTTOMRIGHT" and spot[2] == pet.parent and spot[3] == "TOPRIGHT", "a row frame's badge sits above the frame, clear of its name")
 env._mood = 1
 env.FireEvent("UNIT_HAPPINESS", "pet")
 assert(W.LastCall(mood, "SetAtlas")[1] == "UI-PetMad", "UNIT_HAPPINESS updates the mood")
@@ -213,32 +215,36 @@ env._hunter = true
 write("pet.happiness", false)
 assert(not mood:IsShown(), "turning happiness off hides it")
 
--- Hover and target glows.
+-- Hover and target highlights: made on first use, shown and hidden on their events.
 write("pet.hoverBorder", true)
-local glow = assert(pet.edge, "turning the hover glow on makes it")
-assert(not glow:IsPlaying(), "the glow waits for the mouse")
+assert(pet.edge == nil, "the hover highlight waits for the mouse before it is made")
 W.Enter(pet.button)
-assert(glow:IsPlaying(), "hovering lights the glow")
+local edge = assert(pet.edge, "hovering makes the highlight")
+assert(edge:IsShown() and W.LastCall(edge, "SetAllPoints")[1] == pet.button, "the highlight outlines the whole frame")
+assert(edge:GetFrameLevel() > pet.health:GetFrameLevel() and edge:GetFrameLevel() < pet.top:GetFrameLevel(), "it draws over the bars, under the text")
 W.Leave(pet.button)
-assert(not glow:IsPlaying(), "leaving puts it out")
+assert(not edge:IsShown(), "leaving hides it")
+local hidden = count(edge, "Hide")
+W.Leave(pet.button)
+assert(count(edge, "Hide") == hidden, "a hidden highlight is not hidden again")
 env._units.focus = env._units.target
 env.RunUnitWatches()
 local focus = ns.Frames.Get("focus").views[1]
 write("focus.targetBorder", true)
-local mark = assert(focus.edge, "the target glow is made when turned on")
-assert(mark:IsPlaying(), "the focus glows while it is also the target")
+local mark = assert(focus.edge, "the target highlight shows while the focus is also the target")
+assert(mark:IsShown(), "the focus is outlined")
 env._units.target = { name = "Wolf", level = 60, health = 10, healthMax = 10, reaction = 2 }
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(not mark:IsPlaying(), "PLAYER_TARGET_CHANGED clears the glow when the target moves on")
+assert(not mark:IsShown(), "PLAYER_TARGET_CHANGED clears the highlight when the target moves on")
 env._units.target = env._units.focus
 env._secretCompare = true
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(not mark:IsPlaying(), "a secret comparison does not light the glow")
+assert(not mark:IsShown(), "a secret comparison does not light the highlight")
 env._secretCompare = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(mark:IsPlaying(), "a readable comparison lights it again")
+assert(mark:IsShown(), "a readable comparison lights it again")
 write("focus.targetBorder", false)
-assert(not mark:IsPlaying(), "turning the target glow off puts it out")
+assert(not mark:IsShown(), "turning the target highlight off hides it")
 
 -- Unit tooltips.
 local player = ns.Frames.Get("player").views[1]
@@ -346,7 +352,7 @@ write("healthDecimal", true)
 pane:Refresh()
 assert(W.LastCall(sample.health, "SetStatusBarColor")[4] == 0.5, "the preview fill takes its opacity")
 assert(sample.extraIcon and sample.extraIcon:IsShown(), "the elite sample shows its badge")
-assert(sample.edge and sample.edge:IsPlaying(), "the preview shows the glow")
+assert(sample.edge and sample.edge:IsShown(), "the preview shows the highlight")
 assert(U.Shown(env, sample.healthText):find("55.7%", 1, true), "the preview percent shows a decimal: " .. U.Shown(env, sample.healthText))
 write("target.healthColor", "health")
 pane:Refresh()
@@ -361,7 +367,7 @@ assert(coords and coords[1] == 1 and coords[2] == 0, "the preview portrait mirro
 write("target.elite", false)
 write("target.hoverBorder", false)
 pane:Refresh()
-assert(not sample.extraIcon:IsShown() and not sample.edge:IsPlaying(), "the preview clears them when turned off")
+assert(not sample.extraIcon:IsShown() and not sample.edge:IsShown(), "the preview clears them when turned off")
 write("edit", "pet")
 write("pet.happiness", true)
 pane:Refresh()

@@ -10,7 +10,7 @@ ns.Format = Format
 local ceil = math.ceil
 
 local COLUMN = { none = 0, legacy = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
-local DECIMAL_EM = 1.1
+local DECIMAL_EM = 0.4
 local PERCENT, PERCENT_DECIMAL = "%.0f%%", "%.1f%%"
 local CURRENT_MAX = "%s / %s"
 local BOTH, BOTH_DECIMAL = "%s / %s  %.0f%%", "%s / %s  %.1f%%"

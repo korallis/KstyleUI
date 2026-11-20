@@ -33,6 +33,7 @@ local RANK = {
 	rareelite = "nameplates-icon-elite-silver", rare = "UI-HUD-UnitFrame-Target-PortraitOn-Boss-Rare-Star",
 }
 local MOOD = { "UI-PetMad", "UI-PetNeutral", "UI-PetHappiness" }
+local PlaceExtra
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -140,6 +141,9 @@ function Indicators.Layout(view, g, s)
 		PlaceMarker(view, spot.x)
 	end
 	view.markerCut = false
+	if view.extraIcon then
+		PlaceExtra(view)
+	end
 	Indicators.Fit(view)
 	view.glowFrame:ClearAllPoints()
 	view.glowFrame:SetAllPoints(g.chrome == false and view.health or view.panel)
@@ -301,6 +305,18 @@ local function ExtraAtlas(view, unit, sample)
 	return not issecretvalue(rank) and RANK[rank] or nil
 end
 
+PlaceExtra = function(view)
+	local icon = view.extraIcon
+	icon:ClearAllPoints()
+	if view.form == "row" then
+		local size = Snap(view, view.s.iconSize)
+		icon:SetSize(size, size)
+		icon:SetPoint("BOTTOMRIGHT", view.parent, "TOPRIGHT", 0, Snap(view, ICON_GAP))
+	else
+		icon:SetAllPoints(view.icons.resting)
+	end
+end
+
 function Indicators.Extra(view, unit, sample)
 	local atlas, icon = ExtraAtlas(view, unit, sample), view.extraIcon
 	if not atlas then
@@ -311,8 +327,8 @@ function Indicators.Extra(view, unit, sample)
 	end
 	if not icon then
 		icon = view.top:CreateTexture(nil, "OVERLAY")
-		icon:SetAllPoints(view.icons.resting)
 		view.extraIcon = icon
+		PlaceExtra(view)
 	end
 	icon:SetAtlas(atlas)
 	icon:Show()
