@@ -1,4 +1,4 @@
--- test-databars-clock-clearance.lua: the top clock clears the forged gem and both trim edges on every owner screen.
+-- test-databars-clock-clearance.lua: the top clock clears the forged gem and both trim edges, and every readout reads at the text floor or above, on every owner screen.
 local D = dofile("Tools/regression/databars_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -27,6 +27,15 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				case .. ": fit the clock text between the top and bottom trim with clear space")
 			assert(math.abs((ty + th / 2) - (by + bh / 2)) <= 1080 / screen[2],
 				case .. ": keep the clock vertically centred in the bar")
+			for id, item in pairs(view.items) do
+				if item.button:IsShown() then
+					for _, text in ipairs({ item.value, item.label }) do
+						local _, size = text:GetFont()
+						assert(size * K.Widgets.ScaleFactor(text) / K.Scale.Pixel(1) >= K.Scale.TextFloor() - 0.01,
+							case .. ": keep the " .. id .. " readout at the text floor; do not exempt top bar text with Widgets.Fitted")
+					end
+				end
+			end
 			print(case .. ": clock clears gem and trim")
 		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
