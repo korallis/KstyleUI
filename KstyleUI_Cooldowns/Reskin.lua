@@ -10,12 +10,17 @@ ns.Reskin = Reskin
 
 local ICON_CROP = 0.07
 local ICON_OUTSET = 0
-local BAR_ICON_OUTSET = 0
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
 local watchedItems = setmetatable({}, { __mode = "k" })
 local watchedViewers = setmetatable({}, { __mode = "k" })
+local nativeBars = setmetatable({}, { __mode = "k" })
+
+local function LayoutBars()
+	local viewer = Viewers.Frame("bars")
+	if viewer and type(viewer.Layout) == "function" then viewer:Layout() end
+end
 
 local function IsTexture(region)
 	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "Texture"
@@ -118,6 +123,9 @@ end
 local function SkinBar(item)
 	local cfg, current = Settings.current.bars, Settings.current
 	local scale = ItemScale(item)
+	if not nativeBars[item] then
+		nativeBars[item] = { item:GetHeight(), item.Bar:GetHeight(), item.Icon:GetWidth(), item.Icon:GetHeight() }
+	end
 	local height = Widgets.Snap(item, cfg.height / Widgets.ScaleFactor(item))
 	item:SetHeight(height)
 	local bar = item.Bar
@@ -139,11 +147,9 @@ local function SkinBar(item)
 		frame:SetHeight(height)
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon)
-		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_ICON_OUTSET / scale }), BAR_ICON_OUTSET / scale)
+		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
 	end
-	local viewer = Viewers.Frame("bars")
-	if viewer and type(viewer.Layout) == "function" then viewer:Layout() end
 end
 
 function Reskin.Item(group, item)
@@ -194,10 +200,12 @@ function Reskin.Start(group)
 			local current = watchedViewers[viewer]
 			if active[current] then
 				Viewers.EachItem(current, Reskin.Item)
+				if current == "bars" then LayoutBars() end
 			end
 		end)
 	end
 	Viewers.EachItem(group, Reskin.Item)
+	if group == "bars" then LayoutBars() end
 	if group == "buffs" then
 		Cap.Start()
 	end
@@ -209,16 +217,25 @@ function Reskin.Refresh()
 	for group in pairs(active) do
 		Viewers.EachItem(group, Reskin.Item)
 	end
+	if active.bars then LayoutBars() end
 	if active.buffs then
 		Cap.Queue()
 	end
 end
 
 function Reskin.Stop()
-	local capped = active.buffs
+	local capped, bars = active.buffs, active.bars
 	for group in pairs(active) do
 		active[group] = nil
 	end
+	for item, native in pairs(nativeBars) do
+		item:SetHeight(native[1])
+		item.Bar:SetHeight(native[2])
+		item.Icon:SetWidth(native[3])
+		item.Icon:SetHeight(native[4])
+		nativeBars[item] = nil
+	end
+	if bars then LayoutBars() end
 	if capped then
 		Cap.Stop()
 	end

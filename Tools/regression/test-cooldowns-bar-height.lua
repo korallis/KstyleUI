@@ -10,6 +10,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		C.Game(e)
 		Common.ForceScreen(e)
 	end })
+	local edit = { saved = {}, active = 1 }
+	F.Install(env, edit)
+	env.EditModeManagerFrame = setmetatable({ IsShown = function() return true end, IsEditModeActive = function() return true end }, {
+		__newindex = function() error("restyling bars must not write the Edit Mode manager") end,
+	})
 	local pooled = env._viewers.BuffBarCooldownViewer._items[2]
 	assert(pooled:GetHeight() == 30 and pooled.Icon:GetHeight() == 30 and pooled.Bar:GetHeight() == 19, "initialize pooled tracked bars with Forever's XML dimensions before native layout")
 	C.Enable(env, K)
@@ -44,7 +49,30 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("Cooldowns", "path", "reskin")
 	local fresh = C.Item(env, viewer, 403)
 	viewer:OnAcquireItemFrame(fresh)
+	viewer._nativeCount = #viewer._items
+	viewer:Layout()
 	Check()
+	local function Restored()
+		for _, item in ipairs(viewer._items) do
+			assert(item:GetHeight() == 30 and item.Bar:GetHeight() == 19, "restore Blizzard's tracked-bar heights immediately when native restyling stops")
+			assert(item.Icon:GetHeight() == 30 and item.Icon:GetWidth() == 30, "restore Blizzard's tracked icon dimensions immediately when native restyling stops")
+		end
+		local first, second = viewer._items[1], viewer._items[2]
+		local offset = select(5, second:GetPoint()) * second:GetScale()
+		assert(C.W.Near(-offset, first:GetHeight() * first:GetScale() + viewer._nativePadding), "reflow restored native bar heights immediately so Blizzard's rows do not overlap")
+	end
+	K.Options.Write("Cooldowns", "path", "mirror")
+	Restored()
+	viewer:SetScale(0.9)
+	fresh:SetScale(0.8)
+	Restored()
+	K.Options.Write("Cooldowns", "path", "reskin")
+	Check()
+	env.SetCombat(false)
+	K.Modules.Disable("Cooldowns")
+	Restored()
+	assert(not edit.saves and not edit.activated, "tracked-bar resize and restore must not save or activate an Edit Mode layout")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "tracked bars must resize and restore safely in combat and Edit Mode")
 	C.Clean(env, { SetPoint = true, ClearAllPoints = true, SetSize = true, SetParent = true, Hide = true, SetScript = true })
 end
 rawset(_G, "RENDER_SCREEN", previous)

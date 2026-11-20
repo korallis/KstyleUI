@@ -363,15 +363,6 @@ local function Chip(f, shown)
 	chip:SetWidth(Widgets.Snap(f, CHIP_WIDTH))
 end
 
-local function ShowCap(f, shown)
-	local bar = f.health
-	if bar.sparkLine then
-		bar.sparkLine:SetAlpha(shown and 1 or 0)
-		bar.sparkGlow:SetAlpha(shown and 1 or 0)
-	end
-	f.medSparkHidden = not shown or nil
-end
-
 local function TextReserve(f, k)
 	local percent = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
 	local status = f.status and Style.StatusWidth(f, k.healthTextSize) or 0
@@ -449,7 +440,6 @@ local function Tile(f, parts, k)
 		fit.set(f.name, fit.size)
 	end
 	Style.SetFont(f.healthText, Settings.current.text.healthFont, k.healthTextSize, TILE_TEXT)
-	ShowCap(f, false)
 	if block then
 		local _, percent = TextReserve(f, k)
 		local right = Widgets.Snap(f, tile.right)
@@ -499,12 +489,9 @@ local function Applied(f, parts, k)
 		return
 	end
 	Slab(f, false)
-	if f.medSparkHidden then
-		ShowCap(f, true)
-		Chip(f, false)
-		if f.auraClip then
-			f.auraClip:SetAlpha(1)
-		end
+	Chip(f, false)
+	if f.auraClip then
+		f.auraClip:SetAlpha(1)
 	end
 end
 table.insert(Style.appliers, 1, Applied)
