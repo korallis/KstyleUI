@@ -1,0 +1,11 @@
+<Bindings>
+	<Binding name="CLICK KstyleUI_Toggle_bar1:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_bar2:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_bar3:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_bar4:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_bar5:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_bar6:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_pet:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_stance:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Toggle_consumables:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+</Bindings>

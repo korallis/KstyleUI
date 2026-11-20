@@ -351,6 +351,7 @@ local function OnSetting(_, module, key)
 		ns.Ranks.Stop()
 	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
+	if field and field:match("^visibilityBuilder%.") then return end
 	if barKey and field == "size" and (barKey == "bar1" or barKey == "bar2") and ns.Slab.Grouped(ns.BAR[barKey]) then
 		local other = barKey == "bar1" and "bar2" or "bar1"
 		if ns.Config(other).size ~= ns.Config(barKey).size then
@@ -381,6 +382,7 @@ local function OnSetting(_, module, key)
 end
 
 local function OnProfile()
+	ns.SyncVisibilities()
 	OnLayoutMode()
 	ApplyAll()
 	RefreshVisuals()
@@ -453,6 +455,7 @@ local function Enable()
 	ns.running = true
 	ns.class = select(2, UnitClass("player"))
 	ns.gamepad = ns.IsGamepad()
+	ns.SyncVisibilities()
 	if not (C_ActionBar and type(C_ActionBar.HasAction) == "function" and type(C_ActionBar.GetActionTexture) == "function") then
 		ns.enabling = false
 		error("C_ActionBar is missing on this client; the action bars cannot run")

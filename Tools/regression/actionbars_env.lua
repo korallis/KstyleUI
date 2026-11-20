@@ -227,6 +227,8 @@ local function InstallGame(env, opts)
 			value = g.stealth == true
 		elseif name == "mod" then
 			value = g.mod == arg
+		elseif name == "mounted" then
+			value = g.mounted == true
 		else
 			return nil
 		end
@@ -639,9 +641,10 @@ local function InstallGame(env, opts)
 				AB.Protect(env, up)
 				up = up:GetParent()
 			end
-			if template:find("SecureHandlerStateTemplate", 1, true) then
+			if template:find("SecureHandlerStateTemplate", 1, true) or template:find("SecureHandlerBaseTemplate", 1, true) then
 				MakeStateHandler(env, frame)
 			end
+			if template:find("SecureHandlerClickTemplate", 1, true) then frame._secureClick = true end
 			local hide = frame.Hide
 			frame.Hide = function(self)
 				local wrap = self._wraps and self._wraps.OnHide
@@ -717,6 +720,10 @@ end
 -- SecureActionButton_OnClick does, then the button's hooked OnClick and PostClick scripts.
 function AB.Click(env, button, mouse, down)
 	mouse = mouse or "LeftButton"
+	if button._secureClick then
+		if not down then RunSnippet(env, "self, button, down", button:GetAttribute("_onclick"), button, button, mouse, down) end
+		return
+	end
 	local wrap = button._wraps and button._wraps.OnClick
 	local message
 	if wrap then
@@ -783,7 +790,14 @@ function AB.PressKey(env, key, down)
 	end
 	local command = env.GetBindingAction(key)
 	local name = command:match("^CLICK (.-):LeftButton$")
-	if name and env[name] then env[name]:Click("LeftButton"); return true end
+	if name and env[name] then
+		if env[name]._secureClick then AB.Click(env, env[name], "LeftButton", false)
+		elseif env[name]:GetAttribute("type") then
+			AB.Click(env, env[name], "LeftButton", true)
+			AB.Click(env, env[name], "LeftButton", false)
+		else env[name]:Click("LeftButton") end
+		return true
+	end
 	return false
 end
 

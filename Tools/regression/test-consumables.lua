@@ -309,5 +309,19 @@ env.FireEvent("PLAYER_REGEN_ENABLED")
 Clean()
 K.Modules.Disable("ActionBars")
 assert(not C.header:IsShown(), "module disable hides the bar")
+K.Modules.Enable("ActionBars")
+Bag({ 118, 2455 })
+local first, second = C.buttons[1]:GetAttribute("item"), C.buttons[2]:GetAttribute("item")
+K.Options.Write("ActionBars", "consumables.reverse", true)
+K.Options.Write("ActionBars", "consumables.clickThrough", true)
+assert(C.buttons[1]:GetAttribute("item") == first and C.buttons[2]:GetAttribute("item") == second, "reversal keeps consumable button identities")
+assert(not C.buttons[1]:IsMouseEnabled() and not C.buttons[2]:IsMouseEnabled(), "consumables pass the mouse through")
+env._game.bindings["CLICK KstyleUI_Consumable1:LeftButton"] = { "F8" }
+assert(AB.PressKey(env, "F8") and AB.Used(env) == first, "click-through preserves consumable keybind actions")
+env._game.bindings["CLICK KstyleUI_Toggle_consumables:LeftButton"] = { "F9" }
+env._combat = true
+assert(AB.PressKey(env, "F9") and not C.gate:IsShown(), "consumables toggle securely in combat")
+assert(AB.PressKey(env, "F9") and C.gate:IsShown(), "consumables return securely in combat")
+env._combat = false
 Clean()
 print("consumables ok: curated ranks, secure combat repack, attachment, grids, settings and secrets")

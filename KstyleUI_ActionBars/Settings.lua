@@ -38,6 +38,9 @@ local function BarDefaults(def)
 		fade = false,
 		fadeAlpha = 0,
 		visibility = "",
+		visibilityBuilder = ns.VisibilityDefaults(),
+		clickThrough = false,
+		reverse = false,
 		hotkey = true,
 		cooldown = true,
 		backing = false,
@@ -100,6 +103,8 @@ for _, def in ipairs(ns.BARS) do
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
 defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
+defaults.consumables.visibilityBuilder = ns.VisibilityDefaults()
+defaults.consumables.clickThrough, defaults.consumables.reverse = false, false
 for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 
@@ -213,6 +218,21 @@ local function Editing(key)
 	end
 end
 
+local function VisibilityRows(add, key)
+	local function Advanced(settings) return ns.ParseVisibility(settings[key].visibility) == nil end
+	add({ type = "header", label = L["Visibility conditions"] })
+	add({ type = "note", label = L["Any ticked condition matches. The builder writes Custom visibility below. Clear an advanced macro to use it."] })
+	add({ type = "dropdown", key = key .. ".visibilityBuilder.mode", label = L["When a condition matches"],
+		help = L["Show or hide this bar when any ticked condition matches."], disableWhen = Advanced,
+		options = { { value = "show", label = L["Show"] }, { value = "hide", label = L["Hide"] } } })
+	for _, condition in ipairs(ns.VISIBILITY_CONDITIONS) do
+		add({ type = "toggle", key = key .. ".visibilityBuilder." .. condition[1], label = condition[3],
+			help = L["Adds this condition to Custom visibility."], disableWhen = Advanced })
+	end
+	add({ type = "text", key = key .. ".visibility", label = L["Custom visibility"], help = L["Macro conditions: [combat] show; hide. Empty keeps the usual visibility rules."], maxLetters = PAGING_LETTERS })
+	add({ type = "note", label = L["Bind Toggle Action Bar in Blizzard's Key Bindings under KstyleUI."] })
+end
+
 local function BarRows(schema, def)
 	local key = def.key
 	local editing = Editing(key)
@@ -225,7 +245,7 @@ local function BarRows(schema, def)
 		end
 		if key == "bar1" or key == "bar2" then
 			local field = row.key and row.key:match("%.(.+)$")
-			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" then
+			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" or field == "reverse" then
 				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
 			end
 		end
@@ -238,11 +258,13 @@ local function BarRows(schema, def)
 	if key == "bar3" then add({ type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."] }) end
 	if key == "bar1" or key == "bar2" then
 		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
+		add({ type = "note", label = L["The slab fixes button order. Turn it off above to reverse these bars."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 	end
 	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
 	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = (def.kind == "action" or def.kind == "consumable") and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = (def.kind == "action" or def.kind == "consumable") and 1 or 0, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
+	add({ type = "toggle", key = key .. ".reverse", label = L["Reverse button order"], help = L["Places the first slot at the other end. Each key stays bound to its original slot."] })
 	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
 	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = def.kind == "action" and L["The gap between buttons."] or L["The gap between buttons. -1 keeps the HUD style's default spacing."], min = def.kind == "action" and 0 or -1, max = SPACING_MAX, step = 0.1 })
 	if def.kind == "action" then
@@ -252,8 +274,8 @@ local function BarRows(schema, def)
 		add({ type = "toggle", key = key .. ".showEmpty", label = L["Show empty buttons"], help = L["Shows slots with no action as empty tiles."] })
 	end
 	add({ type = "toggle", key = key .. ".backing", label = L["Backing strip"], help = L["Draws a strip of smoked glass behind the bar's buttons."] })
+	add({ type = "toggle", key = key .. ".clickThrough", label = L["Click through"], help = L["Ignores the mouse while keys still work. Move the bar with its Layout Mode handle."] })
 	add({ type = "toggle", key = key .. ".fade", label = L["Fade until hovered"], help = L["Fades the bar until the pointer is over it."] })
-	add({ type = "text", key = key .. ".visibility", label = L["Custom visibility"], help = L["Macro conditions: [combat] show; hide. Empty keeps the usual visibility rules."], maxLetters = PAGING_LETTERS })
 	add({
 		type = "slider", key = key .. ".fadeAlpha", label = L["Faded opacity"], help = L["How visible the bar stays while faded."],
 		min = 0, max = 1, step = FADE_STEP,
@@ -274,6 +296,7 @@ local function BarRows(schema, def)
 		end
 		for _, kind in ipairs(ns.Consumables.kinds) do add({ type = "toggle", key = key .. "." .. kind.key, label = kind.label, help = L["Shows the best carried item of this kind."] }) end
 	end
+	VisibilityRows(add, key)
 	if def.paged then
 		local function Custom(settings)
 			return settings[key].paging ~= ""
@@ -303,6 +326,9 @@ local function EditOptions()
 end
 
 function ns.Schema()
+	ns.SyncVisibilities()
+	K.Callbacks.Register("SettingChanged", "ActionBarsVisibility", ns.VisibilityChanged)
+	K.Callbacks.Register("ProfileChanged", "ActionBarsVisibility", ns.SyncVisibilities)
 	local schema = {
 		{ type = "segmented", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" end },

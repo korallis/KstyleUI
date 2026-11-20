@@ -65,7 +65,8 @@ end
 local function Build()
 	if not holder then
 		holder = CreateFrame("Frame", nil, K.Scale.Root())
-		header = CreateFrame("Frame", nil, holder, "SecureHandlerStateTemplate")
+		C.gate = ns.VisibilityGate(holder, "consumables")
+		header = CreateFrame("Frame", nil, C.gate, "SecureHandlerStateTemplate")
 		header:Hide()
 		C.holder, C.header, C.buttons = holder, header, buttons
 	end
@@ -124,6 +125,7 @@ function C.Apply()
 	header:SetPoint(corner, holder, corner)
 	header:SetSize(liveColumns * (size + gap) - gap, liveRows * (size + gap) - gap)
 	for i, b in ipairs(buttons) do
+		b:EnableMouse(cfg.clickThrough ~= true)
 		b.opts.size = size
 		b.opts.hideNumbers = cfg.cooldown == false
 		b.opts.procTransitions, b.opts.inputContinuity = ns.Config("procTransitions"), ns.Config("inputContinuity")
@@ -132,8 +134,9 @@ function C.Apply()
 		b:SetAccent(ns.AccentRGB())
 		K.Widgets.MedallionsIcon(b, style == "medallions")
 		local col, row
-		if cfg.orientation == "VERTICAL" then row, col = (i - 1) % used, math.floor((i - 1) / used)
-		else col, row = (i - 1) % columns, math.floor((i - 1) / columns) end
+		local position = cfg.reverse and occupied + 1 - i or i
+		if cfg.orientation == "VERTICAL" then row, col = (position - 1) % used, math.floor((position - 1) / used)
+		else col, row = (position - 1) % columns, math.floor((position - 1) / columns) end
 		b:ClearAllPoints()
 		b:SetPoint(corner, header, corner, (left and -1 or 1) * col * (size + gap), (up and 1 or -1) * row * (size + gap))
 		local record = selected[i]

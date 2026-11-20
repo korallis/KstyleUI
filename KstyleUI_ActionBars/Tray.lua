@@ -65,7 +65,7 @@ function Tray.Wanted(main, second, steady)
 	if K.HudStyle.Current() ~= "frames" or ns.Config("useTray") == false or ns.Config("tray") ~= true or not (main and second) or not steady then
 		return false
 	end
-	if not (main:Shown() and second:Shown()) or main.holderHidden or second.holderHidden then
+	if not (main:Shown() and second:Shown()) or main.holderHidden or second.holderHidden or main.gateHidden or second.gateHidden then
 		return false
 	end
 	if main:Config().fade == true or second:Config().fade == true then

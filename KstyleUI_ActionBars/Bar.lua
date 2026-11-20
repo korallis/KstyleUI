@@ -44,9 +44,13 @@ end
 function ns.NewBar(def)
 	local bar = setmetatable({ def = def, buttons = {}, hovered = 0, alpha = 1, target = 1, count = 0 }, Bar)
 	local holder = CreateFrame("Frame", nil, K.Scale.Root())
-	local header = CreateFrame("Frame", "KstyleUI_" .. def.name, holder, "SecureHandlerStateTemplate")
+	bar.gate = ns.VisibilityGate(holder, def.key)
+	local header = CreateFrame("Frame", "KstyleUI_" .. def.name, bar.gate, "SecureHandlerStateTemplate")
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
+	bar.gateHidden = bar.gate:GetAttribute("toggle-hidden") == true
+	bar.gate:HookScript("OnShow", function() bar.gateHidden = nil; bar:RefreshTray() end)
+	bar.gate:HookScript("OnHide", function() bar.gateHidden = true; bar:RefreshTray() end)
 	holder:HookScript("OnShow", function()
 		bar.holderHidden = nil
 		bar:RefreshTray()
@@ -213,6 +217,7 @@ function Bar:Layout()
 	local def, cfg = self.def, self:Config()
 	local header = self.header
 	local grouped = ns.Slab.Grouped(def)
+	if cfg.clickThrough then ns.Flyout.Close() end
 	local orientation, growth = grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth
 	self.factor = Widgets.ScaleFactor(header)
 	local count = min(def.max, max(1, floor(cfg.buttons or def.max)))
@@ -260,13 +265,15 @@ function Bar:Layout()
 	self.backing:SetShown(not grouped and cfg.backing == true)
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cell
+		b:EnableMouse(cfg.clickThrough ~= true)
 		if i <= count then
+			local position = cfg.reverse and not grouped and count + 1 - i or i
 			local col, row
 			if cols then
 				if orientation == "VERTICAL" then
-					row, col = (i - 1) % used, floor((i - 1) / used)
+					row, col = (position - 1) % used, floor((position - 1) / used)
 				else
-					col, row = (i - 1) % cols, floor((i - 1) / cols)
+					col, row = (position - 1) % cols, floor((position - 1) / cols)
 				end
 				if growth == "LEFTDOWN" or growth == "LEFTUP" then
 					col = cols - 1 - col
@@ -275,7 +282,7 @@ function Bar:Layout()
 					row = used - 1 - row
 				end
 			else
-				col, row = ns.Cell(i, count, rows, orientation, growth)
+				col, row = ns.Cell(position, count, rows, orientation, growth)
 			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch) - drop)

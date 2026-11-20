@@ -28,6 +28,12 @@ return Common.Run(function()
 	end
 	env.RunTimers(); AB.W.Settle(env)
 	assert(K.Store.Module("ActionBars").editBar == "bar2", "render must select bar 2 through its picker")
+	if os.getenv("RENDER_VISIBILITY_BUILDER") == "1" then
+		K.Options.Write("ActionBars", "bar2.visibilityBuilder.combat", true)
+		K.Options.Write("ActionBars", "bar2.visibilityBuilder.target", true)
+		ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = "bar2.visibilityBuilder.mode" })
+		env.RunTimers(); AB.W.Settle(env)
+	end
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Gallery.Build(env)
 end)

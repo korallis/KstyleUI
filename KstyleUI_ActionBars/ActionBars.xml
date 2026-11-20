@@ -3,6 +3,7 @@
 	<Script file="Data.lua"/>
 	<Script file="Socket.lua"/>
 	<Script file="ConsumableData.lua"/>
+	<Script file="Visibility.lua"/>
 	<Script file="Settings.lua"/>
 	<Script file="Button.lua"/>
 	<Script file="Flyout.lua"/>

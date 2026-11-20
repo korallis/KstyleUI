@@ -36,7 +36,7 @@ for _, def in ipairs(choices) do
 	Settle()
 	K.Options.Write("ActionBars", def.key .. ".enabled", true)
 	Settle()
-	for _, field in ipairs({ "buttons", "rows", "orientation", "growth", "size", "spacing", "backing", "fade", "hotkey", "cooldown", "visibility" }) do
+	for _, field in ipairs({ "buttons", "rows", "orientation", "growth", "size", "spacing", "backing", "fade", "hotkey", "cooldown", "visibility", "reverse", "clickThrough", "visibilityBuilder.combat", "visibilityBuilder.mode" }) do
 		local found
 		for _, item in ipairs(ns.Window.State().items) do if item.key == def.key .. "." .. field then found = true end end
 		assert(found, def.key .. " exposes " .. field)
@@ -58,6 +58,9 @@ for _, def in ipairs(choices) do
 			assert(K.Options.Equal(before[other.key], K.Store.Module("ActionBars")[other.key]), "changing " .. def.key .. " also changed " .. other.key)
 		end
 	end
+	AB.W.Click(Jump(def.key .. ".visibilityBuilder.combat").controls.toggle)
+	Settle()
+	assert(K.Store.Module("ActionBars")[def.key].visibility == "[combat] show; hide", "builder ticks write this bar's macro")
 	local text = Jump(def.key .. ".visibility").controls.text
 	text:SetText("[mod:alt] hide; show")
 	text:GetScript("OnEnterPressed")(text)

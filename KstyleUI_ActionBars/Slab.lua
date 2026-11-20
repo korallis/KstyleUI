@@ -666,7 +666,7 @@ function Slab.Pair(cfg)
 	local bars = ns.bars
 	local left, right = bars and bars.bar1, bars and bars.bar2
 	cfg = cfg or K.Store.Module("ActionBars")
-	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden then
+	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden or left.gateHidden or right.gateHidden then
 		return nil
 	end
 	local l1, r1, t1, b1 = Edges(left.holder)
@@ -743,7 +743,7 @@ function Slab.Refresh()
 	if cfg.extraBarsApplied == "rows" then
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local bar, base = ns.bars[key], i == 1 and left or right
-			if bar and bar:Shown() and not bar.holderHidden then
+			if bar and bar:Shown() and not bar.holderHidden and not bar.gateHidden then
 				local l, r, t, b = Edges(bar.holder)
 				local bl, br, bt = Edges(base.holder)
 				local _, _, _, spacing = Layouts().ActionBarGrid(STYLE, K.Scale.Aspect(), base.def.element)
@@ -860,7 +860,7 @@ function Slab.PlaceSides(on, cfg)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = wanted and bar:Shown() and not bar.holderHidden and not cfg[key].backing
+			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar.gateHidden and not cfg[key].backing
 			if shown then
 				local action = key == "bar3" or key == "bar4" or key == "bar5"
 				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)

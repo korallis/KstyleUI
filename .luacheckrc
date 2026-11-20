@@ -81,7 +81,7 @@ module_globals("KstyleUI_UnitFrames", {})
 
 module_globals("KstyleUI_GroupFrames", {})
 
-module_globals("KstyleUI_ActionBars", { "SlashCmdList", "SLASH_KSTYLEKB1", "SLASH_KSTYLEKB2", "KstyleUI_CrestTravel" })
+module_globals("KstyleUI_ActionBars", { "SlashCmdList", "SLASH_KSTYLEKB1", "SLASH_KSTYLEKB2", "KstyleUI_CrestTravel", "BINDING_HEADER_KSTYLEUI_ACTIONBARS" })
 
 module_globals("KstyleUI_Cooldowns", {})
 

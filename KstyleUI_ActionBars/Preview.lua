@@ -57,7 +57,8 @@ function Preview:Refresh()
 	for i, button in ipairs(self.buttons) do
 		if i <= count then
 			local grouped = ns.Slab.Grouped(def)
-			local col, row = ns.Cell(i, count, rows, grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
+			local position = cfg.reverse and not grouped and count + 1 - i or i
+			local col, row = ns.Cell(position, count, rows, grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
 			button.opts.size = cell
 			button.kind, button.opts.hideNumbers = def.kind, cfg.cooldown ~= true
 			button:ClearAllPoints()

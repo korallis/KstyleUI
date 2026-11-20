@@ -21,6 +21,7 @@ return Common.Run(function()
 	AB.Enable(env, K)
 	local mode = os.getenv("RENDER_BAR_CONFIG") or "default"
 	if mode == "legacy" then K.Options.Write("ActionBars", "tray", false) end
+	if mode == "reversed" then K.Options.Write("ActionBars", "bar1.reverse", true) end
 	if mode == "free" then
 		local settings = K.Store.Module("ActionBars")
 		settings.slab, settings.tray, settings.useTray = false, false, false
