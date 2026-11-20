@@ -17,6 +17,7 @@ local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
 local SCREEN_MARGIN = 48
 local CAP_ROOM = 20
+local BIND_LABELS = { [2] = L["BoE"], [9] = L["WuE"] }
 local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
 local STRATA = "MEDIUM"
 local windows = {}
@@ -280,7 +281,7 @@ function Window:Key(record, o, ranks, labels)
 	local info = Data.Info(record)
 	local sub, subRank = nil, 0
 	if key == "equipment" then
-		local set = o.sets and Data.SetName(record.itemID)
+		local set = o.sets and not (record.bound == false and BIND_LABELS[info.bind]) and Data.SetName(record.itemID)
 		if set then
 			key, label, rank = "set:" .. set, set, rank - 0.5
 		elseif o.slot and SLOT_RANK[info.equipLoc] then
@@ -904,7 +905,6 @@ function Window:Paint(force)
 	end
 end
 
-local BIND_LABELS = { [2] = L["BoE"], [9] = L["WuE"] }
 local slotLabels = {}
 
 function Window:UpdateSlot(slot)
@@ -912,10 +912,11 @@ function Window:UpdateSlot(slot)
 	local level = not record.empty and Settings.Get("showItemLevel") and Data.ItemLevel(record) or nil
 	local o, extra = self.opts, nil
 	if o.labels then
-		local info = o.bind and record.bound == false and Data.Info(record)
+		local info = (o.bind or o.sets) and record.bound == false and Data.Info(record)
+		local unbound = info and info.equipLoc and info.equipLoc ~= "" and BIND_LABELS[info.bind]
 		extra = slotLabels
-		extra.bind = info and info.equipLoc and info.equipLoc ~= "" and BIND_LABELS[info.bind] or nil
-		extra.set = o.sets and not extra.bind and not record.empty and Data.SetName(record.itemID) or nil
+		extra.bind = o.bind and unbound or nil
+		extra.set = o.sets and not unbound and not record.empty and Data.SetName(record.itemID) or nil
 		extra.mark = o.mark and slot.bag == Data.ReagentBag()
 	end
 	Slot.Update(slot, record, level, Data.Matches(record, self.query), slot.packed, extra, slot.shownCount)
