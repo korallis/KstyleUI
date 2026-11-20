@@ -85,13 +85,13 @@ local function Render(keepOffset, reselect, pageChanged)
 		return
 	end
 	local items
+	local page = CurrentPage()
 	if state.query then
-		items = Model.Search(K.Store.Account().optionsSearchPage == true and { CurrentPage() } or state.pages, state.query) or {}
+		items = Model.Search(K.Store.Account().optionsSearchPage == true and { page } or state.pages, state.query) or {}
 		if #items == 0 then
 			items = Note(format(L["No settings match \"%s\"."], state.query))
 		end
 	else
-		local page = CurrentPage()
 		items = page and Model.Visible(Model.PageItems(page)) or {}
 		if #items == 0 then
 			items = Note(L["Nothing to set on this page yet."])
@@ -105,7 +105,6 @@ local function Render(keepOffset, reselect, pageChanged)
 	picker.item = pinned and table.remove(items, pinned) or nil
 	picker:SetShown(pinned and true or false)
 	if pinned or wasPinned then Relayout(true) end
-	local page = CurrentPage()
 	win.pageCap:SetText(state.query and L["Search results"] or page and page.label or "")
 	resetButton:SetEnabled(not state.query and page ~= nil and page.reset ~= nil)
 	state.items = items
@@ -172,7 +171,7 @@ local function Select(id)
 end
 
 function Window.Jump(target)
-	Select(target.page)
+	if state.query or state.page ~= target.page then Select(target.page) end
 	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return true end
 	for i, item in ipairs(state.items) do
 		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then

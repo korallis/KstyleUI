@@ -1,5 +1,4 @@
 -- test-databars-preview-headings.lua: in the Data Bars settings preview each bar's heading sits clear of the bar's own caption, in English, German and French.
-local saved = { rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_LOCALE"), rawget(_G, "RENDER_SCENE_LIB") }
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(_G, "RENDER_SCREEN", { width = 1920, height = 1080, uiScale = 768 / 1080 })
 local function Cross(a, b)
@@ -19,7 +18,4 @@ for _, locale in ipairs({ "enUS", "deDE", "frFR" }) do
 	end
 	collectgarbage("collect")
 end
-rawset(_G, "RENDER_SCREEN", saved[1])
-rawset(_G, "RENDER_LOCALE", saved[2])
-rawset(_G, "RENDER_SCENE_LIB", saved[3])
 print("databars preview headings ok")

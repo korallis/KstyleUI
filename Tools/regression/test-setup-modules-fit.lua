@@ -1,5 +1,4 @@
 -- test-setup-modules-fit.lua: the first-run Modules page shows every module and its whole note at the window's default size, with no line cut by the list's edge.
-local saved = { rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_LOCALE"), rawget(_G, "RENDER_SCENE_LIB") }
 local getenv = os.getenv
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(os, "getenv", function(key)
@@ -25,8 +24,4 @@ for _, case in ipairs({ { "enUS", 1920, 1080 }, { "frFR", 2560, 1440 }, { "enUS"
 	assert(clipped == 30, label .. ": every module shows its name and note, got " .. clipped .. " lines")
 	collectgarbage("collect")
 end
-rawset(os, "getenv", getenv)
-rawset(_G, "RENDER_SCREEN", saved[1])
-rawset(_G, "RENDER_LOCALE", saved[2])
-rawset(_G, "RENDER_SCENE_LIB", saved[3])
 print("setup modules fit ok")

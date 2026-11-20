@@ -404,7 +404,6 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
-				self.captions[id]:ClearAllPoints()
 				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (view.text:IsShown() and Widgets.LineHeight(view.text) or 0) + Tokens.Size("gapSmall"))
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })

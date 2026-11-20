@@ -19,7 +19,6 @@ do
 	assert(preview.tabs[3]:IsShown() and not preview.more:IsShown(), "tabs that fit show no overflow mark")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
-local saved = { rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_LOCALE"), rawget(_G, "RENDER_SCENE_LIB") }
 local getenv = os.getenv
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(os, "getenv", function(key)
@@ -34,8 +33,4 @@ for _, screen in ipairs({ { 1920, 1080, "deDE" }, { 2560, 1440, "deDE" }, { 1920
 	assert(#findings == 0, "Chat " .. screen[3] .. " " .. screen[1] .. "x" .. screen[2] .. ":\n" .. table.concat(Guard.Lines(findings, {}, {}, "default"), "\n"))
 	collectgarbage("collect")
 end
-rawset(os, "getenv", getenv)
-rawset(_G, "RENDER_SCREEN", saved[1])
-rawset(_G, "RENDER_LOCALE", saved[2])
-rawset(_G, "RENDER_SCENE_LIB", saved[3])
 print("chat preview fit ok")
