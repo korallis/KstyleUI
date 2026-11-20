@@ -51,12 +51,25 @@ do
 	env._units.target.healAbsorb = 900
 	env.FireEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", "target")
 	assert(env.Reveal(eaten:GetValue()) == 900, "UNIT_HEAL_ABSORB_AMOUNT_CHANGED refreshes the bar")
+	env._units.target.healAbsorb = 5000
+	env.FireEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", "target")
+	assert(env.Reveal(eaten:GetValue()) == 3000, "heal absorbs are clamped to current health")
+	local calc, sets, hides = view.calculator, 0, 0
+	local set, hide = calc.SetHealAbsorbClampMode, eaten.Hide
+	calc.SetHealAbsorbClampMode = function(self, mode) sets = sets + 1; return set(self, mode) end
+	eaten.Hide = function(self) hides = hides + 1; return hide(self) end
+	for _ = 1, 20 do env.FireEvent("UNIT_HEALTH", "target") end
+	assert(sets == 0, "health updates do not reconfigure the calculator: " .. sets)
 	write(env, K, "UnitFrames", "target.healPrediction", false)
 	assert(not eaten:IsShown(), "the incoming heals master hides heal absorbs")
 	write(env, K, "UnitFrames", "target.healPrediction", true)
 	assert(eaten:IsShown(), "heal absorbs return with incoming heals")
 	write(env, K, "UnitFrames", "target.healAbsorbs", false)
 	assert(not eaten:IsShown(), "turning heal absorbs off hides the bar")
+	hides = 0
+	for _ = 1, 20 do env.FireEvent("UNIT_HEALTH", "target") end
+	assert(hides == 0, "health updates do not hide a hidden bar again: " .. hides)
+	calc.SetHealAbsorbClampMode, eaten.Hide = set, hide
 
 	env.GetCreatureDifficultyColor = function() return { r = 1, g = 0.1, b = 0.1 } end
 	write(env, K, "UnitFrames", "target.levelDifficulty", true)
@@ -66,18 +79,50 @@ do
 	env.FireEvent("UNIT_LEVEL", "target")
 	textIs(view.levelText, er, eg, eb, "a friendly level keeps the normal colour")
 	env._units.target.canAttack = true
+	env.FireEvent("UNIT_FACTION", "target")
+	textIs(view.levelText, wr, wg, wb, "UNIT_FACTION colours a unit that turns hostile")
+	env._units.target.canAttack = false
+	env.FireEvent("UNIT_FACTION", "target")
+	textIs(view.levelText, er, eg, eb, "UNIT_FACTION restores the colour of a unit that turns friendly")
+	env._units.target.canAttack = true
 	write(env, K, "UnitFrames", "target.levelDifficulty", false)
 	textIs(view.levelText, er, eg, eb, "turning the colour off restores the level's colour")
+
+	write(env, K, "UnitFrames", "edit", "target")
+	local pane = ns.Preview.Build(env.UIParent)
+	local sample = pane.views.target
+	textIs(sample.levelText, er, eg, eb, "the preview level keeps its colour by default")
+	write(env, K, "UnitFrames", "target.levelDifficulty", true)
+	pane:Refresh()
+	textIs(sample.levelText, wr, wg, wb, "the preview shows the hostile sample's difficulty colour")
+	write(env, K, "UnitFrames", "target.levelDifficulty", false)
+	pane:Refresh()
+	textIs(sample.levelText, er, eg, eb, "the preview level returns to its colour")
 
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	view = ns.Frames.Get("target").views[1]
+	local plaque = view.medallion.levelText
+	assert(plaque:IsVisible() and not view.slabLevel:IsShown(), "Medallions shows the level on the plaque")
 	local mr, mg, mb = K.Tokens.Color("labelMuted")
-	textIs(view.slabLevel, mr, mg, mb, "the Medallions level stays muted by default")
+	local sr, sg, sb = K.Tokens.Color("steelLit")
+	textIs(plaque, sr, sg, sb, "the plaque level keeps its colour by default")
 	write(env, K, "UnitFrames", "target.levelDifficulty", true)
-	textIs(view.slabLevel, wr, wg, wb, "the Medallions level takes the difficulty colour")
+	textIs(plaque, wr, wg, wb, "the plaque level takes the difficulty colour")
+	textIs(view.slabLevel, wr, wg, wb, "so does the slab level when a layout shows it")
 	write(env, K, "UnitFrames", "target.levelDifficulty", false)
-	textIs(view.slabLevel, mr, mg, mb, "turning it off restores the muted level")
+	textIs(plaque, sr, sg, sb, "turning it off restores the plaque level")
+	textIs(view.slabLevel, mr, mg, mb, "and the muted slab level")
+
+	K.Options.Write("HudStyle", "style", "frames")
+	write(env, K, "UnitFrames", "target.style", "lumen")
+	view = ns.Frames.Get("target").views[1]
+	assert(view.form == "sigil" and U.Shown(env, view.caption) == "Level 62", "the Sigil caption shows the level: " .. tostring(U.Shown(env, view.caption)))
+	write(env, K, "UnitFrames", "target.levelDifficulty", true)
+	local hex = string.format("|cff%02x%02x%02x62|r", math.floor(wr * 255 + 0.5), math.floor(wg * 255 + 0.5), math.floor(wb * 255 + 0.5))
+	assert(U.Shown(env, view.caption):find(hex, 1, true), "the Sigil caption colours the level number: " .. U.Shown(env, view.caption))
+	write(env, K, "UnitFrames", "target.levelDifficulty", false)
+	assert(U.Shown(env, view.caption) == "Level 62", "turning it off restores the plain caption")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 collectgarbage()
@@ -111,12 +156,66 @@ do
 	local _, timerSize = timer:GetFont()
 	assert(timerSize == countSize, "time left and stacks share one size")
 	write(env, K, "GroupFrames", "auras.timers", false)
-	assert(not timer:IsVisible() and aura.timer == timer, "turning timers off hides the bound text")
+	assert(not timer:IsVisible() and aura.timer == nil, "turning timers off hides the text and releases its binding")
+	write(env, K, "GroupFrames", "auras.timers", true)
+	assert(timer:IsVisible() and aura.timer == timer, "turning timers on again binds the same text")
+	write(env, K, "GroupFrames", "auras.timers", false)
 
 	write(env, K, "GroupFrames", "party.nameChars", 4)
 	assert(f.name:GetText() == "Thal", "the name keeps its first four letters: " .. tostring(f.name:GetText()))
+	local names, splits, gmatch = 0, 0, string.gmatch
+	ns.Unit.ForEach(function(frame) if frame.kind == "party" and frame.unit and frame.rawName then names = names + 1 end end)
+	string.gmatch = function(text, pattern)
+		if pattern == "[%z\1-\127\194-\244][\128-\191]*" then splits = splits + 1 end
+		return gmatch(text, pattern)
+	end
+	ns.Names.Apply(f)
+	string.gmatch = gmatch
+	assert(names > 1 and splits <= names, "one party fit splits each name once: " .. splits .. " splits for " .. names .. " names")
 	write(env, K, "GroupFrames", "party.nameChars", 0)
 	assert(f.name:GetText() == "Thaldrenor", "0 restores the whole name")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Group frames: a raid tile's time left stays clear of the dispel letter and the stack count; the preview shows both.
+do
+	local env, K, ns = G.New()
+	G.SetRoster(env, "raid", G.Members(10))
+	K.Modules.Enable("GroupFrames")
+	env.RunTimers()
+	write(env, K, "GroupFrames", "auras.timers", true)
+	local f
+	ns.Unit.ForEach(function(frame) if frame.unit == "raid1" then f = frame end end)
+	A.Assign(env, f.auras, "debuffs", 1)
+	env.RunTimers()
+	local button = f.auras._groups.debuffs.active[1]
+	A.Remaining(env, button, 12)
+	A.Dispel(button, "Magic")
+	local aura, p = button._aura, ns.Auras.Parts(button)
+	local size = button:GetWidth()
+	assert(size == 12 and aura.timer:IsVisible(), "a raid tile is 12 units and shows its time left")
+	local point, to, toPoint, _, y = aura.timer:GetPoint()
+	assert(point == "TOP" and to == p.skin and toPoint == "BOTTOM" and y <= 0, "the time left sits below the tile: " .. tostring(point) .. " " .. tostring(toPoint))
+	local cPoint, cTo, cToPoint = aura.count:GetPoint()
+	assert(cPoint == "BOTTOMRIGHT" and cTo == p.skin and cToPoint == "BOTTOMRIGHT", "the stack count stays inside the tile")
+	for _, entry in ipairs(aura.dispel) do
+		if entry.options.customDispelAssetMap then
+			local lPoint, lTo = entry.texture:GetPoint()
+			assert(entry.texture:IsShown() and lPoint == "TOPRIGHT" and lTo == p.skin and entry.texture:GetHeight() <= size, "the dispel letter stays inside the tile")
+		end
+	end
+
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(300, 420)
+	local preview = K.Options.Preview("GroupFrames")(parent)
+	local first = preview.partyFrames[1].sampleAuras[1]
+	assert(first.count and first.count:IsShown() and first.count:GetText() == "3" and first.timer and first.timer:IsShown() and first.timer:GetText() == "12s",
+		"the preview shows a stack count and the time left")
+	write(env, K, "GroupFrames", "auras.stacks", false)
+	write(env, K, "GroupFrames", "auras.timers", false)
+	preview:Refresh()
+	assert(not first.count:IsShown() and not first.timer:IsShown(), "the preview follows both switches")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 collectgarbage()
@@ -151,6 +250,21 @@ do
 	barIs(0.2, 0.4, 0.6, "channels colour too")
 	write(env, K, "Nameplates", "types.casting", false)
 	barIs(r0, g0, b0, "turning it off restores the bar colour mid-cast")
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1")
+	write(env, K, "Nameplates", "cast.enabled", false)
+	write(env, K, "Nameplates", "types.casting", true)
+	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183 })
+	assert(not plate.cast:IsShown(), "cast bars stay hidden")
+	barIs(0.2, 0.4, 0.6, "a casting enemy is coloured with cast bars hidden")
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1")
+	barIs(r0, g0, b0, "and loses the colour when the cast ends")
+	N.Cast(env, "nameplate1", { name = "Drain", text = "Drain", texture = 136183, channel = true })
+	barIs(0.2, 0.4, 0.6, "channels too")
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1")
+	barIs(r0, g0, b0, "until the channel ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("frames bars, auras and casts ok: old profiles, heal absorbs, level colour, stacks, timers, name letters and casting colour")
