@@ -56,8 +56,7 @@ FACES = (
 FONT_DIR = Path("Media") / "Fonts"
 GAME_FONT_LOCALES = ("zhCN",)
 EDGE = re.compile(r"^(\s*).*?(\s*)$", re.S)
-# Three or more words ending in . ! or ?: a sentence a translation must not ship as the English itself.
-# Names, units and short labels ("World of Warcraft", "%d ms") may stay identical.
+# A sentence (three or more words ending . ! or ?) may not ship as its own English; names and units may.
 SENTENCE = re.compile(r"[A-Za-z]{2,}(?:\W+[A-Za-z]{2,}){2,}.*[.!?]$", re.S)
 ENTRY = re.compile(r'^\t\["((?:[^"\\]|\\.)*)"\] = "((?:[^"\\]|\\.)*)",$')
 
