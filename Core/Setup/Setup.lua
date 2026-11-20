@@ -182,7 +182,11 @@ local function writeSettings(name)
 			default = lookup(ns.Store.Defaults(entry.module), entry.key)
 		end
 		if default ~= nil and type(default) == type(entry.value) then
-			ns.Options.Write(entry.module, entry.key, entry.value)
+			local value = entry.value
+			if entry.module == "DataBars" and entry.key == "strip.menus" then
+				value = value and ns.Store.Module("DataBars").strip.placement ~= "rail"
+			end
+			ns.Options.Write(entry.module, entry.key, value)
 			written = written + 1
 		else
 			skipped = skipped + 1
