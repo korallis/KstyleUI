@@ -617,7 +617,7 @@ function Panel.Place()
 		for _, frame in ipairs({ ChatAlertFrame, friends }) do
 			if type(frame) == "table" then
 				frame:ClearAllPoints()
-				frame:SetPoint("BOTTOM" .. side, column, "TOP" .. side, 0, 0)
+				frame:SetPoint("BOTTOM", column, "TOP", 0, 0)
 			end
 		end
 		for _, frame in ipairs(SideFrames()) do

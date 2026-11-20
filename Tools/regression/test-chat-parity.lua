@@ -383,6 +383,21 @@ for _, size in ipairs(SIZES) do
 	clean(env, K)
 end
 
+-- A card tall enough for the voice toggles gives all five buttons their own slots.
+do
+	local env, K, ns, rect = sized(1920, 1080)
+	local buttons = { env.QuickJoinToastButton, env.ChatFrameChannelButton, env.ChatFrameToggleVoiceDeafenButton, env.ChatFrameToggleVoiceMuteButton, env.ChatFrameMenuButton }
+	write(env, K, "buttons", true)
+	ns.Panel.Holder():SetHeight(320)
+	ns.Panel.Place()
+	for i, a in ipairs(buttons) do
+		for j = i + 1, #buttons do
+			assert(not overlap(rect(a), rect(buttons[j])), a:GetName() .. " overlaps " .. buttons[j]:GetName() .. " on a tall card")
+		end
+	end
+	clean(env, K)
+end
+
 -- Idle fade fades the buttons the game parents to UIParent too, composed with the game's own alpha.
 for _, size in ipairs(SIZES) do
 	local env, K = sized(size[1], size[2])
