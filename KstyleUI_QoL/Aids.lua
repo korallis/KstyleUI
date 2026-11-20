@@ -1,4 +1,4 @@
--- Aids.lua: the crosshair at the screen centre and the ring around the mouse pointer, each shown by its rule (always, in combat, in instances or in instance combat) and redrawn only when a setting or that state changes; the ring follows the pointer only while it shows.
+-- Aids.lua: the crosshair at the screen centre and the ring around the mouse pointer, each shown by its rule (always, in combat, in instances or in instance combat) and redrawn only when a setting or that state changes. The ring's OnUpdate, a reviewed exception to the no-per-frame rule, exists only while the ring is on and shown: one pointer read a frame, and a move only when the pointer moved.
 local _, ns = ...
 
 local K = ns.K
@@ -63,8 +63,10 @@ end
 local function Visible()
 	if cross then cross:SetShown(ns.running and ns.Get("crosshair") ~= "none" and Shown(ns.Get("crosshairShow"))) end
 	if ring then
+		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")) or false
 		ring.x = nil
-		ring:SetShown(ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")))
+		ring:SetShown(shown)
+		ring:SetScript("OnUpdate", shown and Follow or nil)
 	end
 end
 
@@ -85,15 +87,13 @@ local function Paint()
 			ring.texture = ring:CreateTexture(nil, "OVERLAY")
 			ring.texture:SetPoint("CENTER")
 			Widgets.Size(ring, 1, 1)
-			ring:SetScript("OnUpdate", Follow)
 		end
 		ns.PaintRing(ring.texture)
 	end
 end
 
 local function State()
-	local fight, inside = InCombatLockdown(), IsInInstance()
-	instanced, fighting = ns.True(inside), ns.True(fight)
+	instanced, fighting = ns.Ask(IsInInstance) == true, ns.Ask(InCombatLockdown) == true
 	Visible()
 end
 
