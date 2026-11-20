@@ -533,7 +533,7 @@ do
 	end
 end
 
--- The preview hides the reagent marker once the reagent bag is apart.
+-- The preview hides the reagent marker once the reagent bag is apart, and shows the section value, bag slots and currencies.
 do
 	local env, K = new({ enabled = true, compactBags = true }, {})
 	local preview = K.Options.Preview("Bags")(env.CreateFrame("Frame", nil, K.Scale.Root()))
@@ -543,6 +543,18 @@ do
 	write(env, K, "categorizeReagents", false)
 	preview:Refresh()
 	assert(not shown(preview.slots[6].mark), "no preview marker when the reagent bag has its own section")
+	local top = select(5, preview.grid:GetPoint(1))
+	for _, key in ipairs({ "sectionValue", "bagSlots", "currencies" }) do
+		write(env, K, key, true)
+	end
+	preview:Refresh()
+	assert(preview.title.count:GetText():find("g", 1, true) and shown(preview.bags.frame) and #preview.bags.slots == 4, "the preview shows the section value and the bag slots")
+	assert(select(5, preview.grid:GetPoint(1)) < top and shown(preview.currency), "the bag slots push the sample down and the currencies sit under it")
+	for _, key in ipairs({ "sectionValue", "bagSlots", "currencies" }) do
+		write(env, K, key, false)
+	end
+	preview:Refresh()
+	assert(not preview.title.counted and not shown(preview.bags.frame) and not shown(preview.currency) and select(5, preview.grid:GetPoint(1)) == top, "off restores the preview")
 	clean(env, K)
 end
 

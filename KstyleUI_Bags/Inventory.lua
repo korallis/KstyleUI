@@ -4,7 +4,6 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets = K.Widgets
 local Data, Settings, Blizzard, Junk, Slot, L = ns.Data, ns.Settings, ns.Blizzard, ns.Junk, ns.Slot, ns.L
-local max = math.max
 
 local Inventory = {}
 ns.Inventory = Inventory
@@ -87,46 +86,23 @@ local function BagStrip(win, content, top, width)
 		strip = { frame = CreateFrame("Frame", nil, win.panel), slots = {} }
 		win.bagStrip = strip
 	end
-	local size = Widgets.Snap(win.panel, K.Tokens.Size("rowHeight"))
-	local gap = Widgets.Snap(win.panel, K.Tokens.Size("gapSmall"))
-	strip.frame:ClearAllPoints()
-	strip.frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
-	strip.frame:SetSize(max(1, width), size)
 	strip.frame:Show()
-	local x, index = 0, 0
+	local index = 0
 	for _, bag in ipairs(heldBags or Data.HeldBags()) do
 		local id = bag ~= BACKPACK_CONTAINER and BagInventoryID(bag)
 		if id then
 			index = index + 1
-			local slot = strip.slots[index]
-			if not slot then
-				slot = Slot.New(strip.frame, bag)
-				slot.button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-				slot.button:RegisterForDrag("LeftButton")
-				slot.button:SetScript("OnClick", SwapBag)
-				slot.button:SetScript("OnDragStart", SwapBag)
-				slot.button:SetScript("OnReceiveDrag", SwapBag)
-				slot.button:HookScript("OnEnter", BagTooltip)
-				slot.button:HookScript("OnLeave", function()
-					if type(GameTooltip_Hide) == "function" then
-						GameTooltip_Hide()
-					end
-				end)
-				strip.slots[index] = slot
-			end
+			local slot = strip.slots[index] or Slot.NewBag(strip.frame, bag, SwapBag, BagTooltip)
+			strip.slots[index] = slot
 			local icon = type(GetInventoryItemTexture) == "function" and GetInventoryItemTexture("player", id)
 			local quality = type(GetInventoryItemQuality) == "function" and GetInventoryItemQuality("player", id)
 			local record = slot.record
 			record.icon = Data.Plain(icon, "number") or Data.Plain(icon, "string")
 			record.empty, record.quality = record.icon == nil, Data.Plain(quality, "number")
-			Slot.Layout(slot, size)
-			slot.button:ClearAllPoints()
-			slot.button:SetPoint("TOPLEFT", strip.frame, "TOPLEFT", x, 0)
 			Slot.Update(slot, record, nil, true)
-			x = x + size + gap
 		end
 	end
-	return top + size + Widgets.Snap(win.panel, K.Tokens.Size("gapMedium"))
+	return Slot.Row(win.panel, strip.frame, strip.slots, content, top, width)
 end
 
 local function KeyringBags()
@@ -359,10 +335,10 @@ Blizzard.OnAction("close", function(blizzardOpen, source)
 	end
 end)
 
-local SHOWN = { MERCHANT_SHOW = "merchant", MAIL_SHOW = "mail", TRADE_SHOW = "trade", AUCTION_HOUSE_SHOW = "auction", BANKFRAME_OPENED = "bank", LOOT_OPENED = "loot", QUEST_DETAIL = "quest", QUEST_PROGRESS = "quest", QUEST_COMPLETE = "quest", QUEST_GREETING = "quest" }
-local CLOSED = { MERCHANT_CLOSED = "merchant", MAIL_CLOSED = "mail", TRADE_CLOSED = "trade", AUCTION_HOUSE_CLOSED = "auction", BANKFRAME_CLOSED = "bank", LOOT_CLOSED = "loot", QUEST_FINISHED = "quest" }
+local SHOWN = { MERCHANT_SHOW = "merchant", MAIL_SHOW = "mail", TRADE_SHOW = "trade", AUCTION_HOUSE_SHOW = "auction", BANKFRAME_OPENED = "bank", GUILDBANKFRAME_OPENED = "guildBank", LOOT_OPENED = "loot", QUEST_DETAIL = "quest", QUEST_PROGRESS = "quest", QUEST_COMPLETE = "quest", QUEST_GREETING = "quest" }
+local CLOSED = { MERCHANT_CLOSED = "merchant", MAIL_CLOSED = "mail", TRADE_CLOSED = "trade", AUCTION_HOUSE_CLOSED = "auction", BANKFRAME_CLOSED = "bank", GUILDBANKFRAME_CLOSED = "guildBank", LOOT_CLOSED = "loot", QUEST_FINISHED = "quest" }
 local OURS = { trade = true, loot = true, quest = true }
-local BUSY = { merchant = true, mail = true, trade = true, auction = true, bank = true }
+local BUSY = { merchant = true, mail = true, trade = true, auction = true, bank = true, guildBank = true }
 local busy = {}
 
 function ns.Busy()
@@ -373,7 +349,7 @@ local function BusyChanged(kind, on)
 	if BUSY[kind] and busy[kind] ~= on then
 		busy[kind] = on
 		local window = Inventory.window
-		if window and open and Settings.Get("mergeStacks") then
+		if window and open and (Settings.Get("mergeStacks") or Settings.Get("recentGained")) then
 			window:Refresh()
 		end
 	end
@@ -481,8 +457,8 @@ function Inventory.SettingsChanged(key)
 	if not window or not K.Modules.IsRunning(Settings.MODULE) then
 		return
 	end
-	if key == "nearestCorner" and Settings.Get("nearestCorner") then
-		window:SavePosition()
+	if key == "nearestCorner" then
+		window:HoldCorner()
 	end
 	if open then
 		window:Refresh(true)

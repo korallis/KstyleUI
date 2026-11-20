@@ -102,7 +102,7 @@ local function Global(name)
 end
 
 function Window.New(spec)
-	local win = setmetatable({ spec = spec, sections = {}, slots = {}, query = nil, shownBags = {}, buttons = {}, seen = {}, gained = {}, opts = {} }, Window)
+	local win = setmetatable({ spec = spec, sections = {}, slots = {}, query = nil, shownBags = {}, buttons = {}, gained = {}, opts = {} }, Window)
 	local panel = Widgets.Panel(Scale.Root(), {
 		title = spec.title,
 		close = true,
@@ -270,11 +270,11 @@ end
 
 function Window:Key(record, o, ranks, labels)
 	local key = Data.Category(record)
-	if o.recent and record.isNew and not (o.newOnly and self.seen[record.itemID]) then
+	if o.recent and record.isNew and not (o.carried and o.carried[record.itemID]) then
 		return "recent", L["Recent items"], 0
 	end
 	local label, rank = labels[key] or key, ranks[key] or 0
-	if record.empty then
+	if record.empty or not (o.sets or o.slot or o.types or o.nest) then
 		return key, label, rank
 	end
 	local info = Data.Info(record)
@@ -329,22 +329,30 @@ function Window:Sort(section)
 		end
 		group.total, group.value = 0, 0
 	end
-	for _, slot in ipairs(section.order) do
-		slot.shownCount = nil
-	end
 	if not Grouped(section) then
 		for _, slot in ipairs(section.order) do
-			slot.packed = nil
+			slot.packed, slot.shownCount = nil, nil
 			self:Adopt(section, slot)
 		end
 		return
 	end
 	local o = self.opts
 	o.recent = self.spec.recent and Settings.Get("recentItems")
-	o.newOnly, o.gained = Settings.Get("recentNewOnly"), Settings.Get("recentGained")
+	local busy = ns.Busy and ns.Busy()
+	o.gained = Settings.Get("recentGained") and not busy
 	o.sets, o.slot, o.types = Settings.Get("splitSets"), Settings.Get("gearBySlot"), Settings.Get("splitTypes")
 	o.nest = Settings.Get(self.spec.nest or "nestExpansion")
-	o.merge = Settings.Get("mergeStacks") and not (ns.Busy and ns.Busy())
+	o.merge = Settings.Get("mergeStacks") and not busy
+	o.carried = nil
+	if o.recent and Settings.Get("recentNewOnly") then
+		o.carried = {}
+		for _, slot in ipairs(section.order) do
+			local record = Data.Read(slot.bag, slot.id, slot.record)
+			if not record.isNew and record.itemID then
+				o.carried[record.itemID] = true
+			end
+		end
+	end
 	o.value = Settings.Get("sectionValue")
 	local ranks, labels = {}, {}
 	for i, category in ipairs(Data.Categories()) do
@@ -354,10 +362,11 @@ function Window:Sort(section)
 	local families, stacks, merged, recent = {}, {}, {}, {}
 	for _, slot in ipairs(section.order) do
 		local record = Data.Read(slot.bag, slot.id, slot.record)
+		slot.shownCount = nil
 		local key, label, rank = self:Key(record, o, ranks, labels)
 		local group = self:Group(section, key, label, rank)
 		group.total = group.total + 1
-		local price = o.value and not record.empty and Data.Info(record).price
+		local price = o.value and not record.empty and not record.noValue and Data.Info(record).price
 		if price then
 			group.value = group.value + price * (record.count or 1)
 		end
@@ -415,8 +424,6 @@ function Window:TrackRecent(section, recent)
 			counts[id] = (counts[id] or 0) + (record.count or 1)
 			if record.isNew then
 				new[id] = true
-			else
-				self.seen[id] = true
 			end
 		end
 	end
@@ -472,7 +479,7 @@ function Window:Ensure(section)
 	for i = #order, 1, -1 do
 		order[i] = nil
 	end
-	local shownBags = self.shownBags
+	local shownBags, groups = self.shownBags, section.groups
 	for bag in pairs(shownBags) do
 		shownBags[bag] = nil
 	end
@@ -498,8 +505,11 @@ function Window:Ensure(section)
 			end
 			if slot then
 				order[#order + 1] = slot
-				if not section.groups and slot.button:GetParent() ~= frame then
-					self:Adopt(section, slot)
+				if not groups then
+					slot.shownCount, slot.packed = nil, nil
+					if slot.button:GetParent() ~= frame then
+						self:Adopt(section, slot)
+					end
 				end
 			end
 		end
@@ -514,7 +524,7 @@ function Window:Ensure(section)
 			frame:Hide()
 		end
 	end
-	if section.groups then
+	if groups then
 		self:Sort(section)
 	end
 	return order
@@ -535,6 +545,7 @@ function Window:PlaceSlots(section)
 		return
 	end
 	local size, spacing, growth, height = geometry.size, geometry.spacing, geometry.growth, geometry.height
+	local list, stripes = geometry.list, geometry.stripes
 	local step = height + spacing
 	local cols, rows = section.cols, section.rows
 	section.grid:ClearAllPoints()
@@ -550,8 +561,8 @@ function Window:PlaceSlots(section)
 			button:SetPoint("TOPLEFT", section.grid, "TOPLEFT", x, y)
 			button:SetShown(row >= first and row <= last)
 		end
-		if geometry.stripes or slot.stripe then
-			Slot.SetStripe(slot, geometry.stripes and i % 2 == 0)
+		if list then
+			Slot.SetStripe(slot, stripes and i % 2 == 0)
 		end
 	end
 end
@@ -592,6 +603,7 @@ function Window:Layout(force)
 	self.geometry = { size = width, height = height, spacing = spacing, growth = Settings.Get("growth"), x = left, list = list, full = full, stripes = list and Settings.Get("listStripes") }
 	self.opts.bind, self.opts.sets = Settings.Get("bindText"), Settings.Get("setNames")
 	self.opts.mark = Settings.Get("reagentMark") and not Settings.ReagentApart()
+	self.opts.labels = self.opts.bind or self.opts.sets or self.opts.mark
 	local gold = Settings.Get("goldTooltip")
 	if self.goldHover ~= gold then
 		self.goldHover = gold
@@ -680,7 +692,7 @@ function Window:Layout(force)
 	end
 	local border = Widgets.Border(panel)
 	local footer = Snap(self, FOOTER_HEIGHT)
-	local currencies = self.spec.currencies and Settings.Get("currencies")
+	local currencies = self.spec.currencies and Settings.Get("currencies") and not remote
 	local footerBlock = border + Snap(self, Tokens.Size("gapSmall")) + footer * (currencies and 2 or 1)
 	local screen = self:ScreenHeight()
 	local tallest = screen and min(screen - Snap(self, SCREEN_MARGIN), screen * Settings.Get("maxHeight") / 100 - gap)
@@ -836,8 +848,7 @@ function Window:PlaceStack(groups, content, top, width, room, rowsLimit, capBloc
 		bottom = max(bottom, self:PlaceSection(group, self.stack, stackTop, need, nil, 0, capBlock, gap, x))
 		x = side and x + need + gap or width
 	end
-	stackTop = bottom
-	local stackHeight = max(1, stackTop - gap)
+	local stackHeight = max(1, bottom - gap)
 	local height = stackHeight
 	if rowsLimit > 0 then
 		height = min(height, rowsLimit * step + capBlock)
@@ -894,19 +905,20 @@ function Window:Paint(force)
 end
 
 local BIND_LABELS = { [2] = L["BoE"], [9] = L["WuE"] }
-local extra = {}
+local slotLabels = {}
 
 function Window:UpdateSlot(slot)
 	local record = Data.Read(slot.bag, slot.id, slot.record)
 	local level = not record.empty and Settings.Get("showItemLevel") and Data.ItemLevel(record) or nil
-	local o = self.opts
-	local info = (o.bind or o.sets) and not record.empty and Data.Info(record) or nil
-	local bind = o.bind and info and not record.bound and info.equipLoc and info.equipLoc ~= "" and BIND_LABELS[info.bind]
-	extra.count = slot.shownCount
-	extra.bind = bind or nil
-	extra.set = info and o.sets and Data.SetName(record.itemID) or nil
-	extra.mark = o.mark and slot.bag == Data.ReagentBag()
-	Slot.Update(slot, record, level, Data.Matches(record, self.query), slot.packed, extra)
+	local o, extra = self.opts, nil
+	if o.labels then
+		local info = o.bind and record.bound == false and Data.Info(record)
+		extra = slotLabels
+		extra.bind = info and info.equipLoc and info.equipLoc ~= "" and BIND_LABELS[info.bind] or nil
+		extra.set = o.sets and not extra.bind and not record.empty and Data.SetName(record.itemID) or nil
+		extra.mark = o.mark and slot.bag == Data.ReagentBag()
+	end
+	Slot.Update(slot, record, level, Data.Matches(record, self.query), slot.packed, extra, slot.shownCount)
 	local container = C_Container
 	if not record.empty and container and container.GetContainerItemCooldown then
 		Slot.SetCooldown(slot, container.GetContainerItemCooldown(slot.bag, slot.id))
@@ -1039,10 +1051,10 @@ function Window.MoneyText(copper, coins)
 	if gold > 0 or coins == "gold" then
 		parts[#parts + 1] = string.format(L["%dg"], gold)
 	end
-	if (gold > 0 or silver > 0) and coins ~= "gold" then
+	if (gold > 0 or silver > 0 or coins == "silver") and coins ~= "gold" then
 		parts[#parts + 1] = string.format(L["%ds"], silver)
 	end
-	if coins ~= "gold" and (coins ~= "silver" or #parts == 0) then
+	if coins ~= "gold" and coins ~= "silver" then
 		parts[#parts + 1] = string.format(L["%dc"], rest)
 	end
 	return table.concat(parts, " ")
@@ -1181,28 +1193,37 @@ function Window:ScaleChanged()
 	end
 end
 
+function Window:HoldCorner()
+	if Settings.Get("nearestCorner") then
+		self:SavePosition()
+	elseif K.Layout and K.Layout.Set then
+		K.Call(K.Layout.Set, self.spec.key, "anchor", self.spec.position.anchor)
+	end
+end
+
 function Window:SavePosition()
 	local layout = K.Layout
 	if type(layout) ~= "table" or type(layout.Update) ~= "function" or type(layout.Get) ~= "function" then
 		return
 	end
 	local settings = layout.Get(self.spec.key)
-	local anchor = settings and settings.anchor
+	local panel, root = self.panel, Scale.Root()
+	local left, bottom, width, height = Plain(panel:GetLeft()), Plain(panel:GetBottom()), Plain(panel:GetWidth()), Plain(panel:GetHeight())
+	local rootLeft, rootBottom, rootWidth, rootHeight = Plain(root:GetLeft()) or 0, Plain(root:GetBottom()) or 0, Plain(root:GetWidth()), Plain(root:GetHeight())
+	local scale, rootScale = Plain(panel:GetEffectiveScale()), Plain(root:GetEffectiveScale())
+	if not (settings and left and bottom and width and height and rootWidth and rootHeight and scale and rootScale) or rootScale <= 0 then
+		return
+	end
+	local f = scale / rootScale
+	local anchor = settings.anchor
 	if Settings.Get("nearestCorner") then
-		anchor = self:NearestCorner() or anchor
+		local cx, cy = (left + width / 2) * f - rootLeft, (bottom + height / 2) * f - rootBottom
+		anchor = (cy >= rootHeight / 2 and "TOP" or "BOTTOM") .. (cx >= rootWidth / 2 and "RIGHT" or "LEFT")
 	end
 	local fraction = ANCHOR_FRACTIONS[anchor]
 	if not fraction then
 		return
 	end
-	local panel, root = self.panel, Scale.Root()
-	local left, bottom, width, height = Plain(panel:GetLeft()), Plain(panel:GetBottom()), Plain(panel:GetWidth()), Plain(panel:GetHeight())
-	local rootLeft, rootBottom, rootWidth, rootHeight = Plain(root:GetLeft()) or 0, Plain(root:GetBottom()) or 0, Plain(root:GetWidth()), Plain(root:GetHeight())
-	local scale, rootScale = Plain(panel:GetEffectiveScale()), Plain(root:GetEffectiveScale())
-	if not (left and bottom and width and height and rootWidth and rootHeight and scale and rootScale) or rootScale <= 0 then
-		return
-	end
-	local f = scale / rootScale
 	local x = (left + width * fraction[1]) * f - (rootLeft + rootWidth * fraction[1])
 	local y = (bottom + height * fraction[2]) * f - (rootBottom + rootHeight * fraction[2])
 	local values = { x = floor(x + 0.5), y = floor(y + 0.5) }
@@ -1210,17 +1231,4 @@ function Window:SavePosition()
 		values.anchor = anchor
 	end
 	K.Call(layout.Update, self.spec.key, values)
-end
-
-function Window:NearestCorner()
-	local panel, root = self.panel, Scale.Root()
-	local left, bottom, width, height = Plain(panel:GetLeft()), Plain(panel:GetBottom()), Plain(panel:GetWidth()), Plain(panel:GetHeight())
-	local rootLeft, rootBottom, rootWidth, rootHeight = Plain(root:GetLeft()) or 0, Plain(root:GetBottom()) or 0, Plain(root:GetWidth()), Plain(root:GetHeight())
-	local scale, rootScale = Plain(panel:GetEffectiveScale()), Plain(root:GetEffectiveScale())
-	if not (left and bottom and width and height and rootWidth and rootHeight and scale and rootScale) or rootScale <= 0 then
-		return nil
-	end
-	local f = scale / rootScale
-	local x, y = (left + width / 2) * f - rootLeft, (bottom + height / 2) * f - rootBottom
-	return (y >= rootHeight / 2 and "TOP" or "BOTTOM") .. (x >= rootWidth / 2 and "RIGHT" or "LEFT")
 end

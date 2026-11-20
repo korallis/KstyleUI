@@ -39,10 +39,10 @@ local function PlaceIcon(slot)
 		return
 	end
 	local offset = Widgets.Snap(button, Tokens.Size("pressOffset") * (slot.pressT or 0))
-	if slot.placedOffset == offset and slot.placedInset == slot.inset and slot.placedList == slot.list then
+	if slot.placedOffset == offset and slot.placedInset == slot.inset then
 		return
 	end
-	slot.placedOffset, slot.placedInset, slot.placedList = offset, slot.inset, slot.list
+	slot.placedOffset, slot.placedInset = offset, slot.inset
 	local inset = slot.inset or 0
 	slot.icon:ClearAllPoints()
 	slot.icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset - offset)
@@ -83,25 +83,23 @@ function Slot.Paint(slot)
 	else
 		slot.chrome:SetRim(r, g, b, a)
 	end
-	local fr, fg, fb, fa
-	if state.empty then
-		fr, fg, fb, fa = Widgets.Rgba("buttonFill", EMPTY_FILL_ALPHA)
-	else
-		fr, fg, fb, fa = Tokens.Color("buttonFill")
-	end
 	if slot.stripe then
-		fr, fg, fb, fa = Widgets.Mix(fr, fg, fb, fa, 1, 1, 1, fa, STRIPE_LIFT)
+		local fr, fg, fb, fa = Widgets.Rgba("buttonFill", state.empty and EMPTY_FILL_ALPHA or 1)
+		slot.chrome:SetFillRGBA(Widgets.Mix(fr, fg, fb, fa, 1, 1, 1, fa, STRIPE_LIFT))
+	elseif state.empty then
+		slot.chrome:SetFillRGBA(Widgets.Rgba("buttonFill", EMPTY_FILL_ALPHA))
+	else
+		slot.chrome:SetFillRGBA(Tokens.Color("buttonFill"))
 	end
-	slot.chrome:SetFillRGBA(fr, fg, fb, fa)
 	slot.icon:SetAlpha(state.match and 1 or DIM_ALPHA)
 	slot.icon:SetDesaturated(state.locked == true or state.junk == true and Settings.Get("desaturateJunk"))
 	local textAlpha = state.match and 1 or DIM_ALPHA
 	slot.count:SetAlpha(textAlpha)
 	slot.level:SetAlpha(textAlpha)
-	for _, key in ipairs({ "bind", "set", "name" }) do
-		if slot[key] then
-			slot[key]:SetAlpha(textAlpha)
-		end
+	if slot.labeled then
+		if slot.bind then slot.bind:SetAlpha(textAlpha) end
+		if slot.set then slot.set:SetAlpha(textAlpha) end
+		if slot.name then slot.name:SetAlpha(textAlpha) end
 	end
 	PlaceIcon(slot)
 end
@@ -120,11 +118,8 @@ function Slot.Style(slot)
 	local path, size, flags = Settings.Font()
 	ApplyFont(slot.count, path, size, flags)
 	ApplyFont(slot.level, path, size, flags)
-	for _, key in ipairs({ "bind", "set" }) do
-		if slot[key] then
-			ApplyFont(slot[key], path, Settings.Get("labelSize"), flags)
-		end
-	end
+	if slot.bind then ApplyFont(slot.bind, path, Settings.Get("labelSize"), flags) end
+	if slot.set then ApplyFont(slot.set, path, Settings.Get("labelSize"), flags) end
 	if slot.name then
 		ApplyFont(slot.name, path, Settings.Get("listFontSize"), flags)
 	end
@@ -208,21 +203,21 @@ local function Place(slot)
 	local inset = Widgets.Snap(button, TEXT_INSET)
 	local separate = Settings.Get("separateFigures")
 	local corner = separate and "TOPLEFT" or "BOTTOMLEFT"
+	local edge, y = separate and "BOTTOM" or "TOP", separate and inset or -inset
 	local text = slot.bind
 	if text then
 		text:ClearAllPoints()
 		if list then
 			text:SetPoint("RIGHT", slot.level, "LEFT", -Widgets.Snap(button, LIST_TEXT_GAP), 0)
 		else
-			text:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+			text:SetPoint(edge .. "RIGHT", button, edge .. "RIGHT", -inset, y)
 		end
 	end
 	text = slot.set
 	if text then
 		text:ClearAllPoints()
-		local edge = separate and "BOTTOM" or "TOP"
-		text:SetPoint(edge .. "LEFT", button, edge .. "LEFT", inset, separate and inset or -inset)
-		text:SetPoint(edge .. "RIGHT", button, edge .. "RIGHT", -inset, separate and inset or -inset)
+		text:SetPoint(edge .. "LEFT", button, edge .. "LEFT", inset, y)
+		text:SetPoint(edge .. "RIGHT", button, edge .. "RIGHT", -inset, y)
 	end
 	text = slot.name
 	if text then
@@ -247,13 +242,12 @@ end
 
 function Slot.Layout(slot, size, force, height)
 	local button = slot.button
-	local list = height ~= nil
-	height = height or size
-	if (slot.size == size and slot.height == height and slot.list == list and not force) or not Widgets.MayMove(button) then
+	if (slot.size == size and slot.rowHeight == height and not force) or not Widgets.MayMove(button) then
 		return
 	end
-	slot.size, slot.height, slot.list = size, height, list
-	Widgets.Size(button, size, height)
+	slot.size, slot.rowHeight, slot.list, slot.height = size, height, height ~= nil, height or size
+	slot.labeled = slot.labeled or slot.list
+	Widgets.Size(button, size, slot.height)
 	slot.inset = Widgets.Border(button) * ICON_INSET_LINES
 	slot.placedOffset = nil
 	local inset = Widgets.Snap(button, TEXT_INSET)
@@ -261,7 +255,7 @@ function Slot.Layout(slot, size, force, height)
 	local junkSize = Widgets.Snap(button, JUNK_SIZE)
 	slot.junk:SetSize(junkSize, junkSize)
 	slot.junk:ClearAllPoints()
-	slot.junk:SetPoint("TOPRIGHT", button, list and "TOPLEFT" or "TOPRIGHT", list and height - inset or -inset, -inset)
+	slot.junk:SetPoint("TOPRIGHT", button, slot.list and "TOPLEFT" or "TOPRIGHT", slot.list and slot.height - inset or -inset, -inset)
 	slot.chrome:Restyle()
 	Slot.Paint(slot)
 end
@@ -290,7 +284,7 @@ local function Region(slot, key, on)
 			region:SetJustifyH(key == "set" and "CENTER" or "LEFT")
 			region:SetTextColor(Tokens.Color(key == "set" and "muted" or "textEmphasis"))
 		end
-		slot[key] = region
+		slot[key], slot.labeled = region, true
 		Slot.Style(slot)
 		Place(slot)
 	end
@@ -316,8 +310,7 @@ function Slot.SetStripe(slot, on)
 	end
 end
 
-function Slot.Update(slot, record, level, match, packed, extra)
-	extra = extra or NONE
+function Slot.Update(slot, record, level, match, packed, extra, shownCount)
 	local state = slot.state
 	local empty = record.empty == true
 	state.empty = empty
@@ -332,7 +325,7 @@ function Slot.Update(slot, record, level, match, packed, extra)
 	local quality = record.quality
 	state.coloured = not empty and Settings.Get("showQuality") and quality ~= nil and quality >= Settings.Get("qualityMin")
 	slot.icon:SetTexture(not empty and record.icon or nil)
-	local count = extra.count or record.count
+	local count = shownCount or record.count
 	if empty and type(packed) == "number" and packed > 1 then
 		slot.count:SetText(tostring(packed))
 		slot.count:Show()
@@ -350,24 +343,27 @@ function Slot.Update(slot, record, level, match, packed, extra)
 		slot.level:Hide()
 	end
 	slot.junk:SetShown(not empty and record.junk == true and Settings.Get("showJunk"))
-	if extra.bind or slot.bind then
-		Label(slot, "bind", not empty and extra.bind or nil)
-	end
-	if extra.set or slot.set then
-		Label(slot, "set", not empty and not slot.list and extra.set or nil)
-	end
-	if slot.list or slot.name then
-		local name = slot.list and not empty and record.name or nil
-		if name and extra.set then
-			name = name .. " \194\183 " .. extra.set
+	if extra or slot.labeled then
+		extra = extra or NONE
+		if extra.bind or slot.bind then
+			Label(slot, "bind", not empty and extra.bind or nil)
 		end
-		local nameText = Label(slot, "name", name)
-		if name then
-			nameText:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
+		if extra.set or slot.set then
+			Label(slot, "set", not empty and not slot.list and extra.set or nil)
 		end
-	end
-	if extra.mark or slot.mark then
-		Region(slot, "mark", not empty and extra.mark == true)
+		if slot.list or slot.name then
+			local name = slot.list and not empty and record.name or nil
+			if name and extra.set then
+				name = name .. " \194\183 " .. extra.set
+			end
+			local nameText = Label(slot, "name", name)
+			if name then
+				nameText:SetTextColor(Theme.QualityColor(quality, Settings.Get("qualityColors")))
+			end
+		end
+		if extra.mark or slot.mark then
+			Region(slot, "mark", not empty and extra.mark == true)
+		end
 	end
 	state.isNew = not empty and record.isNew == true
 	SetGlow(slot, state.isNew and Settings.Get("showNewGlow"))
@@ -532,4 +528,41 @@ function Slot.New(parent, id, opts)
 	button:HookScript("OnMouseUp", OnMouseUp)
 	Slot.Style(slot)
 	return slot
+end
+
+local function HideTooltip()
+	if type(GameTooltip_Hide) == "function" then
+		GameTooltip_Hide()
+	end
+end
+
+function Slot.NewBag(parent, id, pickup, tooltip)
+	local slot = Slot.New(parent, id)
+	local button = slot.button
+	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	button:RegisterForDrag("LeftButton")
+	button:SetScript("OnClick", pickup)
+	button:SetScript("OnDragStart", pickup)
+	button:SetScript("OnReceiveDrag", pickup)
+	button:HookScript("OnEnter", tooltip)
+	button:HookScript("OnLeave", HideTooltip)
+	return slot
+end
+
+function Slot.Row(panel, frame, slots, content, top, width)
+	local size = Widgets.Snap(panel, Tokens.Size("rowHeight"))
+	local gap = Widgets.Snap(panel, Tokens.Size("gapSmall"))
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
+	frame:SetSize(math.max(1, width), size)
+	local x = 0
+	for _, slot in ipairs(slots) do
+		if slot.button:IsShown() then
+			Slot.Layout(slot, size)
+			slot.button:ClearAllPoints()
+			slot.button:SetPoint("TOPLEFT", frame, "TOPLEFT", x, 0)
+			x = x + size + gap
+		end
+	end
+	return top + size + Widgets.Snap(panel, Tokens.Size("gapMedium"))
 end

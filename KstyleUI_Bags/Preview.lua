@@ -27,6 +27,10 @@ function Preview.Build(...)
 		{},
 	}
 	local LIST_ROWS = 4
+	local SAMPLE_VALUE = 24500
+	local BAG = { icon = 133633, quality = QUALITY_COMMON }
+	local BAGS = 4
+	local CURRENCIES = "|T463448:0|t 1250   |T133784:0|t 80"
 	local extra = {}
 
 	local function Record(sample)
@@ -60,8 +64,40 @@ function Preview.Build(...)
 		if capSize ~= Settings.defaults.capSize then
 			Widgets.CapsSize(frame.title.label, nil, capSize / Settings.defaults.capSize)
 		end
+		local value = Settings.Get("sectionValue") and (#SAMPLES - 1) .. "  " .. ns.Window.MoneyText(SAMPLE_VALUE) or nil
+		if value or frame.title.counted then
+			frame.title:SetCount(value)
+		end
 		frame.title:ClearAllPoints()
 		Widgets.Point(frame.title, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
+		local bags = Settings.Get("bagSlots")
+		local strip = bags and Tokens.Size("rowHeight") + Tokens.Size("gapMedium") or 0
+		frame.grid:ClearAllPoints()
+		frame.grid:SetPoint("TOP", frame.title, "BOTTOM", 0, -Tokens.Size("gapLarge") - strip)
+		if bags and not frame.bags then
+			frame.bags = { frame = CreateFrame("Frame", nil, frame), slots = {} }
+			for i = 1, BAGS do
+				frame.bags.slots[i] = Slot.New(frame.bags.frame, i)
+			end
+		end
+		if frame.bags then
+			frame.bags.frame:SetShown(bags)
+			for _, slot in ipairs(frame.bags.slots) do
+				Slot.Update(slot, BAG, nil, true)
+			end
+			if bags then
+				Slot.Row(frame, frame.bags.frame, frame.bags.slots, frame.grid, -strip, width)
+			end
+		end
+		local currencies = Settings.Get("currencies")
+		if currencies and not frame.currency then
+			frame.currency = Widgets.Text(frame, "body", "text")
+			frame.currency:SetText(CURRENCIES)
+			frame.currency:SetPoint("TOPLEFT", frame.grid, "BOTTOMLEFT", 0, -Tokens.Size("gapMedium"))
+		end
+		if frame.currency then
+			frame.currency:SetShown(currencies)
+		end
 		for i, slot in ipairs(frame.slots) do
 			local shown = i <= count
 			slot.button:SetShown(shown)
@@ -75,7 +111,7 @@ function Preview.Build(...)
 				local sample = SAMPLES[i]
 				extra.bind = sample.bind and Settings.Get("bindText") and L["BoE"] or nil
 				extra.set = sample.set and Settings.Get("setNames") and sample.set or nil
-				extra.mark = sample.reagent and Settings.Get("reagentMark")
+				extra.mark = sample.reagent and Settings.Get("reagentMark") and not Settings.ReagentApart()
 				Slot.Update(slot, Record(sample), sample.level, true, nil, extra)
 			end
 		end
@@ -85,7 +121,6 @@ function Preview.Build(...)
 		local frame = CreateFrame("Frame", nil, parent)
 		frame.title = Widgets.SectionCap(frame, { text = L["Bags"] })
 		frame.grid = CreateFrame("Frame", nil, frame)
-		frame.grid:SetPoint("TOP", frame.title, "BOTTOM", 0, -Tokens.Size("gapLarge"))
 		frame.slots = {}
 		for i = 1, PREVIEW_COLUMNS * PREVIEW_ROWS do
 			frame.slots[i] = Slot.New(frame.grid, i)

@@ -142,7 +142,7 @@ function Data.Read(bag, slot, record)
 	record.name = Plain(info.itemName, "string")
 	record.locked = Plain(info.isLocked, "boolean") == true
 	record.noValue = Plain(info.hasNoValue, "boolean") == true
-	record.bound = Plain(info.isBound, "boolean") == true
+	record.bound = Plain(info.isBound, "boolean")
 	local newItems = C_NewItems
 	if newItems and newItems.IsNewItem then
 		record.isNew = Plain(newItems.IsNewItem(bag, slot), "boolean") == true
@@ -608,8 +608,7 @@ function Data.CanHold(bag, itemID)
 	if Data.IsKeyring(bag) then
 		return ItemClass({ itemID = itemID }) == ((Enum and Enum.ItemClass and Enum.ItemClass.Key) or CLASS_KEY)
 	end
-	local index = Enum and Enum.BagIndex
-	if bag == (Plain(index and index.ReagentBag, "number") or REAGENT_BAG_FALLBACK) then
+	if bag == Data.ReagentBag() then
 		return item and type(item.GetItemInfo) == "function" and Plain(select(17, item.GetItemInfo(itemID)), "boolean") == true
 	end
 	local family = Data.BagFamily(bag)

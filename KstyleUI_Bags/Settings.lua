@@ -219,6 +219,10 @@ function Settings.Schema()
 	local function markOn(settings) return settings.reagentMark == true end
 	local function goldOn(settings) return settings.goldTooltip == true end
 	local function warbandOn(settings) return settings.warbandGold == true end
+	local AUTO_OPTIONS = { { value = "both", label = L["Open and close bags"] }, { value = "open", label = L["Open bags"] }, { value = "none", label = L["Leave bags alone"] } }
+	local function auto(key, label)
+		return { type = "dropdown", key = key, label = label, options = AUTO_OPTIONS, disableWhen = isOff, help = L["What your bags do when this window opens and closes. Closing only closes bags it opened."] }
+	end
 
 	Settings.schema = {
 		{ type = "header", label = L["Bags"] },
@@ -354,32 +358,14 @@ function Settings.Schema()
 		{ type = "text", key = "warbandGoldAmount", label = L["Gold to keep"], help = L["The gold each character keeps when the bank opens. Empty moves nothing."], maxLetters = 7, disableWhen = isOff, showWhen = warbandOn },
 		{ type = "toggle", key = "warbandGoldChat", label = L["Report in chat"], help = L["Say in chat how much gold moved."], disableWhen = isOff, showWhen = warbandOn },
 		{ type = "header", label = L["Open and close with"] },
+		auto("autoMerchant", L["Merchant"]), auto("autoMail", L["Mailbox"]), auto("autoAuction", L["Auction house"]),
+		auto("autoTrade", L["Trade"]), auto("autoLoot", L["Loot window"]), auto("autoQuest", L["Quest giver"]),
 		{ type = "header", label = L["Sorting"] },
 		{
 			type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],
 			options = SORT_OPTIONS, disableWhen = isOff,
 		},
 	}
-
-	do
-		local at
-		for i, row in ipairs(Settings.schema) do
-			if row.type == "header" and row.label == L["Open and close with"] then
-				at = i
-			end
-		end
-		local options = { { value = "both", label = L["Open and close bags"] }, { value = "open", label = L["Open bags"] }, { value = "none", label = L["Leave bags alone"] } }
-		local labels = {
-			{ "autoQuest", L["Quest giver"] }, { "autoLoot", L["Loot window"] }, { "autoTrade", L["Trade"] },
-			{ "autoAuction", L["Auction house"] }, { "autoMail", L["Mailbox"] }, { "autoMerchant", L["Merchant"] },
-		}
-		for _, entry in ipairs(labels) do
-			table.insert(Settings.schema, at + 1, {
-				type = "dropdown", key = entry[1], label = entry[2], options = options, disableWhen = isOff,
-				help = L["What your bags do when this window opens and closes. Closing only closes bags it opened."],
-			})
-		end
-	end
 
 	do
 		local at
