@@ -30,9 +30,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				case .. ": keep the clock vertically centred in the bar")
 			for id, item in pairs(view.items) do
 				if item.button:IsShown() then
-					for _, text in ipairs({ item.value, item.label }) do
-						local _, size = text:GetFont()
-						assert(size * K.Widgets.ScaleFactor(text) / K.Scale.Pixel(1) >= K.Scale.TextFloor() - 0.01,
+					for _, fs in ipairs({ item.value, item.label }) do
+						local _, size = fs:GetFont()
+						assert(size * K.Widgets.ScaleFactor(fs) / K.Scale.Pixel(1) >= K.Scale.TextFloor() - 0.01,
 							case .. ": keep the " .. id .. " readout at the text floor; do not exempt top bar text with Widgets.Fitted")
 					end
 				end

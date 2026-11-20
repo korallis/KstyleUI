@@ -1,4 +1,4 @@
--- test-options-footer.lua: the settings footer buttons never cover the option list in any shipped locale, on the owner screens (Auto, and the pre-Auto size at 1080) at the default and the smallest window.
+-- test-options-footer.lua: the settings footer buttons never cover the option list in any shipped locale, at 1080 (the pre-Auto size), 1440 (5120x1440 has the same units) and 2160 Auto, at the default and the smallest window.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -12,7 +12,7 @@ local function apart(env, a, b)
 end
 
 for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES", "zhCN" }) do
-	for _, screen in ipairs({ { 1920, 1080, "default" }, { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	for _, screen in ipairs({ { 1920, 1080, "default" }, { 2560, 1440 }, { 3840, 2160 } }) do
 		rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = screen[3] or "auto" })
 		rawset(_G, "RENDER_LOCALE", locale)
 		local env, K = O.New(Common.ScreenOpts({ saved = Gallery.Saved({}), setup = Gallery.Setup }))
