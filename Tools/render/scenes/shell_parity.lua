@@ -27,7 +27,7 @@ return Common.Run(function()
 	if module == "Bags" then
 		opts.bags = { [0] = { size = 20, items = { D.Item("potion"), D.Item("sword"), D.Item("junk"), D.Item("helm"), D.Item("cloth") } } }
 	end
-	local env, K = D.New(opts)
+	local env, K, ns = D.New(opts)
 	if not K.Modules.IsRunning(module) then assert(K.Modules.Enable(module)) end
 	env.RunTimers()
 	local defaults = os.getenv("RENDER_SHELL_DEFAULTS") == "1"
@@ -60,8 +60,16 @@ return Common.Run(function()
 	O.W.Settle(env)
 	if os.getenv("RENDER_SHELL_OPTIONS") ~= "0" then
 		assert(K.Options.Open(module))
+		if module == "DataBars" then
+			K.Options.Write(module, "strip.labels", "short")
+			ns.Strip.view.frame:Hide()
+		end
 		env.RunTimers()
-		for key, value in pairs({ anchor = "TOPLEFT", x = 28, y = -28, height = 900 }) do assert(K.Layout.Set("Options.Window", key, value)) end
+		assert(K.Layout.Set("Options.Window", "height", 900))
+		if module == "DataBars" then assert(K.Layout.Set("Options.Window", "width", 1120)) end
+		assert(K.Layout.Set("Options.Window", "anchor", "TOPLEFT"))
+		assert(K.Layout.Set("Options.Window", "x", 28))
+		assert(K.Layout.Set("Options.Window", "y", -28))
 		local options = env._addons.KstyleUI_Options
 		options.Window.Jump({ page = module, module = module, key = module ~= "DataBars" and keys[module] or nil,
 			labelTarget = module == "DataBars" and K.L["Location"] or nil })
