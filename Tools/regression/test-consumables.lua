@@ -50,7 +50,26 @@ Clean()
 env._combat = false
 env.FireEvent("PLAYER_REGEN_ENABLED")
 assert(#C.buttons == 12 and C.selected[1].id == 118, "the first out-of-combat repack creates the secure pool")
-assert(cfg.size == 19 and cfg.backing == true, "Options starts at half-size with backing on")
+local button = C.buttons[1]
+K.Options.Write("ActionBars", "consumables.size", 38)
+K.Options.Write("ActionBars", "bar3.enabled", true)
+local reference = ns.bars.bar3.buttons[1]
+for _, scale in ipairs({ 0.5, 1, 1.5 }) do
+	C.holder:SetScale(scale)
+	ns.bars.bar3.holder:SetScale(scale)
+	ns.StyleTextsFor(button, "consumables")
+	ns.Button.StyleTexts(reference)
+	for _, key in ipairs({ "hotkey", "count", "cooldown" }) do
+		local fs = key == "cooldown" and button.countdown or button[key]
+		local old = key == "cooldown" and reference.countdown or reference[key]
+		assert(not K.Widgets.IsFitted(fs), "size 38 must keep the old text floor at holder scale " .. scale)
+		assert(select(2, fs:GetFont()) == select(2, old:GetFont()), "size 38 must match action-bar " .. key .. " text at holder scale " .. scale)
+	end
+end
+C.holder:SetScale(1)
+ns.bars.bar3.holder:SetScale(1)
+K.Options.Write("ActionBars", "consumables.size", 19)
+assert(cfg.size == 19 and cfg.backing == true and cfg.hotkey == false, "Options starts at half-size with backing on and keybind text off")
 local backing = C.header:GetChildren()
 assert(backing.chrome and backing:IsShown(), "the shared Chrome tile is shown by default")
 K.Options.Write("ActionBars", "consumables.backing", false)
