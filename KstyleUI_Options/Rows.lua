@@ -213,13 +213,18 @@ function MAKERS.order(row)
 end
 
 function MAKERS.segmented(row)
-	return Widgets.Tabs(row, {
+	local control = Widgets.Tabs(row, {
 		width = Rows.CONTROL_WIDTH,
 		height = Tokens.Size("rowHeight"),
 		onSelect = function(value, control)
 			Apply(row, value, control)
 		end,
 	})
+	function control:Fit(width)
+		self.opts.width, self.opts.wrap = width, true
+		self:Layout()
+	end
+	return control
 end
 
 function MAKERS.font(row)
@@ -630,7 +635,7 @@ local function PlaceText(row, item, control, width)
 	local full = width - 2 * gap
 	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
 	local column = full - reserve
-	local stacked = control ~= nil and (item.kind == "pictures" or item.kind == "ornaments" or Widgets.TextWidth(row.label, 0) > column)
+	local stacked = control ~= nil and (item.kind == "pictures" or item.kind == "ornaments" or item.kind == "segmented" and #item.options > 3 or Widgets.TextWidth(row.label, 0) > column)
 	if stacked and control.Fit then
 		control.count = item.options and #item.options or nil
 		control:Fit(full)
@@ -754,6 +759,11 @@ local function Layout(row, item, width)
 		return Snap(row, TASK_HEIGHT), control
 	end
 	local control = Control(row, kind)
+	if kind == "segmented" then
+		control.opts.width, control.opts.wrap = Rows.CONTROL_WIDTH, false
+		FILL.segmented(control, item, Value(item))
+		control:Layout()
+	end
 	Widgets.SetText(row.label, item.label)
 	Widgets.SetText(row.help, item.help or "")
 	return PlaceText(row, item, control, width), control

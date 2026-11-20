@@ -37,6 +37,7 @@ local function BarDefaults(def)
 		spacing = action and (grid.spacing or Tokens.Size("actionGap")) or -1,
 		fade = false,
 		fadeAlpha = 0,
+		visibility = "",
 		hotkey = true,
 		cooldown = true,
 		backing = false,
@@ -98,7 +99,7 @@ for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
-defaults.consumables = { enabled = true, attached = true, rows = 2, size = 38, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = false }
+defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 38, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = false }
 for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 
@@ -214,9 +215,6 @@ end
 
 local function BarRows(schema, def)
 	local key = def.key
-	if key == "bar3" then
-		schema[#schema + 1] = { type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."], showWhen = Editing(key) }
-	end
 	local editing = Editing(key)
 	local function Off(settings)
 		return not settings[key].enabled
@@ -224,25 +222,31 @@ local function BarRows(schema, def)
 	local scope = { key = "editBar", value = key }
 	local function add(row)
 		row.showWhen = row.showWhen or editing
+		local shown = row.showWhen
+		if row.type ~= "header" and row.key ~= key .. ".enabled" then
+			row.showWhen = function(settings) return shown(settings) and settings[key].enabled end
+		end
 		if key == "bar1" or key == "bar2" then
 			local field = row.key and row.key:match("%.(.+)$")
 			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" then
-				row.showWhen = function(settings) return editing(settings) and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
+				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
 			end
 		end
 		row.scope = scope
 		if row.type ~= "header" and row.key ~= key .. ".enabled" then
-			row.disableWhen = Off
+			local disabled = row.disableWhen
+			row.disableWhen = disabled and function(settings) return Off(settings) or disabled(settings) end or Off
 		end
 		schema[#schema + 1] = row
 	end
 	add({ type = "header", label = Label(def) })
 	local help = key == "bar3" and L["Turns this bar on or off. Beside the party frames it lowers the largest HUD size."] or L["Turns this bar on or off."]
 	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = help })
+	if key == "bar3" then add({ type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."] }) end
 	if key == "bar1" or key == "bar2" then
-		add({ type = "note", label = L["The slab keeps one row of up to 12 buttons per side, with fixed socket spacing and backing. Button size scales both sides. Turn off Use the Medallions slab to arrange these bars freely."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
+		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 	end
-	if def.kind ~= "consumable" then add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 }) end
+	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
 	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = (def.kind == "action" or def.kind == "consumable") and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = (def.kind == "action" or def.kind == "consumable") and 1 or 0, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
@@ -256,6 +260,7 @@ local function BarRows(schema, def)
 	end
 	add({ type = "toggle", key = key .. ".backing", label = L["Backing strip"], help = L["Draws a strip of smoked glass behind the bar's buttons."] })
 	add({ type = "toggle", key = key .. ".fade", label = L["Fade until hovered"], help = L["Fades the bar until the pointer is over it."] })
+	add({ type = "text", key = key .. ".visibility", label = L["Custom visibility"], help = L["Macro conditions: [combat] show; hide. Empty keeps the usual visibility rules."], maxLetters = PAGING_LETTERS })
 	add({
 		type = "slider", key = key .. ".fadeAlpha", label = L["Faded opacity"], help = L["How visible the bar stays while faded."],
 		min = 0, max = 1, step = FADE_STEP,
@@ -271,7 +276,8 @@ local function BarRows(schema, def)
 	add({ type = "toggle", key = key .. ".cooldown", label = L["Cooldown numbers"], help = L["Shows the time left on each cooldown."] })
 	if def.kind == "consumable" then
 		for _, option in ipairs({ { "attached", L["Attach to the player frame"] }, { "combat", L["Show in combat"] }, { "idle", L["Show out of combat"] }, { "hideEmpty", L["Hide when empty"] }, { "other", L["Other usable consumables"] } }) do
-			add({ type = "toggle", key = key .. "." .. option[1], label = option[2], help = L["Controls when and where consumables appear."] })
+			add({ type = "toggle", key = key .. "." .. option[1], label = option[2], help = L["Controls when and where consumables appear."],
+				disableWhen = (option[1] == "combat" or option[1] == "idle") and function(settings) return settings[key].visibility ~= "" end or nil })
 		end
 		for _, kind in ipairs(ns.Consumables.kinds) do add({ type = "toggle", key = key .. "." .. kind.key, label = kind.label, help = L["Shows the best carried item of this kind."] }) end
 	end
@@ -295,8 +301,9 @@ end
 
 local function EditOptions()
 	local out = {}
+	local labels = { L["Bar 1"], L["Bar 2"], L["Bar 3"], L["Bar 4"], L["Bar 5"], L["Bar 6"] }
 	for i, def in ipairs(ns.BARS) do
-		out[i] = { value = def.key, label = Label(def) }
+		out[i] = { value = def.key, label = labels[i] or Label(def) }
 	end
 	out[#out + 1] = { value = "consumables", label = L["Consumables bar"] }
 	return out
@@ -304,8 +311,13 @@ end
 
 function ns.Schema()
 	local schema = {
+		{ type = "segmented", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
+		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" end },
+	}
+	for _, def in ipairs(ns.BARS) do BarRows(schema, def) end
+	BarRows(schema, ns.Consumables.def)
+	local shared = {
 		{ type = "header", label = L["Slab and cooldowns"] },
-		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."], showWhen = function() return K.HudStyle.Current() == "medallions" end,
 			options = { { value = "off", label = L["Off"] }, { value = "rows", label = L["Two rows on the slab"] }, { value = "beside", label = L["Beside the slab"] } } },
 		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."] },
@@ -323,12 +335,8 @@ function ns.Schema()
 		{ type = "header", label = L["Bars"] },
 		{ type = "toggle", key = "safeDragging", label = L["Safe dragging"], help = L["Clicks cast on release; keys keep their timing. Off makes clicks follow the key setting."] },
 		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },
-		{ type = "dropdown", key = "editBar", label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 	}
-	for _, def in ipairs(ns.BARS) do
-		BarRows(schema, def)
-	end
-	BarRows(schema, ns.Consumables.def)
+	for _, row in ipairs(shared) do schema[#schema + 1] = row end
 	schema[#schema + 1] = { type = "header", label = L["Text"] }
 	for _, text in ipairs(ns.TEXTS) do
 		local base = "text." .. text.key

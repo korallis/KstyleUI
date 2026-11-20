@@ -98,5 +98,6 @@ function C.Scan(cfg)
 	for key, item in pairs(candidates) do if key:match("^other:") then others[#others + 1] = item end end
 	table.sort(others, function(a, b) return a.rank < b.rank or a.rank == b.rank and a.id < b.id end)
 	for _, item in ipairs(others) do if #picked < 12 then picked[#picked + 1] = item end end
+	for i = #picked, (cfg.buttons or 12) + 1, -1 do picked[i] = nil end
 	return picked, counts
 end

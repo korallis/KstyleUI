@@ -220,6 +220,8 @@ local function applyPreset(env, opts)
 			K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
 		end
 	end
+	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
+	if bar2Buttons and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "bar2.buttons", bar2Buttons) end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")

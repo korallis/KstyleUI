@@ -3,7 +3,7 @@ local _, ns = ...
 
 local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
-local max = math.max
+local max, min = math.max, math.min
 
 local TAB_MIN_WIDTH = 64
 local TEXT_FALLBACK_WIDTH = 56
@@ -66,7 +66,7 @@ local function Slide(strip, t)
 	local x = strip.fromX + (strip.toX - strip.fromX) * t
 	local w = strip.fromW + (strip.toW - strip.fromW) * t
 	strip.underX, strip.underW = x, w
-	Widgets.Point(strip.underline, "BOTTOMLEFT", strip, "BOTTOMLEFT", x, Widgets.Border(strip))
+	Widgets.Point(strip.underline, "BOTTOMLEFT", strip, "BOTTOMLEFT", x, strip.underY or Widgets.Border(strip))
 	strip.underline:SetWidth(w)
 	strip.underGlow:SetWidth(w)
 end
@@ -90,7 +90,7 @@ local function Target(strip)
 	if not tab then
 		return nil
 	end
-	return tab.x, tab.w
+	return tab.x, tab.w, strip:GetHeight() - tab.y - tab:GetHeight() + Widgets.Border(strip)
 end
 
 function Tabs:Layout()
@@ -98,26 +98,32 @@ function Tabs:Layout()
 	local pad = Widgets.Snap(self, Tokens.Size("gapSmall"))
 	local count = #self.items
 	local equal
-	if self.opts.width and count > 0 then
+	if self.opts.width and count > 0 and not self.opts.wrap then
 		equal = Widgets.Snap(self, (self.opts.width - 2 * Tokens.Size("gapSmall")) / count)
 	end
-	local x = pad
+	local x, y = pad, 0
 	for i = 1, count do
 		local tab = self.buttons[i]
 		local w = equal or Widgets.Snap(self, max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
+		if self.opts.wrap then
+			w = min(w, self.opts.width - 2 * pad)
+			if x > pad and x + w > self.opts.width - pad then x, y = pad, y + height end
+		end
+		tab.y = y
 		tab.x, tab.w, tab.inset = x, w, Widgets.Snap(self, Tokens.Size("gapMedium"))
 		tab:ClearAllPoints()
-		Widgets.Point(tab, "TOPLEFT", self, "TOPLEFT", x, 0)
+		Widgets.Point(tab, "TOPLEFT", self, "TOPLEFT", x, -y)
 		tab:SetSize(w, height)
 		tab.placedOffset = nil
 		tab:Paint()
 		x = x + w
 	end
 	local width = self.opts.width and Widgets.Snap(self, self.opts.width) or x + pad
-	self:SetSize(width, height)
+	self:SetSize(width, y + height)
 	self.underline:SetHeight(Widgets.Border(self))
 	self.underGlow:SetHeight(Widgets.Snap(self, GLOW_UNITS))
-	local tx, tw = Target(self)
+	local tx, tw, ty = Target(self)
+	self.underY = ty
 	self.underline:SetShown(tx ~= nil)
 	self.underGlow:SetShown(tx ~= nil)
 	if tx then
@@ -144,7 +150,8 @@ function Tabs:Select(value, silent)
 	end
 	self.value = value
 	self:Paint()
-	local tx, tw = Target(self)
+	local tx, tw, ty = Target(self)
+	self.underY = ty
 	self.fromX, self.fromW = self.underX or tx, self.underW or tw
 	self.toX, self.toW = tx, tw
 	self.underline:Show()

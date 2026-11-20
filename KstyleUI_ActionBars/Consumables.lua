@@ -107,7 +107,8 @@ function C.Apply()
 	Build()
 	local style, layouts = K.HudStyle.Current(), K.Setup.Layouts
 	local rows, size, gap = layouts.ConsumableGrid(style)
-	local width, height, columns, used = ns.GridSize(12, rows, size, gap)
+	local capacity = cfg.buttons or 12
+	local width, height, columns, used = ns.GridSize(capacity, rows, size, gap)
 	holder:SetSize(width, height)
 	K.Layout.Register(holder, KEY, layouts.Default(KEY), { label = K.L["Consumables bar"], module = "ActionBars", scalable = true, plate = true })
 	K.Layout.SetLive(KEY, ns.running and cfg.enabled)
@@ -116,7 +117,7 @@ function C.Apply()
 	local growth = cfg.growth
 	local left, up = growth:find("LEFT") ~= nil, growth:find("UP") ~= nil
 	local corner = (up and "BOTTOM" or "TOP") .. (left and "RIGHT" or "LEFT")
-	local occupied = #selected == 0 and cfg.hideEmpty == false and 12 or math.max(1, #selected)
+	local occupied = #selected == 0 and cfg.hideEmpty == false and capacity or math.max(1, #selected)
 	local liveColumns = cfg.orientation == "VERTICAL" and math.ceil(occupied / used) or math.min(columns, occupied)
 	local liveRows = cfg.orientation == "VERTICAL" and math.min(used, occupied) or math.ceil(occupied / columns)
 	header:ClearAllPoints()
@@ -141,11 +142,12 @@ function C.Apply()
 		b:SetIcon(record and record.icon)
 		b:SetHotkey(record and cfg.hotkey ~= false and ns.ShortKey(b.key) or "")
 		if not record then b.count:SetText(""); b.hotkey:SetText(""); b:ClearCooldown(); b:SetUsable(false) end
-		b:SetShown(record ~= nil or #selected == 0 and cfg.hideEmpty == false)
+		b:SetShown(i <= capacity and (record ~= nil or #selected == 0 and cfg.hideEmpty == false))
 	end
 	backing:SetShown(cfg.backing == true)
 	local show = ns.running and cfg.enabled and (#selected > 0 or not cfg.hideEmpty)
 	local driver = not show and "hide" or cfg.combat and cfg.idle and "show" or cfg.combat and "[combat] show; hide" or cfg.idle and "[combat] hide; show" or "hide"
+	if show and cfg.visibility and cfg.visibility:match("%S") then driver = cfg.visibility end
 	if RegisterStateDriver then RegisterStateDriver(header, "visibility", driver) else header:SetShown(show) end
 	C:RefreshFade()
 	C.Counts()

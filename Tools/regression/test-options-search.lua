@@ -1,5 +1,5 @@
 -- test-options-search.lua: settings search reaches every row a page can show, whichever frame or bar its picker holds.
--- The unit frames and action bars pages show one frame's or bar's rows at a time, picked by a dropdown.
+-- The unit frames and action bars pages show one frame's or bar's rows at a time, picked by their selector.
 -- Search must still find the rows of every frame and bar, with the picker left as it is.
 local O = dofile("Tools/regression/options_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
@@ -36,6 +36,9 @@ local env, K, ns = O.New({
 	end,
 })
 local Model = ns.Model
+for _, option in ipairs(K.Options.Row("ActionBars", "editBar").options) do
+	K.Options.Write("ActionBars", option.value .. ".enabled", true)
+end
 
 for module, keys in pairs({ Minimap = { "frame" }, Skins = { "restyleAddons" }, Nameplates = { "name.textFormat", "healthText.textFormat", "debuffs.includePlateOnly" } }) do
 	for _, key in ipairs(keys) do assert(K.Options.Row(module, key), module .. ": preserve lazily built staging row " .. key) end

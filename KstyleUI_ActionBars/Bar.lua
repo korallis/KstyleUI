@@ -130,6 +130,10 @@ function Bar:Visibility()
 		return "hide"
 	end
 	local kind = self.def.kind
+	local custom = self:Config().visibility
+	if custom and custom:match("%S") and (kind ~= "stance" or self.count > 0) then
+		return (kind == "pet" and "[@pet,noexists] hide; " or "") .. custom
+	end
 	if kind == "pet" then
 		return PET_DRIVER
 	elseif kind == "stance" then

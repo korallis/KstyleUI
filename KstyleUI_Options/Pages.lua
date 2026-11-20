@@ -369,6 +369,13 @@ local function ElementSection(items, module, page)
 	items[#items + 1] = { kind = "header", level = 1, label = L["Positions and sizes"], page = page }
 	for _, element in ipairs(elements) do
 		for _, item in ipairs(Pages.ElementItems(element, page, 2)) do
+			if module == "ActionBars" then
+				local key = element.key == "consumables.bar" and "consumables" or element.key:match("^actionbars%.(.+)$")
+				if key then item.showWhen = function()
+					local settings = K.Store.Module(module)
+					return settings.editBar == key and settings[key] and settings[key].enabled
+				end end
+			end
 			items[#items + 1] = item
 		end
 	end
@@ -504,9 +511,12 @@ local function ModuleItems(page)
 		if titled then
 			table.remove(rows, 1)
 		end
-		Append(items, rows)
+		for _, item in ipairs(rows) do
+			if module == "ActionBars" and item.kind == "header" and item.label == L["Slab and cooldowns"] then ElementSection(items, module, page.id) end
+			items[#items + 1] = item
+		end
 	end
-	ElementSection(items, module, page.id)
+	if module ~= "ActionBars" then ElementSection(items, module, page.id) end
 	if module == "ActionBars" and K.Store.Module("ActionBars").bindingHints ~= false then
 		table.insert(items, 2, { kind = "button", page = page.id, label = L["Bind keys"],
 			help = L["Hover a button and press a key; Save keeps the bindings."],

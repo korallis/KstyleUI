@@ -2,6 +2,50 @@
 
 Main bar with stance, stealth, form and possess paging, extra bars, pet bar, stance bar, keybind text, cooldown sweeps, proc glows, usable and range shading, and mouseover fade.
 
+## Bar picker and settings
+
+Open **Action Bars** and click **Bar 1–6**, **Pet bar**, **Stance bar** or **Consumables bar** at the top. Every choice shows its own button count and applicable arrangement, text, cooldown, fade and paging controls. Disabled bars keep their switch visible and hide their other rows. **Positions and sizes** immediately follows the selected bar's controls, with its visibility, scale, combat/idle opacity and position. Shared finish, text styling and colour choices follow those settings. The picker wraps using the kit's tabs; the scroll list has no sticky-row support.
+
+The Medallions slab fixes bars 1 and 2 to one row with shared spacing and backing, so those arrangement controls are hidden while it is on. Switch **Use the Medallions slab** off beside the picker to free them. Button counts stay independent; changing button size while connected still scales both sides, as the slab note explains.
+
+**Custom visibility** accepts secure macro conditions such as `[combat] show; hide`, `[@target,exists] show; hide` or `[mounted] hide; show`. Leave it empty to retain the existing rules. For consumables it replaces and disables the built-in combat/idle switches. It combines with Layout's **Shown** choice; neither overrides a disabled bar, absent pet or empty stance bar. Edits made in combat apply after combat. Consumables also have a **Buttons** limit (12 by default); they keep the highest-priority carried items up to that limit. Pet/stance buttons have no macro names or action-page mapping, and consumables use item-kind selection rather than spell paging or split action rows.
+
+No new client API is introduced: macro visibility uses the existing `RegisterStateDriver` path, proven by Gethe/wow-ui-source `forever` at `9dc84f0`, `Interface/AddOns/Blizzard_RestrictedAddOnEnvironment/SecureStateDriver.lua` (`RegisterStateDriver`, `RegisterAttributeDriver`, `SecureCmdOptionParse` and visibility handling).
+
+### EllesmereUI parity audit (2026-11-20)
+
+This inventory uses public product descriptions and release notes, with no addon source copied or used to implement features. Public descriptions do not enumerate every internal menu row; this is the documented feature surface plus the owner's requested controls. **Present** can mean an equivalent control elsewhere in KstyleUI; **Missing** means a follow-up, not a Forever restriction.
+
+| Publicly documented option | KstyleUI status | Control or remaining work | Public source |
+| --- | --- | --- | --- |
+| Button count / orientation | Present | Every picker choice has Buttons and Fill order; rows, growth, size and spacing apply per bar | [v5.5.6](https://www.curseforge.com/wow/addons/ellesmereui/files/7810128), [v9.2.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8961439) |
+| Growth direction / reverse button order | Present / Missing | Growth exists; independent reversal needs paging/binding/slab geometry verification | [v7.7.7](https://www.curseforge.com/wow/addons/ellesmereui/files/8112628) |
+| Mouseover, combat and target visibility | Present | Selected bar > Positions and sizes > Shown; optional Fade until hovered | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Mounted / combined conditions | Present | New per-bar Custom visibility, including `[mounted]` and compound macro conditions | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars), [v8.4.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8425382) |
+| Location visibility / visual condition builder | Missing | Macro-supported conditions work; no location selector or condition editor | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Bar opacity and out-of-combat fade | Present | Per-bar combat/idle opacity, faded opacity and hover restore | [v7.2.4](https://www.curseforge.com/wow/addons/ellesmereui/files/7998447), [v8.4](https://www.curseforge.com/wow/addons/ellesmereui/files/8388736) |
+| Size / scale | Present | Per-bar Button size and Scale; connected slab size intentionally scales both sides | [v9.2.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8961439) |
+| Anchoring / width and height matching | Present / Missing | Layout supports anchoring, attachment and snapping; action bars scale rather than independently matching width/height | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Always show buttons | Present | Per-bar Show empty buttons; consumables instead use Hide when empty | [v9.5.4](https://www.curseforge.com/wow/addons/ellesmereui/files/9165866) |
+| Keybind / macro text switches | Present | Per-action-bar hotkey, count, macro and cooldown text switches | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Text font / outline / size | Present | Shared Text section; per-bar placement remains separate work | [v8.9.7](https://www.curseforge.com/wow/addons/ellesmereui/files/8696806) |
+| Text corner / edge placement | Missing | Requires layout, preview and localization checks across button sizes | [v9.2.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8961439) |
+| Custom paging / shapeshifting | Present | Every action bar accepts Custom paging; main bar also has built-in form, stealth, possess and page-key switches | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Range colour | Present | Shared Colours > Out of range; same tint on every action bar | [v7.4.2](https://www.curseforge.com/wow/addons/ellesmereui/files/8030140) |
+| Shapes / border style / Blizzard style | Missing | KstyleUI has its own socket styles; independent shape/border and Blizzard replacement require artwork and secure-hitbox testing | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Glow / animation switches | Present | Shared Motion section and core motion levels; no complete per-bar effect editor | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Cooldown desaturation / swipe opacity | Missing | Existing quiet/readable cooldown finish dims icons; independent desaturation and swipe-opacity controls need engine cooldown-state verification | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars), [v8.9.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8688485/additional-files) |
+| Click through | Missing | Requires secure mouse handling that preserves hover, flyouts and Layout Mode | [Action Bars product](https://www.curseforge.com/wow/addons/eui-action-bars) |
+| Equipped-item rarity border | Missing | Requires item state/event ownership and a separate visual treatment | [v9.3.6](https://www.curseforge.com/wow/addons/ellesmereui/files/9064386) |
+| End caps, art size and offsets | Missing | KstyleUI's slab has its own crest; configurable end caps are an art/layout follow-up | [v9.3](https://www.curseforge.com/wow/addons/ellesmereui/files/8988935), [v9.3.1](https://www.curseforge.com/wow/addons/ellesmereui/files/9001557) |
+| Runtime visibility key / conditional overrides | Missing | Secure toggle bindings and override persistence require a separate state model | [v8.7.7](https://www.curseforge.com/wow/addons/ellesmereui/files/8597278), [v9.6.9](https://www.curseforge.com/wow/addons/ellesmereui/files/9341121) |
+| Extra-action button | Not possible on Forever | Forever disables this button; no placeholder is created (see Hover keybindings below) | [v7.4.2](https://www.curseforge.com/wow/addons/ellesmereui/files/8030140); Forever `Blizzard_ActionBar/Camelot/ExtraActionBarOverrides.lua` |
+| Housing / skyriding visibility | Not possible on Forever | These game systems are absent; mounted conditions are available | [v8.8.5](https://www.curseforge.com/wow/addons/ellesmereui/files/8636274/additional-files); design spec Forever facts |
+
+Larger follow-ups are the Missing entries above. A sticky picker and opening a bar's settings from its mover also need scroll-list / Layout Mode support; the current mover uses click for selection and right-click for reset. Existing per-bar scale, opacity and range colouring needed no duplicate settings or defaults.
+
+Verification: `test-actionbars-options` drives the real picker, every Buttons slider, visibility conditions, selected-bar layout controls and the slab switch. The existing actionbar config tests cover rows, growth, spacing, split, text and protected combat edits across styles and screen sizes. Render `options_actionbars` at the requested screen size, or use `hud_reference` with `RENDER_BAR2_BUTTONS=6` for the full HUD.
+
 ## Hover keybindings
 
 Type `/kb`, `/kstyle kb` or `/kstyle keybind`, hover a button, and press a key, middle or extra mouse button, or wheel with optional modifiers. Shift, Ctrl, Alt and Meta (Cmd on Mac) use Blizzard's chord order. Left and right clicks are ignored to preserve world selection and camera controls. Escape clears every binding for the hovered button. The panel highlights the button and shows its keys using the client's localized key names. **Save** applies the edits to account bindings, or character bindings with **Character bindings** selected. Switching from character to account bindings requires confirmation and loads the existing account set before applying edits. **Discard**, toggling the mode off, disabling Action Bars, switching input devices or entering combat drops unsaved edits. Binding mode cannot start in combat. `/kb` and `/bb` are registered only when another loaded addon has not claimed them; `/kstyle kb` always opens KstyleUI's mode.
