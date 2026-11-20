@@ -112,18 +112,17 @@ assert(buff.count._points[1][1] == "TOPRIGHT" and buff.timer._points[1][3] == "B
 -- The seconds suffix and minutes-and-seconds: an engine rule formatter, cached per setting, mirrored by the preview.
 write("timer.seconds", false)
 local f = baura.timerOptions.textFormatter
-assert(rawget(f, "breakpoints") and f:Format(24) == "24" and f:Format(120) == "2m" and f:Format(7200) == "2h", "no suffix on seconds only")
+assert(rawget(f, "breakpoints") and f:FormatNumber(24) == "24" and f:FormatNumber(120) == "2m" and f:FormatNumber(7200) == "2h", "no suffix on seconds only")
 write("timer.precise", 5)
 f = baura.timerOptions.textFormatter
-assert(f:Format(245) == "4:05" and f:Format(59) == "59" and f:Format(300) == "5m", "minutes and seconds under five minutes")
+assert(f:FormatNumber(245) == "4:05" and f:FormatNumber(59) == "59" and f:FormatNumber(300) == "5m", "minutes and seconds under five minutes")
 write("iconZoom", 0.07)
 assert(baura.timerOptions.textFormatter == f, "the rule formatter is cached")
-local timer = Model.Timer(K.Store.Module("Auras"))
-assert(Model.FormatTime(245, "short", timer) == "4:05" and Model.FormatTime(24, "short", timer) == "24", "the preview writes the same text")
+assert(ns.Panel.RuleFormatter(Model.Timer(K.Store.Module("Auras"))) == f, "the preview takes the same formatter")
 write("timer.seconds", true)
-assert(baura.timerOptions.textFormatter:Format(24) == "24s" and baura.timerOptions.textFormatter:Format(245) == "4:05", "the suffix returns with precise timers")
+assert(baura.timerOptions.textFormatter:FormatNumber(24) == "24s" and baura.timerOptions.textFormatter:FormatNumber(245) == "4:05", "the suffix returns with precise timers")
 write("timer.format", "decimal")
-assert(baura.timerOptions.textFormatter:Format(2.45) == "2.4", "tenths stay under three seconds")
+assert(baura.timerOptions.textFormatter:FormatNumber(2.45) == "2.4", "tenths stay under three seconds")
 local create = env.C_StringUtil.CreateNumericRuleFormatter
 env.C_StringUtil.CreateNumericRuleFormatter = nil
 write("timer.precise", 7)

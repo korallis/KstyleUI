@@ -23,11 +23,6 @@ local function BuildSchema()
 		return { type = "slider", key = key, label = label, help = help, min = limit.min, max = limit.max, step = limit.step, disableWhen = disableWhen }
 	end
 
-	local function swipeOff(settings, name)
-		local group = settings[name]
-		return type(group) ~= "table" or group.swipe ~= true
-	end
-
 	local function groupRows(schema, name)
 		local rows = {
 			{ type = "dropdown", key = name .. ".show", label = L["Show"], options = Model.SHOW_OPTIONS[name], help = L["Every aura, or only one of Blizzard's aura categories."] },
@@ -52,7 +47,7 @@ local function BuildSchema()
 			{ type = "toggle", key = name .. ".swipe", label = L["Duration swipe"], help = L["Show the shaded duration sweep on each icon."] },
 			{
 				type = "toggle", key = name .. ".swipeReverse", label = L["Reverse swipe"], help = L["The shade clears as time runs out. Off fills the icon instead."],
-				disableWhen = function(settings) return swipeOff(settings, name) end,
+				disableWhen = function(settings) local group = settings[name]; return type(group) ~= "table" or group.swipe ~= true end,
 			},
 			{ type = "dropdown", key = name .. ".tooltips", label = L["Tooltips"], options = Model.TOOLTIP_OPTIONS, help = L["When hovering an icon shows its tooltip."] },
 			{ type = "toggle", key = name .. ".refresh", label = L["Mark when refreshable"], help = L["A gold line under an aura you can refresh without losing time."] },

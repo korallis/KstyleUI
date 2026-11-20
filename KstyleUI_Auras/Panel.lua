@@ -200,10 +200,11 @@ end
 
 local rules = {}
 
-local function RuleFormatter(timer, endings)
+function Panel.RuleFormatter(timer)
 	if Model.PlainTimer(timer) then
 		return nil
 	end
+	local endings = K.Appearance.Get("auraEndings")
 	local key = concat({ timer.format, tostring(timer.seconds), timer.precise, tostring(endings) }, ":")
 	if rules[key] == nil then
 		local util, R, base = C_StringUtil, Enum and Enum.NumericRuleFormatRounding, Widgets.Duration.Formatter("short")
@@ -222,12 +223,11 @@ local function RuleFormatter(timer, endings)
 end
 
 local function Formatter(timer)
-	local timerFormat = timer.format
-	local endings = K.Appearance.Get("auraEndings")
-	local custom = RuleFormatter(timer, endings)
+	local custom = Panel.RuleFormatter(timer)
 	if custom then
 		return custom
 	end
+	local timerFormat, endings = timer.format, K.Appearance.Get("auraEndings")
 	if timerFormat == "short" and not endings then
 		return nil
 	end
@@ -240,22 +240,18 @@ local function Formatter(timer)
 	return formatter
 end
 
-local function DispelOptions()
-	local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-	if not (styles and styles.PreserveAsset) then
-		LogOnce("dispel", "Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour")
-		return nil
-	end
-	return { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
-end
+local MISSING_STYLE = {
+	PreserveAsset = { "dispel", "Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour" },
+	Icon = { "type-icon", "Enum.CustomAuraButtonDispelTypeTextureStyle.Icon is missing; debuffs show no type icon" },
+}
 
-local function TypeIconOptions()
+local function DispelOptions(style, withoutType)
 	local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-	if not (styles and styles.Icon) then
-		LogOnce("type-icon", "Enum.CustomAuraButtonDispelTypeTextureStyle.Icon is missing; debuffs show no type icon")
+	if not (styles and styles[style]) then
+		LogOnce(MISSING_STYLE[style][1], MISSING_STYLE[style][2])
 		return nil
 	end
-	return { style = styles.Icon, showWhenHarmful = true }
+	return { style = styles[style], showWhenHarmful = true, showWithoutDispelType = withoutType }
 end
 
 local function EdgeColor()
@@ -281,8 +277,8 @@ local function Context(desc)
 		lineSize = Model.LineSize(group, timer, snap),
 		edge = EdgeColor(),
 		timerOptions = { textFormatter = Formatter(timer), textColor = Widgets.Duration.ExpiringColor(timer.expiring, timer.color) },
-		dispelOptions = group.dispel and DispelOptions() or nil,
-		typeIconOptions = group.typeIcon and group.typeIcon ~= "none" and TypeIconOptions() or nil,
+		dispelOptions = group.dispel and DispelOptions("PreserveAsset", true) or nil,
+		typeIconOptions = group.typeIcon and group.typeIcon ~= "none" and DispelOptions("Icon") or nil,
 		hiddenAlpha = Model.HiddenAlpha(settings),
 	}
 	ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
@@ -314,7 +310,7 @@ local function Filter(desc)
 	if type(util) == "table" and type(util.IsValidFilterString) == "function" then
 		ok, valid = pcall(util.IsValidFilterString, filter .. "|" .. token)
 	end
-	if ok and valid == true then
+	if ok and not IsSecret(valid) and valid == true then
 		return filter .. "|" .. token
 	end
 	LogOnce("show:" .. token, "the " .. token .. " aura filter cannot be checked on this client; the " .. desc.name .. " row shows every aura")
@@ -398,13 +394,13 @@ end
 
 local function ChipStyle(ctx)
 	return function(text)
-		Button.StyleText(text, ctx.count)
+		Button.StyleText(text, ctx.count, nil, nil, false)
 		text:SetJustifyH("CENTER")
 		text:SetJustifyV("MIDDLE")
 	end
 end
 
-local function ApplyChip(desc, candidates)
+local function ApplyChip(desc, filter, candidates)
 	local chip = desc.chip
 	if not chip then
 		return
@@ -413,7 +409,7 @@ local function ApplyChip(desc, candidates)
 	local corner = Model.LastCell(ctx.group.growth)
 	Overflow.Apply(chip, {
 		enabled = true,
-		groups = { { filter = Filter(desc), candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
+		groups = { { filter = filter, candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
 		cap = Capacity(desc), cell = ctx.icon, width = ctx.icon,
 		point = corner, rel = host, relPoint = corner, x = 0, y = corner:find("BOTTOM", 1, true) and ctx.foot or 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
@@ -430,13 +426,13 @@ local function ApplyGroup(desc)
 	if method ~= nil and direction ~= nil then
 		container:SetAuraGroupSortMethod(key, method, direction)
 	end
-	container:SetAuraGroupFilterString(key, Filter(desc))
+	local filter, candidates = Filter(desc), Candidates(desc)
+	container:SetAuraGroupFilterString(key, filter)
 	container:SetAuraGroupMaxFrameCount(key, Capacity(desc))
-	local candidates = Candidates(desc)
 	if type(container.SetAuraGroupCandidateFilters) == "function" then
 		container:SetAuraGroupCandidateFilters(key, candidates)
 	end
-	ApplyChip(desc, candidates)
+	ApplyChip(desc, filter, candidates)
 end
 
 local function Init(desc, button)

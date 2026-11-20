@@ -21,7 +21,7 @@ function A.Remaining(env, button, seconds)
 	aura.remaining = { seconds }
 	if aura.timer then
 		local formatter = aura.timerOptions.textFormatter or env.AuraContainerInbound.GetDefaultAuraDurationFormatter()
-		aura.timer:SetText(formatter:Format(seconds))
+		aura.timer:SetText(formatter:FormatNumber(seconds))
 	end
 end
 
@@ -391,6 +391,10 @@ end
 
 local function fakeFormatter(env, name)
 	local f = { name = name, calls = {}, settings = {} }
+	-- SecondsFormatter inherits NumericFormatter's FormatNumber, which the engine's duration binding calls.
+	function f:FormatNumber(seconds)
+		return self:Format(seconds)
+	end
 	function f:Format(seconds)
 		local secret = env.issecretvalue(seconds)
 		if secret then seconds = env.Reveal(seconds) end
@@ -553,8 +557,9 @@ function A.Engine(env, opts)
 			return env._enchants[slot]
 		end,
 	}
-	-- C_StringUtil.CreateNumericRuleFormatter: the last breakpoint at or under the value formats it, each component
-	-- dividing, then taking the remainder, then rounding to its step (NumericRuleFormatterSharedDocumentation.lua).
+	-- C_StringUtil.CreateNumericRuleFormatter: the last breakpoint at or under the value formats it, rounding the value
+	-- to the breakpoint's step first, then each component dividing, taking the remainder and rounding to its own step
+	-- (NumericRuleFormatterSharedDocumentation.lua). Like Forever's NumericRuleFormatter it answers FormatNumber, not Format.
 	env.Enum.NumericRuleFormatRounding = { Nearest = 0, Up = 1, Down = 2 }
 	local function round(value, step, rounding)
 		if not step then return value end
@@ -577,13 +582,14 @@ function A.Engine(env, opts)
 				end
 				self.breakpoints = list
 			end
-			function f.Format(self, value)
+			function f.FormatNumber(self, value)
 				local secret = env.issecretvalue(value)
 				if secret then value = env.Reveal(value) end
 				local pick
 				for _, bp in ipairs(self.breakpoints) do
 					if value >= bp.threshold then pick = bp end
 				end
+				value = round(value, pick.step, pick.rounding)
 				local text
 				if pick.components then
 					local parts = {}
@@ -595,7 +601,7 @@ function A.Engine(env, opts)
 					end
 					text = string.format(pick.format, unpack(parts))
 				else
-					text = string.format(pick.format, round(value, pick.step, pick.rounding))
+					text = string.format(pick.format, value)
 				end
 				return secret and env.Secret(text) or text
 			end

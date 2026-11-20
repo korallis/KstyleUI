@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Tokens, L = K.Tokens, K.L
-local floor, max, min, format = math.floor, math.max, math.min, string.format
+local floor, max, min = math.floor, math.max, math.min
 
 local Model = {}
 ns.Model = Model
@@ -34,13 +34,11 @@ Model.LIMITS = {
 }
 local LIMITS = Model.LIMITS
 
-local ar, ag, ab = Tokens.Color("accentDefault")
 local function rgb(name)
 	local r, g, b = Tokens.Color(name)
 	return { r = r, g = g, b = b }
 end
 
-local GROUP_DEFAULTS = { show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false }
 Model.defaults = {
 	medallionsIcons = true,
 	enabled = false,
@@ -51,25 +49,21 @@ Model.defaults = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "use", reverse = false, enchants = true, cancel = true, tracked = "cdm",
-		allowSpells = "", blockSpells = "",
+		allowSpells = "", blockSpells = "", show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
 	},
 	debuffs = {
 		iconSize = 27.6, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		onlyMine = false, dispellable = false, swipe = false,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, typeIcon = "none", typeIconSize = 10,
+		show = "all", timed = false, tooltips = "always", swipeReverse = true, refresh = false,
 	},
 	timer = {
 		format = "short", position = "below", font = "", size = 11, outline = "INHERIT", expiring = 5, x = 0, y = 0,
 		seconds = true, precise = 0, customColor = false, color = rgb("timerText"),
 	},
 	count = { shown = true, font = "", size = 10, outline = "OUTLINE", x = 0, y = 0, position = "TOPRIGHT", customColor = false, color = rgb("textEmphasis") },
-	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
+	accent = { source = "class", color = rgb("accentDefault") },
 }
-for _, name in ipairs(Model.GROUPS) do
-	for key, value in pairs(GROUP_DEFAULTS) do
-		Model.defaults[name][key] = value
-	end
-end
 local defaults = Model.defaults
 
 Model.GROWTH_OPTIONS = {
@@ -172,8 +166,6 @@ local ACCENT_SET = allowed(Model.ACCENT_SOURCES)
 local TRACKED_SET = allowed(Model.TRACKED_OPTIONS)
 local SHOW_SETS = { buffs = allowed(Model.SHOW_OPTIONS.buffs), debuffs = allowed(Model.SHOW_OPTIONS.debuffs) }
 local TOOLTIP_SET = allowed(Model.TOOLTIP_OPTIONS)
-local CORNER_SET = allowed(Model.CORNERS)
-local TYPE_ICON_SET = allowed(Model.TYPE_ICON_OPTIONS)
 
 local function number(value, default, limit, whole)
 	if type(value) ~= "number" or value ~= value then
@@ -234,7 +226,7 @@ function Model.Group(settings, name)
 	end
 	if base.dispel ~= nil then
 		g.dispel = boolean(s.dispel, base.dispel)
-		g.typeIcon = choice(s.typeIcon, TYPE_ICON_SET, base.typeIcon)
+		g.typeIcon = choice(s.typeIcon, Model.CORNER_SIGNS, base.typeIcon)
 		g.typeIconSize = number(s.typeIconSize, base.typeIconSize, LIMITS.typeIconSize)
 	end
 	return g
@@ -284,7 +276,7 @@ function Model.Count(settings)
 		size = number(s.size, base.size, LIMITS.countSize),
 		outline = choice(s.outline, FLAGS, base.outline),
 		x = number(s.x, base.x, LIMITS.offset), y = number(s.y, base.y, LIMITS.offset),
-		position = choice(s.position, CORNER_SET, base.position),
+		position = choice(s.position, Model.CORNER_SIGNS, base.position),
 		color = customColor(s),
 	}
 end
@@ -299,15 +291,11 @@ end
 
 local SECONDS_BAND, MINUTE_BAND, HOUR_BAND = 91, 5401, 129601
 
-local function Plain(timer)
+function Model.PlainTimer(timer)
 	return (timer.seconds and timer.precise == 0) or (timer.format ~= "short" and timer.format ~= "decimal")
 end
-Model.PlainTimer = Plain
 
 function Model.Breakpoints(timer, units, R, roundUp)
-	if Plain(timer) then
-		return nil
-	end
 	local whole = roundUp and R.Up or R.Down
 	local list, from = {}, 0
 	if timer.format == "decimal" then
@@ -315,10 +303,9 @@ function Model.Breakpoints(timer, units, R, roundUp)
 		from = Model.DECIMAL_BELOW
 	end
 	list[#list + 1] = { threshold = from, step = 1, rounding = whole, format = timer.seconds and units.s or "%d" }
-	local minutes = SECONDS_BAND
-	if timer.precise > 0 then
-		list[#list + 1] = { threshold = 60, format = "%d:%02d", components = { { div = 60, step = 1, rounding = R.Down }, { mod = 60, step = 1, rounding = whole } } }
-		minutes = max(minutes, timer.precise * 60)
+	local minutes = max(SECONDS_BAND, timer.precise * 60)
+	if timer.precise > 1 then
+		list[#list + 1] = { threshold = 60, step = 1, rounding = whole, format = "%d:%02d", components = { { div = 60, step = 1, rounding = R.Down }, { mod = 60, step = 1, rounding = R.Down } } }
 	end
 	for _, band in ipairs({ { minutes, 60, units.m }, { MINUTE_BAND, 3600, units.h }, { HOUR_BAND, 86400, units.d } }) do
 		list[#list + 1] = { threshold = band[1], format = band[3], components = { { div = band[2], step = 1, rounding = R.Up } } }
@@ -410,16 +397,6 @@ function Model.AccentColor(settings)
 	return K.Theme.Accent()
 end
 
-function Model.FormatTime(seconds, timerFormat, timer)
-	local text = KstyleUI.Widgets.Duration.Format(seconds, timerFormat)
-	if not timer or text == "" or Plain(timer) or (timerFormat == "decimal" and seconds < Model.DECIMAL_BELOW) then
-		return text
-	end
-	if timer.precise > 0 and seconds >= 60 and seconds < max(SECONDS_BAND, timer.precise * 60) then
-		return format("%d:%02d", floor(seconds / 60), floor(seconds % 60))
-	end
-	if not timer.seconds and seconds < SECONDS_BAND then
-		return tostring(floor(seconds))
-	end
-	return text
+function Model.FormatTime(seconds, timerFormat)
+	return KstyleUI.Widgets.Duration.Format(seconds, timerFormat)
 end

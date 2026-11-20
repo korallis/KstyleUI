@@ -16,6 +16,7 @@ local BADGE_LEVEL = 2
 local MIN_APPLICATIONS = 2
 local MAX_APPLICATIONS = 999
 local CANCEL_CLICK = "RightButtonUp"
+local BESIDE_ICON = { TOPRIGHT = { "TOPRIGHT", "TOPLEFT", -1 }, TOPLEFT = { "TOPLEFT", "TOPRIGHT", 1 }, BOTTOMRIGHT = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, BOTTOMLEFT = { "BOTTOMLEFT", "BOTTOMRIGHT", 1 }, CENTER = { "RIGHT", "LEFT", -1 } }
 
 local logged = {}
 
@@ -30,7 +31,7 @@ local function Engine(button)
 	return type(button.SetIcon) == "function"
 end
 
-function Button.StyleText(text, spec, colorName, role)
+function Button.StyleText(text, spec, colorName, role, custom)
 	local flags = ns.Model.Flags(spec.outline)
 	local path = spec.font ~= "" and spec.font or Tokens.Font(role or "number")
 	if not Widgets.ApplyFont(text, path, spec.size, flags) then
@@ -38,7 +39,7 @@ function Button.StyleText(text, spec, colorName, role)
 		Widgets.ApplyFont(text, path, spec.size, flags)
 		LogOnce("font:" .. tostring(spec.font), "the font " .. tostring(spec.font) .. " did not load; aura text uses " .. tostring(path))
 	end
-	local color = spec.color
+	local color = custom ~= false and spec.color
 	local ok
 	if color then
 		ok = pcall(text.SetTextColor, text, color.r, color.g, color.b, 1)
@@ -200,6 +201,11 @@ local function Extras(entry, ctx, inset)
 		entry.typeIcon:SetSize(size, size)
 		entry.typeIcon:ClearAllPoints()
 		Widgets.Point(entry.typeIcon, corner, skin, corner, signs[1] * inset, signs[2] * inset)
+		local beside = ctx.count.shown and ctx.count.position == corner and BESIDE_ICON[corner]
+		if beside then
+			entry.count:ClearAllPoints()
+			entry.count:SetPoint(beside[1], entry.typeIcon, beside[2], beside[3] * inset + ctx.count.x, ctx.count.y)
+		end
 	end
 	if group.refresh and not entry.cue then
 		local cue = entry.over:CreateTexture(nil, "OVERLAY")
@@ -240,7 +246,11 @@ function Button.Style(entry, ctx)
 	end
 	if entry.swipe then
 		Widgets.Cover(entry.swipe, icon)
-		entry.swipe:SetReverse(ctx.group.swipeReverse ~= false)
+		local reverse = ctx.group.swipeReverse ~= false
+		if entry.reverse ~= reverse then
+			entry.swipe:SetReverse(reverse)
+			entry.reverse = reverse
+		end
 		entry.swipe:SetShown(ctx.group.swipe)
 	end
 	PlaceTexts(entry, ctx, inset)

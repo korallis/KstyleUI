@@ -13,16 +13,17 @@ local build
 function Preview.Build(...)
 	if build then return build(...) end
 	local BUFFS = {
-		{ icon = 135987, seconds = 24 },
-		{ icon = 136078, seconds = 17, stacks = "3" },
-		{ icon = 135932, seconds = 12 },
-		{ icon = 135906, seconds = 480 },
-		{ icon = 132333, seconds = 180 },
-		{ icon = 135953, seconds = 2.4, refresh = true },
+		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true },
+		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true },
+		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true },
+		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true },
+		{ icon = 132333, seconds = 180, spell = 6673, cancelable = true },
+		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true },
+		{ icon = 135893, spell = 465 },
 	}
 	local DEBUFFS = {
-		{ icon = 136207, seconds = 18, kind = "MAGIC" },
-		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2" },
+		{ icon = 136207, seconds = 18, kind = "MAGIC", dispellable = true },
+		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2", dispellable = true },
 		{ icon = 135846, seconds = 4, kind = "NONE", refresh = true },
 	}
 	local TYPE_NAMES = { MAGIC = "Magic", CURSE = "Curse" }
@@ -63,7 +64,7 @@ function Preview.Build(...)
 		local function snap(units)
 			return Widgets.Snap(canvas, units)
 		end
-		local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge, iconZoom = Model.IconZoom(Settings()) }
+		local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge, iconZoom = Model.IconZoom(Settings()), rule = ns.Panel.RuleFormatter(timer) }
 		ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
 		ctx.spacing, ctx.rowSpacing = Model.Gaps(group, timer, snap)
 		return ctx
@@ -71,10 +72,14 @@ function Preview.Build(...)
 
 	local function StyleSample(entry, ctx)
 		Button.Style(entry, ctx)
-		entry.timer:SetText(Model.FormatTime(entry.spec.seconds, ctx.timer.format, ctx.timer))
+		local seconds = entry.spec.seconds
+		entry.timer:SetText(ctx.rule and seconds and ctx.rule:FormatNumber(seconds) or Model.FormatTime(seconds, ctx.timer.format))
 		entry.timer:SetShown(ctx.timer.format ~= "none")
-		if entry.swipe and ctx.group.swipe and type(entry.swipe.SetCooldown) == "function" and type(GetTime) == "function" then
-			entry.swipe:SetCooldown(GetTime(), entry.spec.seconds)
+		if seconds and seconds < ctx.timer.expiring then
+			entry.timer:SetTextColor(Tokens.Color("hostile"))
+		end
+		if seconds and entry.swipe and ctx.group.swipe and type(entry.swipe.SetCooldown) == "function" and type(GetTime) == "function" then
+			entry.swipe:SetCooldown(GetTime(), seconds)
 		end
 		entry.count:SetText(entry.spec.stacks or "")
 		entry.badge:SetShown(entry.spec.stacks ~= nil)
@@ -95,33 +100,44 @@ function Preview.Build(...)
 		end
 	end
 
-	local function PlaceGroup(box, entries, group, ctx)
+	local function Passes(spec, group, lists)
+		if (group.show ~= "all" and not spec[group.show]) or (group.timed and not spec.seconds) then
+			return false
+		end
+		local include, exclude = lists and lists.includeSpellIDs, lists and lists.excludeSpellIDs
+		return not (include and not include[spec.spell]) and not (exclude and exclude[spec.spell])
+	end
+
+	local function PlaceGroup(box, entries, group, ctx, lists)
 		local w, h = ctx.width, ctx.height
-		local shown = min(#entries, group.rows * group.columns)
+		local visible = {}
+		for _, entry in ipairs(entries) do
+			local pass = #visible < group.rows * group.columns and Passes(entry.spec, group, lists)
+			if pass then
+				visible[#visible + 1] = entry
+			end
+			entry.button:SetShown(pass)
+		end
+		local shown = #visible
 		local columns = max(1, min(group.columns, shown))
 		local rows = max(1, ceil(shown / group.columns))
 		local boxWidth = columns * w + (columns - 1) * ctx.spacing
 		local boxHeight = rows * h + (rows - 1) * ctx.rowSpacing
 		box:SetSize(max(1, boxWidth), max(1, boxHeight))
 		local _, horizontal, vertical = Model.Growth(group.growth)
-		for i, entry in ipairs(entries) do
+		for i, entry in ipairs(visible) do
 			local button = entry.button
-			if i > shown then
-				button:Hide()
-			else
-				button:Show()
-				local col, row = (i - 1) % group.columns, floor((i - 1) / group.columns)
-				local x = col * (w + ctx.spacing)
-				if horizontal == "Left" then
-					x = boxWidth - w - x
-				end
-				local top = row * (h + ctx.rowSpacing)
-				if vertical == "Up" then
-					top = boxHeight - h - top
-				end
-				button:ClearAllPoints()
-				button:SetPoint("TOPLEFT", box, "TOPLEFT", x, -top)
+			local col, row = (i - 1) % group.columns, floor((i - 1) / group.columns)
+			local x = col * (w + ctx.spacing)
+			if horizontal == "Left" then
+				x = boxWidth - w - x
 			end
+			local top = row * (h + ctx.rowSpacing)
+			if vertical == "Up" then
+				top = boxHeight - h - top
+			end
+			button:ClearAllPoints()
+			button:SetPoint("TOPLEFT", box, "TOPLEFT", x, -top)
 		end
 		return boxWidth, boxHeight
 	end
@@ -164,7 +180,7 @@ function Preview.Build(...)
 			for _, entry in ipairs(entries) do
 				StyleSample(entry, ctx)
 			end
-			local w, h = PlaceGroup(box, entries, group, ctx)
+			local w, h = PlaceGroup(box, entries, group, ctx, name == "buffs" and K.Options.AuraCandidates(settings.buffs or {}) or nil)
 			box:ClearAllPoints()
 			Widgets.Point(box, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
 			top = top + h + gap
