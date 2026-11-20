@@ -262,6 +262,49 @@ function Q.Game(env)
 		end
 	end
 	env.UIErrorsFrame = errors
+
+	-- Notices, aids and chores: env._instance = { inside, kind }, env._raid, env._group, env._dead[unit],
+	-- env._names[unit], env._unspent, env._durability[slot] = { now, max }, env._equipped[slot] = item id,
+	-- env._items[id].equipLoc, env._logging; MovieFrame:FinishMovie, LoggingCombat, PlaySound and
+	-- C_ChatInfo.SendChatMessage record their calls.
+	env._instance, env._dead, env._names, env._durability, env._equipped = { false, "none" }, {}, {}, {}, {}
+	env.IsInInstance = function() return env._instance[1], env._instance[2] end
+	env.IsInRaid = function() return env._raid == true end
+	env.IsInGroup = function() return env._group == true or env._raid == true end
+	env.UnitIsDeadOrGhost = function(unit) return env._dead[unit] == true end
+	env.UnitIsUnit = function(a, b) return a == b end
+	local name = env.UnitName
+	env.UnitName = function(unit) if env._names[unit] ~= nil then return env._names[unit] end return name(unit) end
+	env.SOUNDKIT = { RAID_WARNING = 8959, READY_CHECK = 8960 }
+	env.PlaySound = Recorder(env, "PlaySound")
+	env.C_ClassTalents = { HasUnspentTalentPoints = function() return env._unspent == true, 0, 0 end }
+	env.GetInventoryItemDurability = function(slot)
+		local entry = env._durability[slot]
+		if entry then return entry[1], entry[2] end
+	end
+	env.GetInventoryItemID = function(_, slot) return env._equipped[slot] end
+	local instant = env.C_Item.GetItemInfoInstant
+	env.C_Item.GetItemInfoInstant = function(id)
+		local item = env._items[id]
+		if item and item.equipLoc then return id, "Weapon", "Thrown", item.equipLoc, item.icon, 2, 16 end
+		return instant(id)
+	end
+	env.LoggingCombat = Recorder(env, "LoggingCombat", function(on)
+		if on ~= nil then env._logging = on end
+		return env._logging == true
+	end)
+	env.INSTANCE_RESET_SUCCESS = "%s has been reset."
+	env.C_ChatInfo = env.C_ChatInfo or {}
+	env.C_ChatInfo.SendChatMessage = Recorder(env, "SendChatMessage")
+	local status = env.CreateFrame("Frame", "ActionStatus", env.UIParent)
+	status._blizzard = true
+	status:RegisterEvent("SCREENSHOT_SUCCEEDED")
+	env.ActionStatus = status
+	local movie = env.CreateFrame("Frame", "MovieFrame", env.UIParent)
+	movie._blizzard = true
+	movie:Hide()
+	movie.FinishMovie = Recorder(env, "FinishMovie", function() movie:Hide() end)
+	env.MovieFrame = movie
 end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts: the widget_env options (saved, width,

@@ -65,7 +65,7 @@ local cinematicToken = 0
 
 local function SkipCinematic(_, cancellable)
 	cinematicToken = cinematicToken + 1
-	if not ns.Get("skipCinematics") or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
+	if not ns.Get("skipCinematics") or ns.Get("skipMode") == "movies" or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
 	local held = IsShiftKeyDown()
 	if ns.IsSecret(held) or held ~= false then return end
 	local delay, token = ns.Get("skipDelay"), cinematicToken
@@ -116,7 +116,7 @@ ns.AddPart({
 	Start = function() Sync(); Listen() end,
 	Stop = function() cinematicToken = cinematicToken + 1; Sync() end,
 	Setting = function(key)
-		if key == nil or key == "skipCinematics" or key == "skipDelay" then cinematicToken = cinematicToken + 1 end
+		if key == nil or key == "skipCinematics" or key == "skipDelay" or key == "skipMode" then cinematicToken = cinematicToken + 1 end
 		if key == nil or key == "autoDelete" or key == "autoResurrect" then Listen() end
 		if key == nil or key == "quietErrors" then
 			Sync()
