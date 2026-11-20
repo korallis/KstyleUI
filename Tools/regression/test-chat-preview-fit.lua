@@ -1,5 +1,24 @@
 -- test-chat-preview-fit.lua: the chat page's live preview keeps its German and French tabs on its card at the default UI scale, where "BEUTE" and "BUTIN" once spilled past the glass.
 local Guard = dofile("Tools/render/guard.lua")
+do
+	local C = dofile("Tools/regression/chat_env.lua")
+	local env, K = C.New()
+	C.Enable(env, K)
+	env.RunTimers()
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(180, 240)
+	local preview = K.Options.Preview("Chat")(parent)
+	for i, width in ipairs({ 40, 120, 40 }) do
+		preview.tabs[i].GetUnboundedStringWidth = function() return width end
+	end
+	preview:Refresh()
+	assert(preview.tabs[1]:IsShown() and not preview.tabs[2]:IsShown() and not preview.tabs[3]:IsShown(), "a tab that cannot fit hides the tabs after it, as the live dock keeps its order")
+	assert(preview.more and preview.more:IsShown(), "hidden tabs show the overflow mark, as the live dock does")
+	parent:SetSize(400, 240)
+	preview:Refresh()
+	assert(preview.tabs[3]:IsShown() and not preview.more:IsShown(), "tabs that fit show no overflow mark")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
 local saved = { rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_LOCALE"), rawget(_G, "RENDER_SCENE_LIB") }
 local getenv = os.getenv
 rawset(_G, "RENDER_SCENE_LIB", true)

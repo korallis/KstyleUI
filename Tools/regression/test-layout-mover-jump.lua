@@ -48,5 +48,7 @@ assert(top.key == "edit", "the page opens at the frame picker above Target of Ta
 top = Open("integrations.timerLane", "Elements")
 assert(K.Options.Read("UnitFrames", "edit") == "targettarget", "another module's mover leaves the frame picker alone")
 assert(top.kind == "header" and top.label == K.Layout.Element("integrations.timerLane").label, "an element without a picker opens at its own section, got " .. tostring(top.label))
+top = Open("unitframes.castbar.player", "UnitFrames")
+assert(K.Options.Read("UnitFrames", "edit") == "player" and top.key == "player.castbar", "the Player cast bar mover opens at Player's cast bar settings, not the frame picker, got " .. tostring(top.label))
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("layout mover jump ok")

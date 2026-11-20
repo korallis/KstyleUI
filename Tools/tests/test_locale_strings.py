@@ -137,6 +137,12 @@ class ProblemsTest(unittest.TestCase):
         self.translate("deDE", {"Tabs use the caps face.": "Reiter nutzen die Titelschrift.", "World of Warcraft": "World of Warcraft"})
         self.assertFalse(any("English sentence" in p for p in strings.problems(self.root)))
 
+    def test_a_sentence_with_a_one_letter_word_and_a_format_token_fails(self):
+        self.lua('local L = {}\nprint(L["A profile named %s already exists."])\n')
+        self.translate("deDE", {"A profile named %s already exists.": "A profile named %s already exists."})
+        found = strings.problems(self.root)
+        self.assertTrue(any("is the English sentence itself" in p for p in found), found)
+
     def test_a_glyph_the_faces_lack_fails(self):
         self.translate("deDE", {"Hello": "Hallo 小"})
         found = strings.problems(self.root)
