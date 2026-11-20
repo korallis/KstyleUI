@@ -302,7 +302,6 @@ local function ShownGroups()
 	end
 	return out
 end
-Headers.ShownGroups = ShownGroups
 
 local function ShownCount(members, groups)
 	local shown = ShownGroups()
