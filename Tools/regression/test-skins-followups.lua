@@ -42,6 +42,15 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		R.ns.QuestCard.Render()
 		assert(R.ns.Quests.Card():GetHeight() == natural, "Keep the quest card's natural height separate from its aligned height")
 	end)
+	Check("base quest card " .. screen.width, function()
+		local R = Boot(screen, nil, nil, true)
+		R.K.Options.Write("Skins", "restedXP.compose", false)
+		R.settle()
+		local before = R.ns.Quests.Card():GetHeight()
+		for i = #R.quests, 2, -1 do R.log.Untrack(R.quests[i].id) end
+		R.settle()
+		assert(R.ns.Quests.Card():GetHeight() < before, "Shrink the base quest card when tracked content shrinks")
+	end)
 	Check("Questie first choice " .. screen.width, function()
 		local R = Boot(screen, nil, nil, true, Questie.Install)
 		assert(R.questie.calls == 0 and R.env.Questie.db.profile.trackerEnabled, "Seed the first tracker choice from Questie's current state; never switch it off automatically")
@@ -56,17 +65,62 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		R.settle()
 		assert(not parts.backdrop:IsShown(), "Make Questie's card toggleable without disabling its tracker")
 	end)
+	Check("Questie card " .. screen.width, function()
+		local R = Boot(screen, nil, nil, true, function(env, log)
+			env.KstyleUI.Store.Module("Integrations").questTracker = "questie"
+			return Questie.Install(env, log)
+		end)
+		local parts = R.K.Skin.Parts(R.questie.frame)
+		assert(parts and parts.backdrop, "Card Questie's own tracker using the shared window builder")
+		local header = R.env.Questie_HeaderFrame
+		assert(header.trackedQuests.label:GetAlpha() == 0, "Replace Questie's native header with the shared SectionCap")
+		local cap
+		for _, child in ipairs({ header:GetChildren() }) do if child.label and child.gem and child.rule then cap = child end end
+		assert(cap and cap:IsShown(), "Use the shared SectionCap for Questie's own header")
+	end)
 end
 
-Check("shared v2 heading", function()
+Check("existing tracker choices", function()
+	for _, choice in ipairs({ "kstyleui", "questie" }) do
+		local R = Boot({ width = 1920, height = 1080 }, nil, nil, true, function(env, log)
+			env.KstyleUI.Store.Module("Integrations").questTracker = choice
+			return Questie.Install(env, log)
+		end)
+		assert(R.K.Store.Module("Integrations").questTracker == choice, "Keep an existing explicit tracker choice on first Questie detection")
+		assert(R.env.Questie.db.profile.trackerEnabled == (choice == "questie"), "Apply only the player's explicit tracker choice")
+	end
+end)
+
+for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, height = 1440 }, { width = 5120, height = 1440 }, { width = 3840, height = 2160 } }) do
+Check("shared menu heading " .. screen.width, function()
+	local E = dofile("Tools/regression/native_menu_env.lua")
+	local env, _, _, nm = E.New({ material = "Slate", setup = function(e)
+		e.GetPhysicalScreenSize = function() return screen.width, screen.height end
+		e.UIParent:SetSize(768 * screen.width / screen.height, 768)
+	end })
+	local menu = E.Quest(env, nm)
+	local row = menu.rows[1]
+	local cap
+	for _, child in ipairs({ row:GetChildren() }) do if child.label and child.gem and child.rule then cap = child end end
+	assert(cap and cap:IsVisible(), "Use the shared SectionCap for native menu headers")
+	nm.Reinitialize(menu)
+	assert(cap:IsVisible(), "Keep the shared menu heading after native menu refresh")
+	local text = row.fontString
+	nm.Close(menu)
+	assert(not cap:IsShown() and text:GetAlpha() == 1, "Release shared menu headers before pooled native rows are reused")
+end)
+
+Check("shared v2 heading " .. screen.width, function()
 	local Fake = dofile("Tools/regression/restedxp_fake.lua")
 	local rxp
-	local env, K, ns = S.New({ setup = function(e) rxp = Fake.Install(e, { v2 = true }) end })
+	local env, K, ns = S.New({ width = screen.width, height = screen.height, setup = function(e) rxp = Fake.Install(e, { v2 = true }) end })
 	K.Modules.Enable("Skins")
 	env.RunTimers()
 	local title = rxp.v2.state.guideWindow.title
 	assert(ns.Parts.HeadingOf(ns.RestedXP.Chrome.Caption(title)), "Use the shared window heading for RestedXP's Speedrun Guide header")
 end)
+
+end
 
 assert(#failures == 0, table.concat(failures, "\n"))
 print("test-skins-followups: ok")

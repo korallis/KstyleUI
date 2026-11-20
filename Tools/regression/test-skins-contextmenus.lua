@@ -178,7 +178,7 @@ local function CheckStyled(name, menu, env, K, ns, nm, material)
 	end
 	assert(textures > 9 and fills == 9, what .. ": a nine-piece fill and a rim, got " .. fills .. " of " .. textures)
 	assert(menu.frame._scripts.OnSizeChanged ~= nil, what .. ": the chrome follows the menu's size through a script")
-	local body, title = ns.Style.Font("body"), ns.Style.Font("title")
+	local body, title = ns.Style.Font("body"), ns.Style.Font("caps")
 	local seen = 0
 	for index, row in ipairs(menu.rows) do
 		local description = menu.elements[row]
@@ -187,7 +187,7 @@ local function CheckStyled(name, menu, env, K, ns, nm, material)
 			assert(row.divider._state.Texture[1] == "Interface\\Common\\UI-TooltipDivider-Transparent", what .. ": a divider keeps Blizzard's texture")
 		else
 			seen = seen + 1
-			local role, token = highlight and "body" or "title", highlight and "text" or "textEmphasis"
+			local role, token = highlight and "body" or "caps", highlight and "text" or "capsGold"
 			local font = env["KstyleUIContextMenu" .. role]
 			assert(text._state.FontObject[1] == font and font:GetFont() == (highlight and body or title), what .. ": row " .. index .. " wears the " .. role .. " face")
 			local r, g, b = K.Tokens.Color(token)
@@ -439,7 +439,7 @@ do
 			else
 				assert(row.highlight._state.ColorTexture ~= nil and row.highlight._state.BlendMode[1] == "BLEND", what .. ": the highlight is still styled")
 			end
-			assert(#Regions(menu) > 2 and menu.rows[1].fontString._state.FontObject[1] == env.KstyleUIContextMenutitle, what .. ": the rest of the menu is styled")
+			assert(#Regions(menu) > 2 and menu.rows[1].fontString._state.FontObject[1] == env.KstyleUIContextMenucaps, what .. ": the rest of the menu is styled")
 			nm.Close(menu)
 		end
 	end

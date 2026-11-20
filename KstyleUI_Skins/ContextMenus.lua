@@ -4,6 +4,8 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local active, fonts = {}, {}
+local titleCaps = setmetatable({}, { __mode = "k" })
+local menuCaps = {}
 local enabled = false
 
 local function IsSecret(value)
@@ -59,16 +61,31 @@ local function Row(frame, description, menu)
 	if not active[menu] or not Wanted() or not Writable(frame) then
 		return
 	end
+	if titleCaps[frame] then titleCaps[frame]:Hide() end
 	local text, highlight = frame.fontString, frame.highlight
 	if text and Writable(text) and type(text.SetFontObject) == "function" and type(text.SetTextToFit) == "function"
 		and MenuUtil and type(MenuUtil.GetElementText) == "function" then
-		local role = highlight and "body" or "title"
+		local role = highlight and "body" or "caps"
 		local label = MenuUtil.GetElementText(description)
 		local font = not IsSecret(label) and type(label) == "string" and Font(role, text)
 		if font then
 			text:SetFontObject(font)
-			text:SetTextToFit(label)
-			text:SetTextColor(Tokens.Color(highlight and "text" or "textEmphasis"))
+			text:SetTextToFit(highlight and label or K.Locale.Upper(label))
+			text:SetTextColor(Tokens.Color(highlight and "text" or "capsGold"))
+			if not highlight then
+				local cap = titleCaps[frame]
+				if not cap then
+					cap = ns.Lumen.SectionCap(frame)
+					cap:SetAllPoints(frame)
+					titleCaps[frame] = cap
+				end
+				text:SetAlpha(0)
+				cap:SetText(label)
+				text:SetWidth(math.max(text:GetWidth(), Widgets.TextWidth(cap.label, 0)) + Widgets.Snap(cap, Widgets.SECTION_CAP_CHROME * ns.Style.Setting("text", "size") / Widgets.ScaleFactor(cap)))
+				cap:Show()
+				menuCaps[menu] = menuCaps[menu] or {}
+				menuCaps[menu][text] = cap
+			end
 			if type(text.GetStringHeight) == "function" then
 				local needed, height = text:GetStringHeight(), text:GetHeight()
 				if not IsSecret(needed) and not IsSecret(height) and type(needed) == "number" and type(height) == "number" and needed > height then
@@ -154,6 +171,11 @@ local function Modify(owner, root)
 	end
 	root:AddMenuAcquiredCallback(Acquire)
 	root:AddMenuReleasedCallback(function(menu)
+		for text, cap in pairs(menuCaps[menu] or {}) do
+			cap:Hide()
+			text:SetAlpha(1)
+		end
+		menuCaps[menu] = nil
 		if active[menu] then
 			active[menu]:Release()
 		end

@@ -26,6 +26,12 @@ return Common.Run(function()
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 	end
+	if os.getenv("RENDER_STORY_SHRINK") == "1" then
+		for i = #R.quests, 2, -1 do R.log.Untrack(R.quests[i].id) end
+		R.rxp.fake.guide({ { index = 12, elements = { { text = "Talk to Joshua", textOnly = true } } } })
+		R.rxp.SetStep()
+		R.settle()
+	end
 	if os.getenv("RENDER_QUEST_PARTY") then
 		local Party = dofile("Tools/regression/party_quests_fake.lua")
 		local p = Party.Install(R.env, R.log)

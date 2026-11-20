@@ -185,7 +185,7 @@ local function QuestieProfile()
 end
 
 local function UseQuestie()
-	return K.Store.Module("Integrations").questTracker == "questie"
+	return K.Setup.Integrations.QuestTracker() == "questie"
 end
 
 function QuestieActive()

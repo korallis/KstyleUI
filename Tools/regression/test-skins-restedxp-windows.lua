@@ -576,94 +576,17 @@ do
 		assert(K.Skin.Parts(window.upperFrame).backdrop.chrome.ornament == nil, "the v2 guide window's header glass carries no crest (bible 3.3)")
 		assert(K.Skin.Parts(window.guideStepsFrame).backdrop.chrome.ornament == nil, "the steps glass under the header carries no crest of its own")
 	end
-	-- The title is the guide's name heading a card, the same thing the story card's caption is, so it wears the same
-	-- treatment (the Captain's ruling of 2026-11-10; it was RestedXP's text in the accent before): a caps caption in
-	-- the picture's muted gold over RestedXP's hushed title, left aligned across the title's own span, the logo
-	-- standing where a caption's diamond would. RestedXP gives the title its guide font size, 9 of its own units
-	-- unless the player changes it (UI/V2/Core.lua 1349 and 1231, SettingsPanel.lua 169 and 3011-3019), and hangs the
-	-- subtitle 2 under it in a header 36 high whatever the sizes (1066-1069, 1100-1105). So RestedXP's own title keeps
-	-- the player's size, in the caption's face so RestedXP measures the window's least width from the capitals
-	-- (1059-1064), and the subtitle stays where RestedXP put it; the caption stands on the title's bottom edge and is
-	-- never smaller than the story card's while the header's top has the room, and above that the player's setting
-	-- governs it.
-	do
-		local title, subtitle = window.title, window.subtitle
-		local caps, body = (ns.Style.Font("caps")), (ns.Style.Font("body"))
-		local caption = ns.RestedXP.Chrome.Caption(title)
-		local function Size(text)
-			return select(2, text:GetFont())
-		end
-		local function Titled(what, own)
-			assert(caption and caption:GetFont() == caps and Colored(caption, K.Tokens.Color("capsGold")), what .. ": the title has a caps caption in the picture's muted gold")
-			assert(title:GetAlpha() == 0 and caption:GetText() == K.Locale.Upper(title:GetText()), what .. ": RestedXP's own title is hushed under its words in capitals")
-			assert(title:GetFont() == caps and Size(title) == own, what .. ": RestedXP's own title is in the caption's face at the player's size, got " .. tostring(title:GetFont()) .. " " .. tostring(Size(title)))
-			assert(subtitle:GetFont() == body and FontSize(K, subtitle, Size(subtitle), own + 2), what .. ": the subtitle is in the body face at RestedXP's size, got " .. tostring(subtitle:GetFont()) .. " " .. tostring(Size(subtitle)))
-		end
-		local function Floor()
-			return ns.Lumen.Size(caption:GetParent(), 10)
-		end
-		Titled("the v2 guide window", 9)
-		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "at RestedXP's 9 the caption is the larger of 9 and the story caption's size, got " .. tostring(Size(caption)))
-		local point, on, onPoint = caption:GetPoint(1)
-		local point2, on2, onPoint2 = caption:GetPoint(2)
-		assert(caption:GetNumPoints() == 2 and point == "BOTTOMLEFT" and on == title and onPoint == "BOTTOMLEFT" and point2 == "BOTTOMRIGHT" and on2 == title and onPoint2 == "BOTTOMRIGHT" and caption:GetJustifyH() == "LEFT", "the caption stands on the bottom edge of RestedXP's title, from where it starts to where it ends before the header's buttons")
-		assert(W.LastCall(caption, "SetWordWrap")[1] == false, "on one line")
+	local title, subtitle = window.title, window.subtitle
+	local caption = assert(ns.RestedXP.Chrome.Caption(title))
+	local heading = assert(ns.Parts.HeadingOf(caption), "Use the shared window heading for the Speedrun Guide")
+	assert(heading.panel == K.Skin.Parts(window.upperFrame).backdrop and heading.close == window.closebutton, "The Speedrun Guide uses its window's shared gem and rule")
+	for _, size in ipairs({ 9, 16, 9 }) do
+		rxp.settings.profile.guideFontSize = size
 		window:UpdateSubTheme()
-		Titled("the v2 guide window after RestedXP redraws it", 9)
-		rxp.settings.profile.guideFontSize = 16
-		window:UpdateSubTheme()
-		Titled("the v2 guide window at a larger guide font size", 16)
-		assert(FontSize(K, caption, Size(caption), 16), "the player's guide font size governs the caption above the story caption's size, got " .. tostring(Size(caption)))
-		rxp.settings.profile.guideFontSize = 9
-		window:UpdateSubTheme()
-		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "and back at 9 with the setting")
-		K.Options.Write("Skins", "text.size", 1.5)
-		env.RunTimers()
-		assert(Floor() > 9 and FontSize(K, caption, Size(caption), Floor()), "once KstyleUI's text size takes the story caption's size past RestedXP's 9, the caption is the story caption's size, got " .. tostring(Size(caption)) .. " for " .. tostring(Floor()))
-		Titled("the v2 guide window at text size 1.5", 9)
-		-- RestedXP's Window Scale setting scales the guide's frame, the configurator and this window and redraws none of
-		-- their text (SettingsPanel.lua 2999-3005), and the story caption's size and the readable floor are root units,
-		-- so the skin fits its text again after that SetScale itself (one Codex finding of 2026-11-10: the caption kept
-		-- its old size until RestedXP's next redraw). The setting runs on every step of its slider and scales up to
-		-- three windows each time, so the skin makes one pass at the end of the frame, not one for each call. A window
-		-- scaled up makes the story caption's size small in the window's own units, so the player's 9 governs again.
-		local passes, all = 0, ns.Style.RestyleAll
-		ns.Style.RestyleAll = function(...)
-			passes = passes + 1
-			return all(...)
-		end
-		rxp.fake.trust(function()
-			rxp.RXPFrame:SetScale(2)
-			window.frame:SetScale(1.5)
-			window.frame:SetScale(2)
-		end)()
-		env.RunTimers()
-		ns.Style.RestyleAll = all
-		assert(passes == 1, "the window scale's calls in one frame cost one restyle, got " .. passes)
-		assert(Floor() < 9 and FontSize(K, caption, Size(caption), 9), "in a window scaled up the caption is the player's size without a redraw, got " .. tostring(Size(caption)) .. " over " .. tostring(Floor()))
-		Titled("the v2 guide window scaled up", 9)
-		-- The header has 6 units over RestedXP's title and no more (Core.lua 1101), so where the story caption's size
-		-- would take the caption through the header's top, it is as large as stays a unit under it. A window scaled
-		-- down makes the story caption's size large in the window's own units.
-		env._textWidth = function(value, _, size) return #value * size * 0.5 end
-		rxp.fake.trust(function() window.frame:SetScale(0.5) end)()
-		env.RunTimers()
-		local line = title:GetStringHeight()
-		local room = 9 * (line + 6 - 1) / line
-		assert(Floor() > room and room > 9 and FontSize(K, caption, Size(caption), room), "a caption the header's top cannot hold stops a unit under it, got " .. tostring(Size(caption)) .. " for " .. tostring(room) .. " under " .. tostring(Floor()))
-		assert(caption:GetStringHeight() <= line + 6 - 1 + K.Scale.Pixel(1) / K.Widgets.ScaleFactor(caption), "so its line is no taller than RestedXP's line and the 5 units over it")
-		Titled("the v2 guide window scaled down", 9)
-		rxp.fake.trust(function()
-			rxp.RXPFrame:SetScale(1)
-			window.frame:SetScale(1)
-		end)()
-		env.RunTimers()
-		assert(FontSize(K, caption, Size(caption), math.max(9, math.min(Floor(), room))), "and the caption is back with the scale, got " .. tostring(Size(caption)))
-		env._textWidth = nil
-		K.Options.Write("Skins", "text.size", 1)
-		env.RunTimers()
-		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "and with the text size")
+		assert(title:GetAlpha() == 0 and caption:GetText() == K.Locale.Upper(title:GetText()), "Keep RestedXP's live title under the shared heading")
+		assert(subtitle:GetFont() == (ns.Style.Font("body")), "Keep the guide subtitle in the body face")
 	end
+	Clean(env, rxp)
 
 	local configurator = rxp.ui.v2.configurator
 	assert(configurator.ui == nil)

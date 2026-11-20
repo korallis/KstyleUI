@@ -86,7 +86,14 @@ function Fake.Install(env, log, enabled, started)
 		text:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
 		text:SetText(value)
 	end
-	Text("Questie Tracker: 8/40", 0, 13)
+	local header = env.CreateFrame("Button", "Questie_HeaderFrame", frame)
+	header:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -10)
+	header:SetSize(290, 13)
+	local label = header:CreateFontString(nil, "ARTWORK")
+	label:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
+	label:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
+	label:SetText("Questie Tracker: 8/40")
+	header.trackedQuests = { label = label }
 	for i, quest in ipairs(log.quests) do
 		Text(i == 1 and "Cooking" or i == 3 and "Riverglades" or "", -i * 38 + 10, 12)
 		Text("[" .. quest.level .. "] " .. quest.title, -i * 38 - 3, 12)

@@ -8,7 +8,9 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 	local R = Boot(screen, nil, nil, true, Questie.Install)
 	local env, K, ns, other = R.env, R.K, R.ns, R.questie
 	assert(not (other.frame:IsVisible() and ns.Quests.Card():IsVisible()), "Questie and the quest card draw on top of each other; use Questie's tracker option to select one")
-	assert(not env.Questie.db.profile.trackerEnabled and other.calls == 1, "the default choice turns off Questie's tracker through its own API exactly once")
+	assert(env.Questie.db.profile.trackerEnabled and other.calls == 0, "Seed the first choice from Questie without switching its tracker off")
+	K.Options.Write("Integrations", "questTracker", "kstyleui")
+	R.settle()
 	assert(ns.QuestData.Count() == #R.quests, "the card keeps Questie-only watches when handing tracking back to the native watch list")
 	other.compat.HideWatchFrame()
 	R.settle()
@@ -72,7 +74,9 @@ do
 	other.started = true
 	other:Update()
 	R.settle()
-	assert(other.calls == 1 and not other.frame:IsVisible() and R.ns.Quests.Card():IsVisible(), "Questie's first asynchronous update hands tracking to the card")
+	assert(other.calls == 0 and other.frame:IsVisible() and not R.ns.Quests.Card():IsVisible(), "Late Questie initialization keeps its current tracker on")
+	R.K.Options.Write("Integrations", "questTracker", "kstyleui")
+	R.settle()
 	R.K.Options.Write("Skins", "quests.enabled", false)
 	other:Toggle()
 	R.settle()

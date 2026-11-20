@@ -494,6 +494,8 @@ local function PaintCaption(text, entry)
 			PaintCaption(text, entry)
 		end
 	end
+	local heading = Parts.HeadingOf(caption)
+	if heading then heading:Restyle() end
 end
 
 local function HangsLeft(title)
@@ -527,9 +529,6 @@ local function CaptionFor(text, title, sized, heading)
 		caption:SetPoint("CENTER", text, "CENTER", 0, 0)
 	end
 	caption:SetWordWrap(false)
-	if heading and heading.panel then
-		Parts.Heading(heading.panel, caption, { row = text, close = heading.close })
-	end
 	captions[text] = entry
 	HushText(text)
 	Worded(text, K.Locale.Upper)
@@ -553,6 +552,9 @@ local function CaptionFor(text, title, sized, heading)
 		end
 	end)
 	word(text:GetText())
+	if heading and heading.panel then
+		Parts.Heading(heading.panel, caption, { row = text, close = heading.close })
+	end
 end
 
 function Chrome.Caption(text)
@@ -1181,7 +1183,7 @@ local function GuideWindowV2(rxp)
 	CloseButton(window.closebutton)
 	local scroll = IsTable(window.guideSteps) and window.guideSteps.scroll
 	ScrollBar(IsTable(scroll) and scroll.scrollbar or nil)
-	CaptionFor(window.title, nil, true)
+	CaptionFor(window.title, nil, true, { panel = upper, close = window.closebutton })
 	Readable(window.subtitle, "body", 0)
 	Hook(window.frame, "SetScale", "guideWindow.frame.SetScale", Rescaled)
 end

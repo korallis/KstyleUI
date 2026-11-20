@@ -4,13 +4,19 @@ local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local Questie = dofile("Tools/regression/questie_fake.lua")
 
 return Common.Run(function()
-	local R = Boot(Common.SCREEN, nil, nil, true, os.getenv("RENDER_QUESTIE") ~= "absent" and Questie.Install or nil)
+	local choice = os.getenv("RENDER_QUESTIE")
+	local R = Boot(Common.SCREEN, nil, nil, true, choice ~= "absent" and function(env, log)
+		if choice == "plain" then env.KstyleUI.Store.Module("Skins").questie = { enabled = false } end
+		return Questie.Install(env, log)
+	end or nil)
 	R.rxp.activeItemFrame.buttonList[1].icon:SetTexture(132794)
 	R.rxp.targeting.activeTargetFrame.enemyTargetButtons[1].icon:SetTexture(136188)
 	if R.questie then
-		local card, frame = R.ns.Quests.Card(), R.questie.frame
+		R.K.Options.Write("Integrations", "questTracker", "questie")
+		R.settle()
+		local card, frame = R.ns.RestedXP.Chrome.Path(R.rxp.RXPFrame).card, R.questie.frame
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", card, "TOPLEFT", 0, 0)
+		frame:SetPoint("TOPRIGHT", card, "TOPLEFT", -32, 0)
 	end
 	local scene = Common.Scene.Build(R.env, { iconDirs = Common.IconDirs() })
 	local err = Common.Errors(R.env, R.K)

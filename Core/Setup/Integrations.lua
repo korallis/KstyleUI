@@ -81,11 +81,23 @@ local LANES = {
 	{ key = "weakAuras", label = L["WeakAuras anchor 1"], name = "KstyleUI_WeakAuras1", width = 180, height = 48, x = -300, y = 180 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },
 }
-Store.RegisterDefaults("Integrations", { notices = true, leatrix = {}, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "kstyleui" })
+Store.RegisterDefaults("Integrations", { notices = true, leatrix = {}, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "" })
+function Integration.QuestTracker()
+	local config = Store.Module("Integrations")
+	local addon = rawget(_G, "Questie")
+	local profile = type(addon) == "table" and type(addon.db) == "table" and addon.db.profile
+	local enabled
+	if type(profile) == "table" then enabled = profile.trackerEnabled end
+	if config.questTracker == "" and not Widgets.IsSecret(enabled) and type(enabled) == "boolean" then
+		config.questTracker = enabled and "questie" or "kstyleui"
+	end
+	return config.questTracker == "questie" and "questie" or "kstyleui"
+end
 K.Options.Register("Integrations", function() return {
 	{ type = "header", label = L["Existing addons"] },
 	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },
 	{ type = "dropdown", key = "questTracker", label = L["Quest tracker"], help = L["Keep Questie's map pins and choose one tracker. Enabling Questie's tracker may reload the UI."], showWhen = function() return #Integration.Detected("Skins") > 0 end, options = {
+		{ value = "", label = L["Automatic"] },
 		{ value = "kstyleui", label = L["Use KstyleUI's quest card"] },
 		{ value = "questie", label = L["Use Questie's quest tracker"] },
 	} },
@@ -96,6 +108,7 @@ K.Options.Register("Integrations", function() return {
 
 local function Apply()
 	if not Store.IsLoaded() then return end
+	Integration.QuestTracker()
 	K.Combat.Queue(function()
 		local config = Store.Module("Integrations")
 		for i, spec in ipairs(LANES) do
@@ -116,6 +129,7 @@ end
 K.Callbacks.Register("SettingChanged", "Integrations", function(_, module) if module == "Integrations" then Apply() end end)
 K.Callbacks.Register("ProfileChanged", "Integrations", Apply)
 K.Events.Register("Integrations", "PLAYER_LOGIN", Apply)
+K.Events.Register("Integrations", "ADDON_LOADED", function(_, name) if name == "Questie" then Integration.QuestTracker() end end)
 
 function Integration.Preview(parent)
 	local frame = CreateFrame("Frame", nil, parent)

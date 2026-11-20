@@ -22,6 +22,7 @@ local roles = setmetatable({}, WEAK)
 local sizes = setmetatable({}, WEAK)
 local bars = setmetatable({}, WEAK)
 local tracked = setmetatable({}, WEAK)
+local trackOrder, trackCount = setmetatable({}, { __mode = "v" }), 0
 local painting = false
 
 local function IsSecret(value)
@@ -319,7 +320,11 @@ function Style.StatusBar(bar, opts)
 end
 
 function Style.Track(object)
-	tracked[object] = true
+	if not tracked[object] then
+		tracked[object] = true
+		trackCount = trackCount + 1
+		trackOrder[trackCount] = object
+	end
 	return object
 end
 
@@ -516,8 +521,9 @@ function Style.RestyleAll()
 	for bar in pairs(bars) do
 		K.Call(Style.StatusBar, bar)
 	end
-	for object in pairs(tracked) do
-		K.Call(object.Restyle, object)
+	for i = 1, trackCount do
+		local object = trackOrder[i]
+		if object then K.Call(object.Restyle, object) end
 	end
 end
 

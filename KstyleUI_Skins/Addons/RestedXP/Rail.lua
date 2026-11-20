@@ -367,7 +367,7 @@ function Rail.CardHeight(path, resize)
 	local f = path.frame
 	local scale = Widgets.ScaleFactor(f)
 	local steps = f.CurrentStepFrame:IsShown() and Height(f.CurrentStepFrame) or nil
-	return math.max(Height(path.card), Shape(f, path, steps).span, Height(quest) * Widgets.ScaleFactor(quest) / scale)
+	return math.max(Shape(f, path, steps).span, ns.QuestCard.NaturalHeight() * Widgets.ScaleFactor(quest) / scale)
 end
 
 local function More(path)
