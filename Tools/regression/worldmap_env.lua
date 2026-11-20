@@ -29,20 +29,21 @@ function M.Setup(env, map)
 	local link = Place("Road to the Barrens", 0.14, 0.65)
 	state.dungeon, state.flight, state.link = dungeon, flight, link
 	state.pins = {}
+	local function NativeClick(self, button)
+		state.nativeClicks = (state.nativeClicks or 0) + 1
+		if button == "LeftButton" then
+			state.nativeTracked = state.nativeTracked ~= self and self or nil
+			state.tracked = false
+		end
+	end
+	local function NativeTooltip() state.tooltip = {} end
 	for _, pair in ipairs({ { "DungeonEntrancePinTemplate", dungeon }, { "FlightPointPinTemplate", flight }, { "MapLinkPinTemplate", link } }) do
 		local pin = env.CreateFrame("Button", nil, map:GetCanvas())
 		pin:SetSize(24, 24)
 		pin:SetPoint("CENTER", map:GetCanvas(), "TOPLEFT", pair[2].position:GetXY())
 		function pin:GetPoiInfo() return self._info end
 		pin._info = pair[2]
-		function pin:OnMouseClickAction(button)
-			state.nativeClicks = (state.nativeClicks or 0) + 1
-			if button == "LeftButton" then
-				state.nativeTracked = state.nativeTracked ~= self and self or nil
-				state.tracked = false
-			end
-		end
-		function pin:CheckShowTooltip() state.tooltip = {} end
+		pin.OnMouseClickAction, pin.CheckShowTooltip = NativeClick, NativeTooltip
 		state.pins[pair[1]] = pin
 	end
 	function map:EnumeratePinsByTemplate(template)
@@ -51,9 +52,8 @@ function M.Setup(env, map)
 	end
 	function map:AcquirePin(template, info)
 		local pin = env.CreateFrame("Button", nil, map:GetCanvas())
-		function pin:GetPoiInfo() return info end
-		pin.OnMouseClickAction = state.pins[template].OnMouseClickAction
-		pin.CheckShowTooltip = state.pins[template].CheckShowTooltip
+		pin.GetPoiInfo = function() return info end
+		pin.OnMouseClickAction, pin.CheckShowTooltip = NativeClick, NativeTooltip
 		state.pins[template] = pin
 		return pin
 	end

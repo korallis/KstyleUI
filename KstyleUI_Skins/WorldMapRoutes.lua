@@ -10,6 +10,7 @@ ns.WorldMapRoutes = Routes
 local map, panel, search, card, title, distance, note, clear
 local active, previousCVar, previousWaypoint, previousTrack, ownsWaypoint
 local target, canvas, elapsed = nil, nil, 0
+local routeX, routeY, routeMap, routeTarget
 local results, dots, zones = {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
 local CVAR = "showDungeonEntrancesOnMap"
@@ -65,24 +66,32 @@ function Routes.DungeonLevels(info)
 	return Routes.Levels(area)
 end
 
-local function Add(list, kind, id, name, x, y, info)
+local function Add(list, kind, id, name, x, y)
 	if not Number(id) or not Plain(name, "string") or name == "" then return end
 	x, y = Number(x), Number(y)
 	if not x or not y or x < 0 or x > 1 or y < 0 or y > 1 then return end
-	list[#list + 1] = { kind = kind, mapID = id, name = name, x = x, y = y, info = info }
+	list[#list + 1] = { kind = kind, mapID = id, name = name, x = x, y = y }
 end
 
 function Routes.Search(query)
 	local list, id = {}, MapID()
 	if not On("routes") or not id or not Plain(query, "string") or query == "" then return list end
+	local factions = type(Enum) == "table" and Plain(Enum.FlightPathFaction, "table")
+	local faction = type(UnitFactionGroup) == "function" and Plain(UnitFactionGroup("player"), "string")
 	for _, source in ipairs({
 		{ C_TaxiMap, "GetTaxiNodesForMap", "flight" },
 		{ C_EncounterJournal, "GetDungeonEntrancesForMap", "dungeon" },
 		{ C_Map, "GetMapLinksForMap", "link" },
 	}) do
-		for _, info in ipairs(Plain(Call(source[1], source[2], id), "table") or {}) do
-			local x, y = XY(Field(info, "position", "table"))
-			Add(list, source[3], id, Field(info, "name", "string"), x, y, info)
+		if source[3] ~= "flight" or Plain(Call(C_TaxiMap, "ShouldMapShowTaxiNodes", id), "boolean") == true then
+			for _, info in ipairs(Plain(Call(source[1], source[2], id), "table") or {}) do
+				local nodeFaction = Field(info, "faction", "number")
+				if source[3] ~= "flight" or (factions and nodeFaction and
+					(nodeFaction ~= factions.Horde or faction == "Horde") and (nodeFaction ~= factions.Alliance or faction == "Alliance")) then
+					local x, y = XY(Field(info, "position", "table"))
+					Add(list, source[3], id, Field(info, "name", "string"), x, y)
+				end
+			end
 		end
 	end
 	for _, poi in ipairs(Plain(Call(C_AreaPoiInfo, "GetAreaPOIForMap", id), "table") or {}) do
@@ -174,12 +183,16 @@ RefreshRoute = function()
 	local show = On("routes") and target ~= nil
 	card:SetShown(show)
 	panel:SetScript("OnUpdate", show and Tick or nil)
-	if not show then DrawRoute() return end
+	if not show then routeMap = nil; DrawRoute() return end
 	title:SetText(target.name)
 	distance:SetText(L["Distance unavailable"])
 	local x, y
-	if MapID() == target.mapID then x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
-	DrawRoute(x, y, target.x, target.y)
+	local id = MapID()
+	if id == target.mapID then x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
+	if x ~= routeX or y ~= routeY or id ~= routeMap or target ~= routeTarget then
+		DrawRoute(x, y, target.x, target.y)
+		routeX, routeY, routeMap, routeTarget = x, y, id, target
+	end
 	if x then
 		local width, height = Call(C_Map, "GetMapWorldSize", target.mapID)
 		local mounted = type(IsMounted) == "function" and Plain(IsMounted(), "boolean") or false
@@ -204,18 +217,18 @@ end
 function Routes.Pick(row)
 	if not On("routes") or not Plain(row, "table") or not Number(row.mapID) or not Number(row.x) or not Number(row.y) or not Plain(row.name, "string") then return end
 	if row.mapID <= 0 or row.x < 0 or row.x > 1 or row.y < 0 or row.y > 1 then return end
-	if type(C_Map) ~= "table" or type(C_Map.SetUserWaypoint) ~= "function" or type(C_SuperTrack) ~= "table" or type(C_SuperTrack.SetSuperTrackedUserWaypoint) ~= "function" then return end
+	if type(C_SuperTrack) ~= "table" or type(C_SuperTrack.SetSuperTrackedUserWaypoint) ~= "function" then return end
 	if type(UiMapPoint) ~= "table" or type(UiMapPoint.CreateFromCoordinates) ~= "function" then return end
 	local can = Call(C_Map, "CanSetUserWaypointOnMap", row.mapID)
 	if Secret(can) or can == false then return end
 	local waypoint = UiMapPoint.CreateFromCoordinates(row.mapID, row.x, row.y)
 	local old = Call(C_Map, "GetUserWaypoint")
 	local tracked = Plain(Call(C_SuperTrack, "IsSuperTrackingUserWaypoint"), "boolean")
-	local set = C_Map.SetUserWaypoint(waypoint)
-	if Secret(set) or set == false then return end
+	local set = Call(C_Map, "SetUserWaypoint", waypoint)
+	if Secret(set) or set ~= true then return end
 	if not ownsWaypoint then previousWaypoint, previousTrack = Plain(old, "table"), tracked end
 	ownsWaypoint, target = true, row
-	C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+	Call(C_SuperTrack, "SetSuperTrackedUserWaypoint", true)
 	local combat = type(InCombatLockdown) ~= "function" or Plain(InCombatLockdown(), "boolean") ~= false
 	if not combat and type(map.SetMapID) == "function" and MapID() ~= row.mapID then map:SetMapID(row.mapID) end
 	Hide(results)
@@ -237,11 +250,27 @@ local function SearchChanged(query)
 		if i > 6 then break end
 		local button = results[i]
 		if not button then
-			button = Widgets.Button(panel, { width = 280, height = 28 })
-			button:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -(i - 1) * 29 - 3)
+			button = CreateFrame("Button", nil, panel)
+			button:SetSize(280, 28)
+			button:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -(i - 1) * 28 - 3)
+			local fill = button:CreateTexture(nil, "BACKGROUND")
+			fill:SetAllPoints(button)
+			fill:SetColorTexture(Lumen.Color("surface"))
+			local wash = button:CreateTexture(nil, "ARTWORK")
+			wash:SetAllPoints(button)
+			wash:SetAtlas("questlog-quest-glow-yellow")
+			wash:Hide()
+			button:SetScript("OnEnter", function() wash:Show() end)
+			button:SetScript("OnLeave", function() wash:Hide() end)
+			local text = Widgets.FontString(button, "OVERLAY")
+			Style.Text(text, "body")
+			text:SetJustifyH("LEFT")
+			text:SetPoint("LEFT", 10, 0)
+			text:SetPoint("RIGHT", -10, 0)
+			button.Text = text
 			results[i] = button
 		end
-		button:SetText(row.name)
+		button.Text:SetText(row.name)
 		button:SetScript("OnClick", function() Routes.Pick(row) end)
 		button:Show()
 	end
@@ -319,8 +348,10 @@ local function HookPins()
 						local info = type(self.GetPoiInfo) == "function" and self:GetPoiInfo()
 						local x, y = XY(Field(info, "position", "table"))
 						local list = {}
-						Add(list, "pin", MapID(), Field(info, "name", "string"), x, y, info)
-						Routes.Pick(list[1])
+						Add(list, "pin", MapID(), Field(info, "name", "string"), x, y)
+						ownsWaypoint, previousWaypoint, previousTrack = nil, nil, nil
+						target = Plain(Call(C_SuperTrack, "IsSuperTrackingAnything"), "boolean") == true and list[1] or nil
+						RefreshRoute()
 					end)
 				end
 				if template == "DungeonEntrancePinTemplate" and type(pin.CheckShowTooltip) == "function" then
@@ -342,22 +373,24 @@ end
 
 local function Refresh()
 	if not map or type(map.GetMapID) ~= "function" or type(map.GetCanvas) ~= "function" then return end
-	canvas = type(map.GetCanvas) == "function" and map:GetCanvas() or nil
+	canvas = map:GetCanvas()
 	if On("routes") then Build() end
 	if panel then panel:SetShown(On("routes")) end
 	if not On("routes") then Routes.Clear() end
-	local old = Plain(Call(C_CVar, "GetCVar", CVAR), "string")
-	if active then
-		if previousCVar == nil then previousCVar = old end
-		local wanted = On("entrances") and "1" or "0"
-		if previousCVar and old ~= wanted then Call(C_CVar, "SetCVar", CVAR, wanted) end
+	RefreshZones()
+	HookPins()
+	RefreshRoute()
+end
+
+local function EntranceFilter()
+	if On("entrances") then
+		if previousCVar ~= nil then return end
+		previousCVar = Plain(Call(C_CVar, "GetCVar", CVAR), "string")
+		if previousCVar and previousCVar ~= "1" then Call(C_CVar, "SetCVar", CVAR, "1") end
 	elseif previousCVar then
 		Call(C_CVar, "SetCVar", CVAR, previousCVar)
 		previousCVar = nil
 	end
-	RefreshZones()
-	HookPins()
-	RefreshRoute()
 end
 
 local def = Skins.Get("worldMap")
@@ -379,18 +412,22 @@ def.Apply = function(self)
 	map = WorldMapFrame
 	if type(map.GetMapID) ~= "function" or type(map.GetCanvas) ~= "function" then return end
 	active = true
+	EntranceFilter()
 	for _, method in ipairs({ "SetMapID", "RefreshAllDataProviders" }) do
 		if type(map[method]) == "function" then hooksecurefunc(map, method, function() Refresh() end) end
 	end
+	if type(map.AcquirePin) == "function" then hooksecurefunc(map, "AcquirePin", HookPins) end
 	map:HookScript("OnShow", Refresh)
 	Refresh()
 end
 def.OnSetting = function(self, key, value)
 	if setting then setting(self, key, value) end
+	if key == "entrances" then EntranceFilter() end
 	Refresh()
 end
 def.OnSwitch = function(self, on)
 	if switch then switch(self, on) end
 	active = on
+	EntranceFilter()
 	Refresh()
 end

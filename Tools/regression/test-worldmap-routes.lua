@@ -42,9 +42,19 @@ R.search:SetText("Ragefire")
 R.search:GetScript("OnTextChanged")(R.search, true)
 local result
 for _, frame in ipairs({ R.panel:GetChildren() }) do
-	if frame:GetObjectType() == "Button" and frame:GetText() == "Ragefire Chasm" then result = frame end
+	if frame:GetObjectType() == "Button" and frame.Text and frame.Text:GetText() == "Ragefire Chasm" then result = frame end
 end
 assert(result and result:IsShown(), "typing builds a selectable search result")
+assert(result.Text:GetJustifyH() == "LEFT" and result.Text:GetFont() == K.Tokens.Font("body"), "search list uses the quest rows' body face and left alignment")
+local highlight
+for _, region in ipairs({ result:GetRegions() }) do
+	if region:GetObjectType() == "Texture" and region:GetAtlas() == "questlog-quest-glow-yellow" then highlight = region end
+end
+assert(highlight and not highlight:IsShown(), "search row uses the native quest list highlight")
+result:GetScript("OnEnter")(result)
+assert(highlight:IsShown())
+result:GetScript("OnLeave")(result)
+assert(not highlight:IsShown())
 result:GetScript("OnClick")(result)
 assert(R.card:IsShown() and not result:IsShown(), "picking the visible result opens its route and closes results")
 R.Clear()
@@ -99,11 +109,13 @@ assert(points == 0, "stationary OnUpdate must not redraw route textures")
 state.playerX = 0.31
 tick(R.panel, 0.25)
 assert(points == 1, "moving player redraws the route")
+env.SetCombat(false)
 map:SetMapID(2)
 assert(not dot:IsShown(), "changing map clears the old route line")
 map:SetMapID(1)
 assert(dot:IsShown(), "returning to the route map redraws while stationary")
 R.Clear()
+env.SetCombat(true)
 env.C_QuestLog.GetNextWaypoint = function(id) if id == 11 then return 2, 0.65, 0.3 end end
 local crossMap = R.Search("Harpies")[1]
 R.Pick(crossMap)
@@ -141,7 +153,7 @@ for _, api in ipairs({ "C_TaxiMap", "C_EncounterJournal", "C_AreaPoiInfo", "C_Vi
 end
 assert(R.DungeonLevels(state.dungeon) == nil)
 R.Pick({ name = "Missing", mapID = 1, x = 0.5, y = 0.5 })
-assert(not state.waypoint)
+assert(not state.waypoint and not state.tracked and not R.card:IsShown(), "missing waypoint API must not change tracking or open a route")
 
 env, _, R, state = M.New()
 R.Pick(R.Search("Chasm")[1])

@@ -31,25 +31,29 @@ Search and routes, Dungeon level ranges, Zone level ranges, and Dungeon entrance
 Search uses the current map's client lists for flights, dungeon/raid entrances,
 map links, area POIs and live vignettes, plus watched quest waypoints. Hidden
 entrances still answer search. No curated destinations or duplicate pins are added.
-Selecting a result or left-clicking a native entrance, flight or map-link pin
-sets the user waypoint and super track, including in combat. Selecting a result
-on another map changes the map only out of combat; combat keeps the current map
+Flight results follow Blizzard's map visibility and faction filters. Search
+results use the docked quest list's body face, left alignment and hover glow.
+Selecting a result sets the user waypoint and super track, including in combat.
+Left-clicking a native entrance, flight or map-link pin keeps Blizzard's own
+super-track toggle and draws or clears our route without adding a waypoint.
+Selecting a result on another map changes the map only out of combat; combat keeps the current map
 to avoid Blizzard's protected pin setup. The sibling route
-card uses the quest card's chrome and fonts. Its dotted straight line updates
-with the player; distance is in yards and time is approximate at 7 yd/s on foot
-or 14 yd/s mounted. Terrain may block that line; road routing comes later.
+card uses the quest card's chrome and fonts. Its dotted straight line redraws
+when the player or map changes; distance is in yards and time is approximate at
+7 yd/s on foot or 14 yd/s mounted. Terrain may block that line; road routing comes later.
 Clear restores the prior waypoint when the route still owns the current one.
 
 Entrance tooltip levels come from `GetDungeonEntrancesForMap`, the seventh
 return of `EJ_GetInstanceInfo` (`dungeonAreaMapID`), then `GetMapLevels`; unknown
 0-0 ranges stay blank. Continent labels use child-zone `GetMapLevels` ranges.
-The entrance filter drives `showDungeonEntrancesOnMap`; disabling the skin or
-module restores its earlier value. The other switches remove their additions
+The entrance toggle enables `showDungeonEntrancesOnMap` once; turning it off or
+disabling the skin/module restores its earlier value. Map refreshes leave
+Blizzard's filter menu choices alone. The other switches remove their additions
 immediately. Missing client APIs and secret coordinates/ranges are ignored.
 
 `test-worldmap-routes.lua` drives the client fixtures in `worldmap_env.lua`.
-Render `worldmap_routes` at 1080p/4K over a real game backdrop; the map and
-destinations in this harness remain stand-ins. `RENDER_MAP_BEFORE=1` turns all
+Render `worldmap_routes` at 1080p, 1440p, ultrawide and 4K over a real game
+backdrop; the map and destinations in this harness remain stand-ins. `RENDER_MAP_BEFORE=1` turns all
 four additions off for the matching before capture.
 
 `Skins.xml` loads the files in this order:
