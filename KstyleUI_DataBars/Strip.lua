@@ -673,7 +673,10 @@ function Strip.Paint(view, s, values)
 		view.chrome:SetEdge("edgeInner")
 	end
 	local caption = view.slab and ns.Bars.Settings(view.slab)
-	local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(view.frame)
+	local f = caption or s
+	local px = Widgets.Border(view.frame)
+	local size = view.topBar and min(s.fontSize, floor(floor(view.frame:GetHeight() / px + 0.5) * 5 / 6) * px / K.Theme.FontScale()) or f.fontSize
+	local fontSize = size * K.Theme.FontScale()
 	for id, item in pairs(view.items) do
 		local on = inOrder[id] == true
 		item.button:SetShown(on and not item.overflow)
@@ -683,9 +686,6 @@ function Strip.Paint(view, s, values)
 			item.separator:Hide()
 			item.dot:Hide()
 		else
-			local f = caption or s
-			local size = view.topBar and min(s.fontSize, floor(floor(view.frame:GetHeight() / px + 0.5) / 1.2 + 1e-6) * px / K.Theme.FontScale()) or f.fontSize
-			local fontSize = size * K.Theme.FontScale()
 			if item.font ~= f.font or item.fontSize ~= fontSize or item.outline ~= f.outline or item.lineMode ~= view.lineMode or item.slab ~= view.slab or item.instrument ~= f.instrumentText then
 				Widgets.Fitted(item.label, view.topBar)
 				Widgets.Fitted(item.value, view.topBar)
