@@ -30,6 +30,7 @@ return Common.Run(function()
 		setup = function(env)
 			Gallery.Setup(env)
 			env.GetZoneText = function() return "Elwynn Forest" end
+			env.CHAT_FLAG_AFK = "<AFK>"
 			env.GetAverageItemLevel = function() return 62.8, 58.3 end
 			if env.C_Item then env.C_Item.GetItemMaxStackSizeByID = function() return 20 end end
 			env.C_AddOns = env.C_AddOns or {}
