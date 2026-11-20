@@ -163,15 +163,15 @@ do
 
 	write(env, K, "GroupFrames", "party.nameChars", 4)
 	assert(f.name:GetText() == "Thal", "the name keeps its first four letters: " .. tostring(f.name:GetText()))
-	local names, splits, gmatch = 0, 0, string.gmatch
+	local names, splits = 0, 0
 	ns.Unit.ForEach(function(frame) if frame.kind == "party" and frame.unit and frame.rawName then names = names + 1 end end)
-	string.gmatch = function(text, pattern)
-		if pattern == "[%z\1-\127\194-\244][\128-\191]*" then splits = splits + 1 end
-		return gmatch(text, pattern)
-	end
+	debug.sethook(function()
+		local info = debug.getinfo(2, "Sn")
+		if info.name == "Chars" and info.source:find("Names.lua", 1, true) then splits = splits + 1 end
+	end, "c")
 	ns.Names.Apply(f)
-	string.gmatch = gmatch
-	assert(names > 1 and splits <= names, "one party fit splits each name once: " .. splits .. " splits for " .. names .. " names")
+	debug.sethook()
+	assert(names > 1 and splits == names, "one party fit splits each name once: " .. splits .. " splits for " .. names .. " names")
 	write(env, K, "GroupFrames", "party.nameChars", 0)
 	assert(f.name:GetText() == "Thaldrenor", "0 restores the whole name")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
