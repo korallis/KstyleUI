@@ -21,7 +21,7 @@ ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
-local drill = { active = false }
+local drill = { active = false, spells = {} }
 local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
@@ -465,6 +465,14 @@ end
 
 local function RowTooltip(tip, list, i)
 	if drill.active and i <= (list.count or 0) then
+		local id, game, frame = drill.spells[i], GameTooltip, list.rows[i].frame
+		if id and ns.Get("damage.spellTooltips") and game and type(game.SetSpellByID) == "function" then
+			game:SetOwner(frame, ns.BarList.Inward(frame))
+			game:SetSpellByID(id)
+			game:AddLine(L["Click to go back to every source."])
+			game:Show()
+			return false
+		end
 		tip:AddLine(L["Click to go back to every source."])
 		return true
 	end
@@ -568,6 +576,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
 		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
+		drill.spells[i] = Logic.Plain(spell.spellID)
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)

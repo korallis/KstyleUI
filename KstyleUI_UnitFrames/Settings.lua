@@ -180,7 +180,7 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
-		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"),
+		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarIconRight = false, castbarTotal = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -366,6 +366,7 @@ function Settings.Value(kind, key)
 	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
 		return slab
 	end
+	if value == nil or value == default then return default end
 	if type(value) ~= type(default) then
 		return default
 	end
@@ -684,6 +685,10 @@ CastRows = function(schema, kind)
 			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
 			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
+			help = L["Put the spell icon at the right end of the cast bar."] }, function(s) return on(s) and s.castbarIcon ~= false end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
+			help = L["Show the time cast so far and the full cast time, such as 0.4 / 2.0."] }, function(s) return on(s) and s.castbarTimer ~= false end)
 	end
 	TextRows(schema, kind, "cast")
 end

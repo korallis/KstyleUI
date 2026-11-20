@@ -434,6 +434,9 @@ function RowLeave(list, row)
 	if tip:IsOwned(row.frame) then
 		tip:Hide()
 	end
+	if GameTooltip and GameTooltip:IsOwned(row.frame) then
+		GameTooltip:Hide()
+	end
 end
 
 local function NameSize(section)
@@ -954,13 +957,16 @@ function SetIcon(list, row, texture, atlas, left, right, top, bottom)
 		if left then
 			icon:SetTexCoord(left, right, top, bottom)
 		else
-			icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+			local crop = ns.Get("damage.iconZoom")
+			icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 		end
 	end
 	row.iconAtlas = atlas
 	row.iconSet = set
 	icon:SetShown(set and list.blockIcons == true)
 end
+
+BarList.Inward = Inward
 
 function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
 	SetIcon(self, self:Row(i), texture, atlas, left, right, top, bottom)

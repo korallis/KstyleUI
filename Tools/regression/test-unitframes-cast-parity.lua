@@ -1,4 +1,4 @@
--- test-unitframes-cast-parity.lua: player cast smoothing and channel colour preserve legacy defaults and uninterruptible priority, including secret flags.
+-- test-unitframes-cast-parity.lua: player cast smoothing, channel colour, icon side and total duration preserve legacy defaults; uninterruptible colour keeps priority, including secret flags.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New({ plate = true, saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} } })
 local W, settings = U.W, ns.Settings
@@ -49,5 +49,37 @@ env.Enum.StatusBarInterpolation.ExponentialEaseOut = nil
 write("castbarSmooth", true)
 assert(W.LastCall(cb.bar, "SetTimerDuration")[2] == env.Enum.StatusBarInterpolation.Immediate, "missing smoothing falls back")
 assert(K.Store.Module("UnitFrames").player.castbarSmooth, "the smoothing choice is saved")
+assert(not settings.Value("player", "castbarIconRight") and not settings.Value("player", "castbarTotal"), "v0.2.8 keeps the icon left and the remaining time")
+local function timer()
+	start(false, false)
+	cb.frame:GetScript("OnUpdate")(cb.frame, 1)
+	return W.LastCall(cb.timer, "SetFormattedText")[1]
+end
+local geo = cb.geometry
+assert(geo.icon.x == 0 and geo.panel.x > 0 and timer() ~= "%.1f / %.1f", "the icon leads and the timer counts down by default")
+local column, width = geo.timer.w, geo.panel.x + geo.panel.w
+write("castbarIconRight", true)
+geo = cb.geometry
+assert(geo.panel.x == 0 and geo.icon.x > geo.bar.x + geo.bar.w and geo.icon.x + geo.icon.w == width, "the icon moves to the right end")
+assert(W.LastCall(cb.iconFrame, "SetPoint")[4] > 0, "the icon frame is placed at the right")
+assert(K.Store.Module("UnitFrames").player.castbarIconRight, "the icon side is saved")
+write("castbarTotal", true)
+assert(timer() == "%.1f / %.1f" and cb.geometry.timer.w > column, "the timer shows elapsed and total time in a wider column")
+write("castbarIconRight", false)
+write("castbarTotal", false)
+geo = cb.geometry
+assert(geo.icon.x == 0 and geo.timer.w == column and timer() ~= "%.1f / %.1f", "both cast options restore")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "cast options apply without errors")
+local cenv, CK, cns = U.New({ saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} } })
+local caption = cns.CastBars.Get("player")[1]
+local function cast()
+	cenv._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 4000, spellID = 116 }
+	cenv.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+end
+cast()
+assert(caption.mode == "inside" and caption.geometry.icon.x == 0, "the caption cast leads with its icon by default")
+CK.Options.Write("UnitFrames", "player.castbarIconRight", true); cenv.RunTimers(); cast()
+local icon = caption.geometry.icon
+assert(icon.x > 0 and W.LastCall(caption.bar, "SetPoint")[4] == 0, "the caption cast puts its icon after the bar")
+assert(#cenv._errors == 0 and CK.ErrorCount() == 0, "the caption icon side applies without errors")
 print("cast parity ok")

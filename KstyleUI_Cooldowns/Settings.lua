@@ -46,7 +46,7 @@ local BAR_RANGE = {
 	countSize = { 6, 24, 1 },
 	fillOpacity = { 0, 1, 0.05 },
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge" }
 local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
@@ -78,7 +78,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		countSize = countSize,
 	}
 	if cooldown then
-		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow = false, false, true, false, true
+		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow, out.edge = false, false, true, false, true, true
 	else
 		out.inactive = false
 	end
@@ -227,6 +227,7 @@ function Settings.Schema()
 		Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the charge or stack count."], ICON_RANGE))
 		if COOLDOWN_GROUPS[group] then
 			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
+			Add(schema, Toggle(group, "edge", L["Cooldown edge"], L["Show the bright line that sweeps around a cooling icon."]))
 			Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
 			Add(schema, Toggle(group, "usable", L["Dim unusable"], L["Dim an icon while you cannot cast its spell."]))
 			Add(schema, Toggle(group, "readyGlow", L["Ready glow"], L["A soft accent glow around a spell that is ready."]))

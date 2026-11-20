@@ -138,7 +138,11 @@ local function Caption(cb)
 end
 
 local function Elapsed(cb)
-	return cb.mode == "above" or cb.mode == "inside" and not cb.attached
+	return cb.showTotal or cb.mode == "above" or cb.mode == "inside" and not cb.attached
+end
+
+local function Column(cb)
+	return cb.showTotal and CAPTION_TIMER_EM.elapsed or TIMER_COLUMN
 end
 
 local function WriteTimer(cb, elapsed, total, remaining)
@@ -370,7 +374,7 @@ local function TextRect(x, w, slotY, slotH, size)
 	return Rect(x, slotY + slotH / 2 - h / 2, w, h)
 end
 
-local function Inline(out, bar, tall, timer, size)
+local function Inline(out, bar, tall, timer, size, em)
 	local h = size + TEXT_EXTRA
 	if tall then
 		out.text = Rect(bar.x, bar.y + TEXT_PAD, bar.w, h)
@@ -378,12 +382,13 @@ local function Inline(out, bar, tall, timer, size)
 		return
 	end
 	local x, w = bar.x + TEXT_PAD, bar.w - 2 * TEXT_PAD
-	local timerW = timer and math.min(math.ceil(TIMER_COLUMN * size), math.floor(w / 2)) or 0
+	local timerW = timer and math.min(math.ceil(em * size), math.floor(w / 2)) or 0
 	out.timer = TextRect(x + w - timerW, timerW, bar.y, bar.h, size)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), bar.y, bar.h, size)
 end
 
-function CastBars.Geometry(width, height, icon, timer, size)
+function CastBars.Geometry(width, height, icon, timer, size, em)
+	em = em or TIMER_COLUMN
 	local out = { tall = height > width }
 	local thick = out.tall and width or height
 	local offset = 0
@@ -403,7 +408,7 @@ function CastBars.Geometry(width, height, icon, timer, size)
 	if out.tall or room < size + ROW_GAP + BAR_MIN then
 		out.stacked = false
 		out.bar = Rect(panel.x + LINES, panel.y + LINES, panel.w - 2 * LINES, panel.h - 2 * LINES)
-		Inline(out, out.bar, out.tall, timer, size)
+		Inline(out, out.bar, out.tall, timer, size, em)
 		return out
 	end
 	out.stacked = true
@@ -414,7 +419,7 @@ function CastBars.Geometry(width, height, icon, timer, size)
 	out.bar = Rect(x, barY, w, barH)
 	local rowY = panel.y + LINES
 	local rowH = barY - ROW_GAP - rowY
-	local timerW = timer and math.min(math.ceil(TIMER_COLUMN * size), math.floor(w / 2)) or 0
+	local timerW = timer and math.min(math.ceil(em * size), math.floor(w / 2)) or 0
 	out.timer = TextRect(x + w - timerW, timerW, rowY, rowH, size)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), rowY, rowH, size)
 	return out
@@ -438,6 +443,8 @@ local function Form(cb)
 	cb.medal = K.HudStyle.Current() == "medallions"
 	cb.line = not cb.medal and Lined(cb)
 	cb.mode = not cb.medal and Caption(cb) or nil
+	local player = cb.kind == "player"
+	cb.iconRight, cb.showTotal = player and Settings.Value(cb.kind, "castbarIconRight"), player and Settings.Value(cb.kind, "castbarTotal")
 	if cb.medalOn == cb.medal then
 		return
 	end
@@ -500,7 +507,7 @@ local function LayoutLine(cb, width, height)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	local size = Settings.FontSize(cb.kind, "cast")
-	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * size), math.floor(width / 3)) or 0
+	local timerW = timerOn and math.min(math.ceil(Column(cb) * size), math.floor(width / 3)) or 0
 	local room = width - math.ceil(LINE_LABEL_EM * size) - LINE_LABEL_GAP - LINE_BAR_GAP - LINE_BAR_MIN
 	if timerOn and room - timerW - LINE_LABEL_GAP < LINE_NAME_EM * size then
 		timerOn, timerW = false, 0
@@ -539,7 +546,7 @@ local function LayoutCaption(cb, width, height)
 	local side = Snap(cb, inside and math.min(CAPTION_BAR.inside, height) or height)
 	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
 		lead = side + Snap(cb, CAPTION_ICON_GAP)
-		cb.geometry.icon = { x = 0, y = inside and height - side or 0, w = side, h = side }
+		cb.geometry.icon = { x = cb.iconRight and width - side or 0, y = inside and height - side or 0, w = side, h = side }
 		Place(cb, cb.iconFrame, cb.geometry.icon)
 		cb.iconChrome:Restyle()
 		local inset = Widgets.Border(cb.frame)
@@ -551,6 +558,7 @@ local function LayoutCaption(cb, width, height)
 		cb.iconFrame:Hide()
 	end
 	width = width - lead
+	if cb.iconRight then lead = 0 end
 	cb.chrome:SetShadow(false)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
@@ -643,7 +651,7 @@ local function LayoutMedal(cb, width, height)
 	Spark(cb)
 	local size = Settings.FontSize(cb.kind, "cast")
 	local timerOn = Settings.Value(cb.kind, "castbarTimer")
-	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * size), math.floor(barW / 2)) or 0
+	local timerW = timerOn and math.min(math.ceil(Column(cb) * size), math.floor(barW / 2)) or 0
 	for _, text in ipairs({ cb.text, cb.timer }) do
 		text:ClearAllPoints()
 		text:SetHeight(Snap(cb, barH))
@@ -680,8 +688,13 @@ function CastBars.Layout(cb, width, height)
 	cb.chrome:SetShadow(true)
 	cb.chrome:SetShown(true)
 	cb.bar:SetSparkShown(Settings.Value(cb.kind, "castbarSpark"))
-	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"))
+	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"), Column(cb))
 	cb.geometry = g
+	if g.icon and cb.iconRight and not g.tall then
+		local shift = g.panel.x
+		g.icon.x = width - g.icon.w
+		for _, rect in ipairs({ g.panel, g.bar, g.text, g.timer }) do rect.x = rect.x - shift end
+	end
 	if g.icon then
 		local inset = Widgets.Border(cb.frame)
 		Place(cb, cb.iconFrame, g.icon)

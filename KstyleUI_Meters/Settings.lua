@@ -75,6 +75,8 @@ ns.defaults = {
 		refresh = 0.5,
 		hoverSpells = 3,
 		hideRank = false,
+		iconZoom = 0.08,
+		spellTooltips = false,
 	}),
 	threat = Merge(Bars("left"), Text(12), {
 		followGuide = true,
@@ -307,6 +309,10 @@ function ns.Schema()
 			type = "toggle", key = "damage.icons", label = L["Show icons"], disableWhen = Off("damage"), showWhen = WindowStyle,
 			help = L["Shows each player's class or each spell's icon at the start of its row."],
 		},
+		{
+			type = "slider", key = "damage.iconZoom", label = L["Icon zoom"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			help = L["How much of the icon's edge is cropped."], min = 0, max = 0.2, step = 0.01,
+		},
 	}
 	ListRows("damage", schema)
 	schema[#schema + 1] = { type = "slider", key = "damage.refresh", label = L["Refresh interval"], disableWhen = Off("damage"), showWhen = WindowStyle,
@@ -319,6 +325,8 @@ function ns.Schema()
 		help = L["Keep your row visible when it falls outside the meter's visible rows."] }
 	schema[#schema + 1] = { type = "toggle", key = "damage.hover", label = L["Show breakdown on hover"], disableWhen = Off("damage"), showWhen = WindowStyle,
 		help = L["Open the spell breakdown when you point at a player's row."] }
+	schema[#schema + 1] = { type = "toggle", key = "damage.spellTooltips", label = L["Spell tooltips"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Show a spell's tooltip when you point at it in a player's spell list."] }
 	schema[#schema + 1] = { type = "dropdown", key = "damage.format", label = L["Number format"], disableWhen = Off("damage"), showWhen = WindowStyle,
 		help = L["Use short or full numbers for damage and healing amounts."], options = {
 		{ value = "short", label = L["Short, such as 12.3K"] }, { value = "full", label = L["Full, such as 12,345"] },

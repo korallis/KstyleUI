@@ -1,4 +1,4 @@
--- test-meters-parity-more.lua: legacy refresh, hover count and pinned rank defaults persist, and new settings change the damage window.
+-- test-meters-parity-more.lua: legacy refresh, hover count, pinned rank, icon crop and spell tooltip defaults persist, and new settings change the damage window.
 local M = dofile("Tools/regression/meters_env.lua")
 local env, K, ns = M.New({ saved = { version = 42, profiles = { Default = { Meters = { enabled = true, followRole = false, damage = { shown = true, mode = "window" } } } }, characters = {} }, game = function(e)
 	e._group = { raid = false, size = 5 }
@@ -42,5 +42,28 @@ for _, delay in ipairs({ 0.1, 2, 0.5 }) do
 	assert(K.Store.Module("Meters").damage.refresh == delay, "interval is saved")
 	env.RunTimers()
 end
+for i = 1, 12 do env._spells[i] = { name = "Spell " .. i, icon = 1000 + i } end
+assert(ns.Get("damage.iconZoom") == 0.08 and not ns.Get("damage.spellTooltips"), "v0.2.8 icon crop and spell tooltip defaults")
+local row = list.rows[1]
+row.frame._scripts.OnMouseUp(row.frame, "LeftButton"); env.RunTimers()
+local function crop(expected)
+	local call = M.Last(row.icon, "SetTexCoord")
+	assert(call and math.abs(call[1] - expected) < 1e-6 and math.abs(call[2] - (1 - expected)) < 1e-6, "spell icons crop " .. expected)
+end
+crop(0.08)
+M.Write(env, K, "damage.iconZoom", 0.2); crop(0.2)
+assert(K.Store.Module("Meters").damage.iconZoom == 0.2, "zoom is saved")
+M.Write(env, K, "damage.iconZoom", 0.08); crop(0.08)
+local owner, shown
+env.GameTooltip = { SetOwner = function(_, frame) owner = frame end, SetSpellByID = function(_, id) shown = id end, AddLine = function() end,
+	Show = function() end, Hide = function() owner = nil end, IsOwned = function(_, frame) return owner == frame end }
+local tip = K.Widgets.Tooltip()
+assert(list.rowTooltip(tip, list, 1) == true and shown == nil, "the back hint stays the only tooltip by default")
+M.Write(env, K, "damage.spellTooltips", true)
+assert(K.Store.Module("Meters").damage.spellTooltips == true, "spell tooltips are saved")
+assert(list.rowTooltip(tip, list, 1) == false and shown == 1 and owner == row.frame, "the game's spell tooltip shows for the pointed spell")
+row.frame._scripts.OnLeave(row.frame)
+assert(owner == nil, "leaving the row hides the spell tooltip")
+M.Write(env, K, "damage.spellTooltips", false)
 assert(#env._errors == 0 and K.ErrorCount() == 0, "more meter settings apply without errors")
 print("more meter parity ok")

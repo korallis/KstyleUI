@@ -28,8 +28,11 @@ end
 function Row:StyleIcon(icon)
 	icon.opts.quietCooldown = ns.Settings.current.quietCooldown
 	icon.opts.readableCountdown = ns.Settings.current.readableCountdown
-	icon:StyleCooldown()
 	local cfg, current = self.cfg, ns.Settings.current
+	local hide = ns.Settings.COOLDOWN_GROUPS[self.group] and not cfg.edge or nil
+	if icon.hideEdge ~= hide then icon.hideEdge, icon.cooldownStyleKey = hide, nil end
+	icon:StyleCooldown()
+	if hide then icon.cooldown:SetDrawEdge(false) end
 	icon.icon:SetTexCoord(cfg.iconZoom, 1 - cfg.iconZoom, cfg.iconZoom, 1 - cfg.iconZoom)
 	if icon.opts.size ~= cfg.size then
 		icon.opts.size = cfg.size

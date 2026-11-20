@@ -131,6 +131,7 @@ local function SkinIcon(group, item)
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
 		Toggle(cooldown, group, "SetHideCountdownNumbers", "timer", true, not Viewers.Frame(group).timerShown)
 		Toggle(cooldown, group, "SetDrawSwipe", "swipe", false, item.cooldownShowSwipe)
+		if group ~= "buffs" then Toggle(cooldown, group, "SetDrawEdge", "edge", false, item.cooldownShowDrawEdge) end
 		local text = cooldown:GetCountdownFontString()
 		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group ~= "essential" and "timer" or nil)
 		Style.Countdown(cooldown, group == "essential")
