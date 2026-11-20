@@ -63,7 +63,8 @@ return Common.Run(function()
 		env.RunTimers()
 		for key, value in pairs({ anchor = "TOPLEFT", x = 28, y = -28, height = 900 }) do assert(K.Layout.Set("Options.Window", key, value)) end
 		local options = env._addons.KstyleUI_Options
-		options.Window.Jump({ page = module, module = module, key = module == "DataBars" and "strip.dockModules" or keys[module] })
+		options.Window.Jump({ page = module, module = module, key = module ~= "DataBars" and keys[module] or nil,
+			labelTarget = module == "DataBars" and K.L["Location"] or nil })
 		env.RunTimers()
 		O.W.Settle(env)
 	end
