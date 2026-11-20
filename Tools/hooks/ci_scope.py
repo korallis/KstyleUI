@@ -28,6 +28,7 @@ PIPELINE = (
 )
 
 READ_BY_TESTS = (
+    "docs/RELEASE_NOTES.md",
     "docs/feature-map.md",
     "docs/media/marketing/*",
     "docs/media/plates",

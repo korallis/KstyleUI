@@ -6,6 +6,15 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to announce
+        required: true
+        type: string
+      message_ids:
+        description: Optional comma-separated message IDs (edit first, delete the rest)
+        type: string
 
 permissions: {}
 
@@ -16,7 +25,7 @@ concurrency:
 jobs:
   check:
     name: check
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
     permissions:
@@ -54,7 +63,7 @@ jobs:
 
   lua:
     name: lua ${{ matrix.shard }}/2
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 35
     permissions:
@@ -86,7 +95,7 @@ jobs:
   release:
     name: release
     needs: [check, lua]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, mac-ci, KstyleUI]
     timeout-minutes: 15
     environment: release
@@ -122,3 +131,29 @@ jobs:
         env:
           DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
         run: python3 Tools/release/discord_post.py "$GITHUB_REF_NAME"
+
+  discord-repost:
+    name: Repost Discord announcement
+    if: github.event_name == 'workflow_dispatch' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, mac-ci, KstyleUI]
+    timeout-minutes: 5
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Post or edit the Discord announcement
+        env:
+          TAG: ${{ inputs.tag }}
+          MESSAGE_IDS: ${{ inputs.message_ids }}
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          git show-ref --verify "refs/tags/$TAG"
+          if [ -n "$MESSAGE_IDS" ]; then
+            python3 Tools/release/discord_post.py --edit "$TAG" "$MESSAGE_IDS"
+          else
+            python3 Tools/release/discord_post.py "$TAG"
+          fi

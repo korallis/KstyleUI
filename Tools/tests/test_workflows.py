@@ -98,10 +98,11 @@ class WorkflowsTest(unittest.TestCase):
                 "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
                 "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
                 "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
+                "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
             ]),
         )
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["check", "lua", "release"])
+        self.assertIn("release", jobs)
         self.assertIn("needs: [check, lua]", text)
 
     def test_release_requires_successful_shards_or_a_successful_sha_proof(self):
@@ -111,7 +112,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
         self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
         self.assertIn("needs: [check, lua]", jobs["release"])
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), [FORK_GUARD])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), ["github.event_name == 'push' && (" + FORK_GUARD + ")"])
         self.assertNotIn("continue-on-error:", jobs["lua"])
         steps = jobs["lua"].split("\n      - ")[1:]
         self.assertIn("uses: actions/checkout@", steps[0])
@@ -131,7 +132,27 @@ class WorkflowsTest(unittest.TestCase):
 
     def test_release_upload_requires_successful_dependencies(self):
         jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), [FORK_GUARD])
+        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["release"]), ["github.event_name == 'push' && (" + FORK_GUARD + ")"])
+
+    def test_manual_release_dispatch_can_only_post_to_discord(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        for name, job in jobs_of(text).items():
+            guard = re.search(r"(?m)^    if: (.+)$", job).group(1)
+            expression = guard.replace("github.event_name", "'workflow_dispatch'")
+            expression = expression.replace("github.event.pull_request.head.repo.full_name", "'fork'")
+            expression = expression.replace("github.repository", "'repo'").replace("&&", "and").replace("||", "or")
+            if not eval(expression, {"__builtins__": {}}):
+                continue
+            self.assertIn("github.event_name == 'workflow_dispatch'", job, name)
+            self.assertIn("contents: read", job, name)
+            self.assertNotIn("contents: write", job, name)
+            self.assertNotIn("packager@", job, name)
+            self.assertNotIn("release upload", job, name)
+            self.assertNotIn("iconset.py", job, name)
+            self.assertNotRegex(job, r"CF_API_KEY|WAGO_API_TOKEN|GITHUB_OAUTH", name)
+            self.assertIn('python3 Tools/release/discord_post.py --edit "$TAG" "$MESSAGE_IDS"', job)
+            self.assertIn('python3 Tools/release/discord_post.py "$TAG"', job)
 
     def test_release_check_and_lua_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")

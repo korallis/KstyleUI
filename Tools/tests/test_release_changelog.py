@@ -8,14 +8,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CHANGELOG = ROOT / "CHANGELOG.md"
 PKGMETA = ROOT / ".pkgmeta"
-HEADING = re.compile(r"^## v(\d+\.\d+\.\d+) \((\d{4}-\d{2}-\d{2})\)$", re.M)
+HEADING = re.compile(r"^## v(\d+\.\d+\.\d+(?:\.\d+)?) \((\d{4}-\d{2}-\d{2})\)$", re.M)
 
 
 def release_version(text):
     ref = os.environ.get("GITHUB_REF_NAME", "")
-    if re.fullmatch(r"v\d+\.\d+\.\d+", ref):
+    if re.fullmatch(r"v\d+\.\d+\.\d+(?:\.\d+)?", ref):
         return ref[1:]
     return HEADING.search(text).group(1)
+
+
+def check_readable_section(section):
+    fix = "Add one summary paragraph, then Highlights: with 1-6 short bullets; shorten the bullet or move detail to docs/RELEASE_NOTES.md"
+    intro = section.split("### ", 1)[0].strip()
+    summary, separator, highlights = intro.partition("\n\nHighlights:")
+    assert separator and summary and "\n\n" not in summary and not summary.startswith(("- ", "#")), fix
+    bullets = re.findall(r"^- (.+)$", highlights, re.M)
+    assert 1 <= len(bullets) <= 6, fix
+    assert all(len(line) <= 220 for line in bullets), fix
+    for name, body in re.findall(r"^### (Added|Changed|Fixed)\n([\s\S]*?)(?=^### |\Z)", section, re.M):
+        bullets = re.findall(r"^\s*- (.+)$", body, re.M)
+        assert bullets and all(len(line) <= 220 for line in bullets), name + ": " + fix
 
 
 class ReleaseChangelogTests(unittest.TestCase):
@@ -41,6 +54,24 @@ class ReleaseChangelogTests(unittest.TestCase):
         self.assertTrue(set(found) & {"Added", "Changed", "Fixed"}, "the v%s section has none of ### Added, ### Changed or ### Fixed" % version)
         for group, body in found.items():
             self.assertTrue(re.search(r"^- \S", body, re.M), "### %s in v%s has no entry" % (group, version))
+
+    def test_every_release_is_readable(self):
+        text = CHANGELOG.read_text(encoding="utf-8")
+        for match in HEADING.finditer(text):
+            section = re.split(r"^## ", text[match.end():], maxsplit=1, flags=re.M)[0].strip()
+            with self.subTest(version=match.group(1)):
+                check_readable_section(section)
+
+    def test_readability_guard_rejects_the_old_wall_of_text(self):
+        old_bullet = ("The world map zooms smoothly with the mouse wheel and remembers your zoom and pan for each map, even after a reload. "
+                      "Wheel out again at the smallest zoom to open the parent map, or in again over a zone to open it; in combat the wheel only zooms the current map. "
+                      "Smooth zoom, Remember zoom and Wheel between maps are each on by default under Window Skins > World map.")
+        with self.assertRaisesRegex(AssertionError, "shorten the bullet or move detail to docs/RELEASE_NOTES.md"):
+            check_readable_section("Summary.\n\nHighlights:\n\n- Short highlight.\n\n### Added\n\n- " + old_bullet)
+        for section in ("### Fixed\n\n- Fix.", "Summary.\n\nAnother paragraph.\n\nHighlights:\n\n- Fix.",
+                        "Summary.\n\nHighlights:\n\n" + "- Fix.\n" * 7):
+            with self.assertRaises(AssertionError):
+                check_readable_section(section)
 
     def test_changelog_ends_with_how_to_install(self):
         text = CHANGELOG.read_text(encoding="utf-8")
