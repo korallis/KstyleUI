@@ -1,4 +1,4 @@
--- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write; batch 4 shows a unit tooltip.
+-- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write; batch 4 shows a unit tooltip, its buffs on the RENDER_BUFF_SIDE side if set.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -24,6 +24,7 @@ local followups = batch == "4" and {
 	Tooltips = { { "playerTitles", false } },
 	QoL = { { "coinIcons", true }, { "skipCinematics", true }, { "skipDelay", 5 } },
 }
+if unitTip and os.getenv("RENDER_BUFF_SIDE") then table.insert(followups.Tooltips, { "buffs.position", os.getenv("RENDER_BUFF_SIDE") }) end
 -- RENDER_MINIMAP_R1 (a or b) switches on the minimap's first EllesmereUI parity round: a moves and adds caption readouts, b restyles the column and drawer.
 local r1 = os.getenv("RENDER_MINIMAP_R1")
 local rounds = {

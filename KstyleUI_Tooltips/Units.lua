@@ -281,13 +281,14 @@ local function Buffs(unit)
 	local glass, count = Style.Glass(GameTooltip), 0
 	local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
 	if glass and unit and on["buffs.shown"] and type(get) == "function" and AurasReadable() then
+		glass.buffs = glass.buffs or CreateFrame("Frame", nil, glass)
 		for i = 1, MAX_BUFFS do
 			local ok, aura = pcall(get, unit, i, "HELPFUL")
 			if not ok or not Plain(aura) or type(aura) ~= "table" or not Plain(aura.icon) then
 				break
 			end
 			count = i
-			local icon = icons[i] or Style.IconTile(glass)
+			local icon = icons[i] or Style.IconTile(glass.buffs)
 			icons[i] = icon
 			if icon.stamp ~= stamp then
 				icon.stamp = stamp
