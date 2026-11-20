@@ -99,7 +99,7 @@ for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
-defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 38, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = false }
+defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
 for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 

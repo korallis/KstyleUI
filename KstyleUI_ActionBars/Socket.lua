@@ -67,7 +67,7 @@ local function Usable(b)
 end
 
 local function AfterPaint(b)
-	b.hotkey:SetAlpha(b.opts.readableCountdown and b.realCooldown and 0.6 or 1)
+	b.hotkey:SetAlpha(b.kind == "consumable" and b.opts.size < 30 and b.cooling and not b.opts.hideNumbers and 0 or b.opts.readableCountdown and b.realCooldown and 0.6 or 1)
 	if not Usable(b) then
 		return
 	end
@@ -88,6 +88,17 @@ end
 
 function Socket.Place(b)
 	Countdown(b)
+	if b.kind == "consumable" and b.opts.size < 30 and Widgets.MayMove(b) then
+		local inset = Widgets.Snap(b, 1)
+		b.hotkey:ClearAllPoints()
+		b.hotkey:SetPoint("TOPLEFT", b, "TOPLEFT", inset, -inset)
+		b.count:ClearAllPoints()
+		b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -inset, inset)
+		if b.countdown then
+			b.countdown:ClearAllPoints()
+			b.countdown:SetPoint("TOP", b, "TOP", 0, -inset)
+		end
+	end
 end
 
 function Socket.Tint(b, key)
@@ -107,8 +118,8 @@ function Socket.Decorate(b)
 		AfterPaint(self)
 	end
 	b.Restyle = function(self)
-		Socket.Place(self)
 		restyle(self)
+		Socket.Place(self)
 	end
 	Socket.Place(b)
 	Socket.Tint(b)

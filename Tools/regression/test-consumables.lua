@@ -50,6 +50,54 @@ Clean()
 env._combat = false
 env.FireEvent("PLAYER_REGEN_ENABLED")
 assert(#C.buttons == 12 and C.selected[1].id == 118, "the first out-of-combat repack creates the secure pool")
+assert(cfg.size == 19 and cfg.backing == true, "Options starts at half-size with backing on")
+local backing = C.header:GetChildren()
+assert(backing.chrome and backing:IsShown(), "the shared Chrome tile is shown by default")
+K.Options.Write("ActionBars", "consumables.backing", false)
+assert(not backing:IsShown(), "the backing toggle hides the tile")
+K.Options.Write("ActionBars", "consumables.backing", true)
+assert(backing:IsShown(), "the backing toggle restores the tile")
+for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
+	for _, class in ipairs(K.Setup.Layouts.ASPECTS) do
+		local _, size, gap = K.Setup.Layouts.ConsumableGrid(style, class)
+		local slot = K.Setup.Layouts.MEDALLIONS_SLOT
+		local actionSize = style == "medallions" and (slot[class] or slot.size) or ns.defaults.bar3.size
+		local actionGap = style == "medallions" and slot.gap * actionSize / slot.size or 3
+		assert(near(size, actionSize / 2) and near(gap, actionGap / 2), style .. ": buttons and default gaps stay half-size")
+	end
+	local button = C.buttons[1]
+	button:Restyle()
+	assert(button.countdown:GetPoint() == "TOP", style .. ": restyling keeps the compact countdown above the count")
+	for _, key in ipairs({ "hotkey", "count", "cooldown" }) do
+		local fs = key == "cooldown" and button.cooldown:GetCountdownFontString() or button[key]
+		local _, size = fs:GetFont()
+		assert(size <= button.opts.size and size < ns.Config("text")[key].size, style .. ": consumable " .. key .. " text scales with its button")
+	end
+end
+K.Options.Write("HudStyle", "style", "frames")
+env.C_Item.GetItemCooldown = function() return 1, 120, 1 end
+env.FireEvent("SPELL_UPDATE_COOLDOWN")
+C.buttons[1].cooldown:GetScript("OnShow")(C.buttons[1].cooldown)
+assert(C.buttons[1].hotkey:GetAlpha() == 0, "a compact countdown replaces the key label instead of crossing it")
+assert(C.buttons[1].countdown:GetPoint() == "TOP" and C.buttons[1].count:GetPoint() == "BOTTOMRIGHT", "compact countdown and count occupy separate rows")
+K.Options.Write("ActionBars", "consumables.cooldown", false)
+assert(C.buttons[1].hotkey:GetAlpha() > 0, "hiding countdown text keeps the key label visible")
+K.Options.Write("ActionBars", "consumables.cooldown", true)
+env.C_Item.GetItemCooldown = function() return 0, 0, 1 end
+env.FireEvent("SPELL_UPDATE_COOLDOWN")
+C.buttons[1].cooldown:GetScript("OnCooldownDone")(C.buttons[1].cooldown)
+assert(C.buttons[1].hotkey:GetAlpha() > 0, "the key label returns when the cooldown ends")
+
+AB.CoreEnv.Logout(env)
+local _, refilled = AB.New({ saved = AB.CoreEnv.DeepCopy(env.KstyleUIDB) })
+assert(refilled.Store.Module("ActionBars").consumables.size == 19 and refilled.Store.Module("ActionBars").consumables.backing, "stripped defaults refill without migration")
+local explicit = AB.CoreEnv.DeepCopy(env.KstyleUIDB)
+explicit.profiles.Default.ActionBars.consumables = { size = 46, backing = false }
+local savedEnv, savedK = AB.New({ saved = explicit })
+assert(savedK.Store.Module("ActionBars").consumables.size == 46 and savedK.Store.Module("ActionBars").consumables.backing == false, "explicit saved size and backing survive refill")
+AB.CoreEnv.Logout(savedEnv)
+assert(savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.size == 46 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.backing == false, "explicit choices survive stripping")
 
 Bag({ 6948 })
 assert(#C.selected == 0, "a Hearthstone in the bags never creates a slot")
@@ -108,7 +156,7 @@ assert(#C.selected == 12, "raising the limit restores the remaining carried kind
 for _, rows in ipairs({ 1, 2, 3 }) do
 	K.Options.Write("ActionBars", "consumables.rows", rows)
 	local w, h = K.Setup.Layouts.ConsumableFootprint(K.HudStyle.Current())
-	assert(near(C.holder:GetWidth(), w) and near(C.holder:GetHeight(), h), "mover reserves all 12 at " .. rows .. " rows")
+	assert(near(C.holder:GetWidth(), K.Widgets.Snap(C.holder, w)) and near(C.holder:GetHeight(), K.Widgets.Snap(C.holder, h)), "mover reserves all 12 at " .. rows .. " rows, snapped to physical pixels")
 	local x, y, _, dx, dy = C.buttons[math.min(12, math.ceil(12 / rows) + 1)]:GetPoint()
 	assert(x == "BOTTOMRIGHT" and y == C.header and near(dx, 0) and dy > 0 or rows == 1, "row-major fill starts a new row from the attached edge")
 end
@@ -118,6 +166,7 @@ local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(600, 300)
 local preview = ns.Preview(pane)
 assert(preview:GetHeight() > C.buttons[1]:GetHeight(), "Options previews the consumables grid rather than bar 1")
+assert(preview.buttons[3].countdown:GetPoint() == "TOP", "Options uses the live bar's compact countdown placement")
 K.Options.Write("ActionBars", "consumables.orientation", "VERTICAL")
 local _, _, _, x, y = C.buttons[2]:GetPoint()
 assert(x == 0 and y > 0, "column-first fill")

@@ -9,6 +9,17 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local enabled = L.Enabled(name)
 			assert(enabled["consumables.bar"], "the default bar participates even when inventory is empty")
 			local label = string.format("%dx%d %s %s", screen[1], screen[2], style, name)
+			local settings = K.Store.Module("ActionBars")
+			local saved = settings.consumables
+			settings.consumables = { size = 38, spacing = -1 }
+			local previous = L.Positions(name, style, K.Scale.AspectClass(screen[1], screen[2]))
+			settings.consumables = saved
+			local current = L.Positions(name, style, K.Scale.AspectClass(screen[1], screen[2]))
+			for key, position in pairs(previous) do
+				if key ~= "consumables.bar" then
+					assert(CoreEnv.DeepEqual(position, current[key]), label .. ": shrinking consumables must not move " .. key)
+				end
+			end
 			local cap, fits = L.ScaleLimit(screen[1], screen[2], name, enabled, style)
 			local auto = K.Scale.Auto(screen[2], cap, fits)
 			assert(fits(auto), label .. ": the default bar fits at the automatic pixel step")

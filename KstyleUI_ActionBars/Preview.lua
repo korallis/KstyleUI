@@ -59,6 +59,7 @@ function Preview:Refresh()
 			local grouped = ns.Slab.Grouped(def)
 			local col, row = ns.Cell(i, count, rows, grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
 			button.opts.size = cell
+			button.kind, button.opts.hideNumbers = def.kind, cfg.cooldown ~= true
 			button:ClearAllPoints()
 			button:SetPoint("TOPLEFT", self, "TOPLEFT", Widgets.Snap(self, col * pitch), -Widgets.Snap(self, row * pitch))
 			button:Restyle()
