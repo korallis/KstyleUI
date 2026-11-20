@@ -1,0 +1,21 @@
+-- test-consumables-move.lua: explicit Layout moves release the consumables dock and survive Apply.
+local AB = dofile("Tools/regression/actionbars_env.lua")
+local env, K, ns = AB.New()
+AB.Enable(env, K)
+K.Options.Write("ActionBars", "consumables.hideEmpty", false)
+local C, key = ns.Consumables, "consumables.bar"
+local player = env.CreateFrame("Frame", nil, K.Scale.Root())
+player:SetSize(491, 77.5)
+K.Layout.Register(player, "unitframes.player", K.Setup.Layouts.Default("unitframes.player"))
+C.Apply()
+assert(K.Layout.Enter())
+local l, b, w, h = K.Layout.Rect(key)
+K.Layout.Preview(key, l + 200, b + 100, w, h)
+assert(K.Layout.Update(key, K.Layout.Movement(key, l + 200, b + 100, w, h)))
+C.Apply()
+local _, relative, _, x, y = C.holder:GetPoint()
+local position = K.Layout.Get(key)
+assert(relative == K.Scale.Root() and math.abs(x - position.x) < 0.02 and math.abs(y - position.y) < 0.02,
+	"consumables must stay at the Layout Mode drag position after Apply")
+K.Layout.Exit(true)
+print("consumables Layout move: ok")
