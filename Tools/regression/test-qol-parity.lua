@@ -116,11 +116,9 @@ do
 	Q.Write(env, K, "talentColor", { r = 0.1, g = 0.2, b = 0.3 })
 	local r, g, b = line.text:GetTextColor()
 	assert(line.text:GetText() == "Talents!" and near(r, 0.1) and near(g, 0.2) and near(b, 0.3), "text and colour repaint")
-	local _, _, _, _, tY = line:GetPoint(1)
 	Q.Write(env, K, "combatAlert", true)
 	env.SetCombat(true)
-	local _, _, _, _, fY = ns.noticeLines.flash:GetPoint(1)
-	assert(math.abs(fY - tY) >= 40, "the combat and talent lines do not overlap")
+	assert(ns.noticeLines.flash:GetBottom() > line:GetTop(), "the combat and talent lines do not overlap")
 	env.SetCombat(false)
 	Q.Write(env, K, "talentAlert", false)
 	settle(env)
@@ -349,6 +347,250 @@ do
 	assert(preview.lines[1]:GetText() == "Go" and preview.lines[1]:GetAlpha() == 1 and preview.lines[3]:GetAlpha() == 1)
 	assert(near(preview.cross.h:GetWidth(), 70) and near(preview.cross.h:GetHeight(), K.Scale.Pixel(1)))
 	assert(near(select(4, preview.ring:GetVertexColor()), 0.7), "the ring sample takes the ring's opacity")
+	clean(env, K)
+end
+
+-- The PR #598 review's probes follow, one block per finding.
+
+-- A restricted or missing self comparison never announces the player's own death.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "deathAlert", true)
+	env._raid = true
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	env.UnitIsUnit = function() return env.Secret(true) end
+	env._names.raid2, env._dead.raid2 = "PlayerAlias", true
+	env.FireEvent("UNIT_HEALTH", "raid2")
+	assert(not ns.noticeLines.flash and #Q.Calls(env, "PlaySound") == 0, "a secret UnitIsUnit raises nothing")
+	env.UnitIsUnit, env._dead.raid3 = nil, true
+	env.FireEvent("UNIT_HEALTH", "raid3")
+	assert(not ns.noticeLines.flash and #Q.Calls(env, "PlaySound") == 0, "nor does a missing one")
+	clean(env, K)
+end
+
+-- At the largest alert size, at every screen size, no two alert lines overlap, and a global text size change restyles a visible line at once.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns = Q.New({ width = screen[1], height = screen[2], size = "auto", uiScale = 768 / 1080 })
+	Q.Enable(env, K)
+	env._unspent, env._durability[5] = true, { 1, 100 }
+	for _, key in ipairs({ "talentAlert", "combatAlert", "durabilityAlert" }) do Q.Write(env, K, key, true) end
+	Q.Write(env, K, "alertSize", 64)
+	env.SetCombat(true)
+	env.SetCombat(false)
+	Q.W.Settle(env)
+	local flash, talents, durability = ns.noticeLines.flash, ns.noticeLines.talents, ns.noticeLines.durability
+	local function apart(when)
+		assert(flash:GetBottom() > talents:GetTop() and durability:GetBottom() > flash:GetTop(), screen[1] .. "x" .. screen[2] .. ": no alert lines overlap " .. when)
+	end
+	apart("at size 64")
+	assert(K.Theme.SetFontScale(1.3))
+	env.RunTimers()
+	Q.W.Settle(env)
+	assert(select(2, talents.text:GetFont()) > 80 and select(2, flash.text:GetFont()) > 80, "a visible line follows the global text size")
+	apart("after a larger global text size")
+	clean(env, K)
+end
+
+-- A quick combat round trip leaves the warning up, and turning one flash source off clears only its own flash.
+do
+	local env, K, ns = boot()
+	env._durability[5] = { 20, 100 }
+	Q.Write(env, K, "durabilityAlert", true)
+	Q.W.Settle(env)
+	local line = ns.noticeLines.durability
+	env.SetCombat(true)
+	env.SetCombat(false)
+	Q.W.Settle(env)
+	assert(line:IsShown() and line:GetAlpha() == 1, "the warning is up out of combat after a quick round trip")
+	Q.Write(env, K, "combatAlert", true)
+	Q.Write(env, K, "deathAlert", true)
+	env.SetCombat(true)
+	env.SetCombat(false)
+	local flash = ns.noticeLines.flash
+	Q.Write(env, K, "combatAlert", false)
+	Q.W.Settle(env)
+	assert(not flash:IsShown(), "turning Combat alert off clears -Combat while Group death alert stays on")
+	env._group, env._names.party1, env._dead.party1 = true, "Valerin", true
+	env.FireEvent("UNIT_HEALTH", "party1")
+	Q.Write(env, K, "combatAlert", true)
+	Q.W.Settle(env)
+	assert(flash:IsShown() and flash.text:GetText() == "Valerin died", "a death flash stays when Combat alert changes")
+	clean(env, K)
+end
+
+-- A log the player stopped and started again stays theirs when they leave.
+do
+	local env, K = boot()
+	Q.Write(env, K, "autoLog", true)
+	env._instance = { true, "raid" }
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	assert(env._logging == true)
+	env.LoggingCombat(false)
+	env.LoggingCombat(true)
+	env._instance = { false, "none" }
+	env.FireEvent("ZONE_CHANGED_NEW_AREA")
+	assert(env._logging == true, "a log the player restarted keeps running")
+	clean(env, K)
+end
+
+-- Shift held as a movie starts keeps it, and an unrelated setting leaves a waiting skip alone.
+do
+	local env, K = boot()
+	Q.Write(env, K, "skipCinematics", true)
+	Q.Write(env, K, "skipDelay", 5)
+	Q.Write(env, K, "skipMode", "both")
+	env._modifiers.shift = true
+	env.MovieFrame:Show()
+	env.FireEvent("PLAY_MOVIE", 1)
+	env._modifiers.shift = false
+	env.Release()
+	assert(#Q.Calls(env, "FinishMovie") == 0, "Shift at the start keeps the movie")
+	env.FireEvent("PLAY_MOVIE", 1)
+	Q.Write(env, K, "announceReset", true)
+	env.Release()
+	assert(#Q.Calls(env, "FinishMovie") == 1 and not env.MovieFrame:IsShown(), "Announce instance resets leaves the waiting skip alone")
+	env.IsShiftKeyDown = nil
+	env.MovieFrame:Show()
+	env.FireEvent("PLAY_MOVIE", 1)
+	env.Release()
+	assert(#Q.Calls(env, "FinishMovie") == 1, "a missing Shift answer keeps the movie")
+	clean(env, K)
+end
+
+-- A missing or unreadable game answer takes the safe path.
+do
+	local env, K, ns = boot()
+	env._durability[18], env._equipped[18] = { 1, 100 }, 900
+	env.C_Item.GetItemInfoInstant = nil
+	Q.Write(env, K, "durabilityAlert", true)
+	clean(env, K)
+	local reads, read, fight = 0, env.GetInventoryItemDurability, env.InCombatLockdown
+	env.GetInventoryItemDurability = function(slot) reads = reads + 1; return read(slot) end
+	env.InCombatLockdown = function() return env.Secret(true) end
+	Q.Write(env, K, "alertSize", 30)
+	assert(reads == 0, "an unreadable combat state reads no gear")
+	env.InCombatLockdown = fight
+	env.IsInRaid, env.IsInGroup, env.IsInInstance = nil, nil, nil
+	Q.Write(env, K, "deathAlert", true)
+	Q.Write(env, K, "crosshair", "normal")
+	assert(ns.AidFrames():IsShown(), "a missing instance answer still shows an Always crosshair")
+	Q.Write(env, K, "crosshairShow", "instances")
+	assert(not ns.AidFrames():IsShown(), "and counts as outside")
+	Q.Write(env, K, "announceReset", true)
+	env.FireEvent("CHAT_MSG_SYSTEM", "Deadmines has been reset.")
+	assert(#Q.Calls(env, "SendChatMessage") == 0, "a missing group answer announces nothing")
+	env.IsInGroup = function() return true end
+	env.InCombatLockdown = function() return env.Secret(false) end
+	env.FireEvent("CHAT_MSG_SYSTEM", "Deadmines has been reset.")
+	assert(#Q.Calls(env, "SendChatMessage") == 0, "an unreadable combat state announces nothing")
+	env.InCombatLockdown = fight
+	clean(env, K)
+end
+
+-- The ring's OnUpdate, the reviewed exception to the no-per-frame rule, exists only while the ring is on and shown.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "cursorRing", true)
+	local _, ring = ns.AidFrames()
+	assert(ring:IsShown() and ring:GetScript("OnUpdate"), "a shown ring follows the pointer")
+	Q.Write(env, K, "cursorShow", "combat")
+	assert(not ring:IsShown() and not ring:GetScript("OnUpdate"), "a hidden ring has no OnUpdate")
+	env.SetCombat(true)
+	assert(ring:GetScript("OnUpdate"))
+	env.SetCombat(false)
+	assert(not ring:GetScript("OnUpdate"), "leaving combat clears it")
+	Q.Write(env, K, "cursorShow", "always")
+	Q.Write(env, K, "cursorRing", false)
+	assert(not ring:GetScript("OnUpdate"), "turning the ring off clears it")
+	Q.Write(env, K, "cursorRing", true)
+	Q.Disable(env, K)
+	assert(not ring:GetScript("OnUpdate"), "so does turning the module off")
+	clean(env, K)
+end
+
+-- The preview puts the crosshair, the warning and the group death alert where the screen does, and every colour swatch is disabled under its class colour.
+do
+	local env, K = boot()
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(600, 400)
+	local preview = K.Options.Preview("QoL")(parent)
+	local function find(text)
+		for _, line in ipairs(preview.lines) do
+			if line:GetText() == text then return line end
+		end
+	end
+	local function offset(a, b)
+		local ax, ay = a:GetCenter()
+		local bx, by = b:GetCenter()
+		return ax - bx, ay - by
+	end
+	local function close(a, b)
+		return math.abs(a - b) < 1
+	end
+	local death, talents, durability = find("A group member died"), find("Unspent talent points"), find("Low durability: 39%")
+	assert(death and death:GetAlpha() < 1, "the group death sample shows, dimmed while off")
+	local cx, cy = offset(preview.cross, talents)
+	local dx, dy = offset(durability, talents)
+	Q.Write(env, K, "crosshairX", 125)
+	Q.Write(env, K, "crosshairY", -100)
+	Q.Write(env, K, "durabilityY", 400)
+	Q.Write(env, K, "deathAlert", true)
+	preview:Refresh()
+	local cx2, cy2 = offset(preview.cross, talents)
+	local dx2, dy2 = offset(durability, talents)
+	assert(close(cx2 - cx, 125) and close(cy2 - cy, -100), "the crosshair sample moves with its offsets")
+	assert(close(dx2, dx) and close(dy2 - dy, 150), "the warning sample moves with Warning height")
+	assert(death:GetAlpha() == 1, "the group death sample lights up")
+	for colour, class in pairs({ combatEnterColor = "combatEnterClass", combatLeaveColor = "combatLeaveClass", talentColor = "talentClass", cursorColor = "cursorClass" }) do
+		local row = K.Options.Row("QoL", colour)
+		local settings = { enabled = true, combatAlert = true, talentAlert = true, cursorRing = true }
+		assert(not row.disableWhen(settings), colour .. " is editable")
+		settings[class] = true
+		assert(row.disableWhen(settings), colour .. " is disabled under class colour")
+	end
+	clean(env, K)
+end
+
+-- Every new option switched on at once: each has a row and reads back, a feign raises nothing, and the class colours and thicknesses show.
+do
+	local env, K, ns = boot()
+	env._unspent, env._durability[5], env._group = true, { 10, 100 }, true
+	local ON = {
+		skipMode = "both", alertSize = 40, combatAlert = true, combatAlertOn = "enter", combatEnterText = "In", combatEnterColor = { r = 0.1, g = 0.2, b = 0.3 },
+		combatEnterClass = true, combatLeaveText = "Out", combatLeaveColor = { r = 0.3, g = 0.2, b = 0.1 }, combatLeaveClass = true,
+		talentAlert = true, talentText = "Spend", talentColor = { r = 0.4, g = 0.5, b = 0.6 }, talentClass = true, deathAlert = true, deathSound = "ready",
+		durabilityAlert = true, durabilityPercent = 50, durabilityY = 300, durabilityThrown = false,
+		crosshair = "thin", crosshairShow = "combat", crosshairHLength = 60, crosshairHWidth = 3, crosshairVLength = 70, crosshairVWidth = 5,
+		crosshairBorder = 1, crosshairX = 10, crosshairY = -10,
+		cursorRing = true, cursorShow = "combat", cursorScale = 150, cursorOpacity = 50, cursorClass = true, cursorColor = { r = 0.7, g = 0.8, b = 0.9 },
+		hideScreenshot = true, announceReset = true, autoLog = true, autoLogWhere = "all", autoLogNotice = false,
+	}
+	for key, value in pairs(ON) do
+		assert(K.Options.Row("QoL", key), key .. " has a row")
+		Q.Write(env, K, key, value)
+		local got = ns.Get(key)
+		assert(got == value or type(value) == "table" and near(got.r, value.r), key .. " reads back")
+	end
+	local cr, cg, cb = K.Theme.ClassColor(select(2, env.UnitClass("player")))
+	local function classed(text)
+		local r, g, b = text:GetTextColor()
+		return near(r, cr) and near(g, cg) and near(b, cb)
+	end
+	env.UnitIsFeignDeath = function(unit) return unit == "party1" end
+	env._dead.party1 = true
+	env.FireEvent("UNIT_HEALTH", "party1")
+	assert(not ns.noticeLines.flash and #Q.Calls(env, "PlaySound") == 0, "a feign raises nothing")
+	env.SetCombat(true)
+	local flash = ns.noticeLines.flash
+	assert(flash.text:GetText() == "In" and classed(flash.text), "Entering in class colour")
+	local cross, ring = ns.AidFrames()
+	assert(cross:IsShown() and ring:IsShown(), "combat shows the crosshair and the ring")
+	assert(near(cross.v:GetWidth(), K.Scale.Pixel(5)) and near(cross.h:GetHeight(), K.Scale.Pixel(3)), "Vertical and Horizontal thickness")
+	env.SetCombat(false)
+	local talents, durability = ns.noticeLines.talents, ns.noticeLines.durability
+	assert(talents:IsShown() and talents.text:GetText() == "Spend" and classed(talents.text), "Talent alert in class colour")
+	assert(durability:IsShown() and durability.text:GetText() == "Low durability: 10%")
+	assert(not env.ActionStatus:IsEventRegistered("SCREENSHOT_SUCCEEDED"))
 	clean(env, K)
 end
 
