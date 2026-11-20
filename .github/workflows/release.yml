@@ -9,12 +9,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag to announce
-        required: true
+        description: Existing release tag to announce (leave empty for the roadmap)
         type: string
       message_ids:
         description: Optional comma-separated message IDs (edit first, delete the rest)
         type: string
+      roadmap:
+        description: Post docs/ROADMAP.md instead of a release
+        type: boolean
 
 permissions: {}
 
@@ -167,8 +169,17 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
           MESSAGE_IDS: ${{ inputs.message_ids }}
+          ROADMAP: ${{ inputs.roadmap }}
           DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
         run: |
+          if [ "$ROADMAP" = true ]; then
+            if [ -n "$MESSAGE_IDS" ]; then
+              python3 Tools/release/discord_post.py --roadmap --edit "$MESSAGE_IDS"
+            else
+              python3 Tools/release/discord_post.py --roadmap
+            fi
+            exit 0
+          fi
           git show-ref --verify "refs/tags/$TAG"
           if [ -n "$MESSAGE_IDS" ]; then
             python3 Tools/release/discord_post.py --edit "$TAG" "$MESSAGE_IDS"

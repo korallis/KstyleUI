@@ -138,6 +138,9 @@ class WorkflowsTest(unittest.TestCase):
             self.assertNotRegex(job, r"CF_API_KEY|WAGO_API_TOKEN|GITHUB_OAUTH", name)
             self.assertIn('python3 Tools/release/discord_post.py --edit "$TAG" "$MESSAGE_IDS"', job)
             self.assertIn('python3 Tools/release/discord_post.py "$TAG"', job)
+            self.assertIn('python3 Tools/release/discord_post.py --roadmap --edit "$MESSAGE_IDS"', job)
+            self.assertIn("python3 Tools/release/discord_post.py --roadmap\n", job)
+        self.assertRegex(text, r"\n      roadmap:\n        description: .+\n        type: boolean\n")
 
     def test_release_check_and_lua_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")

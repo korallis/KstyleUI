@@ -1,6 +1,7 @@
-"""Post or edit one branded Discord embed for a release; --dry-run never sends."""
+"""Post or edit the branded Discord embed for a release, or the roadmap; --dry-run never sends."""
 
 import argparse
+import datetime
 import json
 import os
 import re
@@ -13,6 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 GITHUB = "https://github.com/korallis/KstyleUI"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI"
 DOWNLOAD = "[CurseForge](https://www.curseforge.com/wow/addons/kstyleui) · [Wago](https://addons.wago.io/addons/kstyleui)"
+
+
+def brand(author, ref):
+    gold = re.search(r'\bgilt = \{ "([0-9a-f]{6})"', (ROOT / "Core/Tokens.lua").read_text()).group(1)
+    return {"color": int(gold, 16), "author": {"name": author, "url": GITHUB, "icon_url": f"{RAW}/{ref}/Media/Logo/Logo256.png"}}
 
 
 def release_section(changelog, tag):
@@ -66,7 +72,6 @@ def release_payload(changelog, tag, release_notes="", readme=""):
     title = f"KstyleUI {tag}" + (" — " + name.group(1) if name else "")
     url = f"{GITHUB}/releases/tag/{tag}"
     raw = f"{RAW}/{tag}"
-    gold = re.search(r'\bgilt = \{ "([0-9a-f]{6})"', (ROOT / "Core/Tokens.lua").read_text()).group(1)
     counts = " · ".join(f"{len(lists.get(label, []))} {label.lower()}" for label in ("Added", "Changed", "Fixed") if lists.get(label))
     description = (shorten(summary, 2400, sentence=False) + "\n\n**Highlights**\n"
                    + "\n".join("- " + shorten(line) for line in highlights) + ("\n\n" + counts if counts else ""))
@@ -79,9 +84,7 @@ def release_payload(changelog, tag, release_notes="", readme=""):
         while characters("\n".join(lines)) > 1024:
             lines.pop()
         fields.append({"name": "Upgrading", "value": "\n".join(lines)})
-    logo = f"{raw}/Media/Logo/Logo256.png"
-    embed = {"title": shorten(title, 256, sentence=False), "url": url, "color": int(gold, 16),
-             "author": {"name": "KstyleUI", "url": GITHUB, "icon_url": logo},
+    embed = {"title": shorten(title, 256, sentence=False), "url": url, **brand("KstyleUI", tag),
              "description": description, "fields": fields,
              "footer": {"text": "KstyleUI for WoW Forever · " + date}}
     hero = re.search(r"!\[[^\]]*\]\((?:https://raw\.githubusercontent\.com/korallis/KstyleUI/[^/]+/)?(docs/[^)]+)\)", readme)
@@ -94,11 +97,44 @@ def release_payload(changelog, tag, release_notes="", readme=""):
     return payload
 
 
+def roadmap_payload(roadmap, date):
+    def parse(pattern, text):
+        match = re.fullmatch(pattern, text.strip())
+        if not match:
+            raise ValueError("Unexpected roadmap section: " + text.strip().split("\n", 1)[0])
+        return match.groups()
+
+    long = [line for line in re.findall(r"^- (.+)$", roadmap, re.M) if characters(line) > 120 or "…" in line]
+    if long:
+        raise ValueError("Shorten this roadmap highlight to 120 characters or fewer, without an ellipsis: " + long[0])
+    bullets = r"((?:- .+\n?)+)"
+    head, *sections = re.split(r"^## ", roadmap, flags=re.M)
+    heading, intro = parse(r"# (.+)\n\n(.+)", head)
+    later, closing = parse(r"Later\n\n" + bullets + r"\n(.+)", sections.pop() if sections else "")
+    embeds = []
+    for section in sections:
+        title, estimated, summary, items = parse(
+            r"(v[\d.]+ — .+)\n\nEstimated: (.+)\n\n(.+)\n\nHighlights:\n\n" + bullets, section)
+        embeds.append({"title": "KstyleUI " + title, **brand(heading, "main"),
+                       "description": f"**Estimated:** {estimated}\n\n{summary}\n\n**Highlights**\n{items.strip()}"})
+    embeds.append({"title": "Later", **brand(heading, "main"), "description": later.strip() + "\n\n" + closing,
+                   "image": {"url": f"{RAW}/main/docs/media/marketing/banner.jpg"},
+                   "footer": {"text": "KstyleUI for WoW Forever · Roadmap · " + date}})
+    embeds[0]["description"] = intro + "\n\n" + embeds[0]["description"]
+    payload = {"embeds": embeds, "flags": 4096, "allowed_mentions": {"parse": []}}
+    if len(embeds) > 10 or character_totals(payload)["total"] > 6000 or any(
+            characters(e["title"]) > 256 or characters(e["description"]) > 4096 for e in embeds):
+        raise ValueError("Roadmap exceeds Discord message limits")
+    return payload
+
+
 def character_totals(payload):
-    embed = payload["embeds"][0]
-    totals = {"title": characters(embed["title"]), "description": characters(embed["description"]),
-              "fields": [characters(f["name"]) + characters(f["value"]) for f in embed["fields"]],
-              "author": characters(embed["author"]["name"]), "footer": characters(embed["footer"]["text"])}
+    embeds = payload["embeds"]
+    totals = {"title": sum(characters(e["title"]) for e in embeds),
+              "description": sum(characters(e["description"]) for e in embeds),
+              "fields": [characters(f["name"]) + characters(f["value"]) for e in embeds for f in e.get("fields", [])],
+              "author": sum(characters(e["author"]["name"]) for e in embeds),
+              "footer": sum(characters(e["footer"]["text"]) for e in embeds if "footer" in e)}
     totals["total"] = sum(value if isinstance(value, int) else sum(value) for value in totals.values())
     return totals
 
@@ -124,11 +160,18 @@ def send(webhook, payload, message_ids=""):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--edit", action="store_true", help="edit the first message and delete the remaining IDs")
-    parser.add_argument("tag")
+    parser.add_argument("--roadmap", action="store_true", help="post docs/ROADMAP.md; the only positional is then message_ids")
+    parser.add_argument("tag", nargs="?", default="")
     parser.add_argument("message_ids", nargs="?", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--notes", action="store_true", help="print the GitHub release text instead")
     args = parser.parse_args()
+    if args.roadmap:
+        if args.message_ids or args.notes:
+            parser.error("--roadmap takes only message_ids")
+        args.tag, args.message_ids = "", args.tag
+    elif not args.tag:
+        parser.error("tag is required without --roadmap")
     if args.edit != bool(args.message_ids):
         parser.error("--edit requires message_ids; message_ids requires --edit")
     if args.notes:
@@ -138,9 +181,12 @@ def main():
     if not webhook and not args.dry_run:
         print("::notice::Discord release post skipped: webhook is not set.")
         return
-    payload = release_payload((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag,
-                              (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8"),
-                              subprocess.check_output(["git", "show", args.tag + ":README.md"], cwd=ROOT).decode("utf-8"))
+    if args.roadmap:
+        payload = roadmap_payload((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8"), datetime.date.today().isoformat())
+    else:
+        payload = release_payload((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag,
+                                  (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8"),
+                                  subprocess.check_output(["git", "show", args.tag + ":README.md"], cwd=ROOT).decode("utf-8"))
     if args.dry_run:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         print("Character totals: " + json.dumps(character_totals(payload)))
