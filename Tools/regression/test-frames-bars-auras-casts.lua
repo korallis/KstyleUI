@@ -201,6 +201,10 @@ do
 	assert(size == 12 and aura.timer:IsVisible(), "a raid tile is 12 units and shows its time left")
 	local point, to, toPoint, _, y = aura.timer:GetPoint()
 	assert(point == "TOP" and to == p.skin and toPoint == "BOTTOM" and y <= 0, "the time left sits below the tile: " .. tostring(point) .. " " .. tostring(toPoint))
+	local _, timerSize = aura.timer:GetFont()
+	local clipPoint, _, _, _, clipY = f.auraClip:GetPoint()
+	assert(f.auraClip:GetHeight() >= size + timerSize and clipPoint:find("^TOP"),
+		"the debuff clip grows down to hold the time left: " .. f.auraClip:GetHeight() .. " for a " .. size .. " tile at " .. tostring(clipY))
 	local cPoint, cTo, cToPoint = aura.count:GetPoint()
 	assert(cPoint == "BOTTOMRIGHT" and cTo == p.skin and cToPoint == "BOTTOMRIGHT", "the stack count stays inside the tile")
 	for _, entry in ipairs(aura.dispel) do
