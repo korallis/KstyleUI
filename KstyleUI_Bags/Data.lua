@@ -294,7 +294,9 @@ local function TypeMatches(record, query)
 end
 
 local function NameMatches(record, query)
-	if Contains(record.name, query) then
+	local name = record.name
+	if name and record.foldedFrom ~= name then record.foldedFrom, record.folded = name, lower(name) end
+	if name and find(record.folded, query, 1, true) then
 		return true
 	end
 	local item = C_Item

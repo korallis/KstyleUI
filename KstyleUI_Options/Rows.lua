@@ -134,8 +134,9 @@ function MAKERS.slider(row)
 		slider.edit:Hide()
 	end)
 	slider.edit = Widgets.EditBox(slider, { width = 56, onEnter = function(text, box)
-		local value = tonumber((text:gsub("%%%s*$", "")))
-		if value then slider:SetValue(row.item and row.item.percent and value / 100 or value) end
+		local percent = row.item and row.item.percent
+		local value = tonumber(percent and text:gsub("%%%s*$", "") or text)
+		if value then slider:SetValue(percent and value / 100 or value) end
 		box:Hide()
 	end, onEscape = function(box) box:Hide() end })
 	Widgets.Point(slider.edit, "CENTER", slider.readout, "CENTER")

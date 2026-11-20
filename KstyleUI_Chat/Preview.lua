@@ -13,6 +13,7 @@ function Preview.Build(...)
 	if build then return build(...) end
 	local TAB_WIDTH = 72
 	local UNDERLINE = 1
+	local CHEVRON = 8
 	local LINE_GAP = 3
 
 	local SAMPLES = {
@@ -86,7 +87,7 @@ function Preview.Build(...)
 		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
 		self.edit:SetShown(always)
 		local x = left
-		local right = glass:GetWidth() > 0 and glass:GetWidth() - inset - band or math.huge
+		local right = glass:GetWidth() > 0 and glass:GetWidth() - inset - room or math.huge
 		local spare = right - x
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
@@ -94,6 +95,8 @@ function Preview.Build(...)
 			tab:SetText(settings.tabCase == "upper" and label:upper() or label)
 			spare = spare - Widgets.TextWidth(tab, TAB_WIDTH)
 		end
+		local fits = spare >= math.min(gap, Tokens.Size("gapSmall")) * (#self.tabs - 1)
+		local stop = fits and right or right - CHEVRON - Tokens.Size("gapSmall")
 		gap = math.max(math.min(gap, Tokens.Size("gapSmall")), math.min(gap, spare / (#self.tabs - 1)))
 		for i, tab in ipairs(self.tabs) do
 			tab:ClearAllPoints()
@@ -107,11 +110,14 @@ function Preview.Build(...)
 				Widgets.Point(self.underline, "TOPLEFT", tab, "BOTTOMLEFT", 0, -2)
 				Widgets.Size(self.underline, width, UNDERLINE)
 			end
-			tab:SetShown(i == 1 or x + width <= right)
+			tab:SetShown(i == 1 or self.tabs[i - 1]:IsShown() and x + width <= stop)
 			if tab:IsShown() then x = x + width + gap end
 			local color = ns.Frames.TabLook(style, i == 1) or (i == 1 and "textEmphasis" or "text")
 			tab:SetTextColor(Widgets.Rgba(color))
 		end
+		self.more:SetShown(not fits)
+		Widgets.Point(self.more, "RIGHT", glass, "TOPRIGHT", -(inset + room), -top)
+		Widgets.Tint(self.more, ns.Frames.TabLook(style, false) or "text")
 		local _, underlined, filled = ns.Frames.TabLook(style, true)
 		ns.Frames.PaintUnderline(self.underline, self.glow, underlined)
 		self.fill:SetShown(filled)
@@ -152,6 +158,9 @@ function Preview.Build(...)
 		for i = 1, #TABS do
 			frame.tabs[i] = Widgets.FontString(top, "OVERLAY")
 		end
+		frame.more = top:CreateTexture(nil, "OVERLAY")
+		frame.more:SetTexture((Tokens.Texture("glyphChevron")))
+		Widgets.Size(frame.more, CHEVRON, CHEVRON)
 		frame.underline = top:CreateTexture(nil, "OVERLAY")
 		frame.underline:SetTexture((Tokens.Texture("divider")))
 		frame.glow = top:CreateTexture(nil, "OVERLAY", nil, -1)

@@ -571,11 +571,12 @@ local function PlateDoubleClick(plate, button)
 		ns.Options.Write("ActionBars", "editBar", bar)
 		target = { page = "ActionBars", module = "ActionBars", key = "editBar" }
 	elseif ns.Store.Account().moverOptions == false then return end
-	local picker, kind = el.module and ns.Options.Row(el.module, "edit"), plate.key:match("([^.]+)$")
+	local picker, section, kind = el.module and ns.Options.Row(el.module, "edit"), plate.key:match("^[^.]+%.([^.]+)%.([^.]+)$")
+	kind = kind or plate.key:match("([^.]+)$")
 	for _, option in ipairs(picker and type(picker.options) == "table" and picker.options or {}) do
 		if option.value == kind then
 			ns.Options.Write(el.module, "edit", kind)
-			target = { page = el.module, module = el.module, key = "edit" }
+			target = { page = el.module, module = el.module, key = section and kind .. "." .. section or "edit" }
 		end
 	end
 	Layout.Exit()

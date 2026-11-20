@@ -57,7 +57,7 @@ FONT_DIR = Path("Media") / "Fonts"
 GAME_FONT_LOCALES = ("zhCN",)
 EDGE = re.compile(r"^(\s*).*?(\s*)$", re.S)
 # A sentence (three or more words ending . ! or ?) may not ship as its own English; names and units may.
-SENTENCE = re.compile(r"[A-Za-z]{2,}(?:\W+[A-Za-z]{2,}){2,}.*[.!?]$", re.S)
+SENTENCE = re.compile(r"[A-Za-z]+(?:\W+[A-Za-z]+){2,}.*[.!?]$", re.S)
 ENTRY = re.compile(r'^\t\["((?:[^"\\]|\\.)*)"\] = "((?:[^"\\]|\\.)*)",$')
 
 
@@ -233,7 +233,7 @@ def problems(root=ROOT):
             if not isinstance(text, str) or text.strip() == "":
                 out.append("%s is empty" % name)
                 continue
-            if text == key and SENTENCE.search(key):
+            if text == key and SENTENCE.search(SPEC.sub("", key)):
                 out.append("%s is the English sentence itself; translate it in Tools/locale/%s.json" % (name, code))
             if tokens(SPEC, text) != tokens(SPEC, key):
                 out.append("%s changes the format specifiers %s to %s" % (name, tokens(SPEC, key), tokens(SPEC, text)))
