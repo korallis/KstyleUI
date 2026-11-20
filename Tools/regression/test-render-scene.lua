@@ -349,6 +349,18 @@ end
 assert(sawUnknown, "the unknown atlas is logged as a grey box")
 assert(sawMissing, "the missing sheet is logged with the command that fetches it")
 assert(not sawGlyph, "a drawn atlas is not logged")
+glyph:SetSize(16, 8)
+glyph:SetTexture("Media/Textures/BarFlat.png")
+glyphItem = find(Scene.Build(env), glyph)
+assert(glyphItem.atlas == nil and glyphItem.file == "Media/Textures/BarFlat.png" and glyphItem.texCoord == nil,
+	"SetTexture after SetAtlas must draw the new file without the atlas sheet or its coordinates")
+glyph:SetAtlas("UI-Test-Glyph")
+glyph:SetColorTexture(0.2, 0.3, 0.4, 0.4)
+glyphItem = find(Scene.Build(env), glyph)
+assert(glyphItem.atlas == nil and glyphItem.file == nil and glyphItem.texCoord == nil,
+	"SetColorTexture after SetAtlas must draw without the atlas sheet or its coordinates")
+assert(glyphItem.color[1] == 0.2 and glyphItem.color[2] == 0.3 and glyphItem.color[3] == 0.4 and glyphItem.alpha == 0.4,
+	"the replacement colour and alpha must reach the renderer")
 Scene.ATLAS = {}
 glyph:Hide()
 sized:Hide()
