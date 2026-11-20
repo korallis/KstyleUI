@@ -1,4 +1,4 @@
--- questcard_guide.lua: the Medallions quest card, open RestedXP guide and docked boxes in one environment.
+-- questcard_guide.lua: the Medallions quest card, open RestedXP guide and docked boxes in one environment; RENDER_COMBAT=1 RENDER_COMBAT_STEP=1 grows the guide's step to five lines in combat.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 
@@ -17,6 +17,13 @@ return Common.Run(function()
 	R.rxp.targeting.activeTargetFrame.enemyTargetButtons[1].icon:SetTexture(136188)
 	if os.getenv("RENDER_COMBAT") == "1" then
 		R.env.SetCombat(true)
+		if os.getenv("RENDER_COMBAT_STEP") == "1" then
+			R.rxp.fake.guide({ { index = 12, elements = {
+				{ text = "Talk to |cRXP_FRIENDLY_Gina Lang|r on the second floor", textOnly = true },
+				{ text = "Turn in Gloom Weed" }, { text = "Accept Doom Weed" }, { text = "Train your spells", textOnly = true }, { text = "Vendor Trash", textOnly = true },
+			} } })
+			R.rxp.SetStep(1)
+		end
 		R.rxp.SetStep()
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()

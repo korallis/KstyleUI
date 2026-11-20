@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the steps that would run past the element's foot rest unseen behind a muted "N more" line, in combat too, so the guide never draws over the quest card or anything under it; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away; in Frames, while the guide is shown and the quest card is up, the guide takes the quest card's tall column and the quest card the story slot (the quest card gives up rows before the guide gives up its step), trading places only when the guide shows or hides, never per step, and the boxes take only the room the guide's current step leaves. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
+-- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default; in Orbs under it in one column, hanging a rail gap under the quest card's own foot while both stand at their places) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat too the card keeps its top and grows down, so the guide never draws over the quest card; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space and, in Orbs, the quest card giving up room before the guide loses its current step's first line, until the player drags one away; in Frames, while the guide is shown and the quest card is up, the guide takes the quest card's tall column and the quest card the story slot (the quest card gives up rows before the guide gives up its step), trading places only when the guide shows or hides, never per step, and the boxes take only the room the guide's current step leaves. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -445,24 +445,14 @@ local function Fit(f, path, band)
 	local row = Widgets.Snap(f, MORE_ROW / scale)
 	local pixel = K.Scale.Pixel(1) / scale
 	local over, under = Around(f, path)
-	local function Span(reach)
-		if over then
-			return over + reach + under
-		end
-		return Shape(f, path, reach).span
-	end
 	local keep, height = #steps, natural
 	while keep > 0 do
 		local reach = keep < #steps and steps[keep].top + steps[keep].height + row or natural
-		if Span(reach) <= room + pixel then
+		if keep == 1 or (over and over + reach + under or Shape(f, path, reach).span) <= room + pixel then
 			height = reach
 			break
 		end
 		keep = keep - 1
-	end
-	if keep == 0 and #steps > 0 then
-		keep = 1
-		height = #steps > 1 and steps[1].height + row or natural
 	end
 	for i = keep + 1, #steps do
 		Cut(steps[i].step)
@@ -489,6 +479,18 @@ local function Fit(f, path, band)
 		Log(hidden > 0 and string.format("%d of the guide's steps rest under a more line, past the foot of its card", hidden) or "every step of the guide fits its card")
 	end
 	return hidden
+end
+
+local function Hang(f, path, band, left)
+	local scale = Widgets.ScaleFactor(f)
+	local shape = Shape(f, path, f.CurrentStepFrame:IsShown() and Height(f.CurrentStepFrame) or nil)
+	local top = band.top / scale - shape.headTop - shape.above - shape.cap
+	if Widgets.Readability("snapEdges") then
+		Widgets.Point(f, "TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top, true)
+	else
+		f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top)
+	end
+	return shape, top
 end
 
 local function Lift(f)
@@ -637,16 +639,10 @@ function Rail.Place()
 		if shape and math.abs(Height(f.CurrentStepFrame) - before) < 0.01 then
 			break
 		end
-		local steps = f.CurrentStepFrame:IsShown() and Height(f.CurrentStepFrame) or nil
-		shape = Shape(f, path, steps)
-		local top = band.top / scale - shape.headTop - shape.above - shape.cap
 		f:ClearAllPoints()
+		local top
+		shape, top = Hang(f, path, band, left)
 		f:SetSize(width, shape.height)
-		if Widgets.Readability("snapEdges") then
-			Widgets.Point(f, "TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top, true)
-		else
-			f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top)
-		end
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
@@ -740,7 +736,11 @@ local function Restore()
 	end)
 end
 
-local function Shifted(f, placed)
+local function Strayed(f, placed)
+	local width, height = f:GetWidth(), f:GetHeight()
+	if Plain(width) and Plain(height) and (math.abs(width - placed.width) > MOVED or math.abs(height - placed.height) > MOVED) then
+		return true
+	end
 	local scale = Widgets.ScaleFactor(f)
 	local root = K.Scale.Root()
 	local l, t, rl, rb = f:GetLeft(), f:GetTop(), root:GetLeft(), root:GetBottom()
@@ -759,9 +759,7 @@ local function Moved(f)
 	if not placed or not On() then
 		return
 	end
-	local width, height = f:GetWidth(), f:GetHeight()
-	local resized = Plain(width) and Plain(height) and (math.abs(width - placed.width) > MOVED or math.abs(height - placed.height) > MOVED)
-	if Shifted(f, placed) or resized then
+	if Strayed(f, placed) then
 		state.placed, state.original = nil, nil
 		Hold(f, false)
 		RestedXP.Chrome.Rest(f, false)
@@ -906,8 +904,13 @@ function Dock(f, path, band)
 end
 
 local function OnHead(f)
-	if state.placed and On() and IsTable(f) and f == Frame() then
-		Fit(f, RestedXP.Chrome.Path(f), Rail.Band())
+	local placed = state.placed
+	if placed and On() and IsTable(f) and f == Frame() then
+		local path, band = RestedXP.Chrome.Path(f), Rail.Band()
+		Fit(f, path, band)
+		if band and not Strayed(f, placed) then
+			placed.top = select(2, Hang(f, path, band, placed.left))
+		end
 	end
 	Schedule()
 end
